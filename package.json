@@ -1,11 +1,11 @@
 {
   "name": "apifier",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Apifier SDK for JavaScript",
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "https://jancurn@bitbucket.org/jancurn/apifier.git"
+    "url": "https://github.com/apifier/apifier-sdk-js"
   },
   "keywords": [
     "apifier"
