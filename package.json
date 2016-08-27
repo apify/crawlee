@@ -1,0 +1,27 @@
+{
+  "name": "apifier",
+  "version": "0.0.1",
+  "description": "Apifier SDK for JavaScript",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://jancurn@bitbucket.org/jancurn/apifier.git"
+  },
+  "keywords": [
+    "apifier"
+  ],
+  "author": {
+    "name": "Apifier",
+    "email": "info@apifier.com",
+    "url": "https://www.apifier.com"
+  },
+  "contributors": [
+    "Jan Curn <jan@apifier.com>"
+  ],
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://www.apifier.com"
+  },
+  "homepage": "https://www.apifier.com",
+  "dependencies": {}
+}
