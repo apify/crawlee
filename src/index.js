@@ -1,16 +1,8 @@
-class Person {
-  constructor(name, age) {
-    this.name = name;
-    this.age = age;
-  }
+import _ from 'underscore';
+import Actor from './actor';
 
-  getName() {
-    return this.name;
-  }
 
-  getAge() {
-    return this.age;
-  }
-}
+const Apifier = {};
+_.extend(Apifier, Actor);
 
-export default Person;
+export default Apifier;
