@@ -83,10 +83,10 @@ receiving HTTP requests over the port specified by the `APIFIER_INTERNAL_PORT` e
 
 * `npm run test` to run tests
 * `npm run test-cov` to generate test coverage
-* `npm run build` to transform es6/es7 to es5 by Babel
+* `npm run build` to transform ES6/ES7 to ES5 by Babel
 * `npm run clean` to clean `build/` directory
 * `npm run lint` to lint js using ESLint in Airbnb's Javascript style
-* `npm publis` to run Babel, run tests and publish the package to NPM
+* `npm publish` to run Babel, run tests and publish the package to NPM
 
 ## License
 
