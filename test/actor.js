@@ -1,4 +1,6 @@
+import fs from 'fs';
 import { expect } from 'chai';
+import tmp from 'tmp';
 
 // NOTE: use require() here because this how its done in acts
 const Apifier = process.env.TEST_BABEL_BUILD ? require('../build/index') : require('../src/index');
@@ -40,5 +42,31 @@ describe('Apifier.main()', () => {
         process.env.APIFIER_INTERNAL_PORT = 12345;
         // TODO: use watch file
         Apifier.main(() => {});
+    });
+});
+
+
+describe('Apifier.heyIAmReady()', () => {
+    it('it works as expected', () => {
+        const tmpobj = tmp.fileSync();
+        const path = tmpobj.name;
+        fs.writeSync(tmpobj.fd, 'bla bla bla bla');
+
+        let stat = fs.statSync(path);
+        expect(stat.size).to.be.greaterThan(0);
+
+        process.env.APIFIER_WATCH_FILE = path;
+        Apifier.heyIAmReady();
+
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                stat = fs.statSync(path);
+                if (stat.size !== 0) {
+                    reject('Watch file not written');
+                } else {
+                    resolve();
+                }
+            }, 100);
+        });
     });
 });

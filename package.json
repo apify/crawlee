@@ -37,20 +37,21 @@
     "underscore": "^1.8.3"
   },
   "devDependencies": {
+    "babel-cli": "^6.6.5",
     "babel-core": "^6.1.21",
     "babel-eslint": "^7.2.2",
     "babel-preset-es2015": "^6.1.18",
     "babel-preset-stage-0": "^6.1.18",
-    "babel-cli": "^6.6.5",
     "chai": "^3.4.1",
     "eslint": "^3.19.0",
     "eslint-config-airbnb": "^14.1.0",
-    "eslint-plugin-react": "^6.10.3",
     "eslint-config-airbnb-base": "^11.1.0",
     "eslint-plugin-import": "^2.2.0",
     "eslint-plugin-jsx-a11y": "^4.0.0",
     "eslint-plugin-promise": "^3.4.2",
+    "eslint-plugin-react": "^6.10.3",
     "isparta": "^4.0.0",
-    "mocha": "^3.2.0"
+    "mocha": "^3.2.0",
+    "tmp": "^0.0.31"
   }
 }

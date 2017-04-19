@@ -1,10 +1,9 @@
 import http from 'http';
 import fs from 'fs';
 
+const Actor = {
 
-export default {
-
-    main: (handler) => {
+    main(handler) {
         if (!handler || typeof (handler) !== 'function') {
             throw new Error('Handler function must be provided as a parameter');
         }
@@ -13,17 +12,15 @@ export default {
             throw new Error('APIFIER_INTERNAL_PORT environment variable must be a value from 1 to 65535.');
         }
 
-        const watchFileName = process.env.APIFIER_WATCH_FILE;
-
         const wrappedHandler = (req, res) => {
             try {
                 handler(req, res);
 
                 // close response if not yet
             } catch (e) {
-                console.log( 'Received message!!!' );
+                console.log('Received message!!!');
                 res.statusCode = 200;
-                res.setHeader( 'Content-Type', 'text/plain' );
+                res.setHeader('Content-Type', 'text/plain');
                 res.end('Hello World\n');
             }
         };
@@ -32,9 +29,25 @@ export default {
 
         server.listen(serverPort, () => {
             console.log(`Listening on port ${serverPort}`);
-            if (watchFileName) fs.writeFileSync(watchFileName, '');
+            Actor.heyIAmReady();
         });
     },
 
+    /**
+     * Notifies Apifier runtime that act is listening on port specified by the APIFIER_INTERNAL_PORT environment
+     * variable and is ready to receive a HTTP request with act input.
+     */
+    heyIAmReady() {
+        const watchFileName = process.env.APIFIER_WATCH_FILE;
+        if (watchFileName) {
+            fs.writeFile(watchFileName, '', (err) => {
+                if (err) console.log(`WARNING: Cannot write to watch file ${watchFileName}: ${err}`);
+            });
+        }
+    },
+
 };
+
+
+export default Actor;
 
