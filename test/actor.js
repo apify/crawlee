@@ -3,6 +3,8 @@ import Apifier from '../src/index';
 
 /* global process */
 
+// TODO: run tests against build scripts too!
+
 describe('Apifier.main()', () => {
     it('should throw on invalid args', () => {
         process.env.APIFIER_INTERNAL_PORT = 1234;

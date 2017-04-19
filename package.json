@@ -1,6 +1,6 @@
 {
   "name": "apifier",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Apifier SDK for JavaScript",
   "main": "build/index.js",
   "keywords": [
@@ -29,6 +29,7 @@
     "test": "mocha --compilers js:babel-core/register --recursive",
     "test-cov": "babel-node isparta cover --report html --report text node_modules/.bin/_mocha",
     "build": "babel src --out-dir build",
+    "prepublishOnly": "npm build && npm test",
     "clean": "rm -rf build",
     "lint": "eslint src test"
   },

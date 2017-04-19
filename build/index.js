@@ -1,34 +1,20 @@
-"use strict";
+'use strict';
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+var _underscore = require('underscore');
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+var _underscore2 = _interopRequireDefault(_underscore);
 
-var Person = function () {
-  function Person(name, age) {
-    _classCallCheck(this, Person);
+var _actor = require('./actor');
 
-    this.name = name;
-    this.age = age;
-  }
+var _actor2 = _interopRequireDefault(_actor);
 
-  _createClass(Person, [{
-    key: "getName",
-    value: function getName() {
-      return this.name;
-    }
-  }, {
-    key: "getAge",
-    value: function getAge() {
-      return this.age;
-    }
-  }]);
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-  return Person;
-}();
+var Apifier = {};
+_underscore2.default.extend(Apifier, Actorxx);
 
-exports.default = Person;
+exports.default = Apifier;
