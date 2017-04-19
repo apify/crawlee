@@ -7,7 +7,7 @@ This package is still a work in progress, stay tuned.
 
 ## Installation
 
-```
+```bash
 npm install apifier --save
 ```
 
@@ -15,13 +15,13 @@ npm install apifier --save
 
 Import the package to your source code
 
-```
+```javascript
 const Apifier = require('apifier');
 ```
 
 And use `Apifier.main(func)` to pass a user function that will be invoked by the Apifier actor runtime.
 
-```
+```javascript
 Apifier.main( (options) => {
     // my synchronous function that returns immediatelly
     console.dir(`Received: ${options.input}`);
@@ -31,7 +31,7 @@ Apifier.main( (options) => {
 
 If the user function returns a promise, it is considered as asynchronous.
 
-```
+```javascript
 Apifier.main( (options) => {
     // my asynchronous function that returns a promise
     console.dir(`Received: ${options.input}`);
@@ -46,7 +46,7 @@ Apifier.main( (options) => {
 ```
 
 The user function has a single argument `options` which is an object such as:
-```
+```javascript
 {
    input: Object, // HTTP payload parsed as JSON (if possible) or as text
 }
@@ -55,7 +55,7 @@ The user function has a single argument `options` which is an object such as:
 Instead of the `Apifier.main()` helper function,
 you can run a web server inside the act and handle the requests all by yourself.
 
-```
+```javascript
 const http = require('http');
 
 const server = http.createServer((req, res) => {
