@@ -1,27 +1,48 @@
 {
-  "name": "apifier",
-  "version": "0.0.2",
-  "description": "Apifier SDK for JavaScript",
-  "main": "index.js",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/apifier/apifier-sdk-js"
-  },
-  "keywords": [
-    "apifier"
-  ],
-  "author": {
-    "name": "Apifier",
-    "email": "info@apifier.com",
-    "url": "https://www.apifier.com"
-  },
-  "contributors": [
-    "Jan Curn <jan@apifier.com>"
-  ],
-  "license": "Apache-2.0",
-  "bugs": {
-    "url": "https://www.apifier.com"
-  },
-  "homepage": "https://www.apifier.com",
-  "dependencies": {}
+    "name": "apifier",
+    "version": "0.0.3",
+    "description": "Apifier SDK for JavaScript",
+    "main": "index.js",
+    "keywords": [
+        "apifier",
+        "crawler",
+        "scraper"
+    ],
+    "author": {
+        "name": "Apifier",
+        "email": "info@apifier.com",
+        "url": "https://www.apifier.com"
+    },
+    "contributors": [
+        "Jan Curn <jan@apifier.com>"
+    ],
+    "license": "Apache-2.0",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/apifier/apifier-sdk-js"
+    },
+    "bugs": {
+        "url": "https://github.com/apifier/apifier-sdk-js/issues"
+    },
+    "homepage": "https://github.com/apifier/apifier-sdk-js#readme",
+    "scripts": {
+        "test": "mocha --compilers js:babel-core/register --recursive",
+        "test-cov": "babel-node isparta cover --report html --report text node_modules/.bin/_mocha",
+        "build": "babel src --out-dir build",
+        "clean": "rm -rf build",
+        "lint": "eslint src test"
+    },
+    "dependencies": {},
+    "devDependencies": {
+        "babel-core": "^6.1.21",
+        "babel-eslint": "^7.2.2",
+        "babel-preset-es2015": "^6.1.18",
+        "babel-preset-stage-0": "^6.1.18",
+        "chai": "^3.4.1",
+        "eslint": "^3.19.0",
+        "eslint-config-airbnb": "^14.1.0",
+        "eslint-plugin-react": "^6.10.3",
+        "isparta": "^4.0.0",
+        "mocha": "^3.2.0"
+    }
 }

@@ -1,0 +1,17 @@
+root: true
+
+env:
+  es6: true
+  node: true
+  browser: true
+  mocha: true
+
+ecmaFeatures:
+  modules: true
+
+extends:
+  "airbnb"
+
+rules:
+  quotes: 0
+  func-names: 0

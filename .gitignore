@@ -1,0 +1,9 @@
+node_modules
+*.log
+*.pid
+*.seed
+.DS_Store
+lib
+coverage
+logs
+pids
