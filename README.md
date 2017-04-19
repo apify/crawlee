@@ -36,10 +36,10 @@ Apifier.main( (options) => {
     // my asynchronous function that returns a promise
     console.dir(`Received: ${options.input}`);
     return Promise.resolve()
-        .then(()=>{
-            // do something here
+        .then(() => {
+            // do something async here
         })
-        .then(()=>{
+        .then(() => {
             return 'Hello world from asynchronous actor!';
         });
 });
@@ -61,7 +61,9 @@ const http = require('http');
 const server = http.createServer((req, res) => {
     res.statusCode = 200;
     res.setHeader('Content-Type', 'text/plain');
-    res.end('Hello World\n');
+    res.end('Hello World\n', (err) => {
+        process.exit(err ? 1 : 0);
+    });
 });
 server.listen(process.env.APIFIER_INTERNAL_PORT|0, (err) => {
     if( err ) {
