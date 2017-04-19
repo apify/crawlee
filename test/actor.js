@@ -1,5 +1,7 @@
 import { expect } from 'chai';
-import Apifier from '../src/index';
+
+// NOTE: use require() here because this how its done in acts
+const Apifier = require('../src/index');
 
 /* global process */
 

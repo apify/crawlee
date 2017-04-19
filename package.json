@@ -1,6 +1,6 @@
 {
   "name": "apifier",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Apifier SDK for JavaScript",
   "main": "build/index.js",
   "keywords": [
