@@ -52,8 +52,29 @@ The user function has a single argument `options` which is an object such as:
 }
 ```
 
+Instead of the `Apifier.main()` helper function,
+you can run a web server inside the act and handle the requests all by yourself.
 
+```
+const http = require('http');
 
+const server = http.createServer((req, res) => {
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'text/plain');
+    res.end('Hello World\n');
+});
+server.listen(process.env.APIFIER_INTERNAL_PORT|0, (err) => {
+    if( err ) {
+        console.log(`Oops: ${err}`);
+        process.exit(1);
+    }
+    console.log('Hey I am ready');
+    Apifier.heyIAmReady();
+});
+```
+
+Note that by calling `Apifier.heyIAmReady()` you tell the Actor runtime that your server is ready to start
+receiving HTTP requests over the port specified `APIFIER_INTERNAL_PORT` environment variable.
 
 
 ## Package maintenance
