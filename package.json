@@ -1,6 +1,6 @@
 {
   "name": "apifier",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "Apifier SDK for JavaScript",
   "main": "build/index.js",
   "keywords": [
@@ -34,6 +34,8 @@
     "lint": "eslint src test"
   },
   "dependencies": {
+    "body-parser": "^1.17.1",
+    "express": "^4.15.2",
     "underscore": "^1.8.3"
   },
   "devDependencies": {
