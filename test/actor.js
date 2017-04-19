@@ -2,7 +2,7 @@ import fs from 'fs';
 import { expect } from 'chai';
 import tmp from 'tmp';
 
-// NOTE: use require() here because this how its done in acts
+// NOTE: use require() here because this is how its done in acts
 const Apifier = process.env.TEST_BABEL_BUILD ? require('../build/index') : require('../src/index');
 
 if (process.env.TEST_BABEL_BUILD) console.log('Running with TEST_BABEL_BUILD option');
