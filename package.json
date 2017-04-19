@@ -1,6 +1,6 @@
 {
   "name": "apifier",
-  "version": "0.0.8",
+  "version": "0.0.10",
   "description": "Apifier SDK for JavaScript",
   "main": "build/index.js",
   "keywords": [
@@ -24,12 +24,12 @@
   "bugs": {
     "url": "https://github.com/apifier/apifier-sdk-js/issues"
   },
-  "homepage": "https://github.com/apifier/apifier-sdk-js#readme",
+  "homepage": "https://github.com/apifier/apifier-sdk-js",
   "scripts": {
     "test": "mocha --compilers js:babel-core/register --recursive",
     "test-cov": "babel-node isparta cover --report html --report text node_modules/.bin/_mocha",
     "build": "babel src --out-dir build",
-    "prepublishOnly": "npm run build && npm test",
+    "prepublishOnly": "npm run build && TEST_BABEL_BUILD=1 npm test",
     "clean": "rm -rf build",
     "lint": "eslint src test"
   },
