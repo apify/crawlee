@@ -1,33 +1,16 @@
-# apifier-sdk-js
+# apifier-sdk-js [![Build Status](https://travis-ci.org/camsong/babel-npm-boilerplate.svg)](https://travis-ci.org/camsong/babel-npm-boilerplate) [![npm version](https://badge.fury.io/js/babel-npm-boilerplate.svg)](http://badge.fury.io/js/babel-npm-boilerplate)
+
 Apifier SDK for JavaScript
 
 This package is still a work in progress, stay tuned.
 
 
-
-
-
-# babel-npm-boilerplate [![Build Status](https://travis-ci.org/camsong/babel-npm-boilerplate.svg)](https://travis-ci.org/camsong/babel-npm-boilerplate) [![npm version](https://badge.fury.io/js/babel-npm-boilerplate.svg)](http://badge.fury.io/js/babel-npm-boilerplate)
-
-A Boilerplate for creating NPM packages using Babel, ESLint, Mocha and Chai
-
-
-## What's inside
-
-Minimal structure for a npm package source.
-
-* Babel 6
-* Mocha
-* ESLint
-* Isparta
-
 ## Installation
 
-Clone this repo or download using `npm`
+```
+npm install apifier --save
+```
 
-```
-npm install babel-npm-boilerplate --save
-```
 
 ## Usage
 
@@ -37,7 +20,7 @@ npm install babel-npm-boilerplate --save
 * `npm run clean` to clean `build/` directory
 * `npm run lint` to lint js using ESLint in Airbnb's Javascript style
 
-## Liscense
+## License
 
-MIT
+Apache 2.0
 
