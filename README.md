@@ -76,7 +76,7 @@ server.listen(process.env.APIFIER_INTERNAL_PORT|0, (err) => {
 ```
 
 Note that by calling `Apifier.heyIAmReady()` you tell the Actor runtime that your server is ready to start
-receiving HTTP requests over the port specified `APIFIER_INTERNAL_PORT` environment variable.
+receiving HTTP requests over the port specified by the `APIFIER_INTERNAL_PORT` environment variable.
 
 
 ## Package maintenance
