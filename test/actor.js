@@ -32,6 +32,7 @@ describe('Apifier.main()', () => {
     });
 
     it('should work well', () => {
+        // TODO: pick non-used port number
         process.env.APIFIER_INTERNAL_PORT = 12345;
         // TODO: use watch file
         Apifier.main(() => {});
