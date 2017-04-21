@@ -1,10 +1,13 @@
-import _ from 'underscore';
-import Actor from './actor';
+import { setPromisesDependency, getPromisesDependency } from './utils';
+import { main, heyIAmReady } from './actor';
 
+const Apifier = {
+    main,
+    heyIAmReady,
+    setPromisesDependency,
+    getPromisesDependency,
+};
 
-const Apifier = {};
-_.extend(Apifier, Actor);
-
-// export this way so the we can import as:
+// export this way so the we can import using:
 // const Apifier = require('apifier');
 module.exports = Apifier;

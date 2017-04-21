@@ -1,6 +1,6 @@
 {
   "name": "apifier",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "description": "Apifier SDK for JavaScript",
   "main": "build/index.js",
   "keywords": [
@@ -27,7 +27,7 @@
   "homepage": "https://github.com/apifier/apifier-sdk-js",
   "scripts": {
     "test": "mocha --compilers js:babel-core/register --recursive",
-    "test-cov": "babel-node isparta cover --report html --report text node_modules/.bin/_mocha",
+    "test-cov": "babel-node node_modules/isparta/bin/isparta cover --report html --report text node_modules/.bin/_mocha",
     "build": "babel src --out-dir build",
     "prepublishOnly": "npm run build && TEST_BABEL_BUILD=1 npm test",
     "clean": "rm -rf build",
@@ -35,8 +35,7 @@
   },
   "dependencies": {
     "body-parser": "^1.17.1",
-    "express": "^4.15.2",
-    "underscore": "^1.8.3"
+    "express": "^4.15.2"
   },
   "devDependencies": {
     "babel-cli": "^6.6.5",

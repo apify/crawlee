@@ -79,6 +79,14 @@ Note that by calling `Apifier.heyIAmReady()` you tell the Actor runtime that you
 receiving HTTP requests over the port specified by the `APIFIER_INTERNAL_PORT` environment variable.
 
 
+To set a promise dependency from an external library, use the following code:
+```javascript
+const Promise = require('bluebird');
+Apifier.setPromisesDependency(Promise);
+```
+Otherwise, the SDK defaults to native promises.
+
+
 ## Package maintenance
 
 * `npm run test` to run tests
