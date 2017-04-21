@@ -8,6 +8,7 @@ const Apifier = {
     getPromisesDependency,
 };
 
+
 // export this way so the we can import using:
 // const Apifier = require('apifier');
 module.exports = Apifier;
