@@ -72,6 +72,3 @@ export const heyIAmReady = () => {
         });
     }
 };
-
-
-
