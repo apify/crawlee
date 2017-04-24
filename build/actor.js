@@ -68,7 +68,7 @@ var main = exports.main = function main(userFunc) {
     // TODO: handle errors!
     app.listen(serverPort, function () {
         // console.log(`Listening on port ${serverPort}`);
-        Actor.heyIAmReady();
+        heyIAmReady();
     });
 };
 

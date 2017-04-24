@@ -9,6 +9,30 @@ if (process.env.TEST_BABEL_BUILD) console.log('Running with TEST_BABEL_BUILD opt
 
 /* global process */
 
+
+const createWatchFile = () => {
+    const tmpobj = tmp.fileSync();
+    const path = tmpobj.name;
+    fs.writeSync(tmpobj.fd, 'bla bla bla bla');
+
+    const stat = fs.statSync(path);
+    expect(stat.size).to.be.greaterThan(0);
+    return path;
+};
+
+const testWatchFileEmpty = (path) => {
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+            const stat = fs.statSync(path);
+            if (stat.size !== 0) {
+                reject('Watch file not written');
+            } else {
+                resolve();
+            }
+        }, 100);
+    });
+};
+
 // TODO: run tests against build scripts too!
 
 describe('Apifier.main()', () => {
@@ -39,34 +63,19 @@ describe('Apifier.main()', () => {
 
     it('should work well', () => {
         // TODO: pick non-used port number
+        process.env.APIFIER_WATCH_FILE = createWatchFile();
         process.env.APIFIER_INTERNAL_PORT = 12345;
         // TODO: use watch file
         Apifier.main(() => {});
+        return testWatchFileEmpty(process.env.APIFIER_WATCH_FILE);
     });
 });
 
 
 describe('Apifier.heyIAmReady()', () => {
     it('it works as expected', () => {
-        const tmpobj = tmp.fileSync();
-        const path = tmpobj.name;
-        fs.writeSync(tmpobj.fd, 'bla bla bla bla');
-
-        let stat = fs.statSync(path);
-        expect(stat.size).to.be.greaterThan(0);
-
-        process.env.APIFIER_WATCH_FILE = path;
+        process.env.APIFIER_WATCH_FILE = createWatchFile();
         Apifier.heyIAmReady();
-
-        return new Promise((resolve, reject) => {
-            setTimeout(() => {
-                stat = fs.statSync(path);
-                if (stat.size !== 0) {
-                    reject('Watch file not written');
-                } else {
-                    resolve();
-                }
-            }, 100);
-        });
+        return testWatchFileEmpty(process.env.APIFIER_WATCH_FILE);
     });
 });
