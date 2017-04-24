@@ -1,7 +1,12 @@
 .DS_Store
 *.log
 node_modules
-../babel-npm-boilerplate/src
+src
 test
 examples
 coverage
+yarn.lock
+.travis.yml
+.eslintrc.json
+.babelrc
+.idea
