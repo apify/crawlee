@@ -10,3 +10,4 @@ yarn.lock
 .eslintrc.json
 .babelrc
 .idea
+.npmignore
