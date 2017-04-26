@@ -48,7 +48,19 @@ Apifier.main( (options) => {
 The user function has a single argument `options` which is an object such as:
 ```javascript
 {
-   input: Object, // HTTP payload parsed as JSON (if possible) or as text
+    input: {
+        // HTTP payload body parsed using body-parser middleware:
+        // * For 'application/json' content type the body is parsed from JSON to any JavaScript object
+        // * For 'text/*' content types the body is passed as String
+        // * For any other content type the body is passed as raw Buffer object
+        body: Object|String|Buffer,
+
+        // HTTP method used to pass the data
+        method: String
+
+        // Content-Type HTTP header
+        contentType: String
+    }
 }
 ```
 

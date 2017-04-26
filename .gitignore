@@ -8,3 +8,4 @@ coverage
 logs
 pids
 .idea
+yarn.lock

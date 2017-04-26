@@ -17,7 +17,11 @@ export const main = (userFunc) => {
 
     const handler = (req, res) => {
         const options = {
-            input: req.body,
+            input: {
+                body: req.body,
+                method: req.method,
+                contentType: req.headers['content-type'],
+            },
         };
 
         newPromise()
@@ -49,8 +53,10 @@ export const main = (userFunc) => {
 
     const app = express();
 
-    // parse application/json
+    // parse JSON, pass texts and raw data
     app.use(bodyParser.json());
+    app.use(bodyParser.text({ type: 'text/*' }));
+    app.use(bodyParser.raw({ type: '*/*' }));
     app.use(handler);
 
     // TODO: handle errors!

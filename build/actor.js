@@ -34,7 +34,11 @@ var main = exports.main = function main(userFunc) {
 
     var handler = function handler(req, res) {
         var options = {
-            input: req.body
+            input: {
+                body: req.body,
+                method: req.method,
+                contentType: req.headers['content-type']
+            }
         };
 
         (0, _utils.newPromise)().then(function () {
@@ -61,8 +65,10 @@ var main = exports.main = function main(userFunc) {
 
     var app = (0, _express2.default)();
 
-    // parse application/json
+    // parse JSON, pass texts and raw data
     app.use(_bodyParser2.default.json());
+    app.use(_bodyParser2.default.text({ type: 'text/*' }));
+    app.use(_bodyParser2.default.raw({ type: '*/*' }));
     app.use(handler);
 
     // TODO: handle errors!

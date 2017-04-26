@@ -1,6 +1,8 @@
 import fs from 'fs';
 import { expect } from 'chai';
 import tmp from 'tmp';
+import request from 'request';
+import portastic from 'portastic';
 
 // NOTE: use require() here because this is how its done in acts
 const Apifier = process.env.TEST_BABEL_BUILD ? require('../build/index') : require('../src/index');
@@ -8,6 +10,36 @@ const Apifier = process.env.TEST_BABEL_BUILD ? require('../build/index') : requi
 if (process.env.TEST_BABEL_BUILD) console.log('Running with TEST_BABEL_BUILD option');
 
 /* global process */
+
+
+const processExitOverride = (code) => {
+    // TODO: the codes should be tested
+    console.log(`Exit with code: ${code}`);
+};
+
+const origProcessExit = process.exit;
+
+let freePorts = [];
+before(() => {
+    // intercept calls to process.exit()
+    process.exit = processExitOverride;
+
+    // find free ports for testing
+    return portastic.find({
+        min: 50000,
+        max: 51000,
+    })
+    .then((ports) => {
+        freePorts = ports;
+    });
+});
+
+after(() => {
+    // restore process.exit()
+    process.exit = origProcessExit;
+});
+
+const getFreePort = () => freePorts.pop();
 
 
 const createWatchFile = () => {
@@ -33,17 +65,53 @@ const testWatchFileEmpty = (path) => {
     });
 };
 
-// TODO: run tests against build scripts too!
+
+const testRequestToMain = (method, bodyRaw, contentType) => {
+    const port = getFreePort();
+    process.env.APIFIER_INTERNAL_PORT = port;
+
+    return new Promise((resolve, reject) => {
+        const req = {
+            url: `http://127.0.0.1:${port}/`,
+            method,
+            body: bodyRaw,
+            headers: {
+                'Content-Type': contentType,
+            },
+            timeout: 1000,
+        };
+
+        let expectedBody = bodyRaw;
+        if (contentType === 'application/json') expectedBody = JSON.parse(bodyRaw);
+
+        request(req, (err) => {
+            if (err) return reject(err);
+        });
+
+        Apifier.main((opts) => {
+            // console.dir(opts);
+            try {
+                expect(opts.input.method).to.equal(method);
+                expect(opts.input.contentType).to.equal(contentType);
+                expect(opts.input.body).to.deep.equal(expectedBody);
+            } catch (err) {
+                reject(err);
+            }
+            resolve();
+        });
+    });
+};
+
 
 describe('Apifier.main()', () => {
-    it('should throw on invalid args', () => {
+    it('throws on invalid args', () => {
         process.env.APIFIER_INTERNAL_PORT = 1234;
         expect(() => {
             Apifier.main();
         }).to.throw(Error);
     });
 
-    it('should throw on invalid env vars', () => {
+    it('throws on invalid env vars', () => {
         const fn = () => {
             Apifier.main(() => {});
         };
@@ -61,14 +129,26 @@ describe('Apifier.main()', () => {
         expect(fn).to.throw(Error);
     });
 
-    it('should work well', () => {
-        // TODO: pick non-used port number
+    it('truncates watch file', () => {
         process.env.APIFIER_WATCH_FILE = createWatchFile();
-        process.env.APIFIER_INTERNAL_PORT = 12345;
-        // TODO: use watch file
+        process.env.APIFIER_INTERNAL_PORT = getFreePort();
         Apifier.main(() => {});
         return testWatchFileEmpty(process.env.APIFIER_WATCH_FILE);
     });
+
+    it('passes text/plain request', () => {
+        return testRequestToMain('POST', 'testxxx', 'text/plain');
+    });
+
+    it('passes application/json request', () => {
+        return testRequestToMain('PUT', JSON.stringify({ abc: 123 }), 'application/json');
+    });
+
+    it('passes raw request', () => {
+        return testRequestToMain('PUT', new Buffer('somebinarydata'), 'image/png');
+    });
+
+    // TODO: test responses from act, exceptions etc. !
 });
 
 
