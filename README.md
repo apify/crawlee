@@ -49,10 +49,11 @@ The user function has a single argument `options` which is an object such as:
 ```javascript
 {
     input: {
-        // HTTP payload body parsed using body-parser middleware:
+        // HTTP request body parsed using body-parser middleware:
         // * For 'application/json' content type the body is parsed from JSON to any JavaScript object
         // * For 'text/*' content types the body is passed as String
         // * For any other content type the body is passed as raw Buffer object
+        // For HTTP GET request, body is null.
         body: Object|String|Buffer,
 
         // HTTP method used to pass the data

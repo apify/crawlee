@@ -18,7 +18,7 @@ export const main = (userFunc) => {
     const handler = (req, res) => {
         const options = {
             input: {
-                body: req.body,
+                body: req.method === 'GET' ? null : req.body,
                 method: req.method,
                 contentType: req.headers['content-type'],
             },
@@ -32,29 +32,34 @@ export const main = (userFunc) => {
                 res.statusCode = 200;
             })
             .catch((err) => {
-                console.log(`User act failed: ${err}`);
+                console.error('Main function ended with exception:');
+                console.error(err.stack || err);
                 res.statusCode = 500;
             })
             .then(() => {
                 res.end((err) => {
                     if (err) {
                         console.log(`Failed to send HTTP response: ${err}`);
-                        process.exit(1);
+                        process.exit(2);
                     }
-                    console.log('All good, finishing the act');
-                    process.exit(0);
+                    if (res.statusCode === 500) {
+                        process.exit(1);
+                    } else {
+                        console.log('Main function ended successfully');
+                        process.exit(0);
+                    }
                 });
             })
             .catch((err) => {
                 console.log(`Something went terribly wrong: ${err}`);
-                process.exit(2);
+                process.exit(3);
             });
     };
 
     const app = express();
 
     // parse JSON, pass texts and raw data
-    app.use(bodyParser.json());
+    app.use(bodyParser.json({ type: '*/json' }));
     app.use(bodyParser.text({ type: 'text/*' }));
     app.use(bodyParser.raw({ type: '*/*' }));
     app.use(handler);

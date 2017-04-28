@@ -2,6 +2,8 @@
 
 let promisesDependency = typeof Promise === 'function' ? Promise : null;
 
+// TODO: add methods to override console.log() and console.error(), add unit tests for that!
+
 
 /**
  * Sets the promise dependency the SDK will use wherever Promises are returned.

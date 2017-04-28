@@ -35,7 +35,7 @@ var main = exports.main = function main(userFunc) {
     var handler = function handler(req, res) {
         var options = {
             input: {
-                body: req.body,
+                body: req.method === 'GET' ? null : req.body,
                 method: req.method,
                 contentType: req.headers['content-type']
             }
@@ -46,27 +46,32 @@ var main = exports.main = function main(userFunc) {
         }).then(function () {
             res.statusCode = 200;
         }).catch(function (err) {
-            console.log('User act failed: ' + err);
+            console.error('Main function ended with exception:');
+            console.error(err.stack || err);
             res.statusCode = 500;
         }).then(function () {
             res.end(function (err) {
                 if (err) {
                     console.log('Failed to send HTTP response: ' + err);
-                    process.exit(1);
+                    process.exit(2);
                 }
-                console.log('All good, finishing the act');
-                process.exit(0);
+                if (res.statusCode === 500) {
+                    process.exit(1);
+                } else {
+                    console.log('Main function ended successfully');
+                    process.exit(0);
+                }
             });
         }).catch(function (err) {
             console.log('Something went terribly wrong: ' + err);
-            process.exit(2);
+            process.exit(3);
         });
     };
 
     var app = (0, _express2.default)();
 
     // parse JSON, pass texts and raw data
-    app.use(_bodyParser2.default.json());
+    app.use(_bodyParser2.default.json({ type: '*/json' }));
     app.use(_bodyParser2.default.text({ type: 'text/*' }));
     app.use(_bodyParser2.default.raw({ type: '*/*' }));
     app.use(handler);

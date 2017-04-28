@@ -4,6 +4,8 @@ import tmp from 'tmp';
 import request from 'request';
 import portastic from 'portastic';
 
+// TODO: override console.log() to test the error messages (now they are printed to console)
+
 // NOTE: use require() here because this is how its done in acts
 const Apifier = process.env.TEST_BABEL_BUILD ? require('../build/index') : require('../src/index');
 
@@ -11,19 +13,8 @@ if (process.env.TEST_BABEL_BUILD) console.log('Running with TEST_BABEL_BUILD opt
 
 /* global process */
 
-
-const processExitOverride = (code) => {
-    // TODO: the codes should be tested
-    console.log(`Exit with code: ${code}`);
-};
-
-const origProcessExit = process.exit;
-
 let freePorts = [];
 before(() => {
-    // intercept calls to process.exit()
-    process.exit = processExitOverride;
-
     // find free ports for testing
     return portastic.find({
         min: 50000,
@@ -34,12 +25,13 @@ before(() => {
     });
 });
 
+// always restore original process.exit()
+const origProcessExit = process.exit;
 after(() => {
-    // restore process.exit()
     process.exit = origProcessExit;
 });
 
-const getFreePort = () => freePorts.pop();
+const popFreePort = () => freePorts.pop();
 
 
 const createWatchFile = () => {
@@ -52,52 +44,87 @@ const createWatchFile = () => {
     return path;
 };
 
-const testWatchFileEmpty = (path) => {
+const testWatchFileWillBecomeEmpty = (path, waitMillis) => {
+    const startedAt = Date.now();
     return new Promise((resolve, reject) => {
-        setTimeout(() => {
+        const intervalId = setInterval(() => {
             const stat = fs.statSync(path);
             if (stat.size !== 0) {
-                reject('Watch file not written');
+                if (Date.now() - startedAt >= waitMillis) reject(`Watch file not written in ${waitMillis} millis`);
             } else {
+                clearInterval(intervalId);
                 resolve();
             }
-        }, 100);
+        }, 20);
     });
 };
 
 
-const testRequestToMain = (method, bodyRaw, contentType) => {
-    const port = getFreePort();
+const testMain = (method, bodyRaw, contentType, userFunc, expectedExitCode = 0) => {
+    const port = popFreePort();
     process.env.APIFIER_INTERNAL_PORT = port;
+    process.env.APIFIER_WATCH_FILE = createWatchFile();
+
+    // intercept calls to process.exit()
+    const EMPTY_EXIT_CODE = 'dummy';
+    let exitCode = EMPTY_EXIT_CODE;
+    process.exit = (code) => {
+        exitCode = code;
+    };
 
     return new Promise((resolve, reject) => {
-        const req = {
-            url: `http://127.0.0.1:${port}/`,
-            method,
-            body: bodyRaw,
-            headers: {
-                'Content-Type': contentType,
-            },
-            timeout: 1000,
-        };
-
         let expectedBody = bodyRaw;
         if (contentType === 'application/json') expectedBody = JSON.parse(bodyRaw);
 
-        request(req, (err) => {
-            if (err) return reject(err);
-        });
+        // give server a little time to start listening before sending the request
+        setTimeout(() => {
+            const req = {
+                url: `http://127.0.0.1:${port}/`,
+                method,
+                body: bodyRaw,
+                headers: {},
+                timeout: 1000,
+            };
+            if (contentType) req.headers['Content-Type'] = contentType;
+
+            request(req, (err) => {
+                if (err) return reject(err);
+            });
+        }, 20);
 
         Apifier.main((opts) => {
             // console.dir(opts);
             try {
                 expect(opts.input.method).to.equal(method);
-                expect(opts.input.contentType).to.equal(contentType);
+                if (contentType) expect(opts.input.contentType).to.equal(contentType);
                 expect(opts.input.body).to.deep.equal(expectedBody);
+                resolve();
             } catch (err) {
                 reject(err);
             }
-            resolve();
+            // call user func to test other behavior
+            if (userFunc) userFunc(opts);
+        });
+    })
+    .then(() => {
+        // watch file should be empty by now
+        return testWatchFileWillBecomeEmpty(process.env.APIFIER_WATCH_FILE, 0);
+    })
+    .then(() => {
+        // test process exit code is as expected
+        return new Promise((resolve, reject) => {
+            const intervalId = setInterval(() => {
+                if (exitCode === EMPTY_EXIT_CODE) return;
+                clearInterval(intervalId);
+                // restore process.exit()
+                process.exit = origProcessExit;
+                try {
+                    expect(exitCode).to.equal(expectedExitCode);
+                    resolve();
+                } catch (err) {
+                    reject(err);
+                }
+            }, 20);
         });
     });
 };
@@ -129,23 +156,31 @@ describe('Apifier.main()', () => {
         expect(fn).to.throw(Error);
     });
 
-    it('truncates watch file', () => {
-        process.env.APIFIER_WATCH_FILE = createWatchFile();
-        process.env.APIFIER_INTERNAL_PORT = getFreePort();
-        Apifier.main(() => {});
-        return testWatchFileEmpty(process.env.APIFIER_WATCH_FILE);
+    it('passes text/plain POST request', () => {
+        return testMain('POST', 'testxxx', 'text/plain');
     });
 
-    it('passes text/plain request', () => {
-        return testRequestToMain('POST', 'testxxx', 'text/plain');
+    it('passes application/json PUT request', () => {
+        return testMain('PUT', JSON.stringify({ abc: 123 }), 'application/json');
     });
 
-    it('passes application/json request', () => {
-        return testRequestToMain('PUT', JSON.stringify({ abc: 123 }), 'application/json');
+    it('passes raw POST request', () => {
+        return testMain('POST', new Buffer('somebinarydata'), 'image/png');
     });
 
-    it('passes raw request', () => {
-        return testRequestToMain('PUT', new Buffer('somebinarydata'), 'image/png');
+    it('passes empty GET request with application/json content type', () => {
+        return testMain('GET', null, 'application/json');
+    });
+
+    it('passes empty GET request with no content type', () => {
+        return testMain('GET', null, null);
+    });
+
+    it('on exception exits process with code 1', () => {
+        const userFunc = () => {
+            throw new Error('Test exception');
+        };
+        return testMain('PUT', 'testxxx', 'text/plain', userFunc, 1);
     });
 
     // TODO: test responses from act, exceptions etc. !
@@ -156,6 +191,6 @@ describe('Apifier.heyIAmReady()', () => {
     it('it works as expected', () => {
         process.env.APIFIER_WATCH_FILE = createWatchFile();
         Apifier.heyIAmReady();
-        return testWatchFileEmpty(process.env.APIFIER_WATCH_FILE);
+        return testWatchFileWillBecomeEmpty(process.env.APIFIER_WATCH_FILE, 1000);
     });
 });
