@@ -10,9 +10,9 @@ export const main = (userFunc) => {
     if (!userFunc || typeof (userFunc) !== 'function') {
         throw new Error('Handler function must be provided as a parameter');
     }
-    const serverPort = parseInt(process.env.APIFIER_INTERNAL_PORT, 10);
+    const serverPort = parseInt(process.env.APIFY_INTERNAL_PORT, 10);
     if (!(serverPort > 0 && serverPort < 65536)) {
-        throw new Error('APIFIER_INTERNAL_PORT environment variable must have a value from 1 to 65535.');
+        throw new Error('APIFY_INTERNAL_PORT environment variable must have a value from 1 to 65535.');
     }
 
     const handler = (req, res) => {
@@ -72,11 +72,11 @@ export const main = (userFunc) => {
 };
 
 /**
- * Notifies Apifier runtime that act is listening on port specified by the APIFIER_INTERNAL_PORT environment
+ * Notifies Apifier runtime that act is listening on port specified by the APIFY_INTERNAL_PORT environment
  * variable and is ready to receive a HTTP request with act input.
  */
 export const heyIAmReady = () => {
-    const watchFileName = process.env.APIFIER_WATCH_FILE;
+    const watchFileName = process.env.APIFY_WATCH_FILE;
     if (watchFileName) {
         fs.writeFile(watchFileName, '', (err) => {
             if (err) console.log(`WARNING: Cannot write to watch file ${watchFileName}: ${err}`);

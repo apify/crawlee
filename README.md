@@ -78,7 +78,7 @@ const server = http.createServer((req, res) => {
         process.exit(err ? 1 : 0);
     });
 });
-server.listen(process.env.APIFIER_INTERNAL_PORT|0, (err) => {
+server.listen(process.env.APIFY_INTERNAL_PORT|0, (err) => {
     if( err ) {
         console.log(`Oops: ${err}`);
         process.exit(1);
@@ -89,7 +89,7 @@ server.listen(process.env.APIFIER_INTERNAL_PORT|0, (err) => {
 ```
 
 Note that by calling `Apifier.heyIAmReady()` you tell the Actor runtime that your server is ready to start
-receiving HTTP requests over the port specified by the `APIFIER_INTERNAL_PORT` environment variable.
+receiving HTTP requests over the port specified by the `APIFY_INTERNAL_PORT` environment variable.
 
 
 To set a promise dependency from an external library, use the following code:

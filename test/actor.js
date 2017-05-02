@@ -62,8 +62,8 @@ const testWatchFileWillBecomeEmpty = (path, waitMillis) => {
 
 const testMain = (method, bodyRaw, contentType, userFunc, expectedExitCode = 0) => {
     const port = popFreePort();
-    process.env.APIFIER_INTERNAL_PORT = port;
-    process.env.APIFIER_WATCH_FILE = createWatchFile();
+    process.env.APIFY_INTERNAL_PORT = port;
+    process.env.APIFY_WATCH_FILE = createWatchFile();
 
     // intercept calls to process.exit()
     const EMPTY_EXIT_CODE = 'dummy';
@@ -108,7 +108,7 @@ const testMain = (method, bodyRaw, contentType, userFunc, expectedExitCode = 0) 
     })
     .then(() => {
         // watch file should be empty by now
-        return testWatchFileWillBecomeEmpty(process.env.APIFIER_WATCH_FILE, 0);
+        return testWatchFileWillBecomeEmpty(process.env.APIFY_WATCH_FILE, 0);
     })
     .then(() => {
         // test process exit code is as expected
@@ -132,7 +132,7 @@ const testMain = (method, bodyRaw, contentType, userFunc, expectedExitCode = 0) 
 
 describe('Apifier.main()', () => {
     it('throws on invalid args', () => {
-        process.env.APIFIER_INTERNAL_PORT = 1234;
+        process.env.APIFY_INTERNAL_PORT = 1234;
         expect(() => {
             Apifier.main();
         }).to.throw(Error);
@@ -143,16 +143,16 @@ describe('Apifier.main()', () => {
             Apifier.main(() => {});
         };
 
-        process.env.APIFIER_INTERNAL_PORT = null;
+        process.env.APIFY_INTERNAL_PORT = null;
         expect(fn).to.throw(Error);
 
-        process.env.APIFIER_INTERNAL_PORT = '';
+        process.env.APIFY_INTERNAL_PORT = '';
         expect(fn).to.throw(Error);
 
-        process.env.APIFIER_INTERNAL_PORT = 0;
+        process.env.APIFY_INTERNAL_PORT = 0;
         expect(fn).to.throw(Error);
 
-        process.env.APIFIER_INTERNAL_PORT = 65536;
+        process.env.APIFY_INTERNAL_PORT = 65536;
         expect(fn).to.throw(Error);
     });
 
@@ -189,8 +189,8 @@ describe('Apifier.main()', () => {
 
 describe('Apifier.heyIAmReady()', () => {
     it('it works as expected', () => {
-        process.env.APIFIER_WATCH_FILE = createWatchFile();
+        process.env.APIFY_WATCH_FILE = createWatchFile();
         Apifier.heyIAmReady();
-        return testWatchFileWillBecomeEmpty(process.env.APIFIER_WATCH_FILE, 1000);
+        return testWatchFileWillBecomeEmpty(process.env.APIFY_WATCH_FILE, 1000);
     });
 });
