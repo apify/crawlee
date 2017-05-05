@@ -48,7 +48,20 @@ Apifier.main( (options) => {
 The user function has a single argument `options` which is an object such as:
 ```javascript
 {
-   input: Object, // HTTP payload parsed as JSON (if possible) or as text
+    input: {
+        // HTTP request body parsed using body-parser middleware:
+        // * For 'application/json' content type the body is parsed from JSON to any JavaScript object
+        // * For 'text/*' content types the body is passed as String
+        // * For any other content type the body is passed as raw Buffer object
+        // For HTTP GET request, body is null.
+        body: Object|String|Buffer,
+
+        // HTTP method used to pass the data
+        method: String
+
+        // Content-Type HTTP header
+        contentType: String
+    }
 }
 ```
 
@@ -65,7 +78,7 @@ const server = http.createServer((req, res) => {
         process.exit(err ? 1 : 0);
     });
 });
-server.listen(process.env.APIFIER_INTERNAL_PORT|0, (err) => {
+server.listen(process.env.APIFY_INTERNAL_PORT|0, (err) => {
     if( err ) {
         console.log(`Oops: ${err}`);
         process.exit(1);
@@ -76,7 +89,15 @@ server.listen(process.env.APIFIER_INTERNAL_PORT|0, (err) => {
 ```
 
 Note that by calling `Apifier.heyIAmReady()` you tell the Actor runtime that your server is ready to start
-receiving HTTP requests over the port specified by the `APIFIER_INTERNAL_PORT` environment variable.
+receiving HTTP requests over the port specified by the `APIFY_INTERNAL_PORT` environment variable.
+
+
+To set a promise dependency from an external library, use the following code:
+```javascript
+const Promise = require('bluebird');
+Apifier.setPromisesDependency(Promise);
+```
+Otherwise, the SDK defaults to native promises.
 
 
 ## Package maintenance

@@ -1,7 +1,0 @@
-.DS_Store
-*.log
-node_modules
-../babel-npm-boilerplate/src
-test
-examples
-coverage

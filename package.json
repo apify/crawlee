@@ -1,6 +1,6 @@
 {
   "name": "apifier",
-  "version": "0.0.12",
+  "version": "0.0.22",
   "description": "Apifier SDK for JavaScript",
   "main": "build/index.js",
   "keywords": [
@@ -25,11 +25,14 @@
     "url": "https://github.com/apifier/apifier-sdk-js/issues"
   },
   "homepage": "https://github.com/apifier/apifier-sdk-js",
+  "files": [
+    "build"
+  ],
   "scripts": {
     "test": "mocha --compilers js:babel-core/register --recursive",
-    "test-cov": "babel-node isparta cover --report html --report text node_modules/.bin/_mocha",
+    "test-cov": "babel-node node_modules/isparta/bin/isparta cover --report html --report text node_modules/.bin/_mocha",
     "build": "babel src --out-dir build",
-    "prepublishOnly": "npm run build && TEST_BABEL_BUILD=1 npm test",
+    "prepare": "npm run build && TEST_BABEL_BUILD=1 npm test && npm run lint",
     "clean": "rm -rf build",
     "lint": "eslint src test"
   },
@@ -56,6 +59,8 @@
     "eslint-plugin-react": "^6.10.3",
     "isparta": "^4.0.0",
     "mocha": "^3.2.0",
-    "tmp": "^0.0.31"
+    "tmp": "^0.0.31",
+    "request": "^2.81.0",
+    "portastic": "^1.0.1"
   }
 }
