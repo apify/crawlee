@@ -1,4 +1,4 @@
-
+import _ from 'underscore';
 
 let promisesDependency = typeof Promise === 'function' ? Promise : null;
 
@@ -37,4 +37,11 @@ export const newPromise = () => {
     }
     if (typeof Promise === 'function') return Promise.resolve();
     throw new Error('Native promises are not available, please call Apifier.setPromisesDependency() to set a promise library.');
+};
+
+export const objectToQueryString = (object) => {
+    return _.chain(object)
+            .mapObject((val, key) => `${key}=${val}`)
+            .toArray()
+            .join('&');
 };

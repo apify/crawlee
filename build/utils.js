@@ -3,7 +3,13 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
+exports.objectToQueryString = exports.newPromise = exports.getPromisesDependency = exports.setPromisesDependency = undefined;
 
+var _underscore = require('underscore');
+
+var _underscore2 = _interopRequireDefault(_underscore);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 var promisesDependency = typeof Promise === 'function' ? Promise : null;
 
@@ -41,4 +47,10 @@ var newPromise = exports.newPromise = function newPromise() {
     }
     if (typeof Promise === 'function') return Promise.resolve();
     throw new Error('Native promises are not available, please call Apifier.setPromisesDependency() to set a promise library.');
+};
+
+var objectToQueryString = exports.objectToQueryString = function objectToQueryString(object) {
+    return _underscore2.default.chain(object).mapObject(function (val, key) {
+        return key + '=' + val;
+    }).toArray().join('&');
 };
