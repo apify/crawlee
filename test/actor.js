@@ -47,7 +47,7 @@ describe('Apifier.main()', () => {
 
 
 describe('Apifier.heyIAmReady()', () => {
-    it('it works as expected', () => {
+    it('works as expected', () => {
         const tmpobj = tmp.fileSync();
         const path = tmpobj.name;
         fs.writeSync(tmpobj.fd, 'bla bla bla bla');

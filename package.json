@@ -34,8 +34,10 @@
     "lint": "eslint src test"
   },
   "dependencies": {
+    "bluebird": "^3.5.0",
     "body-parser": "^1.17.1",
     "express": "^4.15.2",
+    "request-promise": "^4.2.0",
     "underscore": "^1.8.3"
   },
   "devDependencies": {
