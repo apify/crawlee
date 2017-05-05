@@ -4,6 +4,8 @@ var _utils = require('./utils');
 
 var _actor = require('./actor');
 
+require('./crawler');
+
 var Apifier = {
     main: _actor.main,
     heyIAmReady: _actor.heyIAmReady,

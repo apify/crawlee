@@ -1,5 +1,5 @@
 const request = require('request-promise');
-const Promise = require('bluebird');
+// const Promise = require('bluebird');
 
 export const getAllCrawlers = (url, userId, token, suppressSchemaCheck, params) => {
     params = params || {};
@@ -7,9 +7,9 @@ export const getAllCrawlers = (url, userId, token, suppressSchemaCheck, params) 
 
     const queryString = objectToQueryString(params);
     const requestParams = {
-        url : `${url}/v1/${userId}/crawlers?${queryString}`,
-        json : true,
-        resolveWithFullResponse : true,
+        url: `${url}/v1/${userId}/crawlers?${queryString}`,
+        json: true,
+        resolveWithFullResponse: true,
     };
 
     return request
@@ -22,5 +22,4 @@ export const getAllCrawlers = (url, userId, token, suppressSchemaCheck, params) 
 
             return crawlers;
         });
-
 };
