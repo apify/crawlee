@@ -61,6 +61,8 @@ export const requestPromise = (options) => {
     if (!request[method]) throw new Error('"options.method" is not a valid http request method');
 
     return new PromisesDependency((resolve, reject) => {
+        // We have to use request[method]({ ... }) instead of request({ method, ... })
+        // to be able to mock request when unit testing requestPromise().
         request[method](options, (error, response, body) => {
             if (error) return reject(error);
 
@@ -70,7 +72,7 @@ export const requestPromise = (options) => {
 };
 
 /**
- * Zips to arrays ['a1', 'a2', ... ] and ['b1', 'b2', ...] into map { a1: 'b1', a2: 'b2', ... }.
+ * Zips two arrays ['a1', 'a2', ... ] and ['b1', 'b2', ...] into map { a1: 'b1', a2: 'b2', ... }.
  */
 export const arrays2object = (keys, vals) => {
     return keys.reduce((prev, val, index) => {
