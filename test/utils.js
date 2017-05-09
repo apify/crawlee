@@ -42,13 +42,19 @@ describe('utils.objectToQueryString()', () => {
         expect(utils.objectToQueryString(obj)).to.be.eql('?val1=something&val2=else');
     });
 
-    it('should encode uri components', () => {
+    it('should encode URI components', () => {
         const obj = {
             val1: 'something+else',
-            val2: 'ěščřžýá',
+            'val&?/': 'ěščřžýá',
         };
 
-        expect(utils.objectToQueryString(obj)).to.be.eql('?val1=something%2Belse&val2=%C4%9B%C5%A1%C4%8D%C5%99%C5%BE%C3%BD%C3%A1');
+        expect(utils.objectToQueryString(obj)).to.be.eql('?val1=something%2Belse&val%26%3F%2F=%C4%9B%C5%A1%C4%8D%C5%99%C5%BE%C3%BD%C3%A1');
+    });
+
+    it('handles empty args', () => {
+        expect(utils.objectToQueryString({})).to.be.eql('');
+        expect(utils.objectToQueryString(null)).to.be.eql('');
+        expect(utils.objectToQueryString(undefined)).to.be.eql('');
     });
 });
 

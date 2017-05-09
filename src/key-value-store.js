@@ -114,8 +114,8 @@ const methods = {
 };
 
 /**
- * Get or creates key value store and returns it's object.
- * There are 3 possible initializations:
+ * Gets or creates a key-value store and returns an object representing it.
+ * There are 3 possible initializations (performed in this order):
  *
  * 1) If `options.storeId` is provided then store with this id gets opened.
  * 2) If `options.name`, `options.token` and one of `options.ownerUserId` and `options.ownerUser`
@@ -137,11 +137,11 @@ const createOrGetStore = (baseUrl, options) => {
 
     if (process.env.APIFY_ACT_RUN_ID) return methods.getStore(baseUrl, process.env.APIFY_ACT_RUN_ID);
 
-    throw new Error('Error: cannot identify store via storeId, credentials or ENV variable.');
+    throw new Error('Cannot identify the key-value store to open.');
 };
 
 /**
- * Opens key value store and returns object containing preconfigured methods for that store.
+ * Opens a key-value store and returns object containing preconfigured methods for that store.
  * Possible options are:
  * - protocol (http/https)
  * - host
@@ -154,7 +154,8 @@ const createOrGetStore = (baseUrl, options) => {
  * - name
  */
 export default (options = {}) => {
-    if (!_.isObject(options)) throw new Error('Error: `options` must be object or empty.');
+    // TODO: Why is this default export? Not sure this is a good idea, it might be confusing
+    if (!_.isObject(options)) throw new Error('The `options` parameter must be an object.');
 
     // eslint-disable-next-line prefer-template
     const baseUrl = (options.protocol || 'https')

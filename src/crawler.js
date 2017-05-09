@@ -2,6 +2,7 @@ import _ from 'underscore';
 
 import { newPromise, objectToQueryString } from './utils';
 
+// TODO: please use requestPromise from utils
 const request = require('request-promise');
 
 const BASE_URL = 'https://api.apifier.com/v1';
