@@ -29,12 +29,12 @@
     "build"
   ],
   "scripts": {
-    "test": "mocha --compilers js:babel-core/register --recursive",
-    "test-cov": "babel-node node_modules/isparta/bin/isparta cover --report html --report text node_modules/.bin/_mocha",
     "build": "babel src --out-dir build",
+    "test": "npm run build && mocha --compilers js:babel-core/register --recursive",
+    "test-cov": "npm run build && babel-node node_modules/isparta/bin/isparta cover --report html --report text node_modules/.bin/_mocha",
     "prepare": "npm run build && TEST_BABEL_BUILD=1 npm test && npm run lint",
     "clean": "rm -rf build",
-    "lint": "eslint src test"
+    "lint": "npm run build && eslint src test"
   },
   "dependencies": {
     "body-parser": "^1.17.1",
