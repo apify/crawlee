@@ -1,4 +1,4 @@
-builds
+build
 node_modules
 *.log
 *.pid
