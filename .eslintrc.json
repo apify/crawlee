@@ -20,6 +20,7 @@
     "no-undef": 0,
     "func-names": 0,
     "import/prefer-default-export": 0,
-    "import/no-absolute-path": 0
+    "import/no-absolute-path": 0,
+    "import/no-extraneous-dependencies": ["error", { "devDependencies": ["**/test/*.js"] }]
   }
 }

@@ -1,11 +1,14 @@
 import { setPromisesDependency, getPromisesDependency } from './utils';
 import { main, heyIAmReady } from './actor';
+import openKeyValueStore from './key-value-store';
+
 
 const Apifier = {
     main,
     heyIAmReady,
     setPromisesDependency,
     getPromisesDependency,
+    openKeyValueStore,
 };
 
 

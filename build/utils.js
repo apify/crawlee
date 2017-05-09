@@ -3,12 +3,17 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
+exports.requestPromise = exports.newPromise = exports.getPromisesDependency = exports.setPromisesDependency = undefined;
 
+var _request = require('request');
 
-var promisesDependency = typeof Promise === 'function' ? Promise : null;
+var _request2 = _interopRequireDefault(_request);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var PromisesDependency = typeof Promise === 'function' ? Promise : null;
 
 // TODO: add methods to override console.log() and console.error(), add unit tests for that!
-
 
 /**
  * Sets the promise dependency the SDK will use wherever Promises are returned.
@@ -17,14 +22,14 @@ var promisesDependency = typeof Promise === 'function' ? Promise : null;
  */
 var setPromisesDependency = exports.setPromisesDependency = function setPromisesDependency(dep) {
     if (dep !== null && typeof dep !== 'function') throw new Error('The "dep" parameter must be a function');
-    promisesDependency = dep;
+    PromisesDependency = dep;
 };
 
 /**
  * Gets the promise dependency set by `Apifier.setPromisesDependency`.
  */
 var getPromisesDependency = exports.getPromisesDependency = function getPromisesDependency() {
-    return promisesDependency;
+    return PromisesDependency;
 };
 
 /**
@@ -33,12 +38,25 @@ var getPromisesDependency = exports.getPromisesDependency = function getPromises
  * @return {*}
  */
 var newPromise = exports.newPromise = function newPromise() {
-    if (promisesDependency) {
-        if (typeof promisesDependency.resolve !== 'function') {
+    if (PromisesDependency) {
+        if (typeof PromisesDependency.resolve !== 'function') {
             throw new Error('The promise dependency set using Apifier.setPromisesDependency() does not define resolve() function.');
         }
-        return promisesDependency.resolve();
+        return PromisesDependency.resolve();
     }
     if (typeof Promise === 'function') return Promise.resolve();
     throw new Error('Native promises are not available, please call Apifier.setPromisesDependency() to set a promise library.');
+};
+
+/**
+ * Promised version of request(options) function.
+ */
+var requestPromise = exports.requestPromise = function requestPromise(options) {
+    return new PromisesDependency(function (resolve, reject) {
+        (0, _request2.default)(options, function (error, response, body) {
+            if (error) return reject(error);
+
+            resolve(body);
+        });
+    });
 };

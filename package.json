@@ -38,7 +38,9 @@
   },
   "dependencies": {
     "body-parser": "^1.17.1",
-    "express": "^4.15.2"
+    "express": "^4.15.2",
+    "request": "^2.81.0",
+    "underscore": "^1.8.3"
   },
   "devDependencies": {
     "babel-cli": "^6.6.5",
@@ -56,8 +58,10 @@
     "eslint-plugin-react": "^6.10.3",
     "isparta": "^4.0.0",
     "mocha": "^3.2.0",
-    "tmp": "^0.0.31",
+    "portastic": "^1.0.1",
     "request": "^2.81.0",
-    "portastic": "^1.0.1"
+    "sinon": "^2.2.0",
+    "sinon-stub-promise": "^4.0.0",
+    "tmp": "^0.0.31"
   }
 }
