@@ -33,7 +33,7 @@ export const getAllCrawlers = (params, userId, token) => {
         .get(requestParams)))
         .then((response) => {
             const crawlers = response.body;
-            console.log('crawlers: ' + crawlers);
+            console.log(`crawlers: ${crawlers}`);
             // checkPaginationHeaders(response, params, crawlers.length);
             // checkResponse(response);
             // if (!suppressSchemaCheck) crawlers.map(crawler => schemaValidator.validate('CrawlerShort', crawler));
@@ -63,7 +63,7 @@ export const startCrawler = (crawlerId, params, userId, token) => {
             if (!_.isObject(execution)) return reject('Unknown error of api Start Crawler API request');
             if (execution.type === 'CRAWLING_PROCESS_QUOTA_EXCEEDED') return reject('CRAWLING_PROCESS_QUOTA_EXCEEDED');
 
-            console.log('execution: ' + execution);
+            console.log(`execution: ${execution}`);
             // if (!suppressSchemaCheck) schemaValidator.validate('CrawlerExecution', execution);
 
             return execution;
