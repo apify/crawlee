@@ -187,10 +187,10 @@ describe('Apifier.main()', () => {
 });
 
 
-describe('Apifier.heyIAmReady()', () => {
+describe('Apifier.readyFreddy()', () => {
     it('it works as expected', () => {
         process.env.APIFY_WATCH_FILE = createWatchFile();
-        Apifier.heyIAmReady();
+        Apifier.readyFreddy();
         return testWatchFileWillBecomeEmpty(process.env.APIFY_WATCH_FILE, 1000);
     });
 });

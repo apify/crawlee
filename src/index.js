@@ -1,11 +1,11 @@
 import { setPromisesDependency, getPromisesDependency } from './utils';
-import { main, heyIAmReady } from './actor';
+import { main, readyFreddy } from './actor';
 import openKeyValueStore from './key-value-store';
 import { setDefaultToken, setDefaultUserId, getAllCrawlers, startCrawler } from './crawler';
 
 const Apifier = {
     main,
-    heyIAmReady,
+    readyFreddy,
     setPromisesDependency,
     getPromisesDependency,
     openKeyValueStore,

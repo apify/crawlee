@@ -84,11 +84,11 @@ server.listen(process.env.APIFY_INTERNAL_PORT|0, (err) => {
         process.exit(1);
     }
     console.log('Hey I am ready');
-    Apifier.heyIAmReady();
+    Apifier.readyFreddy();
 });
 ```
 
-Note that by calling `Apifier.heyIAmReady()` you tell the Actor runtime that your server is ready to start
+Note that by calling `Apifier.readyFreddy()` you tell the Actor runtime that your server is ready to start
 receiving HTTP requests over the port specified by the `APIFY_INTERNAL_PORT` environment variable.
 
 

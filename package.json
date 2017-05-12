@@ -14,7 +14,8 @@
     "url": "https://www.apifier.com"
   },
   "contributors": [
-    "Jan Curn <jan@apifier.com>"
+    "Jan Curn <jan@apifier.com>",
+    "Marek Trunkat <marek@apifier.com>"
   ],
   "license": "Apache-2.0",
   "repository": {
@@ -37,8 +38,7 @@
     "lint": "npm run build && eslint src test"
   },
   "dependencies": {
-    "body-parser": "^1.17.1",
-    "express": "^4.15.2",
+    "apify-client": "^0.0.1",
     "request": "^2.81.0",
     "request-promise": "^4.2.0",
     "underscore": "^1.8.3"
