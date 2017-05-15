@@ -1,18 +1,15 @@
 import { setPromisesDependency, getPromisesDependency } from './utils';
-import { main, readyFreddy } from './actor';
-import openKeyValueStore from './key-value-store';
-import { setDefaultToken, setDefaultUserId, getAllCrawlers, startCrawler } from './crawler';
+import { main, readyFreddy, getContext, getInput, setOutput, apifyClient } from './actor';
 
 const Apifier = {
     main,
+    getContext,
+    getInput,
+    setOutput,
     readyFreddy,
     setPromisesDependency,
     getPromisesDependency,
-    openKeyValueStore,
-    setDefaultToken,
-    setDefaultUserId,
-    getAllCrawlers,
-    startCrawler,
+    client: apifyClient,
 };
 
 // export this way so that we can import using:

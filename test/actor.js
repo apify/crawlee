@@ -1,8 +1,10 @@
 import fs from 'fs';
+import _ from 'underscore';
 import { expect } from 'chai';
+import sinon from 'sinon';
 import tmp from 'tmp';
-import request from 'request';
-import portastic from 'portastic';
+
+/* global process */
 
 // TODO: override console.log() to test the error messages (now they are printed to console)
 
@@ -11,8 +13,9 @@ const Apifier = process.env.TEST_BABEL_BUILD ? require('../build/index') : requi
 
 if (process.env.TEST_BABEL_BUILD) console.log('Running with TEST_BABEL_BUILD option');
 
-/* global process */
+process.test = '1243';
 
+/*
 let freePorts = [];
 before(() => {
     // find free ports for testing
@@ -24,14 +27,14 @@ before(() => {
         freePorts = ports;
     });
 });
+const popFreePort = () => freePorts.pop();
+*/
 
 // always restore original process.exit()
 const origProcessExit = process.exit;
 after(() => {
     process.exit = origProcessExit;
 });
-
-const popFreePort = () => freePorts.pop();
 
 
 const createWatchFile = () => {
@@ -59,7 +62,7 @@ const testWatchFileWillBecomeEmpty = (path, waitMillis) => {
     });
 };
 
-
+/*
 const testMain = (method, bodyRaw, contentType, userFunc, expectedExitCode = 0) => {
     const port = popFreePort();
     process.env.APIFY_INTERNAL_PORT = port;
@@ -128,62 +131,284 @@ const testMain = (method, bodyRaw, contentType, userFunc, expectedExitCode = 0) 
         });
     });
 };
+*/
 
+/**
+ * Helper function that enables testing of Apifier.main()
+ * @return A promise
+ */
+const testMain = ({ userFunc, context, exitCode, mockInputException }) => {
+    // Mock process.exit() to check exit code and prevent process exit
+    const processMock = sinon.mock(process);
+    const exitExpectation = processMock
+        .expects('exit')
+        .withExactArgs(exitCode)
+        .once()
+        .returns();
+
+    // Mock Apifier.client.keyValueStores.getRecord() for input getter
+    const kvStoresMock = sinon.mock(Apifier.client.keyValueStores);
+    if (mockInputException) {
+        kvStoresMock
+            .expects('getRecord')
+            .throws(mockInputException);
+    } else if (context.defaultKeyValueStoreId) {
+        kvStoresMock
+            .expects('getRecord')
+            .withExactArgs({
+                storeId: context.defaultKeyValueStoreId,
+                promise: Apifier.getPromisesDependency(),
+            }, null)
+            .returns(Promise.resolve(context.input))
+            .once();
+    }
+
+    // Mock APIFY_ environment variables
+    _.defaults(context, getEmptyContext());
+    setContextToEnv(context);
+
+    // TODO: mock Apifier.client.keyValueStores.putRecord() for output setter
+
+    // Waits max 1000 millis for process.exit() mock to be called,
+    // then restores mocked functions and verifies they were called correctly
+    const grandFinale = (err) => {
+        // console.log(`XXX: grand finale: ${err}`);
+        return new Promise((resolve) => {
+            const waitUntil = Date.now() + 1000;
+            const intervalId = setInterval(() => {
+                // console.log('test for exitExpectation.called');
+                if (!exitExpectation.called && Date.now() < waitUntil) return;
+                clearInterval(intervalId);
+                // console.log(`exitExpectation.called: ${exitExpectation.called}`);
+                resolve();
+            }, 10);
+        })
+        .then(() => {
+            // console.log('XXX: restore');
+            processMock.restore();
+            kvStoresMock.restore();
+            if (err) throw err;
+
+            processMock.verify();
+            kvStoresMock.verify();
+        });
+    };
+
+    return new Promise((resolve, reject) => {
+        // Invoke main() function, the promise resolves after the user function is run
+        // Note that if mockInputException is set, then user function will never get called!
+        if (!mockInputException) {
+            Apifier.main((realContext) => {
+                try {
+                    expect(realContext).to.eql(context);
+                    // Wait for all tasks in Node.js event loop to finish
+                    resolve();
+                } catch (err) {
+                    reject(err);
+                    return;
+                }
+                // Call user func to test other behavior (note that it can throw)
+                if (userFunc) return userFunc(realContext);
+            });
+        } else {
+            Apifier.main(() => {});
+            resolve();
+        }
+    })
+    .catch(grandFinale)
+    .then(grandFinale);
+};
+
+
+const getEmptyContext = () => {
+    return {
+        internalPort: null,
+        actId: null,
+        actRunId: null,
+        startedAt: null,
+        timeoutAt: null,
+        defaultKeyValueStoreId: null,
+        input: null,
+    };
+};
+
+const setContextToEnv = (context) => {
+    delete process.env.APIFY_INTERNAL_PORT;
+    delete process.env.APIFY_ACT_ID;
+    delete process.env.APIFY_ACT_RUN_ID;
+    delete process.env.APIFY_STARTED_AT;
+    delete process.env.APIFY_TIMEOUT_AT;
+    delete process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID;
+
+    if (context.internalPort) process.env.APIFY_INTERNAL_PORT = context.internalPort.toString();
+    if (context.actId) process.env.APIFY_ACT_ID = context.actId;
+    if (context.actRunId) process.env.APIFY_ACT_RUN_ID = context.actRunId;
+    if (context.startedAt) process.env.APIFY_STARTED_AT = context.startedAt.toISOString();
+    if (context.timeoutAt) process.env.APIFY_TIMEOUT_AT = context.timeoutAt.toISOString();
+    if (context.defaultKeyValueStoreId) process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = context.defaultKeyValueStoreId;
+};
+
+describe('Apifier.getContext()', () => {
+    it('works with null values', () => {
+        const expectedContext = getEmptyContext();
+        setContextToEnv(expectedContext);
+
+        return Apifier.getContext()
+            .then((context) => {
+                expect(context).to.eql(expectedContext);
+            });
+    });
+
+    it('works with with non-null values / no input', () => {
+        const expectedContext = _.extend(getEmptyContext(), {
+            internalPort: 12345,
+            actId: 'test actId',
+            actRunId: 'test actId',
+            startedAt: new Date('2017-01-01'),
+            timeoutAt: new Date(),
+            defaultKeyValueStoreId: null,
+            input: null,
+        });
+        setContextToEnv(expectedContext);
+
+        return Apifier.getContext()
+            .then((context) => {
+                expect(context).to.eql(expectedContext);
+            });
+    });
+
+    it('works with with non-null values / text input', () => {
+        const expectedContext = {
+            internalPort: 12345,
+            actId: 'test actId',
+            actRunId: 'test actId',
+            startedAt: new Date('2017-01-01'),
+            timeoutAt: new Date(),
+            defaultKeyValueStoreId: 'test storeId',
+            input: {
+                body: 'test body',
+                contentType: 'text/plain',
+            },
+        };
+        setContextToEnv(expectedContext);
+
+        const mock = sinon.mock(Apifier.client.keyValueStores);
+        const expectation = mock.expects('getRecord');
+        expectation
+            .withExactArgs({
+                storeId: expectedContext.defaultKeyValueStoreId,
+                promise: Apifier.getPromisesDependency(),
+            }, null)
+            .once()
+            .returns(Promise.resolve(expectedContext.input));
+
+        return Apifier.getContext()
+            .then((context) => {
+                expect(context).to.eql(expectedContext);
+                mock.restore();
+                expectation.verify();
+            })
+            .catch((err) => {
+                mock.restore();
+                throw err;
+            });
+    });
+});
 
 describe('Apifier.main()', () => {
     it('throws on invalid args', () => {
-        process.env.APIFY_INTERNAL_PORT = 1234;
         expect(() => {
             Apifier.main();
         }).to.throw(Error);
     });
 
-    it('throws on invalid env vars', () => {
-        const fn = () => {
-            Apifier.main(() => {});
+    it('works with simple user function', () => {
+        return testMain({
+            userFunc: () => {},
+            context: {},
+            exitCode: 0,
+        });
+    });
+
+    it('works with promised user function', () => {
+        let called = false;
+        return testMain({
+            userFunc: () => {
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        called = true;
+                        // console.log('called = true');
+                        resolve();
+                    }, 20);
+                });
+            },
+            context: {},
+            exitCode: 0,
+        })
+        .then(() => {
+            expect(called).to.eql(true);
+        });
+    });
+
+    it('gets input correctly', () => {
+        const context = {
+            defaultKeyValueStoreId: 'test storeId',
+            input: {
+                body: 'test body',
+                contentType: 'text/plain',
+            },
         };
-
-        process.env.APIFY_INTERNAL_PORT = null;
-        expect(fn).to.throw(Error);
-
-        process.env.APIFY_INTERNAL_PORT = '';
-        expect(fn).to.throw(Error);
-
-        process.env.APIFY_INTERNAL_PORT = 0;
-        expect(fn).to.throw(Error);
-
-        process.env.APIFY_INTERNAL_PORT = 65536;
-        expect(fn).to.throw(Error);
+        return testMain({
+            userFunc: null,
+            context,
+            exitCode: 0,
+        });
     });
 
-    it('passes text/plain POST request', () => {
-        return testMain('POST', 'testxxx', 'text/plain');
+    it('sets output from simple user function', () => {
+        // TODO
     });
 
-    it('passes application/json PUT request', () => {
-        return testMain('PUT', JSON.stringify({ abc: 123 }), 'application/json');
+    it('sets output from promised user function', () => {
+        // TODO
     });
 
-    it('passes raw POST request', () => {
-        return testMain('POST', new Buffer('somebinarydata'), 'image/png');
+    it('on exception in simple user function the process exits with code 1001', () => {
+        return testMain({
+            userFunc: () => {
+                throw new Error('Test exception I');
+            },
+            context: {},
+            exitCode: 1001,
+        });
     });
 
-    it('passes empty GET request with application/json content type', () => {
-        return testMain('GET', null, 'application/json');
+    it('on exception in promised user function the process exits with code 1001', () => {
+        return testMain({
+            userFunc: () => {
+                return new Promise((resolve) => {
+                    setTimeout(resolve, 20);
+                })
+                .then(() => {
+                    throw new Error('Text exception II');
+                });
+            },
+            context: {},
+            exitCode: 1001,
+        });
     });
 
-    it('passes empty GET request with no content type', () => {
-        return testMain('GET', null, null);
+    it('on exception in getInput the process exits with code 1002', () => {
+        return testMain({
+            userFunc: null,
+            context: {
+                defaultKeyValueStoreId: 'test storeId',
+                input: {},
+            },
+            exitCode: 1002,
+            mockInputException: new Error('Text exception III'),
+        });
     });
-
-    it('on exception exits process with code 1', () => {
-        const userFunc = () => {
-            throw new Error('Test exception');
-        };
-        return testMain('PUT', 'testxxx', 'text/plain', userFunc, 1);
-    });
-
-    // TODO: test responses from act, exceptions etc. !
 });
 
 

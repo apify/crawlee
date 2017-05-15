@@ -1,11 +1,14 @@
 import fs from 'fs';
 import ApifyClient from 'apify-client';
 import { APIFY_ENV_VARS, EXIT_CODES } from './constants';
-import { getPromisesDependency, newPromise } from './utils';
+import { getPromisesDependency, newPromise, nodeifyPromise } from './utils';
 
 /* global process */
 
-const apifyClient = new ApifyClient();
+/**
+ * Exported to enable unit testing mock-up.
+ */
+export const apifyClient = new ApifyClient();
 
 
 /**
@@ -80,14 +83,14 @@ export const setOutput = (output, callback = null) => {
  * }
  * ```
  * The information is generate using the APIFY_XXX environment variables and the input data is fetched from Apifier API.
- * If some of the values cannot be determined, it will be set to null;
- * we don't throw error in such a case in order to simplify local development and debugging of acts.
+ * If some of the variables is not defined or is invalid, the corresponding value in the context object will be null;
+ * an error is not thrown in such a case in order to simplify local development and debugging of acts.
  * @param callback Optional callback.
  * @return Returns a promise if no callback was provided, otherwise the return value is not defined.
  */
 export const getContext = (callback = null) => {
     const context = {
-        internalPort: process.env[APIFY_ENV_VARS.INTERNAL_PORT] || null,
+        internalPort: parseInt(process.env[APIFY_ENV_VARS.INTERNAL_PORT], 10) || null,
         actId: process.env[APIFY_ENV_VARS.ACT_ID] || null,
         actRunId: process.env[APIFY_ENV_VARS.ACT_RUN_ID] || null,
         startedAt: tryParseDate(process.env[APIFY_ENV_VARS.STARTED_AT]) || null,
@@ -96,7 +99,7 @@ export const getContext = (callback = null) => {
         input: null,
     };
 
-    return newPromise()
+    const promise = newPromise()
         .then(() => {
             if (!context.defaultKeyValueStoreId) return null;
             return getInput();
@@ -104,18 +107,8 @@ export const getContext = (callback = null) => {
         .then((input) => {
             context.input = input || null;
             return context;
-        })
-        .catch((err) => {
-            if (!callback) throw err;
-            callback(err);
         });
-};
-
-
-const exitWithError = (err, exitCode, message) => {
-    console.error(message);
-    console.error(err.stack || err);
-    process.exit(exitCode);
+    return nodeifyPromise(promise, callback);
 };
 
 
@@ -124,23 +117,38 @@ export const main = (userFunc) => {
         throw new Error('Handler function must be provided as a parameter');
     }
 
+    // This is to enable unit tests where process.exit() is mocked and doesn't really exit the process
+    // Note that mocked process.exit() might throw, so set exited flag before calling it to avoid confusion.
+    let exited = false;
+    const exitWithError = (err, exitCode, message) => {
+        console.error(message);
+        console.error(err.stack || err);
+        exited = true;
+        // console.log(`exitWithError: ${exitCode}`);
+        process.exit(exitCode);
+    };
+
     try {
         newPromise()
             .then(() => {
                 return getContext();
             })
             .catch((err) => {
-                exitWithError(err, EXIT_CODES.ERROR_GETTING_INPUT, 'Failed to fetch act input');
+                exitWithError(err, EXIT_CODES.ERROR_GETTING_INPUT, 'Failed to fetch act input:');
             })
             .then((context) => {
-                return userFunc(context);
+                if (!exited) {
+                    return userFunc(context);
+                }
             })
             .catch((err) => {
-                exitWithError(err, EXIT_CODES.ERROR_USER_FUNCTION_THREW, 'User function threw an exception');
+                if (!exited) {
+                    exitWithError(err, EXIT_CODES.ERROR_USER_FUNCTION_THREW, 'User function threw an exception:');
+                }
             })
             .then((userReturnValue) => {
                 // Save output to the key-value store
-                if (userReturnValue) {
+                if (!exited && userReturnValue) {
                     const output = {
                         body: JSON.stringify(userReturnValue),
                         contentType: 'application/json',
@@ -149,10 +157,14 @@ export const main = (userFunc) => {
                 }
             })
             .catch((err) => {
-                exitWithError(err, EXIT_CODES.ERROR_SETTING_OUTPUT, 'Failed to save act output');
+                if (!exited) {
+                    exitWithError(err, EXIT_CODES.ERROR_SETTING_OUTPUT, 'Failed to save act output:');
+                }
             })
             .then(() => {
-                process.exit(EXIT_CODES.SUCCESS);
+                if (!exited) {
+                    process.exit(EXIT_CODES.SUCCESS);
+                }
             });
     } catch (err) {
         // This can happen e.g. if there's no Promise dependency
