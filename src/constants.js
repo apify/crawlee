@@ -1,13 +1,13 @@
 
 /**
- * Process exit codes for the act process.
+ * Exit codes for the act process.
  */
 export const EXIT_CODES = {
     SUCCESS: 0,
-    ERROR_USER_FUNCTION_THREW: 1,
-    ERROR_GETTING_INPUT: 2,
-    ERROR_SETTING_OUTPUT: 3,
-    ERROR_UNKNOWN: 4,
+    ERROR_USER_FUNCTION_THREW: 1001,
+    ERROR_GETTING_INPUT: 1002,
+    ERROR_SETTING_OUTPUT: 1003,
+    ERROR_UNKNOWN: 1004,
 };
 
 /**
