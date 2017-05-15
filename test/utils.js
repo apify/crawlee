@@ -1,5 +1,3 @@
-import sinon from 'sinon';
-import request from 'request';
 import { expect } from 'chai';
 import * as utils from '../src/utils';
 
