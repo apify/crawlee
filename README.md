@@ -38,17 +38,18 @@ If the user function throws an exception or some other error is encountered,
 then `Apifier.main()` prints the details to console so that it's saved into log file.
 
 `Apifier.main()` accepts a single argument - a user function that performs the act.
-The simples use case is a synchronous user function.
+In the simplest case, the user function is synchronous:
 
 ```javascript
 Apifier.main((context) => {
     // my synchronous function that returns immediately
     console.dir(context.input);
-    return 'Output from my act!';
+    return 'Output from my act';
 });
 ```
 
-The user function accepts a single argument called `context`, which is described in the next section.
+The user function accepts a single argument called `context`, which is a context object
+holding information about the act run. It is described in detail in the next section.
 
 The return value from the user function is stored as output of the act.
 It must be an object that can be stringified to JSON, otherwise the act will fail.
@@ -61,12 +62,12 @@ Apifier.main((context) => {
     // my asynchronous function that returns a promise
     return Promise.resolve()
         .then(() => {
-            return 'Output from my act!';
+            return 'Output from my act';
         });
 });
 ```
 
-In such case, the return value of the last function in the promise chain is considered as the act output.
+In this case, the return value of the last function in the promise chain is considered as the act output.
 
 To simplify your code, you can also take advantage of the async/await keywords:
 
@@ -81,7 +82,7 @@ Apifier.main(async (context) => {
 
 Note that the `Apifier.main()` function does not need to be used at all,
 it is provided merely for user convenience. The same activity
-can be performed using the lower-level functions described in the following paragraphs.
+can be performed using the lower-level functions described in the following sections.
 
 
 ### Context
@@ -109,7 +110,7 @@ argument called `context` which is an object such as:
     // ID of the key-value store where input and output data of this act is stored
     defaultKeyValueStoreId: String,
 
-    // Input data for the act, as provided by Apifier.getInput()
+    // Input data for the act as provided by Apifier.getInput()
     input: {
         body: String/Buffer,
         contentType: String,
@@ -121,7 +122,7 @@ The values of the objects are determined from process environment variables,
 such as `APIFY_INTERNAL_PORT` or `APIFY_STARTED_AT`, and the input is obtained by calling the
 `Apifier.getInput()` function.
 
-The `context` object can be directly obtained as follows:
+The `context` object can also be obtained as follows:
 
 ```javascript
 Apifier.getContext().then((context) => {
@@ -135,7 +136,7 @@ Each act can have an input and output data record, which is a string or binary b
 with a specific MIME content type.
 Both input and output is stored in the Apifier key-value store created specifically for the act run,
 under keys `INPUT` and `OUTPUT`, respectively.
-The ID of the key-value store is provided by the Actor runtime under `APIFY_DEFAULT_KEY_VALUE_STORE_ID`
+The ID of the key-value store is provided by the Actor runtime as the `APIFY_DEFAULT_KEY_VALUE_STORE_ID`
 environment variable.
 
 To obtain the input of the act, use the following code:
@@ -166,18 +167,19 @@ because return value from `Apifier.main()` is always converted to JSON.
 ### Promises
 
 By default, the `getContext`, `getInput` and `setOutput` functions returns a promise.
-However, they also accept a Node.js-style callback parameter;
-if it is provided, the return value of the functions is not defined
+However, they also accept a Node.js-style callback parameter.
+If the callback is provided, the return value of the functions is not defined
 and the functions only invoke the callback upon completion or error.
 
-To set a promise dependency from an external library, use the following code:
+To set a promise dependency from an external library, use code such as:
 
 ```javascript
 const Promise = require('bluebird');
 Apifier.setPromisesDependency(Promise);
 ```
 
-Otherwise, the runtime defaults to native promises if they are available, or an error is thrown.
+If `Apifier.setPromisesDependency()` is not called, the runtime defaults to
+native promises if they are available, or it throws an error.
 
 
 ### Internal web server
