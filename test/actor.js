@@ -158,6 +158,7 @@ const testMain = ({ userFunc, context, exitCode, mockInputException, mockOutputE
             .withExactArgs({
                 storeId: context.defaultKeyValueStoreId,
                 promise: Apifier.getPromisesDependency(),
+                key: 'INPUT',
             }, null)
             .returns(Promise.resolve(context.input))
             .once();
@@ -178,6 +179,7 @@ const testMain = ({ userFunc, context, exitCode, mockInputException, mockOutputE
             .withExactArgs({
                 storeId: context.defaultKeyValueStoreId,
                 promise: Apifier.getPromisesDependency(),
+                key: 'OUTPUT',
                 contentType: expectedOutput.contentType,
                 body: expectedOutput.body,
             }, null)
@@ -325,6 +327,7 @@ describe('Apifier.getContext()', () => {
             .withExactArgs({
                 storeId: expectedContext.defaultKeyValueStoreId,
                 promise: Apifier.getPromisesDependency(),
+                key: 'INPUT',
             }, null)
             .once()
             .returns(Promise.resolve(expectedContext.input));
@@ -467,7 +470,7 @@ describe('Apifier.main()', () => {
         });
     });
 
-    it('on exception in setInput the process exits with code 1003', () => {
+    it('on exception in setOutput the process exits with code 1003', () => {
         return testMain({
             userFunc: () => {
                 return 'anything';
@@ -477,6 +480,21 @@ describe('Apifier.main()', () => {
             },
             exitCode: 1003,
             mockOutputException: new Error('Text exception IV'),
+        });
+    });
+
+    it('on non-JSON-stringifyable return value the process exits with code 1003', () => {
+        const circularObj = {};
+        circularObj.aaa = circularObj;
+
+        return testMain({
+            userFunc: () => {
+                return circularObj;
+            },
+            context: {
+                defaultKeyValueStoreId: 'test storeId',
+            },
+            exitCode: 1003,
         });
     });
 });

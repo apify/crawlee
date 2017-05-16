@@ -1,6 +1,6 @@
 import fs from 'fs';
 import ApifyClient from 'apify-client';
-import { APIFY_ENV_VARS, EXIT_CODES } from './constants';
+import { APIFY_ENV_VARS, EXIT_CODES, KV_STORE_KEYS } from './constants';
 import { getPromisesDependency, newPromise, nodeifyPromise } from './utils';
 
 /* global process */
@@ -42,6 +42,7 @@ export const getInput = (callback = null) => {
     return apifyClient.keyValueStores.getRecord({
         storeId: getDefaultStoreIdOrThrow(),
         promise: getPromisesDependency(),
+        key: KV_STORE_KEYS.INPUT,
     }, callback);
 };
 
@@ -61,6 +62,7 @@ export const setOutput = (output, callback = null) => {
     return apifyClient.keyValueStores.putRecord({
         storeId: getDefaultStoreIdOrThrow(),
         promise: getPromisesDependency(),
+        key: KV_STORE_KEYS.OUTPUT,
         body: output.body,
         contentType: output.contentType,
     }, callback);
