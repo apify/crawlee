@@ -137,7 +137,7 @@ const testMain = (method, bodyRaw, contentType, userFunc, expectedExitCode = 0) 
  * Helper function that enables testing of Apifier.main()
  * @return A promise
  */
-const testMain = ({ userFunc, context, exitCode, mockInputException }) => {
+const testMain = ({ userFunc, context, exitCode, mockInputException, mockOutputException, expectedOutput }) => {
     // Mock process.exit() to check exit code and prevent process exit
     const processMock = sinon.mock(process);
     const exitExpectation = processMock
@@ -146,7 +146,7 @@ const testMain = ({ userFunc, context, exitCode, mockInputException }) => {
         .once()
         .returns();
 
-    // Mock Apifier.client.keyValueStores.getRecord() for input getter
+    // Mock Apifier.client.keyValueStores.getRecord() to test act input
     const kvStoresMock = sinon.mock(Apifier.client.keyValueStores);
     if (mockInputException) {
         kvStoresMock
@@ -161,13 +161,37 @@ const testMain = ({ userFunc, context, exitCode, mockInputException }) => {
             }, null)
             .returns(Promise.resolve(context.input))
             .once();
+    } else {
+        kvStoresMock
+            .expects('putRecord')
+            .never();
+    }
+
+    // Mock Apifier.client.keyValueStores.putRecord() to test act output
+    if (mockOutputException) {
+        kvStoresMock
+            .expects('putRecord')
+            .throws(mockOutputException);
+    } else if (context.defaultKeyValueStoreId && expectedOutput) {
+        kvStoresMock
+            .expects('putRecord')
+            .withExactArgs({
+                storeId: context.defaultKeyValueStoreId,
+                promise: Apifier.getPromisesDependency(),
+                contentType: expectedOutput.contentType,
+                body: expectedOutput.body,
+            }, null)
+            .returns(Promise.resolve())
+            .once();
+    } else {
+        kvStoresMock
+            .expects('putRecord')
+            .never();
     }
 
     // Mock APIFY_ environment variables
     _.defaults(context, getEmptyContext());
     setContextToEnv(context);
-
-    // TODO: mock Apifier.client.keyValueStores.putRecord() for output setter
 
     let error = null;
 
@@ -370,18 +394,40 @@ describe('Apifier.main()', () => {
 
     it('sets output from simple user function', () => {
         const context = {
-            defaultKeyValueStoreId: 'test storeId',
-            input: null,
+            defaultKeyValueStoreId: 'test storeId x',
         };
+        const output = { test: 123 };
         return testMain({
-            userFunc: null,
+            userFunc: () => {
+                return output;
+            },
             context,
             exitCode: 0,
+            expectedOutput: {
+                contentType: 'application/json; charset=utf-8',
+                body: JSON.stringify(output),
+            },
         });
     });
 
     it('sets output from promised user function', () => {
-        // TODO
+        const context = {
+            defaultKeyValueStoreId: 'test storeId x',
+        };
+        const output = { test: 123 };
+        return testMain({
+            userFunc: () => {
+                return Promise.resolve().then(() => {
+                    return output;
+                });
+            },
+            context,
+            exitCode: 0,
+            expectedOutput: {
+                contentType: 'application/json; charset=utf-8',
+                body: JSON.stringify(output),
+            },
+        });
     });
 
     it('on exception in simple user function the process exits with code 1001', () => {
@@ -418,6 +464,19 @@ describe('Apifier.main()', () => {
             },
             exitCode: 1002,
             mockInputException: new Error('Text exception III'),
+        });
+    });
+
+    it('on exception in setInput the process exits with code 1003', () => {
+        return testMain({
+            userFunc: () => {
+                return 'anything';
+            },
+            context: {
+                defaultKeyValueStoreId: 'test storeId',
+            },
+            exitCode: 1003,
+            mockOutputException: new Error('Text exception IV'),
         });
     });
 });

@@ -58,7 +58,7 @@ export const getInput = (callback = null) => {
 export const setOutput = (output, callback = null) => {
     if (!output) throw new Error('The "output" parameter must be provided.');
 
-    return apifyClient.keyValueStores.setRecord({
+    return apifyClient.keyValueStores.putRecord({
         storeId: getDefaultStoreIdOrThrow(),
         promise: getPromisesDependency(),
         body: output.body,
@@ -151,7 +151,7 @@ export const main = (userFunc) => {
                 if (!exited && userReturnValue) {
                     const output = {
                         body: JSON.stringify(userReturnValue),
-                        contentType: 'application/json',
+                        contentType: 'application/json; charset=utf-8',
                     };
                     return setOutput(output);
                 }
