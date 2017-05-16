@@ -439,7 +439,7 @@ describe('Apifier.main()', () => {
                 throw new Error('Test exception I');
             },
             context: {},
-            exitCode: 1001,
+            exitCode: 91,
         });
     });
 
@@ -454,7 +454,7 @@ describe('Apifier.main()', () => {
                 });
             },
             context: {},
-            exitCode: 1001,
+            exitCode: 91,
         });
     });
 
@@ -465,7 +465,7 @@ describe('Apifier.main()', () => {
                 defaultKeyValueStoreId: 'test storeId',
                 input: {},
             },
-            exitCode: 1002,
+            exitCode: 92,
             mockInputException: new Error('Text exception III'),
         });
     });
@@ -478,7 +478,7 @@ describe('Apifier.main()', () => {
             context: {
                 defaultKeyValueStoreId: 'test storeId',
             },
-            exitCode: 1003,
+            exitCode: 93,
             mockOutputException: new Error('Text exception IV'),
         });
     });
@@ -494,7 +494,7 @@ describe('Apifier.main()', () => {
             context: {
                 defaultKeyValueStoreId: 'test storeId',
             },
-            exitCode: 1003,
+            exitCode: 93,
         });
     });
 });

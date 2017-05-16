@@ -1,13 +1,15 @@
 
 /**
  * Exit codes for the act process.
+ * The error codes must be in range 1-128, to avoid collision with signal exits
+ * and to ensure Docker will handle them correctly!
  */
 export const EXIT_CODES = {
     SUCCESS: 0,
-    ERROR_USER_FUNCTION_THREW: 1001,
-    ERROR_GETTING_INPUT: 1002,
-    ERROR_SETTING_OUTPUT: 1003,
-    ERROR_UNKNOWN: 1004,
+    ERROR_USER_FUNCTION_THREW: 91,
+    ERROR_GETTING_INPUT: 92,
+    ERROR_SETTING_OUTPUT: 93,
+    ERROR_UNKNOWN: 94,
 };
 
 /**

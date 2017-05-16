@@ -137,7 +137,7 @@ export const main = (userFunc) => {
         console.error(message);
         console.error(err.stack || err);
         exited = true;
-        console.log(`Exiting with code: ${exitCode}`);
+        // console.log(`Exiting with code: ${exitCode}`);
         process.exit(exitCode);
     };
 
