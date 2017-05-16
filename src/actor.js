@@ -1,14 +1,25 @@
 import fs from 'fs';
+import url from 'url';
 import ApifyClient from 'apify-client';
 import { APIFY_ENV_VARS, EXIT_CODES, KV_STORE_KEYS } from './constants';
 import { getPromisesDependency, newPromise, nodeifyPromise } from './utils';
 
 /* global process */
 
+// TODO: protocol/host/port/basePath should be replaced with baseUrl
+const clientOpts = {};
+if (process.env[APIFY_ENV_VARS.API_BASE_URL]) {
+    const parsed = url.parse(process.env[APIFY_ENV_VARS.API_BASE_URL]);
+    clientOpts.protocol = parsed.protocol;
+    clientOpts.host = parsed.hostname;
+    clientOpts.port = parsed.port;
+    clientOpts.basePath = parsed.pathname;
+}
+
 /**
- * Exported to enable unit testing mock-up.
+ * Exported to enable mocking up in unit tests.
  */
-export const apifyClient = new ApifyClient();
+export const apifyClient = new ApifyClient(clientOpts);
 
 
 /**
