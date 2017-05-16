@@ -1,6 +1,6 @@
 # apifier-sdk-js [![Build Status](https://travis-ci.org/Apifier/apifier-sdk-js.svg)](https://travis-ci.org/Apifier/apifier-sdk-js) [![npm version](https://badge.fury.io/js/apifier.svg)](http://badge.fury.io/js/apifier)
 
-Apifier Actor runtime for JavaScript.
+Apifier runtime for JavaScript.
 
 This is a helper package that simplifies development of Apifier acts.
 It's still a work in progress, stay tuned.
