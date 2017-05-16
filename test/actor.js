@@ -500,6 +500,23 @@ describe('Apifier.main()', () => {
 });
 
 
+describe('Apifier.events', () => {
+    it('is there and works as EventEmitter', () => {
+        return new Promise((resolve, reject) => {
+            try {
+                Apifier.events.on('foo', resolve);
+                Apifier.events.emit('foo', 'test event');
+            } catch (e) {
+                reject(e);
+            }
+        })
+        .then((arg) => {
+            expect(arg).to.eql('test event');
+        });
+    });
+});
+
+
 describe('Apifier.readyFreddy()', () => {
     it('it works as expected', () => {
         process.env.APIFY_WATCH_FILE = createWatchFile();
