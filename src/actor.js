@@ -10,7 +10,7 @@ import { getPromisesDependency, newPromise, nodeifyPromise } from './utils';
 const clientOpts = {};
 if (process.env[APIFY_ENV_VARS.API_BASE_URL]) {
     const parsed = url.parse(process.env[APIFY_ENV_VARS.API_BASE_URL]);
-    clientOpts.protocol = parsed.protocol;
+    clientOpts.protocol = parsed.protocol.replace(':', '');
     clientOpts.host = parsed.hostname;
     clientOpts.port = parsed.port;
     clientOpts.basePath = parsed.pathname;
