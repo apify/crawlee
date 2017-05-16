@@ -169,30 +169,7 @@ const testMain = ({ userFunc, context, exitCode, mockInputException }) => {
 
     // TODO: mock Apifier.client.keyValueStores.putRecord() for output setter
 
-    // Waits max 1000 millis for process.exit() mock to be called,
-    // then restores mocked functions and verifies they were called correctly
-    const grandFinale = (err) => {
-        // console.log(`XXX: grand finale: ${err}`);
-        return new Promise((resolve) => {
-            const waitUntil = Date.now() + 1000;
-            const intervalId = setInterval(() => {
-                // console.log('test for exitExpectation.called');
-                if (!exitExpectation.called && Date.now() < waitUntil) return;
-                clearInterval(intervalId);
-                // console.log(`exitExpectation.called: ${exitExpectation.called}`);
-                resolve();
-            }, 10);
-        })
-        .then(() => {
-            // console.log('XXX: restore');
-            processMock.restore();
-            kvStoresMock.restore();
-            if (err) throw err;
-
-            processMock.verify();
-            kvStoresMock.verify();
-        });
-    };
+    let error = null;
 
     return new Promise((resolve, reject) => {
         // Invoke main() function, the promise resolves after the user function is run
@@ -215,8 +192,34 @@ const testMain = ({ userFunc, context, exitCode, mockInputException }) => {
             resolve();
         }
     })
-    .catch(grandFinale)
-    .then(grandFinale);
+    .catch((err) => {
+        error = err;
+    })
+    .then(() => {
+        // Waits max 1000 millis for process.exit() mock to be called
+        // console.log(`XXX: grand finale: ${err}`);
+        return new Promise((resolve) => {
+            const waitUntil = Date.now() + 1000;
+            const intervalId = setInterval(() => {
+                // console.log('test for exitExpectation.called');
+                if (!exitExpectation.called && Date.now() < waitUntil) return;
+                clearInterval(intervalId);
+                // console.log(`exitExpectation.called: ${exitExpectation.called}`);
+                resolve();
+            }, 10);
+        });
+    })
+    .then(() => {
+        // Restore mocked functions and verify they were called correctly
+        // console.log('XXX: restore');
+        processMock.restore();
+        kvStoresMock.restore();
+
+        if (error) throw error;
+
+        processMock.verify();
+        kvStoresMock.verify();
+    });
 };
 
 
@@ -366,7 +369,15 @@ describe('Apifier.main()', () => {
     });
 
     it('sets output from simple user function', () => {
-        // TODO
+        const context = {
+            defaultKeyValueStoreId: 'test storeId',
+            input: null,
+        };
+        return testMain({
+            userFunc: null,
+            context,
+            exitCode: 0,
+        });
     });
 
     it('sets output from promised user function', () => {
