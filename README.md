@@ -111,10 +111,10 @@ argument called `context` which is an object such as:
 ```
 
 The values of the objects are determined from process environment variables,
-such as 'APIFY_INTERNAL_PORT' or 'APIFY_STARTED_AT', and the input is obtained by calling the
+such as `APIFY_INTERNAL_PORT` or `APIFY_STARTED_AT`, and the input is obtained by calling the
 `Apifier.getInput()` function.
 
-The `context` object can be obtained independently as follows:
+The `context` object can be directly obtained as follows:
 
 ```javascript
 Apifier.getContext().then( (context) => {
@@ -124,9 +124,10 @@ Apifier.getContext().then( (context) => {
 
 ### Input and output
 
-Each act can have input and output data.
+Each act can have input and output data, which can be a string or binary data associated
+with a MIME content type.
 
-To only obtain only the input of the act, use the following code:
+To only obtain the input of the act, use the following code:
 
 ```javascript
 Apifier.getInput().then( (input) => {
@@ -135,7 +136,7 @@ Apifier.getInput().then( (input) => {
 });
 ```
 
-Similarly,
+Similarly, the output can be stored as follows:
 
 ```javascript
 const output = {
@@ -152,11 +153,13 @@ Apifier.setOutput(output).then( () => {
 Note that the `getContext`, `getInput` and `setOutput` also accept a Node.js-style callback parameter.
 If the callback is not provided, they return a promise.
 To set a promise dependency from an external library, use the following code:
+
 ```javascript
 const Promise = require('bluebird');
 Apifier.setPromisesDependency(Promise);
 ```
-Otherwise, the SDK defaults to native promises.
+
+Otherwise, the runtime defaults to native promises if they are available, or an error is thrown.
 
 
 ### Internal web server
