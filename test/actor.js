@@ -158,7 +158,7 @@ const testMain = ({ userFunc, context, exitCode, mockInputException, mockOutputE
             .withExactArgs({
                 storeId: context.defaultKeyValueStoreId,
                 promise: Apifier.getPromisesDependency(),
-                key: 'INPUT',
+                recordKey: 'INPUT',
             }, null)
             .returns(Promise.resolve(context.input))
             .once();
@@ -179,7 +179,7 @@ const testMain = ({ userFunc, context, exitCode, mockInputException, mockOutputE
             .withExactArgs({
                 storeId: context.defaultKeyValueStoreId,
                 promise: Apifier.getPromisesDependency(),
-                key: 'OUTPUT',
+                recordKey: 'OUTPUT',
                 contentType: expectedOutput.contentType,
                 body: expectedOutput.body,
             }, null)
@@ -327,7 +327,7 @@ describe('Apifier.getContext()', () => {
             .withExactArgs({
                 storeId: expectedContext.defaultKeyValueStoreId,
                 promise: Apifier.getPromisesDependency(),
-                key: 'INPUT',
+                recordKey: 'INPUT',
             }, null)
             .once()
             .returns(Promise.resolve(expectedContext.input));
