@@ -1,3 +1,4 @@
+import BluebirdPromise from 'bluebird';
 import { expect } from 'chai';
 import * as utils from '../src/utils';
 
@@ -24,12 +25,14 @@ describe('Apifier.xxxPromisesDependency()', () => {
         expect(Apifier.getPromisesDependency()).to.be.a('null');
         expect(utils.newPromise()).to.have.property('then');
 
+        // Check native promise
         Apifier.setPromisesDependency(Promise);
         expect(Apifier.getPromisesDependency()).to.equal(Promise);
         expect(utils.newPromise()).to.have.property('then');
+
+        // Check bluebird
+        Apifier.setPromisesDependency(BluebirdPromise);
+        expect(Apifier.getPromisesDependency()).to.equal(BluebirdPromise);
+        expect(utils.newPromise()).to.have.property('then');
     });
 });
-
-
-// TODO: test nodeifyPromise() !!!
-

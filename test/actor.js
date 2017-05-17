@@ -3,17 +3,18 @@ import _ from 'underscore';
 import { expect } from 'chai';
 import sinon from 'sinon';
 import tmp from 'tmp';
+import Promise from 'bluebird';
 
 /* global process */
 
 // TODO: override console.log() to test the error messages (now they are printed to console)
+// TODO: test callback version of functions!!!
 
 // NOTE: use require() here because this is how its done in acts
 const Apifier = process.env.TEST_BABEL_BUILD ? require('../build/index') : require('../src/index');
 
 if (process.env.TEST_BABEL_BUILD) console.log('Running with TEST_BABEL_BUILD option');
 
-process.test = '1243';
 
 /*
 let freePorts = [];
@@ -29,13 +30,6 @@ before(() => {
 });
 const popFreePort = () => freePorts.pop();
 */
-
-// always restore original process.exit()
-const origProcessExit = process.exit;
-after(() => {
-    process.exit = origProcessExit;
-});
-
 
 const createWatchFile = () => {
     const tmpobj = tmp.fileSync();
@@ -135,7 +129,7 @@ const testMain = (method, bodyRaw, contentType, userFunc, expectedExitCode = 0) 
 
 /**
  * Helper function that enables testing of Apifier.main()
- * @return A promise
+ * @return Promise
  */
 const testMain = ({ userFunc, context, exitCode, mockInputException, mockOutputException, expectedOutput }) => {
     // Mock process.exit() to check exit code and prevent process exit
@@ -159,7 +153,7 @@ const testMain = ({ userFunc, context, exitCode, mockInputException, mockOutputE
                 storeId: context.defaultKeyValueStoreId,
                 promise: Apifier.getPromisesDependency(),
                 recordKey: 'INPUT',
-            }, null)
+            })
             .returns(Promise.resolve(context.input))
             .once();
     } else {
@@ -182,7 +176,7 @@ const testMain = ({ userFunc, context, exitCode, mockInputException, mockOutputE
                 recordKey: 'OUTPUT',
                 contentType: expectedOutput.contentType,
                 body: expectedOutput.body,
-            }, null)
+            })
             .returns(Promise.resolve())
             .once();
     } else {
@@ -197,55 +191,56 @@ const testMain = ({ userFunc, context, exitCode, mockInputException, mockOutputE
 
     let error = null;
 
-    return new Promise((resolve, reject) => {
-        // Invoke main() function, the promise resolves after the user function is run
-        // Note that if mockInputException is set, then user function will never get called!
-        if (!mockInputException) {
-            Apifier.main((realContext) => {
-                try {
-                    expect(realContext).to.eql(context);
-                    // Wait for all tasks in Node.js event loop to finish
+    return Promise.resolve()
+        .then(() => {
+            return new Promise((resolve, reject) => {
+                // Invoke main() function, the promise resolves after the user function is run
+                // Note that if mockInputException is set, then user function will never get called!
+                if (!mockInputException) {
+                    Apifier.main((realContext) => {
+                        try {
+                            expect(realContext).to.eql(context);
+                            // Wait for all tasks in Node.js event loop to finish
+                            resolve();
+                        } catch (err) {
+                            reject(err);
+                            return;
+                        }
+                        // Call user func to test other behavior (note that it can throw)
+                        if (userFunc) return userFunc(realContext);
+                    });
+                } else {
+                    Apifier.main(() => {});
                     resolve();
-                } catch (err) {
-                    reject(err);
-                    return;
                 }
-                // Call user func to test other behavior (note that it can throw)
-                if (userFunc) return userFunc(realContext);
             });
-        } else {
-            Apifier.main(() => {});
-            resolve();
-        }
-    })
-    .catch((err) => {
-        error = err;
-    })
-    .then(() => {
-        // Waits max 1000 millis for process.exit() mock to be called
-        // console.log(`XXX: grand finale: ${err}`);
-        return new Promise((resolve) => {
-            const waitUntil = Date.now() + 1000;
-            const intervalId = setInterval(() => {
-                // console.log('test for exitExpectation.called');
-                if (!exitExpectation.called && Date.now() < waitUntil) return;
-                clearInterval(intervalId);
-                // console.log(`exitExpectation.called: ${exitExpectation.called}`);
-                resolve();
-            }, 10);
+        })
+        .catch((err) => {
+            error = err;
+        })
+        .then(() => {
+            // Waits max 1000 millis for process.exit() mock to be called
+            // console.log(`XXX: grand finale: ${err}`);
+            return new Promise((resolve) => {
+                const waitUntil = Date.now() + 1000;
+                const intervalId = setInterval(() => {
+                    // console.log('test for exitExpectation.called');
+                    if (!exitExpectation.called && Date.now() < waitUntil) return;
+                    clearInterval(intervalId);
+                    // console.log(`exitExpectation.called: ${exitExpectation.called}`);
+                    resolve();
+                }, 10);
+            });
+        })
+        .then(() => {
+            if (error) throw error;
+            processMock.verify();
+            kvStoresMock.verify();
+        })
+        .finally(() => {
+            processMock.restore();
+            kvStoresMock.restore();
         });
-    })
-    .then(() => {
-        // Restore mocked functions and verify they were called correctly
-        // console.log('XXX: restore');
-        processMock.restore();
-        kvStoresMock.restore();
-
-        if (error) throw error;
-
-        processMock.verify();
-        kvStoresMock.verify();
-    });
 };
 
 
@@ -306,6 +301,27 @@ describe('Apifier.getContext()', () => {
             });
     });
 
+    it('works with callbacks', () => {
+        const expectedContext = _.extend(getEmptyContext(), {
+            internalPort: 4455,
+            actId: 'test actId x',
+            actRunId: 'test actId x',
+            startedAt: new Date('2017-01-01'),
+            timeoutAt: new Date(),
+        });
+        setContextToEnv(expectedContext);
+
+        return new Promise((resolve, reject) => {
+            Apifier.getContext((err, context) => {
+                if (err) reject(err);
+                resolve(context);
+            });
+        })
+        .then((context) => {
+            expect(context).to.eql(expectedContext);
+        });
+    });
+
     it('works with with non-null values / text input', () => {
         const expectedContext = {
             internalPort: 12345,
@@ -328,19 +344,132 @@ describe('Apifier.getContext()', () => {
                 storeId: expectedContext.defaultKeyValueStoreId,
                 promise: Apifier.getPromisesDependency(),
                 recordKey: 'INPUT',
-            }, null)
+            })
             .once()
             .returns(Promise.resolve(expectedContext.input));
 
-        return Apifier.getContext()
+        return Promise.resolve()
+            .then(() => {
+                return Apifier.getContext();
+            })
             .then((context) => {
                 expect(context).to.eql(expectedContext);
-                mock.restore();
                 expectation.verify();
             })
-            .catch((err) => {
+            .finally(() => {
                 mock.restore();
-                throw err;
+            });
+    });
+});
+
+describe('Apifier.getInput()', () => {
+    it('supports both promises and callbacks (on success)', () => {
+        const mock = sinon.mock(Apifier.client.keyValueStores);
+        mock.expects('getRecord')
+            .twice()
+            .returns(Promise.resolve(null));
+
+        return Promise.resolve()
+            .then(() => {
+                // test promise
+                return Apifier.getInput();
+            })
+            .then((input) => {
+                expect(input).to.be.eql(null);
+            })
+            .then(() => {
+                // test callback
+                return new Promise((resolve, reject) => {
+                    return Apifier.getInput((err, input) => {
+                        if (err) return reject(err);
+                        resolve(input);
+                    });
+                });
+            })
+            .then((input) => {
+                expect(input).to.be.eql(null);
+
+                mock.verify();
+            })
+            .finally(() => {
+                mock.restore();
+            });
+    });
+
+    it('supports both promises and callbacks (on error)', () => {
+        const mock = sinon.mock(Apifier.client.keyValueStores);
+        mock.expects('getRecord')
+            .twice()
+            .throws(new Error('Test error'));
+
+        return Promise.resolve()
+            .then(() => {
+                // test promise
+                return Apifier.getInput();
+            })
+            .catch((err) => {
+                expect(err.message).to.be.eql('Test error');
+            })
+            .then(() => {
+                // test callback
+                return new Promise((resolve, reject) => {
+                    return Apifier.getInput((err, input) => {
+                        if (err) return reject(err);
+                        resolve(input);
+                    });
+                });
+            })
+            .catch((err) => {
+                expect(err.message).to.be.eql('Test error');
+            })
+            .then(() => {
+                mock.verify();
+            })
+            .finally(() => {
+                mock.restore();
+            });
+    });
+
+    it('returns null on undefined keyValueStores.getRecord() result', () => {
+        const mock = sinon.mock(Apifier.client.keyValueStores);
+        mock.expects('getRecord')
+            .once()
+            .returns(Promise.resolve(undefined));
+
+        return Promise.resolve()
+            .then(() => {
+                return Apifier.getInput();
+            })
+            .then((input) => {
+                expect(input).to.be.eql(null);
+                mock.verify();
+            })
+            .finally(() => {
+                mock.restore();
+            });
+    });
+
+    it('fails on invalid keyValueStores.getRecord() result', () => {
+        const mock = sinon.mock(Apifier.client.keyValueStores);
+        mock.expects('getRecord')
+            .once()
+            .returns(Promise.resolve({ invalid: 'bla bla' }));
+
+        return Promise.resolve()
+            .then(() => {
+                return Apifier.getInput();
+            })
+            .then(() => {
+                expect.fail();
+            })
+            .catch((err) => {
+                expect(err.message).to.contain('ApifyClient returned an unexpected value');
+            })
+            .then(() => {
+                mock.verify();
+            })
+            .finally(() => {
+                mock.restore();
             });
     });
 });
@@ -496,6 +625,39 @@ describe('Apifier.main()', () => {
             },
             exitCode: 93,
         });
+    });
+});
+
+
+describe('Apifier.setOuput()', () => {
+    it('throws on invalid args', () => {
+        expect(() => {
+            Apifier.setOutput();
+        }).to.throw(Error);
+
+        expect(() => {
+            Apifier.setOutput('bla bla');
+        }).to.throw(Error);
+
+        expect(() => {
+            Apifier.setOutput(1234);
+        }).to.throw(Error);
+
+        expect(() => {
+            Apifier.setOutput({});
+        }).to.throw(Error);
+
+        expect(() => {
+            Apifier.setOutput({ body: undefined, contentType: 'test' });
+        }).to.throw(Error);
+
+        expect(() => {
+            Apifier.setOutput({ body: {}, contentType: 456 });
+        }).to.throw(Error);
+
+        expect(() => {
+            Apifier.setOutput({ body: {}, contentType: undefined });
+        }).to.throw(Error);
     });
 });
 

@@ -182,6 +182,18 @@ If `Apifier.setPromisesDependency()` is not called, the runtime defaults to
 native promises if they are available, or it throws an error.
 
 
+### Miscellaneous
+
+`Apifier.client` property contains a reference to `ApifyClient` instance from the
+[apify-client](https://www.npmjs.com/package/apify-client) NPM package
+that is used for all underlying calls to Apifier API.
+You can use this to set options to the client.
+
+`Apifier.events` property contains a reference to an `EventEmitter` instance
+that is used by Actor runtime to notify your process about various events.
+This will be used in the future.
+
+
 ### Internal web server
 
 **TODO: this is still not finished**

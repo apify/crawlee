@@ -2,9 +2,9 @@ import fs from 'fs';
 import url from 'url';
 import ApifyClient from 'apify-client';
 import { APIFY_ENV_VARS, EXIT_CODES, KV_STORE_KEYS } from './constants';
-import { getPromisesDependency, newPromise, nodeifyPromise } from './utils';
+import { getPromisePrototype, newPromise, nodeifyPromise } from './utils';
 
-/* global process */
+/* global process, Buffer */
 
 // TODO: protocol/host/port/basePath should be replaced with baseUrl
 const clientOpts = {};
@@ -44,17 +44,33 @@ const getDefaultStoreIdOrThrow = () => {
  * This data is stored in the key-value store created specifically for this run,
  * whose ID is defined in the `APIFY_DEFAULT_KEY_VALUE_STORE_ID` environment variable,
  * under record with the `INPUT` key.
- * The result of the function is an object such as `{ body: String/Buffer, contentType: String }`,
+ * The result of the function is an object such as `{ body: String|Buffer, contentType: String|null }`,
  * or `null` if record was not found.
  * @param callback Optional callback.
  * @return Returns a promise if no callback was provided, otherwise the return value is not defined.
  */
 export const getInput = (callback = null) => {
-    return apifyClient.keyValueStores.getRecord({
-        storeId: getDefaultStoreIdOrThrow(),
-        promise: getPromisesDependency(),
-        recordKey: KV_STORE_KEYS.INPUT,
-    }, callback);
+    const promise = newPromise()
+        .then(() => {
+            return apifyClient.keyValueStores.getRecord({
+                storeId: getDefaultStoreIdOrThrow(),
+                promise: getPromisePrototype(),
+                recordKey: KV_STORE_KEYS.INPUT,
+            });
+        })
+        .then((input) => {
+            // Ensure we always return null or { body: String|Buffer, contentType: String|null } to user
+            if (!input) {
+                input = null;
+            } else if (typeof (input) !== 'object'
+                    || (typeof (input.body) !== 'string' && !Buffer.isBuffer(input.body))
+                    || (typeof (input.contentType) !== 'string' && input.contentType !== null)) {
+                throw new Error('ApifyClient returned an unexpected value from keyValueStores.getRecord()');
+            }
+            return input;
+        });
+
+    return nodeifyPromise(promise, callback);
 };
 
 /**
@@ -62,21 +78,34 @@ export const getInput = (callback = null) => {
  * This data is stored in the key-value store created specifically for this run,
  * whose ID is defined in the `APIFY_DEFAULT_KEY_VALUE_STORE_ID` environment variable,
  * under record with the `OUTPUT` key.
- * The function has no result.
- * @param output
+ * The function has no result, but throws on invalid args.
+ * @param output Must be an object such as { body: String|Buffer, contentType: String|null }
  * @param callback Optional callback.
  * @return Returns a promise if no callback was provided, otherwise the return value is not defined.
  */
 export const setOutput = (output, callback = null) => {
-    if (!output) throw new Error('The "output" parameter must be provided.');
+    if (typeof (output) !== 'object') {
+        throw new Error('The "output" parameter must be an object.');
+    }
+    if (typeof (output.body) !== 'string' && !Buffer.isBuffer(output.body)) {
+        throw new Error('The "output.body" parameter must be String or Buffer.');
+    }
+    if (typeof (output.contentType) !== 'string' && output.contentType !== null) {
+        throw new Error('The "output.contentType" parameter must be String or null.');
+    }
 
-    return apifyClient.keyValueStores.putRecord({
-        storeId: getDefaultStoreIdOrThrow(),
-        promise: getPromisesDependency(),
-        recordKey: KV_STORE_KEYS.OUTPUT,
-        body: output.body,
-        contentType: output.contentType,
-    }, callback);
+    const promise = newPromise()
+        .then(() => {
+            return apifyClient.keyValueStores.putRecord({
+                storeId: getDefaultStoreIdOrThrow(),
+                promise: getPromisePrototype(),
+                recordKey: KV_STORE_KEYS.OUTPUT,
+                body: output.body,
+                contentType: output.contentType,
+            });
+        });
+
+    return nodeifyPromise(promise, callback);
 };
 
 /**
@@ -121,6 +150,7 @@ export const getContext = (callback = null) => {
             context.input = input || null;
             return context;
         });
+
     return nodeifyPromise(promise, callback);
 };
 

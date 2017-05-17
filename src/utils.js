@@ -21,25 +21,38 @@ export const getPromisesDependency = () => {
 };
 
 /**
+ * Gets a promise dependency set using `setPromisesDependency()`,
+ * or returns the native `Promise` function, or throws if no native promises are available.
+ * @return Promise
+ */
+export const getPromisePrototype = () => {
+    if (PromisesDependency) {
+        if (typeof (PromisesDependency.resolve) !== 'function') {
+            throw new Error('The promise dependency set using Apifier.setPromisesDependency() does not define resolve() function.');
+        }
+        return PromisesDependency;
+    }
+    if (typeof Promise === 'function') return Promise;
+    throw new Error('Native promises are not available, please call Apifier.setPromisesDependency() to set a promise library.');
+};
+
+/**
  * Returns a result of `Promise.resolve()` using promise library set by `setPromisesDependency()`,
  * or using native promises, or throws if no native promises are available.
  * @return {*}
  */
 export const newPromise = () => {
-    if (PromisesDependency) {
-        if (typeof (PromisesDependency.resolve) !== 'function') {
-            throw new Error('The promise dependency set using Apifier.setPromisesDependency() does not define resolve() function.');
-        }
-        return PromisesDependency.resolve();
-    }
-    if (typeof Promise === 'function') return Promise.resolve();
-    throw new Error('Native promises are not available, please call Apifier.setPromisesDependency() to set a promise library.');
+    return getPromisePrototype().resolve();
 };
 
 export const nodeifyPromise = (promise, callback) => {
     if (!promise) throw new Error('The "promise" parameter must be provided.');
-    if (!callback) return promise;
-    promise
-        .then(() => callback(context))
-        .catch(err => callback(err));
+
+    if (callback) {
+        promise
+            .then(result => callback(null, result))
+            .catch(err => callback(err));
+    } else {
+        return promise;
+    }
 };
