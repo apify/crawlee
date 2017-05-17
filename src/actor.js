@@ -65,6 +65,7 @@ export const getInput = (callback = null) => {
             } else if (typeof (input) !== 'object'
                     || (typeof (input.body) !== 'string' && !Buffer.isBuffer(input.body))
                     || (typeof (input.contentType) !== 'string' && input.contentType !== null)) {
+                console.log(input);
                 throw new Error('ApifyClient returned an unexpected value from keyValueStores.getRecord()');
             }
             return input;
