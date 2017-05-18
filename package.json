@@ -1,6 +1,6 @@
 {
   "name": "apifier",
-  "version": "0.0.37",
+  "version": "0.0.38",
   "description": "Apifier runtime for JavaScript",
   "main": "build/index.js",
   "keywords": [
@@ -40,7 +40,7 @@
     "lint": "npm run build && eslint src test"
   },
   "dependencies": {
-    "apify-client": "^0.0.2"
+    "apify-client": ">=0.0.3"
   },
   "devDependencies": {
     "babel-cli": "^6.6.5",
