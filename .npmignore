@@ -1,2 +1,3 @@
 # Keep empty .npmignore file here so that /build is not ignored by "npm publish"
-# Yes, this happened in older versions of NPM. See https://docs.npmjs.com/misc/developers for info.
+# as it is in .gitignore file. Yes, this happened in older versions of NPM.
+# See https://docs.npmjs.com/misc/developers for info.
