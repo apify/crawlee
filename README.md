@@ -1,9 +1,9 @@
-# apifier-sdk-js [![Build Status](https://travis-ci.org/Apifier/apifier-sdk-js.svg)](https://travis-ci.org/Apifier/apifier-sdk-js) [![npm version](https://badge.fury.io/js/apifier.svg)](http://badge.fury.io/js/apifier)
+# apify-runtime-js [![Build Status](https://travis-ci.org/Apifier/apify-runtime-js.svg)](https://travis-ci.org/Apifier/apify-runtime-js) [![npm version](https://badge.fury.io/js/apifier.svg)](http://badge.fury.io/js/apifier)
 
-Apifier runtime for JavaScript.
+Apifier Actor runtime for JavaScript.
 
 This is a helper package that simplifies development of Apifier acts.
-It's still a work in progress, stay tuned.
+It is still a work in progress, stay tuned.
 
 
 ## Installation
@@ -100,6 +100,13 @@ argument called `context` which is an object such as:
 
     // ID of the act run
     actRunId: String,
+
+    // ID of the user who started the act (might be different than the owner of the act)
+    userId: String,
+
+    // Authentication token representing privileges given to the act run,
+    // which can be passed to Apifier API calls
+    token: String,
 
     // Date when the act was started
     startedAt: Date,

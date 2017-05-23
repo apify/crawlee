@@ -1,11 +1,7 @@
 import BluebirdPromise from 'bluebird';
 import { expect } from 'chai';
 import * as utils from '../src/utils';
-
-// NOTE: use require() here because this how its done in acts
-const Apifier = process.env.TEST_BABEL_BUILD ? require('../build/index') : require('../src/index');
-
-if (process.env.TEST_BABEL_BUILD) console.log('Running with TEST_BABEL_BUILD option');
+import Apifier from '../build/index';
 
 /* global process */
 

@@ -5,16 +5,13 @@ import sinon from 'sinon';
 import tmp from 'tmp';
 import Promise from 'bluebird';
 
+// NOTE: use require() here because this is how its done in acts
+const Apifier = require('../build/index');
+
 /* global process */
 
 // TODO: override console.log() to test the error messages (now they are printed to console)
 // TODO: test callback version of functions!!!
-
-// NOTE: use require() here because this is how its done in acts
-const Apifier = process.env.TEST_BABEL_BUILD ? require('../build/index') : require('../src/index');
-
-if (process.env.TEST_BABEL_BUILD) console.log('Running with TEST_BABEL_BUILD option');
-
 
 /*
 let freePorts = [];
