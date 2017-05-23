@@ -4,6 +4,7 @@
   "description": "Apifier runtime for JavaScript",
   "main": "build/index.js",
   "keywords": [
+    "apify",
     "apifier",
     "crawler",
     "scraper"
@@ -34,7 +35,6 @@
     "test": "npm run build && mocha --compilers js:babel-core/register --recursive",
     "test-cov": "npm run build && babel-node node_modules/isparta/bin/isparta cover --report html --report text node_modules/.bin/_mocha",
     "prepare": "npm run build",
-    "postpublish": "PACKAGE_VERSION=$(node -pe \"require('./package.json').version\"); git tag v${PACKAGE_VERSION}; git push origin v${PACKAGE_VERSION}",
     "prepublishOnly": "TEST_BABEL_BUILD=1 npm test && npm run lint",
     "clean": "rm -rf build",
     "lint": "npm run build && eslint src test"
