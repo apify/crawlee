@@ -105,7 +105,7 @@ argument called `context` which is an object such as:
     userId: String,
 
     // Authentication token representing privileges given to the act run,
-    // which can be passed to Apifier API calls
+    // it can be passed to various Apifier APIs.
     token: String,
 
     // Date when the act was started
@@ -191,10 +191,13 @@ native promises if they are available, or it throws an error.
 
 ### Miscellaneous
 
-`Apifier.client` property contains a reference to `ApifyClient` instance from the
-[apify-client](https://www.npmjs.com/package/apify-client) NPM package
-that is used for all underlying calls to Apifier API.
-You can use this to set options to the client.
+The `Apifier.client` property contains a reference to the `ApifyClient` instance
+(from the [apify-client](https://www.npmjs.com/package/apify-client) NPM package),
+that is used for all underlying calls to the Apifier API.
+The instance is created when the `apifier` package is first imported
+and it is configured using the `APIFY_API_BASE_URL`, `APIFY_USER_ID` and `APIFY_TOKEN`
+environment variables.
+The default settings of the instance can be overridden by calling `Apifier.client.setOptions()` function.
 
 `Apifier.events` property contains a reference to an `EventEmitter` instance
 that is used by Actor runtime to notify your process about various events.

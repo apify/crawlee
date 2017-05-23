@@ -1,6 +1,6 @@
 {
   "name": "apifier",
-  "version": "0.0.39",
+  "version": "0.0.40",
   "description": "Apifier runtime for JavaScript",
   "main": "build/index.js",
   "keywords": [
@@ -51,12 +51,12 @@
     "bluebird": "^3.5.0",
     "chai": "^3.4.1",
     "eslint": "^3.19.0",
-    "eslint-config-airbnb": "^14.1.0",
+    "eslint-config-airbnb": "^15.0.1",
     "eslint-config-airbnb-base": "^11.1.0",
     "eslint-plugin-import": "^2.2.0",
-    "eslint-plugin-jsx-a11y": "^4.0.0",
+    "eslint-plugin-jsx-a11y": "^5.0.3",
     "eslint-plugin-promise": "^3.4.2",
-    "eslint-plugin-react": "^6.10.3",
+    "eslint-plugin-react": "^7.0.1",
     "isparta": "^4.0.0",
     "mocha": "^3.2.0",
     "portastic": "^1.0.1",

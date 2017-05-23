@@ -1,27 +1,14 @@
 import fs from 'fs';
-import url from 'url';
-import ApifyClient from 'apify-client';
 import { APIFY_ENV_VARS, EXIT_CODES, KV_STORE_KEYS } from './constants';
-import { getPromisePrototype, newPromise, nodeifyPromise } from './utils';
+import { getPromisePrototype, newPromise, nodeifyPromise, newClient } from './utils';
 
 /* global process, Buffer */
 
-// TODO: protocol/host/port/basePath should be replaced with baseUrl
-const clientOpts = {};
-if (process.env[APIFY_ENV_VARS.API_BASE_URL]) {
-    const parsed = url.parse(process.env[APIFY_ENV_VARS.API_BASE_URL]);
-    clientOpts.protocol = parsed.protocol.replace(':', '');
-    clientOpts.host = parsed.hostname;
-    clientOpts.port = parsed.port;
-    clientOpts.basePath = parsed.pathname.replace(/\/$/, '');
-    clientOpts.baseUrl = process.env[APIFY_ENV_VARS.API_BASE_URL];
-}
-
 /**
- * Exported to enable mocking up in unit tests.
+ * A default instance of ApifyClient class.
+ * It can be configured by calling setOptions() function.
  */
-export const apifyClient = new ApifyClient(clientOpts);
-
+export const apifyClient = newClient();
 
 /**
  * Tries to parse a string with date.
@@ -137,6 +124,8 @@ export const getContext = (callback = null) => {
         internalPort: parseInt(process.env[APIFY_ENV_VARS.INTERNAL_PORT], 10) || null,
         actId: process.env[APIFY_ENV_VARS.ACT_ID] || null,
         actRunId: process.env[APIFY_ENV_VARS.ACT_RUN_ID] || null,
+        userId: process.env[APIFY_ENV_VARS.USER_ID] || null,
+        token: process.env[APIFY_ENV_VARS.TOKEN] || null,
         startedAt: tryParseDate(process.env[APIFY_ENV_VARS.STARTED_AT]) || null,
         timeoutAt: tryParseDate(process.env[APIFY_ENV_VARS.TIMEOUT_AT]) || null,
         defaultKeyValueStoreId: process.env[APIFY_ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID] || null,

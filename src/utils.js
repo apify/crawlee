@@ -1,5 +1,10 @@
+import url from 'url';
+import ApifyClient from 'apify-client';
+import { APIFY_ENV_VARS } from './constants';
 
 let PromisesDependency = typeof Promise === 'function' ? Promise : null;
+
+/* global process */
 
 // TODO: add methods to override console.log() and console.error(), add unit tests for that!
 
@@ -55,4 +60,28 @@ export const nodeifyPromise = (promise, callback) => {
     } else {
         return promise;
     }
+};
+
+
+/**
+ * Creates an instance of ApifyClient using options as defined in the environment variables.
+ * This function is exported in order to enable unit testing.
+ * @return {*}
+ */
+export const newClient = () => {
+    // TODO: protocol/host/port/basePath should be replaced with baseUrl
+    const opts = {};
+    if (process.env[APIFY_ENV_VARS.API_BASE_URL]) {
+        const parsed = url.parse(process.env[APIFY_ENV_VARS.API_BASE_URL]);
+        opts.protocol = parsed.protocol.replace(':', '');
+        opts.host = parsed.hostname;
+        opts.port = parsed.port ? parseInt(parsed.port, 10) : null;
+        opts.basePath = parsed.pathname.replace(/\/$/, '');
+        opts.baseUrl = process.env[APIFY_ENV_VARS.API_BASE_URL];
+    }
+
+    opts.userId = process.env[APIFY_ENV_VARS.USER_ID] || null;
+    opts.token = process.env[APIFY_ENV_VARS.TOKEN] || null;
+
+    return new ApifyClient(opts);
 };

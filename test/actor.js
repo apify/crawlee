@@ -246,6 +246,8 @@ const getEmptyContext = () => {
         internalPort: null,
         actId: null,
         actRunId: null,
+        userId: null,
+        token: null,
         startedAt: null,
         timeoutAt: null,
         defaultKeyValueStoreId: null,
@@ -257,6 +259,8 @@ const setContextToEnv = (context) => {
     delete process.env.APIFY_INTERNAL_PORT;
     delete process.env.APIFY_ACT_ID;
     delete process.env.APIFY_ACT_RUN_ID;
+    delete process.env.APIFY_USER_ID;
+    delete process.env.APIFY_TOKEN;
     delete process.env.APIFY_STARTED_AT;
     delete process.env.APIFY_TIMEOUT_AT;
     delete process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID;
@@ -264,6 +268,8 @@ const setContextToEnv = (context) => {
     if (context.internalPort) process.env.APIFY_INTERNAL_PORT = context.internalPort.toString();
     if (context.actId) process.env.APIFY_ACT_ID = context.actId;
     if (context.actRunId) process.env.APIFY_ACT_RUN_ID = context.actRunId;
+    if (context.userId) process.env.APIFY_USER_ID = context.userId;
+    if (context.token) process.env.APIFY_TOKEN = context.token;
     if (context.startedAt) process.env.APIFY_STARTED_AT = context.startedAt.toISOString();
     if (context.timeoutAt) process.env.APIFY_TIMEOUT_AT = context.timeoutAt.toISOString();
     if (context.defaultKeyValueStoreId) process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = context.defaultKeyValueStoreId;
@@ -285,6 +291,8 @@ describe('Apifier.getContext()', () => {
             internalPort: 12345,
             actId: 'test actId',
             actRunId: 'test actId',
+            userId: 'some user',
+            token: 'auth token',
             startedAt: new Date('2017-01-01'),
             timeoutAt: new Date(),
             defaultKeyValueStoreId: null,
@@ -324,6 +332,8 @@ describe('Apifier.getContext()', () => {
             internalPort: 12345,
             actId: 'test actId',
             actRunId: 'test actId',
+            userId: 'some user',
+            token: 'auth token',
             startedAt: new Date('2017-01-01'),
             timeoutAt: new Date(),
             defaultKeyValueStoreId: 'test storeId',
