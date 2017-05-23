@@ -14,6 +14,7 @@ if (process.env[APIFY_ENV_VARS.API_BASE_URL]) {
     clientOpts.host = parsed.hostname;
     clientOpts.port = parsed.port;
     clientOpts.basePath = parsed.pathname.replace(/\/$/, '');
+    clientOpts.baseUrl = process.env[APIFY_ENV_VARS.API_BASE_URL];
 }
 
 /**
