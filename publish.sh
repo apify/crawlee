@@ -26,7 +26,7 @@ echo "Pushing to git ..."
 git push
 
 echo "Publishing version ${PACKAGE_VERSION} with tag \"${NPM_TAG}\" ..."
-npm publish --tag $NPM_TAG
+RUNNING_FROM_SCRIPT=1 npm publish --tag $NPM_TAG
 
 echo "Tagging git with ${GIT_TAG} ..."
 git tag ${GIT_TAG}
