@@ -69,19 +69,11 @@ export const nodeifyPromise = (promise, callback) => {
  * @return {*}
  */
 export const newClient = () => {
-    // TODO: protocol/host/port/basePath should be replaced with baseUrl
-    const opts = {};
-    if (process.env[APIFY_ENV_VARS.API_BASE_URL]) {
-        const parsed = url.parse(process.env[APIFY_ENV_VARS.API_BASE_URL]);
-        opts.protocol = parsed.protocol.replace(':', '');
-        opts.host = parsed.hostname;
-        opts.port = parsed.port ? parseInt(parsed.port, 10) : null;
-        opts.basePath = parsed.pathname.replace(/\/$/, '');
-        opts.baseUrl = process.env[APIFY_ENV_VARS.API_BASE_URL];
-    }
-
-    opts.userId = process.env[APIFY_ENV_VARS.USER_ID] || null;
-    opts.token = process.env[APIFY_ENV_VARS.TOKEN] || null;
+    const opts = {
+        baseUrl: process.env[APIFY_ENV_VARS.API_BASE_URL] || null,
+        userId: process.env[APIFY_ENV_VARS.USER_ID] || null,
+        token: process.env[APIFY_ENV_VARS.TOKEN] || null,
+    };
 
     return new ApifyClient(opts);
 };
