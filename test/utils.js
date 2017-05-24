@@ -36,7 +36,8 @@ describe('Apifier.xxxPromisesDependency()', () => {
 
 describe('utils.newClient', () => {
     it('reads environment variables correctly', () => {
-        process.env.APIFY_API_BASE_URL = 'http://www.example.com:1234/path/';
+        // TODO: after new version of client is deployed, add '/' at the end of this path, client should remove it!
+        process.env.APIFY_API_BASE_URL = 'http://www.example.com:1234/path';
         process.env.APIFY_USER_ID = 'userId';
         process.env.APIFY_TOKEN = 'token';
         const client = utils.newClient();
@@ -44,12 +45,8 @@ describe('utils.newClient', () => {
         expect(client.constructor.name).to.eql('ApifyClient');
         const opts = client.getOptions();
 
-        // TODO: eventually this should be only:
-        // expect(opts.baseUrl).to.eql('http://www.example.com:1234/path/');
-        expect(opts.host).to.eql('www.example.com');
-        expect(opts.port).to.eql(1234);
-        expect(opts.basePath).to.eql('/path');
         expect(opts.userId).to.eql('userId');
         expect(opts.token).to.eql('token');
+        expect(opts.baseUrl).to.eql('http://www.example.com:1234/path');
     });
 });
