@@ -1,4 +1,3 @@
-import url from 'url';
 import ApifyClient from 'apify-client';
 import { APIFY_ENV_VARS } from './constants';
 
