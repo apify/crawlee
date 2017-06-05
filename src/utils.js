@@ -53,9 +53,7 @@ export const nodeifyPromise = (promise, callback) => {
     if (!promise) throw new Error('The "promise" parameter must be provided.');
 
     if (callback) {
-        promise
-            .then(result => callback(null, result))
-            .catch(err => callback(err));
+        promise.then(result => callback(null, result), err => callback(err));
     } else {
         return promise;
     }

@@ -5,10 +5,10 @@ import sinon from 'sinon';
 import tmp from 'tmp';
 import Promise from 'bluebird';
 
-// NOTE: use require() here because this is how its done in acts
+// NOTE: test use of require() here because this is how its done in acts
 const Apifier = require('../build/index');
 
-/* global process */
+/* global process, describe, it */
 
 // TODO: override console.log() to test the error messages (now they are printed to console)
 // TODO: test callback version of functions!!!

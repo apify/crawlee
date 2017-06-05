@@ -1,3 +1,11 @@
+before_install:
+  - curl -sS https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+  - sudo apt-get -qq update
+  - sudo apt-get install -y google-chrome-beta
+  - curl -sS http://chromedriver.storage.googleapis.com/2.29/chromedriver_linux64.zip > /tmp.zip
+  - unzip /tmp.zip
+  - rm /tmp.zip
+  - mv /chromedriver /bin
 language: node_js
 node_js:
   - "7"

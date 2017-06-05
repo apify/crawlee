@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import * as utils from '../build/utils';
 import Apifier from '../build/index';
 
-/* global process */
+/* global process, describe, it */
 
 // TODO: run tests against build scripts too!
 
