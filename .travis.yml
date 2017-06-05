@@ -1,3 +1,5 @@
+dist: trusty
+sudo: required
 before_install:
   - curl -sS https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
   - sudo apt-get -qq update
