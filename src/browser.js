@@ -1,3 +1,4 @@
+import urlModule from 'url';
 import { ChromeLauncher } from 'lighthouse/lighthouse-cli/chrome-launcher';
 import { APIFY_ENV_VARS } from './constants';
 import { newPromise, nodeifyPromise } from './utils';
@@ -19,7 +20,8 @@ import { newPromise, nodeifyPromise } from './utils';
 export const getDefaultBrowseOptions = () => {
     return {
         headless: !!process.env[APIFY_ENV_VARS.HEADLESS],
-        browser: 'chrome', // Current default
+        browser: 'chrome',
+        proxyUrl: null,
     };
 };
 
@@ -67,12 +69,40 @@ export const browse = (url, options = null, callback = null) => {
     // to enable browser automation, here we add a few other ones
     // (inspired by Lighthouse, see lighthouse/lighthouse-cli/chrome-launcher)
     const chromeOpts = new chrome.Options();
+
     // Disable built-in Google Translate service
     chromeOpts.addArguments('--disable-translate');
     // Disable fetching safebrowsing lists, likely redundant due to disable-background-networking
     chromeOpts.addArguments('--safebrowsing-disable-auto-update');
+
     // Run in headless mode if requested
     if (options.headless) chromeOpts.addArguments('--headless', '--disable-gpu', '--no-sandbox');
+
+    if (options.proxyUrl) {
+        // TODO
+        urlModule.parse(options.proxyUrl);
+
+        /* --proxy-server
+         proxy = {'address': '123.123.123.123:2345',
+         'usernmae': 'johnsmith123',
+         'password': 'iliketurtles'}
+
+
+         capabilities = dict(DesiredCapabilities.CHROME)
+         capabilities['proxy'] = {'proxyType': 'MANUAL',
+         'httpProxy': proxy['address'],
+         'ftpProxy': proxy['address'],
+         'sslProxy': proxy['address'],
+         'noProxy': '',
+         'class': "org.openqa.selenium.Proxy",
+         'autodetect': False}
+
+         capabilities['proxy']['socksUsername'] = proxy['username']
+         capabilities['proxy']['socksPassword'] = proxy['password']
+
+         driver = webdriver.Chrome(executable_path=[path to your chromedriver], desired_capabilities=capabilities)
+         */
+    }
 
     const webDriver = new Builder()
         .forBrowser(options.browser)
