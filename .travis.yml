@@ -8,8 +8,11 @@ before_install:
   - sudo unzip /tmp/chromedriver.zip -d /tmp
   - sudo rm /tmp/chromedriver.zip
   - sudo mv /tmp/chromedriver /bin
+  - chrome --version
+  - chrome --headless --disable-gpu --screenshot https://www.chromestatus.com/
 language: node_js
 node_js:
+  - "8"
   - "7"
   - "6"
   - "5"
