@@ -11,6 +11,7 @@ describe('getDefaultBrowseOptions()', () => {
         expect(opts1).to.eql({
             browser: 'chrome',
             headless: true,
+            proxyUrl: null,
         });
 
         delete process.env.APIFY_HEADLESS;
@@ -18,6 +19,7 @@ describe('getDefaultBrowseOptions()', () => {
         expect(opts2).to.eql({
             browser: 'chrome',
             headless: false,
+            proxyUrl: null,
         });
     });
 });
@@ -37,7 +39,7 @@ describe('Apifier.browse()', () => {
                 expect(url).to.eql('about:blank');
                 return browser.close();
             });
-    }).timeout(10000);
+    }).timeout(60 * 1000);
 
     it('opens https://www.example.com in headless mode', () => {
         delete process.env.APIFY_HEADLESS;
@@ -52,7 +54,7 @@ describe('Apifier.browse()', () => {
             expect(url).to.eql('https://www.example.com/');
             return browser.close();
         });
-    }).timeout(10000);
+    }).timeout(60 * 1000);
 });
 
 
@@ -66,7 +68,7 @@ describe('launchChrome()', () => {
         });
     });
 
-    it('reports head-less version', () => {
+    it('reports headless browser version', () => {
         return Promise.resolve().then(() => {
             return CDP.Version();
         })
@@ -74,7 +76,7 @@ describe('launchChrome()', () => {
             expect(version.Browser).to.contain('HeadlessChrome');
             // console.dir(version);
         });
-    });
+    }).timeout(60 * 1000);
 
     it('opens http://www.example.com', () => {
         function onPageLoad(Runtime) {
@@ -113,7 +115,7 @@ describe('launchChrome()', () => {
             })
             .on('error', reject);
         });
-    }).timeout(10000);
+    }).timeout(60 * 1000);
 
     // it('test github requests', () => {
     //     return new Promise((resolve, reject) => {
