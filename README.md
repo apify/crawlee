@@ -181,8 +181,7 @@ automation of a web browser.
 The simplest way to launch a new web browser process is to call:
 
 ```javascript
-const options = { browser: 'chrome' };
-const browser = await Apifier.browse('https://www.example.com/', options);
+const browser = await Apifier.browse('https://www.example.com/', { browser: 'chrome' });
 ```
 
 The first parameter is the URL of the initial page, by default it is `about:blank`.

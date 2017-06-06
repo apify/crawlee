@@ -27,7 +27,7 @@ export const getDefaultBrowseOptions = () => {
 
 
 /**
- * Represents a single web browser proces.
+ * Represents a single web browser process.
  * Currently it is just a thin wrapper of Selenium's WebDriver instance.
  */
 export class Browser {
