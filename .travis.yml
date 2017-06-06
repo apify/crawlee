@@ -3,24 +3,21 @@ sudo: required
 addons:
   chrome: beta
 before_install:
+  - # Install ChromeDriver for Selenium
   - sudo curl -sS http://chromedriver.storage.googleapis.com/2.29/chromedriver_linux64.zip > /tmp/chromedriver.zip
   - sudo unzip /tmp/chromedriver.zip -d /tmp
   - sudo rm /tmp/chromedriver.zip
   - sudo mv /tmp/chromedriver /usr/bin/
   - # Travis' VM has preinstalled google-chrome stable, which has no headless mode!
   - sudo mv -f /usr/bin/google-chrome-beta /usr/bin/google-chrome | tee
+  - # Print versions to help debugging
   - google-chrome --version
-  - which google-chrome | tee
-  - which google-chrome-beta | tee
-  - google-chrome --headless --disable-gpu --screenshot https://www.chromestatus.com/
-  - chromedriver --version | tee
+  - chromedriver --version
 language: node_js
 node_js:
   - "8"
   - "7"
   - "6"
-  - "5"
-  - "4"
 script:
   - npm run lint
   - npm test

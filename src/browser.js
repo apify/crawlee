@@ -144,16 +144,16 @@ export const launchChrome = (headless = !!process.env.APIFY_HEADLESS) => {
     });
 
     return newPromise()
-    .then(() => {
-        return launcher.run();
-    })
-    .then(() => {
-        return launcher;
-    })
-    .catch((err) => {
-        // Kill Chrome if there's an error.
-        return launcher.kill().then(() => {
-            throw err;
-        }, console.error);
-    });
+        .then(() => {
+            return launcher.run();
+        })
+        .then(() => {
+            return launcher;
+        })
+        .catch((err) => {
+            // Kill Chrome if there's an error.
+            return launcher.kill().then(() => {
+                throw err;
+            }, console.error);
+        });
 };
