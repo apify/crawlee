@@ -1,5 +1,5 @@
 import urlModule from 'url';
-import { ChromeLauncher } from 'lighthouse/lighthouse-cli/chrome-launcher';
+// import { ChromeLauncher } from 'lighthouse/lighthouse-cli/chrome-launcher';
 import { APIFY_ENV_VARS } from './constants';
 import { newPromise, nodeifyPromise } from './utils';
 
@@ -122,38 +122,38 @@ export const browse = (url, options = null, callback = null) => {
 };
 
 
-/**
- * Launches a debugging instance of Chrome on port 9222, without Selenium.
- * This code is kept here for legacy reasons, it's not used.
- * @param {boolean=} headless True (default) to launch Chrome in headless mode.
- *     Set to false to launch Chrome normally.
- * @return {Promise<ChromeLauncher>}
- */
-export const launchChrome = (headless = !!process.env.APIFY_HEADLESS) => {
-    // code inspired by https://developers.google.com/web/updates/2017/04/headless-chrome
-    // TODO: enable other options e.g. userAgent, windowHeight, windowWidth, proxy
-
-    const launcher = new ChromeLauncher({
-        port: 9222,
-        autoSelectChrome: true, // False to manually select which Chrome install.
-        additionalFlags: [
-            '--window-size=412,732',
-            '--disable-gpu',
-            headless ? '--headless' : '',
-        ],
-    });
-
-    return newPromise()
-        .then(() => {
-            return launcher.run();
-        })
-        .then(() => {
-            return launcher;
-        })
-        .catch((err) => {
-            // Kill Chrome if there's an error.
-            return launcher.kill().then(() => {
-                throw err;
-            }, console.error);
-        });
-};
+// /**
+//  * Launches a debugging instance of Chrome on port 9222, without Selenium.
+//  * This code is kept here for legacy reasons, it's not used.
+//  * @param {boolean=} headless True (default) to launch Chrome in headless mode.
+//  *     Set to false to launch Chrome normally.
+//  * @return {Promise<ChromeLauncher>}
+//  */
+// export const launchChrome = (headless = !!process.env.APIFY_HEADLESS) => {
+//     // code inspired by https://developers.google.com/web/updates/2017/04/headless-chrome
+//     // TODO: enable other options e.g. userAgent, windowHeight, windowWidth, proxy
+//
+//     const launcher = new ChromeLauncher({
+//         port: 9222,
+//         autoSelectChrome: true, // False to manually select which Chrome install.
+//         additionalFlags: [
+//             '--window-size=412,732',
+//             '--disable-gpu',
+//             headless ? '--headless' : '',
+//         ],
+//     });
+//
+//     return newPromise()
+//         .then(() => {
+//             return launcher.run();
+//         })
+//         .then(() => {
+//             return launcher;
+//         })
+//         .catch((err) => {
+//             // Kill Chrome if there's an error.
+//             return launcher.kill().then(() => {
+//                 throw err;
+//             }, console.error);
+//         });
+// };

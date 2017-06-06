@@ -12,6 +12,9 @@ It is still a work in progress, stay tuned.
 npm install apifier --save
 ```
 
+This package requires Node.js 6 or higher.
+It might work with lower versions too, but they are neither tested nor supported.
+
 ## Usage inside acts
 
 Import the package to your act.
@@ -170,15 +173,62 @@ Apifier.setOutput(output).then(() => {
 Note that this is especially useful if output of your act should not be a JSON,
 because return value from `Apifier.main()` is always converted to JSON.
 
+### Browser
+
+Apifier runtime optionally depends on
+the [selenium-webdriver](https://www.npmjs.com/package/selenium-webdriver) package that enables
+automation of a web browser.
+The simplest way to launch a new web browser process is to call:
+
+```javascript
+const options = { browser: 'chrome' };
+const browser = await Apifier.browse('https://www.example.com/', options);
+```
+
+The first parameter is the URL of the initial page, by default it is `about:blank`.
+The second parameter is an optional object that defines options for the web browser.
+It has the following properties:
+
+```javascript
+{
+    // Indicates whether the browser should be opened in headless mode (i.e. without window).
+    // By default, this value is generated based on the APIFY_HEADLESS environment variable.
+    headless: Boolean,
+
+    // Type of the web browser, currently only 'chrome' is supported.
+    browser: 'chrome',
+
+    // URL of the proxy server, e.g. 'socks://username:password@1.2.3.4:55555'
+    proxyUrl: null,
+}
+```
+
+The `Apifier.browse()` function returns a promise resolving to a new instance of the `Browser` class,
+which represents a web browser process. Currently it only contains the `webDriver` property,
+which is an instance of Selenium's
+[WebDriver](http://seleniumhq.github.io/selenium/docs/api/javascript/module/selenium-webdriver/index_exports_WebDriver.html)
+class:
+
+```javascript
+const ulr = await browser.webDriver.getCurrentUrl();
+```
+
+Additionally, the `Browser` class defines the `close()` method which closes the web browser process.
+It returns a promise that resolves when the browser was closed:
+
+```javascript
+await browser.close();
+```
+
 
 ### Promises
 
-By default, the `getContext`, `getInput` and `setOutput` functions returns a promise.
+By default, the `getContext`, `getInput`, `setOutput` and `browse` functions return a promise.
 However, they also accept a Node.js-style callback parameter.
 If the callback is provided, the return value of the functions is not defined
 and the functions only invoke the callback upon completion or error.
 
-To set a promise dependency from an external library, use code such as:
+To set a promise dependency from an external library, use a code such as:
 
 ```javascript
 const Promise = require('bluebird');

@@ -66,8 +66,6 @@
     "underscore": "^1.8.3"
   },
   "optionalDependencies": {
-    "chrome-remote-interface": "^0.23.0",
-    "lighthouse": "^2.0.0",
     "selenium-webdriver": "^3.4.0"
   }
 }
