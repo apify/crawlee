@@ -1,7 +1,9 @@
-import { expect } from 'chai';
+import { expect, assert } from 'chai';
 // import CDP from 'chrome-remote-interface';
 import { getDefaultBrowseOptions } from '../build/browser';
 import Apifier from '../build/index';
+
+/* globals process */
 
 
 describe('getDefaultBrowseOptions()', () => {
@@ -56,6 +58,31 @@ describe('Apifier.browse()', function () {
         .then((url) => {
             expect(url).to.eql('https://www.example.com/');
             return browser.close();
+        });
+    });
+
+    it('works with empty options and callback', () => {
+        return new Promise((resolve, reject) => {
+            try {
+                process.env.APIFY_HEADLESS = '1';
+                const retVal = Apifier.browse('about:blank', {}, (err, browser) => {
+                    if (err) return reject(err);
+                    try {
+                        expect(browser.constructor.name).to.eql('Browser');
+                        browser.webDriver.getCurrentUrl()
+                            .then((url) => {
+                                expect(url).to.eql('about:blank');
+                                resolve();
+                            })
+                            .catch(reject);
+                    } catch (e) {
+                        reject(e);
+                    }
+                });
+                assert(!retVal, 'Apifier.browse() with callback should return false-ish value');
+            } catch (e) {
+                reject(e);
+            }
         });
     });
 });
