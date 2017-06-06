@@ -5,7 +5,7 @@ before_install:
   - sudo apt-get -qq update
   - sudo apt-get install -y google-chrome-beta
   - sudo curl -sS http://chromedriver.storage.googleapis.com/2.29/chromedriver_linux64.zip > /tmp/chromedriver.zip
-  - sudo unzip /tmp/chromedriver.zip
+  - sudo unzip /tmp/chromedriver.zip -d /tmp
   - sudo ls -l /tmp
   - sudo ls -l /
   - sudo rm /tmp/chromedriver.zip
