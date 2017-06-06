@@ -6,13 +6,14 @@ before_install:
   - sudo curl -sS http://chromedriver.storage.googleapis.com/2.29/chromedriver_linux64.zip > /tmp/chromedriver.zip
   - sudo unzip /tmp/chromedriver.zip -d /tmp
   - sudo rm /tmp/chromedriver.zip
-  - sudo mv /tmp/chromedriver /bin
+  - sudo mv /tmp/chromedriver /usr/bin/
   - # Travis' VM has preinstalled google-chrome stable, which has no headless mode!
   - sudo mv -f /usr/bin/google-chrome-beta /usr/bin/google-chrome | tee
   - google-chrome --version
   - which google-chrome | tee
   - which google-chrome-beta | tee
   - google-chrome --headless --disable-gpu --screenshot https://www.chromestatus.com/
+  - chromedriver --version | tee
 language: node_js
 node_js:
   - "8"

@@ -25,7 +25,10 @@ describe('getDefaultBrowseOptions()', () => {
 });
 
 
-describe('Apifier.browse()', () => {
+describe('Apifier.browse()', function () {
+    // Need a large timeout to run unit tests on Travis CI
+    this.timeout(300 * 1000);
+
     it('opens about:blank with no args', () => {
         process.env.APIFY_HEADLESS = '1';
         let browser;
@@ -39,7 +42,7 @@ describe('Apifier.browse()', () => {
                 expect(url).to.eql('about:blank');
                 return browser.close();
             });
-    }).timeout(300 * 1000);
+    });
 
     it('opens https://www.example.com in headless mode', () => {
         delete process.env.APIFY_HEADLESS;
@@ -54,11 +57,14 @@ describe('Apifier.browse()', () => {
             expect(url).to.eql('https://www.example.com/');
             return browser.close();
         });
-    }).timeout(300 * 1000);
+    });
 });
 
 
-describe('launchChrome()', () => {
+describe('launchChrome()', function () {
+    // Need a large timeout to run unit tests on Travis CI
+    this.timeout(300 * 1000);
+
     let launcher;
 
     before(() => {
@@ -76,7 +82,7 @@ describe('launchChrome()', () => {
             expect(version.Browser).to.contain('HeadlessChrome');
             // console.dir(version);
         });
-    }).timeout(300 * 1000);
+    });
 
     it('opens http://www.example.com', () => {
         function onPageLoad(Runtime) {
@@ -115,7 +121,7 @@ describe('launchChrome()', () => {
             })
             .on('error', reject);
         });
-    }).timeout(300 * 1000);
+    });
 
     // it('test github requests', () => {
     //     return new Promise((resolve, reject) => {
@@ -149,6 +155,6 @@ describe('launchChrome()', () => {
     // });
 
     after(() => {
-        return launcher.kill();
+        if (launcher) return launcher.kill();
     });
 });
