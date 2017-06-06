@@ -87,6 +87,7 @@ export const browse = (url, options = null, callback = null) => {
          'usernmae': 'johnsmith123',
          'password': 'iliketurtles'}
 
+        or use https://github.com/SeleniumHQ/docker-selenium/wiki/Corporate-Proxies
 
          capabilities = dict(DesiredCapabilities.CHROME)
          capabilities['proxy'] = {'proxyType': 'MANUAL',
