@@ -6,6 +6,8 @@ before_install:
   - sudo apt-get install -y google-chrome-beta
   - sudo curl -sS http://chromedriver.storage.googleapis.com/2.29/chromedriver_linux64.zip > /tmp/chromedriver.zip
   - sudo unzip /tmp/chromedriver.zip
+  - sudo ls -l /tmp
+  - sudo ls -l /
   - sudo rm /tmp/chromedriver.zip
   - sudo mv /tmp/chromedriver /bin
 language: node_js
