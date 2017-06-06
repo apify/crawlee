@@ -8,6 +8,8 @@ before_install:
   - sudo rm /tmp/chromedriver.zip
   - sudo mv /tmp/chromedriver /bin
   - google-chrome --version
+  - which google-chrome | tee
+  - which google-chrome-beta | tee
   - google-chrome --headless --disable-gpu --screenshot https://www.chromestatus.com/
 language: node_js
 node_js:
