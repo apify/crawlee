@@ -50,7 +50,7 @@
     "babel-preset-stage-0": "^6.1.18",
     "basic-auth-parser": "^0.0.2",
     "bluebird": "^3.5.0",
-    "chai": "^3.4.1",
+    "chai": "^4.0.2",
     "eslint": "^3.19.0",
     "eslint-config-airbnb": "^15.0.1",
     "eslint-config-airbnb-base": "^11.1.0",
