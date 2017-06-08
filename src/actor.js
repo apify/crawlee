@@ -43,7 +43,7 @@ export const getInput = (callback = null) => {
             return apifyClient.keyValueStores.getRecord({
                 storeId: getDefaultStoreIdOrThrow(),
                 promise: getPromisePrototype(),
-                recordKey: KV_STORE_KEYS.INPUT,
+                key: KV_STORE_KEYS.INPUT,
             });
         })
         .then((input) => {
@@ -88,7 +88,7 @@ export const setOutput = (output, callback = null) => {
             return apifyClient.keyValueStores.putRecord({
                 storeId: getDefaultStoreIdOrThrow(),
                 promise: getPromisePrototype(),
-                recordKey: KV_STORE_KEYS.OUTPUT,
+                key: KV_STORE_KEYS.OUTPUT,
                 body: output.body,
                 contentType: output.contentType,
             });
