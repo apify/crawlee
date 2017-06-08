@@ -12,9 +12,9 @@ import Apifier from '../build/index';
 /* globals process */
 
 let proxyServer;
-let proxyPort;
+let proxyPort; // eslint-disable-line no-unused-vars
 const proxyAuth = { scheme: 'Basic', username: 'username', password: 'password' };
-let wasProxyCalled = false;
+let wasProxyCalled = false; // eslint-disable-line no-unused-vars
 
 // Setup local proxy server for the tests
 before(() => {

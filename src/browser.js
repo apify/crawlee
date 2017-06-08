@@ -99,6 +99,7 @@ export const browse = (url, options = null, callback = null) => {
         if (parsed.scheme !== 'http') throw new Error('Invalid "proxyUrl" option: only HTTP proxy type is currently supported.');
 
         // NOTE: to view effective proxy settings in Chrome, open chrome://net-internals/#proxy
+        // https://sites.google.com/a/chromium.org/chromedriver/capabilities
 
         capabilities.proxy = {
             proxyType: 'manual',
