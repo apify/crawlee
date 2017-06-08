@@ -1,7 +1,6 @@
-import urlModule from 'url';
 // import { ChromeLauncher } from 'lighthouse/lighthouse-cli/chrome-launcher';
 import { APIFY_ENV_VARS } from './constants';
-import { newPromise, nodeifyPromise } from './utils';
+import { newPromise, nodeifyPromise, parseUrl } from './utils';
 
 /* global process, require */
 
@@ -20,8 +19,9 @@ import { newPromise, nodeifyPromise } from './utils';
 export const getDefaultBrowseOptions = () => {
     return {
         headless: !!process.env[APIFY_ENV_VARS.HEADLESS],
-        browser: 'chrome',
+        browserName: 'chrome',
         proxyUrl: null,
+        userAgent: null,
     };
 };
 
@@ -70,44 +70,53 @@ export const browse = (url, options = null, callback = null) => {
     // (inspired by Lighthouse, see lighthouse/lighthouse-cli/chrome-launcher)
     const chromeOpts = new chrome.Options();
 
+    // Define capabilities of the web browser,
+    // see https://github.com/SeleniumHQ/selenium/wiki/DesiredCapabilities for reference.
+    const capabilities = {
+        browserName: options.browserName,
+    };
+
     // Disable built-in Google Translate service
     chromeOpts.addArguments('--disable-translate');
+
     // Disable fetching safebrowsing lists, likely redundant due to disable-background-networking
     chromeOpts.addArguments('--safebrowsing-disable-auto-update');
 
     // Run in headless mode if requested
-    if (options.headless) chromeOpts.addArguments('--headless', '--disable-gpu', '--no-sandbox');
+    if (options.headless) {
+        chromeOpts.addArguments('--headless', '--disable-gpu', '--no-sandbox');
+    }
+
+    // TODO: add unit test!
+    if (options.userAgent) {
+        chromeOpts.addArguments(`--user-agent=${options.userAgent}`);
+    }
 
     if (options.proxyUrl) {
-        // TODO
-        urlModule.parse(options.proxyUrl);
+        const parsed = parseUrl(options.proxyUrl);
 
-        /* --proxy-server
-         proxy = {'address': '123.123.123.123:2345',
-         'usernmae': 'johnsmith123',
-         'password': 'iliketurtles'}
+        if (!parsed.host || !parsed.port) throw new Error('Invalid "proxyUrl" option: the URL must contain hostname and port number.');
+        if (parsed.scheme !== 'http') throw new Error('Invalid "proxyUrl" option: only HTTP proxy type is currently supported.');
 
-        or use https://github.com/SeleniumHQ/docker-selenium/wiki/Corporate-Proxies
+        // NOTE: to view effective proxy settings in Chrome, open chrome://net-internals/#proxy
 
-         capabilities = dict(DesiredCapabilities.CHROME)
-         capabilities['proxy'] = {'proxyType': 'MANUAL',
-         'httpProxy': proxy['address'],
-         'ftpProxy': proxy['address'],
-         'sslProxy': proxy['address'],
-         'noProxy': '',
-         'class': "org.openqa.selenium.Proxy",
-         'autodetect': False}
+        capabilities.proxy = {
+            proxyType: 'manual',
+            httpProxy: parsed.host,
+            ftpProxy: parsed.host,
+            sslProxy: parsed.host,
+            socksProxy: parsed.host,
+            socksUsername: parsed.username,
+            socksPassword: parsed.password,
+            noProxy: '', // Do not skip proxy for any address
+        };
 
-         capabilities['proxy']['socksUsername'] = proxy['username']
-         capabilities['proxy']['socksPassword'] = proxy['password']
-
-         driver = webdriver.Chrome(executable_path=[path to your chromedriver], desired_capabilities=capabilities)
-         */
+        console.dir(capabilities);
     }
 
     const webDriver = new Builder()
-        .forBrowser(options.browser)
         .setChromeOptions(chromeOpts)
+        .withCapabilities(capabilities)
         .build();
 
     const browser = new Browser(webDriver);

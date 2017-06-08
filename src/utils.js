@@ -1,3 +1,4 @@
+import urlModule from 'url';
 import ApifyClient from 'apify-client';
 import { APIFY_ENV_VARS } from './constants';
 
@@ -73,4 +74,34 @@ export const newClient = () => {
     };
 
     return new ApifyClient(opts);
+};
+
+
+/**
+ * Sames are Node's url.parse() just adds the 'username', 'password' and 'scheme' fields.
+ * @param url
+ */
+export const parseUrl = (url) => {
+    const parsed = urlModule.parse(url);
+
+    parsed.username = null;
+    parsed.password = null;
+    parsed.scheme = null;
+
+    if (parsed.auth) {
+        const matches = /^([^:]+)(:?)(.*)$/.exec(parsed.auth);
+        if (matches && matches.length === 4) {
+            parsed.username = matches[1];
+            if (matches[2] === ':') parsed.password = matches[3];
+        }
+    }
+
+    if (parsed.protocol) {
+        const matches = /^([a-z0-9]+):$/i.exec(parsed.protocol);
+        if (matches && matches.length === 2) {
+            parsed.scheme = matches[1];
+        }
+    }
+
+    return parsed;
 };

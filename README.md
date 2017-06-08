@@ -181,7 +181,7 @@ automation of a web browser.
 The simplest way to launch a new web browser process is to call:
 
 ```javascript
-const browser = await Apifier.browse('https://www.example.com/', { browser: 'chrome' });
+const browser = await Apifier.browse('https://www.example.com/', { browserName: 'chrome' });
 ```
 
 The first parameter is the URL of the initial page, by default it is `about:blank`.
@@ -190,20 +190,28 @@ It has the following properties:
 
 ```javascript
 {
-    // Indicates whether the browser should be opened in headless mode (i.e. without window).
+    // The type of the web browser to use.
+    // See https://github.com/SeleniumHQ/selenium/wiki/DesiredCapabilities for possible options.
+    // By default it is 'chrome'.
+    browserName: String,
+
+    // Indicates whether the browser should be opened in headless mode (i.e. without windows).
     // By default, this value is generated based on the APIFY_HEADLESS environment variable.
     headless: Boolean,
 
-    // Type of the web browser, currently only 'chrome' is supported.
-    browser: 'chrome',
+    // URL of the proxy server, e.g. 'socks://username:password@1.2.3.4:55555'.
+    // By default it is null.
+    proxyUrl: String,
 
-    // URL of the proxy server, e.g. 'socks://username:password@1.2.3.4:55555'
-    proxyUrl: null,
+    // Overrides the User-Agent HTTP header of the web browser.
+    // By default it is null, which means the browser uses its default User-Agent.
+    userAgent: String,
 }
 ```
 
 The `Apifier.browse()` function returns a promise resolving to a new instance of the `Browser` class,
-which represents a web browser process. Currently it only contains the `webDriver` property,
+which represents a web browser instance (possibly with multiple windows or tabs).
+Currently it only contains the `webDriver` property,
 which is an instance of Selenium's
 [WebDriver](http://seleniumhq.github.io/selenium/docs/api/javascript/module/selenium-webdriver/index_exports_WebDriver.html)
 class:

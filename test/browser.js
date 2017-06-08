@@ -1,27 +1,78 @@
+import _ from 'underscore';
 import { expect, assert } from 'chai';
-// import CDP from 'chrome-remote-interface';
+import proxy from 'proxy';
+import http from 'http';
+import portastic from 'portastic';
+import basicAuthParser from 'basic-auth-parser';
+import Promise from 'bluebird';
+
 import { getDefaultBrowseOptions } from '../build/browser';
 import Apifier from '../build/index';
 
 /* globals process */
 
+let proxyServer;
+let proxyPort;
+const proxyAuth = { scheme: 'Basic', username: 'username', password: 'password' };
+let wasProxyCalled = false;
+
+// Setup local proxy server for the tests
+before(() => {
+    // Find free port for the proxy
+    return portastic.find({ min: 50000, max: 50100 }).then((ports) => {
+        return new Promise((resolve, reject) => {
+            const httpServer = http.createServer();
+
+            // Setup proxy authorization
+            httpServer.authenticate = function (req, fn) {
+                // parse the "Proxy-Authorization" header
+                const auth = req.headers['proxy-authorization'];
+                if (!auth) {
+                    // optimization: don't invoke the child process if no
+                    // "Proxy-Authorization" header was given
+                    // console.log('not Proxy-Authorization');
+                    return fn(null, false);
+                }
+                const parsed = basicAuthParser(auth);
+                const isEqual = _.isEqual(parsed, proxyAuth);
+                console.log('parsed "Proxy-Authorization": %j - %s', parsed, isEqual);
+                if (isEqual) wasProxyCalled = true;
+                fn(null, isEqual);
+            };
+
+            httpServer.on('error', reject);
+
+            proxyServer = proxy(httpServer);
+            proxyServer.listen(ports[0], () => {
+                proxyPort = proxyServer.address().port;
+                resolve();
+            });
+        });
+    });
+});
+
+after(() => {
+    if (proxyServer) return Promise.promisify(proxyServer.close).bind(proxyServer)();
+});
 
 describe('getDefaultBrowseOptions()', () => {
     it('it works', () => {
         process.env.APIFY_HEADLESS = '1';
         const opts1 = getDefaultBrowseOptions();
         expect(opts1).to.eql({
-            browser: 'chrome',
+            browserName: 'chrome',
             headless: true,
             proxyUrl: null,
+            userAgent: null,
         });
 
         delete process.env.APIFY_HEADLESS;
         const opts2 = getDefaultBrowseOptions();
         expect(opts2).to.eql({
-            browser: 'chrome',
+            browserName: 'chrome',
             headless: false,
             proxyUrl: null,
+            userAgent: null,
         });
     });
 });
@@ -30,6 +81,18 @@ describe('getDefaultBrowseOptions()', () => {
 describe('Apifier.browse()', function () {
     // Need a large timeout to run unit tests on Travis CI
     this.timeout(300 * 1000);
+
+    it('throws with invalid params', () => {
+        assert.throws(() => {
+            Apifier.browse('http://www.blabla.bla', { proxyUrl: 'invalidurl' });
+        }, Error);
+        assert.throws(() => {
+            Apifier.browse('http://www.blabla.bla', { proxyUrl: 'http://host-without-port' });
+        }, Error);
+        assert.throws(() => {
+            Apifier.browse('http://www.blabla.bla', { proxyUrl: 'invalid://somehost:1234' });
+        }, Error);
+    });
 
     it('opens about:blank with no args', () => {
         process.env.APIFY_HEADLESS = '1';
@@ -85,6 +148,36 @@ describe('Apifier.browse()', function () {
             }
         });
     });
+
+    /* TODO !!!!
+    it('works with proxy server', () => {
+        let browser;
+        wasProxyCalled = false;
+        const opts = {
+            headless: false,
+            browserName: 'firefox',
+            proxyUrl: `http://${proxyAuth.username}:${proxyAuth.password}@127.0.0.1:${proxyPort}`,
+        };
+        return Apifier.browse('https://www.example.com', opts)
+            .then((res) => {
+                browser = res;
+            })
+            .then(() => {
+                return new Promise((resolve) => {
+                    setTimeout(resolve, 60 * 1000);
+                });
+            })
+            .then(() => {
+                expect(browser.constructor.name).to.eql('Browser');
+                return browser.webDriver.getCurrentUrl();
+            })
+            .then((url) => {
+                expect(wasProxyCalled).to.be.true();
+                expect(url).to.eql('https://www.example.com/');
+                return browser.close();
+            });
+    });
+    */
 });
 
 
