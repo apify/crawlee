@@ -1,6 +1,6 @@
 {
   "name": "apifier",
-  "version": "0.0.45",
+  "version": "0.0.46",
   "description": "Apifier runtime for JavaScript",
   "main": "build/index.js",
   "keywords": [
@@ -40,7 +40,7 @@
     "lint": "npm run build && eslint src test"
   },
   "dependencies": {
-    "apify-client": ">=0.1.6",
+    "apify-client": ">=0.1.13",
     "underscore": "^1.8.3"
   },
   "devDependencies": {
