@@ -51,7 +51,8 @@ before(() => {
     });
 });
 
-after(() => {
+after(function () {
+    this.timeout(60 * 1000);
     if (proxyServer) return Promise.promisify(proxyServer.close).bind(proxyServer)();
 });
 
@@ -149,13 +150,13 @@ describe('Apifier.browse()', function () {
         });
     });
 
-    /* TODO !!!!
+    /*
     it('works with proxy server', () => {
         let browser;
         wasProxyCalled = false;
         const opts = {
             headless: false,
-            browserName: 'firefox',
+            browserName: 'chrome',
             proxyUrl: `http://${proxyAuth.username}:${proxyAuth.password}@127.0.0.1:${proxyPort}`,
         };
         return Apifier.browse('https://www.example.com', opts)
@@ -163,11 +164,14 @@ describe('Apifier.browse()', function () {
                 browser = res;
             })
             .then(() => {
-                return new Promise((resolve) => {
-                    setTimeout(resolve, 60 * 1000);
-                });
+                return browser.webDriver.sleep(60 * 1000);
             })
             .then(() => {
+                return browser.webDriver.getAllWindowHandles();
+            })
+            .then((handles) => {
+                console.dir(handles);
+
                 expect(browser.constructor.name).to.eql('Browser');
                 return browser.webDriver.getCurrentUrl();
             })
@@ -176,8 +180,7 @@ describe('Apifier.browse()', function () {
                 expect(url).to.eql('https://www.example.com/');
                 return browser.close();
             });
-    });
-    */
+    }); */
 });
 
 

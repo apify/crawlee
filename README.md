@@ -122,7 +122,7 @@ argument called `context` which is an object such as:
 
     // Input data for the act as provided by Apifier.getInput()
     input: {
-        body: String/Buffer,
+        body: Object,
         contentType: String,
     }
 }
@@ -142,10 +142,10 @@ Apifier.getContext().then((context) => {
 
 ### Input and output
 
-Each act can have an input and output data record, which is a string or binary buffer
+Each act can have an input and output data record, which is a raw data
 with a specific MIME content type.
 Both input and output is stored in the Apifier key-value store created specifically for the act run,
-under keys `INPUT` and `OUTPUT`, respectively.
+under keys named `INPUT` and `OUTPUT`, respectively.
 The ID of the key-value store is provided by the Actor runtime as the `APIFY_DEFAULT_KEY_VALUE_STORE_ID`
 environment variable.
 
@@ -157,6 +157,9 @@ Apifier.getInput().then((input) => {
     console.dir(input.body);
 });
 ```
+
+If the input data has the `application/json' content type, it is automatically parsed into JavaScript object,
+otherwise it is left as a String or Buffer in the raw form.
 
 Similarly, the output can be stored as follows:
 
@@ -192,7 +195,7 @@ It has the following properties:
 {
     // The type of the web browser to use.
     // See https://github.com/SeleniumHQ/selenium/wiki/DesiredCapabilities for possible options.
-    // By default it is 'chrome'.
+    // By default it is 'chrome', which is currently the only fully-supported browser.
     browserName: String,
 
     // Indicates whether the browser should be opened in headless mode (i.e. without windows).

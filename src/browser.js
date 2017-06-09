@@ -62,8 +62,10 @@ export const browse = (url, options = null, callback = null) => {
     options = Object.assign(getDefaultBrowseOptions(), options);
 
     // This is an optional dependency because it is quite large, only require it when used!
-    const { Builder } = require('selenium-webdriver'); // eslint-disable-line global-require
+    const { Builder, Capabilities, logging } = require('selenium-webdriver'); // eslint-disable-line global-require
     const chrome = require('selenium-webdriver/chrome'); // eslint-disable-line global-require
+
+    logging.installConsoleHandler();
 
     // By default, Selenium already defines a long list of command-line options
     // to enable browser automation, here we add a few other ones
@@ -72,9 +74,8 @@ export const browse = (url, options = null, callback = null) => {
 
     // Define capabilities of the web browser,
     // see https://github.com/SeleniumHQ/selenium/wiki/DesiredCapabilities for reference.
-    const capabilities = {
-        browserName: options.browserName,
-    };
+    const caps = new Capabilities();
+    caps.set('browserName', options.browserName);
 
     // Disable built-in Google Translate service
     chromeOpts.addArguments('--disable-translate');
@@ -100,24 +101,38 @@ export const browse = (url, options = null, callback = null) => {
 
         // NOTE: to view effective proxy settings in Chrome, open chrome://net-internals/#proxy
         // https://sites.google.com/a/chromium.org/chromedriver/capabilities
+        // https://github.com/haad/proxychains/blob/0f61bd071389398a4c8378847a45973577593e6f/src/proxychains.conf
+        // https://www.rootusers.com/configure-squid-proxy-to-forward-to-a-parent-proxy/
+        // https://gist.github.com/leefsmp/3e4385e08ea27e30ba96
+        // https://github.com/tinyproxy/tinyproxy
 
-        capabilities.proxy = {
-            proxyType: 'manual',
-            httpProxy: parsed.host,
-            ftpProxy: parsed.host,
-            sslProxy: parsed.host,
-            socksProxy: parsed.host,
-            socksUsername: parsed.username,
-            socksPassword: parsed.password,
-            noProxy: '', // Do not skip proxy for any address
-        };
+        // 1) install pkgsrc: http://pkgsrc.joyent.com/
+        // 2) install tinyproxy: sudo pkgin -y install tinyproxy
 
-        console.dir(capabilities);
+        if (/^chrome$/i.test(options.browserName)) {
+            // In Chrome Capabilities.setProxy() has no effect,
+            // so we setup the proxy manually
+            chromeOpts.addArguments(`--proxy-server=${parsed.host}`);
+        } else {
+            const proxyConfig = {
+                proxyType: 'MANUAL',
+                httpProxy: parsed.host,
+                sslProxy: parsed.host,
+                ftpProxy: parsed.host,
+                // socksProxy: parsed.host,
+                //socksUsername: parsed.username,
+                //socksPassword: parsed.password,
+                // noProxy: '', // Do not skip proxy for any address
+            };
+            caps.setProxy(proxyConfig);
+
+            console.dir(caps);
+        }
     }
 
     const webDriver = new Builder()
         .setChromeOptions(chromeOpts)
-        .withCapabilities(capabilities)
+        .withCapabilities(caps)
         .build();
 
     const browser = new Browser(webDriver);

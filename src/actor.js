@@ -1,8 +1,16 @@
 import fs from 'fs';
+import _ from 'underscore';
 import { APIFY_ENV_VARS, EXIT_CODES, KV_STORE_KEYS } from './constants';
 import { getPromisePrototype, newPromise, nodeifyPromise, newClient } from './utils';
 
 /* global process, Buffer */
+
+
+const JSON_CONTENT_TYPES = [
+    'application/json',
+    'application/json; charset=utf-8',
+];
+
 
 /**
  * A default instance of ApifyClient class.
@@ -47,14 +55,21 @@ export const getInput = (callback = null) => {
             });
         })
         .then((input) => {
-            // Ensure we always return null or { body: String|Buffer, contentType: String|null } to user
+            // Ensure we always return either:
+            // * null
+            // * or { body: String|Buffer, contentType: String|null }
+            // * or { body: Any, contentType: 'application/json' }
+            const baseMsg = 'ApifyClient returned an unexpected value from keyValueStores.getRecord()';
             if (!input) {
                 input = null;
-            } else if (typeof (input) !== 'object'
-                    || (typeof (input.body) !== 'string' && !Buffer.isBuffer(input.body))
-                    || (typeof (input.contentType) !== 'string' && input.contentType !== null)) {
-                console.log(input);
-                throw new Error('ApifyClient returned an unexpected value from keyValueStores.getRecord()');
+            } else if (typeof (input) !== 'object') {
+                throw new Error(`${baseMsg}: expected an object.`);
+            } else if ((typeof (input.contentType) !== 'string' && input.contentType !== null)) {
+                throw new Error(`${baseMsg}: contentType is not valid.`);
+            } else if (!_.contains(JSON_CONTENT_TYPES, input.contentType)
+                    && typeof (input.body) !== 'string'
+                    && !Buffer.isBuffer(input.body)) {
+                throw new Error(`${baseMsg}: body must be String or Buffer.`);
             }
             return input;
         });
