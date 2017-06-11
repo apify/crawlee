@@ -31,11 +31,114 @@ export const getDefaultBrowseOptions = () => {
  * Currently it is just a thin wrapper of Selenium's WebDriver instance.
  */
 export class Browser {
-    constructor(webDriver) {
-        this.webDriver = webDriver;
+
+    constructor(options) {
+        this.options = Object.assign(getDefaultBrowseOptions(), options);
+
+        if (this.options.proxyUrl) {
+            const parsed = parseUrl(this.options.proxyUrl);
+            if (!parsed.host || !parsed.port) throw new Error('Invalid "proxyUrl" option: the URL must contain hostname and port number.');
+            if (parsed.scheme !== 'http') throw new Error('Invalid "proxyUrl" option: only HTTP proxy type is currently supported.');
+            this.parsedProxyUrl = parsed;
+        }
+
+        // This is an optional dependency because it is quite large, only require it when used
+        const { Capabilities, Builder } = require('selenium-webdriver'); // eslint-disable-line global-require
+        const chrome = require('selenium-webdriver/chrome'); // eslint-disable-line global-require
+
+        // See https://github.com/SeleniumHQ/selenium/wiki/DesiredCapabilities for reference.
+        this.capabilities = new Capabilities();
+        this.capabilities.set('browserName', this.options.browserName);
+
+        // Chrome-specific options
+        // By default, Selenium already defines a long list of command-line options
+        // to enable browser automation, here we add a few other ones
+        // (inspired by Lighthouse, see lighthouse/lighthouse-cli/chrome-launcher)
+        this.chromeOptions = new chrome.Options();
+        this.chromeOptions.addArguments('--disable-translate');
+        this.chromeOptions.addArguments('--safebrowsing-disable-auto-update');
+        if (this.options.headless) {
+            this.chromeOptions.addArguments('--headless', '--disable-gpu', '--no-sandbox');
+        }
+        // TODO: add unit test!
+        if (this.options.userAgent) {
+            this.chromeOptions.addArguments(`--user-agent=${this.options.userAgent}`);
+        }
+
+        this.builder = new Builder();
+
+        // Instance of Selenium's WebDriver
+        this.webDriver = null;
+    }
+
+    /**
+     * Initializes the browser.
+     * @return Promise
+     */
+    initialize() {
+        // logging.installConsoleHandler();
+        return newPromise()
+            .then(() => {
+                return this.setupProxy();
+            })
+            .then(() => {
+                this.webDriver = this.builder
+                    .setChromeOptions(this.chromeOptions)
+                    .withCapabilities(this.capabilities)
+                    .build();
+            })
+            .then(() => {
+                return this;
+            });
+    }
+
+    /**
+     * Applies options.proxyUrl setting to the WebDriver's Capabilities and Chrome Options.
+     * For proxy servers with authentication, this class starts a local
+     * Privoxy process to proxy-chain to the target proxy server and enable browser
+     * no to use authentication, because it's typically not supported.
+     * @param capabilities
+     * @param chromeOpts
+     */
+    setupProxy() {
+        if (!this.parsedProxyUrl) return null;
+
+        // NOTE: to view effective proxy settings in Chrome, open chrome://net-internals/#proxy
+        // https://sites.google.com/a/chromium.org/chromedriver/capabilities
+        // https://github.com/haad/proxychains/blob/0f61bd071389398a4c8378847a45973577593e6f/src/proxychains.conf
+        // https://www.rootusers.com/configure-squid-proxy-to-forward-to-a-parent-proxy/
+        // https://gist.github.com/leefsmp/3e4385e08ea27e30ba96
+        // https://github.com/tinyproxy/tinyproxy
+
+        return newPromise().then(() => {
+            if (/^chrome$/i.test(this.options.browserName)) {
+                // In Chrome Capabilities.setProxy() has no effect,
+                // so we setup the proxy manually
+                this.chromeOptions.addArguments(`--proxy-server=${this.parsedProxyUrl.host}`);
+            } else {
+                const proxyConfig = {
+                    proxyType: 'MANUAL',
+                    httpProxy: this.parsedProxyUrl.host,
+                    sslProxy: this.parsedProxyUrl.host,
+                    ftpProxy: this.parsedProxyUrl.host,
+                    // socksProxy: this.parsedProxyUrl.host,
+                    //socksUsername: parsed.username,
+                    //socksPassword: parsed.password,
+                    // noProxy: '', // Do not skip proxy for any address
+                };
+                this.capabilities.setProxy(proxyConfig);
+
+                console.dir(this.capabilities);
+            }
+        });
     }
 
     close() {
+        if (this.proxy) {
+            this.proxy.close();
+            this.proxy = null;
+        }
+
         return newPromise()
             .then(() => {
                 if (this.webDriver) {
@@ -59,86 +162,12 @@ export class Browser {
  */
 export const browse = (url, options = null, callback = null) => {
     url = url || 'about:blank';
-    options = Object.assign(getDefaultBrowseOptions(), options);
 
-    // This is an optional dependency because it is quite large, only require it when used!
-    const { Builder, Capabilities, logging } = require('selenium-webdriver'); // eslint-disable-line global-require
-    const chrome = require('selenium-webdriver/chrome'); // eslint-disable-line global-require
-
-    logging.installConsoleHandler();
-
-    // By default, Selenium already defines a long list of command-line options
-    // to enable browser automation, here we add a few other ones
-    // (inspired by Lighthouse, see lighthouse/lighthouse-cli/chrome-launcher)
-    const chromeOpts = new chrome.Options();
-
-    // Define capabilities of the web browser,
-    // see https://github.com/SeleniumHQ/selenium/wiki/DesiredCapabilities for reference.
-    const caps = new Capabilities();
-    caps.set('browserName', options.browserName);
-
-    // Disable built-in Google Translate service
-    chromeOpts.addArguments('--disable-translate');
-
-    // Disable fetching safebrowsing lists, likely redundant due to disable-background-networking
-    chromeOpts.addArguments('--safebrowsing-disable-auto-update');
-
-    // Run in headless mode if requested
-    if (options.headless) {
-        chromeOpts.addArguments('--headless', '--disable-gpu', '--no-sandbox');
-    }
-
-    // TODO: add unit test!
-    if (options.userAgent) {
-        chromeOpts.addArguments(`--user-agent=${options.userAgent}`);
-    }
-
-    if (options.proxyUrl) {
-        const parsed = parseUrl(options.proxyUrl);
-
-        if (!parsed.host || !parsed.port) throw new Error('Invalid "proxyUrl" option: the URL must contain hostname and port number.');
-        if (parsed.scheme !== 'http') throw new Error('Invalid "proxyUrl" option: only HTTP proxy type is currently supported.');
-
-        // NOTE: to view effective proxy settings in Chrome, open chrome://net-internals/#proxy
-        // https://sites.google.com/a/chromium.org/chromedriver/capabilities
-        // https://github.com/haad/proxychains/blob/0f61bd071389398a4c8378847a45973577593e6f/src/proxychains.conf
-        // https://www.rootusers.com/configure-squid-proxy-to-forward-to-a-parent-proxy/
-        // https://gist.github.com/leefsmp/3e4385e08ea27e30ba96
-        // https://github.com/tinyproxy/tinyproxy
-
-        // 1) install pkgsrc: http://pkgsrc.joyent.com/
-        // 2) install tinyproxy: sudo pkgin -y install tinyproxy
-
-        if (/^chrome$/i.test(options.browserName)) {
-            // In Chrome Capabilities.setProxy() has no effect,
-            // so we setup the proxy manually
-            chromeOpts.addArguments(`--proxy-server=${parsed.host}`);
-        } else {
-            const proxyConfig = {
-                proxyType: 'MANUAL',
-                httpProxy: parsed.host,
-                sslProxy: parsed.host,
-                ftpProxy: parsed.host,
-                // socksProxy: parsed.host,
-                //socksUsername: parsed.username,
-                //socksPassword: parsed.password,
-                // noProxy: '', // Do not skip proxy for any address
-            };
-            caps.setProxy(proxyConfig);
-
-            console.dir(caps);
-        }
-    }
-
-    const webDriver = new Builder()
-        .setChromeOptions(chromeOpts)
-        .withCapabilities(caps)
-        .build();
-
-    const browser = new Browser(webDriver);
-
-    const promise = newPromise()
-        .then(() => webDriver.get(url))
+    const browser = new Browser(options);
+    const promise = browser.initialize()
+        .then(() => {
+            return browser.webDriver.get(url);
+        })
         .then(() => {
             return browser;
         });
@@ -146,6 +175,27 @@ export const browse = (url, options = null, callback = null) => {
     return nodeifyPromise(promise, callback);
 };
 
+/*
+// Base Squid proxy configuraton - enable all connection, disable all log files
+const SQUID_CONF_BASE = `
+http_access allow all
+never_direct allow all
+access_log none
+cache_store_log none
+cache_log /dev/null
+logfile_rotate 0
+`;
+const getSquidConfForProxy = (parsedProxyUrl, squidPort) => {
+    const peerName = `peer${squidPort}`;
+    const aclName = `acl${squidPort}`;
+    const str = `http_port ${squidPort}\n`
+        + `cache_peer ${parsedProxyUrl.host} parent ${parsedProxyUrl.port} 0 no-query
+        login=${parsedProxyUrl.auth} connect-fail-limit=99999999 proxy-only name=${peerName}\n` // eslint-disable-line max-len
+        + `acl ${aclName} myport ${squidPort}\n`
+        + `cache_peer_access ${peerName} allow ${aclName}\n`;
+    return str;
+};
+*/
 
 // /**
 //  * Launches a debugging instance of Chrome on port 9222, without Selenium.

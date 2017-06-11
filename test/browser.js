@@ -164,7 +164,7 @@ describe('Apifier.browse()', function () {
                 browser = res;
             })
             .then(() => {
-                return browser.webDriver.sleep(60 * 1000);
+                return browser.webDriver.sleep(300 * 1000);
             })
             .then(() => {
                 return browser.webDriver.getAllWindowHandles();
