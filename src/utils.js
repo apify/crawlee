@@ -68,10 +68,14 @@ export const nodeifyPromise = (promise, callback) => {
  */
 export const newClient = () => {
     const opts = {
-        baseUrl: process.env[APIFY_ENV_VARS.API_BASE_URL] || null,
         userId: process.env[APIFY_ENV_VARS.USER_ID] || null,
         token: process.env[APIFY_ENV_VARS.TOKEN] || null,
     };
+
+    // Only set baseUrl if overridden by env var, so that 'https://api.apifier.com' is used by default.
+    // This simplifies local development, which should run against production unless user wants otherwise.
+    const apiBaseUrl = process.env[APIFY_ENV_VARS.API_BASE_URL];
+    if (apiBaseUrl) opts.baseUrl = apiBaseUrl;
 
     return new ApifyClient(opts);
 };

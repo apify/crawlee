@@ -50,6 +50,19 @@ describe('utils.newClient()', () => {
         expect(opts.token).to.eql('token');
         expect(opts.baseUrl).to.eql('http://www.example.com:1234/path/');
     });
+
+    it('uses correct default if APIFY_API_BASE_URL is not defined', () => {
+        delete process.env.APIFY_API_BASE_URL;
+        process.env.APIFY_USER_ID = 'userId';
+        process.env.APIFY_TOKEN = 'token';
+        const client = utils.newClient();
+
+        const opts = client.getOptions();
+
+        expect(opts.userId).to.eql('userId');
+        expect(opts.token).to.eql('token');
+        expect(opts.baseUrl).to.eql('https://api.apifier.com');
+    });
 });
 
 
