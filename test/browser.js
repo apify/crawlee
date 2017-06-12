@@ -82,7 +82,7 @@ describe('getDefaultBrowseOptions()', () => {
 describe('Apifier.browse()', function () {
     // Need a large timeout to run unit tests on Travis CI
     this.timeout(300 * 1000);
-
+/*
     it('throws with invalid params', () => {
         assert.throws(() => {
             Apifier.browse('http://www.blabla.bla', { proxyUrl: 'invalidurl' });
@@ -149,8 +149,8 @@ describe('Apifier.browse()', function () {
             }
         });
     });
+*/
 
-    /*
     it('works with proxy server', () => {
         let browser;
         wasProxyCalled = false;
@@ -180,7 +180,7 @@ describe('Apifier.browse()', function () {
                 expect(url).to.eql('https://www.example.com/');
                 return browser.close();
             });
-    }); */
+    });
 });
 
 

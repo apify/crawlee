@@ -26,6 +26,50 @@ export const getDefaultBrowseOptions = () => {
 };
 
 
+// Base Squid proxy configuraton - enable all connection, disable all log files
+const SQUID_CONF_BASE = `
+http_access allow all
+never_direct allow all
+access_log none
+cache_store_log none
+cache_log /dev/null
+logfile_rotate 0
+`;
+
+const getSquidConfForProxy = (parsedProxyUrl, squidPort) => {
+    const peerName = `peer${squidPort}`;
+    const aclName = `acl${squidPort}`;
+    const str = `http_port ${squidPort}\n`
+        + `cache_peer ${parsedProxyUrl.host} parent ${parsedProxyUrl.port} 0 no-query login=${parsedProxyUrl.auth} connect-fail-limit=99999999 proxy-only name=${peerName}\n` // eslint-disable-line max-len
+        + `acl ${aclName} myport ${squidPort}\n`
+        + `cache_peer_access ${peerName} allow ${aclName}\n`;
+    return str;
+};
+
+
+
+
+class SquidProxyManager {
+    constructor() {
+        // A dictionary of all settings
+        this.squidPortToParsedProxyUrl = {};
+    }
+
+    /**
+     *
+     * @param parsedProxyUrl
+     * @return Promise Promise resolving to a handle for the proxy.
+     */
+    addProxy(parsedProxyUrl) {
+    }
+
+    removeProxy(handle) {
+    }
+}
+
+const squidProxyManager = new SquidProxyManager();
+
+
 /**
  * Represents a single web browser process.
  * Currently it is just a thin wrapper of Selenium's WebDriver instance.
@@ -69,6 +113,8 @@ export class Browser {
 
         // Instance of Selenium's WebDriver
         this.webDriver = null;
+
+        this.proxyHandle = null;
     }
 
     /**
@@ -175,27 +221,6 @@ export const browse = (url, options = null, callback = null) => {
     return nodeifyPromise(promise, callback);
 };
 
-/*
-// Base Squid proxy configuraton - enable all connection, disable all log files
-const SQUID_CONF_BASE = `
-http_access allow all
-never_direct allow all
-access_log none
-cache_store_log none
-cache_log /dev/null
-logfile_rotate 0
-`;
-const getSquidConfForProxy = (parsedProxyUrl, squidPort) => {
-    const peerName = `peer${squidPort}`;
-    const aclName = `acl${squidPort}`;
-    const str = `http_port ${squidPort}\n`
-        + `cache_peer ${parsedProxyUrl.host} parent ${parsedProxyUrl.port} 0 no-query
-        login=${parsedProxyUrl.auth} connect-fail-limit=99999999 proxy-only name=${peerName}\n` // eslint-disable-line max-len
-        + `acl ${aclName} myport ${squidPort}\n`
-        + `cache_peer_access ${peerName} allow ${aclName}\n`;
-    return str;
-};
-*/
 
 // /**
 //  * Launches a debugging instance of Chrome on port 9222, without Selenium.
