@@ -1,6 +1,7 @@
 // import { ChromeLauncher } from 'lighthouse/lighthouse-cli/chrome-launcher';
 import { APIFY_ENV_VARS } from './constants';
 import { newPromise, nodeifyPromise, parseUrl } from './utils';
+import { ProxyChainManager } from './proxy_chain_manager';
 
 /* global process, require */
 
@@ -11,6 +12,7 @@ import { newPromise, nodeifyPromise, parseUrl } from './utils';
 
 // logging.installConsoleHandler();
 // logging.getLogger('webdriver.http').setLevel(logging.Level.ALL);
+
 
 /**
  * Gets the default options for the browse() function, generated from current process environment
@@ -25,49 +27,7 @@ export const getDefaultBrowseOptions = () => {
     };
 };
 
-
-// Base Squid proxy configuraton - enable all connection, disable all log files
-const SQUID_CONF_BASE = `
-http_access allow all
-never_direct allow all
-access_log none
-cache_store_log none
-cache_log /dev/null
-logfile_rotate 0
-`;
-
-const getSquidConfForProxy = (parsedProxyUrl, squidPort) => {
-    const peerName = `peer${squidPort}`;
-    const aclName = `acl${squidPort}`;
-    const str = `http_port ${squidPort}\n`
-        + `cache_peer ${parsedProxyUrl.host} parent ${parsedProxyUrl.port} 0 no-query login=${parsedProxyUrl.auth} connect-fail-limit=99999999 proxy-only name=${peerName}\n` // eslint-disable-line max-len
-        + `acl ${aclName} myport ${squidPort}\n`
-        + `cache_peer_access ${peerName} allow ${aclName}\n`;
-    return str;
-};
-
-
-
-
-class SquidProxyManager {
-    constructor() {
-        // A dictionary of all settings
-        this.squidPortToParsedProxyUrl = {};
-    }
-
-    /**
-     *
-     * @param parsedProxyUrl
-     * @return Promise Promise resolving to a handle for the proxy.
-     */
-    addProxy(parsedProxyUrl) {
-    }
-
-    removeProxy(handle) {
-    }
-}
-
-const squidProxyManager = new SquidProxyManager();
+const proxyChainManager = new ProxyChainManager();
 
 
 /**
@@ -114,7 +74,7 @@ export class Browser {
         // Instance of Selenium's WebDriver
         this.webDriver = null;
 
-        this.proxyHandle = null;
+        this.parsedChildProxyUrl = null;
     }
 
     /**
@@ -157,16 +117,30 @@ export class Browser {
         // https://github.com/tinyproxy/tinyproxy
 
         return newPromise().then(() => {
+            // If target proxy has no authentication, pass it directly to the browser.
+            if (!this.parsedProxyUrl.auth) {
+                return this.parsedProxyUrl;
+            }
+
+            // Otherwise we need to setup an open child proxy
+            // that will forward to the original proxy with authentication
+            return proxyChainManager.addProxyChain(this.parsedProxyUrl)
+                .then((parsedChildProxyUrl) => {
+                    this.parsedChildProxyUrl = parsedChildProxyUrl;
+                    return parsedChildProxyUrl;
+                });
+        })
+        .then((effectiveParsedProxyUrl) => {
             if (/^chrome$/i.test(this.options.browserName)) {
                 // In Chrome Capabilities.setProxy() has no effect,
                 // so we setup the proxy manually
-                this.chromeOptions.addArguments(`--proxy-server=${this.parsedProxyUrl.host}`);
+                this.chromeOptions.addArguments(`--proxy-server=${effectiveParsedProxyUrl.host}`);
             } else {
                 const proxyConfig = {
                     proxyType: 'MANUAL',
-                    httpProxy: this.parsedProxyUrl.host,
-                    sslProxy: this.parsedProxyUrl.host,
-                    ftpProxy: this.parsedProxyUrl.host,
+                    httpProxy: effectiveParsedProxyUrl.host,
+                    sslProxy: effectiveParsedProxyUrl.host,
+                    ftpProxy: effectiveParsedProxyUrl.host,
                     // socksProxy: this.parsedProxyUrl.host,
                     //socksUsername: parsed.username,
                     //socksPassword: parsed.password,
@@ -180,17 +154,20 @@ export class Browser {
     }
 
     close() {
-        if (this.proxy) {
-            this.proxy.close();
-            this.proxy = null;
-        }
-
         return newPromise()
             .then(() => {
-                if (this.webDriver) {
-                    this.webDriver.quit();
-                    this.webDriver = null;
+                if (this.parsedChildProxyUrl) {
+                    return proxyChainManager.removeProxyChain(this.parsedChildProxyUrl);
                 }
+            })
+            .then(() => {
+                if (this.webDriver) {
+                    return this.webDriver.quit();
+                }
+            })
+            .then(() => {
+                this.parsedChildProxyUrl = null;
+                this.webDriver = null;
             });
     }
 }
