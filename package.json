@@ -66,8 +66,7 @@
     "proxy": "^0.2.4",
     "sinon": "^2.2.0",
     "sinon-stub-promise": "^4.0.0",
-    "tmp": "^0.0.31",
-    "underscore": "^1.8.3"
+    "request": "^2.81.0"
   },
   "optionalDependencies": {
     "selenium-webdriver": "^3.4.0"

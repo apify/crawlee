@@ -5,9 +5,8 @@ import http from 'http';
 import portastic from 'portastic';
 import basicAuthParser from 'basic-auth-parser';
 import Promise from 'bluebird';
+import request from 'request';
 
-import { getDefaultBrowseOptions } from '../build/browser';
-import Apifier from '../build/index';
 import { parseUrl } from '../build/utils';
 import { ProxyChainManager, PROXY_CHAIN } from '../build/proxy_chain_manager';
 
@@ -63,12 +62,16 @@ after(function () {
 
 describe('ProxyChainManager.addProxyChain()', function () {
     // Need larger timeout for Travis CI
-    this.timeout(10 * 1000);
+    this.timeout(100 * 1000);
+
+    let mng;
+    before(() => {
+        mng = new ProxyChainManager();
+    });
 
     it('throws nice error when "squid" command not found', () => {
-        const mng = new ProxyChainManager();
         PROXY_CHAIN.SQUID_CMD = 'command-that-does-not-exist';
-        return mng.addProxyChain(parseUrl(`http://localhost:${proxyPort}`))
+        return mng.addProxyChain(parseUrl(`http://${proxyAuth.username}:${proxyAuth.password}@127.0.0.1:${proxyPort}`))
             .then(() => {
                 assert.fail();
             })
@@ -81,11 +84,10 @@ describe('ProxyChainManager.addProxyChain()', function () {
     });
 
     it('throws nice error when no more free ports available', () => {
-        const mng = new ProxyChainManager();
         // we're listening on proxyPort
         PROXY_CHAIN.PORT_FROM = proxyPort;
         PROXY_CHAIN.PORT_TO = proxyPort;
-        return mng.addProxyChain(parseUrl(`http://localhost:${proxyPort}`))
+        return mng.addProxyChain(parseUrl(`http://${proxyAuth.username}:${proxyAuth.password}@127.0.0.1:${proxyPort}`))
             .then(() => {
                 assert.fail();
             })
@@ -95,5 +97,47 @@ describe('ProxyChainManager.addProxyChain()', function () {
             .finally(() => {
                 Object.assign(PROXY_CHAIN, ORIG_PROXY_CHAIN);
             });
+    });
+
+    it('creates a working proxy chain', () => {
+        return mng.addProxyChain(parseUrl(`http://${proxyAuth.username}:${proxyAuth.password}@127.0.0.1:${proxyPort}`))
+            .then((parsedChildProxyUrl) => {
+                expect(parsedChildProxyUrl.port).to.not.equal(proxyPort);
+                // console.log(`http://${proxyAuth.username}:${proxyAuth.password}@127.0.0.1:${proxyPort}`);
+                // console.dir(parsedChildProxyUrl);
+
+                return new Promise((resolve, reject) => {
+                    const opts = {
+                        uri: 'https://www.example.com',
+                        proxy: `${parsedChildProxyUrl.protocol}//${parsedChildProxyUrl.host}:${parsedChildProxyUrl.port}`,
+                    };
+                    request(opts, (error, response, body) => {
+                        if (error) return reject(error);
+                        if (response.statusCode !== 200) return reject(new Error(`Received invalid response code: ${response.statusCode}`));
+                        expect(body).to.contain('Example Domain');
+                        resolve();
+                    });
+                });
+            })
+            .then(() => {
+                expect(mng._isSquidRunning()).to.equal(true);
+                expect(wasProxyCalled).to.equal(true);
+            });
+    });
+
+    it('handles adding one more proxy', () => {
+        // TODO
+    });
+
+    it('handles removal of first proxy', () => {
+
+    });
+
+    it('handles removal of second proxy', () => {
+
+    });
+
+    after(() => {
+        Object.assign(PROXY_CHAIN, ORIG_PROXY_CHAIN);
     });
 });

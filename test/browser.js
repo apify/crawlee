@@ -82,7 +82,7 @@ describe('getDefaultBrowseOptions()', () => {
 describe('Apifier.browse()', function () {
     // Need a large timeout to run unit tests on Travis CI
     this.timeout(300 * 1000);
-/*
+
     it('throws with invalid params', () => {
         assert.throws(() => {
             Apifier.browse('http://www.blabla.bla', { proxyUrl: 'invalidurl' });
@@ -114,23 +114,25 @@ describe('Apifier.browse()', function () {
         delete process.env.APIFY_HEADLESS;
         let browser;
         return Apifier.browse('https://www.example.com', { headless: true })
-        .then((res) => {
-            browser = res;
-            expect(browser.constructor.name).to.eql('Browser');
-            return browser.webDriver.getCurrentUrl();
-        })
-        .then((url) => {
-            expect(url).to.eql('https://www.example.com/');
-            return browser.close();
-        });
+            .then((res) => {
+                browser = res;
+                expect(browser.constructor.name).to.eql('Browser');
+                return browser.webDriver.getCurrentUrl();
+            })
+            .then((url) => {
+                expect(url).to.eql('https://www.example.com/');
+                return browser.close();
+            });
     });
 
     it('works with empty options and callback', () => {
+        let browser;
         return new Promise((resolve, reject) => {
             try {
                 process.env.APIFY_HEADLESS = '1';
-                const retVal = Apifier.browse('about:blank', {}, (err, browser) => {
+                const retVal = Apifier.browse('about:blank', {}, (err, result) => {
                     if (err) return reject(err);
+                    browser = result;
                     try {
                         expect(browser.constructor.name).to.eql('Browser');
                         browser.webDriver.getCurrentUrl()
@@ -147,9 +149,10 @@ describe('Apifier.browse()', function () {
             } catch (e) {
                 reject(e);
             }
+        }).then(() => {
+            return browser.close();
         });
     });
-*/
 
     it('works with proxy server', () => {
         let browser;
@@ -160,23 +163,21 @@ describe('Apifier.browse()', function () {
             proxyUrl: `http://${proxyAuth.username}:${proxyAuth.password}@127.0.0.1:${proxyPort}`,
         };
         return Apifier.browse('https://www.example.com', opts)
-            .then((res) => {
-                browser = res;
+            .then((result) => {
+                browser = result;
             })
             .then(() => {
-                return browser.webDriver.sleep(300 * 1000);
+                // return browser.webDriver.sleep(300 * 1000);
             })
             .then(() => {
                 return browser.webDriver.getAllWindowHandles();
             })
-            .then((handles) => {
-                console.dir(handles);
-
+            .then(() => {
                 expect(browser.constructor.name).to.eql('Browser');
                 return browser.webDriver.getCurrentUrl();
             })
             .then((url) => {
-                expect(wasProxyCalled).to.be.true();
+                expect(wasProxyCalled).to.equal(true);
                 expect(url).to.eql('https://www.example.com/');
                 return browser.close();
             });

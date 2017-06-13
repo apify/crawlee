@@ -9,24 +9,29 @@ import { parseUrl } from './utils';
 
 /* globals process */
 
-// Exported to allow unit-testing
+// Constants, exported to simplify unit-testing.
 export const PROXY_CHAIN = {
     PORT_FROM: 55000,
     PORT_TO: 60000,
     HOST: '127.0.0.1',
     PROTOCOL: 'http:',
     SQUID_CMD: 'squid',
+    TMP_DIR_TEMPLATE: '/tmp/apify-squid-XXXXXX',
+    CONF_FILE_NAME: 'squid.conf',
+    PID_FILE_NAME: 'squid.pid',
+    ERROR_PREFIX: 'ProxyChainManager: ',
+    LOG_PREFIX: 'ProxyChainManager: ',
 };
 
 const tmpDirPromised = Promise.promisify(tmp.dir);
 const fsWriteFilePromised = Promise.promisify(fs.writeFile);
 
 /**
- * The class is used to manage a local Squid proxy process instance
+ * The class is used to manage a local Squid proxy instance
  * that forwards HTTP requests to user-provided parent proxies.
  * The point of this is that there's no easy way to programmatically pass proxy
  * authentication credentials to web browsers such as Chrome, so we need to setup
- * local open proxy that can forward to parent proxy with authentication.
+ * a local open proxy that can forward to parent proxy with authentication.
  */
 export class ProxyChainManager {
     constructor() {
@@ -80,7 +85,7 @@ export class ProxyChainManager {
             retrieve: 1,
         })
         .then((ports) => {
-            if (ports.length < 1) throw new Error(`ProxyChainManager: There are no more free ports in range from ${PROXY_CHAIN.PORT_FROM} to ${PROXY_CHAIN.PORT_TO}`); // eslint-disable-line max-len
+            if (ports.length < 1) throw new Error(`${PROXY_CHAIN.ERROR_PREFIX}There are no more free ports in range from ${PROXY_CHAIN.PORT_FROM} to ${PROXY_CHAIN.PORT_TO}`); // eslint-disable-line max-len
             return ports[0];
         });
     }
@@ -130,7 +135,7 @@ export class ProxyChainManager {
                 .then(() => {
                     // Create temporary directory, if not created yet
                     if (!this.tmpDir) {
-                        return tmpDirPromised({ template: '/tmp/squid-XXXXXX' })
+                        return tmpDirPromised({ template: PROXY_CHAIN.TMP_DIR_TEMPLATE })
                             .then((tmpDir) => {
                                 this.tmpDir = tmpDir;
                             });
@@ -142,9 +147,13 @@ export class ProxyChainManager {
                 })
                 .then((squidConfPath) => {
                     // Start Squid process
-                    const args = [`-f ${squidConfPath}`, '-N'];
+                    const cmd = PROXY_CHAIN.SQUID_CMD;
+                    const args = ['-f', squidConfPath, '-N'];
                     const options = { cwd: this.tmpDir };
-                    const process = childProcess.spawn(PROXY_CHAIN.SQUID_CMD, args, options);
+                    console.log(`${PROXY_CHAIN.LOG_PREFIX}Starting local Squid proxy using: ${cmd} ${args.join(' ')}`);
+                    const proc = childProcess.spawn(PROXY_CHAIN.SQUID_CMD, args, options);
+
+                    this.squidPid = proc.pid;
 
                     // Wait for Squid process to be running or fail
                     return new Promise((resolve, reject) => {
@@ -155,21 +164,40 @@ export class ProxyChainManager {
                                 isFinished = true;
                                 resolve();
                             }
+                            // console.log("NOT RUNNING");
                         }, 50);
 
-                        process.on('error', (err) => {
+                        proc.on('exit', (code, signal) => {
                             if (isFinished) {
-                                console.log(`ProxyChainManager: Squid process failed: ${err}`);
+                                console.log(`${PROXY_CHAIN.LOG_PREFIX}Squid process exited (code: ${code}, signal: ${signal})`);
+                                return;
+                            }
+
+                            clearInterval(intervalId);
+                            isFinished = true;
+                            reject(new Error(`${PROXY_CHAIN.ERROR_PREFIX}Squid process exited unexpectedly (code: ${code}, signal: ${signal})`));
+                        });
+
+                        proc.on('error', (err) => {
+                            if (isFinished) {
+                                console.log(`${PROXY_CHAIN.LOG_PREFIX}Squid process failed: ${err}`);
                                 return;
                             }
 
                             // Give a user-friendly message for this common error
-                            if (err.code === 'ENOENT') err = new Error('ProxyChainManager: "squid" command not found in the PATH');
+                            if (err.code === 'ENOENT') err = new Error(`${PROXY_CHAIN.ERROR_PREFIX}"squid" command not found in the PATH`);
 
                             clearInterval(intervalId);
                             isFinished = true;
                             reject(err);
                         });
+
+                        // Print stdout/stderr to simplify debugging
+                        const printLog = (data) => {
+                            console.log(`${PROXY_CHAIN.LOG_PREFIX}: squid: ${data}`);
+                        };
+                        proc.stdout.on('data', printLog);
+                        proc.stderr.on('data', printLog);
                     });
                 });
         }
@@ -184,24 +212,24 @@ export class ProxyChainManager {
                 // Run Squid process to reconfigure the other running instance and wait for the finish
                 const args = [`-f ${squidConfPath}`, '-k reconfigure'];
                 const options = { cwd: this.tmpDir };
-                const process = childProcess.spawn(PROXY_CHAIN.SQUID_CMD, args, options);
+                const proc = childProcess.spawn(PROXY_CHAIN.SQUID_CMD, args, options);
 
                 // Wait for Squid reconfiguration process to exit or fail
                 return new Promise((resolve, reject) => {
                     let isFinished = false;
-                    process.on('exit', (code, signal) => {
+                    proc.on('exit', (code, signal) => {
                         if (!isFinished) {
                             isFinished = true;
                             if (code !== 0) {
-                                return reject(new Error(`ProxyChainManager: Squid reconfiguration process failed (exit code: ${code}, signal: ${signal})`)); // eslint-disable-line max-len
+                                return reject(new Error(`${PROXY_CHAIN.ERROR_PREFIX}Squid reconfiguration process failed (exit code: ${code}, signal: ${signal})`)); // eslint-disable-line max-len
                             }
                             resolve();
                         }
                     });
-                    process.on('error', (err) => {
+                    proc.on('error', (err) => {
                         if (!isFinished) {
                             isFinished = true;
-                            return reject(new Error(`ProxyChainManager: Squid reconfiguration process failed: ${err}`));
+                            return reject(new Error(`${PROXY_CHAIN.ERROR_PREFIX}Squid reconfiguration process failed: ${err}`));
                         }
                     });
                 });
@@ -212,7 +240,7 @@ export class ProxyChainManager {
         const peerName = `peer${squidPort}`;
         const aclName = `acl${squidPort}`;
         const str = `http_port ${squidPort}\n`
-            + `cache_peer ${parsedProxyUrl.host} parent ${parsedProxyUrl.port} 0 no-query login=${parsedProxyUrl.auth} connect-fail-limit=99999999 proxy-only name=${peerName}\n` // eslint-disable-line max-len
+            + `cache_peer ${parsedProxyUrl.hostname} parent ${parsedProxyUrl.port} 0 no-query login=${parsedProxyUrl.auth} connect-fail-limit=99999999 proxy-only name=${peerName}\n` // eslint-disable-line max-len
             + `acl ${aclName} myport ${squidPort}\n`
             + `cache_peer_access ${peerName} allow ${aclName}\n`;
         return str;
@@ -238,13 +266,12 @@ access_log none
 cache_store_log none
 cache_log /dev/null
 logfile_rotate 0
-pid_filename ${path.join(this.tmpDir, 'squid.pid')}
+pid_filename ${path.join(this.tmpDir, PROXY_CHAIN.PID_FILE_NAME)}
 
 ${chainConfs}
 `;
-        const filePath = path.join(this.tmpDir, 'squid.conf');
+        const filePath = path.join(this.tmpDir, PROXY_CHAIN.CONF_FILE_NAME);
 
-        console.log(`Squid config:\n${conf}`);
         return fsWriteFilePromised(filePath, conf)
             .then(() => {
                 return filePath;
