@@ -43,7 +43,8 @@
     "apify-client": ">=0.1.13",
     "underscore": "^1.8.3",
     "portastic": "^1.0.1",
-    "tmp": "^0.0.31"
+    "tmp": "^0.0.31",
+    "bluebird": "^3.5.0"
   },
   "devDependencies": {
     "babel-cli": "^6.6.5",
@@ -52,7 +53,6 @@
     "babel-preset-es2015": "^6.1.18",
     "babel-preset-stage-0": "^6.1.18",
     "basic-auth-parser": "^0.0.2",
-    "bluebird": "^3.5.0",
     "chai": "^4.0.2",
     "eslint": "^3.19.0",
     "eslint-config-airbnb": "^15.0.1",

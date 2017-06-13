@@ -13,6 +13,8 @@ import { ProxyChainManager } from './proxy_chain_manager';
 // logging.installConsoleHandler();
 // logging.getLogger('webdriver.http').setLevel(logging.Level.ALL);
 
+// TODO: on first use of Apifier.browse(), print out the version of Chrome and ChromeDriver
+
 
 /**
  * Gets the default options for the browse() function, generated from current process environment

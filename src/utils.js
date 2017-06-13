@@ -8,6 +8,8 @@ let PromisesDependency = typeof Promise === 'function' ? Promise : null;
 
 // TODO: add methods to override console.log() and console.error(), add unit tests for that!
 
+// TODO: use bluebird promise by default instead of native promise, rename newPromise() to newUserPromise(), get rid of nodeifyPromise()
+
 /**
  * Sets the promise dependency the SDK will use wherever Promises are returned.
  * Passing `null` will force the SDK to use native Promises if they are available.
