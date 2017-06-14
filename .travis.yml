@@ -4,9 +4,11 @@ addons:
   chrome: beta
 before_install:
 before_install:
-  - # Install Squid
+  - # Install Squid and symlink it under "squid" command
   - sudo apt-get -qq update
-  - sudo apt-get install -y squid
+  - sudo apt-get install -y squid3
+  - sudo squid3 -k shutdown
+  - sudo ln -s /usr/sbin/squid3 /usr/sbin/squid
   - # Install ChromeDriver for Selenium
   - sudo curl -sS http://chromedriver.storage.googleapis.com/2.29/chromedriver_linux64.zip > /tmp/chromedriver.zip
   - sudo unzip /tmp/chromedriver.zip -d /tmp
