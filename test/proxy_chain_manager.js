@@ -71,12 +71,26 @@ describe('ProxyChainManager.addProxyChain()', function () {
 
     it('throws nice error when "squid" command not found', () => {
         PROXY_CHAIN.SQUID_CMD = 'command-that-does-not-exist';
-        return mng.addProxyChain(parseUrl(`http://${proxyAuth.username}:${proxyAuth.password}@127.0.0.1:${proxyPort}`))
+        return mng.addProxyChain(parseUrl('http://whatever.com:1234'))
             .then(() => {
                 assert.fail();
             })
             .catch((err) => {
-                expect(err.message).to.contain('"squid" command not found in the PATH');
+                expect(err.message).to.contain('command not found in the PATH');
+            })
+            .finally(() => {
+                Object.assign(PROXY_CHAIN, ORIG_PROXY_CHAIN);
+            });
+    });
+
+    it('throws an error when "squid" command exits with non-zero code', () => {
+        PROXY_CHAIN.SQUID_CHECK_ARGS = ['-xbadargs'];
+        return mng.addProxyChain(parseUrl('http://whatever.com:1234'))
+            .then(() => {
+                assert.fail();
+            })
+            .catch((err) => {
+                expect(err.message).to.contain('squid: illegal option');
             })
             .finally(() => {
                 Object.assign(PROXY_CHAIN, ORIG_PROXY_CHAIN);
@@ -97,6 +111,20 @@ describe('ProxyChainManager.addProxyChain()', function () {
             .finally(() => {
                 Object.assign(PROXY_CHAIN, ORIG_PROXY_CHAIN);
             });
+    });
+
+    it('throws for unsupported proxy protocols', () => {
+        assert.throws(() => { mng.addProxyChain(parseUrl('socks://whatever.com')); }, Error);
+        assert.throws(() => { mng.addProxyChain(parseUrl('https://whatever.com')); }, Error);
+        assert.throws(() => { mng.addProxyChain(parseUrl('socks5://whatever.com')); }, Error);
+    });
+
+    it('throws for invalid URLs', () => {
+        assert.throws(() => { mng.addProxyChain(parseUrl('://whatever.com')); }, Error);
+        assert.throws(() => { mng.addProxyChain(parseUrl('https://whatever.com')); }, Error);
+        assert.throws(() => { mng.addProxyChain(parseUrl('socks5://whatever.com')); }, Error);
+
+        assert.throws(() => { mng.addProxyChain(parseUrl('http://no-port-provided')); }, Error);
     });
 
     it('creates a working proxy chain', () => {

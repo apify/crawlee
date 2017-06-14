@@ -16,15 +16,17 @@ export const PROXY_CHAIN = {
     HOST: '127.0.0.1',
     PROTOCOL: 'http:',
     SQUID_CMD: 'squid',
+    SQUID_CHECK_ARGS: ['-v'],
+    SQUID_BATCH_TIMEOUT: 10000,
     TMP_DIR_TEMPLATE: '/tmp/apify-squid-XXXXXX',
     CONF_FILE_NAME: 'squid.conf',
     PID_FILE_NAME: 'squid.pid',
-    ERROR_PREFIX: 'ProxyChainManager: ',
     LOG_PREFIX: 'ProxyChainManager: ',
 };
 
 const tmpDirPromised = Promise.promisify(tmp.dir);
 const fsWriteFilePromised = Promise.promisify(fs.writeFile);
+const execFilePromised = Promise.promisify(childProcess.execFile, { multiArgs: true });
 
 /**
  * The class is used to manage a local Squid proxy instance
@@ -35,6 +37,9 @@ const fsWriteFilePromised = Promise.promisify(fs.writeFile);
  */
 export class ProxyChainManager {
     constructor() {
+        // Indicates whether _initialize() succeeded
+        this.isInitialized = false;
+
         // Dictionary of all proxy chains, key is Squid proxy port, value is parsed
         // URL of the original parent proxy.
         this.portToParsedProxyUrl = {};
@@ -47,16 +52,58 @@ export class ProxyChainManager {
     }
 
     /**
+     * Creates the temporary directory and checks the installed Squid, unless it has already been done.
+     * @return Promise
+     * @private
+     */
+    _initialize() {
+        if (this.isInitialized) return Promise.resolve();
+
+        // Create temporary directory, if not created yet
+        return tmpDirPromised({ template: PROXY_CHAIN.TMP_DIR_TEMPLATE })
+            .then((tmpDir) => {
+                this.tmpDir = tmpDir;
+
+                // Run Squid process to get its version and wait for the finish
+                const options = {
+                    cwd: this.tmpDir,
+                    timeout: PROXY_CHAIN.SQUID_BATCH_TIMEOUT,
+                };
+                console.log(`${PROXY_CHAIN.LOG_PREFIX}Checking Squid installation with '${PROXY_CHAIN.SQUID_CMD} ${PROXY_CHAIN.SQUID_CHECK_ARGS.join(' ')}'`); // eslint-disable-line max-len
+                return execFilePromised(PROXY_CHAIN.SQUID_CMD, PROXY_CHAIN.SQUID_CHECK_ARGS, options)
+                    .then((array) => {
+                        const stdout = array[0];
+                        console.log(`${PROXY_CHAIN.LOG_PREFIX}${(stdout || '').split('\n')[0]}`);
+                        this.isInitialized = true;
+                    })
+                    .catch((err) => {
+                        // Give a user-friendly message for this common error
+                        if (err.code === 'ENOENT') {
+                            err = new Error(`'${PROXY_CHAIN.SQUID_CMD}' command not found in the PATH`);
+                        }
+                        throw err;
+                    });
+            });
+    }
+
+    /**
      * Sets up an open child proxy which forwards to a specified parent proxy.
      * @param parsedChildProxyUrl Parsed URL of the parent proxy.
      * @return Promise Promise resolving to the parsed URL of the child proxy.
      */
     addProxyChain(parsedProxyUrl) {
+        if (!parsedProxyUrl.hostname || !parsedProxyUrl.port) throw new Error('Proxy URL must contain both hostname and port');
+        if (parsedProxyUrl.scheme !== 'http') throw new Error('Only "http" proxy protocol is currently supported');
+
         let parsedChildProxyUrl;
         return ProxyChainManager._findFreePort()
             .then((port) => {
                 this.portToParsedProxyUrl[port] = _.clone(parsedProxyUrl);
-                parsedChildProxyUrl = parseUrl(`${PROXY_CHAIN.PROTOCOL}//${PROXY_CHAIN.HOST}:${port}`);
+                const parentProxyUrl = `${parsedProxyUrl.protocol}//${parsedProxyUrl.username}:${parsedProxyUrl.password ? '<redacted>' : ''}@${parsedProxyUrl.host}`; // eslint-disable-line max-len
+                const childProxyUrl = `${PROXY_CHAIN.PROTOCOL}//${PROXY_CHAIN.HOST}:${port}`;
+                parsedChildProxyUrl = parseUrl(childProxyUrl);
+
+                console.log(`${PROXY_CHAIN.LOG_PREFIX}Adding proxy chain ${childProxyUrl} => ${parentProxyUrl}`);
                 return this._manageSquidProcess();
             })
             .then(() => {
@@ -73,6 +120,9 @@ export class ProxyChainManager {
         if (parsedChildProxyUrl.protocol === PROXY_CHAIN.PROTOCOL
             && parsedChildProxyUrl.host === PROXY_CHAIN.HOST
             && this.portToParsedProxyUrl[parsedChildProxyUrl.port]) {
+            const childProxyUrl = `${PROXY_CHAIN.PROTOCOL}//${PROXY_CHAIN.HOST}:${parsedChildProxyUrl.port}`;
+            console.log(`${PROXY_CHAIN.LOG_PREFIX}Removing proxy chain ${childProxyUrl}`);
+
             delete this.portToParsedProxyUrl[parsedChildProxyUrl.port];
             return this._manageSquidProcess();
         }
@@ -85,7 +135,7 @@ export class ProxyChainManager {
             retrieve: 1,
         })
         .then((ports) => {
-            if (ports.length < 1) throw new Error(`${PROXY_CHAIN.ERROR_PREFIX}There are no more free ports in range from ${PROXY_CHAIN.PORT_FROM} to ${PROXY_CHAIN.PORT_TO}`); // eslint-disable-line max-len
+            if (ports.length < 1) throw new Error(`There are no more free ports in range from ${PROXY_CHAIN.PORT_FROM} to ${PROXY_CHAIN.PORT_TO}`); // eslint-disable-line max-len
             return ports[0];
         });
     }
@@ -131,16 +181,7 @@ export class ProxyChainManager {
 
         // If Squid is not running yet but should be, start it
         if (!this.squidPid) {
-            return Promise.resolve()
-                .then(() => {
-                    // Create temporary directory, if not created yet
-                    if (!this.tmpDir) {
-                        return tmpDirPromised({ template: PROXY_CHAIN.TMP_DIR_TEMPLATE })
-                            .then((tmpDir) => {
-                                this.tmpDir = tmpDir;
-                            });
-                    }
-                })
+            return this._initialize()
                 .then(() => {
                     // Store configuration file to temp dir
                     return this._writeSquidConf();
@@ -169,23 +210,20 @@ export class ProxyChainManager {
 
                         proc.on('exit', (code, signal) => {
                             if (isFinished) {
-                                console.log(`${PROXY_CHAIN.LOG_PREFIX}Squid process exited (code: ${code}, signal: ${signal})`);
+                                console.log(`${PROXY_CHAIN.LOG_PREFIX}Squid process ${this.squidPid} exited (code: ${code}, signal: ${signal})`);
                                 return;
                             }
 
                             clearInterval(intervalId);
                             isFinished = true;
-                            reject(new Error(`${PROXY_CHAIN.ERROR_PREFIX}Squid process exited unexpectedly (code: ${code}, signal: ${signal})`));
+                            reject(new Error(`Squid process ${this.squidPid} exited unexpectedly (code: ${code}, signal: ${signal})`)); // eslint-disable-line max-len
                         });
 
                         proc.on('error', (err) => {
                             if (isFinished) {
-                                console.log(`${PROXY_CHAIN.LOG_PREFIX}Squid process failed: ${err}`);
+                                console.log(`${PROXY_CHAIN.LOG_PREFIX}Squid process ${this.squidPid} failed: ${err}`);
                                 return;
                             }
-
-                            // Give a user-friendly message for this common error
-                            if (err.code === 'ENOENT') err = new Error(`${PROXY_CHAIN.ERROR_PREFIX}"squid" command not found in the PATH`);
 
                             clearInterval(intervalId);
                             isFinished = true;
@@ -194,7 +232,7 @@ export class ProxyChainManager {
 
                         // Print stdout/stderr to simplify debugging
                         const printLog = (data) => {
-                            console.log(`${PROXY_CHAIN.LOG_PREFIX}: squid: ${data}`);
+                            console.log(`${PROXY_CHAIN.LOG_PREFIX}: Squid says: ${data}`);
                         };
                         proc.stdout.on('data', printLog);
                         proc.stderr.on('data', printLog);
@@ -209,30 +247,16 @@ export class ProxyChainManager {
                 return this._writeSquidConf();
             })
             .then((squidConfPath) => {
-                // Run Squid process to reconfigure the other running instance and wait for the finish
                 const args = [`-f ${squidConfPath}`, '-k reconfigure'];
-                const options = { cwd: this.tmpDir };
-                const proc = childProcess.spawn(PROXY_CHAIN.SQUID_CMD, args, options);
-
-                // Wait for Squid reconfiguration process to exit or fail
-                return new Promise((resolve, reject) => {
-                    let isFinished = false;
-                    proc.on('exit', (code, signal) => {
-                        if (!isFinished) {
-                            isFinished = true;
-                            if (code !== 0) {
-                                return reject(new Error(`${PROXY_CHAIN.ERROR_PREFIX}Squid reconfiguration process failed (exit code: ${code}, signal: ${signal})`)); // eslint-disable-line max-len
-                            }
-                            resolve();
-                        }
+                const options = {
+                    cwd: this.tmpDir,
+                    timeout: PROXY_CHAIN.SQUID_BATCH_TIMEOUT,
+                };
+                return execFilePromised(PROXY_CHAIN.SQUID_CMD, args, options)
+                    .catch((err) => {
+                        // Use better error message
+                        throw new Error(`Squid reconfiguration failed (${err})`);
                     });
-                    proc.on('error', (err) => {
-                        if (!isFinished) {
-                            isFinished = true;
-                            return reject(new Error(`${PROXY_CHAIN.ERROR_PREFIX}Squid reconfiguration process failed: ${err}`));
-                        }
-                    });
-                });
             });
     }
 
