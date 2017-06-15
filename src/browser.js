@@ -1,7 +1,7 @@
 // import { ChromeLauncher } from 'lighthouse/lighthouse-cli/chrome-launcher';
 import { APIFY_ENV_VARS } from './constants';
 import { newPromise, nodeifyPromise, parseUrl } from './utils';
-import { ProxyChainManager } from './proxy_chain_manager';
+import { ProxyChain } from './proxy_chain';
 
 /* global process, require */
 
@@ -28,8 +28,6 @@ export const getDefaultBrowseOptions = () => {
         userAgent: null,
     };
 };
-
-const proxyChainManager = new ProxyChainManager();
 
 
 /**
@@ -76,7 +74,8 @@ export class Browser {
         // Instance of Selenium's WebDriver
         this.webDriver = null;
 
-        this.parsedChildProxyUrl = null;
+        // Instance of ProxyChain or null if not used
+        this.proxyChain = null;
     }
 
     /**
@@ -126,11 +125,8 @@ export class Browser {
 
             // Otherwise we need to setup an open child proxy
             // that will forward to the original proxy with authentication
-            return proxyChainManager.addProxyChain(this.parsedProxyUrl)
-                .then((parsedChildProxyUrl) => {
-                    this.parsedChildProxyUrl = parsedChildProxyUrl;
-                    return parsedChildProxyUrl;
-                });
+            this.proxyChain = new ProxyChain(this.parsedProxyUrl);
+            return this.proxyChain.start();
         })
         .then((effectiveParsedProxyUrl) => {
             if (/^chrome$/i.test(this.options.browserName)) {
@@ -156,12 +152,12 @@ export class Browser {
     }
 
     close() {
+        if (this.proxyChain) {
+            this.proxyChain.shutdown();
+            this.proxyChain = null;
+        }
+
         return newPromise()
-            .then(() => {
-                if (this.parsedChildProxyUrl) {
-                    return proxyChainManager.removeProxyChain(this.parsedChildProxyUrl);
-                }
-            })
             .then(() => {
                 if (this.webDriver) {
                     return this.webDriver.quit();
