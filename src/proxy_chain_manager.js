@@ -40,7 +40,8 @@ export class ProxyChainManager {
         // Indicates whether _initialize() succeeded
         this.isInitialized = false;
 
-        // Dictionary of all proxy chains, key is Squid proxy port, value is parsed
+        // Dictionary of all proxy chains, key is Squid proxy port, value is an object such as:
+        // { parsed
         // URL of the original parent proxy.
         this.portToParsedProxyUrl = {};
 
@@ -73,6 +74,7 @@ export class ProxyChainManager {
                 return execFilePromised(PROXY_CHAIN.SQUID_CMD, PROXY_CHAIN.SQUID_CHECK_ARGS, options)
                     .then((array) => {
                         const stdout = array[0];
+                        // TODO: check that the version is at least 3.3 and throw error otherwise!
                         console.log(`${PROXY_CHAIN.LOG_PREFIX}${(stdout || '').split('\n')[0]}`);
                         this.isInitialized = true;
                     })
@@ -99,7 +101,7 @@ export class ProxyChainManager {
         return ProxyChainManager._findFreePort()
             .then((port) => {
                 this.portToParsedProxyUrl[port] = _.clone(parsedProxyUrl);
-                const parentProxyUrl = `${parsedProxyUrl.protocol}//${parsedProxyUrl.username}:${parsedProxyUrl.password ? '<redacted>' : ''}@${parsedProxyUrl.host}`; // eslint-disable-line max-len
+                const parentProxyUrl = `${parsedProxyUrl.protocol}//${parsedProxyUrl.username || ''}:${parsedProxyUrl.password ? '<redacted>' : ''}@${parsedProxyUrl.host}`; // eslint-disable-line max-len
                 const childProxyUrl = `${PROXY_CHAIN.PROTOCOL}//${PROXY_CHAIN.HOST}:${port}`;
                 parsedChildProxyUrl = parseUrl(childProxyUrl);
 
@@ -124,8 +126,10 @@ export class ProxyChainManager {
             console.log(`${PROXY_CHAIN.LOG_PREFIX}Removing proxy chain ${childProxyUrl}`);
 
             delete this.portToParsedProxyUrl[parsedChildProxyUrl.port];
-            return this._manageSquidProcess();
+            return this._manageSquidProcess()
+                .then(() => true);
         }
+        return Promise.resolve(false);
     }
 
     static _findFreePort() {
@@ -173,8 +177,8 @@ export class ProxyChainManager {
         // If Squid is no longer needed but it is still running, kill it to save system resources
         if (_.isEmpty(this.portToParsedProxyUrl)) {
             if (this.squidPid) {
-                process.kill(this.squidPid);
-                this.squidPid = null;
+                console.log(`${PROXY_CHAIN.LOG_PREFIX}Killing Squid process ${this.squidPid}`);
+                process.kill(this.squidPid, 'SIGKILL');
             }
             return;
         }
@@ -216,6 +220,7 @@ export class ProxyChainManager {
 
                             clearInterval(intervalId);
                             isFinished = true;
+                            this.squidPid = null;
                             reject(new Error(`Squid process ${this.squidPid} exited unexpectedly (code: ${code}, signal: ${signal})`)); // eslint-disable-line max-len
                         });
 
@@ -227,6 +232,7 @@ export class ProxyChainManager {
 
                             clearInterval(intervalId);
                             isFinished = true;
+                            this.squidPid = null;
                             reject(err);
                         });
 
@@ -247,12 +253,20 @@ export class ProxyChainManager {
                 return this._writeSquidConf();
             })
             .then((squidConfPath) => {
-                const args = [`-f ${squidConfPath}`, '-k reconfigure'];
+                const args = ['-f', squidConfPath, '-k', 'reconfigure'];
                 const options = {
                     cwd: this.tmpDir,
                     timeout: PROXY_CHAIN.SQUID_BATCH_TIMEOUT,
                 };
                 return execFilePromised(PROXY_CHAIN.SQUID_CMD, args, options)
+                    .then((arr) => {
+                        console.dir(arr);
+
+                        // TODO
+                        return new Promise((resolve) => {
+                            setTimeout(resolve, 1000);
+                        });
+                    })
                     .catch((err) => {
                         // Use better error message
                         throw new Error(`Squid reconfiguration failed (${err})`);
@@ -265,8 +279,10 @@ export class ProxyChainManager {
         const aclName = `acl${squidPort}`;
         const str = `http_port ${squidPort}\n`
             + `cache_peer ${parsedProxyUrl.hostname} parent ${parsedProxyUrl.port} 0 no-query login=${parsedProxyUrl.auth} connect-fail-limit=99999999 proxy-only name=${peerName}\n` // eslint-disable-line max-len
-            + `acl ${aclName} myport ${squidPort}\n`
-            + `cache_peer_access ${peerName} allow ${aclName}\n`;
+            // + `acl ${aclName} myportname ${squidPort}\n`
+            + `acl ${aclName} myportname ${squidPort}\n`
+            + `cache_peer_access ${peerName} allow ${aclName}\n`
+            + `cache_peer_access ${peerName} deny all\n`;
         return str;
     }
 
@@ -280,15 +296,20 @@ export class ProxyChainManager {
 
         const chainConfs = _.values(_.mapObject(this.portToParsedProxyUrl, (parsedProxyUrl, port) => {
             return ProxyChainManager._generateSquidConfForPort(parsedProxyUrl, port);
-        }));
+        })).join('\n');
 
         // NOTE: set pid_filename to isolate our squid instance from others possibly running in the system
         const conf = `
+# debug_options 44,9 28,9
 http_access allow all
 never_direct allow all
-access_log none
+via off # this probably requires --enable-http-violations compile option 
+forwarded_for transparent
+#access_log none
+access_log daemon:${path.join(this.tmpDir, 'access.log')} squid
 cache_store_log none
-cache_log /dev/null
+#cache_log /dev/null
+cache_log ${path.join(this.tmpDir, 'cache.log')}
 logfile_rotate 0
 pid_filename ${path.join(this.tmpDir, PROXY_CHAIN.PID_FILE_NAME)}
 
@@ -296,9 +317,22 @@ ${chainConfs}
 `;
         const filePath = path.join(this.tmpDir, PROXY_CHAIN.CONF_FILE_NAME);
 
+        console.log('CONFIG');
+        console.log(conf);
+
         return fsWriteFilePromised(filePath, conf)
             .then(() => {
                 return filePath;
             });
+    }
+
+    /**
+     * Removes all proxy chains and terminates the squid process.
+     * @return {*}
+     */
+    shutdown() {
+        this.portToParsedProxyUrl = {};
+
+        return this._manageSquidProcess();
     }
 }
