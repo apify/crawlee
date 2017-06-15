@@ -48,12 +48,11 @@ export class Browser {
         }
 
         // This is an optional dependency because it is quite large, only require it when used
-        const { Capabilities, Builder, logging } = require('selenium-webdriver'); // eslint-disable-line global-require
+        const { Capabilities, Builder } = require('selenium-webdriver'); // eslint-disable-line global-require
         const chrome = require('selenium-webdriver/chrome'); // eslint-disable-line global-require
 
-        logging.installConsoleHandler();
-        logging.getLogger('webdriver.http').setLevel(logging.Level.ALL);
-
+        // logging.installConsoleHandler();
+        // logging.getLogger('webdriver.http').setLevel(logging.Level.ALL);
 
         // See https://github.com/SeleniumHQ/selenium/wiki/DesiredCapabilities for reference.
         this.capabilities = new Capabilities();
@@ -69,7 +68,6 @@ export class Browser {
         if (this.options.headless) {
             this.chromeOptions.addArguments('--headless', '--disable-gpu', '--no-sandbox');
         }
-        // TODO: add unit test!
         if (this.options.userAgent) {
             this.chromeOptions.addArguments(`--user-agent=${this.options.userAgent}`);
         }
@@ -88,7 +86,6 @@ export class Browser {
      * @return Promise
      */
     _initialize() {
-        // logging.installConsoleHandler();
         return newPromise()
             .then(() => {
                 return this._setupProxy();

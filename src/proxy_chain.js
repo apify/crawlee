@@ -1,7 +1,6 @@
 import childProcess from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import _ from 'underscore';
 import tmp from 'tmp';
 import portastic from 'portastic';
 import Promise from 'bluebird';

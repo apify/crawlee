@@ -170,7 +170,7 @@ describe('Apifier.browse()', function () {
     // Need a large timeout to run unit tests on Travis CI
     this.timeout(300 * 1000);
 
-    it('throws with invalid params', () => {
+    it('throws on invalid args', () => {
         assert.throws(() => {
             Apifier.browse('http://www.blabla.bla', { proxyUrl: 'invalidurl' });
         }, Error);
@@ -246,7 +246,7 @@ describe('Apifier.browse()', function () {
         wasProxyCalled = false;
         const opts = {
             url: 'https://www.example.com',
-            headless: false,
+            headless: true,
             browserName: 'chrome',
             proxyUrl: `http://${proxyAuth.username}:${proxyAuth.password}@127.0.0.1:${proxyPort}`,
         };
@@ -267,6 +267,28 @@ describe('Apifier.browse()', function () {
             .then((url) => {
                 expect(wasProxyCalled).to.equal(true);
                 expect(url).to.eql('https://www.example.com/');
+                return browser.close();
+            });
+    });
+
+    it('userAgent option works', () => {
+        let browser;
+        const opts = {
+            url: 'http://www.whatsmyua.info/',
+            headless: true,
+            browserName: 'chrome',
+            userAgent: 'MyUserAgent/1234',
+        };
+        return Apifier.browse(opts)
+            .then((result) => {
+                browser = result;
+            })
+            .then(() => {
+                expect(browser.constructor.name).to.eql('Browser');
+                return browser.webDriver.getPageSource();
+            })
+            .then((source) => {
+                expect(source).to.contain(`rawUa: ${opts.userAgent}`);
                 return browser.close();
             });
     });
