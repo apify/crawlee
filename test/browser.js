@@ -6,7 +6,7 @@ import portastic from 'portastic';
 import basicAuthParser from 'basic-auth-parser';
 import Promise from 'bluebird';
 
-import { getDefaultBrowseOptions } from '../build/browser';
+import { processBrowseArgs, getDefaultBrowseOptions } from '../build/browser';
 import Apifier from '../build/index';
 
 /* globals process */
@@ -74,6 +74,93 @@ describe('getDefaultBrowseOptions()', () => {
             headless: false,
             proxyUrl: null,
             userAgent: null,
+        });
+    });
+});
+
+describe('processBrowseArgs()', () => {
+    it('it handles default parameters well', () => {
+        const func = () => {};
+
+        expect(processBrowseArgs()).to.eql({
+            options: {
+                url: 'about:blank',
+            },
+            callback: null,
+        });
+
+        expect(processBrowseArgs(func)).to.eql({
+            options: {
+                url: 'about:blank',
+            },
+            callback: func,
+        });
+
+        expect(processBrowseArgs('example.com', func)).to.eql({
+            options: {
+                url: 'example.com',
+            },
+            callback: func,
+        });
+
+        expect(processBrowseArgs('example.com', { opt: true }, func)).to.eql({
+            options: {
+                url: 'example.com',
+                opt: true,
+            },
+            callback: func,
+        });
+
+        expect(processBrowseArgs('example.com', { opt: true })).to.eql({
+            options: {
+                url: 'example.com',
+                opt: true,
+            },
+            callback: null,
+        });
+
+        expect(processBrowseArgs('example.com', { opt: true }, null)).to.eql({
+            options: {
+                url: 'example.com',
+                opt: true,
+            },
+            callback: null,
+        });
+
+        expect(processBrowseArgs('example.com', { url: 'another.com' }, null)).to.eql({
+            options: {
+                url: 'example.com',
+            },
+            callback: null,
+        });
+
+        expect(processBrowseArgs({}, null)).to.eql({
+            options: {
+                url: 'about:blank',
+            },
+            callback: null,
+        });
+
+        expect(processBrowseArgs({ url: 'example.com' }, null)).to.eql({
+            options: {
+                url: 'example.com',
+            },
+            callback: null,
+        });
+
+        expect(processBrowseArgs({ url: 'example.com' }, func)).to.eql({
+            options: {
+                url: 'example.com',
+            },
+            callback: func,
+        });
+
+        expect(processBrowseArgs({ some: 123 }, func)).to.eql({
+            options: {
+                url: 'about:blank',
+                some: 123,
+            },
+            callback: func,
         });
     });
 });
@@ -158,11 +245,12 @@ describe('Apifier.browse()', function () {
         let browser;
         wasProxyCalled = false;
         const opts = {
+            url: 'https://www.example.com',
             headless: false,
             browserName: 'chrome',
             proxyUrl: `http://${proxyAuth.username}:${proxyAuth.password}@127.0.0.1:${proxyPort}`,
         };
-        return Apifier.browse('https://www.example.com', opts)
+        return Apifier.browse(opts)
             .then((result) => {
                 browser = result;
             })

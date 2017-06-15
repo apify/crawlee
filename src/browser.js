@@ -3,6 +3,7 @@ import { APIFY_ENV_VARS } from './constants';
 import { newPromise, nodeifyPromise, parseUrl } from './utils';
 import { ProxyChain } from './proxy_chain';
 
+
 /* global process, require */
 
 // interesting resources:
@@ -82,11 +83,11 @@ export class Browser {
      * Initializes the browser.
      * @return Promise
      */
-    initialize() {
+    _initialize() {
         // logging.installConsoleHandler();
         return newPromise()
             .then(() => {
-                return this.setupProxy();
+                return this._setupProxy();
             })
             .then(() => {
                 this.webDriver = this.builder
@@ -107,7 +108,7 @@ export class Browser {
      * @param capabilities
      * @param chromeOpts
      */
-    setupProxy() {
+    _setupProxy() {
         if (!this.parsedProxyUrl) return null;
 
         // NOTE: to view effective proxy settings in Chrome, open chrome://net-internals/#proxy
@@ -170,30 +171,57 @@ export class Browser {
     }
 }
 
+/**
+ * Normalizes arguments for Apifier.browse(), fills correctly default values.
+ * The function is exported to allow unit testing.
+ * @param url Optional string
+ * @param options Optional object
+ * @param callback Optional function
+ */
+export const processBrowseArgs = (url, options, callback) => {
+    if (typeof (url) === 'object' || typeof (url) === 'function') {
+        callback = options;
+        options = url;
+        url = null;
+    }
+    if (typeof (options) === 'function') {
+        callback = options;
+        options = null;
+    }
+    options = Object.assign({}, options);
+    options.url = url || options.url || 'about:blank';
+    callback = callback || null;
+
+    if (typeof (options.url) !== 'string') throw new Error('Invalid "url" provided.');
+    if (callback && typeof (callback) !== 'function') throw new Error('Invalid "callback" provided.');
+
+    return { options, callback };
+};
+
 
 /**
  * Opens a new web browser, which is attached to Apifier debugger so that snapshots are sent to Run console (TODO).
  * Internally, this function calls Selenium WebDrivers's Builder command to create a new WebDriver instance.
  * (see http://seleniumhq.github.io/selenium/docs/api/javascript/module/selenium-webdriver/index_exports_Builder.html)
  * The result of the function is a new instance of the Browser class.
- * @param url The start URL to open. Defaults to about:blank
- * @param options Configuration options, their defaults are provided by the getDefaultBrowseOptions() function.
+ * @param url Optional start URL to open. Defaults to about:blank
+ * @param options Optional settings, their defaults are provided by the getDefaultBrowseOptions() function.
  * @param callback Optional callback.
  * @return Returns a promise if no callback was provided, otherwise the return value is not defined.
  */
-export const browse = (url, options = null, callback = null) => {
-    url = url || 'about:blank';
+export const browse = (url, options, callback) => {
+    const args = processBrowseArgs(url, options, callback);
 
-    const browser = new Browser(options);
-    const promise = browser.initialize()
+    const browser = new Browser(args.options);
+    const promise = browser._initialize()
         .then(() => {
-            return browser.webDriver.get(url);
+            return browser.webDriver.get(args.options.url);
         })
         .then(() => {
             return browser;
         });
 
-    return nodeifyPromise(promise, callback);
+    return nodeifyPromise(promise, args.callback);
 };
 
 

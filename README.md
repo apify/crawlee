@@ -181,18 +181,21 @@ because return value from `Apifier.main()` is always converted to JSON.
 Apifier runtime optionally depends on
 the [selenium-webdriver](https://www.npmjs.com/package/selenium-webdriver) package that enables
 automation of a web browser.
-The simplest way to launch a new web browser process is to call:
+The simplest way to launch a new web browser is using the `Apifier.browse([url,] [options,] [callback])`
+function. For example:
 
 ```javascript
-const browser = await Apifier.browse('https://www.example.com/', { browserName: 'chrome' });
+const browser = await Apifier.browse('https://www.example.com/');
 ```
 
-The first parameter is the URL of the initial page, by default it is `about:blank`.
-The second parameter is an optional object that defines options for the web browser.
-It has the following properties:
+The `options` parameter controls settings of the web browser and it has the following properties:
 
 ```javascript
 {
+    // Initial URL to open. Note that the url argument in Apifier.browse() overrides this value.
+    // By default it is 'about:blank'
+    url: String,
+
     // The type of the web browser to use.
     // See https://github.com/SeleniumHQ/selenium/wiki/DesiredCapabilities for possible options.
     // By default it is 'chrome', which is currently the only fully-supported browser.
@@ -212,19 +215,32 @@ It has the following properties:
 }
 ```
 
-The `Apifier.browse()` function returns a promise resolving to a new instance of the `Browser` class,
+The result of the `Apifier.browse()` is a new instance of the `Browser` class,
 which represents a web browser instance (possibly with multiple windows or tabs).
-Currently it only contains the `webDriver` property,
-which is an instance of Selenium's
-[WebDriver](http://seleniumhq.github.io/selenium/docs/api/javascript/module/selenium-webdriver/index_exports_WebDriver.html)
-class:
+If you pass a Node.js-style callback the `Browser` instance is passed to it,
+otherwise the `Apifier.browse()` function returns a promise that resolves to the `Browser` instance.
+
+The `Browser` class has the following properties:
 
 ```javascript
-const ulr = await browser.webDriver.getCurrentUrl();
+{
+    // An instance of the Selenium's WebDriver class.
+    webDriver: Object,
+
+    // A method that closes the web browser and releases associated resources.
+    // The method has no arguments and returns a promise that resolves when the browser was closed.
+    close: Function,
+}
+
+The `webDriver` property can be used to manipulated the web browser:
+
+```javascript
+const url = await browser.webDriver.getCurrentUrl();
 ```
 
-Additionally, the `Browser` class defines the `close()` method which closes the web browser process.
-It returns a promise that resolves when the browser was closed:
+For more information, see [WebDriver documentation](http://seleniumhq.github.io/selenium/docs/api/javascript/module/selenium-webdriver/index_exports_WebDriver.html).
+
+When the web browser is no longer needed, it should be closed:
 
 ```javascript
 await browser.close();
