@@ -132,7 +132,7 @@ export class Browser {
         })
         .then((effectiveParsedProxyUrl) => {
             if (/^chrome$/i.test(this.options.browserName)) {
-                // In Chrome Capabilities.setProxy() has no effect,
+                // In Chrome, Capabilities.setProxy() has no effect,
                 // so we setup the proxy manually
                 this.chromeOptions.addArguments(`--proxy-server=${effectiveParsedProxyUrl.host}`);
             } else {
@@ -148,7 +148,7 @@ export class Browser {
                 };
                 this.capabilities.setProxy(proxyConfig);
 
-                console.dir(this.capabilities);
+                // console.dir(this.capabilities);
             }
         });
     }
@@ -166,7 +166,6 @@ export class Browser {
                 }
             })
             .then(() => {
-                this.parsedChildProxyUrl = null;
                 this.webDriver = null;
             });
     }

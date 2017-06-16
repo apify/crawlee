@@ -21,7 +21,6 @@ export const PROXY_CHAIN = {
     TMP_DIR_TEMPLATE: '/tmp/apify-squid-XXXXXX',
     CONF_FILE_NAME: 'squid.conf',
     PID_FILE_NAME: 'squid.pid',
-    LOG_PREFIX: 'ProxyChain: ',
 };
 
 const tmpDirPromised = Promise.promisify(tmp.dir);
@@ -116,7 +115,7 @@ export class ProxyChain {
                 const cmd = PROXY_CHAIN.SQUID_CMD;
                 const args = ['-f', squidConfPath, '-N'];
                 const options = { cwd: this.tmpDir };
-                console.log(`${PROXY_CHAIN.LOG_PREFIX}Starting local proxy using: ${cmd} ${args.join(' ')}`);
+                console.log(`Starting proxy chain: ${cmd} ${args.join(' ')}`);
                 const proc = childProcess.spawn(cmd, args, options);
 
                 this.squidPid = proc.pid;
@@ -135,7 +134,7 @@ export class ProxyChain {
 
                     proc.on('exit', (code, signal) => {
                         if (isFinished) {
-                            console.log(`${PROXY_CHAIN.LOG_PREFIX}Squid process ${this.squidPid} exited (code: ${code}, signal: ${signal})`);
+                            console.log(`Squid process ${this.squidPid} exited (code: ${code}, signal: ${signal})`);
                             return;
                         }
 
@@ -147,7 +146,7 @@ export class ProxyChain {
 
                     proc.on('error', (err) => {
                         if (isFinished) {
-                            console.log(`${PROXY_CHAIN.LOG_PREFIX}Squid process ${this.squidPid} failed: ${err}`);
+                            console.log(`Squid process ${this.squidPid} failed: ${err}`);
                             return;
                         }
 
@@ -163,7 +162,7 @@ export class ProxyChain {
 
                     // Print stdout/stderr to simplify debugging
                     const printLog = (data) => {
-                        console.log(`${PROXY_CHAIN.LOG_PREFIX}: Squid says: ${data}`);
+                        console.log(`Squid process ${this.squidPid} says: ${data}`);
                     };
                     proc.stdout.on('data', printLog);
                     proc.stderr.on('data', printLog);
@@ -171,7 +170,7 @@ export class ProxyChain {
             })
             .then(() => {
                 const childProxyUrl = this._getChildProxyUrl();
-                console.log(`${PROXY_CHAIN.LOG_PREFIX}Started proxy chain ${childProxyUrl} => ${this._getParentProxyUrl()} (pid ${this.squidPid})`); // eslint-disable-line max-len
+                console.log(`Started proxy chain ${childProxyUrl} => ${this._getParentProxyUrl()} (PID: ${this.squidPid}, tmpDir: ${this.tmpDir})`); // eslint-disable-line max-len
 
                 return parseUrl(childProxyUrl);
             });
@@ -251,13 +250,13 @@ cache_peer_access my_peer allow all
      * @return {*}
      */
     shutdown() {
-        console.log(`${PROXY_CHAIN.LOG_PREFIX}Shutting down proxy chain ${this._getChildProxyUrl()} => ${this._getParentProxyUrl()} (pid ${this.squidPid})`); // eslint-disable-line max-len
+        console.log(`Shutting down proxy chain ${this._getChildProxyUrl()} => ${this._getParentProxyUrl()} (pid ${this.squidPid})`); // eslint-disable-line max-len
 
         if (this._isSquidRunning()) {
             try {
                 process.kill(this.squidPid, 'SIGKILL');
             } catch (err) {
-                console.log(`${PROXY_CHAIN.LOG_PREFIX}WARNING: Failed to kill Squid process ${this.squidPid}: ${err}`);
+                console.log(`WARNING: Failed to kill Squid process ${this.squidPid}: ${err}`);
             }
         }
 
@@ -265,7 +264,7 @@ cache_peer_access my_peer allow all
             const tmpDir = this.tmpDir;
             rimraf(tmpDir, { glob: false }, (err) => {
                 if (err) {
-                    console.log(`${PROXY_CHAIN.LOG_PREFIX}WARNING: Failed to delete temporary directory at ${tmpDir}: ${err}`);
+                    console.log(`WARNING: Failed to delete temporary directory at ${tmpDir}: ${err}`);
                 }
             });
             this.tmpDir = null;
