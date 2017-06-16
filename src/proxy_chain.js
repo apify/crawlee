@@ -170,7 +170,7 @@ export class ProxyChain {
             })
             .then(() => {
                 const childProxyUrl = this._getChildProxyUrl();
-                console.log(`Started proxy chain ${childProxyUrl} => ${this._getParentProxyUrl()} (PID: ${this.squidPid}, tmpDir: ${this.tmpDir})`); // eslint-disable-line max-len
+                console.log(`Started proxy chain ${childProxyUrl} => ${this._getParentProxyUrl()} (Squid pid: ${this.squidPid}, temp dir: ${this.tmpDir})`); // eslint-disable-line max-len
 
                 return parseUrl(childProxyUrl);
             });
@@ -250,7 +250,7 @@ cache_peer_access my_peer allow all
      * @return {*}
      */
     shutdown() {
-        console.log(`Shutting down proxy chain ${this._getChildProxyUrl()} => ${this._getParentProxyUrl()} (pid ${this.squidPid})`); // eslint-disable-line max-len
+        console.log(`Shutting down proxy chain ${this._getChildProxyUrl()} => ${this._getParentProxyUrl()} (Squid pid: ${this.squidPid})`); // eslint-disable-line max-len
 
         if (this._isSquidRunning()) {
             try {
