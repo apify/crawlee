@@ -26,16 +26,16 @@ export const PROXY_CHAIN = {
 
 const tmpDirPromised = Promise.promisify(tmp.dir);
 const fsWriteFilePromised = Promise.promisify(fs.writeFile);
-const execFilePromised = Promise.promisify(childProcess.execFile, { multiArgs: true });
+// const execFilePromised = Promise.promisify(childProcess.execFile, { multiArgs: true });
 
 
-/**
+/*
  * Run Squid process to get its version and wait for the finish
  * @return Promise
- */
-const printSquidVersion = () => { // eslint-disable-line no-unused-vars
+const printSquidVersion = () => {
     // TODO: check that the version is at least 3.3 and throw error otherwise!
-    console.log(`${PROXY_CHAIN.LOG_PREFIX}Checking Squid installation with '${PROXY_CHAIN.SQUID_CMD} ${PROXY_CHAIN.SQUID_CHECK_ARGS.join(' ')}'`); // eslint-disable-line max-len
+    console.log(`${PROXY_CHAIN.LOG_PREFIX}Checking Squid installation with '${PROXY_CHAIN.SQUID_CMD}
+     ${PROXY_CHAIN.SQUID_CHECK_ARGS.join(' ')}'`); // eslint-disable-line max-len
     const options = {
         timeout: PROXY_CHAIN.SQUID_BATCH_TIMEOUT,
     };
@@ -53,7 +53,7 @@ const printSquidVersion = () => { // eslint-disable-line no-unused-vars
             throw err;
         });
 };
-
+*/
 
 /**
  * The class is used to manage a local Squid proxy instance

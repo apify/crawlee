@@ -188,25 +188,35 @@ function. For example:
 const browser = await Apifier.browse('https://www.example.com/');
 ```
 
+or
+
+```javascript
+const browser = await Apifier.browse({
+    url: 'https://www.example.com/',
+    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.24 Safari/537.36',
+});
+```
+
 The `options` parameter controls settings of the web browser and it has the following properties:
 
 ```javascript
 {
     // Initial URL to open. Note that the url argument in Apifier.browse() overrides this value.
-    // By default it is 'about:blank'
+    // The default value is 'about:blank'
     url: String,
 
     // The type of the web browser to use.
     // See https://github.com/SeleniumHQ/selenium/wiki/DesiredCapabilities for possible options.
-    // By default it is 'chrome', which is currently the only fully-supported browser.
+    // The default value is 'chrome', which is currently the only fully-supported browser.
     browserName: String,
 
     // Indicates whether the browser should be opened in headless mode (i.e. without windows).
     // By default, this value is generated based on the APIFY_HEADLESS environment variable.
     headless: Boolean,
 
-    // URL of the proxy server, e.g. 'socks://username:password@1.2.3.4:55555'.
-    // By default it is null.
+    // URL of the proxy server, e.g. 'http://username:password@1.2.3.4:55555'.
+    // Currently only the 'http' proxy type is supported.
+    // By default it is null, which means no proxy server is used.
     proxyUrl: String,
 
     // Overrides the User-Agent HTTP header of the web browser.
