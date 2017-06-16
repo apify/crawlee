@@ -95,9 +95,6 @@ argument called `context` which is an object such as:
 
 ```javascript
 {
-    // Internal port on which the web server is listening
-    internalPort: Number,
-
     // ID of the act
     actId: String,
 
@@ -124,7 +121,11 @@ argument called `context` which is an object such as:
     input: {
         body: Object,
         contentType: String,
-    }
+    },
+
+    // Port on which the act's internal web server is listening.
+    // This is still work in progress, stay tuned.
+    internalPort: Number,
 }
 ```
 
