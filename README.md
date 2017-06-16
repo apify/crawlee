@@ -135,9 +135,8 @@ such as `APIFY_INTERNAL_PORT` or `APIFY_STARTED_AT`, and the input is obtained b
 The `context` object can also be obtained as follows:
 
 ```javascript
-Apifier.getContext().then((context) => {
-    console.dir(context);
-});
+const context = await Apifier.getContext();
+console.dir(context);
 ```
 
 ### Input and output
@@ -152,10 +151,9 @@ environment variable.
 To obtain the input of the act, use the following code:
 
 ```javascript
-Apifier.getInput().then((input) => {
-    console.log(`Input in ${input.contentType}:`);
-    console.dir(input.body);
-});
+const input = await Apifier.getInput();
+console.log(`Input in ${input.contentType}:`);
+console.dir(input.body);
 ```
 
 If the input data has the `application/json' content type, it is automatically parsed into JavaScript object,
@@ -168,9 +166,8 @@ const output = {
     body: 'test output from act',
     contentType: 'application/text'
 };
-Apifier.setOutput(output).then(() => {
-    console.log('Output saved!');
-});
+await Apifier.setOutput(output);
+console.log('Output saved!');
 ```
 
 Note that this is especially useful if output of your act should not be a JSON,
@@ -193,7 +190,7 @@ or
 ```javascript
 const browser = await Apifier.browse({
     url: 'https://www.example.com/',
-    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.24 Safari/537.36',
+    userAgent: 'MyCrawlingBot/1.23',
 });
 ```
 
@@ -211,7 +208,7 @@ The `options` parameter controls settings of the web browser and it has the foll
     browserName: String,
 
     // Indicates whether the browser should be opened in headless mode (i.e. without windows).
-    // By default, this value is generated based on the APIFY_HEADLESS environment variable.
+    // By default, this value is based on the APIFY_HEADLESS environment variable.
     headless: Boolean,
 
     // URL of the proxy server, e.g. 'http://username:password@1.2.3.4:55555'.
@@ -241,8 +238,9 @@ The `Browser` class has the following properties:
     // The method has no arguments and returns a promise that resolves when the browser was closed.
     close: Function,
 }
+```
 
-The `webDriver` property can be used to manipulated the web browser:
+The `webDriver` property can be used to manipulate the web browser:
 
 ```javascript
 const url = await browser.webDriver.getCurrentUrl();
