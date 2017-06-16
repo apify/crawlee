@@ -21,12 +21,12 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/apifier/apifier-sdk-js"
+    "url": "git+https://github.com/apifier/apify-runtime-js"
   },
   "bugs": {
-    "url": "https://github.com/apifier/apifier-sdk-js/issues"
+    "url": "https://github.com/apifier/apify-runtime-js/issues"
   },
-  "homepage": "https://github.com/apifier/apifier-sdk-js",
+  "homepage": "https://github.com/apifier/apify-runtime-js",
   "files": [
     "build"
   ],
