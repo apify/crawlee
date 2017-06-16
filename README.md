@@ -156,7 +156,7 @@ console.log(`Input in ${input.contentType}:`);
 console.dir(input.body);
 ```
 
-If the input data has the `application/json' content type, it is automatically parsed into JavaScript object,
+If the input data has the `application/json` content type, it is automatically parsed into a JavaScript object,
 otherwise it is left as a String or Buffer in the raw form.
 
 Similarly, the output can be stored as follows:
@@ -170,8 +170,9 @@ await Apifier.setOutput(output);
 console.log('Output saved!');
 ```
 
-Note that this is especially useful if output of your act should not be a JSON,
+This is especially useful if the output of the act is not a JSON,
 because return value from `Apifier.main()` is always converted to JSON.
+In such case, make sure the main function returns `undefined` or `null`.
 
 ### Browser
 
