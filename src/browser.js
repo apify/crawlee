@@ -71,6 +71,9 @@ export class Browser {
         if (this.options.userAgent) {
             this.chromeOptions.addArguments(`--user-agent=${this.options.userAgent}`);
         }
+        if (this.options.extraChromeArguments) {
+            this.chromeOptions.addArguments(this.options.extraChromeArguments);
+        }
 
         this.builder = new Builder();
 
