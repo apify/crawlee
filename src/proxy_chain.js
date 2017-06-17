@@ -216,6 +216,7 @@ export class ProxyChain {
 
         // NOTE: need to set pid_filename to isolate our squid instance from others possibly running in the system
         const conf = `
+visible_hostname apify-actor
 # debug_options 44,9 28,9
 http_access allow all
 never_direct allow all
