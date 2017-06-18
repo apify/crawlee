@@ -12,7 +12,7 @@ import { parseUrl } from './utils';
 // Constants, exported to simplify unit-testing.
 export const PROXY_CHAIN = {
     PORT_FROM: 55000,
-    PORT_TO: 60000,
+    PORT_TO: 65000,
     HOST: '127.0.0.1',
     PROTOCOL: 'http:',
     SQUID_CMD: 'squid',
@@ -53,11 +53,6 @@ const fsWriteFilePromised = Promise.promisify(fs.writeFile);
  };
 */
 
-/**
- * Counter of ProxyChain instances, used to generate a unique service name.
- */
-let proxyIndex = 0;
-
 
 /**
  * The class is used to manage a local Squid proxy instance
@@ -82,8 +77,6 @@ export class ProxyChain {
 
         // TCP port where Squid is listening
         this.squidPort = null;
-
-        this.squidServiceName = `ProxyChain${proxyIndex++}`;
 
         // Path to temporary directory with config files
         this.tmpDir = null;
@@ -120,7 +113,7 @@ export class ProxyChain {
             .then((squidConfPath) => {
                 // Start Squid process
                 const cmd = PROXY_CHAIN.SQUID_CMD;
-                const args = ['-f', squidConfPath, '-N', '-n', this.squidServiceName];
+                const args = ['-f', squidConfPath, '-N'];
                 const options = { cwd: this.tmpDir };
                 console.log(`Starting proxy chain: ${cmd} ${args.join(' ')}`);
                 const proc = childProcess.spawn(cmd, args, options);
@@ -184,16 +177,21 @@ export class ProxyChain {
     }
 
     static _findFreePort() {
-        // TODO: pick random port to minimize collision chance
-        return portastic.find({
-            min: PROXY_CHAIN.PORT_FROM,
+        // Let 'min' be a random value in the first half of the PORT_FROM-PORT_TO range,
+        // to reduce a chance of collision if other ProxyChain is started at the same time.
+        const half = Math.floor((PROXY_CHAIN.PORT_TO - PROXY_CHAIN.PORT_FROM) / 2);
+
+        const opts = {
+            min: PROXY_CHAIN.PORT_FROM + Math.floor(Math.random() * half),
             max: PROXY_CHAIN.PORT_TO,
             retrieve: 1,
-        })
-        .then((ports) => {
-            if (ports.length < 1) throw new Error(`There are no more free ports in range from ${PROXY_CHAIN.PORT_FROM} to ${PROXY_CHAIN.PORT_TO}`); // eslint-disable-line max-len
-            return ports[0];
-        });
+        };
+
+        return portastic.find(opts)
+            .then((ports) => {
+                if (ports.length < 1) throw new Error(`There are no more free ports in range from ${PROXY_CHAIN.PORT_FROM} to ${PROXY_CHAIN.PORT_TO}`); // eslint-disable-line max-len
+                return ports[0];
+            });
     }
 
     /**
