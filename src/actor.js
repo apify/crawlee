@@ -1,6 +1,6 @@
 import fs from 'fs';
 import _ from 'underscore';
-import { APIFY_ENV_VARS, EXIT_CODES, KV_STORE_KEYS } from './constants';
+import { APIFY_ENV_VARS, EXIT_CODES, KEY_VALUE_STORE_KEYS } from './constants';
 import { getPromisePrototype, newPromise, nodeifyPromise, newClient } from './utils';
 
 /* global process, Buffer */
@@ -46,12 +46,13 @@ const getDefaultStoreIdOrThrow = () => {
  * @return Returns a promise if no callback was provided, otherwise the return value is not defined.
  */
 export const getInput = (callback = null) => {
+    // TODO: get rid of this
     const promise = newPromise()
         .then(() => {
             return apifyClient.keyValueStores.getRecord({
                 storeId: getDefaultStoreIdOrThrow(),
                 promise: getPromisePrototype(),
-                key: KV_STORE_KEYS.INPUT,
+                key: KEY_VALUE_STORE_KEYS.INPUT,
             });
         })
         .then((input) => {
@@ -103,7 +104,7 @@ export const setOutput = (output, callback = null) => {
             return apifyClient.keyValueStores.putRecord({
                 storeId: getDefaultStoreIdOrThrow(),
                 promise: getPromisePrototype(),
-                key: KV_STORE_KEYS.OUTPUT,
+                key: KEY_VALUE_STORE_KEYS.OUTPUT,
                 body: output.body,
                 contentType: output.contentType,
             });
@@ -111,6 +112,126 @@ export const setOutput = (output, callback = null) => {
 
     return nodeifyPromise(promise, callback);
 };
+
+
+/**
+ * Gets a value from the default key-value store for the current act run.
+ * This data is stored in the key-value store created specifically for this run,
+ * whose ID is defined in the `APIFY_DEFAULT_KEY_VALUE_STORE_ID` environment variable.
+ * The result of the function is the body of the record. For records with 'application/json'
+ * content type, the body is the already parsed object. For other content types,
+ * the body is raw String or Buffer. If the record cannot be found, the result is null.
+ * or `null` if record was not found.
+ * @param callback Optional callback.
+ * @return Returns a promise if no callback was provided, otherwise the return value is not defined.
+ */
+export const getValue = (key, callback = null) => {
+    if (!key || !_.isString(key)) throw new Error('The "key" parameter must be a non-empty string');
+
+    const promise = newPromise()
+    .then(() => {
+        return apifyClient.keyValueStores.getRecord({
+            storeId: getDefaultStoreIdOrThrow(),
+            promise: getPromisePrototype(),
+            key,
+        });
+    })
+    .then((record) => {
+        // Check that the record is always either:
+        // * null
+        // * or { body: String|Buffer, contentType: String|null }
+        // * or { body: Any, contentType: 'application/json' }
+        const baseMsg = 'ApifyClient returned an unexpected value from keyValueStores.getRecord()';
+        if (!record) {
+            return null;
+        }
+
+        if (typeof (record) !== 'object') {
+            throw new Error(`${baseMsg}: expected an object.`);
+        } else if ((typeof (record.contentType) !== 'string' && record.contentType !== null)) {
+            throw new Error(`${baseMsg}: contentType is not valid.`);
+        } else if (!_.contains(JSON_CONTENT_TYPES, record.contentType)
+            && typeof (record.body) !== 'string'
+            && !Buffer.isBuffer(record.body)) {
+            throw new Error(`${baseMsg}: body must be String or Buffer.`);
+        }
+        return record.body;
+    });
+
+    return nodeifyPromise(promise, callback);
+};
+
+/**
+ * Stores a value in the default key-value store for the current act run.
+ * This data is stored in the key-value store created specifically for this run,
+ * whose ID is defined in the `APIFY_DEFAULT_KEY_VALUE_STORE_ID` environment variable.
+ * The function has no result, but throws on invalid args or other errors.
+ * @param value
+ * If null, the record in the key-value store is deleted.
+ * If no contentType, the value can be any object and it will be stringified to JSON.
+ * If contentType is specified, value is considered raw data it must be a String or Buffer.
+ * For any other value an error will be thrown.
+ * @param contentType Optional MIME content type of the value.
+ * @param callback Optional callback.
+ * @return Returns a promise if no callback was provided, otherwise the return value is not defined.
+ */
+export const setValue = (key, value, contentType, callback = null) => {
+    if (!key || !_.isString(key)) throw new Error('The "key" parameter must be a non-empty string');
+
+    // contentType is optional
+    if (_.isFunction(contentType)) {
+        callback = contentType;
+        contentType = null;
+    }
+
+    let innerPromise;
+    if (value !== null) {
+        // Normal case: put record to store
+        // If contentType is missing, value will be stringified to JSON
+        if (contentType === null || contentType === undefined) {
+            contentType = 'application/json';
+            try {
+                value = JSON.stringify(value);
+            } catch (e) {
+                throw new Error(`The "value" parameter cannot be stringified to JSON: ${e.message}`);
+            }
+            if (value === undefined) {
+                throw new Error('The "value" parameter cannot be stringified to JSON.');
+            }
+        }
+
+        if (!contentType || !_.isString(contentType)) {
+            throw new Error('The "contentType" parameter must be a non-empty string, null or undefined.');
+        }
+        if (!_.isString(value) && !Buffer.isBuffer(value)) {
+            throw new Error('The "value" parameter must be a String or Buffer when "contentType" is specified.');
+        }
+
+        // Keep this code in main scope so that simple errors are thrown rather than rejected promise.
+        innerPromise = apifyClient.keyValueStores.putRecord({
+            storeId: getDefaultStoreIdOrThrow(),
+            promise: getPromisePrototype(),
+            key,
+            body: value,
+            contentType,
+            useRawBody: true,
+        });
+    } else {
+        // Special case: remove the record from the store
+        if (contentType !== null && contentType !== undefined) {
+            throw new Error('The "contentType" parameter must not be used when removing the record.');
+        }
+        innerPromise = apifyClient.keyValueStores.deleteRecord({
+            storeId: getDefaultStoreIdOrThrow(),
+            promise: getPromisePrototype(),
+            key,
+        });
+    }
+
+    const promise = newPromise().then(() => innerPromise);
+    return nodeifyPromise(promise, callback);
+};
+
 
 /**
  * Generates a context object which contains meta-data about this act run such as:

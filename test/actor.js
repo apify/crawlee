@@ -635,8 +635,7 @@ describe('Apifier.main()', () => {
     });
 });
 
-
-describe('Apifier.setOuput()', () => {
+describe('Apifier.setOutput()', () => {
     it('throws on invalid args', () => {
         expect(() => {
             Apifier.setOutput();
@@ -668,6 +667,247 @@ describe('Apifier.setOuput()', () => {
     });
 });
 
+describe('Apifier.getValue()', () => {
+    it('throws on invalid args', () => {
+        const keyErrMsg = 'The "key" parameter must be a non-empty string';
+        expect(() => { Apifier.getValue(); }).to.throw(Error, keyErrMsg);
+        expect(() => { Apifier.getValue({}); }).to.throw(Error, keyErrMsg);
+        expect(() => { Apifier.getValue(''); }).to.throw(Error, keyErrMsg);
+        expect(() => { Apifier.getValue(null); }).to.throw(Error, keyErrMsg);
+    });
+
+    it('supports both promises and callbacks (on success)', () => {
+        const mock = sinon.mock(Apifier.client.keyValueStores);
+        mock.expects('getRecord')
+        .twice()
+        .returns(Promise.resolve(null));
+
+        return Promise.resolve()
+        .then(() => {
+            // test promise
+            return Apifier.getValue('INPUT');
+        })
+        .then((input) => {
+            expect(input).to.be.eql(null);
+        })
+        .then(() => {
+            // test callback
+            return new Promise((resolve, reject) => {
+                return Apifier.getValue('INPUT', (err, input) => {
+                    if (err) return reject(err);
+                    resolve(input);
+                });
+            });
+        })
+        .then((input) => {
+            expect(input).to.be.eql(null);
+
+            mock.verify();
+        })
+        .finally(() => {
+            mock.restore();
+        });
+    });
+
+    it('supports both promises and callbacks (on error)', () => {
+        const mock = sinon.mock(Apifier.client.keyValueStores);
+        mock.expects('getRecord')
+        .twice()
+        .throws(new Error('Test error'));
+
+        return Promise.resolve()
+        .then(() => {
+            // test promise
+            return Apifier.getValue('INPUT');
+        })
+        .catch((err) => {
+            expect(err.message).to.be.eql('Test error');
+        })
+        .then(() => {
+            // test callback
+            return new Promise((resolve, reject) => {
+                return Apifier.getValue('INPUT', (err, input) => {
+                    if (err) return reject(err);
+                    resolve(input);
+                });
+            });
+        })
+        .catch((err) => {
+            expect(err.message).to.be.eql('Test error');
+        })
+        .then(() => {
+            mock.verify();
+        })
+        .finally(() => {
+            mock.restore();
+        });
+    });
+
+    it('returns null on undefined keyValueStores.getRecord() result', () => {
+        const mock = sinon.mock(Apifier.client.keyValueStores);
+        mock.expects('getRecord')
+        .once()
+        .returns(Promise.resolve(undefined));
+
+        return Promise.resolve()
+        .then(() => {
+            return Apifier.getValue('BLA BLA');
+        })
+        .then((input) => {
+            expect(input).to.be.eql(null);
+            mock.verify();
+        })
+        .finally(() => {
+            mock.restore();
+        });
+    });
+
+    it('fails on invalid keyValueStores.getRecord() result', () => {
+        const mock = sinon.mock(Apifier.client.keyValueStores);
+        mock.expects('getRecord')
+        .once()
+        .returns(Promise.resolve({ invalid: 'bla bla' }));
+
+        return Promise.resolve()
+        .then(() => {
+            return Apifier.getValue('ANYTHING REALLY');
+        })
+        .then(() => {
+            expect.fail();
+        })
+        .catch((err) => {
+            expect(err.message).to.contain('ApifyClient returned an unexpected value');
+        })
+        .then(() => {
+            mock.verify();
+        })
+        .finally(() => {
+            mock.restore();
+        });
+    });
+});
+
+describe('Apifier.setValue()', () => {
+    it('throws on invalid args', () => {
+        const keyErrMsg = 'The "key" parameter must be a non-empty string';
+        expect(() => { Apifier.setValue(); }).to.throw(Error, keyErrMsg);
+        expect(() => { Apifier.setValue('', null); }).to.throw(Error, keyErrMsg);
+        expect(() => { Apifier.setValue('', 'some value'); }).to.throw(Error, keyErrMsg);
+        expect(() => { Apifier.setValue({}, 'some value'); }).to.throw(Error, keyErrMsg);
+        expect(() => { Apifier.setValue(123, 'some value'); }).to.throw(Error, keyErrMsg);
+
+        const valueErrMsg = 'The "value" parameter must be a String or Buffer when "contentType" is specified';
+        expect(() => { Apifier.setValue('key', {}, 'image/png'); }).to.throw(Error, valueErrMsg);
+        expect(() => { Apifier.setValue('key', 12345, 'image/png'); }).to.throw(Error, valueErrMsg);
+        expect(() => { Apifier.setValue('key', () => {}, 'image/png'); }).to.throw(Error, valueErrMsg);
+
+        const circularObj = {};
+        circularObj.xxx = circularObj;
+        const jsonErrMsg = 'The "value" parameter cannot be stringified to JSON';
+        expect(() => { Apifier.setValue('key', circularObj, null); }).to.throw(Error, jsonErrMsg);
+        expect(() => { Apifier.setValue('key', undefined); }).to.throw(Error, jsonErrMsg);
+        expect(() => { Apifier.setValue('key', () => {}); }).to.throw(Error, jsonErrMsg);
+        expect(() => { Apifier.setValue('key'); }).to.throw(Error, jsonErrMsg);
+
+        const contTypeRedundantErrMsg = 'The "contentType" parameter must not be used when removing the record';
+        expect(() => { Apifier.setValue('key', null, 'image/png'); }).to.throw(Error, contTypeRedundantErrMsg);
+        expect(() => { Apifier.setValue('key', null, ''); }).to.throw(Error, contTypeRedundantErrMsg);
+        expect(() => { Apifier.setValue('key', null, {}); }).to.throw(Error, contTypeRedundantErrMsg);
+
+        const contTypeStringErrMsg = 'The "contentType" parameter must be a non-empty string, null or undefined';
+        expect(() => { Apifier.setValue('key', 'value', 123); }).to.throw(Error, contTypeStringErrMsg);
+        expect(() => { Apifier.setValue('key', 'value', {}); }).to.throw(Error, contTypeStringErrMsg);
+        expect(() => { Apifier.setValue('key', 'value', new Date()); }).to.throw(Error, contTypeStringErrMsg);
+        expect(() => { Apifier.setValue('key', 'value', ''); }).to.throw(Error, contTypeStringErrMsg);
+    });
+
+    it('supports both promises and callbacks (on success)', () => {
+        const mock = sinon.mock(Apifier.client.keyValueStores);
+        mock.expects('putRecord')
+        .exactly(4)
+        .returns(Promise.resolve(null));
+
+        return Promise.resolve()
+        .then(() => {
+            // test promise (no content type)
+            return Apifier.setValue('mykey', { someValue: 123 });
+        })
+        .then((input) => {
+            expect(input).to.be.eql(null);
+        })
+        .then(() => {
+            // test promise (with content type)
+            return Apifier.setValue('mykey', 'value', 'text/plain');
+        })
+        .then((input) => {
+            expect(input).to.be.eql(null);
+        })
+        .then(() => {
+            // test callback (no content type)
+            return new Promise((resolve, reject) => {
+                return Apifier.setValue('mykey', { someValue: 123 }, (err, input) => {
+                    if (err) return reject(err);
+                    resolve(input);
+                });
+            });
+        })
+        .then((input) => {
+            expect(input).to.be.eql(null);
+        })
+        .then(() => {
+            // test callback (with content type)
+            return new Promise((resolve, reject) => {
+                return Apifier.setValue('mykey', 'myvalue', 'text/plain', (err, input) => {
+                    if (err) return reject(err);
+                    resolve(input);
+                });
+            });
+        })
+        .then((input) => {
+            expect(input).to.be.eql(null);
+        })
+        .then(() => {
+            mock.verify();
+        })
+        .finally(() => {
+            mock.restore();
+        });
+    });
+
+    it('supports both promises and callbacks (on error)', () => {
+        const mock = sinon.mock(Apifier.client.keyValueStores);
+        mock.expects('getRecord')
+        .twice()
+        .throws(new Error('Test error'));
+
+        return Promise.resolve()
+        .then(() => {
+            // test promise
+            return Apifier.getValue('INPUT');
+        })
+        .catch((err) => {
+            expect(err.message).to.be.eql('Test error');
+        })
+        .then(() => {
+            // test callback
+            return new Promise((resolve, reject) => {
+                return Apifier.getValue('INPUT', (err, input) => {
+                    if (err) return reject(err);
+                    resolve(input);
+                });
+            });
+        })
+        .catch((err) => {
+            expect(err.message).to.be.eql('Test error');
+        })
+        .then(() => {
+            mock.verify();
+        })
+        .finally(() => {
+            mock.restore();
+        });
+    });
+});
 
 describe('Apifier.events', () => {
     it('is there and works as EventEmitter', () => {

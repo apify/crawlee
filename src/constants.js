@@ -30,7 +30,7 @@ export const APIFY_ENV_VARS = {
 };
 
 
-export const KV_STORE_KEYS = {
+export const KEY_VALUE_STORE_KEYS = {
     INPUT: 'INPUT',
     OUTPUT: 'OUTPUT',
 };

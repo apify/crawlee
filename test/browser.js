@@ -5,6 +5,7 @@ import http from 'http';
 import portastic from 'portastic';
 import basicAuthParser from 'basic-auth-parser';
 import Promise from 'bluebird';
+// import fs from 'fs';
 
 import { processBrowseArgs, getDefaultBrowseOptions } from '../build/browser';
 import Apifier from '../build/index';
@@ -292,6 +293,72 @@ describe('Apifier.browse()', function () {
                 return browser.close();
             });
     });
+
+    /*
+    it('test xxx', () => {
+        // const _ = require('underscore');
+        // const Apifier = require('apifier');
+        // const request = require('request-promise');
+
+
+        console.log('Starting');
+
+        let browser;
+
+        return Apifier.browse({
+            url: 'https://www.momondo.co.uk/flightsearch/?Search=true&TripType=2&SegNo=2&SO0=LHR&SD0=SGN&SDP0=
+            11-10-2017&SO1=SGN&SD1=LHR&SDP1=18-10-2017&AD=1&TK=ECO&DO=false&NA=false',
+            //url: 'http://www.example.com',
+            userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_5) AppleWebKit/537.36 (KHTML, like Gecko)
+            Chrome/60.0.3112.32 Safari/537.36',
+            proxyUrl: 'http://apifier:yFL4g3558j@104.222.170.6:60000',
+            headless: true,
+            //extraChromeArguments: ['--reduce-security-for-testing', '--disable-web-security'],
+        })
+        .then((result) => {
+            browser = result;
+            return browser.webDriver.sleep(10000);
+        })
+        .then(() => {
+            return browser.webDriver.takeScreenshot();
+        })
+        .then((screenshotBase64) => {
+            const buffer = Buffer.from(screenshotBase64, 'base64');
+            fs.writeFileSync('/Users/jan/Projects/apify-runtime-js/xxxx.png', buffer);
+
+            return new Promise(() => {});
+        });
+
+        /*
+        browser.webDriver.sleep(5000);
+
+        const url = await
+        browser.webDriver.getCurrentUrl();
+        console.log(`Browser opened (URL: ${url})`);
+
+        // Inject Weinre
+        const injectJs = '(function(e){e.setAttribute("src","http://139.162.172.178:8080/target/target
+        -script-min.js#anonymous");document.getElementsByTagName("body")[0].appendChild(e);})(document
+        .createElement("script"));void(0);';
+        await
+        browser.webDriver.executeScript(injectJs);
+
+        const condition = async () => {
+            const text = await browser.webDriver.executeScript(
+                'return (document.getElementById("searchProgressText") || {}).innerText');
+            const html = await browser.webDriver.executeScript('return document.documentElement.innerHTML');
+            console.log(`Search text: ${text} (HTML size: ${html.length})`);
+            return text === 'Search complete';
+        };
+        const found = await
+        browser.webDriver.wait(condition, 60 * 1000);
+
+        if (found) {
+            console.log('Wohooo, search complete!');
+        } else {
+            console.log('Timed out!');
+        }
+    }); */
 });
 
 

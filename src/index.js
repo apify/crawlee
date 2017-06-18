@@ -1,7 +1,7 @@
 import EventEmitter from 'events';
 
 import { setPromisesDependency, getPromisesDependency } from './utils';
-import { main, readyFreddy, getContext, getInput, setOutput, apifyClient } from './actor';
+import { main, readyFreddy, getContext, getInput, setOutput, getValue, setValue, apifyClient } from './actor';
 import { browse } from './browser';
 
 /* globals module */
@@ -12,6 +12,8 @@ const Apifier = {
     getContext,
     getInput,
     setOutput,
+    getValue,
+    setValue,
     readyFreddy,
     setPromisesDependency,
     getPromisesDependency,
