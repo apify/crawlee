@@ -679,111 +679,111 @@ describe('Apifier.getValue()', () => {
     it('supports both promises and callbacks (on success)', () => {
         const mock = sinon.mock(Apifier.client.keyValueStores);
         mock.expects('getRecord')
-        .twice()
-        .returns(Promise.resolve(null));
+            .twice()
+            .returns(Promise.resolve(null));
 
         return Promise.resolve()
-        .then(() => {
-            // test promise
-            return Apifier.getValue('INPUT');
-        })
-        .then((input) => {
-            expect(input).to.be.eql(null);
-        })
-        .then(() => {
-            // test callback
-            return new Promise((resolve, reject) => {
-                return Apifier.getValue('INPUT', (err, input) => {
-                    if (err) return reject(err);
-                    resolve(input);
+            .then(() => {
+                // test promise
+                return Apifier.getValue('INPUT');
+            })
+            .then((input) => {
+                expect(input).to.be.eql(null);
+            })
+            .then(() => {
+                // test callback
+                return new Promise((resolve, reject) => {
+                    return Apifier.getValue('INPUT', (err, input) => {
+                        if (err) return reject(err);
+                        resolve(input);
+                    });
                 });
-            });
-        })
-        .then((input) => {
-            expect(input).to.be.eql(null);
+            })
+            .then((input) => {
+                expect(input).to.be.eql(null);
 
-            mock.verify();
-        })
-        .finally(() => {
-            mock.restore();
-        });
+                mock.verify();
+            })
+            .finally(() => {
+                mock.restore();
+            });
     });
 
     it('supports both promises and callbacks (on error)', () => {
         const mock = sinon.mock(Apifier.client.keyValueStores);
         mock.expects('getRecord')
-        .twice()
-        .throws(new Error('Test error'));
+            .twice()
+            .throws(new Error('Test error'));
 
         return Promise.resolve()
-        .then(() => {
-            // test promise
-            return Apifier.getValue('INPUT');
-        })
-        .catch((err) => {
-            expect(err.message).to.be.eql('Test error');
-        })
-        .then(() => {
-            // test callback
-            return new Promise((resolve, reject) => {
-                return Apifier.getValue('INPUT', (err, input) => {
-                    if (err) return reject(err);
-                    resolve(input);
+            .then(() => {
+                // test promise
+                return Apifier.getValue('INPUT');
+            })
+            .catch((err) => {
+                expect(err.message).to.be.eql('Test error');
+            })
+            .then(() => {
+                // test callback
+                return new Promise((resolve, reject) => {
+                    return Apifier.getValue('INPUT', (err, input) => {
+                        if (err) return reject(err);
+                        resolve(input);
+                    });
                 });
+            })
+            .catch((err) => {
+                expect(err.message).to.be.eql('Test error');
+            })
+            .then(() => {
+                mock.verify();
+            })
+            .finally(() => {
+                mock.restore();
             });
-        })
-        .catch((err) => {
-            expect(err.message).to.be.eql('Test error');
-        })
-        .then(() => {
-            mock.verify();
-        })
-        .finally(() => {
-            mock.restore();
-        });
     });
 
     it('returns null on undefined keyValueStores.getRecord() result', () => {
         const mock = sinon.mock(Apifier.client.keyValueStores);
         mock.expects('getRecord')
-        .once()
-        .returns(Promise.resolve(undefined));
+            .once()
+            .returns(Promise.resolve(undefined));
 
         return Promise.resolve()
-        .then(() => {
-            return Apifier.getValue('BLA BLA');
-        })
-        .then((input) => {
-            expect(input).to.be.eql(null);
-            mock.verify();
-        })
-        .finally(() => {
-            mock.restore();
-        });
+            .then(() => {
+                return Apifier.getValue('BLA BLA');
+            })
+            .then((input) => {
+                expect(input).to.be.eql(null);
+                mock.verify();
+            })
+            .finally(() => {
+                mock.restore();
+            });
     });
 
     it('fails on invalid keyValueStores.getRecord() result', () => {
         const mock = sinon.mock(Apifier.client.keyValueStores);
         mock.expects('getRecord')
-        .once()
-        .returns(Promise.resolve({ invalid: 'bla bla' }));
+            .once()
+            .returns(Promise.resolve({ invalid: 'bla bla' }));
 
         return Promise.resolve()
-        .then(() => {
-            return Apifier.getValue('ANYTHING REALLY');
-        })
-        .then(() => {
-            expect.fail();
-        })
-        .catch((err) => {
-            expect(err.message).to.contain('ApifyClient returned an unexpected value');
-        })
-        .then(() => {
-            mock.verify();
-        })
-        .finally(() => {
-            mock.restore();
-        });
+            .then(() => {
+                return Apifier.getValue('ANYTHING REALLY');
+            })
+            .then(() => {
+                expect.fail();
+            })
+            .catch((err) => {
+                expect(err.message).to.contain('ApifyClient returned an unexpected value');
+            })
+            .then(() => {
+                mock.verify();
+            })
+            .finally(() => {
+                mock.restore();
+            });
     });
 });
 
@@ -832,39 +832,27 @@ describe('Apifier.setValue()', () => {
             // test promise (no content type)
             return Apifier.setValue('mykey', { someValue: 123 });
         })
-        .then((input) => {
-            expect(input).to.be.eql(null);
-        })
         .then(() => {
             // test promise (with content type)
             return Apifier.setValue('mykey', 'value', 'text/plain');
         })
-        .then((input) => {
-            expect(input).to.be.eql(null);
-        })
         .then(() => {
             // test callback (no content type)
             return new Promise((resolve, reject) => {
-                return Apifier.setValue('mykey', { someValue: 123 }, (err, input) => {
+                return Apifier.setValue('mykey', { someValue: 123 }, (err) => {
                     if (err) return reject(err);
-                    resolve(input);
+                    resolve();
                 });
             });
-        })
-        .then((input) => {
-            expect(input).to.be.eql(null);
         })
         .then(() => {
             // test callback (with content type)
             return new Promise((resolve, reject) => {
-                return Apifier.setValue('mykey', 'myvalue', 'text/plain', (err, input) => {
+                return Apifier.setValue('mykey', 'myvalue', 'text/plain', (err) => {
                     if (err) return reject(err);
-                    resolve(input);
+                    resolve();
                 });
             });
-        })
-        .then((input) => {
-            expect(input).to.be.eql(null);
         })
         .then(() => {
             mock.verify();
@@ -876,14 +864,14 @@ describe('Apifier.setValue()', () => {
 
     it('supports both promises and callbacks (on error)', () => {
         const mock = sinon.mock(Apifier.client.keyValueStores);
-        mock.expects('getRecord')
-        .twice()
-        .throws(new Error('Test error'));
+        mock.expects('putRecord')
+            .twice()
+            .throws(new Error('Test error'));
 
         return Promise.resolve()
         .then(() => {
             // test promise
-            return Apifier.getValue('INPUT');
+            return Apifier.setValue('mykey', { someValue: 1 });
         })
         .catch((err) => {
             expect(err.message).to.be.eql('Test error');
@@ -891,9 +879,9 @@ describe('Apifier.setValue()', () => {
         .then(() => {
             // test callback
             return new Promise((resolve, reject) => {
-                return Apifier.getValue('INPUT', (err, input) => {
+                return Apifier.setValue('mykey', { someValue: 1 }, (err) => {
                     if (err) return reject(err);
-                    resolve(input);
+                    resolve();
                 });
             });
         })
@@ -906,6 +894,110 @@ describe('Apifier.setValue()', () => {
         .finally(() => {
             mock.restore();
         });
+    });
+
+    it('correctly stores object values as JSON', () => {
+        const storeId = 'mystore';
+        const key = 'mykey';
+        const value = { someValue: 123 };
+
+        process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = storeId;
+
+        Apifier.setPromisesDependency(Promise);
+
+        const mock = sinon.mock(Apifier.client.keyValueStores);
+        mock.expects('putRecord')
+            .once()
+            .withArgs({
+                storeId,
+                promise: Promise,
+                key,
+                body: JSON.stringify(value),
+                contentType: 'application/json',
+                useRawBody: true,
+            })
+            .returns(Promise.resolve(null));
+
+        return Promise.resolve()
+            .then(() => {
+                return Apifier.setValue(key, value);
+            })
+            .then(() => {
+                mock.verify();
+            })
+            .finally(() => {
+                mock.restore();
+            });
+    });
+
+    it('correctly stores raw string values', () => {
+        const storeId = 'mystore3';
+        const key = 'mykey2';
+        const value = 'some string value';
+        const contentType = 'text/plain';
+
+        process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = storeId;
+
+        Apifier.setPromisesDependency(Promise);
+
+        const mock = sinon.mock(Apifier.client.keyValueStores);
+        mock.expects('putRecord')
+            .once()
+            .withArgs({
+                storeId,
+                promise: Promise,
+                key,
+                body: value,
+                contentType,
+                useRawBody: true,
+            })
+            .returns(Promise.resolve(null));
+
+        return Promise.resolve()
+            .then(() => {
+                return Apifier.setValue(key, value, contentType);
+            })
+            .then(() => {
+                mock.verify();
+            })
+            .finally(() => {
+                mock.restore();
+            });
+    });
+
+    it('correctly stores raw Buffer values', () => {
+        const storeId = 'mystore3';
+        const key = 'mykey2';
+        const value = Buffer.from('some text value');
+        const contentType = 'text/plain';
+
+        process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = storeId;
+
+        Apifier.setPromisesDependency(Promise);
+
+        const mock = sinon.mock(Apifier.client.keyValueStores);
+        mock.expects('putRecord')
+            .once()
+            .withArgs({
+                storeId,
+                promise: Promise,
+                key,
+                body: value,
+                contentType,
+                useRawBody: true,
+            })
+            .returns(Promise.resolve(null));
+
+        return Promise.resolve()
+            .then(() => {
+                return Apifier.setValue(key, value, contentType);
+            })
+            .then(() => {
+                mock.verify();
+            })
+            .finally(() => {
+                mock.restore();
+            });
     });
 });
 
