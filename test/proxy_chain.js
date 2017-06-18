@@ -150,6 +150,7 @@ describe('ProxyChain', function () {
     });
 
     it('works well', () => {
+        // TODO: test maybe 5 proxies at the same time
         const proxyChain1 = new ProxyChain(parseUrl(`http://${proxyAuth.username}:${proxyAuth.password}@127.0.0.1:${proxyPort}`));
         const proxyChain2 = new ProxyChain(parseUrl(`http://${proxyAuth.username}:${proxyAuth.password}@127.0.0.1:${proxyPort}`));
         let parsedChildProxyUrl1;

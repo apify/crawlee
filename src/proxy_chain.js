@@ -27,32 +27,37 @@ const tmpDirPromised = Promise.promisify(tmp.dir);
 const fsWriteFilePromised = Promise.promisify(fs.writeFile);
 // const execFilePromised = Promise.promisify(childProcess.execFile, { multiArgs: true });
 
-
 /*
  * Run Squid process to get its version and wait for the finish
  * @return Promise
-const printSquidVersion = () => {
-    // TODO: check that the version is at least 3.3 and throw error otherwise!
-    console.log(`${PROXY_CHAIN.LOG_PREFIX}Checking Squid installation with '${PROXY_CHAIN.SQUID_CMD}
-     ${PROXY_CHAIN.SQUID_CHECK_ARGS.join(' ')}'`); // eslint-disable-line max-len
-    const options = {
-        timeout: PROXY_CHAIN.SQUID_BATCH_TIMEOUT,
-    };
-    return execFilePromised(PROXY_CHAIN.SQUID_CMD, PROXY_CHAIN.SQUID_CHECK_ARGS, options)
-        .then((array) => {
-            const stdout = array[0];
-            console.log(`${PROXY_CHAIN.LOG_PREFIX}${(stdout || '').split('\n')[0]}`);
-            this.isInitialized = true;
-        })
-        .catch((err) => {
-            // Give a user-friendly message for this common error
-            if (err.code === 'ENOENT') {
-                err = new Error(`'${PROXY_CHAIN.SQUID_CMD}' command not found in the PATH`);
-            }
-            throw err;
-        });
-};
+ const printSquidVersion = () => {
+ // TODO: check that the version is at least 3.3 and throw error otherwise!
+ console.log(`${PROXY_CHAIN.LOG_PREFIX}Checking Squid installation with '${PROXY_CHAIN.SQUID_CMD}
+ ${PROXY_CHAIN.SQUID_CHECK_ARGS.join(' ')}'`); // eslint-disable-line max-len
+ const options = {
+ timeout: PROXY_CHAIN.SQUID_BATCH_TIMEOUT,
+ };
+ return execFilePromised(PROXY_CHAIN.SQUID_CMD, PROXY_CHAIN.SQUID_CHECK_ARGS, options)
+ .then((array) => {
+ const stdout = array[0];
+ console.log(`${PROXY_CHAIN.LOG_PREFIX}${(stdout || '').split('\n')[0]}`);
+ this.isInitialized = true;
+ })
+ .catch((err) => {
+ // Give a user-friendly message for this common error
+ if (err.code === 'ENOENT') {
+ err = new Error(`'${PROXY_CHAIN.SQUID_CMD}' command not found in the PATH`);
+ }
+ throw err;
+ });
+ };
 */
+
+/**
+ * Counter of ProxyChain instances, used to generate a unique service name.
+ */
+let proxyIndex = 0;
+
 
 /**
  * The class is used to manage a local Squid proxy instance
@@ -77,6 +82,8 @@ export class ProxyChain {
 
         // TCP port where Squid is listening
         this.squidPort = null;
+
+        this.squidServiceName = `ProxyChain${proxyIndex++}`;
 
         // Path to temporary directory with config files
         this.tmpDir = null;
@@ -113,7 +120,7 @@ export class ProxyChain {
             .then((squidConfPath) => {
                 // Start Squid process
                 const cmd = PROXY_CHAIN.SQUID_CMD;
-                const args = ['-f', squidConfPath, '-N'];
+                const args = ['-f', squidConfPath, '-N', '-n', this.squidServiceName];
                 const options = { cwd: this.tmpDir };
                 console.log(`Starting proxy chain: ${cmd} ${args.join(' ')}`);
                 const proc = childProcess.spawn(cmd, args, options);
@@ -134,13 +141,13 @@ export class ProxyChain {
 
                     proc.on('exit', (code, signal) => {
                         if (isFinished) {
-                            console.log(`Squid process ${this.squidPid} exited (code: ${code}, signal: ${signal})`);
+                            console.log(`Squid process ${this.squidPid} exited (code: ${code}, signal: ${signal}, temp dir: ${this.tmpDir})`);
                             return;
                         }
 
                         clearInterval(intervalId);
                         isFinished = true;
-                        const msg = `Squid process ${this.squidPid} exited unexpectedly (code: ${code}, signal: ${signal})`;
+                        const msg = `Squid process ${this.squidPid} exited unexpectedly (code: ${code}, signal: ${signal}, temp dir: ${this.tmpDir})`;
                         reject(new Error(msg));
                     });
 
