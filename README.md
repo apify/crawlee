@@ -27,9 +27,11 @@ const Apifier = require('apifier');
 
 To simplify development of acts, the Actor runtime provides the `Apifier.main()` function which does the following:
 
+*TODO: this needs to be changed, call getValue() / setValue() explicitely*
+
 1) Prepares the execution context object by calling `Apifier.getContext()`
 
-2) Fetches act run input by calling `Apifier.getInput()`
+2) Fetches act run input by calling `Apifier.getValue('INPUT')`
 
 3) Waits for the user function to finish
 
@@ -142,7 +144,7 @@ console.dir(context);
 
 ### Input and output
 
-Each act can have an input and output data record, which is a raw data
+Each act can have an input and output data record, which is raw data
 with a specific MIME content type.
 Both input and output is stored in the Apifier key-value store created specifically for the act run,
 under keys named `INPUT` and `OUTPUT`, respectively.
@@ -152,9 +154,8 @@ environment variable.
 To obtain the input of the act, use the following code:
 
 ```javascript
-const input = await Apifier.getInput();
-console.log(`Input in ${input.contentType}:`);
-console.dir(input.body);
+const input = await Apifier.getValue('INPUT');
+console.dir(`My input is: ${input}``);
 ```
 
 If the input data has the `application/json` content type, it is automatically parsed into a JavaScript object,
@@ -164,11 +165,9 @@ Similarly, the output can be stored as follows:
 
 ```javascript
 const output = {
-    body: 'test output from act',
-    contentType: 'application/text'
+    someValue: 123
 };
-await Apifier.setOutput(output);
-console.log('Output saved!');
+await Apifier.setValue('OUTPUT', output);
 ```
 
 This is especially useful if the output of the act is not a JSON,
@@ -259,7 +258,7 @@ await browser.close();
 
 ### Promises
 
-By default, the `getContext`, `getInput`, `setOutput` and `browse` functions return a promise.
+By default, the `getContext`, `getValue`, `setValue` and `browse` functions return a promise.
 However, they also accept a Node.js-style callback parameter.
 If the callback is provided, the return value of the functions is not defined
 and the functions only invoke the callback upon completion or error.
