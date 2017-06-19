@@ -1,6 +1,6 @@
 {
   "name": "apifier",
-  "version": "0.0.50",
+  "version": "0.0.51",
   "description": "Apifier runtime for JavaScript",
   "main": "build/index.js",
   "keywords": [
