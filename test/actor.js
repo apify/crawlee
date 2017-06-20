@@ -128,7 +128,7 @@ const testMain = (method, bodyRaw, contentType, userFunc, expectedExitCode = 0) 
  * Helper function that enables testing of Apify.main()
  * @return Promise
  */
-const testMain = ({ userFunc, context, exitCode }) => {
+const testMain = ({ userFunc, exitCode }) => {
     // Mock process.exit() to check exit code and prevent process exit
     const processMock = sinon.mock(process);
     const exitExpectation = processMock
@@ -137,19 +137,14 @@ const testMain = ({ userFunc, context, exitCode }) => {
         .once()
         .returns();
 
-    // Mock APIFY_ environment variables
-    _.defaults(context, getEmptyContext());
-    setContextToEnv(context);
-
     let error = null;
 
     return Promise.resolve()
         .then(() => {
             return new Promise((resolve, reject) => {
                 // Invoke main() function, the promise resolves after the user function is run
-                Apify.main((realContext) => {
+                Apify.main(() => {
                     try {
-                        expect(realContext).to.eql(context);
                         // Wait for all tasks in Node.js event loop to finish
                         resolve();
                     } catch (err) {
@@ -157,7 +152,7 @@ const testMain = ({ userFunc, context, exitCode }) => {
                         return;
                     }
                     // Call user func to test other behavior (note that it can throw)
-                    if (userFunc) return userFunc(realContext);
+                    if (userFunc) return userFunc();
                 });
             });
         })
@@ -188,7 +183,7 @@ const testMain = ({ userFunc, context, exitCode }) => {
 };
 
 
-const getEmptyContext = () => {
+const getEmptyEnv = () => {
     return {
         internalPort: null,
         actId: null,
@@ -201,7 +196,7 @@ const getEmptyContext = () => {
     };
 };
 
-const setContextToEnv = (context) => {
+const setEnv = (env) => {
     delete process.env.APIFY_INTERNAL_PORT;
     delete process.env.APIFY_ACT_ID;
     delete process.env.APIFY_ACT_RUN_ID;
@@ -211,27 +206,27 @@ const setContextToEnv = (context) => {
     delete process.env.APIFY_TIMEOUT_AT;
     delete process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID;
 
-    if (context.internalPort) process.env.APIFY_INTERNAL_PORT = context.internalPort.toString();
-    if (context.actId) process.env.APIFY_ACT_ID = context.actId;
-    if (context.actRunId) process.env.APIFY_ACT_RUN_ID = context.actRunId;
-    if (context.userId) process.env.APIFY_USER_ID = context.userId;
-    if (context.token) process.env.APIFY_TOKEN = context.token;
-    if (context.startedAt) process.env.APIFY_STARTED_AT = context.startedAt.toISOString();
-    if (context.timeoutAt) process.env.APIFY_TIMEOUT_AT = context.timeoutAt.toISOString();
-    if (context.defaultKeyValueStoreId) process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = context.defaultKeyValueStoreId;
+    if (env.internalPort) process.env.APIFY_INTERNAL_PORT = env.internalPort.toString();
+    if (env.actId) process.env.APIFY_ACT_ID = env.actId;
+    if (env.actRunId) process.env.APIFY_ACT_RUN_ID = env.actRunId;
+    if (env.userId) process.env.APIFY_USER_ID = env.userId;
+    if (env.token) process.env.APIFY_TOKEN = env.token;
+    if (env.startedAt) process.env.APIFY_STARTED_AT = env.startedAt.toISOString();
+    if (env.timeoutAt) process.env.APIFY_TIMEOUT_AT = env.timeoutAt.toISOString();
+    if (env.defaultKeyValueStoreId) process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = env.defaultKeyValueStoreId;
 };
 
-describe('Apify.getContext()', () => {
+describe('Apify.getEnv()', () => {
     it('works with null values', () => {
-        const expectedContext = getEmptyContext();
-        setContextToEnv(expectedContext);
+        const expectedEnv = getEmptyEnv();
+        setEnv(expectedEnv);
 
-        const context = Apify.getContext();
-        expect(context).to.eql(expectedContext);
+        const env = Apify.getEnv();
+        expect(env).to.eql(expectedEnv);
     });
 
     it('works with with non-null values', () => {
-        const expectedContext = _.extend(getEmptyContext(), {
+        const expectedEnv = _.extend(getEmptyEnv(), {
             internalPort: 12345,
             actId: 'test actId',
             actRunId: 'test actId',
@@ -241,10 +236,10 @@ describe('Apify.getContext()', () => {
             timeoutAt: new Date(),
             defaultKeyValueStoreId: 'some store',
         });
-        setContextToEnv(expectedContext);
+        setEnv(expectedEnv);
 
-        const context = Apify.getContext();
-        expect(context).to.eql(expectedContext);
+        const env = Apify.getEnv();
+        expect(env).to.eql(expectedEnv);
     });
 });
 
@@ -259,7 +254,7 @@ describe('Apify.main()', () => {
     it('works with simple user function', () => {
         return testMain({
             userFunc: () => {},
-            context: {},
+            env: {},
             exitCode: 0,
         });
     });
@@ -276,7 +271,7 @@ describe('Apify.main()', () => {
                     }, 20);
                 });
             },
-            context: {},
+            env: {},
             exitCode: 0,
         })
         .then(() => {
@@ -289,7 +284,7 @@ describe('Apify.main()', () => {
             userFunc: () => {
                 throw new Error('Test exception I');
             },
-            context: {},
+            env: {},
             exitCode: 91,
         });
     });
@@ -304,7 +299,7 @@ describe('Apify.main()', () => {
                     throw new Error('Text exception II');
                 });
             },
-            context: {},
+            env: {},
             exitCode: 91,
         });
     });

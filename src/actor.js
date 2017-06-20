@@ -161,7 +161,7 @@ export const setValue = (key, value, contentType, callback = null) => {
 
 
 /**
- * Generates a context object which contains meta-data about this act run such as:
+ * Generates an object which contains parsed environment variables:
  * ```javascript
  * {
  *   actId: String,
@@ -175,11 +175,11 @@ export const setValue = (key, value, contentType, callback = null) => {
  * }
  * ```
  * All the information is generated from the APIFY_XXX environment variables.
- * If some of the variables is not defined or is invalid, the corresponding value in the context object will be null;
+ * If some of the variables is not defined or is invalid, the corresponding value in the resulting object will be null;
  * an error is not thrown in such a case in order to simplify local development and debugging of acts.
- * @return Object Context object.
+ * @return Object
  */
-export const getContext = () => {
+export const getEnv = () => {
     const env = process.env || {};
     return {
         actId: env[ENV_VARS.ACT_ID] || null,
@@ -213,8 +213,7 @@ export const main = (userFunc) => {
     try {
         newPromise()
             .then(() => {
-                const context = getContext();
-                return userFunc(context);
+                return userFunc();
             })
             .catch((err) => {
                 if (!exited) {

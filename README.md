@@ -30,122 +30,100 @@ const Apify = require('apify');
 
 ### Main function
 
-To simplify development of acts, the Actor runtime provides the `Apify.main()` function which does the following:
+To simplify development of acts, the runtime provides the `Apify.main(func)` function which does the following:
 
-*TODO: this needs to be changed, call getValue() / setValue() explicitely*
+1) Invokes the user function `func`
 
-1) Prepares the execution context object by calling `Apify.getContext()`
+2) If the function returned a promise, waits for it to resolve
 
-2) Fetches act run input by calling `Apify.getValue('INPUT')`
-
-3) Waits for the user function to finish
-
-4) Stores the return value of the user function as act output by calling `Apify.setOutput()`
-
-5) Exits the process
+3) Exits the process
 
 If the user function throws an exception or some other error is encountered,
-then `Apify.main()` prints the details to console so that it's saved into log file.
+then `Apify.main()` prints the details to console so that they are stored to the log file.
 
-`Apify.main()` accepts a single argument - a user function that performs the act.
+`Apify.main()` accepts a single argument - the user function that performs the operation of the act.
 In the simplest case, the user function is synchronous:
 
 ```javascript
-Apify.main((context) => {
+Apify.main(() => {
     // my synchronous function that returns immediately
-    console.dir(context.input);
-    return 'Output from my act';
 });
 ```
-
-The user function accepts a single argument called `context`, which is a context object
-holding information about the act run. It is described in detail in the next section.
-
-The return value from the user function is stored as output of the act.
-It must be an object that can be stringified to JSON, otherwise the act will fail.
-The output record will have the MIME content type set to `application/json; charset=utf-8`.
 
 If the user function returns a promise, it is considered as asynchronous:
 
 ```javascript
-Apify.main((context) => {
+Apify.main(() => {
     // my asynchronous function that returns a promise
     return Promise.resolve()
         .then(() => {
-            return 'Output from my act';
+            return request('http://www.example.com');
+        })
+        .then((html) => {
+            console.log(html);
         });
 });
 ```
 
-In this case, the return value of the last function in the promise chain is considered as the act output.
-
-To simplify your code, you can also take advantage of the async/await keywords:
+To simplify your code, you can take advantage of the `async`/`await` keywords:
 
 ```javascript
 const request = require('request-promise');
 
-Apify.main(async (context) => {
-    const result = await request('http://www.example.com');
-    return result;
+Apify.main(async () => {
+    const html = await request('http://www.example.com');
+    console.log(html);
 });
 ```
 
 Note that the `Apify.main()` function does not need to be used at all,
-it is provided merely for user convenience. The same activity
-can be performed using the lower-level functions described in the following sections.
+it is provided merely for a user convenience.
 
 
-### Context
+### Environment
 
-The user function passed to `Apify.main()` accepts a single
-argument called `context` which is an object such as:
+On the Apify platform, the act process is executed with several environment variables.
+To simplify access to these variables, you can use the `Apify.getEnv()` function,
+which returns an object with the following properties:
 
 ```javascript
 {
-    // ID of the act
+    // ID of the act.
+    // Environment variable: APIFY_ACT_ID
     actId: String,
 
     // ID of the act run
+    // Environment variable: APIFY_ACT_RUN_ID
     actRunId: String,
 
     // ID of the user who started the act (might be different than the owner of the act)
+    // Environment variable: APIFY_USER_ID
     userId: String,
 
     // Authentication token representing privileges given to the act run,
     // it can be passed to various Apify APIs.
+    // Environment variable: APIFY_TOKEN
     token: String,
 
     // Date when the act was started
+    // Environment variable: APIFY_STARTED_AT
     startedAt: Date,
 
     // Date when the act will time out
+    // Environment variable: APIFY_TIMEOUT_AT
     timeoutAt: Date,
 
     // ID of the key-value store where input and output data of this act is stored
+    // Environment variable: APIFY_DEFAULT_KEY_VALUE_STORE_ID
     defaultKeyValueStoreId: String,
-
-    // Input data for the act as provided by Apify.getInput()
-    input: {
-        body: Object,
-        contentType: String,
-    },
 
     // Port on which the act's internal web server is listening.
     // This is still work in progress, stay tuned.
+    // Environment variable: APIFY_INTERNAL_PORT
     internalPort: Number,
 }
 ```
 
-The values of the objects are determined from process environment variables,
-such as `APIFY_INTERNAL_PORT` or `APIFY_STARTED_AT`, and the input is obtained by calling the
-`Apify.getInput()` function.
-
-The `context` object can also be obtained as follows:
-
-```javascript
-const context = await Apify.getContext();
-console.dir(context);
-```
 
 ### Input and output
 
@@ -156,11 +134,12 @@ under keys named `INPUT` and `OUTPUT`, respectively.
 The ID of the key-value store is provided by the Actor runtime as the `APIFY_DEFAULT_KEY_VALUE_STORE_ID`
 environment variable.
 
-To obtain the input of the act, use the following code:
+Use the following code to obtain the input of the act:
 
 ```javascript
 const input = await Apify.getValue('INPUT');
-console.dir(`My input is: ${input}``);
+console.log('My input:');
+console.dir(input);
 ```
 
 If the input data has the `application/json` content type, it is automatically parsed into a JavaScript object,
@@ -175,9 +154,8 @@ const output = {
 await Apify.setValue('OUTPUT', output);
 ```
 
-This is especially useful if the output of the act is not a JSON,
-because return value from `Apify.main()` is always converted to JSON.
-In such case, make sure the main function returns `undefined` or `null`.
+*Don't forget to use the `await` keyword, otherwise the act's process might finish before the output is stored!*
+
 
 ### Browser
 

@@ -1,7 +1,7 @@
 import EventEmitter from 'events';
 
 import { setPromisesDependency, getPromisesDependency } from './utils';
-import { main, readyFreddy, getContext, getValue, setValue, apifyClient } from './actor';
+import { main, readyFreddy, getEnv, getValue, setValue, apifyClient } from './actor';
 import { browse } from './browser';
 
 /* globals module */
@@ -9,7 +9,7 @@ import { browse } from './browser';
 // Publicly available functions
 const Apify = {
     main,
-    getContext,
+    getEnv,
     getValue,
     setValue,
     readyFreddy,

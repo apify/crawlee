@@ -14,7 +14,6 @@ export const EXIT_CODES = {
  * Dictionary of APIFY_XXX environment variable names.
  */
 export const ENV_VARS = {
-    INTERNAL_PORT: 'APIFY_INTERNAL_PORT',
     ACT_ID: 'APIFY_ACT_ID',
     ACT_RUN_ID: 'APIFY_ACT_RUN_ID',
     USER_ID: 'APIFY_USER_ID',
@@ -25,6 +24,7 @@ export const ENV_VARS = {
     WATCH_FILE: 'APIFY_WATCH_FILE',
     API_BASE_URL: 'APIFY_API_BASE_URL',
     HEADLESS: 'APIFY_HEADLESS',
+    INTERNAL_PORT: 'APIFY_INTERNAL_PORT',
 };
 
 
