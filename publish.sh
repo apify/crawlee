@@ -15,10 +15,10 @@ if [ -z "$BRANCH_UP_TO_DATE" ]; then
 fi
 
 if [ $BRANCH = "master" ]; then
-    NPM_TAG='latest'
+    NPM_TAG=''
     GIT_TAG="v${PACKAGE_VERSION}"
 else
-    NPM_TAG='beta'
+    NPM_TAG='--tag beta'
     GIT_TAG="v${PACKAGE_VERSION}-beta"
 fi
 
@@ -26,7 +26,7 @@ echo "Pushing to git ..."
 git push
 
 echo "Publishing version ${PACKAGE_VERSION} with tag \"${NPM_TAG}\" ..."
-RUNNING_FROM_SCRIPT=1 npm publish --tag $NPM_TAG
+RUNNING_FROM_SCRIPT=1 npm publish $NPM_TAG
 
 echo "Tagging git with ${GIT_TAG} ..."
 git tag ${GIT_TAG}
