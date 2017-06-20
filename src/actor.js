@@ -1,6 +1,6 @@
 import fs from 'fs';
 import _ from 'underscore';
-import { APIFY_ENV_VARS, EXIT_CODES, KEY_VALUE_STORE_KEYS } from './constants';
+import { ENV_VARS, EXIT_CODES, KEY_VALUE_STORE_KEYS } from './constants';
 import { getPromisePrototype, newPromise, nodeifyPromise, newClient } from './utils';
 
 /* global process, Buffer */
@@ -29,8 +29,8 @@ const tryParseDate = (str) => {
 };
 
 const getDefaultStoreIdOrThrow = () => {
-    const storeId = process.env[APIFY_ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID];
-    if (!storeId) throw new Error(`The '${APIFY_ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID}' environment variable is not defined.`);
+    const storeId = process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID];
+    if (!storeId) throw new Error(`The '${ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID}' environment variable is not defined.`);
     return storeId;
 };
 
@@ -257,14 +257,14 @@ export const setValue = (key, value, contentType, callback = null) => {
  */
 export const getContext = (callback = null) => {
     const context = {
-        internalPort: parseInt(process.env[APIFY_ENV_VARS.INTERNAL_PORT], 10) || null,
-        actId: process.env[APIFY_ENV_VARS.ACT_ID] || null,
-        actRunId: process.env[APIFY_ENV_VARS.ACT_RUN_ID] || null,
-        userId: process.env[APIFY_ENV_VARS.USER_ID] || null,
-        token: process.env[APIFY_ENV_VARS.TOKEN] || null,
-        startedAt: tryParseDate(process.env[APIFY_ENV_VARS.STARTED_AT]) || null,
-        timeoutAt: tryParseDate(process.env[APIFY_ENV_VARS.TIMEOUT_AT]) || null,
-        defaultKeyValueStoreId: process.env[APIFY_ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID] || null,
+        internalPort: parseInt(process.env[ENV_VARS.INTERNAL_PORT], 10) || null,
+        actId: process.env[ENV_VARS.ACT_ID] || null,
+        actRunId: process.env[ENV_VARS.ACT_RUN_ID] || null,
+        userId: process.env[ENV_VARS.USER_ID] || null,
+        token: process.env[ENV_VARS.TOKEN] || null,
+        startedAt: tryParseDate(process.env[ENV_VARS.STARTED_AT]) || null,
+        timeoutAt: tryParseDate(process.env[ENV_VARS.TIMEOUT_AT]) || null,
+        defaultKeyValueStoreId: process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID] || null,
         input: null,
     };
 
@@ -347,12 +347,12 @@ export const main = (userFunc) => {
  * variable and is ready to receive a HTTP request with act input.
  */
 export const readyFreddy = () => {
-    const watchFileName = process.env[APIFY_ENV_VARS.WATCH_FILE];
+    const watchFileName = process.env[ENV_VARS.WATCH_FILE];
     if (watchFileName) {
         fs.writeFile(watchFileName, '', (err) => {
             if (err) console.log(`WARNING: Cannot write to watch file ${watchFileName}: ${err}`);
         });
     } else {
-        console.log(`WARNING: ${APIFY_ENV_VARS.WATCH_FILE} environment variable not specified, readyFreddy() has no effect.`);
+        console.log(`WARNING: ${ENV_VARS.WATCH_FILE} environment variable not specified, readyFreddy() has no effect.`);
     }
 };

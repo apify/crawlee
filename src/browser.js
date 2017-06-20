@@ -1,5 +1,5 @@
 // import { ChromeLauncher } from 'lighthouse/lighthouse-cli/chrome-launcher';
-import { APIFY_ENV_VARS } from './constants';
+import { ENV_VARS } from './constants';
 import { newPromise, nodeifyPromise, parseUrl } from './utils';
 import { ProxyChain } from './proxy_chain';
 
@@ -23,7 +23,7 @@ import { ProxyChain } from './proxy_chain';
  */
 export const getDefaultBrowseOptions = () => {
     return {
-        headless: !!process.env[APIFY_ENV_VARS.HEADLESS],
+        headless: !!process.env[ENV_VARS.HEADLESS],
         browserName: 'chrome',
         proxyUrl: null,
         userAgent: null,
