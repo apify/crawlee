@@ -128,7 +128,7 @@ const testMain = (method, bodyRaw, contentType, userFunc, expectedExitCode = 0) 
  * Helper function that enables testing of Apify.main()
  * @return Promise
  */
-const testMain = ({ userFunc, context, exitCode, mockInputException, mockOutputException, expectedOutput }) => {
+const testMain = ({ userFunc, context, exitCode }) => {
     // Mock process.exit() to check exit code and prevent process exit
     const processMock = sinon.mock(process);
     const exitExpectation = processMock
@@ -136,51 +136,6 @@ const testMain = ({ userFunc, context, exitCode, mockInputException, mockOutputE
         .withExactArgs(exitCode)
         .once()
         .returns();
-
-    // Mock Apify.client.keyValueStores.getRecord() to test act input
-    const kvStoresMock = sinon.mock(Apify.client.keyValueStores);
-    if (mockInputException) {
-        kvStoresMock
-            .expects('getRecord')
-            .throws(mockInputException);
-    } else if (context.defaultKeyValueStoreId) {
-        kvStoresMock
-            .expects('getRecord')
-            .withExactArgs({
-                storeId: context.defaultKeyValueStoreId,
-                promise: Apify.getPromisesDependency(),
-                key: 'INPUT',
-            })
-            .returns(Promise.resolve(context.input))
-            .once();
-    } else {
-        kvStoresMock
-            .expects('putRecord')
-            .never();
-    }
-
-    // Mock Apify.client.keyValueStores.putRecord() to test act output
-    if (mockOutputException) {
-        kvStoresMock
-            .expects('putRecord')
-            .throws(mockOutputException);
-    } else if (context.defaultKeyValueStoreId && expectedOutput) {
-        kvStoresMock
-            .expects('putRecord')
-            .withExactArgs({
-                storeId: context.defaultKeyValueStoreId,
-                promise: Apify.getPromisesDependency(),
-                key: 'OUTPUT',
-                contentType: expectedOutput.contentType,
-                body: expectedOutput.body,
-            })
-            .returns(Promise.resolve())
-            .once();
-    } else {
-        kvStoresMock
-            .expects('putRecord')
-            .never();
-    }
 
     // Mock APIFY_ environment variables
     _.defaults(context, getEmptyContext());
@@ -192,24 +147,18 @@ const testMain = ({ userFunc, context, exitCode, mockInputException, mockOutputE
         .then(() => {
             return new Promise((resolve, reject) => {
                 // Invoke main() function, the promise resolves after the user function is run
-                // Note that if mockInputException is set, then user function will never get called!
-                if (!mockInputException) {
-                    Apify.main((realContext) => {
-                        try {
-                            expect(realContext).to.eql(context);
-                            // Wait for all tasks in Node.js event loop to finish
-                            resolve();
-                        } catch (err) {
-                            reject(err);
-                            return;
-                        }
-                        // Call user func to test other behavior (note that it can throw)
-                        if (userFunc) return userFunc(realContext);
-                    });
-                } else {
-                    Apify.main(() => {});
-                    resolve();
-                }
+                Apify.main((realContext) => {
+                    try {
+                        expect(realContext).to.eql(context);
+                        // Wait for all tasks in Node.js event loop to finish
+                        resolve();
+                    } catch (err) {
+                        reject(err);
+                        return;
+                    }
+                    // Call user func to test other behavior (note that it can throw)
+                    if (userFunc) return userFunc(realContext);
+                });
             });
         })
         .catch((err) => {
@@ -232,11 +181,9 @@ const testMain = ({ userFunc, context, exitCode, mockInputException, mockOutputE
         .then(() => {
             if (error) throw error;
             processMock.verify();
-            kvStoresMock.verify();
         })
         .finally(() => {
             processMock.restore();
-            kvStoresMock.restore();
         });
 };
 
@@ -251,7 +198,6 @@ const getEmptyContext = () => {
         startedAt: null,
         timeoutAt: null,
         defaultKeyValueStoreId: null,
-        input: null,
     };
 };
 
@@ -280,13 +226,11 @@ describe('Apify.getContext()', () => {
         const expectedContext = getEmptyContext();
         setContextToEnv(expectedContext);
 
-        return Apify.getContext()
-            .then((context) => {
-                expect(context).to.eql(expectedContext);
-            });
+        const context = Apify.getContext();
+        expect(context).to.eql(expectedContext);
     });
 
-    it('works with with non-null values / no input', () => {
+    it('works with with non-null values', () => {
         const expectedContext = _.extend(getEmptyContext(), {
             internalPort: 12345,
             actId: 'test actId',
@@ -295,191 +239,15 @@ describe('Apify.getContext()', () => {
             token: 'auth token',
             startedAt: new Date('2017-01-01'),
             timeoutAt: new Date(),
-            defaultKeyValueStoreId: null,
-            input: null,
+            defaultKeyValueStoreId: 'some store',
         });
         setContextToEnv(expectedContext);
 
-        return Apify.getContext()
-            .then((context) => {
-                expect(context).to.eql(expectedContext);
-            });
-    });
-
-    it('works with callbacks', () => {
-        const expectedContext = _.extend(getEmptyContext(), {
-            internalPort: 4455,
-            actId: 'test actId x',
-            actRunId: 'test actId x',
-            startedAt: new Date('2017-01-01'),
-            timeoutAt: new Date(),
-        });
-        setContextToEnv(expectedContext);
-
-        return new Promise((resolve, reject) => {
-            Apify.getContext((err, context) => {
-                if (err) reject(err);
-                resolve(context);
-            });
-        })
-        .then((context) => {
-            expect(context).to.eql(expectedContext);
-        });
-    });
-
-    it('works with with non-null values / text input', () => {
-        const expectedContext = {
-            internalPort: 12345,
-            actId: 'test actId',
-            actRunId: 'test actId',
-            userId: 'some user',
-            token: 'auth token',
-            startedAt: new Date('2017-01-01'),
-            timeoutAt: new Date(),
-            defaultKeyValueStoreId: 'test storeId',
-            input: {
-                body: 'test body',
-                contentType: 'text/plain',
-            },
-        };
-        setContextToEnv(expectedContext);
-
-        const mock = sinon.mock(Apify.client.keyValueStores);
-        const expectation = mock.expects('getRecord');
-        expectation
-            .withExactArgs({
-                storeId: expectedContext.defaultKeyValueStoreId,
-                promise: Apify.getPromisesDependency(),
-                key: 'INPUT',
-            })
-            .once()
-            .returns(Promise.resolve(expectedContext.input));
-
-        return Promise.resolve()
-            .then(() => {
-                return Apify.getContext();
-            })
-            .then((context) => {
-                expect(context).to.eql(expectedContext);
-                expectation.verify();
-            })
-            .finally(() => {
-                mock.restore();
-            });
+        const context = Apify.getContext();
+        expect(context).to.eql(expectedContext);
     });
 });
 
-describe('Apify.getInput()', () => {
-    it('supports both promises and callbacks (on success)', () => {
-        const mock = sinon.mock(Apify.client.keyValueStores);
-        mock.expects('getRecord')
-            .twice()
-            .returns(Promise.resolve(null));
-
-        return Promise.resolve()
-            .then(() => {
-                // test promise
-                return Apify.getInput();
-            })
-            .then((input) => {
-                expect(input).to.be.eql(null);
-            })
-            .then(() => {
-                // test callback
-                return new Promise((resolve, reject) => {
-                    return Apify.getInput((err, input) => {
-                        if (err) return reject(err);
-                        resolve(input);
-                    });
-                });
-            })
-            .then((input) => {
-                expect(input).to.be.eql(null);
-
-                mock.verify();
-            })
-            .finally(() => {
-                mock.restore();
-            });
-    });
-
-    it('supports both promises and callbacks (on error)', () => {
-        const mock = sinon.mock(Apify.client.keyValueStores);
-        mock.expects('getRecord')
-            .twice()
-            .throws(new Error('Test error'));
-
-        return Promise.resolve()
-            .then(() => {
-                // test promise
-                return Apify.getInput();
-            })
-            .catch((err) => {
-                expect(err.message).to.be.eql('Test error');
-            })
-            .then(() => {
-                // test callback
-                return new Promise((resolve, reject) => {
-                    return Apify.getInput((err, input) => {
-                        if (err) return reject(err);
-                        resolve(input);
-                    });
-                });
-            })
-            .catch((err) => {
-                expect(err.message).to.be.eql('Test error');
-            })
-            .then(() => {
-                mock.verify();
-            })
-            .finally(() => {
-                mock.restore();
-            });
-    });
-
-    it('returns null on undefined keyValueStores.getRecord() result', () => {
-        const mock = sinon.mock(Apify.client.keyValueStores);
-        mock.expects('getRecord')
-            .once()
-            .returns(Promise.resolve(undefined));
-
-        return Promise.resolve()
-            .then(() => {
-                return Apify.getInput();
-            })
-            .then((input) => {
-                expect(input).to.be.eql(null);
-                mock.verify();
-            })
-            .finally(() => {
-                mock.restore();
-            });
-    });
-
-    it('fails on invalid keyValueStores.getRecord() result', () => {
-        const mock = sinon.mock(Apify.client.keyValueStores);
-        mock.expects('getRecord')
-            .once()
-            .returns(Promise.resolve({ invalid: 'bla bla' }));
-
-        return Promise.resolve()
-            .then(() => {
-                return Apify.getInput();
-            })
-            .then(() => {
-                expect.fail();
-            })
-            .catch((err) => {
-                expect(err.message).to.contain('ApifyClient returned an unexpected value');
-            })
-            .then(() => {
-                mock.verify();
-            })
-            .finally(() => {
-                mock.restore();
-            });
-    });
-});
 
 describe('Apify.main()', () => {
     it('throws on invalid args', () => {
@@ -516,60 +284,7 @@ describe('Apify.main()', () => {
         });
     });
 
-    it('gets input correctly', () => {
-        const context = {
-            defaultKeyValueStoreId: 'test storeId',
-            input: {
-                body: 'test body',
-                contentType: 'text/plain',
-            },
-        };
-        return testMain({
-            userFunc: null,
-            context,
-            exitCode: 0,
-        });
-    });
-
-    it('sets output from simple user function', () => {
-        const context = {
-            defaultKeyValueStoreId: 'test storeId x',
-        };
-        const output = { test: 123 };
-        return testMain({
-            userFunc: () => {
-                return output;
-            },
-            context,
-            exitCode: 0,
-            expectedOutput: {
-                contentType: 'application/json; charset=utf-8',
-                body: JSON.stringify(output),
-            },
-        });
-    });
-
-    it('sets output from promised user function', () => {
-        const context = {
-            defaultKeyValueStoreId: 'test storeId x',
-        };
-        const output = { test: 123 };
-        return testMain({
-            userFunc: () => {
-                return Promise.resolve().then(() => {
-                    return output;
-                });
-            },
-            context,
-            exitCode: 0,
-            expectedOutput: {
-                contentType: 'application/json; charset=utf-8',
-                body: JSON.stringify(output),
-            },
-        });
-    });
-
-    it('on exception in simple user function the process exits with code 1001', () => {
+    it('on exception in simple user function the process exits with code 91', () => {
         return testMain({
             userFunc: () => {
                 throw new Error('Test exception I');
@@ -579,7 +294,7 @@ describe('Apify.main()', () => {
         });
     });
 
-    it('on exception in promised user function the process exits with code 1001', () => {
+    it('on exception in promised user function the process exits with code 91', () => {
         return testMain({
             userFunc: () => {
                 return new Promise((resolve) => {
@@ -593,82 +308,12 @@ describe('Apify.main()', () => {
             exitCode: 91,
         });
     });
-
-    it('on exception in getInput the process exits with code 1002', () => {
-        return testMain({
-            userFunc: null,
-            context: {
-                defaultKeyValueStoreId: 'test storeId',
-                input: {},
-            },
-            exitCode: 92,
-            mockInputException: new Error('Text exception III'),
-        });
-    });
-
-    it('on exception in setOutput the process exits with code 1003', () => {
-        return testMain({
-            userFunc: () => {
-                return 'anything';
-            },
-            context: {
-                defaultKeyValueStoreId: 'test storeId',
-            },
-            exitCode: 93,
-            mockOutputException: new Error('Text exception IV'),
-        });
-    });
-
-    it('on non-JSON-stringifyable return value the process exits with code 1003', () => {
-        const circularObj = {};
-        circularObj.aaa = circularObj;
-
-        return testMain({
-            userFunc: () => {
-                return circularObj;
-            },
-            context: {
-                defaultKeyValueStoreId: 'test storeId',
-            },
-            exitCode: 93,
-        });
-    });
 });
 
-describe('Apify.setOutput()', () => {
-    it('throws on invalid args', () => {
-        expect(() => {
-            Apify.setOutput();
-        }).to.throw(Error);
-
-        expect(() => {
-            Apify.setOutput('bla bla');
-        }).to.throw(Error);
-
-        expect(() => {
-            Apify.setOutput(1234);
-        }).to.throw(Error);
-
-        expect(() => {
-            Apify.setOutput({});
-        }).to.throw(Error);
-
-        expect(() => {
-            Apify.setOutput({ body: undefined, contentType: 'test' });
-        }).to.throw(Error);
-
-        expect(() => {
-            Apify.setOutput({ body: {}, contentType: 456 });
-        }).to.throw(Error);
-
-        expect(() => {
-            Apify.setOutput({ body: {}, contentType: undefined });
-        }).to.throw(Error);
-    });
-});
 
 describe('Apify.getValue()', () => {
     it('throws on invalid args', () => {
+        process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = '1234';
         const keyErrMsg = 'The "key" parameter must be a non-empty string';
         expect(() => { Apify.getValue(); }).to.throw(Error, keyErrMsg);
         expect(() => { Apify.getValue({}); }).to.throw(Error, keyErrMsg);
@@ -676,7 +321,18 @@ describe('Apify.getValue()', () => {
         expect(() => { Apify.getValue(null); }).to.throw(Error, keyErrMsg);
     });
 
+    it('throws if APIFY_DEFAULT_KEY_VALUE_STORE_ID env var is not defined', () => {
+        const errMsg = 'The \'APIFY_DEFAULT_KEY_VALUE_STORE_ID\' environment variable is not defined';
+
+        process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = '';
+        expect(() => { Apify.getValue('KEY'); }).to.throw(Error, errMsg);
+
+        delete process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID;
+        expect(() => { Apify.getValue('some other key'); }).to.throw(Error, errMsg);
+    });
+
     it('supports both promises and callbacks (on success)', () => {
+        process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = '1234';
         const mock = sinon.mock(Apify.client.keyValueStores);
         mock.expects('getRecord')
             .twice()
@@ -710,6 +366,7 @@ describe('Apify.getValue()', () => {
     });
 
     it('supports both promises and callbacks (on error)', () => {
+        process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = '1234';
         const mock = sinon.mock(Apify.client.keyValueStores);
         mock.expects('getRecord')
             .twice()
@@ -744,6 +401,7 @@ describe('Apify.getValue()', () => {
     });
 
     it('returns null on undefined keyValueStores.getRecord() result', () => {
+        process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = '1234';
         const mock = sinon.mock(Apify.client.keyValueStores);
         mock.expects('getRecord')
             .once()
@@ -763,6 +421,7 @@ describe('Apify.getValue()', () => {
     });
 
     it('fails on invalid keyValueStores.getRecord() result', () => {
+        process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = '1234';
         const mock = sinon.mock(Apify.client.keyValueStores);
         mock.expects('getRecord')
             .once()
@@ -789,6 +448,7 @@ describe('Apify.getValue()', () => {
 
 describe('Apify.setValue()', () => {
     it('throws on invalid args', () => {
+        process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = '1234';
         const keyErrMsg = 'The "key" parameter must be a non-empty string';
         expect(() => { Apify.setValue(); }).to.throw(Error, keyErrMsg);
         expect(() => { Apify.setValue('', null); }).to.throw(Error, keyErrMsg);
@@ -821,11 +481,22 @@ describe('Apify.setValue()', () => {
         expect(() => { Apify.setValue('key', 'value', ''); }).to.throw(Error, contTypeStringErrMsg);
     });
 
+    it('throws if APIFY_DEFAULT_KEY_VALUE_STORE_ID env var is not defined', () => {
+        const errMsg = 'The \'APIFY_DEFAULT_KEY_VALUE_STORE_ID\' environment variable is not defined';
+
+        process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = '';
+        expect(() => { Apify.setValue('KEY', { something: 123 }); }).to.throw(Error, errMsg);
+
+        delete process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID;
+        expect(() => { Apify.setValue('KEY', { something: 123 }); }).to.throw(Error, errMsg);
+    });
+
     it('supports both promises and callbacks (on success)', () => {
+        process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = '1234';
         const mock = sinon.mock(Apify.client.keyValueStores);
         mock.expects('putRecord')
-        .exactly(4)
-        .returns(Promise.resolve(null));
+            .exactly(4)
+            .returns(Promise.resolve(null));
 
         return Promise.resolve()
         .then(() => {
@@ -863,6 +534,7 @@ describe('Apify.setValue()', () => {
     });
 
     it('supports both promises and callbacks (on error)', () => {
+        process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = '1234';
         const mock = sinon.mock(Apify.client.keyValueStores);
         mock.expects('putRecord')
             .twice()
@@ -897,6 +569,7 @@ describe('Apify.setValue()', () => {
     });
 
     it('correctly stores object values as JSON', () => {
+        process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = '1234';
         const storeId = 'mystore';
         const key = 'mykey';
         const value = { someValue: 123 };
@@ -931,6 +604,7 @@ describe('Apify.setValue()', () => {
     });
 
     it('correctly stores raw string values', () => {
+        process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = '1234';
         const storeId = 'mystore3';
         const key = 'mykey2';
         const value = 'some string value';
@@ -966,6 +640,7 @@ describe('Apify.setValue()', () => {
     });
 
     it('correctly stores raw Buffer values', () => {
+        process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = '1234';
         const storeId = 'mystore3';
         const key = 'mykey2';
         const value = Buffer.from('some text value');

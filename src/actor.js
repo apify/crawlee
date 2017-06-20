@@ -1,6 +1,6 @@
 import fs from 'fs';
 import _ from 'underscore';
-import { ENV_VARS, EXIT_CODES, KEY_VALUE_STORE_KEYS } from './constants';
+import { ENV_VARS, EXIT_CODES } from './constants';
 import { getPromisePrototype, newPromise, nodeifyPromise, newClient } from './utils';
 
 /* global process, Buffer */
@@ -36,87 +36,8 @@ const getDefaultStoreIdOrThrow = () => {
 
 
 /**
- * Gets input data for the current act run.
- * This data is stored in the key-value store created specifically for this run,
- * whose ID is defined in the `APIFY_DEFAULT_KEY_VALUE_STORE_ID` environment variable,
- * under record with the `INPUT` key.
- * The result of the function is an object such as `{ body: String|Buffer, contentType: String|null }`,
- * or `null` if record was not found.
- * @param callback Optional callback.
- * @return Returns a promise if no callback was provided, otherwise the return value is not defined.
- */
-export const getInput = (callback = null) => {
-    // TODO: get rid of this
-    const promise = newPromise()
-        .then(() => {
-            return apifyClient.keyValueStores.getRecord({
-                storeId: getDefaultStoreIdOrThrow(),
-                promise: getPromisePrototype(),
-                key: KEY_VALUE_STORE_KEYS.INPUT,
-            });
-        })
-        .then((input) => {
-            // Ensure we always return either:
-            // * null
-            // * or { body: String|Buffer, contentType: String|null }
-            // * or { body: Any, contentType: 'application/json' }
-            const baseMsg = 'ApifyClient returned an unexpected value from keyValueStores.getRecord()';
-            if (!input) {
-                input = null;
-            } else if (typeof (input) !== 'object') {
-                throw new Error(`${baseMsg}: expected an object.`);
-            } else if ((typeof (input.contentType) !== 'string' && input.contentType !== null)) {
-                throw new Error(`${baseMsg}: contentType is not valid.`);
-            } else if (!_.contains(JSON_CONTENT_TYPES, input.contentType)
-                    && typeof (input.body) !== 'string'
-                    && !Buffer.isBuffer(input.body)) {
-                throw new Error(`${baseMsg}: body must be String or Buffer.`);
-            }
-            return input;
-        });
-
-    return nodeifyPromise(promise, callback);
-};
-
-/**
- * Sets output data for the current act run.
- * This data is stored in the key-value store created specifically for this run,
- * whose ID is defined in the `APIFY_DEFAULT_KEY_VALUE_STORE_ID` environment variable,
- * under record with the `OUTPUT` key.
- * The function has no result, but throws on invalid args.
- * @param output Must be an object such as { body: String|Buffer, contentType: String|null }
- * @param callback Optional callback.
- * @return Returns a promise if no callback was provided, otherwise the return value is not defined.
- */
-export const setOutput = (output, callback = null) => {
-    if (typeof (output) !== 'object') {
-        throw new Error('The "output" parameter must be an object.');
-    }
-    if (typeof (output.body) !== 'string' && !Buffer.isBuffer(output.body)) {
-        throw new Error('The "output.body" parameter must be String or Buffer.');
-    }
-    if (typeof (output.contentType) !== 'string' && output.contentType !== null) {
-        throw new Error('The "output.contentType" parameter must be String or null.');
-    }
-
-    const promise = newPromise()
-        .then(() => {
-            return apifyClient.keyValueStores.putRecord({
-                storeId: getDefaultStoreIdOrThrow(),
-                promise: getPromisePrototype(),
-                key: KEY_VALUE_STORE_KEYS.OUTPUT,
-                body: output.body,
-                contentType: output.contentType,
-            });
-        });
-
-    return nodeifyPromise(promise, callback);
-};
-
-
-/**
  * Gets a value from the default key-value store for the current act run.
- * This data is stored in the key-value store created specifically for this run,
+ * This store is created automatically for this run,
  * whose ID is defined in the `APIFY_DEFAULT_KEY_VALUE_STORE_ID` environment variable.
  * The result of the function is the body of the record. For records with 'application/json'
  * content type, the body is the already parsed object. For other content types,
@@ -128,35 +49,38 @@ export const setOutput = (output, callback = null) => {
 export const getValue = (key, callback = null) => {
     if (!key || !_.isString(key)) throw new Error('The "key" parameter must be a non-empty string');
 
-    const promise = newPromise()
-    .then(() => {
-        return apifyClient.keyValueStores.getRecord({
-            storeId: getDefaultStoreIdOrThrow(),
-            promise: getPromisePrototype(),
-            key,
-        });
-    })
-    .then((record) => {
-        // Check that the record is always either:
-        // * null
-        // * or { body: String|Buffer, contentType: String|null }
-        // * or { body: Any, contentType: 'application/json' }
-        const baseMsg = 'ApifyClient returned an unexpected value from keyValueStores.getRecord()';
-        if (!record) {
-            return null;
-        }
+    const storeId = getDefaultStoreIdOrThrow();
+    const promisePrototype = getPromisePrototype();
 
-        if (typeof (record) !== 'object') {
-            throw new Error(`${baseMsg}: expected an object.`);
-        } else if ((typeof (record.contentType) !== 'string' && record.contentType !== null)) {
-            throw new Error(`${baseMsg}: contentType is not valid.`);
-        } else if (!_.contains(JSON_CONTENT_TYPES, record.contentType)
-            && typeof (record.body) !== 'string'
-            && !Buffer.isBuffer(record.body)) {
-            throw new Error(`${baseMsg}: body must be String or Buffer.`);
-        }
-        return record.body;
-    });
+    const promise = newPromise()
+        .then(() => {
+            return apifyClient.keyValueStores.getRecord({
+                storeId,
+                promise: promisePrototype,
+                key,
+            });
+        })
+        .then((record) => {
+            // Check that the record is always either:
+            // * null
+            // * or { body: String|Buffer, contentType: String|null }
+            // * or { body: Any, contentType: 'application/json' }
+            const baseMsg = 'ApifyClient returned an unexpected value from keyValueStores.getRecord()';
+            if (!record) {
+                return null;
+            }
+
+            if (typeof (record) !== 'object') {
+                throw new Error(`${baseMsg}: expected an object.`);
+            } else if ((typeof (record.contentType) !== 'string' && record.contentType !== null)) {
+                throw new Error(`${baseMsg}: contentType is not valid.`);
+            } else if (!_.contains(JSON_CONTENT_TYPES, record.contentType)
+                && typeof (record.body) !== 'string'
+                && !Buffer.isBuffer(record.body)) {
+                throw new Error(`${baseMsg}: body must be String or Buffer.`);
+            }
+            return record.body;
+        });
 
     return nodeifyPromise(promise, callback);
 };
@@ -184,6 +108,9 @@ export const setValue = (key, value, contentType, callback = null) => {
         contentType = null;
     }
 
+    const storeId = getDefaultStoreIdOrThrow();
+    const promisePrototype = getPromisePrototype();
+
     let innerPromise;
     if (value !== null) {
         // Normal case: put record to store
@@ -209,8 +136,8 @@ export const setValue = (key, value, contentType, callback = null) => {
 
         // Keep this code in main scope so that simple errors are thrown rather than rejected promise.
         innerPromise = apifyClient.keyValueStores.putRecord({
-            storeId: getDefaultStoreIdOrThrow(),
-            promise: getPromisePrototype(),
+            storeId,
+            promise: promisePrototype,
             key,
             body: value,
             contentType,
@@ -222,8 +149,8 @@ export const setValue = (key, value, contentType, callback = null) => {
             throw new Error('The "contentType" parameter must not be used when removing the record.');
         }
         innerPromise = apifyClient.keyValueStores.deleteRecord({
-            storeId: getDefaultStoreIdOrThrow(),
-            promise: getPromisePrototype(),
+            storeId,
+            promise: promisePrototype,
             key,
         });
     }
@@ -237,48 +164,33 @@ export const setValue = (key, value, contentType, callback = null) => {
  * Generates a context object which contains meta-data about this act run such as:
  * ```javascript
  * {
- *   internalPort: Number,
  *   actId: String,
  *   actRunId: String,
+ *   userId: String,
+ *   token: String,
  *   startedAt: Date,
  *   timeoutAt: Date,
  *   defaultKeyValueStoreId: String,
- *   input: {
- *     body: String/Buffer,
- *     contentType: String,
- *   }
+ *   internalPort: Number,
  * }
  * ```
- * The information is generate using the APIFY_XXX environment variables and the input data is fetched from Apify API.
+ * All the information is generated from the APIFY_XXX environment variables.
  * If some of the variables is not defined or is invalid, the corresponding value in the context object will be null;
  * an error is not thrown in such a case in order to simplify local development and debugging of acts.
- * @param callback Optional callback.
- * @return Returns a promise if no callback was provided, otherwise the return value is not defined.
+ * @return Object Context object.
  */
-export const getContext = (callback = null) => {
-    const context = {
-        internalPort: parseInt(process.env[ENV_VARS.INTERNAL_PORT], 10) || null,
-        actId: process.env[ENV_VARS.ACT_ID] || null,
-        actRunId: process.env[ENV_VARS.ACT_RUN_ID] || null,
-        userId: process.env[ENV_VARS.USER_ID] || null,
-        token: process.env[ENV_VARS.TOKEN] || null,
-        startedAt: tryParseDate(process.env[ENV_VARS.STARTED_AT]) || null,
-        timeoutAt: tryParseDate(process.env[ENV_VARS.TIMEOUT_AT]) || null,
-        defaultKeyValueStoreId: process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID] || null,
-        input: null,
+export const getContext = () => {
+    const env = process.env || {};
+    return {
+        actId: env[ENV_VARS.ACT_ID] || null,
+        actRunId: env[ENV_VARS.ACT_RUN_ID] || null,
+        userId: env[ENV_VARS.USER_ID] || null,
+        token: env[ENV_VARS.TOKEN] || null,
+        startedAt: tryParseDate(env[ENV_VARS.STARTED_AT]) || null,
+        timeoutAt: tryParseDate(env[ENV_VARS.TIMEOUT_AT]) || null,
+        defaultKeyValueStoreId: env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID] || null,
+        internalPort: parseInt(env[ENV_VARS.INTERNAL_PORT], 10) || null,
     };
-
-    const promise = newPromise()
-        .then(() => {
-            if (!context.defaultKeyValueStoreId) return null;
-            return getInput();
-        })
-        .then((input) => {
-            context.input = input || null;
-            return context;
-        });
-
-    return nodeifyPromise(promise, callback);
 };
 
 
@@ -301,34 +213,12 @@ export const main = (userFunc) => {
     try {
         newPromise()
             .then(() => {
-                return getContext();
-            })
-            .catch((err) => {
-                exitWithError(err, EXIT_CODES.ERROR_GETTING_INPUT, 'Failed to fetch act input:');
-            })
-            .then((context) => {
-                if (!exited) {
-                    return userFunc(context);
-                }
+                const context = getContext();
+                return userFunc(context);
             })
             .catch((err) => {
                 if (!exited) {
                     exitWithError(err, EXIT_CODES.ERROR_USER_FUNCTION_THREW, 'User function threw an exception:');
-                }
-            })
-            .then((userReturnValue) => {
-                // Save output to the key-value store
-                if (!exited && userReturnValue) {
-                    const output = {
-                        body: JSON.stringify(userReturnValue),
-                        contentType: 'application/json; charset=utf-8',
-                    };
-                    return setOutput(output);
-                }
-            })
-            .catch((err) => {
-                if (!exited) {
-                    exitWithError(err, EXIT_CODES.ERROR_SETTING_OUTPUT, 'Failed to save act output:');
                 }
             })
             .then(() => {
@@ -341,6 +231,8 @@ export const main = (userFunc) => {
         exitWithError(err, EXIT_CODES.ERROR_UNKNOWN, 'Unknown error occurred');
     }
 };
+
+// TODO: this should rather be called Apify.listeningOnPort() or something like that
 
 /**
  * Notifies Apify runtime that act is listening on port specified by the APIFY_INTERNAL_PORT environment

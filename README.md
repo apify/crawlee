@@ -263,7 +263,7 @@ await browser.close();
 
 ### Promises
 
-By default, the `getContext`, `getValue`, `setValue` and `browse` functions return a promise.
+By default, the `getValue`, `setValue` and `browse` functions return a promise.
 However, they also accept a Node.js-style callback parameter.
 If the callback is provided, the return value of the functions is not defined
 and the functions only invoke the callback upon completion or error.
