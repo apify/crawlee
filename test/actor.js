@@ -6,7 +6,7 @@ import tmp from 'tmp';
 import Promise from 'bluebird';
 
 // NOTE: test use of require() here because this is how its done in acts
-const Apifier = require('../build/index');
+const Apify = require('../build/index');
 
 /* global process, describe, it */
 
@@ -86,7 +86,7 @@ const testMain = (method, bodyRaw, contentType, userFunc, expectedExitCode = 0) 
             });
         }, 20);
 
-        Apifier.main((opts) => {
+        Apify.main((opts) => {
             // console.dir(opts);
             try {
                 expect(opts.input.method).to.equal(method);
@@ -125,7 +125,7 @@ const testMain = (method, bodyRaw, contentType, userFunc, expectedExitCode = 0) 
 */
 
 /**
- * Helper function that enables testing of Apifier.main()
+ * Helper function that enables testing of Apify.main()
  * @return Promise
  */
 const testMain = ({ userFunc, context, exitCode, mockInputException, mockOutputException, expectedOutput }) => {
@@ -137,8 +137,8 @@ const testMain = ({ userFunc, context, exitCode, mockInputException, mockOutputE
         .once()
         .returns();
 
-    // Mock Apifier.client.keyValueStores.getRecord() to test act input
-    const kvStoresMock = sinon.mock(Apifier.client.keyValueStores);
+    // Mock Apify.client.keyValueStores.getRecord() to test act input
+    const kvStoresMock = sinon.mock(Apify.client.keyValueStores);
     if (mockInputException) {
         kvStoresMock
             .expects('getRecord')
@@ -148,7 +148,7 @@ const testMain = ({ userFunc, context, exitCode, mockInputException, mockOutputE
             .expects('getRecord')
             .withExactArgs({
                 storeId: context.defaultKeyValueStoreId,
-                promise: Apifier.getPromisesDependency(),
+                promise: Apify.getPromisesDependency(),
                 key: 'INPUT',
             })
             .returns(Promise.resolve(context.input))
@@ -159,7 +159,7 @@ const testMain = ({ userFunc, context, exitCode, mockInputException, mockOutputE
             .never();
     }
 
-    // Mock Apifier.client.keyValueStores.putRecord() to test act output
+    // Mock Apify.client.keyValueStores.putRecord() to test act output
     if (mockOutputException) {
         kvStoresMock
             .expects('putRecord')
@@ -169,7 +169,7 @@ const testMain = ({ userFunc, context, exitCode, mockInputException, mockOutputE
             .expects('putRecord')
             .withExactArgs({
                 storeId: context.defaultKeyValueStoreId,
-                promise: Apifier.getPromisesDependency(),
+                promise: Apify.getPromisesDependency(),
                 key: 'OUTPUT',
                 contentType: expectedOutput.contentType,
                 body: expectedOutput.body,
@@ -194,7 +194,7 @@ const testMain = ({ userFunc, context, exitCode, mockInputException, mockOutputE
                 // Invoke main() function, the promise resolves after the user function is run
                 // Note that if mockInputException is set, then user function will never get called!
                 if (!mockInputException) {
-                    Apifier.main((realContext) => {
+                    Apify.main((realContext) => {
                         try {
                             expect(realContext).to.eql(context);
                             // Wait for all tasks in Node.js event loop to finish
@@ -207,7 +207,7 @@ const testMain = ({ userFunc, context, exitCode, mockInputException, mockOutputE
                         if (userFunc) return userFunc(realContext);
                     });
                 } else {
-                    Apifier.main(() => {});
+                    Apify.main(() => {});
                     resolve();
                 }
             });
@@ -275,12 +275,12 @@ const setContextToEnv = (context) => {
     if (context.defaultKeyValueStoreId) process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = context.defaultKeyValueStoreId;
 };
 
-describe('Apifier.getContext()', () => {
+describe('Apify.getContext()', () => {
     it('works with null values', () => {
         const expectedContext = getEmptyContext();
         setContextToEnv(expectedContext);
 
-        return Apifier.getContext()
+        return Apify.getContext()
             .then((context) => {
                 expect(context).to.eql(expectedContext);
             });
@@ -300,7 +300,7 @@ describe('Apifier.getContext()', () => {
         });
         setContextToEnv(expectedContext);
 
-        return Apifier.getContext()
+        return Apify.getContext()
             .then((context) => {
                 expect(context).to.eql(expectedContext);
             });
@@ -317,7 +317,7 @@ describe('Apifier.getContext()', () => {
         setContextToEnv(expectedContext);
 
         return new Promise((resolve, reject) => {
-            Apifier.getContext((err, context) => {
+            Apify.getContext((err, context) => {
                 if (err) reject(err);
                 resolve(context);
             });
@@ -344,12 +344,12 @@ describe('Apifier.getContext()', () => {
         };
         setContextToEnv(expectedContext);
 
-        const mock = sinon.mock(Apifier.client.keyValueStores);
+        const mock = sinon.mock(Apify.client.keyValueStores);
         const expectation = mock.expects('getRecord');
         expectation
             .withExactArgs({
                 storeId: expectedContext.defaultKeyValueStoreId,
-                promise: Apifier.getPromisesDependency(),
+                promise: Apify.getPromisesDependency(),
                 key: 'INPUT',
             })
             .once()
@@ -357,7 +357,7 @@ describe('Apifier.getContext()', () => {
 
         return Promise.resolve()
             .then(() => {
-                return Apifier.getContext();
+                return Apify.getContext();
             })
             .then((context) => {
                 expect(context).to.eql(expectedContext);
@@ -369,9 +369,9 @@ describe('Apifier.getContext()', () => {
     });
 });
 
-describe('Apifier.getInput()', () => {
+describe('Apify.getInput()', () => {
     it('supports both promises and callbacks (on success)', () => {
-        const mock = sinon.mock(Apifier.client.keyValueStores);
+        const mock = sinon.mock(Apify.client.keyValueStores);
         mock.expects('getRecord')
             .twice()
             .returns(Promise.resolve(null));
@@ -379,7 +379,7 @@ describe('Apifier.getInput()', () => {
         return Promise.resolve()
             .then(() => {
                 // test promise
-                return Apifier.getInput();
+                return Apify.getInput();
             })
             .then((input) => {
                 expect(input).to.be.eql(null);
@@ -387,7 +387,7 @@ describe('Apifier.getInput()', () => {
             .then(() => {
                 // test callback
                 return new Promise((resolve, reject) => {
-                    return Apifier.getInput((err, input) => {
+                    return Apify.getInput((err, input) => {
                         if (err) return reject(err);
                         resolve(input);
                     });
@@ -404,7 +404,7 @@ describe('Apifier.getInput()', () => {
     });
 
     it('supports both promises and callbacks (on error)', () => {
-        const mock = sinon.mock(Apifier.client.keyValueStores);
+        const mock = sinon.mock(Apify.client.keyValueStores);
         mock.expects('getRecord')
             .twice()
             .throws(new Error('Test error'));
@@ -412,7 +412,7 @@ describe('Apifier.getInput()', () => {
         return Promise.resolve()
             .then(() => {
                 // test promise
-                return Apifier.getInput();
+                return Apify.getInput();
             })
             .catch((err) => {
                 expect(err.message).to.be.eql('Test error');
@@ -420,7 +420,7 @@ describe('Apifier.getInput()', () => {
             .then(() => {
                 // test callback
                 return new Promise((resolve, reject) => {
-                    return Apifier.getInput((err, input) => {
+                    return Apify.getInput((err, input) => {
                         if (err) return reject(err);
                         resolve(input);
                     });
@@ -438,14 +438,14 @@ describe('Apifier.getInput()', () => {
     });
 
     it('returns null on undefined keyValueStores.getRecord() result', () => {
-        const mock = sinon.mock(Apifier.client.keyValueStores);
+        const mock = sinon.mock(Apify.client.keyValueStores);
         mock.expects('getRecord')
             .once()
             .returns(Promise.resolve(undefined));
 
         return Promise.resolve()
             .then(() => {
-                return Apifier.getInput();
+                return Apify.getInput();
             })
             .then((input) => {
                 expect(input).to.be.eql(null);
@@ -457,14 +457,14 @@ describe('Apifier.getInput()', () => {
     });
 
     it('fails on invalid keyValueStores.getRecord() result', () => {
-        const mock = sinon.mock(Apifier.client.keyValueStores);
+        const mock = sinon.mock(Apify.client.keyValueStores);
         mock.expects('getRecord')
             .once()
             .returns(Promise.resolve({ invalid: 'bla bla' }));
 
         return Promise.resolve()
             .then(() => {
-                return Apifier.getInput();
+                return Apify.getInput();
             })
             .then(() => {
                 expect.fail();
@@ -481,10 +481,10 @@ describe('Apifier.getInput()', () => {
     });
 });
 
-describe('Apifier.main()', () => {
+describe('Apify.main()', () => {
     it('throws on invalid args', () => {
         expect(() => {
-            Apifier.main();
+            Apify.main();
         }).to.throw(Error);
     });
 
@@ -635,49 +635,49 @@ describe('Apifier.main()', () => {
     });
 });
 
-describe('Apifier.setOutput()', () => {
+describe('Apify.setOutput()', () => {
     it('throws on invalid args', () => {
         expect(() => {
-            Apifier.setOutput();
+            Apify.setOutput();
         }).to.throw(Error);
 
         expect(() => {
-            Apifier.setOutput('bla bla');
+            Apify.setOutput('bla bla');
         }).to.throw(Error);
 
         expect(() => {
-            Apifier.setOutput(1234);
+            Apify.setOutput(1234);
         }).to.throw(Error);
 
         expect(() => {
-            Apifier.setOutput({});
+            Apify.setOutput({});
         }).to.throw(Error);
 
         expect(() => {
-            Apifier.setOutput({ body: undefined, contentType: 'test' });
+            Apify.setOutput({ body: undefined, contentType: 'test' });
         }).to.throw(Error);
 
         expect(() => {
-            Apifier.setOutput({ body: {}, contentType: 456 });
+            Apify.setOutput({ body: {}, contentType: 456 });
         }).to.throw(Error);
 
         expect(() => {
-            Apifier.setOutput({ body: {}, contentType: undefined });
+            Apify.setOutput({ body: {}, contentType: undefined });
         }).to.throw(Error);
     });
 });
 
-describe('Apifier.getValue()', () => {
+describe('Apify.getValue()', () => {
     it('throws on invalid args', () => {
         const keyErrMsg = 'The "key" parameter must be a non-empty string';
-        expect(() => { Apifier.getValue(); }).to.throw(Error, keyErrMsg);
-        expect(() => { Apifier.getValue({}); }).to.throw(Error, keyErrMsg);
-        expect(() => { Apifier.getValue(''); }).to.throw(Error, keyErrMsg);
-        expect(() => { Apifier.getValue(null); }).to.throw(Error, keyErrMsg);
+        expect(() => { Apify.getValue(); }).to.throw(Error, keyErrMsg);
+        expect(() => { Apify.getValue({}); }).to.throw(Error, keyErrMsg);
+        expect(() => { Apify.getValue(''); }).to.throw(Error, keyErrMsg);
+        expect(() => { Apify.getValue(null); }).to.throw(Error, keyErrMsg);
     });
 
     it('supports both promises and callbacks (on success)', () => {
-        const mock = sinon.mock(Apifier.client.keyValueStores);
+        const mock = sinon.mock(Apify.client.keyValueStores);
         mock.expects('getRecord')
             .twice()
             .returns(Promise.resolve(null));
@@ -685,7 +685,7 @@ describe('Apifier.getValue()', () => {
         return Promise.resolve()
             .then(() => {
                 // test promise
-                return Apifier.getValue('INPUT');
+                return Apify.getValue('INPUT');
             })
             .then((input) => {
                 expect(input).to.be.eql(null);
@@ -693,7 +693,7 @@ describe('Apifier.getValue()', () => {
             .then(() => {
                 // test callback
                 return new Promise((resolve, reject) => {
-                    return Apifier.getValue('INPUT', (err, input) => {
+                    return Apify.getValue('INPUT', (err, input) => {
                         if (err) return reject(err);
                         resolve(input);
                     });
@@ -710,7 +710,7 @@ describe('Apifier.getValue()', () => {
     });
 
     it('supports both promises and callbacks (on error)', () => {
-        const mock = sinon.mock(Apifier.client.keyValueStores);
+        const mock = sinon.mock(Apify.client.keyValueStores);
         mock.expects('getRecord')
             .twice()
             .throws(new Error('Test error'));
@@ -718,7 +718,7 @@ describe('Apifier.getValue()', () => {
         return Promise.resolve()
             .then(() => {
                 // test promise
-                return Apifier.getValue('INPUT');
+                return Apify.getValue('INPUT');
             })
             .catch((err) => {
                 expect(err.message).to.be.eql('Test error');
@@ -726,7 +726,7 @@ describe('Apifier.getValue()', () => {
             .then(() => {
                 // test callback
                 return new Promise((resolve, reject) => {
-                    return Apifier.getValue('INPUT', (err, input) => {
+                    return Apify.getValue('INPUT', (err, input) => {
                         if (err) return reject(err);
                         resolve(input);
                     });
@@ -744,14 +744,14 @@ describe('Apifier.getValue()', () => {
     });
 
     it('returns null on undefined keyValueStores.getRecord() result', () => {
-        const mock = sinon.mock(Apifier.client.keyValueStores);
+        const mock = sinon.mock(Apify.client.keyValueStores);
         mock.expects('getRecord')
             .once()
             .returns(Promise.resolve(undefined));
 
         return Promise.resolve()
             .then(() => {
-                return Apifier.getValue('BLA BLA');
+                return Apify.getValue('BLA BLA');
             })
             .then((input) => {
                 expect(input).to.be.eql(null);
@@ -763,14 +763,14 @@ describe('Apifier.getValue()', () => {
     });
 
     it('fails on invalid keyValueStores.getRecord() result', () => {
-        const mock = sinon.mock(Apifier.client.keyValueStores);
+        const mock = sinon.mock(Apify.client.keyValueStores);
         mock.expects('getRecord')
             .once()
             .returns(Promise.resolve({ invalid: 'bla bla' }));
 
         return Promise.resolve()
             .then(() => {
-                return Apifier.getValue('ANYTHING REALLY');
+                return Apify.getValue('ANYTHING REALLY');
             })
             .then(() => {
                 expect.fail();
@@ -787,42 +787,42 @@ describe('Apifier.getValue()', () => {
     });
 });
 
-describe('Apifier.setValue()', () => {
+describe('Apify.setValue()', () => {
     it('throws on invalid args', () => {
         const keyErrMsg = 'The "key" parameter must be a non-empty string';
-        expect(() => { Apifier.setValue(); }).to.throw(Error, keyErrMsg);
-        expect(() => { Apifier.setValue('', null); }).to.throw(Error, keyErrMsg);
-        expect(() => { Apifier.setValue('', 'some value'); }).to.throw(Error, keyErrMsg);
-        expect(() => { Apifier.setValue({}, 'some value'); }).to.throw(Error, keyErrMsg);
-        expect(() => { Apifier.setValue(123, 'some value'); }).to.throw(Error, keyErrMsg);
+        expect(() => { Apify.setValue(); }).to.throw(Error, keyErrMsg);
+        expect(() => { Apify.setValue('', null); }).to.throw(Error, keyErrMsg);
+        expect(() => { Apify.setValue('', 'some value'); }).to.throw(Error, keyErrMsg);
+        expect(() => { Apify.setValue({}, 'some value'); }).to.throw(Error, keyErrMsg);
+        expect(() => { Apify.setValue(123, 'some value'); }).to.throw(Error, keyErrMsg);
 
         const valueErrMsg = 'The "value" parameter must be a String or Buffer when "contentType" is specified';
-        expect(() => { Apifier.setValue('key', {}, 'image/png'); }).to.throw(Error, valueErrMsg);
-        expect(() => { Apifier.setValue('key', 12345, 'image/png'); }).to.throw(Error, valueErrMsg);
-        expect(() => { Apifier.setValue('key', () => {}, 'image/png'); }).to.throw(Error, valueErrMsg);
+        expect(() => { Apify.setValue('key', {}, 'image/png'); }).to.throw(Error, valueErrMsg);
+        expect(() => { Apify.setValue('key', 12345, 'image/png'); }).to.throw(Error, valueErrMsg);
+        expect(() => { Apify.setValue('key', () => {}, 'image/png'); }).to.throw(Error, valueErrMsg);
 
         const circularObj = {};
         circularObj.xxx = circularObj;
         const jsonErrMsg = 'The "value" parameter cannot be stringified to JSON';
-        expect(() => { Apifier.setValue('key', circularObj, null); }).to.throw(Error, jsonErrMsg);
-        expect(() => { Apifier.setValue('key', undefined); }).to.throw(Error, jsonErrMsg);
-        expect(() => { Apifier.setValue('key', () => {}); }).to.throw(Error, jsonErrMsg);
-        expect(() => { Apifier.setValue('key'); }).to.throw(Error, jsonErrMsg);
+        expect(() => { Apify.setValue('key', circularObj, null); }).to.throw(Error, jsonErrMsg);
+        expect(() => { Apify.setValue('key', undefined); }).to.throw(Error, jsonErrMsg);
+        expect(() => { Apify.setValue('key', () => {}); }).to.throw(Error, jsonErrMsg);
+        expect(() => { Apify.setValue('key'); }).to.throw(Error, jsonErrMsg);
 
         const contTypeRedundantErrMsg = 'The "contentType" parameter must not be used when removing the record';
-        expect(() => { Apifier.setValue('key', null, 'image/png'); }).to.throw(Error, contTypeRedundantErrMsg);
-        expect(() => { Apifier.setValue('key', null, ''); }).to.throw(Error, contTypeRedundantErrMsg);
-        expect(() => { Apifier.setValue('key', null, {}); }).to.throw(Error, contTypeRedundantErrMsg);
+        expect(() => { Apify.setValue('key', null, 'image/png'); }).to.throw(Error, contTypeRedundantErrMsg);
+        expect(() => { Apify.setValue('key', null, ''); }).to.throw(Error, contTypeRedundantErrMsg);
+        expect(() => { Apify.setValue('key', null, {}); }).to.throw(Error, contTypeRedundantErrMsg);
 
         const contTypeStringErrMsg = 'The "contentType" parameter must be a non-empty string, null or undefined';
-        expect(() => { Apifier.setValue('key', 'value', 123); }).to.throw(Error, contTypeStringErrMsg);
-        expect(() => { Apifier.setValue('key', 'value', {}); }).to.throw(Error, contTypeStringErrMsg);
-        expect(() => { Apifier.setValue('key', 'value', new Date()); }).to.throw(Error, contTypeStringErrMsg);
-        expect(() => { Apifier.setValue('key', 'value', ''); }).to.throw(Error, contTypeStringErrMsg);
+        expect(() => { Apify.setValue('key', 'value', 123); }).to.throw(Error, contTypeStringErrMsg);
+        expect(() => { Apify.setValue('key', 'value', {}); }).to.throw(Error, contTypeStringErrMsg);
+        expect(() => { Apify.setValue('key', 'value', new Date()); }).to.throw(Error, contTypeStringErrMsg);
+        expect(() => { Apify.setValue('key', 'value', ''); }).to.throw(Error, contTypeStringErrMsg);
     });
 
     it('supports both promises and callbacks (on success)', () => {
-        const mock = sinon.mock(Apifier.client.keyValueStores);
+        const mock = sinon.mock(Apify.client.keyValueStores);
         mock.expects('putRecord')
         .exactly(4)
         .returns(Promise.resolve(null));
@@ -830,16 +830,16 @@ describe('Apifier.setValue()', () => {
         return Promise.resolve()
         .then(() => {
             // test promise (no content type)
-            return Apifier.setValue('mykey', { someValue: 123 });
+            return Apify.setValue('mykey', { someValue: 123 });
         })
         .then(() => {
             // test promise (with content type)
-            return Apifier.setValue('mykey', 'value', 'text/plain');
+            return Apify.setValue('mykey', 'value', 'text/plain');
         })
         .then(() => {
             // test callback (no content type)
             return new Promise((resolve, reject) => {
-                return Apifier.setValue('mykey', { someValue: 123 }, (err) => {
+                return Apify.setValue('mykey', { someValue: 123 }, (err) => {
                     if (err) return reject(err);
                     resolve();
                 });
@@ -848,7 +848,7 @@ describe('Apifier.setValue()', () => {
         .then(() => {
             // test callback (with content type)
             return new Promise((resolve, reject) => {
-                return Apifier.setValue('mykey', 'myvalue', 'text/plain', (err) => {
+                return Apify.setValue('mykey', 'myvalue', 'text/plain', (err) => {
                     if (err) return reject(err);
                     resolve();
                 });
@@ -863,7 +863,7 @@ describe('Apifier.setValue()', () => {
     });
 
     it('supports both promises and callbacks (on error)', () => {
-        const mock = sinon.mock(Apifier.client.keyValueStores);
+        const mock = sinon.mock(Apify.client.keyValueStores);
         mock.expects('putRecord')
             .twice()
             .throws(new Error('Test error'));
@@ -871,7 +871,7 @@ describe('Apifier.setValue()', () => {
         return Promise.resolve()
         .then(() => {
             // test promise
-            return Apifier.setValue('mykey', { someValue: 1 });
+            return Apify.setValue('mykey', { someValue: 1 });
         })
         .catch((err) => {
             expect(err.message).to.be.eql('Test error');
@@ -879,7 +879,7 @@ describe('Apifier.setValue()', () => {
         .then(() => {
             // test callback
             return new Promise((resolve, reject) => {
-                return Apifier.setValue('mykey', { someValue: 1 }, (err) => {
+                return Apify.setValue('mykey', { someValue: 1 }, (err) => {
                     if (err) return reject(err);
                     resolve();
                 });
@@ -903,9 +903,9 @@ describe('Apifier.setValue()', () => {
 
         process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = storeId;
 
-        Apifier.setPromisesDependency(Promise);
+        Apify.setPromisesDependency(Promise);
 
-        const mock = sinon.mock(Apifier.client.keyValueStores);
+        const mock = sinon.mock(Apify.client.keyValueStores);
         mock.expects('putRecord')
             .once()
             .withArgs({
@@ -920,7 +920,7 @@ describe('Apifier.setValue()', () => {
 
         return Promise.resolve()
             .then(() => {
-                return Apifier.setValue(key, value);
+                return Apify.setValue(key, value);
             })
             .then(() => {
                 mock.verify();
@@ -938,9 +938,9 @@ describe('Apifier.setValue()', () => {
 
         process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = storeId;
 
-        Apifier.setPromisesDependency(Promise);
+        Apify.setPromisesDependency(Promise);
 
-        const mock = sinon.mock(Apifier.client.keyValueStores);
+        const mock = sinon.mock(Apify.client.keyValueStores);
         mock.expects('putRecord')
             .once()
             .withArgs({
@@ -955,7 +955,7 @@ describe('Apifier.setValue()', () => {
 
         return Promise.resolve()
             .then(() => {
-                return Apifier.setValue(key, value, contentType);
+                return Apify.setValue(key, value, contentType);
             })
             .then(() => {
                 mock.verify();
@@ -973,9 +973,9 @@ describe('Apifier.setValue()', () => {
 
         process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = storeId;
 
-        Apifier.setPromisesDependency(Promise);
+        Apify.setPromisesDependency(Promise);
 
-        const mock = sinon.mock(Apifier.client.keyValueStores);
+        const mock = sinon.mock(Apify.client.keyValueStores);
         mock.expects('putRecord')
             .once()
             .withArgs({
@@ -990,7 +990,7 @@ describe('Apifier.setValue()', () => {
 
         return Promise.resolve()
             .then(() => {
-                return Apifier.setValue(key, value, contentType);
+                return Apify.setValue(key, value, contentType);
             })
             .then(() => {
                 mock.verify();
@@ -1001,12 +1001,12 @@ describe('Apifier.setValue()', () => {
     });
 });
 
-describe('Apifier.events', () => {
+describe('Apify.events', () => {
     it('is there and works as EventEmitter', () => {
         return new Promise((resolve, reject) => {
             try {
-                Apifier.events.on('foo', resolve);
-                Apifier.events.emit('foo', 'test event');
+                Apify.events.on('foo', resolve);
+                Apify.events.emit('foo', 'test event');
             } catch (e) {
                 reject(e);
             }
@@ -1018,10 +1018,10 @@ describe('Apifier.events', () => {
 });
 
 
-describe('Apifier.readyFreddy()', () => {
+describe('Apify.readyFreddy()', () => {
     it('it works as expected', () => {
         process.env.APIFY_WATCH_FILE = createWatchFile();
-        Apifier.readyFreddy();
+        Apify.readyFreddy();
         return testWatchFileWillBecomeEmpty(process.env.APIFY_WATCH_FILE, 1000);
     });
 });

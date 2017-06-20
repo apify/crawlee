@@ -21,7 +21,7 @@ export const setPromisesDependency = (dep) => {
 };
 
 /**
- * Gets the promise dependency set by `Apifier.setPromisesDependency`.
+ * Gets the promise dependency set by `Apify.setPromisesDependency`.
  */
 export const getPromisesDependency = () => {
     return PromisesDependency;
@@ -35,12 +35,12 @@ export const getPromisesDependency = () => {
 export const getPromisePrototype = () => {
     if (PromisesDependency) {
         if (typeof (PromisesDependency.resolve) !== 'function') {
-            throw new Error('The promise dependency set using Apifier.setPromisesDependency() does not define resolve() function.');
+            throw new Error('The promise dependency set using Apify.setPromisesDependency() does not define resolve() function.');
         }
         return PromisesDependency;
     }
     if (typeof Promise === 'function') return Promise;
-    throw new Error('Native promises are not available, please call Apifier.setPromisesDependency() to set a promise library.');
+    throw new Error('Native promises are not available, please call Apify.setPromisesDependency() to set a promise library.');
 };
 
 /**

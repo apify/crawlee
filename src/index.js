@@ -7,7 +7,7 @@ import { browse } from './browser';
 /* globals module */
 
 // Publicly available functions
-const Apifier = {
+const Apify = {
     main,
     getContext,
     getInput,
@@ -23,5 +23,5 @@ const Apifier = {
 };
 
 // export this way so that we can import using:
-// const Apifier = require('apifier');
-module.exports = Apifier;
+// const Apify = require('apify');
+module.exports = Apify;

@@ -14,7 +14,7 @@ import { ProxyChain } from './proxy_chain';
 // logging.installConsoleHandler();
 // logging.getLogger('webdriver.http').setLevel(logging.Level.ALL);
 
-// TODO: on first use of Apifier.browse(), print out the version of Chrome and ChromeDriver
+// TODO: on first use of Apify.browse(), print out the version of Chrome and ChromeDriver
 
 
 /**
@@ -175,7 +175,7 @@ export class Browser {
 }
 
 /**
- * Normalizes arguments for Apifier.browse(), fills correctly default values.
+ * Normalizes arguments for Apify.browse(), fills correctly default values.
  * The function is exported to allow unit testing.
  * @param url Optional string
  * @param options Optional object
@@ -203,7 +203,7 @@ export const processBrowseArgs = (url, options, callback) => {
 
 
 /**
- * Opens a new web browser, which is attached to Apifier debugger so that snapshots are sent to Run console (TODO).
+ * Opens a new web browser, which is attached to Apify debugger so that snapshots are sent to Run console (TODO).
  * Internally, this function calls Selenium WebDrivers's Builder command to create a new WebDriver instance.
  * (see http://seleniumhq.github.io/selenium/docs/api/javascript/module/selenium-webdriver/index_exports_Builder.html)
  * The result of the function is a new instance of the Browser class.

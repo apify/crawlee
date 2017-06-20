@@ -8,7 +8,7 @@ import Promise from 'bluebird';
 // import fs from 'fs';
 
 import { processBrowseArgs, getDefaultBrowseOptions } from '../build/browser';
-import Apifier from '../build/index';
+import Apify from '../build/index';
 
 /* globals process */
 
@@ -167,26 +167,26 @@ describe('processBrowseArgs()', () => {
 });
 
 
-describe('Apifier.browse()', function () {
+describe('Apify.browse()', function () {
     // Need a large timeout to run unit tests on Travis CI
     this.timeout(300 * 1000);
 
     it('throws on invalid args', () => {
         assert.throws(() => {
-            Apifier.browse('http://www.blabla.bla', { proxyUrl: 'invalidurl' });
+            Apify.browse('http://www.blabla.bla', { proxyUrl: 'invalidurl' });
         }, Error);
         assert.throws(() => {
-            Apifier.browse('http://www.blabla.bla', { proxyUrl: 'http://host-without-port' });
+            Apify.browse('http://www.blabla.bla', { proxyUrl: 'http://host-without-port' });
         }, Error);
         assert.throws(() => {
-            Apifier.browse('http://www.blabla.bla', { proxyUrl: 'invalid://somehost:1234' });
+            Apify.browse('http://www.blabla.bla', { proxyUrl: 'invalid://somehost:1234' });
         }, Error);
     });
 
     it('opens about:blank with no args', () => {
         process.env.APIFY_HEADLESS = '1';
         let browser;
-        return Apifier.browse()
+        return Apify.browse()
             .then((res) => {
                 browser = res;
                 expect(browser.constructor.name).to.eql('Browser');
@@ -201,7 +201,7 @@ describe('Apifier.browse()', function () {
     it('opens https://www.example.com in headless mode', () => {
         delete process.env.APIFY_HEADLESS;
         let browser;
-        return Apifier.browse('https://www.example.com', { headless: true })
+        return Apify.browse('https://www.example.com', { headless: true })
             .then((res) => {
                 browser = res;
                 expect(browser.constructor.name).to.eql('Browser');
@@ -218,7 +218,7 @@ describe('Apifier.browse()', function () {
         return new Promise((resolve, reject) => {
             try {
                 process.env.APIFY_HEADLESS = '1';
-                const retVal = Apifier.browse('about:blank', {}, (err, result) => {
+                const retVal = Apify.browse('about:blank', {}, (err, result) => {
                     if (err) return reject(err);
                     browser = result;
                     try {
@@ -233,7 +233,7 @@ describe('Apifier.browse()', function () {
                         reject(e);
                     }
                 });
-                assert(!retVal, 'Apifier.browse() with callback should return false-ish value');
+                assert(!retVal, 'Apify.browse() with callback should return false-ish value');
             } catch (e) {
                 reject(e);
             }
@@ -251,7 +251,7 @@ describe('Apifier.browse()', function () {
             browserName: 'chrome',
             proxyUrl: `http://${proxyAuth.username}:${proxyAuth.password}@127.0.0.1:${proxyPort}`,
         };
-        return Apifier.browse(opts)
+        return Apify.browse(opts)
             .then((result) => {
                 browser = result;
             })
@@ -280,7 +280,7 @@ describe('Apifier.browse()', function () {
             browserName: 'chrome',
             userAgent: 'MyUserAgent/1234',
         };
-        return Apifier.browse(opts)
+        return Apify.browse(opts)
             .then((result) => {
                 browser = result;
             })
@@ -297,7 +297,7 @@ describe('Apifier.browse()', function () {
     /*
     it('test xxx', () => {
         // const _ = require('underscore');
-        // const Apifier = require('apifier');
+        // const Apify = require('apify');
         // const request = require('request-promise');
 
 
@@ -305,13 +305,13 @@ describe('Apifier.browse()', function () {
 
         let browser;
 
-        return Apifier.browse({
+        return Apify.browse({
             url: 'https://www.momondo.co.uk/flightsearch/?Search=true&TripType=2&SegNo=2&SO0=LHR&SD0=SGN&SDP0=
             11-10-2017&SO1=SGN&SD1=LHR&SDP1=18-10-2017&AD=1&TK=ECO&DO=false&NA=false',
             //url: 'http://www.example.com',
             userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_5) AppleWebKit/537.36 (KHTML, like Gecko)
             Chrome/60.0.3112.32 Safari/537.36',
-            proxyUrl: 'http://apifier:yFL4g3558j@104.222.170.6:60000',
+            proxyUrl: 'http://something.com',
             headless: true,
             //extraChromeArguments: ['--reduce-security-for-testing', '--disable-web-security'],
         })

@@ -249,7 +249,7 @@ export const setValue = (key, value, contentType, callback = null) => {
  *   }
  * }
  * ```
- * The information is generate using the APIFY_XXX environment variables and the input data is fetched from Apifier API.
+ * The information is generate using the APIFY_XXX environment variables and the input data is fetched from Apify API.
  * If some of the variables is not defined or is invalid, the corresponding value in the context object will be null;
  * an error is not thrown in such a case in order to simplify local development and debugging of acts.
  * @param callback Optional callback.
@@ -343,7 +343,7 @@ export const main = (userFunc) => {
 };
 
 /**
- * Notifies Apifier runtime that act is listening on port specified by the APIFY_INTERNAL_PORT environment
+ * Notifies Apify runtime that act is listening on port specified by the APIFY_INTERNAL_PORT environment
  * variable and is ready to receive a HTTP request with act input.
  */
 export const readyFreddy = () => {
