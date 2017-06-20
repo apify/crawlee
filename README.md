@@ -3,10 +3,10 @@
 [![npm version](https://badge.fury.io/js/apify.svg)](http://badge.fury.io/js/apify)
 [![Build Status](https://travis-ci.org/Apifier/apify-runtime-js.svg)](https://travis-ci.org/Apifier/apify-runtime-js)
 
-A a helper package that simplifies development of Apify acts. See https://www.apifier.com for details.
+Helper package that simplifies development of Apify acts. See https://www.apifier.com for details.
 This is still work in progress, things might change and break.
 
-If you're looking for the API documentation package previously published as *apify*,
+If you're looking for the API documentation package previously published as **apify**,
 please go to [jsdocify](https://www.npmjs.com/package/jsdocify).
 Big kudos to [jbalsas](https://www.npmjs.com/~jbalsas) for giving away this package name!
 
@@ -154,7 +154,7 @@ const output = {
 await Apify.setValue('OUTPUT', output);
 ```
 
-*Don't forget to use the `await` keyword, otherwise the act's process might finish before the output is stored!*
+**IMPORTANT: Do not forget to use the `await` keyword, otherwise the act's process might finish before the output is stored!**
 
 
 ### Browser
