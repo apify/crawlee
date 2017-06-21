@@ -158,14 +158,16 @@ await Apify.setValue('OUTPUT', output);
 ```
 
 By default, the value is converted to JSON and stored with the `application/json` content type.
-If you want to store the data with another content type, pass it in the options as follows:
+If you want to store your data with another content type, pass it in the options as follows:
 
 ```javascript
 await Apify.setValue('OUTPUT', 'my text data', { contentType: 'text/plain' });
 ```
 
+In this case, the value must be a string or Buffer.
+
 **IMPORTANT: Do not forget to use the `await` keyword when calling `Apify.setValue()`,
-otherwise the act's process might finish before the output is stored and/or storage errors will be ignored!**
+otherwise the act process might finish before the output is stored and/or storage errors will not be reported!**
 
 Besides the key `INPUT` and `OUTPUT`, you can use arbitrary keys
 to store any data from your act, such as its state or larger results.
