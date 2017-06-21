@@ -142,8 +142,9 @@ console.log('My input:');
 console.dir(input);
 ```
 
-If the input data has the `application/json` content type, it is automatically parsed into a JavaScript object,
-otherwise it is left as a String or Buffer in the raw form.
+If the input data has the `application/json` content type, it is automatically parsed into a JavaScript object.
+For the `text/plain` content type the result is a string.
+For other content types, the result is raw Buffer.
 
 Similarly, the output can be stored as follows:
 
@@ -154,7 +155,18 @@ const output = {
 await Apify.setValue('OUTPUT', output);
 ```
 
-**IMPORTANT: Do not forget to use the `await` keyword, otherwise the act's process might finish before the output is stored!**
+By default, the value is converted to JSON and stored with the `application/json` content type.
+If you want to store the data with another content type, pass it in the options as follows:
+
+```javascript
+await Apify.setValue('OUTPUT', 'my text data', { contentType: 'text/plain' });
+```
+
+**IMPORTANT: Do not forget to use the `await` keyword when calling `Apify.setValue()`,
+otherwise the act's process might finish before the output is stored and/or storage errors will be ignored!**
+
+Besides the key `INPUT` and `OUTPUT`, you can use arbitrary keys
+to store any data from your act, such as its state or larger results.
 
 
 ### Browser

@@ -452,9 +452,14 @@ describe('Apify.setValue()', () => {
         expect(() => { Apify.setValue(123, 'some value'); }).to.throw(Error, keyErrMsg);
 
         const valueErrMsg = 'The "value" parameter must be a String or Buffer when "contentType" is specified';
-        expect(() => { Apify.setValue('key', {}, 'image/png'); }).to.throw(Error, valueErrMsg);
-        expect(() => { Apify.setValue('key', 12345, 'image/png'); }).to.throw(Error, valueErrMsg);
-        expect(() => { Apify.setValue('key', () => {}, 'image/png'); }).to.throw(Error, valueErrMsg);
+        expect(() => { Apify.setValue('key', {}, { contentType: 'image/png' }); }).to.throw(Error, valueErrMsg);
+        expect(() => { Apify.setValue('key', 12345, { contentType: 'image/png' }); }).to.throw(Error, valueErrMsg);
+        expect(() => { Apify.setValue('key', () => {}, { contentType: 'image/png' }); }).to.throw(Error, valueErrMsg);
+
+        const optsErrMsg = 'The "options" parameter must be an object, null or undefined';
+        expect(() => { Apify.setValue('key', {}, 123); }).to.throw(Error, optsErrMsg);
+        expect(() => { Apify.setValue('key', {}, 'bla/bla'); }).to.throw(Error, optsErrMsg);
+        expect(() => { Apify.setValue('key', {}, true); }).to.throw(Error, optsErrMsg);
 
         const circularObj = {};
         circularObj.xxx = circularObj;
@@ -464,16 +469,16 @@ describe('Apify.setValue()', () => {
         expect(() => { Apify.setValue('key', () => {}); }).to.throw(Error, jsonErrMsg);
         expect(() => { Apify.setValue('key'); }).to.throw(Error, jsonErrMsg);
 
-        const contTypeRedundantErrMsg = 'The "contentType" parameter must not be used when removing the record';
-        expect(() => { Apify.setValue('key', null, 'image/png'); }).to.throw(Error, contTypeRedundantErrMsg);
-        expect(() => { Apify.setValue('key', null, ''); }).to.throw(Error, contTypeRedundantErrMsg);
-        expect(() => { Apify.setValue('key', null, {}); }).to.throw(Error, contTypeRedundantErrMsg);
+        const contTypeRedundantErrMsg = 'The "options.contentType" parameter must not be used when removing the record';
+        expect(() => { Apify.setValue('key', null, { contentType: 'image/png' }); }).to.throw(Error, contTypeRedundantErrMsg);
+        expect(() => { Apify.setValue('key', null, { contentType: '' }); }).to.throw(Error, contTypeRedundantErrMsg);
+        expect(() => { Apify.setValue('key', null, { contentType: {} }); }).to.throw(Error, contTypeRedundantErrMsg);
 
-        const contTypeStringErrMsg = 'The "contentType" parameter must be a non-empty string, null or undefined';
-        expect(() => { Apify.setValue('key', 'value', 123); }).to.throw(Error, contTypeStringErrMsg);
-        expect(() => { Apify.setValue('key', 'value', {}); }).to.throw(Error, contTypeStringErrMsg);
-        expect(() => { Apify.setValue('key', 'value', new Date()); }).to.throw(Error, contTypeStringErrMsg);
-        expect(() => { Apify.setValue('key', 'value', ''); }).to.throw(Error, contTypeStringErrMsg);
+        const contTypeStringErrMsg = 'The "options.contentType" parameter must be a non-empty string, null or undefined';
+        expect(() => { Apify.setValue('key', 'value', { contentType: 123 }); }).to.throw(Error, contTypeStringErrMsg);
+        expect(() => { Apify.setValue('key', 'value', { contentType: {} }); }).to.throw(Error, contTypeStringErrMsg);
+        expect(() => { Apify.setValue('key', 'value', { contentType: new Date() }); }).to.throw(Error, contTypeStringErrMsg);
+        expect(() => { Apify.setValue('key', 'value', { contentType: '' }); }).to.throw(Error, contTypeStringErrMsg);
     });
 
     it('throws if APIFY_DEFAULT_KEY_VALUE_STORE_ID env var is not defined', () => {
@@ -490,42 +495,68 @@ describe('Apify.setValue()', () => {
         process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = '1234';
         const mock = sinon.mock(Apify.client.keyValueStores);
         mock.expects('putRecord')
-            .exactly(4)
+            .exactly(8)
             .returns(Promise.resolve(null));
 
         return Promise.resolve()
-        .then(() => {
-            // test promise (no content type)
-            return Apify.setValue('mykey', { someValue: 123 });
-        })
-        .then(() => {
-            // test promise (with content type)
-            return Apify.setValue('mykey', 'value', 'text/plain');
-        })
-        .then(() => {
-            // test callback (no content type)
-            return new Promise((resolve, reject) => {
-                return Apify.setValue('mykey', { someValue: 123 }, (err) => {
-                    if (err) return reject(err);
-                    resolve();
+            .then(() => {
+                // test promise (no options)
+                return Apify.setValue('mykey', { someValue: 123 });
+            })
+            .then(() => {
+                // test promise (with options)
+                return Apify.setValue('mykey', 'value', { contentType: 'text/plain' });
+            })
+            .then(() => {
+                // test promise (null options)
+                return Apify.setValue('mykey', 'value', null);
+            })
+            .then(() => {
+                // test promise (undefined options)
+                return Apify.setValue('mykey', 'value', undefined);
+            })
+            .then(() => {
+                // test callback (no options)
+                return new Promise((resolve, reject) => {
+                    return Apify.setValue('mykey', { someValue: 123 }, (err) => {
+                        if (err) return reject(err);
+                        resolve();
+                    });
                 });
-            });
-        })
-        .then(() => {
-            // test callback (with content type)
-            return new Promise((resolve, reject) => {
-                return Apify.setValue('mykey', 'myvalue', 'text/plain', (err) => {
-                    if (err) return reject(err);
-                    resolve();
+            })
+            .then(() => {
+                // test callback (with options)
+                return new Promise((resolve, reject) => {
+                    return Apify.setValue('mykey', 'myvalue', { contentType: 'text/plain' }, (err) => {
+                        if (err) return reject(err);
+                        resolve();
+                    });
                 });
+            })
+            .then(() => {
+                // test callback (null options)
+                return new Promise((resolve, reject) => {
+                    return Apify.setValue('mykey', { someValue: 123 }, null, (err) => {
+                        if (err) return reject(err);
+                        resolve();
+                    });
+                });
+            })
+            .then(() => {
+                // test callback (undefined options)
+                return new Promise((resolve, reject) => {
+                    return Apify.setValue('mykey', { someValue: 123 }, resolve, (err) => {
+                        if (err) return reject(err);
+                        resolve();
+                    });
+                });
+            })
+            .then(() => {
+                mock.verify();
+            })
+            .finally(() => {
+                mock.restore();
             });
-        })
-        .then(() => {
-            mock.verify();
-        })
-        .finally(() => {
-            mock.restore();
-        });
     });
 
     it('supports both promises and callbacks (on error)', () => {
@@ -536,31 +567,31 @@ describe('Apify.setValue()', () => {
             .throws(new Error('Test error'));
 
         return Promise.resolve()
-        .then(() => {
-            // test promise
-            return Apify.setValue('mykey', { someValue: 1 });
-        })
-        .catch((err) => {
-            expect(err.message).to.be.eql('Test error');
-        })
-        .then(() => {
-            // test callback
-            return new Promise((resolve, reject) => {
-                return Apify.setValue('mykey', { someValue: 1 }, (err) => {
-                    if (err) return reject(err);
-                    resolve();
+            .then(() => {
+                // test promise
+                return Apify.setValue('mykey', { someValue: 1 });
+            })
+            .catch((err) => {
+                expect(err.message).to.be.eql('Test error');
+            })
+            .then(() => {
+                // test callback
+                return new Promise((resolve, reject) => {
+                    return Apify.setValue('mykey', { someValue: 1 }, (err) => {
+                        if (err) return reject(err);
+                        resolve();
+                    });
                 });
+            })
+            .catch((err) => {
+                expect(err.message).to.be.eql('Test error');
+            })
+            .then(() => {
+                mock.verify();
+            })
+            .finally(() => {
+                mock.restore();
             });
-        })
-        .catch((err) => {
-            expect(err.message).to.be.eql('Test error');
-        })
-        .then(() => {
-            mock.verify();
-        })
-        .finally(() => {
-            mock.restore();
-        });
     });
 
     it('correctly stores object values as JSON', () => {
@@ -624,7 +655,7 @@ describe('Apify.setValue()', () => {
 
         return Promise.resolve()
             .then(() => {
-                return Apify.setValue(key, value, contentType);
+                return Apify.setValue(key, value, { contentType });
             })
             .then(() => {
                 mock.verify();
@@ -660,7 +691,7 @@ describe('Apify.setValue()', () => {
 
         return Promise.resolve()
             .then(() => {
-                return Apify.setValue(key, value, contentType);
+                return Apify.setValue(key, value, { contentType });
             })
             .then(() => {
                 mock.verify();

@@ -92,21 +92,25 @@ export const getValue = (key, callback = null) => {
  * The function has no result, but throws on invalid args or other errors.
  * @param value
  * If null, the record in the key-value store is deleted.
- * If no contentType, the value can be any object and it will be stringified to JSON.
+ * If no contentType is specified, the value can be any object and it will be stringified to JSON.
  * If contentType is specified, value is considered raw data it must be a String or Buffer.
  * For any other value an error will be thrown.
- * @param contentType Optional MIME content type of the value.
+ * @param options Optional settings, currently only { contentType: String } is supported to set MIME content type of the value.
  * @param callback Optional callback.
  * @return Returns a promise if no callback was provided, otherwise the return value is not defined.
  */
-export const setValue = (key, value, contentType, callback = null) => {
+export const setValue = (key, value, options, callback = null) => {
     if (!key || !_.isString(key)) throw new Error('The "key" parameter must be a non-empty string');
 
     // contentType is optional
-    if (_.isFunction(contentType)) {
-        callback = contentType;
-        contentType = null;
+    if (_.isFunction(options)) {
+        callback = options;
+        options = null;
     }
+
+    if (typeof (options) !== 'object' && options !== undefined) throw new Error('The "options" parameter must be an object, null or undefined.');
+    // Make copy of options, don't update what user passed
+    options = Object.assign({}, options);
 
     const storeId = getDefaultStoreIdOrThrow();
     const promisePrototype = getPromisePrototype();
@@ -115,8 +119,8 @@ export const setValue = (key, value, contentType, callback = null) => {
     if (value !== null) {
         // Normal case: put record to store
         // If contentType is missing, value will be stringified to JSON
-        if (contentType === null || contentType === undefined) {
-            contentType = 'application/json';
+        if (options.contentType === null || options.contentType === undefined) {
+            options.contentType = 'application/json';
             try {
                 value = JSON.stringify(value);
             } catch (e) {
@@ -127,8 +131,8 @@ export const setValue = (key, value, contentType, callback = null) => {
             }
         }
 
-        if (!contentType || !_.isString(contentType)) {
-            throw new Error('The "contentType" parameter must be a non-empty string, null or undefined.');
+        if (!options.contentType || !_.isString(options.contentType)) {
+            throw new Error('The "options.contentType" parameter must be a non-empty string, null or undefined.');
         }
         if (!_.isString(value) && !Buffer.isBuffer(value)) {
             throw new Error('The "value" parameter must be a String or Buffer when "contentType" is specified.');
@@ -140,13 +144,13 @@ export const setValue = (key, value, contentType, callback = null) => {
             promise: promisePrototype,
             key,
             body: value,
-            contentType,
+            contentType: options.contentType,
             useRawBody: true,
         });
     } else {
         // Special case: remove the record from the store
-        if (contentType !== null && contentType !== undefined) {
-            throw new Error('The "contentType" parameter must not be used when removing the record.');
+        if (options.contentType !== null && options.contentType !== undefined) {
+            throw new Error('The "options.contentType" parameter must not be used when removing the record.');
         }
         innerPromise = apifyClient.keyValueStores.deleteRecord({
             storeId,
