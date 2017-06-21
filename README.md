@@ -53,6 +53,8 @@ Apify.main(() => {
 If the user function returns a promise, it is considered as asynchronous:
 
 ```javascript
+const request = require('request-promise');
+
 Apify.main(() => {
     // my asynchronous function that returns a promise
     return Promise.resolve()
@@ -134,7 +136,7 @@ under keys named `INPUT` and `OUTPUT`, respectively.
 The ID of the key-value store is provided by the Actor runtime as the `APIFY_DEFAULT_KEY_VALUE_STORE_ID`
 environment variable.
 
-Use the following code to obtain the input of the act:
+Use the `Apify.getValue(key, [, callback])` function to obtain the input of your act:
 
 ```javascript
 const input = await Apify.getValue('INPUT');
@@ -146,7 +148,7 @@ If the input data has the `application/json` content type, it is automatically p
 For the `text/plain` content type the result is a string.
 For other content types, the result is raw Buffer.
 
-Similarly, the output can be stored as follows:
+Similarly, the output can be stored using the `Apify.setValue(key, value [, options] [, callback])` function as follows:
 
 ```javascript
 const output = {
