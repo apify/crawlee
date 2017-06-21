@@ -77,12 +77,12 @@ Apify.main(async () => {
 ```
 
 Note that the `Apify.main()` function does not need to be used at all,
-it is provided merely for a user convenience.
+it is provided merely for user convenience.
 
 
 ### Environment
 
-On the Apify platform, the act process is executed with several environment variables.
+When running on the Apify platform, the act process is executed with several environment variables.
 To simplify access to these variables, you can use the `Apify.getEnv()` function,
 which returns an object with the following properties:
 
