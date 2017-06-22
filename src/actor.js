@@ -214,17 +214,24 @@ export const main = (userFunc) => {
         process.exit(exitCode);
     };
 
+    // Set dummy interval to ensure the process will not be killed while awaiting empty promise:
+    // await new Promise(() => {})
+    // Such a construct is used to for testing of act timeouts and aborts.
+    const intervalId = setInterval(_.noop, 9999999);
+
     try {
         newPromise()
             .then(() => {
                 return userFunc();
             })
             .catch((err) => {
+                clearInterval(intervalId);
                 if (!exited) {
                     exitWithError(err, EXIT_CODES.ERROR_USER_FUNCTION_THREW, 'User function threw an exception:');
                 }
             })
             .then(() => {
+                clearInterval(intervalId);
                 if (!exited) {
                     process.exit(EXIT_CODES.SUCCESS);
                 }
