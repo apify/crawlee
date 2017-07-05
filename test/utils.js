@@ -111,3 +111,26 @@ describe('utils.parseUrl()', () => {
         });
     });
 });
+
+
+describe('utils.redactUrl()', () => {
+    it('works', () => {
+        expect(utils.redactUrl('https://username:password@www.example.com:1234/path#hash'))
+            .to.eql('https://username:<redacted>@www.example.com:1234/path#hash');
+
+        expect(utils.redactUrl('https://username@www.example.com:1234/path#hash'))
+            .to.eql('https://username@www.example.com:1234/path#hash');
+
+        expect(utils.redactUrl('https://username:password@www.example.com:1234/path#hash', '<xxx>'))
+            .to.eql('https://username:<xxx>@www.example.com:1234/path#hash');
+
+        expect(utils.redactUrl('ftp://@www.example.com/path/path2'))
+            .to.eql('ftp://www.example.com/path/path2');
+
+        expect(utils.redactUrl('ftp://www.example.com'))
+            .to.eql('ftp://www.example.com/');
+
+        expect(utils.redactUrl('ftp://example.com/'))
+            .to.eql('ftp://example.com/');
+    });
+});
