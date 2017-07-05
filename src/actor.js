@@ -122,7 +122,8 @@ export const setValue = (key, value, options, callback = null) => {
         if (options.contentType === null || options.contentType === undefined) {
             options.contentType = 'application/json';
             try {
-                value = JSON.stringify(value);
+                // Format JSON to simplify debugging, the overheads with compression is negligible
+                value = JSON.stringify(value, null, 2);
             } catch (e) {
                 throw new Error(`The "value" parameter cannot be stringified to JSON: ${e.message}`);
             }

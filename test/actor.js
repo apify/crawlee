@@ -611,7 +611,7 @@ describe('Apify.setValue()', () => {
                 storeId,
                 promise: Promise,
                 key,
-                body: JSON.stringify(value),
+                body: JSON.stringify(value, null, 2),
                 contentType: 'application/json',
                 useRawBody: true,
             })

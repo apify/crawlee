@@ -1,6 +1,6 @@
 {
   "name": "apify",
-  "version": "0.4.7",
+  "version": "0.4.8",
   "description": "Apify runtime for JavaScript",
   "main": "build/index.js",
   "keywords": [
