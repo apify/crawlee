@@ -275,7 +275,8 @@ describe('Apify.browse()', function () {
     it('userAgent option works', () => {
         let browser;
         const opts = {
-            url: 'http://www.whatsmyua.info/',
+            // TODO: this is not reliable, we should use our own testing page
+            url: 'http://www.whoishostingthis.com/tools/user-agent/',
             headless: true,
             browserName: 'chrome',
             userAgent: 'MyUserAgent/1234',
@@ -289,12 +290,34 @@ describe('Apify.browse()', function () {
                 return browser.webDriver.getPageSource();
             })
             .then((source) => {
-                expect(source).to.contain(`rawUa: ${opts.userAgent}`);
+                expect(source).to.contain(opts.userAgent);
                 return browser.close();
             });
     });
 
-    /*
+/*
+    it('test cache dir', () => {
+        console.log('HEREE');
+        let browser;
+        const opts = {
+            url: 'https://www.apifier.com/',
+            headless: false,
+            browserName: 'chrome',
+            extraChromeArguments: ['--disk-cache-dir=/Users/jan/Projects/apify-runtime-js/_profiles/xxx1'], //, '--disk-cache-size=10000000'],
+        };
+        Apify.setPromisesDependency(Promise);
+        return Apify.browse(opts)
+            .then((result) => {
+                browser = result;
+            })
+            .then(() => {
+                // return browser.webDriver.sleep(300 * 1000);
+            })
+            .finally(() => {
+                // return browser.close();
+            });
+    });
+
     it('test xxx', () => {
         // const _ = require('underscore');
         // const Apify = require('apify');

@@ -5,7 +5,7 @@ import tmp from 'tmp';
 import portastic from 'portastic';
 import Promise from 'bluebird';
 import rimraf from 'rimraf';
-import { parseUrl } from './utils';
+import { parseUrl, redactParsedUrl } from './utils';
 
 /* globals process */
 
@@ -87,8 +87,7 @@ export class ProxyChain {
     }
 
     _getParentProxyUrl() {
-        const p = this.parsedProxyUrl;
-        return `${p.protocol}//${p.username || ''}:${p.password ? '<redacted>' : ''}@${p.host}`;
+        return redactParsedUrl(this.parsedProxyUrl);
     }
 
     /**

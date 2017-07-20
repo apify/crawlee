@@ -1,0 +1,32 @@
+{
+  "name": "apifier",
+  "version": "0.0.53",
+  "description": "Legacy Apifier runtime for JavaScript",
+  "main": "dummy.js",
+  "keywords": [
+    "apify",
+    "apifier",
+    "crawler",
+    "scraper"
+  ],
+  "author": {
+    "name": "Apifier",
+    "email": "info@apifier.com",
+    "url": "https://www.apifier.com"
+  },
+  "contributors": [
+    "Jan Curn <jan@apifier.com>",
+    "Marek Trunkat <marek@apifier.com>"
+  ],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apifier/apify-runtime-js"
+  },
+  "bugs": {
+    "url": "https://github.com/apifier/apify-runtime-js/issues"
+  },
+  "homepage": "https://github.com/apifier/apify-runtime-js",
+  "dependencies": {
+  }
+}

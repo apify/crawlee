@@ -111,3 +111,30 @@ export const parseUrl = (url) => {
 
     return parsed;
 };
+
+
+/**
+ * Redacts password from a URL, so that it can be shown in logs, results etc.
+ * For example, converts URL such as
+ * 'https://username:password@www.example.com/path#hash'
+ * to 'https://username:<redacted>@www.example.com/path#hash'
+ * @param url URL, it must contain at least protocol and hostname
+ * @param passwordReplacement The string that replaces password, by default it is '<redacted>'
+ * @return {string}
+ */
+export const redactUrl = (url, passwordReplacement) => {
+    return redactParsedUrl(parseUrl(url), passwordReplacement);
+};
+
+export const redactParsedUrl = (parsedUrl, passwordReplacement = '<redacted>') => {
+    const p = parsedUrl;
+    let auth = null;
+    if (p.username) {
+        if (p.password) {
+            auth = `${p.username}:${passwordReplacement}`;
+        } else {
+            auth = `${p.username}`;
+        }
+    }
+    return `${p.protocol}//${auth || ''}${auth ? '@' : ''}${p.host}${p.path || ''}${p.hash || ''}`;
+};
