@@ -229,6 +229,10 @@ via off
 forwarded_for transparent
 access_log none
 #access_log daemon:${path.join(this.tmpDir, 'access.log')} squid
+# An attempt to reduce memory consumption (proxy shouldn't store anything)
+cache deny all
+memory_pools off
+cache_mem 16 MB
 cache_store_log none
 cache_log /dev/null
 #cache_log ${path.join(this.tmpDir, 'cache.log')}
