@@ -256,9 +256,11 @@ cache_peer_access my_peer allow all
      * @return {*}
      */
     shutdown() {
-        console.log(`Shutting down proxy chain ${this._getChildProxyUrl()} => ${this._getParentProxyUrl()} (Squid pid: ${this.squidPid})`); // eslint-disable-line max-len
+        const isRunning = this._isSquidRunning();
 
-        if (this._isSquidRunning()) {
+        console.log(`Shutting down proxy chain ${this._getChildProxyUrl()} => ${this._getParentProxyUrl()} (Squid pid: ${this.squidPid}, running: ${isRunning})`); // eslint-disable-line max-len
+
+        if (isRunning) {
             try {
                 process.kill(this.squidPid, 'SIGKILL');
             } catch (err) {
