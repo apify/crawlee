@@ -21,25 +21,24 @@ git push
 
 # Master gets published as LATEST if that version doesn't exists yet and retagged as LATEST otherwise.
 if [ "${BRANCH}" = "master" ]; then
-    EXISTING_NPM_VERSION=$(npm view ${PACKAGE_NAME} versions | grep ${PACKAGE_VERSION} | tee)
-    echo "EXISTING_NPM_VERSION: '${EXISTING_NPM_VERSION}'"
+    EXISTING_NPM_VERSION=$(npm view ${PACKAGE_NAME} versions | grep ${PACKAGE_VERSION} | tee) # Using tee to swallow non-zero exit code
     if [ -z "${EXISTING_NPM_VERSION}" ]; then
-        printf "${RED}You can only publish to NPM with 'beta' tag from 'develop' branch!${NC}\n"
+        printf "${RED}Version ${PACKAGE_VERSION} was not yet published on NPM. Note that you can only publish to NPM from \"develop\" branch!${NC}\n"
         exit 1
     else
         echo "Tagging version ${PACKAGE_VERSION} with tag \"latest\" ..."
         RUNNING_FROM_SCRIPT=1 npm dist-tag add ${PACKAGE_NAME}@${PACKAGE_VERSION} latest
-
-        echo "Tagging git commit with ${GIT_TAG} ..."
-        git tag ${GIT_TAG}
-        git push origin ${GIT_TAG}
-        echo "Git tag: ${GIT_TAG} created."
     fi
 
 # Develop branch gets published as BETA and we don't allow to override tag of existing version.
 elif [ "${BRANCH}" = "develop" ]; then
     echo "Publishing version ${PACKAGE_VERSION} with tag \"beta\" ..."
     RUNNING_FROM_SCRIPT=1 npm publish --tag beta
+
+    echo "Tagging git commit with ${GIT_TAG} ..."
+    git tag ${GIT_TAG}
+    git push origin ${GIT_TAG}
+    echo "Git tag: ${GIT_TAG} created."
 
 # For other branch throw an error.
 else
