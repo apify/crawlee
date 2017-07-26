@@ -23,7 +23,7 @@ git push
 if [ "${BRANCH}" = "master" ]; then
     EXISTING_NPM_VERSION=$(npm view ${PACKAGE_NAME} versions | grep ${PACKAGE_VERSION}) | tee
     if [ -z "${EXISTING_NPM_VERSION}" ]; then
-        printf "${RED}You can only publish to NPM from develop branch with beta tag!${NC}\n"
+        printf "${RED}You can only publish to NPM with 'beta' tag from 'develop' branch!${NC}\n"
         exit 1
     else
         echo "Tagging version ${PACKAGE_VERSION} with tag \"latest\" ..."
