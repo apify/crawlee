@@ -21,7 +21,7 @@ git push
 
 # Master gets published as LATEST if that version doesn't exists yet and retagged as LATEST otherwise.
 if [ "${BRANCH}" = "master" ]; then
-    EXISTING_NPM_VERSION=$(npm view ${PACKAGE_NAME} versions | grep ${PACKAGE_VERSION})
+    EXISTING_NPM_VERSION=$(npm view ${PACKAGE_NAME} versions | grep ${PACKAGE_VERSION}) | tee
     if [ -z "${EXISTING_NPM_VERSION}" ]; then
         printf "${RED}You can only publish to NPM from develop branch with beta tag!${NC}\n"
         exit 1
