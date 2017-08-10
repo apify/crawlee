@@ -4,6 +4,7 @@ import { expect } from 'chai';
 import sinon from 'sinon';
 import tmp from 'tmp';
 import Promise from 'bluebird';
+import { ACT_TASK_STATUSES } from '../build/constants';
 
 // NOTE: test use of require() here because this is how its done in acts
 const Apify = require('../build/index');
@@ -724,5 +725,78 @@ describe('Apify.readyFreddy()', () => {
         process.env.APIFY_WATCH_FILE = createWatchFile();
         Apify.readyFreddy();
         return testWatchFileWillBecomeEmpty(process.env.APIFY_WATCH_FILE, 1000);
+    });
+});
+
+describe('Apify.call()', () => {
+    it('works as expected', () => {
+        const actId = 'some-act-id';
+        const token = 'some-token';
+        const defaultKeyValueStoreId = 'some-store-id';
+        const run = { id: 'some-run-id', actId, defaultKeyValueStoreId };
+        const runningRun = Object.assign({}, run, { status: 'RUNNING' });
+        const finishedRun = Object.assign({}, run, { status: ACT_TASK_STATUSES.SUCCEEDED });
+        const output = 'some-output';
+        const expected = Object.assign({}, finishedRun, { output });
+
+        const actsMock = sinon.mock(Apify.client.acts);
+        actsMock.expects('runAct')
+            .withExactArgs({ token, actId })
+            .once()
+            .returns(Promise.resolve(runningRun));
+        actsMock.expects('getRun')
+            .withExactArgs({ token, actId, runId: run.id, waitForFinish: 999999 })
+            .once()
+            .returns(Promise.resolve(runningRun));
+        actsMock.expects('getRun')
+            .withExactArgs({ token, actId, runId: run.id, waitForFinish: 999999 })
+            .once()
+            .returns(Promise.resolve(finishedRun));
+
+        const keyValueStoresMock = sinon.mock(Apify.client.keyValueStores);
+        keyValueStoresMock.expects('getRecord')
+            .withExactArgs({ storeId: run.defaultKeyValueStoreId, key: 'OUTPUT' })
+            .once()
+            .returns(Promise.resolve(output));
+
+        return Apify
+            .call(actId, { token })
+            .then((callOutput) => {
+                expect(callOutput).to.be.eql(expected);
+                keyValueStoresMock.restore();
+                actsMock.restore();
+            });
+    });
+
+    it('timeouts as expected with unfinished run', () => {
+        const actId = 'some-act-id';
+        const token = 'some-token';
+        const defaultKeyValueStoreId = 'some-store-id';
+        const run = { id: 'some-run-id', actId, defaultKeyValueStoreId };
+        const runningRun = Object.assign({}, run, { status: 'RUNNING' });
+        const timeoutSecs = 1;
+
+        const actsMock = sinon.mock(Apify.client.acts);
+        actsMock.expects('runAct')
+            .withExactArgs({ token, actId })
+            .once()
+            .returns(Promise.resolve(runningRun));
+        actsMock.expects('getRun')
+            .withExactArgs({ token, actId, runId: run.id, waitForFinish: timeoutSecs })
+            .once()
+            .returns(new Promise((resolve) => {
+                setTimeout(() => resolve(runningRun), timeoutSecs * 1000);
+            }));
+
+        const keyValueStoresMock = sinon.mock(Apify.client.keyValueStores);
+        keyValueStoresMock.expects('getRecord').never();
+
+        return Apify
+            .call(actId, { token, timeoutSecs })
+            .then((callOutput) => {
+                expect(callOutput).to.be.eql(runningRun);
+                keyValueStoresMock.restore();
+                actsMock.restore();
+            });
     });
 });

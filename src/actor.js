@@ -1,6 +1,7 @@
 import fs from 'fs';
 import _ from 'underscore';
-import { ENV_VARS, EXIT_CODES } from './constants';
+import { checkParamOrThrow } from 'apify-client/build/utils';
+import { ENV_VARS, EXIT_CODES, ACT_TASK_TERMINAL_STATUSES } from './constants';
 import { getPromisePrototype, newPromise, nodeifyPromise, newClient } from './utils';
 
 /* global process, Buffer */
@@ -258,4 +259,83 @@ export const readyFreddy = () => {
     } else {
         console.log(`WARNING: ${ENV_VARS.WATCH_FILE} environment variable not specified, readyFreddy() has no effect.`);
     }
+};
+
+/**
+ * Executes given, waits for it to finish and fetches it's OUTPUT from key-value store and saves it to run.output.
+ *
+ * @param {String} actId - Either act ID or username/actname.
+ * @param {Object} [opts]
+ * @param {String} [opts.token] - User API token.
+ * @param {String} [opts.build] - Build tag or number to be executed.
+ * @param {String} [opts.body] - Act input body.
+ * @param {String} [opts.contentType] - Content type of the act input.
+ * @param {String} [opts.timeoutSecs] - Time limit for act to finish. If limit is reached then run in RUNNING status is returned.
+                                        Default is unlimited.
+ * @param {String} [opts.fetchOutput] - If false then doesn't fetch the OUTPUT from key-value store. Default is true.
+ * @param {String} [opts.raw] - If true then returns only OUTPUT value without content type and other info. Default is false.
+ * @param {String} [opts.useRawBody] - If true then doesn't parse the body - ie. JSON to object. Default is false.
+ */
+export const call = (actId, opts = {}) => {
+    const { acts, keyValueStores } = apifyClient;
+
+    // Common options.
+    const { token } = opts;
+    checkParamOrThrow(actId, 'actId', 'String');
+    checkParamOrThrow(token, 'token', 'Maybe String');
+    const defaultOpts = { actId };
+    if (token) defaultOpts.token = token;
+
+    // RunAct() options.
+    const { build, body, contentType } = opts;
+    checkParamOrThrow(build, 'build', 'Maybe String');
+    checkParamOrThrow(body, 'body', 'Maybe Buffer | String');
+    checkParamOrThrow(contentType, 'contentType', 'Maybe String');
+    const runActOpts = {};
+    if (contentType) runActOpts.contentType = contentType;
+    if (build) runActOpts.build = build;
+    if (body) runActOpts.build = body;
+
+    // GetAct() options.
+    const { timeoutSecs, fetchOutput = true } = opts;
+    checkParamOrThrow(timeoutSecs, 'timeoutSecs', 'Maybe Number');
+    checkParamOrThrow(fetchOutput, 'fetchOutput', 'Boolean');
+    const timeoutAt = timeoutSecs ? Date.now() + (timeoutSecs * 1000) : null;
+
+    // GetRecord() options.
+    const { raw, useRawBody } = opts;
+    checkParamOrThrow(raw, 'raw', 'Maybe Boolean');
+    checkParamOrThrow(useRawBody, 'useRawBody', 'Maybe Boolean');
+
+    // Adds run.output field to given run and returns it.
+    const addOutputToRun = (run) => {
+        const getRecordOpts = { key: 'OUTPUT', storeId: run.defaultKeyValueStoreId };
+        if (raw) getRecordOpts.raw = raw;
+        if (useRawBody) getRecordOpts.useRawBody = useRawBody;
+
+        return keyValueStores
+            .getRecord(getRecordOpts)
+            .then(output => Object.assign({}, run, { output }));
+    };
+
+    // Keeps requesting given run until it gets finished or timeout is reached.
+    const waitForRunToFinish = (run) => {
+        const waitForFinish = timeoutAt !== null ? Math.round((timeoutAt - Date.now()) / 1000) : 999999;
+
+        // We are timing out ...
+        if (waitForFinish <= 0) return Promise.resolve(run);
+
+        return acts
+            .getRun(Object.assign({}, defaultOpts, { waitForFinish, runId: run.id }))
+            .then((updatedRun) => {
+                if (!_.contains(ACT_TASK_TERMINAL_STATUSES, updatedRun.status)) return waitForRunToFinish(updatedRun);
+                if (!fetchOutput) return run;
+
+                return addOutputToRun(updatedRun);
+            });
+    };
+
+    return acts
+        .runAct(Object.assign({}, defaultOpts, runActOpts))
+        .then(run => waitForRunToFinish(run));
 };

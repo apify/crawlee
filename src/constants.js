@@ -27,8 +27,31 @@ export const ENV_VARS = {
     INTERNAL_PORT: 'APIFY_INTERNAL_PORT',
 };
 
-
 export const KEY_VALUE_STORE_KEYS = {
     INPUT: 'INPUT',
     OUTPUT: 'OUTPUT',
 };
+
+/**
+ * Dictionary of possible values for 'status' field of act2Builds or act2Runs collections.
+ */
+export const ACT_TASK_STATUSES = {
+    READY: 'READY', // started but not allocated to any worker yet
+    RUNNING: 'RUNNING', // running on worker
+    SUCCEEDED: 'SUCCEEDED', // finished and all good
+    FAILED: 'FAILED', // run or build failed
+    TIMING_OUT: 'TIMING-OUT',  // timing out now
+    TIMED_OUT: 'TIMED-OUT', // timed out
+    ABORTING: 'ABORTING', // being aborted by user
+    ABORTED: 'ABORTED', // aborted by user
+};
+
+/**
+ * An array of act task statuses that are final for the task.
+ */
+export const ACT_TASK_TERMINAL_STATUSES = [
+    ACT_TASK_STATUSES.SUCCEEDED,
+    ACT_TASK_STATUSES.FAILED,
+    ACT_TASK_STATUSES.TIMED_OUT,
+    ACT_TASK_STATUSES.ABORTED,
+];
