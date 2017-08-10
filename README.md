@@ -287,6 +287,16 @@ The default settings of the instance can be overridden by calling `Apify.client.
 that is used by Actor runtime to notify your process about various events.
 This will be used in the future.
 
+`Apify.call` function can be used to quickly execute other act and get it's output. Example use:
+
+```javascript
+const data = await Apify.call('john23/my-favourite-act', {
+    timeoutSecs: 300,
+    body: 'SOME_INPUT_DATA',
+    contentType: 'text/plain',
+})
+```
+
 
 ### Internal web server
 
