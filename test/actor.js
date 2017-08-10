@@ -5,7 +5,6 @@ import sinon from 'sinon';
 import tmp from 'tmp';
 import Promise from 'bluebird';
 import { ACT_TASK_STATUSES } from '../build/constants';
-import { MAX_WAIT_FOR_FINISH_SECS } from 'apify-client/build/acts';
 
 // NOTE: test use of require() here because this is how its done in acts
 const Apify = require('../build/index');
@@ -746,11 +745,11 @@ describe('Apify.call()', () => {
             .once()
             .returns(Promise.resolve(runningRun));
         actsMock.expects('getRun')
-            .withExactArgs({ token, actId, runId: run.id, waitForFinish: MAX_WAIT_FOR_FINISH_SECS })
+            .withExactArgs({ token, actId, runId: run.id, waitForFinish: 999999 })
             .once()
             .returns(Promise.resolve(runningRun));
         actsMock.expects('getRun')
-            .withExactArgs({ token, actId, runId: run.id, waitForFinish: MAX_WAIT_FOR_FINISH_SECS })
+            .withExactArgs({ token, actId, runId: run.id, waitForFinish: 999999 })
             .once()
             .returns(Promise.resolve(finishedRun));
 

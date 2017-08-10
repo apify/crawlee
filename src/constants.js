@@ -1,10 +1,5 @@
 
 /**
- * Default wait of Apify.call() method.
- */
-export const DEFAULT_APIFY_CALL_WAIT_SECS = 180;
-
-/**
  * Exit codes for the act process.
  * The error codes must be in range 1-128, to avoid collision with signal exits
  * and to ensure Docker will handle them correctly!

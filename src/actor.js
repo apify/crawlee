@@ -1,8 +1,7 @@
 import fs from 'fs';
 import _ from 'underscore';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { MAX_WAIT_FOR_FINISH_SECS } from 'apify-client/build/acts';
-import { ENV_VARS, EXIT_CODES, ACT_TASK_TERMINAL_STATUSES, DEFAULT_APIFY_CALL_WAIT_SECS } from './constants';
+import { ENV_VARS, EXIT_CODES, ACT_TASK_TERMINAL_STATUSES } from './constants';
 import { getPromisePrototype, newPromise, nodeifyPromise, newClient } from './utils';
 
 /* global process, Buffer */
@@ -262,6 +261,21 @@ export const readyFreddy = () => {
     }
 };
 
+/**
+ * Executes given, waits for it to finish and fetches it's OUTPUT from key-value store and saves it to run.output.
+ *
+ * @param {String} actId - Either act ID or username/actname.
+ * @param {Object} [opts]
+ * @param {String} [opts.token] - User API token.
+ * @param {String} [opts.build] - Build tag or number to be executed.
+ * @param {String} [opts.body] - Act input body.
+ * @param {String} [opts.contentType] - Content type of the act input.
+ * @param {String} [opts.timeoutSecs] - Time limit for act to finish. If limit is reached then run in RUNNING status is returned.
+                                        Default is unlimited.
+ * @param {String} [opts.fetchOutput] - If false then doesn't fetch the OUTPUT from key-value store. Default is true.
+ * @param {String} [opts.raw] - If true then returns only OUTPUT value without content type and other info. Default is false.
+ * @param {String} [opts.useRawBody] - If true then doesn't parse the body - ie. JSON to object. Default is false.
+ */
 export const call = (actId, opts = {}) => {
     const { acts, keyValueStores } = apifyClient;
 
@@ -283,11 +297,10 @@ export const call = (actId, opts = {}) => {
     if (body) runActOpts.build = body;
 
     // GetAct() options.
-    const { timeoutSecs = DEFAULT_APIFY_CALL_WAIT_SECS, fetchOutput = true } = opts;
-    checkParamOrThrow(timeoutSecs, 'timeoutSecs', 'Number');
+    const { timeoutSecs, fetchOutput = true } = opts;
+    checkParamOrThrow(timeoutSecs, 'timeoutSecs', 'Maybe Number');
     checkParamOrThrow(fetchOutput, 'fetchOutput', 'Boolean');
-    const timeoutMillis = timeoutSecs * 1000;
-    const timeoutAt = Date.now() + timeoutMillis;
+    const timeoutAt = timeoutSecs ? Date.now() + (timeoutSecs * 1000) : null;
 
     // GetRecord() options.
     const { raw, useRawBody } = opts;
@@ -307,7 +320,7 @@ export const call = (actId, opts = {}) => {
 
     // Keeps requesting given run until it gets finished or timeout is reached.
     const waitForRunToFinish = (run) => {
-        const waitForFinish = Math.min(MAX_WAIT_FOR_FINISH_SECS, Math.round((timeoutAt - Date.now()) / 1000));
+        const waitForFinish = timeoutAt !== null ? Math.round((timeoutAt - Date.now()) / 1000) : 999999;
 
         // We are timing out ...
         if (waitForFinish <= 0) return Promise.resolve(run);
