@@ -264,8 +264,8 @@ export const readyFreddy = () => {
 /**
  * Executes given, waits for it to finish and fetches it's OUTPUT from key-value store and saves it to run.output.
  *
- * @param {String} actId - Either act ID or username/actname.
  * @param {Object} [opts]
+ * @param {String} [opts.actId] - Either act ID or username/actname.
  * @param {String} [opts.token] - User API token.
  * @param {String} [opts.build] - Build tag or number to be executed.
  * @param {String} [opts.body] - Act input body.
@@ -276,11 +276,13 @@ export const readyFreddy = () => {
  * @param {String} [opts.raw] - If true then returns only OUTPUT value without content type and other info. Default is false.
  * @param {String} [opts.useRawBody] - If true then doesn't parse the body - ie. JSON to object. Default is false.
  */
-export const call = (actId, opts = {}) => {
+export const call = (opts) => {
     const { acts, keyValueStores } = apifyClient;
 
+    checkParamOrThrow(opts, 'opts', 'Object');
+
     // Common options.
-    const { token } = opts;
+    const { actId, token } = opts;
     checkParamOrThrow(actId, 'actId', 'String');
     checkParamOrThrow(token, 'token', 'Maybe String');
     const defaultOpts = { actId };

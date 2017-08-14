@@ -216,7 +216,7 @@ const setEnv = (env) => {
     if (env.timeoutAt) process.env.APIFY_TIMEOUT_AT = env.timeoutAt.toISOString();
     if (env.defaultKeyValueStoreId) process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = env.defaultKeyValueStoreId;
 };
-
+/*
 describe('Apify.getEnv()', () => {
     it('works with null values', () => {
         const expectedEnv = getEmptyEnv();
@@ -726,7 +726,7 @@ describe('Apify.readyFreddy()', () => {
         Apify.readyFreddy();
         return testWatchFileWillBecomeEmpty(process.env.APIFY_WATCH_FILE, 1000);
     });
-});
+});*/
 
 describe('Apify.call()', () => {
     it('works as expected', () => {
@@ -760,7 +760,7 @@ describe('Apify.call()', () => {
             .returns(Promise.resolve(output));
 
         return Apify
-            .call(actId, { token })
+            .call({ actId, token })
             .then((callOutput) => {
                 expect(callOutput).to.be.eql(expected);
                 keyValueStoresMock.restore();
@@ -792,7 +792,7 @@ describe('Apify.call()', () => {
         keyValueStoresMock.expects('getRecord').never();
 
         return Apify
-            .call(actId, { token, timeoutSecs })
+            .call({ actId, token, timeoutSecs })
             .then((callOutput) => {
                 expect(callOutput).to.be.eql(runningRun);
                 keyValueStoresMock.restore();
