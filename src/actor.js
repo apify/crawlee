@@ -6,13 +6,6 @@ import { getPromisePrototype, newPromise, nodeifyPromise, newClient } from './ut
 
 /* global process, Buffer */
 
-
-const JSON_CONTENT_TYPES = [
-    'application/json',
-    'application/json; charset=utf-8',
-];
-
-
 /**
  * A default instance of ApifyClient class.
  * It can be configured by calling setOptions() function.
@@ -59,27 +52,18 @@ export const getValue = (key, callback = null) => {
                 storeId,
                 promise: promisePrototype,
                 key,
+                rawBody: true,
             });
         })
-        .then((record) => {
-            // Check that the record is always either:
-            // * null
-            // * or { body: String|Buffer, contentType: String|null }
-            // * or { body: Any, contentType: 'application/json' }
-            const baseMsg = 'ApifyClient returned an unexpected value from keyValueStores.getRecord()';
+        .then((recordBody) => {
             if (!record) {
                 return null;
             }
 
-            if (typeof (record) !== 'object') {
-                throw new Error(`${baseMsg}: expected an object.`);
-            } else if ((typeof (record.contentType) !== 'string' && record.contentType !== null)) {
-                throw new Error(`${baseMsg}: contentType is not valid.`);
-            } else if (!_.contains(JSON_CONTENT_TYPES, record.contentType)
-                && typeof (record.body) !== 'string'
-                && !Buffer.isBuffer(record.body)) {
-                throw new Error(`${baseMsg}: body must be String or Buffer.`);
+            if (!_.isString(recordBody) && !Buffer.isBuffer(record.body)) {
+                throw new Error('ApifyClient returned an unexpected value from keyValueStores.getRecord(): body must be String or Buffer.');
             }
+
             return record.body;
         });
 
@@ -147,7 +131,6 @@ export const setValue = (key, value, options, callback = null) => {
             key,
             body: value,
             contentType: options.contentType,
-            useRawBody: true,
         });
     } else {
         // Special case: remove the record from the store
