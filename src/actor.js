@@ -289,14 +289,18 @@ export const call = (opts) => {
     if (token) defaultOpts.token = token;
 
     // RunAct() options.
-    const { build, body, contentType } = opts;
+    const { build, input } = opts;
     checkParamOrThrow(build, 'build', 'Maybe String');
-    checkParamOrThrow(body, 'body', 'Maybe Buffer | String');
-    checkParamOrThrow(contentType, 'contentType', 'Maybe String');
+    checkParamOrThrow(input, 'input', 'Maybe Object');
     const runActOpts = {};
-    if (contentType) runActOpts.contentType = contentType;
     if (build) runActOpts.build = build;
-    if (body) runActOpts.build = body;
+    if (input) {
+        const { body, contentType } = input;
+        checkParamOrThrow(body, 'body', 'Buffer | String');
+        checkParamOrThrow(contentType, 'contentType', 'String');
+        runActOpts.contentType = contentType;
+        runActOpts.body = body;
+    }
 
     // GetAct() options.
     const { timeoutSecs, fetchOutput = true } = opts;
@@ -331,7 +335,7 @@ export const call = (opts) => {
             .getRun(Object.assign({}, defaultOpts, { waitForFinish, runId: run.id }))
             .then((updatedRun) => {
                 if (!_.contains(ACT_TASK_TERMINAL_STATUSES, updatedRun.status)) return waitForRunToFinish(updatedRun);
-                if (!fetchOutput) return run;
+                if (!fetchOutput) return updatedRun;
 
                 return addOutputToRun(updatedRun);
             });
