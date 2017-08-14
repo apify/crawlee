@@ -614,7 +614,6 @@ describe('Apify.setValue()', () => {
                 key,
                 body: JSON.stringify(value, null, 2),
                 contentType: 'application/json',
-                useRawBody: true,
             })
             .returns(Promise.resolve(null));
 
@@ -650,7 +649,6 @@ describe('Apify.setValue()', () => {
                 key,
                 body: value,
                 contentType,
-                useRawBody: true,
             })
             .returns(Promise.resolve(null));
 
@@ -686,7 +684,6 @@ describe('Apify.setValue()', () => {
                 key,
                 body: value,
                 contentType,
-                useRawBody: true,
             })
             .returns(Promise.resolve(null));
 
