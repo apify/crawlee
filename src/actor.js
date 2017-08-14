@@ -264,8 +264,8 @@ export const readyFreddy = () => {
 /**
  * Executes given, waits for it to finish and fetches it's OUTPUT from key-value store and saves it to run.output.
  *
- * @param {Object} [opts]
- * @param {String} [opts.actId] - Either act ID or username/actname.
+ * @param {Object} opts
+ * @param {String} opts.actId - Either act ID or username/actname.
  * @param {String} [opts.token] - User API token.
  * @param {String} [opts.build] - Build tag or number to be executed.
  * @param {String} [opts.body] - Act input body.
