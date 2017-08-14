@@ -273,8 +273,8 @@ export const readyFreddy = () => {
  * @param {String} [opts.timeoutSecs] - Time limit for act to finish. If limit is reached then run in RUNNING status is returned.
                                         Default is unlimited.
  * @param {String} [opts.fetchOutput] - If false then doesn't fetch the OUTPUT from key-value store. Default is true.
- * @param {String} [opts.raw] - If true then returns only OUTPUT value without content type and other info. Default is false.
- * @param {String} [opts.useRawBody] - If true then doesn't parse the body - ie. JSON to object. Default is false.
+ * @param {String} [opts.rawBody] - If true then returns only OUTPUT value without content type and other info. Default is false.
+ * @param {String} [opts.disableBodyParser] - If true then doesn't parse the body - ie. JSON to object. Default is false.
  */
 export const call = (opts) => {
     const { acts, keyValueStores } = apifyClient;
@@ -305,15 +305,15 @@ export const call = (opts) => {
     const timeoutAt = timeoutSecs ? Date.now() + (timeoutSecs * 1000) : null;
 
     // GetRecord() options.
-    const { raw, useRawBody } = opts;
-    checkParamOrThrow(raw, 'raw', 'Maybe Boolean');
-    checkParamOrThrow(useRawBody, 'useRawBody', 'Maybe Boolean');
+    const { rawBody, disableBodyParser } = opts;
+    checkParamOrThrow(rawBody, 'rawBody', 'Maybe Boolean');
+    checkParamOrThrow(disableBodyParser, 'disableBodyParser', 'Maybe Boolean');
 
     // Adds run.output field to given run and returns it.
     const addOutputToRun = (run) => {
         const getRecordOpts = { key: 'OUTPUT', storeId: run.defaultKeyValueStoreId };
-        if (raw) getRecordOpts.raw = raw;
-        if (useRawBody) getRecordOpts.useRawBody = useRawBody;
+        if (rawBody) getRecordOpts.rawBody = rawBody;
+        if (disableBodyParser) getRecordOpts.disableBodyParser = disableBodyParser;
 
         return keyValueStores
             .getRecord(getRecordOpts)
