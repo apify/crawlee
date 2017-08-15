@@ -236,8 +236,8 @@ export const readyFreddy = () => {
 /**
  * Executes given, waits for it to finish and fetches it's OUTPUT from key-value store and saves it to run.output.
  *
- * @param {String} actId - Either act ID or username/actname.
- * @param {Object} [opts]
+ * @param {Object} opts
+ * @param {String} opts.actId - Either act ID or username/actname.
  * @param {String} [opts.token] - User API token.
  * @param {String} [opts.build] - Build tag or number to be executed.
  * @param {String} [opts.body] - Act input body.
@@ -245,28 +245,34 @@ export const readyFreddy = () => {
  * @param {String} [opts.timeoutSecs] - Time limit for act to finish. If limit is reached then run in RUNNING status is returned.
                                         Default is unlimited.
  * @param {String} [opts.fetchOutput] - If false then doesn't fetch the OUTPUT from key-value store. Default is true.
- * @param {String} [opts.raw] - If true then returns only OUTPUT value without content type and other info. Default is false.
- * @param {String} [opts.useRawBody] - If true then doesn't parse the body - ie. JSON to object. Default is false.
+ * @param {String} [opts.rawBody] - If true then returns only OUTPUT value without content type and other info. Default is false.
+ * @param {String} [opts.disableBodyParser] - If true then doesn't parse the body - ie. JSON to object. Default is false.
  */
-export const call = (actId, opts = {}) => {
+export const call = (opts) => {
     const { acts, keyValueStores } = apifyClient;
 
+    checkParamOrThrow(opts, 'opts', 'Object');
+
     // Common options.
-    const { token } = opts;
+    const { actId, token } = opts;
     checkParamOrThrow(actId, 'actId', 'String');
     checkParamOrThrow(token, 'token', 'Maybe String');
     const defaultOpts = { actId };
     if (token) defaultOpts.token = token;
 
     // RunAct() options.
-    const { build, body, contentType } = opts;
+    const { build, input } = opts;
     checkParamOrThrow(build, 'build', 'Maybe String');
-    checkParamOrThrow(body, 'body', 'Maybe Buffer | String');
-    checkParamOrThrow(contentType, 'contentType', 'Maybe String');
+    checkParamOrThrow(input, 'input', 'Maybe Object');
     const runActOpts = {};
-    if (contentType) runActOpts.contentType = contentType;
     if (build) runActOpts.build = build;
-    if (body) runActOpts.build = body;
+    if (input) {
+        const { body, contentType } = input;
+        checkParamOrThrow(body, 'body', 'Buffer | String');
+        checkParamOrThrow(contentType, 'contentType', 'String');
+        runActOpts.contentType = contentType;
+        runActOpts.body = body;
+    }
 
     // GetAct() options.
     const { timeoutSecs, fetchOutput = true } = opts;
@@ -275,15 +281,15 @@ export const call = (actId, opts = {}) => {
     const timeoutAt = timeoutSecs ? Date.now() + (timeoutSecs * 1000) : null;
 
     // GetRecord() options.
-    const { raw, useRawBody } = opts;
-    checkParamOrThrow(raw, 'raw', 'Maybe Boolean');
-    checkParamOrThrow(useRawBody, 'useRawBody', 'Maybe Boolean');
+    const { rawBody, disableBodyParser } = opts;
+    checkParamOrThrow(rawBody, 'rawBody', 'Maybe Boolean');
+    checkParamOrThrow(disableBodyParser, 'disableBodyParser', 'Maybe Boolean');
 
     // Adds run.output field to given run and returns it.
     const addOutputToRun = (run) => {
         const getRecordOpts = { key: 'OUTPUT', storeId: run.defaultKeyValueStoreId };
-        if (raw) getRecordOpts.raw = raw;
-        if (useRawBody) getRecordOpts.useRawBody = useRawBody;
+        if (rawBody) getRecordOpts.rawBody = rawBody;
+        if (disableBodyParser) getRecordOpts.disableBodyParser = disableBodyParser;
 
         return keyValueStores
             .getRecord(getRecordOpts)
@@ -301,7 +307,7 @@ export const call = (actId, opts = {}) => {
             .getRun(Object.assign({}, defaultOpts, { waitForFinish, runId: run.id }))
             .then((updatedRun) => {
                 if (!_.contains(ACT_TASK_TERMINAL_STATUSES, updatedRun.status)) return waitForRunToFinish(updatedRun);
-                if (!fetchOutput) return run;
+                if (!fetchOutput) return updatedRun;
 
                 return addOutputToRun(updatedRun);
             });
