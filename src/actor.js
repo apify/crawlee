@@ -54,17 +54,6 @@ export const getValue = (key, callback = null) => {
                 key,
                 rawBody: true,
             });
-        })
-        .then((recordBody) => {
-            if (!recordBody) {
-                return null;
-            }
-
-            if (!_.isString(recordBody) && !Buffer.isBuffer(recordBody)) {
-                throw new Error('ApifyClient returned an unexpected value from keyValueStores.getRecord(): body must be String or Buffer.');
-            }
-
-            return recordBody;
         });
 
     return nodeifyPromise(promise, callback);

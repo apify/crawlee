@@ -395,51 +395,6 @@ describe('Apify.getValue()', () => {
                 mock.restore();
             });
     });
-
-    it('returns null on undefined keyValueStores.getRecord() result', () => {
-        process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = '1234';
-        const mock = sinon.mock(Apify.client.keyValueStores);
-        mock.expects('getRecord')
-            .once()
-            .returns(Promise.resolve(undefined));
-
-        return Promise.resolve()
-            .then(() => {
-                return Apify.getValue('BLA BLA');
-            })
-            .then((input) => {
-                expect(input).to.be.eql(null);
-                mock.verify();
-            })
-            .finally(() => {
-                mock.restore();
-            });
-    });
-
-    it('fails on invalid keyValueStores.getRecord() result', () => {
-        process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = '1234';
-        const mock = sinon.mock(Apify.client.keyValueStores);
-        mock.expects('getRecord')
-            .once()
-            .returns(Promise.resolve({ invalid: 'bla bla' }));
-
-        return Promise.resolve()
-            .then(() => {
-                return Apify.getValue('ANYTHING REALLY');
-            })
-            .then(() => {
-                expect.fail();
-            })
-            .catch((err) => {
-                expect(err.message).to.contain('ApifyClient returned an unexpected value');
-            })
-            .then(() => {
-                mock.verify();
-            })
-            .finally(() => {
-                mock.restore();
-            });
-    });
 });
 
 describe('Apify.setValue()', () => {
