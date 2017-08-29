@@ -64,7 +64,7 @@ export const getValue = (key, callback = null) => {
         // We're emulating KV store locally in a directory to simplify development
         const contentType = process.env[ENV_VARS.DEV_KEY_VALUE_STORE_CONTENT_TYPE] || 'application/json';
 
-        const filePath = path.join(devDir, key);
+        const filePath = path.resolve(devDir, key);
         promise = newPromise()
             .then(() => {
                 return readFilePromised(filePath);
@@ -162,7 +162,7 @@ export const setValue = (key, value, options, callback = null) => {
 
         if (devDir) {
             // We're emulating KV store locally in a directory to simplify development
-            const filePath = path.join(devDir, key);
+            const filePath = path.resolve(devDir, key);
             innerPromise = writeFilePromised(filePath, value);
         } else {
             // Keep this code in main scope so that simple errors are thrown rather than rejected promise.
@@ -181,7 +181,7 @@ export const setValue = (key, value, options, callback = null) => {
         }
         if (devDir) {
             // We're emulating KV store locally in a directory to simplify development
-            const filePath = path.join(devDir, key);
+            const filePath = path.resolve(devDir, key);
             innerPromise = unlinkPromised(filePath);
         } else {
             innerPromise = apifyClient.keyValueStores.deleteRecord({
