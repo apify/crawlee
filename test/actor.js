@@ -1,8 +1,10 @@
 import fs from 'fs';
+import pathModule from 'path';
 import _ from 'underscore';
 import { expect } from 'chai';
 import sinon from 'sinon';
 import tmp from 'tmp';
+import rimraf from 'rimraf';
 import Promise from 'bluebird';
 import { ACT_TASK_STATUSES } from '../build/constants';
 
@@ -155,10 +157,10 @@ const testMain = ({ userFunc, exitCode }) => {
                     // Call user func to test other behavior (note that it can throw)
                     if (userFunc) return userFunc();
                 });
+            })
+            .catch((err) => {
+                error = err;
             });
-        })
-        .catch((err) => {
-            error = err;
         })
         .then(() => {
             // Waits max 1000 millis for process.exit() mock to be called
@@ -345,7 +347,7 @@ describe('Apify.getValue()', () => {
             .then(() => {
                 // test callback
                 return new Promise((resolve, reject) => {
-                    return Apify.getValue('INPUT', (err, input) => {
+                    Apify.getValue('INPUT', (err, input) => {
                         if (err) return reject(err);
                         resolve(input);
                     });
@@ -371,28 +373,136 @@ describe('Apify.getValue()', () => {
         return Promise.resolve()
             .then(() => {
                 // test promise
-                return Apify.getValue('INPUT');
-            })
-            .catch((err) => {
-                expect(err.message).to.be.eql('Test error');
+                return Apify.getValue('INPUT')
+                    .then(() => {
+                        assert.fail();
+                    })
+                    .catch((err) => {
+                        expect(err.message).to.be.eql('Test error');
+                    });
             })
             .then(() => {
                 // test callback
                 return new Promise((resolve, reject) => {
-                    return Apify.getValue('INPUT', (err, input) => {
+                    Apify.getValue('INPUT', (err, input) => {
                         if (err) return reject(err);
                         resolve(input);
                     });
+                })
+                .then(() => {
+                    assert.fail();
+                })
+                .catch((err) => {
+                    expect(err.message).to.be.eql('Test error');
                 });
-            })
-            .catch((err) => {
-                expect(err.message).to.be.eql('Test error');
             })
             .then(() => {
                 mock.verify();
             })
             .finally(() => {
                 mock.restore();
+            });
+    });
+
+    it('works with APIFY_DEV_KEY_VALUE_STORE_DIR env var (on success)', () => {
+        const jsonValue = { test: 123 };
+        const textValue = 'some text \u00e6\u00f8\u00e5';
+        const rawValue = Buffer.from('bla bla bla');
+        const tmpobj = tmp.dirSync();
+        process.env.APIFY_DEV_KEY_VALUE_STORE_DIR = tmpobj.name;
+
+        return Promise.resolve()
+            .then(() => {
+                // Test JSON with default content type
+                delete process.env.APIFY_DEV_KEY_VALUE_STORE_CONTENT_TYPE;
+                fs.writeFileSync(pathModule.join(tmpobj.name, 'INPUT'), JSON.stringify(jsonValue));
+                return Apify.getValue('INPUT');
+            })
+            .then((value) => {
+                expect(value).to.be.eql(jsonValue);
+            })
+            .then(() => {
+                // Test text
+                fs.writeFileSync(pathModule.join(tmpobj.name, 'TEST_TEXT'), textValue);
+                process.env.APIFY_DEV_KEY_VALUE_STORE_CONTENT_TYPE = 'text/plain';
+                return Apify.getValue('TEST_TEXT');
+            })
+            .then((value) => {
+                expect(value).to.be.eql(textValue);
+            })
+            .then(() => {
+                // Test raw data
+                fs.writeFileSync(pathModule.join(tmpobj.name, 'TEST_RAW'), rawValue);
+                process.env.APIFY_DEV_KEY_VALUE_STORE_CONTENT_TYPE = 'something/else';
+                return Apify.getValue('TEST_RAW');
+            })
+            .then((value) => {
+                expect(value).to.be.eql(rawValue);
+            })
+            .then(() => {
+                // Test callback with JSON plus explicit content type
+                process.env.APIFY_DEV_KEY_VALUE_STORE_CONTENT_TYPE = 'application/json';
+                return new Promise((resolve, reject) => {
+                    Apify.getValue('INPUT', (err, input) => {
+                        if (err) return reject(err);
+                        resolve(input);
+                    });
+                });
+            })
+            .then((value) => {
+                expect(value).to.be.eql(jsonValue);
+            })
+            .finally(() => {
+                delete process.env.APIFY_DEV_KEY_VALUE_STORE_DIR;
+                delete process.env.APIFY_DEV_KEY_VALUE_STORE_CONTENT_TYPE;
+                rimraf.sync(tmpobj.name);
+            });
+    });
+
+    it('works with APIFY_DEV_KEY_VALUE_STORE_DIR env var (on error)', () => {
+        const tmpobj = tmp.dirSync();
+        process.env.APIFY_DEV_KEY_VALUE_STORE_DIR = tmpobj.name;
+
+        return Promise.resolve()
+            .then(() => {
+                // Test invalid JSON
+                fs.writeFileSync(pathModule.join(tmpobj.name, 'INPUT'), 'something not JSON');
+                return Apify.getValue('INPUT')
+                    .then(() => {
+                        assert.fail();
+                    })
+                    .catch((err) => {
+                        expect(err.message).to.contain('cannot be parsed as JSON');
+                    });
+            })
+            .then(() => {
+                // Test non-existent file
+                return Apify.getValue('NON_EXISTENT_KEY')
+                    .then(() => {
+                        assert.fail();
+                    })
+                    .catch((err) => {
+                        expect(err.message).to.contain('ENOENT');
+                    });
+            })
+            .then(() => {
+                // Test callback plus non-existent directory
+                process.env.APIFY_DEV_KEY_VALUE_STORE_DIR = pathModule.join(tmpobj.name, '/blabla/');
+                return new Promise((resolve, reject) => {
+                    Apify.getValue('INPUT', (err, input) => {
+                        if (err) return reject(err);
+                        resolve(input);
+                    });
+                })
+                .then(() => {
+                    assert.fail();
+                })
+                .catch((err) => {
+                    expect(err.message).to.contain('ENOENT');
+                });
+            })
+            .finally(() => {
+                delete process.env.APIFY_DEV_KEY_VALUE_STORE_DIR;
             });
     });
 });
@@ -474,7 +584,7 @@ describe('Apify.setValue()', () => {
             .then(() => {
                 // test callback (no options)
                 return new Promise((resolve, reject) => {
-                    return Apify.setValue('mykey', { someValue: 123 }, (err) => {
+                    Apify.setValue('mykey', { someValue: 123 }, (err) => {
                         if (err) return reject(err);
                         resolve();
                     });
@@ -483,7 +593,7 @@ describe('Apify.setValue()', () => {
             .then(() => {
                 // test callback (with options)
                 return new Promise((resolve, reject) => {
-                    return Apify.setValue('mykey', 'myvalue', { contentType: 'text/plain' }, (err) => {
+                    Apify.setValue('mykey', 'myvalue', { contentType: 'text/plain' }, (err) => {
                         if (err) return reject(err);
                         resolve();
                     });
@@ -492,7 +602,7 @@ describe('Apify.setValue()', () => {
             .then(() => {
                 // test callback (null options)
                 return new Promise((resolve, reject) => {
-                    return Apify.setValue('mykey', { someValue: 123 }, null, (err) => {
+                    Apify.setValue('mykey', { someValue: 123 }, null, (err) => {
                         if (err) return reject(err);
                         resolve();
                     });
@@ -501,7 +611,7 @@ describe('Apify.setValue()', () => {
             .then(() => {
                 // test callback (undefined options)
                 return new Promise((resolve, reject) => {
-                    return Apify.setValue('mykey', { someValue: 123 }, resolve, (err) => {
+                    Apify.setValue('mykey', { someValue: 123 }, resolve, (err) => {
                         if (err) return reject(err);
                         resolve();
                     });
@@ -524,23 +634,32 @@ describe('Apify.setValue()', () => {
 
         return Promise.resolve()
             .then(() => {
-                // test promise
-                return Apify.setValue('mykey', { someValue: 1 });
-            })
-            .catch((err) => {
-                expect(err.message).to.be.eql('Test error');
+                // Test promise
+                return Promise.resolve()
+                    .then(() => {
+                        return Apify.setValue('mykey', { someValue: 1 });
+                    })
+                    .then(() => {
+                        assert.fail();
+                    })
+                    .catch((err) => {
+                        expect(err.message).to.be.eql('Test error');
+                    });
             })
             .then(() => {
-                // test callback
+                // Test callback
                 return new Promise((resolve, reject) => {
-                    return Apify.setValue('mykey', { someValue: 1 }, (err) => {
+                    Apify.setValue('mykey', { someValue: 1 }, (err) => {
                         if (err) return reject(err);
                         resolve();
                     });
+                })
+                .then(() => {
+                    assert.fail();
+                })
+                .catch((err) => {
+                    expect(err.message).to.be.eql('Test error');
                 });
-            })
-            .catch((err) => {
-                expect(err.message).to.be.eql('Test error');
             })
             .then(() => {
                 mock.verify();
@@ -651,6 +770,105 @@ describe('Apify.setValue()', () => {
             })
             .finally(() => {
                 mock.restore();
+            });
+    });
+
+    it('works with APIFY_DEV_KEY_VALUE_STORE_DIR env var (on success)', () => {
+        const tmpobj = tmp.dirSync();
+        const testObj = { 'bla-bla': 123 };
+        const valueString = 'bla bla some string';
+        const valueRaw = Buffer.from('some other string that will be raw as ham');
+        process.env.APIFY_DEV_KEY_VALUE_STORE_DIR = tmpobj.name;
+
+        return Promise.resolve()
+            .then(() => {
+                // Test write object
+                Apify.setValue('TEST_OBJ', testObj);
+            })
+            .then(() => {
+                return Apify.getValue('TEST_OBJ');
+            })
+            .then((value) => {
+                expect(value).to.be.eql(testObj);
+            })
+            .then(() => {
+                // Test removal of value
+                Apify.setValue('TEST_OBJ', null);
+            })
+            .then(() => {
+                // File must no longer exists
+                const filePath = pathModule.join(tmpobj.name, '/TEST_OBJ');
+                const exists = fs.existsSync(filePath);
+                expect(exists).to.be.eql(false);
+            })
+            .then(() => {
+                // Test write of string with callbacks
+                return new Promise((resolve, reject) => {
+                    Apify.setValue('TEST_STR', valueString, { contentType: 'text/plain' }, (err, input) => {
+                        if (err) return reject(err);
+                        resolve(input);
+                    });
+                });
+            })
+            .then(() => {
+                process.env.APIFY_DEV_KEY_VALUE_STORE_CONTENT_TYPE = 'text/plain';
+                return Apify.getValue('TEST_STR');
+            })
+            .then((value) => {
+                expect(value).to.be.eql(valueString);
+            })
+            .then(() => {
+                // Test write raw buffer
+                Apify.setValue('TEST_RAW', valueRaw, { contentType: 'something/whatever' });
+            })
+            .then(() => {
+                process.env.APIFY_DEV_KEY_VALUE_STORE_CONTENT_TYPE = 'something/raw';
+                return Apify.getValue('TEST_RAW');
+            })
+            .then((value) => {
+                expect(value).to.be.eql(valueRaw);
+            })
+            .finally(() => {
+                delete process.env.APIFY_DEV_KEY_VALUE_STORE_DIR;
+                delete process.env.APIFY_DEV_KEY_VALUE_STORE_CONTENT_TYPE;
+                // rimraf.sync(tmpobj.name);
+            });
+    });
+
+    it('works with APIFY_DEV_KEY_VALUE_STORE_DIR env var (on error)', () => {
+        const tmpobj = tmp.dirSync();
+        process.env.APIFY_DEV_KEY_VALUE_STORE_DIR = pathModule.join(tmpobj.name, '/non-existent-dir/');
+
+        return Promise.resolve()
+            .then(() => {
+                // Test write object with Promise
+                Apify.setValue('TEST1', { whatever: 123 })
+                    .then(() => {
+                        assert.fail();
+                    })
+                    .catch((err) => {
+                        expect(err.message).to.contain('ENOENT');
+                    });
+            })
+            .then(() => {
+                // Test callback plus non-existent directory
+                return new Promise((resolve, reject) => {
+                    Apify.setValue('TEST2', { sometingElse: 456 }, (err, input) => {
+                        if (err) return reject(err);
+                        resolve(input);
+                    });
+                })
+                .then(() => {
+                    assert.fail();
+                })
+                .catch((err) => {
+                    expect(err.message).to.contain('ENOENT');
+                });
+            })
+            .finally(() => {
+                delete process.env.APIFY_DEV_KEY_VALUE_STORE_DIR;
+                delete process.env.APIFY_DEV_KEY_VALUE_STORE_CONTENT_TYPE;
+                // rimraf.sync(tmpobj.name);
             });
     });
 });

@@ -1,8 +1,11 @@
 import fs from 'fs';
+import path from 'path';
 import _ from 'underscore';
+import Promise from 'bluebird';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { ENV_VARS, EXIT_CODES, ACT_TASK_TERMINAL_STATUSES } from './constants';
 import { getPromisePrototype, newPromise, nodeifyPromise, newClient } from './utils';
+
 
 /* global process, Buffer */
 
@@ -11,6 +14,10 @@ import { getPromisePrototype, newPromise, nodeifyPromise, newClient } from './ut
  * It can be configured by calling setOptions() function.
  */
 export const apifyClient = newClient();
+
+const readFilePromised = Promise.promisify(fs.readFile);
+const writeFilePromised = Promise.promisify(fs.writeFile);
+const unlinkPromised = Promise.promisify(fs.unlink);
 
 /**
  * Tries to parse a string with date.
@@ -37,24 +44,58 @@ const getDefaultStoreIdOrThrow = () => {
  * content type, the body is the already parsed object. For other content types,
  * the body is raw String or Buffer. If the record cannot be found, the result is null.
  * or `null` if record was not found.
+ *
+ * If the `APIFY_DEV_KEY_VALUE_STORE_DIR` environment variable is defined,
+ * the value is read from a that directory rather than the key-value store,
+ * from a file that has the key as a name.
+ * The file is assumed to have a content type specified in the `APIFY_DEV_KEY_VALUE_STORE_CONTENT_TYPE`
+ * environment variable, or `application/json` if not set.
+ * This is useful for local development of the act.
  * @param callback Optional callback.
  * @return Returns a promise if no callback was provided, otherwise the return value is not defined.
  */
 export const getValue = (key, callback = null) => {
     if (!key || !_.isString(key)) throw new Error('The "key" parameter must be a non-empty string');
 
-    const storeId = getDefaultStoreIdOrThrow();
-    const promisePrototype = getPromisePrototype();
+    const devDir = process.env[ENV_VARS.DEV_KEY_VALUE_STORE_DIR];
+    let promise;
 
-    const promise = newPromise()
-        .then(() => {
-            return apifyClient.keyValueStores.getRecord({
-                storeId,
-                promise: promisePrototype,
-                key,
-                rawBody: true,
+    if (devDir) {
+        // We're emulating KV store locally in a directory to simplify development
+        const contentType = process.env[ENV_VARS.DEV_KEY_VALUE_STORE_CONTENT_TYPE] || 'application/json';
+
+        const filePath = path.join(devDir, key);
+        promise = newPromise()
+            .then(() => {
+                return readFilePromised(filePath);
+            })
+            .then((data) => {
+                // Parse JSON
+                if (contentType === 'application/json') {
+                    try {
+                        data = JSON.parse(data.toString('utf8'));
+                    } catch (e) {
+                        throw new Error(`File at '${filePath}' cannot be parsed as JSON: ${e.message}`);
+                    }
+                } else if (contentType === 'text/plain') {
+                    data = data.toString();
+                }
+                return data;
             });
-        });
+    } else {
+        const storeId = getDefaultStoreIdOrThrow();
+        const promisePrototype = getPromisePrototype();
+
+        promise = newPromise()
+            .then(() => {
+                return apifyClient.keyValueStores.getRecord({
+                    storeId,
+                    promise: promisePrototype,
+                    key,
+                    rawBody: true,
+                });
+            });
+    }
 
     return nodeifyPromise(promise, callback);
 };
@@ -64,10 +105,14 @@ export const getValue = (key, callback = null) => {
  * This data is stored in the key-value store created specifically for this run,
  * whose ID is defined in the `APIFY_DEFAULT_KEY_VALUE_STORE_ID` environment variable.
  * The function has no result, but throws on invalid args or other errors.
+ *
+ * If the `APIFY_DEV_KEY_VALUE_STORE_DIR` environment variable is defined,
+ * the value is written to that directory rather than the key-value store,
+ * to a file named as the key. This is useful for local development of the act.
  * @param value
  * If null, the record in the key-value store is deleted.
  * If no contentType is specified, the value can be any object and it will be stringified to JSON.
- * If contentType is specified, value is considered raw data it must be a String or Buffer.
+ * If contentType is specified, value is considered raw data and it must be a String or Buffer.
  * For any other value an error will be thrown.
  * @param options Optional settings, currently only { contentType: String } is supported to set MIME content type of the value.
  * @param callback Optional callback.
@@ -88,6 +133,8 @@ export const setValue = (key, value, options, callback = null) => {
 
     const storeId = getDefaultStoreIdOrThrow();
     const promisePrototype = getPromisePrototype();
+
+    const devDir = process.env[ENV_VARS.DEV_KEY_VALUE_STORE_DIR];
 
     let innerPromise;
     if (value !== null) {
@@ -113,24 +160,36 @@ export const setValue = (key, value, options, callback = null) => {
             throw new Error('The "value" parameter must be a String or Buffer when "contentType" is specified.');
         }
 
-        // Keep this code in main scope so that simple errors are thrown rather than rejected promise.
-        innerPromise = apifyClient.keyValueStores.putRecord({
-            storeId,
-            promise: promisePrototype,
-            key,
-            body: value,
-            contentType: options.contentType,
-        });
+        if (devDir) {
+            // We're emulating KV store locally in a directory to simplify development
+            const filePath = path.join(devDir, key);
+            innerPromise = writeFilePromised(filePath, value);
+        } else {
+            // Keep this code in main scope so that simple errors are thrown rather than rejected promise.
+            innerPromise = apifyClient.keyValueStores.putRecord({
+                storeId,
+                promise: promisePrototype,
+                key,
+                body: value,
+                contentType: options.contentType,
+            });
+        }
     } else {
         // Special case: remove the record from the store
         if (options.contentType !== null && options.contentType !== undefined) {
             throw new Error('The "options.contentType" parameter must not be used when removing the record.');
         }
-        innerPromise = apifyClient.keyValueStores.deleteRecord({
-            storeId,
-            promise: promisePrototype,
-            key,
-        });
+        if (devDir) {
+            // We're emulating KV store locally in a directory to simplify development
+            const filePath = path.join(devDir, key);
+            innerPromise = unlinkPromised(filePath);
+        } else {
+            innerPromise = apifyClient.keyValueStores.deleteRecord({
+                storeId,
+                promise: promisePrototype,
+                key,
+            });
+        }
     }
 
     const promise = newPromise().then(() => innerPromise);

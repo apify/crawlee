@@ -43,7 +43,7 @@
     "apify-client": ">=0.1.13",
     "underscore": "^1.8.3",
     "portastic": "^1.0.1",
-    "tmp": "^0.0.31",
+    "tmp": "^0.0.33",
     "bluebird": "^3.5.0",
     "rimraf": "^2.6.1"
   },
