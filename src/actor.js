@@ -18,6 +18,7 @@ export const apifyClient = newClient();
 const readFilePromised = Promise.promisify(fs.readFile);
 const writeFilePromised = Promise.promisify(fs.writeFile);
 const unlinkPromised = Promise.promisify(fs.unlink);
+const statPromised = Promise.promisify(fs.stat);
 
 /**
  * Tries to parse a string with date.
@@ -43,11 +44,11 @@ const getDefaultStoreIdOrThrow = () => {
  * The result of the function is the body of the record. For records with 'application/json'
  * content type, the body is the already parsed object. For other content types,
  * the body is raw String or Buffer. If the record cannot be found, the result is null.
- * or `null` if record was not found.
  *
  * If the `APIFY_DEV_KEY_VALUE_STORE_DIR` environment variable is defined,
  * the value is read from a that directory rather than the key-value store,
  * from a file that has the key as a name.
+ * The directory must exist or an error is thrown. The file might not exist, in which case the value is `null`.
  * The file is assumed to have a content type specified in the `APIFY_DEV_KEY_VALUE_STORE_CONTENT_TYPE`
  * environment variable, or `application/json` if not set.
  * This is useful for local development of the act.
@@ -63,24 +64,47 @@ export const getValue = (key, callback = null) => {
     if (devDir) {
         // We're emulating KV store locally in a directory to simplify development
         const contentType = process.env[ENV_VARS.DEV_KEY_VALUE_STORE_CONTENT_TYPE] || 'application/json';
+        const dirPath = path.resolve(devDir);
+        let filePath;
 
-        const filePath = path.resolve(devDir, key);
         promise = newPromise()
             .then(() => {
-                return readFilePromised(filePath);
+                // Check that the directory is really a directory
+                return statPromised(dirPath)
+                    .then((stats) => {
+                        if (!stats.isDirectory()) throw new Error('The directory is not a directory');
+                    })
+                    .catch((err) => {
+                        if (err.code === 'ENOENT') throw new Error('The directory does not exist');
+                        throw err;
+                    });
+            })
+            .then(() => {
+                // Read file
+                filePath = path.resolve(dirPath, key);
+                return readFilePromised(filePath)
+                    .catch((err) => {
+                        if (err.code === 'ENOENT') return null;
+                        throw err;
+                    });
             })
             .then((data) => {
-                // Parse JSON
-                if (contentType === 'application/json') {
-                    try {
-                        data = JSON.parse(data.toString('utf8'));
-                    } catch (e) {
-                        throw new Error(`File at '${filePath}' cannot be parsed as JSON: ${e.message}`);
+                // Parse file according to the content type
+                if (data !== null) {
+                    if (contentType === 'application/json') {
+                        try {
+                            data = JSON.parse(data.toString('utf8'));
+                        } catch (e) {
+                            throw new Error(`File cannot be parsed as JSON: ${e.message}`);
+                        }
+                    } else if (contentType === 'text/plain') {
+                        data = data.toString();
                     }
-                } else if (contentType === 'text/plain') {
-                    data = data.toString();
                 }
                 return data;
+            })
+            .catch((err) => {
+                throw new Error(`Error reading file '${key}' in directory '${dirPath}' referred by ${ENV_VARS.DEV_KEY_VALUE_STORE_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len
             });
     } else {
         const storeId = getDefaultStoreIdOrThrow();
@@ -134,9 +158,21 @@ export const setValue = (key, value, options, callback = null) => {
     const storeId = getDefaultStoreIdOrThrow();
     const promisePrototype = getPromisePrototype();
 
+    // Handle emulation of KV store locally in a directory to simplify development
     const devDir = process.env[ENV_VARS.DEV_KEY_VALUE_STORE_DIR];
+    let devDirPath;
+    let devFilePath;
+    if (devDir) {
+        // Get absolute paths
+        devDirPath = path.resolve(devDir);
+        devFilePath = path.resolve(devDirPath, key);
+    }
+    const devErrorHandler = (err) => {
+        throw new Error(`Error writing file '${key}' in directory '${devDirPath}' referred by ${ENV_VARS.DEV_KEY_VALUE_STORE_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len
+    };
 
     let innerPromise;
+
     if (value !== null) {
         // Normal case: put record to store
         // If contentType is missing, value will be stringified to JSON
@@ -160,10 +196,9 @@ export const setValue = (key, value, options, callback = null) => {
             throw new Error('The "value" parameter must be a String or Buffer when "contentType" is specified.');
         }
 
-        if (devDir) {
-            // We're emulating KV store locally in a directory to simplify development
-            const filePath = path.resolve(devDir, key);
-            innerPromise = writeFilePromised(filePath, value);
+        if (devFilePath) {
+            innerPromise = writeFilePromised(devFilePath, value)
+                .catch(devErrorHandler);
         } else {
             // Keep this code in main scope so that simple errors are thrown rather than rejected promise.
             innerPromise = apifyClient.keyValueStores.putRecord({
@@ -179,10 +214,9 @@ export const setValue = (key, value, options, callback = null) => {
         if (options.contentType !== null && options.contentType !== undefined) {
             throw new Error('The "options.contentType" parameter must not be used when removing the record.');
         }
-        if (devDir) {
-            // We're emulating KV store locally in a directory to simplify development
-            const filePath = path.resolve(devDir, key);
-            innerPromise = unlinkPromised(filePath);
+        if (devFilePath) {
+            innerPromise = unlinkPromised(devFilePath)
+                .catch(devErrorHandler);
         } else {
             innerPromise = apifyClient.keyValueStores.deleteRecord({
                 storeId,

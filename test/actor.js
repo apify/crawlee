@@ -1,7 +1,7 @@
 import fs from 'fs';
 import pathModule from 'path';
 import _ from 'underscore';
-import { expect } from 'chai';
+import { expect, assert } from 'chai';
 import sinon from 'sinon';
 import tmp from 'tmp';
 import rimraf from 'rimraf';
@@ -440,6 +440,13 @@ describe('Apify.getValue()', () => {
                 expect(value).to.be.eql(rawValue);
             })
             .then(() => {
+                // Test non-existent key but existing dir
+                return Apify.getValue('NON_EXISTENT_KEY');
+            })
+            .then((value) => {
+                expect(value).to.be.eql(null);
+            })
+            .then(() => {
                 // Test callback with JSON plus explicit content type
                 process.env.APIFY_DEV_KEY_VALUE_STORE_CONTENT_TYPE = 'application/json';
                 return new Promise((resolve, reject) => {
@@ -476,16 +483,6 @@ describe('Apify.getValue()', () => {
                     });
             })
             .then(() => {
-                // Test non-existent file
-                return Apify.getValue('NON_EXISTENT_KEY')
-                    .then(() => {
-                        assert.fail();
-                    })
-                    .catch((err) => {
-                        expect(err.message).to.contain('ENOENT');
-                    });
-            })
-            .then(() => {
                 // Test callback plus non-existent directory
                 process.env.APIFY_DEV_KEY_VALUE_STORE_DIR = pathModule.join(tmpobj.name, '/blabla/');
                 return new Promise((resolve, reject) => {
@@ -498,8 +495,21 @@ describe('Apify.getValue()', () => {
                     assert.fail();
                 })
                 .catch((err) => {
-                    expect(err.message).to.contain('ENOENT');
+                    expect(err.message).to.contain('The directory does not exist');
                 });
+            })
+            .then(() => {
+                // Test file instead of dir
+                const path = pathModule.join(tmpobj.name, '/subfile');
+                fs.writeFileSync(path, 'some sub file in dir');
+                process.env.APIFY_DEV_KEY_VALUE_STORE_DIR = path;
+                return Apify.getValue('INPUT')
+                    .then(() => {
+                        assert.fail();
+                    })
+                    .catch((err) => {
+                        expect(err.message).to.contain('The directory is not a directory');
+                    });
             })
             .finally(() => {
                 delete process.env.APIFY_DEV_KEY_VALUE_STORE_DIR;
