@@ -91,7 +91,7 @@ export const getValue = (key, callback = null) => {
             .then((data) => {
                 // Parse file according to the content type
                 if (data !== null) {
-                    if (contentType === 'application/json') {
+                    if (contentType === 'application/json' || contentType === 'application/json; charset=utf-8') {
                         try {
                             data = JSON.parse(data.toString('utf8'));
                         } catch (e) {
@@ -155,8 +155,9 @@ export const setValue = (key, value, options, callback = null) => {
     // Make copy of options, don't update what user passed
     options = Object.assign({}, options);
 
-    const storeId = getDefaultStoreIdOrThrow();
     const promisePrototype = getPromisePrototype();
+
+    let storeId = null;
 
     // Handle emulation of KV store locally in a directory to simplify development
     const devDir = process.env[ENV_VARS.DEV_KEY_VALUE_STORE_DIR];
@@ -166,6 +167,9 @@ export const setValue = (key, value, options, callback = null) => {
         // Get absolute paths
         devDirPath = path.resolve(devDir);
         devFilePath = path.resolve(devDirPath, key);
+    } else {
+        // This would throw if APIFY_DEFAULT_KEY_VALUE_STORE_ID env var was not set
+        storeId = getDefaultStoreIdOrThrow();
     }
     const devErrorHandler = (err) => {
         throw new Error(`Error writing file '${key}' in directory '${devDirPath}' referred by ${ENV_VARS.DEV_KEY_VALUE_STORE_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len

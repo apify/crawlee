@@ -411,6 +411,9 @@ describe('Apify.getValue()', () => {
         const tmpobj = tmp.dirSync();
         process.env.APIFY_DEV_KEY_VALUE_STORE_DIR = tmpobj.name;
 
+        // Test that this env var doesn't need to be set
+        delete process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID;
+
         return Promise.resolve()
             .then(() => {
                 // Test JSON with default content type
@@ -431,6 +434,9 @@ describe('Apify.getValue()', () => {
                 expect(value).to.be.eql(textValue);
             })
             .then(() => {
+                // Test that this env var can be set to anything
+                process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = 'whatever';
+
                 // Test raw data
                 fs.writeFileSync(pathModule.join(tmpobj.name, 'TEST_RAW'), rawValue);
                 process.env.APIFY_DEV_KEY_VALUE_STORE_CONTENT_TYPE = 'something/else';
@@ -448,7 +454,7 @@ describe('Apify.getValue()', () => {
             })
             .then(() => {
                 // Test callback with JSON plus explicit content type
-                process.env.APIFY_DEV_KEY_VALUE_STORE_CONTENT_TYPE = 'application/json';
+                process.env.APIFY_DEV_KEY_VALUE_STORE_CONTENT_TYPE = 'application/json; charset=utf-8';
                 return new Promise((resolve, reject) => {
                     Apify.getValue('INPUT', (err, input) => {
                         if (err) return reject(err);
@@ -790,6 +796,9 @@ describe('Apify.setValue()', () => {
         const valueRaw = Buffer.from('some other string that will be raw as ham');
         process.env.APIFY_DEV_KEY_VALUE_STORE_DIR = tmpobj.name;
 
+        // Test that this env var doesn't need to be set
+        delete process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID;
+
         return Promise.resolve()
             .then(() => {
                 // Test write object
@@ -812,6 +821,9 @@ describe('Apify.setValue()', () => {
                 expect(exists).to.be.eql(false);
             })
             .then(() => {
+                // Test that this env var can be set to anything
+                process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = 'whatever';
+
                 // Test write of string with callbacks
                 return new Promise((resolve, reject) => {
                     Apify.setValue('TEST_STR', valueString, { contentType: 'text/plain' }, (err, input) => {
