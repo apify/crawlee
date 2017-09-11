@@ -719,12 +719,11 @@ describe('Apify.setValue()', () => {
             });
     });
 
-    it('correctly stores raw string values', () => {
+    it('correctly adds charset to content type', () => {
         process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = '1234';
         const storeId = 'mystore3';
         const key = 'mykey2';
         const value = 'some string value';
-        const contentType = 'text/plain';
 
         process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = storeId;
 
@@ -738,7 +737,42 @@ describe('Apify.setValue()', () => {
                 promise: Promise,
                 key,
                 body: value,
-                contentType: `${contentType}; charset=utf-8`,
+                contentType: 'text/plain; charset=utf-8; foo=bar',
+            })
+            .returns(Promise.resolve(null));
+
+        return Promise.resolve()
+            .then(() => {
+                return Apify.setValue(key, value, { contentType: 'text/plain; foo=bar' });
+            })
+            .then(() => {
+                mock.verify();
+            })
+            .finally(() => {
+                mock.restore();
+            });
+    });
+
+    it('correctly stores raw string values', () => {
+        process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = '1234';
+        const storeId = 'mystore3';
+        const key = 'mykey2';
+        const value = 'some string value';
+        const contentType = 'text/plain; charset=utf-8';
+
+        process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = storeId;
+
+        Apify.setPromisesDependency(Promise);
+
+        const mock = sinon.mock(Apify.client.keyValueStores);
+        mock.expects('putRecord')
+            .once()
+            .withArgs({
+                storeId,
+                promise: Promise,
+                key,
+                body: value,
+                contentType,
             })
             .returns(Promise.resolve(null));
 
