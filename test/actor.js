@@ -703,7 +703,7 @@ describe('Apify.setValue()', () => {
                 promise: Promise,
                 key,
                 body: JSON.stringify(value, null, 2),
-                contentType: 'application/json',
+                contentType: 'application/json; charset=utf-8',
             })
             .returns(Promise.resolve(null));
 
@@ -738,7 +738,7 @@ describe('Apify.setValue()', () => {
                 promise: Promise,
                 key,
                 body: value,
-                contentType,
+                contentType: `${contentType}; charset=utf-8`,
             })
             .returns(Promise.resolve(null));
 
@@ -759,7 +759,7 @@ describe('Apify.setValue()', () => {
         const storeId = 'mystore3';
         const key = 'mykey2';
         const value = Buffer.from('some text value');
-        const contentType = 'text/plain';
+        const contentType = 'text/plain; charset=something';
 
         process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = storeId;
 
@@ -935,7 +935,7 @@ describe('Apify.call()', () => {
 
         const actsMock = sinon.mock(Apify.client.acts);
         actsMock.expects('runAct')
-            .withExactArgs({ token, actId, contentType: input.contentType, body: input.body, build })
+            .withExactArgs({ token, actId, contentType: `${input.contentType}; charset=utf-8`, body: input.body, build })
             .once()
             .returns(Promise.resolve(runningRun));
         actsMock.expects('getRun')

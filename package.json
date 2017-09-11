@@ -41,11 +41,12 @@
   },
   "dependencies": {
     "apify-client": ">=0.1.13",
-    "underscore": "^1.8.3",
-    "portastic": "^1.0.1",
-    "tmp": "^0.0.33",
     "bluebird": "^3.5.0",
-    "rimraf": "^2.6.1"
+    "content-type": "^1.0.3",
+    "portastic": "^1.0.1",
+    "rimraf": "^2.6.1",
+    "tmp": "^0.0.33",
+    "underscore": "^1.8.3"
   },
   "devDependencies": {
     "babel-cli": "^6.6.5",
