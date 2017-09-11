@@ -134,3 +134,14 @@ describe('utils.redactUrl()', () => {
             .to.eql('ftp://example.com/');
     });
 });
+
+describe('utils.addCharsetToContentType()', () => {
+    it('works', () => {
+        expect(utils.addCharsetToContentType('application/json; charset=something')).to.eql('application/json; charset=something');
+        expect(utils.addCharsetToContentType('application/json; foo=bar; charset=something')).to.eql('application/json; foo=bar; charset=something');
+        expect(utils.addCharsetToContentType('application/json; foo=bar')).to.eql('application/json; charset=utf-8; foo=bar');
+        expect(utils.addCharsetToContentType('application/json')).to.eql('application/json; charset=utf-8');
+        expect(utils.addCharsetToContentType(null)).to.eql(null);
+        expect(utils.addCharsetToContentType(undefined)).to.eql(undefined);
+    });
+});

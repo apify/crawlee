@@ -1,4 +1,5 @@
 import urlModule from 'url';
+import contentTypeParser from 'content-type';
 import ApifyClient from 'apify-client';
 import { ENV_VARS } from './constants';
 
@@ -137,4 +138,22 @@ export const redactParsedUrl = (parsedUrl, passwordReplacement = '<redacted>') =
         }
     }
     return `${p.protocol}//${auth || ''}${auth ? '@' : ''}${p.host}${p.path || ''}${p.hash || ''}`;
+};
+
+/**
+ * Adds charset=utf-8 to given content type if this parameter is missing.
+ *
+ * @param contentType
+ * @return {string}
+ */
+export const addCharsetToContentType = (contentType) => {
+    if (!contentType) return contentType;
+
+    const parsed = contentTypeParser.parse(contentType);
+
+    if (parsed.parameters.charset) return contentType;
+
+    parsed.parameters.charset = 'utf-8';
+
+    return contentTypeParser.format(parsed);
 };

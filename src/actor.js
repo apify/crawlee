@@ -1,10 +1,11 @@
 import fs from 'fs';
 import path from 'path';
 import _ from 'underscore';
+import contentTypeParser from 'content-type';
 import Promise from 'bluebird';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { ENV_VARS, EXIT_CODES, ACT_TASK_TERMINAL_STATUSES } from './constants';
-import { getPromisePrototype, newPromise, nodeifyPromise, newClient } from './utils';
+import { getPromisePrototype, newPromise, nodeifyPromise, newClient, addCharsetToContentType } from './utils';
 
 
 /* global process, Buffer */
@@ -63,7 +64,8 @@ export const getValue = (key, callback = null) => {
 
     if (devDir) {
         // We're emulating KV store locally in a directory to simplify development
-        const contentType = process.env[ENV_VARS.DEV_KEY_VALUE_STORE_CONTENT_TYPE] || 'application/json';
+        const devContentType = process.env[ENV_VARS.DEV_KEY_VALUE_STORE_CONTENT_TYPE] || 'application/json; charset=utf-8';
+        const contentType = contentTypeParser.parse(devContentType).type;
         const dirPath = path.resolve(devDir);
         let filePath;
 
@@ -91,7 +93,7 @@ export const getValue = (key, callback = null) => {
             .then((data) => {
                 // Parse file according to the content type
                 if (data !== null) {
-                    if (contentType === 'application/json' || contentType === 'application/json; charset=utf-8') {
+                    if (contentType === 'application/json') {
                         try {
                             data = JSON.parse(data.toString('utf8'));
                         } catch (e) {
@@ -210,7 +212,7 @@ export const setValue = (key, value, options, callback = null) => {
                 promise: promisePrototype,
                 key,
                 body: value,
-                contentType: options.contentType,
+                contentType: addCharsetToContentType(options.contentType),
             });
         }
     } else {
@@ -367,7 +369,7 @@ export const call = (opts) => {
         const { body, contentType } = input;
         checkParamOrThrow(body, 'body', 'Buffer | String');
         checkParamOrThrow(contentType, 'contentType', 'String');
-        runActOpts.contentType = contentType;
+        runActOpts.contentType = addCharsetToContentType(contentType);
         runActOpts.body = body;
     }
 
