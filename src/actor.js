@@ -41,7 +41,7 @@ const getDefaultStoreIdOrThrow = () => {
 /**
  * Gets a value from the default key-value store for the current act run.
  * This store is created automatically for this run
- * and its ID is defined in the `APIFY_DEFAULT_KEY_VALUE_STORE_ID` environment variable.
+ * and its ID is passed by the Apify platform as the `APIFY_DEFAULT_KEY_VALUE_STORE_ID` environment variable.
  * The result of the function is the body of the record. For records with the 'application/json'
  * content type, the body is the already parsed object
  * and for 'text/plain' content types it is parsed as String.
