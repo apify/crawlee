@@ -205,12 +205,12 @@ export const processBrowseArgs = (url, options, callback) => {
 
 
 /**
+ * @memberof module:Apify
+ * @function
  * @description Opens a new web browser, which is attached to Apify debugger so that snapshots are sent to Run console (TODO).
  * Internally, this function calls Selenium WebDrivers's Builder command to create a new WebDriver instance.
  * (see http://seleniumhq.github.io/selenium/docs/api/javascript/module/selenium-webdriver/index_exports_Builder.html)
  * The result of the function is a new instance of the Browser class.
- * @memberof module:Apify
- * @function
  * @param url Optional start URL to open. Defaults to about:blank
  * @param options Optional settings, their defaults are provided by the getDefaultBrowseOptions() function.
  * @param callback Optional callback.
