@@ -12,7 +12,9 @@ let PromisesDependency = typeof Promise === 'function' ? Promise : null;
 // TODO: use bluebird promise by default instead of native promise, rename newPromise() to newUserPromise(), get rid of nodeifyPromise()
 
 /**
- * Sets the promise dependency the SDK will use wherever Promises are returned.
+ * @memberof module:Apify
+ * @function
+ * @description Sets the promise dependency the SDK will use wherever Promises are returned.
  * Passing `null` will force the SDK to use native Promises if they are available.
  * @param [Constructor] dep A reference to a Promise constructor
  */
@@ -22,7 +24,9 @@ export const setPromisesDependency = (dep) => {
 };
 
 /**
- * Gets the promise dependency set by `Apify.setPromisesDependency`.
+ * @memberof module:Apify
+ * @function
+ * @description Gets the promise dependency set by `Apify.setPromisesDependency`.
  */
 export const getPromisesDependency = () => {
     return PromisesDependency;
@@ -32,6 +36,7 @@ export const getPromisesDependency = () => {
  * Gets a promise dependency set using `setPromisesDependency()`,
  * or returns the native `Promise` function, or throws if no native promises are available.
  * @return Promise
+ * @ignore
  */
 export const getPromisePrototype = () => {
     if (PromisesDependency) {
@@ -48,6 +53,7 @@ export const getPromisePrototype = () => {
  * Returns a result of `Promise.resolve()` using promise library set by `setPromisesDependency()`,
  * or using native promises, or throws if no native promises are available.
  * @return {*}
+ * @ignore
  */
 export const newPromise = () => {
     return getPromisePrototype().resolve();
@@ -68,6 +74,7 @@ export const nodeifyPromise = (promise, callback) => {
  * Creates an instance of ApifyClient using options as defined in the environment variables.
  * This function is exported in order to enable unit testing.
  * @return {*}
+ * @ignore
  */
 export const newClient = () => {
     const opts = {
@@ -87,6 +94,7 @@ export const newClient = () => {
 /**
  * Sames are Node's url.parse() just adds the 'username', 'password' and 'scheme' fields.
  * @param url
+ * @ignore
  */
 export const parseUrl = (url) => {
     const parsed = urlModule.parse(url);
@@ -122,6 +130,7 @@ export const parseUrl = (url) => {
  * @param url URL, it must contain at least protocol and hostname
  * @param passwordReplacement The string that replaces password, by default it is '<redacted>'
  * @return {string}
+ * @ignore
  */
 export const redactUrl = (url, passwordReplacement) => {
     return redactParsedUrl(parseUrl(url), passwordReplacement);
@@ -145,6 +154,7 @@ export const redactParsedUrl = (parsedUrl, passwordReplacement = '<redacted>') =
  *
  * @param contentType
  * @return {string}
+ * @ignore
  */
 export const addCharsetToContentType = (contentType) => {
     if (!contentType) return contentType;

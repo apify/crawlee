@@ -20,6 +20,7 @@ import { ProxyChain } from './proxy_chain';
 /**
  * Gets the default options for the browse() function, generated from current process environment
  * variables. This is function to enable unit testing.
+ * @ignore
  */
 export const getDefaultBrowseOptions = () => {
     return {
@@ -180,6 +181,7 @@ export class Browser {
  * @param url Optional string
  * @param options Optional object
  * @param callback Optional function
+ * @ignore
  */
 export const processBrowseArgs = (url, options, callback) => {
     if (typeof (url) === 'object' || typeof (url) === 'function') {
@@ -203,10 +205,12 @@ export const processBrowseArgs = (url, options, callback) => {
 
 
 /**
- * Opens a new web browser, which is attached to Apify debugger so that snapshots are sent to Run console (TODO).
+ * @description Opens a new web browser, which is attached to Apify debugger so that snapshots are sent to Run console (TODO).
  * Internally, this function calls Selenium WebDrivers's Builder command to create a new WebDriver instance.
  * (see http://seleniumhq.github.io/selenium/docs/api/javascript/module/selenium-webdriver/index_exports_Builder.html)
  * The result of the function is a new instance of the Browser class.
+ * @memberof module:Apify
+ * @function
  * @param url Optional start URL to open. Defaults to about:blank
  * @param options Optional settings, their defaults are provided by the getDefaultBrowseOptions() function.
  * @param callback Optional callback.
