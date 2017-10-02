@@ -32,6 +32,7 @@
   ],
   "scripts": {
     "build": "babel src --out-dir build",
+    "build-doc": "npm run clean && npm run build && node ./node_modules/jsdoc/jsdoc.js --package ./package.json -c ./jsdoc/conf.json -d docs",
     "test": "npm run build && mocha --compilers js:babel-core/register --recursive",
     "test-cov": "npm run build && babel-node node_modules/isparta/bin/isparta cover --report html --report text node_modules/.bin/_mocha",
     "prepare": "npm run build",
@@ -68,7 +69,10 @@
     "proxy": "^0.2.4",
     "sinon": "^2.2.0",
     "sinon-stub-promise": "^4.0.0",
-    "request": "^2.81.0"
+    "request": "^2.81.0",
+    "jsdoc": "^3.4.3",
+    "jsdoc-export-default-interop": "^0.3.1",
+    "apify-jsdoc-template": "github:Apifier/apify-jsdoc-template"
   },
   "optionalDependencies": {
     "selenium-webdriver": "^3.4.0"

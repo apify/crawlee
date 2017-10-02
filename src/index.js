@@ -21,6 +21,16 @@ const Apify = {
     events: new EventEmitter(),
 };
 
-// export this way so that we can import using:
-// const Apify = require('apify');
+/**
+ * Helper package that simplifies development of Apify acts.
+ * @module Apify
+ * @description Basic usage of Apify module in Apify acts:
+ * ```javascript
+ * const Apify = require('apify');
+ *
+ * Apify.main(() => {
+ *   // my synchronous function that returns immediately
+ * });
+ * ```
+ */
 module.exports = Apify;

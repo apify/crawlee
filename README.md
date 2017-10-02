@@ -172,6 +172,11 @@ otherwise the act process might finish before the output is stored and/or storag
 Besides the key `INPUT` and `OUTPUT`, you can use arbitrary keys
 to store any data from your act, such as its state or larger results.
 
+During local development of the act, you can emulate the key-value store locally using the
+`DEV_KEY_VALUE_STORE_DIR` environment variable. Simply set the variable to a path of some local directory,
+and the runtime will read and store values in that directory rather than Apify servers.
+By default, the values are considered to have the `application/json; charset=utf-8`
+content type, but you can override it by setting the `DEV_KEY_VALUE_STORE_CONTENT_TYPE` environment variable.
 
 ### Browser
 

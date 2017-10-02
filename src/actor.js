@@ -11,7 +11,10 @@ import { getPromisePrototype, newPromise, nodeifyPromise, newClient, addCharsetT
 /* global process, Buffer */
 
 /**
- * A default instance of ApifyClient class.
+ * @type ApifyClient
+ * @memberof module:Apify
+ * @function client
+ * @description A default instance of ApifyClient class.
  * It can be configured by calling setOptions() function.
  */
 export const apifyClient = newClient();
@@ -25,6 +28,7 @@ const statPromised = Promise.promisify(fs.stat);
  * Tries to parse a string with date.
  * @param str Date string
  * @return Returns either a Date object or undefined
+ * @ignore
  */
 const tryParseDate = (str) => {
     const unix = Date.parse(str);
@@ -39,7 +43,9 @@ const getDefaultStoreIdOrThrow = () => {
 
 
 /**
- * Gets a value from the default key-value store for the current act run.
+ * @memberof module:Apify
+ * @function
+ * @description Gets a value from the default key-value store for the current act run.
  * This store is created automatically for this run
  * and its ID is passed by the Apify platform as the `APIFY_DEFAULT_KEY_VALUE_STORE_ID` environment variable.
  * The result of the function is the body of the record. For records with the 'application/json'
@@ -130,7 +136,9 @@ export const getValue = (key, callback = null) => {
 };
 
 /**
- * Stores a value in the default key-value store for the current act run.
+ * @memberof module:Apify
+ * @function
+ * @description Stores a value in the default key-value store for the current act run.
  * This data is stored in the key-value store created specifically for this run,
  * whose ID is defined in the `APIFY_DEFAULT_KEY_VALUE_STORE_ID` environment variable.
  * The function has no result, but throws on invalid args or other errors.
@@ -143,7 +151,7 @@ export const getValue = (key, callback = null) => {
  * If no contentType is specified, the value can be any object and it will be stringified to JSON.
  * If contentType is specified, value is considered raw data and it must be a String or Buffer.
  * For any other value an error will be thrown.
- * @param options Optional settings, currently only { contentType: String } is supported to set MIME content type of the value.
+ * @param options Optional settings, currently only \{ contentType: String \} is supported to set MIME content type of the value.
  * @param callback Optional callback.
  * @return Returns a promise if no callback was provided, otherwise the return value is not defined.
  */
@@ -241,7 +249,9 @@ export const setValue = (key, value, options, callback = null) => {
 
 
 /**
- * Generates an object which contains parsed environment variables:
+ * @memberof module:Apify
+ * @function
+ * @description Generates an object which contains parsed environment variables:
  * ```javascript
  * {
  *   actId: String,
@@ -273,7 +283,48 @@ export const getEnv = () => {
     };
 };
 
-
+/**
+ * @memberof module:Apify
+ * @function
+ * @description To simplify development of acts, the runtime provides the `Apify.main(func)` function which does the following:
+ * 1) Invokes the user function `func`
+ * 2) If the function returned a promise, waits for it to resolve
+ * 3) Exits the process
+ * If the user function throws an exception or some other error is encountered,
+ * then `Apify.main()` prints the details to console so that they are stored to the log file.
+ * `Apify.main()` accepts a single argument - the user function that performs the operation of the act.
+ * In the simplest case, the user function is synchronous:
+ * ```javascript
+ * Apify.main(() => {
+ *      // my synchronous function that returns immediately
+ * });
+ *  ```
+ *  If the user function returns a promise, it is considered as asynchronous:
+ *  ```javascript
+ *  const request = require('request-promise');
+ *  Apify.main(() => {
+ *      // my asynchronous function that returns a promise
+ *      return Promise.resolve()
+ *      .then(() => {
+ *          return request('http://www.example.com');
+ *      })
+ *      .then((html) => {
+ *          console.log(html);
+ *      });
+ * });
+ * ```
+ * To simplify your code, you can take advantage of the `async`/`await` keywords:
+ * ```javascript
+ * const request = require('request-promise');
+ * Apify.main(async () => {
+ *      const html = await request('http://www.example.com');
+ *      console.log(html);
+ * });
+ * ```
+ * Note that the `Apify.main()` function does not need to be used at all,
+ * it is provided merely for user convenience.
+ * @param userFunc
+ */
 export const main = (userFunc) => {
     if (!userFunc || typeof (userFunc) !== 'function') {
         throw new Error('Handler function must be provided as a parameter');
@@ -321,7 +372,9 @@ export const main = (userFunc) => {
 // TODO: this should rather be called Apify.listeningOnPort() or something like that
 
 /**
- * Notifies Apify runtime that act is listening on port specified by the APIFY_INTERNAL_PORT environment
+ * @memberof module:Apify
+ * @function
+ * @description Notifies Apify runtime that act is listening on port specified by the APIFY_INTERNAL_PORT environment
  * variable and is ready to receive a HTTP request with act input.
  */
 export const readyFreddy = () => {
@@ -336,8 +389,9 @@ export const readyFreddy = () => {
 };
 
 /**
- * Executes given, waits for it to finish and fetches it's OUTPUT from key-value store and saves it to run.output.
- *
+ * @memberof module:Apify
+ * @function
+ * @description Executes given, waits for it to finish and fetches it's OUTPUT from key-value store and saves it to run.output.
  * @param {Object} opts
  * @param {String} opts.actId - Either act ID or username/actname.
  * @param {String} [opts.token] - User API token.

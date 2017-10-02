@@ -10,3 +10,4 @@ logs
 pids
 .idea
 yarn.lock
+docs
