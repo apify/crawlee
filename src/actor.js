@@ -46,11 +46,13 @@ const getDefaultStoreIdOrThrow = () => {
  * @memberof module:Apify
  * @function
  * @description Gets a value from the default key-value store for the current act run.
- * This store is created automatically for this run,
- * whose ID is defined in the `APIFY_DEFAULT_KEY_VALUE_STORE_ID` environment variable.
- * The result of the function is the body of the record. For records with 'application/json'
- * content type, the body is the already parsed object. For other content types,
- * the body is raw String or Buffer. If the record cannot be found, the result is null.
+ * This store is created automatically for this run
+ * and its ID is passed by the Apify platform as the `APIFY_DEFAULT_KEY_VALUE_STORE_ID` environment variable.
+ * The result of the function is the body of the record. For records with the 'application/json'
+ * content type, the body is the already parsed object
+ * and for 'text/plain' content types it is parsed as String.
+ * For other content types, the body is raw Buffer.
+ * If the record cannot be found, the result is null.
  *
  * If the `APIFY_DEV_KEY_VALUE_STORE_DIR` environment variable is defined,
  * the value is read from a that directory rather than the key-value store,
@@ -59,6 +61,7 @@ const getDefaultStoreIdOrThrow = () => {
  * The file is assumed to have a content type specified in the `APIFY_DEV_KEY_VALUE_STORE_CONTENT_TYPE`
  * environment variable, or `application/json` if not set.
  * This is useful for local development of the act.
+ *
  * @param callback Optional callback.
  * @return Returns a promise if no callback was provided, otherwise the return value is not defined.
  */
