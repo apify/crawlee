@@ -303,38 +303,6 @@ const data = await Apify.call('john23/my-favourite-act', {
 ```
 
 
-### Internal web server
-
-**TODO: this is still not finished**
-
-You can run a web server inside the act and handle the requests all by yourself.
-
-```javascript
-const http = require('http');
-
-const server = http.createServer((req, res) => {
-    res.statusCode = 200;
-    res.setHeader('Content-Type', 'text/plain');
-    res.end('Hello World\n', (err) => {
-        process.exit(err ? 1 : 0);
-    });
-});
-server.listen(process.env.APIFY_INTERNAL_PORT|0, (err) => {
-    if( err ) {
-        console.log(`Oops: ${err}`);
-        process.exit(1);
-    }
-    console.log('Hey I am ready');
-    Apify.readyFreddy();
-});
-```
-
-Note that by calling `Apify.readyFreddy()` you tell the Actor runtime that your server is ready to start
-receiving HTTP requests over the port specified by the `APIFY_INTERNAL_PORT` environment variable.
-
-
-
-
 ## Package maintenance
 
 * `npm run test` to run tests
