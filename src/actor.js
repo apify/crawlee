@@ -391,7 +391,7 @@ export const readyFreddy = () => {
 /**
  * @memberof module:Apify
  * @function
- * @description Executes given, waits for it to finish and fetches it's OUTPUT from key-value store and saves it to run.output.
+ * @description Executes given act, waits for it to finish and fetches it's OUTPUT from key-value store and saves it to run.output.
  * @param {Object} opts
  * @param {String} opts.actId - Either act ID or username/actname.
  * @param {String} [opts.token] - User API token.
