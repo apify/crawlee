@@ -392,11 +392,11 @@ export const readyFreddy = () => {
  * @memberof module:Apify
  * @function
  * @description Executes given act, waits for it to finish and fetches it's OUTPUT from key-value store and saves it to run.output.
- * @param {Object} opts
- * @param {String} opts.actId - Either act ID or username/actname.
+ * @param {String} actId - Either act ID or username/actname.
+ * @param {String} [input] - Act input body.
+ * @param {Object} [opts]
  * @param {String} [opts.token] - User API token.
  * @param {String} [opts.build] - Build tag or number to be executed.
- * @param {String} [opts.body] - Act input body.
  * @param {String} [opts.contentType] - Content type of the act input.
  * @param {String} [opts.timeoutSecs] - Time limit for act to finish. If limit is reached then run in RUNNING status is returned.
                                         Default is unlimited.
@@ -404,30 +404,45 @@ export const readyFreddy = () => {
  * @param {String} [opts.rawBody] - If true then returns only OUTPUT value without content type and other info. Default is false.
  * @param {String} [opts.disableBodyParser] - If true then doesn't parse the body - ie. JSON to object. Default is false.
  */
-export const call = (opts) => {
+export const call = (actId, input, opts) => {
     const { acts, keyValueStores } = apifyClient;
 
+    checkParamOrThrow(actId, 'actId', 'String');
     checkParamOrThrow(opts, 'opts', 'Object');
 
     // Common options.
-    const { actId, token } = opts;
-    checkParamOrThrow(actId, 'actId', 'String');
+    const { token } = opts;
     checkParamOrThrow(token, 'token', 'Maybe String');
     const defaultOpts = { actId };
     if (token) defaultOpts.token = token;
 
     // RunAct() options.
-    const { build, input } = opts;
-    checkParamOrThrow(build, 'build', 'Maybe String');
-    checkParamOrThrow(input, 'input', 'Maybe Object');
+    const { build } = opts;
     const runActOpts = {};
+    checkParamOrThrow(build, 'build', 'Maybe String');
     if (build) runActOpts.build = build;
+
+    let { contentType } = opts;
     if (input) {
-        const { body, contentType } = input;
-        checkParamOrThrow(body, 'body', 'Buffer | String');
+        // TODO: this is duplicite with setValue()'s code
+        if (contentType === null || contentType === undefined) {
+            contentType = 'application/json';
+            try {
+                // Format JSON to simplify debugging, the overheads with compression is negligible
+                input = JSON.stringify(input, null, 2);
+            } catch (err) {
+                throw new Error(`The "input" parameter cannot be stringified to JSON: ${err.message}`);
+            }
+            if (input === undefined) {
+                throw new Error('The "input" parameter cannot be stringified to JSON.');
+            }
+        }
+
+        checkParamOrThrow(input, 'input', 'Buffer|String');
         checkParamOrThrow(contentType, 'contentType', 'String');
-        runActOpts.contentType = addCharsetToContentType(contentType);
-        runActOpts.body = body;
+
+        if (contentType) runActOpts.contentType = addCharsetToContentType(contentType);
+        runActOpts.body = input;
     }
 
     // GetAct() options.
