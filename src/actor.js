@@ -404,7 +404,7 @@ export const readyFreddy = () => {
  * @param {String} [opts.rawBody] - If true then returns only OUTPUT value without content type and other info. Default is false.
  * @param {String} [opts.disableBodyParser] - If true then doesn't parse the body - ie. JSON to object. Default is false.
  */
-export const call = (actId, input, opts) => {
+export const call = (actId, input, opts = {}) => {
     const { acts, keyValueStores } = apifyClient;
 
     checkParamOrThrow(actId, 'actId', 'String');
