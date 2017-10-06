@@ -130,7 +130,7 @@ export const getValue = (key, callback = null) => {
                         promise: promisePrototype,
                         key,
                     })
-                    .then(output => output ? output.body : null);
+                    .then(output => (output ? output.body : null));
             });
     }
 

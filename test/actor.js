@@ -1130,7 +1130,7 @@ describe('Apify.call()', () => {
         const runningRun = Object.assign({}, run, { status: 'RUNNING' });
         const finishedRun = Object.assign({}, run, { status: ACT_TASK_STATUSES.SUCCEEDED });
         const input = { a: 'b' };
-        const output = { body: 'some-output' }  ;
+        const output = { body: 'some-output' };
         const expected = Object.assign({}, finishedRun, { output });
         const build = 'xxx';
 
