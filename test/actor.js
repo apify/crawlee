@@ -964,7 +964,7 @@ describe('Apify.call()', () => {
         const finishedRun = Object.assign({}, run, { status: ACT_TASK_STATUSES.SUCCEEDED });
         const input = 'something';
         const contentType = 'text/plain';
-        const output = 'some-output';
+        const output = { contentType, body: 'some-output' };
         const expected = Object.assign({}, finishedRun, { output });
         const build = 'xxx';
 
@@ -984,12 +984,12 @@ describe('Apify.call()', () => {
 
         const keyValueStoresMock = sinon.mock(Apify.client.keyValueStores);
         keyValueStoresMock.expects('getRecord')
-            .withExactArgs({ storeId: run.defaultKeyValueStoreId, key: 'OUTPUT', rawBody: true, disableBodyParser: true })
+            .withExactArgs({ storeId: run.defaultKeyValueStoreId, key: 'OUTPUT', disableBodyParser: true })
             .once()
             .returns(Promise.resolve(output));
 
         return Apify
-            .call(actId, input, { contentType, token, rawBody: true, disableBodyParser: true, build })
+            .call(actId, input, { contentType, token, disableBodyParser: true, build })
             .then((callOutput) => {
                 expect(callOutput).to.be.eql(expected);
                 keyValueStoresMock.restore();
@@ -1005,7 +1005,7 @@ describe('Apify.call()', () => {
         const runningRun = Object.assign({}, run, { status: 'RUNNING' });
         const finishedRun = Object.assign({}, run, { status: ACT_TASK_STATUSES.SUCCEEDED });
         const input = { a: 'b' };
-        const output = 'some-output';
+        const output = { body: 'some-output' }  ;
         const expected = Object.assign({}, finishedRun, { output });
         const build = 'xxx';
 
@@ -1025,12 +1025,12 @@ describe('Apify.call()', () => {
 
         const keyValueStoresMock = sinon.mock(Apify.client.keyValueStores);
         keyValueStoresMock.expects('getRecord')
-            .withExactArgs({ storeId: run.defaultKeyValueStoreId, key: 'OUTPUT', rawBody: true, disableBodyParser: true })
+            .withExactArgs({ storeId: run.defaultKeyValueStoreId, key: 'OUTPUT', disableBodyParser: true })
             .once()
             .returns(Promise.resolve(output));
 
         return Apify
-            .call(actId, input, { token, rawBody: true, disableBodyParser: true, build })
+            .call(actId, input, { token, disableBodyParser: true, build })
             .then((callOutput) => {
                 expect(callOutput).to.be.eql(expected);
                 keyValueStoresMock.restore();

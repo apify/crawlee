@@ -123,12 +123,14 @@ export const getValue = (key, callback = null) => {
 
         promise = newPromise()
             .then(() => {
-                return apifyClient.keyValueStores.getRecord({
-                    storeId,
-                    promise: promisePrototype,
-                    key,
-                    rawBody: true,
-                });
+                return apifyClient
+                    .keyValueStores
+                    .getRecord({
+                        storeId,
+                        promise: promisePrototype,
+                        key,
+                    })
+                    .then(output => output ? output.body : null);
             });
     }
 
@@ -401,7 +403,6 @@ export const readyFreddy = () => {
  * @param {String} [opts.timeoutSecs] - Time limit for act to finish. If limit is reached then run in RUNNING status is returned.
                                         Default is unlimited.
  * @param {String} [opts.fetchOutput] - If false then doesn't fetch the OUTPUT from key-value store. Default is true.
- * @param {String} [opts.rawBody] - If true then returns only OUTPUT value without content type and other info. Default is false.
  * @param {String} [opts.disableBodyParser] - If true then doesn't parse the body - ie. JSON to object. Default is false.
  */
 export const call = (actId, input, opts = {}) => {
@@ -452,14 +453,12 @@ export const call = (actId, input, opts = {}) => {
     const timeoutAt = timeoutSecs ? Date.now() + (timeoutSecs * 1000) : null;
 
     // GetRecord() options.
-    const { rawBody, disableBodyParser } = opts;
-    checkParamOrThrow(rawBody, 'rawBody', 'Maybe Boolean');
+    const { disableBodyParser } = opts;
     checkParamOrThrow(disableBodyParser, 'disableBodyParser', 'Maybe Boolean');
 
     // Adds run.output field to given run and returns it.
     const addOutputToRun = (run) => {
         const getRecordOpts = { key: 'OUTPUT', storeId: run.defaultKeyValueStoreId };
-        if (rawBody) getRecordOpts.rawBody = rawBody;
         if (disableBodyParser) getRecordOpts.disableBodyParser = disableBodyParser;
 
         return keyValueStores
