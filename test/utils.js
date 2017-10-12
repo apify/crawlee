@@ -61,7 +61,7 @@ describe('utils.newClient()', () => {
 
         expect(opts.userId).to.eql('userId');
         expect(opts.token).to.eql('token');
-        expect(opts.baseUrl).to.eql('https://api.apifier.com');
+        expect(opts.baseUrl).to.eql('https://api.apify.com');
     });
 });
 

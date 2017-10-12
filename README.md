@@ -3,7 +3,7 @@
 [![npm version](https://badge.fury.io/js/apify.svg)](http://badge.fury.io/js/apify)
 [![Build Status](https://travis-ci.org/Apifier/apify-runtime-js.svg)](https://travis-ci.org/Apifier/apify-runtime-js)
 
-Helper package that simplifies development of Apify acts. See https://www.apifier.com for details.
+Helper package that simplifies development of Apify acts. See https://www.apify.com/docs#acts for details.
 This is still work in progress, things might change and break.
 
 If you're looking for the API documentation package previously published as **apify**,

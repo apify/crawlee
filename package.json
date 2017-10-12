@@ -1,6 +1,6 @@
 {
   "name": "apify",
-  "version": "0.4.28",
+  "version": "0.4.29",
   "description": "Apify runtime for JavaScript",
   "main": "build/index.js",
   "keywords": [
@@ -10,13 +10,13 @@
     "scraper"
   ],
   "author": {
-    "name": "Apifier",
-    "email": "info@apifier.com",
-    "url": "https://www.apifier.com"
+    "name": "Apify",
+    "email": "support@apify.com",
+    "url": "https://www.apify.com"
   },
   "contributors": [
-    "Jan Curn <jan@apifier.com>",
-    "Marek Trunkat <marek@apifier.com>"
+    "Jan Curn <jan@apify.com>",
+    "Marek Trunkat <marek@apify.com>"
   ],
   "license": "Apache-2.0",
   "repository": {

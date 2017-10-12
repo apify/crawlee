@@ -300,7 +300,7 @@ describe('Apify.browse()', function () {
         console.log('HEREE');
         let browser;
         const opts = {
-            url: 'https://www.apifier.com/',
+            url: 'https://www.apify.com/',
             headless: false,
             browserName: 'chrome',
             extraChromeArguments: ['--disk-cache-dir=/Users/jan/Projects/apify-runtime-js/_profiles/xxx1'], //, '--disk-cache-size=10000000'],
