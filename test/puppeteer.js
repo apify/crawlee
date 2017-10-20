@@ -1,7 +1,10 @@
 import { expect } from 'chai';
 import Apify from '../build/index';
+import { ENV_VARS } from '../build/constants';
 
-describe('Apify.launchPuppeteer()', function () {
+process.env[ENV_VARS.HEADLESS] = true;
+
+describe('Apify.launchPuppeteer()', () => {
     it('throws on invalid args', () => {
         expect(() => Apify.launchPuppeteer({ proxyUrl: 'invalidurl' })).to.throw(Error);
         expect(() => Apify.launchPuppeteer({ proxyUrl: 'http://host-without-port' })).to.throw(Error);

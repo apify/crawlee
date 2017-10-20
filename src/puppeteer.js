@@ -3,18 +3,18 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import { parseUrl } from './utils';
 import { ENV_VARS } from './constants';
 
-export const PUPPETEER_DEFAULT_OPTS = {
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+export const getDefaultPuppeteerOptions = () => ({
+    args: ['--no-sandbox'],
     headless: !!process.env[ENV_VARS.HEADLESS],
     proxyUrl: null,
-};
+});
 
 /**
  * @memberof module:Apify
  * @function
  * @description Launches Puppeteer preconfigured to work with Apify platform.
  * The result of the function is a result of puppeteer.launch().
- * @param options Optional settings, their defaults are provided in the PUPPETEER_DEFAULT_OPTS constant.
+ * @param options Optional settings, their defaults are provided in the getDefaultPuppeteerOptions function.
  * @return Returns a promise.
  */
 export const launchPuppeteer = (opts = {}) => {
@@ -34,5 +34,5 @@ export const launchPuppeteer = (opts = {}) => {
         opts.env[proxyVarName] = opts.proxyUrl;
     }
 
-    return puppeteer.launch(Object.assign({}, PUPPETEER_DEFAULT_OPTS, opts));
+    return puppeteer.launch(Object.assign({}, getDefaultPuppeteerOptions(), opts));
 };
