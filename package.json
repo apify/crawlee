@@ -45,7 +45,6 @@
     "bluebird": "^3.5.0",
     "content-type": "^1.0.3",
     "portastic": "^1.0.1",
-    "puppeteer": "^0.12.0",
     "rimraf": "^2.6.1",
     "tmp": "^0.0.33",
     "underscore": "^1.8.3"
@@ -76,6 +75,7 @@
     "apify-jsdoc-template": "github:Apifier/apify-jsdoc-template"
   },
   "optionalDependencies": {
+    "puppeteer": "^0.12.0",
     "selenium-webdriver": "^3.4.0"
   }
 }

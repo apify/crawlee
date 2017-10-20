@@ -9,6 +9,7 @@ describe('Apify.launchPuppeteer()', () => {
         expect(() => Apify.launchPuppeteer({ proxyUrl: 'invalidurl' })).to.throw(Error);
         expect(() => Apify.launchPuppeteer({ proxyUrl: 'http://host-without-port' })).to.throw(Error);
         expect(() => Apify.launchPuppeteer({ proxyUrl: 'invalid://somehost:1234' })).to.throw(Error);
+        expect(() => Apify.launchPuppeteer({ proxyUrl: 'http://username:pass@host-with-port.com:30' })).to.throw(Error);
         expect(() => Apify.launchPuppeteer({ proxyUrl: 'http://host-with-port.com:30' })).to.not.throw();
     });
 
