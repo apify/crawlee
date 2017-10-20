@@ -4,7 +4,7 @@ import { parseUrl } from './utils';
 import { ENV_VARS } from './constants';
 
 export const PUPPETEER_DEFAULT_OPTS = {
-    args: ['--no-sandbox'],
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
     headless: !!process.env[ENV_VARS.HEADLESS],
     proxyUrl: null,
 };
