@@ -75,6 +75,7 @@
     "apify-jsdoc-template": "github:Apifier/apify-jsdoc-template"
   },
   "optionalDependencies": {
+    "puppeteer": "^0.12.0",
     "selenium-webdriver": "^3.4.0"
   }
 }
