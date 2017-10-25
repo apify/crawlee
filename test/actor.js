@@ -129,7 +129,7 @@ const testMain = (method, bodyRaw, contentType, userFunc, expectedExitCode = 0) 
 
 /**
  * Helper function that enables testing of Apify.main()
- * @return Promise
+ * @returns Promise
  */
 const testMain = ({ userFunc, exitCode }) => {
     // Mock process.exit() to check exit code and prevent process exit
@@ -196,6 +196,7 @@ const getEmptyEnv = () => {
         startedAt: null,
         timeoutAt: null,
         defaultKeyValueStoreId: null,
+        memoryMbytes: null,
     };
 };
 
@@ -217,6 +218,7 @@ const setEnv = (env) => {
     if (env.startedAt) process.env.APIFY_STARTED_AT = env.startedAt.toISOString();
     if (env.timeoutAt) process.env.APIFY_TIMEOUT_AT = env.timeoutAt.toISOString();
     if (env.defaultKeyValueStoreId) process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = env.defaultKeyValueStoreId;
+    if (env.memoryMbytes) process.env.APIFY_MEMORY_MBYTES = env.memoryMbytes.toString();
 };
 
 describe('Apify.getEnv()', () => {
@@ -238,6 +240,7 @@ describe('Apify.getEnv()', () => {
             startedAt: new Date('2017-01-01'),
             timeoutAt: new Date(),
             defaultKeyValueStoreId: 'some store',
+            memoryMbytes: 1234,
         });
         setEnv(expectedEnv);
 

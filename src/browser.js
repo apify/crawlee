@@ -87,7 +87,7 @@ export class Browser {
 
     /**
      * Initializes the browser.
-     * @return Promise
+     * @returns Promise
      */
     _initialize() {
         return newPromise()
@@ -214,7 +214,7 @@ export const processBrowseArgs = (url, options, callback) => {
  * @param url Optional start URL to open. Defaults to about:blank
  * @param options Optional settings, their defaults are provided by the getDefaultBrowseOptions() function.
  * @param callback Optional callback.
- * @return Returns a promise if no callback was provided, otherwise the return value is not defined.
+ * @returns Returns a promise if no callback was provided, otherwise the return value is not defined.
  */
 export const browse = (url, options, callback) => {
     const args = processBrowseArgs(url, options, callback);
@@ -237,7 +237,7 @@ export const browse = (url, options, callback) => {
 //  * This code is kept here for legacy reasons, it's not used.
 //  * @param {boolean=} headless True (default) to launch Chrome in headless mode.
 //  *     Set to false to launch Chrome normally.
-//  * @return {Promise<ChromeLauncher>}
+//  * @returns {Promise<ChromeLauncher>}
 //  */
 // export const launchChrome = (headless = !!process.env.APIFY_HEADLESS) => {
 //     // code inspired by https://developers.google.com/web/updates/2017/04/headless-chrome

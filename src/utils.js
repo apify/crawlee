@@ -35,7 +35,7 @@ export const getPromisesDependency = () => {
 /**
  * Gets a promise dependency set using `setPromisesDependency()`,
  * or returns the native `Promise` function, or throws if no native promises are available.
- * @return Promise
+ * @returns Promise
  * @ignore
  */
 export const getPromisePrototype = () => {
@@ -52,7 +52,7 @@ export const getPromisePrototype = () => {
 /**
  * Returns a result of `Promise.resolve()` using promise library set by `setPromisesDependency()`,
  * or using native promises, or throws if no native promises are available.
- * @return {*}
+ * @returns {*}
  * @ignore
  */
 export const newPromise = () => {
@@ -73,7 +73,7 @@ export const nodeifyPromise = (promise, callback) => {
 /**
  * Creates an instance of ApifyClient using options as defined in the environment variables.
  * This function is exported in order to enable unit testing.
- * @return {*}
+ * @returns {*}
  * @ignore
  */
 export const newClient = () => {
@@ -129,7 +129,7 @@ export const parseUrl = (url) => {
  * to 'https://username:<redacted>@www.example.com/path#hash'
  * @param url URL, it must contain at least protocol and hostname
  * @param passwordReplacement The string that replaces password, by default it is '<redacted>'
- * @return {string}
+ * @returns {string}
  * @ignore
  */
 export const redactUrl = (url, passwordReplacement) => {
@@ -153,7 +153,7 @@ export const redactParsedUrl = (parsedUrl, passwordReplacement = '<redacted>') =
  * Adds charset=utf-8 to given content type if this parameter is missing.
  *
  * @param contentType
- * @return {string}
+ * @returns {string}
  * @ignore
  */
 export const addCharsetToContentType = (contentType) => {

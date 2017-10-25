@@ -27,7 +27,7 @@ const statPromised = Promise.promisify(fs.stat);
 /**
  * Tries to parse a string with date.
  * @param str Date string
- * @return Returns either a Date object or undefined
+ * @returns Returns either a Date object or undefined
  * @ignore
  */
 const tryParseDate = (str) => {
@@ -63,7 +63,7 @@ const getDefaultStoreIdOrThrow = () => {
  * This is useful for local development of the act.
  *
  * @param callback Optional callback.
- * @return Returns a promise if no callback was provided, otherwise the return value is not defined.
+ * @returns Returns a promise if no callback was provided, otherwise the return value is not defined.
  */
 export const getValue = (key, callback = null) => {
     if (!key || !_.isString(key)) throw new Error('The "key" parameter must be a non-empty string');
@@ -155,7 +155,7 @@ export const getValue = (key, callback = null) => {
  * For any other value an error will be thrown.
  * @param options Optional settings, currently only \{ contentType: String \} is supported to set MIME content type of the value.
  * @param callback Optional callback.
- * @return Returns a promise if no callback was provided, otherwise the return value is not defined.
+ * @returns Returns a promise if no callback was provided, otherwise the return value is not defined.
  */
 export const setValue = (key, value, options, callback = null) => {
     if (!key || !_.isString(key)) throw new Error('The "key" parameter must be a non-empty string');
@@ -253,7 +253,8 @@ export const setValue = (key, value, options, callback = null) => {
 /**
  * @memberof module:Apify
  * @function
- * @description Generates an object which contains parsed environment variables:
+ * @description Returns a new object which contains information parsed from the `APIFY_XXX` environment variables.
+ * It has the following fields:
  * ```javascript
  * {
  *   actId: String,
@@ -264,14 +265,16 @@ export const setValue = (key, value, options, callback = null) => {
  *   timeoutAt: Date,
  *   defaultKeyValueStoreId: String,
  *   internalPort: Number,
+ *   memoryMbytes: Number,
  * }
  * ```
- * All the information is generated from the APIFY_XXX environment variables.
- * If some of the variables is not defined or is invalid, the corresponding value in the resulting object will be null;
- * an error is not thrown in such a case in order to simplify local development and debugging of acts.
- * @return Object
+ * For the list of the `APIFY_XXX` environment variables, see
+ * {@link http://localhost/docs/actor.php#run-env-vars|Actor documentation}.
+ * If some of the variables is not defined or is invalid, the corresponding value in the resulting object will be null.
+ * @returns {Object}
  */
 export const getEnv = () => {
+    // NOTE: don't throw if env vars are invalid to simplify local development and debugging of acts
     const env = process.env || {};
     return {
         actId: env[ENV_VARS.ACT_ID] || null,
@@ -282,6 +285,7 @@ export const getEnv = () => {
         timeoutAt: tryParseDate(env[ENV_VARS.TIMEOUT_AT]) || null,
         defaultKeyValueStoreId: env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID] || null,
         internalPort: parseInt(env[ENV_VARS.INTERNAL_PORT], 10) || null,
+        memoryMbytes: parseInt(env[ENV_VARS.MEMORY_MBYTES], 10) || null,
     };
 };
 
@@ -289,9 +293,11 @@ export const getEnv = () => {
  * @memberof module:Apify
  * @function
  * @description To simplify development of acts, the runtime provides the `Apify.main(func)` function which does the following:
- * 1) Invokes the user function `func`
- * 2) If the function returned a promise, waits for it to resolve
- * 3) Exits the process
+ * <ol>
+ *   <li>Invokes the user function passed in the `func` parameter</li>
+ *   <li>If the function returned a promise, waits for it to resolve</li>
+ *   <li>Exits the process</li>
+ * </ol>
  * If the user function throws an exception or some other error is encountered,
  * then `Apify.main()` prints the details to console so that they are stored to the log file.
  * `Apify.main()` accepts a single argument - the user function that performs the operation of the act.

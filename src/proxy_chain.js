@@ -29,7 +29,7 @@ const fsWriteFilePromised = Promise.promisify(fs.writeFile);
 
 /*
  * Run Squid process to get its version and wait for the finish
- * @return Promise
+ * @returns Promise
  const printSquidVersion = () => {
  // TODO: check that the version is at least 3.3 and throw error otherwise!
  console.log(`${PROXY_CHAIN.LOG_PREFIX}Checking Squid installation with '${PROXY_CHAIN.SQUID_CMD}
@@ -92,7 +92,7 @@ export class ProxyChain {
 
     /**
      * Creates the temporary directory, writes a config to it and starts Squid process.
-     * @return Promise
+     * @returns Promise
      * @private
      */
     start() {
@@ -195,7 +195,7 @@ export class ProxyChain {
 
     /**
      * Determines whether the Squid process is still running.
-     * @return Boolean
+     * @returns Boolean
      * @private
      */
     _isSquidRunning() {
@@ -210,7 +210,7 @@ export class ProxyChain {
 
     /**
      * Generates Squid proxy configuration file and writes it to the temporary directory.
-     * @return Promise Promise resolving to the path to the configuration file.
+     * @returns Promise Promise resolving to the path to the configuration file.
      * @private
      */
     _writeSquidConf() {
@@ -256,7 +256,7 @@ cache_peer_access my_peer allow all
 
     /**
      * Removes all proxy chains and terminates the squid process.
-     * @return {*}
+     * @returns {*}
      */
     shutdown() {
         const isRunning = this._isSquidRunning();
