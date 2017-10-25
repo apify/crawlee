@@ -4,25 +4,24 @@ import { ENV_VARS } from './constants';
 
 /* global process, require */
 
-/**
- * Gets the default options for the browse() function, generated from current process environment
- * variables. This is function to enable unit testing.
- * @ignore
- */
-export const getDefaultPuppeteerOptions = () => ({
-    args: ['--no-sandbox'],
-    headless: !!process.env[ENV_VARS.HEADLESS],
-    proxyUrl: null,
-});
 
 /**
  * @memberof module:Apify
  * @function
- * @description Launches headless Chrome using Puppeteer pre-configured to work with the Apify Actor platform.
- * The result of the function is the same as result of `puppeteer.launch()`.
- * See https://github.com/GoogleChrome/puppeteer for more details.
- * @param options Optional settings, their defaults are provided in the getDefaultPuppeteerOptions function.
- * @return Returns a promise.
+ * @description <p>Launches headless Chrome using Puppeteer pre-configured to work with the Apify Actor platform.
+ * The function has the same argument and return values as `puppeteer.launch()`.
+ * See {@link https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#puppeteerlaunchoptions|Puppeteer documentation} for more details.</p>
+ * <p>The `launchPuppeteer()` function alters the following Puppeteer options:
+ * <ul>
+ *    <li>Passes the value defined in the `APIFY_HEADLESS` environment variables to the `headless` option,
+ *        unless it was already defined by the caller.</li>
+ *    <li>Takes the `proxyUrl` option and adds it to `env` under the `HTTPS_PROXY` or `HTTP_PROXY` key.</li>
+ *    <li>Adds `--no-sandbox` to `args` to enable running headless Chrome in a Docker container.</li>
+ * </ul>
+ * </p>
+ * @param options Optional settings passed to `puppeteer.launch()`.
+ * Additionally, the options can contain the `proxyUrl` property to specify a proxy server.
+ * @returns {Promise} Promise object returned by `puppeteer.launch()`
  */
 export const launchPuppeteer = (opts = {}) => {
     let puppeteer;
@@ -37,6 +36,8 @@ export const launchPuppeteer = (opts = {}) => {
     }
 
     checkParamOrThrow(opts, 'opts', 'Object');
+    checkParamOrThrow(opts.env, 'opts.env', 'Maybe Object');
+    checkParamOrThrow(opts.args, 'opts.args', 'Maybe [String]');
 
     const { proxyUrl } = opts;
 
@@ -53,5 +54,10 @@ export const launchPuppeteer = (opts = {}) => {
         opts.env[proxyVarName] = opts.proxyUrl;
     }
 
-    return puppeteer.launch(Object.assign({}, getDefaultPuppeteerOptions(), opts));
+    opts.args = opts.args || [];
+    opts.args.push('--no-sandbox');
+
+    if (opts.headless === undefined || opts.headless === null) opts.headless = !!process.env[ENV_VARS.HEADLESS];
+
+    return puppeteer.launch(opts);
 };
