@@ -425,7 +425,7 @@ export const call = (actId, input, opts = {}) => {
 
     let { contentType } = opts;
     if (input) {
-        // TODO: this is duplicite with setValue()'s code
+        // TODO: this is duplicate with setValue()'s code
         if (contentType === null || contentType === undefined) {
             contentType = 'application/json';
             try {

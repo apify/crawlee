@@ -18,8 +18,9 @@ export const getDefaultPuppeteerOptions = () => ({
 /**
  * @memberof module:Apify
  * @function
- * @description Launches Puppeteer preconfigured to work with Apify platform.
- * The result of the function is a result of puppeteer.launch().
+ * @description Launches headless Chrome using Puppeteer pre-configured to work with the Apify Actor platform.
+ * The result of the function is the same as result of `puppeteer.launch()`.
+ * See https://github.com/GoogleChrome/puppeteer for more details.
  * @param options Optional settings, their defaults are provided in the getDefaultPuppeteerOptions function.
  * @return Returns a promise.
  */

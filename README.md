@@ -295,11 +295,8 @@ This will be used in the future.
 `Apify.call` function can be used to quickly execute other act and get it's output. Example use:
 
 ```javascript
-const data = await Apify.call('john23/my-favourite-act', {
-    timeoutSecs: 300,
-    body: 'SOME_INPUT_DATA',
-    contentType: 'text/plain',
-})
+const run = await Apify.call('john23/my-favourite-act', { myInput: 123 });
+console.dir(run.output);
 ```
 
 
