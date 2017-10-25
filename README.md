@@ -82,49 +82,6 @@ Note that the `Apify.main()` function does not need to be used at all,
 it is provided merely for user convenience.
 
 
-### Environment
-
-When running on the Apify platform, the act process is executed with several environment variables.
-To simplify access to these variables, you can use the `Apify.getEnv()` function,
-which returns an object with the following properties:
-
-```javascript
-{
-    // ID of the act.
-    // Environment variable: APIFY_ACT_ID
-    actId: String,
-
-    // ID of the act run
-    // Environment variable: APIFY_ACT_RUN_ID
-    actRunId: String,
-
-    // ID of the user who started the act (might be different than the owner of the act)
-    // Environment variable: APIFY_USER_ID
-    userId: String,
-
-    // Authentication token representing privileges given to the act run,
-    // it can be passed to various Apify APIs.
-    // Environment variable: APIFY_TOKEN
-    token: String,
-
-    // Date when the act was started
-    // Environment variable: APIFY_STARTED_AT
-    startedAt: Date,
-
-    // Date when the act will time out
-    // Environment variable: APIFY_TIMEOUT_AT
-    timeoutAt: Date,
-
-    // ID of the key-value store where input and output data of this act is stored
-    // Environment variable: APIFY_DEFAULT_KEY_VALUE_STORE_ID
-    defaultKeyValueStoreId: String,
-
-    // Port on which the act's internal web server is listening.
-    // This is still work in progress, stay tuned.
-    // Environment variable: APIFY_INTERNAL_PORT
-    internalPort: Number,
-}
-```
 
 
 ### Input and output

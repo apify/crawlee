@@ -188,7 +188,7 @@ const testMain = ({ userFunc, exitCode }) => {
 
 const getEmptyEnv = () => {
     return {
-        internalPort: null,
+        // internalPort: null,
         actId: null,
         actRunId: null,
         userId: null,
@@ -210,7 +210,7 @@ const setEnv = (env) => {
     delete process.env.APIFY_TIMEOUT_AT;
     delete process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID;
 
-    if (env.internalPort) process.env.APIFY_INTERNAL_PORT = env.internalPort.toString();
+    // if (env.internalPort) process.env.APIFY_INTERNAL_PORT = env.internalPort.toString();
     if (env.actId) process.env.APIFY_ACT_ID = env.actId;
     if (env.actRunId) process.env.APIFY_ACT_RUN_ID = env.actRunId;
     if (env.userId) process.env.APIFY_USER_ID = env.userId;
@@ -232,7 +232,7 @@ describe('Apify.getEnv()', () => {
 
     it('works with with non-null values', () => {
         const expectedEnv = _.extend(getEmptyEnv(), {
-            internalPort: 12345,
+            // internalPort: 12345,
             actId: 'test actId',
             actRunId: 'test actId',
             userId: 'some user',

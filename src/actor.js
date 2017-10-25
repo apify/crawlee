@@ -11,11 +11,15 @@ import { getPromisePrototype, newPromise, nodeifyPromise, newClient, addCharsetT
 /* global process, Buffer */
 
 /**
- * @type ApifyClient
  * @memberof module:Apify
- * @function client
- * @description A default instance of ApifyClient class.
- * It can be configured by calling setOptions() function.
+ * @name client
+ * @instance
+ * @description A default instance of the `ApifyClient` class provided
+ * by the {@link https://www.apify.com/docs/js/apify-client-js/latest|apify-client} NPM package.
+ * This instance is used to access the Apify API
+ * and its settings can be altered by calling the `Apify.client.setOptions()` function.
+ * Be careful, by changing the settings you might alter behavior of functions such as
+ * [Apify.getValue]{@linkcode getValue} or [Apify.setValue]{@linkcode setValue}.
  */
 export const apifyClient = newClient();
 
@@ -254,17 +258,41 @@ export const setValue = (key, value, options, callback = null) => {
  * @memberof module:Apify
  * @function
  * @description Returns a new object which contains information parsed from the `APIFY_XXX` environment variables.
- * It has the following fields:
+ * It has the following properties:
  * ```javascript
  * {
+ *   // ID of the act.
+ *   // Environment variable: APIFY_ACT_ID
  *   actId: String,
+ *
+ *   // ID of the act run
+ *   // Environment variable: APIFY_ACT_RUN_ID
  *   actRunId: String,
+ *
+ *   // ID of the user who started the act (might be different than the owner of the act)
+ *   // Environment variable: APIFY_USER_ID
  *   userId: String,
+ *
+ *   // Authentication token representing privileges given to the act run,
+ *   // it can be passed to various Apify APIs.
+ *   // Environment variable: APIFY_TOKEN
  *   token: String,
+ *
+ *   // Date when the act was started
+ *   // Environment variable: APIFY_STARTED_AT
  *   startedAt: Date,
+ *
+ *   // Date when the act will time out
+ *   // Environment variable: APIFY_TIMEOUT_AT
  *   timeoutAt: Date,
+ *
+ *   // ID of the key-value store where input and output data of this act is stored
+ *   // Environment variable: APIFY_DEFAULT_KEY_VALUE_STORE_ID
  *   defaultKeyValueStoreId: String,
- *   internalPort: Number,
+ *
+ *   // The amount of memory allocated for the act run, in megabytes.
+ *   // It can be used by acts to optimize their memory usage.
+ *   // Environment variable: APIFY_MEMORY_MBYTES
  *   memoryMbytes: Number,
  * }
  * ```
@@ -284,7 +312,7 @@ export const getEnv = () => {
         startedAt: tryParseDate(env[ENV_VARS.STARTED_AT]) || null,
         timeoutAt: tryParseDate(env[ENV_VARS.TIMEOUT_AT]) || null,
         defaultKeyValueStoreId: env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID] || null,
-        internalPort: parseInt(env[ENV_VARS.INTERNAL_PORT], 10) || null,
+        // internalPort: parseInt(env[ENV_VARS.INTERNAL_PORT], 10) || null,
         memoryMbytes: parseInt(env[ENV_VARS.MEMORY_MBYTES], 10) || null,
     };
 };
@@ -292,36 +320,38 @@ export const getEnv = () => {
 /**
  * @memberof module:Apify
  * @function
- * @description To simplify development of acts, the runtime provides the `Apify.main(func)` function which does the following:
+ * @description <p>Runs a user function that executes the logic of the act.
+ * It performs the following actions:</p>
  * <ol>
- *   <li>Invokes the user function passed in the `func` parameter</li>
- *   <li>If the function returned a promise, waits for it to resolve</li>
+ *   <li>Invokes the user function passed as the `userFunc` parameter</li>
+ *   <li>If the user function returned a promise, waits for it to resolve</li>
+ *   <li>If the user function throws an exception or some other error is encountered,
+ *       prints the error details to console so that they are stored to the log file</li>
  *   <li>Exits the process</li>
  * </ol>
- * If the user function throws an exception or some other error is encountered,
- * then `Apify.main()` prints the details to console so that they are stored to the log file.
- * `Apify.main()` accepts a single argument - the user function that performs the operation of the act.
+ * <p>
  * In the simplest case, the user function is synchronous:
+ * </p>
  * ```javascript
  * Apify.main(() => {
- *      // my synchronous function that returns immediately
- * });
- *  ```
- *  If the user function returns a promise, it is considered as asynchronous:
- *  ```javascript
- *  const request = require('request-promise');
- *  Apify.main(() => {
- *      // my asynchronous function that returns a promise
- *      return Promise.resolve()
- *      .then(() => {
- *          return request('http://www.example.com');
- *      })
- *      .then((html) => {
- *          console.log(html);
- *      });
+ *     // my synchronous function that returns immediately
  * });
  * ```
- * To simplify your code, you can take advantage of the `async`/`await` keywords:
+ * <p>If the user function returns a promise, it is considered as asynchronous:</p>
+ * ```javascript
+ * const request = require('request-promise');
+ * Apify.main(() => {
+ *     // my asynchronous function that returns a promise
+ *     return Promise.resolve()
+ *     .then(() => {
+ *         return request('http://www.example.com');
+ *     })
+ *     .then((html) => {
+ *         console.log(html);
+ *     });
+ * });
+ * ```
+ * <p>To simplify your code, you can take advantage of the `async`/`await` keywords:</p>
  * ```javascript
  * const request = require('request-promise');
  * Apify.main(async () => {
@@ -329,9 +359,9 @@ export const getEnv = () => {
  *      console.log(html);
  * });
  * ```
- * Note that the `Apify.main()` function does not need to be used at all,
- * it is provided merely for user convenience.
- * @param userFunc
+ * Note that the use of `Apify.main()` in acts is optional,
+ * the function is provided merely for user convenience and acts don't need to use it.
+ * @param userFunc {Function} User function to be executed
  */
 export const main = (userFunc) => {
     if (!userFunc || typeof (userFunc) !== 'function') {
@@ -380,6 +410,7 @@ export const main = (userFunc) => {
 // TODO: this should rather be called Apify.listeningOnPort() or something like that
 
 /**
+ * @ignore
  * @memberof module:Apify
  * @function
  * @description Notifies Apify runtime that act is listening on port specified by the APIFY_INTERNAL_PORT environment
@@ -399,9 +430,10 @@ export const readyFreddy = () => {
 /**
  * @memberof module:Apify
  * @function
- * @description Executes given act, waits for it to finish and fetches it's OUTPUT from key-value store and saves it to run.output.
- * @param {String} actId - Either act ID or username/actname.
- * @param {String} [input] - Act input body.
+ * @description Executes another act, waits for it to finish and fetches its output.
+ * @param {String} actId - Either `username/act-name` or act ID.
+ * @param {Object|String|Buffer} [input] - Act input body. If it is an object, it is stringified to
+ * JSON and its content type set to ``.
  * @param {Object} [opts]
  * @param {String} [opts.token] - User API token.
  * @param {String} [opts.build] - Build tag or number to be executed.
@@ -410,8 +442,9 @@ export const readyFreddy = () => {
                                         Default is unlimited.
  * @param {String} [opts.fetchOutput] - If false then doesn't fetch the OUTPUT from key-value store. Default is true.
  * @param {String} [opts.disableBodyParser] - If true then doesn't parse the body - ie. JSON to object. Default is false.
+ * @returns {Promise} Returns a promise unless `callback` was supplied.
  */
-export const call = (actId, input, opts = {}) => {
+export const call = (actId, input, opts = {}, callback) => {
     const { acts, keyValueStores } = apifyClient;
 
     checkParamOrThrow(actId, 'actId', 'String');
@@ -489,7 +522,9 @@ export const call = (actId, input, opts = {}) => {
             });
     };
 
-    return acts
+    const promise = acts
         .runAct(Object.assign({}, defaultOpts, runActOpts))
         .then(run => waitForRunToFinish(run));
+
+    return nodeifyPromise(promise, callback);
 };
