@@ -9,18 +9,19 @@ import { ENV_VARS } from './constants';
  * @memberof module:Apify
  * @function
  * @description <p>Launches headless Chrome using Puppeteer pre-configured to work with the Apify Actor platform.
- * The function has the same argument and return values as `puppeteer.launch()`.
+ * The function has the same argument and return value as `puppeteer.launch()`.
  * See {@link https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#puppeteerlaunchoptions|Puppeteer documentation} for more details.</p>
  * <p>The `launchPuppeteer()` function alters the following Puppeteer options:
  * <ul>
- *    <li>Passes the value defined in the `APIFY_HEADLESS` environment variables to the `headless` option,
+ *    <li>Passes the value of the `APIFY_HEADLESS` environment variable to the `headless` option,
  *        unless it was already defined by the caller.</li>
  *    <li>Takes the `proxyUrl` option and adds it to `env` under the `HTTPS_PROXY` or `HTTP_PROXY` key.</li>
- *    <li>Adds `--no-sandbox` to `args` to enable running headless Chrome in a Docker container.</li>
+ *    <li>Adds `--no-sandbox` to `args` to enable running headless Chrome in a Docker container on the Actor platform.</li>
  * </ul>
  * </p>
  * @param options Optional settings passed to `puppeteer.launch()`.
- * Additionally, the options can contain the `proxyUrl` property to specify a proxy server.
+ * Additionally, the options can contain the `proxyUrl` property to specify a proxy server
+ * (e.g. `http://example.com:1234`).
  * @returns {Promise} Promise object returned by `puppeteer.launch()`
  */
 export const launchPuppeteer = (opts = {}) => {

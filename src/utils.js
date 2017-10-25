@@ -14,9 +14,16 @@ let PromisesDependency = typeof Promise === 'function' ? Promise : null;
 /**
  * @memberof module:Apify
  * @function
- * @description Sets the promise dependency the SDK will use wherever Promises are returned.
- * Passing `null` will force the SDK to use native Promises if they are available.
- * @param [Constructor] dep A reference to a Promise constructor
+ * @description <p>Sets the promise dependency that the package will use wherever promises are returned.
+ * Passing `null` will force the SDK to use native Promises if they are available.</p>
+ * <p>Example usage</p>
+ * <pre><code>
+ * const Promise = require('bluebird');
+ * const Apify = require('apify');
+ * &nbsp;
+ * Apify.setPromisesDependency(Promise);
+ * </code></pre>
+ * @param [Constructor] dep Reference to a Promise constructor
  */
 export const setPromisesDependency = (dep) => {
     if (dep !== null && typeof dep !== 'function') throw new Error('The "dep" parameter must be a function');
@@ -26,7 +33,8 @@ export const setPromisesDependency = (dep) => {
 /**
  * @memberof module:Apify
  * @function
- * @description Gets the promise dependency set by `Apify.setPromisesDependency`.
+ * @description Gets the promise dependency set by <a href="#module-Apify-setPromisesDependency"><code>Apify.setPromisesDependency</code></a>.
+ * @returns {Constructor} Reference to a Promise constructor
  */
 export const getPromisesDependency = () => {
     return PromisesDependency;

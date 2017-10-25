@@ -14,12 +14,18 @@ import { getPromisePrototype, newPromise, nodeifyPromise, newClient, addCharsetT
  * @memberof module:Apify
  * @name client
  * @instance
- * @description A default instance of the `ApifyClient` class provided
+ * @description <p>A default instance of the `ApifyClient` class provided
  * by the {@link https://www.apify.com/docs/js/apify-client-js/latest|apify-client} NPM package.
- * This instance is used to access the Apify API
- * and its settings can be altered by calling the `Apify.client.setOptions()` function.
- * Be careful, by changing the settings you might alter behavior of functions such as
- * [Apify.getValue]{@linkcode getValue} or [Apify.setValue]{@linkcode setValue}.
+ * The instance is created when the `apify` package is first imported
+ * and it is configured using the `APIFY_API_BASE_URL`, `APIFY_USER_ID` and `APIFY_TOKEN`
+ * environment variables.
+ * After that, the instance is used for all underlying calls to the Apify API
+ * in functions such as <a href="#module-Apify-getValue">Apify.getValue()</a>
+ * or <a href="#module-Apify-call">Apify.call()</a>.
+ * The settings of the client can be globally altered by calling the
+ * <a href="https://www.apify.com/docs/js/apify-client-js/latest#ApifyClient-setOptions"><code>Apify.client.setOptions()</code></a> function.
+ * Just be careful, it might have undesired effects on other functions provided by this package.
+ * </p>
  */
 export const apifyClient = newClient();
 
@@ -49,25 +55,37 @@ const getDefaultStoreIdOrThrow = () => {
 /**
  * @memberof module:Apify
  * @function
- * @description Gets a value from the default key-value store for the current act run.
- * This store is created automatically for this run
- * and its ID is passed by the Apify platform as the `APIFY_DEFAULT_KEY_VALUE_STORE_ID` environment variable.
- * The result of the function is the body of the record. For records with the 'application/json'
- * content type, the body is the already parsed object
- * and for 'text/plain' content types it is parsed as String.
- * For other content types, the body is raw Buffer.
- * If the record cannot be found, the result is null.
+ * @description <p>Gets a value from the default key-value store for the current act run using the Apify API.
+ * The key-value store is created automatically for each act run
+ * and its ID is passed by the Actor platform in the `APIFY_DEFAULT_KEY_VALUE_STORE_ID` environment variable.
+ * It is used to store input and output of the act under keys named `INPUT` and `OUTPUT`, respectively.
+ * However, the store can be used for storage of any other values under arbitrary keys.
+ * </p>
+ * <p>Example usage</p>
+ * <pre><code class="language-javascript">
+ * const input = await Apify.getValue('INPUT');
  *
+ * console.log('My input:');
+ * console.dir(input);
+ * </code></pre>
+ * <p>
+ * The result of the function is the body of the record. Bodies with the `application/json`
+ * content type are automatically parsed to an object.
+ * Similarly, for `text/plain` content types the body is parsed as `String`.
+ * For all other content types, the body is a raw `Buffer`.
+ * If the record cannot be found, the result is null.
+ * </p>
+ * <p>
  * If the `APIFY_DEV_KEY_VALUE_STORE_DIR` environment variable is defined,
  * the value is read from a that directory rather than the key-value store,
- * from a file that has the key as a name.
- * The directory must exist or an error is thrown. The file might not exist, in which case the value is `null`.
+ * specifically from a file that has the key as a name.
+ * The directory must exist or an error is thrown. If the file does not exists, the returned value is `null`.
  * The file is assumed to have a content type specified in the `APIFY_DEV_KEY_VALUE_STORE_CONTENT_TYPE`
  * environment variable, or `application/json` if not set.
- * This is useful for local development of the act.
- *
- * @param callback Optional callback.
- * @returns Returns a promise if no callback was provided, otherwise the return value is not defined.
+ * This feature is useful for local development and debugging of your acts.
+ * </p>
+ * @param {Function} callback Optional callback.
+ * @returns {Promise} Returns a promise if no callback was provided.
  */
 export const getValue = (key, callback = null) => {
     if (!key || !_.isString(key)) throw new Error('The "key" parameter must be a non-empty string');
@@ -141,25 +159,48 @@ export const getValue = (key, callback = null) => {
     return nodeifyPromise(promise, callback);
 };
 
+
 /**
  * @memberof module:Apify
  * @function
- * @description Stores a value in the default key-value store for the current act run.
- * This data is stored in the key-value store created specifically for this run,
+ * @description <p>Stores a value in the default key-value store for the current act run using the Apify API.
+ * The data is stored in the key-value store created specifically for the act run,
  * whose ID is defined in the `APIFY_DEFAULT_KEY_VALUE_STORE_ID` environment variable.
- * The function has no result, but throws on invalid args or other errors.
- *
+ * The function has no result, but throws on invalid args or other errors.</p>
+ * <pre><code class="language-javascript">
+ * await Apify.setValue('OUTPUT', { someValue: 123 });
+ * </code></pre>
+ * <p>
+ * By default, `value` is converted to JSON and stored with the `application/json; charset=utf-8` content type.
+ * To store a value with another content type, pass it in the options as follows:
+ * </p>
+ * <pre><code class="language-javascript">
+ * await Apify.setValue('OUTPUT', 'my text data', { contentType: 'text/plain' });
+ * </code></pre>
+ * <p>
+ * In this case, the value must be a string or Buffer.
+ * </p>
+ * <p>
  * If the `APIFY_DEV_KEY_VALUE_STORE_DIR` environment variable is defined,
- * the value is written to that directory rather than the key-value store,
- * to a file named as the key. This is useful for local development of the act.
- * @param value
- * If null, the record in the key-value store is deleted.
- * If no contentType is specified, the value can be any object and it will be stringified to JSON.
- * If contentType is specified, value is considered raw data and it must be a String or Buffer.
+ * the value is written to that local directory rather than the key-value store on Apify cloud,
+ * to a file named as the key. This is useful for local development and debugging of your acts.
+ * </p>
+ * <p>
+ * **IMPORTANT: Do not forget to use the `await` keyword when calling `Apify.setValue()`,
+ * otherwise the act process might finish before the value is stored!**
+ * </p>
+ * @param key Key of the record
+ * @param value Value of the record:
+ * <ul>
+ *  <li>If `null`, the record in the key-value store is deleted.</li>
+ *  <li>If no `options.contentType` is specified, `value` can be any object and it will be stringified to JSON.</li>
+ *  <li>If `options.contentType` is specified, `value` is considered raw data and it must be a String or Buffer.</li>
+ * </ul>
  * For any other value an error will be thrown.
- * @param options Optional settings, currently only \{ contentType: String \} is supported to set MIME content type of the value.
- * @param callback Optional callback.
- * @returns Returns a promise if no callback was provided, otherwise the return value is not defined.
+ * @param {Object} [options]
+ * @param {String} [options.contentType] - Sets the MIME content type of the value.
+ * @param {Function} [callback] Optional callback. Function returns a promise if not provided.
+ * @returns {Promise} Returns a promise if `callback` was not provided.
  */
 export const setValue = (key, value, options, callback = null) => {
     if (!key || !_.isString(key)) throw new Error('The "key" parameter must be a non-empty string');
@@ -257,52 +298,43 @@ export const setValue = (key, value, options, callback = null) => {
 /**
  * @memberof module:Apify
  * @function
- * @description Returns a new object which contains information parsed from the `APIFY_XXX` environment variables.
- * It has the following properties:
- * ```javascript
+ * @description <p>Returns a new object which contains information parsed from the `APIFY_XXX` environment variables.
+ * It has the following properties:</p>
+ * <pre><code class="language-javascript">
  * {
- *   // ID of the act.
- *   // Environment variable: APIFY_ACT_ID
- *   actId: String,
- *
- *   // ID of the act run
- *   // Environment variable: APIFY_ACT_RUN_ID
- *   actRunId: String,
- *
- *   // ID of the user who started the act (might be different than the owner of the act)
- *   // Environment variable: APIFY_USER_ID
- *   userId: String,
- *
- *   // Authentication token representing privileges given to the act run,
- *   // it can be passed to various Apify APIs.
- *   // Environment variable: APIFY_TOKEN
- *   token: String,
- *
- *   // Date when the act was started
- *   // Environment variable: APIFY_STARTED_AT
- *   startedAt: Date,
- *
- *   // Date when the act will time out
- *   // Environment variable: APIFY_TIMEOUT_AT
- *   timeoutAt: Date,
- *
- *   // ID of the key-value store where input and output data of this act is stored
- *   // Environment variable: APIFY_DEFAULT_KEY_VALUE_STORE_ID
- *   defaultKeyValueStoreId: String,
- *
- *   // The amount of memory allocated for the act run, in megabytes.
- *   // It can be used by acts to optimize their memory usage.
- *   // Environment variable: APIFY_MEMORY_MBYTES
- *   memoryMbytes: Number,
+ *     // ID of the act (APIFY_ACT_ID)
+ *     actId: String,
+ * &nbsp;
+ *     // ID of the act run (APIFY_ACT_RUN_ID)
+ *     actRunId: String,
+ * &nbsp;
+ *     // ID of the user who started the act - note that it might be different than the owner of the act (APIFY_USER_ID)
+ *     userId: String,
+ * &nbsp;
+ *     // Authentication token representing privileges given to the act run,
+ *     // it can be passed to various Apify APIs (APIFY_TOKEN).
+ *     token: String,
+ * &nbsp;
+ *     // Date when the act was started (APIFY_STARTED_AT)
+ *     startedAt: Date,
+ * &nbsp;
+ *     // Date when the act will time out (APIFY_TIMEOUT_AT)
+ *     timeoutAt: Date,
+ * &nbsp;
+ *     // ID of the key-value store where input and output data of this act is stored (APIFY_DEFAULT_KEY_VALUE_STORE_ID)
+ *     defaultKeyValueStoreId: String,
+ * &nbsp;
+ *     // Amount of memory allocated for the act run, in megabytes (APIFY_MEMORY_MBYTES)
+ *     memoryMbytes: Number,
  * }
- * ```
+ * </code></pre>
  * For the list of the `APIFY_XXX` environment variables, see
  * {@link http://localhost/docs/actor.php#run-env-vars|Actor documentation}.
  * If some of the variables is not defined or is invalid, the corresponding value in the resulting object will be null.
  * @returns {Object}
  */
 export const getEnv = () => {
-    // NOTE: don't throw if env vars are invalid to simplify local development and debugging of acts
+    // NOTE: Don't throw if env vars are invalid to simplify local development and debugging of acts
     const env = process.env || {};
     return {
         actId: env[ENV_VARS.ACT_ID] || null,
@@ -320,13 +352,13 @@ export const getEnv = () => {
 /**
  * @memberof module:Apify
  * @function
- * @description <p>Runs a user function that executes the logic of the act.
- * It performs the following actions:</p>
+ * @description <p>Runs a user function that performs the logic of the act.
+ * The `Apify.main(userFunct)` function does the following actions:</p>
  * <ol>
  *   <li>Invokes the user function passed as the `userFunc` parameter</li>
  *   <li>If the user function returned a promise, waits for it to resolve</li>
  *   <li>If the user function throws an exception or some other error is encountered,
- *       prints the error details to console so that they are stored to the log file</li>
+ *       prints error details to console so that they are stored to the log file</li>
  *   <li>Exits the process</li>
  * </ol>
  * <p>
@@ -334,14 +366,14 @@ export const getEnv = () => {
  * </p>
  * ```javascript
  * Apify.main(() => {
- *     // my synchronous function that returns immediately
+ *     // My synchronous function that returns immediately
  * });
  * ```
  * <p>If the user function returns a promise, it is considered as asynchronous:</p>
  * ```javascript
  * const request = require('request-promise');
  * Apify.main(() => {
- *     // my asynchronous function that returns a promise
+ *     // My asynchronous function that returns a promise
  *     return Promise.resolve()
  *     .then(() => {
  *         return request('http://www.example.com');
@@ -359,7 +391,7 @@ export const getEnv = () => {
  *      console.log(html);
  * });
  * ```
- * Note that the use of `Apify.main()` in acts is optional,
+ * Note that the use of `Apify.main()` in acts is optional;
  * the function is provided merely for user convenience and acts don't need to use it.
  * @param userFunc {Function} User function to be executed
  */
@@ -430,18 +462,58 @@ export const readyFreddy = () => {
 /**
  * @memberof module:Apify
  * @function
- * @description Executes another act, waits for it to finish and fetches its output.
+ * @description <p>Executes another act under the current user account, waits for the act finish and fetches its output.</p>
+ * <p>The result of the function is an object describing the act run, which looks something like this:</p>
+ * ```json
+ * {
+ *   "id": "ErYkuTTsmKiXccNGT",
+ *   "actId": "E2jjCZBezvAZnX8Rb",
+ *   "userId": "mb7q2dycFBHDhae6A",
+ *   "startedAt": "2017-10-25T14:23:44.376Z",
+ *   "finishedAt": "2017-10-25T14:23:46.723Z",
+ *   "status": "SUCCEEDED",
+ *   "meta": { "origin": "API", "clientIp": "1.2.3.4", "userAgent": null },
+ *   "stats": {
+ *       "netRxBytes": 180,
+ *       "netTxBytes": 0,
+ *       ...
+ *   },
+ *   "options": { "build": "latest", "timeoutSecs": 0, "memoryMbytes": 512, "diskMbytes": 1024 },
+ *   "buildId": "Bwkqk59MCkdexDP34",
+ *   "exitCode": 0,
+ *   "defaultKeyValueStoreId": "ccFfRptZru2uqdQHP",
+ *   "buildNumber": "0.1.2",
+ *   "output": {
+ *       "contentType": "application/json; charset=utf-8",
+ *       "body": { "message": "Hello world!" }
+ *   }
+ * }
+ * ```
+ * <p>Internally, the function calls the {@link https://www.apify.com/docs/api/v2#/reference/acts/runs-collection/run-act|Run act} API endpoint
+ * and few others.</p>
+ * <p>Example usage:</p>
+ * ```javascript
+ * const run = await Apify.call('apify/hello-world', { myInput: 123 });
+ * console.log(`Received message: ${run.output.body.message}`);
+ * ```
+ *
  * @param {String} actId - Either `username/act-name` or act ID.
  * @param {Object|String|Buffer} [input] - Act input body. If it is an object, it is stringified to
- * JSON and its content type set to ``.
+ * JSON and the content type set to `application/json; charset=utf-8`.
  * @param {Object} [opts]
- * @param {String} [opts.token] - User API token.
- * @param {String} [opts.build] - Build tag or number to be executed.
- * @param {String} [opts.contentType] - Content type of the act input.
- * @param {String} [opts.timeoutSecs] - Time limit for act to finish. If limit is reached then run in RUNNING status is returned.
-                                        Default is unlimited.
- * @param {String} [opts.fetchOutput] - If false then doesn't fetch the OUTPUT from key-value store. Default is true.
- * @param {String} [opts.disableBodyParser] - If true then doesn't parse the body - ie. JSON to object. Default is false.
+ * @param {String} [opts.token] - User API token. By default, it is taken from the `APIFY_TOKEN` environment variable.
+ * @param {String} [opts.build] - Tag or number of act build to be run (e.g. `beta` or `1.2.345`).
+ * If not provided, the default build tag or number from act configuration is used (typically `latest`).
+ * @param {String} [opts.contentType] - Content type for the `input`. If not specified,
+ * `input` is expected to be an object that will be stringified to JSON and content type set to
+ * `application/json; charset=utf-8`. If `opts.contentType` is specified, then `input` must be a `String` or `Buffer`.
+ * @param {String} [opts.timeoutSecs] - Time limit for act to finish, in seconds.
+ * If the limit is reached the resulting run will have the `RUNNING` status.
+ * By default, there is no timeout.
+ * @param {String} [opts.fetchOutput] - If `false` then the function does not fetch output of the act. Default is `true`.
+ * @param {String} [opts.disableBodyParser] - If `true` then the function will not attempt to parse the
+ * act's output and will return it in a raw `Buffer`. Default is `false`.
+ * @param {Function} [callback] - Optional callback. Function returns a promise if not provided.
  * @returns {Promise} Returns a promise unless `callback` was supplied.
  */
 export const call = (actId, input, opts = {}, callback) => {

@@ -35,6 +35,7 @@ export const getDefaultBrowseOptions = () => {
 /**
  * Represents a single web browser process.
  * Currently it is just a thin wrapper of Selenium's WebDriver instance.
+ * @ignore
  */
 export class Browser {
 
@@ -203,6 +204,90 @@ export const processBrowseArgs = (url, options, callback) => {
     return { options, callback };
 };
 
+/*
+OLD INFO FROM README:
+### Browser
+
+Apify runtime optionally depends on
+the [selenium-webdriver](https://www.npmjs.com/package/selenium-webdriver) package that enables
+automation of a web browser.
+The simplest way to launch a new web browser is using the `Apify.browse([url,] [options,] [callback])`
+function. For example:
+
+```javascript
+const browser = await Apify.browse('https://www.example.com/');
+```
+
+or
+
+```javascript
+const browser = await Apify.browse({
+    url: 'https://www.example.com/',
+    userAgent: 'MyCrawlingBot/1.23',
+});
+```
+
+The `options` parameter controls settings of the web browser and it has the following properties:
+
+```javascript
+{
+    // Initial URL to open. Note that the url argument in Apify.browse() overrides this value.
+    // The default value is 'about:blank'
+    url: String,
+
+    // The type of the web browser to use.
+    // See https://github.com/SeleniumHQ/selenium/wiki/DesiredCapabilities for possible options.
+    // The default value is 'chrome', which is currently the only fully-supported browser.
+    browserName: String,
+
+    // Indicates whether the browser should be opened in headless mode (i.e. without windows).
+    // By default, this value is based on the APIFY_HEADLESS environment variable.
+    headless: Boolean,
+
+    // URL of the proxy server, e.g. 'http://username:password@1.2.3.4:55555'.
+    // Currently only the 'http' proxy type is supported.
+    // By default it is null, which means no proxy server is used.
+    proxyUrl: String,
+
+    // Overrides the User-Agent HTTP header of the web browser.
+    // By default it is null, which means the browser uses its default User-Agent.
+    userAgent: String,
+}
+```
+
+The result of the `Apify.browse()` is a new instance of the `Browser` class,
+which represents a web browser instance (possibly with multiple windows or tabs).
+If you pass a Node.js-style callback the `Browser` instance is passed to it,
+otherwise the `Apify.browse()` function returns a promise that resolves to the `Browser` instance.
+
+The `Browser` class has the following properties:
+
+```javascript
+{
+    // An instance of the Selenium's WebDriver class.
+    webDriver: Object,
+
+    // A method that closes the web browser and releases associated resources.
+    // The method has no arguments and returns a promise that resolves when the browser was closed.
+    close: Function,
+}
+```
+
+The `webDriver` property can be used to manipulate the web browser:
+
+```javascript
+const url = await browser.webDriver.getCurrentUrl();
+```
+
+For more information, see [WebDriver documentation](http://seleniumhq.github.io/selenium/docs/api/
+javascript/module/selenium-webdriver/index_exports_WebDriver.html).
+
+When the web browser is no longer needed, it should be closed:
+
+```javascript
+await browser.close();
+```
+ */
 
 /**
  * @memberof module:Apify
@@ -215,6 +300,7 @@ export const processBrowseArgs = (url, options, callback) => {
  * @param options Optional settings, their defaults are provided by the getDefaultBrowseOptions() function.
  * @param callback Optional callback.
  * @returns Returns a promise if no callback was provided, otherwise the return value is not defined.
+ * @ignore
  */
 export const browse = (url, options, callback) => {
     const args = processBrowseArgs(url, options, callback);
