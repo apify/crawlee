@@ -17,8 +17,7 @@ let PromisesDependency = typeof Promise === 'function' ? Promise : null;
  * @description <p>Sets the promise dependency that the package will use wherever promises are returned.
  * Passing `null` will force the SDK to use native Promises if they are available.</p>
  * <p>Example usage</p>
- * <pre><code>
- * const Promise = require('bluebird');
+ * <pre><code class="language-javascript">const Promise = require('bluebird');
  * const Apify = require('apify');
  * &nbsp;
  * Apify.setPromisesDependency(Promise);

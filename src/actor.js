@@ -62,8 +62,7 @@ const getDefaultStoreIdOrThrow = () => {
  * However, the store can be used for storage of any other values under arbitrary keys.
  * </p>
  * <p>Example usage</p>
- * <pre><code class="language-javascript">
- * const input = await Apify.getValue('INPUT');
+ * <pre><code class="language-javascript">const input = await Apify.getValue('INPUT');
  *
  * console.log('My input:');
  * console.dir(input);
@@ -167,16 +166,12 @@ export const getValue = (key, callback = null) => {
  * The data is stored in the key-value store created specifically for the act run,
  * whose ID is defined in the `APIFY_DEFAULT_KEY_VALUE_STORE_ID` environment variable.
  * The function has no result, but throws on invalid args or other errors.</p>
- * <pre><code class="language-javascript">
- * await Apify.setValue('OUTPUT', { someValue: 123 });
- * </code></pre>
+ * <pre><code class="language-javascript">await Apify.setValue('OUTPUT', { someValue: 123 });</code></pre>
  * <p>
  * By default, `value` is converted to JSON and stored with the `application/json; charset=utf-8` content type.
  * To store a value with another content type, pass it in the options as follows:
  * </p>
- * <pre><code class="language-javascript">
- * await Apify.setValue('OUTPUT', 'my text data', { contentType: 'text/plain' });
- * </code></pre>
+ * <pre><code class="language-javascript">await Apify.setValue('OUTPUT', 'my text data', { contentType: 'text/plain' });</code></pre>
  * <p>
  * In this case, the value must be a string or Buffer.
  * </p>
@@ -308,7 +303,8 @@ export const setValue = (key, value, options, callback = null) => {
  *     // ID of the act run (APIFY_ACT_RUN_ID)
  *     actRunId: String,
  * &nbsp;
- *     // ID of the user who started the act - note that it might be different than the owner of the act (APIFY_USER_ID)
+ *     // ID of the user who started the act - note that it might be
+ *     // different than the owner of the act (APIFY_USER_ID)
  *     userId: String,
  * &nbsp;
  *     // Authentication token representing privileges given to the act run,
@@ -321,10 +317,12 @@ export const setValue = (key, value, options, callback = null) => {
  *     // Date when the act will time out (APIFY_TIMEOUT_AT)
  *     timeoutAt: Date,
  * &nbsp;
- *     // ID of the key-value store where input and output data of this act is stored (APIFY_DEFAULT_KEY_VALUE_STORE_ID)
+ *     // ID of the key-value store where input and output data of this
+ *     // act is stored (APIFY_DEFAULT_KEY_VALUE_STORE_ID)
  *     defaultKeyValueStoreId: String,
  * &nbsp;
- *     // Amount of memory allocated for the act run, in megabytes (APIFY_MEMORY_MBYTES)
+ *     // Amount of memory allocated for the act run,
+ *     // in megabytes (APIFY_MEMORY_MBYTES)
  *     memoryMbytes: Number,
  * }
  * </code></pre>
@@ -478,7 +476,12 @@ export const readyFreddy = () => {
  *       "netTxBytes": 0,
  *       ...
  *   },
- *   "options": { "build": "latest", "timeoutSecs": 0, "memoryMbytes": 512, "diskMbytes": 1024 },
+ *   "options": {
+ *      "build": "latest",
+ *      "timeoutSecs": 0,
+ *      "memoryMbytes": 512,
+ *      "diskMbytes": 1024
+ *   },
  *   "buildId": "Bwkqk59MCkdexDP34",
  *   "exitCode": 0,
  *   "defaultKeyValueStoreId": "ccFfRptZru2uqdQHP",

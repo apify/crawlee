@@ -37,6 +37,7 @@ const Apify = {
  * <p>
  * For more information about the Apify Actor platform, please go to
  * {@link https://www.apify.com/docs/actor|Actor documentation}.
+ * View the source code on {@link https://github.com/apifier/apify-runtime-js|GitHub}
  * </p>
  *
  * <h2>Example usage</h2>
@@ -82,7 +83,7 @@ const Apify = {
  * If this function is not called, the runtime defaults to
  * native promises if they are available, or it throws an error.
  * </p>
- * <h2>Full reference</h2>
+ * <h2>Programmer's reference</h2>
  * <p>The following sections describe all functions and properties provided by the `apify` package.
  * All of them are instance members exported directly by the main module.
  * </p>
