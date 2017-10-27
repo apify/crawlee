@@ -37,7 +37,7 @@ const Apify = {
  * <p>
  * For more information about the Apify Actor platform, please go to
  * {@link https://www.apify.com/docs/actor|Actor documentation}.
- * View the source code on {@link https://github.com/apifier/apify-runtime-js|GitHub}
+ * The source code of this package is available on {@link https://github.com/apifier/apify-runtime-js|GitHub}.
  * </p>
  *
  * <h2>Example usage</h2>
@@ -61,19 +61,15 @@ const Apify = {
  * <h2>Installation</h2>
  * <p>This package requires Node.js 6 or higher. It might work with lower versions too,
  * but they are neither tested nor supported.
- * The package is primarily used
- * </p>
- * <p>The package also be used for local development. To install it on your machine,
- * run the following command in your Node.js project:
- * To install the package locally, run the following command:</p>
+ * To install the package locally, run the following command in your Node.js project:</p>
  * ```bash
  * npm install apify --save
  * ```
  * <p>
  * <h2>Promises vs. callbacks</h2>
  * <p>
- * By default, all asynchronous functions return a promise.
- * However, they also accept an optional Node.js-style callback as the last parameter.
+ * By default, all asynchronous functions provided by this package return a promise.
+ * However, most of them also accept an optional Node.js-style callback as the last parameter.
  * If the callback is provided, the return value of the functions is not defined
  * and the functions only invoke the callback upon completion or error.
  * </p>
