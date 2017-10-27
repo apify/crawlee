@@ -295,8 +295,7 @@ export const setValue = (key, value, options, callback = null) => {
  * @function
  * @description <p>Returns a new object which contains information parsed from the `APIFY_XXX` environment variables.
  * It has the following properties:</p>
- * <pre><code class="language-javascript">
- * {
+ * <pre><code class="language-javascript">{
  *     // ID of the act (APIFY_ACT_ID)
  *     actId: String,
  * &nbsp;
