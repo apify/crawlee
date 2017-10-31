@@ -15,7 +15,7 @@ import { getPromisePrototype, newPromise, nodeifyPromise, newClient, addCharsetT
  * @name client
  * @instance
  * @description <p>A default instance of the `ApifyClient` class provided
- * by the {@link https://www.apify.com/docs/js/apify-client-js/latest|apify-client} NPM package.
+ * by the {@link https://www.apify.com/docs/sdk/apify-client-js/latest|apify-client} NPM package.
  * The instance is created when the `apify` package is first imported
  * and it is configured using the `APIFY_API_BASE_URL`, `APIFY_USER_ID` and `APIFY_TOKEN`
  * environment variables.

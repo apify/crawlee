@@ -5,7 +5,7 @@
 
 Helper package that simplifies development of acts on the Apify Actor platform.
 
-Complete documentation is available at https://www.apify.com/docs/js/apify-runtime-js/latest
+Complete documentation is available at https://www.apify.com/docs/sdk/apify-runtime-js/latest
 
 For more information about the Apify Actor platform, please see https://www.apify.com/docs/actor
 
