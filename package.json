@@ -1,6 +1,6 @@
 {
   "name": "apify",
-  "version": "0.4.32",
+  "version": "0.4.33",
   "description": "Apify Actor runtime for JavaScript",
   "main": "build/index.js",
   "keywords": [
