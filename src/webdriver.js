@@ -289,6 +289,8 @@ await browser.close();
 ```
  */
 
+// TODO: browse() is only kept for backwards compatibility, get rid of it after no acts are using it!
+
 /**
  * @memberof module:Apify
  * @function
@@ -312,6 +314,46 @@ export const browse = (url, options, callback) => {
         })
         .then(() => {
             return browser;
+        });
+
+    return nodeifyPromise(promise, args.callback);
+};
+
+
+/**
+ * @memberof module:Apify
+ * @function
+ * @description Opens a new instance of Chrome web browser
+ * controlled by Selenium WebDriver created using Builder command
+ * (see http://seleniumhq.github.io/selenium/docs/api/javascript/module/selenium-webdriver/index_exports_Builder.html).
+ * If the `APIFY_HEADLESS` environment variable is set to `1`, the function
+ * runs the browser in headless mode.
+ * The result of the function is the new instance of the Selenium WebDriver class.
+ * @param {Object} [opts] Optional settings passed to `puppeteer.launch()`. Additionally the object can contain the following fields:
+ * @param {String} [opts.proxyUrl] - URL to a proxy server. Currently only `http://` scheme is supported.
+ * Port number must be specified. For example, `http://example.com:1234`.
+ * @param {String} [opts.userAgent] - Default User-Agent for the browser.
+ * @param {Function} callback Optional callback.
+ * @returns {Promise} Returns a promise if no callback was provided, otherwise the return value is not defined.
+ */
+export const launchWebDriver = (opts, callback) => {
+    const args = processBrowseArgs(undefined, opts, callback);
+    const browser = new Browser(args.options);
+
+    // NOTE: eventually get rid of the Brower class
+
+    const prevQuit = browser.webDriver.quit;
+    browser.webDriver.quit = () => {
+        if (browser.proxyChain) {
+            browser.proxyChain.shutdown();
+            browser.proxyChain = null;
+        }
+        return prevQuit();
+    };
+
+    const promise = browser._initialize()
+        .then(() => {
+            return browser.webDriver;
         });
 
     return nodeifyPromise(promise, args.callback);

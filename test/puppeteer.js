@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import Apify from '../build/index';
 import { ENV_VARS } from '../build/constants';
 
-process.env[ENV_VARS.HEADLESS] = true;
+process.env[ENV_VARS.HEADLESS] = '1';
 
 describe('Apify.launchPuppeteer()', () => {
     it('throws on invalid args', () => {
