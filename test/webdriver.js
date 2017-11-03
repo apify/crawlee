@@ -271,7 +271,7 @@ describe('Apify.launchWebDriver()', function () {
         let webDriver;
         const opts = {
             headless: true,
-            userAgent: 'MyUserAgent/1234',
+            userAgent: 'MyUserAgent/1234 AnotherString/456',
         };
         return Apify.launchWebDriver(opts)
             .then((result) => {
@@ -403,7 +403,8 @@ describe('Apify.browse()', function () {
             url: 'http://www.whoishostingthis.com/tools/user-agent/',
             headless: true,
             browserName: 'chrome',
-            userAgent: 'MyUserAgent/1234',
+            // Have space in user-agent to test passing of params
+            userAgent: 'MyUserAgent/1234 AnotherString/456',
         };
         return Apify.browse(opts)
             .then((result) => {
