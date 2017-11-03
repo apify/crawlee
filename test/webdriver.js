@@ -7,7 +7,7 @@ import basicAuthParser from 'basic-auth-parser';
 import Promise from 'bluebird';
 // import fs from 'fs';
 
-import { processBrowseArgs, getDefaultBrowseOptions } from '../build/browser';
+import { processBrowseArgs, getDefaultBrowseOptions } from '../build/webdriver';
 import Apify from '../build/index';
 
 /* globals process */
