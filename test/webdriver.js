@@ -7,7 +7,7 @@ import basicAuthParser from 'basic-auth-parser';
 import Promise from 'bluebird';
 // import fs from 'fs';
 
-import { processBrowseArgs, getDefaultBrowseOptions } from '../build/browser';
+import { processBrowseArgs, getDefaultBrowseOptions } from '../build/webdriver';
 import Apify from '../build/index';
 
 /* globals process */
@@ -167,6 +167,130 @@ describe('processBrowseArgs()', () => {
 });
 
 
+describe('Apify.launchWebDriver()', function () {
+    // Need a large timeout to run unit tests on Travis CI
+    this.timeout(300 * 1000);
+
+    it('throws on invalid args', () => {
+        assert.throws(() => {
+            Apify.launchWebDriver({ proxyUrl: 'invalidurl' });
+        }, Error);
+        assert.throws(() => {
+            Apify.launchWebDriver({ proxyUrl: 'http://host-without-port' });
+        }, Error);
+        assert.throws(() => {
+            Apify.launchWebDriver({ proxyUrl: 'invalid://somehost:1234' });
+        }, Error);
+    });
+
+    it('starts with no args', () => {
+        process.env.APIFY_HEADLESS = '1';
+        let webDriver;
+        return Apify.launchWebDriver()
+            .then((res) => {
+                webDriver = res;
+                expect(webDriver.constructor.name).to.eql('Driver');
+                return webDriver.quit();
+            });
+    });
+
+    it('opens https://www.example.com in headless mode', () => {
+        delete process.env.APIFY_HEADLESS;
+        let webDriver;
+        return Apify.launchWebDriver({ headless: true })
+            .then((res) => {
+                webDriver = res;
+                return webDriver.get('https://www.example.com');
+            })
+            .then(() => {
+                expect(webDriver.constructor.name).to.eql('Driver');
+                return webDriver.getCurrentUrl();
+            })
+            .then((url) => {
+                expect(url).to.eql('https://www.example.com/');
+                return webDriver.quit();
+            });
+    });
+
+    it('works with empty options and callback', () => {
+        let webDriver;
+        return new Promise((resolve, reject) => {
+            try {
+                process.env.APIFY_HEADLESS = '1';
+                const retVal = Apify.launchWebDriver({}, (err, result) => {
+                    if (err) return reject(err);
+                    webDriver = result;
+                    try {
+                        expect(webDriver.constructor.name).to.eql('Driver');
+                        webDriver.getCurrentUrl()
+                            .then(resolve)
+                            .catch(reject);
+                    } catch (e) {
+                        reject(e);
+                    }
+                });
+                assert(!retVal, 'Apify.browse() with callback should return false-ish value');
+            } catch (e) {
+                reject(e);
+            }
+        }).then(() => {
+            return webDriver.quit();
+        });
+    });
+
+    it('works with proxy server', () => {
+        let webDriver;
+        wasProxyCalled = false;
+        const opts = {
+            headless: true,
+            proxyUrl: `http://${proxyAuth.username}:${proxyAuth.password}@127.0.0.1:${proxyPort}`,
+        };
+        return Apify.launchWebDriver(opts)
+            .then((result) => {
+                webDriver = result;
+                return webDriver.get('https://www.example.com');
+            })
+            .then(() => {
+                // return webDriver.sleep(300 * 1000);
+            })
+            .then(() => {
+                return webDriver.getAllWindowHandles();
+            })
+            .then(() => {
+                expect(webDriver.constructor.name).to.eql('Driver');
+                return webDriver.getCurrentUrl();
+            })
+            .then((url) => {
+                expect(wasProxyCalled).to.equal(true);
+                expect(url).to.eql('https://www.example.com/');
+                return webDriver.quit();
+            });
+    });
+
+    it('userAgent option works', () => {
+        let webDriver;
+        const opts = {
+            headless: true,
+            userAgent: 'MyUserAgent/1234 AnotherString/456',
+        };
+        return Apify.launchWebDriver(opts)
+            .then((result) => {
+                webDriver = result;
+                // TODO: this is not reliable, we should use our own testing page
+                return webDriver.get('http://www.whoishostingthis.com/tools/user-agent');
+            })
+            .then(() => {
+                expect(webDriver.constructor.name).to.eql('Driver');
+                return webDriver.getPageSource();
+            })
+            .then((source) => {
+                expect(source).to.contain(opts.userAgent);
+                return webDriver.quit();
+            });
+    });
+});
+
+
 describe('Apify.browse()', function () {
     // Need a large timeout to run unit tests on Travis CI
     this.timeout(300 * 1000);
@@ -279,7 +403,8 @@ describe('Apify.browse()', function () {
             url: 'http://www.whoishostingthis.com/tools/user-agent/',
             headless: true,
             browserName: 'chrome',
-            userAgent: 'MyUserAgent/1234',
+            // Have space in user-agent to test passing of params
+            userAgent: 'MyUserAgent/1234 AnotherString/456',
         };
         return Apify.browse(opts)
             .then((result) => {
