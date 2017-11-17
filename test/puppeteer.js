@@ -38,7 +38,7 @@ before(() => {
                 }
                 const parsed = basicAuthParser(auth);
                 const isEqual = _.isEqual(parsed, proxyAuth);
-                console.log('Parsed "Proxy-Authorization": parsed: %j expected: %j : %s', parsed, proxyAuth, isEqual);
+                // console.log('Parsed "Proxy-Authorization": parsed: %j expected: %j : %s', parsed, proxyAuth, isEqual);
                 if (isEqual) wasProxyCalled = true;
                 fn(null, isEqual);
             };
