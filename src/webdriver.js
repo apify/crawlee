@@ -324,6 +324,7 @@ export const launchWebDriver = (opts, callback) => {
     const promise = browser._initialize()
         .then(() => {
             // TODO: for some reason this doesn't work, the proxy chain will never shut down!!
+            //       BTW this also prevents us from upgrading to mocha 4+
             // we'll need to find a way to fix this!
             // browser.webDriver.onQuit_ = () => {
             //    if (browser.proxyChain) {
