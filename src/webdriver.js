@@ -288,6 +288,8 @@ await browser.close();
 ```
  */
 
+// TODO: browse() is only kept for backwards compatibility, get rid of it after no acts are using it!
+
 /**
  * @memberof module:Apify
  * @function
@@ -311,6 +313,57 @@ export const browse = (url, options, callback) => {
         })
         .then(() => {
             return browser;
+        });
+
+    return nodeifyPromise(promise, args.callback);
+};
+
+
+/**
+ * @memberof module:Apify
+ * @function
+ * @description <p>Opens a new instance of Chrome web browser
+ * controlled by {@link http://www.seleniumhq.org/projects/webdriver/|Selenium WebDriver}.
+ * The result of the function is the new instance of the
+ * {@link http://seleniumhq.github.io/selenium/docs/api/javascript/module/selenium-webdriver/index_exports_WebDriver.html|WebDriver}
+ * class.
+ * </p>
+ * <p>
+ * If the `APIFY_HEADLESS` environment variable is set to `1`, the function
+ * runs the web browser in headless mode. Note that this environment variable is automatically set to `1` when
+ * in acts running on the Apify Actor cloud platform.
+ * </p>
+ * <p>
+ * To use this function, you need to have Google Chrome and
+ * {@link https://sites.google.com/a/chromium.org/chromedriver/|ChromeDriver} installed in your environment.
+ * For example, you can use the `apify/actor-node-chrome` base Docker image for your act - see
+ * {@link https://www.apify.com/docs/actor#base-images|documentation}
+ * for more details.
+ * </p>
+ * @param {Object} [opts] Optional settings passed to `puppeteer.launch()`. Additionally the object can contain the following fields:
+ * @param {String} [opts.proxyUrl] - URL to a proxy server. Currently only `http://` scheme is supported.
+ * Port number must be specified. For example, `http://example.com:1234`.
+ * @param {String} [opts.userAgent] - Default User-Agent for the browser.
+ * @param {Function} callback Optional callback.
+ * @returns {Promise} Returns a promise if no callback was provided, otherwise the return value is not defined.
+ */
+export const launchWebDriver = (opts, callback) => {
+    const args = processBrowseArgs(undefined, opts, callback);
+    const browser = new Browser(args.options);
+
+    // NOTE: eventually get rid of the Browser class
+    const promise = browser._initialize()
+        .then(() => {
+            // TODO: for some reason this doesn't work, the proxy chain will never shut down!!
+            // we'll need to find a way to fix this!
+            browser.webDriver.onQuit_ = () => {
+                if (browser.proxyChain) {
+                    browser.proxyChain.shutdown();
+                    browser.proxyChain = null;
+                }
+            };
+
+            return browser.webDriver;
         });
 
     return nodeifyPromise(promise, args.callback);

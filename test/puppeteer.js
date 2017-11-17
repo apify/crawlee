@@ -8,6 +8,7 @@ import _ from 'underscore';
 import Apify from '../build/index';
 import { ENV_VARS } from '../build/constants';
 
+
 let prevEnvHeadless;
 
 let proxyServer;
