@@ -47,7 +47,9 @@ const testWatchFileWillBecomeEmpty = (path, waitMillis) => {
         const intervalId = setInterval(() => {
             const stat = fs.statSync(path);
             if (stat.size !== 0) {
-                if (Date.now() - startedAt >= waitMillis) reject(`Watch file not written in ${waitMillis} millis`);
+                if (Date.now() - startedAt >= waitMillis) {
+                    reject(`Watch file not written in ${waitMillis} millis`); // eslint-disable-line prefer-promise-reject-errors
+                }
             } else {
                 clearInterval(intervalId);
                 resolve();
@@ -158,9 +160,9 @@ const testMain = ({ userFunc, exitCode }) => {
                     if (userFunc) return userFunc();
                 });
             })
-            .catch((err) => {
-                error = err;
-            });
+                .catch((err) => {
+                    error = err;
+                });
         })
         .then(() => {
             // Waits max 1000 millis for process.exit() mock to be called
@@ -280,9 +282,9 @@ describe('Apify.main()', () => {
             env: {},
             exitCode: 0,
         })
-        .then(() => {
-            expect(called).to.eql(true);
-        });
+            .then(() => {
+                expect(called).to.eql(true);
+            });
     });
 
     it('on exception in simple user function the process exits with code 91', () => {
@@ -301,9 +303,9 @@ describe('Apify.main()', () => {
                 return new Promise((resolve) => {
                     setTimeout(resolve, 20);
                 })
-                .then(() => {
-                    throw new Error('Text exception II');
-                });
+                    .then(() => {
+                        throw new Error('Text exception II');
+                    });
             },
             env: {},
             exitCode: 91,
@@ -392,12 +394,12 @@ describe('Apify.getValue()', () => {
                         resolve(input);
                     });
                 })
-                .then(() => {
-                    assert.fail();
-                })
-                .catch((err) => {
-                    expect(err.message).to.be.eql('Test error');
-                });
+                    .then(() => {
+                        assert.fail();
+                    })
+                    .catch((err) => {
+                        expect(err.message).to.be.eql('Test error');
+                    });
             })
             .then(() => {
                 mock.verify();
@@ -500,12 +502,12 @@ describe('Apify.getValue()', () => {
                         resolve(input);
                     });
                 })
-                .then(() => {
-                    assert.fail();
-                })
-                .catch((err) => {
-                    expect(err.message).to.contain('The directory does not exist');
-                });
+                    .then(() => {
+                        assert.fail();
+                    })
+                    .catch((err) => {
+                        expect(err.message).to.contain('The directory does not exist');
+                    });
             })
             .then(() => {
                 // Test file instead of dir
@@ -673,12 +675,12 @@ describe('Apify.setValue()', () => {
                         resolve();
                     });
                 })
-                .then(() => {
-                    assert.fail();
-                })
-                .catch((err) => {
-                    expect(err.message).to.be.eql('Test error');
-                });
+                    .then(() => {
+                        assert.fail();
+                    })
+                    .catch((err) => {
+                        expect(err.message).to.be.eql('Test error');
+                    });
             })
             .then(() => {
                 mock.verify();
@@ -917,12 +919,12 @@ describe('Apify.setValue()', () => {
                         resolve(input);
                     });
                 })
-                .then(() => {
-                    assert.fail();
-                })
-                .catch((err) => {
-                    expect(err.message).to.contain('ENOENT');
-                });
+                    .then(() => {
+                        assert.fail();
+                    })
+                    .catch((err) => {
+                        expect(err.message).to.contain('ENOENT');
+                    });
             })
             .finally(() => {
                 delete process.env.APIFY_DEV_KEY_VALUE_STORE_DIR;
@@ -942,9 +944,9 @@ describe('Apify.events', () => {
                 reject(e);
             }
         })
-        .then((arg) => {
-            expect(arg).to.eql('test event');
-        });
+            .then((arg) => {
+                expect(arg).to.eql('test event');
+            });
     });
 });
 

@@ -1,6 +1,6 @@
 {
   "name": "apify",
-  "version": "0.4.35",
+  "version": "0.4.36",
   "description": "Apify Actor runtime for JavaScript",
   "main": "build/index.js",
   "keywords": [
@@ -43,7 +43,7 @@
     "lint": "npm run build && eslint src test"
   },
   "dependencies": {
-    "apify-client": "^0.1.53",
+    "apify-client": "^0.1.55",
     "bluebird": "^3.5.0",
     "content-type": "^1.0.3",
     "proxy-chain": "^0.1.2",

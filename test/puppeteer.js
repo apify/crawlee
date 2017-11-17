@@ -111,22 +111,22 @@ describe('Apify.launchPuppeteer()', () => {
             headless: true,
             proxyUrl: `http://username:password@127.0.0.1:${proxyPort}`,
         })
-        .then((createdBrowser) => {
-            browser = createdBrowser;
+            .then((createdBrowser) => {
+                browser = createdBrowser;
 
-            return browser.newPage();
-        })
-        .then((openedPage) => {
-            page = openedPage;
+                return browser.newPage();
+            })
+            .then((openedPage) => {
+                page = openedPage;
 
-            return page.goto('https://example.com');
-        })
-        .then(() => {
-            expect(wasProxyCalled).to.eql(true);
+                return page.goto('https://example.com');
+            })
+            .then(() => {
+                expect(wasProxyCalled).to.eql(true);
 
-            return page.content();
-        })
-        .then(html => expect(html).to.include('<h1>Example Domain</h1>'))
-        .then(() => browser.close());
+                return page.content();
+            })
+            .then(html => expect(html).to.include('<h1>Example Domain</h1>'))
+            .then(() => browser.close());
     });
 });

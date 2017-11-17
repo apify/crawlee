@@ -1,12 +1,9 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { anonymizeProxy, closeAnonymizedProxy } from 'proxy-chain';
 import { newPromise } from './utils';
-import { ENV_VARS } from './constants';
+import { ENV_VARS, DEFAULT_USER_AGENT } from './constants';
 
 /* global process, require */
-
-
-const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'; // eslint-disable-line max-len
 
 
 /**

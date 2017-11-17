@@ -38,7 +38,6 @@ export const getDefaultBrowseOptions = () => {
  * @ignore
  */
 export class Browser {
-
     constructor(options) {
         this.options = Object.assign(getDefaultBrowseOptions(), options);
 
