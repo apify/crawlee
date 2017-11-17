@@ -1,9 +1,10 @@
 import urlModule from 'url';
+import Promise from 'bluebird';
 import contentTypeParser from 'content-type';
 import ApifyClient from 'apify-client';
 import { ENV_VARS } from './constants';
 
-let PromisesDependency = typeof Promise === 'function' ? Promise : null;
+let PromisesDependency = Promise;
 
 /* global process */
 
@@ -22,6 +23,7 @@ let PromisesDependency = typeof Promise === 'function' ? Promise : null;
  * &nbsp;
  * Apify.setPromisesDependency(Promise);
  * </code></pre>
+ * By default, the package uses the `bluebird` promises.
  * @param [Constructor] dep Reference to a Promise constructor
  */
 export const setPromisesDependency = (dep) => {
@@ -33,6 +35,7 @@ export const setPromisesDependency = (dep) => {
  * @memberof module:Apify
  * @function
  * @description Gets the promise dependency set by <a href="#module-Apify-setPromisesDependency"><code>Apify.setPromisesDependency</code></a>.
+ * By default, the package uses the `bluebird` promises.
  * @returns {Constructor} Reference to a Promise constructor
  */
 export const getPromisesDependency = () => {

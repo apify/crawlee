@@ -1,7 +1,6 @@
 // import { ChromeLauncher } from 'lighthouse/lighthouse-cli/chrome-launcher';
 import { ENV_VARS } from './constants';
 import { newPromise, nodeifyPromise, parseUrl } from './utils';
-import { ProxyChain } from './proxy_chain';
 
 
 /* global process, require */
