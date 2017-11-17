@@ -6,6 +6,9 @@ import { ENV_VARS } from './constants';
 /* global process, require */
 
 
+const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'; // eslint-disable-line max-len
+
+
 /**
  * @memberof module:Apify
  * @function
@@ -19,7 +22,8 @@ import { ENV_VARS } from './constants';
  *        unless it was already defined by the caller. Note that this environment variable is automatically set to `1`
  *        in acts running on the Apify Actor cloud platform.</li>
  *    <li>Takes the `proxyUrl` option, checks it and adds it to `args` as `--proxy-server=XXX`.
- *        If the proxy uses authentication, the function sets up an anonymous proxy HTTP that will work with headless Chrome.
+ *        If the proxy uses authentication, the function sets up an anonymous proxy HTTP
+ *        to make the proxy work with headless Chrome.
  *    </li>
  *    <li>Adds `--no-sandbox` to `args` to enable running headless Chrome in a Docker container on the Actor platform.</li>
  * </ul>
@@ -36,6 +40,7 @@ import { ENV_VARS } from './constants';
  * @param {String} [opts.proxyUrl] - URL to a proxy server. Currently only `http://` scheme is supported.
  * Port number must be specified. Proxy authentication is also supported. For example, `http://bob:pass123@proxy.example.com:1234`.
  * @param {String} [opts.userAgent] - Default User-Agent for the browser.
+ * If not provided, the function sets it to a reasonable default.
  * @returns {Promise} Promise object that resolves to Puppeteer's `Browser` instance.
  */
 export const launchPuppeteer = (opts) => {
@@ -43,6 +48,7 @@ export const launchPuppeteer = (opts) => {
 
     checkParamOrThrow(opts, 'opts', 'Object');
     checkParamOrThrow(opts.args, 'opts.args', 'Maybe [String]');
+    checkParamOrThrow(opts.proxyUrl, 'opts.proxyUrl', 'Maybe String');
 
     let puppeteer;
     try {
@@ -56,19 +62,17 @@ export const launchPuppeteer = (opts) => {
 
     opts.args = opts.args || [];
     opts.args.push('--no-sandbox');
+    opts.args.push(`--user-agent=${opts.userAgent || DEFAULT_USER_AGENT}`);
     if (opts.headless === undefined || opts.headless === null) {
         opts.headless = process.env[ENV_VARS.HEADLESS] === '1';
     }
-    if (opts.userAgent) opts.args.push(`--user-agent=${opts.userAgent}`);
 
     let anonymizedProxyUrl;
     let promise;
 
-    // Parse proxy URL and if it contains a password then setup ProxyChain server
+    // Parse and validate proxy URL and anonymize it
     if (opts.proxyUrl) {
-        checkParamOrThrow(opts.proxyUrl, 'opts.proxyUrl', 'String');
-
-        // NOTE: anonymizeProxy() throws on invalid proxyUrl, so it must not be in a Promise!
+        // NOTE: anonymizeProxy() throws on invalid proxy URL, so it must not be inside a Promise!
         promise = anonymizeProxy(opts.proxyUrl)
             .then((result) => {
                 anonymizedProxyUrl = result;
@@ -79,16 +83,25 @@ export const launchPuppeteer = (opts) => {
         promise = puppeteer.launch(opts);
     }
 
-    // --user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36
-
-    // Close ProxyChain server when Puppeteer finishes
-    if (anonymizedProxyUrl) {
+    // Close anonymization proxy server when Puppeteer finishes
+    if (opts.proxyUrl) {
         promise = promise.then((browser) => {
-            browser.on('disconnected', () => {
-                console.log('Puppeteer disconnected');
-                // Don't wait for finish
-                closeAnonymizedProxy(anonymizedProxyUrl, true);
-            });
+            const cleanUp = () => {
+                // Don't wait for finish, only log errors
+                closeAnonymizedProxy(anonymizedProxyUrl, true)
+                    .catch((err) => {
+                        console.log(`WARNING: closeAnonymizedProxy() failed with: ${err.stack || err}`);
+                    });
+            };
+
+            browser.on('disconnected', cleanUp);
+
+            const prevClose = browser.close.bind(browser);
+            browser.close = () => {
+                cleanUp();
+                return prevClose();
+            };
+
             return browser;
         });
     }

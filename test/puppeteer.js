@@ -19,7 +19,7 @@ let wasProxyCalled = false; // eslint-disable-line no-unused-vars
 // Setup local proxy server for the tests
 before(() => {
     prevEnvHeadless = process.env[ENV_VARS.HEADLESS];
-    process.env[ENV_VARS.HEADLESS] = true;
+    process.env[ENV_VARS.HEADLESS] = '1';
 
     // Find free port for the proxy
     return portastic.find({ min: 50000, max: 50100 }).then((ports) => {
@@ -38,7 +38,7 @@ before(() => {
                 }
                 const parsed = basicAuthParser(auth);
                 const isEqual = _.isEqual(parsed, proxyAuth);
-                // console.log('Parsed "Proxy-Authorization": parsed: %j expected: %j : %s', parsed, proxyAuth, isEqual);
+                console.log('Parsed "Proxy-Authorization": parsed: %j expected: %j : %s', parsed, proxyAuth, isEqual);
                 if (isEqual) wasProxyCalled = true;
                 fn(null, isEqual);
             };
@@ -64,6 +64,11 @@ after(function () {
 
 describe('Apify.launchPuppeteer()', () => {
     it('throws on invalid args', () => {
+        expect(() => Apify.launchPuppeteer('some non-object')).to.throw(Error);
+        expect(() => Apify.launchPuppeteer(1234)).to.throw(Error);
+
+        expect(() => Apify.launchPuppeteer({ proxyUrl: 234 })).to.throw(Error);
+        expect(() => Apify.launchPuppeteer({ proxyUrl: {} })).to.throw(Error);
         expect(() => Apify.launchPuppeteer({ proxyUrl: 'invalidurl' })).to.throw(Error);
         expect(() => Apify.launchPuppeteer({ proxyUrl: 'http://host-without-port' })).to.throw(Error);
         expect(() => Apify.launchPuppeteer({ proxyUrl: 'invalid://somehost:1234' })).to.throw(Error);
@@ -102,27 +107,26 @@ describe('Apify.launchPuppeteer()', () => {
         // Test headless parameter
         process.env[ENV_VARS.HEADLESS] = false;
 
-        return Apify
-            .launchPuppeteer({
-                headless: true,
-                proxyUrl: `http://username:password@127.0.0.1:${proxyPort}`,
-            })
-            .then((createdBrowser) => {
-                browser = createdBrowser;
+        return Apify.launchPuppeteer({
+            headless: true,
+            proxyUrl: `http://username:password@127.0.0.1:${proxyPort}`,
+        })
+        .then((createdBrowser) => {
+            browser = createdBrowser;
 
-                return browser.newPage();
-            })
-            .then((openedPage) => {
-                page = openedPage;
+            return browser.newPage();
+        })
+        .then((openedPage) => {
+            page = openedPage;
 
-                return page.goto('https://example.com');
-            })
-            .then(() => {
-                expect(wasProxyCalled).to.eql(true);
+            return page.goto('https://example.com');
+        })
+        .then(() => {
+            expect(wasProxyCalled).to.eql(true);
 
-                return page.content();
-            })
-            .then(html => expect(html).to.include('<h1>Example Domain</h1>'))
-            .then(() => browser.close());
+            return page.content();
+        })
+        .then(html => expect(html).to.include('<h1>Example Domain</h1>'))
+        .then(() => browser.close());
     });
 });
