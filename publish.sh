@@ -29,7 +29,7 @@ aws s3 cp "${DOC_DIR}/" "s3://${AWS_BUCKET}/${GIT_TAG}/" --recursive --region us
 echo "Pushing to git ..."
 git push
 
-# Master gets published as LATEST if that version doesn't exists yet and retagged as LATEST otherwise.
+# Master gets published as LATEST - the package already needs to be published as BETA.
 if [ "${BRANCH}" = "master" ]; then
     EXISTING_NPM_VERSION=$(npm view ${PACKAGE_NAME} versions | grep ${PACKAGE_VERSION} | tee) # Using tee to swallow non-zero exit code
     if [ -z "${EXISTING_NPM_VERSION}" ]; then
@@ -40,11 +40,11 @@ if [ "${BRANCH}" = "master" ]; then
         RUNNING_FROM_SCRIPT=1 npm dist-tag add ${PACKAGE_NAME}@${PACKAGE_VERSION} latest
         echo "Copy doc to latest folder..."
         aws s3 cp "s3://${AWS_BUCKET}/${GIT_TAG}/" "s3://${AWS_BUCKET}/latest/" --recursive --region us-east-1 --acl public-read --cache-control "public, max-age=3600"
-        #aws cloudfront create-invalidation --distribution-id E29XCV9LE9131X --paths "/docs/sdk/apify-runtime-js/*"
+        aws cloudfront create-invalidation --distribution-id E29XCV9LE9131X --paths "/docs/sdk/apify-runtime-js/*"
     fi
 
-# Develop branch gets published as BETA and we don't allow to override tag of existing version.
-elif [ "${BRANCH}" = "develop" ]; then
+# Any other branch gets published as BETA and we don't allow to override tag of existing version.
+else
     echo "Publishing version ${PACKAGE_VERSION} with tag \"beta\" ..."
     RUNNING_FROM_SCRIPT=1 npm publish --tag beta
 
@@ -55,12 +55,8 @@ elif [ "${BRANCH}" = "develop" ]; then
 
     echo "Copy docs to S3 to beta folder..."
     aws s3 cp "s3://${AWS_BUCKET}/${GIT_TAG}/" "s3://${AWS_BUCKET}/beta/" --recursive --region us-east-1 --acl public-read --cache-control "public, max-age=3600"
-    #aws cloudfront create-invalidation --distribution-id E29XCV9LE9131X --paths "/docs/sdk/apify-runtime-js/*"
+    aws cloudfront create-invalidation --distribution-id E29XCV9LE9131X --paths "/docs/sdk/apify-runtime-js/*"
 
-# For other branch throw an error.
-else
-    printf "${RED}You can publish from develop and master branches only!${NC}\n"
-    exit 1
 fi
 
 
