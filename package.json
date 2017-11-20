@@ -1,11 +1,13 @@
 {
   "name": "apify",
-  "version": "0.4.33",
+  "version": "0.4.36",
   "description": "Apify Actor runtime for JavaScript",
   "main": "build/index.js",
   "keywords": [
     "apify",
     "apifier",
+    "puppeteer",
+    "selenium",
     "crawler",
     "scraper"
   ],
@@ -41,41 +43,43 @@
     "lint": "npm run build && eslint src test"
   },
   "dependencies": {
-    "apify-client": ">=0.1.13",
+    "apify-client": "^0.1.55",
     "bluebird": "^3.5.0",
     "content-type": "^1.0.3",
-    "portastic": "^1.0.1",
-    "rimraf": "^2.6.1",
-    "tmp": "^0.0.33",
+    "proxy-chain": "^0.1.2",
     "underscore": "^1.8.3"
   },
   "devDependencies": {
+    "apify-jsdoc-template": "github:Apifier/apify-jsdoc-template",
     "babel-cli": "^6.6.5",
     "babel-core": "^6.1.21",
-    "babel-eslint": "^7.2.2",
+    "babel-eslint": "^8.0.2",
     "babel-preset-es2015": "^6.1.18",
     "babel-preset-stage-0": "^6.1.18",
     "basic-auth-parser": "^0.0.2",
     "chai": "^4.0.2",
-    "eslint": "^3.19.0",
-    "eslint-config-airbnb": "^15.0.1",
-    "eslint-config-airbnb-base": "^11.1.0",
+    "eslint": "^4.11.0",
+    "eslint-config-airbnb": "^16.1.0",
+    "eslint-config-airbnb-base": "^12.1.0",
     "eslint-plugin-import": "^2.2.0",
-    "eslint-plugin-jsx-a11y": "^5.0.3",
+    "eslint-plugin-jsx-a11y": "^6.0.2",
     "eslint-plugin-promise": "^3.4.2",
     "eslint-plugin-react": "^7.0.1",
     "isparta": "^4.0.0",
-    "mocha": "^3.2.0",
-    "proxy": "^0.2.4",
-    "sinon": "^2.2.0",
-    "sinon-stub-promise": "^4.0.0",
-    "request": "^2.81.0",
     "jsdoc": "^3.4.3",
     "jsdoc-export-default-interop": "^0.3.1",
-    "apify-jsdoc-template": "github:Apifier/apify-jsdoc-template"
+    "mocha": "^3.2.0",
+    "portastic": "^1.0.1",
+    "proxy": "^0.2.4",
+    "request": "^2.81.0",
+    "rimraf": "^2.6.1",
+    "sinon": "^4.1.2",
+    "sinon-stub-promise": "^4.0.0",
+    "tmp": "^0.0.33",
+    "why-is-node-running": "^1.2.3"
   },
   "optionalDependencies": {
-    "puppeteer": "^0.12.0",
-    "selenium-webdriver": "^3.4.0"
+    "puppeteer": "^0.13.0",
+    "selenium-webdriver": "^3.6.0"
   }
 }

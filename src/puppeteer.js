@@ -1,6 +1,7 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { parseUrl } from './utils';
-import { ENV_VARS } from './constants';
+import { anonymizeProxy, closeAnonymizedProxy } from 'proxy-chain';
+import { newPromise } from './utils';
+import { ENV_VARS, DEFAULT_USER_AGENT } from './constants';
 
 /* global process, require */
 
@@ -17,7 +18,10 @@ import { ENV_VARS } from './constants';
  *    <li>Passes the setting from the `APIFY_HEADLESS` environment variable to the `headless` option,
  *        unless it was already defined by the caller. Note that this environment variable is automatically set to `1`
  *        in acts running on the Apify Actor cloud platform.</li>
- *    <li>Takes the `proxyUrl` option and adds it to `env` under the `HTTPS_PROXY` or `HTTP_PROXY` key.</li>
+ *    <li>Takes the `proxyUrl` option, checks it and adds it to `args` as `--proxy-server=XXX`.
+ *        If the proxy uses authentication, the function sets up an anonymous proxy HTTP
+ *        to make the proxy work with headless Chrome.
+ *    </li>
  *    <li>Adds `--no-sandbox` to `args` to enable running headless Chrome in a Docker container on the Actor platform.</li>
  * </ul>
  * </p>
@@ -31,46 +35,74 @@ import { ENV_VARS } from './constants';
  * </p>
  * @param {Object} [opts] Optional settings passed to `puppeteer.launch()`. Additionally the object can contain the following fields:
  * @param {String} [opts.proxyUrl] - URL to a proxy server. Currently only `http://` scheme is supported.
- * Port number must be specified. Proxy authentication is not supported yet. For example, `http://example.com:1234`.
+ * Port number must be specified. Proxy authentication is also supported. For example, `http://bob:pass123@proxy.example.com:1234`.
  * @param {String} [opts.userAgent] - Default User-Agent for the browser.
- * @returns {Promise} Promise object returned by `puppeteer.launch()`
+ * If not provided, the function sets it to a reasonable default.
+ * @returns {Promise} Promise object that resolves to Puppeteer's `Browser` instance.
  */
-export const launchPuppeteer = (opts = {}) => {
-    let puppeteer;
+export const launchPuppeteer = (opts) => {
+    if (opts === undefined || opts === null) opts = {};
 
+    checkParamOrThrow(opts, 'opts', 'Object');
+    checkParamOrThrow(opts.args, 'opts.args', 'Maybe [String]');
+    checkParamOrThrow(opts.proxyUrl, 'opts.proxyUrl', 'Maybe String');
+
+    let puppeteer;
     try {
         // This is an optional dependency because it is quite large, only require it when used (ie. image with Chrome)
         puppeteer = require('puppeteer'); // eslint-disable-line global-require
     } catch (err) {
-        if (err.code === 'MODULE_NOT_FOUND') err.message = 'Cannot find module \'puppeteer\'. Did you choose the wrong docker image?';
+        if (err.code === 'MODULE_NOT_FOUND') err.message = 'Cannot find module \'puppeteer\'. Did you choose the correct base Docker image?';
 
         throw err;
     }
 
-    checkParamOrThrow(opts, 'opts', 'Object');
-    checkParamOrThrow(opts.env, 'opts.env', 'Maybe Object');
-    checkParamOrThrow(opts.args, 'opts.args', 'Maybe [String]');
-
-    const { proxyUrl } = opts;
-
-    if (proxyUrl) {
-        checkParamOrThrow(proxyUrl, 'opts.proxyUrl', 'String');
-
-        const { host, port, protocol, password } = parseUrl(proxyUrl);
-        if (!host || !port) throw new Error('Invalid "proxyUrl" option: the URL must contain hostname and port number.');
-        if (protocol !== 'http:' && protocol !== 'https:') throw new Error('Invalid "proxyUrl" option: protocol must be http or https.');
-        if (password) throw new Error('Invalid "proxyUrl" option: password is not currently supported.');
-
-        const proxyVarName = proxyUrl.startsWith('https') ? 'HTTPS_PROXY' : 'HTTP_PROXY';
-        opts.env = opts.env || {};
-        opts.env[proxyVarName] = opts.proxyUrl;
-    }
-
     opts.args = opts.args || [];
     opts.args.push('--no-sandbox');
+    opts.args.push(`--user-agent=${opts.userAgent || DEFAULT_USER_AGENT}`);
+    if (opts.headless === undefined || opts.headless === null) {
+        opts.headless = process.env[ENV_VARS.HEADLESS] === '1';
+    }
 
-    if (opts.userAgent) opts.args.push(`--user-agent=${opts.userAgent}`);
-    if (opts.headless === undefined || opts.headless === null) opts.headless = process.env[ENV_VARS.HEADLESS] === '1';
+    let anonymizedProxyUrl;
+    let promise;
 
-    return puppeteer.launch(opts);
+    // Parse and validate proxy URL and anonymize it
+    if (opts.proxyUrl) {
+        // NOTE: anonymizeProxy() throws on invalid proxy URL, so it must not be inside a Promise!
+        promise = anonymizeProxy(opts.proxyUrl)
+            .then((result) => {
+                anonymizedProxyUrl = result;
+                opts.args.push(`--proxy-server=${anonymizedProxyUrl}`);
+            })
+            .then(() => puppeteer.launch(opts));
+    } else {
+        promise = puppeteer.launch(opts);
+    }
+
+    // Close anonymization proxy server when Puppeteer finishes
+    if (opts.proxyUrl) {
+        promise = promise.then((browser) => {
+            const cleanUp = () => {
+                // Don't wait for finish, only log errors
+                closeAnonymizedProxy(anonymizedProxyUrl, true)
+                    .catch((err) => {
+                        console.log(`WARNING: closeAnonymizedProxy() failed with: ${err.stack || err}`);
+                    });
+            };
+
+            browser.on('disconnected', cleanUp);
+
+            const prevClose = browser.close.bind(browser);
+            browser.close = () => {
+                cleanUp();
+                return prevClose();
+            };
+
+            return browser;
+        });
+    }
+
+    // Ensure that the returned promise is of type set in setPromiseDependency()
+    return newPromise().then(() => promise);
 };

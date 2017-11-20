@@ -13,6 +13,7 @@
     "no-param-reassign": 0,
     "consistent-return": 0,
     "array-callback-return": 0,
+    "object-curly-newline": 0,
     "arrow-body-style": 0,
     "no-plusplus": 0,
     "strict": ["error", "global"],

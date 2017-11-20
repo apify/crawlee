@@ -1,4 +1,6 @@
 
+export const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'; // eslint-disable-line max-len
+
 /**
  * Exit codes for the act process.
  * The error codes must be in range 1-128, to avoid collision with signal exits
@@ -43,7 +45,7 @@ export const ACT_TASK_STATUSES = {
     RUNNING: 'RUNNING', // running on worker
     SUCCEEDED: 'SUCCEEDED', // finished and all good
     FAILED: 'FAILED', // run or build failed
-    TIMING_OUT: 'TIMING-OUT',  // timing out now
+    TIMING_OUT: 'TIMING-OUT', // timing out now
     TIMED_OUT: 'TIMED-OUT', // timed out
     ABORTING: 'ABORTING', // being aborted by user
     ABORTED: 'ABORTED', // aborted by user

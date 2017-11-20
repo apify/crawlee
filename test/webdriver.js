@@ -53,7 +53,7 @@ before(() => {
 });
 
 after(function () {
-    this.timeout(60 * 1000);
+    this.timeout(30 * 1000);
     if (proxyServer) return Promise.promisify(proxyServer.close).bind(proxyServer)();
 });
 
@@ -169,7 +169,7 @@ describe('processBrowseArgs()', () => {
 
 describe('Apify.launchWebDriver()', function () {
     // Need a large timeout to run unit tests on Travis CI
-    this.timeout(300 * 1000);
+    this.timeout(30 * 1000);
 
     it('throws on invalid args', () => {
         assert.throws(() => {
@@ -293,7 +293,7 @@ describe('Apify.launchWebDriver()', function () {
 
 describe('Apify.browse()', function () {
     // Need a large timeout to run unit tests on Travis CI
-    this.timeout(300 * 1000);
+    this.timeout(30 * 1000);
 
     it('throws on invalid args', () => {
         assert.throws(() => {

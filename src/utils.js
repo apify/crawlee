@@ -1,15 +1,17 @@
-import urlModule from 'url';
+import Promise from 'bluebird';
 import contentTypeParser from 'content-type';
 import ApifyClient from 'apify-client';
 import { ENV_VARS } from './constants';
 
-let PromisesDependency = typeof Promise === 'function' ? Promise : null;
+// For backward compatibility, re-export functions that were moved to proxy-chain package
+// TODO: eventually get rid of this
+export { parseUrl, redactUrl, redactParsedUrl } from 'proxy-chain';
 
 /* global process */
 
-// TODO: add methods to override console.log() and console.error(), add unit tests for that!
+let PromisesDependency = Promise;
 
-// TODO: use bluebird promise by default instead of native promise, rename newPromise() to newUserPromise(), get rid of nodeifyPromise()
+// TODO: add methods to override console.log() and console.error(), add unit tests for that!
 
 /**
  * @memberof module:Apify
@@ -22,6 +24,7 @@ let PromisesDependency = typeof Promise === 'function' ? Promise : null;
  * &nbsp;
  * Apify.setPromisesDependency(Promise);
  * </code></pre>
+ * By default, the package uses the `bluebird` promises.
  * @param [Constructor] dep Reference to a Promise constructor
  */
 export const setPromisesDependency = (dep) => {
@@ -33,6 +36,7 @@ export const setPromisesDependency = (dep) => {
  * @memberof module:Apify
  * @function
  * @description Gets the promise dependency set by <a href="#module-Apify-setPromisesDependency"><code>Apify.setPromisesDependency</code></a>.
+ * By default, the package uses the `bluebird` promises.
  * @returns {Constructor} Reference to a Promise constructor
  */
 export const getPromisesDependency = () => {
@@ -97,64 +101,6 @@ export const newClient = () => {
     return new ApifyClient(opts);
 };
 
-
-/**
- * Sames are Node's url.parse() just adds the 'username', 'password' and 'scheme' fields.
- * @param url
- * @ignore
- */
-export const parseUrl = (url) => {
-    const parsed = urlModule.parse(url);
-
-    parsed.username = null;
-    parsed.password = null;
-    parsed.scheme = null;
-
-    if (parsed.auth) {
-        const matches = /^([^:]+)(:?)(.*)$/.exec(parsed.auth);
-        if (matches && matches.length === 4) {
-            parsed.username = matches[1];
-            if (matches[2] === ':') parsed.password = matches[3];
-        }
-    }
-
-    if (parsed.protocol) {
-        const matches = /^([a-z0-9]+):$/i.exec(parsed.protocol);
-        if (matches && matches.length === 2) {
-            parsed.scheme = matches[1];
-        }
-    }
-
-    return parsed;
-};
-
-
-/**
- * Redacts password from a URL, so that it can be shown in logs, results etc.
- * For example, converts URL such as
- * 'https://username:password@www.example.com/path#hash'
- * to 'https://username:<redacted>@www.example.com/path#hash'
- * @param url URL, it must contain at least protocol and hostname
- * @param passwordReplacement The string that replaces password, by default it is '<redacted>'
- * @returns {string}
- * @ignore
- */
-export const redactUrl = (url, passwordReplacement) => {
-    return redactParsedUrl(parseUrl(url), passwordReplacement);
-};
-
-export const redactParsedUrl = (parsedUrl, passwordReplacement = '<redacted>') => {
-    const p = parsedUrl;
-    let auth = null;
-    if (p.username) {
-        if (p.password) {
-            auth = `${p.username}:${passwordReplacement}`;
-        } else {
-            auth = `${p.username}`;
-        }
-    }
-    return `${p.protocol}//${auth || ''}${auth ? '@' : ''}${p.host}${p.path || ''}${p.hash || ''}`;
-};
 
 /**
  * Adds charset=utf-8 to given content type if this parameter is missing.

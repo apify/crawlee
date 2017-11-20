@@ -1,7 +1,7 @@
 // import { ChromeLauncher } from 'lighthouse/lighthouse-cli/chrome-launcher';
+import { anonymizeProxy, closeAnonymizedProxy } from 'proxy-chain';
 import { ENV_VARS } from './constants';
-import { newPromise, nodeifyPromise, parseUrl } from './utils';
-import { ProxyChain } from './proxy_chain';
+import { newPromise, nodeifyPromise } from './utils';
 
 
 /* global process, require */
@@ -38,20 +38,14 @@ export const getDefaultBrowseOptions = () => {
  * @ignore
  */
 export class Browser {
-
     constructor(options) {
         this.options = Object.assign(getDefaultBrowseOptions(), options);
-
-        if (this.options.proxyUrl) {
-            const parsed = parseUrl(this.options.proxyUrl);
-            if (!parsed.host || !parsed.port) throw new Error('Invalid "proxyUrl" option: the URL must contain hostname and port number.');
-            if (parsed.scheme !== 'http') throw new Error('Invalid "proxyUrl" option: only HTTP proxy type is currently supported.');
-            this.parsedProxyUrl = parsed;
-        }
 
         // This is an optional dependency because it is quite large, only require it when used
         const { Capabilities, Builder } = require('selenium-webdriver'); // eslint-disable-line global-require
         const chrome = require('selenium-webdriver/chrome'); // eslint-disable-line global-require
+
+        this.anonymizedProxyUrl = null;
 
         // logging.installConsoleHandler();
         // logging.getLogger('webdriver.http').setLevel(logging.Level.ALL);
@@ -81,9 +75,6 @@ export class Browser {
 
         // Instance of Selenium's WebDriver
         this.webDriver = null;
-
-        // Instance of ProxyChain or null if not used
-        this.proxyChain = null;
     }
 
     /**
@@ -91,9 +82,37 @@ export class Browser {
      * @returns Promise
      */
     _initialize() {
+        let promise = null;
+
+        // Applies options.proxyUrl setting to the WebDriver's Capabilities and Chrome Options.
+        // For proxy servers with authentication, this class starts a local proxy server
+        // NOTE: to view effective proxy settings in Chrome, open chrome://net-internals/#proxy
+        if (this.options.proxyUrl) {
+            // NOTE: call anonymizeProxy() outside of promise, so that errors in proxyUrl are thrown!
+            promise = anonymizeProxy(this.options.proxyUrl)
+                .then((result) => {
+                    this.anonymizedProxyUrl = result;
+
+                    if (/^chrome$/i.test(this.options.browserName)) {
+                        // In Chrome, Capabilities.setProxy() has no effect,
+                        // so we setup the proxy manually
+                        this.chromeOptions.addArguments(`--proxy-server=${this.anonymizedProxyUrl}`);
+                    } else {
+                        const proxyConfig = {
+                            proxyType: 'MANUAL',
+                            httpProxy: this.anonymizedProxyUrl,
+                            sslProxy: this.anonymizedProxyUrl,
+                            ftpProxy: this.anonymizedProxyUrl,
+                        };
+                        this.capabilities.setProxy(proxyConfig);
+                    }
+                });
+        }
+
+        // Ensure that the returned promise is of type set in setPromiseDependency()
         return newPromise()
             .then(() => {
-                return this._setupProxy();
+                return promise;
             })
             .then(() => {
                 this.webDriver = this.builder
@@ -106,68 +125,16 @@ export class Browser {
             });
     }
 
-    /**
-     * Applies options.proxyUrl setting to the WebDriver's Capabilities and Chrome Options.
-     * For proxy servers with authentication, this class starts a local
-     * Privoxy process to proxy-chain to the target proxy server and enable browser
-     * no to use authentication, because it's typically not supported.
-     * @param capabilities
-     * @param chromeOpts
-     */
-    _setupProxy() {
-        if (!this.parsedProxyUrl) return null;
-
-        // NOTE: to view effective proxy settings in Chrome, open chrome://net-internals/#proxy
-        // https://sites.google.com/a/chromium.org/chromedriver/capabilities
-        // https://github.com/haad/proxychains/blob/0f61bd071389398a4c8378847a45973577593e6f/src/proxychains.conf
-        // https://www.rootusers.com/configure-squid-proxy-to-forward-to-a-parent-proxy/
-        // https://gist.github.com/leefsmp/3e4385e08ea27e30ba96
-        // https://github.com/tinyproxy/tinyproxy
-
-        return newPromise().then(() => {
-            // If target proxy has no authentication, pass it directly to the browser.
-            if (!this.parsedProxyUrl.auth) {
-                return this.parsedProxyUrl;
-            }
-
-            // Otherwise we need to setup an open child proxy
-            // that will forward to the original proxy with authentication
-            this.proxyChain = new ProxyChain(this.parsedProxyUrl);
-            return this.proxyChain.start();
-        })
-        .then((effectiveParsedProxyUrl) => {
-            if (/^chrome$/i.test(this.options.browserName)) {
-                // In Chrome, Capabilities.setProxy() has no effect,
-                // so we setup the proxy manually
-                this.chromeOptions.addArguments(`--proxy-server=${effectiveParsedProxyUrl.host}`);
-            } else {
-                const proxyConfig = {
-                    proxyType: 'MANUAL',
-                    httpProxy: effectiveParsedProxyUrl.host,
-                    sslProxy: effectiveParsedProxyUrl.host,
-                    ftpProxy: effectiveParsedProxyUrl.host,
-                    // socksProxy: this.parsedProxyUrl.host,
-                    //socksUsername: parsed.username,
-                    //socksPassword: parsed.password,
-                    // noProxy: '', // Do not skip proxy for any address
-                };
-                this.capabilities.setProxy(proxyConfig);
-
-                // console.dir(this.capabilities);
-            }
-        });
-    }
-
     close() {
-        if (this.proxyChain) {
-            this.proxyChain.shutdown();
-            this.proxyChain = null;
-        }
-
         return newPromise()
             .then(() => {
                 if (this.webDriver) {
                     return this.webDriver.quit();
+                }
+            })
+            .then(() => {
+                if (this.anonymizedProxyUrl) {
+                    return closeAnonymizedProxy(this.anonymizedProxyUrl, true);
                 }
             })
             .then(() => {
@@ -356,13 +323,14 @@ export const launchWebDriver = (opts, callback) => {
     const promise = browser._initialize()
         .then(() => {
             // TODO: for some reason this doesn't work, the proxy chain will never shut down!!
+            //       BTW this also prevents us from upgrading to mocha 4+
             // we'll need to find a way to fix this!
-            browser.webDriver.onQuit_ = () => {
-                if (browser.proxyChain) {
-                    browser.proxyChain.shutdown();
-                    browser.proxyChain = null;
-                }
-            };
+            // browser.webDriver.onQuit_ = () => {
+            //    if (browser.proxyChain) {
+            //        browser.proxyChain.shutdown();
+            //        browser.proxyChain = null;
+            //    }
+            // };
 
             return browser.webDriver;
         });
