@@ -1,11 +1,12 @@
 import fs from 'fs';
 import path from 'path';
 import _ from 'underscore';
+import os from 'os';
 import contentTypeParser from 'content-type';
 import Promise from 'bluebird';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { ENV_VARS, EXIT_CODES, ACT_TASK_TERMINAL_STATUSES } from './constants';
-import { getPromisePrototype, newPromise, nodeifyPromise, newClient, addCharsetToContentType } from './utils';
+import { getPromisePrototype, newPromise, nodeifyPromise, newClient, addCharsetToContentType, isDocker } from './utils';
 
 
 /* global process, Buffer */
@@ -599,6 +600,42 @@ export const call = (actId, input, opts = {}, callback) => {
     const promise = acts
         .runAct(Object.assign({}, defaultOpts, runActOpts))
         .then(run => waitForRunToFinish(run));
+
+    return nodeifyPromise(promise, callback);
+};
+
+
+/**
+ * @memberof module:Apify
+ * @function
+ * @description Returns memory statistics of the container.
+ *
+ * @returns {Promise} Returns a promise unless `callback` was supplied.
+ */
+export const getMemoryInfo = (callback) => {
+    // This must be promisified here so that we can Mock it.
+    const readPromised = Promise.promisify(fs.readFile);
+    const promise = isDocker()
+        .then((isDockerVar) => {
+            if (!isDockerVar) {
+                const freeBytes = os.freemem();
+                const totalBytes = os.totalmem();
+
+                return Promise.resolve({ totalBytes, freeBytes, usedBytes: totalBytes - freeBytes });
+            }
+
+            return Promise
+                .all([
+                    readPromised('/sys/fs/cgroup/memory/memory.limit_in_bytes'),
+                    readPromised('/sys/fs/cgroup/memory/memory.usage_in_bytes'),
+                ])
+                .then(([totalBytesStr, usedBytesStr]) => {
+                    const totalBytes = parseInt(totalBytesStr, 10);
+                    const usedBytes = parseInt(usedBytesStr, 10);
+
+                    return { totalBytes, freeBytes: totalBytes - usedBytes, usedBytes };
+                });
+        });
 
     return nodeifyPromise(promise, callback);
 };
