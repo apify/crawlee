@@ -3,10 +3,12 @@ import pathModule from 'path';
 import _ from 'underscore';
 import { expect, assert } from 'chai';
 import sinon from 'sinon';
+import os from 'os';
 import tmp from 'tmp';
 import rimraf from 'rimraf';
 import Promise from 'bluebird';
 import { ACT_TASK_STATUSES } from '../build/constants';
+import * as utils from '../build/utils';
 
 // NOTE: test use of require() here because this is how its done in acts
 const Apify = require('../build/index');
@@ -1232,5 +1234,102 @@ describe('Apify.call()', () => {
                 keyValueStoresMock.restore();
                 actsMock.restore();
             });
+    });
+});
+
+describe('Apify.getMemoryInfo()', () => {
+    it('works outside the container', () => {
+        const osMock = sinon.mock(os);
+        const utilsMock = sinon.mock(utils);
+
+        utilsMock
+            .expects('isDocker')
+            .once()
+            .returns(Promise.resolve(false));
+
+        osMock
+            .expects('freemem')
+            .once()
+            .returns(222);
+
+        osMock
+            .expects('totalmem')
+            .once()
+            .returns(333);
+
+        return Apify
+            .getMemoryInfo()
+            .then((data) => {
+                expect(data).to.be.eql({
+                    totalBytes: 333,
+                    freeBytes: 222,
+                    usedBytes: 111,
+                });
+
+                utilsMock.restore();
+                osMock.restore();
+            });
+    });
+
+    it('works inside the container', () => {
+        const utilsMock = sinon.mock(utils);
+
+        utilsMock
+            .expects('isDocker')
+            .once()
+            .returns(Promise.resolve(true));
+
+        sinon
+            .stub(fs, 'readFile')
+            .callsFake((path, callback) => {
+                if (path === '/sys/fs/cgroup/memory/memory.limit_in_bytes') callback(null, '333');
+                else if (path === '/sys/fs/cgroup/memory/memory.usage_in_bytes') callback(null, '111');
+                else throw new Error('Invalid path');
+            });
+
+        return Apify
+            .getMemoryInfo()
+            .then((data) => {
+                expect(data).to.be.eql({
+                    totalBytes: 333,
+                    freeBytes: 222,
+                    usedBytes: 111,
+                });
+
+                utilsMock.restore();
+                fs.readFile.restore();
+            });
+    });
+
+    it('works with callback', (done) => {
+        const osMock = sinon.mock(os);
+        const utilsMock = sinon.mock(utils);
+
+        utilsMock
+            .expects('isDocker')
+            .once()
+            .returns(Promise.resolve(false));
+
+        osMock
+            .expects('freemem')
+            .once()
+            .returns(222);
+
+        osMock
+            .expects('totalmem')
+            .once()
+            .returns(333);
+
+        Apify.getMemoryInfo((err, data) => {
+            expect(data).to.be.eql({
+                totalBytes: 333,
+                freeBytes: 222,
+                usedBytes: 111,
+            });
+
+            utilsMock.restore();
+            osMock.restore();
+            done();
+        });
     });
 });

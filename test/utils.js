@@ -1,5 +1,7 @@
 import BluebirdPromise from 'bluebird';
 import { expect } from 'chai';
+import sinon from 'sinon';
+import fs from 'fs';
 import * as utils from '../build/utils';
 import Apify from '../build/index';
 
@@ -70,5 +72,59 @@ describe('utils.addCharsetToContentType()', () => {
         expect(utils.addCharsetToContentType('application/json')).to.eql('application/json; charset=utf-8');
         expect(utils.addCharsetToContentType(null)).to.eql(null);
         expect(utils.addCharsetToContentType(undefined)).to.eql(undefined);
+    });
+});
+
+describe('utils.isDocker()', () => {
+    it('works for dockerenv && cgroup', () => {
+        sinon.stub(fs, 'stat').callsFake((path, callback) => callback(null));
+        sinon.stub(fs, 'readFile').callsFake((path, encoding, callback) => callback(null, 'something ... docker ... something'));
+
+        return utils
+            .isDocker(true)
+            .then((is) => {
+                expect(is).to.be.eql(true);
+                fs.stat.restore();
+                fs.readFile.restore();
+            });
+    });
+
+    it('works for dockerenv', () => {
+        sinon.stub(fs, 'stat').callsFake((path, callback) => callback(null));
+        sinon.stub(fs, 'readFile').callsFake((path, encoding, callback) => callback(null, 'something ... ... something'));
+
+        return utils
+            .isDocker(true)
+            .then((is) => {
+                expect(is).to.be.eql(true);
+                fs.stat.restore();
+                fs.readFile.restore();
+            });
+    });
+
+    it('works for cgroup', () => {
+        sinon.stub(fs, 'stat').callsFake((path, callback) => callback(new Error()));
+        sinon.stub(fs, 'readFile').callsFake((path, encoding, callback) => callback(null, 'something ... docker ... something'));
+
+        return utils
+            .isDocker(true)
+            .then((is) => {
+                expect(is).to.be.eql(true);
+                fs.stat.restore();
+                fs.readFile.restore();
+            });
+    });
+
+    it('works for nothing', () => {
+        sinon.stub(fs, 'stat').callsFake((path, callback) => callback(new Error()));
+        sinon.stub(fs, 'readFile').callsFake((path, encoding, callback) => callback(null, 'something ... ... something'));
+
+        return utils
+            .isDocker(true)
+            .then((is) => {
+                expect(is).to.be.eql(false);
+                fs.stat.restore();
+                fs.readFile.restore();
+            });
     });
 });

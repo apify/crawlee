@@ -1,5 +1,6 @@
 import Promise from 'bluebird';
 import contentTypeParser from 'content-type';
+import fs from 'fs';
 import ApifyClient from 'apify-client';
 import { ENV_VARS } from './constants';
 
@@ -119,4 +120,35 @@ export const addCharsetToContentType = (contentType) => {
     parsed.parameters.charset = 'utf-8';
 
     return contentTypeParser.format(parsed);
+};
+
+let isDockerPromise;
+const createIsDockerPromise = () => {
+    const promise1 = Promise
+        .promisify(fs.stat)('/.dockerenv')
+        .then(() => true)
+        .catch(() => false);
+
+    const promise2 = Promise
+        .promisify(fs.readFile)('/proc/self/cgroup', 'utf8')
+        .then(content => content.indexOf('docker') !== -1)
+        .catch(() => false);
+
+    return Promise
+        .all([promise1, promise2])
+        .then(([result1, result2]) => result1 || result2);
+};
+
+/**
+ * Returns promise that resolves to true if the code is running in Docker container.
+ * See https://github.com/sindresorhus/is-docker
+ *
+ * Param forceReset is just internal for unit tests.
+ *
+ * @return Promise
+ */
+export const isDocker = (forceReset) => {
+    if (!isDockerPromise || forceReset) isDockerPromise = createIsDockerPromise();
+
+    return isDockerPromise;
 };
