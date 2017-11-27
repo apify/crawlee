@@ -1238,7 +1238,7 @@ describe('Apify.call()', () => {
 });
 
 describe('Apify.getMemoryInfo()', () => {
-    it('works in docker container', () => {
+    it('works outside the container', () => {
         const osMock = sinon.mock(os);
         const utilsMock = sinon.mock(utils);
 
@@ -1268,6 +1268,36 @@ describe('Apify.getMemoryInfo()', () => {
 
                 utilsMock.restore();
                 osMock.restore();
+            });
+    });
+
+    it('works inside the container', () => {
+        const utilsMock = sinon.mock(utils);
+
+        utilsMock
+            .expects('isDocker')
+            .once()
+            .returns(Promise.resolve(true));
+
+        sinon
+            .stub(fs, 'readFile')
+            .callsFake((path, callback) => {
+                if (path === '/sys/fs/cgroup/memory/memory.limit_in_bytes') callback(null, '333');
+                else if (path === '/sys/fs/cgroup/memory/memory.usage_in_bytes') callback(null, '111');
+                else throw new Error('Invalid path');
+            });
+
+        return Apify
+            .getMemoryInfo()
+            .then((data) => {
+                expect(data).to.be.eql({
+                    totalBytes: 333,
+                    freeBytes: 222,
+                    usedBytes: 111,
+                });
+
+                utilsMock.restore();
+                fs.readFile.restore();
             });
     });
 
@@ -1301,35 +1331,5 @@ describe('Apify.getMemoryInfo()', () => {
             osMock.restore();
             done();
         });
-    });
-
-    it('works outside the container', () => {
-        const utilsMock = sinon.mock(utils);
-
-        utilsMock
-            .expects('isDocker')
-            .once()
-            .returns(Promise.resolve(true));
-
-        sinon
-            .stub(fs, 'readFile')
-            .callsFake((path, callback) => {
-                if (path === '/sys/fs/cgroup/memory/memory.limit_in_bytes') callback(null, '333');
-                else if (path === '/sys/fs/cgroup/memory/memory.usage_in_bytes') callback(null, '111');
-                else throw new Error('Invalid path');
-            });
-
-        return Apify
-            .getMemoryInfo()
-            .then((data) => {
-                expect(data).to.be.eql({
-                    totalBytes: 333,
-                    freeBytes: 222,
-                    usedBytes: 111,
-                });
-
-                utilsMock.restore();
-                fs.readFile.restore();
-            });
     });
 });

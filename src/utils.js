@@ -122,14 +122,6 @@ export const addCharsetToContentType = (contentType) => {
     return contentTypeParser.format(parsed);
 };
 
-/**
- * Returns promise that resolves to true if the code is running in Docker container.
- * See https://github.com/sindresorhus/is-docker
- *
- * Param forceReset is just internal for unit tests.
- *
- * @return Promise
- */
 let isDockerPromise;
 const createIsDockerPromise = () => {
     const promise1 = Promise
@@ -146,6 +138,15 @@ const createIsDockerPromise = () => {
         .all([promise1, promise2])
         .then(([result1, result2]) => result1 || result2);
 };
+
+/**
+ * Returns promise that resolves to true if the code is running in Docker container.
+ * See https://github.com/sindresorhus/is-docker
+ *
+ * Param forceReset is just internal for unit tests.
+ *
+ * @return Promise
+ */
 export const isDocker = (forceReset) => {
     if (!isDockerPromise || forceReset) isDockerPromise = createIsDockerPromise();
 
