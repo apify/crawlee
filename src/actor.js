@@ -52,6 +52,12 @@ const getDefaultStoreIdOrThrow = () => {
     return storeId;
 };
 
+const getOrCreateSequentialStore = () => {
+    const storeId = process.env[ENV_VARS.DEFAULT_SEQUENTIAL_STORE_ID];
+    if (!storeId) throw new Error(`The '${ENV_VARS.DEFAULT_SEQUENTIAL_STORE_ID}' environment variable is not defined.`);
+    return storeId;
+};
+
 
 /**
  * @memberof module:Apify
@@ -285,6 +291,66 @@ export const setValue = (key, value, options, callback = null) => {
             });
         }
     }
+
+    const promise = newPromise().then(() => innerPromise);
+    return nodeifyPromise(promise, callback);
+};
+
+/**
+ * @memberof module:Apify
+ * @function
+ * @description <p>Stores a record (object) in a sequential store using the Apify API.
+ * If this is first write then a new store is created and associated with this act and then this and all further call
+ * are stored in it. Default id of the store is in the `APIFY_DEFAULT_SEQUENTIAL_STORE_ID` environment variable;
+ * The function has no result, but throws on invalid args or other errors.</p>
+ * <pre><code class="language-javascript">await Apify.pushRecord(record);</code></pre>
+ * <p>
+ * By default, the record is stored as is in default sequential store associated with this act.
+ * </p>
+ * <pre><code class="language-javascript">await Apify.pushRecord(record, 'my-custom-store');</code></pre>
+ * <p>
+ * If second argument is provided then the record is stored in this named store (it's created if it does not exist).
+ * </p>
+ * <p>
+ * **IMPORTANT: Do not forget to use the `await` keyword when calling `Apify.pushRecord()`,
+ * otherwise the act process might finish before the record is stored!**
+ * </p>
+ * @param {Object} record Object containing date to by stored in the store
+ * @param {Function} [callback] Optional callback. Function returns a promise if not provided.
+ * @returns {Promise} Returns a promise if `callback` was not provided.
+ */
+export const pushRecord = (record, callback = null) => {
+    if (!record || !_.isObject(record)) throw new Error('The "record" parameter must be an object');
+    if (storeName && !_.isString(storeName)) throw new Error('If provided then the "storeName" parameter must be a string');
+    if (callback && !_.isFunction(callback)) throw new Error('If provided then the "callback" parameter must be a function');
+
+    const promisePrototype = getPromisePrototype();
+
+    const storeId = getOrCreateSequentialStore();
+
+    // TODO: Emulation of sequential store for local development
+
+    // Normal case: put record to store
+    // If contentType is missing, value will be stringified to JSON
+    if (options.contentType === null || options.contentType === undefined) {
+        options.contentType = 'application/json';
+        try {
+            // Format JSON to simplify debugging, the overheads with compression is negligible
+            value = JSON.stringify(value, null, 2);
+        } catch (e) {
+            throw new Error(`The "value" parameter cannot be stringified to JSON: ${e.message}`);
+        }
+        if (value === undefined) {
+            throw new Error('The "value" parameter cannot be stringified to JSON.');
+        }
+    }
+
+    // Keep this code in main scope so that simple errors are thrown rather than rejected promise.
+    innerPromise = apifyClient.sequentialStores.putRecord({
+        storeId,
+        promise: promisePrototype,
+        data: JSON.stringify(record),
+    });
 
     const promise = newPromise().then(() => innerPromise);
     return nodeifyPromise(promise, callback);
