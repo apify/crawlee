@@ -52,11 +52,21 @@ const getDefaultStoreIdOrThrow = () => {
     return storeId;
 };
 
-const getOrCreateSequentialStore = () => {
+let sequentialStore = null;
+const getOrCreateSequentialStore = () => new Promise((resolve, reject) => {
     const storeId = process.env[ENV_VARS.DEFAULT_SEQUENTIAL_STORE_ID];
-    if (!storeId) throw new Error(`The '${ENV_VARS.DEFAULT_SEQUENTIAL_STORE_ID}' environment variable is not defined.`);
-    return storeId;
-};
+    if (!storeId) reject(new Error(`The '${ENV_VARS.DEFAULT_SEQUENTIAL_STORE_ID}' environment variable is not defined.`));
+    if (sequentialStore) return sequentialStore;
+
+    const promisePrototype = getPromisePrototype();
+    apifyClient.sequentialStores.getOrCreateStoreWithId({
+        storeId,
+        promise: promisePrototype,
+    }).then((store) => {
+        sequentialStore = store;
+        resolve(store);
+    }).catch(reject);
+});
 
 
 /**
@@ -320,39 +330,33 @@ export const setValue = (key, value, options, callback = null) => {
  * @returns {Promise} Returns a promise if `callback` was not provided.
  */
 export const pushRecord = (record, callback = null) => {
-    if (!record || !_.isObject(record)) throw new Error('The "record" parameter must be an object');
-    if (storeName && !_.isString(storeName)) throw new Error('If provided then the "storeName" parameter must be a string');
+    if (!record || !_.isObject(record) || _.isArray(record)) throw new Error('The "record" parameter must be an object');
     if (callback && !_.isFunction(callback)) throw new Error('If provided then the "callback" parameter must be a function');
 
     const promisePrototype = getPromisePrototype();
 
-    const storeId = getOrCreateSequentialStore();
-
-    // TODO: Emulation of sequential store for local development
-
-    // Normal case: put record to store
-    // If contentType is missing, value will be stringified to JSON
-    if (options.contentType === null || options.contentType === undefined) {
-        options.contentType = 'application/json';
-        try {
-            // Format JSON to simplify debugging, the overheads with compression is negligible
-            value = JSON.stringify(value, null, 2);
-        } catch (e) {
-            throw new Error(`The "value" parameter cannot be stringified to JSON: ${e.message}`);
-        }
-        if (value === undefined) {
-            throw new Error('The "value" parameter cannot be stringified to JSON.');
-        }
+    let stringifiedRecord;
+    try {
+        // Format JSON to simplify debugging, the overheads with compression is negligible
+        stringifiedRecord = JSON.stringify(record, null, 2);
+    } catch (e) {
+        throw new Error(`The "record" parameter cannot be stringified to JSON: ${e.message}`);
+    }
+    if (stringifiedRecord === undefined) {
+        throw new Error('The "record" parameter cannot be stringified to JSON.');
     }
 
-    // Keep this code in main scope so that simple errors are thrown rather than rejected promise.
-    innerPromise = apifyClient.sequentialStores.putRecord({
-        storeId,
-        promise: promisePrototype,
-        data: JSON.stringify(record),
-    });
+    const promise = getOrCreateSequentialStore()
+        .then((store) => {
+            return apifyClient.sequentialStores.putRecord({
+                storeId: store._id,
+                promise: promisePrototype,
+                data: stringifiedRecord,
+            });
+        });
 
-    const promise = newPromise().then(() => innerPromise);
+
+    // TODO: Emulation of sequential store for local development
     return nodeifyPromise(promise, callback);
 };
 
@@ -387,6 +391,10 @@ export const pushRecord = (record, callback = null) => {
  *     // act is stored (APIFY_DEFAULT_KEY_VALUE_STORE_ID)
  *     defaultKeyValueStoreId: String,
  * &nbsp;
+ *    // ID of the sequential store where input and output data of this
+ *     // act is stored (APIFY_DEFAULT_SEQUENTIAL_STORE_ID)
+ *     defaultSequentialStoreId: String,
+ * &nbsp;
  *     // Amount of memory allocated for the act run,
  *     // in megabytes (APIFY_MEMORY_MBYTES)
  *     memoryMbytes: Number,
@@ -408,6 +416,7 @@ export const getEnv = () => {
         startedAt: tryParseDate(env[ENV_VARS.STARTED_AT]) || null,
         timeoutAt: tryParseDate(env[ENV_VARS.TIMEOUT_AT]) || null,
         defaultKeyValueStoreId: env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID] || null,
+        defaultSequentialStoreId: env[ENV_VARS.DEFAULT_SEQUENTIAL_STORE_ID] || null,
         // internalPort: parseInt(env[ENV_VARS.INTERNAL_PORT], 10) || null,
         memoryMbytes: parseInt(env[ENV_VARS.MEMORY_MBYTES], 10) || null,
     };

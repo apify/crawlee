@@ -200,6 +200,7 @@ const getEmptyEnv = () => {
         startedAt: null,
         timeoutAt: null,
         defaultKeyValueStoreId: null,
+        defaultSequentialStoreId: null,
         memoryMbytes: null,
     };
 };
@@ -222,6 +223,7 @@ const setEnv = (env) => {
     if (env.startedAt) process.env.APIFY_STARTED_AT = env.startedAt.toISOString();
     if (env.timeoutAt) process.env.APIFY_TIMEOUT_AT = env.timeoutAt.toISOString();
     if (env.defaultKeyValueStoreId) process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = env.defaultKeyValueStoreId;
+    if (env.defaultSequentialStoreId) process.env.APIFY_DEFAULT_SEQUENTIAL_STORE_ID = env.defaultSequentialStoreId;
     if (env.memoryMbytes) process.env.APIFY_MEMORY_MBYTES = env.memoryMbytes.toString();
 };
 
@@ -244,6 +246,7 @@ describe('Apify.getEnv()', () => {
             startedAt: new Date('2017-01-01'),
             timeoutAt: new Date(),
             defaultKeyValueStoreId: 'some store',
+            defaultSequentialStoreId: 'some sequential store',
             memoryMbytes: 1234,
         });
         setEnv(expectedEnv);
@@ -932,6 +935,138 @@ describe('Apify.setValue()', () => {
                 delete process.env.APIFY_DEV_KEY_VALUE_STORE_DIR;
                 delete process.env.APIFY_DEV_KEY_VALUE_STORE_CONTENT_TYPE;
                 // rimraf.sync(tmpobj.name);
+            });
+    });
+});
+
+describe('Apify.pushRecord()', () => {
+    it('throws on invalid args', () => {
+        process.env.APIFY_DEFAULT_SEQUENTIAL_STORE_ID = '1234';
+        const recordErrMsg = 'The "record" parameter must be an object';
+        expect(() => { Apify.pushRecord(); }).to.throw(Error, recordErrMsg);
+        expect(() => { Apify.pushRecord(''); }).to.throw(Error, recordErrMsg);
+        expect(() => { Apify.pushRecord(123); }).to.throw(Error, recordErrMsg);
+        expect(() => { Apify.pushRecord(true); }).to.throw(Error, recordErrMsg);
+        expect(() => { Apify.pushRecord(false); }).to.throw(Error, recordErrMsg);
+        expect(() => { Apify.pushRecord([]); }).to.throw(Error, recordErrMsg);
+        expect(() => { Apify.pushRecord(() => {}, () => {}); }).to.throw(Error, jsonErrMsg);
+
+        const circularObj = {};
+        circularObj.xxx = circularObj;
+        const jsonErrMsg = 'The "record" parameter cannot be stringified to JSON';
+        expect(() => { Apify.pushRecord(circularObj, null); }).to.throw(Error, jsonErrMsg);
+    });
+
+    it('throws if APIFY_DEFAULT_SEQUENTIAL_STORE_ID env var is not defined', () => {
+        const errMsg = 'The \'APIFY_DEFAULT_SEQUENTIAL_STORE_ID\' environment variable is not defined';
+
+        process.env.APIFY_DEFAULT_SEQUENTIAL_STORE_ID = '';
+        expect(() => { Apify.pushRecord({ something: 123 }); }).to.throw(Error, errMsg);
+
+        delete process.env.APIFY_DEFAULT_SEQUENTIAL_STORE_ID;
+        expect(() => { Apify.pushRecord({ something: 123 }); }).to.throw(Error, errMsg);
+    });
+
+    it('supports both promises and callbacks (on success)', () => {
+        process.env.APIFY_DEFAULT_SEQUENTIAL_STORE_ID = '1234';
+        const mock = sinon.mock(Apify.client.sequentialStores);
+        mock.expects('putRecord')
+            .twice()
+            .returns(Promise.resolve(null));
+
+        return Promise.resolve()
+            .then(() => {
+                // test promise (no options)
+                return Apify.pushRecord({ someValue: 123 });
+            })
+            .then(() => {
+                // test callback (no options)
+                return new Promise((resolve, reject) => {
+                    Apify.pushRecord({ someValue: 123 }, (err) => {
+                        if (err) return reject(err);
+                        resolve();
+                    });
+                });
+            })
+            .then(() => {
+                mock.verify();
+            })
+            .finally(() => {
+                mock.restore();
+            });
+    });
+
+    it('supports both promises and callbacks (on error)', () => {
+        process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = '1234';
+        const mock = sinon.mock(Apify.client.sequentialStores);
+        mock.expects('putRecord')
+            .twice()
+            .throws(new Error('Test error'));
+
+        return Promise.resolve()
+            .then(() => {
+                // Test promise
+                return Promise.resolve()
+                    .then(() => {
+                        return Apify.pushRecord({ someValue: 1 });
+                    })
+                    .then(() => {
+                        assert.fail();
+                    })
+                    .catch((err) => {
+                        expect(err.message).to.be.eql('Test error');
+                    });
+            })
+            .then(() => {
+                // Test callback
+                return new Promise((resolve, reject) => {
+                    Apify.pushRecord({ someValue: 1 }, (err) => {
+                        if (err) return reject(err);
+                        resolve();
+                    });
+                })
+                    .then(() => {
+                        assert.fail();
+                    })
+                    .catch((err) => {
+                        expect(err.message).to.be.eql('Test error');
+                    });
+            })
+            .then(() => {
+                mock.verify();
+            })
+            .finally(() => {
+                mock.restore();
+            });
+    });
+
+    it('correctly stores records', () => {
+        const storeId = 'mystore';
+        const value = { someValue: 123 };
+
+        process.env.APIFY_DEFAULT_SEQUENTIAL_STORE_ID = storeId;
+
+        Apify.setPromisesDependency(Promise);
+
+        const mock = sinon.mock(Apify.client.sequentialStores);
+        mock.expects('putRecord')
+            .once()
+            .withArgs({
+                storeId,
+                promise: Promise,
+                data: JSON.stringify(value, null, 2),
+            })
+            .returns(Promise.resolve(null));
+
+        return Promise.resolve()
+            .then(() => {
+                return Apify.pushRecord(value);
+            })
+            .then(() => {
+                mock.verify();
+            })
+            .finally(() => {
+                mock.restore();
             });
     });
 });
