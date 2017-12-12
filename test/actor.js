@@ -1054,7 +1054,7 @@ describe('Apify.pushRecord()', () => {
             .withArgs({
                 storeId,
                 promise: Promise,
-                data: JSON.stringify(value, null, 2),
+                data: value,
             })
             .returns(Promise.resolve(null));
 
