@@ -342,7 +342,7 @@ export const pushRecord = (record, callback = null) => {
     const innerPromise = apifyClient.sequentialStores.putRecord({
         storeId,
         promise: promisePrototype,
-        data: stringifiedRecord,
+        data: record,
     });
 
 
