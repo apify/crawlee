@@ -52,21 +52,11 @@ const getDefaultStoreIdOrThrow = () => {
     return storeId;
 };
 
-let sequentialStore = null;
-const getOrCreateSequentialStore = () => new Promise((resolve, reject) => {
+const getDefaultSequentialStoreIdOrThrow = () => {
     const storeId = process.env[ENV_VARS.DEFAULT_SEQUENTIAL_STORE_ID];
-    if (!storeId) reject(new Error(`The '${ENV_VARS.DEFAULT_SEQUENTIAL_STORE_ID}' environment variable is not defined.`));
-    if (sequentialStore) return sequentialStore;
-
-    const promisePrototype = getPromisePrototype();
-    apifyClient.sequentialStores.getOrCreateStoreWithId({
-        storeId,
-        promise: promisePrototype,
-    }).then((store) => {
-        sequentialStore = store;
-        resolve(store);
-    }).catch(reject);
-});
+    if (!storeId) throw new Error(`The '${ENV_VARS.DEFAULT_SEQUENTIAL_STORE_ID}' environment variable is not defined.`);
+    return storeId;
+};
 
 
 /**
@@ -346,17 +336,17 @@ export const pushRecord = (record, callback = null) => {
         throw new Error('The "record" parameter cannot be stringified to JSON.');
     }
 
-    const promise = getOrCreateSequentialStore()
-        .then((store) => {
-            return apifyClient.sequentialStores.putRecord({
-                storeId: store._id,
-                promise: promisePrototype,
-                data: stringifiedRecord,
-            });
-        });
+    const storeId = getDefaultSequentialStoreIdOrThrow();
+
+    const innerPromise = apifyClient.sequentialStores.putRecord({
+        storeId,
+        promise: promisePrototype,
+        data: stringifiedRecord,
+    });
 
 
     // TODO: Emulation of sequential store for local development
+    const promise = newPromise().then(() => innerPromise);
     return nodeifyPromise(promise, callback);
 };
 
