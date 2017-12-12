@@ -297,6 +297,7 @@ export const setValue = (key, value, options, callback = null) => {
 };
 
 /**
+ * @ignore
  * @memberof module:Apify
  * @function
  * @description <p>Stores a record (object) in a sequential store using the Apify API.
