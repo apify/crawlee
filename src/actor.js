@@ -87,7 +87,7 @@ const getDefaultStoreIdOrThrow = () => {
  * @param {Function} callback Optional callback.
  * @returns {Promise} Returns a promise if no callback was provided.
  */
-export const getValue = (key, callback = null) => {
+export const getValue = (key, callback = null, storeName = null) => {
     if (!key || !_.isString(key)) throw new Error('The "key" parameter must be a non-empty string');
 
     const devDir = process.env[ENV_VARS.DEV_KEY_VALUE_STORE_DIR];
@@ -198,7 +198,7 @@ export const getValue = (key, callback = null) => {
  * @param {Function} [callback] Optional callback. Function returns a promise if not provided.
  * @returns {Promise} Returns a promise if `callback` was not provided.
  */
-export const setValue = (key, value, options, callback = null) => {
+export const setValue = (key, value, options, callback = null, storeName = null) => {
     if (!key || !_.isString(key)) throw new Error('The "key" parameter must be a non-empty string');
 
     // contentType is optional
@@ -333,10 +333,37 @@ export const setValue = (key, value, options, callback = null) => {
  * </p>
  * @param {String} nameOrId - The name or ID for the key-value store.
  * @param {Function} [callback] Optional callback. Function returns a promise if not provided.
- * @returns {Promise} - Returns a promise if no callback was passed or and object with the `getValue` and `setValue` methods.
+ * @returns {Promise} - Returns a promise if no callback was passed or and object with the 
+ * `getValue` and `setValue` methods to an existing or new Store.
  */
-export const setStore = (nameOrId, callback = null) => {
 
+export const setStore = async (nameOrId, callback = null) => {
+    if (!nameOrId || !_.isString(nameOrId)) {
+        throw new Error('The "nameOrId" parameter must be a non-empty string');
+    }
+
+    let store;
+    try {
+        store = await apifyClient.keyValueStores.getOrCreateStore({ storeName: nameOrId });
+    } catch (error) {
+        throw new Error('Something went wrong while getting or creating your store.', error);
+    }
+    // apifyClient.setOptions({ storeId: store.id });
+
+    const storeId = store.id;
+    const storeObject = {
+        getValue(key, callback = null, storeName) {
+            return getValue(key, callback, storeId);
+        },
+        setValue(key, value, options = null, callback = null, storeName) {
+            return setValue(key, value, options, callback, storeId);
+        }
+    };
+
+    if (!callback) {
+        return storeObject;
+    } 
+    return promise;
 };
 
 
