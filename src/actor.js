@@ -46,8 +46,8 @@ const tryParseDate = (str) => {
     return unix > 0 ? new Date(unix) : undefined;
 };
 
-const getDefaultStoreIdOrThrow = () => {
-    const storeId = process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID];
+const getDefaultStoreIdOrThrow = (storeName = null) => {
+    const storeId = storeName || process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID];
     if (!storeId) throw new Error(`The '${ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID}' environment variable is not defined.`);
     return storeId;
 };
@@ -140,7 +140,7 @@ export const getValue = (key, callback = null, storeName = null) => {
                 throw new Error(`Error reading file '${key}' in directory '${dirPath}' referred by ${ENV_VARS.DEV_KEY_VALUE_STORE_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len
             });
     } else {
-        const storeId = getDefaultStoreIdOrThrow();
+        const storeId = getDefaultStoreIdOrThrow(storeName);
         const promisePrototype = getPromisePrototype();
 
         promise = newPromise()
@@ -225,7 +225,7 @@ export const setValue = (key, value, options, callback = null, storeName = null)
         devFilePath = path.resolve(devDirPath, key);
     } else {
         // This would throw if APIFY_DEFAULT_KEY_VALUE_STORE_ID env var was not set
-        storeId = getDefaultStoreIdOrThrow();
+        storeId = getDefaultStoreIdOrThrow(storeName);
     }
     const devErrorHandler = (err) => {
         throw new Error(`Error writing file '${key}' in directory '${devDirPath}' referred by ${ENV_VARS.DEV_KEY_VALUE_STORE_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len
@@ -336,36 +336,31 @@ export const setValue = (key, value, options, callback = null, storeName = null)
  * @returns {Promise} - Returns a promise if no callback was passed or and object with the 
  * `getValue` and `setValue` methods to an existing or new Store.
  */
-
-export const setStore = async (nameOrId, callback = null) => {
+export const setStore = (nameOrId, callback = null) => {
     if (!nameOrId || !_.isString(nameOrId)) {
         throw new Error('The "nameOrId" parameter must be a non-empty string');
     }
 
-    let store;
-    try {
-        store = await apifyClient.keyValueStores.getOrCreateStore({ storeName: nameOrId });
-    } catch (error) {
-        throw new Error('Something went wrong while getting or creating your store.', error);
-    }
-    // apifyClient.setOptions({ storeId: store.id });
+    const promise = apifyClient.keyValueStores.getOrCreateStore({ storeName: nameOrId });
 
-    const storeId = store.id;
-    const storeObject = {
-        getValue(key, callback = null, storeName) {
-            return getValue(key, callback, storeId);
-        },
-        setValue(key, value, options = null, callback = null, storeName) {
-            return setValue(key, value, options, callback, storeId);
-        }
-    };
-
+    let storeId;
     if (!callback) {
-        return storeObject;
+        return promise.then(store => { 
+            storeId = store.id;
+            return ({
+                getValue(key, callback = null, storeName) {
+                    return getValue(key, callback, storeId);
+                },
+                setValue(key, value, options = null, callback = null, storeName) {
+                    return setValue(key, value, options, callback, storeId);
+                } 
+            });
+        }).catch(error => {
+            throw new Error('Something went wrong while getting or creating your store.', error);
+        });
     } 
     return promise;
 };
-
 
 /**
  * @memberof module:Apify
