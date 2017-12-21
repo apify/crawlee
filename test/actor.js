@@ -936,25 +936,25 @@ describe('Apify.setValue()', () => {
     });
 });
 
-describe('Apify.setStore', () => {
+describe('Apify.getOrCreateStore()', () => {
     it('throws on invalid args', () => {
-        const keyErrMsg = 'The "nameOrId" parameter must be a non-empty string';
-        expect(() => { Apify.setStore(); }).to.throw(Error, keyErrMsg);
-        expect(() => { Apify.setStore('', null); }).to.throw(Error, keyErrMsg);
-        expect(() => { Apify.setStore('', 'some value'); }).to.throw(Error, keyErrMsg);
-        expect(() => { Apify.setStore({}, 'some value'); }).to.throw(Error, keyErrMsg);
-        expect(() => { Apify.setStore(123, 'some value'); }).to.throw(Error, keyErrMsg);
+        const keyErrMsg = 'The "storeName" parameter must be a non-empty string';
+        expect(() => { Apify.getOrCreateStore(); }).to.throw(Error, keyErrMsg);
+        expect(() => { Apify.getOrCreateStore('', null); }).to.throw(Error, keyErrMsg);
+        expect(() => { Apify.getOrCreateStore('', 'some value'); }).to.throw(Error, keyErrMsg);
+        expect(() => { Apify.getOrCreateStore({}, 'some value'); }).to.throw(Error, keyErrMsg);
+        expect(() => { Apify.getOrCreateStore(123, 'some value'); }).to.throw(Error, keyErrMsg);
     });
 
     it('returns a Promise', () => {
-        const promise = Apify.setStore('my-store');
+        const promise = Apify.getOrCreateStore('my-store');
         expect(promise).to.be.a('promise');
     });
 
     const storeFabric = (nameOrId) => {
         return new Promise((resolve, reject) => {
             try {
-                resolve(Apify.setStore(nameOrId));
+                resolve(Apify.getOrCreateStore(nameOrId));
             } catch (error) {
                 reject(error);
             }
@@ -973,7 +973,7 @@ describe('Apify.setStore', () => {
 
     it('throws on invalid args pass to the getValue method', () => {
         promiseStore.then((store) => {
-            const keyErrMsg = 'The "key" parameter must be a non-empty string';
+            const keyErrMsg = 'Parameter "key" of type String must be provided';
             expect(() => { store.getValue(); }).to.throw(Error, keyErrMsg);
             expect(() => { store.getValue({}); }).to.throw(Error, keyErrMsg);
             expect(() => { store.getValue(''); }).to.throw(Error, keyErrMsg);
@@ -983,7 +983,7 @@ describe('Apify.setStore', () => {
 
     it('throws on invalid args pass to the setValue method', () => {
         promiseStore.then((store) => {
-            const keyErrMsg = 'The "key" parameter must be a non-empty string';
+            const keyErrMsg = 'Parameter "key" of type String must be provided';
             expect(() => { store.setValue(); }).to.throw(Error, keyErrMsg);
             expect(() => { store.setValue('', null); }).to.throw(Error, keyErrMsg);
             expect(() => { store.setValue('', 'some value'); }).to.throw(Error, keyErrMsg);
@@ -1021,14 +1021,14 @@ describe('Apify.setStore', () => {
         });
     });
 
-    // const testStore = storeFabric('my-test-store');
-    // it('returns null from a non-existent key in getValue method', () => {
-    //     testStore.then((store) => {
-    //         return store.getValue('INPUT').then((input) => {
-    //             return expect(input).to.eql(null);
-    //         });
-    //     });
-    // });
+    const testStore = storeFabric('my-test-store');
+    it('returns null from a non-existent key in getValue method', () => {
+        testStore.then((store) => {
+            return store.getValue('INPUT').then((input) => {
+                return expect(input).to.eql(null);
+            });
+        });
+    });
 
     // const setValueStore = storeFabric('my-setValue-store');
     // it('returns STATE value after calling setValue method', () => {

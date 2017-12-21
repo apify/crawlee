@@ -46,8 +46,8 @@ const tryParseDate = (str) => {
     return unix > 0 ? new Date(unix) : undefined;
 };
 
-const getDefaultStoreIdOrThrow = (options) => {
-    const storeId = (options && options.storeName) || process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID];
+const getDefaultStoreIdOrThrow = () => {
+    const storeId = process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID];
     if (!storeId) throw new Error(`The '${ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID}' environment variable is not defined.`);
     return storeId;
 };
@@ -87,15 +87,8 @@ const getDefaultStoreIdOrThrow = (options) => {
  * @param {Function} callback Optional callback.
  * @returns {Promise} Returns a promise if no callback was provided.
  */
-export const getValue = (key, options = null, callback = null) => {
+export const getValue = (key, callback = null) => {
     if (!key || !_.isString(key)) throw new Error('The "key" parameter must be a non-empty string');
-
-    let temp;
-    if (_.isFunction(options)) {
-        temp = callback;
-        callback = options;
-        options = temp;
-    }
 
     const devDir = process.env[ENV_VARS.DEV_KEY_VALUE_STORE_DIR];
     let promise;
@@ -147,7 +140,7 @@ export const getValue = (key, options = null, callback = null) => {
                 throw new Error(`Error reading file '${key}' in directory '${dirPath}' referred by ${ENV_VARS.DEV_KEY_VALUE_STORE_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len
             });
     } else {
-        const storeId = getDefaultStoreIdOrThrow(options);
+        const storeId = getDefaultStoreIdOrThrow();
         const promisePrototype = getPromisePrototype();
 
         promise = newPromise()
@@ -232,7 +225,7 @@ export const setValue = (key, value, options, callback = null)  => {
         devFilePath = path.resolve(devDirPath, key);
     } else {
         // This would throw if APIFY_DEFAULT_KEY_VALUE_STORE_ID env var was not set
-        storeId = getDefaultStoreIdOrThrow(options);
+        storeId = getDefaultStoreIdOrThrow();
     }
     const devErrorHandler = (err) => {
         throw new Error(`Error writing file '${key}' in directory '${devDirPath}' referred by ${ENV_VARS.DEV_KEY_VALUE_STORE_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len
@@ -314,7 +307,7 @@ export const setValue = (key, value, options, callback = null)  => {
  * </p>
  * 
  * <p>Example usage</p>
- * <pre><code class="language-javascript">const Store = await Apify.setStore('store-123');
+ * <pre><code class="language-javascript">const Store = await Apify.getOrCreateStore('store-123');
  * console.log('My Store:');
  * console.dir(Store);
  * 
@@ -340,42 +333,63 @@ export const setValue = (key, value, options, callback = null)  => {
  * </p>
  * @param {String} nameOrId - The name or ID for the key-value store.
  * @param {Function} [callback] Optional callback. Function returns a promise if not provided.
- * @returns {Promise} - Returns a promise if no callback was passed or and object with the 
+ * @returns {Promise} - Returns a promise if no callback was passed or and object with the
  * `getValue` and `setValue` methods to an existing or new Store.
  */
-export const setStore = (nameOrId, callback = null) => {
-    if (!nameOrId || !_.isString(nameOrId)) {
-        throw new Error('The "nameOrId" parameter must be a non-empty string');
+
+const privatize = new WeakMap();
+class Store {
+    constructor(keyValueStores, { id: storeId }) {
+        privatize.set(this, { keyValueStores, storeId });
+
+        this.getValue = (key) => {
+            if (!key || !_.isString(key)) {
+                throw new Error(`Parameter "key" of type String must be provided`);
+            }
+            const modifiedOpts = this.modifyOptionsWithPrivates({ key });            
+            return keyValueStores.getRecord(modifiedOpts).then(record => (
+                record && record.body || null
+            )).catch(error => { 
+                throw new Error(error);
+            });
+        }
+
+        this.setValue = (key, value, options = {}) => {
+            if (!key || !_.isString(key)) {
+                throw new Error(`Parameter "key" of type String must be provided`);
+            }
+            const updatedOpts = Object.assign({}, options, { key, body: value });
+            const modifiedOpts = this.modifyOptionsWithPrivates(updatedOpts);            
+            const opts = typeof modifiedOpts.body === 'object' ? 
+                Object.assign(modifiedOpts, { body: JSON.stringify(modifiedOpts.body) })
+                : modifiedOpts;  
+            return keyValueStores.putRecord(opts)
+                .then(response => response)
+                .catch(error => { throw new Error(error); });
+        }
     }
 
-    const promise = apifyClient.keyValueStores.getOrCreateStore({ storeName: nameOrId });
+    modifyOptionsWithPrivates(options) {
+        const { storeId, keyValueStores } = privatize.get(this);
+        return Object.assign({}, options, { storeId });
+    }
+}
+
+export const getOrCreateStore = (storeName, callback = null) => {
+    if (!storeName || !_.isString(storeName)) {
+        throw new Error('The "storeName" parameter must be a non-empty string');
+    }
+    const { keyValueStores } = apifyClient;
 
     if (!callback) {
-        return promise.then(store => { 
-            const storeName = store.id;
-            return ({
-                getValue(key, options, callback) {
-                    const newOptions = Object.assign({}, options, { storeName });
-                    return getValue(key, newOptions, callback).then((value) => {
-                        return value;
-                    }, (error) => {
-                        throw new Error('Error while getting value.', error);
-                    });
-                },
-                setValue(key, value, options, callback) {
-                    const newOptions = Object.assign({}, options, { storeName });
-                    return setValue(key, value, newOptions, callback).then((response) => {
-                        return response;
-                    }, (error) => {
-                        throw new Error('Error while setting value.');
-                    });
-                } 
-            });
-        }).catch(error => {
-            throw new Error('Something went wrong while getting or creating your store.', error);
+        const promise = keyValueStores.getOrCreateStore({ storeName });
+        return promise.then((store) => {
+            return new Store(keyValueStores, store);
+        }, (error) => {
+            throw new Error(error);
         });
-    } 
-    return promise;
+    }
+    return; 
 };
 
 /**
