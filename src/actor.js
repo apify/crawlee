@@ -346,23 +346,25 @@ class Store {
             if (!key || !_.isString(key)) {
                 throw new Error(`Parameter "key" of type String must be provided`);
             }
+
             const modifiedOpts = this.modifyOptionsWithPrivates({ key });            
-            return keyValueStores.getRecord(modifiedOpts).then(record => (
-                record && record.body || null
-            )).catch(error => { 
-                throw new Error(error);
-            });
+
+            return keyValueStores.getRecord(modifiedOpts)
+                .then(record => record && record.body || null)
+                .catch(error => { throw new Error(error); });
         }
 
         this.setValue = (key, value, options = {}) => {
             if (!key || !_.isString(key)) {
                 throw new Error(`Parameter "key" of type String must be provided`);
             }
+
             const updatedOpts = Object.assign({}, options, { key, body: value });
             const modifiedOpts = this.modifyOptionsWithPrivates(updatedOpts);            
             const opts = typeof modifiedOpts.body === 'object' ? 
                 Object.assign(modifiedOpts, { body: JSON.stringify(modifiedOpts.body) })
                 : modifiedOpts;  
+
             return keyValueStores.putRecord(opts)
                 .then(response => response)
                 .catch(error => { throw new Error(error); });
