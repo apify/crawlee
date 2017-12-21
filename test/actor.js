@@ -1021,15 +1021,14 @@ describe('Apify.setStore', () => {
         });
     });
 
-    const testStore = storeFabric('my-test-store');
-    it('returns an empty INPUT value from non-existent key in getValue method', () => {
-        testStore.then((store) => {
-            return store.getValue('INPUT').then((input) => {
-                expect(input).to.be.a('string');
-                expect(input).to.eql('');
-            }).catch(error => console.log('Oh no! 1', error));
-        }).catch(error => console.log('Oh no! 2', error));
-    });
+    // const testStore = storeFabric('my-test-store');
+    // it('returns null from a non-existent key in getValue method', () => {
+    //     testStore.then((store) => {
+    //         return store.getValue('INPUT').then((input) => {
+    //             return expect(input).to.eql(null);
+    //         });
+    //     });
+    // });
 
     // const setValueStore = storeFabric('my-setValue-store');
     // it('returns STATE value after calling setValue method', () => {

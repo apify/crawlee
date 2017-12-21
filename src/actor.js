@@ -46,8 +46,8 @@ const tryParseDate = (str) => {
     return unix > 0 ? new Date(unix) : undefined;
 };
 
-const getDefaultStoreIdOrThrow = (storeName = null) => {
-    const storeId = storeName || process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID];
+const getDefaultStoreIdOrThrow = (options) => {
+    const storeId = (options && options.storeName) || process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID];
     if (!storeId) throw new Error(`The '${ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID}' environment variable is not defined.`);
     return storeId;
 };
@@ -87,8 +87,15 @@ const getDefaultStoreIdOrThrow = (storeName = null) => {
  * @param {Function} callback Optional callback.
  * @returns {Promise} Returns a promise if no callback was provided.
  */
-export const getValue = (key, callback = null, storeName = null) => {
+export const getValue = (key, options = null, callback = null) => {
     if (!key || !_.isString(key)) throw new Error('The "key" parameter must be a non-empty string');
+
+    let temp;
+    if (_.isFunction(options)) {
+        temp = callback;
+        callback = options;
+        options = temp;
+    }
 
     const devDir = process.env[ENV_VARS.DEV_KEY_VALUE_STORE_DIR];
     let promise;
@@ -140,7 +147,7 @@ export const getValue = (key, callback = null, storeName = null) => {
                 throw new Error(`Error reading file '${key}' in directory '${dirPath}' referred by ${ENV_VARS.DEV_KEY_VALUE_STORE_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len
             });
     } else {
-        const storeId = getDefaultStoreIdOrThrow(storeName);
+        const storeId = getDefaultStoreIdOrThrow(options);
         const promisePrototype = getPromisePrototype();
 
         promise = newPromise()
@@ -198,7 +205,7 @@ export const getValue = (key, callback = null, storeName = null) => {
  * @param {Function} [callback] Optional callback. Function returns a promise if not provided.
  * @returns {Promise} Returns a promise if `callback` was not provided.
  */
-export const setValue = (key, value, options, callback = null, storeName = null) => {
+export const setValue = (key, value, options, callback = null)  => {
     if (!key || !_.isString(key)) throw new Error('The "key" parameter must be a non-empty string');
 
     // contentType is optional
@@ -225,7 +232,7 @@ export const setValue = (key, value, options, callback = null, storeName = null)
         devFilePath = path.resolve(devDirPath, key);
     } else {
         // This would throw if APIFY_DEFAULT_KEY_VALUE_STORE_ID env var was not set
-        storeId = getDefaultStoreIdOrThrow(storeName);
+        storeId = getDefaultStoreIdOrThrow(options);
     }
     const devErrorHandler = (err) => {
         throw new Error(`Error writing file '${key}' in directory '${devDirPath}' referred by ${ENV_VARS.DEV_KEY_VALUE_STORE_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len
@@ -343,16 +350,25 @@ export const setStore = (nameOrId, callback = null) => {
 
     const promise = apifyClient.keyValueStores.getOrCreateStore({ storeName: nameOrId });
 
-    let storeId;
     if (!callback) {
         return promise.then(store => { 
-            storeId = store.id;
+            const storeName = store.id;
             return ({
-                getValue(key, callback = null, storeName) {
-                    return getValue(key, callback, storeId);
+                getValue(key, options, callback) {
+                    const newOptions = Object.assign({}, options, { storeName });
+                    return getValue(key, newOptions, callback).then((value) => {
+                        return value;
+                    }, (error) => {
+                        throw new Error('Error while getting value.', error);
+                    });
                 },
-                setValue(key, value, options = null, callback = null, storeName) {
-                    return setValue(key, value, options, callback, storeId);
+                setValue(key, value, options, callback) {
+                    const newOptions = Object.assign({}, options, { storeName });
+                    return setValue(key, value, newOptions, callback).then((response) => {
+                        return response;
+                    }, (error) => {
+                        throw new Error('Error while setting value.');
+                    });
                 } 
             });
         }).catch(error => {
