@@ -1030,25 +1030,25 @@ describe('Apify.getOrCreateStore()', () => {
         });
     });
 
-    // const setValueStore = storeFabric('my-setValue-store');
-    // it('returns STATE value after calling setValue method', () => {
-    //     const mockState = JSON.stringify({
-    //         testString: 'String',
-    //         testNumber: 3e6,
-    //         testArray: [1, 2, 3, 4],
-    //         testObject: {
-    //             key: 'value',
-    //         },
-    //     });
-    //     setValueStore.then((store) => {
-    //         return store.setValue('STATE', mockState).then(() => {
-    //             return store.getValue('STATE').then((state) => {
-    //                 expect(state).to.be.a('string');
-    //                 expect(state).to.eql(mockState);
-    //             }).catch(error => console.log('Oh no 2!', error));
-    //         });
-    //     });
-    // });
+    const setValueStore = storeFabric('my-setValue-store');
+    it('returns STATE value after calling setValue method', () => {
+        const mockState = JSON.stringify({
+            testString: 'String',
+            testNumber: 3e6,
+            testArray: [1, 2, 3, 4],
+            testObject: {
+                key: 'value',
+            },
+        });
+        setValueStore.then((store) => {
+            return store.setValue('STATE', mockState).then(() => {
+                return store.getValue('STATE').then((state) => {
+                    expect(state).to.be.a('string');
+                    expect(state).to.eql(mockState);
+                }).catch(error => console.log('Oh no 2!', error));
+            });
+        });
+    });
 });
 
 describe('Apify.events', () => {
