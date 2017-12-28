@@ -290,6 +290,117 @@ export const setValue = (key, value, options, callback = null) => {
     return nodeifyPromise(promise, callback);
 };
 
+/**
+ * @memberof module:Apify
+ * @function
+ * @description <p>
+ * Gets or creates a key-value store with the passed name or ID.
+ * The key-value store is retrieved or created automatically for each act run.
+ * The ID is passed by the user calling the function instead of the `APIFY_DEFAULT_KEY_VALUE_STORE_ID`
+ * enviroment variable passed by the Actor platform.
+ *
+ * It is used to save the `INPUT` and `OUTPUT` of an act in a named key-value store with or
+ * without previous results. Useful in situations where the user wants to check for changes
+ * in previous stored values or keep a STATE output for comparisons.
+ *
+ * Keep in mind that the store can be used for storage of any other values under arbitrary keys.
+ * </p>
+ *
+ * <p>Example usage</p>
+ * <pre><code class="language-javascript">const Store = await Apify.getOrCreateStore('store-123');
+ * console.log('My Store:');
+ * console.dir(Store);
+ *
+ * const previousState = await Store.getValue('STATE');
+ * console.log('My previous state:');
+ * console.dir(previousState);
+ * // ...
+ * const nextState = Object.assign({}, { newRecord: 'your new record!' }, previousState);
+ * await Store.setValue('STATE', nextState);
+ * </code></pre>
+ *
+ * <p>
+ * The result of the function is an object with the `getValue` and `setValue` methods.
+ * The Store object methods behave exactly like the `Apify.getValue` and `Apify.setValue` methods,
+ * with the exception that it sets and gets store keys from a named key-value store.
+ * </p>
+ *
+ * <p>
+ * The definition of the `APIFY_DEV_KEY_VALUE_STORE_DIR` environment variable will have no effect
+ * on this method.
+ *
+ * The directory must exist or an error is thrown. If the file does not exists, the returned value is `null`.
+ * The file is assumed to have a content type specified in the `APIFY_DEV_KEY_VALUE_STORE_CONTENT_TYPE`
+ * environment variable, or `application/json` if not set.
+ * This feature is useful for local development and debugging of your acts.
+ * </p>
+ * @param {String} nameOrId - The name or ID for the key-value store.
+ * @param {Function} [callback] Optional callback. Function returns a promise if not provided.
+ * @returns {Promise} - Returns a promise if no callback was passed or and object with the
+ * `getValue` and `setValue` methods to an existing or new Store.
+ */
+
+const privatize = new WeakMap();
+class Store {
+    constructor(keyValueStores, { id: storeId }) {
+        privatize.set(this, { storeId });
+
+        this.getValue = (key) => {
+            if (!key || !_.isString(key)) {
+                throw new Error('Parameter "key" of type String must be provided');
+            }
+
+            const modifiedOpts = this.modifyOptionsWithPrivates({ key });
+
+            return keyValueStores.getRecord(modifiedOpts)
+                .then(record => (record && record.body) || null)
+                .catch((error) => { throw new Error(error); });
+        };
+
+        this.setValue = (key, value, options = {}) => {
+            if (!key || !_.isString(key)) {
+                throw new Error('Parameter "key" of type String must be provided');
+            }
+
+            let body;
+            if (value && _.isString(value)) {
+                body = value;
+            } else if (value && _.isObject(value)) {
+                body = JSON.stringify(value);
+            } else {
+                throw new Error('Parameter "value" of type Object must be provided');
+            }
+
+            const updatedOpts = Object.assign({}, options, { key, body });
+            const modifiedOpts = this.modifyOptionsWithPrivates(updatedOpts);
+            return keyValueStores.putRecord(modifiedOpts)
+                .then(response => response)
+                .catch((error) => { throw new Error(error); });
+        };
+    }
+
+    modifyOptionsWithPrivates(options) {
+        const { storeId } = privatize.get(this);
+        return Object.assign({}, options, { storeId });
+    }
+}
+
+export const getOrCreateStore = (storeName, callback = null) => {
+    if (!storeName || !_.isString(storeName)) {
+        throw new Error('The "storeName" parameter must be a non-empty string');
+    }
+    const { keyValueStores } = apifyClient;
+
+    if (!callback) {
+        const promise = keyValueStores.getOrCreateStore({ storeName });
+        return promise.then((store) => {
+            return new Store(keyValueStores, store);
+        }, (error) => {
+            throw new Error(error);
+        });
+    }
+    keyValueStores.getOrCreateStore({ storeName }, callback);
+};
 
 /**
  * @memberof module:Apify
