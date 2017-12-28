@@ -1068,6 +1068,117 @@ describe('Apify.pushRecord()', () => {
             .finally(() => {
                 mock.restore();
             });
+describe('Apify.getOrCreateStore()', () => {
+    it('throws on invalid args', () => {
+        const keyErrMsg = 'The "storeName" parameter must be a non-empty string';
+        expect(() => { Apify.getOrCreateStore(); }).to.throw(Error, keyErrMsg);
+        expect(() => { Apify.getOrCreateStore('', null); }).to.throw(Error, keyErrMsg);
+        expect(() => { Apify.getOrCreateStore('', 'some value'); }).to.throw(Error, keyErrMsg);
+        expect(() => { Apify.getOrCreateStore({}, 'some value'); }).to.throw(Error, keyErrMsg);
+        expect(() => { Apify.getOrCreateStore(123, 'some value'); }).to.throw(Error, keyErrMsg);
+    });
+
+    it('returns a Promise', () => {
+        const promise = Apify.getOrCreateStore('my-store');
+        expect(promise).to.be.a('promise');
+    });
+
+    const storeFabric = (nameOrId) => {
+        return new Promise((resolve, reject) => {
+            try {
+                resolve(Apify.getOrCreateStore(nameOrId));
+            } catch (error) {
+                reject(error);
+            }
+        });
+    };
+
+    const promiseStore = storeFabric('my-store');
+    it('returns an Object with a setValue and getValue method', () => {
+        promiseStore.then((store) => {
+            expect(store).to.be.an('object');
+            expect(store.getValue).to.be.a('function');
+            expect(store.setValue).to.be.a('function');
+        });
+    });
+
+    it('throws on invalid args pass to the getValue method', () => {
+        promiseStore.then((store) => {
+            const keyErrMsg = 'Parameter "key" of type String must be provided';
+            expect(() => { store.getValue(); }).to.throw(Error, keyErrMsg);
+            expect(() => { store.getValue({}); }).to.throw(Error, keyErrMsg);
+            expect(() => { store.getValue(''); }).to.throw(Error, keyErrMsg);
+            expect(() => { store.getValue(null); }).to.throw(Error, keyErrMsg);
+        });
+    });
+
+    it('throws on invalid args pass to the setValue method', () => {
+        promiseStore.then((store) => {
+            const keyErrMsg = 'Parameter "key" of type String must be provided';
+            expect(() => { store.setValue(); }).to.throw(Error, keyErrMsg);
+            expect(() => { store.setValue('', null); }).to.throw(Error, keyErrMsg);
+            expect(() => { store.setValue('', 'some value'); }).to.throw(Error, keyErrMsg);
+            expect(() => { store.setValue({}, 'some value'); }).to.throw(Error, keyErrMsg);
+            expect(() => { store.setValue(123, 'some value'); }).to.throw(Error, keyErrMsg);
+
+            const valueErrMsg = 'The "value" parameter must be a String or Buffer when "contentType" is specified';
+            expect(() => { store.setValue('key', {}, { contentType: 'image/png' }); }).to.throw(Error, valueErrMsg);
+            expect(() => { store.setValue('key', 12345, { contentType: 'image/png' }); }).to.throw(Error, valueErrMsg);
+            expect(() => { store.setValue('key', () => { }, { contentType: 'image/png' }); }).to.throw(Error, valueErrMsg);
+
+            const optsErrMsg = 'The "options" parameter must be an object, null or undefined';
+            expect(() => { store.setValue('key', {}, 123); }).to.throw(Error, optsErrMsg);
+            expect(() => { store.setValue('key', {}, 'bla/bla'); }).to.throw(Error, optsErrMsg);
+            expect(() => { store.setValue('key', {}, true); }).to.throw(Error, optsErrMsg);
+
+            const circularObj = {};
+            circularObj.xxx = circularObj;
+            const jsonErrMsg = 'The "value" parameter cannot be stringified to JSON';
+            expect(() => { store.setValue('key', circularObj, null); }).to.throw(Error, jsonErrMsg);
+            expect(() => { store.setValue('key', undefined); }).to.throw(Error, jsonErrMsg);
+            expect(() => { store.setValue('key', () => { }); }).to.throw(Error, jsonErrMsg);
+            expect(() => { store.setValue('key'); }).to.throw(Error, jsonErrMsg);
+
+            const contTypeRedundantErrMsg = 'The "options.contentType" parameter must not be used when removing the record';
+            expect(() => { store.setValue('key', null, { contentType: 'image/png' }); }).to.throw(Error, contTypeRedundantErrMsg);
+            expect(() => { store.setValue('key', null, { contentType: '' }); }).to.throw(Error, contTypeRedundantErrMsg);
+            expect(() => { store.setValue('key', null, { contentType: {} }); }).to.throw(Error, contTypeRedundantErrMsg);
+
+            const contTypeStringErrMsg = 'The "options.contentType" parameter must be a non-empty string, null or undefined';
+            expect(() => { store.setValue('key', 'value', { contentType: 123 }); }).to.throw(Error, contTypeStringErrMsg);
+            expect(() => { store.setValue('key', 'value', { contentType: {} }); }).to.throw(Error, contTypeStringErrMsg);
+            expect(() => { store.setValue('key', 'value', { contentType: new Date() }); }).to.throw(Error, contTypeStringErrMsg);
+            expect(() => { store.setValue('key', 'value', { contentType: '' }); }).to.throw(Error, contTypeStringErrMsg);
+        });
+    });
+
+    const testStore = storeFabric('my-test-store');
+    it('returns null from a non-existent key in getValue method', () => {
+        testStore.then((store) => {
+            return store.getValue('INPUT').then((input) => {
+                return expect(input).to.eql(null);
+            });
+        });
+    });
+
+    const setValueStore = storeFabric('my-setValue-store');
+    it('returns STATE value after calling setValue method', () => {
+        const mockState = JSON.stringify({
+            testString: 'String',
+            testNumber: 3e6,
+            testArray: [1, 2, 3, 4],
+            testObject: {
+                key: 'value',
+            },
+        });
+        setValueStore.then((store) => {
+            return store.setValue('STATE', mockState).then(() => {
+                return store.getValue('STATE').then((state) => {
+                    expect(state).to.be.a('string');
+                    expect(state).to.eql(mockState);
+                }).catch(error => console.log('Oh no 2!', error));
+            });
+        });
     });
 });
 
