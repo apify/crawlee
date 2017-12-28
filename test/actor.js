@@ -949,7 +949,7 @@ describe('Apify.pushRecord()', () => {
         expect(() => { Apify.pushRecord(true); }).to.throw(Error, recordErrMsg);
         expect(() => { Apify.pushRecord(false); }).to.throw(Error, recordErrMsg);
         expect(() => { Apify.pushRecord([]); }).to.throw(Error, recordErrMsg);
-        expect(() => { Apify.pushRecord(() => {}, () => {}); }).to.throw(Error, jsonErrMsg);
+        expect(() => { Apify.pushRecord(() => { }, () => { }); }).to.throw(Error, jsonErrMsg);
 
         const circularObj = {};
         circularObj.xxx = circularObj;
@@ -1068,6 +1068,8 @@ describe('Apify.pushRecord()', () => {
             .finally(() => {
                 mock.restore();
             });
+    });
+});
 describe('Apify.getOrCreateStore()', () => {
     it('throws on invalid args', () => {
         const keyErrMsg = 'The "storeName" parameter must be a non-empty string';
