@@ -90,6 +90,7 @@ const getDefaultSequentialStoreIdOrThrow = () => {
  * environment variable, or `application/json` if not set.
  * This feature is useful for local development and debugging of your acts.
  * </p>
+ * @param {String} key Key of the record.
  * @param {Function} callback Optional callback.
  * @returns {Promise} Returns a promise if no callback was provided.
  */
