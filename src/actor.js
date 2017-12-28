@@ -297,7 +297,7 @@ export const setValue = (key, value, options, callback = null) => {
  * Gets or creates a key-value store with the passed name or ID.
  * The key-value store is retrieved or created automatically for each act run.
  * The ID is passed by the user calling the function instead of the `APIFY_DEFAULT_KEY_VALUE_STORE_ID`
- * enviroment variable passed by the Actor platform.
+ * environment variable passed by the Actor platform.
  *
  * It is used to save the `INPUT` and `OUTPUT` of an act in a named key-value store with or
  * without previous results. Useful in situations where the user wants to check for changes
@@ -307,26 +307,26 @@ export const setValue = (key, value, options, callback = null) => {
  * </p>
  *
  * <p>Example usage</p>
- * <pre><code class="language-javascript">const Store = await Apify.getOrCreateStore('store-123');
- * console.log('My Store:');
- * console.dir(Store);
+ * <pre><code class="language-javascript">const store = await Apify.getOrCreateStore('store-123');
+ * console.log('My store:');
+ * console.dir(store);
  *
- * const previousState = await Store.getValue('STATE');
+ * const previousState = await store.getValue('STATE');
  * console.log('My previous state:');
  * console.dir(previousState);
  * // ...
  * const nextState = Object.assign({}, { newRecord: 'your new record!' }, previousState);
- * await Store.setValue('STATE', nextState);
+ * await store.setValue('STATE', nextState);
  * </code></pre>
  *
  * <p>
  * The result of the function is an object with the `getValue` and `setValue` methods.
- * The Store object methods behave exactly like the `Apify.getValue` and `Apify.setValue` methods,
+ * The store object methods behave exactly like the `Apify.getValue` and `Apify.setValue` methods,
  * with the exception that it sets and gets store keys from a named key-value store.
  * </p>
  *
  * <p>
- * The definition of the `APIFY_DEV_KEY_VALUE_STORE_DIR` environment variable will have no effect
+ * The definition of the `APIFY_DEV_KEY_VALUE_STORE_DIR` environment variable has no effect
  * on this method.
  *
  * The directory must exist or an error is thrown. If the file does not exists, the returned value is `null`.
@@ -340,48 +340,160 @@ export const setValue = (key, value, options, callback = null) => {
  * `getValue` and `setValue` methods to an existing or new Store.
  */
 
-const privatize = new WeakMap();
 class Store {
-    constructor(keyValueStores, { id: storeId }) {
-        privatize.set(this, { storeId });
-
-        this.getValue = (key) => {
-            if (!key || !_.isString(key)) {
-                throw new Error('Parameter "key" of type String must be provided');
-            }
-
-            const modifiedOpts = this.modifyOptionsWithPrivates({ key });
-
-            return keyValueStores.getRecord(modifiedOpts)
-                .then(record => (record && record.body) || null)
-                .catch((error) => { throw new Error(error); });
-        };
-
-        this.setValue = (key, value, options = {}) => {
-            if (!key || !_.isString(key)) {
-                throw new Error('Parameter "key" of type String must be provided');
-            }
-
-            let body;
-            if (value && _.isString(value)) {
-                body = value;
-            } else if (value && _.isObject(value)) {
-                body = JSON.stringify(value);
-            } else {
-                throw new Error('Parameter "value" of type Object must be provided');
-            }
-
-            const updatedOpts = Object.assign({}, options, { key, body });
-            const modifiedOpts = this.modifyOptionsWithPrivates(updatedOpts);
-            return keyValueStores.putRecord(modifiedOpts)
-                .then(response => response)
-                .catch((error) => { throw new Error(error); });
-        };
+    constructor(keyValueStores, { id }) {
+        this.storeId = id;
+        this.keyValueStores = keyValueStores;
     }
 
-    modifyOptionsWithPrivates(options) {
-        const { storeId } = privatize.get(this);
-        return Object.assign({}, options, { storeId });
+    getValue(key, callback = null) {
+        if (!key || !_.isString(key)) {
+            throw new Error('Parameter "key" of type String must be provided');
+        }
+        const devDir = process.env[ENV_VARS.DEV_KEY_VALUE_STORE_DIR];
+        const { storeId, keyValueStores } = this;
+        console.log(storeId);
+
+        let promise;
+        if (devDir) {
+            const devContentType = process.env[ENV_VARS.DEV_KEY_VALUE_STORE_CONTENT_TYPE] || 'application/json; charset=utf-8';
+            const contentType = contentTypeParser.parse(devContentType).type;
+            const dirPath = path.resolve(devDir);
+            let filePath;
+
+            promise = newPromise()
+                .then(() => {
+                    return statPromised(dirPath)
+                        .then((stats) => {
+                            if (!stats.isDirectory()) throw new Error('The directory is not a directory');
+                        })
+                        .catch((err) => {
+                            if (err.code === 'ENOENT') throw new Error('The directory does not exist');
+                            throw err;
+                        });
+                })
+                .then(() => {
+                    filePath = path.resolve(dirPath, key);
+                    return readFilePromised(filePath)
+                        .catch((err) => {
+                            if (err.code === 'ENOENT') return null;
+                            throw err;
+                        });
+                })
+                .then((data) => {
+                    if (data !== null) {
+                        if (contentType === 'application/json') {
+                            try {
+                                data = JSON.parse(data.toString('utf8'));
+                            } catch (e) {
+                                throw new Error(`File cannot be parsed as JSON: ${e.message}`);
+                            }
+                        } else if (contentType === 'text/plain') {
+                            data = data.toString();
+                        }
+                    }
+                    return data;
+                })
+                .catch(({ message }) => {
+                    throw new Error(`Error reading file '${key}' in directory '${dirPath}' referred by ${ENV_VARS.DEV_KEY_VALUE_STORE_DIR} environment variable: ${message}`); // eslint-disable-line max-len
+                });
+        } else {
+            const promisePrototype = getPromisePrototype();
+
+            promise = newPromise()
+                .then(() => {
+                    return keyValueStores.getRecord({
+                        storeId,
+                        promise: promisePrototype,
+                        key,
+                    }).then(output => (output ? output.body : null));
+                });
+        }
+
+        return nodeifyPromise(promise, callback);
+    }
+
+    setValue(key, value, options, callback = null) {
+        if (!key || !_.isString(key)) {
+            throw new Error('Parameter "key" of type String must be provided');
+        }
+        if (_.isFunction(options)) {
+            callback = options;
+            options = null;
+        }
+
+        if (typeof (options) !== 'object' && options !== undefined) {
+            throw new Error('The "options" parameter must be an object, null or undefined.');
+        }
+        options = Object.assign({}, options);
+
+        const promisePrototype = getPromisePrototype();
+
+        const devDir = process.env[ENV_VARS.DEV_KEY_VALUE_STORE_DIR];
+        let devDirPath;
+        let devFilePath;
+        if (devDir) {
+            devDirPath = path.resolve(devDir);
+            devFilePath = path.resolve(devDirPath, key);
+        }
+
+        const devErrorHandler = (err) => {
+            throw new Error(`Error writing file '${key}' in directory '${devDirPath}' referred by ${ENV_VARS.DEV_KEY_VALUE_STORE_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len
+        };
+
+        const { storeId, keyValueStores } = this;
+        console.log(storeId);
+
+        let innerPromise;
+        if (value !== null) {
+            if (options.contentType === null || options.contentType === undefined) {
+                options.contentType = 'application/json';
+                try {
+                    value = JSON.stringify(value, null, 2);
+                } catch ({ message }) {
+                    throw new Error(`The "value" parameter cannot be stringified to JSON: ${message}`);
+                }
+                if (value === undefined) {
+                    throw new Error('The "value" parameter cannot be stringified to JSON.');
+                }
+            }
+
+            if (!options.contentType || !_.isString(options.contentType)) {
+                throw new Error('The "options.contentType" parameter must be a non-empty string, null or undefined.');
+            }
+            if (!_.isString(value) && !Buffer.isBuffer(value)) {
+                throw new Error('The "value" parameter must be a String or Buffer when "contentType" is specified.');
+            }
+
+            if (devFilePath) {
+                innerPromise = writeFilePromised(devFilePath, value)
+                    .catch(devErrorHandler);
+            } else {
+                innerPromise = keyValueStores.putRecord({
+                    storeId,
+                    promise: promisePrototype,
+                    key,
+                    body: value,
+                    contentType: addCharsetToContentType(options.contentType),
+                });
+            }
+        } else {
+            if (options.contentType !== null && options.contentType !== undefined) {
+                throw new Error('The "options.contentType" parameter must not be used when removing the record.');
+            }
+            if (devFilePath) {
+                innerPromise = unlinkPromised(devFilePath).catch(devErrorHandler);
+            } else {
+                innerPromise = keyValueStores.deleteRecord({
+                    storeId,
+                    promise: promisePrototype,
+                    key,
+                });
+            }
+        }
+
+        const promise = newPromise().then(() => innerPromise);
+        return nodeifyPromise(promise, callback);
     }
 }
 
@@ -389,17 +501,14 @@ export const getOrCreateStore = (storeName, callback = null) => {
     if (!storeName || !_.isString(storeName)) {
         throw new Error('The "storeName" parameter must be a non-empty string');
     }
+
     const { keyValueStores } = apifyClient;
 
+    const storePromise = keyValueStores.getOrCreateStore({ storeName });
     if (!callback) {
-        const promise = keyValueStores.getOrCreateStore({ storeName });
-        return promise.then((store) => {
-            return new Store(keyValueStores, store);
-        }, (error) => {
-            throw new Error(error);
-        });
+        return storePromise.then(id => new Store(keyValueStores, id));
     }
-    keyValueStores.getOrCreateStore({ storeName }, callback);
+    return storePromise.then(id => callback(new Store(keyValueStores, id)));
 };
 
 /**

@@ -965,7 +965,6 @@ describe('Apify.getOrCreateStore()', () => {
     it('returns an Object with a setValue and getValue method', () => {
         promiseStore.then((store) => {
             expect(store).to.be.an('object');
-            expect(Object.keys(store)).to.eql(['getValue', 'setValue']);
             expect(store.getValue).to.be.a('function');
             expect(store.setValue).to.be.a('function');
         });
