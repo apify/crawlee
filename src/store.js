@@ -4,15 +4,10 @@ import {
     getPromisePrototype, newPromise, nodeifyPromise, addCharsetToContentType,
 } from './utils';
 
-const privatize = new WeakMap();
 export default class KeyValueStore {
-    constructor(apifyClient, { id: storeId }) {
-        privatize.set(this, { storeId });
+    constructor(apifyClient, { id }) {
+        this.storeId = id;
         this.apifyClient = apifyClient;
-    }
-    get storeId() {
-        const { storeId } = privatize.get(this);
-        return storeId;
     }
 
     getValue(key, callback = null) {
