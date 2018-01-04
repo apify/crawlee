@@ -7,7 +7,7 @@ import Promise from 'bluebird';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { ENV_VARS, EXIT_CODES, ACT_TASK_TERMINAL_STATUSES } from './constants';
 import { getPromisePrototype, newPromise, nodeifyPromise, newClient, addCharsetToContentType, isDocker } from './utils';
-import { KeyValueStore } from './store';
+import KeyValueStore from './store';
 
 /* global process, Buffer */
 
@@ -354,7 +354,7 @@ export const pushRecord = (record, callback = null) => {
 /** @memberof module:Apify
  * @function
  * @description <p>
- * Gets or creates a key-value store with the passed name or ID.
+ * Opens or creates a key-value store with the passed name or ID.
  * The key-value store is retrieved or created automatically for each act run.
  * The ID is passed by the user calling the function instead of the `APIFY_DEFAULT_KEY_VALUE_STORE_ID`
  * environment variable passed by the Actor platform.
@@ -367,7 +367,7 @@ export const pushRecord = (record, callback = null) => {
  * </p>
  *
  * <p>Example usage</p>
- * <pre><code class="language-javascript">const store = await Apify.getOrCreateStore('store-123');
+ * <pre><code class="language-javascript">const store = await Apify.openKeyValueStore('store-123');
  * console.log('My store:');
  * console.dir(store);
  *
@@ -404,9 +404,8 @@ export const openKeyValueStore = (storeName, callback = null) => {
     if (!storeName || !_.isString(storeName)) {
         throw new Error('The "storeName" parameter must be a non-empty string');
     }
-    const storePromise = apifyClient.keyValueStores.getOrCreateStore({ storeName })
-        .then(id => new KeyValueStore(apifyClient, id));
-    const promise = newPromise().then(() => storePromise);
+    const storePromise = apifyClient.keyValueStores.getOrCreateStore({ storeName });
+    const promise = storePromise.then(id => new KeyValueStore(apifyClient, id));
     return nodeifyPromise(promise, callback);
 };
 

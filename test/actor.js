@@ -1070,25 +1070,110 @@ describe('Apify.pushRecord()', () => {
             });
     });
 });
-describe('Apify.getOrCreateStore()', () => {
+
+describe('Apify.openKeyValueStore()', () => {
     it('throws on invalid args', () => {
         const keyErrMsg = 'The "storeName" parameter must be a non-empty string';
-        expect(() => { Apify.getOrCreateStore(); }).to.throw(Error, keyErrMsg);
-        expect(() => { Apify.getOrCreateStore('', null); }).to.throw(Error, keyErrMsg);
-        expect(() => { Apify.getOrCreateStore('', 'some value'); }).to.throw(Error, keyErrMsg);
-        expect(() => { Apify.getOrCreateStore({}, 'some value'); }).to.throw(Error, keyErrMsg);
-        expect(() => { Apify.getOrCreateStore(123, 'some value'); }).to.throw(Error, keyErrMsg);
+        expect(() => { Apify.openKeyValueStore(); }).to.throw(Error, keyErrMsg);
+        expect(() => { Apify.openKeyValueStore('', null); }).to.throw(Error, keyErrMsg);
+        expect(() => { Apify.openKeyValueStore('', 'some value'); }).to.throw(Error, keyErrMsg);
+        expect(() => { Apify.openKeyValueStore({}, 'some value'); }).to.throw(Error, keyErrMsg);
+        expect(() => { Apify.openKeyValueStore(123, 'some value'); }).to.throw(Error, keyErrMsg);
     });
 
     it('returns a Promise', () => {
-        const promise = Apify.getOrCreateStore('my-store');
+        const promise = Apify.openKeyValueStore('my-store');
         expect(promise).to.be.a('promise');
+    });
+
+    it('handles callbacks', () => {
+        Apify.openKeyValueStore('my-store', (err, res) => {
+            if (err) {
+                throw new Error('Test error');
+            }
+            expect(res).to.be.a('object');
+            expect(res.getValue).to.be.a('function');
+            expect(res.setValue).to.be.a('function');
+        });
+    });
+
+    it('supports both promises and callbacks (on success)', () => {
+        const storeId = 'Test';
+        const mock = sinon.mock(Apify.client.keyValueStores);
+        mock.expects('getOrCreateStore')
+            .twice()
+            .withArgs({ storeId })
+            .returns(Promise.resolve(null));
+
+        return Promise.resolve()
+            .then(() => {
+                // test promise (no options)
+                return Apify.openKeyValueStore(storeId);
+            })
+            .then(() => {
+                // test callback (no options)
+                return new Promise((resolve, reject) => {
+                    Apify.openKeyValueStore(storeId, (err) => {
+                        if (err) return reject(err);
+                        resolve();
+                    });
+                });
+            })
+            .then(() => {
+                mock.verify();
+            })
+            .finally(() => {
+                mock.restore();
+            });
+    });
+
+    it('supports both promises and callbacks (on error)', () => {
+        const mock = sinon.mock(Apify.client.keyValueStores);
+        mock.expects('getOrCreateStore')
+            .twice()
+            .throws(new Error('Test error'));
+
+        return Promise.resolve()
+            .then(() => {
+                // Test promise
+                return Promise.resolve()
+                    .then(() => {
+                        return Apify.openKeyValueStore('mykey');
+                    })
+                    .then(() => {
+                        assert.fail();
+                    })
+                    .catch((err) => {
+                        expect(err.message).to.be.eql('Test error');
+                    });
+            })
+            .then(() => {
+                // Test callback
+                return new Promise((resolve, reject) => {
+                    Apify.openKeyValueStore('mykey', (err) => {
+                        if (err) return reject(err);
+                        resolve();
+                    });
+                })
+                    .then(() => {
+                        assert.fail();
+                    })
+                    .catch((err) => {
+                        expect(err.message).to.be.eql('Test error');
+                    });
+            })
+            .then(() => {
+                mock.verify();
+            })
+            .finally(() => {
+                mock.restore();
+            });
     });
 
     const storeFabric = (nameOrId) => {
         return new Promise((resolve, reject) => {
             try {
-                resolve(Apify.getOrCreateStore(nameOrId));
+                resolve(Apify.openKeyValueStore(nameOrId));
             } catch (error) {
                 reject(error);
             }

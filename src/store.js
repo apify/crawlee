@@ -1,14 +1,18 @@
+import _ from 'underscore';
+import { ENV_VARS } from './constants';
 import {
-    getPromisePrototype,
-    newPromise,
-    nodeifyPromise,
-    addCharsetToContentType,
+    getPromisePrototype, newPromise, nodeifyPromise, addCharsetToContentType,
 } from './utils';
 
-class KeyValueStore {
-    constructor(apifyClient, { id }) {
-        this.storeId = id;
+const privatize = new WeakMap();
+export default class KeyValueStore {
+    constructor(apifyClient, { id: storeId }) {
+        privatize.set(this, { storeId });
         this.apifyClient = apifyClient;
+    }
+    get storeId() {
+        const { storeId } = privatize.get(this);
+        return storeId;
     }
 
     getValue(key, callback = null) {
@@ -112,14 +116,12 @@ class KeyValueStore {
             throw new Error(`Error writing file '${key}' in directory '${devDirPath}' referred by ${ENV_VARS.DEV_KEY_VALUE_STORE_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len
         };
 
-        const { storeId, keyValueStores } = this;
+        const { storeId } = this;
+        const { keyValueStores } = this.apifyClient;
 
         let innerPromise;
         if (value !== null) {
-            if (
-                options.contentType === null ||
-                options.contentType === undefined
-            ) {
+            if (options.contentType === null || options.contentType === undefined) {
                 options.contentType = 'application/json';
                 try {
                     value = JSON.stringify(value, null, 2);
@@ -168,5 +170,3 @@ class KeyValueStore {
         return nodeifyPromise(promise, callback);
     }
 }
-
-export default KeyValueStore;
