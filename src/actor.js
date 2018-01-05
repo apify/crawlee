@@ -249,6 +249,10 @@ export const setValue = (key, value, options, callback = null) => {
                 // Format JSON to simplify debugging, the overheads with compression is negligible
                 value = JSON.stringify(value, null, 2);
             } catch (e) {
+                // Give more meaningful error message
+                if (e.message && e.message.indexOf('Invalid string length') >= 0) {
+                    e.message = 'Object is too large';
+                }
                 throw new Error(`The "value" parameter cannot be stringified to JSON: ${e.message}`);
             }
             if (value === undefined) {
