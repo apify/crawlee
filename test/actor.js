@@ -1081,11 +1081,6 @@ describe('Apify.openKeyValueStore()', () => {
         expect(() => { Apify.openKeyValueStore(123, 'some value'); }).to.throw(Error, keyErrMsg);
     });
 
-    it('returns a Promise', () => {
-        const promise = Apify.openKeyValueStore('my-store');
-        expect(promise).to.be.a('promise');
-    });
-
     it('handles callbacks', () => {
         Apify.openKeyValueStore('my-store', (err, res) => {
             if (err) {
@@ -1102,8 +1097,7 @@ describe('Apify.openKeyValueStore()', () => {
         const mock = sinon.mock(Apify.client.keyValueStores);
         mock.expects('getOrCreateStore')
             .twice()
-            .withArgs({ storeId })
-            .returns(Promise.resolve(null));
+            .returns(Promise.resolve({ id: storeId }));
 
         return Promise.resolve()
             .then(() => {

@@ -404,8 +404,9 @@ export const openKeyValueStore = (storeName, callback = null) => {
     if (!storeName || !_.isString(storeName)) {
         throw new Error('The "storeName" parameter must be a non-empty string');
     }
-    const storePromise = apifyClient.keyValueStores.getOrCreateStore({ storeName });
-    const promise = storePromise.then(id => new KeyValueStore(apifyClient, id));
+    const storePromise = apifyClient.keyValueStores.getOrCreateStore({ storeName })
+        .then(id => new KeyValueStore(apifyClient, id));
+    const promise = newPromise().then(() => storePromise);
     return nodeifyPromise(promise, callback);
 };
 
