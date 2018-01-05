@@ -34,8 +34,9 @@ import { ENV_VARS, DEFAULT_USER_AGENT } from './constants';
  * for more details.
  * </p>
  * @param {Object} [opts] Optional settings passed to `puppeteer.launch()`. Additionally the object can contain the following fields:
- * @param {String} [opts.proxyUrl] - URL to a proxy server. Currently only `http://` scheme is supported.
- * Port number must be specified. Proxy authentication is also supported. For example, `http://bob:pass123@proxy.example.com:1234`.
+ * @param {String} [opts.proxyUrl] - URL to a HTTP proxy server.
+ * Port number must be specified. Proxy username and password might also be provided.
+ * For example, `http://bob:pass123@proxy.example.com:1234`.
  * @param {String} [opts.userAgent] - Default User-Agent for the browser.
  * If not provided, the function sets it to a reasonable default.
  * @returns {Promise} Promise object that resolves to Puppeteer's `Browser` instance.
