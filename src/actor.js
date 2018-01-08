@@ -679,7 +679,19 @@ export const call = (actId, input, opts = {}, callback) => {
 /**
  * @memberof module:Apify
  * @function
- * @description Returns memory statistics of the container.
+ * @description Returns memory statistics of the container, which is an object with the following properties:
+ * ```javascript
+ * {
+ *   // Total memory available to the act
+ *   totalBytes: Number,
+ *
+ *   // Amount of free memory
+ *   freeBytes: Number,
+ *
+ *   // Amount of memory used (= totalBytes - freeBytes)
+ *   usedBytes: Number,
+ * }
+ * ```
  *
  * @returns {Promise} Returns a promise unless `callback` was supplied.
  */
