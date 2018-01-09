@@ -52,6 +52,12 @@ const getDefaultStoreIdOrThrow = () => {
     return storeId;
 };
 
+const getDefaultSequentialStoreIdOrThrow = () => {
+    const storeId = process.env[ENV_VARS.DEFAULT_SEQUENTIAL_STORE_ID];
+    if (!storeId) throw new Error(`The '${ENV_VARS.DEFAULT_SEQUENTIAL_STORE_ID}' environment variable is not defined.`);
+    return storeId;
+};
+
 
 /**
  * @memberof module:Apify
@@ -84,6 +90,7 @@ const getDefaultStoreIdOrThrow = () => {
  * environment variable, or `application/json` if not set.
  * This feature is useful for local development and debugging of your acts.
  * </p>
+ * @param {String} key Key of the record.
  * @param {Function} callback Optional callback.
  * @returns {Promise} Returns a promise if no callback was provided.
  */
@@ -242,6 +249,10 @@ export const setValue = (key, value, options, callback = null) => {
                 // Format JSON to simplify debugging, the overheads with compression is negligible
                 value = JSON.stringify(value, null, 2);
             } catch (e) {
+                // Give more meaningful error message
+                if (e.message && e.message.indexOf('Invalid string length') >= 0) {
+                    e.message = 'Object is too large';
+                }
                 throw new Error(`The "value" parameter cannot be stringified to JSON: ${e.message}`);
             }
             if (value === undefined) {
@@ -290,6 +301,61 @@ export const setValue = (key, value, options, callback = null) => {
     return nodeifyPromise(promise, callback);
 };
 
+/**
+ * @ignore
+ * @memberof module:Apify
+ * @function
+ * @description <p>Stores a record (object) in a sequential store using the Apify API.
+ * If this is first write then a new store is created and associated with this act and then this and all further call
+ * are stored in it. Default id of the store is in the `APIFY_DEFAULT_SEQUENTIAL_STORE_ID` environment variable;
+ * The function has no result, but throws on invalid args or other errors.</p>
+ * <pre><code class="language-javascript">await Apify.pushRecord(record);</code></pre>
+ * <p>
+ * By default, the record is stored as is in default sequential store associated with this act.
+ * </p>
+ * <pre><code class="language-javascript">await Apify.pushRecord(record, 'my-custom-store');</code></pre>
+ * <p>
+ * If second argument is provided then the record is stored in this named store (it's created if it does not exist).
+ * </p>
+ * <p>
+ * **IMPORTANT: Do not forget to use the `await` keyword when calling `Apify.pushRecord()`,
+ * otherwise the act process might finish before the record is stored!**
+ * </p>
+ * @param {Object} record Object containing date to by stored in the store
+ * @param {Function} [callback] Optional callback. Function returns a promise if not provided.
+ * @returns {Promise} Returns a promise if `callback` was not provided.
+ */
+export const pushRecord = (record, callback = null) => {
+    if (!record || !_.isObject(record) || _.isArray(record)) throw new Error('The "record" parameter must be an object');
+    if (callback && !_.isFunction(callback)) throw new Error('If provided then the "callback" parameter must be a function');
+
+    const promisePrototype = getPromisePrototype();
+
+    let stringifiedRecord;
+    try {
+        // Format JSON to simplify debugging, the overheads with compression is negligible
+        stringifiedRecord = JSON.stringify(record, null, 2);
+    } catch (e) {
+        throw new Error(`The "record" parameter cannot be stringified to JSON: ${e.message}`);
+    }
+    if (stringifiedRecord === undefined) {
+        throw new Error('The "record" parameter cannot be stringified to JSON.');
+    }
+
+    const storeId = getDefaultSequentialStoreIdOrThrow();
+
+    const innerPromise = apifyClient.sequentialStores.putRecord({
+        storeId,
+        promise: promisePrototype,
+        data: record,
+    });
+
+
+    // TODO: Emulation of sequential store for local development
+    const promise = newPromise().then(() => innerPromise);
+    return nodeifyPromise(promise, callback);
+};
+
 
 /**
  * @memberof module:Apify
@@ -321,6 +387,10 @@ export const setValue = (key, value, options, callback = null) => {
  *     // act is stored (APIFY_DEFAULT_KEY_VALUE_STORE_ID)
  *     defaultKeyValueStoreId: String,
  * &nbsp;
+ *    // ID of the sequential store where input and output data of this
+ *     // act is stored (APIFY_DEFAULT_SEQUENTIAL_STORE_ID)
+ *     defaultSequentialStoreId: String,
+ * &nbsp;
  *     // Amount of memory allocated for the act run,
  *     // in megabytes (APIFY_MEMORY_MBYTES)
  *     memoryMbytes: Number,
@@ -342,6 +412,7 @@ export const getEnv = () => {
         startedAt: tryParseDate(env[ENV_VARS.STARTED_AT]) || null,
         timeoutAt: tryParseDate(env[ENV_VARS.TIMEOUT_AT]) || null,
         defaultKeyValueStoreId: env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID] || null,
+        defaultSequentialStoreId: env[ENV_VARS.DEFAULT_SEQUENTIAL_STORE_ID] || null,
         // internalPort: parseInt(env[ENV_VARS.INTERNAL_PORT], 10) || null,
         memoryMbytes: parseInt(env[ENV_VARS.MEMORY_MBYTES], 10) || null,
     };
@@ -608,7 +679,19 @@ export const call = (actId, input, opts = {}, callback) => {
 /**
  * @memberof module:Apify
  * @function
- * @description Returns memory statistics of the container.
+ * @description Returns memory statistics of the container, which is an object with the following properties:
+ * ```javascript
+ * {
+ *   // Total memory available to the act
+ *   totalBytes: Number,
+ *
+ *   // Amount of free memory
+ *   freeBytes: Number,
+ *
+ *   // Amount of memory used (= totalBytes - freeBytes)
+ *   usedBytes: Number,
+ * }
+ * ```
  *
  * @returns {Promise} Returns a promise unless `callback` was supplied.
  */
