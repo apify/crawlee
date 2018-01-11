@@ -312,11 +312,6 @@ export const setValue = (key, value, options, callback = null) => {
  * <pre><code class="language-javascript">await Apify.pushRecord(record);</code></pre>
  * <p>
  * By default, the record is stored as is in default sequential store associated with this act.
- * </p>
- * <pre><code class="language-javascript">await Apify.pushRecord(record, 'my-custom-store');</code></pre>
- * <p>
- * If second argument is provided then the record is stored in this named store (it's created if it does not exist).
- * </p>
  * <p>
  * **IMPORTANT: Do not forget to use the `await` keyword when calling `Apify.pushRecord()`,
  * otherwise the act process might finish before the record is stored!**
