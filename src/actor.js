@@ -566,7 +566,8 @@ export const readyFreddy = () => {
  * console.log(`Received message: ${run.output.body.message}`);
  * ```
  *
- * @param {String} actId - Either `username/act-name` or act ID.
+ * @param {String} actId - Either `username/act-name` or act ID. If you use the former format,
+ * beware that the user needs to have username set!
  * @param {Object|String|Buffer} [input] - Act input body. If it is an object, it is stringified to
  * JSON and the content type set to `application/json; charset=utf-8`.
  * @param {Object} [opts]
