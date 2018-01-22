@@ -656,6 +656,8 @@ export const call = (actId, input, opts = {}, callback) => {
         return acts
             .getRun(Object.assign({}, defaultOpts, { waitForFinish, runId: run.id }))
             .then((updatedRun) => {
+                // Note that it might take some time for db replicas to get up-to-date, so getRun() might return null
+                if (!updatedRun) return waitForRunToFinish(run);
                 if (!_.contains(ACT_TASK_TERMINAL_STATUSES, updatedRun.status)) return waitForRunToFinish(updatedRun);
                 if (!fetchOutput) return updatedRun;
 
