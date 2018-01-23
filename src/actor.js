@@ -320,7 +320,7 @@ export const setValue = (key, value, options, callback = null) => {
  * @returns {Promise} Returns a promise if `callback` was not provided.
  */
 export const pushItem = (item, callback = null) => {
-    if (!record || !_.isObject(record) || _.isArray(record)) throw new Error('The "item" parameter must be an object');
+    if (!item || !_.isObject(item) || _.isArray(item)) throw new Error('The "item" parameter must be an object');
     if (callback && !_.isFunction(callback)) throw new Error('If provided then the "callback" parameter must be a function');
 
     const promisePrototype = getPromisePrototype();
@@ -406,7 +406,7 @@ export const getEnv = () => {
         startedAt: tryParseDate(env[ENV_VARS.STARTED_AT]) || null,
         timeoutAt: tryParseDate(env[ENV_VARS.TIMEOUT_AT]) || null,
         defaultKeyValueStoreId: env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID] || null,
-        defaultSequentialStoreId: env[ENV_VARS.DEFAULT_SEQUENTIAL_STORE_ID] || null,
+        defaultDatasetId: env[ENV_VARS.DEFAULT_DATASET_ID] || null,
         // internalPort: parseInt(env[ENV_VARS.INTERNAL_PORT], 10) || null,
         memoryMbytes: parseInt(env[ENV_VARS.MEMORY_MBYTES], 10) || null,
     };

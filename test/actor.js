@@ -200,7 +200,7 @@ const getEmptyEnv = () => {
         startedAt: null,
         timeoutAt: null,
         defaultKeyValueStoreId: null,
-        defaultSequentialStoreId: null,
+        defaultDatasetId: null,
         memoryMbytes: null,
     };
 };
@@ -214,6 +214,7 @@ const setEnv = (env) => {
     delete process.env.APIFY_STARTED_AT;
     delete process.env.APIFY_TIMEOUT_AT;
     delete process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID;
+    delete process.env.APIFY_DEFAULT_DATASET_ID;
 
     // if (env.internalPort) process.env.APIFY_INTERNAL_PORT = env.internalPort.toString();
     if (env.actId) process.env.APIFY_ACT_ID = env.actId;
@@ -223,7 +224,7 @@ const setEnv = (env) => {
     if (env.startedAt) process.env.APIFY_STARTED_AT = env.startedAt.toISOString();
     if (env.timeoutAt) process.env.APIFY_TIMEOUT_AT = env.timeoutAt.toISOString();
     if (env.defaultKeyValueStoreId) process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = env.defaultKeyValueStoreId;
-    if (env.defaultSequentialStoreId) process.env.APIFY_DEFAULT_SEQUENTIAL_STORE_ID = env.defaultSequentialStoreId;
+    if (env.defaultDatasetId) process.env.APIFY_DEFAULT_DATASET_ID = env.defaultDatasetId;
     if (env.memoryMbytes) process.env.APIFY_MEMORY_MBYTES = env.memoryMbytes.toString();
 };
 
@@ -246,7 +247,7 @@ describe('Apify.getEnv()', () => {
             startedAt: new Date('2017-01-01'),
             timeoutAt: new Date(),
             defaultKeyValueStoreId: 'some store',
-            defaultSequentialStoreId: 'some sequential store',
+            defaultDatasetId: 'some dataset',
             memoryMbytes: 1234,
         });
         setEnv(expectedEnv);
@@ -963,7 +964,7 @@ describe('Apify.pushItem()', () => {
         process.env.APIFY_DEFAULT_DATASET_ID = '';
         expect(() => { Apify.pushItem({ something: 123 }); }).to.throw(Error, errMsg);
 
-        delete process.env.APIFY_DEFAULT_SEQUENTIAL_STORE_ID;
+        delete process.env.APIFY_DEFAULT_DATASET_ID;
         expect(() => { Apify.pushItem({ something: 123 }); }).to.throw(Error, errMsg);
     });
 
@@ -1048,7 +1049,7 @@ describe('Apify.pushItem()', () => {
 
         Apify.setPromisesDependency(Promise);
 
-        const mock = sinon.mock(Apify.client.sequentialStores);
+        const mock = sinon.mock(Apify.client.datasets);
         mock.expects('putItem')
             .once()
             .withArgs({
