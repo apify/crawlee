@@ -657,8 +657,15 @@ export const call = (actId, input, opts = {}, callback) => {
         return acts
             .getRun(Object.assign({}, defaultOpts, { waitForFinish, runId: run.id }))
             .then((updatedRun) => {
-                // Note that it might take some time for db replicas to get up-to-date, so getRun() might return null
-                if (!updatedRun) return waitForRunToFinish(run);
+                // It might take some time for database replicas to get up-to-date,
+                // so getRun() might return null. Wait a little while and try it again.
+                if (!updatedRun) {
+                    return new Promise(resolve => setTimeout(resolve, 250))
+                        .then(() => {
+                            return waitForRunToFinish(run);
+                        });
+                }
+
                 if (!_.contains(ACT_TASK_TERMINAL_STATUSES, updatedRun.status)) return waitForRunToFinish(updatedRun);
                 if (!fetchOutput) return updatedRun;
 
