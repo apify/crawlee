@@ -1,7 +1,7 @@
 import EventEmitter from 'events';
 
 import { setPromisesDependency, getPromisesDependency } from './utils';
-import { main, readyFreddy, getEnv, getValue, setValue, pushRecord, apifyClient, call, getMemoryInfo } from './actor';
+import { main, readyFreddy, getEnv, getValue, setValue, pushRecord, openKeyValueStore, apifyClient, call, getMemoryInfo } from './actor';
 import { launchPuppeteer } from './puppeteer';
 import { browse, launchWebDriver } from './webdriver';
 
@@ -14,6 +14,7 @@ const Apify = {
     getValue,
     setValue,
     pushRecord,
+    openKeyValueStore,
     call,
     readyFreddy,
     setPromisesDependency,

@@ -7,7 +7,7 @@ import Promise from 'bluebird';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { ENV_VARS, EXIT_CODES, ACT_TASK_TERMINAL_STATUSES } from './constants';
 import { getPromisePrototype, newPromise, nodeifyPromise, newClient, addCharsetToContentType, isDocker } from './utils';
-
+import KeyValueStore from './store';
 
 /* global process, Buffer */
 
@@ -351,6 +351,64 @@ export const pushRecord = (record, callback = null) => {
     return nodeifyPromise(promise, callback);
 };
 
+/** @memberof module:Apify
+ * @function
+ * @description <p>
+ * Opens or creates a key-value store with the passed name or ID.
+ * The key-value store is retrieved or created automatically for each act run.
+ * The ID is passed by the user calling the function instead of the `APIFY_DEFAULT_KEY_VALUE_STORE_ID`
+ * environment variable passed by the Actor platform.
+ *
+ * It is used to save the `INPUT` and `OUTPUT` of an act in a named key-value store with or
+ * without previous results. Useful in situations where the user wants to check for changes
+ * in previous stored values or keep a STATE output for comparisons.
+ *
+ * Keep in mind that the store can be used for storage of any other values under arbitrary keys.
+ * </p>
+ *
+ * <p>Example usage</p>
+ * <pre><code class="language-javascript">const store = await Apify.openKeyValueStore('store-123');
+ * console.log('My store:');
+ * console.dir(store);
+ *
+ * const previousState = await store.getValue('STATE');
+ * console.log('My previous state:');
+ * console.dir(previousState);
+ * // ...
+ * const nextState = Object.assign({}, { newRecord: 'your new record!' }, previousState);
+ * await store.setValue('STATE', nextState);
+ * </code></pre>
+ *
+ * <p>
+ * The result of the function is an object with the `getValue` and `setValue` methods.
+ * The store object methods behave exactly like the `Apify.getValue` and `Apify.setValue` methods,
+ * with the exception that it sets and gets store keys from a named key-value store.
+ * </p>
+ *
+ * <p>
+ * The definition of the `APIFY_DEV_KEY_VALUE_STORE_DIR` environment variable has no effect
+ * on this method.
+ *
+ * The directory must exist or an error is thrown. If the file does not exists, the returned value is `null`.
+ * The file is assumed to have a content type specified in the `APIFY_DEV_KEY_VALUE_STORE_CONTENT_TYPE`
+ * environment variable, or `application/json` if not set.
+ * This feature is useful for local development and debugging of your acts.
+ * </p>
+ * @param {String} nameOrId - The name or ID for the key-value store.
+ * @param {Function} [callback] Optional callback. Function returns a promise if not provided.
+ * @returns {Promise} - Returns a promise if no callback was passed or and object with the
+ * `getValue` and `setValue` methods to an existing or new Store.
+ */
+
+export const openKeyValueStore = (storeName, callback = null) => {
+    if (!storeName || !_.isString(storeName)) {
+        throw new Error('The "storeName" parameter must be a non-empty string');
+    }
+    const storePromise = apifyClient.keyValueStores.getOrCreateStore({ storeName })
+        .then(id => new KeyValueStore(apifyClient, id));
+    const promise = newPromise().then(() => storePromise);
+    return nodeifyPromise(promise, callback);
+};
 
 /**
  * @memberof module:Apify

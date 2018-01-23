@@ -949,7 +949,7 @@ describe('Apify.pushRecord()', () => {
         expect(() => { Apify.pushRecord(true); }).to.throw(Error, recordErrMsg);
         expect(() => { Apify.pushRecord(false); }).to.throw(Error, recordErrMsg);
         expect(() => { Apify.pushRecord([]); }).to.throw(Error, recordErrMsg);
-        expect(() => { Apify.pushRecord(() => {}, () => {}); }).to.throw(Error, jsonErrMsg);
+        expect(() => { Apify.pushRecord(() => { }, () => { }); }).to.throw(Error, jsonErrMsg);
 
         const circularObj = {};
         circularObj.xxx = circularObj;
@@ -1068,6 +1068,169 @@ describe('Apify.pushRecord()', () => {
             .finally(() => {
                 mock.restore();
             });
+    });
+});
+
+describe('Apify.openKeyValueStore()', () => {
+    it('throws on invalid args', () => {
+        const keyErrMsg = 'The "storeName" parameter must be a non-empty string';
+        expect(() => { Apify.openKeyValueStore(); }).to.throw(Error, keyErrMsg);
+        expect(() => { Apify.openKeyValueStore('', null); }).to.throw(Error, keyErrMsg);
+        expect(() => { Apify.openKeyValueStore('', 'some value'); }).to.throw(Error, keyErrMsg);
+        expect(() => { Apify.openKeyValueStore({}, 'some value'); }).to.throw(Error, keyErrMsg);
+        expect(() => { Apify.openKeyValueStore(123, 'some value'); }).to.throw(Error, keyErrMsg);
+    });
+
+    it('handles callbacks', () => {
+        Apify.openKeyValueStore('my-store', (err, res) => {
+            if (err) {
+                throw new Error('Test error');
+            }
+            expect(res).to.be.a('object');
+            expect(res.getValue).to.be.a('function');
+            expect(res.setValue).to.be.a('function');
+        });
+    });
+
+    it('supports both promises and callbacks (on success)', () => {
+        const storeId = 'Test';
+        const mock = sinon.mock(Apify.client.keyValueStores);
+        mock.expects('getOrCreateStore')
+            .twice()
+            .returns(Promise.resolve({ id: storeId }));
+
+        return Promise.resolve()
+            .then(() => {
+                // test promise (no options)
+                return Apify.openKeyValueStore(storeId);
+            })
+            .then(() => {
+                // test callback (no options)
+                return new Promise((resolve, reject) => {
+                    Apify.openKeyValueStore(storeId, (err) => {
+                        if (err) return reject(err);
+                        resolve();
+                    });
+                });
+            })
+            .then(() => {
+                mock.verify();
+            })
+            .finally(() => {
+                mock.restore();
+            });
+    });
+
+    it('supports both promises and callbacks (on error)', () => {
+        const mock = sinon.mock(Apify.client.keyValueStores);
+        mock.expects('getOrCreateStore')
+            .twice()
+            .throws(new Error('Test error'));
+
+        return Promise.resolve()
+            .then(() => {
+                // Test promise
+                return Promise.resolve()
+                    .then(() => {
+                        return Apify.openKeyValueStore('mykey');
+                    })
+                    .then(() => {
+                        assert.fail();
+                    })
+                    .catch((err) => {
+                        expect(err.message).to.be.eql('Test error');
+                    });
+            })
+            .then(() => {
+                // Test callback
+                return new Promise((resolve, reject) => {
+                    Apify.openKeyValueStore('mykey', (err) => {
+                        if (err) return reject(err);
+                        resolve();
+                    });
+                })
+                    .then(() => {
+                        assert.fail();
+                    })
+                    .catch((err) => {
+                        expect(err.message).to.be.eql('Test error');
+                    });
+            })
+            .then(() => {
+                mock.verify();
+            })
+            .finally(() => {
+                mock.restore();
+            });
+    });
+
+    const storeFabric = (nameOrId) => {
+        return new Promise((resolve, reject) => {
+            try {
+                resolve(Apify.openKeyValueStore(nameOrId));
+            } catch (error) {
+                reject(error);
+            }
+        });
+    };
+
+    const promiseStore = storeFabric('my-store');
+    it('returns an Object with a setValue and getValue method', () => {
+        promiseStore.then((store) => {
+            expect(store).to.be.an('object');
+            expect(store.getValue).to.be.a('function');
+            expect(store.setValue).to.be.a('function');
+        });
+    });
+
+    it('throws on invalid args pass to the getValue method', () => {
+        promiseStore.then((store) => {
+            const keyErrMsg = 'Parameter "key" of type String must be provided';
+            expect(() => { store.getValue(); }).to.throw(Error, keyErrMsg);
+            expect(() => { store.getValue({}); }).to.throw(Error, keyErrMsg);
+            expect(() => { store.getValue(''); }).to.throw(Error, keyErrMsg);
+            expect(() => { store.getValue(null); }).to.throw(Error, keyErrMsg);
+        });
+    });
+
+    it('throws on invalid args pass to the setValue method', () => {
+        promiseStore.then((store) => {
+            const keyErrMsg = 'Parameter "key" of type String must be provided';
+            expect(() => { store.setValue(); }).to.throw(Error, keyErrMsg);
+            expect(() => { store.setValue('', null); }).to.throw(Error, keyErrMsg);
+            expect(() => { store.setValue('', 'some value'); }).to.throw(Error, keyErrMsg);
+            expect(() => { store.setValue({}, 'some value'); }).to.throw(Error, keyErrMsg);
+            expect(() => { store.setValue(123, 'some value'); }).to.throw(Error, keyErrMsg);
+
+            const valueErrMsg = 'The "value" parameter must be a String or Buffer when "contentType" is specified';
+            expect(() => { store.setValue('key', {}, { contentType: 'image/png' }); }).to.throw(Error, valueErrMsg);
+            expect(() => { store.setValue('key', 12345, { contentType: 'image/png' }); }).to.throw(Error, valueErrMsg);
+            expect(() => { store.setValue('key', () => { }, { contentType: 'image/png' }); }).to.throw(Error, valueErrMsg);
+
+            const optsErrMsg = 'The "options" parameter must be an object, null or undefined';
+            expect(() => { store.setValue('key', {}, 123); }).to.throw(Error, optsErrMsg);
+            expect(() => { store.setValue('key', {}, 'bla/bla'); }).to.throw(Error, optsErrMsg);
+            expect(() => { store.setValue('key', {}, true); }).to.throw(Error, optsErrMsg);
+
+            const circularObj = {};
+            circularObj.xxx = circularObj;
+            const jsonErrMsg = 'The "value" parameter cannot be stringified to JSON';
+            expect(() => { store.setValue('key', circularObj, null); }).to.throw(Error, jsonErrMsg);
+            expect(() => { store.setValue('key', undefined); }).to.throw(Error, jsonErrMsg);
+            expect(() => { store.setValue('key', () => { }); }).to.throw(Error, jsonErrMsg);
+            expect(() => { store.setValue('key'); }).to.throw(Error, jsonErrMsg);
+
+            const contTypeRedundantErrMsg = 'The "options.contentType" parameter must not be used when removing the record';
+            expect(() => { store.setValue('key', null, { contentType: 'image/png' }); }).to.throw(Error, contTypeRedundantErrMsg);
+            expect(() => { store.setValue('key', null, { contentType: '' }); }).to.throw(Error, contTypeRedundantErrMsg);
+            expect(() => { store.setValue('key', null, { contentType: {} }); }).to.throw(Error, contTypeRedundantErrMsg);
+
+            const contTypeStringErrMsg = 'The "options.contentType" parameter must be a non-empty string, null or undefined';
+            expect(() => { store.setValue('key', 'value', { contentType: 123 }); }).to.throw(Error, contTypeStringErrMsg);
+            expect(() => { store.setValue('key', 'value', { contentType: {} }); }).to.throw(Error, contTypeStringErrMsg);
+            expect(() => { store.setValue('key', 'value', { contentType: new Date() }); }).to.throw(Error, contTypeStringErrMsg);
+            expect(() => { store.setValue('key', 'value', { contentType: '' }); }).to.throw(Error, contTypeStringErrMsg);
+        });
     });
 });
 
