@@ -566,7 +566,8 @@ export const readyFreddy = () => {
  * console.log(`Received message: ${run.output.body.message}`);
  * ```
  *
- * @param {String} actId - Either `username/act-name` or act ID.
+ * @param {String} actId - Either `username/act-name` or act ID. If you use the former format,
+ * beware that the user needs to have username set!
  * @param {Object|String|Buffer} [input] - Act input body. If it is an object, it is stringified to
  * JSON and the content type set to `application/json; charset=utf-8`.
  * @param {Object} [opts]
@@ -656,6 +657,15 @@ export const call = (actId, input, opts = {}, callback) => {
         return acts
             .getRun(Object.assign({}, defaultOpts, { waitForFinish, runId: run.id }))
             .then((updatedRun) => {
+                // It might take some time for database replicas to get up-to-date,
+                // so getRun() might return null. Wait a little while and try it again.
+                if (!updatedRun) {
+                    return new Promise(resolve => setTimeout(resolve, 250))
+                        .then(() => {
+                            return waitForRunToFinish(run);
+                        });
+                }
+
                 if (!_.contains(ACT_TASK_TERMINAL_STATUSES, updatedRun.status)) return waitForRunToFinish(updatedRun);
                 if (!fetchOutput) return updatedRun;
 
