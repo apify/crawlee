@@ -1371,6 +1371,48 @@ describe('Apify.call()', () => {
                 actsMock.restore();
             });
     });
+
+    it('handles getRun() returning null the first time', () => {
+        const actId = 'some-act-id';
+        const token = 'some-token';
+        const defaultKeyValueStoreId = 'some-store-id';
+        const run = { id: 'some-run-id', actId, defaultKeyValueStoreId };
+        const runningRun = Object.assign({}, run, { status: 'RUNNING' });
+        const finishedRun = Object.assign({}, run, { status: ACT_TASK_STATUSES.SUCCEEDED });
+        const input = 'something';
+        const contentType = 'text/plain';
+        const output = { contentType, body: 'some-output' };
+        const expected = Object.assign({}, finishedRun, { output });
+        const build = 'xxx';
+
+        const actsMock = sinon.mock(Apify.client.acts);
+        actsMock.expects('runAct')
+            .withExactArgs({ token, actId, contentType: `${contentType}; charset=utf-8`, body: input, build })
+            .once()
+            .returns(Promise.resolve(runningRun));
+        actsMock.expects('getRun')
+            .withExactArgs({ token, actId, runId: run.id, waitForFinish: 999999 })
+            .twice()
+            .returns(Promise.resolve(null));
+        actsMock.expects('getRun')
+            .withExactArgs({ token, actId, runId: run.id, waitForFinish: 999999 })
+            .once()
+            .returns(Promise.resolve(finishedRun));
+
+        const keyValueStoresMock = sinon.mock(Apify.client.keyValueStores);
+        keyValueStoresMock.expects('getRecord')
+            .withExactArgs({ storeId: run.defaultKeyValueStoreId, key: 'OUTPUT', disableBodyParser: true })
+            .once()
+            .returns(Promise.resolve(output));
+
+        return Apify
+            .call(actId, input, { contentType, token, disableBodyParser: true, build })
+            .then((callOutput) => {
+                expect(callOutput).to.be.eql(expected);
+                keyValueStoresMock.restore();
+                actsMock.restore();
+            });
+    });
 });
 
 describe('Apify.getMemoryInfo()', () => {
