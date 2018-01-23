@@ -200,7 +200,7 @@ const getEmptyEnv = () => {
         startedAt: null,
         timeoutAt: null,
         defaultKeyValueStoreId: null,
-        defaultSequentialStoreId: null,
+        defaultDatasetId: null,
         memoryMbytes: null,
     };
 };
@@ -214,6 +214,7 @@ const setEnv = (env) => {
     delete process.env.APIFY_STARTED_AT;
     delete process.env.APIFY_TIMEOUT_AT;
     delete process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID;
+    delete process.env.APIFY_DEFAULT_DATASET_ID;
 
     // if (env.internalPort) process.env.APIFY_INTERNAL_PORT = env.internalPort.toString();
     if (env.actId) process.env.APIFY_ACT_ID = env.actId;
@@ -223,7 +224,7 @@ const setEnv = (env) => {
     if (env.startedAt) process.env.APIFY_STARTED_AT = env.startedAt.toISOString();
     if (env.timeoutAt) process.env.APIFY_TIMEOUT_AT = env.timeoutAt.toISOString();
     if (env.defaultKeyValueStoreId) process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = env.defaultKeyValueStoreId;
-    if (env.defaultSequentialStoreId) process.env.APIFY_DEFAULT_SEQUENTIAL_STORE_ID = env.defaultSequentialStoreId;
+    if (env.defaultDatasetId) process.env.APIFY_DEFAULT_DATASET_ID = env.defaultDatasetId;
     if (env.memoryMbytes) process.env.APIFY_MEMORY_MBYTES = env.memoryMbytes.toString();
 };
 
@@ -246,7 +247,7 @@ describe('Apify.getEnv()', () => {
             startedAt: new Date('2017-01-01'),
             timeoutAt: new Date(),
             defaultKeyValueStoreId: 'some store',
-            defaultSequentialStoreId: 'some sequential store',
+            defaultDatasetId: 'some dataset',
             memoryMbytes: 1234,
         });
         setEnv(expectedEnv);
@@ -939,50 +940,50 @@ describe('Apify.setValue()', () => {
     });
 });
 
-describe('Apify.pushRecord()', () => {
+describe('Apify.pushItem()', () => {
     it('throws on invalid args', () => {
-        process.env.APIFY_DEFAULT_SEQUENTIAL_STORE_ID = '1234';
-        const recordErrMsg = 'The "record" parameter must be an object';
-        expect(() => { Apify.pushRecord(); }).to.throw(Error, recordErrMsg);
-        expect(() => { Apify.pushRecord(''); }).to.throw(Error, recordErrMsg);
-        expect(() => { Apify.pushRecord(123); }).to.throw(Error, recordErrMsg);
-        expect(() => { Apify.pushRecord(true); }).to.throw(Error, recordErrMsg);
-        expect(() => { Apify.pushRecord(false); }).to.throw(Error, recordErrMsg);
-        expect(() => { Apify.pushRecord([]); }).to.throw(Error, recordErrMsg);
-        expect(() => { Apify.pushRecord(() => {}, () => {}); }).to.throw(Error, jsonErrMsg);
+        process.env.APIFY_DEFAULT_DATASET_ID = '1234';
+        const recordErrMsg = 'The "item" parameter must be an object';
+        expect(() => { Apify.pushItem(); }).to.throw(Error, recordErrMsg);
+        expect(() => { Apify.pushItem(''); }).to.throw(Error, recordErrMsg);
+        expect(() => { Apify.pushItem(123); }).to.throw(Error, recordErrMsg);
+        expect(() => { Apify.pushItem(true); }).to.throw(Error, recordErrMsg);
+        expect(() => { Apify.pushItem(false); }).to.throw(Error, recordErrMsg);
+        expect(() => { Apify.pushItem([]); }).to.throw(Error, recordErrMsg);
+        expect(() => { Apify.pushItem(() => {}, () => {}); }).to.throw(Error, jsonErrMsg);
 
         const circularObj = {};
         circularObj.xxx = circularObj;
-        const jsonErrMsg = 'The "record" parameter cannot be stringified to JSON';
-        expect(() => { Apify.pushRecord(circularObj, null); }).to.throw(Error, jsonErrMsg);
+        const jsonErrMsg = 'The "item" parameter cannot be stringified to JSON';
+        expect(() => { Apify.pushItem(circularObj, null); }).to.throw(Error, jsonErrMsg);
     });
 
-    it('throws if APIFY_DEFAULT_SEQUENTIAL_STORE_ID env var is not defined', () => {
-        const errMsg = 'The \'APIFY_DEFAULT_SEQUENTIAL_STORE_ID\' environment variable is not defined';
+    it('throws if APIFY_DEFAULT_DATASET_ID env var is not defined', () => {
+        const errMsg = 'The \'APIFY_DEFAULT_DATASET_ID\' environment variable is not defined';
 
-        process.env.APIFY_DEFAULT_SEQUENTIAL_STORE_ID = '';
-        expect(() => { Apify.pushRecord({ something: 123 }); }).to.throw(Error, errMsg);
+        process.env.APIFY_DEFAULT_DATASET_ID = '';
+        expect(() => { Apify.pushItem({ something: 123 }); }).to.throw(Error, errMsg);
 
-        delete process.env.APIFY_DEFAULT_SEQUENTIAL_STORE_ID;
-        expect(() => { Apify.pushRecord({ something: 123 }); }).to.throw(Error, errMsg);
+        delete process.env.APIFY_DEFAULT_DATASET_ID;
+        expect(() => { Apify.pushItem({ something: 123 }); }).to.throw(Error, errMsg);
     });
 
     it('supports both promises and callbacks (on success)', () => {
-        process.env.APIFY_DEFAULT_SEQUENTIAL_STORE_ID = '1234';
-        const mock = sinon.mock(Apify.client.sequentialStores);
-        mock.expects('putRecord')
+        process.env.APIFY_DEFAULT_DATASET_ID = '1234';
+        const mock = sinon.mock(Apify.client.datasets);
+        mock.expects('putItem')
             .twice()
             .returns(Promise.resolve(null));
 
         return Promise.resolve()
             .then(() => {
                 // test promise (no options)
-                return Apify.pushRecord({ someValue: 123 });
+                return Apify.pushItem({ someValue: 123 });
             })
             .then(() => {
                 // test callback (no options)
                 return new Promise((resolve, reject) => {
-                    Apify.pushRecord({ someValue: 123 }, (err) => {
+                    Apify.pushItem({ someValue: 123 }, (err) => {
                         if (err) return reject(err);
                         resolve();
                     });
@@ -997,9 +998,9 @@ describe('Apify.pushRecord()', () => {
     });
 
     it('supports both promises and callbacks (on error)', () => {
-        process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID = '1234';
-        const mock = sinon.mock(Apify.client.sequentialStores);
-        mock.expects('putRecord')
+        process.env.APIFY_DEFAULT_DATASET_ID = '1234';
+        const mock = sinon.mock(Apify.client.datasets);
+        mock.expects('putItem')
             .twice()
             .throws(new Error('Test error'));
 
@@ -1008,7 +1009,7 @@ describe('Apify.pushRecord()', () => {
                 // Test promise
                 return Promise.resolve()
                     .then(() => {
-                        return Apify.pushRecord({ someValue: 1 });
+                        return Apify.pushItem({ someValue: 1 });
                     })
                     .then(() => {
                         assert.fail();
@@ -1020,7 +1021,7 @@ describe('Apify.pushRecord()', () => {
             .then(() => {
                 // Test callback
                 return new Promise((resolve, reject) => {
-                    Apify.pushRecord({ someValue: 1 }, (err) => {
+                    Apify.pushItem({ someValue: 1 }, (err) => {
                         if (err) return reject(err);
                         resolve();
                     });
@@ -1041,18 +1042,18 @@ describe('Apify.pushRecord()', () => {
     });
 
     it('correctly stores records', () => {
-        const storeId = 'mystore';
+        const datasetId = 'mystore';
         const value = { someValue: 123 };
 
-        process.env.APIFY_DEFAULT_SEQUENTIAL_STORE_ID = storeId;
+        process.env.APIFY_DEFAULT_DATASET_ID = datasetId;
 
         Apify.setPromisesDependency(Promise);
 
-        const mock = sinon.mock(Apify.client.sequentialStores);
-        mock.expects('putRecord')
+        const mock = sinon.mock(Apify.client.datasets);
+        mock.expects('putItem')
             .once()
             .withArgs({
-                storeId,
+                datasetId,
                 promise: Promise,
                 data: value,
             })
@@ -1060,7 +1061,7 @@ describe('Apify.pushRecord()', () => {
 
         return Promise.resolve()
             .then(() => {
-                return Apify.pushRecord(value);
+                return Apify.pushItem(value);
             })
             .then(() => {
                 mock.verify();
