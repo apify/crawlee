@@ -5,6 +5,7 @@ import { main, readyFreddy, getEnv, call } from './actor';
 import AutoscaledPool from './autoscaled_pool';
 import { pushData, openDataset } from './dataset';
 import { getValue, setValue, openKeyValueStore } from './key_value_store';
+import Request from './request';
 import { launchPuppeteer } from './puppeteer';
 import { setPromisesDependency, getPromisesDependency, apifyClient, getMemoryInfo } from './utils';
 import { browse, launchWebDriver } from './webdriver';
@@ -34,6 +35,9 @@ const Apify = {
     // Dataset
     pushData,
     openDataset,
+
+    // Request
+    Request,
 
     // Utils
     client: apifyClient,
