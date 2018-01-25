@@ -2,6 +2,7 @@ import BluebirdPromise from 'bluebird';
 import { expect } from 'chai';
 import sinon from 'sinon';
 import fs from 'fs';
+import os from 'os';
 import * as utils from '../build/utils';
 import Apify from '../build/index';
 
@@ -124,6 +125,71 @@ describe('utils.isDocker()', () => {
             .then((is) => {
                 expect(is).to.be.eql(false);
                 fs.stat.restore();
+                fs.readFile.restore();
+            });
+    });
+});
+
+describe('utils.getMemoryInfo()', () => {
+    it('works outside the container', () => {
+        const osMock = sinon.mock(os);
+        const utilsMock = sinon.mock(utils);
+
+        utilsMock
+            .expects('isDocker')
+            .once()
+            .returns(Promise.resolve(false));
+
+        osMock
+            .expects('freemem')
+            .once()
+            .returns(222);
+
+        osMock
+            .expects('totalmem')
+            .once()
+            .returns(333);
+
+        return Apify
+            .getMemoryInfo()
+            .then((data) => {
+                expect(data).to.be.eql({
+                    totalBytes: 333,
+                    freeBytes: 222,
+                    usedBytes: 111,
+                });
+
+                utilsMock.restore();
+                osMock.restore();
+            });
+    });
+
+    it('works inside the container', () => {
+        const utilsMock = sinon.mock(utils);
+
+        utilsMock
+            .expects('isDocker')
+            .once()
+            .returns(Promise.resolve(true));
+
+        sinon
+            .stub(fs, 'readFile')
+            .callsFake((path, callback) => {
+                if (path === '/sys/fs/cgroup/memory/memory.limit_in_bytes') callback(null, '333');
+                else if (path === '/sys/fs/cgroup/memory/memory.usage_in_bytes') callback(null, '111');
+                else throw new Error('Invalid path');
+            });
+
+        return Apify
+            .getMemoryInfo()
+            .then((data) => {
+                expect(data).to.be.eql({
+                    totalBytes: 333,
+                    freeBytes: 222,
+                    usedBytes: 111,
+                });
+
+                utilsMock.restore();
                 fs.readFile.restore();
             });
     });

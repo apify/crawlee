@@ -1,10 +1,9 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { anonymizeProxy, closeAnonymizedProxy } from 'proxy-chain';
-import { newPromise } from './utils';
 import { ENV_VARS, DEFAULT_USER_AGENT } from './constants';
+import { newPromise } from './utils';
 
 /* global process, require */
-
 
 /**
  * @memberof module:Apify

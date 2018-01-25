@@ -1,18 +1,51 @@
 import Promise from 'bluebird';
 import contentTypeParser from 'content-type';
+import os from 'os';
 import fs from 'fs';
 import ApifyClient from 'apify-client';
 import { ENV_VARS } from './constants';
 
-// For backward compatibility, re-export functions that were moved to proxy-chain package
-// TODO: eventually get rid of this
-export { parseUrl, redactUrl, redactParsedUrl } from 'proxy-chain';
-
-/* global process */
-
 let PromisesDependency = Promise;
 
-// TODO: add methods to override console.log() and console.error(), add unit tests for that!
+/**
+ * Creates an instance of ApifyClient using options as defined in the environment variables.
+ * This function is exported in order to enable unit testing.
+ * @returns {*}
+ * @ignore
+ */
+export const newClient = () => {
+    const opts = {
+        userId: process.env[ENV_VARS.USER_ID] || null,
+        token: process.env[ENV_VARS.TOKEN] || null,
+        promise: PromisesDependency,
+    };
+
+    // Only set baseUrl if overridden by env var, so that 'https://api.apify.com' is used by default.
+    // This simplifies local development, which should run against production unless user wants otherwise.
+    const apiBaseUrl = process.env[ENV_VARS.API_BASE_URL];
+    if (apiBaseUrl) opts.baseUrl = apiBaseUrl;
+
+    return new ApifyClient(opts);
+};
+
+/**
+ * @memberof module:Apify
+ * @name client
+ * @instance
+ * @description <p>A default instance of the `ApifyClient` class provided
+ * by the {@link https://www.apify.com/docs/sdk/apify-client-js/latest|apify-client} NPM package.
+ * The instance is created when the `apify` package is first imported
+ * and it is configured using the `APIFY_API_BASE_URL`, `APIFY_USER_ID` and `APIFY_TOKEN`
+ * environment variables.
+ * After that, the instance is used for all underlying calls to the Apify API
+ * in functions such as <a href="#module-Apify-getValue">Apify.getValue()</a>
+ * or <a href="#module-Apify-call">Apify.call()</a>.
+ * The settings of the client can be globally altered by calling the
+ * <a href="https://www.apify.com/docs/js/apify-client-js/latest#ApifyClient-setOptions"><code>Apify.client.setOptions()</code></a> function.
+ * Just be careful, it might have undesired effects on other functions provided by this package.
+ * </p>
+ */
+export const apifyClient = newClient();
 
 /**
  * @memberof module:Apify
@@ -31,6 +64,7 @@ let PromisesDependency = Promise;
 export const setPromisesDependency = (dep) => {
     if (dep !== null && typeof dep !== 'function') throw new Error('The "dep" parameter must be a function');
     PromisesDependency = dep;
+    apifyClient.setOptions({ promise: dep });
 };
 
 /**
@@ -40,6 +74,8 @@ export const setPromisesDependency = (dep) => {
  * By default, the package uses the `bluebird` promises.
  * @returns {Constructor} Reference to a Promise constructor
  */
+// @TODO: check thats used where appreciate
+// @TODO: duplicite to PromisesDependency
 export const getPromisesDependency = () => {
     return PromisesDependency;
 };
@@ -71,6 +107,7 @@ export const newPromise = () => {
     return getPromisePrototype().resolve();
 };
 
+// @TODO remove
 export const nodeifyPromise = (promise, callback) => {
     if (!promise) throw new Error('The "promise" parameter must be provided.');
 
@@ -80,28 +117,6 @@ export const nodeifyPromise = (promise, callback) => {
         return promise;
     }
 };
-
-
-/**
- * Creates an instance of ApifyClient using options as defined in the environment variables.
- * This function is exported in order to enable unit testing.
- * @returns {*}
- * @ignore
- */
-export const newClient = () => {
-    const opts = {
-        userId: process.env[ENV_VARS.USER_ID] || null,
-        token: process.env[ENV_VARS.TOKEN] || null,
-    };
-
-    // Only set baseUrl if overridden by env var, so that 'https://api.apify.com' is used by default.
-    // This simplifies local development, which should run against production unless user wants otherwise.
-    const apiBaseUrl = process.env[ENV_VARS.API_BASE_URL];
-    if (apiBaseUrl) opts.baseUrl = apiBaseUrl;
-
-    return new ApifyClient(opts);
-};
-
 
 /**
  * Adds charset=utf-8 to given content type if this parameter is missing.
@@ -151,4 +166,51 @@ export const isDocker = (forceReset) => {
     if (!isDockerPromise || forceReset) isDockerPromise = createIsDockerPromise();
 
     return isDockerPromise;
+};
+
+/**
+ * @memberof module:Apify
+ * @function
+ * @description Returns memory statistics of the container, which is an object with the following properties:
+ * ```javascript
+ * {
+ *   // Total memory available to the act
+ *   totalBytes: Number,
+ *
+ *   // Amount of free memory
+ *   freeBytes: Number,
+ *
+ *   // Amount of memory used (= totalBytes - freeBytes)
+ *   usedBytes: Number,
+ * }
+ * ```
+ *
+ * @returns {Promise} Returns a promise.
+ */
+export const getMemoryInfo = () => {
+    // module.exports must be here so that we can mock it.
+    return module.exports.isDocker()
+        .then((isDockerVar) => {
+            if (!isDockerVar) {
+                const freeBytes = os.freemem();
+                const totalBytes = os.totalmem();
+
+                return Promise.resolve({ totalBytes, freeBytes, usedBytes: totalBytes - freeBytes });
+            }
+
+            // This must be promisified here so that we can Mock it.
+            const readPromised = Promise.promisify(fs.readFile);
+
+            return Promise
+                .all([
+                    readPromised('/sys/fs/cgroup/memory/memory.limit_in_bytes'),
+                    readPromised('/sys/fs/cgroup/memory/memory.usage_in_bytes'),
+                ])
+                .then(([totalBytesStr, usedBytesStr]) => {
+                    const totalBytes = parseInt(totalBytesStr, 10);
+                    const usedBytes = parseInt(usedBytesStr, 10);
+
+                    return { totalBytes, freeBytes: totalBytes - usedBytes, usedBytes };
+                });
+        });
 };

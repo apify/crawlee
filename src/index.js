@@ -1,29 +1,51 @@
 import EventEmitter from 'events';
 
-import { setPromisesDependency, getPromisesDependency } from './utils';
-import { main, readyFreddy, getEnv, getValue, setValue, pushRecord, apifyClient, call, getMemoryInfo } from './actor';
+// @TODO order alphabetically.
+import { main, readyFreddy, getEnv, call } from './actor';
+import AutoscaledPool from './autoscaled_pool';
+import { pushData, openDataset } from './dataset';
+import { getValue, setValue, openKeyValueStore } from './key_value_store';
 import { launchPuppeteer } from './puppeteer';
+import { setPromisesDependency, getPromisesDependency, apifyClient, getMemoryInfo } from './utils';
 import { browse, launchWebDriver } from './webdriver';
 
 /* globals module */
 
 // Publicly available functions
+// @TODO order alphabetically.
 const Apify = {
+    events: new EventEmitter(),
+
+    // Actor
     main,
     getEnv,
-    getValue,
-    setValue,
-    pushRecord,
     call,
     readyFreddy,
+    getMemoryInfo,
+
+    // Autoscaled pool
+    AutoscaledPool,
+
+    // Key value store
+    getValue,
+    setValue,
+    openKeyValueStore,
+
+    // Dataset
+    pushData,
+    openDataset,
+
+    // Utils
+    client: apifyClient,
     setPromisesDependency,
     getPromisesDependency,
-    getMemoryInfo,
+
+    // Webdriver
     browse,
     launchWebDriver,
+
+    // Puppeteer
     launchPuppeteer,
-    client: apifyClient,
-    events: new EventEmitter(),
 };
 
 /**
