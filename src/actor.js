@@ -305,35 +305,35 @@ export const setValue = (key, value, options, callback = null) => {
  * @ignore
  * @memberof module:Apify
  * @function
- * @description <p>Stores an item (object) in a dataset using the Apify API.
+ * @description <p>Stores data (object or array of objects) in a dataset using the Apify API.
  * The function has no result, but throws on invalid args or other errors.</p>
- * <pre><code class="language-javascript">await Apify.pushItem(item);</code></pre>
+ * <pre><code class="language-javascript">await Apify.pushData(data);</code></pre>
  * <p>
- * By default, the record is stored as is in default sequential store associated with this act.
+ * By default, the data is stored in default dataset associated with this act.
  * </p>
  * <p>
- * **IMPORTANT: Do not forget to use the `await` keyword when calling `Apify.pushItem()`,
- * otherwise the act process might finish before the record is stored!**
+ * **IMPORTANT: Do not forget to use the `await` keyword when calling `Apify.pushData()`,
+ * otherwise the act process might finish before the data is stored!**
  * </p>
- * @param {Object} item Object containing data to by stored in the dataset
+ * @param {Object/Array} data Object or array of Objects containing data to by stored in the dataset
  * @param {Function} [callback] Optional callback. Function returns a promise if not provided.
  * @returns {Promise} Returns a promise if `callback` was not provided.
  */
-export const pushItem = (item, callback = null) => {
-    if (!item || !_.isObject(item) || _.isArray(item)) throw new Error('The "item" parameter must be an object');
+export const pushData = (data, callback = null) => {
+    if (!data || (!_.isObject(data) && !_.isArray(data))) throw new Error('The "data" parameter must be an object or array');
     if (callback && !_.isFunction(callback)) throw new Error('If provided then the "callback" parameter must be a function');
 
     const promisePrototype = getPromisePrototype();
 
-    let stringifiedItem;
+    let stringifiedData;
     try {
         // Format JSON to simplify debugging, the overheads with compression is negligible
-        stringifiedItem = JSON.stringify(item, null, 2);
+        stringifiedData = JSON.stringify(data, null, 2);
     } catch (e) {
-        throw new Error(`The "item" parameter cannot be stringified to JSON: ${e.message}`);
+        throw new Error(`The "data" parameter cannot be stringified to JSON: ${e.message}`);
     }
-    if (stringifiedItem === undefined) {
-        throw new Error('The "item" parameter cannot be stringified to JSON.');
+    if (stringifiedData === undefined) {
+        throw new Error('The "data" parameter cannot be stringified to JSON.');
     }
 
     const datasetId = getDefaultDatasetIdOrThrow();
@@ -341,7 +341,7 @@ export const pushItem = (item, callback = null) => {
     const innerPromise = apifyClient.datasets.putItem({
         datasetId,
         promise: promisePrototype,
-        data: item,
+        data,
     });
 
 

@@ -940,32 +940,31 @@ describe('Apify.setValue()', () => {
     });
 });
 
-describe('Apify.pushItem()', () => {
+describe('Apify.pushData()', () => {
     it('throws on invalid args', () => {
         process.env.APIFY_DEFAULT_DATASET_ID = '1234';
-        const recordErrMsg = 'The "item" parameter must be an object';
-        expect(() => { Apify.pushItem(); }).to.throw(Error, recordErrMsg);
-        expect(() => { Apify.pushItem(''); }).to.throw(Error, recordErrMsg);
-        expect(() => { Apify.pushItem(123); }).to.throw(Error, recordErrMsg);
-        expect(() => { Apify.pushItem(true); }).to.throw(Error, recordErrMsg);
-        expect(() => { Apify.pushItem(false); }).to.throw(Error, recordErrMsg);
-        expect(() => { Apify.pushItem([]); }).to.throw(Error, recordErrMsg);
-        expect(() => { Apify.pushItem(() => {}, () => {}); }).to.throw(Error, jsonErrMsg);
+        const recordErrMsg = 'The "data" parameter must be an object or array';
+        expect(() => { Apify.pushData(); }).to.throw(Error, recordErrMsg);
+        expect(() => { Apify.pushData(''); }).to.throw(Error, recordErrMsg);
+        expect(() => { Apify.pushData(123); }).to.throw(Error, recordErrMsg);
+        expect(() => { Apify.pushData(true); }).to.throw(Error, recordErrMsg);
+        expect(() => { Apify.pushData(false); }).to.throw(Error, recordErrMsg);
+        expect(() => { Apify.pushData(() => {}, () => {}); }).to.throw(Error, jsonErrMsg);
 
         const circularObj = {};
         circularObj.xxx = circularObj;
-        const jsonErrMsg = 'The "item" parameter cannot be stringified to JSON';
-        expect(() => { Apify.pushItem(circularObj, null); }).to.throw(Error, jsonErrMsg);
+        const jsonErrMsg = 'The "data" parameter cannot be stringified to JSON';
+        expect(() => { Apify.pushData(circularObj, null); }).to.throw(Error, jsonErrMsg);
     });
 
     it('throws if APIFY_DEFAULT_DATASET_ID env var is not defined', () => {
         const errMsg = 'The \'APIFY_DEFAULT_DATASET_ID\' environment variable is not defined';
 
         process.env.APIFY_DEFAULT_DATASET_ID = '';
-        expect(() => { Apify.pushItem({ something: 123 }); }).to.throw(Error, errMsg);
+        expect(() => { Apify.pushData({ something: 123 }); }).to.throw(Error, errMsg);
 
         delete process.env.APIFY_DEFAULT_DATASET_ID;
-        expect(() => { Apify.pushItem({ something: 123 }); }).to.throw(Error, errMsg);
+        expect(() => { Apify.pushData({ something: 123 }); }).to.throw(Error, errMsg);
     });
 
     it('supports both promises and callbacks (on success)', () => {
@@ -978,12 +977,12 @@ describe('Apify.pushItem()', () => {
         return Promise.resolve()
             .then(() => {
                 // test promise (no options)
-                return Apify.pushItem({ someValue: 123 });
+                return Apify.pushData({ someValue: 123 });
             })
             .then(() => {
                 // test callback (no options)
                 return new Promise((resolve, reject) => {
-                    Apify.pushItem({ someValue: 123 }, (err) => {
+                    Apify.pushData({ someValue: 123 }, (err) => {
                         if (err) return reject(err);
                         resolve();
                     });
@@ -1009,7 +1008,7 @@ describe('Apify.pushItem()', () => {
                 // Test promise
                 return Promise.resolve()
                     .then(() => {
-                        return Apify.pushItem({ someValue: 1 });
+                        return Apify.pushData({ someValue: 1 });
                     })
                     .then(() => {
                         assert.fail();
@@ -1021,7 +1020,7 @@ describe('Apify.pushItem()', () => {
             .then(() => {
                 // Test callback
                 return new Promise((resolve, reject) => {
-                    Apify.pushItem({ someValue: 1 }, (err) => {
+                    Apify.pushData({ someValue: 1 }, (err) => {
                         if (err) return reject(err);
                         resolve();
                     });
@@ -1041,7 +1040,7 @@ describe('Apify.pushItem()', () => {
             });
     });
 
-    it('correctly stores records', () => {
+    it('correctly stores items', () => {
         const datasetId = 'mystore';
         const value = { someValue: 123 };
 
@@ -1061,7 +1060,37 @@ describe('Apify.pushItem()', () => {
 
         return Promise.resolve()
             .then(() => {
-                return Apify.pushItem(value);
+                return Apify.pushData(value);
+            })
+            .then(() => {
+                mock.verify();
+            })
+            .finally(() => {
+                mock.restore();
+            });
+    });
+
+    it('correctly stores items when provided as array', () => {
+        const datasetId = 'mystore';
+        const value = [{ someValue: 123 }, { someValue: 123 }];
+
+        process.env.APIFY_DEFAULT_DATASET_ID = datasetId;
+
+        Apify.setPromisesDependency(Promise);
+
+        const mock = sinon.mock(Apify.client.datasets);
+        mock.expects('putItem')
+            .once()
+            .withArgs({
+                datasetId,
+                promise: Promise,
+                data: value,
+            })
+            .returns(Promise.resolve(null));
+
+        return Promise.resolve()
+            .then(() => {
+                return Apify.pushData(value);
             })
             .then(() => {
                 mock.verify();
