@@ -338,7 +338,7 @@ export const pushData = (data, callback = null) => {
 
     const datasetId = getDefaultDatasetIdOrThrow();
 
-    const innerPromise = apifyClient.datasets.putItem({
+    const innerPromise = apifyClient.datasets.putItems({
         datasetId,
         promise: promisePrototype,
         data,

@@ -970,7 +970,7 @@ describe('Apify.pushData()', () => {
     it('supports both promises and callbacks (on success)', () => {
         process.env.APIFY_DEFAULT_DATASET_ID = '1234';
         const mock = sinon.mock(Apify.client.datasets);
-        mock.expects('putItem')
+        mock.expects('putItems')
             .twice()
             .returns(Promise.resolve(null));
 
@@ -999,7 +999,7 @@ describe('Apify.pushData()', () => {
     it('supports both promises and callbacks (on error)', () => {
         process.env.APIFY_DEFAULT_DATASET_ID = '1234';
         const mock = sinon.mock(Apify.client.datasets);
-        mock.expects('putItem')
+        mock.expects('putItems')
             .twice()
             .throws(new Error('Test error'));
 
@@ -1049,7 +1049,7 @@ describe('Apify.pushData()', () => {
         Apify.setPromisesDependency(Promise);
 
         const mock = sinon.mock(Apify.client.datasets);
-        mock.expects('putItem')
+        mock.expects('putItems')
             .once()
             .withArgs({
                 datasetId,
@@ -1079,7 +1079,7 @@ describe('Apify.pushData()', () => {
         Apify.setPromisesDependency(Promise);
 
         const mock = sinon.mock(Apify.client.datasets);
-        mock.expects('putItem')
+        mock.expects('putItems')
             .once()
             .withArgs({
                 datasetId,
