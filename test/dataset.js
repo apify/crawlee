@@ -63,12 +63,12 @@ describe('dataset', () => {
 
             const mock = sinon.mock(apifyClient.datasets);
 
-            mock.expects('putItem')
+            mock.expects('putItems')
                 .once()
                 .withArgs({ datasetId: 'some-id', data: { foo: 'bar' } })
                 .returns(Promise.resolve(null));
 
-            mock.expects('putItem')
+            mock.expects('putItems')
                 .once()
                 .withArgs({ datasetId: 'some-id', data: [{ foo: 'hotel;' }, { foo: 'restaurant' }] })
                 .returns(Promise.resolve(null));

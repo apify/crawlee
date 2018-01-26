@@ -36,7 +36,7 @@ export class DatasetRemote {
         checkParamOrThrow(data, 'data', 'Array | Object');
         isStringableOrThrow(data);
 
-        return datasets.putItem({
+        return datasets.putItems({
             datasetId: this.datasetId,
             data,
         });

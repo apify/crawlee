@@ -6,6 +6,7 @@ import AutoscaledPool from './autoscaled_pool';
 import { pushData, openDataset } from './dataset';
 import { getValue, setValue, openKeyValueStore } from './key_value_store';
 import Request from './request';
+import RequestList from './request_list';
 import { launchPuppeteer } from './puppeteer';
 import { setPromisesDependency, getPromisesDependency, apifyClient, getMemoryInfo } from './utils';
 import { browse, launchWebDriver } from './webdriver';
@@ -14,6 +15,7 @@ import { browse, launchWebDriver } from './webdriver';
 
 // Publicly available functions
 // @TODO order alphabetically.
+// @TODO check that all tests are done against Apify.* not *
 const Apify = {
     events: new EventEmitter(),
 
@@ -38,6 +40,7 @@ const Apify = {
 
     // Request
     Request,
+    RequestList,
 
     // Utils
     client: apifyClient,

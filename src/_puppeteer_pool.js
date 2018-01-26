@@ -1,5 +1,5 @@
 import _ from 'underscore';
-import { log } from 'apify-shared';
+import { log } from 'apify-shared/log';
 import { launchPuppeteer } from './puppeteer';
 
 const BROWSER_KILLER_INTERVAL_MILLIS = 60 * 1000;
