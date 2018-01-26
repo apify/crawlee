@@ -52,10 +52,10 @@ const getDefaultStoreIdOrThrow = () => {
     return storeId;
 };
 
-const getDefaultSequentialStoreIdOrThrow = () => {
-    const storeId = process.env[ENV_VARS.DEFAULT_SEQUENTIAL_STORE_ID];
-    if (!storeId) throw new Error(`The '${ENV_VARS.DEFAULT_SEQUENTIAL_STORE_ID}' environment variable is not defined.`);
-    return storeId;
+const getDefaultDatasetIdOrThrow = () => {
+    const datasetId = process.env[ENV_VARS.DEFAULT_DATASET_ID];
+    if (!datasetId) throw new Error(`The '${ENV_VARS.DEFAULT_DATASET_ID}' environment variable is not defined.`);
+    return datasetId;
 };
 
 
@@ -305,49 +305,43 @@ export const setValue = (key, value, options, callback = null) => {
  * @ignore
  * @memberof module:Apify
  * @function
- * @description <p>Stores a record (object) in a sequential store using the Apify API.
- * If this is first write then a new store is created and associated with this act and then this and all further call
- * are stored in it. Default id of the store is in the `APIFY_DEFAULT_SEQUENTIAL_STORE_ID` environment variable;
+ * @description <p>Stores data (object or array of objects) in a dataset using the Apify API.
  * The function has no result, but throws on invalid args or other errors.</p>
- * <pre><code class="language-javascript">await Apify.pushRecord(record);</code></pre>
+ * <pre><code class="language-javascript">await Apify.pushData(data);</code></pre>
  * <p>
- * By default, the record is stored as is in default sequential store associated with this act.
- * </p>
- * <pre><code class="language-javascript">await Apify.pushRecord(record, 'my-custom-store');</code></pre>
- * <p>
- * If second argument is provided then the record is stored in this named store (it's created if it does not exist).
+ * By default, the data is stored in default dataset associated with this act.
  * </p>
  * <p>
- * **IMPORTANT: Do not forget to use the `await` keyword when calling `Apify.pushRecord()`,
- * otherwise the act process might finish before the record is stored!**
+ * **IMPORTANT: Do not forget to use the `await` keyword when calling `Apify.pushData()`,
+ * otherwise the act process might finish before the data is stored!**
  * </p>
- * @param {Object} record Object containing date to by stored in the store
+ * @param {Object/Array} data Object or array of Objects containing data to by stored in the dataset
  * @param {Function} [callback] Optional callback. Function returns a promise if not provided.
  * @returns {Promise} Returns a promise if `callback` was not provided.
  */
-export const pushRecord = (record, callback = null) => {
-    if (!record || !_.isObject(record) || _.isArray(record)) throw new Error('The "record" parameter must be an object');
+export const pushData = (data, callback = null) => {
+    if (!data || (!_.isObject(data) && !_.isArray(data))) throw new Error('The "data" parameter must be an object or array');
     if (callback && !_.isFunction(callback)) throw new Error('If provided then the "callback" parameter must be a function');
 
     const promisePrototype = getPromisePrototype();
 
-    let stringifiedRecord;
+    let stringifiedData;
     try {
         // Format JSON to simplify debugging, the overheads with compression is negligible
-        stringifiedRecord = JSON.stringify(record, null, 2);
+        stringifiedData = JSON.stringify(data, null, 2);
     } catch (e) {
-        throw new Error(`The "record" parameter cannot be stringified to JSON: ${e.message}`);
+        throw new Error(`The "data" parameter cannot be stringified to JSON: ${e.message}`);
     }
-    if (stringifiedRecord === undefined) {
-        throw new Error('The "record" parameter cannot be stringified to JSON.');
+    if (stringifiedData === undefined) {
+        throw new Error('The "data" parameter cannot be stringified to JSON.');
     }
 
-    const storeId = getDefaultSequentialStoreIdOrThrow();
+    const datasetId = getDefaultDatasetIdOrThrow();
 
-    const innerPromise = apifyClient.sequentialStores.putRecord({
-        storeId,
+    const innerPromise = apifyClient.datasets.putItems({
+        datasetId,
         promise: promisePrototype,
-        data: record,
+        data,
     });
 
 
@@ -412,7 +406,7 @@ export const getEnv = () => {
         startedAt: tryParseDate(env[ENV_VARS.STARTED_AT]) || null,
         timeoutAt: tryParseDate(env[ENV_VARS.TIMEOUT_AT]) || null,
         defaultKeyValueStoreId: env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID] || null,
-        defaultSequentialStoreId: env[ENV_VARS.DEFAULT_SEQUENTIAL_STORE_ID] || null,
+        defaultDatasetId: env[ENV_VARS.DEFAULT_DATASET_ID] || null,
         // internalPort: parseInt(env[ENV_VARS.INTERNAL_PORT], 10) || null,
         memoryMbytes: parseInt(env[ENV_VARS.MEMORY_MBYTES], 10) || null,
     };
@@ -571,7 +565,8 @@ export const readyFreddy = () => {
  * console.log(`Received message: ${run.output.body.message}`);
  * ```
  *
- * @param {String} actId - Either `username/act-name` or act ID.
+ * @param {String} actId - Either `username/act-name` or act ID. If you use the former format,
+ * beware that the user needs to have username set!
  * @param {Object|String|Buffer} [input] - Act input body. If it is an object, it is stringified to
  * JSON and the content type set to `application/json; charset=utf-8`.
  * @param {Object} [opts]
@@ -661,6 +656,15 @@ export const call = (actId, input, opts = {}, callback) => {
         return acts
             .getRun(Object.assign({}, defaultOpts, { waitForFinish, runId: run.id }))
             .then((updatedRun) => {
+                // It might take some time for database replicas to get up-to-date,
+                // so getRun() might return null. Wait a little while and try it again.
+                if (!updatedRun) {
+                    return new Promise(resolve => setTimeout(resolve, 250))
+                        .then(() => {
+                            return waitForRunToFinish(run);
+                        });
+                }
+
                 if (!_.contains(ACT_TASK_TERMINAL_STATUSES, updatedRun.status)) return waitForRunToFinish(updatedRun);
                 if (!fetchOutput) return updatedRun;
 

@@ -1,5 +1,5 @@
 
-export const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36'; // eslint-disable-line max-len
+export const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36'; // eslint-disable-line max-len
 
 /**
  * Exit codes for the act process.
@@ -23,7 +23,7 @@ export const ENV_VARS = {
     STARTED_AT: 'APIFY_STARTED_AT',
     TIMEOUT_AT: 'APIFY_TIMEOUT_AT',
     DEFAULT_KEY_VALUE_STORE_ID: 'APIFY_DEFAULT_KEY_VALUE_STORE_ID',
-    DEFAULT_SEQUENTIAL_STORE_ID: 'APIFY_DEFAULT_SEQUENTIAL_STORE_ID',
+    DEFAULT_DATASET_ID: 'APIFY_DEFAULT_DATASET_ID',
     DEV_KEY_VALUE_STORE_DIR: 'APIFY_DEV_KEY_VALUE_STORE_DIR',
     DEV_KEY_VALUE_STORE_CONTENT_TYPE: 'APIFY_DEV_KEY_VALUE_STORE_CONTENT_TYPE',
     WATCH_FILE: 'APIFY_WATCH_FILE',

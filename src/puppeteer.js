@@ -20,7 +20,8 @@ import { ENV_VARS, DEFAULT_USER_AGENT } from './constants';
  *        in acts running on the Apify Actor cloud platform.</li>
  *    <li>Takes the `proxyUrl` option, checks it and adds it to `args` as `--proxy-server=XXX`.
  *        If the proxy uses authentication, the function sets up an anonymous proxy HTTP
- *        to make the proxy work with headless Chrome.
+ *        to make the proxy work with headless Chrome. For more information, read the
+ *        {@link https://blog.apify.com/249a21a79212|blog post about proxy-chain library}.
  *    </li>
  *    <li>Adds `--no-sandbox` to `args` to enable running headless Chrome in a Docker container on the Actor platform.</li>
  * </ul>
