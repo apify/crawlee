@@ -8,6 +8,7 @@ import { getValue, setValue, openKeyValueStore } from './key_value_store';
 import Request from './request';
 import RequestList from './request_list';
 import { launchPuppeteer } from './puppeteer';
+import SettingsRotator from './settings_rotator';
 import { setPromisesDependency, getPromisesDependency, apifyClient, getMemoryInfo } from './utils';
 import { browse, launchWebDriver } from './webdriver';
 
@@ -41,6 +42,9 @@ const Apify = {
     // Request
     Request,
     RequestList,
+
+    // Settings rotator
+    SettingsRotator,
 
     // Utils
     client: apifyClient,
