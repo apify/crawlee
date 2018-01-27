@@ -40,7 +40,7 @@ export default class RequestList {
         const sharedOpts = _.omit(source, 'requestsFromUrl', 'regex');
         const { requestsFromUrl, regex } = source;
 
-        return requestPromise(requestsFromUrl)
+        return requestPromise.get(requestsFromUrl)
             .then((urlsStr) => {
                 if (regex) return urlsStr.match(new RegExp(regex, 'g'));
 
