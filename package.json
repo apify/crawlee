@@ -1,6 +1,6 @@
 {
   "name": "apify",
-  "version": "0.4.41",
+  "version": "0.4.42",
   "description": "Apify Actor runtime for JavaScript",
   "main": "build/index.js",
   "keywords": [
@@ -79,7 +79,7 @@
     "why-is-node-running": "^1.2.3"
   },
   "optionalDependencies": {
-    "puppeteer": "^0.13.0",
+    "puppeteer": "^1.0.0",
     "selenium-webdriver": "^3.6.0"
   }
 }
