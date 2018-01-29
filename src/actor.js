@@ -333,3 +333,35 @@ export const call = (actId, input, opts = {}, callback) => {
 
     return nodeifyPromise(promise, callback);
 };
+
+// @TODO doc
+export const getApifyProxyUrl = (opts = {}) => {
+    const {
+        proxyGroups,
+        session,
+        password = process.env[ENV_VARS.PROXY_PASSWORD],
+        hostname = process.env[ENV_VARS.PROXY_HOSTNAME],
+        port = parseInt(process.env[ENV_VARS.PROXY_PORT], 10),
+    } = opts;
+
+    checkParamOrThrow(proxyGroups, 'opts.proxyGroups', 'Maybe Array');
+    checkParamOrThrow(session, 'opts.session', 'Maybe Number | String');
+    checkParamOrThrow(password, 'opts.password', 'String');
+    checkParamOrThrow(hostname, 'opts.hostname', 'String');
+    checkParamOrThrow(port, 'opts.port', 'Number');
+
+    let username;
+
+    if (proxyGroups || session) {
+        const parts = [];
+
+        if (proxyGroups && proxyGroups.length) parts.push(`GROUPS-${proxyGroups.join('+')}`);
+        if (session) parts.push(`SESSION-${session}`);
+
+        username = parts.join(',');
+    } else {
+        username = 'auto';
+    }
+
+    return `http://${username}:${password}@${hostname}:${port}`;
+};

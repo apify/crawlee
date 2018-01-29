@@ -1,7 +1,7 @@
 import EventEmitter from 'events';
 
 // @TODO order alphabetically.
-import { main, readyFreddy, getEnv, call } from './actor';
+import { main, readyFreddy, getEnv, call, getApifyProxyUrl } from './actor';
 import AutoscaledPool from './autoscaled_pool';
 import { pushData, openDataset } from './dataset';
 import { getValue, setValue, openKeyValueStore } from './key_value_store';
@@ -26,6 +26,7 @@ const Apify = {
     call,
     readyFreddy,
     getMemoryInfo,
+    getApifyProxyUrl,
 
     // Autoscaled pool
     AutoscaledPool,

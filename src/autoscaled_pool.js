@@ -1,11 +1,16 @@
 import Promise from 'bluebird';
 import { log } from 'apify-shared';
 import _ from 'underscore';
+import { checkParamOrThrow } from 'apify-client/build/utils';
 import { getMemoryInfo } from './utils';
 
 const MEM_CHECK_INTERVAL_MILLIS = 100;
 const MAYBE_RUN_INTERVAL_MILLIS = 1000;
 const MIN_FREE_MEMORY_PERC = 0.1; // Minumum amount of memory that we keep free.
+const DEFAULT_OPTIONS = {
+    maxConcurrency: 1000,
+    minConcurrency: 1,
+};
 
 // These constants defines that in Nth execution memCheckInterval we do:
 export const SCALE_UP_INTERVAL = 100;
@@ -15,10 +20,15 @@ export const LOG_INFO_INTERVAL = 600; // This must be multiple of SCALE_UP_INTER
 
 const humanReadable = bytes => `${Math.round(bytes / 1024 / 1024)} MB`;
 
-// @TODO: check params
-
 export default class AutoscaledPool {
-    constructor({ maxMemoryMbytes, maxConcurrency, minConcurrency, workerFunction }) {
+    constructor(opts) {
+        const { maxMemoryMbytes, maxConcurrency, minConcurrency, workerFunction } = _.defaults(opts, DEFAULT_OPTIONS);
+
+        checkParamOrThrow(maxMemoryMbytes, 'opts.maxMemoryMbytes', 'Maybe Number');
+        checkParamOrThrow(maxConcurrency, 'opts.maxConcurrency', 'Number');
+        checkParamOrThrow(minConcurrency, 'opts.minConcurrency', 'Number');
+        checkParamOrThrow(workerFunction, 'opts.workerFunction', 'Function');
+
         // Configuration.
         this.maxMemoryMbytes = maxMemoryMbytes;
         this.maxConcurrency = maxConcurrency;
@@ -40,6 +50,7 @@ export default class AutoscaledPool {
         // This is resolve function of Promise returned by this.run()
         // which gets resolved once everything is done.
         this.resolve = null;
+        this.reject = null;
     }
 
     /**
@@ -49,7 +60,8 @@ export default class AutoscaledPool {
     run() {
         return new Promise((resolve, reject) => {
             this.resolve = resolve;
-            this._maybeRunPromise().catch(reject);
+            this.reject = reject;
+            this._maybeRunPromise();
 
             // This is here because if we scale down to lets say 1. Then after each promise is finished
             // this._maybeRunPromise() doesn't trigger another one. So if that 1 instance stucks it results
@@ -73,6 +85,8 @@ export default class AutoscaledPool {
     _autoscale() {
         getMemoryInfo()
             .then(({ freeBytes, totalBytes }) => {
+                if (this.maxMemoryMbytes) totalBytes = this.maxMemoryMbytes;
+
                 this.intervalCounter++;
                 this.freeBytesSnapshots = this.freeBytesSnapshots.concat(freeBytes).slice(-SCALE_UP_INTERVAL);
 
@@ -167,7 +181,6 @@ export default class AutoscaledPool {
 
         const id = this.promiseCounter;
         this.promiseCounter++;
-
         this._addRunningPromise(id, promise);
 
         promise
@@ -180,14 +193,11 @@ export default class AutoscaledPool {
             .catch((err) => {
                 log.exception(err, 'AutoscaledPool: worker function failed');
                 this._removeFinishedPromise(id);
-                this._maybeRunPromise();
-
-                throw err;
+                this.destroy();
+                this.reject(err);
             });
 
         this._maybeRunPromise();
-
-        return promise;
     }
 
     destroy() {

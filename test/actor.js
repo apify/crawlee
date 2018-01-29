@@ -1,14 +1,10 @@
 import fs from 'fs';
-import pathModule from 'path';
 import _ from 'underscore';
-import { expect, assert } from 'chai';
+import { expect } from 'chai';
 import sinon from 'sinon';
-import os from 'os';
 import tmp from 'tmp';
-import rimraf from 'rimraf';
 import Promise from 'bluebird';
-import { ACT_TASK_STATUSES } from '../build/constants';
-import * as utils from '../build/utils';
+import { ACT_TASK_STATUSES, ENV_VARS } from '../build/constants';
 
 // NOTE: test use of require() here because this is how its done in acts
 const Apify = require('../build/index');
@@ -616,5 +612,40 @@ describe('Apify.call()', () => {
                 keyValueStoresMock.restore();
                 actsMock.restore();
             });
+    });
+});
+
+describe('Apify.getApifyProxyUrl()', () => {
+    it('should work', () => {
+        process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
+        process.env[ENV_VARS.PROXY_HOSTNAME] = 'my.host.com';
+        process.env[ENV_VARS.PROXY_PORT] = 123;
+
+        expect(Apify.getApifyProxyUrl({
+            session: 'XYZ',
+            proxyGroups: ['g1', 'g2', 'g3'],
+        })).to.be.eql('http://GROUPS-g1+g2+g3,SESSION-XYZ:abc123@my.host.com:123');
+
+        expect(Apify.getApifyProxyUrl({
+            proxyGroups: ['g1', 'g2', 'g3'],
+        })).to.be.eql('http://GROUPS-g1+g2+g3:abc123@my.host.com:123');
+
+        expect(Apify.getApifyProxyUrl({
+            session: 'XYZ',
+        })).to.be.eql('http://SESSION-XYZ:abc123@my.host.com:123');
+
+        expect(Apify.getApifyProxyUrl()).to.be.eql('http://auto:abc123@my.host.com:123');
+
+        delete process.env[ENV_VARS.PROXY_PASSWORD];
+        delete process.env[ENV_VARS.PROXY_HOSTNAME];
+        delete process.env[ENV_VARS.PROXY_PORT];
+
+        expect(() => Apify.getApifyProxyUrl()).to.throw();
+
+        expect(Apify.getApifyProxyUrl({
+            password: 'xyz',
+            hostname: 'your.host.com',
+            port: 345,
+        })).to.be.eql('http://auto:xyz@your.host.com:345');
     });
 });

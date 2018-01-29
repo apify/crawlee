@@ -138,5 +138,30 @@ describe('autoscaled_pool', () => {
         mock.restore();
         pool.destroy();
     });
+
+    it('should throw when some of the promises throws', async () => {
+        let counter = 0;
+        const workerFunction = () => {
+            counter++;
+
+            if (counter > 100) return;
+
+            if (counter === 100) {
+                const err = new Error('some-error');
+
+                return new Promise((resolve, reject) => setTimeout(reject(err), 10));
+            }
+
+            return new Promise(resolve => setTimeout(resolve(), 10));
+        };
+
+        const pool = new Apify.AutoscaledPool({
+            minConcurrency: 10,
+            maxConcurrency: 10,
+            workerFunction,
+        });
+
+        await expect(pool.run()).to.be.rejectedWith('some-error');
+    });
 });
 
