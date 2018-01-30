@@ -302,20 +302,19 @@ export const setValue = (key, value, options, callback = null) => {
 };
 
 /**
- * @ignore
  * @memberof module:Apify
  * @function
- * @description <p>Stores data (object or array of objects) in a dataset using the Apify API.
+ * @description <p>Stores object or an array of objects in the default dataset for the current act run using the Apify API
  * The function has no result, but throws on invalid args or other errors.</p>
  * <pre><code class="language-javascript">await Apify.pushData(data);</code></pre>
  * <p>
- * By default, the data is stored in default dataset associated with this act.
+ * The data is stored in default dataset associated with this act.
  * </p>
  * <p>
  * **IMPORTANT: Do not forget to use the `await` keyword when calling `Apify.pushData()`,
  * otherwise the act process might finish before the data is stored!**
  * </p>
- * @param {Object/Array} data Object or array of Objects containing data to by stored in the dataset
+ * @param {Object|Array} data Object or array of objects containing data to by stored in the dataset
  * @param {Function} [callback] Optional callback. Function returns a promise if not provided.
  * @returns {Promise} Returns a promise if `callback` was not provided.
  */
