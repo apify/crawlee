@@ -58,7 +58,7 @@ export default class AutoscaledPool {
      * Returns promise that resolves once whole pool gets finished.
      */
     run() {
-        return new Promise((resolve, reject) => {
+        const promise = new Promise((resolve, reject) => {
             this.resolve = resolve;
             this.reject = reject;
             this._maybeRunPromise();
@@ -72,6 +72,14 @@ export default class AutoscaledPool {
             // SCALE_UP_INTERVAL-th/SCALE_DOWN_INTERVAL-th call it may scale up/down based on memory.
             this.memCheckInterval = setInterval(() => this._autoscale(), MEM_CHECK_INTERVAL_MILLIS);
         });
+
+        return promise
+            .then(() => this._destroy())
+            .catch((err) => {
+                this._destroy();
+
+                throw err;
+            });
     }
 
     /**
@@ -193,14 +201,13 @@ export default class AutoscaledPool {
             .catch((err) => {
                 log.exception(err, 'AutoscaledPool: worker function failed');
                 this._removeFinishedPromise(id);
-                this.destroy();
                 this.reject(err);
             });
 
         this._maybeRunPromise();
     }
 
-    destroy() {
+    _destroy() {
         clearInterval(this.memCheckInterval);
         clearInterval(this.maybeRunInterval);
     }

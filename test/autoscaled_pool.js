@@ -33,7 +33,6 @@ describe('autoscaled_pool', () => {
 
         const startedAt = Date.now();
         await pool.run();
-        pool.destroy();
 
         expect(Date.now() - startedAt).to.be.within(100, 150);
         expect(result).to.be.eql(_.range(0, 10));
@@ -61,7 +60,6 @@ describe('autoscaled_pool', () => {
 
         const startedAt = Date.now();
         await pool.run();
-        pool.destroy();
 
         expect(Date.now() - startedAt).to.be.within(100, 150);
         expect(result).to.be.eql(_.range(0, 100));
@@ -95,8 +93,6 @@ describe('autoscaled_pool', () => {
         ];
         const hasSpaceForInstances2 = pool._computeSpaceforInstances(toBytes(100), true);
         expect(hasSpaceForInstances2).to.be.eql(-2);
-
-        pool.destroy();
     });
 
     it('should autoscale correctly', async () => {
@@ -136,7 +132,6 @@ describe('autoscaled_pool', () => {
 
         mock.verify();
         mock.restore();
-        pool.destroy();
     });
 
     it('should throw when some of the promises throws', async () => {
