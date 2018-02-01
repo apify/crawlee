@@ -7,10 +7,11 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import { ENV_VARS } from './constants';
 import { apifyClient } from './utils';
 
+export const LEFTPAD_COUNT = 9; // Used for filename in DatasetLocal.
+
 const writeFilePromised = Promise.promisify(fs.writeFile);
 const { datasets } = apifyClient;
 const datasetsCache = {}; // Open Datasets are stored here.
-export const LEFTPAD_COUNT = 9; // Used for filename in DatasetLocal.
 
 const isStringableOrThrow = (data) => {
     let stringifiedRecord;
