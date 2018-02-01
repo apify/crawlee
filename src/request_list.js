@@ -6,6 +6,7 @@ import ListDictionary from 'apify-shared/list_dictionary';
 import { sequentializePromises } from 'apify-shared/utilities';
 import Request from './request';
 
+// @TODO make default regex to be url matching one
 export default class RequestList {
     constructor({ sources, state }) {
         checkParamOrThrow(sources, 'options.sources', 'Array');
