@@ -1,14 +1,15 @@
 import EventEmitter from 'events';
 
-// @TODO order alphabetically.
 import { main, readyFreddy, getEnv, call, getApifyProxyUrl } from './actor';
 import AutoscaledPool from './autoscaled_pool';
+import BasicCrawler from './basic_crawler';
 import { pushData, openDataset } from './dataset';
 import { getValue, setValue, openKeyValueStore } from './key_value_store';
+import { launchPuppeteer } from './puppeteer';
+import PuppeteerCrawler from './puppeteer_crawler';
+import PuppeteerPool from './puppeteer_pool';
 import Request from './request';
 import RequestList from './request_list';
-import { launchPuppeteer } from './puppeteer';
-import PuppeteerPool from './puppeteer_pool';
 import SettingsRotator from './settings_rotator';
 import { setPromisesDependency, getPromisesDependency, apifyClient, getMemoryInfo } from './utils';
 import { browse, launchWebDriver } from './webdriver';
@@ -16,7 +17,6 @@ import { browse, launchWebDriver } from './webdriver';
 /* globals module */
 
 // Publicly available functions
-// @TODO order alphabetically.
 // @TODO check that all tests are done against Apify.* not *
 const Apify = {
     events: new EventEmitter(),
@@ -32,14 +32,22 @@ const Apify = {
     // Autoscaled pool
     AutoscaledPool,
 
+    // Basic crawler
+    BasicCrawler,
+
+    // Dataset
+    pushData,
+    openDataset,
+
     // Key value store
     getValue,
     setValue,
     openKeyValueStore,
 
-    // Dataset
-    pushData,
-    openDataset,
+    // Puppeteer
+    launchPuppeteer,
+    PuppeteerPool,
+    PuppeteerCrawler,
 
     // Request
     Request,
@@ -56,10 +64,6 @@ const Apify = {
     // Webdriver
     browse,
     launchWebDriver,
-
-    // Puppeteer
-    launchPuppeteer,
-    PuppeteerPool,
 };
 
 /**

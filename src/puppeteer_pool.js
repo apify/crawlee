@@ -18,9 +18,10 @@ const DEFAULT_OPTIONS = {
     instanceKillerIntervalMillis: 60 * 1000,
     killInstanceAfterMillis: 5 * 60 * 1000,
 
-    launchPuppeteerFunction: ({ proxyGroups, puppeteerConfig }) => {
+    launchPuppeteerFunction: ({ proxyGroups, puppeteerConfig, disableProxy }) => {
         checkParamOrThrow(proxyGroups, 'opts.proxyGroups', 'Maybe Array');
         checkParamOrThrow(puppeteerConfig, 'opts.puppeteerConfig', 'Maybe Object');
+        checkParamOrThrow(disableProxy, 'opts.disableProxy', 'Maybe Boolean');
 
         const config = Object.assign({}, DEFAULT_PUPPETEER_CONFIG, puppeteerConfig);
 
@@ -29,10 +30,11 @@ const DEFAULT_OPTIONS = {
             config.args.push('--disable-web-security');
         }
 
-        config.proxyUrl = getApifyProxyUrl({
-            proxyGroups,
-            session: Math.random(),
-        });
+        if (!disableProxy) {
+            const session = Math.random();
+
+            config.proxyUrl = getApifyProxyUrl({ proxyGroups, session });
+        }
 
         return launchPuppeteer(config);
     },

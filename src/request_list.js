@@ -6,17 +6,12 @@ import ListDictionary from 'apify-shared/list_dictionary';
 import { sequentializePromises } from 'apify-shared/utilities';
 import Request from './request';
 
-const INITIAL_STATE = {
-    handledFromFirst: 0,
-    handledUniqueKeys: [],
-};
-
 export default class RequestList {
     constructor({ sources, state }) {
         checkParamOrThrow(sources, 'options.sources', 'Array');
         checkParamOrThrow(state, 'options.state', 'Maybe Object');
 
-        this.state = state || INITIAL_STATE;
+        this.state = state || { handledFromFirst: 0, handledUniqueKeys: [] };
         this.pendingRequests = new ListDictionary();
         this.inProgressRequests = new ListDictionary();
         this.reclaimedUniqueKeys = [];
