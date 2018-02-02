@@ -36,7 +36,7 @@ export default class PuppeteerCrawler {
             disableProxy,
         } = _.defaults(opts, DEFAULT_OPTIONS);
 
-        checkParamOrThrow(handlePageFunction, 'opts.handlePageFunction', 'Function');
+        // @TODO checkParamOrThrow(handlePageFunction, 'opts.handlePageFunction', 'Function');
         checkParamOrThrow(gotoFunction, 'opts.gotoFunction', 'Function');
         checkParamOrThrow(pageOpsTimeoutMillis, 'opts.pageOpsTimeoutMillis', 'Number');
 
