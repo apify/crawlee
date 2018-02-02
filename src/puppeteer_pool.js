@@ -56,7 +56,7 @@ export default class PuppeteerPool {
 
         const {
             maxOpenPagesPerInstance,
-            abortInstanceAfterRequestCount,
+            abortInstanceAfterRequestCount, // @TODO defaults
             launchPuppeteerFunction,
             instanceKillerIntervalMillis,
             killInstanceAfterMillis,
