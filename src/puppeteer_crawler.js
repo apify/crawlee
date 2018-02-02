@@ -1,5 +1,6 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import _ from 'underscore';
+import Promise from 'bluebird';
 import BasicCrawler from './basic_crawler';
 import PuppeteerPool from './puppeteer_pool';
 
