@@ -11,13 +11,13 @@ export const LEFTPAD_COUNT = 9; // Used for filename in DatasetLocal.
 
 const writeFilePromised = Promise.promisify(fs.writeFile);
 const { datasets } = apifyClient;
+// @TODO: Use LruCache
 const datasetsCache = {}; // Open Datasets are stored here.
 
-const isStringableOrThrow = (data) => {
+const isStringifyableOrThrow = (data) => {
     let stringifiedRecord;
     try {
-        // Format JSON to simplify debugging, the overheads with compression is negligible
-        stringifiedRecord = JSON.stringify(data, null, 2);
+        stringifiedRecord = JSON.stringify(data);
     } catch (e) {
         throw new Error(`The "data" parameter cannot be stringified to JSON: ${e.message}`);
     }
@@ -35,7 +35,9 @@ export class DatasetRemote {
 
     pushData(data) {
         checkParamOrThrow(data, 'data', 'Array | Object');
-        isStringableOrThrow(data);
+
+        // @TODO: isn't this unnecessary overhead? datasets.putItems() does the same thing, or not?
+        isStringifyableOrThrow(data);
 
         return datasets.putItems({
             datasetId: this.datasetId,
@@ -53,6 +55,8 @@ export class DatasetLocal {
         this.counter = 0;
         this.datasetId = datasetId;
 
+        // @TODO: Sync ops are really bad.
+        // We can do all this asynchronously in the first call to pushData()
         if (!fs.existsSync(this.localEmulationPath)) fs.mkdirSync(this.localEmulationPath);
 
         const files = fs.readdirSync(this.localEmulationPath);
@@ -66,13 +70,17 @@ export class DatasetLocal {
 
     pushData(data) {
         checkParamOrThrow(data, 'data', 'Array | Object');
-        isStringableOrThrow(data);
+
+        // @TODO: same as above, we're doing JSON.stringify below anyway.
+        // If necessary, we can just wrap the exception to something more understandable for users
+        isStringifyableOrThrow(data);
 
         if (!_.isArray(data)) data = [data];
 
         const promises = data.map((item) => {
             this.counter++;
 
+            // Format JSON to simplify debugging, the overheads is negligible
             const itemStr = JSON.stringify(item, null, 2);
             const fileName = `${leftpad(this.counter, LEFTPAD_COUNT, 0)}.json`;
             const filePath = path.join(this.localEmulationPath, fileName);
@@ -104,21 +112,22 @@ const getOrCreateDataset = (datasetIdOrName) => {
  * @TODO
  */
 export const openDataset = (datasetIdOrName) => {
-    const localEmulationDir = process.env[ENV_VARS.LOCAL_EMULATION_DIR];
-
     checkParamOrThrow(datasetIdOrName, 'datasetIdOrName', 'Maybe String');
 
-    // Use default key-value dataset.
+    const localEmulationDir = process.env[ENV_VARS.LOCAL_EMULATION_DIR];
+
+    // Should we use the default dataset?
     if (!datasetIdOrName) {
         datasetIdOrName = process.env[ENV_VARS.DEFAULT_DATASET_ID];
 
-        // Env vars doesn't exist.
+        // Env var doesn't exist.
         if (!datasetIdOrName) {
             const error = new Error(`The '${ENV_VARS.DEFAULT_DATASET_ID}' environment variable is not defined.`);
 
             return Promise.reject(error);
         }
 
+        // @TODO: This is twice here (see below) ???
         // It's not initialized yet.
         if (!datasetsCache[datasetIdOrName]) {
             datasetsCache[datasetIdOrName] = localEmulationDir
@@ -127,7 +136,7 @@ export const openDataset = (datasetIdOrName) => {
         }
     }
 
-    // Need to be intialized.
+    // Need to be initialized.
     if (!datasetsCache[datasetIdOrName]) {
         datasetsCache[datasetIdOrName] = localEmulationDir
             ? Promise.resolve(new DatasetLocal(datasetIdOrName, localEmulationDir))
