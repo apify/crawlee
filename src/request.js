@@ -10,6 +10,10 @@ export default class Request {
         method = 'GET',
         payload,
         retryCount = 0,
+        // @TODO: I think having empty array as default is not ideal, because if(errorInfo) is true.
+        // perhaps we can call this 'errors', have it null by default and only make it an array once first used?
+        // For example we can add function pushError(). Also, we shouldn't serialize Error object,
+        // so maybe call it errorMessages and pushErrorMessage() ?
         errorInfo = [],
         headers = {},
         userData = {},

@@ -64,7 +64,7 @@ export default class PuppeteerCrawler {
             return Promise
                 .race([
                     handlePagePromise,
-                    timeoutPromise.then(() => { throw new Error('PuppeteerCrawler: handlePageFunction timeouted'); }),
+                    timeoutPromise.then(() => { throw new Error('PuppeteerCrawler: handlePageFunction timed out'); }),
                 ])
                 .finally(() => {
                     if (page) return page.close();
