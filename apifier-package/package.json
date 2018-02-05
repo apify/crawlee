@@ -1,6 +1,6 @@
 {
   "name": "apifier",
-  "version": "0.0.53",
+  "version": "0.0.54",
   "description": "Legacy Apifier runtime for JavaScript",
   "main": "dummy.js",
   "keywords": [
@@ -21,12 +21,12 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/apifytech/apify-runtime-js"
+    "url": "git+https://github.com/apifytech/apify-js"
   },
   "bugs": {
-    "url": "https://github.com/apifytech/apify-runtime-js/issues"
+    "url": "https://github.com/apifytech/apify-js/issues"
   },
-  "homepage": "https://github.com/apifytech/apify-runtime-js",
+  "homepage": "https://github.com/apifytech/apify-js",
   "dependencies": {
   }
 }
