@@ -1,6 +1,6 @@
 {
   "name": "apify",
-  "version": "0.4.45",
+  "version": "0.4.46",
   "description": "Apify Actor runtime for JavaScript",
   "main": "build/index.js",
   "keywords": [
@@ -23,12 +23,12 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/apifier/apify-runtime-js"
+    "url": "git+https://github.com/apifytech/apify-runtime-js"
   },
   "bugs": {
-    "url": "https://github.com/apifier/apify-runtime-js/issues"
+    "url": "https://github.com/apifytech/apify-runtime-js/issues"
   },
-  "homepage": "https://github.com/apifier/apify-runtime-js",
+  "homepage": "https://github.com/apifytech/apify-runtime-js",
   "files": [
     "build"
   ],

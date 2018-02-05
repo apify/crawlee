@@ -1,3 +1,7 @@
+0.4.46 / 2018-02-05
+===================
+- Changed links to Apify GitHub repo
+
 0.4.45 / 2018-01-31
 ===================
 - Apify.pushData() added

@@ -15,18 +15,18 @@
     "url": "https://www.apifier.com"
   },
   "contributors": [
-    "Jan Curn <jan@apifier.com>",
-    "Marek Trunkat <marek@apifier.com>"
+    "Jan Curn <jan@apify.com>",
+    "Marek Trunkat <marek@apify.com>"
   ],
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/apifier/apify-runtime-js"
+    "url": "git+https://github.com/apifytech/apify-runtime-js"
   },
   "bugs": {
-    "url": "https://github.com/apifier/apify-runtime-js/issues"
+    "url": "https://github.com/apifytech/apify-runtime-js/issues"
   },
-  "homepage": "https://github.com/apifier/apify-runtime-js",
+  "homepage": "https://github.com/apifytech/apify-runtime-js",
   "dependencies": {
   }
 }
