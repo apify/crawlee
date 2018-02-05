@@ -1,7 +1,7 @@
 # apify: Apify Actor runtime for JavaScript
 
 [![npm version](https://badge.fury.io/js/apify.svg)](http://badge.fury.io/js/apify)
-[![Build Status](https://travis-ci.org/Apifier/apify-runtime-js.svg)](https://travis-ci.org/Apifier/apify-runtime-js)
+[![Build Status](https://travis-ci.org/apifytech/apify-js.svg)](https://travis-ci.org/apifytech/apify-js)
 
 Helper package that simplifies development of acts on the Apify Actor platform.
 
