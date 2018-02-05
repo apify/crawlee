@@ -23,7 +23,8 @@ const tryParseDate = (str) => {
  * @function
  * @description <p>Returns a new object which contains information parsed from the `APIFY_XXX` environment variables.
  * It has the following properties:</p>
- * <pre><code class="language-javascript">{
+ * ```javascript
+ * {
  *     // ID of the act (APIFY_ACT_ID)
  *     actId: String,
  * &nbsp;
@@ -56,7 +57,7 @@ const tryParseDate = (str) => {
  *     // in megabytes (APIFY_MEMORY_MBYTES)
  *     memoryMbytes: Number,
  * }
- * </code></pre>
+ * ```
  * For the list of the `APIFY_XXX` environment variables, see
  * {@link http://localhost/docs/actor.php#run-env-vars|Actor documentation}.
  * If some of the variables is not defined or is invalid, the corresponding value in the resulting object will be null.
@@ -196,32 +197,32 @@ export const readyFreddy = () => {
  * <p>The result of the function is an object describing the act run, which looks something like this:</p>
  * ```json
  * {
- *   "id": "ErYkuTTsmKiXccNGT",
- *   "actId": "E2jjCZBezvAZnX8Rb",
- *   "userId": "mb7q2dycFBHDhae6A",
- *   "startedAt": "2017-10-25T14:23:44.376Z",
- *   "finishedAt": "2017-10-25T14:23:46.723Z",
- *   "status": "SUCCEEDED",
- *   "meta": { "origin": "API", "clientIp": "1.2.3.4", "userAgent": null },
- *   "stats": {
- *       "netRxBytes": 180,
- *       "netTxBytes": 0,
- *       ...
- *   },
- *   "options": {
- *      "build": "latest",
- *      "timeoutSecs": 0,
- *      "memoryMbytes": 512,
- *      "diskMbytes": 1024
- *   },
- *   "buildId": "Bwkqk59MCkdexDP34",
- *   "exitCode": 0,
- *   "defaultKeyValueStoreId": "ccFfRptZru2uqdQHP",
- *   "buildNumber": "0.1.2",
- *   "output": {
- *       "contentType": "application/json; charset=utf-8",
- *       "body": { "message": "Hello world!" }
- *   }
+ *     "id": "ErYkuTTsmKiXccNGT",
+ *     "actId": "E2jjCZBezvAZnX8Rb",
+ *     "userId": "mb7q2dycFBHDhae6A",
+ *     "startedAt": "2017-10-25T14:23:44.376Z",
+ *     "finishedAt": "2017-10-25T14:23:46.723Z",
+ *     "status": "SUCCEEDED",
+ *     "meta": { "origin": "API", "clientIp": "1.2.3.4", "userAgent": null },
+ *     "stats": {
+ *         "netRxBytes": 180,
+ *         "netTxBytes": 0,
+ *         ...
+ *     },
+ *     "options": {
+ *        "build": "latest",
+ *        "timeoutSecs": 0,
+ *        "memoryMbytes": 512,
+ *        "diskMbytes": 1024
+ *     },
+ *     "buildId": "Bwkqk59MCkdexDP34",
+ *     "exitCode": 0,
+ *     "defaultKeyValueStoreId": "ccFfRptZru2uqdQHP",
+ *     "buildNumber": "0.1.2",
+ *     "output": {
+ *         "contentType": "application/json; charset=utf-8",
+ *         "body": { "message": "Hello world!" }
+ *     }
  * }
  * ```
  * <p>Internally, the function calls the {@link https://www.apify.com/docs/api/v2#/reference/acts/runs-collection/run-act|Run act} API endpoint
@@ -336,18 +337,28 @@ export const call = (actId, input, opts = {}, callback) => {
     return nodeifyPromise(promise, callback);
 };
 
-// @TODO doc
+/**
+ * @memberof module:Apify
+ * @function
+ * @description <p>Returns a url of Apify Proxy that can be used from Actor acts, web browsers or any other HTTP
+ * proxy-enabled applications.</p>
+ *
+ * @param {Object} opts
+ * @param {String} opts.password - User proxy password. By default, it is taken from the `APIFY_PROXY_PASSWORD` environment variable.
+ * @param {String} [opts.groups] - Proxy groups to be used.
+ * @param {String} [opts.session] - Session ID that identifies requests that should use the same proxy connection.
+ * @returns {String} Returns proxy url.
+ */
 export const getApifyProxyUrl = (opts = {}) => {
     const {
-        // @TODO: we should call this 'groups' to be consistent with Proxy args and docs
-        proxyGroups,
+        groups,
         session,
         password = process.env[ENV_VARS.PROXY_PASSWORD],
         hostname = process.env[ENV_VARS.PROXY_HOSTNAME],
         port = parseInt(process.env[ENV_VARS.PROXY_PORT], 10),
     } = opts;
 
-    checkParamOrThrow(proxyGroups, 'opts.proxyGroups', 'Maybe Array');
+    checkParamOrThrow(groups, 'opts.groups', 'Maybe Array');
     checkParamOrThrow(session, 'opts.session', 'Maybe Number | String');
     checkParamOrThrow(password, 'opts.password', 'String');
     checkParamOrThrow(hostname, 'opts.hostname', 'String');
@@ -355,10 +366,10 @@ export const getApifyProxyUrl = (opts = {}) => {
 
     let username;
 
-    if (proxyGroups || session) {
+    if (groups || session) {
         const parts = [];
 
-        if (proxyGroups && proxyGroups.length) parts.push(`GROUPS-${proxyGroups.join('+')}`);
+        if (groups && groups.length) parts.push(`GROUPS-${groups.join('+')}`);
         if (session) parts.push(`SESSION-${session}`);
 
         username = parts.join(',');

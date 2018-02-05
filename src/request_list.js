@@ -2,7 +2,6 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import log from 'apify-shared/log';
 import _ from 'underscore';
 import requestPromise from 'request-promise';
-import ListDictionary from 'apify-shared/list_dictionary';
 import { sequentializePromises } from 'apify-shared/utilities';
 import Request from './request';
 
@@ -20,7 +19,7 @@ const getFirstKey = (dict) => {
     }
 };
 
-const _ensureUniqueKeyValid = (uniqueKey) => {
+const ensureUniqueKeyValid = (uniqueKey) => {
     if (typeof uniqueKey !== 'string' || !uniqueKey) {
         throw new Error('Request object\'s uniqueKey must be a non-empty string');
     }
@@ -30,8 +29,12 @@ const _ensureUniqueKeyValid = (uniqueKey) => {
  * This class represents a list of web pages (requests) to be crawled.
  */
 export default class RequestList {
-    constructor({ sources }) {
+    constructor({ sources, state }) {
         checkParamOrThrow(sources, 'options.sources', 'Array');
+        checkParamOrThrow(state, 'options.state', 'Maybe Object');
+
+        // We will initialize everything from this state in this.initialize();
+        this.initialState = state;
 
         // Array of all requests from all sources, in the order as they appeared in sources.
         // All requests in the array have distinct uniqueKey!
@@ -53,6 +56,7 @@ export default class RequestList {
         this.reclaimed = {};
 
         this.isLoading = false;
+        this.isInitialized = true;
 
         // We'll load all sources in sequence to ensure that they get loaded in the right order.
         this.loadSourcesPromiseGenerators = sources.map((source) => {
@@ -68,17 +72,18 @@ export default class RequestList {
      * @param state State object
      * @returns Promise
      */
-    load(state) {
-        // @TODO: check that state contains correct fields
-        checkParamOrThrow(state, 'options.state', 'Maybe Object');
-
+    initialize() {
         if (this.isLoading) {
             throw new Error('RequestList sources are already loading or were loaded.');
         }
         this.isLoading = true;
 
-        return this.sequentializePromises(this.loadSourcesPromiseGenerators)
+        return sequentializePromises(this.loadSourcesPromiseGenerators)
             .then(() => {
+                const state = this.initialState;
+
+                if (!state) return;
+
                 // Restore state
                 if (typeof state.nextIndex !== 'number' || state.nextIndex < 0) {
                     throw new Error('The state object is invalid: nextIndex must be a non-negative number.');
@@ -102,6 +107,9 @@ export default class RequestList {
 
                 // All in-progress requests need to be recrawled
                 this.reclaimed = _.clone(this.inProgress);
+            })
+            .then(() => {
+                this.isInitialized = true;
             });
     }
 
@@ -110,6 +118,8 @@ export default class RequestList {
      * @returns Object
      */
     getState() {
+        this._ensureIsInitialized();
+
         return {
             nextIndex: this.nextIndex,
             nextUniqueKey: this.nextIndex < this.requests.length
@@ -155,7 +165,7 @@ export default class RequestList {
             : new Request(opts);
 
         const { uniqueKey } = request;
-        _ensureUniqueKeyValid(uniqueKey);
+        ensureUniqueKeyValid(uniqueKey);
 
         // Skip requests with duplicate uniqueKey
         if (this.uniqueKeyToIndex[uniqueKey] === undefined) {
@@ -170,17 +180,23 @@ export default class RequestList {
      * @returns {boolean}
      */
     isEmpty() {
+        this._ensureIsInitialized();
+
         return !!getFirstKey(this.reclaimed)
             && this.nextIndex >= this.requests.length;
     }
 
     // Returns `true` if all requests were already handled and there are no more left.
     isFinished() {
+        this._ensureIsInitialized();
+
         return !!getFirstKey(this.inProgress)
             && this.nextIndex >= this.requests.length;
     }
 
     fetchNextRequest() {
+        this._ensureIsInitialized();
+
         // First return reclaimed requests if any.
         const uniqueKey = getFirstKey(this.reclaimed);
         if (uniqueKey) {
@@ -209,11 +225,18 @@ export default class RequestList {
         }
     }
 
+    _ensureIsInitialized() {
+        if (!this.isInitialized) {
+            throw new Error('RequestList is not initialized. You must call "await requestList.initialize();" before using it!')
+        }
+    }
+
     markRequestHandled(request) {
         const { uniqueKey } = request;
 
-        _ensureUniqueKeyValid(uniqueKey);
-        _ensureInProgressAndNotReclaimed(uniqueKey);
+        ensureUniqueKeyValid(uniqueKey);
+        this._ensureInProgressAndNotReclaimed(uniqueKey);
+        this._ensureIsInitialized();
 
         delete this.inProgress[uniqueKey];
     }
@@ -221,8 +244,9 @@ export default class RequestList {
     reclaimRequest(request) {
         const { uniqueKey } = request;
 
-        _ensureUniqueKeyValid(uniqueKey);
-        _ensureInProgressAndNotReclaimed(uniqueKey);
+        ensureUniqueKeyValid(uniqueKey);
+        this._ensureInProgressAndNotReclaimed(uniqueKey);
+        this._ensureIsInitialized();
 
         this.reclaimed[uniqueKey] = true;
     }

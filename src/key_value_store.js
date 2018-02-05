@@ -207,8 +207,6 @@ const getOrCreateKeyValueStore = (storeIdOrName) => {
 /**
  * @memberof module:Apify
  * @function
- *
- * @TODO
  */
 export const openKeyValueStore = (storeIdOrName) => {
     const localEmulationDir = process.env[ENV_VARS.LOCAL_EMULATION_DIR];

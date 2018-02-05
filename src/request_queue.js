@@ -135,8 +135,6 @@ export class RequestQueueLocal {
 /**
  * @memberof module:Apify
  * @function
- *
- * @TODO
  */
 export const openRequestQueue = (queueIdOrName) => {
     const localEmulationDir = process.env[ENV_VARS.LOCAL_EMULATION_DIR];

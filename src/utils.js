@@ -214,3 +214,16 @@ export const getMemoryInfo = () => {
                 });
         });
 };
+
+// @TODO test
+export const isPromise = (maybePromise) => {
+    return maybePromise && typeof maybePromise.then === 'function' && typeof maybePromise.catch === 'function';
+};
+
+export const checkParamPrototypeOrThrow = (paramVal, paramName, prototype, prototypeName, isOptional = false) => {
+    if (isOptional && (paramVal === undefined || paramVal === null)) return;
+
+    if (paramVal && !(paramVal instanceof prototype)) {
+        throw new Error(`Parameter "${paramName}" must be an instance of ${prototypeName}`);
+    }
+};

@@ -2,9 +2,9 @@ import Promise from 'bluebird';
 import { log } from 'apify-shared';
 import _ from 'underscore';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { getMemoryInfo } from './utils';
+import { getMemoryInfo, isPromise } from './utils';
 
-const MEM_CHECK_INTERVAL_MILLIS = 100; // @TODO: isn't 100ms way too small? maybe it can be configurable
+const MEM_CHECK_INTERVAL_MILLIS = 200; // This is low to have at least.
 const MAYBE_RUN_INTERVAL_MILLIS = 1000;
 const MIN_FREE_MEMORY_RATIO = 0.1; // Minimum amount of memory that we keep free.
 const DEFAULT_OPTIONS = {
@@ -13,13 +13,42 @@ const DEFAULT_OPTIONS = {
 };
 
 // These constants defines that in Nth execution memCheckInterval we do:
-export const SCALE_UP_INTERVAL = 100;
+export const SCALE_UP_INTERVAL = 50;
 export const SCALE_UP_MAX_STEP = 10;
-export const SCALE_DOWN_INTERVAL = 10;
+export const SCALE_DOWN_INTERVAL = 5;
 export const LOG_INFO_INTERVAL = 6 * SCALE_UP_INTERVAL; // This must be multiple of SCALE_UP_INTERVAL
 
+/**
+ * Helper function that coverts bytes into human readable MBs.
+ * @ignore
+ */
 const humanReadable = bytes => `${Math.round(bytes / 1024 / 1024)} MB`;
 
+/**
+ * @class AutoscaledPool
+ * @memberof Apify
+ * @param {Function} options.workerFunction - Function we want to call in parallel. This function must either return a
+ *                                            promise or null when all the tasks were processed.
+ * @param {Number} [options.maxConcurrency=1000] - Maximal concurrency.
+ * @param {Number} [options.minConcurrency=1] - Minimal concurrency.
+ * @param {Number} [options.maxMemoryMbytes] - Maximum memory available in the system. By default uses the totalMemory from Apify.getMemoryInfo().
+ *
+ * @description
+ * <p>AutoscaledPool helps to process asynchronous task in parallel. It scales the number of concurrent tasks based on
+ * the available memory. If any of the tasks throws an error then the pool.run() method
+ * also throws.</p>
+ * <p>Basic usage of AutoscaledPool:</p>
+ * ```javascript
+ * const pool = new Apify.AutoScaledPool({
+ *     maxConcurrency: 50,
+ *     workerFunction: async () => {
+ *         // ... do some intensive asynchronous operations here and return a promise ...
+ *     },
+ * });
+ *
+ * await pool.run();
+ * ```
+ */
 export default class AutoscaledPool {
     constructor(opts) {
         const { maxMemoryMbytes, maxConcurrency, minConcurrency, workerFunction } = _.defaults(opts, DEFAULT_OPTIONS);
@@ -54,8 +83,11 @@ export default class AutoscaledPool {
     }
 
     /**
-     * Starts the pool.
-     * Returns promise that resolves once whole pool gets finished.
+     * Runs the autoscaled pool. Returns promise that gets resolved or rejected once
+     * all the task got finished or some of them fails.
+     * @memberof Apify.AutoscaledPool
+     * @method run
+     * @return {Promise}
      */
     run() {
         const promise = new Promise((resolve, reject) => {
@@ -89,6 +121,8 @@ export default class AutoscaledPool {
      * - SCALE_DOWN_INTERVAL-th call checks memory and possibly scales DOWN by 1.
      * - SCALE_UP_INTERVAL-th call checks memory and possibly scales UP
      * - MEM_INFO_INTERVAL-th call logs statistics about memory.
+     *
+     * @ignore
      */
     _autoscale() {
         getMemoryInfo()
@@ -130,6 +164,8 @@ export default class AutoscaledPool {
      * to avoid exceeding the maximum memory.
      *
      * If shouldLogInfo = true then also logs info about memory usage.
+     *
+     * @ignore
      */
     _computeSpaceForInstances(totalBytes, logInfo) {
         const minFreeBytes = Math.min(...this.freeBytesSnapshots);
@@ -157,6 +193,8 @@ export default class AutoscaledPool {
 
     /**
      * Registers running promise.
+     *
+     * @ignore
      */
     _addRunningPromise(id, promise) {
         this.runningPromises[id] = promise;
@@ -165,6 +203,8 @@ export default class AutoscaledPool {
 
     /**
      * Removes finished promise.
+     *
+     * @ignore
      */
     _removeFinishedPromise(id) {
         delete this.runningPromises[id];
@@ -174,6 +214,8 @@ export default class AutoscaledPool {
     /**
      * If this.runningCount < this.concurrency then gets new promise from this.workerFunction() and adds it to the pool.
      * If this.workerFunction() returns null and nothing is running then finishes pool.
+     *
+     * @ignore
      */
     _maybeRunPromise() {
         if (!this.resolve || !this.reject) return;
@@ -188,6 +230,9 @@ export default class AutoscaledPool {
         // This may happen when there are less pages in the queue than max concurrency
         // but all of them are being served already.
         if (!promise) return;
+
+        // It's not null so it must be a promise!
+        if (!isPromise(promise)) throw new Error('User provided workerFunction must return a Promise.');
 
         const id = this.promiseCounter;
         this.promiseCounter++;
@@ -209,6 +254,11 @@ export default class AutoscaledPool {
         this._maybeRunPromise();
     }
 
+    /**
+     * Cleanups resources.
+     *
+     * @ignore
+     */
     _destroy() {
         this.resolve = null;
         this.reject = null;

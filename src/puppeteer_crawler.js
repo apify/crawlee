@@ -31,7 +31,7 @@ export default class PuppeteerCrawler {
             launchPuppeteerFunction,
             instanceKillerIntervalMillis,
             killInstanceAfterMillis,
-            proxyGroups,
+            groups,
             puppeteerConfig,
             disableProxy,
         } = _.defaults(opts, DEFAULT_OPTIONS);
@@ -46,7 +46,7 @@ export default class PuppeteerCrawler {
             launchPuppeteerFunction,
             instanceKillerIntervalMillis,
             killInstanceAfterMillis,
-            proxyGroups,
+            groups,
             puppeteerConfig,
             disableProxy,
         });

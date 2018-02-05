@@ -20,8 +20,9 @@ const DEFAULT_OPTIONS = {
     instanceKillerIntervalMillis: 60 * 1000,
     killInstanceAfterMillis: 5 * 60 * 1000,
 
-    launchPuppeteerFunction: ({ proxyGroups, puppeteerConfig, disableProxy }) => {
-        checkParamOrThrow(proxyGroups, 'opts.proxyGroups', 'Maybe Array');
+    // @TODO use settingsRotator()
+    launchPuppeteerFunction: ({ groups, puppeteerConfig, disableProxy }) => {
+        checkParamOrThrow(groups, 'opts.groups', 'Maybe Array');
         checkParamOrThrow(puppeteerConfig, 'opts.puppeteerConfig', 'Maybe Object');
         checkParamOrThrow(disableProxy, 'opts.disableProxy', 'Maybe Boolean');
 
@@ -40,7 +41,7 @@ const DEFAULT_OPTIONS = {
         if (!disableProxy) {
             const session = Math.random();
 
-            config.proxyUrl = getApifyProxyUrl({ proxyGroups, session });
+            config.proxyUrl = getApifyProxyUrl({ groups, session });
         }
 
         return launchPuppeteer(config);

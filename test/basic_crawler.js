@@ -25,6 +25,7 @@ describe('basic_crawler', () => {
             handleRequestFunction,
         });
 
+        await requestList.initialize();
         await basicCrawler.run();
 
         expect(processed).to.be.eql(sources);
@@ -39,6 +40,7 @@ describe('basic_crawler', () => {
         ];
         const processed = {};
         const requestList = new Apify.RequestList({ sources });
+
         const handleRequestFunction = async ({ request }) => {
             await new Promise(resolve => setTimeout(resolve, 10));
             processed[request.url] = request;
@@ -58,6 +60,7 @@ describe('basic_crawler', () => {
             handleRequestFunction,
         });
 
+        await requestList.initialize();
         await basicCrawler.run();
 
         expect(processed['http://example.com/1'].userData.foo).to.be.eql('bar');

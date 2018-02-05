@@ -181,7 +181,7 @@ describe('dataset', () => {
 
             const circularObj = { xxx: circularObj };
             circularObj.xxx = circularObj;
-            const jsonErrMsg = 'The "data" parameter cannot be stringified to JSON';
+            const jsonErrMsg = 'Converting circular structure to JSON';
             await expect(Apify.pushData(circularObj)).to.be.rejectedWith(jsonErrMsg);
 
             delete process.env[ENV_VARS.DEFAULT_DATASET_ID];

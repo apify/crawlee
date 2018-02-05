@@ -1,4 +1,5 @@
 import EventEmitter from 'events';
+import { log } from 'apify-shared';
 
 import { main, readyFreddy, getEnv, call, getApifyProxyUrl } from './actor';
 import AutoscaledPool from './autoscaled_pool';
@@ -16,8 +17,10 @@ import { browse, launchWebDriver } from './webdriver';
 
 /* globals module */
 
+// Hide debug log messages when running in production mode.
+if (process.env !== 'PRODUCTION') log.isDebugMode = true;
+
 // Publicly available functions
-// @TODO check that all tests are done against Apify.* not *
 const Apify = {
     events: new EventEmitter(),
 
@@ -83,22 +86,23 @@ const Apify = {
  * </p>
  *
  * <h2>Example usage</h2>
- * <pre><code class="language-javascript">const Apify = require('apify');
+ * ```javascript
  * &nbsp;
  * Apify.main(async () => {
- *   // Get input of the act
- *   const input = await Apify.getValue('INPUT');
- *   console.dir(input);
+ *     // Get input of the act
+ *     const input = await Apify.getValue('INPUT');
+ *     console.dir(input);
  * &nbsp;
- *   // Do something useful here...
- *   const browser = await Apify.launchPuppeteer();
- *   const page = await browser.newPage();
- *   await page.goto('http://www.example.com');
- *   const pageTitle = await page.title();
+ *     // Do something useful here...
+ *     const browser = await Apify.launchPuppeteer();
+ *     const page = await browser.newPage();
+ *     await page.goto('http://www.example.com');
+ *     const pageTitle = await page.title();
  * &nbsp;
- *   // Save output
- *   await Apify.setValue('OUTPUT', { pageTitle });
- * });</code></pre>
+ *     // Save output
+ *     await Apify.setValue('OUTPUT', { pageTitle });
+ * });
+ * ```
  *
  * <h2>Installation</h2>
  * <p>This package requires Node.js 6 or higher. It might work with lower versions too,

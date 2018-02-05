@@ -623,11 +623,11 @@ describe('Apify.getApifyProxyUrl()', () => {
 
         expect(Apify.getApifyProxyUrl({
             session: 'XYZ',
-            proxyGroups: ['g1', 'g2', 'g3'],
+            groups: ['g1', 'g2', 'g3'],
         })).to.be.eql('http://GROUPS-g1+g2+g3,SESSION-XYZ:abc123@my.host.com:123');
 
         expect(Apify.getApifyProxyUrl({
-            proxyGroups: ['g1', 'g2', 'g3'],
+            groups: ['g1', 'g2', 'g3'],
         })).to.be.eql('http://GROUPS-g1+g2+g3:abc123@my.host.com:123');
 
         expect(Apify.getApifyProxyUrl({
