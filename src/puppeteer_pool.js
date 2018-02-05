@@ -10,6 +10,8 @@ const DEFAULT_PUPPETEER_CONFIG = {
     args: [],
 };
 
+// @TODO log console messages and errors
+
 const DEFAULT_OPTIONS = {
     maxOpenPagesPerInstance: 1000,
     abortInstanceAfterRequestCount: 50,
