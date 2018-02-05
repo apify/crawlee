@@ -9,6 +9,18 @@ const writeFilePromised = Promise.promisify(fs.writeFile);
 const readFilePromised = Promise.promisify(fs.readFile);
 const readdirPromised = Promise.promisify(fs.readdir);
 
+// @TODO: it would be great to make this class not only a quick prototype,
+// but generally usable thing for users. For that we need to make it more efficient,
+// remove sync method calls etc.
+// For example, we could store files as follows:
+// <APIFY_LOCAL_EMULATION_DIR>/request-queues/<queue-name-or-id>/index.json' - contains uniqueKeyToQueueOrderNo
+// <APIFY_LOCAL_EMULATION_DIR>/request-queues/<queue-name-or-id>/handled/1517588019092.json'
+// <APIFY_LOCAL_EMULATION_DIR>/request-queues/<queue-name-or-id>/not-handled/1517588019092.json'
+// <APIFY_LOCAL_EMULATION_DIR>/request-queues/<queue-name-or-id>/not-handled/0517588065008.json' - starts with '0' for requests pushed to front
+// <APIFY_LOCAL_EMULATION_DIR>/request-queues/<queue-name-or-id>/not-handled/1517588065008.json' - starts with '1' for requests pushed to end
+// The query to get the first file in directory (sorted by name) should be fast even if there are many files.
+
+
 export class RequestQueueLocal {
     constructor(queueId, localEmulationDir) {
         checkParamOrThrow(queueId, 'options.queueId', 'String');

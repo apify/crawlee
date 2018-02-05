@@ -5,6 +5,8 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import { ENV_VARS, EXIT_CODES, ACT_TASK_TERMINAL_STATUSES } from './constants';
 import { newPromise, nodeifyPromise, apifyClient, addCharsetToContentType } from './utils';
 
+/* globals process */
+
 /**
  * Tries to parse a string with date.
  * @param str Date string
@@ -141,7 +143,7 @@ export const main = (userFunc) => {
 
     // Set dummy interval to ensure the process will not be killed while awaiting empty promise:
     // await new Promise(() => {})
-    // Such a construct is used to for testing of act timeouts and aborts.
+    // Such a construct is used for testing of act timeouts and aborts.
     const intervalId = setInterval(_.noop, 9999999);
 
     try {
@@ -337,6 +339,7 @@ export const call = (actId, input, opts = {}, callback) => {
 // @TODO doc
 export const getApifyProxyUrl = (opts = {}) => {
     const {
+        // @TODO: we should call this 'groups' to be consistent with Proxy args and docs
         proxyGroups,
         session,
         password = process.env[ENV_VARS.PROXY_PASSWORD],

@@ -10,6 +10,7 @@ const readFilePromised = Promise.promisify(fs.readFile);
 const writeFilePromised = Promise.promisify(fs.writeFile);
 const unlinkPromised = Promise.promisify(fs.unlink);
 const statPromised = Promise.promisify(fs.stat);
+// @TODO: We should use LruCache for this
 const storesCache = {}; // Cache of opened store instances.
 const { keyValueStores } = apifyClient;
 
@@ -33,12 +34,15 @@ const validateSetValueParams = (key, value, options) => {
     checkParamOrThrow(options, 'options', 'Object');
     checkParamOrThrow(options.contentType, 'options.contentType', 'String | Null | Undefined');
 
+    // @TODO: when value is undefined, the function will throw "The "value" parameter cannot be stringified to JSON",
+    // we could test for it here instead and throw better error
+
     if (value === null && options.contentType !== null && options.contentType !== undefined) {
         throw new Error('The "options.contentType" parameter must not be used when removing the record.');
     }
 
     if (options.contentType) {
-        checkParamOrThrow(value, 'value', 'Buffer | String', 'The "value" parameter must be a String or Buffer when "options.contentType" is specified.');
+        checkParamOrThrow(value, 'value', 'Buffer | String', 'The "value" parameter must be a String or Buffer when "options.contentType" is specified.'); // eslint-disable-line max-len
     }
 
     if (options.contentType === '') throw new Error('Parameter options.contentType cannot be empty string.');
@@ -113,6 +117,9 @@ export class KeyValueStoreLocal {
         this.localEmulationPath = path.resolve(path.join(localEmulationDir, storeId));
         this.storeId = storeId;
 
+        // @TODO: Sync is no good, we should put this init into getValue() / setValue(),
+        //        it will also work even if the directory is removed during the run, which is better design anyway
+        //        BTW it will be fast enough, because OS will cache filesystem's inodes.
         if (!fs.existsSync(this.localEmulationPath)) fs.mkdirSync(this.localEmulationPath);
     }
 
@@ -227,7 +234,7 @@ export const openKeyValueStore = (storeIdOrName) => {
         }
     }
 
-    // Need to be intialized.
+    // Need to be initialized.
     if (!storesCache[storeIdOrName]) {
         storesCache[storeIdOrName] = localEmulationDir
             ? Promise.resolve(new KeyValueStoreLocal(storeIdOrName, localEmulationDir))
@@ -236,6 +243,8 @@ export const openKeyValueStore = (storeIdOrName) => {
 
     return storesCache[storeIdOrName];
 };
+
+// @TODO: Fix the docs - APIFY_DEV_KEY_VALUE_STORE_DIR is gone
 
 /**
  * @memberof module:Apify

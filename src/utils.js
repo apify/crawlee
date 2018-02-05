@@ -9,7 +9,7 @@ let PromisesDependency = Promise;
 
 /**
  * Creates an instance of ApifyClient using options as defined in the environment variables.
- * This function is exported in order to enable unit testing.
+ * This function is exported to enable unit testing.
  * @returns {*}
  * @ignore
  */

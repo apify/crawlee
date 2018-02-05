@@ -4,9 +4,9 @@ import _ from 'underscore';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { getMemoryInfo } from './utils';
 
-const MEM_CHECK_INTERVAL_MILLIS = 100;
+const MEM_CHECK_INTERVAL_MILLIS = 100; // @TODO: isn't 100ms way too small? maybe it can be configurable
 const MAYBE_RUN_INTERVAL_MILLIS = 1000;
-const MIN_FREE_MEMORY_PERC = 0.1; // Minumum amount of memory that we keep free.
+const MIN_FREE_MEMORY_RATIO = 0.1; // Minimum amount of memory that we keep free.
 const DEFAULT_OPTIONS = {
     maxConcurrency: 1000,
     minConcurrency: 1,
@@ -16,7 +16,7 @@ const DEFAULT_OPTIONS = {
 export const SCALE_UP_INTERVAL = 100;
 export const SCALE_UP_MAX_STEP = 10;
 export const SCALE_DOWN_INTERVAL = 10;
-export const LOG_INFO_INTERVAL = 600; // This must be multiple of SCALE_UP_INTERVAL
+export const LOG_INFO_INTERVAL = 6 * SCALE_UP_INTERVAL; // This must be multiple of SCALE_UP_INTERVAL
 
 const humanReadable = bytes => `${Math.round(bytes / 1024 / 1024)} MB`;
 
@@ -63,7 +63,7 @@ export default class AutoscaledPool {
             this.reject = reject;
             this._maybeRunPromise();
 
-            // This is here because if we scale down to lets say 1. Then after each promise is finished
+            // This is here because if we scale down to let's say 1. Then after each promise is finished
             // this._maybeRunPromise() doesn't trigger another one. So if that 1 instance stucks it results
             // in whole act to stuck and even after scaling up it never triggers another promise.
             this.maybeRunInterval = setInterval(() => this._maybeRunPromise(), MAYBE_RUN_INTERVAL_MILLIS);
@@ -93,7 +93,7 @@ export default class AutoscaledPool {
     _autoscale() {
         getMemoryInfo()
             .then(({ freeBytes, totalBytes }) => {
-                if (this.maxMemoryMbytes) totalBytes = this.maxMemoryMbytes;
+                if (this.maxMemoryMbytes) totalBytes = Math.min(totalBytes, this.maxMemoryMbytes);
 
                 this.intervalCounter++;
                 this.freeBytesSnapshots = this.freeBytesSnapshots.concat(freeBytes).slice(-SCALE_UP_INTERVAL);
@@ -101,7 +101,7 @@ export default class AutoscaledPool {
                 // Maybe scale down.
                 if (
                     this.intervalCounter % SCALE_DOWN_INTERVAL === 0
-                    && (freeBytes / totalBytes < MIN_FREE_MEMORY_PERC)
+                    && (freeBytes / totalBytes < MIN_FREE_MEMORY_RATIO)
                     && this.concurrency > this.minConcurrency
                 ) {
                     this.concurrency--;
@@ -113,29 +113,30 @@ export default class AutoscaledPool {
                     this.intervalCounter % SCALE_UP_INTERVAL === 0
                     && this.concurrency < this.maxConcurrency
                 ) {
-                    const hasSpaceForInstances = this._computeSpaceforInstances(totalBytes, this.intervalCounter % LOG_INFO_INTERVAL);
+                    const spaceForInstances = this._computeSpaceForInstances(totalBytes, this.intervalCounter % LOG_INFO_INTERVAL);
 
-                    if (hasSpaceForInstances > 0) {
-                        const increaseBy = Math.min(hasSpaceForInstances, SCALE_UP_MAX_STEP);
+                    if (spaceForInstances > 0) {
+                        const increaseBy = Math.min(spaceForInstances, SCALE_UP_MAX_STEP);
+                        const oldConcurrency = this.concurrency;
                         this.concurrency = Math.min(this.concurrency + increaseBy, this.maxConcurrency);
-                        log.debug('AutoscaledPool: scaling up', { concurrency: this.concurrency, increaseBy });
+                        log.debug('AutoscaledPool: scaling up', { oldConcurrency, newConcurrency: this.concurrency });
                     }
                 }
             });
     }
 
     /**
-     * Gets memory info and computes how much we can scale pool to don't exceede the
-     * maximal memory.
+     * Gets memory info and computes how much we can scale pool
+     * to avoid exceeding the maximum memory.
      *
      * If shouldLogInfo = true then also logs info about memory usage.
      */
-    _computeSpaceforInstances(totalBytes, logInfo) {
+    _computeSpaceForInstances(totalBytes, logInfo) {
         const minFreeBytes = Math.min(...this.freeBytesSnapshots);
-        const minFreePerc = minFreeBytes / totalBytes;
+        const minFreeRatio = minFreeBytes / totalBytes;
         const maxTakenBytes = totalBytes - minFreeBytes;
-        const perInstancePerc = (maxTakenBytes / totalBytes) / this.concurrency;
-        const hasSpaceForInstances = (minFreePerc - MIN_FREE_MEMORY_PERC) / perInstancePerc;
+        const perInstanceRatio = (maxTakenBytes / totalBytes) / this.concurrency;
+        const hasSpaceForInstances = (minFreeRatio - MIN_FREE_MEMORY_RATIO) / perInstanceRatio;
 
         if (logInfo) {
             log.info('AutoscaledPool: info', {
@@ -144,9 +145,9 @@ export default class AutoscaledPool {
                 freeBytesSnapshots: humanReadable(_.last(this.freeBytesSnapshots)),
                 totalBytes: humanReadable(totalBytes),
                 minFreeBytes: humanReadable(minFreeBytes),
-                minFreePerc,
+                minFreePerc: minFreeRatio,
                 maxTakenBytes: humanReadable(maxTakenBytes),
-                perInstancePerc,
+                perInstancePerc: perInstanceRatio,
                 hasSpaceForInstances,
             });
         }
@@ -175,6 +176,7 @@ export default class AutoscaledPool {
      * If this.workerFunction() returns null and nothing is running then finishes pool.
      */
     _maybeRunPromise() {
+        if (!this.resolve || !this.reject) return;
         if (this.runningCount >= this.concurrency) return;
 
         const promise = this.workerFunction();
@@ -201,13 +203,16 @@ export default class AutoscaledPool {
             .catch((err) => {
                 log.exception(err, 'AutoscaledPool: worker function failed');
                 this._removeFinishedPromise(id);
-                this.reject(err);
+                if (this.reject) this.reject(err);
             });
 
         this._maybeRunPromise();
     }
 
     _destroy() {
+        this.resolve = null;
+        this.reject = null;
+
         clearInterval(this.memCheckInterval);
         clearInterval(this.maybeRunInterval);
     }
