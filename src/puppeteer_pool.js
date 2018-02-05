@@ -27,11 +27,16 @@ const DEFAULT_OPTIONS = {
 
         const config = Object.assign({}, DEFAULT_PUPPETEER_CONFIG, puppeteerConfig);
 
+        // TODO: is this needed at all? It might be confusing because the feature has the same name
+        // as Chrome command line flag, so people will assume it's doing just that.
+        // For simplicity I'd just remove it...
         if (config.disableWebSecurity) {
             config.ignoreHTTPSErrors = true;
             config.args.push('--disable-web-security');
         }
 
+        // @TODO: Maybe we should move this whole logic directly to Apify.launchPuppeteer().
+        // E.g. if process.env.APIFY_PROXY_HOST is defined, then puppeteer should use it with "auto".
         if (!disableProxy) {
             const session = Math.random();
 

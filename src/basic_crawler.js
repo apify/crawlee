@@ -23,22 +23,27 @@ export default class BasicCrawler {
         checkParamOrThrow(handleRequestFunction, 'opts.handleRequestFunction', 'Function');
         checkParamOrThrow(maxRequestRetries, 'opts.maxRequestRetries', 'Number');
 
+        // @TODO: for clarity, I'd make this an instance function rather than embedded function
         const workerFunction = () => {
             const request = requestList.fetchNextRequest();
 
             if (!request) return;
 
-            return handleRequestFunction({ request })
-                .catch((err) => {
-                    request.errorInfo.push(err);
+            const promise = handleRequestFunction({ request });
+            if (!promise || typeof promise.then !== 'function' || typeof promise.catch !== 'function') {
+                throw new Error('User provided handleRequestFunction must return a Promise.');
+            }
 
-                    if (request.retryCount < maxRequestRetries) {
-                        request.retryCount++;
-                        requestList.reclaimRequest(request);
-                    } else {
-                        requestList.markRequestHandled(request);
-                    }
-                });
+            return promise.catch((err) => {
+                request.errorInfo.push(err);
+
+                if (request.retryCount < maxRequestRetries) {
+                    request.retryCount++;
+                    requestList.reclaimRequest(request);
+                } else {
+                    requestList.markRequestHandled(request);
+                }
+            });
         };
 
         this.autoscaledPool = new AutoscaledPool({
