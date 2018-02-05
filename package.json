@@ -50,7 +50,7 @@
     "underscore": "^1.8.3"
   },
   "devDependencies": {
-    "apify-jsdoc-template": "github:Apifier/apify-jsdoc-template",
+    "apify-jsdoc-template": "github:apify/apify-jsdoc-template",
     "babel-cli": "^6.6.5",
     "babel-core": "^6.1.21",
     "babel-eslint": "^8.0.2",
