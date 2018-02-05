@@ -6,7 +6,7 @@ import path from 'path';
 import sinon from 'sinon';
 import { leftpad } from 'apify-shared/utilities';
 import { ENV_VARS } from '../build/constants';
-import { LEFTPAD_COUNT, DatasetRemote, DatasetLocal } from '../build/dataset';
+import { LEFTPAD_COUNT, Dataset, DatasetLocal } from '../build/dataset';
 import { apifyClient } from '../build/utils';
 import * as Apify from '../build/index';
 
@@ -54,12 +54,17 @@ describe('dataset', () => {
             expect(read(2)).to.be.eql({ foo: 'hotel' });
             expect(read(3)).to.be.eql({ foo: 'from-array-1', arr: [1, 2, 3] });
             expect(read(4)).to.be.eql({ foo: 'from-array-1', arr: [1, 2, 3] });
+
+            // Correctly initializes the state.
+            const newDataset = new DatasetLocal('my-dataset', APIFY_LOCAL_EMULATION_DIR);
+            await newDataset.pushData({ foo2: 'bar2' });
+            expect(read(5)).to.be.eql({ foo2: 'bar2' });
         });
     });
 
     describe('remote', async () => {
         it('should work', async () => {
-            const dataset = new DatasetRemote('some-id');
+            const dataset = new Dataset('some-id');
 
             const mock = sinon.mock(apifyClient.datasets);
 
@@ -85,17 +90,17 @@ describe('dataset', () => {
     });
 
     describe('Apify.openDataset', async () => {
-        it('should open a local store when process.env[ENV_VARS.LOCAL_EMULATION_DIR] is set', async () => {
+        it('should open a local dataset when process.env[ENV_VARS.LOCAL_EMULATION_DIR] is set', async () => {
             process.env[ENV_VARS.LOCAL_EMULATION_DIR] = APIFY_LOCAL_EMULATION_DIR;
 
             const dataset = await Apify.openDataset('some-id-2');
             expect(dataset).to.be.instanceof(DatasetLocal);
-            expect(dataset).not.to.be.instanceof(DatasetRemote);
+            expect(dataset).not.to.be.instanceof(Dataset);
 
             delete process.env[ENV_VARS.LOCAL_EMULATION_DIR];
         });
 
-        it('should reuse cached store instances', async () => {
+        it('should reuse cached dataset instances', async () => {
             process.env[ENV_VARS.LOCAL_EMULATION_DIR] = APIFY_LOCAL_EMULATION_DIR;
 
             const dataset1 = await Apify.openDataset('some-id-3');
@@ -107,7 +112,6 @@ describe('dataset', () => {
             expect(dataset3).to.be.instanceof(DatasetLocal);
 
             expect(dataset1).to.be.equal(dataset2);
-            expect(dataset1).to.be.eql(dataset3);
             expect(dataset1).not.to.be.equal(dataset3);
 
             delete process.env[ENV_VARS.LOCAL_EMULATION_DIR];
@@ -127,7 +131,7 @@ describe('dataset', () => {
 
             const dataset2 = await Apify.openDataset();
             expect(dataset2.datasetId).to.be.eql('some-id-5');
-            expect(dataset2).to.be.instanceof(DatasetRemote);
+            expect(dataset2).to.be.instanceof(Dataset);
 
             delete process.env[ENV_VARS.DEFAULT_DATASET_ID];
         });
@@ -144,7 +148,7 @@ describe('dataset', () => {
                 .returns(Promise.resolve({ id: 'some-id-6' }));
             const dataset = await Apify.openDataset('some-id-6');
             expect(dataset.datasetId).to.be.eql('some-id-6');
-            expect(dataset).to.be.instanceof(DatasetRemote);
+            expect(dataset).to.be.instanceof(Dataset);
 
             // Then used with name it requests store object, gets empty response
             // so then it creates dataset.
@@ -159,7 +163,7 @@ describe('dataset', () => {
 
             const dataset2 = await Apify.openDataset('some-name-7');
             expect(dataset2.datasetId).to.be.eql('some-id-7');
-            expect(dataset2).to.be.instanceof(DatasetRemote);
+            expect(dataset2).to.be.instanceof(Dataset);
 
             mock.verify();
             mock.restore();

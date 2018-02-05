@@ -9,7 +9,7 @@ import { ENV_VARS } from './constants';
 import { apifyClient } from './utils';
 
 export const LEFTPAD_COUNT = 9; // Used for filename in DatasetLocal.
-export const MAX_OPENED_STORES = 1000;
+const MAX_OPENED_STORES = 1000;
 
 const writeFilePromised = Promise.promisify(fs.writeFile);
 const mkdirPromised = Promise.promisify(fs.mkdir);
@@ -27,7 +27,7 @@ const datasetsCache = new LruCache({ maxLength: MAX_OPENED_STORES }); // Open Da
  * `Apify.openDataset()` function.</p>
  * <p>Basic usage of Dataset:</p>
  * ```javascript
- * const dataset = await Apify.openDataset(data);
+ * const dataset = await Apify.openDataset('my-dataset-id');
  * await dataset.pushData({ foo: 'bar' });
  * ```
  */
@@ -109,8 +109,7 @@ export class DatasetLocal {
 }
 
 /**
- * Helper function that first requests dataset by ID and if dataset doesn't exist
- * then tries to get him by name.
+ * Helper function that first requests dataset by ID and if dataset doesn't exist then gets him by name.
  * @ignore
  */
 const getOrCreateDataset = (datasetIdOrName) => {
@@ -131,9 +130,14 @@ const getOrCreateDataset = (datasetIdOrName) => {
  * @function
  * @description <p>Opens dataset and returns its object.</p>
  * ```javascript
- * const dataset = await Apify.openDataset(data);
+ * const dataset = await Apify.openDataset('my-dataset-id');
  * await dataset.pushData({ foo: 'bar' });
  * ```
+ * <p>
+ * If the `APIFY_LOCAL_EMULATION_DIR` environment variable is defined, the value this function
+ * returns an instance `DatasetLocal` which is an local emulation of dataset.
+ * This is useful for local development and debugging of your acts.
+ * </p>
  * @param {string} datasetIdOrName ID or name of the dataset to be opened.
  * @returns {Promise<Dataset>} Returns a promise that resolves to a Dataset object.
  */
@@ -142,41 +146,34 @@ export const openDataset = (datasetIdOrName) => {
 
     const localEmulationDir = process.env[ENV_VARS.LOCAL_EMULATION_DIR];
 
-    let datasetPromise = datasetIdOrName
-        ? datasetsCache.get(datasetIdOrName)
-        : null;
+    let isDefault = false;
+    let datasetPromise;
 
-    // Should we use the default dataset?
     if (!datasetIdOrName) {
-        datasetIdOrName = process.env[ENV_VARS.DEFAULT_DATASET_ID];
+        const envVar = ENV_VARS.DEFAULT_DATASET_ID;
 
         // Env var doesn't exist.
-        if (!datasetIdOrName) {
-            const error = new Error(`The '${ENV_VARS.DEFAULT_DATASET_ID}' environment variable is not defined.`);
+        if (!process.env[envVar]) return Promise.reject(new Error(`The '${envVar}' environment variable is not defined.`));
 
-            return Promise.reject(error);
-        }
-
-        datasetPromise = datasetsCache.get(datasetIdOrName);
-
-        // It's not initialized yet.
-        if (!datasetPromise) {
-            datasetPromise = localEmulationDir
-                ? Promise.resolve(new DatasetLocal(datasetIdOrName, localEmulationDir))
-                : Promise.resolve(new Dataset(datasetIdOrName));
-
-            datasetsCache.add(datasetIdOrName, datasetPromise);
-        }
+        isDefault = true;
+        datasetIdOrName = process.env[envVar];
     }
 
-    // Need to be initialized.
-    if (!datasetPromise) {
-        datasetPromise = localEmulationDir
-            ? Promise.resolve(new DatasetLocal(datasetIdOrName, localEmulationDir))
+    datasetPromise = datasetsCache.get(datasetIdOrName);
+
+    // Found in cache.
+    if (datasetPromise) return datasetPromise;
+
+    // Use local emulation?
+    if (localEmulationDir) {
+        datasetPromise = Promise.resolve(new DatasetLocal(datasetIdOrName, localEmulationDir));
+    } else {
+        datasetPromise = isDefault // If true then we know that this is an ID of existing dataset.
+            ? Promise.resolve(new Dataset(datasetIdOrName))
             : getOrCreateDataset(datasetIdOrName).then(dataset => (new Dataset(dataset.id)));
-
-        datasetsCache.add(datasetIdOrName, datasetPromise);
     }
+
+    datasetsCache.add(datasetIdOrName, datasetPromise);
 
     return datasetPromise;
 };
@@ -185,13 +182,17 @@ export const openDataset = (datasetIdOrName) => {
  * @memberof module:Apify
  * @function
  * @description <p>Stores object or an array of objects in the default dataset for the current act run using the Apify API
- * Default id of the store is in the `APIFY_DEFAULT_DATASET_ID` environment variable
+ * Default id of the dataset is in the `APIFY_DEFAULT_DATASET_ID` environment variable
  * The function has no result, but throws on invalid args or other errors.</p>
  * ```javascript
  * await Apify.pushData(data);
  * ```
  * <p>
  * The data is stored in default dataset associated with this act.
+ * </p>
+ * <p>
+ * If the `APIFY_LOCAL_EMULATION_DIR` environment variable is defined, the data gets pushed into local directory.
+ * This feature is useful for local development and debugging of your acts.
  * </p>
  * <p>
  * **IMPORTANT: Do not forget to use the `await` keyword when calling `Apify.pushData()`,

@@ -2,18 +2,12 @@ import fs from 'fs';
 import path from 'path';
 import Promise from 'bluebird';
 import contentTypeParser from 'content-type';
+import LruCache from 'apify-shared/lru_cache';
 import { checkParamOrThrow, parseBody } from 'apify-client/build/utils';
 import { ENV_VARS } from './constants';
 import { addCharsetToContentType, apifyClient } from './utils';
 
-const readFilePromised = Promise.promisify(fs.readFile);
-const writeFilePromised = Promise.promisify(fs.writeFile);
-const unlinkPromised = Promise.promisify(fs.unlink);
-const statPromised = Promise.promisify(fs.stat);
-// @TODO: We should use LruCache for this
-const storesCache = {}; // Cache of opened store instances.
-const { keyValueStores } = apifyClient;
-
+const MAX_OPENED_STORES = 1000;
 const LOCAL_FILE_TYPES = [
     { contentType: 'application/octet-stream', extension: 'buffer' },
     { contentType: 'application/json', extension: 'json' },
@@ -21,14 +15,29 @@ const LOCAL_FILE_TYPES = [
     { contentType: 'image/jpeg', extension: 'jpg' },
     { contentType: 'image/png', extension: 'png' },
 ];
-
 const DEFAULT_LOCAL_FILE_TYPE = LOCAL_FILE_TYPES[0];
 
+const readFilePromised = Promise.promisify(fs.readFile);
+const writeFilePromised = Promise.promisify(fs.writeFile);
+const unlinkPromised = Promise.promisify(fs.unlink);
+const mkdirPromised = Promise.promisify(fs.mkdir);
+
+const { keyValueStores } = apifyClient;
+const storesCache = new LruCache({ maxLength: MAX_OPENED_STORES }); // Open key-value stores are stored here.
+
+/**
+ * Helper function to validate params of *.getValue().
+ * @ignore
+ */
 const validateGetValueParams = (key) => {
     checkParamOrThrow(key, 'key', 'String');
     if (!key) throw new Error('The "key" parameter cannot be empty');
 };
 
+/**
+ * Helper function to validate params of *.setValue().
+ * @ignore
+ */
 const validateSetValueParams = (key, value, options) => {
     checkParamOrThrow(key, 'key', 'String');
     checkParamOrThrow(options, 'options', 'Object');
@@ -49,6 +58,10 @@ const validateSetValueParams = (key, value, options) => {
     if (!key) throw new Error('The "key" parameter cannot be empty');
 };
 
+/**
+ * Helper function to possibly stringify value if options.contentType is not set.
+ * @ignore
+ */
 const maybeStringify = (value, options) => {
     // If contentType is missing, value will be stringified to JSON
     if (options.contentType === null || options.contentType === undefined) {
@@ -73,13 +86,35 @@ const maybeStringify = (value, options) => {
     return value;
 };
 
-export class KeyValueStoreRemote {
+/**
+ * @class KeyValueStore
+ * @param {String} storeId - ID of the store.
+
+ * @description
+ * <p>KeyValueStore class provides easy interface to Apify key-value store storage type. Key-value store should be opened using
+ * `Apify.openKeyValueStore()` function.</p>
+ * <p>Basic usage of key-value store:</p>
+ * ```javascript
+ * const store = await Apify.openKeyValueStore('my-store-id');
+ * await store.setValue('some-key', { foo: 'bar' });
+ * const value = store.getValue('some-key');
+ * ```
+ */
+export class KeyValueStore {
     constructor(storeId) {
         checkParamOrThrow(storeId, 'storeId', 'String');
 
         this.storeId = storeId;
     }
 
+    /**
+     * Stores object or an array of objects in the dataset.
+     * The function has no result, but throws on invalid args or other errors.
+     * @memberof KeyValueStore
+     * @method getValue
+     * @param {String} key Record key.
+     * @return {Promise}
+     */
     getValue(key) {
         validateGetValueParams(key);
 
@@ -88,6 +123,18 @@ export class KeyValueStoreRemote {
             .then(output => (output ? output.body : null));
     }
 
+    /**
+     * Stores object or an array of objects in the dataset.
+     * The function has no result, but throws on invalid args or other errors.
+     * @memberof KeyValueStore
+     * @method setValue
+     * @param {String} key Record key.
+     * @param {Object|String|Buffer} value Record value. If content type is not provided then the value
+     *                                     is stringified to JSON.
+     * @param {Object} [Options]
+     * @param {Object} [Options.contentType] Content type of the record.
+     * @return {Promise}
+     */
     setValue(key, value, options = {}) {
         validateSetValueParams(key, value, options);
 
@@ -109,6 +156,10 @@ export class KeyValueStoreRemote {
     }
 }
 
+/**
+ * This is a local representation of a key-value store.
+ * @ignore
+ */
 export class KeyValueStoreLocal {
     constructor(storeId, localEmulationDir) {
         checkParamOrThrow(storeId, 'storeId', 'String');
@@ -116,25 +167,20 @@ export class KeyValueStoreLocal {
 
         this.localEmulationPath = path.resolve(path.join(localEmulationDir, storeId));
         this.storeId = storeId;
+        this.initializationPromise = this._initialize();
+    }
 
-        // @TODO: Sync is no good, we should put this init into getValue() / setValue(),
-        //        it will also work even if the directory is removed during the run, which is better design anyway
-        //        BTW it will be fast enough, because OS will cache filesystem's inodes.
-        if (!fs.existsSync(this.localEmulationPath)) fs.mkdirSync(this.localEmulationPath);
+    _initialize() {
+        return mkdirPromised(this.localEmulationPath)
+            .catch((err) => {
+                if (err.code !== 'EEXIST') throw err;
+            });
     }
 
     getValue(key) {
         validateGetValueParams(key);
 
-        return statPromised(this.localEmulationPath)
-            .then((stats) => {
-                if (!stats.isDirectory()) throw new Error('The directory is not a directory');
-            })
-            .catch((err) => {
-                if (err.code === 'ENOENT') throw new Error('The directory does not exist');
-
-                throw err;
-            })
+        return this.initializationPromise
             .then(() => {
                 const filePath = path.resolve(this.localEmulationPath, key);
                 const promises = LOCAL_FILE_TYPES.map(({ extension }) => {
@@ -167,16 +213,20 @@ export class KeyValueStoreLocal {
         // Make copy of options, don't update what user passed.
         const optionsCopy = Object.assign({}, options);
 
+        const deletePromisesArr = LOCAL_FILE_TYPES.map(({ extension }) => {
+            const filePath = path.resolve(this.localEmulationPath, `${key}.${extension}`);
+
+            return unlinkPromised(filePath)
+                .catch((err) => {
+                    if (err.code !== 'ENOENT') throw err;
+                });
+        });
+
+        const deletePromise = Promise
+            .all(deletePromisesArr);
+
         // In this case delete the record.
-        if (value === null) {
-            const promises = LOCAL_FILE_TYPES.map(({ extension }) => {
-                const filePath = path.resolve(this.localEmulationPath, `${key}.${extension}`);
-
-                return unlinkPromised(filePath);
-            });
-
-            return Promise.all(promises).catch(() => {});
-        }
+        if (value === null) return deletePromise;
 
         value = maybeStringify(value, optionsCopy);
 
@@ -184,13 +234,18 @@ export class KeyValueStoreLocal {
         const { extension } = LOCAL_FILE_TYPES.filter(type => type.contentType === contentType).pop() || DEFAULT_LOCAL_FILE_TYPE;
         const filePath = path.resolve(this.localEmulationPath, `${key}.${extension}`);
 
-        return writeFilePromised(filePath, value)
+        return deletePromise
+            .then(() => writeFilePromised(filePath, value))
             .catch((err) => {
                 throw new Error(`Error writing file '${key}' in directory '${this.localEmulationPath}' referred by ${ENV_VARS.APIFY_LOCAL_EMULATION_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len
             });
     }
 }
 
+/**
+ * Helper function that first requests key-value store by ID and if store doesn't exist then gets him by name.
+ * @ignore
+ */
 const getOrCreateKeyValueStore = (storeIdOrName) => {
     return apifyClient
         .keyValueStores
@@ -207,42 +262,55 @@ const getOrCreateKeyValueStore = (storeIdOrName) => {
 /**
  * @memberof module:Apify
  * @function
+ * @description <p>Opens key-value store and returns its object.</p>
+ * ```javascript
+ * const store = await Apify.openKeyValueStore('my-store-id');
+ * await store.setValue('some-key', { foo: 'bar' });
+ * ```
+ * <p>
+ * If the `APIFY_LOCAL_EMULATION_DIR` environment variable is defined, the value this function
+ * returns an instance `KeyValueStoreLocal` which is an local emulation of key-value store.
+ * This is useful for local development and debugging of your acts.
+ * </p>
+ * @param {string} storeIdOrName ID or name of the key-value store to be opened.
+ * @returns {Promise<KeyValueStore>} Returns a promise that resolves to a KeyValueStore object.
  */
 export const openKeyValueStore = (storeIdOrName) => {
-    const localEmulationDir = process.env[ENV_VARS.LOCAL_EMULATION_DIR];
-
     checkParamOrThrow(storeIdOrName, 'storeIdOrName', 'Maybe String');
 
-    // Use default key-value store.
+    const localEmulationDir = process.env[ENV_VARS.LOCAL_EMULATION_DIR];
+
+    let isDefault = false;
+    let storePromise;
+
     if (!storeIdOrName) {
-        storeIdOrName = process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID];
+        const envVar = ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID;
 
-        // Env vars doesn't exist.
-        if (!storeIdOrName) {
-            const error = new Error(`The '${ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID}' environment variable is not defined.`);
+        // Env var doesn't exist.
+        if (!process.env[envVar]) return Promise.reject(new Error(`The '${envVar}' environment variable is not defined.`));
 
-            return Promise.reject(error);
-        }
-
-        // It's not initialized yet.
-        if (!storesCache[storeIdOrName]) {
-            storesCache[storeIdOrName] = localEmulationDir
-                ? Promise.resolve(new KeyValueStoreLocal(storeIdOrName, localEmulationDir))
-                : Promise.resolve(new KeyValueStoreRemote(storeIdOrName));
-        }
+        isDefault = true;
+        storeIdOrName = process.env[envVar];
     }
 
-    // Need to be initialized.
-    if (!storesCache[storeIdOrName]) {
-        storesCache[storeIdOrName] = localEmulationDir
-            ? Promise.resolve(new KeyValueStoreLocal(storeIdOrName, localEmulationDir))
-            : getOrCreateKeyValueStore(storeIdOrName).then(store => (new KeyValueStoreRemote(store.id)));
+    storePromise = storesCache.get(storeIdOrName);
+
+    // Found in cache.
+    if (storePromise) return storePromise;
+
+    // Use local emulation?
+    if (localEmulationDir) {
+        storePromise = Promise.resolve(new KeyValueStoreLocal(storeIdOrName, localEmulationDir));
+    } else {
+        storePromise = isDefault // If true then we know that this is an ID of existing store.
+            ? Promise.resolve(new KeyValueStore(storeIdOrName))
+            : getOrCreateKeyValueStore(storeIdOrName).then(store => (new KeyValueStore(store.id)));
     }
 
-    return storesCache[storeIdOrName];
+    storesCache.add(storeIdOrName, storePromise);
+
+    return storePromise;
 };
-
-// @TODO: Fix the docs - APIFY_DEV_KEY_VALUE_STORE_DIR is gone
 
 /**
  * @memberof module:Apify
@@ -267,12 +335,10 @@ export const openKeyValueStore = (storeIdOrName) => {
  * If the record cannot be found, the result is null.
  * </p>
  * <p>
- * If the `APIFY_DEV_KEY_VALUE_STORE_DIR` environment variable is defined,
+ * If the `APIFY_LOCAL_EMULATION_DIR` environment variable is defined,
  * the value is read from a that directory rather than the key-value store,
  * specifically from a file that has the key as a name.
- * The directory must exist or an error is thrown. If the file does not exists, the returned value is `null`.
- * The file is assumed to have a content type specified in the `APIFY_DEV_KEY_VALUE_STORE_CONTENT_TYPE`
- * environment variable, or `application/json` if not set.
+ * file does not exists, the returned value is `null`. The file will get extension based on it's content type.
  * This feature is useful for local development and debugging of your acts.
  * </p>
  * @param {String} key Key of the record.
@@ -297,7 +363,7 @@ export const getValue = key => openKeyValueStore().then(store => store.getValue(
  * In this case, the value must be a string or Buffer.
  * </p>
  * <p>
- * If the `APIFY_DEV_KEY_VALUE_STORE_DIR` environment variable is defined,
+ * If the `APIFY_LOCAL_EMULATION_DIR` environment variable is defined,
  * the value is written to that local directory rather than the key-value store on Apify cloud,
  * to a file named as the key. This is useful for local development and debugging of your acts.
  * </p>

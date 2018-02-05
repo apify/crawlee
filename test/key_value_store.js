@@ -5,7 +5,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import sinon from 'sinon';
 import { ENV_VARS } from '../build/constants';
-import { KeyValueStoreLocal, KeyValueStoreRemote } from '../build/key_value_store';
+import { KeyValueStoreLocal, KeyValueStore } from '../build/key_value_store';
 import { apifyClient } from '../build/utils';
 import * as Apify from '../build/index';
 
@@ -21,7 +21,7 @@ fs.mkdirSync(APIFY_LOCAL_EMULATION_DIR_PATH);
 
 const expectNotLocal = () => expect(process.env[ENV_VARS.LOCAL_EMULATION_DIR]).to.be.a('undefined');
 
-describe('dataset', () => {
+describe('key_value_store', () => {
     before(() => {
         apifyClient.setOptions({ token: 'xxx' });
     });
@@ -69,7 +69,7 @@ describe('dataset', () => {
 
     describe('remote', async () => {
         it('works', async () => {
-            const store = new KeyValueStoreRemote('some-id-1');
+            const store = new KeyValueStore('some-id-1');
             const mock = sinon.mock(apifyClient.keyValueStores);
             const record = { foo: 'bar' };
             const recordStr = JSON.stringify(record, null, 2);
@@ -118,7 +118,7 @@ describe('dataset', () => {
 
             const store = await Apify.openKeyValueStore('some-id-2');
             expect(store).to.be.instanceof(KeyValueStoreLocal);
-            expect(store).not.to.be.instanceof(KeyValueStoreRemote);
+            expect(store).not.to.be.instanceof(KeyValueStore);
 
             delete process.env[ENV_VARS.LOCAL_EMULATION_DIR];
         });
@@ -135,7 +135,6 @@ describe('dataset', () => {
             expect(store3).to.be.instanceof(KeyValueStoreLocal);
 
             expect(store1).to.be.equal(store2);
-            expect(store1).to.be.eql(store3);
             expect(store1).not.to.be.equal(store3);
 
             delete process.env[ENV_VARS.LOCAL_EMULATION_DIR];
@@ -155,7 +154,7 @@ describe('dataset', () => {
 
             const store2 = await Apify.openKeyValueStore();
             expect(store2.storeId).to.be.eql('some-id-5');
-            expect(store2).to.be.instanceof(KeyValueStoreRemote);
+            expect(store2).to.be.instanceof(KeyValueStore);
 
             delete process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID];
         });
@@ -172,7 +171,7 @@ describe('dataset', () => {
                 .returns(Promise.resolve({ id: 'some-id-6' }));
             const store = await Apify.openKeyValueStore('some-id-6');
             expect(store.storeId).to.be.eql('some-id-6');
-            expect(store).to.be.instanceof(KeyValueStoreRemote);
+            expect(store).to.be.instanceof(KeyValueStore);
 
             // Then used with name it requests store object, gets empty response
             // so then it creates dataset.
@@ -187,7 +186,7 @@ describe('dataset', () => {
 
             const store2 = await Apify.openKeyValueStore('some-name-7');
             expect(store2.storeId).to.be.eql('some-id-7');
-            expect(store2).to.be.instanceof(KeyValueStoreRemote);
+            expect(store2).to.be.instanceof(KeyValueStore);
 
             mock.verify();
             mock.restore();
@@ -266,7 +265,7 @@ describe('dataset', () => {
         });
 
         it('correctly adds charset to content type', async () => {
-            const store = new KeyValueStoreRemote('some-id-1');
+            const store = new KeyValueStore('some-id-1');
             const mock = sinon.mock(apifyClient.keyValueStores);
 
             mock.expects('putRecord')
@@ -284,7 +283,7 @@ describe('dataset', () => {
         });
 
         it('correctly passes object values as JSON', async () => {
-            const store = new KeyValueStoreRemote('some-id-1');
+            const store = new KeyValueStore('some-id-1');
             const mock = sinon.mock(apifyClient.keyValueStores);
             const record = { foo: 'bar' };
             const recordStr = JSON.stringify(record, null, 2);
@@ -304,7 +303,7 @@ describe('dataset', () => {
         });
 
         it('correctly passes raw string values', async () => {
-            const store = new KeyValueStoreRemote('some-id-1');
+            const store = new KeyValueStore('some-id-1');
             const mock = sinon.mock(apifyClient.keyValueStores);
 
             mock.expects('putRecord')
@@ -322,7 +321,7 @@ describe('dataset', () => {
         });
 
         it('correctly passes raw Buffer values', async () => {
-            const store = new KeyValueStoreRemote('some-id-1');
+            const store = new KeyValueStore('some-id-1');
             const mock = sinon.mock(apifyClient.keyValueStores);
             const value = Buffer.from('some text value');
 
