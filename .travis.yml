@@ -4,11 +4,6 @@ addons:
   chrome: beta
 before_install:
 before_install:
-  - # Install Squid and symlink it under "squid" command
-  - sudo apt-get -qq update
-  - sudo apt-get install -y squid3
-  - sudo squid3 -k shutdown
-  - sudo ln -s /usr/sbin/squid3 /usr/sbin/squid
   - # Install ChromeDriver for Selenium (IMPORTANT: this version should correspond to the version in apify-actor-docker)
   - sudo curl -sS http://chromedriver.storage.googleapis.com/2.30/chromedriver_linux64.zip > /tmp/chromedriver.zip
   - sudo unzip /tmp/chromedriver.zip -d /tmp
@@ -17,7 +12,6 @@ before_install:
   - # Travis' VM has preinstalled google-chrome stable, which has no headless mode!
   - sudo mv -f /usr/bin/google-chrome-beta /usr/bin/google-chrome | tee
   - # Print versions to help debugging
-  - squid -v
   - google-chrome --version
   - chromedriver --version
 language: node_js
