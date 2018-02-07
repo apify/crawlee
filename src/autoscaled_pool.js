@@ -20,24 +20,18 @@ export const LOG_INFO_INTERVAL = 6 * SCALE_UP_INTERVAL; // This must be multiple
 
 /**
  * Helper function that coverts bytes into human readable MBs.
+ *
  * @ignore
  */
 const humanReadable = bytes => `${Math.round(bytes / 1024 / 1024)} MB`;
 
 /**
- * @class AutoscaledPool
- * @memberof Apify
- * @param {Function} options.workerFunction - Function we want to call in parallel. This function must either return a
- *                                            promise or null when all the tasks were processed.
- * @param {Number} [options.maxConcurrency=1000] - Maximal concurrency.
- * @param {Number} [options.minConcurrency=1] - Minimal concurrency.
- * @param {Number} [options.maxMemoryMbytes] - Maximum memory available in the system. By default uses the totalMemory from Apify.getMemoryInfo().
- *
- * @description
- * <p>AutoscaledPool helps to process asynchronous task in parallel. It scales the number of concurrent tasks based on
+ * AutoscaledPool helps to process asynchronous task in parallel. It scales the number of concurrent tasks based on
  * the available memory. If any of the tasks throws an error then the pool.run() method
- * also throws.</p>
- * <p>Basic usage of AutoscaledPool:</p>
+ * also throws.
+ *
+ * Basic usage of AutoscaledPool:
+ *
  * ```javascript
  * const pool = new Apify.AutoScaledPool({
  *     maxConcurrency: 50,
@@ -48,6 +42,13 @@ const humanReadable = bytes => `${Math.round(bytes / 1024 / 1024)} MB`;
  *
  * await pool.run();
  * ```
+ *
+ * @param {Object} options
+ * @param {Function} options.workerFunction Function we want to call in parallel. This function must either return a
+ *                                            promise or null when all the tasks were processed.
+ * @param {Number} [options.maxConcurrency=1000] Maximal concurrency.
+ * @param {Number} [options.minConcurrency=1] Minimal concurrency.
+ * @param {Number} [options.maxMemoryMbytes] Maximum memory available in the system. By default uses the totalMemory from Apify.getMemoryInfo().
  */
 export default class AutoscaledPool {
     constructor(opts) {
@@ -85,8 +86,7 @@ export default class AutoscaledPool {
     /**
      * Runs the autoscaled pool. Returns promise that gets resolved or rejected once
      * all the task got finished or some of them fails.
-     * @memberof Apify.AutoscaledPool
-     * @method run
+     *
      * @return {Promise}
      */
     run() {

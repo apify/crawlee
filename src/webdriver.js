@@ -1,8 +1,7 @@
 // import { ChromeLauncher } from 'lighthouse/lighthouse-cli/chrome-launcher';
 import { anonymizeProxy, closeAnonymizedProxy } from 'proxy-chain';
 import { ENV_VARS } from './constants';
-import { newPromise, nodeifyPromise } from './utils';
-
+import { newPromise } from './utils';
 
 /* global process, require */
 
@@ -16,10 +15,10 @@ import { newPromise, nodeifyPromise } from './utils';
 
 // TODO: on first use of Apify.browse(), print out the version of Chrome and ChromeDriver
 
-
 /**
  * Gets the default options for the browse() function, generated from current process environment
  * variables. This is function to enable unit testing.
+ *
  * @ignore
  */
 export const getDefaultBrowseOptions = () => {
@@ -31,10 +30,10 @@ export const getDefaultBrowseOptions = () => {
     };
 };
 
-
 /**
  * Represents a single web browser process.
  * Currently it is just a thin wrapper of Selenium's WebDriver instance.
+ *
  * @ignore
  */
 export class Browser {
@@ -77,10 +76,6 @@ export class Browser {
         this.webDriver = null;
     }
 
-    /**
-     * Initializes the browser.
-     * @returns Promise
-     */
     _initialize() {
         let promise = null;
 
@@ -146,29 +141,23 @@ export class Browser {
 /**
  * Normalizes arguments for Apify.browse(), fills correctly default values.
  * The function is exported to allow unit testing.
- * @param url Optional string
- * @param options Optional object
- * @param callback Optional function
+ *
+ * @param {String} [url]
+ * @param {Object} [options]
+ *
  * @ignore
  */
-export const processBrowseArgs = (url, options, callback) => {
-    if (typeof (url) === 'object' || typeof (url) === 'function') {
-        callback = options;
+export const processBrowseArgs = (url, options) => {
+    if (typeof (url) === 'object') {
         options = url;
         url = null;
     }
-    if (typeof (options) === 'function') {
-        callback = options;
-        options = null;
-    }
     options = Object.assign({}, options);
     options.url = url || options.url || 'about:blank';
-    callback = callback || null;
 
     if (typeof (options.url) !== 'string') throw new Error('Invalid "url" provided.');
-    if (callback && typeof (callback) !== 'function') throw new Error('Invalid "callback" provided.');
 
-    return { options, callback };
+    return { options };
 };
 
 /*
@@ -178,7 +167,7 @@ OLD INFO FROM README:
 Apify runtime optionally depends on
 the [selenium-webdriver](https://www.npmjs.com/package/selenium-webdriver) package that enables
 automation of a web browser.
-The simplest way to launch a new web browser is using the `Apify.browse([url,] [options,] [callback])`
+The simplest way to launch a new web browser is using the `Apify.browse([url,] [options)`
 function. For example:
 
 ```javascript
@@ -224,8 +213,6 @@ The `options` parameter controls settings of the web browser and it has the foll
 
 The result of the `Apify.browse()` is a new instance of the `Browser` class,
 which represents a web browser instance (possibly with multiple windows or tabs).
-If you pass a Node.js-style callback the `Browser` instance is passed to it,
-otherwise the `Apify.browse()` function returns a promise that resolves to the `Browser` instance.
 
 The `Browser` class has the following properties:
 
@@ -259,68 +246,65 @@ await browser.close();
 // TODO: browse() is only kept for backwards compatibility, get rid of it after no acts are using it!
 
 /**
- * @memberof module:Apify
- * @function
- * @description Opens a new web browser, which is attached to Apify debugger so that snapshots are sent to Run console (TODO).
+ * Opens a new web browser, which is attached to Apify debugger so that snapshots are sent to Run console (TODO).
  * Internally, this function calls Selenium WebDrivers's Builder command to create a new WebDriver instance.
  * (see http://seleniumhq.github.io/selenium/docs/api/javascript/module/selenium-webdriver/index_exports_Builder.html)
  * The result of the function is a new instance of the Browser class.
- * @param url Optional start URL to open. Defaults to about:blank
- * @param options Optional settings, their defaults are provided by the getDefaultBrowseOptions() function.
- * @param callback Optional callback.
- * @returns Returns a promise if no callback was provided, otherwise the return value is not defined.
+ *
+ * @param {String} [url] start URL to open. Defaults to about:blank
+ * @param {Object} [options] settings, their defaults are provided by the getDefaultBrowseOptions() function.
+ * @returns {Promise}
+ *
+ * @memberof module:Apify
+ * @function
  * @ignore
  */
-export const browse = (url, options, callback) => {
-    const args = processBrowseArgs(url, options, callback);
-
+export const browse = (url, options) => {
+    const args = processBrowseArgs(url, options);
     const browser = new Browser(args.options);
-    const promise = browser._initialize()
+
+    return browser._initialize()
         .then(() => {
             return browser.webDriver.get(args.options.url);
         })
         .then(() => {
             return browser;
         });
-
-    return nodeifyPromise(promise, args.callback);
 };
 
-
 /**
- * @memberof module:Apify
- * @function
- * @description <p>Opens a new instance of Chrome web browser
+ * Opens a new instance of Chrome web browser
  * controlled by {@link http://www.seleniumhq.org/projects/webdriver/|Selenium WebDriver}.
  * The result of the function is the new instance of the
  * {@link http://seleniumhq.github.io/selenium/docs/api/javascript/module/selenium-webdriver/index_exports_WebDriver.html|WebDriver}
  * class.
- * </p>
- * <p>
+ *
  * If the `APIFY_HEADLESS` environment variable is set to `1`, the function
  * runs the web browser in headless mode. Note that this environment variable is automatically set to `1` when
  * in acts running on the Apify Actor cloud platform.
- * </p>
- * <p>
+ *
  * To use this function, you need to have Google Chrome and
  * {@link https://sites.google.com/a/chromium.org/chromedriver/|ChromeDriver} installed in your environment.
  * For example, you can use the `apify/actor-node-chrome` base Docker image for your act - see
  * {@link https://www.apify.com/docs/actor#base-images|documentation}
  * for more details.
- * </p>
+ *
  * @param {Object} [opts] Optional settings passed to `puppeteer.launch()`. Additionally the object can contain the following fields:
  * @param {String} [opts.proxyUrl] - URL to a proxy server. Currently only `http://` scheme is supported.
  * Port number must be specified. For example, `http://example.com:1234`.
  * @param {String} [opts.userAgent] - Default User-Agent for the browser.
- * @param {Function} callback Optional callback.
- * @returns {Promise} Returns a promise if no callback was provided, otherwise the return value is not defined.
+ * @returns {Promise}
+ *
+ * @memberof module:Apify
+ * @name launchWebDriver
+ * @instance
  */
-export const launchWebDriver = (opts, callback) => {
-    const args = processBrowseArgs(undefined, opts, callback);
+export const launchWebDriver = (opts) => {
+    const args = processBrowseArgs(undefined, opts);
     const browser = new Browser(args.options);
 
     // NOTE: eventually get rid of the Browser class
-    const promise = browser._initialize()
+    return browser._initialize()
         .then(() => {
             // TODO: for some reason this doesn't work, the proxy chain will never shut down!!
             //       BTW this also prevents us from upgrading to mocha 4+
@@ -334,10 +318,7 @@ export const launchWebDriver = (opts, callback) => {
 
             return browser.webDriver;
         });
-
-    return nodeifyPromise(promise, args.callback);
 };
-
 
 // /**
 //  * Launches a debugging instance of Chrome on port 9222, without Selenium.

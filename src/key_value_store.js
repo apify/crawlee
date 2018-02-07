@@ -27,6 +27,7 @@ const storesCache = new LruCache({ maxLength: MAX_OPENED_STORES }); // Open key-
 
 /**
  * Helper function to validate params of *.getValue().
+ *
  * @ignore
  */
 const validateGetValueParams = (key) => {
@@ -36,15 +37,13 @@ const validateGetValueParams = (key) => {
 
 /**
  * Helper function to validate params of *.setValue().
+ *
  * @ignore
  */
 const validateSetValueParams = (key, value, options) => {
     checkParamOrThrow(key, 'key', 'String');
     checkParamOrThrow(options, 'options', 'Object');
     checkParamOrThrow(options.contentType, 'options.contentType', 'String | Null | Undefined');
-
-    // @TODO: when value is undefined, the function will throw "The "value" parameter cannot be stringified to JSON",
-    // we could test for it here instead and throw better error
 
     if (value === null && options.contentType !== null && options.contentType !== undefined) {
         throw new Error('The "options.contentType" parameter must not be used when removing the record.');
@@ -60,6 +59,7 @@ const validateSetValueParams = (key, value, options) => {
 
 /**
  * Helper function to possibly stringify value if options.contentType is not set.
+ *
  * @ignore
  */
 const maybeStringify = (value, options) => {
@@ -87,18 +87,18 @@ const maybeStringify = (value, options) => {
 };
 
 /**
- * @class KeyValueStore
- * @param {String} storeId - ID of the store.
-
- * @description
- * <p>KeyValueStore class provides easy interface to Apify key-value store storage type. Key-value store should be opened using
- * `Apify.openKeyValueStore()` function.</p>
- * <p>Basic usage of key-value store:</p>
+ * KeyValueStore class provides easy interface to Apify key-value store storage type. Key-value store should be opened using
+ * `Apify.openKeyValueStore()` function.
+ *
+ * Basic usage of key-value store:
+ *
  * ```javascript
  * const store = await Apify.openKeyValueStore('my-store-id');
  * await store.setValue('some-key', { foo: 'bar' });
  * const value = store.getValue('some-key');
  * ```
+ *
+ * @param {String} storeId - ID of the store.
  */
 export class KeyValueStore {
     constructor(storeId) {
@@ -110,9 +110,8 @@ export class KeyValueStore {
     /**
      * Stores object or an array of objects in the dataset.
      * The function has no result, but throws on invalid args or other errors.
-     * @memberof KeyValueStore
-     * @method getValue
-     * @param {String} key Record key.
+     *
+     * @param  {String}  key Record key.
      * @return {Promise}
      */
     getValue(key) {
@@ -126,13 +125,11 @@ export class KeyValueStore {
     /**
      * Stores object or an array of objects in the dataset.
      * The function has no result, but throws on invalid args or other errors.
-     * @memberof KeyValueStore
-     * @method setValue
-     * @param {String} key Record key.
-     * @param {Object|String|Buffer} value Record value. If content type is not provided then the value
-     *                                     is stringified to JSON.
-     * @param {Object} [Options]
-     * @param {Object} [Options.contentType] Content type of the record.
+     *
+     * @param  {String} key Record key.
+     * @param  {Object|String|Buffer} value Record value. If content type is not provided then the value is stringified to JSON.
+     * @param  {Object} [Options]
+     * @param  {Object} [Options.contentType] Content type of the record.
      * @return {Promise}
      */
     setValue(key, value, options = {}) {
@@ -158,6 +155,7 @@ export class KeyValueStore {
 
 /**
  * This is a local representation of a key-value store.
+ *
  * @ignore
  */
 export class KeyValueStoreLocal {
@@ -244,6 +242,7 @@ export class KeyValueStoreLocal {
 
 /**
  * Helper function that first requests key-value store by ID and if store doesn't exist then gets him by name.
+ *
  * @ignore
  */
 const getOrCreateKeyValueStore = (storeIdOrName) => {
@@ -260,20 +259,23 @@ const getOrCreateKeyValueStore = (storeIdOrName) => {
 };
 
 /**
- * @memberof module:Apify
- * @function
- * @description <p>Opens key-value store and returns its object.</p>
+ * Opens key-value store and returns its object.</p>
+ *
  * ```javascript
  * const store = await Apify.openKeyValueStore('my-store-id');
  * await store.setValue('some-key', { foo: 'bar' });
  * ```
- * <p>
+ *
  * If the `APIFY_LOCAL_EMULATION_DIR` environment variable is defined, the value this function
  * returns an instance `KeyValueStoreLocal` which is an local emulation of key-value store.
  * This is useful for local development and debugging of your acts.
- * </p>
+ *
  * @param {string} storeIdOrName ID or name of the key-value store to be opened.
  * @returns {Promise<KeyValueStore>} Returns a promise that resolves to a KeyValueStore object.
+ *
+ * @memberof module:Apify
+ * @name openKeyValueStore
+ * @instance
  */
 export const openKeyValueStore = (storeIdOrName) => {
     checkParamOrThrow(storeIdOrName, 'storeIdOrName', 'Maybe String');
@@ -313,74 +315,82 @@ export const openKeyValueStore = (storeIdOrName) => {
 };
 
 /**
- * @memberof module:Apify
- * @function
- * @description <p>Gets a value from the default key-value store for the current act run using the Apify API.
+ * Gets a value from the default key-value store for the current act run using the Apify API.
  * The key-value store is created automatically for each act run
  * and its ID is passed by the Actor platform in the `APIFY_DEFAULT_KEY_VALUE_STORE_ID` environment variable.
  * It is used to store input and output of the act under keys named `INPUT` and `OUTPUT`, respectively.
  * However, the store can be used for storage of any other values under arbitrary keys.
- * </p>
- * <p>Example usage</p>
- * <pre><code class="language-javascript">const input = await Apify.getValue('INPUT');
+ *
+ * Example usage:
+ *
+ * ```javascript
+ * const input = await Apify.getValue('INPUT');
  *
  * console.log('My input:');
  * console.dir(input);
- * </code></pre>
- * <p>
+ * ```
+ *
  * The result of the function is the body of the record. Bodies with the `application/json`
  * content type are automatically parsed to an object.
  * Similarly, for `text/plain` content types the body is parsed as `String`.
  * For all other content types, the body is a raw `Buffer`.
  * If the record cannot be found, the result is null.
- * </p>
- * <p>
+ *
  * If the `APIFY_LOCAL_EMULATION_DIR` environment variable is defined,
  * the value is read from a that directory rather than the key-value store,
  * specifically from a file that has the key as a name.
  * file does not exists, the returned value is `null`. The file will get extension based on it's content type.
  * This feature is useful for local development and debugging of your acts.
- * </p>
+ *
+ *
  * @param {String} key Key of the record.
  * @returns {Promise} Returns a promise.
+ *
+ * @memberof module:Apify
+ * @name getValue
+ * @instance
  */
 export const getValue = key => openKeyValueStore().then(store => store.getValue(key));
 
 /**
- * @memberof module:Apify
- * @function
- * @description <p>Stores a value in the default key-value store for the current act run using the Apify API.
+ * Stores a value in the default key-value store for the current act run using the Apify API.
  * The data is stored in the key-value store created specifically for the act run,
  * whose ID is defined in the `APIFY_DEFAULT_KEY_VALUE_STORE_ID` environment variable.
- * The function has no result, but throws on invalid args or other errors.</p>
- * <pre><code class="language-javascript">await Apify.setValue('OUTPUT', { someValue: 123 });</code></pre>
- * <p>
+ * The function has no result, but throws on invalid args or other errors.
+ *
+ * ```javascript
+ * await Apify.setValue('OUTPUT', { someValue: 123 });
+ * ```
+ *
  * By default, `value` is converted to JSON and stored with the `application/json; charset=utf-8` content type.
  * To store a value with another content type, pass it in the options as follows:
- * </p>
- * <pre><code class="language-javascript">await Apify.setValue('OUTPUT', 'my text data', { contentType: 'text/plain' });</code></pre>
- * <p>
+ * ```javascript
+ * await Apify.setValue('OUTPUT', 'my text data', { contentType: 'text/plain' });
+ * ```
  * In this case, the value must be a string or Buffer.
- * </p>
- * <p>
+ *
  * If the `APIFY_LOCAL_EMULATION_DIR` environment variable is defined,
  * the value is written to that local directory rather than the key-value store on Apify cloud,
  * to a file named as the key. This is useful for local development and debugging of your acts.
- * </p>
- * <p>
- * **IMPORTANT: Do not forget to use the `await` keyword when calling `Apify.setValue()`,
- * otherwise the act process might finish before the value is stored!**
- * </p>
+ *
+ * **IMPORTANT:** Do not forget to use the `await` keyword when calling `Apify.setValue()`,
+ * otherwise the act process might finish before the value is stored!
+ *
  * @param key Key of the record
  * @param value Value of the record:
- * <ul>
- *  <li>If `null`, the record in the key-value store is deleted.</li>
- *  <li>If no `options.contentType` is specified, `value` can be any object and it will be stringified to JSON.</li>
- *  <li>If `options.contentType` is specified, `value` is considered raw data and it must be a String or Buffer.</li>
- * </ul>
- * For any other value an error will be thrown.
+ *        <ul>
+ *         <li>If `null`, the record in the key-value store is deleted.</li>
+ *         <li>If no `options.contentType` is specified, `value` can be any object and it will be stringified to JSON.</li>
+ *         <li>If `options.contentType` is specified, `value` is considered raw data and it must be a String or Buffer.</li>
+ *        </ul>
+ *        For any other value an error will be thrown.
+ *
  * @param {Object} [options]
  * @param {String} [options.contentType] - Sets the MIME content type of the value.
- * @returns {Promise} Returns a promise.
+ * @returns {Promise} Returns a promise that resolves to the value.
+ *
+ * @memberof module:Apify
+ * @name setValue
+ * @instance
  */
 export const setValue = (key, value, options) => openKeyValueStore().then(store => store.setValue(key, value, options));

@@ -1,7 +1,10 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
 
-// @TODO: implement randomWaitBetweenUsagesMillis
+// TODO: randomWaitBetweenUsagesMillis
 
+/**
+ *
+ */
 export default class SettingsRotator {
     constructor({
         newSettingsFunction,

@@ -3,9 +3,10 @@ import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { launchPuppeteer } from './puppeteer';
 import { getApifyProxyUrl } from './actor';
+import { isProduction } from './utils';
 
 const DEFAULT_PUPPETEER_CONFIG = {
-    dumpio: process.env.NODE_ENV !== 'production',
+    dumpio: !isProduction(),
     slowMo: 0,
     args: [],
 };
@@ -13,15 +14,15 @@ const DEFAULT_PUPPETEER_CONFIG = {
 // @TODO log console messages and errors
 
 const DEFAULT_OPTIONS = {
-    maxOpenPagesPerInstance: 1000,
-    abortInstanceAfterRequestCount: 50,
+    maxOpenPagesPerInstance: 100,
+    abortInstanceAfterRequestCount: 150,
 
     // These can't be constants because we need it for unit tests.
     instanceKillerIntervalMillis: 60 * 1000,
     killInstanceAfterMillis: 5 * 60 * 1000,
 
     // @TODO use settingsRotator()
-    launchPuppeteerFunction: ({ groups, puppeteerConfig, disableProxy }) => {
+    launchPuppeteerFunction: ({ groups, puppeteerConfig, disableProxy = false }) => {
         checkParamOrThrow(groups, 'opts.groups', 'Maybe Array');
         checkParamOrThrow(puppeteerConfig, 'opts.puppeteerConfig', 'Maybe Object');
         checkParamOrThrow(disableProxy, 'opts.disableProxy', 'Maybe Boolean');

@@ -3,7 +3,6 @@ import { expect } from 'chai';
 import request from 'request-promise';
 import sinon from 'sinon';
 import Apify from '../build/index';
-import { computeUniqueKey } from '../build/request';
 
 describe('Apify.RequestList', () => {
     it('should not accept to pages with same uniqueKey', async () => {
@@ -14,43 +13,85 @@ describe('Apify.RequestList', () => {
             ],
         });
 
-        await requestList.loadSources();
+        await requestList.initialize();
 
         expect(requestList.isEmpty()).to.be.eql(false);
-        expect(requestList.fetchNextRequest().url).to.be.eql('https://example.com/1');
+
+        const req = requestList.fetchNextRequest();
+
+        expect(req.url).to.be.eql('https://example.com/1');
         expect(requestList.isEmpty()).to.be.eql(true);
+        expect(requestList.isFinished()).to.be.eql(false);
         expect(requestList.fetchNextRequest()).to.be.eql(null);
+
+        requestList.markRequestHandled(req);
+
+        expect(requestList.isEmpty()).to.be.eql(true);
+        expect(requestList.isFinished()).to.be.eql(true);
+    });
+
+    it('must be initialized before using any of the methods', async () => {
+        const requestList = new Apify.RequestList({ sources: [{ url: 'https://example.com' }] });
+        const requestObj = new Apify.Request({ url: 'https://example.com' });
+
+        expect(() => requestList.isEmpty()).to.throw();
+        expect(() => requestList.isFinished()).to.throw();
+        expect(() => requestList.getState()).to.throw();
+        expect(() => requestList.markRequestHandled(requestObj)).to.throw();
+        expect(() => requestList.reclaimRequest(requestObj)).to.throw();
+        expect(() => requestList.fetchNextRequest()).to.throw();
+
+        await requestList.initialize();
+
+        expect(() => requestList.isEmpty()).to.not.throw();
+        expect(() => requestList.isFinished()).to.not.throw();
+        expect(() => requestList.getState()).to.not.throw();
+        expect(() => requestList.fetchNextRequest()).to.not.throw();
+        expect(() => requestList.reclaimRequest(requestObj)).to.not.throw();
+        expect(() => requestList.fetchNextRequest()).to.not.throw();
+        expect(() => requestList.markRequestHandled(requestObj)).to.not.throw();
     });
 
     it('should correctly initialized itself', async () => {
-        const requestList = new Apify.RequestList({
-            sources: [
-                { url: 'https://example.com/1' }, // handled
-                { url: 'https://example.com/2' }, // handled
-                { url: 'https://example.com/3' },
-                { url: 'https://example.com/4' }, // handleduniqueKeys
-                { url: 'https://example.com/5' },
-                { url: 'https://example.com/6' }, // handleduniqueKeys
-                { url: 'https://example.com/7' },
-                { url: 'https://example.com/8' },
-            ],
-            state: {
-                handledFromFirst: 2,
-                handledUniqueKeys: [
-                    computeUniqueKey('https://example.com/4'),
-                    computeUniqueKey('https://example.com/6'),
-                ],
-            },
+        const sources = [
+            { url: 'https://example.com/1' },
+            { url: 'https://example.com/2' },
+            { url: 'https://example.com/3' },
+            { url: 'https://example.com/4' },
+            { url: 'https://example.com/5' },
+            { url: 'https://example.com/6' },
+            { url: 'https://example.com/7' },
+            { url: 'https://example.com/8' },
+        ];
+
+        const originalList = new Apify.RequestList({ sources });
+        await originalList.initialize();
+
+        const r1 = originalList.fetchNextRequest(); // 1
+        const r2 = originalList.fetchNextRequest(); // 2
+        originalList.fetchNextRequest(); // 3
+        const r4 = originalList.fetchNextRequest(); // 4
+        const r5 = originalList.fetchNextRequest(); // 5
+        originalList.fetchNextRequest(); // 6
+
+        originalList.markRequestHandled(r1);
+        originalList.markRequestHandled(r2);
+        originalList.markRequestHandled(r4);
+        originalList.reclaimRequest(r5);
+
+        const newList = new Apify.RequestList({
+            sources,
+            state: originalList.getState(),
         });
+        await newList.initialize();
 
-        await requestList.loadSources();
-
-        expect(requestList.isEmpty()).to.be.eql(false);
-        expect(requestList.fetchNextRequest().url).to.be.eql('https://example.com/3');
-        expect(requestList.fetchNextRequest().url).to.be.eql('https://example.com/5');
-        expect(requestList.fetchNextRequest().url).to.be.eql('https://example.com/7');
-        expect(requestList.fetchNextRequest().url).to.be.eql('https://example.com/8');
-        expect(requestList.isEmpty()).to.be.eql(true);
+        expect(newList.isEmpty()).to.be.eql(false);
+        expect(newList.fetchNextRequest().url).to.be.eql('https://example.com/3');
+        expect(newList.fetchNextRequest().url).to.be.eql('https://example.com/5');
+        expect(newList.fetchNextRequest().url).to.be.eql('https://example.com/6');
+        expect(newList.fetchNextRequest().url).to.be.eql('https://example.com/7');
+        expect(newList.fetchNextRequest().url).to.be.eql('https://example.com/8');
+        expect(newList.isEmpty()).to.be.eql(true);
     });
 
     it('should correctly load list from hosted files in correct order', async () => {
@@ -82,7 +123,7 @@ describe('Apify.RequestList', () => {
             ],
         });
 
-        await requestList.loadSources();
+        await requestList.initialize();
 
         expect(requestList.fetchNextRequest()).to.include({ method: 'GET', url: list1[0] });
         expect(requestList.fetchNextRequest()).to.include({ method: 'GET', url: list1[1] });
@@ -94,7 +135,7 @@ describe('Apify.RequestList', () => {
         mock.restore();
     });
 
-    it('should support regex parameter for hosted file list', async () => {
+    it('should use regex parameter to parse urls', async () => {
         const mock = sinon.mock(request);
         const listStr = 'kjnjkn"https://example.com/a/b/c?q=1#abc";,"http://google.com/a/b/c";dgg:dd';
         const listArr = ['https://example.com/a/b/c?q=1#abc', 'http://google.com/a/b/c'];
@@ -109,12 +150,11 @@ describe('Apify.RequestList', () => {
                 {
                     method: 'GET',
                     requestsFromUrl: 'http://example.com/list-1',
-                    regex: '(http|https)://[\\w-]+(\\.[\\w-]+)+([\\w-.,@?^=%&:/~+#-]*[\\w@?^=%&;/~+#-])?',
                 },
             ],
         });
 
-        await requestList.loadSources();
+        await requestList.initialize();
 
         expect(requestList.fetchNextRequest()).to.include({ method: 'GET', url: listArr[0] });
         expect(requestList.fetchNextRequest()).to.include({ method: 'GET', url: listArr[1] });
@@ -135,7 +175,11 @@ describe('Apify.RequestList', () => {
             ],
         });
 
-        await requestList.loadSources();
+        await requestList.initialize();
+
+        //
+        // Fetch first 5 urls
+        //
 
         const request1 = requestList.fetchNextRequest();
         const request2 = requestList.fetchNextRequest();
@@ -148,54 +192,166 @@ describe('Apify.RequestList', () => {
         expect(request3.url).to.be.eql('https://example.com/3');
         expect(request4.url).to.be.eql('https://example.com/4');
         expect(request5.url).to.be.eql('https://example.com/5');
-        expect(requestList.getState()).to.be.eql({ handledFromFirst: 0, handledUniqueKeys: [] });
+        expect(requestList.getState()).to.be.eql({
+            inProgress: {
+                'https://example.com/1': true,
+                'https://example.com/2': true,
+                'https://example.com/3': true,
+                'https://example.com/4': true,
+                'https://example.com/5': true,
+            },
+            nextIndex: 5,
+            nextUniqueKey: 'https://example.com/6',
+        });
         expect(requestList.isEmpty()).to.be.eql(false);
+        expect(requestList.isFinished()).to.be.eql(false);
+        expect(requestList.inProgress).to.include(requestList.reclaimed);
+
+        //
+        // Mark 1st, 2nd handled
+        // Reclaim 3rd 4th
+        //
 
         requestList.markRequestHandled(request1);
         requestList.markRequestHandled(request2);
         requestList.reclaimRequest(request3);
         requestList.reclaimRequest(request4);
-        expect(requestList.getState()).to.be.eql({ handledFromFirst: 2, handledUniqueKeys: [] });
+
+        expect(requestList.getState()).to.be.eql({
+            inProgress: {
+                'https://example.com/3': true,
+                'https://example.com/4': true,
+                'https://example.com/5': true,
+            },
+            nextIndex: 5,
+            nextUniqueKey: 'https://example.com/6',
+        });
         expect(requestList.isEmpty()).to.be.eql(false);
+        expect(requestList.isFinished()).to.be.eql(false);
+        expect(requestList.inProgress).to.include(requestList.reclaimed);
+
+        //
+        // Mark 5th handled
+        //
 
         requestList.markRequestHandled(request5);
-        expect(requestList.getState()).to.be.eql({ handledFromFirst: 2, handledUniqueKeys: [computeUniqueKey(request5.url)] });
+
+        expect(requestList.getState()).to.be.eql({
+            inProgress: {
+                'https://example.com/3': true,
+                'https://example.com/4': true,
+            },
+            nextIndex: 5,
+            nextUniqueKey: 'https://example.com/6',
+        });
         expect(requestList.isEmpty()).to.be.eql(false);
+        expect(requestList.isFinished()).to.be.eql(false);
+        expect(requestList.inProgress).to.include(requestList.reclaimed);
+
+        //
+        // Fetch 3rd and 4th
+        // Mark 4th handled
+        //
 
         const reclaimed3 = requestList.fetchNextRequest();
         expect(reclaimed3.url).to.be.eql('https://example.com/3');
         const reclaimed4 = requestList.fetchNextRequest();
         expect(reclaimed4.url).to.be.eql('https://example.com/4');
         requestList.markRequestHandled(request4);
+
         expect(requestList.getState()).to.be.eql({
-            handledFromFirst: 2,
-            handledUniqueKeys: [
-                computeUniqueKey(request5.url),
-                computeUniqueKey(request4.url),
-            ],
+            inProgress: {
+                'https://example.com/3': true,
+            },
+            nextIndex: 5,
+            nextUniqueKey: 'https://example.com/6',
         });
         expect(requestList.isEmpty()).to.be.eql(false);
+        expect(requestList.isFinished()).to.be.eql(false);
+        expect(requestList.inProgress).to.include(requestList.reclaimed);
+
+        //
+        // Mark 3rd handled
+        //
 
         requestList.markRequestHandled(request3);
-        expect(requestList.getState()).to.be.eql({ handledFromFirst: 5, handledUniqueKeys: [] });
+
+        expect(requestList.getState()).to.be.eql({
+            inProgress: {},
+            nextIndex: 5,
+            nextUniqueKey: 'https://example.com/6',
+        });
         expect(requestList.isEmpty()).to.be.eql(false);
+        expect(requestList.isFinished()).to.be.eql(false);
+        expect(requestList.inProgress).to.include(requestList.reclaimed);
+
+        //
+        // Fetch 6th
+        //
 
         const request6 = requestList.fetchNextRequest();
+
         expect(request6.url).to.be.eql('https://example.com/6');
-        expect(requestList.getState()).to.be.eql({ handledFromFirst: 5, handledUniqueKeys: [] });
+        expect(requestList.fetchNextRequest()).to.be.eql(null);
+        expect(requestList.getState()).to.be.eql({
+            inProgress: {
+                'https://example.com/6': true,
+            },
+            nextIndex: 6,
+            nextUniqueKey: null,
+        });
         expect(requestList.isEmpty()).to.be.eql(true);
+        expect(requestList.isFinished()).to.be.eql(false);
+        expect(requestList.inProgress).to.include(requestList.reclaimed);
+
+        //
+        // Reclaim 6th
+        //
 
         requestList.reclaimRequest(request6);
-        expect(requestList.getState()).to.be.eql({ handledFromFirst: 5, handledUniqueKeys: [] });
+
+        expect(requestList.getState()).to.be.eql({
+            inProgress: {
+                'https://example.com/6': true,
+            },
+            nextIndex: 6,
+            nextUniqueKey: null,
+        });
         expect(requestList.isEmpty()).to.be.eql(false);
+        expect(requestList.isFinished()).to.be.eql(false);
+        expect(requestList.inProgress).to.include(requestList.reclaimed);
+
+        //
+        // Fetch 6th
+        //
 
         const reclaimed6 = requestList.fetchNextRequest();
+
         expect(reclaimed6.url).to.be.eql('https://example.com/6');
-        expect(requestList.getState()).to.be.eql({ handledFromFirst: 5, handledUniqueKeys: [] });
+        expect(requestList.getState()).to.be.eql({
+            inProgress: {
+                'https://example.com/6': true,
+            },
+            nextIndex: 6,
+            nextUniqueKey: null,
+        });
         expect(requestList.isEmpty()).to.be.eql(true);
+        expect(requestList.isFinished()).to.be.eql(false);
+        expect(requestList.inProgress).to.include(requestList.reclaimed);
+
+        //
+        // Mark 6th handled
+        //
 
         requestList.markRequestHandled(reclaimed6);
-        expect(requestList.getState()).to.be.eql({ handledFromFirst: 6, handledUniqueKeys: [] });
+
+        expect(requestList.getState()).to.be.eql({
+            inProgress: {},
+            nextIndex: 6,
+            nextUniqueKey: null,
+        });
         expect(requestList.isEmpty()).to.be.eql(true);
+        expect(requestList.isFinished()).to.be.eql(true);
+        expect(requestList.inProgress).to.include(requestList.reclaimed);
     });
 });

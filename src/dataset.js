@@ -19,17 +19,17 @@ const { datasets } = apifyClient;
 const datasetsCache = new LruCache({ maxLength: MAX_OPENED_STORES }); // Open Datasets are stored here.
 
 /**
- * @class Dataset
- * @param {String} datasetId - ID of the dataset.
-
- * @description
- * <p>Dataset class provides easy interface to Apify Dataset storage type. Dataset should be opened using
- * `Apify.openDataset()` function.</p>
- * <p>Basic usage of Dataset:</p>
+ * Dataset class provides easy interface to Apify Dataset storage type. Dataset should be opened using
+ * `Apify.openDataset()` function.
+ *
+ * Basic usage of Dataset:
+ *
  * ```javascript
  * const dataset = await Apify.openDataset('my-dataset-id');
  * await dataset.pushData({ foo: 'bar' });
  * ```
+ *
+ * @param {String} datasetId - ID of the dataset.
  */
 export class Dataset {
     constructor(datasetId) {
@@ -41,9 +41,8 @@ export class Dataset {
     /**
      * Stores object or an array of objects in the dataset.
      * The function has no result, but throws on invalid args or other errors.
-     * @memberof Dataset
-     * @method pushData
-     * @return {Promise}
+     *
+     * @return {Promise} That resolves when data gets saved into the dataset.
      */
     pushData(data) {
         checkParamOrThrow(data, 'data', 'Array | Object');
@@ -57,6 +56,7 @@ export class Dataset {
 
 /**
  * This is a local representation of a dataset.
+ *
  * @ignore
  */
 export class DatasetLocal {
@@ -110,6 +110,7 @@ export class DatasetLocal {
 
 /**
  * Helper function that first requests dataset by ID and if dataset doesn't exist then gets him by name.
+ *
  * @ignore
  */
 const getOrCreateDataset = (datasetIdOrName) => {
@@ -126,20 +127,23 @@ const getOrCreateDataset = (datasetIdOrName) => {
 };
 
 /**
- * @memberof module:Apify
- * @function
- * @description <p>Opens dataset and returns its object.</p>
+ * Opens dataset and returns its object.
+ *
  * ```javascript
  * const dataset = await Apify.openDataset('my-dataset-id');
  * await dataset.pushData({ foo: 'bar' });
  * ```
- * <p>
+ *
  * If the `APIFY_LOCAL_EMULATION_DIR` environment variable is defined, the value this function
  * returns an instance `DatasetLocal` which is an local emulation of dataset.
  * This is useful for local development and debugging of your acts.
- * </p>
+ *
  * @param {string} datasetIdOrName ID or name of the dataset to be opened.
  * @returns {Promise<Dataset>} Returns a promise that resolves to a Dataset object.
+ *
+ * @memberof module:Apify
+ * @name openDataset
+ * @instance
  */
 export const openDataset = (datasetIdOrName) => {
     checkParamOrThrow(datasetIdOrName, 'datasetIdOrName', 'Maybe String');
@@ -179,26 +183,27 @@ export const openDataset = (datasetIdOrName) => {
 };
 
 /**
- * @memberof module:Apify
- * @function
- * @description <p>Stores object or an array of objects in the default dataset for the current act run using the Apify API
+ * Stores object or an array of objects in the default dataset for the current act run using the Apify API
  * Default id of the dataset is in the `APIFY_DEFAULT_DATASET_ID` environment variable
- * The function has no result, but throws on invalid args or other errors.</p>
+ * The function has no result, but throws on invalid args or other errors.
+ *
  * ```javascript
  * await Apify.pushData(data);
  * ```
- * <p>
+ *
  * The data is stored in default dataset associated with this act.
- * </p>
- * <p>
+ *
  * If the `APIFY_LOCAL_EMULATION_DIR` environment variable is defined, the data gets pushed into local directory.
  * This feature is useful for local development and debugging of your acts.
- * </p>
- * <p>
- * **IMPORTANT: Do not forget to use the `await` keyword when calling `Apify.pushData()`,
- * otherwise the act process might finish before the data is stored!**
- * </p>
+ *
+ * **IMPORTANT**: Do not forget to use the `await` keyword when calling `Apify.pushData()`,
+ * otherwise the act process might finish before the data is stored!
+ *
  * @param {Object|Array} data Object or array of objects containing data to by stored in the dataset
  * @returns {Promise} Returns a promise that gets resolved once data are saved.
+ *
+ * @memberof module:Apify
+ * @name pushData
+ * @instance
  */
 export const pushData = item => openDataset().then(dataset => dataset.pushData(item));

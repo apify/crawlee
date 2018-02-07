@@ -3,14 +3,14 @@ import Promise from 'bluebird';
 import fs from 'fs';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { ENV_VARS, EXIT_CODES, ACT_TASK_TERMINAL_STATUSES } from './constants';
-import { newPromise, nodeifyPromise, apifyClient, addCharsetToContentType } from './utils';
+import { newPromise, apifyClient, addCharsetToContentType } from './utils';
 
 /* globals process */
 
 /**
  * Tries to parse a string with date.
- * @param str Date string
- * @returns Returns either a Date object or undefined
+ * Returns either a Date object or undefined
+ *
  * @ignore
  */
 const tryParseDate = (str) => {
@@ -19,10 +19,9 @@ const tryParseDate = (str) => {
 };
 
 /**
- * @memberof module:Apify
- * @function
- * @description <p>Returns a new object which contains information parsed from the `APIFY_XXX` environment variables.
- * It has the following properties:</p>
+ * Returns a new object which contains information parsed from the `APIFY_XXX` environment variables.
+ * It has the following properties:
+ *
  * ```javascript
  * {
  *     // ID of the act (APIFY_ACT_ID)
@@ -61,7 +60,12 @@ const tryParseDate = (str) => {
  * For the list of the `APIFY_XXX` environment variables, see
  * {@link http://localhost/docs/actor.php#run-env-vars|Actor documentation}.
  * If some of the variables is not defined or is invalid, the corresponding value in the resulting object will be null.
+ *
  * @returns {Object}
+ *
+ * @memberof module:Apify
+ * @function
+ * @name getEnv
  */
 export const getEnv = () => {
     // NOTE: Don't throw if env vars are invalid to simplify local development and debugging of acts
@@ -81,10 +85,9 @@ export const getEnv = () => {
 };
 
 /**
- * @memberof module:Apify
- * @function
- * @description <p>Runs a user function that performs the logic of the act.
- * The `Apify.main(userFunct)` function does the following actions:</p>
+ * Runs a user function that performs the logic of the act.
+ * The `Apify.main(userFunct)` function does the following actions:
+ *
  * <ol>
  *   <li>Invokes the user function passed as the `userFunc` parameter</li>
  *   <li>If the user function returned a promise, waits for it to resolve</li>
@@ -92,15 +95,16 @@ export const getEnv = () => {
  *       prints error details to console so that they are stored to the log file</li>
  *   <li>Exits the process</li>
  * </ol>
- * <p>
+ *
  * In the simplest case, the user function is synchronous:
- * </p>
+ *
  * ```javascript
  * Apify.main(() => {
  *     // My synchronous function that returns immediately
  * });
  * ```
- * <p>If the user function returns a promise, it is considered as asynchronous:</p>
+ *
+ * If the user function returns a promise, it is considered as asynchronous:
  * ```javascript
  * const request = require('request-promise');
  * Apify.main(() => {
@@ -114,7 +118,9 @@ export const getEnv = () => {
  *     });
  * });
  * ```
- * <p>To simplify your code, you can take advantage of the `async`/`await` keywords:</p>
+ *
+ * To simplify your code, you can take advantage of the `async`/`await` keywords:
+ *
  * ```javascript
  * const request = require('request-promise');
  * Apify.main(async () => {
@@ -122,9 +128,15 @@ export const getEnv = () => {
  *      console.log(html);
  * });
  * ```
+ *
  * Note that the use of `Apify.main()` in acts is optional;
  * the function is provided merely for user convenience and acts don't need to use it.
+ *
  * @param userFunc {Function} User function to be executed
+ *
+ * @memberof module:Apify
+ * @function
+ * @name main
  */
 export const main = (userFunc) => {
     if (!userFunc || typeof (userFunc) !== 'function') {
@@ -173,11 +185,10 @@ export const main = (userFunc) => {
 // TODO: this should rather be called Apify.listeningOnPort() or something like that
 
 /**
- * @ignore
- * @memberof module:Apify
- * @function
- * @description Notifies Apify runtime that act is listening on port specified by the APIFY_INTERNAL_PORT environment
+ * Notifies Apify runtime that act is listening on port specified by the APIFY_INTERNAL_PORT environment
  * variable and is ready to receive a HTTP request with act input.
+ *
+ * @ignore
  */
 export const readyFreddy = () => {
     const watchFileName = process.env[ENV_VARS.WATCH_FILE];
@@ -191,10 +202,10 @@ export const readyFreddy = () => {
 };
 
 /**
- * @memberof module:Apify
- * @function
- * @description <p>Executes another act under the current user account, waits for the act finish and fetches its output.</p>
- * <p>The result of the function is an object describing the act run, which looks something like this:</p>
+ * Executes another act under the current user account, waits for the act finish and fetches its output.
+ *
+ * The result of the function is an object describing the act run, which looks something like this:
+ *
  * ```json
  * {
  *     "id": "ErYkuTTsmKiXccNGT",
@@ -225,34 +236,40 @@ export const readyFreddy = () => {
  *     }
  * }
  * ```
- * <p>Internally, the function calls the {@link https://www.apify.com/docs/api/v2#/reference/acts/runs-collection/run-act|Run act} API endpoint
- * and few others.</p>
- * <p>Example usage:</p>
+ * Internally, the function calls the {@link https://www.apify.com/docs/api/v2#/reference/acts/runs-collection/run-act|Run act} API endpoint
+ * and few others.
+ *
+ * Example usage:
+ *
  * ```javascript
  * const run = await Apify.call('apify/hello-world', { myInput: 123 });
  * console.log(`Received message: ${run.output.body.message}`);
  * ```
  *
- * @param {String} actId - Either `username/act-name` or act ID.
- * @param {Object|String|Buffer} [input] - Act input body. If it is an object, it is stringified to
- * JSON and the content type set to `application/json; charset=utf-8`.
+ * @param {String} actId Either `username/act-name` or act ID.
+ * @param {Object|String|Buffer} [input] Act input body. If it is an object, it is stringified to
+ *                                         JSON and the content type set to `application/json; charset=utf-8`.
  * @param {Object} [opts]
- * @param {String} [opts.token] - User API token. By default, it is taken from the `APIFY_TOKEN` environment variable.
- * @param {String} [opts.build] - Tag or number of act build to be run (e.g. `beta` or `1.2.345`).
- * If not provided, the default build tag or number from act configuration is used (typically `latest`).
- * @param {String} [opts.contentType] - Content type for the `input`. If not specified,
- * `input` is expected to be an object that will be stringified to JSON and content type set to
- * `application/json; charset=utf-8`. If `opts.contentType` is specified, then `input` must be a `String` or `Buffer`.
- * @param {String} [opts.timeoutSecs] - Time limit for act to finish, in seconds.
- * If the limit is reached the resulting run will have the `RUNNING` status.
- * By default, there is no timeout.
- * @param {String} [opts.fetchOutput] - If `false` then the function does not fetch output of the act. Default is `true`.
- * @param {String} [opts.disableBodyParser] - If `true` then the function will not attempt to parse the
- * act's output and will return it in a raw `Buffer`. Default is `false`.
- * @param {Function} [callback] - Optional callback. Function returns a promise if not provided.
- * @returns {Promise} Returns a promise unless `callback` was supplied.
+ * @param {String} [opts.token] User API token. By default, it is taken from the `APIFY_TOKEN` environment variable.
+ * @param {String} [opts.build] Tag or number of act build to be run (e.g. `beta` or `1.2.345`).
+ *                                If not provided, the default build tag or number from act configuration is used (typically `latest`).
+ * @param {String} [opts.contentType] Content type for the `input`. If not specified,
+ *                                      `input` is expected to be an object that will be stringified to JSON and content type set to
+ *                                      `application/json; charset=utf-8`. If `opts.contentType` is specified, then `input` must be a
+ *                                      `String` or `Buffer`.
+ * @param {String} [opts.timeoutSecs] Time limit for act to finish, in seconds.
+ *                                      If the limit is reached the resulting run will have the `RUNNING` status.
+ *                                      By default, there is no timeout.
+ * @param {String} [opts.fetchOutput=true] If `false` then the function does not fetch output of the act.
+ * @param {String} [opts.disableBodyParser=false] If `true` then the function will not attempt to parse the
+ *                                                act's output and will return it in a raw `Buffer`.
+ * @returns {Promise}
+ *
+ * @memberof module:Apify
+ * @function
+ * @name call
  */
-export const call = (actId, input, opts = {}, callback) => {
+export const call = (actId, input, opts = {}) => {
     const { acts, keyValueStores } = apifyClient;
 
     checkParamOrThrow(actId, 'actId', 'String');
@@ -330,24 +347,24 @@ export const call = (actId, input, opts = {}, callback) => {
             });
     };
 
-    const promise = acts
+    return acts
         .runAct(Object.assign({}, defaultOpts, runActOpts))
         .then(run => waitForRunToFinish(run));
-
-    return nodeifyPromise(promise, callback);
 };
 
 /**
- * @memberof module:Apify
- * @function
- * @description <p>Returns a url of Apify Proxy that can be used from Actor acts, web browsers or any other HTTP
- * proxy-enabled applications.</p>
+ * Returns a url of Apify Proxy that can be used from Actor acts, web browsers or any other HTTP
+ * proxy-enabled applications.
  *
  * @param {Object} opts
- * @param {String} opts.password - User proxy password. By default, it is taken from the `APIFY_PROXY_PASSWORD` environment variable.
- * @param {String} [opts.groups] - Proxy groups to be used.
- * @param {String} [opts.session] - Session ID that identifies requests that should use the same proxy connection.
+ * @param {String} opts.password User proxy password. By default, it is taken from the `APIFY_PROXY_PASSWORD` environment variable.
+ * @param {String} [opts.groups] Proxy groups to be used.
+ * @param {String} [opts.session] Session ID that identifies requests that should use the same proxy connection.
  * @returns {String} Returns proxy url.
+ *
+ * @memberof module:Apify
+ * @function
+ * @name getApifyProxyUrl
  */
 export const getApifyProxyUrl = (opts = {}) => {
     const {

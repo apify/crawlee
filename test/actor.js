@@ -12,7 +12,6 @@ const Apify = require('../build/index');
 /* global process, describe, it */
 
 // TODO: override console.log() to test the error messages (now they are printed to console)
-// TODO: test callback version of functions!!!
 
 /*
 let freePorts = [];

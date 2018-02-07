@@ -16,6 +16,7 @@ describe('puppeteer_crawler', () => {
             { url: 'http://example.com/?q=6' },
         ];
         const processed = [];
+        const failed = [];
         const requestList = new Apify.RequestList({ sources });
         const handlePageFunction = async ({ page, request }) => {
             await page.waitFor('title');
@@ -30,10 +31,15 @@ describe('puppeteer_crawler', () => {
             minConcurrency: 1,
             maxConcurrency: 1,
             handlePageFunction,
+            handleFailedRequestFunction: ({ request }) => failed.push(request),
             disableProxy: true,
         });
 
+        await requestList.initialize();
         await puppeteerCrawler.run();
+
+        expect(processed).to.have.lengthOf(6);
+        expect(failed).to.have.lengthOf(0);
 
         processed.forEach((request, id) => {
             expect(request.url).to.be.eql(sources[id].url);
@@ -45,27 +51,29 @@ describe('puppeteer_crawler', () => {
         const sources = [
             { url: 'http://example.com/?q=1' },
         ];
-        const processed = [];
+        const failed = [];
         const requestList = new Apify.RequestList({ sources });
-        const handlePageFunction = async ({ request }) => {
-            processed.push(request);
+        const handlePageFunction = async () => {
             await new Promise(resolve => setTimeout(resolve, 1000));
         };
 
         const puppeteerCrawler = new Apify.PuppeteerCrawler({
             requestList,
             handlePageFunction,
+            handleFailedRequestFunction: ({ request }) => failed.push(request),
             disableProxy: true,
             pageOpsTimeoutMillis: 900,
         });
 
+        await requestList.initialize();
         await puppeteerCrawler.run();
 
-        expect(processed[0].retryCount).to.be.eql(3);
-        expect(processed[0].errorInfo).to.have.lengthOf(4);
-        processed[0].errorInfo.forEach((error) => {
-            expect(error).to.be.an('error');
-            expect(error.message).to.include('handlePageFunction timeouted');
+        expect(failed).to.have.lengthOf(1);
+        expect(failed[0].retryCount).to.be.eql(3);
+        expect(failed[0].errorMessages).to.have.lengthOf(4);
+        failed[0].errorMessages.forEach((error) => {
+            expect(error).to.be.a('string');
+            expect(error).to.include('timed out');
         });
     });
 });
