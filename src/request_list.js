@@ -5,6 +5,7 @@ import requestPromise from 'request-promise';
 import { sequentializePromises } from 'apify-shared/utilities';
 import Request from './request';
 
+// TODO: better tests
 const URL_REGEX = '(http|https)://[\\w-]+(\\.[\\w-]+)+([\\w-.,@?^=%&:/~+#-]*[\\w@?^=%&;/~+#-])?';
 
 /**
