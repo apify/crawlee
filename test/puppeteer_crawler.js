@@ -2,11 +2,23 @@ import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import 'babel-polyfill';
 import { delayPromise } from 'apify-shared/utilities';
+import { ENV_VARS } from '../build/constants';
 import * as Apify from '../build/index';
 
 chai.use(chaiAsPromised);
 
 describe('puppeteer_crawler', () => {
+    let prevEnvHeadless;
+
+    before(() => {
+        prevEnvHeadless = process.env[ENV_VARS.HEADLESS];
+        process.env[ENV_VARS.HEADLESS] = '1';
+    });
+
+    after(() => {
+        process.env[ENV_VARS.HEADLESS] = prevEnvHeadless;
+    });
+
     it('should work', async () => {
         const sources = [
             { url: 'http://example.com/?q=1' },

@@ -10,6 +10,17 @@ chai.use(chaiAsPromised);
 const shortSleep = (millis = 25) => new Promise(resolve => setTimeout(resolve, millis));
 
 describe('puppeteer_pool', () => {
+    let prevEnvHeadless;
+
+    before(() => {
+        prevEnvHeadless = process.env[ENV_VARS.HEADLESS];
+        process.env[ENV_VARS.HEADLESS] = '1';
+    });
+
+    after(() => {
+        process.env[ENV_VARS.HEADLESS] = prevEnvHeadless;
+    });
+
     it('should work', async () => {
         process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
         process.env[ENV_VARS.PROXY_HOSTNAME] = 'my.host.com';

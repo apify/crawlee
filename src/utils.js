@@ -198,6 +198,6 @@ export const isProduction = () => process.env.NODE_ENV !== 'production';
 /**
  * Helper function used for local implementations. Creates dir.
  *
- * @ignore.
+ * @ignore
  */
 export const ensureDirExists = path => ensureDirPromised(path);
