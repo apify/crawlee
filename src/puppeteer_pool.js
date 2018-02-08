@@ -59,6 +59,7 @@ class PuppeteerInstance {
         this.totalPages = 0;
         this.browserPromise = browserPromise;
         this.lastPageOpenedAt = Date.now();
+        this.killed = false;
     }
 }
 
@@ -223,7 +224,13 @@ export default class PuppeteerPool {
 
         instance
             .browserPromise
-            .then(browser => browser.close())
+            .then((browser) => {
+                if (instance.killed) return;
+
+                instance.killed = true;
+
+                return browser.close();
+            })
             .catch(err => log.exception(err, 'PuppeteerPool: cannot close the browser instance', { id }));
     }
 
