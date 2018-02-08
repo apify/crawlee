@@ -5,8 +5,9 @@ import contentTypeParser from 'content-type';
 import LruCache from 'apify-shared/lru_cache';
 import { checkParamOrThrow, parseBody } from 'apify-client/build/utils';
 import { ENV_VARS } from './constants';
-import { addCharsetToContentType, apifyClient } from './utils';
+import { addCharsetToContentType, apifyClient, ensureDirExists } from './utils';
 
+export const LOCAL_EMULATION_SUBDIR = 'key-value-stores';
 const MAX_OPENED_STORES = 1000;
 const LOCAL_FILE_TYPES = [
     { contentType: 'application/octet-stream', extension: 'buffer' },
@@ -20,7 +21,6 @@ const DEFAULT_LOCAL_FILE_TYPE = LOCAL_FILE_TYPES[0];
 const readFilePromised = Promise.promisify(fs.readFile);
 const writeFilePromised = Promise.promisify(fs.writeFile);
 const unlinkPromised = Promise.promisify(fs.unlink);
-const mkdirPromised = Promise.promisify(fs.mkdir);
 
 const { keyValueStores } = apifyClient;
 const storesCache = new LruCache({ maxLength: MAX_OPENED_STORES }); // Open key-value stores are stored here.
@@ -163,16 +163,9 @@ export class KeyValueStoreLocal {
         checkParamOrThrow(storeId, 'storeId', 'String');
         checkParamOrThrow(localEmulationDir, 'localEmulationDir', 'String');
 
-        this.localEmulationPath = path.resolve(path.join(localEmulationDir, storeId));
+        this.localEmulationPath = path.resolve(path.join(localEmulationDir, LOCAL_EMULATION_SUBDIR, storeId));
         this.storeId = storeId;
-        this.initializationPromise = this._initialize();
-    }
-
-    _initialize() {
-        return mkdirPromised(this.localEmulationPath)
-            .catch((err) => {
-                if (err.code !== 'EEXIST') throw err;
-            });
+        this.initializationPromise = ensureDirExists(this.localEmulationPath);
     }
 
     getValue(key) {

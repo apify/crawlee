@@ -1,6 +1,7 @@
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import 'babel-polyfill';
+import { delayPromise } from 'apify-shared/utilities';
 import * as Apify from '../build/index';
 
 chai.use(chaiAsPromised);
@@ -54,7 +55,7 @@ describe('puppeteer_crawler', () => {
         const failed = [];
         const requestList = new Apify.RequestList({ sources });
         const handlePageFunction = async () => {
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await delayPromise(1000);
         };
 
         const puppeteerCrawler = new Apify.PuppeteerCrawler({

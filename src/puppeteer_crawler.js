@@ -60,7 +60,7 @@ const DEFAULT_OPTIONS = {
  * @param {Number} [options.maxConcurrency=1] Minimal concurrency of requests processing (See `maxConcurrency` parameter of `Apify.AutoscaledPool`).
  * @param {Number} [options.minConcurrency=1000] Maximal concurrency of request processing (See `minConcurrency` parameter of `Apify.AutoscaledPool`).
  *
- * @param {Number} [options.maxOpenPagesPerInstance=1000] Maximal number of opened tabs per browser. If limit is reached then the new
+ * @param {Number} [options.maxOpenPagesPerInstance=100] Maximal number of opened tabs per browser. If limit is reached then the new
  *                                                        browser gets started. (See `maxOpenPagesPerInstance` parameter of `Apify.PuppeteerPool`)
  * @param {Number} [options.abortInstanceAfterRequestCount=150] Maximal number of requests proceeded from one browser. After that browser
  *                                                              gets restarted. (See `abortInstanceAfterRequestCount` parameter of
@@ -107,8 +107,8 @@ export default class PuppeteerCrawler {
             disableProxy,
         } = _.defaults(opts, DEFAULT_OPTIONS);
 
-        // @TODO checkParamOrThrow(handlePageFunction, 'opts.handlePageFunction', 'Function');
-        // @TODO checkParamOrThrow(handleFailedRequestFunction, 'opts.handleFailedRequestFunction', 'Function');
+        checkParamOrThrow(handlePageFunction, 'opts.handlePageFunction', 'Function');
+        checkParamOrThrow(handleFailedRequestFunction, 'opts.handleFailedRequestFunction', 'Maybe Function');
         checkParamOrThrow(gotoFunction, 'opts.gotoFunction', 'Function');
         checkParamOrThrow(pageOpsTimeoutMillis, 'opts.pageOpsTimeoutMillis', 'Number');
 

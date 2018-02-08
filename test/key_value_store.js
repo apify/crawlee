@@ -1,39 +1,25 @@
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import 'babel-polyfill';
-import fs from 'fs-extra';
-import path from 'path';
 import sinon from 'sinon';
 import { ENV_VARS } from '../build/constants';
-import { KeyValueStoreLocal, KeyValueStore } from '../build/key_value_store';
+import { KeyValueStoreLocal, KeyValueStore, LOCAL_EMULATION_SUBDIR } from '../build/key_value_store';
 import { apifyClient } from '../build/utils';
 import * as Apify from '../build/index';
+import { LOCAL_EMULATION_DIR, emptyLocalEmulationSubdir, expectNotLocalEmulation } from './_helper';
 
 chai.use(chaiAsPromised);
 
-const TMP_DIR_PATH = path.resolve('tmp');
-const APIFY_LOCAL_EMULATION_DIR = path.join('tmp', 'local-emulation-dir');
-const APIFY_LOCAL_EMULATION_DIR_PATH = path.resolve(APIFY_LOCAL_EMULATION_DIR);
-
-if (!fs.existsSync(TMP_DIR_PATH)) fs.mkdirSync(TMP_DIR_PATH);
-if (fs.existsSync(APIFY_LOCAL_EMULATION_DIR_PATH)) fs.removeSync(APIFY_LOCAL_EMULATION_DIR_PATH);
-fs.mkdirSync(APIFY_LOCAL_EMULATION_DIR_PATH);
-
-const expectNotLocal = () => expect(process.env[ENV_VARS.LOCAL_EMULATION_DIR]).to.be.a('undefined');
-
 describe('key_value_store', () => {
-    before(() => {
-        apifyClient.setOptions({ token: 'xxx' });
-    });
-
-    after(() => {
-        apifyClient.setOptions({ token: undefined });
-    });
+    before(() => apifyClient.setOptions({ token: 'xxx' }));
+    after(() => apifyClient.setOptions({ token: undefined }));
+    beforeEach(() => emptyLocalEmulationSubdir(LOCAL_EMULATION_SUBDIR));
+    afterEach(() => emptyLocalEmulationSubdir(LOCAL_EMULATION_SUBDIR));
 
     describe('local', async () => {
         it('should work', async () => {
-            const store = new KeyValueStoreLocal('my-store-id', APIFY_LOCAL_EMULATION_DIR);
-            const store2 = new KeyValueStoreLocal('another-store-id', APIFY_LOCAL_EMULATION_DIR);
+            const store = new KeyValueStoreLocal('my-store-id', LOCAL_EMULATION_DIR);
+            const store2 = new KeyValueStoreLocal('another-store-id', LOCAL_EMULATION_DIR);
             const buffer = Buffer.from('some text value');
 
             await store.setValue('key-obj', { foo: 'bar' });
@@ -114,7 +100,7 @@ describe('key_value_store', () => {
 
     describe('Apify.openKeyValueStore', async () => {
         it('should open a local store when process.env[ENV_VARS.LOCAL_EMULATION_DIR] is set', async () => {
-            process.env[ENV_VARS.LOCAL_EMULATION_DIR] = APIFY_LOCAL_EMULATION_DIR;
+            process.env[ENV_VARS.LOCAL_EMULATION_DIR] = LOCAL_EMULATION_DIR;
 
             const store = await Apify.openKeyValueStore('some-id-2');
             expect(store).to.be.instanceof(KeyValueStoreLocal);
@@ -124,11 +110,11 @@ describe('key_value_store', () => {
         });
 
         it('should reuse cached store instances', async () => {
-            process.env[ENV_VARS.LOCAL_EMULATION_DIR] = APIFY_LOCAL_EMULATION_DIR;
+            process.env[ENV_VARS.LOCAL_EMULATION_DIR] = LOCAL_EMULATION_DIR;
 
             const store1 = await Apify.openKeyValueStore('some-id-3');
             const store2 = await Apify.openKeyValueStore('some-id-3');
-            const store3 = new KeyValueStoreLocal('some-id-3', APIFY_LOCAL_EMULATION_DIR);
+            const store3 = new KeyValueStoreLocal('some-id-3', LOCAL_EMULATION_DIR);
 
             expect(store1).to.be.instanceof(KeyValueStoreLocal);
             expect(store2).to.be.instanceof(KeyValueStoreLocal);
@@ -142,7 +128,7 @@ describe('key_value_store', () => {
 
         it('should open default store when storeIdOrName is not provided', async () => {
             process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID] = 'some-id-4';
-            process.env[ENV_VARS.LOCAL_EMULATION_DIR] = APIFY_LOCAL_EMULATION_DIR;
+            process.env[ENV_VARS.LOCAL_EMULATION_DIR] = LOCAL_EMULATION_DIR;
 
             const store = await Apify.openKeyValueStore();
             expect(store.storeId).to.be.eql('some-id-4');
@@ -150,7 +136,7 @@ describe('key_value_store', () => {
 
             delete process.env[ENV_VARS.LOCAL_EMULATION_DIR];
             process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID] = 'some-id-5';
-            expectNotLocal();
+            expectNotLocalEmulation();
 
             const store2 = await Apify.openKeyValueStore();
             expect(store2.storeId).to.be.eql('some-id-5');
@@ -160,7 +146,7 @@ describe('key_value_store', () => {
         });
 
         it('should open remote store when process.env[ENV_VARS.LOCAL_EMULATION_DIR] is NOT set', async () => {
-            expectNotLocal();
+            expectNotLocalEmulation();
 
             const mock = sinon.mock(apifyClient.keyValueStores);
 

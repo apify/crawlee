@@ -2,6 +2,7 @@ import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import _ from 'underscore';
 import 'babel-polyfill';
+import { delayPromise } from 'apify-shared/utilities';
 import * as Apify from '../build/index';
 
 chai.use(chaiAsPromised);
@@ -14,7 +15,7 @@ describe('basic_crawler', () => {
         const processed = [];
         const requestList = new Apify.RequestList({ sources });
         const handleRequestFunction = async ({ request }) => {
-            await new Promise(resolve => setTimeout(resolve, 10));
+            await delayPromise(10);
             processed.push(_.pick(request, 'url'));
         };
 
@@ -42,7 +43,7 @@ describe('basic_crawler', () => {
         const requestList = new Apify.RequestList({ sources });
 
         const handleRequestFunction = async ({ request }) => {
-            await new Promise(resolve => setTimeout(resolve, 10));
+            await delayPromise(10);
             processed[request.url] = request;
 
             if (request.url === 'http://example.com/2') {

@@ -6,13 +6,13 @@ import { leftpad } from 'apify-shared/utilities';
 import LruCache from 'apify-shared/lru_cache';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { ENV_VARS } from './constants';
-import { apifyClient } from './utils';
+import { apifyClient, ensureDirExists } from './utils';
 
+export const LOCAL_EMULATION_SUBDIR = 'datasets';
 export const LEFTPAD_COUNT = 9; // Used for filename in DatasetLocal.
 const MAX_OPENED_STORES = 1000;
 
 const writeFilePromised = Promise.promisify(fs.writeFile);
-const mkdirPromised = Promise.promisify(fs.mkdir);
 const readdirPromised = Promise.promisify(fs.readdir);
 
 const { datasets } = apifyClient;
@@ -64,17 +64,14 @@ export class DatasetLocal {
         checkParamOrThrow(datasetId, 'datasetId', 'String');
         checkParamOrThrow(localEmulationDir, 'localEmulationDir', 'String');
 
-        this.localEmulationPath = path.resolve(path.join(localEmulationDir, datasetId));
+        this.localEmulationPath = path.resolve(path.join(localEmulationDir, LOCAL_EMULATION_SUBDIR, datasetId));
         this.counter = 0;
         this.datasetId = datasetId;
         this.initializationPromise = this._initialize();
     }
 
     _initialize() {
-        return mkdirPromised(this.localEmulationPath)
-            .catch((err) => {
-                if (err.code !== 'EEXIST') throw err;
-            })
+        return ensureDirExists(this.localEmulationPath)
             .then(() => readdirPromised(this.localEmulationPath))
             .then((files) => {
                 if (files.length) {

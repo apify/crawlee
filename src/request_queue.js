@@ -1,157 +1,272 @@
 import fs from 'fs';
+import fsExtra from 'fs-extra';
 import path from 'path';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import Promise from 'bluebird';
 import _ from 'underscore';
 import Request from './request';
+import { ensureDirExists, checkParamPrototypeOrThrow } from './utils';
+
+export const LOCAL_EMULATION_SUBDIR = 'request-queues';
 
 const writeFilePromised = Promise.promisify(fs.writeFile);
-const readFilePromised = Promise.promisify(fs.readFile);
 const readdirPromised = Promise.promisify(fs.readdir);
+const readFilePromised = Promise.promisify(fs.readFile);
+const moveFilePromised = Promise.promisify(fsExtra.move);
 
-// @TODO: it would be great to make this class not only a quick prototype,
-// but generally usable thing for users. For that we need to make it more efficient,
-// remove sync method calls etc.
-// For example, we could store files as follows:
-// <APIFY_LOCAL_EMULATION_DIR>/request-queues/<queue-name-or-id>/index.json' - contains uniqueKeyToQueueOrderNo
-// <APIFY_LOCAL_EMULATION_DIR>/request-queues/<queue-name-or-id>/handled/1517588019092.json'
-// <APIFY_LOCAL_EMULATION_DIR>/request-queues/<queue-name-or-id>/not-handled/1517588019092.json'
-// <APIFY_LOCAL_EMULATION_DIR>/request-queues/<queue-name-or-id>/not-handled/0517588065008.json' - starts with '0' for requests pushed to front
-// <APIFY_LOCAL_EMULATION_DIR>/request-queues/<queue-name-or-id>/not-handled/1517588065008.json' - starts with '1' for requests pushed to end
-// The query to get the first file in directory (sorted by name) should be fast even if there are many files.
+/**
+ * Helper function that extracts queue order number from filename.
+ *
+ * @ignore
+ */
+const filepathToQueueOrderNo = (filepath) => {
+    const int = filepath
+        .split(path.sep).pop() // Get filename from path
+        .split('.')[0]; // Remove extension
 
+    return parseInt(int, 10);
+};
 
+/**
+ * Local implementation of RequestQueue.
+ *
+ * @ignore
+ */
 export class RequestQueueLocal {
     constructor(queueId, localEmulationDir) {
         checkParamOrThrow(queueId, 'options.queueId', 'String');
         checkParamOrThrow(localEmulationDir, 'localEmulationDir', 'String');
 
         this.queueId = queueId;
-        this.localEmulationPath = path.resolve(path.join(localEmulationDir, queueId));
+        this.localEmulationPath = path.resolve(path.join(localEmulationDir, LOCAL_EMULATION_SUBDIR, queueId));
+        this.localHandledEmulationPath = path.join(this.localEmulationPath, 'handled');
+        this.localPendingEmulationPath = path.join(this.localEmulationPath, 'pending');
+
+        this.pendingCount = 0;
+        this.inProgressCount = 0;
         this.uniqueKeyToQueueOrderNo = {};
-        this.queueOrderNoInProgressOrHandled = {};
+        this.queueOrderNoInProgress = {};
 
-        if (!fs.existsSync(this.localEmulationPath)) fs.mkdirSync(this.localEmulationPath);
-
-        this._initializeFromDir();
+        this.initializationPromise = this._initialize();
     }
 
-    _initializeFromDir() {
-        const files = fs.readdirSync(this.localEmulationPath);
+    _initialize() {
+        return ensureDirExists(this.localEmulationPath)
+            .then(() => ensureDirExists(this.localHandledEmulationPath))
+            .then(() => ensureDirExists(this.localPendingEmulationPath))
+            .then(() => Promise.all([
+                readdirPromised(this.localHandledEmulationPath),
+                readdirPromised(this.localPendingEmulationPath),
+            ]))
+            .then(([handled, pending]) => {
+                this.pendingCount = pending.length;
 
-        files.forEach((file) => {
-            const str = fs.readFileSync(path.join(this.localEmulationPath, file));
-            const obj = JSON.parse(str);
+                const handledPaths = handled.map(filename => path.join(this.localHandledEmulationPath, filename));
+                const pendingPaths = pending.map(filename => path.join(this.localPendingEmulationPath, filename));
+                const filePaths = handledPaths.concat(pendingPaths);
 
-            this.uniqueKeyToQueueOrderNo[obj.request.uniqueKey] = obj.queueOrderNo;
-
-            if (obj.isHandled) this.queueOrderNoInProgressOrHandled[obj.queueOrderNo] = true;
-        });
+                return Promise.mapSeries(filePaths, filepath => this._readFile(filepath));
+            });
     }
 
-    _getFilePath(queueOrderNo) {
+    _readFile(filepath) {
+        return readFilePromised(filepath)
+            .then((str) => {
+                const request = JSON.parse(str);
+                const queueOrderNo = filepathToQueueOrderNo(filepath);
+
+                this.uniqueKeyToQueueOrderNo[request.uniqueKey] = queueOrderNo;
+            });
+    }
+
+    _getFilePath(queueOrderNo, isHandled = false) {
         const fileName = `${queueOrderNo}.json`;
+        const dir = isHandled
+            ? this.localHandledEmulationPath
+            : this.localPendingEmulationPath;
 
-        return path.join(this.localEmulationPath, fileName);
+        return path.join(dir, fileName);
     }
 
     addRequest(request, opts = {}) {
-        // @TODO check that request is instance of Request here end everywhere else also
-
-        checkParamOrThrow(request, 'request', 'Object');
+        checkParamPrototypeOrThrow(request, 'request', Request, 'Apify.Request');
         checkParamOrThrow(opts, 'opts', 'Object');
 
         const { putInFront = false } = opts;
 
         checkParamOrThrow(putInFront, 'opts.putInFront', 'Boolean');
 
-        const queueOrderNo = (putInFront ? -1 : 1) * Date.now();
-        const wrappedRequest = JSON.stringify({ queueOrderNo, isHandled: false, request }, null, 2);
-        const filePath = this._getFilePath(queueOrderNo);
+        return this.initializationPromise
+            .then(() => {
+                const sgn = (putInFront ? 1 : 2) * (10 ** 15);
+                const base = (10 ** (13)); // Date.now() returns int with 13 numbers.
+                // We always add pending count for a case that two pages are insterted at the same millisecond.
+                const now = Date.now() + this.pendingCount;
+                const queueOrderNo = putInFront
+                    ? sgn + (base - now)
+                    : sgn + (base + now);
+                const filePath = this._getFilePath(queueOrderNo);
 
-        this.uniqueKeyToQueueOrderNo[request.uniqueKey] = queueOrderNo;
+                this.pendingCount++;
+                this.uniqueKeyToQueueOrderNo[request.uniqueKey] = queueOrderNo;
 
-        return writeFilePromised(filePath, wrappedRequest);
+                return writeFilePromised(filePath, JSON.stringify(request, null, 4));
+            });
     }
 
     getRequest(uniqueKey) {
         checkParamOrThrow(uniqueKey, 'uniqueKey', 'String');
 
-        const queueOrderNo = this.uniqueKeyToQueueOrderNo[uniqueKey];
+        return this.initializationPromise
+            .then(() => {
+                const queueOrderNo = this.uniqueKeyToQueueOrderNo[uniqueKey];
 
-        return this._getRequestByQueueOrderNo(queueOrderNo);
+                return this._getRequestByQueueOrderNo(queueOrderNo);
+            });
     }
 
     _getRequestByQueueOrderNo(queueOrderNo) {
         checkParamOrThrow(queueOrderNo, 'queueOrderNo', 'Number');
 
-        const filePath = this._getFilePath(queueOrderNo);
+        return readFilePromised(this._getFilePath(queueOrderNo, false))
+            .catch((err) => {
+                if (err.code !== 'ENOENT') throw err;
 
-        return readFilePromised(filePath)
-            .then(str => JSON.parse(str))
-            .then(wrappedRequest => new Request(wrappedRequest.request));
+                return readFilePromised(this._getFilePath(queueOrderNo, true));
+            })
+            .then((str) => {
+                if (!str) throw new Error('Request was not found in none of handled and pending directories!');
+
+                const obj = JSON.parse(str);
+
+                return new Request(obj);
+            });
     }
 
     fetchNextRequest() {
-        if (this.isEmpty()) return null;
+        return this.initializationPromise
+            .then(() => readdirPromised(this.localPendingEmulationPath))
+            .then((files) => {
+                let queueOrderNo;
 
-        return readdirPromised(this.localEmulationPath)
-            .then(files => files.map(file => parseInt(file.split('.')[0], 10)))
-            .then((queueOrderNos) => {
-                const queueOrderNo = _.find(queueOrderNos, no => !this.queueOrderNoInProgressOrHandled[no]);
+                _.find(files, (filename) => {
+                    const no = filepathToQueueOrderNo(filename);
 
-                this.queueOrderNoInProgressOrHandled[queueOrderNo] = true;
+                    if (!this.queueOrderNoInProgress[no]) {
+                        queueOrderNo = no;
+                        return true;
+                    }
+                });
+
+                if (!queueOrderNo) return null;
+
+                this.queueOrderNoInProgress[queueOrderNo] = true;
+                this.inProgressCount++;
 
                 return this._getRequestByQueueOrderNo(queueOrderNo);
             });
     }
 
     markRequestHandled(request) {
-        checkParamOrThrow(request, 'request', 'Object');
+        checkParamPrototypeOrThrow(request, 'request', Request, 'Apify.Request');
 
-        const queueOrderNo = this.uniqueKeyToQueueOrderNo[request.uniqueKey];
-        const filePath = this._getFilePath(queueOrderNo);
+        return this.initializationPromise
+            .then(() => {
+                const queueOrderNo = this.uniqueKeyToQueueOrderNo[request.uniqueKey];
+                const source = this._getFilePath(queueOrderNo, false);
+                const dest = this._getFilePath(queueOrderNo, true);
 
-        return readFilePromised(filePath)
-            .then(str => JSON.parse(str))
-            .then(obj => Object.assign(obj, { isHandled: true }))
-            .then(obj => JSON.stringify(obj, null, 2))
-            .then(wrappedRequest => writeFilePromised(filePath, wrappedRequest));
+                if (!this.queueOrderNoInProgress[queueOrderNo]) {
+                    throw new Error('Cannot mark handled request that is not in progress!');
+                }
+
+                return moveFilePromised(source, dest)
+                    .then(() => {
+                        this.pendingCount--;
+                        this.inProgressCount--;
+                        delete this.queueOrderNoInProgress[queueOrderNo];
+                    });
+            });
     }
 
     reclaimRequest(request) {
-        checkParamOrThrow(request, 'request', 'Object');
+        checkParamPrototypeOrThrow(request, 'request', Request, 'Apify.Request');
 
-        const queueOrderNo = this.uniqueKeyToQueueOrderNo[request.uniqueKey];
+        return this.initializationPromise
+            .then(() => {
+                const queueOrderNo = this.uniqueKeyToQueueOrderNo[request.uniqueKey];
 
-        delete this.queueOrderNoInProgressOrHandled[queueOrderNo];
+                if (!this.queueOrderNoInProgress[queueOrderNo]) {
+                    throw new Error('Cannot reclaim request that is not in progress!');
+                }
+
+                this.inProgressCount--;
+
+                delete this.queueOrderNoInProgress[queueOrderNo];
+            });
     }
 
     isEmpty() {
-        return _.size(this.queueOrderNoInProgressOrHandled) === _.size(this.uniqueKeyToQueueOrderNo);
+        return this.initializationPromise
+            .then(() => this.pendingCount === this.inProgressCount);
+    }
+
+    isFinished() {
+        return this.initializationPromise
+            .then(() => this.pendingCount === 0);
     }
 }
 
 /**
+ * Opens request queue and returns its object.</p>
+ *
+ * ```javascript
+ * const queue = await Apify.openRequestQueue('my-queue-id');
+ *
+ * await queue.addRequest(new Apify.Request({ url: 'http://example.com/aaa'});
+ * await queue.addRequest(new Apify.Request({ url: 'http://example.com/bbb'});
+ * await queue.addRequest(new Apify.Request({ url: 'http://example.com/foo/bar'}, { puyInFront: true });
+ *
+ * // Get requests from queue
+ * const request1 = queue.fetchNextRequest();
+ * const request2 = queue.fetchNextRequest();
+ * const request3 = queue.fetchNextRequest();
+ *
+ * // Mark some of them as handled
+ * queue.markRequestHandled(request1);
+ *
+ * // If processing fails then reclaim it back to the queue
+ * queue.reclaimRequest(request2);
+ * ```
+ *
+ * If the `APIFY_LOCAL_EMULATION_DIR` environment variable is defined, the value this function
+ * returns an instance `RequestQueueLocal` which is an local emulation of request queue.
+ * This is useful for local development and debugging of your acts.
+ *
+ * @param {string} queueIdOrName ID or name of the request queue to be opened.
+ * @returns {Promise<RequestQueue>} Returns a promise that resolves to a RequestQueue object.
+ *
  * @memberof module:Apify
- * @function
+ * @name openRequestQueue
+ * @instance
+ *
+ * @ignore
  */
 export const openRequestQueue = (queueIdOrName) => {
     const localEmulationDir = process.env[ENV_VARS.LOCAL_EMULATION_DIR];
 
-    // TODO:
-    // checkParamOrThrow(queueIdOrName, 'queueIdOrName', 'Maybe String');
-    //
+    checkParamOrThrow(queueIdOrName, 'queueIdOrName', 'Maybe String');
+
     // TODO:
     // should reuse instances
-    if (!localEmulationDir && queueIdOrName) {
+    if (!localEmulationDir) {
         return Promise.reject(new Error('We currently don\'t support remote queues! This is only temporary'
             + 'implementation that stores the queue in the key-value store.'));
     }
 
     const queue = localEmulationDir
         ? new RequestQueueLocal(queueIdOrName, localEmulationDir)
-        : new RequestQueueRemote('dummy-tmp-queue');
+        : new RequestQueueRemote('default-request-queue');
 
     return Promise.resolve(queue);
 };

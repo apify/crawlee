@@ -2,8 +2,11 @@ import Promise from 'bluebird';
 import contentTypeParser from 'content-type';
 import os from 'os';
 import fs from 'fs';
+import fsExtra from 'fs-extra';
 import ApifyClient from 'apify-client';
 import { ENV_VARS } from './constants';
+
+const ensureDirPromised = Promise.promisify(fsExtra.ensureDir);
 
 /**
  * Creates an instance of ApifyClient using options as defined in the environment variables.
@@ -191,3 +194,10 @@ export const checkParamPrototypeOrThrow = (paramVal, paramName, prototype, proto
  * @ignore
  */
 export const isProduction = () => process.env.NODE_ENV !== 'production';
+
+/**
+ * Helper function used for local implementations. Creates dir.
+ *
+ * @ignore.
+ */
+export const ensureDirExists = path => ensureDirPromised(path);

@@ -4,36 +4,32 @@ import 'babel-polyfill';
 import fs from 'fs-extra';
 import path from 'path';
 import sinon from 'sinon';
-import { leftpad } from 'apify-shared/utilities';
+import { leftpad, delayPromise } from 'apify-shared/utilities';
 import { ENV_VARS } from '../build/constants';
-import { LEFTPAD_COUNT, Dataset, DatasetLocal } from '../build/dataset';
+import { LEFTPAD_COUNT, Dataset, DatasetLocal, LOCAL_EMULATION_SUBDIR } from '../build/dataset';
 import { apifyClient } from '../build/utils';
 import * as Apify from '../build/index';
+import { LOCAL_EMULATION_DIR, emptyLocalEmulationSubdir, expectNotLocalEmulation } from './_helper';
 
 chai.use(chaiAsPromised);
 
-const TMP_DIR_PATH = path.resolve('tmp');
-const APIFY_LOCAL_EMULATION_DIR = path.join('tmp', 'local-emulation-dir');
-const APIFY_LOCAL_EMULATION_DIR_PATH = path.resolve(APIFY_LOCAL_EMULATION_DIR);
+const read = (datasetName, index) => {
+    const fileName = `${leftpad(index, LEFTPAD_COUNT, 0)}.json`;
+    const filePath = path.join(LOCAL_EMULATION_DIR, LOCAL_EMULATION_SUBDIR, datasetName, fileName);
+    const str = fs.readFileSync(path.resolve(filePath));
 
-if (!fs.existsSync(TMP_DIR_PATH)) fs.mkdirSync(TMP_DIR_PATH);
-if (fs.existsSync(APIFY_LOCAL_EMULATION_DIR_PATH)) fs.removeSync(APIFY_LOCAL_EMULATION_DIR_PATH);
-fs.mkdirSync(APIFY_LOCAL_EMULATION_DIR_PATH);
-
-const expectNotLocal = () => expect(process.env[ENV_VARS.LOCAL_EMULATION_DIR]).to.be.a('undefined');
+    return JSON.parse(str);
+};
 
 describe('dataset', () => {
-    before(() => {
-        apifyClient.setOptions({ token: 'xxx' });
-    });
-
-    after(() => {
-        apifyClient.setOptions({ token: undefined });
-    });
+    before(() => apifyClient.setOptions({ token: 'xxx' }));
+    after(() => apifyClient.setOptions({ token: undefined }));
+    beforeEach(() => emptyLocalEmulationSubdir(LOCAL_EMULATION_SUBDIR));
+    afterEach(() => emptyLocalEmulationSubdir(LOCAL_EMULATION_SUBDIR));
 
     describe('local', async () => {
         it('should work', async () => {
-            const dataset = new DatasetLocal('my-dataset', APIFY_LOCAL_EMULATION_DIR);
+            const dataset = new DatasetLocal('my-dataset', LOCAL_EMULATION_DIR);
 
             await dataset.pushData({ foo: 'bar' });
             await dataset.pushData({ foo: 'hotel' });
@@ -42,23 +38,15 @@ describe('dataset', () => {
                 { foo: 'from-array-1', arr: [1, 2, 3] },
             ]);
 
-            const read = (index) => {
-                const fileName = `${leftpad(index, LEFTPAD_COUNT, 0)}.json`;
-                const filePath = path.join(APIFY_LOCAL_EMULATION_DIR_PATH, 'my-dataset', fileName);
-                const str = fs.readFileSync(filePath);
-
-                return JSON.parse(str);
-            };
-
-            expect(read(1)).to.be.eql({ foo: 'bar' });
-            expect(read(2)).to.be.eql({ foo: 'hotel' });
-            expect(read(3)).to.be.eql({ foo: 'from-array-1', arr: [1, 2, 3] });
-            expect(read(4)).to.be.eql({ foo: 'from-array-1', arr: [1, 2, 3] });
+            expect(read('my-dataset', 1)).to.be.eql({ foo: 'bar' });
+            expect(read('my-dataset', 2)).to.be.eql({ foo: 'hotel' });
+            expect(read('my-dataset', 3)).to.be.eql({ foo: 'from-array-1', arr: [1, 2, 3] });
+            expect(read('my-dataset', 4)).to.be.eql({ foo: 'from-array-1', arr: [1, 2, 3] });
 
             // Correctly initializes the state.
-            const newDataset = new DatasetLocal('my-dataset', APIFY_LOCAL_EMULATION_DIR);
+            const newDataset = new DatasetLocal('my-dataset', LOCAL_EMULATION_DIR);
             await newDataset.pushData({ foo2: 'bar2' });
-            expect(read(5)).to.be.eql({ foo2: 'bar2' });
+            expect(read('my-dataset', 5)).to.be.eql({ foo2: 'bar2' });
         });
     });
 
@@ -91,7 +79,7 @@ describe('dataset', () => {
 
     describe('Apify.openDataset', async () => {
         it('should open a local dataset when process.env[ENV_VARS.LOCAL_EMULATION_DIR] is set', async () => {
-            process.env[ENV_VARS.LOCAL_EMULATION_DIR] = APIFY_LOCAL_EMULATION_DIR;
+            process.env[ENV_VARS.LOCAL_EMULATION_DIR] = LOCAL_EMULATION_DIR;
 
             const dataset = await Apify.openDataset('some-id-2');
             expect(dataset).to.be.instanceof(DatasetLocal);
@@ -101,11 +89,11 @@ describe('dataset', () => {
         });
 
         it('should reuse cached dataset instances', async () => {
-            process.env[ENV_VARS.LOCAL_EMULATION_DIR] = APIFY_LOCAL_EMULATION_DIR;
+            process.env[ENV_VARS.LOCAL_EMULATION_DIR] = LOCAL_EMULATION_DIR;
 
             const dataset1 = await Apify.openDataset('some-id-3');
             const dataset2 = await Apify.openDataset('some-id-3');
-            const dataset3 = new DatasetLocal('some-id-3', APIFY_LOCAL_EMULATION_DIR);
+            const dataset3 = new DatasetLocal('some-id-3', LOCAL_EMULATION_DIR);
 
             expect(dataset1).to.be.instanceof(DatasetLocal);
             expect(dataset2).to.be.instanceof(DatasetLocal);
@@ -115,11 +103,15 @@ describe('dataset', () => {
             expect(dataset1).not.to.be.equal(dataset3);
 
             delete process.env[ENV_VARS.LOCAL_EMULATION_DIR];
+
+            // Here must be some timeout to don't finish before initialization of dataset finishes.
+            // Otherwise we delete the directory and scandir will throw ENOENT: no such file or directory
+            await delayPromise(100);
         });
 
         it('should open default dataset when datasetIdOrName is not provided', async () => {
             process.env[ENV_VARS.DEFAULT_DATASET_ID] = 'some-id-4';
-            process.env[ENV_VARS.LOCAL_EMULATION_DIR] = APIFY_LOCAL_EMULATION_DIR;
+            process.env[ENV_VARS.LOCAL_EMULATION_DIR] = LOCAL_EMULATION_DIR;
 
             const dataset = await Apify.openDataset();
             expect(dataset.datasetId).to.be.eql('some-id-4');
@@ -127,7 +119,7 @@ describe('dataset', () => {
 
             delete process.env[ENV_VARS.LOCAL_EMULATION_DIR];
             process.env[ENV_VARS.DEFAULT_DATASET_ID] = 'some-id-5';
-            expectNotLocal();
+            expectNotLocalEmulation();
 
             const dataset2 = await Apify.openDataset();
             expect(dataset2.datasetId).to.be.eql('some-id-5');
@@ -137,7 +129,7 @@ describe('dataset', () => {
         });
 
         it('should open remote dataset when process.env[ENV_VARS.LOCAL_EMULATION_DIR] is NOT set', async () => {
-            expectNotLocal();
+            expectNotLocalEmulation();
 
             const mock = sinon.mock(apifyClient.datasets);
 
@@ -173,7 +165,7 @@ describe('dataset', () => {
     describe('pushData', async () => {
         it('throws on invalid args', async () => {
             process.env[ENV_VARS.DEFAULT_DATASET_ID] = 'some-id-8';
-            process.env[ENV_VARS.LOCAL_EMULATION_DIR] = APIFY_LOCAL_EMULATION_DIR;
+            process.env[ENV_VARS.LOCAL_EMULATION_DIR] = LOCAL_EMULATION_DIR;
 
             const dataErrMsg = 'Parameter "data" of type Array | Object must be provided';
             await expect(Apify.pushData()).to.be.rejectedWith(dataErrMsg);
@@ -201,21 +193,13 @@ describe('dataset', () => {
 
         it('correctly stores records', async () => {
             process.env[ENV_VARS.DEFAULT_DATASET_ID] = 'some-id-9';
-            process.env[ENV_VARS.LOCAL_EMULATION_DIR] = APIFY_LOCAL_EMULATION_DIR;
+            process.env[ENV_VARS.LOCAL_EMULATION_DIR] = LOCAL_EMULATION_DIR;
 
             await Apify.pushData({ foo: 'bar' });
             await Apify.pushData({ foo: 'hotel' });
 
-            const read = (index) => {
-                const fileName = `${leftpad(index, LEFTPAD_COUNT, 0)}.json`;
-                const filePath = path.join(APIFY_LOCAL_EMULATION_DIR_PATH, 'my-dataset', fileName);
-                const str = fs.readFileSync(filePath);
-
-                return JSON.parse(str);
-            };
-
-            expect(read(1)).to.be.eql({ foo: 'bar' });
-            expect(read(2)).to.be.eql({ foo: 'hotel' });
+            expect(read('some-id-9', 1)).to.be.eql({ foo: 'bar' });
+            expect(read('some-id-9', 2)).to.be.eql({ foo: 'hotel' });
 
             delete process.env[ENV_VARS.LOCAL_EMULATION_DIR];
         });

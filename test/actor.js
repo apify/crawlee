@@ -4,6 +4,7 @@ import { expect } from 'chai';
 import sinon from 'sinon';
 import tmp from 'tmp';
 import Promise from 'bluebird';
+import { delayPromise } from 'apify-shared/utilities';
 import { ACT_TASK_STATUSES, ENV_VARS } from '../build/constants';
 
 // NOTE: test use of require() here because this is how its done in acts
@@ -300,9 +301,7 @@ describe('Apify.main()', () => {
     it('on exception in promised user function the process exits with code 91', () => {
         return testMain({
             userFunc: () => {
-                return new Promise((resolve) => {
-                    setTimeout(resolve, 20);
-                })
+                return delayPromise(20)
                     .then(() => {
                         throw new Error('Text exception II');
                     });

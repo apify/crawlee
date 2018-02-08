@@ -3,6 +3,7 @@ import chaiAsPromised from 'chai-as-promised';
 import 'babel-polyfill';
 import _ from 'underscore';
 import sinon from 'sinon';
+import { delayPromise } from 'apify-shared/utilities';
 import * as Apify from '../build/index';
 import { LOG_INFO_INTERVAL, SCALE_UP_MAX_STEP } from '../build/autoscaled_pool';
 import * as utils from '../build/utils';
@@ -147,7 +148,7 @@ describe('autoscaled_pool', () => {
                 return new Promise((resolve, reject) => setTimeout(reject(err), 10));
             }
 
-            return new Promise(resolve => setTimeout(resolve(), 10));
+            return delayPromise(10);
         };
 
         const pool = new Apify.AutoscaledPool({
