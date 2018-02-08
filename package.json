@@ -1,6 +1,6 @@
 {
   "name": "apify",
-  "version": "0.4.39",
+  "version": "0.4.48",
   "description": "Apify Actor runtime for JavaScript",
   "main": "build/index.js",
   "keywords": [
@@ -23,12 +23,12 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/apifier/apify-runtime-js"
+    "url": "git+https://github.com/apifytech/apify-js"
   },
   "bugs": {
-    "url": "https://github.com/apifier/apify-runtime-js/issues"
+    "url": "https://github.com/apifytech/apify-js/issues"
   },
-  "homepage": "https://github.com/apifier/apify-runtime-js",
+  "homepage": "https://github.com/apifytech/apify-js",
   "files": [
     "build"
   ],
@@ -53,7 +53,7 @@
     "underscore": "^1.8.3"
   },
   "devDependencies": {
-    "apify-jsdoc-template": "github:Apifier/apify-jsdoc-template",
+    "apify-jsdoc-template": "github:apifytech/apify-jsdoc-template",
     "babel-cli": "^6.6.5",
     "babel-core": "^6.1.21",
     "babel-eslint": "^8.0.2",
@@ -84,7 +84,7 @@
     "why-is-node-running": "^1.2.3"
   },
   "optionalDependencies": {
-    "puppeteer": "^0.13.0",
+    "puppeteer": "^1.0.0",
     "selenium-webdriver": "^3.6.0"
   }
 }

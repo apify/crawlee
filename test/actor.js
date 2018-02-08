@@ -210,6 +210,7 @@ const setEnv = (env) => {
     delete process.env.APIFY_STARTED_AT;
     delete process.env.APIFY_TIMEOUT_AT;
     delete process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID;
+    delete process.env.APIFY_DEFAULT_DATASET_ID;
 
     // if (env.internalPort) process.env.APIFY_INTERNAL_PORT = env.internalPort.toString();
     if (env.actId) process.env.APIFY_ACT_ID = env.actId;
@@ -242,7 +243,7 @@ describe('Apify.getEnv()', () => {
             startedAt: new Date('2017-01-01'),
             timeoutAt: new Date(),
             defaultKeyValueStoreId: 'some store',
-            defaultDatasetId: 'some data set',
+            defaultDatasetId: 'some dataset',
             memoryMbytes: 1234,
         });
         setEnv(expectedEnv);
@@ -607,6 +608,48 @@ describe('Apify.call()', () => {
             .call(actId, null, { token, timeoutSecs })
             .then((callOutput) => {
                 expect(callOutput).to.be.eql(runningRun);
+                keyValueStoresMock.restore();
+                actsMock.restore();
+            });
+    });
+
+    it('handles getRun() returning null the first time', () => {
+        const actId = 'some-act-id';
+        const token = 'some-token';
+        const defaultKeyValueStoreId = 'some-store-id';
+        const run = { id: 'some-run-id', actId, defaultKeyValueStoreId };
+        const runningRun = Object.assign({}, run, { status: 'RUNNING' });
+        const finishedRun = Object.assign({}, run, { status: ACT_TASK_STATUSES.SUCCEEDED });
+        const input = 'something';
+        const contentType = 'text/plain';
+        const output = { contentType, body: 'some-output' };
+        const expected = Object.assign({}, finishedRun, { output });
+        const build = 'xxx';
+
+        const actsMock = sinon.mock(Apify.client.acts);
+        actsMock.expects('runAct')
+            .withExactArgs({ token, actId, contentType: `${contentType}; charset=utf-8`, body: input, build })
+            .once()
+            .returns(Promise.resolve(runningRun));
+        actsMock.expects('getRun')
+            .withExactArgs({ token, actId, runId: run.id, waitForFinish: 999999 })
+            .twice()
+            .returns(Promise.resolve(null));
+        actsMock.expects('getRun')
+            .withExactArgs({ token, actId, runId: run.id, waitForFinish: 999999 })
+            .once()
+            .returns(Promise.resolve(finishedRun));
+
+        const keyValueStoresMock = sinon.mock(Apify.client.keyValueStores);
+        keyValueStoresMock.expects('getRecord')
+            .withExactArgs({ storeId: run.defaultKeyValueStoreId, key: 'OUTPUT', disableBodyParser: true })
+            .once()
+            .returns(Promise.resolve(output));
+
+        return Apify
+            .call(actId, input, { contentType, token, disableBodyParser: true, build })
+            .then((callOutput) => {
+                expect(callOutput).to.be.eql(expected);
                 keyValueStoresMock.restore();
                 actsMock.restore();
             });
