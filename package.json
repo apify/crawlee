@@ -1,6 +1,6 @@
 {
   "name": "apify",
-  "version": "0.4.48",
+  "version": "0.5.0",
   "description": "Apify Actor runtime for JavaScript",
   "main": "build/index.js",
   "keywords": [
@@ -35,7 +35,7 @@
   "scripts": {
     "build": "rm -rf ./build && babel src --out-dir build",
     "build-doc": "npm run clean && npm run build && node ./node_modules/jsdoc/jsdoc.js --package ./package.json -c ./jsdoc/conf.json -d docs",
-    "test": "npm run build && mocha --compilers js:babel-core/register --recursive",
+    "test": "npm run build && mocha --timeout 60000 --compilers js:babel-core/register --recursive",
     "test-cov": "npm run build && babel-node node_modules/isparta/bin/isparta cover --report html --report text node_modules/.bin/_mocha",
     "prepare": "npm run build",
     "prepublishOnly": "(test $RUNNING_FROM_SCRIPT || (echo \"You must use publish.sh instead of 'npm publish' directly!\"; exit 1)) && npm test && npm run lint",
@@ -43,10 +43,13 @@
     "lint": "npm run build && eslint src test"
   },
   "dependencies": {
-    "apify-client": "^0.1.62",
+    "apify-client": "^0.1.69",
+    "apify-shared": "0.0.9",
     "bluebird": "^3.5.0",
     "content-type": "^1.0.3",
+    "fs-extra": "^5.0.0",
     "proxy-chain": "^0.1.2",
+    "request-promise": "^4.2.2",
     "underscore": "^1.8.3"
   },
   "devDependencies": {
@@ -54,10 +57,12 @@
     "babel-cli": "^6.6.5",
     "babel-core": "^6.1.21",
     "babel-eslint": "^8.0.2",
+    "babel-polyfill": "^6.26.0",
     "babel-preset-es2015": "^6.1.18",
     "babel-preset-stage-0": "^6.1.18",
     "basic-auth-parser": "^0.0.2",
     "chai": "^4.0.2",
+    "chai-as-promised": "^7.1.1",
     "eslint": "^4.11.0",
     "eslint-config-airbnb": "^16.1.0",
     "eslint-config-airbnb-base": "^12.1.0",

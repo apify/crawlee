@@ -1,3 +1,8 @@
+0.5.0 / 2018-02-08
+===================
+- Apify.setPromiseDependency / Apify.getPromiseDependency / Apify.getPromisePrototype removed
+- Bunch of classes as AutoscaledPool or PuppeteerCrawler added, check documentation
+
 0.4.48 / 2018-02-05
 ===================
 - Renamed GitHub repo
