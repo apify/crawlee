@@ -45,6 +45,7 @@ const DEFAULT_OPTIONS = {
  * @param {Number} [options.maxMemoryMbytes] Maximal memory available in the system (see `maxMemoryMbytes` parameter of `Apify.AutoscaledPool`).
  * @param {Number} [options.maxConcurrency=1] Minimal concurrency of requests processing (see `maxConcurrency` parameter of `Apify.AutoscaledPool`).
  * @param {Number} [options.minConcurrency=1000] Maximal concurrency of request processing (see `minConcurrency` parameter of `Apify.AutoscaledPool`).
+ * @param {Number} [options.minFreeMemoryRatio=0.2] Minumum ratio of free memory kept in the system.
  */
 export default class BasicCrawler {
     constructor(opts) {
@@ -58,6 +59,7 @@ export default class BasicCrawler {
             maxMemoryMbytes,
             maxConcurrency,
             minConcurrency,
+            minFreeMemoryRatio,
         } = _.defaults(opts, DEFAULT_OPTIONS);
 
         checkParamOrThrow(handleRequestFunction, 'opts.handleRequestFunction', 'Function');
@@ -76,6 +78,7 @@ export default class BasicCrawler {
             maxMemoryMbytes,
             maxConcurrency,
             minConcurrency,
+            minFreeMemoryRatio,
         });
     }
 
