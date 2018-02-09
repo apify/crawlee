@@ -31,6 +31,8 @@ describe('basic_crawler', () => {
 
         expect(processed).to.be.eql(sources);
         expect(Date.now() - startedAt).to.be.within(200, 400);
+        expect(requestList.isFinished()).to.be.eql(true);
+        expect(requestList.isEmpty()).to.be.eql(true);
     });
 
     it('retries failed requests', async () => {
@@ -74,6 +76,9 @@ describe('basic_crawler', () => {
         expect(processed['http://example.com/2'].userData.foo).to.be.a('undefined');
         expect(processed['http://example.com/2'].errorMessages).to.have.lengthOf(11);
         expect(processed['http://example.com/2'].retryCount).to.be.eql(10);
+
+        expect(requestList.isFinished()).to.be.eql(true);
+        expect(requestList.isEmpty()).to.be.eql(true);
     });
 
     it('should allow to handle failed requests', async () => {
@@ -112,5 +117,7 @@ describe('basic_crawler', () => {
         expect(failed['http://example.com/3'].retryCount).to.be.eql(3);
         expect(_.values(failed)).to.have.length.of(3);
         expect(_.values(processed)).to.have.length.of(0);
+        expect(requestList.isFinished()).to.be.eql(true);
+        expect(requestList.isEmpty()).to.be.eql(true);
     });
 });

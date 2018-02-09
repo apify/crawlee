@@ -23,8 +23,8 @@ const DEFAULT_OPTIONS = {
  * ```javascript
  * const request = require('request-promise');
  *
- * const crawler = new Apify.BasicCrawler({
- *     urlList,
+ * const crawler = new Apify.PuppeteerCrawler({
+ *     requestList,
  *     // Parameter page here is an intance of Puppeteer.Page with page.goto(request.url) already called
  *     handlePageFunction: async ({ page, request }) => {
  *         await Apify.pushData({

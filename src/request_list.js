@@ -47,7 +47,7 @@ const ensureUniqueKeyValid = (uniqueKey) => {
  *         { url: 'http://www.example.com/page-1', method: 'GET', headers: {} },
  *         { url: 'http://www.example.com/page-2', userData: { foo: 'bar' }},
  *         // Bulk load of urls from file `http://www.example.com/my-url-list.txt`
- *         { pagesFromUrl: 'http://www.example.com/my-url-list.txt', userData: { isFromUrl: true } },
+ *         { requestsFromUrl: 'http://www.example.com/my-url-list.txt', userData: { isFromUrl: true } },
  *     ],
  *     // Initialize from previous state if act was restarted due to some error
  *     state: await Apify.getValue('my-request-list-state'),

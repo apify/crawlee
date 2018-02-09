@@ -24,7 +24,7 @@ const DEFAULT_OPTIONS = {
  * const request = require('request-promise');
  *
  * const crawler = new Apify.BasicCrawler({
- *     urlList,
+ *     requestList,
  *     handleRequestFunction: async ({ request }) => {
  *         await Apify.pushData({
  *             html: await request(request.url),
@@ -101,20 +101,24 @@ export default class BasicCrawler {
         const handlePromise = this.handleRequestFunction({ request });
         if (!isPromise(handlePromise)) throw new Error('User provided handleRequestFunction must return a Promise.');
 
-        return handlePromise.catch((err) => {
-            request.pushErrorMessage(err);
+        return handlePromise
+            .then(() => {
+                this.requestList.markRequestHandled(request);
+            })
+            .catch((err) => {
+                request.pushErrorMessage(err);
 
-            // Retry request.
-            if (request.retryCount < this.maxRequestRetries) {
-                request.retryCount++;
-                this.requestList.reclaimRequest(request);
-                return;
-            }
+                // Retry request.
+                if (request.retryCount < this.maxRequestRetries) {
+                    request.retryCount++;
+                    this.requestList.reclaimRequest(request);
+                    return;
+                }
 
-            // Mark as failed.
-            this.requestList.markRequestHandled(request);
+                // Mark as failed.
+                this.requestList.markRequestHandled(request);
 
-            return this.handleFailedRequestFunction({ request });
-        });
+                return this.handleFailedRequestFunction({ request });
+            });
     }
 }
