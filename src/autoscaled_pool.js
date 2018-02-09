@@ -10,6 +10,7 @@ const MIN_FREE_MEMORY_RATIO = 0.1; // Minimum amount of memory that we keep free
 const DEFAULT_OPTIONS = {
     maxConcurrency: 1000,
     minConcurrency: 1,
+    minFreeMemoryRatio: 0.2,
 };
 
 // These constants defines that in Nth execution memCheckInterval we do:
@@ -49,14 +50,16 @@ const humanReadable = bytes => `${Math.round(bytes / 1024 / 1024)} MB`;
  * @param {Number} [options.maxConcurrency=1000] Maximal concurrency.
  * @param {Number} [options.minConcurrency=1] Minimal concurrency.
  * @param {Number} [options.maxMemoryMbytes] Maximum memory available in the system. By default uses the totalMemory from Apify.getMemoryInfo().
+ * @param {Number} [options.minFreeMemoryRatio=0.2] Minumum ratio of free memory kept in the system.
  */
 export default class AutoscaledPool {
     constructor(opts) {
-        const { maxMemoryMbytes, maxConcurrency, minConcurrency, workerFunction } = _.defaults(opts, DEFAULT_OPTIONS);
+        const { maxMemoryMbytes, maxConcurrency, minConcurrency, workerFunction, minFreeMemoryRatio } = _.defaults(opts, DEFAULT_OPTIONS);
 
         checkParamOrThrow(maxMemoryMbytes, 'opts.maxMemoryMbytes', 'Maybe Number');
         checkParamOrThrow(maxConcurrency, 'opts.maxConcurrency', 'Number');
         checkParamOrThrow(minConcurrency, 'opts.minConcurrency', 'Number');
+        checkParamOrThrow(minFreeMemoryRatio, 'opts.minFreeMemoryRatio', 'Number');
         checkParamOrThrow(workerFunction, 'opts.workerFunction', 'Function');
 
         // Configuration.
@@ -64,6 +67,7 @@ export default class AutoscaledPool {
         this.maxConcurrency = maxConcurrency;
         this.minConcurrency = Math.min(minConcurrency, maxConcurrency);
         this.workerFunction = workerFunction;
+        this.minFreeMemoryRatio = minFreeMemoryRatio;
 
         // State.
         this.promiseCounter = 0;
@@ -135,15 +139,14 @@ export default class AutoscaledPool {
                 // Maybe scale down.
                 if (
                     this.intervalCounter % SCALE_DOWN_INTERVAL === 0
-                    && (freeBytes / totalBytes < MIN_FREE_MEMORY_RATIO)
+                    && (freeBytes / totalBytes < this.minFreeMemoryRatio)
                     && this.concurrency > this.minConcurrency
                 ) {
                     this.concurrency--;
                     log.debug('AutoscaledPool: scaling down', { concurrency: this.concurrency });
-                }
 
                 // Maybe scale up.
-                if (
+                } else if (
                     this.intervalCounter % SCALE_UP_INTERVAL === 0
                     && this.concurrency < this.maxConcurrency
                 ) {

@@ -59,6 +59,7 @@ const DEFAULT_OPTIONS = {
  * @param {Number} [options.maxMemoryMbytes] Maximal memory available in the system (See `maxMemoryMbytes` parameter of `Apify.AutoscaledPool`).
  * @param {Number} [options.maxConcurrency=1] Minimal concurrency of requests processing (See `maxConcurrency` parameter of `Apify.AutoscaledPool`).
  * @param {Number} [options.minConcurrency=1000] Maximal concurrency of request processing (See `minConcurrency` parameter of `Apify.AutoscaledPool`).
+ * @param {Number} [options.minFreeMemoryRatio=0.2] Minumum ratio of free memory kept in the system.
  *
  * @param {Number} [options.maxOpenPagesPerInstance=100] Maximal number of opened tabs per browser. If limit is reached then the new
  *                                                        browser gets started. (See `maxOpenPagesPerInstance` parameter of `Apify.PuppeteerPool`)
@@ -90,6 +91,7 @@ export default class PuppeteerCrawler {
             maxMemoryMbytes,
             maxConcurrency,
             minConcurrency,
+            minFreeMemoryRatio,
 
             // Basic crawler options
             requestList,
@@ -138,6 +140,7 @@ export default class PuppeteerCrawler {
             maxMemoryMbytes,
             maxConcurrency,
             minConcurrency,
+            minFreeMemoryRatio,
         });
     }
 

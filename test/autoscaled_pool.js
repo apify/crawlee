@@ -100,6 +100,7 @@ describe('autoscaled_pool', () => {
         const pool = new Apify.AutoscaledPool({
             minConcurrency: 1,
             maxConcurrency: 100,
+            minFreeMemoryRatio: 0.1,
             workerFunction: async () => {},
         });
         const mock = sinon.mock(utils);
