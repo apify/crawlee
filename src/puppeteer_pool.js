@@ -1,5 +1,6 @@
 import _ from 'underscore';
 import log from 'apify-shared/log';
+import { cryptoRandomObjectId } from 'apify-shared/utilities';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { launchPuppeteer } from './puppeteer';
 import { getApifyProxyUrl } from './actor';
@@ -38,9 +39,7 @@ const DEFAULT_OPTIONS = {
         // TODO: Maybe we should move this whole logic directly to Apify.launchPuppeteer().
         // E.g. if process.env.APIFY_PROXY_HOST is defined, then puppeteer should use it with "auto".
         if (!disableProxy) {
-            const session = Math.random();
-
-            config.proxyUrl = getApifyProxyUrl({ groups, session });
+            config.proxyUrl = getApifyProxyUrl({ groups, session: cryptoRandomObjectId() });
         }
 
         return launchPuppeteer(config);
