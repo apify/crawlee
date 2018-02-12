@@ -31,11 +31,11 @@ describe('puppeteer_crawler', () => {
         const processed = [];
         const failed = [];
         const requestList = new Apify.RequestList({ sources });
-        const handlePageFunction = async ({ page, request }) => {
+        const handlePageFunction = async ({ page, request, response }) => {
             await page.waitFor('title');
 
+            expect(await response.status()).to.be.eql(200);
             request.userData.title = await page.title();
-
             processed.push(request);
         };
 

@@ -48,7 +48,8 @@ const DEFAULT_OPTIONS = {
  * @param {RequestList} options.requestList List of the requests to be processed. (See `requestList` parameter of `Apify.BasicCrawler`)
  * @param {Function} options.handlePageFunction Function to process each request.
  * @param {Number} [options.pageOpsTimeoutMillis=30000] Timeout for options.handlePagefunction
- * @param {Function} [options.gotoFunction=({ request, page }) => page.goto(request.url)] Overrides default gotoFunction.
+ * @param {Function} [options.gotoFunction=({ request, page }) => page.goto(request.url)] Overrides default gotoFunction. This function
+ *                   should return a result of page.goto(), ie. Puppeteers Response object.
 
  * @param {Function} [options.handleFailedRequestFunction=({ request }) => log.error('Request failed', _.pick(request, 'url', 'uniqueKey'))]
  *                   Function to handle requests that failed more then option.maxRequestRetries times. (See `handleFailedRequestFunction`
@@ -166,8 +167,13 @@ export default class PuppeteerCrawler {
             .newPage()
             .then((newPage) => { page = newPage; })
             .then(() => this.gotoFunction({ page, request, puppeteerPool: this.puppeteerPool }))
-            .then(() => {
-                const promise = this.handlePageFunction({ page, request, puppeteerPool: this.puppeteerPool });
+            .then((response) => {
+                const promise = this.handlePageFunction({
+                    page,
+                    request,
+                    puppeteerPool: this.puppeteerPool,
+                    response,
+                });
 
                 if (!isPromise(promise)) throw new Error('User provided handlePageFunction must return a Promise.');
 
