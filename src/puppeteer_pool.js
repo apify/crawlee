@@ -12,6 +12,8 @@ const DEFAULT_PUPPETEER_CONFIG = {
     args: [],
 };
 
+const PROCESS_KILL_TIMEOUT_MILLIS = 5000;
+
 const DEFAULT_OPTIONS = {
     maxOpenPagesPerInstance: 100,
     abortInstanceAfterRequestCount: 150,
@@ -59,6 +61,7 @@ class PuppeteerInstance {
         this.browserPromise = browserPromise;
         this.lastPageOpenedAt = Date.now();
         this.killed = false;
+        this.childProcess = null;
     }
 }
 
@@ -155,6 +158,8 @@ export default class PuppeteerPool {
 
                     if (instance.activePages === 0 && this.retiredInstances[id]) this._killInstance(instance);
                 });
+
+                instance.childProcess = browser.process();
             })
             .catch((err) => {
                 log.exception(err, 'PuppeteerPool: Browser start failed', { id });
@@ -215,11 +220,14 @@ export default class PuppeteerPool {
      * @ignore
      */
     _killInstance(instance) {
-        const { id } = instance;
+        const { id, childProcess } = instance;
 
         log.info('PuppeteerPool: killing browser', { id });
 
         delete this.retiredInstances[id];
+
+        // Ensure that Chrome process will be really killed.
+        setTimeout(() => childProcess.kill('SIGKILL'), PROCESS_KILL_TIMEOUT_MILLIS);
 
         instance
             .browserPromise
