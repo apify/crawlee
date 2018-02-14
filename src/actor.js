@@ -575,11 +575,11 @@ export const readyFreddy = () => {
  * @param {String} [opts.contentType] - Content type for the `input`. If not specified,
  * `input` is expected to be an object that will be stringified to JSON and content type set to
  * `application/json; charset=utf-8`. If `opts.contentType` is specified, then `input` must be a `String` or `Buffer`.
- * @param {String} [opts.timeoutSecs] - Time limit for act to finish, in seconds.
+ * @param {Number} [opts.timeoutSecs] - Time limit for act to finish, in seconds.
  * If the limit is reached the resulting run will have the `RUNNING` status.
  * By default, there is no timeout.
- * @param {String} [opts.fetchOutput] - If `false` then the function does not fetch output of the act. Default is `true`.
- * @param {String} [opts.disableBodyParser] - If `true` then the function will not attempt to parse the
+ * @param {Boolean} [opts.fetchOutput] - If `false` then the function does not fetch output of the act. Default is `true`.
+ * @param {Boolean} [opts.disableBodyParser] - If `true` then the function will not attempt to parse the
  * act's output and will return it in a raw `Buffer`. Default is `false`.
  * @param {Function} [callback] - Optional callback. Function returns a promise if not provided.
  * @returns {Promise} Returns a promise unless `callback` was supplied.
