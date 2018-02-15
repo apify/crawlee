@@ -5,7 +5,7 @@ import _ from 'underscore';
 export const computeUniqueKey = (url, keepUrlFragment) => normalizeUrl(url, keepUrlFragment);
 
 /**
- * Requests class defines a request to be processed and stores info about error that occured during the processing.
+ * Requests class defines a web request to be processed and stores info about error that occurred during the processing.
  *
  * Example use:
  *
@@ -26,7 +26,7 @@ export const computeUniqueKey = (url, keepUrlFragment) => normalizeUrl(url, keep
  * ```
  *
  * @param {String} url
- * @param {String} [uniqueKey] Unique key indentifying request. In not provided then it's computed as normalized url.
+ * @param {String} [uniqueKey] Unique key identifying request. In not provided then it is computed as normalized URL.
  * @param {String} [method='GET']
  * @param {String|Buffer} [payload] Request payload. If method='GET' then the payload is not allowed.
  * @param {Number} [retryCount=0] How many times the url was retried in a case of exception.

@@ -105,6 +105,9 @@ export default class PuppeteerCrawler {
             launchPuppeteerFunction,
             instanceKillerIntervalMillis,
             killInstanceAfterMillis,
+
+            // TODO: 'groups' is not a great name, but we need to
+            // review proxy settings in general
             groups,
             puppeteerConfig,
             disableProxy,

@@ -362,14 +362,14 @@ export const call = (actId, input, opts = {}) => {
 };
 
 /**
- * Returns a url of Apify Proxy that can be used from Actor acts, web browsers or any other HTTP
+ * Returns a URL of Apify Proxy that can be used from Actor acts, web browsers or any other HTTP
  * proxy-enabled applications.
  *
  * @param {Object} opts
  * @param {String} opts.password User proxy password. By default, it is taken from the `APIFY_PROXY_PASSWORD` environment variable.
  * @param {String} [opts.groups] Proxy groups to be used.
  * @param {String} [opts.session] Session ID that identifies requests that should use the same proxy connection.
- * @returns {String} Returns proxy url.
+ * @returns {String} Returns proxy URL.
  *
  * @memberof module:Apify
  * @function
@@ -383,6 +383,8 @@ export const getApifyProxyUrl = (opts = {}) => {
         hostname = process.env[ENV_VARS.PROXY_HOSTNAME],
         port = parseInt(process.env[ENV_VARS.PROXY_PORT], 10),
     } = opts;
+
+    // TODO: Check that session and groups are alphanumeric!
 
     checkParamOrThrow(groups, 'opts.groups', 'Maybe Array');
     checkParamOrThrow(session, 'opts.session', 'Maybe Number | String');
