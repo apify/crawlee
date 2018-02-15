@@ -81,35 +81,10 @@ describe('getDefaultBrowseOptions()', () => {
 
 describe('processBrowseArgs()', () => {
     it('it handles default parameters well', () => {
-        const func = () => {};
-
         expect(processBrowseArgs()).to.eql({
             options: {
                 url: 'about:blank',
             },
-            callback: null,
-        });
-
-        expect(processBrowseArgs(func)).to.eql({
-            options: {
-                url: 'about:blank',
-            },
-            callback: func,
-        });
-
-        expect(processBrowseArgs('example.com', func)).to.eql({
-            options: {
-                url: 'example.com',
-            },
-            callback: func,
-        });
-
-        expect(processBrowseArgs('example.com', { opt: true }, func)).to.eql({
-            options: {
-                url: 'example.com',
-                opt: true,
-            },
-            callback: func,
         });
 
         expect(processBrowseArgs('example.com', { opt: true })).to.eql({
@@ -117,51 +92,43 @@ describe('processBrowseArgs()', () => {
                 url: 'example.com',
                 opt: true,
             },
-            callback: null,
         });
 
-        expect(processBrowseArgs('example.com', { opt: true }, null)).to.eql({
-            options: {
-                url: 'example.com',
-                opt: true,
-            },
-            callback: null,
-        });
-
-        expect(processBrowseArgs('example.com', { url: 'another.com' }, null)).to.eql({
+        expect(processBrowseArgs('example.com', { url: 'another.com' })).to.eql({
             options: {
                 url: 'example.com',
             },
-            callback: null,
         });
 
-        expect(processBrowseArgs({}, null)).to.eql({
+        expect(processBrowseArgs('example.com')).to.eql({
+            options: {
+                url: 'example.com',
+            },
+        });
+
+        expect(processBrowseArgs({})).to.eql({
             options: {
                 url: 'about:blank',
             },
-            callback: null,
         });
 
-        expect(processBrowseArgs({ url: 'example.com' }, null)).to.eql({
+        expect(processBrowseArgs({ url: 'example.com' })).to.eql({
             options: {
                 url: 'example.com',
             },
-            callback: null,
         });
 
-        expect(processBrowseArgs({ url: 'example.com' }, func)).to.eql({
+        expect(processBrowseArgs({ url: 'example.com' })).to.eql({
             options: {
                 url: 'example.com',
             },
-            callback: func,
         });
 
-        expect(processBrowseArgs({ some: 123 }, func)).to.eql({
+        expect(processBrowseArgs({ some: 123 })).to.eql({
             options: {
                 url: 'about:blank',
                 some: 123,
             },
-            callback: func,
         });
     });
 });
@@ -210,32 +177,6 @@ describe('Apify.launchWebDriver()', function () {
                 expect(url).to.eql('https://www.example.com/');
                 return webDriver.quit();
             });
-    });
-
-    it('works with empty options and callback', () => {
-        let webDriver;
-        return new Promise((resolve, reject) => {
-            try {
-                process.env.APIFY_HEADLESS = '1';
-                const retVal = Apify.launchWebDriver({}, (err, result) => {
-                    if (err) return reject(err);
-                    webDriver = result;
-                    try {
-                        expect(webDriver.constructor.name).to.eql('Driver');
-                        webDriver.getCurrentUrl()
-                            .then(resolve)
-                            .catch(reject);
-                    } catch (e) {
-                        reject(e);
-                    }
-                });
-                assert(!retVal, 'Apify.browse() with callback should return false-ish value');
-            } catch (e) {
-                reject(e);
-            }
-        }).then(() => {
-            return webDriver.quit();
-        });
     });
 
     it('works with proxy server', () => {
@@ -335,35 +276,6 @@ describe('Apify.browse()', function () {
                 expect(url).to.eql('https://www.example.com/');
                 return browser.close();
             });
-    });
-
-    it('works with empty options and callback', () => {
-        let browser;
-        return new Promise((resolve, reject) => {
-            try {
-                process.env.APIFY_HEADLESS = '1';
-                const retVal = Apify.browse('about:blank', {}, (err, result) => {
-                    if (err) return reject(err);
-                    browser = result;
-                    try {
-                        expect(browser.constructor.name).to.eql('Browser');
-                        browser.webDriver.getCurrentUrl()
-                            .then((url) => {
-                                expect(url).to.eql('about:blank');
-                                resolve();
-                            })
-                            .catch(reject);
-                    } catch (e) {
-                        reject(e);
-                    }
-                });
-                assert(!retVal, 'Apify.browse() with callback should return false-ish value');
-            } catch (e) {
-                reject(e);
-            }
-        }).then(() => {
-            return browser.close();
-        });
     });
 
     it('works with proxy server', () => {

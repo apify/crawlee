@@ -1,19 +1,17 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { anonymizeProxy, closeAnonymizedProxy } from 'proxy-chain';
-import { newPromise } from './utils';
 import { ENV_VARS, DEFAULT_USER_AGENT } from './constants';
+import { newPromise } from './utils';
 
 /* global process, require */
 
-
 /**
- * @memberof module:Apify
- * @function
- * @description <p>Launches headless Chrome using Puppeteer pre-configured to work with the Apify Actor platform.
+ * Launches headless Chrome using Puppeteer pre-configured to work with the Apify Actor platform.
  * The function has the same argument and return value as `puppeteer.launch()`.
  * See {@link https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#puppeteerlaunchoptions|Puppeteer documentation} for more details.
- * </p>
- * <p>The `launchPuppeteer()` function alters the following Puppeteer options:
+ *
+ * The `launchPuppeteer()` function alters the following Puppeteer options:
+ *
  * <ul>
  *    <li>Passes the setting from the `APIFY_HEADLESS` environment variable to the `headless` option,
  *        unless it was already defined by the caller. Note that this environment variable is automatically set to `1`
@@ -25,22 +23,24 @@ import { ENV_VARS, DEFAULT_USER_AGENT } from './constants';
  *    </li>
  *    <li>Adds `--no-sandbox` to `args` to enable running headless Chrome in a Docker container on the Actor platform.</li>
  * </ul>
- * </p>
- * <p>
- * To use this function, you need to have the
- * {@link https://www.npmjs.com/package/puppeteer|puppeteer}
+ *
+ * To use this function, you need to have the {@link https://www.npmjs.com/package/puppeteer|puppeteer}
  * NPM package installed in your project.
  * For example, you can use the `apify/actor-node-puppeteer` base Docker image for your act - see
  * {@link https://www.apify.com/docs/actor#base-images|documentation}
  * for more details.
- * </p>
+ *
  * @param {Object} [opts] Optional settings passed to `puppeteer.launch()`. Additionally the object can contain the following fields:
- * @param {String} [opts.proxyUrl] - URL to a HTTP proxy server.
- * Port number must be specified. Proxy username and password might also be provided.
- * For example, `http://bob:pass123@proxy.example.com:1234`.
- * @param {String} [opts.userAgent] - Default User-Agent for the browser.
- * If not provided, the function sets it to a reasonable default.
+ * @param {String} [opts.proxyUrl] URL to a HTTP proxy server.
+ *                                 Port number must be specified. Proxy username and password might also be provided.
+ *                                 For example, `http://bob:pass123@proxy.example.com:1234`.
+ * @param {String} [opts.userAgent] Default User-Agent for the browser.
+ *                                  If not provided, the function sets it to a reasonable default.
  * @returns {Promise} Promise object that resolves to Puppeteer's `Browser` instance.
+ *
+ * @memberof module:Apify
+ * @name launchPuppeteer
+ * @instance
  */
 export const launchPuppeteer = (opts) => {
     if (opts === undefined || opts === null) opts = {};

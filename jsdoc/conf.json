@@ -3,8 +3,8 @@
         "allowUnknownTags": true
     },
     "source": {
-        "include": [ "build" ],
-        "exclude": [ "build/constants.js", "build/proxy_chain.js" ],
+        "include": [ "src" ],
+        "exclude": [ "src/constants.js" ],
         "includePattern": ".+\\.js(doc|x)?$",
         "excludePattern": "(^|\\/|\\\\)_"
     },
