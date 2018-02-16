@@ -204,10 +204,11 @@ export const readyFreddy = () => {
 /**
  * Runs another act under the current user account, waits for the act to finish and fetches its output.
  *
- * By passing the `waitSecs` option you can reduce the maximum amount of time to wait for the act run to finish.
- * If the value is less than or equal to zero, the function returns immediately after the act run is started.
+ * By passing the `waitSecs` option you can reduce the maximum amount of time to wait for the run to finish.
+ * If the value is less than or equal to zero, the function returns immediately after the run is started.
  *
- * The result of the function is an object contains details about the run and potentially its output. For example:
+ * The result of the function is an object that contains details about the run and potentially its output.
+ * For example:
  *
  * ```json
  * {
