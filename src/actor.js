@@ -524,8 +524,12 @@ export const readyFreddy = () => {
 /**
  * @memberof module:Apify
  * @function
- * @description <p>Executes another act under the current user account, waits for the act finish and fetches its output.</p>
- * <p>The result of the function is an object describing the act run, which looks something like this:</p>
+ * @description
+ * <p>Executes another act under the current user account, waits for the act to finish and fetches its output.</p>
+ * <p>By passing the `waitSecs` option you can reduce the maximum amount of time to wait for the act run to finish.
+ * If the value is less than or equal to zero, the function returns immediately after the act run is started.
+ * </p>
+ * <p>The result of the function is an object contains details about the run and potentially its output. For example:</p>
  * ```json
  * {
  *   "id": "ErYkuTTsmKiXccNGT",
@@ -549,6 +553,7 @@ export const readyFreddy = () => {
  *   "buildId": "Bwkqk59MCkdexDP34",
  *   "exitCode": 0,
  *   "defaultKeyValueStoreId": "ccFfRptZru2uqdQHP",
+ *   "defaultDatasetId": "tZru2uqdQHPcgFtRo",
  *   "buildNumber": "0.1.2",
  *   "output": {
  *       "contentType": "application/json; charset=utf-8",
@@ -575,9 +580,10 @@ export const readyFreddy = () => {
  * @param {String} [opts.contentType] - Content type for the `input`. If not specified,
  * `input` is expected to be an object that will be stringified to JSON and content type set to
  * `application/json; charset=utf-8`. If `opts.contentType` is specified, then `input` must be a `String` or `Buffer`.
- * @param {String} [opts.timeoutSecs] - Time limit for act to finish, in seconds.
- * If the limit is reached the resulting run will have the `RUNNING` status.
- * By default, there is no timeout.
+ * @param {String} [opts.waitSecs] - Maximum time to wait for act run to finish, in seconds.
+ * If the limit is reached, the returned promise is resolved to a run object that will have status `READY` or `RUNNING`
+ * and it will not contain the act run output.
+ * If `waitSecs` is null or undefined, the function waits for the act to finish (default behavior).
  * @param {String} [opts.fetchOutput] - If `false` then the function does not fetch output of the act. Default is `true`.
  * @param {String} [opts.disableBodyParser] - If `true` then the function will not attempt to parse the
  * act's output and will return it in a raw `Buffer`. Default is `false`.
@@ -627,9 +633,12 @@ export const call = (actId, input, opts = {}, callback) => {
 
     // GetAct() options.
     const { timeoutSecs, fetchOutput = true } = opts;
-    checkParamOrThrow(timeoutSecs, 'timeoutSecs', 'Maybe Number');
+    let { waitSecs } = opts;
+    // Backwards compatibility: waitSecs used to be called timeoutSecs
+    if (typeof timeoutSecs === 'number' && typeof waitSecs !== 'number') waitSecs = timeoutSecs;
+    checkParamOrThrow(waitSecs, 'waitSecs', 'Maybe Number');
     checkParamOrThrow(fetchOutput, 'fetchOutput', 'Boolean');
-    const timeoutAt = timeoutSecs ? Date.now() + (timeoutSecs * 1000) : null;
+    const waitUntil = typeof waitSecs === 'number' ? Date.now() + (waitSecs * 1000) : null;
 
     // GetRecord() options.
     const { disableBodyParser } = opts;
@@ -647,7 +656,7 @@ export const call = (actId, input, opts = {}, callback) => {
 
     // Keeps requesting given run until it gets finished or timeout is reached.
     const waitForRunToFinish = (run) => {
-        const waitForFinish = timeoutAt !== null ? Math.round((timeoutAt - Date.now()) / 1000) : 999999;
+        const waitForFinish = waitUntil !== null ? Math.round((waitUntil - Date.now()) / 1000) : 999999;
 
         // We are timing out ...
         if (waitForFinish <= 0) return Promise.resolve(run);
@@ -656,7 +665,7 @@ export const call = (actId, input, opts = {}, callback) => {
             .getRun(Object.assign({}, defaultOpts, { waitForFinish, runId: run.id }))
             .then((updatedRun) => {
                 // It might take some time for database replicas to get up-to-date,
-                // so getRun() might return null. Wait a little while and try it again.
+                // so getRun() might return null. Wait a little bit and try it again.
                 if (!updatedRun) {
                     return new Promise(resolve => setTimeout(resolve, 250))
                         .then(() => {
