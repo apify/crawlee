@@ -587,7 +587,7 @@ describe('Apify.call()', () => {
         const defaultKeyValueStoreId = 'some-store-id';
         const run = { id: 'some-run-id', actId, defaultKeyValueStoreId };
         const runningRun = Object.assign({}, run, { status: 'RUNNING' });
-        const timeoutSecs = 1;
+        const waitSecs = 1;
 
         const actsMock = sinon.mock(Apify.client.acts);
         actsMock.expects('runAct')
@@ -595,17 +595,17 @@ describe('Apify.call()', () => {
             .once()
             .returns(Promise.resolve(runningRun));
         actsMock.expects('getRun')
-            .withExactArgs({ token, actId, runId: run.id, waitForFinish: timeoutSecs })
+            .withExactArgs({ token, actId, runId: run.id, waitForFinish: waitSecs })
             .once()
             .returns(new Promise((resolve) => {
-                setTimeout(() => resolve(runningRun), timeoutSecs * 1000);
+                setTimeout(() => resolve(runningRun), waitSecs * 1000);
             }));
 
         const keyValueStoresMock = sinon.mock(Apify.client.keyValueStores);
         keyValueStoresMock.expects('getRecord').never();
 
         return Apify
-            .call(actId, null, { token, timeoutSecs })
+            .call(actId, null, { token, waitSecs })
             .then((callOutput) => {
                 expect(callOutput).to.be.eql(runningRun);
                 keyValueStoresMock.restore();
@@ -650,6 +650,33 @@ describe('Apify.call()', () => {
             .call(actId, input, { contentType, token, disableBodyParser: true, build })
             .then((callOutput) => {
                 expect(callOutput).to.be.eql(expected);
+                keyValueStoresMock.restore();
+                actsMock.restore();
+            });
+    });
+
+    it('returns immediately with zero timeout', () => {
+        const actId = 'some-act-id';
+        const token = 'some-token';
+        const defaultKeyValueStoreId = 'some-store-id';
+        const run = { id: 'some-run-id', actId, defaultKeyValueStoreId };
+        const readyRun = Object.assign({}, run, { status: 'READY' });
+        const waitSecs = 0;
+
+        const actsMock = sinon.mock(Apify.client.acts);
+        actsMock.expects('runAct')
+            .withExactArgs({ token, actId })
+            .once()
+            .returns(Promise.resolve(readyRun));
+        actsMock.expects('getRun').never();
+
+        const keyValueStoresMock = sinon.mock(Apify.client.keyValueStores);
+        keyValueStoresMock.expects('getRecord').never();
+
+        return Apify
+            .call(actId, null, { token, waitSecs })
+            .then((callOutput) => {
+                expect(callOutput).to.be.eql(readyRun);
                 keyValueStoresMock.restore();
                 actsMock.restore();
             });
