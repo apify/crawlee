@@ -1,6 +1,7 @@
 import EventEmitter from 'events';
 import { log } from 'apify-shared';
 
+import { ENV_VARS } from './constants';
 import { main, readyFreddy, getEnv, call, getApifyProxyUrl } from './actor';
 import AutoscaledPool from './autoscaled_pool';
 import BasicCrawler from './basic_crawler';
@@ -18,7 +19,7 @@ import { browse, launchWebDriver } from './webdriver';
 /* globals module */
 
 // Hide debug log messages when running in production mode.
-if (!isProduction()) log.isDebugMode = true;
+if (!isProduction() || process.env[ENV_VARS.LOG_LEVEL] === 'DEBUG') log.isDebugMode = true;
 
 /**
  * The `apify` NPM package simplifies development of acts in Apify Actor -

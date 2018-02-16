@@ -21,7 +21,7 @@ import { newPromise } from './utils';
  *        to make the proxy work with headless Chrome. For more information, read the
  *        {@link https://blog.apify.com/249a21a79212|blog post about proxy-chain library}.
  *    </li>
- *    <li>Adds `--no-sandbox` to `args` to enable running headless Chrome in a Docker container on the Actor platform.</li>
+ *    <li>Adds `--no-sandbox` to `args` to enable running headless Chrome in a Docker container on the Apify Actor platform.</li>
  * </ul>
  *
  * To use this function, you need to have the {@link https://www.npmjs.com/package/puppeteer|puppeteer}

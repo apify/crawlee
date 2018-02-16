@@ -257,11 +257,11 @@ export const readyFreddy = () => {
  *                                      `input` is expected to be an object that will be stringified to JSON and content type set to
  *                                      `application/json; charset=utf-8`. If `opts.contentType` is specified, then `input` must be a
  *                                      `String` or `Buffer`.
- * @param {String} [opts.timeoutSecs] Time limit for act to finish, in seconds.
+ * @param {Number} [opts.timeoutSecs] Time limit for act to finish, in seconds.
  *                                      If the limit is reached the resulting run will have the `RUNNING` status.
  *                                      By default, there is no timeout.
- * @param {String} [opts.fetchOutput=true] If `false` then the function does not fetch output of the act.
- * @param {String} [opts.disableBodyParser=false] If `true` then the function will not attempt to parse the
+ * @param {Boolean} [opts.fetchOutput=true] If `false` then the function does not fetch output of the act.
+ * @param {Boolean} [opts.disableBodyParser=false] If `true` then the function will not attempt to parse the
  *                                                act's output and will return it in a raw `Buffer`.
  * @returns {Promise}
  *
@@ -362,14 +362,14 @@ export const call = (actId, input, opts = {}) => {
 };
 
 /**
- * Returns a url of Apify Proxy that can be used from Actor acts, web browsers or any other HTTP
+ * Returns a URL of Apify Proxy that can be used from Actor acts, web browsers or any other HTTP
  * proxy-enabled applications.
  *
  * @param {Object} opts
  * @param {String} opts.password User proxy password. By default, it is taken from the `APIFY_PROXY_PASSWORD` environment variable.
  * @param {String} [opts.groups] Proxy groups to be used.
  * @param {String} [opts.session] Session ID that identifies requests that should use the same proxy connection.
- * @returns {String} Returns proxy url.
+ * @returns {String} Returns proxy URL.
  *
  * @memberof module:Apify
  * @function
@@ -383,6 +383,8 @@ export const getApifyProxyUrl = (opts = {}) => {
         hostname = process.env[ENV_VARS.PROXY_HOSTNAME],
         port = parseInt(process.env[ENV_VARS.PROXY_PORT], 10),
     } = opts;
+
+    // TODO: Check that session and groups are alphanumeric!
 
     checkParamOrThrow(groups, 'opts.groups', 'Maybe Array');
     checkParamOrThrow(session, 'opts.session', 'Maybe Number | String');

@@ -1,5 +1,6 @@
 import _ from 'underscore';
 import log from 'apify-shared/log';
+import { cryptoRandomObjectId } from 'apify-shared/utilities';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { launchPuppeteer } from './puppeteer';
 import { getApifyProxyUrl } from './actor';
@@ -10,6 +11,8 @@ const DEFAULT_PUPPETEER_CONFIG = {
     slowMo: 0,
     args: [],
 };
+
+const PROCESS_KILL_TIMEOUT_MILLIS = 5000;
 
 const DEFAULT_OPTIONS = {
     maxOpenPagesPerInstance: 100,
@@ -38,9 +41,7 @@ const DEFAULT_OPTIONS = {
         // TODO: Maybe we should move this whole logic directly to Apify.launchPuppeteer().
         // E.g. if process.env.APIFY_PROXY_HOST is defined, then puppeteer should use it with "auto".
         if (!disableProxy) {
-            const session = Math.random();
-
-            config.proxyUrl = getApifyProxyUrl({ groups, session });
+            config.proxyUrl = getApifyProxyUrl({ groups, session: cryptoRandomObjectId() });
         }
 
         return launchPuppeteer(config);
@@ -60,6 +61,7 @@ class PuppeteerInstance {
         this.browserPromise = browserPromise;
         this.lastPageOpenedAt = Date.now();
         this.killed = false;
+        this.childProcess = null;
     }
 }
 
@@ -156,6 +158,8 @@ export default class PuppeteerPool {
 
                     if (instance.activePages === 0 && this.retiredInstances[id]) this._killInstance(instance);
                 });
+
+                instance.childProcess = browser.process();
             })
             .catch((err) => {
                 log.exception(err, 'PuppeteerPool: Browser start failed', { id });
@@ -216,11 +220,14 @@ export default class PuppeteerPool {
      * @ignore
      */
     _killInstance(instance) {
-        const { id } = instance;
+        const { id, childProcess } = instance;
 
         log.info('PuppeteerPool: killing browser', { id });
 
         delete this.retiredInstances[id];
+
+        // Ensure that Chrome process will be really killed.
+        setTimeout(() => childProcess.kill('SIGKILL'), PROCESS_KILL_TIMEOUT_MILLIS);
 
         instance
             .browserPromise
