@@ -1,39 +1,11 @@
-import BluebirdPromise from 'bluebird';
 import { expect } from 'chai';
 import sinon from 'sinon';
 import fs from 'fs';
+import os from 'os';
 import * as utils from '../build/utils';
 import Apify from '../build/index';
 
 /* global process, describe, it */
-
-// TODO: run tests against build scripts too!
-
-describe('Apify.xxxPromisesDependency()', () => {
-    it('should throw on invalid args', () => {
-        expect(() => { Apify.setPromisesDependency('test'); }).to.throw(Error);
-        expect(() => { Apify.setPromisesDependency({}); }).to.throw(Error);
-        expect(() => { Apify.setPromisesDependency(123); }).to.throw(Error);
-        expect(() => { Apify.setPromisesDependency(); }).to.throw(Error);
-        expect(() => { Apify.setPromisesDependency(undefined); }).to.throw(Error);
-    });
-
-    it('should work as expected', () => {
-        Apify.setPromisesDependency(null);
-        expect(Apify.getPromisesDependency()).to.be.a('null');
-        expect(utils.newPromise()).to.have.property('then');
-
-        // Check native promise
-        Apify.setPromisesDependency(Promise);
-        expect(Apify.getPromisesDependency()).to.equal(Promise);
-        expect(utils.newPromise()).to.have.property('then');
-
-        // Check bluebird
-        Apify.setPromisesDependency(BluebirdPromise);
-        expect(Apify.getPromisesDependency()).to.equal(BluebirdPromise);
-        expect(utils.newPromise()).to.have.property('then');
-    });
-});
 
 describe('utils.newClient()', () => {
     it('reads environment variables correctly', () => {
@@ -126,5 +98,101 @@ describe('utils.isDocker()', () => {
                 fs.stat.restore();
                 fs.readFile.restore();
             });
+    });
+});
+
+describe('utils.getMemoryInfo()', () => {
+    it('works outside the container', () => {
+        const osMock = sinon.mock(os);
+        const utilsMock = sinon.mock(utils);
+
+        utilsMock
+            .expects('isDocker')
+            .once()
+            .returns(Promise.resolve(false));
+
+        osMock
+            .expects('freemem')
+            .once()
+            .returns(222);
+
+        osMock
+            .expects('totalmem')
+            .once()
+            .returns(333);
+
+        return Apify
+            .getMemoryInfo()
+            .then((data) => {
+                expect(data).to.be.eql({
+                    totalBytes: 333,
+                    freeBytes: 222,
+                    usedBytes: 111,
+                });
+
+                utilsMock.restore();
+                osMock.restore();
+            });
+    });
+
+    it('works inside the container', () => {
+        const utilsMock = sinon.mock(utils);
+
+        utilsMock
+            .expects('isDocker')
+            .once()
+            .returns(Promise.resolve(true));
+
+        sinon
+            .stub(fs, 'readFile')
+            .callsFake((path, callback) => {
+                if (path === '/sys/fs/cgroup/memory/memory.limit_in_bytes') callback(null, '333');
+                else if (path === '/sys/fs/cgroup/memory/memory.usage_in_bytes') callback(null, '111');
+                else throw new Error('Invalid path');
+            });
+
+        return Apify
+            .getMemoryInfo()
+            .then((data) => {
+                expect(data).to.be.eql({
+                    totalBytes: 333,
+                    freeBytes: 222,
+                    usedBytes: 111,
+                });
+
+                utilsMock.restore();
+                fs.readFile.restore();
+            });
+    });
+});
+
+describe('utils.isPromise()', () => {
+    it('works', () => {
+        const rejected = Promise.reject();
+
+        expect(utils.isPromise(new Promise(resolve => setTimeout(resolve, 1000)))).to.be.eql(true);
+        expect(utils.isPromise(Promise.resolve())).to.be.eql(true);
+        expect(utils.isPromise(rejected)).to.be.eql(true);
+        expect(utils.isPromise(new Date())).to.be.eql(false);
+        expect(utils.isPromise(Function)).to.be.eql(false);
+        expect(utils.isPromise(() => {})).to.be.eql(false);
+        expect(utils.isPromise({ then: () => {} })).to.be.eql(false);
+
+        rejected.catch(() => {});
+    });
+});
+
+describe('utils.isPromise()', () => {
+    it('works', () => {
+        expect(() => utils.checkParamPrototypeOrThrow(new Date(), 'param', Date, 'Date')).to.not.throw();
+        expect(() => utils.checkParamPrototypeOrThrow(null, 'param', Function, 'Date', true)).to.not.throw();
+        expect(() => utils.checkParamPrototypeOrThrow(undefined, 'param', Function, 'Date', true)).to.not.throw();
+        expect(() => utils.checkParamPrototypeOrThrow(new Date(), 'param', Function, 'Date')).to.throw();
+    });
+});
+
+describe('utils.newPromise()', () => {
+    it('works', () => {
+        if (!utils.isPromise(utils.newPromise())) throw new Error('utils.newPromise() must return a promise!');
     });
 });
