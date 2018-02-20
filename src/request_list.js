@@ -260,15 +260,21 @@ export default class RequestList {
         return requestPromise.get(requestsFromUrl)
             .then((urlsStr) => {
                 const urlsArr = urlsStr.match(new RegExp(regex, 'g'));
+                const originalLength = this.requests.length;
+
+                urlsArr.forEach(url => this._addRequest(_.extend({ url }, sharedOpts)));
+
+                const fetchedCount = urlsArr.length;
+                const importedCount = this.requests.length - originalLength;
 
                 log.info('RequestList: list fetched', {
                     requestsFromUrl,
                     regex,
-                    count: urlsArr.length,
+                    fetchedCount,
+                    importedCount,
+                    dupliciteCount: fetchedCount - importedCount,
                     sample: JSON.stringify(urlsArr.slice(0, 5)),
                 });
-
-                urlsArr.forEach(url => this._addRequest(_.extend({ url }, sharedOpts)));
             })
             .catch((err) => {
                 log.exception(err, 'RequestList: Cannot fetch a request list', { requestsFromUrl, regex });
