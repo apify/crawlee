@@ -34,7 +34,7 @@ const humanReadable = bytes => `${Math.round(bytes / 1024 / 1024)} MB`;
  * Basic usage of AutoscaledPool:
  *
  * ```javascript
- * const pool = new Apify.AutoScaledPool({
+ * const pool = new Apify.AutoscaledPool({
  *     maxConcurrency: 50,
  *     workerFunction: async () => {
  *         // ... do some intensive asynchronous operations here and return a promise ...
