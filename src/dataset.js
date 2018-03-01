@@ -141,6 +141,7 @@ const getOrCreateDataset = (datasetIdOrName) => {
  * @memberof module:Apify
  * @name openDataset
  * @instance
+ * @function
  */
 export const openDataset = (datasetIdOrName) => {
     checkParamOrThrow(datasetIdOrName, 'datasetIdOrName', 'Maybe String');
@@ -202,5 +203,6 @@ export const openDataset = (datasetIdOrName) => {
  * @memberof module:Apify
  * @name pushData
  * @instance
+ * @function
  */
 export const pushData = item => openDataset().then(dataset => dataset.pushData(item));

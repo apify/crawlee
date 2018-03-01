@@ -67,9 +67,11 @@ if (!isProduction() || process.env[ENV_VARS.LOG_LEVEL] === 'DEBUG') log.isDebugM
  * <h2>Promises vs. callbacks</h2>
  *
  * By default, all asynchronous functions provided by this package return a promise.
- * However, most of them also accept an optional Node.js-style callback as the last parameter.
- * If the callback is provided, the return value of the functions is not defined
- * and the functions only invoke the callback upon completion or error.
+ * But Apify uses a <a href="http://bluebirdjs.com/" target="_blank">Bluebird</a>
+ * promise implementation so you can easily convert any function that returns a Promise
+ * into callback style function. See <a href="http://bluebirdjs.com/docs/api/promise.promisify.html" target="_blank">
+ * http://bluebirdjs.com/docs/api/promise.promisify.html
+ * </a> for more information.
  *
  * <h2>Programmer's reference</h2>
  *

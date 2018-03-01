@@ -269,6 +269,7 @@ const getOrCreateKeyValueStore = (storeIdOrName) => {
  * @memberof module:Apify
  * @name openKeyValueStore
  * @instance
+ * @function
  */
 export const openKeyValueStore = (storeIdOrName) => {
     checkParamOrThrow(storeIdOrName, 'storeIdOrName', 'Maybe String');
@@ -342,6 +343,7 @@ export const openKeyValueStore = (storeIdOrName) => {
  * @memberof module:Apify
  * @name getValue
  * @instance
+ * @function
  */
 export const getValue = key => openKeyValueStore().then(store => store.getValue(key));
 
@@ -385,5 +387,6 @@ export const getValue = key => openKeyValueStore().then(store => store.getValue(
  * @memberof module:Apify
  * @name setValue
  * @instance
+ * @function
  */
 export const setValue = (key, value, options) => openKeyValueStore().then(store => store.setValue(key, value, options));

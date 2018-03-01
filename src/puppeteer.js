@@ -41,6 +41,7 @@ import { newPromise } from './utils';
  * @memberof module:Apify
  * @name launchPuppeteer
  * @instance
+ * @function
  */
 export const launchPuppeteer = (opts) => {
     if (opts === undefined || opts === null) opts = {};

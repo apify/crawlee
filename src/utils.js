@@ -98,18 +98,18 @@ const createIsDockerPromise = () => {
 };
 
 /**
- * Returns promise that resolves to true if the code is running in Docker container.
+ * Returns promise that resolves to true if the code is running in a Docker container.
  * See https://github.com/sindresorhus/is-docker
- *
- * Parameter forceReset is just internal for unit tests.
  *
  * @return {Promise}
  *
  * @memberof module:Apify
  * @name isDocker
  * @instance
+ * @function
  */
 export const isDocker = (forceReset) => {
+    // Parameter forceReset is just internal for unit tests.
     if (!isDockerPromise || forceReset) isDockerPromise = createIsDockerPromise();
 
     return isDockerPromise;
@@ -136,6 +136,7 @@ export const isDocker = (forceReset) => {
  * @memberof module:Apify
  * @name getMemoryInfo
  * @instance
+ * @function
  */
 export const getMemoryInfo = () => {
     // module.exports must be here so that we can mock it.
