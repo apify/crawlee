@@ -21,8 +21,6 @@ const DEFAULT_OPTIONS = {
  * Basic usage of PuppeteerCrawler:
  *
  * ```javascript
- * const request = require('request-promise');
- *
  * const crawler = new Apify.PuppeteerCrawler({
  *     requestList,
  *     // Parameter page here is an intance of Puppeteer.Page with page.goto(request.url) already called

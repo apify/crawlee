@@ -4,6 +4,7 @@ import fs from 'fs';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { ENV_VARS, EXIT_CODES, ACT_TASK_TERMINAL_STATUSES, DEFAULT_PROXY_HOSTNAME, DEFAULT_PROXY_PORT } from './constants';
 import { newPromise, apifyClient, addCharsetToContentType } from './utils';
+import { maybeStringify } from './key_value_store';
 
 /* globals process */
 
@@ -296,26 +297,13 @@ export const call = (actId, input, opts = {}) => {
     checkParamOrThrow(build, 'build', 'Maybe String');
     if (build) runActOpts.build = build;
 
-    let { contentType } = opts;
     if (input) {
-        // TODO: this is duplicate with setValue()'s code
-        if (contentType === null || contentType === undefined) {
-            contentType = 'application/json';
-            try {
-                // Format JSON to simplify debugging, the overheads with compression is negligible
-                input = JSON.stringify(input, null, 2);
-            } catch (err) {
-                throw new Error(`The "input" parameter cannot be stringified to JSON: ${err.message}`);
-            }
-            if (input === undefined) {
-                throw new Error('The "input" parameter cannot be stringified to JSON.');
-            }
-        }
+        input = maybeStringify(input, opts);
 
         checkParamOrThrow(input, 'input', 'Buffer|String');
-        checkParamOrThrow(contentType, 'contentType', 'String');
+        checkParamOrThrow(opts.contentType, 'contentType', 'String');
 
-        if (contentType) runActOpts.contentType = addCharsetToContentType(contentType);
+        if (opts.contentType) runActOpts.contentType = addCharsetToContentType(opts.contentType);
         runActOpts.body = input;
     }
 

@@ -3,7 +3,7 @@ import chaiAsPromised from 'chai-as-promised';
 import 'babel-polyfill';
 import sinon from 'sinon';
 import { ENV_VARS } from '../build/constants';
-import { KeyValueStoreLocal, KeyValueStore, LOCAL_EMULATION_SUBDIR } from '../build/key_value_store';
+import { KeyValueStoreLocal, KeyValueStore, maybeStringify, LOCAL_EMULATION_SUBDIR } from '../build/key_value_store';
 import { apifyClient } from '../build/utils';
 import * as Apify from '../build/index';
 import { LOCAL_EMULATION_DIR, emptyLocalEmulationSubdir, expectNotLocalEmulation } from './_helper';
@@ -15,6 +15,21 @@ describe('key_value_store', () => {
     after(() => apifyClient.setOptions({ token: undefined }));
     beforeEach(() => emptyLocalEmulationSubdir(LOCAL_EMULATION_SUBDIR));
     afterEach(() => emptyLocalEmulationSubdir(LOCAL_EMULATION_SUBDIR));
+
+    describe('maybeStringify()', () => {
+        it('should work', () => {
+            expect(maybeStringify({ foo: 'bar' }, { contentType: null })).to.be.eql('{\n  "foo": "bar"\n}');
+            expect(maybeStringify({ foo: 'bar' }, { contentType: undefined })).to.be.eql('{\n  "foo": "bar"\n}');
+
+            expect(maybeStringify('xxx', { contentType: undefined })).to.be.eql('"xxx"');
+            expect(maybeStringify('xxx', { contentType: 'something' })).to.be.eql('xxx');
+
+            const obj = {};
+            obj.self = obj;
+            expect(() => maybeStringify(obj, { contentType: null }))
+                .to.throw('The "value" parameter cannot be stringified to JSON: Converting circular structure to JSON');
+        });
+    });
 
     describe('local', async () => {
         it('should work', async () => {
