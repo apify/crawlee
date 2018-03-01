@@ -48,9 +48,9 @@ const tryParseDate = (str) => {
  *     // act is stored (APIFY_DEFAULT_KEY_VALUE_STORE_ID)
  *     defaultKeyValueStoreId: String,
  * &nbsp;
- *    // ID of the sequential store where input and output data of this
- *     // act is stored (APIFY_DEFAULT_SEQUENTIAL_STORE_ID)
- *     defaultSequentialStoreId: String,
+ *    // ID of the dataset where input and output data of this
+ *     // act is stored (APIFY_DEFAULT_DATASET_ID)
+ *     defaultDatasetId: String,
  * &nbsp;
  *     // Amount of memory allocated for the act run,
  *     // in megabytes (APIFY_MEMORY_MBYTES)
