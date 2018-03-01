@@ -62,7 +62,7 @@ const validateSetValueParams = (key, value, options) => {
  *
  * @ignore
  */
-const maybeStringify = (value, options) => {
+export const maybeStringify = (value, options) => {
     // If contentType is missing, value will be stringified to JSON
     if (options.contentType === null || options.contentType === undefined) {
         options.contentType = 'application/json';
