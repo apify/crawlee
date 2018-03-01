@@ -53,6 +53,7 @@ if (!isProduction() || process.env[ENV_VARS.LOG_LEVEL] === 'DEBUG') log.isDebugM
  * ```
  *
  * <h2>Common use-cases</h2>
+ * <!-- Mirror this part to README.md -->
  *
  * Main goal of this package is to help with implementation of web scraping and automation projects. Some of the
  * most common use-cases are:
@@ -76,6 +77,7 @@ if (!isProduction() || process.env[ENV_VARS.LOG_LEVEL] === 'DEBUG') log.isDebugM
  * </ul>
  *
  * <h2>Puppeteer</h2>
+ * <!-- Mirror this part to README.md -->
  *
  * For those who are using <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a> (headless Chrome browser)
  * we have few helper classes and functions:
