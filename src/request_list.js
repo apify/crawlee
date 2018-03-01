@@ -41,7 +41,7 @@ const ensureUniqueKeyValid = (uniqueKey) => {
  * Basic usage of RequestList:
  *
  * ```javascript
- * const requestList = new RequestList({
+ * const requestList = new Apify.RequestList({
  *     sources: [
  *         // Seperate requests
  *         { url: 'http://www.example.com/page-1', method: 'GET', headers: {} },
