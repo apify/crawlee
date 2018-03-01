@@ -52,7 +52,7 @@ if (!isProduction() || process.env[ENV_VARS.LOG_LEVEL] === 'DEBUG') log.isDebugM
  * });
  * ```
  *
- * <h2>Main use-cases</h2>
+ * <h2>Common use-cases</h2>
  *
  * Main goal of this package is to help with implementation of web scraping and automation projects. Some of the
  * most common use-cases are:

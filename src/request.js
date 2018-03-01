@@ -25,15 +25,16 @@ export const computeUniqueKey = (url, keepUrlFragment) => normalizeUrl(url, keep
  * const foo = request.userData.foo;
  * ```
  *
- * @param {String} url
- * @param {String} [uniqueKey] Unique key identifying request. In not provided then it is computed as normalized URL.
- * @param {String} [method='GET']
- * @param {String|Buffer} [payload] Request payload. If method='GET' then the payload is not allowed.
- * @param {Number} [retryCount=0] How many times the url was retried in a case of exception.
- * @param {String} [errorMessages] Array of error messages from request processing.
- * @param {String} [headers={}] HTTP headers.
- * @param {Object} [userData={}] Custom data that user can assign to request.
- * @param {Boolean} [keepUrlFragment=false] If false then hash part is removed from url when computing `uniqueKey`.
+ * @param {object} opts
+ * @param {String} opts.url
+ * @param {String} [opts.uniqueKey] Unique key identifying request. In not provided then it is computed as normalized URL.
+ * @param {String} [opts.method='GET']
+ * @param {String|Buffer} [opts.payload] Request payload. If method='GET' then the payload is not allowed.
+ * @param {Number} [opts.retryCount=0] How many times the url was retried in a case of exception.
+ * @param {String} [opts.errorMessages] Array of error messages from request processing.
+ * @param {String} [opts.headers={}] HTTP headers.
+ * @param {Object} [opts.userData={}] Custom data that user can assign to request.
+ * @param {Boolean} [opts.keepUrlFragment=false] If false then hash part is removed from url when computing `uniqueKey`.
  */
 export default class Request {
     constructor({

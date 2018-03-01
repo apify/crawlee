@@ -363,7 +363,8 @@ export const call = (actId, input, opts = {}) => {
 
 /**
  * Returns a URL of Apify Proxy that can be used from Actor acts, web browsers or any other HTTP
- * proxy-enabled applications.
+ * proxy-enabled applications. For more info about Apify Proxy see
+ * <a href="https://www.apify.com/docs/proxy" target="_blank">https://www.apify.com/docs/proxy</a>.
  *
  * @param {Object} opts
  * @param {String} opts.password User proxy password. By default, it is taken from the `APIFY_PROXY_PASSWORD` environment variable.
