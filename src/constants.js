@@ -1,6 +1,9 @@
 import * as consts from 'apify-shared/consts';
 
 consts.DEFAULT_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36'; // eslint-disable-line max-len
+consts.DEFAULT_PROXY_HOSTNAME = 'proxy.apify.com';
+consts.DEFAULT_PROXY_PORT = 8000;
+
 
 /**
  * Exit codes for the act process.

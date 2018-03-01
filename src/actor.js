@@ -2,7 +2,7 @@ import _ from 'underscore';
 import Promise from 'bluebird';
 import fs from 'fs';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { ENV_VARS, EXIT_CODES, ACT_TASK_TERMINAL_STATUSES } from './constants';
+import { ENV_VARS, EXIT_CODES, ACT_TASK_TERMINAL_STATUSES, DEFAULT_PROXY_HOSTNAME, DEFAULT_PROXY_PORT } from './constants';
 import { newPromise, apifyClient, addCharsetToContentType } from './utils';
 
 /* globals process */
@@ -392,8 +392,8 @@ export const getApifyProxyUrl = (opts = {}) => {
         groups,
         session,
         password = process.env[ENV_VARS.PROXY_PASSWORD],
-        hostname = process.env[ENV_VARS.PROXY_HOSTNAME],
-        port = parseInt(process.env[ENV_VARS.PROXY_PORT], 10),
+        hostname = process.env[ENV_VARS.PROXY_HOSTNAME] || DEFAULT_PROXY_HOSTNAME,
+        port = parseInt(process.env[ENV_VARS.PROXY_PORT], 10) || DEFAULT_PROXY_PORT,
     } = opts;
 
     // TODO: Check that session and groups are alphanumeric!

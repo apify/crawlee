@@ -5,7 +5,7 @@ import sinon from 'sinon';
 import tmp from 'tmp';
 import Promise from 'bluebird';
 import { delayPromise } from 'apify-shared/utilities';
-import { ACT_TASK_STATUSES, ENV_VARS } from '../build/constants';
+import { ACT_TASK_STATUSES, ENV_VARS, DEFAULT_PROXY_PORT, DEFAULT_PROXY_HOSTNAME } from '../build/constants';
 
 // NOTE: test use of require() here because this is how its done in acts
 const Apify = require('../build/index');
@@ -707,6 +707,8 @@ describe('Apify.getApifyProxyUrl()', () => {
         delete process.env[ENV_VARS.PROXY_PASSWORD];
         delete process.env[ENV_VARS.PROXY_HOSTNAME];
         delete process.env[ENV_VARS.PROXY_PORT];
+
+        expect(Apify.getApifyProxyUrl({ password: 'xyz' })).to.be.eql(`http://auto:xyz@${DEFAULT_PROXY_HOSTNAME}:${DEFAULT_PROXY_PORT}`);
 
         expect(() => Apify.getApifyProxyUrl()).to.throw();
 
