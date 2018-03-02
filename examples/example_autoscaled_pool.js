@@ -3,6 +3,10 @@ const Apify = require('../build');
 Apify.main(async () => {
     let counter = 0;
 
+    // Worker function gets executed again and again in the pool.
+    // Size of the pool is auto-scaled based on memory and CPU.
+    // If this function returns null then all tasks are considered
+    // to be done.
     const workerFunction = () => {
         const current = counter++;
 

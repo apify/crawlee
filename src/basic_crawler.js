@@ -21,13 +21,13 @@ const DEFAULT_OPTIONS = {
  * Basic usage of BasicCrawler:
  *
  * ```javascript
- * const request = require('request-promise');
+ * const rp = require('request-promise');
  *
  * const crawler = new Apify.BasicCrawler({
  *     requestList,
  *     handleRequestFunction: async ({ request }) => {
  *         await Apify.pushData({
- *             html: await request(request.url),
+ *             html: await rp(request.url),
  *             url: request.url,
  *         })
  *     },
