@@ -1,8 +1,6 @@
-import EventEmitter from 'events';
-import { log } from 'apify-shared';
-
+import log from 'apify-shared/log';
 import { ENV_VARS } from './constants';
-import { main, readyFreddy, getEnv, call, getApifyProxyUrl } from './actor';
+import { main, readyFreddy, getEnv, call, getApifyProxyUrl, events, initializeEvents } from './actor';
 import AutoscaledPool from './autoscaled_pool';
 import BasicCrawler from './basic_crawler';
 import { pushData, openDataset } from './dataset';
@@ -124,10 +122,10 @@ if (!isProduction() || process.env[ENV_VARS.LOG_LEVEL] === 'DEBUG') log.isDebugM
  * @module Apify
  */
 module.exports = {
-    events: new EventEmitter(),
-
     // Actor
     main,
+    events,
+    initializeEvents,
     getEnv,
     call,
     readyFreddy,

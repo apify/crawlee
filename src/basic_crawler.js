@@ -1,6 +1,6 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import _ from 'underscore';
-import { log } from 'apify-shared';
+import log from 'apify-shared/log';
 import { isPromise, checkParamPrototypeOrThrow } from './utils';
 import AutoscaledPool from './autoscaled_pool';
 import RequestList from './request_list';
