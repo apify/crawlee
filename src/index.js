@@ -28,8 +28,8 @@ if (!isProduction() || process.env[ENV_VARS.LOG_LEVEL] === 'DEBUG') log.isDebugM
  *
  * For more information about the Apify Actor platform, please go to
  * {@link https://www.apify.com/docs/actor|Actor documentation}.
-
- * The source code of this package is available on {@link https://github.com/apifytech/apify-runtime-js|GitHub}.
+ *
+ * The source code of this package is available on {@link https://github.com/apifytech/apify-js|GitHub}.
  *
  * <h2>Example usage</h2>
  *
