@@ -43,8 +43,8 @@ const DEFAULT_OPTIONS = {
  *                   Function to handle requests that failed more then option.maxRequestRetries times.
  * @param {Number} [options.maxRequestRetries=3] How many times request is retried if handleRequestFunction failed.
  * @param {Number} [options.maxMemoryMbytes] Maximal memory available in the system (see `maxMemoryMbytes` parameter of `Apify.AutoscaledPool`).
- * @param {Number} [options.maxConcurrency=1] Minimal concurrency of requests processing (see `maxConcurrency` parameter of `Apify.AutoscaledPool`).
- * @param {Number} [options.minConcurrency=1000] Maximal concurrency of request processing (see `minConcurrency` parameter of `Apify.AutoscaledPool`).
+ * @param {Number} [options.maxConcurrency=1000] Maximal concurrency of request processing (see `maxConcurrency` parameter of `Apify.AutoscaledPool`).
+ * @param {Number} [options.minConcurrency=1] Minimal concurrency of requests processing (see `minConcurrency` parameter of `Apify.AutoscaledPool`).
  * @param {Number} [options.minFreeMemoryRatio=0.2] Minumum ratio of free memory kept in the system.
  */
 export default class BasicCrawler {
