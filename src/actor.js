@@ -29,11 +29,11 @@ const tryParseDate = (str) => {
  * Example usage:
  *
  * ```javascript
- * import { ACTOR_EVENTS } from 'apify/constants';
+ * import { ACTOR_EVENT_NAMES } from 'apify/constants';
  *
  * Apify.main(async () => {
  *   &nbsp;
- *   Apify.events.on(ACTOR_EVENTS.CPU_INFO, (data) => {
+ *   Apify.events.on(ACTOR_EVENT_NAMES.CPU_INFO, (data) => {
  *     if (data.isCpuOverloaded) console.log('OH NO! We are overloading CPU!');
  *   });
  *.  &nbsp;
@@ -64,11 +64,11 @@ let eventsWs = null;
 export const initializeEvents = () => {
     if (eventsWs) return;
 
-    const eventsWsUrl = process.env[ENV_VARS.ACTOR_EVENTS_WEB_SOCKET];
+    const eventsWsUrl = process.env[ENV_VARS.ACTOR_EVENTS_WS_URL];
 
     // Localy there is no web socket to connect so just print a warning.
     if (!eventsWsUrl) {
-        log.warning(`Environment variable ${ENV_VARS.ACTOR_EVENTS_WEB_SOCKET} was not provided. Events in Apify.events emitter won't be available!`);
+        log.warning(`Environment variable ${ENV_VARS.ACTOR_EVENTS_WS_URL} was not provided. Events in Apify.events emitter won't be available!`);
         return;
     }
 

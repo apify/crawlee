@@ -742,7 +742,7 @@ describe('Apify.events', () => {
             setTimeout(() => send({ name: 'name-2', data: [2] }), 50);
         });
 
-        process.env[ENV_VARS.ACTOR_EVENTS_WEB_SOCKET] = 'ws://localhost:9099/someRunId';
+        process.env[ENV_VARS.ACTOR_EVENTS_WS_URL] = 'ws://localhost:9099/someRunId';
 
         // Run main and store received events
         Apify.main(async () => {
@@ -760,7 +760,7 @@ describe('Apify.events', () => {
                 // Cleanup.
                 stubbedExit.restore();
                 wss.close();
-                delete process.env[ENV_VARS.ACTOR_EVENTS_WEB_SOCKET];
+                delete process.env[ENV_VARS.ACTOR_EVENTS_WS_URL];
                 done();
             });
     });
@@ -780,7 +780,7 @@ describe('Apify.events', () => {
             setTimeout(() => send({ name: 'name-2', data: [2] }), 50);
         });
 
-        process.env[ENV_VARS.ACTOR_EVENTS_WEB_SOCKET] = 'ws://localhost:9099/someRunId';
+        process.env[ENV_VARS.ACTOR_EVENTS_WS_URL] = 'ws://localhost:9099/someRunId';
 
         // Connect to websocket and receive events.
         await Apify.initializeEvents();
@@ -791,6 +791,6 @@ describe('Apify.events', () => {
 
         // Cleanup.
         wss.close();
-        delete process.env[ENV_VARS.ACTOR_EVENTS_WEB_SOCKET];
+        delete process.env[ENV_VARS.ACTOR_EVENTS_WS_URL];
     });
 });

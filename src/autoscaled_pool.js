@@ -90,9 +90,10 @@ export default class AutoscaledPool {
         this.reject = null;
 
         // Connect to actor events for CPU info.
-        events.on(ACTOR_EVENT_NAMES.CPU_INFO, (data) => {
+        this.cpuInfoListener = (data) => {
             this.isCpuOverloaded = data.isCpuOverloaded;
-        });
+        };
+        events.on(ACTOR_EVENT_NAMES.CPU_INFO, this.cpuInfoListener);
     }
 
     /**
@@ -273,6 +274,8 @@ export default class AutoscaledPool {
     _destroy() {
         this.resolve = null;
         this.reject = null;
+
+        events.removeListener(ACTOR_EVENT_NAMES.CPU_INFO, this.cpuInfoListener);
 
         clearInterval(this.memCheckInterval);
         clearInterval(this.maybeRunInterval);
