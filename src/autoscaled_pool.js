@@ -1,5 +1,5 @@
 import Promise from 'bluebird';
-import { log } from 'apify-shared';
+import log from 'apify-shared/log';
 import _ from 'underscore';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { getMemoryInfo, isPromise } from './utils';

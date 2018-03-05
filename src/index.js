@@ -1,5 +1,5 @@
 import EventEmitter from 'events';
-import { log } from 'apify-shared';
+import log from 'apify-shared/log';
 
 import { ENV_VARS } from './constants';
 import { main, readyFreddy, getEnv, call, getApifyProxyUrl } from './actor';
