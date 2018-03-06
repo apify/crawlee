@@ -1,3 +1,11 @@
+0.5.8 / 2018-03-06
+==================
+- Puppeteer updated to 1.1.1
+
+0.5.7 / 2018-03-06
+==================
+- A lot of new stuff. Everything is backwards compatible. Check https://www-securitybyobscurity.apify.com/docs/sdk/apify-runtime-js/latest for reference
+
 0.5.0 / 2018-02-08
 ===================
 - Apify.setPromiseDependency / Apify.getPromiseDependency / Apify.getPromisePrototype removed
