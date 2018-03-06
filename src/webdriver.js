@@ -274,9 +274,10 @@ export const browse = (url, options) => {
 
 /**
  * Opens a new instance of Chrome web browser
- * controlled by {@link http://www.seleniumhq.org/projects/webdriver/|Selenium WebDriver}.
+ * controlled by <a href="http://www.seleniumhq.org/projects/webdriver/" target="_blank">Selenium WebDriver</a>.
  * The result of the function is the new instance of the
- * {@link http://seleniumhq.github.io/selenium/docs/api/javascript/module/selenium-webdriver/index_exports_WebDriver.html|WebDriver}
+ * <a href="http://seleniumhq.github.io/selenium/docs/api/javascript/module/selenium-webdriver/index_exports_WebDriver.html" target="_blank">
+ * WebDriver</a>
  * class.
  *
  * If the `APIFY_HEADLESS` environment variable is set to `1`, the function
@@ -284,9 +285,9 @@ export const browse = (url, options) => {
  * in acts running on the Apify Actor cloud platform.
  *
  * To use this function, you need to have Google Chrome and
- * {@link https://sites.google.com/a/chromium.org/chromedriver/|ChromeDriver} installed in your environment.
+ * <a href="https://sites.google.com/a/chromium.org/chromedriver/" target="_blank">ChromeDriver</a> installed in your environment.
  * For example, you can use the `apify/actor-node-chrome` base Docker image for your act - see
- * {@link https://www.apify.com/docs/actor#base-images|documentation}
+ * <a href="https://www.apify.com/docs/actor#base-images" target="_blank">documentation</a>
  * for more details.
  *
  * @param {Object} [opts] Optional settings passed to `puppeteer.launch()`. Additionally the object can contain the following fields:

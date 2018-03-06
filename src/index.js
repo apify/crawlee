@@ -27,9 +27,9 @@ if (!isProduction() || process.env[ENV_VARS.LOG_LEVEL] === 'DEBUG') log.isDebugM
  * you can create acts without it.
  *
  * For more information about the Apify Actor platform, please go to
- * {@link https://www.apify.com/docs/actor|Actor documentation}.
+ * <a href="https://www.apify.com/docs/actor" target="_blank">Actor documentation</a>.
  *
- * The source code of this package is available on {@link https://github.com/apifytech/apify-js|GitHub}.
+ * The source code of this package is available on <a href="https://github.com/apifytech/apify-js" target="_blank">GitHub</a>.
  *
  * <h2>Example usage</h2>
  *
@@ -151,9 +151,9 @@ if (!isProduction() || process.env[ENV_VARS.LOG_LEVEL] === 'DEBUG') log.isDebugM
  * By default, all asynchronous functions provided by this package return a promise.
  * But Apify uses a <a href="http://bluebirdjs.com/" target="_blank">Bluebird</a>
  * promise implementation so you can easily convert any function that returns a Promise
- * into callback style function. See <a href="http://bluebirdjs.com/docs/api/promise.promisify.html" target="_blank">
- * http://bluebirdjs.com/docs/api/promise.promisify.html
- * </a> for more information.
+ * into callback style function.
+ * See <a href="http://bluebirdjs.com/docs/api/promise.promisify.html" target="_blank">Bluebird documentation</a>
+ * for more information.
  *
  * <h2>Programmer's reference</h2>
  *

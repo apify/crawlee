@@ -131,7 +131,7 @@ export const initializeEvents = () => {
  * }
  * ```
  * For the list of the `APIFY_XXX` environment variables, see
- * {@link http://localhost/docs/actor.php#run-env-vars|Actor documentation}.
+ * <a href="http://localhost/docs/actor.php#run-env-vars" target="_blank">Actor documentation</a>.
  * If some of the variables is not defined or is invalid, the corresponding value in the resulting object will be null.
  *
  * @returns {Object}
@@ -313,8 +313,9 @@ export const readyFreddy = () => {
  *     }
  * }
  * ```
- * Internally, the function calls the {@link https://www.apify.com/docs/api/v2#/reference/acts/runs-collection/run-act|Run act} API endpoint
- * and few others.
+ * Internally, the function calls the
+ * <a href="https://www.apify.com/docs/api/v2#/reference/acts/runs-collection/run-act" target="_blank">Run act</a>
+ * API endpoint and few others.
  *
  * Example usage:
  *
