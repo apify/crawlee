@@ -1,11 +1,16 @@
 import fs from 'fs';
 import _ from 'underscore';
-import { expect } from 'chai';
+import chai, { expect } from 'chai';
+import chaiAsPromised from 'chai-as-promised';
+import 'babel-polyfill';
+import WebSocket from 'ws';
 import sinon from 'sinon';
 import tmp from 'tmp';
 import Promise from 'bluebird';
 import { delayPromise } from 'apify-shared/utilities';
 import { ACT_TASK_STATUSES, ENV_VARS, DEFAULT_PROXY_PORT, DEFAULT_PROXY_HOSTNAME } from '../build/constants';
+
+chai.use(chaiAsPromised);
 
 // NOTE: test use of require() here because this is how its done in acts
 const Apify = require('../build/index');
@@ -717,5 +722,75 @@ describe('Apify.getApifyProxyUrl()', () => {
             hostname: 'your.host.com',
             port: 345,
         })).to.be.eql('http://auto:xyz@your.host.com:345');
+    });
+});
+
+describe('Apify.events', () => {
+    it('should work in Apify.main()', (done) => {
+        const wss = new WebSocket.Server({ port: 9099 });
+        const eventsReceived = [];
+
+        // Create server that sends events
+        wss.on('connection', (ws, req) => {
+            expect(req.url).to.be.eql('/someRunId');
+
+            const send = obj => ws.send(JSON.stringify(obj));
+
+            setTimeout(() => send({ name: 'name-1', data: [1, 2, 3] }), 50);
+            setTimeout(() => send({ name: 'name-1', data: { foo: 'bar' } }), 100);
+            setTimeout(() => send({ name: 'name-2', data: [1] }), 50);
+            setTimeout(() => send({ name: 'name-2', data: [2] }), 50);
+        });
+
+        process.env[ENV_VARS.ACTOR_EVENTS_WS_URL] = 'ws://localhost:9099/someRunId';
+
+        // Run main and store received events
+        Apify.main(async () => {
+            Apify.events.on('name-1', data => eventsReceived.push(data));
+            await delayPromise(1000);
+        });
+
+        // Main will call process.exit() so we must stub it.
+        const stubbedExit = sinon
+            .stub(process, 'exit')
+            .callsFake((code) => {
+                expect(code).to.be.eql(0);
+                expect(eventsReceived).to.be.eql([[1, 2, 3], { foo: 'bar' }]);
+
+                // Cleanup.
+                stubbedExit.restore();
+                wss.close();
+                delete process.env[ENV_VARS.ACTOR_EVENTS_WS_URL];
+                done();
+            });
+    });
+
+    it('should work without Apify.main()', async () => {
+        const wss = new WebSocket.Server({ port: 9099 });
+        const eventsReceived = [];
+
+        wss.on('connection', (ws, req) => {
+            expect(req.url).to.be.eql('/someRunId');
+
+            const send = obj => ws.send(JSON.stringify(obj));
+
+            setTimeout(() => send({ name: 'name-1', data: [1, 2, 3] }), 50);
+            setTimeout(() => send({ name: 'name-1', data: { foo: 'bar' } }), 100);
+            setTimeout(() => send({ name: 'name-2', data: [1] }), 50);
+            setTimeout(() => send({ name: 'name-2', data: [2] }), 50);
+        });
+
+        process.env[ENV_VARS.ACTOR_EVENTS_WS_URL] = 'ws://localhost:9099/someRunId';
+
+        // Connect to websocket and receive events.
+        await Apify.initializeEvents();
+        Apify.events.on('name-1', data => eventsReceived.push(data));
+        await delayPromise(1000);
+
+        expect(eventsReceived).to.be.eql([[1, 2, 3], { foo: 'bar' }]);
+
+        // Cleanup.
+        wss.close();
+        delete process.env[ENV_VARS.ACTOR_EVENTS_WS_URL];
     });
 });

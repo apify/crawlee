@@ -1,6 +1,9 @@
 import _ from 'underscore';
 import Promise from 'bluebird';
 import fs from 'fs';
+import EventEmitter from 'events';
+import WebSocket from 'ws';
+import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { ENV_VARS, EXIT_CODES, ACT_TASK_TERMINAL_STATUSES, DEFAULT_PROXY_HOSTNAME, DEFAULT_PROXY_PORT } from './constants';
 import { newPromise, apifyClient, addCharsetToContentType } from './utils';
@@ -17,6 +20,75 @@ import { maybeStringify } from './key_value_store';
 const tryParseDate = (str) => {
     const unix = Date.parse(str);
     return unix > 0 ? new Date(unix) : undefined;
+};
+
+/**
+ * Event emitter providing access to events from Actor infrastructure. Event emitter is initiated by Apify.main().
+ * If you don't use Apify.main() then you must call `await Apify.initializeEvents()` yourself.
+ *
+ * Example usage:
+ *
+ * ```javascript
+ * import { ACTOR_EVENT_NAMES } from 'apify/constants';
+ *
+ * Apify.main(async () => {
+ *   &nbsp;
+ *   Apify.events.on(ACTOR_EVENT_NAMES.CPU_INFO, (data) => {
+ *     if (data.isCpuOverloaded) console.log('OH NO! We are overloading CPU!');
+ *   });
+ *.  &nbsp;
+ * });
+ * ```
+ *
+ * See <a href="https://nodejs.org/api/events.html#events_class_eventemitter" target="_blank">NodeJs documentation</a>
+ * for more information about event emitter use.
+ *
+ * @memberof module:Apify
+ * @name events
+ */
+export const events = new EventEmitter();
+
+/**
+ * Websocket connection to actor events.
+ * @ignore
+ */
+let eventsWs = null;
+
+/**
+ * Initializes Apify.events event emitter by creating connection to a websocket that provides them.
+ *
+ * @memberof module:Apify
+ * @name initializeEvents
+ * @function
+ */
+export const initializeEvents = () => {
+    if (eventsWs) return;
+
+    const eventsWsUrl = process.env[ENV_VARS.ACTOR_EVENTS_WS_URL];
+
+    // Localy there is no web socket to connect so just print a warning.
+    if (!eventsWsUrl) {
+        log.warning(`Environment variable ${ENV_VARS.ACTOR_EVENTS_WS_URL} was not provided. Events in Apify.events emitter won't be available!`);
+        return;
+    }
+
+    eventsWs = new WebSocket(eventsWsUrl);
+    eventsWs.on('message', (message) => {
+        if (!message) return;
+
+        try {
+            const { name, data } = JSON.parse(message);
+
+            events.emit(name, data);
+        } catch (err) {
+            log.exception(err, 'Cannot parse actor event');
+        }
+    });
+    eventsWs.on('error', err => log.exception(err, 'Actor events web socket connection failed'));
+    eventsWs.on('close', () => {
+        log.warning('Actor events websocket has been closed');
+        eventsWs = null;
+    });
 };
 
 /**
@@ -162,9 +234,8 @@ export const main = (userFunc) => {
 
     try {
         newPromise()
-            .then(() => {
-                return userFunc();
-            })
+            .then(() => initializeEvents())
+            .then(() => userFunc())
             .catch((err) => {
                 clearInterval(intervalId);
                 if (!exited) {

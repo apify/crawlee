@@ -3,6 +3,8 @@ import log from 'apify-shared/log';
 import _ from 'underscore';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { getMemoryInfo, isPromise } from './utils';
+import { events } from './actor';
+import { ACTOR_EVENT_NAMES } from './constants';
 
 const MEM_CHECK_INTERVAL_MILLIS = 200; // This is low to have at least.
 const MAYBE_RUN_INTERVAL_MILLIS = 1000;
@@ -28,7 +30,7 @@ const humanReadable = bytes => `${Math.round(bytes / 1024 / 1024)} MB`;
 
 /**
  * AutoscaledPool helps to process asynchronous task in parallel. It scales the number of concurrent tasks based on
- * the available memory. If any of the tasks throws an error then the pool.run() method
+ * the available memory and CPU. If any of the tasks throws an error then the pool.run() method
  * also throws.
  *
  * Basic usage of AutoscaledPool:
@@ -76,6 +78,7 @@ export default class AutoscaledPool {
         this.runningPromises = {};
         this.runningCount = 0;
         this.freeBytesSnapshots = [];
+        this.isCpuOverloaded = false;
 
         // Intervals.
         this.memCheckInterval = null;
@@ -85,6 +88,12 @@ export default class AutoscaledPool {
         // which gets resolved once everything is done.
         this.resolve = null;
         this.reject = null;
+
+        // Connect to actor events for CPU info.
+        this.cpuInfoListener = (data) => {
+            this.isCpuOverloaded = data.isCpuOverloaded;
+        };
+        events.on(ACTOR_EVENT_NAMES.CPU_INFO, this.cpuInfoListener);
     }
 
     /**
@@ -139,8 +148,8 @@ export default class AutoscaledPool {
                 // Maybe scale down.
                 if (
                     this.intervalCounter % SCALE_DOWN_INTERVAL === 0
-                    && (freeBytes / totalBytes < this.minFreeMemoryRatio)
                     && this.concurrency > this.minConcurrency
+                    && (this.isCpuOverloaded || freeBytes / totalBytes < this.minFreeMemoryRatio)
                 ) {
                     this.concurrency--;
                     log.debug('AutoscaledPool: scaling down', { concurrency: this.concurrency });
@@ -265,6 +274,8 @@ export default class AutoscaledPool {
     _destroy() {
         this.resolve = null;
         this.reject = null;
+
+        events.removeListener(ACTOR_EVENT_NAMES.CPU_INFO, this.cpuInfoListener);
 
         clearInterval(this.memCheckInterval);
         clearInterval(this.maybeRunInterval);

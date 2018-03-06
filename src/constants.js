@@ -4,7 +4,6 @@ consts.DEFAULT_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) App
 consts.DEFAULT_PROXY_HOSTNAME = 'proxy.apify.com';
 consts.DEFAULT_PROXY_PORT = 8000;
 
-
 /**
  * Exit codes for the act process.
  * The error codes must be in range 1-128, to avoid collision with signal exits
@@ -38,6 +37,7 @@ consts.ENV_VARS = {
     INTERNAL_PORT: 'APIFY_INTERNAL_PORT',
     MEMORY_MBYTES: 'APIFY_MEMORY_MBYTES',
     LOG_LEVEL: 'APIFY_LOG_LEVEL',
+    ACTOR_EVENTS_WS_URL: 'APIFY_ACTOR_EVENTS_WS_URL',
 };
 
 consts.KEY_VALUE_STORE_KEYS = {

@@ -1,7 +1,7 @@
 {
   "name": "apify",
   "version": "0.5.6",
-  "description": "Apify Actor runtime for JavaScript",
+  "description": "Apify JavaScript SDK",
   "main": "build/index.js",
   "keywords": [
     "apify",
@@ -50,7 +50,8 @@
     "fs-extra": "^5.0.0",
     "proxy-chain": "^0.1.2",
     "request-promise": "^4.2.2",
-    "underscore": "^1.8.3"
+    "underscore": "^1.8.3",
+    "ws": "^4.1.0"
   },
   "devDependencies": {
     "apify-jsdoc-template": "github:apifytech/apify-jsdoc-template",
