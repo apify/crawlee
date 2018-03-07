@@ -23,12 +23,14 @@ import { newPromise } from './utils';
  */
 export const getDefaultBrowseOptions = () => {
     return {
-        headless: !!process.env[ENV_VARS.HEADLESS],
+        headless: process.env[ENV_VARS.HEADLESS] === '1' && process.env[ENV_VARS.XVFB] !== '1',
         browserName: 'chrome',
         proxyUrl: null,
         userAgent: null,
     };
 };
+
+const isWin = process.platform === 'win32';
 
 /**
  * Represents a single web browser process.
@@ -61,7 +63,11 @@ export class Browser {
         this.chromeOptions.addArguments('--disable-translate');
         this.chromeOptions.addArguments('--safebrowsing-disable-auto-update');
         if (this.options.headless) {
-            this.chromeOptions.addArguments('--headless', '--disable-gpu', '--no-sandbox');
+            this.chromeOptions.addArguments('--headless', '--disable-dev-shm-usage');
+            if (isWin) {
+                // Temporarily needed on Windows
+                this.chromeOptions.addArguments('--disable-gpu');
+            }
         }
         if (this.options.userAgent) {
             this.chromeOptions.addArguments(`--user-agent=${this.options.userAgent}`);
@@ -280,10 +286,6 @@ export const browse = (url, options) => {
  * WebDriver</a>
  * class.
  *
- * If the `APIFY_HEADLESS` environment variable is set to `1`, the function
- * runs the web browser in headless mode. Note that this environment variable is automatically set to `1` when
- * in acts running on the Apify Actor cloud platform.
- *
  * To use this function, you need to have Google Chrome and
  * <a href="https://sites.google.com/a/chromium.org/chromedriver/" target="_blank">ChromeDriver</a> installed in your environment.
  * For example, you can use the `apify/actor-node-chrome` base Docker image for your act - see
@@ -293,6 +295,9 @@ export const browse = (url, options) => {
  * @param {Object} [opts] Optional settings passed to `puppeteer.launch()`. Additionally the object can contain the following fields:
  * @param {String} [opts.proxyUrl] - URL to a proxy server. Currently only `http://` scheme is supported.
  * Port number must be specified. For example, `http://example.com:1234`.
+ * @param {String} [opts.headless] - Indicates that the browser will be started in headless mode.
+ * If the option is not defined, and the `APIFY_HEADLESS` environment variable has value `1`
+ * and `APIFY_XVFB` is NOT `1`, the value defaults to `true`, otherwise it will be `false`.
  * @param {String} [opts.userAgent] - Default User-Agent for the browser.
  * @returns {Promise}
  *
