@@ -1,6 +1,6 @@
 // import { ChromeLauncher } from 'lighthouse/lighthouse-cli/chrome-launcher';
 import { anonymizeProxy, closeAnonymizedProxy } from 'proxy-chain';
-import { ENV_VARS } from './constants';
+import { DEFAULT_USER_AGENT, ENV_VARS } from './constants';
 import { newPromise } from './utils';
 
 /* global process, require */
@@ -69,9 +69,8 @@ export class Browser {
                 this.chromeOptions.addArguments('--disable-gpu');
             }
         }
-        if (this.options.userAgent) {
-            this.chromeOptions.addArguments(`--user-agent=${this.options.userAgent}`);
-        }
+        this.chromeOptions.addArguments(`--user-agent=${this.options.userAgent || DEFAULT_USER_AGENT}`);
+
         if (this.options.extraChromeArguments) {
             this.chromeOptions.addArguments(this.options.extraChromeArguments);
         }
@@ -298,7 +297,8 @@ export const browse = (url, options) => {
  * @param {String} [opts.headless] - Indicates that the browser will be started in headless mode.
  * If the option is not defined, and the `APIFY_HEADLESS` environment variable has value `1`
  * and `APIFY_XVFB` is NOT `1`, the value defaults to `true`, otherwise it will be `false`.
- * @param {String} [opts.userAgent] - Default User-Agent for the browser.
+ * @param {String} [opts.userAgent] - User-Agent for the browser.
+ * If not provided, the function sets it to a reasonable default.
  * @returns {Promise}
  *
  * @memberof module:Apify

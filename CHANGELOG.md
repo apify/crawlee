@@ -1,3 +1,11 @@
+XXX / 2018-03-06
+==================
+- If the `APIFY_XVFB` env var is '1', then avoid headless mode
+- Updated DEFAULT_USER_AGENT to Linux Chrome
+- Consolidated startup options for Chrome - use --disable-dev-shm-usage, skip --no-sandbox,
+  use --disable-gpu only on Windows
+- Updated docs and package description
+
 0.5.8 / 2018-03-06
 ==================
 - Puppeteer updated to 1.1.1
