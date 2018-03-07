@@ -267,7 +267,7 @@ export default class PuppeteerPool {
             .then(browser => browser.newPage())
             .then((page) => {
                 page.on('error', (error) => {
-                    log.exception(error, 'PuppeteerPool: page crashled');
+                    log.exception(error, 'PuppeteerPool: page crashed');
                     page.close();
                 });
 
@@ -278,6 +278,8 @@ export default class PuppeteerPool {
             .catch((err) => {
                 log.exception(err, 'PuppeteerPool: browser.newPage() failed', { id: instance.id });
                 this._retireInstance(instance);
+
+                // !TODO: don't throw an error but repeat newPage with some delay
                 throw err;
             });
     }

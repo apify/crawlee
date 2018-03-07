@@ -8,7 +8,8 @@ import { newPromise } from './utils';
 /**
  * Launches headless Chrome using Puppeteer pre-configured to work with the Apify Actor platform.
  * The function has the same argument and return value as `puppeteer.launch()`.
- * See {@link https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#puppeteerlaunchoptions|Puppeteer documentation} for more details.
+ * See <a href="https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#puppeteerlaunchoptions" target="_blank">
+ * Puppeteer documentation</a> for more details.
  *
  * The `launchPuppeteer()` function alters the following Puppeteer options:
  *
@@ -19,15 +20,15 @@ import { newPromise } from './utils';
  *    <li>Takes the `proxyUrl` option, checks it and adds it to `args` as `--proxy-server=XXX`.
  *        If the proxy uses authentication, the function sets up an anonymous proxy HTTP
  *        to make the proxy work with headless Chrome. For more information, read the
- *        {@link https://blog.apify.com/249a21a79212|blog post about proxy-chain library}.
+ *        <a href="https://blog.apify.com/249a21a79212" target="_blank">blog post about proxy-chain library</a>.
  *    </li>
  *    <li>Adds `--no-sandbox` to `args` to enable running headless Chrome in a Docker container on the Apify Actor platform.</li>
  * </ul>
  *
- * To use this function, you need to have the {@link https://www.npmjs.com/package/puppeteer|puppeteer}
+ * To use this function, you need to have the <a href="https://www.npmjs.com/package/puppeteer" target="_blank">puppeteer</a>
  * NPM package installed in your project.
  * For example, you can use the `apify/actor-node-puppeteer` base Docker image for your act - see
- * {@link https://www.apify.com/docs/actor#base-images|documentation}
+ * <a href="https://www.apify.com/docs/actor#base-images" target="_blank">documentation</a>
  * for more details.
  *
  * @param {Object} [opts] Optional settings passed to `puppeteer.launch()`. Additionally the object can contain the following fields:
@@ -41,6 +42,7 @@ import { newPromise } from './utils';
  * @memberof module:Apify
  * @name launchPuppeteer
  * @instance
+ * @function
  */
 export const launchPuppeteer = (opts) => {
     if (opts === undefined || opts === null) opts = {};

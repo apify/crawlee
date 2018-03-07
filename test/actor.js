@@ -1,11 +1,16 @@
 import fs from 'fs';
 import _ from 'underscore';
-import { expect } from 'chai';
+import chai, { expect } from 'chai';
+import chaiAsPromised from 'chai-as-promised';
+import 'babel-polyfill';
+import WebSocket from 'ws';
 import sinon from 'sinon';
 import tmp from 'tmp';
 import Promise from 'bluebird';
 import { delayPromise } from 'apify-shared/utilities';
-import { ACT_TASK_STATUSES, ENV_VARS } from '../build/constants';
+import { ACT_TASK_STATUSES, ENV_VARS, DEFAULT_PROXY_PORT, DEFAULT_PROXY_HOSTNAME } from '../build/constants';
+
+chai.use(chaiAsPromised);
 
 // NOTE: test use of require() here because this is how its done in acts
 const Apify = require('../build/index');
@@ -587,7 +592,7 @@ describe('Apify.call()', () => {
         const defaultKeyValueStoreId = 'some-store-id';
         const run = { id: 'some-run-id', actId, defaultKeyValueStoreId };
         const runningRun = Object.assign({}, run, { status: 'RUNNING' });
-        const timeoutSecs = 1;
+        const waitSecs = 1;
 
         const actsMock = sinon.mock(Apify.client.acts);
         actsMock.expects('runAct')
@@ -595,17 +600,17 @@ describe('Apify.call()', () => {
             .once()
             .returns(Promise.resolve(runningRun));
         actsMock.expects('getRun')
-            .withExactArgs({ token, actId, runId: run.id, waitForFinish: timeoutSecs })
+            .withExactArgs({ token, actId, runId: run.id, waitForFinish: waitSecs })
             .once()
             .returns(new Promise((resolve) => {
-                setTimeout(() => resolve(runningRun), timeoutSecs * 1000);
+                setTimeout(() => resolve(runningRun), waitSecs * 1000);
             }));
 
         const keyValueStoresMock = sinon.mock(Apify.client.keyValueStores);
         keyValueStoresMock.expects('getRecord').never();
 
         return Apify
-            .call(actId, null, { token, timeoutSecs })
+            .call(actId, null, { token, waitSecs })
             .then((callOutput) => {
                 expect(callOutput).to.be.eql(runningRun);
                 keyValueStoresMock.restore();
@@ -654,6 +659,33 @@ describe('Apify.call()', () => {
                 actsMock.restore();
             });
     });
+
+    it('returns immediately with zero timeout', () => {
+        const actId = 'some-act-id';
+        const token = 'some-token';
+        const defaultKeyValueStoreId = 'some-store-id';
+        const run = { id: 'some-run-id', actId, defaultKeyValueStoreId };
+        const readyRun = Object.assign({}, run, { status: 'READY' });
+        const waitSecs = 0;
+
+        const actsMock = sinon.mock(Apify.client.acts);
+        actsMock.expects('runAct')
+            .withExactArgs({ token, actId })
+            .once()
+            .returns(Promise.resolve(readyRun));
+        actsMock.expects('getRun').never();
+
+        const keyValueStoresMock = sinon.mock(Apify.client.keyValueStores);
+        keyValueStoresMock.expects('getRecord').never();
+
+        return Apify
+            .call(actId, null, { token, waitSecs })
+            .then((callOutput) => {
+                expect(callOutput).to.be.eql(readyRun);
+                keyValueStoresMock.restore();
+                actsMock.restore();
+            });
+    });
 });
 
 describe('Apify.getApifyProxyUrl()', () => {
@@ -681,6 +713,8 @@ describe('Apify.getApifyProxyUrl()', () => {
         delete process.env[ENV_VARS.PROXY_HOSTNAME];
         delete process.env[ENV_VARS.PROXY_PORT];
 
+        expect(Apify.getApifyProxyUrl({ password: 'xyz' })).to.be.eql(`http://auto:xyz@${DEFAULT_PROXY_HOSTNAME}:${DEFAULT_PROXY_PORT}`);
+
         expect(() => Apify.getApifyProxyUrl()).to.throw();
 
         expect(Apify.getApifyProxyUrl({
@@ -688,5 +722,75 @@ describe('Apify.getApifyProxyUrl()', () => {
             hostname: 'your.host.com',
             port: 345,
         })).to.be.eql('http://auto:xyz@your.host.com:345');
+    });
+});
+
+describe('Apify.events', () => {
+    it('should work in Apify.main()', (done) => {
+        const wss = new WebSocket.Server({ port: 9099 });
+        const eventsReceived = [];
+
+        // Create server that sends events
+        wss.on('connection', (ws, req) => {
+            expect(req.url).to.be.eql('/someRunId');
+
+            const send = obj => ws.send(JSON.stringify(obj));
+
+            setTimeout(() => send({ name: 'name-1', data: [1, 2, 3] }), 50);
+            setTimeout(() => send({ name: 'name-1', data: { foo: 'bar' } }), 100);
+            setTimeout(() => send({ name: 'name-2', data: [1] }), 50);
+            setTimeout(() => send({ name: 'name-2', data: [2] }), 50);
+        });
+
+        process.env[ENV_VARS.ACTOR_EVENTS_WS_URL] = 'ws://localhost:9099/someRunId';
+
+        // Run main and store received events
+        Apify.main(async () => {
+            Apify.events.on('name-1', data => eventsReceived.push(data));
+            await delayPromise(1000);
+        });
+
+        // Main will call process.exit() so we must stub it.
+        const stubbedExit = sinon
+            .stub(process, 'exit')
+            .callsFake((code) => {
+                expect(code).to.be.eql(0);
+                expect(eventsReceived).to.be.eql([[1, 2, 3], { foo: 'bar' }]);
+
+                // Cleanup.
+                stubbedExit.restore();
+                wss.close();
+                delete process.env[ENV_VARS.ACTOR_EVENTS_WS_URL];
+                done();
+            });
+    });
+
+    it('should work without Apify.main()', async () => {
+        const wss = new WebSocket.Server({ port: 9099 });
+        const eventsReceived = [];
+
+        wss.on('connection', (ws, req) => {
+            expect(req.url).to.be.eql('/someRunId');
+
+            const send = obj => ws.send(JSON.stringify(obj));
+
+            setTimeout(() => send({ name: 'name-1', data: [1, 2, 3] }), 50);
+            setTimeout(() => send({ name: 'name-1', data: { foo: 'bar' } }), 100);
+            setTimeout(() => send({ name: 'name-2', data: [1] }), 50);
+            setTimeout(() => send({ name: 'name-2', data: [2] }), 50);
+        });
+
+        process.env[ENV_VARS.ACTOR_EVENTS_WS_URL] = 'ws://localhost:9099/someRunId';
+
+        // Connect to websocket and receive events.
+        await Apify.initializeEvents();
+        Apify.events.on('name-1', data => eventsReceived.push(data));
+        await delayPromise(1000);
+
+        expect(eventsReceived).to.be.eql([[1, 2, 3], { foo: 'bar' }]);
+
+        // Cleanup.
+        wss.close();
+        delete process.env[ENV_VARS.ACTOR_EVENTS_WS_URL];
     });
 });

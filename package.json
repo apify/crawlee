@@ -1,7 +1,7 @@
 {
   "name": "apify",
-  "version": "0.5.4",
-  "description": "Apify Actor runtime for JavaScript",
+  "version": "0.5.9",
+  "description": "Apify JavaScript SDK",
   "main": "build/index.js",
   "keywords": [
     "apify",
@@ -44,13 +44,14 @@
   },
   "dependencies": {
     "apify-client": "^0.1.69",
-    "apify-shared": "0.0.9",
+    "apify-shared": "0.0.16",
     "bluebird": "^3.5.0",
     "content-type": "^1.0.3",
     "fs-extra": "^5.0.0",
     "proxy-chain": "^0.1.2",
     "request-promise": "^4.2.2",
-    "underscore": "^1.8.3"
+    "underscore": "^1.8.3",
+    "ws": "^4.1.0"
   },
   "devDependencies": {
     "apify-jsdoc-template": "github:apifytech/apify-jsdoc-template",
@@ -84,7 +85,7 @@
     "why-is-node-running": "^1.2.3"
   },
   "optionalDependencies": {
-    "puppeteer": "^1.0.0",
+    "puppeteer": "^1.1.1",
     "selenium-webdriver": "^3.6.0"
   }
 }

@@ -31,7 +31,7 @@ export const newClient = () => {
 
 /**
  * A default instance of the `ApifyClient` class provided
- * by the {@link https://www.apify.com/docs/sdk/apify-client-js/latest|apify-client} NPM package.
+ * by the <a href="https://www.apify.com/docs/sdk/apify-client-js/latest" target="_blank">apify-client</a> NPM package.
  * The instance is created when the `apify` package is first imported
  * and it is configured using the `APIFY_API_BASE_URL`, `APIFY_USER_ID` and `APIFY_TOKEN`
  * environment variables.
@@ -98,18 +98,17 @@ const createIsDockerPromise = () => {
 };
 
 /**
- * Returns promise that resolves to true if the code is running in Docker container.
- * See https://github.com/sindresorhus/is-docker
- *
- * Parameter forceReset is just internal for unit tests.
+ * Returns promise that resolves to true if the code is running in a Docker container.
  *
  * @return {Promise}
  *
  * @memberof module:Apify
  * @name isDocker
  * @instance
+ * @function
  */
 export const isDocker = (forceReset) => {
+    // Parameter forceReset is just internal for unit tests.
     if (!isDockerPromise || forceReset) isDockerPromise = createIsDockerPromise();
 
     return isDockerPromise;
@@ -136,6 +135,7 @@ export const isDocker = (forceReset) => {
  * @memberof module:Apify
  * @name getMemoryInfo
  * @instance
+ * @function
  */
 export const getMemoryInfo = () => {
     // module.exports must be here so that we can mock it.

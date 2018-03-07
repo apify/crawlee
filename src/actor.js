@@ -1,9 +1,13 @@
 import _ from 'underscore';
 import Promise from 'bluebird';
 import fs from 'fs';
+import EventEmitter from 'events';
+import WebSocket from 'ws';
+import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { ENV_VARS, EXIT_CODES, ACT_TASK_TERMINAL_STATUSES } from './constants';
+import { ENV_VARS, EXIT_CODES, ACT_TASK_TERMINAL_STATUSES, DEFAULT_PROXY_HOSTNAME, DEFAULT_PROXY_PORT } from './constants';
 import { newPromise, apifyClient, addCharsetToContentType } from './utils';
+import { maybeStringify } from './key_value_store';
 
 /* globals process */
 
@@ -16,6 +20,75 @@ import { newPromise, apifyClient, addCharsetToContentType } from './utils';
 const tryParseDate = (str) => {
     const unix = Date.parse(str);
     return unix > 0 ? new Date(unix) : undefined;
+};
+
+/**
+ * Event emitter providing access to events from Actor infrastructure. Event emitter is initiated by Apify.main().
+ * If you don't use Apify.main() then you must call `await Apify.initializeEvents()` yourself.
+ *
+ * Example usage:
+ *
+ * ```javascript
+ * import { ACTOR_EVENT_NAMES } from 'apify/constants';
+ *
+ * Apify.main(async () => {
+ *   &nbsp;
+ *   Apify.events.on(ACTOR_EVENT_NAMES.CPU_INFO, (data) => {
+ *     if (data.isCpuOverloaded) console.log('OH NO! We are overloading CPU!');
+ *   });
+ *.  &nbsp;
+ * });
+ * ```
+ *
+ * See <a href="https://nodejs.org/api/events.html#events_class_eventemitter" target="_blank">NodeJs documentation</a>
+ * for more information about event emitter use.
+ *
+ * @memberof module:Apify
+ * @name events
+ */
+export const events = new EventEmitter();
+
+/**
+ * Websocket connection to actor events.
+ * @ignore
+ */
+let eventsWs = null;
+
+/**
+ * Initializes Apify.events event emitter by creating connection to a websocket that provides them.
+ *
+ * @memberof module:Apify
+ * @name initializeEvents
+ * @function
+ */
+export const initializeEvents = () => {
+    if (eventsWs) return;
+
+    const eventsWsUrl = process.env[ENV_VARS.ACTOR_EVENTS_WS_URL];
+
+    // Localy there is no web socket to connect so just print a warning.
+    if (!eventsWsUrl) {
+        log.warning(`Environment variable ${ENV_VARS.ACTOR_EVENTS_WS_URL} was not provided. Events in Apify.events emitter won't be available!`);
+        return;
+    }
+
+    eventsWs = new WebSocket(eventsWsUrl);
+    eventsWs.on('message', (message) => {
+        if (!message) return;
+
+        try {
+            const { name, data } = JSON.parse(message);
+
+            events.emit(name, data);
+        } catch (err) {
+            log.exception(err, 'Cannot parse actor event');
+        }
+    });
+    eventsWs.on('error', err => log.exception(err, 'Actor events web socket connection failed'));
+    eventsWs.on('close', () => {
+        log.warning('Actor events websocket has been closed');
+        eventsWs = null;
+    });
 };
 
 /**
@@ -48,9 +121,9 @@ const tryParseDate = (str) => {
  *     // act is stored (APIFY_DEFAULT_KEY_VALUE_STORE_ID)
  *     defaultKeyValueStoreId: String,
  * &nbsp;
- *    // ID of the sequential store where input and output data of this
- *     // act is stored (APIFY_DEFAULT_SEQUENTIAL_STORE_ID)
- *     defaultSequentialStoreId: String,
+ *    // ID of the dataset where input and output data of this
+ *     // act is stored (APIFY_DEFAULT_DATASET_ID)
+ *     defaultDatasetId: String,
  * &nbsp;
  *     // Amount of memory allocated for the act run,
  *     // in megabytes (APIFY_MEMORY_MBYTES)
@@ -58,7 +131,7 @@ const tryParseDate = (str) => {
  * }
  * ```
  * For the list of the `APIFY_XXX` environment variables, see
- * {@link http://localhost/docs/actor.php#run-env-vars|Actor documentation}.
+ * <a href="http://localhost/docs/actor.php#run-env-vars" target="_blank">Actor documentation</a>.
  * If some of the variables is not defined or is invalid, the corresponding value in the resulting object will be null.
  *
  * @returns {Object}
@@ -161,9 +234,8 @@ export const main = (userFunc) => {
 
     try {
         newPromise()
-            .then(() => {
-                return userFunc();
-            })
+            .then(() => initializeEvents())
+            .then(() => userFunc())
             .catch((err) => {
                 clearInterval(intervalId);
                 if (!exited) {
@@ -202,9 +274,13 @@ export const readyFreddy = () => {
 };
 
 /**
- * Executes another act under the current user account, waits for the act finish and fetches its output.
+ * Runs another act under the current user account, waits for the act to finish and fetches its output.
  *
- * The result of the function is an object describing the act run, which looks something like this:
+ * By passing the `waitSecs` option you can reduce the maximum amount of time to wait for the run to finish.
+ * If the value is less than or equal to zero, the function returns immediately after the run is started.
+ *
+ * The result of the function is an object that contains details about the run and potentially its output.
+ * For example:
  *
  * ```json
  * {
@@ -229,6 +305,7 @@ export const readyFreddy = () => {
  *     "buildId": "Bwkqk59MCkdexDP34",
  *     "exitCode": 0,
  *     "defaultKeyValueStoreId": "ccFfRptZru2uqdQHP",
+ *     "defaultDatasetId": "tZru2uqdQHPcgFtRo",
  *     "buildNumber": "0.1.2",
  *     "output": {
  *         "contentType": "application/json; charset=utf-8",
@@ -236,8 +313,9 @@ export const readyFreddy = () => {
  *     }
  * }
  * ```
- * Internally, the function calls the {@link https://www.apify.com/docs/api/v2#/reference/acts/runs-collection/run-act|Run act} API endpoint
- * and few others.
+ * Internally, the function calls the
+ * <a href="https://www.apify.com/docs/api/v2#/reference/acts/runs-collection/run-act" target="_blank">Run act</a>
+ * API endpoint and few others.
  *
  * Example usage:
  *
@@ -260,6 +338,10 @@ export const readyFreddy = () => {
  * @param {Number} [opts.timeoutSecs] Time limit for act to finish, in seconds.
  *                                      If the limit is reached the resulting run will have the `RUNNING` status.
  *                                      By default, there is no timeout.
+ * @param {String} [opts.waitSecs] - Maximum time to wait for act run to finish, in seconds.
+ *                                     If the limit is reached, the returned promise is resolved to a run object that will have
+ *                                     status `READY` or `RUNNING` and it will not contain the act run output.
+ *                                     If `waitSecs` is null or undefined, the function waits for the act to finish (default behavior).
  * @param {Boolean} [opts.fetchOutput=true] If `false` then the function does not fetch output of the act.
  * @param {Boolean} [opts.disableBodyParser=false] If `true` then the function will not attempt to parse the
  *                                                act's output and will return it in a raw `Buffer`.
@@ -287,34 +369,24 @@ export const call = (actId, input, opts = {}) => {
     checkParamOrThrow(build, 'build', 'Maybe String');
     if (build) runActOpts.build = build;
 
-    let { contentType } = opts;
     if (input) {
-        // TODO: this is duplicate with setValue()'s code
-        if (contentType === null || contentType === undefined) {
-            contentType = 'application/json';
-            try {
-                // Format JSON to simplify debugging, the overheads with compression is negligible
-                input = JSON.stringify(input, null, 2);
-            } catch (err) {
-                throw new Error(`The "input" parameter cannot be stringified to JSON: ${err.message}`);
-            }
-            if (input === undefined) {
-                throw new Error('The "input" parameter cannot be stringified to JSON.');
-            }
-        }
+        input = maybeStringify(input, opts);
 
         checkParamOrThrow(input, 'input', 'Buffer|String');
-        checkParamOrThrow(contentType, 'contentType', 'String');
+        checkParamOrThrow(opts.contentType, 'contentType', 'String');
 
-        if (contentType) runActOpts.contentType = addCharsetToContentType(contentType);
+        if (opts.contentType) runActOpts.contentType = addCharsetToContentType(opts.contentType);
         runActOpts.body = input;
     }
 
     // GetAct() options.
     const { timeoutSecs, fetchOutput = true } = opts;
-    checkParamOrThrow(timeoutSecs, 'timeoutSecs', 'Maybe Number');
+    let { waitSecs } = opts;
+    // Backwards compatibility: waitSecs used to be called timeoutSecs
+    if (typeof timeoutSecs === 'number' && typeof waitSecs !== 'number') waitSecs = timeoutSecs;
+    checkParamOrThrow(waitSecs, 'waitSecs', 'Maybe Number');
     checkParamOrThrow(fetchOutput, 'fetchOutput', 'Boolean');
-    const timeoutAt = timeoutSecs ? Date.now() + (timeoutSecs * 1000) : null;
+    const waitUntil = typeof waitSecs === 'number' ? Date.now() + (waitSecs * 1000) : null;
 
     // GetRecord() options.
     const { disableBodyParser } = opts;
@@ -332,7 +404,7 @@ export const call = (actId, input, opts = {}) => {
 
     // Keeps requesting given run until it gets finished or timeout is reached.
     const waitForRunToFinish = (run) => {
-        const waitForFinish = timeoutAt !== null ? Math.round((timeoutAt - Date.now()) / 1000) : 999999;
+        const waitForFinish = waitUntil !== null ? Math.round((waitUntil - Date.now()) / 1000) : 999999;
 
         // We are timing out ...
         if (waitForFinish <= 0) return Promise.resolve(run);
@@ -341,7 +413,7 @@ export const call = (actId, input, opts = {}) => {
             .getRun(Object.assign({}, defaultOpts, { waitForFinish, runId: run.id }))
             .then((updatedRun) => {
                 // It might take some time for database replicas to get up-to-date,
-                // so getRun() might return null. Wait a little while and try it again.
+                // so getRun() might return null. Wait a little bit and try it again.
                 if (!updatedRun) {
                     return new Promise(resolve => setTimeout(resolve, 250))
                         .then(() => {
@@ -363,7 +435,8 @@ export const call = (actId, input, opts = {}) => {
 
 /**
  * Returns a URL of Apify Proxy that can be used from Actor acts, web browsers or any other HTTP
- * proxy-enabled applications.
+ * proxy-enabled applications. For more info about Apify Proxy see
+ * <a href="https://www.apify.com/docs/proxy" target="_blank">https://www.apify.com/docs/proxy</a>.
  *
  * @param {Object} opts
  * @param {String} opts.password User proxy password. By default, it is taken from the `APIFY_PROXY_PASSWORD` environment variable.
@@ -380,8 +453,8 @@ export const getApifyProxyUrl = (opts = {}) => {
         groups,
         session,
         password = process.env[ENV_VARS.PROXY_PASSWORD],
-        hostname = process.env[ENV_VARS.PROXY_HOSTNAME],
-        port = parseInt(process.env[ENV_VARS.PROXY_PORT], 10),
+        hostname = process.env[ENV_VARS.PROXY_HOSTNAME] || DEFAULT_PROXY_HOSTNAME,
+        port = parseInt(process.env[ENV_VARS.PROXY_PORT], 10) || DEFAULT_PROXY_PORT,
     } = opts;
 
     // TODO: Check that session and groups are alphanumeric!

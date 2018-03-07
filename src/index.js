@@ -1,8 +1,6 @@
-import EventEmitter from 'events';
-import { log } from 'apify-shared';
-
+import log from 'apify-shared/log';
 import { ENV_VARS } from './constants';
-import { main, readyFreddy, getEnv, call, getApifyProxyUrl } from './actor';
+import { main, readyFreddy, getEnv, call, getApifyProxyUrl, events, initializeEvents } from './actor';
 import AutoscaledPool from './autoscaled_pool';
 import BasicCrawler from './basic_crawler';
 import { pushData, openDataset } from './dataset';
@@ -29,14 +27,13 @@ if (!isProduction() || process.env[ENV_VARS.LOG_LEVEL] === 'DEBUG') log.isDebugM
  * you can create acts without it.
  *
  * For more information about the Apify Actor platform, please go to
- * {@link https://www.apify.com/docs/actor|Actor documentation}.
-
- * The source code of this package is available on {@link https://github.com/apifytech/apify-runtime-js|GitHub}.
+ * <a href="https://www.apify.com/docs/actor" target="_blank">Actor documentation</a>.
+ *
+ * The source code of this package is available on <a href="https://github.com/apifytech/apify-js" target="_blank">GitHub</a>.
  *
  * <h2>Example usage</h2>
  *
  * ```javascript
- * &nbsp;
  * Apify.main(async () => {
  *     // Get input of the act
  *     const input = await Apify.getValue('INPUT');
@@ -53,6 +50,50 @@ if (!isProduction() || process.env[ENV_VARS.LOG_LEVEL] === 'DEBUG') log.isDebugM
  * });
  * ```
  *
+ * <h2>Common use-cases</h2>
+ * <!-- Mirror this part to README.md -->
+ *
+ * Main goal of this package is to help with implementation of web scraping and automation projects. Some of the
+ * most common use-cases are:
+ *
+ * <ul>
+ *   <li>
+ *     If you need to process high volume of <strong>asynchronous tasks in parallel</strong> then take a
+ *     look at <a href="#AutoscaledPool">AutoscaledPool</a>. This class executes defined tasks in a pool
+ *     which size is scaled based on available memory and CPU.
+ *   </li>
+ *   <li>
+ *     If you want to <strong>crawl</strong> a list of urls using for example <a href="https://www.npmjs.com/package/request" target="_blank">
+ *     Request</a> package then import those url as a <a href="#RequestList">RequestList</a> and then use
+ *     <a href="#BasicCrawler">BasicCrawler</a> to process them in a pool.
+ *   </li>
+ *   <li>
+ *     If you want to crawl a list of urls but you need a real <strong>browser</strong>. Then use
+ *     <a href="#PuppeteerCrawler">PuppeteerCrawler</a> which helps you to process a <a href="#RequestList">RequestList</a>
+ *     using <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a> (headless Chrome browser).
+ *   </li>
+ * </ul>
+ *
+ * <h2>Puppeteer</h2>
+ * <!-- Mirror this part to README.md -->
+ *
+ * For those who are using <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a> (headless Chrome browser)
+ * we have few helper classes and functions:
+ *
+ * <ul>
+ *   <li>
+ *     `Apify.launchPuppeteer()` function starts new instance of Puppeteer browser and returns its browser object.
+ *   </li>
+ *   <li>
+ *     <a href="#PuppeteerPool">PuppeteerPool</a> helps to mantain a pool of Puppeteer instances. This is usefull
+ *     when you need to restart browser after certain number of requests to rotate proxy servers.
+ *   </li>
+ *   <li>
+ *       <a href="#PuppeteerCrawler">PuppeteerCrawler</a> helps to crawl a <a href="#RequestList">RequestList</a>
+ *       in a autoscaled pool.
+ *   </li>
+ * </ul>
+ *
  * <h2>Installation</h2>
  *
  * This package requires Node.js 6 or higher. It might work with lower versions too,
@@ -64,12 +105,55 @@ if (!isProduction() || process.env[ENV_VARS.LOG_LEVEL] === 'DEBUG') log.isDebugM
  * npm install apify --save
  * ```
  *
+ * <h2>Local usage</h2>
+ *
+ * You can use Apify package locally. To do that you must define following environment variables
+ *
+ * <table class="table table-bordered table-condensed">
+ *     <thead>
+ *         <tr>
+ *             <th>Environment variable</th>
+ *             <th>Description</th>
+ *         </tr>
+ *     </thead>
+ *     <tbody>
+ *         <tr>
+ *             <td><code>APIFY_LOCAL_EMULATION_DIR</code></td>
+ *             <td>
+ *                 Directory where apify package locally emulates Apify storages - key-value store and dataset.
+ *                 Key-value stores will be emulated in directory
+ *                 <code>[APIFY_LOCAL_EMULATION_DIR]/key-value-stores/[STORE_ID]</code>
+ *                 and datasets in directory
+ *                 <code>[APIFY_LOCAL_EMULATION_DIR]/datasets/[DATESET_ID]</code>.
+ *             </td>
+ *         </tr>
+ *         <tr>
+ *             <td><code>APIFY_DEFAULT_KEY_VALUE_STORE_ID</code></td>
+ *             <td>Store ID of default key-value store.</td>
+ *         </tr>
+ *         <tr>
+ *             <td><code>APIFY_DEFAULT_DATASET_ID</code></td>
+ *             <td>Dataset ID of default dataset.</td>
+ *         </tr>
+ *     </tbody>
+ * </table>
+ *
+ * Apify will then store key-value store records in files named <code>[KEY].[EXT]</code> where <code>[KEY]</code>
+ * is the record key and <code>[EXT]</code> is based on the record content type. Dataset items will be stored
+ * in files named <code>[ID].json</code> where <code>[ID]</code> is sequence number of your dataset item.
+ *
+ * If you want to use <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a> locally
+ * then you must define an environment variable <code>PROXY_PASSWORD</code> with password you find at
+ * <a href="https://my.apify.com/proxy" target="_blank">https://my.apify.com/proxy</a>.
+ *
  * <h2>Promises vs. callbacks</h2>
  *
  * By default, all asynchronous functions provided by this package return a promise.
- * However, most of them also accept an optional Node.js-style callback as the last parameter.
- * If the callback is provided, the return value of the functions is not defined
- * and the functions only invoke the callback upon completion or error.
+ * But Apify uses a <a href="http://bluebirdjs.com/" target="_blank">Bluebird</a>
+ * promise implementation so you can easily convert any function that returns a Promise
+ * into callback style function.
+ * See <a href="http://bluebirdjs.com/docs/api/promise.promisify.html" target="_blank">Bluebird documentation</a>
+ * for more information.
  *
  * <h2>Programmer's reference</h2>
  *
@@ -79,10 +163,10 @@ if (!isProduction() || process.env[ENV_VARS.LOG_LEVEL] === 'DEBUG') log.isDebugM
  * @module Apify
  */
 module.exports = {
-    events: new EventEmitter(),
-
     // Actor
     main,
+    events,
+    initializeEvents,
     getEnv,
     call,
     readyFreddy,

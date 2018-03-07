@@ -5,6 +5,7 @@ import _ from 'underscore';
 import sinon from 'sinon';
 import { delayPromise } from 'apify-shared/utilities';
 import * as Apify from '../build/index';
+import { ACTOR_EVENT_NAMES } from '../build/constants';
 import { LOG_INFO_INTERVAL, SCALE_UP_MAX_STEP } from '../build/autoscaled_pool';
 import * as utils from '../build/utils';
 
@@ -159,6 +160,59 @@ describe('autoscaled_pool', () => {
         });
 
         await expect(pool.run()).to.be.rejectedWith('some-error');
+    });
+
+    it('should scale down when CPU is overloaded', async () => {
+        const pool = new Apify.AutoscaledPool({
+            minConcurrency: 1,
+            maxConcurrency: 100,
+            minFreeMemoryRatio: 0.1,
+            workerFunction: async () => {},
+        });
+        const mock = sinon.mock(utils);
+
+        // Should scale up.
+        pool.intervalCounter = LOG_INFO_INTERVAL - 1;
+        mock.expects('getMemoryInfo')
+            .once()
+            .returns(Promise.resolve({ freeBytes: toBytes(9.99), totalBytes: toBytes(10) }));
+        await pool._autoscale();
+        expect(pool.concurrency).to.be.eql(1 + SCALE_UP_MAX_STEP);
+
+        // Should scale up.
+        pool.intervalCounter = LOG_INFO_INTERVAL - 1;
+        mock.expects('getMemoryInfo')
+            .once()
+            .returns(Promise.resolve({ freeBytes: toBytes(9.99), totalBytes: toBytes(10) }));
+        await pool._autoscale();
+        expect(pool.concurrency).to.be.eql(1 + (2 * SCALE_UP_MAX_STEP));
+
+        // Emit CPU overloaded = true event.
+        Apify.events.emit(ACTOR_EVENT_NAMES.CPU_INFO, { isCpuOverloaded: true });
+
+        // Should scale up but because of CPU overloaded event it always scales down.
+        for (let i = 1; i <= 5; i++) {
+            pool.intervalCounter = LOG_INFO_INTERVAL - 1;
+            mock.expects('getMemoryInfo')
+                .once()
+                .returns(Promise.resolve({ freeBytes: toBytes(9.99), totalBytes: toBytes(10) }));
+            await pool._autoscale(); //eslint-disable-line
+            expect(pool.concurrency).to.be.eql((1 + (2 * SCALE_UP_MAX_STEP)) - i);
+        }
+
+        // Emit CPU overloaded = false event.
+        Apify.events.emit(ACTOR_EVENT_NAMES.CPU_INFO, { isCpuOverloaded: false });
+
+        // Should scale up again.
+        pool.intervalCounter = LOG_INFO_INTERVAL - 1;
+        mock.expects('getMemoryInfo')
+            .once()
+            .returns(Promise.resolve({ freeBytes: toBytes(9.99), totalBytes: toBytes(10) }));
+        await pool._autoscale();
+        expect(pool.concurrency).to.be.eql((1 + (3 * SCALE_UP_MAX_STEP)) - 5);
+
+        mock.verify();
+        mock.restore();
     });
 });
 
