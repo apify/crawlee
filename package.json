@@ -86,6 +86,6 @@
   },
   "optionalDependencies": {
     "puppeteer": "^1.1.1",
-    "selenium-webdriver": "^3.6.0"
+    "selenium-webdriver": "latest"
   }
 }
