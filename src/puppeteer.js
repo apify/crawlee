@@ -31,6 +31,8 @@ import { newPromise } from './utils';
  * <a href="https://www.apify.com/docs/actor#base-images" target="_blank">documentation</a>
  * for more details.
  *
+ * For an example of usage, see the <a href="https://www.apify.com/apify/example-puppeteer">apify/example-puppeteer</a> act.
+ *
  * @param {Object} [opts] Optional settings passed to `puppeteer.launch()`. Additionally the object can contain the following fields:
  * @param {String} [opts.proxyUrl] URL to a HTTP proxy server.
  *                                 Port number must be specified. Proxy username and password might also be provided.

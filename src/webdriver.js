@@ -291,6 +291,8 @@ export const browse = (url, options) => {
  * <a href="https://www.apify.com/docs/actor#base-images" target="_blank">documentation</a>
  * for more details.
  *
+ * For an example of usage, see the <a href="https://www.apify.com/apify/example-selenium">apify/example-selenium</a> act.
+ *
  * @param {Object} [opts] Optional settings passed to `puppeteer.launch()`. Additionally the object can contain the following fields:
  * @param {String} [opts.proxyUrl] - URL to a proxy server. Currently only `http://` scheme is supported.
  * Port number must be specified. For example, `http://example.com:1234`.
