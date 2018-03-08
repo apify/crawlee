@@ -251,6 +251,7 @@ export const main = (userFunc) => {
         process.exit(exitCode);
     };
 
+    // If we are running apify/actor-chrome-xvfb image then start xvfb.
     if (process.env[ENV_VARS.XVFB] === 1) startXvfb();
 
     // Set dummy interval to ensure the process will not be killed while awaiting empty promise:
