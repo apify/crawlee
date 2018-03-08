@@ -3,6 +3,7 @@ import Promise from 'bluebird';
 import fs from 'fs';
 import EventEmitter from 'events';
 import WebSocket from 'ws';
+import { spawn } from 'child_process';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { ENV_VARS, EXIT_CODES, ACT_TASK_TERMINAL_STATUSES, DEFAULT_PROXY_HOSTNAME, DEFAULT_PROXY_PORT } from './constants';
@@ -89,6 +90,29 @@ export const initializeEvents = () => {
         log.warning('Actor events websocket has been closed');
         eventsWs = null;
     });
+};
+
+/**
+ * Child process with xvfb frame buffer.
+ * @ignore
+ */
+let xvfbProcess = null;
+
+/**
+ * Starts xvfb frame buffer that is needed to run Chrome in non-headless mode.
+ * It's called automatically if environment variable APIFY_XVFB=1.
+ *
+ * @memberof module:Apify
+ * @name startXvfb
+ * @function
+ */
+export const startXvfb = () => {
+    process.env.XVFB_WHD = '1280x720x16';
+    process.env.DISPLAY = ':99';
+    xvfbProcess = spawn('Xvfb', [':99', '-ac', '-screen', '0', process.env.XVFB_WHD, '-nolisten', 'tcp']);
+    xvfbProcess.stdout.on('data', data => log.info(`Xvfb stdout: ${data}`));
+    xvfbProcess.stderr.on('data', data => log.error(`Xvfb stderr: ${data}`));
+    xvfbProcess.on('close', code => log.error(`Xvfb exited with code ${code}`));
 };
 
 /**
@@ -226,6 +250,8 @@ export const main = (userFunc) => {
         // console.log(`Exiting with code: ${exitCode}`);
         process.exit(exitCode);
     };
+
+    if (process.env[ENV_VARS.XVFB] === 1) startXvfb();
 
     // Set dummy interval to ensure the process will not be killed while awaiting empty promise:
     // await new Promise(() => {})
