@@ -1,6 +1,6 @@
-XXX / 2018-03-06
-==================
-- If the `APIFY_XVFB` env var is '1', then avoid headless mode
+0.5.10 / 2018-03-09
+===================
+- If the `APIFY_XVFB` env var is set to '1', then avoid headless mode and use Xvfb instead
 - Updated DEFAULT_USER_AGENT to Linux Chrome
 - Consolidated startup options for Chrome - use --disable-dev-shm-usage, skip --no-sandbox,
   use --disable-gpu only on Windows
