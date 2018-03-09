@@ -15,14 +15,14 @@ import { newPromise } from './utils';
  *
  * <ul>
  *    <li>Passes the setting from the `APIFY_HEADLESS` environment variable to the `headless` option,
- *        unless it was already defined by the caller. Note that this environment variable is automatically set to `1`
- *        in acts running on the Apify Actor cloud platform.</li>
+ *        unless it was already defined by the caller or `APIFY_XVFB` environment variable is set to `1`.
+ *        Note that Apify Actor cloud platform automatically sets `APIFY_HEADLESS=1` to all running acts.</li>
  *    <li>Takes the `proxyUrl` option, checks it and adds it to `args` as `--proxy-server=XXX`.
  *        If the proxy uses authentication, the function sets up an anonymous proxy HTTP
  *        to make the proxy work with headless Chrome. For more information, read the
  *        <a href="https://blog.apify.com/249a21a79212" target="_blank">blog post about proxy-chain library</a>.
  *    </li>
- *    <li>Adds `--no-sandbox` to `args` to enable running headless Chrome in a Docker container on the Apify Actor platform.</li>
+ *    <li>Adds `--disable-dev-shm-usage` to `args` to avoid using shared memory space in favour of `/tmp`.</li>
  * </ul>
  *
  * To use this function, you need to have the <a href="https://www.npmjs.com/package/puppeteer" target="_blank">puppeteer</a>
@@ -30,6 +30,8 @@ import { newPromise } from './utils';
  * For example, you can use the `apify/actor-node-puppeteer` base Docker image for your act - see
  * <a href="https://www.apify.com/docs/actor#base-images" target="_blank">documentation</a>
  * for more details.
+ *
+ * For an example of usage, see the <a href="https://www.apify.com/apify/example-puppeteer">apify/example-puppeteer</a> act.
  *
  * @param {Object} [opts] Optional settings passed to `puppeteer.launch()`. Additionally the object can contain the following fields:
  * @param {String} [opts.proxyUrl] URL to a HTTP proxy server.
@@ -62,10 +64,10 @@ export const launchPuppeteer = (opts) => {
     }
 
     opts.args = opts.args || [];
-    opts.args.push('--no-sandbox');
+    opts.args.push('--disable-dev-shm-usage');
     opts.args.push(`--user-agent=${opts.userAgent || DEFAULT_USER_AGENT}`);
     if (opts.headless === undefined || opts.headless === null) {
-        opts.headless = process.env[ENV_VARS.HEADLESS] === '1';
+        opts.headless = process.env[ENV_VARS.HEADLESS] === '1' && process.env[ENV_VARS.XVFB] !== '1';
     }
 
     let anonymizedProxyUrl;
