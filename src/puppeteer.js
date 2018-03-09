@@ -28,7 +28,7 @@ import { newPromise } from './utils';
  *
  * To use this function, you need to have the <a href="https://www.npmjs.com/package/puppeteer" target="_blank">puppeteer</a>
  * NPM package installed in your project.
- * For example, you can use the `apify/actor-node-puppeteer` base Docker image for your act - see
+ * For example, you can use the `apify/actor-node-chrome` base Docker image for your act - see
  * <a href="https://www.apify.com/docs/actor#base-images" target="_blank">documentation</a>
  * for more details.
  *
