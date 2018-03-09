@@ -1,3 +1,7 @@
+0.5.11 / 2018-03-09
+===================
+- Added back --no-sandbox to launch of Puppeteer to avoid issues on older kernels
+
 0.5.10 / 2018-03-09
 ===================
 - If the `APIFY_XVFB` env var is set to '1', then avoid headless mode and use Xvfb instead

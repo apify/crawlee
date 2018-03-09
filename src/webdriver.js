@@ -63,7 +63,7 @@ export class Browser {
         this.chromeOptions.addArguments('--disable-translate');
         this.chromeOptions.addArguments('--safebrowsing-disable-auto-update');
         if (this.options.headless) {
-            this.chromeOptions.addArguments('--headless', '--disable-dev-shm-usage');
+            this.chromeOptions.addArguments('--headless', '--no-sandbox', '--disable-dev-shm-usage');
             if (isWin) {
                 // Temporarily needed on Windows
                 this.chromeOptions.addArguments('--disable-gpu');
