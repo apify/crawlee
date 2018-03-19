@@ -43,7 +43,7 @@
     "lint": "npm run build && eslint src test"
   },
   "dependencies": {
-    "apify-client": "^0.1.69",
+    "apify-client": "^0.2.3",
     "apify-shared": "0.0.16",
     "bluebird": "^3.5.0",
     "content-type": "^1.0.3",
