@@ -1,6 +1,6 @@
 {
   "name": "apify",
-  "version": "0.5.12",
+  "version": "0.5.13",
   "description": "Apify SDK for JavaScript / Node.js",
   "main": "build/index.js",
   "keywords": [
