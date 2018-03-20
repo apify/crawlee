@@ -7,12 +7,13 @@ import { events } from './actor';
 import { ACTOR_EVENT_NAMES } from './constants';
 
 const MEM_CHECK_INTERVAL_MILLIS = 200; // This is low to have at least.
-const MAYBE_RUN_INTERVAL_MILLIS = 1000;
 const MIN_FREE_MEMORY_RATIO = 0.1; // Minimum amount of memory that we keep free.
 const DEFAULT_OPTIONS = {
     maxConcurrency: 1000,
     minConcurrency: 1,
     minFreeMemoryRatio: 0.2,
+    maybeRunIntervalMillis: 500,
+    finishWhenEmpty: true,
 };
 
 // These constants defines that in Nth execution memCheckInterval we do:
@@ -32,6 +33,12 @@ const humanReadable = bytes => `${Math.round(bytes / 1024 / 1024)} MB`;
  * AutoscaledPool helps to process asynchronous task in parallel. It scales the number of concurrent tasks based on
  * the available memory and CPU. If any of the tasks throws an error then the pool.run() method
  * also throws.
+ *
+ * Autoscaled pool gets finished when the last running task gets resolved and following call of `workerFunction`
+ * returns null. This behaviour might be changed using `options.finishWhenEmpty` parameter.
+ *
+ * AutoscaledPool tries to start new tasks everytime some of the tasks gets resolved and also in interval
+ * given by parameter `options.maybeRunIntervalMillis`.
  *
  * Basic usage of AutoscaledPool:
  *
@@ -53,16 +60,30 @@ const humanReadable = bytes => `${Math.round(bytes / 1024 / 1024)} MB`;
  * @param {Number} [options.minConcurrency=1] Minimal concurrency.
  * @param {Number} [options.maxMemoryMbytes] Maximum memory available in the system. By default uses the totalMemory from Apify.getMemoryInfo().
  * @param {Number} [options.minFreeMemoryRatio=0.2] Minumum ratio of free memory kept in the system.
+ * @param {number} [options.maybeRunIntervalMillis=1000] Determines how often autoscaled pool tried to call `opts.workerFunction` to get a new task.
+ * @param {Number} [options.finishWhenEmpty=true] If false then pool stays running even when all tasks are finished and keeps trying to call
+ *                                              `options.workerFunction` every `options.maybeRunIntervalMillis` milliseconds to get a new task.
+ *                                              To finish the pool call `pool.finish()`.
  */
 export default class AutoscaledPool {
     constructor(opts) {
-        const { maxMemoryMbytes, maxConcurrency, minConcurrency, workerFunction, minFreeMemoryRatio } = _.defaults(opts, DEFAULT_OPTIONS);
+        const {
+            maxMemoryMbytes,
+            maxConcurrency,
+            minConcurrency,
+            workerFunction,
+            minFreeMemoryRatio,
+            maybeRunIntervalMillis,
+            finishWhenEmpty,
+        } = _.defaults(opts, DEFAULT_OPTIONS);
 
         checkParamOrThrow(maxMemoryMbytes, 'opts.maxMemoryMbytes', 'Maybe Number');
         checkParamOrThrow(maxConcurrency, 'opts.maxConcurrency', 'Number');
         checkParamOrThrow(minConcurrency, 'opts.minConcurrency', 'Number');
         checkParamOrThrow(minFreeMemoryRatio, 'opts.minFreeMemoryRatio', 'Number');
         checkParamOrThrow(workerFunction, 'opts.workerFunction', 'Function');
+        checkParamOrThrow(maybeRunIntervalMillis, 'opts.maybeRunIntervalMillis', 'Number');
+        checkParamOrThrow(finishWhenEmpty, 'opts.finishWhenEmpty', 'Boolean');
 
         // Configuration.
         this.maxMemoryMbytes = maxMemoryMbytes;
@@ -70,6 +91,8 @@ export default class AutoscaledPool {
         this.minConcurrency = Math.min(minConcurrency, maxConcurrency);
         this.workerFunction = workerFunction;
         this.minFreeMemoryRatio = minFreeMemoryRatio;
+        this.maybeRunIntervalMillis = maybeRunIntervalMillis;
+        this.finishWhenEmpty = finishWhenEmpty;
 
         // State.
         this.promiseCounter = 0;
@@ -86,6 +109,7 @@ export default class AutoscaledPool {
 
         // This is resolve function of Promise returned by this.run()
         // which gets resolved once everything is done.
+        this.poolPromise = null;
         this.resolve = null;
         this.reject = null;
 
@@ -97,13 +121,31 @@ export default class AutoscaledPool {
     }
 
     /**
+     * Closes the pool when `options.finishWhenEmpty=false`.
+     *
+     * By default when `options.finishWhenEmpty=true` this function is not needed and pool gets finished
+     * automatically.
+     *
+     * If `options.finishWhenEmpty=false` then pool gets running even after the last task gets resolved and
+     * `options.workerFunction` returns null. This is usefull when you expect more tasks to be added later.
+     * In this case you must call `pool.finish()` to finish the pool once all the running tasks are done.
+     */
+    finish() {
+        if (this.runningCount === 0) return this.resolve();
+
+        this.finishWhenEmpty = true;
+
+        return this.poolPromise;
+    }
+
+    /**
      * Runs the autoscaled pool. Returns promise that gets resolved or rejected once
      * all the task got finished or some of them fails.
      *
      * @return {Promise}
      */
     run() {
-        const promise = new Promise((resolve, reject) => {
+        this.poolPromise = new Promise((resolve, reject) => {
             this.resolve = resolve;
             this.reject = reject;
             this._maybeRunPromise();
@@ -111,14 +153,14 @@ export default class AutoscaledPool {
             // This is here because if we scale down to let's say 1. Then after each promise is finished
             // this._maybeRunPromise() doesn't trigger another one. So if that 1 instance stucks it results
             // in whole act to stuck and even after scaling up it never triggers another promise.
-            this.maybeRunInterval = setInterval(() => this._maybeRunPromise(), MAYBE_RUN_INTERVAL_MILLIS);
+            this.maybeRunInterval = setInterval(() => this._maybeRunPromise(), this.maybeRunIntervalMillis);
 
             // This interval checks memory and in each call saves current memory stats and in every
             // SCALE_UP_INTERVAL-th/SCALE_DOWN_INTERVAL-th call it may scale up/down based on memory.
             this.memCheckInterval = setInterval(() => this._autoscale(), MEM_CHECK_INTERVAL_MILLIS);
         });
 
-        return promise
+        return this.poolPromise
             .then(() => this._destroy())
             .catch((err) => {
                 this._destroy();
@@ -236,7 +278,11 @@ export default class AutoscaledPool {
         const promise = this.workerFunction();
 
         // We are done.
-        if (!promise && this.runningCount === 0) return this.resolve();
+        if (!promise && this.runningCount === 0) {
+            if (this.finishWhenEmpty) this.resolve();
+
+            return;
+        }
 
         // We are not done but don't want to execute new promise at this point.
         // This may happen when there are less pages in the queue than max concurrency
