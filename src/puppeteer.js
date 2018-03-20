@@ -22,8 +22,7 @@ import { newPromise } from './utils';
  *        to make the proxy work with headless Chrome. For more information, read the
  *        <a href="https://blog.apify.com/249a21a79212" target="_blank">blog post about proxy-chain library</a>.
  *    </li>
- *    <li>Adds `--no-sandbox` to `args` to enable running headless Chrome in a Docker container on the Apify Actor platform
- *    and `--disable-dev-shm-usage` to avoid using shared memory space in favour of `/tmp`.</li>
+ *    <li>Adds `--no-sandbox` to `args` to enable running headless Chrome in a Docker container on the Apify Actor platform.</li>
  * </ul>
  *
  * To use this function, you need to have the <a href="https://www.npmjs.com/package/puppeteer" target="_blank">puppeteer</a>
@@ -66,7 +65,6 @@ export const launchPuppeteer = (opts) => {
 
     opts.args = opts.args || [];
     opts.args.push('--no-sandbox');
-    opts.args.push('--disable-dev-shm-usage');
     opts.args.push(`--user-agent=${opts.userAgent || DEFAULT_USER_AGENT}`);
     if (opts.headless === undefined || opts.headless === null) {
         opts.headless = process.env[ENV_VARS.HEADLESS] === '1' && process.env[ENV_VARS.XVFB] !== '1';
