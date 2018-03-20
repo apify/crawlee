@@ -217,15 +217,14 @@ describe('Apify.launchWebDriver()', function () {
         return Apify.launchWebDriver(opts)
             .then((result) => {
                 webDriver = result;
-                // TODO: this is not reliable, we should use our own testing page
-                return webDriver.get('http://www.whoishostingthis.com/tools/user-agent');
+                return webDriver.get('https://api.apify.com/v2/browser-info');
             })
             .then(() => {
                 expect(webDriver.constructor.name).to.eql('Driver');
                 return webDriver.getPageSource();
             })
             .then((source) => {
-                expect(source).to.contain(opts.userAgent);
+                expect(source).to.contain(`"user-agent": "${opts.userAgent}"`);
                 return webDriver.quit();
             });
     });
@@ -311,8 +310,7 @@ describe('Apify.browse()', function () {
     it('userAgent option works', () => {
         let browser;
         const opts = {
-            // TODO: this is not reliable, we should use our own testing page
-            url: 'http://www.whoishostingthis.com/tools/user-agent/',
+            url: 'https://api.apify.com/v2/browser-info',
             headless: true,
             browserName: 'chrome',
             // Have space in user-agent to test passing of params
@@ -327,7 +325,7 @@ describe('Apify.browse()', function () {
                 return browser.webDriver.getPageSource();
             })
             .then((source) => {
-                expect(source).to.contain(opts.userAgent);
+                expect(source).to.contain(`"user-agent": "${opts.userAgent}"`);
                 return browser.close();
             });
     });

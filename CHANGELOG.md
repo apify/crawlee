@@ -1,8 +1,14 @@
-0.5.14 / 2018-03-09
+0.5.14 / 2018-03-20
 ===================
-- Added back `--no-sandbox` to launch of Puppeteer to avoid issues on older kernels
+- Removed again the --disable-dev-shm-usage flag when launching headless Chrome,
+  it might be causing issues with high IO overheads
+- Upgraded Puppeteer to version 1.2.0
 - Added `finishWhenEmpty` and `maybeRunPromiseIntervalMillis` options to `AutoscaledPool` class.
 - Fixed false positive errors logged by `PuppeteerPool` class.
+
+0.5.11 / 2018-03-09
+===================
+- Added back `--no-sandbox` to launch of Puppeteer to avoid issues on older kernels
 
 0.5.10 / 2018-03-09
 ===================
