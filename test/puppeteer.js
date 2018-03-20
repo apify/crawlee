@@ -129,4 +129,32 @@ describe('Apify.launchPuppeteer()', () => {
             .then(html => expect(html).to.include('<h1>Example Domain</h1>'))
             .then(() => browser.close());
     });
+
+    it('userAgent option works', () => {
+        let browser;
+        let page;
+        const opts = {
+            // Have space in user-agent to test passing of params
+            userAgent: 'MyUserAgent/1234 AnotherString/456',
+            headless: true,
+        };
+        return Apify.launchPuppeteer(opts)
+            .then((result) => {
+                browser = result;
+            })
+            .then(() => {
+                return browser.newPage();
+            })
+            .then((result) => {
+                page = result;
+                return page.goto('https://api.apify.com/v2/browser-info');
+            })
+            .then(() => {
+                return page.content();
+            })
+            .then((html) => {
+                expect(html).to.contain(`"user-agent": "${opts.userAgent}"`);
+                return browser.close();
+            });
+    });
 });
