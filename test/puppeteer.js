@@ -5,8 +5,10 @@ import portastic from 'portastic';
 import basicAuthParser from 'basic-auth-parser';
 import Promise from 'bluebird';
 import _ from 'underscore';
+import sinon from 'sinon';
 import Apify from '../build/index';
 import { ENV_VARS } from '../build/constants';
+import * as utils from '../build/utils';
 
 
 let prevEnvHeadless;
@@ -130,7 +132,7 @@ describe('Apify.launchPuppeteer()', () => {
             .then(() => browser.close());
     });
 
-    it('userAgent option works', () => {
+    it('supports userAgent option', () => {
         let browser;
         let page;
         const opts = {
@@ -155,6 +157,35 @@ describe('Apify.launchPuppeteer()', () => {
             .then((html) => {
                 expect(html).to.contain(`"user-agent": "${opts.userAgent}"`);
                 return browser.close();
+            });
+    });
+
+    it('supports useChrome option', () => {
+        const mock = sinon.mock(utils);
+        mock.expects('getTypicalChromeExecutablePath').once();
+
+        let browser;
+        const opts = {
+            useChrome: true,
+            headless: true,
+        };
+
+        return Apify.launchPuppeteer(opts)
+            .then((result) => {
+                browser = result;
+            })
+            .then(() => {
+                return browser.newPage();
+            })
+            .then((page) => {
+                return page.content();
+            })
+            .then(() => {
+                return browser.close();
+            })
+            .finally(() => {
+                mock.verify();
+                mock.restore();
             });
     });
 });

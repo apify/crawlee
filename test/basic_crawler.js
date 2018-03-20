@@ -7,7 +7,7 @@ import * as Apify from '../build/index';
 
 chai.use(chaiAsPromised);
 
-describe('basic_crawler', () => {
+describe('BasicCrawler', () => {
     it('runs in parallel thru all the requests', async () => {
         const startedAt = Date.now();
         const sources = _.range(0, 500).map(index => ({ url: `https://example.com/${index}` }));

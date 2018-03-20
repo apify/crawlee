@@ -7,7 +7,7 @@ import * as Apify from '../build/index';
 
 chai.use(chaiAsPromised);
 
-describe('puppeteer_crawler', () => {
+describe('PuppeteerCrawler', () => {
     let prevEnvHeadless;
 
     before(() => {

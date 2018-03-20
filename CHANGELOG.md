@@ -1,3 +1,7 @@
+XXX / 2018-03-20
+===================
+- Added `useChrome` flag to `launchPuppeteer()` function
+
 0.5.14 / 2018-03-20
 ===================
 - Removed again the --disable-dev-shm-usage flag when launching headless Chrome,
