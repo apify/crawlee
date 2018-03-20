@@ -1,6 +1,6 @@
 {
   "name": "apify",
-  "version": "0.5.13",
+  "version": "0.5.14",
   "description": "Apify SDK for JavaScript / Node.js",
   "main": "build/index.js",
   "keywords": [
@@ -85,7 +85,7 @@
     "why-is-node-running": "^1.2.3"
   },
   "optionalDependencies": {
-    "puppeteer": "^1.1.1",
+    "puppeteer": "^1.2.0",
     "selenium-webdriver": "^3.6.0"
   }
 }
