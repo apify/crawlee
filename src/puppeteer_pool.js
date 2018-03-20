@@ -294,7 +294,12 @@ export default class PuppeteerPool {
         const browserPromises = _
             .values(this.activeInstances)
             .concat(_.values(this.retiredInstances))
-            .map(instance => instance.browserPromise);
+            .map((instance) => {
+                // This is needed so that "Puppeteer disconnected" errors are not printed.
+                instance.killed = true;
+
+                return instance.browserPromise;
+            });
 
         const closePromises = browserPromises.map((browserPromise) => {
             return browserPromise.then(browser => browser.close());
