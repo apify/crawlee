@@ -214,5 +214,60 @@ describe('autoscaled_pool', () => {
         mock.verify();
         mock.restore();
     });
+
+    it('should not handle tasks added later when opts.finishWhenEmpty is not used', async () => {
+        const tasks = [];
+        const finished = [];
+
+        // Start 3 tasks immediately.
+        tasks.push(delayPromise(50).then(() => finished.push(0)));
+        tasks.push(delayPromise(50).then(() => finished.push(1)));
+        tasks.push(delayPromise(50).then(() => finished.push(2)));
+
+        // Add 2 tasks after 500ms.
+        setTimeout(() => tasks.push(delayPromise(50).then(() => finished.push(3))), 500);
+        setTimeout(() => tasks.push(delayPromise(50).then(() => finished.push(4))), 500);
+
+        // Run the pool and close it after 3s.
+        const pool = new Apify.AutoscaledPool({
+            maybeRunIntervalMillis: 10,
+            minConcurrency: 3,
+            workerFunction: () => tasks.pop(),
+        });
+        await pool.run();
+
+        // Check finished tasks.
+        expect(finished).to.be.eql([0, 1, 2]);
+    });
+
+    it('should be possible let pool running forever with opts.finishWhenEmpty=false', async () => {
+        const tasks = [];
+        const finished = [];
+
+        // Start 3 tasks immediately.
+        tasks.push(delayPromise(50).then(() => finished.push(0)));
+        tasks.push(delayPromise(50).then(() => finished.push(1)));
+        tasks.push(delayPromise(50).then(() => finished.push(2)));
+
+        // Add 2 tasks after 500ms.
+        setTimeout(() => tasks.push(delayPromise(50).then(() => finished.push(3))), 500);
+        setTimeout(() => tasks.push(delayPromise(50).then(() => finished.push(4))), 500);
+
+        // Add 1 task after 2s.
+        setTimeout(() => tasks.push(delayPromise(50).then(() => finished.push(5))), 2000);
+
+        // Run the pool and close it after 3s.
+        const pool = new Apify.AutoscaledPool({
+            maybeRunIntervalMillis: 10,
+            finishWhenEmpty: false,
+            minConcurrency: 3,
+            workerFunction: () => tasks.pop(),
+        });
+        setTimeout(() => pool.finish(), 3000);
+        await pool.run();
+
+        // Check finished tasks.
+        expect(finished).to.be.eql([0, 1, 2, 3, 4, 5]);
+    });
 });
 
