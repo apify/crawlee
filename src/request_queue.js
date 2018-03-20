@@ -2,17 +2,142 @@ import fs from 'fs';
 import fsExtra from 'fs-extra';
 import path from 'path';
 import { checkParamOrThrow } from 'apify-client/build/utils';
+import LruCache from 'apify-shared/lru_cache';
 import Promise from 'bluebird';
+import crypto from 'crypto';
 import _ from 'underscore';
 import Request from './request';
-import { ensureDirExists, checkParamPrototypeOrThrow } from './utils';
+import { ensureDirExists, checkParamPrototypeOrThrow, apifyClient } from './utils';
 
 export const LOCAL_EMULATION_SUBDIR = 'request-queues';
+const MAX_OPENED_QUEUES = 1000;
 
 const writeFilePromised = Promise.promisify(fs.writeFile);
 const readdirPromised = Promise.promisify(fs.readdir);
 const readFilePromised = Promise.promisify(fs.readFile);
 const moveFilePromised = Promise.promisify(fsExtra.move);
+
+const { requestQueues } = apifyClient;
+const queuesCache = new LruCache({ maxLength: MAX_OPENED_QUEUES }); // Open queues are stored here.
+
+/**
+ * Helper function to validate params of *.addRequest().
+ * @ignore
+ */
+const validateAddRequestParams = (request, opts) => {
+    checkParamPrototypeOrThrow(request, 'request', Request, 'Apify.Request');
+    checkParamOrThrow(opts, 'opts', 'Object');
+
+    const { putInFront = false } = opts;
+
+    checkParamOrThrow(putInFront, 'opts.putInFront', 'Boolean');
+
+    if (request.id) throw new Error('Request has already "id" so it cannot be added to the queue!');
+
+    return { putInFront };
+};
+
+/**
+ * Helper function to validate params of *.getRequest().
+ * @ignore
+ */
+const validateGetRequestParams = (requestId) => {
+    checkParamOrThrow(requestId, 'requestId', 'String');
+};
+
+/**
+ * Helper function to validate params of *.markRequestHandled().
+ * @ignore
+ */
+const validateMarkRequestHandledParams = (request) => {
+    checkParamPrototypeOrThrow(request, 'request', Request, 'Apify.Request');
+    checkParamOrThrow(request.id, 'request.id', 'String');
+};
+
+/**
+ * Helper function to validate params of *.reclaimRequest().
+ * @ignore
+ */
+const validateReclaimRequestParams = (request) => {
+    checkParamPrototypeOrThrow(request, 'request', Request, 'Apify.Request');
+    checkParamOrThrow(request.id, 'request.id', 'String');
+};
+
+/**
+ * Dataset class provides easy interface to Apify Dataset storage type. Dataset should be opened using
+ * `Apify.openDataset()` function.
+ *
+ * Basic usage of Dataset:
+ *
+ * ```javascript
+ * const dataset = await Apify.openDataset('my-dataset-id');
+ * await dataset.pushData({ foo: 'bar' });
+ * ```
+ *
+ * @param {String} datasetId - ID of the dataset.
+ */
+export class RequestQueue {
+    constructor(queueId) {
+        checkParamOrThrow(queueId, 'options.queueId', 'String');
+
+        this.queueId = queueId;
+        this.queueHead = {};
+        this.inProggress = {};
+    }
+
+    addRequest(request, opts) {
+        const { putInFront } = validateAddRequestParams(request, opts);
+
+        return requestQueues.addRequest({
+            request,
+            queueId: this.queueId,
+        });
+    }
+
+    getRequest(requestId) {
+        validateGetRequestParams(requestId);
+
+        return requestQueues.getRequest({
+            requestId,
+            queueId: this.queueId,
+        });
+    }
+
+    fetchNextRequest() {
+    }
+
+    markRequestHandled(request) {
+        validateMarkRequestHandledParams(request);
+
+        if (!request.handledAt) request.handledAt = new Date();
+
+        return requestQueues.updateRequest({
+            request,
+            queueId: this.queueId,
+        });
+    }
+
+    reclaimRequest(request) {
+        validateReclaimRequestParams(request);
+
+        return requestQueues
+            .updateRequest({
+                request,
+                queueId: this.queueId,
+            })
+            .then((response) => {
+                delete this.inProggress[request.id];
+
+                return response;
+            });
+    }
+
+    isEmpty() {
+    }
+
+    isfinished() {
+    }
+}
 
 /**
  * Helper function that extracts queue order number from filename.
@@ -25,6 +150,23 @@ const filepathToQueueOrderNo = (filepath) => {
         .split('.')[0]; // Remove extension
 
     return parseInt(int, 10);
+};
+
+/**
+ * Helper function that creates ID from uniqueKey for local usage.
+ *
+ * @ignore
+ */
+const uniqueKeyToId = (uniqueKey) => {
+    const str = crypto
+        .createHash('sha256')
+        .update(uniqueKey)
+        .digest('base64')
+        .replace(/(\+|\/|=)/g, '');
+
+    return str.length > 15
+        ? str.substr(0, 15)
+        : str;
 };
 
 /**
@@ -44,7 +186,7 @@ export class RequestQueueLocal {
 
         this.pendingCount = 0;
         this.inProgressCount = 0;
-        this.uniqueKeyToQueueOrderNo = {};
+        this.requestIdToQueueOrderNo = {};
         this.queueOrderNoInProgress = {};
 
         this.initializationPromise = this._initialize();
@@ -75,7 +217,7 @@ export class RequestQueueLocal {
                 const request = JSON.parse(str);
                 const queueOrderNo = filepathToQueueOrderNo(filepath);
 
-                this.uniqueKeyToQueueOrderNo[request.uniqueKey] = queueOrderNo;
+                this.requestIdToQueueOrderNo[request.id] = queueOrderNo;
             });
     }
 
@@ -89,12 +231,7 @@ export class RequestQueueLocal {
     }
 
     addRequest(request, opts = {}) {
-        checkParamPrototypeOrThrow(request, 'request', Request, 'Apify.Request');
-        checkParamOrThrow(opts, 'opts', 'Object');
-
-        const { putInFront = false } = opts;
-
-        checkParamOrThrow(putInFront, 'opts.putInFront', 'Boolean');
+        const { putInFront } = validateAddRequestParams(request, opts);
 
         return this.initializationPromise
             .then(() => {
@@ -108,18 +245,22 @@ export class RequestQueueLocal {
                 const filePath = this._getFilePath(queueOrderNo);
 
                 this.pendingCount++;
-                this.uniqueKeyToQueueOrderNo[request.uniqueKey] = queueOrderNo;
+                this.requestIdToQueueOrderNo[request.id] = queueOrderNo;
 
-                return writeFilePromised(filePath, JSON.stringify(request, null, 4));
+                // Add ID as server does.
+                const requestCopy = JSON.parse(JSON.stringify(request));
+                requestCopy.id = uniqueKeyToId(request.uniqueKey);
+
+                return writeFilePromised(filePath, JSON.stringify(requestCopy, null, 4));
             });
     }
 
-    getRequest(uniqueKey) {
-        checkParamOrThrow(uniqueKey, 'uniqueKey', 'String');
+    getRequest(requestId) {
+        validateAddRequestParams(requestId);
 
         return this.initializationPromise
             .then(() => {
-                const queueOrderNo = this.uniqueKeyToQueueOrderNo[uniqueKey];
+                const queueOrderNo = this.requestIdToQueueOrderNo[requestId];
 
                 return this._getRequestByQueueOrderNo(queueOrderNo);
             });
@@ -168,11 +309,11 @@ export class RequestQueueLocal {
     }
 
     markRequestHandled(request) {
-        checkParamPrototypeOrThrow(request, 'request', Request, 'Apify.Request');
+        validateMarkRequestHandledParams(request);
 
         return this.initializationPromise
             .then(() => {
-                const queueOrderNo = this.uniqueKeyToQueueOrderNo[request.uniqueKey];
+                const queueOrderNo = this.requestIdToQueueOrderNo[request.id];
                 const source = this._getFilePath(queueOrderNo, false);
                 const dest = this._getFilePath(queueOrderNo, true);
 
@@ -190,11 +331,11 @@ export class RequestQueueLocal {
     }
 
     reclaimRequest(request) {
-        checkParamPrototypeOrThrow(request, 'request', Request, 'Apify.Request');
+        validateReclaimRequestParams(request);
 
         return this.initializationPromise
             .then(() => {
-                const queueOrderNo = this.uniqueKeyToQueueOrderNo[request.uniqueKey];
+                const queueOrderNo = this.requestIdToQueueOrderNo[request.id];
 
                 if (!this.queueOrderNoInProgress[queueOrderNo]) {
                     throw new Error('Cannot reclaim request that is not in progress!');
@@ -216,6 +357,20 @@ export class RequestQueueLocal {
             .then(() => this.pendingCount === 0);
     }
 }
+
+/**
+ * Helper function that first requests queue by ID and if queue doesn't exist then gets it by name.
+ *
+ * @ignore
+ */
+const getOrCreateQueue = (queueIdOrName) => {
+    return requestQueues.getQueue({ queueId: queueIdOrName })
+        .then((existingQueue) => {
+            if (existingQueue) return existingQueue;
+
+            return requestQueues.getOrCreateQueue({ qeueueName: queueIdOrName });
+        });
+};
 
 /**
  * Opens request queue and returns its object.</p>
@@ -257,16 +412,34 @@ export const openRequestQueue = (queueIdOrName) => {
 
     checkParamOrThrow(queueIdOrName, 'queueIdOrName', 'Maybe String');
 
-    // TODO:
-    // should reuse instances
-    if (!localEmulationDir) {
-        return Promise.reject(new Error('We currently don\'t support remote queues! This is only temporary'
-            + 'implementation that stores the queue in the key-value store.'));
+    let isDefault = false;
+    let queuePromise;
+
+    if (!queueIdOrName) {
+        const envVar = ENV_VARS.DEFAULT_REQUEST_QUEUE_ID;
+
+        // Env var doesn't exist.
+        if (!process.env[envVar]) return Promise.reject(new Error(`The '${envVar}' environment variable is not defined.`));
+
+        isDefault = true;
+        queueIdOrName = process.env[envVar];
     }
 
-    const queue = localEmulationDir
-        ? new RequestQueueLocal(queueIdOrName, localEmulationDir)
-        : new RequestQueueRemote('default-request-queue');
+    queuePromise = queuesCache.get(queueIdOrName);
 
-    return Promise.resolve(queue);
+    // Found in cache.
+    if (queuePromise) return queuePromise;
+
+    // Use local emulation?
+    if (localEmulationDir) {
+        queuePromise = Promise.resolve(new RequestQueueLocal(queueIdOrName, localEmulationDir));
+    } else {
+        queuePromise = isDefault // If true then we know that this is an ID of existing queue.
+            ? Promise.resolve(new RequestQueue(queueIdOrName))
+            : getOrCreateQueue(queueIdOrName).then(queue => (new RequestQueue(queue.id)));
+    }
+
+    queuesCache.add(queueIdOrName, queuePromise);
+
+    return queuePromise;
 };

@@ -234,7 +234,7 @@ export class KeyValueStoreLocal {
 }
 
 /**
- * Helper function that first requests key-value store by ID and if store doesn't exist then gets him by name.
+ * Helper function that first requests key-value store by ID and if store doesn't exist then gets it by name.
  *
  * @ignore
  */

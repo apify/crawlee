@@ -38,6 +38,7 @@ export const computeUniqueKey = (url, keepUrlFragment) => normalizeUrl(url, keep
  */
 export default class Request {
     constructor({
+        id,
         url,
         uniqueKey,
         method = 'GET',
@@ -48,6 +49,7 @@ export default class Request {
         userData = {},
         keepUrlFragment = false,
     }) {
+        checkParamOrThrow(id, 'id', 'Maybe String');
         checkParamOrThrow(url, 'url', 'String');
         checkParamOrThrow(uniqueKey, 'uniqueKey', 'Maybe String');
         checkParamOrThrow(method, 'method', 'String');
@@ -59,6 +61,7 @@ export default class Request {
 
         if (method === 'GET' && payload) throw new Error('Request with GET method cannot have a payload.');
 
+        this.id = id;
         this.url = url;
         this.uniqueKey = uniqueKey || computeUniqueKey(url, keepUrlFragment);
         this.method = method;
