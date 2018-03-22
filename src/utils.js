@@ -201,3 +201,15 @@ export const isProduction = () => process.env.NODE_ENV !== 'production';
  * @ignore
  */
 export const ensureDirExists = path => ensureDirPromised(path);
+
+/**
+ * Gets a typical path to Chrome executable, depending on the current operating system.
+ * @returns {string}
+ */
+export const getTypicalChromeExecutablePath = () => {
+    switch (os.platform()) {
+    case 'darwin': return '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+    case 'win32': return 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe';
+    default: return 'google-chrome';
+    }
+};

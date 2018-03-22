@@ -12,7 +12,7 @@ import * as utils from '../build/utils';
 chai.use(chaiAsPromised);
 const toBytes = x => x * 1024 * 1024;
 
-describe('autoscaled_pool', () => {
+describe('AutoscaledPool', () => {
     it('should work with concurrency 1', async () => {
         const range = _.range(0, 10);
         const result = [];

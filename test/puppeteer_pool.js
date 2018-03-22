@@ -9,7 +9,7 @@ chai.use(chaiAsPromised);
 
 const shortSleep = (millis = 25) => new Promise(resolve => setTimeout(resolve, millis));
 
-describe('puppeteer_pool', () => {
+describe('PuppeteerPool', () => {
     let prevEnvHeadless;
 
     before(() => {

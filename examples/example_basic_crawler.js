@@ -1,4 +1,4 @@
-const Apify = require('../build');
+const Apify = require('apify');
 const rp = require('request-promise');
 
 Apify.main(async () => {

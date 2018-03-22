@@ -1,4 +1,4 @@
-const Apify = require('../build');
+const Apify = require('apify');
 
 Apify.main(async () => {
     let counter = 0;

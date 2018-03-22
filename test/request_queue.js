@@ -8,7 +8,7 @@ import { emptyLocalEmulationSubdir, LOCAL_EMULATION_DIR } from './_helper';
 
 chai.use(chaiAsPromised);
 
-describe('request_queue', () => {
+describe('RequestQueue', () => {
     before(() => apifyClient.setOptions({ token: 'xxx' }));
     after(() => apifyClient.setOptions({ token: undefined }));
     beforeEach(() => emptyLocalEmulationSubdir(LOCAL_EMULATION_SUBDIR));
