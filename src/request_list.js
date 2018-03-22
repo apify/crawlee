@@ -259,22 +259,29 @@ export default class RequestList {
 
         return requestPromise.get(requestsFromUrl)
             .then((urlsStr) => {
-                const urlsArr = urlsStr.match(new RegExp(regex, 'g'));
+                const urlsArr = urlsStr.match(new RegExp(regex, 'gi'));
                 const originalLength = this.requests.length;
 
-                urlsArr.forEach(url => this._addRequest(_.extend({ url }, sharedOpts)));
+                if (urlsArr) {
+                    urlsArr.forEach(url => this._addRequest(_.extend({ url }, sharedOpts)));
 
-                const fetchedCount = urlsArr.length;
-                const importedCount = this.requests.length - originalLength;
+                    const fetchedCount = urlsArr.length;
+                    const importedCount = this.requests.length - originalLength;
 
-                log.info('RequestList: list fetched', {
-                    requestsFromUrl,
-                    regex,
-                    fetchedCount,
-                    importedCount,
-                    dupliciteCount: fetchedCount - importedCount,
-                    sample: JSON.stringify(urlsArr.slice(0, 5)),
-                });
+                    log.info('RequestList: list fetched', {
+                        requestsFromUrl,
+                        regex,
+                        fetchedCount,
+                        importedCount,
+                        dupliciteCount: fetchedCount - importedCount,
+                        sample: JSON.stringify(urlsArr.slice(0, 5)),
+                    });
+                } else {
+                    log.warning('RequestList: list fetched but it is empty', {
+                        requestsFromUrl,
+                        regex,
+                    });
+                }
             })
             .catch((err) => {
                 log.exception(err, 'RequestList: Cannot fetch a request list', { requestsFromUrl, regex });
