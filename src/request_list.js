@@ -32,21 +32,23 @@ const ensureUniqueKeyValid = (uniqueKey) => {
 };
 
 /**
- * RequestList provides way to handle a list of urls to be processed.
+ * `RequestList` provides way to handle a list of URLs (i.e. requests) to be crawled.
  *
- * RequestList has internal state where it remembers handled requests, requests in proggress and also reclaimed requests.
- * State might be persisted in key-value store as shown in example below so if an act get restarted (due to internal
- * error or restart of host machine) then it may be initialized from previous state.
+ * `RequestList` has internal state where it remembers handled requests, requests in progress and also reclaimed requests.
+ * State might be persisted in key-value store as shown in the example below so if an act get restarted (due to internal
+ * error or restart of the host machine) then it may be initialized from previous state.
  *
- * Basic usage of RequestList:
+ * Basic usage of `RequestList`:
  *
  * ```javascript
  * const requestList = new Apify.RequestList({
  *     sources: [
- *         // Seperate requests
+ *         // Separate requests
  *         { url: 'http://www.example.com/page-1', method: 'GET', headers: {} },
  *         { url: 'http://www.example.com/page-2', userData: { foo: 'bar' }},
- *         // Bulk load of urls from file `http://www.example.com/my-url-list.txt`
+ *
+ *         // Bulk load of URLs from file `http://www.example.com/my-url-list.txt`
+ *         // Note that all URLs must start with http:// or https://
  *         { requestsFromUrl: 'http://www.example.com/my-url-list.txt', userData: { isFromUrl: true } },
  *     ],
  *     // Initialize from previous state if act was restarted due to some error
@@ -55,7 +57,7 @@ const ensureUniqueKeyValid = (uniqueKey) => {
  *
  * await requestList.initialize(); // Load requests.
  *
- * // Save state of the request list every 5 seconds.
+ * // Save state of the RequestList instance every 5 seconds.
  * setInterval(() => {
  *      Apify.setValue('my-request-list-state', requestList.getState());
  * }, 5000);
@@ -75,13 +77,13 @@ const ensureUniqueKeyValid = (uniqueKey) => {
  * @param {Array} options.sources Function that processes a request. It must return a promise.
  * ```javascript
  * [
- *     // One url
+ *     // One URL
  *     { method: 'GET', url: 'http://example.com/a/b' },
- *     // Batch import from web hosted file
- *     { method: 'POST', requestsFromUrl: 'http://mywebsite.com/urls.txt' },
+ *     // Batch import of URLa from a file hosted on the web
+ *     { method: 'POST', requestsFromUrl: 'http://example.com/urls.txt' },
  * ]
  * ```
- * @param {Object} [options.state] State of the RequestList to be initialized from. It's in the form returned by `requestList.getState()`:
+ * @param {Object} [options.state] State of the `RequestList` to be initialized from. It is in the form returned by `requestList.getState()`:
  * ```javascript
  * {
  *     nextIndex: 5,
@@ -259,22 +261,29 @@ export default class RequestList {
 
         return requestPromise.get(requestsFromUrl)
             .then((urlsStr) => {
-                const urlsArr = urlsStr.match(new RegExp(regex, 'g'));
+                const urlsArr = urlsStr.match(new RegExp(regex, 'gi'));
                 const originalLength = this.requests.length;
 
-                urlsArr.forEach(url => this._addRequest(_.extend({ url }, sharedOpts)));
+                if (urlsArr) {
+                    urlsArr.forEach(url => this._addRequest(_.extend({ url }, sharedOpts)));
 
-                const fetchedCount = urlsArr.length;
-                const importedCount = this.requests.length - originalLength;
+                    const fetchedCount = urlsArr.length;
+                    const importedCount = this.requests.length - originalLength;
 
-                log.info('RequestList: list fetched', {
-                    requestsFromUrl,
-                    regex,
-                    fetchedCount,
-                    importedCount,
-                    dupliciteCount: fetchedCount - importedCount,
-                    sample: JSON.stringify(urlsArr.slice(0, 5)),
-                });
+                    log.info('RequestList: list fetched', {
+                        requestsFromUrl,
+                        regex,
+                        fetchedCount,
+                        importedCount,
+                        dupliciteCount: fetchedCount - importedCount,
+                        sample: JSON.stringify(urlsArr.slice(0, 5)),
+                    });
+                } else {
+                    log.warning('RequestList: list fetched but it is empty', {
+                        requestsFromUrl,
+                        regex,
+                    });
+                }
             })
             .catch((err) => {
                 log.exception(err, 'RequestList: Cannot fetch a request list', { requestsFromUrl, regex });

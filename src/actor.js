@@ -66,9 +66,9 @@ export const initializeEvents = () => {
 
     const eventsWsUrl = process.env[ENV_VARS.ACTOR_EVENTS_WS_URL];
 
-    // Localy there is no web socket to connect so just print a warning.
+    // Locally there is no web socket to connect so just print a log message.
     if (!eventsWsUrl) {
-        log.warning(`Environment variable ${ENV_VARS.ACTOR_EVENTS_WS_URL} was not provided. Events in Apify.events emitter won't be available!`);
+        log.info(`Environment variable ${ENV_VARS.ACTOR_EVENTS_WS_URL} is not set, Apify.events will not emit any events.`);
         return;
     }
 
@@ -86,7 +86,7 @@ export const initializeEvents = () => {
     });
     eventsWs.on('error', err => log.exception(err, 'Actor events web socket connection failed'));
     eventsWs.on('close', () => {
-        log.warning('Actor events websocket has been closed');
+        log.warning('Actor events web socket has been closed');
         eventsWs = null;
     });
 };
