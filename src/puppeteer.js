@@ -39,7 +39,7 @@ import { newPromise, getTypicalChromeExecutablePath } from './utils';
  *                                 For example, `http://bob:pass123@proxy.example.com:1234`.
  * @param {String} [opts.userAgent] Default User-Agent for the browser.
  *                                  If not provided, the function sets it to a reasonable default.
- * @param {String} [opts.useChrome] If true-ish value and `opts.executablePath` is not set,
+ * @param {String} [opts.useChrome=false] If true-ish value and `opts.executablePath` is not set,
  *                                  Puppeteer will launch full Chrome available on the machine rather than the bundled Chromium.
  *                                  The path to Chrome executable is taken from the `APIFY_CHROME_EXECUTABLE_PATH` environment variable if provided,
  *                                  or defaults to the typical Google Chrome executable location specific for the operating system.
