@@ -46,7 +46,7 @@ we have few helper classes and functions:
 
 <ul>
   <li>
-    `Apify.launchPuppeteer()` function starts new instance of Puppeteer browser and returns its browser object.
+    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-launchPuppeteer">Apify.launchPuppeteer()</a> function starts new instance of Puppeteer browser and returns its browser object.
   </li>
   <li>
     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerPool">PuppeteerPool</a> helps to mantain a pool of Puppeteer instances. This is usefull
