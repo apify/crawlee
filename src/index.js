@@ -184,7 +184,7 @@ module.exports = {
     pushData,
     openDataset,
 
-    // Key value store
+    // Key-value store
     getValue,
     setValue,
     openKeyValueStore,
@@ -194,7 +194,7 @@ module.exports = {
     PuppeteerPool,
     PuppeteerCrawler,
 
-    // Request
+    // Requests
     Request,
     RequestList,
     openRequestQueue,

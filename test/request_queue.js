@@ -130,7 +130,7 @@ describe('RequestQueue', () => {
                 .returns(Promise.resolve({ requestId: 'b' }));
             await queue.addRequest(requestB, { forefront: true });
             expect(queue.queueHeadDict.length()).to.be.eql(1);
-            expect(queue.inProggressCount).to.be.eql(0);
+            expect(queue.inProgressCount).to.be.eql(0);
 
             // Forefronted request was added to the queue.
             mock.expects('getRequest')
@@ -143,7 +143,7 @@ describe('RequestQueue', () => {
             const requestBFromQueue = await queue.fetchNextRequest();
             expect(requestBFromQueue).to.be.eql(requestB);
             expect(queue.queueHeadDict.length()).to.be.eql(0);
-            expect(queue.inProggressCount).to.be.eql(1);
+            expect(queue.inProgressCount).to.be.eql(1);
 
             // Reclaim it.
             mock.expects('updateRequest')
@@ -156,7 +156,7 @@ describe('RequestQueue', () => {
                 .returns(Promise.resolve({ requestId: requestB.id }));
             await queue.reclaimRequest(requestB, { forefront: true });
             expect(queue.queueHeadDict.length()).to.be.eql(1);
-            expect(queue.inProggressCount).to.be.eql(0);
+            expect(queue.inProgressCount).to.be.eql(0);
 
             // Fetch again.
             expect(queue.queueHeadDict.length()).to.be.eql(1);
@@ -170,7 +170,7 @@ describe('RequestQueue', () => {
             const requestBFromQueue2 = await queue.fetchNextRequest();
             expect(requestBFromQueue2).to.be.eql(requestB);
             expect(queue.queueHeadDict.length()).to.be.eql(0);
-            expect(queue.inProggressCount).to.be.eql(1);
+            expect(queue.inProgressCount).to.be.eql(1);
 
             // Mark handled.
             mock.expects('updateRequest')
@@ -182,7 +182,7 @@ describe('RequestQueue', () => {
                 .returns(Promise.resolve({ requestId: requestB.id }));
             await queue.markRequestHandled(requestB);
             expect(queue.queueHeadDict.length()).to.be.eql(0);
-            expect(queue.inProggressCount).to.be.eql(0);
+            expect(queue.inProgressCount).to.be.eql(0);
 
             // Query queue head.
             mock.expects('getHead')
@@ -207,7 +207,7 @@ describe('RequestQueue', () => {
             const requestAFromQueue = await queue.fetchNextRequest();
             expect(requestAFromQueue).to.be.eql(requestA);
             expect(queue.queueHeadDict.length()).to.be.eql(1);
-            expect(queue.inProggressCount).to.be.eql(1);
+            expect(queue.inProgressCount).to.be.eql(1);
 
             mock.verify();
             mock.restore();

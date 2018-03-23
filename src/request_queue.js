@@ -81,6 +81,7 @@ const validateReclaimRequestParams = (request) => {
 /**
  * @ignore.
  *
+ * TODO: fix docs
  * Dataset class provides easy interface to Apify Dataset storage type. Dataset should be opened using
  * `Apify.openDataset()` function.
  *
@@ -91,7 +92,7 @@ const validateReclaimRequestParams = (request) => {
  * await dataset.pushData({ foo: 'bar' });
  * ```
  *
- * @param {String} datasetId - ID of the dataset.
+ * @param {String} queueId - ID of the request queue.
  */
 export class RequestQueue {
     constructor(queueId) {
@@ -99,17 +100,17 @@ export class RequestQueue {
 
         this.queueId = queueId;
         this.queueHeadDict = new ListDictionary();
-        this.requestIdsInProggress = {};
-        this.inProggressCount = 0;
+        this.requestIdsInProgress = {};
+        this.inProgressCount = 0;
         this.queryQueueHeadPromise = null;
     }
 
     /**
-     * Adds request to queue.
+     * Adds a request to the queue.
      *
-     * @param {Request} request
+     * @param {Request} request Request object
      * @param {Object} [opts]
-     * @param {Boolean} [opts.forefront] True if request should be added to the head of the queue.
+     * @param {Boolean} [opts.forefront] If `true`, the request will be added to the foremost position in the queue.
      * @return {RequestOperationInfo}
      */
     addRequest(request, opts = {}) {
@@ -124,7 +125,7 @@ export class RequestQueue {
             .then((requestOperationInfo) => {
                 const { requestId } = requestOperationInfo;
 
-                if (forefront && !this.requestIdsInProggress[requestId]) {
+                if (forefront && !this.requestIdsInProgress[requestId]) {
                     this.queueHeadDict.add(requestId, requestId, true);
                 }
 
@@ -133,9 +134,9 @@ export class RequestQueue {
     }
 
     /**
-     * Gets request from queue.
+     * Gets a request from the queue.
      *
-     * @param  {String} requestId
+     * @param  {String} requestId Request ID
      * @return {Request}
      */
     getRequest(requestId) {
@@ -156,14 +157,14 @@ export class RequestQueue {
      */
     fetchNextRequest() {
         return this
-            ._ensureHeadIsNonempty()
+            ._ensureHeadIsNonEmpty()
             .then(() => {
                 const nextId = this.queueHeadDict.removeFirst();
 
                 // We are likely done at this point.
                 if (!nextId) return null;
 
-                this._addToInProggress(nextId);
+                this._addToInProgress(nextId);
 
                 return this.getRequest(nextId);
             });
@@ -178,7 +179,7 @@ export class RequestQueue {
     markRequestHandled(request) {
         validateMarkRequestHandledParams(request);
 
-        if (!this.requestIdsInProggress[request.id]) {
+        if (!this.requestIdsInProgress[request.id]) {
             throw new Error('Cannot mark handled request that is not in progress!');
         }
 
@@ -190,7 +191,7 @@ export class RequestQueue {
                 queueId: this.queueId,
             })
             .then((response) => {
-                this._removeFromInProggress(request.id);
+                this._removeFromInProgress(request.id);
 
                 return response;
             });
@@ -215,7 +216,7 @@ export class RequestQueue {
                 forefront,
             })
             .then((response) => {
-                this._removeFromInProggress(request.id);
+                this._removeFromInProgress(request.id);
 
                 if (forefront) this.queueHeadDict.add(request.id, request.id, true);
 
@@ -240,7 +241,7 @@ export class RequestQueue {
      *
      * @returns {boolean}
      */
-    isfinished() {
+    isFinished() {
         return this
             ._queryQueueHead()
             .then(() => this.inProgressCount === 0 && this.queueHeadDict.length() === 0);
@@ -250,23 +251,23 @@ export class RequestQueue {
     /**
      * @ignore.
      */
-    _addToInProggress(requestId) {
+    _addToInProgress(requestId) {
         // Is already there.
-        if (this.requestIdsInProggress[requestId]) return;
+        if (this.requestIdsInProgress[requestId]) return;
 
-        this.requestIdsInProggress[requestId] = requestId;
-        this.inProggressCount++;
+        this.requestIdsInProgress[requestId] = requestId;
+        this.inProgressCount++;
     }
 
     /**
      * @ignore.
      */
-    _removeFromInProggress(requestId) {
+    _removeFromInProgress(requestId) {
         // Is already removed.
-        if (!this.requestIdsInProggress[requestId]) return;
+        if (!this.requestIdsInProgress[requestId]) return;
 
-        delete this.requestIdsInProggress[requestId];
-        this.inProggressCount--;
+        delete this.requestIdsInProgress[requestId];
+        this.inProgressCount--;
     }
 
     /**
@@ -275,7 +276,7 @@ export class RequestQueue {
      *
      * @ignore.
      */
-    _ensureHeadIsNonempty(limit = this.inProggressCount + QUERY_HEAD_BUFFER) {
+    _ensureHeadIsNonEmpty(limit = this.inProgressCount + QUERY_HEAD_BUFFER) {
         checkParamOrThrow(limit, 'limit', 'Number');
 
         // If is nonempty resolve immediately.
@@ -289,7 +290,7 @@ export class RequestQueue {
                 })
                 .then(({ items }) => {
                     items.forEach(({ id }) => {
-                        if (!this.requestIdsInProggress[id]) this.queueHeadDict.add(id, id, false);
+                        if (!this.requestIdsInProgress[id]) this.queueHeadDict.add(id, id, false);
                     });
 
                     // This is needed so that the next call can request queue head again.
@@ -310,7 +311,7 @@ export class RequestQueue {
                 //
                 // If limit was not reached in the call then there are no more requests to be returned.
                 if (!this.queueHeadDict.length() && limitReached) {
-                    return this._ensureHeadIsNonempty(prevLimit + QUERY_HEAD_BUFFER);
+                    return this._ensureHeadIsNonEmpty(prevLimit + QUERY_HEAD_BUFFER);
                 }
             });
     }
@@ -321,7 +322,7 @@ export class RequestQueue {
  *
  * @ignore
  */
-const filepathToQueueOrderNo = (filepath) => {
+const filePathToQueueOrderNo = (filepath) => {
     const int = filepath
         .split(path.sep).pop() // Get filename from path
         .split('.')[0]; // Remove extension
@@ -392,7 +393,7 @@ export class RequestQueueLocal {
         return readFilePromised(filepath)
             .then((str) => {
                 const request = JSON.parse(str);
-                const queueOrderNo = filepathToQueueOrderNo(filepath);
+                const queueOrderNo = filePathToQueueOrderNo(filepath);
 
                 this.requestIdToQueueOrderNo[request.id] = queueOrderNo;
             });
@@ -484,7 +485,7 @@ export class RequestQueueLocal {
                 let queueOrderNo;
 
                 _.find(files, (filename) => {
-                    const no = filepathToQueueOrderNo(filename);
+                    const no = filePathToQueueOrderNo(filename);
 
                     if (!this.queueOrderNoInProgress[no]) {
                         queueOrderNo = no;

@@ -137,8 +137,8 @@ describe('Apify.RequestList', () => {
 
     it('should use regex parameter to parse urls', async () => {
         const mock = sinon.mock(request);
-        const listStr = 'kjnjkn"https://example.com/a/b/c?q=1#abc";,"http://google.com/a/b/c";dgg:dd';
-        const listArr = ['https://example.com/a/b/c?q=1#abc', 'http://google.com/a/b/c'];
+        const listStr = 'kjnjkn"https://example.com/a/b/c?q=1#abc";,"HTTP://google.com/a/b/c";dgg:dd';
+        const listArr = ['https://example.com/a/b/c?q=1#abc', 'HTTP://google.com/a/b/c'];
 
         mock.expects('get')
             .once()
