@@ -163,6 +163,30 @@ describe('Apify.RequestList', () => {
         mock.restore();
     });
 
+    it('should handle requestsFromUrl with no URLs', async () => {
+        const mock = sinon.mock(request);
+        mock.expects('get')
+            .once()
+            .withArgs('http://example.com/list-1')
+            .returns(Promise.resolve('bla bla bla'));
+
+        const requestList = new Apify.RequestList({
+            sources: [
+                {
+                    method: 'GET',
+                    requestsFromUrl: 'http://example.com/list-1',
+                },
+            ],
+        });
+
+        await requestList.initialize();
+
+        expect(requestList.fetchNextRequest()).to.eql(null);
+
+        mock.verify();
+        mock.restore();
+    });
+
     it('should correctly handle reclaimed pages', async () => {
         const requestList = new Apify.RequestList({
             sources: [

@@ -148,7 +148,8 @@ export default class PuppeteerPool {
             .browserPromise
             .then((browser) => {
                 browser.on('disconnected', () => {
-                    log.error('PuppeteerPool: Puppeteer sent "disconnect" event. Crashed???', { id });
+                    // If instance.killed === true then we killed the instance so don't log it.
+                    if (!instance.killed) log.error('PuppeteerPool: Puppeteer sent "disconnect" event. Crashed???', { id });
                     this._retireInstance(instance);
                 });
                 // This one is done manually in Puppeteerpool.newPage() to happen immediately.
@@ -293,7 +294,12 @@ export default class PuppeteerPool {
         const browserPromises = _
             .values(this.activeInstances)
             .concat(_.values(this.retiredInstances))
-            .map(instance => instance.browserPromise);
+            .map((instance) => {
+                // This is needed so that "Puppeteer disconnected" errors are not printed.
+                instance.killed = true;
+
+                return instance.browserPromise;
+            });
 
         const closePromises = browserPromises.map((browserPromise) => {
             return browserPromise.then(browser => browser.close());

@@ -9,8 +9,6 @@ before_install:
   - sudo unzip /tmp/chromedriver.zip -d /tmp
   - sudo rm /tmp/chromedriver.zip
   - sudo mv /tmp/chromedriver /usr/bin/
-  - # Travis' VM has preinstalled google-chrome stable, which has no headless mode!
-  - sudo mv -f /usr/bin/google-chrome-beta /usr/bin/google-chrome | tee
   - # Print versions to help debugging
   - google-chrome --version
   - chromedriver --version

@@ -1,7 +1,7 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { anonymizeProxy, closeAnonymizedProxy } from 'proxy-chain';
 import { ENV_VARS, DEFAULT_USER_AGENT } from './constants';
-import { newPromise } from './utils';
+import { newPromise, getTypicalChromeExecutablePath } from './utils';
 
 /* global process, require */
 
@@ -22,8 +22,7 @@ import { newPromise } from './utils';
  *        to make the proxy work with headless Chrome. For more information, read the
  *        <a href="https://blog.apify.com/249a21a79212" target="_blank">blog post about proxy-chain library</a>.
  *    </li>
- *    <li>Adds `--no-sandbox` to `args` to enable running headless Chrome in a Docker container on the Apify Actor platform
- *    and `--disable-dev-shm-usage` to avoid using shared memory space in favour of `/tmp`.</li>
+ *    <li>Adds `--no-sandbox` to `args` to enable running headless Chrome in a Docker container on the Apify Actor platform.</li>
  * </ul>
  *
  * To use this function, you need to have the <a href="https://www.npmjs.com/package/puppeteer" target="_blank">puppeteer</a>
@@ -40,6 +39,11 @@ import { newPromise } from './utils';
  *                                 For example, `http://bob:pass123@proxy.example.com:1234`.
  * @param {String} [opts.userAgent] Default User-Agent for the browser.
  *                                  If not provided, the function sets it to a reasonable default.
+ * @param {String} [opts.useChrome=false] If true-ish value and `opts.executablePath` is not set,
+ *                                  Puppeteer will launch full Chrome available on the machine rather than the bundled Chromium.
+ *                                  The path to Chrome executable is taken from the `APIFY_CHROME_EXECUTABLE_PATH` environment variable if provided,
+ *                                  or defaults to the typical Google Chrome executable location specific for the operating system.
+ *                                  By default, this option is `false`.
  * @returns {Promise} Promise object that resolves to Puppeteer's `Browser` instance.
  *
  * @memberof module:Apify
@@ -66,10 +70,12 @@ export const launchPuppeteer = (opts) => {
 
     opts.args = opts.args || [];
     opts.args.push('--no-sandbox');
-    opts.args.push('--disable-dev-shm-usage');
     opts.args.push(`--user-agent=${opts.userAgent || DEFAULT_USER_AGENT}`);
     if (opts.headless === undefined || opts.headless === null) {
         opts.headless = process.env[ENV_VARS.HEADLESS] === '1' && process.env[ENV_VARS.XVFB] !== '1';
+    }
+    if (opts.useChrome && (opts.executablePath === undefined || opts.executablePath === null)) {
+        opts.executablePath = process.env[ENV_VARS.CHROME_EXECUTABLE_PATH] || getTypicalChromeExecutablePath();
     }
 
     let anonymizedProxyUrl;

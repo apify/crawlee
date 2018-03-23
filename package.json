@@ -1,7 +1,7 @@
 {
   "name": "apify",
-  "version": "0.5.13",
-  "description": "Apify SDK for JavaScript / Node.js",
+  "version": "0.5.16",
+  "description": "Web scraping and automation SDK",
   "main": "build/index.js",
   "keywords": [
     "apify",
@@ -44,14 +44,14 @@
   },
   "dependencies": {
     "apify-client": "^0.2.5",
-    "apify-shared": "0.0.16",
+    "apify-shared": "0.0.23",
     "bluebird": "^3.5.0",
     "content-type": "^1.0.3",
     "fs-extra": "^5.0.0",
     "proxy-chain": "^0.1.2",
     "request-promise": "^4.2.2",
     "underscore": "^1.8.3",
-    "ws": "^4.1.0"
+    "ws": "^5.1.0"
   },
   "devDependencies": {
     "apify-jsdoc-template": "github:apifytech/apify-jsdoc-template",
@@ -82,10 +82,10 @@
     "sinon": "^4.1.2",
     "sinon-stub-promise": "^4.0.0",
     "tmp": "^0.0.33",
-    "why-is-node-running": "^1.2.3"
+    "why-is-node-running": "^2.0.2"
   },
   "optionalDependencies": {
-    "puppeteer": "^1.1.1",
+    "puppeteer": "^1.2.0",
     "selenium-webdriver": "^3.6.0"
   }
 }

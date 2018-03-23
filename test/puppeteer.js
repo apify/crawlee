@@ -5,8 +5,10 @@ import portastic from 'portastic';
 import basicAuthParser from 'basic-auth-parser';
 import Promise from 'bluebird';
 import _ from 'underscore';
+import sinon from 'sinon';
 import Apify from '../build/index';
 import { ENV_VARS } from '../build/constants';
+import * as utils from '../build/utils';
 
 
 let prevEnvHeadless;
@@ -128,5 +130,62 @@ describe('Apify.launchPuppeteer()', () => {
             })
             .then(html => expect(html).to.include('<h1>Example Domain</h1>'))
             .then(() => browser.close());
+    });
+
+    it('supports userAgent option', () => {
+        let browser;
+        let page;
+        const opts = {
+            // Have space in user-agent to test passing of params
+            userAgent: 'MyUserAgent/1234 AnotherString/456',
+            headless: true,
+        };
+        return Apify.launchPuppeteer(opts)
+            .then((result) => {
+                browser = result;
+            })
+            .then(() => {
+                return browser.newPage();
+            })
+            .then((result) => {
+                page = result;
+                return page.goto('https://api.apify.com/v2/browser-info');
+            })
+            .then(() => {
+                return page.content();
+            })
+            .then((html) => {
+                expect(html).to.contain(`"user-agent": "${opts.userAgent}"`);
+                return browser.close();
+            });
+    });
+
+    it('supports useChrome option', () => {
+        const mock = sinon.mock(utils);
+        mock.expects('getTypicalChromeExecutablePath').once();
+
+        let browser;
+        const opts = {
+            useChrome: true,
+            headless: true,
+        };
+
+        return Apify.launchPuppeteer(opts)
+            .then((result) => {
+                browser = result;
+            })
+            .then(() => {
+                return browser.newPage();
+            })
+            .then((page) => {
+                return page.content();
+            })
+            .then(() => {
+                return browser.close();
+            })
+            .finally(() => {
+                mock.verify();
+                mock.restore();
+            });
     });
 });

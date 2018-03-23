@@ -10,7 +10,7 @@ import { LOCAL_EMULATION_DIR, emptyLocalEmulationSubdir, expectNotLocalEmulation
 
 chai.use(chaiAsPromised);
 
-describe('key_value_store', () => {
+describe('KeyValueStore', () => {
     before(() => apifyClient.setOptions({ token: 'xxx' }));
     after(() => apifyClient.setOptions({ token: undefined }));
     beforeEach(() => emptyLocalEmulationSubdir(LOCAL_EMULATION_SUBDIR));
