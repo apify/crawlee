@@ -4,20 +4,10 @@ import _ from 'underscore';
 import requestPromise from 'request-promise';
 import { sequentializePromises } from 'apify-shared/utilities';
 import Request from './request';
+import { getFirstKey } from './utils';
 
 // TODO: better tests
 const URL_REGEX = '(http|https)://[\\w-]+(\\.[\\w-]+)+([\\w-.,@?^=%&:/~+#-]*[\\w@?^=%&;/~+#-])?';
-
-/**
- * Helper function that returns the first key from plan object.
- *
- * @ignore
- */
-const getFirstKey = (dict) => {
-    for (const key in dict) { // eslint-disable-line guard-for-in, no-restricted-syntax
-        return key;
-    }
-};
 
 /**
  * Helper function that validates unique.

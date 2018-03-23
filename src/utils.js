@@ -201,3 +201,14 @@ export const isProduction = () => process.env.NODE_ENV !== 'production';
  * @ignore
  */
 export const ensureDirExists = path => ensureDirPromised(path);
+
+/**
+ * Helper function that returns the first key from plan object.
+ *
+ * @ignore
+ */
+export const getFirstKey = (dict) => {
+    for (const key in dict) { // eslint-disable-line guard-for-in, no-restricted-syntax
+        return key;
+    }
+};
