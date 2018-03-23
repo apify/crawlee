@@ -23,6 +23,11 @@ const moveFilePromised = Promise.promisify(fsExtra.move);
 const { requestQueues } = apifyClient;
 const queuesCache = new LruCache({ maxLength: MAX_OPENED_QUEUES }); // Open queues are stored here.
 
+
+/**
+ * @ignore.
+ */
+
 /**
  * Helper function to validate params of *.addRequest().
  * @ignore
@@ -74,6 +79,8 @@ const validateReclaimRequestParams = (request) => {
  */
 
 /**
+ * @ignore.
+ *
  * Dataset class provides easy interface to Apify Dataset storage type. Dataset should be opened using
  * `Apify.openDataset()` function.
  *
