@@ -1,6 +1,7 @@
-XXX / 2018-03-20
+0.5.17 / 2018-03-27
 ===================
 - Added `useChrome` flag to `launchPuppeteer()` function
+- Bugfixes in `RequestList`
 
 0.5.14 / 2018-03-20
 ===================
