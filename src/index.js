@@ -10,6 +10,7 @@ import PuppeteerCrawler from './puppeteer_crawler';
 import PuppeteerPool from './puppeteer_pool';
 import Request from './request';
 import RequestList from './request_list';
+import { openRequestQueue } from './request_queue';
 import SettingsRotator from './settings_rotator';
 import { apifyClient, getMemoryInfo, isProduction } from './utils';
 import { browse, launchWebDriver } from './webdriver';
@@ -183,7 +184,7 @@ module.exports = {
     pushData,
     openDataset,
 
-    // Key value store
+    // Key-value store
     getValue,
     setValue,
     openKeyValueStore,
@@ -193,9 +194,10 @@ module.exports = {
     PuppeteerPool,
     PuppeteerCrawler,
 
-    // Request
+    // Requests
     Request,
     RequestList,
+    openRequestQueue,
 
     // Settings rotator
     SettingsRotator,

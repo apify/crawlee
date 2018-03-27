@@ -106,20 +106,17 @@ export class DatasetLocal {
 }
 
 /**
- * Helper function that first requests dataset by ID and if dataset doesn't exist then gets him by name.
+ * Helper function that first requests dataset by ID and if dataset doesn't exist then gets it by name.
  *
  * @ignore
  */
 const getOrCreateDataset = (datasetIdOrName) => {
-    return apifyClient
-        .datasets
+    return datasets
         .getDataset({ datasetId: datasetIdOrName })
         .then((existingDataset) => {
             if (existingDataset) return existingDataset;
 
-            return apifyClient
-                .datasets
-                .getOrCreateDataset({ datasetName: datasetIdOrName });
+            return datasets.getOrCreateDataset({ datasetName: datasetIdOrName });
         });
 };
 
