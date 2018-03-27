@@ -1,6 +1,6 @@
 {
   "name": "apify",
-  "version": "0.5.17",
+  "version": "0.5.18",
   "description": "Web scraping and automation SDK. Turn any website into an API.",
   "main": "build/index.js",
   "keywords": [
@@ -43,7 +43,7 @@
     "lint": "npm run build && eslint src test"
   },
   "dependencies": {
-    "apify-client": "^0.2.5",
+    "apify-client": "^0.2.6",
     "apify-shared": "0.0.23",
     "bluebird": "^3.5.0",
     "content-type": "^1.0.3",
