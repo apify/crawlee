@@ -1,7 +1,7 @@
 {
   "name": "apify",
   "version": "0.5.18",
-  "description": "Web scraping and automation SDK.",
+  "description": "Web scraping and automation SDK",
   "main": "build/index.js",
   "keywords": [
     "apify",
