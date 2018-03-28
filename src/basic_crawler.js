@@ -39,7 +39,7 @@ const DEFAULT_OPTIONS = {
  * @param {Object} options
  * @param {RequestList} options.requestList List of the requests to be processed.
  * @param {Function} options.handleRequestFunction Function that processes a request. It must return a promise.
- * @param {Function} [options.handleFailedRequestFunction=({ request }) => log.error('Request failed', _.pick(request, 'url', 'uniqueKey'))`]
+ * @param {Function} [options.handleFailedRequestFunction=({ request, error }) => log.error('Request failed', _.pick(request, 'url', 'uniqueKey'))`]
  *                   Function to handle requests that failed more then option.maxRequestRetries times.
  * @param {Number} [options.maxRequestRetries=3] How many times request is retried if handleRequestFunction failed.
  * @param {Number} [options.maxMemoryMbytes] Maximal memory available in the system (see `maxMemoryMbytes` parameter of `Apify.AutoscaledPool`).
@@ -108,8 +108,8 @@ export default class BasicCrawler {
             .then(() => {
                 this.requestList.markRequestHandled(request);
             })
-            .catch((err) => {
-                request.pushErrorMessage(err);
+            .catch((error) => {
+                request.pushErrorMessage(error);
 
                 // Retry request.
                 if (request.retryCount < this.maxRequestRetries) {
@@ -121,7 +121,7 @@ export default class BasicCrawler {
                 // Mark as failed.
                 this.requestList.markRequestHandled(request);
 
-                return this.handleFailedRequestFunction({ request });
+                return this.handleFailedRequestFunction({ request, error });
             });
     }
 }

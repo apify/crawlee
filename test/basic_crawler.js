@@ -89,6 +89,7 @@ describe('BasicCrawler', () => {
         ];
         const processed = {};
         const failed = {};
+        const errors = [];
         const requestList = new Apify.RequestList({ sources });
 
         const handleRequestFunction = async ({ request }) => {
@@ -96,8 +97,9 @@ describe('BasicCrawler', () => {
             processed[request.url] = request;
         };
 
-        const handleFailedRequestFunction = async ({ request }) => {
+        const handleFailedRequestFunction = async ({ request, error }) => {
             failed[request.url] = request;
+            errors.push(error);
         };
 
         const basicCrawler = new Apify.BasicCrawler({
@@ -119,5 +121,6 @@ describe('BasicCrawler', () => {
         expect(_.values(processed)).to.have.length.of(0);
         expect(requestList.isFinished()).to.be.eql(true);
         expect(requestList.isEmpty()).to.be.eql(true);
+        errors.forEach(error => expect(error).to.be.an('error'));
     });
 });
