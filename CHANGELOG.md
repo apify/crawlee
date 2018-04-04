@@ -2,6 +2,9 @@ xxxxxx / xxxxxxxxxx
 - `handleFailedRequestFunction` in both `BasicCrawler` and `PuppeteerCrawler` has now also error object
   available in `ops.error`.
 - Request Queue storage type implemented. See documentation for more information.
+- `BasicCrawler` and `PuppeteerCrawler` now supports both `RequestList` and `RequestQueue`.
+- `AutoscaledPool` was completely redesigned. Check documentation for reference. It still supports previous
+  configuration parameters for backwards compatibility but in the future compatibility will break.
 
 0.5.17 / 2018-03-27
 ===================

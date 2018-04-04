@@ -18,7 +18,6 @@ const DEFAULT_OPTIONS = {
     minFreeMemoryRatio: 0.2,
     maybeRunIntervalMillis: 500,
     finishWhenEmpty: true,
-    isTaskReadyFunction: () => true,
 };
 
 // These constants defines that in Nth execution memCheckInterval we do:
@@ -59,16 +58,21 @@ const humanReadable = bytes => `${Math.round(bytes / 1024 / 1024)} MB`;
  * ```
  *
  * @param {Object} options
- * @param {Function} options.workerFunction Function we want to call in parallel. This function must either return a
- *                                            promise or null when all the tasks were processed.
+ * @param {Function} options.handleTaskFunction Function we want to call in parallel. This function must either return a
+ *                                              promise or null when all the tasks were processed.
+ * @param {Function} [opts.isFinishedFunction] This function gets called everytime there is a zero number of tasks being processed.
+ *                                             If resolves to true then pool gets closed. If `isFinishedFunction` is not provided then pool
+ *                                             gets closed at the point that there are no running tasks.
+ * @param {Function} [opts.isTaskReadyFunction] This function indicates if `handleTaskFunction` should be called. By default handleTaskFunction
+ *                                              is called everytime there is a free spot for new task. But by overriding this you can throttle
+ *                                              number of calls to `handleTaskFunction` or to prevent calls to `handleTaskFunction` when you know
+ *                                              that it would return null.
  * @param {Number} [options.maxConcurrency=1000] Maximal concurrency.
  * @param {Number} [options.minConcurrency=1] Minimal concurrency.
  * @param {Number} [options.maxMemoryMbytes] Maximum memory available in the system. By default uses the totalMemory from Apify.getMemoryInfo().
  * @param {Number} [options.minFreeMemoryRatio=0.2] Minumum ratio of free memory kept in the system.
  * @param {number} [options.maybeRunIntervalMillis=1000] Determines how often autoscaled pool tried to call `opts.workerFunction` to get a new task.
- * @param {Number} [options.finishWhenEmpty=true] If false then pool stays running even when all tasks are finished and keeps trying to call
- *                                              `options.workerFunction` every `options.maybeRunIntervalMillis` milliseconds to get a new task.
- *                                              To finish the pool call `pool.finish()`.
+
  */
 export default class AutoscaledPool {
     constructor(opts) {
@@ -93,9 +97,9 @@ export default class AutoscaledPool {
         }
 
         const {
-            maxMemoryMbytes,
             maxConcurrency,
             minConcurrency,
+            maxMemoryMbytes,
             minFreeMemoryRatio,
             maybeRunIntervalMillis,
             handleTaskFunction,
@@ -103,14 +107,14 @@ export default class AutoscaledPool {
             isTaskReadyFunction,
         } = _.defaults(opts, DEFAULT_OPTIONS);
 
-        checkParamOrThrow(maxMemoryMbytes, 'opts.maxMemoryMbytes', 'Maybe Number');
         checkParamOrThrow(maxConcurrency, 'opts.maxConcurrency', 'Number');
         checkParamOrThrow(minConcurrency, 'opts.minConcurrency', 'Number');
+        checkParamOrThrow(maxMemoryMbytes, 'opts.maxMemoryMbytes', 'Maybe Number');
         checkParamOrThrow(minFreeMemoryRatio, 'opts.minFreeMemoryRatio', 'Number');
         checkParamOrThrow(maybeRunIntervalMillis, 'opts.maybeRunIntervalMillis', 'Number');
         checkParamOrThrow(handleTaskFunction, 'opts.handleTaskFunction', 'Function');
-        checkParamOrThrow(isFinishedFunction, 'opts.isFinishedFunction', 'Function');
-        checkParamOrThrow(isTaskReadyFunction, 'opts.isTaskReadyFunction', 'Function');
+        checkParamOrThrow(isFinishedFunction, 'opts.isFinishedFunction', 'Maybe Function');
+        checkParamOrThrow(isTaskReadyFunction, 'opts.isTaskReadyFunction', 'Maybe Function');
 
         // Configuration.
         this.maxMemoryMbytes = maxMemoryMbytes;
@@ -274,8 +278,15 @@ export default class AutoscaledPool {
 
         this.queryingIsTaskReady = true;
 
+        const isTaskReadyPromise = this.isTaskReadyFunction
+            ? this.isTaskReadyFunction()
+            : Promise.resolve(true);
+
+        // It's not null so it must be a promise!
+        if (!isPromise(isTaskReadyPromise)) throw new Error('User provided isTaskReadyFunction must return a Promise.');
+
         // We don't want to chain this so no return here!
-        this.isTaskReadyFunction()
+       isTaskReadyPromise
             .catch((err) => {
                 this.queryingIsTaskReady = false;
                 log.exception(err, 'AutoscaledPool: isTaskReadyFunction failed');
@@ -325,6 +336,7 @@ export default class AutoscaledPool {
     _maybeFinish() {
         if (this.queryingIsFinished) return;
         if (this.runningCount > 0) return;
+        if (!this.isFinishedFunction) return this.resolve();
 
         this.queryingIsFinished = true;
 
