@@ -43,7 +43,8 @@ const DEFAULT_OPTIONS = {
  * await crawler.run();
  * ```
  *
- * @param {RequestList} options.requestList List of the requests to be processed. (See `requestList` parameter of `Apify.BasicCrawler`)
+ * @param {RequestList} [options.requestList] List of the requests to be processed. (See `requestList` parameter of `Apify.BasicCrawler`)
+ * @param {RequestList} [options.requestQueue] Queue of the requests to be processed. (See `requestQueue` parameter of `Apify.BasicCrawler`)
  * @param {Function} options.handlePageFunction Function to process each request.
  * @param {Number} [options.pageOpsTimeoutMillis=30000] Timeout for options.handlePagefunction
  * @param {Function} [options.gotoFunction=({ request, page }) => page.goto(request.url)] Overrides default gotoFunction. This function
@@ -94,6 +95,7 @@ export default class PuppeteerCrawler {
 
             // Basic crawler options
             requestList,
+            requestQueue,
             maxRequestRetries,
             handleFailedRequestFunction,
 
@@ -134,6 +136,7 @@ export default class PuppeteerCrawler {
         this.basicCrawler = new BasicCrawler({
             // Basic crawler options.
             requestList,
+            requestQueue,
             maxRequestRetries,
             handleRequestFunction: (...args) => this._handleRequestFunction(...args),
             handleFailedRequestFunction,

@@ -1,5 +1,6 @@
 import _ from 'underscore';
 import log from 'apify-shared/log';
+import Promise from 'bluebird';
 import { cryptoRandomObjectId } from 'apify-shared/utilities';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { launchPuppeteer } from './puppeteer';
@@ -85,22 +86,19 @@ class PuppeteerInstance {
  * ```
  *
  * @param {Number} [options.maxOpenPagesPerInstance=100] Maximal number of opened tabs per browser. If limit is reached then the new
- *                                                        browser gets started. (See `maxOpenPagesPerInstance` parameter of `Apify.PuppeteerPool`)
+ *                                                        browser gets started.
  * @param {Number} [options.abortInstanceAfterRequestCount=150] Maximal number of requests proceeded from one browser. After that browser
- *                                                              gets restarted. (See `abortInstanceAfterRequestCount` parameter of
- *                                                              `Apify.PuppeteerPool`)
- * @param {Function} [options.launchPuppeteerFunction] Overrides how new Puppeteer instance gets launched. (See `launchPuppeteerFunction` parameter of
- *                                                     `Apify.PuppeteerPool`)
+ *                                                              gets restarted.
+ * @param {Function} [options.launchPuppeteerFunction] Overrides how new Puppeteer instance gets launched.
  * @param {Number} [options.instanceKillerIntervalMillis=60000] How often opened Puppeteer instances get checked if some of then might be
  *                                                              closed. (See `instanceKillerIntervalMillis` parameter of `Apify.PuppeteerPool`)
  * @param {Number} [options.killInstanceAfterMillis=300000] If Puppeteer instance reaches the limit options.abortInstanceAfterRequestCount then it's
  *                                                          considered retired and no more tabs will be opened. After the last tab get's closed the
  *                                                          whole browser gets closed. This defines limit of inactivity after the browser gets closed
- *                                                          even if there are pending tabs. (See `killInstanceAfterMillis` parameter of
- *                                                          `Apify.PuppeteerPool`)
+ *                                                          even if there are pending tabs.
  * @param {Object} [options.puppeteerConfig={ dumpio: process.env.NODE_ENV !== 'production', slowMo: 0, args: []}] Configuration of Puppeteer
- *                                                          instances. (See `puppeteerConfig` parameter of `Apify.PuppeteerPool`)
- * @param {Boolean} [options.disableProxy=false] Disables proxying thru Apify proxy. (See `disableProxy` parameter of `Apify.PuppeteerPool`)
+ *                                                                                                                 instances.
+ * @param {Boolean} [options.disableProxy=false] Disables proxying thru Apify proxy.
  * @param {Array} [options.groups] Apify proxy groups to be used. (See `Apify.getApifyProxyUrl()` for more)
  */
 export default class PuppeteerPool {
@@ -228,7 +226,12 @@ export default class PuppeteerPool {
         delete this.retiredInstances[id];
 
         // Ensure that Chrome process will be really killed.
-        setTimeout(() => childProcess.kill('SIGKILL'), PROCESS_KILL_TIMEOUT_MILLIS);
+        setTimeout(() => {
+            // This if is here because Hynek has reported that it happened to him
+            // that error `TypeError: Cannot read property 'kill' of null` was thrown.
+            // Likely Chrome process wasn't started for some error ...
+            if (childProcess) childProcess.kill('SIGKILL');
+        }, PROCESS_KILL_TIMEOUT_MILLIS);
 
         instance
             .browserPromise

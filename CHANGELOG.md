@@ -1,3 +1,8 @@
+xxxxxx / xxxxxxxxxx
+- `handleFailedRequestFunction` in both `BasicCrawler` and `PuppeteerCrawler` has now also error object
+  available in `ops.error`.
+- Request Queue storage type implemented. See documentation for more information.
+
 0.5.17 / 2018-03-27
 ===================
 - Added `useChrome` flag to `launchPuppeteer()` function

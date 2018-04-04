@@ -10,10 +10,14 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
  * @param {Number} options.maxUsages
  */
 export default class SettingsRotator {
-    constructor({
-        newSettingsFunction,
-        maxUsages,
-    }) {
+    constructor(opts) {
+        checkParamOrThrow(opts, 'options', 'Object');
+
+        const {
+            newSettingsFunction,
+            maxUsages,
+        } = opts;
+
         checkParamOrThrow(newSettingsFunction, 'options.newSettingsFunction', 'Function');
         checkParamOrThrow(maxUsages, 'options.maxUsages', 'Number');
 

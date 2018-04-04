@@ -4,6 +4,7 @@ import _ from 'underscore';
 import 'babel-polyfill';
 import { delayPromise } from 'apify-shared/utilities';
 import * as Apify from '../build/index';
+import { RequestQueue } from '../build/request_queue';
 
 chai.use(chaiAsPromised);
 
@@ -31,8 +32,8 @@ describe('BasicCrawler', () => {
 
         expect(processed).to.be.eql(sources);
         expect(Date.now() - startedAt).to.be.within(200, 400);
-        expect(requestList.isFinished()).to.be.eql(true);
-        expect(requestList.isEmpty()).to.be.eql(true);
+        expect(await requestList.isFinished()).to.be.eql(true);
+        expect(await requestList.isEmpty()).to.be.eql(true);
     });
 
     it('retries failed requests', async () => {
@@ -77,8 +78,8 @@ describe('BasicCrawler', () => {
         expect(processed['http://example.com/2'].errorMessages).to.have.lengthOf(11);
         expect(processed['http://example.com/2'].retryCount).to.be.eql(10);
 
-        expect(requestList.isFinished()).to.be.eql(true);
-        expect(requestList.isEmpty()).to.be.eql(true);
+        expect(await requestList.isFinished()).to.be.eql(true);
+        expect(await requestList.isEmpty()).to.be.eql(true);
     });
 
     it('should allow to handle failed requests', async () => {
@@ -119,8 +120,65 @@ describe('BasicCrawler', () => {
         expect(failed['http://example.com/3'].retryCount).to.be.eql(3);
         expect(_.values(failed)).to.have.length.of(3);
         expect(_.values(processed)).to.have.length.of(0);
-        expect(requestList.isFinished()).to.be.eql(true);
-        expect(requestList.isEmpty()).to.be.eql(true);
+        expect(await requestList.isFinished()).to.be.eql(true);
+        expect(await requestList.isEmpty()).to.be.eql(true);
         errors.forEach(error => expect(error).to.be.an('error'));
+    });
+
+    it('should require at least one of RequestQueue and RequestList', () => {
+        const requestList = new Apify.RequestList({ sources: [] });
+        const requestQueue = new RequestQueue('xxx');
+        const handleRequestFunction = () => {};
+
+        expect(() => new Apify.BasicCrawler({ handleRequestFunction })).to.throw();
+        expect(() => new Apify.BasicCrawler({ handleRequestFunction, requestList })).to.not.throw();
+        expect(() => new Apify.BasicCrawler({ handleRequestFunction, requestQueue })).to.not.throw();
+        expect(() => new Apify.BasicCrawler({ handleRequestFunction, requestQueue, requestList })).to.not.throw();
+    });
+
+    it('should fetch first from RequestList and then continue with RequestQueue', async () => {
+        const sources = [
+            { url: 'http://example.com/1' },
+            { url: 'http://example.com/2' },
+            { url: 'http://example.com/3' },
+        ];
+        const processed = {};
+        const requestList = new Apify.RequestList({ sources });
+
+        const handleRequestFunction = async ({ request }) => {
+            await delayPromise(10);
+            processed[request.url] = request;
+
+            if (request.url === 'http://example.com/2') {
+                throw Error(`This is ${request.retryCount}th error!`);
+            }
+
+            request.userData.foo = 'bar';
+        };
+
+        const basicCrawler = new Apify.BasicCrawler({
+            requestList,
+            maxRequestRetries: 10,
+            minConcurrency: 3,
+            maxConcurrency: 3,
+            handleRequestFunction,
+        });
+
+        await requestList.initialize();
+        await basicCrawler.run();
+
+        expect(processed['http://example.com/1'].userData.foo).to.be.eql('bar');
+        expect(processed['http://example.com/1'].errorMessages).to.be.a('null');
+        expect(processed['http://example.com/1'].retryCount).to.be.eql(0);
+        expect(processed['http://example.com/3'].userData.foo).to.be.eql('bar');
+        expect(processed['http://example.com/3'].errorMessages).to.be.a('null');
+        expect(processed['http://example.com/3'].retryCount).to.be.eql(0);
+
+        expect(processed['http://example.com/2'].userData.foo).to.be.a('undefined');
+        expect(processed['http://example.com/2'].errorMessages).to.have.lengthOf(11);
+        expect(processed['http://example.com/2'].retryCount).to.be.eql(10);
+
+        expect(await requestList.isFinished()).to.be.eql(true);
+        expect(await requestList.isEmpty()).to.be.eql(true);
     });
 });
