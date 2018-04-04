@@ -37,11 +37,13 @@ import { newPromise, getTypicalChromeExecutablePath } from './utils';
  * @param {String} [opts.proxyUrl] URL to a HTTP proxy server.
  *                                 Port number must be specified. Proxy username and password might also be provided.
  *                                 For example, `http://bob:pass123@proxy.example.com:1234`.
- * @param {String} [opts.userAgent] Default User-Agent for the browser.
- *                                  If not provided, the function sets it to a reasonable default.
- * @param {String} [opts.useChrome=false] If true-ish value and `opts.executablePath` is not set,
- *                                  Puppeteer will launch full Chrome available on the machine rather than the bundled Chromium.
- *                                  The path to Chrome executable is taken from the `APIFY_CHROME_EXECUTABLE_PATH` environment variable if provided,
+ * @param {String} [opts.userAgent] HTTP `User-Agent` header used by the browser.
+ *                                  If not provided, the function sets `User-Agent` to a reasonable default
+ *                                  to reduce the chance of detection of the crawler.
+ * @param {String} [opts.useChrome=false] If `true` and `opts.executablePath` is not set,
+ *                                  Puppeteer will launch full Google Chrome browser available on the machine
+ *                                  rather than the bundled Chromium. The path to Chrome executable
+ *                                  is taken from the `APIFY_CHROME_EXECUTABLE_PATH` environment variable if provided,
  *                                  or defaults to the typical Google Chrome executable location specific for the operating system.
  *                                  By default, this option is `false`.
  * @returns {Promise} Promise object that resolves to Puppeteer's `Browser` instance.
@@ -70,12 +72,21 @@ export const launchPuppeteer = (opts) => {
 
     opts.args = opts.args || [];
     opts.args.push('--no-sandbox');
-    opts.args.push(`--user-agent=${opts.userAgent || DEFAULT_USER_AGENT}`);
     if (opts.headless === undefined || opts.headless === null) {
         opts.headless = process.env[ENV_VARS.HEADLESS] === '1' && process.env[ENV_VARS.XVFB] !== '1';
     }
     if (opts.useChrome && (opts.executablePath === undefined || opts.executablePath === null)) {
         opts.executablePath = process.env[ENV_VARS.CHROME_EXECUTABLE_PATH] || getTypicalChromeExecutablePath();
+    }
+
+    // When User-Agent is not set and we're using Chromium or headless mode,
+    // it is better to use DEFAULT_USER_AGENT to reduce chance of detection
+    let { userAgent } = opts;
+    if (!userAgent && (!opts.executablePath || opts.headless)) {
+        userAgent = DEFAULT_USER_AGENT;
+    }
+    if (userAgent) {
+        opts.args.push(`--user-agent=${userAgent}`);
     }
 
     let anonymizedProxyUrl;
