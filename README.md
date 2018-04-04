@@ -1,4 +1,4 @@
-# apify: Apify JavaScript SDK
+# apify: Apify web scraping and automation SDK for JavaScript / Node.js
 <!-- Mirror this part to src/index.js -->
 
 [![npm version](https://badge.fury.io/js/apify.svg)](http://badge.fury.io/js/apify)
