@@ -183,7 +183,6 @@ describe('AutoscaledPool', () => {
     });
 
     it('should throw when handleTaskFunction throws', async () => {
-        let counter = 0;
         const handleTaskFunction = () => {
             throw new Error('some-error');
         };
@@ -350,12 +349,16 @@ describe('AutoscaledPool', () => {
         expect(finished).to.be.eql([0, 1, 2, 5]);
     });
 
-    //////////////////////////////////////////////////
-    //
-    //  All the tests below use workerFunction and opts.finishWhenEmpty
-    //  to test that new version of AutoscaledPool is backwards compatible.
-    //
-    //////////////////////////////////////////////////
+    /**
+     * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     *
+     * All the tests below use workerFunction and opts.finishWhenEmpty
+     * to test that new version of AutoscaledPool is backwards compatible.
+     *
+     * TODO: after we release v1.0.0 we can remove this compatibility.
+     *
+     * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     */
 
 
     it('[DEPRECATED] should work with concurrency 1', async () => {
