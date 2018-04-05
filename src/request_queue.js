@@ -124,7 +124,7 @@ const validateReclaimRequestParams = (request, opts) => {
  */
 export class RequestQueue {
     constructor(queueId) {
-        checkParamOrThrow(queueId, 'options.queueId', 'String');
+        checkParamOrThrow(queueId, 'queueId', 'String');
 
         this.queueId = queueId;
         this.queueHeadDict = new ListDictionary();
@@ -422,7 +422,7 @@ const uniqueKeyToId = (uniqueKey) => {
  */
 export class RequestQueueLocal {
     constructor(queueId, localEmulationDir) {
-        checkParamOrThrow(queueId, 'options.queueId', 'String');
+        checkParamOrThrow(queueId, 'queueId', 'String');
         checkParamOrThrow(localEmulationDir, 'localEmulationDir', 'String');
 
         this.queueId = queueId;

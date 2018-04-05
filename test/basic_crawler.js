@@ -2,6 +2,7 @@ import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import _ from 'underscore';
 import 'babel-polyfill';
+import sinon from 'sinon';
 import { delayPromise } from 'apify-shared/utilities';
 import * as Apify from '../build/index';
 import { RequestQueue } from '../build/request_queue';
@@ -136,20 +137,21 @@ describe('BasicCrawler', () => {
         expect(() => new Apify.BasicCrawler({ handleRequestFunction, requestQueue, requestList })).to.not.throw();
     });
 
-    it('should fetch first from RequestList and then continue with RequestQueue', async () => {
+    it('should correctly combine RequestList and RequestQueue', async () => {
         const sources = [
+            { url: 'http://example.com/0' },
             { url: 'http://example.com/1' },
             { url: 'http://example.com/2' },
-            { url: 'http://example.com/3' },
         ];
         const processed = {};
         const requestList = new Apify.RequestList({ sources });
+        const requestQueue = new RequestQueue('xxx');
 
         const handleRequestFunction = async ({ request }) => {
             await delayPromise(10);
             processed[request.url] = request;
 
-            if (request.url === 'http://example.com/2') {
+            if (request.url === 'http://example.com/1') {
                 throw Error(`This is ${request.retryCount}th error!`);
             }
 
@@ -158,27 +160,122 @@ describe('BasicCrawler', () => {
 
         const basicCrawler = new Apify.BasicCrawler({
             requestList,
-            maxRequestRetries: 10,
-            minConcurrency: 3,
-            maxConcurrency: 3,
+            requestQueue,
+            maxRequestRetries: 3,
+            minConcurrency: 1,
+            maxConcurrency: 1,
             handleRequestFunction,
         });
+
+        // It enqueues all requests from RequestList to RequestQueue.
+        const mock = sinon.mock(requestQueue);
+        mock.expects('addRequest')
+            .once()
+            .withArgs(new Apify.Request(sources[0]), { forefront: true })
+            .returns(Promise.resolve({ requestId: 'id-0' }));
+        mock.expects('addRequest')
+            .once()
+            .withArgs(new Apify.Request(sources[1]), { forefront: true })
+            .returns(Promise.resolve({ requestId: 'id-1' }));
+        mock.expects('addRequest')
+            .once()
+            .withArgs(new Apify.Request(sources[2]), { forefront: true })
+            .returns(Promise.resolve({ requestId: 'id-2' }));
+
+        const request0 = new Apify.Request(Object.assign({ id: 'id-0' }, sources[0] ));
+        const request1 = new Apify.Request(Object.assign({ id: 'id-1' }, sources[1] ));
+        const request2 = new Apify.Request(Object.assign({ id: 'id-2' }, sources[2] ));
+
+        // 1st try
+        mock.expects('fetchNextRequest').once().returns(Promise.resolve(request0));
+        mock.expects('fetchNextRequest').once().returns(Promise.resolve(request1));
+        mock.expects('fetchNextRequest').once().returns(Promise.resolve(request2));
+        mock.expects('markRequestHandled')
+            .once()
+            .withArgs(request0)
+            .returns(Promise.resolve());
+        mock.expects('reclaimRequest')
+            .once()
+            .withArgs(request1)
+            .returns(Promise.resolve());
+        mock.expects('markRequestHandled')
+            .once()
+            .withArgs(request2)
+            .returns(Promise.resolve());
+
+        // 2nd try
+        mock.expects('fetchNextRequest')
+            .once()
+            .returns(Promise.resolve(request1));
+        mock.expects('reclaimRequest')
+            .once()
+            .withArgs(request1)
+            .returns(Promise.resolve());
+
+        // 3rd try
+        mock.expects('fetchNextRequest')
+            .once()
+            .returns(Promise.resolve(request1));
+        mock.expects('reclaimRequest')
+            .once()
+            .withArgs(request1)
+            .returns(Promise.resolve());
+
+        // 4rd try
+        mock.expects('fetchNextRequest')
+            .once()
+            .returns(Promise.resolve(request1));
+        mock.expects('reclaimRequest')
+            .once()
+            .withArgs(request1)
+            .returns(Promise.resolve());
+        mock.expects('markRequestHandled')
+            .once()
+            .withArgs(request1)
+            .returns(Promise.resolve());
+
+
+        mock.expects('fetchNextRequest')
+            .once()
+            .returns(Promise.resolve(null));
+
+        mock.expects('isEmpty')
+            .exactly(4)
+            .returns(Promise.resolve(false));
+        mock.expects('isEmpty')
+            .once()
+            .returns(Promise.resolve(true));
+        mock.expects('isFinished')
+            .once()
+            .returns(Promise.resolve(true));
 
         await requestList.initialize();
         await basicCrawler.run();
 
-        expect(processed['http://example.com/1'].userData.foo).to.be.eql('bar');
-        expect(processed['http://example.com/1'].errorMessages).to.be.a('null');
-        expect(processed['http://example.com/1'].retryCount).to.be.eql(0);
-        expect(processed['http://example.com/3'].userData.foo).to.be.eql('bar');
-        expect(processed['http://example.com/3'].errorMessages).to.be.a('null');
-        expect(processed['http://example.com/3'].retryCount).to.be.eql(0);
+        expect(processed['http://example.com/0'].userData.foo).to.be.eql('bar');
+        expect(processed['http://example.com/0'].errorMessages).to.be.a('null');
+        expect(processed['http://example.com/0'].retryCount).to.be.eql(0);
+        expect(processed['http://example.com/2'].userData.foo).to.be.eql('bar');
+        expect(processed['http://example.com/2'].errorMessages).to.be.a('null');
+        expect(processed['http://example.com/2'].retryCount).to.be.eql(0);
 
-        expect(processed['http://example.com/2'].userData.foo).to.be.a('undefined');
-        expect(processed['http://example.com/2'].errorMessages).to.have.lengthOf(11);
-        expect(processed['http://example.com/2'].retryCount).to.be.eql(10);
+        expect(processed['http://example.com/1'].userData.foo).to.be.a('undefined');
+        expect(processed['http://example.com/1'].errorMessages).to.have.lengthOf(4);
+        expect(processed['http://example.com/1'].retryCount).to.be.eql(3);
 
         expect(await requestList.isFinished()).to.be.eql(true);
         expect(await requestList.isEmpty()).to.be.eql(true);
+    });
+
+    it('should say that task is not ready requestList is not set and requestQueue is empty', async () => {
+        const requestQueue = new RequestQueue('xxx');
+        requestQueue.isEmpty = () => Promise.resolve(true);
+
+        const crawler = new Apify.BasicCrawler({
+            requestQueue,
+            handleRequestFunction: () => {},
+        });
+
+        expect(await crawler._isTaskReadyFunction()).to.be.eql(false);
     });
 });

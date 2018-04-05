@@ -189,7 +189,7 @@ export default class BasicCrawler {
         return Promise
             .resolve()
             .then(() => {
-                if (!this.requestList) return false;
+                if (!this.requestList) return true;
 
                 return this.requestList.isEmpty();
             })
