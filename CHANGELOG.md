@@ -5,6 +5,8 @@ xxxxxx / xxxxxxxxxx
 - `BasicCrawler` and `PuppeteerCrawler` now supports both `RequestList` and `RequestQueue`.
 - `AutoscaledPool` was completely redesigned. Check documentation for reference. It still supports previous
   configuration parameters for backwards compatibility but in the future compatibility will break.
+- `launchPuppeteer()` changes `User-Agent` only when in headless mode or if not using full Google Chrome,
+  to reduce chance of detection of the crawler
 
 0.5.17 / 2018-03-27
 ===================

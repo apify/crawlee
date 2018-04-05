@@ -19,14 +19,26 @@ Apify.main(async () => {
         // If request failes then it's retried 3 times.
         // Parameter page is Puppeteers page object with loaded page.
         handlePageFunction: async ({ page, request }) => {
-            const title = await page.title();
+            const pageTitle = await page.title();
 
-            console.log(`Request ${request.url} succeeded and it's title is ${title}`);
+            console.log(`Request ${request.url} succeeded and it's title is ${pageTitle}`);
+            
+            await Apify.pushData({
+                url: request.url,
+                pageTitle,
+                errors: null,
+            })
         },
 
         // If request failed 4 times then this function is executed.
         handleFailedRequestFunction: async ({ request }) => {
             console.log(`Request ${request.url} failed 4 times`);
+
+            await Apify.pushData({
+                url: request.url,
+                pageTitle: null,
+                errors: request.errorMessages,
+            })
         },
     });
 
