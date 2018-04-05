@@ -182,9 +182,9 @@ describe('BasicCrawler', () => {
             .withArgs(new Apify.Request(sources[2]), { forefront: true })
             .returns(Promise.resolve({ requestId: 'id-2' }));
 
-        const request0 = new Apify.Request(Object.assign({ id: 'id-0' }, sources[0] ));
-        const request1 = new Apify.Request(Object.assign({ id: 'id-1' }, sources[1] ));
-        const request2 = new Apify.Request(Object.assign({ id: 'id-2' }, sources[2] ));
+        const request0 = new Apify.Request(Object.assign({ id: 'id-0' }, sources[0]));
+        const request1 = new Apify.Request(Object.assign({ id: 'id-1' }, sources[1]));
+        const request2 = new Apify.Request(Object.assign({ id: 'id-2' }, sources[2]));
 
         // 1st try
         mock.expects('fetchNextRequest').once().returns(Promise.resolve(request0));
