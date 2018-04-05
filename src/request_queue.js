@@ -15,7 +15,7 @@ import { ensureDirExists, checkParamPrototypeOrThrow, apifyClient } from './util
 export const LOCAL_EMULATION_SUBDIR = 'request-queues';
 const MAX_OPENED_QUEUES = 1000;
 
-// When requesting queue head we always fetch requestsInProggressCount + QUERY_HEAD_BUFFER number of requests
+// When requesting queue head we always fetch requestsInProgressCount + QUERY_HEAD_BUFFER number of requests
 export const QUERY_HEAD_BUFFER = 50;
 
 // If queue was modified (request added/updated/deleted) before more than API_PROCESSED_REQUESTS_DELAY_MILLIS
@@ -94,10 +94,12 @@ const validateReclaimRequestParams = (request, opts) => {
  */
 
 /**
- * Request queue class provides easy interface to Apify Request Queue. Request queue should be opened using
+ * Provides a simple interface to the Apify Request Queue API,
+ * which is used to manage a dynamic queue of web pages to crawl.
+ * The instance of this object can be obtained using the
  * `Apify.openRequestQueue()` function.
  *
- * Basic usage of Request Queue:
+ * Example usage:
  *
  * ```javascript
  * const queue = await Apify.openRequestQueue('my-queue-id');
@@ -210,7 +212,7 @@ export class RequestQueue {
         validateMarkRequestHandledParams(request);
 
         if (!this.requestIdsInProgress[request.id]) {
-            throw new Error(`Cannot mark request ${request.id} handled request that is not in progress!`);
+            throw new Error(`Cannot mark request ${request.id} as handled as it is not in progress!`);
         }
 
         if (!request.handledAt) request.handledAt = new Date();
@@ -255,7 +257,7 @@ export class RequestQueue {
     }
 
     /**
-     * Returns `true` if the next call to fetchNextRequest() will return null, otherwise it returns `false`.
+     * Returns `true` if the next call to `fetchNextRequest()` will return `null`, otherwise it returns `false`.
      * Note that even if the queue is empty, there might be some pending requests currently being processed.
      *
      * The function might occasionally return a false negative, but it should never return a false positive!
@@ -304,7 +306,7 @@ export class RequestQueue {
     }
 
     /**
-     * We always request more items than is in proggress to ensure that something
+     * We always request more items than is in progress to ensure that something
      * falls into head.
      *
      * @ignore
@@ -414,7 +416,7 @@ const uniqueKeyToId = (uniqueKey) => {
 };
 
 /**
- * Local implementation of RequestQueue.
+ * Local implementation of the `RequestQueue` class.
  *
  * @ignore
  */
@@ -659,7 +661,7 @@ const getOrCreateQueue = (queueIdOrName) => {
 };
 
 /**
- * Opens request queue and returns its object.</p>
+ * Opens a request queue and returns its `RequestQueue` object.
  *
  * ```javascript
  * const queue = await Apify.openRequestQueue('my-queue-id');
@@ -681,11 +683,11 @@ const getOrCreateQueue = (queueIdOrName) => {
  * ```
  *
  * If the `APIFY_LOCAL_EMULATION_DIR` environment variable is defined, the value this function
- * returns an instance `RequestQueueLocal` which is an local emulation of request queue.
- * This is useful for local development and debugging of your acts.
+ * returns is an instance of the `RequestQueueLocal` class which is a local emulation of the request queue.
+ * This is useful for local development and debugging of the acts.
  *
  * @param {string} queueIdOrName ID or name of the request queue to be opened.
- * @returns {Promise<RequestQueue>} Returns a promise that resolves to a RequestQueue object.
+ * @returns {Promise<RequestQueue>} Returns a promise that resolves to a `RequestQueue` object.
  *
  * @memberof module:Apify
  * @name openRequestQueue

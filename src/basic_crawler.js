@@ -12,14 +12,20 @@ const DEFAULT_OPTIONS = {
 };
 
 /**
- * BasicCrawler provides a simple framework for parallel crawling of a url list provided by `Apify.RequestList`
- * or a dynamically enqueued requests provided by `Apify.RequestQueue` (TODO).
+ * Provides a simple framework for parallel crawling of web pages
+ * from a list of URLs managed by the `RequestList` class
+ * or dynamically enqueued URLs managed by `RequestQueue`.
  *
- * It's simply calling handleRequestFunction for each request from requestList or requestQueue as long as
- * both are not empty. The concurrency is scaled based on available memory using `Apify.AutoscaledPool` and all
- * of it's configuration parameters are supported here.
+ * `BasicCrawler` simply calls `handleRequestFunction` for each request from `options.requestList` or `options.requestQueue` as long as
+ * any of them is not empty. New requests are only handled if there is enough free CPU and memory available,
+ * using the functionality provided by the `AutoscaledPool` class.
+ * Note that all `AutoscaledPool` configuration options can be passed to `options` parameter of the `BasicCrawler` constructor.
  *
- * Basic usage of BasicCrawler:
+ * If both `requestList` and `requestQueue` is used, the instance first
+ * processes URLs from the `requestList` and automatically enqueues all of them to  `requestQueue` before it starts
+ * their processing. This is to guarantee that a single URL is not crawled multiple times.
+ *
+ * Basic usage:
  *
  * ```javascript
  * const rp = require('request-promise');
@@ -38,16 +44,16 @@ const DEFAULT_OPTIONS = {
  * ```
  *
  * @param {Object} options
- * @param {RequestList} [options.requestList] List of the requests to be processed.
- * @param {RequestList} [options.requestQueue] Queue of the requests to be processed.
- * @param {Function} options.handleRequestFunction Function that processes a request. It must return a promise.
+ * @param {RequestList} [options.requestList] Static list of URLs to be processed.
+ * @param {RequestQueue} [options.requestQueue] Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
+ * @param {Function} [options.handleRequestFunction] Function that processes a single `Request` object. It must return a promise.
  * @param {Function} [options.handleFailedRequestFunction=({ request, error }) => log.error('Request failed', _.pick(request, 'url', 'uniqueKey'))`]
- *                   Function to handle requests that failed more then option.maxRequestRetries times.
- * @param {Number} [options.maxRequestRetries=3] How many times request is retried if handleRequestFunction failed.
- * @param {Number} [options.maxMemoryMbytes] Maximal memory available in the system (see `maxMemoryMbytes` parameter of `Apify.AutoscaledPool`).
- * @param {Number} [options.maxConcurrency=1000] Maximal concurrency of request processing (see `maxConcurrency` parameter of `Apify.AutoscaledPool`).
- * @param {Number} [options.minConcurrency=1] Minimal concurrency of requests processing (see `minConcurrency` parameter of `Apify.AutoscaledPool`).
- * @param {Number} [options.minFreeMemoryRatio=0.2] Minumum ratio of free memory kept in the system.
+ *                   Function that handles requests that failed more then `option.maxRequestRetries` times.
+ * @param {Number} [options.maxRequestRetries=3] How many times the request is retried if `handleRequestFunction` failed.
+ * @param {Number} [options.maxMemoryMbytes] Maximum memory available in the system (see `AutoscaledPool`).
+ * @param {Number} [options.maxConcurrency=1000] Maximum number of request to process in parallel (see `AutoscaledPool`).
+ * @param {Number} [options.minConcurrency=1] Minimum number of request to process in parallel (see `AutoscaledPool`).
+ * @param {Number} [options.minFreeMemoryRatio=0.2] Minimum ratio of free memory kept in the system.
  */
 export default class BasicCrawler {
     constructor(opts) {
@@ -58,7 +64,7 @@ export default class BasicCrawler {
             handleFailedRequestFunction,
             maxRequestRetries,
 
-            // Autoscaled pool options
+            // AutoscaledPool options
             maxMemoryMbytes,
             maxConcurrency,
             minConcurrency,
@@ -93,7 +99,7 @@ export default class BasicCrawler {
     }
 
     /**
-     * Runs the crawler. Returns promise that gets resolved once all the requests got processed.
+     * Runs the crawler. Returns a promise that gets resolved once all the requests are processed.
      *
      * @return {Promise}
      */
@@ -135,7 +141,7 @@ export default class BasicCrawler {
                             .reclaimRequest(request)
                             .then(() => null);
                     });
-            })
+            });
     }
 
     /**
@@ -171,7 +177,6 @@ export default class BasicCrawler {
                             .markRequestHandled(request)
                             .then(() => this.handleFailedRequestFunction({ request, error }));
                     });
-
             });
     }
 
@@ -193,7 +198,7 @@ export default class BasicCrawler {
 
                 return this.requestQueue.isEmpty();
             })
-            .then(areBothEmpty => !areBothEmpty)
+            .then(areBothEmpty => !areBothEmpty);
     }
 
     /**

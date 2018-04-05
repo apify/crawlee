@@ -3,7 +3,12 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 // TODO: randomWaitBetweenUsagesMillis
 
 /**
- * SettingsRotator rotates settings created by newSettingsFunction based on it's configuration.
+ * Rotates settings created by a user-provided function passed
+ * via `newSettingsFunction`.
+ * This is useful during web crawling to dynamically change settings and thus
+ * avoid detection of the crawler.
+ *
+ * This class is still work in progress, more features will be added soon.
  *
  * @param {Object} options
  * @param {Function} options.newSettingsFunction

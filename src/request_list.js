@@ -23,11 +23,12 @@ const ensureUniqueKeyValid = (uniqueKey) => {
 };
 
 /**
- * `RequestList` provides way to handle a list of URLs (i.e. requests) to be crawled.
+ * Pprovides way to handle a list of URLs to be crawled.
+ * Each URL is reprented using an instance of the `Request` class.
  *
- * `RequestList` has internal state where it remembers handled requests, requests in progress and also reclaimed requests.
- * State might be persisted in key-value store as shown in the example below so if an act get restarted (due to internal
- * error or restart of the host machine) then it may be initialized from previous state.
+ * `RequestList` has an internal state where it remembers handled requests, requests in progress and also reclaimed requests.
+ * The state might be persisted in a key-value store as shown in the example below so if an act is restarted (due to internal
+ * error or restart of the host machine) then the crawling can continue where it left off.
  *
  * Basic usage of `RequestList`:
  *
@@ -277,7 +278,8 @@ export default class RequestList {
     }
 
     /**
-     * Reclaims request after unsuccessfull operation. Request will become available for next `this.fetchNextRequest()`.
+     * Reclaims request to the list if its processing failed.
+     * The request will become available in the next `this.fetchNextRequest()`.
      *
      * @param {Request} request
      *

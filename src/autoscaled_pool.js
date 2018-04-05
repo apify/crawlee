@@ -2,12 +2,11 @@ import Promise from 'bluebird';
 import log from 'apify-shared/log';
 import _ from 'underscore';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { delayPromise } from 'apify-shared/utilities';
 import { getMemoryInfo, isPromise } from './utils';
 import { events } from './actor';
 import { ACTOR_EVENT_NAMES } from './constants';
 
-// TODO: we should scale down less aggresively - ie. scale down only if CPU or memory
+// TODO: we should scale down less aggressively - ie. scale down only if CPU or memory
 //       gets exceeded for some longer period of time ...
 
 const MEM_CHECK_INTERVAL_MILLIS = 200; // This is low to have at least.
@@ -33,24 +32,30 @@ export const LOG_INFO_INTERVAL = 6 * SCALE_UP_INTERVAL; // This must be multiple
  */
 const humanReadable = bytes => `${Math.round(bytes / 1024 / 1024)} MB`;
 
+// TODO: Rename handleTaskFunction to runTaskFunction
+
 /**
- * AutoscaledPool helps to process asynchronous task in parallel. It scales the number of concurrent tasks based on
- * the available memory and CPU. If any of the tasks throws an error then the pool.run() method
- * also throws.
+ * This class manages a pool of asynchronous resource-intensive tasks that are executed in parallel.
+ * The pool only starts new tasks if there is enough free memory and CPU capacity.
+ * The information about the CPU and memory usage is obtained
+ * either from the local system or from the Apify cloud infrastructure in case the process
+ * is running on the Apify Actor platform.
  *
- * Autoscaled pool gets finished when the last running task gets resolved and following call of `workerFunction`
- * returns null. This behaviour might be changed using `options.finishWhenEmpty` parameter.
+ * The auto-scaled pool is started by calling the `run()` function
+ * and it finishes when the last running task gets resolved and the next call to
+ * the function passed via `isFinishedFunction` resolves to `false`.
+ * If any of the tasks throws then the `run()` function also throws.
  *
- * AutoscaledPool tries to start new tasks everytime some of the tasks gets resolved and also in interval
- * given by parameter `options.maybeRunIntervalMillis`.
+ * The pool evaluates whether is should start a new task every time some of the tasks is finished
+ * and also in the interval set by the `options.maybeRunIntervalMillis` parameter.
  *
- * Basic usage of AutoscaledPool:
+ * Basic usage of `AutoscaledPool`:
  *
  * ```javascript
  * const pool = new Apify.AutoscaledPool({
  *     maxConcurrency: 50,
- *     workerFunction: () => {
- *         // ... do some intensive asynchronous operations here and return a promise ...
+ *     handleTaskFunction: () => {
+ *         // Run some resource-intensive asynchronous operation here and return a promise...
  *     },
  * });
  *
@@ -58,21 +63,25 @@ const humanReadable = bytes => `${Math.round(bytes / 1024 / 1024)} MB`;
  * ```
  *
  * @param {Object} options
- * @param {Function} options.handleTaskFunction Function we want to call in parallel. This function must either return a
- *                                              promise or null when all the tasks were processed.
- * @param {Function} [opts.isFinishedFunction] This function gets called everytime there is a zero number of tasks being processed.
- *                                             If resolves to true then pool gets closed. If `isFinishedFunction` is not provided then pool
- *                                             gets closed at the point that there are no running tasks.
- * @param {Function} [opts.isTaskReadyFunction] This function indicates if `handleTaskFunction` should be called. By default handleTaskFunction
- *                                              is called everytime there is a free spot for new task. But by overriding this you can throttle
+ * @param {Function} options.handleTaskFunction A function that performs an asynchronous resource-intensive task.
+ *                                              The function must either return a
+ *                                              promise or `null` if no task is currently available.
+ * @param {Function} [opts.isFinishedFunction] A function that is called every time there are no tasks being processed.
+ *                                             If it resolves to `true` then the pool's run finishes.
+ *                                             If `isFinishedFunction` is not provided then the pool
+ *                                             is finished whenever there are no running tasks.
+ * @param {Function} [opts.isTaskReadyFunction] A function that indicates if `handleTaskFunction` should be called.
+ *                                              By default, this function is called every time there is a free capacity for new task.
+ *                                              But by overriding this you can throttle
  *                                              number of calls to `handleTaskFunction` or to prevent calls to `handleTaskFunction` when you know
  *                                              that it would return null.
- * @param {Number} [options.maxConcurrency=1000] Maximal concurrency.
- * @param {Number} [options.minConcurrency=1] Minimal concurrency.
- * @param {Number} [options.maxMemoryMbytes] Maximum memory available in the system. By default uses the totalMemory from Apify.getMemoryInfo().
- * @param {Number} [options.minFreeMemoryRatio=0.2] Minumum ratio of free memory kept in the system.
- * @param {number} [options.maybeRunIntervalMillis=1000] Determines how often autoscaled pool tried to call `opts.workerFunction` to get a new task.
-
+ * @param {Number} [options.maxConcurrency=1000] Maximum concurrency.
+ * @param {Number} [options.minConcurrency=1] Minimum concurrency.
+ * @param {Number} [options.maxMemoryMbytes] Maximum memory available in the system. By default the pool
+ *                                           uses the `totalMemory` value provided by `Apify.getMemoryInfo()`.
+ * @param {Number} [options.minFreeMemoryRatio=0.2] Minimum ratio of free memory kept in the system.
+ * @param {number} [options.maybeRunIntervalMillis=1000] Indicates how often should the pool try to call
+ *                                                       `opts.handleTaskFunction` to start a new task.
  */
 export default class AutoscaledPool {
     constructor(opts) {
@@ -84,7 +93,7 @@ export default class AutoscaledPool {
                 log.warning('Parameter `finishWhenEmpty` of AutoscaledPool is deprecated!!! Use `isFinishedFunction` instead!');
                 checkParamOrThrow(opts.finishWhenEmpty, 'opts.finishWhenEmpty', 'Boolean');
                 let mayFinish = false;
-                opts.isFinishedFunction = () => Promise.resolve(mayFinish),
+                opts.isFinishedFunction = () => Promise.resolve(mayFinish);
                 this.finish = () => { mayFinish = true; };
             } else {
                 opts.isFinishedFunction = () => Promise.resolve(true);
@@ -147,6 +156,7 @@ export default class AutoscaledPool {
         this.reject = null;
 
         // Connect to actor events for CPU info.
+        // TODO: This doesn't work on local machine!
         this.cpuInfoListener = (data) => {
             this.isCpuOverloaded = data.isCpuOverloaded;
         };
@@ -154,7 +164,7 @@ export default class AutoscaledPool {
     }
 
     /**
-     * Runs the autoscaled pool. Returns promise that gets resolved or rejected once
+     * Runs the auto-scaled pool. Returns promise that gets resolved or rejected once
      * all the task got finished or some of them fails.
      *
      * @return {Promise}
@@ -167,8 +177,8 @@ export default class AutoscaledPool {
 
         this._maybeRunTask();
 
-        // This is here because if we scale down to let's say 1. Then after each promise is finished
-        // this._maybeRunTask() doesn't trigger another one. So if that 1 instance stucks it results
+        // This is here because if we scale down to let's say 1, then after each promise is finished
+        // this._maybeRunTask() doesn't trigger another one. So if that 1 instance gets stuck it results
         // in whole act to stuck and even after scaling up it never triggers another promise.
         this.maybeRunTaskInterval = setInterval(() => this._maybeRunTask(), this.maybeRunIntervalMillis);
 
@@ -286,7 +296,7 @@ export default class AutoscaledPool {
         if (!isPromise(isTaskReadyPromise)) throw new Error('User provided isTaskReadyFunction must return a Promise.');
 
         // We don't want to chain this so no return here!
-       isTaskReadyPromise
+        isTaskReadyPromise
             .catch((err) => {
                 this.queryingIsTaskReady = false;
                 log.exception(err, 'AutoscaledPool: isTaskReadyFunction failed');
@@ -308,8 +318,6 @@ export default class AutoscaledPool {
 
                 this.runningCount++;
                 this._maybeRunTask();
-
-                const startedAt = Date.now();
 
                 return taskPromise
                     .then(() => {
