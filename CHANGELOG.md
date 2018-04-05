@@ -1,3 +1,7 @@
+xxxxxx / xxxxxxxxxxx
+- `launchPuppeteer()` changes `User-Agent` only when in headless mode or if not using full Google Chrome,
+  to reduce chance of detection of the crawler
+
 0.5.17 / 2018-03-27
 ===================
 - Added `useChrome` flag to `launchPuppeteer()` function
