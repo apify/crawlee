@@ -6,10 +6,10 @@ Apify.main(async () => {
     const requestList = new Apify.RequestList({
         sources: [
             { url: 'http://www.example.com' },
-            { url: 'http://www.example.com/page-2' },
-            { url: 'http://www.example.com/page-3' },
-            { url: 'http://www.example.com/page-4' },
-            { url: 'http://www.example.com/page-5' },
+            { url: 'http://www.example.com/?page=2' },
+            { url: 'http://www.example.com/?page=3' },
+            { url: 'http://www.example.com/?page=4' },
+            { url: 'http://www.example.com/?page=5' },
         ],
     });
 
@@ -24,11 +24,25 @@ Apify.main(async () => {
             const pageHtml = await rp(request.url);
 
             console.log(`Request ${request.url} succeeded with return html of length ${pageHtml.length}`);
+            
+            await Apify.pushData({
+                url: request.url,
+                html: pageHtml,
+                errors: null,
+            })
         },
 
         // If request failed 4 times then this function is executed.
         handleFailedRequestFunction: async ({ request }) => {
             console.log(`Request ${request.url} failed 4 times`);
+            
+            console.log(request);
+            
+            await Apify.pushData({
+                url: request.url,
+                html: null,
+                errors: request.errorMessages,
+            })
         },
     });
 
