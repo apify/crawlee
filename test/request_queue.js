@@ -66,6 +66,34 @@ describe('RequestQueue', () => {
             expect(await queue.isFinished()).to.be.eql(true);
         });
 
+        it('supports forefront param in reclaimRequest()', async () => {
+            const queue = new RequestQueueLocal('my-queue', LOCAL_EMULATION_DIR);
+
+            await queue.addRequest(new Apify.Request({ url: 'http://example.com/first' }));
+            await queue.addRequest(new Apify.Request({ url: 'http://example.com/middle' }));
+            await queue.addRequest(new Apify.Request({ url: 'http://example.com/third' }));
+
+            const request1ForFirstTime = await queue.fetchNextRequest();
+            expect(request1ForFirstTime.url).to.be.eql('http://example.com/first');
+
+            // Return it to the front.
+            await queue.reclaimRequest(request1ForFirstTime, { forefront: true });
+
+            const request1ForSecondTime = await queue.fetchNextRequest();
+            expect(request1ForSecondTime.url).to.be.eql('http://example.com/first');
+
+            // Now put it at the back.
+            await queue.reclaimRequest(request1ForSecondTime);
+
+            const request2 = await queue.fetchNextRequest();
+            const request3 = await queue.fetchNextRequest();
+            const request1 = await queue.fetchNextRequest();
+
+            expect(request1.url).to.be.eql('http://example.com/first');
+            expect(request2.url).to.be.eql('http://example.com/middle');
+            expect(request3.url).to.be.eql('http://example.com/third');
+        });
+
         it('should get initialized from existing dir', async () => {
             const request1 = new Apify.Request({ url: 'http://example.com/first' });
             const request2 = new Apify.Request({ url: 'http://example.com/middle' });

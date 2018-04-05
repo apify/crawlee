@@ -11,20 +11,24 @@ const DEFAULT_OPTIONS = {
 };
 
 /**
- * PuppeteerCrawler provides a simple framework for parallel crawling of a url list provided by Apify.RequestList
- * or a dynamically enqueued requests provided by Apify.RequestQueue (TODO). Each url is opened in Puppeteer (Chrome)
- * browser.
+ * Provides a simple framework for parallel crawling of web pages
+ * using the headless Chrome with Puppeteer.
+ * The URLs of pages to visit are given by `Request` objects that are provided by the `RequestList` class
+ * or a dynamically enqueued requests provided by the `RequestQueue` class.
  *
- * For each url in the list or queue it opens a Chrome tab and then calls handlePageFunction. The concurrency is scaled
- * based on available memory using Apify.AutoscaledPool.
+ * For each `Request` object to crawl the class opens a Chrome tab and then calls
+ * the function provided by user in the `handlePageFunction` option. New tasks are only
+ * started if there is enough free CPU capacity and memory available,
+ * internally using the `AutoscaledPool` instance.
  *
- * Basic usage of PuppeteerCrawler:
+ * Basic usage:
  *
  * ```javascript
  * const crawler = new Apify.PuppeteerCrawler({
  *     requestList,
- *     // Parameter page here is an intance of Puppeteer.Page with page.goto(request.url) already called
  *     handlePageFunction: async ({ page, request }) => {
+ *         // 'page' is an instance of Puppeteer.Page with page.goto(request.url) already called
+ *         // 'request' is an instance of Request class with information about the page to load
  *         await Apify.pushData({
  *             title: await page.title(),
  *             url: request.url,
@@ -43,41 +47,44 @@ const DEFAULT_OPTIONS = {
  * await crawler.run();
  * ```
  *
- * @param {RequestList} options.requestList List of the requests to be processed. (See `requestList` parameter of `Apify.BasicCrawler`)
- * @param {Function} options.handlePageFunction Function to process each request.
- * @param {Number} [options.pageOpsTimeoutMillis=30000] Timeout for options.handlePagefunction
- * @param {Function} [options.gotoFunction=({ request, page }) => page.goto(request.url)] Overrides default gotoFunction. This function
- *                   should return a result of page.goto(), ie. Puppeteers Response object.
-
+ * @param {RequestList} [options.requestList] List of the requests to be processed.
+ *                      See the `requestList` parameter of `BasicCrawler` for more details.
+ * @param {RequestList} [options.requestQueue] Queue of the requests to be processed.
+ *                      See the `requestQueue` parameter of `BasicCrawler` for more details.
+ * @param {Function} [options.handlePageFunction] Function that is called to process each request.
+ *                   It is passed an object with the following fields:
+ *                   `request` is an instance of the `Request` object with details about the URL to open, HTTP method etc.
+ *                   `page` is an instance of the `Puppeteer.Page` class with `page.goto(request.url)` already called.
+ * @param {Number} [options.pageOpsTimeoutMillis=30000] Timeout in which the fuction passed as `options.handlePageFunction` needs to finish.
+ * @param {Function} [options.gotoFunction=({ request, page }) => page.goto(request.url)] Overrides the function that opens the request in Puppeteer.
+ *                   This function should return a result of `page.goto()`, i.e. the Puppeteer's `Response` object.
  * @param {Function} [options.handleFailedRequestFunction=({ request }) => log.error('Request failed', _.pick(request, 'url', 'uniqueKey'))]
- *                   Function to handle requests that failed more then option.maxRequestRetries times. (See `handleFailedRequestFunction`
- *                   parameter of `Apify.BasicCrawler`)
- * @param {Number} [options.maxRequestRetries=3] How many times request is retried if handleRequestFunction failed. (See `maxRequestRetries`
- *                                               parameter of `Apify.BasicCrawler`)
- *
- * @param {Number} [options.maxMemoryMbytes] Maximal memory available in the system (See `maxMemoryMbytes` parameter of `Apify.AutoscaledPool`).
- * @param {Number} [options.maxConcurrency=1000] Maximal concurrency of request processing (See `maxConcurrency` parameter of `Apify.AutoscaledPool`).
- * @param {Number} [options.minConcurrency=1] Minimal concurrency of requests processing (See `minConcurrency` parameter of `Apify.AutoscaledPool`).
- * @param {Number} [options.minFreeMemoryRatio=0.2] Minumum ratio of free memory kept in the system.
- *
- * @param {Number} [options.maxOpenPagesPerInstance=100] Maximal number of opened tabs per browser. If limit is reached then the new
- *                                                        browser gets started. (See `maxOpenPagesPerInstance` parameter of `Apify.PuppeteerPool`)
- * @param {Number} [options.abortInstanceAfterRequestCount=150] Maximal number of requests proceeded from one browser. After that browser
- *                                                              gets restarted. (See `abortInstanceAfterRequestCount` parameter of
- *                                                              `Apify.PuppeteerPool`)
- * @param {Function} [options.launchPuppeteerFunction] Overrides how new Puppeteer instance gets launched. (See `launchPuppeteerFunction` parameter of
- *                                                     `Apify.PuppeteerPool`)
- * @param {Number} [options.instanceKillerIntervalMillis=60000] How often opened Puppeteer instances get checked if some of then might be
- *                                                              closed. (See `instanceKillerIntervalMillis` parameter of `Apify.PuppeteerPool`)
- * @param {Number} [options.killInstanceAfterMillis=300000] If Puppeteer instance reaches the limit options.abortInstanceAfterRequestCount then it's
- *                                                          considered retired and no more tabs will be opened. After the last tab get's closed the
- *                                                          whole browser gets closed. This defines limit of inactivity after the browser gets closed
- *                                                          even if there are pending tabs. (See `killInstanceAfterMillis` parameter of
- *                                                          `Apify.PuppeteerPool`)
- * @param {Object} [options.puppeteerConfig={ dumpio: process.env.NODE_ENV !== 'production', slowMo: 0, args: []}] Configuration of Puppeteer
- *                                                          instances. (See `puppeteerConfig` parameter of `Apify.PuppeteerPool`)
- * @param {Boolean} [options.disableProxy=false] Disables proxying thru Apify proxy. (See `disableProxy` parameter of `Apify.PuppeteerPool`)
- * @param {Array} [options.groups] Apify proxy groups to be used. (See `Apify.getApifyProxyUrl()` for more)
+ *                   Function to handle requests that failed more than `option.maxRequestRetries` times. See the `handleFailedRequestFunction`
+ *                   parameter of `Apify.BasicCrawler` for details.
+ * @param {Number} [options.maxRequestRetries=3] How many times each request is retried if `handleRequestFunction` failed. See `maxRequestRetries`
+ *                                               parameter of `BasicCrawler`.
+ * @param {Number} [options.maxMemoryMbytes] Maximum memory available for crawling. See `maxMemoryMbytes` parameter of `AutoscaledPool`.
+ * @param {Number} [options.maxConcurrency=1000] Maximum concurrency of request processing. See `maxConcurrency` parameter of `AutoscaledPool`.
+ * @param {Number} [options.minConcurrency=1] Minimum concurrency of requests processing. See `minConcurrency` parameter of `AutoscaledPool`.
+ * @param {Number} [options.minFreeMemoryRatio=0.2] Minimum ratio of free memory kept in the system.
+ * @param {Number} [options.maxOpenPagesPerInstance=100] Maximum number of opened tabs per browser. If this limit is reached then a new
+ *                                                        browser instance is started. See `maxOpenPagesPerInstance` parameter of `PuppeteerPool`.
+ * @param {Number} [options.abortInstanceAfterRequestCount=150] Maximum number of requests that can be processed by a single browser instance.
+ *                                                              After this limit is reached the browser is restarted.
+ *                                                              See `abortInstanceAfterRequestCount` parameter of `PuppeteerPool`.
+ * @param {Function} [options.launchPuppeteerFunction] Overrides how new Puppeteer instance gets launched. See `launchPuppeteerFunction` parameter of
+ *                                                     `PuppeteerPool`.
+ * @param {Number} [options.instanceKillerIntervalMillis=60000] How often the launched Puppeteer instances are checked whether they can be
+ *                                                              closed. See `instanceKillerIntervalMillis` parameter of `PuppeteerPool`.
+ * @param {Number} [options.killInstanceAfterMillis=300000] If Puppeteer instance reaches the `options.abortInstanceAfterRequestCount` limit then
+ *                                                          it is considered retired and no more tabs will be opened. After the last tab is closed
+ *                                                          the whole browser is closed too. This parameter defines a time limit for inactivity
+ *                                                          after which the browser is closed even if there are pending tabs. See
+ *                                                          `killInstanceAfterMillis` parameter of `PuppeteerPool`.
+ * @param {Object} [options.puppeteerConfig={ dumpio: process.env.NODE_ENV !== 'production', slowMo: 0, args: []}] Default options for each
+ *                                                          new Puppeteer instance. See `puppeteerConfig` parameter of `PuppeteerPool`.
+ * @param {Boolean} [options.disableProxy=false] Disables proxying through Apify proxy. See `disableProxy` parameter of `PuppeteerPool`.
+ * @param {Array} [options.groups] Apify proxy groups to be used. See `Apify.getApifyProxyUrl()` for more details.
  */
 export default class PuppeteerCrawler {
     constructor(opts) {
@@ -94,6 +101,7 @@ export default class PuppeteerCrawler {
 
             // Basic crawler options
             requestList,
+            requestQueue,
             maxRequestRetries,
             handleFailedRequestFunction,
 
@@ -134,6 +142,7 @@ export default class PuppeteerCrawler {
         this.basicCrawler = new BasicCrawler({
             // Basic crawler options.
             requestList,
+            requestQueue,
             maxRequestRetries,
             handleRequestFunction: (...args) => this._handleRequestFunction(...args),
             handleFailedRequestFunction,

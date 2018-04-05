@@ -4,6 +4,7 @@ import path from 'path';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import LruCache from 'apify-shared/lru_cache';
 import ListDictionary from 'apify-shared/list_dictionary';
+import { delayPromise } from 'apify-shared/utilities';
 import Promise from 'bluebird';
 import crypto from 'crypto';
 import _ from 'underscore';
@@ -13,7 +14,19 @@ import { ensureDirExists, checkParamPrototypeOrThrow, apifyClient } from './util
 
 export const LOCAL_EMULATION_SUBDIR = 'request-queues';
 const MAX_OPENED_QUEUES = 1000;
+
+// When requesting queue head we always fetch requestsInProgressCount + QUERY_HEAD_BUFFER number of requests
 export const QUERY_HEAD_BUFFER = 50;
+
+// If queue was modified (request added/updated/deleted) before more than API_PROCESSED_REQUESTS_DELAY_MILLIS
+// then we get head query to be consistent.
+export const API_PROCESSED_REQUESTS_DELAY_MILLIS = 10 * 1000;
+
+// How many times we try to get queue head with queueModifiedAt older than API_PROCESSED_REQUESTS_DELAY_MILLIS.
+export const MAX_QUERIES_FOR_CONSISTENCY = 6;
+
+// TODO: this should be in shared.
+export const QUERY_HEAD_MAX_LIMIT = 1000;
 
 const writeFilePromised = Promise.promisify(fs.writeFile);
 const readdirPromised = Promise.promisify(fs.readdir);
@@ -22,11 +35,6 @@ const moveFilePromised = Promise.promisify(fsExtra.move);
 
 const { requestQueues } = apifyClient;
 const queuesCache = new LruCache({ maxLength: MAX_OPENED_QUEUES }); // Open queues are stored here.
-
-
-/**
- * @ignore.
- */
 
 /**
  * Helper function to validate params of *.addRequest().
@@ -66,9 +74,16 @@ const validateMarkRequestHandledParams = (request) => {
  * Helper function to validate params of *.reclaimRequest().
  * @ignore
  */
-const validateReclaimRequestParams = (request) => {
+const validateReclaimRequestParams = (request, opts) => {
     checkParamPrototypeOrThrow(request, 'request', Request, 'Apify.Request');
     checkParamOrThrow(request.id, 'request.id', 'String');
+    checkParamOrThrow(opts, 'opts', 'Object');
+
+    const { forefront = false } = opts;
+
+    checkParamOrThrow(forefront, 'opts.forefront', 'Boolean');
+
+    return { forefront };
 };
 
 /**
@@ -79,17 +94,30 @@ const validateReclaimRequestParams = (request) => {
  */
 
 /**
- * @ignore.
+ * Provides a simple interface to the Apify Request Queue API,
+ * which is used to manage a dynamic queue of web pages to crawl.
+ * The instance of this object can be obtained using the
+ * `Apify.openRequestQueue()` function.
  *
- * TODO: fix docs
- * Dataset class provides easy interface to Apify Dataset storage type. Dataset should be opened using
- * `Apify.openDataset()` function.
- *
- * Basic usage of Dataset:
+ * Example usage:
  *
  * ```javascript
- * const dataset = await Apify.openDataset('my-dataset-id');
- * await dataset.pushData({ foo: 'bar' });
+ * const queue = await Apify.openRequestQueue('my-queue-id');
+ *
+ * await queue.addRequest(new Apify.Request({ url: 'http://example.com/aaa'});
+ * await queue.addRequest(new Apify.Request({ url: 'http://example.com/bbb'});
+ * await queue.addRequest(new Apify.Request({ url: 'http://example.com/foo/bar'}, { puyInFront: true });
+ *
+ * // Get requests from queue
+ * const request1 = queue.fetchNextRequest();
+ * const request2 = queue.fetchNextRequest();
+ * const request3 = queue.fetchNextRequest();
+ *
+ * // Mark some of them as handled
+ * queue.markRequestHandled(request1);
+ *
+ * // If processing fails then reclaim it back to the queue
+ * queue.reclaimRequest(request2);
  * ```
  *
  * @param {String} queueId - ID of the request queue.
@@ -103,6 +131,10 @@ export class RequestQueue {
         this.requestIdsInProgress = {};
         this.inProgressCount = 0;
         this.queryQueueHeadPromise = null;
+
+        // This contains false if we were not able to get queue head with queueModifiedAt older than
+        // at least API_PROCESSED_REQUESTS_DELAY_MILLIS.
+        this.isHeadConsistent = true;
     }
 
     /**
@@ -180,7 +212,7 @@ export class RequestQueue {
         validateMarkRequestHandledParams(request);
 
         if (!this.requestIdsInProgress[request.id]) {
-            throw new Error('Cannot mark handled request that is not in progress!');
+            throw new Error(`Cannot mark request ${request.id} as handled as it is not in progress!`);
         }
 
         if (!request.handledAt) request.handledAt = new Date();
@@ -206,8 +238,8 @@ export class RequestQueue {
      *                                    and to the back of the queue otherwise.
      * @return {RequestOperationInfo}
      */
-    reclaimRequest(request, { forefront = false }) {
-        validateReclaimRequestParams(request);
+    reclaimRequest(request, opts = {}) {
+        const { forefront } = validateReclaimRequestParams(request, opts);
 
         return requestQueues
             .updateRequest({
@@ -225,31 +257,34 @@ export class RequestQueue {
     }
 
     /**
-     * Returns `true` if the next call to fetchNextRequest() will return null, otherwise it returns `false`.
+     * Returns `true` if the next call to `fetchNextRequest()` will return `null`, otherwise it returns `false`.
      * Note that even if the queue is empty, there might be some pending requests currently being processed.
+     *
+     * The function might occasionally return a false negative, but it should never return a false positive!
      *
      * @returns {boolean}
      */
     isEmpty() {
         return this
-            ._queryQueueHead()
-            .then(() => this.queueHeadDict.length() === 0);
+            ._ensureHeadIsNonEmpty()
+            .then(() => this.isHeadConsistent && this.queueHeadDict.length() === 0);
     }
 
     /**
      * Returns `true` if all requests were already handled and there are no more left.
+     * The function might occasionally return a false negative, but it should never return a false positive!
      *
      * @returns {boolean}
      */
     isFinished() {
         return this
-            ._queryQueueHead()
-            .then(() => this.inProgressCount === 0 && this.queueHeadDict.length() === 0);
+            ._ensureHeadIsNonEmpty()
+            .then(() => this.isHeadConsistent && this.inProgressCount === 0 && this.queueHeadDict.length() === 0);
     }
 
 
     /**
-     * @ignore.
+     * @ignore
      */
     _addToInProgress(requestId) {
         // Is already there.
@@ -260,7 +295,7 @@ export class RequestQueue {
     }
 
     /**
-     * @ignore.
+     * @ignore
      */
     _removeFromInProgress(requestId) {
         // Is already removed.
@@ -271,24 +306,26 @@ export class RequestQueue {
     }
 
     /**
-     * We always request more items than is in proggress to ensure that something
+     * We always request more items than is in progress to ensure that something
      * falls into head.
      *
-     * @ignore.
+     * @ignore
      */
-    _ensureHeadIsNonEmpty(limit = this.inProgressCount + QUERY_HEAD_BUFFER) {
+    _ensureHeadIsNonEmpty(checkModifiedAt = false, limit = this.inProgressCount + QUERY_HEAD_BUFFER, iteration = 0) {
         checkParamOrThrow(limit, 'limit', 'Number');
 
         // If is nonempty resolve immediately.
         if (this.queueHeadDict.length()) return Promise.resolve();
 
         if (!this.queryQueueHeadPromise) {
+            const queryStartedAt = new Date();
+
             this.queryQueueHeadPromise = requestQueues
                 .getHead({
                     limit,
                     queueId: this.queueId,
                 })
-                .then(({ items }) => {
+                .then(({ items, queueModifiedAt }) => {
                     items.forEach(({ id }) => {
                         if (!this.requestIdsInProgress[id]) this.queueHeadDict.add(id, id, false);
                     });
@@ -297,21 +334,52 @@ export class RequestQueue {
                     this.queryQueueHeadPromise = null;
 
                     return {
-                        prevLimit: limit,
                         limitReached: items.length === limit,
+                        prevLimit: limit,
+                        queueModifiedAt: new Date(queueModifiedAt),
+                        queryStartedAt,
                     };
                 });
         }
 
         return this.queryQueueHeadPromise
-            .then(({ prevLimit, limitReached }) => {
+            .then(({ queueModifiedAt, limitReached, prevLimit, queryStartedAt }) => {
+                this.isHeadConsistent = true;
+
                 // If queue is still empty then it's likely because some of the other calls waiting
                 // for this promise already consumed all the returned requests or the limit was too
                 // low and contained only requests in progress.
                 //
                 // If limit was not reached in the call then there are no more requests to be returned.
-                if (!this.queueHeadDict.length() && limitReached) {
-                    return this._ensureHeadIsNonEmpty(prevLimit + QUERY_HEAD_BUFFER);
+                const shouldRepeatWithHigherLimit = !this.queueHeadDict.length() && limitReached && prevLimit < QUERY_HEAD_MAX_LIMIT;
+
+                // If checkModifiedAt=true then we must ensure that queueModifiedAt is older than
+                // queryStartedAt for at least API_PROCESSED_REQUESTS_DELAY_MILLIS.
+                const shouldRepeatForConsistency = (
+                    checkModifiedAt
+                    && (queryStartedAt - queueModifiedAt > API_PROCESSED_REQUESTS_DELAY_MILLIS)
+                    && iteration
+                );
+
+                if (shouldRepeatWithHigherLimit || shouldRepeatForConsistency) {
+                    // If we are queriing for consistency then we limit the number of queries to MAX_QUERIES_FOR_CONSISTENCY.
+                    // If this is reached then we set this.isHeadConsistent=true so that empty() and finished() returns
+                    // maybe false negative.
+                    if (!shouldRepeatWithHigherLimit && iteration > MAX_QUERIES_FOR_CONSISTENCY) {
+                        this.isHeadConsistent = false;
+                        return;
+                    }
+
+                    const nextLimit = shouldRepeatWithHigherLimit
+                        ? prevLimit + QUERY_HEAD_MAX_LIMIT
+                        : prevLimit;
+
+                    const delayMillis = shouldRepeatForConsistency
+                        ? API_PROCESSED_REQUESTS_DELAY_MILLIS
+                        : 0;
+
+                    return delayPromise(delayMillis)
+                        .then(() => this._ensureHeadIsNonEmpty(checkModifiedAt, nextLimit, iteration + 1));
                 }
             });
     }
@@ -348,7 +416,7 @@ const uniqueKeyToId = (uniqueKey) => {
 };
 
 /**
- * Local implementation of RequestQueue.
+ * Local implementation of the `RequestQueue` class.
  *
  * @ignore
  */
@@ -408,18 +476,42 @@ export class RequestQueueLocal {
         return path.join(dir, fileName);
     }
 
+    _getQueueOrderNo(forefront = false) {
+        const sgn = (forefront ? 1 : 2) * (10 ** 15);
+        const base = (10 ** (13)); // Date.now() returns int with 13 numbers.
+        // We always add pending count for a case that two pages are insterted at the same millisecond.
+        const now = Date.now() + this.pendingCount;
+        const queueOrderNo = forefront
+            ? sgn + (base - now)
+            : sgn + (base + now);
+
+        return queueOrderNo;
+    }
+
+    _getRequestByQueueOrderNo(queueOrderNo) {
+        checkParamOrThrow(queueOrderNo, 'queueOrderNo', 'Number');
+
+        return readFilePromised(this._getFilePath(queueOrderNo, false))
+            .catch((err) => {
+                if (err.code !== 'ENOENT') throw err;
+
+                return readFilePromised(this._getFilePath(queueOrderNo, true));
+            })
+            .then((str) => {
+                if (!str) throw new Error('Request was not found in none of handled and pending directories!');
+
+                const obj = JSON.parse(str);
+
+                return new Request(obj);
+            });
+    }
+
     addRequest(request, opts = {}) {
         const { forefront } = validateAddRequestParams(request, opts);
 
         return this.initializationPromise
             .then(() => {
-                const sgn = (forefront ? 1 : 2) * (10 ** 15);
-                const base = (10 ** (13)); // Date.now() returns int with 13 numbers.
-                // We always add pending count for a case that two pages are insterted at the same millisecond.
-                const now = Date.now() + this.pendingCount;
-                const queueOrderNo = forefront
-                    ? sgn + (base - now)
-                    : sgn + (base + now);
+                const queueOrderNo = this._getQueueOrderNo(forefront);
 
                 // Add ID as server does.
                 const requestCopy = JSON.parse(JSON.stringify(request));
@@ -438,11 +530,12 @@ export class RequestQueueLocal {
 
                 this.requestIdToQueueOrderNo[requestCopy.id] = queueOrderNo;
                 if (!requestCopy.handledAt) this.pendingCount++;
+
                 const filePath = this._getFilePath(queueOrderNo, !!requestCopy.handledAt);
 
                 return writeFilePromised(filePath, JSON.stringify(requestCopy, null, 4))
                     .then(() => ({
-                        requestId: requestCopy.id,
+                        requestId: request.id,
                         wasAlreadyHandled: false,
                         wasAlreadyPresent: false,
                     }));
@@ -457,24 +550,6 @@ export class RequestQueueLocal {
                 const queueOrderNo = this.requestIdToQueueOrderNo[requestId];
 
                 return this._getRequestByQueueOrderNo(queueOrderNo);
-            });
-    }
-
-    _getRequestByQueueOrderNo(queueOrderNo) {
-        checkParamOrThrow(queueOrderNo, 'queueOrderNo', 'Number');
-
-        return readFilePromised(this._getFilePath(queueOrderNo, false))
-            .catch((err) => {
-                if (err.code !== 'ENOENT') throw err;
-
-                return readFilePromised(this._getFilePath(queueOrderNo, true));
-            })
-            .then((str) => {
-                if (!str) throw new Error('Request was not found in none of handled and pending directories!');
-
-                const obj = JSON.parse(str);
-
-                return new Request(obj);
             });
     }
 
@@ -512,7 +587,7 @@ export class RequestQueueLocal {
                 const dest = this._getFilePath(queueOrderNo, true);
 
                 if (!this.queueOrderNoInProgress[queueOrderNo]) {
-                    throw new Error('Cannot mark handled request that is not in progress!');
+                    throw new Error(`Cannot mark request ${request.id} handled request that is not in progress!`);
                 }
 
                 if (!request.handledAt) request.handledAt = new Date();
@@ -531,20 +606,27 @@ export class RequestQueueLocal {
             });
     }
 
-    reclaimRequest(request) {
-        validateReclaimRequestParams(request);
+    reclaimRequest(request, opts = {}) {
+        const { forefront } = validateReclaimRequestParams(request, opts);
 
         return this.initializationPromise
             .then(() => {
-                const queueOrderNo = this.requestIdToQueueOrderNo[request.id];
+                const oldQueueOrderNo = this.requestIdToQueueOrderNo[request.id];
+                const newQueueOrderNo = this._getQueueOrderNo(forefront);
 
-                if (!this.queueOrderNoInProgress[queueOrderNo]) {
-                    throw new Error('Cannot reclaim request that is not in progress!');
+                if (!this.queueOrderNoInProgress[oldQueueOrderNo]) {
+                    throw new Error(`Cannot reclaim request ${request.id} that is not in progress!`);
                 }
 
-                this.inProgressCount--;
+                this.requestIdToQueueOrderNo[request.id] = newQueueOrderNo;
 
-                delete this.queueOrderNoInProgress[queueOrderNo];
+                return moveFilePromised(
+                    this._getFilePath(oldQueueOrderNo),
+                    this._getFilePath(newQueueOrderNo),
+                ).then(() => {
+                    this.inProgressCount--;
+                    delete this.queueOrderNoInProgress[oldQueueOrderNo];
+                });
             })
             .then(() => ({
                 requestId: request.id,
@@ -579,7 +661,7 @@ const getOrCreateQueue = (queueIdOrName) => {
 };
 
 /**
- * Opens request queue and returns its object.</p>
+ * Opens a request queue and returns its `RequestQueue` object.
  *
  * ```javascript
  * const queue = await Apify.openRequestQueue('my-queue-id');
@@ -601,11 +683,11 @@ const getOrCreateQueue = (queueIdOrName) => {
  * ```
  *
  * If the `APIFY_LOCAL_EMULATION_DIR` environment variable is defined, the value this function
- * returns an instance `RequestQueueLocal` which is an local emulation of request queue.
- * This is useful for local development and debugging of your acts.
+ * returns is an instance of the `RequestQueueLocal` class which is a local emulation of the request queue.
+ * This is useful for local development and debugging of the acts.
  *
  * @param {string} queueIdOrName ID or name of the request queue to be opened.
- * @returns {Promise<RequestQueue>} Returns a promise that resolves to a RequestQueue object.
+ * @returns {Promise<RequestQueue>} Returns a promise that resolves to a `RequestQueue` object.
  *
  * @memberof module:Apify
  * @name openRequestQueue
