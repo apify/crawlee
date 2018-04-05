@@ -32,8 +32,6 @@ export const LOG_INFO_INTERVAL = 6 * SCALE_UP_INTERVAL; // This must be multiple
  */
 const humanReadable = bytes => `${Math.round(bytes / 1024 / 1024)} MB`;
 
-// TODO: Rename handleTaskFunction to runTaskFunction
-
 /**
  * This class manages a pool of asynchronous resource-intensive tasks that are executed in parallel.
  * The pool only starts new tasks if there is enough free memory and CPU capacity.
@@ -54,7 +52,7 @@ const humanReadable = bytes => `${Math.round(bytes / 1024 / 1024)} MB`;
  * ```javascript
  * const pool = new Apify.AutoscaledPool({
  *     maxConcurrency: 50,
- *     handleTaskFunction: () => {
+ *     runTaskFunction: () => {
  *         // Run some resource-intensive asynchronous operation here and return a promise...
  *     },
  * });
@@ -63,17 +61,17 @@ const humanReadable = bytes => `${Math.round(bytes / 1024 / 1024)} MB`;
  * ```
  *
  * @param {Object} options
- * @param {Function} options.handleTaskFunction A function that performs an asynchronous resource-intensive task.
- *                                              The function must either return a
- *                                              promise or `null` if no task is currently available.
+ * @param {Function} options.runTaskFunction A function that performs an asynchronous resource-intensive task.
+ *                                           The function must either return a
+ *                                            promise or `null` if no task is currently available.
  * @param {Function} [opts.isFinishedFunction] A function that is called every time there are no tasks being processed.
  *                                             If it resolves to `true` then the pool's run finishes.
  *                                             If `isFinishedFunction` is not provided then the pool
  *                                             is finished whenever there are no running tasks.
- * @param {Function} [opts.isTaskReadyFunction] A function that indicates if `handleTaskFunction` should be called.
+ * @param {Function} [opts.isTaskReadyFunction] A function that indicates if `runTaskFunction` should be called.
  *                                              By default, this function is called every time there is a free capacity for new task.
  *                                              But by overriding this you can throttle
- *                                              number of calls to `handleTaskFunction` or to prevent calls to `handleTaskFunction` when you know
+ *                                              number of calls to `runTaskFunction` or to prevent calls to `runTaskFunction` when you know
  *                                              that it would return null.
  * @param {Number} [options.maxConcurrency=1000] Maximum concurrency.
  * @param {Number} [options.minConcurrency=1] Minimum concurrency.
@@ -81,7 +79,7 @@ const humanReadable = bytes => `${Math.round(bytes / 1024 / 1024)} MB`;
  *                                           uses the `totalMemory` value provided by `Apify.getMemoryInfo()`.
  * @param {Number} [options.minFreeMemoryRatio=0.2] Minimum ratio of free memory kept in the system.
  * @param {number} [options.maybeRunIntervalMillis=1000] Indicates how often should the pool try to call
- *                                                       `opts.handleTaskFunction` to start a new task.
+ *                                                       `opts.runTaskFunction` to start a new task.
  */
 export default class AutoscaledPool {
     constructor(opts) {
@@ -99,9 +97,9 @@ export default class AutoscaledPool {
                 opts.isFinishedFunction = () => Promise.resolve(true);
             }
 
-            log.warning('Parameter `workerFunction` of AutoscaledPool is deprecated!!! Use `handleTaskFunction` instead!');
+            log.warning('Parameter `workerFunction` of AutoscaledPool is deprecated!!! Use `runTaskFunction` instead!');
             checkParamOrThrow(opts.workerFunction, 'opts.workerFunction', 'Function');
-            opts.handleTaskFunction = opts.workerFunction;
+            opts.runTaskFunction = opts.workerFunction;
             opts.isTaskReadyFunction = () => Promise.resolve(true);
         }
 
@@ -111,7 +109,7 @@ export default class AutoscaledPool {
             maxMemoryMbytes,
             minFreeMemoryRatio,
             maybeRunIntervalMillis,
-            handleTaskFunction,
+            runTaskFunction,
             isFinishedFunction,
             isTaskReadyFunction,
         } = _.defaults(opts, DEFAULT_OPTIONS);
@@ -121,7 +119,7 @@ export default class AutoscaledPool {
         checkParamOrThrow(maxMemoryMbytes, 'opts.maxMemoryMbytes', 'Maybe Number');
         checkParamOrThrow(minFreeMemoryRatio, 'opts.minFreeMemoryRatio', 'Number');
         checkParamOrThrow(maybeRunIntervalMillis, 'opts.maybeRunIntervalMillis', 'Number');
-        checkParamOrThrow(handleTaskFunction, 'opts.handleTaskFunction', 'Function');
+        checkParamOrThrow(runTaskFunction, 'opts.runTaskFunction', 'Function');
         checkParamOrThrow(isFinishedFunction, 'opts.isFinishedFunction', 'Maybe Function');
         checkParamOrThrow(isTaskReadyFunction, 'opts.isTaskReadyFunction', 'Maybe Function');
 
@@ -131,7 +129,7 @@ export default class AutoscaledPool {
         this.minConcurrency = Math.min(minConcurrency, maxConcurrency);
         this.minFreeMemoryRatio = minFreeMemoryRatio;
         this.maybeRunIntervalMillis = maybeRunIntervalMillis;
-        this.handleTaskFunction = handleTaskFunction;
+        this.runTaskFunction = runTaskFunction;
         this.isFinishedFunction = isFinishedFunction;
         this.isTaskReadyFunction = isTaskReadyFunction;
 
@@ -306,7 +304,7 @@ export default class AutoscaledPool {
 
                 if (!isTaskReady) return this._maybeFinish();
 
-                const taskPromise = this.handleTaskFunction();
+                const taskPromise = this.runTaskFunction();
 
                 // We are not done but don't want to execute new promise at this point.
                 // This may happen when there are less pages in the queue than max concurrency
@@ -314,7 +312,7 @@ export default class AutoscaledPool {
                 if (!taskPromise) return this._maybeFinish();
 
                 // It's not null so it must be a promise!
-                if (!isPromise(taskPromise)) throw new Error('User provided handleTaskFunction must return a Promise.');
+                if (!isPromise(taskPromise)) throw new Error('User provided runTaskFunction must return a Promise.');
 
                 this.runningCount++;
                 this._maybeRunTask();
@@ -326,7 +324,7 @@ export default class AutoscaledPool {
                     });
             })
             .catch((err) => {
-                log.exception(err, 'AutoscaledPool: handleTaskFunction failed');
+                log.exception(err, 'AutoscaledPool: runTaskFunction failed');
                 this.runningCount--;
                 // If is here because we might already rejected this promise.
                 if (this.reject) this.reject(err);

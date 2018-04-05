@@ -92,7 +92,7 @@ export default class BasicCrawler {
             maxConcurrency,
             minConcurrency,
             minFreeMemoryRatio,
-            handleTaskFunction: () => this._handleTaskFunction(),
+            runTaskFunction: () => this._runTaskFunction(),
             isFinishedFunction: () => this._isFinishedFunction(),
             isTaskReadyFunction: () => this._isTaskReadyFunction(),
         });
@@ -150,7 +150,7 @@ export default class BasicCrawler {
      *
      * @ignore
      */
-    _handleTaskFunction() {
+    _runTaskFunction() {
         const source = this.requestQueue || this.requestList;
 
         return this._fetchNextRequest()

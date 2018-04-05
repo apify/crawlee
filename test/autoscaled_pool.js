@@ -19,7 +19,7 @@ describe('AutoscaledPool', () => {
 
         let isFinished = false;
 
-        const handleTaskFunction = () => {
+        const runTaskFunction = () => {
             if (range.length === 1) {
                 isFinished = true;
             }
@@ -34,7 +34,7 @@ describe('AutoscaledPool', () => {
         const pool = new Apify.AutoscaledPool({
             minConcurrency: 1,
             maxConcurrency: 1,
-            handleTaskFunction,
+            runTaskFunction,
             isFinishedFunction: () => Promise.resolve(isFinished),
             isTaskReadyFunction: () => Promise.resolve(!isFinished),
         });
@@ -51,7 +51,7 @@ describe('AutoscaledPool', () => {
 
         let isFinished = false;
 
-        const handleTaskFunction = () => {
+        const runTaskFunction = () => {
             if (range.length === 1) {
                 isFinished = true;
             }
@@ -66,7 +66,7 @@ describe('AutoscaledPool', () => {
         const pool = new Apify.AutoscaledPool({
             minConcurrency: 10,
             maxConcurrency: 10,
-            handleTaskFunction,
+            runTaskFunction,
             isFinishedFunction: () => Promise.resolve(isFinished),
             isTaskReadyFunction: () => Promise.resolve(!isFinished),
         });
@@ -82,7 +82,7 @@ describe('AutoscaledPool', () => {
         const pool = new Apify.AutoscaledPool({
             minConcurrency: 1,
             maxConcurrency: 100,
-            handleTaskFunction: () => Promise.resolve(),
+            runTaskFunction: () => Promise.resolve(),
             isFinishedFunction: () => Promise.resolve(false),
             isTaskReadyFunction: () => Promise.resolve(true),
         });
@@ -115,7 +115,7 @@ describe('AutoscaledPool', () => {
             minConcurrency: 1,
             maxConcurrency: 100,
             minFreeMemoryRatio: 0.1,
-            handleTaskFunction: () => Promise.resolve(),
+            runTaskFunction: () => Promise.resolve(),
             isFinishedFunction: () => Promise.resolve(false),
             isTaskReadyFunction: () => Promise.resolve(true),
         });
@@ -157,7 +157,7 @@ describe('AutoscaledPool', () => {
 
     it('should throw when some of the promises throws', async () => {
         let counter = 0;
-        const handleTaskFunction = () => {
+        const runTaskFunction = () => {
             counter++;
 
             if (counter > 100) return;
@@ -174,7 +174,7 @@ describe('AutoscaledPool', () => {
         const pool = new Apify.AutoscaledPool({
             minConcurrency: 10,
             maxConcurrency: 10,
-            handleTaskFunction,
+            runTaskFunction,
             isFinishedFunction: () => Promise.resolve(false),
             isTaskReadyFunction: () => Promise.resolve(true),
         });
@@ -182,15 +182,15 @@ describe('AutoscaledPool', () => {
         await expect(pool.run()).to.be.rejectedWith('some-error');
     });
 
-    it('should throw when handleTaskFunction throws', async () => {
-        const handleTaskFunction = () => {
+    it('should throw when runTaskFunction throws', async () => {
+        const runTaskFunction = () => {
             throw new Error('some-error');
         };
 
         const pool = new Apify.AutoscaledPool({
             minConcurrency: 10,
             maxConcurrency: 10,
-            handleTaskFunction,
+            runTaskFunction,
             isFinishedFunction: () => Promise.resolve(false),
             isTaskReadyFunction: () => Promise.resolve(true),
         });
@@ -203,7 +203,7 @@ describe('AutoscaledPool', () => {
             minConcurrency: 1,
             maxConcurrency: 100,
             minFreeMemoryRatio: 0.1,
-            handleTaskFunction: () => Promise.resolve(),
+            runTaskFunction: () => Promise.resolve(),
             isFinishedFunction: () => Promise.resolve(false),
             isTaskReadyFunction: () => Promise.resolve(true),
         });
@@ -280,7 +280,7 @@ describe('AutoscaledPool', () => {
         const pool = new Apify.AutoscaledPool({
             maybeRunIntervalMillis: 10,
             minConcurrency: 3,
-            handleTaskFunction: () => tasks.pop(),
+            runTaskFunction: () => tasks.pop(),
             isFinishedFunction: () => Promise.resolve(isFinished),
             isTaskReadyFunction: () => Promise.resolve(true),
         });
@@ -333,7 +333,7 @@ describe('AutoscaledPool', () => {
         const pool = new Apify.AutoscaledPool({
             maybeRunIntervalMillis: 10,
             minConcurrency: 3,
-            handleTaskFunction: () => {
+            runTaskFunction: () => {
                 const task = tasks.shift();
 
                 if (!task) return;
