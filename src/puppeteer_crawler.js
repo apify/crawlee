@@ -66,7 +66,13 @@ const DEFAULT_OPTIONS = {
  * @param {Number} [options.maxMemoryMbytes] Maximum memory available for crawling. See `maxMemoryMbytes` parameter of `AutoscaledPool`.
  * @param {Number} [options.maxConcurrency=1000] Maximum concurrency of request processing. See `maxConcurrency` parameter of `AutoscaledPool`.
  * @param {Number} [options.minConcurrency=1] Minimum concurrency of requests processing. See `minConcurrency` parameter of `AutoscaledPool`.
- * @param {Number} [options.minFreeMemoryRatio=0.2] Minimum ratio of free memory kept in the system.
+ * @param {Number} [options.minFreeMemoryRatio=0.2] Minimum ratio of free memory kept in the system. See `minFreeMemoryRatio` parameter of
+ *                                                  `AutoscaledPool`.
+ * @param {Function} [opts.isFinishedFunction] By default PuppeteerCrawler finishes when all the requests have been processed.
+ *                                             You can override this behaviour by providing custom `isFinishedFunction`.
+ *                                             This function that is called every time there are no requests being processed.
+ *                                             If it resolves to `true` then the crawler's run finishes.
+ *                                             See `isFinishedFunction` parameter of `AutoscaledPool`.
  * @param {Number} [options.maxOpenPagesPerInstance=100] Maximum number of opened tabs per browser. If this limit is reached then a new
  *                                                        browser instance is started. See `maxOpenPagesPerInstance` parameter of `PuppeteerPool`.
  * @param {Number} [options.abortInstanceAfterRequestCount=150] Maximum number of requests that can be processed by a single browser instance.
@@ -98,6 +104,7 @@ export default class PuppeteerCrawler {
             maxConcurrency,
             minConcurrency,
             minFreeMemoryRatio,
+            isFinishedFunction,
 
             // Basic crawler options
             requestList,
@@ -152,6 +159,7 @@ export default class PuppeteerCrawler {
             maxConcurrency,
             minConcurrency,
             minFreeMemoryRatio,
+            isFinishedFunction,
         });
     }
 

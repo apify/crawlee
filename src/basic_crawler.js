@@ -54,6 +54,11 @@ const DEFAULT_OPTIONS = {
  * @param {Number} [options.maxConcurrency=1000] Maximum number of request to process in parallel (see `AutoscaledPool`).
  * @param {Number} [options.minConcurrency=1] Minimum number of request to process in parallel (see `AutoscaledPool`).
  * @param {Number} [options.minFreeMemoryRatio=0.2] Minimum ratio of free memory kept in the system.
+ * @param {Function} [opts.isFinishedFunction] By default BasicCrawler finishes when all the requests have been processed.
+ *                                             You can override this behaviour by providing custom `isFinishedFunction`.
+ *                                             This function that is called every time there are no requests being processed.
+ *                                             If it resolves to `true` then the crawler's run finishes.
+ *                                             See `isFinishedFunction` parameter of `AutoscaledPool`.
  */
 export default class BasicCrawler {
     constructor(opts) {
@@ -69,13 +74,15 @@ export default class BasicCrawler {
             maxConcurrency,
             minConcurrency,
             minFreeMemoryRatio,
+            isFinishedFunction,
         } = _.defaults(opts, DEFAULT_OPTIONS);
 
+        checkParamPrototypeOrThrow(requestList, 'opts.requestList', RequestList, 'Apify.RequestList', true);
+        checkParamPrototypeOrThrow(requestQueue, 'opts.requestQueue', RequestQueue, 'Apify.RequestQueue', true);
         checkParamOrThrow(handleRequestFunction, 'opts.handleRequestFunction', 'Function');
         checkParamOrThrow(handleFailedRequestFunction, 'opts.handleFailedRequestFunction', 'Function');
         checkParamOrThrow(maxRequestRetries, 'opts.maxRequestRetries', 'Number');
-        checkParamPrototypeOrThrow(requestList, 'opts.requestList', RequestList, 'Apify.RequestList', true);
-        checkParamPrototypeOrThrow(requestQueue, 'opts.requestQueue', RequestQueue, 'Apify.RequestQueue', true);
+        checkParamOrThrow(isFinishedFunction, 'opts.isFinishedFunction', 'Maybe Function');
 
         if (!requestList && !requestQueue) {
             throw new Error('At least one of the parameters "opts.requestList" and "opts.requestQueue" must be provided!');
@@ -93,8 +100,12 @@ export default class BasicCrawler {
             minConcurrency,
             minFreeMemoryRatio,
             runTaskFunction: () => this._runTaskFunction(),
-            isFinishedFunction: () => this._isFinishedFunction(),
             isTaskReadyFunction: () => this._isTaskReadyFunction(),
+            isFinishedFunction: () => (
+                isFinishedFunction
+                    ? isFinishedFunction()
+                    : this._defaultIsFinishedFunction()
+            ),
         });
     }
 
@@ -206,7 +217,7 @@ export default class BasicCrawler {
      *
      * @ignore
      */
-    _isFinishedFunction() {
+    _defaultIsFinishedFunction() {
         const promises = [];
 
         if (this.requestList) promises.push(this.requestList.isFinished());

@@ -311,7 +311,8 @@ export default class AutoscaledPool {
      *
      * @ignore
      */
-    _maybeRunTask() {
+    _maybeRunTask(recursion = 0) {
+        if (recursion >= this.concurrency) return;
         if (this.runningCount >= this.concurrency) return;
         if (this.queryingIsTaskReady) return;
 
@@ -346,7 +347,7 @@ export default class AutoscaledPool {
                 if (!isPromise(taskPromise)) throw new Error('User provided runTaskFunction must return a Promise.');
 
                 this.runningCount++;
-                this._maybeRunTask();
+                this._maybeRunTask(recursion + 1);
 
                 return taskPromise
                     .then(() => {

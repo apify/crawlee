@@ -278,4 +278,42 @@ describe('BasicCrawler', () => {
 
         expect(await crawler._isTaskReadyFunction()).to.be.eql(false);
     });
+
+    it('should be possible to override isFinishedFunction of underlying AutoscaledPool', async () => {
+        const requestQueue = new RequestQueue('xxx');
+        const processed = [];
+        const queue = [];
+        let isFinished = false;
+
+        const basicCrawler = new Apify.BasicCrawler({
+            requestQueue,
+            minConcurrency: 1,
+            maxConcurrency: 1,
+            handleRequestFunction: async ({ request }) => {
+                await delayPromise(10);
+                processed.push(request);
+            },
+            isFinishedFunction: () => {
+                return Promise.resolve(isFinished);
+            },
+        });
+
+        const request0 = new Apify.Request({ url: 'http://example.com/0' });
+        const request1 = new Apify.Request({ url: 'http://example.com/1' });
+
+        const mock = sinon.mock(requestQueue);
+        mock.expects('markRequestHandled').once().withArgs(request0).returns(Promise.resolve());
+        mock.expects('markRequestHandled').once().withArgs(request1).returns(Promise.resolve());
+        mock.expects('isFinished').never();
+        requestQueue.fetchNextRequest = () => Promise.resolve(queue.pop());
+        requestQueue.isEmpty = () => Promise.resolve(!queue.length);
+
+        setTimeout(() => queue.push(request0), 2000);
+        setTimeout(() => queue.push(request1), 2500);
+        setTimeout(() => { isFinished = true; }, 3500);
+
+        await basicCrawler.run();
+
+        expect(processed).to.be.eql([request0, request1]);
+    });
 });
