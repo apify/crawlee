@@ -6,7 +6,7 @@ import sinon from 'sinon';
 import { delayPromise } from 'apify-shared/utilities';
 import * as Apify from '../build/index';
 import { ACTOR_EVENT_NAMES } from '../build/constants';
-import { LOG_INFO_INTERVAL, SCALE_UP_MAX_STEP } from '../build/autoscaled_pool';
+import { LOG_INFO_INTERVAL, SCALE_UP_MAX_STEP, SCALE_DOWN_INTERVAL } from '../build/autoscaled_pool';
 import * as utils from '../build/utils';
 
 chai.use(chaiAsPromised);
@@ -131,7 +131,7 @@ describe('AutoscaledPool', () => {
         await pool._autoscale();
         expect(pool.concurrency).to.be.eql(1 + SCALE_UP_MAX_STEP);
 
-        // Should not do anything.
+        // Should not do anything when there is right amount of memory used.
         pool.concurrency = 10;
         pool.runningCount = 10;
         pool.intervalCounter = LOG_INFO_INTERVAL - 1;
@@ -141,13 +141,29 @@ describe('AutoscaledPool', () => {
         await pool._autoscale();
         expect(pool.concurrency).to.be.eql(10);
 
-        // Should scale down.
+        // Now there is not enough of memory but average from last SCALE_DOWN_INTERVAL snapshots is still ok.
         pool.concurrency = 10;
         pool.runningCount = 10;
-        pool.intervalCounter = LOG_INFO_INTERVAL - 1;
+        mock.expects('getMemoryInfo')
+            .exactly(3)
+            .returns(Promise.resolve({ freeBytes: toBytes(0.9), totalBytes: toBytes(10) }));
+        let promise = Promise.resolve();
+        for (let i = 0; i < 3; i++) {
+            promise = promise.then(() => {
+                pool.intervalCounter = LOG_INFO_INTERVAL - 1;
+                return pool._autoscale();
+            });
+        }
+        await promise;
+        expect(pool.concurrency).to.be.eql(10);
+
+        // Now the average is below threshold so pool scales down.
+        pool.concurrency = 10;
+        pool.runningCount = 10;
         mock.expects('getMemoryInfo')
             .once()
             .returns(Promise.resolve({ freeBytes: toBytes(0.9), totalBytes: toBytes(10) }));
+        pool.intervalCounter = LOG_INFO_INTERVAL - 1;
         await pool._autoscale();
         expect(pool.concurrency).to.be.eql(9);
 
@@ -209,6 +225,11 @@ describe('AutoscaledPool', () => {
         });
         const mock = sinon.mock(utils);
 
+        // Emit CPU overloaded events but not required emount so that we can still scale up.
+        for (let i = 0; i < SCALE_DOWN_INTERVAL - 1; i++) {
+            Apify.events.emit(ACTOR_EVENT_NAMES.CPU_INFO, { isCpuOverloaded: true });
+        }
+
         // Should scale up.
         pool.intervalCounter = LOG_INFO_INTERVAL - 1;
         pool.runningCount = pool.concurrency;
@@ -227,7 +248,7 @@ describe('AutoscaledPool', () => {
         await pool._autoscale();
         expect(pool.concurrency).to.be.eql(1 + (2 * SCALE_UP_MAX_STEP));
 
-        // Emit CPU overloaded = true event.
+        // Emit final CPU overloaded = true event.
         Apify.events.emit(ACTOR_EVENT_NAMES.CPU_INFO, { isCpuOverloaded: true });
 
         // Should scale up but because of CPU overloaded event it always scales down.
@@ -360,7 +381,6 @@ describe('AutoscaledPool', () => {
      * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
      */
 
-
     it('[DEPRECATED] should work with concurrency 1', async () => {
         const range = _.range(0, 10);
         const result = [];
@@ -463,7 +483,7 @@ describe('AutoscaledPool', () => {
         await pool._autoscale();
         expect(pool.concurrency).to.be.eql(1 + SCALE_UP_MAX_STEP);
 
-        // Should not do anything.
+        // Should not do anything when there is right amount of memory used.
         pool.concurrency = 10;
         pool.runningCount = 10;
         pool.intervalCounter = LOG_INFO_INTERVAL - 1;
@@ -473,13 +493,29 @@ describe('AutoscaledPool', () => {
         await pool._autoscale();
         expect(pool.concurrency).to.be.eql(10);
 
-        // Should scale down.
+        // Now there is not enough of memory but average from last SCALE_DOWN_INTERVAL snapshots is still ok.
         pool.concurrency = 10;
         pool.runningCount = 10;
-        pool.intervalCounter = LOG_INFO_INTERVAL - 1;
+        mock.expects('getMemoryInfo')
+            .exactly(3)
+            .returns(Promise.resolve({ freeBytes: toBytes(0.9), totalBytes: toBytes(10) }));
+        let promise = Promise.resolve();
+        for (let i = 0; i < 3; i++) {
+            promise = promise.then(() => {
+                pool.intervalCounter = LOG_INFO_INTERVAL - 1;
+                return pool._autoscale();
+            });
+        }
+        await promise;
+        expect(pool.concurrency).to.be.eql(10);
+
+        // Now the average is below threshold so pool scales down.
+        pool.concurrency = 10;
+        pool.runningCount = 10;
         mock.expects('getMemoryInfo')
             .once()
             .returns(Promise.resolve({ freeBytes: toBytes(0.9), totalBytes: toBytes(10) }));
+        pool.intervalCounter = LOG_INFO_INTERVAL - 1;
         await pool._autoscale();
         expect(pool.concurrency).to.be.eql(9);
 
@@ -521,6 +557,11 @@ describe('AutoscaledPool', () => {
         });
         const mock = sinon.mock(utils);
 
+        // Emit CPU overloaded events but not required emount so that we can still scale up.
+        for (let i = 0; i < SCALE_DOWN_INTERVAL - 1; i++) {
+            Apify.events.emit(ACTOR_EVENT_NAMES.CPU_INFO, { isCpuOverloaded: true });
+        }
+
         // Should scale up.
         pool.intervalCounter = LOG_INFO_INTERVAL - 1;
         pool.runningCount = pool.concurrency;
@@ -539,7 +580,7 @@ describe('AutoscaledPool', () => {
         await pool._autoscale();
         expect(pool.concurrency).to.be.eql(1 + (2 * SCALE_UP_MAX_STEP));
 
-        // Emit CPU overloaded = true event.
+        // Emit final CPU overloaded = true event.
         Apify.events.emit(ACTOR_EVENT_NAMES.CPU_INFO, { isCpuOverloaded: true });
 
         // Should scale up but because of CPU overloaded event it always scales down.
