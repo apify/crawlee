@@ -6,9 +6,6 @@ import { getMemoryInfo, isPromise } from './utils';
 import { events } from './actor';
 import { ACTOR_EVENT_NAMES } from './constants';
 
-// TODO: we should scale down less aggressively - ie. scale down only if CPU or memory
-//       gets exceeded for some longer period of time ...
-
 const MEM_CHECK_INTERVAL_MILLIS = 200; // This is low to have at least.
 const MIN_FREE_MEMORY_RATIO = 0.1; // Minimum amount of memory that we keep free.
 const DEFAULT_OPTIONS = {
@@ -139,7 +136,7 @@ export default class AutoscaledPool {
         this.concurrency = minConcurrency;
         this.runningCount = 0;
         this.freeBytesSnapshots = [];
-        this.isCpuOverloaded = false;
+        this.isCpuOverloadedSnapshots = [false];
         this.queryingIsTaskReady = false;
         this.queryingIsFinished = false;
 
@@ -156,7 +153,9 @@ export default class AutoscaledPool {
         // Connect to actor events for CPU info.
         // TODO: This doesn't work on local machine!
         this.cpuInfoListener = (data) => {
-            this.isCpuOverloaded = data.isCpuOverloaded;
+            this.isCpuOverloadedSnapshots = this.isCpuOverloadedSnapshots
+                .concat(data.isCpuOverloaded)
+                .slice(-SCALE_DOWN_INTERVAL);
         };
         events.on(ACTOR_EVENT_NAMES.CPU_INFO, this.cpuInfoListener);
     }
@@ -214,31 +213,63 @@ export default class AutoscaledPool {
                 this.intervalCounter++;
                 this.freeBytesSnapshots = this.freeBytesSnapshots.concat(freeBytes).slice(-SCALE_UP_INTERVAL);
 
-                // Maybe scale down.
-                if (
-                    this.intervalCounter % SCALE_DOWN_INTERVAL === 0
-                    && this.concurrency > this.minConcurrency
-                    && (this.isCpuOverloaded || freeBytes / totalBytes < this.minFreeMemoryRatio)
-                ) {
-                    this.concurrency--;
-                    log.debug('AutoscaledPool: scaling down', { concurrency: this.concurrency });
+                const scaledDown = this._maybeScaleDown(totalBytes);
 
-                // Maybe scale up.
-                } else if (
-                    this.intervalCounter % SCALE_UP_INTERVAL === 0
-                    && this.concurrency < this.maxConcurrency
-                ) {
-                    const spaceForInstances = this._computeSpaceForInstances(totalBytes, this.intervalCounter % LOG_INFO_INTERVAL);
-
-                    if (spaceForInstances > 0) {
-                        const increaseBy = Math.min(spaceForInstances, SCALE_UP_MAX_STEP);
-                        const oldConcurrency = this.concurrency;
-                        this.concurrency = Math.min(this.concurrency + increaseBy, this.maxConcurrency);
-                        log.debug('AutoscaledPool: scaling up', { oldConcurrency, newConcurrency: this.concurrency });
-                    }
-                }
+                if (!scaledDown) this._maybeScaleUp(totalBytes);
             })
             .catch(err => log.exception(err, 'AutoscaledPool._autoscale() function failed'));
+    }
+
+    /**
+     * Scales pool down if there is enough memory and CPU.
+     *
+     * @return true if concurrency was changed
+     * @ignore
+     */
+    _maybeScaleDown(totalBytes) {
+        if (this.intervalCounter % SCALE_DOWN_INTERVAL !== 0 || this.concurrency <= this.minConcurrency) return false;
+
+        const snapshots = this.freeBytesSnapshots.slice(-SCALE_DOWN_INTERVAL);
+        const averageFreeBytes = snapshots.reduce((sum, c) => sum + c, 0) / snapshots.length;
+        const isMemoryOverloaded = averageFreeBytes / totalBytes < this.minFreeMemoryRatio;
+        const isCpuOverloaded = _.all(this.isCpuOverloadedSnapshots);
+
+        if (!isCpuOverloaded && !isMemoryOverloaded) return false;
+
+        this.concurrency--;
+        log.debug('AutoscaledPool: scaling down', {
+            oldConcurrency: this.concurrency - 1,
+            newConcurrency: this.concurrency,
+            isMemoryOverloaded,
+            isCpuOverloaded,
+        });
+
+        return true;
+    }
+
+    /**
+     * Scales pool up if there is enough memory and CPU.
+     *
+     * @return true if concurrency was changed
+     * @ignore
+     */
+    _maybeScaleUp(totalBytes) {
+        if (this.intervalCounter % SCALE_UP_INTERVAL !== 0 || this.concurrency >= this.maxConcurrency) return false;
+
+        const spaceForInstances = this._computeSpaceForInstances(totalBytes, this.intervalCounter % LOG_INFO_INTERVAL);
+
+        if (spaceForInstances <= 0) return false;
+
+        const increaseBy = Math.min(spaceForInstances, SCALE_UP_MAX_STEP);
+        const oldConcurrency = this.concurrency;
+
+        this.concurrency = Math.min(this.concurrency + increaseBy, this.maxConcurrency);
+        log.debug('AutoscaledPool: scaling up', {
+            oldConcurrency,
+            newConcurrency: this.concurrency,
+        });
+
+        return true;
     }
 
     /**
