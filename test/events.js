@@ -123,7 +123,7 @@ describe('Apify.events', () => {
         const eventsReceived = [];
         Apify.events.on(ACTOR_EVENT_NAMES.PERSIST_STATE, data => eventsReceived.push(data));
         await Apify.initializeEvents();
-        await delayPromise(109);
+        await delayPromise(115);
         await Apify.stopEvents();
         expect(eventsReceived.length).to.be.eql(5);
         await delayPromise(50);
