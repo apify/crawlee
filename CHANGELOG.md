@@ -10,6 +10,7 @@ xxxxxx / xxxxxxxxxx
 - Apify package now supports Node 7 and newer.
 - `AutoscaledPool` now scales down less aggresively.
 - `PuppeteerCrawler` and `BasicCrawler` now allow its underlying `AutoscaledPool` function `isFunction` to be overriden.
+- New events `persistState` and `migrating` added. Check documentation of `Apify.events` for more information.
 
 0.5.17 / 2018-03-27
 ===================
