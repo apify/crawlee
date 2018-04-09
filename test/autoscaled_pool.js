@@ -6,8 +6,7 @@ import sinon from 'sinon';
 import { delayPromise } from 'apify-shared/utilities';
 import * as Apify from '../build/index';
 import { ACTOR_EVENT_NAMES } from '../build/constants';
-// @TODO get a rid of
-import { LOG_INFO_INTERVAL, SCALE_UP_INTERVAL, SCALE_UP_MAX_STEP, SCALE_DOWN_INTERVAL } from '../build/autoscaled_pool';
+import { LOG_INFO_INTERVAL, SCALE_UP_MAX_STEP, SCALE_DOWN_INTERVAL } from '../build/autoscaled_pool';
 import * as utils from '../build/utils';
 
 chai.use(chaiAsPromised);
