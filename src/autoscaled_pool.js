@@ -3,7 +3,7 @@ import log from 'apify-shared/log';
 import _ from 'underscore';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { getMemoryInfo, isPromise } from './utils';
-import { events } from './actor';
+import events from './events';
 import { ACTOR_EVENT_NAMES } from './constants';
 
 // TODO: we should scale down less aggressively - ie. scale down only if CPU or memory
