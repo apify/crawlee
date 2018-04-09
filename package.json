@@ -44,11 +44,11 @@
   },
   "dependencies": {
     "apify-client": "^0.2.7",
-    "apify-shared": "0.0.23",
+    "apify-shared": "0.0.24",
     "bluebird": "^3.5.0",
     "content-type": "^1.0.3",
     "fs-extra": "^5.0.0",
-    "proxy-chain": "^0.1.2",
+    "proxy-chain": "^0.1.26",
     "request-promise": "^4.2.2",
     "underscore": "^1.8.3",
     "ws": "^5.1.0"
