@@ -179,25 +179,24 @@ export default class BasicCrawler {
                         // Retry request.
                         if (request.retryCount < this.maxRequestRetries) {
                             request.retryCount++;
-                            log.exception('Reclaiming failed request back to queue', {
+                            log.exception(error, 'Reclaiming failed request back to queue', {
                                 url: request.url,
                                 retryCount: request.retryCount,
-                                error,
                             });
 
                             return source.reclaimRequest(request);
                         }
 
-                        log.exception('Marking failed request handled', {
+                        log.exception(error, 'Marking failed request handled', {
                             url: request.url,
                             retryCount: request.retryCount,
-                            error,
                         });
 
                         // Mark as failed.
                         return source
                             .markRequestHandled(request)
                             .then(() => this.handleFailedRequestFunction({ request, error }));
+                    });
             });
     }
 
