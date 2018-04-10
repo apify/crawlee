@@ -22,15 +22,15 @@ For more information about the Apify Actor platform, please see https://www.apif
 - [Puppeteer](#puppeteer)
 - [Components](#components)
   * [Storages](#storages)
-    + [Key-value store [doc]](#key-value-store-doc)
-    + [Dataset [doc]](#dataset-doc)
-    + [Request queue [doc]](#request-queue-doc)
+    + [Key-value store [doc]](#key-value-store)
+    + [Dataset [doc]](#dataset)
+    + [Request queue [doc]](#request-queue)
   * [Helper Classes](#helper-classes)
-    + [Autoscaled Pool [doc]](#autoscaled-pool-doc)
-    + [Basic Crawler [doc]](#basic-crawler-doc)
-    + [Puppeteer Crawler [doc]](#puppeteer-crawler-doc)
-    + [Request List [doc]](#request-list-doc)
-    + [Puppeteer Pool [doc]](#puppeteer-pool-doc)
+    + [Autoscaled Pool [doc]](#autoscaled-pool)
+    + [Basic Crawler [doc]](#basic-crawler)
+    + [Puppeteer Crawler [doc]](#puppeteer-crawler)
+    + [Request List [doc]](#request-list)
+    + [Puppeteer Pool [doc]](#puppeteer-pool)
 - [Examples](#examples)
 
 <!-- tocstop -->
@@ -49,15 +49,15 @@ most common use-cases are:
   <li>
     If you want to <strong>crawl</strong> a website using for example <a href="https://www.npmjs.com/package/request" target="_blank">
     Request</a> package then take a look at <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#BasicCrawler" target="_blank">BasicCrawler</a>
-    in combination with <a href="#request-list-doc">RequestList</a> for fix list of urls
-    or <a href="#request-queue-doc">RequestQueue</a> for recursive crawl.
+    in combination with <a href="#request-list">RequestList</a> for fix list of urls
+    or <a href="#request-queue">RequestQueue</a> for recursive crawl.
   </li>
   <li>
     If you want to crawl a website using a real <strong>browser</strong>. Then use
-    <a href="#puppeteer-crawler-doc">PuppeteerCrawler</a> which uses
+    <a href="#puppeteer-crawler">PuppeteerCrawler</a> which uses
     <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a> (headless Chrome browser). PuppeteerCrawler supports
-    both <a href="#request-list-doc">RequestList</a> for fix list of urls
-    or <a href="#request-queue-doc">RequestQueue</a> for recursive crawl.
+    both <a href="#request-list">RequestList</a> for fix list of urls
+    or <a href="#request-queue">RequestQueue</a> for recursive crawl.
   </li>
 </ul>
 
@@ -72,11 +72,11 @@ we have few helper classes and functions:
     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-launchPuppeteer" target="_blank">Apify.launchPuppeteer()</a> function starts new instance of Puppeteer browser and returns its browser object.
   </li>
   <li>
-    <a href="#puppeteer-pool-doc">PuppeteerPool</a> helps to mantain a pool of Puppeteer instances. This is usefull
+    <a href="#puppeteer-pool">PuppeteerPool</a> helps to mantain a pool of Puppeteer instances. This is usefull
     when you need to restart browser after certain number of requests to rotate proxy servers.
   </li>
   <li>
-      <a href="#puppeteer-crawler-doc">PuppeteerCrawler</a> helps to crawl a <a href="#request-list-doc">RequestList</a> or <a href="#request-queue-doc">RequestQueue</a> in parallel using autoscaled pool.
+      <a href="#puppeteer-crawler">PuppeteerCrawler</a> helps to crawl a <a href="#request-list">RequestList</a> or <a href="#request-queue">RequestQueue</a> in parallel using autoscaled pool.
   </li>
 </ul>
 
@@ -86,7 +86,7 @@ we have few helper classes and functions:
 
 Apify package provides 3 storage types for commons use cases both locally and at Apify platform.
 
-#### Key-value store [<a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#KeyValueStore" target="_blank">doc</a>]
+#### Key-value store
 
 Key value store is simple storage that can be used for string or file (buffer) records.
 
@@ -98,7 +98,9 @@ await Apify.setValue('my-key', { foo: 'bar' });
 const value = await Apify.getValue('my-key');
 ```
 
-#### Dataset [<a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#Dataset" target="_blank">doc</a>]
+For more information see complete <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#KeyValueStore" target="_blank">documentation</a>.
+
+#### Dataset
 
 The dataset is a storage that enables saving and retrieval of sequential data objects — typically results of some long running operation such as scraping or data extraction.
 Dataset is immutable and allows only storing and retrieving of its items.
@@ -109,7 +111,9 @@ await Apify.pushData({ foo: 'bar' });
 await Apify.pushData({ myArray: [1, 2, 3] });
 ```
 
-#### Request queue [<a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue" target="_blank">doc</a>]
+For more information see complete <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#Dataset" target="_blank">documentation</a>.
+
+#### Request queue
 
 Request queue is used to manage a dynamic queue of web pages to crawl.
 
@@ -131,9 +135,11 @@ request2.pushErrorMessage('Request failed for network error!');
 queue.reclaimRequest(request2);
 ```
 
+For more information see complete <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue" target="_blank">documentation</a>.
+
 ### Helper Classes
 
-#### Autoscaled Pool [<a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#AutoscaledPool" target="_blank">doc</a>]
+#### Autoscaled Pool
 
 This class manages a pool of asynchronous resource-intensive tasks that are executed in parallel. The pool only starts new tasks if there is enough free memory and CPU capacity. The information about the CPU and memory usage is obtained either from the local system or from the Apify cloud infrastructure in case the process is running on the Apify Actor platform.
 
@@ -148,19 +154,23 @@ const pool = new Apify.AutoscaledPool({
 await pool.run();
 ```
 
-#### Basic Crawler [<a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#BasicCrawler" target="_blank">doc</a>]
+For more information see complete <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#AutoscaledPool" target="_blank">documentation</a>.
+
+#### Basic Crawler
 
 Provides a simple framework for parallel crawling of web pages from a list of URLs managed by the RequestList class or dynamically enqueued URLs managed by RequestQueue.
 
-For examples on how to use it see <a href="#examples">examples</a> section below.
+For examples on how to use it see <a href="#examples">examples</a> section below and also check
+<a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#BasicCrawler" target="_blank">documentation</a>.
 
-#### Puppeteer Crawler [<a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerCrawler" target="_blank">doc</a>]
+#### Puppeteer Crawler
 
 Provides a simple framework for parallel crawling of web pages using the headless Chrome with Puppeteer. The URLs of pages to visit are given by Request objects that are provided by the RequestList class or a dynamically enqueued requests provided by the RequestQueue class.
 
-For examples on how to use it see <a href="#examples">examples</a> section below.
+For examples on how to use it see <a href="#examples">examples</a> section below and also check
+<a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerCrawler" target="_blank">documentation</a>.
 
-#### Request List [<a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList" target="_blank">doc</a>]
+#### Request List
 
 Provides way to handle a list of URLs to be crawled. Each URL is reprented using an instance of the Request class.
 
@@ -184,7 +194,9 @@ request2.pushErrorMessage('Request failed for network error!');
 requestList.reclaimRequest(request2);
 ```
 
-#### Puppeteer Pool [<a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerPool" target="_blank">doc</a>]
+For more information see complete <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList" target="_blank">documentation</a>.
+
+#### Puppeteer Pool
 
 Provides a pool of Puppeteer (Chrome browser) instances. The class rotates the instances based on its configuration in order to change proxies.
 
@@ -201,6 +213,8 @@ const page3 = await puppeteerPool.newPage();
 // Close all the browsers.
 await puppeteerPool.destroy();
 ```
+
+For more information see complete <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerPool" target="_blank">documentation</a>.
 
 ## Examples
 
