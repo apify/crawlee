@@ -11,6 +11,8 @@ xxxxxx / xxxxxxxxxx
 - `AutoscaledPool` now scales down less aggresively.
 - `PuppeteerCrawler` and `BasicCrawler` now allow its underlying `AutoscaledPool` function `isFunction` to be overriden.
 - New events `persistState` and `migrating` added. Check documentation of `Apify.events` for more information.
+- `RequestList` has not parameter `persistStateKey`. If this is used than `RequestList` persists its state in default
+  key-value store in regular intervals.
 
 0.5.17 / 2018-03-27
 ===================
