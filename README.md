@@ -90,11 +90,11 @@ Apify CLI asks to you choose a template and then creates a directory `my_hello_w
 - files needed for optional deployment to Apify platform (`Dockerfile`, `apify.json`)
 - `node_modules` directory containing all the required NPM packages
 
-If you choose template `Puppeteer` then the `main.js` file looks like:
-
-const Apify = require('apify');
+If you chose template `Puppeteer` then the `main.js` file looks like:
 
 ```javascript
+const Apify = require('apify');
+
 Apify.main(async () => {
     const input = await Apify.getValue('INPUT');
 
@@ -116,7 +116,8 @@ Apify.main(async () => {
 });
 ```
 
-It simply takes a `url` field of its input opens that page using Puppeteer in Chrome browser and prints its title.
+It simply takes a `url` field of its input opens that page using
+<a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a> in Chrome browser and prints its title.
 Input is always stored in default key-value store of run. Local emulation of this store you can find in directory
 `apify_local/key-value-stores/default`. To create an input simply create a file `apify_local/key-value-stores/default/INPUT.json`
 containing:
