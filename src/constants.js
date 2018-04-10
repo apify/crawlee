@@ -48,4 +48,10 @@ consts.KEY_VALUE_STORE_KEYS = {
     OUTPUT: 'OUTPUT',
 };
 
+/**
+ * These events are just internal for Apify package so we don't need them
+ * in apify-shared package.
+ */
+consts.ACTOR_EVENT_NAMES.PERSIST_STATE = 'persistState';
+
 module.exports = consts;

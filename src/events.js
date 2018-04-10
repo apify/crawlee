@@ -46,6 +46,7 @@ let persistStateInterval = null;
  * <table class="table table-bordered table-condensed">
  *     <thead>
  *         <tr>
+ *             <th>Event</th>
  *             <th>Name</th>
  *             <th>Constant</th>
  *             <ht>Message</th>

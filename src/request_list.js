@@ -5,7 +5,10 @@ import Promise from 'bluebird';
 import requestPromise from 'request-promise';
 import { sequentializePromises } from 'apify-shared/utilities';
 import Request from './request';
+import events from './events';
+import { ACTOR_EVENT_NAMES } from './constants';
 import { getFirstKey } from './utils';
+import { getValue, setValue } from './key_value_store';
 
 // TODO: better tests
 const URL_REGEX = '(http|https)://[\\w-]+(\\.[\\w-]+)+([\\w-.,@?^=%&:/~+#-]*[\\w@?^=%&;/~+#-])?';
@@ -43,16 +46,9 @@ const ensureUniqueKeyValid = (uniqueKey) => {
  *         // Note that all URLs must start with http:// or https://
  *         { requestsFromUrl: 'http://www.example.com/my-url-list.txt', userData: { isFromUrl: true } },
  *     ],
- *     // Initialize from previous state if act was restarted due to some error
- *     state: await Apify.getValue('my-request-list-state'),
  * });
  *
  * await requestList.initialize(); // Load requests.
- *
- * // Save state of the RequestList instance every 5 seconds.
- * setInterval(() => {
- *      Apify.setValue('my-request-list-state', requestList.getState());
- * }, 5000);
  *
  * // Get requests from list
  * const request1 = requestList.fetchNextRequest();
@@ -87,18 +83,24 @@ const ensureUniqueKeyValid = (uniqueKey) => {
  *     },
  * }
  * ```
+ * @param {String} [options.persistStateKey] Key-value store key under which RequestList persists its state. If this is set then RequestList
+ *                                           persists its state in regular intervals and loads the state from there in a case thats restarted
+ *                                           due to some error or migration to another worker machine.
  */
 export default class RequestList {
     constructor(opts = {}) {
         checkParamOrThrow(opts, 'options', 'Object');
 
-        const { sources, state } = opts;
+        const { sources, persistStateKey, state } = opts;
 
         checkParamOrThrow(sources, 'options.sources', 'Array');
         checkParamOrThrow(state, 'options.state', 'Maybe Object');
+        checkParamOrThrow(persistStateKey, 'options.persistStateKey', 'Maybe String');
 
         // We will initialize everything from this state in this.initialize();
-        this.initialState = state;
+        this.initialStatePromise = persistStateKey && !state
+            ? getValue(persistStateKey)
+            : Promise.resolve(state);
 
         // Array of all requests from all sources, in the order as they appeared in sources.
         // All requests in the array have distinct uniqueKey!
@@ -118,6 +120,10 @@ export default class RequestList {
         // The key is uniqueKey, value is true.
         // Note that reclaimedRequests is always a subset of inProgressRequests!
         this.reclaimed = {};
+
+        // If this key is set then we persist url list into default key-value store under this key.
+        this.persistStateKey = persistStateKey;
+        this.isStatePersisted = true;
 
         this.isLoading = false;
         this.isInitialized = false;
@@ -143,9 +149,8 @@ export default class RequestList {
         this.isLoading = true;
 
         return sequentializePromises(this.loadSourcesPromiseGenerators)
-            .then(() => {
-                const state = this.initialState;
-
+            .then(() => this.initialStatePromise)
+            .then((state) => {
                 if (!state) return;
 
                 // Restore state
@@ -174,6 +179,20 @@ export default class RequestList {
             })
             .then(() => {
                 this.isInitialized = true;
+
+                if (!this.persistStateKey) return;
+
+                events.on(ACTOR_EVENT_NAMES.PERSIST_STATE, () => {
+                    if (this.isStatePersisted) return;
+
+                    return setValue(this.persistStateKey, this.getState())
+                        .then(() => {
+                            this.isStatePersisted = true;
+                        })
+                        .catch((err) => {
+                            log.exception(err, 'Cannot persist state of UrlList', { persistStateKey: this.persistStateKey });
+                        });
+                });
             });
     }
 
@@ -249,6 +268,7 @@ export default class RequestList {
                     const request = this.requests[this.nextIndex];
                     this.inProgress[request.uniqueKey] = true;
                     this.nextIndex++;
+                    this.isStatePersisted = false;
                     return request;
                 }
 
@@ -274,6 +294,7 @@ export default class RequestList {
                 this._ensureIsInitialized();
 
                 delete this.inProgress[uniqueKey];
+                this.isStatePersisted = false;
             });
     }
 
