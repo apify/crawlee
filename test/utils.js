@@ -182,12 +182,19 @@ describe('utils.isPromise()', () => {
     });
 });
 
-describe('utils.isPromise()', () => {
+describe('utils.checkParamPrototypeOrThrow()', () => {
     it('works', () => {
+        // One prototype
         expect(() => utils.checkParamPrototypeOrThrow(new Date(), 'param', Date, 'Date')).to.not.throw();
         expect(() => utils.checkParamPrototypeOrThrow(null, 'param', Function, 'Date', true)).to.not.throw();
         expect(() => utils.checkParamPrototypeOrThrow(undefined, 'param', Function, 'Date', true)).to.not.throw();
         expect(() => utils.checkParamPrototypeOrThrow(new Date(), 'param', Function, 'Date')).to.throw();
+
+        // Multiple prototypes
+        expect(() => utils.checkParamPrototypeOrThrow(new Date(), 'param', [Date, Function], 'Date')).to.not.throw();
+        expect(() => utils.checkParamPrototypeOrThrow(new Date(), 'param', [Function, Date], 'Date')).to.not.throw();
+        expect(() => utils.checkParamPrototypeOrThrow(new Date(), 'param', [Function, String], 'Date')).to.throw();
+        expect(() => utils.checkParamPrototypeOrThrow(new Date(), 'param', [], 'Date')).to.throw();
     });
 });
 

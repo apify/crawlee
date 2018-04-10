@@ -4,7 +4,7 @@ import log from 'apify-shared/log';
 import { isPromise, checkParamPrototypeOrThrow } from './utils';
 import AutoscaledPool from './autoscaled_pool';
 import RequestList from './request_list';
-import { RequestQueue } from './request_queue';
+import { RequestQueue, RequestQueueLocal } from './request_queue';
 
 const DEFAULT_OPTIONS = {
     maxRequestRetries: 3,
@@ -78,7 +78,7 @@ export default class BasicCrawler {
         } = _.defaults(opts, DEFAULT_OPTIONS);
 
         checkParamPrototypeOrThrow(requestList, 'opts.requestList', RequestList, 'Apify.RequestList', true);
-        checkParamPrototypeOrThrow(requestQueue, 'opts.requestQueue', RequestQueue, 'Apify.RequestQueue', true);
+        checkParamPrototypeOrThrow(requestQueue, 'opts.requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue', true);
         checkParamOrThrow(handleRequestFunction, 'opts.handleRequestFunction', 'Function');
         checkParamOrThrow(handleFailedRequestFunction, 'opts.handleFailedRequestFunction', 'Function');
         checkParamOrThrow(maxRequestRetries, 'opts.maxRequestRetries', 'Number');
