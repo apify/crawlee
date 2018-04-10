@@ -24,7 +24,7 @@ Apify.main(async () => {
             const pageHtml = await rp(request.url);
 
             console.log(`Request ${request.url} succeeded with return html of length ${pageHtml.length}`);
-            
+
             await Apify.pushData({
                 url: request.url,
                 html: pageHtml,
@@ -35,9 +35,9 @@ Apify.main(async () => {
         // If request failed 4 times then this function is executed.
         handleFailedRequestFunction: async ({ request }) => {
             console.log(`Request ${request.url} failed 4 times`);
-            
+
             console.log(request);
-            
+
             await Apify.pushData({
                 url: request.url,
                 html: null,

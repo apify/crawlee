@@ -22,7 +22,7 @@ Apify.main(async () => {
             const pageTitle = await page.title();
 
             console.log(`Request ${request.url} succeeded and it's title is ${pageTitle}`);
-            
+
             await Apify.pushData({
                 url: request.url,
                 pageTitle,
