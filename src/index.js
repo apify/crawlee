@@ -1,9 +1,10 @@
 import log from 'apify-shared/log';
 import { ENV_VARS } from './constants';
-import { main, readyFreddy, getEnv, call, getApifyProxyUrl, events, initializeEvents } from './actor';
+import { main, readyFreddy, getEnv, call, getApifyProxyUrl } from './actor';
 import AutoscaledPool from './autoscaled_pool';
 import BasicCrawler from './basic_crawler';
 import { pushData, openDataset } from './dataset';
+import events, { initializeEvents, stopEvents } from './events';
 import { getValue, setValue, openKeyValueStore } from './key_value_store';
 import { launchPuppeteer } from './puppeteer';
 import PuppeteerCrawler from './puppeteer_crawler';
@@ -166,8 +167,6 @@ if (!isProduction() || process.env[ENV_VARS.LOG_LEVEL] === 'DEBUG') log.isDebugM
 module.exports = {
     // Actor
     main,
-    events,
-    initializeEvents,
     getEnv,
     call,
     readyFreddy,
@@ -183,6 +182,11 @@ module.exports = {
     // Dataset
     pushData,
     openDataset,
+
+    // Events
+    events,
+    initializeEvents,
+    stopEvents,
 
     // Key-value store
     getValue,

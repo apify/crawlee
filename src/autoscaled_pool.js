@@ -3,7 +3,7 @@ import log from 'apify-shared/log';
 import _ from 'underscore';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { getMemoryInfo, isPromise } from './utils';
-import { events } from './actor';
+import events from './events';
 import { ACTOR_EVENT_NAMES } from './constants';
 
 const MEM_CHECK_INTERVAL_MILLIS = 200; // This is low to have at least.

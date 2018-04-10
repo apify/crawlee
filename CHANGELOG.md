@@ -6,7 +6,11 @@ xxxxxx / xxxxxxxxxx
 - `AutoscaledPool` was completely redesigned. Check documentation for reference. It still supports previous
   configuration parameters for backwards compatibility but in the future compatibility will break.
 - `launchPuppeteer()` changes `User-Agent` only when in headless mode or if not using full Google Chrome,
-  to reduce chance of detection of the crawler
+  to reduce chance of detection of the crawler.
+- Apify package now supports Node 7 and newer.
+- `AutoscaledPool` now scales down less aggresively.
+- `PuppeteerCrawler` and `BasicCrawler` now allow its underlying `AutoscaledPool` function `isFunction` to be overriden.
+- New events `persistState` and `migrating` added. Check documentation of `Apify.events` for more information.
 
 0.5.17 / 2018-03-27
 ===================
