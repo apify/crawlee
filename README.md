@@ -168,7 +168,7 @@ we have few helper classes and functions:
 
 <ul>
   <li>
-    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-launchPuppeteer" target="_blank">Apify.launchPuppeteer()</a> function starts new instance of Puppeteer browser and returns its browser object.
+    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-launchPuppeteer" target="_blank">launchPuppeteer()</a> function starts new instance of Puppeteer browser and returns its browser object.
   </li>
   <li>
     <a href="#puppeteer-pool">PuppeteerPool</a> helps to mantain a pool of Puppeteer instances. This is usefull
@@ -178,6 +178,17 @@ we have few helper classes and functions:
       <a href="#puppeteer-crawler">PuppeteerCrawler</a> helps to crawl a <a href="#request-list">RequestList</a> or <a href="#request-queue">RequestQueue</a> in parallel using autoscaled pool.
   </li>
 </ul>
+
+```javascript
+const url = 'http://news.ycombinator.com';
+
+const browser = await Apify.launchPuppeteer();
+const page = await browser.newPage();
+await page.goto(url);
+const title = await page.title();
+
+console.log(`Title of the page "${url}" is "${title}".`);
+```
 
 ## Components
 
