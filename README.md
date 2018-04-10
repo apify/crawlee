@@ -342,3 +342,6 @@ and stores posts from the opened page in a <a href="#dataset">Dataset</a>. As a 
 Former example crawls page simply using NPM <a href="https://www.npmjs.com/package/request" target="_blank">request</a> and
 <a href="https://www.npmjs.com/package/cheerio" target="_blank">cheerio</a> packages and former one uses
 <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a> that provides full Chrome browser.
+
+- Crawling with request and cheerio
+- Crawling with Puppeteer
