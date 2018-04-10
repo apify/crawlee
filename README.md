@@ -122,7 +122,7 @@ Input is always stored in default key-value store of run. Local emulation of thi
 `apify_local/key-value-stores/default`. To create an input simply create a file `apify_local/key-value-stores/default/INPUT.json`
 containing:
 
-```javascript
+```json
 {
   "url": "http://news.ycombinator.com"
 }
