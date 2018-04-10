@@ -175,7 +175,7 @@ describe('dataset', () => {
             await expect(Apify.pushData(false)).to.be.rejectedWith(dataErrMsg);
             await expect(Apify.pushData(() => {})).to.be.rejectedWith(dataErrMsg);
 
-            const circularObj = { xxx: circularObj };
+            const circularObj = {};
             circularObj.xxx = circularObj;
             const jsonErrMsg = 'Converting circular structure to JSON';
             await expect(Apify.pushData(circularObj)).to.be.rejectedWith(jsonErrMsg);
