@@ -19,6 +19,7 @@ For more information about the Apify Actor platform, please see https://www.apif
 <!-- toc -->
 
 - [Common use-cases](#common-use-cases)
+- [Quick start](#quick-start)
 - [Puppeteer](#puppeteer)
 - [Components](#components)
   * [Storage](#storage)
