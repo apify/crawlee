@@ -21,7 +21,7 @@ For more information about the Apify Actor platform, please see https://www.apif
 - [Common use-cases](#common-use-cases)
 - [Puppeteer](#puppeteer)
 - [Components](#components)
-  * [Storages](#storages)
+  * [Storage](#storage)
     + [Key-value store](#key-value-store)
     + [Dataset](#dataset)
     + [Request queue](#request-queue)
@@ -61,6 +61,103 @@ most common use-cases are:
   </li>
 </ul>
 
+## Quick start
+
+To use Apify SDK you must have <a href="https://nodejs.org/en/" target="_blank">Node JS</a> (version 7.0.0 or newer) and
+<a href="https://www.npmjs.com" target="_blank">NPM</a> installed. If you have both then the easiest way how to start is to use
+<a href="https://github.com/apifytech/apify-cli" target="_blank">Apify CLI</a> (command line tool).
+
+Install the tool with:
+
+```bash
+npm -g install apify-cli
+```
+
+and create your project with:
+
+```bash
+apify create my_hello_world
+
+cd my_hello_world
+```
+
+Apify CLI asks to you choose a template and then creates a directory `my_hello_world` containing:
+
+- `package.json` with Apify SDK as dependency
+- `main.js` containing basic code for your project
+- `apify_local` directory containing local emultation of <a href="#storage">Apify storage types</a>
+- files needed for optional deployment to Apify platform (`Dockerfile`, `apify.json`)
+- `node_modules` directory containing all the required NPM packages
+
+If you choose template `Puppeteer` then the `main.js` file looks like:
+
+const Apify = require('apify');
+
+```javascript
+Apify.main(async () => {
+    const input = await Apify.getValue('INPUT');
+
+    if (!input || !input.url) throw new Error('INPUT must contain a url!');
+
+    console.log('Launching Puppeteer...');
+    const browser = await Apify.launchPuppeteer();
+
+    console.log(`Opening page ${input.url}...`);
+    const page = await browser.newPage();
+    await page.goto(input.url);
+    const title = await page.title();
+    console.log(`Title of the page "${input.url}" is "${title}".`);
+
+    console.log('Closing Puppeteer...');
+    await browser.close();
+
+    console.log('Done.');
+});
+```
+
+It simply takes a `url` field of its input opens that page using Puppeteer in Chrome browser and prints its title.
+Input is always stored in default key-value store of run. Local emulation of this store you can find in directory
+`apify_local/key-value-stores/default`. To create an input simply create a file `apify_local/key-value-stores/default/INPUT.json`
+containing:
+
+```javascript
+{
+  "url": "http://news.ycombinator.com"
+}
+```
+
+
+Now can then run you code with:
+
+```bash
+apify run
+```
+
+and see following output:
+
+```javascript
+Launching Puppeteer...
+
+Opening page http://news.ycombinator.com...
+
+Title of the page "http://news.ycombinator.com" is "Hacker News".
+
+Closing Puppeteer...
+
+Done.
+```
+
+
+Check <a href="#examples">examples</a> below to see what you can do with Apify SDK. After you are done with your code
+you can deploy your project to Apify platform with following 2 steps:
+
+```
+apify login
+apify push
+```
+
+
+
 ## Puppeteer
 <!-- Mirror this part to src/index.js -->
 
@@ -82,7 +179,7 @@ we have few helper classes and functions:
 
 ## Components
 
-### Storages
+### Storage
 
 Apify package provides 3 storage types for commons use cases both locally and at Apify platform.
 
