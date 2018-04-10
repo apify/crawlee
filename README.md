@@ -184,7 +184,7 @@ request2.pushErrorMessage('Request failed for network error!');
 requestList.reclaimRequest(request2);
 ```
 
-#### Puppeteer Pool
+#### Puppeteer Pool [<a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue">doc</a>]
 
 Provides a pool of Puppeteer (Chrome browser) instances. The class rotates the instances based on its configuration in order to change proxies.
 
