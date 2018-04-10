@@ -16,21 +16,6 @@ For more information about the Apify Actor platform, please see https://www.apif
 
 ## Table of Contents
 
-- [Common use-cases](#common-use-cases)
-- [Puppeteer](#puppeteer)
-- [Components](#components)
-  * [Storages](#storages)
-    + [Key-value store](#key-value-store)
-    + [Dataset](#dataset)
-    + [Request queue](#request-queue)
-  * [Helper Classes](#helper-classes)
-    + [Autoscaled Pool](#autoscaled-pool)
-    + [Basic Crawler](#basic-crawler)
-    + [Puppeteer Crawler](#puppeteer-crawler)
-    + [Request List](#request-list)
-    + [Puppeteer Pool](#puppeteer-pool)
-- [Examples](#examples)
-
 <!-- toc -->
 
 - [Common use-cases](#common-use-cases)
