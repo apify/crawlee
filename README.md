@@ -122,9 +122,9 @@ Input is always stored in default key-value store of run. Local emulation of thi
 `apify_local/key-value-stores/default`. To create an input simply create a file `apify_local/key-value-stores/default/INPUT.json`
 containing:
 
-```json
+```javascript
 {
-  "url": "http://news.ycombinator.com"
+  "url": "https://news.ycombinator.com"
 }
 ```
 
@@ -140,9 +140,9 @@ and see following output:
 ```
 Launching Puppeteer...
 
-Opening page http://news.ycombinator.com...
+Opening page https://news.ycombinator.com...
 
-Title of the page "http://news.ycombinator.com" is "Hacker News".
+Title of the page "https://news.ycombinator.com" is "Hacker News".
 
 Closing Puppeteer...
 
@@ -180,7 +180,7 @@ we have few helper classes and functions:
 </ul>
 
 ```javascript
-const url = 'http://news.ycombinator.com';
+const url = 'https://news.ycombinator.com';
 
 const browser = await Apify.launchPuppeteer();
 const page = await browser.newPage();
@@ -330,4 +330,13 @@ For more information see complete <a href="https://www.apify.com/docs/sdk/apify-
 
 ## Examples
 
-Directory `/examples` of this repo contains examples of different usages of this package.
+Directory <a href="https://github.com/apifytech/apify-js/tree/master/src">examples</a> of this repository demonstrates different usages of this package.
+
+### Recursive crawling
+
+Following 2 examples demonstrate recursive crawling of <a href="https://news.ycombinator.com">https://news.ycombinator.com</a>.
+Crawler starts at https://news.ycombinator.com and in each steps enqueue a new page linked by "more" button at the bottom of the page
+and stores posts from the opened page in <a href="#dataset">Dataset</a>. As a queue crawler uses <a href="#request-queue">Request Queue</a>.
+Former example crawls page simply using NPM <a href="https://www.npmjs.com/package/request" target="_blank">request</a> and
+<a href="https://www.npmjs.com/package/cheerio" target="_blank">cheerio</a> packages and former one uses
+<a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a> that provides full Chrome browser.
