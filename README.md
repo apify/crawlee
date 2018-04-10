@@ -49,15 +49,15 @@ most common use-cases are:
   <li>
     If you want to <strong>crawl</strong> a website using for example <a href="https://www.npmjs.com/package/request" target="_blank">
     Request</a> package then take a look at <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#BasicCrawler" target="_blank">BasicCrawler</a>
-    in combination with <a href="#request-list">RequestList</a> for fix list of urls
-    or <a href="#request-queue" target="_blank">RequestQueue</a> for recursive crawl.
+    in combination with <a href="#request-list-doc">RequestList</a> for fix list of urls
+    or <a href="#request-queue-doc">RequestQueue</a> for recursive crawl.
   </li>
   <li>
     If you want to crawl a website using a real <strong>browser</strong>. Then use
-    <a href="#puppeteer-crawler" target="_blank">PuppeteerCrawler</a> which uses
+    <a href="#puppeteer-crawler-doc">PuppeteerCrawler</a> which uses
     <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a> (headless Chrome browser). PuppeteerCrawler supports
-    both <a href="#request-list" target="_blank">RequestList</a> for fix list of urls
-    or <a href="#request-queue" target="_blank">RequestQueue</a> for recursive crawl.
+    both <a href="#request-list-doc">RequestList</a> for fix list of urls
+    or <a href="#request-queue-doc">RequestQueue</a> for recursive crawl.
   </li>
 </ul>
 
@@ -72,11 +72,11 @@ we have few helper classes and functions:
     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-launchPuppeteer" target="_blank">Apify.launchPuppeteer()</a> function starts new instance of Puppeteer browser and returns its browser object.
   </li>
   <li>
-    <a href="#puppeteer-pool" target="_blank">PuppeteerPool</a> helps to mantain a pool of Puppeteer instances. This is usefull
+    <a href="#puppeteer-pool-doc">PuppeteerPool</a> helps to mantain a pool of Puppeteer instances. This is usefull
     when you need to restart browser after certain number of requests to rotate proxy servers.
   </li>
   <li>
-      <a href="#puppeteer-crawler" target="_blank">PuppeteerCrawler</a> helps to crawl a <a href="#request-list">RequestList</a> or <a href="#request-queue" target="_blank">RequestQueue</a> in parallel using autoscaled pool.
+      <a href="#puppeteer-crawler-doc">PuppeteerCrawler</a> helps to crawl a <a href="#request-list-doc">RequestList</a> or <a href="#request-queue-doc">RequestQueue</a> in parallel using autoscaled pool.
   </li>
 </ul>
 
