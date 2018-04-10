@@ -46,12 +46,14 @@ let persistStateInterval = null;
  * <table class="table table-bordered table-condensed">
  *     <thead>
  *         <tr>
- *             <th>Event</th>
+ *             <th>Name</th>
+ *             <th>Constant</th>
  *             <ht>Message</th>
  *             <ht>Description</th>
  *     </thead>
  *     <tbody>
  *         <tr>
+ *             <td>cpuInfo</td>
  *             <td>`ACTOR_EVENT_NAMES.CPU_INFO`</td>
  *             <td>`{ "isCpuOverloaded": true }`</td>
  *             <td>
@@ -60,6 +62,7 @@ let persistStateInterval = null;
  *             </td>
  *         </tr>
  *         <tr>
+ *             <td>migrating</td>
  *             <td>`ACTOR_EVENT_NAMES.MIGRATING`</td>
  *             <td>`null`</td>
  *             <td>
@@ -68,6 +71,7 @@ let persistStateInterval = null;
  *             </td>
  *         </tr>
  *         <tr>
+ *             <td>persistState</td>
  *             <td>`ACTOR_EVENT_NAMES.PERSIST_STATE`</td>
  *             <td>`{ "isMigrating": true }`</td>
  *             <td>
