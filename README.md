@@ -137,7 +137,7 @@ apify run
 
 and see following output:
 
-```javascript
+```
 Launching Puppeteer...
 
 Opening page http://news.ycombinator.com...
