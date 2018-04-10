@@ -1,3 +1,19 @@
+xxxxxx / xxxxxxxxxx
+- `handleFailedRequestFunction` in both `BasicCrawler` and `PuppeteerCrawler` has now also error object
+  available in `ops.error`.
+- Request Queue storage type implemented. See documentation for more information.
+- `BasicCrawler` and `PuppeteerCrawler` now supports both `RequestList` and `RequestQueue`.
+- `AutoscaledPool` was completely redesigned. Check documentation for reference. It still supports previous
+  configuration parameters for backwards compatibility but in the future compatibility will break.
+- `launchPuppeteer()` changes `User-Agent` only when in headless mode or if not using full Google Chrome,
+  to reduce chance of detection of the crawler.
+- Apify package now supports Node 7 and newer.
+- `AutoscaledPool` now scales down less aggresively.
+- `PuppeteerCrawler` and `BasicCrawler` now allow its underlying `AutoscaledPool` function `isFunction` to be overriden.
+- New events `persistState` and `migrating` added. Check documentation of `Apify.events` for more information.
+- `RequestList` has not parameter `persistStateKey`. If this is used than `RequestList` persists its state in default
+  key-value store in regular intervals.
+
 0.5.17 / 2018-03-27
 ===================
 - Added `useChrome` flag to `launchPuppeteer()` function

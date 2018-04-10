@@ -1,23 +1,17 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import log from 'apify-shared/log';
 import _ from 'underscore';
+import Promise from 'bluebird';
 import requestPromise from 'request-promise';
 import { sequentializePromises } from 'apify-shared/utilities';
 import Request from './request';
+import events from './events';
+import { ACTOR_EVENT_NAMES } from './constants';
+import { getFirstKey } from './utils';
+import { getValue, setValue } from './key_value_store';
 
 // TODO: better tests
 const URL_REGEX = '(http|https)://[\\w-]+(\\.[\\w-]+)+([\\w-.,@?^=%&:/~+#-]*[\\w@?^=%&;/~+#-])?';
-
-/**
- * Helper function that returns the first key from plan object.
- *
- * @ignore
- */
-const getFirstKey = (dict) => {
-    for (const key in dict) { // eslint-disable-line guard-for-in, no-restricted-syntax
-        return key;
-    }
-};
 
 /**
  * Helper function that validates unique.
@@ -32,11 +26,12 @@ const ensureUniqueKeyValid = (uniqueKey) => {
 };
 
 /**
- * `RequestList` provides way to handle a list of URLs (i.e. requests) to be crawled.
+ * Pprovides way to handle a list of URLs to be crawled.
+ * Each URL is reprented using an instance of the `Request` class.
  *
- * `RequestList` has internal state where it remembers handled requests, requests in progress and also reclaimed requests.
- * State might be persisted in key-value store as shown in the example below so if an act get restarted (due to internal
- * error or restart of the host machine) then it may be initialized from previous state.
+ * `RequestList` has an internal state where it remembers handled requests, requests in progress and also reclaimed requests.
+ * The state might be persisted in a key-value store as shown in the example below so if an act is restarted (due to internal
+ * error or restart of the host machine) then the crawling can continue where it left off.
  *
  * Basic usage of `RequestList`:
  *
@@ -51,16 +46,9 @@ const ensureUniqueKeyValid = (uniqueKey) => {
  *         // Note that all URLs must start with http:// or https://
  *         { requestsFromUrl: 'http://www.example.com/my-url-list.txt', userData: { isFromUrl: true } },
  *     ],
- *     // Initialize from previous state if act was restarted due to some error
- *     state: await Apify.getValue('my-request-list-state'),
  * });
  *
  * await requestList.initialize(); // Load requests.
- *
- * // Save state of the RequestList instance every 5 seconds.
- * setInterval(() => {
- *      Apify.setValue('my-request-list-state', requestList.getState());
- * }, 5000);
  *
  * // Get requests from list
  * const request1 = requestList.fetchNextRequest();
@@ -74,6 +62,7 @@ const ensureUniqueKeyValid = (uniqueKey) => {
  * requestList.reclaimRequest(request2);
  * ```
  *
+ * @param {Object} options
  * @param {Array} options.sources Function that processes a request. It must return a promise.
  * ```javascript
  * [
@@ -94,14 +83,24 @@ const ensureUniqueKeyValid = (uniqueKey) => {
  *     },
  * }
  * ```
+ * @param {String} [options.persistStateKey] Key-value store key under which RequestList persists its state. If this is set then RequestList
+ *                                           persists its state in regular intervals and loads the state from there in a case thats restarted
+ *                                           due to some error or migration to another worker machine.
  */
 export default class RequestList {
-    constructor({ sources, state }) {
+    constructor(opts = {}) {
+        checkParamOrThrow(opts, 'options', 'Object');
+
+        const { sources, persistStateKey, state } = opts;
+
         checkParamOrThrow(sources, 'options.sources', 'Array');
         checkParamOrThrow(state, 'options.state', 'Maybe Object');
+        checkParamOrThrow(persistStateKey, 'options.persistStateKey', 'Maybe String');
 
         // We will initialize everything from this state in this.initialize();
-        this.initialState = state;
+        this.initialStatePromise = persistStateKey && !state
+            ? getValue(persistStateKey)
+            : Promise.resolve(state);
 
         // Array of all requests from all sources, in the order as they appeared in sources.
         // All requests in the array have distinct uniqueKey!
@@ -121,6 +120,10 @@ export default class RequestList {
         // The key is uniqueKey, value is true.
         // Note that reclaimedRequests is always a subset of inProgressRequests!
         this.reclaimed = {};
+
+        // If this key is set then we persist url list into default key-value store under this key.
+        this.persistStateKey = persistStateKey;
+        this.isStatePersisted = true;
 
         this.isLoading = false;
         this.isInitialized = false;
@@ -146,9 +149,8 @@ export default class RequestList {
         this.isLoading = true;
 
         return sequentializePromises(this.loadSourcesPromiseGenerators)
-            .then(() => {
-                const state = this.initialState;
-
+            .then(() => this.initialStatePromise)
+            .then((state) => {
                 if (!state) return;
 
                 // Restore state
@@ -177,6 +179,20 @@ export default class RequestList {
             })
             .then(() => {
                 this.isInitialized = true;
+
+                if (!this.persistStateKey) return;
+
+                events.on(ACTOR_EVENT_NAMES.PERSIST_STATE, () => {
+                    if (this.isStatePersisted) return;
+
+                    return setValue(this.persistStateKey, this.getState())
+                        .then(() => {
+                            this.isStatePersisted = true;
+                        })
+                        .catch((err) => {
+                            log.exception(err, 'Cannot persist state of UrlList', { persistStateKey: this.persistStateKey });
+                        });
+                });
             });
     }
 
@@ -201,50 +217,107 @@ export default class RequestList {
      * Returns `true` if the next call to fetchNextRequest() will return null, otherwise it returns `false`.
      * Note that even if the list is empty, there might be some pending requests currently being processed.
      *
-     * @returns {boolean}
+     * @returns {Promise<boolean>}
      */
     isEmpty() {
-        this._ensureIsInitialized();
+        return Promise
+            .resolve()
+            .then(() => {
+                this._ensureIsInitialized();
 
-        return !getFirstKey(this.reclaimed) && this.nextIndex >= this.requests.length;
+                return !getFirstKey(this.reclaimed) && this.nextIndex >= this.requests.length;
+            });
     }
 
     /**
      * Returns `true` if all requests were already handled and there are no more left.
      *
-     * @returns {boolean}
+     * @returns {Promise<boolean>}
      */
     isFinished() {
-        this._ensureIsInitialized();
+        return Promise
+            .resolve()
+            .then(() => {
+                this._ensureIsInitialized();
 
-        return !getFirstKey(this.inProgress) && this.nextIndex >= this.requests.length;
+                return !getFirstKey(this.inProgress) && this.nextIndex >= this.requests.length;
+            });
     }
 
     /**
      * Returns next request which is the reclaimed one if available or next upcoming request otherwise.
      *
-     * @returns {Request}
+     * @returns {Promise<Request>}
      */
     fetchNextRequest() {
-        this._ensureIsInitialized();
+        return Promise
+            .resolve()
+            .then(() => {
+                this._ensureIsInitialized();
 
-        // First return reclaimed requests if any.
-        const uniqueKey = getFirstKey(this.reclaimed);
-        if (uniqueKey) {
-            delete this.reclaimed[uniqueKey];
-            const index = this.uniqueKeyToIndex[uniqueKey];
-            return this.requests[index];
-        }
+                // First return reclaimed requests if any.
+                const uniqueKey = getFirstKey(this.reclaimed);
+                if (uniqueKey) {
+                    delete this.reclaimed[uniqueKey];
+                    const index = this.uniqueKeyToIndex[uniqueKey];
+                    return this.requests[index];
+                }
 
-        // Otherwise return next request.
-        if (this.nextIndex < this.requests.length) {
-            const request = this.requests[this.nextIndex];
-            this.inProgress[request.uniqueKey] = true;
-            this.nextIndex++;
-            return request;
-        }
+                // Otherwise return next request.
+                if (this.nextIndex < this.requests.length) {
+                    const request = this.requests[this.nextIndex];
+                    this.inProgress[request.uniqueKey] = true;
+                    this.nextIndex++;
+                    this.isStatePersisted = false;
+                    return request;
+                }
 
-        return null;
+                return null;
+            });
+    }
+
+    /**
+     * Marks request handled after successfull processing.
+     *
+     * @param {Request} request
+     *
+     * @returns {Promise}
+     */
+    markRequestHandled(request) {
+        return Promise
+            .resolve()
+            .then(() => {
+                const { uniqueKey } = request;
+
+                ensureUniqueKeyValid(uniqueKey);
+                this._ensureInProgressAndNotReclaimed(uniqueKey);
+                this._ensureIsInitialized();
+
+                delete this.inProgress[uniqueKey];
+                this.isStatePersisted = false;
+            });
+    }
+
+    /**
+     * Reclaims request to the list if its processing failed.
+     * The request will become available in the next `this.fetchNextRequest()`.
+     *
+     * @param {Request} request
+     *
+     * @returns {Promise}
+     */
+    reclaimRequest(request) {
+        return Promise
+            .resolve()
+            .then(() => {
+                const { uniqueKey } = request;
+
+                ensureUniqueKeyValid(uniqueKey);
+                this._ensureInProgressAndNotReclaimed(uniqueKey);
+                this._ensureIsInitialized();
+
+                this.reclaimed[uniqueKey] = true;
+            });
     }
 
     /**
@@ -335,35 +408,5 @@ export default class RequestList {
         if (!this.isInitialized) {
             throw new Error('RequestList is not initialized. You must call "await requestList.initialize();" before using it!');
         }
-    }
-
-    /**
-     * Marks request handled after successfull processing.
-     *
-     * @param {Request} request
-     */
-    markRequestHandled(request) {
-        const { uniqueKey } = request;
-
-        ensureUniqueKeyValid(uniqueKey);
-        this._ensureInProgressAndNotReclaimed(uniqueKey);
-        this._ensureIsInitialized();
-
-        delete this.inProgress[uniqueKey];
-    }
-
-    /**
-     * Reclaims request after unsuccessfull operation. Request will become available for next `this.fetchNextRequest()`.
-     *
-     * @param {Request} request
-     */
-    reclaimRequest(request) {
-        const { uniqueKey } = request;
-
-        ensureUniqueKeyValid(uniqueKey);
-        this._ensureInProgressAndNotReclaimed(uniqueKey);
-        this._ensureIsInitialized();
-
-        this.reclaimed[uniqueKey] = true;
     }
 }

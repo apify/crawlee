@@ -1,15 +1,17 @@
 import log from 'apify-shared/log';
 import { ENV_VARS } from './constants';
-import { main, readyFreddy, getEnv, call, getApifyProxyUrl, events, initializeEvents } from './actor';
+import { main, readyFreddy, getEnv, call, getApifyProxyUrl } from './actor';
 import AutoscaledPool from './autoscaled_pool';
 import BasicCrawler from './basic_crawler';
 import { pushData, openDataset } from './dataset';
+import events, { initializeEvents, stopEvents } from './events';
 import { getValue, setValue, openKeyValueStore } from './key_value_store';
 import { launchPuppeteer } from './puppeteer';
 import PuppeteerCrawler from './puppeteer_crawler';
 import PuppeteerPool from './puppeteer_pool';
 import Request from './request';
 import RequestList from './request_list';
+import { openRequestQueue } from './request_queue';
 import SettingsRotator from './settings_rotator';
 import { apifyClient, getMemoryInfo, isProduction } from './utils';
 import { browse, launchWebDriver } from './webdriver';
@@ -165,8 +167,6 @@ if (!isProduction() || process.env[ENV_VARS.LOG_LEVEL] === 'DEBUG') log.isDebugM
 module.exports = {
     // Actor
     main,
-    events,
-    initializeEvents,
     getEnv,
     call,
     readyFreddy,
@@ -183,7 +183,12 @@ module.exports = {
     pushData,
     openDataset,
 
-    // Key value store
+    // Events
+    events,
+    initializeEvents,
+    stopEvents,
+
+    // Key-value store
     getValue,
     setValue,
     openKeyValueStore,
@@ -193,9 +198,10 @@ module.exports = {
     PuppeteerPool,
     PuppeteerCrawler,
 
-    // Request
+    // Requests
     Request,
     RequestList,
+    openRequestQueue,
 
     // Settings rotator
     SettingsRotator,

@@ -37,17 +37,24 @@ export const computeUniqueKey = (url, keepUrlFragment) => normalizeUrl(url, keep
  * @param {Boolean} [opts.keepUrlFragment=false] If false then hash part is removed from url when computing `uniqueKey`.
  */
 export default class Request {
-    constructor({
-        url,
-        uniqueKey,
-        method = 'GET',
-        payload = null,
-        retryCount = 0,
-        errorMessages = null,
-        headers = {},
-        userData = {},
-        keepUrlFragment = false,
-    }) {
+    constructor(opts = {}) {
+        checkParamOrThrow(opts, 'opts', 'Object');
+
+        const {
+            id,
+            url,
+            uniqueKey,
+            method = 'GET',
+            payload = null,
+            retryCount = 0,
+            errorMessages = null,
+            headers = {},
+            userData = {},
+            keepUrlFragment = false,
+        } = opts;
+
+
+        checkParamOrThrow(id, 'id', 'Maybe String');
         checkParamOrThrow(url, 'url', 'String');
         checkParamOrThrow(uniqueKey, 'uniqueKey', 'Maybe String');
         checkParamOrThrow(method, 'method', 'String');
@@ -59,6 +66,7 @@ export default class Request {
 
         if (method === 'GET' && payload) throw new Error('Request with GET method cannot have a payload.');
 
+        this.id = id;
         this.url = url;
         this.uniqueKey = uniqueKey || computeUniqueKey(url, keepUrlFragment);
         this.method = method;

@@ -65,6 +65,8 @@ describe('PuppeteerCrawler', () => {
             { url: 'http://example.com/?q=1' },
         ];
         const failed = [];
+        const errors = [];
+        const expectErrorMsgString = 'timed out';
         const requestList = new Apify.RequestList({ sources });
         const handlePageFunction = async () => {
             await delayPromise(1000);
@@ -73,7 +75,10 @@ describe('PuppeteerCrawler', () => {
         const puppeteerCrawler = new Apify.PuppeteerCrawler({
             requestList,
             handlePageFunction,
-            handleFailedRequestFunction: ({ request }) => failed.push(request),
+            handleFailedRequestFunction: ({ request, error }) => {
+                failed.push(request);
+                errors.push(error);
+            },
             disableProxy: true,
             pageOpsTimeoutMillis: 900,
         });
@@ -86,7 +91,11 @@ describe('PuppeteerCrawler', () => {
         expect(failed[0].errorMessages).to.have.lengthOf(4);
         failed[0].errorMessages.forEach((error) => {
             expect(error).to.be.a('string');
-            expect(error).to.include('timed out');
+            expect(error).to.include(expectErrorMsgString);
+        });
+        errors.forEach((error) => {
+            expect(error).to.be.an('error');
+            expect(error.message).to.include(expectErrorMsgString);
         });
     });
 });

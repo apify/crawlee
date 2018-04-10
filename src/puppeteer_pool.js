@@ -1,5 +1,6 @@
 import _ from 'underscore';
 import log from 'apify-shared/log';
+import Promise from 'bluebird';
 import { cryptoRandomObjectId } from 'apify-shared/utilities';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { launchPuppeteer } from './puppeteer';
@@ -66,10 +67,10 @@ class PuppeteerInstance {
 }
 
 /**
- * PuppeteerPool class provides a pool of Puppeteer (Chrome browser) instances.
- * It rotates them based on it's configuration to change proxies.
+ * Provides a pool of Puppeteer (Chrome browser) instances.
+ * The class rotates the instances based on its configuration in order to change proxies.
  *
- * Example use:
+ * Example usage:
  *
  * ```javascript
  * const puppeteerPool = new PuppeteerPool({ groups: 'some-proxy-group' });
@@ -84,24 +85,22 @@ class PuppeteerInstance {
  * await puppeteerPool.destroy();
  * ```
  *
- * @param {Number} [options.maxOpenPagesPerInstance=100] Maximal number of opened tabs per browser. If limit is reached then the new
- *                                                        browser gets started. (See `maxOpenPagesPerInstance` parameter of `Apify.PuppeteerPool`)
- * @param {Number} [options.abortInstanceAfterRequestCount=150] Maximal number of requests proceeded from one browser. After that browser
- *                                                              gets restarted. (See `abortInstanceAfterRequestCount` parameter of
- *                                                              `Apify.PuppeteerPool`)
- * @param {Function} [options.launchPuppeteerFunction] Overrides how new Puppeteer instance gets launched. (See `launchPuppeteerFunction` parameter of
- *                                                     `Apify.PuppeteerPool`)
- * @param {Number} [options.instanceKillerIntervalMillis=60000] How often opened Puppeteer instances get checked if some of then might be
- *                                                              closed. (See `instanceKillerIntervalMillis` parameter of `Apify.PuppeteerPool`)
- * @param {Number} [options.killInstanceAfterMillis=300000] If Puppeteer instance reaches the limit options.abortInstanceAfterRequestCount then it's
- *                                                          considered retired and no more tabs will be opened. After the last tab get's closed the
- *                                                          whole browser gets closed. This defines limit of inactivity after the browser gets closed
- *                                                          even if there are pending tabs. (See `killInstanceAfterMillis` parameter of
- *                                                          `Apify.PuppeteerPool`)
+ * @param {Number} [options.maxOpenPagesPerInstance=100] Maximum number of open tabs per browser. If this limit is reached then a new
+ *                                                        browser will be started.
+ * @param {Number} [options.abortInstanceAfterRequestCount=150] Maximum number of requests processed by a single browser.
+ *                                                          After the limit is reach the browser
+ *                                                              will be restarted.
+ * @param {Function} [options.launchPuppeteerFunction] Overrides the default function to launch a new Puppeteer instance.
+ * @param {Number} [options.instanceKillerIntervalMillis=60000] How often opened Puppeteer instances are checked wheter they can be
+ *                                                              closed.
+ * @param {Number} [options.killInstanceAfterMillis=300000] If Puppeteer instance reaches the `options.abortInstanceAfterRequestCount` limit then
+ *                                                          it is considered retired and no more tabs will be opened. After the last tab is closed the
+ *                                                          whole browser is closed too. This parameter defines a time limit for inactivity after
+ *                                                          which the browser is closed even if there are pending open tabs.
  * @param {Object} [options.puppeteerConfig={ dumpio: process.env.NODE_ENV !== 'production', slowMo: 0, args: []}] Configuration of Puppeteer
- *                                                          instances. (See `puppeteerConfig` parameter of `Apify.PuppeteerPool`)
- * @param {Boolean} [options.disableProxy=false] Disables proxying thru Apify proxy. (See `disableProxy` parameter of `Apify.PuppeteerPool`)
- * @param {Array} [options.groups] Apify proxy groups to be used. (See `Apify.getApifyProxyUrl()` for more)
+ *                                                                                                                 instances.
+ * @param {Boolean} [options.disableProxy=false] Disables proxying through Apify proxy.
+ * @param {Array} [options.groups] Apify proxy groups to be used. See `Apify.getApifyProxyUrl()` for more details.
  */
 export default class PuppeteerPool {
     constructor(opts = {}) {
@@ -228,7 +227,12 @@ export default class PuppeteerPool {
         delete this.retiredInstances[id];
 
         // Ensure that Chrome process will be really killed.
-        setTimeout(() => childProcess.kill('SIGKILL'), PROCESS_KILL_TIMEOUT_MILLIS);
+        setTimeout(() => {
+            // This if is here because users reported that it happened
+            // that error `TypeError: Cannot read property 'kill' of null` was thrown.
+            // Likely Chrome process wasn't started for some error ...
+            if (childProcess) childProcess.kill('SIGKILL');
+        }, PROCESS_KILL_TIMEOUT_MILLIS);
 
         instance
             .browserPromise

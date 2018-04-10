@@ -30,6 +30,7 @@ consts.ENV_VARS = {
     TIMEOUT_AT: 'APIFY_TIMEOUT_AT',
     DEFAULT_KEY_VALUE_STORE_ID: 'APIFY_DEFAULT_KEY_VALUE_STORE_ID',
     DEFAULT_DATASET_ID: 'APIFY_DEFAULT_DATASET_ID',
+    DEFAULT_REQUEST_QUEUE_ID: 'APIFY_DEFAULT_REQUEST_QUEUE_ID',
     LOCAL_EMULATION_DIR: 'APIFY_LOCAL_EMULATION_DIR',
     WATCH_FILE: 'APIFY_WATCH_FILE',
     API_BASE_URL: 'APIFY_API_BASE_URL',
@@ -46,5 +47,11 @@ consts.KEY_VALUE_STORE_KEYS = {
     INPUT: 'INPUT',
     OUTPUT: 'OUTPUT',
 };
+
+/**
+ * These events are just internal for Apify package so we don't need them
+ * in apify-shared package.
+ */
+consts.ACTOR_EVENT_NAMES.PERSIST_STATE = 'persistState';
 
 module.exports = consts;
