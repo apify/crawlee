@@ -5,6 +5,8 @@ import Promise from 'bluebird';
 import requestPromise from 'request-promise';
 import { sequentializePromises } from 'apify-shared/utilities';
 import Request from './request';
+import events from './events';
+import { ACTOR_EVENT_NAMES } from './constants';
 import { getFirstKey } from './utils';
 
 // TODO: better tests
@@ -92,13 +94,16 @@ export default class RequestList {
     constructor(opts = {}) {
         checkParamOrThrow(opts, 'options', 'Object');
 
-        const { sources, state } = opts;
+        const { sources, persistStateKey, state } = opts;
 
         checkParamOrThrow(sources, 'options.sources', 'Array');
         checkParamOrThrow(state, 'options.state', 'Maybe Object');
+        checkParamOrThrow(persistStateKey, 'options.persistStateKey', 'Maybe String');
 
         // We will initialize everything from this state in this.initialize();
-        this.initialState = state;
+        this.initialStatePromise = persistStateKey && !state
+            ? getValue(persistStateKey)
+            : Promise.resolve(state);
 
         // Array of all requests from all sources, in the order as they appeared in sources.
         // All requests in the array have distinct uniqueKey!
@@ -118,6 +123,10 @@ export default class RequestList {
         // The key is uniqueKey, value is true.
         // Note that reclaimedRequests is always a subset of inProgressRequests!
         this.reclaimed = {};
+
+        // If this key is set then we persist url list into default key-value store under this key.
+        this.persistStateKey = persistStateKey;
+        this.isCurrentStatePersisted = true;
 
         this.isLoading = false;
         this.isInitialized = false;
@@ -143,9 +152,8 @@ export default class RequestList {
         this.isLoading = true;
 
         return sequentializePromises(this.loadSourcesPromiseGenerators)
-            .then(() => {
-                const state = this.initialState;
-
+            .then(() => this.initialStatePromise)
+            .then((state) => {
                 if (!state) return;
 
                 // Restore state
@@ -174,6 +182,17 @@ export default class RequestList {
             })
             .then(() => {
                 this.isInitialized = true;
+
+                if (!this.persistStateKey) return;
+
+                events.on(ACTOR_EVENT_NAMES.PERSIST_STATE, () => {
+                    if (this.isCurrentStatePersisted) return;
+
+                    return setValue(this.persistStateKey, this.getState())
+                        .catch((err) => {
+                            log.exception(err, 'Cannot persist state of UrlList', { persistStateKey: this.persistStateKey });
+                        });
+                });
             });
     }
 
@@ -249,6 +268,7 @@ export default class RequestList {
                     const request = this.requests[this.nextIndex];
                     this.inProgress[request.uniqueKey] = true;
                     this.nextIndex++;
+                    this.isCurrentStatePersisted = false;
                     return request;
                 }
 
@@ -274,6 +294,7 @@ export default class RequestList {
                 this._ensureIsInitialized();
 
                 delete this.inProgress[uniqueKey];
+                this.isCurrentStatePersisted = false;
             });
     }
 
