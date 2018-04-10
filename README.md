@@ -33,6 +33,9 @@ For more information about the Apify Actor platform, please see https://www.apif
     + [Request List](#request-list)
     + [Puppeteer Pool](#puppeteer-pool)
 - [Examples](#examples)
+  * [Recursive crawling](#recursive-crawling)
+  * [Crawling url list](#crawling-url-list)
+  * [Other](#other)
 
 <!-- tocstop -->
 
