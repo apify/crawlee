@@ -5,7 +5,7 @@ import 'babel-polyfill';
 import sinon from 'sinon';
 import { delayPromise } from 'apify-shared/utilities';
 import * as Apify from '../build/index';
-import { RequestQueue } from '../build/request_queue';
+import { RequestQueue, RequestQueueLocal } from '../build/request_queue';
 
 chai.use(chaiAsPromised);
 
@@ -135,6 +135,15 @@ describe('BasicCrawler', () => {
         expect(() => new Apify.BasicCrawler({ handleRequestFunction, requestList })).to.not.throw();
         expect(() => new Apify.BasicCrawler({ handleRequestFunction, requestQueue })).to.not.throw();
         expect(() => new Apify.BasicCrawler({ handleRequestFunction, requestQueue, requestList })).to.not.throw();
+    });
+
+    it('should also support RequestQueueLocal', () => {
+        const requestQueue = new RequestQueue('xxx');
+        const requestQueueLocal = new RequestQueueLocal('xxx', 'yyy');
+        const handleRequestFunction = () => {};
+
+        expect(() => new Apify.BasicCrawler({ handleRequestFunction, requestQueue })).to.not.throw();
+        expect(() => new Apify.BasicCrawler({ handleRequestFunction, requestQueue: requestQueueLocal })).to.not.throw();
     });
 
     it('should correctly combine RequestList and RequestQueue', async () => {

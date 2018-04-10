@@ -2,6 +2,7 @@ import Promise from 'bluebird';
 import contentTypeParser from 'content-type';
 import os from 'os';
 import fs from 'fs';
+import _ from 'underscore';
 import fsExtra from 'fs-extra';
 import ApifyClient from 'apify-client';
 import { ENV_VARS } from './constants';
@@ -175,17 +176,19 @@ export const isPromise = (maybePromise) => {
 };
 
 /**
- * Helper function for validation if parameter is an instance of given prototype.
+ * Helper function for validation if parameter is an instance of given prototype or multiple prototypes.
  * TODO: Move this to shared package along with checkParamOrThrow
  *
  * @ignore
  */
-export const checkParamPrototypeOrThrow = (paramVal, paramName, prototype, prototypeName, isOptional = false) => {
+export const checkParamPrototypeOrThrow = (paramVal, paramName, prototypes, prototypeName, isOptional = false) => {
     if (isOptional && (paramVal === undefined || paramVal === null)) return;
 
-    if (paramVal && !(paramVal instanceof prototype)) {
-        throw new Error(`Parameter "${paramName}" must be an instance of ${prototypeName}`);
-    }
+    const hasCorrectPrototype = prototypes instanceof Array
+        ? _.some(prototypes, prototype => paramVal instanceof prototype)
+        : paramVal instanceof prototypes;
+
+    if (!hasCorrectPrototype) throw new Error(`Parameter "${paramName}" must be an instance of ${prototypeName}`);
 };
 
 /**
