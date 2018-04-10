@@ -190,6 +190,8 @@ const title = await page.title();
 console.log(`Title of the page "${url}" is "${title}".`);
 ```
 
+For more information on Puppeteer see its <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">documenation</a>.
+
 ## Components
 
 ### Storage
