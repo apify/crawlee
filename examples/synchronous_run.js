@@ -1,14 +1,11 @@
 /**
  * This example shows shows act that has short runtime - just few seconds. It opens webpage
  * http://goldengatebridge75.org/news/webcam.html that contains webcam stream from Golden Gate
- * bridge, takes a screenshot and saves it as output.
+ * bridge, takes a screenshot and saves it as output. This makes act executable synchronously
+ * with single request that also returns its output.
  *
- * This way act can be executed synchronously and return that image in single call.
- *
- * This example is shared in library under: https://www.apify.com/apify/example-golden-gate-webcam
- *
- * So you can easily run it with request to:
- *
+ * Example is shared in library under https://www.apify.com/apify/example-golden-gate-webcam
+ * so you can easily run it with request to
  * https://api.apify.com/v2/acts/apify~example-golden-gate-webcam/run-sync?token=[YOUR_API_TOKEN]
  */
 
