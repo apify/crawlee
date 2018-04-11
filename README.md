@@ -4,7 +4,6 @@
 [![npm version](https://badge.fury.io/js/apify.svg)](http://badge.fury.io/js/apify)
 [![Build Status](https://travis-ci.org/apifytech/apify-js.svg)](https://travis-ci.org/apifytech/apify-js)
 
-
 The `apify` NPM package enables development of web scrapers, crawlers and web automation projects
 either locally or running on <a href="https://www.apify.com/docs/actor" target="_blank">Apify Actor</a> -
 a serverless computing platform that enables execution of arbitrary code in the cloud.
@@ -47,10 +46,6 @@ most common use-cases are:
 
 <ul>
   <li>
-    If you need to process high volume of <strong>asynchronous tasks in parallel</strong> then take a
-    look at <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#AutoscaledPool">AutoscaledPool</a>. This class executes defined tasks in a pool which size is scaled based on available memory and CPU.
-  </li>
-  <li>
     If you want to <strong>crawl</strong> a website using for example <a href="https://www.npmjs.com/package/request" target="_blank">
     Request</a> package then take a look at <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#BasicCrawler" target="_blank">BasicCrawler</a>
     in combination with <a href="#request-list">RequestList</a> for fix list of urls
@@ -59,9 +54,18 @@ most common use-cases are:
   <li>
     If you want to crawl a website using a real <strong>browser</strong>. Then use
     <a href="#puppeteer-crawler">PuppeteerCrawler</a> which uses
-    <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a> (headless Chrome browser). PuppeteerCrawler supports
+    <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a> (headless/non-headless Chrome browser). PuppeteerCrawler supports
     both <a href="#request-list">RequestList</a> for fix list of urls
     or <a href="#request-queue">RequestQueue</a> for recursive crawl.
+  </li>
+  <li>
+    If you need to process high volume of <strong>asynchronous tasks in parallel</strong> then take a
+    look at <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#AutoscaledPool">AutoscaledPool</a>. This class executes defined tasks in a pool which size is scaled based on available memory and CPU.
+  </li>
+  <li>
+    Do you want to automate filling of forms or any other web interaction then you can use
+    <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a> (headless/non-headless Chrome browser).
+    If you deploy your code to Apify platform then you can set up scheduler or execute your code with web API.
   </li>
 </ul>
 
@@ -166,7 +170,7 @@ apify push
 ## Puppeteer
 <!-- Mirror this part to src/index.js -->
 
-For those who are using <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a> (headless Chrome browser)
+For those who are using <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a> (headless/non-headless Chrome browser)
 we have few helper classes and functions:
 
 <ul>
@@ -280,7 +284,7 @@ For examples on how to use it see <a href="#examples">examples</a> section below
 
 #### Puppeteer Crawler
 
-Provides a simple framework for parallel crawling of web pages using the headless Chrome with Puppeteer. The URLs of pages to visit are given by Request objects that are provided by the RequestList class or a dynamically enqueued requests provided by the RequestQueue class.
+Provides a simple framework for parallel crawling of web pages using the headless/non-headless Chrome with Puppeteer. The URLs of pages to visit are given by Request objects that are provided by the RequestList class or a dynamically enqueued requests provided by the RequestQueue class.
 
 For examples on how to use it see <a href="#examples">examples</a> section below and also check
 <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerCrawler" target="_blank">documentation</a>.
