@@ -3,9 +3,9 @@
  *
  * Example uses:
  * - Apify PuppeteerCrawler to scrape pages using Puppeteer in parallel
- * - Puppeter to controll headless Chrome browser
  * - Apify Dataset to store data
  * - Apify RequestQueue to manage dynamic queue of pending and handled requests
+ * - Puppeter to controll headless Chrome browser
  */
 
 const Apify = require('apify');

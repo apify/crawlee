@@ -341,21 +341,28 @@ Following 2 examples demonstrate recursive crawling of <a href="https://news.yco
 Crawler starts at https://news.ycombinator.com and in each step enqueues a new page linked by "more" button at the bottom of the page
 and stores posts from the opened page in a <a href="#dataset">Dataset</a>. As a queue crawler uses <a href="#request-queue">Request Queue</a>.
 
-Former example crawls page simply using NPM <a href="https://www.npmjs.com/package/request" target="_blank">request</a> and
-<a href="https://www.npmjs.com/package/cheerio" target="_blank">cheerio</a> packages and former one uses
+Former example crawls page simply using NPM <a href="https://www.npmjs.com/package/request" target="_blank">Request</a> and
+<a href="https://www.npmjs.com/package/cheerio" target="_blank">Cheerio</a> packages and former one uses
 <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a> that provides full Chrome browser.
 
-- Crawling with request and cheerio
 - <a href="./examples/crawler_puppeteer.js">Crawling with Puppeteer</a>
-- <a href="./examples/crawler_cheerio.js">Crawling with cheerio and request NPM packages</a>
+- <a href="./examples/crawler_cheerio.js">Crawling with Cheerio and Request NPM packages</a>
 
 ### Crawling url list
 
-- Crawling url list with request and cheerio
-- Crawling url list with Puppeteer
+These examples show how to scrape data from a fix list of urls using
+<a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a> or
+<a href="https://www.npmjs.com/package/request" target="_blank">Request</a> and
+<a href="https://www.npmjs.com/package/cheerio" target="_blank">Cheerio</a>.
+
+- <a href="./examples/url_list_puppeteer.js">Crawling with Puppeteer</a>
+- <a href="./examples/url_list_cheerio.js">Crawling with Cheerio and Request NPM packages</a>
+
+### Call to another act
+
+This example shows how to check XXXX and send email with
+
 
 ### Other
 
-- Calling another act
-- State persistence
-- Filling form and sending data by email
+- <a href="./examples/url_list_puppeteer.js">Use of AutoscaledPool</a>

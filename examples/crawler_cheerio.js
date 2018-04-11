@@ -1,12 +1,13 @@
 /**
- * This is example how to scrape Hacker News site (https://news.ycombinator.com) using Apify SDK and Puppeteer.
+ * This is example how to scrape Hacker News site (https://news.ycombinator.com) using Apify SDK
+ * with Cheerio and Request NPM packages.
  *
  * Example uses:
  * - Apify BasicCrawler to scrape pages in parallel
- * - request NPM package to request html content of website
- * - cherio NPM package to parse html and extract data
  * - Apify Dataset to store data
  * - Apify RequestQueue to manage dynamic queue of pending and handled requests
+ * - Request NPM package to request html content of website
+ * - Cherio NPM package to parse html and extract data
  */
 
 const Apify = require('apify');
