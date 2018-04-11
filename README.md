@@ -34,6 +34,8 @@ For more information about the Apify Actor platform, please see https://www.apif
 - [Examples](#examples)
   * [Recursive crawling](#recursive-crawling)
   * [Crawling url list](#crawling-url-list)
+  * [Call to another act](#call-to-another-act)
+  * [Act used and synchronous API](#act-used-and-synchronous-api)
   * [Other](#other)
 
 <!-- tocstop -->
@@ -63,11 +65,12 @@ most common use-cases are:
     look at <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#AutoscaledPool">AutoscaledPool</a>. This class executes defined tasks in a pool which size is scaled based on available memory and CPU.
   </li>
   <li>
-    Do you want to automate filling of forms or any other web interaction then you can use
+    If you want to automate filling of forms or any other web interaction then you can use
     <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a> (headless/non-headless Chrome browser).
-    If you deploy your code to Apify platform then you can set up scheduler or execute your code with web API.
   </li>
 </ul>
+
+If you deploy your code to Apify platform then you can set up scheduler or execute your code with web API.
 
 ## Quick start
 
@@ -371,7 +374,7 @@ to send email.
 
 ### Act used and synchronous API
 
-This example shows shows an act that has short runtime - just few seconds. It opens a webpage
+This example shows an act that has short runtime - just few seconds. It opens a webpage
 http://goldengatebridge75.org/news/webcam.html that contains webcam stream from Golden Gate
 bridge, takes a screenshot and saves it as output. This makes act executable at Apify platform
 synchronously with a single request that also returns its output.
@@ -379,9 +382,14 @@ synchronously with a single request that also returns its output.
 Example is shared in library under https://www.apify.com/apify/example-golden-gate-webcam
 so you can easily run it with request to
 https://api.apify.com/v2/acts/apify~example-golden-gate-webcam/run-sync?token=[YOUR_API_TOKEN]
+and get image as response. Then you can for example use it directly in html:
+
+```html
+<img src="https://api.apify.com/v2/acts/apify~example-golden-gate-webcam/run-sync?token=[YOUR_API_TOKEN]" />
+```
 
 <a href="./examples/url_list_cheerio.js">Check source code here</a>
 
 ### Other
 
-- <a href="./examples/url_list_puppeteer.js">Use of AutoscaledPool</a>
+- <a href="./examples/autoscaled_pool.js">Use of AutoscaledPool</a>
