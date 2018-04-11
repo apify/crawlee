@@ -284,7 +284,7 @@ For examples on how to use it see <a href="#examples">examples</a> section below
 
 #### Puppeteer Crawler
 
-Provides a simple framework for parallel crawling of web pages using the headless/non-headless Chrome with Puppeteer. The URLs of pages to visit are given by Request objects that are provided by the RequestList class or a dynamically enqueued requests provided by the RequestQueue class.
+Provides a simple framework for parallel crawling of web pages using the Chrome with Puppeteer. The URLs of pages to visit are given by Request objects that are provided by the RequestList class or a dynamically enqueued requests provided by the RequestQueue class.
 
 For examples on how to use it see <a href="#examples">examples</a> section below and also check
 <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerCrawler" target="_blank">documentation</a>.
