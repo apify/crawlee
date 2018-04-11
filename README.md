@@ -364,7 +364,7 @@ These examples show how to scrape data from a fix list of urls using
 
 ### Call to another act
 
-This example shows how to call another act at Apify plarform - in this case apify/send-main
+This example shows how to call another act at Apify plarform - in this case `apify/send-mail`
 to send email.
 
 <a href="./examples/call_another_act.js">Check source code here</a>
