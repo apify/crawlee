@@ -360,14 +360,17 @@ These examples show how to scrape data from a fix list of urls using
 
 ### Call to another act
 
-This example shows how to check XXXX and send email with
+This example shows how to call another act at Apify plarform - in this case apify/send-main
+to send email.
+
+<a href="./examples/call_another_act.js">Check source code here</a>
 
 ### Act used and synchronous API
 
 This example shows shows an act that has short runtime - just few seconds. It opens a webpage
 http://goldengatebridge75.org/news/webcam.html that contains webcam stream from Golden Gate
-bridge, takes a screenshot and saves it as output. This makes act executable synchronously
-with a single request that also returns its output.
+bridge, takes a screenshot and saves it as output. This makes act executable at Apify platform
+synchronously with a single request that also returns its output.
 
 Example is shared in library under https://www.apify.com/apify/example-golden-gate-webcam
 so you can easily run it with request to
