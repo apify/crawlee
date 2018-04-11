@@ -2,9 +2,10 @@
  * This is example how to scrape Hacker News site (https://news.ycombinator.com) using Apify SDK and Puppeteer.
  *
  * Example uses:
- * - PuppeteerCrawler to scrape pages using Puppeteer in parallel
- * - Dataset to store data
- * - Request Queue to manage dynamic queue of pending and handled requests
+ * - Apify PuppeteerCrawler to scrape pages using Puppeteer in parallel
+ * - Puppeter to controll headless Chrome browser
+ * - Apify Dataset to store data
+ * - Apify RequestQueue to manage dynamic queue of pending and handled requests
  */
 
 const Apify = require('apify');
@@ -25,27 +26,26 @@ Apify.main(async () => {
         // If request failes then it's retried 3 times.
         // Parameter page is Puppeteers page object with loaded page.
         handlePageFunction: async ({ page, request }) => {
-            console.log(`Request ${request.url} succeeded!`);
+            console.log(`Processing ${request.url}...`);
 
             // Extract all posts.
             const pageFunction = ($posts) => {
-                const extractFromPost = ($post) => {
-                    return {
+                const data = [];
+
+                $posts.forEach(($post) => {
+                    data.push({
                         title: $post.querySelector('.title a').innerText,
                         rank: $post.querySelector('.rank').innerText,
                         href: $post.querySelector('.title a').href,
-                    };
-                };
+                    });
+                });
 
-                return $posts.map(extractFromPost);
+                return data;
             };
             const data = await page.$$eval('.athing', pageFunction);
 
             // Save data.
-            await Apify.pushData({
-                url: request.url,
-                data,
-            });
+            await Apify.pushData(data);
 
             // Enqueue next page.
             try {
@@ -59,11 +59,6 @@ Apify.main(async () => {
         // If request failed 4 times then this function is executed.
         handleFailedRequestFunction: async ({ request }) => {
             console.log(`Request ${request.url} failed 4 times`);
-
-            await Apify.pushData({
-                url: request.url,
-                errors: request.errorMessages,
-            });
         },
     });
 

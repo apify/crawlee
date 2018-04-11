@@ -347,6 +347,7 @@ Former example crawls page simply using NPM <a href="https://www.npmjs.com/packa
 
 - Crawling with request and cheerio
 - <a href="./examples/crawler_puppeteer.js">Crawling with Puppeteer</a>
+- <a href="./examples/crawler_cheerio.js">Crawling with cheerio and request NPM packages</a>
 
 ### Crawling url list
 
