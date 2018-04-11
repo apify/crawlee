@@ -381,7 +381,7 @@ synchronously with a single request that also returns its output.
 
 Example is shared in library under https://www.apify.com/apify/example-golden-gate-webcam
 so you can easily run it with request to
-https://api.apify.com/v2/acts/apify~example-golden-gate-webcam/run-sync?token=[YOUR_API_TOKEN]
+`https://api.apify.com/v2/acts/apify~example-golden-gate-webcam/run-sync?token=[YOUR_API_TOKEN]`
 and get image as response. Then you can for example use it directly in html:
 
 ```html
