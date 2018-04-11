@@ -337,7 +337,7 @@ For more information see complete <a href="https://www.apify.com/docs/sdk/apify-
 
 ## Examples
 
-Directory <a href="https://github.com/apifytech/apify-js/tree/master/src">examples</a> of this repository demonstrates different usages of this package.
+Directory <a href="./examples">examples</a> of this repository demonstrates different usages of this package.
 
 ### Recursive crawling
 
@@ -349,8 +349,8 @@ Former example crawls page simply using NPM <a href="https://www.npmjs.com/packa
 <a href="https://www.npmjs.com/package/cheerio" target="_blank">Cheerio</a> packages and former one uses
 <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a> that provides full Chrome browser.
 
-- <a href="./examples/crawler_puppeteer.js">Crawling with Puppeteer</a>
-- <a href="./examples/crawler_cheerio.js">Crawling with Cheerio and Request NPM packages</a>
+- <a href="./examples/crawler_puppeteer.js">Recursive crawl with Puppeteer</a>
+- <a href="./examples/crawler_cheerio.js">Recursive crawl with Cheerio and Request NPM packages</a>
 
 ### Crawling url list
 
@@ -359,8 +359,8 @@ These examples show how to scrape data from a fix list of urls using
 <a href="https://www.npmjs.com/package/request" target="_blank">Request</a> and
 <a href="https://www.npmjs.com/package/cheerio" target="_blank">Cheerio</a>.
 
-- <a href="./examples/url_list_puppeteer.js">Crawling with Puppeteer</a>
-- <a href="./examples/url_list_cheerio.js">Crawling with Cheerio and Request NPM packages</a>
+- <a href="./examples/url_list_puppeteer.js">Crawling a url list with Puppeteer</a>
+- <a href="./examples/url_list_cheerio.js">Crawling a url list with Cheerio and Request NPM packages</a>
 
 ### Call to another act
 
