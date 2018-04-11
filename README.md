@@ -346,7 +346,7 @@ Former example crawls page simply using NPM <a href="https://www.npmjs.com/packa
 <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a> that provides full Chrome browser.
 
 - Crawling with request and cheerio
-- Crawling with Puppeteer
+- <a href="./examples/crawler_puppeteer.js">Crawling with Puppeteer</a>
 
 ### Crawling url list
 
