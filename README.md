@@ -33,6 +33,8 @@ Complete documentation of this package is available at https://www.apify.com/doc
     + [Puppeteer Crawler](#puppeteer-crawler)
     + [Request List](#request-list)
     + [Puppeteer Pool](#puppeteer-pool)
+- [Local usage](#local-usage)
+- [Promises vs. callbacks](#promises-vs-callbacks)
 - [Examples](#examples)
   * [Recursive crawling](#recursive-crawling)
   * [Crawling url list](#crawling-url-list)
