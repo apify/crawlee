@@ -54,19 +54,19 @@ most common use-cases are:
   <li>
     If you want to <strong>crawl</strong> a website using for example <a href="https://www.npmjs.com/package/request" target="_blank">
     Request</a> package then take a look at <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#BasicCrawler" target="_blank">BasicCrawler</a>
-    in combination with <a href="#request-list">RequestList</a> for fix list of urls
-    or <a href="#request-queue">RequestQueue</a> for recursive crawl.
+    in combination with <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList" target="_blank">RequestList</a> for fix list of urls
+    or <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue" target="_blank">RequestQueue</a> for recursive crawl.
   </li>
   <li>
     If you want to crawl a website using a real <strong>browser</strong>. Then use
-    <a href="#puppeteer-crawler">PuppeteerCrawler</a> which uses
+    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerCrawler" target="_blank">PuppeteerCrawler</a> which uses
     <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a> (headless/non-headless Chrome browser). PuppeteerCrawler supports
-    both <a href="#request-list">RequestList</a> for fix list of urls
-    or <a href="#request-queue">RequestQueue</a> for recursive crawl.
+    both <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList" target="_blank">RequestList</a> for fix list of urls
+    or <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue" target="_blank">RequestQueue</a> for recursive crawl.
   </li>
   <li>
     If you need to process high volume of <strong>asynchronous tasks in parallel</strong> then take a
-    look at <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#AutoscaledPool">AutoscaledPool</a>. This class executes defined tasks in a pool which size is scaled based on available memory and CPU.
+    look at <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#AutoscaledPool" target="_blank">AutoscaledPool</a>. This class executes defined tasks in a pool which size is scaled based on available memory and CPU.
   </li>
   <li>
     If you want to automate filling of forms or any other web interaction then you can use
@@ -100,7 +100,7 @@ Apify CLI asks to you choose a template and then creates a directory `my_hello_w
 
 - `package.json` with Apify SDK as dependency
 - `main.js` containing basic code for your project
-- `apify_local` directory containing local emultation of <a href="#storage">Apify storage types</a>
+- `apify_local` directory containing local emultation of <a href="https://www.apify.com/docs/storage" target="_blank">Apify storage types</a>
 - files needed for optional deployment to Apify platform (`Dockerfile`, `apify.json`)
 - `node_modules` directory containing all the required NPM packages
 
@@ -181,11 +181,11 @@ we have few helper classes and functions:
     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-launchPuppeteer" target="_blank">launchPuppeteer()</a> function starts new instance of Puppeteer browser and returns its browser object.
   </li>
   <li>
-    <a href="#puppeteer-pool">PuppeteerPool</a> helps to mantain a pool of Puppeteer instances. This is usefull
+    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerPool" target="_blank">PuppeteerPool</a> helps to mantain a pool of Puppeteer instances. This is usefull
     when you need to restart browser after certain number of requests to rotate proxy servers.
   </li>
   <li>
-      <a href="#puppeteer-crawler">PuppeteerCrawler</a> helps to crawl a <a href="#request-list">RequestList</a> or <a href="#request-queue">RequestQueue</a> in parallel using autoscaled pool.
+      <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerCrawler" target="_blank">PuppeteerCrawler</a> helps to crawl a <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList" target="_blank">RequestList</a> or <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue" target="_blank">RequestQueue</a> in parallel using autoscaled pool.
   </li>
 </ul>
 
@@ -399,20 +399,20 @@ for more information.
 
 ## Examples
 
-Directory <a href="./examples">examples</a> of this repository demonstrates different usages of this package.
+Directory <a href="https://github.com/apifytech/apify-js/tree/master/examples" target="_blank">examples</a> of this repository demonstrates different usages of this package.
 
 ### Recursive crawling
 
-Following 2 examples demonstrate recursive crawling of <a href="https://news.ycombinator.com">https://news.ycombinator.com</a>.
+Following 2 examples demonstrate recursive crawling of <a href="https://news.ycombinator.com" target="_blank">https://news.ycombinator.com</a>.
 Crawler starts at https://news.ycombinator.com and in each step enqueues a new page linked by "more" button at the bottom of the page
-and stores posts from the opened page in a <a href="#dataset">Dataset</a>. As a queue crawler uses <a href="#request-queue">Request Queue</a>.
+and stores posts from the opened page in a <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#Dataset" target="_blank">Dataset</a>. As a queue crawler uses <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue" target="_blank">Request Queue</a>.
 
 Former example crawls page simply using NPM <a href="https://www.npmjs.com/package/request" target="_blank">Request</a> and
 <a href="https://www.npmjs.com/package/cheerio" target="_blank">Cheerio</a> packages and former one uses
 <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a> that provides full Chrome browser.
 
-- <a href="./examples/crawler_puppeteer.js">Recursive crawl with Puppeteer</a>
-- <a href="./examples/crawler_cheerio.js">Recursive crawl with Cheerio and Request NPM packages</a>
+- <a href="https://github.com/apifytech/apify-js/tree/master/examples/crawler_puppeteer.js">Recursive crawl with Puppeteer</a>
+- <a href="https://github.com/apifytech/apify-js/tree/master/examples/crawler_cheerio.js">Recursive crawl with Cheerio and Request NPM packages</a>
 
 ### Crawling url list
 
@@ -421,15 +421,15 @@ These examples show how to scrape data from a fix list of urls using
 <a href="https://www.npmjs.com/package/request" target="_blank">Request</a> and
 <a href="https://www.npmjs.com/package/cheerio" target="_blank">Cheerio</a>.
 
-- <a href="./examples/url_list_puppeteer.js">Crawling a url list with Puppeteer</a>
-- <a href="./examples/url_list_cheerio.js">Crawling a url list with Cheerio and Request NPM packages</a>
+- <a href="https://github.com/apifytech/apify-js/tree/master/examples/url_list_puppeteer.js">Crawling a url list with Puppeteer</a>
+- <a href="https://github.com/apifytech/apify-js/tree/master/examples/url_list_cheerio.js">Crawling a url list with Cheerio and Request NPM packages</a>
 
 ### Call to another act
 
 This example shows how to call another act at Apify plarform - in this case `apify/send-mail`
 to send email.
 
-<a href="./examples/call_another_act.js">Check source code here</a>
+<a href="https://github.com/apifytech/apify-js/tree/master/examples/call_another_act.js">Check source code here</a>
 
 ### Act used and synchronous API
 
@@ -447,10 +447,10 @@ and get image as response. Then you can for example use it directly in html:
 <img src="https://api.apify.com/v2/acts/apify~example-golden-gate-webcam/run-sync?token=[YOUR_API_TOKEN]" />
 ```
 
-<a href="./examples/url_list_cheerio.js">Check source code here</a>
+<a href="https://github.com/apifytech/apify-js/tree/master/examples/url_list_cheerio.js">Check source code here</a>
 
 ### Other
 
-- <a href="./examples/autoscaled_pool.js">Use of AutoscaledPool</a>
+- <a href="https://github.com/apifytech/apify-js/tree/master/examples/autoscaled_pool.js">Use of AutoscaledPool</a>
 
 </div>
