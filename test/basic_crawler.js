@@ -6,6 +6,7 @@ import sinon from 'sinon';
 import { delayPromise } from 'apify-shared/utilities';
 import * as Apify from '../build/index';
 import { RequestQueue, RequestQueueLocal } from '../build/request_queue';
+import { LOCAL_EMULATION_DIR } from './_helper';
 
 chai.use(chaiAsPromised);
 
@@ -139,7 +140,7 @@ describe('BasicCrawler', () => {
 
     it('should also support RequestQueueLocal', () => {
         const requestQueue = new RequestQueue('xxx');
-        const requestQueueLocal = new RequestQueueLocal('xxx', 'yyy');
+        const requestQueueLocal = new RequestQueueLocal('xxx', LOCAL_EMULATION_DIR);
         const handleRequestFunction = () => {};
 
         expect(() => new Apify.BasicCrawler({ handleRequestFunction, requestQueue })).to.not.throw();

@@ -49,12 +49,12 @@ let persistStateInterval = null;
  *             <th>Event</th>
  *             <th>Name</th>
  *             <th>Constant</th>
- *             <ht>Message</th>
- *             <ht>Description</th>
+ *             <th>Message</th>
+ *             <th>Description</th>
  *     </thead>
  *     <tbody>
  *         <tr>
- *             <td>cpuInfo</td>
+ *             <td>`cpuInfo`</td>
  *             <td>`ACTOR_EVENT_NAMES.CPU_INFO`</td>
  *             <td>`{ "isCpuOverloaded": true }`</td>
  *             <td>
@@ -63,7 +63,7 @@ let persistStateInterval = null;
  *             </td>
  *         </tr>
  *         <tr>
- *             <td>migrating</td>
+ *             <td>`migrating`</td>
  *             <td>`ACTOR_EVENT_NAMES.MIGRATING`</td>
  *             <td>`null`</td>
  *             <td>
@@ -72,7 +72,7 @@ let persistStateInterval = null;
  *             </td>
  *         </tr>
  *         <tr>
- *             <td>persistState</td>
+ *             <td>`persistState`</td>
  *             <td>`ACTOR_EVENT_NAMES.PERSIST_STATE`</td>
  *             <td>`{ "isMigrating": true }`</td>
  *             <td>
@@ -86,7 +86,7 @@ let persistStateInterval = null;
  * </table>
  *
  * See <a href="https://nodejs.org/api/events.html#events_class_eventemitter" target="_blank">NodeJs documentation</a>
- * for more information about event emitter use.
+ * for more information on event emitter use.
  *
  * @memberof module:Apify
  * @name events

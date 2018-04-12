@@ -7,7 +7,7 @@ Apify.main(async () => {
     // Size of the pool is auto-scaled based on memory and CPU.
     // If this function returns null then all tasks are considered
     // to be done.
-    const workerFunction = () => {
+    const runTaskFunction = () => {
         const current = counter++;
 
         if (current >= 1000) return null;
@@ -25,7 +25,7 @@ Apify.main(async () => {
     const pool = new Apify.AutoscaledPool({
         minConcurrency: 3,
         maxConcurrency: 50,
-        workerFunction,
+        runTaskFunction,
     });
 
     await pool.run();
