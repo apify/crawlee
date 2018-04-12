@@ -10,10 +10,10 @@
   a serverless computing platform that enables execution of arbitrary code in the cloud.
   The package provides helper functions to launch web browsers with proxies, access the storage etc. Note that the usage of the package is optional, you can create acts at Apify platform without it.
 
-  Complete documentation of this package is available at https://www.apify.com/docs/sdk/apify-runtime-js/latest
-
   For more information about the Apify Actor platform, please see https://www.apify.com/docs/actor
 </div>
+
+Complete documentation of this package is available at https://www.apify.com/docs/sdk/apify-runtime-js/latest
 
 ## Table of Contents
 
