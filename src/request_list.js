@@ -11,6 +11,8 @@ import { getFirstKey } from './utils';
 import { getValue, setValue } from './key_value_store';
 
 // TODO: better tests
+// TODO: this will not accept diacritict chars, IMHO we should have here a regexp
+// that detects any hostname/whatever string
 const URL_REGEX = '(http|https)://[\\w-]+(\\.[\\w-]+)+([\\w-.,@?^=%&:/~+#-]*[\\w@?^=%&;/~+#-])?';
 
 /**
