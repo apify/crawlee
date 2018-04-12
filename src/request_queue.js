@@ -106,7 +106,7 @@ const validateReclaimRequestParams = (request, opts) => {
  *
  * await queue.addRequest(new Apify.Request({ url: 'http://example.com/aaa'});
  * await queue.addRequest(new Apify.Request({ url: 'http://example.com/bbb'});
- * await queue.addRequest(new Apify.Request({ url: 'http://example.com/foo/bar'}, { puyInFront: true });
+ * await queue.addRequest(new Apify.Request({ url: 'http://example.com/foo/bar'}, { forefront: true });
  *
  * // Get requests from queue
  * const request1 = queue.fetchNextRequest();
@@ -668,7 +668,7 @@ const getOrCreateQueue = (queueIdOrName) => {
  *
  * await queue.addRequest(new Apify.Request({ url: 'http://example.com/aaa'});
  * await queue.addRequest(new Apify.Request({ url: 'http://example.com/bbb'});
- * await queue.addRequest(new Apify.Request({ url: 'http://example.com/foo/bar'}, { puyInFront: true });
+ * await queue.addRequest(new Apify.Request({ url: 'http://example.com/foo/bar'}, { forefront: true });
  *
  * // Get requests from queue
  * const request1 = queue.fetchNextRequest();
