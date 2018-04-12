@@ -1,4 +1,5 @@
-xxxxxx / xxxxxxxxxx
+0.5.22 / 2018-04-12
+===================
 - `handleFailedRequestFunction` in both `BasicCrawler` and `PuppeteerCrawler` has now also error object
   available in `ops.error`.
 - Request Queue storage type implemented. See documentation for more information.
@@ -13,6 +14,7 @@ xxxxxx / xxxxxxxxxx
 - New events `persistState` and `migrating` added. Check documentation of `Apify.events` for more information.
 - `RequestList` has a new parameter `persistStateKey`. If this is used then `RequestList` persists its state in the default
   key-value store at regular intervals.
+- Improved `README.md` and `/examples` directory.
 
 0.5.17 / 2018-03-27
 ===================
