@@ -4,14 +4,16 @@
 [![npm version](https://badge.fury.io/js/apify.svg)](http://badge.fury.io/js/apify)
 [![Build Status](https://travis-ci.org/apifytech/apify-js.svg)](https://travis-ci.org/apifytech/apify-js)
 
-The `apify` NPM package enables development of web scrapers, crawlers and web automation projects
-either locally or running on <a href="https://www.apify.com/docs/actor" target="_blank">Apify Actor</a> -
-a serverless computing platform that enables execution of arbitrary code in the cloud.
-The package provides helper functions to launch web browsers with proxies, access the storage etc. Note that the usage of the package is optional, you can create acts at Apify platform without it.
+<div id="include-readme-3">
+  The `apify` NPM package enables development of web scrapers, crawlers and web automation projects
+  either locally or running on <a href="https://www.apify.com/docs/actor" target="_blank">Apify Actor</a> -
+  a serverless computing platform that enables execution of arbitrary code in the cloud.
+  The package provides helper functions to launch web browsers with proxies, access the storage etc. Note that the usage of the package is optional, you can create acts at Apify platform without it.
 
-Complete documentation of this package is available at https://www.apify.com/docs/sdk/apify-runtime-js/latest
+  Complete documentation of this package is available at https://www.apify.com/docs/sdk/apify-runtime-js/latest
 
-For more information about the Apify Actor platform, please see https://www.apify.com/docs/actor
+  For more information about the Apify Actor platform, please see https://www.apify.com/docs/actor
+</div>
 
 ## Table of Contents
 
@@ -39,6 +41,8 @@ For more information about the Apify Actor platform, please see https://www.apif
   * [Other](#other)
 
 <!-- tocstop -->
+
+<div id="include-readme-3">
 
 ## Common use-cases
 <!-- Mirror this part to src/index.js -->
@@ -138,7 +142,6 @@ containing:
 }
 ```
 
-
 Now can then run you code with:
 
 ```bash
@@ -159,7 +162,6 @@ Closing Puppeteer...
 Done.
 ```
 
-
 Check <a href="#examples">examples</a> below to see what you can do with Apify SDK. After you are done with your code
 you can deploy your project to Apify platform with following 2 steps:
 
@@ -167,8 +169,6 @@ you can deploy your project to Apify platform with following 2 steps:
 apify login
 apify push
 ```
-
-
 
 ## Puppeteer
 <!-- Mirror this part to src/index.js -->
@@ -201,6 +201,8 @@ console.log(`Title of the page "${url}" is "${title}".`);
 ```
 
 For more information on Puppeteer see its <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">documenation</a>.
+
+</div>
 
 ## Components
 
@@ -338,6 +340,62 @@ await puppeteerPool.destroy();
 
 For more information see complete <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerPool" target="_blank">documentation</a>.
 
+<div id="include-readme-3">
+
+## Local usage
+
+You can use Apify package locally. To do that you must define following environment variables
+
+<table class="table table-bordered table-condensed">
+     <thead>
+         <tr>
+             <th>Environment variable</th>
+             <th>Description</th>
+         </tr>
+     </thead>
+     <tbody>
+         <tr>
+             <td><code>APIFY_LOCAL_EMULATION_DIR</code></td>
+             <td>
+                 Directory where apify package locally emulates Apify storages - key-value store and dataset.
+                 Key-value stores will be emulated in directory
+                 <code>[APIFY_LOCAL_EMULATION_DIR]/key-value-stores/[STORE_ID]</code>
+                 and datasets in directory
+                 <code>[APIFY_LOCAL_EMULATION_DIR]/datasets/[DATESET_ID]</code>.
+             </td>
+         </tr>
+         <tr>
+             <td><code>APIFY_DEFAULT_KEY_VALUE_STORE_ID</code></td>
+             <td>ID of default key-value store.</td>
+         </tr>
+         <tr>
+             <td><code>APIFY_DEFAULT_DATASET_ID</code></td>
+             <td>ID of default dataset.</td>
+         </tr>
+         <tr>
+             <td><code>APIFY_DEFAULT_REQUEST_QUEUE_ID</code></td>
+             <td>ID of default request queue.</td>
+         </tr>
+     </tbody>
+</table>
+
+Apify will then store key-value store records in files named <code>[KEY].[EXT]</code> where <code>[KEY]</code>
+is the record key and <code>[EXT]</code> is based on the record content type. Dataset items will be stored
+in files named <code>[ID].json</code> where <code>[ID]</code> is sequence number of your dataset item.
+ *
+If you want to use <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a> locally
+then you must define an environment variable <code>PROXY_PASSWORD</code> with password you find at
+<a href="https://my.apify.com/proxy" target="_blank">https://my.apify.com/proxy</a>.
+
+## Promises vs. callbacks
+
+By default, all asynchronous functions provided by this package return a promise.
+But Apify uses a <a href="http://bluebirdjs.com/" target="_blank">Bluebird</a>
+promise implementation so you can easily convert any function that returns a Promise
+into callback style function.
+See <a href="http://bluebirdjs.com/docs/api/promise.promisify.html" target="_blank">Bluebird documentation</a>
+for more information.
+
 ## Examples
 
 Directory <a href="./examples">examples</a> of this repository demonstrates different usages of this package.
@@ -393,3 +451,5 @@ and get image as response. Then you can for example use it directly in html:
 ### Other
 
 - <a href="./examples/autoscaled_pool.js">Use of AutoscaledPool</a>
+
+</div>
