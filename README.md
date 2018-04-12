@@ -4,7 +4,7 @@
 [![npm version](https://badge.fury.io/js/apify.svg)](http://badge.fury.io/js/apify)
 [![Build Status](https://travis-ci.org/apifytech/apify-js.svg)](https://travis-ci.org/apifytech/apify-js)
 
-<div id="include-readme-3">
+<div id="include-readme-1">
   The `apify` NPM package enables development of web scrapers, crawlers and web automation projects
   either locally or running on <a href="https://www.apify.com/docs/actor" target="_blank">Apify Actor</a> -
   a serverless computing platform that enables execution of arbitrary code in the cloud.
@@ -42,7 +42,7 @@
 
 <!-- tocstop -->
 
-<div id="include-readme-3">
+<div id="include-readme-2">
 
 ## Common use-cases
 <!-- Mirror this part to src/index.js -->
