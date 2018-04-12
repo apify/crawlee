@@ -218,7 +218,9 @@ export const getFirstKey = (dict) => {
 
 /**
  * Gets a typical path to Chrome executable, depending on the current operating system.
+ *
  * @returns {string}
+ * @ignore
  */
 export const getTypicalChromeExecutablePath = () => {
     switch (os.platform()) {
