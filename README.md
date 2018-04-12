@@ -344,7 +344,8 @@ For more information see complete <a href="https://www.apify.com/docs/sdk/apify-
 
 ## Local usage
 
-You can use Apify package locally. To do that you must define following environment variables
+The easiest way how to use apify locally is with <a href="https://github.com/apifytech/apify-cli" target="_blank">Apify CLI</a> as shown
+in <a href="#quick-start">quick start</a> section. Other way is to manually define required environment variables:
 
 <table class="table table-bordered table-condensed">
      <thead>
