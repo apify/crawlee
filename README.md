@@ -152,7 +152,7 @@ apify run
 
 and see following output:
 
-```
+```bash
 Launching Puppeteer...
 
 Opening page https://news.ycombinator.com...
@@ -167,7 +167,7 @@ Done.
 Check <a href="#examples">examples</a> below to see what you can do with Apify SDK. After you are done with your code
 you can deploy your project to Apify platform with following 2 steps:
 
-```
+```bash
 apify login
 apify push
 ```
