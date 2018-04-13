@@ -21,6 +21,9 @@ import { browse, launchWebDriver } from './webdriver';
 // Hide debug log messages when running in production mode.
 if (!isProduction() || process.env[ENV_VARS.LOG_LEVEL] === 'DEBUG') log.isDebugMode = true;
 
+// Log as plain text not JSON
+log.logJson = false;
+
 /**
  *{include-readme-1}
  *{include-readme-2}

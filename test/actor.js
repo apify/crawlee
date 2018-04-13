@@ -691,7 +691,6 @@ describe('Apify.call()', () => {
             .call(actId, null, { token })
             .then(() => { throw new Error('This was suppose to fail!'); }, (err) => {
                 expect(err).to.be.instanceOf(ApifyCallError);
-                console.log(err);
                 expect(err.run.status).to.be.eql(ACT_TASK_STATUSES.ABORTED);
                 expect(err.run).to.be.eql(failedRun);
             });

@@ -2,6 +2,7 @@ xxxxxxxxxxxxxxxxxxx
 ===================
 - `Apify.call()` now throws an `ApifyCallError` error if run doesn't succeed
 - Renamed options `abortInstanceAfterRequestCount` of `PuppeteerPool` and `PuppeteerCrawler` to retireInstanceAfterRequestCcount
+- Logs are now in plain text instead of JSON for better readability.
 
 0.5.22 / 2018-04-12
 ===================

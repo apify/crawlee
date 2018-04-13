@@ -8,7 +8,11 @@ import { RequestQueue, RequestQueueLocal } from './request_queue';
 
 const DEFAULT_OPTIONS = {
     maxRequestRetries: 3,
-    handleFailedRequestFunction: ({ request }) => log.error('Request failed', _.pick(request, 'url', 'uniqueKey')),
+    handleFailedRequestFunction: ({ request }) => {
+        const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
+
+        log.error('BasicCrawler: Request failed and reached maximum retries', details);
+    },
 };
 
 /**
@@ -179,7 +183,7 @@ export default class BasicCrawler {
                         // Retry request.
                         if (request.retryCount < this.maxRequestRetries) {
                             request.retryCount++;
-                            log.exception(error, 'Reclaiming failed request back to queue', {
+                            log.exception(error, 'RequestQueue: handleRequestFunction failed, reclaiming failed request back to queue', {
                                 url: request.url,
                                 retryCount: request.retryCount,
                             });
@@ -187,7 +191,7 @@ export default class BasicCrawler {
                             return source.reclaimRequest(request);
                         }
 
-                        log.exception(error, 'Marking failed request handled', {
+                        log.exception(error, 'RequestQueue: handleRequestFunction failed, marking failed request handled', {
                             url: request.url,
                             retryCount: request.retryCount,
                         });
