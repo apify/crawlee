@@ -145,14 +145,8 @@ const maybeSetupAssetsInterception = (browser, opts) => {
     if (opts.skipImages) skipExtensions = skipExtensions.concat(['jpg', 'jpeg', 'png', 'gif']);
     if (!skipExtensions.length) return;
 
-    let resolve;
-
-    const promise = new Promise((res) => {
-        resolve = res;
-    });
-
     browser.on(('targetcreated', (target) => {
-        if (target.type() !== 'page') return resolve();
+        if (target.type() !== 'page') return;
 
         target
             .page()
@@ -162,14 +156,11 @@ const maybeSetupAssetsInterception = (browser, opts) => {
                     if (interceptedRequest.url().endsWith('.css')) interceptedRequest.abort();
                     else interceptedRequest.continue();
                 });
-
-                resolve();
             })
             .catch((err) => {
                 log.exception(err, 'LaunchPuppeteer: Cannot hook CSS request interception');
-                resolve();
             });
     }));
 
-    return promise.then(() => browser);
+    return browser;
 };
