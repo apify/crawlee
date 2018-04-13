@@ -143,7 +143,7 @@ const maybeSetupAssetsInterception = (browser, opts) => {
 
     if (opts.skipCss) skipExtensions.push('css');
     if (opts.skipImages) skipExtensions = skipExtensions.concat(['jpg', 'jpeg', 'png', 'gif']);
-    if (!skipExtensions.length) return;
+    if (!skipExtensions.length) return browser;
 
     browser.on(('targetcreated', (target) => {
         if (target.type() !== 'page') return;
