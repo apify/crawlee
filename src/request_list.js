@@ -192,7 +192,7 @@ export default class RequestList {
                             this.isStatePersisted = true;
                         })
                         .catch((err) => {
-                            log.exception(err, 'Cannot persist state of UrlList', { persistStateKey: this.persistStateKey });
+                            log.exception(err, 'RequestList: Cannot persist state', { persistStateKey: this.persistStateKey });
                         });
                 });
             });

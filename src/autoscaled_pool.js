@@ -85,7 +85,7 @@ export default class AutoscaledPool {
         if (opts.workerFunction) {
             // For backwards compatiblity with opts.finishWhenEmpty and this.finish();
             if (opts.finishWhenEmpty !== undefined) {
-                log.warning('Parameter `finishWhenEmpty` of AutoscaledPool is deprecated!!! Use `isFinishedFunction` instead!');
+                log.warning('AutoscaledPool: Parameter `finishWhenEmpty` is deprecated!!! Use `isFinishedFunction` instead!');
                 checkParamOrThrow(opts.finishWhenEmpty, 'opts.finishWhenEmpty', 'Boolean');
                 let mayFinish = false;
                 opts.isFinishedFunction = () => Promise.resolve(mayFinish);
@@ -94,7 +94,7 @@ export default class AutoscaledPool {
                 opts.isFinishedFunction = () => Promise.resolve(true);
             }
 
-            log.warning('Parameter `workerFunction` of AutoscaledPool is deprecated!!! Use `runTaskFunction` instead!');
+            log.warning('AutoscaledPool: Parameter `workerFunction` is deprecated!!! Use `runTaskFunction` instead!');
             checkParamOrThrow(opts.workerFunction, 'opts.workerFunction', 'Function');
             opts.runTaskFunction = opts.workerFunction;
             opts.isTaskReadyFunction = () => Promise.resolve(true);

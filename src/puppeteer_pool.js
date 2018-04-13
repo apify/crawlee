@@ -111,6 +111,7 @@ export default class PuppeteerPool {
 
         // For backwards compatibility, in the future we can remove this...
         if (!opts.retireInstanceAfterRequestCount && opts.abortInstanceAfterRequestCount) {
+            log.warning('PuppeteerPool: Parameter `abortInstanceAfterRequestCount` is deprecated! Use `retireInstanceAfterRequestCount` instead!');
             opts.retireInstanceAfterRequestCount = opts.abortInstanceAfterRequestCount;
         }
 

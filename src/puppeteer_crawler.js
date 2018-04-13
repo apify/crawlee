@@ -97,6 +97,7 @@ export default class PuppeteerCrawler {
     constructor(opts) {
         // For backwards compatibility, in the future we can remove this...
         if (!opts.retireInstanceAfterRequestCount && opts.abortInstanceAfterRequestCount) {
+            log.warning('PuppeteerCrawler: Parameter `abortInstanceAfterRequestCount` is deprecated! Use `retireInstanceAfterRequestCount` instead!');
             opts.retireInstanceAfterRequestCount = opts.abortInstanceAfterRequestCount;
         }
 

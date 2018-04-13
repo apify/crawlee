@@ -124,7 +124,7 @@ export const initializeEvents = () => {
 
     // Locally there is no web socket to connect so just print a log message.
     if (!eventsWsUrl) {
-        log.info(`Environment variable ${ENV_VARS.ACTOR_EVENTS_WS_URL} is not set, Apify.events will not emit any events.`);
+        log.info(`Apify.events: Environment variable ${ENV_VARS.ACTOR_EVENTS_WS_URL} is not set, no events from Apify platform will be emitted.`);
         return;
     }
 
@@ -142,12 +142,12 @@ export const initializeEvents = () => {
                 emitPersistStateEvent(true);
             }
         } catch (err) {
-            log.exception(err, 'Cannot parse actor event');
+            log.exception(err, 'Apify.events: Cannot parse actor event');
         }
     });
-    eventsWs.on('error', err => log.exception(err, 'Actor events web socket connection failed'));
+    eventsWs.on('error', err => log.exception(err, 'Apify.events: web socket connection failed'));
     eventsWs.on('close', () => {
-        log.warning('Actor events web socket has been closed');
+        log.warning('Apify.events: web socket has been closed');
         eventsWs = null;
     });
 };
