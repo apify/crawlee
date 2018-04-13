@@ -131,7 +131,8 @@ export const launchPuppeteer = (opts) => {
 
     // Ensure that the returned promise is of type set in setPromiseDependency()
     return newPromise()
-        .then(() => maybeSetupAssetsInterception(promise));
+        .then(() => promise)
+        .then(browser => maybeSetupAssetsInterception(browser, opts));
 };
 
 const maybeSetupAssetsInterception = (browser, opts) => {
