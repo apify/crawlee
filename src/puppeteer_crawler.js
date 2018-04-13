@@ -75,14 +75,15 @@ const DEFAULT_OPTIONS = {
  *                                             See `isFinishedFunction` parameter of `AutoscaledPool`.
  * @param {Number} [options.maxOpenPagesPerInstance=100] Maximum number of opened tabs per browser. If this limit is reached then a new
  *                                                        browser instance is started. See `maxOpenPagesPerInstance` parameter of `PuppeteerPool`.
- * @param {Number} [options.abortInstanceAfterRequestCount=150] Maximum number of requests that can be processed by a single browser instance.
- *                                                              After this limit is reached the browser is restarted.
- *                                                              See `abortInstanceAfterRequestCount` parameter of `PuppeteerPool`.
+ * @param {Number} [options.retireInstanceAfterRequestCount=150] Maximum number of requests that can be processed by a single browser instance.
+ *                                                               After the limit is reached the browser will be retired and new requests will
+ *                                                               be handled by a new browser instance.
+ *                                                              See `retireInstanceAfterRequestCount` parameter of `PuppeteerPool`.
  * @param {Function} [options.launchPuppeteerFunction] Overrides how new Puppeteer instance gets launched. See `launchPuppeteerFunction` parameter of
  *                                                     `PuppeteerPool`.
  * @param {Number} [options.instanceKillerIntervalMillis=60000] How often the launched Puppeteer instances are checked whether they can be
  *                                                              closed. See `instanceKillerIntervalMillis` parameter of `PuppeteerPool`.
- * @param {Number} [options.killInstanceAfterMillis=300000] If Puppeteer instance reaches the `options.abortInstanceAfterRequestCount` limit then
+ * @param {Number} [options.killInstanceAfterMillis=300000] If Puppeteer instance reaches the `options.retireInstanceAfterRequestCount` limit then
  *                                                          it is considered retired and no more tabs will be opened. After the last tab is closed
  *                                                          the whole browser is closed too. This parameter defines a time limit for inactivity
  *                                                          after which the browser is closed even if there are pending tabs. See
@@ -94,6 +95,11 @@ const DEFAULT_OPTIONS = {
  */
 export default class PuppeteerCrawler {
     constructor(opts) {
+        // For backwards compatibility, in the future we can remove this...
+        if (!opts.retireInstanceAfterRequestCount && opts.abortInstanceAfterRequestCount) {
+            opts.retireInstanceAfterRequestCount = opts.abortInstanceAfterRequestCount;
+        }
+
         const {
             handlePageFunction,
             gotoFunction,
@@ -114,7 +120,7 @@ export default class PuppeteerCrawler {
 
             // Puppeteer Pool options
             maxOpenPagesPerInstance,
-            abortInstanceAfterRequestCount,
+            retireInstanceAfterRequestCount,
             launchPuppeteerFunction,
             instanceKillerIntervalMillis,
             killInstanceAfterMillis,
@@ -137,7 +143,7 @@ export default class PuppeteerCrawler {
 
         this.puppeteerPool = new PuppeteerPool({
             maxOpenPagesPerInstance,
-            abortInstanceAfterRequestCount,
+            retireInstanceAfterRequestCount,
             launchPuppeteerFunction,
             instanceKillerIntervalMillis,
             killInstanceAfterMillis,
