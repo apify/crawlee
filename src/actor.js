@@ -2,10 +2,11 @@ import _ from 'underscore';
 import Promise from 'bluebird';
 import fs from 'fs';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { ENV_VARS, EXIT_CODES, ACT_TASK_TERMINAL_STATUSES, DEFAULT_PROXY_HOSTNAME, DEFAULT_PROXY_PORT } from './constants';
+import { ENV_VARS, EXIT_CODES, ACT_TASK_TERMINAL_STATUSES, ACT_TASK_STATUSES, DEFAULT_PROXY_HOSTNAME, DEFAULT_PROXY_PORT } from './constants';
 import { initializeEvents, stopEvents } from './events';
 import { newPromise, apifyClient, addCharsetToContentType } from './utils';
 import { maybeStringify } from './key_value_store';
+import { ApifyCallError } from './errors';
 
 /* globals process */
 
@@ -277,6 +278,7 @@ export const readyFreddy = () => {
  * @param {Boolean} [opts.disableBodyParser=false] If `true` then the function will not attempt to parse the
  *                                                act's output and will return it in a raw `Buffer`.
  * @returns {Promise}
+ * @throws {ApifyCallError} If run doesn't succeed.
  *
  * @memberof module:Apify
  * @function
@@ -353,6 +355,7 @@ export const call = (actId, input, opts = {}) => {
                 }
 
                 if (!_.contains(ACT_TASK_TERMINAL_STATUSES, updatedRun.status)) return waitForRunToFinish(updatedRun);
+                if (updatedRun.status !== ACT_TASK_STATUSES.SUCCEEDED) throw new ApifyCallError(updatedRun);
                 if (!fetchOutput) return updatedRun;
 
                 return addOutputToRun(updatedRun);
