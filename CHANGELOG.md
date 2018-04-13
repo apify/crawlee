@@ -1,3 +1,7 @@
+xxxxxxxxxxxxxxxxxxx
+===================
+- `Apify.call()` now throws an `ApifyCallError` error if run doesn't succeed
+
 0.5.22 / 2018-04-12
 ===================
 - `handleFailedRequestFunction` in both `BasicCrawler` and `PuppeteerCrawler` has now also error object
