@@ -1,6 +1,7 @@
 xxxxxxxxxxxxxxxxxxx
 ===================
 - `Apify.call()` now throws an `ApifyCallError` error if run doesn't succeed
+- Renamed options `abortInstanceAfterRequestCount` of `PuppeteerPool` and `PuppeteerCrawler` to retireInstanceAfterRequestCcount
 
 0.5.22 / 2018-04-12
 ===================
