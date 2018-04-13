@@ -150,12 +150,15 @@ const maybeSetupAssetsInterception = (browser, opts) => {
 
         target
             .page()
-            .then(page => page.setRequestInterception(true))
-            .then(() => {
-                page.on('request', (interceptedRequest) => {
-                    if (interceptedRequest.url().endsWith('.css')) interceptedRequest.abort();
-                    else interceptedRequest.continue();
-                });
+            .then((page) => {
+                return page
+                    .setRequestInterception(true)
+                    .then(() => {
+                        page.on('request', (interceptedRequest) => {
+                            if (interceptedRequest.url().endsWith('.css')) interceptedRequest.abort();
+                            else interceptedRequest.continue();
+                        });
+                    });
             })
             .catch((err) => {
                 log.exception(err, 'LaunchPuppeteer: Cannot hook CSS request interception');
