@@ -5,9 +5,10 @@
 [![Build Status](https://travis-ci.org/apifytech/apify-js.svg)](https://travis-ci.org/apifytech/apify-js)
 
 <div id="include-readme-1">
-  The `apify` NPM package enables development of web scrapers, crawlers and web automation projects
+  The <code>apify</code> NPM package enables development of web scrapers, crawlers and web automation projects
   either locally or running on <a href="https://www.apify.com/docs/actor" target="_blank">Apify Actor</a> -
   a serverless computing platform that enables execution of arbitrary code in the cloud.
+
   The package provides helper functions to launch web browsers with proxies, access the storage etc. Note that the usage of the package is optional, you can create acts at Apify platform without it.
 
   For more information about the Apify Actor platform, please see https://www.apify.com/docs/actor
