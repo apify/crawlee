@@ -1,4 +1,5 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
+import log from 'apify-shared/log';
 import { anonymizeProxy, closeAnonymizedProxy } from 'proxy-chain';
 import { ENV_VARS, DEFAULT_USER_AGENT } from './constants';
 import { newPromise, getTypicalChromeExecutablePath } from './utils';
@@ -129,5 +130,45 @@ export const launchPuppeteer = (opts) => {
     }
 
     // Ensure that the returned promise is of type set in setPromiseDependency()
-    return newPromise().then(() => promise);
+    return newPromise()
+        .then(() => maybeSetupAssetsInterception(promise));
+};
+
+const maybeSetupAssetsInterception = (browser, opts) => {
+    let skipExtensions = [];
+
+    checkParamOrThrow(opts.skipCss, 'opts.skipCss', 'Maybe Boolean');
+    checkParamOrThrow(opts.skipImages, 'opts.skipImages', 'Maybe Boolean');
+
+    if (opts.skipCss) skipExtensions.push('css');
+    if (opts.skipImages) skipExtensions = skipExtensions.concat(['jpg', 'jpeg', 'png', 'gif']);
+    if (!skipExtensions.length) return;
+
+    let resolve;
+
+    const promise = new Promise((res) => {
+        resolve = res;
+    });
+
+    browser.on(('targetcreated', (target) => {
+        if (target.type() !== 'page') return resolve();
+
+        target
+            .page()
+            .then(page => page.setRequestInterception(true))
+            .then(() => {
+                page.on('request', (interceptedRequest) => {
+                    if (interceptedRequest.url().endsWith('.css')) interceptedRequest.abort();
+                    else interceptedRequest.continue();
+                });
+
+                resolve();
+            })
+            .catch((err) => {
+                log.exception(err, 'LaunchPuppeteer: Cannot hook CSS request interception');
+                resolve();
+            });
+    }));
+
+    return promise.then(() => browser);
 };
