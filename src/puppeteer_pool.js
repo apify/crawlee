@@ -16,8 +16,10 @@ const DEFAULT_PUPPETEER_CONFIG = {
 const PROCESS_KILL_TIMEOUT_MILLIS = 5000;
 
 const DEFAULT_OPTIONS = {
-    maxOpenPagesPerInstance: 100,
-    abortInstanceAfterRequestCount: 150,
+    // Don't make these too large, otherwise Puppeteer might start crashing weirdly,
+    // and the default settings should just work
+    maxOpenPagesPerInstance: 50,
+    retireInstanceAfterRequestCount: 100,
 
     // These can't be constants because we need it for unit tests.
     instanceKillerIntervalMillis: 60 * 1000,
@@ -31,7 +33,8 @@ const DEFAULT_OPTIONS = {
 
         const config = Object.assign({}, DEFAULT_PUPPETEER_CONFIG, puppeteerConfig);
 
-        // TODO: is this needed at all? It might be confusing because the feature has the same name
+        // TODO: this should be in Apify.launchPuppeteer(). But is this needed at all?
+        // It might be confusing because the feature has the same name
         // as Chrome command line flag, so people will assume it's doing just that.
         // For simplicity I'd just remove it...
         if (config.disableWebSecurity) {
@@ -87,13 +90,13 @@ class PuppeteerInstance {
  *
  * @param {Number} [options.maxOpenPagesPerInstance=100] Maximum number of open tabs per browser. If this limit is reached then a new
  *                                                        browser will be started.
- * @param {Number} [options.abortInstanceAfterRequestCount=150] Maximum number of requests processed by a single browser.
- *                                                          After the limit is reach the browser
- *                                                              will be restarted.
+ * @param {Number} [options.retireInstanceAfterRequestCount=150] Maximum number of requests that can be processed by a single browser instance.
+ *                                                               After the limit is reached the browser will be retired and new requests will
+ *                                                               be handled by a new browser instance.
  * @param {Function} [options.launchPuppeteerFunction] Overrides the default function to launch a new Puppeteer instance.
  * @param {Number} [options.instanceKillerIntervalMillis=60000] How often opened Puppeteer instances are checked wheter they can be
  *                                                              closed.
- * @param {Number} [options.killInstanceAfterMillis=300000] If Puppeteer instance reaches the `options.abortInstanceAfterRequestCount` limit then
+ * @param {Number} [options.killInstanceAfterMillis=300000] If Puppeteer instance reaches the `options.retireInstanceAfterRequestCount` limit then
  *                                                          it is considered retired and no more tabs will be opened. After the last tab is closed the
  *                                                          whole browser is closed too. This parameter defines a time limit for inactivity after
  *                                                          which the browser is closed even if there are pending open tabs.
@@ -106,23 +109,28 @@ export default class PuppeteerPool {
     constructor(opts = {}) {
         checkParamOrThrow(opts, 'opts', 'Object');
 
+        // For backwards compatibility, in the future we can remove this...
+        if (!opts.retireInstanceAfterRequestCount && opts.abortInstanceAfterRequestCount) {
+            opts.retireInstanceAfterRequestCount = opts.abortInstanceAfterRequestCount;
+        }
+
         const {
             maxOpenPagesPerInstance,
-            abortInstanceAfterRequestCount,
+            retireInstanceAfterRequestCount,
             launchPuppeteerFunction,
             instanceKillerIntervalMillis,
             killInstanceAfterMillis,
         } = _.defaults(opts, DEFAULT_OPTIONS);
 
         checkParamOrThrow(maxOpenPagesPerInstance, 'opts.maxOpenPagesPerInstance', 'Number');
-        checkParamOrThrow(abortInstanceAfterRequestCount, 'opts.abortInstanceAfterRequestCount', 'Number');
+        checkParamOrThrow(retireInstanceAfterRequestCount, 'opts.retireInstanceAfterRequestCount', 'Number');
         checkParamOrThrow(launchPuppeteerFunction, 'opts.launchPuppeteerFunction', 'Function');
         checkParamOrThrow(instanceKillerIntervalMillis, 'opts.instanceKillerIntervalMillis', 'Number');
         checkParamOrThrow(killInstanceAfterMillis, 'opts.killInstanceAfterMillis', 'Number');
 
         // Config.
         this.maxOpenPagesPerInstance = maxOpenPagesPerInstance;
-        this.abortInstanceAfterRequestCount = abortInstanceAfterRequestCount;
+        this.retireInstanceAfterRequestCount = retireInstanceAfterRequestCount;
         this.killInstanceAfterMillis = killInstanceAfterMillis;
         this.launchPuppeteerFunction = () => launchPuppeteerFunction(opts);
 
@@ -266,7 +274,7 @@ export default class PuppeteerPool {
         instance.totalPages++;
         instance.activePages++;
 
-        if (instance.totalPages >= this.abortInstanceAfterRequestCount) this._retireInstance(instance);
+        if (instance.totalPages >= this.retireInstanceAfterRequestCount) this._retireInstance(instance);
 
         return instance.browserPromise
             .then(browser => browser.newPage())
