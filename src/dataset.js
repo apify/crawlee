@@ -194,7 +194,7 @@ export const openDataset = (datasetIdOrName) => {
  * **IMPORTANT**: Do not forget to use the `await` keyword when calling `Apify.pushData()`,
  * otherwise the act process might finish before the data is stored!
  *
- * @param {Object|Array} data Object or array of objects containing data to by stored in the dataset
+ * @param {Object|Array} data Object or array of objects containing data to by stored in the dataset (9MB Max)
  * @returns {Promise} Returns a promise that gets resolved once data are saved.
  *
  * @memberof module:Apify
