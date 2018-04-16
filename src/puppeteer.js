@@ -165,6 +165,9 @@ export const launchPuppeteer = (opts = {}) => {
         opts.args.push(`--user-agent=${userAgent}`);
     }
 
+    console.log('PUP opts:');
+    console.log(opts);
+
     const browserPromise = opts.proxyUrl
         ? launchPuppeteerWithProxy(puppeteer, opts)
         : puppeteer.launch(opts);
