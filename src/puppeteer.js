@@ -9,9 +9,9 @@ import { getApifyProxyUrl } from './actor';
 
 /**
  * @typedef {Object} LaunchPuppeteerOptions
- * @property {String} [opts.proxyUrl] URL to a HTTP proxy server.
- *                                 Port number must be specified. Proxy username and password might also be provided.
- *                                 For example, `http://bob:pass123@proxy.example.com:1234`.
+ * @property {String} [opts.proxyUrl] URL to a HTTP proxy server. It must define the port number,
+ *                                 and it might also contain proxy username and password.
+ *                                 For example: `http://bob:pass123@proxy.example.com:1234`.
  * @property {String} [opts.userAgent] HTTP `User-Agent` header used by the browser.
  *                                  If not provided, the function sets `User-Agent` to a reasonable default
  *                                  to reduce the chance of detection of the crawler.
@@ -23,8 +23,8 @@ import { getApifyProxyUrl } from './actor';
  *                                  By default, this option is `false`.
  * @property {String} [opts.useApifyProxy=false] If set to `true` then Puppeteer will be configured to use
  *                                            <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a>.
- * @property {String} [opts.apifyProxyGroups] <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a> groups to be used
- *                                         when using Apify Proxy.
+ * @property {String} [opts.apifyProxyGroups] An array of proxy groups to be used
+ *                                         when using the <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a>.
  * @property {String} [opts.apifyProxySession] <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a> session ID that
  *                                          identifies requests that should use the same proxy connection.
  */
@@ -84,8 +84,8 @@ const getPuppeteerOrThrow = () => {
 };
 
 /**
- * Launches headless Chrome using Puppeteer pre-configured to work with the Apify Actor platform.
- * The function has the same argument and return value as `puppeteer.launch()`.
+ * Launches headless Chrome using Puppeteer pre-configured to work within the Apify platform.
+ * The function has the same argument and the return value as `puppeteer.launch()`.
  * See <a href="https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#puppeteerlaunchoptions" target="_blank">
  * Puppeteer documentation</a> for more details.
  *
@@ -104,11 +104,12 @@ const getPuppeteerOrThrow = () => {
  *        <a href="https://blog.apify.com/249a21a79212" target="_blank">blog post about proxy-chain library</a>.
  *    </li>
  *    <li>
- *        If `opts.useApifyProxy=true` then creates url of <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a>
- *        based on `opts.apifyProxyGroups` and `opts.apifyProxySession` and uses it as `opts.proxyUrl`. *
+ *        If `opts.useApifyProxy` is `true` then the function generates a URL of
+ *        <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a>
+ *        based on `opts.apifyProxyGroups` and `opts.apifyProxySession` and passes it as `opts.proxyUrl`.
  *    </li>
  *    <li>
- *        Adds `--no-sandbox` to `args` to enable running headless Chrome in a Docker container on the Apify Actor platform.
+ *        The function adds `--no-sandbox` to `args` to enable running headless Chrome in a Docker container on the Apify platform.
  *    </li>
  * </ul>
  *

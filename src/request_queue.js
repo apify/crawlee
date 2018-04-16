@@ -91,17 +91,22 @@ const validateReclaimRequestParams = (request, opts) => {
  */
 
 /**
- * Provides a simple interface to the Apify Request Queue API,
- * which is used to manage a dynamic queue of web pages to crawl.
- * The instance of this object can be obtained using the
- * `Apify.openRequestQueue()` function.
+ * Provides a simple interface to the [Apify Request Queue](https://www.apify.com/docs/storage#queue)
+ * storage, which is used to manage a dynamic queue of web pages to crawl.
+ *
+ * You should not instantiate this class directly, but use the
+ * [Apify.openRequestQueue()](#module-Apify-openRequestQueue) function.
  *
  * Example usage:
  *
  * ```javascript
- * const queue = await Apify.openRequestQueue(); // Opens default request queue of the run.
- * const queueWithName = await Apify.openRequestQueue('some-name'); // Opens request queue name 'some-name'.
+ * // Opens default request queue of the run.
+ * const queue = await Apify.openRequestQueue();
  *
+ * // Opens request queue called 'some-name'.
+ * const queueWithName = await Apify.openRequestQueue('some-name');
+ *
+ * // Enqueue few requests
  * await queue.addRequest(new Apify.Request({ url: 'http://example.com/aaa'}));
  * await queue.addRequest(new Apify.Request({ url: 'http://example.com/bbb'}));
  * await queue.addRequest(new Apify.Request({ url: 'http://example.com/foo/bar'}, { forefront: true }));
@@ -659,11 +664,15 @@ const getOrCreateQueue = (queueIdOrName) => {
 };
 
 /**
- * Opens a request queue and returns its `RequestQueue` object.
+ * Opens a request queue and returns a promise resolving to an instance
+ * of the [RequestQueue](#RequestQueue) class.
+ *
+ * Example usage:
  *
  * ```javascript
  * const queue = await Apify.openRequestQueue('my-queue-id');
  *
+ * // Enqueue some requests
  * await queue.addRequest(new Apify.Request({ url: 'http://example.com/aaa'});
  * await queue.addRequest(new Apify.Request({ url: 'http://example.com/bbb'});
  * await queue.addRequest(new Apify.Request({ url: 'http://example.com/foo/bar'}, { forefront: true });
@@ -686,7 +695,7 @@ const getOrCreateQueue = (queueIdOrName) => {
  *
  * @param {string} queueIdOrName ID or name of the request queue to be opened.
  * @returns {Promise<RequestQueue>} Returns a promise that resolves to a `RequestQueue` object. If no value is provided
- *                                  then opens default request queue of the run.
+ *                                  then the function opens the default request queue associated with the act run.
  *
  * @memberof module:Apify
  * @name openRequestQueue
