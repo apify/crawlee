@@ -39,7 +39,6 @@ const launchPuppeteerWithProxy = (puppeteer, opts) => {
 
     // Parse and validate proxy URL and anonymize it
     // NOTE: anonymizeProxy() throws on invalid proxy URL, so it must not be inside a Promise!
-    console.log(opts.proxyUrl);
     return anonymizeProxy(opts.proxyUrl)
         .then((result) => {
             anonymizedProxyUrl = result;

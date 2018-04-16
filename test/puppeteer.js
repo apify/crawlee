@@ -6,6 +6,7 @@ import basicAuthParser from 'basic-auth-parser';
 import Promise from 'bluebird';
 import _ from 'underscore';
 import sinon from 'sinon';
+import { delayPromise } from 'apify-shared/utilities';
 import Apify from '../build/index';
 import * as actor from '../build/actor';
 import { ENV_VARS } from '../build/constants';
@@ -189,7 +190,7 @@ describe('Apify.launchPuppeteer()', () => {
             });
     });
 
-    it('allow to use Apify proxy', () => {
+    it('should allow to use Apify proxy', () => {
         process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
         process.env[ENV_VARS.PROXY_HOSTNAME] = 'my.host.com';
         process.env[ENV_VARS.PROXY_PORT] = 123;
@@ -209,7 +210,10 @@ describe('Apify.launchPuppeteer()', () => {
                 apifyProxySession: 'xxx',
                 apifyProxyGroups: ['yyy'],
             })
-            .then(browser => browser.close())
+            .then((browser) => {
+                return delayPromise(100)
+                    .then(() => browser.close());
+            })
             .finally(() => {
                 mock.verify();
                 mock.restore();
