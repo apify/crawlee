@@ -69,7 +69,7 @@ class PuppeteerInstance {
  *                                                          which the browser is closed even if there are pending open tabs.
  * @param {Function} [options.launchPuppeteerFunction=launchPuppeteerOptions&nbsp;=>&nbsp;Apify.launchPuppeteer(launchPuppeteerOptions)]
  *                                                          Overrides the default function to launch a new Puppeteer instance.
- * @param {Boolean} [options.launchPuppeteerOptions] Options used by `Apify.launchPuppeteer()` to start new Puppeteer instances.
+ * @param {LaunchPuppeteerOptions} [options.launchPuppeteerOptions] Options used by `Apify.launchPuppeteer()` to start new Puppeteer instances.
  */
 export default class PuppeteerPool {
     constructor(opts = {}) {

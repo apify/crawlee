@@ -91,7 +91,7 @@ const DEFAULT_OPTIONS = {
  * @param {Function} [options.launchPuppeteerFunction=launchPuppeteerOptions&nbsp;=>&nbsp;Apify.launchPuppeteer(launchPuppeteerOptions)]
  *                                                          Overrides the default function to launch a new Puppeteer instance.
  *                                                          See `launchPuppeteerFunction` parameter of `PuppeteerPool`.
- * @param {Boolean} [options.launchPuppeteerOptions] Options used by `Apify.launchPuppeteer()` to start new Puppeteer instances.
+ * @param {LaunchPuppeteerOptions} [options.launchPuppeteerOptions] Options used by `Apify.launchPuppeteer()` to start new Puppeteer instances.
  *                                                   See `launchPuppeteerOptions` parameter of `PuppeteerPool`.
  */
 export default class PuppeteerCrawler {
