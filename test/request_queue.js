@@ -24,7 +24,7 @@ describe('RequestQueue', () => {
 
     describe('local', async () => {
         it('should work', async () => {
-            const queue = new RequestQueueLocal('my-queue', LOCAL_EMULATION_DIR);
+            const queue = new RequestQueueLocal('my-queue-0', LOCAL_EMULATION_DIR);
 
             await queue.addRequest(new Apify.Request({ url: 'http://example.com/first' }));
             await queue.addRequest(new Apify.Request({ url: 'http://example.com/middle' }));
@@ -67,7 +67,7 @@ describe('RequestQueue', () => {
         });
 
         it('supports forefront param in reclaimRequest()', async () => {
-            const queue = new RequestQueueLocal('my-queue', LOCAL_EMULATION_DIR);
+            const queue = new RequestQueueLocal('my-queue-1', LOCAL_EMULATION_DIR);
 
             await queue.addRequest(new Apify.Request({ url: 'http://example.com/first' }));
             await queue.addRequest(new Apify.Request({ url: 'http://example.com/middle' }));
