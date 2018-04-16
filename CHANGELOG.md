@@ -1,17 +1,23 @@
 xxxxxxxxxxxxxxxxxxx
 ===================
+- WARNING: `disableProxy` configuration of `PuppeteerCrawler`, `BasicCrawler` and `PuppeteerPool` removed. By default no proxy is used.
+  You must either use new configuration `launchPuppeteerOptions.useApifyProxy = true` to use Apify Proxy or provide own proxy via
+  `launchPuppeteerOptions.proxyUrl`.
+- WARNING: `groups` parameter of `PuppeteerCrawler`, `BasicCrawler` and `PuppeteerPool` removed. Use `launchPuppeteerOptions.apifyProxyGroups` instead.
+- WARNING: `session` and `groups` parameters of `Apify.launchPuppeteer()` are now validated to contain only alphanumberic
+  characters and underscores.
 - `Apify.call()` now throws an `ApifyCallError` error if run doesn't succeed
 - Renamed options `abortInstanceAfterRequestCount` of `PuppeteerPool` and `PuppeteerCrawler` to retireInstanceAfterRequestCcount
 - Logs are now in plain text instead of JSON for better readability.
 
 0.5.22 / 2018-04-12
 ===================
+- WARNING: `AutoscaledPool` was completely redesigned. Check documentation for reference. It still supports previous
+  configuration parameters for backwards compatibility but in the future compatibility will break.
 - `handleFailedRequestFunction` in both `BasicCrawler` and `PuppeteerCrawler` has now also error object
   available in `ops.error`.
 - Request Queue storage type implemented. See documentation for more information.
 - `BasicCrawler` and `PuppeteerCrawler` now supports both `RequestList` and `RequestQueue`.
-- `AutoscaledPool` was completely redesigned. Check documentation for reference. It still supports previous
-  configuration parameters for backwards compatibility but in the future compatibility will break.
 - `launchPuppeteer()` changes `User-Agent` only when in headless mode or if not using full Google Chrome,
   to reduce chance of detection of the crawler.
 - Apify package now supports Node 7 and newer.
