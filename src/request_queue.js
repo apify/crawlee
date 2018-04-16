@@ -433,6 +433,7 @@ export class RequestQueueLocal {
         this.localHandledEmulationPath = path.join(this.localEmulationPath, 'handled');
         this.localPendingEmulationPath = path.join(this.localEmulationPath, 'pending');
 
+        this.queueOrderNoCounter = 0; // Counter used in _getQueueOrderNo to ensure there won't be a collision.
         this.pendingCount = 0;
         this.inProgressCount = 0;
         this.requestIdToQueueOrderNo = {};
@@ -483,7 +484,7 @@ export class RequestQueueLocal {
         const sgn = (forefront ? 1 : 2) * (10 ** 15);
         const base = (10 ** (13)); // Date.now() returns int with 13 numbers.
         // We always add pending count for a case that two pages are insterted at the same millisecond.
-        const now = Date.now() + this.pendingCount;
+        const now = Date.now() + this.queueOrderNoCounter++;
         const queueOrderNo = forefront
             ? sgn + (base - now)
             : sgn + (base + now);
