@@ -20,7 +20,6 @@ Apify.main(async () => {
     // Create crawler.
     const crawler = new Apify.PuppeteerCrawler({
         requestQueue,
-        disableProxy: true,
 
         // This page is executed for each request.
         // If request failes then it's retried 3 times.
