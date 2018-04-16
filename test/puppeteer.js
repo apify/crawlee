@@ -210,10 +210,7 @@ describe('Apify.launchPuppeteer()', () => {
                 apifyProxySession: 'xxx',
                 apifyProxyGroups: ['yyy'],
             })
-            .then((browser) => {
-                return delayPromise(100)
-                    .then(() => browser.close());
-            })
+            .then(browser => browser.close())
             .finally(() => {
                 mock.verify();
                 mock.restore();
