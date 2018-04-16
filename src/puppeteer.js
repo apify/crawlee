@@ -131,8 +131,6 @@ const getPuppeteerOrThrow = () => {
  * @function
  */
 export const launchPuppeteer = (opts = {}) => {
-    console.log(opts);
-
     checkParamOrThrow(opts, 'opts', 'Object');
     checkParamOrThrow(opts.args, 'opts.args', 'Maybe [String]');
     checkParamOrThrow(opts.proxyUrl, 'opts.proxyUrl', 'Maybe String');
@@ -147,18 +145,15 @@ export const launchPuppeteer = (opts = {}) => {
     if (opts.headless === undefined || opts.headless === null) {
         opts.headless = process.env[ENV_VARS.HEADLESS] === '1' && process.env[ENV_VARS.XVFB] !== '1';
     }
-    console.log(opts);
     if (opts.useChrome && (opts.executablePath === undefined || opts.executablePath === null)) {
         opts.executablePath = process.env[ENV_VARS.CHROME_EXECUTABLE_PATH] || getTypicalChromeExecutablePath();
     }
-    console.log(opts);
     if (opts.useApifyProxy) {
         opts.proxyUrl = getApifyProxyUrl({
             groups: opts.apifyProxyGroups,
             session: opts.apifyProxySession || cryptoRandomObjectId(),
         });
     }
-    console.log(opts);
 
     // When User-Agent is not set and we're using Chromium or headless mode,
     // it is better to use DEFAULT_USER_AGENT to reduce chance of detection
@@ -169,9 +164,6 @@ export const launchPuppeteer = (opts = {}) => {
     if (userAgent) {
         opts.args.push(`--user-agent=${userAgent}`);
     }
-
-    console.log('PUP opts:');
-    console.log(opts);
 
     const browserPromise = opts.proxyUrl
         ? launchPuppeteerWithProxy(puppeteer, opts)

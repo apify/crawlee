@@ -209,6 +209,7 @@ describe('Apify.launchPuppeteer()', () => {
                 useApifyProxy: true,
                 apifyProxySession: 'xxx',
                 apifyProxyGroups: ['yyy'],
+                headless: true,
             })
             .then(browser => browser.close())
             .finally(() => {
@@ -225,6 +226,7 @@ describe('Apify.launchPuppeteer()', () => {
             useApifyProxy: true,
             apifyProxySession: 'xxx',
             apifyProxyGroups: ['yyy'],
+            headless: true,
         };
 
         expect(() => Apify.launchPuppeteer(opts)).to.throw(Error);
