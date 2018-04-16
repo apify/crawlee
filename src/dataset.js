@@ -19,10 +19,10 @@ const { datasets } = apifyClient;
 const datasetsCache = new LruCache({ maxLength: MAX_OPENED_STORES }); // Open Datasets are stored here.
 
 /**
- * Dataset class provides easy interface to Apify Dataset storage type. Dataset should be opened using
- * `Apify.openDataset()` function.
+ * The `Dataset` class provides a simple interface to the [Apify Dataset](https://www.apify.com/docs/storage#dataset) storage.
+ * You should not instantiate this class directly, use the [Apify.openDataset()](#module-Apify-openDataset) function.
  *
- * Basic usage of Dataset:
+ * Example usage:
  *
  * ```javascript
  * const dataset = await Apify.openDataset('my-dataset-id');
@@ -55,7 +55,7 @@ export class Dataset {
 }
 
 /**
- * This is a local representation of a dataset.
+ * This is a local emulation of a dataset.
  *
  * @ignore
  */
@@ -120,20 +120,36 @@ const getOrCreateDataset = (datasetIdOrName) => {
         });
 };
 
+
 /**
- * Opens dataset and returns its object.
+ * Opens a dataset and returns a promise resolving to an instance of the [Dataset](#Dataset) object.
+ *
+ * Dataset is an append-only storage that is useful for storing sequential or tabular results.
+ * For more information, see [Dataset documentation](https://www.apify.com/docs/storage#dataset).
+ *
+ * Example usage:
  *
  * ```javascript
- * const dataset = await Apify.openDataset('my-dataset-id');
+ * const store = await Apify.openDataset(); // Opens the default dataset of the run.
+ * const storeWithName = await Apify.openDataset('some-name'); // Opens dataset with name 'some-name'.
+ *
+ * // Write a single row to dataset
  * await dataset.pushData({ foo: 'bar' });
+ *
+ * // Write multiple rows
+ * await dataset.pushData([
+ *   { foo: 'bar2', col2: 'val2' },
+ *   { col3: 123 },
+ * ]);
  * ```
  *
- * If the `APIFY_LOCAL_EMULATION_DIR` environment variable is defined, the value this function
- * returns an instance `DatasetLocal` which is an local emulation of dataset.
- * This is useful for local development and debugging of your acts.
+ * If the `APIFY_LOCAL_EMULATION_DIR` environment variable is set, the result of this function
+ * is an instance of the `DatasetLocal` class which stores the data in a local directory
+ * rather than Apify cloud. This is useful for local development and debugging of your acts.
  *
- * @param {string} datasetIdOrName ID or name of the dataset to be opened.
- * @returns {Promise<Dataset>} Returns a promise that resolves to a Dataset object.
+ * @param {string} datasetIdOrName ID or name of the dataset to be opened. If no value is provided
+ *                                 then the function opens the default dataset associated with the act run.
+ * @returns {Promise<Dataset>} Returns a promise that resolves to a `Dataset` object.
  *
  * @memberof module:Apify
  * @name openDataset

@@ -7,12 +7,11 @@ import Promise from 'bluebird';
 import _ from 'underscore';
 import sinon from 'sinon';
 import Apify from '../build/index';
+import * as actor from '../build/actor';
 import { ENV_VARS } from '../build/constants';
 import * as utils from '../build/utils';
 
-
 let prevEnvHeadless;
-
 let proxyServer;
 let proxyPort; // eslint-disable-line no-unused-vars
 const proxyAuth = { scheme: 'Basic', username: 'username', password: 'password' };
@@ -76,6 +75,7 @@ describe('Apify.launchPuppeteer()', () => {
         expect(() => Apify.launchPuppeteer({ proxyUrl: 'invalid://somehost:1234' })).to.throw(Error);
         expect(() => Apify.launchPuppeteer({ proxyUrl: 'https://somehost:1234' })).to.throw(Error);
         expect(() => Apify.launchPuppeteer({ proxyUrl: ' something really bad' })).to.throw(Error);
+        expect(() => Apify.launchPuppeteer({ proxyUrl: 'xxx', useApifyProxy: true })).to.throw(Error);
 
         expect(() => Apify.launchPuppeteer({ args: 'wrong args' })).to.throw(Error);
         expect(() => Apify.launchPuppeteer({ args: [12, 34] })).to.throw(Error);
@@ -187,5 +187,47 @@ describe('Apify.launchPuppeteer()', () => {
                 mock.verify();
                 mock.restore();
             });
+    });
+
+    it('should allow to use Apify proxy', () => {
+        process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
+        process.env[ENV_VARS.PROXY_HOSTNAME] = 'my.host.com';
+        process.env[ENV_VARS.PROXY_PORT] = 123;
+
+        const mock = sinon.mock(actor);
+        mock.expects('getApifyProxyUrl')
+            .once()
+            .withArgs({
+                session: 'xxx',
+                groups: ['yyy'],
+            })
+            .returns(null); // Return null so that it doesn't start proxy-chain
+
+        return Apify
+            .launchPuppeteer({
+                useApifyProxy: true,
+                apifyProxySession: 'xxx',
+                apifyProxyGroups: ['yyy'],
+                headless: true,
+            })
+            .then(browser => browser.close())
+            .finally(() => {
+                mock.verify();
+                mock.restore();
+                delete process.env[ENV_VARS.PROXY_PASSWORD];
+                delete process.env[ENV_VARS.PROXY_HOSTNAME];
+                delete process.env[ENV_VARS.PROXY_PORT];
+            });
+    });
+
+    it('should throw when useApifyProxy=true and proxy password is not set', () => {
+        const opts = {
+            useApifyProxy: true,
+            apifyProxySession: 'xxx',
+            apifyProxyGroups: ['yyy'],
+            headless: true,
+        };
+
+        expect(() => Apify.launchPuppeteer(opts)).to.throw(Error);
     });
 });

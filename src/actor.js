@@ -2,6 +2,7 @@ import _ from 'underscore';
 import Promise from 'bluebird';
 import fs from 'fs';
 import { checkParamOrThrow } from 'apify-client/build/utils';
+import { PROXY_GROUP_NAME_REGEX, PROXY_SESSION_ID_REGEX } from 'apify-shared/regexs';
 import { ENV_VARS, EXIT_CODES, ACT_TASK_TERMINAL_STATUSES, ACT_TASK_STATUSES, DEFAULT_PROXY_HOSTNAME, DEFAULT_PROXY_PORT } from './constants';
 import { initializeEvents, stopEvents } from './events';
 import { newPromise, apifyClient, addCharsetToContentType } from './utils';
@@ -391,21 +392,28 @@ export const getApifyProxyUrl = (opts = {}) => {
         port = parseInt(process.env[ENV_VARS.PROXY_PORT], 10) || DEFAULT_PROXY_PORT,
     } = opts;
 
-    // TODO: Check that session and groups are alphanumeric!
+    const getMissingParamErrorMgs = (param, env) => `Apify Proxy ${param} must be provided as parameter or "${env}" environment variable!`;
+    const throwNonAlphanumericError = (param) => { throw new Error(`Only alphanumeric characters and underscore are allowed in ${param}`); };
 
-    checkParamOrThrow(groups, 'opts.groups', 'Maybe Array');
+    checkParamOrThrow(groups, 'opts.groups', 'Maybe [String]');
     checkParamOrThrow(session, 'opts.session', 'Maybe Number | String');
-    checkParamOrThrow(password, 'opts.password', 'String');
-    checkParamOrThrow(hostname, 'opts.hostname', 'String');
-    checkParamOrThrow(port, 'opts.port', 'Number');
+    checkParamOrThrow(password, 'opts.password', 'String', getMissingParamErrorMgs('password', ENV_VARS.PROXY_PASSWORD));
+    checkParamOrThrow(hostname, 'opts.hostname', 'String', getMissingParamErrorMgs('hostname', ENV_VARS.PROXY_HOSTNAME));
+    checkParamOrThrow(port, 'opts.port', 'Number', getMissingParamErrorMgs('port', ENV_VARS.PROXY_PORT));
 
     let username;
 
     if (groups || session) {
         const parts = [];
 
-        if (groups && groups.length) parts.push(`GROUPS-${groups.join('+')}`);
-        if (session) parts.push(`SESSION-${session}`);
+        if (groups && groups.length) {
+            if (!groups.every(group => PROXY_GROUP_NAME_REGEX.test(group))) throwNonAlphanumericError('proxy group names');
+            parts.push(`GROUPS-${groups.join('+')}`);
+        }
+        if (session) {
+            if (!PROXY_SESSION_ID_REGEX.test(session)) throwNonAlphanumericError('proxy session ID');
+            parts.push(`SESSION-${session}`);
+        }
 
         username = parts.join(',');
     } else {

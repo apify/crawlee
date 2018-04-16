@@ -79,8 +79,6 @@ const DEFAULT_OPTIONS = {
  *                                                               After the limit is reached the browser will be retired and new requests will
  *                                                               be handled by a new browser instance.
  *                                                              See `retireInstanceAfterRequestCount` parameter of `PuppeteerPool`.
- * @param {Function} [options.launchPuppeteerFunction] Overrides how new Puppeteer instance gets launched. See `launchPuppeteerFunction` parameter of
- *                                                     `PuppeteerPool`.
  * @param {Number} [options.instanceKillerIntervalMillis=60000] How often the launched Puppeteer instances are checked whether they can be
  *                                                              closed. See `instanceKillerIntervalMillis` parameter of `PuppeteerPool`.
  * @param {Number} [options.killInstanceAfterMillis=300000] If Puppeteer instance reaches the `options.retireInstanceAfterRequestCount` limit then
@@ -90,8 +88,11 @@ const DEFAULT_OPTIONS = {
  *                                                          `killInstanceAfterMillis` parameter of `PuppeteerPool`.
  * @param {Object} [options.puppeteerConfig={ dumpio: process.env.NODE_ENV !== 'production', slowMo: 0, args: []}] Default options for each
  *                                                          new Puppeteer instance. See `puppeteerConfig` parameter of `PuppeteerPool`.
- * @param {Boolean} [options.disableProxy=false] Disables proxying through Apify proxy. See `disableProxy` parameter of `PuppeteerPool`.
- * @param {Array} [options.groups] Apify proxy groups to be used. See `Apify.getApifyProxyUrl()` for more details.
+ * @param {Function} [options.launchPuppeteerFunction=launchPuppeteerOptions&nbsp;=>&nbsp;Apify.launchPuppeteer(launchPuppeteerOptions)]
+ *                                                          Overrides the default function to launch a new Puppeteer instance.
+ *                                                          See `launchPuppeteerFunction` parameter of `PuppeteerPool`.
+ * @param {LaunchPuppeteerOptions} [options.launchPuppeteerOptions] Options used by `Apify.launchPuppeteer()` to start new Puppeteer instances.
+ *                                                   See `launchPuppeteerOptions` parameter of `PuppeteerPool`.
  */
 export default class PuppeteerCrawler {
     constructor(opts) {
@@ -122,15 +123,10 @@ export default class PuppeteerCrawler {
             // Puppeteer Pool options
             maxOpenPagesPerInstance,
             retireInstanceAfterRequestCount,
-            launchPuppeteerFunction,
             instanceKillerIntervalMillis,
             killInstanceAfterMillis,
-
-            // TODO: 'groups' is not a great name, but we need to
-            // review proxy settings in general
-            groups,
-            puppeteerConfig,
-            disableProxy,
+            launchPuppeteerFunction,
+            launchPuppeteerOptions,
         } = _.defaults(opts, DEFAULT_OPTIONS);
 
         checkParamOrThrow(handlePageFunction, 'opts.handlePageFunction', 'Function');
@@ -145,12 +141,10 @@ export default class PuppeteerCrawler {
         this.puppeteerPool = new PuppeteerPool({
             maxOpenPagesPerInstance,
             retireInstanceAfterRequestCount,
-            launchPuppeteerFunction,
             instanceKillerIntervalMillis,
             killInstanceAfterMillis,
-            groups,
-            puppeteerConfig,
-            disableProxy,
+            launchPuppeteerFunction,
+            launchPuppeteerOptions,
         });
 
         this.basicCrawler = new BasicCrawler({

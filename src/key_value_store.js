@@ -86,19 +86,27 @@ export const maybeStringify = (value, options) => {
     return value;
 };
 
+
 /**
- * KeyValueStore class provides easy interface to Apify key-value store storage type. Key-value store should be opened using
- * `Apify.openKeyValueStore()` function.
+ * The `KeyValueStore` class provides a simple interface to the [Apify Key-value stores](https://www.apify.com/docs/storage#kv-store).
+ * You should not instantiate this class directly, use the
+ * [Apify.openKeyValueStore()](#module-Apify-openKeyValueStore) function.
  *
- * Basic usage of key-value store:
+ * Example usage:
  *
  * ```javascript
- * const store = await Apify.openKeyValueStore('my-store-id');
+ * // Opens default key-value store of the run.
+ * const store = await Apify.openKeyValueStore();
+ *
+ * // Opens key-value store called 'some-name', belonging to the current Apify user account.
+ * const storeWithName = await Apify.openKeyValueStore('some-name');
+ *
+ * // Write and read data record
  * await store.setValue('some-key', { foo: 'bar' });
  * const value = store.getValue('some-key');
  * ```
  *
- * @param {String} storeId - ID of the store.
+ * @param {String} storeId - ID of the key-value store.
  */
 export class KeyValueStore {
     constructor(storeId) {
@@ -107,9 +115,12 @@ export class KeyValueStore {
         this.storeId = storeId;
     }
 
+    // TODO: Move here the Apify.getValue()/setValue() documentation, and link it from there.
+    // This place should be the main source of information.
+
     /**
-     * Stores object or an array of objects in the dataset.
-     * The function has no result, but throws on invalid args or other errors.
+     * Gets a record from the current key-value store using its key.
+     * For more details, see [Apify.getValue](#module-Apify-getValue).
      *
      * @param  {String}  key Record key.
      * @return {Promise}
@@ -123,8 +134,8 @@ export class KeyValueStore {
     }
 
     /**
-     * Stores object or an array of objects in the dataset.
-     * The function has no result, but throws on invalid args or other errors.
+     * Stores a record to the key-value stores.
+     * The function has no result, but throws on invalid arguments or other errors.
      *
      * @param  {String} key Record key.
      * @param  {Object|String|Buffer} value Record value. If content type is not provided then the value is stringified to JSON.
@@ -251,19 +262,27 @@ const getOrCreateKeyValueStore = (storeIdOrName) => {
         });
 };
 
+
 /**
- * Opens key-value store and returns its object.</p>
+ * Opens a key-value store and returns a promise resolving to an instance
+ * of the [KeyValueStore](#KeyValueStore) class.
+ *
+ * Key-value store is a simple storage for records, where each record has a unique key.
+ * For more information, see [Key-value store documentation](https://www.apify.com/docs/storage#dataset).
+ *
+ * Example usage:
  *
  * ```javascript
  * const store = await Apify.openKeyValueStore('my-store-id');
  * await store.setValue('some-key', { foo: 'bar' });
  * ```
  *
- * If the `APIFY_LOCAL_EMULATION_DIR` environment variable is defined, the value this function
- * returns an instance `KeyValueStoreLocal` which is an local emulation of key-value store.
- * This is useful for local development and debugging of your acts.
+ * If the `APIFY_LOCAL_EMULATION_DIR` environment variable is set, the result of this function
+ * is an instance of the `KeyValueStoreLocal` class which stores the records in a local directory
+ * rather than Apify cloud. This is useful for local development and debugging of your acts.
  *
- * @param {string} storeIdOrName ID or name of the key-value store to be opened.
+ * @param {string} storeIdOrName ID or name of the key-value store to be opened. If no value is
+ *                               provided then the function opens the default key-value store associated with the act run.
  * @returns {Promise<KeyValueStore>} Returns a promise that resolves to a KeyValueStore object.
  *
  * @memberof module:Apify

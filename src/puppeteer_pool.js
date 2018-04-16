@@ -1,17 +1,8 @@
 import _ from 'underscore';
 import log from 'apify-shared/log';
 import Promise from 'bluebird';
-import { cryptoRandomObjectId } from 'apify-shared/utilities';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { launchPuppeteer } from './puppeteer';
-import { getApifyProxyUrl } from './actor';
-import { isProduction } from './utils';
-
-const DEFAULT_PUPPETEER_CONFIG = {
-    dumpio: !isProduction(),
-    slowMo: 0,
-    args: [],
-};
 
 const PROCESS_KILL_TIMEOUT_MILLIS = 5000;
 
@@ -26,30 +17,7 @@ const DEFAULT_OPTIONS = {
     killInstanceAfterMillis: 5 * 60 * 1000,
 
     // TODO: use settingsRotator()
-    launchPuppeteerFunction: ({ groups, puppeteerConfig, disableProxy = false }) => {
-        checkParamOrThrow(groups, 'opts.groups', 'Maybe Array');
-        checkParamOrThrow(puppeteerConfig, 'opts.puppeteerConfig', 'Maybe Object');
-        checkParamOrThrow(disableProxy, 'opts.disableProxy', 'Maybe Boolean');
-
-        const config = Object.assign({}, DEFAULT_PUPPETEER_CONFIG, puppeteerConfig);
-
-        // TODO: this should be in Apify.launchPuppeteer(). But is this needed at all?
-        // It might be confusing because the feature has the same name
-        // as Chrome command line flag, so people will assume it's doing just that.
-        // For simplicity I'd just remove it...
-        if (config.disableWebSecurity) {
-            config.ignoreHTTPSErrors = true;
-            config.args.push('--disable-web-security');
-        }
-
-        // TODO: Maybe we should move this whole logic directly to Apify.launchPuppeteer().
-        // E.g. if process.env.APIFY_PROXY_HOST is defined, then puppeteer should use it with "auto".
-        if (!disableProxy) {
-            config.proxyUrl = getApifyProxyUrl({ groups, session: cryptoRandomObjectId() });
-        }
-
-        return launchPuppeteer(config);
-    },
+    launchPuppeteerFunction: launchPuppeteerOptions => launchPuppeteer(launchPuppeteerOptions),
 };
 
 /**
@@ -93,17 +61,15 @@ class PuppeteerInstance {
  * @param {Number} [options.retireInstanceAfterRequestCount=150] Maximum number of requests that can be processed by a single browser instance.
  *                                                               After the limit is reached the browser will be retired and new requests will
  *                                                               be handled by a new browser instance.
- * @param {Function} [options.launchPuppeteerFunction] Overrides the default function to launch a new Puppeteer instance.
  * @param {Number} [options.instanceKillerIntervalMillis=60000] How often opened Puppeteer instances are checked wheter they can be
  *                                                              closed.
  * @param {Number} [options.killInstanceAfterMillis=300000] If Puppeteer instance reaches the `options.retireInstanceAfterRequestCount` limit then
  *                                                          it is considered retired and no more tabs will be opened. After the last tab is closed the
  *                                                          whole browser is closed too. This parameter defines a time limit for inactivity after
  *                                                          which the browser is closed even if there are pending open tabs.
- * @param {Object} [options.puppeteerConfig={ dumpio: process.env.NODE_ENV !== 'production', slowMo: 0, args: []}] Configuration of Puppeteer
- *                                                                                                                 instances.
- * @param {Boolean} [options.disableProxy=false] Disables proxying through Apify proxy.
- * @param {Array} [options.groups] Apify proxy groups to be used. See `Apify.getApifyProxyUrl()` for more details.
+ * @param {Function} [options.launchPuppeteerFunction=launchPuppeteerOptions&nbsp;=>&nbsp;Apify.launchPuppeteer(launchPuppeteerOptions)]
+ *                                                          Overrides the default function to launch a new Puppeteer instance.
+ * @param {LaunchPuppeteerOptions} [options.launchPuppeteerOptions] Options used by `Apify.launchPuppeteer()` to start new Puppeteer instances.
  */
 export default class PuppeteerPool {
     constructor(opts = {}) {
@@ -121,6 +87,7 @@ export default class PuppeteerPool {
             launchPuppeteerFunction,
             instanceKillerIntervalMillis,
             killInstanceAfterMillis,
+            launchPuppeteerOptions,
         } = _.defaults(opts, DEFAULT_OPTIONS);
 
         checkParamOrThrow(maxOpenPagesPerInstance, 'opts.maxOpenPagesPerInstance', 'Number');
@@ -128,12 +95,13 @@ export default class PuppeteerPool {
         checkParamOrThrow(launchPuppeteerFunction, 'opts.launchPuppeteerFunction', 'Function');
         checkParamOrThrow(instanceKillerIntervalMillis, 'opts.instanceKillerIntervalMillis', 'Number');
         checkParamOrThrow(killInstanceAfterMillis, 'opts.killInstanceAfterMillis', 'Number');
+        checkParamOrThrow(launchPuppeteerOptions, 'opts.launchPuppeteerOptions', 'Maybe Object');
 
         // Config.
         this.maxOpenPagesPerInstance = maxOpenPagesPerInstance;
         this.retireInstanceAfterRequestCount = retireInstanceAfterRequestCount;
         this.killInstanceAfterMillis = killInstanceAfterMillis;
-        this.launchPuppeteerFunction = () => launchPuppeteerFunction(opts);
+        this.launchPuppeteerFunction = () => launchPuppeteerFunction(launchPuppeteerOptions);
 
         // State.
         this.browserCounter = 0;
