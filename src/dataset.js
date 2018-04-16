@@ -124,7 +124,9 @@ const getOrCreateDataset = (datasetIdOrName) => {
  * Opens dataset and returns its object.
  *
  * ```javascript
- * const dataset = await Apify.openDataset('my-dataset-id');
+ * const store = await Apify.openDataset(); // Opens default dataset of the run.
+ * const storeWithName = await Apify.openDataset('some-name'); // Opens dataset name 'some-name'.
+ *
  * await dataset.pushData({ foo: 'bar' });
  * ```
  *
@@ -132,7 +134,8 @@ const getOrCreateDataset = (datasetIdOrName) => {
  * returns an instance `DatasetLocal` which is an local emulation of dataset.
  * This is useful for local development and debugging of your acts.
  *
- * @param {string} datasetIdOrName ID or name of the dataset to be opened.
+ * @param {string} datasetIdOrName ID or name of the dataset to be opened. If no value is provided
+ *                                 then opens default dataset of the run.
  * @returns {Promise<Dataset>} Returns a promise that resolves to a Dataset object.
  *
  * @memberof module:Apify

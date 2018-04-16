@@ -99,7 +99,8 @@ const validateReclaimRequestParams = (request, opts) => {
  * Example usage:
  *
  * ```javascript
- * const queue = await Apify.openRequestQueue('my-queue-id');
+ * const queue = await Apify.openRequestQueue(); // Opens default request queue of the run.
+ * const queueWithName = await Apify.openRequestQueue('some-name'); // Opens request queue name 'some-name'.
  *
  * await queue.addRequest(new Apify.Request({ url: 'http://example.com/aaa'}));
  * await queue.addRequest(new Apify.Request({ url: 'http://example.com/bbb'}));
@@ -684,7 +685,8 @@ const getOrCreateQueue = (queueIdOrName) => {
  * This is useful for local development and debugging of the acts.
  *
  * @param {string} queueIdOrName ID or name of the request queue to be opened.
- * @returns {Promise<RequestQueue>} Returns a promise that resolves to a `RequestQueue` object.
+ * @returns {Promise<RequestQueue>} Returns a promise that resolves to a `RequestQueue` object. If no value is provided
+ *                                  then opens default request queue of the run.
  *
  * @memberof module:Apify
  * @name openRequestQueue

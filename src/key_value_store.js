@@ -93,7 +93,9 @@ export const maybeStringify = (value, options) => {
  * Basic usage of key-value store:
  *
  * ```javascript
- * const store = await Apify.openKeyValueStore('my-store-id');
+ * const store = await Apify.openKeyValueStore(); // Opens default key-value store of the run.
+ * const storeWithName = await Apify.openKeyValueStore('some-name'); // Opens key-value store name 'some-name'.
+ *
  * await store.setValue('some-key', { foo: 'bar' });
  * const value = store.getValue('some-key');
  * ```
@@ -263,7 +265,8 @@ const getOrCreateKeyValueStore = (storeIdOrName) => {
  * returns an instance `KeyValueStoreLocal` which is an local emulation of key-value store.
  * This is useful for local development and debugging of your acts.
  *
- * @param {string} storeIdOrName ID or name of the key-value store to be opened.
+ * @param {string} storeIdOrName ID or name of the key-value store to be opened. If no value is
+ *                               provided then opens default key-value store of the run.
  * @returns {Promise<KeyValueStore>} Returns a promise that resolves to a KeyValueStore object.
  *
  * @memberof module:Apify
