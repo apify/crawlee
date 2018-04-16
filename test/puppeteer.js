@@ -6,7 +6,6 @@ import basicAuthParser from 'basic-auth-parser';
 import Promise from 'bluebird';
 import _ from 'underscore';
 import sinon from 'sinon';
-import { delayPromise } from 'apify-shared/utilities';
 import Apify from '../build/index';
 import * as actor from '../build/actor';
 import { ENV_VARS } from '../build/constants';
