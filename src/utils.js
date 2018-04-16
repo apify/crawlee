@@ -2,7 +2,6 @@ import Promise from 'bluebird';
 import contentTypeParser from 'content-type';
 import os from 'os';
 import fs from 'fs';
-import _ from 'underscore';
 import fsExtra from 'fs-extra';
 import ApifyClient from 'apify-client';
 import { ENV_VARS } from './constants';
