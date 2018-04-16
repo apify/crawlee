@@ -732,4 +732,25 @@ describe('Apify.getApifyProxyUrl()', () => {
             port: 345,
         })).to.be.eql('http://auto:xyz@your.host.com:345');
     });
+
+    it('should throw on invalid proxy args', () => {
+        process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
+        process.env[ENV_VARS.PROXY_HOSTNAME] = 'my.host.com';
+        process.env[ENV_VARS.PROXY_PORT] = 123;
+
+        expect(() => Apify.getApifyProxyUrl({ session: 'a.b' })).to.throw();
+        expect(() => Apify.getApifyProxyUrl({ session: 'a-b' })).to.throw();
+        expect(() => Apify.getApifyProxyUrl({ session: 'ab_' })).to.throw();
+        expect(() => Apify.getApifyProxyUrl({ session: 'a$b' })).to.throw();
+
+        expect(() => Apify.getApifyProxyUrl({ session: 'a_b' })).to.not.throw();
+        expect(() => Apify.getApifyProxyUrl({ session: 'a_1_b' })).to.not.throw();
+        expect(() => Apify.getApifyProxyUrl({ session: 'a_2' })).to.not.throw();
+        expect(() => Apify.getApifyProxyUrl({ session: 'a' })).to.not.throw();
+        expect(() => Apify.getApifyProxyUrl({ session: '1' })).to.not.throw();
+
+        delete process.env[ENV_VARS.PROXY_PASSWORD];
+        delete process.env[ENV_VARS.PROXY_HOSTNAME];
+        delete process.env[ENV_VARS.PROXY_PORT];
+    });
 });

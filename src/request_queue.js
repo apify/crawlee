@@ -4,13 +4,13 @@ import path from 'path';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import LruCache from 'apify-shared/lru_cache';
 import ListDictionary from 'apify-shared/list_dictionary';
-import { delayPromise } from 'apify-shared/utilities';
+import { delayPromise, checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import Promise from 'bluebird';
 import crypto from 'crypto';
 import _ from 'underscore';
 import Request from './request';
-import { ENV_VARS } from '../build/constants';
-import { ensureDirExists, checkParamPrototypeOrThrow, apifyClient } from './utils';
+import { ENV_VARS, REQUEST_QUEUE_HEAD_MAX_LIMIT } from '../build/constants';
+import { ensureDirExists, apifyClient } from './utils';
 
 export const LOCAL_EMULATION_SUBDIR = 'request-queues';
 const MAX_OPENED_QUEUES = 1000;
@@ -24,9 +24,6 @@ export const API_PROCESSED_REQUESTS_DELAY_MILLIS = 10 * 1000;
 
 // How many times we try to get queue head with queueModifiedAt older than API_PROCESSED_REQUESTS_DELAY_MILLIS.
 export const MAX_QUERIES_FOR_CONSISTENCY = 6;
-
-// TODO: this should be in shared.
-export const QUERY_HEAD_MAX_LIMIT = 1000;
 
 const writeFilePromised = Promise.promisify(fs.writeFile);
 const readdirPromised = Promise.promisify(fs.readdir);
@@ -351,7 +348,7 @@ export class RequestQueue {
                 // low and contained only requests in progress.
                 //
                 // If limit was not reached in the call then there are no more requests to be returned.
-                const shouldRepeatWithHigherLimit = !this.queueHeadDict.length() && limitReached && prevLimit < QUERY_HEAD_MAX_LIMIT;
+                const shouldRepeatWithHigherLimit = !this.queueHeadDict.length() && limitReached && prevLimit < REQUEST_QUEUE_HEAD_MAX_LIMIT;
 
                 // If checkModifiedAt=true then we must ensure that queueModifiedAt is older than
                 // queryStartedAt for at least API_PROCESSED_REQUESTS_DELAY_MILLIS.
@@ -371,7 +368,7 @@ export class RequestQueue {
                     }
 
                     const nextLimit = shouldRepeatWithHigherLimit
-                        ? prevLimit + QUERY_HEAD_MAX_LIMIT
+                        ? prevLimit + QUERY_HEAD_BUFFER
                         : prevLimit;
 
                     const delayMillis = shouldRepeatForConsistency

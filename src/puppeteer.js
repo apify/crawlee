@@ -1,9 +1,66 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { anonymizeProxy, closeAnonymizedProxy } from 'proxy-chain';
+import { cryptoRandomObjectId } from 'apify-shared/utilities';
 import { ENV_VARS, DEFAULT_USER_AGENT } from './constants';
 import { newPromise, getTypicalChromeExecutablePath } from './utils';
+import { getApifyProxyUrl } from './actor';
 
 /* global process, require */
+
+/**
+ * Launches Puppeteer with proxy used via `proxy-chain` package.
+ *
+ * @ignore
+ */
+const launchPuppeteerWithProxy = (puppeteer, opts) => {
+    let anonymizedProxyUrl;
+
+    // Parse and validate proxy URL and anonymize it
+    // NOTE: anonymizeProxy() throws on invalid proxy URL, so it must not be inside a Promise!
+    console.log(opts.proxyUrl);
+    return anonymizeProxy(opts.proxyUrl)
+        .then((result) => {
+            anonymizedProxyUrl = result;
+            opts.args.push(`--proxy-server=${anonymizedProxyUrl}`);
+        })
+        .then(() => puppeteer.launch(opts))
+        // Close anonymization proxy server when Puppeteer finishes
+        .then((browser) => {
+            const cleanUp = () => {
+                // Don't wait for finish, only log errors
+                closeAnonymizedProxy(anonymizedProxyUrl, true)
+                    .catch((err) => {
+                        console.log(`WARNING: closeAnonymizedProxy() failed with: ${err.stack || err}`);
+                    });
+            };
+
+            browser.on('disconnected', cleanUp);
+
+            const prevClose = browser.close.bind(browser);
+            browser.close = () => {
+                cleanUp();
+                return prevClose();
+            };
+
+            return browser;
+        });
+};
+
+/**
+ * Requires `puppeteer` package or throws meaningful error if not installed.
+ *
+ * @ignore
+ */
+const getPuppeteerOrThrow = () => {
+    try {
+        // This is an optional dependency because it is quite large, only require it when used (ie. image with Chrome)
+        return require('puppeteer'); // eslint-disable-line global-require
+    } catch (err) {
+        if (err.code === 'MODULE_NOT_FOUND') err.message = 'Cannot find module \'puppeteer\'. Did you choose the correct base Docker image?';
+
+        throw err;
+    }
+};
 
 /**
  * Launches headless Chrome using Puppeteer pre-configured to work with the Apify Actor platform.
@@ -46,6 +103,12 @@ import { newPromise, getTypicalChromeExecutablePath } from './utils';
  *                                  is taken from the `APIFY_CHROME_EXECUTABLE_PATH` environment variable if provided,
  *                                  or defaults to the typical Google Chrome executable location specific for the operating system.
  *                                  By default, this option is `false`.
+ * @param {String} [opts.useApifyProxy=false] If set to `true` then Puppeteer will be configured to use
+ *                                            <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a>.
+ * @param {String} [opts.apifyProxyGroups] <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a> groups to be used
+ *                                         when using Apify Proxy.
+ * @param {String} [opts.apifyProxySession] <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a> session ID that
+ *                                          identifies requests that should use the same proxy connection.
  * @returns {Promise} Promise object that resolves to Puppeteer's `Browser` instance.
  *
  * @memberof module:Apify
@@ -59,16 +122,11 @@ export const launchPuppeteer = (opts) => {
     checkParamOrThrow(opts, 'opts', 'Object');
     checkParamOrThrow(opts.args, 'opts.args', 'Maybe [String]');
     checkParamOrThrow(opts.proxyUrl, 'opts.proxyUrl', 'Maybe String');
+    checkParamOrThrow(opts.useApifyProxy, 'opts.useApifyProxy', 'Maybe Boolean');
 
-    let puppeteer;
-    try {
-        // This is an optional dependency because it is quite large, only require it when used (ie. image with Chrome)
-        puppeteer = require('puppeteer'); // eslint-disable-line global-require
-    } catch (err) {
-        if (err.code === 'MODULE_NOT_FOUND') err.message = 'Cannot find module \'puppeteer\'. Did you choose the correct base Docker image?';
+    if (opts.useApifyProxy && opts.proxyUrl) throw new Error('Cannot combine "opts.useApifyProxy" with "opts.proxyUrl"!');
 
-        throw err;
-    }
+    const puppeteer = getPuppeteerOrThrow();
 
     opts.args = opts.args || [];
     opts.args.push('--no-sandbox');
@@ -77,6 +135,12 @@ export const launchPuppeteer = (opts) => {
     }
     if (opts.useChrome && (opts.executablePath === undefined || opts.executablePath === null)) {
         opts.executablePath = process.env[ENV_VARS.CHROME_EXECUTABLE_PATH] || getTypicalChromeExecutablePath();
+    }
+    if (opts.useApifyProxy) {
+        opts.proxyUrl = getApifyProxyUrl({
+            groups: opts.apifyProxyGroups,
+            session: opts.apifyProxySession || cryptoRandomObjectId(),
+        });
     }
 
     // When User-Agent is not set and we're using Chromium or headless mode,
@@ -89,45 +153,10 @@ export const launchPuppeteer = (opts) => {
         opts.args.push(`--user-agent=${userAgent}`);
     }
 
-    let anonymizedProxyUrl;
-    let promise;
+    const browserPromise = opts.proxyUrl
+        ? launchPuppeteerWithProxy(puppeteer, opts)
+        : puppeteer.launch(opts);
 
-    // Parse and validate proxy URL and anonymize it
-    if (opts.proxyUrl) {
-        // NOTE: anonymizeProxy() throws on invalid proxy URL, so it must not be inside a Promise!
-        promise = anonymizeProxy(opts.proxyUrl)
-            .then((result) => {
-                anonymizedProxyUrl = result;
-                opts.args.push(`--proxy-server=${anonymizedProxyUrl}`);
-            })
-            .then(() => puppeteer.launch(opts));
-    } else {
-        promise = puppeteer.launch(opts);
-    }
-
-    // Close anonymization proxy server when Puppeteer finishes
-    if (opts.proxyUrl) {
-        promise = promise.then((browser) => {
-            const cleanUp = () => {
-                // Don't wait for finish, only log errors
-                closeAnonymizedProxy(anonymizedProxyUrl, true)
-                    .catch((err) => {
-                        console.log(`WARNING: closeAnonymizedProxy() failed with: ${err.stack || err}`);
-                    });
-            };
-
-            browser.on('disconnected', cleanUp);
-
-            const prevClose = browser.close.bind(browser);
-            browser.close = () => {
-                cleanUp();
-                return prevClose();
-            };
-
-            return browser;
-        });
-    }
-
-    // Ensure that the returned promise is of type set in setPromiseDependency()
-    return newPromise().then(() => promise);
+    // Ensure that the returned promise is of type Bluebird.
+    return newPromise().then(() => browserPromise);
 };

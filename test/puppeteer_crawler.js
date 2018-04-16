@@ -45,7 +45,6 @@ describe('PuppeteerCrawler', () => {
             maxConcurrency: 1,
             handlePageFunction,
             handleFailedRequestFunction: ({ request }) => failed.push(request),
-            disableProxy: true,
         });
 
         await requestList.initialize();
@@ -79,7 +78,6 @@ describe('PuppeteerCrawler', () => {
                 failed.push(request);
                 errors.push(error);
             },
-            disableProxy: true,
             pageOpsTimeoutMillis: 900,
         });
 
