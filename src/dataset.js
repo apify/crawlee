@@ -5,10 +5,10 @@ import Promise from 'bluebird';
 import { leftpad } from 'apify-shared/utilities';
 import LruCache from 'apify-shared/lru_cache';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { ENV_VARS } from './constants';
+import { ENV_VARS, LOCAL_EMULATION_SUBDIRS } from './constants';
 import { apifyClient, ensureDirExists } from './utils';
 
-export const LOCAL_EMULATION_SUBDIR = 'datasets';
+export const LOCAL_EMULATION_SUBDIR = LOCAL_EMULATION_SUBDIRS.datasets;
 export const LEFTPAD_COUNT = 9; // Used for filename in DatasetLocal.
 const MAX_OPENED_STORES = 1000;
 
