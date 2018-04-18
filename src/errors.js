@@ -1,5 +1,4 @@
-export const APIFY_CALL_ERROR_NAME = 'APIFY_CALL_ERROR';
-export const APIFY_CALL_ERROR_MESSAGE = 'Apify.call() wasn\'t succeed';
+export const APIFY_CALL_ERROR_NAME = 'ApifyCallError';
 
 /**
  * @typedef {Object} ApifyCallError
@@ -9,7 +8,7 @@ export const APIFY_CALL_ERROR_MESSAGE = 'Apify.call() wasn\'t succeed';
  */
 export class ApifyCallError extends Error {
     constructor(run) {
-        super(APIFY_CALL_ERROR_MESSAGE);
+        super(`The act run invoked by Apify.call() did not succeed (run ID: ${run.id})`);
         this.name = APIFY_CALL_ERROR_NAME;
         this.run = run;
 
