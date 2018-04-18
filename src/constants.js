@@ -13,11 +13,6 @@ consts.EXIT_CODES = {
     ERROR_UNKNOWN: 92,
 };
 
-consts.KEY_VALUE_STORE_KEYS = {
-    INPUT: 'INPUT',
-    OUTPUT: 'OUTPUT',
-};
-
 /**
  * These events are just internal for Apify package so we don't need them
  * in apify-shared package.
