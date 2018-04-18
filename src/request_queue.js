@@ -9,10 +9,10 @@ import Promise from 'bluebird';
 import crypto from 'crypto';
 import _ from 'underscore';
 import Request from './request';
-import { ENV_VARS, REQUEST_QUEUE_HEAD_MAX_LIMIT } from '../build/constants';
+import { ENV_VARS, LOCAL_EMULATION_SUBDIRS } from './constants';
 import { ensureDirExists, apifyClient } from './utils';
 
-export const LOCAL_EMULATION_SUBDIR = 'request-queues';
+export const LOCAL_EMULATION_SUBDIR = LOCAL_EMULATION_SUBDIRS.requestQueues;
 const MAX_OPENED_QUEUES = 1000;
 
 // When requesting queue head we always fetch requestsInProgressCount + QUERY_HEAD_BUFFER number of requests

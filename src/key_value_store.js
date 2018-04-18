@@ -4,10 +4,10 @@ import Promise from 'bluebird';
 import contentTypeParser from 'content-type';
 import LruCache from 'apify-shared/lru_cache';
 import { checkParamOrThrow, parseBody } from 'apify-client/build/utils';
-import { ENV_VARS } from './constants';
+import { ENV_VARS, LOCAL_EMULATION_SUBDIRS } from './constants';
 import { addCharsetToContentType, apifyClient, ensureDirExists } from './utils';
 
-export const LOCAL_EMULATION_SUBDIR = 'key-value-stores';
+export const LOCAL_EMULATION_SUBDIR = LOCAL_EMULATION_SUBDIRS.keyValueStores;
 const MAX_OPENED_STORES = 1000;
 const LOCAL_FILE_TYPES = [
     { contentType: 'application/octet-stream', extension: 'buffer' },
