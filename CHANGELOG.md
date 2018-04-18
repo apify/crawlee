@@ -1,10 +1,10 @@
-xxxxxxxxxxxxxxxxxxx
+0.5.23 / 2018-04-18
 ===================
-- WARNING: `disableProxy` configuration of `PuppeteerCrawler`, `BasicCrawler` and `PuppeteerPool` removed. By default no proxy is used.
+- *WARNING*: `disableProxy` configuration of `PuppeteerCrawler`, `BasicCrawler` and `PuppeteerPool` removed. By default no proxy is used.
   You must either use new configuration `launchPuppeteerOptions.useApifyProxy = true` to use Apify Proxy or provide own proxy via
   `launchPuppeteerOptions.proxyUrl`.
-- WARNING: `groups` parameter of `PuppeteerCrawler`, `BasicCrawler` and `PuppeteerPool` removed. Use `launchPuppeteerOptions.apifyProxyGroups` instead.
-- WARNING: `session` and `groups` parameters of `Apify.launchPuppeteer()` are now validated to contain only alphanumberic
+- *WARNING*: `groups` parameter of `PuppeteerCrawler`, `BasicCrawler` and `PuppeteerPool` removed. Use `launchPuppeteerOptions.apifyProxyGroups` instead.
+- *WARNING*: `session` and `groups` parameters of `Apify.launchPuppeteer()` are now validated to contain only alphanumberic
   characters and underscores.
 - `Apify.call()` now throws an `ApifyCallError` error if run doesn't succeed
 - Renamed options `abortInstanceAfterRequestCount` of `PuppeteerPool` and `PuppeteerCrawler` to retireInstanceAfterRequestCcount
@@ -12,7 +12,7 @@ xxxxxxxxxxxxxxxxxxx
 
 0.5.22 / 2018-04-12
 ===================
-- WARNING: `AutoscaledPool` was completely redesigned. Check documentation for reference. It still supports previous
+- *WARNING*: `AutoscaledPool` was completely redesigned. Check documentation for reference. It still supports previous
   configuration parameters for backwards compatibility but in the future compatibility will break.
 - `handleFailedRequestFunction` in both `BasicCrawler` and `PuppeteerCrawler` has now also error object
   available in `ops.error`.
