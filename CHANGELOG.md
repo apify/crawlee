@@ -1,3 +1,7 @@
+xxxxxxxxxxxxxxxxxxx
+===================
+- `RequestQueue` now caches known requests and their state to beware of unneeded API calls.
+
 0.5.23 / 2018-04-18
 ===================
 - **WARNING**: `disableProxy` configuration of `PuppeteerCrawler` and `PuppeteerPool` removed. By default no proxy is used.
