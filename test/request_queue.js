@@ -144,7 +144,7 @@ describe('RequestQueue', () => {
                     request: requestA,
                     forefront: false,
                 })
-                .returns(Promise.resolve({ requestId: 'a' }));
+                .returns(Promise.resolve({ requestId: 'a', wasAlreadyHandled: false, wasAlreadyPresent: false }));
             await queue.addRequest(requestA);
 
             const requestB = new Request({ url: 'http://example.com/b' });
@@ -155,7 +155,7 @@ describe('RequestQueue', () => {
                     request: requestB,
                     forefront: true,
                 })
-                .returns(Promise.resolve({ requestId: 'b' }));
+                .returns(Promise.resolve({ requestId: 'b', wasAlreadyHandled: false, wasAlreadyPresent: false }));
             await queue.addRequest(requestB, { forefront: true });
             expect(queue.queueHeadDict.length()).to.be.eql(1);
             expect(queue.inProgressCount).to.be.eql(0);
@@ -181,7 +181,7 @@ describe('RequestQueue', () => {
                     request: requestB,
                     forefront: true,
                 })
-                .returns(Promise.resolve({ requestId: requestB.id }));
+                .returns(Promise.resolve({ requestId: requestB.id, wasAlreadyHandled: false, wasAlreadyPresent: true }));
             await queue.reclaimRequest(requestB, { forefront: true });
             expect(queue.queueHeadDict.length()).to.be.eql(1);
             expect(queue.inProgressCount).to.be.eql(0);
@@ -207,7 +207,7 @@ describe('RequestQueue', () => {
                     queueId: 'some-id',
                     request: requestB,
                 })
-                .returns(Promise.resolve({ requestId: requestB.id }));
+                .returns(Promise.resolve({ requestId: requestB.id, wasAlreadyHandled: false, wasAlreadyPresent: true }));
             await queue.markRequestHandled(requestB);
             expect(queue.queueHeadDict.length()).to.be.eql(0);
             expect(queue.inProgressCount).to.be.eql(0);
@@ -221,8 +221,8 @@ describe('RequestQueue', () => {
                 })
                 .returns(Promise.resolve({
                     items: [
-                        { id: 'a' },
-                        { id: 'c' },
+                        { id: 'a', uniqueKey: 'aaa' },
+                        { id: 'c', uniqueKey: 'ccc' },
                     ],
                 }));
             mock.expects('getRequest')
@@ -236,6 +236,117 @@ describe('RequestQueue', () => {
             expect(requestAFromQueue).to.be.eql(requestA);
             expect(queue.queueHeadDict.length()).to.be.eql(1);
             expect(queue.inProgressCount).to.be.eql(1);
+
+            mock.verify();
+            mock.restore();
+        });
+
+        it('should cache requests new locally', async () => {
+            expectNotLocalEmulation();
+
+            const { Request } = Apify;
+
+            const queue = new RequestQueue('some-id');
+            const mock = sinon.mock(apifyClient.requestQueues);
+
+            const requestA = new Request({ url: 'http://example.com/a' });
+            const requestB = new Request({ url: 'http://example.com/a' }); // Has same uniqueKey as A
+
+            // Add request A
+            mock.expects('addRequest')
+                .once()
+                .withArgs({
+                    queueId: 'some-id',
+                    request: requestA,
+                    forefront: false,
+                })
+                .returns(Promise.resolve({
+                    requestId: 'a',
+                    wasAlreadyHandled: false,
+                    wasAlreadyPresent: false,
+                }));
+            await queue.addRequest(requestA);
+
+            // Add request B that has same unique so that addRequest() is not called because it's already cached.
+            mock.expects('addRequest').never();
+            expect(await queue.addRequest(requestB)).to.be.eql({
+                requestId: 'a',
+                wasAlreadyPresent: true,
+                wasAlreadyHandled: false,
+            });
+
+            mock.verify();
+            mock.restore();
+        });
+
+        it('should cache requests locally with info if request was already handled', async () => {
+            expectNotLocalEmulation();
+
+            const { Request } = Apify;
+
+            const queue = new RequestQueue('some-id');
+            const mock = sinon.mock(apifyClient.requestQueues);
+
+            const requestX = new Request({ url: 'http://example.com/x' });
+            const requestY = new Request({ url: 'http://example.com/x' }); // Has same uniqueKey as X
+
+            // Add request X.
+            mock.expects('addRequest')
+                .once()
+                .withArgs({
+                    queueId: 'some-id',
+                    request: requestX,
+                    forefront: false,
+                })
+                .returns(Promise.resolve({
+                    requestId: 'x',
+                    wasAlreadyHandled: true,
+                    wasAlreadyPresent: true,
+                }));
+            await queue.addRequest(requestX);
+
+            // Add request Y that has same unique so that addRequest() is not called because it's already cached.
+            mock.expects('addRequest').never();
+            expect(await queue.addRequest(requestY)).to.be.eql({
+                requestId: 'x',
+                wasAlreadyPresent: true,
+                wasAlreadyHandled: true,
+            });
+
+            mock.verify();
+            mock.restore();
+        });
+
+        it('should cache requests from queue head', async () => {
+            expectNotLocalEmulation();
+
+            const { Request } = Apify;
+
+            const queue = new RequestQueue('some-id');
+            const mock = sinon.mock(apifyClient.requestQueues);
+
+            // Query queue head with request A
+            mock.expects('getHead')
+                .once()
+                .withArgs({
+                    queueId: 'some-id',
+                    limit: QUERY_HEAD_BUFFER,
+                })
+                .returns(Promise.resolve({
+                    items: [
+                        { id: 'a', uniqueKey: 'aaa' },
+                    ],
+                }));
+            expect(await queue.isEmpty()).to.be.eql(false);
+
+            // Add request A and addRequest is not called because was already cached.
+            const requestA = new Request({ url: 'http://example.com/a', uniqueKey: 'aaa' });
+            mock.expects('addRequest').never();
+            expect(await queue.addRequest(requestA)).to.be.eql({
+                requestId: 'a',
+                wasAlreadyPresent: true,
+                wasAlreadyHandled: false,
+            });
 
             mock.verify();
             mock.restore();
