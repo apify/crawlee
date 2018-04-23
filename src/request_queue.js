@@ -14,6 +14,7 @@ import { ensureDirExists, apifyClient } from './utils';
 
 export const LOCAL_EMULATION_SUBDIR = LOCAL_EMULATION_SUBDIRS.requestQueues;
 const MAX_OPENED_QUEUES = 1000;
+const MAX_CACHED_REQUESTS = 1000 * 1000;
 
 // When requesting queue head we always fetch requestsInProgressCount + QUERY_HEAD_BUFFER number of requests
 export const QUERY_HEAD_BUFFER = 50;
@@ -84,6 +85,29 @@ const validateReclaimRequestParams = (request, opts) => {
 };
 
 /**
+ * Helper function that creates ID from uniqueKey for local emulation of request queue.
+ * It's also used for local cache of remote request queue.
+ *
+ * This function may not exactly match how requestId is created server side.
+ * So we never pass requestId created by this to server and use it only for local cache.
+ *
+ * @ignore
+ */
+const getRequestId = (uniqueKey) => {
+    checkParamOrThrow(uniqueKey, 'uniqueKey', 'String');
+
+    const str = crypto
+        .createHash('sha256')
+        .update(uniqueKey)
+        .digest('base64')
+        .replace(/(\+|\/|=)/g, '');
+
+    return str.length > 15
+        ? str.substr(0, 15)
+        : str;
+};
+
+/**
  * @typedef {Object} RequestOperationInfo
  * @property {Boolean} wasAlreadyPresent Indicates if request was already present in the queue.
  * @property {Boolean} wasAlreadyHandled Indicates if request was already marked as handled.
@@ -135,6 +159,10 @@ export class RequestQueue {
         this.inProgressCount = 0;
         this.queryQueueHeadPromise = null;
 
+        // Caching requests to avoid duplicite addRequest() calls.
+        // Key is computed using getRequestId() and value is { id, isHandled }.
+        this.requestsCache = new LruCache({ maxLength: MAX_CACHED_REQUESTS });
+
         // This contains false if we were not able to get queue head with queueModifiedAt older than
         // at least API_PROCESSED_REQUESTS_DELAY_MILLIS.
         this.isHeadConsistent = true;
@@ -150,6 +178,18 @@ export class RequestQueue {
      */
     addRequest(request, opts = {}) {
         const { forefront } = validateAddRequestParams(request, opts);
+        const cacheKey = getRequestId(request.uniqueKey);
+        const cachedInfo = this.requestsCache.get(cacheKey);
+
+        if (cachedInfo) {
+            return Promise.resolve({
+                wasAlreadyPresent: true,
+                // We may assume that if request is in local cache then also the information if the
+                // request was already handled is there because just one client should be using one queue.
+                wasAlreadyHandled: cachedInfo.isHandled,
+                requestId: cachedInfo.id,
+            });
+        }
 
         return requestQueues
             .addRequest({
@@ -159,6 +199,8 @@ export class RequestQueue {
             })
             .then((requestOperationInfo) => {
                 const { requestId } = requestOperationInfo;
+
+                this._cacheRequest(cacheKey, requestOperationInfo);
 
                 if (forefront && !this.requestIdsInProgress[requestId]) {
                     this.queueHeadDict.add(requestId, requestId, true);
@@ -225,10 +267,11 @@ export class RequestQueue {
                 request,
                 queueId: this.queueId,
             })
-            .then((response) => {
+            .then((requestOperationInfo) => {
                 this._removeFromInProgress(request.id);
+                this._cacheRequest(getRequestId(request.uniqueKey), requestOperationInfo);
 
-                return response;
+                return requestOperationInfo;
             });
     }
 
@@ -250,12 +293,13 @@ export class RequestQueue {
                 queueId: this.queueId,
                 forefront,
             })
-            .then((response) => {
+            .then((requestOperationInfo) => {
                 this._removeFromInProgress(request.id);
+                this._cacheRequest(getRequestId(request.uniqueKey), requestOperationInfo);
 
                 if (forefront) this.queueHeadDict.add(request.id, request.id, true);
 
-                return response;
+                return requestOperationInfo;
             });
     }
 
@@ -285,11 +329,29 @@ export class RequestQueue {
             .then(() => this.isHeadConsistent && this.inProgressCount === 0 && this.queueHeadDict.length() === 0);
     }
 
+    /**
+     * Caches information about request to beware of unneeded addRequest() calls.
+     *
+     * @ignore
+     */
+    _cacheRequest(cacheKey, requestOperationInfo) {
+        checkParamOrThrow(cacheKey, 'cacheKey', 'String');
+        checkParamOrThrow(requestOperationInfo, 'requestOperationInfo', 'Object');
+        checkParamOrThrow(requestOperationInfo.requestId, 'requestOperationInfo.requestId', 'String');
+        checkParamOrThrow(requestOperationInfo.wasAlreadyHandled, 'requestOperationInfo.wasAlreadyHandled', 'Boolean');
+
+        this.requestsCache.add(cacheKey, {
+            id: requestOperationInfo.requestId,
+            isHandled: requestOperationInfo.wasAlreadyHandled,
+        });
+    }
 
     /**
      * @ignore
      */
     _addToInProgress(requestId) {
+        checkParamOrThrow(requestId, 'requestId', 'String');
+
         // Is already there.
         if (this.requestIdsInProgress[requestId]) return;
 
@@ -301,6 +363,8 @@ export class RequestQueue {
      * @ignore
      */
     _removeFromInProgress(requestId) {
+        checkParamOrThrow(requestId, 'requestId', 'String');
+
         // Is already removed.
         if (!this.requestIdsInProgress[requestId]) return;
 
@@ -315,7 +379,9 @@ export class RequestQueue {
      * @ignore
      */
     _ensureHeadIsNonEmpty(checkModifiedAt = false, limit = this.inProgressCount + QUERY_HEAD_BUFFER, iteration = 0) {
+        checkParamOrThrow(checkModifiedAt, 'checkModifiedAt', 'Boolean');
         checkParamOrThrow(limit, 'limit', 'Number');
+        checkParamOrThrow(iteration, 'iteration', 'Number');
 
         // If is nonempty resolve immediately.
         if (this.queueHeadDict.length()) return Promise.resolve();
@@ -329,8 +395,11 @@ export class RequestQueue {
                     queueId: this.queueId,
                 })
                 .then(({ items, queueModifiedAt }) => {
-                    items.forEach(({ id }) => {
-                        if (!this.requestIdsInProgress[id]) this.queueHeadDict.add(id, id, false);
+                    items.forEach(({ id, uniqueKey }) => {
+                        if (!this.requestIdsInProgress[id]) {
+                            this.queueHeadDict.add(id, id, false);
+                            this._cacheRequest(getRequestId(uniqueKey), { requestId: id, wasAlreadyHandled: false });
+                        }
                     });
 
                     // This is needed so that the next call can request queue head again.
@@ -399,23 +468,6 @@ const filePathToQueueOrderNo = (filepath) => {
         .split('.')[0]; // Remove extension
 
     return parseInt(int, 10);
-};
-
-/**
- * Helper function that creates ID from uniqueKey for local usage.
- *
- * @ignore
- */
-const uniqueKeyToId = (uniqueKey) => {
-    const str = crypto
-        .createHash('sha256')
-        .update(uniqueKey)
-        .digest('base64')
-        .replace(/(\+|\/|=)/g, '');
-
-    return str.length > 15
-        ? str.substr(0, 15)
-        : str;
 };
 
 /**
@@ -519,7 +571,7 @@ export class RequestQueueLocal {
 
                 // Add ID as server does.
                 const requestCopy = JSON.parse(JSON.stringify(request));
-                requestCopy.id = uniqueKeyToId(request.uniqueKey);
+                requestCopy.id = getRequestId(request.uniqueKey);
 
                 // If request already exists then don't override it!
                 if (this.requestIdToQueueOrderNo[requestCopy.id]) {
