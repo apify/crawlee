@@ -14,6 +14,7 @@ import { ensureDirExists, apifyClient } from './utils';
 
 export const LOCAL_EMULATION_SUBDIR = LOCAL_EMULATION_SUBDIRS.requestQueues;
 const MAX_OPENED_QUEUES = 1000;
+const MAX_CACHED_REQUESTS = 1000 * 1000;
 
 // When requesting queue head we always fetch requestsInProgressCount + QUERY_HEAD_BUFFER number of requests
 export const QUERY_HEAD_BUFFER = 50;
@@ -159,10 +160,8 @@ export class RequestQueue {
         this.queryQueueHeadPromise = null;
 
         // Caching requests to avoid duplicite addRequest() calls.
-        // Key is local cacheId and value requestId.
-        this.requestsCache = {};
-        // Cache of handled requests. Key is cacheId and value is true if request was already handled.
-        this.handledRequestsCache = {};
+        // Key is computed using getRequestId() and value is { id, isHandled }.
+        this.requestsCache = new LruCache({ maxLength: MAX_CACHED_REQUESTS });
 
         // This contains false if we were not able to get queue head with queueModifiedAt older than
         // at least API_PROCESSED_REQUESTS_DELAY_MILLIS.
@@ -180,14 +179,15 @@ export class RequestQueue {
     addRequest(request, opts = {}) {
         const { forefront } = validateAddRequestParams(request, opts);
         const cacheKey = getRequestId(request.uniqueKey);
+        const cachedInfo = this.requestsCache.get(cacheKey);
 
-        if (this.requestsCache[cacheKey]) {
+        if (cachedInfo) {
             return Promise.resolve({
                 wasAlreadyPresent: true,
                 // We may assume that if request is in local cache then also the information if the
                 // request was already handled is there because just one client should be using one queue.
-                wasAlreadyHandled: !!this.handledRequestsCache[cacheKey],
-                requestId: this.requestsCache[cacheKey],
+                wasAlreadyHandled: cachedInfo.isHandled,
+                requestId: cachedInfo.id,
             });
         }
 
@@ -340,9 +340,10 @@ export class RequestQueue {
         checkParamOrThrow(requestOperationInfo.requestId, 'requestOperationInfo.requestId', 'String');
         checkParamOrThrow(requestOperationInfo.wasAlreadyHandled, 'requestOperationInfo.wasAlreadyHandled', 'Boolean');
 
-        this.requestsCache[cacheKey] = requestOperationInfo.requestId;
-
-        if (requestOperationInfo.wasAlreadyHandled) this.handledRequestsCache[cacheKey] = true;
+        this.requestsCache.add(cacheKey, {
+            id: requestOperationInfo.requestId,
+            isHandled: requestOperationInfo.wasAlreadyHandled,
+        });
     }
 
     /**
