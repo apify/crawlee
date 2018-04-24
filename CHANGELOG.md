@@ -1,4 +1,4 @@
-xxxxxxxxxxxxxxxxxxx
+0.5.25 / 2018-04-24
 ===================
 - `RequestQueue` now caches known requests and their state to beware of unneeded API calls.
 
