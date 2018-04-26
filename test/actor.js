@@ -704,6 +704,42 @@ describe('Apify.getApifyProxyUrl()', () => {
         process.env[ENV_VARS.PROXY_PORT] = 123;
 
         expect(Apify.getApifyProxyUrl({
+            apifyProxySession: 'XYZ',
+            apifyProxyGroups: ['g1', 'g2', 'g3'],
+        })).to.be.eql('http://GROUPS-g1+g2+g3,SESSION-XYZ:abc123@my.host.com:123');
+
+        expect(Apify.getApifyProxyUrl({
+            apifyProxyGroups: ['g1', 'g2', 'g3'],
+        })).to.be.eql('http://GROUPS-g1+g2+g3:abc123@my.host.com:123');
+
+        expect(Apify.getApifyProxyUrl({
+            apifyProxySession: 'XYZ',
+        })).to.be.eql('http://SESSION-XYZ:abc123@my.host.com:123');
+
+        expect(Apify.getApifyProxyUrl()).to.be.eql('http://auto:abc123@my.host.com:123');
+
+        delete process.env[ENV_VARS.PROXY_PASSWORD];
+        delete process.env[ENV_VARS.PROXY_HOSTNAME];
+        delete process.env[ENV_VARS.PROXY_PORT];
+
+        expect(Apify.getApifyProxyUrl({ password: 'xyz' })).to.be.eql(`http://auto:xyz@${DEFAULT_PROXY_HOSTNAME}:${DEFAULT_PROXY_PORT}`);
+
+        expect(() => Apify.getApifyProxyUrl()).to.throw();
+
+        expect(Apify.getApifyProxyUrl({
+            password: 'xyz',
+            hostname: 'your.host.com',
+            port: 345,
+        })).to.be.eql('http://auto:xyz@your.host.com:345');
+    });
+
+    // Test old params - session, groups
+    it('should be backwards compatible', () => {
+        process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
+        process.env[ENV_VARS.PROXY_HOSTNAME] = 'my.host.com';
+        process.env[ENV_VARS.PROXY_PORT] = 123;
+
+        expect(Apify.getApifyProxyUrl({
             session: 'XYZ',
             groups: ['g1', 'g2', 'g3'],
         })).to.be.eql('http://GROUPS-g1+g2+g3,SESSION-XYZ:abc123@my.host.com:123');
