@@ -1,5 +1,10 @@
 0.5.25 / 2018-04-24
 ===================
+- Parameters `session` and `groups` of `getApifyProxyUrl()` renamed to `apifyProxySession` and `apifyProxyGroups` to match
+  naming of same parameters in other classes.
+
+0.5.25 / 2018-04-24
+===================
 - `RequestQueue` now caches known requests and their state to beware of unneeded API calls.
 
 0.5.23 / 2018-04-18
