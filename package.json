@@ -28,7 +28,7 @@
   "bugs": {
     "url": "https://github.com/apifytech/apify-js/issues"
   },
-  "homepage": "https://github.com/apifytech/apify-js",
+  "homepage": "https://www.apify.com/docs/sdk",
   "files": [
     "build"
   ],
