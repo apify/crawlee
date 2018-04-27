@@ -1,6 +1,5 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { anonymizeProxy, closeAnonymizedProxy } from 'proxy-chain';
-import { cryptoRandomObjectId } from 'apify-shared/utilities';
 import { ENV_VARS, DEFAULT_USER_AGENT } from './constants';
 import { newPromise, getTypicalChromeExecutablePath } from './utils';
 import { getApifyProxyUrl } from './actor';
@@ -149,10 +148,9 @@ export const launchPuppeteer = (opts = {}) => {
         opts.executablePath = process.env[ENV_VARS.CHROME_EXECUTABLE_PATH] || getTypicalChromeExecutablePath();
     }
     if (opts.useApifyProxy) {
-        opts.proxyUrl = getApifyProxyUrl({
-            groups: opts.apifyProxyGroups,
-            session: opts.apifyProxySession || cryptoRandomObjectId(),
-        });
+        const { apifyProxyGroups, apifyProxySession } = opts;
+
+        opts.proxyUrl = getApifyProxyUrl({ apifyProxyGroups, apifyProxySession });
     }
 
     // When User-Agent is not set and we're using Chromium or headless mode,
