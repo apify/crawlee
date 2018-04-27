@@ -134,38 +134,38 @@ export const launchPuppeteer = (opts = {}) => {
     checkParamOrThrow(opts.args, 'opts.args', 'Maybe [String]');
     checkParamOrThrow(opts.proxyUrl, 'opts.proxyUrl', 'Maybe String');
     checkParamOrThrow(opts.useApifyProxy, 'opts.useApifyProxy', 'Maybe Boolean');
-
     if (opts.useApifyProxy && opts.proxyUrl) throw new Error('Cannot combine "opts.useApifyProxy" with "opts.proxyUrl"!');
 
     const puppeteer = getPuppeteerOrThrow();
+    const optsCopy = Object.assign({}, opts);
 
-    opts.args = opts.args || [];
-    opts.args.push('--no-sandbox');
-    if (opts.headless === undefined || opts.headless === null) {
-        opts.headless = process.env[ENV_VARS.HEADLESS] === '1' && process.env[ENV_VARS.XVFB] !== '1';
+    optsCopy.args = optsCopy.args || [];
+    optsCopy.args.push('--no-sandbox');
+    if (optsCopy.headless === undefined || optsCopy.headless === null) {
+        optsCopy.headless = process.env[ENV_VARS.HEADLESS] === '1' && process.env[ENV_VARS.XVFB] !== '1';
     }
-    if (opts.useChrome && (opts.executablePath === undefined || opts.executablePath === null)) {
-        opts.executablePath = process.env[ENV_VARS.CHROME_EXECUTABLE_PATH] || getTypicalChromeExecutablePath();
+    if (optsCopy.useChrome && (optsCopy.executablePath === undefined || optsCopy.executablePath === null)) {
+        optsCopy.executablePath = process.env[ENV_VARS.CHROME_EXECUTABLE_PATH] || getTypicalChromeExecutablePath();
     }
-    if (opts.useApifyProxy) {
-        const { apifyProxyGroups, apifyProxySession } = opts;
+    if (optsCopy.useApifyProxy) {
+        const { apifyProxyGroups, apifyProxySession } = optsCopy;
 
-        opts.proxyUrl = getApifyProxyUrl({ apifyProxyGroups, apifyProxySession });
+        optsCopy.proxyUrl = getApifyProxyUrl({ apifyProxyGroups, apifyProxySession });
     }
 
     // When User-Agent is not set and we're using Chromium or headless mode,
     // it is better to use DEFAULT_USER_AGENT to reduce chance of detection
-    let { userAgent } = opts;
-    if (!userAgent && (!opts.executablePath || opts.headless)) {
+    let { userAgent } = optsCopy;
+    if (!userAgent && (!optsCopy.executablePath || optsCopy.headless)) {
         userAgent = DEFAULT_USER_AGENT;
     }
     if (userAgent) {
-        opts.args.push(`--user-agent=${userAgent}`);
+        optsCopy.args.push(`--user-agent=${userAgent}`);
     }
 
-    const browserPromise = opts.proxyUrl
-        ? launchPuppeteerWithProxy(puppeteer, opts)
-        : puppeteer.launch(opts);
+    const browserPromise = optsCopy.proxyUrl
+        ? launchPuppeteerWithProxy(puppeteer, optsCopy)
+        : puppeteer.launch(optsCopy);
 
     // Ensure that the returned promise is of type Bluebird.
     return newPromise().then(() => browserPromise);
