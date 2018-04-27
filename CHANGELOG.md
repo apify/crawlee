@@ -1,7 +1,7 @@
 0.5.26 / 2018-04-27
 ===================
 - Parameters `session` and `groups` of `getApifyProxyUrl()` renamed to `apifyProxySession` and `apifyProxyGroups` to match
-  naming of same parameters in other classes.
+  naming of the same parameters in other classes.
 
 0.5.25 / 2018-04-24
 ===================
