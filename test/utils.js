@@ -177,6 +177,7 @@ describe('utils.getMemoryInfo()', () => {
     it('works WITHT child process outside the container', () => {
         const osMock = sinon.mock(os);
         const utilsMock = sinon.mock(utils);
+        process.env[ENV_VARS.HEADLESS] = '1';
 
         utilsMock
             .expects('isDocker')
@@ -203,6 +204,7 @@ describe('utils.getMemoryInfo()', () => {
                         expect(data.mainProcessBytes).to.be.eql(data.usedBytes - data.childProcessesBytes);
                         utilsMock.restore();
                         osMock.restore();
+                        delete process.env[ENV_VARS.HEADLESS];
                     })
                     .then(() => browser.close());
             });
@@ -210,6 +212,7 @@ describe('utils.getMemoryInfo()', () => {
 
     it('works WITH child process inside the container', () => {
         const utilsMock = sinon.mock(utils);
+        process.env[ENV_VARS.HEADLESS] = '1';
 
         utilsMock
             .expects('isDocker')
@@ -234,6 +237,7 @@ describe('utils.getMemoryInfo()', () => {
                         expect(data.mainProcessBytes).to.be.eql(data.usedBytes - data.childProcessesBytes);
                         utilsMock.restore();
                         fs.readFile.restore();
+                        delete process.env[ENV_VARS.HEADLESS];
                     })
                     .then(() => browser.close());
             });
