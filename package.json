@@ -5,7 +5,8 @@
   "main": "build/index.js",
   "keywords": [
     "apify",
-    "apifier",
+    "headless",
+    "chrome",
     "puppeteer",
     "selenium",
     "crawler",

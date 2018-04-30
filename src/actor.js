@@ -370,15 +370,26 @@ export const call = (actId, input, opts = {}) => {
 };
 
 /**
- * Returns a URL of Apify Proxy that can be used from Actor acts, web browsers or any other HTTP
- * proxy-enabled applications. For more info about Apify Proxy see
- * <a href="https://www.apify.com/docs/proxy" target="_blank">https://www.apify.com/docs/proxy</a>.
+ * Constructs the URL to the Apify Proxy using the specified settings.
+ * The proxy URL can be used from Apify Actor acts, web browsers or any other HTTP
+ * proxy-enabled applications.
+ *
+ * For more information, see
+ * the <a href="https://my.apify.com/proxy">Apify Proxy</a> page in the app
+ * or the <a href="https://www.apify.com/docs/proxy">documentation</a>.
  *
  * @param {Object} opts
- * @param {String} opts.password User proxy password. By default, it is taken from the `APIFY_PROXY_PASSWORD` environment variable.
- * @param {String} [opts.apifyProxyGroups] Proxy groups to be used.
- * @param {String} [opts.apifyProxySession] Session ID that identifies requests that should use the same proxy connection.
- * @returns {String} Returns proxy URL.
+ * @param {String} opts.password User's password for the proxy.
+ * By default, it is taken from the `APIFY_PROXY_PASSWORD` environment variable,
+ * which is automatically set by the system when running the acts on the Apify cloud.
+ * @param {String[]} [opts.apifyProxyGroups] Array of Apify Proxy groups to be used.
+ * If not provided, the proxy will select the groups automatically.
+ * @param {String} [opts.apifyProxySession] Apify Proxy session identifier to be used by the Chrome browser.
+ * All HTTP requests going through the proxy with the same session identifier
+ * will use the same target proxy server (i.e. the same IP address).
+ * The identifier can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
+ *
+ * @returns {String} Returns the proxy URL, e.g. `http://auto:my_password@proxy.apify.com:8000`.
  *
  * @memberof module:Apify
  * @function
