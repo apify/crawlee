@@ -2,6 +2,11 @@ xxxxxxxxxxxxxxxxxxx
 ===================
 - Added `ignoreMainProcess` parameter to `AutoscaledPool`. Check documentation for more info.
 
+0.5.26 / 2018-04-27
+===================
+- Parameters `session` and `groups` of `getApifyProxyUrl()` renamed to `apifyProxySession` and `apifyProxyGroups` to match
+  naming of the same parameters in other classes.
+
 0.5.25 / 2018-04-24
 ===================
 - `RequestQueue` now caches known requests and their state to beware of unneeded API calls.

@@ -1,6 +1,7 @@
 import _ from 'underscore';
 import Promise from 'bluebird';
 import fs from 'fs';
+import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { PROXY_GROUP_NAME_REGEX, PROXY_SESSION_ID_REGEX } from 'apify-shared/regexs';
 import { ENV_VARS, EXIT_CODES, ACT_TASK_TERMINAL_STATUSES, ACT_TASK_STATUSES, DEFAULT_PROXY_HOSTNAME, DEFAULT_PROXY_PORT } from './constants';
@@ -369,24 +370,46 @@ export const call = (actId, input, opts = {}) => {
 };
 
 /**
- * Returns a URL of Apify Proxy that can be used from Actor acts, web browsers or any other HTTP
- * proxy-enabled applications. For more info about Apify Proxy see
- * <a href="https://www.apify.com/docs/proxy" target="_blank">https://www.apify.com/docs/proxy</a>.
+ * Constructs the URL to the Apify Proxy using the specified settings.
+ * The proxy URL can be used from Apify Actor acts, web browsers or any other HTTP
+ * proxy-enabled applications.
+ *
+ * For more information, see
+ * the <a href="https://my.apify.com/proxy">Apify Proxy</a> page in the app
+ * or the <a href="https://www.apify.com/docs/proxy">documentation</a>.
  *
  * @param {Object} opts
- * @param {String} opts.password User proxy password. By default, it is taken from the `APIFY_PROXY_PASSWORD` environment variable.
- * @param {String} [opts.groups] Proxy groups to be used.
- * @param {String} [opts.session] Session ID that identifies requests that should use the same proxy connection.
- * @returns {String} Returns proxy URL.
+ * @param {String} opts.password User's password for the proxy.
+ * By default, it is taken from the `APIFY_PROXY_PASSWORD` environment variable,
+ * which is automatically set by the system when running the acts on the Apify cloud.
+ * @param {String[]} [opts.apifyProxyGroups] Array of Apify Proxy groups to be used.
+ * If not provided, the proxy will select the groups automatically.
+ * @param {String} [opts.apifyProxySession] Apify Proxy session identifier to be used by the Chrome browser.
+ * All HTTP requests going through the proxy with the same session identifier
+ * will use the same target proxy server (i.e. the same IP address).
+ * The identifier can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
+ *
+ * @returns {String} Returns the proxy URL, e.g. `http://auto:my_password@proxy.apify.com:8000`.
  *
  * @memberof module:Apify
  * @function
  * @name getApifyProxyUrl
  */
 export const getApifyProxyUrl = (opts = {}) => {
+    // For backwards compatibility.
+    // TODO: remove this when we release v1.0.0
+    if (!opts.apifyProxyGroups && opts.groups) {
+        log.warning('Parameter `groups` of Apify.getApifyProxyUrl() is deprecated!!! Use `apifyProxyGroups` instead!');
+        opts.apifyProxyGroups = opts.groups;
+    }
+    if (!opts.apifyProxySession && opts.session) {
+        log.warning('Parameter `session` of Apify.getApifyProxyUrl() is deprecated!!! Use `apifyProxySession` instead!');
+        opts.apifyProxySession = opts.session;
+    }
+
     const {
-        groups,
-        session,
+        apifyProxyGroups,
+        apifyProxySession,
         password = process.env[ENV_VARS.PROXY_PASSWORD],
         hostname = process.env[ENV_VARS.PROXY_HOSTNAME] || DEFAULT_PROXY_HOSTNAME,
         port = parseInt(process.env[ENV_VARS.PROXY_PORT], 10) || DEFAULT_PROXY_PORT,
@@ -395,24 +418,24 @@ export const getApifyProxyUrl = (opts = {}) => {
     const getMissingParamErrorMgs = (param, env) => `Apify Proxy ${param} must be provided as parameter or "${env}" environment variable!`;
     const throwNonAlphanumericError = (param) => { throw new Error(`Only alphanumeric characters and underscore are allowed in ${param}`); };
 
-    checkParamOrThrow(groups, 'opts.groups', 'Maybe [String]');
-    checkParamOrThrow(session, 'opts.session', 'Maybe Number | String');
+    checkParamOrThrow(apifyProxyGroups, 'opts.apifyProxyGroups', 'Maybe [String]');
+    checkParamOrThrow(apifyProxySession, 'opts.apifyProxySession', 'Maybe Number | String');
     checkParamOrThrow(password, 'opts.password', 'String', getMissingParamErrorMgs('password', ENV_VARS.PROXY_PASSWORD));
     checkParamOrThrow(hostname, 'opts.hostname', 'String', getMissingParamErrorMgs('hostname', ENV_VARS.PROXY_HOSTNAME));
     checkParamOrThrow(port, 'opts.port', 'Number', getMissingParamErrorMgs('port', ENV_VARS.PROXY_PORT));
 
     let username;
 
-    if (groups || session) {
+    if (apifyProxyGroups || apifyProxySession) {
         const parts = [];
 
-        if (groups && groups.length) {
-            if (!groups.every(group => PROXY_GROUP_NAME_REGEX.test(group))) throwNonAlphanumericError('proxy group names');
-            parts.push(`GROUPS-${groups.join('+')}`);
+        if (apifyProxyGroups && apifyProxyGroups.length) {
+            if (!apifyProxyGroups.every(group => PROXY_GROUP_NAME_REGEX.test(group))) throwNonAlphanumericError('proxy group name');
+            parts.push(`GROUPS-${apifyProxyGroups.join('+')}`);
         }
-        if (session) {
-            if (!PROXY_SESSION_ID_REGEX.test(session)) throwNonAlphanumericError('proxy session ID');
-            parts.push(`SESSION-${session}`);
+        if (apifyProxySession) {
+            if (!PROXY_SESSION_ID_REGEX.test(apifyProxySession)) throwNonAlphanumericError('proxy session ID');
+            parts.push(`SESSION-${apifyProxySession}`);
         }
 
         username = parts.join(',');

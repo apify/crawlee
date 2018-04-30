@@ -1,6 +1,5 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { anonymizeProxy, closeAnonymizedProxy } from 'proxy-chain';
-import { cryptoRandomObjectId } from 'apify-shared/utilities';
 import { ENV_VARS, DEFAULT_USER_AGENT } from './constants';
 import { newPromise, getTypicalChromeExecutablePath } from './utils';
 import { getApifyProxyUrl } from './actor';
@@ -21,12 +20,17 @@ import { getApifyProxyUrl } from './actor';
  *                                  is taken from the `APIFY_CHROME_EXECUTABLE_PATH` environment variable if provided,
  *                                  or defaults to the typical Google Chrome executable location specific for the operating system.
  *                                  By default, this option is `false`.
- * @property {String} [opts.useApifyProxy=false] If set to `true` then Puppeteer will be configured to use
- *                                            <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a>.
- * @property {String} [opts.apifyProxyGroups] An array of proxy groups to be used
- *                                         when using the <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a>.
- * @property {String} [opts.apifyProxySession] <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a> session ID that
- *                                          identifies requests that should use the same proxy connection.
+ * @property {String} [opts.useApifyProxy=false] If set to `true`, Puppeteer will be configured to use
+ * <a href="https://my.apify.com/proxy" target="_blank">Apify Proxy</a> for all connections.
+ * For more information, see the <a href="https://www.apify.com/docs/proxy">documentation</a>
+ * @property {String[]} [opts.apifyProxyGroups] An array of proxy groups to be used
+ * by the <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a>.
+ * Only applied if the `useApifyProxy` option is `true`.
+ * @property {String} [opts.apifyProxySession] Apify Proxy session identifier to be used by all the Chrome browsers.
+ * All HTTP requests going through the proxy with the same session identifier
+ * will use the same target proxy server (i.e. the same IP address).
+ * The identifier can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
+ * Only applied if the `useApifyProxy` option is `true`.
  */
 
 /**
@@ -135,39 +139,38 @@ export const launchPuppeteer = (opts = {}) => {
     checkParamOrThrow(opts.args, 'opts.args', 'Maybe [String]');
     checkParamOrThrow(opts.proxyUrl, 'opts.proxyUrl', 'Maybe String');
     checkParamOrThrow(opts.useApifyProxy, 'opts.useApifyProxy', 'Maybe Boolean');
-
     if (opts.useApifyProxy && opts.proxyUrl) throw new Error('Cannot combine "opts.useApifyProxy" with "opts.proxyUrl"!');
 
     const puppeteer = getPuppeteerOrThrow();
+    const optsCopy = Object.assign({}, opts);
 
-    opts.args = opts.args || [];
-    opts.args.push('--no-sandbox');
-    if (opts.headless === undefined || opts.headless === null) {
-        opts.headless = process.env[ENV_VARS.HEADLESS] === '1' && process.env[ENV_VARS.XVFB] !== '1';
+    optsCopy.args = optsCopy.args || [];
+    optsCopy.args.push('--no-sandbox');
+    if (optsCopy.headless === undefined || optsCopy.headless === null) {
+        optsCopy.headless = process.env[ENV_VARS.HEADLESS] === '1' && process.env[ENV_VARS.XVFB] !== '1';
     }
-    if (opts.useChrome && (opts.executablePath === undefined || opts.executablePath === null)) {
-        opts.executablePath = process.env[ENV_VARS.CHROME_EXECUTABLE_PATH] || getTypicalChromeExecutablePath();
+    if (optsCopy.useChrome && (optsCopy.executablePath === undefined || optsCopy.executablePath === null)) {
+        optsCopy.executablePath = process.env[ENV_VARS.CHROME_EXECUTABLE_PATH] || getTypicalChromeExecutablePath();
     }
-    if (opts.useApifyProxy) {
-        opts.proxyUrl = getApifyProxyUrl({
-            groups: opts.apifyProxyGroups,
-            session: opts.apifyProxySession || cryptoRandomObjectId(),
-        });
+    if (optsCopy.useApifyProxy) {
+        const { apifyProxyGroups, apifyProxySession } = optsCopy;
+
+        optsCopy.proxyUrl = getApifyProxyUrl({ apifyProxyGroups, apifyProxySession });
     }
 
     // When User-Agent is not set and we're using Chromium or headless mode,
     // it is better to use DEFAULT_USER_AGENT to reduce chance of detection
-    let { userAgent } = opts;
-    if (!userAgent && (!opts.executablePath || opts.headless)) {
+    let { userAgent } = optsCopy;
+    if (!userAgent && (!optsCopy.executablePath || optsCopy.headless)) {
         userAgent = DEFAULT_USER_AGENT;
     }
     if (userAgent) {
-        opts.args.push(`--user-agent=${userAgent}`);
+        optsCopy.args.push(`--user-agent=${userAgent}`);
     }
 
-    const browserPromise = opts.proxyUrl
-        ? launchPuppeteerWithProxy(puppeteer, opts)
-        : puppeteer.launch(opts);
+    const browserPromise = optsCopy.proxyUrl
+        ? launchPuppeteerWithProxy(puppeteer, optsCopy)
+        : puppeteer.launch(optsCopy);
 
     // Ensure that the returned promise is of type Bluebird.
     return newPromise().then(() => browserPromise);
