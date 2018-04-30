@@ -1,6 +1,6 @@
 import * as consts from 'apify-shared/consts';
 
-consts.DEFAULT_USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.186 Safari/537.36'; // eslint-disable-line max-len
+consts.DEFAULT_USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36'; // eslint-disable-line max-len
 
 /**
  * Exit codes for the act process.
