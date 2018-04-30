@@ -79,7 +79,8 @@ const humanReadable = bytes => `${Math.round(bytes / 1024 / 1024)} MB`;
  * @param {number} [options.maybeRunIntervalMillis=1000] Indicates how often should the pool try to call
  *                                                       `opts.runTaskFunction` to start a new task.
  * @param {Boolean} [options.ignoreMainProcess=false] If set to `true` then autoscaling doesn't consider memory consumption
- *                                                    of main Node process when autoscaling the pool up/down.
+ *                                                    of the main NodeJS process when autoscaling the pool up/down. This is mainly usefull when
+ *                                                    tasks are running as separate processes (for example web browser).
  */
 export default class AutoscaledPool {
     constructor(opts) {
