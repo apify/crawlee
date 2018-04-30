@@ -4,9 +4,15 @@ import os from 'os';
 import fs from 'fs';
 import fsExtra from 'fs-extra';
 import ApifyClient from 'apify-client';
+import psTree from 'ps-tree';
+import pidusage from 'pidusage';
+import _ from 'underscore';
 import { ENV_VARS } from './constants';
 
+export const PID_USAGE_NOT_FOUND_ERROR = 'No maching pid found';
+
 const ensureDirPromised = Promise.promisify(fsExtra.ensureDir);
+const psTreePromised = Promise.promisify(psTree);
 
 /**
  * Creates an instance of ApifyClient using options as defined in the environment variables.
@@ -80,7 +86,7 @@ export const addCharsetToContentType = (contentType) => {
     return contentTypeParser.format(parsed);
 };
 
-let isDockerPromise;
+let isDockerPromiseCache;
 const createIsDockerPromise = () => {
     const promise1 = Promise
         .promisify(fs.stat)('/.dockerenv')
@@ -109,10 +115,30 @@ const createIsDockerPromise = () => {
  */
 export const isDocker = (forceReset) => {
     // Parameter forceReset is just internal for unit tests.
-    if (!isDockerPromise || forceReset) isDockerPromise = createIsDockerPromise();
+    if (!isDockerPromiseCache || forceReset) isDockerPromiseCache = createIsDockerPromise();
 
-    return isDockerPromise;
+    return isDockerPromiseCache;
 };
+
+/**
+ * Sums an array of numbers.
+ *
+ * @param  {[Number]} arr An array of numbers.
+ * @return {Number} Sum of the numbers.
+ *
+ * @ignore
+ */
+export const sum = arr => arr.reduce((total, c) => total + c, 0);
+
+/**
+ * Computes an average of an array of numbers.
+ *
+ * @param  {[Number]} arr An array of numbers.
+ * @return {Number} Average value.
+ *
+ * @ignore
+ */
+export const avg = arr => sum(arr) / arr.length;
 
 /**
  * Returns memory statistics of the container, which is an object with the following properties:
@@ -127,6 +153,10 @@ export const isDocker = (forceReset) => {
  *   &nbsp;
  *   // Amount of memory used (= totalBytes - freeBytes)
  *   usedBytes: Number,
+ *   // Amount of memory used by main NodeJS process
+ *   mainProcessBytes: Number,
+ *   // Amount of memory used by child processes of main NodeJS process
+ *   childProcessesBytes: Number,
  * }
  * ```
  *
@@ -139,13 +169,43 @@ export const isDocker = (forceReset) => {
  */
 export const getMemoryInfo = () => {
     // module.exports must be here so that we can mock it.
-    return module.exports.isDocker()
-        .then((isDockerVar) => {
+    const isDockerPromise = module.exports.isDocker();
+
+    const childProcessesUsagePromise = psTreePromised(process.pid)
+        .then((childProcesses) => {
+            const pids = _.pluck(childProcesses, 'PID');
+
+            const promises = pids.map((pid) => {
+                return pidusage(pid)
+                    .then(info => info.memory)
+                    .catch((err) => {
+                        if (err.message === PID_USAGE_NOT_FOUND_ERROR) return 0;
+
+                        throw err;
+                    });
+            });
+
+            return Promise.all(promises).then(infos => sum(infos));
+        });
+
+    return Promise
+        .all([
+            isDockerPromise,
+            childProcessesUsagePromise,
+        ])
+        .then(([isDockerVar, childProcessesBytes]) => {
             if (!isDockerVar) {
                 const freeBytes = os.freemem();
                 const totalBytes = os.totalmem();
+                const usedBytes = totalBytes - freeBytes;
 
-                return Promise.resolve({ totalBytes, freeBytes, usedBytes: totalBytes - freeBytes });
+                return Promise.resolve({
+                    totalBytes,
+                    freeBytes,
+                    usedBytes,
+                    mainProcessBytes: usedBytes - childProcessesBytes,
+                    childProcessesBytes,
+                });
             }
 
             // This must be promisified here so that we can Mock it.
@@ -160,7 +220,13 @@ export const getMemoryInfo = () => {
                     const totalBytes = parseInt(totalBytesStr, 10);
                     const usedBytes = parseInt(usedBytesStr, 10);
 
-                    return { totalBytes, freeBytes: totalBytes - usedBytes, usedBytes };
+                    return {
+                        totalBytes,
+                        freeBytes: totalBytes - usedBytes,
+                        usedBytes,
+                        mainProcessBytes: usedBytes - childProcessesBytes,
+                        childProcessesBytes,
+                    };
                 });
         });
 };

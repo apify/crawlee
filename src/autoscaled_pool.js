@@ -2,7 +2,7 @@ import Promise from 'bluebird';
 import log from 'apify-shared/log';
 import _ from 'underscore';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { getMemoryInfo, isPromise } from './utils';
+import { getMemoryInfo, isPromise, avg } from './utils';
 import events from './events';
 import { ACTOR_EVENT_NAMES } from './constants';
 
@@ -14,6 +14,7 @@ const DEFAULT_OPTIONS = {
     minFreeMemoryRatio: 0.2,
     maybeRunIntervalMillis: 500,
     finishWhenEmpty: true,
+    ignoreMainProcess: false,
 };
 
 // These constants defines that in Nth execution memCheckInterval we do:
@@ -77,6 +78,9 @@ const humanReadable = bytes => `${Math.round(bytes / 1024 / 1024)} MB`;
  * @param {Number} [options.minFreeMemoryRatio=0.2] Minimum ratio of free memory kept in the system.
  * @param {number} [options.maybeRunIntervalMillis=1000] Indicates how often should the pool try to call
  *                                                       `opts.runTaskFunction` to start a new task.
+ * @param {Boolean} [options.ignoreMainProcess=false] If set to `true` then autoscaling doesn't consider memory consumption
+ *                                                    of the main NodeJS process when autoscaling the pool up/down. This is mainly useful when
+ *                                                    tasks are running as separate processes (for example web browser).
  */
 export default class AutoscaledPool {
     constructor(opts) {
@@ -109,6 +113,7 @@ export default class AutoscaledPool {
             runTaskFunction,
             isFinishedFunction,
             isTaskReadyFunction,
+            ignoreMainProcess,
         } = _.defaults(opts, DEFAULT_OPTIONS);
 
         checkParamOrThrow(maxConcurrency, 'opts.maxConcurrency', 'Number');
@@ -119,6 +124,7 @@ export default class AutoscaledPool {
         checkParamOrThrow(runTaskFunction, 'opts.runTaskFunction', 'Function');
         checkParamOrThrow(isFinishedFunction, 'opts.isFinishedFunction', 'Maybe Function');
         checkParamOrThrow(isTaskReadyFunction, 'opts.isTaskReadyFunction', 'Maybe Function');
+        checkParamOrThrow(ignoreMainProcess, 'opts.ignoreMainProcess', 'Boolean');
 
         // Configuration.
         this.maxMemoryMbytes = maxMemoryMbytes;
@@ -129,6 +135,7 @@ export default class AutoscaledPool {
         this.runTaskFunction = runTaskFunction;
         this.isFinishedFunction = isFinishedFunction;
         this.isTaskReadyFunction = isTaskReadyFunction;
+        this.ignoreMainProcess = ignoreMainProcess;
 
         // State.
         this.promiseCounter = 0;
@@ -202,19 +209,26 @@ export default class AutoscaledPool {
      * - SCALE_UP_INTERVAL-th call checks memory and possibly scales UP
      * - MEM_INFO_INTERVAL-th call logs statistics about memory.
      *
+     * NOTE: Parameter this.ignoreMainProcess=true solves the situation where for example we have 3GB memory,
+     *       node process takes 1.5GB and Chrome 500MB so autoscaling things that we 1 concurrency allocates
+     *       2/3 of memory and therefore it doesn't scales up.
+     *
+     *       Ignoring the main process we get total memory decreased to 1.5GB so AutoscaledPool considers that
+     *       one Chrome process to be correctly taking that 1/3 of memory.
+     *
      * @ignore
      */
     _autoscale() {
         // Returning promise so that we can await it in unit tests.
         return getMemoryInfo()
-            .then(({ freeBytes, totalBytes }) => {
+            .then(({ freeBytes, totalBytes, mainProcessBytes }) => {
+                if (this.ignoreMainProcess) totalBytes -= mainProcessBytes;
                 if (this.maxMemoryMbytes) totalBytes = Math.min(totalBytes, this.maxMemoryMbytes);
 
                 this.intervalCounter++;
                 this.freeBytesSnapshots = this.freeBytesSnapshots.concat(freeBytes).slice(-SCALE_UP_INTERVAL);
 
                 const scaledDown = this._maybeScaleDown(totalBytes);
-
                 if (!scaledDown) this._maybeScaleUp(totalBytes);
             })
             .catch(err => log.exception(err, 'AutoscaledPool._autoscale() function failed'));
@@ -230,7 +244,7 @@ export default class AutoscaledPool {
         if (this.intervalCounter % SCALE_DOWN_INTERVAL !== 0 || this.concurrency <= this.minConcurrency) return false;
 
         const snapshots = this.freeBytesSnapshots.slice(-SCALE_DOWN_INTERVAL);
-        const averageFreeBytes = snapshots.reduce((sum, c) => sum + c, 0) / snapshots.length;
+        const averageFreeBytes = avg(snapshots);
         const isMemoryOverloaded = averageFreeBytes / totalBytes < this.minFreeMemoryRatio;
         const isCpuOverloaded = _.all(this.isCpuOverloadedSnapshots);
 
