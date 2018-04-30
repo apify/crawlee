@@ -145,7 +145,12 @@ export const initializeEvents = () => {
             log.exception(err, 'Apify.events: Cannot parse actor event');
         }
     });
-    eventsWs.on('error', err => log.exception(err, 'Apify.events: web socket connection failed'));
+    eventsWs.on('error', (err) => {
+        // Don't print this error as this happens in a case of very short Apify.main().
+        if (err.message === 'WebSocket was closed before the connection was established') return;
+
+        log.exception(err, 'Apify.events: web socket connection failed');
+    });
     eventsWs.on('close', () => {
         log.warning('Apify.events: web socket has been closed');
         eventsWs = null;
