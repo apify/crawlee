@@ -774,12 +774,14 @@ describe('Apify.getApifyProxyUrl()', () => {
         process.env[ENV_VARS.PROXY_HOSTNAME] = 'my.host.com';
         process.env[ENV_VARS.PROXY_PORT] = 123;
 
-        expect(() => Apify.getApifyProxyUrl({ session: 'a.b' })).to.throw();
         expect(() => Apify.getApifyProxyUrl({ session: 'a-b' })).to.throw();
-        expect(() => Apify.getApifyProxyUrl({ session: 'ab_' })).to.throw();
         expect(() => Apify.getApifyProxyUrl({ session: 'a$b' })).to.throw();
+        expect(() => Apify.getApifyProxyUrl({ session: {} })).to.throw();
+        expect(() => Apify.getApifyProxyUrl({ session: new Date() })).to.throw();
 
         expect(() => Apify.getApifyProxyUrl({ session: 'a_b' })).to.not.throw();
+        expect(() => Apify.getApifyProxyUrl({ session: '0.34252352' })).to.not.throw();
+        expect(() => Apify.getApifyProxyUrl({ session: 'aaa~BBB' })).to.not.throw();
         expect(() => Apify.getApifyProxyUrl({ session: 'a_1_b' })).to.not.throw();
         expect(() => Apify.getApifyProxyUrl({ session: 'a_2' })).to.not.throw();
         expect(() => Apify.getApifyProxyUrl({ session: 'a' })).to.not.throw();
