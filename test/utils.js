@@ -15,9 +15,9 @@ chai.use(chaiAsPromised);
 
 describe('utils.newClient()', () => {
     it('reads environment variables correctly', () => {
-        process.env.APIFY_API_BASE_URL = 'http://www.example.com:1234/path/';
-        process.env.APIFY_USER_ID = 'userId';
-        process.env.APIFY_TOKEN = 'token';
+        process.env[ENV_VARS.API_BASE_URL] = 'http://www.example.com:1234/path/';
+        process.env[ENV_VARS.USER_ID] = 'userId';
+        process.env[ENV_VARS.TOKEN] = 'token';
         const client = utils.newClient();
 
         expect(client.constructor.name).to.eql('ApifyClient');
@@ -29,9 +29,9 @@ describe('utils.newClient()', () => {
     });
 
     it('uses correct default if APIFY_API_BASE_URL is not defined', () => {
-        delete process.env.APIFY_API_BASE_URL;
-        process.env.APIFY_USER_ID = 'userId';
-        process.env.APIFY_TOKEN = 'token';
+        delete process.env[ENV_VARS.API_BASE_URL];
+        process.env[ENV_VARS.USER_ID] = 'userId';
+        process.env[ENV_VARS.TOKEN] = 'token';
         const client = utils.newClient();
 
         const opts = client.getOptions();
@@ -267,6 +267,16 @@ describe('utils.newPromise()', () => {
     });
 });
 
+describe('utils.isAtHome()', () => {
+    it('works', () => {
+        expect(utils.isAtHome()).to.be.eql(false);
+        process.env[ENV_VARS.IS_AT_HOME] = 1;
+        expect(utils.isAtHome()).to.be.eql(true);
+        delete process.env[ENV_VARS.IS_AT_HOME];
+        expect(utils.isAtHome()).to.be.eql(false);
+    });
+});
+
 describe('pidusage NPM package', () => {
     it('throws correct error message when process not found', () => {
         const NONEXISTING_PID = 9999;
@@ -276,7 +286,7 @@ describe('pidusage NPM package', () => {
     });
 });
 
-describe('utils.sum', () => {
+describe('utils.sum()', () => {
     it('works', () => {
         expect(utils.sum([1, 2, 3, 1.2])).to.be.eql(7.2);
         expect(utils.sum([])).to.be.eql(0);
@@ -284,7 +294,7 @@ describe('utils.sum', () => {
     });
 });
 
-describe('utils.avg', () => {
+describe('utils.avg()', () => {
     it('works', () => {
         expect(utils.avg([1, 2, 3, 1.2])).to.be.eql(7.2 / 4);
         expect(utils.avg([])).to.be.eql(NaN);
