@@ -1,3 +1,7 @@
+xxxxxxxxxxxxxxxxxxx
+- Added `Apify.amIAtHome()` function that returns `true` when code is running at Apify platform and `false` otherwise
+  (for example locally).
+
 0.5.26 / 2018-04-27
 ===================
 - Parameters `session` and `groups` of `getApifyProxyUrl()` renamed to `apifyProxySession` and `apifyProxyGroups` to match

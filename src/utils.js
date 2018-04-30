@@ -214,7 +214,7 @@ export const getTypicalChromeExecutablePath = () => {
 };
 
 /**
- * Returns `true` if act is running at Apify platform.
+ * Returns `true` when code is running at Apify platform and `false` otherwise (for example locally).
  *
  * @returns {Boolean}
  *
