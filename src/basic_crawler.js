@@ -111,6 +111,7 @@ export default class BasicCrawler {
                     ? isFinishedFunction()
                     : this._defaultIsFinishedFunction()
             ),
+            ignoreMainProcess: true,
         });
     }
 

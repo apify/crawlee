@@ -78,7 +78,7 @@ describe('AutoscaledPool', () => {
         expect(Date.now() - startedAt).to.be.within(100, 150);
     });
 
-    it('correctly computed space for instances using', async () => {
+    it('correctly computed space for instances', async () => {
         const pool = new Apify.AutoscaledPool({
             minConcurrency: 1,
             maxConcurrency: 100,
@@ -166,6 +166,50 @@ describe('AutoscaledPool', () => {
         pool.intervalCounter = LOG_INFO_INTERVAL - 1;
         await pool._autoscale();
         expect(pool.concurrency).to.be.eql(9);
+
+        mock.verify();
+        mock.restore();
+    });
+
+    it('should autoscale correctly when ignoring main process', async () => {
+        const pool = new Apify.AutoscaledPool({
+            ignoreMainProcess: true,
+            minConcurrency: 1,
+            maxConcurrency: 100,
+            minFreeMemoryRatio: 0.1,
+            runTaskFunction: () => Promise.resolve(),
+            isFinishedFunction: () => Promise.resolve(false),
+            isTaskReadyFunction: () => Promise.resolve(true),
+        });
+        const mock = sinon.mock(utils);
+
+        // Should not scale up.
+        pool.concurrency = 1;
+        pool.runningCount = 1;
+        pool.intervalCounter = LOG_INFO_INTERVAL - 1;
+        mock.expects('getMemoryInfo')
+            .once()
+            .returns(Promise.resolve({
+                freeBytes: toBytes(5),
+                totalBytes: toBytes(10),
+                mainProcessBytes: 0,
+            }));
+        await pool._autoscale();
+        expect(pool.concurrency).to.be.eql(1);
+
+        // Should scale up.
+        pool.concurrency = 1;
+        pool.runningCount = 1;
+        pool.intervalCounter = LOG_INFO_INTERVAL - 1;
+        mock.expects('getMemoryInfo')
+            .once()
+            .returns(Promise.resolve({
+                freeBytes: toBytes(5),
+                totalBytes: toBytes(10),
+                mainProcessBytes: toBytes(4),
+            }));
+        await pool._autoscale();
+        expect(pool.concurrency).to.be.eql(5);
 
         mock.verify();
         mock.restore();
