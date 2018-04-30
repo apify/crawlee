@@ -86,7 +86,7 @@ export const addCharsetToContentType = (contentType) => {
     return contentTypeParser.format(parsed);
 };
 
-let isDockerPromise;
+let isDockerPromiseCache;
 const createIsDockerPromise = () => {
     const promise1 = Promise
         .promisify(fs.stat)('/.dockerenv')
@@ -115,9 +115,9 @@ const createIsDockerPromise = () => {
  */
 export const isDocker = (forceReset) => {
     // Parameter forceReset is just internal for unit tests.
-    if (!isDockerPromise || forceReset) isDockerPromise = createIsDockerPromise();
+    if (!isDockerPromiseCache || forceReset) isDockerPromiseCache = createIsDockerPromise();
 
-    return isDockerPromise;
+    return isDockerPromiseCache;
 };
 
 /**
@@ -128,7 +128,7 @@ export const isDocker = (forceReset) => {
  *
  * @ignore
  */
-export const sum = arr => arr.reduce((sum, c) => sum + c, 0);
+export const sum = arr => arr.reduce((total, c) => total + c, 0);
 
 /**
  * Computes an average of an array of numbers.
@@ -185,7 +185,7 @@ export const getMemoryInfo = () => {
                     });
             });
 
-            return Promise.all(promises).then(infos => sum(infos))
+            return Promise.all(promises).then(infos => sum(infos));
         });
 
     return Promise
