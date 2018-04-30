@@ -1,10 +1,17 @@
+import _ from 'underscore';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { anonymizeProxy, closeAnonymizedProxy } from 'proxy-chain';
+import { anonymizeProxy, closeAnonymizedProxy, redactUrl } from 'proxy-chain';
+import log from 'apify-shared/log';
 import { ENV_VARS, DEFAULT_USER_AGENT } from './constants';
 import { newPromise, getTypicalChromeExecutablePath } from './utils';
 import { getApifyProxyUrl } from './actor';
 
 /* global process, require */
+
+
+const LAUNCH_PUPPETEER_LOG_OMIT_OPTS = [
+    'proxyUrl', 'userAgent', 'useApifyProxy', 'apifyProxySession', 'apifyProxyGroups',
+];
 
 /**
  * @typedef {Object} LaunchPuppeteerOptions
@@ -48,7 +55,14 @@ const launchPuppeteerWithProxy = (puppeteer, opts) => {
             anonymizedProxyUrl = result;
             opts.args.push(`--proxy-server=${anonymizedProxyUrl}`);
         })
-        .then(() => puppeteer.launch(opts))
+        .then(() => {
+            const optsForLog = _.omit(opts, LAUNCH_PUPPETEER_LOG_OMIT_OPTS);
+            optsForLog.proxyUrl = redactUrl(opts.proxyUrl);
+            optsForLog.args = opts.args.slice(0, opts.args.length - 1);
+            log.info('Launching Puppeteer', optsForLog);
+
+            return puppeteer.launch(opts);
+        })
         // Close anonymization proxy server when Puppeteer finishes
         .then((browser) => {
             const cleanUp = () => {
@@ -105,7 +119,8 @@ const getPuppeteerOrThrow = () => {
  *        Takes the `proxyUrl` option, checks it and adds it to `args` as `--proxy-server=XXX`.
  *        If the proxy uses authentication, the function sets up an anonymous proxy HTTP
  *        to make the proxy work with headless Chrome. For more information, read the
- *        <a href="https://blog.apify.com/249a21a79212" target="_blank">blog post about proxy-chain library</a>.
+ *        <a href="https://blog.apify.com/how-to-make-headless-chrome-and-puppeteer-use-a-proxy-server-with-authentication-249a21a79212"
+ *        target="_blank">blog post about proxy-chain library</a>.
  *    </li>
  *    <li>
  *        If `opts.useApifyProxy` is `true` then the function generates a URL of
@@ -168,9 +183,13 @@ export const launchPuppeteer = (opts = {}) => {
         optsCopy.args.push(`--user-agent=${userAgent}`);
     }
 
-    const browserPromise = optsCopy.proxyUrl
-        ? launchPuppeteerWithProxy(puppeteer, optsCopy)
-        : puppeteer.launch(optsCopy);
+    let browserPromise;
+    if (optsCopy.proxyUrl) {
+        browserPromise = launchPuppeteerWithProxy(puppeteer, optsCopy);
+    } else {
+        log.info('Launching Puppeteer', _.omit(optsCopy, LAUNCH_PUPPETEER_LOG_OMIT_OPTS));
+        browserPromise = puppeteer.launch(optsCopy);
+    }
 
     // Ensure that the returned promise is of type Bluebird.
     return newPromise().then(() => browserPromise);
