@@ -3,7 +3,7 @@ import Promise from 'bluebird';
 import fs from 'fs';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { PROXY_GROUP_NAME_REGEX, PROXY_SESSION_ID_REGEX } from 'apify-shared/regexs';
+import { APIFY_PROXY_VALUE_REGEX } from 'apify-shared/regexs';
 import { ENV_VARS, EXIT_CODES, ACT_TASK_TERMINAL_STATUSES, ACT_TASK_STATUSES, DEFAULT_PROXY_HOSTNAME, DEFAULT_PROXY_PORT } from './constants';
 import { initializeEvents, stopEvents } from './events';
 import { newPromise, apifyClient, addCharsetToContentType } from './utils';
@@ -416,7 +416,9 @@ export const getApifyProxyUrl = (opts = {}) => {
     } = opts;
 
     const getMissingParamErrorMgs = (param, env) => `Apify Proxy ${param} must be provided as parameter or "${env}" environment variable!`;
-    const throwNonAlphanumericError = (param) => { throw new Error(`Only alphanumeric characters and underscore are allowed in ${param}`); };
+    const throwInvalidProxyValueError = (param) => {
+        throw new Error(`The "${param}" option can only contain the following characters: 0-9, a-z, A-Z, ".", "_" and "~"`);
+    };
 
     checkParamOrThrow(apifyProxyGroups, 'opts.apifyProxyGroups', 'Maybe [String]');
     checkParamOrThrow(apifyProxySession, 'opts.apifyProxySession', 'Maybe Number | String');
@@ -430,11 +432,11 @@ export const getApifyProxyUrl = (opts = {}) => {
         const parts = [];
 
         if (apifyProxyGroups && apifyProxyGroups.length) {
-            if (!apifyProxyGroups.every(group => PROXY_GROUP_NAME_REGEX.test(group))) throwNonAlphanumericError('proxy group name');
+            if (!apifyProxyGroups.every(group => APIFY_PROXY_VALUE_REGEX.test(group))) throwInvalidProxyValueError('apifyProxyGroups');
             parts.push(`GROUPS-${apifyProxyGroups.join('+')}`);
         }
         if (apifyProxySession) {
-            if (!PROXY_SESSION_ID_REGEX.test(apifyProxySession)) throwNonAlphanumericError('proxy session ID');
+            if (!APIFY_PROXY_VALUE_REGEX.test(apifyProxySession)) throwInvalidProxyValueError('apifyProxySession');
             parts.push(`SESSION-${apifyProxySession}`);
         }
 
