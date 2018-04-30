@@ -49,7 +49,9 @@
     "bluebird": "^3.5.0",
     "content-type": "^1.0.3",
     "fs-extra": "^5.0.0",
+    "pidusage": "^2.0.6",
     "proxy-chain": "^0.1.26",
+    "ps-tree": "^1.1.0",
     "request-promise": "^4.2.2",
     "underscore": "^1.9.0",
     "ws": "^5.1.0"

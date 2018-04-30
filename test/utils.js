@@ -1,9 +1,15 @@
-import { expect } from 'chai';
+import chai, { expect } from 'chai';
+import chaiAsPromised from 'chai-as-promised';
 import sinon from 'sinon';
 import fs from 'fs';
 import os from 'os';
+import pidusage from 'pidusage';
+import Promise from 'bluebird';
 import * as utils from '../build/utils';
 import Apify from '../build/index';
+import { ENV_VARS } from '../build/constants';
+
+chai.use(chaiAsPromised);
 
 /* global process, describe, it */
 
@@ -102,7 +108,7 @@ describe('utils.isDocker()', () => {
 });
 
 describe('utils.getMemoryInfo()', () => {
-    it('works outside the container', () => {
+    it('works WITHOUT child process outside the container', () => {
         const osMock = sinon.mock(os);
         const utilsMock = sinon.mock(utils);
 
@@ -128,6 +134,8 @@ describe('utils.getMemoryInfo()', () => {
                     totalBytes: 333,
                     freeBytes: 222,
                     usedBytes: 111,
+                    mainProcessBytes: 111,
+                    childProcessesBytes: 0,
                 });
 
                 utilsMock.restore();
@@ -135,7 +143,7 @@ describe('utils.getMemoryInfo()', () => {
             });
     });
 
-    it('works inside the container', () => {
+    it('works WITHOUT child process inside the container', () => {
         const utilsMock = sinon.mock(utils);
 
         utilsMock
@@ -158,10 +166,81 @@ describe('utils.getMemoryInfo()', () => {
                     totalBytes: 333,
                     freeBytes: 222,
                     usedBytes: 111,
+                    mainProcessBytes: 111,
+                    childProcessesBytes: 0,
                 });
 
                 utilsMock.restore();
                 fs.readFile.restore();
+            });
+    });
+
+    it('works WITH child process outside the container', () => {
+        const osMock = sinon.mock(os);
+        const utilsMock = sinon.mock(utils);
+        process.env[ENV_VARS.HEADLESS] = '1';
+
+        utilsMock
+            .expects('isDocker')
+            .once()
+            .returns(Promise.resolve(false));
+
+        osMock
+            .expects('freemem')
+            .once()
+            .returns(222);
+
+        osMock
+            .expects('totalmem')
+            .once()
+            .returns(333);
+
+        return Apify.launchPuppeteer()
+            .then((browser) => {
+                return Apify
+                    .getMemoryInfo()
+                    .then((data) => {
+                        expect(data.childProcessesBytes).to.be.above(0);
+                        expect(data.usedBytes).to.be.above(0);
+                        expect(data.mainProcessBytes).to.be.eql(data.usedBytes - data.childProcessesBytes);
+                        utilsMock.restore();
+                        osMock.restore();
+                        delete process.env[ENV_VARS.HEADLESS];
+                    })
+                    .then(() => browser.close());
+            });
+    });
+
+    it('works WITH child process inside the container', () => {
+        const utilsMock = sinon.mock(utils);
+        process.env[ENV_VARS.HEADLESS] = '1';
+
+        utilsMock
+            .expects('isDocker')
+            .once()
+            .returns(Promise.resolve(true));
+
+        sinon
+            .stub(fs, 'readFile')
+            .callsFake((path, callback) => {
+                if (path === '/sys/fs/cgroup/memory/memory.limit_in_bytes') callback(null, '333');
+                else if (path === '/sys/fs/cgroup/memory/memory.usage_in_bytes') callback(null, '111');
+                else throw new Error('Invalid path');
+            });
+
+        return Apify.launchPuppeteer()
+            .then((browser) => {
+                return Apify
+                    .getMemoryInfo()
+                    .then((data) => {
+                        expect(data.childProcessesBytes).to.be.above(0);
+                        expect(data.usedBytes).to.be.above(0);
+                        expect(data.mainProcessBytes).to.be.eql(data.usedBytes - data.childProcessesBytes);
+                        utilsMock.restore();
+                        fs.readFile.restore();
+                        delete process.env[ENV_VARS.HEADLESS];
+                    })
+                    .then(() => browser.close());
             });
     });
 });
@@ -185,5 +264,30 @@ describe('utils.isPromise()', () => {
 describe('utils.newPromise()', () => {
     it('works', () => {
         if (!utils.isPromise(utils.newPromise())) throw new Error('utils.newPromise() must return a promise!');
+    });
+});
+
+describe('pidusage NPM package', () => {
+    it('throws correct error message when process not found', () => {
+        const NONEXISTING_PID = 9999;
+        const promise = Promise.promisify(pidusage)(NONEXISTING_PID);
+
+        return expect(promise).to.be.rejectedWith(utils.PID_USAGE_NOT_FOUND_ERROR);
+    });
+});
+
+describe('utils.sum', () => {
+    it('works', () => {
+        expect(utils.sum([1, 2, 3, 1.2])).to.be.eql(7.2);
+        expect(utils.sum([])).to.be.eql(0);
+        expect(utils.sum([9])).to.be.eql(9);
+    });
+});
+
+describe('utils.avg', () => {
+    it('works', () => {
+        expect(utils.avg([1, 2, 3, 1.2])).to.be.eql(7.2 / 4);
+        expect(utils.avg([])).to.be.eql(NaN);
+        expect(utils.avg([9])).to.be.eql(9);
     });
 });
