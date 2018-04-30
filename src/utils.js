@@ -123,7 +123,7 @@ export const isDocker = (forceReset) => {
 /**
  * Sums an array of numbers.
  *
- * @param  {[Number]} arr An array of numbers.
+ * @param  {Array} arr An array of numbers.
  * @return {Number} Sum of the numbers.
  *
  * @ignore
@@ -133,7 +133,7 @@ export const sum = arr => arr.reduce((total, c) => total + c, 0);
 /**
  * Computes an average of an array of numbers.
  *
- * @param  {[Number]} arr An array of numbers.
+ * @param  {Array} arr An array of numbers.
  * @return {Number} Average value.
  *
  * @ignore
