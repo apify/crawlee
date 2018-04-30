@@ -7,6 +7,7 @@ import pidusage from 'pidusage';
 import Promise from 'bluebird';
 import * as utils from '../build/utils';
 import Apify from '../build/index';
+import { ENV_VARS } from '../build/constants';
 
 chai.use(chaiAsPromised);
 
@@ -174,7 +175,7 @@ describe('utils.getMemoryInfo()', () => {
             });
     });
 
-    it('works WITHT child process outside the container', () => {
+    it('works WITH child process outside the container', () => {
         const osMock = sinon.mock(os);
         const utilsMock = sinon.mock(utils);
         process.env[ENV_VARS.HEADLESS] = '1';
