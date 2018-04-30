@@ -1,4 +1,5 @@
-xxxxxxxxxxxxxxxxxxx
+0.5.27 / 2018-04-30
+===================
 - Added `Apify.isAtHome()` function that returns `true` when code is running at Apify platform and `false` otherwise
   (for example locally).
 - Added `ignoreMainProcess` parameter to `AutoscaledPool`. Check documentation for more info.
