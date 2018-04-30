@@ -212,3 +212,15 @@ export const getTypicalChromeExecutablePath = () => {
     default: return 'google-chrome';
     }
 };
+
+/**
+ * Returns `true` if act is running at Apify platform.
+ *
+ * @returns {Boolean}
+ *
+ * @memberof module:Apify
+ * @name amIAtHome
+ * @instance
+ * @function
+ */
+export const amIAtHome = () => !!process.env[ENV_VARS.IS_AT_HOME];

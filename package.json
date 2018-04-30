@@ -44,7 +44,7 @@
   },
   "dependencies": {
     "apify-client": "^0.2.8",
-    "apify-shared": "^0.0.32",
+    "apify-shared": "^0.0.33",
     "bluebird": "^3.5.0",
     "content-type": "^1.0.3",
     "fs-extra": "^5.0.0",

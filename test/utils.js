@@ -4,14 +4,15 @@ import fs from 'fs';
 import os from 'os';
 import * as utils from '../build/utils';
 import Apify from '../build/index';
+import { ENV_VARS } from '../build/constants';
 
 /* global process, describe, it */
 
 describe('utils.newClient()', () => {
     it('reads environment variables correctly', () => {
-        process.env.APIFY_API_BASE_URL = 'http://www.example.com:1234/path/';
-        process.env.APIFY_USER_ID = 'userId';
-        process.env.APIFY_TOKEN = 'token';
+        process.env[ENV_VARS.API_BASE_URL] = 'http://www.example.com:1234/path/';
+        process.env[ENV_VARS.USER_ID] = 'userId';
+        process.env[ENV_VARS.TOKEN] = 'token';
         const client = utils.newClient();
 
         expect(client.constructor.name).to.eql('ApifyClient');
@@ -23,9 +24,9 @@ describe('utils.newClient()', () => {
     });
 
     it('uses correct default if APIFY_API_BASE_URL is not defined', () => {
-        delete process.env.APIFY_API_BASE_URL;
-        process.env.APIFY_USER_ID = 'userId';
-        process.env.APIFY_TOKEN = 'token';
+        delete process.env[ENV_VARS.API_BASE_URL];
+        process.env[ENV_VARS.USER_ID] = 'userId';
+        process.env[ENV_VARS.TOKEN] = 'token';
         const client = utils.newClient();
 
         const opts = client.getOptions();
@@ -185,5 +186,15 @@ describe('utils.isPromise()', () => {
 describe('utils.newPromise()', () => {
     it('works', () => {
         if (!utils.isPromise(utils.newPromise())) throw new Error('utils.newPromise() must return a promise!');
+    });
+});
+
+describe('utils.amIAtHome()', () => {
+    it('works', () => {
+        expect(utils.amIAtHome()).to.be.eql(false);
+        process.env[ENV_VARS.IS_AT_HOME] = 1;
+        expect(utils.amIAtHome()).to.be.eql(true);
+        delete process.env[ENV_VARS.IS_AT_HOME];
+        expect(utils.amIAtHome()).to.be.eql(false);
     });
 });
