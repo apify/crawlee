@@ -219,8 +219,8 @@ export const getTypicalChromeExecutablePath = () => {
  * @returns {Boolean}
  *
  * @memberof module:Apify
- * @name amIAtHome
+ * @name isAtHome
  * @instance
  * @function
  */
-export const amIAtHome = () => !!process.env[ENV_VARS.IS_AT_HOME];
+export const isAtHome = () => !!process.env[ENV_VARS.IS_AT_HOME];

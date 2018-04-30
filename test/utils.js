@@ -189,12 +189,12 @@ describe('utils.newPromise()', () => {
     });
 });
 
-describe('utils.amIAtHome()', () => {
+describe('utils.isAtHome()', () => {
     it('works', () => {
-        expect(utils.amIAtHome()).to.be.eql(false);
+        expect(utils.isAtHome()).to.be.eql(false);
         process.env[ENV_VARS.IS_AT_HOME] = 1;
-        expect(utils.amIAtHome()).to.be.eql(true);
+        expect(utils.isAtHome()).to.be.eql(true);
         delete process.env[ENV_VARS.IS_AT_HOME];
-        expect(utils.amIAtHome()).to.be.eql(false);
+        expect(utils.isAtHome()).to.be.eql(false);
     });
 });
