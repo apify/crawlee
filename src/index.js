@@ -13,7 +13,7 @@ import Request from './request';
 import RequestList from './request_list';
 import { openRequestQueue } from './request_queue';
 import SettingsRotator from './settings_rotator';
-import { apifyClient, getMemoryInfo, isProduction, isAtHome } from './utils';
+import { apifyClient, getMemoryInfo, isProduction, isAtHome, publicUtils } from './utils';
 import { browse, launchWebDriver } from './webdriver';
 
 /* globals module */
@@ -83,4 +83,7 @@ module.exports = {
     // Webdriver
     browse,
     launchWebDriver,
+
+    // utils
+    utils: publicUtils,
 };

@@ -117,6 +117,7 @@ describe('Apify.events', () => {
         delete process.env[ENV_VARS.ACTOR_EVENTS_WS_URL];
     });
 
+    // TODO: This tests fails if system is overloaded, it should not depend on timing!
     it('should send persist state events in regular interval', async () => {
         process.env.APIFY_TEST_PERSIST_INTERVAL_MILLIS = 20;
 
