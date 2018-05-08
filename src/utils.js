@@ -316,7 +316,7 @@ const sleep = (millis) => {
 
 
 /**
- * A helper namespace that contains various utilities.
+ * A namespace that contains various utilities.
  *
  * Example usage:
  * ```javascript

@@ -15,6 +15,7 @@ import { openRequestQueue } from './request_queue';
 import SettingsRotator from './settings_rotator';
 import { apifyClient, getMemoryInfo, isProduction, isAtHome, publicUtils } from './utils';
 import { browse, launchWebDriver } from './webdriver';
+import { puppeteerUtils } from './puppeteer_utils';
 
 /* globals module */
 
@@ -85,5 +86,7 @@ module.exports = {
     launchWebDriver,
 
     // utils
-    utils: publicUtils,
+    utils: Object.assign(publicUtils, {
+        puppeteer: puppeteerUtils,
+    }),
 };

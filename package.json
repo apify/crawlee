@@ -49,6 +49,7 @@
     "bluebird": "^3.5.0",
     "content-type": "^1.0.3",
     "fs-extra": "^5.0.0",
+    "jquery": "^3.3.1",
     "pidusage": "^2.0.6",
     "proxy-chain": "^0.1.26",
     "ps-tree": "^1.1.0",
