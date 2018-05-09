@@ -1,4 +1,6 @@
+import fs from 'fs';
 import path from 'path';
+
 
 /**
  * Hides certain Puppeteer fingerprints from the page, in order to help avoid detection of the crawler.
@@ -40,7 +42,28 @@ const hideWebDriver = async (page) => {
 
 
 /**
- * Injects [jQuery](https://jquery.com/) library into a page.
+ * Injects a JavaScript file into a Puppeteer page.
+ * Unlike Puppeteer's `addScriptTag` function, this function works on pages
+ * with arbitrary Cross-Origin Resource Sharing (CORS) policies.
+ *
+ * @param page Puppeteer [Page](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page) object.
+ * @param filePath File path
+ * @return {Promise}
+ */
+export const injectFile = async (page, filePath) => {
+    const contents = await new Promise((resolve, reject) => {
+        fs.readFile(filePath, 'utf8', (err, data) => {
+            if (err) return reject(err);
+            resolve(data);
+        });
+    });
+
+    return page.evaluate(contents);
+};
+
+
+/**
+ * Injects [jQuery](https://jquery.com/) library into a Puppeteer page.
  * jQuery is often useful for various web scraping and crawling tasks,
  * e.g. to extract data from HTML elements using CSS selectors.
  *
@@ -51,14 +74,14 @@ const hideWebDriver = async (page) => {
  * @return {Promise}
  * @memberof utils.puppeteer
  */
-const injectJQuery = async (page) => {
+const injectJQuery = (page) => {
     const scriptPath = path.resolve(path.join(__dirname, '../node_modules/jquery/dist/jquery.min.js'));
-    await page.addScriptTag({ path: scriptPath });
+    return injectFile(page, scriptPath);
 };
 
 
 /**
- * Injects [Underscore.js](https://underscorejs.org/) library into a page.
+ * Injects [Underscore.js](https://underscorejs.org/) library into a Puppeteer page.
  * Beware that the injected Underscore object will be set to the `window._` variable and thus it might cause conflicts with
  * libraries included by the page that use the same variable.
  *
@@ -66,9 +89,9 @@ const injectJQuery = async (page) => {
  * @return {Promise}
  * @memberof utils.puppeteer
  */
-const injectUnderscore = async (page) => {
+const injectUnderscore = (page) => {
     const scriptPath = path.resolve(path.join(__dirname, '../node_modules/underscore/underscore-min.js'));
-    await page.addScriptTag({ path: scriptPath });
+    return injectFile(page, scriptPath);
 };
 
 
@@ -92,6 +115,7 @@ const injectUnderscore = async (page) => {
  */
 export const puppeteerUtils = {
     hideWebDriver,
+    injectFile,
     injectJQuery,
     injectUnderscore,
 };

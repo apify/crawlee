@@ -7,19 +7,8 @@ chai.use(chaiAsPromised);
 /* global process, describe, it */
 
 describe('Apify.utils.puppeteer', () => {
-    let prevEnvHeadless;
-
-    before(() => {
-        prevEnvHeadless = process.env[ENV_VARS.HEADLESS];
-        process.env[ENV_VARS.HEADLESS] = '1';
-    });
-
-    after(() => {
-        process.env[ENV_VARS.HEADLESS] = prevEnvHeadless;
-    });
-
     it('injectJQuery()', async () => {
-        const browser = await Apify.launchPuppeteer();
+        const browser = await Apify.launchPuppeteer({ headless: true });
 
         try {
             const page = await browser.newPage();
@@ -53,7 +42,7 @@ describe('Apify.utils.puppeteer', () => {
     });
 
     it('injectUnderscore()', async () => {
-        const browser = await Apify.launchPuppeteer();
+        const browser = await Apify.launchPuppeteer({ headless: true });
 
         try {
             const page = await browser.newPage();
@@ -75,7 +64,7 @@ describe('Apify.utils.puppeteer', () => {
     });
 
     it('hideWebDriver()', async () => {
-        const browser = await Apify.launchPuppeteer();
+        const browser = await Apify.launchPuppeteer({ headless: true });
 
         try {
             const page = await browser.newPage();
