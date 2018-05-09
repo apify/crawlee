@@ -8,7 +8,7 @@ import { isPromise } from './utils';
 
 const DEFAULT_OPTIONS = {
     gotoFunction: ({ request, page }) => page.goto(request.url),
-    pageOpsTimeoutMillis: 30000,
+    pageOpsTimeoutMillis: 300000,
 };
 
 /**
@@ -56,7 +56,7 @@ const DEFAULT_OPTIONS = {
  *                   It is passed an object with the following fields:
  *                   `request` is an instance of the `Request` object with details about the URL to open, HTTP method etc.
  *                   `page` is an instance of the `Puppeteer.Page` class with `page.goto(request.url)` already called.
- * @param {Number} [options.pageOpsTimeoutMillis=30000] Timeout in which the fuction passed as `options.handlePageFunction` needs to finish.
+ * @param {Number} [options.pageOpsTimeoutMillis=300000] Timeout in which the fuction passed as `options.handlePageFunction` needs to finish.
  * @param {Function} [options.gotoFunction=({ request, page }) => page.goto(request.url)] Overrides the function that opens the request in Puppeteer.
  *                   This function should return a result of `page.goto()`, i.e. the Puppeteer's `Response` object.
  * @param {Function} [options.handleFailedRequestFunction=({ request }) => log.error('Request failed', _.pick(request, 'url', 'uniqueKey'))]
