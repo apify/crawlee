@@ -56,9 +56,9 @@ class PuppeteerInstance {
  * await puppeteerPool.destroy();
  * ```
  *
- * @param {Number} [options.maxOpenPagesPerInstance=100] Maximum number of open tabs per browser. If this limit is reached then a new
+ * @param {Number} [options.maxOpenPagesPerInstance=50] Maximum number of open tabs per browser. If this limit is reached then a new
  *                                                        browser will be started.
- * @param {Number} [options.retireInstanceAfterRequestCount=150] Maximum number of requests that can be processed by a single browser instance.
+ * @param {Number} [options.retireInstanceAfterRequestCount=100] Maximum number of requests that can be processed by a single browser instance.
  *                                                               After the limit is reached the browser will be retired and new requests will
  *                                                               be handled by a new browser instance.
  * @param {Number} [options.instanceKillerIntervalMillis=60000] How often opened Puppeteer instances are checked wheter they can be

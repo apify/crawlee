@@ -21,13 +21,13 @@ const LAUNCH_PUPPETEER_LOG_OMIT_OPTS = [
  * @property {String} [opts.userAgent] HTTP `User-Agent` header used by the browser.
  *                                  If not provided, the function sets `User-Agent` to a reasonable default
  *                                  to reduce the chance of detection of the crawler.
- * @property {String} [opts.useChrome=false] If `true` and `opts.executablePath` is not set,
+ * @property {Boolean} [opts.useChrome=false] If `true` and `opts.executablePath` is not set,
  *                                  Puppeteer will launch full Google Chrome browser available on the machine
  *                                  rather than the bundled Chromium. The path to Chrome executable
  *                                  is taken from the `APIFY_CHROME_EXECUTABLE_PATH` environment variable if provided,
  *                                  or defaults to the typical Google Chrome executable location specific for the operating system.
  *                                  By default, this option is `false`.
- * @property {String} [opts.useApifyProxy=false] If set to `true`, Puppeteer will be configured to use
+ * @property {Boolean} [opts.useApifyProxy=false] If set to `true`, Puppeteer will be configured to use
  * <a href="https://my.apify.com/proxy" target="_blank">Apify Proxy</a> for all connections.
  * For more information, see the <a href="https://www.apify.com/docs/proxy">documentation</a>
  * @property {String[]} [opts.apifyProxyGroups] An array of proxy groups to be used

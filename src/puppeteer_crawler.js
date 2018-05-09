@@ -74,9 +74,9 @@ const DEFAULT_OPTIONS = {
  *                                             This function that is called every time there are no requests being processed.
  *                                             If it resolves to `true` then the crawler's run finishes.
  *                                             See `isFinishedFunction` parameter of `AutoscaledPool`.
- * @param {Number} [options.maxOpenPagesPerInstance=100] Maximum number of opened tabs per browser. If this limit is reached then a new
+ * @param {Number} [options.maxOpenPagesPerInstance=50] Maximum number of opened tabs per browser. If this limit is reached then a new
  *                                                        browser instance is started. See `maxOpenPagesPerInstance` parameter of `PuppeteerPool`.
- * @param {Number} [options.retireInstanceAfterRequestCount=150] Maximum number of requests that can be processed by a single browser instance.
+ * @param {Number} [options.retireInstanceAfterRequestCount=100] Maximum number of requests that can be processed by a single browser instance.
  *                                                               After the limit is reached the browser will be retired and new requests will
  *                                                               be handled by a new browser instance.
  *                                                              See `retireInstanceAfterRequestCount` parameter of `PuppeteerPool`.
