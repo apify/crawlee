@@ -50,7 +50,7 @@ const hideWebDriver = async (page) => {
  * @param filePath File path
  * @return {Promise}
  */
-export const injectFile = async (page, filePath) => {
+const injectFile = async (page, filePath) => {
     const contents = await new Promise((resolve, reject) => {
         fs.readFile(filePath, 'utf8', (err, data) => {
             if (err) return reject(err);
