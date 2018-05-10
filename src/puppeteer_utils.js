@@ -1,6 +1,8 @@
 import fs from 'fs';
 import path from 'path';
+import Promise from 'bluebird';
 
+const readFilePromised = Promise.promisify(fs.readFile);
 
 /**
  * Hides certain Puppeteer fingerprints from the page, in order to help avoid detection of the crawler.
@@ -51,12 +53,7 @@ const hideWebDriver = async (page) => {
  * @return {Promise}
  */
 const injectFile = async (page, filePath) => {
-    const contents = await new Promise((resolve, reject) => {
-        fs.readFile(filePath, 'utf8', (err, data) => {
-            if (err) return reject(err);
-            resolve(data);
-        });
-    });
+    const contents = await readFilePromised(filePath, 'utf8');
 
     return page.evaluate(contents);
 };
