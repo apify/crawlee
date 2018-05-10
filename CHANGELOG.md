@@ -1,3 +1,7 @@
+xxx
+===================
+- Added `Apify.utils` and `Apify.utils.puppeteer` namespaces for various helper functions.
+
 0.5.27 / 2018-04-30
 ===================
 - Added `Apify.isAtHome()` function that returns `true` when code is running at Apify platform and `false` otherwise
