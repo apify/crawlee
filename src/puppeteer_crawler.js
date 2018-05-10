@@ -162,6 +162,7 @@ export default class PuppeteerCrawler {
             minConcurrency,
             minFreeMemoryRatio,
             isFinishedFunction,
+            ignoreMainProcess: true,
         });
     }
 
