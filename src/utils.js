@@ -7,6 +7,7 @@ import ApifyClient from 'apify-client';
 import psTree from 'ps-tree';
 import pidusage from 'pidusage';
 import _ from 'underscore';
+import { delayPromise } from 'apify-shared/utilities';
 import { ENV_VARS } from './constants';
 
 export const PID_USAGE_NOT_FOUND_ERROR = 'No maching pid found';
@@ -290,3 +291,44 @@ export const getTypicalChromeExecutablePath = () => {
  * @function
  */
 export const isAtHome = () => !!process.env[ENV_VARS.IS_AT_HOME];
+
+
+/**
+ * Returns a promise that resolves after a specific period of time. This is useful to implement waiting
+ * in your code, e.g. to prevent overloading of target website or to avoid bot detection.
+ *
+ * Example usage:
+ * ```javascript
+ * const Apify = require('apify);
+ *
+ * ...
+ *
+ * // Sleep 1.5 seconds
+ * await Apify.utils.sleep(1500);
+ * ```
+ * @param millis Period of time to sleep, in milliseconds. If not a positive number, the returned promise resolves immediately.
+ * @memberof utils
+ * @return {Promise}
+ */
+const sleep = (millis) => {
+    return delayPromise(millis);
+};
+
+
+/**
+ * A namespace that contains various utilities.
+ *
+ * Example usage:
+ * ```javascript
+ * const Apify = require('apify);
+ *
+ * ...
+ *
+ * // Sleep 1.5 seconds
+ * await Apify.utils.sleep(1500);
+ * ```
+ * @namespace utils
+ */
+export const publicUtils = {
+    sleep,
+};

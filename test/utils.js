@@ -301,3 +301,30 @@ describe('utils.avg()', () => {
         expect(utils.avg([9])).to.be.eql(9);
     });
 });
+
+describe('Apify.utils.sleep()', () => {
+    it('works', () => {
+        let timeBefore;
+        return Promise.resolve()
+            .then(() => {
+                return Apify.utils.sleep(0);
+            })
+            .then(() => {
+                return Apify.utils.sleep();
+            })
+            .then(() => {
+                return Apify.utils.sleep(null);
+            })
+            .then(() => {
+                return Apify.utils.sleep(-1);
+            })
+            .then(() => {
+                timeBefore = Date.now();
+                return Apify.utils.sleep(100);
+            })
+            .then(() => {
+                const timeAfter = Date.now();
+                expect(timeAfter - timeBefore).to.be.gte(95);
+            });
+    });
+});
