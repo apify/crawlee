@@ -5,7 +5,7 @@ import _ from 'underscore';
 import sinon from 'sinon';
 import { delayPromise } from 'apify-shared/utilities';
 import * as Apify from '../build/index';
-import { ACTOR_EVENT_NAMES } from '../build/constants';
+import { ACTOR_EVENT_NAMES, ENV_VARS } from '../build/constants';
 import { LOG_INFO_INTERVAL, SCALE_UP_MAX_STEP, SCALE_DOWN_INTERVAL } from '../build/autoscaled_pool';
 import * as utils from '../build/utils';
 
@@ -13,6 +13,17 @@ chai.use(chaiAsPromised);
 const toBytes = x => x * 1024 * 1024;
 
 describe('AutoscaledPool', () => {
+    let originalIsAtHomeValue;
+
+    beforeEach(() => {
+        originalIsAtHomeValue = process.env[ENV_VARS.IS_AT_HOME];
+        process.env[ENV_VARS.IS_AT_HOME] = 1;
+    });
+
+    afterEach(() => {
+        process.env[ENV_VARS.IS_AT_HOME] = originalIsAtHomeValue;
+    });
+
     it('should work with concurrency 1', async () => {
         const range = _.range(0, 10);
         const result = [];
