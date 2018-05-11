@@ -1,6 +1,7 @@
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import Apify from '../build/index';
+import { RequestQueue } from '../build/request_queue';
 
 chai.use(chaiAsPromised);
 
@@ -82,6 +83,57 @@ describe('Apify.utils.puppeteer', () => {
                 return { isDefined: _.isEmpty({}) };
             });
             expect(result2).to.eql({ isDefined: true }); */
+        } finally {
+            browser.close();
+        }
+    });
+
+    it('enqueueRequestsFromClickableElements()', async () => {
+        const browser = await Apify.launchPuppeteer({ headless: true, dumpio: true });
+
+        try {
+            const page = await browser.newPage();
+            await page.setContent(`<html>
+                <head>
+                    <title>Example</title>
+                </head>
+                <body>
+                    <p>
+                        The ships hung in the sky, much the <a class="click" href="https://example.com/a/b/first">way that</a> bricks don't.
+                    </p>
+                    <ul>
+                        <li>These aren't the Droids you're looking for</li>
+                        <li><a href="https://example.com/a/second">I'm sorry, Dave. I'm afraid I can't do that.</a></li>
+                        <li><a class="click" href="https://example.com/a/b/third">I'm sorry, Dave. I'm afraid I can't do that.</a></li>
+                    </ul>
+                    <a class="click" href="https://another.com/a/fifth">The Greatest Science Fiction Quotes Of All Time</a>
+                    <p>
+                        Don't know, I don't know such stuff. I just do eyes, ju-, ju-, just eyes... just genetic design,
+                        just eyes. You Nexus, huh? I design your <a class="click" href="http://cool.com/">eyes</a>.
+                    </p>
+                </body>
+            </html>`);
+
+
+            const enqueuedUrls = [];
+            const queue = new RequestQueue('xxx');
+            queue.addRequest = (request) => {
+                expect(request.method).to.be.eql('POST');
+                enqueuedUrls.push(request.url);
+
+                return Promise.resolve();
+            };
+            const purls = [
+                new Apify.PseudoUrl('https://example.com/[(\\w|-|/)*]'),
+                new Apify.PseudoUrl('[http|https]://cool.com/'),
+            ];
+            await Apify.utils.puppeteer.enqueueRequestsFromClickableElements(page, '.click', purls, queue, { method: 'POST' });
+
+            expect(enqueuedUrls).to.be.eql([
+                'https://example.com/a/b/first',
+                'https://example.com/a/b/third',
+                'http://cool.com/',
+            ]);
         } finally {
             browser.close();
         }

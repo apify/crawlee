@@ -16,6 +16,7 @@ import SettingsRotator from './settings_rotator';
 import { apifyClient, getMemoryInfo, isProduction, isAtHome, publicUtils } from './utils';
 import { browse, launchWebDriver } from './webdriver';
 import { puppeteerUtils } from './puppeteer_utils';
+import PseudoUrl from './pseudo_url';
 
 /* globals module */
 
@@ -72,6 +73,9 @@ module.exports = {
     launchPuppeteer,
     PuppeteerPool,
     PuppeteerCrawler,
+
+    // PseudoUrl
+    PseudoUrl,
 
     // Requests
     Request,
