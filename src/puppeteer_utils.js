@@ -1,6 +1,11 @@
 import fs from 'fs';
 import path from 'path';
 import Promise from 'bluebird';
+import _ from 'underscore';
+import { checkParamOrThrow } from 'apify-client/build/utils';
+import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
+import { RequestQueue, RequestQueueLocal } from './request_queue';
+import Request from './request';
 
 const readFilePromised = Promise.promisify(fs.readFile);
 
@@ -8,11 +13,13 @@ const readFilePromised = Promise.promisify(fs.readFile);
  * Hides certain Puppeteer fingerprints from the page, in order to help avoid detection of the crawler.
  * The function should be called on a newly-created page object before navigating to the target crawled page.
  *
- * @param page Puppeteer [Page](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page) object.
+ * @param {Page} page Puppeteer [Page](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page) object.
  * @return {Promise}
  * @memberof utils.puppeteer
  */
 const hideWebDriver = async (page) => {
+    checkParamOrThrow(page, 'page', 'Object');
+
     await page.evaluateOnNewDocument(() => {
         var modifiedNavigator; // eslint-disable-line no-var
         try {
@@ -42,22 +49,23 @@ const hideWebDriver = async (page) => {
     });
 };
 
-
 /**
  * Injects a JavaScript file into a Puppeteer page.
  * Unlike Puppeteer's `addScriptTag` function, this function works on pages
  * with arbitrary Cross-Origin Resource Sharing (CORS) policies.
  *
- * @param page Puppeteer [Page](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page) object.
- * @param filePath File path
+ * @param {Page} page Puppeteer [Page](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page) object.
+ * @param {String} filePath File path
  * @return {Promise}
  */
 const injectFile = async (page, filePath) => {
+    checkParamOrThrow(page, 'page', 'Object');
+    checkParamOrThrow(filePath, 'filePath', 'String');
+
     const contents = await readFilePromised(filePath, 'utf8');
 
     return page.evaluate(contents);
 };
-
 
 /**
  * Injects [jQuery](https://jquery.com/) library into a Puppeteer page.
@@ -67,30 +75,62 @@ const injectFile = async (page, filePath) => {
  * Beware that the injected jQuery object will be set to the `window.$` variable and thus it might cause conflicts with
  * libraries included by the page that use the same variable (e.g. another version of jQuery).
  *
- * @param page Puppeteer [Page](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page) object.
+ * @param {Page} page Puppeteer [Page](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page) object.
  * @return {Promise}
  * @memberof utils.puppeteer
  */
 const injectJQuery = (page) => {
+    checkParamOrThrow(page, 'page', 'Object');
+
     const scriptPath = path.resolve(path.join(__dirname, '../node_modules/jquery/dist/jquery.min.js'));
+
     return injectFile(page, scriptPath);
 };
-
 
 /**
  * Injects [Underscore.js](https://underscorejs.org/) library into a Puppeteer page.
  * Beware that the injected Underscore object will be set to the `window._` variable and thus it might cause conflicts with
  * libraries included by the page that use the same variable.
  *
- * @param page Puppeteer [Page](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page) object.
+ * @param {Page} page Puppeteer [Page](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page) object.
  * @return {Promise}
  * @memberof utils.puppeteer
  */
 const injectUnderscore = (page) => {
+    checkParamOrThrow(page, 'page', 'Object');
+
     const scriptPath = path.resolve(path.join(__dirname, '../node_modules/underscore/underscore-min.js'));
+
     return injectFile(page, scriptPath);
 };
 
+/**
+ * Finds elements matching selector clicks them and if redirect is trigered and destination url matches one of the
+ * PseudoUrls then enqueues that url to given request queue.
+ *
+ * *WARNING*: It's work in progress. Currently doesn't click elements and only takes their `href` attribute and so
+ *            is working only for link (`a`) elements and not for buttons or javascript links.
+ *
+ * @param {Page} page Puppeteer [Page](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page) object.
+ * @param {String} selector Selector matching elements to be clicked.
+ * @param {Array} pseudoUrls An array of Apify.PseudoUrl objects matching url to be enqueued.
+ * @param {RequestQueue} requestQueue Apify.RequestQueue object where urls will be enqueued.
+ * @return {Promise}
+ * @memberof utils.puppeteer
+ */
+const clickElementsAndEnqueuePseudoUrls = async (page, selector, purls, requestQueue) => {
+    checkParamOrThrow(page, 'page', 'Object');
+    checkParamOrThrow(purls, 'purls', 'Array');
+    checkParamPrototypeOrThrow(requestQueue, 'requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue');
+
+    /* istanbul ignore next */
+    const getHrefs = linkEls => linkEls.map(link => link.href).filter(href => !!href);
+    const matchesPseudoUrl = url => _.some(purls, purl => purl.matches(url));
+    const urls = await page.$$eval(selector, getHrefs);
+    const requests = urls.filter(matchesPseudoUrl).map(url => new Request({ url }));
+
+    return Promise.mapSeries(requests, request => requestQueue.addRequest(request));
+};
 
 /**
  * A namespace that contains various Puppeteer utilities.
@@ -115,4 +155,5 @@ export const puppeteerUtils = {
     injectFile,
     injectJQuery,
     injectUnderscore,
+    clickElementsAndEnqueuePseudoUrls,
 };
