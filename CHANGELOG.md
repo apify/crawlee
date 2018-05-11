@@ -1,3 +1,7 @@
+0.5.31 / 2018-05-11
+===================
+- Bugfix in `Apify.utils.puppeteer.injectXxx` functions
+
 0.5.30 / 2018-05-11
 ===================
 - Puppeteer updated to v1.4.0

@@ -1,11 +1,13 @@
 import fs from 'fs';
-import path from 'path';
 import Promise from 'bluebird';
 import _ from 'underscore';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import { RequestQueue, RequestQueueLocal } from './request_queue';
 import Request from './request';
+
+const jqueryPath = require.resolve('jquery');
+const underscorePath = require.resolve('underscore');
 
 const readFilePromised = Promise.promisify(fs.readFile);
 
@@ -82,9 +84,8 @@ const injectFile = async (page, filePath) => {
 const injectJQuery = (page) => {
     checkParamOrThrow(page, 'page', 'Object');
 
-    const scriptPath = path.resolve(path.join(__dirname, '../node_modules/jquery/dist/jquery.min.js'));
-
-    return injectFile(page, scriptPath);
+    // TODO: For better performance we could use minimized version of the script
+    return injectFile(page, jqueryPath);
 };
 
 /**
@@ -99,9 +100,8 @@ const injectJQuery = (page) => {
 const injectUnderscore = (page) => {
     checkParamOrThrow(page, 'page', 'Object');
 
-    const scriptPath = path.resolve(path.join(__dirname, '../node_modules/underscore/underscore-min.js'));
-
-    return injectFile(page, scriptPath);
+    // TODO: For better performance we could use minimized version of the script
+    return injectFile(page, underscorePath);
 };
 
 /**
