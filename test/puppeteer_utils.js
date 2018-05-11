@@ -88,7 +88,7 @@ describe('Apify.utils.puppeteer', () => {
         }
     });
 
-    it('clickElementsAndEnqueuePseudoUrls()', async () => {
+    it('enqueueRequestsFromClickableElements()', async () => {
         const browser = await Apify.launchPuppeteer({ headless: true, dumpio: true });
 
         try {
@@ -127,7 +127,7 @@ describe('Apify.utils.puppeteer', () => {
                 new Apify.PseudoUrl('https://example.com/[(\\w|-|/)*]'),
                 new Apify.PseudoUrl('[http|https]://cool.com/'),
             ];
-            await Apify.utils.puppeteer.clickElementsAndEnqueuePseudoUrls(page, '.click', purls, queue, { method: 'POST' });
+            await Apify.utils.puppeteer.enqueueRequestsFromClickableElements(page, '.click', purls, queue, { method: 'POST' });
 
             expect(enqueuedUrls).to.be.eql([
                 'https://example.com/a/b/first',
