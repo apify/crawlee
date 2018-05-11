@@ -13,15 +13,13 @@ chai.use(chaiAsPromised);
 const toBytes = x => x * 1024 * 1024;
 
 describe('AutoscaledPool', () => {
-    let originalIsAtHomeValue;
-
-    beforeEach(() => {
-        originalIsAtHomeValue = process.env[ENV_VARS.IS_AT_HOME];
+    // This is here to enable autoscaling that is temporarily disabled when running locally.
+    before(() => {
         process.env[ENV_VARS.IS_AT_HOME] = 1;
     });
 
-    afterEach(() => {
-        process.env[ENV_VARS.IS_AT_HOME] = originalIsAtHomeValue;
+    after(() => {
+        delete process.env[ENV_VARS.IS_AT_HOME];
     });
 
     it('should work with concurrency 1', async () => {
