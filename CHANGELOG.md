@@ -1,6 +1,7 @@
-xxx
+0.5.29 / 2018-05-11
 ===================
 - Added `Apify.utils` and `Apify.utils.puppeteer` namespaces for various helper functions.
+- Autoscaling feature of `AutoscaledPool`, `BasicCrawler` and `PuppeteerCrawler` is disabled out of Apify platform until all the issues will be solved.
 
 0.5.27 / 2018-04-30
 ===================
