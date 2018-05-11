@@ -117,12 +117,17 @@ describe('Apify.utils.puppeteer', () => {
 
             const enqueuedUrls = [];
             const queue = new RequestQueue('xxx');
-            queue.addRequest = request => Promise.resolve(enqueuedUrls.push(request.url));
+            queue.addRequest = (request) => {
+                expect(request.method).to.be.eql('POST');
+                enqueuedUrls.push(request.url);
+
+                return Promise.resolve();
+            };
             const purls = [
                 new Apify.PseudoUrl('https://example.com/[(\\w|-|/)*]'),
                 new Apify.PseudoUrl('[http|https]://cool.com/'),
             ];
-            await Apify.utils.puppeteer.clickElementsAndEnqueuePseudoUrls(page, '.click', purls, queue);
+            await Apify.utils.puppeteer.clickElementsAndEnqueuePseudoUrls(page, '.click', purls, queue, { method: 'POST' });
 
             expect(enqueuedUrls).to.be.eql([
                 'https://example.com/a/b/first',

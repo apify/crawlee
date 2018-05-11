@@ -115,19 +115,21 @@ const injectUnderscore = (page) => {
  * @param {String} selector Selector matching elements to be clicked.
  * @param {Array} pseudoUrls An array of Apify.PseudoUrl objects matching url to be enqueued.
  * @param {RequestQueue} requestQueue Apify.RequestQueue object where urls will be enqueued.
+ * @param {Object} requestOpts Optional Apify.Request options such as `userData` or `method` for enqueued Requests.
  * @return {Promise}
  * @memberof utils.puppeteer
  */
-const clickElementsAndEnqueuePseudoUrls = async (page, selector, purls, requestQueue) => {
+const clickElementsAndEnqueuePseudoUrls = async (page, selector, purls, requestQueue, requestOpts = {}) => {
     checkParamOrThrow(page, 'page', 'Object');
     checkParamOrThrow(purls, 'purls', 'Array');
     checkParamPrototypeOrThrow(requestQueue, 'requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue');
+    checkParamOrThrow(requestOpts, 'requestOpts', 'Object');
 
     /* istanbul ignore next */
     const getHrefs = linkEls => linkEls.map(link => link.href).filter(href => !!href);
     const matchesPseudoUrl = url => _.some(purls, purl => purl.matches(url));
     const urls = await page.$$eval(selector, getHrefs);
-    const requests = urls.filter(matchesPseudoUrl).map(url => new Request({ url }));
+    const requests = urls.filter(matchesPseudoUrl).map(url => new Request(Object.assign({ url }, requestOpts)));
 
     return Promise.mapSeries(requests, request => requestQueue.addRequest(request));
 };
