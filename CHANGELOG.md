@@ -1,3 +1,7 @@
+0.5.30 / 2018-05-11
+===================
+- Puppeteer updated to v1.4.0
+
 0.5.29 / 2018-05-11
 ===================
 - Added `Apify.utils` and `Apify.utils.puppeteer` namespaces for various helper functions.
