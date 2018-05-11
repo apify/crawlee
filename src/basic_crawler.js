@@ -64,6 +64,10 @@ const DEFAULT_OPTIONS = {
  *                                             This function that is called every time there are no requests being processed.
  *                                             If it resolves to `true` then the crawler's run finishes.
  *                                             See `isFinishedFunction` parameter of `AutoscaledPool`.
+ * @param {Boolean} [options.ignoreMainProcess=false] If set to `true` then autoscaling doesn't consider memory consumption
+ *                                                    of the main NodeJS process when autoscaling the pool up/down. This is mainly useful when
+ *                                                    tasks are running as separate processes (for example web browser).
+ *                                                    See `ignoreMainProcess` parameter of `AutoscaledPool`.
  */
 export default class BasicCrawler {
     constructor(opts) {
@@ -80,6 +84,7 @@ export default class BasicCrawler {
             minConcurrency,
             minFreeMemoryRatio,
             isFinishedFunction,
+            ignoreMainProcess,
         } = _.defaults(opts, DEFAULT_OPTIONS);
 
         checkParamPrototypeOrThrow(requestList, 'opts.requestList', RequestList, 'Apify.RequestList', true);
@@ -87,7 +92,6 @@ export default class BasicCrawler {
         checkParamOrThrow(handleRequestFunction, 'opts.handleRequestFunction', 'Function');
         checkParamOrThrow(handleFailedRequestFunction, 'opts.handleFailedRequestFunction', 'Function');
         checkParamOrThrow(maxRequestRetries, 'opts.maxRequestRetries', 'Number');
-        checkParamOrThrow(isFinishedFunction, 'opts.isFinishedFunction', 'Maybe Function');
 
         if (!requestList && !requestQueue) {
             throw new Error('At least one of the parameters "opts.requestList" and "opts.requestQueue" must be provided!');
@@ -111,7 +115,7 @@ export default class BasicCrawler {
                     ? isFinishedFunction()
                     : this._defaultIsFinishedFunction()
             ),
-            ignoreMainProcess: true,
+            ignoreMainProcess,
         });
     }
 
