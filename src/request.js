@@ -35,6 +35,8 @@ export const computeUniqueKey = (url, keepUrlFragment) => normalizeUrl(url, keep
  * @param {String} [opts.headers={}] HTTP headers.
  * @param {Object} [opts.userData={}] Custom data that user can assign to request.
  * @param {Boolean} [opts.keepUrlFragment=false] If false then hash part is removed from url when computing `uniqueKey`.
+ * @param {String} [opts.ignoreErrors=false] If set to `true` then errors in processing of this will be ignored (request won't be
+ *                                           retried in a case of an error for example).
  */
 export default class Request {
     constructor(opts = {}) {
@@ -51,6 +53,7 @@ export default class Request {
             headers = {},
             userData = {},
             keepUrlFragment = false,
+            ignoreErrors = false,
         } = opts;
 
 
@@ -63,6 +66,7 @@ export default class Request {
         checkParamOrThrow(errorMessages, 'errorMessages', 'Maybe Array');
         checkParamOrThrow(headers, 'headers', 'Object');
         checkParamOrThrow(userData, 'userData', 'Object');
+        checkParamOrThrow(ignoreErrors, 'ignoreErrors', 'Boolean');
 
         if (method === 'GET' && payload) throw new Error('Request with GET method cannot have a payload.');
 
@@ -75,6 +79,7 @@ export default class Request {
         this.errorMessages = errorMessages;
         this.headers = headers;
         this.userData = userData;
+        this.ignoreErrors = ignoreErrors;
     }
 
     /**

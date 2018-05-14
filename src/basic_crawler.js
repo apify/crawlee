@@ -184,6 +184,15 @@ export default class BasicCrawler {
                 return handlePromise
                     .then(() => source.markRequestHandled(request))
                     .catch((error) => {
+                        if (request.ignoreErrors) {
+                            log.exception(error, 'BasicCrawler: handleRequestFunction failed, request.ignoreErrors=true so marking request handled', {
+                                url: request.url,
+                                retryCount: request.retryCount,
+                            });
+
+                            return source.markRequestHandled(request);
+                        }
+
                         request.pushErrorMessage(error);
 
                         // Retry request.
