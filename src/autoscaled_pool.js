@@ -191,7 +191,7 @@ export default class AutoscaledPool {
         if (isAtHome()) {
             this.memCheckInterval = setInterval(() => this._autoscale(), MEM_CHECK_INTERVAL_MILLIS);
         } else {
-            log.warning('Autoscaling feature is currently available only when running at Apify platform!');
+            log.warning('Autoscaling feature is currently available only when running on Apify platform!');
             log.warning('Use `minConcurrency` parameter if you need to test multiple requests in parallel.');
             log.warning('This feature will be enabled soon!');
         }
