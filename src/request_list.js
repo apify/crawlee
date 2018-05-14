@@ -167,11 +167,36 @@ export default class RequestList {
                     throw new Error('The state object is not consistent with RequestList: the order of URLs seems to have changed.');
                 }
 
+                const deleteFromInProgress = [];
                 _.keys(state.inProgress).forEach((uniqueKey) => {
-                    if (typeof this.uniqueKeyToIndex[uniqueKey] !== 'number') {
+                    const index = this.uniqueKeyToIndex[uniqueKey];
+                    if (typeof index !== 'number') {
                         throw new Error('The state object is not consistent with RequestList: unknown uniqueKey is present in the state.');
                     }
+                    if (index >= state.nextIndex) {
+                        deleteFromInProgress.push(uniqueKey);
+                    }
                 });
+
+                // WORKAROUND:
+                // It happened to some users that state object contained something like:
+                // {
+                //   "nextIndex": 11308,
+                //   "nextUniqueKey": "https://www.anychart.com",
+                //   "inProgress": {
+                //      "https://www.ams360.com": true,
+                //      ...
+                //        "https://www.anychart.com": true,
+                // }
+                // Which then caused error "The request is not being processed (uniqueKey: https://www.anychart.com)"
+                // As a workaround, we just remove all inProgress requests whose index >= nextIndex,
+                // since they will be crawled again.
+                if (deleteFromInProgress.length) {
+                    log.warning('RequestList\'s in-progress field is not consistent, skipping invalid in-progress entries', { deleteFromInProgress });
+                    _.each(deleteFromInProgress, (uniqueKey) => {
+                        delete state.inProgress[uniqueKey];
+                    });
+                }
 
                 this.nextIndex = state.nextIndex;
                 this.inProgress = state.inProgress;
@@ -350,7 +375,7 @@ export default class RequestList {
                         regex,
                         fetchedCount,
                         importedCount,
-                        dupliciteCount: fetchedCount - importedCount,
+                        duplicateCount: fetchedCount - importedCount,
                         sample: JSON.stringify(urlsArr.slice(0, 5)),
                     });
                 } else {

@@ -1,3 +1,7 @@
+xxx
+===================
+- Bugfix in `RequestList` - skip invalid in-progress entries when restoring state
+
 0.5.31 / 2018-05-11
 ===================
 - Bugfix in `Apify.utils.puppeteer.injectXxx` functions
