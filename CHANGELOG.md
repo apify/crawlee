@@ -1,3 +1,7 @@
+xxx
+===================
+- Bugfix in `RequestList` - skip invalid in-progress entries when restoring state
+
 0.5.31 / 2018-05-11
 ===================
 - Bugfix in `Apify.utils.puppeteer.injectXxx` functions
@@ -13,7 +17,7 @@
 
 0.5.27 / 2018-04-30
 ===================
-- Added `Apify.isAtHome()` function that returns `true` when code is running at Apify platform and `false` otherwise
+- Added `Apify.isAtHome()` function that returns `true` when code is running on Apify platform and `false` otherwise
   (for example locally).
 - Added `ignoreMainProcess` parameter to `AutoscaledPool`. Check documentation for more info.
 - `pageOpsTimeoutMillis` of `PuppeteerCrawler` increased to 300 seconds.

@@ -9,7 +9,7 @@
   either locally or running on <a href="https://www.apify.com/docs/actor" target="_blank">Apify Actor</a> -
   a serverless computing platform that enables execution of arbitrary code in the cloud.
 
-  The package provides helper functions to launch web browsers with proxies, access the storage etc. Note that the usage of the package is optional, you can create acts at Apify platform without it.
+  The package provides helper functions to launch web browsers with proxies, access the storage etc. Note that the usage of the package is optional, you can create acts on Apify platform without it.
 
   For more information about the Apify Actor platform, please see https://www.apify.com/docs/actor
 </div>
@@ -211,7 +211,7 @@ For more information on Puppeteer see its <a href="https://github.com/GoogleChro
 
 ### Storage
 
-Apify package provides 3 storage types for commons use cases both locally and at Apify platform.
+Apify package provides 3 storage types for commons use cases both locally and on Apify platform.
 
 #### Key-value store
 
@@ -429,7 +429,7 @@ These examples show how to scrape data from a fix list of urls using
 
 ### Call to another act
 
-This example shows how to call another act at Apify plarform - in this case `apify/send-mail`
+This example shows how to call another act on Apify platform - in this case `apify/send-mail`
 to send email.
 
 <a href="https://github.com/apifytech/apify-js/tree/master/examples/call_another_act.js">Check source code here</a>
@@ -438,7 +438,7 @@ to send email.
 
 This example shows an act that has short runtime - just few seconds. It opens a webpage
 http://goldengatebridge75.org/news/webcam.html that contains webcam stream from Golden Gate
-bridge, takes a screenshot and saves it as output. This makes act executable at Apify platform
+bridge, takes a screenshot and saves it as output. This makes act executable on Apify platform
 synchronously with a single request that also returns its output.
 
 Example is shared in library under https://www.apify.com/apify/example-golden-gate-webcam

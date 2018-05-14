@@ -281,7 +281,7 @@ export const getTypicalChromeExecutablePath = () => {
 };
 
 /**
- * Returns `true` when code is running at Apify platform and `false` otherwise (for example locally).
+ * Returns `true` when code is running on Apify platform and `false` otherwise (for example locally).
  *
  * @returns {Boolean}
  *
