@@ -53,15 +53,15 @@ const ensureUniqueKeyValid = (uniqueKey) => {
  * await requestList.initialize(); // Load requests.
  *
  * // Get requests from list
- * const request1 = requestList.fetchNextRequest();
- * const request2 = requestList.fetchNextRequest();
- * const request3 = requestList.fetchNextRequest();
+ * const request1 = await requestList.fetchNextRequest();
+ * const request2 = await requestList.fetchNextRequest();
+ * const request3 = await requestList.fetchNextRequest();
  *
  * // Mark some of them as handled
- * requestList.markRequestHandled(request1);
+ * await requestList.markRequestHandled(request1);
  *
  * // If processing fails then reclaim it back to the list
- * requestList.reclaimRequest(request2);
+ * await requestList.reclaimRequest(request2);
  * ```
  *
  * @param {Object} options

@@ -1,3 +1,16 @@
+0.5.31 / 2018-05-11
+===================
+- Bugfix in `Apify.utils.puppeteer.injectXxx` functions
+
+0.5.30 / 2018-05-11
+===================
+- Puppeteer updated to v1.4.0
+
+0.5.29 / 2018-05-11
+===================
+- Added `Apify.utils` and `Apify.utils.puppeteer` namespaces for various helper functions.
+- Autoscaling feature of `AutoscaledPool`, `BasicCrawler` and `PuppeteerCrawler` is disabled out of Apify platform until all the issues will be solved.
+
 0.5.27 / 2018-04-30
 ===================
 - Added `Apify.isAtHome()` function that returns `true` when code is running at Apify platform and `false` otherwise

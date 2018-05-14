@@ -2,7 +2,7 @@ import Promise from 'bluebird';
 import log from 'apify-shared/log';
 import _ from 'underscore';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { getMemoryInfo, isPromise, avg } from './utils';
+import { getMemoryInfo, isPromise, avg, isAtHome } from './utils';
 import events from './events';
 import { ACTOR_EVENT_NAMES } from './constants';
 
@@ -188,7 +188,13 @@ export default class AutoscaledPool {
 
         // This interval checks memory and in each call saves current memory stats and in every
         // SCALE_UP_INTERVAL-th/SCALE_DOWN_INTERVAL-th call it may scale up/down based on memory.
-        this.memCheckInterval = setInterval(() => this._autoscale(), MEM_CHECK_INTERVAL_MILLIS);
+        if (isAtHome()) {
+            this.memCheckInterval = setInterval(() => this._autoscale(), MEM_CHECK_INTERVAL_MILLIS);
+        } else {
+            log.warning('Autoscaling feature is currently available only when running at Apify platform!');
+            log.warning('Use `minConcurrency` parameter if you need to test multiple requests in parallel.');
+            log.warning('This feature will be enabled soon!');
+        }
 
         return this.poolPromise
             .then(() => {

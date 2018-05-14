@@ -2,7 +2,7 @@ import _ from 'underscore';
 import log from 'apify-shared/log';
 
 /**
- * Pseudo URL class defines simply a URL with special directives enclosed in [] brackets.
+ * Represents a pseudo URL (PURL), which is simply a URL with special directives enclosed in [] brackets.
  * Currently, the only supported directive is [regexp], which defines a JavaScript-style regular expression to match against the URL.
  *
  * For example, a PURL `http://www.example.com/pages/[(\w|-)*]` will match all of the following URLs:

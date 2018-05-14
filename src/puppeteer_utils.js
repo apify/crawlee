@@ -1,5 +1,4 @@
 import fs from 'fs';
-import path from 'path';
 import Promise from 'bluebird';
 import _ from 'underscore';
 import { checkParamOrThrow } from 'apify-client/build/utils';
@@ -7,6 +6,8 @@ import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import { RequestQueue, RequestQueueLocal } from './request_queue';
 import Request from './request';
 
+const jqueryPath = require.resolve('jquery');
+const underscorePath = require.resolve('underscore');
 const readFilePromised = Promise.promisify(fs.readFile);
 
 /**
@@ -82,9 +83,8 @@ const injectFile = async (page, filePath) => {
 const injectJQuery = (page) => {
     checkParamOrThrow(page, 'page', 'Object');
 
-    const scriptPath = path.resolve(path.join(__dirname, '../node_modules/jquery/dist/jquery.min.js'));
-
-    return injectFile(page, scriptPath);
+    // TODO: For better performance we could use minimized version of the script
+    return injectFile(page, jqueryPath);
 };
 
 /**
@@ -99,27 +99,26 @@ const injectJQuery = (page) => {
 const injectUnderscore = (page) => {
     checkParamOrThrow(page, 'page', 'Object');
 
-    const scriptPath = path.resolve(path.join(__dirname, '../node_modules/underscore/underscore-min.js'));
-
-    return injectFile(page, scriptPath);
+    // TODO: For better performance we could use minimized version of the script
+    return injectFile(page, underscorePath);
 };
 
 /**
- * Finds elements matching selector clicks them and if redirect is trigered and destination url matches one of the
- * PseudoUrls then enqueues that url to given request queue.
+ * Finds HTML elements matching a CSS selector, clicks the elements and if a redirect is triggered
+ * and destination URL matches one of the provided pseudo-URLs, then the function enqueues that URL to a given request queue.
  *
- * *WARNING*: It's work in progress. Currently doesn't click elements and only takes their `href` attribute and so
+ * *WARNING*: This is work in progress. Currently the function doesn't click elements and only takes their `href` attribute and so
  *            is working only for link (`a`) elements and not for buttons or javascript links.
  *
  * @param {Page} page Puppeteer [Page](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page) object.
- * @param {String} selector Selector matching elements to be clicked.
- * @param {Array} pseudoUrls An array of Apify.PseudoUrl objects matching url to be enqueued.
- * @param {RequestQueue} requestQueue Apify.RequestQueue object where urls will be enqueued.
- * @param {Object} requestOpts Optional Apify.Request options such as `userData` or `method` for enqueued Requests.
+ * @param {String} selector CSS selector matching elements to be clicked.
+ * @param {Array} pseudoUrls An array of `Apify.PseudoUrl` objects matching URL to be enqueued.
+ * @param {RequestQueue} requestQueue `Apify.RequestQueue` object where URLs will be enqueued.
+ * @param {Object} requestOpts Optional `Apify.Request` options such as `userData` or `method` for the enqueued `Request` objects.
  * @return {Promise}
  * @memberof utils.puppeteer
  */
-const clickElementsAndEnqueuePseudoUrls = async (page, selector, purls, requestQueue, requestOpts = {}) => {
+const enqueueRequestsFromClickableElements = async (page, selector, purls, requestQueue, requestOpts = {}) => {
     checkParamOrThrow(page, 'page', 'Object');
     checkParamOrThrow(purls, 'purls', 'Array');
     checkParamPrototypeOrThrow(requestQueue, 'requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue');
@@ -157,5 +156,5 @@ export const puppeteerUtils = {
     injectFile,
     injectJQuery,
     injectUnderscore,
-    clickElementsAndEnqueuePseudoUrls,
+    enqueueRequestsFromClickableElements,
 };
