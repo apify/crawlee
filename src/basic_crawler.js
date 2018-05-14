@@ -189,7 +189,7 @@ export default class BasicCrawler {
                         // Retry request.
                         if (request.retryCount < this.maxRequestRetries) {
                             request.retryCount++;
-                            log.exception(error, 'RequestQueue: handleRequestFunction failed, reclaiming failed request back to queue', {
+                            log.exception(error, 'BasicCrawler: handleRequestFunction failed, reclaiming failed request back to list/queue', {
                                 url: request.url,
                                 retryCount: request.retryCount,
                             });
@@ -197,7 +197,7 @@ export default class BasicCrawler {
                             return source.reclaimRequest(request);
                         }
 
-                        log.exception(error, 'RequestQueue: handleRequestFunction failed, marking failed request handled', {
+                        log.exception(error, 'BasicCrawler: handleRequestFunction failed, marking failed request handled', {
                             url: request.url,
                             retryCount: request.retryCount,
                         });
