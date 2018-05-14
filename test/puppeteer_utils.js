@@ -127,6 +127,7 @@ describe('Apify.utils.puppeteer', () => {
                 new Apify.PseudoUrl('https://example.com/[(\\w|-|/)*]'),
                 new Apify.PseudoUrl('[http|https]://cool.com/'),
             ];
+
             await Apify.utils.puppeteer.enqueueRequestsFromClickableElements(page, '.click', purls, queue, { method: 'POST' });
 
             expect(enqueuedUrls).to.be.eql([

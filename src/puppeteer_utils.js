@@ -8,7 +8,6 @@ import Request from './request';
 
 const jqueryPath = require.resolve('jquery');
 const underscorePath = require.resolve('underscore');
-
 const readFilePromised = Promise.promisify(fs.readFile);
 
 /**
