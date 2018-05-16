@@ -7,7 +7,7 @@ import { delayPromise } from 'apify-shared/utilities';
 import * as Apify from '../build/index';
 import { ENV_VARS } from '../build/constants';
 import { apifyClient } from '../build/utils';
-import { RequestQueueLocal, RequestQueue, LOCAL_EMULATION_SUBDIR, QUERY_HEAD_BUFFER } from '../build/request_queue';
+import { RequestQueueLocal, RequestQueue, LOCAL_EMULATION_SUBDIR, QUERY_HEAD_MIN_LENGTH } from '../build/request_queue';
 import { emptyLocalEmulationSubdir, LOCAL_EMULATION_DIR, expectNotLocalEmulation } from './_helper';
 
 chai.use(chaiAsPromised);
@@ -217,7 +217,7 @@ describe('RequestQueue', () => {
                 .once()
                 .withArgs({
                     queueId: 'some-id',
-                    limit: QUERY_HEAD_BUFFER,
+                    limit: QUERY_HEAD_MIN_LENGTH,
                 })
                 .returns(Promise.resolve({
                     items: [
@@ -330,7 +330,7 @@ describe('RequestQueue', () => {
                 .once()
                 .withArgs({
                     queueId: 'some-id',
-                    limit: QUERY_HEAD_BUFFER,
+                    limit: QUERY_HEAD_MIN_LENGTH,
                 })
                 .returns(Promise.resolve({
                     items: [

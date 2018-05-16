@@ -76,7 +76,7 @@ const humanReadable = bytes => `${Math.round(bytes / 1024 / 1024)} MB`;
  * @param {Number} [options.maxMemoryMbytes] Maximum memory available in the system. By default the pool
  *                                           uses the `totalMemory` value provided by `Apify.getMemoryInfo()`.
  * @param {Number} [options.minFreeMemoryRatio=0.2] Minimum ratio of free memory kept in the system.
- * @param {number} [options.maybeRunIntervalMillis=1000] Indicates how often should the pool try to call
+ * @param {number} [options.maybeRunIntervalMillis=500] Indicates how often should the pool try to call
  *                                                       `opts.runTaskFunction` to start a new task.
  * @param {Boolean} [options.ignoreMainProcess=false] If set to `true` then autoscaling doesn't consider memory consumption
  *                                                    of the main NodeJS process when autoscaling the pool up/down. This is mainly useful when
@@ -258,7 +258,7 @@ export default class AutoscaledPool {
 
         this.concurrency--;
         log.debug('AutoscaledPool: scaling down', {
-            oldConcurrency: this.concurrency - 1,
+            oldConcurrency: this.concurrency + 1,
             newConcurrency: this.concurrency,
             isMemoryOverloaded,
             isCpuOverloaded,

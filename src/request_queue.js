@@ -16,8 +16,9 @@ export const LOCAL_EMULATION_SUBDIR = LOCAL_EMULATION_SUBDIRS.requestQueues;
 const MAX_OPENED_QUEUES = 1000;
 const MAX_CACHED_REQUESTS = 1000 * 1000;
 
-// When requesting queue head we always fetch requestsInProgressCount + QUERY_HEAD_BUFFER number of requests
-export const QUERY_HEAD_BUFFER = 50;
+// When requesting queue head we always fetch requestsInProgressCount * QUERY_HEAD_BUFFER number of requests.
+export const QUERY_HEAD_MIN_LENGTH = 100;
+export const QUERY_HEAD_BUFFER = 3;
 
 // If queue was modified (request added/updated/deleted) before more than API_PROCESSED_REQUESTS_DELAY_MILLIS
 // then we get head query to be consistent.
@@ -378,7 +379,7 @@ export class RequestQueue {
      *
      * @ignore
      */
-    _ensureHeadIsNonEmpty(checkModifiedAt = false, limit = this.inProgressCount + QUERY_HEAD_BUFFER, iteration = 0) {
+    _ensureHeadIsNonEmpty(checkModifiedAt = false, limit = Math.max(this.concurrency * QUERY_HEAD_BUFFER, QUERY_HEAD_MIN_LENGTH), iteration = 0) {
         checkParamOrThrow(checkModifiedAt, 'checkModifiedAt', 'Boolean');
         checkParamOrThrow(limit, 'limit', 'Number');
         checkParamOrThrow(iteration, 'iteration', 'Number');
@@ -443,7 +444,7 @@ export class RequestQueue {
                     }
 
                     const nextLimit = shouldRepeatWithHigherLimit
-                        ? prevLimit + QUERY_HEAD_BUFFER
+                        ? prevLimit * 1.5
                         : prevLimit;
 
                     const delayMillis = shouldRepeatForConsistency
