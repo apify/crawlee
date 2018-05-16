@@ -441,7 +441,7 @@ export default class RequestList {
     }
 
     /**
-     * Returns the total number of requests present in the `RequestList`.
+     * Returns the total number of unique requests present in the `RequestList`.
      */
     length() {
         return this.requests.length;
