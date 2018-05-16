@@ -379,7 +379,7 @@ export class RequestQueue {
      *
      * @ignore
      */
-    _ensureHeadIsNonEmpty(checkModifiedAt = false, limit = Math.max(this.concurrency * QUERY_HEAD_BUFFER, QUERY_HEAD_MIN_LENGTH), iteration = 0) {
+    _ensureHeadIsNonEmpty(checkModifiedAt = false, limit = Math.max(this.inProgressCount * QUERY_HEAD_BUFFER, QUERY_HEAD_MIN_LENGTH), iteration = 0) {
         checkParamOrThrow(checkModifiedAt, 'checkModifiedAt', 'Boolean');
         checkParamOrThrow(limit, 'limit', 'Number');
         checkParamOrThrow(iteration, 'iteration', 'Number');
