@@ -1,4 +1,5 @@
 import 'babel-polyfill';
+import _ from 'underscore';
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import request from 'request-promise';
@@ -449,5 +450,47 @@ describe('Apify.RequestList', () => {
 
         mock.verify();
         mock.restore();
+    });
+
+    it('handles correctly inconsistent inProgress fields in state', async () => {
+        // NOTE: This is a test for the deleteFromInProgress hotfix - see RequestList.initialize()
+
+        const sources = [
+            { url: 'https://www.ams360.com' },
+            { url: 'https://www.anybus.com' },
+            { url: 'https://www.anychart.com' },
+            { url: 'https://www.example.com' },
+        ];
+
+        const state = {
+            nextIndex: 2,
+            nextUniqueKey: 'https://www.anychart.com',
+            inProgress: {
+                'https://www.ams360.com': true,
+                'https://www.anybus.com': true,
+                'https://www.anychart.com': true,
+            },
+        };
+
+        const requestList = new Apify.RequestList({
+            sources,
+            state,
+        });
+
+        await requestList.initialize();
+
+        // Get requests from list
+        let reqs = [];
+        for (let i = 0; i < 5; i++) {
+            const request = await requestList.fetchNextRequest(); // eslint-disable-line
+            if (!request) break;
+            reqs.push(request);
+        }
+
+        reqs = _.shuffle(reqs);
+
+        for (let i = 0; i < reqs.length; i++) {
+            await requestList.reclaimRequest(reqs[i]); // eslint-disable-line
+        }
     });
 });

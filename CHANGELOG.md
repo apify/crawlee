@@ -1,3 +1,8 @@
+0.5.32 / 2018-05-14
+===================
+- Bugfix in `RequestList` - skip invalid in-progress entries when restoring state
+- Added `request.ignoreErrors` options. See documentation for more info.
+
 0.5.31 / 2018-05-11
 ===================
 - Bugfix in `Apify.utils.puppeteer.injectXxx` functions
