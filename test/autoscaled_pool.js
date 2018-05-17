@@ -180,7 +180,7 @@ describe('AutoscaledPool', () => {
         mock.restore();
     });
 
-    it('should autoscale correctly when ignoring main process', async () => {
+    it('should autoscale correctly when ignoring main process and work with loggingIntervalMillis=null', async () => {
         const pool = new Apify.AutoscaledPool({
             ignoreMainProcess: true,
             minConcurrency: 1,
@@ -189,6 +189,7 @@ describe('AutoscaledPool', () => {
             runTaskFunction: () => Promise.resolve(),
             isFinishedFunction: () => Promise.resolve(false),
             isTaskReadyFunction: () => Promise.resolve(true),
+            loggingIntervalMillis: null,
         });
         const mock = sinon.mock(utils);
 
