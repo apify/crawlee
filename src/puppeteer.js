@@ -134,16 +134,18 @@ const getPuppeteerOrThrow = () => {
  *
  * To use this function, you need to have the <a href="https://www.npmjs.com/package/puppeteer" target="_blank">puppeteer</a>
  * NPM package installed in your project.
- * For example, you can use the `apify/actor-node-chrome` base Docker image for your act - see
- * <a href="https://www.apify.com/docs/actor#base-images" target="_blank">documentation</a>
- * for more details.
+ * When running on the Apify cloud platform, you can achieve that simply
+ * by using the `apify/actor-node-chrome` base Docker image for your act - see
+ * <a href="https://www.apify.com/docs/actor#base-images" target="_blank">Apify Actor documentation</a>
+ * for details.
  *
- * For an example of usage, see the <a href="https://www.apify.com/apify/example-puppeteer">apify/example-puppeteer</a> act.
+ * For an example of usage, see the <a href="https://www.apify.com/apify/example-puppeteer">apify/example-puppeteer</a> actor.
  *
- * @param {LaunchPuppeteerOptions} [opts] Optional settings passed to `puppeteer.launch()`. Additionally the object can
- *                                        contain the following fields:
- * @returns {Promise} Promise object that resolves to Puppeteer's `Browser` instance.
- *
+ * @param {LaunchPuppeteerOptions} [opts]
+ *   Optional settings passed to `puppeteer.launch()`. Additionally the object can
+ *   contain the following fields:
+ * @returns {Promise}
+ *   Promise object that resolves to Puppeteer's `Browser` instance.
  * @memberof module:Apify
  * @name launchPuppeteer
  * @instance

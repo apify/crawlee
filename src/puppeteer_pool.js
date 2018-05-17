@@ -46,7 +46,14 @@ class PuppeteerInstance {
  * Example usage:
  *
  * ```javascript
- * const puppeteerPool = new PuppeteerPool({ groups: 'some-proxy-group' });
+ * const puppeteerPool = new PuppeteerPool({
+ *   launchPuppeteerFunction: () => {
+ *     // Use a new proxy with a new IP address for each new Chrome instance
+ *     return Apify.launchPuppeteer({
+ *        apifyProxySession: Math.random(),
+ *     });
+ *   },
+ * });
  *
  * const page1 = await puppeteerPool.newPage();
  * const page2 = await puppeteerPool.newPage();
@@ -54,7 +61,7 @@ class PuppeteerInstance {
  *
  * // ... do something with pages ...
  *
- * // Close all the browsers.
+ * // Close all browsers.
  * await puppeteerPool.destroy();
  * ```
  *
