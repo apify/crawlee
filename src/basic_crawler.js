@@ -254,13 +254,16 @@ export default class BasicCrawler {
         return Promise
             .resolve()
             .then(() => {
-                return !!this.requestList && !this.requestList.isEmpty();
-            })
-            .then((isRequestListNonEmpty) => {
-                if (isRequestListNonEmpty) return true;
+                if (!this.requestList) return true;
 
-                return !!this.requestQueue && !this.requestQueue.isEmpty();
-            });
+                return this.requestList.isEmpty();
+            })
+            .then((isRequestListEmpty) => {
+                if (!isRequestListEmpty || !this.requestQueue) return isRequestListEmpty;
+
+                return this.requestQueue.isEmpty();
+            })
+            .then(areBothEmpty => !areBothEmpty);
     }
 
     /**
