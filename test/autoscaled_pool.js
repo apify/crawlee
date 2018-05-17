@@ -224,6 +224,37 @@ describe('AutoscaledPool', () => {
         mock.restore();
     });
 
+    it('should work with loggingIntervalMillis = null', async () => {
+        const pool = new Apify.AutoscaledPool({
+            ignoreMainProcess: true,
+            minConcurrency: 1,
+            maxConcurrency: 100,
+            minFreeMemoryRatio: 0.1,
+            runTaskFunction: () => Promise.resolve(),
+            isFinishedFunction: () => Promise.resolve(false),
+            isTaskReadyFunction: () => Promise.resolve(true),
+            loggingIntervalMillis: null,
+        });
+        const mock = sinon.mock(utils);
+
+        // Should not scale up.
+        pool.concurrency = 1;
+        pool.runningCount = 1;
+        pool.intervalCounter = SCALE_UP_INTERVAL - 1;
+        mock.expects('getMemoryInfo')
+            .once()
+            .returns(Promise.resolve({
+                freeBytes: toBytes(5),
+                totalBytes: toBytes(10),
+                mainProcessBytes: 0,
+            }));
+        await pool._autoscale();
+        expect(pool.concurrency).to.be.eql(1);
+
+        mock.verify();
+        mock.restore();
+    });
+
     it('should throw when some of the promises throws', async () => {
         let counter = 0;
         const runTaskFunction = () => {

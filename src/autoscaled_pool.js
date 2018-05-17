@@ -6,7 +6,7 @@ import { getMemoryInfo, isPromise, avg, isAtHome } from './utils';
 import events from './events';
 import { ACTOR_EVENT_NAMES } from './constants';
 
-const MEM_CHECK_INTERVAL_MILLIS = 200; // This is low to have at least.
+const AUTOSCALE_INTERVAL_MILLIS = 200; // This is low to have at least.
 const MIN_FREE_MEMORY_RATIO = 0.1; // Minimum amount of memory that we keep free.
 const DEFAULT_OPTIONS = {
     maxConcurrency: 1000,
@@ -202,7 +202,7 @@ export default class AutoscaledPool {
         // This interval checks memory and in each call saves current memory stats and in every
         // SCALE_UP_INTERVAL-th/SCALE_DOWN_INTERVAL-th call it may scale up/down based on memory.
         if (isAtHome()) {
-            this.autoscaleInterval = setInterval(() => this._autoscale(), MEM_CHECK_INTERVAL_MILLIS);
+            this.autoscaleInterval = setInterval(() => this._autoscale(), AUTOSCALE_INTERVAL_MILLIS);
         } else {
             log.warning('Auto-scaling is currently available only when running on Apify platform! '
                 + 'Use `minConcurrency` parameter if you need to test multiple requests in parallel. '
@@ -221,7 +221,7 @@ export default class AutoscaledPool {
     }
 
     /**
-     * Gets called every MEM_CHECK_INTERVAL_MILLIS and saves number of free bytes in this.freeBytesSnapshots.
+     * Gets called every AUTOSCALE_INTERVAL_MILLIS and saves number of free bytes in this.freeBytesSnapshots.
      *
      * Every:
      * - SCALE_DOWN_INTERVAL-th call checks memory and possibly scales DOWN by 1.
@@ -264,7 +264,6 @@ export default class AutoscaledPool {
                 if (!scaledDown) this._maybeScaleUp(totalBytes, logData);
 
                 if (logData) {
-                    this.lastLoggingTime = Date.now();
                     log.info('AutoscaledPool state', logData);
                 }
             })
@@ -278,14 +277,23 @@ export default class AutoscaledPool {
      * @ignore
      */
     _maybeScaleDown(totalBytes, logData) {
-        if (this.intervalCounter % SCALE_DOWN_INTERVAL !== 0 || this.concurrency <= this.minConcurrency) return false;
-
         const snapshots = this.freeBytesSnapshots.slice(-SCALE_DOWN_INTERVAL);
         const averageFreeBytes = avg(snapshots);
         const isMemoryOverloaded = averageFreeBytes / totalBytes < this.minFreeMemoryRatio;
         const isCpuOverloaded = _.all(this.isCpuOverloadedSnapshots);
 
-        if (!isCpuOverloaded && !isMemoryOverloaded) return false;
+        // Update logData even if not scaling down
+        if (logData) {
+            Object.assign(logData, {
+                concurrency: this.concurrency,
+                isMemoryOverloaded,
+                isCpuOverloaded,
+            });
+        }
+
+        if (this.intervalCounter % SCALE_DOWN_INTERVAL !== 0
+            || this.concurrency <= this.minConcurrency
+            || (!isCpuOverloaded && !isMemoryOverloaded)) return false;
 
         this.concurrency--;
         log.debug('AutoscaledPool: scaling down', {
@@ -294,14 +302,6 @@ export default class AutoscaledPool {
             isMemoryOverloaded,
             isCpuOverloaded,
         });
-
-        if (logData) {
-            Object.assign(logData, {
-                concurrency: this.concurrency,
-                isMemoryOverloaded,
-                isCpuOverloaded,
-            });
-        }
 
         return true;
     }
@@ -313,11 +313,12 @@ export default class AutoscaledPool {
      * @ignore
      */
     _maybeScaleUp(totalBytes, logData) {
-        if (this.intervalCounter % SCALE_UP_INTERVAL !== 0 || this.concurrency >= this.maxConcurrency) return false;
-
+        // Update logData even if not scaling down
         const spaceForInstances = this._computeSpaceForInstances(totalBytes, logData);
 
-        if (spaceForInstances <= 0) return false;
+        if (this.intervalCounter % SCALE_UP_INTERVAL !== 0
+            || this.concurrency >= this.maxConcurrency
+            || spaceForInstances <= 0) return false;
 
         const increaseBy = Math.min(spaceForInstances, SCALE_UP_MAX_STEP);
         const oldConcurrency = this.concurrency;
@@ -344,7 +345,7 @@ export default class AutoscaledPool {
         const minFreeRatio = minFreeBytes / totalBytes;
         const maxTakenBytes = totalBytes - minFreeBytes;
         const perInstanceRatio = (maxTakenBytes / totalBytes) / this.runningCount;
-        const hasSpaceForInstances = (minFreeRatio - MIN_FREE_MEMORY_RATIO) / perInstanceRatio;
+        const hasSpaceForInstances = Math.floor((minFreeRatio - MIN_FREE_MEMORY_RATIO) / perInstanceRatio);
 
         if (logData) {
             Object.assign(logData, {
@@ -358,7 +359,7 @@ export default class AutoscaledPool {
             });
         }
 
-        return Math.floor(hasSpaceForInstances);
+        return hasSpaceForInstances;
     }
     /**
      * If number of running task is lower than allowed concurrency and this.isTaskReadyFunction()
@@ -382,7 +383,7 @@ export default class AutoscaledPool {
         // It's not null so it must be a promise!
         if (!isPromise(isTaskReadyPromise)) throw new Error('User provided isTaskReadyFunction must return a Promise.');
 
-        // We don't want to chain this so no return here!
+        // We don't want to chain this so don't return here!
         isTaskReadyPromise
             .catch((err) => {
                 this.queryingIsTaskReady = false;

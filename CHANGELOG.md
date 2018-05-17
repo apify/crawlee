@@ -1,3 +1,7 @@
+xxx
+===================
+- Added `loggingIntervalMillis` options to `AutoscaledPool`
+
 0.5.32 / 2018-05-14
 ===================
 - Bugfix in `RequestList` - skip invalid in-progress entries when restoring state
