@@ -217,9 +217,9 @@ export default class PuppeteerPool {
 
         // Ensure that Chrome process will be really killed.
         setTimeout(() => {
-            // This if is here because users reported that it happened
+            // This is here because users reported that it happened
             // that error `TypeError: Cannot read property 'kill' of null` was thrown.
-            // Likely Chrome process wasn't started for some error ...
+            // Likely Chrome process wasn't started due to some error ...
             if (childProcess) childProcess.kill('SIGKILL');
         }, PROCESS_KILL_TIMEOUT_MILLIS);
 

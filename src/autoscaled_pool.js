@@ -416,7 +416,7 @@ export default class AutoscaledPool {
             .catch((err) => {
                 log.exception(err, 'AutoscaledPool: runTaskFunction failed');
                 this.runningCount--;
-                // If is here because we might already rejected this promise.
+                // This is here because we might have already rejected this promise.
                 if (this.reject) this.reject(err);
             });
     }
