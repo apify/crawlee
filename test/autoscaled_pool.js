@@ -104,7 +104,7 @@ describe('AutoscaledPool', () => {
             toBytes(50),
             toBytes(40),
         ];
-        const hasSpaceForInstances = pool._computeSpaceForInstances(toBytes(100), true);
+        const hasSpaceForInstances = pool._computeSpaceForInstances(toBytes(100), null);
         expect(hasSpaceForInstances).to.be.eql(5);
 
         pool.concurrency = 20;
@@ -115,7 +115,7 @@ describe('AutoscaledPool', () => {
             toBytes(5),
             toBytes(5),
         ];
-        const hasSpaceForInstances2 = pool._computeSpaceForInstances(toBytes(100), true);
+        const hasSpaceForInstances2 = pool._computeSpaceForInstances(toBytes(100), null);
         expect(hasSpaceForInstances2).to.be.eql(-2);
     });
 
@@ -502,7 +502,7 @@ describe('AutoscaledPool', () => {
             toBytes(50),
             toBytes(40),
         ];
-        const hasSpaceForInstances = pool._computeSpaceForInstances(toBytes(100), true);
+        const hasSpaceForInstances = pool._computeSpaceForInstances(toBytes(100), null);
         expect(hasSpaceForInstances).to.be.eql(5);
 
         pool.concurrency = 20;
@@ -513,7 +513,7 @@ describe('AutoscaledPool', () => {
             toBytes(5),
             toBytes(5),
         ];
-        const hasSpaceForInstances2 = pool._computeSpaceForInstances(toBytes(100), true);
+        const hasSpaceForInstances2 = pool._computeSpaceForInstances(toBytes(100), null);
         expect(hasSpaceForInstances2).to.be.eql(-2);
     });
 
