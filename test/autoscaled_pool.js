@@ -6,7 +6,7 @@ import sinon from 'sinon';
 import { delayPromise } from 'apify-shared/utilities';
 import * as Apify from '../build/index';
 import { ACTOR_EVENT_NAMES, ENV_VARS } from '../build/constants';
-import { LOG_INFO_INTERVAL, SCALE_UP_MAX_STEP, SCALE_DOWN_INTERVAL } from '../build/autoscaled_pool';
+import { SCALE_UP_MAX_STEP, SCALE_UP_INTERVAL, SCALE_DOWN_INTERVAL } from '../build/autoscaled_pool';
 import * as utils from '../build/utils';
 
 chai.use(chaiAsPromised);
@@ -133,7 +133,7 @@ describe('AutoscaledPool', () => {
         // Should scale up.
         pool.concurrency = 1;
         pool.runningCount = 1;
-        pool.intervalCounter = LOG_INFO_INTERVAL - 1;
+        pool.intervalCounter = SCALE_UP_INTERVAL - 1;
         mock.expects('getMemoryInfo')
             .once()
             .returns(Promise.resolve({ freeBytes: toBytes(9.99), totalBytes: toBytes(10) }));
@@ -143,7 +143,7 @@ describe('AutoscaledPool', () => {
         // Should not do anything when there is right amount of memory used.
         pool.concurrency = 10;
         pool.runningCount = 10;
-        pool.intervalCounter = LOG_INFO_INTERVAL - 1;
+        pool.intervalCounter = SCALE_UP_INTERVAL - 1;
         mock.expects('getMemoryInfo')
             .once()
             .returns(Promise.resolve({ freeBytes: toBytes(1), totalBytes: toBytes(10) }));
@@ -159,7 +159,7 @@ describe('AutoscaledPool', () => {
         let promise = Promise.resolve();
         for (let i = 0; i < 3; i++) {
             promise = promise.then(() => {
-                pool.intervalCounter = LOG_INFO_INTERVAL - 1;
+                pool.intervalCounter = SCALE_UP_INTERVAL - 1;
                 return pool._autoscale();
             });
         }
@@ -172,7 +172,7 @@ describe('AutoscaledPool', () => {
         mock.expects('getMemoryInfo')
             .once()
             .returns(Promise.resolve({ freeBytes: toBytes(0.9), totalBytes: toBytes(10) }));
-        pool.intervalCounter = LOG_INFO_INTERVAL - 1;
+        pool.intervalCounter = SCALE_UP_INTERVAL - 1;
         await pool._autoscale();
         expect(pool.concurrency).to.be.eql(9);
 
@@ -195,7 +195,7 @@ describe('AutoscaledPool', () => {
         // Should not scale up.
         pool.concurrency = 1;
         pool.runningCount = 1;
-        pool.intervalCounter = LOG_INFO_INTERVAL - 1;
+        pool.intervalCounter = SCALE_UP_INTERVAL - 1;
         mock.expects('getMemoryInfo')
             .once()
             .returns(Promise.resolve({
@@ -209,7 +209,7 @@ describe('AutoscaledPool', () => {
         // Should scale up.
         pool.concurrency = 1;
         pool.runningCount = 1;
-        pool.intervalCounter = LOG_INFO_INTERVAL - 1;
+        pool.intervalCounter = SCALE_UP_INTERVAL - 1;
         mock.expects('getMemoryInfo')
             .once()
             .returns(Promise.resolve({
@@ -284,7 +284,7 @@ describe('AutoscaledPool', () => {
         }
 
         // Should scale up.
-        pool.intervalCounter = LOG_INFO_INTERVAL - 1;
+        pool.intervalCounter = SCALE_UP_INTERVAL - 1;
         pool.runningCount = pool.concurrency;
         mock.expects('getMemoryInfo')
             .once()
@@ -293,7 +293,7 @@ describe('AutoscaledPool', () => {
         expect(pool.concurrency).to.be.eql(1 + SCALE_UP_MAX_STEP);
 
         // Should scale up.
-        pool.intervalCounter = LOG_INFO_INTERVAL - 1;
+        pool.intervalCounter = SCALE_UP_INTERVAL - 1;
         pool.runningCount = pool.concurrency;
         mock.expects('getMemoryInfo')
             .once()
@@ -307,7 +307,7 @@ describe('AutoscaledPool', () => {
         // Should scale up but because of CPU overloaded event it always scales down.
         pool.runningCount = pool.concurrency;
         for (let i = 1; i <= 5; i++) {
-            pool.intervalCounter = LOG_INFO_INTERVAL - 1;
+            pool.intervalCounter = SCALE_UP_INTERVAL - 1;
             mock.expects('getMemoryInfo')
                 .once()
                 .returns(Promise.resolve({ freeBytes: toBytes(9.99), totalBytes: toBytes(10) }));
@@ -320,7 +320,7 @@ describe('AutoscaledPool', () => {
 
         // Should scale up again.
         pool.runningCount = pool.concurrency;
-        pool.intervalCounter = LOG_INFO_INTERVAL - 1;
+        pool.intervalCounter = SCALE_UP_INTERVAL - 1;
         mock.expects('getMemoryInfo')
             .once()
             .returns(Promise.resolve({ freeBytes: toBytes(9.99), totalBytes: toBytes(10) }));
@@ -529,7 +529,7 @@ describe('AutoscaledPool', () => {
         // Should scale up.
         pool.concurrency = 1;
         pool.runningCount = 1;
-        pool.intervalCounter = LOG_INFO_INTERVAL - 1;
+        pool.intervalCounter = SCALE_UP_INTERVAL - 1;
         mock.expects('getMemoryInfo')
             .once()
             .returns(Promise.resolve({ freeBytes: toBytes(9.99), totalBytes: toBytes(10) }));
@@ -539,7 +539,7 @@ describe('AutoscaledPool', () => {
         // Should not do anything when there is right amount of memory used.
         pool.concurrency = 10;
         pool.runningCount = 10;
-        pool.intervalCounter = LOG_INFO_INTERVAL - 1;
+        pool.intervalCounter = SCALE_UP_INTERVAL - 1;
         mock.expects('getMemoryInfo')
             .once()
             .returns(Promise.resolve({ freeBytes: toBytes(1), totalBytes: toBytes(10) }));
@@ -555,7 +555,7 @@ describe('AutoscaledPool', () => {
         let promise = Promise.resolve();
         for (let i = 0; i < 3; i++) {
             promise = promise.then(() => {
-                pool.intervalCounter = LOG_INFO_INTERVAL - 1;
+                pool.intervalCounter = SCALE_UP_INTERVAL - 1;
                 return pool._autoscale();
             });
         }
@@ -568,7 +568,7 @@ describe('AutoscaledPool', () => {
         mock.expects('getMemoryInfo')
             .once()
             .returns(Promise.resolve({ freeBytes: toBytes(0.9), totalBytes: toBytes(10) }));
-        pool.intervalCounter = LOG_INFO_INTERVAL - 1;
+        pool.intervalCounter = SCALE_UP_INTERVAL - 1;
         await pool._autoscale();
         expect(pool.concurrency).to.be.eql(9);
 
@@ -616,7 +616,7 @@ describe('AutoscaledPool', () => {
         }
 
         // Should scale up.
-        pool.intervalCounter = LOG_INFO_INTERVAL - 1;
+        pool.intervalCounter = SCALE_UP_INTERVAL - 1;
         pool.runningCount = pool.concurrency;
         mock.expects('getMemoryInfo')
             .once()
@@ -625,7 +625,7 @@ describe('AutoscaledPool', () => {
         expect(pool.concurrency).to.be.eql(1 + SCALE_UP_MAX_STEP);
 
         // Should scale up.
-        pool.intervalCounter = LOG_INFO_INTERVAL - 1;
+        pool.intervalCounter = SCALE_UP_INTERVAL - 1;
         pool.runningCount = pool.concurrency;
         mock.expects('getMemoryInfo')
             .once()
@@ -639,7 +639,7 @@ describe('AutoscaledPool', () => {
         // Should scale up but because of CPU overloaded event it always scales down.
         pool.runningCount = pool.concurrency;
         for (let i = 1; i <= 5; i++) {
-            pool.intervalCounter = LOG_INFO_INTERVAL - 1;
+            pool.intervalCounter = SCALE_UP_INTERVAL - 1;
             mock.expects('getMemoryInfo')
                 .once()
                 .returns(Promise.resolve({ freeBytes: toBytes(9.99), totalBytes: toBytes(10) }));
@@ -652,7 +652,7 @@ describe('AutoscaledPool', () => {
 
         // Should scale up again.
         pool.runningCount = pool.concurrency;
-        pool.intervalCounter = LOG_INFO_INTERVAL - 1;
+        pool.intervalCounter = SCALE_UP_INTERVAL - 1;
         mock.expects('getMemoryInfo')
             .once()
             .returns(Promise.resolve({ freeBytes: toBytes(9.99), totalBytes: toBytes(10) }));

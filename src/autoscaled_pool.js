@@ -22,7 +22,6 @@ const DEFAULT_OPTIONS = {
 export const SCALE_UP_INTERVAL = 50;
 export const SCALE_UP_MAX_STEP = 10;
 export const SCALE_DOWN_INTERVAL = 5;
-export const LOG_INFO_INTERVAL = 6 * SCALE_UP_INTERVAL; // This must be multiple of SCALE_UP_INTERVAL
 
 /**
  * Helper function that coverts bytes into human readable MBs.
@@ -318,7 +317,7 @@ export default class AutoscaledPool {
     _maybeScaleUp(totalBytes, logData) {
         if (this.intervalCounter % SCALE_UP_INTERVAL !== 0 || this.concurrency >= this.maxConcurrency) return false;
 
-        const spaceForInstances = this._computeSpaceForInstances(totalBytes, this.intervalCounter % LOG_INFO_INTERVAL);
+        const spaceForInstances = this._computeSpaceForInstances(totalBytes);
 
         if (spaceForInstances <= 0) return false;
 
