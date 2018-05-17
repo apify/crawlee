@@ -22,6 +22,7 @@ const DEFAULT_OPTIONS = {
 export const SCALE_UP_INTERVAL = 50;
 export const SCALE_UP_MAX_STEP = 10;
 export const SCALE_DOWN_INTERVAL = 5;
+export const LOG_INFO_INTERVAL = 6 * SCALE_UP_INTERVAL; // This must be multiple of SCALE_UP_INTERVAL
 
 /**
  * Helper function that coverts bytes into human readable MBs.
@@ -247,7 +248,7 @@ export default class AutoscaledPool {
                 this.intervalCounter++;
                 this.freeBytesSnapshots = this.freeBytesSnapshots.concat(freeBytes).slice(-SCALE_UP_INTERVAL);
 
-                // On periodic intervals, print comprehensive log information
+                /*// On periodic intervals, print comprehensive log information
                 let logData = null;
                 if (this.loggingIntervalMillis > 0) {
                     const now = Date.now();
@@ -258,15 +259,16 @@ export default class AutoscaledPool {
                             runningCount: this.runningCount,
                         };
                     }
-                }
+                }*/
 
-                const scaledDown = this._maybeScaleDown(totalBytes, logData);
-                if (!scaledDown) this._maybeScaleUp(totalBytes, logData);
+                const scaledDown = this._maybeScaleDown(totalBytes);
+                if (!scaledDown) this._maybeScaleUp(totalBytes);
 
+                /*
                 if (logData) {
                     this.lastLoggingTime = Date.now();
                     log.info('AutoscaledPool state', logData);
-                }
+                } */
             })
             .catch(err => log.exception(err, 'AutoscaledPool._autoscale() function failed'));
     }
@@ -277,7 +279,7 @@ export default class AutoscaledPool {
      * @return true if concurrency was changed
      * @ignore
      */
-    _maybeScaleDown(totalBytes, logData) {
+    _maybeScaleDown(totalBytes) {
         if (this.intervalCounter % SCALE_DOWN_INTERVAL !== 0 || this.concurrency <= this.minConcurrency) return false;
 
         const snapshots = this.freeBytesSnapshots.slice(-SCALE_DOWN_INTERVAL);
@@ -295,13 +297,14 @@ export default class AutoscaledPool {
             isCpuOverloaded,
         });
 
+        /*
         if (logData) {
             Object.assign(logData, {
                 concurrency: this.concurrency,
                 isMemoryOverloaded,
                 isCpuOverloaded,
             });
-        }
+        } */
 
         return true;
     }
@@ -315,7 +318,7 @@ export default class AutoscaledPool {
     _maybeScaleUp(totalBytes, logData) {
         if (this.intervalCounter % SCALE_UP_INTERVAL !== 0 || this.concurrency >= this.maxConcurrency) return false;
 
-        const spaceForInstances = this._computeSpaceForInstances(totalBytes, logData);
+        const spaceForInstances = this._computeSpaceForInstances(totalBytes, this.intervalCounter % LOG_INFO_INTERVAL);
 
         if (spaceForInstances <= 0) return false;
 
@@ -339,13 +342,14 @@ export default class AutoscaledPool {
      *
      * @ignore
      */
-    _computeSpaceForInstances(totalBytes, logData) {
+    _computeSpaceForInstances(totalBytes) {
         const minFreeBytes = Math.min(...this.freeBytesSnapshots);
         const minFreeRatio = minFreeBytes / totalBytes;
         const maxTakenBytes = totalBytes - minFreeBytes;
         const perInstanceRatio = (maxTakenBytes / totalBytes) / this.runningCount;
         const hasSpaceForInstances = (minFreeRatio - MIN_FREE_MEMORY_RATIO) / perInstanceRatio;
 
+        /*
         if (logData) {
             Object.assign(logData, {
                 freeBytesSnapshots: humanReadable(_.last(this.freeBytesSnapshots)),
@@ -356,7 +360,7 @@ export default class AutoscaledPool {
                 perInstancePerc: perInstanceRatio,
                 hasSpaceForInstances,
             });
-        }
+        }*/
 
         return Math.floor(hasSpaceForInstances);
     }
