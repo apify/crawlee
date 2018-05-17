@@ -72,24 +72,28 @@ const DEFAULT_OPTIONS = {
  * @param {Number} [options.maxRequestRetries=3]
  *   How many times the request is retried if `handleRequestFunction` failed.
  * @param {Number} [options.maxMemoryMbytes]
- *   Maximum memory available in the system (see `AutoscaledPool`).
+ *   Maximum memory available in the system
+ *   See `AutoscaledPool` for details.
  * @param {Number} [options.minConcurrency=1]
- *   Minimum number of request to process in parallel (see `AutoscaledPool`).
+ *   Minimum number of request to process in parallel.
+ *   See `AutoscaledPool` for details.
  * @param {Number} [options.maxConcurrency=1000]
- *   Maximum number of request to process in parallel (see `AutoscaledPool`).
+ *   Maximum number of request to process in parallel.
+ *   See `AutoscaledPool` for details.
  * @param {Number} [options.minFreeMemoryRatio=0.2]
  *   Minimum ratio of free memory kept in the system.
+ *   See `AutoscaledPool` for details.
  * @param {Function} [opts.isFinishedFunction]
  *   By default BasicCrawler finishes when all the requests have been processed.
  *   You can override this behaviour by providing custom `isFinishedFunction`.
  *   This function that is called every time there are no requests being processed.
  *   If it resolves to `true` then the crawler's run finishes.
- *   See `isFinishedFunction` parameter of `AutoscaledPool`.
+ *   See `AutoscaledPool` for details.
  * @param {Boolean} [options.ignoreMainProcess=false]
- *   If set to `true` then autoscaling doesn't consider memory consumption
- *   of the main NodeJS process when autoscaling the pool up/down. This is mainly useful when
- *   tasks are running as separate processes (for example web browser).
- *   See `ignoreMainProcess` parameter of `AutoscaledPool`.
+ *   If set to `true` then autoscaling does not consider memory consumption
+ *   of the main Node.js process when autoscaling the pool up/down. This is mainly useful when
+ *   tasks are running as separate processes (e.g web browsers).
+ *   See `AutoscaledPool` for details.
  */
 export default class BasicCrawler {
     constructor(opts) {
