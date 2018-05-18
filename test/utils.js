@@ -53,6 +53,21 @@ describe('utils.addCharsetToContentType()', () => {
     });
 });
 
+describe('utils.isProduction()', () => {
+    it('works', () => {
+        const prev = process.env.NODE_ENV;
+        try {
+            process.env.NODE_ENV = 'production';
+            expect(utils.isProduction()).to.eql(true);
+
+            process.env.NODE_ENV = 'debug';
+            expect(utils.isProduction()).to.eql(false);
+        } finally {
+            process.env.NODE_ENV = prev;
+        }
+    });
+});
+
 describe('utils.isDocker()', () => {
     it('works for dockerenv && cgroup', () => {
         sinon.stub(fs, 'stat').callsFake((path, callback) => callback(null));

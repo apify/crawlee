@@ -90,9 +90,9 @@ const DEFAULT_OPTIONS = {
  *   If it resolves to `true` then the crawler's run finishes.
  *   See `AutoscaledPool` for details.
  * @param {Boolean} [options.ignoreMainProcess=false]
- *   If set to `true` then autoscaling does not consider memory consumption
- *   of the main Node.js process when autoscaling the pool up/down. This is mainly useful when
- *   tasks are running as separate processes (e.g web browsers).
+ *   If set to `true` then the auto-scaling manager does not consider memory consumption
+ *   of the main Node.js process when scaling the pool up or down.
+ *   This is mainly useful when tasks are running as separate processes (e.g. web browsers).
  *   See `AutoscaledPool` for details.
  */
 export default class BasicCrawler {
@@ -178,9 +178,9 @@ export default class BasicCrawler {
                                 this.requestList.markRequestHandled(request),
                             ])
                             .then(results => results[0]);
-                    // If requestQueue.addRequest() fails here then we must reclaim it back to
-                    // the RequestList because probably it's not yet in the queue!
                     }, (err) => {
+                        // If requestQueue.addRequest() fails here then we must reclaim it back to
+                        // the RequestList because probably it's not yet in the queue!
                         log.exception(err, 'RequestQueue.addRequest() failed, reclaiming request back to queue', { request });
 
                         // Return null so that we finish immediately.
@@ -211,7 +211,7 @@ export default class BasicCrawler {
                     .then(() => source.markRequestHandled(request))
                     .catch((error) => {
                         if (request.ignoreErrors) {
-                            log.exception(error, 'BasicCrawler: handleRequestFunction failed, request.ignoreErrors=true so marking request handled', {
+                            log.exception(error, 'BasicCrawler: handleRequestFunction failed, request.ignoreErrors=true so marking the request as handled', { // eslint-disable-line max-len
                                 url: request.url,
                                 retryCount: request.retryCount,
                             });
@@ -224,7 +224,7 @@ export default class BasicCrawler {
                         // Retry request.
                         if (request.retryCount < this.maxRequestRetries) {
                             request.retryCount++;
-                            log.exception(error, 'BasicCrawler: handleRequestFunction failed, reclaiming failed request back to list/queue', {
+                            log.exception(error, 'BasicCrawler: handleRequestFunction failed, reclaiming failed request back to the list or queue', {
                                 url: request.url,
                                 retryCount: request.retryCount,
                             });
@@ -232,7 +232,7 @@ export default class BasicCrawler {
                             return source.reclaimRequest(request);
                         }
 
-                        log.exception(error, 'BasicCrawler: handleRequestFunction failed, marking failed request handled', {
+                        log.exception(error, 'BasicCrawler: handleRequestFunction failed, marking failed request as handled', {
                             url: request.url,
                             retryCount: request.retryCount,
                         });

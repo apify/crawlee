@@ -246,7 +246,7 @@ export const isPromise = (maybePromise) => {
  *
  * @ignore
  */
-export const isProduction = () => process.env.NODE_ENV !== 'production';
+export const isProduction = () => process.env.NODE_ENV === 'production';
 
 /**
  * Helper function used for local implementations. Creates dir.

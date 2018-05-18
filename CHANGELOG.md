@@ -1,5 +1,7 @@
 xxx
 ===================
+- Added `loggingIntervalMillis` options to `AutoscaledPool`
+- Bugfix: `utils.isProduction` function was incorrect
 - Added `RequestList.length()` function
 
 0.5.32 / 2018-05-14
