@@ -1,4 +1,4 @@
-xxx
+0.5.34 / 2018-05-18
 ===================
 - Added `loggingIntervalMillis` options to `AutoscaledPool`
 - Bugfix: `utils.isProduction` function was incorrect
