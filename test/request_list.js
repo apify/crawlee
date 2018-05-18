@@ -493,4 +493,22 @@ describe('Apify.RequestList', () => {
             await requestList.reclaimRequest(reqs[i]); // eslint-disable-line
         }
     });
+
+    it('it gets correct length()', async () => {
+        const sources = [
+            { url: 'https://www.example.com' },
+            { url: 'https://www.ams360.com' },
+            { url: 'https://www.anybus.com' },
+            { url: 'https://www.anychart.com' },
+            { url: 'https://www.example.com' },
+        ];
+
+        const requestList = new Apify.RequestList({
+            sources,
+        });
+
+        await requestList.initialize();
+
+        expect(requestList.length()).to.be.eql(4);
+    });
 });

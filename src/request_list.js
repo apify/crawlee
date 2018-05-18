@@ -244,7 +244,7 @@ export default class RequestList {
     }
 
     /**
-     * Returns `true` if the next call to fetchNextRequest() will return null, otherwise it returns `false`.
+     * Returns `true` if the next call to `fetchNextRequest()` will return null, otherwise it returns `false`.
      * Note that even if the list is empty, there might be some pending requests currently being processed.
      *
      * @returns {Promise<boolean>}
@@ -396,7 +396,7 @@ export default class RequestList {
 
     /**
      * Adds given request.
-     * If opts partameter is plain object not instance of an Requests then creates it.
+     * If opts parameter is plain object not instance of an Requests then creates it.
      *
      * @ignore
      */
@@ -438,5 +438,12 @@ export default class RequestList {
         if (!this.isInitialized) {
             throw new Error('RequestList is not initialized. You must call "await requestList.initialize();" before using it!');
         }
+    }
+
+    /**
+     * Returns the total number of unique requests present in the `RequestList`.
+     */
+    length() {
+        return this.requests.length;
     }
 }
