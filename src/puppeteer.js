@@ -5,6 +5,7 @@ import log from 'apify-shared/log';
 import { ENV_VARS, DEFAULT_USER_AGENT } from './constants';
 import { newPromise, getTypicalChromeExecutablePath } from './utils';
 import { getApifyProxyUrl } from './actor';
+import LiveViewServer from './live_view';
 
 /* global process, require */
 
@@ -183,6 +184,12 @@ export const launchPuppeteer = (opts = {}) => {
         optsCopy.args.push(`--user-agent=${userAgent}`);
     }
 
+    // forcing headless with liveView, otherwise
+    // screenshots open a new browser window
+    if (optsCopy.liveView === true) {
+        optsCopy.headless = true;
+    }
+
     let browserPromise;
     if (optsCopy.proxyUrl) {
         browserPromise = launchPuppeteerWithProxy(puppeteer, optsCopy);
@@ -192,5 +199,10 @@ export const launchPuppeteer = (opts = {}) => {
     }
 
     // Ensure that the returned promise is of type Bluebird.
-    return newPromise().then(() => browserPromise);
+    const wrapped = newPromise().then(() => browserPromise);
+
+    // start LiveView server if requested
+    if (optsCopy.liveView) LiveViewServer.start(wrapped);
+
+    return wrapped;
 };
