@@ -1,30 +1,43 @@
-import http from 'http';
-import url from 'url';
-import log from 'apify-shared/log';
 import Promise from 'bluebird';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { Router, dispatcher } from './live_view_router';
+import { dispatcher } from './live_view_router';
 import { imgPage, errorPage } from './live_view_html';
 
-class LiveViewBrowser {
+/**
+ * LiveViewBrowser encapsulates a Puppeteer's Browser instance and provides
+ * an API to safely get screenshots of the Browser's Pages.
+ * @param {Browser} browser A Puppeteer Browser instance.
+ * @param {String} options.id A unique ID of the LiveViewBrowser.
+ */
+export default class LiveViewBrowser {
     constructor(browser, opts = {}) {
         this.browser = browser;
+        // pages are stored in a WeakMap to be automatically garbage collected on close()
         this.pages = new WeakMap();
 
         checkParamOrThrow(opts.id, 'opts.id', 'Maybe String');
         this.id = opts.id;
 
+        // since the page can be in any state when the user requests
+        // a screenshot, we need to keep track of it ourselves
         browser.on('targetcreated', (target) => {
             if (target.type() === 'page') {
                 target.page()
                     .then((page) => {
                         page.on('load', () => {
-                            this.pages.set(page, true);
+                            this.pages.set(page, true); // page is loaded
                         });
                     });
             }
         });
     }
+
+    /**
+     * Handler that gets invoked by LiveViewRouter and sends an appropriate
+     * response.
+     * @param {http.IncomingMessage} req
+     * @param {http.ServerResponse} res
+     */
     routeHandler(req, res) {
         this.browser.pages()
             .then((pages) => {
@@ -40,28 +53,40 @@ class LiveViewBrowser {
             });
     }
 
+    /**
+     * The screenshot method simply takes a screenshot of the provided
+     * Page and returns it as a promise. Unfortunately, nothing prevents
+     * the Page from being closed while the screenshot is being taken,
+     * which results into error. Therefore, the method prevents the page
+     * from being closed by replacing its close method and handling the
+     * page close itself once the screenshot has been taken.
+     * @param {Page} page Puppeteer's Page
+     * @returns {Promise<Buffer>} screenshot
+     * @private
+     */
     _screenshot(page) {
-        // replace page's close function to prevent close
+        // replace page's close function to prevent a close
         // while the screenshot is being taken
-        let result;
         const { close } = page;
         let closed;
         let closeArgs;
         let closeResolve;
         page.close = (...args) => {
+            if (!closed) closeArgs = args;
             closed = true;
-            closeArgs = args;
             return new Promise((resolve) => {
                 closeResolve = resolve;
             });
         };
 
+        // check if the page has been marked as loaded
         const loaded = this.pages.get(page);
-        const timeoutPromise = new Promise(resolve => setTimeout(resolve, 500));
+        const timeoutPromise = new Promise(resolve => setTimeout(resolve, 1000));
 
 
         // if page is already loaded, take a screenshot
         // otherwise, wait for it to load
+        let result;
         if (loaded) {
             result = Promise.race([page.screenshot()], timeoutPromise);
         } else {
@@ -88,53 +113,6 @@ class LiveViewBrowser {
         });
 
         return result;
-    }
-}
-
-export default class LiveViewServer {
-    constructor(opts = {}) {
-        checkParamOrThrow(opts, 'opts', 'Object');
-        checkParamOrThrow(opts.port, 'opts.port', 'Maybe String | Number');
-        this.browsers = [];
-        this.port = Number(opts.port) || 1234;
-        this.httpServer = null;
-        this.browserCounter = 0;
-        this.router = new Router();
-    }
-
-    static start(browserPromise, opts = {}) {
-        if (!LiveViewServer.server) {
-            LiveViewServer.server = new LiveViewServer(opts);
-            LiveViewServer.server.startServer();
-        }
-        const lvs = LiveViewServer.server;
-        // TODO Ensure uniqueness of IDs.
-        const browserOpts = {
-            id: opts.browserId || `${++lvs.browserCounter}`,
-        };
-
-        return browserPromise
-            .then((browser) => {
-                const lvb = new LiveViewBrowser(browser, browserOpts);
-                lvs.browsers.push(lvb);
-                lvs.router.addBrowser(lvb);
-            });
-    }
-
-    startServer() {
-        const server = http.createServer(this._requestListener.bind(this));
-        server.listen(this.port, (err) => {
-            if (err) reject(err);
-            log.info(`Live view server is listening on port ${this.port}.`);
-            this.httpServer = server;
-        });
-    }
-
-    _requestListener(req, res) {
-        const parsedUrl = url.parse(req.url, true);
-        const path = parsedUrl.pathname.replace(/^\/+|\/+$/g, '');
-        req.lvs = this;
-        this.router.handle(path, req, res);
     }
 }
 

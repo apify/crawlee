@@ -1,3 +1,9 @@
+/**
+ * Template for a basic layout of a HTML page.
+ * @param {String} [opts.body] the body of the page
+ * @param {Number} [opts.refresh] refresh time of the page
+ * @returns {string} html
+ */
 export const layout = (opts = {}) => `
 <!doctype html>
 <html>
@@ -13,6 +19,11 @@ ${opts.body || ''}
 </html>
 `;
 
+/**
+ * Generates a body for the rootPage. A list of browsers and their IDs.
+ * @param {Array} browsers
+ * @returns {string}
+ */
 export const rootPage = (browsers) => {
     const body = `
 <h1>Available live view browsers:</h1>
@@ -26,28 +37,46 @@ export const rootPage = (browsers) => {
     });
 };
 
-export const encodeImg = (buffer) => {
+/**
+ * Returns an image encoded as a base64 string in an <img> tag.
+ * @param {Buffer} imageBuffer
+ * @returns {string}
+ */
+export const encodeImg = (imageBuffer) => {
     return `
 <div>
-    <img src="data:image/png;base64, ${buffer.toString('base64')}" alt="Page screenshot" />
+    <img src="data:image/png;base64, ${imageBuffer.toString('base64')}" alt="Page screenshot" />
 </div> 
 `;
 };
 
-
-export const imgPage = (buffer) => {
-    const body = encodeImg(buffer);
+/**
+ * Returns a body of a page consisting of a serialized image.
+ * @param {Buffer} imageBuffer
+ * @returns {string}
+ */
+export const imgPage = (imageBuffer) => {
+    const body = encodeImg(imageBuffer);
     return layout({
         body,
         refresh: 1,
     });
 };
 
+/**
+ * Returns a 404 response page.
+ * @returns {string}
+ */
 export const notFoundPage = () => {
     const body = '<p>This page does not exist.</p>';
     return layout({ body });
 };
 
+/**
+ * Returns an error page with an error message.
+ * @param {String} message
+ * @returns {string}
+ */
 export const errorPage = (message) => {
     const body = `
 <p>Sorry. There was an error and Live View failed.</p>

@@ -5,7 +5,7 @@ import log from 'apify-shared/log';
 import { ENV_VARS, DEFAULT_USER_AGENT } from './constants';
 import { newPromise, getTypicalChromeExecutablePath } from './utils';
 import { getApifyProxyUrl } from './actor';
-import LiveViewServer from './live_view';
+import LiveViewServer from './live_view_server';
 
 /* global process, require */
 
@@ -163,7 +163,10 @@ export const launchPuppeteer = (opts = {}) => {
     optsCopy.args = optsCopy.args || [];
     optsCopy.args.push('--no-sandbox');
     if (optsCopy.headless === undefined || optsCopy.headless === null) {
-        optsCopy.headless = process.env[ENV_VARS.HEADLESS] === '1' && process.env[ENV_VARS.XVFB] !== '1';
+        // forcing headless with liveView, otherwise screenshots open a new browser window
+        optsCopy.headless = optsCopy.liveView === true
+            ? true
+            : process.env[ENV_VARS.HEADLESS] === '1' && process.env[ENV_VARS.XVFB] !== '1';
     }
     if (optsCopy.useChrome && (optsCopy.executablePath === undefined || optsCopy.executablePath === null)) {
         optsCopy.executablePath = process.env[ENV_VARS.CHROME_EXECUTABLE_PATH] || getTypicalChromeExecutablePath();
@@ -182,12 +185,6 @@ export const launchPuppeteer = (opts = {}) => {
     }
     if (userAgent) {
         optsCopy.args.push(`--user-agent=${userAgent}`);
-    }
-
-    // forcing headless with liveView, otherwise
-    // screenshots open a new browser window
-    if (optsCopy.liveView === true) {
-        optsCopy.headless = true;
     }
 
     let browserPromise;
