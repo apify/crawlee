@@ -1,29 +1,18 @@
 import http from 'http';
+import url from 'url';
 import log from 'apify-shared/log';
 import Promise from 'bluebird';
-
-const encodeImg = (buffer) => {
-    return `
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Page screenshot</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <meta http-equiv="refresh" content="1">
-</head>
-<body>
-<div>
-    <img src="data:image/png;base64, ${buffer.toString('base64')}" alt="Page screenshot" />
-</div> 
-</body>
-</html>
-`;
-};
+import { checkParamOrThrow } from 'apify-client/build/utils';
+import { Router, dispatcher } from './live_view_router';
+import { imgPage, errorPage } from './live_view_html';
 
 class LiveViewBrowser {
-    constructor(browser) {
+    constructor(browser, opts = {}) {
         this.browser = browser;
         this.pages = new WeakMap();
+
+        checkParamOrThrow(opts.id, 'opts.id', 'Maybe String');
+        this.id = opts.id;
 
         browser.on('targetcreated', (target) => {
             if (target.type() === 'page') {
@@ -44,15 +33,10 @@ class LiveViewBrowser {
                 }
             })
             .then((shot) => {
-                const img = encodeImg(shot);
-                res.setHeader('Content-Type', 'text/html');
-                res.writeHead(200);
-                res.end(img);
+                dispatcher(res, imgPage(shot));
             })
             .catch((err) => {
-                res.setHeader('Content-Type', 'text/plain');
-                res.writeHead(500);
-                res.end(err.message);
+                dispatcher(res, errorPage(err.message), 500);
             });
     }
 
@@ -108,36 +92,49 @@ class LiveViewBrowser {
 }
 
 export default class LiveViewServer {
-    constructor(options) {
-        this.options = options;
+    constructor(opts = {}) {
+        checkParamOrThrow(opts, 'opts', 'Object');
+        checkParamOrThrow(opts.port, 'opts.port', 'Maybe String | Number');
         this.browsers = [];
+        this.port = Number(opts.port) || 1234;
+        this.httpServer = null;
+        this.browserCounter = 0;
+        this.router = new Router();
     }
 
-    static start(browserPromise, options) {
-        const server = new LiveViewServer(options);
-        server.registerBrowser(browserPromise)
-            .then(server.createServer())
-            .catch(err => log.error(err.message));
-    }
+    static start(browserPromise, opts = {}) {
+        if (!LiveViewServer.server) {
+            LiveViewServer.server = new LiveViewServer(opts);
+            LiveViewServer.server.startServer();
+        }
+        const lvs = LiveViewServer.server;
+        // TODO Ensure uniqueness of IDs.
+        const browserOpts = {
+            id: opts.browserId || `${++lvs.browserCounter}`,
+        };
 
-    registerBrowser(browserPromise) {
         return browserPromise
-            .then(browser => this.browsers.push(new LiveViewBrowser(browser)));
+            .then((browser) => {
+                const lvb = new LiveViewBrowser(browser, browserOpts);
+                lvs.browsers.push(lvb);
+                lvs.router.addBrowser(lvb);
+            });
     }
 
-    createServer() {
-        return new Promise((resolve, reject) => {
-            http.createServer((req, res) => {
-                if (this.browsers[0]) {
-                    this.browsers[0].routeHandler(req, res);
-                }
-            })
-                .listen(1234, (err) => {
-                    if (err) reject(err);
-                    log.info('Live view server is listening on port 1234.');
-                    resolve();
-                });
+    startServer() {
+        const server = http.createServer(this._requestListener.bind(this));
+        server.listen(this.port, (err) => {
+            if (err) reject(err);
+            log.info(`Live view server is listening on port ${this.port}.`);
+            this.httpServer = server;
         });
+    }
+
+    _requestListener(req, res) {
+        const parsedUrl = url.parse(req.url, true);
+        const path = parsedUrl.pathname.replace(/^\/+|\/+$/g, '');
+        req.lvs = this;
+        this.router.handle(path, req, res);
     }
 }
 
