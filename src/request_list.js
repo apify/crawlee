@@ -3,7 +3,6 @@ import log from 'apify-shared/log';
 import _ from 'underscore';
 import Promise from 'bluebird';
 import requestPromise from 'request-promise';
-import { sequentializePromises } from 'apify-shared/utilities';
 import Request from './request';
 import events from './events';
 import { ACTOR_EVENT_NAMES } from './constants';
@@ -132,14 +131,7 @@ export default class RequestList {
 
         this.isLoading = false;
         this.isInitialized = false;
-
-        // We'll load all sources in sequence to ensure that they get loaded in the right order.
-        this.loadSourcesPromiseGenerators = sources.map((source) => {
-            if (source.requestsFromUrl) return () => this._addRequestsFromUrl(source);
-
-            // TODO: One promise per each item is too much overheads, we could cluster items into single Promise.
-            return () => Promise.resolve(this._addRequest(source));
-        });
+        this.sources = sources;
     }
 
     /**
@@ -153,7 +145,14 @@ export default class RequestList {
         }
         this.isLoading = true;
 
-        return sequentializePromises(this.loadSourcesPromiseGenerators)
+        // We'll load all sources in sequence to ensure that they get loaded in the right order.
+        return Promise
+            .mapSeries(this.sources, (source) => {
+                // TODO: One promise per each item is too much overheads, we could cluster items into single Promise.
+                return source.requestsFromUrl
+                    ? this._addRequestsFromUrl(source)
+                    : Promise.resolve(this._addRequest(source));
+            })
             .then(() => this.initialStatePromise)
             .then((state) => {
                 if (!state) return;
