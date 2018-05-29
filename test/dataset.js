@@ -9,7 +9,7 @@ import { ENV_VARS } from '../build/constants';
 import { LEFTPAD_COUNT, Dataset, DatasetLocal, LOCAL_EMULATION_SUBDIR } from '../build/dataset';
 import { apifyClient } from '../build/utils';
 import * as Apify from '../build/index';
-import { LOCAL_EMULATION_DIR, emptyLocalEmulationSubdir, expectNotLocalEmulation } from './_helper';
+import { LOCAL_EMULATION_DIR, emptyLocalEmulationSubdir, expectNotLocalEmulation, expectDirEmpty, expectDirNonEmpty } from './_helper';
 
 chai.use(chaiAsPromised);
 
@@ -47,6 +47,12 @@ describe('dataset', () => {
             const newDataset = new DatasetLocal('my-dataset', LOCAL_EMULATION_DIR);
             await newDataset.pushData({ foo2: 'bar2' });
             expect(read('my-dataset', 5)).to.be.eql({ foo2: 'bar2' });
+
+            // Delete works.
+            const datasetDir = path.join(LOCAL_EMULATION_DIR, LOCAL_EMULATION_SUBDIR, 'my-dataset');
+            expectDirNonEmpty(datasetDir);
+            await newDataset.delete();
+            expectDirEmpty(datasetDir);
         });
     });
 
@@ -71,6 +77,12 @@ describe('dataset', () => {
                 { foo: 'hotel;' },
                 { foo: 'restaurant' },
             ]);
+
+            mock.expects('deleteDataset')
+                .once()
+                .withArgs({ datasetId: 'some-id' })
+                .returns(Promise.resolve());
+            await dataset.delete();
 
             mock.verify();
             mock.restore();

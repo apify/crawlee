@@ -1,3 +1,7 @@
+xxxxxxxxxxxxxxxxxxx
+===================
+- Added `delete()` method to `RequestQueue`, `Dataset` and `KeyValueStore` classes.
+
 0.5.34 / 2018-05-18
 ===================
 - Added `loggingIntervalMillis` options to `AutoscaledPool`

@@ -1,4 +1,5 @@
 import fs from 'fs';
+import fsExtra from 'fs-extra';
 import path from 'path';
 import _ from 'underscore';
 import Promise from 'bluebird';
@@ -14,6 +15,7 @@ const MAX_OPENED_STORES = 1000;
 
 const writeFilePromised = Promise.promisify(fs.writeFile);
 const readdirPromised = Promise.promisify(fs.readdir);
+const emptyDirPromised = Promise.promisify(fsExtra.emptyDir);
 
 const { datasets } = apifyClient;
 const datasetsCache = new LruCache({ maxLength: MAX_OPENED_STORES }); // Open Datasets are stored here.
@@ -51,6 +53,21 @@ export class Dataset {
             datasetId: this.datasetId,
             data,
         });
+    }
+
+    /**
+     * Deletes the dataset.
+     *
+     * @return {Promise}
+     */
+    delete() {
+        return datasets
+            .deleteDataset({
+                datasetId: this.datasetId,
+            })
+            .then(() => {
+                datasetsCache.remove(this.datasetId);
+            });
     }
 }
 
@@ -101,6 +118,13 @@ export class DatasetLocal {
                 });
 
                 return Promise.all(promises);
+            });
+    }
+
+    delete() {
+        return emptyDirPromised(this.localEmulationPath)
+            .then(() => {
+                datasetsCache.remove(this.datasetId);
             });
     }
 }

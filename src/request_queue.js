@@ -31,6 +31,7 @@ const writeFilePromised = Promise.promisify(fs.writeFile);
 const readdirPromised = Promise.promisify(fs.readdir);
 const readFilePromised = Promise.promisify(fs.readFile);
 const moveFilePromised = Promise.promisify(fsExtra.move);
+const emptyDirPromised = Promise.promisify(fsExtra.emptyDir);
 
 const { requestQueues } = apifyClient;
 const queuesCache = new LruCache({ maxLength: MAX_OPENED_QUEUES }); // Open queues are stored here.
@@ -456,6 +457,21 @@ export class RequestQueue {
                 }
             });
     }
+
+    /**
+     * Deletes the queue.
+     *
+     * @return {Promise}
+     */
+    delete() {
+        return requestQueues
+            .deleteQueue({
+                queueId: this.queueId,
+            })
+            .then(() => {
+                queuesCache.remove(this.queueId);
+            });
+    }
 }
 
 /**
@@ -700,6 +716,13 @@ export class RequestQueueLocal {
     isFinished() {
         return this.initializationPromise
             .then(() => this.pendingCount === 0);
+    }
+
+    delete() {
+        return emptyDirPromised(this.localEmulationPath)
+            .then(() => {
+                queuesCache.remove(this.queueId);
+            });
     }
 }
 

@@ -2,11 +2,12 @@ import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import 'babel-polyfill';
 import sinon from 'sinon';
+import path from 'path';
 import { ENV_VARS } from '../build/constants';
 import { KeyValueStoreLocal, KeyValueStore, maybeStringify, LOCAL_EMULATION_SUBDIR } from '../build/key_value_store';
 import { apifyClient } from '../build/utils';
 import * as Apify from '../build/index';
-import { LOCAL_EMULATION_DIR, emptyLocalEmulationSubdir, expectNotLocalEmulation } from './_helper';
+import { LOCAL_EMULATION_DIR, emptyLocalEmulationSubdir, expectNotLocalEmulation, expectDirEmpty, expectDirNonEmpty } from './_helper';
 
 chai.use(chaiAsPromised);
 
@@ -65,6 +66,12 @@ describe('KeyValueStore', () => {
             expect(await store.getValue('key-buffer')).to.be.eql(buffer);
             expect(await store.getValue('key-nonexist')).to.be.eql(null);
             expect(await store2.getValue('key-obj')).to.be.eql({ foo: 'hotel' });
+
+            // Delete works.
+            const storeDir = path.join(LOCAL_EMULATION_DIR, LOCAL_EMULATION_SUBDIR, 'my-store-id');
+            expectDirNonEmpty(storeDir);
+            await store.delete();
+            expectDirEmpty(storeDir);
         });
     });
 
@@ -107,6 +114,15 @@ describe('KeyValueStore', () => {
                 })
                 .returns(Promise.resolve(null));
             await store.setValue('key-1', null);
+
+            // Delete.
+            mock.expects('deleteStore')
+                .once()
+                .withArgs({
+                    storeId: 'some-id-1',
+                })
+                .returns(Promise.resolve());
+            await store.delete();
 
             mock.verify();
             mock.restore();
