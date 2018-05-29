@@ -6,7 +6,7 @@ import path from 'path';
 import sinon from 'sinon';
 import { leftpad, delayPromise } from 'apify-shared/utilities';
 import { ENV_VARS } from '../build/constants';
-import { LEFTPAD_COUNT, Dataset, DatasetLocal, LOCAL_EMULATION_SUBDIR } from '../build/dataset';
+import { LOCAL_FILENAME_DIGITS, Dataset, DatasetLocal, LOCAL_EMULATION_SUBDIR, LOCAL_GET_ITEMS_DEFAULT_LIMIT } from '../build/dataset';
 import { apifyClient } from '../build/utils';
 import * as Apify from '../build/index';
 import { LOCAL_EMULATION_DIR, emptyLocalEmulationSubdir, expectNotLocalEmulation, expectDirEmpty, expectDirNonEmpty } from './_helper';
@@ -14,7 +14,7 @@ import { LOCAL_EMULATION_DIR, emptyLocalEmulationSubdir, expectNotLocalEmulation
 chai.use(chaiAsPromised);
 
 const read = (datasetName, index) => {
-    const fileName = `${leftpad(index, LEFTPAD_COUNT, 0)}.json`;
+    const fileName = `${leftpad(index, LOCAL_FILENAME_DIGITS, 0)}.json`;
     const filePath = path.join(LOCAL_EMULATION_DIR, LOCAL_EMULATION_SUBDIR, datasetName, fileName);
     const str = fs.readFileSync(path.resolve(filePath));
 
@@ -28,7 +28,7 @@ describe('dataset', () => {
     afterEach(() => emptyLocalEmulationSubdir(LOCAL_EMULATION_SUBDIR));
 
     describe('local', async () => {
-        it('should work', async () => {
+        it('should succesfully save data', async () => {
             const dataset = new DatasetLocal('my-dataset', LOCAL_EMULATION_DIR);
 
             await dataset.pushData({ foo: 'bar' });
@@ -54,12 +54,193 @@ describe('dataset', () => {
             await newDataset.delete();
             expectDirEmpty(datasetDir);
         });
+
+        const getLocalDataset = async (data) => {
+            const dataset = new DatasetLocal('my-dataset', LOCAL_EMULATION_DIR);
+            await dataset.pushData(data);
+
+            return dataset;
+        };
+
+        it('getData() should work', async () => {
+            const dataset = await getLocalDataset([
+                { foo: 'a' },
+                { foo: 'b' },
+                { foo: 'c' },
+                { foo: 'd' },
+            ]);
+
+            expect(await dataset.getData()).to.be.eql({
+                items: [
+                    { foo: 'a' },
+                    { foo: 'b' },
+                    { foo: 'c' },
+                    { foo: 'd' },
+                ],
+                total: 4,
+                offset: 0,
+                count: 4,
+                limit: LOCAL_GET_ITEMS_DEFAULT_LIMIT,
+            });
+
+            expect(await dataset.getData({ offset: 2 })).to.be.eql({
+                items: [
+                    { foo: 'c' },
+                    { foo: 'd' },
+                ],
+                total: 4,
+                offset: 2,
+                count: 2,
+                limit: LOCAL_GET_ITEMS_DEFAULT_LIMIT,
+            });
+
+            expect(await dataset.getData({ offset: 1, limit: 2 })).to.be.eql({
+                items: [
+                    { foo: 'b' },
+                    { foo: 'c' },
+                ],
+                total: 4,
+                offset: 1,
+                count: 2,
+                limit: 2,
+            });
+        });
+
+        it('forEach() should work', async () => {
+            const dataset = await getLocalDataset([
+                { foo: 'a' },
+                { foo: 'b' },
+                { foo: 'c' },
+                { foo: 'd' },
+            ]);
+
+            const items = [];
+            const indexes = [];
+
+            const result = await dataset.forEach((item, index) => {
+                items.push(item);
+                indexes.push(index);
+            });
+            expect(result).to.be.eql(undefined);
+            expect(items).to.be.eql([
+                { foo: 'a' },
+                { foo: 'b' },
+                { foo: 'c' },
+                { foo: 'd' },
+            ]);
+            expect(indexes).to.be.eql([0, 1, 2, 3]);
+        });
+
+        it('map() should work', async () => {
+            const dataset = await getLocalDataset([
+                { foo: 'a' },
+                { foo: 'b' },
+                { foo: 'c' },
+                { foo: 'd' },
+            ]);
+
+            const result = await dataset.map((item, index) => {
+                return Object.assign({ index, bar: 'xxx' }, item);
+            });
+
+            expect(result).to.be.eql([
+                { foo: 'a', index: 0, bar: 'xxx' },
+                { foo: 'b', index: 1, bar: 'xxx' },
+                { foo: 'c', index: 2, bar: 'xxx' },
+                { foo: 'd', index: 3, bar: 'xxx' },
+            ]);
+        });
+
+        it('map() should support promises', async () => {
+            const dataset = await getLocalDataset([
+                { foo: 'a' },
+                { foo: 'b' },
+                { foo: 'c' },
+                { foo: 'd' },
+            ]);
+
+            const result = await dataset.map((item, index) => {
+                const res = Object.assign({ index, bar: 'xxx' }, item);
+                return Promise.resolve(res);
+            });
+
+            expect(result).to.be.eql([
+                { foo: 'a', index: 0, bar: 'xxx' },
+                { foo: 'b', index: 1, bar: 'xxx' },
+                { foo: 'c', index: 2, bar: 'xxx' },
+                { foo: 'd', index: 3, bar: 'xxx' },
+            ]);
+        });
+
+        it('reduce() should work', async () => {
+            const dataset = await getLocalDataset([
+                { foo: 'a' },
+                { foo: 'b' },
+                { foo: 'c' },
+                { foo: 'd' },
+            ]);
+
+            const result = await dataset.reduce((memo, item, index) => {
+                item.index = index;
+                item.bar = 'xxx';
+
+                return memo.concat(item);
+            }, []);
+
+            expect(result).to.be.eql([
+                { foo: 'a', index: 0, bar: 'xxx' },
+                { foo: 'b', index: 1, bar: 'xxx' },
+                { foo: 'c', index: 2, bar: 'xxx' },
+                { foo: 'd', index: 3, bar: 'xxx' },
+            ]);
+        });
+
+        it('reduce() should support promises', async () => {
+            const dataset = await getLocalDataset([
+                { foo: 'a' },
+                { foo: 'b' },
+                { foo: 'c' },
+                { foo: 'd' },
+            ]);
+
+            const result = await dataset.reduce((memo, item, index) => {
+                item.index = index;
+                item.bar = 'xxx';
+
+                return Promise.resolve(memo.concat(item));
+            }, []);
+
+            expect(result).to.be.eql([
+                { foo: 'a', index: 0, bar: 'xxx' },
+                { foo: 'b', index: 1, bar: 'xxx' },
+                { foo: 'c', index: 2, bar: 'xxx' },
+                { foo: 'd', index: 3, bar: 'xxx' },
+            ]);
+        });
+
+        it('reduce() uses first value as memo if no memo is provided', async () => {
+            const dataset = await getLocalDataset([
+                { foo: 4 },
+                { foo: 5 },
+                { foo: 2 },
+                { foo: 1 },
+            ]);
+
+            const calledForIndexes = [];
+
+            const result = await dataset.reduce((memo, item, index) => {
+                calledForIndexes.push(index);
+                return Promise.resolve(memo.foo > item.foo ? memo : item);
+            });
+
+            expect(result.foo).to.be.eql(5);
+            expect(calledForIndexes).to.be.eql([1, 2, 3]);
+        });
     });
 
     describe('remote', async () => {
-        it('should work', async () => {
+        it('should succesfully save data', async () => {
             const dataset = new Dataset('some-id');
-
             const mock = sinon.mock(apifyClient.datasets);
 
             mock.expects('putItems')
@@ -86,6 +267,242 @@ describe('dataset', () => {
 
             mock.verify();
             mock.restore();
+        });
+
+
+        it('getData() should work', async () => {
+            const dataset = new Dataset('some-id');
+            const mock = sinon.mock(apifyClient.datasets);
+
+            const expected = {
+                items: [
+                    { foo: 'bar' },
+                    { foo: 'hotel' },
+                ],
+                limit: 2,
+                total: 1000,
+                offset: 3,
+            };
+
+            mock.expects('getItems')
+                .once()
+                .withArgs({
+                    datasetId: 'some-id',
+                    limit: 2,
+                    offset: 3,
+                })
+                .returns(Promise.resolve(expected));
+
+            const result = await dataset.getData({ limit: 2, offset: 3 });
+
+            expect(result).to.be.eql(expected);
+
+            mock.verify();
+            mock.restore();
+        });
+
+        const getRemoteDataset = () => {
+            const dataset = new Dataset('some-id');
+            const mock = sinon.mock(apifyClient.datasets);
+
+            mock.expects('getItems')
+                .once()
+                .withArgs({
+                    datasetId: 'some-id',
+                    limit: 2,
+                    offset: 0,
+                })
+                .returns(Promise.resolve({
+                    items: [
+                        { foo: 'a' },
+                        { foo: 'b' },
+                    ],
+                    limit: 2,
+                    total: 4,
+                    offset: 0,
+                }));
+
+            mock.expects('getItems')
+                .once()
+                .withArgs({
+                    datasetId: 'some-id',
+                    limit: 2,
+                    offset: 2,
+                })
+                .returns(Promise.resolve({
+                    items: [
+                        { foo: 'c' },
+                        { foo: 'd' },
+                    ],
+                    limit: 2,
+                    total: 4,
+                    offset: 2,
+                }));
+
+            const restoreAndVerify = () => {
+                mock.verify();
+                mock.restore();
+            };
+
+            return { dataset, restoreAndVerify };
+        };
+
+        it('forEach() should work', async () => {
+            const { dataset, restoreAndVerify } = getRemoteDataset();
+
+            const items = [];
+            const indexes = [];
+            const result = await dataset.forEach((item, index) => {
+                items.push(item);
+                indexes.push(index);
+            }, {
+                limit: 2,
+            });
+            expect(result).to.be.eql(undefined);
+            expect(items).to.be.eql([
+                { foo: 'a' },
+                { foo: 'b' },
+                { foo: 'c' },
+                { foo: 'd' },
+            ]);
+            expect(indexes).to.be.eql([0, 1, 2, 3]);
+
+            restoreAndVerify();
+        });
+
+        it('map() should work', async () => {
+            const { dataset, restoreAndVerify } = getRemoteDataset();
+
+            const result = await dataset.map((item, index) => {
+                return Object.assign({ index, bar: 'xxx' }, item);
+            }, {
+                limit: 2,
+            });
+
+            expect(result).to.be.eql([
+                { foo: 'a', index: 0, bar: 'xxx' },
+                { foo: 'b', index: 1, bar: 'xxx' },
+                { foo: 'c', index: 2, bar: 'xxx' },
+                { foo: 'd', index: 3, bar: 'xxx' },
+            ]);
+
+            restoreAndVerify();
+        });
+
+        it('map() should support promises', async () => {
+            const { dataset, restoreAndVerify } = getRemoteDataset();
+
+            const result = await dataset.map((item, index) => {
+                const res = Object.assign({ index, bar: 'xxx' }, item);
+                return Promise.resolve(res);
+            }, {
+                limit: 2,
+            });
+
+            expect(result).to.be.eql([
+                { foo: 'a', index: 0, bar: 'xxx' },
+                { foo: 'b', index: 1, bar: 'xxx' },
+                { foo: 'c', index: 2, bar: 'xxx' },
+                { foo: 'd', index: 3, bar: 'xxx' },
+            ]);
+
+            restoreAndVerify();
+        });
+
+        it('reduce() should work', async () => {
+            const { dataset, restoreAndVerify } = getRemoteDataset();
+
+            const result = await dataset.reduce((memo, item, index) => {
+                item.index = index;
+                item.bar = 'xxx';
+
+                return memo.concat(item);
+            }, [], {
+                limit: 2,
+            });
+
+            expect(result).to.be.eql([
+                { foo: 'a', index: 0, bar: 'xxx' },
+                { foo: 'b', index: 1, bar: 'xxx' },
+                { foo: 'c', index: 2, bar: 'xxx' },
+                { foo: 'd', index: 3, bar: 'xxx' },
+            ]);
+
+            restoreAndVerify();
+        });
+
+        it('reduce() should support promises', async () => {
+            const { dataset, restoreAndVerify } = getRemoteDataset();
+
+            const result = await dataset.reduce((memo, item, index) => {
+                item.index = index;
+                item.bar = 'xxx';
+
+                return Promise.resolve(memo.concat(item));
+            }, [], {
+                limit: 2,
+            });
+
+            expect(result).to.be.eql([
+                { foo: 'a', index: 0, bar: 'xxx' },
+                { foo: 'b', index: 1, bar: 'xxx' },
+                { foo: 'c', index: 2, bar: 'xxx' },
+                { foo: 'd', index: 3, bar: 'xxx' },
+            ]);
+
+            restoreAndVerify();
+        });
+
+        it('reduce() uses first value as memo if no memo is provided', async () => {
+            const dataset = new Dataset('some-id');
+            const mock = sinon.mock(apifyClient.datasets);
+
+            mock.expects('getItems')
+                .once()
+                .withArgs({
+                    datasetId: 'some-id',
+                    limit: 2,
+                    offset: 0,
+                })
+                .returns(Promise.resolve({
+                    items: [
+                        { foo: 4 },
+                        { foo: 5 },
+                    ],
+                    limit: 2,
+                    total: 4,
+                    offset: 0,
+                }));
+
+
+            mock.expects('getItems')
+                .once()
+                .withArgs({
+                    datasetId: 'some-id',
+                    limit: 2,
+                    offset: 2,
+                })
+                .returns(Promise.resolve({
+                    items: [
+                        { foo: 4 },
+                        { foo: 1 },
+                    ],
+                    limit: 2,
+                    total: 4,
+                    offset: 2,
+                }));
+
+            const calledForIndexes = [];
+
+            const result = await dataset.reduce((memo, item, index) => {
+                calledForIndexes.push(index);
+                return Promise.resolve(memo.foo > item.foo ? memo : item);
+            }, undefined, {
+                limit: 2,
+            });
+
+            expect(result.foo).to.be.eql(5);
+            expect(calledForIndexes).to.be.eql([1, 2, 3]);
         });
     });
 

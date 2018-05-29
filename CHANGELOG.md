@@ -1,5 +1,6 @@
 xxxxxxxxxxxxxxxxxxx
 ===================
+- Added `dataset.detData()`, `dataset.map()`, `dataset.forEach()` and `dataset.reduce()` functions.
 - Added `delete()` method to `RequestQueue`, `Dataset` and `KeyValueStore` classes.
 
 0.5.34 / 2018-05-18
