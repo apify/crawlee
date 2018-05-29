@@ -1,4 +1,5 @@
 import fs from 'fs';
+import fsExtra from 'fs-extra';
 import path from 'path';
 import _ from 'underscore';
 import Promise from 'bluebird';
@@ -16,6 +17,8 @@ const MAX_OPENED_STORES = 1000;
 const writeFilePromised = Promise.promisify(fs.writeFile);
 const readFilePromised = Promise.promisify(fs.readFile);
 const readdirPromised = Promise.promisify(fs.readdir);
+const emptyDirPromised = Promise.promisify(fsExtra.emptyDir);
+
 const getLocaleFilename = index => `${leftpad(index, LOCAL_FILENAME_DIGITS, 0)}.json`;
 
 const { datasets } = apifyClient;
@@ -208,6 +211,21 @@ export class Dataset {
             .forEach(wrappedFunc, opts)
             .then(() => currentMemo);
     }
+
+    /**
+     * Deletes the dataset.
+     *
+     * @return {Promise}
+     */
+    delete() {
+        return datasets
+            .deleteDataset({
+                datasetId: this.datasetId,
+            })
+            .then(() => {
+                datasetsCache.remove(this.datasetId);
+            });
+    }
 }
 
 /**
@@ -314,6 +332,13 @@ export class DatasetLocal {
                     ._readAndParseFile(index)
                     .then(item => iteratee(currentMemo, item, index - 1));
             }, memo);
+    }
+
+    delete() {
+        return emptyDirPromised(this.localEmulationPath)
+            .then(() => {
+                datasetsCache.remove(this.datasetId);
+            });
     }
 
     /**
