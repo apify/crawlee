@@ -23,3 +23,13 @@ export const emptyLocalEmulationSubdir = (subdir) => {
 };
 
 export const expectNotLocalEmulation = () => expect(process.env[ENV_VARS.LOCAL_EMULATION_DIR]).to.be.a('undefined');
+
+export const expectDirEmpty = (dirPath) => {
+    const content = fs.readdirSync(dirPath);
+    expect(content).to.have.lengthOf(0);
+};
+
+export const expectDirNonEmpty = (dirPath) => {
+    const content = fs.readdirSync(dirPath);
+    expect(content).to.have.lengthOf.above(0);
+};
