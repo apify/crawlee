@@ -1,6 +1,6 @@
 xxxxxxxxxxxxxxxxxxx
 ===================
-- Added `dataset.map()`, `dataset.forEach()` and `dataset.reduce()` functions.
+- Added `dataset.detData()`, `dataset.map()`, `dataset.forEach()` and `dataset.reduce()` functions.
 
 0.5.34 / 2018-05-18
 ===================
