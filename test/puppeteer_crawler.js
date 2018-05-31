@@ -1,7 +1,6 @@
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import 'babel-polyfill';
-import { delayPromise } from 'apify-shared/utilities';
 import { ENV_VARS } from '../build/constants';
 import * as Apify from '../build/index';
 
