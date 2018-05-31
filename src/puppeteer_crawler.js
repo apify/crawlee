@@ -2,7 +2,6 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import log from 'apify-shared/log';
 import _ from 'underscore';
 import Promise from 'bluebird';
-import { delayPromise } from 'apify-shared/utilities';
 import BasicCrawler from './basic_crawler';
 import PuppeteerPool from './puppeteer_pool';
 import { isPromise, createTimeoutPromise } from './utils';
