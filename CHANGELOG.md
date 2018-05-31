@@ -1,3 +1,7 @@
+0.5.36 / 2018-05-31
+===================
+- Added 30s timeout to `page.close()` operation in `PuppeteerCrawler`.
+
 0.5.35 / 2018-05-29
 ===================
 - Added `dataset.detData()`, `dataset.map()`, `dataset.forEach()` and `dataset.reduce()` functions.
