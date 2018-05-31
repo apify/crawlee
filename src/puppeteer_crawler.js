@@ -2,13 +2,15 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import log from 'apify-shared/log';
 import _ from 'underscore';
 import Promise from 'bluebird';
+import { delayPromise } from 'apify-shared/utilities';
 import BasicCrawler from './basic_crawler';
 import PuppeteerPool from './puppeteer_pool';
-import { isPromise } from './utils';
+import { isPromise, createTimeoutPromise } from './utils';
 
 const DEFAULT_OPTIONS = {
     gotoFunction: ({ request, page }) => page.goto(request.url),
     pageOpsTimeoutMillis: 300000,
+    pageCloseTimeoutMillis: 30000,
 };
 
 /**
@@ -112,6 +114,7 @@ const DEFAULT_OPTIONS = {
  * @param {LaunchPuppeteerOptions} [options.launchPuppeteerOptions]
  *   Options used by `Apify.launchPuppeteer()` to start new Puppeteer instances.
  *   See `launchPuppeteerOptions` parameter of `PuppeteerPool`.
+ * @param {Number} [options.pageCloseTimeoutMillis=30000] Timeout for `page.close()` in milliseconds.
  */
 export default class PuppeteerCrawler {
     constructor(opts) {
@@ -125,6 +128,7 @@ export default class PuppeteerCrawler {
             handlePageFunction,
             gotoFunction,
             pageOpsTimeoutMillis,
+            pageCloseTimeoutMillis,
 
             // Autoscaled pool options
             maxMemoryMbytes,
@@ -151,11 +155,12 @@ export default class PuppeteerCrawler {
         checkParamOrThrow(handlePageFunction, 'opts.handlePageFunction', 'Function');
         checkParamOrThrow(handleFailedRequestFunction, 'opts.handleFailedRequestFunction', 'Maybe Function');
         checkParamOrThrow(gotoFunction, 'opts.gotoFunction', 'Function');
-        checkParamOrThrow(pageOpsTimeoutMillis, 'opts.pageOpsTimeoutMillis', 'Number');
+        checkParamOrThrow(pageCloseTimeoutMillis, 'opts.pageCloseTimeoutMillis', 'Number');
 
         this.handlePageFunction = handlePageFunction;
         this.gotoFunction = gotoFunction;
         this.pageOpsTimeoutMillis = pageOpsTimeoutMillis;
+        this.pageCloseTimeoutMillis = pageCloseTimeoutMillis;
 
         this.puppeteerPool = new PuppeteerPool({
             maxOpenPagesPerInstance,
@@ -219,15 +224,19 @@ export default class PuppeteerCrawler {
                 return promise;
             });
 
-        const timeoutPromise = new Promise(resolve => setTimeout(resolve, this.pageOpsTimeoutMillis));
-
         return Promise
             .race([
                 handlePagePromise,
-                timeoutPromise.then(() => { throw new Error('PuppeteerCrawler: handlePageFunction timed out'); }),
+                createTimeoutPromise(this.pageOpsTimeoutMillis, 'PuppeteerCrawler: handlePageFunction timed out.'),
             ])
             .finally(() => {
-                if (page) return page.close();
+                if (!page) return;
+
+                return Promise
+                    .race([
+                        page.close(),
+                        createTimeoutPromise(this.pageCloseTimeoutMillis, 'PuppeteerCrawler: page.close() timed out.'),
+                    ]);
             });
     }
 }

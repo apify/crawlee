@@ -269,7 +269,7 @@ export const getFirstKey = (dict) => {
 /**
  * Gets a typical path to Chrome executable, depending on the current operating system.
  *
- * @returns {string}
+ * @return {string}
  * @ignore
  */
 export const getTypicalChromeExecutablePath = () => {
@@ -278,6 +278,18 @@ export const getTypicalChromeExecutablePath = () => {
     case 'win32': return 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe';
     default: return 'google-chrome';
     }
+};
+
+/**
+ * Creates a promise that after given time gets rejected with given error.
+ *
+ * @return {Promise<Error>}
+ * @ignore.
+ */
+export const createTimeoutPromise = (timeoutMillis, errorMessage) => {
+    return delayPromise(timeoutMillis).then(() => {
+        throw new Error(errorMessage);
+    });
 };
 
 /**
@@ -291,7 +303,6 @@ export const getTypicalChromeExecutablePath = () => {
  * @function
  */
 export const isAtHome = () => !!process.env[ENV_VARS.IS_AT_HOME];
-
 
 /**
  * Returns a promise that resolves after a specific period of time. This is useful to implement waiting
