@@ -146,7 +146,7 @@ const enqueueRequestsFromClickableElements = async (page, selector, purls, reque
  * await page.goto('https://www.example.com');
  *
  * // Inject jQuery into a page
- * await Apify.utils.puppeteer.injectJQueryScript(page);
+ * await Apify.utils.puppeteer.injectJQuery(page);
  * ```
  * @namespace utils.puppeteer
  * @name utils.puppeteer
