@@ -140,7 +140,7 @@ describe('Apify.utils.puppeteer', () => {
         }
     });
 
-    it('enqueueClickables()', async () => {
+    it('enqueueLinks()', async () => {
         const browser = await Apify.launchPuppeteer({ headless: true, dumpio: true });
 
         try {
@@ -178,7 +178,7 @@ describe('Apify.utils.puppeteer', () => {
                 new Apify.PseudoUrl('[http|https]://cool.com/', { userData: { foo: 'bar' } }),
             ];
 
-            await Apify.utils.puppeteer.enqueueClickables(page, '.click', purls, queue);
+            await Apify.utils.puppeteer.enqueueLinks(page, '.click', purls, queue);
 
             expect(enqueued[0].url).to.be.eql('https://example.com/a/b/first');
             expect(enqueued[0].method).to.be.eql('POST');
