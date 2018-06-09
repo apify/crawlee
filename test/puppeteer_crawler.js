@@ -1,7 +1,6 @@
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import 'babel-polyfill';
-import { delayPromise } from 'apify-shared/utilities';
 import { ENV_VARS } from '../build/constants';
 import * as Apify from '../build/index';
 
@@ -59,7 +58,7 @@ describe('PuppeteerCrawler', () => {
         });
     });
 
-    it('should fail when pageOpsTimeoutMillis gets exceeded', async () => {
+    it('should fail when pageCloseTimeoutMillis gets exceeded', async () => {
         const sources = [
             { url: 'http://example.com/?q=1' },
         ];
@@ -67,18 +66,24 @@ describe('PuppeteerCrawler', () => {
         const errors = [];
         const expectErrorMsgString = 'timed out';
         const requestList = new Apify.RequestList({ sources });
-        const handlePageFunction = async () => {
-            await delayPromise(1000);
+        const handlePageFunction = ({ page }) => {
+            page.close = () => {
+                return new Promise(() => {}); // This will never resolve.
+            };
+
+            return Promise.resolve();
         };
 
         const puppeteerCrawler = new Apify.PuppeteerCrawler({
             requestList,
             handlePageFunction,
             handleFailedRequestFunction: ({ request, error }) => {
+                console.log(errors);
+
                 failed.push(request);
                 errors.push(error);
             },
-            pageOpsTimeoutMillis: 900,
+            pageCloseTimeoutMillis: 1000,
         });
 
         await requestList.initialize();

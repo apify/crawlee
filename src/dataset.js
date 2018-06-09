@@ -1,4 +1,5 @@
 import fs from 'fs';
+import fsExtra from 'fs-extra';
 import path from 'path';
 import _ from 'underscore';
 import Promise from 'bluebird';
@@ -9,14 +10,28 @@ import { ENV_VARS, LOCAL_EMULATION_SUBDIRS } from './constants';
 import { apifyClient, ensureDirExists } from './utils';
 
 export const LOCAL_EMULATION_SUBDIR = LOCAL_EMULATION_SUBDIRS.datasets;
-export const LEFTPAD_COUNT = 9; // Used for filename in DatasetLocal.
+export const LOCAL_FILENAME_DIGITS = 9;
+export const LOCAL_GET_ITEMS_DEFAULT_LIMIT = 250000;
 const MAX_OPENED_STORES = 1000;
 
 const writeFilePromised = Promise.promisify(fs.writeFile);
+const readFilePromised = Promise.promisify(fs.readFile);
 const readdirPromised = Promise.promisify(fs.readdir);
+const emptyDirPromised = Promise.promisify(fsExtra.emptyDir);
+
+const getLocaleFilename = index => `${leftpad(index, LOCAL_FILENAME_DIGITS, 0)}.json`;
 
 const { datasets } = apifyClient;
 const datasetsCache = new LruCache({ maxLength: MAX_OPENED_STORES }); // Open Datasets are stored here.
+
+/**
+ * @typedef {Object} PaginationList
+ * @property {Array} items - List of returned objects
+ * @property {Number} total - Total number of object
+ * @property {Number} offset - Number of Request objects that was skipped at the start.
+ * @property {Number} count - Number of returned objects
+ * @property {Number} limit - Requested limit
+ */
 
 /**
  * The `Dataset` class provides a simple interface to the [Apify Dataset](https://www.apify.com/docs/storage#dataset) storage.
@@ -51,6 +66,165 @@ export class Dataset {
             datasetId: this.datasetId,
             data,
         });
+    }
+
+    /**
+     * Returns items in the dataset based on the provided parameters.
+     *
+     * If format is `json` then doesn't return an array of records but <a href="#PaginationList">PaginationList</a> instead.
+     *
+     * @param {Object} options
+     * @param {String} [options.format='json'] - Format of the items, possible values are: json, csv, xlsx, html, xml and rss.
+     * @param {Number} [options.offset=0] - Number of array elements that should be skipped at the start.
+     * @param {Number} [options.limit=250000] - Maximum number of array elements to return.
+     * @param {Number} [options.desc] - If 1 then the objects are sorted by createdAt in descending order.
+     * @param {Array} [options.fields] - If provided then returned objects will only contain specified keys
+     * @param {String} [options.unwind] - If provided then objects will be unwound based on provided field.
+     * @param {Boolean} [options.disableBodyParser] - If true then response from API will not be parsed
+     * @param {Number} [options.attachment] - If 1 then the response will define the Content-Disposition: attachment header, forcing a web
+     *                                        browser to download the file rather than to display it. By default this header is not present.
+     * @param {String} [options.delimiter=','] - A delimiter character for CSV files, only used if format=csv. You might need to URL-encode
+     *                                           the character (e.g. use %09 for tab or %3B for semicolon).
+     * @param {Number} [options.bom] - All responses are encoded in UTF-8 encoding. By default, the csv files are prefixed with the UTF-8 Byte
+     *                                 Order Mark (BOM), while json, jsonl, xml, html and rss files are not. If you want to override this default
+     *                                 behavior, specify bom=1 query parameter to include the BOM or bom=0 to skip it.
+     * @param {String} [options.xmlRoot] - Overrides default root element name of xml output. By default the root element is results.
+     * @param {String} [options.xmlRow] - Overrides default element name that wraps each page or page function result object in xml output.
+     *                                    By default the element name is page or result based on value of simplified parameter.
+     * @param {Number} [options.skipHeaderRow] - If set to `1` then header row in csv format is skipped.
+     * @return {Promise}
+     */
+    getData(opts = {}) {
+        const { datasetId } = this;
+        const params = Object.assign({ datasetId }, opts);
+
+        return datasets.getItems(params);
+    }
+
+    /**
+     * Iterates over the all dataset items, yielding each in turn to an iteratee function.
+     * Each invocation of iteratee is called with three arguments: (element, index).
+     *
+     * If iteratee returns a Promise then it's awaited before a next call.
+     *
+     * @param {Function} iteratee
+     * @param {Opts} opts
+     * @param {Number} [options.offset=0] - Number of array elements that should be skipped at the start.
+     * @param {Number} [options.desc] - If 1 then the objects are sorted by createdAt in descending order.
+     * @param {Array} [options.fields] - If provided then returned objects will only contain specified keys
+     * @param {String} [options.unwind] - If provided then objects will be unwound based on provided field.
+     * @param {Number} [options.limit=250000] - How many items to load in one request.
+     * @param {Number} index [description]
+     * @return {Promise<undefined>}
+     */
+    forEach(iteratee, opts = {}, index = 0) {
+        if (!opts.offset) opts.offset = 0;
+        if (opts.format && opts.format !== 'json') throw new Error('Dataset.forEach/map/reduce() support only a "json" format.');
+
+        return this
+            .getData(opts)
+            .then(({ items, total, limit, offset }) => {
+                return Promise
+                    .mapSeries(items, item => iteratee(item, index++))
+                    .then(() => {
+                        const newOffset = offset + limit;
+
+                        if (newOffset >= total) return undefined;
+
+                        const newOpts = Object.assign({}, opts, {
+                            offset: newOffset,
+                        });
+
+                        return this.forEach(iteratee, newOpts, index);
+                    });
+            });
+    }
+
+    /**
+     * Produces a new array of values by mapping each value in list through a transformation function (iteratee).
+     * Each invocation of iteratee is called with three arguments: (element, index).
+     *
+     * If iteratee returns a Promise then it's awaited before a next call.
+     *
+     * @param {Function} iteratee
+     * @param {Opts} opts
+     * @param {Number} [options.offset=0] - Number of array elements that should be skipped at the start.
+     * @param {Number} [options.desc] - If 1 then the objects are sorted by createdAt in descending order.
+     * @param {Array} [options.fields] - If provided then returned objects will only contain specified keys
+     * @param {String} [options.unwind] - If provided then objects will be unwound based on provided field.
+     * @param {Number} [options.limit=250000] - How many items to load in one request.
+     * @param {Number} index [description]
+     * @return {Promise<Array>}
+     */
+    map(iteratee, opts) {
+        const result = [];
+
+        const wrappedFunc = (item, index) => {
+            return Promise
+                .resolve()
+                .then(() => iteratee(item, index))
+                .then(res => result.push(res));
+        };
+
+        return this
+            .forEach(wrappedFunc, opts)
+            .then(() => result);
+    }
+
+    /**
+     * Memo is the initial state of the reduction, and each successive step of it should be returned by iteratee.
+     * The iteratee is passed three arguments: the memo, then the value and index of the iteration.
+     *
+     * If no memo is passed to the initial invocation of reduce, the iteratee is not invoked on the first element of the list.
+     * The first element is instead passed as the memo in the invocation of the iteratee on the next element in the list.
+     *
+     * If iteratee returns a Promise then it's awaited before a next call.
+     *
+     * @param {Function} iteratee
+     * @param {*} memo
+     * @param {Opts} opts
+     * @param {Number} [options.offset=0] - Number of array elements that should be skipped at the start.
+     * @param {Number} [options.desc] - If 1 then the objects are sorted by createdAt in descending order.
+     * @param {Array} [options.fields] - If provided then returned objects will only contain specified keys
+     * @param {String} [options.unwind] - If provided then objects will be unwound based on provided field.
+     * @param {Number} [options.limit=250000] - How many items to load in one request.
+     * @param {Number} index [description]
+     * @return {Promise<*>}
+     */
+    reduce(iteratee, memo, opts) {
+        let currentMemo = memo;
+
+        const wrappedFunc = (item, index) => {
+            return Promise
+                .resolve()
+                .then(() => {
+                    return !index && currentMemo === undefined
+                        ? item
+                        : iteratee(currentMemo, item, index);
+                })
+                .then((newMemo) => {
+                    currentMemo = newMemo;
+                });
+        };
+
+        return this
+            .forEach(wrappedFunc, opts)
+            .then(() => currentMemo);
+    }
+
+    /**
+     * Deletes the dataset.
+     *
+     * @return {Promise}
+     */
+    delete() {
+        return datasets
+            .deleteDataset({
+                datasetId: this.datasetId,
+            })
+            .then(() => {
+                datasetsCache.remove(this.datasetId);
+            });
     }
 }
 
@@ -94,14 +268,97 @@ export class DatasetLocal {
 
                     // Format JSON to simplify debugging, the overheads is negligible
                     const itemStr = JSON.stringify(item, null, 2);
-                    const fileName = `${leftpad(this.counter, LEFTPAD_COUNT, 0)}.json`;
-                    const filePath = path.join(this.localEmulationPath, fileName);
+                    const filePath = path.join(this.localEmulationPath, getLocaleFilename(this.counter));
 
                     return writeFilePromised(filePath, itemStr);
                 });
 
                 return Promise.all(promises);
             });
+    }
+
+    getData(opts = {}) {
+        checkParamOrThrow(opts, 'opts', 'Object');
+        checkParamOrThrow(opts.limit, 'opts.limit', 'Maybe Number');
+        checkParamOrThrow(opts.offset, 'opts.offset', 'Maybe Number');
+
+        if (!opts.limit) opts.limit = LOCAL_GET_ITEMS_DEFAULT_LIMIT;
+        if (!opts.offset) opts.offset = 0;
+
+        const indexes = this.getItemIndexes(opts.offset, opts.limit);
+
+        return Promise
+            .mapSeries(indexes, index => this._readAndParseFile(index))
+            .then((items) => {
+                return {
+                    items,
+                    total: this.counter,
+                    offset: opts.offset,
+                    count: items.length,
+                    limit: opts.limit,
+                };
+            });
+    }
+
+    forEach(iteratee) {
+        const indexes = this.getItemIndexes();
+
+        return Promise
+            .each(indexes, (index) => {
+                return this
+                    ._readAndParseFile(index)
+                    .then(item => iteratee(item, index - 1));
+            })
+            .then(() => undefined);
+    }
+
+    map(iteratee) {
+        const indexes = this.getItemIndexes();
+
+        return Promise
+            .map(indexes, (index) => {
+                return this
+                    ._readAndParseFile(index)
+                    .then(item => iteratee(item, index - 1));
+            });
+    }
+
+    reduce(iteratee, memo) {
+        const indexes = this.getItemIndexes();
+
+        return Promise
+            .reduce(indexes, (currentMemo, index) => {
+                return this
+                    ._readAndParseFile(index)
+                    .then(item => iteratee(currentMemo, item, index - 1));
+            }, memo);
+    }
+
+    delete() {
+        return emptyDirPromised(this.localEmulationPath)
+            .then(() => {
+                datasetsCache.remove(this.datasetId);
+            });
+    }
+
+    /**
+     * Returns an array of item indexes for given offset and limit.
+     */
+    getItemIndexes(offset = 0, limit = this.counter) {
+        return _.range(
+            offset + 1,
+            Math.min(offset + limit, this.counter) + 1,
+        );
+    }
+
+    /**
+     * Reads and parses file for given index.
+     */
+    _readAndParseFile(index) {
+        const filePath = path.join(this.localEmulationPath, getLocaleFilename(index));
+
+        return readFilePromised(filePath)
+            .then(json => JSON.parse(json));
     }
 }
 

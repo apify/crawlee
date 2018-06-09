@@ -17,30 +17,42 @@ const DEFAULT_OPTIONS = {
 };
 
 /**
- * Provides a simple framework for parallel crawling of web pages
- * from a list of URLs managed by the `RequestList` class
- * or dynamically enqueued URLs managed by `RequestQueue`.
+ * Provides a simple framework for parallel crawling of web pages,
+ * whose URLs are fed either from a static list (using the `RequestList` class)
+ * or from a dynamic queue of URLs (using the `RequestQueue` class).
  *
- * `BasicCrawler` simply calls `handleRequestFunction` for each request from `options.requestList` or `options.requestQueue` as long as
- * any of them is not empty. New requests are only handled if there is enough free CPU and memory available,
+ * `BasicCrawler` invokes `handleRequestFunction` for each `Request` object fetched from `options.requestList` or `options.requestQueue`,
+ * as long as any of them is not empty. New requests are only handled if there is enough free CPU and memory available,
  * using the functionality provided by the `AutoscaledPool` class.
  * Note that all `AutoscaledPool` configuration options can be passed to `options` parameter of the `BasicCrawler` constructor.
  *
  * If both `requestList` and `requestQueue` is used, the instance first
- * processes URLs from the `requestList` and automatically enqueues all of them to  `requestQueue` before it starts
- * their processing. This is to guarantee that a single URL is not crawled multiple times.
+ * processes URLs from the `requestList` and automatically enqueues all of them to `requestQueue` before it starts
+ * their processing. This guarantees that a single URL is not crawled multiple times.
  *
- * Basic usage:
+ * Example usage:
  *
  * ```javascript
  * const rp = require('request-promise');
  *
+ * // Prepare a list of URLs to crawl
+ * const requestList = new Apify.RequestList({
+ *   sources: [
+ *       { url: 'http://www.example.com/page-1' },
+ *       { url: 'http://www.example.com/page-2' },
+ *   ],
+ * });
+ * await requestList.initialize();
+ *
+ * // Crawl the URLs
  * const crawler = new Apify.BasicCrawler({
  *     requestList,
  *     handleRequestFunction: async ({ request }) => {
+ *         // 'request' contains an instance of the Request class
+ *         // Here we simply fetch the HTML of the page and store it to a dataset
  *         await Apify.pushData({
- *             html: await rp(request.url),
  *             url: request.url,
+ *             html: await rp(request.url),
  *         })
  *     },
  * });
@@ -49,25 +61,39 @@ const DEFAULT_OPTIONS = {
  * ```
  *
  * @param {Object} options
- * @param {RequestList} [options.requestList] Static list of URLs to be processed.
- * @param {RequestQueue} [options.requestQueue] Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
- * @param {Function} [options.handleRequestFunction] Function that processes a single `Request` object. It must return a promise.
+ * @param {RequestList} [options.requestList]
+ *   Static list of URLs to be processed.
+ * @param {RequestQueue} [options.requestQueue]
+ *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
+ * @param {Function} [options.handleRequestFunction]
+ *   Function that processes a single `Request` object. It must return a promise.
  * @param {Function} [options.handleFailedRequestFunction=({ request, error }) => log.error('Request failed', _.pick(request, 'url', 'uniqueKey'))`]
- *                   Function that handles requests that failed more then `option.maxRequestRetries` times.
- * @param {Number} [options.maxRequestRetries=3] How many times the request is retried if `handleRequestFunction` failed.
- * @param {Number} [options.maxMemoryMbytes] Maximum memory available in the system (see `AutoscaledPool`).
- * @param {Number} [options.maxConcurrency=1000] Maximum number of request to process in parallel (see `AutoscaledPool`).
- * @param {Number} [options.minConcurrency=1] Minimum number of request to process in parallel (see `AutoscaledPool`).
- * @param {Number} [options.minFreeMemoryRatio=0.2] Minimum ratio of free memory kept in the system.
- * @param {Function} [opts.isFinishedFunction] By default BasicCrawler finishes when all the requests have been processed.
- *                                             You can override this behaviour by providing custom `isFinishedFunction`.
- *                                             This function that is called every time there are no requests being processed.
- *                                             If it resolves to `true` then the crawler's run finishes.
- *                                             See `isFinishedFunction` parameter of `AutoscaledPool`.
- * @param {Boolean} [options.ignoreMainProcess=false] If set to `true` then autoscaling doesn't consider memory consumption
- *                                                    of the main NodeJS process when autoscaling the pool up/down. This is mainly useful when
- *                                                    tasks are running as separate processes (for example web browser).
- *                                                    See `ignoreMainProcess` parameter of `AutoscaledPool`.
+ *   Function that handles requests that failed more then `option.maxRequestRetries` times.
+ * @param {Number} [options.maxRequestRetries=3]
+ *   How many times the request is retried if `handleRequestFunction` failed.
+ * @param {Number} [options.maxMemoryMbytes]
+ *   Maximum memory available in the system
+ *   See `AutoscaledPool` for details.
+ * @param {Number} [options.minConcurrency=1]
+ *   Minimum number of request to process in parallel.
+ *   See `AutoscaledPool` for details.
+ * @param {Number} [options.maxConcurrency=1000]
+ *   Maximum number of request to process in parallel.
+ *   See `AutoscaledPool` for details.
+ * @param {Number} [options.minFreeMemoryRatio=0.2]
+ *   Minimum ratio of free memory kept in the system.
+ *   See `AutoscaledPool` for details.
+ * @param {Function} [opts.isFinishedFunction]
+ *   By default BasicCrawler finishes when all the requests have been processed.
+ *   You can override this behaviour by providing custom `isFinishedFunction`.
+ *   This function that is called every time there are no requests being processed.
+ *   If it resolves to `true` then the crawler's run finishes.
+ *   See `AutoscaledPool` for details.
+ * @param {Boolean} [options.ignoreMainProcess=false]
+ *   If set to `true` then the auto-scaling manager does not consider memory consumption
+ *   of the main Node.js process when scaling the pool up or down.
+ *   This is mainly useful when tasks are running as separate processes (e.g. web browsers).
+ *   See `AutoscaledPool` for details.
  */
 export default class BasicCrawler {
     constructor(opts) {
@@ -152,9 +178,9 @@ export default class BasicCrawler {
                                 this.requestList.markRequestHandled(request),
                             ])
                             .then(results => results[0]);
-                    // If requestQueue.addRequest() fails here then we must reclaim it back to
-                    // the RequestList because probably it's not yet in the queue!
                     }, (err) => {
+                        // If requestQueue.addRequest() fails here then we must reclaim it back to
+                        // the RequestList because probably it's not yet in the queue!
                         log.exception(err, 'RequestQueue.addRequest() failed, reclaiming request back to queue', { request });
 
                         // Return null so that we finish immediately.
@@ -185,7 +211,7 @@ export default class BasicCrawler {
                     .then(() => source.markRequestHandled(request))
                     .catch((error) => {
                         if (request.ignoreErrors) {
-                            log.exception(error, 'BasicCrawler: handleRequestFunction failed, request.ignoreErrors=true so marking request handled', {
+                            log.exception(error, 'BasicCrawler: handleRequestFunction failed, request.ignoreErrors=true so marking the request as handled', { // eslint-disable-line max-len
                                 url: request.url,
                                 retryCount: request.retryCount,
                             });
@@ -198,7 +224,7 @@ export default class BasicCrawler {
                         // Retry request.
                         if (request.retryCount < this.maxRequestRetries) {
                             request.retryCount++;
-                            log.exception(error, 'BasicCrawler: handleRequestFunction failed, reclaiming failed request back to list/queue', {
+                            log.exception(error, 'BasicCrawler: handleRequestFunction failed, reclaiming failed request back to the list or queue', {
                                 url: request.url,
                                 retryCount: request.retryCount,
                             });
@@ -206,7 +232,7 @@ export default class BasicCrawler {
                             return source.reclaimRequest(request);
                         }
 
-                        log.exception(error, 'BasicCrawler: handleRequestFunction failed, marking failed request handled', {
+                        log.exception(error, 'BasicCrawler: handleRequestFunction failed, marking failed request as handled', {
                             url: request.url,
                             retryCount: request.retryCount,
                         });

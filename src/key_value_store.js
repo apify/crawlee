@@ -1,4 +1,5 @@
 import fs from 'fs';
+import fsExtra from 'fs-extra';
 import path from 'path';
 import Promise from 'bluebird';
 import contentTypeParser from 'content-type';
@@ -21,6 +22,7 @@ const DEFAULT_LOCAL_FILE_TYPE = LOCAL_FILE_TYPES[0];
 const readFilePromised = Promise.promisify(fs.readFile);
 const writeFilePromised = Promise.promisify(fs.writeFile);
 const unlinkPromised = Promise.promisify(fs.unlink);
+const emptyDirPromised = Promise.promisify(fsExtra.emptyDir);
 
 const { keyValueStores } = apifyClient;
 const storesCache = new LruCache({ maxLength: MAX_OPENED_STORES }); // Open key-value stores are stored here.
@@ -162,6 +164,21 @@ export class KeyValueStore {
             contentType: addCharsetToContentType(optionsCopy.contentType),
         });
     }
+
+    /**
+     * Deletes the store.
+     *
+     * @return {Promise}
+     */
+    delete() {
+        return keyValueStores
+            .deleteStore({
+                storeId: this.storeId,
+            })
+            .then(() => {
+                storesCache.remove(this.storeId);
+            });
+    }
 }
 
 /**
@@ -240,6 +257,13 @@ export class KeyValueStoreLocal {
             .then(() => writeFilePromised(filePath, value))
             .catch((err) => {
                 throw new Error(`Error writing file '${key}' in directory '${this.localEmulationPath}' referred by ${ENV_VARS.APIFY_LOCAL_EMULATION_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len
+            });
+    }
+
+    delete() {
+        return emptyDirPromised(this.localEmulationPath)
+            .then(() => {
+                storesCache.remove(this.storeId);
             });
     }
 }

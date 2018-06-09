@@ -6,7 +6,7 @@ import { getMemoryInfo, isPromise, avg, isAtHome } from './utils';
 import events from './events';
 import { ACTOR_EVENT_NAMES } from './constants';
 
-const MEM_CHECK_INTERVAL_MILLIS = 200; // This is low to have at least.
+const AUTOSCALE_INTERVAL_MILLIS = 200; // This is low to have at least.
 const MIN_FREE_MEMORY_RATIO = 0.1; // Minimum amount of memory that we keep free.
 const DEFAULT_OPTIONS = {
     maxConcurrency: 1000,
@@ -15,13 +15,13 @@ const DEFAULT_OPTIONS = {
     maybeRunIntervalMillis: 500,
     finishWhenEmpty: true,
     ignoreMainProcess: false,
+    loggingIntervalMillis: 60000,
 };
 
-// These constants defines that in Nth execution memCheckInterval we do:
+// These constants defines that in Nth execution of autoscaleInterval we do:
 export const SCALE_UP_INTERVAL = 50;
 export const SCALE_UP_MAX_STEP = 10;
 export const SCALE_DOWN_INTERVAL = 5;
-export const LOG_INFO_INTERVAL = 6 * SCALE_UP_INTERVAL; // This must be multiple of SCALE_UP_INTERVAL
 
 /**
  * Helper function that coverts bytes into human readable MBs.
@@ -31,11 +31,11 @@ export const LOG_INFO_INTERVAL = 6 * SCALE_UP_INTERVAL; // This must be multiple
 const humanReadable = bytes => `${Math.round(bytes / 1024 / 1024)} MB`;
 
 /**
- * This class manages a pool of asynchronous resource-intensive tasks that are executed in parallel.
- * The pool only starts new tasks if there is enough free memory and CPU capacity.
+ * Manages a pool of asynchronous resource-intensive tasks that are executed in parallel.
+ * The pool only starts new tasks if there is enough free CPU and memory available.
  * The information about the CPU and memory usage is obtained
  * either from the local system or from the Apify cloud infrastructure in case the process
- * is running on the Apify Actor platform.
+ * is running on the Apify platform.
  *
  * The auto-scaled pool is started by calling the `run()` function
  * and it finishes when the last running task gets resolved and the next call to
@@ -59,28 +59,38 @@ const humanReadable = bytes => `${Math.round(bytes / 1024 / 1024)} MB`;
  * ```
  *
  * @param {Object} options
- * @param {Function} options.runTaskFunction A function that performs an asynchronous resource-intensive task.
- *                                           The function must either return a
- *                                            promise or `null` if no task is currently available.
- * @param {Function} [opts.isFinishedFunction] A function that is called every time there are no tasks being processed.
- *                                             If it resolves to `true` then the pool's run finishes.
- *                                             If `isFinishedFunction` is not provided then the pool
- *                                             is finished whenever there are no running tasks.
- * @param {Function} [opts.isTaskReadyFunction] A function that indicates if `runTaskFunction` should be called.
- *                                              By default, this function is called every time there is a free capacity for new task.
- *                                              But by overriding this you can throttle
- *                                              number of calls to `runTaskFunction` or to prevent calls to `runTaskFunction` when you know
- *                                              that it would return null.
- * @param {Number} [options.maxConcurrency=1000] Maximum concurrency.
- * @param {Number} [options.minConcurrency=1] Minimum concurrency.
- * @param {Number} [options.maxMemoryMbytes] Maximum memory available in the system. By default the pool
- *                                           uses the `totalMemory` value provided by `Apify.getMemoryInfo()`.
- * @param {Number} [options.minFreeMemoryRatio=0.2] Minimum ratio of free memory kept in the system.
- * @param {number} [options.maybeRunIntervalMillis=1000] Indicates how often should the pool try to call
- *                                                       `opts.runTaskFunction` to start a new task.
- * @param {Boolean} [options.ignoreMainProcess=false] If set to `true` then autoscaling doesn't consider memory consumption
- *                                                    of the main NodeJS process when autoscaling the pool up/down. This is mainly useful when
- *                                                    tasks are running as separate processes (for example web browser).
+ * @param {Function} [options.runTaskFunction]
+ *   A function that performs an asynchronous resource-intensive task.
+ *   The function must either return a promise or `null` if no task is currently available.
+ * @param {Function} [options.isFinishedFunction]
+ *   A function that is called every time there are no tasks being processed.
+ *   If it resolves to `true` then the pool's run finishes.
+ *   If `isFinishedFunction` is not provided then the pool
+ *   is finished whenever there are no running tasks.
+ * @param {Function} [options.isTaskReadyFunction]
+ *   A function that indicates if `runTaskFunction` should be called.
+ *   By default, this function is called every time there is a free capacity for new task.
+ *   But by overriding this you can throttle
+ *   number of calls to `runTaskFunction` or to prevent calls to `runTaskFunction` when you know
+ *   that it would return null.
+ * @param {Number} [options.minConcurrency=1]
+ *   Minimum number of tasks running in parallel.
+ * @param {Number} [options.maxConcurrency=1000]
+ *   Maximum number of tasks running in parallel.
+ * @param {Number} [options.maxMemoryMbytes]
+ *   Maximum memory available in the system. By default the pool
+ *   uses the `totalMemory` value provided by `Apify.getMemoryInfo()`.
+ * @param {Number} [options.minFreeMemoryRatio=0.2]
+ *   Minimum ratio of free memory kept in the system.
+ * @param {Number} [options.maybeRunIntervalMillis=500]
+ *   Indicates how often should the pool try to call `opts.runTaskFunction` to start a new task.
+ * @param {Boolean} [options.ignoreMainProcess=false]
+ *   If set to `true` then the auto-scaling manager does not consider memory consumption
+ *   of the main Node.js process when scaling the pool up or down.
+ *   This is mainly useful when tasks are running as separate processes (e.g. web browsers).
+ * @param {Number} [options.loggingIntervalMillis=60000]
+ *   Specifies a period in which the instance logs it state, in milliseconds.
+ *   Set to `null` to disable periodic logging.
  */
 export default class AutoscaledPool {
     constructor(opts) {
@@ -114,6 +124,7 @@ export default class AutoscaledPool {
             isFinishedFunction,
             isTaskReadyFunction,
             ignoreMainProcess,
+            loggingIntervalMillis,
         } = _.defaults(opts, DEFAULT_OPTIONS);
 
         checkParamOrThrow(maxConcurrency, 'opts.maxConcurrency', 'Number');
@@ -125,6 +136,7 @@ export default class AutoscaledPool {
         checkParamOrThrow(isFinishedFunction, 'opts.isFinishedFunction', 'Maybe Function');
         checkParamOrThrow(isTaskReadyFunction, 'opts.isTaskReadyFunction', 'Maybe Function');
         checkParamOrThrow(ignoreMainProcess, 'opts.ignoreMainProcess', 'Boolean');
+        checkParamOrThrow(loggingIntervalMillis, 'opts.loggingIntervalMillis', 'Maybe Number');
 
         // Configuration.
         this.maxMemoryMbytes = maxMemoryMbytes;
@@ -136,9 +148,9 @@ export default class AutoscaledPool {
         this.isFinishedFunction = isFinishedFunction;
         this.isTaskReadyFunction = isTaskReadyFunction;
         this.ignoreMainProcess = ignoreMainProcess;
+        this.loggingIntervalMillis = loggingIntervalMillis;
 
         // State.
-        this.promiseCounter = 0;
         this.intervalCounter = 0;
         this.concurrency = minConcurrency;
         this.runningCount = 0;
@@ -146,9 +158,10 @@ export default class AutoscaledPool {
         this.isCpuOverloadedSnapshots = [false];
         this.queryingIsTaskReady = false;
         this.queryingIsFinished = false;
+        this.lastLoggingTime = 0;
 
         // Intervals.
-        this.memCheckInterval = null;
+        this.autoscaleInterval = null;
         this.maybeRunTaskInterval = null;
 
         // This is resolve function of Promise returned by this.run()
@@ -189,11 +202,11 @@ export default class AutoscaledPool {
         // This interval checks memory and in each call saves current memory stats and in every
         // SCALE_UP_INTERVAL-th/SCALE_DOWN_INTERVAL-th call it may scale up/down based on memory.
         if (isAtHome()) {
-            this.memCheckInterval = setInterval(() => this._autoscale(), MEM_CHECK_INTERVAL_MILLIS);
+            this.autoscaleInterval = setInterval(() => this._autoscale(), AUTOSCALE_INTERVAL_MILLIS);
         } else {
-            log.warning('Autoscaling feature is currently available only when running on Apify platform!');
-            log.warning('Use `minConcurrency` parameter if you need to test multiple requests in parallel.');
-            log.warning('This feature will be enabled soon!');
+            log.warning('Auto-scaling is currently available only when running on Apify platform! '
+                + 'Use `minConcurrency` parameter if you need to test multiple requests in parallel. '
+                + 'This feature will be enabled soon.');
         }
 
         return this.poolPromise
@@ -208,7 +221,7 @@ export default class AutoscaledPool {
     }
 
     /**
-     * Gets called every MEM_CHECK_INTERVAL_MILLIS and saves number of free bytes in this.freeBytesSnapshots.
+     * Gets called every AUTOSCALE_INTERVAL_MILLIS and saves number of free bytes in this.freeBytesSnapshots.
      *
      * Every:
      * - SCALE_DOWN_INTERVAL-th call checks memory and possibly scales DOWN by 1.
@@ -234,8 +247,25 @@ export default class AutoscaledPool {
                 this.intervalCounter++;
                 this.freeBytesSnapshots = this.freeBytesSnapshots.concat(freeBytes).slice(-SCALE_UP_INTERVAL);
 
-                const scaledDown = this._maybeScaleDown(totalBytes);
-                if (!scaledDown) this._maybeScaleUp(totalBytes);
+                // On periodic intervals, print comprehensive log information
+                let logData = null;
+                if (this.loggingIntervalMillis > 0) {
+                    const now = Date.now();
+                    if (now > this.lastLoggingTime + this.loggingIntervalMillis) {
+                        this.lastLoggingTime = now;
+                        logData = {
+                            concurrency: this.concurrency,
+                            runningCount: this.runningCount,
+                        };
+                    }
+                }
+
+                const scaledDown = this._maybeScaleDown(totalBytes, logData);
+                if (!scaledDown) this._maybeScaleUp(totalBytes, logData);
+
+                if (logData) {
+                    log.info('AutoscaledPool state', logData);
+                }
             })
             .catch(err => log.exception(err, 'AutoscaledPool._autoscale() function failed'));
     }
@@ -246,19 +276,28 @@ export default class AutoscaledPool {
      * @return true if concurrency was changed
      * @ignore
      */
-    _maybeScaleDown(totalBytes) {
-        if (this.intervalCounter % SCALE_DOWN_INTERVAL !== 0 || this.concurrency <= this.minConcurrency) return false;
-
+    _maybeScaleDown(totalBytes, logData) {
         const snapshots = this.freeBytesSnapshots.slice(-SCALE_DOWN_INTERVAL);
         const averageFreeBytes = avg(snapshots);
         const isMemoryOverloaded = averageFreeBytes / totalBytes < this.minFreeMemoryRatio;
         const isCpuOverloaded = _.all(this.isCpuOverloadedSnapshots);
 
-        if (!isCpuOverloaded && !isMemoryOverloaded) return false;
+        // Update logData even if not scaling down
+        if (logData) {
+            Object.assign(logData, {
+                concurrency: this.concurrency,
+                isMemoryOverloaded,
+                isCpuOverloaded,
+            });
+        }
+
+        if (this.intervalCounter % SCALE_DOWN_INTERVAL !== 0
+            || this.concurrency <= this.minConcurrency
+            || (!isCpuOverloaded && !isMemoryOverloaded)) return false;
 
         this.concurrency--;
         log.debug('AutoscaledPool: scaling down', {
-            oldConcurrency: this.concurrency - 1,
+            oldConcurrency: this.concurrency + 1,
             newConcurrency: this.concurrency,
             isMemoryOverloaded,
             isCpuOverloaded,
@@ -273,12 +312,13 @@ export default class AutoscaledPool {
      * @return true if concurrency was changed
      * @ignore
      */
-    _maybeScaleUp(totalBytes) {
-        if (this.intervalCounter % SCALE_UP_INTERVAL !== 0 || this.concurrency >= this.maxConcurrency) return false;
+    _maybeScaleUp(totalBytes, logData) {
+        // Update logData even if not scaling down
+        const spaceForInstances = this._computeSpaceForInstances(totalBytes, logData);
 
-        const spaceForInstances = this._computeSpaceForInstances(totalBytes, this.intervalCounter % LOG_INFO_INTERVAL);
-
-        if (spaceForInstances <= 0) return false;
+        if (this.intervalCounter % SCALE_UP_INTERVAL !== 0
+            || this.concurrency >= this.maxConcurrency
+            || spaceForInstances <= 0) return false;
 
         const increaseBy = Math.min(spaceForInstances, SCALE_UP_MAX_STEP);
         const oldConcurrency = this.concurrency;
@@ -300,17 +340,15 @@ export default class AutoscaledPool {
      *
      * @ignore
      */
-    _computeSpaceForInstances(totalBytes, logInfo) {
+    _computeSpaceForInstances(totalBytes, logData) {
         const minFreeBytes = Math.min(...this.freeBytesSnapshots);
         const minFreeRatio = minFreeBytes / totalBytes;
         const maxTakenBytes = totalBytes - minFreeBytes;
         const perInstanceRatio = (maxTakenBytes / totalBytes) / this.runningCount;
-        const hasSpaceForInstances = (minFreeRatio - MIN_FREE_MEMORY_RATIO) / perInstanceRatio;
+        const hasSpaceForInstances = Math.floor((minFreeRatio - MIN_FREE_MEMORY_RATIO) / perInstanceRatio);
 
-        if (logInfo) {
-            log.info('AutoscaledPool: info', {
-                concurency: this.concurrency,
-                runningCount: this.runningCount,
+        if (logData) {
+            Object.assign(logData, {
                 freeBytesSnapshots: humanReadable(_.last(this.freeBytesSnapshots)),
                 totalBytes: humanReadable(totalBytes),
                 minFreeBytes: humanReadable(minFreeBytes),
@@ -321,7 +359,7 @@ export default class AutoscaledPool {
             });
         }
 
-        return Math.floor(hasSpaceForInstances);
+        return hasSpaceForInstances;
     }
     /**
      * If number of running task is lower than allowed concurrency and this.isTaskReadyFunction()
@@ -345,7 +383,7 @@ export default class AutoscaledPool {
         // It's not null so it must be a promise!
         if (!isPromise(isTaskReadyPromise)) throw new Error('User provided isTaskReadyFunction must return a Promise.');
 
-        // We don't want to chain this so no return here!
+        // We don't want to chain this so don't return here!
         isTaskReadyPromise
             .catch((err) => {
                 this.queryingIsTaskReady = false;
@@ -378,7 +416,7 @@ export default class AutoscaledPool {
             .catch((err) => {
                 log.exception(err, 'AutoscaledPool: runTaskFunction failed');
                 this.runningCount--;
-                // If is here because we might already rejected this promise.
+                // This is here because we might have already rejected this promise.
                 if (this.reject) this.reject(err);
             });
     }
@@ -423,7 +461,7 @@ export default class AutoscaledPool {
 
         events.removeListener(ACTOR_EVENT_NAMES.CPU_INFO, this.cpuInfoListener);
 
-        clearInterval(this.memCheckInterval);
+        clearInterval(this.autoscaleInterval);
         clearInterval(this.maybeRunTaskInterval);
     }
 }

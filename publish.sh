@@ -31,7 +31,7 @@ git push
 
 # Master gets published as LATEST - the package already needs to be published as BETA.
 if [ "${BRANCH}" = "master" ]; then
-    EXISTING_NPM_VERSION=$(npm view ${PACKAGE_NAME} versions | grep ${PACKAGE_VERSION} | tee) # Using tee to swallow non-zero exit code
+    EXISTING_NPM_VERSION=$(npm view ${PACKAGE_NAME} versions --json | grep ${PACKAGE_VERSION} | tee) # Using tee to swallow non-zero exit code
     if [ -z "${EXISTING_NPM_VERSION}" ]; then
         printf "${RED}Version ${PACKAGE_VERSION} was not yet published on NPM. Note that you can only publish to NPM from \"develop\" branch!${NC}\n"
         exit 1

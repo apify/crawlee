@@ -3,12 +3,13 @@ import chaiAsPromised from 'chai-as-promised';
 import _ from 'underscore';
 import 'babel-polyfill';
 import sinon from 'sinon';
+import path from 'path';
 import { delayPromise } from 'apify-shared/utilities';
 import * as Apify from '../build/index';
 import { ENV_VARS } from '../build/constants';
 import { apifyClient } from '../build/utils';
-import { RequestQueueLocal, RequestQueue, LOCAL_EMULATION_SUBDIR, QUERY_HEAD_BUFFER } from '../build/request_queue';
-import { emptyLocalEmulationSubdir, LOCAL_EMULATION_DIR, expectNotLocalEmulation } from './_helper';
+import { RequestQueueLocal, RequestQueue, LOCAL_EMULATION_SUBDIR, QUERY_HEAD_MIN_LENGTH } from '../build/request_queue';
+import { emptyLocalEmulationSubdir, LOCAL_EMULATION_DIR, expectNotLocalEmulation, expectDirEmpty, expectDirNonEmpty } from './_helper';
 
 chai.use(chaiAsPromised);
 
@@ -64,6 +65,12 @@ describe('RequestQueue', () => {
 
             expect(await queue.isEmpty()).to.be.eql(true);
             expect(await queue.isFinished()).to.be.eql(true);
+
+            // Delete it.
+            const queueDir = path.join(LOCAL_EMULATION_DIR, LOCAL_EMULATION_SUBDIR, 'my-queue-0');
+            expectDirNonEmpty(queueDir);
+            await queue.delete();
+            expectDirEmpty(queueDir);
         });
 
         it('supports forefront param in reclaimRequest()', async () => {
@@ -217,7 +224,7 @@ describe('RequestQueue', () => {
                 .once()
                 .withArgs({
                     queueId: 'some-id',
-                    limit: QUERY_HEAD_BUFFER,
+                    limit: QUERY_HEAD_MIN_LENGTH,
                 })
                 .returns(Promise.resolve({
                     items: [
@@ -236,6 +243,15 @@ describe('RequestQueue', () => {
             expect(requestAFromQueue).to.be.eql(requestA);
             expect(queue.queueHeadDict.length()).to.be.eql(1);
             expect(queue.inProgressCount).to.be.eql(1);
+
+            // Delete queue.
+            mock.expects('deleteQueue')
+                .once()
+                .withArgs({
+                    queueId: 'some-id',
+                })
+                .returns(Promise.resolve());
+            await queue.delete();
 
             mock.verify();
             mock.restore();
@@ -330,7 +346,7 @@ describe('RequestQueue', () => {
                 .once()
                 .withArgs({
                     queueId: 'some-id',
-                    limit: QUERY_HEAD_BUFFER,
+                    limit: QUERY_HEAD_MIN_LENGTH,
                 })
                 .returns(Promise.resolve({
                     items: [

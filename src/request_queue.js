@@ -16,8 +16,9 @@ export const LOCAL_EMULATION_SUBDIR = LOCAL_EMULATION_SUBDIRS.requestQueues;
 const MAX_OPENED_QUEUES = 1000;
 const MAX_CACHED_REQUESTS = 1000 * 1000;
 
-// When requesting queue head we always fetch requestsInProgressCount + QUERY_HEAD_BUFFER number of requests
-export const QUERY_HEAD_BUFFER = 50;
+// When requesting queue head we always fetch requestsInProgressCount * QUERY_HEAD_BUFFER number of requests.
+export const QUERY_HEAD_MIN_LENGTH = 100;
+export const QUERY_HEAD_BUFFER = 3;
 
 // If queue was modified (request added/updated/deleted) before more than API_PROCESSED_REQUESTS_DELAY_MILLIS
 // then we get head query to be consistent.
@@ -30,6 +31,7 @@ const writeFilePromised = Promise.promisify(fs.writeFile);
 const readdirPromised = Promise.promisify(fs.readdir);
 const readFilePromised = Promise.promisify(fs.readFile);
 const moveFilePromised = Promise.promisify(fsExtra.move);
+const emptyDirPromised = Promise.promisify(fsExtra.emptyDir);
 
 const { requestQueues } = apifyClient;
 const queuesCache = new LruCache({ maxLength: MAX_OPENED_QUEUES }); // Open queues are stored here.
@@ -378,7 +380,7 @@ export class RequestQueue {
      *
      * @ignore
      */
-    _ensureHeadIsNonEmpty(checkModifiedAt = false, limit = this.inProgressCount + QUERY_HEAD_BUFFER, iteration = 0) {
+    _ensureHeadIsNonEmpty(checkModifiedAt = false, limit = Math.max(this.inProgressCount * QUERY_HEAD_BUFFER, QUERY_HEAD_MIN_LENGTH), iteration = 0) {
         checkParamOrThrow(checkModifiedAt, 'checkModifiedAt', 'Boolean');
         checkParamOrThrow(limit, 'limit', 'Number');
         checkParamOrThrow(iteration, 'iteration', 'Number');
@@ -443,7 +445,7 @@ export class RequestQueue {
                     }
 
                     const nextLimit = shouldRepeatWithHigherLimit
-                        ? prevLimit + QUERY_HEAD_BUFFER
+                        ? prevLimit * 1.5
                         : prevLimit;
 
                     const delayMillis = shouldRepeatForConsistency
@@ -453,6 +455,21 @@ export class RequestQueue {
                     return delayPromise(delayMillis)
                         .then(() => this._ensureHeadIsNonEmpty(checkModifiedAt, nextLimit, iteration + 1));
                 }
+            });
+    }
+
+    /**
+     * Deletes the queue.
+     *
+     * @return {Promise}
+     */
+    delete() {
+        return requestQueues
+            .deleteQueue({
+                queueId: this.queueId,
+            })
+            .then(() => {
+                queuesCache.remove(this.queueId);
             });
     }
 }
@@ -699,6 +716,13 @@ export class RequestQueueLocal {
     isFinished() {
         return this.initializationPromise
             .then(() => this.pendingCount === 0);
+    }
+
+    delete() {
+        return emptyDirPromised(this.localEmulationPath)
+            .then(() => {
+                queuesCache.remove(this.queueId);
+            });
     }
 }
 

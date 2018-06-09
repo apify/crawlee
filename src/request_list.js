@@ -3,7 +3,6 @@ import log from 'apify-shared/log';
 import _ from 'underscore';
 import Promise from 'bluebird';
 import requestPromise from 'request-promise';
-import { sequentializePromises } from 'apify-shared/utilities';
 import Request from './request';
 import events from './events';
 import { ACTOR_EVENT_NAMES } from './constants';
@@ -28,8 +27,8 @@ const ensureUniqueKeyValid = (uniqueKey) => {
 };
 
 /**
- * Pprovides way to handle a list of URLs to be crawled.
- * Each URL is reprented using an instance of the `Request` class.
+ * Provides way to handle a list of URLs to be crawled.
+ * Each URL is represented using an instance of the `Request` class.
  *
  * `RequestList` has an internal state where it remembers handled requests, requests in progress and also reclaimed requests.
  * The state might be persisted in a key-value store as shown in the example below so if an act is restarted (due to internal
@@ -48,6 +47,7 @@ const ensureUniqueKeyValid = (uniqueKey) => {
  *         // Note that all URLs must start with http:// or https://
  *         { requestsFromUrl: 'http://www.example.com/my-url-list.txt', userData: { isFromUrl: true } },
  *     ],
+ *     persistStateKey: 'my-crawling-state'
  * });
  *
  * await requestList.initialize(); // Load requests.
@@ -74,7 +74,11 @@ const ensureUniqueKeyValid = (uniqueKey) => {
  *     { method: 'POST', requestsFromUrl: 'http://example.com/urls.txt' },
  * ]
  * ```
- * @param {Object} [options.state] State of the `RequestList` to be initialized from. It is in the form returned by `requestList.getState()`:
+ * @param {String} [options.persistStateKey] Key-value store key under which the `RequestList` persists its state. If this is set then `RequestList`
+ *                                           persists its state in regular intervals and loads the state from there in a case that's restarted
+ *                                           due to some error or migration to another worker machine.
+ * @param {Object} [options.state] The state object that the `RequestList` will be initialized from.
+ * It is in the form returned by `requestList.getState()`, such as follows:
  * ```javascript
  * {
  *     nextIndex: 5,
@@ -85,9 +89,7 @@ const ensureUniqueKeyValid = (uniqueKey) => {
  *     },
  * }
  * ```
- * @param {String} [options.persistStateKey] Key-value store key under which RequestList persists its state. If this is set then RequestList
- *                                           persists its state in regular intervals and loads the state from there in a case thats restarted
- *                                           due to some error or migration to another worker machine.
+ * Note that the preferred (and simpler) way to persist the state of crawling of the `RequestList` is to use the `persistStateKey` parameter instead.
  */
 export default class RequestList {
     constructor(opts = {}) {
@@ -129,14 +131,7 @@ export default class RequestList {
 
         this.isLoading = false;
         this.isInitialized = false;
-
-        // We'll load all sources in sequence to ensure that they get loaded in the right order.
-        this.loadSourcesPromiseGenerators = sources.map((source) => {
-            if (source.requestsFromUrl) return () => this._addRequestsFromUrl(source);
-
-            // TODO: One promise per each item is too much overheads, we could cluster items into single Promise.
-            return () => Promise.resolve(this._addRequest(source));
-        });
+        this.sources = sources;
     }
 
     /**
@@ -150,7 +145,14 @@ export default class RequestList {
         }
         this.isLoading = true;
 
-        return sequentializePromises(this.loadSourcesPromiseGenerators)
+        // We'll load all sources in sequence to ensure that they get loaded in the right order.
+        return Promise
+            .mapSeries(this.sources, (source) => {
+                // TODO: One promise per each item is too much overheads, we could cluster items into single Promise.
+                return source.requestsFromUrl
+                    ? this._addRequestsFromUrl(source)
+                    : Promise.resolve(this._addRequest(source));
+            })
             .then(() => this.initialStatePromise)
             .then((state) => {
                 if (!state) return;
@@ -241,7 +243,7 @@ export default class RequestList {
     }
 
     /**
-     * Returns `true` if the next call to fetchNextRequest() will return null, otherwise it returns `false`.
+     * Returns `true` if the next call to `fetchNextRequest()` will return null, otherwise it returns `false`.
      * Note that even if the list is empty, there might be some pending requests currently being processed.
      *
      * @returns {Promise<boolean>}
@@ -393,7 +395,7 @@ export default class RequestList {
 
     /**
      * Adds given request.
-     * If opts partameter is plain object not instance of an Requests then creates it.
+     * If opts parameter is plain object not instance of an Requests then creates it.
      *
      * @ignore
      */
@@ -435,5 +437,12 @@ export default class RequestList {
         if (!this.isInitialized) {
             throw new Error('RequestList is not initialized. You must call "await requestList.initialize();" before using it!');
         }
+    }
+
+    /**
+     * Returns the total number of unique requests present in the `RequestList`.
+     */
+    length() {
+        return this.requests.length;
     }
 }

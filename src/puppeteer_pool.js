@@ -38,13 +38,22 @@ class PuppeteerInstance {
 }
 
 /**
- * Provides a pool of Puppeteer (Chrome browser) instances.
- * The class rotates the instances based on its configuration in order to change proxies.
+ * Manages a pool of Chrome browser instances controlled by [Puppeteer](https://github.com/GoogleChrome/puppeteer).
+ * `PuppeteerPool` rotates Chrome instances to change proxies
+ * and other settings, in order to prevent detection of your web scraping bot,
+ * access web pages from various countries etc.
  *
  * Example usage:
  *
  * ```javascript
- * const puppeteerPool = new PuppeteerPool({ groups: 'some-proxy-group' });
+ * const puppeteerPool = new PuppeteerPool({
+ *   launchPuppeteerFunction: () => {
+ *     // Use a new proxy with a new IP address for each new Chrome instance
+ *     return Apify.launchPuppeteer({
+ *        apifyProxySession: Math.random(),
+ *     });
+ *   },
+ * });
  *
  * const page1 = await puppeteerPool.newPage();
  * const page2 = await puppeteerPool.newPage();
@@ -52,24 +61,27 @@ class PuppeteerInstance {
  *
  * // ... do something with pages ...
  *
- * // Close all the browsers.
+ * // Close all browsers.
  * await puppeteerPool.destroy();
  * ```
  *
- * @param {Number} [options.maxOpenPagesPerInstance=50] Maximum number of open tabs per browser. If this limit is reached then a new
- *                                                        browser will be started.
- * @param {Number} [options.retireInstanceAfterRequestCount=100] Maximum number of requests that can be processed by a single browser instance.
- *                                                               After the limit is reached the browser will be retired and new requests will
- *                                                               be handled by a new browser instance.
- * @param {Number} [options.instanceKillerIntervalMillis=60000] How often opened Puppeteer instances are checked wheter they can be
- *                                                              closed.
- * @param {Number} [options.killInstanceAfterMillis=300000] If Puppeteer instance reaches the `options.retireInstanceAfterRequestCount` limit then
- *                                                          it is considered retired and no more tabs will be opened. After the last tab is closed the
- *                                                          whole browser is closed too. This parameter defines a time limit for inactivity after
- *                                                          which the browser is closed even if there are pending open tabs.
+ * @param {Number} [options.maxOpenPagesPerInstance=50]
+ *   Maximum number of open pages (i.e. tabs) per browser. When this limit is reached, new pages are loaded in a new browser instance.
+ * @param {Number} [options.retireInstanceAfterRequestCount=100]
+ *   Maximum number of requests that can be processed by a single browser instance.
+ *   After the limit is reached, the browser is retired and new requests are
+ *   be handled by a new browser instance.
+ * @param {Number} [options.instanceKillerIntervalMillis=60000]
+ *   Indicates how often opened Puppeteer instances are checked whether they can be closed.
+ * @param {Number} [options.killInstanceAfterMillis=300000]
+ *   When Puppeteer instance reaches the `options.retireInstanceAfterRequestCount` limit then
+ *   it is considered retired and no more tabs will be opened. After the last tab is closed the
+ *   whole browser is closed too. This parameter defines a time limit for inactivity after
+ *   which the browser is closed even if there are pending open tabs.
  * @param {Function} [options.launchPuppeteerFunction=launchPuppeteerOptions&nbsp;=>&nbsp;Apify.launchPuppeteer(launchPuppeteerOptions)]
- *                                                          Overrides the default function to launch a new Puppeteer instance.
- * @param {LaunchPuppeteerOptions} [options.launchPuppeteerOptions] Options used by `Apify.launchPuppeteer()` to start new Puppeteer instances.
+ *   Overrides the default function to launch a new `Puppeteer` instance.
+ * @param {LaunchPuppeteerOptions} [options.launchPuppeteerOptions]
+ *   Options used by `Apify.launchPuppeteer()` to start new Puppeteer instances.
  */
 export default class PuppeteerPool {
     constructor(opts = {}) {
@@ -205,9 +217,9 @@ export default class PuppeteerPool {
 
         // Ensure that Chrome process will be really killed.
         setTimeout(() => {
-            // This if is here because users reported that it happened
+            // This is here because users reported that it happened
             // that error `TypeError: Cannot read property 'kill' of null` was thrown.
-            // Likely Chrome process wasn't started for some error ...
+            // Likely Chrome process wasn't started due to some error ...
             if (childProcess) childProcess.kill('SIGKILL');
         }, PROCESS_KILL_TIMEOUT_MILLIS);
 

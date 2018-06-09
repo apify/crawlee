@@ -1,3 +1,18 @@
+0.5.36 / 2018-05-31
+===================
+- Added 30s timeout to `page.close()` operation in `PuppeteerCrawler`.
+
+0.5.35 / 2018-05-29
+===================
+- Added `dataset.detData()`, `dataset.map()`, `dataset.forEach()` and `dataset.reduce()` functions.
+- Added `delete()` method to `RequestQueue`, `Dataset` and `KeyValueStore` classes.
+
+0.5.34 / 2018-05-18
+===================
+- Added `loggingIntervalMillis` options to `AutoscaledPool`
+- Bugfix: `utils.isProduction` function was incorrect
+- Added `RequestList.length()` function
+
 0.5.32 / 2018-05-14
 ===================
 - Bugfix in `RequestList` - skip invalid in-progress entries when restoring state
