@@ -27,7 +27,7 @@ const rootPageHandler = (req, res) => dispatcher(res, rootPage(req.lvs.browsers)
 const notFoundHandler = (req, res) => dispatcher(res, notFoundPage(), 404);
 
 /**
- * LiveViewRouter class encapsulates routing logic of the LiveViewServer.
+ * LiveViewRouter class encapsulates routing logic of the PuppeteerLiveViewServer.
  */
 export default class LiveViewRouter {
     constructor() {

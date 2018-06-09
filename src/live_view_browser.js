@@ -1,22 +1,32 @@
+import EventEmitter from 'events';
 import Promise from 'bluebird';
+import uuid from 'uuid/v4';
+import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { dispatcher } from './live_view_router';
 import { imgPage, errorPage } from './live_view_html';
+import { createTimeoutPromise } from './utils';
+
+const DEFAULT_SCREENSHOT_TIMEOUT = 1000;
 
 /**
  * LiveViewBrowser encapsulates a Puppeteer's Browser instance and provides
  * an API to safely get screenshots of the Browser's Pages.
  * @param {Browser} browser A Puppeteer Browser instance.
- * @param {String} options.id A unique ID of the LiveViewBrowser.
+ * @param {String} [options.id] A unique ID of the LiveViewBrowser.
+ * @param {Number} [options.screenshotTimeout] Max time allowed for the screenshot taking process.
  */
-export default class LiveViewBrowser {
+export default class LiveViewBrowser extends EventEmitter {
     constructor(browser, opts = {}) {
+        super();
         this.browser = browser;
-        // pages are stored in a WeakMap to be automatically garbage collected on close()
-        this.pages = new WeakMap();
+        this.pages = new Map(); // to track all pages and their creation order for listing
+        this.loadedPages = new WeakSet(); // to just track loaded state
 
         checkParamOrThrow(opts.id, 'opts.id', 'Maybe String');
-        this.id = opts.id;
+        checkParamOrThrow(opts.screenshotTimeout, 'opts.screenshotTimeout', 'Maybe Number');
+        this.id = opts.id || uuid();
+        this.screenshotTimeout = opts.screenshotTimeout || DEFAULT_SCREENSHOT_TIMEOUT;
 
         // since the page can be in any state when the user requests
         // a screenshot, we need to keep track of it ourselves
@@ -24,12 +34,35 @@ export default class LiveViewBrowser {
             if (target.type() === 'page') {
                 target.page()
                     .then((page) => {
+                        this.pages.set(uuid(), page);
+                        this.emit('pagecreated', page);
                         page.on('load', () => {
-                            this.pages.set(page, true); // page is loaded
+                            this.loadedPages.add(page); // page is loaded
                         });
-                    });
+                    })
+                    .catch(err => log.error(err));
             }
         });
+        browser.on('targetdestroyed', (target) => {
+            if (target.type() === 'page') {
+                target.page()
+                    .then((page) => {
+                        this.pages.delete(page);
+                        this.emit('pagedestroyed', page);
+                    })
+                    .catch(err => log.error(err));
+            }
+        });
+        browser.on('targetchanged', (target) => {
+            if (target.type() === 'page') {
+                target.page()
+                    .then((page) => {
+                        this.emit('pagechanged', page);
+                    })
+                    .catch(err => log.error(err));
+            }
+        });
+        browser.on('disconnected', b => this.emit('disconnected', b));
     }
 
     /**
@@ -80,26 +113,21 @@ export default class LiveViewBrowser {
         };
 
         // check if the page has been marked as loaded
-        const loaded = this.pages.get(page);
-        const timeoutPromise = new Promise(resolve => setTimeout(resolve, 1000));
+        const loaded = this.loadedPages.has(page);
 
+        // setup promises
+        const timeoutPromise = createTimeoutPromise(this.screenshotTimeout, 'Puppeteer Live View: Screenshot timed out.');
+        const onLoadPromise = new Promise((resolve) => {
+            page.on('load', () => {
+                resolve(Promise.race([page.screenshot(), timeoutPromise]));
+            });
+        });
 
         // if page is already loaded, take a screenshot
         // otherwise, wait for it to load
-        let result;
-        if (loaded) {
-            result = Promise.race([page.screenshot()], timeoutPromise);
-        } else {
-            result = new Promise((resolve) => {
-                page.on('load', () => {
-                    resolve(Promise.race([page.screenshot()], timeoutPromise));
-                });
-            });
-        }
-        result = result.then((shot) => {
-            if (!shot) throw new Error('LiveView: Screenshot timed out.');
-            return shot;
-        });
+        const result = loaded
+            ? Promise.race([page.screenshot(), timeoutPromise])
+            : onLoadPromise;
 
         result.finally(() => {
             // replace the stolen close() method or call it,

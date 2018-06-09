@@ -5,7 +5,7 @@ import log from 'apify-shared/log';
 import { ENV_VARS, DEFAULT_USER_AGENT } from './constants';
 import { newPromise, getTypicalChromeExecutablePath } from './utils';
 import { getApifyProxyUrl } from './actor';
-import LiveViewServer from './live_view_server';
+import { startPuppeteerLiveView } from './live_view_server';
 
 /* global process, require */
 
@@ -201,7 +201,7 @@ export const launchPuppeteer = (opts = {}) => {
     const wrapped = newPromise().then(() => browserPromise);
 
     // start LiveView server if requested
-    if (optsCopy.liveView) LiveViewServer.start(wrapped);
+    if (optsCopy.liveView) startPuppeteerLiveView(wrapped).catch(err => log.error(err));
 
     return wrapped;
 };

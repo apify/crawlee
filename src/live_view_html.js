@@ -1,10 +1,16 @@
+import { checkParamOrThrow } from 'apify-client/build/utils';
+
 /**
  * Template for a basic layout of a HTML page.
- * @param {String} [opts.body] the body of the page
- * @param {Number} [opts.refresh] refresh time of the page
+ * @param {String} opts.host hostname of the WebSocket server
+ * @param {Number} opts.port port of the WebSocket server
  * @returns {string} html
  */
-export const layout = (opts = {}) => `
+export const layout = (opts = {}) => {
+    checkParamOrThrow(opts.host, 'opts.host', 'String');
+    checkParamOrThrow(opts.port, 'opts.port', 'Number');
+
+    return `
 <!doctype html>
 <html>
 <head>
@@ -14,10 +20,18 @@ export const layout = (opts = {}) => `
   ${opts.refresh ? `<meta http-equiv="refresh" content="${opts.refresh}">` : ''}
 </head>
 <body>
-${opts.body || ''}
+  <div id="ws-container">Waiting for WebSocket connection.</div>
+  <script>
+    var container = document.getElementById("ws-container");
+    var ws = new WebSocket("ws://${opts.host}:${opts.port}");
+    ws.onmessage = (e) => {
+      container.innerHTML = e.data;
+    }
+  </script>
 </body>
 </html>
 `;
+};
 
 /**
  * Generates a body for the rootPage. A list of browsers and their IDs.
