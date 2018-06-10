@@ -5,7 +5,7 @@ import log from 'apify-shared/log';
 import { ENV_VARS, DEFAULT_USER_AGENT } from './constants';
 import { newPromise, getTypicalChromeExecutablePath } from './utils';
 import { getApifyProxyUrl } from './actor';
-import { startPuppeteerLiveView } from './live_view_server';
+import { startPuppeteerLiveView } from './puppeteer_live_view_server';
 
 /* global process, require */
 

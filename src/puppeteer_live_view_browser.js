@@ -3,11 +3,10 @@ import Promise from 'bluebird';
 import uuid from 'uuid/v4';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { dispatcher } from './live_view_router';
-import { imgPage, errorPage } from './live_view_html';
+import { imgPage, errorPage } from './puppeteer_live_view_client';
 import { createTimeoutPromise } from './utils';
 
-const DEFAULT_SCREENSHOT_TIMEOUT = 1000;
+const DEFAULT_SCREENSHOT_TIMEOUT = 3000;
 
 /**
  * LiveViewBrowser encapsulates a Puppeteer's Browser instance and provides
@@ -21,7 +20,8 @@ export default class LiveViewBrowser extends EventEmitter {
         super();
         this.browser = browser;
         this.pages = new Map(); // to track all pages and their creation order for listing
-        this.loadedPages = new WeakSet(); // to just track loaded state
+        this._pageIds = new Map(); // to avoid iteration over pages
+        this._loadedPages = new WeakSet(); // to just track loaded state
 
         checkParamOrThrow(opts.id, 'opts.id', 'Maybe String');
         checkParamOrThrow(opts.screenshotTimeout, 'opts.screenshotTimeout', 'Maybe Number');
@@ -34,10 +34,22 @@ export default class LiveViewBrowser extends EventEmitter {
             if (target.type() === 'page') {
                 target.page()
                     .then((page) => {
-                        this.pages.set(uuid(), page);
-                        this.emit('pagecreated', page);
+                        const id = uuid();
+                        this.pages.set(id, page);
+                        this._pageIds.set(page, id);
+                        this.emit('pagecreated', {
+                            id,
+                            browserId: this.id,
+                            url: page.url(),
+                        });
                         page.on('load', () => {
-                            this.loadedPages.add(page); // page is loaded
+                            this._loadedPages.add(page); // page is loaded
+                        });
+                        page.on('framenavigated', (frame) => {
+                            this.emit('pagenavigated', {
+                                id,
+                                url: frame.url(),
+                            });
                         });
                     })
                     .catch(err => log.error(err));
@@ -47,17 +59,11 @@ export default class LiveViewBrowser extends EventEmitter {
             if (target.type() === 'page') {
                 target.page()
                     .then((page) => {
-                        this.pages.delete(page);
-                        this.emit('pagedestroyed', page);
-                    })
-                    .catch(err => log.error(err));
-            }
-        });
-        browser.on('targetchanged', (target) => {
-            if (target.type() === 'page') {
-                target.page()
-                    .then((page) => {
-                        this.emit('pagechanged', page);
+                        const id = this._pageIds.get(page);
+                        this.pages.delete(id);
+                        this.emit('pagedestroyed', {
+                            id,
+                        });
                     })
                     .catch(err => log.error(err));
             }
@@ -97,7 +103,7 @@ export default class LiveViewBrowser extends EventEmitter {
      * @returns {Promise<Buffer>} screenshot
      * @private
      */
-    _screenshot(page) {
+    screenshot(page) {
         // replace page's close function to prevent a close
         // while the screenshot is being taken
         const { close } = page;
@@ -113,7 +119,7 @@ export default class LiveViewBrowser extends EventEmitter {
         };
 
         // check if the page has been marked as loaded
-        const loaded = this.loadedPages.has(page);
+        const loaded = this._loadedPages.has(page);
 
         // setup promises
         const timeoutPromise = createTimeoutPromise(this.screenshotTimeout, 'Puppeteer Live View: Screenshot timed out.');

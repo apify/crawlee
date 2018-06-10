@@ -1,16 +1,11 @@
 import http from 'http';
-import uuid from 'uuid/v4';
+import EventEmitter from 'events';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import WebSocket from 'ws';
-import LiveViewRouter from './live_view_router';
-import LiveViewBrowser from './live_view_browser';
-import { layout } from './live_view_html';
+import LiveViewBrowser from './puppeteer_live_view_browser';
+import { layout, indexPage, detailPage } from './puppeteer_live_view_client';
 
-const BAD_REQUEST = {
-    error: 'Invalid WebSocket message.',
-    status: 400,
-};
 const LOCAL_IPV6 = '::';
 const LOCAL_IPV4 = '127.0.0.1';
 
@@ -45,9 +40,16 @@ export const startPuppeteerLiveView = (browserPromise, opts = {}) => {
     return browserPromise
         .then((browser) => {
             const lvb = new LiveViewBrowser(browser, browserOpts);
-            defaultServer.browsers.set(uuid(), lvb);
+            defaultServer.addBrowser(lvb);
             return defaultServer;
         });
+};
+
+const sendCommand = (socket, command, data) => {
+    const payload = JSON.stringify({ command, data });
+    socket.send(payload, (err) => {
+        if (err) log.error(err);
+    });
 };
 
 /**
@@ -56,37 +58,30 @@ export const startPuppeteerLiveView = (browserPromise, opts = {}) => {
  * periodically serve screenshots of the selected browser's latest loaded page.
  * @param {Number} [opts.port] Listening port of the PuppeteerLiveViewServer. Defaults to 1234.
  */
-export default class PuppeteerLiveViewServer {
+export default class PuppeteerLiveViewServer extends EventEmitter {
     constructor(opts = {}) {
+        super();
         checkParamOrThrow(opts, 'opts', 'Object');
         checkParamOrThrow(opts.port, 'opts.port', 'Maybe String | Number');
-        this.browsers = new Map();
+        this.browsers = new Set();
         this.port = Number(opts.port) || 1234;
         this.httpServer = null;
     }
 
+    addBrowser(browser) {
+        this.browsers.add(browser);
+        this.emit('browsercreated', browser);
+        browser.on('disconnected', () => this.deleteBrowser(browser));
+    }
 
-    // static start(browserPromise, opts = {}) {
-    //     if (!PuppeteerLiveViewServer.server) {
-    //         PuppeteerLiveViewServer.server = new PuppeteerLiveViewServer(opts);
-    //         PuppeteerLiveViewServer.server.startServer();
-    //     }
-    //     const lvs = PuppeteerLiveViewServer.server;
-    //     const browserOpts = {
-    //         id: opts.browserId,
-    //         screenshotTimeout: opts.screenshotTimeout,
-    //     };
-    //
-    //     return browserPromise
-    //         .then((browser) => {
-    //             const lvb = new LiveViewBrowser(browser, browserOpts);
-    //             lvs.browsers.push(lvb);
-    //             lvs.router.addBrowser(lvb);
-    //         });
-    // }
+    deleteBrowser(browser) {
+        this.browsers.delete(browser);
+        this.emit('browserdestroyed', browser);
+        browser.removeAllListeners();
+    }
 
     /**
-     * Starts an HTTP server on a preconfigured port or 1234.
+     * Starts an HTTP and a WebSocket server on a preconfigured port or 1234.
      */
     startServer() {
         const server = http.createServer(this._httpRequestListener.bind(this));
@@ -120,6 +115,16 @@ export default class PuppeteerLiveViewServer {
     }
 
     _wsRequestListener(ws) {
+        const BAD_REQUEST = {
+            message: 'Bad Request',
+            status: 400,
+        };
+        const NOT_FOUND = {
+            message: 'Not Found',
+            status: 404,
+        };
+
+
         log.debug('WebSocket connection to Puppeteer Live View established.');
         ws.on('message', (msg) => {
             try {
@@ -130,14 +135,67 @@ export default class PuppeteerLiveViewServer {
             const { command } = msg;
 
             if (command === 'renderIndex') {
-                ws.send('INDEX');
+                sendCommand(ws, 'renderIndex', { html: indexPage(this.browsers) });
             } else if (command === 'renderPage') {
-                const { id } = msg;
-                ws.send('PAGE');
+                const { id } = msg.data;
+                let page;
+                let browser;
+                for (const b of this.browsers) { // eslint-disable-line
+                    if (b.pages.has(id)) {
+                        page = b.pages.get(id);
+                        browser = b;
+                        break;
+                    }
+                }
+                if (!page) return sendCommand(ws, 'error', NOT_FOUND);
+                browser.screenshot(page)
+                    .then((image) => {
+                        const data = {
+                            id,
+                            url: page.url(),
+                            image,
+                        };
+                        sendCommand(ws, 'renderPage', { html: detailPage(data) });
+                    })
+                    .catch(err => log.error(err));
             } else {
-                return ws.send(BAD_REQUEST);
+                sendCommand(ws, 'error', BAD_REQUEST);
             }
         });
-        ws.send('INDEX');
+        sendCommand(ws, 'renderIndex', { html: indexPage(this.browsers) });
+        this._wsPushData(ws);
+    }
+
+    _wsPushData(ws) {
+        const attachListeners = (browser) => {
+            const createListener = p => sendCommand(ws, 'createPage', p);
+            const destroyListener = p => sendCommand(ws, 'destroyPage', p);
+            const updateListener = p => sendCommand(ws, 'updatePage', p);
+            browser.on('pagecreated', createListener);
+            browser.on('pagedestroyed', destroyListener);
+            browser.on('pagenavigated', updateListener);
+            // clean up to prevent listeners firing into closed sockets (on page refresh)
+            ws.on('close', () => {
+                browser.removeListener('pagecreated', createListener);
+                browser.removeListener('pagedestroyed', destroyListener);
+                browser.removeListener('pagenavigated', updateListener);
+            });
+        };
+
+        this.browsers.forEach(attachListeners);
+        const createListener = (browser) => {
+            attachListeners(browser);
+            sendCommand(ws, 'createBrowser', { id: browser.id });
+        };
+        const destroyListener = (browser) => {
+            sendCommand(ws, 'destroyBrowser', { id: browser.id });
+        };
+        this.on('browsercreated', createListener);
+        this.on('browserdestroyed', destroyListener);
+        // clean up to prevent listeners firing into closed sockets (on page refresh)
+        ws.on('close', () => {
+            this.removeListener('browsercreated', createListener);
+            this.removeListener('browserdestroyed', destroyListener);
+        });
     }
 }
