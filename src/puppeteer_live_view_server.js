@@ -1,15 +1,141 @@
 import http from 'http';
 import EventEmitter from 'events';
+import Promise from 'bluebird';
+import uuid from 'uuid/v4';
+import WebSocket from 'ws';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import WebSocket from 'ws';
-import LiveViewBrowser from './puppeteer_live_view_browser';
+import { createTimeoutPromise } from './utils';
 import { layout, indexPage, detailPage } from './puppeteer_live_view_client';
 
 const LOCAL_IPV6 = '::';
 const LOCAL_IPV4 = '127.0.0.1';
+const DEFAULT_SCREENSHOT_TIMEOUT = 3000;
 
-let defaultServer;
+/**
+ * LiveViewBrowser encapsulates a Puppeteer's Browser instance and provides
+ * an API to safely get screenshots of the Browser's Pages.
+ * @param {Browser} browser A Puppeteer Browser instance.
+ * @param {String} [options.id] A unique ID of the LiveViewBrowser.
+ * @param {Number} [options.screenshotTimeout] Max time allowed for the screenshot taking process.
+ */
+export class LiveViewBrowser extends EventEmitter {
+    constructor(browser, opts = {}) {
+        super();
+        this.browser = browser;
+        this.pages = new Map(); // to track all pages and their creation order for listing
+        this._pageIds = new WeakMap(); // to avoid iteration over pages
+        this._loadedPages = new WeakSet(); // to just track loaded state
+
+        checkParamOrThrow(opts.id, 'opts.id', 'Maybe String');
+        checkParamOrThrow(opts.screenshotTimeout, 'opts.screenshotTimeout', 'Maybe Number');
+        this.id = opts.id || uuid();
+        this.screenshotTimeout = opts.screenshotTimeout || DEFAULT_SCREENSHOT_TIMEOUT;
+
+        // since the page can be in any state when the user requests
+        // a screenshot, we need to keep track of it ourselves
+        browser.on('targetcreated', (target) => {
+            if (target.type() === 'page') {
+                target.page()
+                    .then((page) => {
+                        const id = uuid();
+                        this.pages.set(id, page);
+                        this._pageIds.set(page, id);
+                        this.emit('pagecreated', {
+                            id,
+                            browserId: this.id,
+                            url: page.url(),
+                        });
+                        page.on('load', () => {
+                            this._loadedPages.add(page); // page is loaded
+                        });
+                        page.on('framenavigated', (frame) => {
+                            this.emit('pagenavigated', {
+                                id,
+                                url: frame.url(),
+                            });
+                        });
+                    })
+                    .catch(err => log.error(err));
+            }
+        });
+        browser.on('targetdestroyed', (target) => {
+            if (target.type() === 'page') {
+                target.page()
+                    .then((page) => {
+                        const id = this._pageIds.get(page);
+                        this.pages.delete(id);
+                        this.emit('pagedestroyed', {
+                            id,
+                        });
+                    })
+                    .catch(err => log.error(err));
+            }
+        });
+        browser.on('disconnected', b => this.emit('disconnected', b));
+    }
+
+    /**
+     * The getScreenshotAndHtml method simply retrieves the page's HTML
+     * content, takes a screenshot and returns both as a promise.
+     * Unfortunately, nothing prevents the Page from being closed while
+     * the screenshot is being taken, which results into error.
+     * Therefore, the method prevents the page from being closed
+     * by replacing its close method and handling the page close
+     * itself once the screenshot has been taken.
+     * @param {Page} page Puppeteer's Page
+     * @returns {Promise<Buffer>} screenshot
+     * @private
+     */
+    getScreenshotAndHtml(page) {
+        // replace page's close function to prevent a close
+        // while the screenshot is being taken
+        const { close } = page;
+        let closed;
+        let closeArgs;
+        let closeResolve;
+        page.close = (...args) => {
+            if (!closed) closeArgs = args;
+            closed = true;
+            return new Promise((resolve) => {
+                closeResolve = resolve;
+            });
+        };
+
+        // setup promise factories
+        const data = () => new Promise((resolve, reject) => {
+            const result = {};
+            const invoke = () => {
+                const image = page.screenshot().then((s) => { result.image = s; });
+                const html = page.content().then((s) => { result.html = s; });
+                Promise.all([image, html])
+                    .then(() => resolve(result))
+                    .catch(reject);
+            };
+            // if page is already loaded, take a screenshot
+            // otherwise, wait for it to load
+            if (this._loadedPages.has(page)) {
+                invoke();
+            } else {
+                page.on('load', invoke);
+            }
+        });
+        const timeout = () => createTimeoutPromise(this.screenshotTimeout, 'Puppeteer Live View: Screenshot timed out.');
+        const cleanup = () => {
+            // replace the stolen close() method or call it,
+            // if it should've been called externally
+            if (closed) {
+                close.apply(page, closeArgs)
+                    .then(closeResolve);
+            } else {
+                page.close = close.bind(page);
+            }
+        };
+
+        return Promise.race([data(), timeout()]).finally(cleanup);
+    }
+}
+
 
 /**
  * The start method should cover most use cases of starting a PuppeteerLiveViewServer.
@@ -27,6 +153,7 @@ let defaultServer;
  * @param {String} [opts.screenshotTimeout] Max time allowed for the screenshot taking process.
  * @returns {Promise<PuppeteerLiveViewServer>} The promise will resolve when the promise for Puppeteer's Browser resolves.
  */
+let defaultServer;
 export const startPuppeteerLiveView = (browserPromise, opts = {}) => {
     if (!defaultServer) {
         defaultServer = new PuppeteerLiveViewServer(opts);
@@ -148,12 +275,13 @@ export default class PuppeteerLiveViewServer extends EventEmitter {
                     }
                 }
                 if (!page) return sendCommand(ws, 'error', NOT_FOUND);
-                browser.screenshot(page)
-                    .then((image) => {
+                browser.getScreenshotAndHtml(page)
+                    .then(({ image, html }) => {
                         const data = {
                             id,
                             url: page.url(),
                             image,
+                            html,
                         };
                         sendCommand(ws, 'renderPage', { html: detailPage(data) });
                     })
@@ -162,11 +290,11 @@ export default class PuppeteerLiveViewServer extends EventEmitter {
                 sendCommand(ws, 'error', BAD_REQUEST);
             }
         });
+        this._setupCommandHandles(ws);
         sendCommand(ws, 'renderIndex', { html: indexPage(this.browsers) });
-        this._wsPushData(ws);
     }
 
-    _wsPushData(ws) {
+    _setupCommandHandles(ws) {
         const attachListeners = (browser) => {
             const createListener = p => sendCommand(ws, 'createPage', p);
             const destroyListener = p => sendCommand(ws, 'destroyPage', p);

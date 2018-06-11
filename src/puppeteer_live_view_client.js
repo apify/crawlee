@@ -1,6 +1,6 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
 
-const DESTROY_PAGE_FADEOUT = 2000;
+const DESTROY_FADEOUT = 2000;
 
 const createPage = (id, url) => `<div class="page" id="${id}">URL: ${url}</div>`;
 
@@ -14,15 +14,21 @@ const createPageCollection = (pages) => {
 
 const createBrowser = (id, pages) => `<div class="browser" id="${id}"><h3>${id}</h3>${createPageCollection(pages)}</div>`;
 
+const createBrowserCollection = (browsers) => {
+    const browserDivs = [];
+    browsers.forEach(({ id, pages }) => {
+        browserDivs.push(createBrowser(id, pages));
+    });
+    return `<div class="browser-collection">${browserDivs.join('\n')}</div>`;
+};
+
 /**
  * Generates a body for the Index page. A list of browsers and their pages.
  * @param {Set} browsers
  * @returns {string} index page HTML
  */
 export const indexPage = (browsers) => {
-    const browserDivs = [];
-    browsers.forEach(({ id, pages }) => browserDivs.push(createBrowser(id, pages)));
-    return browserDivs.join('\n');
+    return createBrowserCollection(browsers);
 };
 
 /**
@@ -30,38 +36,26 @@ export const indexPage = (browsers) => {
  * @param {Buffer} imageBuffer
  * @returns {string}
  */
-export const detailPage = ({ id, url, image }) => {
+export const detailPage = ({ id, url, image, html }) => {
+    const chars = { '<': '&lt', '>': '&gt', '&': '&amp' };
+    const escapedHtml = html.replace(/[<>&]/g, m => chars[m]);
+
     return `
 <div id="${id}">
   <h3>Detail of Page: ${url}</h3>
   <div class="screenshot">
     <img src="data:image/png;base64, ${image.toString('base64')}" alt="Page screenshot" />
-  </div> 
+  </div>
+    <pre>
+      <code class="original-html">
+        ${escapedHtml}
+      </code>
+    </pre>
+  </script>
+  </pre>
 </div>
 
 `;
-};
-
-/**
- * Returns a 404 response page.
- * @returns {string}
- */
-export const notFoundPage = () => {
-    const body = '<p>This page does not exist.</p>';
-    return layout({ body });
-};
-
-/**
- * Returns an error page with an error message.
- * @param {String} message
- * @returns {string}
- */
-export const errorPage = (message) => {
-    const body = `
-<p>Sorry. There was an error and Live View failed.</p>
-${message ? `<p>Message: ${message}</p>` : ''}
-`;
-    return layout({ body });
 };
 
 const wsHandler = (socket) => {
@@ -96,6 +90,16 @@ const wsHandler = (socket) => {
             pageDetail.classList.remove('hidden');
             pageDetail.innerHTML = html;
         },
+        createBrowser: ({ id }) => {
+            const browsers = index.querySelector('.browser-collection');
+            browsers.insertAdjacentHTML('afterbegin', createBrowser(id));
+        },
+        destroyBrowser: ({ id }) => {
+            const browser = document.getElementById(id);
+            browser.classList.add('destroyed');
+            // do not remove immediately
+            setTimeout(() => browser.remove(), DESTROY_FADEOUT);
+        },
         createPage: ({ id, browserId, url }) => {
             const pages = document.getElementById(browserId).querySelector('.page-collection');
             pages.insertAdjacentHTML('afterbegin', createPage(id, url));
@@ -113,7 +117,7 @@ const wsHandler = (socket) => {
             page.classList.add('destroyed');
             // do not remove immediately since it can happen pretty fast
             // and the page only pops in the list for a split second
-            setTimeout(() => page.remove(), DESTROY_PAGE_FADEOUT);
+            setTimeout(() => page.remove(), DESTROY_FADEOUT);
         },
         error: ({ message, status }) => {
             console.error(`${status}: ${message}`); // eslint-disable-line
@@ -169,10 +173,13 @@ export const layout = (opts = {}) => {
       color: #660000;
       visibility: hidden;
       opacity: 0;
-      transition: visibility 0s 2s, opacity 2s linear;
+      transition: visibility 0s ${DESTROY_FADEOUT / 1000}s, opacity ${DESTROY_FADEOUT / 1000}s linear;
     }
     .hidden {
       display: none;
+    }
+    .original-html {
+      white-space: pre-wrap;
     }
   </style>
 </head>
@@ -183,7 +190,7 @@ export const layout = (opts = {}) => {
   <div id="page-detail" class="hidden"></div>
   <script>
     const ws = new WebSocket("ws://${opts.host}:${opts.port}");
-    const DESTROY_PAGE_FADEOUT = ${DESTROY_PAGE_FADEOUT};
+    const DESTROY_FADEOUT = ${DESTROY_FADEOUT};
     const createPage = ${createPage.toString()};
     const createPageCollection = ${createPageCollection.toString()};
     const createBrowser = ${createBrowser.toString()};
