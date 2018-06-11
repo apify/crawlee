@@ -1,3 +1,8 @@
+XXX
+===================
+- Revereted back - `Apify.getApifyProxyUrl()` accepts again `session` and `groups` options instead of
+  `apifyProxySession` and `apifyProxyGroups`
+
 0.5.37 / 2018-06-07
 ===================
 - `PseudoUrl` class can now contain a template for `Request` object creation and `PseudoUrl.createRequest()` method.
