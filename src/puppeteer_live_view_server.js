@@ -50,10 +50,13 @@ export class LiveViewBrowser extends EventEmitter {
                             this._loadedPages.add(page); // page is loaded
                         });
                         page.on('framenavigated', (frame) => {
-                            this.emit('pagenavigated', {
-                                id,
-                                url: frame.url(),
-                            });
+                            if (frame === page.mainFrame()) {
+                                this._loadedPages.delete(page); // page will load after nav
+                                this.emit('pagenavigated', {
+                                    id,
+                                    url: frame.url(),
+                                });
+                            }
                         });
                     })
                     .catch(err => log.error(err));
@@ -75,6 +78,37 @@ export class LiveViewBrowser extends EventEmitter {
         browser.on('disconnected', b => this.emit('disconnected', b));
     }
 
+    startCapturing(page) {
+        const id = this._pageIds.get(page);
+        const capture = () => {
+            log.debug(`Capturing page. ID: ${id}`);
+            this._getScreenshotAndHtml(page)
+                .then(({ image, html }) => {
+                    this.emit(id, {
+                        id,
+                        url: page.url(),
+                        image,
+                        html,
+                    });
+                })
+                .catch((err) => {
+                    if (!err) return;
+                    log.error(err);
+                });
+        };
+        // capture immediately for loaded pages
+        if (this._loadedPages.has(page)) capture();
+        // setup recurrent capturing
+        page.on('load', () => {
+            if (this.listenerCount(id)) capture();
+        });
+    }
+
+    stopCapturing(page) {
+        const id = this._pageIds.get(page);
+        this.removeAllListeners(id);
+    }
+
     /**
      * The getScreenshotAndHtml method simply retrieves the page's HTML
      * content, takes a screenshot and returns both as a promise.
@@ -87,7 +121,7 @@ export class LiveViewBrowser extends EventEmitter {
      * @returns {Promise<Buffer>} screenshot
      * @private
      */
-    getScreenshotAndHtml(page) {
+    _getScreenshotAndHtml(page) {
         // replace page's close function to prevent a close
         // while the screenshot is being taken
         const { close } = page;
@@ -105,20 +139,11 @@ export class LiveViewBrowser extends EventEmitter {
         // setup promise factories
         const data = () => new Promise((resolve, reject) => {
             const result = {};
-            const invoke = () => {
-                const image = page.screenshot().then((s) => { result.image = s; });
-                const html = page.content().then((s) => { result.html = s; });
-                Promise.all([image, html])
-                    .then(() => resolve(result))
-                    .catch(reject);
-            };
-            // if page is already loaded, take a screenshot
-            // otherwise, wait for it to load
-            if (this._loadedPages.has(page)) {
-                invoke();
-            } else {
-                page.on('load', invoke);
-            }
+            const image = page.screenshot().then((s) => { result.image = s; });
+            const html = page.content().then((s) => { result.html = s; });
+            Promise.all([image, html])
+                .then(() => resolve(result))
+                .catch(reject);
         });
         const timeout = () => createTimeoutPromise(this.screenshotTimeout, 'Puppeteer Live View: Screenshot timed out.');
         const cleanup = () => {
@@ -251,6 +276,19 @@ export default class PuppeteerLiveViewServer extends EventEmitter {
             status: 404,
         };
 
+        const findPage = (id) => {
+            let page;
+            let browser;
+            for (const b of this.browsers) { // eslint-disable-line
+                if (b.pages.has(id)) {
+                    page = b.pages.get(id);
+                    browser = b;
+                    break;
+                }
+            }
+            return [browser, page];
+        };
+
 
         log.debug('WebSocket connection to Puppeteer Live View established.');
         ws.on('message', (msg) => {
@@ -264,28 +302,16 @@ export default class PuppeteerLiveViewServer extends EventEmitter {
             if (command === 'renderIndex') {
                 sendCommand(ws, 'renderIndex', { html: indexPage(this.browsers) });
             } else if (command === 'renderPage') {
-                const { id } = msg.data;
-                let page;
-                let browser;
-                for (const b of this.browsers) { // eslint-disable-line
-                    if (b.pages.has(id)) {
-                        page = b.pages.get(id);
-                        browser = b;
-                        break;
-                    }
-                }
+                const { id } = msg.data || {};
+                const [browser, page] = findPage(id);
                 if (!page) return sendCommand(ws, 'error', NOT_FOUND);
-                browser.getScreenshotAndHtml(page)
-                    .then(({ image, html }) => {
-                        const data = {
-                            id,
-                            url: page.url(),
-                            image,
-                            html,
-                        };
-                        sendCommand(ws, 'renderPage', { html: detailPage(data) });
-                    })
-                    .catch(err => log.error(err));
+                browser.startCapturing(page);
+                browser.on(id, pageData => sendCommand(ws, 'renderPage', { html: detailPage(pageData) }));
+            } else if (command === 'quitPage') {
+                const { id } = msg.data || {};
+                const [browser, page] = findPage(id);
+                if (!page) return; // no need to send error
+                browser.stopCapturing(page);
             } else {
                 sendCommand(ws, 'error', BAD_REQUEST);
             }

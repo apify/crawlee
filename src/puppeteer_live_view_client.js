@@ -51,8 +51,6 @@ export const detailPage = ({ id, url, image, html }) => {
         ${escapedHtml}
       </code>
     </pre>
-  </script>
-  </pre>
 </div>
 
 `;
@@ -62,11 +60,6 @@ const wsHandler = (socket) => {
     const index = document.getElementById('index');
     const pageDetail = document.getElementById('page-detail');
     const backButton = document.getElementById('back-button');
-    backButton.onclick = () => {
-        pageDetail.classList.add('hidden');
-        backButton.classList.add('hidden');
-        index.classList.remove('hidden');
-    };
 
     const sendCommand = (command, data) => {
         if (socket.readyState === 1) {
@@ -144,6 +137,14 @@ const wsHandler = (socket) => {
 
     socket.onerror = (err) => {
         console.error(err); //eslint-disable-line
+    };
+
+    backButton.onclick = () => {
+        pageDetail.classList.add('hidden');
+        backButton.classList.add('hidden');
+        index.classList.remove('hidden');
+        const id = pageDetail.firstElementChild.getAttribute('id');
+        sendCommand('quitPage', { id });
     };
 };
 
