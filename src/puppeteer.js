@@ -201,7 +201,7 @@ export const launchPuppeteer = (opts = {}) => {
     const wrapped = newPromise().then(() => browserPromise);
 
     // start LiveView server if requested
-    if (optsCopy.liveView) startPuppeteerLiveView(wrapped).catch(err => log.error(err));
+    if (optsCopy.liveView) return startPuppeteerLiveView(wrapped).then(() => wrapped);
 
     return wrapped;
 };

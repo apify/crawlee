@@ -228,7 +228,7 @@ export const startPuppeteerLiveView = (browserPromise, opts = {}) => {
             return defaultServer;
         });
 
-    return Promise.all([serverPromise, browserPromise]);
+    return Promise.all([serverPromise, browserPromise]).then(() => defaultServer); // return PuppeteerLiveViewServer instance
 };
 
 /**
