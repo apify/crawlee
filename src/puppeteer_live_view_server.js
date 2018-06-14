@@ -14,12 +14,14 @@ const DEFAULT_SCREENSHOT_TIMEOUT = 3000;
 
 /**
  * LiveViewBrowser encapsulates a Puppeteer's Browser instance and provides
- * an API to safely get screenshots of the Browser's Pages.
+ * an API to capture screenshots and HTML of the Browser's Pages. It uses
+ * EventEmitter API to communicate relevant Page events.
+ *
  * @param {Browser} browser A Puppeteer Browser instance.
  * @param {String} [options.id] A unique ID of the LiveViewBrowser.
  * @param {Number} [options.screenshotTimeout] Max time allowed for the screenshot taking process.
  */
-export class LiveViewBrowser extends EventEmitter {
+export class PuppeteerLiveViewBrowser extends EventEmitter {
     constructor(browser, opts = {}) {
         super();
         this.browser = browser;
@@ -49,6 +51,7 @@ export class LiveViewBrowser extends EventEmitter {
                         page.on('load', () => {
                             this._loadedPages.add(page); // page is loaded
                         });
+                        // using "framenavigated" on main Frame since "targetchanged" does not seem reliable
                         page.on('framenavigated', (frame) => {
                             if (frame === page.mainFrame()) {
                                 this._loadedPages.delete(page); // page will load after nav
@@ -62,6 +65,7 @@ export class LiveViewBrowser extends EventEmitter {
                     .catch(err => log.error(err));
             }
         });
+        // clean up resources after page close
         browser.on('targetdestroyed', (target) => {
             if (target.type() === 'page') {
                 target.page()
@@ -75,11 +79,24 @@ export class LiveViewBrowser extends EventEmitter {
                     .catch(err => log.error(err));
             }
         });
+        // clean up resources after browser close (in Server)
         browser.on('disconnected', b => this.emit('disconnected', b));
     }
 
+    /**
+     * Initiates screenshot and HTML capturing of a Page by attaching
+     * a listener to Page "load" events. If the first Page is already loaded,
+     * it captures immediately.
+     *
+     * This function is invoked as a response to a Client side command "renderPage",
+     * which is issued by clicking on a Page listing on the Browser Index page.
+     * Once capturing starts, new screenshot and HTML will be served to Client
+     * with each Page load.
+     * @param {Page} page Puppeteer Page instance.
+     */
     startCapturing(page) {
         const id = this._pageIds.get(page);
+        if (!id) return;
         const capture = () => {
             log.debug(`Capturing page. ID: ${id}`);
             this._getScreenshotAndHtml(page)
@@ -104,6 +121,15 @@ export class LiveViewBrowser extends EventEmitter {
         });
     }
 
+    /**
+     * Clears the capturing listener setup by startCapturing() to prevent
+     * unnecessary load on both Server and Client.
+     *
+     * Client side, the function is invoked by clicking the "back" button
+     * on a page detail (screenshot + HTML).
+     *
+     * @param {Page} page
+     */
     stopCapturing(page) {
         const id = this._pageIds.get(page);
         this.removeAllListeners(id);
@@ -117,9 +143,11 @@ export class LiveViewBrowser extends EventEmitter {
      * Therefore, the method prevents the page from being closed
      * by replacing its close method and handling the page close
      * itself once the screenshot has been taken.
+     *
      * @param {Page} page Puppeteer's Page
      * @returns {Promise<Buffer>} screenshot
      * @private
+     * @ignore
      */
     _getScreenshotAndHtml(page) {
         // replace page's close function to prevent a close
@@ -191,12 +219,31 @@ export const startPuppeteerLiveView = (browserPromise, opts = {}) => {
 
     return browserPromise
         .then((browser) => {
-            const lvb = new LiveViewBrowser(browser, browserOpts);
+            const lvb = new PuppeteerLiveViewBrowser(browser, browserOpts);
             defaultServer.addBrowser(lvb);
             return defaultServer;
         });
 };
 
+/**
+ * sendCommand() encapsulates simple WebSocket communication logic.
+ *
+ * @example
+ *
+ * A command is sent as JSON:
+ *
+ * {
+ *   "command": "renderPage",
+ *   "data": {
+ *     "param1": "value1".
+ *     "param2": "value2"
+ *   }
+ * }
+ *
+ * @param {WebSocket} socket
+ * @param {String} command Name of requested command.
+ * @param {Object} data Data to be sent.
+ */
 const sendCommand = (socket, command, data) => {
     const payload = JSON.stringify({ command, data });
     socket.send(payload, (err) => {
@@ -208,6 +255,7 @@ const sendCommand = (socket, command, data) => {
  * Enables Live View monitoring of Act execution by spawning a web server that responds with a list
  * of available browsers at its root path. Once the user chooses a browser, PuppeteerLiveViewServer will
  * periodically serve screenshots of the selected browser's latest loaded page.
+ *
  * @param {Number} [opts.port] Listening port of the PuppeteerLiveViewServer. Defaults to 1234.
  */
 export default class PuppeteerLiveViewServer extends EventEmitter {
@@ -220,12 +268,23 @@ export default class PuppeteerLiveViewServer extends EventEmitter {
         this.httpServer = null;
     }
 
+    /**
+     * Adds an instance of PuppeteerLiveViewBrowser (not Puppeteer.Browser)
+     * to the server's list of managed browsers.
+     *
+     * @param {PuppeteerLiveViewBrowser} browser
+     */
     addBrowser(browser) {
         this.browsers.add(browser);
         this.emit('browsercreated', browser);
         browser.on('disconnected', () => this.deleteBrowser(browser));
     }
 
+    /**
+     * Removes an instance of PuppeteerLiveViewBrowser (not Puppeteer.Browser)
+     * from the server's list of managed browsers.
+     * @param {PuppeteerLiveViewBrowser} browser
+     */
     deleteBrowser(browser) {
         this.browsers.delete(browser);
         this.emit('browserdestroyed', browser);
@@ -247,15 +306,19 @@ export default class PuppeteerLiveViewServer extends EventEmitter {
     }
 
     /**
-     * Request handler function that delegates to LiveViewRouter.
+     * Request handler function that returns a simple HTML index page
+     * with embedded JavaScript that will establish a WebSocket connection
+     * between the server and the client.
      * @param {http.IncomingMessage} req
      * @param {http.ServerResponse} res
      * @private
+     * @ignore
      */
     _httpRequestListener(req, res) {
         const { port, address } = this.httpServer.address();
 
         const body = layout({
+            // Node returns IPv6 when available by default, which doesn't work well with localhost.
             host: address === LOCAL_IPV6 ? LOCAL_IPV4 : address,
             port,
         });
@@ -266,6 +329,13 @@ export default class PuppeteerLiveViewServer extends EventEmitter {
         res.end(body);
     }
 
+    /**
+     * This function fires with each new WebSocket connection and manages
+     * the socket's messages.
+     * @param {WebSocket} ws
+     * @private
+     * @ignore
+     */
     _wsRequestListener(ws) {
         const BAD_REQUEST = {
             message: 'Bad Request',
@@ -276,6 +346,7 @@ export default class PuppeteerLiveViewServer extends EventEmitter {
             status: 404,
         };
 
+        // traverses browsers to find a page with ID
         const findPage = (id) => {
             let page;
             let browser;
@@ -289,7 +360,6 @@ export default class PuppeteerLiveViewServer extends EventEmitter {
             return [browser, page];
         };
 
-
         log.debug('WebSocket connection to Puppeteer Live View established.');
         ws.on('message', (msg) => {
             try {
@@ -301,12 +371,14 @@ export default class PuppeteerLiveViewServer extends EventEmitter {
 
             if (command === 'renderIndex') {
                 sendCommand(ws, 'renderIndex', { html: indexPage(this.browsers) });
+            // when the user selects a Page from the Index
             } else if (command === 'renderPage') {
                 const { id } = msg.data || {};
                 const [browser, page] = findPage(id);
                 if (!page) return sendCommand(ws, 'error', NOT_FOUND);
                 browser.startCapturing(page);
                 browser.on(id, pageData => sendCommand(ws, 'renderPage', { html: detailPage(pageData) }));
+            // when the user clicks on the back button
             } else if (command === 'quitPage') {
                 const { id } = msg.data || {};
                 const [browser, page] = findPage(id);
@@ -320,6 +392,13 @@ export default class PuppeteerLiveViewServer extends EventEmitter {
         sendCommand(ws, 'renderIndex', { html: indexPage(this.browsers) });
     }
 
+    /**
+     * Invoked from the _wsRequestListener, this function only groups
+     * all browser related event handling into a single package.
+     * @param {WebSocket} ws
+     * @private
+     * @ignore
+     */
     _setupCommandHandles(ws) {
         const attachListeners = (browser) => {
             const createListener = p => sendCommand(ws, 'createPage', p);
@@ -335,8 +414,10 @@ export default class PuppeteerLiveViewServer extends EventEmitter {
                 browser.removeListener('pagenavigated', updateListener);
             });
         };
-
+        // Since this function fires when a socket opens, some browsers
+        // and pages already exist and we need to get messages about those too.
         this.browsers.forEach(attachListeners);
+
         const createListener = (browser) => {
             attachListeners(browser);
             sendCommand(ws, 'createBrowser', { id: browser.id });

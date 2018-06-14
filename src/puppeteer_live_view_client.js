@@ -1,9 +1,28 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
 
+// everything gets destroyed slowly to make the UX better
 const DESTROY_FADEOUT = 2000;
 
+/**
+ * Creates a page line in the Index.
+ *
+ * Used both client and server-side.
+ *
+ * @param {string} id
+ * @param {string} url
+ * @returns {string} html
+ */
 const createPage = (id, url) => `<div class="page" id="${id}">URL: ${url}</div>`;
 
+/**
+ * Turns a Map of Pages into an Array of page divs.
+ *  = All Pages of a single PuppeteerLiveViewBrowser.
+ *
+ * Used both client and server-side.
+ *
+ * @param {Map<String,Page>} pages
+ * @returns {string} html
+ */
 const createPageCollection = (pages) => {
     const pageDivs = [];
     pages.forEach((page, id) => {
@@ -12,8 +31,26 @@ const createPageCollection = (pages) => {
     return `<div class="page-collection">${pageDivs.join('\n')}</div>`;
 };
 
+/**
+ * Creates a browser line in the Index.
+ *
+ * Used both client and server-side.
+ *
+ * @param {string} id Browser ID.
+ * @param {Map<String,Page>} pages
+ * @returns {string} html
+ */
 const createBrowser = (id, pages) => `<div class="browser" id="${id}"><h3>${id}</h3>${createPageCollection(pages)}</div>`;
 
+/**
+ * Turns a Set of Browsers into an Array of browser divs.
+ *  = All PuppeteerLiveViewBrowsers of a PuppeteerLiveViewServer.
+ *
+ * Used both client and server-side.
+ *
+ * @param {Map<String,Page>} pages
+ * @returns {string} html
+ */
 const createBrowserCollection = (browsers) => {
     const browserDivs = [];
     browsers.forEach(({ id, pages }) => {
@@ -23,18 +60,26 @@ const createBrowserCollection = (browsers) => {
 };
 
 /**
- * Generates a body for the Index page. A list of browsers and their pages.
+ * Generates an HTML body for the Index page.
+ * A list of PuppeteerLiveViewBrowsers and their Pages.
+ *
+ * Used only server-side.
+ *
  * @param {Set} browsers
- * @returns {string} index page HTML
+ * @returns {string} html
  */
 export const indexPage = (browsers) => {
     return createBrowserCollection(browsers);
 };
 
 /**
- * Returns a body of a page consisting of a serialized image.
+ * Returns a body of a Page consisting of a serialized
+ * image and a HTML representation.
+ *
+ * Used only server-side.
+ *
  * @param {Buffer} imageBuffer
- * @returns {string}
+ * @returns {string} html
  */
 export const detailPage = ({ id, url, image, html }) => {
     const chars = { '<': '&lt', '>': '&gt', '&': '&amp' };
@@ -56,12 +101,22 @@ export const detailPage = ({ id, url, image, html }) => {
 `;
 };
 
+/**
+ * The wsHandler() function encapsulates the whole client-side
+ * messaging and rendering logic. All commands that the client
+ * is able to receive and understand are listed in COMMANDS.
+ *
+ * @param {WebSocket} socket
+ */
 const wsHandler = (socket) => {
+    // get common elements
     const index = document.getElementById('index');
     const pageDetail = document.getElementById('page-detail');
     const backButton = document.getElementById('back-button');
 
+    // a client implementation of the server's sendCommand()
     const sendCommand = (command, data) => {
+        // send only if socket is open
         if (socket.readyState === 1) {
             const payload = JSON.stringify({ command, data });
             socket.send(payload);
@@ -69,6 +124,7 @@ const wsHandler = (socket) => {
     };
 
     const COMMANDS = {
+        // renders the Index Page - a list of browsers and their pages
         renderIndex: ({ html }) => {
             index.innerHTML = html;
             index.querySelectorAll('.page').forEach((page) => {
@@ -77,22 +133,26 @@ const wsHandler = (socket) => {
                 });
             });
         },
+        // renders the Page Detail - where screenshots and HTML are shown
         renderPage: ({ html }) => {
             index.classList.add('hidden');
             backButton.classList.remove('hidden');
             pageDetail.classList.remove('hidden');
             pageDetail.innerHTML = html;
         },
+        // adds a browser to the list
         createBrowser: ({ id }) => {
             const browsers = index.querySelector('.browser-collection');
             browsers.insertAdjacentHTML('afterbegin', createBrowser(id));
         },
+        // removes a browser from the list after fade-out
         destroyBrowser: ({ id }) => {
             const browser = document.getElementById(id);
             browser.classList.add('destroyed');
             // do not remove immediately
             setTimeout(() => browser.remove(), DESTROY_FADEOUT);
         },
+        // adds a page to it's parent browser
         createPage: ({ id, browserId, url }) => {
             const pages = document.getElementById(browserId).querySelector('.page-collection');
             pages.insertAdjacentHTML('afterbegin', createPage(id, url));
@@ -101,10 +161,12 @@ const wsHandler = (socket) => {
                 id: page.getAttribute('id'),
             });
         },
+        // updates page URL on navigation
         updatePage: ({ id, url }) => {
             const page = document.getElementById(id);
             page.innerText = `URL: ${url}`;
         },
+        // removes a page from a browser after fade-out
         destroyPage: ({ id }) => {
             const page = document.getElementById(id);
             page.classList.add('destroyed');
@@ -112,6 +174,7 @@ const wsHandler = (socket) => {
             // and the page only pops in the list for a split second
             setTimeout(() => page.remove(), DESTROY_FADEOUT);
         },
+        // handles errors
         error: ({ message, status }) => {
             console.error(`${status}: ${message}`); // eslint-disable-line
         },
@@ -124,6 +187,8 @@ const wsHandler = (socket) => {
         } catch (err) {
             return console.error('Unable to parse message from server:', e.data); // eslint-disable-line
         }
+
+        // validate and invoke requested command
         const { command, data } = message;
         if (!command) return console.error('Invalid command:', command); // eslint-disable-line
         const fn = COMMANDS[command];
@@ -139,6 +204,11 @@ const wsHandler = (socket) => {
         console.error(err); //eslint-disable-line
     };
 
+    // The Index Page and Page Detail are not rerendered every time since
+    // it complicates WebSocket communication (adding / removing listeners).
+    // Instead, clicking on a page in the Index simply hides the Index
+    // and shows Page Detail and the Back Button.
+    // Clicking the back button hides the detail and shows the Index Page.
     backButton.onclick = () => {
         pageDetail.classList.add('hidden');
         backButton.classList.add('hidden');
@@ -149,7 +219,11 @@ const wsHandler = (socket) => {
 };
 
 /**
- * Template for a basic layout of a HTML page.
+ * Template for a basic layout of a HTML page that enables WebSocket
+ * communication. Constants and JavaScript are templated directly into
+ * the HTML. This HTML page is the only piece of data sent over HTTP.
+ * All other communication takes place over WebSockets.
+ *
  * @param {String} opts.host hostname of the WebSocket server
  * @param {Number} opts.port port of the WebSocket server
  * @returns {string} html
