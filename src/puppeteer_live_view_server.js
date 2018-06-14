@@ -199,30 +199,36 @@ export class PuppeteerLiveViewBrowser extends EventEmitter {
  *
  * The ID is customizable to better identify individual browsers.
  *
+ * The promise will resolve when the server starts listening or when the Puppeteer Browser
+ * becomes available. Whichever comes later.
+ *
  * @param {Promise<Browser>} browserPromise A Promise for a Puppeteer's Browser.
  * @param {Object} [opts] Options to pass down to PuppeteerLiveViewServer constructor.
  * @param {Number} [opts.port] Listening port of the PuppeteerLiveViewServer. Defaults to 1234.
  * @param {String} [opts.browserId] Custom ID to be used with the browser instance.
  * @param {String} [opts.screenshotTimeout] Max time allowed for the screenshot taking process.
- * @returns {Promise<PuppeteerLiveViewServer>} The promise will resolve when the promise for Puppeteer's Browser resolves.
+ * @returns {Promise<PuppeteerLiveViewServer>}
  */
 let defaultServer;
 export const startPuppeteerLiveView = (browserPromise, opts = {}) => {
+    let serverPromise = Promise.resolve();
     if (!defaultServer) {
         defaultServer = new PuppeteerLiveViewServer(opts);
-        defaultServer.startServer();
+        serverPromise = defaultServer.startServer();
     }
     const browserOpts = {
         id: opts.browserId,
         screenshotTimeout: opts.screenshotTimeout,
     };
 
-    return browserPromise
+    browserPromise
         .then((browser) => {
             const lvb = new PuppeteerLiveViewBrowser(browser, browserOpts);
             defaultServer.addBrowser(lvb);
             return defaultServer;
         });
+
+    return Promise.all([serverPromise, browserPromise]);
 };
 
 /**
@@ -293,15 +299,20 @@ export default class PuppeteerLiveViewServer extends EventEmitter {
 
     /**
      * Starts an HTTP and a WebSocket server on a preconfigured port or 1234.
+     *
+     * @return {Promise} resolves when HTTP server starts listening
      */
     startServer() {
-        const server = http.createServer(this._httpRequestListener.bind(this));
-        const wss = new WebSocket.Server({ server });
-        wss.on('connection', this._wsRequestListener.bind(this));
-        server.listen(this.port, (err) => {
-            if (err) return log.error(err);
-            log.info(`Live view server is listening on port ${this.port}.`);
-            this.httpServer = server;
+        return new Promise((resolve, reject) => {
+            const server = http.createServer(this._httpRequestListener.bind(this));
+            const wss = new WebSocket.Server({ server });
+            wss.on('connection', this._wsRequestListener.bind(this));
+            server.listen(this.port, (err) => {
+                if (err) reject(err);
+                log.info(`Live view server is listening on port ${this.port}.`);
+                this.httpServer = server;
+                resolve();
+            });
         });
     }
 
