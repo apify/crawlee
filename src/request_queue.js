@@ -608,7 +608,7 @@ export class RequestQueueLocal {
 
                 return writeFilePromised(filePath, JSON.stringify(requestCopy, null, 4))
                     .then(() => ({
-                        requestId: request.id,
+                        requestId: requestCopy.id,
                         wasAlreadyHandled: false,
                         wasAlreadyPresent: false,
                     }));
