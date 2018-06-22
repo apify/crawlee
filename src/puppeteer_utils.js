@@ -138,7 +138,7 @@ const enqueueRequestsFromClickableElements = async (page, selector, purls, reque
  * @param {String} selector CSS selector matching elements to be clicked.
  * @param {Array} pseudoUrls An array of `Apify.PseudoUrl` objects matching URL to be enqueued.
  * @param {RequestQueue} requestQueue `Apify.RequestQueue` object where URLs will be enqueued.
- * @return {Promise}
+ * @return {Promise} Promise resolves to array of RequestOperationInfo objects.
  * @memberof utils.puppeteer
  */
 const enqueueLinks = async (page, selector, purls, requestQueue) => {

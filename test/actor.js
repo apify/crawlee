@@ -339,10 +339,11 @@ describe('Apify.call()', () => {
         const output = { contentType, body: 'some-output' };
         const expected = Object.assign({}, finishedRun, { output });
         const build = 'xxx';
+        const memory = 1024;
 
         const actsMock = sinon.mock(Apify.client.acts);
         actsMock.expects('runAct')
-            .withExactArgs({ token, actId, contentType: `${contentType}; charset=utf-8`, body: input, build })
+            .withExactArgs({ token, actId, contentType: `${contentType}; charset=utf-8`, body: input, build, memory })
             .once()
             .returns(Promise.resolve(runningRun));
         actsMock.expects('getRun')
@@ -361,7 +362,7 @@ describe('Apify.call()', () => {
             .returns(Promise.resolve(output));
 
         return Apify
-            .call(actId, input, { contentType, token, disableBodyParser: true, build })
+            .call(actId, input, { contentType, token, disableBodyParser: true, build, memory })
             .then((callOutput) => {
                 expect(callOutput).to.be.eql(expected);
                 keyValueStoresMock.restore();
