@@ -47,7 +47,7 @@ export const newClient = () => {
  * in functions such as <a href="#module-Apify-getValue">Apify.getValue()</a>
  * or <a href="#module-Apify-call">Apify.call()</a>.
  * The settings of the client can be globally altered by calling the
- * <a href="https://www.apify.com/docs/js/apify-client-js/latest#ApifyClient-setOptions"><code>Apify.client.setOptions()</code></a> function.
+ * <a href="https://www.apify.com/docs/sdk/apify-client-js/latest#ApifyClient-setOptions"><code>Apify.client.setOptions()</code></a> function.
  * Just be careful, it might have undesired effects on other functions provided by this package.
  *
  * @memberof module:Apify
