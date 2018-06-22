@@ -170,9 +170,10 @@ export const launchPuppeteer = (opts = {}) => {
         optsCopy.executablePath = process.env[ENV_VARS.CHROME_EXECUTABLE_PATH] || getTypicalChromeExecutablePath();
     }
     if (optsCopy.useApifyProxy) {
-        const { apifyProxyGroups, apifyProxySession } = optsCopy;
-
-        optsCopy.proxyUrl = getApifyProxyUrl({ apifyProxyGroups, apifyProxySession });
+        optsCopy.proxyUrl = getApifyProxyUrl({
+            groups: optsCopy.apifyProxyGroups,
+            session: optsCopy.apifyProxySession,
+        });
     }
 
     // When User-Agent is not set and we're using Chromium or headless mode,
