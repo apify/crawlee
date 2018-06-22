@@ -384,9 +384,9 @@ export const call = (actId, input, opts = {}) => {
  * @param {String} opts.password User's password for the proxy.
  * By default, it is taken from the `APIFY_PROXY_PASSWORD` environment variable,
  * which is automatically set by the system when running the acts on the Apify cloud.
- * @param {String[]} [opts.apifyProxyGroups] Array of Apify Proxy groups to be used.
+ * @param {String[]} [opts.groups] Array of Apify Proxy groups to be used.
  * If not provided, the proxy will select the groups automatically.
- * @param {String} [opts.apifyProxySession] Apify Proxy session identifier to be used by the Chrome browser.
+ * @param {String} [opts.session] Apify Proxy session identifier to be used by the Chrome browser.
  * All HTTP requests going through the proxy with the same session identifier
  * will use the same target proxy server (i.e. the same IP address).
  * The identifier can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
@@ -400,18 +400,18 @@ export const call = (actId, input, opts = {}) => {
 export const getApifyProxyUrl = (opts = {}) => {
     // For backwards compatibility.
     // TODO: remove this when we release v1.0.0
-    if (!opts.apifyProxyGroups && opts.groups) {
-        log.warning('Parameter `groups` of Apify.getApifyProxyUrl() is deprecated!!! Use `apifyProxyGroups` instead!');
-        opts.apifyProxyGroups = opts.groups;
+    if (!opts.groups && opts.apifyProxyGroups) {
+        log.warning('Parameter `apifyProxyGroups` of Apify.getApifyProxyUrl() is deprecated!!! Use `groups` instead!');
+        opts.groups = opts.apifyProxyGroups;
     }
-    if (!opts.apifyProxySession && opts.session) {
-        log.warning('Parameter `session` of Apify.getApifyProxyUrl() is deprecated!!! Use `apifyProxySession` instead!');
-        opts.apifyProxySession = opts.session;
+    if (!opts.session && opts.apifyProxySession) {
+        log.warning('Parameter `apifyProxySession` of Apify.getApifyProxyUrl() is deprecated!!! Use `session` instead!');
+        opts.session = opts.apifyProxySession;
     }
 
     const {
-        apifyProxyGroups,
-        apifyProxySession,
+        groups,
+        session,
         password = process.env[ENV_VARS.PROXY_PASSWORD],
         hostname = process.env[ENV_VARS.PROXY_HOSTNAME] || DEFAULT_PROXY_HOSTNAME,
         port = parseInt(process.env[ENV_VARS.PROXY_PORT], 10) || DEFAULT_PROXY_PORT,
@@ -422,24 +422,24 @@ export const getApifyProxyUrl = (opts = {}) => {
         throw new Error(`The "${param}" option can only contain the following characters: 0-9, a-z, A-Z, ".", "_" and "~"`);
     };
 
-    checkParamOrThrow(apifyProxyGroups, 'opts.apifyProxyGroups', 'Maybe [String]');
-    checkParamOrThrow(apifyProxySession, 'opts.apifyProxySession', 'Maybe Number | String');
+    checkParamOrThrow(groups, 'opts.groups', 'Maybe [String]');
+    checkParamOrThrow(session, 'opts.session', 'Maybe Number | String');
     checkParamOrThrow(password, 'opts.password', 'String', getMissingParamErrorMgs('password', ENV_VARS.PROXY_PASSWORD));
     checkParamOrThrow(hostname, 'opts.hostname', 'String', getMissingParamErrorMgs('hostname', ENV_VARS.PROXY_HOSTNAME));
     checkParamOrThrow(port, 'opts.port', 'Number', getMissingParamErrorMgs('port', ENV_VARS.PROXY_PORT));
 
     let username;
 
-    if (apifyProxyGroups || apifyProxySession) {
+    if (groups || session) {
         const parts = [];
 
-        if (apifyProxyGroups && apifyProxyGroups.length) {
-            if (!apifyProxyGroups.every(group => APIFY_PROXY_VALUE_REGEX.test(group))) throwInvalidProxyValueError('apifyProxyGroups');
-            parts.push(`GROUPS-${apifyProxyGroups.join('+')}`);
+        if (groups && groups.length) {
+            if (!groups.every(group => APIFY_PROXY_VALUE_REGEX.test(group))) throwInvalidProxyValueError('groups');
+            parts.push(`GROUPS-${groups.join('+')}`);
         }
-        if (apifyProxySession) {
-            if (!APIFY_PROXY_VALUE_REGEX.test(apifyProxySession)) throwInvalidProxyValueError('apifyProxySession');
-            parts.push(`SESSION-${apifyProxySession}`);
+        if (session) {
+            if (!APIFY_PROXY_VALUE_REGEX.test(session)) throwInvalidProxyValueError('session');
+            parts.push(`SESSION-${session}`);
         }
 
         username = parts.join(',');
