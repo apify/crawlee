@@ -295,7 +295,7 @@ describe('utils.isAtHome()', () => {
 describe('pidusage NPM package', () => {
     it('throws correct error message when process not found', () => {
         const NONEXISTING_PID = 9999;
-        const promise = Promise.promisify(pidusage)(NONEXISTING_PID);
+        const promise = pidusage(NONEXISTING_PID);
 
         return expect(promise).to.be.rejectedWith(utils.PID_USAGE_NOT_FOUND_ERROR);
     });

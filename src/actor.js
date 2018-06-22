@@ -299,10 +299,12 @@ export const call = (actId, input, opts = {}) => {
     if (token) defaultOpts.token = token;
 
     // RunAct() options.
-    const { build } = opts;
+    const { build, memory } = opts;
     const runActOpts = {};
     checkParamOrThrow(build, 'build', 'Maybe String');
+    checkParamOrThrow(memory, 'memory', 'Maybe Number');
     if (build) runActOpts.build = build;
+    if (memory) runActOpts.memory = memory;
 
     if (input) {
         input = maybeStringify(input, opts);
