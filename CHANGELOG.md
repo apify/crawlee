@@ -1,4 +1,4 @@
-XXX
+xxxxxxxxxxxxxxxxxxx
 ===================
 - Revereted back - `Apify.getApifyProxyUrl()` accepts again `session` and `groups` options instead of
   `apifyProxySession` and `apifyProxyGroups`

@@ -200,6 +200,8 @@ describe('Apify.launchPuppeteer()', () => {
             .withArgs({
                 session: 'xxx',
                 groups: ['yyy'],
+                groupsParamName: 'opts.apifyProxyGroups',
+                sessionParamName: 'opts.apifyProxySession',
             })
             .returns(null); // Return null so that it doesn't start proxy-chain
 
