@@ -3,7 +3,6 @@ import chaiAsPromised from 'chai-as-promised';
 import sinon from 'sinon';
 import fs from 'fs';
 import os from 'os';
-import pathPkg from 'path';
 import pidusage from 'pidusage';
 import Promise from 'bluebird';
 import * as utils from '../build/utils';
@@ -296,24 +295,9 @@ describe('utils.isAtHome()', () => {
 describe('pidusage NPM package', () => {
     it('throws correct error message when process not found', () => {
         const NONEXISTING_PID = 9999;
-        const promise = pidusage(NONEXISTING_PID)
-            .catch((err) => {
-                console.log(err);
-                console.log(err.stack);
-                throw err;
-            });
+        const promise = pidusage(NONEXISTING_PID);
 
         return expect(promise).to.be.rejectedWith(utils.PID_USAGE_NOT_FOUND_ERROR);
-    });
-
-    it('fs.open() throws correct error', (done) => {
-        fs.open(pathPkg.join(__dirname, 'non-existing-directory-xxx'), 'r', (err) => {
-            console.log(err);
-
-            expect(err).to.be.a('error');
-            expect(err.code).to.be.eql('ENOENT');
-            done();
-        });
     });
 });
 
