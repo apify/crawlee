@@ -239,7 +239,7 @@ export class DatasetLocal {
         checkParamOrThrow(localEmulationDir, 'localEmulationDir', 'String');
 
         this.localEmulationPath = path.resolve(path.join(localEmulationDir, LOCAL_EMULATION_SUBDIR, datasetId));
-        this.counter = 0;
+        this.counter = null;
         this.datasetId = datasetId;
         this.initializationPromise = this._initialize();
     }
@@ -252,6 +252,8 @@ export class DatasetLocal {
                     const lastFileNum = files.pop().split('.')[0];
 
                     this.counter = parseInt(lastFileNum, 10);
+                } else {
+                    this.counter = 0;
                 }
             });
     }
@@ -285,10 +287,12 @@ export class DatasetLocal {
         if (!opts.limit) opts.limit = LOCAL_GET_ITEMS_DEFAULT_LIMIT;
         if (!opts.offset) opts.offset = 0;
 
-        const indexes = this.getItemIndexes(opts.offset, opts.limit);
+        return this.initializationPromise
+            .then(() => {
+                const indexes = this._getItemIndexes(opts.offset, opts.limit);
 
-        return Promise
-            .mapSeries(indexes, index => this._readAndParseFile(index))
+                return Promise.mapSeries(indexes, index => this._readAndParseFile(index));
+            })
             .then((items) => {
                 return {
                     items,
@@ -301,41 +305,50 @@ export class DatasetLocal {
     }
 
     forEach(iteratee) {
-        const indexes = this.getItemIndexes();
+        return this.initializationPromise
+            .then(() => {
+                const indexes = this._getItemIndexes();
 
-        return Promise
-            .each(indexes, (index) => {
-                return this
-                    ._readAndParseFile(index)
-                    .then(item => iteratee(item, index - 1));
+                return Promise.each(indexes, (index) => {
+                    return this
+                        ._readAndParseFile(index)
+                        .then(item => iteratee(item, index - 1));
+                });
             })
             .then(() => undefined);
     }
 
     map(iteratee) {
-        const indexes = this.getItemIndexes();
+        return this.initializationPromise
+            .then(() => {
+                const indexes = this._getItemIndexes();
 
-        return Promise
-            .map(indexes, (index) => {
-                return this
-                    ._readAndParseFile(index)
-                    .then(item => iteratee(item, index - 1));
+                return Promise
+                    .map(indexes, (index) => {
+                        return this
+                            ._readAndParseFile(index)
+                            .then(item => iteratee(item, index - 1));
+                    });
             });
     }
 
     reduce(iteratee, memo) {
-        const indexes = this.getItemIndexes();
+        return this.initializationPromise
+            .then(() => {
+                const indexes = this._getItemIndexes();
 
-        return Promise
-            .reduce(indexes, (currentMemo, index) => {
-                return this
-                    ._readAndParseFile(index)
-                    .then(item => iteratee(currentMemo, item, index - 1));
-            }, memo);
+                return Promise
+                    .reduce(indexes, (currentMemo, index) => {
+                        return this
+                            ._readAndParseFile(index)
+                            .then(item => iteratee(currentMemo, item, index - 1));
+                    }, memo);
+            });
     }
 
     delete() {
-        return emptyDirPromised(this.localEmulationPath)
+        return this.initializationPromise
+            .then(() => emptyDirPromised(this.localEmulationPath))
             .then(() => {
                 datasetsCache.remove(this.datasetId);
             });
@@ -344,7 +357,9 @@ export class DatasetLocal {
     /**
      * Returns an array of item indexes for given offset and limit.
      */
-    getItemIndexes(offset = 0, limit = this.counter) {
+    _getItemIndexes(offset = 0, limit = this.counter) {
+        if (limit === null) throw new Error('DatasetLocal must be initialize before calling this._getItemIndexes()!');
+
         return _.range(
             offset + 1,
             Math.min(offset + limit, this.counter) + 1,
