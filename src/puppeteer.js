@@ -173,6 +173,8 @@ export const launchPuppeteer = (opts = {}) => {
         optsCopy.proxyUrl = getApifyProxyUrl({
             groups: optsCopy.apifyProxyGroups,
             session: optsCopy.apifyProxySession,
+            groupsParamName: 'opts.apifyProxyGroups',
+            sessionParamName: 'opts.apifyProxySession',
         });
     }
 

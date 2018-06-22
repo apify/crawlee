@@ -415,6 +415,11 @@ export const getApifyProxyUrl = (opts = {}) => {
         password = process.env[ENV_VARS.PROXY_PASSWORD],
         hostname = process.env[ENV_VARS.PROXY_HOSTNAME] || DEFAULT_PROXY_HOSTNAME,
         port = parseInt(process.env[ENV_VARS.PROXY_PORT], 10) || DEFAULT_PROXY_PORT,
+
+        // This is used only internaly. Some other function calling this function use different naming for groups and session
+        // parameters so we need to override this in error messages.
+        groupsParamName = 'opts.groups',
+        sessionParamName = 'opts.session',
     } = opts;
 
     const getMissingParamErrorMgs = (param, env) => `Apify Proxy ${param} must be provided as parameter or "${env}" environment variable!`;
@@ -422,8 +427,8 @@ export const getApifyProxyUrl = (opts = {}) => {
         throw new Error(`The "${param}" option can only contain the following characters: 0-9, a-z, A-Z, ".", "_" and "~"`);
     };
 
-    checkParamOrThrow(groups, 'opts.groups', 'Maybe [String]');
-    checkParamOrThrow(session, 'opts.session', 'Maybe Number | String');
+    checkParamOrThrow(groups, groupsParamName, 'Maybe [String]');
+    checkParamOrThrow(session, sessionParamName, 'Maybe Number | String');
     checkParamOrThrow(password, 'opts.password', 'String', getMissingParamErrorMgs('password', ENV_VARS.PROXY_PASSWORD));
     checkParamOrThrow(hostname, 'opts.hostname', 'String', getMissingParamErrorMgs('hostname', ENV_VARS.PROXY_HOSTNAME));
     checkParamOrThrow(port, 'opts.port', 'Number', getMissingParamErrorMgs('port', ENV_VARS.PROXY_PORT));
