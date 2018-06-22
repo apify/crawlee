@@ -1,8 +1,8 @@
 xxxxxxxxxxxxxxxxxxx
 ===================
-- Parameter `memory` added to `Apify.call()`.
 - Revereted back - `Apify.getApifyProxyUrl()` accepts again `session` and `groups` options instead of
   `apifyProxySession` and `apifyProxyGroups`
+- Parameter `memory` added to `Apify.call()`.
 
 0.5.37 / 2018-06-07
 ===================
