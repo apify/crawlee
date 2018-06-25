@@ -74,6 +74,11 @@ const DEFAULT_OPTIONS = {
  * @param {Number} [options.maxRequestRetries=3]
  *   Indicates how many times each request is retried if `handleRequestFunction` failed.
  *   See `maxRequestRetries` parameter of `BasicCrawler`.
+ * @param {Number} [options.maxRequestsPerCrawl]
+ *   Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached.
+ *   Always set this value in order to prevent infinite loops in misconfigured crawlers.
+ *   Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.
+ *   See `maxRequestsPerCrawl` parameter of `BasicCrawler`.
  * @param {Number} [options.maxMemoryMbytes]
  *   Maximum memory available for crawling. See `maxMemoryMbytes` parameter of `AutoscaledPool`.
  * @param {Number} [options.maxConcurrency=1000]
@@ -140,6 +145,7 @@ export default class PuppeteerCrawler {
             requestList,
             requestQueue,
             maxRequestRetries,
+            maxRequestsPerCrawl,
             handleFailedRequestFunction,
 
             // Puppeteer Pool options
@@ -175,6 +181,7 @@ export default class PuppeteerCrawler {
             requestList,
             requestQueue,
             maxRequestRetries,
+            maxRequestsPerCrawl,
             handleRequestFunction: (...args) => this._handleRequestFunction(...args),
             handleFailedRequestFunction,
 
