@@ -1,4 +1,4 @@
-xxxxxxxxxxxxxxxxxxx
+0.5.39 / 2018-06-25
 ===================
 - Parameter `maxRequestsPerCrawl` added to `BasicCrawler` and `PuppeteerCrawler` classes.
 
