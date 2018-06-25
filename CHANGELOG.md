@@ -1,3 +1,7 @@
+xxxxxxxxxxxxxxxxxxx
+===================
+- Parameter `maxRequestsPerCrawl` added to `BasicCrawler` and `PuppeteerCrawler` classes.
+
 0.5.38 / 2018-06-22
 ===================
 - Revereted back - `Apify.getApifyProxyUrl()` accepts again `session` and `groups` options instead of
