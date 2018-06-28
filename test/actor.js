@@ -707,15 +707,15 @@ describe('Apify.getApifyProxyUrl()', () => {
         expect(Apify.getApifyProxyUrl({
             session: 'XYZ',
             groups: ['g1', 'g2', 'g3'],
-        })).to.be.eql('http://GROUPS-g1+g2+g3,SESSION-XYZ:abc123@my.host.com:123');
+        })).to.be.eql('http://groups-g1+g2+g3,session-XYZ:abc123@my.host.com:123');
 
         expect(Apify.getApifyProxyUrl({
             groups: ['g1', 'g2', 'g3'],
-        })).to.be.eql('http://GROUPS-g1+g2+g3:abc123@my.host.com:123');
+        })).to.be.eql('http://groups-g1+g2+g3:abc123@my.host.com:123');
 
         expect(Apify.getApifyProxyUrl({
             session: 'XYZ',
-        })).to.be.eql('http://SESSION-XYZ:abc123@my.host.com:123');
+        })).to.be.eql('http://session-XYZ:abc123@my.host.com:123');
 
         expect(Apify.getApifyProxyUrl()).to.be.eql('http://auto:abc123@my.host.com:123');
 
@@ -743,15 +743,15 @@ describe('Apify.getApifyProxyUrl()', () => {
         expect(Apify.getApifyProxyUrl({
             apifyProxySession: 'XYZ',
             apifyProxyGroups: ['g1', 'g2', 'g3'],
-        })).to.be.eql('http://GROUPS-g1+g2+g3,SESSION-XYZ:abc123@my.host.com:123');
+        })).to.be.eql('http://groups-g1+g2+g3,session-XYZ:abc123@my.host.com:123');
 
         expect(Apify.getApifyProxyUrl({
             apifyProxyGroups: ['g1', 'g2', 'g3'],
-        })).to.be.eql('http://GROUPS-g1+g2+g3:abc123@my.host.com:123');
+        })).to.be.eql('http://groups-g1+g2+g3:abc123@my.host.com:123');
 
         expect(Apify.getApifyProxyUrl({
             apifyProxySession: 'XYZ',
-        })).to.be.eql('http://SESSION-XYZ:abc123@my.host.com:123');
+        })).to.be.eql('http://session-XYZ:abc123@my.host.com:123');
 
         expect(Apify.getApifyProxyUrl()).to.be.eql('http://auto:abc123@my.host.com:123');
 
