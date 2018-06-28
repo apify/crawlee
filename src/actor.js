@@ -440,11 +440,11 @@ export const getApifyProxyUrl = (opts = {}) => {
 
         if (groups && groups.length) {
             if (!groups.every(group => APIFY_PROXY_VALUE_REGEX.test(group))) throwInvalidProxyValueError('groups');
-            parts.push(`GROUPS-${groups.join('+')}`);
+            parts.push(`groups-${groups.join('+')}`);
         }
         if (session) {
             if (!APIFY_PROXY_VALUE_REGEX.test(session)) throwInvalidProxyValueError('session');
-            parts.push(`SESSION-${session}`);
+            parts.push(`session-${session}`);
         }
 
         username = parts.join(',');
