@@ -25,7 +25,7 @@ Apify.main(async () => {
     const imageElementHandle = await iframe.$('.VideoColm img');
 
     // Get a screenshot of that image.
-    const imageBuffer = await imageElementHandle.getScreenshotAndHtml();
+    const imageBuffer = await imageElementHandle.screenshot();
 
     // Save it as an output.
     await Apify.setValue('OUTPUT', imageBuffer, { contentType: 'image/jpeg' });

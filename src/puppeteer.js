@@ -5,7 +5,7 @@ import log from 'apify-shared/log';
 import { ENV_VARS, DEFAULT_USER_AGENT } from './constants';
 import { newPromise, getTypicalChromeExecutablePath } from './utils';
 import { getApifyProxyUrl } from './actor';
-import { startPuppeteerLiveView } from './puppeteer_live_view_server';
+import { registerBrowserForLiveView } from './puppeteer_live_view_server';
 
 /* global process, require */
 
@@ -164,11 +164,9 @@ export const launchPuppeteer = (opts = {}) => {
 
     optsCopy.args = optsCopy.args || [];
     optsCopy.args.push('--no-sandbox');
-    if (optsCopy.headless === undefined || optsCopy.headless === null) {
-        // forcing headless with liveView, otherwise screenshots open a new browser window
-        optsCopy.headless = optsCopy.liveView === true
-            ? true
-            : process.env[ENV_VARS.HEADLESS] === '1' && process.env[ENV_VARS.XVFB] !== '1';
+    if (optsCopy.headless == null) {
+        // forcing headless with liveView, otherwise screenshots redirect user to new browser window
+        optsCopy.headless = optsCopy.liveView || (process.env[ENV_VARS.HEADLESS] === '1' && process.env[ENV_VARS.XVFB] !== '1');
     }
     if (optsCopy.useChrome && (optsCopy.executablePath === undefined || optsCopy.executablePath === null)) {
         optsCopy.executablePath = process.env[ENV_VARS.CHROME_EXECUTABLE_PATH] || getTypicalChromeExecutablePath();
@@ -201,7 +199,7 @@ export const launchPuppeteer = (opts = {}) => {
     const wrapped = newPromise().then(() => browserPromise);
 
     // start LiveView server if requested
-    if (optsCopy.liveView) return startPuppeteerLiveView(wrapped).then(() => wrapped);
+    if (optsCopy.liveView) return registerBrowserForLiveView(wrapped, optsCopy.liveViewOptions).then(() => wrapped); // TODO document Options
 
     return wrapped;
 };

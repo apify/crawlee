@@ -101,6 +101,18 @@ export const detailPage = ({ id, url, image, html }) => {
 `;
 };
 
+export const errorPage = ({ id, url, error }) => {
+    return `
+<div id="${id}">
+  <h3>There has been an error on page: ${url}</h3>
+  <div class="error">
+    <h4>${error.message}</h4>
+  </div>
+</div>
+
+`;
+};
+
 /**
  * The wsHandler() function encapsulates the whole client-side
  * messaging and rendering logic. All commands that the client
