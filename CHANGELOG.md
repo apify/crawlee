@@ -1,3 +1,7 @@
+0.5.41 / 2018-07-04
+===================
+- Dummy version bump to get new commit ID
+
 0.5.40 / 2018-07-04
 ===================
 - Bugfix: native Promise doesn't have finally() function
