@@ -1,3 +1,7 @@
+0.5.40 / 2018-07-04
+===================
+- Bugfix: native Promise doesn't have finally() function
+
 0.5.39 / 2018-06-25
 ===================
 - Parameter `maxRequestsPerCrawl` added to `BasicCrawler` and `PuppeteerCrawler` classes.

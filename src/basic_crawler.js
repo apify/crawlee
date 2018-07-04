@@ -1,3 +1,4 @@
+import Promise from 'bluebird';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import _ from 'underscore';
 import log from 'apify-shared/log';
