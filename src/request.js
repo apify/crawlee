@@ -101,4 +101,3 @@ export default class Request {
         this.errorMessages.push(message);
     }
 }
-

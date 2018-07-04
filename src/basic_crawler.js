@@ -71,6 +71,10 @@ const DEFAULT_OPTIONS = {
  *   Function that handles requests that failed more then `option.maxRequestRetries` times.
  * @param {Number} [options.maxRequestRetries=3]
  *   How many times the request is retried if `handleRequestFunction` failed.
+ * @param {Number} [options.maxRequestsPerCrawl]
+ *   Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached.
+ *   Always set this value in order to prevent infinite loops in misconfigured crawlers.
+ *   Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.
  * @param {Number} [options.maxMemoryMbytes]
  *   Maximum memory available in the system
  *   See `AutoscaledPool` for details.
@@ -103,6 +107,7 @@ export default class BasicCrawler {
             handleRequestFunction,
             handleFailedRequestFunction,
             maxRequestRetries,
+            maxRequestsPerCrawl,
 
             // AutoscaledPool options
             maxMemoryMbytes,
@@ -118,6 +123,7 @@ export default class BasicCrawler {
         checkParamOrThrow(handleRequestFunction, 'opts.handleRequestFunction', 'Function');
         checkParamOrThrow(handleFailedRequestFunction, 'opts.handleFailedRequestFunction', 'Function');
         checkParamOrThrow(maxRequestRetries, 'opts.maxRequestRetries', 'Number');
+        checkParamOrThrow(maxRequestsPerCrawl, 'opts.maxRequestsPerCrawl', 'Maybe Number');
 
         if (!requestList && !requestQueue) {
             throw new Error('At least one of the parameters "opts.requestList" and "opts.requestQueue" must be provided!');
@@ -128,6 +134,9 @@ export default class BasicCrawler {
         this.handleRequestFunction = handleRequestFunction;
         this.handleFailedRequestFunction = handleFailedRequestFunction;
         this.maxRequestRetries = maxRequestRetries;
+        this.handledRequestsCount = 0;
+
+        const isMaxPagesExceeded = () => maxRequestsPerCrawl && maxRequestsPerCrawl <= this.handledRequestsCount;
 
         this.autoscaledPool = new AutoscaledPool({
             maxMemoryMbytes,
@@ -135,12 +144,18 @@ export default class BasicCrawler {
             minConcurrency,
             minFreeMemoryRatio,
             runTaskFunction: () => this._runTaskFunction(),
-            isTaskReadyFunction: () => this._isTaskReadyFunction(),
-            isFinishedFunction: () => (
-                isFinishedFunction
+            isTaskReadyFunction: () => {
+                if (isMaxPagesExceeded()) return Promise.resolve(false);
+
+                return this._isTaskReadyFunction();
+            },
+            isFinishedFunction: () => {
+                if (isMaxPagesExceeded()) return Promise.resolve(true);
+
+                return isFinishedFunction
                     ? isFinishedFunction()
-                    : this._defaultIsFinishedFunction()
-            ),
+                    : this._defaultIsFinishedFunction();
+            },
             ignoreMainProcess,
         });
     }
@@ -204,6 +219,7 @@ export default class BasicCrawler {
             .then((request) => {
                 if (!request) return;
 
+                let willBeRetried = false;
                 const handlePromise = this.handleRequestFunction({ request });
                 if (!isPromise(handlePromise)) throw new Error('User provided handleRequestFunction must return a Promise.');
 
@@ -228,6 +244,7 @@ export default class BasicCrawler {
                                 url: request.url,
                                 retryCount: request.retryCount,
                             });
+                            willBeRetried = true;
 
                             return source.reclaimRequest(request);
                         }
@@ -241,6 +258,9 @@ export default class BasicCrawler {
                         return source
                             .markRequestHandled(request)
                             .then(() => this.handleFailedRequestFunction({ request, error }));
+                    })
+                    .finally(() => {
+                        if (!willBeRetried) this.handledRequestsCount++;
                     });
             });
     }

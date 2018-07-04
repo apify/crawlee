@@ -376,4 +376,56 @@ describe('BasicCrawler', () => {
 
         expect(processed).to.be.eql([request0, request1]);
     });
+
+    it('should support maxRequestsPerCrawl parameter', async () => {
+        const sources = [
+            { url: 'http://example.com/1' },
+            { url: 'http://example.com/2' },
+            { url: 'http://example.com/3' },
+            { url: 'http://example.com/4' },
+            { url: 'http://example.com/5' },
+        ];
+        const processed = {};
+        const requestList = new Apify.RequestList({ sources });
+
+        const handleRequestFunction = async ({ request }) => {
+            await delayPromise(10);
+            processed[request.url] = request;
+            if (request.url === 'http://example.com/2') throw Error();
+            request.userData.foo = 'bar';
+        };
+
+        let handleFailedRequestFunctionCalls = 0;
+        const handleFailedRequestFunction = () => {
+            handleFailedRequestFunctionCalls++;
+        };
+
+        const basicCrawler = new Apify.BasicCrawler({
+            requestList,
+            maxRequestRetries: 3,
+            maxRequestsPerCrawl: 3,
+            maxConcurrency: 1,
+            handleRequestFunction,
+            handleFailedRequestFunction,
+        });
+
+        await requestList.initialize();
+        await basicCrawler.run();
+
+        expect(processed['http://example.com/1'].userData.foo).to.be.eql('bar');
+        expect(processed['http://example.com/1'].errorMessages).to.be.a('null');
+        expect(processed['http://example.com/1'].retryCount).to.be.eql(0);
+        expect(processed['http://example.com/3'].userData.foo).to.be.eql('bar');
+        expect(processed['http://example.com/3'].errorMessages).to.be.a('null');
+        expect(processed['http://example.com/3'].retryCount).to.be.eql(0);
+
+        expect(processed['http://example.com/2'].userData.foo).to.be.eql(undefined);
+        expect(processed['http://example.com/2'].errorMessages).to.have.lengthOf(4);
+        expect(processed['http://example.com/2'].retryCount).to.be.eql(3);
+
+        expect(handleFailedRequestFunctionCalls).to.be.eql(1);
+
+        expect(await requestList.isFinished()).to.be.eql(false);
+        expect(await requestList.isEmpty()).to.be.eql(false);
+    });
 });

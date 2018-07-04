@@ -198,8 +198,10 @@ describe('Apify.launchPuppeteer()', () => {
         mock.expects('getApifyProxyUrl')
             .once()
             .withArgs({
-                apifyProxySession: 'xxx',
-                apifyProxyGroups: ['yyy'],
+                session: 'xxx',
+                groups: ['yyy'],
+                groupsParamName: 'opts.apifyProxyGroups',
+                sessionParamName: 'opts.apifyProxySession',
             })
             .returns(null); // Return null so that it doesn't start proxy-chain
 

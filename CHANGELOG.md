@@ -1,3 +1,18 @@
+0.5.39 / 2018-06-25
+===================
+- Parameter `maxRequestsPerCrawl` added to `BasicCrawler` and `PuppeteerCrawler` classes.
+
+0.5.38 / 2018-06-22
+===================
+- Revereted back - `Apify.getApifyProxyUrl()` accepts again `session` and `groups` options instead of
+  `apifyProxySession` and `apifyProxyGroups`
+- Parameter `memory` added to `Apify.call()`.
+
+0.5.37 / 2018-06-07
+===================
+- `PseudoUrl` class can now contain a template for `Request` object creation and `PseudoUrl.createRequest()` method.
+- Added `Apify.utils.puppeteer.enqueueLinks()` function which enqueues requests created from links mathing given pseudo-URLs.
+
 0.5.36 / 2018-05-31
 ===================
 - Added 30s timeout to `page.close()` operation in `PuppeteerCrawler`.
