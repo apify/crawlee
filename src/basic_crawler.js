@@ -224,7 +224,9 @@ export default class BasicCrawler {
                 const handlePromise = this.handleRequestFunction({ request });
                 if (!isPromise(handlePromise)) throw new Error('User provided handleRequestFunction must return a Promise.');
 
-                return handlePromise
+                // NOTE: handlePromise might not be bluebird promise
+                return Promise.resolve()
+                    .then(() => handlePromise)
                     .then(() => source.markRequestHandled(request))
                     .catch((error) => {
                         if (request.ignoreErrors) {
