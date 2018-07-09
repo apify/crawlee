@@ -6,9 +6,8 @@ import log from 'apify-shared/log';
 import { promisifyServerListen } from 'apify-shared/utilities';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { layout, indexPage, detailPage, errorPage } from './puppeteer_live_view_client';
+import { ENV_VARS } from './constants';
 
-const LOCAL_IPV6 = '::';
-const LOCAL_IPV4 = '127.0.0.1';
 const DEFAULT_SCREENSHOT_TIMEOUT = 3000;
 
 /**
@@ -224,9 +223,8 @@ export class PuppeteerLiveViewBrowser extends EventEmitter {
  * becomes available. Whichever comes later.
  *
  * @param {Promise<Browser>} browserPromise A Promise for a Puppeteer's Browser.
- * @param {Object} [opts] Options to pass down to PuppeteerLiveViewServer constructor.
- * @param {Number} [opts.port] Listening port of the PuppeteerLiveViewServer. Defaults to 1234.
- * @param {String} [opts.browserId] Custom ID to be used with the browser instance.
+ * @param {Object} [opts] Options to pass down to PuppeteerLiveViewBrowser constructor.
+ * @param {String} [opts.id] Custom ID to be used with the browser instance.
  * @param {String} [opts.screenshotTimeout] Max time allowed for the screenshot taking process.
  * @returns {Promise<PuppeteerLiveViewServer>}
  */
@@ -234,17 +232,15 @@ let liveViewServer;
 export const registerBrowserForLiveView = (browserPromise, opts = {}) => {
     let serverPromise = Promise.resolve();
     if (!liveViewServer) {
-        liveViewServer = new PuppeteerLiveViewServer(opts);
+        liveViewServer = new PuppeteerLiveViewServer();
         serverPromise = liveViewServer.startServer();
     }
-    const browserOpts = {
-        id: opts.browserId || `BROWSER_${++liveViewServer.browserIdCounter}`,
-        screenshotTimeout: opts.screenshotTimeout,
-    };
+    const optsCopy = Object.assign({}, opts);
+    if (!optsCopy.id) optsCopy.id = `BROWSER_${++liveViewServer.browserIdCounter}`;
 
     browserPromise
         .then((browser) => {
-            const lvb = new PuppeteerLiveViewBrowser(browser, browserOpts);
+            const lvb = new PuppeteerLiveViewBrowser(browser, optsCopy);
             liveViewServer.addBrowser(lvb);
             return liveViewServer;
         });
@@ -282,15 +278,10 @@ const sendCommand = (socket, command, data) => {
  * Enables Live View monitoring of Act execution by spawning a web server that responds with a list
  * of available browsers at its root path. Once the user chooses a browser, PuppeteerLiveViewServer will
  * periodically serve screenshots of the selected browser's latest loaded page.
- *
- * @param {Number} [opts.port] Listening port of the PuppeteerLiveViewServer. Defaults to 1234.
  */
 export default class PuppeteerLiveViewServer extends EventEmitter {
-    constructor(opts = {}) {
+    constructor() {
         super();
-        checkParamOrThrow(opts, 'opts', 'Object');
-        checkParamOrThrow(opts.port, 'opts.port', 'Maybe String | Number');
-        this.customPort = opts.port;
         this.browsers = new Set();
         this.browserIdCounter = 0;
         this.httpServer = null;
@@ -325,11 +316,13 @@ export default class PuppeteerLiveViewServer extends EventEmitter {
      * @return {Promise} resolves when HTTP server starts listening
      */
     startServer() {
-        const port = this.customPort == null ? process.env.APIFY_CONTAINER_PORT : this.customPort;
-        if (port == null) {
-            return Promise.reject(new Error('Neither options.port nor the environment variable APIFY_CONTAINER_PORT is set.' +
-                    'LiveViewServer cannot be started.'));
-        }
+        const getRejection = envVar =>
+            Promise.reject(new Error(`The environment variable ${envVar} is not set. 'LiveViewServer cannot be started.`));
+
+        if (!process.env[ENV_VARS.CONTAINER_URL]) return getRejection(ENV_VARS.CONTAINER_URL);
+
+        const port = process.env[ENV_VARS.CONTAINER_PORT];
+        if (port == null || Number.isNaN(port)) return getRejection(ENV_VARS.CONTAINER_PORT);
 
         const server = http.createServer(this._httpRequestListener.bind(this));
         const wss = new WebSocket.Server({ server });
@@ -351,13 +344,7 @@ export default class PuppeteerLiveViewServer extends EventEmitter {
      * @ignore
      */
     _httpRequestListener(req, res) {
-        const { port, address } = this.httpServer.address();
-
-        const body = layout({
-            // Node returns IPv6 when available by default, which doesn't work well with localhost.
-            host: address === LOCAL_IPV6 ? LOCAL_IPV4 : address,
-            port,
-        });
+        const body = layout(process.env[ENV_VARS.CONTAINER_URL]);
         res.writeHead(200, {
             'Content-Type': 'text/html',
             'Content-Length': Buffer.byteLength(body),

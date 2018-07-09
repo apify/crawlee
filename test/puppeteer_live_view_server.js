@@ -4,8 +4,10 @@ import Promise from 'bluebird';
 import puppeteer from 'puppeteer';
 import Apify from '../build/index';
 import PuppeteerLiveViewServer, { PuppeteerLiveViewBrowser } from '../src/puppeteer_live_view_server';
+import { ENV_VARS } from '../src/constants';
 
-const PORT = 1234;
+const PORT = 0;
+const URL = 'thisshouldfailonclientonly';
 
 const httpGet = (port) => {
     return new Promise((resolve, reject) => {
@@ -24,22 +26,25 @@ const httpGet = (port) => {
     });
 };
 
-before(() => {
-    process.env.APIFY_CONTAINER_PORT = PORT;
+beforeEach(() => {
+    process.env[ENV_VARS.CONTAINER_PORT] = PORT;
+    process.env[ENV_VARS.CONTAINER_URL] = URL;
 });
 
 
 describe('Starting the PuppeteerLiveViewServer', () => {
     it('should start using Apify.launchPuppeteer()', () => {
+        const customPort = 1234;
+        process.env[ENV_VARS.CONTAINER_PORT] = customPort;
         return Apify.launchPuppeteer({ liveView: true })
-            .then(() => httpGet(PORT))
+            .then(() => httpGet(customPort))
             .catch(err => assert.fail(err, 'Server response.'))
             .then((body) => {
                 expect(body.trim().substr(0, 15)).to.equal('<!doctype html>');
             });
     });
     it('should start using PuppeteerLiveViewServer.startServer()', () => {
-        const server = new PuppeteerLiveViewServer({ port: 0 });
+        const server = new PuppeteerLiveViewServer();
         return server.startServer()
             .then(() => {
                 const { port } = server.httpServer.address();
@@ -57,7 +62,7 @@ describe('Manipulate the PuppeteerLiveViewServer', () => {
     let server;
 
     beforeEach(() => {
-        server = new PuppeteerLiveViewServer({ port: 0 });
+        server = new PuppeteerLiveViewServer();
         return server.startServer();
     });
 

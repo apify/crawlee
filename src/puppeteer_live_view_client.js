@@ -236,13 +236,11 @@ const wsHandler = (socket) => {
  * the HTML. This HTML page is the only piece of data sent over HTTP.
  * All other communication takes place over WebSockets.
  *
- * @param {String} opts.host hostname of the WebSocket server
- * @param {Number} opts.port port of the WebSocket server
+ * @param {String} url Url of the WebSocket server
  * @returns {string} html
  */
-export const layout = (opts = {}) => {
-    checkParamOrThrow(opts.host, 'opts.host', 'String');
-    checkParamOrThrow(opts.port, 'opts.port', 'Number');
+export const layout = (url) => {
+    checkParamOrThrow(url, 'url', 'String');
 
     return `
 <!doctype html>
@@ -276,7 +274,7 @@ export const layout = (opts = {}) => {
   <div id="index">Waiting for WebSocket connection.</div>
   <div id="page-detail" class="hidden"></div>
   <script>
-    const ws = new WebSocket("ws://${opts.host}:${opts.port}");
+    const ws = new WebSocket("ws://${url}");
     const DESTROY_FADEOUT = ${DESTROY_FADEOUT};
     const createPage = ${createPage.toString()};
     const createPageCollection = ${createPageCollection.toString()};
