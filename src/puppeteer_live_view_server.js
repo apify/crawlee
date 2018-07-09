@@ -3,6 +3,7 @@ import EventEmitter from 'events';
 import Promise from 'bluebird';
 import WebSocket from 'ws';
 import log from 'apify-shared/log';
+import { promisifyServerListen } from 'apify-shared/utilities';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { layout, indexPage, detailPage, errorPage } from './puppeteer_live_view_client';
 
@@ -324,23 +325,20 @@ export default class PuppeteerLiveViewServer extends EventEmitter {
      * @return {Promise} resolves when HTTP server starts listening
      */
     startServer() {
-        return new Promise((resolve, reject) => {
-            const port = this.customPort == null ? process.env.APIFY_CONTAINER_PORT : this.customPort;
-            if (port == null) {
-                return reject(new Error('Neither options.port nor the environment variable APIFY_CONTAINER_PORT is set.' +
+        const port = this.customPort == null ? process.env.APIFY_CONTAINER_PORT : this.customPort;
+        if (port == null) {
+            return Promise.reject(new Error('Neither options.port nor the environment variable APIFY_CONTAINER_PORT is set.' +
                     'LiveViewServer cannot be started.'));
-            }
+        }
 
-            const server = http.createServer(this._httpRequestListener.bind(this));
-            const wss = new WebSocket.Server({ server });
-            wss.on('connection', this._wsRequestListener.bind(this));
-            server.listen(port, (err) => {
-                if (err) reject(err);
-                log.info(`Live view server is listening on port ${port}.`);
+        const server = http.createServer(this._httpRequestListener.bind(this));
+        const wss = new WebSocket.Server({ server });
+        wss.on('connection', this._wsRequestListener.bind(this));
+        return promisifyServerListen(server)(port)
+            .then(() => {
+                log.info(`Live view server is listening on port ${server.address().port}.`);
                 this.httpServer = server;
-                resolve();
             });
-        });
     }
 
     /**
