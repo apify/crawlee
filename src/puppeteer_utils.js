@@ -1,6 +1,7 @@
 import fs from 'fs';
 import Promise from 'bluebird';
 import _ from 'underscore';
+import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import { RequestQueue, RequestQueueLocal } from './request_queue';
@@ -104,21 +105,13 @@ const injectUnderscore = (page) => {
 };
 
 /**
- * Finds HTML elements matching a CSS selector, clicks the elements and if a redirect is triggered
- * and destination URL matches one of the provided pseudo-URLs, then the function enqueues that URL to a given request queue.
- *
- * *WARNING*: This is work in progress. Currently the function doesn't click elements and only takes their `href` attribute and so
- *            is working only for link (`a`) elements and not for buttons or javascript links.
- *
- * @param {Page} page Puppeteer [Page](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page) object.
- * @param {String} selector CSS selector matching elements to be clicked.
- * @param {Array} pseudoUrls An array of `Apify.PseudoUrl` objects matching URL to be enqueued.
- * @param {RequestQueue} requestQueue `Apify.RequestQueue` object where URLs will be enqueued.
- * @param {Object} requestOpts Optional `Apify.Request` options such as `userData` or `method` for the enqueued `Request` objects.
- * @return {Promise}
- * @memberof utils.puppeteer
+ * DEPRECATED!
+ * TODO: Remove after v1.0.0 gets released.
+ * @ignore
  */
 const enqueueRequestsFromClickableElements = async (page, selector, purls, requestQueue, requestOpts = {}) => {
+    log.warning('Function enqueueRequestsFromClickableElements is deprecated!!! Use `enqueueLinks` instead!');
+
     checkParamOrThrow(page, 'page', 'Object');
     checkParamOrThrow(purls, 'purls', 'Array');
     checkParamPrototypeOrThrow(requestQueue, 'requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue');
@@ -129,6 +122,41 @@ const enqueueRequestsFromClickableElements = async (page, selector, purls, reque
     const matchesPseudoUrl = url => _.some(purls, purl => purl.matches(url));
     const urls = await page.$$eval(selector, getHrefs);
     const requests = urls.filter(matchesPseudoUrl).map(url => new Request(Object.assign({ url }, requestOpts)));
+
+    return Promise.mapSeries(requests, request => requestQueue.addRequest(request));
+};
+
+/**
+ * Finds HTML elements matching a CSS selector, clicks the elements and if a redirect is triggered and destination URL matches
+ * one of the provided pseudo-URLs, then the function enqueues that URL to a given request queue.
+ * To create a Request object function uses `requestTemplate` from a matching Pseudo-URL.
+ *
+ * *WARNING*: This is work in progress. Currently the function doesn't click elements and only takes their `href` attribute and so
+ *            is working only for link (`a`) elements and not for buttons or javascript links.
+ *
+ * @param {Page} page Puppeteer [Page](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page) object.
+ * @param {String} selector CSS selector matching elements to be clicked.
+ * @param {Array} pseudoUrls An array of `Apify.PseudoUrl` objects matching URL to be enqueued.
+ * @param {RequestQueue} requestQueue `Apify.RequestQueue` object where URLs will be enqueued.
+ * @return {Promise} Promise resolves to array of RequestOperationInfo objects.
+ * @memberof utils.puppeteer
+ */
+const enqueueLinks = async (page, selector, purls, requestQueue) => {
+    checkParamOrThrow(page, 'page', 'Object');
+    checkParamOrThrow(selector, 'selector', 'String');
+    checkParamOrThrow(purls, 'purls', 'Array');
+    checkParamPrototypeOrThrow(requestQueue, 'requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue');
+
+    /* istanbul ignore next */
+    const getHrefs = linkEls => linkEls.map(link => link.href).filter(href => !!href);
+    const urls = await page.$$eval(selector, getHrefs);
+    const requests = [];
+
+    urls.forEach((url) => {
+        purls
+            .filter(purl => purl.matches(url))
+            .forEach(purl => requests.push(purl.createRequest(url)));
+    });
 
     return Promise.mapSeries(requests, request => requestQueue.addRequest(request));
 };
@@ -146,7 +174,7 @@ const enqueueRequestsFromClickableElements = async (page, selector, purls, reque
  * await page.goto('https://www.example.com');
  *
  * // Inject jQuery into a page
- * await Apify.utils.puppeteer.injectJQueryScript(page);
+ * await Apify.utils.puppeteer.injectJQuery(page);
  * ```
  * @namespace utils.puppeteer
  * @name utils.puppeteer
@@ -157,4 +185,5 @@ export const puppeteerUtils = {
     injectJQuery,
     injectUnderscore,
     enqueueRequestsFromClickableElements,
+    enqueueLinks,
 };

@@ -171,7 +171,7 @@ export default class PuppeteerPool {
 
         if (!this.activeInstances[id]) return log.warning('PuppeteerPool: browser is retired already', { id });
 
-        log.info('PuppeteerPool: retiring browser', { id });
+        log.debug('PuppeteerPool: retiring browser', { id });
 
         this.retiredInstances[id] = instance;
         delete this.activeInstances[id];
@@ -185,7 +185,7 @@ export default class PuppeteerPool {
      * @ignore
      */
     _killRetiredInstances() {
-        log.info('PuppeteerPool: retired browsers count', { count: _.values(this.retiredInstances).length });
+        log.debug('PuppeteerPool: retired browsers count', { count: _.values(this.retiredInstances).length });
 
         _.mapObject(this.retiredInstances, (instance) => {
             // Kill instances that are more than this.killInstanceAfterMillis from last opened page
@@ -211,7 +211,7 @@ export default class PuppeteerPool {
     _killInstance(instance) {
         const { id, childProcess } = instance;
 
-        log.info('PuppeteerPool: killing browser', { id });
+        log.debug('PuppeteerPool: killing browser', { id });
 
         delete this.retiredInstances[id];
 

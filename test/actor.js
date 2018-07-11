@@ -339,10 +339,11 @@ describe('Apify.call()', () => {
         const output = { contentType, body: 'some-output' };
         const expected = Object.assign({}, finishedRun, { output });
         const build = 'xxx';
+        const memory = 1024;
 
         const actsMock = sinon.mock(Apify.client.acts);
         actsMock.expects('runAct')
-            .withExactArgs({ token, actId, contentType: `${contentType}; charset=utf-8`, body: input, build })
+            .withExactArgs({ token, actId, contentType: `${contentType}; charset=utf-8`, body: input, build, memory })
             .once()
             .returns(Promise.resolve(runningRun));
         actsMock.expects('getRun')
@@ -361,7 +362,7 @@ describe('Apify.call()', () => {
             .returns(Promise.resolve(output));
 
         return Apify
-            .call(actId, input, { contentType, token, disableBodyParser: true, build })
+            .call(actId, input, { contentType, token, disableBodyParser: true, build, memory })
             .then((callOutput) => {
                 expect(callOutput).to.be.eql(expected);
                 keyValueStoresMock.restore();
@@ -704,17 +705,17 @@ describe('Apify.getApifyProxyUrl()', () => {
         process.env[ENV_VARS.PROXY_PORT] = 123;
 
         expect(Apify.getApifyProxyUrl({
-            apifyProxySession: 'XYZ',
-            apifyProxyGroups: ['g1', 'g2', 'g3'],
-        })).to.be.eql('http://GROUPS-g1+g2+g3,SESSION-XYZ:abc123@my.host.com:123');
+            session: 'XYZ',
+            groups: ['g1', 'g2', 'g3'],
+        })).to.be.eql('http://groups-g1+g2+g3,session-XYZ:abc123@my.host.com:123');
 
         expect(Apify.getApifyProxyUrl({
-            apifyProxyGroups: ['g1', 'g2', 'g3'],
-        })).to.be.eql('http://GROUPS-g1+g2+g3:abc123@my.host.com:123');
+            groups: ['g1', 'g2', 'g3'],
+        })).to.be.eql('http://groups-g1+g2+g3:abc123@my.host.com:123');
 
         expect(Apify.getApifyProxyUrl({
-            apifyProxySession: 'XYZ',
-        })).to.be.eql('http://SESSION-XYZ:abc123@my.host.com:123');
+            session: 'XYZ',
+        })).to.be.eql('http://session-XYZ:abc123@my.host.com:123');
 
         expect(Apify.getApifyProxyUrl()).to.be.eql('http://auto:abc123@my.host.com:123');
 
@@ -740,17 +741,17 @@ describe('Apify.getApifyProxyUrl()', () => {
         process.env[ENV_VARS.PROXY_PORT] = 123;
 
         expect(Apify.getApifyProxyUrl({
-            session: 'XYZ',
-            groups: ['g1', 'g2', 'g3'],
-        })).to.be.eql('http://GROUPS-g1+g2+g3,SESSION-XYZ:abc123@my.host.com:123');
+            apifyProxySession: 'XYZ',
+            apifyProxyGroups: ['g1', 'g2', 'g3'],
+        })).to.be.eql('http://groups-g1+g2+g3,session-XYZ:abc123@my.host.com:123');
 
         expect(Apify.getApifyProxyUrl({
-            groups: ['g1', 'g2', 'g3'],
-        })).to.be.eql('http://GROUPS-g1+g2+g3:abc123@my.host.com:123');
+            apifyProxyGroups: ['g1', 'g2', 'g3'],
+        })).to.be.eql('http://groups-g1+g2+g3:abc123@my.host.com:123');
 
         expect(Apify.getApifyProxyUrl({
-            session: 'XYZ',
-        })).to.be.eql('http://SESSION-XYZ:abc123@my.host.com:123');
+            apifyProxySession: 'XYZ',
+        })).to.be.eql('http://session-XYZ:abc123@my.host.com:123');
 
         expect(Apify.getApifyProxyUrl()).to.be.eql('http://auto:abc123@my.host.com:123');
 
@@ -778,6 +779,7 @@ describe('Apify.getApifyProxyUrl()', () => {
         expect(() => Apify.getApifyProxyUrl({ session: 'a$b' })).to.throw();
         expect(() => Apify.getApifyProxyUrl({ session: {} })).to.throw();
         expect(() => Apify.getApifyProxyUrl({ session: new Date() })).to.throw();
+        expect(() => Apify.getApifyProxyUrl({ apifyProxySession: new Date() })).to.throw();
 
         expect(() => Apify.getApifyProxyUrl({ session: 'a_b' })).to.not.throw();
         expect(() => Apify.getApifyProxyUrl({ session: '0.34252352' })).to.not.throw();
@@ -786,6 +788,12 @@ describe('Apify.getApifyProxyUrl()', () => {
         expect(() => Apify.getApifyProxyUrl({ session: 'a_2' })).to.not.throw();
         expect(() => Apify.getApifyProxyUrl({ session: 'a' })).to.not.throw();
         expect(() => Apify.getApifyProxyUrl({ session: '1' })).to.not.throw();
+
+        expect(() => Apify.getApifyProxyUrl({ groups: [new Date()] })).to.throw();
+        expect(() => Apify.getApifyProxyUrl({ groups: [{}, 'fff', 'ccc'] })).to.throw();
+        expect(() => Apify.getApifyProxyUrl({ groups: ['ffff', 'ff-hf', 'ccc'] })).to.throw();
+        expect(() => Apify.getApifyProxyUrl({ groups: ['ffff', 'fff', 'cc$c'] })).to.throw();
+        expect(() => Apify.getApifyProxyUrl({ apifyProxyGroups: [new Date()] })).to.throw();
 
         delete process.env[ENV_VARS.PROXY_PASSWORD];
         delete process.env[ENV_VARS.PROXY_HOSTNAME];

@@ -1,6 +1,6 @@
 {
   "name": "apify",
-  "version": "0.5.36",
+  "version": "0.5.42",
   "description": "Web scraping and automation SDK",
   "main": "build/index.js",
   "keywords": [
@@ -50,7 +50,7 @@
     "content-type": "^1.0.3",
     "fs-extra": "^5.0.0",
     "jquery": "^3.3.1",
-    "pidusage": "^2.0.6",
+    "pidusage": "=2.0.9",
     "proxy-chain": "^0.1.26",
     "ps-tree": "^1.1.0",
     "request-promise": "^4.2.2",
