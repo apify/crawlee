@@ -1,7 +1,7 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
 
-// everything gets destroyed slowly to make the UX better
-const DESTROY_FADEOUT = 2000;
+// Everything gets destroyed slowly to make the UX better
+const DESTROY_FADEOUT_MILLIS = 2000;
 
 /**
  * Creates a page line in the Index.
@@ -48,7 +48,7 @@ const createBrowser = (id, pages) => `<div class="browser" id="${id}"><h3>${id}<
  *
  * Used both client and server-side.
  *
- * @param {Map<String,Page>} pages
+ * @param {Set} browsers
  * @returns {string} html
  */
 const createBrowserCollection = (browsers) => {
@@ -121,14 +121,14 @@ export const errorPage = ({ id, url, error }) => {
  * @param {WebSocket} socket
  */
 const wsHandler = (socket) => {
-    // get common elements
+    // Get common elements
     const index = document.getElementById('index');
     const pageDetail = document.getElementById('page-detail');
     const backButton = document.getElementById('back-button');
 
-    // a client implementation of the server's sendCommand()
+    // A client implementation of the server's sendCommand()
     const sendCommand = (command, data) => {
-        // send only if socket is open
+        // Send only if socket is open
         if (socket.readyState === 1) {
             const payload = JSON.stringify({ command, data });
             socket.send(payload);
@@ -136,7 +136,7 @@ const wsHandler = (socket) => {
     };
 
     const COMMANDS = {
-        // renders the Index Page - a list of browsers and their pages
+        // Renders the Index Page - a list of browsers and their pages
         renderIndex: ({ html }) => {
             index.innerHTML = html;
             index.querySelectorAll('.page').forEach((page) => {
@@ -145,26 +145,26 @@ const wsHandler = (socket) => {
                 });
             });
         },
-        // renders the Page Detail - where screenshots and HTML are shown
+        // Renders the Page Detail - where screenshots and HTML are shown
         renderPage: ({ html }) => {
             index.classList.add('hidden');
             backButton.classList.remove('hidden');
             pageDetail.classList.remove('hidden');
             pageDetail.innerHTML = html;
         },
-        // adds a browser to the list
+        // Adds a browser to the list
         createBrowser: ({ id }) => {
             const browsers = index.querySelector('.browser-collection');
             browsers.insertAdjacentHTML('afterbegin', createBrowser(id));
         },
-        // removes a browser from the list after fade-out
+        // Removes a browser from the list after fade-out
         destroyBrowser: ({ id }) => {
             const browser = document.getElementById(id);
             browser.classList.add('destroyed');
-            // do not remove immediately
-            setTimeout(() => browser.remove(), DESTROY_FADEOUT);
+            // Do not remove immediately
+            setTimeout(() => browser.remove(), DESTROY_FADEOUT_MILLIS);
         },
-        // adds a page to it's parent browser
+        // Adds a page to it's parent browser
         createPage: ({ id, browserId, url }) => {
             const pages = document.getElementById(browserId).querySelector('.page-collection');
             pages.insertAdjacentHTML('afterbegin', createPage(id, url));
@@ -173,20 +173,20 @@ const wsHandler = (socket) => {
                 id: page.getAttribute('id'),
             });
         },
-        // updates page URL on navigation
+        // Updates page URL on navigation
         updatePage: ({ id, url }) => {
             const page = document.getElementById(id);
             page.innerText = `URL: ${url}`;
         },
-        // removes a page from a browser after fade-out
+        // Removes a page from a browser after fade-out
         destroyPage: ({ id }) => {
             const page = document.getElementById(id);
             page.classList.add('destroyed');
-            // do not remove immediately since it can happen pretty fast
-            // and the page only pops in the list for a split second
-            setTimeout(() => page.remove(), DESTROY_FADEOUT);
+            // Do not remove immediately since it can happen pretty fast
+            // and the page only pops in the list for a split second.
+            setTimeout(() => page.remove(), DESTROY_FADEOUT_MILLIS);
         },
-        // handles errors
+        // Handles errors
         error: ({ message, status }) => {
             console.error(`${status}: ${message}`); // eslint-disable-line
         },
@@ -200,7 +200,7 @@ const wsHandler = (socket) => {
             return console.error('Unable to parse message from server:', e.data); // eslint-disable-line
         }
 
-        // validate and invoke requested command
+        // Validate and invoke requested command
         const { command, data } = message;
         if (!command) return console.error('Invalid command:', command); // eslint-disable-line
         const fn = COMMANDS[command];
@@ -258,7 +258,7 @@ export const layout = (url) => {
       color: #660000;
       visibility: hidden;
       opacity: 0;
-      transition: visibility 0s ${DESTROY_FADEOUT / 1000}s, opacity ${DESTROY_FADEOUT / 1000}s linear;
+      transition: visibility 0s ${DESTROY_FADEOUT_MILLIS / 1000}s, opacity ${DESTROY_FADEOUT_MILLIS / 1000}s linear;
     }
     .hidden {
       display: none;
@@ -275,7 +275,7 @@ export const layout = (url) => {
   <div id="page-detail" class="hidden"></div>
   <script>
     const ws = new WebSocket("ws://${url}");
-    const DESTROY_FADEOUT = ${DESTROY_FADEOUT};
+    const DESTROY_FADEOUT = ${DESTROY_FADEOUT_MILLIS};
     const createPage = ${createPage.toString()};
     const createPageCollection = ${createPageCollection.toString()};
     const createBrowser = ${createBrowser.toString()};

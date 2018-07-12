@@ -55,7 +55,6 @@
     "ps-tree": "^1.1.0",
     "request-promise": "^4.2.2",
     "underscore": "^1.9.0",
-    "uuid": "^3.2.1",
     "ws": "^5.1.0"
   },
   "devDependencies": {

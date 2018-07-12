@@ -8,7 +8,7 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import { layout, indexPage, detailPage, errorPage } from './puppeteer_live_view_client';
 import { ENV_VARS } from './constants';
 
-const DEFAULT_SCREENSHOT_TIMEOUT = 3000;
+const DEFAULT_SCREENSHOT_TIMEOUT_MILLIS = 3000;
 
 /**
  * LiveViewBrowser encapsulates a Puppeteer's Browser instance and provides
@@ -17,28 +17,28 @@ const DEFAULT_SCREENSHOT_TIMEOUT = 3000;
  *
  * @param {Browser} browser A Puppeteer Browser instance.
  * @param {String} [options.id] A unique ID of the LiveViewBrowser.
- * @param {Number} [options.screenshotTimeout] Max time allowed for the screenshot taking process.
+ * @param {Number} [options.screenshotTimeoutMillis] Max time allowed for the screenshot taking process.
  */
 export class PuppeteerLiveViewBrowser extends EventEmitter {
     constructor(browser, opts = {}) {
         super();
         this.browser = browser;
-        this.pages = new Map(); // to track all pages and their creation order for listing
-        this.pageIds = new WeakMap(); // to avoid iteration over pages
-        this.loadedPages = new WeakSet(); // to just track loaded state
+        this.pages = new Map(); // To track all pages and their creation order for listing
+        this.pageIds = new WeakMap(); // To avoid iteration over pages
+        this.loadedPages = new WeakSet(); // To just track loaded state
         this.pageIdCounter = 0;
 
         checkParamOrThrow(opts.id, 'opts.id', 'String');
-        checkParamOrThrow(opts.screenshotTimeout, 'opts.screenshotTimeout', 'Maybe Number');
+        checkParamOrThrow(opts.screenshotTimeoutMillis, 'opts.screenshotTimeoutMillis', 'Maybe Number');
         this.id = opts.id;
-        this.screenshotTimeout = opts.screenshotTimeout || DEFAULT_SCREENSHOT_TIMEOUT;
+        this.screenshotTimeoutMillis = opts.screenshotTimeoutMillis || DEFAULT_SCREENSHOT_TIMEOUT_MILLIS;
 
-        // since the page can be in any state when the user requests
-        // a screenshot, we need to keep track of it ourselves
+        // Since the page can be in any state when the user requests
+        // a screenshot, we need to keep track of it ourselves.
         browser.on('targetcreated', this._onTargetCreated.bind(this));
-        // clean up resources after page close
+        // Clean up resources after page close
         browser.on('targetdestroyed', this._onTargetDestroyed.bind(this));
-        // clean up resources after browser close (in Server)
+        // Clean up resources after browser close (in Server)
         browser.on('disconnected', this._onBrowserDisconnected.bind(this));
     }
 
@@ -76,9 +76,9 @@ export class PuppeteerLiveViewBrowser extends EventEmitter {
                     log.error(err);
                 });
         };
-        // capture immediately for loaded pages
+        // Capture immediately for loaded pages
         if (this.loadedPages.has(page)) capture();
-        // setup recurrent capturing
+        // Setup recurrent capturing
         page.on('load', () => {
             if (this.listenerCount(id)) capture();
         });
@@ -113,8 +113,8 @@ export class PuppeteerLiveViewBrowser extends EventEmitter {
      * @ignore
      */
     _getScreenshotAndHtml(page) {
-        // replace page's close function to prevent a close
-        // while the screenshot is being taken
+        // Replace page's close function to prevent a close
+        // while the screenshot is being taken.
         const { close } = page;
         let closed;
         let closeArgs;
@@ -128,8 +128,8 @@ export class PuppeteerLiveViewBrowser extends EventEmitter {
         };
 
         const cleanup = () => {
-            // replace the stolen close() method or call it,
-            // if it should've been called externally
+            // Replace the stolen close() method or call it,
+            // if it should've been called externally.
             if (closed) {
                 close.apply(page, closeArgs)
                     .then(closeResolve);
@@ -142,7 +142,7 @@ export class PuppeteerLiveViewBrowser extends EventEmitter {
             image: page.screenshot(),
             html: page.content(),
         })
-            .timeout(this.screenshotTimeout, 'Puppeteer Live View: Screenshot timed out.')
+            .timeout(this.screenshotTimeoutMillis, 'Puppeteer Live View: Screenshot timed out.')
             .finally(cleanup);
     }
 
@@ -152,33 +152,31 @@ export class PuppeteerLiveViewBrowser extends EventEmitter {
      * @private
      */
     _onTargetCreated(target) {
-        if (target.type() === 'page') {
-            target.page()
-                .then((page) => {
-                    const id = `${this.id}_PAGE_${++this.pageIdCounter}`;
-                    this.pages.set(id, page);
-                    this.pageIds.set(page, id);
-                    this.emit('pagecreated', {
+        if (target.type() !== 'page') return;
+        target.page()
+            .then((page) => {
+                const id = `${this.id}_PAGE_${++this.pageIdCounter}`;
+                this.pages.set(id, page);
+                this.pageIds.set(page, id);
+                this.emit('pagecreated', {
+                    id,
+                    browserId: this.id,
+                    url: page.url(),
+                });
+                page.on('load', () => {
+                    this.loadedPages.add(page); // Page is loaded
+                });
+                // Using "framenavigated" on main Frame since "targetchanged" does not seem reliable
+                page.on('framenavigated', (frame) => {
+                    if (frame !== page.mainFrame()) return;
+                    this.loadedPages.delete(page);
+                    this.emit('pagenavigated', {
                         id,
-                        browserId: this.id,
-                        url: page.url(),
+                        url: frame.url(),
                     });
-                    page.on('load', () => {
-                        this.loadedPages.add(page); // page is loaded
-                    });
-                    // using "framenavigated" on main Frame since "targetchanged" does not seem reliable
-                    page.on('framenavigated', (frame) => {
-                        if (frame === page.mainFrame()) {
-                            this.loadedPages.delete(page); // page will load after nav
-                            this.emit('pagenavigated', {
-                                id,
-                                url: frame.url(),
-                            });
-                        }
-                    });
-                })
-                .catch(err => log.error(err));
-        }
+                });
+            })
+            .catch(err => log.error(err));
     }
 
     /**
@@ -187,17 +185,16 @@ export class PuppeteerLiveViewBrowser extends EventEmitter {
      * @private
      */
     _onTargetDestroyed(target) {
-        if (target.type() === 'page') {
-            target.page()
-                .then((page) => {
-                    const id = this.pageIds.get(page);
-                    this.pages.delete(id);
-                    this.emit('pagedestroyed', {
-                        id,
-                    });
-                })
-                .catch(err => log.error(err));
-        }
+        if (target.type() !== 'page') return;
+        target.page()
+            .then((page) => {
+                const id = this.pageIds.get(page);
+                this.pages.delete(id);
+                this.emit('pagedestroyed', {
+                    id,
+                });
+            })
+            .catch(err => log.error(err));
     }
     /**
      * Handler invoked whenever a Browser is destroyed / disconnected in Puppeteer.
@@ -225,7 +222,7 @@ export class PuppeteerLiveViewBrowser extends EventEmitter {
  * @param {Promise<Browser>} browserPromise A Promise for a Puppeteer's Browser.
  * @param {Object} [opts] Options to pass down to PuppeteerLiveViewBrowser constructor.
  * @param {String} [opts.id] Custom ID to be used with the browser instance.
- * @param {String} [opts.screenshotTimeout] Max time allowed for the screenshot taking process.
+ * @param {String} [opts.screenshotTimeoutMillis] Max time allowed for the screenshot taking process.
  * @returns {Promise<PuppeteerLiveViewServer>}
  */
 let liveViewServer;
@@ -245,7 +242,7 @@ export const registerBrowserForLiveView = (browserPromise, opts = {}) => {
             return liveViewServer;
         });
 
-    return Promise.all([serverPromise, browserPromise]).then(() => liveViewServer); // return PuppeteerLiveViewServer instance
+    return Promise.all([serverPromise, browserPromise]).then(() => liveViewServer); // Return PuppeteerLiveViewServer instance
 };
 
 /**
@@ -369,7 +366,7 @@ export default class PuppeteerLiveViewServer extends EventEmitter {
             status: 404,
         };
 
-        // traverses browsers to find a page with ID
+        // Traverses browsers to find a page with ID
         const findPage = (id) => {
             let page;
             let browser;
@@ -385,7 +382,7 @@ export default class PuppeteerLiveViewServer extends EventEmitter {
 
         const COMMANDS = {
             renderIndex: () => sendCommand(ws, 'renderIndex', { html: indexPage(this.browsers) }),
-            // when the user selects a Page from the Index
+            // When the user selects a Page from the Index
             renderPage: (msg) => {
                 const { id } = msg.data || {};
                 const [browser, page] = findPage(id);
@@ -396,7 +393,7 @@ export default class PuppeteerLiveViewServer extends EventEmitter {
                     else sendCommand(ws, 'renderPage', { html: detailPage(pageData) });
                 });
             },
-            // when the user clicks on the back button
+            // When the user clicks on the back button
             quitPage: (msg) => {
                 const { id } = msg.data || {};
                 const [browser, page] = findPage(id);
@@ -412,14 +409,14 @@ export default class PuppeteerLiveViewServer extends EventEmitter {
             } catch (err) {
                 return sendCommand(ws, 'error', BAD_REQUEST);
             }
-            // validate command and send response
+            // Validate command and send response
             const { command } = msg;
             const fn = COMMANDS[command];
             if (!fn || typeof fn !== 'function') return sendCommand(ws, 'error', BAD_REQUEST);
             fn(msg);
         });
         this._setupCommandHandles(ws);
-        // send first Index after WS connection is established
+        // Send first Index after WS connection is established
         sendCommand(ws, 'renderIndex', { html: indexPage(this.browsers) });
     }
 
@@ -438,7 +435,7 @@ export default class PuppeteerLiveViewServer extends EventEmitter {
             browser.on('pagecreated', createListener);
             browser.on('pagedestroyed', destroyListener);
             browser.on('pagenavigated', updateListener);
-            // clean up to prevent listeners firing into closed sockets (on page refresh)
+            // Clean up to prevent listeners firing into closed sockets (on page refresh)
             ws.on('close', () => {
                 browser.removeListener('pagecreated', createListener);
                 browser.removeListener('pagedestroyed', destroyListener);
@@ -458,7 +455,7 @@ export default class PuppeteerLiveViewServer extends EventEmitter {
         };
         this.on('browsercreated', createListener);
         this.on('browserdestroyed', destroyListener);
-        // clean up to prevent listeners firing into closed sockets (on page refresh)
+        // Clean up to prevent listeners firing into closed sockets (on page refresh)
         ws.on('close', () => {
             this.removeListener('browsercreated', createListener);
             this.removeListener('browserdestroyed', destroyListener);
