@@ -162,14 +162,14 @@ export default class PuppeteerPool {
     }
 
     /**
-     * Retires some of the instances for example due to to many uses.
+     * Retires some of the instances for example due to many uses.
      *
      * @ignore
      */
     _retireInstance(instance) {
         const { id } = instance;
 
-        if (!this.activeInstances[id]) return log.warning('PuppeteerPool: browser is retired already', { id });
+        if (!this.activeInstances[id]) return log.debug('PuppeteerPool: browser is retired already', { id });
 
         log.debug('PuppeteerPool: retiring browser', { id });
 
@@ -236,7 +236,7 @@ export default class PuppeteerPool {
     }
 
     /**
-     * Opens new tab in one of the browsers and returns promise that resolves to it's Puppeteer.Page.
+     * Opens new tab in one of the browsers and returns promise that resolves to its Puppeteer.Page.
      *
      * @return {Promise<Puppeteer.Page>}
      */
@@ -262,6 +262,7 @@ export default class PuppeteerPool {
             .then((page) => {
                 page.on('error', (error) => {
                     log.exception(error, 'PuppeteerPool: page crashed');
+                    // Ignore errors from Page.close()
                     page.close();
                 });
 
