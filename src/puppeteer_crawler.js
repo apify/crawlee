@@ -4,7 +4,7 @@ import _ from 'underscore';
 import Promise from 'bluebird';
 import BasicCrawler from './basic_crawler';
 import PuppeteerPool from './puppeteer_pool';
-import { isPromise, createTimeoutPromise } from './utils';
+import { isPromise } from './utils';
 
 const DEFAULT_OPTIONS = {
     gotoFunction: ({ request, page }) => page.goto(request.url),
@@ -230,19 +230,13 @@ export default class PuppeteerCrawler {
                 return promise;
             });
 
-        return Promise
-            .race([
-                handlePagePromise,
-                createTimeoutPromise(this.pageOpsTimeoutMillis, 'PuppeteerCrawler: handlePageFunction timed out.'),
-            ])
+        return handlePagePromise
+            .timeout(this.pageOpsTimeoutMillis, 'PuppeteerCrawler: handlePageFunction timed out.')
             .finally(() => {
-                if (!page) return;
-
                 return Promise
-                    .race([
-                        page.close(),
-                        createTimeoutPromise(this.pageCloseTimeoutMillis, 'PuppeteerCrawler: page.close() timed out.'),
-                    ]);
+                    .try(() => page.close())
+                    .timeout(this.pageCloseTimeoutMillis, 'PuppeteerCrawler: page.close() timed out.')
+                    .catch(err => log.debug('PuppeteerCrawler: page.close() failed.', err));
             });
     }
 }
