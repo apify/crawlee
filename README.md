@@ -94,12 +94,12 @@ npm -g install apify-cli
 and create your project with:
 
 ```bash
-apify create my_hello_world
+apify create my-hello-world
 
-cd my_hello_world
+cd my-hello-world
 ```
 
-Apify CLI asks to you choose a template and then creates a directory `my_hello_world` containing:
+Apify CLI asks to you choose a template and then creates a directory `my-hello-world` containing:
 
 - `package.json` with Apify SDK as dependency
 - `main.js` containing basic code for your project
