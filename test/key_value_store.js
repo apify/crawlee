@@ -278,9 +278,9 @@ describe('KeyValueStore', () => {
 
             for (const char of INVALID_CHARACTERS) { // eslint-disable-line
                 try {
-                    await store.setValue(`my_id_${char}`);
-                } catch (e) {
-                    counter++;
+                    await store.setValue(`my_id_${char}`, 'value');
+                } catch (err) {
+                    if (err.message.match('The "key" parameter may contain only the following characters')) counter++;
                 }
             }
 
