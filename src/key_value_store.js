@@ -56,13 +56,13 @@ const validateSetValueParams = (key, value, options) => {
         checkParamOrThrow(value, 'value', 'Buffer | String', 'The "value" parameter must be a String or Buffer when "options.contentType" is specified.'); // eslint-disable-line max-len
     }
 
+    if (options.contentType === '') throw new Error('Parameter options.contentType cannot be empty string.');
+    if (!key) throw new Error('The "key" parameter cannot be empty');
+
     if (!KEY_VALUE_STORE_KEY_REGEX.test(key)) {
         throw new Error('The "key" parameter may contain only the following characters: ' +
             "[a-zA-Z0-9!-_.'()");
     }
-
-    if (options.contentType === '') throw new Error('Parameter options.contentType cannot be empty string.');
-    if (!key) throw new Error('The "key" parameter cannot be empty');
 };
 
 /**
