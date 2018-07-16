@@ -73,6 +73,22 @@ describe('KeyValueStore', () => {
             await store.delete();
             expectDirEmpty(storeDir);
         });
+
+        it('should throw on invalid keys', async () => {
+            const store = new KeyValueStoreLocal('my-store-id', LOCAL_EMULATION_DIR);
+            const INVALID_CHARACTERS = '?|\\/"*<>%:';
+            let counter = 0;
+
+            for (const char of INVALID_CHARACTERS) { // eslint-disable-line
+                try {
+                    await store.setValue(`my_id_${char}`);
+                } catch (e) {
+                    counter++;
+                }
+            }
+
+            expect(counter).to.be.eql(INVALID_CHARACTERS.length);
+        });
     });
 
     describe('remote', async () => {
