@@ -6,12 +6,12 @@
 
 <div id="include-readme-1">
   The <code>apify</code> NPM package enables development of web scrapers, crawlers and web automation projects
-  either locally or running on <a href="https://www.apify.com/docs/actor" target="_blank">Apify Actor</a> -
+  either locally or running on <a href="https://www.apify.com/docs/actor" target="_blank">Apify actors</a> -
   a serverless computing platform that enables execution of arbitrary code in the cloud.
 
-  The package provides helper functions to launch web browsers with proxies, access the storage etc. Note that the usage of the package is optional, you can create acts on Apify platform without it.
+  The package provides helper functions to launch web browsers with proxies, access storage, etc. Note that usage of the package is optional - you can create actors on the Apify platform without it.
 
-  For more information about the Apify Actor platform, please see https://www.apify.com/docs/actor
+  For more information about Apify actors, please see https://www.apify.com/docs/actor
 </div>
 
 Complete documentation of this package is available at https://www.apify.com/docs/sdk/apify-runtime-js/latest
@@ -39,8 +39,8 @@ Complete documentation of this package is available at https://www.apify.com/doc
 - [Examples](#examples)
   * [Recursive crawling](#recursive-crawling)
   * [Crawling url list](#crawling-url-list)
-  * [Call to another act](#call-to-another-act)
-  * [Act used and synchronous API](#act-used-and-synchronous-api)
+  * [Call to another actor](#call-to-another-actor)
+  * [Actor used and synchronous API](#actor-used-and-synchronous-api)
   * [Other](#other)
 
 <!-- tocstop -->
@@ -50,7 +50,7 @@ Complete documentation of this package is available at https://www.apify.com/doc
 ## Common use-cases
 <!-- Mirror this part to src/index.js -->
 
-Main goal of this package is to help with implementation of web scraping and automation projects. Some of the
+The main goal of this package is to help with implementation of web scraping and automation projects. Some of the
 most common use-cases are:
 
 <ul>
@@ -68,11 +68,11 @@ most common use-cases are:
     or <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue" target="_blank">RequestQueue</a> for recursive crawl.
   </li>
   <li>
-    If you need to process high volume of <strong>asynchronous tasks in parallel</strong> then take a
+    If you need to process a high volume of <strong>asynchronous tasks in parallel</strong>, then take a
     look at <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#AutoscaledPool" target="_blank">AutoscaledPool</a>. This class executes defined tasks in a pool which size is scaled based on available memory and CPU.
   </li>
   <li>
-    If you want to automate filling of forms or any other web interaction then you can use
+    If you want to automate the filling of forms or any other web interaction, then you can use
     <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a> (headless/non-headless Chrome browser).
   </li>
 </ul>
@@ -268,7 +268,7 @@ For more information see complete <a href="https://www.apify.com/docs/sdk/apify-
 
 #### Autoscaled Pool
 
-This class manages a pool of asynchronous resource-intensive tasks that are executed in parallel. The pool only starts new tasks if there is enough free memory and CPU capacity. The information about the CPU and memory usage is obtained either from the local system or from the Apify cloud infrastructure in case the process is running on the Apify Actor platform.
+This class manages a pool of asynchronous resource-intensive tasks that are executed in parallel. The pool only starts new tasks if there is enough free memory and CPU capacity. The information about the CPU and memory usage is obtained either from the local system or from the Apify cloud infrastructure in case the process is running on the Apify actor platform.
 
 ```javascript
 const pool = new Apify.AutoscaledPool({
@@ -427,18 +427,18 @@ These examples show how to scrape data from a fix list of urls using
 - <a href="https://github.com/apifytech/apify-js/tree/master/examples/url_list_puppeteer.js">Crawling a url list with Puppeteer</a>
 - <a href="https://github.com/apifytech/apify-js/tree/master/examples/url_list_cheerio.js">Crawling a url list with Cheerio and Request NPM packages</a>
 
-### Call to another act
+### Call to another actor
 
-This example shows how to call another act on Apify platform - in this case `apify/send-mail`
+This example shows how to call another actor on the Apify platform - in this case `apify/send-mail`
 to send email.
 
 <a href="https://github.com/apifytech/apify-js/tree/master/examples/call_another_act.js">Check source code here</a>
 
-### Act used and synchronous API
+### Actor used and synchronous API
 
-This example shows an act that has short runtime - just few seconds. It opens a webpage
+This example shows an actor that has short runtime - just few seconds. It opens a webpage
 http://goldengatebridge75.org/news/webcam.html that contains webcam stream from Golden Gate
-bridge, takes a screenshot and saves it as output. This makes act executable on Apify platform
+bridge, takes a screenshot and saves it as output. This makes the actor executable on Apify platform
 synchronously with a single request that also returns its output.
 
 Example is shared in library under https://www.apify.com/apify/example-golden-gate-webcam
