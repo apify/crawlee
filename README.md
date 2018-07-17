@@ -6,8 +6,8 @@
 
 <div id="include-readme-1">
   The <code>apify</code> NPM package enables development of web scrapers, crawlers and web automation projects
-  either locally or running on <a href="https://www.apify.com/docs/actor" target="_blank">Apify actors</a> -
-  a serverless computing platform that enables execution of arbitrary code in the cloud.
+  either locally or running on <a href="https://www.apify.com/docs/actor" target="_blank">Apify actor</a> -
+  a serverless computing platform that enables the execution of arbitrary code in the cloud.
 
   The package provides helper functions to launch web browsers with proxies, access storage, etc. Note that usage of the package is optional - you can create actors on the Apify platform without it.
 
