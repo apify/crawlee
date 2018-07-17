@@ -1,5 +1,6 @@
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
+import log from 'apify-shared/log';
 import 'babel-polyfill';
 import { ENV_VARS } from '../build/constants';
 import * as Apify from '../build/index';
@@ -58,13 +59,22 @@ describe('PuppeteerCrawler', () => {
         });
     });
 
-    it('should fail when pageCloseTimeoutMillis gets exceeded', async () => {
+    it('should only log when pageCloseTimeoutMillis gets exceeded', async () => {
         const sources = [
             { url: 'http://example.com/?q=1' },
         ];
         const failed = [];
         const errors = [];
-        const expectErrorMsgString = 'timed out';
+        const expectErrorMsgString = 'failed';
+        const expectErrorDataString = 'timed out';
+
+        const logger = (message, data) => {
+            errors.push({ message, data });
+        };
+
+        const originalLogger = log.debug;
+        log.debug = logger;
+
         const requestList = new Apify.RequestList({ sources });
         const handlePageFunction = ({ page }) => {
             page.close = () => {
@@ -77,11 +87,8 @@ describe('PuppeteerCrawler', () => {
         const puppeteerCrawler = new Apify.PuppeteerCrawler({
             requestList,
             handlePageFunction,
-            handleFailedRequestFunction: ({ request, error }) => {
-                console.log(errors);
-
+            handleFailedRequestFunction: ({ request }) => {
                 failed.push(request);
-                errors.push(error);
             },
             pageCloseTimeoutMillis: 1000,
         });
@@ -89,16 +96,56 @@ describe('PuppeteerCrawler', () => {
         await requestList.initialize();
         await puppeteerCrawler.run();
 
-        expect(failed).to.have.lengthOf(1);
-        expect(failed[0].retryCount).to.be.eql(3);
-        expect(failed[0].errorMessages).to.have.lengthOf(4);
-        failed[0].errorMessages.forEach((error) => {
-            expect(error).to.be.a('string');
-            expect(error).to.include(expectErrorMsgString);
+        expect(failed).to.have.lengthOf(0);
+        expect(errors.length).to.be.greaterThan(0);
+        expect(errors[0].message).to.include(expectErrorMsgString);
+        expect(errors[0].data.message).to.include(expectErrorDataString);
+
+        log.debug = originalLogger;
+    });
+
+    it('should only log when page.close() rejects', async () => {
+        const sources = [
+            { url: 'http://example.com/?q=1' },
+        ];
+        const failed = [];
+        const errors = [];
+        const expectErrorMsgString = 'failed';
+        const expectErrorDataString = 'my_rejection';
+
+        const logger = (message, data) => {
+            errors.push({ message, data });
+        };
+
+        const originalLogger = log.debug;
+        log.debug = logger;
+
+        const requestList = new Apify.RequestList({ sources });
+        const handlePageFunction = ({ page }) => {
+            page.close = () => {
+                return Promise.reject(new Error('my_rejection'));
+            };
+
+            return Promise.resolve();
+        };
+
+        const puppeteerCrawler = new Apify.PuppeteerCrawler({
+            requestList,
+            handlePageFunction,
+            handleFailedRequestFunction: ({ request }) => {
+                failed.push(request);
+            },
+            pageCloseTimeoutMillis: 1000,
         });
-        errors.forEach((error) => {
-            expect(error).to.be.an('error');
-            expect(error.message).to.include(expectErrorMsgString);
-        });
+
+        await requestList.initialize();
+        await puppeteerCrawler.run();
+
+        expect(failed).to.have.lengthOf(0);
+        expect(errors.length).to.be.greaterThan(0);
+        expect(errors[0].message).to.include(expectErrorMsgString);
+        expect(errors[0].data.message).to.include(expectErrorDataString);
+
+        log.debug = originalLogger;
     });
 });
