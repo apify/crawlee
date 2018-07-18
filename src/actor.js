@@ -276,6 +276,7 @@ export const readyFreddy = () => {
  *                                     If the limit is reached, the returned promise is resolved to a run object that will have
  *                                     status `READY` or `RUNNING` and it will not contain the act run output.
  *                                     If `waitSecs` is null or undefined, the function waits for the act to finish (default behavior).
+ * @param {Number} [opts.memory] Memory in megabytes which will be allocated for the new act run.
  * @param {Boolean} [opts.fetchOutput=true] If `false` then the function does not fetch output of the act.
  * @param {Boolean} [opts.disableBodyParser=false] If `true` then the function will not attempt to parse the
  *                                                act's output and will return it in a raw `Buffer`.
