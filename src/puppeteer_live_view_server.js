@@ -334,7 +334,7 @@ If you are running on localhost then set ${ENV_VARS.CONTAINER_URL}='http://local
 
         return promisifyServerListen(server)(this.containerPort)
             .then(() => {
-                log.info(`Live view server is now avilable at URL ${this.containerUrl} (running on port ${server.address().port}).`);
+                log.info(`Live view server is now available at URL ${this.containerUrl} (running on port ${server.address().port}).`);
                 this.httpServer = server;
             });
     }
