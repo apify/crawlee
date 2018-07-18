@@ -44,6 +44,9 @@
     "lint": "npm run build && eslint src test"
   },
   "dependencies": {
+    "@types/bluebird": "^3.5.22",
+    "@types/content-type": "^1.1.2",
+    "@types/fs-extra": "^5.0.4",
     "apify-client": "^0.2.9",
     "apify-shared": "^0.0.34",
     "bluebird": "^3.5.0",
@@ -58,6 +61,7 @@
     "ws": "^5.1.0"
   },
   "devDependencies": {
+    "@types/node": "^10.5.2",
     "apify-jsdoc-template": "github:apifytech/apify-jsdoc-template",
     "babel-cli": "^6.26.0",
     "babel-polyfill": "^6.26.0",

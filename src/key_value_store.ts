@@ -1,8 +1,8 @@
-import fs from 'fs';
-import fsExtra from 'fs-extra';
-import path from 'path';
-import Promise from 'bluebird';
-import contentTypeParser from 'content-type';
+import * as fs from 'fs';
+import * as fsExtra from 'fs-extra';
+import * as path from 'path';
+import * as Promise from 'bluebird';
+import * as contentTypeParser from 'content-type';
 import LruCache from 'apify-shared/lru_cache';
 import { checkParamOrThrow, parseBody } from 'apify-client/build/utils';
 import { ENV_VARS, LOCAL_EMULATION_SUBDIRS } from './constants';
@@ -111,11 +111,8 @@ export const maybeStringify = (value, options) => {
  * @param {String} storeId - ID of the key-value store.
  */
 export class KeyValueStore {
-    constructor(storeId) {
-        checkParamOrThrow(storeId, 'storeId', 'String');
 
-        this.storeId = storeId;
-    }
+    constructor(public storeId:string) {}
 
     // TODO: Move here the Apify.getValue()/setValue() documentation, and link it from there.
     // This place should be the main source of information.

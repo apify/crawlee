@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "outDir": "./build",
+    "allowJs": true,
+    "lib": ["es2017"],
+    "module": "commonjs",
+    "target": "es2017"
+  },
+  "include": [
+    "./src/**/*"
+  ]
+}
