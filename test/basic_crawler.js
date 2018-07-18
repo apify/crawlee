@@ -336,7 +336,7 @@ describe('BasicCrawler', () => {
             handleRequestFunction: () => {},
         });
 
-        expect(await crawler._isTaskReadyFunction()).to.be.eql(false);
+        expect(await crawler._isTaskReadyFunction()).to.be.eql(false); // eslint-disable-line no-underscore-dangle
     });
 
     it('should be possible to override isFinishedFunction of underlying AutoscaledPool', async () => {

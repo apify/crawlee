@@ -5,6 +5,7 @@ import log from 'apify-shared/log';
 import { ENV_VARS, DEFAULT_USER_AGENT } from './constants';
 import { newPromise, getTypicalChromeExecutablePath } from './utils';
 import { getApifyProxyUrl } from './actor';
+import { registerBrowserForLiveView } from './puppeteer_live_view_server';
 
 /* global process, require */
 
@@ -38,6 +39,12 @@ const LAUNCH_PUPPETEER_LOG_OMIT_OPTS = [
  * will use the same target proxy server (i.e. the same IP address).
  * The identifier can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
  * Only applied if the `useApifyProxy` option is `true`.
+ * @property {Boolean} [opts.liveView=false] If set to `true`, a PuppeteerLiveViewServer will be started to enable
+ * screenshot and html capturing of visited pages using PuppeteerLiveViewBrowser.
+ * @property {Object} [opts.liveViewOptions] Settings for PuppeteerLiveViewBrowser started using launchPuppeteer().
+ * @property {String} [opts.liveViewOptions.id] Custom ID of a browser instance.
+ * @property {Number} [opts.liveViewOptions.screenshotTimeoutMillis] Time in milliseconds before a screenshot capturing
+ * will time out and the actor continues with execution. Screenshot capturing pauses execution within the given page.
  */
 
 /**
@@ -156,6 +163,8 @@ export const launchPuppeteer = (opts = {}) => {
     checkParamOrThrow(opts.args, 'opts.args', 'Maybe [String]');
     checkParamOrThrow(opts.proxyUrl, 'opts.proxyUrl', 'Maybe String');
     checkParamOrThrow(opts.useApifyProxy, 'opts.useApifyProxy', 'Maybe Boolean');
+    checkParamOrThrow(opts.liveView, 'opts.liveView', 'Maybe Boolean');
+    checkParamOrThrow(opts.liveViewOptions, 'opts.liveViewOptoins', 'Maybe Object');
     if (opts.useApifyProxy && opts.proxyUrl) throw new Error('Cannot combine "opts.useApifyProxy" with "opts.proxyUrl"!');
 
     const puppeteer = getPuppeteerOrThrow();
@@ -163,8 +172,9 @@ export const launchPuppeteer = (opts = {}) => {
 
     optsCopy.args = optsCopy.args || [];
     optsCopy.args.push('--no-sandbox');
-    if (optsCopy.headless === undefined || optsCopy.headless === null) {
-        optsCopy.headless = process.env[ENV_VARS.HEADLESS] === '1' && process.env[ENV_VARS.XVFB] !== '1';
+    if (optsCopy.headless == null) {
+        // Forcing headless with liveView, otherwise screenshots redirect user to new browser window
+        optsCopy.headless = optsCopy.liveView || (process.env[ENV_VARS.HEADLESS] === '1' && process.env[ENV_VARS.XVFB] !== '1');
     }
     if (optsCopy.useChrome && (optsCopy.executablePath === undefined || optsCopy.executablePath === null)) {
         optsCopy.executablePath = process.env[ENV_VARS.CHROME_EXECUTABLE_PATH] || getTypicalChromeExecutablePath();
@@ -197,5 +207,10 @@ export const launchPuppeteer = (opts = {}) => {
     }
 
     // Ensure that the returned promise is of type Bluebird.
-    return newPromise().then(() => browserPromise);
+    const wrapped = newPromise().then(() => browserPromise);
+
+    // Start LiveView server if requested
+    if (optsCopy.liveView) return registerBrowserForLiveView(wrapped, optsCopy.liveViewOptions).then(() => wrapped);
+
+    return wrapped;
 };

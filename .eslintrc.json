@@ -7,7 +7,8 @@
   "rules": {
     "indent": ["error", 4],
     "no-underscore-dangle": [2, {
-      "allow": ["_id"]
+      "allow": ["_id"],
+      "allowAfterThis": true
     }],
     "no-use-before-define": 0,
     "no-param-reassign": 0,
@@ -23,6 +24,6 @@
     "import/prefer-default-export": 0,
     "import/no-absolute-path": 0,
     "import/no-extraneous-dependencies": ["error", { "devDependencies": ["**/test/*.js"] }],
-    "no-underscore-dangle": 0
+    "no-await-in-loop": 0
   }
 }
