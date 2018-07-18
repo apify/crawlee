@@ -33,8 +33,7 @@ const storesCache = new LruCache({ maxLength: MAX_OPENED_STORES }); // Open key-
  *
  * @ignore
  */
-const validateGetValueParams = (key) => {
-    checkParamOrThrow(key, 'key', 'String');
+const validateGetValueParams = (key: string) => {
     if (!key) throw new Error('The "key" parameter cannot be empty');
 };
 

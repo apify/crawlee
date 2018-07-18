@@ -19,3 +19,13 @@ export const EXIT_CODES = {
  * in apify-shared package.
  */
 ACTOR_EVENT_NAMES.PERSIST_STATE = 'persistState';
+
+export declare const ENV_VARS: {
+    [key: string]: string
+};
+
+export declare const LOCAL_EMULATION_SUBDIRS: {
+    datasets: string,
+    keyValueStores: string,
+    requestQueues: string
+};
