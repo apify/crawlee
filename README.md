@@ -5,22 +5,23 @@
 [![Build Status](https://travis-ci.org/apifytech/apify-js.svg)](https://travis-ci.org/apifytech/apify-js)
 
 <div id="include-readme-1">
-  The <code>apify</code> NPM package enables development of web scrapers, crawlers and web automation projects
-  either locally or running on <a href="https://www.apify.com/docs/actor" target="_blank">Apify Actor</a> -
-  a serverless computing platform that enables execution of arbitrary code in the cloud.
-
-  The package provides helper functions to launch web browsers with proxies, access the storage etc. Note that the usage of the package is optional, you can create acts on Apify platform without it.
-
-  For more information about the Apify Actor platform, please see https://www.apify.com/docs/actor
+  The <code>apify</code> NPM package simplifies development of web crawlers, scrapers, data extractors and web automation jobs.
+  It provides tools to manage and automatically scale a pool of headless Chrome / Puppeteer instances,
+  maintain lists or queues of URLs to crawl, store crawling results to local filesystem or into the cloud,
+  rotate proxies and much more.
+  The package can be used either standalone in your own application
+  or used in <a href="https://www.apify.com/docs/actor" target="_blank">actors</a>
+  running on the <a href="https://www.apify.com/" target="_blank">Apify computing platform</a>.
 </div>
 
-Complete documentation of this package is available at https://www.apify.com/docs/sdk/apify-runtime-js/latest
+The complete documentation of the <code>apify</code> NPM package is available at
+https://www.apify.com/docs/sdk/apify-runtime-js/latest
 
 ## Table of Contents
 
 <!-- toc -->
 
-- [Common use-cases](#common-use-cases)
+- [Use cases](#use-cases)
 - [Quick start](#quick-start)
 - [Puppeteer](#puppeteer)
 - [Components](#components)
@@ -47,13 +48,80 @@ Complete documentation of this package is available at https://www.apify.com/doc
 
 <div id="include-readme-2">
 
-## Common use-cases
+## Overview
+
+
+<ul>
+  <li>
+    Crawl a list of URLs using cheerio or Puppeteer
+  </li>
+  <li>
+    Recursively crawl a website
+  </li>
+  <li>
+
+</ul>
+
+
+### Motivation
+
+Developers often decide to build web scrapers from scratch.
+They quickly find tools like Puppeteer or cheerio, write their data extraction code
+and start scraping. Then they realize
+
+Many developers who builoften start building web scrapers from a sc
+If you ever built a web scraper, you know that there are often tasks
+When it comes to web scraping
+
+## Use cases
 <!-- Mirror this part to src/index.js -->
 
 Main goal of this package is to help with implementation of web scraping and automation projects. Some of the
 most common use-cases are:
 
 <ul>
+  <li>
+     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#BasicCrawler">BasicCrawler</a>
+     - Enables crawling of web pages
+     in raw HTML or with <a href="https://www.npmjs.com/package/cheerio" target="_blank">cheerio</a>
+     parser.
+     This is the most efficient web crawling method, but it does not work on pages that require JavaScript.
+  </li>
+  <li>
+     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerCrawler">PuppeteerCrawler</a>
+     - Enables crawling of web pages using headless Chrome browser
+     and <a href="https://github.com/GoogleChrome/puppeteer">Puppeteer</a>.
+     The pool of Chrome processes is scaled up and down based on available system resources.
+    </li>
+  <li>
+     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue">RequestQueue</a>
+     - Queue of URLs to crawl, which is stored either on local filesystem or in Apify cloud.
+     The queue is used for deep crawling of websites, where you start with
+     a several URLs and then recursively follow links to other pages.
+     The data structure supports both breath-first and depth-first crawling order.
+  </li>
+  <li>
+     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#Dataset">Dataset</a>
+     - Storage of structured data and
+     export to formats like JSON, JSONL, CSV, Excel or HTML.
+     The data is stored either on local filesystem or in the Apify cloud.
+     Datasets are useful for storing and sharing large tabular crawling results,
+     like list of products or real estate offers.
+  </li>
+  <li>
+     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#Dataset">Key-value store</a>
+     - Storage of named objects
+
+  </li>
+  <li>
+     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#AutoscaledPool" target="_blank">AutoscaledPool</a>
+     -
+     Run asynchronous background tasks in a worker pool that is scaled automatically based on free system memory and CPU usage.
+     This is ideal for running headless Chrome browser tasks at scale.
+     .
+  </li>
+
+
   <li>
     If you want to <strong>crawl</strong> a website using for example <a href="https://www.npmjs.com/package/request" target="_blank">
     Request</a> package then take a look at <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#BasicCrawler" target="_blank">BasicCrawler</a>
@@ -66,10 +134,6 @@ most common use-cases are:
     <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a> (headless/non-headless Chrome browser). PuppeteerCrawler supports
     both <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList" target="_blank">RequestList</a> for fix list of urls
     or <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue" target="_blank">RequestQueue</a> for recursive crawl.
-  </li>
-  <li>
-    If you need to process high volume of <strong>asynchronous tasks in parallel</strong> then take a
-    look at <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#AutoscaledPool" target="_blank">AutoscaledPool</a>. This class executes defined tasks in a pool which size is scaled based on available memory and CPU.
   </li>
   <li>
     If you want to automate filling of forms or any other web interaction then you can use
@@ -393,12 +457,20 @@ then you must define an environment variable <code>PROXY_PASSWORD</code> with pa
 
 ## Promises vs. callbacks
 
-By default, all asynchronous functions provided by this package return a promise.
-But Apify uses a <a href="http://bluebirdjs.com/" target="_blank">Bluebird</a>
-promise implementation so you can easily convert any function that returns a Promise
-into callback style function.
-See <a href="http://bluebirdjs.com/docs/api/promise.promisify.html" target="_blank">Bluebird documentation</a>
-for more information.
+All asynchronous functions provided by the <code>apify</code> package return
+a <a href="http://bluebirdjs.com/" target="_blank" rel="noopener">bluebird</a> Promise.
+If you prefer to use callbacks, you can use
+the <a href="http://bluebirdjs.com/docs/api/ascallback.html" target="_blank" rel="noopener">.asCallback()</a> function.
+For example:
+
+```js
+const Apify = require('apify');
+
+Apify.launchPuppeteer().asCallback((err, browser) => {
+  // Write you callback code here...
+});
+```
+
 
 ## Examples
 
