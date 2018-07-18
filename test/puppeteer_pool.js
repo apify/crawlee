@@ -148,4 +148,47 @@ describe('PuppeteerPool', () => {
         delete process.env[ENV_VARS.PROXY_HOSTNAME];
         delete process.env[ENV_VARS.PROXY_PORT];
     });
+
+    it('retire manually', async () => {
+        process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
+        process.env[ENV_VARS.PROXY_HOSTNAME] = 'my.host.com';
+        process.env[ENV_VARS.PROXY_PORT] = 123;
+
+        const pool = new Apify.PuppeteerPool({
+            maxOpenPagesPerInstance: 1,
+            abortInstanceAfterRequestCount: 5,
+            instanceKillerIntervalMillis: 1000,
+            killInstanceAfterMillis: 500,
+        });
+        const pages = [];
+
+        // Open 3 pages.
+        pages.push(pool.newPage());
+        pages.push(pool.newPage());
+        pages.push(pool.newPage());
+        await Promise.all(pages);
+        expect(_.values(pool.activeInstances).length).to.be.eql(3);
+        expect(_.values(pool.retiredInstances).length).to.be.eql(0);
+
+        // Retire 1.
+        await pool.retire((await pages[0]).browser());
+        expect(_.values(pool.activeInstances).length).to.be.eql(2);
+        expect(_.values(pool.retiredInstances).length).to.be.eql(1);
+
+        // Retire 2.
+        await pool.retire((await pages[1]).browser());
+        expect(_.values(pool.activeInstances).length).to.be.eql(1);
+        expect(_.values(pool.retiredInstances).length).to.be.eql(2);
+
+        // Sleep and check that two have been killed.
+        await shortSleep(2100);
+        expect(_.values(pool.activeInstances).length).to.be.eql(1);
+        expect(_.values(pool.retiredInstances).length).to.be.eql(0);
+
+        // Cleanup everything.
+        await pool.destroy();
+        delete process.env[ENV_VARS.PROXY_PASSWORD];
+        delete process.env[ENV_VARS.PROXY_HOSTNAME];
+        delete process.env[ENV_VARS.PROXY_PORT];
+    });
 });

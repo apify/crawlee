@@ -303,4 +303,38 @@ export default class PuppeteerPool {
             .all(closePromises)
             .catch(err => log.exception(err, 'PuppeteerPool: cannot close the browsers'));
     }
+
+    /**
+     * Finds a PuppeteerInstance given a Puppeteer Browser running in the instance.
+     * @param {Puppeteer.Browser} browser
+     * @ignore
+     */
+    _findInstanceByBrowser(browser) {
+        const instances = Object.values(this.activeInstances);
+        return Promise.filter(instances, instance => instance.browserPromise.then(savedBrowser => browser === savedBrowser))
+            .then((results) => {
+                switch (results.length) {
+                case 0:
+                    return null;
+                case 1:
+                    return results[0];
+                default:
+                    throw new Error('PuppeteerPool: Multiple instances of PuppeteerPool found using a single browser instance.');
+                }
+            });
+    }
+
+    /**
+     * Manually retires a Puppeteer Browser instance from the pool. The browser will continue
+     * to process open pages so that they may gracefully finish. This is unlike browser.close()
+     * which will forcibly terminate the browser and all open pages will be closed.
+     * @param {Puppeteer.Browser} browser
+     */
+    retire(browser) {
+        return this._findInstanceByBrowser(browser)
+            .then((instance) => {
+                if (instance) return this._retireInstance(instance);
+                log.debug('PuppeteerPool: browser is retired already');
+            });
+    }
 }
