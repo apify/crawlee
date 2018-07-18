@@ -9,6 +9,8 @@ import { ACTOR_EVENT_NAMES, ENV_VARS } from '../build/constants';
 import { SCALE_UP_MAX_STEP, SCALE_UP_INTERVAL, SCALE_DOWN_INTERVAL } from '../build/autoscaled_pool';
 import * as utils from '../build/utils';
 
+/* eslint-disable no-underscore-dangle */
+
 chai.use(chaiAsPromised);
 const toBytes = x => x * 1024 * 1024;
 
@@ -750,3 +752,4 @@ describe('AutoscaledPool', () => {
     });
 });
 
+/* eslint-enable no-underscore-dangle */
