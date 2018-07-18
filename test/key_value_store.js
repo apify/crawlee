@@ -271,6 +271,22 @@ describe('KeyValueStore', () => {
                 .to.be.rejectedWith('Parameter options.contentType cannot be empty string.');
         });
 
+        it('throws on invalid characters in key', async () => {
+            const store = new KeyValueStoreLocal('my-store-id', LOCAL_EMULATION_DIR);
+            const INVALID_CHARACTERS = '?|\\/"*<>%:';
+            let counter = 0;
+
+            for (const char of INVALID_CHARACTERS) { // eslint-disable-line
+                try {
+                    await store.setValue(`my_id_${char}`, 'value');
+                } catch (err) {
+                    if (err.message.match('The "key" parameter may contain only the following characters')) counter++;
+                }
+            }
+
+            expect(counter).to.be.eql(INVALID_CHARACTERS.length);
+        });
+
         it('throws if APIFY_DEFAULT_KEY_VALUE_STORE_ID env var is not defined', async () => {
             const errMsg = 'The \'APIFY_DEFAULT_KEY_VALUE_STORE_ID\' environment variable is not defined';
 
