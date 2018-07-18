@@ -120,6 +120,9 @@ export default class PuppeteerPool {
         this.activeInstances = {};
         this.retiredInstances = {};
         this.instanceKillerInterval = setInterval(() => this._killRetiredInstances(), instanceKillerIntervalMillis);
+
+        // ensure termination on SIGINT
+        this._terminateInstancesOnSigint();
     }
 
     /**
@@ -302,5 +305,22 @@ export default class PuppeteerPool {
         return Promise
             .all(closePromises)
             .catch(err => log.exception(err, 'PuppeteerPool: cannot close the browsers'));
+    }
+
+    /**
+     * Ensures all Puppeteer processes terminate on SIGINT and Chromium isn't left running.
+     * @ignore
+     */
+    _terminateInstancesOnSigint() {
+        process.on('SIGINT', () => {
+            const allInstances = Object.values(this.activeInstances).concat(Object.values(this.retiredInstances));
+            allInstances.forEach((instance) => {
+                try {
+                    instance.childProcess.kill('SIGINT');
+                } catch (e) {
+                    // do nothing, it's dead
+                }
+            });
+        });
     }
 }
