@@ -122,7 +122,8 @@ export default class PuppeteerPool {
         this.instanceKillerInterval = setInterval(() => this._killRetiredInstances(), instanceKillerIntervalMillis);
 
         // ensure termination on SIGINT
-        this._terminateInstancesOnSigint();
+        this.sigintListener = () => this._killAllInstances();
+        process.on('SIGINT', this.sigintListener);
     }
 
     /**
@@ -239,6 +240,21 @@ export default class PuppeteerPool {
     }
 
     /**
+     * Kills all running PuppeteerInstances.
+     * @ignore
+     */
+    _killAllInstances() {
+        const allInstances = Object.values(this.activeInstances).concat(Object.values(this.retiredInstances));
+        allInstances.forEach((instance) => {
+            try {
+                instance.childProcess.kill('SIGINT');
+            } catch (e) {
+                // do nothing, it's dead
+            }
+        });
+    }
+
+    /**
      * Opens new tab in one of the browsers and returns promise that resolves to its Puppeteer.Page.
      *
      * @return {Promise<Puppeteer.Page>}
@@ -287,6 +303,7 @@ export default class PuppeteerPool {
      */
     destroy() {
         clearInterval(this.instanceKillerInterval);
+        process.removeListener('SIGINT', this.sigintListener);
 
         const browserPromises = _
             .values(this.activeInstances)
@@ -308,19 +325,36 @@ export default class PuppeteerPool {
     }
 
     /**
-     * Ensures all Puppeteer processes terminate on SIGINT and Chromium isn't left running.
+     * Finds a PuppeteerInstance given a Puppeteer Browser running in the instance.
+     * @param {Puppeteer.Browser} browser
      * @ignore
      */
-    _terminateInstancesOnSigint() {
-        process.on('SIGINT', () => {
-            const allInstances = Object.values(this.activeInstances).concat(Object.values(this.retiredInstances));
-            allInstances.forEach((instance) => {
-                try {
-                    instance.childProcess.kill('SIGINT');
-                } catch (e) {
-                    // do nothing, it's dead
+    _findInstanceByBrowser(browser) {
+        const instances = Object.values(this.activeInstances);
+        return Promise.filter(instances, instance => instance.browserPromise.then(savedBrowser => browser === savedBrowser))
+            .then((results) => {
+                switch (results.length) {
+                case 0:
+                    return null;
+                case 1:
+                    return results[0];
+                default:
+                    throw new Error('PuppeteerPool: Multiple instances of PuppeteerPool found using a single browser instance.');
                 }
             });
-        });
+    }
+
+    /**
+     * Manually retires a Puppeteer Browser instance from the pool. The browser will continue
+     * to process open pages so that they may gracefully finish. This is unlike browser.close()
+     * which will forcibly terminate the browser and all open pages will be closed.
+     * @param {Puppeteer.Browser} browser
+     */
+    retire(browser) {
+        return this._findInstanceByBrowser(browser)
+            .then((instance) => {
+                if (instance) return this._retireInstance(instance);
+                log.debug('PuppeteerPool: browser is retired already');
+            });
     }
 }

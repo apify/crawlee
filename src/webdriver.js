@@ -268,7 +268,7 @@ export const browse = (url, options) => {
     const args = processBrowseArgs(url, options);
     const browser = new Browser(args.options);
 
-    return browser._initialize()
+    return browser._initialize() // eslint-disable-line no-underscore-dangle
         .then(() => {
             return browser.webDriver.get(args.options.url);
         })
@@ -313,7 +313,7 @@ export const launchWebDriver = (opts) => {
     const browser = new Browser(args.options);
 
     // NOTE: eventually get rid of the Browser class
-    return browser._initialize()
+    return browser._initialize() // eslint-disable-line no-underscore-dangle
         .then(() => {
             // TODO: for some reason this doesn't work, the proxy chain will never shut down!!
             //       BTW this also prevents us from upgrading to mocha 4+
