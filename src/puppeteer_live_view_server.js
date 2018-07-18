@@ -2,6 +2,7 @@ import http from 'http';
 import EventEmitter from 'events';
 import Promise from 'bluebird';
 import WebSocket from 'ws';
+import _ from 'underscore';
 import log from 'apify-shared/log';
 import { promisifyServerListen } from 'apify-shared/utilities';
 import { checkParamOrThrow } from 'apify-client/build/utils';
@@ -279,6 +280,19 @@ const sendCommand = (socket, command, data) => {
 export default class PuppeteerLiveViewServer extends EventEmitter {
     constructor() {
         super();
+
+        this.containerUrl = process.env[ENV_VARS.CONTAINER_URL] || 'http://localhost';
+        this.containerPort = parseInt(process.env[ENV_VARS.CONTAINER_PORT], 10) || 0;
+
+        if (!this.containerUrl) {
+            throw new Error(`Cannot start LiveViewServer - the environment variable ${ENV_VARS.CONTAINER_URL} is not set!
+If you are running on localhost then set ${ENV_VARS.CONTAINER_URL}='http://localhost'`);
+        }
+
+        if (!_.isNumber(this.containerPort)) {
+            throw new Error(`Cannot start LiveViewServer - the environment variable ${ENV_VARS.CONTAINER_PORT} is not set!`);
+        }
+
         this.browsers = new Set();
         this.browserIdCounter = 0;
         this.httpServer = null;
@@ -313,20 +327,14 @@ export default class PuppeteerLiveViewServer extends EventEmitter {
      * @return {Promise} resolves when HTTP server starts listening
      */
     startServer() {
-        const getRejection = envVar =>
-            Promise.reject(new Error(`The environment variable ${envVar} is not set. 'LiveViewServer cannot be started.`));
-
-        if (!process.env[ENV_VARS.CONTAINER_URL]) return getRejection(ENV_VARS.CONTAINER_URL);
-
-        const port = process.env[ENV_VARS.CONTAINER_PORT];
-        if (port == null || Number.isNaN(port)) return getRejection(ENV_VARS.CONTAINER_PORT);
-
         const server = http.createServer(this._httpRequestListener.bind(this));
         const wss = new WebSocket.Server({ server });
+
         wss.on('connection', this._wsRequestListener.bind(this));
-        return promisifyServerListen(server)(port)
+
+        return promisifyServerListen(server)(this.containerPort)
             .then(() => {
-                log.info(`Live view server is listening on port ${server.address().port}.`);
+                log.info(`Live view server is now avilable at URL ${this.containerUrl} (running on port ${server.address().port}).`);
                 this.httpServer = server;
             });
     }
@@ -341,7 +349,7 @@ export default class PuppeteerLiveViewServer extends EventEmitter {
      * @ignore
      */
     _httpRequestListener(req, res) {
-        const body = layout(process.env[ENV_VARS.CONTAINER_URL]);
+        const body = layout(this.containerUrl);
         res.writeHead(200, {
             'Content-Type': 'text/html',
             'Content-Length': Buffer.byteLength(body),
