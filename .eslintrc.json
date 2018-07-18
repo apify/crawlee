@@ -7,7 +7,8 @@
   "rules": {
     "indent": ["error", 4],
     "no-underscore-dangle": [2, {
-      "allow": ["_id"]
+      "allow": ["_id"],
+      "allowAfterThis": true
     }],
     "no-use-before-define": 0,
     "no-param-reassign": 0,
