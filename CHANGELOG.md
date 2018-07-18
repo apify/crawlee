@@ -1,3 +1,10 @@
+0.5.43 / 2018-07-18
+===================
+- Bug where failed `page.close()` in `PuppeteerPool` was causing request to be retried is fixed.
+- Added `memory` parameter to `Apify.call()`.
+- Added `PuppeteerPool.retire(browser)` method allowing retire a browser before it reaches his limits. This is
+  usefull when its IP address got blocked by anti-scraping protection.
+
 0.5.42 / 2018-07-04
 ===================
 - Bugfix in BasicCrawler: native Promise doesn't have finally() function
