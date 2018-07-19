@@ -1,3 +1,7 @@
+xxx
+===================
+- Removed `pageCloseTimeoutMillis` option from `PuppeteerCrawler` since it only affects debug logging
+
 0.5.43 / 2018-07-18
 ===================
 - Bug where failed `page.close()` in `PuppeteerPool` was causing request to be retried is fixed.
