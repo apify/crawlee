@@ -9,8 +9,10 @@ import { checkParamOrThrow, parseBody } from 'apify-client/build/utils';
 import { ENV_VARS, LOCAL_EMULATION_SUBDIRS } from './constants';
 import { addCharsetToContentType, apifyClient, ensureDirExists } from './utils';
 
-export const LOCAL_EMULATION_SUBDIR = LOCAL_EMULATION_SUBDIRS.keyValueStores;
-const MAX_OPENED_STORES = 1000;
+export const LOCAL_EMULATION_SUBDIR: string = LOCAL_EMULATION_SUBDIRS.keyValueStores;
+const MAX_OPENED_STORES: number = 1000;
+
+type FileType = { contentType: string, extension: string }
 const LOCAL_FILE_TYPES = [
     { contentType: 'application/octet-stream', extension: 'buffer' },
     { contentType: 'application/json', extension: 'json' },
@@ -117,7 +119,7 @@ export const maybeStringify = (value, options) => {
  */
 export class KeyValueStore {
 
-    constructor(public storeId:string) {}
+    constructor(public storeId: string) {}
 
     // TODO: Move here the Apify.getValue()/setValue() documentation, and link it from there.
     // This place should be the main source of information.
