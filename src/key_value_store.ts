@@ -9,10 +9,9 @@ import { checkParamOrThrow, parseBody } from 'apify-client/build/utils';
 import { ENV_VARS, LOCAL_EMULATION_SUBDIRS } from './constants';
 import { addCharsetToContentType, apifyClient, ensureDirExists } from './utils';
 
-export const LOCAL_EMULATION_SUBDIR: string = LOCAL_EMULATION_SUBDIRS.keyValueStores;
-const MAX_OPENED_STORES: number = 1000;
+export const LOCAL_EMULATION_SUBDIR = LOCAL_EMULATION_SUBDIRS.keyValueStores;
+const MAX_OPENED_STORES = 1000;
 
-type FileType = { contentType: string, extension: string }
 const LOCAL_FILE_TYPES = [
     { contentType: 'application/octet-stream', extension: 'buffer' },
     { contentType: 'application/json', extension: 'json' },
@@ -30,12 +29,17 @@ const emptyDirPromised = Promise.promisify(fsExtra.emptyDir);
 const { keyValueStores } = apifyClient;
 const storesCache = new LruCache({ maxLength: MAX_OPENED_STORES }); // Open key-value stores are stored here.
 
+interface SetValueOptions {
+    contentType?: string | Buffer
+}
+
 /**
  * Helper function to validate params of *.getValue().
  *
  * @ignore
  */
 const validateGetValueParams = (key: string) => {
+    checkParamOrThrow(key, 'key', 'String');
     if (!key) throw new Error('The "key" parameter cannot be empty');
 };
 
@@ -44,12 +48,12 @@ const validateGetValueParams = (key: string) => {
  *
  * @ignore
  */
-const validateSetValueParams = (key, value, options) => {
+const validateSetValueParams = (key: string, value: any, options?: SetValueOptions): void => {
     checkParamOrThrow(key, 'key', 'String');
     checkParamOrThrow(options, 'options', 'Object');
     checkParamOrThrow(options.contentType, 'options.contentType', 'String | Null | Undefined');
 
-    if (value === null && options.contentType !== null && options.contentType !== undefined) {
+    if (value === null && options.contentType != null) {
         throw new Error('The "options.contentType" parameter must not be used when removing the record.');
     }
 
@@ -71,9 +75,9 @@ const validateSetValueParams = (key, value, options) => {
  *
  * @ignore
  */
-export const maybeStringify = (value, options) => {
+export const maybeStringify = (value: any, options: SetValueOptions): any => {
     // If contentType is missing, value will be stringified to JSON
-    if (options.contentType === null || options.contentType === undefined) {
+    if (options.contentType == null) {
         options.contentType = 'application/json';
 
         try {
@@ -131,7 +135,7 @@ export class KeyValueStore {
      * @param  {String}  key Record key.
      * @return {Promise}
      */
-    getValue(key) {
+    getValue(key: string): Promise<any> {
         validateGetValueParams(key);
 
         return keyValueStores
@@ -145,11 +149,11 @@ export class KeyValueStore {
      *
      * @param  {String} key Record key.
      * @param  {Object|String|Buffer} value Record value. If content type is not provided then the value is stringified to JSON.
-     * @param  {Object} [Options]
-     * @param  {Object} [Options.contentType] Content type of the record.
+     * @param  {Object} [options]
+     * @param  {Object} [options.contentType] Content type of the record.
      * @return {Promise}
      */
-    setValue(key, value, options = {}) {
+    setValue(key: string, value: any, options = {}): Promise<any> {
         validateSetValueParams(key, value, options);
 
         // Make copy of options, don't update what user passed.

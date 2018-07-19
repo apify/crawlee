@@ -1,8 +1,8 @@
-import Promise from 'bluebird';
-import contentTypeParser from 'content-type';
-import os from 'os';
-import fs from 'fs';
-import fsExtra from 'fs-extra';
+import * as Promise from 'bluebird';
+import * as contentTypeParser from 'content-type';
+import * as os from 'os';
+import * as fs from 'fs';
+import * as fsExtra from 'fs-extra';
 import ApifyClient from 'apify-client';
 import psTree from 'ps-tree';
 import pidusage from 'pidusage';
@@ -26,6 +26,7 @@ export const newClient = () => {
     const opts = {
         userId: process.env[ENV_VARS.USER_ID] || null,
         token: process.env[ENV_VARS.TOKEN] || null,
+        baseUrl: null
     };
 
     // Only set baseUrl if overridden by env var, so that 'https://api.apify.com' is used by default.
