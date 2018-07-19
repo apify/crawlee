@@ -59,51 +59,6 @@ describe('PuppeteerCrawler', () => {
         });
     });
 
-    it('should only log when pageCloseTimeoutMillis gets exceeded', async () => {
-        const sources = [
-            { url: 'http://example.com/?q=1' },
-        ];
-        const failed = [];
-        const errors = [];
-        const expectErrorMsgString = 'failed';
-        const expectErrorDataString = 'timed out';
-
-        const logger = (message, data) => {
-            errors.push({ message, data });
-        };
-
-        const originalLogger = log.debug;
-        log.debug = logger;
-
-        const requestList = new Apify.RequestList({ sources });
-        const handlePageFunction = ({ page }) => {
-            page.close = () => {
-                return new Promise(() => {}); // This will never resolve.
-            };
-
-            return Promise.resolve();
-        };
-
-        const puppeteerCrawler = new Apify.PuppeteerCrawler({
-            requestList,
-            handlePageFunction,
-            handleFailedRequestFunction: ({ request }) => {
-                failed.push(request);
-            },
-            pageCloseTimeoutMillis: 1000,
-        });
-
-        await requestList.initialize();
-        await puppeteerCrawler.run();
-
-        expect(failed).to.have.lengthOf(0);
-        expect(errors.length).to.be.greaterThan(0);
-        expect(errors[0].message).to.include(expectErrorMsgString);
-        expect(errors[0].data.message).to.include(expectErrorDataString);
-
-        log.debug = originalLogger;
-    });
-
     it('should only log when page.close() rejects', async () => {
         const sources = [
             { url: 'http://example.com/?q=1' },
