@@ -4,6 +4,7 @@ import path from 'path';
 import Promise from 'bluebird';
 import contentTypeParser from 'content-type';
 import LruCache from 'apify-shared/lru_cache';
+import { KEY_VALUE_STORE_KEY_REGEX } from 'apify-shared/regexs';
 import { checkParamOrThrow, parseBody } from 'apify-client/build/utils';
 import { ENV_VARS, LOCAL_EMULATION_SUBDIRS } from './constants';
 import { addCharsetToContentType, apifyClient, ensureDirExists } from './utils';
@@ -57,6 +58,11 @@ const validateSetValueParams = (key, value, options) => {
 
     if (options.contentType === '') throw new Error('Parameter options.contentType cannot be empty string.');
     if (!key) throw new Error('The "key" parameter cannot be empty');
+
+    if (!KEY_VALUE_STORE_KEY_REGEX.test(key)) {
+        throw new Error('The "key" parameter may contain only the following characters: ' +
+            "[a-zA-Z0-9!-_.'()");
+    }
 };
 
 /**
