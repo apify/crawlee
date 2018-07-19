@@ -6,11 +6,16 @@ import fsExtra from 'fs-extra';
 import ApifyClient from 'apify-client';
 import psTree from 'ps-tree';
 import pidusage from 'pidusage';
+import requestPromise from 'request-promise';
 import _ from 'underscore';
+import XRegExp from 'xregexp';
 import { delayPromise } from 'apify-shared/utilities';
 import { ENV_VARS } from './constants';
 
 export const PID_USAGE_NOT_FOUND_ERROR = 'No maching pid found';
+
+export const URL_NO_COMMAS_REGEX = XRegExp('https?://(www\\.)?[-\\p{L}0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,6}\\b([-\\p{L}0-9@:%_\\+.~#?&//=]*)', 'gi');
+export const URL_WITH_COMMAS_REGEX = XRegExp('https?://(www\\.)?[-\\p{L}0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,6}\\b([-\\p{L}0-9@:%_\\+.,~#?&//=]*)', 'gi');
 
 const ensureDirPromised = Promise.promisify(fsExtra.ensureDir);
 const psTreePromised = Promise.promisify(psTree);
@@ -342,4 +347,43 @@ const sleep = (millis) => {
  */
 export const publicUtils = {
     sleep,
+};
+
+/**
+ * Returns a promise that resolves to an array of urls parsed from the resource
+ * available at the provided url.
+ *
+ * @param {String} url
+ * @param {String} encoding
+ * @param {Number} offset
+ * @param {Number} limit
+ * @param {Boolean} skipDuplicates
+ * @param {RegExp} urlRegExp
+ * @returns {Promise<Array>}
+ */
+export const downloadListOfUrls = ({ url, encoding, offset, limit, skipDuplicates, urlRegExp }) => {
+    if (!url) return Promise.reject(new Error('Resource URL must be provided.'));
+    encoding = encoding || 'utf8';
+    offset = offset || 0;
+    return requestPromise.get({ url, encoding })
+        .then((string) => {
+            const urlsArr = extractUrls({ string, urlRegExp }); // not using keep commas for now
+            const limited = urlsArr.slice(offset, limit || undefined);
+            if (!skipDuplicates) return limited;
+
+            const dupeSet = new Set();
+            return limited.filter(u => (dupeSet.has(u) ? false : dupeSet.add(u)));
+        });
+};
+
+/**
+ * Collects all URLs in an arbitrary string to an array.
+ * @param string
+ * @param urlRegExp
+ * @param keepCommas
+ * @returns {Array}
+ */
+export const extractUrls = ({ string, urlRegExp, keepCommas }) => {
+    const actualRegExp = urlRegExp || (keepCommas ? URL_WITH_COMMAS_REGEX : URL_NO_COMMAS_REGEX);
+    return string.match(actualRegExp) || [];
 };

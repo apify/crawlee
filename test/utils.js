@@ -2,6 +2,7 @@ import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import sinon from 'sinon';
 import fs from 'fs';
+import path from 'path';
 import os from 'os';
 import pidusage from 'pidusage';
 import Promise from 'bluebird';
@@ -341,5 +342,63 @@ describe('Apify.utils.sleep()', () => {
                 const timeAfter = Date.now();
                 expect(timeAfter - timeBefore).to.be.gte(95);
             });
+    });
+});
+
+describe('utils.extractUrls()', () => {
+    const simple = fs.readFileSync(path.join(__dirname, 'data', 'simple_url_list.txt'), 'utf8');
+    const simpleArr = simple.trim().split(/[\r\n]+/g).map(u => u.trim());
+    const unicode = fs.readFileSync(path.join(__dirname, 'data', 'unicode_url_list.txt'), 'utf8');
+    const unicodeArr = unicode.trim().split(/[\r\n]+/g).map(u => u.trim());
+    const withCommas = fs.readFileSync(path.join(__dirname, 'data', 'unicode+comma_url_list.txt'), 'utf8');
+    const withCommasArr = withCommas.trim().split(/[\r\n]+/g).map(u => u.trim());
+
+    const makeJSON = (string, array) => JSON.stringify({
+        one: [{ http: string }],
+        two: array.map(url => ({ num: 123, url })),
+    });
+    const makeCSV = (array, delimiter) => array.map(url => ['ABC', 233, url, '.'].join(delimiter || ',')).join('\n');
+
+    it('extracts simple URLs', () => {
+        const extracted = utils.extractUrls({ string: simple });
+        expect(extracted).to.be.eql(simpleArr);
+    });
+    it('extracts unicode URLs', () => {
+        const extracted = utils.extractUrls({ string: unicode });
+        expect(extracted).to.be.eql(unicodeArr);
+    });
+    it('extracts unicode URLs with commas', () => {
+        const extracted = utils.extractUrls({ string: withCommas, keepCommas: true });
+        expect(extracted).to.be.eql(withCommasArr);
+    });
+    it('extracts simple URLs from JSON', () => {
+        const string = makeJSON(simple, simpleArr);
+        const extracted = utils.extractUrls({ string });
+        expect(extracted).to.be.eql(simpleArr.concat(simpleArr));
+    });
+    it('extracts unicode URLs from JSON', () => {
+        const string = makeJSON(unicode, unicodeArr);
+        const extracted = utils.extractUrls({ string });
+        expect(extracted).to.be.eql(unicodeArr.concat(unicodeArr));
+    });
+    it('extracts unicode URLs with commas from JSON', () => {
+        const string = makeJSON(withCommas, withCommasArr);
+        const extracted = utils.extractUrls({ string, keepCommas: true });
+        expect(extracted).to.be.eql(withCommasArr.concat(withCommasArr));
+    });
+    it('extracts simple URLs from CSV', () => {
+        const string = makeCSV(simpleArr);
+        const extracted = utils.extractUrls({ string });
+        expect(extracted).to.be.eql(simpleArr);
+    });
+    it('extracts unicode URLs from CSV', () => {
+        const string = makeCSV(unicodeArr);
+        const extracted = utils.extractUrls({ string });
+        expect(extracted).to.be.eql(unicodeArr);
+    });
+    it('extracts unicode URLs with commas from semicolon CSV', () => {
+        const string = makeCSV(withCommasArr, ';');
+        const extracted = utils.extractUrls({ string, keepCommas: true });
+        expect(extracted).to.be.eql(withCommasArr);
     });
 });
