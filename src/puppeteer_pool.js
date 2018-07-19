@@ -120,6 +120,10 @@ export default class PuppeteerPool {
         this.activeInstances = {};
         this.retiredInstances = {};
         this.instanceKillerInterval = setInterval(() => this._killRetiredInstances(), instanceKillerIntervalMillis);
+
+        // ensure termination on SIGINT
+        this.sigintListener = () => this._killAllInstances();
+        process.on('SIGINT', this.sigintListener);
     }
 
     /**
@@ -236,6 +240,21 @@ export default class PuppeteerPool {
     }
 
     /**
+     * Kills all running PuppeteerInstances.
+     * @ignore
+     */
+    _killAllInstances() {
+        const allInstances = Object.values(this.activeInstances).concat(Object.values(this.retiredInstances));
+        allInstances.forEach((instance) => {
+            try {
+                instance.childProcess.kill('SIGINT');
+            } catch (e) {
+                // do nothing, it's dead
+            }
+        });
+    }
+
+    /**
      * Opens new tab in one of the browsers and returns promise that resolves to its Puppeteer.Page.
      *
      * @return {Promise<Puppeteer.Page>}
@@ -284,6 +303,7 @@ export default class PuppeteerPool {
      */
     destroy() {
         clearInterval(this.instanceKillerInterval);
+        process.removeListener('SIGINT', this.sigintListener);
 
         const browserPromises = _
             .values(this.activeInstances)

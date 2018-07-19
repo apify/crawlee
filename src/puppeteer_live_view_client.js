@@ -274,8 +274,8 @@ export const layout = (url) => {
   <div id="index">Waiting for WebSocket connection.</div>
   <div id="page-detail" class="hidden"></div>
   <script>
-    const ws = new WebSocket("ws://${url}");
-    const DESTROY_FADEOUT = ${DESTROY_FADEOUT_MILLIS};
+    const ws = new WebSocket("${url.replace('https', 'wss')}");
+    const DESTROY_FADEOUT_MILLIS = ${DESTROY_FADEOUT_MILLIS};
     const createPage = ${createPage.toString()};
     const createPageCollection = ${createPageCollection.toString()};
     const createBrowser = ${createBrowser.toString()};
