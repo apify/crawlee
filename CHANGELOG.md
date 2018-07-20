@@ -1,3 +1,7 @@
+0.5.44 / 2018-07-20
+===================
+- Puppeteer updated to v1.6.0.
+
 0.5.43 / 2018-07-18
 ===================
 - Bug where failed `page.close()` in `PuppeteerPool` was causing request to be retried is fixed.
