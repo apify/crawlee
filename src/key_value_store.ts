@@ -1,10 +1,11 @@
-import * as fs from 'fs';
-import * as fsExtra from 'fs-extra';
-import * as path from 'path';
-import * as Promise from 'bluebird';
-import * as contentTypeParser from 'content-type';
+import fs from 'fs';
+import fsExtra from 'fs-extra';
+import path from 'path';
+import { promisify } from 'util';
+import contentTypeParser from 'content-type';
 import LruCache from 'apify-shared/lru_cache';
 import { KEY_VALUE_STORE_KEY_REGEX } from 'apify-shared/regexs';
+import { IKeyValueStore as IKeyValueStoreResponse } from 'apify-client';
 import { checkParamOrThrow, parseBody } from 'apify-client/build/utils';
 import { ENV_VARS, LOCAL_EMULATION_SUBDIRS } from './constants';
 import { addCharsetToContentType, apifyClient, ensureDirExists } from './utils';
@@ -21,16 +22,22 @@ const LOCAL_FILE_TYPES = [
 ];
 const DEFAULT_LOCAL_FILE_TYPE = LOCAL_FILE_TYPES[0];
 
-const readFilePromised = Promise.promisify(fs.readFile);
-const writeFilePromised = Promise.promisify(fs.writeFile);
-const unlinkPromised = Promise.promisify(fs.unlink);
-const emptyDirPromised = Promise.promisify(fsExtra.emptyDir);
+const readFilePromised = promisify(fs.readFile);
+const writeFilePromised = promisify(fs.writeFile);
+const unlinkPromised = promisify(fs.unlink);
+const emptyDirPromised = promisify(fsExtra.emptyDir);
 
 const { keyValueStores } = apifyClient;
 const storesCache = new LruCache({ maxLength: MAX_OPENED_STORES }); // Open key-value stores are stored here.
 
-interface SetValueOptions {
-    contentType?: string | Buffer
+interface ISetValueOptions {
+    contentType?: string
+}
+
+interface IKeyValueStore {
+    setValue(key: string, value: any, options: ISetValueOptions): Promise<void>;
+    getValue(key: string): Promise<any>;
+    delete(key: string): Promise<void>;
 }
 
 /**
@@ -38,7 +45,7 @@ interface SetValueOptions {
  *
  * @ignore
  */
-const validateGetValueParams = (key: string) => {
+const validateGetValueParams = (key: string): void => {
     checkParamOrThrow(key, 'key', 'String');
     if (!key) throw new Error('The "key" parameter cannot be empty');
 };
@@ -48,7 +55,7 @@ const validateGetValueParams = (key: string) => {
  *
  * @ignore
  */
-const validateSetValueParams = (key: string, value: any, options?: SetValueOptions): void => {
+const validateSetValueParams = (key: string, value: any, options?: ISetValueOptions): void => {
     checkParamOrThrow(key, 'key', 'String');
     checkParamOrThrow(options, 'options', 'Object');
     checkParamOrThrow(options.contentType, 'options.contentType', 'String | Null | Undefined');
@@ -75,7 +82,7 @@ const validateSetValueParams = (key: string, value: any, options?: SetValueOptio
  *
  * @ignore
  */
-export const maybeStringify = (value: any, options: SetValueOptions): any => {
+export const maybeStringify = (value: any, options: ISetValueOptions): any => {
     // If contentType is missing, value will be stringified to JSON
     if (options.contentType == null) {
         options.contentType = 'application/json';
@@ -121,7 +128,7 @@ export const maybeStringify = (value: any, options: SetValueOptions): any => {
  *
  * @param {String} storeId - ID of the key-value store.
  */
-export class KeyValueStore {
+export class KeyValueStore implements IKeyValueStore {
 
     constructor(public storeId: string) {}
 
@@ -135,12 +142,10 @@ export class KeyValueStore {
      * @param  {String}  key Record key.
      * @return {Promise}
      */
-    getValue(key: string): Promise<any> {
+    async getValue(key: string): Promise<any> {
         validateGetValueParams(key);
-
-        return keyValueStores
-            .getRecord({ storeId: this.storeId, key })
-            .then(output => (output ? output.body : null));
+        const output = await keyValueStores.getRecord({ storeId: this.storeId, key });
+        return output ? output.body : null;
     }
 
     /**
@@ -150,10 +155,10 @@ export class KeyValueStore {
      * @param  {String} key Record key.
      * @param  {Object|String|Buffer} value Record value. If content type is not provided then the value is stringified to JSON.
      * @param  {Object} [options]
-     * @param  {Object} [options.contentType] Content type of the record.
+     * @param  {String} [options.contentType] Content type of the record.
      * @return {Promise}
      */
-    setValue(key: string, value: any, options = {}): Promise<any> {
+    async setValue(key: string, value: any, options: ISetValueOptions = {}): Promise<any> {
         validateSetValueParams(key, value, options);
 
         // Make copy of options, don't update what user passed.
@@ -164,7 +169,6 @@ export class KeyValueStore {
 
         value = maybeStringify(value, optionsCopy);
 
-        // Keep this code in main scope so that simple errors are thrown rather than rejected promise.
         return keyValueStores.putRecord({
             storeId: this.storeId,
             key,
@@ -178,14 +182,9 @@ export class KeyValueStore {
      *
      * @return {Promise}
      */
-    delete() {
-        return keyValueStores
-            .deleteStore({
-                storeId: this.storeId,
-            })
-            .then(() => {
-                storesCache.remove(this.storeId);
-            });
+    async delete(): Promise<void> {
+        await keyValueStores.deleteStore({ storeId: this.storeId });
+        storesCache.remove(this.storeId);
     }
 }
 
@@ -194,66 +193,72 @@ export class KeyValueStore {
  *
  * @ignore
  */
-export class KeyValueStoreLocal {
-    constructor(storeId, localEmulationDir) {
+export class KeyValueStoreLocal implements IKeyValueStore {
+
+    localEmulationPath: string;
+    initializationPromise: Promise<void>;
+
+    constructor(public storeId: string, localEmulationDir: string) {
         checkParamOrThrow(storeId, 'storeId', 'String');
         checkParamOrThrow(localEmulationDir, 'localEmulationDir', 'String');
 
         this.localEmulationPath = path.resolve(path.join(localEmulationDir, LOCAL_EMULATION_SUBDIR, storeId));
-        this.storeId = storeId;
         this.initializationPromise = ensureDirExists(this.localEmulationPath);
     }
 
-    getValue(key) {
+    async getValue(key: string): Promise<any> {
         validateGetValueParams(key);
 
-        return this.initializationPromise
-            .then(() => {
-                const filePath = path.resolve(this.localEmulationPath, key);
-                const promises = LOCAL_FILE_TYPES.map(({ extension }) => {
-                    return readFilePromised(`${filePath}.${extension}`).catch(() => null);
-                });
+        try {
+            await this.initializationPromise;
+            const filePath = path.resolve(this.localEmulationPath, key);
 
-                return Promise.all(promises);
-            })
-            .then((files) => {
-                let body = null;
-
-                LOCAL_FILE_TYPES.some(({ contentType }, index) => {
-                    if (files[index] !== null) {
-                        body = parseBody(files[index], contentType);
-
-                        return true;
-                    }
-                });
-
-                return body;
-            })
-            .catch((err) => {
-                throw new Error(`Error reading file '${key}' in directory '${this.localEmulationPath}' referred by ${ENV_VARS.APIFY_LOCAL_EMULATION_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len
+            // attempt to read the file using all available extensions
+            const fileTypePromises = LOCAL_FILE_TYPES.map(async ({ extension }) => {
+                try {
+                    return await readFilePromised(`${filePath}.${extension}`)
+                } catch (err) {
+                    return null;
+                }
             });
+
+            const readFileAttempts = await Promise.all(fileTypePromises);
+
+            let body = null;
+            LOCAL_FILE_TYPES.some(({ contentType }, index) => {
+                // find the valid extension and parse its body
+                if (readFileAttempts[index] !== null) {
+                    body = parseBody(readFileAttempts[index], contentType);
+                    return true;
+                }
+            });
+
+            return body;
+
+        } catch (err) {
+            throw new Error(`Error reading file '${key}' in directory '${this.localEmulationPath}' referred by ${ENV_VARS.APIFY_LOCAL_EMULATION_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len
+        }
     }
 
-    setValue(key, value, options = {}) {
+    async setValue(key: string, value: any, options: ISetValueOptions = {}): Promise<void> {
         validateSetValueParams(key, value, options);
 
         // Make copy of options, don't update what user passed.
         const optionsCopy = Object.assign({}, options);
 
-        const deletePromisesArr = LOCAL_FILE_TYPES.map(({ extension }) => {
+        const deletePromisesArr = LOCAL_FILE_TYPES.map(async ({ extension }) => {
             const filePath = path.resolve(this.localEmulationPath, `${key}.${extension}`);
-
-            return unlinkPromised(filePath)
-                .catch((err) => {
-                    if (err.code !== 'ENOENT') throw err;
-                });
+            try {
+                await unlinkPromised(filePath)
+            } catch (err) {
+                if (err.code !== 'ENOENT') throw err;
+            }
         });
 
-        const deletePromise = Promise
-            .all(deletePromisesArr);
+        await Promise.all(deletePromisesArr);
 
         // In this case delete the record.
-        if (value === null) return deletePromise;
+        if (value === null) return;
 
         value = maybeStringify(value, optionsCopy);
 
@@ -261,18 +266,16 @@ export class KeyValueStoreLocal {
         const { extension } = LOCAL_FILE_TYPES.filter(type => type.contentType === contentType).pop() || DEFAULT_LOCAL_FILE_TYPE;
         const filePath = path.resolve(this.localEmulationPath, `${key}.${extension}`);
 
-        return deletePromise
-            .then(() => writeFilePromised(filePath, value))
-            .catch((err) => {
-                throw new Error(`Error writing file '${key}' in directory '${this.localEmulationPath}' referred by ${ENV_VARS.APIFY_LOCAL_EMULATION_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len
-            });
+        try {
+            return await writeFilePromised(filePath, value)
+        } catch (err) {
+            throw new Error(`Error writing file '${key}' in directory '${this.localEmulationPath}' referred by ${ENV_VARS.APIFY_LOCAL_EMULATION_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len
+        }
     }
 
-    delete() {
-        return emptyDirPromised(this.localEmulationPath)
-            .then(() => {
-                storesCache.remove(this.storeId);
-            });
+    async delete(): Promise<void> {
+        await emptyDirPromised(this.localEmulationPath);
+        storesCache.remove(this.storeId);
     }
 }
 
@@ -281,17 +284,10 @@ export class KeyValueStoreLocal {
  *
  * @ignore
  */
-const getOrCreateKeyValueStore = (storeIdOrName) => {
-    return apifyClient
-        .keyValueStores
-        .getStore({ storeId: storeIdOrName })
-        .then((existingStore) => {
-            if (existingStore) return existingStore;
-
-            return apifyClient
-                .keyValueStores
-                .getOrCreateStore({ storeName: storeIdOrName });
-        });
+const getOrCreateKeyValueStore = async (storeIdOrName: string): Promise<IKeyValueStoreResponse>  => {
+    const existingStore = await apifyClient.keyValueStores.getStore({ storeId: storeIdOrName});
+    if (existingStore) return existingStore;
+    return apifyClient.keyValueStores.getOrCreateStore({ storeName: storeIdOrName });
 };
 
 
@@ -322,41 +318,41 @@ const getOrCreateKeyValueStore = (storeIdOrName) => {
  * @instance
  * @function
  */
-export const openKeyValueStore = (storeIdOrName) => {
+export const openKeyValueStore = async (storeIdOrName?: string): Promise<IKeyValueStore> => {
     checkParamOrThrow(storeIdOrName, 'storeIdOrName', 'Maybe String');
 
     const localEmulationDir = process.env[ENV_VARS.LOCAL_EMULATION_DIR];
 
     let isDefault = false;
-    let storePromise;
+    let store: IKeyValueStore;
 
     if (!storeIdOrName) {
         const envVar = ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID;
 
         // Env var doesn't exist.
-        if (!process.env[envVar]) return Promise.reject(new Error(`The '${envVar}' environment variable is not defined.`));
+        if (!process.env[envVar]) throw new Error(`The '${envVar}' environment variable is not defined.`);
 
         isDefault = true;
         storeIdOrName = process.env[envVar];
     }
 
-    storePromise = storesCache.get(storeIdOrName);
+    store = await storesCache.get(storeIdOrName);
 
     // Found in cache.
-    if (storePromise) return storePromise;
+    if (store) return store;
 
     // Use local emulation?
     if (localEmulationDir) {
-        storePromise = Promise.resolve(new KeyValueStoreLocal(storeIdOrName, localEmulationDir));
+        store = new KeyValueStoreLocal(storeIdOrName, localEmulationDir);
     } else {
-        storePromise = isDefault // If true then we know that this is an ID of existing store.
-            ? Promise.resolve(new KeyValueStore(storeIdOrName))
-            : getOrCreateKeyValueStore(storeIdOrName).then(store => (new KeyValueStore(store.id)));
+        store = isDefault // If true then we know that this is an ID of existing store.
+            ? new KeyValueStore(storeIdOrName)
+            : new KeyValueStore((await getOrCreateKeyValueStore(storeIdOrName)).id);
     }
 
-    storesCache.add(storeIdOrName, storePromise);
+    storesCache.add(storeIdOrName, store);
 
-    return storePromise;
+    return store;
 };
 
 /**
@@ -396,7 +392,7 @@ export const openKeyValueStore = (storeIdOrName) => {
  * @instance
  * @function
  */
-export const getValue = key => openKeyValueStore().then(store => store.getValue(key));
+export const getValue = async (key: string): Promise<any> => (await openKeyValueStore()).getValue(key);
 
 /**
  * Stores a value in the default key-value store for the current act run using the Apify API.
@@ -433,11 +429,14 @@ export const getValue = key => openKeyValueStore().then(store => store.getValue(
  *
  * @param {Object} [options]
  * @param {String} [options.contentType] - Sets the MIME content type of the value.
- * @returns {Promise} Returns a promise that resolves to the value.
+ * @returns {Promise} Returns a promise.
  *
  * @memberof module:Apify
  * @name setValue
  * @instance
  * @function
  */
-export const setValue = (key, value, options) => openKeyValueStore().then(store => store.setValue(key, value, options));
+export const setValue = async (key: string, value: any, options?: ISetValueOptions): Promise<void> => {
+    const store = await openKeyValueStore();
+    return store.setValue(key, value, options);
+};

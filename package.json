@@ -37,7 +37,8 @@
     "build": "rm -rf ./build && babel src --out-dir build",
     "build-doc": "npm run clean && npm run build && node ./node_modules/jsdoc/jsdoc.js --package ./package.json -c ./jsdoc/conf.json -d docs",
     "build-toc": "./node_modules/.bin/markdown-toc README.md -i",
-    "test": "npm run build &&  nyc --reporter=html --reporter=text mocha --timeout 60000 --compilers js:babel-core/register --recursive",
+    "test:original": "npm run build &&  nyc --reporter=html --reporter=text mocha --timeout 60000 --compilers js:babel-core/register --recursive",
+    "test": "tsc || echo done && nyc --reporter=html --reporter=text mocha --timeout 60000 --compilers js:babel-core/register --recursive",
     "prepare": "npm run build-toc && npm run build",
     "prepublishOnly": "(test $RUNNING_FROM_SCRIPT || (echo \"You must use publish.sh instead of 'npm publish' directly!\"; exit 1)) && npm test && npm run lint",
     "clean": "rm -rf build",
@@ -58,10 +59,10 @@
     "ws": "^5.1.0"
   },
   "devDependencies": {
-    "@types/node": "^10.5.2",
     "@types/bluebird": "^3.5.22",
     "@types/content-type": "^1.1.2",
     "@types/fs-extra": "^5.0.4",
+    "@types/node": "^10.5.2",
     "apify-jsdoc-template": "github:apifytech/apify-jsdoc-template",
     "babel-cli": "^6.26.0",
     "babel-polyfill": "^6.26.0",
@@ -88,6 +89,7 @@
     "sinon": "^4.1.2",
     "sinon-stub-promise": "^4.0.0",
     "tmp": "^0.0.33",
+    "typescript": "^2.9.2",
     "why-is-node-running": "^2.0.2"
   },
   "optionalDependencies": {

@@ -1,4 +1,4 @@
-import {ACTOR_EVENT_NAMES} from 'apify-shared/consts';
+import { ACTOR_EVENT_NAMES } from 'apify-shared/consts';
 export * from 'apify-shared/consts';
 
 export const DEFAULT_USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36'; // eslint-disable-line max-len
