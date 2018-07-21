@@ -49,7 +49,7 @@ View the [full programmer's reference](https://www.apify.com/docs/sdk/apify-runt
 <div id="include-readme-2">
 
 
-## Overview
+## Motivation
 <!-- Mirror this part to src/index.js -->
 
 Thanks to tools like <a href="https://github.com/GoogleChrome/puppeteer" target="_blank" rel="noopener">Puppeteer</a> or
@@ -57,7 +57,7 @@ Thanks to tools like <a href="https://github.com/GoogleChrome/puppeteer" target=
 it's very easy to write a code in Node.js for extracting data from the web.
 But eventually things will get complicated when you try to:
 
-* Perform a deep crawl of an entire website, for which you need a persistent queue of URLs.
+* Perform a deep crawl of an entire website using a persistent queue of URLs.
 * Run your scraping code on a list of 100k URLs in a CSV file,
   without loosing any data when your code crashes.
 * Rotate proxies to hide your browser origin.
@@ -70,7 +70,9 @@ for these generic web scraping and crawling tasks.
 Stop reinventing the wheel and focus on writing the code
 specific to the target website, rather than developing commonalities.
 
-The package provides the following tools:
+## Overview
+
+The `apify` package provides the following tools:
 
 <ul>
   <li>
@@ -78,7 +80,7 @@ The package provides the following tools:
      - Enables crawling of large number of web pages
      in raw HTML or using <a href="https://www.npmjs.com/package/cheerio" target="_blank">cheerio</a>
      HTML parser.
-     This is the most efficient web crawling method, but it does not work on pages that require JavaScript.
+     This is the most efficient web crawling method, but it does not work on websites that require JavaScript.
   </li>
   <li>
      <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerCrawler">PuppeteerCrawler</a>
@@ -88,9 +90,9 @@ The package provides the following tools:
     </li>
   <li>
     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList">RequestList</a>
-    - Represents a list of URLs to crawl, either manually defined or automatically download from a CSV file.
-    <code>RequestList</code> automatically persists its state so that the crawling can resume
-    on restart of the process.
+    - Represents a list of URLs to crawl. The URLs can be provided in code or in a CSV file.
+    The list persists its state so that the crawling can resume
+    after restart of the main process.
   </li>
   <li>
      <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue">RequestQueue</a>
@@ -133,11 +135,112 @@ The package provides the following tools:
 </ul>
 
 
-## Quick start
+## Getting started
+
+The `apify` NPM package requires <a href="https://nodejs.org/en/" target="_blank">Node.js</a> 7 or later.
+
+### Standalone usage
+
+You can use `apify` package in any Node.js project by running:
+
+```bash
+npm install apify
+```
+
+However, to make the package work at its full,
+you'll might want to define the following environment variables for the Node process:
+
+<ul>
+  <li>
+    <code>APIFY_LOCAL_EMULATION_DIR</code> - Defines the path to a directory where KeyValueStore, RequestList and RequestQueue should store their data.
+  </li>
+  <li>
+    <code>APIFY_PROXY_PASSWORD</code>
+    - Password to <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a> for IP address rotation.
+    If you have have an Apify account, you can find the passworing on the <a href="https://my.apify.com/proxy" target="_blank">Proxy</a> tab.
+  </li>
+</ul>
+
+
+
+<table class="table table-bordered table-condensed">
+     <thead>
+         <tr>
+             <th>Environment variable</th>
+             <th>Description</th>
+         </tr>
+     </thead>
+     <tbody>
+         <tr>
+             <td><code>APIFY_LOCAL_EMULATION_DIR</code></td>
+             <td>Path to a directory where KeyValueStore, RequestList and RequestQueue store their data.</td>
+         </tr>
+         <tr>
+             <td><code>APIFY_DEFAULT_KEY_VALUE_STORE_ID</code></td>
+             <td>ID of default key-value store.</td>
+         </tr>
+         <tr>
+             <td><code>APIFY_DEFAULT_DATASET_ID</code></td>
+             <td>ID of default dataset.</td>
+         </tr>
+         <tr>
+             <td><code>APIFY_DEFAULT_REQUEST_QUEUE_ID</code></td>
+             <td>ID of default request queue.</td>
+         </tr>
+     </tbody>
+</table>
+
+Apify will then store key-value store records in files named <code>[KEY].[EXT]</code> where <code>[KEY]</code>
+is the record key and <code>[EXT]</code> is based on the record content type. Dataset items will be stored
+in files named <code>[ID].json</code> where <code>[ID]</code> is sequence number of your dataset item.
+ *
+If you want to use <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a> locally
+then you must define an environment variable <code>PROXY_PASSWORD</code> with password you find at
+<a href="https://my.apify.com/proxy" target="_blank">https://my.apify.com/proxy</a>.
+
+
+
+
+There are three ways you can use it:
+
+1) Standalone in your Node project
+2) In a local Node project created using Apify command-line tool (CLI)
+3) In
+
+
+
+While you can use it standalone in your Node project, it is simpler to use
+
+
+
+### Standalone usage
+
+
+The easiest way
+
+It can be used standalone
+
+You can install the package directly to your project using:
+
+```bash
+npm install apify
+```
+
+However,
+
+### My own Node project
+
+### New project using Apify command-line interface (CLI)
+
+### Actor running on Apify cloud
+
+
 
 To use Apify SDK you must have <a href="https://nodejs.org/en/" target="_blank">Node.js</a> 7 or later and
 <a href="https://www.npmjs.com" target="_blank">NPM</a> installed. If you have both then the easiest way how to start is to use
 <a href="https://github.com/apifytech/apify-cli" target="_blank">Apify CLI</a> (command line tool).
+
+
 
 Install the tool with:
 
@@ -399,51 +502,6 @@ For more information see complete <a href="https://www.apify.com/docs/sdk/apify-
 
 <div id="include-readme-3">
 
-## Local usage
-
-The easiest way how to use apify locally is with <a href="https://github.com/apifytech/apify-cli" target="_blank">Apify CLI</a> as shown
-in <a href="#quick-start">quick start</a> section. Other way is to manually define required environment variables:
-
-<table class="table table-bordered table-condensed">
-     <thead>
-         <tr>
-             <th>Environment variable</th>
-             <th>Description</th>
-         </tr>
-     </thead>
-     <tbody>
-         <tr>
-             <td><code>APIFY_LOCAL_EMULATION_DIR</code></td>
-             <td>
-                 Directory where apify package locally emulates Apify storages - key-value store and dataset.
-                 Key-value stores will be emulated in directory
-                 <code>[APIFY_LOCAL_EMULATION_DIR]/key-value-stores/[STORE_ID]</code>
-                 and datasets in directory
-                 <code>[APIFY_LOCAL_EMULATION_DIR]/datasets/[DATESET_ID]</code>.
-             </td>
-         </tr>
-         <tr>
-             <td><code>APIFY_DEFAULT_KEY_VALUE_STORE_ID</code></td>
-             <td>ID of default key-value store.</td>
-         </tr>
-         <tr>
-             <td><code>APIFY_DEFAULT_DATASET_ID</code></td>
-             <td>ID of default dataset.</td>
-         </tr>
-         <tr>
-             <td><code>APIFY_DEFAULT_REQUEST_QUEUE_ID</code></td>
-             <td>ID of default request queue.</td>
-         </tr>
-     </tbody>
-</table>
-
-Apify will then store key-value store records in files named <code>[KEY].[EXT]</code> where <code>[KEY]</code>
-is the record key and <code>[EXT]</code> is based on the record content type. Dataset items will be stored
-in files named <code>[ID].json</code> where <code>[ID]</code> is sequence number of your dataset item.
- *
-If you want to use <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a> locally
-then you must define an environment variable <code>PROXY_PASSWORD</code> with password you find at
-<a href="https://my.apify.com/proxy" target="_blank">https://my.apify.com/proxy</a>.
 
 ## Promises vs. callbacks
 
