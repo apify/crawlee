@@ -189,8 +189,6 @@ const wsHandler = (socket) => {
             const tabMenuItems = document.querySelectorAll('.tab-menu .tab-link');
 
             // Set onClick event for all menu tabs
-            // for (let i = 0; i < tabMenuItems.length; ++i) {
-            //     tabMenuItems[i].onclick = (event) => {
             tabMenuItems.forEach((item) => {
                 item.onclick = (event) => {
                     event.preventDefault();
