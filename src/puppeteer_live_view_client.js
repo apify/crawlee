@@ -186,26 +186,28 @@ const wsHandler = (socket) => {
             pageDetail.classList.remove('hidden');
             pageDetail.innerHTML = html;
 
-            var tabMenuItems = document.querySelectorAll('.tab-menu .tab-link');
+            const tabMenuItems = document.querySelectorAll('.tab-menu .tab-link');
 
+            // Set onClick event for all menu tabs
             for (i = 0; i < tabMenuItems.length; ++i) {
               tabMenuItems[i].onclick = (event) => {
                 event.preventDefault();
 
+                // Get clicked element
                 event = event || window.event;
-                var target = event.target || event.srcElement,
+                const target = event.target || event.srcElement,
                     text = target.textContent || text.innerText;
 
                 const contentId = target.getAttribute('data-target');
 
                 // Get all tab content blocks and hide them
-                var tabContents = document.getElementsByClassName("tab-content");
+                const tabContents = document.getElementsByClassName("tab-content");
                 for (var i = 0; i < tabContents.length; i++) {
                     tabContents[i].classList.add('hidden');
                 }
 
                 // Get all tab menu links and remove active class
-                var tabLinks = document.getElementsByClassName("tab-link");
+                const tabLinks = document.getElementsByClassName("tab-link");
                 for (var i = 0; i < tabLinks.length; i++) {
                     tabLinks[i].classList.remove("active")
                 }
@@ -241,14 +243,14 @@ const wsHandler = (socket) => {
                 id: page.getAttribute('id'),
             });
 
-            var status = page.querySelector('td.status');
+            const status = page.querySelector('td.status');
             if(status) status.innerHTML = '<i class="material-icons orange">watch_later</i><span class="orange">Starting</span>';
         },
         // Updates page URL on navigation
         updatePage: ({ id, url }) => {
             const page = document.getElementById(id);
 
-            var spanUrl = page.querySelector('td.url');
+            const spanUrl = page.querySelector('td.url');
             if(spanUrl) spanUrl.innerHTML = `<a class="url" href="${url}" target="m_blank">${url}</a>`;
 
             const status = page.querySelector('td.status');
@@ -261,7 +263,7 @@ const wsHandler = (socket) => {
             const status = page.querySelector('td.status');
             if(status) status.innerHTML = '<i class="material-icons">check_circle</i><span>Finished</span>';
 
-            var button = page.querySelector('td.more i');
+            const button = page.querySelector('td.more i');
             button.remove();
 
             page.classList.add('destroyed');
@@ -378,6 +380,9 @@ export const layout = (url) => {
     }
     main {
       padding: 5px 15px;
+    }
+    .browser {
+      margin-bottom: 40px;
     }
     a {
       color: #00A6D0;
