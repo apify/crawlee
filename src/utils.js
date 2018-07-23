@@ -372,6 +372,7 @@ export const downloadListOfUrls = ({ url, encoding, urlRegExp }) => {
  * @param keepCommas
  * @returns {Array}
  */
-export const extractUrls = ({ string, urlRegExp = URL_NO_COMMAS_REGEX }) => {
+export const extractUrls = ({ string, urlRegExp }) => {
+    urlRegExp = urlRegExp || URL_NO_COMMAS_REGEX;
     return string.match(urlRegExp) || [];
 };
