@@ -14,8 +14,8 @@ import { ENV_VARS } from './constants';
 
 export const PID_USAGE_NOT_FOUND_ERROR = 'No maching pid found';
 
-export const URL_NO_COMMAS_REGEX = XRegExp('https?://(www\\.)?[-\\p{L}0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,6}\\b([-\\p{L}0-9@:%_\\+.~#?&//=]*)', 'gi');
-export const URL_WITH_COMMAS_REGEX = XRegExp('https?://(www\\.)?[-\\p{L}0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,6}\\b([-\\p{L}0-9@:%_\\+.,~#?&//=]*)', 'gi');
+export const URL_NO_COMMAS_REGEX = XRegExp('https?://(www\\.)?[-\\p{L}0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,6}\\b([-\\p{L}0-9@:%_\\+.~#?&//=\\(\\)]*)', 'gi'); // eslint-disable-line
+export const URL_WITH_COMMAS_REGEX = XRegExp('https?://(www\\.)?[-\\p{L}0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,6}\\b([-\\p{L}0-9@:%_\\+.,~#?&//=\\(\\)]*)', 'gi'); // eslint-disable-line
 
 const ensureDirPromised = Promise.promisify(fsExtra.ensureDir);
 const psTreePromised = Promise.promisify(psTree);
@@ -355,25 +355,14 @@ export const publicUtils = {
  *
  * @param {String} url
  * @param {String} encoding
- * @param {Number} offset
- * @param {Number} limit
- * @param {Boolean} skipDuplicates
  * @param {RegExp} urlRegExp
  * @returns {Promise<Array>}
  */
-export const downloadListOfUrls = ({ url, encoding, offset, limit, skipDuplicates, urlRegExp }) => {
+export const downloadListOfUrls = ({ url, encoding, urlRegExp }) => {
     if (!url) return Promise.reject(new Error('Resource URL must be provided.'));
     encoding = encoding || 'utf8';
-    offset = offset || 0;
     return requestPromise.get({ url, encoding })
-        .then((string) => {
-            const urlsArr = extractUrls({ string, urlRegExp }); // not using keep commas for now
-            const limited = urlsArr.slice(offset, limit || undefined);
-            if (!skipDuplicates) return limited;
-
-            const dupeSet = new Set();
-            return limited.filter(u => (dupeSet.has(u) ? false : dupeSet.add(u)));
-        });
+        .then(string => extractUrls({ string, urlRegExp }));
 };
 
 /**
@@ -383,7 +372,6 @@ export const downloadListOfUrls = ({ url, encoding, offset, limit, skipDuplicate
  * @param keepCommas
  * @returns {Array}
  */
-export const extractUrls = ({ string, urlRegExp, keepCommas }) => {
-    const actualRegExp = urlRegExp || (keepCommas ? URL_WITH_COMMAS_REGEX : URL_NO_COMMAS_REGEX);
-    return string.match(actualRegExp) || [];
+export const extractUrls = ({ string, urlRegExp = URL_NO_COMMAS_REGEX }) => {
+    return string.match(urlRegExp) || [];
 };

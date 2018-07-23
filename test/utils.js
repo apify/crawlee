@@ -6,9 +6,11 @@ import path from 'path';
 import os from 'os';
 import pidusage from 'pidusage';
 import Promise from 'bluebird';
+import requestPromise from 'request-promise';
 import * as utils from '../build/utils';
 import Apify from '../build/index';
 import { ENV_VARS } from '../build/constants';
+import { URL_WITH_COMMAS_REGEX } from '../src/utils';
 
 chai.use(chaiAsPromised);
 
@@ -346,59 +348,151 @@ describe('Apify.utils.sleep()', () => {
 });
 
 describe('utils.extractUrls()', () => {
-    const simple = fs.readFileSync(path.join(__dirname, 'data', 'simple_url_list.txt'), 'utf8');
-    const simpleArr = simple.trim().split(/[\r\n]+/g).map(u => u.trim());
-    const unicode = fs.readFileSync(path.join(__dirname, 'data', 'unicode_url_list.txt'), 'utf8');
-    const unicodeArr = unicode.trim().split(/[\r\n]+/g).map(u => u.trim());
-    const withCommas = fs.readFileSync(path.join(__dirname, 'data', 'unicode+comma_url_list.txt'), 'utf8');
-    const withCommasArr = withCommas.trim().split(/[\r\n]+/g).map(u => u.trim());
+    const SIMPLE_URL_LIST = 'simple_url_list.txt';
+    const UNICODE_URL_LIST = 'unicode_url_list.txt';
+    const COMMA_URL_LIST = 'unicode+comma_url_list.txt';
+    const TRICKY_URL_LIST = 'tricky_url_list.txt';
 
-    const makeJSON = (string, array) => JSON.stringify({
+    const getURLData = (filename) => {
+        const string = fs.readFileSync(path.join(__dirname, 'data', filename), 'utf8');
+        const array = string.trim().split(/[\r\n]+/g).map(u => u.trim());
+        return { string, array };
+    };
+
+    const makeJSON = ({ string, array }) => JSON.stringify({
         one: [{ http: string }],
         two: array.map(url => ({ num: 123, url })),
     });
     const makeCSV = (array, delimiter) => array.map(url => ['ABC', 233, url, '.'].join(delimiter || ',')).join('\n');
 
+    const makeText = (array) => {
+        const text = fs.readFileSync(path.join(__dirname, 'data', 'lipsum.txt'), 'utf8').split('');
+        const ID = 'ů';
+        const maxIndex = text.length - 1;
+        array.forEach(() => {
+            const indexInText = Math.round(Math.random() * maxIndex);
+            if (text[indexInText] === ID) {
+                text[indexInText + 1] = ID;
+            } else {
+                text[indexInText] = ID;
+            }
+        });
+        return array.reduce((string, url) => string.replace(ID, ` ${url} `), text.join(''));
+    };
+
     it('extracts simple URLs', () => {
-        const extracted = utils.extractUrls({ string: simple });
-        expect(extracted).to.be.eql(simpleArr);
+        const { string, array } = getURLData(SIMPLE_URL_LIST);
+        const extracted = utils.extractUrls({ string });
+        expect(extracted).to.be.eql(array);
     });
     it('extracts unicode URLs', () => {
-        const extracted = utils.extractUrls({ string: unicode });
-        expect(extracted).to.be.eql(unicodeArr);
+        const { string, array } = getURLData(UNICODE_URL_LIST);
+        const extracted = utils.extractUrls({ string });
+        expect(extracted).to.be.eql(array);
     });
     it('extracts unicode URLs with commas', () => {
-        const extracted = utils.extractUrls({ string: withCommas, keepCommas: true });
-        expect(extracted).to.be.eql(withCommasArr);
+        const { string, array } = getURLData(COMMA_URL_LIST);
+        const extracted = utils.extractUrls({ string, urlRegExp: URL_WITH_COMMAS_REGEX });
+        expect(extracted).to.be.eql(array);
+    });
+    it('extracts tricky URLs', () => {
+        const { string, array } = getURLData(TRICKY_URL_LIST);
+        const extracted = utils.extractUrls({ string });
+        expect(extracted).to.be.eql(array);
     });
     it('extracts simple URLs from JSON', () => {
-        const string = makeJSON(simple, simpleArr);
+        const d = getURLData(SIMPLE_URL_LIST);
+        const string = makeJSON(d);
         const extracted = utils.extractUrls({ string });
-        expect(extracted).to.be.eql(simpleArr.concat(simpleArr));
+        expect(extracted).to.be.eql(d.array.concat(d.array));
     });
     it('extracts unicode URLs from JSON', () => {
-        const string = makeJSON(unicode, unicodeArr);
+        const d = getURLData(UNICODE_URL_LIST);
+        const string = makeJSON(d);
         const extracted = utils.extractUrls({ string });
-        expect(extracted).to.be.eql(unicodeArr.concat(unicodeArr));
+        expect(extracted).to.be.eql(d.array.concat(d.array));
     });
     it('extracts unicode URLs with commas from JSON', () => {
-        const string = makeJSON(withCommas, withCommasArr);
-        const extracted = utils.extractUrls({ string, keepCommas: true });
-        expect(extracted).to.be.eql(withCommasArr.concat(withCommasArr));
+        const d = getURLData(COMMA_URL_LIST);
+        const string = makeJSON(d);
+        const extracted = utils.extractUrls({ string, urlRegExp: URL_WITH_COMMAS_REGEX });
+        expect(extracted).to.be.eql(d.array.concat(d.array));
+    });
+    it('extracts tricky URLs from JSON', () => {
+        const d = getURLData(TRICKY_URL_LIST);
+        const string = makeJSON(d);
+        const extracted = utils.extractUrls({ string });
+        expect(extracted).to.be.eql(d.array.concat(d.array));
     });
     it('extracts simple URLs from CSV', () => {
-        const string = makeCSV(simpleArr);
+        const { array } = getURLData(SIMPLE_URL_LIST);
+        const string = makeCSV(array);
         const extracted = utils.extractUrls({ string });
-        expect(extracted).to.be.eql(simpleArr);
+        expect(extracted).to.be.eql(array);
     });
     it('extracts unicode URLs from CSV', () => {
-        const string = makeCSV(unicodeArr);
+        const { array } = getURLData(UNICODE_URL_LIST);
+        const string = makeCSV(array);
         const extracted = utils.extractUrls({ string });
-        expect(extracted).to.be.eql(unicodeArr);
+        expect(extracted).to.be.eql(array);
     });
     it('extracts unicode URLs with commas from semicolon CSV', () => {
-        const string = makeCSV(withCommasArr, ';');
-        const extracted = utils.extractUrls({ string, keepCommas: true });
-        expect(extracted).to.be.eql(withCommasArr);
+        const { array } = getURLData(COMMA_URL_LIST);
+        const string = makeCSV(array, ';');
+        const extracted = utils.extractUrls({ string, urlRegExp: URL_WITH_COMMAS_REGEX });
+        expect(extracted).to.be.eql(array);
+    });
+    it('extracts tricky URLs from CSV', () => {
+        const { array } = getURLData(TRICKY_URL_LIST);
+        const string = makeCSV(array);
+        const extracted = utils.extractUrls({ string });
+        expect(extracted).to.be.eql(array);
+    });
+    it('extracts simple URLs from Text', () => {
+        const { array } = getURLData(SIMPLE_URL_LIST);
+        const string = makeText(array);
+        const extracted = utils.extractUrls({ string });
+        expect(extracted).to.be.eql(array);
+    });
+    it('extracts unicode URLs from Text', () => {
+        const { array } = getURLData(UNICODE_URL_LIST);
+        const string = makeText(array);
+        const extracted = utils.extractUrls({ string });
+        expect(extracted).to.be.eql(array);
+    });
+    it('extracts unicode URLs with commas from Text', () => {
+        const { array } = getURLData(COMMA_URL_LIST);
+        const string = makeText(array);
+        const extracted = utils.extractUrls({ string, urlRegExp: URL_WITH_COMMAS_REGEX });
+        expect(extracted).to.be.eql(array);
+    });
+    it('extracts tricky URLs from Text', () => {
+        const { array } = getURLData(TRICKY_URL_LIST);
+        const string = makeText(array);
+        const extracted = utils.extractUrls({ string });
+        expect(extracted).to.be.eql(array);
+    });
+});
+
+describe('utils.downloadListOfUrls()', () => {
+
+    let stub;
+
+    beforeEach(() => {
+        stub = sinon.stub(requestPromise, 'get');
+    });
+
+    afterEach(() => {
+        requestPromise.get.restore();
+    });
+
+    it('downloads a list of URLs', () => {
+        const text = fs.readFileSync(path.join(__dirname, 'data', 'simple_url_list.txt'), 'utf8');
+        const arr = text.trim().split(/[\r\n]+/g).map(u => u.trim());
+        stub.resolves(text);
+
+        return expect(utils.downloadListOfUrls({
+            url: 'nowhere',
+        })).to.eventually.deep.equal(arr);
     });
 });
