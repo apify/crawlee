@@ -5,16 +5,19 @@
 [![Build Status](https://travis-ci.org/apifytech/apify-js.svg)](https://travis-ci.org/apifytech/apify-js)
 
 <div id="include-readme-1">
-  <code>apify</code> is an NPM package that simplifies development of web crawlers, scrapers, data extractors and web automation jobs.
+  Apify SDK simplifies development of web crawlers, scrapers, data extractors and web automation jobs.
   It provides tools to manage and automatically scale a pool of headless Chrome / Puppeteer instances,
   maintain lists or queues of URLs to crawl, store crawling results to local filesystem or into the cloud,
   rotate proxies and much more.
-  The package can be used either standalone in your own application
-  or used in <a href="https://www.apify.com/docs/actor" target="_blank">actors</a>
+  The SDK is available as the <a href="https://www.npmjs.com/package/apify" target="_blank"><code>apify</code></a> NPM package.
+  It can be used either standalone in your own applications
+  or in <a href="https://www.apify.com/docs/actor" target="_blank">actors</a>
   running on the <a href="https://www.apify.com/" target="_blank">Apify cloud platform</a>.
 </div>
 
-View the [full programmer's reference](https://www.apify.com/docs/sdk/apify-runtime-js/latest).
+<div>
+  View the [Apify SDK Programmer's Reference](https://www.apify.com/docs/sdk/apify-runtime-js/latest).
+</div>
 
 
 ## Table of Content
@@ -54,8 +57,8 @@ View the [full programmer's reference](https://www.apify.com/docs/sdk/apify-runt
 
 Thanks to tools like <a href="https://github.com/GoogleChrome/puppeteer" target="_blank" rel="noopener">Puppeteer</a> or
 <a href="https://www.npmjs.com/package/cheerio" target="_blank">cheerio</a>
-it's very easy to write a code in Node.js for extracting data from the web.
-But eventually things will get complicated when you try to:
+it's very easy to write a Node.js code to extract data from web pages.
+But eventually things will get complicated, for example when you try to:
 
 * Perform a deep crawl of an entire website using a persistent queue of URLs.
 * Run your scraping code on a list of 100k URLs in a CSV file,
@@ -67,8 +70,8 @@ But eventually things will get complicated when you try to:
 
 The goal of `apify` package is to provide a toolbox
 for these generic web scraping and crawling tasks.
-Stop reinventing the wheel and focus on writing the code
-specific to the target website, rather than developing commonalities.
+Don't reinvent the wheel every time you need data from the web,
+and focus on writing the code specific to the target website, rather than developing commonalities.
 
 ## Overview
 
@@ -139,7 +142,7 @@ The `apify` package provides the following tools:
 
 The `apify` NPM package requires <a href="https://nodejs.org/en/" target="_blank">Node.js</a> 7 or later.
 
-### Standalone usage
+### Local standalone usage
 
 You can use `apify` package in any Node.js project by running:
 
@@ -147,108 +150,87 @@ You can use `apify` package in any Node.js project by running:
 npm install apify
 ```
 
-However, to make the package work at its full,
-you'll might want to define the following environment variables for the Node process:
+However, to make the package work at its full potential,
+you'll might need to set one or more of the following environment variables
+for your Node.js process, depending on your circumstances:
 
 <ul>
   <li>
-    <code>APIFY_LOCAL_EMULATION_DIR</code> - Defines the path to a directory where KeyValueStore, RequestList and RequestQueue should store their data.
+    <code>APIFY_LOCAL_EMULATION_DIR</code>
+    - Defines the path to a local directory where key-value stores, request lists and request queues store their data.
+    If omitted, the package will try to use cloud storage instead and will expect that the
+    <code>APIFY_TOKEN</code> environment variable is defined.
+  </li>
+  <li>
+    <code>APIFY_TOKEN</code>
+    - The API token for your Apify account. It is used to access Apify APIs, e.g. to access cloud storage.
+    You can find your API token on the <a href="https://my.apify.com/account#intergrations" target="_blank">Apify - Account - Integrations</a> page.
+    If omitted, you should define <code>APIFY_LOCAL_EMULATION_DIR</code> environment variable instead.
   </li>
   <li>
     <code>APIFY_PROXY_PASSWORD</code>
     - Password to <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a> for IP address rotation.
-    If you have have an Apify account, you can find the passworing on the <a href="https://my.apify.com/proxy" target="_blank">Proxy</a> tab.
+    If you have have an Apify account, you can find the password on the
+    <a href="https://my.apify.com/proxy" target="_blank">Proxy page</a> in the Apify app.
+  </li>
+  <li>
+    <code>APIFY_DEFAULT_KEY_VALUE_STORE_ID</code>
+    - ID of the default key-value store, where the
+    <code>Apify.getValue()</code> or <code>Apify.setValue()</code> functions store the values.
+    If you defined <code>APIFY_LOCAL_EMULATION_DIR</code>, then each value is stored as a file at
+    <code>[APIFY_LOCAL_EMULATION_DIR]/key-value-stores/[APIFY_DEFAULT_KEY_VALUE_STORE_ID]/[KEY].[EXT]</code>,
+    where <code>[KEY]</code> is the key nad <code>[EXT]</code> corresponds to the MIME content type of the value.
+  </li>
+  <li>
+    <code>APIFY_DEFAULT_DATASET_ID</code>
+    - ID of the default dataset, where the <code>Apify.pushData()</code> function store the data.
+    If you defined <code>APIFY_LOCAL_EMULATION_DIR</code>, then dataset items are stored as files at
+    <code>[APIFY_LOCAL_EMULATION_DIR]/datasets/[APIFY_DEFAULT_DATASET_ID]/[INDEX].json</code>,
+    where <code>[INDEX]</code> is a zero-based index of the item.
+  </li>
+  <li>
+    TODO:
+    <code>APIFY_DEFAULT_REQUEST_QUEUE_ID</code>
+    - ID of the default request queue, where the <code>Apify.to_do()</code> function stores the data.
+    If you defined <code>APIFY_LOCAL_EMULATION_DIR</code>, then request queue records are stored as files at
+    <code>[APIFY_LOCAL_EMULATION_DIR]/request-queues/[APIFY_DEFAULT_REQUEST_QUEUE_ID]/[INDEX].json</code>,
+    where <code>[INDEX]</code> is a zero-based index of the item.
   </li>
 </ul>
 
+For the full list of environment variables used by the <code>apify</code> package, please see the
+<a href="https://www.apify.com/docs/actor#environment-variabes" target="_blank">Environment variables</a>
+section of the Apify actor documentation.
 
 
-<table class="table table-bordered table-condensed">
-     <thead>
-         <tr>
-             <th>Environment variable</th>
-             <th>Description</th>
-         </tr>
-     </thead>
-     <tbody>
-         <tr>
-             <td><code>APIFY_LOCAL_EMULATION_DIR</code></td>
-             <td>Path to a directory where KeyValueStore, RequestList and RequestQueue store their data.</td>
-         </tr>
-         <tr>
-             <td><code>APIFY_DEFAULT_KEY_VALUE_STORE_ID</code></td>
-             <td>ID of default key-value store.</td>
-         </tr>
-         <tr>
-             <td><code>APIFY_DEFAULT_DATASET_ID</code></td>
-             <td>ID of default dataset.</td>
-         </tr>
-         <tr>
-             <td><code>APIFY_DEFAULT_REQUEST_QUEUE_ID</code></td>
-             <td>ID of default request queue.</td>
-         </tr>
-     </tbody>
-</table>
-
-Apify will then store key-value store records in files named <code>[KEY].[EXT]</code> where <code>[KEY]</code>
-is the record key and <code>[EXT]</code> is based on the record content type. Dataset items will be stored
-in files named <code>[ID].json</code> where <code>[ID]</code> is sequence number of your dataset item.
- *
-If you want to use <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a> locally
-then you must define an environment variable <code>PROXY_PASSWORD</code> with password you find at
-<a href="https://my.apify.com/proxy" target="_blank">https://my.apify.com/proxy</a>.
+TODO ideas:
+- maybe rename APIFY_LOCAL_EMULATION_DIR to APIFY_LOCAL_STORAGE_DIR ?
+- if user sets APIFY_TOKEN but not APIFY_PROXY_PASSWORD, we should fetch it,
+- maybe we should check that user can use Apify Proxy in Apify.getApifyProxyUrl() ?
+  For backwards compatibility, the function can be called async Apify.getApifyProxy()
+  and return object with { host, port, username, password, url } ???
+- if Apify Proxy is not active, we shouldn't pass APIFY_PROXY_PASSWORD env var in actors
+- if APIFY_DEFAULT_KEY_VALUE_STORE_ID/.../... is not defined, we could default to "default" ?
 
 
 
+### Local usage with Apify command-line interface (CLI)
 
-There are three ways you can use it:
+To avoid the need to set all the necessary environment variables manually,
+to create a boilerplate of your project,
+and to enable pushing and running your code on Apify cloud,
+you can take advantage of the
+<a href="https://github.com/apifytech/apify-cli" target="_blank">Apify command-line interface</a> (CLI) tool.
 
-1) Standalone in your Node project
-2) In a local Node project created using Apify command-line tool (CLI)
-3) In
-
-
-
-While you can use it standalone in your Node project, it is simpler to use
-
-
-
-### Standalone usage
-
-
-The easiest way
-
-It can be used standalone
-
-You can install the package directly to your project using:
-
-```bash
-npm install apify
-```
-
-However,
-
-### My own Node project
-
-### New project using Apify command-line interface (CLI)
-
-### Actor running on Apify cloud
-
-
-
-To use Apify SDK you must have <a href="https://nodejs.org/en/" target="_blank">Node.js</a> 7 or later and
-<a href="https://www.npmjs.com" target="_blank">NPM</a> installed. If you have both then the easiest way how to start is to use
-<a href="https://github.com/apifytech/apify-cli" target="_blank">Apify CLI</a> (command line tool).
-
-
-
-Install the tool with:
+The CLI can be installed by running:
 
 ```bash
 npm -g install apify-cli
 ```
 
-and create your project with:
+TODO: Use crawling example instead
+
+Now you can create your new web crawling project:
 
 ```bash
 apify create my-hello-world
@@ -256,13 +238,15 @@ apify create my-hello-world
 cd my-hello-world
 ```
 
-Apify CLI asks to you choose a template and then creates a directory `my-hello-world` containing:
+Apify CLI prompts you to select a project template, and then it creates a
+directory named `my-hello-world` with the following files:
 
-- `package.json` with Apify SDK as dependency
-- `main.js` containing basic code for your project
+- `package.json` with <code>apify</code> package as a dependency
+- `main.js` file containing source code for your project
 - `apify_local` directory containing local emultation of <a href="https://www.apify.com/docs/storage" target="_blank">Apify storage types</a>
 - files needed for optional deployment to Apify platform (`Dockerfile`, `apify.json`)
 - `node_modules` directory containing all the required NPM packages
+- `.gitignore`
 
 If you chose template `Puppeteer` then the `main.js` file looks like:
 
@@ -322,13 +306,21 @@ Closing Puppeteer...
 Done.
 ```
 
-Check <a href="#examples">examples</a> below to see what you can do with Apify SDK. After you are done with your code
+Check <a href="#examples">examples</a> below to see what you can do with Apify SDK.
+After you are done with your code
 you can deploy your project to Apify platform with following 2 steps:
 
 ```bash
 apify login
 apify push
 ```
+
+
+### Usage in actors on the Apify cloud platform
+
+
+
+
 
 ## Puppeteer
 <!-- Mirror this part to src/index.js -->
@@ -363,6 +355,8 @@ console.log(`Title of the page "${url}" is "${title}".`);
 For more information on Puppeteer see its <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">documenation</a>.
 
 </div>
+
+
 
 ## Components
 
