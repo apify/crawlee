@@ -1,3 +1,8 @@
+xxxxxxxxxxxxxxxxxxx
+===================
+- Fixed invalid URL parsing in RequestList.
+- Added support for non-latin language characters (unicode) in URLs.
+
 0.5.47 / 2018-07-20
 ===================
 - Puppeteer updated to v1.6.0.
