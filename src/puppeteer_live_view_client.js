@@ -16,7 +16,7 @@ const createPage = (id, url) => `
   <tr id="${id}">
     <td class="status"></td>
     <td class="url"><a class="url" href="${url}" target="m_blank">${url}</a></td>
-    <td class="more"><button>See more</button></td>
+    <td class="more"><i class="material-icons">search</i></td>
   </tr>
 `;
 
@@ -39,8 +39,9 @@ const createPageCollection = (pages) => {
         <thead>
           <th class="status">Status</th>
           <th class="url">URL</th>
-          <th class="more">More</th>
+          <th class="more"></th>
         </thead>
+        <tbody></tbody>
       </table>
   `;
 };
@@ -106,23 +107,23 @@ export const detailPage = ({ id, url, image, html }) => {
     <tbody>
       <tr>
         <td>URL:</td>
-        <td>${url}</td>
+        <td><a href="${url}" target="m_blank">${url}</a></td>
       </tr>
     </tbody>
   </table>
 
   <div id="tabmenu" class="tab-menu">
     <ul>
-      <li><a class="tab-link" href="#" data-target="screenshot">Screenshot</a></li>
+      <li><a class="tab-link active" href="#" data-target="screenshot">Screenshot</a></li>
       <li><a class="tab-link" href="#" data-target="code">HTML Code</a></li>
     </ul>
   </div>
 
-  <div id="screenshot" class="tabcontent">
+  <div id="screenshot" class="tab-content">
     <img src="data:image/png;base64, ${image.toString('base64')}" alt="Page screenshot" />
   </div>
 
-  <div id="code" class="tabcontent">
+  <div id="code" class="tab-content hidden">
     <pre>
       <code class="original-html">
         ${escapedHtml}
@@ -156,7 +157,7 @@ const wsHandler = (socket) => {
     // Get common elements
     const index = document.getElementById('index');
     const pageDetail = document.getElementById('page-detail');
-    const backButton = document.getElementById('back-button');
+    const backLink = document.getElementById('back-link');
 
     // A client implementation of the server's sendCommand()
     const sendCommand = (command, data) => {
@@ -181,12 +182,11 @@ const wsHandler = (socket) => {
         // Renders the Page Detail - where screenshots and HTML are shown
         renderPage: ({ html }) => {
             index.classList.add('hidden');
-            backButton.classList.remove('hidden');
+            backLink.classList.remove('hidden');
             pageDetail.classList.remove('hidden');
             pageDetail.innerHTML = html;
 
             var tabMenuItems = document.querySelectorAll('.tab-menu .tab-link');
-            console.log(tabMenuItems)
 
             for (i = 0; i < tabMenuItems.length; ++i) {
               tabMenuItems[i].onclick = (event) => {
@@ -198,13 +198,23 @@ const wsHandler = (socket) => {
 
                 const contentId = target.getAttribute('data-target');
 
-                // Get all elements with class="tabcontent" and hide them
-                var tabcontent = document.getElementsByClassName("tabcontent");
-                for (var i = 0; i < tabcontent.length; i++) {
-                    tabcontent[i].style.display = "none";
+                // Get all tab content blocks and hide them
+                var tabContents = document.getElementsByClassName("tab-content");
+                for (var i = 0; i < tabContents.length; i++) {
+                    tabContents[i].classList.add('hidden');
                 }
 
-                document.getElementById(contentId).style.display = "block";
+                // Get all tab menu links and remove active class
+                var tabLinks = document.getElementsByClassName("tab-link");
+                for (var i = 0; i < tabLinks.length; i++) {
+                    tabLinks[i].classList.remove("active")
+                }
+
+                // Marked the clicked tab menu item as active
+                target.classList.add("active");
+
+                // Show the correct content block;
+                document.getElementById(contentId).classList.remove('hidden');
               }
             };
         },
@@ -222,36 +232,36 @@ const wsHandler = (socket) => {
         },
         // Adds a page to it's parent browser
         createPage: ({ id, browserId, url }) => {
-            const pages = document.getElementById(browserId).querySelector('.page-collection');
+            const pages = document.getElementById(browserId).querySelector('.page-collection tbody');
             pages.insertAdjacentHTML('afterbegin', createPage(id, url));
             const page = document.getElementById(id);
 
-            const button = page.querySelector('td.more button');
+            const button = page.querySelector('td.more i');
             button.onclick = () => sendCommand('renderPage', {
                 id: page.getAttribute('id'),
             });
 
             var status = page.querySelector('td.status');
-            if(status) status.innerText = 'Starting'
+            if(status) status.innerHTML = '<i class="material-icons orange">watch_later</i><span class="orange">Starting</span>';
         },
         // Updates page URL on navigation
         updatePage: ({ id, url }) => {
             const page = document.getElementById(id);
 
             var spanUrl = page.querySelector('td.url');
-            if(spanUrl) spanUrl.innerText = `${url}`;
+            if(spanUrl) spanUrl.innerHTML = `<a class="url" href="${url}" target="m_blank">${url}</a>`;
 
-            var status = page.querySelector('td.status');
-            if(status) status.innerText = 'Running';
+            const status = page.querySelector('td.status');
+            if(status) status.innerHTML = '<i class="material-icons rotating">cached</i><span>Running</span>';
         },
         // Removes a page from a browser after fade-out
         destroyPage: ({ id }) => {
             const page = document.getElementById(id);
 
-            var status = page.querySelector('td.status');
-            if(status) status.innerText = 'Finished';
+            const status = page.querySelector('td.status');
+            if(status) status.innerHTML = '<i class="material-icons">check_circle</i><span>Finished</span>';
 
-            var button = page.querySelector('td.more button');
+            var button = page.querySelector('td.more i');
             button.remove();
 
             page.classList.add('destroyed');
@@ -282,7 +292,7 @@ const wsHandler = (socket) => {
     };
 
     socket.onclose = () => {
-        index.insertAdjacentHTML('beforeend', '<div>Actor finished</div>');
+        index.insertAdjacentHTML('beforeend', '<div class="message">Actor finished</div>');
     };
 
     socket.onerror = (err) => {
@@ -292,11 +302,11 @@ const wsHandler = (socket) => {
     // The Index Page and Page Detail are not rerendered every time since
     // it complicates WebSocket communication (adding / removing listeners).
     // Instead, clicking on a page in the Index simply hides the Index
-    // and shows Page Detail and the Back Button.
-    // Clicking the back button hides the detail and shows the Index Page.
-    backButton.onclick = () => {
+    // and shows Page Detail and the Back link.
+    // Clicking the back link hides the detail and shows the Index Page.
+    backLink.onclick = () => {
         pageDetail.classList.add('hidden');
-        backButton.classList.add('hidden');
+        backLink.classList.add('hidden');
         index.classList.remove('hidden');
         const id = pageDetail.firstElementChild.getAttribute('id');
         sendCommand('quitPage', { id });
@@ -322,6 +332,7 @@ export const layout = (url) => {
   <meta charset="utf-8">
   <title>Puppeteer Live View Server</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <style>
     .page:hover {
       cursor: pointer;
@@ -338,15 +349,16 @@ export const layout = (url) => {
     }
     .original-html {
       white-space: pre-wrap;
+      word-wrap: break-word;
     }
     body {
       margin: 0;
       padding: 0;
-      font-family: 'Graphik';
+      font-family: Graphik, sans-serif;
     }
     header {
       width: 100%;
-      padding: 5px 10px;
+      padding: 5px 15px;
       background: #1a346d;
       color: white;
     }
@@ -358,13 +370,45 @@ export const layout = (url) => {
     h2 {
       font-size: 22px;
       font-weight: 500;
+      margin-bottom: 25px;
     }
     h3 {
       font-size: 15px;
       font-weight: 500;
     }
     main {
-      padding: 5px 10px;
+      padding: 5px 15px;
+    }
+    a {
+      color: #00A6D0;
+      text-decoration: none;
+      transition: all .2s ease-in-out;
+    }
+    a:focus, a:hover {
+      color: #006984;
+      text-decoration: underline;
+    }
+    #back-link {
+      margin: 10px 0;
+      cursor: pointer;
+      width: fit-content;
+    }
+    #back-link i {
+      background: #1a346d;
+      color: white;
+      border-radius: 100%;
+      border: 1px solid #1a346d;
+      font-size: 14px;
+      padding: 3px;
+      float: left;
+      margin-top: -2px;
+      margin-right: 5px;
+      transition: all .3s ease-in;
+    }
+    #back-link:hover i {
+      background: white;
+      border-color: #1a346d;
+      color: #1a346d;
     }
     table {
       border-collapse: collapse;
@@ -377,9 +421,11 @@ export const layout = (url) => {
     }
     th,td {
       padding: 8px;
+      font-size: 14px;
+      vertical-align: middle;
+      height: 24px;
     }
     th {
-      font-size: 16px;
       font-weight: 500;
       color: #9FA5A9;
     }
@@ -390,52 +436,141 @@ export const layout = (url) => {
       min-width: 400px;
     }
     th.more {
-      min-width: 80px;
-    }
-    tbody {
-
-    }
-    tr {
-
-    }
-    td {
-
+      min-width: 42px;
     }
     td.status {
       color: #69C242;
       min-width: 100px;
     }
+    td.status i {
+      float: left;
+    }
+    td.status span {
+      margin-left: 10px;
+      line-height: 24px;
+    }
     td.url {
-      color: #00a6d0;
       min-width: 400px;
     }
     td.more {
-      min-width: 80px;
+      color: #00a6d0;
+      text-align: center;
+      position: relative;
+    }
+    td.more:focus, td.more:hover {
+      color: #006984;
+      text-decoration: underline;
+    }
+    td.more i {
+      cursor: pointer;
+      position: absolute;
+      left: 18px;
+      top: 7px;
+    }
+    table.page-detail {
+      border: none;
     }
     table.page-detail td {
       border: none;
+      padding-left: 0;
+      padding-right: 20px;
+      font-size: 14px;
+    }
+    table.page-detail td:first-child {
+      font-weight: 700
     }
     .tab-menu {
-      margin: 30px 0 10px;
+      margin: 30px 0 0;
     }
     .tab-menu ul {
-      list-style-type: none;height: 29px;
-      border-bottom: 1px solid #ccc;
+      list-style-type: none;
+      border-bottom: 1px solid #ddd;
+      margin-bottom: 0;
+      padding-left: 0;
+      text-transform: uppercase;
+    }
+    .tab-menu ul:after, .tab-menu ul:before {
+      content: " ";
+      display: table;
+    }
+    .tab-menu ul:after {
+      clear: both;
     }
     .tab-menu li {
       float: left;
-      border: 1px solid #ccc;
-      margin-right: 5px;
-    }
-    .tabmenu li.active {
-      border-bottom-color: #ccc;
+      margin-right: 10px;
+      display: block;
+      margin-bottom: -1px;
     }
     .tab-link {
-      padding: 5px;
+      padding: 10px 15px;
       display: block;
+      color: #9fa5a9;
+      text-decoration: none;
+      border: 1px solid #ddd;
+      transition: background .3s ease-in;
+      border-radius: 3px 3px 0 0;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.428571429;
     }
-    .tabcontent {
+    .tab-link:focus, .tab-link:hover {
+      color: #9fa5a9;
+      border-color: #ddd;
+      text-decoration: none;
+      background-color: #eee;
+    }
+    .tab-link.active {
+      border-bottom-color: #fff;
+      color: #11181c;
+      background: #fff;
+    }
+    .tab-content {
+      padding: 20px;
+      border-top: 0;
+      border: 1px solid #ddd;
+      border-top: none;
+      visibility: visible;
+      opacity: 1;
+      transition: opacity 0.3s ease-in;
+    }
+    .tab-content.hidden {
+      display: block;
+      visibility: hidden;
+      opacity: 0;
+      height: 0;
+      border: none;
+      padding: 0;
+    }
+    .tab-content.hidden pre {
       display: none;
+    }
+    .tab-content img{
+      max-width: 100%;
+    }
+    .message {
+      color: #69C242;
+    }
+    .orange {
+      color: #f0ad4e;
+    }
+    @-webkit-keyframes rotating {
+    from { -webkit-transform: rotate(0deg); }
+    to { -webkit-transform: rotate(-360deg); }
+    }
+    @-moz-keyframes rotating {
+        from { -moz-transform: rotate(0deg); }
+        to { -moz-transform: rotate(-360deg); }
+    }
+    @keyframes rotating {
+        from {transform:rotate(0deg);}
+        to {transform:rotate(-360deg);}
+    }
+
+    .rotating {
+        -webkit-animation: rotating 2s linear infinite;
+           -moz-animation: rotating 2s linear infinite;
+                animation: rotating 2s linear infinite;
     }
   </style>
 </head>
@@ -444,7 +579,10 @@ export const layout = (url) => {
     <h1>Puppeteer Live View</h1>
   </header>
   <main>
-    <button id="back-button" class="hidden">Back to Index</button>
+    <div id="back-link" class="hidden">
+        <i class="material-icons">arrow_back</i>
+        <span>dashboard</span>
+    </div>
     <div id="index">Waiting for WebSocket connection.</div>
     <div id="page-detail" class="hidden"></div>
   </main>
