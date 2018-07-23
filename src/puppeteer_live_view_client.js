@@ -189,36 +189,38 @@ const wsHandler = (socket) => {
             const tabMenuItems = document.querySelectorAll('.tab-menu .tab-link');
 
             // Set onClick event for all menu tabs
-            for (i = 0; i < tabMenuItems.length; ++i) {
-              tabMenuItems[i].onclick = (event) => {
-                event.preventDefault();
+            // for (let i = 0; i < tabMenuItems.length; ++i) {
+            //     tabMenuItems[i].onclick = (event) => {
+            tabMenuItems.forEach((item) => {
+                item.onclick = (event) => {
+                    event.preventDefault();
 
-                // Get clicked element
-                event = event || window.event;
-                const target = event.target || event.srcElement,
-                    text = target.textContent || text.innerText;
+                    // Get clicked element
+                    event = event || window.event;
+                    const target = event.target || event.srcElement;
+                    const text = target.textContent || text.innerText;
 
-                const contentId = target.getAttribute('data-target');
+                    const contentId = target.getAttribute('data-target');
 
-                // Get all tab content blocks and hide them
-                const tabContents = document.getElementsByClassName("tab-content");
-                for (var i = 0; i < tabContents.length; i++) {
-                    tabContents[i].classList.add('hidden');
-                }
+                    // Get all tab content blocks and hide them
+                    const tabContents = document.getElementsByClassName('tab-content');
+                    for (let j = 0; j < tabContents.length; j++) {
+                        tabContents[j].classList.add('hidden');
+                    }
 
-                // Get all tab menu links and remove active class
-                const tabLinks = document.getElementsByClassName("tab-link");
-                for (var i = 0; i < tabLinks.length; i++) {
-                    tabLinks[i].classList.remove("active")
-                }
+                    // Get all tab menu links and remove active class
+                    const tabLinks = document.getElementsByClassName('tab-link');
+                    for (let j = 0; j < tabLinks.length; j++) {
+                        tabLinks[j].classList.remove('active');
+                    }
 
-                // Marked the clicked tab menu item as active
-                target.classList.add("active");
+                    // Marked the clicked tab menu item as active
+                    target.classList.add('active');
 
-                // Show the correct content block;
-                document.getElementById(contentId).classList.remove('hidden');
-              }
-            };
+                    // Show the correct content block;
+                    document.getElementById(contentId).classList.remove('hidden');
+                };
+            });
         },
         // Adds a browser to the list
         createBrowser: ({ id }) => {
@@ -244,24 +246,24 @@ const wsHandler = (socket) => {
             });
 
             const status = page.querySelector('td.status');
-            if(status) status.innerHTML = '<i class="material-icons orange">watch_later</i><span class="orange">Starting</span>';
+            if (status) status.innerHTML = '<i class="material-icons orange">watch_later</i><span class="orange">Starting</span>';
         },
         // Updates page URL on navigation
         updatePage: ({ id, url }) => {
             const page = document.getElementById(id);
 
             const spanUrl = page.querySelector('td.url');
-            if(spanUrl) spanUrl.innerHTML = `<a class="url" href="${url}" target="m_blank">${url}</a>`;
+            if (spanUrl) spanUrl.innerHTML = `<a class="url" href="${url}" target="m_blank">${url}</a>`;
 
             const status = page.querySelector('td.status');
-            if(status) status.innerHTML = '<i class="material-icons rotating">cached</i><span>Running</span>';
+            if (status) status.innerHTML = '<i class="material-icons rotating">cached</i><span>Running</span>';
         },
         // Removes a page from a browser after fade-out
         destroyPage: ({ id }) => {
             const page = document.getElementById(id);
 
             const status = page.querySelector('td.status');
-            if(status) status.innerHTML = '<i class="material-icons">check_circle</i><span>Finished</span>';
+            if (status) status.innerHTML = '<i class="material-icons">check_circle</i><span>Finished</span>';
 
             const button = page.querySelector('td.more i');
             button.remove();
