@@ -9,8 +9,9 @@ import { isPromise } from './utils';
 const DEFAULT_OPTIONS = {
     gotoFunction: ({ request, page }) => page.goto(request.url),
     pageOpsTimeoutMillis: 300000,
-    pageCloseTimeoutMillis: 30000,
 };
+
+const PAGE_CLOSE_TIMEOUT_MILLIS = 30000;
 
 /**
  * Provides a simple framework for parallel crawling of web pages
@@ -118,7 +119,6 @@ const DEFAULT_OPTIONS = {
  * @param {LaunchPuppeteerOptions} [options.launchPuppeteerOptions]
  *   Options used by `Apify.launchPuppeteer()` to start new Puppeteer instances.
  *   See `launchPuppeteerOptions` parameter of `PuppeteerPool`.
- * @param {Number} [options.pageCloseTimeoutMillis=30000] Timeout for `page.close()` in milliseconds.
  */
 export default class PuppeteerCrawler {
     constructor(opts) {
@@ -132,7 +132,6 @@ export default class PuppeteerCrawler {
             handlePageFunction,
             gotoFunction,
             pageOpsTimeoutMillis,
-            pageCloseTimeoutMillis,
 
             // Autoscaled pool options
             maxMemoryMbytes,
@@ -160,12 +159,10 @@ export default class PuppeteerCrawler {
         checkParamOrThrow(handlePageFunction, 'opts.handlePageFunction', 'Function');
         checkParamOrThrow(handleFailedRequestFunction, 'opts.handleFailedRequestFunction', 'Maybe Function');
         checkParamOrThrow(gotoFunction, 'opts.gotoFunction', 'Function');
-        checkParamOrThrow(pageCloseTimeoutMillis, 'opts.pageCloseTimeoutMillis', 'Number');
 
         this.handlePageFunction = handlePageFunction;
         this.gotoFunction = gotoFunction;
         this.pageOpsTimeoutMillis = pageOpsTimeoutMillis;
-        this.pageCloseTimeoutMillis = pageCloseTimeoutMillis;
 
         this.puppeteerPool = new PuppeteerPool({
             maxOpenPagesPerInstance,
@@ -235,8 +232,8 @@ export default class PuppeteerCrawler {
             .finally(() => {
                 return Promise
                     .try(() => page.close())
-                    .timeout(this.pageCloseTimeoutMillis, 'PuppeteerCrawler: page.close() timed out.')
-                    .catch(err => log.debug('PuppeteerCrawler: page.close() failed.', err));
+                    .timeout(PAGE_CLOSE_TIMEOUT_MILLIS, 'Operation timed out.')
+                    .catch(err => log.debug('PuppeteerCrawler: Page.close() failed.', { reason: err ? err.message : err }));
             });
     }
 }

@@ -1,6 +1,6 @@
 {
   "name": "apify",
-  "version": "0.5.46",
+  "version": "0.5.48",
   "description": "Web scraping and automation SDK",
   "main": "build/index.js",
   "keywords": [
@@ -88,7 +88,7 @@
     "why-is-node-running": "^2.0.2"
   },
   "optionalDependencies": {
-    "puppeteer": "^1.4.0",
+    "puppeteer": "^1.6.0",
     "selenium-webdriver": "^3.6.0"
   }
 }
