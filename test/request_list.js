@@ -103,7 +103,7 @@ describe('Apify.RequestList', () => {
     });
 
     it('should correctly load list from hosted files in correct order', async () => {
-        const mock = sinon.mock(utils);
+        const mock = sinon.mock(utils.publicUtils);
         const list1 = [
             'https://example.com',
             'https://google.com',
@@ -174,7 +174,7 @@ describe('Apify.RequestList', () => {
     });
 
     it('should handle requestsFromUrl with no URLs', async () => {
-        const mock = sinon.mock(utils);
+        const mock = sinon.mock(utils.publicUtils);
         mock.expects('downloadListOfUrls')
             .once()
             .withArgs({ url: 'http://example.com/list-1', urlRegExp: undefined })

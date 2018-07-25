@@ -207,9 +207,9 @@ export class PuppeteerLiveViewBrowser extends EventEmitter {
     }
 }
 
-
+let liveViewServer;
 /**
- * The start method should cover most use cases of starting a PuppeteerLiveViewServer.
+ * The registerBrowserForLiveView method should cover most use cases of starting a PuppeteerLiveViewServer.
  * It creates a single instance of the server on its first invocation and subsequent
  * invocations only add more browsers to the current server instance. Individual browsers
  * are assigned unique IDs that will be used in displaying the browsers in an HTML index
@@ -226,7 +226,6 @@ export class PuppeteerLiveViewBrowser extends EventEmitter {
  * @param {String} [opts.screenshotTimeoutMillis] Max time allowed for the screenshot taking process.
  * @returns {Promise<PuppeteerLiveViewServer>}
  */
-let liveViewServer;
 export const registerBrowserForLiveView = (browserPromise, opts = {}) => {
     let serverPromise = Promise.resolve();
     if (!liveViewServer) {

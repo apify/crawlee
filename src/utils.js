@@ -16,17 +16,17 @@ import { ENV_VARS } from './constants';
 export const PID_USAGE_NOT_FOUND_ERROR = 'No maching pid found';
 
 /**
- * Default regular expression to match URLs in a string, that may be plain text, JSON, CSV or other. It supports common URL characters
+ * Default regular expression to match URLs in a string that may be plain text, JSON, CSV or other. It supports common URL characters
  * and does not support URLs containing commas or spaces. The URLs also may contain Unicode letters (not symbols).
  * @memberOf utils
  */
-export const URL_NO_COMMAS_REGEX = XRegExp('https?://(www\\.)?[\\p{L}0-9][-\\p{L}0-9@:%._\\+~#=]{0,254}[\\p{L}0-9]\\.[a-z]{2,63}(:\\d{1,5})?(/[-\\p{L}0-9@:%_\\+.~#?&//=\\(\\)]*)?', 'gi'); // eslint-disable-line
+const URL_NO_COMMAS_REGEX = XRegExp('https?://(www\\.)?[\\p{L}0-9][-\\p{L}0-9@:%._\\+~#=]{0,254}[\\p{L}0-9]\\.[a-z]{2,63}(:\\d{1,5})?(/[-\\p{L}0-9@:%_\\+.~#?&//=\\(\\)]*)?', 'gi'); // eslint-disable-line
 /**
  * Regular expression that, in addition to the default regular expression URL_NO_COMMAS_REGEX, supports matching commas in URL path and query.
  * Note, however, that this may prevent parsing URLs from comma delimited lists, or the URLs may become malformed.
  * @memberOf utils
  */
-export const URL_WITH_COMMAS_REGEX = XRegExp('https?://(www\\.)?[\\p{L}0-9][-\\p{L}0-9@:%._\\+~#=]{0,254}[\\p{L}0-9]\\.[a-z]{2,63}(:\\d{1,5})?(/[-\\p{L}0-9@:%_\\+,.~#?&//=\\(\\)]*)?', 'gi'); // eslint-disable-line
+const URL_WITH_COMMAS_REGEX = XRegExp('https?://(www\\.)?[\\p{L}0-9][-\\p{L}0-9@:%._\\+~#=]{0,254}[\\p{L}0-9]\\.[a-z]{2,63}(:\\d{1,5})?(/[-\\p{L}0-9@:%_\\+,.~#?&//=\\(\\)]*)?', 'gi'); // eslint-disable-line
 
 const ensureDirPromised = Promise.promisify(fsExtra.ensureDir);
 const psTreePromised = Promise.promisify(psTree);
@@ -348,10 +348,10 @@ const sleep = (millis) => {
  * @param {String} url
  * @param {String} [encoding='utf8']
  * @param {RegExp} [urlRegExp=URL_NO_COMMAS_REGEX]
- * @returns {Promise<Array<string>>}
+ * @returns {Promise}
  * @memberOf utils
  */
-export const downloadListOfUrls = ({ url, encoding = 'utf8', urlRegExp = URL_NO_COMMAS_REGEX }) => {
+const downloadListOfUrls = ({ url, encoding = 'utf8', urlRegExp = URL_NO_COMMAS_REGEX }) => {
     try {
         checkParamOrThrow(url, 'url', 'String');
         checkParamOrThrow(encoding, 'string', 'String');
@@ -367,10 +367,10 @@ export const downloadListOfUrls = ({ url, encoding = 'utf8', urlRegExp = URL_NO_
  * Collects all URLs in an arbitrary string to an array, optionally using a custom regular expression.
  * @param {String} string
  * @param {RegExp} [urlRegExp=URL_NO_COMMAS_REGEX]
- * @returns {Array<string>}
+ * @returns {Array}
  * @memberOf utils
  */
-export const extractUrls = ({ string, urlRegExp = URL_NO_COMMAS_REGEX }) => {
+const extractUrls = ({ string, urlRegExp = URL_NO_COMMAS_REGEX }) => {
     checkParamOrThrow(string, 'string', 'String');
     checkParamOrThrow(urlRegExp, 'urlRegExp', 'RegExp');
     return string.match(urlRegExp) || [];

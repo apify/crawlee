@@ -5,7 +5,7 @@ import Promise from 'bluebird';
 import Request from './request';
 import events from './events';
 import { ACTOR_EVENT_NAMES } from './constants';
-import { getFirstKey, downloadListOfUrls } from './utils';
+import { getFirstKey, publicUtils } from './utils';
 import { getValue, setValue } from './key_value_store';
 
 /**
@@ -351,6 +351,7 @@ export default class RequestList {
     _addRequestsFromUrl(source) {
         const sharedOpts = _.omit(source, 'requestsFromUrl', 'regex');
         const { requestsFromUrl, regex } = source;
+        const { downloadListOfUrls } = publicUtils;
 
         return downloadListOfUrls({
             url: requestsFromUrl,

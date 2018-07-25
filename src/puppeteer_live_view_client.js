@@ -11,6 +11,7 @@ const DESTROY_FADEOUT_MILLIS = 2000;
  * @param {string} id
  * @param {string} url
  * @returns {string} html
+ * @ignore
  */
 const createPage = (id, url) => `
   <tr id="${id}">
@@ -28,6 +29,7 @@ const createPage = (id, url) => `
  *
  * @param {Map<String,Page>} pages
  * @returns {string} html
+ * @ignore
  */
 const createPageCollection = (pages) => {
     const pageDivs = [];
@@ -54,6 +56,7 @@ const createPageCollection = (pages) => {
  * @param {string} id Browser ID.
  * @param {Map<String,Page>} pages
  * @returns {string} html
+ * @ignore
  */
 const createBrowser = (id, pages) => `<div class="browser" id="${id}"><h3>Browser: ${id}</h3>${createPageCollection(pages)}</div>`;
 
@@ -65,6 +68,7 @@ const createBrowser = (id, pages) => `<div class="browser" id="${id}"><h3>Browse
  *
  * @param {Set} browsers
  * @returns {string} html
+ * @ignore
  */
 const createBrowserCollection = (browsers) => {
     const browserDivs = [];
@@ -82,6 +86,7 @@ const createBrowserCollection = (browsers) => {
  *
  * @param {Set} browsers
  * @returns {string} html
+ * @ignore
  */
 export const indexPage = (browsers) => {
     return createBrowserCollection(browsers);
@@ -95,6 +100,7 @@ export const indexPage = (browsers) => {
  *
  * @param {Buffer} imageBuffer
  * @returns {string} html
+ * @ignore
  */
 export const detailPage = ({ id, url, image, html }) => {
     const chars = { '<': '&lt', '>': '&gt', '&': '&amp' };
@@ -152,6 +158,7 @@ export const errorPage = ({ id, url, error }) => {
  * is able to receive and understand are listed in COMMANDS.
  *
  * @param {WebSocket} socket
+ * @ignore
  */
 const wsHandler = (socket) => {
     // Get common elements
@@ -323,6 +330,7 @@ const wsHandler = (socket) => {
  *
  * @param {String} url Url of the WebSocket server
  * @returns {string} html
+ * @ignore
  */
 export const layout = (url) => {
     checkParamOrThrow(url, 'url', 'String');
