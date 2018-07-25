@@ -34,6 +34,7 @@ Complete documentation of this package is available at https://www.apify.com/doc
     + [Puppeteer Crawler](#puppeteer-crawler)
     + [Request List](#request-list)
     + [Puppeteer Pool](#puppeteer-pool)
+    + [Puppeteer Live View](#puppeteer-live-view)
 - [Local usage](#local-usage)
 - [Promises vs. callbacks](#promises-vs-callbacks)
 - [Examples](#examples)
@@ -344,6 +345,33 @@ await puppeteerPool.destroy();
 For more information see complete <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerPool" target="_blank">documentation</a>.
 
 <div id="include-readme-3">
+
+#### Puppeteer Live View
+
+Enables real time inspection of individual Puppeteer browser instances. This is especially useful when using headless mode or a remote instance.
+Puppeteer Live View provides the user with a dashboard listing all active browser instances and their active page details. The details show a page screenshot and raw HTML.
+
+You can use Puppeteer Live View, either directly:
+```javascript
+const browser = Apify.launchPuppeteer({ liveView: true });
+```
+or while using PuppeteerCrawler:
+```javascript
+const crawler = new PuppeteerCrawler({
+    launchPuppeteerOptions: { liveView: true },
+    // other options
+})
+```
+
+For debugging, you may want to add another option: `{ slowMo: 300 }` (see <a href="https://pptr.dev/#?product=Puppeteer&version=v1.6.0&show=api-puppeteerlaunchoptions" target="_blank">Puppeteer documentation</a>).
+
+Puppeteer Live View starts a @ `localhost:4321` by default and will present you with the following screen:
+<img src="https://www.apify.com/ext/sdk_assets/puppeteer-live-view-dashboard.png">
+
+Click on the magnifying glass icon will take you to a page detail, showing its screenshot and raw HTML:
+<img src="https://www.apify.com/ext/sdk_assets/puppeteer-live-view-detail.png">
+
+For more information see complete <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerLiveViewServer" target="_blank">documentation</a>.
 
 ## Local usage
 
