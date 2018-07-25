@@ -353,7 +353,7 @@ const sleep = (millis) => {
  */
 export const downloadListOfUrls = ({ url, encoding = 'utf8', urlRegExp = URL_NO_COMMAS_REGEX }) => {
     try {
-        checkParamOrThrow(string, 'string', 'String');
+        checkParamOrThrow(url, 'url', 'String');
         checkParamOrThrow(encoding, 'string', 'String');
         checkParamOrThrow(urlRegExp, 'urlRegExp', 'RegExp');
     } catch (err) {

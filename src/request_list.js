@@ -2,7 +2,6 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import log from 'apify-shared/log';
 import _ from 'underscore';
 import Promise from 'bluebird';
-import requestPromise from 'request-promise';
 import Request from './request';
 import events from './events';
 import { ACTOR_EVENT_NAMES } from './constants';

@@ -72,8 +72,8 @@ describe('utils.isProduction()', () => {
 
 describe('utils.isDocker()', () => {
     it('works for dockerenv && cgroup', () => {
-        sinon.stub(fs, 'stat').callsFake((path, callback) => callback(null));
-        sinon.stub(fs, 'readFile').callsFake((path, encoding, callback) => callback(null, 'something ... docker ... something'));
+        sinon.stub(fs, 'stat').callsFake((filePath, callback) => callback(null));
+        sinon.stub(fs, 'readFile').callsFake((filePath, encoding, callback) => callback(null, 'something ... docker ... something'));
 
         return utils
             .isDocker(true)
@@ -85,8 +85,8 @@ describe('utils.isDocker()', () => {
     });
 
     it('works for dockerenv', () => {
-        sinon.stub(fs, 'stat').callsFake((path, callback) => callback(null));
-        sinon.stub(fs, 'readFile').callsFake((path, encoding, callback) => callback(null, 'something ... ... something'));
+        sinon.stub(fs, 'stat').callsFake((filePath, callback) => callback(null));
+        sinon.stub(fs, 'readFile').callsFake((filePath, encoding, callback) => callback(null, 'something ... ... something'));
 
         return utils
             .isDocker(true)
@@ -98,8 +98,8 @@ describe('utils.isDocker()', () => {
     });
 
     it('works for cgroup', () => {
-        sinon.stub(fs, 'stat').callsFake((path, callback) => callback(new Error()));
-        sinon.stub(fs, 'readFile').callsFake((path, encoding, callback) => callback(null, 'something ... docker ... something'));
+        sinon.stub(fs, 'stat').callsFake((filePath, callback) => callback(new Error()));
+        sinon.stub(fs, 'readFile').callsFake((filePath, encoding, callback) => callback(null, 'something ... docker ... something'));
 
         return utils
             .isDocker(true)
@@ -111,8 +111,8 @@ describe('utils.isDocker()', () => {
     });
 
     it('works for nothing', () => {
-        sinon.stub(fs, 'stat').callsFake((path, callback) => callback(new Error()));
-        sinon.stub(fs, 'readFile').callsFake((path, encoding, callback) => callback(null, 'something ... ... something'));
+        sinon.stub(fs, 'stat').callsFake((filePath, callback) => callback(new Error()));
+        sinon.stub(fs, 'readFile').callsFake((filePath, encoding, callback) => callback(null, 'something ... ... something'));
 
         return utils
             .isDocker(true)
@@ -170,9 +170,9 @@ describe('utils.getMemoryInfo()', () => {
 
         sinon
             .stub(fs, 'readFile')
-            .callsFake((path, callback) => {
-                if (path === '/sys/fs/cgroup/memory/memory.limit_in_bytes') callback(null, '333');
-                else if (path === '/sys/fs/cgroup/memory/memory.usage_in_bytes') callback(null, '111');
+            .callsFake((filePath, callback) => {
+                if (filePath === '/sys/fs/cgroup/memory/memory.limit_in_bytes') callback(null, '333');
+                else if (filePath === '/sys/fs/cgroup/memory/memory.usage_in_bytes') callback(null, '111');
                 else throw new Error('Invalid path');
             });
 
@@ -239,9 +239,9 @@ describe('utils.getMemoryInfo()', () => {
 
         sinon
             .stub(fs, 'readFile')
-            .callsFake((path, callback) => {
-                if (path === '/sys/fs/cgroup/memory/memory.limit_in_bytes') callback(null, '333');
-                else if (path === '/sys/fs/cgroup/memory/memory.usage_in_bytes') callback(null, '111');
+            .callsFake((filePath, callback) => {
+                if (filePath === '/sys/fs/cgroup/memory/memory.limit_in_bytes') callback(null, '333');
+                else if (filePath === '/sys/fs/cgroup/memory/memory.usage_in_bytes') callback(null, '111');
                 else throw new Error('Invalid path');
             });
 
@@ -498,13 +498,10 @@ describe('utils.extractUrls()', () => {
 });
 
 describe('utils.downloadListOfUrls()', () => {
-
     let stub;
-
     beforeEach(() => {
         stub = sinon.stub(requestPromise, 'get');
     });
-
     afterEach(() => {
         requestPromise.get.restore();
     });
