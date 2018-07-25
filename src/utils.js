@@ -10,11 +10,22 @@ import requestPromise from 'request-promise';
 import _ from 'underscore';
 import XRegExp from 'xregexp';
 import { delayPromise } from 'apify-shared/utilities';
+import { checkParamOrThrow } from 'apify-client/build/utils';
 import { ENV_VARS } from './constants';
 
 export const PID_USAGE_NOT_FOUND_ERROR = 'No maching pid found';
 
+/**
+ * Default regular expression to match URLs in a string, that may be plain text, JSON, CSV or other. It supports common URL characters
+ * and does not support URLs containing commas or spaces. The URLs also may contain Unicode letters (not symbols).
+ * @memberOf utils
+ */
 export const URL_NO_COMMAS_REGEX = XRegExp('https?://(www\\.)?[-\\p{L}0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,6}\\b([-\\p{L}0-9@:%_\\+.~#?&//=\\(\\)]*)', 'gi'); // eslint-disable-line
+/**
+ * Regular expression that, in addition to the default regular expression URL_NO_COMMAS_REGEX, supports matching commas in URL path and query.
+ * Note, however, that this may prevent parsing URLs from comma delimited lists, or the URLs may become malformed.
+ * @memberOf utils
+ */
 export const URL_WITH_COMMAS_REGEX = XRegExp('https?://(www\\.)?[-\\p{L}0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,6}\\b([-\\p{L}0-9@:%_\\+.,~#?&//=\\(\\)]*)', 'gi'); // eslint-disable-line
 
 const ensureDirPromised = Promise.promisify(fsExtra.ensureDir);
@@ -330,6 +341,40 @@ const sleep = (millis) => {
     return delayPromise(millis);
 };
 
+/**
+ * Returns a promise that resolves to an array of urls parsed from the resource available at the provided url.
+ * Optionally, custom regular expression and encoding may be provided.
+ *
+ * @param {String} url
+ * @param {String} [encoding='utf8']
+ * @param {RegExp} [urlRegExp=URL_NO_COMMAS_REGEX]
+ * @returns {Promise<Array<string>>}
+ * @memberOf utils
+ */
+export const downloadListOfUrls = ({ url, encoding = 'utf8', urlRegExp = URL_NO_COMMAS_REGEX }) => {
+    try {
+        checkParamOrThrow(string, 'string', 'String');
+        checkParamOrThrow(encoding, 'string', 'String');
+        checkParamOrThrow(urlRegExp, 'urlRegExp', 'Object');
+    } catch (err) {
+        return Promise.reject(err);
+    }
+    return requestPromise.get({ url, encoding })
+        .then(string => extractUrls({ string, urlRegExp }));
+};
+
+/**
+ * Collects all URLs in an arbitrary string to an array, optionally using a custom regular expression.
+ * @param {String} string
+ * @param {RegExp} [urlRegExp=URL_NO_COMMAS_REGEX]
+ * @returns {Array<string>}
+ * @memberOf utils
+ */
+export const extractUrls = ({ string, urlRegExp = URL_NO_COMMAS_REGEX }) => {
+    checkParamOrThrow(string, 'string', 'String');
+    checkParamOrThrow(urlRegExp, 'urlRegExp', 'Object');
+    return string.match(urlRegExp) || [];
+};
 
 /**
  * A namespace that contains various utilities.
@@ -347,32 +392,8 @@ const sleep = (millis) => {
  */
 export const publicUtils = {
     sleep,
-};
-
-/**
- * Returns a promise that resolves to an array of urls parsed from the resource
- * available at the provided url.
- *
- * @param {String} url
- * @param {String} encoding
- * @param {RegExp} urlRegExp
- * @returns {Promise<Array>}
- */
-export const downloadListOfUrls = ({ url, encoding, urlRegExp }) => {
-    if (!url) return Promise.reject(new Error('Resource URL must be provided.'));
-    encoding = encoding || 'utf8';
-    return requestPromise.get({ url, encoding })
-        .then(string => extractUrls({ string, urlRegExp }));
-};
-
-/**
- * Collects all URLs in an arbitrary string to an array.
- * @param string
- * @param urlRegExp
- * @param keepCommas
- * @returns {Array}
- */
-export const extractUrls = ({ string, urlRegExp }) => {
-    urlRegExp = urlRegExp || URL_NO_COMMAS_REGEX;
-    return string.match(urlRegExp) || [];
+    downloadListOfUrls,
+    extractUrls,
+    URL_NO_COMMAS_REGEX,
+    URL_WITH_COMMAS_REGEX,
 };
