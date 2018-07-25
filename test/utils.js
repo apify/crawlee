@@ -10,7 +10,6 @@ import requestPromise from 'request-promise';
 import * as utils from '../build/utils';
 import Apify from '../build/index';
 import { ENV_VARS } from '../build/constants';
-import { URL_WITH_COMMAS_REGEX } from '../src/utils';
 
 chai.use(chaiAsPromised);
 
@@ -352,6 +351,7 @@ describe('utils.extractUrls()', () => {
     const UNICODE_URL_LIST = 'unicode_url_list.txt';
     const COMMA_URL_LIST = 'unicode+comma_url_list.txt';
     const TRICKY_URL_LIST = 'tricky_url_list.txt';
+    const INVALID_URL_LIST = 'invalid_url_list.txt';
 
     const getURLData = (filename) => {
         const string = fs.readFileSync(path.join(__dirname, 'data', filename), 'utf8');
@@ -392,13 +392,18 @@ describe('utils.extractUrls()', () => {
     });
     it('extracts unicode URLs with commas', () => {
         const { string, array } = getURLData(COMMA_URL_LIST);
-        const extracted = utils.extractUrls({ string, urlRegExp: URL_WITH_COMMAS_REGEX });
+        const extracted = utils.extractUrls({ string, urlRegExp: utils.URL_WITH_COMMAS_REGEX });
         expect(extracted).to.be.eql(array);
     });
     it('extracts tricky URLs', () => {
         const { string, array } = getURLData(TRICKY_URL_LIST);
         const extracted = utils.extractUrls({ string });
         expect(extracted).to.be.eql(array);
+    });
+    it('does not extract invalid URLs', () => {
+        const { string } = getURLData(INVALID_URL_LIST);
+        const extracted = utils.extractUrls({ string });
+        expect(extracted).to.be.eql(['http://www.foo.bar']);
     });
     it('extracts simple URLs from JSON', () => {
         const d = getURLData(SIMPLE_URL_LIST);
@@ -415,7 +420,7 @@ describe('utils.extractUrls()', () => {
     it('extracts unicode URLs with commas from JSON', () => {
         const d = getURLData(COMMA_URL_LIST);
         const string = makeJSON(d);
-        const extracted = utils.extractUrls({ string, urlRegExp: URL_WITH_COMMAS_REGEX });
+        const extracted = utils.extractUrls({ string, urlRegExp: utils.URL_WITH_COMMAS_REGEX });
         expect(extracted).to.be.eql(d.array.concat(d.array));
     });
     it('extracts tricky URLs from JSON', () => {
@@ -423,6 +428,12 @@ describe('utils.extractUrls()', () => {
         const string = makeJSON(d);
         const extracted = utils.extractUrls({ string });
         expect(extracted).to.be.eql(d.array.concat(d.array));
+    });
+    it('does not extract invalid URLs from JSON', () => {
+        const d = getURLData(INVALID_URL_LIST);
+        const string = makeJSON(d);
+        const extracted = utils.extractUrls({ string });
+        expect(extracted).to.be.eql(['http://www.foo.bar', 'http://www.foo.bar']);
     });
     it('extracts simple URLs from CSV', () => {
         const { array } = getURLData(SIMPLE_URL_LIST);
@@ -439,7 +450,7 @@ describe('utils.extractUrls()', () => {
     it('extracts unicode URLs with commas from semicolon CSV', () => {
         const { array } = getURLData(COMMA_URL_LIST);
         const string = makeCSV(array, ';');
-        const extracted = utils.extractUrls({ string, urlRegExp: URL_WITH_COMMAS_REGEX });
+        const extracted = utils.extractUrls({ string, urlRegExp: utils.URL_WITH_COMMAS_REGEX });
         expect(extracted).to.be.eql(array);
     });
     it('extracts tricky URLs from CSV', () => {
@@ -447,6 +458,12 @@ describe('utils.extractUrls()', () => {
         const string = makeCSV(array);
         const extracted = utils.extractUrls({ string });
         expect(extracted).to.be.eql(array);
+    });
+    it('does not extract invalid URLs from CSV', () => {
+        const { array } = getURLData(INVALID_URL_LIST);
+        const string = makeCSV(array);
+        const extracted = utils.extractUrls({ string });
+        expect(extracted).to.be.eql(['http://www.foo.bar']);
     });
     it('extracts simple URLs from Text', () => {
         const { array } = getURLData(SIMPLE_URL_LIST);
@@ -463,7 +480,7 @@ describe('utils.extractUrls()', () => {
     it('extracts unicode URLs with commas from Text', () => {
         const { array } = getURLData(COMMA_URL_LIST);
         const string = makeText(array);
-        const extracted = utils.extractUrls({ string, urlRegExp: URL_WITH_COMMAS_REGEX });
+        const extracted = utils.extractUrls({ string, urlRegExp: utils.URL_WITH_COMMAS_REGEX });
         expect(extracted).to.be.eql(array);
     });
     it('extracts tricky URLs from Text', () => {
@@ -471,6 +488,12 @@ describe('utils.extractUrls()', () => {
         const string = makeText(array);
         const extracted = utils.extractUrls({ string });
         expect(extracted).to.be.eql(array);
+    });
+    it('does not extract invalid URLs from Text', () => {
+        const { array } = getURLData(INVALID_URL_LIST);
+        const string = makeText(array);
+        const extracted = utils.extractUrls({ string });
+        expect(extracted).to.be.eql(['http://www.foo.bar']);
     });
 });
 

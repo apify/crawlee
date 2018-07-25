@@ -20,13 +20,13 @@ export const PID_USAGE_NOT_FOUND_ERROR = 'No maching pid found';
  * and does not support URLs containing commas or spaces. The URLs also may contain Unicode letters (not symbols).
  * @memberOf utils
  */
-export const URL_NO_COMMAS_REGEX = XRegExp('https?://(www\\.)?[-\\p{L}0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,6}\\b([-\\p{L}0-9@:%_\\+.~#?&//=\\(\\)]*)', 'gi'); // eslint-disable-line
+export const URL_NO_COMMAS_REGEX = XRegExp('https?://(www\\.)?[\\p{L}0-9][-\\p{L}0-9@:%._\\+~#=]{0,254}[\\p{L}0-9]\\.[a-z]{2,63}(:\\d{1,5})?(/[-\\p{L}0-9@:%_\\+.~#?&//=\\(\\)]*)?', 'gi'); // eslint-disable-line
 /**
  * Regular expression that, in addition to the default regular expression URL_NO_COMMAS_REGEX, supports matching commas in URL path and query.
  * Note, however, that this may prevent parsing URLs from comma delimited lists, or the URLs may become malformed.
  * @memberOf utils
  */
-export const URL_WITH_COMMAS_REGEX = XRegExp('https?://(www\\.)?[-\\p{L}0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,6}\\b([-\\p{L}0-9@:%_\\+.,~#?&//=\\(\\)]*)', 'gi'); // eslint-disable-line
+export const URL_WITH_COMMAS_REGEX = XRegExp('https?://(www\\.)?[\\p{L}0-9][-\\p{L}0-9@:%._\\+~#=]{0,254}[\\p{L}0-9]\\.[a-z]{2,63}(:\\d{1,5})?(/[-\\p{L}0-9@:%_\\+,.~#?&//=\\(\\)]*)?', 'gi'); // eslint-disable-line
 
 const ensureDirPromised = Promise.promisify(fsExtra.ensureDir);
 const psTreePromised = Promise.promisify(psTree);
@@ -355,7 +355,7 @@ export const downloadListOfUrls = ({ url, encoding = 'utf8', urlRegExp = URL_NO_
     try {
         checkParamOrThrow(string, 'string', 'String');
         checkParamOrThrow(encoding, 'string', 'String');
-        checkParamOrThrow(urlRegExp, 'urlRegExp', 'Object');
+        checkParamOrThrow(urlRegExp, 'urlRegExp', 'RegExp');
     } catch (err) {
         return Promise.reject(err);
     }
@@ -372,7 +372,7 @@ export const downloadListOfUrls = ({ url, encoding = 'utf8', urlRegExp = URL_NO_
  */
 export const extractUrls = ({ string, urlRegExp = URL_NO_COMMAS_REGEX }) => {
     checkParamOrThrow(string, 'string', 'String');
-    checkParamOrThrow(urlRegExp, 'urlRegExp', 'Object');
+    checkParamOrThrow(urlRegExp, 'urlRegExp', 'RegExp');
     return string.match(urlRegExp) || [];
 };
 
