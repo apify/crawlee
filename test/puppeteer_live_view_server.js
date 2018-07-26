@@ -3,8 +3,8 @@ import { expect, assert } from 'chai';
 import Promise from 'bluebird';
 import puppeteer from 'puppeteer';
 import Apify from '../build/index';
-import PuppeteerLiveViewServer, { PuppeteerLiveViewBrowser } from '../src/puppeteer_live_view_server';
-import { ENV_VARS } from '../src/constants';
+import PuppeteerLiveViewServer, { PuppeteerLiveViewBrowser } from '../build/puppeteer_live_view_server';
+import { ENV_VARS } from '../build/constants';
 
 const PORT = 0;
 const URL = 'thisshouldfailonclientonly';

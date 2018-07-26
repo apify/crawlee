@@ -56,7 +56,8 @@
     "ps-tree": "^1.1.0",
     "request-promise": "^4.2.2",
     "underscore": "^1.9.0",
-    "ws": "^5.1.0"
+    "ws": "^5.1.0",
+    "xregexp": "^4.2.0"
   },
   "devDependencies": {
     "apify-jsdoc-template": "github:apifytech/apify-jsdoc-template",

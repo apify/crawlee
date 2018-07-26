@@ -2,17 +2,11 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import log from 'apify-shared/log';
 import _ from 'underscore';
 import Promise from 'bluebird';
-import requestPromise from 'request-promise';
 import Request from './request';
 import events from './events';
 import { ACTOR_EVENT_NAMES } from './constants';
-import { getFirstKey } from './utils';
+import { getFirstKey, publicUtils } from './utils';
 import { getValue, setValue } from './key_value_store';
-
-// TODO: better tests
-// TODO: this will not accept diacritict chars, IMHO we should have here a regexp
-// that detects any hostname/whatever string
-const URL_REGEX = '(http|https)://[\\w-]+(\\.[\\w-]+)+([\\w-.,@?^=%&:/~+#-]*[\\w@?^=%&;/~+#-])?';
 
 /**
  * Helper function that validates unique.
@@ -356,14 +350,14 @@ export default class RequestList {
      */
     _addRequestsFromUrl(source) {
         const sharedOpts = _.omit(source, 'requestsFromUrl', 'regex');
-        const {
-            requestsFromUrl,
-            regex = URL_REGEX,
-        } = source;
+        const { requestsFromUrl, regex } = source;
+        const { downloadListOfUrls } = publicUtils;
 
-        return requestPromise.get(requestsFromUrl)
-            .then((urlsStr) => {
-                const urlsArr = urlsStr.match(new RegExp(regex, 'gi'));
+        return downloadListOfUrls({
+            url: requestsFromUrl,
+            urlRegExp: regex,
+        })
+            .then((urlsArr) => {
                 const originalLength = this.requests.length;
 
                 if (urlsArr) {
