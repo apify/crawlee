@@ -239,6 +239,8 @@ describe('dataset', () => {
     });
 
     describe('remote', async () => {
+        const mockData = bytes => 'x'.repeat(bytes);
+
         it('should succesfully save data', async () => {
             const dataset = new Dataset('some-id');
             const mock = sinon.mock(apifyClient.datasets);
@@ -267,6 +269,99 @@ describe('dataset', () => {
 
             mock.verify();
             mock.restore();
+        });
+
+        it('should successfully chunk large data', async () => {
+            const half = mockData(MAX_PAYLOAD_SIZE_BYTES / 2);
+
+            const dataset = new Dataset('some-id');
+            const mock = sinon.mock(apifyClient.datasets);
+
+            mock.expects('putItems')
+                .once()
+                .withArgs({ datasetId: 'some-id', data: JSON.stringify([{ foo: half }]) })
+                .returns(Promise.resolve(null));
+
+            mock.expects('putItems')
+                .once()
+                .withArgs({ datasetId: 'some-id', data: JSON.stringify([{ bar: half }]) })
+                .returns(Promise.resolve(null));
+
+            await dataset.pushData([
+                { foo: half },
+                { bar: half },
+            ]);
+
+            mock.expects('deleteDataset')
+                .once()
+                .withArgs({ datasetId: 'some-id' })
+                .returns(Promise.resolve());
+            await dataset.delete();
+
+            mock.verify();
+            mock.restore();
+        });
+
+        it('should successfully chunk small data', async () => {
+            const count = 20;
+            const string = mockData(MAX_PAYLOAD_SIZE_BYTES / count);
+            const chunk = { foo: string, bar: 'baz' };
+            const data = Array(count).fill(chunk);
+            const expectedFirst = JSON.stringify(Array(count - 1).fill(chunk));
+            const expectedSecond = JSON.stringify([chunk]);
+
+            const dataset = new Dataset('some-id');
+            const mock = sinon.mock(apifyClient.datasets);
+
+            mock.expects('putItems')
+                .once()
+                .withArgs({ datasetId: 'some-id', data: expectedFirst })
+                .returns(Promise.resolve(null));
+
+            mock.expects('putItems')
+                .once()
+                .withArgs({ datasetId: 'some-id', data: expectedSecond })
+                .returns(Promise.resolve(null));
+
+            await dataset.pushData(data);
+
+            mock.expects('deleteDataset')
+                .once()
+                .withArgs({ datasetId: 'some-id' })
+                .returns(Promise.resolve());
+            await dataset.delete();
+
+            mock.verify();
+            mock.restore();
+        });
+
+        it('should throw on too large file', async () => {
+            const full = mockData(MAX_PAYLOAD_SIZE_BYTES);
+            const dataset = new Dataset('some-id');
+            try {
+                await dataset.pushData({ foo: full });
+                throw new Error('Should fail!');
+            } catch (err) {
+                expect(err).to.be.an('error');
+                expect(err.message).to.include('Pushed data too large!');
+            }
+        });
+        it('should throw on too large file in an array', async () => {
+            const full = mockData(MAX_PAYLOAD_SIZE_BYTES);
+            const dataset = new Dataset('some-id');
+            try {
+                await dataset.pushData([
+                    1,
+                    'two',
+                    3,
+                    { foo: full },
+                    ['six'],
+                ]);
+                throw new Error('Should fail!');
+            } catch (err) {
+                expect(err).to.be.an('error');
+                expect(err.message).to.include('Pushed data at index 3 too large!');
+            }
         });
 
 
