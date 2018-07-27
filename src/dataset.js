@@ -13,6 +13,7 @@ export const LOCAL_EMULATION_SUBDIR = LOCAL_EMULATION_SUBDIRS.datasets;
 export const LOCAL_FILENAME_DIGITS = 9;
 export const LOCAL_GET_ITEMS_DEFAULT_LIMIT = 250000;
 const MAX_OPENED_STORES = 1000;
+export const MAX_PAYLOAD_SIZE_BYTES = 9437184; // 9MB
 
 const writeFilePromised = Promise.promisify(fs.writeFile);
 const readFilePromised = Promise.promisify(fs.readFile);
@@ -61,11 +62,67 @@ export class Dataset {
      */
     pushData(data) {
         checkParamOrThrow(data, 'data', 'Array | Object');
+        const dispatch = payload => datasets.putItems({ datasetId: this.datasetId, data: payload });
+        const toJSONArray = array => `[${array.join(',')}]`;
+        const checkAndSerialize = (item, index) => {
+            const payload = JSON.stringify(item);
+            const bytes = Buffer.byteLength(payload);
+            if (bytes > MAX_PAYLOAD_SIZE_BYTES) {
+                const s = index ? ` at index ${index} ` : ' ';
+                throw new Error(`Pushed data${s}too large! Actual: ${bytes} bytes. Limit: ${MAX_PAYLOAD_SIZE_BYTES}`);
+            }
+            return { bytes, payload };
+        };
 
-        return datasets.putItems({
-            datasetId: this.datasetId,
-            data,
-        });
+        // handle singular Objects
+        if (!Array.isArray(data)) {
+            try {
+                const { payload } = checkAndSerialize(data);
+                return dispatch(payload);
+            } catch (err) {
+                return Promise.reject(err);
+            }
+        }
+
+        // handle Arrays
+        let items;
+        let totalBytes = 0;
+        try {
+            items = data.map((item, index) => {
+                const piece = checkAndSerialize(item, index);
+                totalBytes += piece.bytes;
+                return piece;
+            });
+        } catch (err) {
+            return Promise.reject(err);
+        }
+
+        // send immediately if not over limit
+        if (totalBytes < MAX_PAYLOAD_SIZE_BYTES) return dispatch(toJSONArray(items.map(i => i.payload)));
+
+        // reducer object
+        const r = { lastChunkBytes: 0, chunks: [] };
+        // split payloads into buckets of valid size
+        for (const { bytes, payload } of items) { // eslint-disable-line
+            const last = r.chunks.length - 1;
+            if (r.lastChunkBytes + bytes < MAX_PAYLOAD_SIZE_BYTES) {
+                if (!Array.isArray(r.chunks[last])) r.chunks.push([payload]);
+                else r.chunks[last].push(payload);
+                r.lastChunkBytes += bytes;
+            } else {
+                const chunk = r.chunks.pop();
+                r.chunks.push(toJSONArray(chunk));
+                r.chunks.push([payload]);
+                r.lastChunkBytes = bytes;
+            }
+        }
+
+        // stringify last chunk
+        const lastChunk = r.chunks.pop();
+        r.chunks.push(toJSONArray(lastChunk));
+
+        // invoke client in series to preserve order of data
+        return Promise.mapSeries(r.chunks, chunk => dispatch(chunk));
     }
 
     /**
