@@ -6,7 +6,8 @@ import path from 'path';
 import sinon from 'sinon';
 import { leftpad, delayPromise } from 'apify-shared/utilities';
 import { ENV_VARS } from '../build/constants';
-import { LOCAL_FILENAME_DIGITS, Dataset, DatasetLocal, LOCAL_EMULATION_SUBDIR, LOCAL_GET_ITEMS_DEFAULT_LIMIT, MAX_PAYLOAD_SIZE_BYTES } from '../build/dataset';
+import { LOCAL_FILENAME_DIGITS, Dataset, DatasetLocal, LOCAL_EMULATION_SUBDIR,
+    LOCAL_GET_ITEMS_DEFAULT_LIMIT, MAX_PAYLOAD_SIZE_BYTES } from '../build/dataset';
 import { apifyClient } from '../build/utils';
 import * as Apify from '../build/index';
 import { LOCAL_EMULATION_DIR, emptyLocalEmulationSubdir, expectNotLocalEmulation, expectDirEmpty, expectDirNonEmpty } from './_helper';
