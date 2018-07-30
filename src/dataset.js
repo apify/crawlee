@@ -6,14 +6,13 @@ import Promise from 'bluebird';
 import { leftpad } from 'apify-shared/utilities';
 import LruCache from 'apify-shared/lru_cache';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { ENV_VARS, LOCAL_EMULATION_SUBDIRS } from './constants';
+import { ENV_VARS, LOCAL_EMULATION_SUBDIRS, MAX_PAYLOAD_SIZE_BYTES } from './constants';
 import { apifyClient, ensureDirExists } from './utils';
 
 export const LOCAL_EMULATION_SUBDIR = LOCAL_EMULATION_SUBDIRS.datasets;
 export const LOCAL_FILENAME_DIGITS = 9;
 export const LOCAL_GET_ITEMS_DEFAULT_LIMIT = 250000;
 const MAX_OPENED_STORES = 1000;
-export const MAX_PAYLOAD_SIZE_BYTES = 9437184; // 9MB
 
 const writeFilePromised = Promise.promisify(fs.writeFile);
 const readFilePromised = Promise.promisify(fs.readFile);
@@ -62,19 +61,21 @@ export class Dataset {
      */
     pushData(data) {
         checkParamOrThrow(data, 'data', 'Array | Object');
+        const payloadLimitBytes = MAX_PAYLOAD_SIZE_BYTES - 32; // create some leeway
+
         const dispatch = payload => datasets.putItems({ datasetId: this.datasetId, data: payload });
-        const toJSONArray = array => `[${array.join(',')}]`;
+        const toJsonArray = array => `[${array.join(',')}]`;
         const checkAndSerialize = (item, index) => {
             const payload = JSON.stringify(item);
             const bytes = Buffer.byteLength(payload);
-            if (bytes > MAX_PAYLOAD_SIZE_BYTES) {
-                const s = index ? ` at index ${index} ` : ' ';
-                throw new Error(`Pushed data${s}too large! Actual: ${bytes} bytes. Limit: ${MAX_PAYLOAD_SIZE_BYTES}`);
+            if (bytes > payloadLimitBytes) {
+                const s = typeof index === 'number' ? ` at index ${index} ` : ' ';
+                throw new Error(`Data item${s}is too large (size: ${bytes} bytes, limit: ${MAX_PAYLOAD_SIZE_BYTES} bytes)`);
             }
             return { bytes, payload };
         };
 
-        // handle singular Objects
+        // Handle singular Objects
         if (!Array.isArray(data)) {
             try {
                 const { payload } = checkAndSerialize(data);
@@ -84,7 +85,7 @@ export class Dataset {
             }
         }
 
-        // handle Arrays
+        // Handle Arrays
         let items;
         let totalBytes = 0;
         try {
@@ -97,32 +98,34 @@ export class Dataset {
             return Promise.reject(err);
         }
 
-        // send immediately if not over limit
-        if (totalBytes < MAX_PAYLOAD_SIZE_BYTES) return dispatch(toJSONArray(items.map(i => i.payload)));
+        // Send immediately if not over limit
+        if (totalBytes < payloadLimitBytes) return dispatch(toJsonArray(items.map(i => i.payload)));
 
-        // reducer object
-        const r = { lastChunkBytes: 0, chunks: [] };
-        // split payloads into buckets of valid size
+        let lastChunkBytes = 0;
+        const chunks = [];
+        // Split payloads into buckets of valid size
         for (const { bytes, payload } of items) { // eslint-disable-line
-            const last = r.chunks.length - 1;
-            if (r.lastChunkBytes + bytes < MAX_PAYLOAD_SIZE_BYTES) {
-                if (!Array.isArray(r.chunks[last])) r.chunks.push([payload]);
-                else r.chunks[last].push(payload);
-                r.lastChunkBytes += bytes;
+            // Ensure last item is always an array
+            if (!Array.isArray(_.last(chunks))) chunks.push([]);
+            if (lastChunkBytes + bytes < payloadLimitBytes) {
+                // If the item fits in the last chunk, push it there.
+                _.last(chunks).push(payload);
+                lastChunkBytes += bytes + 1; // add 1 byte for ',' separator
             } else {
-                const chunk = r.chunks.pop();
-                r.chunks.push(toJSONArray(chunk));
-                r.chunks.push([payload]);
-                r.lastChunkBytes = bytes;
+                // Otherwise, the last chunk is full. Serialize it and create a new chunk.
+                const chunk = chunks.pop();
+                chunks.push(toJsonArray(chunk));
+                chunks.push([payload]);
+                lastChunkBytes = bytes + 2; // add 2 bytes for [] wrapper
             }
         }
 
-        // stringify last chunk
-        const lastChunk = r.chunks.pop();
-        r.chunks.push(toJSONArray(lastChunk));
+        // Stringify last chunk
+        const lastChunk = chunks.pop();
+        chunks.push(toJsonArray(lastChunk));
 
-        // invoke client in series to preserve order of data
-        return Promise.mapSeries(r.chunks, chunk => dispatch(chunk));
+        // Invoke client in series to preserve order of data
+        return Promise.mapSeries(chunks, chunk => dispatch(chunk));
     }
 
     /**

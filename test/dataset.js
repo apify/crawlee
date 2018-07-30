@@ -5,9 +5,9 @@ import fs from 'fs-extra';
 import path from 'path';
 import sinon from 'sinon';
 import { leftpad, delayPromise } from 'apify-shared/utilities';
-import { ENV_VARS } from '../build/constants';
+import { ENV_VARS, MAX_PAYLOAD_SIZE_BYTES } from '../build/constants';
 import { LOCAL_FILENAME_DIGITS, Dataset, DatasetLocal, LOCAL_EMULATION_SUBDIR,
-    LOCAL_GET_ITEMS_DEFAULT_LIMIT, MAX_PAYLOAD_SIZE_BYTES } from '../build/dataset';
+    LOCAL_GET_ITEMS_DEFAULT_LIMIT } from '../build/dataset';
 import { apifyClient } from '../build/utils';
 import * as Apify from '../build/index';
 import { LOCAL_EMULATION_DIR, emptyLocalEmulationSubdir, expectNotLocalEmulation, expectDirEmpty, expectDirNonEmpty } from './_helper';
@@ -344,7 +344,7 @@ describe('dataset', () => {
                 throw new Error('Should fail!');
             } catch (err) {
                 expect(err).to.be.an('error');
-                expect(err.message).to.include('Pushed data too large!');
+                expect(err.message).to.include('Data item is too large');
             }
         });
         it('should throw on too large file in an array', async () => {
@@ -361,7 +361,7 @@ describe('dataset', () => {
                 throw new Error('Should fail!');
             } catch (err) {
                 expect(err).to.be.an('error');
-                expect(err.message).to.include('Pushed data at index 3 too large!');
+                expect(err.message).to.include('Data item at index 3 is too large');
             }
         });
 
