@@ -40,6 +40,7 @@ export const checkAndSerialize = (item, limitBytes, index) => {
     const s = typeof index === 'number' ? ` at index ${index} ` : ' ';
     let payload;
     try {
+        checkParamOrThrow(item, 'item', 'Object');
         payload = JSON.stringify(item);
     } catch (err) {
         throw new Error(`Data item${s}is not serializable to JSON.\nCause: ${err.message}`);
@@ -58,6 +59,8 @@ export const checkAndSerialize = (item, limitBytes, index) => {
  * JSON array. Fits as many payloads as possible into a single JSON array and then moves
  * on to the next, preserving item order.
  *
+ * The function assumes that none of the items is larger than limitBytes and does not validate.
+ *
  * @param {Array} items
  * @param {Number} limitBytes
  * @returns {Array}
@@ -65,15 +68,20 @@ export const checkAndSerialize = (item, limitBytes, index) => {
  */
 export const chunkBySize = (items, limitBytes) => {
     if (!items.length) return [];
+    if (items.length === 1) return items;
 
     let lastChunkBytes = 2; // Add 2 bytes for [] wrapper.
-    const chunks = [[]]; // Prepopulate with an empty array.
-
+    const chunks = [];
     // Split payloads into buckets of valid size.
     for (const payload of items) { // eslint-disable-line
         const bytes = Buffer.byteLength(payload);
 
-        if (lastChunkBytes + bytes < limitBytes) {
+        if (bytes <= limitBytes && (bytes + 2) > limitBytes) {
+            // handle cases where wrapping with [] would fail, but solo object is fine
+            chunks.push(payload);
+            lastChunkBytes = bytes;
+        } else if (lastChunkBytes + bytes <= limitBytes) {
+            if (!Array.isArray(_.last(chunks))) chunks.push([]); // ensure array
             _.last(chunks).push(payload);
             lastChunkBytes += bytes + 1; // add 1 byte for ',' separator
         } else {
@@ -82,8 +90,8 @@ export const chunkBySize = (items, limitBytes) => {
         }
     }
 
-    // Stringify each chunk.
-    return chunks.map(chunk => `[${chunk.join(',')}]`);
+    // Stringify array chunks.
+    return chunks.map(chunk => (typeof chunk === 'string' ? chunk : `[${chunk.join(',')}]`));
 };
 
 /**

@@ -7,7 +7,7 @@ import sinon from 'sinon';
 import { leftpad, delayPromise } from 'apify-shared/utilities';
 import { ENV_VARS, MAX_PAYLOAD_SIZE_BYTES } from '../build/constants';
 import { LOCAL_FILENAME_DIGITS, Dataset, DatasetLocal, LOCAL_EMULATION_SUBDIR,
-    LOCAL_GET_ITEMS_DEFAULT_LIMIT } from '../build/dataset';
+    LOCAL_GET_ITEMS_DEFAULT_LIMIT, checkAndSerialize, chunkBySize } from '../build/dataset';
 import { apifyClient } from '../build/utils';
 import * as Apify from '../build/index';
 import { LOCAL_EMULATION_DIR, emptyLocalEmulationSubdir, expectNotLocalEmulation, expectDirEmpty, expectDirNonEmpty } from './_helper';
@@ -361,11 +361,11 @@ describe('dataset', () => {
             const dataset = new Dataset('some-id');
             try {
                 await dataset.pushData([
-                    1,
-                    'two',
-                    3,
+                    { foo: 0 },
+                    { foo: 1 },
+                    { foo: 2 },
                     { foo: full },
-                    ['six'],
+                    { foo: 4 },
                 ]);
                 throw new Error('Should fail!');
             } catch (err) {
@@ -743,6 +743,57 @@ describe('dataset', () => {
             expect(read('some-id-9', 2)).to.be.eql({ foo: 'hotel' });
 
             delete process.env[ENV_VARS.LOCAL_EMULATION_DIR];
+        });
+    });
+
+    describe('utils', async () => {
+        it('checkAndSerialize() works', () => {
+            // basic
+            const obj = { foo: 'bar' };
+            const json = JSON.stringify(obj);
+            expect(checkAndSerialize({}, 100)).to.be.eql('{}');
+            expect(checkAndSerialize(obj, 100)).to.be.eql(json);
+            // with index
+            expect(checkAndSerialize(obj, 100, 1)).to.be.eql(json);
+            // too large
+            expect(() => checkAndSerialize(obj, 5)).to.throw(Error, 'Data item is too large');
+            expect(() => checkAndSerialize(obj, 5, 7)).to.throw(Error, 'at index 7');
+            // bad JSON
+            const bad = {};
+            bad.bad = bad;
+            expect(() => checkAndSerialize(bad, 100)).to.throw(Error, 'not serializable');
+            // bad data
+            const str = 'hello';
+            expect(() => checkAndSerialize(str, 100)).to.throw(Error, 'not serializable');
+            expect(() => checkAndSerialize([], 100)).to.throw(Error, 'not serializable');
+            expect(() => checkAndSerialize([str, str], 100)).to.throw(Error, 'not serializable');
+        });
+        it('chunkBySize', () => {
+            const obj = { foo: 'bar' };
+            const json = JSON.stringify(obj);
+            const size = Buffer.byteLength(json);
+            const triple = [json, json, json];
+            const originalTriple = [obj, obj, obj];
+            const chunk = `[${json}]`;
+            const tripleChunk = `[${json},${json},${json}]`;
+            const tripleSize = Buffer.byteLength(tripleChunk);
+            // empty array
+            expect(chunkBySize([], 10)).to.be.eql([]);
+            // fits easily
+            expect(chunkBySize([json], size + 10)).to.be.eql([json]);
+            expect(chunkBySize(triple, tripleSize + 10)).to.be.eql([tripleChunk]);
+            // parses back to original objects
+            expect(originalTriple).to.be.eql(JSON.parse(tripleChunk));
+            // fits exactly
+            expect(chunkBySize([json], size)).to.be.eql([json]);
+            expect(chunkBySize(triple, tripleSize)).to.be.eql([tripleChunk]);
+            // chunks large items individually
+            expect(chunkBySize(triple, size)).to.be.eql(triple);
+            expect(chunkBySize(triple, size + 1)).to.be.eql(triple);
+            expect(chunkBySize(triple, size + 2)).to.be.eql([chunk, chunk, chunk]);
+            // chunks smaller items together
+            expect(chunkBySize(triple, (2 * size) + 3)).to.be.eql([`[${json},${json}]`, chunk]);
+            expect(chunkBySize([...triple, ...triple], (2 * size) + 3)).to.be.eql([`[${json},${json}]`, `[${json},${json}]`, `[${json},${json}]`]);
         });
     });
 });
