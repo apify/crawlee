@@ -6,13 +6,14 @@ import Promise from 'bluebird';
 import { leftpad } from 'apify-shared/utilities';
 import LruCache from 'apify-shared/lru_cache';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { ENV_VARS, LOCAL_EMULATION_SUBDIRS } from './constants';
+import { ENV_VARS, LOCAL_EMULATION_SUBDIRS, MAX_PAYLOAD_SIZE_BYTES } from './constants';
 import { apifyClient, ensureDirExists } from './utils';
 
 export const LOCAL_EMULATION_SUBDIR = LOCAL_EMULATION_SUBDIRS.datasets;
 export const LOCAL_FILENAME_DIGITS = 9;
 export const LOCAL_GET_ITEMS_DEFAULT_LIMIT = 250000;
 const MAX_OPENED_STORES = 1000;
+const SAFETY_BUFFER_PERCENT = 0.01 / 100; // 0.01%
 
 const writeFilePromised = Promise.promisify(fs.writeFile);
 const readFilePromised = Promise.promisify(fs.readFile);
@@ -23,6 +24,75 @@ const getLocaleFilename = index => `${leftpad(index, LOCAL_FILENAME_DIGITS, 0)}.
 
 const { datasets } = apifyClient;
 const datasetsCache = new LruCache({ maxLength: MAX_OPENED_STORES }); // Open Datasets are stored here.
+
+/**
+ * Accepts a JSON serializable object as an input, validates its serializability,
+ * and validates its serialized size against limitBytes. Optionally accepts its index
+ * in an array to provide better error messages. Returns serialized object.
+ *
+ * @param {Object} item
+ * @param {Number} limitBytes
+ * @param {Number} [index]
+ * @returns {string}
+ * @ignore
+ */
+export const checkAndSerialize = (item, limitBytes, index) => {
+    const s = typeof index === 'number' ? ` at index ${index} ` : ' ';
+    let payload;
+    try {
+        checkParamOrThrow(item, 'item', 'Object');
+        payload = JSON.stringify(item);
+    } catch (err) {
+        throw new Error(`Data item${s}is not serializable to JSON.\nCause: ${err.message}`);
+    }
+
+    const bytes = Buffer.byteLength(payload);
+    if (bytes > limitBytes) {
+        throw new Error(`Data item${s}is too large (size: ${bytes} bytes, limit: ${limitBytes} bytes)`);
+    }
+    return payload;
+};
+
+/**
+ * Takes an array of JSONs (payloads) as input and produces an array of JSON strings
+ * where each string is a JSON array of payloads with a maximum size of limitBytes per one
+ * JSON array. Fits as many payloads as possible into a single JSON array and then moves
+ * on to the next, preserving item order.
+ *
+ * The function assumes that none of the items is larger than limitBytes and does not validate.
+ *
+ * @param {Array} items
+ * @param {Number} limitBytes
+ * @returns {Array}
+ * @ignore
+ */
+export const chunkBySize = (items, limitBytes) => {
+    if (!items.length) return [];
+    if (items.length === 1) return items;
+
+    let lastChunkBytes = 2; // Add 2 bytes for [] wrapper.
+    const chunks = [];
+    // Split payloads into buckets of valid size.
+    for (const payload of items) { // eslint-disable-line
+        const bytes = Buffer.byteLength(payload);
+
+        if (bytes <= limitBytes && (bytes + 2) > limitBytes) {
+            // Handle cases where wrapping with [] would fail, but solo object is fine.
+            chunks.push(payload);
+            lastChunkBytes = bytes;
+        } else if (lastChunkBytes + bytes <= limitBytes) {
+            if (!Array.isArray(_.last(chunks))) chunks.push([]); // ensure array
+            _.last(chunks).push(payload);
+            lastChunkBytes += bytes + 1; // Add 1 byte for ',' separator.
+        } else {
+            chunks.push([payload]);
+            lastChunkBytes = bytes + 2; // Add 2 bytes for [] wrapper.
+        }
+    }
+
+    // Stringify array chunks.
+    return chunks.map(chunk => (typeof chunk === 'string' ? chunk : `[${chunk.join(',')}]`));
+};
 
 /**
  * @typedef {Object} PaginationList
@@ -61,11 +131,30 @@ export class Dataset {
      */
     pushData(data) {
         checkParamOrThrow(data, 'data', 'Array | Object');
+        const dispatch = payload => datasets.putItems({ datasetId: this.datasetId, data: payload });
+        const limit = MAX_PAYLOAD_SIZE_BYTES - Math.ceil(MAX_PAYLOAD_SIZE_BYTES * SAFETY_BUFFER_PERCENT);
 
-        return datasets.putItems({
-            datasetId: this.datasetId,
-            data,
-        });
+        // Handle singular Objects
+        if (!Array.isArray(data)) {
+            try {
+                const payload = checkAndSerialize(data, limit);
+                return dispatch(payload);
+            } catch (err) {
+                return Promise.reject(err);
+            }
+        }
+
+        // Handle Arrays
+        let payloads;
+        try {
+            payloads = data.map((item, index) => checkAndSerialize(item, limit, index));
+        } catch (err) {
+            return Promise.reject(err);
+        }
+        const chunks = chunkBySize(payloads, limit);
+
+        // Invoke client in series to preserve order of data
+        return Promise.mapSeries(chunks, chunk => dispatch(chunk));
     }
 
     /**

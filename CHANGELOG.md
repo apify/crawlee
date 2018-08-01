@@ -2,6 +2,7 @@ xxxxxxxxxxxxxxxxxxx
 ===================
 - Fixed invalid URL parsing in RequestList.
 - Added support for non-latin language characters (unicode) in URLs.
+- Added validation of payload size and automatic chunking to `dataset.pushData()`
 
 0.5.47 / 2018-07-20
 ===================
