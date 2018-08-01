@@ -42,7 +42,7 @@ export const checkAndSerialize = (item, limitBytes, index) => {
     try {
         payload = JSON.stringify(item);
     } catch (err) {
-        throw new Error(`Data item${s}is not serializable to JSON.`);
+        throw new Error(`Data item${s}is not serializable to JSON.\nCause: ${err.message}`);
     }
 
     const bytes = Buffer.byteLength(payload);
