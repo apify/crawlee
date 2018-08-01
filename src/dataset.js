@@ -77,16 +77,16 @@ export const chunkBySize = (items, limitBytes) => {
         const bytes = Buffer.byteLength(payload);
 
         if (bytes <= limitBytes && (bytes + 2) > limitBytes) {
-            // handle cases where wrapping with [] would fail, but solo object is fine
+            // Handle cases where wrapping with [] would fail, but solo object is fine.
             chunks.push(payload);
             lastChunkBytes = bytes;
         } else if (lastChunkBytes + bytes <= limitBytes) {
             if (!Array.isArray(_.last(chunks))) chunks.push([]); // ensure array
             _.last(chunks).push(payload);
-            lastChunkBytes += bytes + 1; // add 1 byte for ',' separator
+            lastChunkBytes += bytes + 1; // Add 1 byte for ',' separator.
         } else {
             chunks.push([payload]);
-            lastChunkBytes = bytes + 2; // add 2 bytes for [] wrapper
+            lastChunkBytes = bytes + 2; // Add 2 bytes for [] wrapper.
         }
     }
 

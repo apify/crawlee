@@ -748,21 +748,21 @@ describe('dataset', () => {
 
     describe('utils', async () => {
         it('checkAndSerialize() works', () => {
-            // basic
+            // Basic
             const obj = { foo: 'bar' };
             const json = JSON.stringify(obj);
             expect(checkAndSerialize({}, 100)).to.be.eql('{}');
             expect(checkAndSerialize(obj, 100)).to.be.eql(json);
-            // with index
+            // With index
             expect(checkAndSerialize(obj, 100, 1)).to.be.eql(json);
-            // too large
+            // Too large
             expect(() => checkAndSerialize(obj, 5)).to.throw(Error, 'Data item is too large');
             expect(() => checkAndSerialize(obj, 5, 7)).to.throw(Error, 'at index 7');
-            // bad JSON
+            // Bad JSON
             const bad = {};
             bad.bad = bad;
             expect(() => checkAndSerialize(bad, 100)).to.throw(Error, 'not serializable');
-            // bad data
+            // Bad data
             const str = 'hello';
             expect(() => checkAndSerialize(str, 100)).to.throw(Error, 'not serializable');
             expect(() => checkAndSerialize([], 100)).to.throw(Error, 'not serializable');
@@ -777,21 +777,21 @@ describe('dataset', () => {
             const chunk = `[${json}]`;
             const tripleChunk = `[${json},${json},${json}]`;
             const tripleSize = Buffer.byteLength(tripleChunk);
-            // empty array
+            // Empty array
             expect(chunkBySize([], 10)).to.be.eql([]);
-            // fits easily
+            // Fits easily
             expect(chunkBySize([json], size + 10)).to.be.eql([json]);
             expect(chunkBySize(triple, tripleSize + 10)).to.be.eql([tripleChunk]);
-            // parses back to original objects
+            // Parses back to original objects
             expect(originalTriple).to.be.eql(JSON.parse(tripleChunk));
-            // fits exactly
+            // Fits exactly
             expect(chunkBySize([json], size)).to.be.eql([json]);
             expect(chunkBySize(triple, tripleSize)).to.be.eql([tripleChunk]);
-            // chunks large items individually
+            // Chunks large items individually
             expect(chunkBySize(triple, size)).to.be.eql(triple);
             expect(chunkBySize(triple, size + 1)).to.be.eql(triple);
             expect(chunkBySize(triple, size + 2)).to.be.eql([chunk, chunk, chunk]);
-            // chunks smaller items together
+            // Chunks smaller items together
             expect(chunkBySize(triple, (2 * size) + 3)).to.be.eql([`[${json},${json}]`, chunk]);
             expect(chunkBySize([...triple, ...triple], (2 * size) + 3)).to.be.eql([`[${json},${json}]`, `[${json},${json}]`, `[${json},${json}]`]);
         });
