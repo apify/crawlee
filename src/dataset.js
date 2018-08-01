@@ -13,6 +13,7 @@ export const LOCAL_EMULATION_SUBDIR = LOCAL_EMULATION_SUBDIRS.datasets;
 export const LOCAL_FILENAME_DIGITS = 9;
 export const LOCAL_GET_ITEMS_DEFAULT_LIMIT = 250000;
 const MAX_OPENED_STORES = 1000;
+const SAFETY_BUFFER_PERCENT = 0.01 / 100; // 0.01%
 
 const writeFilePromised = Promise.promisify(fs.writeFile);
 const readFilePromised = Promise.promisify(fs.readFile);
@@ -23,6 +24,73 @@ const getLocaleFilename = index => `${leftpad(index, LOCAL_FILENAME_DIGITS, 0)}.
 
 const { datasets } = apifyClient;
 const datasetsCache = new LruCache({ maxLength: MAX_OPENED_STORES }); // Open Datasets are stored here.
+
+/**
+ * Accepts a JSON serializable object as an input, validates its serializability,
+ * and validates its serialized size against limitBytes. Optionally accepts its index
+ * in an array to provide better error messages. Returns serialized object.
+ *
+ * @param {Object} item
+ * @param {Number} limitBytes
+ * @param {Number} [index]
+ * @returns {string}
+ * @ignore
+ */
+export const checkAndSerialize = (item, limitBytes, index) => {
+    const s = typeof index === 'number' ? ` at index ${index} ` : ' ';
+    let payload;
+    try {
+        payload = JSON.stringify(item);
+    } catch (err) {
+        throw new Error(`Data item${s}is not serializable to JSON.`);
+    }
+
+    const bytes = Buffer.byteLength(payload);
+    if (bytes > limitBytes) {
+        throw new Error(`Data item${s}is too large (size: ${bytes} bytes, limit: ${limitBytes} bytes)`);
+    }
+    return payload;
+};
+
+/**
+ * Takes an array of JSONs (payloads) as input and produces an array of JSON strings
+ * where each string is a JSON array of payloads with a maximum size of limitBytes per one
+ * JSON array. Fits as many payloads as possible into a single JSON array and then moves
+ * on to the next, preserving item order.
+ *
+ * @param {Array} items
+ * @param {Number} limitBytes
+ * @returns {Array}
+ * @ignore
+ */
+export const chunkBySize = (items, limitBytes) => {
+    const toJsonArray = array => `[${array.join(',')}]`;
+
+    let lastChunkBytes = 2; // add 2 bytes for [] wrapper
+    const chunks = [];
+    // Split payloads into buckets of valid size
+    for (const payload of items) { // eslint-disable-line
+        const bytes = Buffer.byteLength(payload);
+        // Ensure last item is always an array
+        if (!Array.isArray(_.last(chunks))) chunks.push([]);
+        if (lastChunkBytes + bytes < limitBytes) {
+            // If the item fits in the last chunk, push it there.
+            _.last(chunks).push(payload);
+            lastChunkBytes += bytes + 1; // add 1 byte for ',' separator
+        } else {
+            // Otherwise, the last chunk is full. Serialize it and create a new chunk.
+            const chunk = chunks.pop();
+            chunks.push(toJsonArray(chunk));
+            chunks.push([payload]);
+            lastChunkBytes = bytes + 2; // add 2 bytes for [] wrapper
+        }
+    }
+
+    // Stringify last chunk
+    const lastChunk = chunks.pop();
+    chunks.push(toJsonArray(lastChunk));
+    return chunks;
+};
 
 /**
  * @typedef {Object} PaginationList
@@ -61,24 +129,13 @@ export class Dataset {
      */
     pushData(data) {
         checkParamOrThrow(data, 'data', 'Array | Object');
-        const payloadLimitBytes = MAX_PAYLOAD_SIZE_BYTES - 32; // create some leeway
-
         const dispatch = payload => datasets.putItems({ datasetId: this.datasetId, data: payload });
-        const toJsonArray = array => `[${array.join(',')}]`;
-        const checkAndSerialize = (item, index) => {
-            const payload = JSON.stringify(item);
-            const bytes = Buffer.byteLength(payload);
-            if (bytes > payloadLimitBytes) {
-                const s = typeof index === 'number' ? ` at index ${index} ` : ' ';
-                throw new Error(`Data item${s}is too large (size: ${bytes} bytes, limit: ${MAX_PAYLOAD_SIZE_BYTES} bytes)`);
-            }
-            return { bytes, payload };
-        };
+        const limit = MAX_PAYLOAD_SIZE_BYTES - Math.ceil(MAX_PAYLOAD_SIZE_BYTES * SAFETY_BUFFER_PERCENT);
 
         // Handle singular Objects
         if (!Array.isArray(data)) {
             try {
-                const { payload } = checkAndSerialize(data);
+                const payload = checkAndSerialize(data, limit);
                 return dispatch(payload);
             } catch (err) {
                 return Promise.reject(err);
@@ -86,43 +143,13 @@ export class Dataset {
         }
 
         // Handle Arrays
-        let items;
-        let totalBytes = 0;
+        let payloads;
         try {
-            items = data.map((item, index) => {
-                const piece = checkAndSerialize(item, index);
-                totalBytes += piece.bytes;
-                return piece;
-            });
+            payloads = data.map((item, index) => checkAndSerialize(item, limit, index));
         } catch (err) {
             return Promise.reject(err);
         }
-
-        // Send immediately if not over limit
-        if (totalBytes < payloadLimitBytes) return dispatch(toJsonArray(items.map(i => i.payload)));
-
-        let lastChunkBytes = 0;
-        const chunks = [];
-        // Split payloads into buckets of valid size
-        for (const { bytes, payload } of items) { // eslint-disable-line
-            // Ensure last item is always an array
-            if (!Array.isArray(_.last(chunks))) chunks.push([]);
-            if (lastChunkBytes + bytes < payloadLimitBytes) {
-                // If the item fits in the last chunk, push it there.
-                _.last(chunks).push(payload);
-                lastChunkBytes += bytes + 1; // add 1 byte for ',' separator
-            } else {
-                // Otherwise, the last chunk is full. Serialize it and create a new chunk.
-                const chunk = chunks.pop();
-                chunks.push(toJsonArray(chunk));
-                chunks.push([payload]);
-                lastChunkBytes = bytes + 2; // add 2 bytes for [] wrapper
-            }
-        }
-
-        // Stringify last chunk
-        const lastChunk = chunks.pop();
-        chunks.push(toJsonArray(lastChunk));
+        const chunks = chunkBySize(payloads, limit);
 
         // Invoke client in series to preserve order of data
         return Promise.mapSeries(chunks, chunk => dispatch(chunk));

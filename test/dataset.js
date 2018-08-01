@@ -242,7 +242,7 @@ describe('dataset', () => {
     describe('remote', async () => {
         const mockData = bytes => 'x'.repeat(bytes);
 
-        it('should succesfully save data', async () => {
+        it('should succesfully save simple data', async () => {
             const dataset = new Dataset('some-id');
             const mock = sinon.mock(apifyClient.datasets);
 
@@ -272,7 +272,7 @@ describe('dataset', () => {
             mock.restore();
         });
 
-        it('should successfully chunk large data', async () => {
+        it('should successfully save large data', async () => {
             const half = mockData(MAX_PAYLOAD_SIZE_BYTES / 2);
 
             const dataset = new Dataset('some-id');
@@ -303,7 +303,7 @@ describe('dataset', () => {
             mock.restore();
         });
 
-        it('should successfully chunk small data', async () => {
+        it('should successfully save lots of small data', async () => {
             const count = 20;
             const string = mockData(MAX_PAYLOAD_SIZE_BYTES / count);
             const chunk = { foo: string, bar: 'baz' };
@@ -337,6 +337,7 @@ describe('dataset', () => {
         });
 
         it('should throw on too large file', async () => {
+            const mock = sinon.mock(apifyClient.datasets);
             const full = mockData(MAX_PAYLOAD_SIZE_BYTES);
             const dataset = new Dataset('some-id');
             try {
@@ -346,8 +347,16 @@ describe('dataset', () => {
                 expect(err).to.be.an('error');
                 expect(err.message).to.include('Data item is too large');
             }
+            mock.expects('deleteDataset')
+                .once()
+                .withArgs({ datasetId: 'some-id' })
+                .returns(Promise.resolve());
+            await dataset.delete();
+            mock.verify();
+            mock.restore();
         });
         it('should throw on too large file in an array', async () => {
+            const mock = sinon.mock(apifyClient.datasets);
             const full = mockData(MAX_PAYLOAD_SIZE_BYTES);
             const dataset = new Dataset('some-id');
             try {
@@ -363,6 +372,13 @@ describe('dataset', () => {
                 expect(err).to.be.an('error');
                 expect(err.message).to.include('Data item at index 3 is too large');
             }
+            mock.expects('deleteDataset')
+                .once()
+                .withArgs({ datasetId: 'some-id' })
+                .returns(Promise.resolve());
+            await dataset.delete();
+            mock.verify();
+            mock.restore();
         });
 
 
