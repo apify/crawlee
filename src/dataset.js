@@ -64,32 +64,26 @@ export const checkAndSerialize = (item, limitBytes, index) => {
  * @ignore
  */
 export const chunkBySize = (items, limitBytes) => {
-    const toJsonArray = array => `[${array.join(',')}]`;
+    if (!items.length) return [];
 
-    let lastChunkBytes = 2; // add 2 bytes for [] wrapper
-    const chunks = [];
-    // Split payloads into buckets of valid size
+    let lastChunkBytes = 2; // Add 2 bytes for [] wrapper.
+    const chunks = [[]]; // Prepopulate with an empty array.
+
+    // Split payloads into buckets of valid size.
     for (const payload of items) { // eslint-disable-line
         const bytes = Buffer.byteLength(payload);
-        // Ensure last item is always an array
-        if (!Array.isArray(_.last(chunks))) chunks.push([]);
+
         if (lastChunkBytes + bytes < limitBytes) {
-            // If the item fits in the last chunk, push it there.
             _.last(chunks).push(payload);
             lastChunkBytes += bytes + 1; // add 1 byte for ',' separator
         } else {
-            // Otherwise, the last chunk is full. Serialize it and create a new chunk.
-            const chunk = chunks.pop();
-            chunks.push(toJsonArray(chunk));
             chunks.push([payload]);
             lastChunkBytes = bytes + 2; // add 2 bytes for [] wrapper
         }
     }
 
-    // Stringify last chunk
-    const lastChunk = chunks.pop();
-    chunks.push(toJsonArray(lastChunk));
-    return chunks;
+    // Stringify each chunk.
+    return chunks.map(chunk => `[${chunk.join(',')}]`);
 };
 
 /**
