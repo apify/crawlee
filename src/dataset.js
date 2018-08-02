@@ -125,7 +125,19 @@ export class Dataset {
 
     /**
      * Stores object or an array of objects in the dataset.
-     * The function has no result, but throws on invalid args or other errors.
+     * The function has no result, but rejects on invalid args or other errors.
+     *
+     * The size of data is limited by the receiving API and therefore pushData will only
+     * allow an {Object} smaller than 9MB. When an {Array} is passed, none of the included objects
+     * may be larger than 9MB, but the Array itself may be of any size. pushData will internally
+     * chunk the array into separate items for the client to dispatch them as separate requests.
+     *
+     * The chunking process is stable (keeps order of data), but it does not provide a transaction
+     * safety mechanism. Therefore, in case of an uploading error (after several automatic retries),
+     * the function's promise will reject and the dataset will be left in a state, where some of
+     * the items have already been saved to the dataset while other items from the source array were not.
+     * To overcome this limitation, the developer may for example read the last item saved in the dataset
+     * and re-attempt the save of the data from this item onwards to prevent duplicates.
      *
      * @return {Promise} That resolves when data gets saved into the dataset.
      */
