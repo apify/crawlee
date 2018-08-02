@@ -183,6 +183,14 @@ export class KeyValueStore {
 }
 
 /**
+ * Helper to create a file-matching RegExp from a KeyValueStore key.
+ * @param key
+ * @returns {RegExp}
+ * @ignore
+ */
+const getFileNameRegex = key => new RegExp(`^${key}\\.[a-z0-9]+$`);
+
+/**
  * This is a local representation of a key-value store.
  *
  * @ignore
@@ -203,7 +211,7 @@ export class KeyValueStoreLocal {
         return this.initializationPromise
             .then(() => readdirPromised(this.localEmulationPath))
             .then((files) => {
-                const regex = new RegExp(`^${key}\\.[a-z0-9]+$`);
+                const regex = getFileNameRegex(key);
                 const fileName = files.find(file => regex.test(file));
                 if (fileName) {
                     const filePath = path.resolve(this.localEmulationPath, fileName);
@@ -229,7 +237,7 @@ export class KeyValueStoreLocal {
 
         const deletePromise = readdirPromised(this.localEmulationPath)
             .then((files) => {
-                const regex = new RegExp(`^${key}\\.[a-z0-9]+$`);
+                const regex = getFileNameRegex(key);
                 const fileName = files.find(file => regex.test(file));
                 return fileName ? unlinkPromised(getPath(fileName)) : Promise.resolve();
             });
