@@ -4,6 +4,7 @@ import path from 'path';
 import Promise from 'bluebird';
 import contentTypeParser from 'content-type';
 import LruCache from 'apify-shared/lru_cache';
+import mime from 'mime';
 import { KEY_VALUE_STORE_KEY_REGEX } from 'apify-shared/regexs';
 import { checkParamOrThrow, parseBody } from 'apify-client/build/utils';
 import { ENV_VARS, LOCAL_EMULATION_SUBDIRS } from './constants';
@@ -11,17 +12,10 @@ import { addCharsetToContentType, apifyClient, ensureDirExists } from './utils';
 
 export const LOCAL_EMULATION_SUBDIR = LOCAL_EMULATION_SUBDIRS.keyValueStores;
 const MAX_OPENED_STORES = 1000;
-const LOCAL_FILE_TYPES = [
-    { contentType: 'application/octet-stream', extension: 'buffer' },
-    { contentType: 'application/json', extension: 'json' },
-    { contentType: 'text/plain', extension: 'txt' },
-    { contentType: 'image/jpeg', extension: 'jpg' },
-    { contentType: 'image/png', extension: 'png' },
-    { contentType: 'application/xml', extension: 'xml' },
-];
-const DEFAULT_LOCAL_FILE_TYPE = LOCAL_FILE_TYPES[0];
+const DEFAULT_LOCAL_FILE_EXTENSION = 'bin';
 
 const readFilePromised = Promise.promisify(fs.readFile);
+const readdirPromised = Promise.promisify(fs.readdir);
 const writeFilePromised = Promise.promisify(fs.writeFile);
 const unlinkPromised = Promise.promisify(fs.unlink);
 const emptyDirPromised = Promise.promisify(fsExtra.emptyDir);
@@ -207,26 +201,19 @@ export class KeyValueStoreLocal {
         validateGetValueParams(key);
 
         return this.initializationPromise
-            .then(() => {
-                const filePath = path.resolve(this.localEmulationPath, key);
-                const promises = LOCAL_FILE_TYPES.map(({ extension }) => {
-                    return readFilePromised(`${filePath}.${extension}`).catch(() => null);
-                });
-
-                return Promise.all(promises);
-            })
+            .then(() => readdirPromised(this.localEmulationPath))
             .then((files) => {
-                let body = null;
-
-                LOCAL_FILE_TYPES.some(({ contentType }, index) => {
-                    if (files[index] !== null) {
-                        body = parseBody(files[index], contentType);
-
-                        return true;
-                    }
-                });
-
-                return body;
+                const regex = new RegExp(`^${key}\\.[a-z0-9]+$`);
+                const fileName = files.find(file => regex.test(file));
+                if (fileName) {
+                    const filePath = path.resolve(this.localEmulationPath, fileName);
+                    return readFilePromised(filePath)
+                        .then((fileBuffer) => {
+                            const contentType = mime.getType(fileName);
+                            return parseBody(fileBuffer, contentType);
+                        });
+                }
+                return null;
             })
             .catch((err) => {
                 throw new Error(`Error reading file '${key}' in directory '${this.localEmulationPath}' referred by ${ENV_VARS.APIFY_LOCAL_EMULATION_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len
@@ -235,21 +222,17 @@ export class KeyValueStoreLocal {
 
     setValue(key, value, options = {}) {
         validateSetValueParams(key, value, options);
+        const getPath = fileName => path.resolve(this.localEmulationPath, fileName);
 
         // Make copy of options, don't update what user passed.
         const optionsCopy = Object.assign({}, options);
 
-        const deletePromisesArr = LOCAL_FILE_TYPES.map(({ extension }) => {
-            const filePath = path.resolve(this.localEmulationPath, `${key}.${extension}`);
-
-            return unlinkPromised(filePath)
-                .catch((err) => {
-                    if (err.code !== 'ENOENT') throw err;
-                });
-        });
-
-        const deletePromise = Promise
-            .all(deletePromisesArr);
+        const deletePromise = readdirPromised(this.localEmulationPath)
+            .then((files) => {
+                const regex = new RegExp(`^${key}\\.[a-z0-9]+$`);
+                const fileName = files.find(file => regex.test(file));
+                return fileName ? unlinkPromised(getPath(fileName)) : Promise.resolve();
+            });
 
         // In this case delete the record.
         if (value === null) return deletePromise;
@@ -257,8 +240,8 @@ export class KeyValueStoreLocal {
         value = maybeStringify(value, optionsCopy);
 
         const contentType = contentTypeParser.parse(optionsCopy.contentType).type;
-        const { extension } = LOCAL_FILE_TYPES.filter(type => type.contentType === contentType).pop() || DEFAULT_LOCAL_FILE_TYPE;
-        const filePath = path.resolve(this.localEmulationPath, `${key}.${extension}`);
+        const extension = mime.getExtension(contentType) || DEFAULT_LOCAL_FILE_EXTENSION;
+        const filePath = getPath(`${key}.${extension}`);
 
         return deletePromise
             .then(() => writeFilePromised(filePath, value))
