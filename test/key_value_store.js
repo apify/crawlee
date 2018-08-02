@@ -4,7 +4,7 @@ import 'babel-polyfill';
 import sinon from 'sinon';
 import path from 'path';
 import { ENV_VARS } from '../build/constants';
-import { KeyValueStoreLocal, KeyValueStore, maybeStringify, LOCAL_EMULATION_SUBDIR } from '../build/key_value_store';
+import { KeyValueStoreLocal, KeyValueStore, maybeStringify, getFileNameRegexp, LOCAL_EMULATION_SUBDIR } from '../build/key_value_store';
 import { apifyClient } from '../build/utils';
 import * as Apify from '../build/index';
 import { LOCAL_EMULATION_DIR, emptyLocalEmulationSubdir, expectNotLocalEmulation, expectDirEmpty, expectDirNonEmpty } from './_helper';
@@ -29,6 +29,23 @@ describe('KeyValueStore', () => {
             obj.self = obj;
             expect(() => maybeStringify(obj, { contentType: null }))
                 .to.throw('The "value" parameter cannot be stringified to JSON: Converting circular structure to JSON');
+        });
+    });
+
+    describe('getFileNameRegexp()', () => {
+        it('should work', () => {
+            const key = 'hello';
+            const filenames = [
+                'hello.txt', // valid
+                'hello.hello.txt',
+                'hello.mp3', // valid
+                'hello....',
+                'hello.hello', // valid
+                'hello.',
+                '.hello',
+            ];
+            const matched = filenames.reduce((count, name) => (getFileNameRegexp(key).test(name) ? ++count : count), 0);
+            expect(matched).to.be.eql(3);
         });
     });
 
