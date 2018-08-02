@@ -17,6 +17,7 @@ const LOCAL_FILE_TYPES = [
     { contentType: 'text/plain', extension: 'txt' },
     { contentType: 'image/jpeg', extension: 'jpg' },
     { contentType: 'image/png', extension: 'png' },
+    { contentType: 'application/xml', extension: 'xml' },
 ];
 const DEFAULT_LOCAL_FILE_TYPE = LOCAL_FILE_TYPES[0];
 
