@@ -378,6 +378,8 @@ const extractUrls = ({ string, urlRegExp = URL_NO_COMMAS_REGEX }) => {
 
 /**
  * Returns a randomly selected User-Agent header out of a list of the most common headers.
+ * @returns {String}
+ * @memberOf utils
  */
 const getRandomUserAgent = () => {
     const index = getRandomInt(USER_AGENT_LIST.length);
