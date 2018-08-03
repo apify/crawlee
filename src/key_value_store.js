@@ -275,7 +275,10 @@ export class KeyValueStoreLocal {
             const filePath = this._getPath(fileName);
             return handler(filePath)
                 .then(returnValue => ({ returnValue, fileName }))
-                .catch(() => null);
+                .catch((err) => {
+                    if (err.code === 'ENOENT') return null;
+                    throw err;
+                });
         })
             .then((results) => {
                 // Using filter here to distinguish between no result and undefined result. [] vs [undefined]
