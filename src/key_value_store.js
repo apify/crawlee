@@ -282,17 +282,18 @@ export class KeyValueStoreLocal {
                 const result = results.filter(r => r && r.returnValue !== null);
                 return result.length
                     ? result[0]
-                    : this._fullDirectoryLookup(handler);
+                    : this._fullDirectoryLookup(key, handler);
             });
     }
 
     /**
      * Performs a lookup for a file in the local emulation directory's file list.
+     * @param {String} key
      * @param {Function} handler
      * @returns {Promise}
      * @ignore
      */
-    _fullDirectoryLookup(handler) {
+    _fullDirectoryLookup(key, handler) {
         return readdirPromised(this.localEmulationPath)
             .then((files) => {
                 const regex = getFileNameRegexp(key);
@@ -300,8 +301,7 @@ export class KeyValueStoreLocal {
                 return fileName
                     ? handler(this._getPath(fileName)).then(returnValue => ({ returnValue, fileName }))
                     : null;
-            })
-            .catch(() => null);
+            });
     }
 
     /**

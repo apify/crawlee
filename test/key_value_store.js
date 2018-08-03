@@ -60,6 +60,8 @@ describe('KeyValueStore', () => {
             await store.setValue('key-buffer', buffer, { contentType: 'image/jpeg' });
             await store2.setValue('key-obj', { foo: 'hotel' });
             await store2.setValue('key-string', 'yyyy', { contentType: 'text/plain' });
+            await store2.setValue('key-ctype', buffer, { contentType: 'video/mp4' });
+            await store2.setValue('key-badctype', buffer, { contentType: 'nonexistent/content-type' });
 
             // Try to read store2/key-string.
             expect(await store2.getValue('key-string')).to.be.eql('yyyy');
@@ -69,20 +71,26 @@ describe('KeyValueStore', () => {
                 await store2.setValue('key-string', null, { contentType: 'text/plain' });
                 throw new Error('This should throw!!!');
             } catch (err) {
-                expect(err).to.be.a('error');
+                expect(err).to.be.an('error');
+                expect(err.message).not.to.include('This should throw!!!');
             }
 
-            // Try to delete store2/key-string again.
+            // Check that it still exists.
             expect(await store2.getValue('key-string')).to.be.eql('yyyy');
 
-            // Check that it doesn't exist.
+            // Try to delete store2/key-string again.
             await store2.setValue('key-string', null);
+
+            // Check that it doesn't exist.
+            expect(await store2.getValue('key-string')).to.be.eql(null);
 
             expect(await store.getValue('key-obj')).to.be.eql({ foo: 'bar' });
             expect(await store.getValue('key-string')).to.be.eql('xxxx');
             expect(await store.getValue('key-buffer')).to.be.eql(buffer);
             expect(await store.getValue('key-nonexist')).to.be.eql(null);
             expect(await store2.getValue('key-obj')).to.be.eql({ foo: 'hotel' });
+            expect(await store2.getValue('key-ctype')).to.be.eql(buffer);
+            expect(await store2.getValue('key-badctype')).to.be.eql(buffer);
 
             // Delete works.
             const storeDir = path.join(LOCAL_EMULATION_DIR, LOCAL_EMULATION_SUBDIR, 'my-store-id');
