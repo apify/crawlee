@@ -13,6 +13,7 @@ import { addCharsetToContentType, apifyClient, ensureDirExists } from './utils';
 export const LOCAL_EMULATION_SUBDIR = LOCAL_EMULATION_SUBDIRS.keyValueStores;
 const MAX_OPENED_STORES = 1000;
 const DEFAULT_LOCAL_FILE_EXTENSION = 'bin';
+const COMMON_LOCAL_FILE_EXTENSIONS = ['bin', 'txt', 'json', 'html', 'xml', 'jpeg', 'png', 'pdf', 'mp3', 'js', 'css'];
 
 const readFilePromised = Promise.promisify(fs.readFile);
 const readdirPromised = Promise.promisify(fs.readdir);
@@ -209,19 +210,11 @@ export class KeyValueStoreLocal {
         validateGetValueParams(key);
 
         return this.initializationPromise
-            .then(() => readdirPromised(this.localEmulationPath))
-            .then((files) => {
-                const regex = getFileNameRegexp(key);
-                const fileName = files.find(file => regex.test(file));
-                if (fileName) {
-                    const filePath = path.resolve(this.localEmulationPath, fileName);
-                    return readFilePromised(filePath)
-                        .then((fileBuffer) => {
-                            const contentType = mime.getType(fileName);
-                            return parseBody(fileBuffer, contentType);
-                        });
-                }
-                return null;
+            .then(() => this._handleFile(key, readFilePromised))
+            .then((result) => {
+                return result
+                    ? parseBody(result.returnValue, mime.getType(result.fileName))
+                    : null;
             })
             .catch((err) => {
                 throw new Error(`Error reading file '${key}' in directory '${this.localEmulationPath}' referred by ${ENV_VARS.APIFY_LOCAL_EMULATION_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len
@@ -230,17 +223,11 @@ export class KeyValueStoreLocal {
 
     setValue(key, value, options = {}) {
         validateSetValueParams(key, value, options);
-        const getPath = fileName => path.resolve(this.localEmulationPath, fileName);
 
         // Make copy of options, don't update what user passed.
         const optionsCopy = Object.assign({}, options);
 
-        const deletePromise = readdirPromised(this.localEmulationPath)
-            .then((files) => {
-                const regex = getFileNameRegexp(key);
-                const fileName = files.find(file => regex.test(file));
-                return fileName ? unlinkPromised(getPath(fileName)) : Promise.resolve();
-            });
+        const deletePromise = this._handleFile(key, unlinkPromised);
 
         // In this case delete the record.
         if (value === null) return deletePromise;
@@ -249,7 +236,7 @@ export class KeyValueStoreLocal {
 
         const contentType = contentTypeParser.parse(optionsCopy.contentType).type;
         const extension = mime.getExtension(contentType) || DEFAULT_LOCAL_FILE_EXTENSION;
-        const filePath = getPath(`${key}.${extension}`);
+        const filePath = this._getPath(`${key}.${extension}`);
 
         return deletePromise
             .then(() => writeFilePromised(filePath, value))
@@ -263,6 +250,68 @@ export class KeyValueStoreLocal {
             .then(() => {
                 storesCache.remove(this.storeId);
             });
+    }
+
+    /**
+     * Helper function to handle files. Accepts a promisified 'fs' function as a second parameter
+     * which will be executed against the file saved under the key. Since the file's extension and thus
+     * full path is not known, it first performs a check against common extensions. If no file is found,
+     * it will read a full list of files in the directory and attempt to find the file again.
+     *
+     * Returns an object when a file is found and handler executes successfully, null otherwise.
+     *
+     * @param {String} key
+     * @param {Function} handler
+     * @returns {Promise} null or object in the following format:
+     * {
+     *     returnValue: return value of the handler function,
+     *     fileName: name of the file including found extension
+     * }
+     * @ignore
+     */
+    _handleFile(key, handler) {
+        return Promise.map(COMMON_LOCAL_FILE_EXTENSIONS, (extension) => {
+            const fileName = `${key}.${extension}`;
+            const filePath = this._getPath(fileName);
+            return handler(filePath)
+                .then(returnValue => ({ returnValue, fileName }))
+                .catch(() => null);
+        })
+            .then((results) => {
+                // Using filter here to distinguish between no result and undefined result. [] vs [undefined]
+                const result = results.filter(r => r && r.returnValue !== null);
+                return result.length
+                    ? result[0]
+                    : this._fullDirectoryLookup(handler);
+            });
+    }
+
+    /**
+     * Performs a lookup for a file in the local emulation directory's file list.
+     * @param {Function} handler
+     * @returns {Promise}
+     * @ignore
+     */
+    _fullDirectoryLookup(handler) {
+        return readdirPromised(this.localEmulationPath)
+            .then((files) => {
+                const regex = getFileNameRegexp(key);
+                const fileName = files.find(file => regex.test(file));
+                return fileName
+                    ? handler(this._getPath(fileName)).then(returnValue => ({ returnValue, fileName }))
+                    : null;
+            })
+            .catch(() => null);
+    }
+
+    /**
+     * Helper function to resolve file paths.
+     * @param {String} fileName
+     * @returns {String}
+     * @ignore
+     */
+    _getPath(fileName) {
+        return path.resolve(this.localEmulationPath, fileName);
     }
 }
 
