@@ -9,9 +9,9 @@ import pidusage from 'pidusage';
 import requestPromise from 'request-promise';
 import _ from 'underscore';
 import XRegExp from 'xregexp';
-import { delayPromise } from 'apify-shared/utilities';
+import { delayPromise, getRandomInt } from 'apify-shared/utilities';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { ENV_VARS } from './constants';
+import { ENV_VARS, USER_AGENT_LIST } from './constants';
 
 export const PID_USAGE_NOT_FOUND_ERROR = 'No maching pid found';
 
@@ -377,6 +377,14 @@ const extractUrls = ({ string, urlRegExp = URL_NO_COMMAS_REGEX }) => {
 };
 
 /**
+ * Returns a randomly selected User-Agent header out of a list of the most common headers.
+ */
+const getRandomUserAgent = () => {
+    const index = getRandomInt(USER_AGENT_LIST.length);
+    return USER_AGENT_LIST[index];
+};
+
+/**
  * A namespace that contains various utilities.
  *
  * Example usage:
@@ -394,6 +402,7 @@ export const publicUtils = {
     sleep,
     downloadListOfUrls,
     extractUrls,
+    getRandomUserAgent,
     URL_NO_COMMAS_REGEX,
     URL_WITH_COMMAS_REGEX,
 };

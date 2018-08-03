@@ -519,3 +519,11 @@ describe('Apify.utils.downloadListOfUrls()', () => {
         })).to.eventually.deep.equal(arr);
     });
 });
+
+describe('Apify.utils.getRandomUserAgent()', () => {
+    it('works', () => {
+        const agent = utils.publicUtils.getRandomUserAgent();
+        expect(agent).to.be.a('string');
+        expect(agent.length).to.not.be.eql(0);
+    });
+});
