@@ -13,7 +13,7 @@ import { addCharsetToContentType, apifyClient, ensureDirExists } from './utils';
 export const LOCAL_EMULATION_SUBDIR = LOCAL_EMULATION_SUBDIRS.keyValueStores;
 const MAX_OPENED_STORES = 1000;
 const DEFAULT_LOCAL_FILE_EXTENSION = 'bin';
-const COMMON_LOCAL_FILE_EXTENSIONS = ['bin', 'txt', 'json', 'html', 'xml', 'jpeg', 'png', 'pdf', 'mp3', 'js', 'css'];
+const COMMON_LOCAL_FILE_EXTENSIONS = ['bin', 'txt', 'json', 'html', 'xml', 'jpeg', 'png', 'pdf', 'mp3', 'js', 'css', 'xml', 'csv'];
 
 const readFilePromised = Promise.promisify(fs.readFile);
 const readdirPromised = Promise.promisify(fs.readdir);
