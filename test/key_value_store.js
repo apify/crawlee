@@ -34,15 +34,18 @@ describe('KeyValueStore', () => {
 
     describe('getFileNameRegexp()', () => {
         it('should work', () => {
-            const key = 'hello';
+            const key = 'hel.lo';
             const filenames = [
-                'hello.txt', // valid
-                'hello.hello.txt',
-                'hello.mp3', // valid
-                'hello....',
-                'hello.hello', // valid
-                'hello.',
-                '.hello',
+                'hel.lo.txt', // valid
+                'hel.lo.hello.txt',
+                'hel.lo.mp3', // valid
+                'hel.lo....',
+                'hel.lo.hello', // valid
+                'hello.hel.lo',
+                'hel.lo.',
+                '.hel.lo',
+                'hel.lo',
+                'helXlo.bin',
             ];
             const matched = filenames.reduce((count, name) => (getFileNameRegexp(key).test(name) ? ++count : count), 0);
             expect(matched).to.be.eql(3);

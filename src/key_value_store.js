@@ -189,7 +189,10 @@ export class KeyValueStore {
  * @returns {RegExp}
  * @ignore
  */
-export const getFileNameRegexp = key => new RegExp(`^${key}\\.[a-z0-9]+$`);
+export const getFileNameRegexp = (key) => {
+    const safeKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`^${safeKey}\\.[a-z0-9]+$`);
+};
 
 /**
  * This is a local representation of a key-value store.
