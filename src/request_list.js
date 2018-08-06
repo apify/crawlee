@@ -25,7 +25,7 @@ const ensureUniqueKeyValid = (uniqueKey) => {
  * Each URL is represented using an instance of the `Request` class.
  *
  * `RequestList` has an internal state where it remembers handled requests, requests in progress and also reclaimed requests.
- * The state might be persisted in a key-value store as shown in the example below so if an act is restarted (due to internal
+ * The state might be persisted in a key-value store as shown in the example below so if an actor is restarted (due to internal
  * error or restart of the host machine) then the crawling can continue where it left off.
  *
  * Basic usage of `RequestList`:

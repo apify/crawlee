@@ -196,7 +196,7 @@ export default class AutoscaledPool {
 
         // This is here because if we scale down to let's say 1, then after each promise is finished
         // this._maybeRunTask() doesn't trigger another one. So if that 1 instance gets stuck it results
-        // in whole act to stuck and even after scaling up it never triggers another promise.
+        // in whole actor to get stuck and even after scaling up it never triggers another promise.
         this.maybeRunTaskInterval = setInterval(() => this._maybeRunTask(), this.maybeRunIntervalMillis);
 
         // This interval checks memory and in each call saves current memory stats and in every
