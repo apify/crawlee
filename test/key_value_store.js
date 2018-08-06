@@ -4,7 +4,7 @@ import 'babel-polyfill';
 import sinon from 'sinon';
 import path from 'path';
 import { ENV_VARS } from '../build/constants';
-import { KeyValueStoreLocal, KeyValueStore, maybeStringify, LOCAL_EMULATION_SUBDIR } from '../build/key_value_store';
+import { KeyValueStoreLocal, KeyValueStore, maybeStringify, getFileNameRegexp, LOCAL_EMULATION_SUBDIR } from '../build/key_value_store';
 import { apifyClient } from '../build/utils';
 import * as Apify from '../build/index';
 import { LOCAL_EMULATION_DIR, emptyLocalEmulationSubdir, expectNotLocalEmulation, expectDirEmpty, expectDirNonEmpty } from './_helper';
@@ -32,6 +32,26 @@ describe('KeyValueStore', () => {
         });
     });
 
+    describe('getFileNameRegexp()', () => {
+        it('should work', () => {
+            const key = 'hel.lo';
+            const filenames = [
+                'hel.lo.txt', // valid
+                'hel.lo.hello.txt',
+                'hel.lo.mp3', // valid
+                'hel.lo....',
+                'hel.lo.hello', // valid
+                'hello.hel.lo',
+                'hel.lo.',
+                '.hel.lo',
+                'hel.lo',
+                'helXlo.bin',
+            ];
+            const matched = filenames.reduce((count, name) => (getFileNameRegexp(key).test(name) ? ++count : count), 0);
+            expect(matched).to.be.eql(3);
+        });
+    });
+
     describe('local', async () => {
         it('should work', async () => {
             const store = new KeyValueStoreLocal('my-store-id', LOCAL_EMULATION_DIR);
@@ -43,6 +63,8 @@ describe('KeyValueStore', () => {
             await store.setValue('key-buffer', buffer, { contentType: 'image/jpeg' });
             await store2.setValue('key-obj', { foo: 'hotel' });
             await store2.setValue('key-string', 'yyyy', { contentType: 'text/plain' });
+            await store2.setValue('key-ctype', buffer, { contentType: 'video/mp4' });
+            await store2.setValue('key-badctype', buffer, { contentType: 'nonexistent/content-type' });
 
             // Try to read store2/key-string.
             expect(await store2.getValue('key-string')).to.be.eql('yyyy');
@@ -52,20 +74,26 @@ describe('KeyValueStore', () => {
                 await store2.setValue('key-string', null, { contentType: 'text/plain' });
                 throw new Error('This should throw!!!');
             } catch (err) {
-                expect(err).to.be.a('error');
+                expect(err).to.be.an('error');
+                expect(err.message).not.to.include('This should throw!!!');
             }
 
-            // Try to delete store2/key-string again.
+            // Check that it still exists.
             expect(await store2.getValue('key-string')).to.be.eql('yyyy');
 
-            // Check that it doesn't exist.
+            // Try to delete store2/key-string again.
             await store2.setValue('key-string', null);
+
+            // Check that it doesn't exist.
+            expect(await store2.getValue('key-string')).to.be.eql(null);
 
             expect(await store.getValue('key-obj')).to.be.eql({ foo: 'bar' });
             expect(await store.getValue('key-string')).to.be.eql('xxxx');
             expect(await store.getValue('key-buffer')).to.be.eql(buffer);
             expect(await store.getValue('key-nonexist')).to.be.eql(null);
             expect(await store2.getValue('key-obj')).to.be.eql({ foo: 'hotel' });
+            expect(await store2.getValue('key-ctype')).to.be.eql(buffer);
+            expect(await store2.getValue('key-badctype')).to.be.eql(buffer);
 
             // Delete works.
             const storeDir = path.join(LOCAL_EMULATION_DIR, LOCAL_EMULATION_SUBDIR, 'my-store-id');
