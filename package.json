@@ -1,6 +1,6 @@
 {
   "name": "apify",
-  "version": "0.5.46",
+  "version": "0.5.50",
   "description": "Web scraping and automation SDK",
   "main": "build/index.js",
   "keywords": [
@@ -41,21 +41,24 @@
     "prepare": "npm run build-toc && npm run build",
     "prepublishOnly": "(test $RUNNING_FROM_SCRIPT || (echo \"You must use publish.sh instead of 'npm publish' directly!\"; exit 1)) && npm test && npm run lint",
     "clean": "rm -rf build",
-    "lint": "npm run build && eslint src test"
+    "lint": "npm run build && ./node_modules/.bin/eslint ./src ./test",
+    "lint:fix": "./node_modules/.bin/eslint ./src ./test --ext .js,.jsx --fix"
   },
   "dependencies": {
     "apify-client": "^0.2.9",
-    "apify-shared": "0.0.42",
+    "apify-shared": "0.0.47",
     "bluebird": "^3.5.0",
     "content-type": "^1.0.3",
     "fs-extra": "^5.0.0",
     "jquery": "^3.3.1",
+    "mime": "^2.3.1",
     "pidusage": "=2.0.9",
     "proxy-chain": "^0.1.26",
     "ps-tree": "^1.1.0",
     "request-promise": "^4.2.2",
     "underscore": "^1.9.0",
-    "ws": "^5.1.0"
+    "ws": "^5.1.0",
+    "xregexp": "^4.2.0"
   },
   "devDependencies": {
     "apify-jsdoc-template": "github:apifytech/apify-jsdoc-template",
@@ -87,7 +90,7 @@
     "why-is-node-running": "^2.0.2"
   },
   "optionalDependencies": {
-    "puppeteer": "^1.4.0",
+    "puppeteer": "^1.6.0",
     "selenium-webdriver": "^3.6.0"
   }
 }

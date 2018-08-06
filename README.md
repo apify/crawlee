@@ -38,6 +38,7 @@
     + [Puppeteer Crawler](#puppeteer-crawler)
     + [Request List](#request-list)
     + [Puppeteer Pool](#puppeteer-pool)
+    + [Puppeteer Live View](#puppeteer-live-view)
 - [Local usage](#local-usage)
 - [Promises vs. callbacks](#promises-vs-callbacks)
 - [Examples](#examples)
@@ -496,6 +497,80 @@ For more information see complete <a href="https://www.apify.com/docs/sdk/apify-
 
 <div id="include-readme-3">
 
+
+#### Puppeteer Live View
+
+Enables real time inspection of individual Puppeteer browser instances by starting a web server @ `localhost:4321`. This is especially useful when using headless mode or a remote instance.
+Puppeteer Live View provides the user with a dashboard listing all active browser instances and their active page details. The details show a page screenshot and raw HTML.
+
+You can use Puppeteer Live View, either directly:
+```javascript
+const browser = Apify.launchPuppeteer({ liveView: true });
+```
+or while using PuppeteerCrawler:
+```javascript
+const crawler = new PuppeteerCrawler({
+    launchPuppeteerOptions: { liveView: true },
+    // other options
+})
+```
+
+For debugging, you may want to add another option: `{ slowMo: 300 }` (see <a href="https://pptr.dev/#?product=Puppeteer&version=v1.6.0&show=api-puppeteerlaunchoptions" target="_blank">Puppeteer documentation</a>).
+
+After you connect to `localhost:4321` (the port is configurable using `APIFY_CONTAINER_PORT` environment variable),
+Puppeteer Live View will present you with the following screen:
+<img src="https://www.apify.com/ext/sdk_assets/puppeteer-live-view-dashboard.png">
+
+Click on the magnifying glass icon will take you to a page detail, showing its screenshot and raw HTML:
+<img src="https://www.apify.com/ext/sdk_assets/puppeteer-live-view-detail.png">
+
+For more information see complete <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerLiveViewServer" target="_blank">documentation</a>.
+
+## Local usage
+
+The easiest way how to use apify locally is with <a href="https://github.com/apifytech/apify-cli" target="_blank">Apify CLI</a> as shown
+in <a href="#quick-start">quick start</a> section. Other way is to manually define required environment variables:
+
+<table class="table table-bordered table-condensed">
+     <thead>
+         <tr>
+             <th>Environment variable</th>
+             <th>Description</th>
+         </tr>
+     </thead>
+     <tbody>
+         <tr>
+             <td><code>APIFY_LOCAL_EMULATION_DIR</code></td>
+             <td>
+                 Directory where apify package locally emulates Apify storages - key-value store and dataset.
+                 Key-value stores will be emulated in directory
+                 <code>[APIFY_LOCAL_EMULATION_DIR]/key-value-stores/[STORE_ID]</code>
+                 and datasets in directory
+                 <code>[APIFY_LOCAL_EMULATION_DIR]/datasets/[DATESET_ID]</code>.
+             </td>
+         </tr>
+         <tr>
+             <td><code>APIFY_DEFAULT_KEY_VALUE_STORE_ID</code></td>
+             <td>ID of default key-value store.</td>
+         </tr>
+         <tr>
+             <td><code>APIFY_DEFAULT_DATASET_ID</code></td>
+             <td>ID of default dataset.</td>
+         </tr>
+         <tr>
+             <td><code>APIFY_DEFAULT_REQUEST_QUEUE_ID</code></td>
+             <td>ID of default request queue.</td>
+         </tr>
+     </tbody>
+</table>
+
+Apify will then store key-value store records in files named <code>[KEY].[EXT]</code> where <code>[KEY]</code>
+is the record key and <code>[EXT]</code> is based on the record content type. Dataset items will be stored
+in files named <code>[ID].json</code> where <code>[ID]</code> is sequence number of your dataset item.
+ *
+If you want to use <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a> locally
+then you must define an environment variable <code>PROXY_PASSWORD</code> with password you find at
+<a href="https://my.apify.com/proxy" target="_blank">https://my.apify.com/proxy</a>.
 
 ## Promises vs. callbacks
 

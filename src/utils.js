@@ -6,11 +6,27 @@ import fsExtra from 'fs-extra';
 import ApifyClient from 'apify-client';
 import psTree from 'ps-tree';
 import pidusage from 'pidusage';
+import requestPromise from 'request-promise';
 import _ from 'underscore';
-import { delayPromise } from 'apify-shared/utilities';
-import { ENV_VARS } from './constants';
+import XRegExp from 'xregexp';
+import { delayPromise, getRandomInt } from 'apify-shared/utilities';
+import { checkParamOrThrow } from 'apify-client/build/utils';
+import { ENV_VARS, USER_AGENT_LIST } from './constants';
 
 export const PID_USAGE_NOT_FOUND_ERROR = 'No maching pid found';
+
+/**
+ * Default regular expression to match URLs in a string that may be plain text, JSON, CSV or other. It supports common URL characters
+ * and does not support URLs containing commas or spaces. The URLs also may contain Unicode letters (not symbols).
+ * @memberOf utils
+ */
+const URL_NO_COMMAS_REGEX = XRegExp('https?://(www\\.)?[\\p{L}0-9][-\\p{L}0-9@:%._\\+~#=]{0,254}[\\p{L}0-9]\\.[a-z]{2,63}(:\\d{1,5})?(/[-\\p{L}0-9@:%_\\+.~#?&//=\\(\\)]*)?', 'gi'); // eslint-disable-line
+/**
+ * Regular expression that, in addition to the default regular expression URL_NO_COMMAS_REGEX, supports matching commas in URL path and query.
+ * Note, however, that this may prevent parsing URLs from comma delimited lists, or the URLs may become malformed.
+ * @memberOf utils
+ */
+const URL_WITH_COMMAS_REGEX = XRegExp('https?://(www\\.)?[\\p{L}0-9][-\\p{L}0-9@:%._\\+~#=]{0,254}[\\p{L}0-9]\\.[a-z]{2,63}(:\\d{1,5})?(/[-\\p{L}0-9@:%_\\+,.~#?&//=\\(\\)]*)?', 'gi'); // eslint-disable-line
 
 const ensureDirPromised = Promise.promisify(fsExtra.ensureDir);
 const psTreePromised = Promise.promisify(psTree);
@@ -325,6 +341,50 @@ const sleep = (millis) => {
     return delayPromise(millis);
 };
 
+/**
+ * Returns a promise that resolves to an array of urls parsed from the resource available at the provided url.
+ * Optionally, custom regular expression and encoding may be provided.
+ *
+ * @param {String} url
+ * @param {String} [encoding='utf8']
+ * @param {RegExp} [urlRegExp=URL_NO_COMMAS_REGEX]
+ * @returns {Promise}
+ * @memberOf utils
+ */
+const downloadListOfUrls = ({ url, encoding = 'utf8', urlRegExp = URL_NO_COMMAS_REGEX }) => {
+    try {
+        checkParamOrThrow(url, 'url', 'String');
+        checkParamOrThrow(encoding, 'string', 'String');
+        checkParamOrThrow(urlRegExp, 'urlRegExp', 'RegExp');
+    } catch (err) {
+        return Promise.reject(err);
+    }
+    return requestPromise.get({ url, encoding })
+        .then(string => extractUrls({ string, urlRegExp }));
+};
+
+/**
+ * Collects all URLs in an arbitrary string to an array, optionally using a custom regular expression.
+ * @param {String} string
+ * @param {RegExp} [urlRegExp=URL_NO_COMMAS_REGEX]
+ * @returns {Array}
+ * @memberOf utils
+ */
+const extractUrls = ({ string, urlRegExp = URL_NO_COMMAS_REGEX }) => {
+    checkParamOrThrow(string, 'string', 'String');
+    checkParamOrThrow(urlRegExp, 'urlRegExp', 'RegExp');
+    return string.match(urlRegExp) || [];
+};
+
+/**
+ * Returns a randomly selected User-Agent header out of a list of the most common headers.
+ * @returns {String}
+ * @memberOf utils
+ */
+const getRandomUserAgent = () => {
+    const index = getRandomInt(USER_AGENT_LIST.length);
+    return USER_AGENT_LIST[index];
+};
 
 /**
  * A namespace that contains various utilities.
@@ -342,4 +402,9 @@ const sleep = (millis) => {
  */
 export const publicUtils = {
     sleep,
+    downloadListOfUrls,
+    extractUrls,
+    getRandomUserAgent,
+    URL_NO_COMMAS_REGEX,
+    URL_WITH_COMMAS_REGEX,
 };

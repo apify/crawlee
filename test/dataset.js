@@ -5,8 +5,9 @@ import fs from 'fs-extra';
 import path from 'path';
 import sinon from 'sinon';
 import { leftpad, delayPromise } from 'apify-shared/utilities';
-import { ENV_VARS } from '../build/constants';
-import { LOCAL_FILENAME_DIGITS, Dataset, DatasetLocal, LOCAL_EMULATION_SUBDIR, LOCAL_GET_ITEMS_DEFAULT_LIMIT } from '../build/dataset';
+import { ENV_VARS, MAX_PAYLOAD_SIZE_BYTES } from '../build/constants';
+import { LOCAL_FILENAME_DIGITS, Dataset, DatasetLocal, LOCAL_EMULATION_SUBDIR,
+    LOCAL_GET_ITEMS_DEFAULT_LIMIT, checkAndSerialize, chunkBySize } from '../build/dataset';
 import { apifyClient } from '../build/utils';
 import * as Apify from '../build/index';
 import { LOCAL_EMULATION_DIR, emptyLocalEmulationSubdir, expectNotLocalEmulation, expectDirEmpty, expectDirNonEmpty } from './_helper';
@@ -239,18 +240,20 @@ describe('dataset', () => {
     });
 
     describe('remote', async () => {
-        it('should succesfully save data', async () => {
+        const mockData = bytes => 'x'.repeat(bytes);
+
+        it('should succesfully save simple data', async () => {
             const dataset = new Dataset('some-id');
             const mock = sinon.mock(apifyClient.datasets);
 
             mock.expects('putItems')
                 .once()
-                .withArgs({ datasetId: 'some-id', data: { foo: 'bar' } })
+                .withArgs({ datasetId: 'some-id', data: JSON.stringify({ foo: 'bar' }) })
                 .returns(Promise.resolve(null));
 
             mock.expects('putItems')
                 .once()
-                .withArgs({ datasetId: 'some-id', data: [{ foo: 'hotel;' }, { foo: 'restaurant' }] })
+                .withArgs({ datasetId: 'some-id', data: JSON.stringify([{ foo: 'hotel;' }, { foo: 'restaurant' }]) })
                 .returns(Promise.resolve(null));
 
             await dataset.pushData({ foo: 'bar' });
@@ -265,6 +268,115 @@ describe('dataset', () => {
                 .returns(Promise.resolve());
             await dataset.delete();
 
+            mock.verify();
+            mock.restore();
+        });
+
+        it('should successfully save large data', async () => {
+            const half = mockData(MAX_PAYLOAD_SIZE_BYTES / 2);
+
+            const dataset = new Dataset('some-id');
+            const mock = sinon.mock(apifyClient.datasets);
+
+            mock.expects('putItems')
+                .once()
+                .withArgs({ datasetId: 'some-id', data: JSON.stringify([{ foo: half }]) })
+                .returns(Promise.resolve(null));
+
+            mock.expects('putItems')
+                .once()
+                .withArgs({ datasetId: 'some-id', data: JSON.stringify([{ bar: half }]) })
+                .returns(Promise.resolve(null));
+
+            await dataset.pushData([
+                { foo: half },
+                { bar: half },
+            ]);
+
+            mock.expects('deleteDataset')
+                .once()
+                .withArgs({ datasetId: 'some-id' })
+                .returns(Promise.resolve());
+            await dataset.delete();
+
+            mock.verify();
+            mock.restore();
+        });
+
+        it('should successfully save lots of small data', async () => {
+            const count = 20;
+            const string = mockData(MAX_PAYLOAD_SIZE_BYTES / count);
+            const chunk = { foo: string, bar: 'baz' };
+            const data = Array(count).fill(chunk);
+            const expectedFirst = JSON.stringify(Array(count - 1).fill(chunk));
+            const expectedSecond = JSON.stringify([chunk]);
+
+            const dataset = new Dataset('some-id');
+            const mock = sinon.mock(apifyClient.datasets);
+
+            mock.expects('putItems')
+                .once()
+                .withArgs({ datasetId: 'some-id', data: expectedFirst })
+                .returns(Promise.resolve(null));
+
+            mock.expects('putItems')
+                .once()
+                .withArgs({ datasetId: 'some-id', data: expectedSecond })
+                .returns(Promise.resolve(null));
+
+            await dataset.pushData(data);
+
+            mock.expects('deleteDataset')
+                .once()
+                .withArgs({ datasetId: 'some-id' })
+                .returns(Promise.resolve());
+            await dataset.delete();
+
+            mock.verify();
+            mock.restore();
+        });
+
+        it('should throw on too large file', async () => {
+            const mock = sinon.mock(apifyClient.datasets);
+            const full = mockData(MAX_PAYLOAD_SIZE_BYTES);
+            const dataset = new Dataset('some-id');
+            try {
+                await dataset.pushData({ foo: full });
+                throw new Error('Should fail!');
+            } catch (err) {
+                expect(err).to.be.an('error');
+                expect(err.message).to.include('Data item is too large');
+            }
+            mock.expects('deleteDataset')
+                .once()
+                .withArgs({ datasetId: 'some-id' })
+                .returns(Promise.resolve());
+            await dataset.delete();
+            mock.verify();
+            mock.restore();
+        });
+        it('should throw on too large file in an array', async () => {
+            const mock = sinon.mock(apifyClient.datasets);
+            const full = mockData(MAX_PAYLOAD_SIZE_BYTES);
+            const dataset = new Dataset('some-id');
+            try {
+                await dataset.pushData([
+                    { foo: 0 },
+                    { foo: 1 },
+                    { foo: 2 },
+                    { foo: full },
+                    { foo: 4 },
+                ]);
+                throw new Error('Should fail!');
+            } catch (err) {
+                expect(err).to.be.an('error');
+                expect(err.message).to.include('Data item at index 3 is too large');
+            }
+            mock.expects('deleteDataset')
+                .once()
+                .withArgs({ datasetId: 'some-id' })
+                .returns(Promise.resolve());
+            await dataset.delete();
             mock.verify();
             mock.restore();
         });
@@ -631,6 +743,57 @@ describe('dataset', () => {
             expect(read('some-id-9', 2)).to.be.eql({ foo: 'hotel' });
 
             delete process.env[ENV_VARS.LOCAL_EMULATION_DIR];
+        });
+    });
+
+    describe('utils', async () => {
+        it('checkAndSerialize() works', () => {
+            // Basic
+            const obj = { foo: 'bar' };
+            const json = JSON.stringify(obj);
+            expect(checkAndSerialize({}, 100)).to.be.eql('{}');
+            expect(checkAndSerialize(obj, 100)).to.be.eql(json);
+            // With index
+            expect(checkAndSerialize(obj, 100, 1)).to.be.eql(json);
+            // Too large
+            expect(() => checkAndSerialize(obj, 5)).to.throw(Error, 'Data item is too large');
+            expect(() => checkAndSerialize(obj, 5, 7)).to.throw(Error, 'at index 7');
+            // Bad JSON
+            const bad = {};
+            bad.bad = bad;
+            expect(() => checkAndSerialize(bad, 100)).to.throw(Error, 'not serializable');
+            // Bad data
+            const str = 'hello';
+            expect(() => checkAndSerialize(str, 100)).to.throw(Error, 'not serializable');
+            expect(() => checkAndSerialize([], 100)).to.throw(Error, 'not serializable');
+            expect(() => checkAndSerialize([str, str], 100)).to.throw(Error, 'not serializable');
+        });
+        it('chunkBySize', () => {
+            const obj = { foo: 'bar' };
+            const json = JSON.stringify(obj);
+            const size = Buffer.byteLength(json);
+            const triple = [json, json, json];
+            const originalTriple = [obj, obj, obj];
+            const chunk = `[${json}]`;
+            const tripleChunk = `[${json},${json},${json}]`;
+            const tripleSize = Buffer.byteLength(tripleChunk);
+            // Empty array
+            expect(chunkBySize([], 10)).to.be.eql([]);
+            // Fits easily
+            expect(chunkBySize([json], size + 10)).to.be.eql([json]);
+            expect(chunkBySize(triple, tripleSize + 10)).to.be.eql([tripleChunk]);
+            // Parses back to original objects
+            expect(originalTriple).to.be.eql(JSON.parse(tripleChunk));
+            // Fits exactly
+            expect(chunkBySize([json], size)).to.be.eql([json]);
+            expect(chunkBySize(triple, tripleSize)).to.be.eql([tripleChunk]);
+            // Chunks large items individually
+            expect(chunkBySize(triple, size)).to.be.eql(triple);
+            expect(chunkBySize(triple, size + 1)).to.be.eql(triple);
+            expect(chunkBySize(triple, size + 2)).to.be.eql([chunk, chunk, chunk]);
+            // Chunks smaller items together
+            expect(chunkBySize(triple, (2 * size) + 3)).to.be.eql([`[${json},${json}]`, chunk]);
+            expect(chunkBySize([...triple, ...triple], (2 * size) + 3)).to.be.eql([`[${json},${json}]`, `[${json},${json}]`, `[${json},${json}]`]);
         });
     });
 });
