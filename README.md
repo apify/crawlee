@@ -18,7 +18,7 @@
 <br>
 
 <div>
-  View the full <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest/" target="_blank">Apify SDK Programmer's Reference</a>
+  View the full <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest/" target="_blank">Apify SDK Programmer's Reference</a>.
 </div>
 
 
@@ -60,7 +60,7 @@
 
 Thanks to tools like <a href="https://github.com/GoogleChrome/puppeteer" target="_blank" rel="noopener">Puppeteer</a> or
 <a href="https://www.npmjs.com/package/cheerio" target="_blank">cheerio</a>
-it's very easy to write a Node.js code to extract data from web pages.
+it is very easy to write a Node.js code to extract data from web pages.
 But eventually things will get complicated, for example when you try to:
 
 * Perform a deep crawl of an entire website using a persistent queue of URLs.
@@ -71,14 +71,14 @@ But eventually things will get complicated, for example when you try to:
 * Disable browser fingerprinting protections used by websites.
 * ...
 
-The goal of `apify` package is to provide a toolbox
+The goal of Apify SDK package is to provide a toolbox
 for these generic web scraping and crawling tasks.
 Don't reinvent the wheel every time you need data from the web,
 and focus on writing the code specific to the target website, rather than developing commonalities.
 
 ## Overview
 
-The `apify` package provides the following tools:
+The Apify SDK package provides the following tools:
 
 <ul>
   <li>
@@ -96,9 +96,9 @@ The `apify` package provides the following tools:
     </li>
   <li>
     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList">RequestList</a>
-    - Represents a list of URLs to crawl. The URLs can be provided in code or in a CSV file.
+    - Represents a list of URLs to crawl. The URLs can be provided in code or in a text file.
     The list persists its state so that the crawling can resume
-    after restart of the main process.
+    when the Node.js process restarts.
   </li>
   <li>
      <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue">RequestQueue</a>
@@ -124,7 +124,7 @@ The `apify` package provides the following tools:
   <li>
      <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#AutoscaledPool" target="_blank">AutoscaledPool</a>
      - Runs asynchronous background tasks, while automatically adjusting the concurrency
-     based on free system memory and CPU usage. This is useful for running headless Chrome browser tasks at scale.
+     based on free system memory and CPU usage. This is useful for running headless Chrome tasks at scale.
   </li>
   <li>
     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerUtils" target="_blank">PuppeteerUtils</a>
@@ -133,7 +133,7 @@ The `apify` package provides the following tools:
   </li>
   <li>
     Additionally, the package provides various helper functions to simplify
-    running your web scraping code on the Apify cloud platform and thus
+    running your code on the Apify cloud platform and thus
     get advantage of pool of proxies, job scheduler, data storage etc.
     For more information,
     see the <a href="https://www.apify.com/docs/actor">Apify actor documentation</a>.
@@ -143,18 +143,18 @@ The `apify` package provides the following tools:
 
 ## Getting started
 
-The `apify` NPM package requires <a href="https://nodejs.org/en/" target="_blank">Node.js</a> 7 or later.
+The Apify SDK requires <a href="https://nodejs.org/en/" target="_blank">Node.js</a> 7 or later.
 
 ### Local standalone usage
 
-You can use `apify` package in any Node.js project by running:
+You can use Apify SDK in any Node.js project by running:
 
 ```bash
 npm install apify
 ```
 
 However, to make the package work at its full potential,
-you'll might need to set one or more of the following environment variables
+you'll need to set one or more of the following environment variables
 for your Node.js process, depending on your circumstances:
 
 <ul>
@@ -200,6 +200,64 @@ for your Node.js process, depending on your circumstances:
     where <code>[INDEX]</code> is a zero-based index of the item.
   </li>
 </ul>
+
+<table class="table table-bordered table-condensed">
+    <thead>
+        <tr>
+            <th>Environment variable</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+          <tr>
+            <td><code>APIFY_LOCAL_EMULATION_DIR</code></td>
+            <td>Defines the path to a local directory where key-value stores, request lists and request queues store their data.
+            If omitted, the package will try to use cloud storage instead and will expect that the
+            <code>APIFY_TOKEN</code> environment variable is defined.
+            </td>
+          </tr>
+          <tr>
+            <td><code>APIFY_TOKEN</code></td>
+            <td>
+            The API token for your Apify account. It is used to access Apify APIs, e.g. to access cloud storage.
+            You can find your API token on the <a href="https://my.apify.com/account#intergrations" target="_blank">Apify - Account - Integrations</a> page.
+            If omitted, you should define <code>APIFY_LOCAL_EMULATION_DIR</code> environment variable instead.
+            </td>
+          </tr>
+          <tr>
+            <td><code>APIFY_PROXY_PASSWORD</code></td>
+            <td>Password to <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a> for IP address rotation.
+            If you have have an Apify account, you can find the password on the
+            <a href="https://my.apify.com/proxy" target="_blank">Proxy page</a> in the Apify app.</td>
+          </tr>
+          <tr>
+            <td><code>APIFY_DEFAULT_KEY_VALUE_STORE_ID</code></td>
+            <td>ID of the default key-value store, where the
+            <code>Apify.getValue()</code> or <code>Apify.setValue()</code> functions store the values.
+            If you defined <code>APIFY_LOCAL_EMULATION_DIR</code>, then each value is stored as a file at
+            <code>[APIFY_LOCAL_EMULATION_DIR]/key-value-stores/[APIFY_DEFAULT_KEY_VALUE_STORE_ID]/[KEY].[EXT]</code>,
+            where <code>[KEY]</code> is the key nad <code>[EXT]</code> corresponds to the MIME content type of the value.
+            </td>
+          </tr>
+          <tr>
+            <td><code>APIFY_DEFAULT_DATASET_ID</code></td>
+            <td>ID of the default dataset, where the <code>Apify.pushData()</code> function store the data.
+            If you defined <code>APIFY_LOCAL_EMULATION_DIR</code>, then dataset items are stored as files at
+            <code>[APIFY_LOCAL_EMULATION_DIR]/datasets/[APIFY_DEFAULT_DATASET_ID]/[INDEX].json</code>,
+            where <code>[INDEX]</code> is a zero-based index of the item.
+            </td>
+          </tr>
+          <tr>
+            <td><code> TODO APIFY_DEFAULT_REQUEST_QUEUE_ID</code></td>
+            <td>ID of the default request queue, where the <code>Apify.to_do()</code> function stores the data.
+            If you defined <code>APIFY_LOCAL_EMULATION_DIR</code>, then request queue records are stored as files at
+            <code>[APIFY_LOCAL_EMULATION_DIR]/request-queues/[APIFY_DEFAULT_REQUEST_QUEUE_ID]/[INDEX].json</code>,
+            where <code>[INDEX]</code> is a zero-based index of the item.
+            </td>
+          </tr>
+    </tbody>
+</table>
+
 
 For the full list of environment variables used by the <code>apify</code> package, please see the
 <a href="https://www.apify.com/docs/actor#environment-variabes" target="_blank">Environment variables</a>
