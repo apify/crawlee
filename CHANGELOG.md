@@ -1,8 +1,9 @@
-xxxxxxxxxxxxxxxxxxx
+0.5.50 / 2018-08-06
 ===================
 - Fixed invalid URL parsing in RequestList.
 - Added support for non-latin language characters (unicode) in URLs.
-- Added validation of payload size and automatic chunking to `dataset.pushData()`
+- Added validation of payload size and automatic chunking to `dataset.pushData()`.
+- Added support for all content types and their known extensions to `KeyValueStoreLocal`.
 
 0.5.47 / 2018-07-20
 ===================
