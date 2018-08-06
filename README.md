@@ -1,4 +1,4 @@
-# Apify SDK: web scraping and automation library for JavaScript / Node.js
+# Apify SDK: The web scraping and automation library for Node.js
 <!-- Mirror this part to src/index.js -->
 
 [![npm version](https://badge.fury.io/js/apify.svg)](http://badge.fury.io/js/apify)
@@ -7,7 +7,7 @@
 <div id="include-readme-1">
   Apify SDK simplifies development of web crawlers, scrapers, data extractors and web automation jobs.
   It provides tools to manage and automatically scale a pool of headless Chrome / Puppeteer instances,
-  maintain queues of URLs to crawl, store crawling results to local filesystem or into the cloud,
+  to maintain queues of URLs to crawl, store crawling results to local filesystem or into the cloud,
   rotate proxies and much more.
   The SDK is available as the <a href="https://www.npmjs.com/package/apify" target="_blank"><code>apify</code></a> NPM package.
   It can be used either standalone in your own applications
@@ -18,7 +18,7 @@
 <br>
 
 <div>
-  View the full <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest/" target="_blank">Apify SDK Programmer's Reference</a>.
+  View the full <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest/" target="_blank">Apify SDK Programmer's Reference</a> on a separate website.
 </div>
 
 
@@ -46,8 +46,8 @@
 - [Examples](#examples)
   * [Recursive crawling](#recursive-crawling)
   * [Crawling url list](#crawling-url-list)
-  * [Call to another act](#call-to-another-act)
-  * [Act used and synchronous API](#act-used-and-synchronous-api)
+  * [Call to another actor](#call-to-another-actor)
+  * [Actor used and synchronous API](#act-used-and-synchronous-api)
   * [Other](#other)
 
 <!-- tocstop -->
@@ -157,50 +157,6 @@ However, to make the package work at its full potential,
 you'll need to set one or more of the following environment variables
 for your Node.js process, depending on your circumstances:
 
-<ul>
-  <li>
-    <code>APIFY_LOCAL_EMULATION_DIR</code>
-    - Defines the path to a local directory where key-value stores, request lists and request queues store their data.
-    If omitted, the package will try to use cloud storage instead and will expect that the
-    <code>APIFY_TOKEN</code> environment variable is defined.
-  </li>
-  <li>
-    <code>APIFY_TOKEN</code>
-    - The API token for your Apify account. It is used to access Apify APIs, e.g. to access cloud storage.
-    You can find your API token on the <a href="https://my.apify.com/account#intergrations" target="_blank">Apify - Account - Integrations</a> page.
-    If omitted, you should define <code>APIFY_LOCAL_EMULATION_DIR</code> environment variable instead.
-  </li>
-  <li>
-    <code>APIFY_PROXY_PASSWORD</code>
-    - Password to <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a> for IP address rotation.
-    If you have have an Apify account, you can find the password on the
-    <a href="https://my.apify.com/proxy" target="_blank">Proxy page</a> in the Apify app.
-  </li>
-  <li>
-    <code>APIFY_DEFAULT_KEY_VALUE_STORE_ID</code>
-    - ID of the default key-value store, where the
-    <code>Apify.getValue()</code> or <code>Apify.setValue()</code> functions store the values.
-    If you defined <code>APIFY_LOCAL_EMULATION_DIR</code>, then each value is stored as a file at
-    <code>[APIFY_LOCAL_EMULATION_DIR]/key-value-stores/[APIFY_DEFAULT_KEY_VALUE_STORE_ID]/[KEY].[EXT]</code>,
-    where <code>[KEY]</code> is the key nad <code>[EXT]</code> corresponds to the MIME content type of the value.
-  </li>
-  <li>
-    <code>APIFY_DEFAULT_DATASET_ID</code>
-    - ID of the default dataset, where the <code>Apify.pushData()</code> function store the data.
-    If you defined <code>APIFY_LOCAL_EMULATION_DIR</code>, then dataset items are stored as files at
-    <code>[APIFY_LOCAL_EMULATION_DIR]/datasets/[APIFY_DEFAULT_DATASET_ID]/[INDEX].json</code>,
-    where <code>[INDEX]</code> is a zero-based index of the item.
-  </li>
-  <li>
-    TODO:
-    <code>APIFY_DEFAULT_REQUEST_QUEUE_ID</code>
-    - ID of the default request queue, where the <code>Apify.to_do()</code> function stores the data.
-    If you defined <code>APIFY_LOCAL_EMULATION_DIR</code>, then request queue records are stored as files at
-    <code>[APIFY_LOCAL_EMULATION_DIR]/request-queues/[APIFY_DEFAULT_REQUEST_QUEUE_ID]/[INDEX].json</code>,
-    where <code>[INDEX]</code> is a zero-based index of the item.
-  </li>
-</ul>
-
 <table class="table table-bordered table-condensed">
     <thead>
         <tr>
@@ -259,27 +215,16 @@ for your Node.js process, depending on your circumstances:
 </table>
 
 
-For the full list of environment variables used by the <code>apify</code> package, please see the
+For the full list of environment variables used by Apify SDK, please see the
 <a href="https://www.apify.com/docs/actor#environment-variabes" target="_blank">Environment variables</a>
 section of the Apify actor documentation.
-
-
-TODO ideas:
-- maybe rename APIFY_LOCAL_EMULATION_DIR to APIFY_LOCAL_STORAGE_DIR ?
-- if user sets APIFY_TOKEN but not APIFY_PROXY_PASSWORD, we should fetch it,
-- maybe we should check that user can use Apify Proxy in Apify.getApifyProxyUrl() ?
-  For backwards compatibility, the function can be called async Apify.getApifyProxy()
-  and return object with { host, port, username, password, url } ???
-- if Apify Proxy is not active, we shouldn't pass APIFY_PROXY_PASSWORD env var in actors
-- if APIFY_DEFAULT_KEY_VALUE_STORE_ID/.../... is not defined, we could default to "default" ?
-
 
 
 ### Local usage with Apify command-line interface (CLI)
 
 To avoid the need to set all the necessary environment variables manually,
 to create a boilerplate of your project,
-and to enable pushing and running your code on Apify cloud,
+and to enable pushing and running your code on the Apify cloud,
 you can take advantage of the
 <a href="https://github.com/apifytech/apify-cli" target="_blank">Apify command-line interface</a> (CLI) tool.
 
@@ -291,20 +236,19 @@ npm -g install apify-cli
 
 TODO: Use crawling example instead
 
-Now you can create your new web crawling project:
+Now you can create a boilerplate for you new web crawling project by running:
 
 ```bash
 apify create my-hello-world
-
 cd my-hello-world
 ```
 
-Apify CLI prompts you to select a project template, and then it creates a
-directory named `my-hello-world` with the following files:
+Apify CLI prompts you to select a project template and then it creates a
+directory called `my-hello-world` with the following files:
 
-- `package.json` with <code>apify</code> package as a dependency
+- `package.json` with the list of dependencies of the Node.js project
 - `main.js` file containing source code for your project
-- `apify_local` directory containing local emultation of <a href="https://www.apify.com/docs/storage" target="_blank">Apify storage types</a>
+- `apify_local` directory containing local emulation of <a href="https://www.apify.com/docs/storage" target="_blank">Apify storage types</a>
 - files needed for optional deployment to Apify platform (`Dockerfile`, `apify.json`)
 - `node_modules` directory containing all the required NPM packages
 - `.gitignore`
@@ -586,51 +530,6 @@ Click on the magnifying glass icon will take you to a page detail, showing its s
 
 For more information see complete <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerLiveViewServer" target="_blank">documentation</a>.
 
-## Local usage
-
-The easiest way how to use apify locally is with <a href="https://github.com/apifytech/apify-cli" target="_blank">Apify CLI</a> as shown
-in <a href="#quick-start">quick start</a> section. Other way is to manually define required environment variables:
-
-<table class="table table-bordered table-condensed">
-     <thead>
-         <tr>
-             <th>Environment variable</th>
-             <th>Description</th>
-         </tr>
-     </thead>
-     <tbody>
-         <tr>
-             <td><code>APIFY_LOCAL_EMULATION_DIR</code></td>
-             <td>
-                 Directory where apify package locally emulates Apify storages - key-value store and dataset.
-                 Key-value stores will be emulated in directory
-                 <code>[APIFY_LOCAL_EMULATION_DIR]/key-value-stores/[STORE_ID]</code>
-                 and datasets in directory
-                 <code>[APIFY_LOCAL_EMULATION_DIR]/datasets/[DATESET_ID]</code>.
-             </td>
-         </tr>
-         <tr>
-             <td><code>APIFY_DEFAULT_KEY_VALUE_STORE_ID</code></td>
-             <td>ID of default key-value store.</td>
-         </tr>
-         <tr>
-             <td><code>APIFY_DEFAULT_DATASET_ID</code></td>
-             <td>ID of default dataset.</td>
-         </tr>
-         <tr>
-             <td><code>APIFY_DEFAULT_REQUEST_QUEUE_ID</code></td>
-             <td>ID of default request queue.</td>
-         </tr>
-     </tbody>
-</table>
-
-Apify will then store key-value store records in files named <code>[KEY].[EXT]</code> where <code>[KEY]</code>
-is the record key and <code>[EXT]</code> is based on the record content type. Dataset items will be stored
-in files named <code>[ID].json</code> where <code>[ID]</code> is sequence number of your dataset item.
- *
-If you want to use <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a> locally
-then you must define an environment variable <code>PROXY_PASSWORD</code> with password you find at
-<a href="https://my.apify.com/proxy" target="_blank">https://my.apify.com/proxy</a>.
 
 ## Promises vs. callbacks
 
@@ -676,18 +575,18 @@ These examples show how to scrape data from a fix list of urls using
 - <a href="https://github.com/apifytech/apify-js/tree/master/examples/url_list_puppeteer.js">Crawling a url list with Puppeteer</a>
 - <a href="https://github.com/apifytech/apify-js/tree/master/examples/url_list_cheerio.js">Crawling a url list with Cheerio and Request NPM packages</a>
 
-### Call to another act
+### Call to another actor
 
-This example shows how to call another act on Apify platform - in this case `apify/send-mail`
+This example shows how to call another actor on Apify platform - in this case `apify/send-mail`
 to send email.
 
 <a href="https://github.com/apifytech/apify-js/tree/master/examples/call_another_act.js">Check source code here</a>
 
-### Act used and synchronous API
+### Actor used and synchronous API
 
-This example shows an act that has short runtime - just few seconds. It opens a webpage
+This example shows an actor that has short runtime - just few seconds. It opens a webpage
 http://goldengatebridge75.org/news/webcam.html that contains webcam stream from Golden Gate
-bridge, takes a screenshot and saves it as output. This makes act executable on Apify platform
+bridge, takes a screenshot and saves it as output. This makes actor executable on Apify platform
 synchronously with a single request that also returns its output.
 
 Example is shared in library under https://www.apify.com/apify/example-golden-gate-webcam
