@@ -1,4 +1,4 @@
-# apify: web scraping and automation SDK for JavaScript / Node.js
+# Apify SDK: web scraping and automation library for JavaScript / Node.js
 <!-- Mirror this part to src/index.js -->
 
 [![npm version](https://badge.fury.io/js/apify.svg)](http://badge.fury.io/js/apify)
@@ -7,7 +7,7 @@
 <div id="include-readme-1">
   Apify SDK simplifies development of web crawlers, scrapers, data extractors and web automation jobs.
   It provides tools to manage and automatically scale a pool of headless Chrome / Puppeteer instances,
-  maintain lists or queues of URLs to crawl, store crawling results to local filesystem or into the cloud,
+  maintain queues of URLs to crawl, store crawling results to local filesystem or into the cloud,
   rotate proxies and much more.
   The SDK is available as the <a href="https://www.npmjs.com/package/apify" target="_blank"><code>apify</code></a> NPM package.
   It can be used either standalone in your own applications
@@ -16,7 +16,7 @@
 </div>
 
 <div>
-  View the [Apify SDK Programmer's Reference](https://www.apify.com/docs/sdk/apify-runtime-js/latest).
+  View the full <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest/" target="_blank">Apify SDK Programmer's Reference</a>
 </div>
 
 
