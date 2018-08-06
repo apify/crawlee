@@ -15,6 +15,8 @@
   running on the <a href="https://www.apify.com/" target="_blank">Apify cloud platform</a>.
 </div>
 
+<br>
+
 <div>
   View the full <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest/" target="_blank">Apify SDK Programmer's Reference</a>
 </div>
