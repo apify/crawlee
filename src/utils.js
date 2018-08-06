@@ -162,7 +162,7 @@ export const avg = arr => sum(arr) / arr.length;
  *
  * ```javascript
  * {
- *   // Total memory available to the act
+ *   // Total memory available to the actor
  *   totalBytes: Number,
  *   &nbsp;
  *   // Amount of free memory

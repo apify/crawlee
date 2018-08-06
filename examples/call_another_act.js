@@ -1,12 +1,12 @@
 /**
- * This example shows how to call another act - in this case apify/send-main to send
+ * This example shows how to call another actor - in this case apify/send-main to send
  * email.
  *
  * BTC is falling down for few months already. If you don't want to miss the chance of
- * of your live then you can use this code to get current BTC prices from Kraken.com
+ * of your life then you can use this code to get current BTC prices from Kraken.com
  * and mail them to your mailbox.
  *
- * If you deploy this act to Apify platform then you can setup a scheduler for early
+ * If you deploy this actor to Apify platform then you can setup a scheduler for early
  * morning.
  */
 

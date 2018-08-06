@@ -768,11 +768,11 @@ const getOrCreateQueue = (queueIdOrName) => {
  *
  * If the `APIFY_LOCAL_EMULATION_DIR` environment variable is defined, the value this function
  * returns is an instance of the `RequestQueueLocal` class which is a local emulation of the request queue.
- * This is useful for local development and debugging of the acts.
+ * This is useful for local development and debugging of the actors.
  *
  * @param {string} queueIdOrName ID or name of the request queue to be opened.
  * @returns {Promise<RequestQueue>} Returns a promise that resolves to a `RequestQueue` object. If no value is provided
- *                                  then the function opens the default request queue associated with the act run.
+ *                                  then the function opens the default request queue associated with the actor run.
  *
  * @memberof module:Apify
  * @name openRequestQueue

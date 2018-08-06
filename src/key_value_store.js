@@ -356,10 +356,10 @@ const getOrCreateKeyValueStore = (storeIdOrName) => {
  *
  * If the `APIFY_LOCAL_EMULATION_DIR` environment variable is set, the result of this function
  * is an instance of the `KeyValueStoreLocal` class which stores the records in a local directory
- * rather than Apify cloud. This is useful for local development and debugging of your acts.
+ * rather than Apify cloud. This is useful for local development and debugging of your actors.
  *
  * @param {string} storeIdOrName ID or name of the key-value store to be opened. If no value is
- *                               provided then the function opens the default key-value store associated with the act run.
+ *                               provided then the function opens the default key-value store associated with the actor run.
  * @returns {Promise<KeyValueStore>} Returns a promise that resolves to a KeyValueStore object.
  *
  * @memberof module:Apify
@@ -405,10 +405,10 @@ export const openKeyValueStore = (storeIdOrName) => {
 };
 
 /**
- * Gets a value from the default key-value store for the current act run using the Apify API.
- * The key-value store is created automatically for each act run
+ * Gets a value from the default key-value store for the current actor run using the Apify API.
+ * The key-value store is created automatically for each actor run
  * and its ID is passed by the Actor platform in the `APIFY_DEFAULT_KEY_VALUE_STORE_ID` environment variable.
- * It is used to store input and output of the act under keys named `INPUT` and `OUTPUT`, respectively.
+ * It is used to store input and output of the actor under keys named `INPUT` and `OUTPUT`, respectively.
  * However, the store can be used for storage of any other values under arbitrary keys.
  *
  * Example usage:
@@ -430,7 +430,7 @@ export const openKeyValueStore = (storeIdOrName) => {
  * the value is read from a that directory rather than the key-value store,
  * specifically from a file that has the key as a name.
  * file does not exists, the returned value is `null`. The file will get extension based on it's content type.
- * This feature is useful for local development and debugging of your acts.
+ * This feature is useful for local development and debugging of your actors.
  *
  *
  * @param {String} key Key of the record.
@@ -444,8 +444,8 @@ export const openKeyValueStore = (storeIdOrName) => {
 export const getValue = key => openKeyValueStore().then(store => store.getValue(key));
 
 /**
- * Stores a value in the default key-value store for the current act run using the Apify API.
- * The data is stored in the key-value store created specifically for the act run,
+ * Stores a value in the default key-value store for the current actor run using the Apify API.
+ * The data is stored in the key-value store created specifically for the actor run,
  * whose ID is defined in the `APIFY_DEFAULT_KEY_VALUE_STORE_ID` environment variable.
  * The function has no result, but throws on invalid args or other errors.
  *
@@ -462,10 +462,10 @@ export const getValue = key => openKeyValueStore().then(store => store.getValue(
  *
  * If the `APIFY_LOCAL_EMULATION_DIR` environment variable is defined,
  * the value is written to that local directory rather than the key-value store on Apify cloud,
- * to a file named as the key. This is useful for local development and debugging of your acts.
+ * to a file named as the key. This is useful for local development and debugging of your actors.
  *
  * **IMPORTANT:** Do not forget to use the `await` keyword when calling `Apify.setValue()`,
- * otherwise the act process might finish before the value is stored!
+ * otherwise the actor process might finish before the value is stored!
  *
  * @param key Key of the record
  * @param value Value of the record:

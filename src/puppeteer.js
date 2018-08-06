@@ -120,7 +120,7 @@ const getPuppeteerOrThrow = () => {
  *    <li>
  *        Passes the setting from the `APIFY_HEADLESS` environment variable to the `headless` option,
  *        unless it was already defined by the caller or `APIFY_XVFB` environment variable is set to `1`.
- *        Note that Apify Actor cloud platform automatically sets `APIFY_HEADLESS=1` to all running acts.
+ *        Note that Apify Actor cloud platform automatically sets `APIFY_HEADLESS=1` to all running actors.
  *    </li>
  *    <li>
  *        Takes the `proxyUrl` option, checks it and adds it to `args` as `--proxy-server=XXX`.
@@ -142,7 +142,7 @@ const getPuppeteerOrThrow = () => {
  * To use this function, you need to have the <a href="https://www.npmjs.com/package/puppeteer" target="_blank">puppeteer</a>
  * NPM package installed in your project.
  * When running on the Apify cloud platform, you can achieve that simply
- * by using the `apify/actor-node-chrome` base Docker image for your act - see
+ * by using the `apify/actor-node-chrome` base Docker image for your actor - see
  * <a href="https://www.apify.com/docs/actor#base-images" target="_blank">Apify Actor documentation</a>
  * for details.
  *
