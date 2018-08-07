@@ -3,6 +3,7 @@ import { ENV_VARS } from './constants';
 import { main, readyFreddy, getEnv, call, getApifyProxyUrl } from './actor';
 import AutoscaledPool from './autoscaled_pool';
 import BasicCrawler from './basic_crawler';
+import CheerioCrawler from './cheerio_crawler';
 import { pushData, openDataset } from './dataset';
 import events, { initializeEvents, stopEvents } from './events';
 import { getValue, setValue, openKeyValueStore } from './key_value_store';
@@ -54,6 +55,9 @@ module.exports = {
 
     // Basic crawler
     BasicCrawler,
+
+    // Cheerio crawler
+    CheerioCrawler,
 
     // Dataset
     pushData,

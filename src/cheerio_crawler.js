@@ -1,10 +1,11 @@
 import rp from 'request-promise';
 import _ from 'underscore';
+import cheerio from 'cheerio';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import BasicCrawler from './basic_crawler';
 
 const DEFAULT_OPTIONS = {
-    requestFunction: ({ request }) => rp({ url: request.url, method: request.method }),
+    requestFunction: ({ request }) => rp({ url: request.url, method: request.method, headers: request.headers }),
     pageOpsTimeoutMillis: 300000,
 };
 
@@ -75,14 +76,10 @@ export default class CheerioCrawler {
      */
     _handleRequestFunction({ request }) {
         const handlePagePromise = this.requestFunction({ request })
-            .then((response) => {
-                const promise = this.handlePageFunction({
-                    request,
-                    response,
-                });
-
+            .then((html) => {
+                const $ = cheerio.load(html);
+                const promise = this.handlePageFunction({ $, html, request });
                 if (!isPromise(promise)) throw new Error('User provided handlePageFunction must return a Promise.');
-
                 return promise;
             });
 
