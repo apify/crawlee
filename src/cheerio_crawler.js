@@ -3,10 +3,14 @@ import _ from 'underscore';
 import cheerio from 'cheerio';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import BasicCrawler from './basic_crawler';
+import { isPromise } from './utils';
 
 const DEFAULT_OPTIONS = {
     requestFunction: ({ request }) => rp({ url: request.url, method: request.method, headers: request.headers }),
     pageOpsTimeoutMillis: 300000,
+    requestOptions: {
+        ignoreSslErrors: true,
+    },
 };
 
 export default class CheerioCrawler {
@@ -35,7 +39,9 @@ export default class CheerioCrawler {
         checkParamOrThrow(requestFunction, 'opts.requestFunction', 'Function');
         checkParamOrThrow(handlePageFunction, 'opts.handlePageFunction', 'Function');
         checkParamOrThrow(handleFailedRequestFunction, 'opts.handleFailedRequestFunction', 'Maybe Function');
-        checkParamOrThrow(requestOptions, 'opts.requestOptions', 'Maybe Object');
+        checkParamOrThrow(requestOptions, 'opts.requestOptions', 'Object');
+
+        if (requestOptions.ignoreSslErrors) process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
         this.handlePageFunction = handlePageFunction;
         this.requestFunction = requestFunction;
