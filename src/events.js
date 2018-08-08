@@ -58,7 +58,7 @@ let persistStateInterval = null;
  *             <td>`ACTOR_EVENT_NAMES.CPU_INFO`</td>
  *             <td>`{ "isCpuOverloaded": true }`</td>
  *             <td>
- *                 This event is send every second and contains information if act is using maximum amount of available
+ *                 This event is send every second and contains information if actor is using maximum amount of available
  *                 CPU power. If maximum is reached then there is no point in adding more workload.
  *             </td>
  *         </tr>
@@ -67,7 +67,7 @@ let persistStateInterval = null;
  *             <td>`ACTOR_EVENT_NAMES.MIGRATING`</td>
  *             <td>`null`</td>
  *             <td>
- *                 This event is send when act is going to be migrated to another worker machine. In this case act run will
+ *                 This event is send when actor is going to be migrated to another worker machine. In this case actor run will
  *                 be stopped and then reinitialized at another server.
  *             </td>
  *         </tr>
@@ -77,7 +77,7 @@ let persistStateInterval = null;
  *             <td>`{ "isMigrating": true }`</td>
  *             <td>
  *                 This event is send in regular intervals to notify all components of Apify SDK that it's time to persist
- *                 state. This prevents situation when act gets restarted due to a migration to another worker machine and
+ *                 state. This prevents situation when actor gets restarted due to a migration to another worker machine and
  *                 needs to start from scratch. This event is also send as a result of `ACTOR_EVENT_NAMES.MIGRATING` and in
  *                 this case the message is `{ "isMigrating": true }`.
  *             </td>
@@ -94,7 +94,7 @@ let persistStateInterval = null;
 export default events;
 
 /**
- * Emits event telling all comonents that they should persist their state in regular interval and also when act is being
+ * Emits event telling all comonents that they should persist their state in regular interval and also when actor is being
  * migrated to another worker.
  *
  * @ignore

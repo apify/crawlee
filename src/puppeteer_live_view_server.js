@@ -272,7 +272,7 @@ const sendCommand = (socket, command, data) => {
 };
 
 /**
- * Enables Live View monitoring of Act execution by spawning a web server that responds with a list
+ * Enables live monitoring of actor execution by spawning a web server that responds with a list
  * of available browsers at its root path. Once the user chooses a browser, PuppeteerLiveViewServer will
  * periodically serve screenshots of the selected browser's latest loaded page.
  */

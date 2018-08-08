@@ -29,35 +29,35 @@ const tryParseDate = (str) => {
  *
  * ```javascript
  * {
- *     // ID of the act (APIFY_ACT_ID)
+ *     // ID of the actor (APIFY_ACT_ID)
  *     actId: String,
  * &nbsp;
- *     // ID of the act run (APIFY_ACT_RUN_ID)
+ *     // ID of the actor run (APIFY_ACT_RUN_ID)
  *     actRunId: String,
  * &nbsp;
- *     // ID of the user who started the act - note that it might be
- *     // different than the owner of the act (APIFY_USER_ID)
+ *     // ID of the user who started the actor - note that it might be
+ *     // different than the owner of the actor (APIFY_USER_ID)
  *     userId: String,
  * &nbsp;
- *     // Authentication token representing privileges given to the act run,
+ *     // Authentication token representing privileges given to the actor run,
  *     // it can be passed to various Apify APIs (APIFY_TOKEN).
  *     token: String,
  * &nbsp;
- *     // Date when the act was started (APIFY_STARTED_AT)
+ *     // Date when the actor was started (APIFY_STARTED_AT)
  *     startedAt: Date,
  * &nbsp;
- *     // Date when the act will time out (APIFY_TIMEOUT_AT)
+ *     // Date when the actor will time out (APIFY_TIMEOUT_AT)
  *     timeoutAt: Date,
  * &nbsp;
  *     // ID of the key-value store where input and output data of this
- *     // act is stored (APIFY_DEFAULT_KEY_VALUE_STORE_ID)
+ *     // actor is stored (APIFY_DEFAULT_KEY_VALUE_STORE_ID)
  *     defaultKeyValueStoreId: String,
  * &nbsp;
- *    // ID of the dataset where input and output data of this
- *     // act is stored (APIFY_DEFAULT_DATASET_ID)
+ *     // ID of the dataset where input and output data of this
+ *     // actor is stored (APIFY_DEFAULT_DATASET_ID)
  *     defaultDatasetId: String,
  * &nbsp;
- *     // Amount of memory allocated for the act run,
+ *     // Amount of memory allocated for the actor,
  *     // in megabytes (APIFY_MEMORY_MBYTES)
  *     memoryMbytes: Number,
  * }
@@ -73,7 +73,7 @@ const tryParseDate = (str) => {
  * @name getEnv
  */
 export const getEnv = () => {
-    // NOTE: Don't throw if env vars are invalid to simplify local development and debugging of acts
+    // NOTE: Don't throw if env vars are invalid to simplify local development and debugging of actors
     const env = process.env || {};
     return {
         actId: env[ENV_VARS.ACT_ID] || null,
@@ -90,7 +90,7 @@ export const getEnv = () => {
 };
 
 /**
- * Runs a user function that performs the logic of the act.
+ * Runs a user function that performs the logic of the actor.
  * The `Apify.main(userFunct)` function does the following actions:
  *
  * <ol>
@@ -134,8 +134,8 @@ export const getEnv = () => {
  * });
  * ```
  *
- * Note that the use of `Apify.main()` in acts is optional;
- * the function is provided merely for user convenience and acts don't need to use it.
+ * Note that the use of `Apify.main()` in actors is optional;
+ * the function is provided merely for user convenience and you don't have to use it.
  *
  * @param userFunc {Function} User function to be executed
  *
@@ -161,7 +161,7 @@ export const main = (userFunc) => {
 
     // Set dummy interval to ensure the process will not be killed while awaiting empty promise:
     // await new Promise(() => {})
-    // Such a construct is used for testing of act timeouts and aborts.
+    // Such a construct is used for testing of actor timeouts and aborts.
     const intervalId = setInterval(_.noop, 9999999);
 
     try {
@@ -191,8 +191,8 @@ export const main = (userFunc) => {
 // TODO: this should rather be called Apify.listeningOnPort() or something like that
 
 /**
- * Notifies Apify runtime that act is listening on port specified by the APIFY_INTERNAL_PORT environment
- * variable and is ready to receive a HTTP request with act input.
+ * Notifies Apify runtime that actor is listening on port specified by the APIFY_INTERNAL_PORT environment
+ * variable and is ready to receive a HTTP request with actor input.
  *
  * @ignore
  */
@@ -208,7 +208,7 @@ export const readyFreddy = () => {
 };
 
 /**
- * Runs another act under the current user account, waits for the act to finish and fetches its output.
+ * Runs another actor under the current user account, waits for the actor to finish and fetches its output.
  *
  * By passing the `waitSecs` option you can reduce the maximum amount of time to wait for the run to finish.
  * If the value is less than or equal to zero, the function returns immediately after the run is started.
@@ -248,7 +248,7 @@ export const readyFreddy = () => {
  * }
  * ```
  * Internally, the function calls the
- * <a href="https://www.apify.com/docs/api/v2#/reference/acts/runs-collection/run-act" target="_blank">Run act</a>
+ * <a href="https://www.apify.com/docs/api/v2#/reference/actors/run-collection/run-actor" target="_blank">Run actor</a>
  * API endpoint and few others.
  *
  * Example usage:
@@ -258,28 +258,28 @@ export const readyFreddy = () => {
  * console.log(`Received message: ${run.output.body.message}`);
  * ```
  *
- * @param {String} actId Either `username/act-name` or act ID.
- * @param {Object|String|Buffer} [input] Act input body. If it is an object, it is stringified to
- *                                         JSON and the content type set to `application/json; charset=utf-8`.
+ * @param {String} actId Either `username/actor-name` or actor ID.
+ * @param {Object|String|Buffer} [input] Actor input body. If it is an object, it is stringified to
+ * JSON and the content type set to `application/json; charset=utf-8`.
  * @param {Object} [opts]
  * @param {String} [opts.token] User API token. By default, it is taken from the `APIFY_TOKEN` environment variable.
- * @param {String} [opts.build] Tag or number of act build to be run (e.g. `beta` or `1.2.345`).
- *                                If not provided, the default build tag or number from act configuration is used (typically `latest`).
+ * @param {String} [opts.build] Tag or number of actor build to run (e.g. `beta` or `1.2.345`).
+ * If not provided, the default build tag or number from actor configuration is used (typically `latest`).
  * @param {String} [opts.contentType] Content type for the `input`. If not specified,
  *                                      `input` is expected to be an object that will be stringified to JSON and content type set to
  *                                      `application/json; charset=utf-8`. If `opts.contentType` is specified, then `input` must be a
  *                                      `String` or `Buffer`.
- * @param {Number} [opts.timeoutSecs] Time limit for act to finish, in seconds.
+ * @param {Number} [opts.timeoutSecs] Time limit for actor to finish, in seconds.
  *                                      If the limit is reached the resulting run will have the `RUNNING` status.
  *                                      By default, there is no timeout.
- * @param {String} [opts.waitSecs] - Maximum time to wait for act run to finish, in seconds.
+ * @param {String} [opts.waitSecs] - Maximum time to wait for actor run to finish, in seconds.
  *                                     If the limit is reached, the returned promise is resolved to a run object that will have
- *                                     status `READY` or `RUNNING` and it will not contain the act run output.
- *                                     If `waitSecs` is null or undefined, the function waits for the act to finish (default behavior).
- * @param {Number} [opts.memory] Memory in megabytes which will be allocated for the new act run.
- * @param {Boolean} [opts.fetchOutput=true] If `false` then the function does not fetch output of the act.
+ *                                     status `READY` or `RUNNING` and it will not contain the actor run output.
+ *                                     If `waitSecs` is null or undefined, the function waits for the actor to finish (default behavior).
+ * @param {Number} [opts.memory] Memory in megabytes which will be allocated for the new actor run.
+ * @param {Boolean} [opts.fetchOutput=true] If `false` then the function does not fetch output of the actor.
  * @param {Boolean} [opts.disableBodyParser=false] If `true` then the function will not attempt to parse the
- *                                                act's output and will return it in a raw `Buffer`.
+ *                                                actor's output and will return it in a raw `Buffer`.
  * @returns {Promise}
  * @throws {ApifyCallError} If run doesn't succeed.
  *
@@ -374,7 +374,7 @@ export const call = (actId, input, opts = {}) => {
 
 /**
  * Constructs the URL to the Apify Proxy using the specified settings.
- * The proxy URL can be used from Apify Actor acts, web browsers or any other HTTP
+ * The proxy URL can be used from Apify actors, web browsers or any other HTTP
  * proxy-enabled applications.
  *
  * For more information, see
@@ -384,7 +384,7 @@ export const call = (actId, input, opts = {}) => {
  * @param {Object} opts
  * @param {String} opts.password User's password for the proxy.
  * By default, it is taken from the `APIFY_PROXY_PASSWORD` environment variable,
- * which is automatically set by the system when running the acts on the Apify cloud.
+ * which is automatically set by the system when running the actors on the Apify cloud.
  * @param {String[]} [opts.groups] Array of Apify Proxy groups to be used.
  * If not provided, the proxy will select the groups automatically.
  * @param {String} [opts.session] Apify Proxy session identifier to be used by the Chrome browser.

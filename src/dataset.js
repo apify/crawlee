@@ -561,10 +561,10 @@ const getOrCreateDataset = (datasetIdOrName) => {
  * Example usage:
  *
  * ```javascript
- * const store = await Apify.openDataset(); // Opens the default dataset of the run.
- * const storeWithName = await Apify.openDataset('some-name'); // Opens dataset with name 'some-name'.
+ * // Opens dataset called 'some-name'.
+ * const dataset = await Apify.openDataset('some-name');
  *
- * // Write a single row to dataset
+ * // Write a single row
  * await dataset.pushData({ foo: 'bar' });
  *
  * // Write multiple rows
@@ -576,10 +576,10 @@ const getOrCreateDataset = (datasetIdOrName) => {
  *
  * If the `APIFY_LOCAL_EMULATION_DIR` environment variable is set, the result of this function
  * is an instance of the `DatasetLocal` class which stores the data in a local directory
- * rather than Apify cloud. This is useful for local development and debugging of your acts.
+ * rather than Apify cloud. This is useful for local development and debugging of your actors.
  *
  * @param {string} datasetIdOrName ID or name of the dataset to be opened. If no value is provided
- *                                 then the function opens the default dataset associated with the act run.
+ *                                 then the function opens the default dataset associated with the actor run.
  * @returns {Promise<Dataset>} Returns a promise that resolves to a `Dataset` object.
  *
  * @memberof module:Apify
@@ -625,7 +625,7 @@ export const openDataset = (datasetIdOrName) => {
 };
 
 /**
- * Stores object or an array of objects in the default dataset for the current act run using the Apify API
+ * Stores object or an array of objects in the default dataset for the current actor run using the Apify API
  * Default id of the dataset is in the `APIFY_DEFAULT_DATASET_ID` environment variable
  * The function has no result, but throws on invalid args or other errors.
  *
@@ -633,13 +633,13 @@ export const openDataset = (datasetIdOrName) => {
  * await Apify.pushData(data);
  * ```
  *
- * The data is stored in default dataset associated with this act.
+ * The data is stored in default dataset associated with this actor.
  *
  * If the `APIFY_LOCAL_EMULATION_DIR` environment variable is defined, the data gets pushed into local directory.
- * This feature is useful for local development and debugging of your acts.
+ * This feature is useful for local development and debugging of your actors.
  *
  * **IMPORTANT**: Do not forget to use the `await` keyword when calling `Apify.pushData()`,
- * otherwise the act process might finish before the data is stored!
+ * otherwise the actor process might finish before the data is stored!
  *
  * @param {Object|Array} data Object or array of objects containing data to by stored in the dataset (9MB Max)
  * @returns {Promise} Returns a promise that gets resolved once data are saved.
