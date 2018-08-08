@@ -103,4 +103,6 @@ consts.USER_AGENT_LIST = [
     'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:61.0) Gecko/20100101 Firefox/61.0',
 ];
 
+consts.LOCAL_USER_ID = 'local_user_id';
+
 module.exports = consts;
