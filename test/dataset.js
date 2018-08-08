@@ -5,7 +5,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import sinon from 'sinon';
 import { leftpad, delayPromise } from 'apify-shared/utilities';
-import { ENV_VARS, MAX_PAYLOAD_SIZE_BYTES } from '../build/constants';
+import { ENV_VARS, MAX_PAYLOAD_SIZE_BYTES, LOCAL_USER_ID } from '../build/constants';
 import { LOCAL_FILENAME_DIGITS, Dataset, DatasetLocal, LOCAL_EMULATION_SUBDIR,
     LOCAL_GET_ITEMS_DEFAULT_LIMIT, checkAndSerialize, chunkBySize } from '../build/dataset';
 import { apifyClient } from '../build/utils';
@@ -105,6 +105,33 @@ describe('dataset', () => {
                 count: 2,
                 limit: 2,
             });
+        });
+
+        it('getInfo() should work', async () => {
+            const dataset = await getLocalDataset([
+                { foo: 'a' },
+                { foo: 'b' },
+                { foo: 'c' },
+                { foo: 'd' },
+            ]);
+
+            const info = await dataset.getInfo();
+            expect(info).to.be.an('object');
+            expect(info.id).to.be.eql('my-dataset');
+            expect(info.name).to.be.eql('my-dataset');
+            expect(info.userId).to.be.eql(LOCAL_USER_ID);
+            expect(info.itemsCount).to.be.eql(4);
+
+            const cTime = info.createdAt.getTime();
+            const mTime = info.modifiedAt.getTime();
+            const aTime = info.accessedAt.getTime();
+
+            expect(cTime).to.be.below(Date.now());
+            expect(cTime).to.be.below(mTime);
+            expect(mTime).to.be.eql(aTime);
+
+            await dataset.getData();
+            // TODO
         });
 
         it('forEach() should work', async () => {

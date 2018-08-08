@@ -530,8 +530,9 @@ export class DatasetLocal {
     }
 
     _updateMetadata(isModified) {
-        this.accessedAt = Date.now();
-        if (isModified) this.modifiedAt = Date.now();
+        const date = new Date();
+        this.accessedAt = date;
+        if (isModified) this.modifiedAt = date;
     }
 }
 
