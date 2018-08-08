@@ -115,7 +115,7 @@ describe('dataset', () => {
                 { foo: 'd' },
             ]);
 
-            const info = await dataset.getInfo();
+            let info = await dataset.getInfo();
             expect(info).to.be.an('object');
             expect(info.id).to.be.eql('my-dataset');
             expect(info.name).to.be.eql('my-dataset');
@@ -123,15 +123,34 @@ describe('dataset', () => {
             expect(info.itemsCount).to.be.eql(4);
 
             const cTime = info.createdAt.getTime();
-            const mTime = info.modifiedAt.getTime();
-            const aTime = info.accessedAt.getTime();
+            let mTime = info.modifiedAt.getTime();
+            let aTime = info.accessedAt.getTime();
 
             expect(cTime).to.be.below(Date.now());
             expect(cTime).to.be.below(mTime);
             expect(mTime).to.be.eql(aTime);
 
             await dataset.getData();
-            // TODO
+
+            await Apify.utils.sleep(2);
+            const now = Date.now();
+            await Apify.utils.sleep(2);
+
+            info = await dataset.getInfo();
+            expect(info).to.be.an('object');
+            expect(info.id).to.be.eql('my-dataset');
+            expect(info.name).to.be.eql('my-dataset');
+            expect(info.userId).to.be.eql(LOCAL_USER_ID);
+            expect(info.itemsCount).to.be.eql(4);
+
+            const cTime2 = info.createdAt.getTime();
+            mTime = info.modifiedAt.getTime();
+            aTime = info.accessedAt.getTime();
+
+            expect(cTime).to.be.eql(cTime2);
+            expect(mTime).to.be.below(aTime);
+            expect(mTime).to.be.below(now);
+            expect(aTime).to.be.below(now);
         });
 
         it('forEach() should work', async () => {
@@ -440,6 +459,32 @@ describe('dataset', () => {
             mock.restore();
         });
 
+        it('getInfo() should work', async () => {
+            const dataset = new Dataset('some-id');
+            const mock = sinon.mock(apifyClient.datasets);
+
+            const expected = {
+                id: 'WkzbQMuFYuamGv3YF',
+                name: 'd7b9MDYsbtX5L7XAj',
+                userId: 'wRsJZtadYvn4mBZmm',
+                createdAt: '2015-12-12T07:34:14.202Z',
+                modifiedAt: '2015-12-13T08:36:13.202Z',
+                accessedAt: '2015-12-14T08:36:13.202Z',
+                itemsCount: 0,
+            };
+
+            mock.expects('getDataset')
+                .once()
+                .returns(Promise.resolve(expected));
+
+            const result = await dataset.getInfo();
+
+            expect(result).to.be.eql(expected);
+
+            mock.verify();
+            mock.restore();
+        });
+
         const getRemoteDataset = () => {
             const dataset = new Dataset('some-id');
             const mock = sinon.mock(apifyClient.datasets);
@@ -485,6 +530,7 @@ describe('dataset', () => {
 
             return { dataset, restoreAndVerify };
         };
+
 
         it('forEach() should work', async () => {
             const { dataset, restoreAndVerify } = getRemoteDataset();
