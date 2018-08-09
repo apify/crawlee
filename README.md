@@ -326,6 +326,114 @@ apify push
 
 
 
+## Components
+
+### BasicCrawler
+
+Enables crawling of large number of web pages
+in raw HTML or using <a href="https://www.npmjs.com/package/cheerio" target="_blank">cheerio</a>
+HTML parser.
+This is the most efficient web crawling method, but it does not work on websites that require JavaScript.
+
+
+```js
+const Apify = require('apify');
+const requestPromise = require('request-promise');
+
+...
+
+// Prepare a list of URLs to crawl
+const requestList = new Apify.RequestList({
+  sources: [
+      { url: 'http://www.example.com/page-1' },
+      { url: 'http://www.example.com/page-2' },
+  ],
+});
+await requestList.initialize();
+
+// Crawl the URLs using a raw HTML downloader
+const crawler = new Apify.BasicCrawler({
+    requestList,
+    handleRequestFunction: async ({ request }) => {
+        // 'request' contains an instance of the Request class
+        // Here we simply fetch the HTML of the page and store it to a dataset
+        await Apify.pushData({
+            url: request.url,
+            html: await requestPromise(request.url),
+        })
+    },
+});
+
+await crawler.run();
+
+```
+
+
+<ul>
+  <li>
+     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#BasicCrawler">BasicCrawler</a>
+     - Enables crawling of large number of web pages
+     in raw HTML or using <a href="https://www.npmjs.com/package/cheerio" target="_blank">cheerio</a>
+     HTML parser.
+     This is the most efficient web crawling method, but it does not work on websites that require JavaScript.
+  </li>
+  <li>
+     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerCrawler">PuppeteerCrawler</a>
+     - Enables crawling of large number of web pages using headless Chrome browser
+     and <a href="https://github.com/GoogleChrome/puppeteer">Puppeteer</a>.
+     The pool of Chrome processes is automatically scaled up and down based on available system resources.
+    </li>
+  <li>
+    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList">RequestList</a>
+    - Represents a list of URLs to crawl. The URLs can be provided in code or in a text file.
+    The list persists its state so that the crawling can resume
+    when the Node.js process restarts.
+  </li>
+  <li>
+     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue">RequestQueue</a>
+     - Represents a queue of URLs to crawl, which is stored either on local filesystem or in cloud.
+     The queue is used for deep crawling of websites, where you start with
+     several URLs and then recursively follow links to other pages.
+     The data structure supports both breath-first and depth-first crawling orders.
+  </li>
+  <li>
+     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#Dataset">Dataset</a>
+     - Provides a store for structured data and enables their
+     export to formats like JSON, JSONL, CSV, Excel or HTML.
+     The data is stored on local filesystem or in the cloud.
+     Datasets are useful for storing and sharing large tabular crawling results,
+     like list of products or real estate offers.
+  </li>
+  <li>
+     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#Dataset">KeyValueStore</a>
+     - A simple key-value store for arbitrary data records or files, along with their MIME content type.
+     It is ideal for saving screenshots of web pages, PDFs or any downloaded files.
+     The data is stored on local filesystem or in the cloud.
+  </li>
+  <li>
+     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#AutoscaledPool" target="_blank">AutoscaledPool</a>
+     - Runs asynchronous background tasks, while automatically adjusting the concurrency
+     based on free system memory and CPU usage. This is useful for running headless Chrome tasks at scale.
+  </li>
+  <li>
+    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerUtils" target="_blank">PuppeteerUtils</a>
+    - Provides several helper functions useful for web scraping. For example, to inject jQuery to the web pages
+    or to hide browser origin.
+  </li>
+  <li>
+    Additionally, the package provides various helper functions to simplify
+    running your code on the Apify cloud platform and thus
+    get advantage of pool of proxies, job scheduler, data storage etc.
+    For more information,
+    see the <a href="https://www.apify.com/docs/actor">Apify actor documentation</a>.
+  </li>
+</ul>
+
+
+
+
+
+
 
 ## Puppeteer
 <!-- Mirror this part to src/index.js -->
@@ -455,7 +563,7 @@ For examples on how to use it see <a href="#examples">examples</a> section below
 
 #### Request List
 
-Provides way to handle a list of URLs to be crawled. Each URL is reprented using an instance of the Request class.
+Provides way to handle a list of URLs to be crawled. Each URL is represented using an instance of the `Request` class.
 
 ```javascript
 const requestList = new Apify.RequestList({
@@ -508,7 +616,7 @@ Enables real time inspection of individual Puppeteer browser instances by starti
 Puppeteer Live View provides the user with a dashboard listing all active browser instances and their active page details. The details show a page screenshot and raw HTML.
 
 You can use Puppeteer Live View, either directly:
-```javascript
+```javascriptThe function has no result,
 const browser = Apify.launchPuppeteer({ liveView: true });
 ```
 or while using PuppeteerCrawler:

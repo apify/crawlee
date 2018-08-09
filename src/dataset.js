@@ -568,14 +568,17 @@ export const openDataset = (datasetIdOrName) => {
 
 /**
  * Stores object or an array of objects in the default dataset for the current actor run using the Apify API
- * Default id of the dataset is in the `APIFY_DEFAULT_DATASET_ID` environment variable
+ * Default id of the dataset is in the `APIFY_DEFAULT_DATASET_ID` environment variable.
  * The function has no result, but throws on invalid args or other errors.
  *
  * ```javascript
- * await Apify.pushData(data);
+ * await Apify.pushData({
+ *   field1: 'value1',
+ *   field2: 123,
+ * });
  * ```
  *
- * The data is stored in default dataset associated with this actor.
+ * The data is stored in the default dataset associated with this actor.
  *
  * If the `APIFY_LOCAL_EMULATION_DIR` environment variable is defined, the data gets pushed into local directory.
  * This feature is useful for local development and debugging of your actors.
@@ -583,8 +586,9 @@ export const openDataset = (datasetIdOrName) => {
  * **IMPORTANT**: Do not forget to use the `await` keyword when calling `Apify.pushData()`,
  * otherwise the actor process might finish before the data is stored!
  *
- * @param {Object|Array} data Object or array of objects containing data to by stored in the dataset (9MB Max)
- * @returns {Promise} Returns a promise that gets resolved once data are saved.
+ * @param {Object|Array} data Object or array of objects containing data to be stored in the dataset.
+ * The objects must be serializable to JSON and the JSON representation of each object must be less than 9MB large.
+ * @returns {Promise} Returns a promise that gets resolved once the data is saved.
  *
  * @memberof module:Apify
  * @name pushData
