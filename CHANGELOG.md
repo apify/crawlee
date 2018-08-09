@@ -1,3 +1,7 @@
+0.5.51 / 2018-08-09
+===================
+- Fixed unresponsive magnifying glass and improved status tracking in LiveView frontend
+
 0.5.50 / 2018-08-06
 ===================
 - Fixed invalid URL parsing in RequestList.
