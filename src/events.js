@@ -24,69 +24,63 @@ let eventsWs = null;
 let persistStateInterval = null;
 
 /**
- * Event emitter providing access to events from Actor infrastructure. Event emitter is initiated by Apify.main().
- * If you don't use Apify.main() then you must call `await Apify.initializeEvents()` yourself.
+ * Gets an instance of Node.js' <a href="https://nodejs.org/api/events.html#events_class_eventemitter">EventEmitter</a> class
+ * that emits various events from the SDK or the Apify platform.
+ * The event emitter is initialized by calling <a href="#module-Apify-main"><code>Apify.main()</code></a> function.
  *
  * Example usage:
  *
  * ```javascript
- * import { ACTOR_EVENT_NAMES } from 'apify/constants';
- *
  * Apify.main(async () => {
  *   &nbsp;
- *   Apify.events.on(ACTOR_EVENT_NAMES.CPU_INFO, (data) => {
- *     if (data.isCpuOverloaded) console.log('OH NO! We are overloading CPU!');
+ *   Apify.events.on('cpuInfo', (data) => {
+ *     if (data.isCpuOverloaded) console.log('Oh no, the CPU is overloaded!');
  *   });
  *.  &nbsp;
  * });
  * ```
  *
- * Event types:
+ * The following table shows all currently emitted events:
  *
  * <table class="table table-bordered table-condensed">
  *     <thead>
  *         <tr>
- *             <th>Event</th>
- *             <th>Name</th>
- *             <th>Constant</th>
- *             <th>Message</th>
+ *             <th>Event name</th>
+ *             <th>Data</th>
  *             <th>Description</th>
  *     </thead>
  *     <tbody>
  *         <tr>
  *             <td>`cpuInfo`</td>
- *             <td>`ACTOR_EVENT_NAMES.CPU_INFO`</td>
- *             <td>`{ "isCpuOverloaded": true }`</td>
+ *             <td>`{ "isCpuOverloaded": Boolean }`</td>
  *             <td>
- *                 This event is send every second and contains information if actor is using maximum amount of available
- *                 CPU power. If maximum is reached then there is no point in adding more workload.
+ *                 The event is emitted approximately every second
+ *                 and it indicates whether the actor is using maximum of available CPU resources.
+ *                 If that's the case, the actor should not add more workload.
+ *                 For example, this event is used by the <a href="#AutoscaledPool">AutoscaledPool</a> class.
  *             </td>
  *         </tr>
  *         <tr>
  *             <td>`migrating`</td>
- *             <td>`ACTOR_EVENT_NAMES.MIGRATING`</td>
- *             <td>`null`</td>
+ *             <td>None</td>
  *             <td>
- *                 This event is send when actor is going to be migrated to another worker machine. In this case actor run will
- *                 be stopped and then reinitialized at another server.
+ *                 Emitted when the actor running on Apify platform is going to be migrated to another worker server soon.
+ *                 You can use it to persist the state of the actor and abort the run, to speed up the migration.
+ *                 For example, this is used by the <a href="#RequestList">RequestList</a> class.
  *             </td>
  *         </tr>
  *         <tr>
  *             <td>`persistState`</td>
- *             <td>`ACTOR_EVENT_NAMES.PERSIST_STATE`</td>
- *             <td>`{ "isMigrating": true }`</td>
+ *             <td>`{ "isMigrating": Boolean }`</td>
  *             <td>
- *                 This event is send in regular intervals to notify all components of Apify SDK that it's time to persist
- *                 state. This prevents situation when actor gets restarted due to a migration to another worker machine and
- *                 needs to start from scratch. This event is also send as a result of `ACTOR_EVENT_NAMES.MIGRATING` and in
- *                 this case the message is `{ "isMigrating": true }`.
+ *                 Emitted in regular intervals to notify all components of Apify SDK that it is time to persist
+ *                 their state, in order to avoid repeating the entire work when the actor restarts.
+ *                 This event is automatically emitted together with the `migrating` event,
+ *                 in which case the `isMigrating` flag is set to `true`. Otherwise the flag is `false`.
  *             </td>
  *         </tr>
  *     </tbody>
  * </table>
- *
- * See <a href="https://nodejs.org/api/events.html#events_class_eventemitter" target="_blank">NodeJs documentation</a>
- * for more information on event emitter use.
  *
  * @memberof module:Apify
  * @name events
@@ -104,12 +98,13 @@ const emitPersistStateEvent = (isMigrating = false) => {
 };
 
 /**
- * Initializes Apify.events event emitter by creating connection to a websocket that provides them.
- * This is automatically called by `Apify.main()`.
+ * Initializes `Apify.events` event emitter by creating connection to a websocket that provides them.
+ * This is an internal function that is automatically called by `Apify.main()`.
  *
  * @memberof module:Apify
  * @name initializeEvents
  * @function
+ * @ignore
  */
 export const initializeEvents = () => {
     if (eventsWs) return;
