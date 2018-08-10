@@ -19,6 +19,7 @@ const DEFAULT_SCREENSHOT_TIMEOUT_MILLIS = 3000;
  * @param {Browser} browser A Puppeteer Browser instance.
  * @param {String} [options.id] A unique ID of the LiveViewBrowser.
  * @param {Number} [options.screenshotTimeoutMillis] Max time allowed for the screenshot taking process.
+ * @ignore
  */
 export class PuppeteerLiveViewBrowser extends EventEmitter {
     constructor(browser, opts = {}) {
@@ -225,6 +226,7 @@ let liveViewServer;
  * @param {String} [opts.id] Custom ID to be used with the browser instance.
  * @param {String} [opts.screenshotTimeoutMillis] Max time allowed for the screenshot taking process.
  * @returns {Promise<PuppeteerLiveViewServer>}
+ * @ignore
  */
 export const registerBrowserForLiveView = (browserPromise, opts = {}) => {
     let serverPromise = Promise.resolve();
@@ -263,6 +265,7 @@ export const registerBrowserForLiveView = (browserPromise, opts = {}) => {
  * @param {WebSocket} socket
  * @param {String} command Name of requested command.
  * @param {Object} data Data to be sent.
+ * @ignore
  */
 const sendCommand = (socket, command, data) => {
     const payload = JSON.stringify({ command, data });
@@ -275,6 +278,7 @@ const sendCommand = (socket, command, data) => {
  * Enables live monitoring of actor execution by spawning a web server that responds with a list
  * of available browsers at its root path. Once the user chooses a browser, PuppeteerLiveViewServer will
  * periodically serve screenshots of the selected browser's latest loaded page.
+ * @ignore
  */
 export default class PuppeteerLiveViewServer extends EventEmitter {
     constructor() {

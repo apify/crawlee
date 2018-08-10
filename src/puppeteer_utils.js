@@ -59,6 +59,7 @@ const hideWebDriver = async (page) => {
  * @param {Page} page Puppeteer [Page](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page) object.
  * @param {String} filePath File path
  * @return {Promise}
+ * @memberof utils.puppeteer
  */
 const injectFile = async (page, filePath) => {
     checkParamOrThrow(page, 'page', 'Object');

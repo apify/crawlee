@@ -300,7 +300,7 @@ export const getTypicalChromeExecutablePath = () => {
  * Creates a promise that after given time gets rejected with given error.
  *
  * @return {Promise<Error>}
- * @ignore.
+ * @ignore
  */
 export const createTimeoutPromise = (timeoutMillis, errorMessage) => {
     return delayPromise(timeoutMillis).then(() => {
