@@ -1,3 +1,7 @@
+xxx
+===================
+- PuppeteerCrawler's default page load timeout changed from 30 to 60 seconds.
+
 0.5.51 / 2018-08-09
 ===================
 - Fixed unresponsive magnifying glass and improved status tracking in LiveView frontend
