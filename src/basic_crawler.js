@@ -144,14 +144,18 @@ export default class BasicCrawler {
             maxConcurrency,
             minConcurrency,
             minFreeMemoryRatio,
-            runTaskFunction: () => this._runTaskFunction(),
+            runTaskFunction: () => {
+                if (this.isStopped) return null;
+
+                return this._runTaskFunction();
+            },
             isTaskReadyFunction: () => {
-                if (isMaxPagesExceeded()) return Promise.resolve(false);
+                if (isMaxPagesExceeded() || this.isStopped) return Promise.resolve(false);
 
                 return this._isTaskReadyFunction();
             },
             isFinishedFunction: () => {
-                if (isMaxPagesExceeded()) return Promise.resolve(true);
+                if (isMaxPagesExceeded() || this.isStopped) return Promise.resolve(true);
 
                 return isFinishedFunction
                     ? isFinishedFunction()
@@ -167,7 +171,14 @@ export default class BasicCrawler {
      * @return {Promise}
      */
     run() {
+        this.isStopped = false;
         return this.autoscaledPool.run();
+    }
+    /**
+     * Stops the crawler by preventing crawls of additional pages. Pages already running are not terminated.
+     */
+    stop() {
+        this.isStopped = true;
     }
 
     /**
