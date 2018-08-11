@@ -7,7 +7,7 @@ import PuppeteerPool from './puppeteer_pool';
 import { isPromise } from './utils';
 
 const DEFAULT_OPTIONS = {
-    gotoFunction: ({ request, page }) => page.goto(request.url),
+    gotoFunction: ({ request, page }) => page.goto(request.url, { timeout: 60000 }),
     pageOpsTimeoutMillis: 300000,
 };
 
@@ -65,10 +65,16 @@ const PAGE_CLOSE_TIMEOUT_MILLIS = 30000;
  *   `page` is an instance of the `Puppeteer.Page` class with `page.goto(request.url)` already called.
  * @param {Number} [options.pageOpsTimeoutMillis=300000]
  *   Timeout in which the function passed as `options.handlePageFunction` needs to finish.
- * @param {Function} [options.gotoFunction=({ request, page }) => page.goto(request.url)]
+ * @param {Function} [options.gotoFunction=({ request, page }) => page.goto(request.url, { timeout: 60000 })]
  *   Overrides the function that opens the request in Puppeteer.
- *   This function should return a result of `page.goto()`, i.e. the Puppeteer's `Response` object.
- *   Note that one page is only used to process one request, and it is closed afterwards.
+ *   The function should return a result of Puppeteer's
+ *   <a href="https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#pagegotourl-options">page.goto()</a> function,
+ *   i.e. a promise resolving to the <a href="https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-response">Response</a> object.
+ *
+ *   For example, this is useful if you need to extend the page load timeout or select a different criteria
+ *   to determine that the navigation succeeded.
+ *
+ *   Note that a single page object is only used to process a single request and it is closed afterwards.
  * @param {Function} [options.handleFailedRequestFunction=({ request }) => log.error('Request failed', _.pick(request, 'url', 'uniqueKey'))]
  *   Function to handle requests that failed more than `option.maxRequestRetries` times. See the `handleFailedRequestFunction`
  *   parameter of `Apify.BasicCrawler` for details.

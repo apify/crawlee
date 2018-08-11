@@ -53,18 +53,18 @@ export const newClient = () => {
 };
 
 /**
- * A default instance of the `ApifyClient` class provided
+ * Gets the default instance of the `ApifyClient` class provided
  * by the <a href="https://www.apify.com/docs/sdk/apify-client-js/latest" target="_blank">apify-client</a> NPM package.
- * The instance is created when the `apify` package is first imported
+ * The instance is created automatically by the Apify SDK
  * and it is configured using the `APIFY_API_BASE_URL`, `APIFY_USER_ID` and `APIFY_TOKEN`
  * environment variables.
  *
- * After that, the instance is used for all underlying calls to the Apify API
+ * The instance is used for all underlying calls to the Apify API
  * in functions such as <a href="#module-Apify-getValue">Apify.getValue()</a>
  * or <a href="#module-Apify-call">Apify.call()</a>.
  * The settings of the client can be globally altered by calling the
  * <a href="https://www.apify.com/docs/sdk/apify-client-js/latest#ApifyClient-setOptions"><code>Apify.client.setOptions()</code></a> function.
- * Just be careful, it might have undesired effects on other functions provided by this package.
+ * Beware that altering these settings might have unintended effects on the entire Apify SDK package.
  *
  * @memberof module:Apify
  * @name client
@@ -300,7 +300,7 @@ export const getTypicalChromeExecutablePath = () => {
  * Creates a promise that after given time gets rejected with given error.
  *
  * @return {Promise<Error>}
- * @ignore.
+ * @ignore
  */
 export const createTimeoutPromise = (timeoutMillis, errorMessage) => {
     return delayPromise(timeoutMillis).then(() => {
