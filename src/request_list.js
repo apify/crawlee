@@ -268,7 +268,12 @@ export default class RequestList {
     }
 
     /**
-     * Returns next request which is the reclaimed one if available or next upcoming request otherwise.
+     * Gets the next `Request` to process. First, the function gets a request previously reclaimed
+     * using `reclaimRequest()` function, if there is any.
+     * Otherwise it gets a next request from the sources.
+     *
+     * The function gets `null` if there are no more
+     * requests to process.
      *
      * @returns {Promise<Request>}
      */
