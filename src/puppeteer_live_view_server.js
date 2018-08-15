@@ -278,7 +278,8 @@ const sendCommand = (socket, command, data) => {
  * of available browsers at its root path. Once the user chooses a browser, PuppeteerLiveViewServer will
  * periodically serve screenshots of the selected browser's latest loaded page.
  *
- * The server is started on a port defined by the `CONTAINER_PORT` environment variable.
+ * The server will be started on a port defined by the `CONTAINER_PORT` environment variable,
+ * or a randomly-selected port.
  * @ignore
  */
 export default class PuppeteerLiveViewServer extends EventEmitter {
@@ -292,7 +293,7 @@ export default class PuppeteerLiveViewServer extends EventEmitter {
                 ENV_VARS.CONTAINER_PORT} environment variable (was "${containerPort}").`);
         }
 
-        this.liveViewUrl = process.env[ENV_VARS.CONTAINER_URL] || `http://localhost:${this.liveViewPort}`;
+        this.liveViewUrl = process.env[ENV_VARS.CONTAINER_URL];
 
         this.browsers = new Set();
         this.browserIdCounter = 0;
@@ -323,7 +324,8 @@ export default class PuppeteerLiveViewServer extends EventEmitter {
     }
 
     /**
-     * Starts an HTTP and a WebSocket server on a preconfigured port or 1234.
+     * Starts an HTTP and a WebSocket server on a port defined in `CONTAINER_PORT` environment
+     * variable or a randomly-selected port.
      *
      * @return {Promise} resolves when HTTP server starts listening
      */
@@ -335,6 +337,10 @@ export default class PuppeteerLiveViewServer extends EventEmitter {
 
         return promisifyServerListen(server)(this.liveViewPort)
             .then(() => {
+                if (!this.liveViewUrl) {
+                    this.liveViewPort = server.address().port;
+                    this.liveViewUrl = `http://localhost:${this.liveViewPort}`;
+                }
                 log.info(`Live view is now available at ${this.liveViewUrl}`);
                 this.httpServer = server;
             });
