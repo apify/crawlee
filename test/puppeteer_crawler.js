@@ -104,6 +104,7 @@ describe('PuppeteerCrawler', () => {
             expect(request.userData.title).to.be.eql('Example Domain');
         });
 
+        await Apify.utils.sleep(10); // Wait for event loop to unwind.
         await puppeteerCrawler.run();
 
         expect(processed).to.have.lengthOf(30);

@@ -207,10 +207,10 @@ export default class PuppeteerCrawler {
      */
     run() {
         if (this.isStopped) this.puppeteerPool = new PuppeteerPool(this.puppeteerPoolOptions);
+        this.isStopped = false;
         this.isRunningPromise = new Promise((resolve, reject) => {
             this.isRunningReject = reject;
         });
-        this.isStopped = false;
         return this.basicCrawler.run()
             .finally(() => this.puppeteerPool.destroy());
     }
@@ -237,7 +237,7 @@ export default class PuppeteerCrawler {
         const handlePagePromise = this.puppeteerPool
             .newPage()
             .then((newPage) => { page = newPage; })
-            .then(() => this._gotoFunction({ page, request, puppeteerPool: this.puppeteerPool }))
+            .then(() => this.gotoFunction({ page, request, puppeteerPool: this.puppeteerPool }))
             .then((response) => {
                 const promise = this.handlePageFunction({
                     page,
@@ -254,17 +254,12 @@ export default class PuppeteerCrawler {
         const finalPromise = handlePagePromise
             .timeout(this.pageOpsTimeoutMillis, 'PuppeteerCrawler: handlePageFunction timed out.')
             .finally(() => {
-                if (this.isStopped) return; // Pool will clean up itself.
+                if (this.isStopped) return; // Pool will be destroyed.
                 return Promise
                     .try(() => page.close())
                     .timeout(PAGE_CLOSE_TIMEOUT_MILLIS, 'Operation timed out.')
                     .catch(err => log.debug('PuppeteerCrawler: Page.close() failed.', { reason: err ? err.message : err }));
             });
-        return Promise.race([finalPromise, this.isRunningPromise]);
-    }
-
-    _gotoFunction(...args) {
-        if (this.isStopped) return Promise.reject(new Error('PuppeteerCrawler is stopped.'));
-        return this.gotoFunction(...args);
+        return Promise.race([finalPromise, this.isRunningPromise]); // Reject all requests immediately after stopping the crawler (to be reclaimed).
     }
 }

@@ -221,10 +221,11 @@ export default class AutoscaledPool {
     }
 
     /**
-     * Stops the auto-scaled pool, discarding all currently running tasks.
+     * Stops the auto-scaled pool, discards all currently running tasks and destroys it.
      */
     stop() {
         if (this.resolve) this.resolve();
+        // _destroy gets called 10 lines above so no need to do it here
     }
 
     /**
