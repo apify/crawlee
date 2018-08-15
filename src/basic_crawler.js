@@ -1,4 +1,3 @@
-import Promise from 'bluebird';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import _ from 'underscore';
 import log from 'apify-shared/log';
@@ -12,7 +11,6 @@ const DEFAULT_OPTIONS = {
     maxRequestRetries: 3,
     handleFailedRequestFunction: ({ request }) => {
         const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
-
         log.error('BasicCrawler: Request failed and reached maximum retries', details);
     },
 };
@@ -68,7 +66,10 @@ const DEFAULT_OPTIONS = {
  *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
  * @param {Function} [options.handleRequestFunction]
  *   Function that processes a single `Request` object. It must return a promise.
- * @param {Function} [options.handleFailedRequestFunction=({ request, error }) => log.error('Request failed', _.pick(request, 'url', 'uniqueKey'))`]
+ * @param {Function} [options.handleFailedRequestFunction=({ request }) => {
+        const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
+        log.error('BasicCrawler: Request failed and reached maximum retries', details);
+    }]
  *   Function that handles requests that failed more then `option.maxRequestRetries` times.
  * @param {Number} [options.maxRequestRetries=3]
  *   How many times the request is retried if `handleRequestFunction` failed.
