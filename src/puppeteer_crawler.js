@@ -207,8 +207,8 @@ export default class PuppeteerCrawler {
      */
     run() {
         if (this.isStopped) this.puppeteerPool = new PuppeteerPool(this.puppeteerPoolOptions);
-        this.stopPromise = new Promise((resolve, reject) => {
-            this.stopPromiseResolve = reject;
+        this.isRunningPromise = new Promise((resolve, reject) => {
+            this.isRunningReject = reject;
         });
         this.isStopped = false;
         return this.basicCrawler.run()
@@ -220,7 +220,7 @@ export default class PuppeteerCrawler {
      */
     stop() {
         this.isStopped = true;
-        this.stopPromiseResolve();
+        this.isRunningReject();
         this.basicCrawler.stop();
         return this.puppeteerPool.destroy();
     }
@@ -260,7 +260,7 @@ export default class PuppeteerCrawler {
                     .timeout(PAGE_CLOSE_TIMEOUT_MILLIS, 'Operation timed out.')
                     .catch(err => log.debug('PuppeteerCrawler: Page.close() failed.', { reason: err ? err.message : err }));
             });
-        return Promise.race([finalPromise, this.stopPromise]);
+        return Promise.race([finalPromise, this.isRunningPromise]);
     }
 
     _gotoFunction(...args) {
