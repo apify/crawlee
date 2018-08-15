@@ -38,6 +38,43 @@ describe('BasicCrawler', () => {
         expect(await requestList.isEmpty()).to.be.eql(true);
     });
 
+    it('should run, stop and then finish', async () => {
+        const sources = _.range(500).map(index => ({ url: `https://example.com/${index}` }));
+
+        let basicCrawler;
+        const processed = [];
+        const requestList = new Apify.RequestList({ sources });
+        const handleRequestFunction = async ({ request }) => {
+            if (request.url.endsWith('200')) {
+                basicCrawler.stop();
+            }
+            await delayPromise(10);
+            processed.push(_.pick(request, 'url'));
+        };
+
+        basicCrawler = new Apify.BasicCrawler({
+            requestList,
+            minConcurrency: 25,
+            maxConcurrency: 25,
+            handleRequestFunction,
+        });
+
+        await requestList.initialize();
+
+        // The crawler will stop after 200 requests
+        await basicCrawler.run();
+
+        expect(processed.length).to.be.above(175);
+        expect(processed.length).to.be.below(201);
+        expect(await requestList.isFinished()).to.be.eql(false);
+        expect(await requestList.isEmpty()).to.be.eql(false);
+
+        await basicCrawler.run();
+        expect(processed).to.be.eql(sources);
+        expect(await requestList.isFinished()).to.be.eql(true);
+        expect(await requestList.isEmpty()).to.be.eql(true);
+    });
+
     it('should retry failed requests', async () => {
         const sources = [
             { url: 'http://example.com/1' },

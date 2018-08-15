@@ -221,6 +221,13 @@ export default class AutoscaledPool {
     }
 
     /**
+     * Stops the auto-scaled pool, discarding all currently running tasks.
+     */
+    stop() {
+        if (this.resolve) this.resolve();
+    }
+
+    /**
      * Gets called every AUTOSCALE_INTERVAL_MILLIS and saves number of free bytes in this.freeBytesSnapshots.
      *
      * Every:

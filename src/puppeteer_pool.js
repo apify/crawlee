@@ -110,6 +110,7 @@ export default class PuppeteerPool {
         checkParamOrThrow(launchPuppeteerOptions, 'opts.launchPuppeteerOptions', 'Maybe Object');
 
         // Config.
+        this.isDestroyed = false;
         this.maxOpenPagesPerInstance = maxOpenPagesPerInstance;
         this.retireInstanceAfterRequestCount = retireInstanceAfterRequestCount;
         this.killInstanceAfterMillis = killInstanceAfterMillis;
@@ -290,6 +291,7 @@ export default class PuppeteerPool {
                 return page;
             })
             .catch((err) => {
+                if (this.isDestroyed) return;
                 log.exception(err, 'PuppeteerPool: browser.newPage() failed', { id: instance.id });
                 this._retireInstance(instance);
 
@@ -302,6 +304,7 @@ export default class PuppeteerPool {
      * Closes all the browsers.
      */
     destroy() {
+        this.isDestroyed = true;
         clearInterval(this.instanceKillerInterval);
         process.removeListener('SIGINT', this.sigintListener);
 

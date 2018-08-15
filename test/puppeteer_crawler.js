@@ -1,6 +1,7 @@
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import 'babel-polyfill';
+import _ from 'underscore';
 import { ENV_VARS } from '../build/constants';
 import * as Apify from '../build/index';
 
@@ -51,6 +52,64 @@ describe('PuppeteerCrawler', () => {
 
         expect(processed).to.have.lengthOf(6);
         expect(failed).to.have.lengthOf(0);
+
+        processed.forEach((request, id) => {
+            expect(request.url).to.be.eql(sources[id].url);
+            expect(request.userData.title).to.be.eql('Example Domain');
+        });
+    });
+
+    it('should stop and resume', async () => {
+        const comparator = (a, b) => {
+            a = Number(/q=(\d+)$/.exec(a.url)[1]);
+            b = Number(/q=(\d+)$/.exec(b.url)[1]);
+            return a - b;
+        };
+        const sources = _.range(30).map(index => ({ url: `https://example.com/?q=${index}` }));
+        let puppeteerCrawler;
+        let isStopped = false;
+        const processed = [];
+        const failed = [];
+        const requestList = new Apify.RequestList({ sources });
+        const handlePageFunction = async ({ page, request, response }) => {
+            if (request.url.endsWith('15') && !isStopped) {
+                await puppeteerCrawler.stop();
+                isStopped = true;
+            }
+            await page.waitFor('title');
+            expect(await response.status()).to.be.eql(200);
+            request.userData.title = await page.title();
+            processed.push(request);
+        };
+
+        puppeteerCrawler = new Apify.PuppeteerCrawler({
+            requestList,
+            minConcurrency: 3,
+            maxConcurrency: 3,
+            handlePageFunction,
+            handleFailedRequestFunction: ({ request }) => failed.push(request),
+        });
+
+        await requestList.initialize();
+        await puppeteerCrawler.run();
+
+        expect(processed.length).to.be.above(12);
+        expect(processed.length).to.be.below(16);
+        expect(failed).to.have.lengthOf(0);
+
+        processed.sort(comparator);
+
+        processed.forEach((request, id) => {
+            expect(request.url).to.be.eql(sources[id].url);
+            expect(request.userData.title).to.be.eql('Example Domain');
+        });
+
+        await puppeteerCrawler.run();
+
+        expect(processed).to.have.lengthOf(30);
+        expect(failed).to.have.lengthOf(0);
+
+        processed.sort(comparator);
 
         processed.forEach((request, id) => {
             expect(request.url).to.be.eql(sources[id].url);

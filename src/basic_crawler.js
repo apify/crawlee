@@ -139,7 +139,7 @@ export default class BasicCrawler {
 
         const isMaxPagesExceeded = () => maxRequestsPerCrawl && maxRequestsPerCrawl <= this.handledRequestsCount;
 
-        this.autoscaledPool = new AutoscaledPool({
+        this.autoscaledPoolOptions = {
             maxMemoryMbytes,
             maxConcurrency,
             minConcurrency,
@@ -162,7 +162,8 @@ export default class BasicCrawler {
                     : this._defaultIsFinishedFunction();
             },
             ignoreMainProcess,
-        });
+        };
+        this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions);
     }
 
     /**
@@ -171,14 +172,17 @@ export default class BasicCrawler {
      * @return {Promise}
      */
     run() {
+        if (this.isStopped) this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions);
         this.isStopped = false;
         return this.autoscaledPool.run();
     }
+
     /**
-     * Stops the crawler by preventing crawls of additional pages. Pages already running are not terminated.
+     * Stops the crawler by preventing crawls of additional pages. Pages already running are NOT terminated.
      */
     stop() {
         this.isStopped = true;
+        this.autoscaledPool.stop();
     }
 
     /**
@@ -241,32 +245,36 @@ export default class BasicCrawler {
                     .then(() => source.markRequestHandled(request))
                     .catch((error) => {
                         if (request.ignoreErrors) {
-                            log.exception(error, 'BasicCrawler: handleRequestFunction failed, request.ignoreErrors=true so marking the request as handled', { // eslint-disable-line max-len
-                                url: request.url,
-                                retryCount: request.retryCount,
-                            });
-
+                            if (!this.isStopped) {
+                                log.exception(error, 'BasicCrawler: handleRequestFunction failed, request.ignoreErrors=true so marking the request as handled', { // eslint-disable-line max-len
+                                    url: request.url,
+                                    retryCount: request.retryCount,
+                                });
+                            }
                             return source.markRequestHandled(request);
                         }
 
-                        request.pushErrorMessage(error);
+                        if (!this.isStopped) request.pushErrorMessage(error);
 
                         // Retry request.
                         if (request.retryCount < this.maxRequestRetries) {
-                            request.retryCount++;
-                            log.exception(error, 'BasicCrawler: handleRequestFunction failed, reclaiming failed request back to the list or queue', {
-                                url: request.url,
-                                retryCount: request.retryCount,
-                            });
+                            if (!this.isStopped) {
+                                request.retryCount++;
+                                log.exception(error, 'BasicCrawler: handleRequestFunction failed, reclaiming failed request back to the list or queue', { // eslint-disable-line max-len
+                                    url: request.url,
+                                    retryCount: request.retryCount,
+                                });
+                            }
                             willBeRetried = true;
-
                             return source.reclaimRequest(request);
                         }
 
-                        log.exception(error, 'BasicCrawler: handleRequestFunction failed, marking failed request as handled', {
-                            url: request.url,
-                            retryCount: request.retryCount,
-                        });
+                        if (!this.isStopped) {
+                            log.exception(error, 'BasicCrawler: handleRequestFunction failed, marking failed request as handled', {
+                                url: request.url,
+                                retryCount: request.retryCount,
+                            });
+                        }
 
                         // Mark as failed.
                         return source
@@ -313,6 +321,8 @@ export default class BasicCrawler {
 
         return Promise
             .all(promises)
-            .then(results => _.all(results));
+            .then((results) => {
+                return _.all(results);
+            });
     }
 }
