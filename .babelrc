@@ -2,7 +2,7 @@
   "presets": [
     ["babel-preset-env", {
       "targets": {
-        "node": "7.0.0"
+        "node": "7.6.0"
       }
     }]
   ]
