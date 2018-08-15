@@ -234,8 +234,8 @@ export default class PuppeteerCrawler {
             })
             .timeout(this.pageOpsTimeoutMillis, 'PuppeteerCrawler: handlePageFunction timed out.')
             .finally(() => {
-                return Promise
-                    .try(() => {
+                return Promise.resolve()
+                    .then(() => {
                         if (page) return page.close();
                     })
                     .timeout(PAGE_CLOSE_TIMEOUT_MILLIS, 'Operation timed out.')
