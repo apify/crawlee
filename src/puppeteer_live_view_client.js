@@ -16,7 +16,7 @@ const DESTROY_FADEOUT_MILLIS = 2000;
 const createPage = (id, url) => `
   <tr id="${id}" class="page">
     <td class="status"></td>
-    <td class="url"><a class="url" href="${url}" target="m_blank">${url}</a></td>
+    <td class="url">${url}</td>
     <td class="more"><i class="material-icons">search</i></td>
   </tr>
 `;
@@ -247,8 +247,8 @@ const wsHandler = (socket) => {
             pages.insertAdjacentHTML('afterbegin', createPage(id, url));
             const page = document.getElementById(id);
 
-            const button = page.querySelector('td.more i');
-            button.onclick = () => sendCommand('renderPage', {
+            // const button = page.querySelector('td.more i');
+            page.onclick = () => sendCommand('renderPage', {
                 id: page.getAttribute('id'),
             });
 
@@ -260,7 +260,7 @@ const wsHandler = (socket) => {
             const page = document.getElementById(id);
 
             const spanUrl = page.querySelector('td.url');
-            if (spanUrl) spanUrl.innerHTML = `<a class="url" href="${url}" target="m_blank">${url}</a>`;
+            if (spanUrl) spanUrl.innerHTML = url;
 
             const status = page.querySelector('td.status');
             if (status) status.innerHTML = '<i class="material-icons rotating">cached</i><span>Running</span>';
