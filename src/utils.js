@@ -191,17 +191,28 @@ export const avg = arr => sum(arr) / arr.length;
  * @function
  */
 export const getMemoryInfo = async () => {
-    const [isDockerVar, childProcesses] = await Promise.all([
+    const [isDockerVar, processes] = await Promise.all([
         // module.exports must be here so that we can mock it.
         module.exports.isDocker(),
-        psTreePromised(process.pid),
+        // Query both root and child processes
+        psTreePromised(process.pid, true),
     ]);
 
-    const childProcessesBytes = _.reduce(childProcesses, (memo, rec) => {
-        // Skip the 'ps' or 'wmic' command that used to query the processes
-        if (rec.COMM === 'ps' || rec.COMM === 'WMIC.exe') return memo;
-        return memo + parseInt(rec.RSS, 10);
-    }, 0);
+    let mainProcessBytes = -1;
+    let childProcessesBytes = 0;
+    processes.forEach((rec) => {
+        // Skip the 'ps' or 'wmic' commands used by ps-tree to query the processes
+        if (rec.COMM === 'ps' || rec.COMM === 'WMIC.exe') {
+            return;
+        }
+        const bytes = parseInt(rec.RSS, 10);
+        // Obtain main process' memory separately
+        if (rec.PID === `${process.pid}`) {
+            mainProcessBytes = bytes;
+            return;
+        }
+        childProcessesBytes += bytes;
+    });
 
     let totalBytes;
     let freeBytes;
@@ -230,7 +241,7 @@ export const getMemoryInfo = async () => {
         totalBytes,
         freeBytes,
         usedBytes,
-        mainProcessBytes: usedBytes - childProcessesBytes,
+        mainProcessBytes,
         childProcessesBytes,
     };
 };
