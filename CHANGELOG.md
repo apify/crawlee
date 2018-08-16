@@ -1,6 +1,7 @@
 xxx
 ===================
 - PuppeteerCrawler's default page load timeout changed from 30 to 60 seconds.
+- More efficient implementation of `getMemoryInfo` function
 
 0.5.51 / 2018-08-09
 ===================

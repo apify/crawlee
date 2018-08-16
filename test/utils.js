@@ -4,7 +4,6 @@ import sinon from 'sinon';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import pidusage from 'pidusage';
 import Promise from 'bluebird';
 import requestPromise from 'request-promise';
 import * as utils from '../build/utils';
@@ -291,15 +290,6 @@ describe('utils.isAtHome()', () => {
         expect(utils.isAtHome()).to.be.eql(true);
         delete process.env[ENV_VARS.IS_AT_HOME];
         expect(utils.isAtHome()).to.be.eql(false);
-    });
-});
-
-describe('pidusage NPM package', () => {
-    it('throws correct error message when process not found', () => {
-        const NONEXISTING_PID = 9999;
-        const promise = pidusage(NONEXISTING_PID);
-
-        return expect(promise).to.be.rejectedWith(utils.PID_USAGE_NOT_FOUND_ERROR);
     });
 });
 
