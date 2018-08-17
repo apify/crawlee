@@ -197,9 +197,6 @@ export const getMemoryInfo = async () => {
         psTreePromised(process.pid, true),
     ]);
 
-    // Temporary test
-    console.dir(processes);
-
     let mainProcessBytes = -1;
     let childProcessesBytes = 0;
     processes.forEach((rec) => {
