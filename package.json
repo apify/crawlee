@@ -3,6 +3,9 @@
   "version": "0.5.51",
   "description": "Web scraping and automation SDK",
   "main": "build/index.js",
+  "engines": {
+      "node": ">=8.0.0"
+  },
   "keywords": [
     "apify",
     "headless",

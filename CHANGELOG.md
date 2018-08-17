@@ -6,6 +6,7 @@ xxx
 - More efficient implementation of `getMemoryInfo` function
 - Puppeteer upgraded to 1.7.0
 - Upgraded NPM dependencies
+- Dropped support for Node 7
 
 0.5.51 / 2018-08-09
 ===================
