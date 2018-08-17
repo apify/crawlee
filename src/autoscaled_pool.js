@@ -6,7 +6,8 @@ import { getMemoryInfo, isPromise, avg, isAtHome } from './utils';
 import events from './events';
 import { ACTOR_EVENT_NAMES } from './constants';
 
-const AUTOSCALE_INTERVAL_MILLIS = 200; // This is low to have at least.
+// NOTE: If this is too low, getMemoryInfo() has so much overheads that it chokes the system
+const AUTOSCALE_INTERVAL_MILLIS = 1000;
 const MIN_FREE_MEMORY_RATIO = 0.1; // Minimum amount of memory that we keep free.
 const DEFAULT_OPTIONS = {
     maxConcurrency: 1000,
@@ -19,9 +20,9 @@ const DEFAULT_OPTIONS = {
 };
 
 // These constants defines that in Nth execution of autoscaleInterval we do:
-export const SCALE_UP_INTERVAL = 50;
+export const SCALE_UP_INTERVAL = 10;
 export const SCALE_UP_MAX_STEP = 10;
-export const SCALE_DOWN_INTERVAL = 5;
+export const SCALE_DOWN_INTERVAL = 1;
 
 /**
  * Helper function that coverts bytes into human readable MBs.
