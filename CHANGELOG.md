@@ -3,6 +3,7 @@ xxx
 - Improved logging of URL and port in `PuppeteerLiveViewBrowser`.
 - PuppeteerCrawler's default page load timeout changed from 30 to 60 seconds.
 - Added `Apify.utils.puppeteer.blockResources()` function
+- More efficient implementation of `getMemoryInfo` function
 
 0.5.51 / 2018-08-09
 ===================
