@@ -39,14 +39,16 @@ describe('BasicCrawler', () => {
     });
 
     it('should run, stop and then finish', async () => {
-        const sources = _.range(500).map(index => ({ url: `https://example.com/${index}` }));
+        const sources = _.range(1, 500).map(index => ({ url: `https://example.com/${index}` }));
 
         let basicCrawler;
+        let isStopped;
         const processed = [];
         const requestList = new Apify.RequestList({ sources });
         const handleRequestFunction = async ({ request }) => {
             if (request.url.endsWith('200')) {
-                basicCrawler.stop();
+                if (!isStopped) basicCrawler.stop();
+                isStopped = true;
             }
             await delayPromise(10);
             processed.push(_.pick(request, 'url'));
@@ -64,13 +66,13 @@ describe('BasicCrawler', () => {
         // The crawler will stop after 200 requests
         await basicCrawler.run();
 
-        expect(processed.length).to.be.above(175);
-        expect(processed.length).to.be.below(201);
+        expect(processed.length).to.be.eql(175);
         expect(await requestList.isFinished()).to.be.eql(false);
         expect(await requestList.isEmpty()).to.be.eql(false);
 
         await basicCrawler.run();
-        expect(processed).to.be.eql(sources);
+        expect(processed.length).to.be.within(500, 525);
+        expect(new Set(processed.map(p => p.url))).to.be.eql(new Set(sources.map(s => s.url)));
         expect(await requestList.isFinished()).to.be.eql(true);
         expect(await requestList.isEmpty()).to.be.eql(true);
     });
@@ -357,11 +359,14 @@ describe('BasicCrawler', () => {
         expect(processed['http://example.com/2'].retryCount).to.be.eql(0);
 
         expect(processed['http://example.com/1'].userData.foo).to.be.a('undefined');
-        expect(processed['http://example.com/1'].errorMessages).to.have.lengthOf(4);
-        expect(processed['http://example.com/1'].retryCount).to.be.eql(3);
+        expect(processed['http://example.com/1'].errorMessages).to.have.lengthOf(2);
+        expect(processed['http://example.com/1'].retryCount).to.be.eql(2);
 
         expect(await requestList.isFinished()).to.be.eql(true);
         expect(await requestList.isEmpty()).to.be.eql(true);
+
+        mock.verify();
+        mock.restore();
     });
 
     it('should say that task is not ready requestList is not set and requestQueue is empty', async () => {
@@ -412,6 +417,9 @@ describe('BasicCrawler', () => {
         await basicCrawler.run();
 
         expect(processed).to.be.eql([request0, request1]);
+
+        mock.verify();
+        mock.restore();
     });
 
     it('should support maxRequestsPerCrawl parameter', async () => {

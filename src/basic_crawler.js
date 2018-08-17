@@ -176,8 +176,9 @@ export default class BasicCrawler {
         this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions);
         this.isRunning = true;
         this.rejectOnStopPromise = new Promise((r, reject) => { this.rejectOnStop = reject; });
+        this.isRunningPromise = this.autoscaledPool.run();
         try {
-            this.isRunningPromise = await this.autoscaledPool.run();
+            await this.isRunningPromise;
             this.isRunning = false;
         } catch (err) {
             this.isRunning = false; // Doing this before rejecting to make sure it's set when error handlers fire.
@@ -251,9 +252,13 @@ export default class BasicCrawler {
      * @ignore
      */
     async _isTaskReadyFunction() {
-        const rlPromise = this.requestList ? this.requestList.isEmpty() : true; // isEmpty returns a promise
-        const rqPromise = this.requestQueue ? this.requestQueue.isEmpty() : true;
-        const [isRequestListEmpty, isRequestQueueEmpty] = await Promise.all([rlPromise, rqPromise]);
+        const [
+            isRequestListEmpty,
+            isRequestQueueEmpty,
+        ] = await Promise.all([
+            this.requestList ? this.requestList.isEmpty() : true,
+            this.requestQueue ? this.requestQueue.isEmpty() : true,
+        ]);
         // If both are empty, return false, otherwise return true.
         return !(isRequestListEmpty && isRequestQueueEmpty);
     }
@@ -264,9 +269,13 @@ export default class BasicCrawler {
      * @ignore
      */
     async _defaultIsFinishedFunction() {
-        const rlPromise = this.requestList ? this.requestList.isFinished() : true; // isFinished returns a promise
-        const rqPromise = this.requestQueue ? this.requestQueue.isFinished() : true;
-        const [isRequestListFinished, isRequestQueueFinished] = await Promise.all([rlPromise, rqPromise]);
+        const [
+            isRequestListFinished,
+            isRequestQueueFinished,
+        ] = await Promise.all([
+            this.requestList ? this.requestList.isFinished() : true,
+            this.requestQueue ? this.requestQueue.isFinished() : true,
+        ]);
         // If both are finished, return true, otherwise return false.
         return isRequestListFinished && isRequestQueueFinished;
     }
