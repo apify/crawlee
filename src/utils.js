@@ -6,7 +6,6 @@ import fsExtra from 'fs-extra';
 import ApifyClient from 'apify-client';
 import psTree from 'ps-tree';
 import requestPromise from 'request-promise';
-import _ from 'underscore';
 import XRegExp from 'xregexp';
 import { delayPromise, getRandomInt } from 'apify-shared/utilities';
 import { checkParamOrThrow } from 'apify-client/build/utils';
