@@ -4,7 +4,7 @@ import os from 'os';
 import fs from 'fs';
 import fsExtra from 'fs-extra';
 import ApifyClient from 'apify-client';
-import psTree from 'ps-tree';
+import psTree from '@apify/ps-tree';
 import requestPromise from 'request-promise';
 import XRegExp from 'xregexp';
 import { delayPromise, getRandomInt } from 'apify-shared/utilities';

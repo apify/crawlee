@@ -4,7 +4,7 @@
   "description": "Web scraping and automation SDK",
   "main": "build/index.js",
   "engines": {
-      "node": ">=8.0.0"
+    "node": ">=8.0.0"
   },
   "keywords": [
     "apify",
@@ -56,7 +56,7 @@
     "jquery": "^3.3.1",
     "mime": "^2.3.1",
     "proxy-chain": "^0.2.4",
-    "ps-tree": "git://github.com/apifytech/ps-tree.git#master",
+    "@apify/ps-tree": "^1.1.1",
     "request-promise": "^4.2.2",
     "underscore": "^1.9.0",
     "ws": "^6.0.0",
