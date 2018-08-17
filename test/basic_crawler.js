@@ -324,22 +324,13 @@ describe('BasicCrawler', () => {
         mock.expects('fetchNextRequest')
             .once()
             .returns(Promise.resolve(request1));
-        mock.expects('reclaimRequest')
-            .once()
-            .withArgs(request1)
-            .returns(Promise.resolve());
         mock.expects('markRequestHandled')
             .once()
             .withArgs(request1)
             .returns(Promise.resolve());
 
-
-        mock.expects('fetchNextRequest')
-            .once()
-            .returns(Promise.resolve(null));
-
         mock.expects('isEmpty')
-            .exactly(4)
+            .exactly(6)
             .returns(Promise.resolve(false));
         mock.expects('isEmpty')
             .once()
@@ -359,14 +350,13 @@ describe('BasicCrawler', () => {
         expect(processed['http://example.com/2'].retryCount).to.be.eql(0);
 
         expect(processed['http://example.com/1'].userData.foo).to.be.a('undefined');
-        expect(processed['http://example.com/1'].errorMessages).to.have.lengthOf(2);
-        expect(processed['http://example.com/1'].retryCount).to.be.eql(2);
+        expect(processed['http://example.com/1'].errorMessages).to.have.lengthOf(4);
+        expect(processed['http://example.com/1'].retryCount).to.be.eql(3);
 
         expect(await requestList.isFinished()).to.be.eql(true);
         expect(await requestList.isEmpty()).to.be.eql(true);
 
         mock.verify();
-        mock.restore();
     });
 
     it('should say that task is not ready requestList is not set and requestQueue is empty', async () => {
@@ -400,6 +390,9 @@ describe('BasicCrawler', () => {
             },
         });
 
+        // Speed up the test
+        basicCrawler.autoscaledPoolOptions.maybeRunIntervalMillis = 50;
+
         const request0 = new Apify.Request({ url: 'http://example.com/0' });
         const request1 = new Apify.Request({ url: 'http://example.com/1' });
 
@@ -410,16 +403,15 @@ describe('BasicCrawler', () => {
         requestQueue.fetchNextRequest = () => Promise.resolve(queue.pop());
         requestQueue.isEmpty = () => Promise.resolve(!queue.length);
 
-        setTimeout(() => queue.push(request0), 2000);
-        setTimeout(() => queue.push(request1), 2500);
-        setTimeout(() => { isFinished = true; }, 3500);
+        setTimeout(() => queue.push(request0), 10);
+        setTimeout(() => queue.push(request1), 100);
+        setTimeout(() => { isFinished = true; }, 150);
 
         await basicCrawler.run();
 
         expect(processed).to.be.eql([request0, request1]);
 
         mock.verify();
-        mock.restore();
     });
 
     it('should support maxRequestsPerCrawl parameter', async () => {
