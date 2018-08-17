@@ -4,6 +4,8 @@ xxx
 - PuppeteerCrawler's default page load timeout changed from 30 to 60 seconds.
 - Added `Apify.utils.puppeteer.blockResources()` function
 - More efficient implementation of `getMemoryInfo` function
+- Puppeteer upgraded to 1.7.0
+- Upgraded NPM dependencies
 
 0.5.51 / 2018-08-09
 ===================
@@ -18,7 +20,7 @@ xxx
 
 0.5.47 / 2018-07-20
 ===================
-- Puppeteer updated to v1.6.0.
+- Puppeteer upgraded to 1.6.0.
 - Removed `pageCloseTimeoutMillis` option from `PuppeteerCrawler` since it only affects debug logging.
 
 0.5.43 / 2018-07-18
