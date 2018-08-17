@@ -1,6 +1,5 @@
 import _ from 'underscore';
 import Promise from 'bluebird';
-import fs from 'fs';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { APIFY_PROXY_VALUE_REGEX } from 'apify-shared/regexs';

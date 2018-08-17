@@ -1,10 +1,8 @@
-import fs from 'fs';
 import _ from 'underscore';
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import 'babel-polyfill';
 import sinon from 'sinon';
-import tmp from 'tmp';
 import Promise from 'bluebird';
 import { delayPromise } from 'apify-shared/utilities';
 import { ACT_TASK_STATUSES, ENV_VARS, DEFAULT_PROXY_PORT, DEFAULT_PROXY_HOSTNAME } from '../build/constants';
