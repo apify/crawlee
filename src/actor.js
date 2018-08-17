@@ -194,25 +194,6 @@ export const main = (userFunc) => {
     }
 };
 
-// TODO: this should rather be called Apify.listeningOnPort() or something like that
-
-/**
- * Notifies Apify runtime that actor is listening on port specified by the APIFY_INTERNAL_PORT environment
- * variable and is ready to receive a HTTP request with actor input.
- *
- * @ignore
- */
-export const readyFreddy = () => {
-    const watchFileName = process.env[ENV_VARS.WATCH_FILE];
-    if (watchFileName) {
-        fs.writeFile(watchFileName, '', (err) => {
-            if (err) console.log(`WARNING: Cannot write to watch file ${watchFileName}: ${err}`);
-        });
-    } else {
-        console.log(`WARNING: ${ENV_VARS.WATCH_FILE} environment variable not specified, readyFreddy() has no effect.`);
-    }
-};
-
 
 /**
  * Runs an actor on the Apify platform using the current user account (given by the `APIFY_TOKEN` environment variable),

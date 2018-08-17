@@ -1,6 +1,7 @@
 xxx
 ===================
 - Replaced git-hosted version of our fork of ps-tree with @apify/ps-tree package
+- Removed old unused Apify.readyFreddy() function
 
 0.6.0 / 2018-08-17
 ===================
