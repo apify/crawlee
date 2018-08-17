@@ -171,7 +171,10 @@ export default class AutoscaledPool {
         this.reject = null;
 
         // Connect to actor events for CPU info.
-        // TODO: This doesn't work on local machine!
+        // TODO: This doesn't work on local machine! use blocked() both locally and on server!!!!
+        // CPU is overloaded if either blocked() or the CPU_INFO event says so
+        // the CPU status sampling should be in regular intervals (e.g. once per second),
+        // otherwise the auto-scaled pool cannot know what the data means
         this.cpuInfoListener = (data) => {
             this.isCpuOverloadedSnapshots = this.isCpuOverloadedSnapshots
                 .concat(data.isCpuOverloaded)

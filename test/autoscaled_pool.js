@@ -311,7 +311,7 @@ describe('AutoscaledPool', () => {
         });
         const mock = sinon.mock(utils);
 
-        // Emit CPU overloaded events but not required emount so that we can still scale up.
+        // Emit CPU overloaded events but not required amount so that we can still scale up.
         for (let i = 0; i < SCALE_DOWN_INTERVAL - 1; i++) {
             Apify.events.emit(ACTOR_EVENT_NAMES.CPU_INFO, { isCpuOverloaded: true });
         }
