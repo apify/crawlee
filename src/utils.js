@@ -204,7 +204,7 @@ export const getMemoryInfo = async () => {
     let childProcessesBytes = 0;
     processes.forEach((rec) => {
         // Skip the 'ps' or 'wmic' commands used by ps-tree to query the processes
-        if (rec.COMM === 'ps' || rec.COMM === 'WMIC.exe') {
+        if (rec.COMMAND === 'ps' || rec.COMMAND === 'WMIC.exe') {
             return;
         }
         const bytes = parseInt(rec.RSS, 10);
