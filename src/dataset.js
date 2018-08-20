@@ -6,7 +6,7 @@ import Promise from 'bluebird';
 import { leftpad } from 'apify-shared/utilities';
 import LruCache from 'apify-shared/lru_cache';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { ENV_VARS, LOCAL_EMULATION_SUBDIRS, MAX_PAYLOAD_SIZE_BYTES, LOCAL_USER_ID } from './constants';
+import { ENV_VARS, LOCAL_EMULATION_SUBDIRS, MAX_PAYLOAD_SIZE_BYTES } from './constants';
 import { apifyClient, ensureDirExists } from './utils';
 
 export const LOCAL_EMULATION_SUBDIR = LOCAL_EMULATION_SUBDIRS.datasets;
@@ -204,7 +204,7 @@ export class Dataset {
     }
 
     /**
-     * Returns a dataset object containing general information about the dataset.
+     * Returns an object containing general information about the dataset.
      *
      * @example
      * {
@@ -444,7 +444,7 @@ export class DatasetLocal {
                 return {
                     id,
                     name,
-                    userId: LOCAL_USER_ID,
+                    userId: process.env[ENV_VARS.USER_ID] || null,
                     createdAt: this.createdAt,
                     modifiedAt: this.modifiedAt,
                     accessedAt: this.accessedAt,
