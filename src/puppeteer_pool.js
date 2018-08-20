@@ -4,6 +4,8 @@ import Promise from 'bluebird';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { launchPuppeteer } from './puppeteer';
 
+/* global process */
+
 const PROCESS_KILL_TIMEOUT_MILLIS = 5000;
 
 const DEFAULT_OPTIONS = {
@@ -144,7 +146,7 @@ export default class PuppeteerPool {
                     if (!instance.killed) log.error('PuppeteerPool: Puppeteer sent "disconnect" event. Crashed???', { id });
                     this._retireInstance(instance);
                 });
-                // This one is done manually in Puppeteerpool.newPage() to happen immediately.
+                // This one is done manually in Puppeteerpool.newPage() so that it happens immediately.
                 // browser.on('targetcreated', () => instance.activePages++);
                 browser.on('targetdestroyed', () => {
                     instance.activePages--;
@@ -279,7 +281,7 @@ export default class PuppeteerPool {
         return instance.browserPromise
             .then(browser => browser.newPage())
             .then((page) => {
-                page.on('error', (error) => {
+                page.once('error', (error) => {
                     log.exception(error, 'PuppeteerPool: page crashed');
                     // Ignore errors from Page.close()
                     page.close();
