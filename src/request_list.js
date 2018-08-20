@@ -61,9 +61,10 @@ const ensureUniqueKeyValid = (uniqueKey) => {
  *
  * @param {Object} options
  * @param {Array} options.sources An array of sources for the `RequestList`. Its contents can either be just plain objects,
- *                                defining at least a 'url' property, or instances of the `Request` class. See the `Request`
- *                                class for available properties. Additionally a `requestsFromUrl` property may be used instead
- *                                of `url`, which will instruct the `RequestList` to download the sources from the given URL.
+ *                                defining at least the 'url' property, or instances of the `Request` class. See the
+ *                                <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#Request">Request class documentation</a>
+ *                                for available properties. Additionally a `requestsFromUrl` property may be used instead of `url`,
+ *                                which will instruct the `RequestList` to download the sources from the given URL.
  *                                URLs will be parsed from the received response.
  * ```javascript
  * [
