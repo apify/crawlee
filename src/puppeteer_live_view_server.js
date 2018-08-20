@@ -2,7 +2,6 @@ import http from 'http';
 import EventEmitter from 'events';
 import Promise from 'bluebird';
 import WebSocket from 'ws';
-import _ from 'underscore';
 import log from 'apify-shared/log';
 import { promisifyServerListen } from 'apify-shared/utilities';
 import { checkParamOrThrow } from 'apify-client/build/utils';
@@ -278,23 +277,23 @@ const sendCommand = (socket, command, data) => {
  * Enables live monitoring of actor execution by spawning a web server that responds with a list
  * of available browsers at its root path. Once the user chooses a browser, PuppeteerLiveViewServer will
  * periodically serve screenshots of the selected browser's latest loaded page.
+ *
+ * The server will be started on a port defined by the `CONTAINER_PORT` environment variable,
+ * or a randomly-selected port.
  * @ignore
  */
 export default class PuppeteerLiveViewServer extends EventEmitter {
     constructor() {
         super();
 
-        this.containerUrl = process.env[ENV_VARS.CONTAINER_URL] || 'http://localhost';
-        this.containerPort = parseInt(process.env[ENV_VARS.CONTAINER_PORT], 10) || 0;
-
-        if (!this.containerUrl) {
-            throw new Error(`Cannot start LiveViewServer - the environment variable ${ENV_VARS.CONTAINER_URL} is not set!
-If you are running on localhost then set ${ENV_VARS.CONTAINER_URL}='http://localhost'`);
+        const containerPort = process.env[ENV_VARS.CONTAINER_PORT];
+        this.liveViewPort = parseInt(containerPort, 10) || 0;
+        if (!(this.liveViewPort >= 0 && this.liveViewPort <= 65535)) {
+            throw new Error(`Cannot start LiveViewServer - invalid port specified by the ${
+                ENV_VARS.CONTAINER_PORT} environment variable (was "${containerPort}").`);
         }
 
-        if (!_.isNumber(this.containerPort)) {
-            throw new Error(`Cannot start LiveViewServer - the environment variable ${ENV_VARS.CONTAINER_PORT} is not set!`);
-        }
+        this.liveViewUrl = process.env[ENV_VARS.CONTAINER_URL];
 
         this.browsers = new Set();
         this.browserIdCounter = 0;
@@ -325,7 +324,8 @@ If you are running on localhost then set ${ENV_VARS.CONTAINER_URL}='http://local
     }
 
     /**
-     * Starts an HTTP and a WebSocket server on a preconfigured port or 1234.
+     * Starts an HTTP and a WebSocket server on a port defined in `CONTAINER_PORT` environment
+     * variable or a randomly-selected port.
      *
      * @return {Promise} resolves when HTTP server starts listening
      */
@@ -335,9 +335,13 @@ If you are running on localhost then set ${ENV_VARS.CONTAINER_URL}='http://local
 
         wss.on('connection', this._wsRequestListener.bind(this));
 
-        return promisifyServerListen(server)(this.containerPort)
+        return promisifyServerListen(server)(this.liveViewPort)
             .then(() => {
-                log.info(`Live view server is now available at URL ${this.containerUrl} (running on port ${server.address().port}).`);
+                if (!this.liveViewUrl) {
+                    this.liveViewPort = server.address().port;
+                    this.liveViewUrl = `http://localhost:${this.liveViewPort}`;
+                }
+                log.info(`Live view is now available at ${this.liveViewUrl}`);
                 this.httpServer = server;
             });
     }
@@ -352,7 +356,7 @@ If you are running on localhost then set ${ENV_VARS.CONTAINER_URL}='http://local
      * @ignore
      */
     _httpRequestListener(req, res) {
-        const body = layout(this.containerUrl);
+        const body = layout(this.liveViewUrl);
         res.writeHead(200, {
             'Content-Type': 'text/html',
             'Content-Length': Buffer.byteLength(body),

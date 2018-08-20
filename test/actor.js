@@ -1,10 +1,8 @@
-import fs from 'fs';
 import _ from 'underscore';
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import 'babel-polyfill';
 import sinon from 'sinon';
-import tmp from 'tmp';
 import Promise from 'bluebird';
 import { delayPromise } from 'apify-shared/utilities';
 import { ACT_TASK_STATUSES, ENV_VARS, DEFAULT_PROXY_PORT, DEFAULT_PROXY_HOSTNAME } from '../build/constants';
@@ -34,103 +32,6 @@ before(() => {
 const popFreePort = () => freePorts.pop();
 */
 
-const createWatchFile = () => {
-    const tmpobj = tmp.fileSync();
-    const path = tmpobj.name;
-    fs.writeSync(tmpobj.fd, 'bla bla bla bla');
-
-    const stat = fs.statSync(path);
-    expect(stat.size).to.be.greaterThan(0);
-    return path;
-};
-
-const testWatchFileWillBecomeEmpty = (path, waitMillis) => {
-    const startedAt = Date.now();
-    return new Promise((resolve, reject) => {
-        const intervalId = setInterval(() => {
-            const stat = fs.statSync(path);
-            if (stat.size !== 0) {
-                if (Date.now() - startedAt >= waitMillis) {
-                    reject(`Watch file not written in ${waitMillis} millis`); // eslint-disable-line prefer-promise-reject-errors
-                }
-            } else {
-                clearInterval(intervalId);
-                resolve();
-            }
-        }, 20);
-    });
-};
-
-/*
-const testMain = (method, bodyRaw, contentType, userFunc, expectedExitCode = 0) => {
-    const port = popFreePort();
-    process.env.APIFY_INTERNAL_PORT = port;
-    process.env.APIFY_WATCH_FILE = createWatchFile();
-
-    // intercept calls to process.exit()
-    const EMPTY_EXIT_CODE = 'dummy';
-    let exitCode = EMPTY_EXIT_CODE;
-    process.exit = (code) => {
-        exitCode = code;
-    };
-
-    return new Promise((resolve, reject) => {
-        let expectedBody = bodyRaw;
-        if (contentType === 'application/json') expectedBody = JSON.parse(bodyRaw);
-
-        // give server a little time to start listening before sending the request
-        setTimeout(() => {
-            const req = {
-                url: `http://127.0.0.1:${port}/`,
-                method,
-                body: bodyRaw,
-                headers: {},
-                timeout: 1000,
-            };
-            if (contentType) req.headers['Content-Type'] = contentType;
-
-            request(req, (err) => {
-                if (err) return reject(err);
-            });
-        }, 20);
-
-        Apify.main((opts) => {
-            // console.dir(opts);
-            try {
-                expect(opts.input.method).to.equal(method);
-                if (contentType) expect(opts.input.contentType).to.equal(contentType);
-                expect(opts.input.body).to.deep.equal(expectedBody);
-                resolve();
-            } catch (err) {
-                reject(err);
-            }
-            // call user func to test other behavior
-            if (userFunc) userFunc(opts);
-        });
-    })
-    .then(() => {
-        // watch file should be empty by now
-        return testWatchFileWillBecomeEmpty(process.env.APIFY_WATCH_FILE, 0);
-    })
-    .then(() => {
-        // test process exit code is as expected
-        return new Promise((resolve, reject) => {
-            const intervalId = setInterval(() => {
-                if (exitCode === EMPTY_EXIT_CODE) return;
-                clearInterval(intervalId);
-                // restore process.exit()
-                process.exit = origProcessExit;
-                try {
-                    expect(exitCode).to.equal(expectedExitCode);
-                    resolve();
-                } catch (err) {
-                    reject(err);
-                }
-            }, 20);
-        });
-    });
-};
-*/
 
 /**
  * Helper function that enables testing of Apify.main()
@@ -315,14 +216,6 @@ describe('Apify.main()', () => {
             env: {},
             exitCode: 91,
         });
-    });
-});
-
-describe('Apify.readyFreddy()', () => {
-    it('it works as expected', () => {
-        process.env.APIFY_WATCH_FILE = createWatchFile();
-        Apify.readyFreddy();
-        return testWatchFileWillBecomeEmpty(process.env.APIFY_WATCH_FILE, 1000);
     });
 });
 

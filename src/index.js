@@ -1,6 +1,6 @@
 import log from 'apify-shared/log';
 import { ENV_VARS } from './constants';
-import { main, readyFreddy, getEnv, call, getApifyProxyUrl } from './actor';
+import { main, getEnv, call, getApifyProxyUrl } from './actor';
 import AutoscaledPool from './autoscaled_pool';
 import BasicCrawler from './basic_crawler';
 import CheerioCrawler from './cheerio_crawler';
@@ -44,7 +44,6 @@ module.exports = {
     main,
     getEnv,
     call,
-    readyFreddy,
     getMemoryInfo,
     getApifyProxyUrl,
     isAtHome,

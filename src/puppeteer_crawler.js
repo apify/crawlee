@@ -216,7 +216,7 @@ export default class PuppeteerCrawler {
     _handleRequestFunction({ request }) {
         let page;
 
-        const handlePagePromise = this.puppeteerPool
+        return this.puppeteerPool
             .newPage()
             .then((newPage) => { page = newPage; })
             .then(() => this.gotoFunction({ page, request, puppeteerPool: this.puppeteerPool }))
@@ -231,13 +231,13 @@ export default class PuppeteerCrawler {
                 if (!isPromise(promise)) throw new Error('User provided handlePageFunction must return a Promise.');
 
                 return promise;
-            });
-
-        return handlePagePromise
+            })
             .timeout(this.pageOpsTimeoutMillis, 'PuppeteerCrawler: handlePageFunction timed out.')
             .finally(() => {
-                return Promise
-                    .try(() => page.close())
+                return Promise.resolve()
+                    .then(() => {
+                        if (page) return page.close();
+                    })
                     .timeout(PAGE_CLOSE_TIMEOUT_MILLIS, 'Operation timed out.')
                     .catch(err => log.debug('PuppeteerCrawler: Page.close() failed.', { reason: err ? err.message : err }));
             });
