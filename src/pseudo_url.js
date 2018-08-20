@@ -5,6 +5,7 @@ import Request from './request';
 
 /**
  * Parses PURL into Regex string.
+ * @ignore
  */
 const parsePurl = (purl) => {
     const trimmedPurl = purl.trim();

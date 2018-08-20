@@ -195,4 +195,32 @@ describe('Apify.utils.puppeteer', () => {
             browser.close();
         }
     });
+
+    it('supports blockResources() with default values', async () => {
+        const browser = await Apify.launchPuppeteer({ headless: true });
+
+        try {
+            const page = await browser.newPage();
+            await Apify.utils.puppeteer.blockResources(page);
+            await page.goto('about:blank');
+
+            // TODO: Write some proper unit test for this
+        } finally {
+            browser.close();
+        }
+    });
+
+    it('supports blockResources() with nondefault values', async () => {
+        const browser = await Apify.launchPuppeteer({ headless: true });
+
+        try {
+            const page = await browser.newPage();
+            await Apify.utils.puppeteer.blockResources(page, ['font']);
+            await page.goto('about:blank');
+
+            // TODO: Write some proper unit test for this
+        } finally {
+            browser.close();
+        }
+    });
 });
