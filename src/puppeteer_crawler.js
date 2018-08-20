@@ -234,7 +234,7 @@ export default class PuppeteerCrawler {
         if (this.isStopped) return Promise.reject(new Error('PuppeteerCrawler is stopped.')); // Pool will be destroyed.
         let page;
 
-        const promise = this.puppeteerPool
+        const returnPromise = this.puppeteerPool
             .newPage()
             .then((newPage) => { page = newPage; })
             .then(() => this.gotoFunction({ page, request, puppeteerPool: this.puppeteerPool }))
@@ -259,6 +259,6 @@ export default class PuppeteerCrawler {
                     .timeout(PAGE_CLOSE_TIMEOUT_MILLIS, 'Operation timed out.')
                     .catch(err => log.debug('PuppeteerCrawler: Page.close() failed.', { reason: err ? err.message : err }));
             });
-        return Promise.race([promise, this.isRunningPromise]); // Reject all requests immediately after stopping the crawler (to be reclaimed).
+        return Promise.race([returnPromise, this.isRunningPromise]); // Reject all requests immediately after stopping the crawler (to be reclaimed).
     }
 }
