@@ -201,7 +201,7 @@ export default class CheerioCrawler {
         const $ = cheerio.load(html);
         await Promise.race([
             this.handlePageFunction({ $, html, request }),
-            createTimeoutPromise(this.handlePageTimeoutSecs * 1000, 'CheerioCrawler: handlePageFunction timed out.')
+            createTimeoutPromise(this.handlePageTimeoutSecs * 1000, 'CheerioCrawler: handlePageFunction timed out.'),
         ]);
     }
 
