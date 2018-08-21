@@ -95,5 +95,6 @@ module.exports = {
     // utils
     utils: Object.assign(publicUtils, {
         puppeteer: puppeteerUtils,
+        log,
     }),
 };
