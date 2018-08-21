@@ -213,7 +213,7 @@ export default class BasicCrawler {
             // If requestQueue.addRequest() fails here then we must reclaim it back to
             // the RequestList because probably it's not yet in the queue!
             log.exception(err, 'RequestQueue.addRequest() failed, reclaiming request back to the list', { request });
-            await this.requestList.reclaimRequest();
+            await this.requestList.reclaimRequest(request);
             return null;
         }
         const [nextRequest] = await Promise.all([

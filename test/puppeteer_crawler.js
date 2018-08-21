@@ -2,6 +2,7 @@ import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import 'babel-polyfill';
 import _ from 'underscore';
+import log from 'apify-shared/log';
 import { ENV_VARS } from '../build/constants';
 import * as Apify from '../build/index';
 
@@ -9,13 +10,17 @@ chai.use(chaiAsPromised);
 
 describe('PuppeteerCrawler', () => {
     let prevEnvHeadless;
+    let logLevel;
 
     before(() => {
         prevEnvHeadless = process.env[ENV_VARS.HEADLESS];
         process.env[ENV_VARS.HEADLESS] = '1';
+        logLevel = log.getLevel();
+        log.setLevel(log.LEVELS.ERROR);
     });
 
     after(() => {
+        log.setLevel(logLevel);
         process.env[ENV_VARS.HEADLESS] = prevEnvHeadless;
     });
 

@@ -1,10 +1,22 @@
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
+import log from 'apify-shared/log';
 import * as Apify from '../build/index';
 
 chai.use(chaiAsPromised);
 
 describe('CheerioCrawler', () => {
+    let logLevel;
+
+    before(() => {
+        logLevel = log.getLevel();
+        log.setLevel(log.LEVELS.ERROR);
+    });
+
+    after(() => {
+        log.setLevel(logLevel);
+    });
+
     it('should work', async () => {
         const sources = [
             { url: 'http://example.com/?q=1' },

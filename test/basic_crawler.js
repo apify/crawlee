@@ -3,6 +3,7 @@ import chaiAsPromised from 'chai-as-promised';
 import _ from 'underscore';
 import 'babel-polyfill';
 import sinon from 'sinon';
+import log from 'apify-shared/log';
 import { delayPromise } from 'apify-shared/utilities';
 import * as Apify from '../build/index';
 import { RequestQueue, RequestQueueLocal } from '../build/request_queue';
@@ -11,6 +12,17 @@ import { LOCAL_EMULATION_DIR } from './_helper';
 chai.use(chaiAsPromised);
 
 describe('BasicCrawler', () => {
+    let logLevel;
+
+    before(() => {
+        logLevel = log.getLevel();
+        log.setLevel(log.LEVELS.ERROR);
+    });
+
+    after(() => {
+        log.setLevel(logLevel);
+    });
+
     it('should run in parallel thru all the requests', async () => {
         const startedAt = Date.now();
         const sources = _.range(0, 500).map(index => ({ url: `https://example.com/${index}` }));
