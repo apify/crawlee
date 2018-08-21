@@ -1,3 +1,9 @@
+xxxxxxxxxxxxxxxxxxx
+===================
+- Added `getInfo()` method to Dataset to get meta-information about a dataset.
+- Added CheerioCrawler, a specialized class for crawling the web using `cheerio`
+- Added `keepDuplicateUrls` option to RequestList to allow duplicate URLs
+
 0.6.1 / 2018-08-17
 ===================
 - Replaced git-hosted version of our fork of ps-tree with @apify/ps-tree package
