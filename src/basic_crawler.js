@@ -66,9 +66,9 @@ const DEFAULT_OPTIONS = {
  * @param {Function} [options.handleRequestFunction]
  *   Function that processes a single `Request` object. It must return a promise.
  * @param {Function} [options.handleFailedRequestFunction=({ request }) => {
-        const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
-        log.error('BasicCrawler: Request failed and reached maximum retries', details);
-    }]
+ *      const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
+ *      log.error('BasicCrawler: Request failed and reached maximum retries', details);
+ *  }]
  *   Function that handles requests that failed more then `option.maxRequestRetries` times.
  * @param {Number} [options.maxRequestRetries=3]
  *   How many times the request is retried if `handleRequestFunction` failed.
