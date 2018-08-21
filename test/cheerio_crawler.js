@@ -99,10 +99,11 @@ describe('CheerioCrawler', () => {
 
         processed.sort(comparator);
 
-        processed.forEach((request, id) => {
-            expect(request.url).to.be.eql(sources[id].url);
+        for (let i = 0; i < 12; i++) {
+            const request = processed[i];
+            expect(request.url).to.be.eql(sources[i].url);
             expect(request.userData.title).to.be.eql('Example Domain');
-        });
+        }
 
         await Apify.utils.sleep(10); // Wait for event loop to unwind.
         await cheerioCrawler.run();
