@@ -51,19 +51,20 @@ describe('BasicCrawler', () => {
     });
 
     it('should run, stop and then finish', async () => {
-        const sources = _.range(1, 500).map(index => ({ url: `https://example.com/${index}` }));
+        const sources = _.range(500).map(index => ({ url: `https://example.com/${index + 1}` }));
 
         let basicCrawler;
         let isStopped;
         const processed = [];
         const requestList = new Apify.RequestList({ sources });
         const handleRequestFunction = async ({ request }) => {
-            if (request.url.endsWith('200')) {
-                if (!isStopped) basicCrawler.stop();
+            if (request.url.endsWith('200') && !isStopped) {
+                await basicCrawler.stop();
                 isStopped = true;
+            } else {
+                await delayPromise(10);
+                processed.push(_.pick(request, 'url'));
             }
-            await delayPromise(10);
-            processed.push(_.pick(request, 'url'));
         };
 
         basicCrawler = new Apify.BasicCrawler({
@@ -78,7 +79,7 @@ describe('BasicCrawler', () => {
         // The crawler will stop after 200 requests
         await basicCrawler.run();
 
-        expect(processed.length).to.be.eql(175);
+        expect(processed.length).to.be.within(175, 200);
         expect(await requestList.isFinished()).to.be.eql(false);
         expect(await requestList.isEmpty()).to.be.eql(false);
 

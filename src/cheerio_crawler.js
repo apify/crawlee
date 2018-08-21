@@ -210,11 +210,13 @@ export default class CheerioCrawler {
 
     /**
      * Stops the crawler by preventing crawls of additional pages. Pages already running are terminated.
+     *
+     * @return {Promise}
      */
-    stop() {
+    async stop() {
         this.isRunning = false;
-        this.basicCrawler.stop();
-        this.rejectOnStop(new Error('PuppeteerCrawler: .stop() function has been called. Stopping the crawler.'));
+        await this.basicCrawler.stop();
+        this.rejectOnStop(new Error('CheerioCrawler: .stop() function has been called. Stopping the crawler.'));
     }
 
     /**

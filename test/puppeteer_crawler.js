@@ -70,7 +70,7 @@ describe('PuppeteerCrawler', () => {
             b = Number(/q=(\d+)$/.exec(b.url)[1]);
             return a - b;
         };
-        const sources = _.range(30).map(index => ({ url: `https://example.com/?q=${index}` }));
+        const sources = _.range(30).map(index => ({ url: `https://example.com/?q=${index + 1}` }));
         let puppeteerCrawler;
         let isStopped = false;
         const processed = [];
@@ -80,11 +80,12 @@ describe('PuppeteerCrawler', () => {
             if (request.url.endsWith('15') && !isStopped) {
                 await puppeteerCrawler.stop();
                 isStopped = true;
+            } else {
+                await page.waitFor('title');
+                expect(await response.status()).to.be.eql(200);
+                request.userData.title = await page.title();
+                processed.push(request);
             }
-            await page.waitFor('title');
-            expect(await response.status()).to.be.eql(200);
-            request.userData.title = await page.title();
-            processed.push(request);
         };
 
         puppeteerCrawler = new Apify.PuppeteerCrawler({
@@ -98,8 +99,7 @@ describe('PuppeteerCrawler', () => {
         await requestList.initialize();
         await puppeteerCrawler.run();
 
-        expect(processed.length).to.be.above(12);
-        expect(processed.length).to.be.below(16);
+        expect(processed.length).to.be.within(12, 15);
         expect(failed).to.have.lengthOf(0);
 
         processed.sort(comparator);
@@ -112,13 +112,10 @@ describe('PuppeteerCrawler', () => {
         await Apify.utils.sleep(10); // Wait for event loop to unwind.
         await puppeteerCrawler.run();
 
-        expect(processed).to.have.lengthOf(30);
+        expect(processed.length).to.be.within(30, 33);
         expect(failed).to.have.lengthOf(0);
-
-        processed.sort(comparator);
-
-        processed.forEach((request, id) => {
-            expect(request.url).to.be.eql(sources[id].url);
+        expect(new Set(processed.map(p => p.url))).to.be.eql(new Set(sources.map(s => s.url)));
+        processed.forEach((request) => {
             expect(request.userData.title).to.be.eql('Example Domain');
         });
     });

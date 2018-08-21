@@ -226,8 +226,10 @@ export default class AutoscaledPool {
 
     /**
      * Stops the auto-scaled pool, discards all currently running tasks and destroys it.
+     *
+     * @return {Promise}
      */
-    stop() {
+    async stop() {
         if (this.resolve) this.resolve();
         // _destroy gets called 10 lines above so no need to do it here
     }

@@ -188,10 +188,12 @@ export default class BasicCrawler {
 
     /**
      * Stops the crawler by preventing crawls of additional pages. Pages already running are NOT terminated.
+     *
+     * @return {Promise}
      */
-    stop() {
+    async stop() {
         this.isRunning = false;
-        this.autoscaledPool.stop();
+        await this.autoscaledPool.stop();
         this.rejectOnStop(new Error('BasicCrawler: .stop() function has been called. Stopping the crawler.'));
     }
 
