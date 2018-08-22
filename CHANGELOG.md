@@ -6,6 +6,7 @@ xxxxxxxxxxxxxxxxxxx
 - Added `.stop()` method to all Crawler classes to enable stopping the crawl programmatically.
 - Deprecated `pageOpsTimeoutMillis` option. Use `handlePageTimeoutSecs`.
 - Bluebird promises are being phased out of `apify` in favor of `async-await`.
+- Added `log` to `Apify.utils` to improve logging experience.
 
 0.6.1 / 2018-08-17
 ===================
