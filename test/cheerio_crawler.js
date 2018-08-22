@@ -147,12 +147,12 @@ describe('CheerioCrawler', () => {
         await requestList.initialize();
         await cheerioCrawler.run();
 
-        expect(processed.length).to.be.within(40, 45);
+        expect(processed.length).to.be.within(40, 50);
         expect(failed).to.have.lengthOf(0);
 
         processed.sort(comparator);
 
-        for (let i = 0; i < 12; i++) {
+        for (let i = 0; i < 40; i++) {
             const request = processed[i];
             expect(request.url).to.be.eql(sources[i].url);
             expect(request.userData.title).to.be.eql(request.url[request.url.length - 1]);
@@ -161,7 +161,7 @@ describe('CheerioCrawler', () => {
         await Apify.utils.sleep(10); // Wait for event loop to unwind.
         await cheerioCrawler.run();
 
-        expect(processed.length).to.be.within(100, 105);
+        expect(processed.length).to.be.within(100, 110);
         expect(failed).to.have.lengthOf(0);
         expect(new Set(processed.map(p => p.url))).to.be.eql(new Set(sources.map(s => s.url)));
         processed.forEach((request) => {
