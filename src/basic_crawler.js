@@ -249,20 +249,17 @@ export default class BasicCrawler {
     }
 
     /**
-     * Returns true if some RequestList and RequestQueue have request ready for processing.
+     * Returns true if either RequestList or RequestQueue have a request ready for processing.
      *
      * @ignore
      */
     async _isTaskReadyFunction() {
-        const [
-            isRequestListEmpty,
-            isRequestQueueEmpty,
-        ] = await Promise.all([
-            this.requestList ? this.requestList.isEmpty() : true,
-            this.requestQueue ? this.requestQueue.isEmpty() : true,
-        ]);
-        // If both are empty, return false, otherwise return true.
-        return !(isRequestListEmpty && isRequestQueueEmpty);
+        // First check RequestList, since it's only in memory.
+        const isRequestListEmpty = this.requestList ? (await this.requestList.isEmpty()) : true;
+        // If RequestList is not empty, task is ready, no reason to check RequestQueue.
+        if (!isRequestListEmpty) return true;
+        // If RequestQueue is not empty, task is ready, return true, otherwise false.
+        return this.requestQueue ? !(await this.requestQueue.isEmpty()) : false;
     }
 
     /**

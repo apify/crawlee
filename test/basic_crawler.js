@@ -343,7 +343,7 @@ describe('BasicCrawler', () => {
             .returns(Promise.resolve());
 
         mock.expects('isEmpty')
-            .exactly(6)
+            .exactly(3)
             .returns(Promise.resolve(false));
         mock.expects('isEmpty')
             .once()
