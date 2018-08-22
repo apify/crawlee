@@ -1,10 +1,10 @@
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import _ from 'underscore';
+import log from 'apify-shared/log';
 import 'babel-polyfill';
 import { ENV_VARS } from '../build/constants';
 import * as Apify from '../build/index';
-import log from 'apify-shared/log';
 
 chai.use(chaiAsPromised);
 

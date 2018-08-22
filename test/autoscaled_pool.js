@@ -4,11 +4,11 @@ import 'babel-polyfill';
 import _ from 'underscore';
 import sinon from 'sinon';
 import { delayPromise } from 'apify-shared/utilities';
+import log from 'apify-shared/log';
 import * as Apify from '../build/index';
 import { ACTOR_EVENT_NAMES, ENV_VARS } from '../build/constants';
 import { SCALE_UP_MAX_STEP, SCALE_UP_INTERVAL, SCALE_DOWN_INTERVAL } from '../build/autoscaled_pool';
 import * as utils from '../build/utils';
-import log from 'apify-shared/log';
 
 /* eslint-disable no-underscore-dangle */
 
