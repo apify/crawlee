@@ -3,7 +3,7 @@ xxxxxxxxxxxxxxxxxxx
 - Added `getInfo()` method to Dataset to get meta-information about a dataset.
 - Added CheerioCrawler, a specialized class for crawling the web using `cheerio`.
 - Added `keepDuplicateUrls` option to RequestList to allow duplicate URLs.
-- Added `.stop()` method to all Crawler classes to enable stopping the crawl programmatically.
+- Added `.abort()` method to all Crawler classes to enable stopping the crawl programmatically.
 - Deprecated `pageOpsTimeoutMillis` option. Use `handlePageTimeoutSecs`.
 - Bluebird promises are being phased out of `apify` in favor of `async-await`.
 - Added `log` to `Apify.utils` to improve logging experience.

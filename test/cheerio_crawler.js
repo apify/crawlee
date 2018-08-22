@@ -65,7 +65,7 @@ describe('CheerioCrawler', () => {
         });
     });
 
-    it('should stop and resume', async () => {
+    it('should abort and resume', async () => {
         const sources = _.range(30).map(index => ({ url: `https://example.com/?q=${index + 1}` }));
         let cheerioCrawler;
         let isStopped = false;
@@ -74,7 +74,7 @@ describe('CheerioCrawler', () => {
         const requestList = new Apify.RequestList({ sources });
         const handlePageFunction = async ({ $, html, request }) => {
             if (request.url.endsWith('15') && !isStopped) {
-                cheerioCrawler.stop();
+                cheerioCrawler.abort();
                 isStopped = true;
             } else {
                 request.userData.title = $('title').text();

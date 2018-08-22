@@ -229,7 +229,7 @@ export default class AutoscaledPool {
      *
      * @return {Promise}
      */
-    async stop() {
+    async abort() {
         if (this.resolve) this.resolve();
         // _destroy gets called 10 lines above so no need to do it here
     }

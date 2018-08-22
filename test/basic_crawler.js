@@ -50,7 +50,7 @@ describe('BasicCrawler', () => {
         expect(await requestList.isEmpty()).to.be.eql(true);
     });
 
-    it('should run, stop and then finish', async () => {
+    it('should abort and resume', async () => {
         const sources = _.range(500).map(index => ({ url: `https://example.com/${index + 1}` }));
 
         let basicCrawler;
@@ -59,7 +59,7 @@ describe('BasicCrawler', () => {
         const requestList = new Apify.RequestList({ sources });
         const handleRequestFunction = async ({ request }) => {
             if (request.url.endsWith('200') && !isStopped) {
-                await basicCrawler.stop();
+                await basicCrawler.abort();
                 isStopped = true;
             } else {
                 await delayPromise(10);

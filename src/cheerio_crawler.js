@@ -209,13 +209,13 @@ export default class CheerioCrawler {
     }
 
     /**
-     * Stops the crawler by preventing crawls of additional pages. Pages already running are terminated.
+     * Stops the crawler by preventing crawls of additional pages and terminating the running ones.
      *
      * @return {Promise}
      */
-    async stop() {
+    async abort() {
         this.isRunning = false;
-        await this.basicCrawler.stop();
+        await this.basicCrawler.abort();
         this.rejectOnStop(new Error('CheerioCrawler: .stop() function has been called. Stopping the crawler.'));
     }
 

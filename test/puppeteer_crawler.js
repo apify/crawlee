@@ -78,7 +78,7 @@ describe('PuppeteerCrawler', () => {
         const requestList = new Apify.RequestList({ sources });
         const handlePageFunction = async ({ page, request, response }) => {
             if (request.url.endsWith('15') && !isStopped) {
-                await puppeteerCrawler.stop();
+                await puppeteerCrawler.abort();
                 isStopped = true;
             } else {
                 await page.waitFor('title');
