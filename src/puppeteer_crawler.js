@@ -169,6 +169,8 @@ export default class PuppeteerCrawler {
 
         this.handlePageFunction = handlePageFunction;
         this.gotoFunction = gotoFunction;
+
+        if (pageOpsTimeoutMillis) log.warning('options.pageOpsTimeoutMillis is deprecated, use options.handlePageTimeoutSecs instead.');
         this.handlePageTimeoutSecs = handlePageTimeoutSecs || Math.ceil(pageOpsTimeoutMillis / 1000);
 
         this.puppeteerPoolOptions = {
