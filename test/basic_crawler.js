@@ -16,7 +16,7 @@ describe('BasicCrawler', () => {
 
     before(() => {
         logLevel = log.getLevel();
-        log.setLevel(log.LEVELS.ERROR);
+        log.setLevel(log.LEVELS.OFF);
     });
 
     after(() => {
