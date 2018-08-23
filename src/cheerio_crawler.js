@@ -85,7 +85,7 @@ const DEFAULT_OPTIONS = {
  * @param {Number} [options.handlePageTimeoutSecs=300]
  *   Timeout in which the function passed as `options.handlePageFunction` needs to finish, given in seconds.
  * @param {Function} [options.requestFunction=({ request }) => {
- *      return rp({ // request-promise npm package
+ *      return requestPromise({
  *          url: request.url,
  *          method: request.method,
  *          headers: request.headers,
