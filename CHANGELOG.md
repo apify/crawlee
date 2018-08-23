@@ -1,4 +1,4 @@
-xxxxxxxxxxxxxxxxxxx
+0.6.2 / 2018-08-23
 ===================
 - Added `getInfo()` method to Dataset to get meta-information about a dataset.
 - Added CheerioCrawler, a specialized class for crawling the web using `cheerio`.
