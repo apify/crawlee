@@ -289,8 +289,11 @@ TODO: This sections need to be finished
 
 All the following examples can be found in the [./examples] directory in the repository.
 
+### Load few pages using in raw HTML
 
-### Crawl a list of URLs using Cheerio
+TODO: maybe use example from https://www.apify.com/docs/sdk/apify-runtime-js/latest#BasicCrawler, but make sure it's working
+
+### Crawl a large list of URLs using Cheerio
 
 Demonstrates how to create a crawler that will take
 a list of URLs from a CSV file and crawls the pages using
@@ -301,19 +304,19 @@ TODO
 
 ### Recursively crawl a website using headless Chrome / Puppeteer
 
-Demonstrates how to recursively
+Demonstrates how to recursively TODO
 
 
-### Usage of key-value stores
-
-TODO
-
-### Create PDF snapshot of web page using Puppeteer and Apify Proxy
+### Saving page screenshots into key-value store
 
 TODO
 
+### Launching Puppeteer with Apify Proxy
 
-### Call another actor
+TODO
+
+
+### Invoking another actor
 
 This example demonstrates how to call another actor on Apify cloud - in this case `apify/send-mail`
 to send an email.
@@ -325,15 +328,20 @@ TODO
 
 ## Puppeteer live view
 
+Apify SDK enables real-time view of launched Puppeteer browser instances and their open tabs,
+including screenshots of the pages and snapshots of HTML.
+This is useful for debugging your crawlers that run in headless mode.
 
-Enables real time inspection of individual Puppeteer browser instances by starting a web server @ `localhost:4321`. This is especially useful when using headless mode or a remote instance.
-Puppeteer Live View provides the user with a dashboard listing all active browser instances and their active page details. The details show a page screenshot and raw HTML.
+The live view dashboard is run on a web server that is started on a port specified
+by the `APIFY_CONTAINER_PORT` environment variable (typically 4321).
+To enable the live view, pass the `liveView: true` option to `Apify.launchPuppeteer()`:
 
-You can use Puppeteer Live View, either directly:
-```javascriptThe function has no result,
+```javascript
 const browser = Apify.launchPuppeteer({ liveView: true });
 ```
-or while using PuppeteerCrawler:
+
+or to `PuppeteerCrawler` constructor as follows:
+
 ```javascript
 const crawler = new PuppeteerCrawler({
     launchPuppeteerOptions: { liveView: true },
@@ -341,30 +349,25 @@ const crawler = new PuppeteerCrawler({
 })
 ```
 
-For debugging, you may want to add another option: `{ slowMo: 300 }` (see <a href="https://pptr.dev/#?product=Puppeteer&version=v1.6.0&show=api-puppeteerlaunchoptions" target="_blank">Puppeteer documentation</a>).
+To simplify debugging, you may also want to add the
+`{ slowMo: 300 }` option to slow down all browser operation.
+See <a href="https://pptr.dev/#?product=Puppeteer&version=v1.6.0&show=api-puppeteerlaunchoptions" target="_blank">Puppeteer documentation</a> for details.
 
-After you connect to `localhost:4321` (the port is configurable using `APIFY_CONTAINER_PORT` environment variable),
-Puppeteer Live View will present you with the following screen:
-<img src="https://www.apify.com/ext/sdk_assets/puppeteer-live-view-dashboard.png">
+Once the live view is enabled, you can open http://localhost:4321 and you will see a page like this:
 
-Click on the magnifying glass icon will take you to a page detail, showing its screenshot and raw HTML:
-<img src="https://www.apify.com/ext/sdk_assets/puppeteer-live-view-detail.png">
+<img src="https://www.apify.com/ext/sdk_assets/puppeteer-live-view-dashboard.png" style="width:600px">
 
-For more information see complete <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerLiveViewServer" target="_blank">documentation</a>.
+Click on the magnifying glass icon to view a page detail, showing page screenshot and raw HTML:
 
+<img src="https://www.apify.com/ext/sdk_assets/puppeteer-live-view-detail.png" style="width:600px">
 
-## Promises vs. callbacks
+For more information, read the <a href="https://kb.apify.com/actor/debugging-your-actors-with-live-view" target="_blank">Debugging your actors with Live View</a>
+article in Apify Knowlege base.
 
-All asynchronous functions provided by the <code>apify</code> package return
-a <a href="http://bluebirdjs.com/" target="_blank" rel="noopener">bluebird</a> Promise.
-If you prefer to use callbacks, you can use
-the <a href="http://bluebirdjs.com/docs/api/ascallback.html" target="_blank" rel="noopener">.asCallback()</a> function.
-For example:
+## Support
 
-```js
-const Apify = require('apify');
+If you find any problem with Apify SDK, please [submit an issue on GitHub](https://github.com/apifytech/apify-js/issues).
 
-Apify.launchPuppeteer().asCallback((err, browser) => {
-  // Write you callback code here...
-});
-```
+## Contributing
+
+We welcome any contributions! If you have any ideas for improvements, either submit an issue or create a pull request.
