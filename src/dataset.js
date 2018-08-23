@@ -624,6 +624,9 @@ export const openDataset = (datasetIdOrName) => {
     return datasetPromise;
 };
 
+// TODO: This documentation duplicates docs for Dataset.pushData(). We should only
+// have it there and add a link to it, rahter than to duplicate the content.
+
 /**
  * Stores object or an array of objects in the default dataset for the current actor run using the Apify API
  * Default id of the dataset is in the `APIFY_DEFAULT_DATASET_ID` environment variable.
