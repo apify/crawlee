@@ -107,6 +107,80 @@ describe('dataset', () => {
             });
         });
 
+        it('getInfo() should work', async () => {
+            const datasetName = 'stats-dataset';
+            const dataset = new DatasetLocal(datasetName, LOCAL_EMULATION_DIR);
+            await Apify.utils.sleep(2);
+
+            // Save orig env var since it persists over tests.
+            const original = process.env[ENV_VARS.USER_ID];
+            // Try empty ID
+            delete process.env[ENV_VARS.USER_ID];
+
+            let info = await dataset.getInfo();
+            expect(info).to.be.an('object');
+            expect(info.id).to.be.eql(datasetName);
+            expect(info.name).to.be.eql(datasetName);
+            expect(info.userId).to.be.eql(null);
+            expect(info.itemsCount).to.be.eql(0);
+
+            const cTime = info.createdAt.getTime();
+            let mTime = info.modifiedAt.getTime();
+
+            expect(cTime).to.be.below(Date.now());
+            expect(cTime).to.be.eql(mTime);
+
+            await dataset.pushData([
+                { foo: 'a' },
+                { foo: 'b' },
+                { foo: 'c' },
+                { foo: 'd' },
+            ]);
+            await Apify.utils.sleep(2);
+
+            info = await dataset.getInfo();
+            expect(info).to.be.an('object');
+            expect(info.id).to.be.eql(datasetName);
+            expect(info.name).to.be.eql(datasetName);
+            expect(info.userId).to.be.eql(null);
+            expect(info.itemsCount).to.be.eql(4);
+
+            mTime = info.modifiedAt.getTime();
+            let aTime = info.accessedAt.getTime();
+
+            expect(cTime).to.be.below(Date.now());
+            expect(cTime).to.be.below(mTime);
+            expect(mTime).to.be.eql(aTime);
+
+            await dataset.getData();
+            await Apify.utils.sleep(2);
+            const now = Date.now();
+            await Apify.utils.sleep(2);
+
+            // Try setting an ID
+            const userId = 'some_ID';
+            process.env[ENV_VARS.USER_ID] = userId;
+
+            info = await dataset.getInfo();
+            expect(info).to.be.an('object');
+            expect(info.id).to.be.eql(datasetName);
+            expect(info.name).to.be.eql(datasetName);
+            expect(info.userId).to.be.eql(userId);
+            expect(info.itemsCount).to.be.eql(4);
+
+            const cTime2 = info.createdAt.getTime();
+            mTime = info.modifiedAt.getTime();
+            aTime = info.accessedAt.getTime();
+
+            expect(cTime).to.be.eql(cTime2);
+            expect(mTime).to.be.below(aTime);
+            expect(mTime).to.be.below(now);
+            expect(aTime).to.be.below(now);
+
+            // Restore.
+            process.env[ENV_VARS.USER_ID] = original;
+        });
+
         it('forEach() should work', async () => {
             const dataset = await getLocalDataset([
                 { foo: 'a' },
@@ -413,6 +487,32 @@ describe('dataset', () => {
             mock.restore();
         });
 
+        it('getInfo() should work', async () => {
+            const dataset = new Dataset('some-id');
+            const mock = sinon.mock(apifyClient.datasets);
+
+            const expected = {
+                id: 'WkzbQMuFYuamGv3YF',
+                name: 'd7b9MDYsbtX5L7XAj',
+                userId: 'wRsJZtadYvn4mBZmm',
+                createdAt: '2015-12-12T07:34:14.202Z',
+                modifiedAt: '2015-12-13T08:36:13.202Z',
+                accessedAt: '2015-12-14T08:36:13.202Z',
+                itemsCount: 0,
+            };
+
+            mock.expects('getDataset')
+                .once()
+                .returns(Promise.resolve(expected));
+
+            const result = await dataset.getInfo();
+
+            expect(result).to.be.eql(expected);
+
+            mock.verify();
+            mock.restore();
+        });
+
         const getRemoteDataset = () => {
             const dataset = new Dataset('some-id');
             const mock = sinon.mock(apifyClient.datasets);
@@ -458,6 +558,7 @@ describe('dataset', () => {
 
             return { dataset, restoreAndVerify };
         };
+
 
         it('forEach() should work', async () => {
             const { dataset, restoreAndVerify } = getRemoteDataset();

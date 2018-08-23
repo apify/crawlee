@@ -4,7 +4,6 @@ import sinon from 'sinon';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import pidusage from 'pidusage';
 import Promise from 'bluebird';
 import requestPromise from 'request-promise';
 import * as utils from '../build/utils';
@@ -147,13 +146,13 @@ describe('utils.getMemoryInfo()', () => {
         return Apify
             .getMemoryInfo()
             .then((data) => {
-                expect(data).to.be.eql({
+                expect(data).to.include({
                     totalBytes: 333,
                     freeBytes: 222,
                     usedBytes: 111,
-                    mainProcessBytes: 111,
                     childProcessesBytes: 0,
                 });
+                expect(data.mainProcessBytes).to.be.at.least(20000000);
 
                 utilsMock.restore();
                 osMock.restore();
@@ -179,13 +178,13 @@ describe('utils.getMemoryInfo()', () => {
         return Apify
             .getMemoryInfo()
             .then((data) => {
-                expect(data).to.be.eql({
+                expect(data).to.include({
                     totalBytes: 333,
                     freeBytes: 222,
                     usedBytes: 111,
-                    mainProcessBytes: 111,
                     childProcessesBytes: 0,
                 });
+                expect(data.mainProcessBytes).to.be.at.least(20000000);
 
                 utilsMock.restore();
                 fs.readFile.restore();
@@ -217,9 +216,13 @@ describe('utils.getMemoryInfo()', () => {
                 return Apify
                     .getMemoryInfo()
                     .then((data) => {
-                        expect(data.childProcessesBytes).to.be.above(0);
-                        expect(data.usedBytes).to.be.above(0);
-                        expect(data.mainProcessBytes).to.be.eql(data.usedBytes - data.childProcessesBytes);
+                        expect(data).to.include({
+                            totalBytes: 333,
+                            freeBytes: 222,
+                            usedBytes: 111,
+                        });
+                        expect(data.mainProcessBytes).to.be.at.least(20000000);
+                        expect(data.childProcessesBytes).to.be.at.least(20000000);
                         utilsMock.restore();
                         osMock.restore();
                         delete process.env[ENV_VARS.HEADLESS];
@@ -250,9 +253,13 @@ describe('utils.getMemoryInfo()', () => {
                 return Apify
                     .getMemoryInfo()
                     .then((data) => {
-                        expect(data.childProcessesBytes).to.be.above(0);
-                        expect(data.usedBytes).to.be.above(0);
-                        expect(data.mainProcessBytes).to.be.eql(data.usedBytes - data.childProcessesBytes);
+                        expect(data).to.include({
+                            totalBytes: 333,
+                            freeBytes: 222,
+                            usedBytes: 111,
+                        });
+                        expect(data.mainProcessBytes).to.be.at.least(20000000);
+                        expect(data.childProcessesBytes).to.be.at.least(20000000);
                         utilsMock.restore();
                         fs.readFile.restore();
                         delete process.env[ENV_VARS.HEADLESS];
@@ -291,15 +298,6 @@ describe('utils.isAtHome()', () => {
         expect(utils.isAtHome()).to.be.eql(true);
         delete process.env[ENV_VARS.IS_AT_HOME];
         expect(utils.isAtHome()).to.be.eql(false);
-    });
-});
-
-describe('pidusage NPM package', () => {
-    it('throws correct error message when process not found', () => {
-        const NONEXISTING_PID = 9999;
-        const promise = pidusage(NONEXISTING_PID);
-
-        return expect(promise).to.be.rejectedWith(utils.PID_USAGE_NOT_FOUND_ERROR);
     });
 });
 

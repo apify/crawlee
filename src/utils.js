@@ -4,16 +4,15 @@ import os from 'os';
 import fs from 'fs';
 import fsExtra from 'fs-extra';
 import ApifyClient from 'apify-client';
-import psTree from 'ps-tree';
-import pidusage from 'pidusage';
+import psTree from '@apify/ps-tree';
 import requestPromise from 'request-promise';
-import _ from 'underscore';
 import XRegExp from 'xregexp';
 import { delayPromise, getRandomInt } from 'apify-shared/utilities';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { ENV_VARS, USER_AGENT_LIST } from './constants';
 
-export const PID_USAGE_NOT_FOUND_ERROR = 'No maching pid found';
+/* globals process */
+
 
 /**
  * Default regular expression to match URLs in a string that may be plain text, JSON, CSV or other. It supports common URL characters
@@ -53,18 +52,18 @@ export const newClient = () => {
 };
 
 /**
- * A default instance of the `ApifyClient` class provided
+ * Gets the default instance of the `ApifyClient` class provided
  * by the <a href="https://www.apify.com/docs/sdk/apify-client-js/latest" target="_blank">apify-client</a> NPM package.
- * The instance is created when the `apify` package is first imported
+ * The instance is created automatically by the Apify SDK
  * and it is configured using the `APIFY_API_BASE_URL`, `APIFY_USER_ID` and `APIFY_TOKEN`
  * environment variables.
  *
- * After that, the instance is used for all underlying calls to the Apify API
+ * The instance is used for all underlying calls to the Apify API
  * in functions such as <a href="#module-Apify-getValue">Apify.getValue()</a>
  * or <a href="#module-Apify-call">Apify.call()</a>.
  * The settings of the client can be globally altered by calling the
  * <a href="https://www.apify.com/docs/sdk/apify-client-js/latest#ApifyClient-setOptions"><code>Apify.client.setOptions()</code></a> function.
- * Just be careful, it might have undesired effects on other functions provided by this package.
+ * Beware that altering these settings might have unintended effects on the entire Apify SDK package.
  *
  * @memberof module:Apify
  * @name client
@@ -158,24 +157,30 @@ export const sum = arr => arr.reduce((total, c) => total + c, 0);
 export const avg = arr => sum(arr) / arr.length;
 
 /**
- * Returns memory statistics of the container, which is an object with the following properties:
+ * Returns memory statistics of the process and the system, which is an object with the following properties:
  *
  * ```javascript
  * {
- *   // Total memory available to the actor
+ *   // Total memory available in the system or container
  *   totalBytes: Number,
  *   &nbsp;
- *   // Amount of free memory
+ *   // Amount of free memory in the system or container
  *   freeBytes: Number,
  *   &nbsp;
  *   // Amount of memory used (= totalBytes - freeBytes)
  *   usedBytes: Number,
- *   // Amount of memory used by main NodeJS process
+ *   // Amount of memory used the current Node.js process
  *   mainProcessBytes: Number,
- *   // Amount of memory used by child processes of main NodeJS process
+ *   // Amount of memory used by child processes of the current Node.js process
  *   childProcessesBytes: Number,
  * }
  * ```
+ *
+ * If the process runs inside of Docker, the `getMemoryInfo` gets container memory limits,
+ * otherwise it gets system memory limits.
+ *
+ * Beware that the function is quite inefficient because it spawns a new process.
+ * Therefore you shouldn't call it too often, like more than once per second.
  *
  * @returns {Promise} Returns a promise.
  *
@@ -184,68 +189,60 @@ export const avg = arr => sum(arr) / arr.length;
  * @instance
  * @function
  */
-export const getMemoryInfo = () => {
-    // module.exports must be here so that we can mock it.
-    const isDockerPromise = module.exports.isDocker();
+export const getMemoryInfo = async () => {
+    const [isDockerVar, processes] = await Promise.all([
+        // module.exports must be here so that we can mock it.
+        module.exports.isDocker(),
+        // Query both root and child processes
+        psTreePromised(process.pid, true),
+    ]);
 
-    const childProcessesUsagePromise = psTreePromised(process.pid)
-        .then((childProcesses) => {
-            const pids = _.pluck(childProcesses, 'PID');
+    let mainProcessBytes = -1;
+    let childProcessesBytes = 0;
+    processes.forEach((rec) => {
+        // Skip the 'ps' or 'wmic' commands used by ps-tree to query the processes
+        if (rec.COMMAND === 'ps' || rec.COMMAND === 'WMIC.exe') {
+            return;
+        }
+        const bytes = parseInt(rec.RSS, 10);
+        // Obtain main process' memory separately
+        if (rec.PID === `${process.pid}`) {
+            mainProcessBytes = bytes;
+            return;
+        }
+        childProcessesBytes += bytes;
+    });
 
-            const promises = pids.map((pid) => {
-                return pidusage(pid)
-                    .then(info => info.memory)
-                    .catch((err) => {
-                        if (err.message === PID_USAGE_NOT_FOUND_ERROR) return 0;
+    let totalBytes;
+    let freeBytes;
+    let usedBytes;
 
-                        throw err;
-                    });
-            });
+    if (!isDockerVar) {
+        totalBytes = os.totalmem();
+        freeBytes = os.freemem();
+        usedBytes = totalBytes - freeBytes;
+    } else {
+        // When running inside Docker container, use container memory limits
+        // This must be promisified here so that we can mock it.
+        const readPromised = Promise.promisify(fs.readFile);
 
-            return Promise.all(promises).then(infos => sum(infos));
-        });
+        const [totalBytesStr, usedBytesStr] = await Promise.all([
+            readPromised('/sys/fs/cgroup/memory/memory.limit_in_bytes'),
+            readPromised('/sys/fs/cgroup/memory/memory.usage_in_bytes'),
+        ]);
 
-    return Promise
-        .all([
-            isDockerPromise,
-            childProcessesUsagePromise,
-        ])
-        .then(([isDockerVar, childProcessesBytes]) => {
-            if (!isDockerVar) {
-                const freeBytes = os.freemem();
-                const totalBytes = os.totalmem();
-                const usedBytes = totalBytes - freeBytes;
+        totalBytes = parseInt(totalBytesStr, 10);
+        usedBytes = parseInt(usedBytesStr, 10);
+        freeBytes = totalBytes - usedBytes;
+    }
 
-                return Promise.resolve({
-                    totalBytes,
-                    freeBytes,
-                    usedBytes,
-                    mainProcessBytes: usedBytes - childProcessesBytes,
-                    childProcessesBytes,
-                });
-            }
-
-            // This must be promisified here so that we can Mock it.
-            const readPromised = Promise.promisify(fs.readFile);
-
-            return Promise
-                .all([
-                    readPromised('/sys/fs/cgroup/memory/memory.limit_in_bytes'),
-                    readPromised('/sys/fs/cgroup/memory/memory.usage_in_bytes'),
-                ])
-                .then(([totalBytesStr, usedBytesStr]) => {
-                    const totalBytes = parseInt(totalBytesStr, 10);
-                    const usedBytes = parseInt(usedBytesStr, 10);
-
-                    return {
-                        totalBytes,
-                        freeBytes: totalBytes - usedBytes,
-                        usedBytes,
-                        mainProcessBytes: usedBytes - childProcessesBytes,
-                        childProcessesBytes,
-                    };
-                });
-        });
+    return {
+        totalBytes,
+        freeBytes,
+        usedBytes,
+        mainProcessBytes,
+        childProcessesBytes,
+    };
 };
 
 /**
@@ -300,7 +297,7 @@ export const getTypicalChromeExecutablePath = () => {
  * Creates a promise that after given time gets rejected with given error.
  *
  * @return {Promise<Error>}
- * @ignore.
+ * @ignore
  */
 export const createTimeoutPromise = (timeoutMillis, errorMessage) => {
     return delayPromise(timeoutMillis).then(() => {

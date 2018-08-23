@@ -1,6 +1,5 @@
 import _ from 'underscore';
 import Promise from 'bluebird';
-import fs from 'fs';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { APIFY_PROXY_VALUE_REGEX } from 'apify-shared/regexs';
@@ -90,37 +89,43 @@ export const getEnv = () => {
 };
 
 /**
- * Runs a user function that performs the logic of the actor.
- * The `Apify.main(userFunct)` function does the following actions:
+ * Runs the main user function that performs the job of the actor.
+ *
+ * `Apify.main()` is especially useful when you're running your code in an actor on the Apify platform.
+ * Note that its use is optional - the function is provided merely for your convenience.
+ *
+ * The function performs the following actions:
  *
  * <ol>
- *   <li>Invokes the user function passed as the `userFunc` parameter</li>
- *   <li>If the user function returned a promise, waits for it to resolve</li>
+ *   <li>When running on the Apify platform, it sets up a connection to listen for platform events.
+ *   For example, to get a notification about an imminent migration to another server.
+ *   See <a href="#module-Apify-events"><code>Apify.events</code></a> for details.
+ *   </li>
+ *   <li>It invokes the user function passed as the `userFunc` parameter.</li>
+ *   <li>If the user function returned a promise, waits for it to resolve.</li>
  *   <li>If the user function throws an exception or some other error is encountered,
- *       prints error details to console so that they are stored to the log file</li>
- *   <li>Exits the process</li>
+ *       prints error details to console so that they are stored to the log.</li>
+ *   <li>Exits the Node.js process, with zero exit code on success and non-zero on errors.</li>
  * </ol>
  *
- * In the simplest case, the user function is synchronous:
+ * The user function can be synchronous:
  *
  * ```javascript
  * Apify.main(() => {
- *     // My synchronous function that returns immediately
+ *   // My synchronous function that returns immediately
+ *   console.log('Hello world from actor!');
  * });
  * ```
  *
  * If the user function returns a promise, it is considered as asynchronous:
  * ```javascript
  * const request = require('request-promise');
+ *
  * Apify.main(() => {
- *     // My asynchronous function that returns a promise
- *     return Promise.resolve()
- *     .then(() => {
- *         return request('http://www.example.com');
- *     })
- *     .then((html) => {
- *         console.log(html);
- *     });
+ *   // My asynchronous function that returns a promise
+ *   return request('http://www.example.com').then((html) => {
+ *     console.log(html);
+ *   });
  * });
  * ```
  *
@@ -128,16 +133,16 @@ export const getEnv = () => {
  *
  * ```javascript
  * const request = require('request-promise');
+ *
  * Apify.main(async () => {
- *      const html = await request('http://www.example.com');
- *      console.log(html);
+ *   // My asynchronous function
+ *   const html = await request('http://www.example.com');
+ *   console.log(html);
  * });
  * ```
  *
- * Note that the use of `Apify.main()` in actors is optional;
- * the function is provided merely for user convenience and you don't have to use it.
- *
- * @param userFunc {Function} User function to be executed
+ * @param userFunc {Function} User function to be executed. If it returns a promise,
+ * the promise will be awaited. The user function is called with no arguments.
  *
  * @memberof module:Apify
  * @function
@@ -188,68 +193,15 @@ export const main = (userFunc) => {
     }
 };
 
-// TODO: this should rather be called Apify.listeningOnPort() or something like that
 
 /**
- * Notifies Apify runtime that actor is listening on port specified by the APIFY_INTERNAL_PORT environment
- * variable and is ready to receive a HTTP request with actor input.
- *
- * @ignore
- */
-export const readyFreddy = () => {
-    const watchFileName = process.env[ENV_VARS.WATCH_FILE];
-    if (watchFileName) {
-        fs.writeFile(watchFileName, '', (err) => {
-            if (err) console.log(`WARNING: Cannot write to watch file ${watchFileName}: ${err}`);
-        });
-    } else {
-        console.log(`WARNING: ${ENV_VARS.WATCH_FILE} environment variable not specified, readyFreddy() has no effect.`);
-    }
-};
-
-/**
- * Runs another actor under the current user account, waits for the actor to finish and fetches its output.
+ * Runs an actor on the Apify platform using the current user account (given by the `APIFY_TOKEN` environment variable),
+ * waits for the actor to finish and fetches its output.
  *
  * By passing the `waitSecs` option you can reduce the maximum amount of time to wait for the run to finish.
  * If the value is less than or equal to zero, the function returns immediately after the run is started.
  *
- * The result of the function is an object that contains details about the run and potentially its output.
- * For example:
- *
- * ```json
- * {
- *     "id": "ErYkuTTsmKiXccNGT",
- *     "actId": "E2jjCZBezvAZnX8Rb",
- *     "userId": "mb7q2dycFBHDhae6A",
- *     "startedAt": "2017-10-25T14:23:44.376Z",
- *     "finishedAt": "2017-10-25T14:23:46.723Z",
- *     "status": "SUCCEEDED",
- *     "meta": { "origin": "API", "clientIp": "1.2.3.4", "userAgent": null },
- *     "stats": {
- *         "netRxBytes": 180,
- *         "netTxBytes": 0,
- *         ...
- *     },
- *     "options": {
- *        "build": "latest",
- *        "timeoutSecs": 0,
- *        "memoryMbytes": 512,
- *        "diskMbytes": 1024
- *     },
- *     "buildId": "Bwkqk59MCkdexDP34",
- *     "exitCode": 0,
- *     "defaultKeyValueStoreId": "ccFfRptZru2uqdQHP",
- *     "defaultDatasetId": "tZru2uqdQHPcgFtRo",
- *     "buildNumber": "0.1.2",
- *     "output": {
- *         "contentType": "application/json; charset=utf-8",
- *         "body": { "message": "Hello world!" }
- *     }
- * }
- * ```
- * Internally, the function calls the
- * <a href="https://www.apify.com/docs/api/v2#/reference/actors/run-collection/run-actor" target="_blank">Run actor</a>
- * API endpoint and few others.
+ * The result of the function is an object that contains details about the actor run and its output (if any).
  *
  * Example usage:
  *
@@ -258,30 +210,83 @@ export const readyFreddy = () => {
  * console.log(`Received message: ${run.output.body.message}`);
  * ```
  *
- * @param {String} actId Either `username/actor-name` or actor ID.
- * @param {Object|String|Buffer} [input] Actor input body. If it is an object, it is stringified to
- * JSON and the content type set to `application/json; charset=utf-8`.
- * @param {Object} [opts]
- * @param {String} [opts.token] User API token. By default, it is taken from the `APIFY_TOKEN` environment variable.
- * @param {String} [opts.build] Tag or number of actor build to run (e.g. `beta` or `1.2.345`).
- * If not provided, the default build tag or number from actor configuration is used (typically `latest`).
- * @param {String} [opts.contentType] Content type for the `input`. If not specified,
- *                                      `input` is expected to be an object that will be stringified to JSON and content type set to
- *                                      `application/json; charset=utf-8`. If `opts.contentType` is specified, then `input` must be a
- *                                      `String` or `Buffer`.
- * @param {Number} [opts.timeoutSecs] Time limit for actor to finish, in seconds.
- *                                      If the limit is reached the resulting run will have the `RUNNING` status.
- *                                      By default, there is no timeout.
- * @param {String} [opts.waitSecs] - Maximum time to wait for actor run to finish, in seconds.
- *                                     If the limit is reached, the returned promise is resolved to a run object that will have
- *                                     status `READY` or `RUNNING` and it will not contain the actor run output.
- *                                     If `waitSecs` is null or undefined, the function waits for the actor to finish (default behavior).
- * @param {Number} [opts.memory] Memory in megabytes which will be allocated for the new actor run.
- * @param {Boolean} [opts.fetchOutput=true] If `false` then the function does not fetch output of the actor.
- * @param {Boolean} [opts.disableBodyParser=false] If `true` then the function will not attempt to parse the
- *                                                actor's output and will return it in a raw `Buffer`.
+ * The resulting `run` object looks something like this:
+ *
+ * ```javascript
+ * {
+ *   "id": "cJwyzNkBf229ZQRcQ",
+ *   "actId": "E2jjCZBezvAZnX8Rb",
+ *   "userId": "mb7q2dycFBHDhae6A",
+ *   "startedAt": new Date("2018-08-10T14:41:37.527Z"),
+ *   "finishedAt": new Date("2018-08-10T14:41:41.859Z"),
+ *   "status": "SUCCEEDED",
+ *   "meta": {
+ *     "origin": "API",
+ *     "clientIp": null,
+ *     "userAgent": "ApifyClient/0.2.13 (Linux; Node/v8.11.3)"
+ *   },
+ *   "stats": {
+ *     "inputBodyLen": 22,
+ *     "restartCount": 0,
+ *     ...
+ *   },
+ *   "options": {
+ *     "build": "latest",
+ *     "timeoutSecs": 0,
+ *     "memoryMbytes": 256,
+ *     "diskMbytes": 512
+ *   },
+ *   "buildId": "AzgKquDoX8EGdWzto",
+ *   "exitCode": 0,
+ *   "defaultKeyValueStoreId": "aH8tKjD4kATC4Wptc",
+ *   "defaultDatasetId": "iug7s8angh3BwNj9Q",
+ *   "defaultRequestQueueId": "fQfghRijKLTMchns3",
+ *   "buildNumber": "0.0.10",
+ *   "containerUrl": "https://c8o2s6key3uy.runs.apify.net",
+ *   "output": {
+ *     "contentType": "application/json; charset=utf-8",
+ *     "body": {
+ *       "message": "Hello world!"
+ *     }
+ *   }
+ * }
+ * ```
+ * Internally, the `Apify.call` function calls the
+ * <a href="https://www.apify.com/docs/api/v2#/reference/actors/run-collection/run-actor" target="_blank">Run actor</a>
+ * API endpoint and few others to obtain the output.
+ *
+ * @param {String} actId
+ *  Either `username/actor-name` or actor ID.
+ * @param {Object|String|Buffer} [input]
+ *  Input for the actor. If it is an object, it will be stringified to
+ *  JSON and its content type is set to `application/json; charset=utf-8`.
+ *  Otherwise the `options.contentType` parameter must be provided.
+ * @param {Object} [options]
+ *   Object with settings
+ * @param {String} [options.contentType]
+ *  Content type for the `input`. If not specified,
+ *  `input` is expected to be an object that will be stringified to JSON and content type set to
+ *  `application/json; charset=utf-8`. If `options.contentType` is specified, then `input` must be a
+ *  `String` or `Buffer`.
+ * @param {String} [options.token]
+ *  User API token that is used to run the actor. By default, it is taken from the `APIFY_TOKEN` environment variable.
+ * @param {Number} [options.memory]
+ *  Memory in megabytes which will be allocated for the new actor run.
+ * @param {String} [options.build]
+ *  Tag or number of the actor build to run (e.g. `beta` or `1.2.345`).
+ *  If not provided, the run uses build tag or number from the default actor run configuration (typically `latest`).
+ * @param {String} [options.waitSecs]
+ *  Maximum time to wait for the actor run to finish, in seconds.
+ *  If the limit is reached, the returned promise is resolved to a run object that will have
+ *  status `READY` or `RUNNING` and it will not contain the actor run output.
+ *  If `waitSecs` is null or undefined, the function waits for the actor to finish (default behavior).
+ * @param {Boolean} [options.fetchOutput=true]
+ *  If `false` then the function does not fetch output of the actor.
+ * @param {Boolean} [options.disableBodyParser=false]
+ *  If `true` then the function will not attempt to parse the
+ *  actor's output and will return it in a raw `Buffer`.
  * @returns {Promise}
- * @throws {ApifyCallError} If run doesn't succeed.
+ * @throws {ApifyCallError} If the run did not succeed, e.g. if it failed or timed out.
  *
  * @memberof module:Apify
  * @function
@@ -320,6 +325,13 @@ export const call = (actId, input, opts = {}) => {
     // GetAct() options.
     const { timeoutSecs, fetchOutput = true } = opts;
     let { waitSecs } = opts;
+    // TODO: This is bad, timeoutSecs should be used! Fix this and mark as breaking change!!!
+    //       The comments should be * @param {Number} [options.timeoutSecs]
+    //  *  Time limit for the finish of the actor run, in seconds.
+    //  *  If the limit is reached the resulting run will have the `TIMED-OUT` status.
+    //  *  If not provided, the run uses timeout specified in the default actor run configuration.
+    //       And there's no point to have waitSecs more than
+    //       30 secs anyway, since connection will break.
     // Backwards compatibility: waitSecs used to be called timeoutSecs
     if (typeof timeoutSecs === 'number' && typeof waitSecs !== 'number') waitSecs = timeoutSecs;
     checkParamOrThrow(waitSecs, 'waitSecs', 'Maybe Number');
@@ -353,10 +365,9 @@ export const call = (actId, input, opts = {}) => {
                 // It might take some time for database replicas to get up-to-date,
                 // so getRun() might return null. Wait a little bit and try it again.
                 if (!updatedRun) {
-                    return new Promise(resolve => setTimeout(resolve, 250))
-                        .then(() => {
-                            return waitForRunToFinish(run);
-                        });
+                    return Promise.delay(250).then(() => {
+                        return waitForRunToFinish(run);
+                    });
                 }
 
                 if (!_.contains(ACT_TASK_TERMINAL_STATUSES, updatedRun.status)) return waitForRunToFinish(updatedRun);

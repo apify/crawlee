@@ -4,6 +4,8 @@ import Promise from 'bluebird';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { launchPuppeteer } from './puppeteer';
 
+/* global process */
+
 const PROCESS_KILL_TIMEOUT_MILLIS = 5000;
 
 const DEFAULT_OPTIONS = {
@@ -144,7 +146,7 @@ export default class PuppeteerPool {
                     if (!instance.killed) log.error('PuppeteerPool: Puppeteer sent "disconnect" event. Crashed???', { id });
                     this._retireInstance(instance);
                 });
-                // This one is done manually in Puppeteerpool.newPage() to happen immediately.
+                // This one is done manually in Puppeteerpool.newPage() so that it happens immediately.
                 // browser.on('targetcreated', () => instance.activePages++);
                 browser.on('targetdestroyed', () => {
                     instance.activePages--;
@@ -279,7 +281,7 @@ export default class PuppeteerPool {
         return instance.browserPromise
             .then(browser => browser.newPage())
             .then((page) => {
-                page.on('error', (error) => {
+                page.once('error', (error) => {
                     log.exception(error, 'PuppeteerPool: page crashed');
                     // Ignore errors from Page.close()
                     page.close();
@@ -300,6 +302,7 @@ export default class PuppeteerPool {
 
     /**
      * Closes all the browsers.
+     * @return {Promise}
      */
     destroy() {
         clearInterval(this.instanceKillerInterval);
@@ -327,6 +330,7 @@ export default class PuppeteerPool {
     /**
      * Finds a PuppeteerInstance given a Puppeteer Browser running in the instance.
      * @param {Puppeteer.Browser} browser
+     * @return {Promise}
      * @ignore
      */
     _findInstanceByBrowser(browser) {
@@ -349,6 +353,7 @@ export default class PuppeteerPool {
      * to process open pages so that they may gracefully finish. This is unlike browser.close()
      * which will forcibly terminate the browser and all open pages will be closed.
      * @param {Puppeteer.Browser} browser
+     * @return {Promise}
      */
     retire(browser) {
         return this._findInstanceByBrowser(browser)

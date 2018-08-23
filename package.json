@@ -1,7 +1,10 @@
 {
   "name": "apify",
-  "version": "0.5.50",
+  "version": "0.6.2",
   "description": "Web scraping and automation SDK",
+  "engines": {
+    "node": ">=8.0.0"
+  },
   "main": "build/index.js",
   "keywords": [
     "apify",
@@ -46,18 +49,17 @@
   },
   "dependencies": {
     "apify-client": "^0.2.9",
-    "apify-shared": "0.0.47",
+    "apify-shared": "0.0.50",
     "bluebird": "^3.5.0",
     "content-type": "^1.0.3",
-    "fs-extra": "^5.0.0",
+    "fs-extra": "^7.0.0",
     "jquery": "^3.3.1",
     "mime": "^2.3.1",
-    "pidusage": "=2.0.9",
-    "proxy-chain": "^0.1.26",
-    "ps-tree": "^1.1.0",
+    "proxy-chain": "^0.2.4",
+    "@apify/ps-tree": "^1.1.1",
     "request-promise": "^4.2.2",
     "underscore": "^1.9.0",
-    "ws": "^5.1.0",
+    "ws": "^6.0.0",
     "xregexp": "^4.2.0"
   },
   "devDependencies": {
@@ -90,7 +92,8 @@
     "why-is-node-running": "^2.0.2"
   },
   "optionalDependencies": {
-    "puppeteer": "^1.6.0",
-    "selenium-webdriver": "^3.6.0"
+    "puppeteer": "^1.7.0",
+    "selenium-webdriver": "^3.6.0",
+    "cheerio": "^1.0.0-rc.2"
   }
 }

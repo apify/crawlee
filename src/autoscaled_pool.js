@@ -6,7 +6,8 @@ import { getMemoryInfo, isPromise, avg, isAtHome } from './utils';
 import events from './events';
 import { ACTOR_EVENT_NAMES } from './constants';
 
-const AUTOSCALE_INTERVAL_MILLIS = 200; // This is low to have at least.
+// NOTE: If this is too low, getMemoryInfo() has so much overheads that it chokes the system
+const AUTOSCALE_INTERVAL_MILLIS = 1000;
 const MIN_FREE_MEMORY_RATIO = 0.1; // Minimum amount of memory that we keep free.
 const DEFAULT_OPTIONS = {
     maxConcurrency: 1000,
@@ -19,9 +20,9 @@ const DEFAULT_OPTIONS = {
 };
 
 // These constants defines that in Nth execution of autoscaleInterval we do:
-export const SCALE_UP_INTERVAL = 50;
+export const SCALE_UP_INTERVAL = 10;
 export const SCALE_UP_MAX_STEP = 10;
-export const SCALE_DOWN_INTERVAL = 5;
+export const SCALE_DOWN_INTERVAL = 1;
 
 /**
  * Helper function that coverts bytes into human readable MBs.
@@ -171,7 +172,10 @@ export default class AutoscaledPool {
         this.reject = null;
 
         // Connect to actor events for CPU info.
-        // TODO: This doesn't work on local machine!
+        // TODO: This doesn't work on local machine! use blocked() both locally and on server!!!!
+        // CPU is overloaded if either blocked() or the CPU_INFO event says so
+        // the CPU status sampling should be in regular intervals (e.g. once per second),
+        // otherwise the auto-scaled pool cannot know what the data means
         this.cpuInfoListener = (data) => {
             this.isCpuOverloadedSnapshots = this.isCpuOverloadedSnapshots
                 .concat(data.isCpuOverloaded)
@@ -218,6 +222,16 @@ export default class AutoscaledPool {
 
                 throw err;
             });
+    }
+
+    /**
+     * Stops the auto-scaled pool, discards all currently running tasks and destroys it.
+     *
+     * @return {Promise}
+     */
+    async abort() {
+        if (this.resolve) this.resolve();
+        // _destroy gets called 10 lines above so no need to do it here
     }
 
     /**

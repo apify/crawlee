@@ -14,15 +14,15 @@ const DESTROY_FADEOUT_MILLIS = 2000;
  * @ignore
  */
 const createPage = (id, url) => `
-  <tr id="${id}">
+  <tr id="${id}" class="page">
     <td class="status"></td>
-    <td class="url"><a class="url" href="${url}" target="m_blank">${url}</a></td>
+    <td class="url">${url}</td>
     <td class="more"><i class="material-icons">search</i></td>
   </tr>
 `;
 
 /**
- * Turns a Map of Pages into an Array of page divs.
+ * Turns a Map of Pages into an Array of page rows.
  *  = All Pages of a single PuppeteerLiveViewBrowser.
  *
  * Used both client and server-side.
@@ -32,18 +32,18 @@ const createPage = (id, url) => `
  * @ignore
  */
 const createPageCollection = (pages) => {
-    const pageDivs = [];
+    const pageRows = [];
     pages.forEach((page, id) => {
-        pageDivs.push(createPage(id, page.url()));
+        pageRows.push(createPage(id, page.url()));
     });
     return `
-      <table class="page-collection">${pageDivs.join('\n')}
+      <table class="page-collection">
         <thead>
           <th class="status">Status</th>
           <th class="url">URL</th>
           <th class="more"></th>
         </thead>
-        <tbody></tbody>
+        <tbody>${pageRows.join('\n')}</tbody>
       </table>
   `;
 };
@@ -184,6 +184,8 @@ const wsHandler = (socket) => {
                 page.onclick = () => sendCommand('renderPage', {
                     id: page.getAttribute('id'),
                 });
+                const status = page.querySelector('td.status');
+                if (status) status.innerHTML = '<i class="material-icons rotating">cached</i><span>Running</span>';
             });
         },
         // Renders the Page Detail - where screenshots and HTML are shown
@@ -245,8 +247,8 @@ const wsHandler = (socket) => {
             pages.insertAdjacentHTML('afterbegin', createPage(id, url));
             const page = document.getElementById(id);
 
-            const button = page.querySelector('td.more i');
-            button.onclick = () => sendCommand('renderPage', {
+            // const button = page.querySelector('td.more i');
+            page.onclick = () => sendCommand('renderPage', {
                 id: page.getAttribute('id'),
             });
 
@@ -258,7 +260,7 @@ const wsHandler = (socket) => {
             const page = document.getElementById(id);
 
             const spanUrl = page.querySelector('td.url');
-            if (spanUrl) spanUrl.innerHTML = `<a class="url" href="${url}" target="m_blank">${url}</a>`;
+            if (spanUrl) spanUrl.innerHTML = url;
 
             const status = page.querySelector('td.status');
             if (status) status.innerHTML = '<i class="material-icons rotating">cached</i><span>Running</span>';
@@ -344,9 +346,13 @@ export const layout = (url) => {
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <style>
+    .page {
+        background: #fff;
+        transition: background 0.3s ease-in;
+    }
     .page:hover {
       cursor: pointer;
-      background: lightgreen;
+      background: #f0f0f2;
     }
     .destroyed {
       color: #660000;

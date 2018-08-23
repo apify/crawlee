@@ -1,4 +1,3 @@
-import Promise from 'bluebird';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import _ from 'underscore';
 import log from 'apify-shared/log';
@@ -6,13 +5,11 @@ import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import AutoscaledPool from './autoscaled_pool';
 import RequestList from './request_list';
 import { RequestQueue, RequestQueueLocal } from './request_queue';
-import { isPromise } from './utils';
 
 const DEFAULT_OPTIONS = {
     maxRequestRetries: 3,
     handleFailedRequestFunction: ({ request }) => {
         const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
-
         log.error('BasicCrawler: Request failed and reached maximum retries', details);
     },
 };
@@ -68,7 +65,10 @@ const DEFAULT_OPTIONS = {
  *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
  * @param {Function} [options.handleRequestFunction]
  *   Function that processes a single `Request` object. It must return a promise.
- * @param {Function} [options.handleFailedRequestFunction=({ request, error }) => log.error('Request failed', _.pick(request, 'url', 'uniqueKey'))`]
+ * @param {Function} [options.handleFailedRequestFunction=({ request }) => {
+ *      const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
+ *      log.error('BasicCrawler: Request failed and reached maximum retries', details);
+ *  }]
  *   Function that handles requests that failed more then `option.maxRequestRetries` times.
  * @param {Number} [options.maxRequestRetries=3]
  *   How many times the request is retried if `handleRequestFunction` failed.
@@ -139,26 +139,30 @@ export default class BasicCrawler {
 
         const isMaxPagesExceeded = () => maxRequestsPerCrawl && maxRequestsPerCrawl <= this.handledRequestsCount;
 
-        this.autoscaledPool = new AutoscaledPool({
+        this.autoscaledPoolOptions = {
             maxMemoryMbytes,
             maxConcurrency,
             minConcurrency,
             minFreeMemoryRatio,
-            runTaskFunction: () => this._runTaskFunction(),
-            isTaskReadyFunction: () => {
-                if (isMaxPagesExceeded()) return Promise.resolve(false);
+            runTaskFunction: async () => {
+                if (!this.isRunning) return null;
+
+                return this._runTaskFunction();
+            },
+            isTaskReadyFunction: async () => {
+                if (isMaxPagesExceeded() || !this.isRunning) return false;
 
                 return this._isTaskReadyFunction();
             },
-            isFinishedFunction: () => {
-                if (isMaxPagesExceeded()) return Promise.resolve(true);
+            isFinishedFunction: async () => {
+                if (isMaxPagesExceeded() || !this.isRunning) return true;
 
                 return isFinishedFunction
                     ? isFinishedFunction()
                     : this._defaultIsFinishedFunction();
             },
             ignoreMainProcess,
-        });
+        };
     }
 
     /**
@@ -166,8 +170,31 @@ export default class BasicCrawler {
      *
      * @return {Promise}
      */
-    run() {
-        return this.autoscaledPool.run();
+    async run() {
+        if (this.isRunning) return this.isRunningPromise;
+
+        this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions);
+        this.isRunning = true;
+        this.rejectOnStopPromise = new Promise((r, reject) => { this.rejectOnStop = reject; });
+        this.isRunningPromise = this.autoscaledPool.run();
+        try {
+            await this.isRunningPromise;
+            this.isRunning = false;
+        } catch (err) {
+            this.isRunning = false; // Doing this before rejecting to make sure it's set when error handlers fire.
+            this.rejectOnStop(err);
+        }
+    }
+
+    /**
+     * Stops the crawler by preventing additional requests and terminating the running ones.
+     *
+     * @return {Promise}
+     */
+    async abort() {
+        this.isRunning = false;
+        await this.autoscaledPool.abort();
+        this.rejectOnStop(new Error('BasicCrawler: .stop() function has been called. Stopping the crawler.'));
     }
 
     /**
@@ -176,35 +203,26 @@ export default class BasicCrawler {
      *
      * @ignore
      */
-    _fetchNextRequest() {
+    async _fetchNextRequest() {
         if (!this.requestList) return this.requestQueue.fetchNextRequest();
+        const request = await this.requestList.fetchNextRequest();
+        if (!this.requestQueue) return request;
+        if (!request) return this.requestQueue.fetchNextRequest();
 
-        return this.requestList
-            .fetchNextRequest()
-            .then((request) => {
-                if (!this.requestQueue) return request;
-                if (!request) return this.requestQueue.fetchNextRequest();
-
-                return this.requestQueue
-                    .addRequest(request, { forefront: true })
-                    .then(() => {
-                        return Promise
-                            .all([
-                                this.requestQueue.fetchNextRequest(),
-                                this.requestList.markRequestHandled(request),
-                            ])
-                            .then(results => results[0]);
-                    }, (err) => {
-                        // If requestQueue.addRequest() fails here then we must reclaim it back to
-                        // the RequestList because probably it's not yet in the queue!
-                        log.exception(err, 'RequestQueue.addRequest() failed, reclaiming request back to queue', { request });
-
-                        // Return null so that we finish immediately.
-                        return this.requestList
-                            .reclaimRequest(request)
-                            .then(() => null);
-                    });
-            });
+        try {
+            await this.requestQueue.addRequest(request, { forefront: true });
+        } catch (err) {
+            // If requestQueue.addRequest() fails here then we must reclaim it back to
+            // the RequestList because probably it's not yet in the queue!
+            log.exception(err, 'RequestQueue.addRequest() failed, reclaiming request back to the list', { request });
+            await this.requestList.reclaimRequest(request);
+            return null;
+        }
+        const [nextRequest] = await Promise.all([
+            this.requestQueue.fetchNextRequest(),
+            this.requestList.markRequestHandled(request),
+        ]);
+        return nextRequest;
     }
 
     /**
@@ -213,80 +231,35 @@ export default class BasicCrawler {
      *
      * @ignore
      */
-    _runTaskFunction() {
+    async _runTaskFunction() {
         const source = this.requestQueue || this.requestList;
 
-        return this._fetchNextRequest()
-            .then((request) => {
-                if (!request) return;
+        const request = await this._fetchNextRequest();
+        if (!request) return;
 
-                let willBeRetried = false;
-                const handlePromise = this.handleRequestFunction({ request });
-                if (!isPromise(handlePromise)) throw new Error('User provided handleRequestFunction must return a Promise.');
-
-                // NOTE: handlePromise might not be bluebird promise
-                return Promise.resolve()
-                    .then(() => handlePromise)
-                    .then(() => source.markRequestHandled(request))
-                    .catch((error) => {
-                        if (request.ignoreErrors) {
-                            log.exception(error, 'BasicCrawler: handleRequestFunction failed, request.ignoreErrors=true so marking the request as handled', { // eslint-disable-line max-len
-                                url: request.url,
-                                retryCount: request.retryCount,
-                            });
-
-                            return source.markRequestHandled(request);
-                        }
-
-                        request.pushErrorMessage(error);
-
-                        // Retry request.
-                        if (request.retryCount < this.maxRequestRetries) {
-                            request.retryCount++;
-                            log.exception(error, 'BasicCrawler: handleRequestFunction failed, reclaiming failed request back to the list or queue', {
-                                url: request.url,
-                                retryCount: request.retryCount,
-                            });
-                            willBeRetried = true;
-
-                            return source.reclaimRequest(request);
-                        }
-
-                        log.exception(error, 'BasicCrawler: handleRequestFunction failed, marking failed request as handled', {
-                            url: request.url,
-                            retryCount: request.retryCount,
-                        });
-
-                        // Mark as failed.
-                        return source
-                            .markRequestHandled(request)
-                            .then(() => this.handleFailedRequestFunction({ request, error }));
-                    })
-                    .finally(() => {
-                        if (!willBeRetried) this.handledRequestsCount++;
-                    });
-            });
+        try {
+            // rejectOnStopPromise rejects when .stop() is called or AutoscaledPool throws.
+            // All running tasks are therefore terminated with an error to be reclaimed and retried.
+            await Promise.race([this.handleRequestFunction({ request }), this.rejectOnStopPromise]);
+            source.markRequestHandled(request);
+            this.handledRequestsCount++;
+        } catch (err) {
+            await this._requestFunctionErrorHandler(err, request, source);
+        }
     }
 
     /**
-     * Returns true if some RequestList and RequestQueue have request ready for processing.
+     * Returns true if either RequestList or RequestQueue have a request ready for processing.
      *
      * @ignore
      */
-    _isTaskReadyFunction() {
-        return Promise
-            .resolve()
-            .then(() => {
-                if (!this.requestList) return true;
-
-                return this.requestList.isEmpty();
-            })
-            .then((isRequestListEmpty) => {
-                if (!isRequestListEmpty || !this.requestQueue) return isRequestListEmpty;
-
-                return this.requestQueue.isEmpty();
-            })
-            .then(areBothEmpty => !areBothEmpty);
+    async _isTaskReadyFunction() {
+        // First check RequestList, since it's only in memory.
+        const isRequestListEmpty = this.requestList ? (await this.requestList.isEmpty()) : true;
+        // If RequestList is not empty, task is ready, no reason to check RequestQueue.
+        if (!isRequestListEmpty) return true;
+        // If RequestQueue is not empty, task is ready, return true, otherwise false.
+        return this.requestQueue ? !(await this.requestQueue.isEmpty()) : false;
     }
 
     /**
@@ -294,14 +267,63 @@ export default class BasicCrawler {
      *
      * @ignore
      */
-    _defaultIsFinishedFunction() {
-        const promises = [];
+    async _defaultIsFinishedFunction() {
+        const [
+            isRequestListFinished,
+            isRequestQueueFinished,
+        ] = await Promise.all([
+            this.requestList ? this.requestList.isFinished() : true,
+            this.requestQueue ? this.requestQueue.isFinished() : true,
+        ]);
+        // If both are finished, return true, otherwise return false.
+        return isRequestListFinished && isRequestQueueFinished;
+    }
 
-        if (this.requestList) promises.push(this.requestList.isFinished());
-        if (this.requestQueue) promises.push(this.requestQueue.isFinished());
+    /**
+     * Handles errors thrown by user provided handleRequestFunction()
+     * @param {Error} error
+     * @param {Request} request
+     * @param {RequestList|RequestQueue} source
+     * @return {Boolean} willBeRetried
+     * @ingore
+     */
+    async _requestFunctionErrorHandler(error, request, source) {
+        // Handles case where the crawler was deliberately stopped.
+        // All running requests are reclaimed and will be retried.
+        if (!this.isRunning) return source.reclaimRequest(request);
 
-        return Promise
-            .all(promises)
-            .then(results => _.all(results));
+        // If we use the ignore errors option, we mark request as handled and do not retry.
+        if (request.ignoreErrors) {
+            log.exception(error, 'BasicCrawler: handleRequestFunction failed, request.ignoreErrors=true so marking the request as handled', { // eslint-disable-line max-len
+                url: request.url,
+                retryCount: request.retryCount,
+            });
+            this.handledRequestsCount++;
+            return source.markRequestHandled(request);
+        }
+
+        // If we got here, it means we actually want to handle the error.
+        request.pushErrorMessage(error);
+
+        // Reclaim and retry request if retryCount is not exceeded.
+        if (request.retryCount < this.maxRequestRetries) {
+            request.retryCount++;
+            log.exception(error, 'BasicCrawler: handleRequestFunction failed, reclaiming failed request back to the list or queue', { // eslint-disable-line max-len
+                url: request.url,
+                retryCount: request.retryCount,
+            });
+            return source.reclaimRequest(request);
+        }
+
+        // This is the final fallback. If we get here, the request failed more than retryCount times and will not be retried anymore.
+        log.exception(error, 'BasicCrawler: handleRequestFunction failed, marking failed request as handled', {
+            url: request.url,
+            retryCount: request.retryCount,
+        });
+
+        // Mark the request as failed and do not retry.
+        this.handledRequestsCount++;
+        await source.markRequestHandled(request);
+        return this.handleFailedRequestFunction({ request, error });
     }
 }

@@ -18,6 +18,7 @@ const SAFETY_BUFFER_PERCENT = 0.01 / 100; // 0.01%
 const writeFilePromised = Promise.promisify(fs.writeFile);
 const readFilePromised = Promise.promisify(fs.readFile);
 const readdirPromised = Promise.promisify(fs.readdir);
+const statPromised = Promise.promisify(fs.stat);
 const emptyDirPromised = Promise.promisify(fsExtra.emptyDir);
 
 const getLocaleFilename = index => `${leftpad(index, LOCAL_FILENAME_DIGITS, 0)}.json`;
@@ -203,6 +204,30 @@ export class Dataset {
     }
 
     /**
+     * Returns an object containing general information about the dataset.
+     *
+     * @example
+     * {
+     *   "id": "WkzbQMuFYuamGv3YF",
+     *   "name": "d7b9MDYsbtX5L7XAj",
+     *   "userId": "wRsJZtadYvn4mBZmm",
+     *   "createdAt": "2015-12-12T07:34:14.202Z",
+     *   "modifiedAt": "2015-12-13T08:36:13.202Z",
+     *   "accessedAt": "2015-12-14T08:36:13.202Z",
+     *   "itemsCount": 0
+     * }
+     *
+     * @param opts
+     * @returns {Promise}
+     */
+    getInfo(opts = {}) {
+        const { datasetId } = this;
+        const params = Object.assign({ datasetId }, opts);
+
+        return datasets.getDataset(params);
+    }
+
+    /**
      * Iterates over the all dataset items, yielding each in turn to an iteratee function.
      * Each invocation of iteratee is called with three arguments: (element, index).
      *
@@ -351,11 +376,16 @@ export class DatasetLocal {
             .then((files) => {
                 if (files.length) {
                     const lastFileNum = files.pop().split('.')[0];
-
                     this.counter = parseInt(lastFileNum, 10);
                 } else {
                     this.counter = 0;
                 }
+                return statPromised(this.localEmulationPath);
+            })
+            .then((stats) => {
+                this.createdAt = stats.birthtime;
+                this.modifiedAt = stats.mtime;
+                this.accessedAt = stats.atime;
             });
     }
 
@@ -375,7 +405,7 @@ export class DatasetLocal {
 
                     return writeFilePromised(filePath, itemStr);
                 });
-
+                this._updateMetadata(true);
                 return Promise.all(promises);
             });
     }
@@ -395,12 +425,30 @@ export class DatasetLocal {
                 return Promise.mapSeries(indexes, index => this._readAndParseFile(index));
             })
             .then((items) => {
+                this._updateMetadata();
                 return {
                     items,
                     total: this.counter,
                     offset: opts.offset,
                     count: items.length,
                     limit: opts.limit,
+                };
+            });
+    }
+
+    getInfo() {
+        return this.initializationPromise
+            .then(() => {
+                const id = this.datasetId;
+                const name = id === ENV_VARS.DEFAULT_DATASET_ID ? null : id;
+                return {
+                    id,
+                    name,
+                    userId: process.env[ENV_VARS.USER_ID] || null,
+                    createdAt: this.createdAt,
+                    modifiedAt: this.modifiedAt,
+                    accessedAt: this.accessedAt,
+                    itemsCount: this.counter,
                 };
             });
     }
@@ -451,6 +499,7 @@ export class DatasetLocal {
         return this.initializationPromise
             .then(() => emptyDirPromised(this.localEmulationPath))
             .then(() => {
+                this._updateMetadata(true);
                 datasetsCache.remove(this.datasetId);
             });
     }
@@ -474,7 +523,16 @@ export class DatasetLocal {
         const filePath = path.join(this.localEmulationPath, getLocaleFilename(index));
 
         return readFilePromised(filePath)
-            .then(json => JSON.parse(json));
+            .then((json) => {
+                this._updateMetadata();
+                return JSON.parse(json);
+            });
+    }
+
+    _updateMetadata(isModified) {
+        const date = new Date();
+        this.accessedAt = date;
+        if (isModified) this.modifiedAt = date;
     }
 }
 

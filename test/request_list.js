@@ -514,4 +514,40 @@ describe('Apify.RequestList', () => {
 
         expect(requestList.length()).to.be.eql(4);
     });
+
+    it('should correctly keep duplicate URLs while keepDuplicateUrls is set', async () => {
+        const sources = [
+            { url: 'https://www.example.com' },
+            { url: 'https://www.example.com' },
+            { url: 'https://www.example.com' },
+            { url: 'https://www.ex2mple.com' },
+        ];
+
+        let requestList = new Apify.RequestList({
+            sources,
+            keepDuplicateUrls: true,
+        });
+
+        await requestList.initialize();
+        expect(requestList.length()).to.be.eql(4);
+
+        const log = sinon.stub(console, 'log');
+
+        requestList = new Apify.RequestList({
+            sources: sources.concat([
+                { url: 'https://www.example.com', uniqueKey: '123' },
+                { url: 'https://www.example.com', uniqueKey: '123' },
+                { url: 'https://www.example.com', uniqueKey: '456' },
+                { url: 'https://www.ex2mple.com', uniqueKey: '456' },
+            ]),
+            keepDuplicateUrls: true,
+        });
+
+        await requestList.initialize();
+        expect(requestList.length()).to.be.eql(6);
+        expect(log.called).to.be.eql(true);
+        expect(log.getCall(0).args[0]).to.include('Check your sources\' unique keys.');
+
+        log.restore();
+    });
 });
