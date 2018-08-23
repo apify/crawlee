@@ -4,6 +4,7 @@ import 'babel-polyfill';
 import _ from 'underscore';
 import sinon from 'sinon';
 import { delayPromise } from 'apify-shared/utilities';
+import log from 'apify-shared/log';
 import * as Apify from '../build/index';
 import { ACTOR_EVENT_NAMES, ENV_VARS } from '../build/constants';
 import { SCALE_UP_MAX_STEP, SCALE_UP_INTERVAL, SCALE_DOWN_INTERVAL } from '../build/autoscaled_pool';
@@ -15,12 +16,16 @@ chai.use(chaiAsPromised);
 const toBytes = x => x * 1024 * 1024;
 
 describe('AutoscaledPool', () => {
+    let logLevel;
     // This is here to enable autoscaling that is temporarily disabled when running locally.
     before(() => {
+        logLevel = log.getLevel();
+        log.setLevel(log.LEVELS.ERROR);
         process.env[ENV_VARS.IS_AT_HOME] = 1;
     });
 
     after(() => {
+        log.setLevel(logLevel);
         delete process.env[ENV_VARS.IS_AT_HOME];
     });
 

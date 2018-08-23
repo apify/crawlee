@@ -3,6 +3,7 @@ import chaiAsPromised from 'chai-as-promised';
 import _ from 'underscore';
 import 'babel-polyfill';
 import sinon from 'sinon';
+import log from 'apify-shared/log';
 import { delayPromise } from 'apify-shared/utilities';
 import * as Apify from '../build/index';
 import { RequestQueue, RequestQueueLocal } from '../build/request_queue';
@@ -11,6 +12,17 @@ import { LOCAL_EMULATION_DIR } from './_helper';
 chai.use(chaiAsPromised);
 
 describe('BasicCrawler', () => {
+    let logLevel;
+
+    before(() => {
+        logLevel = log.getLevel();
+        log.setLevel(log.LEVELS.OFF);
+    });
+
+    after(() => {
+        log.setLevel(logLevel);
+    });
+
     it('should run in parallel thru all the requests', async () => {
         const startedAt = Date.now();
         const sources = _.range(0, 500).map(index => ({ url: `https://example.com/${index}` }));
@@ -34,6 +46,46 @@ describe('BasicCrawler', () => {
 
         expect(processed).to.be.eql(sources);
         expect(Date.now() - startedAt).to.be.within(200, 400);
+        expect(await requestList.isFinished()).to.be.eql(true);
+        expect(await requestList.isEmpty()).to.be.eql(true);
+    });
+
+    it('should abort and resume', async () => {
+        const sources = _.range(500).map(index => ({ url: `https://example.com/${index + 1}` }));
+
+        let basicCrawler;
+        let isStopped;
+        const processed = [];
+        const requestList = new Apify.RequestList({ sources });
+        const handleRequestFunction = async ({ request }) => {
+            if (request.url.endsWith('200') && !isStopped) {
+                await basicCrawler.abort();
+                isStopped = true;
+            } else {
+                await delayPromise(10);
+                processed.push(_.pick(request, 'url'));
+            }
+        };
+
+        basicCrawler = new Apify.BasicCrawler({
+            requestList,
+            minConcurrency: 25,
+            maxConcurrency: 25,
+            handleRequestFunction,
+        });
+
+        await requestList.initialize();
+
+        // The crawler will stop after 200 requests
+        await basicCrawler.run();
+
+        expect(processed.length).to.be.within(175, 200);
+        expect(await requestList.isFinished()).to.be.eql(false);
+        expect(await requestList.isEmpty()).to.be.eql(false);
+
+        await basicCrawler.run();
+        expect(processed.length).to.be.within(500, 525);
+        expect(new Set(processed.map(p => p.url))).to.be.eql(new Set(sources.map(s => s.url)));
         expect(await requestList.isFinished()).to.be.eql(true);
         expect(await requestList.isEmpty()).to.be.eql(true);
     });
@@ -285,22 +337,13 @@ describe('BasicCrawler', () => {
         mock.expects('fetchNextRequest')
             .once()
             .returns(Promise.resolve(request1));
-        mock.expects('reclaimRequest')
-            .once()
-            .withArgs(request1)
-            .returns(Promise.resolve());
         mock.expects('markRequestHandled')
             .once()
             .withArgs(request1)
             .returns(Promise.resolve());
 
-
-        mock.expects('fetchNextRequest')
-            .once()
-            .returns(Promise.resolve(null));
-
         mock.expects('isEmpty')
-            .exactly(4)
+            .exactly(3)
             .returns(Promise.resolve(false));
         mock.expects('isEmpty')
             .once()
@@ -325,6 +368,8 @@ describe('BasicCrawler', () => {
 
         expect(await requestList.isFinished()).to.be.eql(true);
         expect(await requestList.isEmpty()).to.be.eql(true);
+
+        mock.verify();
     });
 
     it('should say that task is not ready requestList is not set and requestQueue is empty', async () => {
@@ -358,6 +403,9 @@ describe('BasicCrawler', () => {
             },
         });
 
+        // Speed up the test
+        basicCrawler.autoscaledPoolOptions.maybeRunIntervalMillis = 50;
+
         const request0 = new Apify.Request({ url: 'http://example.com/0' });
         const request1 = new Apify.Request({ url: 'http://example.com/1' });
 
@@ -368,13 +416,15 @@ describe('BasicCrawler', () => {
         requestQueue.fetchNextRequest = () => Promise.resolve(queue.pop());
         requestQueue.isEmpty = () => Promise.resolve(!queue.length);
 
-        setTimeout(() => queue.push(request0), 2000);
-        setTimeout(() => queue.push(request1), 2500);
-        setTimeout(() => { isFinished = true; }, 3500);
+        setTimeout(() => queue.push(request0), 10);
+        setTimeout(() => queue.push(request1), 100);
+        setTimeout(() => { isFinished = true; }, 150);
 
         await basicCrawler.run();
 
         expect(processed).to.be.eql([request0, request1]);
+
+        mock.verify();
     });
 
     it('should support maxRequestsPerCrawl parameter', async () => {

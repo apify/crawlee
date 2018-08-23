@@ -1,9 +1,12 @@
 xxxxxxxxxxxxxxxxxxx
 ===================
 - Added `getInfo()` method to Dataset to get meta-information about a dataset.
-- Added CheerioCrawler, a specialized class for crawling the web using `cheerio`
-- Added `keepDuplicateUrls` option to RequestList to allow duplicate URLs
-- Added `log` to `Apify.utils` to improve logging experience
+- Added CheerioCrawler, a specialized class for crawling the web using `cheerio`.
+- Added `keepDuplicateUrls` option to RequestList to allow duplicate URLs.
+- Added `.abort()` method to all Crawler classes to enable stopping the crawl programmatically.
+- Deprecated `pageOpsTimeoutMillis` option. Use `handlePageTimeoutSecs`.
+- Bluebird promises are being phased out of `apify` in favor of `async-await`.
+- Added `log` to `Apify.utils` to improve logging experience.
 
 0.6.1 / 2018-08-17
 ===================
@@ -41,7 +44,7 @@ xxxxxxxxxxxxxxxxxxx
 - Bug where failed `page.close()` in `PuppeteerPool` was causing request to be retried is fixed.
 - Added `memory` parameter to `Apify.call()`.
 - Added `PuppeteerPool.retire(browser)` method allowing retire a browser before it reaches his limits. This is
-  usefull when its IP address got blocked by anti-scraping protection.
+  useful when its IP address got blocked by anti-scraping protection.
 - Added option `liveView: true` to `Apify.launchPuppeteer()` that will start a live view server proving web page
   with overview of all running Puppeteer instances and their screenshots.
 - `PuppeteerPool` now kills opened Chrome instances in `SIGINT` signal.

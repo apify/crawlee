@@ -159,8 +159,14 @@ export default class CheerioCrawler {
 
         this.ignoreSslErrors = ignoreSslErrors;
 
+        this.requestFunction = async ({ request }) => {
+            if (!this.isRunning) throw new Error('CheerioCrawler is stopped.');
+
+            return requestFunction
+                ? requestFunction({ request })
+                : this._defaultRequestFunction({ request });
+        };
         this.handlePageFunction = handlePageFunction;
-        this.requestFunction = requestFunction || this._defaultRequestFunction;
         this.handlePageTimeoutSecs = handlePageTimeoutSecs;
 
         this.basicCrawler = new BasicCrawler({
@@ -188,7 +194,29 @@ export default class CheerioCrawler {
      * @return {Promise}
      */
     async run() {
-        return this.basicCrawler.run();
+        if (this.isRunning) return this.isRunningPromise;
+
+        this.isRunning = true;
+        this.rejectOnStopPromise = new Promise((r, reject) => { this.rejectOnStop = reject; });
+        try {
+            this.isRunningPromise = this.basicCrawler.run();
+            await this.isRunningPromise;
+            this.isRunning = false;
+        } catch (err) {
+            this.isRunning = false; // Doing this before rejecting to make sure it's set when error handlers fire.
+            this.rejectOnStop(err);
+        }
+    }
+
+    /**
+     * Stops the crawler by preventing crawls of additional pages and terminating the running ones.
+     *
+     * @return {Promise}
+     */
+    async abort() {
+        this.isRunning = false;
+        await this.basicCrawler.abort();
+        this.rejectOnStop(new Error('CheerioCrawler: .stop() function has been called. Stopping the crawler.'));
     }
 
     /**
@@ -197,12 +225,18 @@ export default class CheerioCrawler {
      * @ignore
      */
     async _handleRequestFunction({ request }) {
+        if (!this.isRunning) throw new Error('CheerioCrawler is stopped.');
+
         const html = await this.requestFunction({ request });
         const $ = cheerio.load(html);
-        await Promise.race([
+        const pageHandledOrTimedOutPromise = Promise.race([
             this.handlePageFunction({ $, html, request }),
             createTimeoutPromise(this.handlePageTimeoutSecs * 1000, 'CheerioCrawler: handlePageFunction timed out.'),
         ]);
+
+        // rejectOnStopPromise rejects when .stop() is called or BasicCrawler throws.
+        // All running pages are therefore terminated with an error to be reclaimed and retried.
+        return Promise.race([pageHandledOrTimedOutPromise, this.rejectOnStopPromise]);
     }
 
     /**
@@ -210,11 +244,16 @@ export default class CheerioCrawler {
      * @ignore
      */
     async _defaultRequestFunction({ request }) {
-        return rp({
-            url: request.url,
-            method: request.method,
-            headers: request.headers,
-            strictSSL: !this.ignoreSslErrors,
-        });
+        if (!this.isRunning) throw new Error('CheerioCrawler is stopped.');
+
+        return Promise.race([
+            rp({
+                url: request.url,
+                method: request.method,
+                headers: request.headers,
+                strictSSL: !this.ignoreSslErrors,
+            }),
+            this.rejectOnStopPromise,
+        ]);
     }
 }

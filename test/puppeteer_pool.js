@@ -1,6 +1,7 @@
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import _ from 'underscore';
+import log from 'apify-shared/log';
 import 'babel-polyfill';
 import { ENV_VARS } from '../build/constants';
 import * as Apify from '../build/index';
@@ -11,13 +12,17 @@ const shortSleep = (millis = 25) => new Promise(resolve => setTimeout(resolve, m
 
 describe('PuppeteerPool', () => {
     let prevEnvHeadless;
+    let logLevel;
 
     before(() => {
+        logLevel = log.getLevel();
+        log.setLevel(log.LEVELS.ERROR);
         prevEnvHeadless = process.env[ENV_VARS.HEADLESS];
         process.env[ENV_VARS.HEADLESS] = '1';
     });
 
     after(() => {
+        log.setLevel(logLevel);
         process.env[ENV_VARS.HEADLESS] = prevEnvHeadless;
     });
 

@@ -1,11 +1,11 @@
 {
   "name": "apify",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "Web scraping and automation SDK",
-  "main": "build/index.js",
   "engines": {
     "node": ">=8.0.0"
   },
+  "main": "build/index.js",
   "keywords": [
     "apify",
     "headless",
@@ -49,7 +49,7 @@
   },
   "dependencies": {
     "apify-client": "^0.2.9",
-    "apify-shared": "0.0.48",
+    "apify-shared": "0.0.49",
     "bluebird": "^3.5.0",
     "content-type": "^1.0.3",
     "fs-extra": "^7.0.0",

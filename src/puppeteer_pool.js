@@ -302,6 +302,7 @@ export default class PuppeteerPool {
 
     /**
      * Closes all the browsers.
+     * @return {Promise}
      */
     destroy() {
         clearInterval(this.instanceKillerInterval);
@@ -329,6 +330,7 @@ export default class PuppeteerPool {
     /**
      * Finds a PuppeteerInstance given a Puppeteer Browser running in the instance.
      * @param {Puppeteer.Browser} browser
+     * @return {Promise}
      * @ignore
      */
     _findInstanceByBrowser(browser) {
@@ -351,6 +353,7 @@ export default class PuppeteerPool {
      * to process open pages so that they may gracefully finish. This is unlike browser.close()
      * which will forcibly terminate the browser and all open pages will be closed.
      * @param {Puppeteer.Browser} browser
+     * @return {Promise}
      */
     retire(browser) {
         return this._findInstanceByBrowser(browser)

@@ -225,6 +225,16 @@ export default class AutoscaledPool {
     }
 
     /**
+     * Stops the auto-scaled pool, discards all currently running tasks and destroys it.
+     *
+     * @return {Promise}
+     */
+    async abort() {
+        if (this.resolve) this.resolve();
+        // _destroy gets called 10 lines above so no need to do it here
+    }
+
+    /**
      * Gets called every AUTOSCALE_INTERVAL_MILLIS and saves number of free bytes in this.freeBytesSnapshots.
      *
      * Every:
