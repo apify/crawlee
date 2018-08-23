@@ -547,5 +547,7 @@ describe('Apify.RequestList', () => {
         expect(requestList.length()).to.be.eql(6);
         expect(log.called).to.be.eql(true);
         expect(log.getCall(0).args[0]).to.include('Check your sources\' unique keys.');
+
+        log.restore();
     });
 });
