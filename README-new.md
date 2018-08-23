@@ -88,14 +88,20 @@ The Apify SDK package provides the following tools:
 <ul>
   <li>
      <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#BasicCrawler">BasicCrawler</a>
-     - Enables crawling of large number of web pages
-     in raw HTML or using <a href="https://www.npmjs.com/package/cheerio" target="_blank">cheerio</a>
+     - Provides a simple framework for parallel crawling of web pages,
+     whose URLs are fed either from a static list or from a dynamic queue of URLs.
+     This class serves as a base for more complex crawlers (see below).
+  </li>
+  <li>
+     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#CheerioCrawler">CheerioCrawler</a>
+     - Enables parallel crawling of large number of web pages
+     using <a href="https://www.npmjs.com/package/cheerio" target="_blank">cheerio</a>
      HTML parser.
      This is the most efficient web crawling method, but it does not work on websites that require JavaScript.
   </li>
   <li>
      <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerCrawler">PuppeteerCrawler</a>
-     - Enables crawling of large number of web pages using headless Chrome browser
+     - Enables parallel crawling of large number of web pages using headless Chrome browser
      and <a href="https://github.com/GoogleChrome/puppeteer">Puppeteer</a>.
      The pool of Chrome processes is automatically scaled up and down based on available system resources.
     </li>
