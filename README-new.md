@@ -148,7 +148,7 @@ The Apify SDK package provides the following tools:
 
 ## Getting started
 
-The Apify SDK requires <a href="https://nodejs.org/en/" target="_blank">Node.js</a> 7 or later.
+The Apify SDK requires <a href="https://nodejs.org/en/" target="_blank">Node.js</a> 8 or later.
 
 ### Local standalone usage
 
@@ -247,8 +247,7 @@ apify create my-hello-world
 
 The CLI will prompt you to select a project template and then it creates a
 directory called `my-hello-world` with a Node.js project files.
-
-You can run the project using:
+You can run the project as follows:
 
 ```bash
 cd my-hello-world
@@ -278,7 +277,7 @@ For more information, view the [Apify CLI documentation](https://www.apify.com/d
 You can also develop your web scraping project
 directly in IDE on Apify platform. Go to [Actors](https://my.apify.com/actors)
 page in the app, click <b>Create new</b> and then go to
-<b>Source</b> tab where you can edit the code.
+<b>Source</b> tab and start writing your code. It's that simple.
 
 For more information, view the [Apify actors quick start guide](https://www.apify.com/docs/actor#quick-start).
 
@@ -289,11 +288,11 @@ TODO: This sections need to be finished
 
 All the following examples can be found in the [./examples] directory in the repository.
 
-### Load few pages using in raw HTML
+### Load few pages in raw HTML
 
 TODO: maybe use example from https://www.apify.com/docs/sdk/apify-runtime-js/latest#BasicCrawler, but make sure it's working
 
-### Crawl a large list of URLs using Cheerio
+### Crawl a large list of URLs with Cheerio
 
 Demonstrates how to create a crawler that will take
 a list of URLs from a CSV file and crawls the pages using
@@ -307,16 +306,16 @@ TODO
 Demonstrates how to recursively TODO
 
 
-### Saving page screenshots into key-value store
+### Save page screenshots into key-value store
 
 TODO
 
-### Launching Puppeteer with Apify Proxy
+### Run Puppeteer with Apify Proxy
 
 TODO
 
 
-### Invoking another actor
+### Invoke another actor
 
 This example demonstrates how to call another actor on Apify cloud - in this case `apify/send-mail`
 to send an email.
@@ -370,4 +369,5 @@ If you find any problem with Apify SDK, please [submit an issue on GitHub](https
 
 ## Contributing
 
-We welcome any contributions! If you have any ideas for improvements, either submit an issue or create a pull request.
+Your code contributions are welcome and you'll praised to the eternity!
+If you have any ideas for improvements, either submit an issue or create a pull request.
