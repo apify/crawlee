@@ -1,4 +1,3 @@
-import crypto from 'crypto';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import log from 'apify-shared/log';
 import _ from 'underscore';
