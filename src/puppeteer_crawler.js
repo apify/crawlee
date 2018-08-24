@@ -7,7 +7,6 @@ import { createTimeoutPromise } from './utils';
 
 const DEFAULT_OPTIONS = {
     gotoFunction: async ({ request, page }) => page.goto(request.url, { timeout: 60000 }),
-    pageOpsTimeoutMillis: 300000,
     handlePageTimeoutSecs: 300,
 };
 

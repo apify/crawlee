@@ -1,3 +1,9 @@
+0.6.3 / 2018-08-24
+==================
+- Fixed persistent deprecation warning of `pageOpsTimeoutMillis`.
+- Moved `cheerio` to dependencies.
+- Fixed `keepDuplicateUrls` errors with persistent RequestList.
+
 0.6.2 / 2018-08-23
 ===================
 - Added `getInfo()` method to Dataset to get meta-information about a dataset.

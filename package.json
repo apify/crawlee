@@ -1,6 +1,6 @@
 {
   "name": "apify",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "description": "Web scraping and automation SDK",
   "engines": {
     "node": ">=8.0.0"
@@ -51,6 +51,7 @@
     "apify-client": "^0.2.9",
     "apify-shared": "0.0.50",
     "bluebird": "^3.5.0",
+    "cheerio": "^1.0.0-rc.2",
     "content-type": "^1.0.3",
     "fs-extra": "^7.0.0",
     "jquery": "^3.3.1",
@@ -93,7 +94,6 @@
   },
   "optionalDependencies": {
     "puppeteer": "^1.7.0",
-    "selenium-webdriver": "^3.6.0",
-    "cheerio": "^1.0.0-rc.2"
+    "selenium-webdriver": "^3.6.0"
   }
 }
