@@ -304,6 +304,10 @@ const wsHandler = (socket) => {
 
     socket.onclose = () => {
         index.insertAdjacentHTML('beforeend', '<div class="message">Actor finished</div>');
+        const statusElements = document.querySelectorAll('td.status');
+        statusElements.forEach((e) => {
+            e.innerHTML = '<i class="material-icons">check_circle</i><span>Finished</span>';
+        });
     };
 
     socket.onerror = (err) => {
