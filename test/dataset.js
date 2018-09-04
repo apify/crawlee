@@ -4,19 +4,21 @@ import 'babel-polyfill';
 import fs from 'fs-extra';
 import path from 'path';
 import sinon from 'sinon';
-import { leftpad, delayPromise } from 'apify-shared/utilities';
+import { leftpad } from 'apify-shared/utilities';
 import { ENV_VARS, MAX_PAYLOAD_SIZE_BYTES } from '../build/constants';
-import { LOCAL_FILENAME_DIGITS, Dataset, DatasetLocal, LOCAL_EMULATION_SUBDIR,
+import { LOCAL_FILENAME_DIGITS, Dataset, DatasetLocal, LOCAL_STORAGE_SUBDIR,
     LOCAL_GET_ITEMS_DEFAULT_LIMIT, checkAndSerialize, chunkBySize } from '../build/dataset';
-import { apifyClient } from '../build/utils';
+import * as utils from '../build/utils';
 import * as Apify from '../build/index';
-import { LOCAL_EMULATION_DIR, emptyLocalEmulationSubdir, expectNotLocalEmulation, expectDirEmpty, expectDirNonEmpty } from './_helper';
+import { LOCAL_STORAGE_DIR, emptyLocalStorageSubdir, expectDirEmpty, expectDirNonEmpty } from './_helper';
+
+const { apifyClient } = utils;
 
 chai.use(chaiAsPromised);
 
 const read = (datasetName, index) => {
     const fileName = `${leftpad(index, LOCAL_FILENAME_DIGITS, 0)}.json`;
-    const filePath = path.join(LOCAL_EMULATION_DIR, LOCAL_EMULATION_SUBDIR, datasetName, fileName);
+    const filePath = path.join(LOCAL_STORAGE_DIR, LOCAL_STORAGE_SUBDIR, datasetName, fileName);
     const str = fs.readFileSync(path.resolve(filePath));
 
     return JSON.parse(str);
@@ -25,12 +27,12 @@ const read = (datasetName, index) => {
 describe('dataset', () => {
     before(() => apifyClient.setOptions({ token: 'xxx' }));
     after(() => apifyClient.setOptions({ token: undefined }));
-    beforeEach(() => emptyLocalEmulationSubdir(LOCAL_EMULATION_SUBDIR));
-    afterEach(() => emptyLocalEmulationSubdir(LOCAL_EMULATION_SUBDIR));
+    beforeEach(() => emptyLocalStorageSubdir(LOCAL_STORAGE_SUBDIR));
+    afterEach(() => emptyLocalStorageSubdir(LOCAL_STORAGE_SUBDIR));
 
     describe('local', async () => {
         it('should succesfully save data', async () => {
-            const dataset = new DatasetLocal('my-dataset', LOCAL_EMULATION_DIR);
+            const dataset = new DatasetLocal('my-dataset', LOCAL_STORAGE_DIR);
 
             await dataset.pushData({ foo: 'bar' });
             await dataset.pushData({ foo: 'hotel' });
@@ -45,19 +47,19 @@ describe('dataset', () => {
             expect(read('my-dataset', 4)).to.be.eql({ foo: 'from-array-1', arr: [1, 2, 3] });
 
             // Correctly initializes the state.
-            const newDataset = new DatasetLocal('my-dataset', LOCAL_EMULATION_DIR);
+            const newDataset = new DatasetLocal('my-dataset', LOCAL_STORAGE_DIR);
             await newDataset.pushData({ foo2: 'bar2' });
             expect(read('my-dataset', 5)).to.be.eql({ foo2: 'bar2' });
 
             // Delete works.
-            const datasetDir = path.join(LOCAL_EMULATION_DIR, LOCAL_EMULATION_SUBDIR, 'my-dataset');
+            const datasetDir = path.join(LOCAL_STORAGE_DIR, LOCAL_STORAGE_SUBDIR, 'my-dataset');
             expectDirNonEmpty(datasetDir);
             await newDataset.delete();
             expectDirEmpty(datasetDir);
         });
 
         const getLocalDataset = async (data) => {
-            const dataset = new DatasetLocal('my-dataset', LOCAL_EMULATION_DIR);
+            const dataset = new DatasetLocal('my-dataset', LOCAL_STORAGE_DIR);
             await dataset.pushData(data);
 
             return dataset;
@@ -109,7 +111,7 @@ describe('dataset', () => {
 
         it('getInfo() should work', async () => {
             const datasetName = 'stats-dataset';
-            const dataset = new DatasetLocal(datasetName, LOCAL_EMULATION_DIR);
+            const dataset = new DatasetLocal(datasetName, LOCAL_STORAGE_DIR);
             await Apify.utils.sleep(2);
 
             // Save orig env var since it persists over tests.
@@ -720,84 +722,20 @@ describe('dataset', () => {
     });
 
     describe('Apify.openDataset', async () => {
-        it('should open a local dataset when process.env[ENV_VARS.LOCAL_EMULATION_DIR] is set', async () => {
-            process.env[ENV_VARS.LOCAL_EMULATION_DIR] = LOCAL_EMULATION_DIR;
+        it('should work', () => {
+            const mock = sinon.mock(utils);
 
-            const dataset = await Apify.openDataset('some-id-2');
-            expect(dataset).to.be.instanceof(DatasetLocal);
-            expect(dataset).not.to.be.instanceof(Dataset);
+            delete process.env[ENV_VARS.PLATFORM_STORAGE];
 
-            delete process.env[ENV_VARS.LOCAL_EMULATION_DIR];
-        });
+            mock.expects('openLocalStorage').once();
+            Apify.openDataset();
 
-        it('should reuse cached dataset instances', async () => {
-            process.env[ENV_VARS.LOCAL_EMULATION_DIR] = LOCAL_EMULATION_DIR;
+            process.env[ENV_VARS.PLATFORM_STORAGE] = '1';
 
-            const dataset1 = await Apify.openDataset('some-id-3');
-            const dataset2 = await Apify.openDataset('some-id-3');
-            const dataset3 = new DatasetLocal('some-id-3', LOCAL_EMULATION_DIR);
+            mock.expects('openRemoteStorage').once();
+            Apify.openDataset();
 
-            expect(dataset1).to.be.instanceof(DatasetLocal);
-            expect(dataset2).to.be.instanceof(DatasetLocal);
-            expect(dataset3).to.be.instanceof(DatasetLocal);
-
-            expect(dataset1).to.be.equal(dataset2);
-            expect(dataset1).not.to.be.equal(dataset3);
-
-            delete process.env[ENV_VARS.LOCAL_EMULATION_DIR];
-
-            // Here must be some timeout to don't finish before initialization of dataset finishes.
-            // Otherwise we delete the directory and scandir will throw ENOENT: no such file or directory
-            await delayPromise(100);
-        });
-
-        it('should open default dataset when datasetIdOrName is not provided', async () => {
-            process.env[ENV_VARS.DEFAULT_DATASET_ID] = 'some-id-4';
-            process.env[ENV_VARS.LOCAL_EMULATION_DIR] = LOCAL_EMULATION_DIR;
-
-            const dataset = await Apify.openDataset();
-            expect(dataset.datasetId).to.be.eql('some-id-4');
-            expect(dataset).to.be.instanceof(DatasetLocal);
-
-            delete process.env[ENV_VARS.LOCAL_EMULATION_DIR];
-            process.env[ENV_VARS.DEFAULT_DATASET_ID] = 'some-id-5';
-            expectNotLocalEmulation();
-
-            const dataset2 = await Apify.openDataset();
-            expect(dataset2.datasetId).to.be.eql('some-id-5');
-            expect(dataset2).to.be.instanceof(Dataset);
-
-            delete process.env[ENV_VARS.DEFAULT_DATASET_ID];
-        });
-
-        it('should open remote dataset when process.env[ENV_VARS.LOCAL_EMULATION_DIR] is NOT set', async () => {
-            expectNotLocalEmulation();
-
-            const mock = sinon.mock(apifyClient.datasets);
-
-            // First when used with id it only requests store object.
-            mock.expects('getDataset')
-                .once()
-                .withArgs({ datasetId: 'some-id-6' })
-                .returns(Promise.resolve({ id: 'some-id-6' }));
-            const dataset = await Apify.openDataset('some-id-6');
-            expect(dataset.datasetId).to.be.eql('some-id-6');
-            expect(dataset).to.be.instanceof(Dataset);
-
-            // Then used with name it requests store object, gets empty response
-            // so then it creates dataset.
-            mock.expects('getDataset')
-                .once()
-                .withArgs({ datasetId: 'some-name-7' })
-                .returns(Promise.resolve(null));
-            mock.expects('getOrCreateDataset')
-                .once()
-                .withArgs({ datasetName: 'some-name-7' })
-                .returns(Promise.resolve({ id: 'some-id-7' }));
-
-            const dataset2 = await Apify.openDataset('some-name-7');
-            expect(dataset2.datasetId).to.be.eql('some-id-7');
-            expect(dataset2).to.be.instanceof(Dataset);
+            delete process.env[ENV_VARS.PLATFORM_STORAGE];
 
             mock.verify();
             mock.restore();
@@ -807,7 +745,6 @@ describe('dataset', () => {
     describe('pushData', async () => {
         it('throws on invalid args', async () => {
             process.env[ENV_VARS.DEFAULT_DATASET_ID] = 'some-id-8';
-            process.env[ENV_VARS.LOCAL_EMULATION_DIR] = LOCAL_EMULATION_DIR;
 
             const dataErrMsg = 'Parameter "data" of type Array | Object must be provided';
             await expect(Apify.pushData()).to.be.rejectedWith(dataErrMsg);
@@ -825,17 +762,20 @@ describe('dataset', () => {
             delete process.env[ENV_VARS.DEFAULT_DATASET_ID];
         });
 
-        it('throws if DEFAULT_DATASET_ID env var is not defined', async () => {
+        it('throws if DEFAULT_DATASET_ID env var is not defined and we use cloud storage', async () => {
+            process.env[ENV_VARS.PLATFORM_STORAGE] = '1';
+
             process.env[ENV_VARS.DEFAULT_DATASET_ID] = '';
             await expect(Apify.pushData({ something: 123 })).to.be.rejectedWith(Error);
 
             delete process.env[ENV_VARS.DEFAULT_DATASET_ID];
             await expect(Apify.pushData({ something: 123 })).to.be.rejectedWith(Error);
+
+            delete process.env[ENV_VARS.PLATFORM_STORAGE];
         });
 
         it('correctly stores records', async () => {
             process.env[ENV_VARS.DEFAULT_DATASET_ID] = 'some-id-9';
-            process.env[ENV_VARS.LOCAL_EMULATION_DIR] = LOCAL_EMULATION_DIR;
 
             await Apify.pushData({ foo: 'bar' });
             await Apify.pushData({ foo: 'hotel' });
@@ -843,7 +783,7 @@ describe('dataset', () => {
             expect(read('some-id-9', 1)).to.be.eql({ foo: 'bar' });
             expect(read('some-id-9', 2)).to.be.eql({ foo: 'hotel' });
 
-            delete process.env[ENV_VARS.LOCAL_EMULATION_DIR];
+            delete process.env[ENV_VARS.DEFAULT_DATASET_ID];
         });
     });
 

@@ -9,7 +9,7 @@ import requestPromise from 'request-promise';
 import XRegExp from 'xregexp';
 import { delayPromise, getRandomInt } from 'apify-shared/utilities';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { ENV_VARS, USER_AGENT_LIST } from './constants';
+import { ENV_VARS, LOCAL_ENV_VARS, USER_AGENT_LIST } from './constants';
 
 /* globals process */
 
@@ -381,6 +381,52 @@ const extractUrls = ({ string, urlRegExp = URL_NO_COMMAS_REGEX }) => {
 const getRandomUserAgent = () => {
     const index = getRandomInt(USER_AGENT_LIST.length);
     return USER_AGENT_LIST[index];
+};
+
+/**
+ * Helper function to open local storage.
+ *
+ * @ignore
+ */
+export const openLocalStorage = async (idOrName, defaultIdEnvVar, LocalClass, cache) => {
+    const localStorageDir = process.env[ENV_VARS.LOCAL_STORAGE_DIR] || LOCAL_ENV_VARS[ENV_VARS.LOCAL_STORAGE_DIR];
+
+    if (!idOrName) idOrName = process.env[defaultIdEnvVar] || LOCAL_ENV_VARS[defaultIdEnvVar];
+
+    let storagePromise = cache.get(idOrName);
+
+    if (!storagePromise) {
+        storagePromise = Promise.resolve(new LocalClass(idOrName, localStorageDir));
+        cache.add(idOrName, storagePromise);
+    }
+
+    return storagePromise;
+};
+
+/**
+ * Helper function to open remote storage.
+ *
+ * @ignore
+ */
+export const openRemoteStorage = async (idOrName, defaultIdEnvVar, RemoteClass, cache, getOrCreateFunction) => {
+    let isDefault = false;
+
+    if (!idOrName) {
+        isDefault = true;
+        idOrName = process.env[defaultIdEnvVar];
+        if (!idOrName) throw new Error(`The '${defaultIdEnvVar}' environment variable is not defined.`);
+    }
+
+    let storagePromise = cache.get(idOrName);
+
+    if (!storagePromise) {
+        storagePromise = isDefault // If true then we know that this is an ID of existing store.
+            ? Promise.resolve(new RemoteClass(idOrName))
+            : getOrCreateFunction(idOrName).then(storage => (new RemoteClass(storage.id)));
+        cache.add(idOrName, storagePromise);
+    }
+
+    return storagePromise;
 };
 
 /**

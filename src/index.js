@@ -27,6 +27,11 @@ if (!isProduction() || process.env[ENV_VARS.LOG_LEVEL] === 'DEBUG') log.isDebugM
 // Log as plain text not JSON
 log.logJson = false;
 
+// Just warn user that local emulation will be used.
+if (process.env[ENV_VARS.PLATFORM_STORAGE]) {
+    log.info(`Using local directory for storage as environment variable ${ENV_VARS.PLATFORM_STORAGE}=1 is not set.`);
+}
+
 /**
  *{include-readme-1}
  *{include-readme-2}

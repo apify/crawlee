@@ -9,10 +9,10 @@ import Promise from 'bluebird';
 import crypto from 'crypto';
 import _ from 'underscore';
 import Request from './request';
-import { ENV_VARS, LOCAL_EMULATION_SUBDIRS } from './constants';
-import { ensureDirExists, apifyClient } from './utils';
+import { ENV_VARS, LOCAL_STORAGE_SUBDIRS } from './constants';
+import { ensureDirExists, apifyClient, openRemoteStorage, openLocalStorage } from './utils';
 
-export const LOCAL_EMULATION_SUBDIR = LOCAL_EMULATION_SUBDIRS.requestQueues;
+export const LOCAL_STORAGE_SUBDIR = LOCAL_STORAGE_SUBDIRS.requestQueues;
 const MAX_OPENED_QUEUES = 1000;
 const MAX_CACHED_REQUESTS = 1000 * 1000;
 
@@ -498,7 +498,7 @@ export class RequestQueueLocal {
         checkParamOrThrow(localEmulationDir, 'localEmulationDir', 'String');
 
         this.queueId = queueId;
-        this.localEmulationPath = path.resolve(path.join(localEmulationDir, LOCAL_EMULATION_SUBDIR, queueId));
+        this.localEmulationPath = path.resolve(path.join(localEmulationDir, LOCAL_STORAGE_SUBDIR, queueId));
         this.localHandledEmulationPath = path.join(this.localEmulationPath, 'handled');
         this.localPendingEmulationPath = path.join(this.localEmulationPath, 'pending');
 
@@ -766,7 +766,7 @@ const getOrCreateQueue = (queueIdOrName) => {
  * queue.reclaimRequest(request2);
  * ```
  *
- * If the `APIFY_LOCAL_EMULATION_DIR` environment variable is defined, the value this function
+ * If the `APIFY_LOCAL_STORAGE_DIR` environment variable is defined, the value this function
  * returns is an instance of the `RequestQueueLocal` class which is a local emulation of the request queue.
  * This is useful for local development and debugging of the actors.
  *
@@ -781,38 +781,9 @@ const getOrCreateQueue = (queueIdOrName) => {
  * @ignore
  */
 export const openRequestQueue = (queueIdOrName) => {
-    const localEmulationDir = process.env[ENV_VARS.LOCAL_EMULATION_DIR];
-
     checkParamOrThrow(queueIdOrName, 'queueIdOrName', 'Maybe String');
 
-    let isDefault = false;
-    let queuePromise;
-
-    if (!queueIdOrName) {
-        const envVar = ENV_VARS.DEFAULT_REQUEST_QUEUE_ID;
-
-        // Env var doesn't exist.
-        if (!process.env[envVar]) return Promise.reject(new Error(`The '${envVar}' environment variable is not defined.`));
-
-        isDefault = true;
-        queueIdOrName = process.env[envVar];
-    }
-
-    queuePromise = queuesCache.get(queueIdOrName);
-
-    // Found in cache.
-    if (queuePromise) return queuePromise;
-
-    // Use local emulation?
-    if (localEmulationDir) {
-        queuePromise = Promise.resolve(new RequestQueueLocal(queueIdOrName, localEmulationDir));
-    } else {
-        queuePromise = isDefault // If true then we know that this is an ID of existing queue.
-            ? Promise.resolve(new RequestQueue(queueIdOrName))
-            : getOrCreateQueue(queueIdOrName).then(queue => (new RequestQueue(queue.id)));
-    }
-
-    queuesCache.add(queueIdOrName, queuePromise);
-
-    return queuePromise;
+    return process.env[ENV_VARS.PLATFORM_STORAGE]
+        ? openRemoteStorage(queueIdOrName, ENV_VARS.DEFAULT_REQUEST_QUEUE_ID, RequestQueue, queuesCache, getOrCreateQueue)
+        : openLocalStorage(queueIdOrName, ENV_VARS.DEFAULT_REQUEST_QUEUE_ID, RequestQueueLocal, queuesCache);
 };

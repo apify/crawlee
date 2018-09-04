@@ -286,14 +286,14 @@ export default class PuppeteerLiveViewServer extends EventEmitter {
     constructor() {
         super();
 
-        const containerPort = process.env[ENV_VARS.CONTAINER_PORT];
-        this.liveViewPort = parseInt(containerPort, 10) || 0;
+        const containerPort = process.env[ENV_VARS.CONTAINER_PORT] || LOCAL_ENV_VARS[ENV_VARS.CONTAINER_PORT];
+        this.liveViewPort = parseInt(containerPort, 10);
         if (!(this.liveViewPort >= 0 && this.liveViewPort <= 65535)) {
             throw new Error(`Cannot start LiveViewServer - invalid port specified by the ${
                 ENV_VARS.CONTAINER_PORT} environment variable (was "${containerPort}").`);
         }
 
-        this.liveViewUrl = process.env[ENV_VARS.CONTAINER_URL];
+        this.liveViewUrl = process.env[ENV_VARS.CONTAINER_URL] || LOCAL_ENV_VARS[ENV_VARS.CONTAINER_URL];
 
         this.browsers = new Set();
         this.browserIdCounter = 0;
@@ -337,10 +337,6 @@ export default class PuppeteerLiveViewServer extends EventEmitter {
 
         return promisifyServerListen(server)(this.liveViewPort)
             .then(() => {
-                if (!this.liveViewUrl) {
-                    this.liveViewPort = server.address().port;
-                    this.liveViewUrl = `http://localhost:${this.liveViewPort}`;
-                }
                 log.info(`Live view is now available at ${this.liveViewUrl}`);
                 this.httpServer = server;
             });

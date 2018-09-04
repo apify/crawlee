@@ -7,10 +7,12 @@ import LruCache from 'apify-shared/lru_cache';
 import mime from 'mime';
 import { KEY_VALUE_STORE_KEY_REGEX } from 'apify-shared/regexs';
 import { checkParamOrThrow, parseBody } from 'apify-client/build/utils';
-import { ENV_VARS, LOCAL_EMULATION_SUBDIRS } from './constants';
-import { addCharsetToContentType, apifyClient, ensureDirExists } from './utils';
+import { ENV_VARS, LOCAL_STORAGE_SUBDIRS } from './constants';
+import {
+    addCharsetToContentType, apifyClient, ensureDirExists, isAtHome, openRemoteStorage, openLocalStorage,
+} from './utils';
 
-export const LOCAL_EMULATION_SUBDIR = LOCAL_EMULATION_SUBDIRS.keyValueStores;
+export const LOCAL_STORAGE_SUBDIR = LOCAL_STORAGE_SUBDIRS.keyValueStores;
 const MAX_OPENED_STORES = 1000;
 const DEFAULT_LOCAL_FILE_EXTENSION = 'bin';
 const COMMON_LOCAL_FILE_EXTENSIONS = ['bin', 'txt', 'json', 'html', 'xml', 'jpeg', 'png', 'pdf', 'mp3', 'js', 'css', 'csv'];
@@ -200,11 +202,11 @@ export const getFileNameRegexp = (key) => {
  * @ignore
  */
 export class KeyValueStoreLocal {
-    constructor(storeId, localEmulationDir) {
+    constructor(storeId, localStorageDir) {
         checkParamOrThrow(storeId, 'storeId', 'String');
-        checkParamOrThrow(localEmulationDir, 'localEmulationDir', 'String');
+        checkParamOrThrow(localStorageDir, 'localStorageDir', 'String');
 
-        this.localEmulationPath = path.resolve(path.join(localEmulationDir, LOCAL_EMULATION_SUBDIR, storeId));
+        this.localEmulationPath = path.resolve(path.join(localStorageDir, LOCAL_STORAGE_SUBDIR, storeId));
         this.storeId = storeId;
         this.initializationPromise = ensureDirExists(this.localEmulationPath);
     }
@@ -220,7 +222,7 @@ export class KeyValueStoreLocal {
                     : null;
             })
             .catch((err) => {
-                throw new Error(`Error reading file '${key}' in directory '${this.localEmulationPath}' referred by ${ENV_VARS.APIFY_LOCAL_EMULATION_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len
+                throw new Error(`Error reading file '${key}' in directory '${this.localEmulationPath}' referred by ${ENV_VARS.LOCAL_STORAGE_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len
             });
     }
 
@@ -244,7 +246,7 @@ export class KeyValueStoreLocal {
         return deletePromise
             .then(() => writeFilePromised(filePath, value))
             .catch((err) => {
-                throw new Error(`Error writing file '${key}' in directory '${this.localEmulationPath}' referred by ${ENV_VARS.APIFY_LOCAL_EMULATION_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len
+                throw new Error(`Error writing file '${key}' in directory '${this.localEmulationPath}' referred by ${ENV_VARS.LOCAL_STORAGE_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len
             });
     }
 
@@ -339,7 +341,6 @@ const getOrCreateKeyValueStore = (storeIdOrName) => {
         });
 };
 
-
 /**
  * Opens a key-value store and returns a promise resolving to an instance
  * of the [KeyValueStore](#KeyValueStore) class.
@@ -354,7 +355,7 @@ const getOrCreateKeyValueStore = (storeIdOrName) => {
  * await store.setValue('some-key', { foo: 'bar' });
  * ```
  *
- * If the `APIFY_LOCAL_EMULATION_DIR` environment variable is set, the result of this function
+ * If the `APIFY_LOCAL_STORAGE_DIR` environment variable is set, the result of this function
  * is an instance of the `KeyValueStoreLocal` class which stores the records in a local directory
  * rather than Apify cloud. This is useful for local development and debugging of your actors.
  *
@@ -370,38 +371,9 @@ const getOrCreateKeyValueStore = (storeIdOrName) => {
 export const openKeyValueStore = (storeIdOrName) => {
     checkParamOrThrow(storeIdOrName, 'storeIdOrName', 'Maybe String');
 
-    const localEmulationDir = process.env[ENV_VARS.LOCAL_EMULATION_DIR];
-
-    let isDefault = false;
-    let storePromise;
-
-    if (!storeIdOrName) {
-        const envVar = ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID;
-
-        // Env var doesn't exist.
-        if (!process.env[envVar]) return Promise.reject(new Error(`The '${envVar}' environment variable is not defined.`));
-
-        isDefault = true;
-        storeIdOrName = process.env[envVar];
-    }
-
-    storePromise = storesCache.get(storeIdOrName);
-
-    // Found in cache.
-    if (storePromise) return storePromise;
-
-    // Use local emulation?
-    if (localEmulationDir) {
-        storePromise = Promise.resolve(new KeyValueStoreLocal(storeIdOrName, localEmulationDir));
-    } else {
-        storePromise = isDefault // If true then we know that this is an ID of existing store.
-            ? Promise.resolve(new KeyValueStore(storeIdOrName))
-            : getOrCreateKeyValueStore(storeIdOrName).then(store => (new KeyValueStore(store.id)));
-    }
-
-    storesCache.add(storeIdOrName, storePromise);
-
-    return storePromise;
+    return process.env[ENV_VARS.PLATFORM_STORAGE]
+        ? openRemoteStorage(storeIdOrName, ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID, KeyValueStore, storesCache, getOrCreateKeyValueStore)
+        : openLocalStorage(storeIdOrName, ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID, KeyValueStoreLocal, storesCache);
 };
 
 /**
@@ -426,7 +398,7 @@ export const openKeyValueStore = (storeIdOrName) => {
  * For all other content types, the body is a raw `Buffer`.
  * If the record cannot be found, the result is null.
  *
- * If the `APIFY_LOCAL_EMULATION_DIR` environment variable is defined,
+ * If the `APIFY_LOCAL_STORAGE_DIR` environment variable is defined,
  * the value is read from a that directory rather than the key-value store,
  * specifically from a file that has the key as a name.
  * file does not exists, the returned value is `null`. The file will get extension based on it's content type.
@@ -460,7 +432,7 @@ export const getValue = key => openKeyValueStore().then(store => store.getValue(
  * ```
  * In this case, the value must be a string or Buffer.
  *
- * If the `APIFY_LOCAL_EMULATION_DIR` environment variable is defined,
+ * If the `APIFY_LOCAL_STORAGE_DIR` environment variable is defined,
  * the value is written to that local directory rather than the key-value store on Apify cloud,
  * to a file named as the key. This is useful for local development and debugging of your actors.
  *

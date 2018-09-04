@@ -6,10 +6,10 @@ import Promise from 'bluebird';
 import { leftpad } from 'apify-shared/utilities';
 import LruCache from 'apify-shared/lru_cache';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { ENV_VARS, LOCAL_EMULATION_SUBDIRS, MAX_PAYLOAD_SIZE_BYTES } from './constants';
-import { apifyClient, ensureDirExists } from './utils';
+import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, MAX_PAYLOAD_SIZE_BYTES } from './constants';
+import { apifyClient, ensureDirExists, openRemoteStorage, openLocalStorage } from './utils';
 
-export const LOCAL_EMULATION_SUBDIR = LOCAL_EMULATION_SUBDIRS.datasets;
+export const LOCAL_STORAGE_SUBDIR = LOCAL_STORAGE_SUBDIRS.datasets;
 export const LOCAL_FILENAME_DIGITS = 9;
 export const LOCAL_GET_ITEMS_DEFAULT_LIMIT = 250000;
 const MAX_OPENED_STORES = 1000;
@@ -364,7 +364,7 @@ export class DatasetLocal {
         checkParamOrThrow(datasetId, 'datasetId', 'String');
         checkParamOrThrow(localEmulationDir, 'localEmulationDir', 'String');
 
-        this.localEmulationPath = path.resolve(path.join(localEmulationDir, LOCAL_EMULATION_SUBDIR, datasetId));
+        this.localEmulationPath = path.resolve(path.join(localEmulationDir, LOCAL_STORAGE_SUBDIR, datasetId));
         this.counter = null;
         this.datasetId = datasetId;
         this.initializationPromise = this._initialize();
@@ -574,7 +574,7 @@ const getOrCreateDataset = (datasetIdOrName) => {
  * ]);
  * ```
  *
- * If the `APIFY_LOCAL_EMULATION_DIR` environment variable is set, the result of this function
+ * If the `APIFY_LOCAL_STORAGE_DIR` environment variable is set, the result of this function
  * is an instance of the `DatasetLocal` class which stores the data in a local directory
  * rather than Apify cloud. This is useful for local development and debugging of your actors.
  *
@@ -590,38 +590,9 @@ const getOrCreateDataset = (datasetIdOrName) => {
 export const openDataset = (datasetIdOrName) => {
     checkParamOrThrow(datasetIdOrName, 'datasetIdOrName', 'Maybe String');
 
-    const localEmulationDir = process.env[ENV_VARS.LOCAL_EMULATION_DIR];
-
-    let isDefault = false;
-    let datasetPromise;
-
-    if (!datasetIdOrName) {
-        const envVar = ENV_VARS.DEFAULT_DATASET_ID;
-
-        // Env var doesn't exist.
-        if (!process.env[envVar]) return Promise.reject(new Error(`The '${envVar}' environment variable is not defined.`));
-
-        isDefault = true;
-        datasetIdOrName = process.env[envVar];
-    }
-
-    datasetPromise = datasetsCache.get(datasetIdOrName);
-
-    // Found in cache.
-    if (datasetPromise) return datasetPromise;
-
-    // Use local emulation?
-    if (localEmulationDir) {
-        datasetPromise = Promise.resolve(new DatasetLocal(datasetIdOrName, localEmulationDir));
-    } else {
-        datasetPromise = isDefault // If true then we know that this is an ID of existing dataset.
-            ? Promise.resolve(new Dataset(datasetIdOrName))
-            : getOrCreateDataset(datasetIdOrName).then(dataset => (new Dataset(dataset.id)));
-    }
-
-    datasetsCache.add(datasetIdOrName, datasetPromise);
-
-    return datasetPromise;
+    return process.env[ENV_VARS.PLATFORM_STORAGE]
+        ? openRemoteStorage(datasetIdOrName, ENV_VARS.DEFAULT_DATASET_ID, Dataset, datasetsCache, getOrCreateDataset)
+        : openLocalStorage(datasetIdOrName, ENV_VARS.DEFAULT_DATASET_ID, DatasetLocal, datasetsCache);
 };
 
 /**
@@ -635,7 +606,7 @@ export const openDataset = (datasetIdOrName) => {
  *
  * The data is stored in default dataset associated with this actor.
  *
- * If the `APIFY_LOCAL_EMULATION_DIR` environment variable is defined, the data gets pushed into local directory.
+ * If the `APIFY_LOCAL_STORAGE_DIR` environment variable is defined, the data gets pushed into local directory.
  * This feature is useful for local development and debugging of your actors.
  *
  * **IMPORTANT**: Do not forget to use the `await` keyword when calling `Apify.pushData()`,

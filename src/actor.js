@@ -3,7 +3,7 @@ import Promise from 'bluebird';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { APIFY_PROXY_VALUE_REGEX } from 'apify-shared/regexs';
-import { ENV_VARS, EXIT_CODES, ACT_TASK_TERMINAL_STATUSES, ACT_TASK_STATUSES, DEFAULT_PROXY_HOSTNAME, DEFAULT_PROXY_PORT } from './constants';
+import { ENV_VARS, LOCAL_ENV_VARS, EXIT_CODES, ACT_TASK_TERMINAL_STATUSES, ACT_TASK_STATUSES } from './constants';
 import { initializeEvents, stopEvents } from './events';
 import { newPromise, apifyClient, addCharsetToContentType } from './utils';
 import { maybeStringify } from './key_value_store';
@@ -425,8 +425,8 @@ export const getApifyProxyUrl = (opts = {}) => {
         groups,
         session,
         password = process.env[ENV_VARS.PROXY_PASSWORD],
-        hostname = process.env[ENV_VARS.PROXY_HOSTNAME] || DEFAULT_PROXY_HOSTNAME,
-        port = parseInt(process.env[ENV_VARS.PROXY_PORT], 10) || DEFAULT_PROXY_PORT,
+        hostname = process.env[ENV_VARS.PROXY_HOSTNAME] || LOCAL_ENV_VARS[ENV_VARS.PROXY_HOSTNAME],
+        port = parseInt(process.env[ENV_VARS.PROXY_PORT], 10) || LOCAL_ENV_VARS[ENV_VARS.PROXY_PORT],
 
         // This is used only internaly. Some other function calling this function use different naming for groups and session
         // parameters so we need to override this in error messages.
