@@ -104,14 +104,14 @@ export const chunkBySize = (items, limitBytes) => {
  * @property {Number} limit - Requested limit
  */
 
-
 /**
  * The `Dataset` class represents an append-only data storage that is useful for saving sequential or tabular data,
  * such as a list of e-commerce products.
  * To create an instance of the `Dataset` class, call the [Apify.openDataset()](#module-Apify-openDataset) function.
  *
- * The actual data is either stored in the Apify cloud (see [Dataset storage documentation](https://www.apify.com/docs/storage#dataset),
- * or on the local disk in the directory specified by the `APIFY_LOCAL_EMULATION_DIR` environment variable (if set).
+ * The actual data is either stored in the Apify cloud (see [Dataset storage documentation](https://www.apify.com/docs/storage#dataset)
+ * when actor is running on Apify platform or `APIFY_PLATFORM_STORAGE=1` environment variable is set
+ * or on the local disk in the directory `./apify_storage` (overridable by `APIFY_LOCAL_STORAGE_DIR` environment variable).
  *
  * Example usage:
  *
@@ -381,19 +381,19 @@ export class Dataset {
  * @ignore
  */
 export class DatasetLocal {
-    constructor(datasetId, localEmulationDir) {
+    constructor(datasetId, localStorageDir) {
         checkParamOrThrow(datasetId, 'datasetId', 'String');
-        checkParamOrThrow(localEmulationDir, 'localEmulationDir', 'String');
+        checkParamOrThrow(localStorageDir, 'localStorageDir', 'String');
 
-        this.localEmulationPath = path.resolve(path.join(localEmulationDir, LOCAL_STORAGE_SUBDIR, datasetId));
+        this.localStoragePath = path.resolve(path.join(localStorageDir, LOCAL_STORAGE_SUBDIR, datasetId));
         this.counter = null;
         this.datasetId = datasetId;
         this.initializationPromise = this._initialize();
     }
 
     _initialize() {
-        return ensureDirExists(this.localEmulationPath)
-            .then(() => readdirPromised(this.localEmulationPath))
+        return ensureDirExists(this.localStoragePath)
+            .then(() => readdirPromised(this.localStoragePath))
             .then((files) => {
                 if (files.length) {
                     const lastFileNum = files.pop().split('.')[0];
@@ -401,7 +401,7 @@ export class DatasetLocal {
                 } else {
                     this.counter = 0;
                 }
-                return statPromised(this.localEmulationPath);
+                return statPromised(this.localStoragePath);
             })
             .then((stats) => {
                 this.createdAt = stats.birthtime;
@@ -422,7 +422,7 @@ export class DatasetLocal {
 
                     // Format JSON to simplify debugging, the overheads is negligible
                     const itemStr = JSON.stringify(item, null, 2);
-                    const filePath = path.join(this.localEmulationPath, getLocaleFilename(this.counter));
+                    const filePath = path.join(this.localStoragePath, getLocaleFilename(this.counter));
 
                     return writeFilePromised(filePath, itemStr);
                 });
@@ -518,7 +518,7 @@ export class DatasetLocal {
 
     delete() {
         return this.initializationPromise
-            .then(() => emptyDirPromised(this.localEmulationPath))
+            .then(() => emptyDirPromised(this.localStoragePath))
             .then(() => {
                 this._updateMetadata(true);
                 datasetsCache.remove(this.datasetId);
@@ -541,7 +541,7 @@ export class DatasetLocal {
      * Reads and parses file for given index.
      */
     _readAndParseFile(index) {
-        const filePath = path.join(this.localEmulationPath, getLocaleFilename(index));
+        const filePath = path.join(this.localStoragePath, getLocaleFilename(index));
 
         return readFilePromised(filePath)
             .then((json) => {
@@ -633,8 +633,9 @@ export const openDataset = (datasetIdOrName) => {
  * await dataset.pushData({ myValue: 123 });
  * ```
  *
- * The actual data is either stored in the Apify cloud (see [Dataset storage documentation](https://www.apify.com/docs/storage#dataset),
- * or on the local disk in the directory specified by the `APIFY_LOCAL_EMULATION_DIR` environment variable (if set).
+ * The actual data is either stored in the Apify cloud (see [Dataset storage documentation](https://www.apify.com/docs/storage#dataset)
+ * when actor is running on Apify platform or `APIFY_PLATFORM_STORAGE=1` environment variable is set
+ * or on the local disk in the directory `./apify_storage` (overridable by `APIFY_LOCAL_STORAGE_DIR` environment variable) otherwise.
  *
  * For more information, see
  * [Apify.openDataset()](#module-Apify-openDataset) and [Dataset.pushData()](#Dataset-pushData).

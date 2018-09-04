@@ -493,14 +493,14 @@ const filePathToQueueOrderNo = (filepath) => {
  * @ignore
  */
 export class RequestQueueLocal {
-    constructor(queueId, localEmulationDir) {
+    constructor(queueId, localStorageDir) {
         checkParamOrThrow(queueId, 'queueId', 'String');
-        checkParamOrThrow(localEmulationDir, 'localEmulationDir', 'String');
+        checkParamOrThrow(localStorageDir, 'localStorageDir', 'String');
 
         this.queueId = queueId;
-        this.localEmulationPath = path.resolve(path.join(localEmulationDir, LOCAL_STORAGE_SUBDIR, queueId));
-        this.localHandledEmulationPath = path.join(this.localEmulationPath, 'handled');
-        this.localPendingEmulationPath = path.join(this.localEmulationPath, 'pending');
+        this.localStoragePath = path.resolve(path.join(localStorageDir, LOCAL_STORAGE_SUBDIR, queueId));
+        this.localHandledEmulationPath = path.join(this.localStoragePath, 'handled');
+        this.localPendingEmulationPath = path.join(this.localStoragePath, 'pending');
 
         this.queueOrderNoCounter = 0; // Counter used in _getQueueOrderNo to ensure there won't be a collision.
         this.pendingCount = 0;
@@ -512,7 +512,7 @@ export class RequestQueueLocal {
     }
 
     _initialize() {
-        return ensureDirExists(this.localEmulationPath)
+        return ensureDirExists(this.localStoragePath)
             .then(() => ensureDirExists(this.localHandledEmulationPath))
             .then(() => ensureDirExists(this.localPendingEmulationPath))
             .then(() => Promise.all([
@@ -719,7 +719,7 @@ export class RequestQueueLocal {
     }
 
     delete() {
-        return emptyDirPromised(this.localEmulationPath)
+        return emptyDirPromised(this.localStoragePath)
             .then(() => {
                 queuesCache.remove(this.queueId);
             });
@@ -766,9 +766,9 @@ const getOrCreateQueue = (queueIdOrName) => {
  * queue.reclaimRequest(request2);
  * ```
  *
- * If the `APIFY_LOCAL_STORAGE_DIR` environment variable is defined, the value this function
- * returns is an instance of the `RequestQueueLocal` class which is a local emulation of the request queue.
- * This is useful for local development and debugging of the actors.
+ * The actual data is either stored in the Apify cloud (see [Request queue documentation](https://www.apify.com/docs/storage#queue)
+ * when actor is running on Apify platform or `APIFY_PLATFORM_STORAGE=1` environment variable is set
+ * or on the local disk in the directory `./apify_storage` (overridable by `APIFY_LOCAL_STORAGE_DIR` environment variable).
  *
  * @param {string} queueIdOrName ID or name of the request queue to be opened.
  * @returns {Promise<RequestQueue>} Returns a promise that resolves to a `RequestQueue` object. If no value is provided

@@ -94,9 +94,13 @@ export const maybeStringify = (value, options) => {
 
 
 /**
- * The `KeyValueStore` class provides a simple interface to the [Apify Key-value stores](https://www.apify.com/docs/storage#kv-store).
+ * The `KeyValueStore` class provides a simple interface to the [Apify Key-value stores](https://www.apify.com/docs/storage#key-value-store).
  * You should not instantiate this class directly, use the
  * [Apify.openKeyValueStore()](#module-Apify-openKeyValueStore) function.
+ *
+ * The actual data is either stored in the Apify cloud (see [Key-value stores documentation](https://www.apify.com/docs/storage#key-value-store)
+ * when actor is running on Apify platform or `APIFY_PLATFORM_STORAGE=1` environment variable is set
+ * or on the local disk in the directory `./apify_storage` (overridable by `APIFY_LOCAL_STORAGE_DIR` environment variable).
  *
  * Example usage:
  *
@@ -206,9 +210,9 @@ export class KeyValueStoreLocal {
         checkParamOrThrow(storeId, 'storeId', 'String');
         checkParamOrThrow(localStorageDir, 'localStorageDir', 'String');
 
-        this.localEmulationPath = path.resolve(path.join(localStorageDir, LOCAL_STORAGE_SUBDIR, storeId));
+        this.localStoragePath = path.resolve(path.join(localStorageDir, LOCAL_STORAGE_SUBDIR, storeId));
         this.storeId = storeId;
-        this.initializationPromise = ensureDirExists(this.localEmulationPath);
+        this.initializationPromise = ensureDirExists(this.localStoragePath);
     }
 
     getValue(key) {
@@ -222,7 +226,7 @@ export class KeyValueStoreLocal {
                     : null;
             })
             .catch((err) => {
-                throw new Error(`Error reading file '${key}' in directory '${this.localEmulationPath}' referred by ${ENV_VARS.LOCAL_STORAGE_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len
+                throw new Error(`Error reading file '${key}' in directory '${this.localStoragePath}' referred by ${ENV_VARS.LOCAL_STORAGE_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len
             });
     }
 
@@ -246,12 +250,12 @@ export class KeyValueStoreLocal {
         return deletePromise
             .then(() => writeFilePromised(filePath, value))
             .catch((err) => {
-                throw new Error(`Error writing file '${key}' in directory '${this.localEmulationPath}' referred by ${ENV_VARS.LOCAL_STORAGE_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len
+                throw new Error(`Error writing file '${key}' in directory '${this.localStoragePath}' referred by ${ENV_VARS.LOCAL_STORAGE_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len
             });
     }
 
     delete() {
-        return emptyDirPromised(this.localEmulationPath)
+        return emptyDirPromised(this.localStoragePath)
             .then(() => {
                 storesCache.remove(this.storeId);
             });
@@ -302,7 +306,7 @@ export class KeyValueStoreLocal {
      * @ignore
      */
     _fullDirectoryLookup(key, handler) {
-        return readdirPromised(this.localEmulationPath)
+        return readdirPromised(this.localStoragePath)
             .then((files) => {
                 const regex = getFileNameRegexp(key);
                 const fileName = files.find(file => regex.test(file));
@@ -319,7 +323,7 @@ export class KeyValueStoreLocal {
      * @ignore
      */
     _getPath(fileName) {
-        return path.resolve(this.localEmulationPath, fileName);
+        return path.resolve(this.localStoragePath, fileName);
     }
 }
 
@@ -348,16 +352,16 @@ const getOrCreateKeyValueStore = (storeIdOrName) => {
  * Key-value store is a simple storage for records, where each record has a unique key.
  * For more information, see [Key-value store documentation](https://www.apify.com/docs/storage#dataset).
  *
+ * The actual data is either stored in the Apify cloud (see [Key-value stores documentation](https://www.apify.com/docs/storage#key-value-store)
+ * when actor is running on Apify platform or `APIFY_PLATFORM_STORAGE=1` environment variable is set
+ * or on the local disk in the directory `./apify_storage` (overridable by `APIFY_LOCAL_STORAGE_DIR` environment variable).
+ *
  * Example usage:
  *
  * ```javascript
  * const store = await Apify.openKeyValueStore('my-store-id');
  * await store.setValue('some-key', { foo: 'bar' });
  * ```
- *
- * If the `APIFY_LOCAL_STORAGE_DIR` environment variable is set, the result of this function
- * is an instance of the `KeyValueStoreLocal` class which stores the records in a local directory
- * rather than Apify cloud. This is useful for local development and debugging of your actors.
  *
  * @param {string} storeIdOrName ID or name of the key-value store to be opened. If no value is
  *                               provided then the function opens the default key-value store associated with the actor run.
@@ -398,12 +402,11 @@ export const openKeyValueStore = (storeIdOrName) => {
  * For all other content types, the body is a raw `Buffer`.
  * If the record cannot be found, the result is null.
  *
- * If the `APIFY_LOCAL_STORAGE_DIR` environment variable is defined,
- * the value is read from a that directory rather than the key-value store,
- * specifically from a file that has the key as a name.
- * file does not exists, the returned value is `null`. The file will get extension based on it's content type.
+ * If the actor is not running on Apify platform and `APIFY_PLATFORM_STORAGE=1` environment variable is not set
+ * the value is read from a local directory `./apify_storage` (overridable by `APIFY_LOCAL_STORAGE_DIR` environment variable)
+ * rather than the Apify key-value store cloud storage, specifically from a file that has the key as a name.
+ * If file does not exists, the returned value is `null`. The file will get extension based on it's content type.
  * This feature is useful for local development and debugging of your actors.
- *
  *
  * @param {String} key Key of the record.
  * @returns {Promise} Returns a promise.
@@ -432,9 +435,11 @@ export const getValue = key => openKeyValueStore().then(store => store.getValue(
  * ```
  * In this case, the value must be a string or Buffer.
  *
- * If the `APIFY_LOCAL_STORAGE_DIR` environment variable is defined,
- * the value is written to that local directory rather than the key-value store on Apify cloud,
- * to a file named as the key. This is useful for local development and debugging of your actors.
+ * If the actor is not running on Apify platform and `APIFY_PLATFORM_STORAGE=1` environment variable is not set
+ * the value is written to a local directory `./apify_storage` (overridable by `APIFY_LOCAL_STORAGE_DIR` environment variable)
+ * rather than the Apify key-value store cloud storage, specifically to a file that has the key as a name.
+ * The file will get extension based on it's content type.
+ * This feature is useful for local development and debugging of your actors.
  *
  * **IMPORTANT:** Do not forget to use the `await` keyword when calling `Apify.setValue()`,
  * otherwise the actor process might finish before the value is stored!
