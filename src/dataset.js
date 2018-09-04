@@ -104,15 +104,29 @@ export const chunkBySize = (items, limitBytes) => {
  * @property {Number} limit - Requested limit
  */
 
+
 /**
- * The `Dataset` class provides a simple interface to the [Apify Dataset](https://www.apify.com/docs/storage#dataset) storage.
- * You should not instantiate this class directly, use the [Apify.openDataset()](#module-Apify-openDataset) function.
+ * The `Dataset` class represents an append-only data storage that is useful for saving sequential or tabular data,
+ * such as a list of e-commerce products.
+ * To create an instance of the `Dataset` class, call the [Apify.openDataset()](#module-Apify-openDataset) function.
+ *
+ * The actual data is either stored in the Apify cloud (see [Dataset storage documentation](https://www.apify.com/docs/storage#dataset),
+ * or on the local disk in the directory specified by the `APIFY_LOCAL_EMULATION_DIR` environment variable (if set).
  *
  * Example usage:
  *
  * ```javascript
- * const dataset = await Apify.openDataset('my-dataset-id');
+ * // Opens dataset called 'some-name'.
+ * const dataset = await Apify.openDataset('some-name');
+ *
+ * // Write a single row
  * await dataset.pushData({ foo: 'bar' });
+ *
+ * // Write multiple rows
+ * await dataset.pushData([
+ *   { foo: 'bar2', col2: 'val2' },
+ *   { col3: 123 },
+ * ]);
  * ```
  *
  * @param {String} datasetId - ID of the dataset.
@@ -125,22 +139,29 @@ export class Dataset {
     }
 
     /**
-     * Stores object or an array of objects in the dataset.
-     * The function has no result, but rejects on invalid args or other errors.
+     * Stores an object or an array of objects to the default dataset of the current actor run.
+     * The function has no result, but throws on invalid args or other errors.
      *
-     * The size of data is limited by the receiving API and therefore pushData will only
-     * allow an {Object} smaller than 9MB. When an {Array} is passed, none of the included objects
-     * may be larger than 9MB, but the Array itself may be of any size. pushData will internally
-     * chunk the array into separate items for the client to dispatch them as separate requests.
+     * **IMPORTANT**: Do not forget to use the `await` keyword when calling `Apify.pushData()`,
+     * otherwise the actor process might finish before the data is stored!
      *
+     * The size of the data is limited by the receiving API and therefore `pushData` will only
+     * allow objects whose JSON representation is smaller than 9MB. When an array is passed,
+     * none of the included objects
+     * may be larger than 9MB, but the array itself may be of any size.
+     *
+     * The function internally
+     * chunks the array into separate items and pushes them sequentially.
      * The chunking process is stable (keeps order of data), but it does not provide a transaction
      * safety mechanism. Therefore, in case of an uploading error (after several automatic retries),
-     * the function's promise will reject and the dataset will be left in a state, where some of
+     * the function's promise will reject and the dataset will be left in a state where some of
      * the items have already been saved to the dataset while other items from the source array were not.
      * To overcome this limitation, the developer may for example read the last item saved in the dataset
      * and re-attempt the save of the data from this item onwards to prevent duplicates.
      *
-     * @return {Promise} That resolves when data gets saved into the dataset.
+     * @param {Object|Array} data Object or array of objects containing data to be stored in the default dataset.
+     * The objects must be serializable to JSON and the JSON representation of each object must be smaller than 9MB.
+     * @returns {Promise} Returns a promise that resolves once the data is saved.
      */
     pushData(data) {
         checkParamOrThrow(data, 'data', 'Array | Object');
@@ -553,10 +574,11 @@ const getOrCreateDataset = (datasetIdOrName) => {
 
 
 /**
- * Opens a dataset and returns a promise resolving to an instance of the [Dataset](#Dataset) object.
+ * Opens a dataset and returns a promise resolving to an instance of the [Dataset](#Dataset) class.
  *
- * Dataset is an append-only storage that is useful for storing sequential or tabular results.
- * For more information, see [Dataset documentation](https://www.apify.com/docs/storage#dataset).
+ * Dataset is an append-only data storage that is useful for saving sequential or tabular data,
+ * such as a list of e-commerce products.
+ * The data can be written to the dataset using the [Dataset.pushData()](#Dataset-pushData) function.
  *
  * Example usage:
  *
@@ -574,13 +596,13 @@ const getOrCreateDataset = (datasetIdOrName) => {
  * ]);
  * ```
  *
- * If the `APIFY_LOCAL_EMULATION_DIR` environment variable is set, the result of this function
- * is an instance of the `DatasetLocal` class which stores the data in a local directory
- * rather than Apify cloud. This is useful for local development and debugging of your actors.
- *
- * @param {string} datasetIdOrName ID or name of the dataset to be opened. If no value is provided
- *                                 then the function opens the default dataset associated with the actor run.
- * @returns {Promise<Dataset>} Returns a promise that resolves to a `Dataset` object.
+ * @param {String} datasetIdOrName
+ *   ID or name of the dataset to be opened. If no value is provided
+ *   then the function opens the default dataset associated with the actor run,
+ *   identified by the `APIFY_DEFAULT_DATASET_ID` environment variable.
+ *   The full name must be specified as `username/dataset-name`.
+ * @returns {Promise<Dataset>}
+ *   Returns a promise that resolves to an instance of the [Dataset](#Dataset) class.
  *
  * @memberof module:Apify
  * @name openDataset
@@ -625,24 +647,33 @@ export const openDataset = (datasetIdOrName) => {
 };
 
 /**
- * Stores object or an array of objects in the default dataset for the current actor run using the Apify API
- * Default id of the dataset is in the `APIFY_DEFAULT_DATASET_ID` environment variable
+ * Stores an object or an array of objects to the default dataset of the current actor run.
+ * The ID of the default dataset is taken from the `APIFY_DEFAULT_DATASET_ID` environment variable.
  * The function has no result, but throws on invalid args or other errors.
  *
+ * Calling
  * ```javascript
- * await Apify.pushData(data);
+ * await Apify.pushData({ myValue: 123 });
  * ```
  *
- * The data is stored in default dataset associated with this actor.
+ * is equivalent to:
+ * ```javascript
+ * const dataset = await Apify.openDataset();
+ * await dataset.pushData({ myValue: 123 });
+ * ```
  *
- * If the `APIFY_LOCAL_EMULATION_DIR` environment variable is defined, the data gets pushed into local directory.
- * This feature is useful for local development and debugging of your actors.
+ * The actual data is either stored in the Apify cloud (see [Dataset storage documentation](https://www.apify.com/docs/storage#dataset),
+ * or on the local disk in the directory specified by the `APIFY_LOCAL_EMULATION_DIR` environment variable (if set).
+ *
+ * For more information, see
+ * [Apify.openDataset()](#module-Apify-openDataset) and [Dataset.pushData()](#Dataset-pushData).
  *
  * **IMPORTANT**: Do not forget to use the `await` keyword when calling `Apify.pushData()`,
  * otherwise the actor process might finish before the data is stored!
  *
- * @param {Object|Array} data Object or array of objects containing data to by stored in the dataset (9MB Max)
- * @returns {Promise} Returns a promise that gets resolved once data are saved.
+ * @param {Object|Array} data Object or array of objects containing data to be stored in the default dataset.
+ * The objects must be serializable to JSON and the JSON representation of each object must be smaller than 9MB.
+ * @returns {Promise} Returns a promise that resolves once the data is saved.
  *
  * @memberof module:Apify
  * @name pushData
