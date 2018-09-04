@@ -9,7 +9,7 @@ import { KEY_VALUE_STORE_KEY_REGEX } from 'apify-shared/regexs';
 import { checkParamOrThrow, parseBody } from 'apify-client/build/utils';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS } from './constants';
 import {
-    addCharsetToContentType, apifyClient, ensureDirExists, isAtHome, openRemoteStorage, openLocalStorage,
+    addCharsetToContentType, apifyClient, ensureDirExists, openRemoteStorage, openLocalStorage,
 } from './utils';
 
 export const LOCAL_STORAGE_SUBDIR = LOCAL_STORAGE_SUBDIRS.keyValueStores;
