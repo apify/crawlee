@@ -1,16 +1,16 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import log from 'apify-shared/log';
 import _ from 'underscore';
-import Promise from 'bluebird';
 import BasicCrawler from './basic_crawler';
 import PuppeteerPool from './puppeteer_pool';
-import { isPromise, createTimeoutPromise } from './utils';
+import { createTimeoutPromise } from './utils';
 
 const DEFAULT_OPTIONS = {
-    gotoFunction: ({ request, page }) => page.goto(request.url),
-    pageOpsTimeoutMillis: 300000,
-    pageCloseTimeoutMillis: 30000,
+    gotoFunction: async ({ request, page }) => page.goto(request.url, { timeout: 60000 }),
+    handlePageTimeoutSecs: 300,
 };
+
+const PAGE_CLOSE_TIMEOUT_MILLIS = 30000;
 
 /**
  * Provides a simple framework for parallel crawling of web pages
@@ -62,12 +62,18 @@ const DEFAULT_OPTIONS = {
  *   It is passed an object with the following fields:
  *   `request` is an instance of the `Request` object with details about the URL to open, HTTP method etc.
  *   `page` is an instance of the `Puppeteer.Page` class with `page.goto(request.url)` already called.
- * @param {Number} [options.pageOpsTimeoutMillis=300000]
- *   Timeout in which the function passed as `options.handlePageFunction` needs to finish.
- * @param {Function} [options.gotoFunction=({ request, page }) => page.goto(request.url)]
+ * @param {Number} [options.handlePageTimeoutSecs=300]
+ *   Timeout in which the function passed as `options.handlePageFunction` needs to finish, in seconds.
+ * @param {Function} [options.gotoFunction=({ request, page }) => page.goto(request.url, { timeout: 60000 })]
  *   Overrides the function that opens the request in Puppeteer.
- *   This function should return a result of `page.goto()`, i.e. the Puppeteer's `Response` object.
- *   Note that one page is only used to process one request, and it is closed afterwards.
+ *   The function should return a result of Puppeteer's
+ *   <a href="https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#pagegotourl-options">page.goto()</a> function,
+ *   i.e. a promise resolving to the <a href="https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-response">Response</a> object.
+ *
+ *   For example, this is useful if you need to extend the page load timeout or select a different criteria
+ *   to determine that the navigation succeeded.
+ *
+ *   Note that a single page object is only used to process a single request and it is closed afterwards.
  * @param {Function} [options.handleFailedRequestFunction=({ request }) => log.error('Request failed', _.pick(request, 'url', 'uniqueKey'))]
  *   Function to handle requests that failed more than `option.maxRequestRetries` times. See the `handleFailedRequestFunction`
  *   parameter of `Apify.BasicCrawler` for details.
@@ -118,7 +124,6 @@ const DEFAULT_OPTIONS = {
  * @param {LaunchPuppeteerOptions} [options.launchPuppeteerOptions]
  *   Options used by `Apify.launchPuppeteer()` to start new Puppeteer instances.
  *   See `launchPuppeteerOptions` parameter of `PuppeteerPool`.
- * @param {Number} [options.pageCloseTimeoutMillis=30000] Timeout for `page.close()` in milliseconds.
  */
 export default class PuppeteerCrawler {
     constructor(opts) {
@@ -132,7 +137,7 @@ export default class PuppeteerCrawler {
             handlePageFunction,
             gotoFunction,
             pageOpsTimeoutMillis,
-            pageCloseTimeoutMillis,
+            handlePageTimeoutSecs,
 
             // Autoscaled pool options
             maxMemoryMbytes,
@@ -160,21 +165,23 @@ export default class PuppeteerCrawler {
         checkParamOrThrow(handlePageFunction, 'opts.handlePageFunction', 'Function');
         checkParamOrThrow(handleFailedRequestFunction, 'opts.handleFailedRequestFunction', 'Maybe Function');
         checkParamOrThrow(gotoFunction, 'opts.gotoFunction', 'Function');
-        checkParamOrThrow(pageCloseTimeoutMillis, 'opts.pageCloseTimeoutMillis', 'Number');
 
         this.handlePageFunction = handlePageFunction;
         this.gotoFunction = gotoFunction;
-        this.pageOpsTimeoutMillis = pageOpsTimeoutMillis;
-        this.pageCloseTimeoutMillis = pageCloseTimeoutMillis;
 
-        this.puppeteerPool = new PuppeteerPool({
+        if (pageOpsTimeoutMillis) log.warning('options.pageOpsTimeoutMillis is deprecated, use options.handlePageTimeoutSecs instead.');
+        this.handlePageTimeoutSecs = handlePageTimeoutSecs || Math.ceil(pageOpsTimeoutMillis / 1000);
+
+        this.puppeteerPoolOptions = {
             maxOpenPagesPerInstance,
             retireInstanceAfterRequestCount,
             instanceKillerIntervalMillis,
             killInstanceAfterMillis,
             launchPuppeteerFunction,
             launchPuppeteerOptions,
-        });
+        };
+
+        this.puppeteerPool = new PuppeteerPool(this.puppeteerPoolOptions);
 
         this.basicCrawler = new BasicCrawler({
             // Basic crawler options.
@@ -200,9 +207,33 @@ export default class PuppeteerCrawler {
      *
      * @return {Promise}
      */
-    run() {
-        return this.basicCrawler.run()
-            .finally(() => this.puppeteerPool.destroy());
+    async run() {
+        if (this.isRunning) return this.isRunningPromise;
+
+        this.puppeteerPool = new PuppeteerPool(this.puppeteerPoolOptions);
+        this.isRunning = true;
+        this.rejectOnStopPromise = new Promise((r, reject) => { this.rejectOnStop = reject; });
+        try {
+            this.isRunningPromise = this.basicCrawler.run();
+            await this.isRunningPromise;
+            this.isRunning = false;
+        } catch (err) {
+            this.isRunning = false; // Doing this before rejecting to make sure it's set when error handlers fire.
+            this.rejectOnStop(err);
+        } finally {
+            this.puppeteerPool.destroy();
+        }
+    }
+
+    /**
+     *  Stops the crawler by preventing crawls of additional pages and terminating the running ones.
+     *
+     * @return {Promise}
+     */
+    async abort() {
+        this.isRunning = false;
+        await this.basicCrawler.abort();
+        this.rejectOnStop(new Error('PuppeteerCrawler: .stop() function has been called. Stopping the crawler.'));
     }
 
     /**
@@ -210,39 +241,27 @@ export default class PuppeteerCrawler {
      *
      * @ignore
      */
-    _handleRequestFunction({ request }) {
-        let page;
+    async _handleRequestFunction({ request }) {
+        if (!this.isRunning) throw new Error('PuppeteerCrawler is stopped.'); // Pool will be destroyed.
 
-        const handlePagePromise = this.puppeteerPool
-            .newPage()
-            .then((newPage) => { page = newPage; })
-            .then(() => this.gotoFunction({ page, request, puppeteerPool: this.puppeteerPool }))
-            .then((response) => {
-                const promise = this.handlePageFunction({
-                    page,
-                    request,
-                    puppeteerPool: this.puppeteerPool,
-                    response,
-                });
+        const page = await this.puppeteerPool.newPage();
+        const response = await this.gotoFunction({ page, request, puppeteerPool: this.puppeteerPool });
 
-                if (!isPromise(promise)) throw new Error('User provided handlePageFunction must return a Promise.');
+        const pageHandledOrTimedOutPromise = Promise.race([
+            this.handlePageFunction({ page, request, puppeteerPool: this.puppeteerPool, response }),
+            createTimeoutPromise(this.handlePageTimeoutSecs * 1000, 'PuppeteerCrawler: handlePageFunction timed out.'),
+        ]);
 
-                return promise;
-            });
-
-        return Promise
-            .race([
-                handlePagePromise,
-                createTimeoutPromise(this.pageOpsTimeoutMillis, 'PuppeteerCrawler: handlePageFunction timed out.'),
-            ])
-            .finally(() => {
-                if (!page) return;
-
-                return Promise
-                    .race([
-                        page.close(),
-                        createTimeoutPromise(this.pageCloseTimeoutMillis, 'PuppeteerCrawler: page.close() timed out.'),
-                    ]);
-            });
+        try {
+            // rejectOnStopPromise rejects when .stop() is called or BasicCrawler throws.
+            // All running pages are therefore terminated with an error to be reclaimed and retried.
+            return await Promise.race([pageHandledOrTimedOutPromise, this.rejectOnStopPromise]);
+        } finally {
+            try {
+                await Promise.race([page.close(), createTimeoutPromise(PAGE_CLOSE_TIMEOUT_MILLIS, 'Operation timed out.')]);
+            } catch (err) {
+                log.debug('PuppeteerCrawler: Page.close() failed.', { reason: err && err.message });
+            }
+        }
     }
 }

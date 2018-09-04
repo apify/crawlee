@@ -8,6 +8,7 @@ import { delayPromise } from 'apify-shared/utilities';
 import Apify from '../build/index';
 import * as keyValueStore from '../build/key_value_store';
 import { ACTOR_EVENT_NAMES } from '../build/constants';
+import * as utils from '../build/utils';
 
 chai.use(chaiAsPromised);
 
@@ -102,7 +103,7 @@ describe('Apify.RequestList', () => {
     });
 
     it('should correctly load list from hosted files in correct order', async () => {
-        const mock = sinon.mock(request);
+        const mock = sinon.mock(utils.publicUtils);
         const list1 = [
             'https://example.com',
             'https://google.com',
@@ -113,15 +114,15 @@ describe('Apify.RequestList', () => {
             'https://page.com',
         ];
 
-        mock.expects('get')
+        mock.expects('downloadListOfUrls')
             .once()
-            .withArgs('http://example.com/list-1')
-            .returns(new Promise(resolve => setTimeout(resolve(list1.join('\n')), 100)));
+            .withArgs({ url: 'http://example.com/list-1', urlRegExp: undefined })
+            .returns(new Promise(resolve => setTimeout(resolve(list1), 100)));
 
-        mock.expects('get')
+        mock.expects('downloadListOfUrls')
             .once()
-            .withArgs('http://example.com/list-2')
-            .returns(Promise.resolve(list2.join('\n')), 0);
+            .withArgs({ url: 'http://example.com/list-2', urlRegExp: undefined })
+            .returns(Promise.resolve(list2), 0);
 
         const requestList = new Apify.RequestList({
             sources: [
@@ -145,18 +146,20 @@ describe('Apify.RequestList', () => {
     it('should use regex parameter to parse urls', async () => {
         const mock = sinon.mock(request);
         const listStr = 'kjnjkn"https://example.com/a/b/c?q=1#abc";,"HTTP://google.com/a/b/c";dgg:dd';
-        const listArr = ['https://example.com/a/b/c?q=1#abc', 'HTTP://google.com/a/b/c'];
+        const listArr = ['https://example.com', 'HTTP://google.com'];
 
         mock.expects('get')
             .once()
-            .withArgs('http://example.com/list-1')
+            .withArgs({ url: 'http://example.com/list-1', encoding: 'utf8' })
             .returns(Promise.resolve(listStr));
 
+        const regex = /(https:\/\/example.com|HTTP:\/\/google.com)/g;
         const requestList = new Apify.RequestList({
             sources: [
                 {
                     method: 'GET',
                     requestsFromUrl: 'http://example.com/list-1',
+                    regex,
                 },
             ],
         });
@@ -171,11 +174,11 @@ describe('Apify.RequestList', () => {
     });
 
     it('should handle requestsFromUrl with no URLs', async () => {
-        const mock = sinon.mock(request);
-        mock.expects('get')
+        const mock = sinon.mock(utils.publicUtils);
+        mock.expects('downloadListOfUrls')
             .once()
-            .withArgs('http://example.com/list-1')
-            .returns(Promise.resolve('bla bla bla'));
+            .withArgs({ url: 'http://example.com/list-1', urlRegExp: undefined })
+            .returns(Promise.resolve([]));
 
         const requestList = new Apify.RequestList({
             sources: [
@@ -510,5 +513,41 @@ describe('Apify.RequestList', () => {
         await requestList.initialize();
 
         expect(requestList.length()).to.be.eql(4);
+    });
+
+    it('should correctly keep duplicate URLs while keepDuplicateUrls is set', async () => {
+        const sources = [
+            { url: 'https://www.example.com' },
+            { url: 'https://www.example.com' },
+            { url: 'https://www.example.com' },
+            { url: 'https://www.ex2mple.com' },
+        ];
+
+        let requestList = new Apify.RequestList({
+            sources,
+            keepDuplicateUrls: true,
+        });
+
+        await requestList.initialize();
+        expect(requestList.length()).to.be.eql(4);
+
+        const log = sinon.stub(console, 'log');
+
+        requestList = new Apify.RequestList({
+            sources: sources.concat([
+                { url: 'https://www.example.com', uniqueKey: '123' },
+                { url: 'https://www.example.com', uniqueKey: '123' },
+                { url: 'https://www.example.com', uniqueKey: '456' },
+                { url: 'https://www.ex2mple.com', uniqueKey: '456' },
+            ]),
+            keepDuplicateUrls: true,
+        });
+
+        await requestList.initialize();
+        expect(requestList.length()).to.be.eql(6);
+        expect(log.called).to.be.eql(true);
+        expect(log.getCall(0).args[0]).to.include('Check your sources\' unique keys.');
+
+        log.restore();
     });
 });

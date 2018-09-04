@@ -14,8 +14,9 @@ before_install:
   - chromedriver --version
 language: node_js
 node_js:
+  - "10"
+  - "9"
   - "8"
-  - "7"
 script:
   - npm run lint
   - npm test

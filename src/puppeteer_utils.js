@@ -59,6 +59,7 @@ const hideWebDriver = async (page) => {
  * @param {Page} page Puppeteer [Page](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page) object.
  * @param {String} filePath File path
  * @return {Promise}
+ * @memberof utils.puppeteer
  */
 const injectFile = async (page, filePath) => {
     checkParamOrThrow(page, 'page', 'Object');
@@ -162,6 +163,35 @@ const enqueueLinks = async (page, selector, purls, requestQueue) => {
 };
 
 /**
+ * Forces the browser tab to block loading certain page resources,
+ * using the `Page.setRequestInterception(value)` method.
+ * This is useful to speed up crawling of websites.
+ *
+ * The resource types to block can be controlled using the `resourceTypes` parameter,
+ * which indicates the types of resources as they are perceived by the rendering engine.
+ * The following resource types are currently supported:
+ * `document`, `stylesheet`, `image`, `media`, `font`, `script`, `texttrack`, `xhr`, `fetch`,
+ * `eventsource`, `websocket`, `manifest`, `other`.
+ * For more details, see Puppeteer's
+ * <a href="https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#requestresourcetype">Request.resourceType() documentation</a>.
+ *
+ * By default, the function blocks these resource types: `stylesheet`, `font`, `image`, `media`.
+ *
+ * @param {Page} page Puppeteer's `Page` object
+ * @param {Array<String>} resourceTypes Array of resource types to block.
+ * @return {Promise<void>}
+ */
+const blockResources = async (page, resourceTypes = ['stylesheet', 'font', 'image', 'media']) => {
+    await page.setRequestInterception(true);
+    page.on('request', async (request) => {
+        const type = request.resourceType();
+        if (resourceTypes.includes(type)) request.abort();
+        else request.continue();
+    });
+};
+
+
+/**
  * A namespace that contains various Puppeteer utilities.
  *
  * Example usage:
@@ -186,4 +216,5 @@ export const puppeteerUtils = {
     injectUnderscore,
     enqueueRequestsFromClickableElements,
     enqueueLinks,
+    blockResources,
 };

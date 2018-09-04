@@ -2,9 +2,10 @@ import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import sinon from 'sinon';
 import fs from 'fs';
+import path from 'path';
 import os from 'os';
-import pidusage from 'pidusage';
 import Promise from 'bluebird';
+import requestPromise from 'request-promise';
 import * as utils from '../build/utils';
 import Apify from '../build/index';
 import { ENV_VARS } from '../build/constants';
@@ -70,8 +71,8 @@ describe('utils.isProduction()', () => {
 
 describe('utils.isDocker()', () => {
     it('works for dockerenv && cgroup', () => {
-        sinon.stub(fs, 'stat').callsFake((path, callback) => callback(null));
-        sinon.stub(fs, 'readFile').callsFake((path, encoding, callback) => callback(null, 'something ... docker ... something'));
+        sinon.stub(fs, 'stat').callsFake((filePath, callback) => callback(null));
+        sinon.stub(fs, 'readFile').callsFake((filePath, encoding, callback) => callback(null, 'something ... docker ... something'));
 
         return utils
             .isDocker(true)
@@ -83,8 +84,8 @@ describe('utils.isDocker()', () => {
     });
 
     it('works for dockerenv', () => {
-        sinon.stub(fs, 'stat').callsFake((path, callback) => callback(null));
-        sinon.stub(fs, 'readFile').callsFake((path, encoding, callback) => callback(null, 'something ... ... something'));
+        sinon.stub(fs, 'stat').callsFake((filePath, callback) => callback(null));
+        sinon.stub(fs, 'readFile').callsFake((filePath, encoding, callback) => callback(null, 'something ... ... something'));
 
         return utils
             .isDocker(true)
@@ -96,8 +97,8 @@ describe('utils.isDocker()', () => {
     });
 
     it('works for cgroup', () => {
-        sinon.stub(fs, 'stat').callsFake((path, callback) => callback(new Error()));
-        sinon.stub(fs, 'readFile').callsFake((path, encoding, callback) => callback(null, 'something ... docker ... something'));
+        sinon.stub(fs, 'stat').callsFake((filePath, callback) => callback(new Error()));
+        sinon.stub(fs, 'readFile').callsFake((filePath, encoding, callback) => callback(null, 'something ... docker ... something'));
 
         return utils
             .isDocker(true)
@@ -109,8 +110,8 @@ describe('utils.isDocker()', () => {
     });
 
     it('works for nothing', () => {
-        sinon.stub(fs, 'stat').callsFake((path, callback) => callback(new Error()));
-        sinon.stub(fs, 'readFile').callsFake((path, encoding, callback) => callback(null, 'something ... ... something'));
+        sinon.stub(fs, 'stat').callsFake((filePath, callback) => callback(new Error()));
+        sinon.stub(fs, 'readFile').callsFake((filePath, encoding, callback) => callback(null, 'something ... ... something'));
 
         return utils
             .isDocker(true)
@@ -145,13 +146,13 @@ describe('utils.getMemoryInfo()', () => {
         return Apify
             .getMemoryInfo()
             .then((data) => {
-                expect(data).to.be.eql({
+                expect(data).to.include({
                     totalBytes: 333,
                     freeBytes: 222,
                     usedBytes: 111,
-                    mainProcessBytes: 111,
                     childProcessesBytes: 0,
                 });
+                expect(data.mainProcessBytes).to.be.at.least(20000000);
 
                 utilsMock.restore();
                 osMock.restore();
@@ -168,22 +169,22 @@ describe('utils.getMemoryInfo()', () => {
 
         sinon
             .stub(fs, 'readFile')
-            .callsFake((path, callback) => {
-                if (path === '/sys/fs/cgroup/memory/memory.limit_in_bytes') callback(null, '333');
-                else if (path === '/sys/fs/cgroup/memory/memory.usage_in_bytes') callback(null, '111');
+            .callsFake((filePath, callback) => {
+                if (filePath === '/sys/fs/cgroup/memory/memory.limit_in_bytes') callback(null, '333');
+                else if (filePath === '/sys/fs/cgroup/memory/memory.usage_in_bytes') callback(null, '111');
                 else throw new Error('Invalid path');
             });
 
         return Apify
             .getMemoryInfo()
             .then((data) => {
-                expect(data).to.be.eql({
+                expect(data).to.include({
                     totalBytes: 333,
                     freeBytes: 222,
                     usedBytes: 111,
-                    mainProcessBytes: 111,
                     childProcessesBytes: 0,
                 });
+                expect(data.mainProcessBytes).to.be.at.least(20000000);
 
                 utilsMock.restore();
                 fs.readFile.restore();
@@ -215,9 +216,13 @@ describe('utils.getMemoryInfo()', () => {
                 return Apify
                     .getMemoryInfo()
                     .then((data) => {
-                        expect(data.childProcessesBytes).to.be.above(0);
-                        expect(data.usedBytes).to.be.above(0);
-                        expect(data.mainProcessBytes).to.be.eql(data.usedBytes - data.childProcessesBytes);
+                        expect(data).to.include({
+                            totalBytes: 333,
+                            freeBytes: 222,
+                            usedBytes: 111,
+                        });
+                        expect(data.mainProcessBytes).to.be.at.least(20000000);
+                        expect(data.childProcessesBytes).to.be.at.least(20000000);
                         utilsMock.restore();
                         osMock.restore();
                         delete process.env[ENV_VARS.HEADLESS];
@@ -237,9 +242,9 @@ describe('utils.getMemoryInfo()', () => {
 
         sinon
             .stub(fs, 'readFile')
-            .callsFake((path, callback) => {
-                if (path === '/sys/fs/cgroup/memory/memory.limit_in_bytes') callback(null, '333');
-                else if (path === '/sys/fs/cgroup/memory/memory.usage_in_bytes') callback(null, '111');
+            .callsFake((filePath, callback) => {
+                if (filePath === '/sys/fs/cgroup/memory/memory.limit_in_bytes') callback(null, '333');
+                else if (filePath === '/sys/fs/cgroup/memory/memory.usage_in_bytes') callback(null, '111');
                 else throw new Error('Invalid path');
             });
 
@@ -248,9 +253,13 @@ describe('utils.getMemoryInfo()', () => {
                 return Apify
                     .getMemoryInfo()
                     .then((data) => {
-                        expect(data.childProcessesBytes).to.be.above(0);
-                        expect(data.usedBytes).to.be.above(0);
-                        expect(data.mainProcessBytes).to.be.eql(data.usedBytes - data.childProcessesBytes);
+                        expect(data).to.include({
+                            totalBytes: 333,
+                            freeBytes: 222,
+                            usedBytes: 111,
+                        });
+                        expect(data.mainProcessBytes).to.be.at.least(20000000);
+                        expect(data.childProcessesBytes).to.be.at.least(20000000);
                         utilsMock.restore();
                         fs.readFile.restore();
                         delete process.env[ENV_VARS.HEADLESS];
@@ -289,15 +298,6 @@ describe('utils.isAtHome()', () => {
         expect(utils.isAtHome()).to.be.eql(true);
         delete process.env[ENV_VARS.IS_AT_HOME];
         expect(utils.isAtHome()).to.be.eql(false);
-    });
-});
-
-describe('pidusage NPM package', () => {
-    it('throws correct error message when process not found', () => {
-        const NONEXISTING_PID = 9999;
-        const promise = pidusage(NONEXISTING_PID);
-
-        return expect(promise).to.be.rejectedWith(utils.PID_USAGE_NOT_FOUND_ERROR);
     });
 });
 
@@ -341,5 +341,187 @@ describe('Apify.utils.sleep()', () => {
                 const timeAfter = Date.now();
                 expect(timeAfter - timeBefore).to.be.gte(95);
             });
+    });
+});
+
+describe('Apify.utils.extractUrls()', () => {
+    const SIMPLE_URL_LIST = 'simple_url_list.txt';
+    const UNICODE_URL_LIST = 'unicode_url_list.txt';
+    const COMMA_URL_LIST = 'unicode+comma_url_list.txt';
+    const TRICKY_URL_LIST = 'tricky_url_list.txt';
+    const INVALID_URL_LIST = 'invalid_url_list.txt';
+
+    const { extractUrls, URL_WITH_COMMAS_REGEX } = utils.publicUtils;
+
+    const getURLData = (filename) => {
+        const string = fs.readFileSync(path.join(__dirname, 'data', filename), 'utf8');
+        const array = string.trim().split(/[\r\n]+/g).map(u => u.trim());
+        return { string, array };
+    };
+
+    const makeJSON = ({ string, array }) => JSON.stringify({
+        one: [{ http: string }],
+        two: array.map(url => ({ num: 123, url })),
+    });
+    const makeCSV = (array, delimiter) => array.map(url => ['ABC', 233, url, '.'].join(delimiter || ',')).join('\n');
+
+    const makeText = (array) => {
+        const text = fs.readFileSync(path.join(__dirname, 'data', 'lipsum.txt'), 'utf8').split('');
+        const ID = 'ů';
+        const maxIndex = text.length - 1;
+        array.forEach((_, index) => {
+            const indexInText = (index * 17) % maxIndex;
+            if (text[indexInText] === ID) {
+                text[indexInText + 1] = ID;
+            } else {
+                text[indexInText] = ID;
+            }
+        });
+        return array.reduce((string, url) => string.replace(ID, ` ${url} `), text.join(''));
+    };
+
+    it('extracts simple URLs', () => {
+        const { string, array } = getURLData(SIMPLE_URL_LIST);
+        const extracted = extractUrls({ string });
+        expect(extracted).to.be.eql(array);
+    });
+    it('extracts unicode URLs', () => {
+        const { string, array } = getURLData(UNICODE_URL_LIST);
+        const extracted = extractUrls({ string });
+        expect(extracted).to.be.eql(array);
+    });
+    it('extracts unicode URLs with commas', () => {
+        const { string, array } = getURLData(COMMA_URL_LIST);
+        const extracted = extractUrls({ string, urlRegExp: URL_WITH_COMMAS_REGEX });
+        expect(extracted).to.be.eql(array);
+    });
+    it('extracts tricky URLs', () => {
+        const { string, array } = getURLData(TRICKY_URL_LIST);
+        const extracted = extractUrls({ string });
+        expect(extracted).to.be.eql(array);
+    });
+    it('does not extract invalid URLs', () => {
+        const { string } = getURLData(INVALID_URL_LIST);
+        const extracted = extractUrls({ string });
+        expect(extracted).to.be.eql(['http://www.foo.bar']);
+    });
+    it('extracts simple URLs from JSON', () => {
+        const d = getURLData(SIMPLE_URL_LIST);
+        const string = makeJSON(d);
+        const extracted = extractUrls({ string });
+        expect(extracted).to.be.eql(d.array.concat(d.array));
+    });
+    it('extracts unicode URLs from JSON', () => {
+        const d = getURLData(UNICODE_URL_LIST);
+        const string = makeJSON(d);
+        const extracted = extractUrls({ string });
+        expect(extracted).to.be.eql(d.array.concat(d.array));
+    });
+    it('extracts unicode URLs with commas from JSON', () => {
+        const d = getURLData(COMMA_URL_LIST);
+        const string = makeJSON(d);
+        const extracted = extractUrls({ string, urlRegExp: URL_WITH_COMMAS_REGEX });
+        expect(extracted).to.be.eql(d.array.concat(d.array));
+    });
+    it('extracts tricky URLs from JSON', () => {
+        const d = getURLData(TRICKY_URL_LIST);
+        const string = makeJSON(d);
+        const extracted = extractUrls({ string });
+        expect(extracted).to.be.eql(d.array.concat(d.array));
+    });
+    it('does not extract invalid URLs from JSON', () => {
+        const d = getURLData(INVALID_URL_LIST);
+        const string = makeJSON(d);
+        const extracted = extractUrls({ string });
+        expect(extracted).to.be.eql(['http://www.foo.bar', 'http://www.foo.bar']);
+    });
+    it('extracts simple URLs from CSV', () => {
+        const { array } = getURLData(SIMPLE_URL_LIST);
+        const string = makeCSV(array);
+        const extracted = extractUrls({ string });
+        expect(extracted).to.be.eql(array);
+    });
+    it('extracts unicode URLs from CSV', () => {
+        const { array } = getURLData(UNICODE_URL_LIST);
+        const string = makeCSV(array);
+        const extracted = extractUrls({ string });
+        expect(extracted).to.be.eql(array);
+    });
+    it('extracts unicode URLs with commas from semicolon CSV', () => {
+        const { array } = getURLData(COMMA_URL_LIST);
+        const string = makeCSV(array, ';');
+        const extracted = extractUrls({ string, urlRegExp: URL_WITH_COMMAS_REGEX });
+        expect(extracted).to.be.eql(array);
+    });
+    it('extracts tricky URLs from CSV', () => {
+        const { array } = getURLData(TRICKY_URL_LIST);
+        const string = makeCSV(array);
+        const extracted = extractUrls({ string });
+        expect(extracted).to.be.eql(array);
+    });
+    it('does not extract invalid URLs from CSV', () => {
+        const { array } = getURLData(INVALID_URL_LIST);
+        const string = makeCSV(array);
+        const extracted = extractUrls({ string });
+        expect(extracted).to.be.eql(['http://www.foo.bar']);
+    });
+    it('extracts simple URLs from Text', () => {
+        const { array } = getURLData(SIMPLE_URL_LIST);
+        const string = makeText(array);
+        const extracted = extractUrls({ string });
+        expect(extracted).to.be.eql(array);
+    });
+    it('extracts unicode URLs from Text', () => {
+        const { array } = getURLData(UNICODE_URL_LIST);
+        const string = makeText(array);
+        const extracted = extractUrls({ string });
+        expect(extracted).to.be.eql(array);
+    });
+    it('extracts unicode URLs with commas from Text', () => {
+        const { array } = getURLData(COMMA_URL_LIST);
+        const string = makeText(array);
+        const extracted = extractUrls({ string, urlRegExp: URL_WITH_COMMAS_REGEX });
+        expect(extracted).to.be.eql(array);
+    });
+    it('extracts tricky URLs from Text', () => {
+        const { array } = getURLData(TRICKY_URL_LIST);
+        const string = makeText(array);
+        const extracted = extractUrls({ string });
+        expect(extracted).to.be.eql(array);
+    });
+    it('does not extract invalid URLs from Text', () => {
+        const { array } = getURLData(INVALID_URL_LIST);
+        const string = makeText(array);
+        const extracted = extractUrls({ string });
+        expect(extracted).to.be.eql(['http://www.foo.bar']);
+    });
+});
+
+describe('Apify.utils.downloadListOfUrls()', () => {
+    const { downloadListOfUrls } = utils.publicUtils;
+    let stub;
+    beforeEach(() => {
+        stub = sinon.stub(requestPromise, 'get');
+    });
+    afterEach(() => {
+        requestPromise.get.restore();
+    });
+
+    it('downloads a list of URLs', () => {
+        const text = fs.readFileSync(path.join(__dirname, 'data', 'simple_url_list.txt'), 'utf8');
+        const arr = text.trim().split(/[\r\n]+/g).map(u => u.trim());
+        stub.resolves(text);
+
+        return expect(downloadListOfUrls({
+            url: 'nowhere',
+        })).to.eventually.deep.equal(arr);
+    });
+});
+
+describe('Apify.utils.getRandomUserAgent()', () => {
+    it('works', () => {
+        const agent = utils.publicUtils.getRandomUserAgent();
+        expect(agent).to.be.a('string');
+        expect(agent.length).to.not.be.eql(0);
     });
 });

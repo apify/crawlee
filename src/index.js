@@ -1,8 +1,9 @@
 import log from 'apify-shared/log';
 import { ENV_VARS } from './constants';
-import { main, readyFreddy, getEnv, call, getApifyProxyUrl } from './actor';
+import { main, getEnv, call, getApifyProxyUrl } from './actor';
 import AutoscaledPool from './autoscaled_pool';
 import BasicCrawler from './basic_crawler';
+import CheerioCrawler from './cheerio_crawler';
 import { pushData, openDataset } from './dataset';
 import events, { initializeEvents, stopEvents } from './events';
 import { getValue, setValue, openKeyValueStore } from './key_value_store';
@@ -43,7 +44,6 @@ module.exports = {
     main,
     getEnv,
     call,
-    readyFreddy,
     getMemoryInfo,
     getApifyProxyUrl,
     isAtHome,
@@ -54,6 +54,9 @@ module.exports = {
 
     // Basic crawler
     BasicCrawler,
+
+    // Cheerio crawler
+    CheerioCrawler,
 
     // Dataset
     pushData,
@@ -92,5 +95,6 @@ module.exports = {
     // utils
     utils: Object.assign(publicUtils, {
         puppeteer: puppeteerUtils,
+        log,
     }),
 };

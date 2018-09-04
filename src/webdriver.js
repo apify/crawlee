@@ -248,7 +248,7 @@ await browser.close();
 ```
  */
 
-// TODO: browse() is only kept for backwards compatibility, get rid of it after no acts are using it!
+// TODO: browse() is only kept for backwards compatibility, get rid of it after no actors are using it!
 
 /**
  * Opens a new web browser, which is attached to Apify debugger so that snapshots are sent to Run console (TODO).
@@ -268,7 +268,7 @@ export const browse = (url, options) => {
     const args = processBrowseArgs(url, options);
     const browser = new Browser(args.options);
 
-    return browser._initialize()
+    return browser._initialize() // eslint-disable-line no-underscore-dangle
         .then(() => {
             return browser.webDriver.get(args.options.url);
         })
@@ -287,11 +287,11 @@ export const browse = (url, options) => {
  *
  * To use this function, you need to have Google Chrome and
  * <a href="https://sites.google.com/a/chromium.org/chromedriver/" target="_blank">ChromeDriver</a> installed in your environment.
- * For example, you can use the `apify/actor-node-chrome` base Docker image for your act - see
+ * For example, you can use the `apify/actor-node-chrome` base Docker image for your actor - see
  * <a href="https://www.apify.com/docs/actor#base-images" target="_blank">documentation</a>
  * for more details.
  *
- * For an example of usage, see the <a href="https://www.apify.com/apify/example-selenium">apify/example-selenium</a> act.
+ * For an example of usage, see the <a href="https://www.apify.com/apify/example-selenium">apify/example-selenium</a> actor.
  *
  * @param {Object} [opts] Optional settings passed to `puppeteer.launch()`. Additionally the object can contain the following fields:
  * @param {String} [opts.proxyUrl] - URL to a proxy server. Currently only `http://` scheme is supported.
@@ -313,7 +313,7 @@ export const launchWebDriver = (opts) => {
     const browser = new Browser(args.options);
 
     // NOTE: eventually get rid of the Browser class
-    return browser._initialize()
+    return browser._initialize() // eslint-disable-line no-underscore-dangle
         .then(() => {
             // TODO: for some reason this doesn't work, the proxy chain will never shut down!!
             //       BTW this also prevents us from upgrading to mocha 4+

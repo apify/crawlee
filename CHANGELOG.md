@@ -1,3 +1,60 @@
+0.6.3 / 2018-08-24
+==================
+- Fixed persistent deprecation warning of `pageOpsTimeoutMillis`.
+- Moved `cheerio` to dependencies.
+- Fixed `keepDuplicateUrls` errors with persistent RequestList.
+
+0.6.2 / 2018-08-23
+===================
+- Added `getInfo()` method to Dataset to get meta-information about a dataset.
+- Added CheerioCrawler, a specialized class for crawling the web using `cheerio`.
+- Added `keepDuplicateUrls` option to RequestList to allow duplicate URLs.
+- Added `.abort()` method to all Crawler classes to enable stopping the crawl programmatically.
+- Deprecated `pageOpsTimeoutMillis` option. Use `handlePageTimeoutSecs`.
+- Bluebird promises are being phased out of `apify` in favor of `async-await`.
+- Added `log` to `Apify.utils` to improve logging experience.
+
+0.6.1 / 2018-08-17
+===================
+- Replaced git-hosted version of our fork of ps-tree with @apify/ps-tree package
+- Removed old unused Apify.readyFreddy() function
+
+0.6.0 / 2018-08-17
+===================
+- Improved logging of URL and port in `PuppeteerLiveViewBrowser`.
+- PuppeteerCrawler's default page load timeout changed from 30 to 60 seconds.
+- Added `Apify.utils.puppeteer.blockResources()` function
+- More efficient implementation of `getMemoryInfo` function
+- Puppeteer upgraded to 1.7.0
+- Upgraded NPM dependencies
+- Dropped support for Node 7
+
+0.5.51 / 2018-08-09
+===================
+- Fixed unresponsive magnifying glass and improved status tracking in LiveView frontend
+
+0.5.50 / 2018-08-06
+===================
+- Fixed invalid URL parsing in RequestList.
+- Added support for non-latin language characters (unicode) in URLs.
+- Added validation of payload size and automatic chunking to `dataset.pushData()`.
+- Added support for all content types and their known extensions to `KeyValueStoreLocal`.
+
+0.5.47 / 2018-07-20
+===================
+- Puppeteer upgraded to 1.6.0.
+- Removed `pageCloseTimeoutMillis` option from `PuppeteerCrawler` since it only affects debug logging.
+
+0.5.43 / 2018-07-18
+===================
+- Bug where failed `page.close()` in `PuppeteerPool` was causing request to be retried is fixed.
+- Added `memory` parameter to `Apify.call()`.
+- Added `PuppeteerPool.retire(browser)` method allowing retire a browser before it reaches his limits. This is
+  useful when its IP address got blocked by anti-scraping protection.
+- Added option `liveView: true` to `Apify.launchPuppeteer()` that will start a live view server proving web page
+  with overview of all running Puppeteer instances and their screenshots.
+- `PuppeteerPool` now kills opened Chrome instances in `SIGINT` signal.
+
 0.5.42 / 2018-07-04
 ===================
 - Bugfix in BasicCrawler: native Promise doesn't have finally() function

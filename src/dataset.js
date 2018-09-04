@@ -6,23 +6,94 @@ import Promise from 'bluebird';
 import { leftpad } from 'apify-shared/utilities';
 import LruCache from 'apify-shared/lru_cache';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { ENV_VARS, LOCAL_EMULATION_SUBDIRS } from './constants';
+import { ENV_VARS, LOCAL_EMULATION_SUBDIRS, MAX_PAYLOAD_SIZE_BYTES } from './constants';
 import { apifyClient, ensureDirExists } from './utils';
 
 export const LOCAL_EMULATION_SUBDIR = LOCAL_EMULATION_SUBDIRS.datasets;
 export const LOCAL_FILENAME_DIGITS = 9;
 export const LOCAL_GET_ITEMS_DEFAULT_LIMIT = 250000;
 const MAX_OPENED_STORES = 1000;
+const SAFETY_BUFFER_PERCENT = 0.01 / 100; // 0.01%
 
 const writeFilePromised = Promise.promisify(fs.writeFile);
 const readFilePromised = Promise.promisify(fs.readFile);
 const readdirPromised = Promise.promisify(fs.readdir);
+const statPromised = Promise.promisify(fs.stat);
 const emptyDirPromised = Promise.promisify(fsExtra.emptyDir);
 
 const getLocaleFilename = index => `${leftpad(index, LOCAL_FILENAME_DIGITS, 0)}.json`;
 
 const { datasets } = apifyClient;
 const datasetsCache = new LruCache({ maxLength: MAX_OPENED_STORES }); // Open Datasets are stored here.
+
+/**
+ * Accepts a JSON serializable object as an input, validates its serializability,
+ * and validates its serialized size against limitBytes. Optionally accepts its index
+ * in an array to provide better error messages. Returns serialized object.
+ *
+ * @param {Object} item
+ * @param {Number} limitBytes
+ * @param {Number} [index]
+ * @returns {string}
+ * @ignore
+ */
+export const checkAndSerialize = (item, limitBytes, index) => {
+    const s = typeof index === 'number' ? ` at index ${index} ` : ' ';
+    let payload;
+    try {
+        checkParamOrThrow(item, 'item', 'Object');
+        payload = JSON.stringify(item);
+    } catch (err) {
+        throw new Error(`Data item${s}is not serializable to JSON.\nCause: ${err.message}`);
+    }
+
+    const bytes = Buffer.byteLength(payload);
+    if (bytes > limitBytes) {
+        throw new Error(`Data item${s}is too large (size: ${bytes} bytes, limit: ${limitBytes} bytes)`);
+    }
+    return payload;
+};
+
+/**
+ * Takes an array of JSONs (payloads) as input and produces an array of JSON strings
+ * where each string is a JSON array of payloads with a maximum size of limitBytes per one
+ * JSON array. Fits as many payloads as possible into a single JSON array and then moves
+ * on to the next, preserving item order.
+ *
+ * The function assumes that none of the items is larger than limitBytes and does not validate.
+ *
+ * @param {Array} items
+ * @param {Number} limitBytes
+ * @returns {Array}
+ * @ignore
+ */
+export const chunkBySize = (items, limitBytes) => {
+    if (!items.length) return [];
+    if (items.length === 1) return items;
+
+    let lastChunkBytes = 2; // Add 2 bytes for [] wrapper.
+    const chunks = [];
+    // Split payloads into buckets of valid size.
+    for (const payload of items) { // eslint-disable-line
+        const bytes = Buffer.byteLength(payload);
+
+        if (bytes <= limitBytes && (bytes + 2) > limitBytes) {
+            // Handle cases where wrapping with [] would fail, but solo object is fine.
+            chunks.push(payload);
+            lastChunkBytes = bytes;
+        } else if (lastChunkBytes + bytes <= limitBytes) {
+            if (!Array.isArray(_.last(chunks))) chunks.push([]); // ensure array
+            _.last(chunks).push(payload);
+            lastChunkBytes += bytes + 1; // Add 1 byte for ',' separator.
+        } else {
+            chunks.push([payload]);
+            lastChunkBytes = bytes + 2; // Add 2 bytes for [] wrapper.
+        }
+    }
+
+    // Stringify array chunks.
+    return chunks.map(chunk => (typeof chunk === 'string' ? chunk : `[${chunk.join(',')}]`));
+};
 
 /**
  * @typedef {Object} PaginationList
@@ -33,15 +104,29 @@ const datasetsCache = new LruCache({ maxLength: MAX_OPENED_STORES }); // Open Da
  * @property {Number} limit - Requested limit
  */
 
+
 /**
- * The `Dataset` class provides a simple interface to the [Apify Dataset](https://www.apify.com/docs/storage#dataset) storage.
- * You should not instantiate this class directly, use the [Apify.openDataset()](#module-Apify-openDataset) function.
+ * The `Dataset` class represents an append-only data storage that is useful for saving sequential or tabular data,
+ * such as a list of e-commerce products.
+ * To create an instance of the `Dataset` class, call the [Apify.openDataset()](#module-Apify-openDataset) function.
+ *
+ * The actual data is either stored in the Apify cloud (see [Dataset storage documentation](https://www.apify.com/docs/storage#dataset),
+ * or on the local disk in the directory specified by the `APIFY_LOCAL_EMULATION_DIR` environment variable (if set).
  *
  * Example usage:
  *
  * ```javascript
- * const dataset = await Apify.openDataset('my-dataset-id');
+ * // Opens dataset called 'some-name'.
+ * const dataset = await Apify.openDataset('some-name');
+ *
+ * // Write a single row
  * await dataset.pushData({ foo: 'bar' });
+ *
+ * // Write multiple rows
+ * await dataset.pushData([
+ *   { foo: 'bar2', col2: 'val2' },
+ *   { col3: 123 },
+ * ]);
  * ```
  *
  * @param {String} datasetId - ID of the dataset.
@@ -54,18 +139,56 @@ export class Dataset {
     }
 
     /**
-     * Stores object or an array of objects in the dataset.
+     * Stores an object or an array of objects to the default dataset of the current actor run.
      * The function has no result, but throws on invalid args or other errors.
      *
-     * @return {Promise} That resolves when data gets saved into the dataset.
+     * **IMPORTANT**: Do not forget to use the `await` keyword when calling `Apify.pushData()`,
+     * otherwise the actor process might finish before the data is stored!
+     *
+     * The size of the data is limited by the receiving API and therefore `pushData` will only
+     * allow objects whose JSON representation is smaller than 9MB. When an array is passed,
+     * none of the included objects
+     * may be larger than 9MB, but the array itself may be of any size.
+     *
+     * The function internally
+     * chunks the array into separate items and pushes them sequentially.
+     * The chunking process is stable (keeps order of data), but it does not provide a transaction
+     * safety mechanism. Therefore, in case of an uploading error (after several automatic retries),
+     * the function's promise will reject and the dataset will be left in a state where some of
+     * the items have already been saved to the dataset while other items from the source array were not.
+     * To overcome this limitation, the developer may for example read the last item saved in the dataset
+     * and re-attempt the save of the data from this item onwards to prevent duplicates.
+     *
+     * @param {Object|Array} data Object or array of objects containing data to be stored in the default dataset.
+     * The objects must be serializable to JSON and the JSON representation of each object must be smaller than 9MB.
+     * @returns {Promise} Returns a promise that resolves once the data is saved.
      */
     pushData(data) {
         checkParamOrThrow(data, 'data', 'Array | Object');
+        const dispatch = payload => datasets.putItems({ datasetId: this.datasetId, data: payload });
+        const limit = MAX_PAYLOAD_SIZE_BYTES - Math.ceil(MAX_PAYLOAD_SIZE_BYTES * SAFETY_BUFFER_PERCENT);
 
-        return datasets.putItems({
-            datasetId: this.datasetId,
-            data,
-        });
+        // Handle singular Objects
+        if (!Array.isArray(data)) {
+            try {
+                const payload = checkAndSerialize(data, limit);
+                return dispatch(payload);
+            } catch (err) {
+                return Promise.reject(err);
+            }
+        }
+
+        // Handle Arrays
+        let payloads;
+        try {
+            payloads = data.map((item, index) => checkAndSerialize(item, limit, index));
+        } catch (err) {
+            return Promise.reject(err);
+        }
+        const chunks = chunkBySize(payloads, limit);
+
+        // Invoke client in series to preserve order of data
+        return Promise.mapSeries(chunks, chunk => dispatch(chunk));
     }
 
     /**
@@ -99,6 +222,30 @@ export class Dataset {
         const params = Object.assign({ datasetId }, opts);
 
         return datasets.getItems(params);
+    }
+
+    /**
+     * Returns an object containing general information about the dataset.
+     *
+     * @example
+     * {
+     *   "id": "WkzbQMuFYuamGv3YF",
+     *   "name": "d7b9MDYsbtX5L7XAj",
+     *   "userId": "wRsJZtadYvn4mBZmm",
+     *   "createdAt": "2015-12-12T07:34:14.202Z",
+     *   "modifiedAt": "2015-12-13T08:36:13.202Z",
+     *   "accessedAt": "2015-12-14T08:36:13.202Z",
+     *   "itemsCount": 0
+     * }
+     *
+     * @param opts
+     * @returns {Promise}
+     */
+    getInfo(opts = {}) {
+        const { datasetId } = this;
+        const params = Object.assign({ datasetId }, opts);
+
+        return datasets.getDataset(params);
     }
 
     /**
@@ -250,11 +397,16 @@ export class DatasetLocal {
             .then((files) => {
                 if (files.length) {
                     const lastFileNum = files.pop().split('.')[0];
-
                     this.counter = parseInt(lastFileNum, 10);
                 } else {
                     this.counter = 0;
                 }
+                return statPromised(this.localEmulationPath);
+            })
+            .then((stats) => {
+                this.createdAt = stats.birthtime;
+                this.modifiedAt = stats.mtime;
+                this.accessedAt = stats.atime;
             });
     }
 
@@ -274,7 +426,7 @@ export class DatasetLocal {
 
                     return writeFilePromised(filePath, itemStr);
                 });
-
+                this._updateMetadata(true);
                 return Promise.all(promises);
             });
     }
@@ -294,12 +446,30 @@ export class DatasetLocal {
                 return Promise.mapSeries(indexes, index => this._readAndParseFile(index));
             })
             .then((items) => {
+                this._updateMetadata();
                 return {
                     items,
                     total: this.counter,
                     offset: opts.offset,
                     count: items.length,
                     limit: opts.limit,
+                };
+            });
+    }
+
+    getInfo() {
+        return this.initializationPromise
+            .then(() => {
+                const id = this.datasetId;
+                const name = id === ENV_VARS.DEFAULT_DATASET_ID ? null : id;
+                return {
+                    id,
+                    name,
+                    userId: process.env[ENV_VARS.USER_ID] || null,
+                    createdAt: this.createdAt,
+                    modifiedAt: this.modifiedAt,
+                    accessedAt: this.accessedAt,
+                    itemsCount: this.counter,
                 };
             });
     }
@@ -350,6 +520,7 @@ export class DatasetLocal {
         return this.initializationPromise
             .then(() => emptyDirPromised(this.localEmulationPath))
             .then(() => {
+                this._updateMetadata(true);
                 datasetsCache.remove(this.datasetId);
             });
     }
@@ -373,7 +544,16 @@ export class DatasetLocal {
         const filePath = path.join(this.localEmulationPath, getLocaleFilename(index));
 
         return readFilePromised(filePath)
-            .then(json => JSON.parse(json));
+            .then((json) => {
+                this._updateMetadata();
+                return JSON.parse(json);
+            });
+    }
+
+    _updateMetadata(isModified) {
+        const date = new Date();
+        this.accessedAt = date;
+        if (isModified) this.modifiedAt = date;
     }
 }
 
@@ -394,18 +574,19 @@ const getOrCreateDataset = (datasetIdOrName) => {
 
 
 /**
- * Opens a dataset and returns a promise resolving to an instance of the [Dataset](#Dataset) object.
+ * Opens a dataset and returns a promise resolving to an instance of the [Dataset](#Dataset) class.
  *
- * Dataset is an append-only storage that is useful for storing sequential or tabular results.
- * For more information, see [Dataset documentation](https://www.apify.com/docs/storage#dataset).
+ * Dataset is an append-only data storage that is useful for saving sequential or tabular data,
+ * such as a list of e-commerce products.
+ * The data can be written to the dataset using the [Dataset.pushData()](#Dataset-pushData) function.
  *
  * Example usage:
  *
  * ```javascript
- * const store = await Apify.openDataset(); // Opens the default dataset of the run.
- * const storeWithName = await Apify.openDataset('some-name'); // Opens dataset with name 'some-name'.
+ * // Opens dataset called 'some-name'.
+ * const dataset = await Apify.openDataset('some-name');
  *
- * // Write a single row to dataset
+ * // Write a single row
  * await dataset.pushData({ foo: 'bar' });
  *
  * // Write multiple rows
@@ -415,13 +596,13 @@ const getOrCreateDataset = (datasetIdOrName) => {
  * ]);
  * ```
  *
- * If the `APIFY_LOCAL_EMULATION_DIR` environment variable is set, the result of this function
- * is an instance of the `DatasetLocal` class which stores the data in a local directory
- * rather than Apify cloud. This is useful for local development and debugging of your acts.
- *
- * @param {string} datasetIdOrName ID or name of the dataset to be opened. If no value is provided
- *                                 then the function opens the default dataset associated with the act run.
- * @returns {Promise<Dataset>} Returns a promise that resolves to a `Dataset` object.
+ * @param {String} datasetIdOrName
+ *   ID or name of the dataset to be opened. If no value is provided
+ *   then the function opens the default dataset associated with the actor run,
+ *   identified by the `APIFY_DEFAULT_DATASET_ID` environment variable.
+ *   The full name must be specified as `username/dataset-name`.
+ * @returns {Promise<Dataset>}
+ *   Returns a promise that resolves to an instance of the [Dataset](#Dataset) class.
  *
  * @memberof module:Apify
  * @name openDataset
@@ -466,24 +647,33 @@ export const openDataset = (datasetIdOrName) => {
 };
 
 /**
- * Stores object or an array of objects in the default dataset for the current act run using the Apify API
- * Default id of the dataset is in the `APIFY_DEFAULT_DATASET_ID` environment variable
+ * Stores an object or an array of objects to the default dataset of the current actor run.
+ * The ID of the default dataset is taken from the `APIFY_DEFAULT_DATASET_ID` environment variable.
  * The function has no result, but throws on invalid args or other errors.
  *
+ * Calling
  * ```javascript
- * await Apify.pushData(data);
+ * await Apify.pushData({ myValue: 123 });
  * ```
  *
- * The data is stored in default dataset associated with this act.
+ * is equivalent to:
+ * ```javascript
+ * const dataset = await Apify.openDataset();
+ * await dataset.pushData({ myValue: 123 });
+ * ```
  *
- * If the `APIFY_LOCAL_EMULATION_DIR` environment variable is defined, the data gets pushed into local directory.
- * This feature is useful for local development and debugging of your acts.
+ * The actual data is either stored in the Apify cloud (see [Dataset storage documentation](https://www.apify.com/docs/storage#dataset),
+ * or on the local disk in the directory specified by the `APIFY_LOCAL_EMULATION_DIR` environment variable (if set).
+ *
+ * For more information, see
+ * [Apify.openDataset()](#module-Apify-openDataset) and [Dataset.pushData()](#Dataset-pushData).
  *
  * **IMPORTANT**: Do not forget to use the `await` keyword when calling `Apify.pushData()`,
- * otherwise the act process might finish before the data is stored!
+ * otherwise the actor process might finish before the data is stored!
  *
- * @param {Object|Array} data Object or array of objects containing data to by stored in the dataset (9MB Max)
- * @returns {Promise} Returns a promise that gets resolved once data are saved.
+ * @param {Object|Array} data Object or array of objects containing data to be stored in the default dataset.
+ * The objects must be serializable to JSON and the JSON representation of each object must be smaller than 9MB.
+ * @returns {Promise} Returns a promise that resolves once the data is saved.
  *
  * @memberof module:Apify
  * @name pushData
