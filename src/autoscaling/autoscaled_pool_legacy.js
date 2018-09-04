@@ -2,9 +2,9 @@ import Promise from 'bluebird';
 import log from 'apify-shared/log';
 import _ from 'underscore';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { getMemoryInfo, isPromise, avg, isAtHome } from './utils';
-import events from './events';
-import { ACTOR_EVENT_NAMES } from './constants';
+import { getMemoryInfo, isPromise, avg, isAtHome } from '../utils';
+import events from '../events';
+import { ACTOR_EVENT_NAMES } from '../constants';
 
 // NOTE: If this is too low, getMemoryInfo() has so much overheads that it chokes the system
 const AUTOSCALE_INTERVAL_MILLIS = 1000;
@@ -178,7 +178,7 @@ export default class AutoscaledPool {
         // otherwise the auto-scaled pool cannot know what the data means
         this.cpuInfoListener = (data) => {
             this.isCpuOverloadedSnapshots = this.isCpuOverloadedSnapshots
-                .concat(data.isCpuOverloaded)
+                .concat(data._isCpuOverloaded)
                 .slice(-SCALE_DOWN_INTERVAL);
         };
         events.on(ACTOR_EVENT_NAMES.CPU_INFO, this.cpuInfoListener);

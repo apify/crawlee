@@ -2,7 +2,7 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import _ from 'underscore';
 import log from 'apify-shared/log';
 import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
-import AutoscaledPool from './autoscaled_pool';
+import AutoscaledPool from './autoscaling/autoscaled_pool';
 import RequestList from './request_list';
 import { RequestQueue, RequestQueueLocal } from './request_queue';
 
