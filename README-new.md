@@ -172,6 +172,7 @@ for your Node.js process, depending on your circumstances:
     <thead>
         <tr>
             <th>Environment variable</th>
+            <th>Local default</th>
             <th>Description</th>
         </tr>
     </thead>

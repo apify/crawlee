@@ -26,10 +26,16 @@
 
 <!-- toc -->
 
-- [Use cases](#use-cases)
-- [Quick start](#quick-start)
-- [Puppeteer](#puppeteer)
+- [Motivation](#motivation)
+- [Overview](#overview)
+- [Getting started](#getting-started)
+  * [Local standalone usage](#local-standalone-usage)
+  * [Local usage with Apify command-line interface (CLI)](#local-usage-with-apify-command-line-interface-cli)
+  * [Usage in actors on the Apify cloud platform](#usage-in-actors-on-the-apify-cloud-platform)
 - [Components](#components)
+  * [BasicCrawler](#basiccrawler)
+- [Puppeteer](#puppeteer)
+- [Components](#components-1)
   * [Storage](#storage)
     + [Key-value store](#key-value-store)
     + [Dataset](#dataset)
@@ -41,13 +47,12 @@
     + [Request List](#request-list)
     + [Puppeteer Pool](#puppeteer-pool)
     + [Puppeteer Live View](#puppeteer-live-view)
-- [Local usage](#local-usage)
 - [Promises vs. callbacks](#promises-vs-callbacks)
 - [Examples](#examples)
   * [Recursive crawling](#recursive-crawling)
   * [Crawling url list](#crawling-url-list)
   * [Call to another actor](#call-to-another-actor)
-  * [Actor used and synchronous API](#act-used-and-synchronous-api)
+  * [Actor used and synchronous API](#actor-used-and-synchronous-api)
   * [Other](#other)
 
 <!-- tocstop -->
@@ -153,7 +158,10 @@ You can use Apify SDK in any Node.js project by running:
 npm install apify
 ```
 
-However, to make the package work at its full potential,
+SDK will use local directory `./apify_storage` for key-value stores, request lists and request queues store
+their data.
+
+However, to make the package work at its full potential (use Apify Proxy, call another actors, etc.),
 you'll need to set one or more of the following environment variables
 for your Node.js process, depending on your circumstances:
 
@@ -161,59 +169,80 @@ for your Node.js process, depending on your circumstances:
     <thead>
         <tr>
             <th>Environment variable</th>
+            <th>Local default value</th>
             <th>Description</th>
         </tr>
     </thead>
     <tbody>
           <tr>
-            <td><code>APIFY_LOCAL_EMULATION_DIR</code></td>
-            <td>Defines the path to a local directory where key-value stores, request lists and request queues store their data.
-            If omitted, the package will try to use cloud storage instead and will expect that the
-            <code>APIFY_TOKEN</code> environment variable is defined.
+            <td><code>APIFY_PLATFORM_STORAGE</code></td>
+            <th></th>
+            <td>
+                Defines if key-value stores, request lists and request queues should store data in Apify cloud or local
+                directory. By default local directory is used. Use `APIFY_PLATFORM_STORAGE=1` environment variable
+                for Apify cloud.
+            </td>
+          </tr>
+          <tr>
+            <td><code>APIFY_LOCAL_STORAGE_DIR</code></td>
+            <th><code>apify_storage</code></th>
+            <td>
+                Defines the path to a local directory where key-value stores, request lists and request queues store
+                their data. If omitted, the package will try to use cloud storage instead and will expect that the
+                <code>APIFY_TOKEN</code> environment variable is defined.
             </td>
           </tr>
           <tr>
             <td><code>APIFY_TOKEN</code></td>
+            <th></th>
             <td>
-            The API token for your Apify account. It is used to access Apify APIs, e.g. to access cloud storage.
-            You can find your API token on the <a href="https://my.apify.com/account#intergrations" target="_blank">Apify - Account - Integrations</a> page.
-            If omitted, you should define <code>APIFY_LOCAL_EMULATION_DIR</code> environment variable instead.
+                The API token for your Apify account. It is used to access Apify APIs, e.g. to access cloud storage.
+                You can find your API token on the <a href="https://my.apify.com/account#intergrations" target="_blank">Apify - Account - Integrations</a> page.
+                If omitted, you should define <code>APIFY_LOCAL_STORAGE_DIR</code> environment variable instead.
             </td>
           </tr>
           <tr>
             <td><code>APIFY_PROXY_PASSWORD</code></td>
-            <td>Password to <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a> for IP address rotation.
-            If you have have an Apify account, you can find the password on the
-            <a href="https://my.apify.com/proxy" target="_blank">Proxy page</a> in the Apify app.</td>
+            <th></th>
+            <td>
+                Password to <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a> for IP address
+                rotation. If you have have an Apify account, you can find the password on the
+                <a href="https://my.apify.com/proxy" target="_blank">Proxy page</a> in the Apify app.</td>
           </tr>
           <tr>
             <td><code>APIFY_DEFAULT_KEY_VALUE_STORE_ID</code></td>
-            <td>ID of the default key-value store, where the
-            <code>Apify.getValue()</code> or <code>Apify.setValue()</code> functions store the values.
-            If you defined <code>APIFY_LOCAL_EMULATION_DIR</code>, then each value is stored as a file at
-            <code>[APIFY_LOCAL_EMULATION_DIR]/key-value-stores/[APIFY_DEFAULT_KEY_VALUE_STORE_ID]/[KEY].[EXT]</code>,
-            where <code>[KEY]</code> is the key nad <code>[EXT]</code> corresponds to the MIME content type of the value.
+            <th>default</th>
+            <td>
+                ID of the default key-value store, where the
+                <code>Apify.getValue()</code> or <code>Apify.setValue()</code> functions store the values.
+                If you defined <code>APIFY_LOCAL_STORAGE_DIR</code>, then each value is stored as a file at
+                <code>[APIFY_LOCAL_STORAGE_DIR]/key-value-stores/[APIFY_DEFAULT_KEY_VALUE_STORE_ID]/[KEY].[EXT]</code>,
+                where <code>[KEY]</code> is the key nad <code>[EXT]</code> corresponds to the MIME content type of the
+                value.
             </td>
           </tr>
           <tr>
             <td><code>APIFY_DEFAULT_DATASET_ID</code></td>
-            <td>ID of the default dataset, where the <code>Apify.pushData()</code> function store the data.
-            If you defined <code>APIFY_LOCAL_EMULATION_DIR</code>, then dataset items are stored as files at
-            <code>[APIFY_LOCAL_EMULATION_DIR]/datasets/[APIFY_DEFAULT_DATASET_ID]/[INDEX].json</code>,
-            where <code>[INDEX]</code> is a zero-based index of the item.
+            <th>default</th>
+            <td>
+                ID of the default dataset, where the <code>Apify.pushData()</code> function store the data.
+                If you defined <code>APIFY_LOCAL_STORAGE_DIR</code>, then dataset items are stored as files at
+                <code>[APIFY_LOCAL_STORAGE_DIR]/datasets/[APIFY_DEFAULT_DATASET_ID]/[INDEX].json</code>,
+                where <code>[INDEX]</code> is a zero-based index of the item.
             </td>
           </tr>
           <tr>
-            <td><code> TODO APIFY_DEFAULT_REQUEST_QUEUE_ID</code></td>
-            <td>ID of the default request queue, where the <code>Apify.to_do()</code> function stores the data.
-            If you defined <code>APIFY_LOCAL_EMULATION_DIR</code>, then request queue records are stored as files at
-            <code>[APIFY_LOCAL_EMULATION_DIR]/request-queues/[APIFY_DEFAULT_REQUEST_QUEUE_ID]/[INDEX].json</code>,
-            where <code>[INDEX]</code> is a zero-based index of the item.
+            <td><code>APIFY_DEFAULT_REQUEST_QUEUE_ID</code></td>
+            <th>default</th>
+            <td>
+                ID of the default request queue, where the <code>Apify.to_do()</code> function stores the data.
+                If you defined <code>APIFY_LOCAL_STORAGE_DIR</code>, then request queue records are stored as files at
+                <code>[APIFY_LOCAL_STORAGE_DIR]/request-queues/[APIFY_DEFAULT_REQUEST_QUEUE_ID]/[INDEX].json</code>,
+                where <code>[INDEX]</code> is a zero-based index of the item.
             </td>
           </tr>
     </tbody>
 </table>
-
 
 For the full list of environment variables used by Apify SDK, please see the
 <a href="https://www.apify.com/docs/actor#environment-variabes" target="_blank">Environment variables</a>
