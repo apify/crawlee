@@ -162,7 +162,8 @@ npm install apify
 SDK will use local directory `./apify_storage` for key-value stores, request lists and request queues to
 store their data.
 
-However, to make the package work at its full potential (use Apify Proxy, call another actors, etc.),
+However, to make the package work at its full potential (use
+<a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a>, call another actors, etc.),
 you'll need to set one or more of the following environment variables
 for your Node.js process, depending on your circumstances:
 
@@ -180,8 +181,8 @@ for your Node.js process, depending on your circumstances:
             <td></td>
             <td>
                 Defines if key-value stores, request lists and request queues should store data in Apify cloud or local
-                directory. By default local directory is used. Use `APIFY_PLATFORM_STORAGE=1` environment variable
-                for Apify cloud.
+                directory. By default local directory is used. Use <code>APIFY_PLATFORM_STORAGE=1</code>
+                environment variable for Apify cloud.
             </td>
         </tr>
         <tr>
