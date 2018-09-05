@@ -223,4 +223,31 @@ describe('Apify.utils.puppeteer', () => {
             browser.close();
         }
     });
+
+    it('compileScript() works', async () => {
+        const { compileScript } = Apify.utils.puppeteer;
+        const scriptStringGood = 'await page.goto("about:blank"); return await page.content();';
+        const scriptStringBad = 'for const while';
+        const script = compileScript(scriptStringGood);
+
+        expect(script).to.be.a('function');
+        expect(script.toString()).to.be.eql(`async ({ page, request }) => {${scriptStringGood}}`);
+
+        try {
+            compileScript(scriptStringBad);
+            throw new Error('Should fail.');
+        } catch (err) {
+            // TODO figure out why the err.message comes out empty in the logs.
+            expect(err.message).to.include('Unexpected token const');
+        }
+        const browser = await Apify.launchPuppeteer({ headless: true });
+        try {
+            const page = await browser.newPage();
+            const content = await script({ page });
+            expect(content).to.be.a('string');
+            expect(content).to.be.eql('<html><head></head><body></body></html>');
+        } finally {
+            browser.close();
+        }
+    });
 });

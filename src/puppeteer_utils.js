@@ -1,4 +1,5 @@
 import fs from 'fs';
+import vm from 'vm';
 import Promise from 'bluebird';
 import _ from 'underscore';
 import log from 'apify-shared/log';
@@ -190,6 +191,44 @@ const blockResources = async (page, resourceTypes = ['stylesheet', 'font', 'imag
     });
 };
 
+/**
+ * Compiles a Puppeteer script into an async function that may be executed at any time
+ * by providing it with the following object:
+ * ```
+ * {
+ *    page: Puppeteer.Page,
+ *    request: Apify.Request,
+ * }
+ * ```
+ * The function is compiled by using the scriptString parameter as the function's body,
+ * so any limitations to function bodies apply. Return value of the function is the return
+ * value of the function body = scriptString parameter.
+ *
+ * As a security measure, no globals such as 'process' or 'require' are accessible
+ * from within the function body. Note that the function does not provide a safe
+ * sandbox and even though globals are not easily accessible, malicious code may
+ * still execute in the main process via prototype manipulation. Therefore you
+ * should only use this function to execute sanitized or safe code.
+ *
+ * @param {String} scriptString
+ * @return {Function} async ({ page, request }) => { scriptString }
+ */
+const compileScript = (scriptString) => {
+    const funcString = `async ({ page, request }) => {${scriptString}}`;
+
+    let func;
+    try {
+        func = vm.runInNewContext(funcString, Object.create(null)); // "Secure" the context by removing prototypes.
+    } catch (err) {
+        log.exception(err, 'Cannot compile script!');
+        throw err;
+    }
+
+    if (!_.isFunction(func)) throw new Error('Compilation result is not a function!'); // This should not happen...
+
+    return func;
+};
+
 
 /**
  * A namespace that contains various Puppeteer utilities.
@@ -217,4 +256,5 @@ export const puppeteerUtils = {
     enqueueRequestsFromClickableElements,
     enqueueLinks,
     blockResources,
+    compileScript,
 };
