@@ -34,11 +34,11 @@ export default class SystemStatus {
         this.snapshotter = snapshotter || new Snapshotter();
     }
 
-    isNotOverloaded() {
+    isOk() {
         return !this._isOverloaded(this.sampleDurationMillis);
     }
 
-    isNeverOverloaded() {
+    hasBeenOkLately() {
         return !this._isOverloaded();
     }
 
