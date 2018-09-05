@@ -3,11 +3,14 @@ import { betterSetInterval, betterClearInterval } from 'apify-shared/utilities';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import Snapshotter from './snapshotter';
 import SystemStatus from './system_status';
+import log from 'apify-shared/log';
 
 const DEFAULT_OPTIONS = {
     maxConcurrency: 1000,
     minConcurrency: 1,
     desiredConcurrencyRatio: 0.95,
+    scaleUpStepRatio: 0.05,
+    scaleDownStepRatio: 0.05,
     maybeRunIntervalSecs: 0.5,
     loggingIntervalSecs: 60,
     autoscaleIntervalSecs: 10,
@@ -19,6 +22,8 @@ export default class AutoscaledPool {
             maxConcurrency,
             minConcurrency,
             desiredConcurrencyRatio,
+            scaleUpStepRatio,
+            scaleDownStepRatio,
             maybeRunIntervalSecs,
             loggingIntervalSecs,
             autoscaleIntervalSecs,
@@ -32,18 +37,22 @@ export default class AutoscaledPool {
         checkParamOrThrow(maxConcurrency, 'options.maxConcurrency', 'Number');
         checkParamOrThrow(minConcurrency, 'options.minConcurrency', 'Number');
         checkParamOrThrow(desiredConcurrencyRatio, 'options.desiredConcurrencyRatio', 'Number');
+        checkParamOrThrow(scaleUpStepRatio, 'options.scaleUpStepRatio', 'Number');
+        checkParamOrThrow(scaleDownStepRatio, 'options.scaleDownStepRatio', 'Number');
         checkParamOrThrow(maybeRunIntervalSecs, 'options.maybeRunIntervalSecs', 'Number');
         checkParamOrThrow(loggingIntervalSecs, 'options.loggingIntervalSecs', 'Number');
         checkParamOrThrow(autoscaleIntervalSecs, 'options.autoscaleIntervalSecs', 'Number');
         checkParamOrThrow(runTaskFunction, 'options.runTaskFunction', 'Function');
-        checkParamOrThrow(isFinishedFunction, 'options.isFinishedFunction', 'Maybe Function');
-        checkParamOrThrow(isTaskReadyFunction, 'options.isTaskReadyFunction', 'Maybe Function');
+        checkParamOrThrow(isFinishedFunction, 'options.isFinishedFunction', 'Function');
+        checkParamOrThrow(isTaskReadyFunction, 'options.isTaskReadyFunction', 'Function');
         checkParamOrThrow(systemStatusOptions, 'options.systemStatusOptions', 'Maybe Object');
         checkParamOrThrow(snapshotterOptions, 'options.snapshotterOptions', 'Maybe Object');
 
         this.maxConcurrency = maxConcurrency;
         this.minConcurrency = minConcurrency;
         this.desiredConcurrencyRatio = desiredConcurrencyRatio;
+        this.scaleUpStepRatio = scaleUpStepRatio;
+        this.scaleDownStepRatio = scaleDownStepRatio;
         this.maybeRunIntervalMillis = maybeRunIntervalSecs * 1000;
         this.loggingIntervalMillis = loggingIntervalSecs * 1000;
         this.autoscaleIntervalMillis = autoscaleIntervalSecs * 1000;
@@ -82,17 +91,74 @@ export default class AutoscaledPool {
 
     }
 
-    _autoscale(intervalCallback) {
-        const isSystemOk = this.systemStatus.isOk();
-        const canWeScaleUp = this.desiredConcurrency < this.maxConcurrency;
-        const shouldWeScaleUp = Math.max(this.desiredConcurrency * )
-        if (isSystemOk) {
-            this.desiredConcurrency++;
+    async _maybeRunTask(intervalCallback) {
+        // Check if the function was invoked by the maybeRunInterval and use an empty function if not.
+        const done = intervalCallback || (() => {});
+
+        // Only run task if: (return fast to avoid unnecessary operations)
+        // - we're not already querying for a task
+        if (this.queryingIsTaskReady) return done();
+        // - we will not exceed desired concurrency.
+        if (this.currentConcurrency >= this.desiredConcurrency) return done();
+        // - system is not overloaded now
+        if (!this.systemStatus.isOk()) return done();
+        // - a task is ready.
+        this.queryingIsTaskReady = true;
+        let isTaskReady;
+        try {
+            isTaskReady = await this.isTaskReadyFunction();
+        } catch (err) {
+            log.exception(err, 'AutoscaledPool: isTaskReadyFunction failed');
+        } finally {
+            this.queryingIsTaskReady = false;
+        }
+        if (!isTaskReady) {
+            done();
+            // No tasks could mean that we're finished with all tasks.
+            return this._maybeFinish();
+        }
+
+        // Everything's fine. Run task.
+        try {
+            this.currentConcurrency++;
+            await this.runTaskFunction();
+        } finally {
+            this.currentConcurrency--;
         }
     }
 
-    _maybeRunTask(intervalCallback) {
+    _autoscale(intervalCallback) {
+        // Only scale up if: (can't return fast because we need to check for scaling down too)
+        // - system has not been overloaded lately.
+        const isSystemOk = this.systemStatus.hasBeenOkLately();
+        // - we're not already at max concurrency.
+        const canWeScaleUp = this.desiredConcurrency < this.maxConcurrency;
+        // - current concurrency reaches at least the given ratio of desired concurrency.
+        const minCurrentConcurrency = Math.floor(this.desiredConcurrency * this.desiredConcurrencyRatio);
+        const shouldWeScaleUp = this.currentConcurrency >= minCurrentConcurrency;
 
+        if (isSystemOk && canWeScaleUp && shouldWeScaleUp) this._scaleUp();
+
+        // Always scale down if:
+        // - the system has been overloaded lately.
+        const isSystemOverloaded = !isSystemOk;
+        // - we're over min concurrency.
+        const canWeScaleDown = this.desiredConcurrency > this.minConcurrency;
+
+        if (isSystemOverloaded && canWeScaleDown) this._scaleDown();
+
+        // Start a new interval cycle.
+        intervalCallback();
+    }
+
+    _scaleUp() {
+        const step = Math.ceil(this.desiredConcurrency * this.scaleUpStepRatio);
+        this.desiredConcurrency = Math.max(this.maxConcurrency, this.desiredConcurrency + step);
+    }
+
+    _scaleDown() {
+        const step = Math.ceil(this.desiredConcurrency * this.scaleUpStepRatio);
+        this.desiredConcurrency = Math.min(this.minConcurrency, this.desiredConcurrency - step);
     }
 
     _maybeFinish() {
