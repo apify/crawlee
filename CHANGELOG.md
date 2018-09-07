@@ -1,3 +1,7 @@
+0.6.4 / 2018-09-05
+==================
+- Added `compileScript()` function to `utils.puppeteer` to enable use of external scripts at runtime.
+
 0.6.3 / 2018-08-24
 ==================
 - Fixed persistent deprecation warning of `pageOpsTimeoutMillis`.

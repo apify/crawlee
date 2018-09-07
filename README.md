@@ -521,7 +521,7 @@ For more information see complete <a href="https://www.apify.com/docs/sdk/apify-
 
 #### Autoscaled Pool
 
-This class manages a pool of asynchronous resource-intensive tasks that are executed in parallel. The pool only starts new tasks if there is enough free memory and CPU capacity. The information about the CPU and memory usage is obtained either from the local system or from the Apify cloud infrastructure in case the process is running on the Apify Actor platform.
+This class manages a pool of asynchronous resource-intensive tasks that are executed in parallel. The pool only starts new tasks if there is enough free memory and CPU capacity. The information about the CPU and memory usage is obtained either from the local system or from the Apify cloud infrastructure in case the process is running on the Apify actor platform.
 
 ```javascript
 const pool = new Apify.AutoscaledPool({
@@ -781,7 +781,7 @@ These examples show how to scrape data from a fix list of urls using
 
 ### Call to another actor
 
-This example shows how to call another actor on Apify platform - in this case `apify/send-mail`
+This example shows how to call another actor on the Apify platform - in this case `apify/send-mail`
 to send email.
 
 <a href="https://github.com/apifytech/apify-js/tree/master/examples/call_another_act.js">Check source code here</a>
@@ -790,7 +790,7 @@ to send email.
 
 This example shows an actor that has short runtime - just few seconds. It opens a webpage
 http://goldengatebridge75.org/news/webcam.html that contains webcam stream from Golden Gate
-bridge, takes a screenshot and saves it as output. This makes actor executable on Apify platform
+bridge, takes a screenshot and saves it as output. This makes the actor executable on Apify platform
 synchronously with a single request that also returns its output.
 
 Example is shared in library under https://www.apify.com/apify/example-golden-gate-webcam
