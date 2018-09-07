@@ -26,10 +26,16 @@
 
 <!-- toc -->
 
-- [Use cases](#use-cases)
-- [Quick start](#quick-start)
-- [Puppeteer](#puppeteer)
+- [Motivation](#motivation)
+- [Overview](#overview)
+- [Getting started](#getting-started)
+  * [Local standalone usage](#local-standalone-usage)
+  * [Local usage with Apify command-line interface (CLI)](#local-usage-with-apify-command-line-interface-cli)
+  * [Usage in actors on the Apify cloud platform](#usage-in-actors-on-the-apify-cloud-platform)
 - [Components](#components)
+  * [BasicCrawler](#basiccrawler)
+- [Puppeteer](#puppeteer)
+- [Components](#components-1)
   * [Storage](#storage)
     + [Key-value store](#key-value-store)
     + [Dataset](#dataset)
@@ -41,7 +47,6 @@
     + [Request List](#request-list)
     + [Puppeteer Pool](#puppeteer-pool)
     + [Puppeteer Live View](#puppeteer-live-view)
-- [Local usage](#local-usage)
 - [Promises vs. callbacks](#promises-vs-callbacks)
 - [Examples](#examples)
   * [Recursive crawling](#recursive-crawling)

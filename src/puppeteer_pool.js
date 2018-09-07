@@ -1,6 +1,11 @@
 import _ from 'underscore';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 import log from 'apify-shared/log';
+import LinkedList from 'apify-shared/linked_list';
 import Promise from 'bluebird';
+import rimraf from 'rimraf';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { launchPuppeteer } from './puppeteer';
 
@@ -20,6 +25,20 @@ const DEFAULT_OPTIONS = {
 
     // TODO: use settingsRotator()
     launchPuppeteerFunction: launchPuppeteerOptions => launchPuppeteer(launchPuppeteerOptions),
+
+    recycleUserDataDirs: false,
+};
+
+const mkdtempAsync = Promise.promisify(fs.mkdtemp);
+const rimrafAsync = Promise.promisify(rimraf);
+const CHROME_PROFILE_PATH = path.join(os.tmpdir(), 'puppeteer_dev_profile_recycled-');
+
+// Deletes Chrome's user data directory
+const deleteUserDataDir = (userDataDir) => {
+    rimrafAsync(userDataDir)
+        .catch((err) => {
+            log.warning('Cannot delete Chrome user data directory', { errorMessage: err.message });
+        });
 };
 
 /**
@@ -36,6 +55,7 @@ class PuppeteerInstance {
         this.lastPageOpenedAt = Date.now();
         this.killed = false;
         this.childProcess = null;
+        this.recycleUserDataDir = null;
     }
 }
 
@@ -84,6 +104,17 @@ class PuppeteerInstance {
  *   Overrides the default function to launch a new `Puppeteer` instance.
  * @param {LaunchPuppeteerOptions} [options.launchPuppeteerOptions]
  *   Options used by `Apify.launchPuppeteer()` to start new Puppeteer instances.
+ * @param {Boolean} [options.recycleUserDataDirs]
+ *   Enables recycling of user data (profile) directories by Chrome instances.
+ *   When a browser instance is closed, its user data directory is not deleted but it's used by a newly opened browser instance.
+ *   This is especially useful for maintaining disk cache between browser instances, in order to increase
+ *   crawling performance and reduce proxy data usage. Still the new browser clears all cookies and local storage data to enable anonymity.
+ *
+ *   Beware that the user data directories can consume a lot of disk space.
+ *   To limit the space consumed by disk cache, pass the `--disk-cache-size=X` argument to `options.launchPuppeteerOptions.args`,
+ *   where `X` is the approximate maximum number of bytes for disk cache.
+ *
+ *   The `options.recycleUserDataDirs` has no effect if you set the `userDataDir` property of `options.launchPuppeteerOptions`.
  */
 export default class PuppeteerPool {
     constructor(opts = {}) {
@@ -102,6 +133,7 @@ export default class PuppeteerPool {
             instanceKillerIntervalMillis,
             killInstanceAfterMillis,
             launchPuppeteerOptions,
+            recycleUserDataDirs,
         } = _.defaults(opts, DEFAULT_OPTIONS);
 
         checkParamOrThrow(maxOpenPagesPerInstance, 'opts.maxOpenPagesPerInstance', 'Number');
@@ -110,12 +142,42 @@ export default class PuppeteerPool {
         checkParamOrThrow(instanceKillerIntervalMillis, 'opts.instanceKillerIntervalMillis', 'Number');
         checkParamOrThrow(killInstanceAfterMillis, 'opts.killInstanceAfterMillis', 'Number');
         checkParamOrThrow(launchPuppeteerOptions, 'opts.launchPuppeteerOptions', 'Maybe Object');
+        checkParamOrThrow(recycleUserDataDirs, 'opts.recycleUserDataDirs', 'Maybe Boolean');
+
+        let warnedAboutUserDataDir = false;
 
         // Config.
         this.maxOpenPagesPerInstance = maxOpenPagesPerInstance;
         this.retireInstanceAfterRequestCount = retireInstanceAfterRequestCount;
         this.killInstanceAfterMillis = killInstanceAfterMillis;
-        this.launchPuppeteerFunction = () => launchPuppeteerFunction(launchPuppeteerOptions);
+        this.recycledUserDataDirs = recycleUserDataDirs ? new LinkedList() : null;
+        this.launchPuppeteerFunction = async () => {
+            const options = _.clone(launchPuppeteerOptions);
+            let dirSet = false;
+
+            // If requested, use recycled user data directory
+            if (recycleUserDataDirs) {
+                if (!options.userDataDir) {
+                    options.userDataDir = this.recycledUserDataDirs.length > 0
+                        ? this.recycledUserDataDirs.removeFirst()
+                        : await mkdtempAsync(CHROME_PROFILE_PATH);
+                    dirSet = true;
+                } else if (!warnedAboutUserDataDir) {
+                    log.warning('The "recycleUserDataDirs" option has no effect when "launchPuppeteerOptions.userDataDir" is set.');
+                    warnedAboutUserDataDir = true;
+                }
+            }
+
+            const browser = await launchPuppeteerFunction(options);
+            if (dirSet) {
+                browser.recycleUserDataDir = options.userDataDir;
+
+                // Reset cookies and local storage
+                await browser._connection.send('Network.clearBrowserCookies'); // eslint-disable-line no-underscore-dangle
+                await browser._connection.send('DOMStorage.clear'); // eslint-disable-line no-underscore-dangle
+            }
+            return browser;
+        };
 
         // State.
         this.browserCounter = 0;
@@ -155,6 +217,7 @@ export default class PuppeteerPool {
                 });
 
                 instance.childProcess = browser.process();
+                instance.recycleUserDataDir = browser.recycleUserDataDir;
             })
             .catch((err) => {
                 log.exception(err, 'PuppeteerPool: Browser start failed', { id });
@@ -227,6 +290,12 @@ export default class PuppeteerPool {
             // that error `TypeError: Cannot read property 'kill' of null` was thrown.
             // Likely Chrome process wasn't started due to some error ...
             if (childProcess) childProcess.kill('SIGKILL');
+
+            if (instance.recycleUserDataDir) {
+                const dir = instance.recycleUserDataDir;
+                instance.recycleUserDataDir = null;
+                deleteUserDataDir(dir);
+            }
         }, PROCESS_KILL_TIMEOUT_MILLIS);
 
         instance
@@ -238,6 +307,13 @@ export default class PuppeteerPool {
 
                 return browser.close();
             })
+            .then(() => {
+                // Everything is okay, let the next browser reuse the user data directory
+                if (instance.recycleUserDataDir) {
+                    this.recycledUserDataDirs.add(instance.recycleUserDataDir);
+                    instance.recycleUserDataDir = null;
+                }
+            })
             .catch(err => log.exception(err, 'PuppeteerPool: cannot close the browser instance', { id }));
     }
 
@@ -246,6 +322,7 @@ export default class PuppeteerPool {
      * @ignore
      */
     _killAllInstances() {
+        // TODO: delete all dirs
         const allInstances = Object.values(this.activeInstances).concat(Object.values(this.retiredInstances));
         allInstances.forEach((instance) => {
             try {
@@ -308,6 +385,8 @@ export default class PuppeteerPool {
         clearInterval(this.instanceKillerInterval);
         process.removeListener('SIGINT', this.sigintListener);
 
+        // TODO: delete all dirs
+
         const browserPromises = _
             .values(this.activeInstances)
             .concat(_.values(this.retiredInstances))
@@ -319,7 +398,14 @@ export default class PuppeteerPool {
             });
 
         const closePromises = browserPromises.map((browserPromise) => {
-            return browserPromise.then(browser => browser.close());
+            return browserPromise
+                .then((browser) => {
+                    browser.close();
+                    return browser;
+                })
+                .then((browser) => {
+                    if (browser.recycleUserDataDir) deleteUserDataDir(browser.recycleUserDataDir);
+                });
         });
 
         return Promise

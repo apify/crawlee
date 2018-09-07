@@ -33,7 +33,7 @@ describe('PuppeteerPool', () => {
 
         const pool = new Apify.PuppeteerPool({
             maxOpenPagesPerInstance: 3,
-            abortInstanceAfterRequestCount: 5,
+            retireInstanceAfterRequestCount: 5,
         });
         const browsers = [];
 
@@ -110,7 +110,7 @@ describe('PuppeteerPool', () => {
 
         const pool = new Apify.PuppeteerPool({
             maxOpenPagesPerInstance: 3,
-            abortInstanceAfterRequestCount: 5,
+            retireInstanceAfterRequestCount: 5,
             instanceKillerIntervalMillis: 1000,
             killInstanceAfterMillis: 500,
         });
@@ -195,5 +195,25 @@ describe('PuppeteerPool', () => {
         delete process.env[ENV_VARS.PROXY_PASSWORD];
         delete process.env[ENV_VARS.PROXY_HOSTNAME];
         delete process.env[ENV_VARS.PROXY_PORT];
+    });
+
+    it('supports recycleUserDataDirs option', async () => {
+        const pool = new Apify.PuppeteerPool({
+            maxOpenPagesPerInstance: 1,
+            retireInstanceAfterRequestCount: 1,
+        });
+
+        log.setLevel(log.LEVELS.DEBUG);
+
+        const page1 = await pool.newPage();
+        await page1.goto('https://www.apify.com');
+        await page1.close();
+
+        const page2 = await pool.newPage();
+        await page2.goto('https://www.apify.com');
+        await page2.close();
+
+        // Cleanup everything.
+        await pool.destroy();
     });
 });
