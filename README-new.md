@@ -104,7 +104,13 @@ The Apify SDK package provides the following tools:
      - Enables parallel crawling of large number of web pages using headless Chrome browser
      and <a href="https://github.com/GoogleChrome/puppeteer">Puppeteer</a>.
      The pool of Chrome processes is automatically scaled up and down based on available system resources.
-    </li>
+  </li>
+  <li>
+     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerPool">PuppeteerPool</a>
+     - Provides web browser tabs for user jobs
+     from an automatically-managed pool of Chrome browser instances, with configurable browser reuse and retirement policies.
+     Supports reuse of the disk cache to speed up crawling of websites and reduce proxy bandwidth.
+  </li>
   <li>
     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList">RequestList</a>
     - Represents a list of URLs to crawl. The URLs can be provided in code or in a text file.

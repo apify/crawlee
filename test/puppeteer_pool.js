@@ -197,37 +197,105 @@ describe('PuppeteerPool', () => {
         delete process.env[ENV_VARS.PROXY_PORT];
     });
 
-    it('supports recycleUserDataDirs option', async () => {
+    it('works with one page per instance', async () => {
         const pool = new Apify.PuppeteerPool({
             maxOpenPagesPerInstance: 1,
             retireInstanceAfterRequestCount: 1,
         });
 
+        const page1 = await pool.newPage();
+        await page1.goto('about:blank');
+        const pid1 = page1.browser().process().pid;
+
+        const page2 = await pool.newPage();
+        await page2.goto('about:blank');
+        const pid2 = page2.browser().process().pid;
+
+        await page1.close();
+        await page2.close();
+
+        const page3 = await pool.newPage();
+        await page3.goto('about:blank');
+        const pid3 = page3.browser().process().pid;
+
+        await page3.close();
+
+        // Ensure we spawned 3 different processes
+        expect(pid1).not.to.be.eql(pid2);
+        expect(pid2).not.to.be.eql(pid3);
+        expect(pid3).not.to.be.eql(pid1);
+
+        // Cleanup everything.
+        await pool.destroy();
+    });
+
+    it('supports recycleUserDataDirs option', async () => {
+        const pool = new Apify.PuppeteerPool({
+            maxOpenPagesPerInstance: 1,
+            retireInstanceAfterRequestCount: 1,
+            recycleUserDataDirs: true,
+            // launchPuppeteerOptions: { headless: false },
+        });
+
         log.setLevel(log.LEVELS.DEBUG);
 
-        const page1 = await pool.newPage();
-        console.log('HERE1-1');
-        await page1.goto('https://www.apify.com');
-        console.log('HERE1-2');
+        const url = 'https://www.wikipedia.org';
 
-        const htmlLength = await page1.evaluate(() => {
-            return document.documentElement.innerHTML.length;
+        const page1 = await pool.newPage();
+        const dir1 = page1.browser().recycleUserDataDir;
+
+        // First time, nothing can come from disk cache
+        let fromDiskCache1 = 0;
+        page1.on('response', (response) => {
+            if (response._fromDiskCache) fromDiskCache1++; // eslint-disable-line no-underscore-dangle
+            // console.log(response._url + ": " + response.fromCache() + "/" + response._fromDiskCache);
         });
-        console.log('htmlLength: ' + htmlLength);
+
+        const cookies1before = await page1.cookies(url);
+        expect(cookies1before.length).to.be.eql(0);
+
+        await page1.goto(url);
+
+        expect(fromDiskCache1).to.be.eql(0);
+
+        await Apify.utils.sleep(1000);
+
+        // Need to wait a little and reload the page for browser to flush cache to disk
+        await page1.goto(`${url}?dummy=1`);
+        await Apify.utils.sleep(1000);
+
+        const cookies1after = await page1.cookies();
+        expect(cookies1after.length).to.be.at.least(1);
 
         await page1.close();
 
-        console.log('HERE1-3');
+        // Wait for browser to close
+        await Apify.utils.sleep(5000);
 
+        // User directory must be the same
         const page2 = await pool.newPage();
+        const dir2 = page2.browser().recycleUserDataDir;
+        expect(dir1).to.be.eql(dir2);
 
-        console.log('HERE2-1');
-        await page2.goto('https://www.apify.com');
-        console.log('HERE2-2');
+        // Ensure at least few assets are loaded from disk cache
+        let fromDiskCache2 = 0;
+        page2.on('response', (response) => {
+            if (response._fromDiskCache) fromDiskCache2++; // eslint-disable-line no-underscore-dangle
+        });
+
+        const cookies2before = await page2.cookies(url);
+        expect(cookies2before.length).to.be.eql(0);
+
+        await page2.goto(url);
+
+        const cookies2after = await page2.cookies(url);
+        expect(cookies2after.length).to.be.at.least(1);
+
         await page2.close();
-        console.log('HERE2-3');
+
+        expect(fromDiskCache2).to.be.at.least(1);
 
         // Cleanup everything.
-        // await pool.destroy();
+        await pool.destroy();
     });
 });

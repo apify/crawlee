@@ -12,6 +12,7 @@ import { launchPuppeteer } from './puppeteer';
 /* global process */
 
 const PROCESS_KILL_TIMEOUT_MILLIS = 5000;
+const PAGE_CLOSE_KILL_TIMEOUT_MILLIS = 1000;
 
 const DEFAULT_OPTIONS = {
     // Don't make these too large, otherwise Puppeteer might start crashing weirdly,
@@ -33,12 +34,39 @@ const mkdtempAsync = Promise.promisify(fs.mkdtemp);
 const rimrafAsync = Promise.promisify(rimraf);
 const CHROME_PROFILE_PATH = path.join(os.tmpdir(), 'puppeteer_dev_profile_recycled-');
 
-// Deletes Chrome's user data directory
+/**
+ * Deletes Chrome's user data directory
+ * @param userDataDir
+ */
 const deleteUserDataDir = (userDataDir) => {
     rimrafAsync(userDataDir)
         .catch((err) => {
             log.warning('Cannot delete Chrome user data directory', { errorMessage: err.message });
         });
+};
+
+/**
+ * Deletes all session data from Chrome's user data dir, i.e. cookies,
+ * IndexedDB data, local storage, session storage and Web SQL database.
+ */
+const deleteUserDataDirSessionState = (userDataDir) => {
+    const paths = [
+        path.join(userDataDir, '/Default/Cookies'),
+        path.join(userDataDir, '/Default/Cookies-journal'),
+        path.join(userDataDir, '/Default/IndexedDB'),
+        path.join(userDataDir, '/Default/Local Storage'),
+        path.join(userDataDir, '/Default/Session Storage'),
+        path.join(userDataDir, '/Default/databases'),
+    ];
+
+    const promises = _.map(paths, (fileOrDir) => {
+        rimrafAsync(fileOrDir)
+            .catch((err) => {
+                log.warning('Error deleting session dirs from Chrome user data directory', { path: fileOrDir, errorMessage: err.message });
+            });
+    });
+
+    return Promise.all(promises);
 };
 
 /**
@@ -98,20 +126,21 @@ class PuppeteerInstance {
  * @param {Number} [options.killInstanceAfterMillis=300000]
  *   When Puppeteer instance reaches the `options.retireInstanceAfterRequestCount` limit then
  *   it is considered retired and no more tabs will be opened. After the last tab is closed the
- *   whole browser is closed too. This parameter defines a time limit for inactivity after
- *   which the browser is closed even if there are pending open tabs.
+ *   whole browser is closed too. This parameter defines a time limit between the last tab was opened and
+ *   before the browser is closed even if there are pending open tabs.
  * @param {Function} [options.launchPuppeteerFunction=launchPuppeteerOptions&nbsp;=>&nbsp;Apify.launchPuppeteer(launchPuppeteerOptions)]
  *   Overrides the default function to launch a new `Puppeteer` instance.
  * @param {LaunchPuppeteerOptions} [options.launchPuppeteerOptions]
  *   Options used by `Apify.launchPuppeteer()` to start new Puppeteer instances.
  * @param {Boolean} [options.recycleUserDataDirs]
- *   Enables recycling of user data (profile) directories by Chrome instances.
+ *   Enables recycling of user data directories by Chrome instances.
  *   When a browser instance is closed, its user data directory is not deleted but it's used by a newly opened browser instance.
  *   This is especially useful for maintaining disk cache between browser instances, in order to increase
- *   crawling performance and reduce proxy data usage. Still the new browser clears all cookies and local storage data to enable anonymity.
+ *   crawling performance and reduce proxy data usage. Note that the new browser clears all cookies,
+ *   local storage, session storage etc. to enable anonymity.
  *
  *   Beware that the user data directories can consume a lot of disk space.
- *   To limit the space consumed by disk cache, pass the `--disk-cache-size=X` argument to `options.launchPuppeteerOptions.args`,
+ *   To limit the space consumed by disk cache, you can pass the `--disk-cache-size=X` argument to `options.launchPuppeteerOptions.args`,
  *   where `X` is the approximate maximum number of bytes for disk cache.
  *
  *   The `options.recycleUserDataDirs` has no effect if you set the `userDataDir` property of `options.launchPuppeteerOptions`.
@@ -152,15 +181,19 @@ export default class PuppeteerPool {
         this.killInstanceAfterMillis = killInstanceAfterMillis;
         this.recycledUserDataDirs = recycleUserDataDirs ? new LinkedList() : null;
         this.launchPuppeteerFunction = async () => {
-            const options = _.clone(launchPuppeteerOptions);
+            const options = _.clone(launchPuppeteerOptions) || {};
             let dirSet = false;
 
             // If requested, use recycled user data directory
             if (recycleUserDataDirs) {
                 if (!options.userDataDir) {
-                    options.userDataDir = this.recycledUserDataDirs.length > 0
-                        ? this.recycledUserDataDirs.removeFirst()
-                        : await mkdtempAsync(CHROME_PROFILE_PATH);
+                    if (this.recycledUserDataDirs.length > 0) {
+                        options.userDataDir = this.recycledUserDataDirs.removeFirst();
+                        // Delete all cookies, local storage, session storage etc.
+                        await deleteUserDataDirSessionState(options.userDataDir);
+                    } else {
+                        options.userDataDir = await mkdtempAsync(CHROME_PROFILE_PATH);
+                    }
                     dirSet = true;
                 } else if (!warnedAboutUserDataDir) {
                     log.warning('The "recycleUserDataDirs" option has no effect when "launchPuppeteerOptions.userDataDir" is set.');
@@ -169,13 +202,7 @@ export default class PuppeteerPool {
             }
 
             const browser = await launchPuppeteerFunction(options);
-            if (dirSet) {
-                browser.recycleUserDataDir = options.userDataDir;
-
-                // Reset cookies and local storage
-                await browser._connection.send('Network.clearBrowserCookies'); // eslint-disable-line no-underscore-dangle
-                await browser._connection.send('DOMStorage.clear'); // eslint-disable-line no-underscore-dangle
-            }
+            if (dirSet) browser.recycleUserDataDir = options.userDataDir;
             return browser;
         };
 
@@ -197,7 +224,7 @@ export default class PuppeteerPool {
      */
     _launchInstance() {
         const id = this.browserCounter++;
-        log.debug('PuppeteerPool: launching new instance', { id });
+        log.debug('PuppeteerPool: launching new browser', { id });
 
         const browserPromise = this.launchPuppeteerFunction();
         const instance = new PuppeteerInstance(id, browserPromise);
@@ -215,12 +242,15 @@ export default class PuppeteerPool {
                 browser.on('targetdestroyed', () => {
                     instance.activePages--;
 
-                    console.log('on targetdestroyed ' + id);
-
                     if (instance.activePages === 0 && this.retiredInstances[id]) {
-                        // Run this in the next tick, otherwise page.close() for this page might fail
-                        // with "Protocol error (Target.closeTarget): Target closed."
-                        setTimeout(() => this._killInstance(instance), 0);
+                        // Run this with a delay, otherwise page.close() that initiated this 'targetdestroyed' event
+                        // might fail with "Protocol error (Target.closeTarget): Target closed."
+                        // TODO: Alternatively we could close here the first about:blank tab, which will cause
+                        // the browser to be closed immediatelly, without waiting
+                        setTimeout(() => {
+                            log.debug('PuppeteerPool: killing retired browser because it has no active pages', { id });
+                            this._killInstance(instance);
+                        }, PAGE_CLOSE_KILL_TIMEOUT_MILLIS);
                     }
                 });
 
@@ -228,7 +258,7 @@ export default class PuppeteerPool {
                 instance.recycleUserDataDir = browser.recycleUserDataDir;
             })
             .catch((err) => {
-                log.exception(err, 'PuppeteerPool: Browser start failed', { id });
+                log.exception(err, 'PuppeteerPool: browser launch failed', { id });
 
                 return this._retireInstance(instance);
             });
@@ -266,13 +296,21 @@ export default class PuppeteerPool {
 
         _.mapObject(this.retiredInstances, (instance) => {
             // Kill instances that are more than this.killInstanceAfterMillis from last opened page
-            if (Date.now() - instance.lastPageOpenedAt > this.killInstanceAfterMillis) this._killInstance(instance);
+            if (Date.now() - instance.lastPageOpenedAt > this.killInstanceAfterMillis) {
+                log.debug('PuppeteerPool: killing retired browser after period of inactivity', { id: instance.id, killInstanceAfterMillis: this.killInstanceAfterMillis }); // eslint-disable-line max-len
+                this._killInstance(instance);
+                return;
+            }
 
+            // TODO: How come this works? There is always one extra tab with about:blank open at all times!
             instance
                 .browserPromise
                 .then(browser => browser.pages())
                 .then((pages) => {
-                    if (pages.length === 0) this._killInstance(instance);
+                    if (pages.length === 0) {
+                        log.debug('PuppeteerPool: killing retired browser because it has no open tabs', { id: instance.id });
+                        this._killInstance(instance);
+                    }
                 }, (err) => {
                     log.exception(err, 'PuppeteerPool: browser.pages() failed', { id: instance.id });
                     this._killInstance(instance);
@@ -318,6 +356,7 @@ export default class PuppeteerPool {
             .then(() => {
                 // Everything is okay, let the next browser reuse the user data directory
                 if (instance.recycleUserDataDir) {
+                    log.debug('PuppeteerPool: recycling user data dir', { id, userDataDir: instance.recycleUserDataDir });
                     this.recycledUserDataDirs.add(instance.recycleUserDataDir);
                     instance.recycleUserDataDir = null;
                 }
@@ -346,7 +385,7 @@ export default class PuppeteerPool {
      *
      * @return {Promise<Puppeteer.Page>}
      */
-    newPage() {
+    async newPage() {
         let instance;
 
         _.mapObject(this.activeInstances, (inst) => {
@@ -363,27 +402,27 @@ export default class PuppeteerPool {
 
         if (instance.totalPages >= this.retireInstanceAfterRequestCount) this._retireInstance(instance);
 
-        return instance.browserPromise
-            .then(browser => browser.newPage())
-            .then((page) => {
-                page.once('error', (error) => {
-                    log.exception(error, 'PuppeteerPool: page crashed');
-                    // Swallow errors from Page.close()
-                    page.close()
-                        .catch(err => log.debug('Page.close() failed', { errorMessage: err.message, id: instance.id }));
-                });
+        try {
+            const browser = await instance.browserPromise;
+            const page = await browser.newPage();
 
-                // TODO: log console messages page.on('console', message => log.debug(`Chrome console: ${message.text}`));
-
-                return page;
-            })
-            .catch((err) => {
-                log.exception(err, 'PuppeteerPool: browser.newPage() failed', { id: instance.id });
-                this._retireInstance(instance);
-
-                // !TODO: don't throw an error but repeat newPage with some delay
-                throw err;
+            page.once('error', (error) => {
+                log.exception(error, 'PuppeteerPool: page crashed');
+                // Swallow errors from Page.close()
+                page.close()
+                    .catch(err => log.debug('Page.close() failed', { errorMessage: err.message, id: instance.id }));
             });
+
+            // TODO: log console messages page.on('console', message => log.debug(`Chrome console: ${message.text}`));
+
+            return page;
+        } catch (err) {
+            log.exception(err, 'PuppeteerPool: browser.newPage() failed', { id: instance.id });
+            this._retireInstance(instance);
+
+            // !TODO: don't throw an error but repeat newPage with some delay
+            throw err;
+        }
     }
 
     /**
@@ -394,7 +433,7 @@ export default class PuppeteerPool {
         clearInterval(this.instanceKillerInterval);
         process.removeListener('SIGINT', this.sigintListener);
 
-        // TODO: delete all dirs
+        // TODO: delete of dir doesn't seem to work!
 
         const browserPromises = _
             .values(this.activeInstances)

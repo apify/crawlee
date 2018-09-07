@@ -184,7 +184,7 @@ const enqueueLinks = async (page, selector, purls, requestQueue) => {
  */
 const blockResources = async (page, resourceTypes = ['stylesheet', 'font', 'image', 'media']) => {
     await page.setRequestInterception(true);
-    page.on('request', async (request) => {
+    page.on('request', (request) => {
         const type = request.resourceType();
         if (resourceTypes.includes(type)) request.abort();
         else request.continue();
