@@ -206,14 +206,28 @@ describe('PuppeteerPool', () => {
         log.setLevel(log.LEVELS.DEBUG);
 
         const page1 = await pool.newPage();
+        console.log('HERE1-1');
         await page1.goto('https://www.apify.com');
+        console.log('HERE1-2');
+
+        const htmlLength = await page1.evaluate(() => {
+            return document.documentElement.innerHTML.length;
+        });
+        console.log('htmlLength: ' + htmlLength);
+
         await page1.close();
 
+        console.log('HERE1-3');
+
         const page2 = await pool.newPage();
+
+        console.log('HERE2-1');
         await page2.goto('https://www.apify.com');
+        console.log('HERE2-2');
         await page2.close();
+        console.log('HERE2-3');
 
         // Cleanup everything.
-        await pool.destroy();
+        // await pool.destroy();
     });
 });

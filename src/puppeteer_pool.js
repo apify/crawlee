@@ -197,6 +197,8 @@ export default class PuppeteerPool {
      */
     _launchInstance() {
         const id = this.browserCounter++;
+        log.debug('PuppeteerPool: launching new instance', { id });
+
         const browserPromise = this.launchPuppeteerFunction();
         const instance = new PuppeteerInstance(id, browserPromise);
 
@@ -205,7 +207,7 @@ export default class PuppeteerPool {
             .then((browser) => {
                 browser.on('disconnected', () => {
                     // If instance.killed === true then we killed the instance so don't log it.
-                    if (!instance.killed) log.error('PuppeteerPool: Puppeteer sent "disconnect" event. Crashed???', { id });
+                    if (!instance.killed) log.error('PuppeteerPool: Puppeteer sent "disconnect" event. Maybe it crashed???', { id });
                     this._retireInstance(instance);
                 });
                 // This one is done manually in Puppeteerpool.newPage() so that it happens immediately.
@@ -213,7 +215,13 @@ export default class PuppeteerPool {
                 browser.on('targetdestroyed', () => {
                     instance.activePages--;
 
-                    if (instance.activePages === 0 && this.retiredInstances[id]) this._killInstance(instance);
+                    console.log('on targetdestroyed ' + id);
+
+                    if (instance.activePages === 0 && this.retiredInstances[id]) {
+                        // Run this in the next tick, otherwise page.close() for this page might fail
+                        // with "Protocol error (Target.closeTarget): Target closed."
+                        setTimeout(() => this._killInstance(instance), 0);
+                    }
                 });
 
                 instance.childProcess = browser.process();
@@ -360,8 +368,9 @@ export default class PuppeteerPool {
             .then((page) => {
                 page.once('error', (error) => {
                     log.exception(error, 'PuppeteerPool: page crashed');
-                    // Ignore errors from Page.close()
-                    page.close();
+                    // Swallow errors from Page.close()
+                    page.close()
+                        .catch(err => log.debug('Page.close() failed', { errorMessage: err.message, id: instance.id }));
                 });
 
                 // TODO: log console messages page.on('console', message => log.debug(`Chrome console: ${message.text}`));
