@@ -7,7 +7,7 @@
  * - Apify PuppeteerCrawler to scrape pages using Puppeteer in parallel.
  * - Apify Dataset to store data.
  * - Apify RequestQueue to manage dynamic queue of pending and handled requests.
- * - Puppeter to control headless Chrome browser.
+ * - Puppeteer to control headless Chrome browser.
  */
 
 const Apify = require('apify');

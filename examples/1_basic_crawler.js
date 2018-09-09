@@ -18,10 +18,10 @@ Apify.main(async () => {
     // Here we just throw some URLs into an array of sources, but the RequestList can do much more.
     const requestList = new Apify.RequestList({
         sources: [
-            { url: 'http://www.google.com/' },
-            { url: 'http://www.example.com/' },
-            { url: 'http://www.bing.com/' },
-            { url: 'http://www.wikipedia.com/' },
+            { url: 'https://www.google.com/' },
+            { url: 'https://www.example.com/' },
+            { url: 'https://www.bing.com/' },
+            { url: 'https://www.wikipedia.org/' },
         ],
     });
 
