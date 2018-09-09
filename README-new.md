@@ -261,12 +261,20 @@ For more information, view the [Apify actors quick start guide](https://www.apif
 Because examples are often the best way to explain anything, let's look at some of the above
 described features put to good use in solving various scraping challenges.
 
-All the following examples can be found in the [./examples] directory in the repository.
+All the following examples can be found in the [./examples](https://github.com/apifytech/apify-js/tree/master/examples) directory in the repository.
 
-Or just run the following command to see the Cheerio Crawler in action.
+To run the examples, just copy them into the folder where you installed Apify by using
+`npm install apify` and then run them by calling e.g.:
 ```
-node ./examples/crawler_cheerio
+node 1_basic_crawler.js
 ```
+
+Or, using the Apify CLI, you can copy the source code of one of the examples into the `main.js`
+file, created by Apify CLI and then simply call
+```
+apify run
+```
+in the project's folder.
 
 ### 1 - Load a few pages in raw HTML
 This is the most basic example of using the Apify SDK. Start with it. It explains some
