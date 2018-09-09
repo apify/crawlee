@@ -268,7 +268,7 @@ Or just run the following command to see the Cheerio Crawler in action.
 node ./examples/crawler_cheerio
 ```
 
-### 1 - Load few pages in raw HTML
+### 1 - Load a few pages in raw HTML
 This is the most basic example of using the Apify SDK. Start with it. It explains some
 essential concepts that are used throughout the SDK.
 ```javascript
