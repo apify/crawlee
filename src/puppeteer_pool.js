@@ -39,7 +39,7 @@ const DISK_CACHE_DIR = path.join(os.tmpdir(), 'puppeteer_disk_cache-');
  * @param diskCacheDir
  */
 const deleteDiskCacheDir = (diskCacheDir) => {
-    log.debug('PuppeteerPool: Deleting disk cache directory', { diskCacheDir })
+    log.debug('PuppeteerPool: Deleting disk cache directory', { diskCacheDir });
     rimrafAsync(diskCacheDir)
         .catch((err) => {
             log.warning('PuppeteerPool: Cannot delete Chrome disk cache directory', { diskCacheDir, errorMessage: err.message });
