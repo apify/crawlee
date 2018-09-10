@@ -21,41 +21,31 @@
   View the full <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest/" target="_blank">Apify SDK Programmer's Reference</a> on a separate website.
 </div>
 
-
 <!--
 ## Table of Content
 -->
 
 <!-- toc -->
-<!--
-- [Use cases](#use-cases)
-- [Quick start](#quick-start)
-- [Puppeteer](#puppeteer)
-- [Components](#components)
-  * [Storage](#storage)
-    + [Key-value store](#key-value-store)
-    + [Dataset](#dataset)
-    + [Request queue](#request-queue)
-  * [Helper Classes](#helper-classes)
-    + [Autoscaled Pool](#autoscaled-pool)
-    + [Basic Crawler](#basic-crawler)
-    + [Puppeteer Crawler](#puppeteer-crawler)
-    + [Request List](#request-list)
-    + [Puppeteer Pool](#puppeteer-pool)
-    + [Puppeteer Live View](#puppeteer-live-view)
-- [Local usage](#local-usage)
-- [Promises vs. callbacks](#promises-vs-callbacks)
+
+- [Motivation](#motivation)
+- [Overview](#overview)
+- [Getting started](#getting-started)
+  * [Local standalone usage](#local-standalone-usage)
+  * [Local usage with Apify command-line interface (CLI)](#local-usage-with-apify-command-line-interface-cli)
+  * [Usage in actors on the Apify cloud platform](#usage-in-actors-on-the-apify-cloud-platform)
 - [Examples](#examples)
-  * [Recursive crawling](#recursive-crawling)
-  * [Crawling url list](#crawling-url-list)
-  * [Call to another actor](#call-to-another-actor)
-  * [Actor used and synchronous API](#act-used-and-synchronous-api)
-  * [Other](#other)
--->
+  * [1 - Load a few pages in raw HTML](#1---load-a-few-pages-in-raw-html)
+  * [2 - Crawl a large list of URLs with Cheerio](#2---crawl-a-large-list-of-urls-with-cheerio)
+  * [3 - Recursively crawl a website using headless Chrome / Puppeteer](#3---recursively-crawl-a-website-using-headless-chrome--puppeteer)
+  * [4 - Save page screenshots into KeyValueStore](#4---save-page-screenshots-into-keyvaluestore)
+  * [5 - Run Puppeteer with Apify Proxy](#5---run-puppeteer-with-apify-proxy)
+  * [6 - Invoke another actor](#6---invoke-another-actor)
+  * [7 - Run actor as an API](#7---run-actor-as-an-api)
+- [Puppeteer live view](#puppeteer-live-view)
+- [Support](#support)
+- [Contributing](#contributing)
 
 <!-- tocstop -->
-
-
 
 <div id="include-readme-2">
 
@@ -666,6 +656,56 @@ Apify.main(async () => {
     console.log('Actor finished.');
 });
 ```
+
+## Storage
+
+Each actor run at Apify platform has assigned its default storages (key-value store, request queue and dataset). ID of these storages
+are defined by environment variables <code>APIFY_DEFAULT_KEY_VALUE_STORE_ID</code>, <code>APIFY_DEFAULT_REQUEST_QUEUE_ID</code>
+and <code>APIFY_DEFAULT_DATASET_ID</code>. If you are running actor locally then the data get stored in directory defined by
+<code>APIFY_LOCAL_EMULATION_DIR</code>.
+
+<table>
+  <thead>
+    <tr>
+      <th>Environment variable</th>
+      <th>Default value</th>
+      <th>Description</th>
+  </thead>
+  <tbody>
+    <tr>
+       <td><code>APIFY_DEFAULT_KEY_VALUE_STORE_ID</code></td>
+       <td><code>default</code></td>
+       <td>
+           ID of the default key-value store, where the
+           <code>Apify.getValue()</code> or <code>Apify.setValue()</code> functions store the values.
+           If you defined <code>APIFY_LOCAL_EMULATION_DIR</code>, then each value is stored as a file at
+           <code>[APIFY_LOCAL_EMULATION_DIR]/key_value_stores/[APIFY_DEFAULT_KEY_VALUE_STORE_ID]/[KEY].[EXT]</code>,
+           where <code>[KEY]</code> is the key nad <code>[EXT]</code> corresponds to the MIME content type of the
+           value.
+       </td>
+    </tr>
+    <tr>
+       <td><code>APIFY_DEFAULT_DATASET_ID</code></td>
+       <td><code>default</code></td>
+       <td>
+           ID of the default dataset, where the <code>Apify.pushData()</code> function store the data.
+           If you defined <code>APIFY_LOCAL_EMULATION_DIR</code>, then dataset items are stored as files at
+           <code>[APIFY_LOCAL_EMULATION_DIR]/datasets/[APIFY_DEFAULT_DATASET_ID]/[INDEX].json</code>,
+           where <code>[INDEX]</code> is a zero-based index of the item.
+       </td>
+     </tr>
+     <tr>
+       <td><code>APIFY_DEFAULT_REQUEST_QUEUE_ID</code></td>
+       <td><code>default</code></td>
+       <td>
+           ID of the default request queue (request queue opened using <code>Apify.openRequestQueue()</code> function).
+           If you defined <code>APIFY_LOCAL_EMULATION_DIR</code>, then request queue records are stored as files at
+           <code>[APIFY_LOCAL_EMULATION_DIR]/request_queues/[APIFY_DEFAULT_REQUEST_QUEUE_ID]/[INDEX].json</code>,
+           where <code>[INDEX]</code> is a zero-based index of the item.
+       </td>
+     </tr>
+   </tbody>
+ </table>
 
 ## Puppeteer live view
 
