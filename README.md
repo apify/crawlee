@@ -720,7 +720,9 @@ when you are developing your actor locally as it takes care of authentication to
         <td><code>http://localhost:4321</code></td>
         <td rowspan="2">
           Defines a HTTP port and URL under which actor may run a publicly available web server. This is used for
-          [Puppeteer Live View](#puppeteer-live-view).
+          <a href="#puppeteer-live-view">Puppeteer Live View</a>. Check
+          <a href="https://www.apify.com/docs/actor#container-web-server" target=_blank">documentation</a> for more information on
+          how to run custom web server in actor.
         </td>
     </tr>
     <tr>
