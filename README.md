@@ -209,8 +209,8 @@ for your Node.js process, depending on your circumstances:
             </td>
           </tr>
           <tr>
-            <td><code> TODO APIFY_DEFAULT_REQUEST_QUEUE_ID</code></td>
-            <td>ID of the default request queue, where the <code>Apify.to_do()</code> function stores the data.
+            <td><code>APIFY_DEFAULT_REQUEST_QUEUE_ID</code></td>
+            <td>ID of the default request queue (request queue opened using <code>Apify.openRequestQueue()</code> function).
             If you defined <code>APIFY_LOCAL_EMULATION_DIR</code>, then request queue records are stored as files at
             <code>[APIFY_LOCAL_EMULATION_DIR]/request-queues/[APIFY_DEFAULT_REQUEST_QUEUE_ID]/[INDEX].json</code>,
             where <code>[INDEX]</code> is a zero-based index of the item.
@@ -325,11 +325,10 @@ apify login
 apify push
 ```
 
-
 ### Usage in actors on the Apify cloud platform
 
-
-
+Check <a href="https://www.apify.com/docs/actor#quick-start" target="_blank">Apify actor</a> documentation to learn about actor
+development on the Apify platform.
 
 ## Components
 
