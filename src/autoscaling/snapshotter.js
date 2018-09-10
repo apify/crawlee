@@ -9,7 +9,7 @@ import events from '../events';
 const DEFAULT_OPTIONS = {
     eventLoopSnapshotIntervalSecs: 0.5,
     memorySnapshotIntervalSecs: 1,
-    samplingHistorySecs: 60,
+    snapshotHistorySecs: 60,
     maxBlockedRatio: 0.1,
     minFreeMemoryRatio: 0.7,
 };
@@ -25,7 +25,7 @@ export default class Snapshotter {
         const {
             eventLoopSnapshotIntervalSecs,
             memorySnapshotIntervalSecs,
-            samplingHistorySecs,
+            snapshotHistorySecs,
             maxBlockedRatio,
             minFreeMemoryRatio,
             maxMemoryMbytes,
@@ -33,14 +33,14 @@ export default class Snapshotter {
 
         checkParamOrThrow(eventLoopSnapshotIntervalSecs, 'options.eventLoopSnapshotIntervalSecs', 'Number');
         checkParamOrThrow(memorySnapshotIntervalSecs, 'options.memorySnapshotIntervalSecs', 'Number');
-        checkParamOrThrow(samplingHistorySecs, 'options.samplingHistorySecs', 'Number');
+        checkParamOrThrow(snapshotHistorySecs, 'options.snapshotHistorySecs', 'Number');
         checkParamOrThrow(maxBlockedRatio, 'options.maxBlockedRatio', 'Number');
         checkParamOrThrow(minFreeMemoryRatio, 'options.minFreeMemoryRatio', 'Number');
         checkParamOrThrow(maxMemoryMbytes, 'options.maxMemoryMbytes', 'Maybe Number');
 
-        this.eventLoopSnapshotIntervalSecs = eventLoopSnapshotIntervalSecs * 1000;
-        this.memorySnapshotIntervalSecs = memorySnapshotIntervalSecs * 1000;
-        this.samplingHistoryMillis = samplingHistorySecs * 1000;
+        this.eventLoopSnapshotIntervalMillis = eventLoopSnapshotIntervalSecs * 1000;
+        this.memorySnapshotIntervalMillis = memorySnapshotIntervalSecs * 1000;
+        this.snapshotHistoryMillis = snapshotHistorySecs * 1000;
         this.maxBlockedMillis = 1000 * eventLoopSnapshotIntervalSecs * maxBlockedRatio;
         this.minFreeMemoryRatio = minFreeMemoryRatio;
         if (maxMemoryMbytes) this.maxMemoryBytes = maxMemoryMbytes * 1024 * 1024;
@@ -65,15 +65,17 @@ export default class Snapshotter {
         });
 
         // Start snapshotting.
-        this.eventLoopInterval = betterSetInterval(this._snapshotEventLoop.bind(this), this.samplingIntervalMillis);
-        this.memoryInterval = betterSetInterval(this._snapshotMemory.bind(this), this.samplingIntervalMillis);
-        events.on(ACTOR_EVENT_NAMES.CPU_INFO, this._snapshotCpu.bind(this));
+        this.eventLoopInterval = betterSetInterval(this._snapshotEventLoop.bind(this), this.eventLoopSnapshotIntervalMillis);
+        this.memoryInterval = betterSetInterval(this._snapshotMemory.bind(this), this.memorySnapshotIntervalMillis);
+        if (isAtHome()) events.on(ACTOR_EVENT_NAMES.CPU_INFO, this._snapshotCpu.bind(this));
     }
 
-    stop() {
+    async stop() {
         betterClearInterval(this.eventLoopInterval);
         betterClearInterval(this.memoryInterval);
-        events.removeListener(ACTOR_EVENT_NAMES.CPU_INFO, this._snapshotCpu);
+        if (isAtHome()) events.removeListener(ACTOR_EVENT_NAMES.CPU_INFO, this._snapshotCpu);
+        // Allow event loop to unwind before stop returns.
+        await new Promise(resolve => setImmediate(resolve));
     }
 
     getMemorySample(sampleDurationMillis) {
@@ -101,6 +103,7 @@ export default class Snapshotter {
             if (latestTime - snapshot.createdAt <= sampleDurationMillis) sample.unshift(snapshot);
             else break;
         }
+        return sample;
     }
 
     async _snapshotMemory(intervalCallback) {
@@ -129,16 +132,16 @@ export default class Snapshotter {
             const now = new Date();
             this._pruneSnapshots(this.eventLoopSnapshots, now);
             const { createdAt } = this.eventLoopSnapshots[this.eventLoopSnapshots.length - 1];
-            const delta = now - createdAt;
+            const delta = now - createdAt - this.eventLoopSnapshotIntervalMillis;
 
             const snapshot = {
                 createdAt: now,
                 isOverloaded: false,
-                exceededMillis: Math.min(delta - this.maxBlockedMillis, 0),
+                exceededMillis: Math.max(delta - this.maxBlockedMillis, 0),
             };
 
             if (delta > this.maxBlockedMillis) snapshot.isOverloaded = true;
-            this.cpuSnapshots.push(snapshot);
+            this.eventLoopSnapshots.push(snapshot);
         } catch (err) {
             log.exception(err, 'Snapshotter: Event Loop snapshot failed.');
         } finally {
@@ -147,10 +150,10 @@ export default class Snapshotter {
     }
 
     _snapshotCpu(cpuInfoEvent) {
-        const remoteNow = (new Date(cpuInfoEvent.date)).getTime(); // TODO check the property really is "date"
-        this._pruneSnapshots(this.cpuSnapshots, remoteNow);
+        const createdAt = (new Date(cpuInfoEvent.createdAt));
+        this._pruneSnapshots(this.cpuSnapshots, createdAt);
         this.cpuSnapshots.push({
-            createdAt: remoteNow,
+            createdAt,
             isOverloaded: cpuInfoEvent.isCpuOverloaded,
         });
     }
@@ -159,7 +162,7 @@ export default class Snapshotter {
         let oldCount = 0;
         for (let i = 0; i < snapshots.length; i++) {
             const { createdAt } = snapshots[i];
-            if (now - createdAt > this.samplingHistoryMillis) oldCount++;
+            if (now - createdAt > this.snapshotHistoryMillis) oldCount++;
             else break;
         }
         snapshots.splice(0, oldCount);

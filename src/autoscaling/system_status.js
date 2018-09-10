@@ -69,7 +69,8 @@ export default class SystemStatus {
         for (let i = 1; i < sample.length; i++) {
             const previous = sample[i - 1];
             const current = sample[i];
-            weights.push(current.timestamp - previous.timestamp);
+            const weight = current.createdAt - previous.createdAt;
+            weights.push(weight || 1); // Prevent errors from 0ms long intervals (sync) between snapshots.
             values.push(Number(current.isOverloaded));
         }
         const wAvg = weightedAvg(values, weights);
