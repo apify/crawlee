@@ -40,7 +40,7 @@ const DISK_CACHE_DIR = path.join(os.tmpdir(), 'puppeteer_disk_cache-');
  */
 const deleteDiskCacheDir = (diskCacheDir) => {
     log.debug('PuppeteerPool: Deleting disk cache directory', { diskCacheDir });
-    rimrafAsync(diskCacheDir)
+    return rimrafAsync(diskCacheDir)
         .catch((err) => {
             log.warning('PuppeteerPool: Cannot delete Chrome disk cache directory', { diskCacheDir, errorMessage: err.message });
         });
@@ -150,6 +150,15 @@ export default class PuppeteerPool {
         checkParamOrThrow(killInstanceAfterMillis, 'opts.killInstanceAfterMillis', 'Number');
         checkParamOrThrow(launchPuppeteerOptions, 'opts.launchPuppeteerOptions', 'Maybe Object');
         checkParamOrThrow(recycleDiskCache, 'opts.recycleDiskCache', 'Maybe Boolean');
+
+        // The recycleDiskCache option is only supported in headful mode
+        // See https://bugs.chromium.org/p/chromium/issues/detail?id=882431
+        if (recycleDiskCache
+            && ((!launchPuppeteerOptions
+                || (launchPuppeteerOptions && launchPuppeteerOptions.headless)
+                || (launchPuppeteerOptions && launchPuppeteerOptions.headless === undefined && !launchPuppeteerOptions.devtools)))) {
+            log.warning('PuppeteerPool: The "recycleDiskCache" is currently only supported in headful mode. Disk cache will not be recycled.');
+        }
 
         // Config.
         this.maxOpenPagesPerInstance = maxOpenPagesPerInstance;
@@ -419,7 +428,7 @@ export default class PuppeteerPool {
                     return browser;
                 })
                 .then((browser) => {
-                    if (browser.recycleDiskCacheDir) deleteDiskCacheDir(browser.recycleDiskCacheDir);
+                    if (browser.recycleDiskCacheDir) return deleteDiskCacheDir(browser.recycleDiskCacheDir);
                 });
         });
 

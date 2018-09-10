@@ -231,7 +231,9 @@ describe('PuppeteerPool', () => {
     });
 
     it('supports recycleDiskCache option', async () => {
-        const isMacOs = false; // process.platform === 'darwin';
+        // NOTE: This feature only works in headful mode now
+        // See https://bugs.chromium.org/p/chromium/issues/detail?id=882431
+        const isMacOs = process.platform === 'darwin';
 
         const pool = new Apify.PuppeteerPool({
             maxOpenPagesPerInstance: 1,
@@ -293,8 +295,6 @@ describe('PuppeteerPool', () => {
         const cookies2after = await page2.cookies(url);
         expect(cookies2after.length).to.be.at.least(1);
 
-        // TODO: This only works in headful mode now, but must work all the time
-        // See https://bugs.chromium.org/p/chromium/issues/detail?id=882431
         if (isMacOs) {
             expect(fromDiskCache2).to.be.at.least(1);
         }
@@ -311,7 +311,6 @@ describe('PuppeteerPool', () => {
         await pool.destroy();
 
         // Check cache dirs were deleted
-        await Apify.utils.sleep(1000);
         expect(fs.existsSync(dir1)).to.be.eql(false);
         expect(fs.existsSync(dir3)).to.be.eql(false);
     });
