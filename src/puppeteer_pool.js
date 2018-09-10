@@ -426,7 +426,7 @@ export default class PuppeteerPool {
             .then(() => {
                 // Delete all cache directories
                 const promises = [];
-                while (this.recycledDiskCacheDirs.length > 0) {
+                while (this.recycledDiskCacheDirs && this.recycledDiskCacheDirs.length > 0) {
                     promises.push(deleteDiskCacheDir(this.recycledDiskCacheDirs.removeFirst()));
                 }
                 return Promise.all(promises);

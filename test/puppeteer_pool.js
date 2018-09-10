@@ -294,7 +294,6 @@ describe('PuppeteerPool', () => {
         expect(cookies2after.length).to.be.at.least(1);
 
         // TODO: This only works in headful mode now, but must work all the time
-        // See
         if (isMacOs) {
             expect(fromDiskCache2).to.be.at.least(1);
         }
