@@ -197,26 +197,26 @@ export default class CheerioCrawler {
         if (this.isRunning) return this.isRunningPromise;
 
         this.isRunning = true;
-        this.rejectOnStopPromise = new Promise((r, reject) => { this.rejectOnStop = reject; });
+        this.rejectOnAbortPromise = new Promise((r, reject) => { this.rejectOnAbort = reject; });
         try {
             this.isRunningPromise = this.basicCrawler.run();
             await this.isRunningPromise;
             this.isRunning = false;
         } catch (err) {
             this.isRunning = false; // Doing this before rejecting to make sure it's set when error handlers fire.
-            this.rejectOnStop(err);
+            this.rejectOnAbort(err);
         }
     }
 
     /**
-     * Stops the crawler by preventing crawls of additional pages and terminating the running ones.
+     * Aborts the crawler by preventing crawls of additional pages and terminating the running ones.
      *
      * @return {Promise}
      */
     async abort() {
         this.isRunning = false;
         await this.basicCrawler.abort();
-        this.rejectOnStop(new Error('CheerioCrawler: .stop() function has been called. Stopping the crawler.'));
+        this.rejectOnAbort(new Error('CheerioCrawler: .abort() function has been called. Aborting the crawler.'));
     }
 
     /**
@@ -234,9 +234,9 @@ export default class CheerioCrawler {
             createTimeoutPromise(this.handlePageTimeoutSecs * 1000, 'CheerioCrawler: handlePageFunction timed out.'),
         ]);
 
-        // rejectOnStopPromise rejects when .stop() is called or BasicCrawler throws.
+        // rejectOnAbortPromise rejects when .abort() is called or BasicCrawler throws.
         // All running pages are therefore terminated with an error to be reclaimed and retried.
-        return Promise.race([pageHandledOrTimedOutPromise, this.rejectOnStopPromise]);
+        return Promise.race([pageHandledOrTimedOutPromise, this.rejectOnAbortPromise]);
     }
 
     /**
@@ -253,7 +253,7 @@ export default class CheerioCrawler {
                 headers: request.headers,
                 strictSSL: !this.ignoreSslErrors,
             }),
-            this.rejectOnStopPromise,
+            this.rejectOnAbortPromise,
         ]);
     }
 }

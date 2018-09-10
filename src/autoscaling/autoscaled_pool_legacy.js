@@ -178,7 +178,7 @@ export default class AutoscaledPool {
         // otherwise the auto-scaled pool cannot know what the data means
         this.cpuInfoListener = (data) => {
             this.isCpuOverloadedSnapshots = this.isCpuOverloadedSnapshots
-                .concat(data._isCpuOverloaded)
+                .concat(data.isCpuOverloaded)
                 .slice(-SCALE_DOWN_INTERVAL);
         };
         events.on(ACTOR_EVENT_NAMES.CPU_INFO, this.cpuInfoListener);

@@ -151,7 +151,7 @@ export default class Snapshotter {
         this._pruneSnapshots(this.cpuSnapshots, remoteNow);
         this.cpuSnapshots.push({
             createdAt: remoteNow,
-            isOverloaded: cpuInfoEvent._isCpuOverloaded,
+            isOverloaded: cpuInfoEvent.isCpuOverloaded,
         });
     }
 

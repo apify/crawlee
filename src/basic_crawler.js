@@ -175,26 +175,26 @@ export default class BasicCrawler {
 
         this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions);
         this.isRunning = true;
-        this.rejectOnStopPromise = new Promise((r, reject) => { this.rejectOnStop = reject; });
+        this.rejectOnAbortPromise = new Promise((r, reject) => { this.rejectOnAbort = reject; });
         this.isRunningPromise = this.autoscaledPool.run();
         try {
             await this.isRunningPromise;
             this.isRunning = false;
         } catch (err) {
             this.isRunning = false; // Doing this before rejecting to make sure it's set when error handlers fire.
-            this.rejectOnStop(err);
+            this.rejectOnAbort(err);
         }
     }
 
     /**
-     * Stops the crawler by preventing additional requests and terminating the running ones.
+     * Aborts the crawler by preventing additional requests and terminating the running ones.
      *
      * @return {Promise}
      */
     async abort() {
         this.isRunning = false;
         await this.autoscaledPool.abort();
-        this.rejectOnStop(new Error('BasicCrawler: .stop() function has been called. Stopping the crawler.'));
+        this.rejectOnAbort(new Error('BasicCrawler: .abort() function has been called. Aborting the crawler.'));
     }
 
     /**
@@ -238,9 +238,9 @@ export default class BasicCrawler {
         if (!request) return;
 
         try {
-            // rejectOnStopPromise rejects when .stop() is called or AutoscaledPool throws.
+            // rejectOnAbortPromise rejects when .abort() is called or AutoscaledPool throws.
             // All running tasks are therefore terminated with an error to be reclaimed and retried.
-            await Promise.race([this.handleRequestFunction({ request }), this.rejectOnStopPromise]);
+            await Promise.race([this.handleRequestFunction({ request }), this.rejectOnAbortPromise]);
             source.markRequestHandled(request);
             this.handledRequestsCount++;
         } catch (err) {
@@ -288,7 +288,7 @@ export default class BasicCrawler {
      * @ingore
      */
     async _requestFunctionErrorHandler(error, request, source) {
-        // Handles case where the crawler was deliberately stopped.
+        // Handles case where the crawler was aborted.
         // All running requests are reclaimed and will be retried.
         if (!this.isRunning) return source.reclaimRequest(request);
 

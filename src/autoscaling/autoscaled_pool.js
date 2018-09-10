@@ -1,9 +1,9 @@
 import _ from 'underscore';
 import { betterSetInterval, betterClearInterval } from 'apify-shared/utilities';
+import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import Snapshotter from './snapshotter';
 import SystemStatus from './system_status';
-import log from 'apify-shared/log';
 
 const DEFAULT_OPTIONS = {
     maxConcurrency: 1000,
@@ -88,14 +88,14 @@ export default class AutoscaledPool {
     }
 
     abort() {
-
+        if (this.resolve) this.resolve();
     }
 
     async _maybeRunTask(intervalCallback) {
         // Check if the function was invoked by the maybeRunInterval and use an empty function if not.
         const done = intervalCallback || (() => {});
 
-        // Only run task if: (return fast to avoid unnecessary operations)
+        // Only run task if:
         // - we're not already querying for a task
         if (this.queryingIsTaskReady) return done();
         // - we will not exceed desired concurrency.
@@ -122,13 +122,18 @@ export default class AutoscaledPool {
         try {
             this.currentConcurrency++;
             await this.runTaskFunction();
+            this._maybeRunTask();
+        } catch (err) {
+            log.exception(err, 'AutoscaledPool: runTaskFunction failed');
+            // This is here because we might have already rejected this promise.
+            if (this.reject) this.reject(err);
         } finally {
             this.currentConcurrency--;
         }
     }
 
     _autoscale(intervalCallback) {
-        // Only scale up if: (can't return fast because we need to check for scaling down too)
+        // Only scale up if:
         // - system has not been overloaded lately.
         const isSystemOk = this.systemStatus.hasBeenOkLately();
         // - we're not already at max concurrency.
@@ -161,8 +166,19 @@ export default class AutoscaledPool {
         this.desiredConcurrency = Math.min(this.minConcurrency, this.desiredConcurrency - step);
     }
 
-    _maybeFinish() {
+    async _maybeFinish() {
+        if (this.queryingIsFinished) return;
+        if (this.runningCount > 0) return;
 
+        this.queryingIsFinished = true;
+        try {
+            const isFinished = await this.isFinishedFunction();
+            if (isFinished && this.resolve) this.resolve();
+        } catch (err) {
+            log.exception(err, 'AutoscaledPool: isFinishedFunction failed');
+        } finally {
+            this.queryingIsFinished = false;
+        }
     }
 
     _destroy() {

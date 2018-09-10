@@ -163,9 +163,7 @@ export const avg = arr => sum(arr) / arr.length;
  * @return {number}
  */
 export const weightedAvg = (arrValues, arrWeights) => {
-
     const result = arrValues.map((value, i) => {
-
         const weight = arrWeights[i];
         const sum = value * weight; // eslint-disable-line no-shadow
 
