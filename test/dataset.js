@@ -725,17 +725,18 @@ describe('dataset', () => {
         it('should work', () => {
             const mock = sinon.mock(utils);
 
-            delete process.env[ENV_VARS.PLATFORM_STORAGE];
+            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = LOCAL_STORAGE_DIR;
 
             mock.expects('openLocalStorage').once();
             Apify.openDataset();
 
-            process.env[ENV_VARS.PLATFORM_STORAGE] = '1';
+            delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
+            process.env[ENV_VARS.TOKEN] = 'xxx';
 
             mock.expects('openRemoteStorage').once();
             Apify.openDataset();
 
-            delete process.env[ENV_VARS.PLATFORM_STORAGE];
+            delete process.env[ENV_VARS.TOKEN];
 
             mock.verify();
             mock.restore();
@@ -745,6 +746,7 @@ describe('dataset', () => {
     describe('pushData', async () => {
         it('throws on invalid args', async () => {
             process.env[ENV_VARS.DEFAULT_DATASET_ID] = 'some-id-8';
+            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = LOCAL_STORAGE_DIR;
 
             const dataErrMsg = 'Parameter "data" of type Array | Object must be provided';
             await expect(Apify.pushData()).to.be.rejectedWith(dataErrMsg);
@@ -760,10 +762,12 @@ describe('dataset', () => {
             await expect(Apify.pushData(circularObj)).to.be.rejectedWith(jsonErrMsg);
 
             delete process.env[ENV_VARS.DEFAULT_DATASET_ID];
+            delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
         });
 
         it('throws if DEFAULT_DATASET_ID env var is not defined and we use cloud storage', async () => {
-            process.env[ENV_VARS.PLATFORM_STORAGE] = '1';
+            delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
+            process.env[ENV_VARS.TOKEN] = 'xxx';
 
             process.env[ENV_VARS.DEFAULT_DATASET_ID] = '';
             await expect(Apify.pushData({ something: 123 })).to.be.rejectedWith(Error);
@@ -771,10 +775,11 @@ describe('dataset', () => {
             delete process.env[ENV_VARS.DEFAULT_DATASET_ID];
             await expect(Apify.pushData({ something: 123 })).to.be.rejectedWith(Error);
 
-            delete process.env[ENV_VARS.PLATFORM_STORAGE];
+            delete process.env[ENV_VARS.TOKEN];
         });
 
         it('correctly stores records', async () => {
+            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = LOCAL_STORAGE_DIR;
             process.env[ENV_VARS.DEFAULT_DATASET_ID] = 'some-id-9';
 
             await Apify.pushData({ foo: 'bar' });
@@ -784,6 +789,7 @@ describe('dataset', () => {
             expect(read('some-id-9', 2)).to.be.eql({ foo: 'hotel' });
 
             delete process.env[ENV_VARS.DEFAULT_DATASET_ID];
+            delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
         });
     });
 

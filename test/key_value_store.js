@@ -160,20 +160,21 @@ describe('KeyValueStore', () => {
     });
 
     describe('Apify.openKeyValueStore', async () => {
-        it('should work', () => {
+        it('should work', async () => {
             const mock = sinon.mock(utils);
 
-            delete process.env[ENV_VARS.PLATFORM_STORAGE];
+            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = LOCAL_STORAGE_DIR;
 
             mock.expects('openLocalStorage').once();
-            Apify.openKeyValueStore();
+            await Apify.openKeyValueStore();
 
-            process.env[ENV_VARS.PLATFORM_STORAGE] = '1';
+            delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
+            process.env[ENV_VARS.TOKEN] = 'xxx';
 
             mock.expects('openRemoteStorage').once();
-            Apify.openKeyValueStore();
+            await Apify.openKeyValueStore();
 
-            delete process.env[ENV_VARS.PLATFORM_STORAGE];
+            delete process.env[ENV_VARS.TOKEN];
 
             mock.verify();
             mock.restore();
@@ -183,30 +184,30 @@ describe('KeyValueStore', () => {
     describe('getValue', async () => {
         it('throws on invalid args', async () => {
             process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID] = '1234';
+            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = LOCAL_STORAGE_DIR;
             await expect(Apify.getValue()).to.be.rejectedWith('Parameter "key" of type String must be provided');
             await expect(Apify.getValue({})).to.be.rejectedWith('Parameter "key" of type String must be provided');
             await expect(Apify.getValue('')).to.be.rejectedWith('The "key" parameter cannot be empty');
             await expect(Apify.getValue(null)).to.be.rejectedWith('Parameter "key" of type String must be provided');
+            delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
         });
 
         it('throws if APIFY_DEFAULT_KEY_VALUE_STORE_ID env var is not defined and we use cloud storage', async () => {
-            process.env[ENV_VARS.PLATFORM_STORAGE] = '1';
+            delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
+            delete process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID];
+            process.env[ENV_VARS.TOKEN] = 'xxx';
 
             const errMsg = 'The \'APIFY_DEFAULT_KEY_VALUE_STORE_ID\' environment variable is not defined';
-
-            process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID] = '';
             await expect(Apify.getValue('KEY')).to.be.rejectedWith(errMsg);
 
-            delete process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID];
-            await expect(Apify.getValue('some other key')).to.be.rejectedWith(errMsg);
-
-            delete process.env[ENV_VARS.PLATFORM_STORAGE];
+            delete process.env[ENV_VARS.TOKEN];
         });
     });
 
     describe('setValue', async () => {
         it('throws on invalid args', async () => {
             process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID] = '12345';
+            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = LOCAL_STORAGE_DIR;
             await expect(Apify.setValue()).to.be.rejectedWith('Parameter "key" of type String must be provided');
             await expect(Apify.setValue('', null)).to.be.rejectedWith('The "key" parameter cannot be empty');
             await expect(Apify.setValue('', 'some value')).to.be.rejectedWith('The "key" parameter cannot be empty');
@@ -243,6 +244,8 @@ describe('KeyValueStore', () => {
             await expect(Apify.setValue('key', 'value', { contentType: new Date() })).to.be.rejectedWith(contTypeStringErrMsg);
             await expect(Apify.setValue('key', 'value', { contentType: '' }))
                 .to.be.rejectedWith('Parameter options.contentType cannot be empty string.');
+
+            delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
         });
 
         it('throws on invalid characters in key', async () => {
@@ -262,17 +265,14 @@ describe('KeyValueStore', () => {
         });
 
         it('throws if APIFY_DEFAULT_KEY_VALUE_STORE_ID env var is not defined and we use cloud storage', async () => {
-            process.env[ENV_VARS.PLATFORM_STORAGE] = 1;
+            delete process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID];
+            delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
+            process.env[ENV_VARS.TOKEN] = 'xxx';
 
             const errMsg = 'The \'APIFY_DEFAULT_KEY_VALUE_STORE_ID\' environment variable is not defined';
-
-            process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID] = '';
             await expect(Apify.setValue('KEY', {})).to.be.rejectedWith(errMsg);
 
-            delete process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID];
-            await expect(Apify.setValue('some other key', {})).to.be.rejectedWith(errMsg);
-
-            delete process.env[ENV_VARS.PLATFORM_STORAGE];
+            delete process.env[ENV_VARS.TOKEN];
         });
 
         it('correctly adds charset to content type', async () => {

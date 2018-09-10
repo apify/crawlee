@@ -7,7 +7,7 @@ import { leftpad } from 'apify-shared/utilities';
 import LruCache from 'apify-shared/lru_cache';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, MAX_PAYLOAD_SIZE_BYTES } from './constants';
-import { apifyClient, ensureDirExists, openRemoteStorage, openLocalStorage } from './utils';
+import { apifyClient, ensureDirExists, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists } from './utils';
 
 export const LOCAL_STORAGE_SUBDIR = LOCAL_STORAGE_SUBDIRS.datasets;
 export const LOCAL_FILENAME_DIGITS = 9;
@@ -109,9 +109,9 @@ export const chunkBySize = (items, limitBytes) => {
  * such as a list of e-commerce products.
  * To create an instance of the `Dataset` class, call the [Apify.openDataset()](#module-Apify-openDataset) function.
  *
- * The actual data is either stored in the Apify cloud (see [Dataset storage documentation](https://www.apify.com/docs/storage#dataset)
- * when actor is running on Apify platform or `APIFY_PLATFORM_STORAGE=1` environment variable is set
- * or on the local disk in the directory `./apify_storage` (overridable by `APIFY_LOCAL_STORAGE_DIR` environment variable).
+ * The actual data is either stored on the local disk in the directory defined by `APIFY_LOCAL_STORAGE_DIR` environment variable if provided or
+ * in the Apify cloud (see [Dataset storage documentation](https://www.apify.com/docs/storage#dataset) when actor is running on Apify
+ * platform if `APIFY_TOKEN` environment variable is set.
  *
  * Example usage:
  *
@@ -611,10 +611,11 @@ const getOrCreateDataset = (datasetIdOrName) => {
  */
 export const openDataset = (datasetIdOrName) => {
     checkParamOrThrow(datasetIdOrName, 'datasetIdOrName', 'Maybe String');
+    ensureTokenOrLocalStorageEnvExists('dataset');
 
-    return process.env[ENV_VARS.PLATFORM_STORAGE]
-        ? openRemoteStorage(datasetIdOrName, ENV_VARS.DEFAULT_DATASET_ID, Dataset, datasetsCache, getOrCreateDataset)
-        : openLocalStorage(datasetIdOrName, ENV_VARS.DEFAULT_DATASET_ID, DatasetLocal, datasetsCache);
+    return process.env[ENV_VARS.LOCAL_STORAGE_DIR]
+        ? openLocalStorage(datasetIdOrName, ENV_VARS.DEFAULT_DATASET_ID, DatasetLocal, datasetsCache)
+        : openRemoteStorage(datasetIdOrName, ENV_VARS.DEFAULT_DATASET_ID, Dataset, datasetsCache, getOrCreateDataset);
 };
 
 /**
@@ -633,9 +634,9 @@ export const openDataset = (datasetIdOrName) => {
  * await dataset.pushData({ myValue: 123 });
  * ```
  *
- * The actual data is either stored in the Apify cloud (see [Dataset storage documentation](https://www.apify.com/docs/storage#dataset)
- * when actor is running on Apify platform or `APIFY_PLATFORM_STORAGE=1` environment variable is set
- * or on the local disk in the directory `./apify_storage` (overridable by `APIFY_LOCAL_STORAGE_DIR` environment variable) otherwise.
+ * The actual data is either stored on the local disk in the directory defined by `APIFY_LOCAL_STORAGE_DIR` environment variable if provided or
+ * in the Apify cloud (see [Dataset storage documentation](https://www.apify.com/docs/storage#dataset) when actor is running on Apify
+ * platform if `APIFY_TOKEN` environment variable is set.
  *
  * For more information, see
  * [Apify.openDataset()](#module-Apify-openDataset) and [Dataset.pushData()](#Dataset-pushData).

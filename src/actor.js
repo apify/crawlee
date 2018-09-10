@@ -426,7 +426,7 @@ export const getApifyProxyUrl = (opts = {}) => {
         session,
         password = process.env[ENV_VARS.PROXY_PASSWORD],
         hostname = process.env[ENV_VARS.PROXY_HOSTNAME] || LOCAL_ENV_VARS[ENV_VARS.PROXY_HOSTNAME],
-        port = parseInt(process.env[ENV_VARS.PROXY_PORT], 10) || LOCAL_ENV_VARS[ENV_VARS.PROXY_PORT],
+        port = parseInt(process.env[ENV_VARS.PROXY_PORT] || LOCAL_ENV_VARS[ENV_VARS.PROXY_PORT], 10),
 
         // This is used only internaly. Some other function calling this function use different naming for groups and session
         // parameters so we need to override this in error messages.

@@ -374,17 +374,18 @@ describe('RequestQueue', () => {
         it('should work', () => {
             const mock = sinon.mock(utils);
 
-            delete process.env[ENV_VARS.PLATFORM_STORAGE];
+            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = LOCAL_STORAGE_DIR;
 
             mock.expects('openLocalStorage').once();
             Apify.openRequestQueue();
 
-            process.env[ENV_VARS.PLATFORM_STORAGE] = '1';
+            delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
+            process.env[ENV_VARS.TOKEN] = 'xxx';
 
             mock.expects('openRemoteStorage').once();
             Apify.openRequestQueue();
 
-            delete process.env[ENV_VARS.PLATFORM_STORAGE];
+            delete process.env[ENV_VARS.TOKEN];
 
             mock.verify();
             mock.restore();

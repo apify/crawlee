@@ -9,7 +9,7 @@ import { KEY_VALUE_STORE_KEY_REGEX } from 'apify-shared/regexs';
 import { checkParamOrThrow, parseBody } from 'apify-client/build/utils';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS } from './constants';
 import {
-    addCharsetToContentType, apifyClient, ensureDirExists, openRemoteStorage, openLocalStorage,
+    addCharsetToContentType, apifyClient, ensureDirExists, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists,
 } from './utils';
 
 export const LOCAL_STORAGE_SUBDIR = LOCAL_STORAGE_SUBDIRS.keyValueStores;
@@ -98,9 +98,9 @@ export const maybeStringify = (value, options) => {
  * You should not instantiate this class directly, use the
  * [Apify.openKeyValueStore()](#module-Apify-openKeyValueStore) function.
  *
- * The actual data is either stored in the Apify cloud (see [Key-value stores documentation](https://www.apify.com/docs/storage#key-value-store)
- * when actor is running on Apify platform or `APIFY_PLATFORM_STORAGE=1` environment variable is set
- * or on the local disk in the directory `./apify_storage` (overridable by `APIFY_LOCAL_STORAGE_DIR` environment variable).
+ * The actual data is either stored on the local disk in the directory defined by `APIFY_LOCAL_STORAGE_DIR` environment variable if provided or
+ * in the Apify cloud (see [Key-value stores documentation](https://www.apify.com/docs/storage#key-value-store) when actor is running on Apify
+ * platform if `APIFY_TOKEN` environment variable is set.
  *
  * Example usage:
  *
@@ -352,9 +352,9 @@ const getOrCreateKeyValueStore = (storeIdOrName) => {
  * Key-value store is a simple storage for records, where each record has a unique key.
  * For more information, see [Key-value store documentation](https://www.apify.com/docs/storage#dataset).
  *
- * The actual data is either stored in the Apify cloud (see [Key-value stores documentation](https://www.apify.com/docs/storage#key-value-store)
- * when actor is running on Apify platform or `APIFY_PLATFORM_STORAGE=1` environment variable is set
- * or on the local disk in the directory `./apify_storage` (overridable by `APIFY_LOCAL_STORAGE_DIR` environment variable).
+ * The actual data is either stored on the local disk in the directory defined by `APIFY_LOCAL_STORAGE_DIR` environment variable if provided or
+ * in the Apify cloud (see [Key-value stores documentation](https://www.apify.com/docs/storage#key-value-store) when actor is running on Apify
+ * platform if `APIFY_TOKEN` environment variable is set.
  *
  * Example usage:
  *
@@ -374,10 +374,11 @@ const getOrCreateKeyValueStore = (storeIdOrName) => {
  */
 export const openKeyValueStore = (storeIdOrName) => {
     checkParamOrThrow(storeIdOrName, 'storeIdOrName', 'Maybe String');
+    ensureTokenOrLocalStorageEnvExists('key value store');
 
-    return process.env[ENV_VARS.PLATFORM_STORAGE]
-        ? openRemoteStorage(storeIdOrName, ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID, KeyValueStore, storesCache, getOrCreateKeyValueStore)
-        : openLocalStorage(storeIdOrName, ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID, KeyValueStoreLocal, storesCache);
+    return process.env[ENV_VARS.LOCAL_STORAGE_DIR]
+        ? openLocalStorage(storeIdOrName, ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID, KeyValueStoreLocal, storesCache)
+        : openRemoteStorage(storeIdOrName, ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID, KeyValueStore, storesCache, getOrCreateKeyValueStore);
 };
 
 /**
@@ -402,11 +403,11 @@ export const openKeyValueStore = (storeIdOrName) => {
  * For all other content types, the body is a raw `Buffer`.
  * If the record cannot be found, the result is null.
  *
- * If the actor is not running on Apify platform and `APIFY_PLATFORM_STORAGE=1` environment variable is not set
- * the value is read from a local directory `./apify_storage` (overridable by `APIFY_LOCAL_STORAGE_DIR` environment variable)
- * rather than the Apify key-value store cloud storage, specifically from a file that has the key as a name.
- * If file does not exists, the returned value is `null`. The file will get extension based on it's content type.
- * This feature is useful for local development and debugging of your actors.
+ * If the actor is not running on Apify platform and `APIFY_LOCAL_STORAGE_DIR` environment variable is set
+ * the value is read from a local directory rather than the Apify key-value store cloud storage, specifically
+ * from a file that has the key as a name. If file does not exists, the returned value is `null`. The file
+ * will get extension based on it's content type. This feature is useful for local development and debugging
+ * of your actors.
  *
  * @param {String} key Key of the record.
  * @returns {Promise} Returns a promise.
@@ -435,11 +436,11 @@ export const getValue = key => openKeyValueStore().then(store => store.getValue(
  * ```
  * In this case, the value must be a string or Buffer.
  *
- * If the actor is not running on Apify platform and `APIFY_PLATFORM_STORAGE=1` environment variable is not set
- * the value is written to a local directory `./apify_storage` (overridable by `APIFY_LOCAL_STORAGE_DIR` environment variable)
- * rather than the Apify key-value store cloud storage, specifically to a file that has the key as a name.
- * The file will get extension based on it's content type.
- * This feature is useful for local development and debugging of your actors.
+ * If the actor is not running on Apify platform and `APIFY_LOCAL_STORAGE_DIR` environment variable is set
+ * the value is written a local directory rather than the Apify key-value store cloud storage, specifically
+ * from a file that has the key as a name. If file does not exists, the returned value is `null`. The file
+ * will get extension based on it's content type. This feature is useful for local development and debugging
+ * of your actors.
  *
  * **IMPORTANT:** Do not forget to use the `await` keyword when calling `Apify.setValue()`,
  * otherwise the actor process might finish before the value is stored!

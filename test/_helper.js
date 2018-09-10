@@ -5,8 +5,6 @@ import { ENV_VARS } from '../build/constants';
 
 export const LOCAL_STORAGE_DIR = path.join(__dirname, '..', 'tmp', 'local-emulation-dir');
 
-process.env[ENV_VARS.LOCAL_STORAGE_DIR] = LOCAL_STORAGE_DIR;
-
 // Log unhandled rejections.
 process.on('unhandledRejection', (err) => {
     console.log('---------------------------------------------------------------------');
@@ -24,7 +22,7 @@ export const emptyLocalStorageSubdir = (subdir) => {
     fs.emptyDirSync(fullPath);
 };
 
-export const expectNotUsingLocalStorage = () => expect(process.env[ENV_VARS.PLATFORM_STORAGE]).to.be.a('undefined');
+export const expectNotUsingLocalStorage = () => expect(process.env[ENV_VARS.LOCAL_STORAGE_DIR]).to.be.a('undefined');
 
 export const expectDirEmpty = (dirPath) => {
     const content = fs.readdirSync(dirPath);

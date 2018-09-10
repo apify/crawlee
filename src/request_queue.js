@@ -10,7 +10,7 @@ import crypto from 'crypto';
 import _ from 'underscore';
 import Request from './request';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS } from './constants';
-import { ensureDirExists, apifyClient, openRemoteStorage, openLocalStorage } from './utils';
+import { ensureDirExists, apifyClient, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists } from './utils';
 
 export const LOCAL_STORAGE_SUBDIR = LOCAL_STORAGE_SUBDIRS.requestQueues;
 const MAX_OPENED_QUEUES = 1000;
@@ -766,9 +766,9 @@ const getOrCreateQueue = (queueIdOrName) => {
  * queue.reclaimRequest(request2);
  * ```
  *
- * The actual data is either stored in the Apify cloud (see [Request queue documentation](https://www.apify.com/docs/storage#queue)
- * when actor is running on Apify platform or `APIFY_PLATFORM_STORAGE=1` environment variable is set
- * or on the local disk in the directory `./apify_storage` (overridable by `APIFY_LOCAL_STORAGE_DIR` environment variable).
+ * The actual data is either stored on the local disk in the directory defined by `APIFY_LOCAL_STORAGE_DIR` environment variable if provided or
+ * in the Apify cloud (see [Request queue documentation](https://www.apify.com/docs/storage#queue) when actor is running on Apify
+ * platform if `APIFY_TOKEN` environment variable is set.
  *
  * @param {string} queueIdOrName ID or name of the request queue to be opened.
  * @returns {Promise<RequestQueue>} Returns a promise that resolves to a `RequestQueue` object. If no value is provided
@@ -782,8 +782,9 @@ const getOrCreateQueue = (queueIdOrName) => {
  */
 export const openRequestQueue = (queueIdOrName) => {
     checkParamOrThrow(queueIdOrName, 'queueIdOrName', 'Maybe String');
+    ensureTokenOrLocalStorageEnvExists('request queue');
 
-    return process.env[ENV_VARS.PLATFORM_STORAGE]
-        ? openRemoteStorage(queueIdOrName, ENV_VARS.DEFAULT_REQUEST_QUEUE_ID, RequestQueue, queuesCache, getOrCreateQueue)
-        : openLocalStorage(queueIdOrName, ENV_VARS.DEFAULT_REQUEST_QUEUE_ID, RequestQueueLocal, queuesCache);
+    return process.env[ENV_VARS.LOCAL_STORAGE_DIR]
+        ? openLocalStorage(queueIdOrName, ENV_VARS.DEFAULT_REQUEST_QUEUE_ID, RequestQueueLocal, queuesCache)
+        : openRemoteStorage(queueIdOrName, ENV_VARS.DEFAULT_REQUEST_QUEUE_ID, RequestQueue, queuesCache, getOrCreateQueue);
 };

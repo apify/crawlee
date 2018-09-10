@@ -430,6 +430,16 @@ export const openRemoteStorage = async (idOrName, defaultIdEnvVar, RemoteClass, 
 };
 
 /**
+ * Checks if at least one of APIFY_LOCAL_STORAGE_DIR and APIFY_TOKEN environment variables is set.
+ */
+export const ensureTokenOrLocalStorageEnvExists = (storageName) => {
+    if (!process.env[ENV_VARS.LOCAL_STORAGE_DIR] && !process.env[ENV_VARS.TOKEN]) {
+        throw new Error(`Cannot use ${storageName} as neither APIFY_LOCAL_STORAGE_DIR nor APIFY_TOKEN environment variable is not set.`
+            + 'Configure APIFY_LOCAL_STORAGE_DIR to enable storage in local directory or APIFY_TOKEN to use Apify cloud for storages.');
+    }
+};
+
+/**
  * A namespace that contains various utilities.
  *
  * Example usage:

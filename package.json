@@ -49,7 +49,7 @@
   },
   "dependencies": {
     "apify-client": "^0.2.9",
-    "apify-shared": "0.0.50",
+    "apify-shared": "0.0.55",
     "bluebird": "^3.5.0",
     "cheerio": "^1.0.0-rc.2",
     "content-type": "^1.0.3",
