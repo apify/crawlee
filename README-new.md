@@ -178,18 +178,28 @@ for your Node.js process, depending on your circumstances:
     </thead>
     <tbody>
           <tr>
+            <td><code>APIFY_LOCAL_EMULATION_DIR</code></td>
+            <td>
+              Defines the path to a local directory where key-value stores, request lists and request queues store their data.
+              If omitted, the package will try to use cloud storage instead and will expect that the
+              <code>APIFY_TOKEN</code> environment variable is defined.
+            </td>
+          </tr>
+          <tr>
             <td><code>APIFY_TOKEN</code></td>
             <td>
-            The API token for your Apify account. It is used to access Apify APIs, e.g. to access cloud storage.
-            You can find your API token on the <a href="https://my.apify.com/account#intergrations" target="_blank">Apify - Account - Integrations</a> page.
+              The API token for your Apify account. It is used to access Apify APIs, e.g. to access cloud storage.
+              You can find your API token on the <a href="https://my.apify.com/account#intergrations" target="_blank">Apify - Account - Integrations</a> page.
+              If omitted, you should define <code>APIFY_LOCAL_EMULATION_DIR</code> environment variable instead.
             </td>
           </tr>
           <tr>
             <td><code>APIFY_PROXY_PASSWORD</code></td>
-            <td>Password to <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a> for IP address rotation.
-            If you have have an Apify account, you can find the password on the
-            <a href="https://my.apify.com/proxy" target="_blank">Proxy page</a> in the Apify app.
-            You may freely use your own proxies, instead of the Apify pool.
+            <td>
+              Password to <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a> for IP address rotation.
+              If you have have an Apify account, you can find the password on the
+              <a href="https://my.apify.com/proxy" target="_blank">Proxy page</a> in the Apify app.
+              You may freely use your own proxies, instead of the Apify pool.
             </td>
           </tr>
     </tbody>
