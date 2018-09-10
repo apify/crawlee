@@ -108,7 +108,7 @@ The Apify SDK package provides the following tools:
   <li>
      <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerPool">PuppeteerPool</a>
      - Provides web browser tabs for user jobs
-     from an automatically-managed pool of Chrome browser instances, with configurable browser reuse and retirement policies.
+     from an automatically-managed pool of Chrome browser instances, with configurable browser recycling and retirement policies.
      Supports reuse of the disk cache to speed up crawling of websites and reduce proxy bandwidth.
   </li>
   <li>

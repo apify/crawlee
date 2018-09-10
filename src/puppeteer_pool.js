@@ -119,6 +119,8 @@ class PuppeteerInstance {
  *   To limit the space consumed, you can pass the `--disk-cache-size=X` argument to `options.launchPuppeteerOptions.args`,
  *   where `X` is the approximate maximum number of bytes for disk cache.
  *
+ *   *IMPORTANT:* Currently this feature only works in headful mode, because of a bug in Chromium.
+ *
  *   The `options.recycleDiskCache` setting should not be used together with `--disk-cache-dir` argument in `options.launchPuppeteerOptions.args`.
  */
 export default class PuppeteerPool {
