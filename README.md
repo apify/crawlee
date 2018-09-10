@@ -41,6 +41,7 @@
   * [5 - Run Puppeteer with Apify Proxy](#5---run-puppeteer-with-apify-proxy)
   * [6 - Invoke another actor](#6---invoke-another-actor)
   * [7 - Run actor as an API](#7---run-actor-as-an-api)
+- [Storage](#storage)
 - [Puppeteer live view](#puppeteer-live-view)
 - [Support](#support)
 - [Contributing](#contributing)
