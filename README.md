@@ -59,7 +59,6 @@
 
 <div id="include-readme-2">
 
-
 ## Motivation
 <!-- Mirror this part to src/index.js -->
 
@@ -585,7 +584,6 @@ Apify.main(async () => {
 });
 ```
 
-
 ### 6 - Invoke another actor
 This example shows how to call another actor - in this case apify/send-mail to send
 an email.
@@ -715,3 +713,8 @@ If you find any problem with Apify SDK, please [submit an issue on GitHub](https
 
 Your code contributions are welcome and you'll praised to the eternity!
 If you have any ideas for improvements, either submit an issue or create a pull request.
+
+</div>
+
+<div id="include-readme-3">
+</div>
