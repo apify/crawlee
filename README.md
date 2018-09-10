@@ -117,7 +117,7 @@ The Apify SDK package provides the following tools:
      like list of products or real estate offers.
   </li>
   <li>
-     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#Dataset">KeyValueStore</a>
+     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#KeyValueStore">KeyValueStore</a>
      - A simple key-value store for arbitrary data records or files, along with their MIME content type.
      It is ideal for saving screenshots of web pages, PDFs or any downloaded files.
      The data is stored on local filesystem or in the cloud.
@@ -660,7 +660,10 @@ Apify.main(async () => {
 
 ## Storage
 
-Each actor run at Apify platform has assigned its default storages (key-value store, request queue and dataset) which are available
+Each actor run at Apify platform has assigned its default storages
+(<a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#KeyValueStore">key-value store</a>,
+<a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue">request queue</a> and
+<a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#Dataset">dataset</a>) which are available
 via API and helper functions such as `Apify.setValue()`, `Apify.pushData()`, etc.. If you are running actor locally then the data
 get stored in the directory defined by <code>APIFY_LOCAL_EMULATION_DIR</code> environment variable and its subdirectories based on
 following environment variables:
