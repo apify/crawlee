@@ -659,6 +659,7 @@ when you are developing your actor locally as it takes care of authentication to
   <tbody>
     <tr>
       <td><code>APIFY_LOCAL_STORAGE_DIR</code></td>
+      <td></td>
       <td>
           If provided then key-value stores, request queues and datasets use local directory defined by this variable to store the data.
           Otherwise the data get stored in the Apify cloud which requires additional <code>APIFY_TOKEN</code> environment variable to be set.
@@ -715,18 +716,16 @@ when you are developing your actor locally as it takes care of authentication to
       </td>
     </tr>
     <tr>
-      <td><code>APIFY_CONTAINER_PORT</code></td>
-      <td><code>localhost</code></td>
-      <td>
-          TODO
-      </td>
-    </tr>
-    <tr>
         <td><code>APIFY_CONTAINER_URL</code></td>
         <td><code>http://localhost:4321</code></td>
-        <td>
-            TODO
+        <td rowspan="2">
+          Defines a HTTP port and URL under which actor may run a publicly available web server. This is used for
+          [Puppeteer Live View](#puppeteer-live-view).
         </td>
+    </tr>
+    <tr>
+      <td><code>APIFY_CONTAINER_PORT</code></td>
+      <td><code>localhost</code></td>
     </tr>
   </tbody>
 </table>
