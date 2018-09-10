@@ -768,7 +768,7 @@ const getOrCreateQueue = (queueIdOrName) => {
  *
  * The actual data is either stored on the local disk in the directory defined by `APIFY_LOCAL_STORAGE_DIR` environment variable if provided or
  * in the Apify cloud (see [Request queue documentation](https://www.apify.com/docs/storage#queue) when actor is running on Apify
- * platform if `APIFY_TOKEN` environment variable is set.
+ * platform or if `APIFY_TOKEN` environment variable is set.
  *
  * @param {string} queueIdOrName ID or name of the request queue to be opened.
  * @returns {Promise<RequestQueue>} Returns a promise that resolves to a `RequestQueue` object. If no value is provided

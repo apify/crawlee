@@ -111,7 +111,7 @@ export const chunkBySize = (items, limitBytes) => {
  *
  * The actual data is either stored on the local disk in the directory defined by `APIFY_LOCAL_STORAGE_DIR` environment variable if provided or
  * in the Apify cloud (see [Dataset storage documentation](https://www.apify.com/docs/storage#dataset) when actor is running on Apify
- * platform if `APIFY_TOKEN` environment variable is set.
+ * platform or if `APIFY_TOKEN` environment variable is set.
  *
  * Example usage:
  *
@@ -636,7 +636,7 @@ export const openDataset = (datasetIdOrName) => {
  *
  * The actual data is either stored on the local disk in the directory defined by `APIFY_LOCAL_STORAGE_DIR` environment variable if provided or
  * in the Apify cloud (see [Dataset storage documentation](https://www.apify.com/docs/storage#dataset) when actor is running on Apify
- * platform if `APIFY_TOKEN` environment variable is set.
+ * platform or if `APIFY_TOKEN` environment variable is set.
  *
  * For more information, see
  * [Apify.openDataset()](#module-Apify-openDataset) and [Dataset.pushData()](#Dataset-pushData).

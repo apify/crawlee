@@ -100,7 +100,7 @@ export const maybeStringify = (value, options) => {
  *
  * The actual data is either stored on the local disk in the directory defined by `APIFY_LOCAL_STORAGE_DIR` environment variable if provided or
  * in the Apify cloud (see [Key-value stores documentation](https://www.apify.com/docs/storage#key-value-store) when actor is running on Apify
- * platform if `APIFY_TOKEN` environment variable is set.
+ * platform or if `APIFY_TOKEN` environment variable is set.
  *
  * Example usage:
  *
@@ -354,7 +354,7 @@ const getOrCreateKeyValueStore = (storeIdOrName) => {
  *
  * The actual data is either stored on the local disk in the directory defined by `APIFY_LOCAL_STORAGE_DIR` environment variable if provided or
  * in the Apify cloud (see [Key-value stores documentation](https://www.apify.com/docs/storage#key-value-store) when actor is running on Apify
- * platform if `APIFY_TOKEN` environment variable is set.
+ * platform or if `APIFY_TOKEN` environment variable is set.
  *
  * Example usage:
  *
