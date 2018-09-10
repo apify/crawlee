@@ -240,7 +240,7 @@ describe('PuppeteerPool', () => {
             launchPuppeteerOptions: { headless: !isMacOs },
         });
 
-        log.setLevel(log.LEVELS.DEBUG);
+        // log.setLevel(log.LEVELS.DEBUG);
 
         const url = 'https://www.wikipedia.org';
 
