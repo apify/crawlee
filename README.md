@@ -320,11 +320,10 @@ apify login
 apify push
 ```
 
-
 ### Usage in actors on the Apify cloud platform
 
-
-
+Check <a href="https://www.apify.com/docs/actor#quick-start" target="_blank">Apify actor</a> documentation to learn about actor
+development at the Apify platform.
 
 ## Components
 
