@@ -27,46 +27,23 @@ const DEFAULT_OPTIONS = {
     // TODO: use settingsRotator()
     launchPuppeteerFunction: launchPuppeteerOptions => launchPuppeteer(launchPuppeteerOptions),
 
-    recycleUserDataDirs: false,
+    recycleDiskCache: false,
 };
 
 const mkdtempAsync = Promise.promisify(fs.mkdtemp);
 const rimrafAsync = Promise.promisify(rimraf);
-const CHROME_PROFILE_PATH = path.join(os.tmpdir(), 'puppeteer_dev_profile_recycled-');
+const DISK_CACHE_DIR = path.join(os.tmpdir(), 'puppeteer_disk_cache-');
 
 /**
  * Deletes Chrome's user data directory
- * @param userDataDir
+ * @param diskCacheDir
  */
-const deleteUserDataDir = (userDataDir) => {
-    rimrafAsync(userDataDir)
+const deleteDiskCacheDir = (diskCacheDir) => {
+    log.debug('PuppeteerPool: Deleting disk cache directory', { diskCacheDir })
+    rimrafAsync(diskCacheDir)
         .catch((err) => {
-            log.warning('Cannot delete Chrome user data directory', { errorMessage: err.message });
+            log.warning('PuppeteerPool: Cannot delete Chrome disk cache directory', { diskCacheDir, errorMessage: err.message });
         });
-};
-
-/**
- * Deletes all session data from Chrome's user data dir, i.e. cookies,
- * IndexedDB data, local storage, session storage and Web SQL database.
- */
-const deleteUserDataDirSessionState = (userDataDir) => {
-    const paths = [
-        path.join(userDataDir, '/Default/Cookies'),
-        path.join(userDataDir, '/Default/Cookies-journal'),
-        path.join(userDataDir, '/Default/IndexedDB'),
-        path.join(userDataDir, '/Default/Local Storage'),
-        path.join(userDataDir, '/Default/Session Storage'),
-        path.join(userDataDir, '/Default/databases'),
-    ];
-
-    const promises = _.map(paths, (fileOrDir) => {
-        rimrafAsync(fileOrDir)
-            .catch((err) => {
-                log.warning('Error deleting session dirs from Chrome user data directory', { path: fileOrDir, errorMessage: err.message });
-            });
-    });
-
-    return Promise.all(promises);
 };
 
 /**
@@ -83,7 +60,7 @@ class PuppeteerInstance {
         this.lastPageOpenedAt = Date.now();
         this.killed = false;
         this.childProcess = null;
-        this.recycleUserDataDir = null;
+        this.recycleDiskCacheDir = null;
     }
 }
 
@@ -132,18 +109,17 @@ class PuppeteerInstance {
  *   Overrides the default function to launch a new `Puppeteer` instance.
  * @param {LaunchPuppeteerOptions} [options.launchPuppeteerOptions]
  *   Options used by `Apify.launchPuppeteer()` to start new Puppeteer instances.
- * @param {Boolean} [options.recycleUserDataDirs]
- *   Enables recycling of user data directories by Chrome instances.
- *   When a browser instance is closed, its user data directory is not deleted but it's used by a newly opened browser instance.
- *   This is especially useful for maintaining disk cache between browser instances, in order to increase
- *   crawling performance and reduce proxy data usage. Note that the new browser clears all cookies,
- *   local storage, session storage etc. to enable anonymity.
+ * @param {Boolean} [options.recycleDiskCache]
+ *   Enables recycling of disk cache directories by Chrome instances.
+ *   When a browser instance is closed, its disk cache directory is not deleted but it's used by a newly opened browser instance.
+ *   This is useful to reduce amount of data that needs to be downloaded to speed up crawling and reduce proxy usage.
+ *   Note that the new browser starts with empty cookies, local storage etc. so this setting doesn't affect anonymity of your crawler.
  *
- *   Beware that the user data directories can consume a lot of disk space.
- *   To limit the space consumed by disk cache, you can pass the `--disk-cache-size=X` argument to `options.launchPuppeteerOptions.args`,
+ *   Beware that the disk cache directories can consume a lot of disk space.
+ *   To limit the space consumed, you can pass the `--disk-cache-size=X` argument to `options.launchPuppeteerOptions.args`,
  *   where `X` is the approximate maximum number of bytes for disk cache.
  *
- *   The `options.recycleUserDataDirs` has no effect if you set the `userDataDir` property of `options.launchPuppeteerOptions`.
+ *   The `options.recycleDiskCache` setting should not be used together with `--disk-cache-dir` argument in `options.launchPuppeteerOptions.args`.
  */
 export default class PuppeteerPool {
     constructor(opts = {}) {
@@ -162,7 +138,7 @@ export default class PuppeteerPool {
             instanceKillerIntervalMillis,
             killInstanceAfterMillis,
             launchPuppeteerOptions,
-            recycleUserDataDirs,
+            recycleDiskCache,
         } = _.defaults(opts, DEFAULT_OPTIONS);
 
         checkParamOrThrow(maxOpenPagesPerInstance, 'opts.maxOpenPagesPerInstance', 'Number');
@@ -171,38 +147,29 @@ export default class PuppeteerPool {
         checkParamOrThrow(instanceKillerIntervalMillis, 'opts.instanceKillerIntervalMillis', 'Number');
         checkParamOrThrow(killInstanceAfterMillis, 'opts.killInstanceAfterMillis', 'Number');
         checkParamOrThrow(launchPuppeteerOptions, 'opts.launchPuppeteerOptions', 'Maybe Object');
-        checkParamOrThrow(recycleUserDataDirs, 'opts.recycleUserDataDirs', 'Maybe Boolean');
-
-        let warnedAboutUserDataDir = false;
+        checkParamOrThrow(recycleDiskCache, 'opts.recycleDiskCache', 'Maybe Boolean');
 
         // Config.
         this.maxOpenPagesPerInstance = maxOpenPagesPerInstance;
         this.retireInstanceAfterRequestCount = retireInstanceAfterRequestCount;
         this.killInstanceAfterMillis = killInstanceAfterMillis;
-        this.recycledUserDataDirs = recycleUserDataDirs ? new LinkedList() : null;
+        this.recycledDiskCacheDirs = recycleDiskCache ? new LinkedList() : null;
         this.launchPuppeteerFunction = async () => {
+            // Do not modify passed launchPuppeteerOptions!
             const options = _.clone(launchPuppeteerOptions) || {};
-            let dirSet = false;
+            options.args = _.clone(options.args || []);
 
-            // If requested, use recycled user data directory
-            if (recycleUserDataDirs) {
-                if (!options.userDataDir) {
-                    if (this.recycledUserDataDirs.length > 0) {
-                        options.userDataDir = this.recycledUserDataDirs.removeFirst();
-                        // Delete all cookies, local storage, session storage etc.
-                        await deleteUserDataDirSessionState(options.userDataDir);
-                    } else {
-                        options.userDataDir = await mkdtempAsync(CHROME_PROFILE_PATH);
-                    }
-                    dirSet = true;
-                } else if (!warnedAboutUserDataDir) {
-                    log.warning('The "recycleUserDataDirs" option has no effect when "launchPuppeteerOptions.userDataDir" is set.');
-                    warnedAboutUserDataDir = true;
-                }
+            // If requested, use recycled disk cache directory
+            let diskCacheDir = null;
+            if (recycleDiskCache) {
+                diskCacheDir = this.recycledDiskCacheDirs.length > 0
+                    ? this.recycledDiskCacheDirs.removeFirst()
+                    : await mkdtempAsync(DISK_CACHE_DIR);
+                options.args.push(`--disk-cache-dir=${diskCacheDir}`);
             }
 
             const browser = await launchPuppeteerFunction(options);
-            if (dirSet) browser.recycleUserDataDir = options.userDataDir;
+            browser.recycleDiskCacheDir = diskCacheDir;
             return browser;
         };
 
@@ -246,7 +213,7 @@ export default class PuppeteerPool {
                         // Run this with a delay, otherwise page.close() that initiated this 'targetdestroyed' event
                         // might fail with "Protocol error (Target.closeTarget): Target closed."
                         // TODO: Alternatively we could close here the first about:blank tab, which will cause
-                        // the browser to be closed immediatelly, without waiting
+                        // the browser to be closed immediately without waiting
                         setTimeout(() => {
                             log.debug('PuppeteerPool: killing retired browser because it has no active pages', { id });
                             this._killInstance(instance);
@@ -255,7 +222,7 @@ export default class PuppeteerPool {
                 });
 
                 instance.childProcess = browser.process();
-                instance.recycleUserDataDir = browser.recycleUserDataDir;
+                instance.recycleDiskCacheDir = browser.recycleDiskCacheDir;
             })
             .catch((err) => {
                 log.exception(err, 'PuppeteerPool: browser launch failed', { id });
@@ -330,6 +297,13 @@ export default class PuppeteerPool {
 
         delete this.retiredInstances[id];
 
+        const recycleDiskCache = () => {
+            if (!instance.recycleDiskCacheDir) return;
+            log.debug('PuppeteerPool: recycling disk cache dir', { id, diskCacheDir: instance.recycleDiskCacheDir });
+            this.recycledDiskCacheDirs.add(instance.recycleDiskCacheDir);
+            instance.recycleDiskCacheDir = null;
+        };
+
         // Ensure that Chrome process will be really killed.
         setTimeout(() => {
             // This is here because users reported that it happened
@@ -337,11 +311,7 @@ export default class PuppeteerPool {
             // Likely Chrome process wasn't started due to some error ...
             if (childProcess) childProcess.kill('SIGKILL');
 
-            if (instance.recycleUserDataDir) {
-                const dir = instance.recycleUserDataDir;
-                instance.recycleUserDataDir = null;
-                deleteUserDataDir(dir);
-            }
+            recycleDiskCache();
         }, PROCESS_KILL_TIMEOUT_MILLIS);
 
         instance
@@ -354,12 +324,7 @@ export default class PuppeteerPool {
                 return browser.close();
             })
             .then(() => {
-                // Everything is okay, let the next browser reuse the user data directory
-                if (instance.recycleUserDataDir) {
-                    log.debug('PuppeteerPool: recycling user data dir', { id, userDataDir: instance.recycleUserDataDir });
-                    this.recycledUserDataDirs.add(instance.recycleUserDataDir);
-                    instance.recycleUserDataDir = null;
-                }
+                recycleDiskCache();
             })
             .catch(err => log.exception(err, 'PuppeteerPool: cannot close the browser instance', { id }));
     }
@@ -410,7 +375,7 @@ export default class PuppeteerPool {
                 log.exception(error, 'PuppeteerPool: page crashed');
                 // Swallow errors from Page.close()
                 page.close()
-                    .catch(err => log.debug('Page.close() failed', { errorMessage: err.message, id: instance.id }));
+                    .catch(err => log.debug('PuppeteerPool: Page.close() failed', { errorMessage: err.message, id: instance.id }));
             });
 
             // TODO: log console messages page.on('console', message => log.debug(`Chrome console: ${message.text}`));
@@ -452,12 +417,20 @@ export default class PuppeteerPool {
                     return browser;
                 })
                 .then((browser) => {
-                    if (browser.recycleUserDataDir) deleteUserDataDir(browser.recycleUserDataDir);
+                    if (browser.recycleDiskCacheDir) deleteDiskCacheDir(browser.recycleDiskCacheDir);
                 });
         });
 
         return Promise
             .all(closePromises)
+            .then(() => {
+                // Delete all cache directories
+                const promises = [];
+                while (this.recycledDiskCacheDirs.length > 0) {
+                    promises.push(deleteDiskCacheDir(this.recycledDiskCacheDirs.removeFirst()));
+                }
+                return Promise.all(promises);
+            })
             .catch(err => log.exception(err, 'PuppeteerPool: cannot close the browsers'));
     }
 

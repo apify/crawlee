@@ -2,7 +2,7 @@
 <!-- Mirror this part to src/index.js -->
 
 [![npm version](https://badge.fury.io/js/apify.svg)](http://badge.fury.io/js/apify)
-[![Build Status](https://travis-ci.org/apifytech/apify-js.svg)](https://travis-ci.org/apifytech/apify-js)
+[![Build Status](https://travis-ci.org/apifytech/apify-js.svg?branch=master)](https://travis-ci.org/apifytech/apify-js)
 
 <div id="include-readme-1">
   Apify SDK simplifies development of web crawlers, scrapers, data extractors and web automation jobs.
