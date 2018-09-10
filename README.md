@@ -659,10 +659,10 @@ Apify.main(async () => {
 
 ## Storage
 
-Each actor run at Apify platform has assigned its default storages (key-value store, request queue and dataset). ID of these storages
-are defined by environment variables <code>APIFY_DEFAULT_KEY_VALUE_STORE_ID</code>, <code>APIFY_DEFAULT_REQUEST_QUEUE_ID</code>
-and <code>APIFY_DEFAULT_DATASET_ID</code>. If you are running actor locally then the data get stored in directory defined by
-<code>APIFY_LOCAL_EMULATION_DIR</code>.
+Each actor run at Apify platform has assigned its default storages (key-value store, request queue and dataset) which are available
+via API and helper functions such as `Apify.setValue()`, `Apify.pushData()`, etc.. If you are running actor locally then the data
+get stored in the directory defined by <code>APIFY_LOCAL_EMULATION_DIR</code> environment variable and following overridable environment
+variables:
 
 <table>
   <thead>
