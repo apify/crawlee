@@ -293,19 +293,21 @@ apify run
 ### Load a few pages in raw HTML
 
 This is the most basic example of Apify SDK that demonstrates some of its
-elementary concepts. The script just downloads several web pages with plain HTTP requests (using the
-[request-promise](https://www.npmjs.com/package/request-promise) package)
-and stores their raw HTML and URL to the default dataset
-(locally present in the `./apify_storage/datasets/default` directory).
+elementary concepts, such as the
+[BasicCrawler](https://www.apify.com/docs/sdk/apify-runtime-js/latest#BasicCrawler)
+and [RequestList](https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList) classes.
+The script just downloads several web pages with plain HTTP requests (using the
+[request-promise](https://www.npmjs.com/package/request-promise) library)
+and stores their raw HTML and URL to the default dataset.
 
 ```javascript
 const Apify = require('apify');
 const requestPromise = require('request-promise');
 
-// The optional Apify.main() function wraps the crawler logic.
+// Apify.main() function wraps the crawler logic (it is optional).
 Apify.main(async () => {
-    // Create and initialize an instance of the RequestList class that contains a list of URLs to crawl.
-    // Here we use just a few hard-coded URLs, but the class can do much more, e.g. parse URLs from an external file.
+    // Create and initialize an instance of the RequestList class that contains a list of URLs to
+    // crawl. Here we use just a few hard-coded URLs.
     const requestList = new Apify.RequestList({
         sources: [
             { url: 'http://www.google.com/' },
@@ -316,21 +318,21 @@ Apify.main(async () => {
     });
     await requestList.initialize();
 
-    // Create an instance of the BasicCrawler class - the simplest crawler
-    // that enables users to implement the crawling logic themselves.
+    // Create a BasicCrawler - the simplest crawler that enables
+    // users to implement the crawling logic themselves.
     const crawler = new Apify.BasicCrawler({
 
         // Let the crawler fetch URLs from our list.
         requestList,
 
-        // The handleRequestFunction option defines a function with actions to be performed for each URL.
-        // As parameter, it accepts an object with the 'request' option, which is an instance of the Request
-        // class with information such as URL and HTTP method, as supplied by the RequestList.
+        // This function will be called for each URL to crawl.
+        // The 'request' option is an instance of the Request class, which contains
+        // information such as URL and HTTP method, as supplied by the RequestList.
         handleRequestFunction: async ({ request }) => {
             console.log(`Processing ${request.url}...`);
 
-            // Simply fetch the HTML of the page and store it to the default dataset. In local
-            // configuration, the data will be stored as JSON files in ./apify_storage/datasets/default
+            // Fetch the page HTML and store it to the default dataset. In local configuration,
+            // the data will be stored as JSON files in ./apify_storage/datasets/default
             await Apify.pushData({
                 url: request.url,
                 html: await requestPromise(request.url),
@@ -345,23 +347,24 @@ Apify.main(async () => {
 });
 ```
 
-### Crawl a large list of URLs with Cheerio
+### Crawl an external list of URLs with Cheerio
 
-This example demonstrates how to crawl a larger list of URLs from an external file,
-load each page using [cheerio](https://www.npmjs.com/package/cheerio) HTML parser and extract some data from it:
-the page title, all H1 tags and the content.
+This example demonstrates how to use [CheerioCrawler](https://www.apify.com/docs/sdk/apify-runtime-js/latest#CheerioCrawler)
+ti crawl a list of URLs from an external file,
+load each page using a plain HTTP request, parse the HTML using [cheerio](https://www.npmjs.com/package/cheerio)
+and extract some data from it - the page title, all H1 tags and the content.
 
 ```javascript
 const Apify = require('apify');
 
-// The "utils" namespace contains various utilities, e.g. logging.
-// Turn off logging of informative messages.
+// Apify.utils contains various utilities, e.g. for logging.
+// Here we turn off logging of unimportant messages.
 Apify.utils.log.setLevel(log.LEVELS.WARNING);
 
 // A link to a list of Fortune 500 companies' websites available on GitHub.
 const CSV_LINK = 'https://gist.githubusercontent.com/hrbrmstr/ae574201af3de035c684/raw/2d21bb4132b77b38f2992dfaab99649397f238e9/f1000.csv';
 
-// The optional Apify.main() function wraps the crawler logic.
+// Apify.main() function wraps the crawler logic (it is optional).
 Apify.main(async () => {
     // Create an instance of the RequestList class that contains a list of URLs to crawl.
     // Here we download and parse the list of URLs from an external file.
@@ -377,7 +380,7 @@ Apify.main(async () => {
         requestList,
 
         // The crawler downloads and processes the web pages in parallel, with a concurrency
-        // automatically managed based on the available system memory and CPU (using the AutoscaledPool class).
+        // automatically managed based on the available system memory and CPU (see AutoscaledPool class).
         // Here we define some hard limits for the concurrency.
         minConcurrency: 10,
         maxConcurrency: 50,
@@ -388,8 +391,8 @@ Apify.main(async () => {
         // Increase the timeout for processing of each page.
         handlePageTimeoutSecs: 60,
 
-        // The handlePageFunction option defines a function with actions to be performed for each URL.
-        // As parameter, it accepts an object with the following fields:
+        // This function will be called for each URL to crawl.
+        // It accepts a single parameter, which is an object with the following fields:
         // - request: an instance of the Request class with information such as URL and HTTP method
         // - html: contains raw HTML of the page
         // - $: the cheerio object containing parsed HTML
@@ -405,8 +408,8 @@ Apify.main(async () => {
                 });
             });
 
-            // Simply fetch the HTML of the page and store it to the default dataset. In local
-            // configuration, the data will be stored as JSON files in ./apify_storage/datasets/default
+            // Store the results to the default dataset. In local configuration,
+            // the data will be stored as JSON files in ./apify_storage/datasets/default
             await Apify.pushData({
                 url: request.url,
                 title,
@@ -428,44 +431,56 @@ Apify.main(async () => {
 });
 ```
 
-### Recursively crawl a website using headless Chrome / Puppeteer
+### Recursively crawl a website using Puppeteer
 
-This example demonstrates how to use PuppeteerCrawler in connection with the RequestQueue to recursively scrape
-the Hacker News site (https://news.ycombinator.com). It starts with a single URL where it finds more links,
-enqueues them to the RequestQueue and continues until no more desired links are available.
+This example demonstrates how to use [PuppeteerCrawler](https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerCrawler)
+in combination with [RequestList](https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList)
+and [RequestQueue](https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue) to recursively scrape
+Hacker News website (https://news.ycombinator.com) using headless Chrome / Puppeteer.
+The crawlers starts with a single URL, finds links to next pages,
+enqueues them and continues until no more desired links are available.
+
 ```javascript
 const Apify = require('apify');
 
 Apify.main(async () => {
-    // Apify.openRequestQueue() is a factory to get preconfigured RequestQueue instance.
+    // Create and initialize an instance of the RequestList class that contains the start URL
+    const requestList = new Apify.RequestList({
+        sources: [
+            { url: 'http://www.ycombinator.com/' },
+        ],
+    });
+    await requestList.initialize();
+
+    // Apify.openRequestQueue() is a factory to get a preconfigured RequestQueue instance.
     const requestQueue = await Apify.openRequestQueue();
 
-    // Enqueue only the first URL.
-    await requestQueue.addRequest(new Apify.Request({ url: 'https://news.ycombinator.com/' }));
-
-    // Create a PuppeteerCrawler. It's configuration is similar to the CheerioCrawler,
-    // only instead of the parsed HTML, handlePageFunction gets an instance of the
-    // Puppeteer.Page class. See Puppeteer docs for more information.
+    // Create an instance of the PuppeteerCrawler class - a crawler
+    // that automatically loads the URLs in headless Chrome / Puppeteer.
     const crawler = new Apify.PuppeteerCrawler({
-        // Use of requestQueue is similar to RequestList.
+        // Let the crawler fetch start URLs from the list
+        // and use the queue for the newly discovered URLs
+        requestList,
         requestQueue,
 
-        // Run Puppeteer headless. If you turn this off, you'll see the scraping
-        // browsers showing up on screen. Non-headless mode is great for debugging.
+        // Run Puppeteer in headless mode. If you turn this off, you'll see the scraping
+        // browsers showing up on your screen. This is great for debugging.
         launchPuppeteerOptions: { headless: true },
 
-        // For each Request in the queue, a new Page is opened in a browser.
-        // This is the place to write the Puppeteer scripts you are familiar with,
-        // with the exception that browsers and pages are managed for you by Apify SDK automatically.
-        handlePageFunction: async ({ page, request }) => {
+        // This function will be called for each URL to crawl.
+        // It accepts a single parameter, which is an object with the following fields:
+        // - request: an instance of the Request class with information such as URL and HTTP method
+        // - page: Puppeteer's Page object (see https://pptr.dev/#show=api-class-page)
+        // Here you can write the Puppeteer scripts you are familiar with,
+        // with the exception that browsers and pages are automatically managed by Apify SDK.
+        handlePageFunction: async ({ request, page }) => {
             console.log(`Processing ${request.url}...`);
 
-            // A function to be evaluated by Puppeteer within
-            // the browser context.
+            // A function to be evaluated by Puppeteer within the browser context.
             const pageFunction = ($posts) => {
                 const data = [];
 
-                // We're getting the title, rank and url of each post on Hacker News.
+                // We're getting the title, rank and URL of each post on Hacker News.
                 $posts.forEach(($post) => {
                     data.push({
                         title: $post.querySelector('.title a').innerText,
@@ -478,34 +493,38 @@ Apify.main(async () => {
             };
             const data = await page.$$eval('.athing', pageFunction);
 
-            // Save data to default Dataset.
+            // Store the results to the default dataset. In local configuration,
+            // the data will be stored as JSON files in ./apify_storage/datasets/default
             await Apify.pushData(data);
 
             // To continue crawling, we need to enqueue some more pages into
-            // the requestQueue. First we find the correct URLs using Puppeteer
+            // the requestQueue. First, we find the URLs using Puppeteer functions
             // and then we add the request to the queue.
             try {
                 const nextHref = await page.$eval('.morelink', el => el.href);
-                // You may omit the Request constructor and just use a plain object.
                 await requestQueue.addRequest(new Apify.Request({ url: nextHref }));
             } catch (err) {
-                console.log(`Url ${request.url} is the last page!`);
+                console.log(`${request.url} is the last page!`);
             }
         },
 
+        // If the page load failed more than maxRequestRetries+1 times, then this function is called.
         handleFailedRequestFunction: async ({ request }) => {
-            console.log(`Request ${request.url} failed 4 times`); // Because 3 retries is the default value.
+            console.log(`Request ${request.url} failed too many times`);
         },
     });
 
-    // Run crawler.
+    // Run the crawler and wait for its finish.
     await crawler.run();
+
     console.log('Crawler finished.');
 });
 ```
 
-### Save page screenshots into KeyValueStore
-This example shows how to work with KeyValueStore. It crawls a list of URLs using Puppeteer,
+### Save page screenshots
+
+This example shows how to work with [KeyValueStore](https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerCrawler).
+It crawls a list of URLs using Puppeteer,
 capture a screenshot of each page and saves it to the KeyValueStore. The list of URLs is
 provided as INPUT, which is a standard way of passing initial configuration to Apify actors.
 Locally, INPUT needs to be placed in the KeyValueStore. On the platform, it can either be set
