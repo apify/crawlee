@@ -66,8 +66,8 @@ describe('Snapshotter', () => {
         const cpuSnapshots = snapshotter.getCpuSample();
 
         expect(cpuSnapshots).to.have.lengthOf(0);
-        expect(memorySnapshots).to.have.lengthOf(4);
-        expect(eventLoopSnapshots).to.have.lengthOf(10);
+        expect(memorySnapshots.length).to.be.above(3);
+        expect(eventLoopSnapshots.length).to.be.above(9);
     });
 
     it('should collect CPU events on Platform', async () => {
@@ -132,8 +132,8 @@ describe('Snapshotter', () => {
                 const curr = ss.createdAt;
                 const next = eventLoopSnapshots[idx + 1].createdAt;
                 expect(curr - prev).to.be.above(DELAY - 1);
-                expect(next - curr).to.be.within(TICK, TICK + snapshotter.maxBlockedMillis);
-                expect(ss.exceededMillis).to.be.within(DELAY - (2 * TICK), DELAY - snapshotter.maxBlockedMillis);
+                expect(next - curr).to.be.within(TICK - 1, TICK + snapshotter.maxBlockedMillis);
+                expect(ss.exceededMillis).to.be.within(1, DELAY - snapshotter.maxBlockedMillis);
             } else {
                 expect(ss.exceededMillis).to.be.eql(0);
             }

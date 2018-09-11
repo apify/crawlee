@@ -69,6 +69,9 @@ export default class AutoscaledPool {
         this.desiredConcurrency = this.minConcurrency;
         this.currentConcurrency = 0;
         this.lastLoggingTime = 0;
+
+        this._autoscale = this._autoscale.bind(this);
+        this._maybeRunTask = this._maybeRunTask.bind(this);
     }
 
     async run() {
@@ -78,8 +81,8 @@ export default class AutoscaledPool {
         });
 
         await this.snapshotter.start();
-        this.autoscaleInterval = betterSetInterval(this._autoscale.bind(this), this.autoscaleIntervalMillis);
-        this.maybeRunInterval = betterSetInterval(this._maybeRunTask.bind(this), this.maybeRunIntervalMillis);
+        this.autoscaleInterval = betterSetInterval(this._autoscale, this.autoscaleIntervalMillis);
+        this.maybeRunInterval = betterSetInterval(this._maybeRunTask, this.maybeRunIntervalMillis);
 
         try {
             await this.poolPromise;
@@ -122,15 +125,18 @@ export default class AutoscaledPool {
         // Everything's fine. Run task.
         try {
             this.currentConcurrency++;
-            this._maybeRunTask(); // Try to run next task to build up concurrency.
+            setImmediate(this._maybeRunTask); // Try to run next task to build up concurrency.
             done(); // We need to restart interval here, so that it isn't blocked by a stalled task.
             await this.runTaskFunction();
             this.currentConcurrency--;
-            this._maybeRunTask(); // Run task after the previous one finished.
+            setImmediate(this._maybeRunTask); // Run task after the previous one finished.
         } catch (err) {
-            log.exception(err, 'AutoscaledPool: runTaskFunction failed');
-            // This is here because we might have already rejected this promise.
-            if (this.reject) this.reject(err);
+            // We might have already rejected this promise.
+            if (this.reject) {
+                this.reject(err);
+                // No need to log all concurrent errors.
+                log.exception(err, 'AutoscaledPool: runTaskFunction failed');
+            }
         }
     }
 
