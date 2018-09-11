@@ -155,17 +155,17 @@ describe('Snapshotter', () => {
         await snapshotter.stop();
         const memorySnapshots = snapshotter.getMemorySample();
 
-        expect(memorySnapshots).to.have.lengthOf(3);
+        expect(memorySnapshots.length).to.be.above(2);
         expect(memorySnapshots[0].isOverloaded).to.be.eql(true);
         expect(memorySnapshots[1].isOverloaded).to.be.eql(true);
         expect(memorySnapshots[2].isOverloaded).to.be.eql(false);
     });
 
     it('.get...Sample limits amount of samples', async () => {
-        const SAMPLE_SIZE = 125;
+        const SAMPLE_SIZE_MILLIS = 120;
         const options = {
-            eventLoopSnapshotIntervalSecs: 0.02,
-            memorySnapshotIntervalSecs: 0.1,
+            eventLoopSnapshotIntervalSecs: 0.01,
+            memorySnapshotIntervalSecs: 0.01,
         };
         const snapshotter = new Snapshotter(options);
         await snapshotter.start();
@@ -173,17 +173,19 @@ describe('Snapshotter', () => {
         await snapshotter.stop();
         const memorySnapshots = snapshotter.getMemorySample();
         const eventLoopSnapshots = snapshotter.getEventLoopSample();
-        const memorySample = snapshotter.getMemorySample(SAMPLE_SIZE);
-        const eventLoopSample = snapshotter.getEventLoopSample(SAMPLE_SIZE);
+        const memorySample = snapshotter.getMemorySample(SAMPLE_SIZE_MILLIS);
+        const eventLoopSample = snapshotter.getEventLoopSample(SAMPLE_SIZE_MILLIS);
 
         expect(memorySnapshots.length).to.be.above(memorySample.length);
         expect(eventLoopSnapshots.length).to.be.above(eventLoopSample.length);
-        expect(memorySnapshots.slice(1)).to.be.eql(memorySample);
         for (let i = 0; i < eventLoopSample.length; i++) {
             const sample = eventLoopSample[eventLoopSample.length - 1 - i];
             const snapshot = eventLoopSnapshots[eventLoopSnapshots.length - 1 - i];
             expect(sample).to.be.eql(snapshot);
         }
-        expect(eventLoopSample[0].createdAt - eventLoopSnapshots[0].createdAt).to.be.below(SAMPLE_SIZE);
+        const diffBetween = eventLoopSample[eventLoopSample.length - 1].createdAt - eventLoopSnapshots[eventLoopSnapshots.length - 1].createdAt;
+        const diffWithin = eventLoopSample[0].createdAt - eventLoopSample[eventLoopSample.length - 1].createdAt;
+        expect(diffBetween).to.be.below(SAMPLE_SIZE_MILLIS);
+        expect(diffWithin).to.be.below(SAMPLE_SIZE_MILLIS);
     });
 });

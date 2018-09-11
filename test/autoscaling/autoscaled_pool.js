@@ -49,7 +49,7 @@ describe('AutoscaledPool', () => {
         await pool.run();
 
         expect(result).to.be.eql(_.range(0, 10));
-        expect(Date.now() - startedAt).to.be.within(100, 150);
+        expect(Date.now() - startedAt).to.be.within(50, 150);
     });
 
     it('should work with concurrency 10', async () => {
@@ -82,7 +82,7 @@ describe('AutoscaledPool', () => {
         await pool.run();
 
         expect(result).to.be.eql(_.range(0, 100));
-        expect(Date.now() - startedAt).to.be.within(100, 150);
+        expect(Date.now() - startedAt).to.be.within(50, 150);
     });
 
     describe('should scale correctly', () => {

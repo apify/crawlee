@@ -54,8 +54,12 @@ export default class Snapshotter {
         // Ensure max memory is correctly computed.
         if (!this.maxMemoryBytes) {
             const { totalBytes } = await getMemoryInfo();
-            if (isAtHome()) this.maxMemoryBytes = totalBytes;
-            else this.maxMemoryBytes = Math.ceil(totalBytes / 4);
+            if (isAtHome()) {
+                this.maxMemoryBytes = totalBytes;
+            } else {
+                this.maxMemoryBytes = Math.ceil(totalBytes / 4);
+                log.info(`Snapshotter: Setting max memory of this run to ${Math.round(this.maxMemoryBytes / 1024 / 1024)} MB.`);
+            }
         }
         // Add dummy snapshot to compare the first with.
         this.eventLoopSnapshots.push({
