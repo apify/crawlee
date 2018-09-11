@@ -6,10 +6,10 @@ import Promise from 'bluebird';
 import { leftpad } from 'apify-shared/utilities';
 import LruCache from 'apify-shared/lru_cache';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { ENV_VARS, LOCAL_EMULATION_SUBDIRS, MAX_PAYLOAD_SIZE_BYTES } from './constants';
-import { apifyClient, ensureDirExists } from './utils';
+import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, MAX_PAYLOAD_SIZE_BYTES } from './constants';
+import { apifyClient, ensureDirExists, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists } from './utils';
 
-export const LOCAL_EMULATION_SUBDIR = LOCAL_EMULATION_SUBDIRS.datasets;
+export const LOCAL_STORAGE_SUBDIR = LOCAL_STORAGE_SUBDIRS.datasets;
 export const LOCAL_FILENAME_DIGITS = 9;
 export const LOCAL_GET_ITEMS_DEFAULT_LIMIT = 250000;
 const MAX_OPENED_STORES = 1000;
@@ -104,14 +104,14 @@ export const chunkBySize = (items, limitBytes) => {
  * @property {Number} limit - Requested limit
  */
 
-
 /**
  * The `Dataset` class represents an append-only data storage that is useful for saving sequential or tabular data,
  * such as a list of e-commerce products.
  * To create an instance of the `Dataset` class, call the [Apify.openDataset()](#module-Apify-openDataset) function.
  *
- * The actual data is either stored in the Apify cloud (see [Dataset storage documentation](https://www.apify.com/docs/storage#dataset),
- * or on the local disk in the directory specified by the `APIFY_LOCAL_EMULATION_DIR` environment variable (if set).
+ * The actual data is either stored on the local disk in the directory defined by `APIFY_LOCAL_STORAGE_DIR` environment variable if provided or
+ * in the Apify cloud (see [Dataset storage documentation](https://www.apify.com/docs/storage#dataset) when actor is running on Apify
+ * platform or if `APIFY_TOKEN` environment variable is set.
  *
  * Example usage:
  *
@@ -381,19 +381,19 @@ export class Dataset {
  * @ignore
  */
 export class DatasetLocal {
-    constructor(datasetId, localEmulationDir) {
+    constructor(datasetId, localStorageDir) {
         checkParamOrThrow(datasetId, 'datasetId', 'String');
-        checkParamOrThrow(localEmulationDir, 'localEmulationDir', 'String');
+        checkParamOrThrow(localStorageDir, 'localStorageDir', 'String');
 
-        this.localEmulationPath = path.resolve(path.join(localEmulationDir, LOCAL_EMULATION_SUBDIR, datasetId));
+        this.localStoragePath = path.resolve(path.join(localStorageDir, LOCAL_STORAGE_SUBDIR, datasetId));
         this.counter = null;
         this.datasetId = datasetId;
         this.initializationPromise = this._initialize();
     }
 
     _initialize() {
-        return ensureDirExists(this.localEmulationPath)
-            .then(() => readdirPromised(this.localEmulationPath))
+        return ensureDirExists(this.localStoragePath)
+            .then(() => readdirPromised(this.localStoragePath))
             .then((files) => {
                 if (files.length) {
                     const lastFileNum = files.pop().split('.')[0];
@@ -401,7 +401,7 @@ export class DatasetLocal {
                 } else {
                     this.counter = 0;
                 }
-                return statPromised(this.localEmulationPath);
+                return statPromised(this.localStoragePath);
             })
             .then((stats) => {
                 this.createdAt = stats.birthtime;
@@ -422,7 +422,7 @@ export class DatasetLocal {
 
                     // Format JSON to simplify debugging, the overheads is negligible
                     const itemStr = JSON.stringify(item, null, 2);
-                    const filePath = path.join(this.localEmulationPath, getLocaleFilename(this.counter));
+                    const filePath = path.join(this.localStoragePath, getLocaleFilename(this.counter));
 
                     return writeFilePromised(filePath, itemStr);
                 });
@@ -518,7 +518,7 @@ export class DatasetLocal {
 
     delete() {
         return this.initializationPromise
-            .then(() => emptyDirPromised(this.localEmulationPath))
+            .then(() => emptyDirPromised(this.localStoragePath))
             .then(() => {
                 this._updateMetadata(true);
                 datasetsCache.remove(this.datasetId);
@@ -541,7 +541,7 @@ export class DatasetLocal {
      * Reads and parses file for given index.
      */
     _readAndParseFile(index) {
-        const filePath = path.join(this.localEmulationPath, getLocaleFilename(index));
+        const filePath = path.join(this.localStoragePath, getLocaleFilename(index));
 
         return readFilePromised(filePath)
             .then((json) => {
@@ -611,39 +611,11 @@ const getOrCreateDataset = (datasetIdOrName) => {
  */
 export const openDataset = (datasetIdOrName) => {
     checkParamOrThrow(datasetIdOrName, 'datasetIdOrName', 'Maybe String');
+    ensureTokenOrLocalStorageEnvExists('dataset');
 
-    const localEmulationDir = process.env[ENV_VARS.LOCAL_EMULATION_DIR];
-
-    let isDefault = false;
-    let datasetPromise;
-
-    if (!datasetIdOrName) {
-        const envVar = ENV_VARS.DEFAULT_DATASET_ID;
-
-        // Env var doesn't exist.
-        if (!process.env[envVar]) return Promise.reject(new Error(`The '${envVar}' environment variable is not defined.`));
-
-        isDefault = true;
-        datasetIdOrName = process.env[envVar];
-    }
-
-    datasetPromise = datasetsCache.get(datasetIdOrName);
-
-    // Found in cache.
-    if (datasetPromise) return datasetPromise;
-
-    // Use local emulation?
-    if (localEmulationDir) {
-        datasetPromise = Promise.resolve(new DatasetLocal(datasetIdOrName, localEmulationDir));
-    } else {
-        datasetPromise = isDefault // If true then we know that this is an ID of existing dataset.
-            ? Promise.resolve(new Dataset(datasetIdOrName))
-            : getOrCreateDataset(datasetIdOrName).then(dataset => (new Dataset(dataset.id)));
-    }
-
-    datasetsCache.add(datasetIdOrName, datasetPromise);
-
-    return datasetPromise;
+    return process.env[ENV_VARS.LOCAL_STORAGE_DIR]
+        ? openLocalStorage(datasetIdOrName, ENV_VARS.DEFAULT_DATASET_ID, DatasetLocal, datasetsCache)
+        : openRemoteStorage(datasetIdOrName, ENV_VARS.DEFAULT_DATASET_ID, Dataset, datasetsCache, getOrCreateDataset);
 };
 
 /**
@@ -662,8 +634,9 @@ export const openDataset = (datasetIdOrName) => {
  * await dataset.pushData({ myValue: 123 });
  * ```
  *
- * The actual data is either stored in the Apify cloud (see [Dataset storage documentation](https://www.apify.com/docs/storage#dataset),
- * or on the local disk in the directory specified by the `APIFY_LOCAL_EMULATION_DIR` environment variable (if set).
+ * The actual data is either stored on the local disk in the directory defined by `APIFY_LOCAL_STORAGE_DIR` environment variable if provided or
+ * in the Apify cloud (see [Dataset storage documentation](https://www.apify.com/docs/storage#dataset) when actor is running on Apify
+ * platform or if `APIFY_TOKEN` environment variable is set.
  *
  * For more information, see
  * [Apify.openDataset()](#module-Apify-openDataset) and [Dataset.pushData()](#Dataset-pushData).

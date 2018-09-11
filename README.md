@@ -174,7 +174,7 @@ for your Node.js process, depending on your circumstances:
     </thead>
     <tbody>
           <tr>
-            <td><code>APIFY_LOCAL_EMULATION_DIR</code></td>
+            <td><code>APIFY_LOCAL_STORAGE_DIR</code></td>
             <td>
               Defines the path to a local directory where key-value stores, request lists and request queues store their data.
               If omitted, the package will try to use cloud storage instead and will expect that the
@@ -186,7 +186,7 @@ for your Node.js process, depending on your circumstances:
             <td>
               The API token for your Apify account. It is used to access Apify APIs, e.g. to access cloud storage.
               You can find your API token on the <a href="https://my.apify.com/account#intergrations" target="_blank">Apify - Account - Integrations</a> page.
-              If omitted, you should define <code>APIFY_LOCAL_EMULATION_DIR</code> environment variable instead.
+              If omitted, you should define <code>APIFY_LOCAL_STORAGE_DIR</code> environment variable instead.
             </td>
           </tr>
           <tr>
@@ -671,7 +671,7 @@ Each actor run at Apify platform has assigned its default storages
 <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue">request queue</a> and
 <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#Dataset">dataset</a>) which are available
 via API and helper functions such as `Apify.setValue()`, `Apify.pushData()`, etc.. If you are running actor locally then the data
-get stored in the directory defined by <code>APIFY_LOCAL_EMULATION_DIR</code> environment variable and its subdirectories based on
+get stored in the directory defined by <code>APIFY_LOCAL_STORAGE_DIR</code> environment variable and its subdirectories based on
 following environment variables:
 
 <table>
@@ -688,8 +688,8 @@ following environment variables:
        <td>
            ID of the default key-value store, where the
            <code>Apify.getValue()</code> or <code>Apify.setValue()</code> functions store the values.
-           If you defined <code>APIFY_LOCAL_EMULATION_DIR</code>, then each value is stored as a file at
-           <code>[APIFY_LOCAL_EMULATION_DIR]/key_value_stores/[APIFY_DEFAULT_KEY_VALUE_STORE_ID]/[KEY].[EXT]</code>,
+           If you defined <code>APIFY_LOCAL_STORAGE_DIR</code>, then each value is stored as a file at
+           <code>[APIFY_LOCAL_STORAGE_DIR]/key_value_stores/[APIFY_DEFAULT_KEY_VALUE_STORE_ID]/[KEY].[EXT]</code>,
            where <code>[KEY]</code> is the key nad <code>[EXT]</code> corresponds to the MIME content type of the
            value.
        </td>
@@ -699,8 +699,8 @@ following environment variables:
        <td><code>default</code></td>
        <td>
            ID of the default dataset, where the <code>Apify.pushData()</code> function store the data.
-           If you defined <code>APIFY_LOCAL_EMULATION_DIR</code>, then dataset items are stored as files at
-           <code>[APIFY_LOCAL_EMULATION_DIR]/datasets/[APIFY_DEFAULT_DATASET_ID]/[INDEX].json</code>,
+           If you defined <code>APIFY_LOCAL_STORAGE_DIR</code>, then dataset items are stored as files at
+           <code>[APIFY_LOCAL_STORAGE_DIR]/datasets/[APIFY_DEFAULT_DATASET_ID]/[INDEX].json</code>,
            where <code>[INDEX]</code> is a zero-based index of the item.
        </td>
      </tr>
@@ -709,8 +709,8 @@ following environment variables:
        <td><code>default</code></td>
        <td>
            ID of the default request queue (request queue opened using <code>Apify.openRequestQueue()</code> function).
-           If you defined <code>APIFY_LOCAL_EMULATION_DIR</code>, then request queue records are stored as files at
-           <code>[APIFY_LOCAL_EMULATION_DIR]/request_queues/[APIFY_DEFAULT_REQUEST_QUEUE_ID]/[INDEX].json</code>,
+           If you defined <code>APIFY_LOCAL_STORAGE_DIR</code>, then request queue records are stored as files at
+           <code>[APIFY_LOCAL_STORAGE_DIR]/request_queues/[APIFY_DEFAULT_REQUEST_QUEUE_ID]/[INDEX].json</code>,
            where <code>[INDEX]</code> is a zero-based index of the item.
        </td>
      </tr>

@@ -6,9 +6,10 @@ import path from 'path';
 import os from 'os';
 import Promise from 'bluebird';
 import requestPromise from 'request-promise';
+import LruCache from 'apify-shared/lru_cache';
 import * as utils from '../build/utils';
 import Apify from '../build/index';
-import { ENV_VARS } from '../build/constants';
+import { ENV_VARS, LOCAL_ENV_VARS } from '../build/constants';
 
 chai.use(chaiAsPromised);
 
@@ -523,5 +524,123 @@ describe('Apify.utils.getRandomUserAgent()', () => {
         const agent = utils.publicUtils.getRandomUserAgent();
         expect(agent).to.be.a('string');
         expect(agent.length).to.not.be.eql(0);
+    });
+});
+
+describe('utils.openLocalStorage()', async () => {
+    it('should return item from cache if available and create new one otherwise', async () => {
+        const cache = new LruCache({ maxLength: 5 });
+        class MyStore {}
+
+        expect(cache.length()).to.be.eql(0);
+
+        const store = await utils.openLocalStorage('some-id', 'some-env', MyStore, cache);
+        expect(store).to.be.instanceOf(MyStore);
+        expect(cache.length()).to.be.eql(1);
+
+        const store2 = await utils.openLocalStorage('some-id', 'some-env', MyStore, cache);
+        expect(store2).to.be.equal(store);
+        expect(cache.length()).to.be.eql(1);
+
+        const store3 = await utils.openLocalStorage('some-other-id', 'some-env', MyStore, cache);
+        expect(store3).to.not.be.equal(store);
+        expect(cache.length()).to.be.eql(2);
+    });
+
+    it('should use ID from ENV variable if no parameter is provided', async () => {
+        const cache = new LruCache({ maxLength: 5 });
+        class MyStore {
+            constructor(id) {
+                this.id = id;
+            }
+        }
+
+        process.env['some-env'] = 'id-from-env';
+
+        const store = await utils.openLocalStorage(null, 'some-env', MyStore, cache);
+        expect(store.id).to.eql('id-from-env');
+
+        delete process.env['some-env'];
+    });
+
+    it('should use ID from shared if neither parameter nor ENV var is provided', async () => {
+        const cache = new LruCache({ maxLength: 5 });
+        class MyStore {
+            constructor(id) {
+                this.id = id;
+            }
+        }
+
+        // There is some default in shared constants.
+        const defaultLocalValue = LOCAL_ENV_VARS[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID];
+        expect(defaultLocalValue).to.be.a('string');
+        expect(defaultLocalValue).to.have.length.above(1);
+
+        // There is no env var!
+        expect(process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID]).to.be.eql(undefined);
+
+        const store = await utils.openLocalStorage(null, ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID, MyStore, cache);
+        expect(store.id).to.eql(defaultLocalValue);
+    });
+});
+
+describe('utils.openRemoteStorage()', async () => {
+    it('should return item from cache if available and create new one otherwise', async () => {
+        const cache = new LruCache({ maxLength: 5 });
+        class MyStore {
+            constructor(id) {
+                this.id = id;
+            }
+        }
+
+        delete process.env['some-env'];
+
+        expect(cache.length()).to.be.eql(0);
+
+        const store = await utils.openRemoteStorage('some-id', 'some-env', MyStore, cache, async () => ({ id: 'some-id' }));
+        expect(store.id).to.be.eql('some-id');
+        expect(cache.length()).to.be.eql(1);
+
+        const store2 = await utils.openRemoteStorage('some-id', 'some-env', MyStore, cache, async () => { throw new Error('Should not be called!'); }); // eslint-disable-line
+        expect(store2.id).to.be.eql('some-id');
+        expect(store2).to.be.equal(store);
+        expect(cache.length()).to.be.eql(1);
+
+        const store3 = await utils.openRemoteStorage('some-other-id', 'some-env', MyStore, cache, async () => ({ id: 'some-other-id' }));
+        expect(store3).to.not.be.equal(store);
+        expect(store3.id).to.be.eql('some-other-id');
+        expect(cache.length()).to.be.eql(2);
+    });
+
+    it('should use ID from ENV variable if no parameter is provided', async () => {
+        const cache = new LruCache({ maxLength: 5 });
+        class MyStore {
+            constructor(id) {
+                this.id = id;
+            }
+        }
+
+        process.env['some-env'] = 'id-from-env';
+
+        const store = await utils.openLocalStorage(null, 'some-env', MyStore, cache);
+        expect(store.id).to.eql('id-from-env');
+
+        delete process.env['some-env'];
+    });
+
+    it('should use ID from ENV variable and not call getOrCreateStoreFunction parameter is not provided', async () => {
+        const cache = new LruCache({ maxLength: 5 });
+        class MyStore {
+            constructor(id) {
+                this.id = id;
+            }
+        }
+
+        process.env['some-env'] = 'id-from-env';
+
+        const store = await utils.openRemoteStorage(null, 'some-env', MyStore, cache, async () => { throw new Error('Should not be called!'); }); // eslint-disable-line
+        expect(store.id).to.eql('id-from-env');
+
+        delete process.env['some-env'];
     });
 });

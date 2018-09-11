@@ -48,8 +48,8 @@
     "lint:fix": "./node_modules/.bin/eslint ./src ./test --ext .js,.jsx --fix"
   },
   "dependencies": {
+    "apify-shared": "0.0.55",
     "apify-client": "^0.2.13",
-    "apify-shared": "0.0.54",
     "bluebird": "^3.5.0",
     "cheerio": "^1.0.0-rc.2",
     "content-type": "^1.0.3",

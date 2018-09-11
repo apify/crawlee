@@ -4,18 +4,20 @@ import 'babel-polyfill';
 import sinon from 'sinon';
 import path from 'path';
 import { ENV_VARS } from '../build/constants';
-import { KeyValueStoreLocal, KeyValueStore, maybeStringify, getFileNameRegexp, LOCAL_EMULATION_SUBDIR } from '../build/key_value_store';
-import { apifyClient } from '../build/utils';
+import { KeyValueStoreLocal, KeyValueStore, maybeStringify, getFileNameRegexp, LOCAL_STORAGE_SUBDIR } from '../build/key_value_store';
+import * as utils from '../build/utils';
 import * as Apify from '../build/index';
-import { LOCAL_EMULATION_DIR, emptyLocalEmulationSubdir, expectNotLocalEmulation, expectDirEmpty, expectDirNonEmpty } from './_helper';
+import { LOCAL_STORAGE_DIR, emptyLocalStorageSubdir, expectDirEmpty, expectDirNonEmpty } from './_helper';
+
+const { apifyClient } = utils;
 
 chai.use(chaiAsPromised);
 
 describe('KeyValueStore', () => {
     before(() => apifyClient.setOptions({ token: 'xxx' }));
     after(() => apifyClient.setOptions({ token: undefined }));
-    beforeEach(() => emptyLocalEmulationSubdir(LOCAL_EMULATION_SUBDIR));
-    afterEach(() => emptyLocalEmulationSubdir(LOCAL_EMULATION_SUBDIR));
+    beforeEach(() => emptyLocalStorageSubdir(LOCAL_STORAGE_SUBDIR));
+    afterEach(() => emptyLocalStorageSubdir(LOCAL_STORAGE_SUBDIR));
 
     describe('maybeStringify()', () => {
         it('should work', () => {
@@ -54,8 +56,8 @@ describe('KeyValueStore', () => {
 
     describe('local', async () => {
         it('should work', async () => {
-            const store = new KeyValueStoreLocal('my-store-id', LOCAL_EMULATION_DIR);
-            const store2 = new KeyValueStoreLocal('another-store-id', LOCAL_EMULATION_DIR);
+            const store = new KeyValueStoreLocal('my-store-id', LOCAL_STORAGE_DIR);
+            const store2 = new KeyValueStoreLocal('another-store-id', LOCAL_STORAGE_DIR);
             const buffer = Buffer.from('some text value');
 
             await store.setValue('key-obj', { foo: 'bar' });
@@ -96,7 +98,7 @@ describe('KeyValueStore', () => {
             expect(await store2.getValue('key-badctype')).to.be.eql(buffer);
 
             // Delete works.
-            const storeDir = path.join(LOCAL_EMULATION_DIR, LOCAL_EMULATION_SUBDIR, 'my-store-id');
+            const storeDir = path.join(LOCAL_STORAGE_DIR, LOCAL_STORAGE_SUBDIR, 'my-store-id');
             expectDirNonEmpty(storeDir);
             await store.delete();
             expectDirEmpty(storeDir);
@@ -158,80 +160,21 @@ describe('KeyValueStore', () => {
     });
 
     describe('Apify.openKeyValueStore', async () => {
-        it('should open a local store when process.env[ENV_VARS.LOCAL_EMULATION_DIR] is set', async () => {
-            process.env[ENV_VARS.LOCAL_EMULATION_DIR] = LOCAL_EMULATION_DIR;
+        it('should work', async () => {
+            const mock = sinon.mock(utils);
 
-            const store = await Apify.openKeyValueStore('some-id-2');
-            expect(store).to.be.instanceof(KeyValueStoreLocal);
-            expect(store).not.to.be.instanceof(KeyValueStore);
+            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = LOCAL_STORAGE_DIR;
 
-            delete process.env[ENV_VARS.LOCAL_EMULATION_DIR];
-        });
+            mock.expects('openLocalStorage').once();
+            await Apify.openKeyValueStore();
 
-        it('should reuse cached store instances', async () => {
-            process.env[ENV_VARS.LOCAL_EMULATION_DIR] = LOCAL_EMULATION_DIR;
+            delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
+            process.env[ENV_VARS.TOKEN] = 'xxx';
 
-            const store1 = await Apify.openKeyValueStore('some-id-3');
-            const store2 = await Apify.openKeyValueStore('some-id-3');
-            const store3 = new KeyValueStoreLocal('some-id-3', LOCAL_EMULATION_DIR);
+            mock.expects('openRemoteStorage').once();
+            await Apify.openKeyValueStore();
 
-            expect(store1).to.be.instanceof(KeyValueStoreLocal);
-            expect(store2).to.be.instanceof(KeyValueStoreLocal);
-            expect(store3).to.be.instanceof(KeyValueStoreLocal);
-
-            expect(store1).to.be.equal(store2);
-            expect(store1).not.to.be.equal(store3);
-
-            delete process.env[ENV_VARS.LOCAL_EMULATION_DIR];
-        });
-
-        it('should open default store when storeIdOrName is not provided', async () => {
-            process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID] = 'some-id-4';
-            process.env[ENV_VARS.LOCAL_EMULATION_DIR] = LOCAL_EMULATION_DIR;
-
-            const store = await Apify.openKeyValueStore();
-            expect(store.storeId).to.be.eql('some-id-4');
-            expect(store).to.be.instanceof(KeyValueStoreLocal);
-
-            delete process.env[ENV_VARS.LOCAL_EMULATION_DIR];
-            process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID] = 'some-id-5';
-            expectNotLocalEmulation();
-
-            const store2 = await Apify.openKeyValueStore();
-            expect(store2.storeId).to.be.eql('some-id-5');
-            expect(store2).to.be.instanceof(KeyValueStore);
-
-            delete process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID];
-        });
-
-        it('should open remote store when process.env[ENV_VARS.LOCAL_EMULATION_DIR] is NOT set', async () => {
-            expectNotLocalEmulation();
-
-            const mock = sinon.mock(apifyClient.keyValueStores);
-
-            // First when used with id it only requests store object.
-            mock.expects('getStore')
-                .once()
-                .withArgs({ storeId: 'some-id-6' })
-                .returns(Promise.resolve({ id: 'some-id-6' }));
-            const store = await Apify.openKeyValueStore('some-id-6');
-            expect(store.storeId).to.be.eql('some-id-6');
-            expect(store).to.be.instanceof(KeyValueStore);
-
-            // Then used with name it requests store object, gets empty response
-            // so then it creates dataset.
-            mock.expects('getStore')
-                .once()
-                .withArgs({ storeId: 'some-name-7' })
-                .returns(Promise.resolve(null));
-            mock.expects('getOrCreateStore')
-                .once()
-                .withArgs({ storeName: 'some-name-7' })
-                .returns(Promise.resolve({ id: 'some-id-7' }));
-
-            const store2 = await Apify.openKeyValueStore('some-name-7');
-            expect(store2.storeId).to.be.eql('some-id-7');
-            expect(store2).to.be.instanceof(KeyValueStore);
+            delete process.env[ENV_VARS.TOKEN];
 
             mock.verify();
             mock.restore();
@@ -241,26 +184,30 @@ describe('KeyValueStore', () => {
     describe('getValue', async () => {
         it('throws on invalid args', async () => {
             process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID] = '1234';
+            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = LOCAL_STORAGE_DIR;
             await expect(Apify.getValue()).to.be.rejectedWith('Parameter "key" of type String must be provided');
             await expect(Apify.getValue({})).to.be.rejectedWith('Parameter "key" of type String must be provided');
             await expect(Apify.getValue('')).to.be.rejectedWith('The "key" parameter cannot be empty');
             await expect(Apify.getValue(null)).to.be.rejectedWith('Parameter "key" of type String must be provided');
+            delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
         });
 
-        it('throws if APIFY_DEFAULT_KEY_VALUE_STORE_ID env var is not defined', async () => {
-            const errMsg = 'The \'APIFY_DEFAULT_KEY_VALUE_STORE_ID\' environment variable is not defined';
+        it('throws if APIFY_DEFAULT_KEY_VALUE_STORE_ID env var is not defined and we use cloud storage', async () => {
+            delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
+            delete process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID];
+            process.env[ENV_VARS.TOKEN] = 'xxx';
 
-            process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID] = '';
+            const errMsg = 'The \'APIFY_DEFAULT_KEY_VALUE_STORE_ID\' environment variable is not defined';
             await expect(Apify.getValue('KEY')).to.be.rejectedWith(errMsg);
 
-            delete process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID];
-            await expect(Apify.getValue('some other key')).to.be.rejectedWith(errMsg);
+            delete process.env[ENV_VARS.TOKEN];
         });
     });
 
     describe('setValue', async () => {
         it('throws on invalid args', async () => {
-            process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID] = '1234';
+            process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID] = '12345';
+            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = LOCAL_STORAGE_DIR;
             await expect(Apify.setValue()).to.be.rejectedWith('Parameter "key" of type String must be provided');
             await expect(Apify.setValue('', null)).to.be.rejectedWith('The "key" parameter cannot be empty');
             await expect(Apify.setValue('', 'some value')).to.be.rejectedWith('The "key" parameter cannot be empty');
@@ -297,10 +244,12 @@ describe('KeyValueStore', () => {
             await expect(Apify.setValue('key', 'value', { contentType: new Date() })).to.be.rejectedWith(contTypeStringErrMsg);
             await expect(Apify.setValue('key', 'value', { contentType: '' }))
                 .to.be.rejectedWith('Parameter options.contentType cannot be empty string.');
+
+            delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
         });
 
         it('throws on invalid characters in key', async () => {
-            const store = new KeyValueStoreLocal('my-store-id', LOCAL_EMULATION_DIR);
+            const store = new KeyValueStoreLocal('my-store-id', LOCAL_STORAGE_DIR);
             const INVALID_CHARACTERS = '?|\\/"*<>%:';
             let counter = 0;
 
@@ -315,14 +264,15 @@ describe('KeyValueStore', () => {
             expect(counter).to.be.eql(INVALID_CHARACTERS.length);
         });
 
-        it('throws if APIFY_DEFAULT_KEY_VALUE_STORE_ID env var is not defined', async () => {
-            const errMsg = 'The \'APIFY_DEFAULT_KEY_VALUE_STORE_ID\' environment variable is not defined';
+        it('throws if APIFY_DEFAULT_KEY_VALUE_STORE_ID env var is not defined and we use cloud storage', async () => {
+            delete process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID];
+            delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
+            process.env[ENV_VARS.TOKEN] = 'xxx';
 
-            process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID] = '';
+            const errMsg = 'The \'APIFY_DEFAULT_KEY_VALUE_STORE_ID\' environment variable is not defined';
             await expect(Apify.setValue('KEY', {})).to.be.rejectedWith(errMsg);
 
-            delete process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID];
-            await expect(Apify.setValue('some other key', {})).to.be.rejectedWith(errMsg);
+            delete process.env[ENV_VARS.TOKEN];
         });
 
         it('correctly adds charset to content type', async () => {
@@ -401,3 +351,4 @@ describe('KeyValueStore', () => {
         });
     });
 });
+
