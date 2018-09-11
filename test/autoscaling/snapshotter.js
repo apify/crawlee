@@ -110,7 +110,7 @@ describe('Snapshotter', () => {
     it('correctly marks eventLoopOverloaded', async () => {
         const options = {
             eventLoopSnapshotIntervalSecs: 0.01,
-            maxBlockedRatio: 1, // increase this not to get false positives
+            maxBlockedMillis: 10,
         };
         const TICK = options.eventLoopSnapshotIntervalSecs * 1000;
         const DELAY = 75;

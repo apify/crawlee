@@ -8,17 +8,46 @@ import events from '../events';
 
 const DEFAULT_OPTIONS = {
     eventLoopSnapshotIntervalSecs: 0.5,
+    maxBlockedMillis: 50,
     memorySnapshotIntervalSecs: 1,
+    maxUsedMemoryRatio: 0.7,
     snapshotHistorySecs: 60,
-    maxBlockedRatio: 0.1,
-    minFreeMemoryRatio: 0.7,
 };
 
 /**
- * Creates snapshots of system resources at given intervals.
- * Provides an interface to read captured snapshots.
+ * Creates snapshots of system resources at given intervals and marks the resource
+ * as either overloaded or not during the last interval. Keeps a history of the snapshots.
+ * It tracks the following resources: Memory, EventLoop and CPU.
  *
- * @param options
+ * There are differences in behavior when running locally and on the Apify platform,
+ * but those differences are handled internally by the class and do not affect its interface.
+ *
+ * Memory becomes overloaded if its current use exceeds the `minFreeMemoryRatio` option.
+ * It's computed using the total memory available to the container when running on
+ * the Apify platform and a quarter of total system memory when running locally.
+ * Use of total memory may be overridden by using the `maxBlockedRatio` option.
+ *
+ * Event Loop becomes overloaded if it slows down by more than the `maxBlockedMillis` option.
+ *
+ * CPU tracking is available only on the Apify platform and the CPU overloaded event is read
+ * directly off the container and is not configurable.
+ *
+ * @param {Object} options
+ * @param {Number} [options.eventLoopSnapshotIntervalSecs=0.5]
+ *   Defines the interval of measuring the event loop response time.
+ * @param {Number} [options.maxBlockedMillis=50]
+ *   Maximum allowed delay of the event loop in milliseconds.
+ *   Exceeding this limit overloads the event loop.
+ * @param {Number} [options.memorySnapshotIntervalSecs=1]
+ *   Defines the interval of measuring memory consumption.
+ *   The measurement itself is resource intensive (25 - 50ms async),
+ *   therefore, setting this interval below 1 second is not recommended.
+ * @param {Number} [options.maxUsedMemoryRatio=0.7]
+ *   Defines the maximum ratio of memory that can be used.
+ *   Exceeding this limit overloads the memory.
+ * @param {Number} [options.snapshotHistorySecs=60]
+ *   Sets the interval in seconds for which a history of resource snapshots
+ *   will be kept. Increasing this to very high numbers will affect performance.
  */
 export default class Snapshotter {
     constructor(options = {}) {
@@ -26,23 +55,23 @@ export default class Snapshotter {
             eventLoopSnapshotIntervalSecs,
             memorySnapshotIntervalSecs,
             snapshotHistorySecs,
-            maxBlockedRatio,
-            minFreeMemoryRatio,
+            maxBlockedMillis,
+            maxUsedMemoryRatio,
             maxMemoryMbytes,
         } = _.defaults(options, DEFAULT_OPTIONS);
 
         checkParamOrThrow(eventLoopSnapshotIntervalSecs, 'options.eventLoopSnapshotIntervalSecs', 'Number');
         checkParamOrThrow(memorySnapshotIntervalSecs, 'options.memorySnapshotIntervalSecs', 'Number');
         checkParamOrThrow(snapshotHistorySecs, 'options.snapshotHistorySecs', 'Number');
-        checkParamOrThrow(maxBlockedRatio, 'options.maxBlockedRatio', 'Number');
-        checkParamOrThrow(minFreeMemoryRatio, 'options.minFreeMemoryRatio', 'Number');
+        checkParamOrThrow(maxBlockedMillis, 'options.maxBlockedMillis', 'Number');
+        checkParamOrThrow(maxUsedMemoryRatio, 'options.maxUsedMemoryRatio', 'Number');
         checkParamOrThrow(maxMemoryMbytes, 'options.maxMemoryMbytes', 'Maybe Number');
 
         this.eventLoopSnapshotIntervalMillis = eventLoopSnapshotIntervalSecs * 1000;
         this.memorySnapshotIntervalMillis = memorySnapshotIntervalSecs * 1000;
         this.snapshotHistoryMillis = snapshotHistorySecs * 1000;
-        this.maxBlockedMillis = 1000 * eventLoopSnapshotIntervalSecs * maxBlockedRatio;
-        this.minFreeMemoryRatio = minFreeMemoryRatio;
+        this.maxBlockedMillis = maxBlockedMillis;
+        this.maxUsedMemoryRatio = maxUsedMemoryRatio;
         if (maxMemoryMbytes) this.maxMemoryBytes = maxMemoryMbytes * 1024 * 1024;
 
         this.cpuSnapshots = [];
@@ -50,6 +79,10 @@ export default class Snapshotter {
         this.memorySnapshots = [];
     }
 
+    /**
+     * Starts capturing snapshots in configured intervals.
+     * @return {Promise}
+     */
     async start() {
         // Ensure max memory is correctly computed.
         if (!this.maxMemoryBytes) {
@@ -74,26 +107,55 @@ export default class Snapshotter {
         if (isAtHome()) events.on(ACTOR_EVENT_NAMES.CPU_INFO, this._snapshotCpu.bind(this));
     }
 
+    /**
+     * Stops all resource capturing.
+     * @return {Promise}
+     */
     async stop() {
         betterClearInterval(this.eventLoopInterval);
         betterClearInterval(this.memoryInterval);
         if (isAtHome()) events.removeListener(ACTOR_EVENT_NAMES.CPU_INFO, this._snapshotCpu);
-        // Allow event loop to unwind before stop returns.
+        // Allow microtask queue to unwind before stop returns.
         await new Promise(resolve => setImmediate(resolve));
     }
 
+    /**
+     * Returns a sample of latest memory snapshots, with the size of the sample defined
+     * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
+     * @param {Number} [sampleDurationMillis]
+     * @return {Array} sample
+     */
     getMemorySample(sampleDurationMillis) {
         return this._getSample(this.memorySnapshots, sampleDurationMillis);
     }
 
+    /**
+     * Returns a sample of latest event loop snapshots, with the size of the sample defined
+     * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
+     * @param {Number} [sampleDurationMillis]
+     * @return {Array} sample
+     */
     getEventLoopSample(sampleDurationMillis) {
         return this._getSample(this.eventLoopSnapshots, sampleDurationMillis);
     }
 
+    /**
+     * Returns a sample of latest CPU snapshots, with the size of the sample defined
+     * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
+     * @param {Number} [sampleDurationMillis]
+     * @return {Array} sample
+     */
     getCpuSample(sampleDurationMillis) {
         return this._getSample(this.cpuSnapshots, sampleDurationMillis);
     }
 
+    /**
+     * Finds the latest snapshots by sampleDurationMillis in the provided array.
+     * @param {Array} snapshots
+     * @param {Array} [sampleDurationMillis]
+     * @return {Array} sample
+     * @ignore
+     */
     _getSample(snapshots, sampleDurationMillis) { // eslint-disable-line class-methods-use-this
         if (!sampleDurationMillis) return snapshots;
 
@@ -110,6 +172,12 @@ export default class Snapshotter {
         return sample;
     }
 
+    /**
+     * Creates a snapshot of current memory usage.
+     * @param {Function} intervalCallback
+     * @return {Promise}
+     * @ignore
+     */
     async _snapshotMemory(intervalCallback) {
         try {
             const now = new Date();
@@ -120,7 +188,7 @@ export default class Snapshotter {
             const usedBytes = mainProcessBytes + childProcessesBytes;
             const snapshot = Object.assign(memInfo, {
                 createdAt: now,
-                isOverloaded: usedBytes / this.maxMemoryBytes > this.minFreeMemoryRatio,
+                isOverloaded: usedBytes / this.maxMemoryBytes > this.maxUsedMemoryRatio,
             });
 
             this.memorySnapshots.push(snapshot);
@@ -131,6 +199,12 @@ export default class Snapshotter {
         }
     }
 
+    /**
+     * Creates a snapshot of current event loop delay.
+     * @param {Function} intervalCallback
+     * @return {Promise}
+     * @ignore
+     */
     _snapshotEventLoop(intervalCallback) {
         try {
             const now = new Date();
@@ -153,6 +227,12 @@ export default class Snapshotter {
         }
     }
 
+    /**
+     * Creates a snapshot of current CPU usage.
+     * @param {Object} cpuInfoEvent
+     * @return {Promise}
+     * @ignore
+     */
     _snapshotCpu(cpuInfoEvent) {
         const createdAt = (new Date(cpuInfoEvent.createdAt));
         this._pruneSnapshots(this.cpuSnapshots, createdAt);
@@ -162,6 +242,13 @@ export default class Snapshotter {
         });
     }
 
+    /**
+     * Removes snapshots that are older than the snapshotHistorySecs option
+     * from the array (destructively - in place).
+     * @param {Array} snapshots
+     * @param {Date} now
+     * @ignore
+     */
     _pruneSnapshots(snapshots, now) {
         let oldCount = 0;
         for (let i = 0; i < snapshots.length; i++) {
