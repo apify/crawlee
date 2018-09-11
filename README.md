@@ -21,9 +21,8 @@
   View the full <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest/" target="_blank">Apify SDK Programmer's Reference</a> on a separate website.
 </div>
 
-<!--
+
 ## Table of Content
--->
 
 <!-- toc -->
 
@@ -34,14 +33,14 @@
   * [Local usage with Apify command-line interface (CLI)](#local-usage-with-apify-command-line-interface-cli)
   * [Usage in actors on the Apify cloud platform](#usage-in-actors-on-the-apify-cloud-platform)
 - [Examples](#examples)
-  * [1 - Load a few pages in raw HTML](#1---load-a-few-pages-in-raw-html)
-  * [2 - Crawl a large list of URLs with Cheerio](#2---crawl-a-large-list-of-urls-with-cheerio)
-  * [3 - Recursively crawl a website using headless Chrome / Puppeteer](#3---recursively-crawl-a-website-using-headless-chrome--puppeteer)
-  * [4 - Save page screenshots into KeyValueStore](#4---save-page-screenshots-into-keyvaluestore)
-  * [5 - Run Puppeteer with Apify Proxy](#5---run-puppeteer-with-apify-proxy)
-  * [6 - Invoke another actor](#6---invoke-another-actor)
-  * [7 - Run actor as an API](#7---run-actor-as-an-api)
-- [Storage](#storage)
+  * [Load a few pages in raw HTML](#1---load-a-few-pages-in-raw-html)
+  * [Crawl a large list of URLs with Cheerio](#2---crawl-a-large-list-of-urls-with-cheerio)
+  * [Recursively crawl a website using headless Chrome / Puppeteer](#3---recursively-crawl-a-website-using-headless-chrome--puppeteer)
+  * [Save page screenshots into KeyValueStore](#4---save-page-screenshots-into-keyvaluestore)
+  * [Run Puppeteer with Apify Proxy](#5---run-puppeteer-with-apify-proxy)
+  * [Invoke another actor](#6---invoke-another-actor)
+  * [Run actor as an API](#7---run-actor-as-an-api)
+- [Data storage](#storage)
 - [Puppeteer live view](#puppeteer-live-view)
 - [Support](#support)
 - [Contributing](#contributing)
@@ -87,7 +86,7 @@ The Apify SDK package provides the following tools:
     - Enables parallel crawling of large number of web pages
     using <a href="https://www.npmjs.com/package/cheerio" target="_blank">cheerio</a>
     HTML parser.
-    This is the most efficient web crawling method, but it does not work on websites that require JavaScript.
+    This is the most efficient web crawler, but it does not work on websites that require JavaScript.
   </li>
   <li>
     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerCrawler">PuppeteerCrawler</a>
@@ -103,13 +102,13 @@ The Apify SDK package provides the following tools:
   </li>
   <li>
     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList">RequestList</a>
-    - Represents a list of URLs to crawl. The URLs can be provided in code or in a text file.
+    - Represents a list of URLs to crawl. The URLs can be passed in code or in a text file hosted on the web.
     The list persists its state so that the crawling can resume
     when the Node.js process restarts.
   </li>
   <li>
     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue">RequestQueue</a>
-    - Represents a queue of URLs to crawl, which is stored either on local filesystem or in cloud.
+    - Represents a queue of URLs to crawl, which is stored either on local filesystem or in the cloud.
     The queue is used for deep crawling of websites, where you start with
     several URLs and then recursively follow links to other pages.
     The data structure supports both breadth-first and depth-first crawling orders.
@@ -125,13 +124,13 @@ The Apify SDK package provides the following tools:
   <li>
     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#KeyValueStore">KeyValueStore</a>
     - A simple key-value store for arbitrary data records or files, along with their MIME content type.
-    It is ideal for saving screenshots of web pages, PDFs or any downloaded files.
+    It is ideal for saving screenshots of web pages, PDFs or to persist state of your crawlers.
     The data is stored on local filesystem or in the cloud.
   </li>
   <li>
     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#AutoscaledPool" target="_blank">AutoscaledPool</a>
     - Runs asynchronous background tasks, while automatically adjusting the concurrency
-    based on free system memory and CPU usage. This is useful for running headless Chrome tasks at scale.
+    based on free system memory and CPU usage. This is useful for running headless Chrome or cheerio tasks at scale.
   </li>
   <li>
     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerUtils" target="_blank">PuppeteerUtils</a>
@@ -160,10 +159,9 @@ You can add Apify SDK to any Node.js project by running:
 npm install apify
 ```
 
-It works right off the bat locally. No configuration needed.
-To make the package work with Apify cloud services
-you'll need to set one or more of the following environment variables
-for your Node.js process, depending on your circumstances:
+Now you'll need to specify where the SDK should store crawling data.
+Either define the `APIFY_LOCAL_STORAGE_DIR` environment variable to store the data locally
+or define `APIFY_TOKEN` to store the data to Apify cloud platform.
 
 <table class="table table-bordered table-condensed">
     <thead>
@@ -176,7 +174,10 @@ for your Node.js process, depending on your circumstances:
           <tr>
             <td><code>APIFY_LOCAL_STORAGE_DIR</code></td>
             <td>
-              Defines the path to a local directory where key-value stores, request lists and request queues store their data.
+              Defines the path to a local directory where
+              <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#KeyValueStore">key-value stores</a>,
+              <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList">request lists</a>
+              and <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue">request queues</a> store their data.
               If omitted, the package will try to use cloud storage instead and will expect that the
               <code>APIFY_TOKEN</code> environment variable is defined.
             </td>
@@ -184,9 +185,9 @@ for your Node.js process, depending on your circumstances:
           <tr>
             <td><code>APIFY_TOKEN</code></td>
             <td>
-              The API token for your Apify account. It is used to access Apify APIs, e.g. to access cloud storage.
-              You can find your API token on the <a href="https://my.apify.com/account#intergrations" target="_blank">Apify - Account - Integrations</a> page.
-              If omitted, you should define <code>APIFY_LOCAL_STORAGE_DIR</code> environment variable instead.
+              The API token for your Apify account. It is used to access Apify APIs, e.g. to access cloud storage or to run an actor in the cloud.
+              You can find your API token on the <a href="https://my.apify.com/account#intergrations" target="_blank">Apify &gt; Account &gt; Integrations</a> page.
+              If omitted, you'll need to define the <code>APIFY_LOCAL_STORAGE_DIR</code> environment variable instead.
             </td>
           </tr>
           <tr>
@@ -195,7 +196,7 @@ for your Node.js process, depending on your circumstances:
               Password to <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a> for IP address rotation.
               If you have have an Apify account, you can find the password on the
               <a href="https://my.apify.com/proxy" target="_blank">Proxy page</a> in the Apify app.
-              You may freely use your own proxies, instead of the Apify pool.
+              This feature is optional. You can use your own proxies or no proxies at all, instead of the Apify pool.
             </td>
           </tr>
     </tbody>
@@ -236,9 +237,10 @@ cd my-hello-world
 apify run
 ```
 
-The default local storage folder is set to `./apify_local` directory, where all the data will be stored.
+The default local storage directory is set to `./apify_storage` (using the `APIFY_LOCAL_EMULATION_DIR` environment variable),
+where all the crawling data will be stored.
 For example, the input JSON file for the actor is expected to be in the default key-value store
-in `./apify_local/key_value_stores/default/INPUT.json`.
+in `./apify_storage/key_value_stores/default/INPUT.json`.
 
 With the CLI you can also easily deploy your code to Apify cloud by running:
 
@@ -249,7 +251,8 @@ apify push
 
 Your actor will be uploaded to Apify cloud and built there.
 
-For more information, view the [Apify CLI documentation](https://www.apify.com/docs/cli).
+For more information, view the [Apify CLI](https://www.apify.com/docs/cli)
+and [Apify Actor](https://www.apify.com/docs/actor) documentation.
 
 
 ### Usage in actors on the Apify cloud platform
@@ -264,37 +267,44 @@ For more information, view the [Apify actors quick start guide](https://www.apif
 
 ## Examples
 
-Because examples are often the best way to explain anything, let's look at some of the above
-described features put to good use in solving various scraping challenges.
+An example is better than thousand of words. In the following sections you will find
+examples how to solve various web scraping task using Apify SDK.
+All these examples can be found in the [examples](https://github.com/apifytech/apify-js/tree/master/examples) directory
+in the repository.
 
-All the following examples can be found in the [./examples](https://github.com/apifytech/apify-js/tree/master/examples) directory in the repository.
+To run the examples, just copy them into the directory where you installed Apify by using
+`npm install apify` and then run them by:
 
-To run the examples, just copy them into the folder where you installed Apify by using
-`npm install apify` and then run them by calling e.g.:
 ```
-node 1_basic_crawler.js
+node APIFY_LOCAL_STORAGE_DIR=./apify_storage 1_basic_crawler.js
 ```
 
-Or, using the Apify CLI, you can copy the source code of one of the examples into the `main.js`
-file, created by Apify CLI and then simply call
+Note that setting the `APIFY_LOCAL_STORAGE_DIR` environment variables is necessary in
+order to tell the SDK where to store its data and crawling state.
+
+Alternatively, if you're using the [Apify CLI](#local-usage-with-apify-command-line-interface-cli),
+you can copy and paster the source code of one of the examples into the `main.js`
+file created by Apify CLI, go to the project's directory and call
 ```
 apify run
 ```
-in the project's folder.
 
-### 1 - Load a few pages in raw HTML
-This is the most basic example of using the Apify SDK. Start with it. It explains some
-essential concepts that are used throughout the SDK.
+### Load a few pages in raw HTML
+
+This is the most basic example of Apify SDK that demonstrates some of its
+elementary concepts. The script just downloads several web pages with plain HTTP requests (using the
+[request-promise](https://www.npmjs.com/package/request-promise) package)
+and stores their raw HTML and URL to the default dataset
+(locally present in the `./apify_storage/datasets/default` directory).
+
 ```javascript
-// We require the Apify SDK and a popular client to make HTTP requests.
 const Apify = require('apify');
 const requestPromise = require('request-promise');
 
-// The Apify.main() function wraps the crawler logic and is a mandatory
-// part of every crawler run using Apify SDK.
+// The optional Apify.main() function wraps the crawler logic.
 Apify.main(async () => {
-    // Prepare a list of URLs to crawl. For that we use an instance of the RequestList class.
-    // Here we just throw some URLs into an array of sources, but the RequestList can do much more.
+    // Create an instance of the RequestList class that contains a list of URLs to crawl.
+    // Here we use just a few hard-coded URLs, but the class can do much more, e.g. parse URLs from an external file.
     const requestList = new Apify.RequestList({
         sources: [
             { url: 'http://www.google.com/' },
@@ -304,26 +314,24 @@ Apify.main(async () => {
         ],
     });
 
-    // Since initialization of the RequestList is asynchronous, you must always
-    // call .initialize() before using it.
+    // Initialize the RequestList before its usage.
     await requestList.initialize();
 
-    // To crawl the URLs, we use an instance of the BasicCrawler class which is our simplest,
-    // but still powerful crawler. Its constructor takes an options object where you can
-    // configure it to your liking. Here, we're keeping things simple.
+    // Create an instance of the BasicCrawler class - the simplest crawler
+    // that enables users to implement the crawling logic themselves.
     const crawler = new Apify.BasicCrawler({
 
-        // We use the request list created earlier to feed URLs to the crawler.
+        // The crawler will be fed URLs from our list.
         requestList,
 
-        // We define a handleRequestFunction that describes the actions
-        // we wish to perform for each URL.
+        // The handleRequestFunction contains actions to be performed for each URL.
         handleRequestFunction: async ({ request }) => {
-            // 'request' contains an instance of the Request class which is a container
-            // for request related data such as URL or Method (GET, POST ...) and is supplied by the requestList we defined.
+            // 'request' is an instance of the Request class and it contains information
+            // such as URL and HTTP method, as supplied by the RequestList.
             console.log(`Processing ${request.url}...`);
 
-            // Here we simply fetch the HTML of the page and store it to the default Dataset.
+            // Simply fetch the HTML of the page and store it to the default dataset.
+            // In local configuration, the data will be stored as JSON files in ./apify_storage/datasets/default
             await Apify.pushData({
                 url: request.url,
                 html: await requestPromise(request.url),
@@ -331,16 +339,16 @@ Apify.main(async () => {
         },
     });
 
-    // Once started the crawler, will automatically work through all the pages in the requestList
-    // and the created promise will resolve once the crawl is completed. The collected HTML will be
-    // saved in the ./apify_storage/datasets/default folder, unless configured differently.
+    // Run the crawler and wait for its finish.
     await crawler.run();
+
     console.log('Crawler finished.');
 });
 ```
 
-### 2 - Crawl a large list of URLs with Cheerio
-This example shows how to extract data (the content of title and all h1 tags) from an external
+### Crawl a large list of URLs with Cheerio
+
+This example demonstrates how to extract data (the content of title and all h1 tags) from an external
 list of URLs (parsed from a CSV file) using CheerioCrawler.
 
 It builds upon the previous BasicCrawler example, so if you missed that one, you should check it out.
@@ -418,7 +426,7 @@ Apify.main(async () => {
 });
 ```
 
-### 3 - Recursively crawl a website using headless Chrome / Puppeteer
+### Recursively crawl a website using headless Chrome / Puppeteer
 This example demonstrates how to use PuppeteerCrawler in connection with the RequestQueue to recursively scrape
 the Hacker News site (https://news.ycombinator.com). It starts with a single URL where it finds more links,
 enqueues them to the RequestQueue and continues until no more desired links are available.
@@ -493,7 +501,7 @@ Apify.main(async () => {
 });
 ```
 
-### 4 - Save page screenshots into KeyValueStore
+### Save page screenshots into KeyValueStore
 This example shows how to work with KeyValueStore. It crawls a list of URLs using Puppeteer,
 capture a screenshot of each page and saves it to the KeyValueStore. The list of URLs is
 provided as INPUT, which is a standard way of passing initial configuration to Apify actors.
@@ -541,7 +549,7 @@ Apify.main(async () => {
 });
 ```
 
-### 5 - Run Puppeteer with Apify Proxy
+### Run Puppeteer with Apify Proxy
 This example demonstrates the use of Apify features with Puppeteer.
 We'll show you how to use Apify Proxy without using our Crawlers
 and instead using only Puppeteer itself.
@@ -581,7 +589,7 @@ Apify.main(async () => {
 });
 ```
 
-### 6 - Invoke another actor
+### Invoke another actor
 This example shows how to call another actor - in this case apify/send-mail to send
 an email.
 
@@ -621,14 +629,14 @@ Apify.main(async () => {
 });
 ```
 
-### 7 - Run actor as an API
-This example shows shows an actor that has short runtime - just few seconds. It opens a webpage
-http://goldengatebridge75.org/news/webcam.html that contains webcam stream from Golden Gate
+### Run actor as an API
+This example shows shows an actor that has a short run time - just few seconds. It opens a web page
+http://goldengatebridge75.org/news/webcam.html that contains webcam stream from the Golden Gate
 bridge, takes a screenshot and saves it as output. This makes actor executable on Apify platform
 synchronously with a single request that also returns its output.
 
-Example is shared in library under https://www.apify.com/apify/example-golden-gate-webcam
-so you can easily run it with request to
+The example is shared in the Apify library at https://www.apify.com/apify/example-golden-gate-webcam
+so you can easily run it by sending a POST request to
 https://api.apify.com/v2/acts/apify~example-golden-gate-webcam/run-sync?token=[YOUR_API_TOKEN]
 ```javascript
 const Apify = require('apify');
@@ -664,7 +672,7 @@ Apify.main(async () => {
 });
 ```
 
-## Storage
+## Data storage
 
 Each actor run at Apify platform has assigned its default storages
 (<a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#KeyValueStore">key-value store</a>,
@@ -757,7 +765,8 @@ article in Apify Knowlege base.
 
 ## Support
 
-If you find any problem with Apify SDK, please [submit an issue on GitHub](https://github.com/apifytech/apify-js/issues).
+If you find any bug or issue with Apify SDK, please [submit an issue on GitHub](https://github.com/apifytech/apify-js/issues).
+For questions, you can ask on [Stack Overflow](https://stackoverflow.com/questions/tagged/apify) or contact support@apify.com
 
 ## Contributing
 
