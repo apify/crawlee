@@ -1,3 +1,8 @@
+xxx
+==================
+- Updated DEFAULT_USER_AGENT and USER_AGENT_LIST
+- Added `recycleDiskCache` option to `PuppeteerPool` to enable reuse of disk cache and thus speedup browsing
+
 0.6.4 / 2018-09-05
 ==================
 - Added `compileScript()` function to `utils.puppeteer` to enable use of external scripts at runtime.

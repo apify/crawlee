@@ -48,8 +48,8 @@
     "lint:fix": "./node_modules/.bin/eslint ./src ./test --ext .js,.jsx --fix"
   },
   "dependencies": {
-    "apify-client": "^0.2.9",
     "apify-shared": "0.0.55",
+    "apify-client": "^0.2.13",
     "bluebird": "^3.5.0",
     "cheerio": "^1.0.0-rc.2",
     "content-type": "^1.0.3",
@@ -59,6 +59,7 @@
     "proxy-chain": "^0.2.4",
     "@apify/ps-tree": "^1.1.1",
     "request-promise": "^4.2.2",
+    "rimraf": "^2.6.1",
     "underscore": "^1.9.0",
     "ws": "^6.0.0",
     "xregexp": "^4.2.0"
@@ -86,7 +87,6 @@
     "portastic": "^1.0.1",
     "proxy": "^0.2.4",
     "request": "^2.81.0",
-    "rimraf": "^2.6.1",
     "sinon": "^4.1.2",
     "sinon-stub-promise": "^4.0.0",
     "tmp": "^0.0.33",
