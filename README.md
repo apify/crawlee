@@ -18,7 +18,7 @@
 <br>
 
 <div>
-  View the full <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest/" target="_blank">Apify SDK Programmer's Reference</a> on a separate website.
+  View the full <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest/" target="_blank">Apify SDK Programmer's Reference</a> (separate page).
 </div>
 
 
@@ -151,7 +151,7 @@ The Apify SDK package provides the following tools:
 
 The Apify SDK requires <a href="https://nodejs.org/en/" target="_blank">Node.js</a> 8 or later.
 
-### Local standalone usage
+### Local stand-alone usage
 
 You can add Apify SDK to any Node.js project by running:
 
@@ -159,9 +159,11 @@ You can add Apify SDK to any Node.js project by running:
 npm install apify
 ```
 
-Now you'll need to specify where the SDK should store crawling data.
-Either define the `APIFY_LOCAL_STORAGE_DIR` environment variable to store the data locally
+You'll need to specify where the SDK should store the data.
+Either define the `APIFY_LOCAL_STORAGE_DIR` environment variable to store the data locally on your disk
 or define `APIFY_TOKEN` to store the data to Apify cloud platform.
+
+Here's the table of basic environment variables used by Apify SDK:
 
 <table class="table table-bordered table-condensed">
     <thead>
@@ -178,16 +180,16 @@ or define `APIFY_TOKEN` to store the data to Apify cloud platform.
               <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#KeyValueStore">key-value stores</a>,
               <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList">request lists</a>
               and <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue">request queues</a> store their data.
-              If omitted, the package will try to use cloud storage instead and will expect that the
-              <code>APIFY_TOKEN</code> environment variable is defined.
+              If omitted, you should define
+              the <code>APIFY_TOKEN</code> environment variable instead.
             </td>
           </tr>
           <tr>
             <td><code>APIFY_TOKEN</code></td>
             <td>
-              The API token for your Apify account. It is used to access Apify APIs, e.g. to access cloud storage or to run an actor in the cloud.
-              You can find your API token on the <a href="https://my.apify.com/account#intergrations" target="_blank">Apify &gt; Account &gt; Integrations</a> page.
-              If omitted, you'll need to define the <code>APIFY_LOCAL_STORAGE_DIR</code> environment variable instead.
+              The API token for your Apify account. It is used to access Apify API, e.g. to access cloud storage or to run an actor in the cloud.
+              You can find your API token on the <a href="https://my.apify.com/account#intergrations">Account - Integrations</a> page.
+              If omitted, you should define the <code>APIFY_LOCAL_STORAGE_DIR</code> environment variable instead.
             </td>
           </tr>
           <tr>
@@ -203,9 +205,9 @@ or define `APIFY_TOKEN` to store the data to Apify cloud platform.
 </table>
 
 
-For the full list of environment variables used by Apify SDK, please see the
+For the full list of environment variables used by Apify SDK and the Apify cloud platform, please see the
 <a href="https://www.apify.com/docs/actor#environment-variabes" target="_blank">Environment variables</a>
-section of the Apify actor documentation.
+in the Apify actor documentation.
 
 
 ### Local usage with Apify command-line interface (CLI)
