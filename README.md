@@ -523,23 +523,33 @@ Apify.main(async () => {
 
 ### Save page screenshots
 
-This example shows how to work with [KeyValueStore](https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerCrawler).
-It crawls a list of URLs using Puppeteer,
-capture a screenshot of each page and saves it to the KeyValueStore. The list of URLs is
-provided as INPUT, which is a standard way of passing initial configuration to Apify actors.
-Locally, INPUT needs to be placed in the KeyValueStore. On the platform, it can either be set
-using the applications UI or passed as the body of the Run Actor API call.
+This example shows how to read and write
+data to the default key-value store using
+<a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-getValue"><code>Apify.getValue()</code></a>
+and
+<a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-setValue"><code>Apify.setValue()</code></a>.
+The script crawls a list of URLs using Puppeteer,
+captures a screenshot of each page and saves it to the store. The list of URLs is
+provided as actor input that is also read from the store.
 
-For more information on RequestList, see example 1. For PuppeteerCrawler, see example 3.
+Locally, the input is stored in the default key-value store's directory as JSON file at
+`./apify_storage/key_value_stores/default/INPUT.json`. You can create the file and set it the following content:
+
+```json
+{ "sources": [{ "url": "https://www.google.com" }, { "url": "https://www.duckduckgo.com" }] }
+```
+
+On the Apify cloud platform, the input can be either set manually
+in the UI app or passed as the POST payload to the [Run actor API call](https://www.apify.com/docs/api/v2#/reference/actors/run-collection/run-actor).
+For more details, see [Input and output](https://www.apify.com/docs/actor#input-output)
+in the Apify Actor documentation.
+
 ```javascript
 const Apify = require('apify');
 
 Apify.main(async () => {
-    // Apify.getValue() is a shorthand to read the value of the provided key (INPUT) from the default KeyValueStore.
-    // To read the INPUT on your local machine, you first need to create it.
-    // Place an INPUT.json file with the desired input into the
-    // ./apify_storage/key_value_stores/default directory (unless configured otherwise).
-    // Example input: { "sources": [{ "url": "https://www.google.com" },  { "url": "https://www.duckduckgo.com" }] }
+    // Read the actor input configuration containing URLs to take the screenshot off.
+    // By convention, the input is present in actor's default key-value store under the "INPUT" key.
     const { sources } = await Apify.getValue('INPUT');
 
     const requestList = new Apify.RequestList({ sources });
@@ -551,125 +561,134 @@ Apify.main(async () => {
         handlePageFunction: async ({ page, request }) => {
             console.log(`Processing ${request.url}...`);
 
-            // This is a Puppeteer function that takes a screenshot of the Page and returns its buffer.
+            // This is a Puppeteer function that takes a screenshot of the page and returns its buffer.
             const screenshotBuffer = await page.screenshot();
 
-            // uniqueKey is a normalized URL of the request,
-            // but KeyValueStore keys may only include [a-zA-Z0-9!-_.'()] characters.
-            const key = request.uniqueKey.replace(/[:/]/g, '_');
+            // The record key may only include the following characters: a-zA-Z0-9!-_.'()
+            const key = request.url.replace(/[:/]/g, '_');
 
-            // Here we save the screenshot. Choosing the right content type will automatically
-            // assign the local file the right extension. In this case: .png
+            // Save the screenshot. Choosing the right content type will automatically
+            // assign the local file the right extension, in this case .png.
+            // The screenshots will be stored in ./apify_storage/key_value_stores/default/
             await Apify.setValue(key, screenshotBuffer, { contentType: 'image/png' });
-            console.log('Screenshot saved.');
+            console.log(`Screenshot of ${request.url} saved.`);
         },
     });
 
     // Run crawler.
     await crawler.run();
+
     console.log('Crawler finished.');
 });
 ```
 
-### Run Puppeteer with Apify Proxy
-This example demonstrates the use of Apify features with Puppeteer.
-We'll show you how to use Apify Proxy without using our Crawlers
-and instead using only Puppeteer itself.
+### Open page in Puppeteer via Apify Proxy
+
+This example demonstrates how to load pages in headless Chrome / Puppeteer
+over [Apify Proxy](https://www.apify.com/docs/proxy).
+To make it work, you'll need an [Apify Account](https://my.apify.com/proxy)
+that has access to the proxy.
+Set the Apify Proxy password to the `APIFY_PROXY_PASSWORD` environment variable,
+or run the script using the CLI.
+
 ```javascript
 const Apify = require('apify');
 
 Apify.main(async () => {
-    // Apify enhances not only our Crawlers, but also plain Puppeteer
-    // with useful tools such as automatic proxy use (from our own pool).
-    // To use the Proxy, you need to either log in using the Apify CLI, or set
-    // the APIFY_PROXY_PASSWORD environment variable. You will find the password
-    // under your account in the Apify Platform.
-    // Other options such as LiveView may also be enabled for Puppeteer.
+    // Apify.launchPuppeteer() is similar to Puppeteer's launch() function.
+    // It accepts the same parameters and returns a preconfigured Puppeteer.Browser instance.
+    // Moreover, it accepts several additional options, such as useApifyProxy.
     const options = {
         useApifyProxy: true,
         headless: true,
     };
-
-    // Apify.launchPuppeteer() is a shortcut to get a preconfigured Puppeteer.Browser
-    // instance with extra features provided by Apify. All original Puppeteer options
-    // are passed directly to Puppeteer.
     const browser = await Apify.launchPuppeteer(options);
 
-    console.log('Running Puppeteer...');
+    console.log('Running Puppeteer script...');
+
     // Proceed with a plain Puppeteer script.
     const page = await browser.newPage();
     const url = 'https://en.wikipedia.org/wiki/Main_Page';
     await page.goto(url);
-    const html = await page.content();
+    const title = await page.title();
 
-    // Use any Apify feature.
-    await Apify.pushData({ url, html });
+    console.log(`Page title: ${title}`);
 
-    // Cleaning up resources is a good practice.
+    // Cleaning up after yourself is always good.
     await browser.close();
     console.log('Puppeteer closed.');
 });
 ```
 
 ### Invoke another actor
-This example shows how to call another actor - in this case apify/send-mail to send
-an email.
 
-For this demonstration, we've chosen to scrape BTC prices. If you don't want to miss the chance of
-of your life then you can use this code to get current BTC prices from Kraken.com
-and mail them to your mailbox.
+This example shows how to call an Apify actor from another actor using
+<a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-call"><code>Apify.call()</code></a>,
+and how to call Apify API using
+<a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-client"><code>Apify.client</code></a>.
+The script extracts the current Bitcoin prices from Kraken.com
+and sends them to your email using the [apify/send-mail](https://www.apify.com/apify/send-mail) actor.
 
+To make it work, you'll need an [Apify Account](https://my.apify.com/).
+Set your Apify API token (shown on [Account - Integrations](https://my.apify.com/account#/integrations) page)
+as the `APIFY_TOKEN` environment variable, or run the script using the CLI.
 If you deploy this actor to Apify platform then you can setup a scheduler for early
-morning.
+morning. Don't miss the chance of your life to get rich!
+
 ```javascript
 const Apify = require('apify');
 
-const YOUR_MAIL = 'john.doe@example.com';
-
 Apify.main(async () => {
-    // Start browser.
+    // Launch the web browser.
     const browser = await Apify.launchPuppeteer({ headless: true });
 
-    // Load Kraken and get last traded price of BTC.
+    console.log('Obtaining email address...');
+    const user = await Apify.client.users.getUser();
+
+    // Load Kraken.com charts and get last traded price of BTC
+    console.log('Extracting data from kraken.com...');
     const page = await browser.newPage();
     await page.goto('https://www.kraken.com/charts');
     const tradedPricesHtml = await page.$eval('#ticker-top ul', el => el.outerHTML);
 
-    console.log('Calling another actor. This may take a few seconds...');
     // Send prices to your email. For that, you can use an actor we already
     // have available on the platform under the name: apify/send-mail.
     // The second parameter to the Apify.call() invocation is the actor's
     // desired input. You can find the required input parameters by checking
     // the actor's documentation page: https://www.apify.com/apify/send-mail
+    console.log(`Sending email to ${user.email}...`);
     await Apify.call('apify/send-mail', {
-        to: YOUR_MAIL,
+        to: user.email,
         subject: 'Kraken.com BTC',
         html: `<h1>Kraken.com BTC</h1>${tradedPricesHtml}`,
     });
 
-    console.log('Actor successfully called. Go check your email.');
+    console.log('Email was sent. Good luck!');
 });
 ```
 
 ### Run actor as an API
-This example shows shows an actor that has a short run time - just few seconds. It opens a web page
-http://goldengatebridge75.org/news/webcam.html that contains webcam stream from the Golden Gate
-bridge, takes a screenshot and saves it as output. This makes actor executable on Apify platform
-synchronously with a single request that also returns its output.
 
-The example is shared in the Apify library at https://www.apify.com/apify/example-golden-gate-webcam
-so you can easily run it by sending a POST request to
+This example shows shows a quick actor that has a run time of just a few seconds. It opens a web page
+http://goldengatebridge75.org/news/webcam.html that contains webcam stream from the Golden Gate
+bridge, takes a screenshot and saves it as output. This makes the actor runnable on Apify platform
+synchronously with a single request that also returns its output,
+using the [Run actor synchronously](https://www.apify.com/docs/api/v2#/reference/actors/run-actor-synchronously/without-input)
+API endpoint.
+
+The example is also shared as the [apify/example-golden-gate-webcam](https://www.apify.com/apify/example-golden-gate-webcam)
+actor in the Apify library, so you can run it without any setup by sending a POST request to
 https://api.apify.com/v2/acts/apify~example-golden-gate-webcam/run-sync?token=[YOUR_API_TOKEN]
+
 ```javascript
 const Apify = require('apify');
 
 Apify.main(async () => {
-    // Start browser.
+    // Launch web browser.
     const browser = await Apify.launchPuppeteer({ headless: true });
 
-    // Load http://goldengatebridge75.org/news/webcam.html and get an iframe
-    // containing webcam stream.
-    console.log('Opening page.');
+    // Load http://goldengatebridge75.org/news/webcam.html and get an IFRAME with the webcam stream
+    console.log('Opening web page...');
     const page = await browser.newPage();
     await page.goto('http://goldengatebridge75.org/news/webcam.html');
     const iframe = (await page.frames()).pop();
@@ -678,17 +697,15 @@ Apify.main(async () => {
     const imageElementHandle = await iframe.$('.VideoColm img');
 
     // Give the webcam image some time to load.
-    console.log('Waiting for some time...');
+    console.log('Waiting for page to load...');
     await Apify.utils.sleep(3000);
 
     // Get a screenshot of that image.
     const imageBuffer = await imageElementHandle.screenshot();
     console.log('Screenshot captured.');
 
-    // Save it as an OUTPUT. Just as INPUT, OUTPUT has a special meaning.
-    // Anything you save as an OUTPUT to KeyValueStore will be sent to you
-    // as an API response once the actor finishes its run, if you use the
-    // run-sync API. This way, you can really Apify any website.
+    // Save the screenshot as actor's output. By convention, similarly to "INPUT",
+    // the actor's output is stored in the default key-value store under the "OUTPUT" key.
     await Apify.setValue('OUTPUT', imageBuffer, { contentType: 'image/jpeg' });
     console.log('Actor finished.');
 });
@@ -755,7 +772,8 @@ This is useful for debugging your crawlers that run in headless mode.
 
 The live view dashboard is run on a web server that is started on a port specified
 by the `APIFY_CONTAINER_PORT` environment variable (typically 4321).
-To enable the live view, pass the `liveView: true` option to `Apify.launchPuppeteer()`:
+To enable the live view, pass the `liveView: true` option to
+<a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-launchPuppeteer" target="_blank"><code>Apify.launchPuppeteer()</code></a>:
 
 ```javascript
 const browser = Apify.launchPuppeteer({ liveView: true });
