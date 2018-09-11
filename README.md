@@ -2,7 +2,7 @@
 <!-- Mirror this part to src/index.js -->
 
 [![npm version](https://badge.fury.io/js/apify.svg)](http://badge.fury.io/js/apify)
-[![Build Status](https://travis-ci.org/apifytech/apify-js.svg)](https://travis-ci.org/apifytech/apify-js)
+[![Build Status](https://travis-ci.org/apifytech/apify-js.svg?branch=master)](https://travis-ci.org/apifytech/apify-js)
 
 <div id="include-readme-1">
   Apify SDK simplifies development of web crawlers, scrapers, data extractors and web automation jobs.
@@ -77,24 +77,30 @@ The Apify SDK package provides the following tools:
 
 <ul>
   <li>
-     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#BasicCrawler">BasicCrawler</a>
-     - Provides a simple framework for parallel crawling of web pages,
-     whose URLs are fed either from a static list or from a dynamic queue of URLs.
-     This class serves as a base for more complex crawlers (see below).
+    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#BasicCrawler">BasicCrawler</a>
+    - Provides a simple framework for parallel crawling of web pages,
+    whose URLs are fed either from a static list or from a dynamic queue of URLs.
+    This class serves as a base for more complex crawlers (see below).
   </li>
   <li>
-     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#CheerioCrawler">CheerioCrawler</a>
-     - Enables parallel crawling of large number of web pages
-     using <a href="https://www.npmjs.com/package/cheerio" target="_blank">cheerio</a>
-     HTML parser.
-     This is the most efficient web crawling method, but it does not work on websites that require JavaScript.
+    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#CheerioCrawler">CheerioCrawler</a>
+    - Enables parallel crawling of large number of web pages
+    using <a href="https://www.npmjs.com/package/cheerio" target="_blank">cheerio</a>
+    HTML parser.
+    This is the most efficient web crawling method, but it does not work on websites that require JavaScript.
   </li>
   <li>
-     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerCrawler">PuppeteerCrawler</a>
-     - Enables parallel crawling of large number of web pages using headless Chrome browser
-     and <a href="https://github.com/GoogleChrome/puppeteer">Puppeteer</a>.
-     The pool of Chrome processes is automatically scaled up and down based on available system resources.
-    </li>
+    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerCrawler">PuppeteerCrawler</a>
+    - Enables parallel crawling of large number of web pages using headless Chrome browser
+    and <a href="https://github.com/GoogleChrome/puppeteer">Puppeteer</a>.
+    The pool of Chrome processes is automatically scaled up and down based on available system resources.
+  </li>
+  <li>
+    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerPool">PuppeteerPool</a>
+    - Provides web browser tabs for user jobs
+    from an automatically-managed pool of Chrome browser instances, with configurable browser recycling and retirement policies.
+    Supports reuse of the disk cache to speed up crawling of websites and reduce proxy bandwidth.
+  </li>
   <li>
     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList">RequestList</a>
     - Represents a list of URLs to crawl. The URLs can be provided in code or in a text file.
@@ -102,30 +108,30 @@ The Apify SDK package provides the following tools:
     when the Node.js process restarts.
   </li>
   <li>
-     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue">RequestQueue</a>
-     - Represents a queue of URLs to crawl, which is stored either on local filesystem or in cloud.
-     The queue is used for deep crawling of websites, where you start with
-     several URLs and then recursively follow links to other pages.
-     The data structure supports both breadth-first and depth-first crawling orders.
+    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue">RequestQueue</a>
+    - Represents a queue of URLs to crawl, which is stored either on local filesystem or in cloud.
+    The queue is used for deep crawling of websites, where you start with
+    several URLs and then recursively follow links to other pages.
+    The data structure supports both breadth-first and depth-first crawling orders.
   </li>
   <li>
-     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#Dataset">Dataset</a>
-     - Provides a store for structured data and enables their
-     export to formats like JSON, JSONL, CSV, Excel or HTML.
-     The data is stored on local filesystem or in the cloud.
-     Datasets are useful for storing and sharing large tabular crawling results,
-     like list of products or real estate offers.
+    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#Dataset">Dataset</a>
+    - Provides a store for structured data and enables their
+    export to formats like JSON, JSONL, CSV, Excel or HTML.
+    The data is stored on local filesystem or in the cloud.
+    Datasets are useful for storing and sharing large tabular crawling results,
+    like list of products or real estate offers.
   </li>
   <li>
-     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#KeyValueStore">KeyValueStore</a>
-     - A simple key-value store for arbitrary data records or files, along with their MIME content type.
-     It is ideal for saving screenshots of web pages, PDFs or any downloaded files.
-     The data is stored on local filesystem or in the cloud.
+    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#KeyValueStore">KeyValueStore</a>
+    - A simple key-value store for arbitrary data records or files, along with their MIME content type.
+    It is ideal for saving screenshots of web pages, PDFs or any downloaded files.
+    The data is stored on local filesystem or in the cloud.
   </li>
   <li>
-     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#AutoscaledPool" target="_blank">AutoscaledPool</a>
-     - Runs asynchronous background tasks, while automatically adjusting the concurrency
-     based on free system memory and CPU usage. This is useful for running headless Chrome tasks at scale.
+    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#AutoscaledPool" target="_blank">AutoscaledPool</a>
+    - Runs asynchronous background tasks, while automatically adjusting the concurrency
+    based on free system memory and CPU usage. This is useful for running headless Chrome tasks at scale.
   </li>
   <li>
     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerUtils" target="_blank">PuppeteerUtils</a>
