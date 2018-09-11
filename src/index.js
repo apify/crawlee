@@ -27,6 +27,13 @@ if (!isProduction() || process.env[ENV_VARS.LOG_LEVEL] === 'DEBUG') log.isDebugM
 // Log as plain text not JSON
 log.logJson = false;
 
+// TODO: remove this when we release v1.0.0
+const EMULATION_ENV_VAR = 'APIFY_LOCAL_EMULATION_DIR';
+if (process.env[EMULATION_ENV_VAR]) {
+    log.warning(`Environment variable "${EMULATION_ENV_VAR}" is deprecated!!! Use "${ENV_VARS.LOCAL_STORAGE_DIR}" instead!`);
+    if (!process.env[ENV_VARS.LOCAL_STORAGE_DIR]) process.env[ENV_VARS.LOCAL_STORAGE_DIR] = process.env[EMULATION_ENV_VAR];
+}
+
 /**
  *{include-readme-1}
  *{include-readme-2}
