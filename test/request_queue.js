@@ -4,12 +4,13 @@ import _ from 'underscore';
 import 'babel-polyfill';
 import sinon from 'sinon';
 import path from 'path';
-import { delayPromise } from 'apify-shared/utilities';
 import * as Apify from '../build/index';
 import { ENV_VARS } from '../build/constants';
-import { apifyClient } from '../build/utils';
-import { RequestQueueLocal, RequestQueue, LOCAL_EMULATION_SUBDIR, QUERY_HEAD_MIN_LENGTH } from '../build/request_queue';
-import { emptyLocalEmulationSubdir, LOCAL_EMULATION_DIR, expectNotLocalEmulation, expectDirEmpty, expectDirNonEmpty } from './_helper';
+import * as utils from '../build/utils';
+import { RequestQueueLocal, RequestQueue, LOCAL_STORAGE_SUBDIR, QUERY_HEAD_MIN_LENGTH } from '../build/request_queue';
+import { emptyLocalStorageSubdir, LOCAL_STORAGE_DIR, expectNotUsingLocalStorage, expectDirEmpty, expectDirNonEmpty } from './_helper';
+
+const { apifyClient } = utils;
 
 chai.use(chaiAsPromised);
 
@@ -20,12 +21,12 @@ const expectRequestsSame = (req1, req2) => {
 describe('RequestQueue', () => {
     before(() => apifyClient.setOptions({ token: 'xxx' }));
     after(() => apifyClient.setOptions({ token: undefined }));
-    beforeEach(() => emptyLocalEmulationSubdir(LOCAL_EMULATION_SUBDIR));
-    afterEach(() => emptyLocalEmulationSubdir(LOCAL_EMULATION_SUBDIR));
+    beforeEach(() => emptyLocalStorageSubdir(LOCAL_STORAGE_SUBDIR));
+    afterEach(() => emptyLocalStorageSubdir(LOCAL_STORAGE_SUBDIR));
 
     describe('local', async () => {
         it('should work', async () => {
-            const queue = new RequestQueueLocal('my-queue-0', LOCAL_EMULATION_DIR);
+            const queue = new RequestQueueLocal('my-queue-0', LOCAL_STORAGE_DIR);
 
             await queue.addRequest(new Apify.Request({ url: 'http://example.com/first' }));
             await queue.addRequest(new Apify.Request({ url: 'http://example.com/middle' }));
@@ -67,14 +68,14 @@ describe('RequestQueue', () => {
             expect(await queue.isFinished()).to.be.eql(true);
 
             // Delete it.
-            const queueDir = path.join(LOCAL_EMULATION_DIR, LOCAL_EMULATION_SUBDIR, 'my-queue-0');
+            const queueDir = path.join(LOCAL_STORAGE_DIR, LOCAL_STORAGE_SUBDIR, 'my-queue-0');
             expectDirNonEmpty(queueDir);
             await queue.delete();
             expectDirEmpty(queueDir);
         });
 
         it('supports forefront param in reclaimRequest()', async () => {
-            const queue = new RequestQueueLocal('my-queue-1', LOCAL_EMULATION_DIR);
+            const queue = new RequestQueueLocal('my-queue-1', LOCAL_STORAGE_DIR);
 
             await queue.addRequest(new Apify.Request({ url: 'http://example.com/first' }));
             await queue.addRequest(new Apify.Request({ url: 'http://example.com/middle' }));
@@ -107,7 +108,7 @@ describe('RequestQueue', () => {
             const request3 = new Apify.Request({ url: 'http://example.com/last-but-first' });
 
             // Do something with 3 requests in one queue.
-            const queue = new RequestQueueLocal('my-queue-2', LOCAL_EMULATION_DIR);
+            const queue = new RequestQueueLocal('my-queue-2', LOCAL_STORAGE_DIR);
             await queue.addRequest(request1);
             await queue.addRequest(request2);
             await queue.addRequest(request3, { forefront: true });
@@ -118,7 +119,7 @@ describe('RequestQueue', () => {
             await queue.markRequestHandled(freshRequest1);
 
             // Now do the same with another queue.
-            const anotherQueue = new RequestQueueLocal('my-queue-2', LOCAL_EMULATION_DIR);
+            const anotherQueue = new RequestQueueLocal('my-queue-2', LOCAL_STORAGE_DIR);
             expect(await anotherQueue.isEmpty()).to.be.eql(false);
             expect(await anotherQueue.isFinished()).to.be.eql(false);
             const request3FromAnotherQueue = await anotherQueue.fetchNextRequest();
@@ -136,7 +137,7 @@ describe('RequestQueue', () => {
 
     describe('remote', async () => {
         it('should work', async () => {
-            expectNotLocalEmulation();
+            expectNotUsingLocalStorage();
 
             const { Request } = Apify;
 
@@ -258,7 +259,7 @@ describe('RequestQueue', () => {
         });
 
         it('should cache requests new locally', async () => {
-            expectNotLocalEmulation();
+            expectNotUsingLocalStorage();
 
             const { Request } = Apify;
 
@@ -296,7 +297,7 @@ describe('RequestQueue', () => {
         });
 
         it('should cache requests locally with info if request was already handled', async () => {
-            expectNotLocalEmulation();
+            expectNotUsingLocalStorage();
 
             const { Request } = Apify;
 
@@ -334,7 +335,7 @@ describe('RequestQueue', () => {
         });
 
         it('should cache requests from queue head', async () => {
-            expectNotLocalEmulation();
+            expectNotUsingLocalStorage();
 
             const { Request } = Apify;
 
@@ -370,84 +371,21 @@ describe('RequestQueue', () => {
     });
 
     describe('Apify.openRequestQueue', async () => {
-        it('should open a local request queue when process.env[ENV_VARS.LOCAL_EMULATION_DIR] is set', async () => {
-            process.env[ENV_VARS.LOCAL_EMULATION_DIR] = LOCAL_EMULATION_DIR;
+        it('should work', () => {
+            const mock = sinon.mock(utils);
 
-            const queue = await Apify.openRequestQueue('some-id-2');
-            expect(queue).to.be.instanceof(RequestQueueLocal);
-            expect(queue).not.to.be.instanceof(RequestQueue);
+            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = LOCAL_STORAGE_DIR;
 
-            delete process.env[ENV_VARS.LOCAL_EMULATION_DIR];
-        });
+            mock.expects('openLocalStorage').once();
+            Apify.openRequestQueue();
 
-        it('should reuse cached request queue instances', async () => {
-            process.env[ENV_VARS.LOCAL_EMULATION_DIR] = LOCAL_EMULATION_DIR;
+            delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
+            process.env[ENV_VARS.TOKEN] = 'xxx';
 
-            const queue1 = await Apify.openRequestQueue('some-id-3');
-            const queue2 = await Apify.openRequestQueue('some-id-3');
-            const queue3 = new RequestQueueLocal('some-id-3', LOCAL_EMULATION_DIR);
+            mock.expects('openRemoteStorage').once();
+            Apify.openRequestQueue();
 
-            expect(queue1).to.be.instanceof(RequestQueueLocal);
-            expect(queue2).to.be.instanceof(RequestQueueLocal);
-            expect(queue3).to.be.instanceof(RequestQueueLocal);
-
-            expect(queue1).to.be.equal(queue2);
-            expect(queue1).not.to.be.equal(queue3);
-
-            delete process.env[ENV_VARS.LOCAL_EMULATION_DIR];
-
-            // Here must be some timeout to don't finish before initialization of queues finishes.
-            // Otherwise we delete the directory and scandir will throw ENOENT: no such file or directory
-            await delayPromise(100);
-        });
-
-        it('should open default request queue when queueIdOrName is not provided', async () => {
-            process.env[ENV_VARS.DEFAULT_REQUEST_QUEUE_ID] = 'some-id-4';
-            process.env[ENV_VARS.LOCAL_EMULATION_DIR] = LOCAL_EMULATION_DIR;
-
-            const queue = await Apify.openRequestQueue();
-            expect(queue.queueId).to.be.eql('some-id-4');
-            expect(queue).to.be.instanceof(RequestQueueLocal);
-
-            delete process.env[ENV_VARS.LOCAL_EMULATION_DIR];
-            process.env[ENV_VARS.DEFAULT_REQUEST_QUEUE_ID] = 'some-id-5';
-            expectNotLocalEmulation();
-
-            const queue2 = await Apify.openRequestQueue();
-            expect(queue2.queueId).to.be.eql('some-id-5');
-            expect(queue2).to.be.instanceof(RequestQueue);
-
-            delete process.env[ENV_VARS.DEFAULT_REQUEST_QUEUE_ID];
-        });
-
-        it('should open remote queue when process.env[ENV_VARS.LOCAL_EMULATION_DIR] is NOT set', async () => {
-            expectNotLocalEmulation();
-
-            const mock = sinon.mock(apifyClient.requestQueues);
-
-            // First when used with id it only requests store object.
-            mock.expects('getQueue')
-                .once()
-                .withArgs({ queueId: 'some-id-6' })
-                .returns(Promise.resolve({ id: 'some-id-6' }));
-            const queue = await Apify.openRequestQueue('some-id-6');
-            expect(queue.queueId).to.be.eql('some-id-6');
-            expect(queue).to.be.instanceof(RequestQueue);
-
-            // Then used with name it requests store object, gets empty response
-            // so then it creates queue.
-            mock.expects('getQueue')
-                .once()
-                .withArgs({ queueId: 'some-name-7' })
-                .returns(Promise.resolve(null));
-            mock.expects('getOrCreateQueue')
-                .once()
-                .withArgs({ queueName: 'some-name-7' })
-                .returns(Promise.resolve({ id: 'some-id-7' }));
-
-            const queue2 = await Apify.openRequestQueue('some-name-7');
-            expect(queue2.queueId).to.be.eql('some-id-7');
-            expect(queue2).to.be.instanceof(RequestQueue);
+            delete process.env[ENV_VARS.TOKEN];
 
             mock.verify();
             mock.restore();

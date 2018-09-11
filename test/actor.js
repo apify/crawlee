@@ -5,7 +5,7 @@ import 'babel-polyfill';
 import sinon from 'sinon';
 import Promise from 'bluebird';
 import { delayPromise } from 'apify-shared/utilities';
-import { ACT_TASK_STATUSES, ENV_VARS, DEFAULT_PROXY_PORT, DEFAULT_PROXY_HOSTNAME } from '../build/constants';
+import { ACT_TASK_STATUSES, ENV_VARS, LOCAL_ENV_VARS } from '../build/constants';
 import { ApifyCallError } from '../build/errors';
 
 chai.use(chaiAsPromised);
@@ -616,7 +616,8 @@ describe('Apify.getApifyProxyUrl()', () => {
         delete process.env[ENV_VARS.PROXY_HOSTNAME];
         delete process.env[ENV_VARS.PROXY_PORT];
 
-        expect(Apify.getApifyProxyUrl({ password: 'xyz' })).to.be.eql(`http://auto:xyz@${DEFAULT_PROXY_HOSTNAME}:${DEFAULT_PROXY_PORT}`);
+        expect(Apify.getApifyProxyUrl({ password: 'xyz' }))
+            .to.be.eql(`http://auto:xyz@${LOCAL_ENV_VARS[ENV_VARS.PROXY_HOSTNAME]}:${LOCAL_ENV_VARS[ENV_VARS.PROXY_PORT]}`);
 
         expect(() => Apify.getApifyProxyUrl()).to.throw();
 
@@ -652,7 +653,8 @@ describe('Apify.getApifyProxyUrl()', () => {
         delete process.env[ENV_VARS.PROXY_HOSTNAME];
         delete process.env[ENV_VARS.PROXY_PORT];
 
-        expect(Apify.getApifyProxyUrl({ password: 'xyz' })).to.be.eql(`http://auto:xyz@${DEFAULT_PROXY_HOSTNAME}:${DEFAULT_PROXY_PORT}`);
+        expect(Apify.getApifyProxyUrl({ password: 'xyz' }))
+            .to.be.eql(`http://auto:xyz@${LOCAL_ENV_VARS[ENV_VARS.PROXY_HOSTNAME]}:${LOCAL_ENV_VARS[ENV_VARS.PROXY_PORT]}`);
 
         expect(() => Apify.getApifyProxyUrl()).to.throw();
 

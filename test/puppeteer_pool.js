@@ -1,4 +1,5 @@
 import chai, { expect } from 'chai';
+import fs from 'fs';
 import chaiAsPromised from 'chai-as-promised';
 import _ from 'underscore';
 import log from 'apify-shared/log';
@@ -33,7 +34,7 @@ describe('PuppeteerPool', () => {
 
         const pool = new Apify.PuppeteerPool({
             maxOpenPagesPerInstance: 3,
-            abortInstanceAfterRequestCount: 5,
+            retireInstanceAfterRequestCount: 5,
         });
         const browsers = [];
 
@@ -110,7 +111,7 @@ describe('PuppeteerPool', () => {
 
         const pool = new Apify.PuppeteerPool({
             maxOpenPagesPerInstance: 3,
-            abortInstanceAfterRequestCount: 5,
+            retireInstanceAfterRequestCount: 5,
             instanceKillerIntervalMillis: 1000,
             killInstanceAfterMillis: 500,
         });
@@ -195,5 +196,122 @@ describe('PuppeteerPool', () => {
         delete process.env[ENV_VARS.PROXY_PASSWORD];
         delete process.env[ENV_VARS.PROXY_HOSTNAME];
         delete process.env[ENV_VARS.PROXY_PORT];
+    });
+
+    it('works with one page per instance', async () => {
+        const pool = new Apify.PuppeteerPool({
+            maxOpenPagesPerInstance: 1,
+            retireInstanceAfterRequestCount: 1,
+        });
+
+        const page1 = await pool.newPage();
+        await page1.goto('about:blank');
+        const pid1 = page1.browser().process().pid;
+
+        const page2 = await pool.newPage();
+        await page2.goto('about:blank');
+        const pid2 = page2.browser().process().pid;
+
+        await page1.close();
+        await page2.close();
+
+        const page3 = await pool.newPage();
+        await page3.goto('about:blank');
+        const pid3 = page3.browser().process().pid;
+
+        await page3.close();
+
+        // Ensure we spawned 3 different processes
+        expect(pid1).not.to.be.eql(pid2);
+        expect(pid2).not.to.be.eql(pid3);
+        expect(pid3).not.to.be.eql(pid1);
+
+        // Cleanup everything.
+        await pool.destroy();
+    });
+
+    it('supports recycleDiskCache option', async () => {
+        // NOTE: This feature only works in headful mode now
+        // See https://bugs.chromium.org/p/chromium/issues/detail?id=882431
+        const isMacOs = process.platform === 'darwin';
+
+        const pool = new Apify.PuppeteerPool({
+            maxOpenPagesPerInstance: 1,
+            retireInstanceAfterRequestCount: 1,
+            recycleDiskCache: true,
+            launchPuppeteerOptions: { headless: !isMacOs },
+        });
+
+        // log.setLevel(log.LEVELS.DEBUG);
+
+        const url = 'https://www.wikipedia.org';
+
+        const page1 = await pool.newPage();
+        const dir1 = page1.browser().recycleDiskCacheDir;
+
+        expect(fs.existsSync(dir1)).to.be.eql(true);
+
+        // First time, nothing can come from disk cache
+        let fromDiskCache1 = 0;
+        page1.on('response', (response) => {
+            if (response._fromDiskCache) fromDiskCache1++; // eslint-disable-line no-underscore-dangle
+            // console.log(response._url + ": " + response.fromCache() + "/" + response._fromDiskCache);
+        });
+
+        const cookies1before = await page1.cookies(url);
+        expect(cookies1before.length).to.be.eql(0);
+
+        await page1.goto(url);
+
+        expect(fromDiskCache1).to.be.eql(0);
+
+        await Apify.utils.sleep(1000);
+
+        const cookies1after = await page1.cookies();
+        expect(cookies1after.length).to.be.at.least(1);
+
+        await page1.close();
+
+        // Wait for browser to close
+        await Apify.utils.sleep(5000);
+
+        // User directory must be the same
+        const page2 = await pool.newPage();
+        const dir2 = page2.browser().recycleDiskCacheDir;
+        expect(dir1).to.be.eql(dir2);
+        expect(fs.existsSync(dir2)).to.be.eql(true);
+
+        // Ensure at least few assets are loaded from disk cache
+        let fromDiskCache2 = 0;
+        page2.on('response', (response) => {
+            if (response._fromDiskCache) fromDiskCache2++; // eslint-disable-line no-underscore-dangle
+        });
+
+        const cookies2before = await page2.cookies(url);
+        expect(cookies2before.length).to.be.eql(0);
+
+        await page2.goto(url);
+
+        const cookies2after = await page2.cookies(url);
+        expect(cookies2after.length).to.be.at.least(1);
+
+        if (isMacOs) {
+            expect(fromDiskCache2).to.be.at.least(1);
+        }
+
+        // Open third browser while second is still open, it should use a new cache directory
+        const page3 = await pool.newPage();
+        const dir3 = page3.browser().recycleDiskCacheDir;
+        expect(dir3).not.to.be.eql(dir2);
+        expect(fs.existsSync(dir3)).to.be.eql(true);
+
+        await page2.close();
+
+        // Cleanup everything.
+        await pool.destroy();
+
+        // Check cache dirs were deleted
+        expect(fs.existsSync(dir1)).to.be.eql(false);
+        expect(fs.existsSync(dir3)).to.be.eql(false);
     });
 });
