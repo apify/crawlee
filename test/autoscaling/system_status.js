@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import log from 'apify-shared/log';
 import SystemStatus from '../../build/autoscaling/system_status';
+import Snapshotter from '../../build/autoscaling/snapshotter';
 
 describe('SystemStatus', () => {
     let logLevel;
@@ -19,14 +20,14 @@ describe('SystemStatus', () => {
             this.loopSnapshots = loopSnapshots;
             this.cpuSnapshots = cpuSnapshots;
         }
-        getMemorySample() {
-            return this.memSnapshots;
+        getMemorySample(offset) {
+            return this.memSnapshots.slice(-offset);
         }
-        getEventLoopSample() {
-            return this.loopSnapshots;
+        getEventLoopSample(offset) {
+            return this.loopSnapshots.slice(-offset);
         }
-        getCpuSample() {
-            return this.cpuSnapshots;
+        getCpuSample(offset) {
+            return this.cpuSnapshots.slice(-offset);
         }
     }
 
@@ -57,5 +58,124 @@ describe('SystemStatus', () => {
         });
         expect(systemStatus.isOk()).to.be.eql(false);
         expect(systemStatus.hasBeenOkLately()).to.be.eql(false);
+    });
+
+    it('should work with some samples empty', () => {
+        const snaps = generateSnapsSync(100, true);
+        let systemStatus = new SystemStatus({
+            snapshotter: new MockSnapshotter(snaps, [], []),
+        });
+        expect(systemStatus.isOk()).to.be.eql(false);
+        expect(systemStatus.hasBeenOkLately()).to.be.eql(false);
+        systemStatus = new SystemStatus({
+            snapshotter: new MockSnapshotter([], snaps, []),
+        });
+        expect(systemStatus.isOk()).to.be.eql(false);
+        expect(systemStatus.hasBeenOkLately()).to.be.eql(false);
+        systemStatus = new SystemStatus({
+            snapshotter: new MockSnapshotter([], [], snaps),
+        });
+        expect(systemStatus.isOk()).to.be.eql(false);
+        expect(systemStatus.hasBeenOkLately()).to.be.eql(false);
+        systemStatus = new SystemStatus({
+            snapshotter: new MockSnapshotter([], [], []),
+        });
+        expect(systemStatus.isOk()).to.be.eql(true);
+        expect(systemStatus.hasBeenOkLately()).to.be.eql(true);
+    });
+
+    it('should overload if only one sample is overloaded', () => {
+        const overloaded = generateSnapsSync(100, true);
+        const fine = generateSnapsSync(100, false);
+        let systemStatus = new SystemStatus({
+            snapshotter: new MockSnapshotter(fine, fine, overloaded),
+        });
+        expect(systemStatus.isOk()).to.be.eql(false);
+        expect(systemStatus.hasBeenOkLately()).to.be.eql(false);
+        systemStatus = new SystemStatus({
+            snapshotter: new MockSnapshotter(fine, overloaded, fine),
+        });
+        expect(systemStatus.isOk()).to.be.eql(false);
+        expect(systemStatus.hasBeenOkLately()).to.be.eql(false);
+        systemStatus = new SystemStatus({
+            snapshotter: new MockSnapshotter(overloaded, fine, fine),
+        });
+        expect(systemStatus.isOk()).to.be.eql(false);
+        expect(systemStatus.hasBeenOkLately()).to.be.eql(false);
+    });
+
+    it('should overload when threshold is crossed', () => {
+        const snaps = generateSnapsSync(50, true);
+        const systemStatus = new SystemStatus({
+            snapshotter: new MockSnapshotter(snaps, snaps, snaps),
+            maxMemoryOverloadedRatio: 0.5,
+            maxEventLoopOverloadedRatio: 0.5,
+            maxCpuOverloadedRatio: 0.5,
+        });
+        expect(systemStatus.isOk()).to.be.eql(true);
+        expect(systemStatus.hasBeenOkLately()).to.be.eql(true);
+
+        systemStatus.maxMemoryOverloadedRatio = 0.49;
+        systemStatus.maxEventLoopOverloadedRatio = 0.49;
+        systemStatus.maxEventLoopOverloadedRatio = 0.49;
+        expect(systemStatus.isOk()).to.be.eql(false);
+        expect(systemStatus.hasBeenOkLately()).to.be.eql(false);
+
+        systemStatus.maxMemoryOverloadedRatio = 0.5;
+        systemStatus.maxEventLoopOverloadedRatio = 0.5;
+        systemStatus.maxEventLoopOverloadedRatio = 0.49;
+        expect(systemStatus.isOk()).to.be.eql(false);
+        expect(systemStatus.hasBeenOkLately()).to.be.eql(false);
+
+        systemStatus.maxMemoryOverloadedRatio = 1;
+        systemStatus.maxEventLoopOverloadedRatio = 1;
+        systemStatus.maxEventLoopOverloadedRatio = 1;
+        expect(systemStatus.isOk()).to.be.eql(true);
+        expect(systemStatus.hasBeenOkLately()).to.be.eql(true);
+    });
+
+    it('should show different values for now and lately', () => {
+        let snaps = generateSnapsSync(95, false);
+        let systemStatus = new SystemStatus({
+            snapshotter: new MockSnapshotter(snaps, snaps, snaps),
+            maxMemoryOverloadedRatio: 0.5,
+            maxEventLoopOverloadedRatio: 0.5,
+            maxCpuOverloadedRatio: 0.5,
+        });
+        systemStatus.sampleDurationMillis = 5;
+        expect(systemStatus.isOk()).to.be.eql(false);
+        expect(systemStatus.hasBeenOkLately()).to.be.eql(true);
+
+        systemStatus.sampleDurationMillis = 10;
+        expect(systemStatus.isOk()).to.be.eql(false);
+        expect(systemStatus.hasBeenOkLately()).to.be.eql(true);
+
+        systemStatus.sampleDurationMillis = 12;
+        expect(systemStatus.isOk()).to.be.eql(true);
+        expect(systemStatus.hasBeenOkLately()).to.be.eql(true);
+
+        snaps = generateSnapsSync(95, true);
+        systemStatus = new SystemStatus({
+            snapshotter: new MockSnapshotter(snaps, snaps, snaps),
+            maxMemoryOverloadedRatio: 0.5,
+            maxEventLoopOverloadedRatio: 0.5,
+            maxCpuOverloadedRatio: 0.5,
+        });
+        systemStatus.sampleDurationMillis = 5;
+        expect(systemStatus.isOk()).to.be.eql(true);
+        expect(systemStatus.hasBeenOkLately()).to.be.eql(false);
+
+        systemStatus.sampleDurationMillis = 10;
+        expect(systemStatus.isOk()).to.be.eql(true);
+        expect(systemStatus.hasBeenOkLately()).to.be.eql(false);
+
+        systemStatus.sampleDurationMillis = 12;
+        expect(systemStatus.isOk()).to.be.eql(false);
+        expect(systemStatus.hasBeenOkLately()).to.be.eql(false);
+    });
+
+    it('creates a snapshotter when none is passed', () => {
+        const systemStatus = new SystemStatus();
+        expect(systemStatus.snapshotter).to.be.an.instanceof(Snapshotter);
     });
 });

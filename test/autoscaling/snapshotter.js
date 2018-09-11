@@ -103,7 +103,7 @@ describe('Snapshotter', () => {
                 expect(ss.isOverloaded).to.be.eql(i % 2 === 0);
             });
         } finally {
-            process.env[ENV_VARS.IS_AT_HOME] = '0';
+            delete process.env[ENV_VARS.IS_AT_HOME];
         }
     });
 

@@ -68,6 +68,7 @@ export default class AutoscaledPool {
 
         this.desiredConcurrency = this.minConcurrency;
         this.currentConcurrency = 0;
+        this.lastLoggingTime = 0;
     }
 
     async run() {
@@ -83,7 +84,7 @@ export default class AutoscaledPool {
         try {
             await this.poolPromise;
         } finally {
-            this._destroy();
+            await this._destroy();
         }
     }
 
@@ -121,14 +122,14 @@ export default class AutoscaledPool {
         // Everything's fine. Run task.
         try {
             this.currentConcurrency++;
+            this._maybeRunTask(); // try to run next task to build up concurrency
             await this.runTaskFunction();
-            this._maybeRunTask();
+            this.currentConcurrency--;
+            this._maybeRunTask(); // run task after the previous one finished
         } catch (err) {
             log.exception(err, 'AutoscaledPool: runTaskFunction failed');
             // This is here because we might have already rejected this promise.
             if (this.reject) this.reject(err);
-        } finally {
-            this.currentConcurrency--;
         }
     }
 
@@ -152,6 +153,19 @@ export default class AutoscaledPool {
 
         if (isSystemOverloaded && canWeScaleDown) this._scaleDown();
 
+        // On periodic intervals, print comprehensive log information
+        if (this.loggingIntervalMillis > 0) {
+            const now = Date.now();
+            if (now > this.lastLoggingTime + this.loggingIntervalMillis) {
+                this.lastLoggingTime = now;
+                log.info('AutoscaledPool state', {
+                    currentConcurrency: this.currentConcurrency,
+                    desiredConcurrency: this.desiredConcurrency,
+                    isSystemOk,
+                });
+            }
+        }
+
         // Start a new interval cycle.
         intervalCallback();
     }
@@ -159,11 +173,19 @@ export default class AutoscaledPool {
     _scaleUp() {
         const step = Math.ceil(this.desiredConcurrency * this.scaleUpStepRatio);
         this.desiredConcurrency = Math.max(this.maxConcurrency, this.desiredConcurrency + step);
+        log.debug('AutoscaledPool: scaling up', {
+            oldConcurrency: this.desiredConcurrency - step,
+            newConcurrency: this.desiredConcurrency,
+        });
     }
 
     _scaleDown() {
         const step = Math.ceil(this.desiredConcurrency * this.scaleUpStepRatio);
         this.desiredConcurrency = Math.min(this.minConcurrency, this.desiredConcurrency - step);
+        log.debug('AutoscaledPool: scaling down', {
+            oldConcurrency: this.desiredConcurrency + step,
+            newConcurrency: this.desiredConcurrency,
+        });
     }
 
     async _maybeFinish() {
@@ -181,11 +203,12 @@ export default class AutoscaledPool {
         }
     }
 
-    _destroy() {
+    async _destroy() {
         this.resolve = null;
         this.reject = null;
 
         betterClearInterval(this.autoscaleInterval);
         betterClearInterval(this.maybeRunInterval);
+        if (this.snapshotter) await this.snapshotter.stop();
     }
 }
