@@ -1,6 +1,6 @@
 {
   "name": "apify",
-  "version": "0.6.4",
+  "version": "0.7.0",
   "description": "Web scraping and automation SDK",
   "engines": {
     "node": ">=8.0.0"

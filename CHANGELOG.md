@@ -1,6 +1,6 @@
-xxx
+0.7.0 / 2018-09-11
 ==================
-- Updated DEFAULT_USER_AGENT and USER_AGENT_LIST
+- Updated `DEFAULT_USER_AGENT` and `USER_AGENT_LIST`
 - Added `recycleDiskCache` option to `PuppeteerPool` to enable reuse of disk cache and thus speedup browsing
 - **WARNING**: `APIFY_LOCAL_EMULATION_DIR` environment variable was renamed to `APIFY_LOCAL_STORAGE_DIR`.
 - Environment variables `APIFY_DEFAULT_KEY_VALUE_STORE_ID`, `APIFY_DEFAULT_REQUEST_QUEUE_ID` and `APIFY_DEFAULT_DATASET_ID`
