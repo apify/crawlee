@@ -89,66 +89,58 @@ describe('AutoscaledPool', () => {
         expect(Date.now() - startedAt).to.be.within(100, 200);
     });
 
-    xit('should autoscale correctly', async () => {
+    class MockSystemStatus {
+        constructor(okNow, okLately) {
+            this.okNow = okNow;
+            this.okLately = okLately;
+            this.isOk = () => this.okNow;
+            this.hasBeenOkLately = () => this.okLately;
+        }
+    }
+
+    it('should autoscale correctly', async () => {
+        const cb = () => {};
+        const systemStatus = new MockSystemStatus(true, true);
         const pool = new Apify.AutoscaledPool({
             minConcurrency: 1,
             maxConcurrency: 100,
-            minFreeMemoryRatio: 0.1,
             runTaskFunction: () => Promise.resolve(),
             isFinishedFunction: () => Promise.resolve(false),
             isTaskReadyFunction: () => Promise.resolve(true),
         });
-        const mock = sinon.mock(utils);
+        pool.systemStatus = systemStatus;
 
-        // Should scale up.
-        pool.concurrency = 1;
-        pool.runningCount = 1;
-        pool.intervalCounter = SCALE_UP_INTERVAL - 1;
-        mock.expects('getMemoryInfo')
-            .once()
-            .returns(Promise.resolve({ freeBytes: toBytes(9.99), totalBytes: toBytes(10) }));
-        await pool._autoscale();
-        expect(pool.concurrency).to.be.eql(1 + SCALE_UP_MAX_STEP);
+        pool._autoscale(cb);
+        expect(pool.desiredConcurrency).to.be.eql(2);
 
-        // Should not do anything when there is right amount of memory used.
-        pool.concurrency = 10;
-        pool.runningCount = 10;
-        pool.intervalCounter = SCALE_UP_INTERVAL - 1;
-        mock.expects('getMemoryInfo')
-            .once()
-            .returns(Promise.resolve({ freeBytes: toBytes(1), totalBytes: toBytes(10) }));
-        await pool._autoscale();
-        expect(pool.concurrency).to.be.eql(10);
+        pool._autoscale(cb);
+        expect(pool.desiredConcurrency).to.be.eql(2); // because currentConcurrency is not high enough;
 
-        // Now there is not enough of memory but average from last SCALE_DOWN_INTERVAL snapshots is still ok.
-        // TODO: this test is failing now that we changed the constants in hotfix!
-        /* pool.concurrency = 10;
-        pool.runningCount = 10;
-        mock.expects('getMemoryInfo')
-            .exactly(3)
-            .returns(Promise.resolve({ freeBytes: toBytes(0.9), totalBytes: toBytes(10) }));
-        let promise = Promise.resolve();
-        for (let i = 0; i < 3; i++) {
-            promise = promise.then(() => {
-                pool.intervalCounter = SCALE_UP_INTERVAL - 1;
-                return pool._autoscale();
-            });
-        }
-        await promise;
-        expect(pool.concurrency).to.be.eql(10); */
+        pool.currentConcurrency = 2;
+        pool._autoscale(cb);
+        expect(pool.desiredConcurrency).to.be.eql(3);
 
-        // Now the average is below threshold so pool scales down.
-        pool.concurrency = 10;
-        pool.runningCount = 10;
-        mock.expects('getMemoryInfo')
-            .once()
-            .returns(Promise.resolve({ freeBytes: toBytes(0.9), totalBytes: toBytes(10) }));
-        pool.intervalCounter = SCALE_UP_INTERVAL - 1;
-        await pool._autoscale();
-        expect(pool.concurrency).to.be.eql(9);
+        systemStatus.okNow = false; // this should have no effect
+        pool.currentConcurrency = 3;
+        pool._autoscale(cb);
+        expect(pool.desiredConcurrency).to.be.eql(4);
 
-        mock.verify();
-        mock.restore();
+        systemStatus.okLately = false;
+        pool._autoscale(cb);
+        expect(pool.desiredConcurrency).to.be.eql(3);
+
+        // Should not scale because current concurrency is too low.
+        pool.desiredConcurrency = 50;
+        pool.currentConcurrency = Math.floor(pool.desiredConcurrency * pool.desiredConcurrencyRatio) - 1;
+        systemStatus.okLately = true;
+        pool._autoscale(cb);
+        expect(pool.desiredConcurrency).to.be.eql(50);
+
+        // Should scale because we bumped up currConcurrency.
+        pool.currentConcurrency = Math.floor(pool.desiredConcurrency * pool.desiredConcurrencyRatio);
+        const newConcurrency = pool.desiredConcurrency + Math.ceil(pool.desiredConcurrency * pool.scaleUpStepRatio);
+        pool._autoscale(cb);
+        expect(pool.desiredConcurrency).to.be.eql(newConcurrency);
     });
 
     xit('should work with loggingIntervalMillis = null', async () => {

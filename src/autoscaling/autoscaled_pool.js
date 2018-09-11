@@ -122,10 +122,11 @@ export default class AutoscaledPool {
         // Everything's fine. Run task.
         try {
             this.currentConcurrency++;
-            this._maybeRunTask(); // try to run next task to build up concurrency
+            this._maybeRunTask(); // Try to run next task to build up concurrency.
+            done(); // We need to restart interval here, so that it isn't blocked by a stalled task.
             await this.runTaskFunction();
             this.currentConcurrency--;
-            this._maybeRunTask(); // run task after the previous one finished
+            this._maybeRunTask(); // Run task after the previous one finished.
         } catch (err) {
             log.exception(err, 'AutoscaledPool: runTaskFunction failed');
             // This is here because we might have already rejected this promise.
@@ -172,7 +173,7 @@ export default class AutoscaledPool {
 
     _scaleUp() {
         const step = Math.ceil(this.desiredConcurrency * this.scaleUpStepRatio);
-        this.desiredConcurrency = Math.max(this.maxConcurrency, this.desiredConcurrency + step);
+        this.desiredConcurrency = Math.min(this.maxConcurrency, this.desiredConcurrency + step);
         log.debug('AutoscaledPool: scaling up', {
             oldConcurrency: this.desiredConcurrency - step,
             newConcurrency: this.desiredConcurrency,
@@ -181,7 +182,7 @@ export default class AutoscaledPool {
 
     _scaleDown() {
         const step = Math.ceil(this.desiredConcurrency * this.scaleUpStepRatio);
-        this.desiredConcurrency = Math.min(this.minConcurrency, this.desiredConcurrency - step);
+        this.desiredConcurrency = Math.max(this.minConcurrency, this.desiredConcurrency - step);
         log.debug('AutoscaledPool: scaling down', {
             oldConcurrency: this.desiredConcurrency + step,
             newConcurrency: this.desiredConcurrency,
