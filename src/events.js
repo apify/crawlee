@@ -160,6 +160,7 @@ export const initializeEvents = () => {
  * @memberof module:Apify
  * @name stopEvents
  * @function
+ * @ignore
  */
 export const stopEvents = () => {
     if (eventsWs) eventsWs.close();

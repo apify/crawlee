@@ -18,7 +18,7 @@
 <br>
 
 <div>
-  View the full <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest/" target="_blank">Apify SDK Programmer's Reference</a>.
+  View the full <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest/" target="_blank">Apify SDK Programmer's Reference</a> on a separate page.
 </div>
 
 
@@ -29,15 +29,15 @@
 - [Motivation](#motivation)
 - [Overview](#overview)
 - [Getting started](#getting-started)
-  * [Local standalone usage](#local-standalone-usage)
+  * [Local stand-alone usage](#local-stand-alone-usage)
   * [Local usage with Apify command-line interface (CLI)](#local-usage-with-apify-command-line-interface-cli)
   * [Usage in actors on the Apify cloud platform](#usage-in-actors-on-the-apify-cloud-platform)
 - [Examples](#examples)
   * [Load a few pages in raw HTML](#load-a-few-pages-in-raw-html)
-  * [Crawl a large list of URLs with Cheerio](#crawl-a-large-list-of-urls-with-cheerio)
-  * [Recursively crawl a website using headless Chrome / Puppeteer](#recursively-crawl-a-website-using-headless-chrome--puppeteer)
-  * [Save page screenshots into KeyValueStore](#save-page-screenshots-into-keyvaluestore)
-  * [Run Puppeteer with Apify Proxy](#run-puppeteer-with-apify-proxy)
+  * [Crawl an external list of URLs with Cheerio](#crawl-an-external-list-of-urls-with-cheerio)
+  * [Recursively crawl a website using Puppeteer](#recursively-crawl-a-website-using-puppeteer)
+  * [Save page screenshots](#save-page-screenshots)
+  * [Open page in Puppeteer via Apify Proxy](#open-page-in-puppeteer-via-apify-proxy)
   * [Invoke another actor](#invoke-another-actor)
   * [Run actor as an API](#run-actor-as-an-api)
 - [Data storage](#data-storage)
@@ -142,7 +142,7 @@ The Apify SDK is available as the <a href="https://www.npmjs.com/package/apify">
     running your code on the Apify cloud platform and thus
     get advantage of pool of proxies, job scheduler, data storage etc.
     For more information,
-    see the <a href="https://www.apify.com/docs/actor">Apify actor documentation</a>.
+    see the <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest">Apify SDK Programmer's reference</a>.
   </li>
 </ul>
 
@@ -159,7 +159,7 @@ Add Apify SDK to any Node.js project by running:
 npm install apify
 ```
 
-Then you'll need to specify where the SDK should store the data.
+You'll need to specify where the SDK should store the crawling data.
 Either define the `APIFY_LOCAL_STORAGE_DIR` environment variable to store the data locally on your disk
 or define `APIFY_TOKEN` to store the data to Apify cloud platform.
 
@@ -195,10 +195,10 @@ Here's the table of basic environment variables used by Apify SDK:
           <tr>
             <td><code>APIFY_PROXY_PASSWORD</code></td>
             <td>
-              Password to <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a> for IP address rotation.
+              Optional password to <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a> for IP address rotation.
               If you have have an Apify account, you can find the password on the
               <a href="https://my.apify.com/proxy" target="_blank">Proxy page</a> in the Apify app.
-              This feature is optional. You can use your own proxies or no proxies at all, instead of the Apify pool.
+              This feature is optional. You can use your own proxies or no proxies at all.
             </td>
           </tr>
     </tbody>
@@ -212,7 +212,7 @@ in the Apify actor documentation.
 
 ### Local usage with Apify command-line interface (CLI)
 
-To avoid the need to set the necessary environment variables manually,
+To avoid the need to set the environment variables manually,
 to create a boilerplate of your project,
 and to enable pushing and running your code on the Apify cloud,
 you can take advantage of the
@@ -239,8 +239,8 @@ cd my-hello-world
 apify run
 ```
 
-By default, the crawling data will be stored to the local storage directory at `./apify_storage`
-(using the `APIFY_LOCAL_STORAGE_DIR` environment variable).
+By default, the crawling data will be stored in a local directory at `./apify_storage`
+(the CLI sets the `APIFY_LOCAL_STORAGE_DIR` environment variable).
 For example, the input JSON file for the actor is expected to be in the default key-value store
 in `./apify_storage/key_value_stores/default/INPUT.json`.
 
@@ -251,20 +251,22 @@ apify login
 apify push
 ```
 
-Your actor will be uploaded to Apify cloud and built there.
+Your script will be uploaded to Apify cloud and built there.
 For more information, view the [Apify CLI](https://www.apify.com/docs/cli)
 and [Apify Actor](https://www.apify.com/docs/actor) documentation.
 
 
-### Usage in actors on the Apify cloud platform
+### Usage on the Apify cloud platform
 
 You can also develop your web scraping project
-directly in IDE on Apify platform. Go to [Actors](https://my.apify.com/actors)
-page in the app, click <b>Create new</b> and then go to
-<b>Source</b> tab and start writing your code. It's that simple.
+in an online code editor directly on the Apify cloud. You'll need to have Apify account.
+Go to [Actors](https://my.apify.com/actors)
+page in the app, click <i>Create new</i> and then go to
+<i>Source</i> tab and start writing your code. It's that simple.
 
 For more information, view the [Apify actors quick start guide](https://www.apify.com/docs/actor#quick-start).
 
+## What is the _actor_ ?
 
 ## Examples
 
@@ -274,18 +276,18 @@ All the examples can be found in the [examples](https://github.com/apifytech/api
 in the repository.
 
 To run the examples, just copy them into the directory where you installed Apify SDK using
-`npm install apify` and then run them by:
+`npm install apify` and then run them by calling:
 
 ```
 node APIFY_LOCAL_STORAGE_DIR=./apify_storage 1_basic_crawler.js
 ```
 
-Note that it is necessary to set the `APIFY_LOCAL_STORAGE_DIR` environment variables in order
-to tell the SDK where to store its data and crawling state.
+Note that it is necessary to set either the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variables in order
+to tell the SDK how to store its data and crawling state. See [above](#local-stand-alone-usage) for details.
 
 Alternatively, if you're using the [Apify CLI](#local-usage-with-apify-command-line-interface-cli),
 you can copy and paste the source code of each of the examples into the `main.js`
-file created by the CLI, go to the project's directory and then run
+file created by the CLI, go to the project's directory and then run it using:
 
 ```
 apify run
