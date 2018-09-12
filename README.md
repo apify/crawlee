@@ -269,9 +269,26 @@ page in the app, click <i>Create new</i> and then go to
 
 For more information, view the [Apify actors quick start guide](https://www.apify.com/docs/actor#quick-start).
 
-## So what is the _actor_ ?
+## So what is the actor?
 
+When you deploy your script to [Apify cloud platform](https://www.apify.com/), it becomes an actor.
+Actor is a serverless microservice that accepts an input and produces an output.
+It can run for a few seconds, hours or even infinitely.
+An actor can perform anything from a simple action such as filling out a web form or sending an email,
+to complex operations such as crawling an entire website and removing duplicates from a large dataset.
 
+To run an actor, you need to have an [Apify account](https://my.apify.com/).
+The actor execution is charged towards your account and the cost depends on
+the amount of memory allocated for the run.
+The actors can be shared in the [library](https://www.apify.com/library?&type=acts)
+so that other people can use them. Even if you share your actor in the library,
+other people pay for their usage themselves.
+
+*Related links*
+
+* [Actor documentation](https://www.apify.com/docs/actor)
+* [Library of existing actors](https://www.apify.com/library?&type=acts)
+* [Actors in Apify app](https://my.apify.com/actors)
 
 ## Examples
 
