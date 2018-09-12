@@ -702,7 +702,7 @@ Apify.main(async () => {
 });
 ```
 
-### Run actor as an API
+### Use actor as an API
 
 This example shows shows a quick actor that has a run time of just a few seconds.
 It opens a [web page](http://goldengatebridge75.org/news/webcam.html) that contains webcam stream from the Golden Gate
@@ -759,6 +759,12 @@ Once the code is ready, you will deploy it to Apify cloud where it will automati
 set the `APIFY_TOKEN` environment variable and thuse it will use the cloud storage.
 No code changes are needed.
 
+**Related links**
+
+* [Cloud storage documentation](https://www.apify.com/docs/storage)
+* [View storage in Apify app](https://my.apify.com/storage)
+* [API reference](https://www.apify.com/docs/api/v2#/reference/key-value-stores)
+
 ### Key-value store
 
 The key-value store is used for saving and reading data records or files.
@@ -790,17 +796,17 @@ data value.
 The following code demonstrates basic operations of key-value stores:
 
 ```javascript
-// Get INPUT value from the default key-value store
+// Get actor input from the default key-value store
 const input = await Apify.getValue('INPUT');
 
-// Write OUTPUT value to the default key-value store.
+// Write actor output to the default key-value store.
 await Apify.setValue('OUTPUT', { myResult: 123 });
 
 // Open a named key-value store
 const store = await Apify.openKeyValueStore('some-name');
 
 // Write record. JavaScript object is automatically converted to JSON,
-// strings and binary buffers are stored as they are.
+// strings and binary buffers are stored as they are
 await store.setValue('some-key', { foo: 'bar' });
 
 // Read record. Note that JSON is automatically parsed to a JavaScript object,
@@ -908,10 +914,10 @@ const request1 = await queue.fetchNextRequest();
 const request2 = await queue.fetchNextRequest();
 const request3 = await queue.fetchNextRequest();
 
-// Mark some requests them as handled
+// Mark a request as handled
 await queue.markRequestHandled(request1);
 
-// If processing fails then reclaim the request back to the queue
+// If processing fails then reclaim the request back to the queue, so that it's crawled again
 await  queue.reclaimRequest(request2);
 ```
 
