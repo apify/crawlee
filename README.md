@@ -790,22 +790,27 @@ The following code demonstrates basic operations of key-value stores:
 // Get INPUT value from the default key-value store
 const input = await Apify.getValue('INPUT');
 
-// Write OUTPUT value to the default key-value store
+// Write OUTPUT value to the default key-value store.
 await Apify.setValue('OUTPUT', { myResult: 123 });
 
 // Open a named key-value store
 const store = await Apify.openKeyValueStore('some-name');
 
-// Write record
+// Write record. JavaScript object is automatically converted to JSON,
+// strings and binary buffers are stored as they are.
 await store.setValue('some-key', { foo: 'bar' });
 
-// Read record - JSON is automatically parsed to a JavaScript object,
-// text data returned as text and other data is returned as binary buffer
+// Read record. Note that JSON is automatically parsed to a JavaScript object,
+// text data returned as a string and other data is returned as binary buffer
 const value = await store.getValue('some-key');
 
 // Delete record
 await store.delete('some-key');
 ```
+
+To see a real-world example of how to get the input from the key-value store, see the
+[4_save_screenshots.js](https://github.com/apifytech/apify-js/blob/feature/better-readme/examples/4_save_screenshots.js) example.
+
 
 ### Dataset
 
@@ -816,7 +821,7 @@ Dataset is an append-only storage - you can only add new records to it but you c
 existing records.
 
 Each actor run is associated with a **default dataset**, which is created exclusively for the actor run.
-Typically it is used to store crawling results specific for the actor run. It's usage is optional.
+Typically it is used to store crawling results specific for the actor run. Its usage is optional.
 
 In Apify SDK, the dataset is represented by the [Dataset](https://www.apify.com/docs/sdk/apify-runtime-js/latest#Dataset) class.
 In order to simplify writes to the default dataset, the SDK also provides the
@@ -831,8 +836,8 @@ In local configuration, the data is stored in the directory specified in the `AP
 Note that `[DATASET_ID]` is the name or ID of the dataset.
 The default dataset has ID `default`, unless you override it by setting the `APIFY_DEFAULT_DATASET_ID`
 environment variable.
-Each dataset item is stores as a separate JSON file,
-and <code>[INDEX]</code> is a zero-based index of the item in the dataset.
+Each dataset item is stored as a separate JSON file,
+where <code>[INDEX]</code> is a zero-based index of the item in the dataset.
 
 The following code demonstrates basic operations of the dataset:
 
@@ -853,15 +858,62 @@ await dataset.pushData([
 ]);
 ```
 
+To see how to use the dataset to store crawler results, see the
+[2_cheerio_crawler.js](https://github.com/apifytech/apify-js/blob/feature/better-readme/examples/2_cheerio_crawler.js) example.
+
 
 ### Request queue
 
+Request queue is storage of URLs to crawl.
+The queue is used for deep crawling of websites, where you start with
+several URLs and then recursively follow links to other pages.
+The data structure supports both breadth-first and depth-first crawling orders.
 
- ID of the default request queue (request queue opened using <code>Apify.openRequestQueue()</code> function).
-           If you defined <code>APIFY_LOCAL_STORAGE_DIR</code>, then request queue records are stored as files at
-           <code>[APIFY_LOCAL_STORAGE_DIR]/request_queues/[APIFY_DEFAULT_REQUEST_QUEUE_ID]/[INDEX].json</code>,
-           where <code>[INDEX]</code> is a zero-based index of the item.
+Each actor run is associated with a **default request queue**, which is created exclusively for the actor run.
+Typically it is used to store URLs to crawl in the specific actor run. Its usage is optional.
 
+In Apify SDK, the request queue is represented by the [RequestQueue](https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue) class.
+
+In local configuration, the request queue data is stored in the directory specified in the `APIFY_LOCAL_STORAGE_DIR` environment variable as follows:
+
+```
+[APIFY_LOCAL_STORAGE_DIR]/request_queues/[QUEUE_ID]/[NUMBER].json
+```
+
+Note that `[QUEUE_ID]` is the name or ID of the request queue.
+The default queue has ID `default`, unless you override it by setting the `APIFY_DEFAULT_REQUEST_QUEUE_ID`
+environment variable.
+Each request in the queue is stored as a separate JSON file,
+where <code>[NUMBER]</code> is an integer indicating the position of the request in the queue.
+
+The following code demonstrates basic operations of the request queue:
+
+```javascript
+// Open the default request queue associated with the actor run
+const queue = await Apify.openRequestQueue();
+
+// Open a named request queue
+const queueWithName = await Apify.openRequestQueue('some-name');
+
+// Enqueue few requests
+await queue.addRequest(new Apify.Request({ url: 'http://example.com/aaa'}));
+await queue.addRequest(new Apify.Request({ url: 'http://example.com/bbb'}));
+await queue.addRequest(new Apify.Request({ url: 'http://example.com/foo/bar'}), { forefront: true });
+
+// Get requests from queue
+const request1 = await queue.fetchNextRequest();
+const request2 = await queue.fetchNextRequest();
+const request3 = await queue.fetchNextRequest();
+
+// Mark some requests them as handled
+await queue.markRequestHandled(request1);
+
+// If processing fails then reclaim the request back to the queue
+await  queue.reclaimRequest(request2);
+```
+
+To see how to use the request queue with a crawler, see the
+[3_puppeteer_crawler.js](https://github.com/apifytech/apify-js/blob/feature/better-readme/examples/3_puppeteer_crawler.js) example.
 
 ## Puppeteer live view
 
