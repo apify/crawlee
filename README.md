@@ -32,7 +32,7 @@
   * [Local stand-alone usage](#local-stand-alone-usage)
   * [Local usage with Apify command-line interface (CLI)](#local-usage-with-apify-command-line-interface-cli)
   * [Usage on the Apify cloud platform](#usage-on-the-apify-cloud-platform)
-- [So what is the _actor_ ?](#so-what-is-the-_actor_-)
+- [So what is the actor?](#so-what-is-the-actor)
 - [Examples](#examples)
   * [Load a few pages in raw HTML](#load-a-few-pages-in-raw-html)
   * [Crawl an external list of URLs with Cheerio](#crawl-an-external-list-of-urls-with-cheerio)
