@@ -1,5 +1,6 @@
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
+import sinon from 'sinon';
 import log from 'apify-shared/log';
 import _ from 'underscore';
 import { delayPromise } from 'apify-shared/utilities';
@@ -166,6 +167,96 @@ describe('CheerioCrawler', () => {
         expect(new Set(processed.map(p => p.url))).to.be.eql(new Set(sources.map(s => s.url)));
         processed.forEach((request) => {
             expect(request.userData.title).to.be.eql(request.url[request.url.length - 1]);
+        });
+    });
+
+    describe('should timeout', () => {
+        let ll;
+        before(() => {
+            ll = log.getLevel();
+            log.setLevel(log.LEVELS.OFF);
+        });
+
+        after(() => {
+            log.setLevel(ll);
+        });
+
+        it('should timeout after requestTimeoutSecs', async () => {
+            const sources = [
+                { url: 'http://example.com/?q=0' },
+                { url: 'http://example.com/?q=1' },
+                { url: 'http://example.com/?q=2' },
+            ];
+            const processed = [];
+            const failed = [];
+            const requestList = new Apify.RequestList({ sources });
+            const requestFunction = async () => {
+                await delayPromise(3000);
+                return '<html><head></head><body>Body</body></html>';
+            };
+            const handlePageFunction = async ({ request }) => {
+                processed.push(request);
+            };
+
+            const cheerioCrawler = new Apify.CheerioCrawler({
+                requestList,
+                requestTimeoutSecs: 0.05,
+                maxRequestRetries: 1,
+                minConcurrency: 2,
+                maxConcurrency: 2,
+                handlePageFunction,
+                requestFunction,
+                handleFailedRequestFunction: ({ request }) => failed.push(request),
+            });
+
+            await requestList.initialize();
+            await cheerioCrawler.run();
+
+            expect(processed).to.have.lengthOf(0);
+            expect(failed).to.have.lengthOf(3);
+
+            failed.forEach((request) => {
+                expect(request.errorMessages).to.have.lengthOf(2);
+                expect(request.errorMessages[0]).to.include('requestFunction timed out');
+                expect(request.errorMessages[1]).to.include('requestFunction timed out');
+            });
+        });
+
+        it('should timeout after handlePageTimeoutSecs', async () => {
+            const sources = [
+                { url: 'http://example.com/?q=0' },
+                { url: 'http://example.com/?q=1' },
+                { url: 'http://example.com/?q=2' },
+            ];
+            const processed = [];
+            const failed = [];
+            const requestList = new Apify.RequestList({ sources });
+            const handlePageFunction = async ({ request }) => {
+                await delayPromise(3000);
+                processed.push(request);
+            };
+
+            const cheerioCrawler = new Apify.CheerioCrawler({
+                requestList,
+                handlePageTimeoutSecs: 0.05,
+                maxRequestRetries: 1,
+                minConcurrency: 2,
+                maxConcurrency: 2,
+                handlePageFunction,
+                handleFailedRequestFunction: ({ request }) => failed.push(request),
+            });
+
+            await requestList.initialize();
+            await cheerioCrawler.run();
+
+            expect(processed).to.have.lengthOf(0);
+            expect(failed).to.have.lengthOf(3);
+
+            failed.forEach((request) => {
+                expect(request.errorMessages).to.have.lengthOf(2);
+                expect(request.errorMessages[0]).to.include('handlePageFunction timed out');
+                expect(request.errorMessages[1]).to.include('handlePageFunction timed out');
+            });
         });
     });
 });

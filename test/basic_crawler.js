@@ -392,14 +392,16 @@ describe('BasicCrawler', () => {
 
         const basicCrawler = new Apify.BasicCrawler({
             requestQueue,
-            minConcurrency: 1,
-            maxConcurrency: 1,
+            autoscaledPoolOptions: {
+                minConcurrency: 1,
+                maxConcurrency: 1,
+                isFinishedFunction: () => {
+                    return Promise.resolve(isFinished);
+                },
+            },
             handleRequestFunction: async ({ request }) => {
                 await delayPromise(10);
                 processed.push(request);
-            },
-            isFinishedFunction: () => {
-                return Promise.resolve(isFinished);
             },
         });
 
