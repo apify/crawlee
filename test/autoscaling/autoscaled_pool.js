@@ -49,7 +49,7 @@ describe('AutoscaledPool', () => {
         await pool.run();
 
         expect(result).to.be.eql(_.range(0, 10));
-        expect(Date.now() - startedAt).to.be.within(50, 150);
+        expect(Date.now() - startedAt).to.be.within(50, 200);
     });
 
     it('should work with concurrency 10', async () => {
@@ -82,7 +82,7 @@ describe('AutoscaledPool', () => {
         await pool.run();
 
         expect(result).to.be.eql(_.range(0, 100));
-        expect(Date.now() - startedAt).to.be.within(50, 150);
+        expect(Date.now() - startedAt).to.be.within(50, 200);
     });
 
     describe('should scale correctly', () => {
@@ -261,30 +261,30 @@ describe('AutoscaledPool', () => {
         // Start 3 tasks immediately.
         tasks.push(getTask(0));
         tasks.push(getTask(1));
-        setTimeout(() => tasks.push(getTask(2)), 30);
+        setTimeout(() => tasks.push(getTask(2)), 20);
 
         setTimeout(() => {
             isTaskReady = false;
-        }, 40);
+        }, 50);
 
-        // Add 2 tasks after 500ms.
-        setTimeout(() => tasks.push(getTask(3)), 60);
-        setTimeout(() => tasks.push(getTask(4)), 60);
+        // Add 2 tasks after 80ms.
+        setTimeout(() => tasks.push(getTask(3)), 80);
+        setTimeout(() => tasks.push(getTask(4)), 80);
 
         // Remove tasks and set isTaskReady=true to accept a new task.
         setTimeout(() => {
             tasks.pop();
             tasks.pop();
             isTaskReady = true;
-        }, 78);
+        }, 120);
 
         // Add one more task.
-        setTimeout(() => tasks.push(getTask(5)), 80);
+        setTimeout(() => tasks.push(getTask(5)), 150);
 
         // Finish.
         setTimeout(() => {
             isFinished = true;
-        }, 120);
+        }, 200);
 
         // Run the pool and close it after 3s.
         const pool = new AutoscaledPool({

@@ -90,12 +90,8 @@ describe('Snapshotter', () => {
             await emitAndWait(10);
             await emitAndWait(0);
             await snapshotter.stop();
-            const memorySnapshots = snapshotter.getMemorySample();
-            const eventLoopSnapshots = snapshotter.getEventLoopSample();
             const cpuSnapshots = snapshotter.getCpuSample();
 
-            expect(memorySnapshots).to.have.lengthOf(1);
-            expect(eventLoopSnapshots).to.have.lengthOf(2);
             expect(cpuSnapshots).to.have.lengthOf(4);
             cpuSnapshots.forEach((ss, i) => {
                 expect(ss.createdAt).to.be.a('date');
@@ -122,7 +118,7 @@ describe('Snapshotter', () => {
         let now = Date.now();
         while (now < start + DELAY) {
             now = Date.now();
-        } // eslint-disable-line no-empty
+        }
         await Apify.utils.sleep(3 * TICK);
         await snapshotter.stop();
         const eventLoopSnapshots = snapshotter.getEventLoopSample();
