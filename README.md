@@ -391,7 +391,8 @@ const Apify = require('apify');
 
 // Apify.utils contains various utilities, e.g. for logging.
 // Here we turn off logging of unimportant messages.
-Apify.utils.log.setLevel(log.LEVELS.WARNING);
+const { log } = Apify.utils;
+log.setLevel(log.LEVELS.WARNING);
 
 // A link to a list of Fortune 500 companies' websites available on GitHub.
 const CSV_LINK = 'https://gist.githubusercontent.com/hrbrmstr/ae574201af3de035c684/raw/f1000.csv';
@@ -584,7 +585,10 @@ const Apify = require('apify');
 Apify.main(async () => {
     // Read the actor input configuration containing URLs to take the screenshot off.
     // By convention, the input is present in actor's default key-value store under the "INPUT" key.
-    const { sources } = await Apify.getValue('INPUT');
+    const input = await Apify.getValue('INPUT');
+    if (!input) throw new Error('Have you passed the correct INPUT ?');
+
+    const { sources } = input;
 
     const requestList = new Apify.RequestList({ sources });
     await requestList.initialize();
@@ -886,14 +890,15 @@ In Apify SDK, the request queue is represented by the [RequestQueue](https://www
 In local configuration, the request queue data is stored in the directory specified in the `APIFY_LOCAL_STORAGE_DIR` environment variable as follows:
 
 ```
-[APIFY_LOCAL_STORAGE_DIR]/request_queues/[QUEUE_ID]/[NUMBER].json
+[APIFY_LOCAL_STORAGE_DIR]/request_queues/[QUEUE_ID]/[STATE]/[NUMBER].json
 ```
 
 Note that `[QUEUE_ID]` is the name or ID of the request queue.
 The default queue has ID `default`, unless you override it by setting the `APIFY_DEFAULT_REQUEST_QUEUE_ID`
 environment variable.
 Each request in the queue is stored as a separate JSON file,
-where <code>[NUMBER]</code> is an integer indicating the position of the request in the queue.
+where `[STATE]` is either `handled` or `pending`,
+and <code>[NUMBER]</code> is an integer indicating the position of the request in the queue.
 
 The following code demonstrates basic operations of the request queue:
 
