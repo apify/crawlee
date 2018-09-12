@@ -119,7 +119,10 @@ describe('Snapshotter', () => {
         await snapshotter.start();
         await Apify.utils.sleep(3 * TICK);
         const start = Date.now();
-        while (Date.now() < start + DELAY) {} // eslint-disable-line no-empty
+        let now = Date.now();
+        while (now < start + DELAY) {
+            now = Date.now();
+        } // eslint-disable-line no-empty
         await Apify.utils.sleep(3 * TICK);
         await snapshotter.stop();
         const eventLoopSnapshots = snapshotter.getEventLoopSample();
