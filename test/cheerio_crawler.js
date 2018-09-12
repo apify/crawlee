@@ -1,6 +1,5 @@
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
-import sinon from 'sinon';
 import log from 'apify-shared/log';
 import _ from 'underscore';
 import { delayPromise } from 'apify-shared/utilities';
