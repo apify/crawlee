@@ -1,7 +1,7 @@
 # Apify SDK: The web scraping and automation library for Node.js
 <!-- Mirror this part to src/index.js -->
 
-[![npm version](https://badge.fury.io/js/apify.svg)](http://badge.fury.io/js/apify)
+[![npm version](https://badge.fury.io/js/apify.svg)](https://www.npmjs.com/package/apify)
 [![Build Status](https://travis-ci.org/apifytech/apify-js.svg?branch=master)](https://travis-ci.org/apifytech/apify-js)
 
 <div id="include-readme-1">
@@ -18,7 +18,7 @@
 <br>
 
 <div>
-  View the full <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest/" target="_blank">Apify SDK Programmer's Reference</a> (separate page).
+  View the full <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest/" target="_blank">Apify SDK Programmer's Reference</a>.
 </div>
 
 
@@ -72,7 +72,7 @@ and focus on writing the code specific to the target website, rather than develo
 
 ## Overview
 
-The Apify SDK package provides the following tools:
+The Apify SDK is available as the <a href="https://www.npmjs.com/package/apify"><code>apify</code></a> NPM package and it provides the following tools:
 
 <ul>
   <li>
@@ -153,13 +153,13 @@ The Apify SDK requires <a href="https://nodejs.org/en/" target="_blank">Node.js<
 
 ### Local stand-alone usage
 
-You can add Apify SDK to any Node.js project by running:
+Add Apify SDK to any Node.js project by running:
 
 ```bash
 npm install apify
 ```
 
-You'll need to specify where the SDK should store the data.
+Then you'll need to specify where the SDK should store the data.
 Either define the `APIFY_LOCAL_STORAGE_DIR` environment variable to store the data locally on your disk
 or define `APIFY_TOKEN` to store the data to Apify cloud platform.
 
@@ -218,13 +218,13 @@ and to enable pushing and running your code on the Apify cloud,
 you can take advantage of the
 <a href="https://github.com/apifytech/apify-cli" target="_blank">Apify command-line interface</a> (CLI) tool.
 
-The CLI can be installed by running:
+Install the CLI by running:
 
 ```bash
 npm -g install apify-cli
 ```
 
-Now you can create a boilerplate of you new web crawling project by running:
+Create a boilerplate of you new web crawling project by running:
 
 ```bash
 apify create my-hello-world
@@ -239,12 +239,12 @@ cd my-hello-world
 apify run
 ```
 
-The default local storage directory is set to `./apify_storage` (using the `APIFY_LOCAL_EMULATION_DIR` environment variable),
-where all the crawling data will be stored.
+By default, the crawling data will be stored to the local storage directory at `./apify_storage`
+(using the `APIFY_LOCAL_STORAGE_DIR` environment variable).
 For example, the input JSON file for the actor is expected to be in the default key-value store
 in `./apify_storage/key_value_stores/default/INPUT.json`.
 
-With the CLI you can also easily deploy your code to Apify cloud by running:
+Now you can easily deploy your code to Apify cloud by running:
 
 ```bash
 apify login
@@ -252,7 +252,6 @@ apify push
 ```
 
 Your actor will be uploaded to Apify cloud and built there.
-
 For more information, view the [Apify CLI](https://www.apify.com/docs/cli)
 and [Apify Actor](https://www.apify.com/docs/actor) documentation.
 
