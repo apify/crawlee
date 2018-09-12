@@ -4,29 +4,60 @@ import Snapshotter from './snapshotter';
 import { weightedAvg } from '../utils';
 
 const DEFAULT_OPTIONS = {
-    sampleDurationSecs: 5, // TODO this should be something like "nowDurationSecs" but it's weird, ideas?
+    currentHistorySecs: 5, // TODO this should be something like "nowDurationSecs" but it's weird, ideas?
     maxMemoryOverloadedRatio: 0.2,
     maxEventLoopOverloadedRatio: 0.02,
     maxCpuOverloadedRatio: 0.1,
 };
 
+/**
+ * Provides a simple interface to reading system status from a Snapshotter
+ * instance. It only exposes two functions `isOk()` and `hasBeenOkLately()`.
+ * The system status is calculated using a weighted average of overloaded
+ * messages in the snapshots, with the weights being the time intervals
+ * between the snapshots. Each resource is calculated separately
+ * and the system is overloaded whenever at least one resource is overloaded.
+ *
+ * `isOk()` returns a boolean that represents the current status of the system.
+ * The length of the current timeframe in seconds is configurable
+ * by the currentHistorySecs option and represents the max age
+ * of snapshots to be considered for the calculation.
+ *
+ * `hasBeenOkLately()` returns a boolean that represents the long term status
+ * of the system. It considers the full snapshot history available
+ * in the Snapshotter instance.
+ *
+ * @param {Object} options
+ * @param {Number} [options.currentHistorySecs=5]
+ *   Defines max age of snapshots used in the `isOk()` measurement.
+ * @param {Number} [options.maxMemoryOverloadedRatio=0.2]
+ *   Sets the maximum ratio of overloaded snapshots in a memory sample.
+ *   If the sample exceeds this ratio, the system will be overloaded.
+ * @param {Number} [options.maxEventLoopOverloadedRatio=0.02]
+ *   Sets the maximum ratio of overloaded snapshots in an event loop sample.
+ *   If the sample exceeds this ratio, the system will be overloaded.
+ * @param {Number} [options.maxCpuOverloadedRatio=0.1]
+ *   Sets the maximum ratio of overloaded snapshots in a CPU sample.
+ *   If the sample exceeds this ratio, the system will be overloaded.
+ * @ignore
+ */
 export default class SystemStatus {
     constructor(options = {}) {
         const {
-            sampleDurationSecs,
+            currentHistorySecs,
             maxMemoryOverloadedRatio,
             maxEventLoopOverloadedRatio,
             maxCpuOverloadedRatio,
             snapshotter,
         } = _.defaults(options, DEFAULT_OPTIONS);
 
-        checkParamOrThrow(sampleDurationSecs, 'options.sampleDurationSecs', 'Number');
+        checkParamOrThrow(currentHistorySecs, 'options.currentHistorySecs', 'Number');
         checkParamOrThrow(maxMemoryOverloadedRatio, 'options.maxMemoryOverloadedRatio', 'Number');
         checkParamOrThrow(maxEventLoopOverloadedRatio, 'options.maxEventLoopOverloadedRatio', 'Number');
         checkParamOrThrow(maxCpuOverloadedRatio, 'options.maxCpuOverloadedRatio', 'Number');
         checkParamOrThrow(snapshotter, 'options.snapshotter', 'Maybe Object');
 
-        this.sampleDurationMillis = sampleDurationSecs * 1000;
+        this.currentHistorySecs = currentHistorySecs * 1000;
         this.maxMemoryOverloadedRatio = maxMemoryOverloadedRatio;
         this.maxEventLoopOverloadedRatio = maxEventLoopOverloadedRatio;
         this.maxCpuOverloadedRatio = maxCpuOverloadedRatio;
@@ -34,35 +65,88 @@ export default class SystemStatus {
         this.snapshotter = snapshotter || new Snapshotter();
     }
 
+    /**
+     * Returns true if the system has not been overloaded in the last
+     * currentHistorySecs seconds, otherwise returns false.
+     * @return {boolean}
+     * @ignore
+     */
     isOk() {
-        return !this._isOverloaded(this.sampleDurationMillis);
+        return !this._isOverloaded(this.currentHistorySecs);
     }
 
+    /**
+     * Returns true if the system has not been overloaded in the full
+     * history of the snapshotter (which is configurable in the snapshotter).
+     * @return {boolean}
+     * @ignore
+     */
     hasBeenOkLately() {
         return !this._isOverloaded();
     }
 
+    /**
+     * Returns true if the system has been overloaded
+     * in the last sampleDurationMillis.
+     *
+     * @param {Number} sampleDurationMillis
+     * @return {boolean}
+     * @ignore
+     */
     _isOverloaded(sampleDurationMillis) {
         return this._isMemoryOverloaded(sampleDurationMillis)
             || this._isEventLoopOverloaded(sampleDurationMillis)
             || this._isCpuOverloaded(sampleDurationMillis);
     }
 
+    /**
+     * Returns true if the memory has been overloaded
+     * in the last sampleDurationMillis.
+     *
+     * @param {Number} sampleDurationMillis
+     * @return {boolean}
+     * @ignore
+     */
     _isMemoryOverloaded(sampleDurationMillis) {
         const sample = this.snapshotter.getMemorySample(sampleDurationMillis);
         return this._isSampleOverloaded(sample, this.maxMemoryOverloadedRatio);
     }
 
+    /**
+     * Returns true if the event loop has been overloaded
+     * in the last sampleDurationMillis.
+     *
+     * @param {Number} sampleDurationMillis
+     * @return {boolean}
+     * @ignore
+     */
     _isEventLoopOverloaded(sampleDurationMillis) {
         const sample = this.snapshotter.getEventLoopSample(sampleDurationMillis);
         return this._isSampleOverloaded(sample, this.maxEventLoopOverloadedRatio);
     }
 
+    /**
+     * Returns true if the CPU has been overloaded
+     * in the last sampleDurationMillis.
+     *
+     * @param {Number} sampleDurationMillis
+     * @return {boolean}
+     * @ignore
+     */
     _isCpuOverloaded(sampleDurationMillis) {
         const sample = this.snapshotter.getCpuSample(sampleDurationMillis);
         return this._isSampleOverloaded(sample, this.maxCpuOverloadedRatio);
     }
 
+    /**
+     * Returns true if at least the ratio of snapshots
+     * in the sample are overloaded.
+     *
+     * @param {Array} sample
+     * @param {Number} ratio
+     * @return {boolean}
+     * @ignore
+     */
     _isSampleOverloaded(sample, ratio) { // eslint-disable-line class-methods-use-this
         const weights = [];
         const values = [];

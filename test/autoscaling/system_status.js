@@ -142,15 +142,15 @@ describe('SystemStatus', () => {
             maxEventLoopOverloadedRatio: 0.5,
             maxCpuOverloadedRatio: 0.5,
         });
-        systemStatus.sampleDurationMillis = 5;
+        systemStatus.currentHistorySecs = 5;
         expect(systemStatus.isOk()).to.be.eql(false);
         expect(systemStatus.hasBeenOkLately()).to.be.eql(true);
 
-        systemStatus.sampleDurationMillis = 10;
+        systemStatus.currentHistorySecs = 10;
         expect(systemStatus.isOk()).to.be.eql(false);
         expect(systemStatus.hasBeenOkLately()).to.be.eql(true);
 
-        systemStatus.sampleDurationMillis = 12;
+        systemStatus.currentHistorySecs = 12;
         expect(systemStatus.isOk()).to.be.eql(true);
         expect(systemStatus.hasBeenOkLately()).to.be.eql(true);
 
@@ -161,15 +161,15 @@ describe('SystemStatus', () => {
             maxEventLoopOverloadedRatio: 0.5,
             maxCpuOverloadedRatio: 0.5,
         });
-        systemStatus.sampleDurationMillis = 5;
+        systemStatus.currentHistorySecs = 5;
         expect(systemStatus.isOk()).to.be.eql(true);
         expect(systemStatus.hasBeenOkLately()).to.be.eql(false);
 
-        systemStatus.sampleDurationMillis = 10;
+        systemStatus.currentHistorySecs = 10;
         expect(systemStatus.isOk()).to.be.eql(true);
         expect(systemStatus.hasBeenOkLately()).to.be.eql(false);
 
-        systemStatus.sampleDurationMillis = 12;
+        systemStatus.currentHistorySecs = 12;
         expect(systemStatus.isOk()).to.be.eql(false);
         expect(systemStatus.hasBeenOkLately()).to.be.eql(false);
     });

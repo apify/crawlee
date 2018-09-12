@@ -48,6 +48,7 @@ const DEFAULT_OPTIONS = {
  * @param {Number} [options.snapshotHistorySecs=60]
  *   Sets the interval in seconds for which a history of resource snapshots
  *   will be kept. Increasing this to very high numbers will affect performance.
+ * @ignore
  */
 export default class Snapshotter {
     constructor(options = {}) {
@@ -82,6 +83,7 @@ export default class Snapshotter {
     /**
      * Starts capturing snapshots in configured intervals.
      * @return {Promise}
+     * @ignore
      */
     async start() {
         // Ensure max memory is correctly computed.
@@ -110,6 +112,7 @@ export default class Snapshotter {
     /**
      * Stops all resource capturing.
      * @return {Promise}
+     * @ignore
      */
     async stop() {
         betterClearInterval(this.eventLoopInterval);
@@ -124,6 +127,7 @@ export default class Snapshotter {
      * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
      * @param {Number} [sampleDurationMillis]
      * @return {Array} sample
+     * @ignore
      */
     getMemorySample(sampleDurationMillis) {
         return this._getSample(this.memorySnapshots, sampleDurationMillis);
@@ -134,6 +138,7 @@ export default class Snapshotter {
      * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
      * @param {Number} [sampleDurationMillis]
      * @return {Array} sample
+     * @ignore
      */
     getEventLoopSample(sampleDurationMillis) {
         return this._getSample(this.eventLoopSnapshots, sampleDurationMillis);
@@ -144,6 +149,7 @@ export default class Snapshotter {
      * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
      * @param {Number} [sampleDurationMillis]
      * @return {Array} sample
+     * @ignore
      */
     getCpuSample(sampleDurationMillis) {
         return this._getSample(this.cpuSnapshots, sampleDurationMillis);
