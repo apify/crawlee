@@ -163,7 +163,7 @@ You'll need to specify where the SDK should store the crawling data.
 Either define the `APIFY_LOCAL_STORAGE_DIR` environment variable to store the data locally on your disk
 or define `APIFY_TOKEN` to store the data to Apify cloud platform.
 
-Here's the table of basic environment variables used by Apify SDK:
+The following table shows basic environment variables used by Apify SDK:
 
 <table class="table table-bordered table-condensed">
     <thead>
@@ -215,7 +215,7 @@ in the Apify actor documentation.
 To avoid the need to set the environment variables manually,
 to create a boilerplate of your project,
 and to enable pushing and running your code on the Apify cloud,
-you can take advantage of the
+you can use the
 <a href="https://github.com/apifytech/apify-cli" target="_blank">Apify command-line interface</a> (CLI) tool.
 
 Install the CLI by running:
@@ -224,7 +224,7 @@ Install the CLI by running:
 npm -g install apify-cli
 ```
 
-Create a boilerplate of you new web crawling project by running:
+Create a boilerplate of your new web crawling project by running:
 
 ```bash
 apify create my-hello-world
@@ -251,7 +251,7 @@ apify login
 apify push
 ```
 
-Your script will be uploaded to Apify cloud and built there.
+Your script will be uploaded to Apify cloud and built there so that it can be run in the cloud.
 For more information, view the [Apify CLI](https://www.apify.com/docs/cli)
 and [Apify Actor](https://www.apify.com/docs/actor) documentation.
 
@@ -262,16 +262,18 @@ You can also develop your web scraping project
 in an online code editor directly on the Apify cloud. You'll need to have Apify account.
 Go to [Actors](https://my.apify.com/actors)
 page in the app, click <i>Create new</i> and then go to
-<i>Source</i> tab and start writing your code. It's that simple.
+<i>Source</i> tab and start writing your code or paste there one of the code examples below.
 
 For more information, view the [Apify actors quick start guide](https://www.apify.com/docs/actor#quick-start).
 
-## What is the _actor_ ?
+## So what is the _actor_ ?
+
+
 
 ## Examples
 
 An example is better than thousand of words. In the following sections you will find several
-examples how to solve various web scraping task using Apify SDK.
+examples how to perform various web scraping and automation task using Apify SDK.
 All the examples can be found in the [examples](https://github.com/apifytech/apify-js/tree/master/examples) directory
 in the repository.
 
@@ -287,7 +289,7 @@ to tell the SDK how to store its data and crawling state. See [above](#local-sta
 
 Alternatively, if you're using the [Apify CLI](#local-usage-with-apify-command-line-interface-cli),
 you can copy and paste the source code of each of the examples into the `main.js`
-file created by the CLI, go to the project's directory and then run it using:
+file created by the CLI. Then go to the project directory and run the example using:
 
 ```
 apify run
@@ -295,8 +297,8 @@ apify run
 
 ### Load a few pages in raw HTML
 
-This is the most basic example of Apify SDK that demonstrates some of its
-elementary concepts, such as the
+This is the most basic example of Apify SDK, which demonstrates some of its
+elementary tools such as the
 [BasicCrawler](https://www.apify.com/docs/sdk/apify-runtime-js/latest#BasicCrawler)
 and [RequestList](https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList) classes.
 The script just downloads several web pages with plain HTTP requests (using the
@@ -445,7 +447,7 @@ and [RequestQueue](https://www.apify.com/docs/sdk/apify-runtime-js/latest#Reques
 Hacker News website (https://news.ycombinator.com) using headless Chrome / Puppeteer.
 The crawlers starts with a single URL, finds links to next pages,
 enqueues them and continues until no more desired links are available.
-The results are stored to the default dataset. In local configuration, the results are stored as JSON files in ``./apify_storage/datasets/default`
+The results are stored to the default dataset. In local configuration, the results are stored as JSON files in `./apify_storage/datasets/default`
 
 ```javascript
 const Apify = require('apify');
@@ -540,8 +542,8 @@ The script crawls a list of URLs using Puppeteer,
 captures a screenshot of each page and saves it to the store. The list of URLs is
 provided as actor input that is also read from the store.
 
-Locally, the input is stored in the default key-value store's directory as JSON file at
-`./apify_storage/key_value_stores/default/INPUT.json`. You can create the file and set it the following content:
+In local configuration, the input is stored in the default key-value store's directory as JSON file at
+`./apify_storage/key_value_stores/default/INPUT.json`. You need to create the file and set it the following content:
 
 ```json
 { "sources": [{ "url": "https://www.google.com" }, { "url": "https://www.duckduckgo.com" }] }
@@ -590,13 +592,14 @@ Apify.main(async () => {
 });
 ```
 
-### Open page in Puppeteer via Apify Proxy
+### Open web page in Puppeteer via Apify Proxy
 
 This example demonstrates how to load pages in headless Chrome / Puppeteer
 over [Apify Proxy](https://www.apify.com/docs/proxy).
-To make it work, you'll need an [Apify Account](https://my.apify.com/proxy)
+To make it work, you'll need an Apify account
 that has access to the proxy.
-Set the Apify Proxy password to the `APIFY_PROXY_PASSWORD` environment variable,
+The proxy password is available on the [Proxy](https://my.apify.com/proxy) page in the app.
+Just set it to the `APIFY_PROXY_PASSWORD` environment variable
 or run the script using the CLI.
 
 ```javascript
@@ -630,16 +633,16 @@ Apify.main(async () => {
 
 ### Invoke another actor
 
-This example shows how to call an Apify actor from another actor using
-<a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-call"><code>Apify.call()</code></a>,
+This example shows how to start an Apify actor using
+<a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-call"><code>Apify.call()</code></a>
 and how to call Apify API using
 <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-client"><code>Apify.client</code></a>.
 The script extracts the current Bitcoin prices from Kraken.com
 and sends them to your email using the [apify/send-mail](https://www.apify.com/apify/send-mail) actor.
 
-To make it work, you'll need an [Apify Account](https://my.apify.com/).
-Set your Apify API token (shown on [Account - Integrations](https://my.apify.com/account#/integrations) page)
-as the `APIFY_TOKEN` environment variable, or run the script using the CLI.
+To make the example work, you'll need an [Apify Account](https://my.apify.com/).
+Go to [Account - Integrations](https://my.apify.com/account#/integrations) page to obtain your API token
+and set it to the `APIFY_TOKEN` environment variable, or run the script using the CLI.
 If you deploy this actor to Apify platform then you can setup a scheduler for early
 morning. Don't miss the chance of your life to get rich!
 
@@ -677,15 +680,16 @@ Apify.main(async () => {
 
 ### Run actor as an API
 
-This example shows shows a quick actor that has a run time of just a few seconds. It opens a web page
-http://goldengatebridge75.org/news/webcam.html that contains webcam stream from the Golden Gate
-bridge, takes a screenshot and saves it as output. This makes the actor runnable on Apify platform
-synchronously with a single request that also returns its output,
+This example shows shows a quick actor that has a run time of just a few seconds.
+It opens a [web page](http://goldengatebridge75.org/news/webcam.html) that contains webcam stream from the Golden Gate
+bridge, takes a screenshot of the page and saves it as output.
+
+This actor
+can be invoked synchronously using a single HTTP request to directly obtain its output as a reponse,
 using the [Run actor synchronously](https://www.apify.com/docs/api/v2#/reference/actors/run-actor-synchronously/without-input)
 API endpoint.
-
 The example is also shared as the [apify/example-golden-gate-webcam](https://www.apify.com/apify/example-golden-gate-webcam)
-actor in the Apify library, so you can run it without any setup by sending a POST request to
+actor in the Apify library, so you can test it directly there simply by sending a POST request to
 https://api.apify.com/v2/acts/apify~example-golden-gate-webcam/run-sync?token=[YOUR_API_TOKEN]
 
 ```javascript
