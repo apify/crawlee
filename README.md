@@ -301,6 +301,7 @@ and [RequestList](https://www.apify.com/docs/sdk/apify-runtime-js/latest#Request
 The script just downloads several web pages with plain HTTP requests (using the
 [request-promise](https://www.npmjs.com/package/request-promise) library)
 and stores their raw HTML and URL to the default dataset.
+In local configuration, the data will be stored as JSON files in `./apify_storage/datasets/default`.
 
 ```javascript
 const Apify = require('apify');
@@ -308,8 +309,8 @@ const requestPromise = require('request-promise');
 
 // Apify.main() function wraps the crawler logic (it is optional).
 Apify.main(async () => {
-    // Create and initialize an instance of the RequestList class that contains a list of URLs to
-    // crawl. Here we use just a few hard-coded URLs.
+    // Create and initialize an instance of the RequestList class that contains
+    // a list of URLs to crawl. Here we use just a few hard-coded URLs.
     const requestList = new Apify.RequestList({
         sources: [
             { url: 'http://www.google.com/' },
@@ -333,11 +334,13 @@ Apify.main(async () => {
         handleRequestFunction: async ({ request }) => {
             console.log(`Processing ${request.url}...`);
 
-            // Fetch the page HTML and store it to the default dataset. In local configuration,
-            // the data will be stored as JSON files in ./apify_storage/datasets/default
+            // Fetch the page HTML
+            const html = await requestPromise(request.url);
+
+            // Store the HTML and URL to the default dataset
             await Apify.pushData({
                 url: request.url,
-                html: await requestPromise(request.url),
+                html,
             });
         },
     });
@@ -352,9 +355,9 @@ Apify.main(async () => {
 ### Crawl an external list of URLs with Cheerio
 
 This example demonstrates how to use [CheerioCrawler](https://www.apify.com/docs/sdk/apify-runtime-js/latest#CheerioCrawler)
-ti crawl a list of URLs from an external file,
-load each page using a plain HTTP request, parse the HTML using [cheerio](https://www.npmjs.com/package/cheerio)
-and extract some data from it - the page title, all H1 tags and the content.
+to crawl a list of URLs from an external file,
+load each URL using a plain HTTP request, parse the HTML using [cheerio](https://www.npmjs.com/package/cheerio)
+and extract some data from it: the page title and all H1 tags.
 
 ```javascript
 const Apify = require('apify');
@@ -364,7 +367,7 @@ const Apify = require('apify');
 Apify.utils.log.setLevel(log.LEVELS.WARNING);
 
 // A link to a list of Fortune 500 companies' websites available on GitHub.
-const CSV_LINK = 'https://gist.githubusercontent.com/hrbrmstr/ae574201af3de035c684/raw/2d21bb4132b77b38f2992dfaab99649397f238e9/f1000.csv';
+const CSV_LINK = 'https://gist.githubusercontent.com/hrbrmstr/ae574201af3de035c684/raw/f1000.csv';
 
 // Apify.main() function wraps the crawler logic (it is optional).
 Apify.main(async () => {
@@ -420,7 +423,7 @@ Apify.main(async () => {
             });
         },
 
-        // If the page load failed more than maxRequestRetries+1 times, then this function is called.
+        // This function is called if the page processing failed more than maxRequestRetries+1 times.
         handleFailedRequestFunction: async ({ request }) => {
             console.log(`Request ${request.url} failed twice.`);
         },
@@ -441,6 +444,7 @@ and [RequestQueue](https://www.apify.com/docs/sdk/apify-runtime-js/latest#Reques
 Hacker News website (https://news.ycombinator.com) using headless Chrome / Puppeteer.
 The crawlers starts with a single URL, finds links to next pages,
 enqueues them and continues until no more desired links are available.
+The results are stored to the default dataset. In local configuration, the results are stored as JSON files in ``./apify_storage/datasets/default`
 
 ```javascript
 const Apify = require('apify');
@@ -460,21 +464,21 @@ Apify.main(async () => {
     // Create an instance of the PuppeteerCrawler class - a crawler
     // that automatically loads the URLs in headless Chrome / Puppeteer.
     const crawler = new Apify.PuppeteerCrawler({
-        // Let the crawler fetch start URLs from the list
-        // and use the queue for the newly discovered URLs
+        // The crawler will first fetch start URLs from the RequestList
+        // and then the newly discovered URLs from the RequestQueue
         requestList,
         requestQueue,
 
-        // Run Puppeteer in headless mode. If you turn this off, you'll see the scraping
+        // Run Puppeteer in headless mode. If you headless to false, you'll see the scraping
         // browsers showing up on your screen. This is great for debugging.
         launchPuppeteerOptions: { headless: true },
 
         // This function will be called for each URL to crawl.
-        // It accepts a single parameter, which is an object with the following fields:
-        // - request: an instance of the Request class with information such as URL and HTTP method
-        // - page: Puppeteer's Page object (see https://pptr.dev/#show=api-class-page)
         // Here you can write the Puppeteer scripts you are familiar with,
         // with the exception that browsers and pages are automatically managed by Apify SDK.
+        // The function accepts a single parameter, which is an object with the following fields:
+        // - request: an instance of the Request class with information such as URL and HTTP method
+        // - page: Puppeteer's Page object (see https://pptr.dev/#show=api-class-page)
         handlePageFunction: async ({ request, page }) => {
             console.log(`Processing ${request.url}...`);
 
@@ -495,22 +499,23 @@ Apify.main(async () => {
             };
             const data = await page.$$eval('.athing', pageFunction);
 
-            // Store the results to the default dataset. In local configuration,
-            // the data will be stored as JSON files in ./apify_storage/datasets/default
+            // Store the results to the default dataset.
             await Apify.pushData(data);
 
-            // To continue crawling, we need to enqueue some more pages into
-            // the requestQueue. First, we find the URLs using Puppeteer functions
-            // and then we add the request to the queue.
+            // Find the link to the next page using Puppeteer functions
+            let nextHref;
             try {
-                const nextHref = await page.$eval('.morelink', el => el.href);
-                await requestQueue.addRequest(new Apify.Request({ url: nextHref }));
+                nextHref = await page.$eval('.morelink', el => el.href);
             } catch (err) {
                 console.log(`${request.url} is the last page!`);
+                return;
             }
+
+            // Enqueue the link to the RequestQueue
+            await requestQueue.addRequest(new Apify.Request({ url: nextHref }));
         },
 
-        // If the page load failed more than maxRequestRetries+1 times, then this function is called.
+        // This function is called if the page processing failed more than maxRequestRetries+1 times.
         handleFailedRequestFunction: async ({ request }) => {
             console.log(`Request ${request.url} failed too many times`);
         },
