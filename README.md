@@ -10,7 +10,7 @@
   to maintain queues of URLs to crawl, store crawling results to local filesystem or into the cloud,
   rotate proxies and much more.
   The SDK is available as the <a href="https://www.npmjs.com/package/apify" target="_blank"><code>apify</code></a> NPM package.
-  It can be used either standalone in your own applications
+  It can be used either stand-alone in your own applications
   or in <a href="https://www.apify.com/docs/actor" target="_blank">actors</a>
   running on the <a href="https://www.apify.com/" target="_blank">Apify cloud platform</a>.
 </div>
@@ -31,13 +31,14 @@
 - [Getting started](#getting-started)
   * [Local stand-alone usage](#local-stand-alone-usage)
   * [Local usage with Apify command-line interface (CLI)](#local-usage-with-apify-command-line-interface-cli)
-  * [Usage in actors on the Apify cloud platform](#usage-in-actors-on-the-apify-cloud-platform)
+  * [Usage on the Apify cloud platform](#usage-on-the-apify-cloud-platform)
+- [So what is the _actor_ ?](#so-what-is-the-_actor_-)
 - [Examples](#examples)
   * [Load a few pages in raw HTML](#load-a-few-pages-in-raw-html)
   * [Crawl an external list of URLs with Cheerio](#crawl-an-external-list-of-urls-with-cheerio)
   * [Recursively crawl a website using Puppeteer](#recursively-crawl-a-website-using-puppeteer)
   * [Save page screenshots](#save-page-screenshots)
-  * [Open page in Puppeteer via Apify Proxy](#open-page-in-puppeteer-via-apify-proxy)
+  * [Open web page in Puppeteer via Apify Proxy](#open-web-page-in-puppeteer-via-apify-proxy)
   * [Invoke another actor](#invoke-another-actor)
   * [Run actor as an API](#run-actor-as-an-api)
 - [Data storage](#data-storage)
@@ -65,7 +66,7 @@ But eventually things will get complicated, for example when you try to:
 * Disable browser fingerprinting protections used by websites.
 * ...
 
-The goal of Apify SDK package is to provide a toolbox
+The goal of Apify SDK is to provide a toolbox
 for these generic web scraping and crawling tasks.
 Don't reinvent the wheel every time you need data from the web,
 and focus on writing the code specific to the target website, rather than developing commonalities.
@@ -130,7 +131,8 @@ The Apify SDK is available as the <a href="https://www.npmjs.com/package/apify">
   <li>
     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#AutoscaledPool" target="_blank">AutoscaledPool</a>
     - Runs asynchronous background tasks, while automatically adjusting the concurrency
-    based on free system memory and CPU usage. This is useful for running headless Chrome or cheerio tasks at scale.
+    based on free system memory and CPU usage. This is useful for running web scraping tasks
+    at maximum capacity of the system.
   </li>
   <li>
     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerUtils" target="_blank">PuppeteerUtils</a>
@@ -142,7 +144,7 @@ The Apify SDK is available as the <a href="https://www.npmjs.com/package/apify">
     running your code on the Apify cloud platform and thus
     get advantage of pool of proxies, job scheduler, data storage etc.
     For more information,
-    see the <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest">Apify SDK Programmer's reference</a>.
+    see the <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest">Apify SDK Programmer's Reference</a>.
   </li>
 </ul>
 
@@ -156,7 +158,7 @@ The Apify SDK requires <a href="https://nodejs.org/en/" target="_blank">Node.js<
 Add Apify SDK to any Node.js project by running:
 
 ```bash
-npm install apify
+npm install apify --save
 ```
 
 You'll need to specify where the SDK should store the crawling data.
@@ -180,6 +182,7 @@ The following table shows basic environment variables used by Apify SDK:
               <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#KeyValueStore">key-value stores</a>,
               <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList">request lists</a>
               and <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue">request queues</a> store their data.
+              Typically it's set to `./apify_storage`.
               If omitted, you should define
               the <code>APIFY_TOKEN</code> environment variable instead.
             </td>
