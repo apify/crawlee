@@ -32,7 +32,7 @@
   * [Local stand-alone usage](#local-stand-alone-usage)
   * [Local usage with Apify command-line interface (CLI)](#local-usage-with-apify-command-line-interface-cli)
   * [Usage on the Apify cloud platform](#usage-on-the-apify-cloud-platform)
-- [So what is the actor?](#so-what-is-the-actor)
+- [What is the "actor"?](#what-is-the-actor)
 - [Examples](#examples)
   * [Load a few pages in raw HTML](#load-a-few-pages-in-raw-html)
   * [Crawl an external list of URLs with Cheerio](#crawl-an-external-list-of-urls-with-cheerio)
@@ -269,7 +269,7 @@ page in the app, click <i>Create new</i> and then go to
 
 For more information, view the [Apify actors quick start guide](https://www.apify.com/docs/actor#quick-start).
 
-## So what is the actor?
+## What is the "actor"?
 
 When you deploy your script to [Apify cloud platform](https://www.apify.com/), it becomes an actor.
 Actor is a serverless microservice that accepts an input and produces an output.
@@ -281,14 +281,15 @@ To run an actor, you need to have an [Apify account](https://my.apify.com/).
 The actor execution is charged towards your account and the cost depends on
 the amount of memory allocated for the run.
 The actors can be shared in the [library](https://www.apify.com/library?&type=acts)
-so that other people can use them. Even if you share your actor in the library,
-other people pay for their usage themselves.
+so that other people can use them. Note that if you share your actor in the library,
+you're not charged when other people use it - its use is charged towards their account.
 
-*Related links*
+**Related links**
 
-* [Actor documentation](https://www.apify.com/docs/actor)
 * [Library of existing actors](https://www.apify.com/library?&type=acts)
+* [Actor documentation](https://www.apify.com/docs/actor)
 * [Actors in Apify app](https://my.apify.com/actors)
+* [Actors API reference](https://www.apify.com/docs/api/v2#/reference/actors)
 
 ## Examples
 
