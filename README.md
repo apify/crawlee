@@ -40,7 +40,7 @@
   * [Save page screenshots](#save-page-screenshots)
   * [Open web page in Puppeteer via Apify Proxy](#open-web-page-in-puppeteer-via-apify-proxy)
   * [Invoke another actor](#invoke-another-actor)
-  * [Run actor as an API](#run-actor-as-an-api)
+  * [Use actor as an API](#use-actor-as-an-api)
 - [Data storage](#data-storage)
   * [Key-value store](#key-value-store)
   * [Dataset](#dataset)
