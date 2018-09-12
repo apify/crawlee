@@ -168,7 +168,7 @@ describe('Snapshotter', () => {
         };
         const snapshotter = new Snapshotter(options);
         await snapshotter.start();
-        await Apify.utils.sleep(200);
+        await Apify.utils.sleep(300);
         await snapshotter.stop();
         const memorySnapshots = snapshotter.getMemorySample();
         const eventLoopSnapshots = snapshotter.getEventLoopSample();

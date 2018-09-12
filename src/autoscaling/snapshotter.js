@@ -106,7 +106,7 @@ export default class Snapshotter {
         // Start snapshotting.
         this.eventLoopInterval = betterSetInterval(this._snapshotEventLoop.bind(this), this.eventLoopSnapshotIntervalMillis);
         this.memoryInterval = betterSetInterval(this._snapshotMemory.bind(this), this.memorySnapshotIntervalMillis);
-        if (isAtHome()) events.on(ACTOR_EVENT_NAMES.CPU_INFO, this._snapshotCpu.bind(this));
+        events.on(ACTOR_EVENT_NAMES.CPU_INFO, this._snapshotCpu.bind(this));
     }
 
     /**
@@ -117,7 +117,7 @@ export default class Snapshotter {
     async stop() {
         betterClearInterval(this.eventLoopInterval);
         betterClearInterval(this.memoryInterval);
-        if (isAtHome()) events.removeListener(ACTOR_EVENT_NAMES.CPU_INFO, this._snapshotCpu);
+        events.removeListener(ACTOR_EVENT_NAMES.CPU_INFO, this._snapshotCpu);
         // Allow microtask queue to unwind before stop returns.
         await new Promise(resolve => setImmediate(resolve));
     }
@@ -158,7 +158,7 @@ export default class Snapshotter {
     /**
      * Finds the latest snapshots by sampleDurationMillis in the provided array.
      * @param {Array} snapshots
-     * @param {Array} [sampleDurationMillis]
+     * @param {Number} [sampleDurationMillis]
      * @return {Array} sample
      * @ignore
      */
