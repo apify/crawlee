@@ -119,7 +119,7 @@ export const initializeEvents = () => {
 
     // Locally there is no web socket to connect so just print a log message.
     if (!eventsWsUrl) {
-        log.info(`Apify.events: Environment variable ${ENV_VARS.ACTOR_EVENTS_WS_URL} is not set, no events from Apify platform will be emitted.`);
+        log.debug(`Apify.events: Environment variable ${ENV_VARS.ACTOR_EVENTS_WS_URL} is not set, no events from Apify platform will be emitted.`);
         return;
     }
 
