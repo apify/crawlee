@@ -752,16 +752,16 @@ Apify.main(async () => {
 Apify SDK has several data storage types that are useful for specific tasks.
 The data is stored either on local disk to a directory defined by the `APIFY_LOCAL_STORAGE_DIR` environment variable,
 or on the Apify cloud under user account identified by the API token defined by the `APIFY_TOKEN` environment variable.
-Only one of these environment variables should be set.
+Only one of these variables should always be set.
 
-Typically you will be developing the code on your local computer and thus set the `APIFY_LOCAL_STORAGE_DIR` environment variable.
+Typically, you will be developing the code on your local computer and thus set the `APIFY_LOCAL_STORAGE_DIR` environment variable.
 Once the code is ready, you will deploy it to Apify cloud where it will automatically
 set the `APIFY_TOKEN` environment variable and thuse it will use the cloud storage.
 No code changes are needed.
 
 **Related links**
 
-* [Cloud storage documentation](https://www.apify.com/docs/storage)
+* [Apify cloud storage documentation](https://www.apify.com/docs/storage)
 * [View storage in Apify app](https://my.apify.com/storage)
 * [API reference](https://www.apify.com/docs/api/v2#/reference/key-value-stores)
 
