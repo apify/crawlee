@@ -287,9 +287,9 @@ you're not charged when other people use it - its use is charged towards their a
 **Related links**
 
 * [Library of existing actors](https://www.apify.com/library?&type=acts)
-* [Actor documentation](https://www.apify.com/docs/actor)
-* [Actors in Apify app](https://my.apify.com/actors)
-* [Actors API reference](https://www.apify.com/docs/api/v2#/reference/actors)
+* [Documentation](https://www.apify.com/docs/actor)
+* [View actors in Apify app](https://my.apify.com/actors)
+* [API reference](https://www.apify.com/docs/api/v2#/reference/actors)
 
 ## Examples
 
@@ -746,7 +746,89 @@ Apify.main(async () => {
 
 ## Data storage
 
-Each actor run at Apify platform has assigned its default storages
+Apify SDK has several data storage types that are useful for specific tasks.
+The data is stored either on local disk to a directory defined by the `APIFY_LOCAL_STORAGE_DIR` environment variable,
+or on the Apify cloud under user account identified by the API token defined by the `APIFY_TOKEN` environment variable.
+Only one of these environment variables should be set.
+
+Typically you will be developing the code on your local computer and thus set the `APIFY_LOCAL_STORAGE_DIR` environment variable.
+Once the code is ready, you will deploy it to Apify cloud where it will automatically
+set the `APIFY_TOKEN` environment variable and thuse it will use the cloud storage.
+No code changes are needed.
+
+### Key-value store
+
+The key-value store is used for saving and reading data records or files.
+Each data record is represented by a unique key and associated with a MIME content type.
+Key-value stores are ideal for saving screenshots of web pages, PDFs or to persist the state of crawlers.
+
+Each actor run is associated with a **default key-value store**, which is created exclusively for the actor run.
+By convention, the actor run input and output is stored into the default key-value store
+under the `INPUT` and `OUTPUT` key, respectively. Typically the input and output is a JSON file,
+although it can be any other format.
+
+In Apify SDK, the key-value store is represented by the [KeyValueStore](https://www.apify.com/docs/sdk/apify-runtime-js/latest#KeyValueStore) class.
+In order to simplify access to the default key-value store, the SDK also provides
+<a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-getValue"><code>Apify.getValue()</code></a>
+and <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-setValue"><code>Apify.setValue()</code></a> functions.
+
+In local configuration, the data is stored in the directory determined by the `APIFY_LOCAL_STORAGE_DIR` environment variable:
+
+```
+[APIFY_LOCAL_STORAGE_DIR]/key_value_stores/[STORE_ID]/[KEY].[EXT]
+```
+
+The <code>[KEY]</code> is the key of the record and <code>[EXT]</code> corresponds to the MIME content type of the
+data value.
+The default key value store has ID `default`, unless you override it by setting the `APIFY_DEFAULT_KEY_VALUE_STORE_ID`
+environment variable.
+
+The following code snippet demonstrates basic operations of the key-value store:
+
+```javascript
+// Opens the default key-value store of the actor run.
+const store = await Apify.openKeyValueStore();
+
+// Opens a named key-value store
+const storeWithName = await Apify.openKeyValueStore('some-name');
+
+// Write record
+await store.setValue('some-key', { foo: 'bar' });
+
+// Read record
+const value = await store.getValue('some-key');
+
+// Delete record
+await store.delete('some-key');
+```
+
+### Dataset
+
+Datasets are used to store structured data
+where each object stored has the same attributes, such as online store products or real estate offers.
+You can imagine a dataset as a table, where each object is a row and its attributes are columns.
+Dataset is an append-only storage - you can only add new records to it but you cannot modify or remove
+existing records.
+
+### Request queue
+
+
+
+
+* <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue">RequestQueue</a>
+    - Represents a queue of URLs to crawl.
+* <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#Dataset">Dataset</a>
+    - Provides a store for structured data and enables their
+    export to formats like JSON, JSONL, CSV, Excel or HTML.
+    The data is stored on local filesystem or in the cloud.
+    Datasets are useful for storing and sharing large tabular crawling results,
+    like list of products or real estate offers.
+* <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#KeyValueStore">KeyValueStore</a>
+    - A simple key-value store for arbitrary data records or files, along with their MIME content type.
+    It is ideal for saving screenshots of web pages, PDFs or to persist state of your crawlers.
+    The data is stored on local filesystem or in the cloud.
+
+Each actor run on Apify platform has assigned its default storages
 (<a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#KeyValueStore">key-value store</a>,
 <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue">request queue</a> and
 <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#Dataset">dataset</a>) which are available

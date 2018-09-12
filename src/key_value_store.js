@@ -105,15 +105,20 @@ export const maybeStringify = (value, options) => {
  * Example usage:
  *
  * ```javascript
- * // Opens default key-value store of the run.
+ * // Opens the default key-value store of the actor run.
  * const store = await Apify.openKeyValueStore();
  *
- * // Opens key-value store called 'some-name', belonging to the current Apify user account.
+ * // Opens a named key-value store
  * const storeWithName = await Apify.openKeyValueStore('some-name');
  *
- * // Write and read data record
+ * // Write record
  * await store.setValue('some-key', { foo: 'bar' });
- * const value = store.getValue('some-key');
+ *
+ * // Read record
+ * const value = await store.getValue('some-key');
+ *
+ * // Delete record
+ * await store.delete('some-key');
  * ```
  *
  * @param {String} storeId - ID of the key-value store.
