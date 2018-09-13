@@ -434,7 +434,7 @@ export const openRemoteStorage = async (idOrName, defaultIdEnvVar, RemoteClass, 
  */
 export const ensureTokenOrLocalStorageEnvExists = (storageName) => {
     if (!process.env[ENV_VARS.LOCAL_STORAGE_DIR] && !process.env[ENV_VARS.TOKEN]) {
-        throw new Error(`Cannot use ${storageName} as neither ${ENV_VARS.LOCAL_STORAGE_DIR} nor ${ENV_VARS.TOKEN} environment variable is set.`
+        throw new Error(`Cannot use ${storageName} as neither ${ENV_VARS.LOCAL_STORAGE_DIR} nor ${ENV_VARS.TOKEN} environment variable is set. `
             + `Configure ${ENV_VARS.LOCAL_STORAGE_DIR} to enable storage in local directory or ${ENV_VARS.TOKEN} to use Apify cloud for storages.`);
     }
 };
