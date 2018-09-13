@@ -71,8 +71,8 @@ export default class SystemStatus {
      * @return {boolean}
      * @ignore
      */
-    isOk() {
-        return !this._isOverloaded(this.currentHistorySecs);
+    getCurrentStatus() {
+        return this._isSystemOk(this.currentHistorySecs);
     }
 
     /**
@@ -81,22 +81,28 @@ export default class SystemStatus {
      * @return {boolean}
      * @ignore
      */
-    hasBeenOkLately() {
-        return !this._isOverloaded();
+    getHistoricalStatus() {
+        return this._isSystemOk();
     }
 
     /**
      * Returns true if the system has been overloaded
      * in the last sampleDurationMillis.
      *
-     * @param {Number} sampleDurationMillis
+     * @param {Number} [sampleDurationMillis]
      * @return {boolean}
      * @ignore
      */
-    _isOverloaded(sampleDurationMillis) {
-        return this._isMemoryOverloaded(sampleDurationMillis)
-            || this._isEventLoopOverloaded(sampleDurationMillis)
-            || this._isCpuOverloaded(sampleDurationMillis);
+    _isSystemOk(sampleDurationMillis) {
+        const memInfo = this._isMemoryOverloaded(sampleDurationMillis);
+        const eventLoopInfo = this._isEventLoopOverloaded(sampleDurationMillis);
+        const cpuInfo = this._isCpuOverloaded(sampleDurationMillis);
+        return {
+            isSystemOk: !memInfo.isOverloaded && !eventLoopInfo.isOverloaded && !cpuInfo.isOverloaded,
+            memInfo,
+            eventLoopInfo,
+            cpuInfo,
+        };
     }
 
     /**
@@ -104,7 +110,7 @@ export default class SystemStatus {
      * in the last sampleDurationMillis.
      *
      * @param {Number} sampleDurationMillis
-     * @return {boolean}
+     * @return {Object}
      * @ignore
      */
     _isMemoryOverloaded(sampleDurationMillis) {
@@ -117,7 +123,7 @@ export default class SystemStatus {
      * in the last sampleDurationMillis.
      *
      * @param {Number} sampleDurationMillis
-     * @return {boolean}
+     * @return {Object}
      * @ignore
      */
     _isEventLoopOverloaded(sampleDurationMillis) {
@@ -126,11 +132,11 @@ export default class SystemStatus {
     }
 
     /**
-     * Returns true if the CPU has been overloaded
-     * in the last sampleDurationMillis.
+     * Returns an object with an isOverloaded property set to true
+     * if the CPU has been overloaded in the last sampleDurationMillis.
      *
      * @param {Number} sampleDurationMillis
-     * @return {boolean}
+     * @return {Object}
      * @ignore
      */
     _isCpuOverloaded(sampleDurationMillis) {
@@ -139,12 +145,12 @@ export default class SystemStatus {
     }
 
     /**
-     * Returns true if at least the ratio of snapshots
-     * in the sample are overloaded.
+     * Returns an object with sample information and an isOverloaded property
+     * set to true if at least the ratio of snapshots in the sample are overloaded.
      *
      * @param {Array} sample
      * @param {Number} ratio
-     * @return {boolean}
+     * @return {Object}
      * @ignore
      */
     _isSampleOverloaded(sample, ratio) { // eslint-disable-line class-methods-use-this
@@ -158,6 +164,10 @@ export default class SystemStatus {
             values.push(Number(current.isOverloaded));
         }
         const wAvg = weightedAvg(values, weights);
-        return wAvg > ratio;
+        return {
+            isOverloaded: wAvg > ratio,
+            maxOverloadedRatio: ratio,
+            actualRatio: wAvg,
+        };
     }
 }
