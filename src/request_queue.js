@@ -126,10 +126,10 @@ const getRequestId = (uniqueKey) => {
  * Example usage:
  *
  * ```javascript
- * // Opens default request queue of the run.
+ * // Open the default request queue associated with the actor run
  * const queue = await Apify.openRequestQueue();
  *
- * // Opens request queue called 'some-name'.
+ * // Open a named request queue
  * const queueWithName = await Apify.openRequestQueue('some-name');
  *
  * // Enqueue few requests
@@ -138,15 +138,15 @@ const getRequestId = (uniqueKey) => {
  * await queue.addRequest(new Apify.Request({ url: 'http://example.com/foo/bar'}), { forefront: true });
  *
  * // Get requests from queue
- * const request1 = queue.fetchNextRequest();
- * const request2 = queue.fetchNextRequest();
- * const request3 = queue.fetchNextRequest();
+ * const request1 = await queue.fetchNextRequest();
+ * const request2 = await queue.fetchNextRequest();
+ * const request3 = await queue.fetchNextRequest();
  *
- * // Mark some of them as handled
- * queue.markRequestHandled(request1);
+ * // Mark a request as handled
+ * await queue.markRequestHandled(request1);
  *
- * // If processing fails then reclaim it back to the queue
- * queue.reclaimRequest(request2);
+ * // If processing fails then reclaim the request back to the queue, so that it's crawled again
+ * await  queue.reclaimRequest(request2);
  * ```
  *
  * @param {String} queueId - ID of the request queue.

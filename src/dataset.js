@@ -116,7 +116,10 @@ export const chunkBySize = (items, limitBytes) => {
  * Example usage:
  *
  * ```javascript
- * // Opens dataset called 'some-name'.
+ * // Write a single row to the default dataset
+ * await Apify.pushData({ col1: 123, col2: 'val2' });
+ *
+ * // Open a named dataset
  * const dataset = await Apify.openDataset('some-name');
  *
  * // Write a single row
