@@ -19,25 +19,24 @@ const DEFAULT_OPTIONS = {
 /**
  * Manages a pool of asynchronous resource-intensive tasks that are executed in parallel.
  * The pool only starts new tasks if there is enough free CPU and memory available
- * and the Javascript Event Loop is not blocked.
+ * and the Javascript event loop is not blocked.
  *
- * The information about the CPU and memory usage is obtained by the Snapshotter class,
+ * The information about the CPU and memory usage is obtained by the `Snapshotter` class,
  * which makes regular snapshots of system resources that may be either local
  * or from the Apify cloud infrastructure in case the process is running on the Apify platform.
- * Meaningful data gathered from these snapshots are provided to AutoscaledPool by the SystemStatus class.
+ * Meaningful data gathered from these snapshots is provided to `AutoscaledPool` by the `SystemStatus` class.
  *
- * Before running the pool, one must implement three functions. `runTaskFunction()`
- * `isTaskReadyFunction()` and `isFinishedFunction()`. We've decided to go the way of 3 separate
- * functions for better configurability and performance.
+ * Before running the pool, one must implement three functions. `runTaskFunction()`,
+ * `isTaskReadyFunction()` and `isFinishedFunction()`.
  *
  * The auto-scaled pool is started by calling the `run()` function. It queries the `isTaskReadyFunction()`
- * for more tasks, managing optimal concurrency, until the function resolves to false. It then queries
- * the `isFinishedFunction()`. If it resolves to true, the pool finishes. If it resolves to false, it assumes
+ * for more tasks, managing optimal concurrency, until the function resolves to `false`. The pool then queries
+ * the `isFinishedFunction()`. If it resolves to `true`, the pool finishes. If it resolves to `false`, it assumes
  * there will be more tasks available later and keeps querying for tasks, until finally both the
- * `isTaskReadyFunction()` and `isFinishedFunction()` resolve to true. If any of the tasks throws
+ * `isTaskReadyFunction()` and `isFinishedFunction()` resolve to `true`. If any of the tasks throws
  * then the `run()` function also throws.
  *
- * The pool evaluates whether is should start a new task every time one of the tasks finishes
+ * The pool evaluates whether it should start a new task every time one of the tasks finishes
  * and also in the interval set by the `options.maybeRunIntervalSecs` parameter.
  *
  * Basic usage of `AutoscaledPool`:
@@ -62,20 +61,20 @@ const DEFAULT_OPTIONS = {
  * @param {Object} options
  * @param {Function} options.runTaskFunction
  *   A function that performs an asynchronous resource-intensive task.
- *   The function must either be labeled async or return a promise.
+ *   The function must either be labeled `async` or return a promise.
  *
  * @param {Function} options.isTaskReadyFunction
- *   A function that indicates if `runTaskFunction` should be called.
+ *   A function that indicates whether `runTaskFunction` should be called.
  *   This function is called every time there is free capacity for a new task and it should
  *   indicate whether it should start or not by resolving to either `true` or `false.
- *   Besides its obvious use, it's also useful for task throttling to save resources.
+ *   Besides its obvious use, it is also useful for task throttling to save resources.
  *
  * @param {Function} options.isFinishedFunction
- *   A function that is called only when there are no tasks being processed.
+ *   A function that is called only when there are no tasks to be processed.
  *   If it resolves to `true` then the pool's run finishes. Being called only
  *   when there are no tasks being processed means that as long as `isTaskReadyFunction()`
  *   keeps resolving to `true`, `isFinishedFunction()` will never be called.
- *   To abort a run, use the `await pool.abort()` method.
+ *   To abort a run, use the `pool.abort()` method.
  *
  * @param {Number} [options.minConcurrency=1]
  *   Minimum number of tasks running in parallel.
@@ -84,27 +83,27 @@ const DEFAULT_OPTIONS = {
  * @param {Number} [options.desiredConcurrencyRatio=0.95]
  *   Minimum level of desired concurrency to reach before more scaling up is allowed.
  * @param {Number} [options.scaleUpStepRatio=0.05]
- *   Defines the amount of desired concurrency to be added with each scaling up.
- *   It will never be less than 1.
+ *   Defines the fractional amount of desired concurrency to be added with each scaling up.
+ *   The minimum scaling step is one.
  * @param {Number} [options.scaleDownStepRatio=0.05]
  *   Defines the amount of desired concurrency to be subtracted with each scaling down.
- *   It will never be less than 1.
+ *   The minimum scaling step is one.
  * @param {Number} [options.maybeRunIntervalSecs=0.5]
- *   Indicates in seconds how often should the pool try to call the `runTaskFunction()` to start a new task.
+ *   Indicates how often should the pool call the `runTaskFunction()` to start a new task, in seconds.
  *   This has no effect on starting new tasks immediately after a task completes.
  * @param {Number} [options.loggingIntervalSecs=60]
  *   Specifies a period in which the instance logs it state, in seconds.
  *   Set to `null` to disable periodic logging.
  * @param {Number} [options.autoscaleIntervalSecs=10]
  *   Defines in seconds how often should the pool attempt to adjust the desired concurrency
- *   based on the latest system status. Setting it lower than 1 will have impact on performance.
+ *   based on the latest system status. Setting it lower than 1 might have a severe impact on performance.
  *   We suggest using a value from 5 to 20.
  * @param {Number} [options.snapshotterOptions]
- *   Options to be passed down to the Snapshotter constructor. Useful for fine-tuning
+ *   Options to be passed down to the `Snapshotter` constructor. This is useful for fine-tuning
  *   the snapshot intervals and history. See the <a href="#Snapshotter">Snapshotter documentation</a>
  *   for available options.
  * @param {Number} [options.systemStatusOptions]
- *   Options to be passed down to the SystemStatus constructor. Useful for fine-tuning
+ *   Options to be passed down to the `SystemStatus` constructor. This is useful for fine-tuning
  *   the system status reports. See the <a href="#SystemStatus">SystemStatus documentation</a>
  *   for available options. If a custom snapshotter is set in the options, it will be used
  *   by the pool.
@@ -213,7 +212,7 @@ export default class AutoscaledPool {
     }
 
     /**
-     * It starts a new task
+     * Starts a new task
      * if the number of running tasks (current concurrency) is lower than desired concurrency
      * and the system is not currently overloaded
      * and this.isTaskReadyFunction() returns true.
