@@ -105,15 +105,25 @@ export const maybeStringify = (value, options) => {
  * Example usage:
  *
  * ```javascript
- * // Opens default key-value store of the run.
- * const store = await Apify.openKeyValueStore();
+ * // Get actor input from the default key-value store
+ * const input = await Apify.getValue('INPUT');
  *
- * // Opens key-value store called 'some-name', belonging to the current Apify user account.
- * const storeWithName = await Apify.openKeyValueStore('some-name');
+ * // Write actor output to the default key-value store.
+ * await Apify.setValue('OUTPUT', { myResult: 123 });
  *
- * // Write and read data record
+ * // Open a named key-value store
+ * const store = await Apify.openKeyValueStore('some-name');
+ *
+ * // Write record. JavaScript object is automatically converted to JSON,
+ * // strings and binary buffers are stored as they are
  * await store.setValue('some-key', { foo: 'bar' });
- * const value = store.getValue('some-key');
+ *
+ * // Read record. Note that JSON is automatically parsed to a JavaScript object,
+ * // text data returned as a string and other data is returned as binary buffer
+ * const value = await store.getValue('some-key');
+ *
+ *  // Delete record
+ * await store.delete('some-key');
  * ```
  *
  * @param {String} storeId - ID of the key-value store.
