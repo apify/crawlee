@@ -71,8 +71,8 @@ export default class SystemStatus {
      * @return {boolean}
      * @ignore
      */
-    isOk() {
-        return !this._isOverloaded(this.currentHistorySecs);
+    getCurrentStatus() {
+        return this._isSystemOk(this.currentHistorySecs);
     }
 
     /**
@@ -81,24 +81,24 @@ export default class SystemStatus {
      * @return {boolean}
      * @ignore
      */
-    hasBeenOkLately() {
-        return !this._isOverloaded();
+    getHistoricalStatus() {
+        return this._isSystemOk();
     }
 
     /**
      * Returns true if the system has been overloaded
      * in the last sampleDurationMillis.
      *
-     * @param {Number} sampleDurationMillis
+     * @param {Number} [sampleDurationMillis]
      * @return {boolean}
      * @ignore
      */
-    _isOverloaded(sampleDurationMillis) {
+    _isSystemOk(sampleDurationMillis) {
         const memInfo = this._isMemoryOverloaded(sampleDurationMillis);
         const eventLoopInfo = this._isEventLoopOverloaded(sampleDurationMillis);
         const cpuInfo = this._isCpuOverloaded(sampleDurationMillis);
         return {
-            isOverloaded: memInfo.isOverloaded || eventLoopInfo.isOverloaded || cpuInfo.isOverloaded,
+            isSystemOk: !memInfo.isOverloaded && !eventLoopInfo.isOverloaded && !cpuInfo.isOverloaded,
             memInfo,
             eventLoopInfo,
             cpuInfo,

@@ -90,8 +90,8 @@ describe('AutoscaledPool', () => {
             constructor(okNow, okLately) {
                 this.okNow = okNow;
                 this.okLately = okLately;
-                this.isOk = () => this.okNow;
-                this.hasBeenOkLately = () => this.okLately;
+                this.getCurrentStatus = () => ({ isSystemOk: this.okNow });
+                this.getHistoricalStatus = () => ({ isSystemOk: this.okLately });
             }
         }
 
@@ -217,33 +217,38 @@ describe('AutoscaledPool', () => {
 
         let isFinished = false;
 
-        // Start 3 tasks immediately.
-        tasks.push(delayPromise(10).then(() => finished.push(0)));
-        tasks.push(delayPromise(10).then(() => finished.push(1)));
-        tasks.push(delayPromise(10).then(() => finished.push(2)));
-
-        // This is an important part of the test to see if the tasks do not get
-        // stuck in a microtask cycle. Do not refactor this to some other scheduling.
-        setTimeout(() => {
-            isFinished = true;
-        }, 40);
-
-        // Add 2 tasks after 500ms.
-        setTimeout(() => tasks.push(delayPromise(5).then(() => finished.push(3))), 60);
-        setTimeout(() => tasks.push(delayPromise(5).then(() => finished.push(4))), 60);
+        // Prepare 3 tasks.
+        tasks.push(() => delayPromise(10).then(() => finished.push(0)));
+        tasks.push(() => delayPromise(10).then(() => finished.push(1)));
+        tasks.push(() => delayPromise(10).then(() => finished.push(2)));
 
         // Run the pool and close it after 3s.
         const pool = new AutoscaledPool({
             minConcurrency: 3,
-            runTaskFunction: () => tasks.pop(),
+            runTaskFunction: () => {
+                const task = tasks.shift();
+                if (!task) return;
+                return task();
+            },
             isFinishedFunction: () => Promise.resolve(isFinished),
             isTaskReadyFunction: () => Promise.resolve(!isFinished),
         });
-        pool.maybeRunIntervalMillis = 1;
+        pool.maybeRunIntervalMillis = 5;
 
-        await pool.run();
+        const poolPromise = pool.run();
+        // This is an important part of the test to see if the tasks do not get
+        // stuck in a microtask cycle. Do not refactor this to some other scheduling.
+        setTimeout(() => {
+            isFinished = true;
+        }, 50);
+        // Add 2 tasks after 70ms.
+        setTimeout(() => tasks.push(() => delayPromise(5).then(() => finished.push(3))), 70);
+        setTimeout(() => tasks.push(() => delayPromise(5).then(() => finished.push(4))), 70);
+        // Make sure tasks were not added.
+        await delayPromise(100);
 
         // Check finished tasks.
+        await poolPromise;
         expect(finished).to.be.eql([0, 1, 2]);
     });
 
