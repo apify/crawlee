@@ -305,7 +305,7 @@ To run the examples, just copy them into the directory where you installed Apify
 `npm install apify` and then run them by calling:
 
 ```
-node APIFY_LOCAL_STORAGE_DIR=./apify_storage 1_basic_crawler.js
+node APIFY_LOCAL_STORAGE_DIR=./apify_storage basic_crawler.js
 ```
 
 Note that it is necessary to set either the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variables in order
@@ -319,7 +319,7 @@ file created by the CLI. Then go to the project directory and run the example us
 apify run
 ```
 
-### Load a few pages in raw HTML
+### Crawl several pages in raw HTML
 
 This is the most basic example of Apify SDK, which demonstrates some of its
 elementary tools such as the
@@ -595,7 +595,6 @@ Apify.main(async () => {
 
     const crawler = new Apify.PuppeteerCrawler({
         requestList,
-        launchPuppeteerOptions: { headless: true },
         handlePageFunction: async ({ page, request }) => {
             console.log(`Processing ${request.url}...`);
 
@@ -639,7 +638,6 @@ Apify.main(async () => {
     // Moreover, it accepts several additional options, such as useApifyProxy.
     const options = {
         useApifyProxy: true,
-        headless: true,
     };
     const browser = await Apify.launchPuppeteer(options);
 
@@ -679,7 +677,7 @@ const Apify = require('apify');
 
 Apify.main(async () => {
     // Launch the web browser.
-    const browser = await Apify.launchPuppeteer({ headless: true });
+    const browser = await Apify.launchPuppeteer();
 
     console.log('Obtaining email address...');
     const user = await Apify.client.users.getUser();
@@ -725,7 +723,7 @@ const Apify = require('apify');
 
 Apify.main(async () => {
     // Launch web browser.
-    const browser = await Apify.launchPuppeteer({ headless: true });
+    const browser = await Apify.launchPuppeteer();
 
     // Load http://goldengatebridge75.org/news/webcam.html and get an IFRAME with the webcam stream
     console.log('Opening web page...');
@@ -822,7 +820,7 @@ await store.delete('some-key');
 ```
 
 To see a real-world example of how to get the input from the key-value store, see the
-[4_save_screenshots.js](https://github.com/apifytech/apify-js/blob/feature/better-readme/examples/4_save_screenshots.js) example.
+[screenshots.js](https://github.com/apifytech/apify-js/blob/feature/better-readme/examples/screenshots.js) example.
 
 
 ### Dataset
@@ -872,7 +870,7 @@ await dataset.pushData([
 ```
 
 To see how to use the dataset to store crawler results, see the
-[2_cheerio_crawler.js](https://github.com/apifytech/apify-js/blob/feature/better-readme/examples/2_cheerio_crawler.js) example.
+[cheerio_crawler.js](https://github.com/apifytech/apify-js/blob/feature/better-readme/examples/cheerio_crawler.js) example.
 
 
 ### Request queue
@@ -927,7 +925,7 @@ await  queue.reclaimRequest(request2);
 ```
 
 To see how to use the request queue with a crawler, see the
-[3_puppeteer_crawler.js](https://github.com/apifytech/apify-js/blob/feature/better-readme/examples/3_puppeteer_crawler.js) example.
+[puppeteer_crawler.js](https://github.com/apifytech/apify-js/blob/feature/better-readme/examples/puppeteer_crawler.js) example.
 
 ## Puppeteer live view
 
