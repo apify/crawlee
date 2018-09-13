@@ -34,7 +34,7 @@
   * [Usage on the Apify cloud platform](#usage-on-the-apify-cloud-platform)
 - [What is the "actor"?](#what-is-the-actor)
 - [Examples](#examples)
-  * [Load a few pages in raw HTML](#load-a-few-pages-in-raw-html)
+  * [Crawl several pages in raw HTML](#crawl-several-pages-in-raw-html)
   * [Crawl an external list of URLs with Cheerio](#crawl-an-external-list-of-urls-with-cheerio)
   * [Recursively crawl a website using Puppeteer](#recursively-crawl-a-website-using-puppeteer)
   * [Save page screenshots](#save-page-screenshots)

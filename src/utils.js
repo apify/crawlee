@@ -8,8 +8,9 @@ import psTree from '@apify/ps-tree';
 import requestPromise from 'request-promise';
 import XRegExp from 'xregexp';
 import { delayPromise, getRandomInt } from 'apify-shared/utilities';
+import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { ENV_VARS, LOCAL_ENV_VARS, USER_AGENT_LIST } from './constants';
+import { USER_AGENT_LIST } from './constants';
 
 /* globals process */
 
@@ -434,8 +435,7 @@ export const openRemoteStorage = async (idOrName, defaultIdEnvVar, RemoteClass, 
  */
 export const ensureTokenOrLocalStorageEnvExists = (storageName) => {
     if (!process.env[ENV_VARS.LOCAL_STORAGE_DIR] && !process.env[ENV_VARS.TOKEN]) {
-        throw new Error(`Cannot use ${storageName} as neither ${ENV_VARS.LOCAL_STORAGE_DIR} nor ${ENV_VARS.TOKEN} environment variable is set. `
-            + `Configure ${ENV_VARS.LOCAL_STORAGE_DIR} to enable storage in local directory or ${ENV_VARS.TOKEN} to use Apify cloud for storages.`);
+        throw new Error(`Cannot use ${storageName} as neither ${ENV_VARS.LOCAL_STORAGE_DIR} nor ${ENV_VARS.TOKEN} environment variable is set. You need to set one these variables in order to enable data storage.`); // eslint-disable-line max-len
     }
 };
 

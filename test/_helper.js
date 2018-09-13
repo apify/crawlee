@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 import { expect } from 'chai';
-import { ENV_VARS } from '../build/constants';
+import { ENV_VARS } from 'apify-shared/consts';
 
 export const LOCAL_STORAGE_DIR = path.join(__dirname, '..', 'tmp', 'local-emulation-dir');
 

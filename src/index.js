@@ -1,5 +1,5 @@
 import log from 'apify-shared/log';
-import { ENV_VARS } from './constants';
+import { ENV_VARS } from 'apify-shared/consts';
 import { main, getEnv, call, getApifyProxyUrl } from './actor';
 import AutoscaledPool from './autoscaled_pool';
 import BasicCrawler from './basic_crawler';

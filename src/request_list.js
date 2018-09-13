@@ -2,9 +2,9 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import log from 'apify-shared/log';
 import _ from 'underscore';
 import Promise from 'bluebird';
+import { ACTOR_EVENT_NAMES_EX } from './constants';
 import Request from './request';
 import events from './events';
-import { ACTOR_EVENT_NAMES } from './constants';
 import { getFirstKey, publicUtils } from './utils';
 import { getValue, setValue } from './key_value_store';
 
@@ -224,7 +224,7 @@ export default class RequestList {
 
                 if (!this.persistStateKey) return;
 
-                events.on(ACTOR_EVENT_NAMES.PERSIST_STATE, () => {
+                events.on(ACTOR_EVENT_NAMES_EX.PERSIST_STATE, () => {
                     if (this.isStatePersisted) return;
 
                     return setValue(this.persistStateKey, this.getState())

@@ -1,3 +1,8 @@
+xxx
+==================
+- Upgraded Puppeteer to 1.8.0
+- Upgraded NPM dependencies, fixed lint errors
+
 0.7.0 / 2018-09-11
 ==================
 - Updated `DEFAULT_USER_AGENT` and `USER_AGENT_LIST`

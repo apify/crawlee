@@ -5,9 +5,9 @@ import chaiAsPromised from 'chai-as-promised';
 import request from 'request-promise';
 import sinon from 'sinon';
 import { delayPromise } from 'apify-shared/utilities';
+import { ACTOR_EVENT_NAMES_EX } from '../build/constants';
 import Apify from '../build/index';
 import * as keyValueStore from '../build/key_value_store';
-import { ACTOR_EVENT_NAMES } from '../build/constants';
 import * as utils from '../build/utils';
 
 chai.use(chaiAsPromised);
@@ -420,7 +420,7 @@ describe('Apify.RequestList', () => {
             .once()
             .withArgs(PERSIST_STATE_KEY, requestList.getState())
             .returns(Promise.resolve());
-        Apify.events.emit(ACTOR_EVENT_NAMES.PERSIST_STATE);
+        Apify.events.emit(ACTOR_EVENT_NAMES_EX.PERSIST_STATE);
         await delayPromise(1);
         expect(requestList.isStatePersisted).to.be.eql(true);
 
@@ -433,7 +433,7 @@ describe('Apify.RequestList', () => {
             .once()
             .withArgs(PERSIST_STATE_KEY, requestList.getState())
             .returns(Promise.resolve());
-        Apify.events.emit(ACTOR_EVENT_NAMES.PERSIST_STATE);
+        Apify.events.emit(ACTOR_EVENT_NAMES_EX.PERSIST_STATE);
         await delayPromise(1);
         expect(requestList.isStatePersisted).to.be.eql(true);
 

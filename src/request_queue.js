@@ -4,12 +4,12 @@ import path from 'path';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import LruCache from 'apify-shared/lru_cache';
 import ListDictionary from 'apify-shared/list_dictionary';
+import { ENV_VARS, LOCAL_STORAGE_SUBDIRS } from 'apify-shared/consts';
 import { delayPromise, checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import Promise from 'bluebird';
 import crypto from 'crypto';
 import _ from 'underscore';
 import Request from './request';
-import { ENV_VARS, LOCAL_STORAGE_SUBDIRS } from './constants';
 import { ensureDirExists, apifyClient, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists } from './utils';
 
 export const LOCAL_STORAGE_SUBDIR = LOCAL_STORAGE_SUBDIRS.requestQueues;

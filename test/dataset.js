@@ -5,7 +5,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import sinon from 'sinon';
 import { leftpad } from 'apify-shared/utilities';
-import { ENV_VARS, MAX_PAYLOAD_SIZE_BYTES } from '../build/constants';
+import { ENV_VARS, MAX_PAYLOAD_SIZE_BYTES } from 'apify-shared/consts';
 import { LOCAL_FILENAME_DIGITS, Dataset, DatasetLocal, LOCAL_STORAGE_SUBDIR,
     LOCAL_GET_ITEMS_DEFAULT_LIMIT, checkAndSerialize, chunkBySize } from '../build/dataset';
 import * as utils from '../build/utils';

@@ -3,7 +3,8 @@ import Promise from 'bluebird';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { APIFY_PROXY_VALUE_REGEX } from 'apify-shared/regexs';
-import { ENV_VARS, LOCAL_ENV_VARS, EXIT_CODES, ACT_TASK_TERMINAL_STATUSES, ACT_TASK_STATUSES } from './constants';
+import { ENV_VARS, LOCAL_ENV_VARS, ACT_TASK_TERMINAL_STATUSES, ACT_TASK_STATUSES } from 'apify-shared/consts';
+import { EXIT_CODES } from './constants';
 import { initializeEvents, stopEvents } from './events';
 import { newPromise, apifyClient, addCharsetToContentType } from './utils';
 import { maybeStringify } from './key_value_store';
@@ -151,6 +152,10 @@ export const getEnv = () => {
 export const main = (userFunc) => {
     if (!userFunc || typeof (userFunc) !== 'function') {
         throw new Error('Handler function must be provided as a parameter');
+    }
+
+    if (!process.env[ENV_VARS.LOCAL_STORAGE_DIR] && !process.env[ENV_VARS.TOKEN]) {
+        throw new Error(`Neither ${ENV_VARS.LOCAL_STORAGE_DIR} nor ${ENV_VARS.TOKEN} environment variable is set. You need to set one these variables in order to enable data storage.`); // eslint-disable-line max-len
     }
 
     // This is to enable unit tests where process.exit() is mocked and doesn't really exit the process
