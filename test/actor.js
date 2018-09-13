@@ -1,3 +1,4 @@
+import path from 'path';
 import _ from 'underscore';
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
@@ -170,9 +171,22 @@ describe('Apify.main()', () => {
     it('works with simple user function', () => {
         return testMain({
             userFunc: () => {},
-            env: {},
             exitCode: 0,
         });
+    });
+
+    it('sets default APIFY_LOCAL_STORAGE_DIR', async () => {
+        delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
+        delete process.env[ENV_VARS.TOKEN];
+
+        await testMain({
+            userFunc: () => {
+                expect(process.env[ENV_VARS.LOCAL_STORAGE_DIR]).to.eql(path.join(process.cwd(), './apify_storage'));
+            },
+            exitCode: 0,
+        });
+
+        delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
     });
 
     it('works with promised user function', () => {
@@ -187,7 +201,6 @@ describe('Apify.main()', () => {
                     }, 20);
                 });
             },
-            env: {},
             exitCode: 0,
         })
             .then(() => {
@@ -200,7 +213,6 @@ describe('Apify.main()', () => {
             userFunc: () => {
                 throw new Error('Test exception I');
             },
-            env: {},
             exitCode: 91,
         });
     });
@@ -213,7 +225,6 @@ describe('Apify.main()', () => {
                         throw new Error('Text exception II');
                     });
             },
-            env: {},
             exitCode: 91,
         });
     });
