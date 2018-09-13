@@ -30,7 +30,7 @@ export const MAX_QUERIES_FOR_CONSISTENCY = 6;
 const writeFilePromised = Promise.promisify(fs.writeFile);
 const readdirPromised = Promise.promisify(fs.readdir);
 const readFilePromised = Promise.promisify(fs.readFile);
-const moveFilePromised = Promise.promisify(fsExtra.move);
+const deleteFilePromised = Promise.promisify(fs.unlink);
 const emptyDirPromised = Promise.promisify(fsExtra.emptyDir);
 
 const { requestQueues } = apifyClient;
@@ -126,10 +126,10 @@ const getRequestId = (uniqueKey) => {
  * Example usage:
  *
  * ```javascript
- * // Opens default request queue of the run.
+ * // Open the default request queue associated with the actor run
  * const queue = await Apify.openRequestQueue();
  *
- * // Opens request queue called 'some-name'.
+ * // Open a named request queue
  * const queueWithName = await Apify.openRequestQueue('some-name');
  *
  * // Enqueue few requests
@@ -138,15 +138,15 @@ const getRequestId = (uniqueKey) => {
  * await queue.addRequest(new Apify.Request({ url: 'http://example.com/foo/bar'}), { forefront: true });
  *
  * // Get requests from queue
- * const request1 = queue.fetchNextRequest();
- * const request2 = queue.fetchNextRequest();
- * const request3 = queue.fetchNextRequest();
+ * const request1 = await queue.fetchNextRequest();
+ * const request2 = await queue.fetchNextRequest();
+ * const request3 = await queue.fetchNextRequest();
  *
- * // Mark some of them as handled
- * queue.markRequestHandled(request1);
+ * // Mark a request as handled
+ * await queue.markRequestHandled(request1);
  *
- * // If processing fails then reclaim it back to the queue
- * queue.reclaimRequest(request2);
+ * // If processing fails then reclaim the request back to the queue, so that it's crawled again
+ * await  queue.reclaimRequest(request2);
  * ```
  *
  * @param {String} queueId - ID of the request queue.
@@ -665,7 +665,10 @@ export class RequestQueueLocal {
 
                 if (!request.handledAt) request.handledAt = new Date();
 
-                return moveFilePromised(source, dest)
+                return Promise.all([
+                    writeFilePromised(dest, JSON.stringify(request, null, 4)),
+                    deleteFilePromised(source),
+                ])
                     .then(() => {
                         this.pendingCount--;
                         this.inProgressCount--;
@@ -693,13 +696,14 @@ export class RequestQueueLocal {
 
                 this.requestIdToQueueOrderNo[request.id] = newQueueOrderNo;
 
-                return moveFilePromised(
-                    this._getFilePath(oldQueueOrderNo),
-                    this._getFilePath(newQueueOrderNo),
-                ).then(() => {
-                    this.inProgressCount--;
-                    delete this.queueOrderNoInProgress[oldQueueOrderNo];
-                });
+                return Promise.all([
+                    writeFilePromised(this._getFilePath(newQueueOrderNo), JSON.stringify(request, null, 4)),
+                    deleteFilePromised(this._getFilePath(oldQueueOrderNo)),
+                ])
+                    .then(() => {
+                        this.inProgressCount--;
+                        delete this.queueOrderNoInProgress[oldQueueOrderNo];
+                    });
             })
             .then(() => ({
                 requestId: request.id,
