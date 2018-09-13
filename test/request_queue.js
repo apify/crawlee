@@ -53,10 +53,19 @@ describe('RequestQueue', () => {
             expect(await queue.isEmpty()).to.be.eql(true);
             expect(await queue.isFinished()).to.be.eql(false);
 
+            // Check that changes to Requests are persisted to Queue.
+            request1.errorMessages = ['Hello'];
+            request2.retryCount = 2;
+            request3.retryCount = 3;
+
             await queue.markRequestHandled(request3);
             await queue.reclaimRequest(request1);
             await queue.reclaimRequest(request2);
             expect(await queue.isEmpty()).to.be.eql(false);
+
+            const handledRequest3 = await queue.getRequest(request3.id);
+            expect(handledRequest3.handledAt).to.be.an.instanceof(Date);
+            expect(handledRequest3).to.be.eql(request3);
 
             expect(await queue.fetchNextRequest()).to.be.eql(request1);
             expect(await queue.fetchNextRequest()).to.be.eql(request2);

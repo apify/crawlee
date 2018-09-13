@@ -54,6 +54,7 @@ export default class Request {
             userData = {},
             keepUrlFragment = false,
             ignoreErrors = false,
+            handledAt = null,
         } = opts;
 
 
@@ -67,6 +68,7 @@ export default class Request {
         checkParamOrThrow(headers, 'headers', 'Object');
         checkParamOrThrow(userData, 'userData', 'Object');
         checkParamOrThrow(ignoreErrors, 'ignoreErrors', 'Boolean');
+        checkParamOrThrow(handledAt, 'handledAt', 'Maybe String');
 
         if (method === 'GET' && payload) throw new Error('Request with GET method cannot have a payload.');
 
@@ -80,6 +82,7 @@ export default class Request {
         this.headers = headers;
         this.userData = userData;
         this.ignoreErrors = ignoreErrors;
+        this.handledAt = handledAt && new Date(handledAt);
     }
 
     /**

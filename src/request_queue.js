@@ -30,7 +30,7 @@ export const MAX_QUERIES_FOR_CONSISTENCY = 6;
 const writeFilePromised = Promise.promisify(fs.writeFile);
 const readdirPromised = Promise.promisify(fs.readdir);
 const readFilePromised = Promise.promisify(fs.readFile);
-const moveFilePromised = Promise.promisify(fsExtra.move);
+const deleteFilePromised = Promise.promisify(fs.unlink);
 const emptyDirPromised = Promise.promisify(fsExtra.emptyDir);
 
 const { requestQueues } = apifyClient;
@@ -665,7 +665,10 @@ export class RequestQueueLocal {
 
                 if (!request.handledAt) request.handledAt = new Date();
 
-                return moveFilePromised(source, dest)
+                return Promise.all([
+                    writeFilePromised(dest, JSON.stringify(request, null, 4)),
+                    deleteFilePromised(source),
+                ])
                     .then(() => {
                         this.pendingCount--;
                         this.inProgressCount--;
@@ -693,13 +696,14 @@ export class RequestQueueLocal {
 
                 this.requestIdToQueueOrderNo[request.id] = newQueueOrderNo;
 
-                return moveFilePromised(
-                    this._getFilePath(oldQueueOrderNo),
-                    this._getFilePath(newQueueOrderNo),
-                ).then(() => {
-                    this.inProgressCount--;
-                    delete this.queueOrderNoInProgress[oldQueueOrderNo];
-                });
+                return Promise.all([
+                    writeFilePromised(this._getFilePath(newQueueOrderNo), JSON.stringify(request, null, 4)),
+                    deleteFilePromised(this._getFilePath(oldQueueOrderNo)),
+                ])
+                    .then(() => {
+                        this.inProgressCount--;
+                        delete this.queueOrderNoInProgress[oldQueueOrderNo];
+                    });
             })
             .then(() => ({
                 requestId: request.id,
