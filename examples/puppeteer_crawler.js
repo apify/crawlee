@@ -11,7 +11,7 @@
 const Apify = require('apify');
 
 Apify.main(async () => {
-    // Create and initialize an instance of the RequestList class that contains the start URL
+    // Create and initialize an instance of the RequestList class that contains the start URL.
     const requestList = new Apify.RequestList({
         sources: [
             { url: 'http://www.ycombinator.com/' },
@@ -63,7 +63,7 @@ Apify.main(async () => {
             // Store the results to the default dataset.
             await Apify.pushData(data);
 
-            // Find the link to the next page using Puppeteer functions
+            // Find the link to the next page using Puppeteer functions.
             let nextHref;
             try {
                 nextHref = await page.$eval('.morelink', el => el.href);

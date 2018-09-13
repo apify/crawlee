@@ -364,7 +364,7 @@ Apify.main(async () => {
             // Fetch the page HTML
             const html = await requestPromise(request.url);
 
-            // Store the HTML and URL to the default dataset
+            // Store the HTML and URL to the default dataset.
             await Apify.pushData({
                 url: request.url,
                 html,
@@ -478,7 +478,7 @@ The results are stored to the default dataset. In local configuration, the resul
 const Apify = require('apify');
 
 Apify.main(async () => {
-    // Create and initialize an instance of the RequestList class that contains the start URL
+    // Create and initialize an instance of the RequestList class that contains the start URL.
     const requestList = new Apify.RequestList({
         sources: [
             { url: 'http://www.ycombinator.com/' },
@@ -530,7 +530,7 @@ Apify.main(async () => {
             // Store the results to the default dataset.
             await Apify.pushData(data);
 
-            // Find the link to the next page using Puppeteer functions
+            // Find the link to the next page using Puppeteer functions.
             let nextHref;
             try {
                 nextHref = await page.$eval('.morelink', el => el.href);

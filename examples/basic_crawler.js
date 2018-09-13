@@ -42,7 +42,7 @@ Apify.main(async () => {
             // Fetch the page HTML
             const html = await requestPromise(request.url);
 
-            // Store the HTML and URL to the default dataset
+            // Store the HTML and URL to the default dataset.
             await Apify.pushData({
                 url: request.url,
                 html,
