@@ -318,6 +318,18 @@ describe('utils.avg()', () => {
     });
 });
 
+describe('utils.weightedAvg()', () => {
+    it('works', () => {
+        expect(utils.weightedAvg([10, 10, 10], [1, 1, 1])).to.be.eql(10);
+        expect(utils.weightedAvg([5, 10, 15], [1, 1, 1])).to.be.eql(10);
+        expect(utils.weightedAvg([10, 10, 10], [0.5, 1, 1.5])).to.be.eql(10);
+        expect(utils.weightedAvg([29, 35, 89], [13, 91, 3])).to.be.eql(((29 * 13) + (35 * 91) + (89 * 3)) / (13 + 91 + 3));
+        expect(utils.weightedAvg([], [])).to.be.eql(NaN);
+        expect(utils.weightedAvg([1], [0])).to.be.eql(NaN);
+        expect(utils.weightedAvg([], [1])).to.be.eql(NaN);
+    });
+});
+
 describe('Apify.utils.sleep()', () => {
     it('works', () => {
         let timeBefore;

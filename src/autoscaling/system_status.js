@@ -18,12 +18,12 @@ const DEFAULT_OPTIONS = {
  * between the snapshots. Each resource is calculated separately
  * and the system is overloaded whenever at least one resource is overloaded.
  *
- * `isOk()` returns a boolean that represents the current status of the system.
+ * `getCurrentStatus()` returns a boolean that represents the current status of the system.
  * The length of the current timeframe in seconds is configurable
  * by the currentHistorySecs option and represents the max age
  * of snapshots to be considered for the calculation.
  *
- * `hasBeenOkLately()` returns a boolean that represents the long term status
+ * `getHistoricalStatus()` returns a boolean that represents the long term status
  * of the system. It considers the full snapshot history available
  * in the Snapshotter instance.
  *

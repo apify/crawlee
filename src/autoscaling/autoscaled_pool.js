@@ -253,18 +253,21 @@ export default class AutoscaledPool {
             return this._maybeFinish();
         }
 
-        // Everything's fine. Run task.
         try {
+            // Everything's fine. Run task.
             this.currentConcurrency++;
             // Try to run next task to build up concurrency,
             // but defer it so it doesn't create a cycle.
             setImmediate(this._maybeRunTask);
-            done(); // We need to restart interval here, so that it doesn't get blocked by a stalled task.
+
+            // We need to restart interval here, so that it doesn't get blocked by a stalled task.
+            done();
 
             // Execute the current task.
             await this.runTaskFunction();
             this.currentConcurrency--;
-            setImmediate(this._maybeRunTask); // Run task after the previous one finished.
+            // Run task after the previous one finished.
+            setImmediate(this._maybeRunTask);
         } catch (err) {
             // We might have already rejected this promise.
             if (this.reject) {

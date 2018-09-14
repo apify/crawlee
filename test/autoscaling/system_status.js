@@ -20,12 +20,15 @@ describe('SystemStatus', () => {
             this.loopSnapshots = loopSnapshots;
             this.cpuSnapshots = cpuSnapshots;
         }
+
         getMemorySample(offset) {
             return this.memSnapshots.slice(-offset);
         }
+
         getEventLoopSample(offset) {
             return this.loopSnapshots.slice(-offset);
         }
+
         getCpuSample(offset) {
             return this.cpuSnapshots.slice(-offset);
         }
