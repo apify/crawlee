@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import log from 'apify-shared/log';
+import { ACTOR_EVENT_NAMES, ENV_VARS } from 'apify-shared/consts';
 import * as Apify from '../../build/index';
-import { ACTOR_EVENT_NAMES, ENV_VARS } from '../../build/constants';
 import events from '../../build/events';
 import Snapshotter from '../../build/autoscaling/snapshotter';
 

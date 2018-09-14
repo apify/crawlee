@@ -1,6 +1,7 @@
 // import { ChromeLauncher } from 'lighthouse/lighthouse-cli/chrome-launcher';
 import { anonymizeProxy, closeAnonymizedProxy } from 'proxy-chain';
-import { DEFAULT_USER_AGENT, ENV_VARS } from './constants';
+import { ENV_VARS } from 'apify-shared/consts';
+import { DEFAULT_USER_AGENT } from './constants';
 import { newPromise } from './utils';
 
 /* global process, require */

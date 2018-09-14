@@ -1,9 +1,11 @@
+import path from 'path';
 import _ from 'underscore';
 import Promise from 'bluebird';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { APIFY_PROXY_VALUE_REGEX } from 'apify-shared/regexs';
-import { ENV_VARS, LOCAL_ENV_VARS, EXIT_CODES, ACT_TASK_TERMINAL_STATUSES, ACT_TASK_STATUSES } from './constants';
+import { ENV_VARS, LOCAL_ENV_VARS, ACT_TASK_TERMINAL_STATUSES, ACT_TASK_STATUSES } from 'apify-shared/consts';
+import { EXIT_CODES } from './constants';
 import { initializeEvents, stopEvents } from './events';
 import { newPromise, apifyClient, addCharsetToContentType } from './utils';
 import { maybeStringify } from './key_value_store';
@@ -97,9 +99,14 @@ export const getEnv = () => {
  * The function performs the following actions:
  *
  * <ol>
- *   <li>When running on the Apify platform, it sets up a connection to listen for platform events.
+ *   <li>When running on the Apify platform (i.e. <code>APIFY_IS_AT_HOME</code> environment variable is set),
+ *   it sets up a connection to listen for platform events.
  *   For example, to get a notification about an imminent migration to another server.
  *   See <a href="#module-Apify-events"><code>Apify.events</code></a> for details.
+ *   </li>
+ *   <li>It checks that either <code>APIFY_TOKEN</code> or <code>APIFY_LOCAL_STORAGE_DIR</code> environment variable
+ *   is defined. If not, the functions sets <code>APIFY_LOCAL_STORAGE_DIR</code> to <code>./apify_storage</code>
+ *   inside the current working directory. This is to simplify running code examples.
  *   </li>
  *   <li>It invokes the user function passed as the `userFunc` parameter.</li>
  *   <li>If the user function returned a promise, waits for it to resolve.</li>
@@ -151,6 +158,12 @@ export const getEnv = () => {
 export const main = (userFunc) => {
     if (!userFunc || typeof (userFunc) !== 'function') {
         throw new Error('Handler function must be provided as a parameter');
+    }
+
+    if (!process.env[ENV_VARS.LOCAL_STORAGE_DIR] && !process.env[ENV_VARS.TOKEN]) {
+        const dir = path.join(process.cwd(), './apify_storage');
+        process.env[ENV_VARS.LOCAL_STORAGE_DIR] = dir;
+        log.warning(`Neither ${ENV_VARS.LOCAL_STORAGE_DIR} nor ${ENV_VARS.TOKEN} environment variable is set, defaulting to ${ENV_VARS.LOCAL_STORAGE_DIR}="${dir}"`); // eslint-disable-line max-len
     }
 
     // This is to enable unit tests where process.exit() is mocked and doesn't really exit the process

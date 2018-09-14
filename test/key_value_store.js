@@ -3,7 +3,7 @@ import chaiAsPromised from 'chai-as-promised';
 import 'babel-polyfill';
 import sinon from 'sinon';
 import path from 'path';
-import { ENV_VARS } from '../build/constants';
+import { ENV_VARS } from 'apify-shared/consts';
 import { KeyValueStoreLocal, KeyValueStore, maybeStringify, getFileNameRegexp, LOCAL_STORAGE_SUBDIR } from '../build/key_value_store';
 import * as utils from '../build/utils';
 import * as Apify from '../build/index';
@@ -351,4 +351,3 @@ describe('KeyValueStore', () => {
         });
     });
 });
-

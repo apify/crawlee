@@ -1,9 +1,9 @@
 import _ from 'underscore';
 import { betterSetInterval, betterClearInterval } from 'apify-shared/utilities';
 import log from 'apify-shared/log';
+import { ACTOR_EVENT_NAMES } from 'apify-shared/consts';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { getMemoryInfo, isAtHome } from '../utils';
-import { ACTOR_EVENT_NAMES } from '../constants';
 import events from '../events';
 
 const DEFAULT_OPTIONS = {

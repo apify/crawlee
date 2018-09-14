@@ -6,9 +6,9 @@ import basicAuthParser from 'basic-auth-parser';
 import Promise from 'bluebird';
 import _ from 'underscore';
 import sinon from 'sinon';
+import { ENV_VARS } from 'apify-shared/consts';
 import Apify from '../build/index';
 import * as actor from '../build/actor';
-import { ENV_VARS } from '../build/constants';
 import * as utils from '../build/utils';
 
 let prevEnvHeadless;

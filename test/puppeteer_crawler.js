@@ -3,7 +3,7 @@ import chaiAsPromised from 'chai-as-promised';
 import 'babel-polyfill';
 import _ from 'underscore';
 import log from 'apify-shared/log';
-import { ENV_VARS } from '../build/constants';
+import { ENV_VARS } from 'apify-shared/consts';
 import * as Apify from '../build/index';
 
 chai.use(chaiAsPromised);
