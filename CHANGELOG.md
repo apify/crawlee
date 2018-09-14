@@ -1,4 +1,4 @@
-xxx
+0.7.1 / 2018-09-14
 ==================
 - Upgraded Puppeteer to 1.8.0
 - Upgraded NPM dependencies, fixed lint errors
