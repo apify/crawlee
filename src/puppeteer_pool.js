@@ -220,8 +220,7 @@ export default class PuppeteerPool {
                 browser.on('targetdestroyed', () => {
                     instance.activePages--;
 
-                    // NOTE: we are killing instance when number of pages is 1 because there is always about:blank page.
-                    if (instance.activePages === 1 && this.retiredInstances[id]) {
+                    if (instance.activePages === 0 && this.retiredInstances[id]) {
                         // Run this with a delay, otherwise page.close() that initiated this 'targetdestroyed' event
                         // might fail with "Protocol error (Target.closeTarget): Target closed."
                         // TODO: Alternatively we could close here the first about:blank tab, which will cause
