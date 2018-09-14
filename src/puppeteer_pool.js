@@ -220,7 +220,8 @@ export default class PuppeteerPool {
                 browser.on('targetdestroyed', () => {
                     instance.activePages--;
 
-                    if (instance.activePages === 0 && this.retiredInstances[id]) {
+                    // NOTE: we are killing instance when number of pages is 1 because there is always about:blank page.
+                    if (instance.activePages === 1 && this.retiredInstances[id]) {
                         // Run this with a delay, otherwise page.close() that initiated this 'targetdestroyed' event
                         // might fail with "Protocol error (Target.closeTarget): Target closed."
                         // TODO: Alternatively we could close here the first about:blank tab, which will cause
@@ -280,12 +281,12 @@ export default class PuppeteerPool {
                 return;
             }
 
-            // TODO: How come this works? There is always one extra tab with about:blank open at all times!
             instance
                 .browserPromise
                 .then(browser => browser.pages())
                 .then((pages) => {
-                    if (pages.length === 0) {
+                    // NOTE: we are killing instance when number of pages is 1 because there is always about:blank page.
+                    if (pages.length === 1) {
                         log.debug('PuppeteerPool: killing retired browser because it has no open tabs', { id: instance.id });
                         this._killInstance(instance);
                     }
