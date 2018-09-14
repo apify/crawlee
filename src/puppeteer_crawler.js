@@ -245,17 +245,19 @@ export default class PuppeteerCrawler {
         if (!this.isRunning) throw new Error('PuppeteerCrawler is stopped.'); // Pool will be destroyed.
 
         const page = await this.puppeteerPool.newPage();
-        const response = await this.gotoFunction({ page, request, puppeteerPool: this.puppeteerPool });
-
-        const pageHandledOrTimedOutPromise = Promise.race([
-            this.handlePageFunction({ page, request, puppeteerPool: this.puppeteerPool, response }),
-            createTimeoutPromise(this.handlePageTimeoutSecs * 1000, 'PuppeteerCrawler: handlePageFunction timed out.'),
-        ]);
 
         try {
+            const gotoPromise = this.gotoFunction({ page, request, puppeteerPool: this.puppeteerPool });
+            const pageOperationsPromise = gotoPromise.then((response) => {
+                    return Promise.race([
+                        this.handlePageFunction({ page, request, puppeteerPool: this.puppeteerPool, response }),
+                        createTimeoutPromise(this.handlePageTimeoutSecs * 1000, 'PuppeteerCrawler: handlePageFunction timed out.'),
+                    ]);
+                });
+
             // rejectOnStopPromise rejects when .stop() is called or BasicCrawler throws.
             // All running pages are therefore terminated with an error to be reclaimed and retried.
-            return await Promise.race([pageHandledOrTimedOutPromise, this.rejectOnStopPromise]);
+            return await Promise.race([pageOperationsPromise, this.rejectOnStopPromise]);
         } finally {
             try {
                 await Promise.race([page.close(), createTimeoutPromise(PAGE_CLOSE_TIMEOUT_MILLIS, 'Operation timed out.')]);
