@@ -247,8 +247,9 @@ export default class PuppeteerCrawler {
         const page = await this.puppeteerPool.newPage();
 
         try {
-            const gotoPromise = this.gotoFunction({ page, request, puppeteerPool: this.puppeteerPool });
-            const pageOperationsPromise = gotoPromise.then((response) => {
+            const pageOperationsPromise = this
+                .gotoFunction({ page, request, puppeteerPool: this.puppeteerPool })
+                .then((response) => {
                     return Promise.race([
                         this.handlePageFunction({ page, request, puppeteerPool: this.puppeteerPool, response }),
                         createTimeoutPromise(this.handlePageTimeoutSecs * 1000, 'PuppeteerCrawler: handlePageFunction timed out.'),
