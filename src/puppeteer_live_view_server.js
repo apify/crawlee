@@ -4,9 +4,9 @@ import Promise from 'bluebird';
 import WebSocket from 'ws';
 import log from 'apify-shared/log';
 import { promisifyServerListen } from 'apify-shared/utilities';
+import { ENV_VARS } from 'apify-shared/consts';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { layout, indexPage, detailPage, errorPage } from './puppeteer_live_view_client';
-import { ENV_VARS } from './constants';
 
 const DEFAULT_SCREENSHOT_TIMEOUT_MILLIS = 3000;
 
@@ -197,6 +197,7 @@ export class PuppeteerLiveViewBrowser extends EventEmitter {
             })
             .catch(err => log.error(err));
     }
+
     /**
      * Handler invoked whenever a Browser is destroyed / disconnected in Puppeteer.
      * @param {Browser} browser

@@ -1,3 +1,10 @@
+xxx
+==================
+- Upgraded Puppeteer to 1.8.0
+- Upgraded NPM dependencies, fixed lint errors
+- `Apify.main()` now sets the `APIFY_LOCAL_STORAGE_DIR` env var to a default value
+  if neither `APIFY_LOCAL_STORAGE_DIR` nor `APIFY_TOKEN` is defined
+
 0.7.0 / 2018-09-11
 ==================
 - Updated `DEFAULT_USER_AGENT` and `USER_AGENT_LIST`

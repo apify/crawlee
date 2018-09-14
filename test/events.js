@@ -4,7 +4,9 @@ import sinon from 'sinon';
 import Promise from 'bluebird';
 import { expect } from 'chai';
 import { delayPromise } from 'apify-shared/utilities';
-import { ENV_VARS, ACTOR_EVENT_NAMES } from '../build/constants';
+import { ENV_VARS } from 'apify-shared/consts';
+import { ACTOR_EVENT_NAMES_EX } from '../build/constants';
+
 import Apify from '../build';
 
 describe('Apify.events', () => {
@@ -46,6 +48,7 @@ describe('Apify.events', () => {
         });
 
         process.env[ENV_VARS.ACTOR_EVENTS_WS_URL] = 'ws://localhost:9099/someRunId';
+        process.env[ENV_VARS.TOKEN] = 'dummy';
 
         // Run main and store received events
         expect(isWsConnected).to.be.eql(false);
@@ -67,6 +70,7 @@ describe('Apify.events', () => {
                 stubbedExit.restore();
                 wss.close();
                 delete process.env[ENV_VARS.ACTOR_EVENTS_WS_URL];
+                delete process.env[ENV_VARS.TOKEN];
                 await delayPromise(10); // Here must be short sleep to get following line to later tick
                 expect(isWsConnected).to.be.eql(false);
                 done();
@@ -122,7 +126,7 @@ describe('Apify.events', () => {
         process.env.APIFY_TEST_PERSIST_INTERVAL_MILLIS = 20;
 
         const eventsReceived = [];
-        Apify.events.on(ACTOR_EVENT_NAMES.PERSIST_STATE, data => eventsReceived.push(data));
+        Apify.events.on(ACTOR_EVENT_NAMES_EX.PERSIST_STATE, data => eventsReceived.push(data));
         await Apify.initializeEvents();
         await delayPromise(115);
         await Apify.stopEvents();

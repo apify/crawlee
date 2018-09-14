@@ -6,8 +6,8 @@ import contentTypeParser from 'content-type';
 import LruCache from 'apify-shared/lru_cache';
 import mime from 'mime';
 import { KEY_VALUE_STORE_KEY_REGEX } from 'apify-shared/regexs';
+import { ENV_VARS, LOCAL_STORAGE_SUBDIRS } from 'apify-shared/consts';
 import { checkParamOrThrow, parseBody } from 'apify-client/build/utils';
-import { ENV_VARS, LOCAL_STORAGE_SUBDIRS } from './constants';
 import {
     addCharsetToContentType, apifyClient, ensureDirExists, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists,
 } from './utils';
@@ -58,8 +58,8 @@ const validateSetValueParams = (key, value, options) => {
     if (!key) throw new Error('The "key" parameter cannot be empty');
 
     if (!KEY_VALUE_STORE_KEY_REGEX.test(key)) {
-        throw new Error('The "key" parameter may contain only the following characters: ' +
-            "[a-zA-Z0-9!-_.'()");
+        throw new Error('The "key" parameter may contain only the following characters: '
+            + "[a-zA-Z0-9!-_.'()");
     }
 };
 

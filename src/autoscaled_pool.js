@@ -1,10 +1,10 @@
 import Promise from 'bluebird';
 import log from 'apify-shared/log';
+import { ACTOR_EVENT_NAMES } from 'apify-shared/consts';
 import _ from 'underscore';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { getMemoryInfo, isPromise, avg, isAtHome } from './utils';
 import events from './events';
-import { ACTOR_EVENT_NAMES } from './constants';
 
 // NOTE: If this is too low, getMemoryInfo() has so much overheads that it chokes the system
 const AUTOSCALE_INTERVAL_MILLIS = 1000;
@@ -375,6 +375,7 @@ export default class AutoscaledPool {
 
         return hasSpaceForInstances;
     }
+
     /**
      * If number of running task is lower than allowed concurrency and this.isTaskReadyFunction()
      * returns true then starts a new task.

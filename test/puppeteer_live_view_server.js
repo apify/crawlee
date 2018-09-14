@@ -2,9 +2,9 @@ import http from 'http';
 import { expect, assert } from 'chai';
 import Promise from 'bluebird';
 import puppeteer from 'puppeteer';
+import { ENV_VARS } from 'apify-shared/consts';
 import Apify from '../build/index';
 import PuppeteerLiveViewServer, { PuppeteerLiveViewBrowser } from '../build/puppeteer_live_view_server';
-import { ENV_VARS } from '../build/constants';
 
 const PORT = 0;
 const URL = 'thisshouldfailonclientonly';

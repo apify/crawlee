@@ -1,34 +1,33 @@
-import * as consts from 'apify-shared/consts';
+import { ACTOR_EVENT_NAMES } from 'apify-shared/consts';
 
 /**
  * The default user agent used by `Apify.launchPuppeteer`.
  * Last updated on 2018-09-10.
  */
-consts.DEFAULT_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36'; // eslint-disable-line max-len
+export const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36'; // eslint-disable-line max-len
 
 /**
  * Exit codes for the actor process.
  * The error codes must be in range 1-128, to avoid collision with signal exits
  * and to ensure Docker will handle them correctly!
  */
-consts.EXIT_CODES = {
+export const EXIT_CODES = {
     SUCCESS: 0,
     ERROR_USER_FUNCTION_THREW: 91,
     ERROR_UNKNOWN: 92,
 };
 
 /**
- * These events are just internal for Apify package so we don't need them
- * in apify-shared package.
+ * These events are just internal for Apify package so we don't need them in apify-shared package.
  */
-consts.ACTOR_EVENT_NAMES.PERSIST_STATE = 'persistState';
+export const ACTOR_EVENT_NAMES_EX = Object.assign({}, ACTOR_EVENT_NAMES, { PERSIST_STATE: 'persistState' });
 
 /**
  * Most common user agents from https://techblog.willshouse.com/2012/01/03/most-common-user-agents/
  *
  * Last updated on 2018-09-10.
  */
-consts.USER_AGENT_LIST = [
+export const USER_AGENT_LIST = [
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36',
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36',
     'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36',
@@ -115,5 +114,3 @@ consts.USER_AGENT_LIST = [
     'Mozilla/5.0 (X11; CrOS x86_64 10575.58.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36',
     'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:62.0) Gecko/20100101 Firefox/62.0',
 ];
-
-module.exports = consts;

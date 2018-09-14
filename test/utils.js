@@ -7,9 +7,9 @@ import os from 'os';
 import Promise from 'bluebird';
 import requestPromise from 'request-promise';
 import LruCache from 'apify-shared/lru_cache';
+import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import * as utils from '../build/utils';
 import Apify from '../build/index';
-import { ENV_VARS, LOCAL_ENV_VARS } from '../build/constants';
 
 chai.use(chaiAsPromised);
 

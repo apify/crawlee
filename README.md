@@ -34,7 +34,7 @@
   * [Usage on the Apify cloud platform](#usage-on-the-apify-cloud-platform)
 - [What is the "actor"?](#what-is-the-actor)
 - [Examples](#examples)
-  * [Load a few pages in raw HTML](#load-a-few-pages-in-raw-html)
+  * [Crawl several pages in raw HTML](#crawl-several-pages-in-raw-html)
   * [Crawl an external list of URLs with Cheerio](#crawl-an-external-list-of-urls-with-cheerio)
   * [Recursively crawl a website using Puppeteer](#recursively-crawl-a-website-using-puppeteer)
   * [Save page screenshots](#save-page-screenshots)
@@ -167,6 +167,8 @@ npm install apify --save
 You'll need to specify where the SDK should store the crawling data.
 Either define the `APIFY_LOCAL_STORAGE_DIR` environment variable to store the data locally on your disk
 or define `APIFY_TOKEN` to store the data to Apify cloud platform.
+If neither of these variables is defined, by default Apify SDK sets `APIFY_LOCAL_STORAGE_DIR`
+to `./apify_storage` in the current working directory and prints a warning.
 
 The following table shows basic environment variables used by Apify SDK:
 
@@ -245,8 +247,7 @@ cd my-hello-world
 apify run
 ```
 
-By default, the crawling data will be stored in a local directory at `./apify_storage`
-(the CLI sets the `APIFY_LOCAL_STORAGE_DIR` environment variable).
+By default, the crawling data will be stored in a local directory at `./apify_storage`.
 For example, the input JSON file for the actor is expected to be in the default key-value store
 in `./apify_storage/key_value_stores/default/INPUT.json`.
 
@@ -305,10 +306,10 @@ To run the examples, just copy them into the directory where you installed Apify
 `npm install apify` and then run them by calling:
 
 ```
-node APIFY_LOCAL_STORAGE_DIR=./apify_storage basic_crawler.js
+node basic_crawler.js
 ```
 
-Note that it is necessary to set either the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variables in order
+Note that for production projects you should set either the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variable in order
 to tell the SDK how to store its data and crawling state. See [above](#local-stand-alone-usage) for details.
 
 Alternatively, if you're using the [Apify CLI](#local-usage-with-apify-command-line-interface-cli),
@@ -754,7 +755,7 @@ Apify.main(async () => {
 Apify SDK has several data storage types that are useful for specific tasks.
 The data is stored either on local disk to a directory defined by the `APIFY_LOCAL_STORAGE_DIR` environment variable,
 or on the Apify cloud under user account identified by the API token defined by the `APIFY_TOKEN` environment variable.
-Only one of these variables should always be set.
+One of these variables should always be set.
 
 Typically, you will be developing the code on your local computer and thus set the `APIFY_LOCAL_STORAGE_DIR` environment variable.
 Once the code is ready, you will deploy it to Apify cloud where it will automatically
@@ -783,7 +784,7 @@ In order to simplify access to the default key-value store, the SDK also provide
 <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-getValue"><code>Apify.getValue()</code></a>
 and <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-setValue"><code>Apify.setValue()</code></a> functions.
 
-In local configuration, the data is stored in the directory specified in the `APIFY_LOCAL_STORAGE_DIR` environment variable as follows:
+In local configuration, the data is stored in the directory specified by the `APIFY_LOCAL_STORAGE_DIR` environment variable as follows:
 
 ```
 [APIFY_LOCAL_STORAGE_DIR]/key_value_stores/[STORE_ID]/[KEY].[EXT]
@@ -838,7 +839,7 @@ In Apify SDK, the dataset is represented by the [Dataset](https://www.apify.com/
 In order to simplify writes to the default dataset, the SDK also provides the
 <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-pushData"><code>Apify.pushData()</code></a> function.
 
-In local configuration, the data is stored in the directory specified in the `APIFY_LOCAL_STORAGE_DIR` environment variable as follows:
+In local configuration, the data is stored in the directory specified by the `APIFY_LOCAL_STORAGE_DIR` environment variable as follows:
 
 ```
 [APIFY_LOCAL_STORAGE_DIR]/datasets/[DATASET_ID]/[INDEX].json
@@ -885,7 +886,7 @@ Typically it is used to store URLs to crawl in the specific actor run. Its usage
 
 In Apify SDK, the request queue is represented by the [RequestQueue](https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue) class.
 
-In local configuration, the request queue data is stored in the directory specified in the `APIFY_LOCAL_STORAGE_DIR` environment variable as follows:
+In local configuration, the request queue data is stored in the directory specified by the `APIFY_LOCAL_STORAGE_DIR` environment variable as follows:
 
 ```
 [APIFY_LOCAL_STORAGE_DIR]/request_queues/[QUEUE_ID]/[STATE]/[NUMBER].json
