@@ -56,8 +56,8 @@
 ## Motivation
 <!-- Mirror this part to src/index.js -->
 
-Thanks to tools like <a href="https://github.com/GoogleChrome/puppeteer" target="_blank" rel="noopener">Puppeteer</a> or
-<a href="https://www.npmjs.com/package/cheerio" target="_blank">cheerio</a>
+Thanks to tools like [Puppeteer](https://github.com/GoogleChrome/puppeteer) or
+[cheerio](https://www.npmjs.com/package/cheerio)
 it is very easy to write a Node.js code to extract data from web pages.
 But eventually things will get complicated, for example when you try to:
 
@@ -69,8 +69,10 @@ But eventually things will get complicated, for example when you try to:
 * Disable browser fingerprinting protections used by websites.
 * ...
 
+In Python you can use [Scrapy](https://scrapy.org/) for these tasks, but there was no
+such library for JavaScript, **THE language of the web**.
 The goal of Apify SDK is to provide a toolbox
-for these generic web scraping and crawling tasks.
+for generic web scraping, crawling and automation tasks in JavaScript.
 Don't reinvent the wheel every time you need data from the web,
 and focus on writing the code specific to the target website, rather than developing commonalities.
 
