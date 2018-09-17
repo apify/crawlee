@@ -284,8 +284,8 @@ export default class PuppeteerPool {
                 .browserPromise
                 .then(browser => browser.pages())
                 .then((pages) => {
-                    // NOTE: we are killing instance when number of pages is 1 because there is always about:blank page.
-                    if (pages.length === 1) {
+                    // NOTE: we are killing instance when number of pages below 1 because there is always about:blank page.
+                    if (pages.length <= 1) {
                         log.debug('PuppeteerPool: killing retired browser because it has no open tabs', { id: instance.id });
                         this._killInstance(instance);
                     }
