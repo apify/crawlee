@@ -24,7 +24,7 @@ xxx
 0.7.0 / 2018-09-11
 ==================
 - Updated `DEFAULT_USER_AGENT` and `USER_AGENT_LIST`
-- Added `recycleDiskCache` option to `PuppeteerPool` to enable reuse of disk cache and thus speedup browsing
+- Added `recycleDiskCache` option to `PuppeteerPool` to enable reuse of disk cache and thus speed up browsing
 - **WARNING**: `APIFY_LOCAL_EMULATION_DIR` environment variable was renamed to `APIFY_LOCAL_STORAGE_DIR`.
 - Environment variables `APIFY_DEFAULT_KEY_VALUE_STORE_ID`, `APIFY_DEFAULT_REQUEST_QUEUE_ID` and `APIFY_DEFAULT_DATASET_ID`
   have now default value `default` so there is no need to define them when developing locally.
@@ -71,7 +71,7 @@ xxx
 0.5.50 / 2018-08-06
 ===================
 - Fixed invalid URL parsing in RequestList.
-- Added support for non-latin language characters (unicode) in URLs.
+- Added support for non-Latin language characters (unicode) in URLs.
 - Added validation of payload size and automatic chunking to `dataset.pushData()`.
 - Added support for all content types and their known extensions to `KeyValueStoreLocal`.
 
@@ -140,7 +140,7 @@ xxx
 0.5.29 / 2018-05-11
 ===================
 - Added `Apify.utils` and `Apify.utils.puppeteer` namespaces for various helper functions.
-- Autoscaling feature of `AutoscaledPool`, `BasicCrawler` and `PuppeteerCrawler` is disabled out of Apify platform until all the issues will be solved.
+- Autoscaling feature of `AutoscaledPool`, `BasicCrawler` and `PuppeteerCrawler` is disabled on Apify platform until all issues are resolved.
 
 0.5.27 / 2018-04-30
 ===================
