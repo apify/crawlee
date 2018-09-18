@@ -1,5 +1,5 @@
 /**
- * This example shows how to read and write
+ * This example demonstrates how to read and write
  * data to the default key-value store using
  * <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-getValue"><code>Apify.getValue()</code></a>
  * and
@@ -8,8 +8,8 @@
  * captures a screenshot of each page and saves it to the store. The list of URLs is
  * provided as actor input that is also read from the store.
  *
- * In local configuration, the input is stored in the default key-value store's directory as JSON file at
- * `./apify_storage/key_value_stores/default/INPUT.json`. You need to create the file and set it the following content:
+ * In local configuration, the input is stored in the default key-value store's directory as a JSON file at
+ * `./apify_storage/key_value_stores/default/INPUT.json`. You need to create the file and set it with the following content:
  *
  * ```json
  * { "sources": [{ "url": "https://www.google.com" }, { "url": "https://www.duckduckgo.com" }] }
@@ -25,8 +25,8 @@
 const Apify = require('apify');
 
 Apify.main(async () => {
-    // Read the actor input configuration containing URLs to take the screenshot off.
-    // By convention, the input is present in actor's default key-value store under the "INPUT" key.
+    // Read the actor input configuration containing the URLs for the screenshot.
+    // By convention, the input is present in the actor's default key-value store under the "INPUT" key.
     const input = await Apify.getValue('INPUT');
     if (!input) throw new Error('Have you passed the correct INPUT ?');
 
