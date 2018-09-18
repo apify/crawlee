@@ -241,7 +241,7 @@ export default class BasicCrawler {
             // rejectOnStopPromise rejects when .stop() is called or AutoscaledPool throws.
             // All running tasks are therefore terminated with an error to be reclaimed and retried.
             await Promise.race([this.handleRequestFunction({ request }), this.rejectOnStopPromise]);
-            source.markRequestHandled(request);
+            await source.markRequestHandled(request);
             this.handledRequestsCount++;
         } catch (err) {
             await this._requestFunctionErrorHandler(err, request, source);
