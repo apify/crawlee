@@ -245,7 +245,18 @@ export class RequestQueue {
 
                 this._addToInProgress(nextId);
 
-                return this.getRequest(nextId);
+                return this
+                    .getRequest(nextId)
+                    .then((request) => {
+                        // We need to handle this situation because request may not be available
+                        // immediately after adding to the queue.
+                        if (!request) {
+                            this._removeFromInProgress(nextId);
+                            this.queueHeadDict.add(nextId, nextId, false);
+                        }
+
+                        return request;
+                    });
             });
     }
 

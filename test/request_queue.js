@@ -377,6 +377,56 @@ describe('RequestQueue', () => {
             mock.verify();
             mock.restore();
         });
+
+        it('shoud handle situation when newly created request is not available yet', async () => {
+            expectNotUsingLocalStorage();
+
+            const { Request } = Apify;
+
+            const queue = new RequestQueue('some-id');
+            const mock = sinon.mock(apifyClient.requestQueues);
+            mock.expects('getHead').never();
+
+            const requestA = new Request({ url: 'http://example.com/a' });
+
+            // Add request A
+            mock.expects('addRequest')
+                .once()
+                .withArgs({
+                    queueId: 'some-id',
+                    request: requestA,
+                    forefront: true,
+                })
+                .returns(Promise.resolve({
+                    requestId: 'a',
+                    wasAlreadyHandled: false,
+                    wasAlreadyPresent: false,
+                }));
+            await queue.addRequest(requestA, { forefront: true });
+
+            // Try to get requestA which is not available yet.
+            mock.expects('getRequest')
+                .once()
+                .withArgs({
+                    queueId: 'some-id',
+                    requestId: 'a',
+                })
+                .returns(Promise.resolve(null));
+            expect(await queue.fetchNextRequest()).to.be.eql(null);
+
+            // Should try it once again.
+            mock.expects('getRequest')
+                .once()
+                .withArgs({
+                    queueId: 'some-id',
+                    requestId: 'a',
+                })
+                .returns(Promise.resolve(requestA));
+            expect(await queue.fetchNextRequest()).to.be.eql(requestA);
+
+            mock.verify();
+            mock.restore();
+        });
     });
 
     describe('Apify.openRequestQueue', async () => {
