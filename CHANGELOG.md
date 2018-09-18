@@ -1,3 +1,7 @@
+0.7.4 / 2018-09-18
+==================
+- Bug fixes and documentation improvements.
+
 0.7.1 / 2018-09-14
 ==================
 - Upgraded Puppeteer to 1.8.0

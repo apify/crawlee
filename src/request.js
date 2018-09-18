@@ -68,7 +68,7 @@ export default class Request {
         checkParamOrThrow(headers, 'headers', 'Object');
         checkParamOrThrow(userData, 'userData', 'Object');
         checkParamOrThrow(ignoreErrors, 'ignoreErrors', 'Boolean');
-        checkParamOrThrow(handledAt, 'handledAt', 'Maybe String');
+        checkParamOrThrow(handledAt, 'handledAt', 'Maybe String | Date');
 
         if (method === 'GET' && payload) throw new Error('Request with GET method cannot have a payload.');
 
