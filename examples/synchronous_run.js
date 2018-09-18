@@ -1,7 +1,7 @@
 /**
  * This example shows shows a quick actor that has a run time of just a few seconds.
  * It opens a [web page](http://goldengatebridge75.org/news/webcam.html) that contains webcam stream from the Golden Gate
- * bridge, takes a screenshot of the page and saves it as output.
+ * Bridge, takes a screenshot of the page and saves it as output.
  *
  * This actor
  * can be invoked synchronously using a single HTTP request to directly obtain its output as a reponse,
@@ -35,7 +35,7 @@ Apify.main(async () => {
     const imageBuffer = await imageElementHandle.screenshot();
     console.log('Screenshot captured.');
 
-    // Save the screenshot as actor's output. By convention, similarly to "INPUT",
+    // Save the screenshot as the actor's output. By convention, similarly to "INPUT",
     // the actor's output is stored in the default key-value store under the "OUTPUT" key.
     await Apify.setValue('OUTPUT', imageBuffer, { contentType: 'image/jpeg' });
     console.log('Actor finished.');
