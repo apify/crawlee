@@ -8,7 +8,7 @@
 const Apify = require('apify');
 
 // Apify.utils contains various utilities, e.g. for logging.
-// Here we turn off logging of unimportant messages.
+// Here we turn off the logging of unimportant messages.
 const { log } = Apify.utils;
 log.setLevel(log.LEVELS.WARNING);
 
@@ -25,7 +25,7 @@ Apify.main(async () => {
     await requestList.initialize();
 
     // Create an instance of the CheerioCrawler class - a crawler
-    // that automatically loads the URLs and parses their HTML using cheerio library.
+    // that automatically loads the URLs and parses their HTML using the cheerio library.
     const crawler = new Apify.CheerioCrawler({
         // Let the crawler fetch URLs from our list.
         requestList,
@@ -75,7 +75,7 @@ Apify.main(async () => {
         },
     });
 
-    // Run the crawler and wait for its finish.
+    // Run the crawler and wait for it to finish.
     await crawler.run();
 
     console.log('Crawler finished.');
