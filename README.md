@@ -175,7 +175,7 @@ or define `APIFY_TOKEN` to store the data to Apify cloud platform.
 If neither of these variables is defined, by default Apify SDK sets `APIFY_LOCAL_STORAGE_DIR`
 to `./apify_storage` in the current working directory and prints a warning.
 
-The following table shows basic environment variables used by Apify SDK:
+The following table shows the basic environment variables used by Apify SDK:
 
 <table class="table table-bordered table-condensed">
     <thead>
@@ -200,7 +200,7 @@ The following table shows basic environment variables used by Apify SDK:
           <tr>
             <td><code>APIFY_TOKEN</code></td>
             <td>
-              The API token for your Apify Account. It is used to access Apify API, e.g. to access cloud storage or to run an actor in the cloud.
+              The API token for your Apify account. It is used to access the Apify API, e.g. to access cloud storage or to run an actor in the cloud.
               You can find your API token on the <a href="https://my.apify.com/account#intergrations">Account - Integrations</a> page.
               If omitted, you should define the <code>APIFY_LOCAL_STORAGE_DIR</code> environment variable instead.
             </td>
@@ -209,7 +209,7 @@ The following table shows basic environment variables used by Apify SDK:
             <td><code>APIFY_PROXY_PASSWORD</code></td>
             <td>
               Optional password to <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a> for IP address rotation.
-              If you have have an Apify Account, you can find the password on the
+              If you have have an Apify account, you can find the password on the
               <a href="https://my.apify.com/proxy" target="_blank">Proxy page</a> in the Apify app.
               This feature is optional. You can use your own proxies or no proxies at all.
             </td>
@@ -219,7 +219,7 @@ The following table shows basic environment variables used by Apify SDK:
 
 
 For the full list of environment variables used by Apify SDK and the Apify cloud platform, please see the
-<a href="https://www.apify.com/docs/actor#environment-variabes" target="_blank">Environment variables</a>
+<a href="https://www.apify.com/docs/actor#environment-variabes" target="_blank">environment variables</a>
 in the Apify actor documentation.
 
 
@@ -263,7 +263,7 @@ apify login
 apify push
 ```
 
-Your script will be uploaded to Apify cloud and built there so that it can be run in the cloud.
+Your script will be uploaded to the Apify cloud and built there so that it can be run in the cloud.
 For more information, view the [Apify CLI](https://www.apify.com/docs/cli)
 and [Apify Actor](https://www.apify.com/docs/actor) documentation.
 
@@ -271,25 +271,25 @@ and [Apify Actor](https://www.apify.com/docs/actor) documentation.
 ### Usage on the Apify cloud platform
 
 You can also develop your web scraping project
-in an online code editor directly on the Apify cloud. You'll need to have Apify Account.
+in an online code editor directly on the Apify cloud. You'll need to have an Apify account.
 Go to [Actors](https://my.apify.com/actors)
-page in the app, click <i>Create new</i> and then go to
-<i>Source</i> tab and start writing your code or paste there one of the code examples below.
+page in the app, click <i>Create new</i> and then go to the 
+<i>Source</i> tab and start writing your code or paste one of the code examples below.
 
 For more information, view the [Apify actors quick start guide](https://www.apify.com/docs/actor#quick-start).
 
 ## What is the "actor"?
 
-When you deploy your script to [Apify cloud platform](https://www.apify.com/), it becomes an actor.
-Actor is a serverless microservice that accepts an input and produces an output.
+When you deploy your script to the [Apify cloud platform](https://www.apify.com/), it becomes an actor.
+An actor is a serverless microservice that accepts an input and produces an output.
 It can run for a few seconds, hours or even infinitely.
 An actor can perform anything from a simple action such as filling out a web form or sending an email,
 to complex operations such as crawling an entire website and removing duplicates from a large dataset.
 
-To run an actor, you need to have an [Apify Account](https://my.apify.com/).
+To run an actor, you need to have an [Apify account](https://my.apify.com/).
 The actor execution is charged towards your account and the cost depends on
 the amount of memory allocated for the run and its duration.
-The actors can be shared in the [Apify Library](https://www.apify.com/library?&type=acts)
+Actors can be shared in the [Apify Library](https://www.apify.com/library?&type=acts)
 so that other people can use them. Note that if you share your actor in the library,
 you're not charged when other people use it - its use is charged towards their account.
 
@@ -302,12 +302,12 @@ you're not charged when other people use it - its use is charged towards their a
 
 ## Examples
 
-An example is better than thousand of words. In the following sections you will find several
-examples how to perform various web scraping and automation task using Apify SDK.
+An example is better than a thousand words. In the following sections you will find several
+examples of how to perform various web scraping and automation tasks using the Apify SDK.
 All the examples can be found in the [examples](https://github.com/apifytech/apify-js/tree/master/examples) directory
 in the repository.
 
-To run the examples, just copy them into the directory where you installed Apify SDK using
+To run the examples, just copy them into the directory where you installed the Apify SDK using
 `npm install apify` and then run them by calling:
 
 ```
@@ -327,8 +327,8 @@ apify run
 
 ### Crawl several pages in raw HTML
 
-This is the most basic example of Apify SDK, which demonstrates some of its
-elementary tools such as the
+This is the most basic example of the Apify SDK, which demonstrates some of its
+elementary tools, such as the
 [BasicCrawler](https://www.apify.com/docs/sdk/apify-runtime-js/latest#BasicCrawler)
 and [RequestList](https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList) classes.
 The script just downloads several web pages with plain HTTP requests (using the
@@ -474,7 +474,7 @@ Apify.main(async () => {
 
 This example demonstrates how to use [PuppeteerCrawler](https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerCrawler)
 in combination with [RequestList](https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList)
-and [RequestQueue](https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue) to recursively scrape
+and [RequestQueue](https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue) to recursively scrape the 
 [Hacker News](https://news.ycombinator.com) website using headless Chrome / Puppeteer.
 The crawlers starts with a single URL, finds links to next pages,
 enqueues them and continues until no more desired links are available.
@@ -509,7 +509,7 @@ Apify.main(async () => {
 
         // This function will be called for each URL to crawl.
         // Here you can write the Puppeteer scripts you are familiar with,
-        // with the exception that browsers and pages are automatically managed by Apify SDK.
+        // with the exception that browsers and pages are automatically managed by the Apify SDK.
         // The function accepts a single parameter, which is an object with the following fields:
         // - request: an instance of the Request class with information such as URL and HTTP method
         // - page: Puppeteer's Page object (see https://pptr.dev/#show=api-class-page)
@@ -590,7 +590,7 @@ const Apify = require('apify');
 
 Apify.main(async () => {
     // Read the actor input configuration containing URLs to take the screenshot off.
-    // By convention, the input is present in actor's default key-value store under the "INPUT" key.
+    // By convention, the input is present in the actor's default key-value store under the "INPUT" key.
     const input = await Apify.getValue('INPUT');
     if (!input) throw new Error('Have you passed the correct INPUT ?');
 
@@ -629,7 +629,7 @@ Apify.main(async () => {
 
 This example demonstrates how to load pages in headless Chrome / Puppeteer
 over [Apify Proxy](https://www.apify.com/docs/proxy).
-To make it work, you'll need an Apify Account
+To make it work, you'll need an Apify account
 that has access to the proxy.
 The proxy password is available on the [Proxy](https://my.apify.com/proxy) page in the app.
 Just set it to the `APIFY_PROXY_PASSWORD` environment variable
@@ -665,17 +665,17 @@ Apify.main(async () => {
 
 ### Invoke another actor
 
-This example shows how to start an Apify actor using
+This example demonstrates how to start an Apify actor using
 <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-call"><code>Apify.call()</code></a>
 and how to call Apify API using
 <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-client"><code>Apify.client</code></a>.
 The script extracts the current Bitcoin prices from Kraken.com
 and sends them to your email using the [apify/send-mail](https://www.apify.com/apify/send-mail) actor.
 
-To make the example work, you'll need an [Apify Account](https://my.apify.com/).
+To make the example work, you'll need an [Apify account](https://my.apify.com/).
 Go to [Account - Integrations](https://my.apify.com/account#/integrations) page to obtain your API token
 and set it to the `APIFY_TOKEN` environment variable, or run the script using the CLI.
-If you deploy this actor to Apify platform then you can setup a scheduler for early
+If you deploy this actor to the Apify platform then you can set up a scheduler for early
 morning. Don't miss the chance of your life to get rich!
 
 ```javascript
@@ -712,9 +712,9 @@ Apify.main(async () => {
 
 ### Use actor as an API
 
-This example shows shows a quick actor that has a run time of just a few seconds.
-It opens a [web page](http://goldengatebridge75.org/news/webcam.html) that contains webcam stream from the Golden Gate
-bridge, takes a screenshot of the page and saves it as output.
+This example shows a quick actor that has a run time of just a few seconds.
+It opens a [web page](http://goldengatebridge75.org/news/webcam.html) that contains a webcam stream from the Golden Gate
+Bridge, takes a screenshot of the page and saves it as output.
 
 This actor
 can be invoked synchronously using a single HTTP request to directly obtain its output as a reponse,
@@ -748,7 +748,7 @@ Apify.main(async () => {
     const imageBuffer = await imageElementHandle.screenshot();
     console.log('Screenshot captured.');
 
-    // Save the screenshot as actor's output. By convention, similarly to "INPUT",
+    // Save the screenshot as the actor's output. By convention, similarly to "INPUT",
     // the actor's output is stored in the default key-value store under the "OUTPUT" key.
     await Apify.setValue('OUTPUT', imageBuffer, { contentType: 'image/jpeg' });
     console.log('Actor finished.');
@@ -757,14 +757,14 @@ Apify.main(async () => {
 
 ## Data storage
 
-Apify SDK has several data storage types that are useful for specific tasks.
+The Apify SDK has several data storage types that are useful for specific tasks.
 The data is stored either on local disk to a directory defined by the `APIFY_LOCAL_STORAGE_DIR` environment variable,
-or on the Apify cloud under user account identified by the API token defined by the `APIFY_TOKEN` environment variable.
+or on the Apify cloud under the user account identified by the API token defined by the `APIFY_TOKEN` environment variable.
 One of these variables should always be set.
 
 Typically, you will be developing the code on your local computer and thus set the `APIFY_LOCAL_STORAGE_DIR` environment variable.
-Once the code is ready, you will deploy it to Apify cloud where it will automatically
-set the `APIFY_TOKEN` environment variable and thuse it will use the cloud storage.
+Once the code is ready, you will deploy it to the Apify cloud, where it will automatically
+set the `APIFY_TOKEN` environment variable and thus use cloud storage.
 No code changes are needed.
 
 **Related links**
@@ -780,11 +780,11 @@ Each data record is represented by a unique key and associated with a MIME conte
 Key-value stores are ideal for saving screenshots of web pages, PDFs or to persist the state of crawlers.
 
 Each actor run is associated with a **default key-value store**, which is created exclusively for the actor run.
-By convention, the actor run input and output is stored into the default key-value store
+By convention, the actor run input and output is stored in the default key-value store
 under the `INPUT` and `OUTPUT` key, respectively. Typically the input and output is a JSON file,
 although it can be any other format.
 
-In Apify SDK, the key-value store is represented by the [KeyValueStore](https://www.apify.com/docs/sdk/apify-runtime-js/latest#KeyValueStore) class.
+In the Apify SDK, the key-value store is represented by the [KeyValueStore](https://www.apify.com/docs/sdk/apify-runtime-js/latest#KeyValueStore) class.
 In order to simplify access to the default key-value store, the SDK also provides
 <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-getValue"><code>Apify.getValue()</code></a>
 and <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-setValue"><code>Apify.setValue()</code></a> functions.
@@ -840,7 +840,7 @@ existing records.
 Each actor run is associated with a **default dataset**, which is created exclusively for the actor run.
 Typically it is used to store crawling results specific for the actor run. Its usage is optional.
 
-In Apify SDK, the dataset is represented by the [Dataset](https://www.apify.com/docs/sdk/apify-runtime-js/latest#Dataset) class.
+In the Apify SDK, the dataset is represented by the [Dataset](https://www.apify.com/docs/sdk/apify-runtime-js/latest#Dataset) class.
 In order to simplify writes to the default dataset, the SDK also provides the
 <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-pushData"><code>Apify.pushData()</code></a> function.
 
@@ -881,8 +881,8 @@ To see how to use the dataset to store crawler results, see the
 
 ### Request queue
 
-Request queue is storage of URLs to crawl.
-The queue is used for deep crawling of websites, where you start with
+The request queue is a storage of URLs to crawl.
+The queue is used for the deep crawling of websites, where you start with
 several URLs and then recursively follow links to other pages.
 The data structure supports both breadth-first and depth-first crawling orders.
 
@@ -935,13 +935,13 @@ To see how to use the request queue with a crawler, see the
 
 ## Puppeteer live view
 
-Apify SDK enables real-time view of launched Puppeteer browser instances and their open tabs,
-including screenshots of the pages and snapshots of HTML.
+Apify SDK enables the real-time view of launched Puppeteer browser instances and their open tabs,
+including screenshots of pages and snapshots of HTML.
 This is useful for debugging your crawlers that run in headless mode.
 
 The live view dashboard is run on a web server that is started on a port specified
 by the `APIFY_CONTAINER_PORT` environment variable (typically 4321).
-To enable the live view, pass the `liveView: true` option to
+To enable live view, pass the `liveView: true` option to
 <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-launchPuppeteer" target="_blank"><code>Apify.launchPuppeteer()</code></a>:
 
 ```javascript
@@ -965,7 +965,7 @@ Once the live view is enabled, you can open http://localhost:4321 and you will s
 
 <img src="https://www.apify.com/ext/sdk_assets/puppeteer-live-view-dashboard.png" width="600p">
 
-Click on the magnifying glass icon to view a page detail, showing page screenshot and raw HTML:
+Click on the magnifying glass icon to view page detail, showing page screenshot and raw HTML:
 
 <img src="https://www.apify.com/ext/sdk_assets/puppeteer-live-view-detail.png" width="600p">
 
@@ -974,12 +974,12 @@ article in Apify Knowlege base.
 
 ## Support
 
-If you find any bug or issue with Apify SDK, please [submit an issue on GitHub](https://github.com/apifytech/apify-js/issues).
+If you find any bug or issue with the Apify SDK, please [submit an issue on GitHub](https://github.com/apifytech/apify-js/issues).
 For questions, you can ask on [Stack Overflow](https://stackoverflow.com/questions/tagged/apify) or contact support@apify.com
 
 ## Contributing
 
-Your code contributions are welcome and you'll praised to the eternity!
+Your code contributions are welcome and you'll be praised to eternity!
 If you have any ideas for improvements, either submit an issue or create a pull request.
 
 </div>
