@@ -385,6 +385,7 @@ describe('RequestQueue', () => {
 
             const queue = new RequestQueue('some-id');
             const mock = sinon.mock(apifyClient.requestQueues);
+            mock.expects('getHead').never();
 
             const requestA = new Request({ url: 'http://example.com/a' });
 
@@ -404,7 +405,6 @@ describe('RequestQueue', () => {
             await queue.addRequest(requestA, { forefront: true });
 
             // Try to get requestA which is not available yet.
-            mock.expects('getHead').never();
             mock.expects('getRequest')
                 .once()
                 .withArgs({
