@@ -1,5 +1,5 @@
 /**
- * This is the most basic example of Apify SDK, which demonstrates some of its
+ * This is the most basic example of the Apify SDK, which demonstrates some of its
  * elementary tools such as the
  * [BasicCrawler](https://www.apify.com/docs/sdk/apify-runtime-js/latest#BasicCrawler)
  * and [RequestList](https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList) classes.
@@ -50,7 +50,7 @@ Apify.main(async () => {
         },
     });
 
-    // Run the crawler and wait for its finish.
+    // Run the crawler and wait for it to finish.
     await crawler.run();
 
     console.log('Crawler finished.');
