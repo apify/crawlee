@@ -252,10 +252,7 @@ export class RequestQueue {
                         // immediately after adding to the queue.
                         if (!request) {
                             this._removeFromInProgress(nextId);
-
-                            // TODO: Consider skipping this line so that the request doesn't get retried immediately
-                            //       but after next head fetch instead.
-                            this.queueHeadDict.add(nextId, nextId, true);
+                            this.queueHeadDict.add(nextId, nextId, false);
                         }
 
                         return request;
