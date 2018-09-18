@@ -82,7 +82,7 @@ Apify.main(async () => {
         },
     });
 
-    // Run the crawler and wait for its finish.
+    // Run the crawler and wait for it to finish.
     await crawler.run();
 
     console.log('Crawler finished.');
