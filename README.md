@@ -32,7 +32,7 @@
   * [Local stand-alone usage](#local-stand-alone-usage)
   * [Local usage with Apify command-line interface (CLI)](#local-usage-with-apify-command-line-interface-cli)
   * [Usage on the Apify cloud platform](#usage-on-the-apify-cloud-platform)
-- [What is an "actor"?](#what-is-the-actor)
+- [What is an "actor"?](#what-is-an-actor)
 - [Examples](#examples)
   * [Crawl several pages in raw HTML](#crawl-several-pages-in-raw-html)
   * [Crawl an external list of URLs with Cheerio](#crawl-an-external-list-of-urls-with-cheerio)
@@ -40,7 +40,7 @@
   * [Save page screenshots](#save-page-screenshots)
   * [Open web page in Puppeteer via Apify Proxy](#open-web-page-in-puppeteer-via-apify-proxy)
   * [Invoke another actor](#invoke-another-actor)
-  * [Use an actor as an API](#use-actor-as-an-api)
+  * [Use an actor as an API](#use-an-actor-as-an-api)
 - [Data storage](#data-storage)
   * [Key-value store](#key-value-store)
   * [Dataset](#dataset)
@@ -278,7 +278,7 @@ page in the app, click <i>Create new</i> and then go to the
 
 For more information, view the [Apify actors quick start guide](https://www.apify.com/docs/actor#quick-start).
 
-## What is the "actor"?
+## What is an "actor"?
 
 When you deploy your script to the [Apify cloud platform](https://www.apify.com/), it becomes an actor.
 An actor is a serverless microservice that accepts an input and produces an output.
@@ -710,7 +710,7 @@ Apify.main(async () => {
 });
 ```
 
-### Use actor as an API
+### Use an actor as an API
 
 This example shows a quick actor that has a run time of just a few seconds.
 It opens a [web page](http://goldengatebridge75.org/news/webcam.html) that contains a webcam stream from the Golden Gate
