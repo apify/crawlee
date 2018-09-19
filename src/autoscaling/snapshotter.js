@@ -48,6 +48,8 @@ const DEFAULT_OPTIONS = {
  * @param {Number} [options.snapshotHistorySecs=60]
  *   Sets the interval in seconds for which a history of resource snapshots
  *   will be kept. Increasing this to very high numbers will affect performance.
+ * @param {Number} [options.maxMemoryMbytes]
+ *   Sets the maximum amount of memory to be used in megabytes.
  * @ignore
  */
 export default class Snapshotter {
