@@ -2,7 +2,7 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import _ from 'underscore';
 import log from 'apify-shared/log';
 import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
-import AutoscaledPool from './autoscaled_pool';
+import AutoscaledPool from './autoscaling/autoscaled_pool';
 import RequestList from './request_list';
 import { RequestQueue, RequestQueueLocal } from './request_queue';
 
@@ -12,6 +12,7 @@ const DEFAULT_OPTIONS = {
         const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
         log.error('BasicCrawler: Request failed and reached maximum retries', details);
     },
+    autoscaledPoolOptions: {},
 };
 
 /**
@@ -21,8 +22,10 @@ const DEFAULT_OPTIONS = {
  *
  * `BasicCrawler` invokes `handleRequestFunction` for each `Request` object fetched from `options.requestList` or `options.requestQueue`,
  * as long as any of them is not empty. New requests are only handled if there is enough free CPU and memory available,
- * using the functionality provided by the `AutoscaledPool` class.
- * Note that all `AutoscaledPool` configuration options can be passed to `options` parameter of the `BasicCrawler` constructor.
+ * using the functionality provided by the `AutoscaledPool` class. See <a href="#AutoscaledPool">AutoscaledPool documentation</a>.
+ *
+ * All `AutoscaledPool` configuration options can be passed to the `autoscaledPoolOptions` parameter
+ * of the `CheerioCrawler` constructor. The `minConcurrency` and `maxConcurrency` options are available directly.
  *
  * If both `requestList` and `requestQueue` is used, the instance first
  * processes URLs from the `requestList` and automatically enqueues all of them to `requestQueue` before it starts
@@ -59,46 +62,30 @@ const DEFAULT_OPTIONS = {
  * ```
  *
  * @param {Object} options
+ * @param {Function} options.handleRequestFunction
+ *   Function that processes a single `Request` object. It must return a promise.
+ *
  * @param {RequestList} [options.requestList]
  *   Static list of URLs to be processed.
  * @param {RequestQueue} [options.requestQueue]
  *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
- * @param {Function} [options.handleRequestFunction]
- *   Function that processes a single `Request` object. It must return a promise.
- * @param {Function} [options.handleFailedRequestFunction=({ request }) => {
- *      const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
- *      log.error('BasicCrawler: Request failed and reached maximum retries', details);
- *  }]
+ * @param {Function} [options.handleFailedRequestFunction]
  *   Function that handles requests that failed more then `option.maxRequestRetries` times.
+ *   See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/basic_crawler.js#L11">GitHub</a> for default behavior.
  * @param {Number} [options.maxRequestRetries=3]
  *   How many times the request is retried if `handleRequestFunction` failed.
  * @param {Number} [options.maxRequestsPerCrawl]
  *   Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached.
  *   Always set this value in order to prevent infinite loops in misconfigured crawlers.
  *   Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.
- * @param {Number} [options.maxMemoryMbytes]
- *   Maximum memory available in the system
- *   See `AutoscaledPool` for details.
- * @param {Number} [options.minConcurrency=1]
- *   Minimum number of request to process in parallel.
- *   See `AutoscaledPool` for details.
- * @param {Number} [options.maxConcurrency=1000]
- *   Maximum number of request to process in parallel.
- *   See `AutoscaledPool` for details.
- * @param {Number} [options.minFreeMemoryRatio=0.2]
- *   Minimum ratio of free memory kept in the system.
- *   See `AutoscaledPool` for details.
- * @param {Function} [opts.isFinishedFunction]
- *   By default BasicCrawler finishes when all the requests have been processed.
- *   You can override this behaviour by providing custom `isFinishedFunction`.
- *   This function that is called every time there are no requests being processed.
- *   If it resolves to `true` then the crawler's run finishes.
- *   See `AutoscaledPool` for details.
- * @param {Boolean} [options.ignoreMainProcess=false]
- *   If set to `true` then the auto-scaling manager does not consider memory consumption
- *   of the main Node.js process when scaling the pool up or down.
- *   This is mainly useful when tasks are running as separate processes (e.g. web browsers).
- *   See `AutoscaledPool` for details.
+ * @param {Object} [options.autoscaledPoolOptions]
+ *   Configures the AutoscaledPool. See <a href="#AutoscaledPool">AutoscaledPool documentation</a>.
+ *   runTaskFunction(), isTaskReadyFunction() and isFinishedFunction() are provided by BasicCrawler.
+ * @param {Object} [options.minConcurrency=1]
+ *   Sets the minimal concurrency (parallelism) for the crawl. Shorthand to the AutoscaledPool option.
+ * @param {Object} [options.maxConcurrency=1000]
+ *   Sets the maximal concurrency (parallelism) for the crawl. Shorthand to the AutoscaledPool option.
+
  */
 export default class BasicCrawler {
     constructor(opts) {
@@ -109,14 +96,11 @@ export default class BasicCrawler {
             handleFailedRequestFunction,
             maxRequestRetries,
             maxRequestsPerCrawl,
+            autoscaledPoolOptions,
 
-            // AutoscaledPool options
-            maxMemoryMbytes,
-            maxConcurrency,
+            // AutoscaledPool shorthands
             minConcurrency,
-            minFreeMemoryRatio,
-            isFinishedFunction,
-            ignoreMainProcess,
+            maxConcurrency,
         } = _.defaults(opts, DEFAULT_OPTIONS);
 
         checkParamPrototypeOrThrow(requestList, 'opts.requestList', RequestList, 'Apify.RequestList', true);
@@ -125,6 +109,7 @@ export default class BasicCrawler {
         checkParamOrThrow(handleFailedRequestFunction, 'opts.handleFailedRequestFunction', 'Function');
         checkParamOrThrow(maxRequestRetries, 'opts.maxRequestRetries', 'Number');
         checkParamOrThrow(maxRequestsPerCrawl, 'opts.maxRequestsPerCrawl', 'Maybe Number');
+        checkParamOrThrow(autoscaledPoolOptions, 'opts.autoscaledPoolOptions', 'Object');
 
         if (!requestList && !requestQueue) {
             throw new Error('At least one of the parameters "opts.requestList" and "opts.requestQueue" must be provided!');
@@ -139,11 +124,10 @@ export default class BasicCrawler {
 
         const isMaxPagesExceeded = () => maxRequestsPerCrawl && maxRequestsPerCrawl <= this.handledRequestsCount;
 
-        this.autoscaledPoolOptions = {
-            maxMemoryMbytes,
-            maxConcurrency,
+        const { isFinishedFunction } = autoscaledPoolOptions;
+        const basicCrawlerAutoscaledPoolConfiguration = {
             minConcurrency,
-            minFreeMemoryRatio,
+            maxConcurrency,
             runTaskFunction: async () => {
                 if (!this.isRunning) return null;
 
@@ -161,8 +145,9 @@ export default class BasicCrawler {
                     ? isFinishedFunction()
                     : this._defaultIsFinishedFunction();
             },
-            ignoreMainProcess,
         };
+
+        this.autoscaledPoolOptions = _.defaults(basicCrawlerAutoscaledPoolConfiguration, autoscaledPoolOptions);
     }
 
     /**
@@ -175,26 +160,26 @@ export default class BasicCrawler {
 
         this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions);
         this.isRunning = true;
-        this.rejectOnStopPromise = new Promise((r, reject) => { this.rejectOnStop = reject; });
+        this.rejectOnAbortPromise = new Promise((r, reject) => { this.rejectOnAbort = reject; });
         this.isRunningPromise = this.autoscaledPool.run();
         try {
             await this.isRunningPromise;
             this.isRunning = false;
         } catch (err) {
             this.isRunning = false; // Doing this before rejecting to make sure it's set when error handlers fire.
-            this.rejectOnStop(err);
+            this.rejectOnAbort(err);
         }
     }
 
     /**
-     * Stops the crawler by preventing additional requests and terminating the running ones.
+     * Aborts the crawler by preventing additional requests and terminating the running ones.
      *
      * @return {Promise}
      */
     async abort() {
         this.isRunning = false;
         await this.autoscaledPool.abort();
-        this.rejectOnStop(new Error('BasicCrawler: .stop() function has been called. Stopping the crawler.'));
+        this.rejectOnAbort(new Error('BasicCrawler: .abort() function has been called. Aborting the crawler.'));
     }
 
     /**
@@ -238,9 +223,9 @@ export default class BasicCrawler {
         if (!request) return;
 
         try {
-            // rejectOnStopPromise rejects when .stop() is called or AutoscaledPool throws.
+            // rejectOnAbortPromise rejects when .abort() is called or AutoscaledPool throws.
             // All running tasks are therefore terminated with an error to be reclaimed and retried.
-            await Promise.race([this.handleRequestFunction({ request }), this.rejectOnStopPromise]);
+            await Promise.race([this.handleRequestFunction({ request }), this.rejectOnAbortPromise]);
             await source.markRequestHandled(request);
             this.handledRequestsCount++;
         } catch (err) {
@@ -288,7 +273,7 @@ export default class BasicCrawler {
      * @ingore
      */
     async _requestFunctionErrorHandler(error, request, source) {
-        // Handles case where the crawler was deliberately stopped.
+        // Handles case where the crawler was aborted.
         // All running requests are reclaimed and will be retried.
         if (!this.isRunning) return source.reclaimRequest(request);
 

@@ -158,6 +158,23 @@ export const sum = arr => arr.reduce((total, c) => total + c, 0);
 export const avg = arr => sum(arr) / arr.length;
 
 /**
+ * Computes a weighted average of an array of numbers, complemented by an array of weights.
+ * @param {Array} arrValues
+ * @param {Array} arrWeights
+ * @return {number}
+ */
+export const weightedAvg = (arrValues, arrWeights) => {
+    const result = arrValues.map((value, i) => {
+        const weight = arrWeights[i];
+        const sum = value * weight; // eslint-disable-line no-shadow
+
+        return [sum, weight];
+    }).reduce((p, c) => [p[0] + c[0], p[1] + c[1]], [0, 0]);
+
+    return result[0] / result[1];
+};
+
+/**
  * Returns memory statistics of the process and the system, which is an object with the following properties:
  *
  * ```javascript

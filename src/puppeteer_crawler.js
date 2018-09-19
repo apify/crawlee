@@ -212,28 +212,28 @@ export default class PuppeteerCrawler {
 
         this.puppeteerPool = new PuppeteerPool(this.puppeteerPoolOptions);
         this.isRunning = true;
-        this.rejectOnStopPromise = new Promise((r, reject) => { this.rejectOnStop = reject; });
+        this.rejectOnAbortPromise = new Promise((r, reject) => { this.rejectOnAbort = reject; });
         try {
             this.isRunningPromise = this.basicCrawler.run();
             await this.isRunningPromise;
             this.isRunning = false;
         } catch (err) {
             this.isRunning = false; // Doing this before rejecting to make sure it's set when error handlers fire.
-            this.rejectOnStop(err);
+            this.rejectOnAbort(err);
         } finally {
             this.puppeteerPool.destroy();
         }
     }
 
     /**
-     *  Stops the crawler by preventing crawls of additional pages and terminating the running ones.
+     * Stops the crawler by preventing crawls of additional pages and terminating the running ones.
      *
      * @return {Promise}
      */
     async abort() {
         this.isRunning = false;
         await this.basicCrawler.abort();
-        this.rejectOnStop(new Error('PuppeteerCrawler: .stop() function has been called. Stopping the crawler.'));
+        this.rejectOnAbort(new Error('PuppeteerCrawler: .abort() function has been called. Aborting the crawler.'));
     }
 
     /**
@@ -256,9 +256,9 @@ export default class PuppeteerCrawler {
                     ]);
                 });
 
-            // rejectOnStopPromise rejects when .stop() is called or BasicCrawler throws.
+            // rejectOnAbortPromise rejects when .abort() is called or BasicCrawler throws.
             // All running pages are therefore terminated with an error to be reclaimed and retried.
-            return await Promise.race([pageOperationsPromise, this.rejectOnStopPromise]);
+            return await Promise.race([pageOperationsPromise, this.rejectOnAbortPromise]);
         } finally {
             try {
                 await Promise.race([page.close(), createTimeoutPromise(PAGE_CLOSE_TIMEOUT_MILLIS, 'Operation timed out.')]);

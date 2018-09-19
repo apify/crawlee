@@ -45,7 +45,7 @@ describe('BasicCrawler', () => {
         await basicCrawler.run();
 
         expect(processed).to.be.eql(sources);
-        expect(Date.now() - startedAt).to.be.within(200, 400);
+        expect(Date.now() - startedAt).to.be.within(200, 500);
         expect(await requestList.isFinished()).to.be.eql(true);
         expect(await requestList.isEmpty()).to.be.eql(true);
     });
@@ -392,14 +392,16 @@ describe('BasicCrawler', () => {
 
         const basicCrawler = new Apify.BasicCrawler({
             requestQueue,
-            minConcurrency: 1,
-            maxConcurrency: 1,
+            autoscaledPoolOptions: {
+                minConcurrency: 1,
+                maxConcurrency: 1,
+                isFinishedFunction: () => {
+                    return Promise.resolve(isFinished);
+                },
+            },
             handleRequestFunction: async ({ request }) => {
                 await delayPromise(10);
                 processed.push(request);
-            },
-            isFinishedFunction: () => {
-                return Promise.resolve(isFinished);
             },
         });
 

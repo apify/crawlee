@@ -7,6 +7,7 @@ import BasicCrawler from './basic_crawler';
 import { createTimeoutPromise } from './utils';
 
 const DEFAULT_OPTIONS = {
+    requestTimeoutSecs: 30,
     handlePageTimeoutSecs: 300,
     ignoreSslErrors: false,
     handleFailedRequestFunction: ({ request }) => {
@@ -15,7 +16,6 @@ const DEFAULT_OPTIONS = {
         log.error('CheerioCrawler: Request failed and reached maximum retries', details);
     },
 };
-
 
 /**
  * Builds upon the `BasicCrawler` with functionality specifically designed for parsing raw HTML
@@ -29,8 +29,10 @@ const DEFAULT_OPTIONS = {
  *
  * `CheerioCrawler` invokes `handlePageFunction` for each `Request` object fetched from `options.requestList` or `options.requestQueue`,
  * as long as none of them is empty. New requests are only handled if there is enough free CPU and memory available,
- * using the functionality provided by the `AutoscaledPool` class.
- * Note that all `AutoscaledPool` configuration options can be passed to `options` parameter of the `CheerioCrawler` constructor.
+ * using the functionality provided by the `AutoscaledPool` class. See <a href="#AutoscaledPool">AutoscaledPool documentation</a>.
+ *
+ * All `AutoscaledPool` configuration options can be passed to the `autoscaledPoolOptions` parameter
+ * of the `CheerioCrawler` constructor. The `minConcurrency` and `maxConcurrency` options are available directly.
  *
  * If both `requestList` and `requestQueue` are used, the instance first
  * processes URLs from the `requestList` and automatically enqueues all of them to `requestQueue` before it starts
@@ -39,8 +41,6 @@ const DEFAULT_OPTIONS = {
  * Example usage:
  *
  * ```javascript
- * const rp = require('request-promise');
- *
  * // Prepare a list of URLs to crawl
  * const requestList = new Apify.RequestList({
  *   sources: [
@@ -75,75 +75,52 @@ const DEFAULT_OPTIONS = {
  * ```
  *
  * @param {Object} options
+ * @param {Function} options.handlePageFunction
+ *   A function that receives three arguments: the Cheerio object `$`, the raw HTML and the `Request` object and does all the document manipulation.
+ *   If it returns a promise, it is awaited.
+ *
+ * @param {Function} [options.requestFunction]
+ *   Overrides the function that performs the HTTP request to get the raw HTML needed for Cheerio.
+ *   See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/cheerio_crawler.js#L246">GitHub</a> for default behavior.
  * @param {RequestList} [options.requestList]
  *   Static list of URLs to be processed.
  * @param {RequestQueue} [options.requestQueue]
  *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
- * @param {Function} [options.handlePageFunction]
- *   A function that receives three arguments: the Cheerio object `$`, the raw HTML and the `Request` object and does all the document manipulation.
- *   If it returns a promise, it is awaited.
  * @param {Number} [options.handlePageTimeoutSecs=300]
  *   Timeout in which the function passed as `options.handlePageFunction` needs to finish, given in seconds.
- * @param {Function} [options.requestFunction=({ request }) => {
- *      return requestPromise({
- *          url: request.url,
- *          method: request.method,
- *          headers: request.headers,
- *          strictSSL: !this.ignoreSslErrors,
- *      });
- *  }]
- *   Overrides the function that performs the HTTP request to get the raw HTML needed for Cheerio.
+ * @param {Number} [options.requestTimeoutSecs=30]
+ *   Timeout in which the function passed as `options.requestFunction` needs to finish, given in seconds.
  * @param {Boolean} [options.ignoreSslErrors=false]
  *   If set to true, SSL certificate errors will be ignored. This is dependent on using the default
  *   request function. If using a custom request function, user needs to implement this functionality.
- * @param {Function} [options.handleFailedRequestFunction=({ request }) => {
- *      const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
- *      log.error('BasicCrawler: Request failed and reached maximum retries', details);]
+ * @param {Function} [options.handleFailedRequestFunction]
  *   Function that handles requests that failed more then `option.maxRequestRetries` times.
+ *   See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/cheerio_crawler.js#L12">GitHub</a> for default behavior.
  * @param {Number} [options.maxRequestRetries=3]
  *   How many times the request is retried if either `requestFunction` or `handlePageFunction` failed.
  * @param {Number} [options.maxRequestsPerCrawl]
  *   Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached.
  *   Always set this value in order to prevent infinite loops in misconfigured crawlers.
  *   Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.
- * @param {Number} [options.maxMemoryMbytes]
- *   Maximum memory available in the system
- *   See `AutoscaledPool` for details.
- * @param {Number} [options.minConcurrency=1]
- *   Minimum number of request to process in parallel.
- *   See `AutoscaledPool` for details.
- * @param {Number} [options.maxConcurrency=1000]
- *   Maximum number of request to process in parallel.
- *   See `AutoscaledPool` for details.
- * @param {Number} [options.minFreeMemoryRatio=0.2]
- *   Minimum ratio of free memory kept in the system.
- *   See `AutoscaledPool` for details.
- * @param {Function} [opts.isFinishedFunction]
- *   By default CheerioCrawler finishes when all the requests have been processed.
- *   You can override this behaviour by providing custom `isFinishedFunction`.
- *   This function that is called every time there are no requests being processed.
- *   If it resolves to `true` then the crawler's run finishes.
- *   See `AutoscaledPool` for details.
- * @param {Boolean} [options.ignoreMainProcess=false]
- *   If set to `true` then the auto-scaling manager does not consider memory consumption
- *   of the main Node.js process when scaling the pool up or down.
- *   This is mainly useful when tasks are running as separate processes (e.g. web browsers).
- *   See `AutoscaledPool` for details.
+ * @param {Object} [options.autoscaledPoolOptions]
+ *   Configures the AutoscaledPool. See <a href="#AutoscaledPool">AutoscaledPool documentation</a>.
+ * @param {Object} [options.minConcurrency]
+ *   Sets the minimal concurrency (parallelism) for the crawl. Shorthand to the AutoscaledPool option.
+ * @param {Object} [options.maxConcurrency]
+ *   Sets the maximal concurrency (parallelism) for the crawl. Shorthand to the AutoscaledPool option.
  */
 export default class CheerioCrawler {
-    constructor(opts) {
+    constructor(opts = {}) {
         const {
             requestFunction,
             handlePageFunction,
+            requestTimeoutSecs,
             handlePageTimeoutSecs,
             ignoreSslErrors,
 
-            // Autoscaled pool options
-            maxMemoryMbytes,
-            maxConcurrency,
+            // Autoscaled pool shorthands
             minConcurrency,
-            minFreeMemoryRatio,
-            isFinishedFunction,
+            maxConcurrency,
 
             // Basic crawler options
             requestList,
@@ -151,11 +128,14 @@ export default class CheerioCrawler {
             maxRequestRetries,
             maxRequestsPerCrawl,
             handleFailedRequestFunction,
+            autoscaledPoolOptions,
         } = _.defaults(opts, DEFAULT_OPTIONS);
 
         checkParamOrThrow(handlePageFunction, 'opts.handlePageFunction', 'Function');
         checkParamOrThrow(requestFunction, 'opts.requestFunction', 'Maybe Function');
-        checkParamOrThrow(handleFailedRequestFunction, 'opts.handleFailedRequestFunction', 'Maybe Function');
+        checkParamOrThrow(requestTimeoutSecs, 'opts.requestTimeoutSecs', 'Number');
+        checkParamOrThrow(handlePageTimeoutSecs, 'opts.handlePageTimeoutSecs', 'Number');
+        checkParamOrThrow(ignoreSslErrors, 'opts.ignoreSslErrors', 'Boolean');
 
         this.ignoreSslErrors = ignoreSslErrors;
 
@@ -167,7 +147,8 @@ export default class CheerioCrawler {
                 : this._defaultRequestFunction({ request });
         };
         this.handlePageFunction = handlePageFunction;
-        this.handlePageTimeoutSecs = handlePageTimeoutSecs;
+        this.handlePageTimeoutMillis = handlePageTimeoutSecs * 1000;
+        this.requestTimeoutMillis = requestTimeoutSecs * 1000;
 
         this.basicCrawler = new BasicCrawler({
             // Basic crawler options.
@@ -179,12 +160,9 @@ export default class CheerioCrawler {
             handleFailedRequestFunction,
 
             // Autoscaled pool options.
-            maxMemoryMbytes,
-            maxConcurrency,
             minConcurrency,
-            minFreeMemoryRatio,
-            isFinishedFunction,
-            ignoreMainProcess: true,
+            maxConcurrency,
+            autoscaledPoolOptions,
         });
     }
 
@@ -197,26 +175,26 @@ export default class CheerioCrawler {
         if (this.isRunning) return this.isRunningPromise;
 
         this.isRunning = true;
-        this.rejectOnStopPromise = new Promise((r, reject) => { this.rejectOnStop = reject; });
+        this.rejectOnAbortPromise = new Promise((r, reject) => { this.rejectOnAbort = reject; });
         try {
             this.isRunningPromise = this.basicCrawler.run();
             await this.isRunningPromise;
             this.isRunning = false;
         } catch (err) {
             this.isRunning = false; // Doing this before rejecting to make sure it's set when error handlers fire.
-            this.rejectOnStop(err);
+            this.rejectOnAbort(err);
         }
     }
 
     /**
-     * Stops the crawler by preventing crawls of additional pages and terminating the running ones.
+     * Aborts the crawler by preventing crawls of additional pages and terminating the running ones.
      *
      * @return {Promise}
      */
     async abort() {
         this.isRunning = false;
         await this.basicCrawler.abort();
-        this.rejectOnStop(new Error('CheerioCrawler: .stop() function has been called. Stopping the crawler.'));
+        this.rejectOnAbort(new Error('CheerioCrawler: .abort() function has been called. Aborting the crawler.'));
     }
 
     /**
@@ -227,16 +205,19 @@ export default class CheerioCrawler {
     async _handleRequestFunction({ request }) {
         if (!this.isRunning) throw new Error('CheerioCrawler is stopped.');
 
-        const html = await this.requestFunction({ request });
-        const $ = cheerio.load(html);
-        const pageHandledOrTimedOutPromise = Promise.race([
-            this.handlePageFunction({ $, html, request }),
-            createTimeoutPromise(this.handlePageTimeoutSecs * 1000, 'CheerioCrawler: handlePageFunction timed out.'),
-        ]);
-
-        // rejectOnStopPromise rejects when .stop() is called or BasicCrawler throws.
+        // rejectOnAbortPromise rejects when .abort() is called or BasicCrawler throws.
         // All running pages are therefore terminated with an error to be reclaimed and retried.
-        return Promise.race([pageHandledOrTimedOutPromise, this.rejectOnStopPromise]);
+        const html = await Promise.race([
+            this.requestFunction({ request }),
+            createTimeoutPromise(this.requestTimeoutMillis, 'CheerioCrawler: requestFunction timed out.'),
+            this.rejectOnAbortPromise,
+        ]);
+        const $ = cheerio.load(html);
+        await Promise.race([
+            this.handlePageFunction({ $, html, request }),
+            createTimeoutPromise(this.handlePageTimeoutMillis, 'CheerioCrawler: handlePageFunction timed out.'),
+            this.rejectOnAbortPromise,
+        ]);
     }
 
     /**
@@ -253,7 +234,7 @@ export default class CheerioCrawler {
                 headers: request.headers,
                 strictSSL: !this.ignoreSslErrors,
             }),
-            this.rejectOnStopPromise,
+            this.rejectOnAbortPromise,
         ]);
     }
 }
