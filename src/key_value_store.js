@@ -185,7 +185,8 @@ export class KeyValueStore {
     }
 
     /**
-     * Deletes the store.
+     * Removes the key-value store either from the Apify cloud storage or from the local directory,
+     * depending on the mode of operation.
      *
      * @return {Promise}
      */

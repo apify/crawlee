@@ -213,27 +213,42 @@ export class Dataset {
     /**
      * Returns items in the dataset based on the provided parameters.
      *
-     * If format is `json` then doesn't return an array of records but <a href="#PaginationList">PaginationList</a> instead.
+     * If format is `json` then the function doesn't return an array of records but {@linkcode PaginationList} instead.
      *
      * @param {Object} options
-     * @param {String} [options.format='json'] - Format of the items, possible values are: json, csv, xlsx, html, xml and rss.
-     * @param {Number} [options.offset=0] - Number of array elements that should be skipped at the start.
-     * @param {Number} [options.limit=250000] - Maximum number of array elements to return.
-     * @param {Number} [options.desc] - If 1 then the objects are sorted by createdAt in descending order.
-     * @param {Array} [options.fields] - If provided then returned objects will only contain specified keys
-     * @param {String} [options.unwind] - If provided then objects will be unwound based on provided field.
-     * @param {Boolean} [options.disableBodyParser] - If true then response from API will not be parsed
-     * @param {Number} [options.attachment] - If 1 then the response will define the Content-Disposition: attachment header, forcing a web
-     *                                        browser to download the file rather than to display it. By default this header is not present.
-     * @param {String} [options.delimiter=','] - A delimiter character for CSV files, only used if format=csv. You might need to URL-encode
-     *                                           the character (e.g. use %09 for tab or %3B for semicolon).
-     * @param {Number} [options.bom] - All responses are encoded in UTF-8 encoding. By default, the csv files are prefixed with the UTF-8 Byte
-     *                                 Order Mark (BOM), while json, jsonl, xml, html and rss files are not. If you want to override this default
-     *                                 behavior, specify bom=1 query parameter to include the BOM or bom=0 to skip it.
-     * @param {String} [options.xmlRoot] - Overrides default root element name of xml output. By default the root element is results.
-     * @param {String} [options.xmlRow] - Overrides default element name that wraps each page or page function result object in xml output.
-     *                                    By default the element name is page or result based on value of simplified parameter.
-     * @param {Number} [options.skipHeaderRow] - If set to `1` then header row in csv format is skipped.
+     * @param {String} [options.format='json']
+     *   Format of the items, possible values are: `json`, `csv`, `xlsx`, `html`, `xml` and `rss`.
+     * @param {Number} [options.offset=0]
+     *   Number of array elements that should be skipped at the start.
+     * @param {Number} [options.limit=250000]
+     *   Maximum number of array elements to return.
+     * @param {Boolean} [options.desc]
+     *   If `true` then the objects are sorted by `createdAt` in descending order.
+     *   Otherwise they are sorted in ascending order.
+     * @param {Array} [options.fields]
+     *   An array of field names that will be included in the result. If omitted, all fields are included in the results.
+     * @param {String} [options.unwind]
+     *   Specifies a name of the field in the result objects that will be used to unwind the resulting objects.
+     *   By default, the results are returned as they are.
+     * @param {Boolean} [options.disableBodyParser]
+     *   If `true` then response from API will not be parsed.
+     * @param {Number} [options.attachment]
+     *   If `true` then the response will define the `Content-Disposition: attachment` HTTP header, forcing a web
+     *   browser to download the file rather than to display it. By default, this header is not present.
+     * @param {String} [options.delimiter=',']
+     *   A delimiter character for CSV files, only used if `format` is `csv`.
+     *   You might need to URL-encode the character (e.g. use `%09` for tab or `%3B` for semicolon).
+     * @param {Number} [options.bom]
+     *   All responses are encoded in UTF-8 encoding. By default, the CSV files are prefixed with the UTF-8 Byte
+     *   Order Mark (BOM), while JSON, JSONL, XML, HTML and RSS files are not. If you want to override this default
+     *   behavior, set `bom` option to `true` to include the BOM, or set `bom` to `false` to skip it.
+     * @param {String} [options.xmlRoot]
+     *   Overrides the default root element name of the XML output. By default, the root element is `results`.
+     * @param {String} [options.xmlRow]
+     *   Overrides the default element name that wraps each page or page function result object in XML output.
+     *   By default, the element name is `page` or `result`, depending on the value of the `simplified` option.
+     * @param {Number} [options.skipHeaderRow]
+     *   If set to `1` then header row in csv format is skipped.
      * @return {Promise}
      */
     getData(opts = {}) {
@@ -268,15 +283,15 @@ export class Dataset {
     }
 
     /**
-     * Iterates over the all dataset items, yielding each in turn to an iteratee function.
-     * Each invocation of iteratee is called with three arguments: (element, index).
+     * Iterates over dataset items, yielding each in turn to an `iteratee` function.
+     * Each invocation of `iteratee` is called with three arguments: `(element, index)`.
      *
-     * If iteratee returns a Promise then it's awaited before a next call.
+     * If `iteratee` returns a Promise then it is awaited before a next call.
      *
      * @param {Function} iteratee
      * @param {Opts} opts
      * @param {Number} [options.offset=0] - Number of array elements that should be skipped at the start.
-     * @param {Number} [options.desc] - If 1 then the objects are sorted by createdAt in descending order.
+     * @param {Number} [options.desc] - If `1` then the objects are sorted by `createdAt` in descending order.
      * @param {Array} [options.fields] - If provided then returned objects will only contain specified keys
      * @param {String} [options.unwind] - If provided then objects will be unwound based on provided field.
      * @param {Number} [options.limit=250000] - How many items to load in one request.
@@ -307,10 +322,10 @@ export class Dataset {
     }
 
     /**
-     * Produces a new array of values by mapping each value in list through a transformation function (iteratee).
-     * Each invocation of iteratee is called with three arguments: (element, index).
+     * Produces a new array of values by mapping each value in list through a transformation function (`iteratee`).
+     * Each invocation of `iteratee` is called with three arguments: `(element, index)`.
      *
-     * If iteratee returns a Promise then it's awaited before a next call.
+     * If `iteratee` returns a `Promise` then it's awaited before a next call.
      *
      * @param {Function} iteratee
      * @param {Opts} opts
@@ -381,7 +396,8 @@ export class Dataset {
     }
 
     /**
-     * Deletes the dataset.
+     * Removes the dataset either from the Apify cloud storage or from the local directory,
+     * depending on the mode of operation.
      *
      * @return {Promise}
      */
