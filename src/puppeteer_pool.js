@@ -65,10 +65,16 @@ class PuppeteerInstance {
 }
 
 /**
- * Manages a pool of Chrome browser instances controlled by [Puppeteer](https://github.com/GoogleChrome/puppeteer).
- * `PuppeteerPool` rotates Chrome instances to change proxies
- * and other settings, in order to prevent detection of your web scraping bot,
+ * Manages a pool of Chrome browser instances controlled using [Puppeteer](https://github.com/GoogleChrome/puppeteer).
+ * `PuppeteerPool` reuses Chrome instances and tabs using specific
+ * browser rotation and retirement policies.
+ * This is useful in order to facilitate rotation of proxies, cookies
+ * or other settings in order to prevent detection of your web scraping bot,
  * access web pages from various countries etc.
+ * Additionally, the reuse of browser instances instances speeds up crawling,
+ * and the retirement of instances helps mitigate effects of memory leaks in Chrome.
+ *
+ * `PuppeteerPool` is internally used by the {@link PuppeteerCrawler|`PuppeteerCrawler`} class.
  *
  * Example usage:
  *
@@ -86,7 +92,7 @@ class PuppeteerInstance {
  * const page2 = await puppeteerPool.newPage();
  * const page3 = await puppeteerPool.newPage();
  *
- * // ... do something with pages ...
+ * // ... do something with the pages ...
  *
  * // Close all browsers.
  * await puppeteerPool.destroy();

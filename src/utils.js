@@ -159,9 +159,10 @@ export const avg = arr => sum(arr) / arr.length;
 
 /**
  * Computes a weighted average of an array of numbers, complemented by an array of weights.
+ *
  * @param {Array} arrValues
  * @param {Array} arrWeights
- * @return {number}
+ * @return {Number}
  */
 export const weightedAvg = (arrValues, arrWeights) => {
     const result = arrValues.map((value, i) => {

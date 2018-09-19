@@ -127,6 +127,7 @@ export const maybeStringify = (value, options) => {
  * ```
  *
  * @param {String} storeId - ID of the key-value store.
+ * @hideconstructor
  */
 export class KeyValueStore {
     constructor(storeId) {
@@ -184,7 +185,8 @@ export class KeyValueStore {
     }
 
     /**
-     * Deletes the store.
+     * Removes the key-value store either from the Apify cloud storage or from the local directory,
+     * depending on the mode of operation.
      *
      * @return {Promise}
      */
@@ -452,7 +454,7 @@ export const getValue = key => openKeyValueStore().then(store => store.getValue(
  * will get extension based on it's content type. This feature is useful for local development and debugging
  * of your actors.
  *
- * **IMPORTANT:** Do not forget to use the `await` keyword when calling `Apify.setValue()`,
+ * **IMPORTANT:** Make sure to use the `await` keyword when calling `Apify.setValue()`,
  * otherwise the actor process might finish before the value is stored!
  *
  * @param key Key of the record

@@ -17,19 +17,25 @@ const DEFAULT_OPTIONS = {
 
 /**
  * Provides a simple framework for parallel crawling of web pages,
- * whose URLs are fed either from a static list (using the `RequestList` class)
- * or from a dynamic queue of URLs (using the `RequestQueue` class).
+ * whose URLs are fed either from a static list
+ * or from a dynamic queue of URLs.
  *
- * `BasicCrawler` invokes `handleRequestFunction` for each `Request` object fetched from `options.requestList` or `options.requestQueue`,
- * as long as any of them is not empty. New requests are only handled if there is enough free CPU and memory available,
- * using the functionality provided by the `AutoscaledPool` class. See <a href="#AutoscaledPool">AutoscaledPool documentation</a>.
- *
- * All `AutoscaledPool` configuration options can be passed to the `autoscaledPoolOptions` parameter
- * of the `CheerioCrawler` constructor. The `minConcurrency` and `maxConcurrency` options are available directly.
+ * `BasicCrawler` invokes the user-provided `handleRequestFunction` for each {@link Request|`Request`}
+ * object, which corresponds to a single URL to crawl.
+ * The `Request` objects are fed from the {@link RequestList|`RequestList`} or {@link RequestQueue|`RequestQueue`}
+ * instances provided by the `requestList` or `requestQueue` constructor options, respectively.
  *
  * If both `requestList` and `requestQueue` is used, the instance first
- * processes URLs from the `requestList` and automatically enqueues all of them to `requestQueue` before it starts
- * their processing. This guarantees that a single URL is not crawled multiple times.
+ * processes URLs from the `RequestList` and automatically enqueues all of them to `RequestQueue` before it starts
+ * their processing. This ensures that a single URL is not crawled multiple times.
+ *
+ * The crawler finishes if there are no more `Request` objects to crawl.
+ *
+ * New requests are only launched if there is enough free CPU and memory available,
+ * using the functionality provided by the {@link AutoscaledPool|`AutoscaledPool`} class.
+ * All `AutoscaledPool` configuration options can be passed to the `autoscaledPoolOptions` parameter
+ * of the `CheerioCrawler` constructor.
+ * For user convenience, the `minConcurrency` and `maxConcurrency` options are available directly in the constructor.
  *
  * Example usage:
  *
@@ -62,9 +68,16 @@ const DEFAULT_OPTIONS = {
  * ```
  *
  * @param {Object} options
- * @param {Function} options.handleRequestFunction
- *   Function that processes a single `Request` object. It must return a promise.
+ * @param {Function} [options.handleRequestFunction]
+ *   User-provided function that performs the logic of the crawler. It is called for each URL to crawl.
  *
+ *   The function that receives an object as argument, with the following field:
+ *
+ *   <ul>
+ *     <li>`request`: the {@link Request|`Request`} object representing the URL to crawl</li>
+ *   </ul>
+ *
+ *   The function must return a promise.
  * @param {RequestList} [options.requestList]
  *   Static list of URLs to be processed.
  * @param {RequestQueue} [options.requestQueue]
@@ -79,13 +92,16 @@ const DEFAULT_OPTIONS = {
  *   Always set this value in order to prevent infinite loops in misconfigured crawlers.
  *   Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.
  * @param {Object} [options.autoscaledPoolOptions]
- *   Configures the AutoscaledPool. See <a href="#AutoscaledPool">AutoscaledPool documentation</a>.
- *   runTaskFunction(), isTaskReadyFunction() and isFinishedFunction() are provided by BasicCrawler.
- * @param {Object} [options.minConcurrency=1]
- *   Sets the minimal concurrency (parallelism) for the crawl. Shorthand to the AutoscaledPool option.
- * @param {Object} [options.maxConcurrency=1000]
- *   Sets the maximal concurrency (parallelism) for the crawl. Shorthand to the AutoscaledPool option.
-
+ *   Custom options passed to the underlying {@link AutoscaledPool|`AutoscaledPool`} instance constructor.
+ *   Note that the `runTaskFunction`, `isTaskReadyFunction` and `isFinishedFunction` options
+ *   are provided by `BasicCrawler` and cannot be overridden.
+ * @param {Object} [options.minConcurrency]
+ *   Sets the minimum concurrency (parallelism) for the crawl. hortcut to the corresponding `AutoscaledPool` option.
+ * @param {Object} [options.maxConcurrency]
+ *   Sets the maximum concurrency (parallelism) for the crawl. hortcut to the corresponding `AutoscaledPool` option.
+ *
+ * @see {@link CheerioCrawler}
+ * @see {@link PuppeteerCrawler}
  */
 export default class BasicCrawler {
     constructor(opts) {
@@ -270,7 +286,7 @@ export default class BasicCrawler {
      * @param {Request} request
      * @param {RequestList|RequestQueue} source
      * @return {Boolean} willBeRetried
-     * @ingore
+     * @ignore
      */
     async _requestFunctionErrorHandler(error, request, source) {
         // Handles case where the crawler was aborted.

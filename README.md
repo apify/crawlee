@@ -70,8 +70,11 @@ But eventually things will get complicated, for example when you try to:
 * ...
 
 In Python you can use [Scrapy](https://scrapy.org/) for these tasks, but there was no
-such library for JavaScript, **THE language of the web**.
-The goal of Apify SDK is to provide a toolbox
+such library for **JavaScript, the language of the web**.
+The use of JavaScript is natural,
+since the same language is used to write the scripts as well as the data extraction code running in browser.
+
+The goal of Apify SDK is to fill this gap and provide a toolbox
 for generic web scraping, crawling and automation tasks in JavaScript.
 Don't reinvent the wheel every time you need data from the web,
 and focus on writing the code specific to the target website, rather than developing commonalities.
@@ -82,45 +85,45 @@ The Apify SDK is available as the <a href="https://www.npmjs.com/package/apify">
 
 <ul>
   <li>
-    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#BasicCrawler">BasicCrawler</a>
+    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#BasicCrawler"><code>BasicCrawler</code></a>
     - Provides a simple framework for parallel crawling of web pages,
     whose URLs are fed either from a static list or from a dynamic queue of URLs.
     This class serves as a base for more complex crawlers (see below).
   </li>
   <li>
-    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#CheerioCrawler">CheerioCrawler</a>
+    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#CheerioCrawler"><code>CheerioCrawler</code></a>
     - Enables parallel crawling of large number of web pages
     using <a href="https://www.npmjs.com/package/cheerio" target="_blank">cheerio</a>
     HTML parser.
     This is the most efficient web crawler, but it does not work on websites that require JavaScript.
   </li>
   <li>
-    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerCrawler">PuppeteerCrawler</a>
-    - Enables parallel crawling of large number of web pages using headless Chrome browser
+    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerCrawler"><code>PuppeteerCrawler</code></a>
+    - Enables parallel crawling of large number of web pages using headless Chrome
     and <a href="https://github.com/GoogleChrome/puppeteer">Puppeteer</a>.
-    The pool of Chrome processes is automatically scaled up and down based on available system resources.
+    The pool of Chrome browsers is automatically scaled up and down based on available system resources.
   </li>
   <li>
-    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerPool">PuppeteerPool</a>
+    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerPool"><code>PuppeteerPool</code></a>
     - Provides web browser tabs for user jobs
     from an automatically-managed pool of Chrome browser instances, with configurable browser recycling and retirement policies.
     Supports reuse of the disk cache to speed up crawling of websites and reduce proxy bandwidth.
   </li>
   <li>
-    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList">RequestList</a>
+    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList"><code>RequestList</code></a>
     - Represents a list of URLs to crawl. The URLs can be passed in code or in a text file hosted on the web.
     The list persists its state so that the crawling can resume
     when the Node.js process restarts.
   </li>
   <li>
-    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue">RequestQueue</a>
+    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue"><code>RequestQueue</code></a>
     - Represents a queue of URLs to crawl, which is stored either on local filesystem or in the cloud.
     The queue is used for deep crawling of websites, where you start with
     several URLs and then recursively follow links to other pages.
     The data structure supports both breadth-first and depth-first crawling orders.
   </li>
   <li>
-    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#Dataset">Dataset</a>
+    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#Dataset"><code>Dataset</code></a>
     - Provides a store for structured data and enables their
     export to formats like JSON, JSONL, CSV, Excel or HTML.
     The data is stored on local filesystem or in the cloud.
@@ -128,19 +131,19 @@ The Apify SDK is available as the <a href="https://www.npmjs.com/package/apify">
     like list of products or real estate offers.
   </li>
   <li>
-    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#KeyValueStore">KeyValueStore</a>
+    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#KeyValueStore"><code>KeyValueStore</code></a>
     - A simple key-value store for arbitrary data records or files, along with their MIME content type.
     It is ideal for saving screenshots of web pages, PDFs or to persist state of your crawlers.
     The data is stored on local filesystem or in the cloud.
   </li>
   <li>
-    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#AutoscaledPool" target="_blank">AutoscaledPool</a>
+    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#AutoscaledPool"><code>AutoscaledPool</code></a>
     - Runs asynchronous background tasks, while automatically adjusting the concurrency
     based on free system memory and CPU usage. This is useful for running web scraping tasks
     at maximum capacity of the system.
   </li>
   <li>
-    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerUtils" target="_blank">PuppeteerUtils</a>
+    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerUtils"><code>PuppeteerUtils</code></a>
     - Provides several helper functions useful for web scraping. For example, to inject jQuery to the web pages
     or to hide browser origin.
   </li>
@@ -189,7 +192,7 @@ The following table shows basic environment variables used by Apify SDK:
               <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#KeyValueStore">key-value stores</a>,
               <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList">request lists</a>
               and <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue">request queues</a> store their data.
-              Typically it's set to `./apify_storage`.
+              Typically it is set to <code>./apify_storage</code>.
               If omitted, you should define
               the <code>APIFY_TOKEN</code> environment variable instead.
             </td>
@@ -197,7 +200,7 @@ The following table shows basic environment variables used by Apify SDK:
           <tr>
             <td><code>APIFY_TOKEN</code></td>
             <td>
-              The API token for your Apify account. It is used to access Apify API, e.g. to access cloud storage or to run an actor in the cloud.
+              The API token for your Apify Account. It is used to access Apify API, e.g. to access cloud storage or to run an actor in the cloud.
               You can find your API token on the <a href="https://my.apify.com/account#intergrations">Account - Integrations</a> page.
               If omitted, you should define the <code>APIFY_LOCAL_STORAGE_DIR</code> environment variable instead.
             </td>
@@ -206,7 +209,7 @@ The following table shows basic environment variables used by Apify SDK:
             <td><code>APIFY_PROXY_PASSWORD</code></td>
             <td>
               Optional password to <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a> for IP address rotation.
-              If you have have an Apify account, you can find the password on the
+              If you have have an Apify Account, you can find the password on the
               <a href="https://my.apify.com/proxy" target="_blank">Proxy page</a> in the Apify app.
               This feature is optional. You can use your own proxies or no proxies at all.
             </td>
@@ -268,7 +271,7 @@ and [Apify Actor](https://www.apify.com/docs/actor) documentation.
 ### Usage on the Apify cloud platform
 
 You can also develop your web scraping project
-in an online code editor directly on the Apify cloud. You'll need to have Apify account.
+in an online code editor directly on the Apify cloud. You'll need to have Apify Account.
 Go to [Actors](https://my.apify.com/actors)
 page in the app, click <i>Create new</i> and then go to
 <i>Source</i> tab and start writing your code or paste there one of the code examples below.
@@ -283,10 +286,10 @@ It can run for a few seconds, hours or even infinitely.
 An actor can perform anything from a simple action such as filling out a web form or sending an email,
 to complex operations such as crawling an entire website and removing duplicates from a large dataset.
 
-To run an actor, you need to have an [Apify account](https://my.apify.com/).
+To run an actor, you need to have an [Apify Account](https://my.apify.com/).
 The actor execution is charged towards your account and the cost depends on
-the amount of memory allocated for the run.
-The actors can be shared in the [library](https://www.apify.com/library?&type=acts)
+the amount of memory allocated for the run and its duration.
+The actors can be shared in the [Apify Library](https://www.apify.com/library?&type=acts)
 so that other people can use them. Note that if you share your actor in the library,
 you're not charged when other people use it - its use is charged towards their account.
 
@@ -312,7 +315,7 @@ node basic_crawler.js
 ```
 
 Note that for production projects you should set either the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variable in order
-to tell the SDK how to store its data and crawling state. See [above](#local-stand-alone-usage) for details.
+to tell the SDK how to store its data and crawling state. See [Local stand-alone usage](#local-stand-alone-usage) above for details.
 
 Alternatively, if you're using the [Apify CLI](#local-usage-with-apify-command-line-interface-cli),
 you can copy and paste the source code of each of the examples into the `main.js`
@@ -472,10 +475,10 @@ Apify.main(async () => {
 This example demonstrates how to use [PuppeteerCrawler](https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerCrawler)
 in combination with [RequestList](https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList)
 and [RequestQueue](https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue) to recursively scrape
-Hacker News website (https://news.ycombinator.com) using headless Chrome / Puppeteer.
+[Hacker News](https://news.ycombinator.com) website using headless Chrome / Puppeteer.
 The crawlers starts with a single URL, finds links to next pages,
 enqueues them and continues until no more desired links are available.
-The results are stored to the default dataset. In local configuration, the results are stored as JSON files in `./apify_storage/datasets/default`
+The results are stored to the default dataset. In local configuration, the results are represented as JSON files in `./apify_storage/datasets/default`
 
 ```javascript
 const Apify = require('apify');
@@ -626,7 +629,7 @@ Apify.main(async () => {
 
 This example demonstrates how to load pages in headless Chrome / Puppeteer
 over [Apify Proxy](https://www.apify.com/docs/proxy).
-To make it work, you'll need an Apify account
+To make it work, you'll need an Apify Account
 that has access to the proxy.
 The proxy password is available on the [Proxy](https://my.apify.com/proxy) page in the app.
 Just set it to the `APIFY_PROXY_PASSWORD` environment variable

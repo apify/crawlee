@@ -117,11 +117,34 @@ const getRequestId = (uniqueKey) => {
  */
 
 /**
- * Provides a simple interface to the [Apify Request Queue](https://www.apify.com/docs/storage#queue)
- * storage, which is used to manage a dynamic queue of web pages to crawl.
+ * Represents a queue of URLs to crawl, which is used for deep crawling of websites
+ * where you start with several URLs and then recursively
+ * follow links to other pages. The data structure supports both breadth-first and depth-first crawling orders.
+ * Each URL is represented as an instance of the {@link Request|`Request`} class.
  *
- * You should not instantiate this class directly, but use the
- * [Apify.openRequestQueue()](#module-Apify-openRequestQueue) function.
+ * Do not instantiate this class directly, use the
+ * {@link Apify#openRequestQueue|`Apify.openRequestQueue()`} function instead.
+ *
+ * `RequestQueue` is used by {@link BasicCrawler|`BasicCrawler`}, {@link CheerioCrawler|`CheerioCrawler`}
+ * and {@link PuppeteerCrawler|`PuppeteerCrawler`} as a source of URLs to crawl.
+ * Unlike {@link RequestList|`RequestList`}, `RequestQueue` supports dynamic adding and removing of requests.
+ * On the other hand, the queue is not optimized for operations that add or remove a large number of URLs in a batch.
+ *
+ * `RequestQueue` stores its data either on local disk or in the Apify cloud,
+ * depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variable is set.
+ *
+ * If the `APIFY_LOCAL_STORAGE_DIR` environment variable is set, the queue data is stored in
+ * that local directory as follows:
+ * ```
+ * [APIFY_LOCAL_STORAGE_DIR]/request_queues/[QUEUE_ID]/[STATE]/[NUMBER].json
+ * ```
+ * Note that `[QUEUE_ID]` is the name or ID of the request queue. The default queue has ID `default`,
+ * unless you override it by setting the `APIFY_DEFAULT_REQUEST_QUEUE_ID` environment variable.
+ * Each request in the queue is stored as a separate JSON file, where `[STATE]` is either `handled` or `pending`,
+ * and `[NUMBER]` is an integer indicating the position of the request in the queue.
+ *
+ * If the `APIFY_TOKEN` environment variable is provided instead, the data is stored
+ * in the [Apify Request Queue](https://www.apify.com/docs/storage#queue) cloud storage.
  *
  * Example usage:
  *
@@ -145,11 +168,10 @@ const getRequestId = (uniqueKey) => {
  * // Mark a request as handled
  * await queue.markRequestHandled(request1);
  *
- * // If processing fails then reclaim the request back to the queue, so that it's crawled again
- * await  queue.reclaimRequest(request2);
+ * // If processing of a request fails then reclaim it back to the queue, so that it's crawled again
+ * await queue.reclaimRequest(request2);
  * ```
- *
- * @param {String} queueId - ID of the request queue.
+ * @hideconstructor
  */
 export class RequestQueue {
     constructor(queueId) {
@@ -213,10 +235,10 @@ export class RequestQueue {
     }
 
     /**
-     * Gets a request from the queue.
+     * Gets the request from the queue specified by ID.
      *
      * @param  {String} requestId Request ID
-     * @return {Request}
+     * @return {Promise<Request>}
      */
     getRequest(requestId) {
         validateGetRequestParams(requestId);
@@ -230,9 +252,9 @@ export class RequestQueue {
     }
 
     /**
-     * Returns next upcoming request.
+     * Returns next request in the queue to be processed.
      *
-     * @returns {Request}
+     * @returns {Promise<Request>}
      */
     fetchNextRequest() {
         return this
@@ -264,7 +286,7 @@ export class RequestQueue {
      * Marks request handled after successfull processing.
      *
      * @param {Request} request
-     * @return {RequestOperationInfo}
+     * @return {Promise<RequestOperationInfo>}
      */
     markRequestHandled(request) {
         validateMarkRequestHandledParams(request);
@@ -289,13 +311,15 @@ export class RequestQueue {
     }
 
     /**
-     * Reclaims request after unsuccessfull operation. Requests gets returned into the queue.
+     * Reclaims failed request back to the queue,
+     * so that it can be processed later again.
      *
      * @param {Request} request
      * @param {Object} [opts]
-     * @param {Boolean} [opts.forefront=false] If true then requests gets returned to the begining of the queue
-     *                                    and to the back of the queue otherwise.
-     * @return {RequestOperationInfo}
+     * @param {Boolean} [opts.forefront=false]
+     *   If true then requests gets returned to the begining of the queue
+     *   and to the back of the queue otherwise.
+     * @return {Promise<RequestOperationInfo>}
      */
     reclaimRequest(request, opts = {}) {
         const { forefront } = validateReclaimRequestParams(request, opts);
@@ -317,12 +341,13 @@ export class RequestQueue {
     }
 
     /**
-     * Returns `true` if the next call to `fetchNextRequest()` will return `null`, otherwise it returns `false`.
+     * Resolves to `true` if the next call to `fetchNextRequest()` will return `null`, otherwise it resolves to `false`.
      * Note that even if the queue is empty, there might be some pending requests currently being processed.
      *
-     * The function might occasionally return a false negative, but it should never return a false positive!
+     * Due to the nature of distributed storage systems,
+     * the function might occasionally return a false negative, but it should never return a false positive!
      *
-     * @returns {boolean}
+     * @returns {Promise<Boolean>}
      */
     isEmpty() {
         return this
@@ -331,10 +356,11 @@ export class RequestQueue {
     }
 
     /**
-     * Returns `true` if all requests were already handled and there are no more left.
-     * The function might occasionally return a false negative, but it should never return a false positive!
+     * Resolves to `true` if all requests were already handled and there are no more left.
+     * Due to the nature of distributed storage systems,
+     * the function might occasionally return a false negative, but it will never return a false positive.
      *
-     * @returns {boolean}
+     * @returns {Promise<Boolean>}
      */
     isFinished() {
         return this
@@ -470,7 +496,8 @@ export class RequestQueue {
     }
 
     /**
-     * Deletes the queue.
+     * Removes the queue either from the Apify cloud storage or from the local directory,
+     * depending on the mode of operation.
      *
      * @return {Promise}
      */
@@ -499,7 +526,7 @@ const filePathToQueueOrderNo = (filepath) => {
 };
 
 /**
- * Local implementation of the `RequestQueue` class.
+ * Local directory-based implementation of the `RequestQueue` class.
  *
  * @ignore
  */
@@ -757,43 +784,23 @@ const getOrCreateQueue = (queueIdOrName) => {
 
 /**
  * Opens a request queue and returns a promise resolving to an instance
- * of the [RequestQueue](#RequestQueue) class.
+ * of the {@link RequestQueue|`RequestQueue`} class.
  *
- * Example usage:
+ * `RequestQueue` represents a queue of URLs to crawl, which is stored either on local filesystem or in the cloud.
+ * The queue is used for deep crawling of websites, where you start with several URLs and then
+ * recursively follow links to other pages. The data structure supports both breadth-first
+ * and depth-first crawling orders.
  *
- * ```javascript
- * const queue = await Apify.openRequestQueue('my-queue-id');
+ * For more details and code examples, see the {@link RequestQueue|`RequestQueue`} class.
  *
- * // Enqueue some requests
- * await queue.addRequest(new Apify.Request({ url: 'http://example.com/aaa'});
- * await queue.addRequest(new Apify.Request({ url: 'http://example.com/bbb'});
- * await queue.addRequest(new Apify.Request({ url: 'http://example.com/foo/bar'}, { forefront: true });
- *
- * // Get requests from queue
- * const request1 = queue.fetchNextRequest();
- * const request2 = queue.fetchNextRequest();
- * const request3 = queue.fetchNextRequest();
- *
- * // Mark some of them as handled
- * queue.markRequestHandled(request1);
- *
- * // If processing fails then reclaim it back to the queue
- * queue.reclaimRequest(request2);
- * ```
- *
- * The actual data is either stored on the local disk in the directory defined by `APIFY_LOCAL_STORAGE_DIR` environment variable if provided or
- * in the Apify cloud (see [Request queue documentation](https://www.apify.com/docs/storage#queue) when actor is running on Apify
- * platform or if `APIFY_TOKEN` environment variable is set.
- *
- * @param {string} queueIdOrName ID or name of the request queue to be opened.
- * @returns {Promise<RequestQueue>} Returns a promise that resolves to a `RequestQueue` object. If no value is provided
- *                                  then the function opens the default request queue associated with the actor run.
- *
+ * @param {string} [queueIdOrName]
+ *   ID or name of the request queue to be opened. If `null` or `undefined`,
+ *   the function returns the default request queue associated with the actor run.
+ * @returns {Promise<RequestQueue>}
+ *   Returns a promise that resolves to an instance of the `RequestQueue` class.
  * @memberof module:Apify
  * @name openRequestQueue
  * @instance
- *
- * @ignore
  */
 export const openRequestQueue = (queueIdOrName) => {
     checkParamOrThrow(queueIdOrName, 'queueIdOrName', 'Maybe String');

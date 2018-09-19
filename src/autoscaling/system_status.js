@@ -68,7 +68,7 @@ export default class SystemStatus {
     /**
      * Returns true if the system has not been overloaded in the last
      * currentHistorySecs seconds, otherwise returns false.
-     * @return {boolean}
+     * @return {Boolean}
      * @ignore
      */
     getCurrentStatus() {
@@ -78,7 +78,7 @@ export default class SystemStatus {
     /**
      * Returns true if the system has not been overloaded in the full
      * history of the snapshotter (which is configurable in the snapshotter).
-     * @return {boolean}
+     * @return {Boolean}
      * @ignore
      */
     getHistoricalStatus() {
@@ -90,7 +90,7 @@ export default class SystemStatus {
      * in the last sampleDurationMillis.
      *
      * @param {Number} [sampleDurationMillis]
-     * @return {boolean}
+     * @return {Boolean}
      * @ignore
      */
     _isSystemIdle(sampleDurationMillis) {

@@ -105,13 +105,29 @@ export const chunkBySize = (items, limitBytes) => {
  */
 
 /**
- * The `Dataset` class represents an append-only data storage that is useful for saving sequential or tabular data,
- * such as a list of e-commerce products.
- * To create an instance of the `Dataset` class, call the [Apify.openDataset()](#module-Apify-openDataset) function.
+ * The `Dataset` class represents a store for structured data where each object stored has the same attributes,
+ * such as online store products or real estate offers. You can imagine it as a table,
+ * where each object is a row and its attributes are columns.
+ * Dataset is an append-only storage - you can only add new records to it but you cannot modify or remove existing records.
+ * Typically it is used to store crawling results.
  *
- * The actual data is either stored on the local disk in the directory defined by `APIFY_LOCAL_STORAGE_DIR` environment variable if provided or
- * in the Apify cloud (see [Dataset storage documentation](https://www.apify.com/docs/storage#dataset) when actor is running on Apify
- * platform or if `APIFY_TOKEN` environment variable is set.
+ * Do not instantiate this class directly, use the
+ * {@link Apify#openDataset|`Apify.openDataset()`} function instead.
+ *
+ * `Dataset` stores its data either on local disk or in the Apify cloud,
+ * depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variable is set.
+ *
+ * If the `APIFY_LOCAL_STORAGE_DIR` environment variable is set, the data is stored in
+ * the local directory in the following files:
+ * ```
+ * [APIFY_LOCAL_STORAGE_DIR]/datasets/[DATASET_ID]/[INDEX].json
+ * ```
+ * Note that `[DATASET_ID]` is the name or ID of the dataset. The default dataset has ID `default`,
+ * unless you override it by setting the `APIFY_DEFAULT_DATASET_ID` environment variable.
+ * Each dataset item is stored as a separate JSON file, where `[INDEX]` is a zero-based index of the item in the dataset.
+ *
+ * If the `APIFY_TOKEN` environment variable is provided instead, the data is stored
+ * in the [Apify Dataset](https://www.apify.com/docs/storage#dataset) cloud storage.
  *
  * Example usage:
  *
@@ -131,8 +147,7 @@ export const chunkBySize = (items, limitBytes) => {
  *   { col3: 123 },
  * ]);
  * ```
- *
- * @param {String} datasetId - ID of the dataset.
+ * @hideconstructor
  */
 export class Dataset {
     constructor(datasetId) {
@@ -142,10 +157,11 @@ export class Dataset {
     }
 
     /**
-     * Stores an object or an array of objects to the default dataset of the current actor run.
-     * The function has no result, but throws on invalid args or other errors.
+     * Stores an object or an array of objects to the dataset.
+     * The function returns a promise that resolves when the operation finishes.
+     * It has no result, but throws on invalid args or other errors.
      *
-     * **IMPORTANT**: Do not forget to use the `await` keyword when calling `Apify.pushData()`,
+     * **IMPORTANT**: Make sure to use the `await` keyword when calling `pushData()`,
      * otherwise the actor process might finish before the data is stored!
      *
      * The size of the data is limited by the receiving API and therefore `pushData` will only
@@ -197,27 +213,42 @@ export class Dataset {
     /**
      * Returns items in the dataset based on the provided parameters.
      *
-     * If format is `json` then doesn't return an array of records but <a href="#PaginationList">PaginationList</a> instead.
+     * If format is `json` then the function doesn't return an array of records but {@linkcode PaginationList} instead.
      *
      * @param {Object} options
-     * @param {String} [options.format='json'] - Format of the items, possible values are: json, csv, xlsx, html, xml and rss.
-     * @param {Number} [options.offset=0] - Number of array elements that should be skipped at the start.
-     * @param {Number} [options.limit=250000] - Maximum number of array elements to return.
-     * @param {Number} [options.desc] - If 1 then the objects are sorted by createdAt in descending order.
-     * @param {Array} [options.fields] - If provided then returned objects will only contain specified keys
-     * @param {String} [options.unwind] - If provided then objects will be unwound based on provided field.
-     * @param {Boolean} [options.disableBodyParser] - If true then response from API will not be parsed
-     * @param {Number} [options.attachment] - If 1 then the response will define the Content-Disposition: attachment header, forcing a web
-     *                                        browser to download the file rather than to display it. By default this header is not present.
-     * @param {String} [options.delimiter=','] - A delimiter character for CSV files, only used if format=csv. You might need to URL-encode
-     *                                           the character (e.g. use %09 for tab or %3B for semicolon).
-     * @param {Number} [options.bom] - All responses are encoded in UTF-8 encoding. By default, the csv files are prefixed with the UTF-8 Byte
-     *                                 Order Mark (BOM), while json, jsonl, xml, html and rss files are not. If you want to override this default
-     *                                 behavior, specify bom=1 query parameter to include the BOM or bom=0 to skip it.
-     * @param {String} [options.xmlRoot] - Overrides default root element name of xml output. By default the root element is results.
-     * @param {String} [options.xmlRow] - Overrides default element name that wraps each page or page function result object in xml output.
-     *                                    By default the element name is page or result based on value of simplified parameter.
-     * @param {Number} [options.skipHeaderRow] - If set to `1` then header row in csv format is skipped.
+     * @param {String} [options.format='json']
+     *   Format of the items, possible values are: `json`, `csv`, `xlsx`, `html`, `xml` and `rss`.
+     * @param {Number} [options.offset=0]
+     *   Number of array elements that should be skipped at the start.
+     * @param {Number} [options.limit=250000]
+     *   Maximum number of array elements to return.
+     * @param {Boolean} [options.desc]
+     *   If `true` then the objects are sorted by `createdAt` in descending order.
+     *   Otherwise they are sorted in ascending order.
+     * @param {Array} [options.fields]
+     *   An array of field names that will be included in the result. If omitted, all fields are included in the results.
+     * @param {String} [options.unwind]
+     *   Specifies a name of the field in the result objects that will be used to unwind the resulting objects.
+     *   By default, the results are returned as they are.
+     * @param {Boolean} [options.disableBodyParser]
+     *   If `true` then response from API will not be parsed.
+     * @param {Number} [options.attachment]
+     *   If `true` then the response will define the `Content-Disposition: attachment` HTTP header, forcing a web
+     *   browser to download the file rather than to display it. By default, this header is not present.
+     * @param {String} [options.delimiter=',']
+     *   A delimiter character for CSV files, only used if `format` is `csv`.
+     *   You might need to URL-encode the character (e.g. use `%09` for tab or `%3B` for semicolon).
+     * @param {Number} [options.bom]
+     *   All responses are encoded in UTF-8 encoding. By default, the CSV files are prefixed with the UTF-8 Byte
+     *   Order Mark (BOM), while JSON, JSONL, XML, HTML and RSS files are not. If you want to override this default
+     *   behavior, set `bom` option to `true` to include the BOM, or set `bom` to `false` to skip it.
+     * @param {String} [options.xmlRoot]
+     *   Overrides the default root element name of the XML output. By default, the root element is `results`.
+     * @param {String} [options.xmlRow]
+     *   Overrides the default element name that wraps each page or page function result object in XML output.
+     *   By default, the element name is `page` or `result`, depending on the value of the `simplified` option.
+     * @param {Number} [options.skipHeaderRow]
+     *   If set to `1` then header row in csv format is skipped.
      * @return {Promise}
      */
     getData(opts = {}) {
@@ -252,15 +283,15 @@ export class Dataset {
     }
 
     /**
-     * Iterates over the all dataset items, yielding each in turn to an iteratee function.
-     * Each invocation of iteratee is called with three arguments: (element, index).
+     * Iterates over dataset items, yielding each in turn to an `iteratee` function.
+     * Each invocation of `iteratee` is called with three arguments: `(element, index)`.
      *
-     * If iteratee returns a Promise then it's awaited before a next call.
+     * If `iteratee` returns a Promise then it is awaited before a next call.
      *
      * @param {Function} iteratee
      * @param {Opts} opts
      * @param {Number} [options.offset=0] - Number of array elements that should be skipped at the start.
-     * @param {Number} [options.desc] - If 1 then the objects are sorted by createdAt in descending order.
+     * @param {Number} [options.desc] - If `1` then the objects are sorted by `createdAt` in descending order.
      * @param {Array} [options.fields] - If provided then returned objects will only contain specified keys
      * @param {String} [options.unwind] - If provided then objects will be unwound based on provided field.
      * @param {Number} [options.limit=250000] - How many items to load in one request.
@@ -291,10 +322,10 @@ export class Dataset {
     }
 
     /**
-     * Produces a new array of values by mapping each value in list through a transformation function (iteratee).
-     * Each invocation of iteratee is called with three arguments: (element, index).
+     * Produces a new array of values by mapping each value in list through a transformation function (`iteratee`).
+     * Each invocation of `iteratee` is called with three arguments: `(element, index)`.
      *
-     * If iteratee returns a Promise then it's awaited before a next call.
+     * If `iteratee` returns a `Promise` then it's awaited before a next call.
      *
      * @param {Function} iteratee
      * @param {Opts} opts
@@ -322,13 +353,15 @@ export class Dataset {
     }
 
     /**
-     * Memo is the initial state of the reduction, and each successive step of it should be returned by iteratee.
-     * The iteratee is passed three arguments: the memo, then the value and index of the iteration.
+     * Boils down a list of values into a single value.
      *
-     * If no memo is passed to the initial invocation of reduce, the iteratee is not invoked on the first element of the list.
-     * The first element is instead passed as the memo in the invocation of the iteratee on the next element in the list.
+     * Memo is the initial state of the reduction, and each successive step of it should be returned by `iteratee`.
+     * The `iteratee` is passed three arguments: the `memo`, then the value and index of the iteration.
      *
-     * If iteratee returns a Promise then it's awaited before a next call.
+     * If no `memo` is passed to the initial invocation of reduce, the `iteratee` is not invoked on the first element of the list.
+     * The first element is instead passed as the memo in the invocation of the `iteratee` on the next element in the list.
+     *
+     * If `iteratee` returns a `Promise` then it's awaited before a next call.
      *
      * @param {Function} iteratee
      * @param {*} memo
@@ -363,7 +396,8 @@ export class Dataset {
     }
 
     /**
-     * Deletes the dataset.
+     * Removes the dataset either from the Apify cloud storage or from the local directory,
+     * depending on the mode of operation.
      *
      * @return {Promise}
      */
@@ -577,36 +611,19 @@ const getOrCreateDataset = (datasetIdOrName) => {
 
 
 /**
- * Opens a dataset and returns a promise resolving to an instance of the [Dataset](#Dataset) class.
+ * Opens a dataset and returns a promise resolving to an instance of the {@link Dataset|`Dataset`} class.
  *
- * Dataset is an append-only data storage that is useful for saving sequential or tabular data,
- * such as a list of e-commerce products.
- * The data can be written to the dataset using the [Dataset.pushData()](#Dataset-pushData) function.
+ * Datasets are used to store structured data where each object stored has the same attributes,
+ * such as online store products or real estate offers.
+ * The actual data is stored either on local filesystem or in the cloud.
  *
- * Example usage:
+ * For more details and code examples, see the {@link Dataset|`Dataset`} class.
  *
- * ```javascript
- * // Opens dataset called 'some-name'.
- * const dataset = await Apify.openDataset('some-name');
- *
- * // Write a single row
- * await dataset.pushData({ foo: 'bar' });
- *
- * // Write multiple rows
- * await dataset.pushData([
- *   { foo: 'bar2', col2: 'val2' },
- *   { col3: 123 },
- * ]);
- * ```
- *
- * @param {String} datasetIdOrName
- *   ID or name of the dataset to be opened. If no value is provided
- *   then the function opens the default dataset associated with the actor run,
- *   identified by the `APIFY_DEFAULT_DATASET_ID` environment variable.
- *   The full name must be specified as `username/dataset-name`.
+ * @param {string} [datasetIdOrName]
+ *   ID or name of the dataset to be opened. If `null` or `undefined`,
+ *   the function returns the default dataset associated with the actor run.
  * @returns {Promise<Dataset>}
- *   Returns a promise that resolves to an instance of the [Dataset](#Dataset) class.
- *
+ *   Returns a promise that resolves to an instance of the `Dataset` class.
  * @memberof module:Apify
  * @name openDataset
  * @instance
@@ -622,11 +639,10 @@ export const openDataset = (datasetIdOrName) => {
 };
 
 /**
- * Stores an object or an array of objects to the default dataset of the current actor run.
- * The ID of the default dataset is taken from the `APIFY_DEFAULT_DATASET_ID` environment variable.
- * The function has no result, but throws on invalid args or other errors.
+ * Stores an object or an array of objects to the default {@linkcode Dataset} of the current actor run.
  *
- * Calling
+ * This is just a convenient shortcut for {@link Dataset#pushData|`Dataset.pushData()`}.
+ * For example, calling the following code:
  * ```javascript
  * await Apify.pushData({ myValue: 123 });
  * ```
@@ -637,19 +653,15 @@ export const openDataset = (datasetIdOrName) => {
  * await dataset.pushData({ myValue: 123 });
  * ```
  *
- * The actual data is either stored on the local disk in the directory defined by `APIFY_LOCAL_STORAGE_DIR` environment variable if provided or
- * in the Apify cloud (see [Dataset storage documentation](https://www.apify.com/docs/storage#dataset) when actor is running on Apify
- * platform or if `APIFY_TOKEN` environment variable is set.
+ * For more information, see {@link Apify.openDataset|`Apify.openDataset()`} and {@linkcode Dataset#pushData|`Dataset.pushData()`}
  *
- * For more information, see
- * [Apify.openDataset()](#module-Apify-openDataset) and [Dataset.pushData()](#Dataset-pushData).
- *
- * **IMPORTANT**: Do not forget to use the `await` keyword when calling `Apify.pushData()`,
+ * **IMPORTANT**: Make sure to use the `await` keyword when calling `pushData()`,
  * otherwise the actor process might finish before the data is stored!
  *
  * @param {Object|Array} data Object or array of objects containing data to be stored in the default dataset.
  * The objects must be serializable to JSON and the JSON representation of each object must be smaller than 9MB.
  * @returns {Promise} Returns a promise that resolves once the data is saved.
+ * @see {@linkcode Dataset}
  *
  * @memberof module:Apify
  * @name pushData

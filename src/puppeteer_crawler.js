@@ -124,6 +124,9 @@ const PAGE_CLOSE_TIMEOUT_MILLIS = 30000;
  * @param {LaunchPuppeteerOptions} [options.launchPuppeteerOptions]
  *   Options used by `Apify.launchPuppeteer()` to start new Puppeteer instances.
  *   See `launchPuppeteerOptions` parameter of `PuppeteerPool`.
+ *
+ * @see {@link CheerioCrawler}
+ * @see {@link BasicCrawler}
  */
 export default class PuppeteerCrawler {
     constructor(opts) {
