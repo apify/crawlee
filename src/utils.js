@@ -162,7 +162,6 @@ export const avg = arr => sum(arr) / arr.length;
  *
  * @param {Array} arrValues
  * @param {Array} arrWeights
- *
  * @return {Number}
  */
 export const weightedAvg = (arrValues, arrWeights) => {
