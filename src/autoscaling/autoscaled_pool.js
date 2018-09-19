@@ -232,8 +232,8 @@ export default class AutoscaledPool {
         if (this.currentConcurrency >= this.desiredConcurrency) return done();
         // - system is not overloaded now
         const currentStatus = this.systemStatus.getCurrentStatus();
-        const { isSystemOk } = currentStatus;
-        if (!isSystemOk) {
+        const { isSystemIdle } = currentStatus;
+        if (!isSystemIdle) {
             log.debug('AutoscaledPool: Task will not be run. System is overloaded.', currentStatus);
             return done();
         }
@@ -289,18 +289,18 @@ export default class AutoscaledPool {
         // Only scale up if:
         // - system has not been overloaded lately.
         const systemStatus = this.systemStatus.getHistoricalStatus();
-        const { isSystemOk } = systemStatus;
+        const { isSystemIdle } = systemStatus;
         // - we're not already at max concurrency.
         const weAreNotAtMax = this.desiredConcurrency < this.maxConcurrency;
         // - current concurrency reaches at least the given ratio of desired concurrency.
         const minCurrentConcurrency = Math.floor(this.desiredConcurrency * this.desiredConcurrencyRatio);
         const weAreReachingDesiredConcurrency = this.currentConcurrency >= minCurrentConcurrency;
 
-        if (isSystemOk && weAreNotAtMax && weAreReachingDesiredConcurrency) this._scaleUp(systemStatus);
+        if (isSystemIdle && weAreNotAtMax && weAreReachingDesiredConcurrency) this._scaleUp(systemStatus);
 
         // Always scale down if:
         // - the system has been overloaded lately.
-        const isSystemOverloaded = !isSystemOk;
+        const isSystemOverloaded = !isSystemIdle;
         // - we're over min concurrency.
         const weAreNotAtMin = this.desiredConcurrency > this.minConcurrency;
 
