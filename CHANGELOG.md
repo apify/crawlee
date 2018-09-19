@@ -1,6 +1,6 @@
 xxx
 ==================
-- Update Documentation and README.
+- Updated documentation and README.
 
 0.8.0 / 2018-09-19
 ==================
@@ -13,6 +13,7 @@ xxx
 0.7.4 / 2018-09-18
 ==================
 - Bug fixes and documentation improvements.
+- Updated to apify-shared@0.0.58
 
 0.7.1 / 2018-09-14
 ==================
