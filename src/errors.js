@@ -2,7 +2,7 @@ export const APIFY_CALL_ERROR_NAME = 'ApifyCallError';
 
 /**
  * @typedef {Object} ApifyCallError
- * @property {String} message=Apify.call()&nbsp;wasn't&nbsp;succeed
+ * @property {String} message=Apify.call()&nbsp;failed
  * @property {String} name=APIFY_CALL_ERROR
  * @property {Object} run Object of the failed run.
  */
