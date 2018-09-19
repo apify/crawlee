@@ -1,7 +1,7 @@
 /**
  * This example demonstrates how to load pages in headless Chrome / Puppeteer
  * over [Apify Proxy](https://www.apify.com/docs/proxy).
- * To make it work, you'll need an Apify account
+ * To make it work, you'll need an Apify Account
  * that has access to the proxy.
  * The proxy password is available on the [Proxy](https://my.apify.com/proxy) page in the app.
  * Just set it to the `APIFY_PROXY_PASSWORD` environment variable

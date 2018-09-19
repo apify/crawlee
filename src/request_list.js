@@ -21,14 +21,24 @@ const ensureUniqueKeyValid = (uniqueKey) => {
 };
 
 /**
- * Provides way to handle a list of URLs to be crawled.
- * Each URL is represented using an instance of the `Request` class.
+ * Represents a static list of URLs to crawl.
+ * The URLs can be provided either in code or parsed from a text file hosted on the web.
+ * Each URL is represented using an instance of the {@link Request|`Request`} class.
  *
- * `RequestList` has an internal state where it remembers handled requests, requests in progress and also reclaimed requests.
- * The state might be persisted in a key-value store as shown in the example below so if an actor is restarted (due to internal
- * error or restart of the host machine) then the crawling can continue where it left off.
+ * Once you create an instance of `RequestList`, you need to call {@link RequestList#initialize|`initialize()`}
+ * before the instance can be used. After that, no more URLs can be added to the list.
  *
- * Basic usage of `RequestList`:
+ * `RequestList` is used by {@link BasicCrawler|`BasicCrawler`}, {@link CheerioCrawler|`CheerioCrawler`}
+ * and {@link PuppeteerCrawler|`PuppeteerCrawler`} as a source of URLs to crawl.
+ * Unlike {@link RequestQueue|`RequestQueue`}, `RequestList` is static but it can contain even millions of URLs.
+ *
+ * `RequestList` has an internal state where it stores information which requests were handled,
+ * which are in progress or which were reclaimed.
+ * The state might be automatically persisted to the default key-value store by setting the `persistStateKey` option
+ * so that if the Node.js process is restarted,
+ * the crawling can continue where it left off. For more details, see {@link KeyValueStore|`KeyValueStore`}.
+ *
+ * Example usage:
  *
  * ```javascript
  * const requestList = new Apify.RequestList({
@@ -44,7 +54,8 @@ const ensureUniqueKeyValid = (uniqueKey) => {
  *     persistStateKey: 'my-crawling-state'
  * });
  *
- * await requestList.initialize(); // Load requests.
+ * // This call loads and parses the URLs from the remote file.
+ * await requestList.initialize();
  *
  * // Get requests from list
  * const request1 = await requestList.fetchNextRequest();
@@ -59,25 +70,30 @@ const ensureUniqueKeyValid = (uniqueKey) => {
  * ```
  *
  * @param {Object} options
- * @param {Array} options.sources An array of sources for the `RequestList`. Its contents can either be just plain objects,
- *                                defining at least the 'url' property, or instances of the `Request` class. See the
- *                                <a href="#Request">Request class documentation</a> for available properties.
- *                                Additionally a `requestsFromUrl` property may be used instead of `url`,
- *                                which will instruct the `RequestList` to download the sources from the given URL.
- *                                URLs will be parsed from the received response.
+ * @param {Array} options.sources
+ *  An array of sources for the `RequestList`. Its contents can either be just plain objects,
+ *  defining at least the 'url' property or instances of the {@link Request|`Request`} class.
+ *  Additionally a `requestsFromUrl` property may be used instead of `url`,
+ *  which will instruct the `RequestList` to download the sources from the given remote location.
+ *  The URLs will be parsed from the received response.
+ *
  * ```javascript
  * [
  *     // One URL
  *     { method: 'GET', url: 'http://example.com/a/b' },
- *     // Batch import of URLa from a file hosted on the web
+ *     // Batch import of URLs from a file hosted on the web
  *     { method: 'POST', requestsFromUrl: 'http://example.com/urls.txt' },
  * ]
  * ```
- * @param {String} [options.persistStateKey] Key-value store key under which the `RequestList` persists its state. If this is set then `RequestList`
- *                                           persists its state in regular intervals and loads the state from there in a case that's restarted
- *                                           due to some error or migration to another worker machine.
- * @param {Object} [options.state] The state object that the `RequestList` will be initialized from.
- * It is in the form returned by `requestList.getState()`, such as follows:
+ * @param {String} [options.persistStateKey]
+ *   Identifies the key in the default key-value store under which the `RequestList` persists its state.
+ *   If this is set then `RequestList`
+ *   persists its state in regular intervals and loads the state from there in case it is restarted
+ *   due to an error or system reboot.
+ * @param {Object} [options.state]
+ *   The state object that the `RequestList` will be initialized from.
+ *   It is in the form as returned by `RequestList.getState()`, such as follows:
+ *
  * ```javascript
  * {
  *     nextIndex: 5,
@@ -88,17 +104,20 @@ const ensureUniqueKeyValid = (uniqueKey) => {
  *     },
  * }
  * ```
- * Note that the preferred (and simpler) way to persist the state of crawling of the `RequestList` is to use the `persistStateKey` parameter instead.
  *
- * @param {Boolean} [options.keepDuplicateUrls=false] By default, `RequestList` will deduplicate the provided URLs. Default deduplication is based
- *                                                    on the `uniqueKey` property of passed sources. If not present, it is generated by normalizing
- *                                                    the URL. If present, it is kept intact. In any case, only one request per `uniqueKey` is added
- *                                                    to the `RequestList` resulting in removing of duplicate URLs / unique keys.
- *                                                    Setting `keepDuplicateUrls` to true will append an additional identifier to the `uniqueKey`
- *                                                    of each request that does not already include a `uniqueKey`. Therefore, duplicate
- *                                                    URLs will be kept in the list. It does not protect the user from having duplicates in user set
- *                                                    `uniqueKey`s however. It is the user's responsibility to ensure uniqueness of their unique keys,
- *                                                    if they wish to keep more than just a single copy in the `RequestList`.
+ *   Note that the preferred (and simpler) way to persist the state of crawling of the `RequestList`
+ *   is to use the `persistStateKey` parameter instead.
+ *
+ * @param {Boolean} [options.keepDuplicateUrls=false]
+ *   By default, `RequestList` will deduplicate the provided URLs. Default deduplication is based
+ *   on the `uniqueKey` property of passed sources. If not present, it is generated by normalizing
+ *   the URL. If present, it is kept intact. In any case, only one request per `uniqueKey` is added
+ *   to the `RequestList` resulting in removing of duplicate URLs / unique keys.
+ *   Setting `keepDuplicateUrls` to true will append an additional identifier to the `uniqueKey`
+ *   of each request that does not already include a `uniqueKey`. Therefore, duplicate
+ *   URLs will be kept in the list. It does not protect the user from having duplicates in user set
+ *   `uniqueKey`s however. It is the user's responsibility to ensure uniqueness of their unique keys,
+ *   if they wish to keep more than just a single copy in the `RequestList`.
  */
 export default class RequestList {
     constructor(opts = {}) {
@@ -148,7 +167,8 @@ export default class RequestList {
     }
 
     /**
-     * Loads all sources specified.
+     * Loads all remote sources of URLs and potentially starts periodic state persistence.
+     * This function must be called before you can start using the instance in a meaningful way.
      *
      * @returns {Promise}
      */
@@ -239,7 +259,8 @@ export default class RequestList {
     }
 
     /**
-     * Returns an object representing the state of the RequestList instance. Do not alter the resulting object!
+     * Returns an object representing the internal state of the `RequestList` instance.
+     * Note that the objects fields can change in future releases.
      *
      * @returns Object
      */
@@ -256,10 +277,11 @@ export default class RequestList {
     }
 
     /**
-     * Returns `true` if the next call to `fetchNextRequest()` will return null, otherwise it returns `false`.
+     * Resolves to `true` if the next call to {@link RequestList#fetchNextRequest|`fetchNextRequest()`}
+     * will return `null`, otherwise it resolves to `false`.
      * Note that even if the list is empty, there might be some pending requests currently being processed.
      *
-     * @returns {Promise<boolean>}
+     * @returns {Promise<Boolean>}
      */
     isEmpty() {
         return Promise
@@ -288,7 +310,7 @@ export default class RequestList {
 
     /**
      * Gets the next `Request` to process. First, the function gets a request previously reclaimed
-     * using `reclaimRequest()` function, if there is any.
+     * using {@link RequestList#reclaimRequest|`reclaimRequest()`} function, if there is any.
      * Otherwise it gets a next request from the sources.
      *
      * The function gets `null` if there are no more
@@ -324,7 +346,7 @@ export default class RequestList {
     }
 
     /**
-     * Marks request handled after successfull processing.
+     * Marks request as handled after successful processing.
      *
      * @param {Request} request
      *
@@ -413,7 +435,8 @@ export default class RequestList {
 
     /**
      * Adds given request.
-     * If opts parameter is a plain object and not an instance of a Request then creates it.
+     * If the `opts` parameter is a plain object and not an instance of a `Request`, then the function
+     * creates a `Request` instance.
      *
      * @ignore
      */
