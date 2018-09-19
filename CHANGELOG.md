@@ -1,3 +1,15 @@
+0.8.0 / 2018-09-19
+==================
+- BREAKING CHANGES IN AUTOSCALED POOL
+   - It has been completely rebuilt for better performance.
+   - It also now works locally.
+   - see [Migration Guide](MIGRATIONS.md) for more information.
+- Updated to apify-shared@0.0.58
+
+0.7.4 / 2018-09-18
+==================
+- Bug fixes and documentation improvements.
+
 0.7.1 / 2018-09-14
 ==================
 - Upgraded Puppeteer to 1.8.0

@@ -72,7 +72,7 @@ export default class SystemStatus {
      * @ignore
      */
     getCurrentStatus() {
-        return this._isSystemOk(this.currentHistorySecs);
+        return this._isSystemIdle(this.currentHistorySecs);
     }
 
     /**
@@ -82,7 +82,7 @@ export default class SystemStatus {
      * @ignore
      */
     getHistoricalStatus() {
-        return this._isSystemOk();
+        return this._isSystemIdle();
     }
 
     /**
@@ -93,12 +93,12 @@ export default class SystemStatus {
      * @return {Boolean}
      * @ignore
      */
-    _isSystemOk(sampleDurationMillis) {
+    _isSystemIdle(sampleDurationMillis) {
         const memInfo = this._isMemoryOverloaded(sampleDurationMillis);
         const eventLoopInfo = this._isEventLoopOverloaded(sampleDurationMillis);
         const cpuInfo = this._isCpuOverloaded(sampleDurationMillis);
         return {
-            isSystemOk: !memInfo.isOverloaded && !eventLoopInfo.isOverloaded && !cpuInfo.isOverloaded,
+            isSystemIdle: !memInfo.isOverloaded && !eventLoopInfo.isOverloaded && !cpuInfo.isOverloaded,
             memInfo,
             eventLoopInfo,
             cpuInfo,
