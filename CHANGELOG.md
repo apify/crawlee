@@ -1,3 +1,7 @@
+xxx
+==================
+- Updated to apify-shared@0.0.58
+
 0.7.4 / 2018-09-18
 ==================
 - Bug fixes and documentation improvements.
