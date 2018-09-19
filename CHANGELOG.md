@@ -1,3 +1,7 @@
+xxx
+==================
+- Update Documentation and README.
+
 0.8.0 / 2018-09-19
 ==================
 - BREAKING CHANGES IN AUTOSCALED POOL
