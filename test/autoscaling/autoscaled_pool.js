@@ -90,8 +90,8 @@ describe('AutoscaledPool', () => {
             constructor(okNow, okLately) {
                 this.okNow = okNow;
                 this.okLately = okLately;
-                this.getCurrentStatus = () => ({ isSystemOk: this.okNow });
-                this.getHistoricalStatus = () => ({ isSystemOk: this.okLately });
+                this.getCurrentStatus = () => ({ isSystemIdle: this.okNow });
+                this.getHistoricalStatus = () => ({ isSystemIdle: this.okLately });
             }
         }
 

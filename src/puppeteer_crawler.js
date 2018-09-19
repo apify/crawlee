@@ -256,9 +256,9 @@ export default class PuppeteerCrawler {
                     ]);
                 });
 
-            // rejectOnStopPromise rejects when .stop() is called or BasicCrawler throws.
+            // rejectOnAbortPromise rejects when .abort() is called or BasicCrawler throws.
             // All running pages are therefore terminated with an error to be reclaimed and retried.
-            return await Promise.race([pageOperationsPromise, this.rejectOnStopPromise]);
+            return await Promise.race([pageOperationsPromise, this.rejectOnAbortPromise]);
         } finally {
             try {
                 await Promise.race([page.close(), createTimeoutPromise(PAGE_CLOSE_TIMEOUT_MILLIS, 'Operation timed out.')]);

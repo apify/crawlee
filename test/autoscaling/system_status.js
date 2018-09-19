@@ -50,8 +50,8 @@ describe('SystemStatus', () => {
         const systemStatus = new SystemStatus({
             snapshotter: new MockSnapshotter(snaps, snaps, snaps),
         });
-        expect(systemStatus.getCurrentStatus().isSystemOk).to.be.eql(true);
-        expect(systemStatus.getHistoricalStatus().isSystemOk).to.be.eql(true);
+        expect(systemStatus.getCurrentStatus().isSystemIdle).to.be.eql(true);
+        expect(systemStatus.getHistoricalStatus().isSystemIdle).to.be.eql(true);
     });
 
     it('should return overloaded for overloaded snapshots', () => {
@@ -59,8 +59,8 @@ describe('SystemStatus', () => {
         const systemStatus = new SystemStatus({
             snapshotter: new MockSnapshotter(snaps, snaps, snaps),
         });
-        expect(systemStatus.getCurrentStatus().isSystemOk).to.be.eql(false);
-        expect(systemStatus.getHistoricalStatus().isSystemOk).to.be.eql(false);
+        expect(systemStatus.getCurrentStatus().isSystemIdle).to.be.eql(false);
+        expect(systemStatus.getHistoricalStatus().isSystemIdle).to.be.eql(false);
     });
 
     it('should work with some samples empty', () => {
@@ -68,23 +68,23 @@ describe('SystemStatus', () => {
         let systemStatus = new SystemStatus({
             snapshotter: new MockSnapshotter(snaps, [], []),
         });
-        expect(systemStatus.getCurrentStatus().isSystemOk).to.be.eql(false);
-        expect(systemStatus.getHistoricalStatus().isSystemOk).to.be.eql(false);
+        expect(systemStatus.getCurrentStatus().isSystemIdle).to.be.eql(false);
+        expect(systemStatus.getHistoricalStatus().isSystemIdle).to.be.eql(false);
         systemStatus = new SystemStatus({
             snapshotter: new MockSnapshotter([], snaps, []),
         });
-        expect(systemStatus.getCurrentStatus().isSystemOk).to.be.eql(false);
-        expect(systemStatus.getHistoricalStatus().isSystemOk).to.be.eql(false);
+        expect(systemStatus.getCurrentStatus().isSystemIdle).to.be.eql(false);
+        expect(systemStatus.getHistoricalStatus().isSystemIdle).to.be.eql(false);
         systemStatus = new SystemStatus({
             snapshotter: new MockSnapshotter([], [], snaps),
         });
-        expect(systemStatus.getCurrentStatus().isSystemOk).to.be.eql(false);
-        expect(systemStatus.getHistoricalStatus().isSystemOk).to.be.eql(false);
+        expect(systemStatus.getCurrentStatus().isSystemIdle).to.be.eql(false);
+        expect(systemStatus.getHistoricalStatus().isSystemIdle).to.be.eql(false);
         systemStatus = new SystemStatus({
             snapshotter: new MockSnapshotter([], [], []),
         });
-        expect(systemStatus.getCurrentStatus().isSystemOk).to.be.eql(true);
-        expect(systemStatus.getHistoricalStatus().isSystemOk).to.be.eql(true);
+        expect(systemStatus.getCurrentStatus().isSystemIdle).to.be.eql(true);
+        expect(systemStatus.getHistoricalStatus().isSystemIdle).to.be.eql(true);
     });
 
     it('should overload if only one sample is overloaded', () => {
@@ -93,18 +93,18 @@ describe('SystemStatus', () => {
         let systemStatus = new SystemStatus({
             snapshotter: new MockSnapshotter(fine, fine, overloaded),
         });
-        expect(systemStatus.getCurrentStatus().isSystemOk).to.be.eql(false);
-        expect(systemStatus.getHistoricalStatus().isSystemOk).to.be.eql(false);
+        expect(systemStatus.getCurrentStatus().isSystemIdle).to.be.eql(false);
+        expect(systemStatus.getHistoricalStatus().isSystemIdle).to.be.eql(false);
         systemStatus = new SystemStatus({
             snapshotter: new MockSnapshotter(fine, overloaded, fine),
         });
-        expect(systemStatus.getCurrentStatus().isSystemOk).to.be.eql(false);
-        expect(systemStatus.getHistoricalStatus().isSystemOk).to.be.eql(false);
+        expect(systemStatus.getCurrentStatus().isSystemIdle).to.be.eql(false);
+        expect(systemStatus.getHistoricalStatus().isSystemIdle).to.be.eql(false);
         systemStatus = new SystemStatus({
             snapshotter: new MockSnapshotter(overloaded, fine, fine),
         });
-        expect(systemStatus.getCurrentStatus().isSystemOk).to.be.eql(false);
-        expect(systemStatus.getHistoricalStatus().isSystemOk).to.be.eql(false);
+        expect(systemStatus.getCurrentStatus().isSystemIdle).to.be.eql(false);
+        expect(systemStatus.getHistoricalStatus().isSystemIdle).to.be.eql(false);
     });
 
     it('should overload when threshold is crossed', () => {
@@ -115,26 +115,26 @@ describe('SystemStatus', () => {
             maxEventLoopOverloadedRatio: 0.5,
             maxCpuOverloadedRatio: 0.5,
         });
-        expect(systemStatus.getCurrentStatus().isSystemOk).to.be.eql(true);
-        expect(systemStatus.getHistoricalStatus().isSystemOk).to.be.eql(true);
+        expect(systemStatus.getCurrentStatus().isSystemIdle).to.be.eql(true);
+        expect(systemStatus.getHistoricalStatus().isSystemIdle).to.be.eql(true);
 
         systemStatus.maxMemoryOverloadedRatio = 0.49;
         systemStatus.maxEventLoopOverloadedRatio = 0.49;
         systemStatus.maxEventLoopOverloadedRatio = 0.49;
-        expect(systemStatus.getCurrentStatus().isSystemOk).to.be.eql(false);
-        expect(systemStatus.getHistoricalStatus().isSystemOk).to.be.eql(false);
+        expect(systemStatus.getCurrentStatus().isSystemIdle).to.be.eql(false);
+        expect(systemStatus.getHistoricalStatus().isSystemIdle).to.be.eql(false);
 
         systemStatus.maxMemoryOverloadedRatio = 0.5;
         systemStatus.maxEventLoopOverloadedRatio = 0.5;
         systemStatus.maxEventLoopOverloadedRatio = 0.49;
-        expect(systemStatus.getCurrentStatus().isSystemOk).to.be.eql(false);
-        expect(systemStatus.getHistoricalStatus().isSystemOk).to.be.eql(false);
+        expect(systemStatus.getCurrentStatus().isSystemIdle).to.be.eql(false);
+        expect(systemStatus.getHistoricalStatus().isSystemIdle).to.be.eql(false);
 
         systemStatus.maxMemoryOverloadedRatio = 1;
         systemStatus.maxEventLoopOverloadedRatio = 1;
         systemStatus.maxEventLoopOverloadedRatio = 1;
-        expect(systemStatus.getCurrentStatus().isSystemOk).to.be.eql(true);
-        expect(systemStatus.getHistoricalStatus().isSystemOk).to.be.eql(true);
+        expect(systemStatus.getCurrentStatus().isSystemIdle).to.be.eql(true);
+        expect(systemStatus.getHistoricalStatus().isSystemIdle).to.be.eql(true);
     });
 
     it('should show different values for now and lately', () => {
@@ -146,16 +146,16 @@ describe('SystemStatus', () => {
             maxCpuOverloadedRatio: 0.5,
         });
         systemStatus.currentHistorySecs = 5;
-        expect(systemStatus.getCurrentStatus().isSystemOk).to.be.eql(false);
-        expect(systemStatus.getHistoricalStatus().isSystemOk).to.be.eql(true);
+        expect(systemStatus.getCurrentStatus().isSystemIdle).to.be.eql(false);
+        expect(systemStatus.getHistoricalStatus().isSystemIdle).to.be.eql(true);
 
         systemStatus.currentHistorySecs = 10;
-        expect(systemStatus.getCurrentStatus().isSystemOk).to.be.eql(false);
-        expect(systemStatus.getHistoricalStatus().isSystemOk).to.be.eql(true);
+        expect(systemStatus.getCurrentStatus().isSystemIdle).to.be.eql(false);
+        expect(systemStatus.getHistoricalStatus().isSystemIdle).to.be.eql(true);
 
         systemStatus.currentHistorySecs = 12;
-        expect(systemStatus.getCurrentStatus().isSystemOk).to.be.eql(true);
-        expect(systemStatus.getHistoricalStatus().isSystemOk).to.be.eql(true);
+        expect(systemStatus.getCurrentStatus().isSystemIdle).to.be.eql(true);
+        expect(systemStatus.getHistoricalStatus().isSystemIdle).to.be.eql(true);
 
         snaps = generateSnapsSync(95, true);
         systemStatus = new SystemStatus({
@@ -165,16 +165,16 @@ describe('SystemStatus', () => {
             maxCpuOverloadedRatio: 0.5,
         });
         systemStatus.currentHistorySecs = 5;
-        expect(systemStatus.getCurrentStatus().isSystemOk).to.be.eql(true);
-        expect(systemStatus.getHistoricalStatus().isSystemOk).to.be.eql(false);
+        expect(systemStatus.getCurrentStatus().isSystemIdle).to.be.eql(true);
+        expect(systemStatus.getHistoricalStatus().isSystemIdle).to.be.eql(false);
 
         systemStatus.currentHistorySecs = 10;
-        expect(systemStatus.getCurrentStatus().isSystemOk).to.be.eql(true);
-        expect(systemStatus.getHistoricalStatus().isSystemOk).to.be.eql(false);
+        expect(systemStatus.getCurrentStatus().isSystemIdle).to.be.eql(true);
+        expect(systemStatus.getHistoricalStatus().isSystemIdle).to.be.eql(false);
 
         systemStatus.currentHistorySecs = 12;
-        expect(systemStatus.getCurrentStatus().isSystemOk).to.be.eql(false);
-        expect(systemStatus.getHistoricalStatus().isSystemOk).to.be.eql(false);
+        expect(systemStatus.getCurrentStatus().isSystemIdle).to.be.eql(false);
+        expect(systemStatus.getHistoricalStatus().isSystemIdle).to.be.eql(false);
     });
 
     it('creates a snapshotter when none is passed', () => {

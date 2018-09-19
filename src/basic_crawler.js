@@ -225,7 +225,7 @@ export default class BasicCrawler {
         try {
             // rejectOnAbortPromise rejects when .abort() is called or AutoscaledPool throws.
             // All running tasks are therefore terminated with an error to be reclaimed and retried.
-            await Promise.race([this.handleRequestFunction({ request }), this.rejectOnStopPromise]);
+            await Promise.race([this.handleRequestFunction({ request }), this.rejectOnAbortPromise]);
             await source.markRequestHandled(request);
             this.handledRequestsCount++;
         } catch (err) {
