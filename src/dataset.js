@@ -172,10 +172,10 @@ export class Dataset {
      * The function internally
      * chunks the array into separate items and pushes them sequentially.
      * The chunking process is stable (keeps order of data), but it does not provide a transaction
-     * safety mechanism. Therefore, in case of an uploading error (after several automatic retries),
+     * safety mechanism. Therefore, in the event of an uploading error (after several automatic retries),
      * the function's promise will reject and the dataset will be left in a state where some of
      * the items have already been saved to the dataset while other items from the source array were not.
-     * To overcome this limitation, the developer may for example read the last item saved in the dataset
+     * To overcome this limitation, the developer may, for example, read the last item saved in the dataset
      * and re-attempt the save of the data from this item onwards to prevent duplicates.
      *
      * @param {Object|Array} data Object or array of objects containing data to be stored in the default dataset.
@@ -615,7 +615,7 @@ const getOrCreateDataset = (datasetIdOrName) => {
  *
  * Datasets are used to store structured data where each object stored has the same attributes,
  * such as online store products or real estate offers.
- * The actual data is stored either on local filesystem or in the cloud.
+ * The actual data is stored either on the local filesystem or in the cloud.
  *
  * For more details and code examples, see the {@link Dataset|`Dataset`} class.
  *
