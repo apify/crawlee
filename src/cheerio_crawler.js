@@ -82,7 +82,7 @@ const DEFAULT_OPTIONS = {
  * ```
  *
  * @param {Object} options
- * @param {Function} [options.handlePageFunction]
+ * @param {Function} options.handlePageFunction
  *   User-provided function that performs the logic of the crawler. It is called for each page
  *   loaded and parsed by the crawler.
  *
@@ -96,13 +96,15 @@ const DEFAULT_OPTIONS = {
  *
  *   If the function returns a promise, it is awaited.
  *
- * @param {RequestList} [options.requestList]
+ * @param {RequestList} options.requestList
  *   Static list of URLs to be processed.
- * @param {RequestQueue} [options.requestQueue]
+ *   Either RequestList or RequestQueue must be provided.
+ * @param {RequestQueue} options.requestQueue
  *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
+ *   Either RequestList or RequestQueue must be provided.
  * @param {Function} [options.requestFunction]
  *   Overrides the function that performs the HTTP request to get the raw HTML needed for Cheerio.
- *   See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/cheerio_crawler.js#L246">GitHub</a> for default behavior.
+ *   See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/cheerio_crawler.js#L264">GitHub</a> for default behavior.
  * @param {Number} [options.handlePageTimeoutSecs=300]
  *   Timeout in which the function passed as `options.handlePageFunction` needs to finish, given in seconds.
  * @param {Number} [options.requestTimeoutSecs=30]
@@ -112,7 +114,7 @@ const DEFAULT_OPTIONS = {
  *   request function. If using a custom request function, user needs to implement this functionality.
  * @param {Function} [options.handleFailedRequestFunction]
  *   Function that handles requests that failed more then `option.maxRequestRetries` times.
- *   See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/cheerio_crawler.js#L12">GitHub</a> for default behavior.
+ *   See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/cheerio_crawler.js#L13">GitHub</a> for default behavior.
  * @param {Number} [options.maxRequestRetries=3]
  *   How many times the request is retried if either `requestFunction` or `handlePageFunction` failed.
  * @param {Number} [options.maxRequestsPerCrawl]
@@ -123,10 +125,10 @@ const DEFAULT_OPTIONS = {
  *   Custom options passed to the underlying {@link AutoscaledPool|`AutoscaledPool`} instance constructor.
  *   Note that the `runTaskFunction`, `isTaskReadyFunction` and `isFinishedFunction` options
  *   are provided by `CheerioCrawler` and cannot be overridden.
- * @param {Object} [options.minConcurrency]
- *   Sets the minimum concurrency (parallelism) for the crawl. hortcut to the corresponding `AutoscaledPool` option.
- * @param {Object} [options.maxConcurrency]
- *   Sets the maximum concurrency (parallelism) for the crawl. hortcut to the corresponding `AutoscaledPool` option.
+ * @param {Object} [options.minConcurrency=1]
+ *   Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding `AutoscaledPool` option.
+ * @param {Object} [options.maxConcurrency=1000]
+ *   Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding `AutoscaledPool` option.
  *
  * @see {@link BasicCrawler}
  * @see {@link PuppeteerCrawler}
@@ -163,10 +165,15 @@ export default class CheerioCrawler {
 
         this.requestFunction = async ({ request }) => {
             if (!this.isRunning) throw new Error('CheerioCrawler is stopped.');
-
-            return requestFunction
+            const rfPromise = requestFunction
                 ? requestFunction({ request })
                 : this._defaultRequestFunction({ request });
+
+            // Return the response of requestFunction or throw.
+            return Promise.race([
+                rfPromise,
+                this.rejectOnAbortPromise,
+            ]);
         };
         this.handlePageFunction = handlePageFunction;
         this.handlePageTimeoutMillis = handlePageTimeoutSecs * 1000;
@@ -227,16 +234,23 @@ export default class CheerioCrawler {
     async _handleRequestFunction({ request }) {
         if (!this.isRunning) throw new Error('CheerioCrawler is stopped.');
 
+        const rfPromise = this.requestFunction({ request });
         // rejectOnAbortPromise rejects when .abort() is called or BasicCrawler throws.
         // All running pages are therefore terminated with an error to be reclaimed and retried.
-        const html = await Promise.race([
-            this.requestFunction({ request }),
+        const response = await Promise.race([
+            rfPromise,
             createTimeoutPromise(this.requestTimeoutMillis, 'CheerioCrawler: requestFunction timed out.'),
             this.rejectOnAbortPromise,
         ]);
+
+        let html;
+        if (typeof response === 'string') html = response;
+        else if (typeof response === 'object' && typeof response.body === 'string') html = response.body;
+        else throw new Error('CheerioCrawler: requestFunction returned neither string, nor an object with a body property of type string.');
+
         const $ = cheerio.load(html);
         await Promise.race([
-            this.handlePageFunction({ $, html, request }),
+            this.handlePageFunction({ $, html, request, response }),
             createTimeoutPromise(this.handlePageTimeoutMillis, 'CheerioCrawler: handlePageFunction timed out.'),
             this.rejectOnAbortPromise,
         ]);
@@ -247,16 +261,13 @@ export default class CheerioCrawler {
      * @ignore
      */
     async _defaultRequestFunction({ request }) {
-        if (!this.isRunning) throw new Error('CheerioCrawler is stopped.');
-
-        return Promise.race([
-            rp({
-                url: request.url,
-                method: request.method,
-                headers: request.headers,
-                strictSSL: !this.ignoreSslErrors,
-            }),
-            this.rejectOnAbortPromise,
-        ]);
+        return rp({
+            url: request.url,
+            method: request.method,
+            headers: request.headers,
+            strictSSL: !this.ignoreSslErrors,
+            resolveWithFullResponse: true,
+            simple: false,
+        });
     }
 }
