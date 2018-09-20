@@ -16,7 +16,7 @@ const DEFAULT_OPTIONS = {
 };
 
 /**
- * Provides a simple framework for parallel crawling of web pages,
+ * Provides a simple framework for the parallel crawling of web pages,
  * whose URLs are fed either from a static list
  * or from a dynamic queue of URLs.
  *
@@ -96,9 +96,9 @@ const DEFAULT_OPTIONS = {
  *   Note that the `runTaskFunction`, `isTaskReadyFunction` and `isFinishedFunction` options
  *   are provided by `BasicCrawler` and cannot be overridden.
  * @param {Object} [options.minConcurrency]
- *   Sets the minimum concurrency (parallelism) for the crawl. hortcut to the corresponding `AutoscaledPool` option.
+ *   Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding `AutoscaledPool` option.
  * @param {Object} [options.maxConcurrency]
- *   Sets the maximum concurrency (parallelism) for the crawl. hortcut to the corresponding `AutoscaledPool` option.
+ *   Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding `AutoscaledPool` option.
  *
  * @see {@link CheerioCrawler}
  * @see {@link PuppeteerCrawler}
@@ -228,7 +228,7 @@ export default class BasicCrawler {
 
     /**
      * Wrapper around handleRequestFunction that fetches requests from RequestList/RequestQueue
-     * then retries them in a case of an error etc.
+     * then retries them in a case of an error, etc.
      *
      * @ignore
      */
