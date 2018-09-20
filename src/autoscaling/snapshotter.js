@@ -8,10 +8,10 @@ import events from '../events';
 
 const DEFAULT_OPTIONS = {
     eventLoopSnapshotIntervalSecs: 0.5,
-    maxBlockedMillis: 50,
+    maxBlockedMillis: 50, // 0.05
     memorySnapshotIntervalSecs: 1,
     maxUsedMemoryRatio: 0.7,
-    snapshotHistorySecs: 60,
+    snapshotHistorySecs: 30,
 };
 
 /**

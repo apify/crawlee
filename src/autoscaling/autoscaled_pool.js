@@ -8,7 +8,7 @@ import SystemStatus from './system_status';
 const DEFAULT_OPTIONS = {
     maxConcurrency: 1000,
     minConcurrency: 1,
-    desiredConcurrencyRatio: 0.95,
+    desiredConcurrencyRatio: 0.90,
     scaleUpStepRatio: 0.05,
     scaleDownStepRatio: 0.05,
     maybeRunIntervalSecs: 0.5,
