@@ -120,7 +120,12 @@ const getRequestId = (uniqueKey) => {
  * Represents a queue of URLs to crawl, which is used for deep crawling of websites
  * where you start with several URLs and then recursively
  * follow links to other pages. The data structure supports both breadth-first and depth-first crawling orders.
- * Each URL is represented as an instance of the {@link Request|`Request`} class.
+ *
+ * Each URL is represented using an instance of the {@link Request|`Request`} class.
+ * The queue can only contain unique URLs. More precisely, it can only contain `Request` instances
+ * with distinct `uniqueKey` properties. By default, `uniqueKey` is generated from the URL, but it can also be overridden.
+ * To add a single URL multiple times to the queue,
+ * corresponding `Request` objects will need to have different `uniqueKey` properties.
  *
  * Do not instantiate this class directly, use the
  * {@link Apify#openRequestQueue|`Apify.openRequestQueue()`} function instead.
