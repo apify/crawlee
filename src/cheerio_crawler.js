@@ -18,7 +18,7 @@ const DEFAULT_OPTIONS = {
 };
 
 /**
- * Provides a framework for parallel crawling of web pages using plain HTTP requests and
+ * Provides a framework for the parallel crawling of web pages using plain HTTP requests and
  * [cheerio](https://www.npmjs.com/package/cheerio) HTML parser.
  *
  * `CheerioCrawler` downloads each URL using a plain HTTP request,
@@ -124,9 +124,9 @@ const DEFAULT_OPTIONS = {
  *   Note that the `runTaskFunction`, `isTaskReadyFunction` and `isFinishedFunction` options
  *   are provided by `CheerioCrawler` and cannot be overridden.
  * @param {Object} [options.minConcurrency]
- *   Sets the minimum concurrency (parallelism) for the crawl. hortcut to the corresponding `AutoscaledPool` option.
+ *   Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding `AutoscaledPool` option.
  * @param {Object} [options.maxConcurrency]
- *   Sets the maximum concurrency (parallelism) for the crawl. hortcut to the corresponding `AutoscaledPool` option.
+ *   Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding `AutoscaledPool` option.
  *
  * @see {@link BasicCrawler}
  * @see {@link PuppeteerCrawler}
