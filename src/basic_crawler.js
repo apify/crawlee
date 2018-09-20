@@ -80,7 +80,7 @@ const DEFAULT_OPTIONS = {
  *   The function must return a promise.
  * @param {RequestList} options.requestList
  *   Static list of URLs to be processed.
- *   Either RequestList or RequestQueue must be provided.
+ *   Either `RequestList` or `RequestQueue` must be provided.
  * @param {RequestQueue} options.requestQueue
  *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
  *   Either RequestList or RequestQueue must be provided.
