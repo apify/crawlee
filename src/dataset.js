@@ -611,13 +611,13 @@ const getOrCreateDataset = (datasetIdOrName) => {
 
 
 /**
- * Opens a dataset and returns a promise resolving to an instance of the {@link Dataset|`Dataset`} class.
+ * Opens a dataset and returns a promise resolving to an instance of the {@linkcode Dataset} class.
  *
  * Datasets are used to store structured data where each object stored has the same attributes,
  * such as online store products or real estate offers.
  * The actual data is stored either on local filesystem or in the cloud.
  *
- * For more details and code examples, see the {@link Dataset|`Dataset`} class.
+ * For more details and code examples, see the {@linkcode Dataset} class.
  *
  * @param {string} [datasetIdOrName]
  *   ID or name of the dataset to be opened. If `null` or `undefined`,
@@ -653,7 +653,7 @@ export const openDataset = (datasetIdOrName) => {
  * await dataset.pushData({ myValue: 123 });
  * ```
  *
- * For more information, see {@link Apify.openDataset|`Apify.openDataset()`} and {@linkcode Dataset#pushData|`Dataset.pushData()`}
+ * For more information, see {@link Apify.openDataset|`Apify.openDataset()`} and {@link Dataset#pushData|`Dataset.pushData()`}
  *
  * **IMPORTANT**: Make sure to use the `await` keyword when calling `pushData()`,
  * otherwise the actor process might finish before the data is stored!
