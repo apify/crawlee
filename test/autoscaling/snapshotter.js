@@ -130,7 +130,7 @@ describe('Snapshotter', () => {
                 const prev = eventLoopSnapshots[idx - 1].createdAt;
                 const curr = ss.createdAt;
                 const next = eventLoopSnapshots[idx + 1].createdAt;
-                expect(curr - prev).to.be.above(DELAY - 1);
+                expect(curr - prev).to.be.above(snapshotter.maxBlockedMillis);
                 expect(next - curr).to.be.within(TICK - 1, TICK + snapshotter.maxBlockedMillis);
                 expect(ss.exceededMillis).to.be.within(1, DELAY - snapshotter.maxBlockedMillis);
             } else {
