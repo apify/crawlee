@@ -319,14 +319,9 @@ export default class BasicCrawler {
         }
 
         // This is the final fallback. If we get here, the request failed more than retryCount times and will not be retried anymore.
-        log.exception(error, 'BasicCrawler: handleRequestFunction failed, marking failed request as handled', {
-            url: request.url,
-            retryCount: request.retryCount,
-        });
-
         // Mark the request as failed and do not retry.
         this.handledRequestsCount++;
         await source.markRequestHandled(request);
-        return this.handleFailedRequestFunction({ request, error });
+        return this.handleFailedRequestFunction({ request, error }); // This function prints an error message.
     }
 }

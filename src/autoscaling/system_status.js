@@ -6,8 +6,8 @@ import { weightedAvg } from '../utils';
 const DEFAULT_OPTIONS = {
     currentHistorySecs: 5, // TODO this should be something like "nowDurationSecs" but it's weird, ideas?
     maxMemoryOverloadedRatio: 0.2,
-    maxEventLoopOverloadedRatio: 0.02,
-    maxCpuOverloadedRatio: 0.1,
+    maxEventLoopOverloadedRatio: 0.2,
+    maxCpuOverloadedRatio: 0.2,
 };
 
 /**

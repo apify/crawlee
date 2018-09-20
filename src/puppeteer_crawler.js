@@ -10,7 +10,6 @@ const DEFAULT_OPTIONS = {
     handlePageTimeoutSecs: 300,
     handleFailedRequestFunction: ({ request }) => {
         const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
-
         log.error('PuppeteerCrawler: Request failed and reached maximum retries', details);
     },
 };
