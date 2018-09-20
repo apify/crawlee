@@ -56,7 +56,7 @@ let persistStateInterval = null;
  *             <td>`{ "isCpuOverloaded": Boolean }`</td>
  *             <td>
  *                 The event is emitted approximately every second
- *                 and it indicates whether the actor is using maximum of available CPU resources.
+ *                 and it indicates whether the actor is using the maximum of available CPU resources.
  *                 If that's the case, the actor should not add more workload.
  *                 For example, this event is used by the <a href="#AutoscaledPool">AutoscaledPool</a> class.
  *             </td>
@@ -65,8 +65,8 @@ let persistStateInterval = null;
  *             <td>`migrating`</td>
  *             <td>None</td>
  *             <td>
- *                 Emitted when the actor running on Apify platform is going to be migrated to another worker server soon.
- *                 You can use it to persist the state of the actor and abort the run, to speed up the migration.
+ *                 Emitted when the actor running on the Apify platform is going to be migrated to another worker server soon.
+ *                 You can use it to persist the state of the actor and abort the run, to speed up migration.
  *                 For example, this is used by the <a href="#RequestList">RequestList</a> class.
  *             </td>
  *         </tr>
@@ -75,7 +75,7 @@ let persistStateInterval = null;
  *             <td>`{ "isMigrating": Boolean }`</td>
  *             <td>
  *                 Emitted in regular intervals to notify all components of Apify SDK that it is time to persist
- *                 their state, in order to avoid repeating the entire work when the actor restarts.
+ *                 their state, in order to avoid repeating all work when the actor restarts.
  *                 This event is automatically emitted together with the `migrating` event,
  *                 in which case the `isMigrating` flag is set to `true`. Otherwise the flag is `false`.
  *             </td>
@@ -89,7 +89,7 @@ let persistStateInterval = null;
 export default events;
 
 /**
- * Emits event telling all comonents that they should persist their state in regular interval and also when actor is being
+ * Emits event telling all components that they should persist their state at regular intervals and also when an actor is being
  * migrated to another worker.
  *
  * @ignore
@@ -99,7 +99,7 @@ const emitPersistStateEvent = (isMigrating = false) => {
 };
 
 /**
- * Initializes `Apify.events` event emitter by creating connection to a websocket that provides them.
+ * Initializes `Apify.events` event emitter by creating a connection to a websocket that provides them.
  * This is an internal function that is automatically called by `Apify.main()`.
  *
  * @memberof module:Apify
@@ -118,7 +118,7 @@ export const initializeEvents = () => {
 
     const eventsWsUrl = process.env[ENV_VARS.ACTOR_EVENTS_WS_URL];
 
-    // Locally there is no web socket to connect so just print a log message.
+    // Locally there is no web socket to connect, so just print a log message.
     if (!eventsWsUrl) {
         log.debug(`Apify.events: Environment variable ${ENV_VARS.ACTOR_EVENTS_WS_URL} is not set, no events from Apify platform will be emitted.`);
         return;
@@ -142,7 +142,7 @@ export const initializeEvents = () => {
         }
     });
     eventsWs.on('error', (err) => {
-        // Don't print this error as this happens in a case of very short Apify.main().
+        // Don't print this error as this happens in the case of very short Apify.main().
         if (err.message === 'WebSocket was closed before the connection was established') return;
 
         log.exception(err, 'Apify.events: web socket connection failed');
