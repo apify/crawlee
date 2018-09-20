@@ -661,7 +661,7 @@ export const openDataset = (datasetIdOrName) => {
  * @param {Object|Array} data Object or array of objects containing data to be stored in the default dataset.
  * The objects must be serializable to JSON and the JSON representation of each object must be smaller than 9MB.
  * @returns {Promise} Returns a promise that resolves once the data is saved.
- * @see {@linkcode Dataset}
+ * @see {@link Dataset}
  *
  * @memberof module:Apify
  * @name pushData
