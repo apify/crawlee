@@ -200,7 +200,7 @@ The following table shows the basic environment variables used by Apify SDK:
           <tr>
             <td><code>APIFY_TOKEN</code></td>
             <td>
-              The API token for your Apify account. It is used to access the Apify API, e.g. to access cloud storage or to run an actor in the cloud.
+              The API token for your Apify Account. It is used to access the Apify API, e.g. to access cloud storage or to run an actor in the cloud.
               You can find your API token on the <a href="https://my.apify.com/account#intergrations">Account - Integrations</a> page.
               If omitted, you should define the <code>APIFY_LOCAL_STORAGE_DIR</code> environment variable instead.
             </td>
@@ -209,7 +209,7 @@ The following table shows the basic environment variables used by Apify SDK:
             <td><code>APIFY_PROXY_PASSWORD</code></td>
             <td>
               Optional password to <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a> for IP address rotation.
-              If you have have an Apify account, you can find the password on the
+              If you have have an Apify Account, you can find the password on the
               <a href="https://my.apify.com/proxy" target="_blank">Proxy page</a> in the Apify app.
               This feature is optional. You can use your own proxies or no proxies at all.
             </td>
@@ -271,7 +271,7 @@ and [Apify Actor](https://www.apify.com/docs/actor) documentation.
 ### Usage on the Apify cloud platform
 
 You can also develop your web scraping project
-in an online code editor directly on the Apify cloud. You'll need to have an Apify account.
+in an online code editor directly on the Apify cloud. You'll need to have an Apify Account.
 Go to [Actors](https://my.apify.com/actors)
 page in the app, click <i>Create new</i> and then go to the 
 <i>Source</i> tab and start writing your code or paste one of the code examples below.
@@ -286,7 +286,7 @@ It can run for a few seconds, hours or even infinitely.
 An actor can perform anything from a simple action such as filling out a web form or sending an email,
 to complex operations such as crawling an entire website and removing duplicates from a large dataset.
 
-To run an actor, you need to have an [Apify account](https://my.apify.com/).
+To run an actor, you need to have an [Apify Account](https://my.apify.com/).
 The actor execution is charged towards your account and the cost depends on
 the amount of memory allocated for the run and its duration.
 Actors can be shared in the [Apify Library](https://www.apify.com/library?&type=acts)
@@ -672,7 +672,7 @@ and how to call Apify API using
 The script extracts the current Bitcoin prices from Kraken.com
 and sends them to your email using the [apify/send-mail](https://www.apify.com/apify/send-mail) actor.
 
-To make the example work, you'll need an [Apify account](https://my.apify.com/).
+To make the example work, you'll need an [Apify Account](https://my.apify.com/).
 Go to [Account - Integrations](https://my.apify.com/account#/integrations) page to obtain your API token
 and set it to the `APIFY_TOKEN` environment variable, or run the script using the CLI.
 If you deploy this actor to the Apify platform then you can set up a scheduler for early
