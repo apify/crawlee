@@ -65,7 +65,7 @@ const tryParseDate = (str) => {
  * ```
  * For the list of the `APIFY_XXX` environment variables, see
  * <a href="http://localhost/docs/actor.php#run-env-vars" target="_blank">Actor documentation</a>.
- * If some of the variables is not defined or is invalid, the corresponding value in the resulting object will be null.
+ * If some of the variables are not defined or are invalid, the corresponding value in the resulting object will be null.
  *
  * @returns {Object}
  *
@@ -124,7 +124,7 @@ export const getEnv = () => {
  * });
  * ```
  *
- * If the user function returns a promise, it is considered as asynchronous:
+ * If the user function returns a promise, it is considered asynchronous:
  * ```javascript
  * const request = require('request-promise');
  *
