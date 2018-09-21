@@ -110,6 +110,9 @@ const getRequestId = (uniqueKey) => {
 };
 
 /**
+ * A helper class that is used to report results from the
+ * {@linkcode enqueueLinks|Apify.utils.puppeteer.enqueueLinks()} function.
+ *
  * @typedef {Object} RequestOperationInfo
  * @property {Boolean} wasAlreadyPresent Indicates if request was already present in the queue.
  * @property {Boolean} wasAlreadyHandled Indicates if request was already marked as handled.
