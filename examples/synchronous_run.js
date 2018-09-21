@@ -6,7 +6,7 @@
  * This actor
  * can be invoked synchronously using a single HTTP request to directly obtain its output as a reponse,
  * using the [Run actor synchronously](https://www.apify.com/docs/api/v2#/reference/actors/run-actor-synchronously/without-input)
- * API endpoint.
+ * Apify API endpoint.
  * The example is also shared as the [apify/example-golden-gate-webcam](https://www.apify.com/apify/example-golden-gate-webcam)
  * actor in the Apify library, so you can test it directly there simply by sending a POST request to
  * https://api.apify.com/v2/acts/apify~example-golden-gate-webcam/run-sync?token=[YOUR_API_TOKEN]

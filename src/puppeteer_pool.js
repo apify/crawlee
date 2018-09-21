@@ -36,7 +36,8 @@ const DISK_CACHE_DIR = path.join(os.tmpdir(), 'puppeteer_disk_cache-');
 
 /**
  * Deletes Chrome's user data directory
- * @param diskCacheDir
+ * @param {String} diskCacheDir
+ * @ignore
  */
 const deleteDiskCacheDir = (diskCacheDir) => {
     log.debug('PuppeteerPool: Deleting disk cache directory', { diskCacheDir });
@@ -76,7 +77,7 @@ class PuppeteerInstance {
  *
  * `PuppeteerPool` is internally used by the {@link PuppeteerCrawler|`PuppeteerCrawler`} class.
  *
- * Example usage:
+ * **Example usage:**
  *
  * ```javascript
  * const puppeteerPool = new PuppeteerPool({

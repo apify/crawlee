@@ -37,7 +37,7 @@ const DEFAULT_OPTIONS = {
  * of the `CheerioCrawler` constructor.
  * For user convenience, the `minConcurrency` and `maxConcurrency` options are available directly in the constructor.
  *
- * Example usage:
+ * **Example usage:**
  *
  * ```javascript
  * const rp = require('request-promise');

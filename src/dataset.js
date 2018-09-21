@@ -129,7 +129,7 @@ export const chunkBySize = (items, limitBytes) => {
  * If the `APIFY_TOKEN` environment variable is provided instead, the data is stored
  * in the [Apify Dataset](https://www.apify.com/docs/storage#dataset) cloud storage.
  *
- * Example usage:
+ * **Example usage:**
  *
  * ```javascript
  * // Write a single row to the default dataset
@@ -272,7 +272,7 @@ export class Dataset {
      *   "itemsCount": 0
      * }
      *
-     * @param opts
+     * @param {Object} opts
      * @returns {Promise}
      */
     getInfo(opts = {}) {

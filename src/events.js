@@ -29,7 +29,7 @@ let persistStateInterval = null;
  * that emits various events from the SDK or the Apify platform.
  * The event emitter is initialized by calling <a href="#module-Apify-main"><code>Apify.main()</code></a> function.
  *
- * Example usage:
+ * **Example usage:**
  *
  * ```javascript
  * Apify.main(async () => {

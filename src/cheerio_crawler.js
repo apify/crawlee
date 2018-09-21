@@ -45,7 +45,7 @@ const DEFAULT_OPTIONS = {
  * of the `CheerioCrawler` constructor.
  * For user convenience, the `minConcurrency` and `maxConcurrency` options are available directly.
  *
- * Example usage:
+ * **Example usage:**
  *
  * ```javascript
  * // Prepare a list of URLs to crawl
