@@ -37,7 +37,7 @@ const DEFAULT_OPTIONS = {
  * of the `CheerioCrawler` constructor.
  * For user convenience, the `minConcurrency` and `maxConcurrency` options are available directly in the constructor.
  *
- * Example usage:
+ * **Example usage:**
  *
  * ```javascript
  * const rp = require('request-promise');
@@ -68,7 +68,7 @@ const DEFAULT_OPTIONS = {
  * ```
  *
  * @param {Object} options
- * @param {Function} [options.handleRequestFunction]
+ * @param {Function} options.handleRequestFunction
  *   User-provided function that performs the logic of the crawler. It is called for each URL to crawl.
  *
  *   The function that receives an object as argument, with the following field:
@@ -78,10 +78,12 @@ const DEFAULT_OPTIONS = {
  *   </ul>
  *
  *   The function must return a promise.
- * @param {RequestList} [options.requestList]
+ * @param {RequestList} options.requestList
  *   Static list of URLs to be processed.
- * @param {RequestQueue} [options.requestQueue]
+ *   Either `RequestList` or `RequestQueue` must be provided.
+ * @param {RequestQueue} options.requestQueue
  *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
+ *   Either RequestList or RequestQueue must be provided.
  * @param {Function} [options.handleFailedRequestFunction]
  *   Function that handles requests that failed more then `option.maxRequestRetries` times.
  *   See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/basic_crawler.js#L11">GitHub</a> for default behavior.
@@ -95,9 +97,9 @@ const DEFAULT_OPTIONS = {
  *   Custom options passed to the underlying {@link AutoscaledPool|`AutoscaledPool`} instance constructor.
  *   Note that the `runTaskFunction`, `isTaskReadyFunction` and `isFinishedFunction` options
  *   are provided by `BasicCrawler` and cannot be overridden.
- * @param {Object} [options.minConcurrency]
+ * @param {Object} [options.minConcurrency=1]
  *   Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding `AutoscaledPool` option.
- * @param {Object} [options.maxConcurrency]
+ * @param {Object} [options.maxConcurrency=1000]
  *   Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding `AutoscaledPool` option.
  *
  * @see {@link CheerioCrawler}
@@ -317,14 +319,9 @@ export default class BasicCrawler {
         }
 
         // This is the final fallback. If we get here, the request failed more than retryCount times and will not be retried anymore.
-        log.exception(error, 'BasicCrawler: handleRequestFunction failed, marking failed request as handled', {
-            url: request.url,
-            retryCount: request.retryCount,
-        });
-
         // Mark the request as failed and do not retry.
         this.handledRequestsCount++;
         await source.markRequestHandled(request);
-        return this.handleFailedRequestFunction({ request, error });
+        return this.handleFailedRequestFunction({ request, error }); // This function prints an error message.
     }
 }

@@ -110,6 +110,9 @@ const getRequestId = (uniqueKey) => {
 };
 
 /**
+ * A helper class that is used to report results from the
+ * {@linkcode enqueueLinks|Apify.utils.puppeteer.enqueueLinks()} function.
+ *
  * @typedef {Object} RequestOperationInfo
  * @property {Boolean} wasAlreadyPresent Indicates if request was already present in the queue.
  * @property {Boolean} wasAlreadyHandled Indicates if request was already marked as handled.
@@ -120,7 +123,12 @@ const getRequestId = (uniqueKey) => {
  * Represents a queue of URLs to crawl, which is used for deep crawling of websites
  * where you start with several URLs and then recursively
  * follow links to other pages. The data structure supports both breadth-first and depth-first crawling orders.
- * Each URL is represented as an instance of the {@link Request|`Request`} class.
+ *
+ * Each URL is represented using an instance of the {@link Request|`Request`} class.
+ * The queue can only contain unique URLs. More precisely, it can only contain `Request` instances
+ * with distinct `uniqueKey` properties. By default, `uniqueKey` is generated from the URL, but it can also be overridden.
+ * To add a single URL multiple times to the queue,
+ * corresponding `Request` objects will need to have different `uniqueKey` properties.
  *
  * Do not instantiate this class directly, use the
  * {@link Apify#openRequestQueue|`Apify.openRequestQueue()`} function instead.
@@ -146,7 +154,7 @@ const getRequestId = (uniqueKey) => {
  * If the `APIFY_TOKEN` environment variable is provided instead, the data is stored
  * in the [Apify Request Queue](https://www.apify.com/docs/storage#queue) cloud storage.
  *
- * Example usage:
+ * **Example usage:**
  *
  * ```javascript
  * // Open the default request queue associated with the actor run
@@ -237,7 +245,7 @@ export class RequestQueue {
     /**
      * Gets the request from the queue specified by ID.
      *
-     * @param  {String} requestId Request ID
+     * @param {String} requestId Request ID
      * @return {Promise<Request>}
      */
     getRequest(requestId) {

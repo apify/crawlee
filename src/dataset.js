@@ -129,7 +129,7 @@ export const chunkBySize = (items, limitBytes) => {
  * If the `APIFY_TOKEN` environment variable is provided instead, the data is stored
  * in the [Apify Dataset](https://www.apify.com/docs/storage#dataset) cloud storage.
  *
- * Example usage:
+ * **Example usage:**
  *
  * ```javascript
  * // Write a single row to the default dataset
@@ -272,7 +272,7 @@ export class Dataset {
      *   "itemsCount": 0
      * }
      *
-     * @param opts
+     * @param {Object} opts
      * @returns {Promise}
      */
     getInfo(opts = {}) {
@@ -611,13 +611,13 @@ const getOrCreateDataset = (datasetIdOrName) => {
 
 
 /**
- * Opens a dataset and returns a promise resolving to an instance of the {@link Dataset|`Dataset`} class.
+ * Opens a dataset and returns a promise resolving to an instance of the {@linkcode Dataset} class.
  *
  * Datasets are used to store structured data where each object stored has the same attributes,
  * such as online store products or real estate offers.
  * The actual data is stored either on the local filesystem or in the cloud.
  *
- * For more details and code examples, see the {@link Dataset|`Dataset`} class.
+ * For more details and code examples, see the {@linkcode Dataset} class.
  *
  * @param {string} [datasetIdOrName]
  *   ID or name of the dataset to be opened. If `null` or `undefined`,
@@ -653,7 +653,7 @@ export const openDataset = (datasetIdOrName) => {
  * await dataset.pushData({ myValue: 123 });
  * ```
  *
- * For more information, see {@link Apify.openDataset|`Apify.openDataset()`} and {@linkcode Dataset#pushData|`Dataset.pushData()`}
+ * For more information, see {@link Apify.openDataset|`Apify.openDataset()`} and {@link Dataset#pushData|`Dataset.pushData()`}
  *
  * **IMPORTANT**: Make sure to use the `await` keyword when calling `pushData()`,
  * otherwise the actor process might finish before the data is stored!
@@ -661,7 +661,7 @@ export const openDataset = (datasetIdOrName) => {
  * @param {Object|Array} data Object or array of objects containing data to be stored in the default dataset.
  * The objects must be serializable to JSON and the JSON representation of each object must be smaller than 9MB.
  * @returns {Promise} Returns a promise that resolves once the data is saved.
- * @see {@linkcode Dataset}
+ * @see {@link Dataset}
  *
  * @memberof module:Apify
  * @name pushData

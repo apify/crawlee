@@ -4,7 +4,7 @@ import Promise from 'bluebird';
 import WebSocket from 'ws';
 import log from 'apify-shared/log';
 import { promisifyServerListen } from 'apify-shared/utilities';
-import { ENV_VARS } from 'apify-shared/consts';
+import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { layout, indexPage, detailPage, errorPage } from './puppeteer_live_view_client';
 

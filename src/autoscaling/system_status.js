@@ -6,8 +6,8 @@ import { weightedAvg } from '../utils';
 const DEFAULT_OPTIONS = {
     currentHistorySecs: 5, // TODO this should be something like "nowDurationSecs" but it's weird, ideas?
     maxMemoryOverloadedRatio: 0.2,
-    maxEventLoopOverloadedRatio: 0.02,
-    maxCpuOverloadedRatio: 0.1,
+    maxEventLoopOverloadedRatio: 0.2,
+    maxCpuOverloadedRatio: 0.2,
 };
 
 /**
@@ -17,6 +17,7 @@ const DEFAULT_OPTIONS = {
  * messages in the snapshots, with the weights being the time intervals
  * between the snapshots. Each resource is calculated separately
  * and the system is overloaded whenever at least one resource is overloaded.
+ * The class is used by the {@linkcode AutoscaledPool} class.
  *
  * `getCurrentStatus()` returns a boolean that represents the current status of the system.
  * The length of the current timeframe in seconds is configurable

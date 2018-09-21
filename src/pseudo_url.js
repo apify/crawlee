@@ -61,7 +61,7 @@ const parsePurl = (purl) => {
  *     <li>`http://www.example.com/pages/something`</li>
  * </ul>
  *
- * Example use:
+ * **Example usage:**
  *
  * ```javascript
  * const purl = new Apify.PseudoUrl('http://www.example.com/pages/[(\w|-)*]');

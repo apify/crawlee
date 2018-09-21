@@ -8,16 +8,17 @@ import events from '../events';
 
 const DEFAULT_OPTIONS = {
     eventLoopSnapshotIntervalSecs: 0.5,
-    maxBlockedMillis: 50,
+    maxBlockedMillis: 50, // 0.05
     memorySnapshotIntervalSecs: 1,
     maxUsedMemoryRatio: 0.7,
-    snapshotHistorySecs: 60,
+    snapshotHistorySecs: 30,
 };
 
 /**
  * Creates snapshots of system resources at given intervals and marks the resource
  * as either overloaded or not during the last interval. Keeps a history of the snapshots.
  * It tracks the following resources: Memory, EventLoop and CPU.
+ * The class is used by the {@linkcode AutoscaledPool} class.
  *
  * There are differences in behavior when running locally and on the Apify platform,
  * but those differences are handled internally by the class and do not affect its interface.
@@ -27,7 +28,7 @@ const DEFAULT_OPTIONS = {
  * the Apify platform and a quarter of total system memory when running locally.
  * Use of total memory may be overridden by using the `maxBlockedRatio` option.
  *
- * Event Loop becomes overloaded if it slows down by more than the `maxBlockedMillis` option.
+ * Event loop becomes overloaded if it slows down by more than the `maxBlockedMillis` option.
  *
  * CPU tracking is available only on the Apify platform and the CPU overloaded event is read
  * directly off the container and is not configurable.

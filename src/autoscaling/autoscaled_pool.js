@@ -8,7 +8,7 @@ import SystemStatus from './system_status';
 const DEFAULT_OPTIONS = {
     maxConcurrency: 1000,
     minConcurrency: 1,
-    desiredConcurrencyRatio: 0.95,
+    desiredConcurrencyRatio: 0.90,
     scaleUpStepRatio: 0.05,
     scaleDownStepRatio: 0.05,
     maybeRunIntervalSecs: 0.5,
@@ -26,20 +26,23 @@ const DEFAULT_OPTIONS = {
  * or from the Apify cloud infrastructure in case the process is running on the Apify platform.
  * Meaningful data gathered from these snapshots is provided to `AutoscaledPool` by the `SystemStatus` class.
  *
- * Before running the pool, one must implement three functions. `runTaskFunction()`,
- * `isTaskReadyFunction()` and `isFinishedFunction()`.
+ * Before running the pool, you need to implement the following three functions:
+ * {@link AutoscaledPool#runTaskFunction|`runTaskFunction()`},
+ * {@link AutoscaledPool#isTaskReadyFunction|`isTaskReadyFunction()`} and
+ * {@link AutoscaledPool#isFinishedFunction|`isFinishedFunction()`}.
  *
- * The auto-scaled pool is started by calling the `run()` function. It queries the `isTaskReadyFunction()`
+ * The auto-scaled pool is started by calling the {@link AutoscaledPool#run|`run()`} function.
+ * The pool periodically queries the `isTaskReadyFunction()` function
  * for more tasks, managing optimal concurrency, until the function resolves to `false`. The pool then queries
- * the `isFinishedFunction()`. If it resolves to `true`, the pool finishes. If it resolves to `false`, it assumes
+ * the `isFinishedFunction()`. If it resolves to `true`, the run finishes. If it resolves to `false`, it assumes
  * there will be more tasks available later and keeps querying for tasks, until finally both the
- * `isTaskReadyFunction()` and `isFinishedFunction()` resolve to `true`. If any of the tasks throws
- * then the `run()` function also throws.
+ * `isTaskReadyFunction()` and `isFinishedFunction()` functions resolve to `true`. If any of the tasks throws
+ * then the `run()` function rejects the promise with an error.
  *
  * The pool evaluates whether it should start a new task every time one of the tasks finishes
  * and also in the interval set by the `options.maybeRunIntervalSecs` parameter.
  *
- * Basic usage of `AutoscaledPool`:
+ * **Example usage:**
  *
  * ```javascript
  * const pool = new Apify.AutoscaledPool({
@@ -100,13 +103,13 @@ const DEFAULT_OPTIONS = {
  *   We suggest using a value from 5 to 20.
  * @param {Number} [options.snapshotterOptions]
  *   Options to be passed down to the `Snapshotter` constructor. This is useful for fine-tuning
- *   the snapshot intervals and history. See the <a href="#Snapshotter">Snapshotter documentation</a>
- *   for available options.
+ *   the snapshot intervals and history.
+ *   See <a href="https://github.com/apifytech/apify-js/blob/develop/src/autoscaling/snapshotter.js">Snapshotter</a> source code for more details.
  * @param {Number} [options.systemStatusOptions]
  *   Options to be passed down to the `SystemStatus` constructor. This is useful for fine-tuning
- *   the system status reports. See the <a href="#SystemStatus">SystemStatus documentation</a>
- *   for available options. If a custom snapshotter is set in the options, it will be used
+ *   the system status reports. If a custom snapshotter is set in the options, it will be used
  *   by the pool.
+ *   See <a href="https://github.com/apifytech/apify-js/blob/develop/src/autoscaling/system_status.js">SystemStatus</a> source code for more details.
  */
 export default class AutoscaledPool {
     constructor(options = {}) {

@@ -148,7 +148,7 @@ export const getEnv = () => {
  * });
  * ```
  *
- * @param userFunc {Function} User function to be executed. If it returns a promise,
+ * @param {Function} userFunc User function to be executed. If it returns a promise,
  * the promise will be awaited. The user function is called with no arguments.
  *
  * @memberof module:Apify
@@ -216,7 +216,7 @@ export const main = (userFunc) => {
  *
  * The result of the function is an object that contains details about the actor run and its output (if any).
  *
- * Example usage:
+ * **Example usage:**
  *
  * ```javascript
  * const run = await Apify.call('apify/hello-world', { myInput: 123 });
@@ -266,7 +266,7 @@ export const main = (userFunc) => {
  * ```
  * Internally, the `Apify.call` function calls the
  * <a href="https://www.apify.com/docs/api/v2#/reference/actors/run-collection/run-actor" target="_blank">Run actor</a>
- * API endpoint and few others to obtain the output.
+ * Apify API endpoint and few others to obtain the output.
  *
  * @param {String} actId
  *  Either `username/actor-name` or actor ID.
