@@ -441,7 +441,7 @@ export const openRemoteStorage = async (idOrName, defaultIdEnvVar, RemoteClass, 
     if (!storagePromise) {
         storagePromise = isDefault // If true then we know that this is an ID of existing store.
             ? Promise.resolve(new RemoteClass(idOrName))
-            : getOrCreateFunction(idOrName).then(storage => (new RemoteClass(storage.id)));
+            : getOrCreateFunction(idOrName).then(storage => (new RemoteClass(storage.id, storage.name)));
         cache.add(idOrName, storagePromise);
     }
 

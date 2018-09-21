@@ -130,10 +130,12 @@ export const maybeStringify = (value, options) => {
  * @hideconstructor
  */
 export class KeyValueStore {
-    constructor(storeId) {
+    constructor(storeId, storeName) {
         checkParamOrThrow(storeId, 'storeId', 'String');
+        checkParamOrThrow(storeName, 'storeName', 'Maybe String');
 
         this.storeId = storeId;
+        this.storeName = storeName;
     }
 
     // TODO: Move here the Apify.getValue()/setValue() documentation, and link it from there.
@@ -197,6 +199,7 @@ export class KeyValueStore {
             })
             .then(() => {
                 storesCache.remove(this.storeId);
+                storesCache.remove(this.storeName);
             });
     }
 }
