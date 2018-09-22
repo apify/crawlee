@@ -4,7 +4,7 @@ import Snapshotter from './snapshotter';
 import { weightedAvg } from '../utils';
 
 const DEFAULT_OPTIONS = {
-    currentHistorySecs: 5, // TODO this should be something like "nowDurationSecs" but it's weird, ideas?
+    currentHistorySecs: 5,
     maxMemoryOverloadedRatio: 0.2,
     maxEventLoopOverloadedRatio: 0.2,
     maxCpuOverloadedRatio: 0.2,
