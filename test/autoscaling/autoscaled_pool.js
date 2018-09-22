@@ -323,6 +323,26 @@ describe('AutoscaledPool', () => {
         pool._autoscale(() => {});
         expect(pool.desiredConcurrency).to.be.eql(2);
     });
+
+    it('should abort', async () => {
+        let finished = false;
+        let aborted = false;
+        const pool = new AutoscaledPool({
+            runTaskFunction: () => {
+                if (!aborted) {
+                    return (async () => {
+                        await pool.abort();
+                        aborted = true;
+                    })();
+                }
+                return null;
+            },
+            isFinishedFunction: () => { finished = true; },
+            isTaskReadyFunction: () => !aborted,
+        });
+        await pool.run();
+        expect(finished).to.be.eql(false);
+    });
 });
 
 /* eslint-enable no-underscore-dangle */
