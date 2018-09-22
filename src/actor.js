@@ -214,7 +214,9 @@ export const main = (userFunc) => {
  * By passing the `waitSecs` option you can reduce the maximum amount of time to wait for the run to finish.
  * If the value is less than or equal to zero, the function returns immediately after the run is started.
  *
- * The result of the function is an object that contains details about the actor run and its output (if any).
+ * The result of the function is an {@linkcode ActorRun} object
+ * that contains details about the actor run and its output (if any).
+ * If the actor run failed, the function fails with {@linkcode ApifyCallError} expcetion.
  *
  * **Example usage:**
  *
@@ -223,48 +225,7 @@ export const main = (userFunc) => {
  * console.log(`Received message: ${run.output.body.message}`);
  * ```
  *
- * The resulting `run` object looks something like this:
- *
- * ```javascript
- * {
- *   "id": "cJwyzNkBf229ZQRcQ",
- *   "actId": "E2jjCZBezvAZnX8Rb",
- *   "userId": "mb7q2dycFBHDhae6A",
- *   "startedAt": new Date("2018-08-10T14:41:37.527Z"),
- *   "finishedAt": new Date("2018-08-10T14:41:41.859Z"),
- *   "status": "SUCCEEDED",
- *   "meta": {
- *     "origin": "API",
- *     "clientIp": null,
- *     "userAgent": "ApifyClient/0.2.13 (Linux; Node/v8.11.3)"
- *   },
- *   "stats": {
- *     "inputBodyLen": 22,
- *     "restartCount": 0,
- *     ...
- *   },
- *   "options": {
- *     "build": "latest",
- *     "timeoutSecs": 0,
- *     "memoryMbytes": 256,
- *     "diskMbytes": 512
- *   },
- *   "buildId": "AzgKquDoX8EGdWzto",
- *   "exitCode": 0,
- *   "defaultKeyValueStoreId": "aH8tKjD4kATC4Wptc",
- *   "defaultDatasetId": "iug7s8angh3BwNj9Q",
- *   "defaultRequestQueueId": "fQfghRijKLTMchns3",
- *   "buildNumber": "0.0.10",
- *   "containerUrl": "https://c8o2s6key3uy.runs.apify.net",
- *   "output": {
- *     "contentType": "application/json; charset=utf-8",
- *     "body": {
- *       "message": "Hello world!"
- *     }
- *   }
- * }
- * ```
- * Internally, the `Apify.call` function calls the
+ * Internally, the `call()` function calls the
  * <a href="https://www.apify.com/docs/api/v2#/reference/actors/run-collection/run-actor" target="_blank">Run actor</a>
  * Apify API endpoint and few others to obtain the output.
  *
@@ -298,7 +259,9 @@ export const main = (userFunc) => {
  * @param {Boolean} [options.disableBodyParser=false]
  *  If `true` then the function will not attempt to parse the
  *  actor's output and will return it in a raw `Buffer`.
- * @returns {Promise}
+ * @returns {Promise<ActorRun>} Returns a promise that resolves to an instance
+ * of {@linkcode ActorRun}. If the actor run fails, the promise is rejected
+ * with {@linkcode ApifyCallError}.
  * @throws {ApifyCallError} If the run did not succeed, e.g. if it failed or timed out.
  *
  * @memberof module:Apify
@@ -395,6 +358,90 @@ export const call = (actId, input, opts = {}) => {
         .runAct(Object.assign({}, defaultOpts, runActOpts))
         .then(run => waitForRunToFinish(run));
 };
+
+
+/**
+ * Represents information about an actor run, as returned by the
+ * {@linkcode Apify#call|Apify.call()} function.
+ * The object is almost equivalent to the JSON response
+ * of the
+ * [Actor run](https://www.apify.com/docs/api/v2#/reference/actors/run-collection/run-actor)
+ * Apify API endpoint and extended with certain fields.
+ * For more details, see [Runs](https://www.apify.com/docs/actor#run) in Apify actor documentation.
+ *
+ * @typedef {Object} ActorRun
+ * @property {String} id
+ *   Actor run ID
+ * @property {String} actId
+ *   Actor ID
+ * @property {Date} startedAt
+ *   Time when the actor run started
+ * @property {Date} finishedAt
+ *   Time when the actor run finished. Contains `null` for running actors.
+ * @property {String} status
+ *   Status of the run. For possible values, see
+ *   [Run lifecycle](https://www.apify.com/docs/actor#run-lifecycle) in Apify actor documentation.
+ * @property {Object} meta
+ *   Actor run meta-data. For example:
+ *   ```javascript
+ *   {
+ *     "origin": "API",
+ *     "clientIp": "1.2.3.4",
+ *     "userAgent": "ApifyClient/0.2.13 (Linux; Node/v8.11.3)"
+ *   }
+ *   ```
+ * @property {Object} stats
+ *   An object containing various actor run statistics. For example:
+ *   ```javascript
+ *   {
+ *     "inputBodyLen": 22,
+ *     "restartCount": 0,
+ *     "workersUsed": 1,
+ *   }
+ *   ```
+ *   Beware that object fields might change in future releases.
+ * @property {Object} options
+ *   Actor run options. For example:
+ *   ```javascript
+ *   {
+ *     "build": "latest",
+ *     "timeoutSecs": 0,
+ *     "memoryMbytes": 256,
+ *     "diskMbytes": 512
+ *   }
+ *   ```
+ * @property {String} buildId
+ *   ID of the actor build used for the run. For details, see
+ *   [Builds](https://www.apify.com/docs/actor#build) in Apify actor documentation.
+ * @property {String} buildNumber
+ *   Number of the actor build used for the run. For example, `0.0.10`.
+ * @property {Number} exitCode
+ *   Exit code of the actor run process. It's `null` if actor is still running.
+ * @property {String} defaultKeyValueStoreId
+ *   ID of the default key-value store associated with the actor run. See {@linkcode KeyValueStore} for details.
+ * @property {String} defaultDatasetId
+ *   ID of the default dataset associated with the actor run. See {@linkcode Dataset} for details.
+ * @property {String} defaultRequestQueueId
+ *   ID of the default request queue associated with the actor run. See {@linkcode RequestQueue} for details.
+ * @property {String} containerUrl
+ *   URL on which the web server running inside actor run's Docker container can be accessed.
+ *   For more details, see [Container web server](https://www.apify.com/docs/actor#container-web-server)
+ *   in Apify actor documentation.
+ * @property {Object} output
+ *   Contains output of the actor run. The value is `null` or `undefined` in case the actor is still running,
+ *   or if you pass `false` to the `fetchOutput` option of {@linkcode Apify#call|Apify.call()}.
+ *
+ *   For example:
+ *   ```javascript
+ *   {
+ *     "contentType": "application/json; charset=utf-8",
+ *     "body": {
+ *       "message": "Hello world!"
+ *     }
+ *   }
+ *   ```
+ */
+
 
 /**
  * Constructs the URL to the Apify Proxy using the specified settings.
