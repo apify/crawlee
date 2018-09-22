@@ -11,8 +11,8 @@ const DEFAULT_OPTIONS = {
 };
 
 /**
- * Provides a simple interface to reading system status from a Snapshotter
- * instance. It only exposes two functions `isOk()` and `hasBeenOkLately()`.
+ * Provides a simple interface to reading system status from a Snapshotter instance.
+ * It only exposes two functions `getCurrentStatus()` and `getHistoricalStatus()`.
  * The system status is calculated using a weighted average of overloaded
  * messages in the snapshots, with the weights being the time intervals
  * between the snapshots. Each resource is calculated separately
