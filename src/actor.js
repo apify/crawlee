@@ -65,7 +65,7 @@ const tryParseDate = (str) => {
  * ```
  * For the list of the `APIFY_XXX` environment variables, see
  * <a href="http://localhost/docs/actor.php#run-env-vars" target="_blank">Actor documentation</a>.
- * If some of the variables is not defined or is invalid, the corresponding value in the resulting object will be null.
+ * If some of the variables are not defined or are invalid, the corresponding value in the resulting object will be null.
  *
  * @returns {Object}
  *
@@ -124,7 +124,7 @@ export const getEnv = () => {
  * });
  * ```
  *
- * If the user function returns a promise, it is considered as asynchronous:
+ * If the user function returns a promise, it is considered asynchronous:
  * ```javascript
  * const request = require('request-promise');
  *
@@ -148,7 +148,7 @@ export const getEnv = () => {
  * });
  * ```
  *
- * @param userFunc {Function} User function to be executed. If it returns a promise,
+ * @param {Function} userFunc User function to be executed. If it returns a promise,
  * the promise will be awaited. The user function is called with no arguments.
  *
  * @memberof module:Apify
@@ -216,7 +216,7 @@ export const main = (userFunc) => {
  *
  * The result of the function is an object that contains details about the actor run and its output (if any).
  *
- * Example usage:
+ * **Example usage:**
  *
  * ```javascript
  * const run = await Apify.call('apify/hello-world', { myInput: 123 });
@@ -266,7 +266,7 @@ export const main = (userFunc) => {
  * ```
  * Internally, the `Apify.call` function calls the
  * <a href="https://www.apify.com/docs/api/v2#/reference/actors/run-collection/run-actor" target="_blank">Run actor</a>
- * API endpoint and few others to obtain the output.
+ * Apify API endpoint and few others to obtain the output.
  *
  * @param {String} actId
  *  Either `username/actor-name` or actor ID.

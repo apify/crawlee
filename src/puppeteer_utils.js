@@ -134,13 +134,18 @@ const enqueueRequestsFromClickableElements = async (page, selector, purls, reque
  * To create a Request object function uses `requestTemplate` from a matching Pseudo-URL.
  *
  * *WARNING*: This is work in progress. Currently the function doesn't click elements and only takes their `href` attribute and so
- *            is working only for link (`a`) elements and not for buttons or javascript links.
+ *            is working only for link (`a`) elements, but not for buttons or JavaScript links.
  *
- * @param {Page} page Puppeteer [Page](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page) object.
- * @param {String} selector CSS selector matching elements to be clicked.
- * @param {Array} pseudoUrls An array of `Apify.PseudoUrl` objects matching URL to be enqueued.
- * @param {RequestQueue} requestQueue `Apify.RequestQueue` object where URLs will be enqueued.
- * @return {Promise} Promise resolves to array of RequestOperationInfo objects.
+ * @param {Page} page
+ *   Puppeteer [Page](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page) object.
+ * @param {String} selector
+ *   CSS selector matching elements to be clicked.
+ * @param {PseudoUrl[]} pseudoUrls
+ *   An array of pseudo-URLs matching the URLs to be enqueued.
+ * @param {RequestQueue} requestQueue
+ *   Request queue object where URLs will be enqueued.
+ * @return {Promise<RequestOperationInfo[]>}
+ *   Promise that resolves to an array of {@linkcode RequestOperationInfo} objects.
  * @memberof utils.puppeteer
  */
 const enqueueLinks = async (page, selector, purls, requestQueue) => {
@@ -181,6 +186,7 @@ const enqueueLinks = async (page, selector, purls, requestQueue) => {
  * @param {Page} page Puppeteer's `Page` object
  * @param {Array<String>} resourceTypes Array of resource types to block.
  * @return {Promise<void>}
+ * @memberof utils.puppeteer
  */
 const blockResources = async (page, resourceTypes = ['stylesheet', 'font', 'image', 'media']) => {
     await page.setRequestInterception(true);
@@ -212,6 +218,7 @@ const blockResources = async (page, resourceTypes = ['stylesheet', 'font', 'imag
  *
  * @param {String} scriptString
  * @return {Function} async ({ page, request }) => { scriptString }
+ * @memberof utils.puppeteer
  */
 const compileScript = (scriptString) => {
     const funcString = `async ({ page, request }) => {${scriptString}}`;
@@ -233,7 +240,8 @@ const compileScript = (scriptString) => {
 /**
  * A namespace that contains various Puppeteer utilities.
  *
- * Example usage:
+ * **Example usage:**
+ *
  * ```javascript
  * const Apify = require('apify');
  *
