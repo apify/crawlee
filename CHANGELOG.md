@@ -1,6 +1,7 @@
-xxx
+0.8.3 / 2018-09-22
 ==================
 - Updated documentation and README.
+- Optimized autoscaled pool default configuration.
 
 0.8.0 / 2018-09-19
 ==================
