@@ -253,62 +253,29 @@ describe('AutoscaledPool', () => {
     });
 
     it('should break and resume when the task queue is empty for a while', async () => {
-        const tasks = [];
         const finished = [];
-
         let isFinished = false;
         let isTaskReady = true;
 
-        const getTask = (id) => {
-            return () => delayPromise(10).then(() => finished.push(id));
-        };
-
-        // Start 3 tasks immediately.
-        tasks.push(getTask(0));
-        tasks.push(getTask(1));
-        setTimeout(() => tasks.push(getTask(2)), 20);
-
-        setTimeout(() => {
-            isTaskReady = false;
-        }, 50);
-
-        // Add 2 tasks after 80ms.
-        setTimeout(() => tasks.push(getTask(3)), 80);
-        setTimeout(() => tasks.push(getTask(4)), 80);
-
-        // Remove tasks and set isTaskReady=true to accept a new task.
-        setTimeout(() => {
-            tasks.pop();
-            tasks.pop();
-            isTaskReady = true;
-        }, 120);
-
-        // Add one more task.
-        setTimeout(() => tasks.push(getTask(5)), 150);
-
-        // Finish.
-        setTimeout(() => {
-            isFinished = true;
-        }, 200);
-
-        // Run the pool and close it after 3s.
+        let counter = 0;
         const pool = new AutoscaledPool({
-            minConcurrency: 3,
-            runTaskFunction: () => {
-                const task = tasks.shift();
-
-                if (!task) return;
-
-                return task();
+            maxConcurrency: 1,
+            runTaskFunction: async () => {
+                await delayPromise(1);
+                if (counter === 10) { isTaskReady = false; setTimeout(() => { isTaskReady = true; }, 10); }
+                if (counter === 19) { isTaskReady = false; isFinished = true; }
+                counter++;
+                finished.push(Date.now());
             },
-            isFinishedFunction: () => Promise.resolve(isFinished),
-            isTaskReadyFunction: () => Promise.resolve(!isFinished && isTaskReady),
+            isFinishedFunction: async () => isFinished,
+            isTaskReadyFunction: async () => !isFinished && isTaskReady,
         });
-        pool.maybeRunIntervalMillis = 5;
+        pool.maybeRunIntervalMillis = 1;
         await pool.run();
 
         // Check finished tasks.
-        expect(finished).to.be.eql([0, 1, 2, 5]);
+        expect(finished).to.have.lengthOf(20);
+        expect(finished[11] - finished[10]).to.be.above(9);
     });
 
     it('should work with loggingIntervalMillis = null', async () => {
