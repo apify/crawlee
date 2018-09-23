@@ -21,38 +21,6 @@
   View the full <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest/" target="_blank">Apify SDK Programmer's Reference</a> on a separate page.
 </div>
 
-
-## Hello World
-
-Install Apify SDK to your Node.js project:
-
-```
-npm install apify --save
-```
-
-Then run the following example script:
-
-```javascript
-const Apify = require('apify');
-
-Apify.main(async () => {
-    const requestQueue = await Apify.openRequestQueue();
-    await requestQueue.addRequest(new Apify.Request({ url: 'https://www.iana.org/' }));
-    const pseudoUrls = [new Apify.PseudoUrl('https://www.iana.org/[.*]')];
-
-    const crawler = new Apify.PuppeteerCrawler({
-        requestQueue,
-        handlePageFunction: async ({ request, page }) => {
-            const title = await page.title();
-            console.log(`Title of ${request.url}: ${title}`);
-            await Apify.utils.puppeteer.enqueueLinks(page, 'a', pseudoUrls, requestQueue);
-        },
-    });
-
-    await crawler.run();
-});
-```
-
 ## Table of Contents
 
 <!-- toc -->
@@ -72,10 +40,10 @@ Apify.main(async () => {
   * [Open web page in Puppeteer via Apify Proxy](#open-web-page-in-puppeteer-via-apify-proxy)
   * [Invoke another actor](#invoke-another-actor)
   * [Use an actor as an API](#use-an-actor-as-an-api)
+- [Environment variables](#environment-variables)
 - [Data storage](#data-storage)
   * [Key-value store](#key-value-store)
   * [Dataset](#dataset)
-- [Logging](#logging)
   * [Request queue](#request-queue)
 - [Puppeteer live view](#puppeteer-live-view)
 - [Support](#support)
@@ -200,59 +168,35 @@ Add Apify SDK to any Node.js project by running:
 npm install apify --save
 ```
 
-You'll need to specify where the SDK should store the crawling data.
-Either define the `APIFY_LOCAL_STORAGE_DIR` environment variable to store the data locally on your disk
-or define `APIFY_TOKEN` to store the data to Apify cloud platform.
-If neither of these variables is defined, by default Apify SDK sets `APIFY_LOCAL_STORAGE_DIR`
-to `./apify_storage` in the current working directory and prints a warning.
+Run the following example to perform a recursive crawl of a website using Puppeteer.
 
-The following table shows the basic environment variables used by Apify SDK:
+```javascript
+const Apify = require('apify');
 
-<table class="table table-bordered table-condensed">
-    <thead>
-        <tr>
-            <th>Environment variable</th>
-            <th>Description</th>
-        </tr>
-    </thead>
-    <tbody>
-          <tr>
-            <td><code>APIFY_LOCAL_STORAGE_DIR</code></td>
-            <td>
-              Defines the path to a local directory where
-              <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#KeyValueStore">key-value stores</a>,
-              <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList">request lists</a>
-              and <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue">request queues</a> store their data.
-              Typically it is set to <code>./apify_storage</code>.
-              If omitted, you should define
-              the <code>APIFY_TOKEN</code> environment variable instead.
-            </td>
-          </tr>
-          <tr>
-            <td><code>APIFY_TOKEN</code></td>
-            <td>
-              The API token for your Apify Account. It is used to access the Apify API, e.g. to access cloud storage or to run an actor in the cloud.
-              You can find your API token on the <a href="https://my.apify.com/account#intergrations">Account - Integrations</a> page.
-              If omitted, you should define the <code>APIFY_LOCAL_STORAGE_DIR</code> environment variable instead.
-            </td>
-          </tr>
-          <tr>
-            <td><code>APIFY_PROXY_PASSWORD</code></td>
-            <td>
-              Optional password to <a href="https://www.apify.com/docs/proxy">Apify Proxy</a> for IP address rotation.
-              If you have have an Apify Account, you can find the password on the
-              <a href="https://my.apify.com/proxy">Proxy page</a> in the Apify app.
-              This feature is optional. You can use your own proxies or no proxies at all.
-            </td>
-          </tr>
-    </tbody>
-</table>
+Apify.main(async () => {
+    const requestQueue = await Apify.openRequestQueue();
+    await requestQueue.addRequest(new Apify.Request({ url: 'https://www.iana.org/' }));
+    const pseudoUrls = [new Apify.PseudoUrl('https://www.iana.org/[.*]')];
 
+    const crawler = new Apify.PuppeteerCrawler({
+        requestQueue,
+        handlePageFunction: async ({ request, page }) => {
+            const title = await page.title();
+            console.log(`Title of ${request.url}: ${title}`);
+            await Apify.utils.puppeteer.enqueueLinks(page, 'a', pseudoUrls, requestQueue);
+        },
+    });
 
-For the full list of environment variables used by Apify SDK and the Apify cloud platform, please see the
-<a href="https://www.apify.com/docs/actor#environment-variabes">environment variables</a>
-in the Apify actor documentation.
+    await crawler.run();
+});
+```
 
+By default, Apify SDK stores data to
+`./apify_storage` in the current working directory.
+You can override this behavior by setting either the
+`APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variable.
+For details, see [Data storage](#data-storage)
+and [Environment variables](#environment-variables).
 
 ### Local usage with Apify command-line interface (CLI)
 
@@ -786,12 +730,72 @@ Apify.main(async () => {
 });
 ```
 
+
+## Environment variables
+
+The following table shows the basic environment variables used by Apify SDK:
+
+<table class="table table-bordered table-condensed">
+    <thead>
+        <tr>
+            <th>Environment variable</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+          <tr>
+            <td><code>APIFY_LOCAL_STORAGE_DIR</code></td>
+            <td>
+              Defines the path to a local directory where
+              <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#KeyValueStore">key-value stores</a>,
+              <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList">request lists</a>
+              and <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue">request queues</a> store their data.
+              Typically it is set to <code>./apify_storage</code>.
+              If omitted, you should define
+              the <code>APIFY_TOKEN</code> environment variable instead.
+            </td>
+          </tr>
+          <tr>
+            <td><code>APIFY_TOKEN</code></td>
+            <td>
+              The API token for your Apify Account. It is used to access the Apify API, e.g. to access cloud storage or to run an actor in the cloud.
+              You can find your API token on the <a href="https://my.apify.com/account#intergrations">Account - Integrations</a> page.
+              If omitted, you should define the <code>APIFY_LOCAL_STORAGE_DIR</code> environment variable instead.
+            </td>
+          </tr>
+          <tr>
+            <td><code>APIFY_PROXY_PASSWORD</code></td>
+            <td>
+              Optional password to <a href="https://www.apify.com/docs/proxy">Apify Proxy</a> for IP address rotation.
+              If you have have an Apify Account, you can find the password on the
+              <a href="https://my.apify.com/proxy">Proxy page</a> in the Apify app.
+              This feature is optional. You can use your own proxies or no proxies at all.
+            </td>
+          </tr>
+          <tr>
+              <td><code>APIFY_LOG_LEVEL</code></td>
+              <td>
+                Specifies the Apify SDK log level, which can be one of the following values:
+                `DEBUG`, `INFO`, `WARNING`, `SOFT_FAIL` and `ERROR`.
+                By default, it is set to `INFO`, which means that `DEBUG` messages
+                are not printed to console.
+              </td>
+            </tr>
+    </tbody>
+</table>
+
+For the full list of environment variables used by Apify SDK and the Apify cloud platform, please see the
+<a href="https://www.apify.com/docs/actor#environment-variabes">Environment variables</a>
+in the Apify actor documentation.
+
+
 ## Data storage
 
 The Apify SDK has several data storage types that are useful for specific tasks.
 The data is stored either on local disk to a directory defined by the `APIFY_LOCAL_STORAGE_DIR` environment variable,
 or on the Apify cloud under the user account identified by the API token defined by the `APIFY_TOKEN` environment variable.
-One of these variables should always be set.
+If neither of these variables is defined, by default Apify SDK sets `APIFY_LOCAL_STORAGE_DIR`
+to `./apify_storage` in the current working directory and prints a warning.
 
 Typically, you will be developing the code on your local computer and thus set the `APIFY_LOCAL_STORAGE_DIR` environment variable.
 Once the code is ready, you will deploy it to the Apify cloud, where it will automatically
@@ -913,12 +917,6 @@ await dataset.pushData([
 To see how to use the dataset to store crawler results, see the
 [cheerio_crawler.js](https://github.com/apifytech/apify-js/blob/feature/better-readme/examples/cheerio_crawler.js) example.
 
-## Logging
-
-Apify SDK logs messages with the current log levels: `DEBUG`, `INFO`, `WARNING`, `SOFT_FAIL` and `ERROR`.
-By default, the `DEBUG` messages are not printed to console. To enable their logging, set
-set the `APIFY_LOG_LEVEL` environment variable to `DEBUG`.
-
 
 ### Request queue
 
@@ -975,6 +973,7 @@ await queue.reclaimRequest(request2);
 
 To see how to use the request queue with a crawler, see the
 [puppeteer_crawler.js](https://github.com/apifytech/apify-js/blob/feature/better-readme/examples/puppeteer_crawler.js) example.
+
 
 ## Puppeteer live view
 
