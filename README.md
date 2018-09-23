@@ -486,7 +486,7 @@ Apify.main(async () => {
     // Create and initialize an instance of the RequestList class that contains the start URL.
     const requestList = new Apify.RequestList({
         sources: [
-            { url: 'http://www.ycombinator.com/' },
+            { url: 'https://news.ycombinator.com/' },
         ],
     });
     await requestList.initialize();
