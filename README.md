@@ -195,8 +195,8 @@ By default, Apify SDK stores data to
 `./apify_storage` in the current working directory.
 You can override this behavior by setting either the
 `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variable.
-For details, see [Data storage](#data-storage)
-and [Environment variables](#environment-variables).
+For details, see [Environment variables](#environment-variables)
+and [Data storage](#data-storage).
 
 ### Local usage with Apify command-line interface (CLI)
 
@@ -785,7 +785,7 @@ The following table shows the basic environment variables used by Apify SDK:
 </table>
 
 For the full list of environment variables used by Apify SDK and the Apify cloud platform, please see the
-<a href="https://www.apify.com/docs/actor#environment-variabes">Environment variables</a>
+[Environment variables](https://www.apify.com/docs/actor#run-env-vars)
 in the Apify actor documentation.
 
 
@@ -873,6 +873,12 @@ where each object stored has the same attributes, such as online store products 
 You can imagine a dataset as a table, where each object is a row and its attributes are columns.
 Dataset is an append-only storage - you can only add new records to it but you cannot modify or remove
 existing records.
+
+When the dataset is stored in the Apify cloud,
+you can export its data to the following formats: HTML, JSON, CSV, Excel, XML and RSS.
+The datasets are displayed on the actor run details page and in the [Storage](https://my.apify.com/storage)
+section in the Apify app. The actual data is exported using the
+[Get dataset items](https://www.apify.com/docs/api/v2#/reference/datasets/item-collection/get-items) Apify API endpoint.
 
 Each actor run is associated with a **default dataset**, which is created exclusively for the actor run.
 Typically it is used to store crawling results specific for the actor run. Its usage is optional.
