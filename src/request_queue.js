@@ -182,10 +182,12 @@ const getRequestId = (uniqueKey) => {
  * @hideconstructor
  */
 export class RequestQueue {
-    constructor(queueId) {
+    constructor(queueId, queueName) {
         checkParamOrThrow(queueId, 'queueId', 'String');
+        checkParamOrThrow(queueName, 'queueName', 'Maybe String');
 
         this.queueId = queueId;
+        this.queueName = queueName;
         this.queueHeadDict = new ListDictionary();
         this.requestIdsInProgress = {};
         this.inProgressCount = 0;
@@ -516,6 +518,7 @@ export class RequestQueue {
             })
             .then(() => {
                 queuesCache.remove(this.queueId);
+                if (this.queueName) queuesCache.remove(this.queueName);
             });
     }
 }

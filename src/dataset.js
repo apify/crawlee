@@ -158,10 +158,12 @@ export const chunkBySize = (items, limitBytes) => {
  * @hideconstructor
  */
 export class Dataset {
-    constructor(datasetId) {
+    constructor(datasetId, datasetName) {
         checkParamOrThrow(datasetId, 'datasetId', 'String');
+        checkParamOrThrow(datasetName, 'datasetName', 'Maybe String');
 
         this.datasetId = datasetId;
+        this.datasetName = datasetName;
     }
 
     /**
@@ -416,6 +418,7 @@ export class Dataset {
             })
             .then(() => {
                 datasetsCache.remove(this.datasetId);
+                if (this.datasetName) datasetsCache.remove(this.datasetName);
             });
     }
 }
