@@ -307,7 +307,7 @@ All the examples can be found in the [examples](https://github.com/apifytech/api
 in the repository.
 
 To run the examples, just copy them into the directory where you installed the Apify SDK using
-`npm install apify` and then run them by calling:
+`npm install apify` and then run them, for example, by calling:
 
 ```
 node basic_crawler.js
@@ -377,7 +377,7 @@ Apify.main(async () => {
         },
     });
 
-    // Run the crawler and wait for its finish.
+    // Run the crawler and wait for it to finish.
     await crawler.run();
 
     console.log('Crawler finished.');
@@ -395,7 +395,7 @@ and extract some data from it: the page title and all H1 tags.
 const Apify = require('apify');
 
 // Apify.utils contains various utilities, e.g. for logging.
-// Here we turn off logging of unimportant messages.
+// Here we turn off the logging of unimportant messages.
 const { log } = Apify.utils;
 log.setLevel(log.LEVELS.WARNING);
 
@@ -412,7 +412,7 @@ Apify.main(async () => {
     await requestList.initialize();
 
     // Create an instance of the CheerioCrawler class - a crawler
-    // that automatically loads the URLs and parses their HTML using cheerio library.
+    // that automatically loads the URLs and parses their HTML using the cheerio library.
     const crawler = new Apify.CheerioCrawler({
         // Let the crawler fetch URLs from our list.
         requestList,
@@ -462,7 +462,7 @@ Apify.main(async () => {
         },
     });
 
-    // Run the crawler and wait for its finish.
+    // Run the crawler and wait for it to finish.
     await crawler.run();
 
     console.log('Crawler finished.');
@@ -554,7 +554,7 @@ Apify.main(async () => {
         },
     });
 
-    // Run the crawler and wait for its finish.
+    // Run the crawler and wait for it to finish.
     await crawler.run();
 
     console.log('Crawler finished.');
@@ -563,7 +563,7 @@ Apify.main(async () => {
 
 ### Save page screenshots
 
-This example shows how to read and write
+This example demonstrates how to read and write
 data to the default key-value store using
 <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-getValue"><code>Apify.getValue()</code></a>
 and
@@ -572,8 +572,8 @@ The script crawls a list of URLs using Puppeteer,
 captures a screenshot of each page and saves it to the store. The list of URLs is
 provided as actor input that is also read from the store.
 
-In local configuration, the input is stored in the default key-value store's directory as JSON file at
-`./apify_storage/key_value_stores/default/INPUT.json`. You need to create the file and set it the following content:
+In local configuration, the input is stored in the default key-value store's directory as a JSON file at
+`./apify_storage/key_value_stores/default/INPUT.json`. You need to create the file and set it with the following content:
 
 ```json
 { "sources": [{ "url": "https://www.google.com" }, { "url": "https://www.duckduckgo.com" }] }
@@ -588,7 +588,7 @@ in the Apify Actor documentation.
 const Apify = require('apify');
 
 Apify.main(async () => {
-    // Read the actor input configuration containing URLs to take the screenshot off.
+    // Read the actor input configuration containing the URLs for the screenshot.
     // By convention, the input is present in the actor's default key-value store under the "INPUT" key.
     const input = await Apify.getValue('INPUT');
     if (!input) throw new Error('Have you passed the correct INPUT ?');

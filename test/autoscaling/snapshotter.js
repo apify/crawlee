@@ -43,7 +43,7 @@ describe('Snapshotter', () => {
         });
 
         expect(eventLoopSnapshots).to.be.an('array');
-        expect(eventLoopSnapshots).to.have.lengthOf(4);
+        expect(eventLoopSnapshots).to.have.lengthOf(3);
         eventLoopSnapshots.forEach((ss) => {
             expect(ss.createdAt).to.be.a('date');
             expect(ss.isOverloaded).to.be.a('boolean');

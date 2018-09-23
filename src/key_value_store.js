@@ -183,7 +183,7 @@ export class KeyValueStore {
      *
      * @param {String} key
      *   Key of the record.
-     * @returns {Promise}
+     * @returns {Promise<Object>}
      *   Returns a promise that resolves to an object, string
      *   or <a href="https://nodejs.org/api/buffer.html"><code>Buffer</code></a>, depending
      *   on the MIME content type of the record.
@@ -491,7 +491,7 @@ export const openKeyValueStore = (storeIdOrName) => {
  *
  * @param {String} key
  *   Unique record key.
- * @returns {Promise}
+ * @returns {Promise<Object>}
  *   Returns a promise that resolves once the record is stored.
  * @see {@link KeyValueStore}
  *

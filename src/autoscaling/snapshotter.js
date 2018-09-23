@@ -99,12 +99,6 @@ export default class Snapshotter {
                 log.info(`Snapshotter: Setting max memory of this run to ${Math.round(this.maxMemoryBytes / 1024 / 1024)} MB.`);
             }
         }
-        // Add dummy snapshot to compare the first with.
-        this.eventLoopSnapshots.push({
-            createdAt: new Date(),
-            isOverloaded: false,
-            exceededMillis: 0,
-        });
 
         // Start snapshotting.
         this.eventLoopInterval = betterSetInterval(this._snapshotEventLoop.bind(this), this.eventLoopSnapshotIntervalMillis);
@@ -211,22 +205,26 @@ export default class Snapshotter {
     /**
      * Creates a snapshot of current event loop delay.
      * @param {Function} intervalCallback
-     * @return {Promise}
      * @ignore
      */
     _snapshotEventLoop(intervalCallback) {
         try {
             const now = new Date();
             this._pruneSnapshots(this.eventLoopSnapshots, now);
-            const { createdAt } = this.eventLoopSnapshots[this.eventLoopSnapshots.length - 1];
-            const delta = now - createdAt - this.eventLoopSnapshotIntervalMillis;
 
+            // Handle empty snapshots array
             const snapshot = {
                 createdAt: now,
                 isOverloaded: false,
-                exceededMillis: Math.max(delta - this.maxBlockedMillis, 0),
+                exceededMillis: 0,
             };
+            const previousSnapshot = this.eventLoopSnapshots[this.eventLoopSnapshots.length - 1];
+            if (!previousSnapshot) return this.eventLoopSnapshots.push(snapshot);
 
+            // Compare with previous snapshot
+            const { createdAt } = previousSnapshot;
+            const delta = now - createdAt - this.eventLoopSnapshotIntervalMillis;
+            snapshot.exceededMillis = Math.max(delta - this.maxBlockedMillis, 0);
             if (delta > this.maxBlockedMillis) snapshot.isOverloaded = true;
             this.eventLoopSnapshots.push(snapshot);
         } catch (err) {
