@@ -262,11 +262,10 @@ An actor can perform anything from a simple action such as filling out a web for
 to complex operations such as crawling an entire website and removing duplicates from a large dataset.
 
 To run an actor, you need to have an [Apify Account](https://my.apify.com/).
-The actor execution is charged towards your account and the cost depends on
-the amount of memory allocated for the run and its duration.
 Actors can be shared in the [Apify Library](https://www.apify.com/library?&type=acts)
-so that other people can use them. Note that if you share your actor in the library,
-you're not charged when other people use it - its use is charged towards their account.
+so that other people can use them.
+But no worries, if you share your actor in the library
+and somebody uses it, it runs under their account, not yours.
 
 **Related links**
 
