@@ -150,7 +150,7 @@ describe('RequestQueue', () => {
 
             const { Request } = Apify;
 
-            const queue = new RequestQueue('some-id', 'some-name');
+            const queue = new RequestQueue('some-id');
             const mock = sinon.mock(apifyClient.requestQueues);
 
             const requestA = new Request({ url: 'http://example.com/a' });
@@ -272,7 +272,8 @@ describe('RequestQueue', () => {
 
             const { Request } = Apify;
 
-            const queue = new RequestQueue('some-id', 'some-name');
+            const queue = new RequestQueue('some-id', 
+                                          );
             const mock = sinon.mock(apifyClient.requestQueues);
 
             const requestA = new Request({ url: 'http://example.com/a' });
@@ -310,7 +311,7 @@ describe('RequestQueue', () => {
 
             const { Request } = Apify;
 
-            const queue = new RequestQueue('some-id', 'some-name');
+            const queue = new RequestQueue('some-id');
             const mock = sinon.mock(apifyClient.requestQueues);
 
             const requestX = new Request({ url: 'http://example.com/x' });
