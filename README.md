@@ -316,7 +316,7 @@ node basic_crawler.js
 Note that for production projects you should set either the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variable in order
 to tell the SDK how to store its data and crawling state. See [Local stand-alone usage](#local-stand-alone-usage) above for details.
 
-Alternatively, if you're using the [Apify CLI](#local-usage-with-apify-command-line-interface-cli),
+Alternatively, if you're [using the Apify CLI](#local-usage-with-apify-command-line-interface-cli),
 you can copy and paste the source code of each of the examples into the `main.js`
 file created by the CLI. Then go to the project directory and run the example using:
 
