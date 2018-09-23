@@ -86,8 +86,8 @@ export const newPromise = () => {
 /**
  * Adds charset=utf-8 to given content type if this parameter is missing.
  *
- * @param contentType
- * @returns {string}
+ * @param {String} contentType
+ * @returns {String}
  *
  * @ignore
  */
@@ -140,7 +140,7 @@ export const isDocker = (forceReset) => {
 /**
  * Sums an array of numbers.
  *
- * @param  {Array} arr An array of numbers.
+ * @param {Array} arr An array of numbers.
  * @return {Number} Sum of the numbers.
  *
  * @ignore
@@ -150,7 +150,7 @@ export const sum = arr => arr.reduce((total, c) => total + c, 0);
 /**
  * Computes an average of an array of numbers.
  *
- * @param  {Array} arr An array of numbers.
+ * @param {Array} arr An array of numbers.
  * @return {Number} Average value.
  *
  * @ignore
@@ -163,6 +163,8 @@ export const avg = arr => sum(arr) / arr.length;
  * @param {Array} arrValues
  * @param {Array} arrWeights
  * @return {Number}
+ *
+ * @ignore
  */
 export const weightedAvg = (arrValues, arrWeights) => {
     const result = arrValues.map((value, i) => {
@@ -340,7 +342,8 @@ export const isAtHome = () => !!process.env[ENV_VARS.IS_AT_HOME];
  * Returns a promise that resolves after a specific period of time. This is useful to implement waiting
  * in your code, e.g. to prevent overloading of target website or to avoid bot detection.
  *
- * Example usage:
+ * **Example usage:**
+ *
  * ```javascript
  * const Apify = require('apify);
  *
@@ -349,7 +352,7 @@ export const isAtHome = () => !!process.env[ENV_VARS.IS_AT_HOME];
  * // Sleep 1.5 seconds
  * await Apify.utils.sleep(1500);
  * ```
- * @param millis Period of time to sleep, in milliseconds. If not a positive number, the returned promise resolves immediately.
+ * @param {Number} millis Period of time to sleep, in milliseconds. If not a positive number, the returned promise resolves immediately.
  * @memberof utils
  * @return {Promise}
  */
@@ -450,6 +453,7 @@ export const openRemoteStorage = async (idOrName, defaultIdEnvVar, RemoteClass, 
 
 /**
  * Checks if at least one of APIFY_LOCAL_STORAGE_DIR and APIFY_TOKEN environment variables is set.
+ * @ignore
  */
 export const ensureTokenOrLocalStorageEnvExists = (storageName) => {
     if (!process.env[ENV_VARS.LOCAL_STORAGE_DIR] && !process.env[ENV_VARS.TOKEN]) {
@@ -460,7 +464,8 @@ export const ensureTokenOrLocalStorageEnvExists = (storageName) => {
 /**
  * A namespace that contains various utilities.
  *
- * Example usage:
+ * **Example usage:**
+ *
  * ```javascript
  * const Apify = require('apify);
  *

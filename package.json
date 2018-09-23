@@ -1,6 +1,6 @@
 {
   "name": "apify",
-  "version": "0.8.1",
+  "version": "0.8.3",
   "description": "Web scraping and automation SDK",
   "engines": {
     "node": ">=8.0.0"
@@ -42,7 +42,6 @@
     "build-toc": "./node_modules/.bin/markdown-toc README.md -i",
     "test": "npm run build &&  nyc --reporter=html --reporter=text mocha --timeout 60000 --compilers js:babel-core/register --recursive",
     "prepare": "npm run build-toc && npm run build",
-    "prepublishOnly": "(test $RUNNING_FROM_SCRIPT || (echo \"You must use publish.sh instead of 'npm publish' directly!\"; exit 1)) && npm test && npm run lint",
     "clean": "rm -rf build",
     "lint": "npm run build && ./node_modules/.bin/eslint ./src ./test",
     "lint:fix": "./node_modules/.bin/eslint ./src ./test --ext .js,.jsx --fix"

@@ -36,9 +36,10 @@ describe('SystemStatus', () => {
 
     const generateSnapsSync = (percentage, overloaded) => {
         const snaps = [];
+        const createdAt = new Date();
         for (let i = 0; i < 100; i++) {
             snaps.push({
-                createdAt: new Date(),
+                createdAt,
                 isOverloaded: i < percentage ? overloaded : !overloaded,
             });
         }

@@ -50,8 +50,13 @@ const parsePurl = (purl) => {
 };
 
 /**
- * Represents a pseudo URL (PURL), which is simply a URL with special directives enclosed in [] brackets.
- * Currently, the only supported directive is [regexp], which defines a JavaScript-style regular expression to match against the URL.
+ * Represents a pseudo URL (PURL) - an URL pattern used by web crawlers
+ * to specify which URLs should the crawler visit.
+ * This class is used by the {@linkcode enqueueLinks|Apify.utils.puppeteer.enqueueLinks()} function.
+ *
+ * A PURL is simply a URL with special directives enclosed in `[]` brackets.
+ * Currently, the only supported directive is `[regexp]`,
+ * which defines a JavaScript-style regular expression to match against the URL.
  *
  * For example, a PURL `http://www.example.com/pages/[(\w|-)*]` will match all of the following URLs:
  *
@@ -61,7 +66,17 @@ const parsePurl = (purl) => {
  *     <li>`http://www.example.com/pages/something`</li>
  * </ul>
  *
- * Example use:
+ * If either `[` or `]` is part of the normal query string, it must be encoded as `[\x5B]` or `[\x5D]`,
+ * respectively. For example, the following PURL:
+ * ```
+ * http://www.example.com/search?do[\x5B]load[\x5D]=1
+ * ```
+ * will match the URL:
+ * ```
+ * http://www.example.com/search?do[load]=1
+ * ```
+ *
+ * **Example usage:**
  *
  * ```javascript
  * const purl = new Apify.PseudoUrl('http://www.example.com/pages/[(\w|-)*]');
@@ -69,8 +84,12 @@ const parsePurl = (purl) => {
  * if (purl.matches('http://www.example.com/pages/my-awesome-page')) console.log('Match!');
  * ```
  *
- * @param {String} purl Pseudo url.
- * @param {Object} requestTemplate Request options for created requests.
+ * @param {String} purl
+ *   Pseudo URL.
+ * @param {Object} requestTemplate
+ *   Options for the new {@linkcode Request} instances created for matching URLs.
+ * @see {@linkcode Request}
+ * @see {@linkcode Request}
  */
 export default class PseudoUrl {
     constructor(purl, requestTemplate = {}) {

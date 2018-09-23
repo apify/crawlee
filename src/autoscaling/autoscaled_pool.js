@@ -42,7 +42,7 @@ const DEFAULT_OPTIONS = {
  * The pool evaluates whether it should start a new task every time one of the tasks finishes
  * and also in the interval set by the `options.maybeRunIntervalSecs` parameter.
  *
- * Example usage:
+ * **Example usage:**
  *
  * ```javascript
  * const pool = new Apify.AutoscaledPool({

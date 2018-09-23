@@ -8,7 +8,7 @@ export const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_
 
 /**
  * Exit codes for the actor process.
- * The error codes must be in range 1-128, to avoid collision with signal exits
+ * The error codes must be in the range 1-128, to avoid collision with signal exits
  * and to ensure Docker will handle them correctly!
  */
 export const EXIT_CODES = {
@@ -18,7 +18,7 @@ export const EXIT_CODES = {
 };
 
 /**
- * These events are just internal for Apify package so we don't need them in apify-shared package.
+ * These events are just internal for Apify package, so we don't need them in apify-shared package.
  */
 export const ACTOR_EVENT_NAMES_EX = Object.assign({}, ACTOR_EVENT_NAMES, { PERSIST_STATE: 'persistState' });
 

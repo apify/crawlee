@@ -4,15 +4,15 @@ import Snapshotter from './snapshotter';
 import { weightedAvg } from '../utils';
 
 const DEFAULT_OPTIONS = {
-    currentHistorySecs: 5, // TODO this should be something like "nowDurationSecs" but it's weird, ideas?
+    currentHistorySecs: 5,
     maxMemoryOverloadedRatio: 0.2,
     maxEventLoopOverloadedRatio: 0.2,
-    maxCpuOverloadedRatio: 0.2,
+    maxCpuOverloadedRatio: 0.4,
 };
 
 /**
- * Provides a simple interface to reading system status from a Snapshotter
- * instance. It only exposes two functions `isOk()` and `hasBeenOkLately()`.
+ * Provides a simple interface to reading system status from a Snapshotter instance.
+ * It only exposes two functions `getCurrentStatus()` and `getHistoricalStatus()`.
  * The system status is calculated using a weighted average of overloaded
  * messages in the snapshots, with the weights being the time intervals
  * between the snapshots. Each resource is calculated separately

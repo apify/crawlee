@@ -27,7 +27,7 @@ const PAGE_CLOSE_TIMEOUT_MILLIS = 30000;
  * New tasks are only started if there is enough free CPU and memory available,
  * using the `AutoscaledPool` class internally.
  *
- * Basic usage:
+ * **Example usage:**
  *
  * ```javascript
  * const crawler = new Apify.PuppeteerCrawler({

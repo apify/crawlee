@@ -16,7 +16,7 @@ const DEFAULT_OPTIONS = {
 };
 
 /**
- * Provides a simple framework for parallel crawling of web pages,
+ * Provides a simple framework for the parallel crawling of web pages,
  * whose URLs are fed either from a static list
  * or from a dynamic queue of URLs.
  *
@@ -37,7 +37,7 @@ const DEFAULT_OPTIONS = {
  * of the `CheerioCrawler` constructor.
  * For user convenience, the `minConcurrency` and `maxConcurrency` options are available directly in the constructor.
  *
- * Example usage:
+ * **Example usage:**
  *
  * ```javascript
  * const rp = require('request-promise');
@@ -230,7 +230,7 @@ export default class BasicCrawler {
 
     /**
      * Wrapper around handleRequestFunction that fetches requests from RequestList/RequestQueue
-     * then retries them in a case of an error etc.
+     * then retries them in a case of an error, etc.
      *
      * @ignore
      */

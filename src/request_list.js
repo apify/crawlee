@@ -44,7 +44,7 @@ const ensureUniqueKeyValid = (uniqueKey) => {
  * so that if the Node.js process is restarted,
  * the crawling can continue where it left off. For more details, see {@link KeyValueStore|`KeyValueStore`}.
  *
- * Example usage:
+ * **Example usage:**
  *
  * ```javascript
  * const requestList = new Apify.RequestList({

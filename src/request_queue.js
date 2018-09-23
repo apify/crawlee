@@ -110,6 +110,9 @@ const getRequestId = (uniqueKey) => {
 };
 
 /**
+ * A helper class that is used to report results from the
+ * {@linkcode enqueueLinks|Apify.utils.puppeteer.enqueueLinks()} function.
+ *
  * @typedef {Object} RequestOperationInfo
  * @property {Boolean} wasAlreadyPresent Indicates if request was already present in the queue.
  * @property {Boolean} wasAlreadyHandled Indicates if request was already marked as handled.
@@ -151,7 +154,7 @@ const getRequestId = (uniqueKey) => {
  * If the `APIFY_TOKEN` environment variable is provided instead, the data is stored
  * in the [Apify Request Queue](https://www.apify.com/docs/storage#queue) cloud storage.
  *
- * Example usage:
+ * **Example usage:**
  *
  * ```javascript
  * // Open the default request queue associated with the actor run
@@ -244,7 +247,7 @@ export class RequestQueue {
     /**
      * Gets the request from the queue specified by ID.
      *
-     * @param  {String} requestId Request ID
+     * @param {String} requestId Request ID
      * @return {Promise<Request>}
      */
     getRequest(requestId) {

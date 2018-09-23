@@ -18,7 +18,7 @@ const DEFAULT_OPTIONS = {
 };
 
 /**
- * Provides a framework for parallel crawling of web pages using plain HTTP requests and
+ * Provides a framework for the parallel crawling of web pages using plain HTTP requests and
  * [cheerio](https://www.npmjs.com/package/cheerio) HTML parser.
  *
  * `CheerioCrawler` downloads each URL using a plain HTTP request,
@@ -45,7 +45,7 @@ const DEFAULT_OPTIONS = {
  * of the `CheerioCrawler` constructor.
  * For user convenience, the `minConcurrency` and `maxConcurrency` options are available directly.
  *
- * Example usage:
+ * **Example usage:**
  *
  * ```javascript
  * // Prepare a list of URLs to crawl

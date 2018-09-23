@@ -129,7 +129,7 @@ export const chunkBySize = (items, limitBytes) => {
  * If the `APIFY_TOKEN` environment variable is provided instead, the data is stored
  * in the [Apify Dataset](https://www.apify.com/docs/storage#dataset) cloud storage.
  *
- * Example usage:
+ * **Example usage:**
  *
  * ```javascript
  * // Write a single row to the default dataset
@@ -174,10 +174,10 @@ export class Dataset {
      * The function internally
      * chunks the array into separate items and pushes them sequentially.
      * The chunking process is stable (keeps order of data), but it does not provide a transaction
-     * safety mechanism. Therefore, in case of an uploading error (after several automatic retries),
+     * safety mechanism. Therefore, in the event of an uploading error (after several automatic retries),
      * the function's promise will reject and the dataset will be left in a state where some of
      * the items have already been saved to the dataset while other items from the source array were not.
-     * To overcome this limitation, the developer may for example read the last item saved in the dataset
+     * To overcome this limitation, the developer may, for example, read the last item saved in the dataset
      * and re-attempt the save of the data from this item onwards to prevent duplicates.
      *
      * @param {Object|Array} data Object or array of objects containing data to be stored in the default dataset.
@@ -274,7 +274,7 @@ export class Dataset {
      *   "itemsCount": 0
      * }
      *
-     * @param opts
+     * @param {Object} opts
      * @returns {Promise}
      */
     getInfo(opts = {}) {
@@ -614,13 +614,13 @@ const getOrCreateDataset = (datasetIdOrName) => {
 
 
 /**
- * Opens a dataset and returns a promise resolving to an instance of the {@link Dataset|`Dataset`} class.
+ * Opens a dataset and returns a promise resolving to an instance of the {@linkcode Dataset} class.
  *
  * Datasets are used to store structured data where each object stored has the same attributes,
  * such as online store products or real estate offers.
- * The actual data is stored either on local filesystem or in the cloud.
+ * The actual data is stored either on the local filesystem or in the cloud.
  *
- * For more details and code examples, see the {@link Dataset|`Dataset`} class.
+ * For more details and code examples, see the {@linkcode Dataset} class.
  *
  * @param {string} [datasetIdOrName]
  *   ID or name of the dataset to be opened. If `null` or `undefined`,
@@ -656,7 +656,7 @@ export const openDataset = (datasetIdOrName) => {
  * await dataset.pushData({ myValue: 123 });
  * ```
  *
- * For more information, see {@link Apify.openDataset|`Apify.openDataset()`} and {@linkcode Dataset#pushData|`Dataset.pushData()`}
+ * For more information, see {@link Apify.openDataset|`Apify.openDataset()`} and {@link Dataset#pushData|`Dataset.pushData()`}
  *
  * **IMPORTANT**: Make sure to use the `await` keyword when calling `pushData()`,
  * otherwise the actor process might finish before the data is stored!
