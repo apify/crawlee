@@ -272,7 +272,7 @@ and [Apify Actor](https://www.apify.com/docs/actor) documentation.
 You can also develop your web scraping project
 in an online code editor directly on the Apify cloud. You'll need to have an Apify Account.
 Go to [Actors](https://my.apify.com/actors)
-page in the app, click <i>Create new</i> and then go to the 
+page in the app, click <i>Create new</i> and then go to the
 <i>Source</i> tab and start writing your code or paste one of the code examples below.
 
 For more information, view the [Apify actors quick start guide](https://www.apify.com/docs/actor#quick-start).
@@ -473,7 +473,7 @@ Apify.main(async () => {
 
 This example demonstrates how to use [PuppeteerCrawler](https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerCrawler)
 in combination with [RequestList](https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList)
-and [RequestQueue](https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue) to recursively scrape the 
+and [RequestQueue](https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue) to recursively scrape the
 [Hacker News](https://news.ycombinator.com) website using headless Chrome / Puppeteer.
 The crawlers starts with a single URL, finds links to next pages,
 enqueues them and continues until no more desired links are available.
@@ -486,7 +486,7 @@ Apify.main(async () => {
     // Create and initialize an instance of the RequestList class that contains the start URL.
     const requestList = new Apify.RequestList({
         sources: [
-            { url: 'http://www.ycombinator.com/' },
+            { url: 'https://news.ycombinator.com/' },
         ],
     });
     await requestList.initialize();
