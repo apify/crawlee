@@ -96,12 +96,20 @@ export const chunkBySize = (items, limitBytes) => {
 };
 
 /**
+ * Represents one page of data items from the {@linkcode Dataset}.
+ * For more details, see {@linkcode Dataset#getData|Dataset.getData()}.
+ *
  * @typedef {Object} PaginationList
- * @property {Array} items - List of returned objects
- * @property {Number} total - Total number of object
- * @property {Number} offset - Number of Request objects that was skipped at the start.
- * @property {Number} count - Number of returned objects
- * @property {Number} limit - Requested limit
+ * @property {Array} items
+ *   Array of returned items.
+ * @property {Number} total
+ *   Total number of object.
+ * @property {Number} offset
+ *   Number of Request objects that was skipped at the start.
+ * @property {Number} count
+ *   Number of returned objects.
+ * @property {Number} limit
+ *   Requested limit on the number of items.
  */
 
 /**

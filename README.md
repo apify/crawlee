@@ -21,7 +21,6 @@
   View the full <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest/" target="_blank">Apify SDK Programmer's Reference</a> on a separate page.
 </div>
 
-
 ## Table of Contents
 
 <!-- toc -->
@@ -41,6 +40,7 @@
   * [Open web page in Puppeteer via Apify Proxy](#open-web-page-in-puppeteer-via-apify-proxy)
   * [Invoke another actor](#invoke-another-actor)
   * [Use an actor as an API](#use-an-actor-as-an-api)
+- [Environment variables](#environment-variables)
 - [Data storage](#data-storage)
   * [Key-value store](#key-value-store)
   * [Dataset](#dataset)
@@ -168,59 +168,35 @@ Add Apify SDK to any Node.js project by running:
 npm install apify --save
 ```
 
-You'll need to specify where the SDK should store the crawling data.
-Either define the `APIFY_LOCAL_STORAGE_DIR` environment variable to store the data locally on your disk
-or define `APIFY_TOKEN` to store the data to Apify cloud platform.
-If neither of these variables is defined, by default Apify SDK sets `APIFY_LOCAL_STORAGE_DIR`
-to `./apify_storage` in the current working directory and prints a warning.
+Run the following example to perform a recursive crawl of a website using Puppeteer.
 
-The following table shows the basic environment variables used by Apify SDK:
+```javascript
+const Apify = require('apify');
 
-<table class="table table-bordered table-condensed">
-    <thead>
-        <tr>
-            <th>Environment variable</th>
-            <th>Description</th>
-        </tr>
-    </thead>
-    <tbody>
-          <tr>
-            <td><code>APIFY_LOCAL_STORAGE_DIR</code></td>
-            <td>
-              Defines the path to a local directory where
-              <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#KeyValueStore">key-value stores</a>,
-              <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList">request lists</a>
-              and <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue">request queues</a> store their data.
-              Typically it is set to <code>./apify_storage</code>.
-              If omitted, you should define
-              the <code>APIFY_TOKEN</code> environment variable instead.
-            </td>
-          </tr>
-          <tr>
-            <td><code>APIFY_TOKEN</code></td>
-            <td>
-              The API token for your Apify Account. It is used to access the Apify API, e.g. to access cloud storage or to run an actor in the cloud.
-              You can find your API token on the <a href="https://my.apify.com/account#intergrations">Account - Integrations</a> page.
-              If omitted, you should define the <code>APIFY_LOCAL_STORAGE_DIR</code> environment variable instead.
-            </td>
-          </tr>
-          <tr>
-            <td><code>APIFY_PROXY_PASSWORD</code></td>
-            <td>
-              Optional password to <a href="https://www.apify.com/docs/proxy">Apify Proxy</a> for IP address rotation.
-              If you have have an Apify Account, you can find the password on the
-              <a href="https://my.apify.com/proxy">Proxy page</a> in the Apify app.
-              This feature is optional. You can use your own proxies or no proxies at all.
-            </td>
-          </tr>
-    </tbody>
-</table>
+Apify.main(async () => {
+    const requestQueue = await Apify.openRequestQueue();
+    await requestQueue.addRequest(new Apify.Request({ url: 'https://www.iana.org/' }));
+    const pseudoUrls = [new Apify.PseudoUrl('https://www.iana.org/[.*]')];
 
+    const crawler = new Apify.PuppeteerCrawler({
+        requestQueue,
+        handlePageFunction: async ({ request, page }) => {
+            const title = await page.title();
+            console.log(`Title of ${request.url}: ${title}`);
+            await Apify.utils.puppeteer.enqueueLinks(page, 'a', pseudoUrls, requestQueue);
+        },
+    });
 
-For the full list of environment variables used by Apify SDK and the Apify cloud platform, please see the
-<a href="https://www.apify.com/docs/actor#environment-variabes">environment variables</a>
-in the Apify actor documentation.
+    await crawler.run();
+});
+```
 
+By default, Apify SDK stores data to
+`./apify_storage` in the current working directory.
+You can override this behavior by setting either the
+`APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variable.
+For details, see [Data storage](#data-storage)
+and [Environment variables](#environment-variables).
 
 ### Local usage with Apify command-line interface (CLI)
 
@@ -272,7 +248,7 @@ and [Apify Actor](https://www.apify.com/docs/actor) documentation.
 You can also develop your web scraping project
 in an online code editor directly on the Apify cloud. You'll need to have an Apify Account.
 Go to [Actors](https://my.apify.com/actors)
-page in the app, click <i>Create new</i> and then go to the 
+page in the app, click <i>Create new</i> and then go to the
 <i>Source</i> tab and start writing your code or paste one of the code examples below.
 
 For more information, view the [Apify actors quick start guide](https://www.apify.com/docs/actor#quick-start).
@@ -307,7 +283,7 @@ All the examples can be found in the [examples](https://github.com/apifytech/api
 in the repository.
 
 To run the examples, just copy them into the directory where you installed the Apify SDK using
-`npm install apify` and then run them by calling:
+`npm install apify` and then run them, for example, by calling:
 
 ```
 node basic_crawler.js
@@ -316,7 +292,7 @@ node basic_crawler.js
 Note that for production projects you should set either the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variable in order
 to tell the SDK how to store its data and crawling state. See [Local stand-alone usage](#local-stand-alone-usage) above for details.
 
-Alternatively, if you're using the [Apify CLI](#local-usage-with-apify-command-line-interface-cli),
+Alternatively, if you're [using the Apify CLI](#local-usage-with-apify-command-line-interface-cli),
 you can copy and paste the source code of each of the examples into the `main.js`
 file created by the CLI. Then go to the project directory and run the example using:
 
@@ -377,7 +353,7 @@ Apify.main(async () => {
         },
     });
 
-    // Run the crawler and wait for its finish.
+    // Run the crawler and wait for it to finish.
     await crawler.run();
 
     console.log('Crawler finished.');
@@ -395,7 +371,7 @@ and extract some data from it: the page title and all H1 tags.
 const Apify = require('apify');
 
 // Apify.utils contains various utilities, e.g. for logging.
-// Here we turn off logging of unimportant messages.
+// Here we turn off the logging of unimportant messages.
 const { log } = Apify.utils;
 log.setLevel(log.LEVELS.WARNING);
 
@@ -412,7 +388,7 @@ Apify.main(async () => {
     await requestList.initialize();
 
     // Create an instance of the CheerioCrawler class - a crawler
-    // that automatically loads the URLs and parses their HTML using cheerio library.
+    // that automatically loads the URLs and parses their HTML using the cheerio library.
     const crawler = new Apify.CheerioCrawler({
         // Let the crawler fetch URLs from our list.
         requestList,
@@ -462,7 +438,7 @@ Apify.main(async () => {
         },
     });
 
-    // Run the crawler and wait for its finish.
+    // Run the crawler and wait for it to finish.
     await crawler.run();
 
     console.log('Crawler finished.');
@@ -473,7 +449,7 @@ Apify.main(async () => {
 
 This example demonstrates how to use [PuppeteerCrawler](https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerCrawler)
 in combination with [RequestList](https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList)
-and [RequestQueue](https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue) to recursively scrape the 
+and [RequestQueue](https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue) to recursively scrape the
 [Hacker News](https://news.ycombinator.com) website using headless Chrome / Puppeteer.
 The crawlers starts with a single URL, finds links to next pages,
 enqueues them and continues until no more desired links are available.
@@ -486,7 +462,7 @@ Apify.main(async () => {
     // Create and initialize an instance of the RequestList class that contains the start URL.
     const requestList = new Apify.RequestList({
         sources: [
-            { url: 'http://www.ycombinator.com/' },
+            { url: 'https://news.ycombinator.com/' },
         ],
     });
     await requestList.initialize();
@@ -554,7 +530,7 @@ Apify.main(async () => {
         },
     });
 
-    // Run the crawler and wait for its finish.
+    // Run the crawler and wait for it to finish.
     await crawler.run();
 
     console.log('Crawler finished.');
@@ -563,7 +539,7 @@ Apify.main(async () => {
 
 ### Save page screenshots
 
-This example shows how to read and write
+This example demonstrates how to read and write
 data to the default key-value store using
 <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-getValue"><code>Apify.getValue()</code></a>
 and
@@ -572,8 +548,8 @@ The script crawls a list of URLs using Puppeteer,
 captures a screenshot of each page and saves it to the store. The list of URLs is
 provided as actor input that is also read from the store.
 
-In local configuration, the input is stored in the default key-value store's directory as JSON file at
-`./apify_storage/key_value_stores/default/INPUT.json`. You need to create the file and set it the following content:
+In local configuration, the input is stored in the default key-value store's directory as a JSON file at
+`./apify_storage/key_value_stores/default/INPUT.json`. You need to create the file and set it with the following content:
 
 ```json
 { "sources": [{ "url": "https://www.google.com" }, { "url": "https://www.duckduckgo.com" }] }
@@ -588,7 +564,7 @@ in the Apify Actor documentation.
 const Apify = require('apify');
 
 Apify.main(async () => {
-    // Read the actor input configuration containing URLs to take the screenshot off.
+    // Read the actor input configuration containing the URLs for the screenshot.
     // By convention, the input is present in the actor's default key-value store under the "INPUT" key.
     const input = await Apify.getValue('INPUT');
     if (!input) throw new Error('Have you passed the correct INPUT ?');
@@ -754,12 +730,72 @@ Apify.main(async () => {
 });
 ```
 
+
+## Environment variables
+
+The following table shows the basic environment variables used by Apify SDK:
+
+<table class="table table-bordered table-condensed">
+    <thead>
+        <tr>
+            <th>Environment variable</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+          <tr>
+            <td><code>APIFY_LOCAL_STORAGE_DIR</code></td>
+            <td>
+              Defines the path to a local directory where
+              <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#KeyValueStore">key-value stores</a>,
+              <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList">request lists</a>
+              and <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue">request queues</a> store their data.
+              Typically it is set to <code>./apify_storage</code>.
+              If omitted, you should define
+              the <code>APIFY_TOKEN</code> environment variable instead.
+            </td>
+          </tr>
+          <tr>
+            <td><code>APIFY_TOKEN</code></td>
+            <td>
+              The API token for your Apify Account. It is used to access the Apify API, e.g. to access cloud storage or to run an actor in the cloud.
+              You can find your API token on the <a href="https://my.apify.com/account#intergrations">Account - Integrations</a> page.
+              If omitted, you should define the <code>APIFY_LOCAL_STORAGE_DIR</code> environment variable instead.
+            </td>
+          </tr>
+          <tr>
+            <td><code>APIFY_PROXY_PASSWORD</code></td>
+            <td>
+              Optional password to <a href="https://www.apify.com/docs/proxy">Apify Proxy</a> for IP address rotation.
+              If you have have an Apify Account, you can find the password on the
+              <a href="https://my.apify.com/proxy">Proxy page</a> in the Apify app.
+              This feature is optional. You can use your own proxies or no proxies at all.
+            </td>
+          </tr>
+          <tr>
+              <td><code>APIFY_LOG_LEVEL</code></td>
+              <td>
+                Specifies the Apify SDK log level, which can be one of the following values:
+                `DEBUG`, `INFO`, `WARNING`, `SOFT_FAIL` and `ERROR`.
+                By default, it is set to `INFO`, which means that `DEBUG` messages
+                are not printed to console.
+              </td>
+            </tr>
+    </tbody>
+</table>
+
+For the full list of environment variables used by Apify SDK and the Apify cloud platform, please see the
+<a href="https://www.apify.com/docs/actor#environment-variabes">Environment variables</a>
+in the Apify actor documentation.
+
+
 ## Data storage
 
 The Apify SDK has several data storage types that are useful for specific tasks.
 The data is stored either on local disk to a directory defined by the `APIFY_LOCAL_STORAGE_DIR` environment variable,
 or on the Apify cloud under the user account identified by the API token defined by the `APIFY_TOKEN` environment variable.
-One of these variables should always be set.
+If neither of these variables is defined, by default Apify SDK sets `APIFY_LOCAL_STORAGE_DIR`
+to `./apify_storage` in the current working directory and prints a warning.
 
 Typically, you will be developing the code on your local computer and thus set the `APIFY_LOCAL_STORAGE_DIR` environment variable.
 Once the code is ready, you will deploy it to the Apify cloud, where it will automatically
@@ -783,7 +819,9 @@ By convention, the actor run input and output is stored in the default key-value
 under the `INPUT` and `OUTPUT` key, respectively. Typically the input and output is a JSON file,
 although it can be any other format.
 
-In the Apify SDK, the key-value store is represented by the [KeyValueStore](https://www.apify.com/docs/sdk/apify-runtime-js/latest#KeyValueStore) class.
+In the Apify SDK, the key-value store is represented by the
+<a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#KeyValueStore"><code>KeyValueStore</code></a>
+class.
 In order to simplify access to the default key-value store, the SDK also provides
 <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-getValue"><code>Apify.getValue()</code></a>
 and <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-setValue"><code>Apify.setValue()</code></a> functions.
@@ -839,7 +877,9 @@ existing records.
 Each actor run is associated with a **default dataset**, which is created exclusively for the actor run.
 Typically it is used to store crawling results specific for the actor run. Its usage is optional.
 
-In the Apify SDK, the dataset is represented by the [Dataset](https://www.apify.com/docs/sdk/apify-runtime-js/latest#Dataset) class.
+In the Apify SDK, the dataset is represented by the
+<a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#Dataset"><code>Dataset</code></a>
+class.
 In order to simplify writes to the default dataset, the SDK also provides the
 <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-pushData"><code>Apify.pushData()</code></a> function.
 
@@ -888,7 +928,9 @@ The data structure supports both breadth-first and depth-first crawling orders.
 Each actor run is associated with a **default request queue**, which is created exclusively for the actor run.
 Typically it is used to store URLs to crawl in the specific actor run. Its usage is optional.
 
-In Apify SDK, the request queue is represented by the [RequestQueue](https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue) class.
+In Apify SDK, the request queue is represented by the
+<a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue"><code>RequestQueue</code></a>
+class.
 
 In local configuration, the request queue data is stored in the directory specified by the `APIFY_LOCAL_STORAGE_DIR` environment variable as follows:
 
@@ -926,11 +968,12 @@ const request3 = await queue.fetchNextRequest();
 await queue.markRequestHandled(request1);
 
 // If processing fails then reclaim the request back to the queue, so that it's crawled again
-await  queue.reclaimRequest(request2);
+await queue.reclaimRequest(request2);
 ```
 
 To see how to use the request queue with a crawler, see the
 [puppeteer_crawler.js](https://github.com/apifytech/apify-js/blob/feature/better-readme/examples/puppeteer_crawler.js) example.
+
 
 ## Puppeteer live view
 

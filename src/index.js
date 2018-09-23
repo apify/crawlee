@@ -14,15 +14,12 @@ import Request from './request';
 import RequestList from './request_list';
 import { openRequestQueue } from './request_queue';
 import SettingsRotator from './settings_rotator';
-import { apifyClient, getMemoryInfo, isProduction, isAtHome, publicUtils } from './utils';
+import { apifyClient, getMemoryInfo, isAtHome, publicUtils } from './utils';
 import { browse, launchWebDriver } from './webdriver';
 import { puppeteerUtils } from './puppeteer_utils';
 import PseudoUrl from './pseudo_url';
 
 /* globals module */
-
-// Hide debug log messages when running in production mode.
-if (!isProduction() || process.env[ENV_VARS.LOG_LEVEL] === 'DEBUG') log.isDebugMode = true;
 
 // Log as plain text not JSON
 log.logJson = false;

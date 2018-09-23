@@ -16,36 +16,49 @@ const LAUNCH_PUPPETEER_LOG_OMIT_OPTS = [
 ];
 
 /**
+ * Represents options passed to the {@linkcode Apify#launchPuppeteer|Apify.launchPuppeteer()}
+ * function.
  * @typedef {Object} LaunchPuppeteerOptions
- * @property {String} [opts.proxyUrl] URL to a HTTP proxy server. It must define the port number,
- *                                 and it might also contain proxy username and password.
- *                                 For example: `http://bob:pass123@proxy.example.com:1234`.
- * @property {String} [opts.userAgent] HTTP `User-Agent` header used by the browser.
- *                                  If not provided, the function sets `User-Agent` to a reasonable default
- *                                  to reduce the chance of detection of the crawler.
- * @property {Boolean} [opts.useChrome=false] If `true` and `opts.executablePath` is not set,
- *                                  Puppeteer will launch full Google Chrome browser available on the machine
- *                                  rather than the bundled Chromium. The path to Chrome executable
- *                                  is taken from the `APIFY_CHROME_EXECUTABLE_PATH` environment variable if provided,
- *                                  or defaults to the typical Google Chrome executable location specific for the operating system.
- *                                  By default, this option is `false`.
- * @property {Boolean} [opts.useApifyProxy=false] If set to `true`, Puppeteer will be configured to use
- * <a href="https://my.apify.com/proxy" target="_blank">Apify Proxy</a> for all connections.
- * For more information, see the <a href="https://www.apify.com/docs/proxy">documentation</a>
- * @property {String[]} [opts.apifyProxyGroups] An array of proxy groups to be used
- * by the <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a>.
- * Only applied if the `useApifyProxy` option is `true`.
- * @property {String} [opts.apifyProxySession] Apify Proxy session identifier to be used by all the Chrome browsers.
- * All HTTP requests going through the proxy with the same session identifier
- * will use the same target proxy server (i.e. the same IP address).
- * The identifier can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
- * Only applied if the `useApifyProxy` option is `true`.
- * @property {Boolean} [opts.liveView=false] If set to `true`, a PuppeteerLiveViewServer will be started to enable
- * screenshot and html capturing of visited pages using PuppeteerLiveViewBrowser.
- * @property {Object} [opts.liveViewOptions] Settings for PuppeteerLiveViewBrowser started using launchPuppeteer().
- * @property {String} [opts.liveViewOptions.id] Custom ID of a browser instance.
- * @property {Number} [opts.liveViewOptions.screenshotTimeoutMillis] Time in milliseconds before a screenshot capturing
- * will time out and the actor continues with execution. Screenshot capturing pauses execution within the given page.
+ * @property {String} [opts.proxyUrl]
+ *   URL to a HTTP proxy server. It must define the port number,
+ *   and it might also contain proxy username and password.
+ *
+ *   For example: `http://bob:pass123@proxy.example.com:1234`.
+ * @property {String} [opts.userAgent]
+ *   The `User-Agent` HTTP header used by the browser.
+ *   If not provided, the function sets `User-Agent` to a reasonable default
+ *   to reduce the chance of detection of the crawler.
+ * @property {Boolean} [opts.useChrome=false]
+ *   If `true` and `opts.executablePath` is not set,
+ *   Puppeteer will launch full Google Chrome browser available on the machine
+ *   rather than the bundled Chromium. The path to Chrome executable
+ *   is taken from the `APIFY_CHROME_EXECUTABLE_PATH` environment variable if provided,
+ *   or defaults to the typical Google Chrome executable location specific for the operating system.
+ *   By default, this option is `false`.
+ * @property {Boolean} [opts.useApifyProxy=false]
+ *   If set to `true`, Puppeteer will be configured to use
+ *   <a href="https://my.apify.com/proxy" target="_blank">Apify Proxy</a> for all connections.
+ *   For more information, see the <a href="https://www.apify.com/docs/proxy">documentation</a>
+ * @property {String[]} [opts.apifyProxyGroups]
+ *   An array of proxy groups to be used
+ *   by the <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a>.
+ *   Only applied if the `useApifyProxy` option is `true`.
+ * @property {String} [opts.apifyProxySession]
+ *   Apify Proxy session identifier to be used by all the Chrome browsers.
+ *   All HTTP requests going through the proxy with the same session identifier
+ *   will use the same target proxy server (i.e. the same IP address).
+ *   The identifier can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
+ *   Only applied if the `useApifyProxy` option is `true`.
+ * @property {Boolean} [opts.liveView=false]
+ *   If set to `true`, a PuppeteerLiveViewServer will be started to enable
+ *   screenshot and html capturing of visited pages using PuppeteerLiveViewBrowser.
+ * @property {Object} [opts.liveViewOptions]
+ *   Settings for `PuppeteerLiveViewBrowser` started using `launchPuppeteer()`.
+ * @property {String} [opts.liveViewOptions.id]
+ *   Custom ID of a browser instance in live view.
+ * @property {Number} [opts.liveViewOptions.screenshotTimeoutMillis]
+ *   Time in milliseconds before a screenshot capturing
+ *   will time out and the actor continues with execution. Screenshot capturing pauses execution within the given page.
  */
 
 /**
