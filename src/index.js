@@ -21,9 +21,6 @@ import PseudoUrl from './pseudo_url';
 
 /* globals module */
 
-// Hide debug log messages when running in production mode.
-if (!isProduction() || process.env[ENV_VARS.LOG_LEVEL] === 'DEBUG') log.isDebugMode = true;
-
 // Log as plain text not JSON
 log.logJson = false;
 
