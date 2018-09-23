@@ -22,6 +22,37 @@
 </div>
 
 
+## Hello World
+
+Install Apify SDK to your Node.js project:
+
+```
+npm install apify --save
+```
+
+Then run the following example script:
+
+```javascript
+const Apify = require('apify');
+
+Apify.main(async () => {
+    const requestQueue = await Apify.openRequestQueue();
+    await requestQueue.addRequest(new Apify.Request({ url: 'https://www.iana.org/' }));
+    const pseudoUrls = [new Apify.PseudoUrl('https://www.iana.org/[.*]')];
+
+    const crawler = new Apify.PuppeteerCrawler({
+        requestQueue,
+        handlePageFunction: async ({ request, page }) => {
+            const title = await page.title();
+            console.log(`Title of ${request.url}: ${title}`);
+            await Apify.utils.puppeteer.enqueueLinks(page, 'a', pseudoUrls, requestQueue);
+        },
+    });
+
+    await crawler.run();
+});
+```
+
 ## Table of Contents
 
 <!-- toc -->
@@ -44,6 +75,7 @@
 - [Data storage](#data-storage)
   * [Key-value store](#key-value-store)
   * [Dataset](#dataset)
+- [Logging](#logging)
   * [Request queue](#request-queue)
 - [Puppeteer live view](#puppeteer-live-view)
 - [Support](#support)
@@ -783,7 +815,9 @@ By convention, the actor run input and output is stored in the default key-value
 under the `INPUT` and `OUTPUT` key, respectively. Typically the input and output is a JSON file,
 although it can be any other format.
 
-In the Apify SDK, the key-value store is represented by the [KeyValueStore](https://www.apify.com/docs/sdk/apify-runtime-js/latest#KeyValueStore) class.
+In the Apify SDK, the key-value store is represented by the
+<a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#KeyValueStore"><code>KeyValueStore</code></a>
+class.
 In order to simplify access to the default key-value store, the SDK also provides
 <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-getValue"><code>Apify.getValue()</code></a>
 and <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-setValue"><code>Apify.setValue()</code></a> functions.
@@ -839,7 +873,9 @@ existing records.
 Each actor run is associated with a **default dataset**, which is created exclusively for the actor run.
 Typically it is used to store crawling results specific for the actor run. Its usage is optional.
 
-In the Apify SDK, the dataset is represented by the [Dataset](https://www.apify.com/docs/sdk/apify-runtime-js/latest#Dataset) class.
+In the Apify SDK, the dataset is represented by the
+<a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#Dataset"><code>Dataset</code></a>
+class.
 In order to simplify writes to the default dataset, the SDK also provides the
 <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-pushData"><code>Apify.pushData()</code></a> function.
 
@@ -877,6 +913,12 @@ await dataset.pushData([
 To see how to use the dataset to store crawler results, see the
 [cheerio_crawler.js](https://github.com/apifytech/apify-js/blob/feature/better-readme/examples/cheerio_crawler.js) example.
 
+## Logging
+
+Apify SDK logs messages with the current log levels: `DEBUG`, `INFO`, `WARNING`, `SOFT_FAIL` and `ERROR`.
+By default, the `DEBUG` messages are not printed to console. To enable their logging, set
+set the `APIFY_LOG_LEVEL` environment variable to `DEBUG`.
+
 
 ### Request queue
 
@@ -888,7 +930,9 @@ The data structure supports both breadth-first and depth-first crawling orders.
 Each actor run is associated with a **default request queue**, which is created exclusively for the actor run.
 Typically it is used to store URLs to crawl in the specific actor run. Its usage is optional.
 
-In Apify SDK, the request queue is represented by the [RequestQueue](https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue) class.
+In Apify SDK, the request queue is represented by the
+<a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue"><code>RequestQueue</code></a>
+class.
 
 In local configuration, the request queue data is stored in the directory specified by the `APIFY_LOCAL_STORAGE_DIR` environment variable as follows:
 
@@ -926,7 +970,7 @@ const request3 = await queue.fetchNextRequest();
 await queue.markRequestHandled(request1);
 
 // If processing fails then reclaim the request back to the queue, so that it's crawled again
-await  queue.reclaimRequest(request2);
+await queue.reclaimRequest(request2);
 ```
 
 To see how to use the request queue with a crawler, see the
