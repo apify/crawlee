@@ -518,7 +518,7 @@ export class RequestQueue {
             })
             .then(() => {
                 queuesCache.remove(this.queueId);
-                queuesCache.remove(this.queueName);
+                if (this.queueName) queuesCache.remove(this.queueName);
             });
     }
 }

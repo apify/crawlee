@@ -410,7 +410,7 @@ export class Dataset {
             })
             .then(() => {
                 datasetsCache.remove(this.datasetId);
-                datasetsCache.remove(this.datasetName);
+                if (this.datasetName) datasetsCache.remove(this.datasetName);
             });
     }
 }

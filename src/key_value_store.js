@@ -281,7 +281,7 @@ export class KeyValueStore {
             })
             .then(() => {
                 storesCache.remove(this.storeId);
-                storesCache.remove(this.storeName);
+                if (this.storeName) storesCache.remove(this.storeName);
             });
     }
 }
