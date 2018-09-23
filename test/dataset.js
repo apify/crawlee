@@ -319,7 +319,7 @@ describe('dataset', () => {
         const mockData = bytes => 'x'.repeat(bytes);
 
         it('should succesfully save simple data', async () => {
-            const dataset = new Dataset('some-id', 'some-name');
+            const dataset = new Dataset('some-id');
             const mock = sinon.mock(apifyClient.datasets);
 
             mock.expects('putItems')
@@ -351,7 +351,9 @@ describe('dataset', () => {
         it('should successfully save large data', async () => {
             const half = mockData(MAX_PAYLOAD_SIZE_BYTES / 2);
 
-            const dataset = new Dataset('some-id', 'some-name');
+            const dataset = new Dataset('some-id', 
+                                       
+                                       );
             const mock = sinon.mock(apifyClient.datasets);
 
             mock.expects('putItems')
@@ -387,7 +389,7 @@ describe('dataset', () => {
             const expectedFirst = JSON.stringify(Array(count - 1).fill(chunk));
             const expectedSecond = JSON.stringify([chunk]);
 
-            const dataset = new Dataset('some-id', 'some-name');
+            const dataset = new Dataset('some-id');
             const mock = sinon.mock(apifyClient.datasets);
 
             mock.expects('putItems')
@@ -415,7 +417,7 @@ describe('dataset', () => {
         it('should throw on too large file', async () => {
             const mock = sinon.mock(apifyClient.datasets);
             const full = mockData(MAX_PAYLOAD_SIZE_BYTES);
-            const dataset = new Dataset('some-id', 'some-name');
+            const dataset = new Dataset('some-id');
             try {
                 await dataset.pushData({ foo: full });
                 throw new Error('Should fail!');

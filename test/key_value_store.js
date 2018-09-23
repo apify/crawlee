@@ -107,7 +107,7 @@ describe('KeyValueStore', () => {
 
     describe('remote', async () => {
         it('works', async () => {
-            const store = new KeyValueStore('some-id-1', 'some-name-1');
+            const store = new KeyValueStore('some-id-1');
             const mock = sinon.mock(apifyClient.keyValueStores);
             const record = { foo: 'bar' };
             const recordStr = JSON.stringify(record, null, 2);
@@ -276,7 +276,7 @@ describe('KeyValueStore', () => {
         });
 
         it('correctly adds charset to content type', async () => {
-            const store = new KeyValueStore('some-id-1', 'some-name-1');
+            const store = new KeyValueStore('some-id-1');
             const mock = sinon.mock(apifyClient.keyValueStores);
 
             mock.expects('putRecord')
