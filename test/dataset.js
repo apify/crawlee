@@ -434,7 +434,7 @@ describe('dataset', () => {
         it('should throw on too large file in an array', async () => {
             const mock = sinon.mock(apifyClient.datasets);
             const full = mockData(MAX_PAYLOAD_SIZE_BYTES);
-            const dataset = new Dataset('some-id');
+            const dataset = new Dataset('some-id', 'some-name');
             try {
                 await dataset.pushData([
                     { foo: 0 },
@@ -459,7 +459,7 @@ describe('dataset', () => {
 
 
         it('getData() should work', async () => {
-            const dataset = new Dataset('some-id');
+            const dataset = new Dataset('some-id', 'some-name');
             const mock = sinon.mock(apifyClient.datasets);
 
             const expected = {
@@ -490,7 +490,7 @@ describe('dataset', () => {
         });
 
         it('getInfo() should work', async () => {
-            const dataset = new Dataset('some-id');
+            const dataset = new Dataset('some-id', 'some-name');
             const mock = sinon.mock(apifyClient.datasets);
 
             const expected = {
@@ -516,7 +516,7 @@ describe('dataset', () => {
         });
 
         const getRemoteDataset = () => {
-            const dataset = new Dataset('some-id');
+            const dataset = new Dataset('some-id', 'some-name');
             const mock = sinon.mock(apifyClient.datasets);
 
             mock.expects('getItems')
@@ -669,7 +669,7 @@ describe('dataset', () => {
         });
 
         it('reduce() uses first value as memo if no memo is provided', async () => {
-            const dataset = new Dataset('some-id');
+            const dataset = new Dataset('some-id', 'some-name');
             const mock = sinon.mock(apifyClient.datasets);
 
             mock.expects('getItems')

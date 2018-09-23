@@ -294,7 +294,7 @@ describe('KeyValueStore', () => {
         });
 
         it('correctly passes object values as JSON', async () => {
-            const store = new KeyValueStore('some-id-1');
+            const store = new KeyValueStore('some-id-1', 'some-name-1');
             const mock = sinon.mock(apifyClient.keyValueStores);
             const record = { foo: 'bar' };
             const recordStr = JSON.stringify(record, null, 2);
@@ -314,7 +314,7 @@ describe('KeyValueStore', () => {
         });
 
         it('correctly passes raw string values', async () => {
-            const store = new KeyValueStore('some-id-1');
+            const store = new KeyValueStore('some-id-1', 'some-name-1');
             const mock = sinon.mock(apifyClient.keyValueStores);
 
             mock.expects('putRecord')
@@ -332,7 +332,7 @@ describe('KeyValueStore', () => {
         });
 
         it('correctly passes raw Buffer values', async () => {
-            const store = new KeyValueStore('some-id-1');
+            const store = new KeyValueStore('some-id-1', 'some-name-1');
             const mock = sinon.mock(apifyClient.keyValueStores);
             const value = Buffer.from('some text value');
 

@@ -14,7 +14,7 @@ import Request from './request';
 import RequestList from './request_list';
 import { openRequestQueue } from './request_queue';
 import SettingsRotator from './settings_rotator';
-import { apifyClient, getMemoryInfo, isProduction, isAtHome, publicUtils } from './utils';
+import { apifyClient, getMemoryInfo, isAtHome, publicUtils } from './utils';
 import { browse, launchWebDriver } from './webdriver';
 import { puppeteerUtils } from './puppeteer_utils';
 import PseudoUrl from './pseudo_url';

@@ -152,10 +152,12 @@ export const maybeStringify = (value, options) => {
  * @see {@linkcode Apify.setValue|Apify.setValue()}
  */
 export class KeyValueStore {
-    constructor(storeId) {
+    constructor(storeId, storeName) {
         checkParamOrThrow(storeId, 'storeId', 'String');
+        checkParamOrThrow(storeName, 'storeName', 'Maybe String');
 
         this.storeId = storeId;
+        this.storeName = storeName;
     }
 
     /**
@@ -279,6 +281,7 @@ export class KeyValueStore {
             })
             .then(() => {
                 storesCache.remove(this.storeId);
+                if (this.storeName) storesCache.remove(this.storeName);
             });
     }
 }
