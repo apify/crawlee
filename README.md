@@ -879,6 +879,7 @@ you can export its data to the following formats: HTML, JSON, CSV, Excel, XML an
 The datasets are displayed on the actor run details page and in the [Storage](https://my.apify.com/storage)
 section in the Apify app. The actual data is exported using the
 [Get dataset items](https://www.apify.com/docs/api/v2#/reference/datasets/item-collection/get-items) Apify API endpoint.
+This way you can easily share crawling results.
 
 Each actor run is associated with a **default dataset**, which is created exclusively for the actor run.
 Typically it is used to store crawling results specific for the actor run. Its usage is optional.
