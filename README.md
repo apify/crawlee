@@ -307,7 +307,7 @@ All the examples can be found in the [examples](https://github.com/apifytech/api
 in the repository.
 
 To run the examples, just copy them into the directory where you installed the Apify SDK using
-`npm install apify` and then run them by calling:
+`npm install apify` and then run them, for example, by calling:
 
 ```
 node basic_crawler.js

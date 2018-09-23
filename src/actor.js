@@ -208,7 +208,7 @@ export const main = (userFunc) => {
 
 
 /**
- * Runs an actor on the Apify platform using the current user account (given by the `APIFY_TOKEN` environment variable),
+ * Runs an actor on the Apify platform using the current user account (determined by the `APIFY_TOKEN` environment variable),
  * waits for the actor to finish and fetches its output.
  *
  * By passing the `waitSecs` option you can reduce the maximum amount of time to wait for the run to finish.
