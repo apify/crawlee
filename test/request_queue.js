@@ -272,8 +272,7 @@ describe('RequestQueue', () => {
 
             const { Request } = Apify;
 
-            const queue = new RequestQueue('some-id', 
-                                          );
+            const queue = new RequestQueue('some-id');
             const mock = sinon.mock(apifyClient.requestQueues);
 
             const requestA = new Request({ url: 'http://example.com/a' });

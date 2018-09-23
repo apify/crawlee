@@ -351,9 +351,7 @@ describe('dataset', () => {
         it('should successfully save large data', async () => {
             const half = mockData(MAX_PAYLOAD_SIZE_BYTES / 2);
 
-            const dataset = new Dataset('some-id', 
-                                       
-                                       );
+            const dataset = new Dataset('some-id');
             const mock = sinon.mock(apifyClient.datasets);
 
             mock.expects('putItems')
