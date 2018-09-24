@@ -8,7 +8,6 @@ import { ENV_VARS, LOCAL_STORAGE_SUBDIRS } from 'apify-shared/consts';
 import { delayPromise, checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import Promise from 'bluebird';
 import crypto from 'crypto';
-import _ from 'underscore';
 import Request from './request';
 import { ensureDirExists, apifyClient, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists } from './utils';
 
