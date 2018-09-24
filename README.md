@@ -124,7 +124,7 @@ The Apify SDK is available as the <a href="https://www.npmjs.com/package/apify">
   <li>
     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#Dataset"><code>Dataset</code></a>
     - Provides a store for structured data and enables their
-    export to formats like JSON, JSONL, CSV, Excel or HTML.
+    export to formats like JSON, JSONL, CSV, XML, Excel or HTML.
     The data is stored on local filesystem or in the cloud.
     Datasets are useful for storing and sharing large tabular crawling results,
     such as a list of products or real estate offers.
