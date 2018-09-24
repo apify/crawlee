@@ -40,5 +40,5 @@ Apify.main(async () => {
         html: `<h1>Kraken.com BTC</h1>${tradedPricesHtml}`,
     });
 
-    console.log('Email was sent. Good luck!');
+    console.log('Email sent. Good luck!');
 });
