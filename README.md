@@ -772,11 +772,21 @@ The following table shows the basic environment variables used by Apify SDK:
             </td>
           </tr>
           <tr>
+              <td><code>APIFY_HEADLESS</code></td>
+              <td>
+                If set to <code>1</code>, web browsers launched by Apify SDK will run in the headless
+                mode. By default, this environment variable
+                is not set when developing the code locally and thus the browsers will run in headful mode,
+                in order to simplify debugging of your scraping code.
+                When running on the Apify cloud platform, <code>APIFY_HEADLESS</code> is set to <code>1</code>.
+              </td>
+          </tr>
+          <tr>
               <td><code>APIFY_LOG_LEVEL</code></td>
               <td>
-                Specifies the Apify SDK log level, which can be one of the following values:
-                `DEBUG`, `INFO`, `WARNING`, `SOFT_FAIL` and `ERROR`.
-                By default, it is set to `INFO`, which means that `DEBUG` messages
+                Specifies the minimum log level, which can be one of the following values (in order of severity):
+                <code>DEBUG</code>, <code>INFO</code>, <code>WARNING</code>, <code>SOFT_FAIL</code> and <code>ERROR</code>.
+                By default, the log level is set to <code>INFO</code>, which means that <code>DEBUG</code> messages
                 are not printed to console.
               </td>
             </tr>
