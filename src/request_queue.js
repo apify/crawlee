@@ -560,33 +560,31 @@ export class RequestQueueLocal {
         this.initializationPromise = this._initialize();
     }
 
-    _initialize() {
-        return ensureDirExists(this.localStoragePath)
-            .then(() => ensureDirExists(this.localHandledEmulationPath))
-            .then(() => ensureDirExists(this.localPendingEmulationPath))
-            .then(() => Promise.all([
-                readdirPromised(this.localHandledEmulationPath),
-                readdirPromised(this.localPendingEmulationPath),
-            ]))
-            .then(([handled, pending]) => {
-                this.pendingCount = pending.length;
+    async _initialize() {
+        // NOTE: This created all root dirs as necessary
+        await ensureDirExists(this.localHandledEmulationPath);
+        await ensureDirExists(this.localPendingEmulationPath);
 
-                const handledPaths = handled.map(filename => path.join(this.localHandledEmulationPath, filename));
-                const pendingPaths = pending.map(filename => path.join(this.localPendingEmulationPath, filename));
-                const filePaths = handledPaths.concat(pendingPaths);
+        const [handled, pending] = await Promise.all([
+            readdirPromised(this.localHandledEmulationPath),
+            readdirPromised(this.localPendingEmulationPath),
+        ]);
 
-                return Promise.mapSeries(filePaths, filepath => this._readFile(filepath));
-            });
+        this.pendingCount = pending.length;
+
+        const handledPaths = handled.map(filename => path.join(this.localHandledEmulationPath, filename));
+        const pendingPaths = pending.map(filename => path.join(this.localPendingEmulationPath, filename));
+        const filePaths = handledPaths.concat(pendingPaths);
+
+        return Promise.mapSeries(filePaths, filepath => this._readFile(filepath));
     }
 
-    _readFile(filepath) {
-        return readFilePromised(filepath)
-            .then((str) => {
-                const request = JSON.parse(str);
-                const queueOrderNo = filePathToQueueOrderNo(filepath);
+    async _readFile(filepath) {
+        const str = await readFilePromised(filepath);
+        const request = JSON.parse(str);
+        const queueOrderNo = filePathToQueueOrderNo(filepath);
 
-                this.requestIdToQueueOrderNo[request.id] = queueOrderNo;
-            });
+        this.requestIdToQueueOrderNo[request.id] = queueOrderNo;
     }
 
     _getFilePath(queueOrderNo, isHandled = false) {
