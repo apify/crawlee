@@ -1,4 +1,4 @@
-# Migration from 0.x.x to 0.8.0
+# Migration from 0.7.x to 0.8.0
 
 ## Breaking change 1: AutoscaledPool configuration changed
 
