@@ -72,7 +72,7 @@ export default class Snapshotter {
         this.snapshotHistoryMillis = snapshotHistorySecs * 1000;
         this.maxBlockedMillis = maxBlockedMillis;
         this.maxUsedMemoryRatio = maxUsedMemoryRatio;
-        this.maxMemoryBytes = parseInt(process.env[ENV_VARS.MEMORY_MBYTES], 10) * 1024 * 1024;
+        this.maxMemoryBytes = (parseInt(process.env[ENV_VARS.MEMORY_MBYTES], 10) * 1024 * 1024) || null;
 
         this.cpuSnapshots = [];
         this.eventLoopSnapshots = [];
