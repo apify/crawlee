@@ -92,13 +92,13 @@ const DEFAULT_OPTIONS = {
  *   Defines the amount of desired concurrency to be subtracted with each scaling down.
  *   The minimum scaling step is one.
  * @param {Number} [options.maybeRunIntervalSecs=0.5]
- *   Indicates how often should the pool call the `runTaskFunction()` to start a new task, in seconds.
+ *   Indicates how often the pool should call the `runTaskFunction()` to start a new task, in seconds.
  *   This has no effect on starting new tasks immediately after a task completes.
  * @param {Number} [options.loggingIntervalSecs=60]
- *   Specifies a period in which the instance logs it state, in seconds.
+ *   Specifies a period in which the instance logs its state, in seconds.
  *   Set to `null` to disable periodic logging.
  * @param {Number} [options.autoscaleIntervalSecs=10]
- *   Defines in seconds how often should the pool attempt to adjust the desired concurrency
+ *   Defines in seconds how often the pool should attempt to adjust the desired concurrency
  *   based on the latest system status. Setting it lower than 1 might have a severe impact on performance.
  *   We suggest using a value from 5 to 20.
  * @param {Number} [options.snapshotterOptions]
