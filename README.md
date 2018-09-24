@@ -793,11 +793,11 @@ The following table shows the basic environment variables used by Apify SDK:
           <tr>
               <td><code>APIFY_MEMORY_MBYTES</code></td>
               <td>
-                Sets the amount of system memory in megabytes to be used by the running process. This is not a hard limit
-                however, only a threshold for the autoscaling feature. It is used to limit the number of concurrently running
-                tasks. Memory leaks not caused by autoscaling will not be confined to this limit. By default,
-                the max amount of memory to be used is set to one quarter of total system memory, i. e. on a system
-                with 8192 MB of memory, the autoscaling feature will only use up to 2048 MB of memory.
+                Sets the amount of system memory in megabytes to be used by the
+                <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#AutoscaledPool">autoscaled pool</a>.
+                It is used to limit the number of concurrently running tasks. By default, the max amount of memory
+                to be used is set to one quarter of total system memory, i. e. on a system with 8192 MB of memory,
+                the autoscaling feature will only use up to 2048 MB of memory.
               </td>
           </tr>
     </tbody>
