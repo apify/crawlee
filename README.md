@@ -142,7 +142,7 @@ The Apify SDK is available as the <a href="https://www.npmjs.com/package/apify">
     at the maximum capacity of the system.
   </li>
   <li>
-    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerUtils"><code>PuppeteerUtils</code></a>
+    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#utils-puppeteer"><code>PuppeteerUtils</code></a>
     - Provides several helper functions useful for web scraping. For example, to inject jQuery into web pages
     or to hide browser origin.
   </li>
@@ -772,11 +772,21 @@ The following table shows the basic environment variables used by Apify SDK:
             </td>
           </tr>
           <tr>
+              <td><code>APIFY_HEADLESS</code></td>
+              <td>
+                If set to <code>1</code>, web browsers launched by Apify SDK will run in the headless
+                mode. By default, this environment variable
+                is not set when developing the code locally and thus the browsers will run in headful mode,
+                in order to simplify debugging of your scraping code.
+                When running on the Apify cloud platform, <code>APIFY_HEADLESS</code> is set to <code>1</code>.
+              </td>
+          </tr>
+          <tr>
               <td><code>APIFY_LOG_LEVEL</code></td>
               <td>
-                Specifies the Apify SDK log level, which can be one of the following values:
-                `DEBUG`, `INFO`, `WARNING`, `SOFT_FAIL` and `ERROR`.
-                By default, it is set to `INFO`, which means that `DEBUG` messages
+                Specifies the minimum log level, which can be one of the following values (in order of severity):
+                <code>DEBUG</code>, <code>INFO</code>, <code>WARNING</code>, <code>SOFT_FAIL</code> and <code>ERROR</code>.
+                By default, the log level is set to <code>INFO</code>, which means that <code>DEBUG</code> messages
                 are not printed to console.
               </td>
             </tr>
@@ -862,7 +872,7 @@ await store.delete('some-key');
 ```
 
 To see a real-world example of how to get the input from the key-value store, see the
-[screenshots.js](https://github.com/apifytech/apify-js/blob/feature/better-readme/examples/screenshots.js) example.
+[screenshots.js](https://github.com/apifytech/apify-js/blob/master/examples/screenshots.js) example.
 
 
 ### Dataset
@@ -921,7 +931,7 @@ await dataset.pushData([
 ```
 
 To see how to use the dataset to store crawler results, see the
-[cheerio_crawler.js](https://github.com/apifytech/apify-js/blob/feature/better-readme/examples/cheerio_crawler.js) example.
+[cheerio_crawler.js](https://github.com/apifytech/apify-js/blob/master/examples/cheerio_crawler.js) example.
 
 
 ### Request queue
@@ -978,7 +988,7 @@ await queue.reclaimRequest(request2);
 ```
 
 To see how to use the request queue with a crawler, see the
-[puppeteer_crawler.js](https://github.com/apifytech/apify-js/blob/feature/better-readme/examples/puppeteer_crawler.js) example.
+[puppeteer_crawler.js](https://github.com/apifytech/apify-js/blob/master/examples/puppeteer_crawler.js) example.
 
 
 ## Puppeteer live view

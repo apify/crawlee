@@ -1,14 +1,16 @@
-# Migration from 0.x.x to 0.8.0
+# Migration from 0.7.x to 0.8.0
 
 ## Breaking change 1: AutoscaledPool configuration changed
 
 Originally, AutoscaledPool was just a single class that handled everything. Now it's split into 3 different classes.
 As such, the configuration changed dramatically. The API is the same however.
 
+Mainly the parameter `workerFunction` was replaced with combination of 3 parameters `runTaskFunction`, `isTaskReadyFunction` and `isFinishedFunction`. For more information and examples check <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#AutoscaledPool" target="_blank">AutoscaledPool documentation</a>.
+
 If you were using any of the following options, you should see the current documentation and migrate accordingly:
 
 1. `options.workerFunction`
-   - REMOVED; see `options.isFinishedFunction` for similar functionality
+   - REMOVED; see `options.runTaskFunction` for similar functionality
 2. `options.finishWhenEmpty`
    - REMOVED; see `options.isFinishedFunction` for similar functionality
 3. `options.ignoreMainProcess`

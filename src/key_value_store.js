@@ -544,7 +544,7 @@ export const getValue = key => openKeyValueStore().then(store => store.getValue(
  * @see {@link KeyValueStore}
  *
  * @memberof module:Apify
- * @name getValue
+ * @name setValue
  * @instance
  * @function
  */
