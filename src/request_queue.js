@@ -8,7 +8,6 @@ import { ENV_VARS, LOCAL_STORAGE_SUBDIRS } from 'apify-shared/consts';
 import { delayPromise, checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import Promise from 'bluebird';
 import crypto from 'crypto';
-import _ from 'underscore';
 import Request from './request';
 import { ensureDirExists, apifyClient, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists } from './utils';
 
@@ -30,7 +29,7 @@ export const MAX_QUERIES_FOR_CONSISTENCY = 6;
 const writeFilePromised = Promise.promisify(fs.writeFile);
 const readdirPromised = Promise.promisify(fs.readdir);
 const readFilePromised = Promise.promisify(fs.readFile);
-const deleteFilePromised = Promise.promisify(fs.unlink);
+const renamePromised = Promise.promisify(fs.rename);
 const emptyDirPromised = Promise.promisify(fsExtra.emptyDir);
 
 const { requestQueues } = apifyClient;
@@ -673,28 +672,36 @@ export class RequestQueueLocal {
             });
     }
 
-    fetchNextRequest() {
-        return this.initializationPromise
-            .then(() => readdirPromised(this.localPendingEmulationPath))
-            .then((files) => {
-                let queueOrderNo;
+    async fetchNextRequest() {
+        await this.initializationPromise;
 
-                _.find(files, (filename) => {
-                    const no = filePathToQueueOrderNo(filename);
+        const files = await readdirPromised(this.localPendingEmulationPath);
 
-                    if (!this.queueOrderNoInProgress[no]) {
-                        queueOrderNo = no;
-                        return true;
-                    }
-                });
+        let request = null;
+        while (!request && files.length) {
+            const filename = files.shift();
+            const queueOrderNo = filePathToQueueOrderNo(filename);
 
-                if (!queueOrderNo) return null;
+            if (this.queueOrderNoInProgress[queueOrderNo]) continue; // eslint-disable-line
 
-                this.queueOrderNoInProgress[queueOrderNo] = true;
-                this.inProgressCount++;
+            this.queueOrderNoInProgress[queueOrderNo] = true;
+            this.inProgressCount++;
 
-                return this._getRequestByQueueOrderNo(queueOrderNo);
-            });
+            // TODO: There must be a better way. This try/catch is here because there is a race condition between
+            //       between this and call to reclaimRequest() or markRequestHandled() that may move/rename/deleted
+            //       the file between readdirPromised() and this function.
+            //       Ie. the file gets listed in readdirPromised() but removed from this.queueOrderNoInProgres
+            //       meanwhile causing this to fail.
+            try {
+                request = await this._getRequestByQueueOrderNo(queueOrderNo);
+            } catch (err) {
+                delete this.queueOrderNoInProgress[queueOrderNo];
+                this.inProgressCount--;
+                if (err.code !== 'ENOENT') throw err;
+            }
+        }
+
+        return request;
     }
 
     markRequestHandled(request) {
@@ -712,20 +719,21 @@ export class RequestQueueLocal {
 
                 if (!request.handledAt) request.handledAt = new Date();
 
-                return Promise.all([
-                    writeFilePromised(dest, JSON.stringify(request, null, 4)),
-                    deleteFilePromised(source),
-                ])
+                // NOTE: First write to old file and then rename to new one to do the operation atomically.
+                //       Situation where two files exists at the same time may cause race condition bugs.
+                return writeFilePromised(source, JSON.stringify(request, null, 4))
+                    .then(() => renamePromised(source, dest))
                     .then(() => {
                         this.pendingCount--;
                         this.inProgressCount--;
                         delete this.queueOrderNoInProgress[queueOrderNo];
-                    })
-                    .then(() => ({
-                        requestId: request.id,
-                        wasAlreadyHandled: false,
-                        wasAlreadyPresent: true,
-                    }));
+
+                        return {
+                            requestId: request.id,
+                            wasAlreadyHandled: false,
+                            wasAlreadyPresent: true,
+                        };
+                    });
             });
     }
 
@@ -736,27 +744,32 @@ export class RequestQueueLocal {
             .then(() => {
                 const oldQueueOrderNo = this.requestIdToQueueOrderNo[request.id];
                 const newQueueOrderNo = this._getQueueOrderNo(forefront);
+                const source = this._getFilePath(oldQueueOrderNo);
+                const dest = this._getFilePath(newQueueOrderNo);
 
                 if (!this.queueOrderNoInProgress[oldQueueOrderNo]) {
                     throw new Error(`Cannot reclaim request ${request.id} that is not in progress!`);
                 }
 
                 this.requestIdToQueueOrderNo[request.id] = newQueueOrderNo;
+                this.queueOrderNoInProgress[newQueueOrderNo] = true;
 
-                return Promise.all([
-                    writeFilePromised(this._getFilePath(newQueueOrderNo), JSON.stringify(request, null, 4)),
-                    deleteFilePromised(this._getFilePath(oldQueueOrderNo)),
-                ])
+                // NOTE: First write to old file and then rename to new one to do the operation atomically.
+                //       Situation where two files exists at the same time may cause race condition bugs.
+                return writeFilePromised(source, JSON.stringify(request, null, 4))
+                    .then(() => renamePromised(source, dest))
                     .then(() => {
                         this.inProgressCount--;
                         delete this.queueOrderNoInProgress[oldQueueOrderNo];
+                        delete this.queueOrderNoInProgress[newQueueOrderNo];
+
+                        return {
+                            requestId: request.id,
+                            wasAlreadyHandled: false,
+                            wasAlreadyPresent: true,
+                        };
                     });
-            })
-            .then(() => ({
-                requestId: request.id,
-                wasAlreadyHandled: false,
-                wasAlreadyPresent: true,
-            }));
+            });
     }
 
     isEmpty() {
