@@ -265,7 +265,7 @@ It can run for a few seconds, hours or even infinitely.
 An actor can perform anything from a simple action such as filling out a web form or sending an email,
 to complex operations such as crawling an entire website and removing duplicates from a large dataset.
 
-To run an actor, you need to have an [Apify account](https://my.apify.com/).
+To run an actor, you need to have an [Apify Account](https://my.apify.com/).
 Actors can be shared in the [Apify Library](https://www.apify.com/library?&type=acts)
 so that other people can use them.
 But don't worry, if you share your actor in the library
@@ -481,7 +481,7 @@ Apify.main(async () => {
         requestList,
         requestQueue,
 
-        // Run Puppeteer in headless mode. If you headless to false, you'll see the scraping
+        // Run Puppeteer in headless mode. If you set headless to false, you'll see the scraping
         // browsers showing up on your screen. This is great for debugging.
         launchPuppeteerOptions: { headless: true },
 
@@ -607,7 +607,7 @@ Apify.main(async () => {
 
 This example demonstrates how to load pages in headless Chrome / Puppeteer
 over [Apify Proxy](https://www.apify.com/docs/proxy).
-To make it work, you'll need an Apify account
+To make it work, you'll need an Apify Account
 that has access to the proxy.
 The proxy password is available on the [Proxy](https://my.apify.com/proxy) page in the app.
 Just set it to the `APIFY_PROXY_PASSWORD` environment variable
@@ -684,7 +684,7 @@ Apify.main(async () => {
         html: `<h1>Kraken.com BTC</h1>${tradedPricesHtml}`,
     });
 
-    console.log('Email was sent. Good luck!');
+    console.log('Email sent. Good luck!');
 });
 ```
 
