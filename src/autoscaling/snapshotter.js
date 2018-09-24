@@ -86,7 +86,7 @@ export default class Snapshotter {
      */
     async start() {
         // Ensure max memory is correctly computed.
-        if (!this.maxMemoryBytes || Number.isNaN(this.maxMemoryBytes)) {
+        if (!this.maxMemoryBytes) {
             const { totalBytes } = await getMemoryInfo();
             if (isAtHome()) {
                 this.maxMemoryBytes = totalBytes;
