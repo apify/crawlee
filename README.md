@@ -76,7 +76,7 @@ since the same language is used to write the scripts as well as the data extract
 The goal of the Apify SDK is to fill this gap and provide a toolbox
 for generic web scraping, crawling and automation tasks in JavaScript.
 So don't reinvent the wheel every time you need data from the web,
-and focus on writing the code specific to the target website, rather than developing commonalities.
+and focus on writing code specific to the target website, rather than developing commonalities.
 
 ## Overview
 
@@ -125,7 +125,7 @@ The Apify SDK is available as the <a href="https://www.npmjs.com/package/apify">
     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#Dataset"><code>Dataset</code></a>
     - Provides a store for structured data and enables their
     export to formats like JSON, JSONL, CSV, Excel or HTML.
-    The data is stored on local filesystem or in the cloud.
+    The data is stored on a local filesystem or in the cloud.
     Datasets are useful for storing and sharing large tabular crawling results,
     such as a list of products or real estate offers.
   </li>
@@ -133,7 +133,7 @@ The Apify SDK is available as the <a href="https://www.npmjs.com/package/apify">
     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#KeyValueStore"><code>KeyValueStore</code></a>
     - A simple key-value store for arbitrary data records or files, along with their MIME content type.
     It is ideal for saving screenshots of web pages, PDFs or to persist the state of your crawlers.
-    The data is stored on local filesystem or in the cloud.
+    The data is stored on a local filesystem or in the cloud.
   </li>
   <li>
     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#AutoscaledPool"><code>AutoscaledPool</code></a>
@@ -231,7 +231,7 @@ By default, the crawling data will be stored in a local directory at `./apify_st
 For example, the input JSON file for the actor is expected to be in the default key-value store
 in `./apify_storage/key_value_stores/default/INPUT.json`.
 
-Now you can easily deploy your code to Apify cloud by running:
+Now you can easily deploy your code to the Apify cloud by running:
 
 ```bash
 apify login
@@ -246,7 +246,7 @@ and [Apify Actor](https://www.apify.com/docs/actor) documentation.
 ### Usage on the Apify cloud platform
 
 You can also develop your web scraping project
-in an online code editor directly on the Apify cloud. You'll need to have an Apify Account.
+in an online code editor directly on the Apify cloud. You'll need to have an Apify account.
 Go to [Actors](https://my.apify.com/actors)
 page in the app, click <i>Create new</i> and then go to the
 <i>Source</i> tab and start writing your code or paste one of the code examples below.
@@ -261,10 +261,10 @@ It can run for a few seconds, hours or even infinitely.
 An actor can perform anything from a simple action such as filling out a web form or sending an email,
 to complex operations such as crawling an entire website and removing duplicates from a large dataset.
 
-To run an actor, you need to have an [Apify Account](https://my.apify.com/).
+To run an actor, you need to have an [Apify account](https://my.apify.com/).
 Actors can be shared in the [Apify Library](https://www.apify.com/library?&type=acts)
 so that other people can use them.
-But no worries, if you share your actor in the library
+But don't worry, if you share your actor in the library
 and somebody uses it, it runs under their account, not yours.
 
 **Related links**
@@ -450,7 +450,7 @@ This example demonstrates how to use [PuppeteerCrawler](https://www.apify.com/do
 in combination with [RequestList](https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList)
 and [RequestQueue](https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue) to recursively scrape the
 [Hacker News](https://news.ycombinator.com) website using headless Chrome / Puppeteer.
-The crawlers starts with a single URL, finds links to next pages,
+The crawler starts with a single URL, finds links to next pages,
 enqueues them and continues until no more desired links are available.
 The results are stored to the default dataset. In local configuration, the results are represented as JSON files in `./apify_storage/datasets/default`
 
