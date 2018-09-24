@@ -1,4 +1,4 @@
-# Apify SDK: The web scraping and automation library for Node.js
+# Apify SDK: The scalable web crawling and scraping library for JavaScript
 <!-- Mirror this part to src/index.js -->
 
 [![npm version](https://badge.fury.io/js/apify.svg)](https://www.npmjs.com/package/apify)
@@ -124,7 +124,7 @@ The Apify SDK is available as the <a href="https://www.npmjs.com/package/apify">
   <li>
     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#Dataset"><code>Dataset</code></a>
     - Provides a store for structured data and enables their
-    export to formats like JSON, JSONL, CSV, Excel or HTML.
+    export to formats like JSON, JSONL, CSV, XML, Excel or HTML.
     The data is stored on a local filesystem or in the cloud.
     Datasets are useful for storing and sharing large tabular crawling results,
     such as a list of products or real estate offers.
@@ -185,6 +185,8 @@ Apify.main(async () => {
             console.log(`Title of ${request.url}: ${title}`);
             await Apify.utils.puppeteer.enqueueLinks(page, 'a', pseudoUrls, requestQueue);
         },
+        maxRequestsPerCrawl: 100,
+        maxConcurrency: 10,
     });
 
     await crawler.run();
@@ -212,7 +214,9 @@ Install the CLI by running:
 npm -g install apify-cli
 ```
 
-Create a boilerplate of your new web crawling project by running:
+You might need to run the above command with `sudo`, depending on your configuration.
+
+Now create a boilerplate of your new web crawling project by running:
 
 ```bash
 apify create my-hello-world
@@ -246,7 +250,7 @@ and [Apify Actor](https://www.apify.com/docs/actor) documentation.
 ### Usage on the Apify cloud platform
 
 You can also develop your web scraping project
-in an online code editor directly on the Apify cloud. You'll need to have an Apify account.
+in an online code editor directly on the Apify cloud. You'll need to have an Apify Account.
 Go to [Actors](https://my.apify.com/actors)
 page in the app, click <i>Create new</i> and then go to the
 <i>Source</i> tab and start writing your code or paste one of the code examples below.
@@ -775,10 +779,13 @@ The following table shows the basic environment variables used by Apify SDK:
               <td><code>APIFY_HEADLESS</code></td>
               <td>
                 If set to <code>1</code>, web browsers launched by Apify SDK will run in the headless
-                mode. By default, this environment variable
-                is not set when developing the code locally and thus the browsers will run in headful mode,
-                in order to simplify debugging of your scraping code.
-                When running on the Apify cloud platform, <code>APIFY_HEADLESS</code> is set to <code>1</code>.
+                mode. You can still override this setting in the code, e.g. by
+                passing the <code>headless: true</code> option to the
+                <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-launchPuppeteer"><code>Apify.launchPuppeteer()</code></a>
+                function. But having this setting in an environment variable allows you to develop
+                the crawler locally in headful mode to simplify the debugging, and only run the crawler in headless
+                mode once you deploy it to the cloud.
+                By default, the the browsers are launched in headful mode, i.e. with windows.
               </td>
           </tr>
           <tr>
@@ -789,7 +796,17 @@ The following table shows the basic environment variables used by Apify SDK:
                 By default, the log level is set to <code>INFO</code>, which means that <code>DEBUG</code> messages
                 are not printed to console.
               </td>
-            </tr>
+          </tr>
+          <tr>
+              <td><code>APIFY_MEMORY_MBYTES</code></td>
+              <td>
+                Sets the amount of system memory in megabytes to be used by the
+                <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#AutoscaledPool">autoscaled pool</a>.
+                It is used to limit the number of concurrently running tasks. By default, the max amount of memory
+                to be used is set to one quarter of total system memory, i. e. on a system with 8192 MB of memory,
+                the autoscaling feature will only use up to 2048 MB of memory.
+              </td>
+          </tr>
     </tbody>
 </table>
 

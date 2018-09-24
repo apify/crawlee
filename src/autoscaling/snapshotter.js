@@ -1,7 +1,7 @@
 import _ from 'underscore';
 import { betterSetInterval, betterClearInterval } from 'apify-shared/utilities';
 import log from 'apify-shared/log';
-import { ACTOR_EVENT_NAMES } from 'apify-shared/consts';
+import { ACTOR_EVENT_NAMES, ENV_VARS } from 'apify-shared/consts';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { getMemoryInfo, isAtHome } from '../utils';
 import events from '../events';
@@ -49,8 +49,6 @@ const DEFAULT_OPTIONS = {
  * @param {Number} [options.snapshotHistorySecs=60]
  *   Sets the interval in seconds for which a history of resource snapshots
  *   will be kept. Increasing this to very high numbers will affect performance.
- * @param {Number} [options.maxMemoryMbytes]
- *   Sets the maximum amount of memory to be used in megabytes.
  * @ignore
  */
 export default class Snapshotter {
@@ -61,7 +59,6 @@ export default class Snapshotter {
             snapshotHistorySecs,
             maxBlockedMillis,
             maxUsedMemoryRatio,
-            maxMemoryMbytes,
         } = _.defaults(options, DEFAULT_OPTIONS);
 
         checkParamOrThrow(eventLoopSnapshotIntervalSecs, 'options.eventLoopSnapshotIntervalSecs', 'Number');
@@ -69,14 +66,13 @@ export default class Snapshotter {
         checkParamOrThrow(snapshotHistorySecs, 'options.snapshotHistorySecs', 'Number');
         checkParamOrThrow(maxBlockedMillis, 'options.maxBlockedMillis', 'Number');
         checkParamOrThrow(maxUsedMemoryRatio, 'options.maxUsedMemoryRatio', 'Number');
-        checkParamOrThrow(maxMemoryMbytes, 'options.maxMemoryMbytes', 'Maybe Number');
 
         this.eventLoopSnapshotIntervalMillis = eventLoopSnapshotIntervalSecs * 1000;
         this.memorySnapshotIntervalMillis = memorySnapshotIntervalSecs * 1000;
         this.snapshotHistoryMillis = snapshotHistorySecs * 1000;
         this.maxBlockedMillis = maxBlockedMillis;
         this.maxUsedMemoryRatio = maxUsedMemoryRatio;
-        this.maxMemoryBytes = maxMemoryMbytes ? maxMemoryMbytes * 1024 * 1024 : null;
+        this.maxMemoryBytes = (parseInt(process.env[ENV_VARS.MEMORY_MBYTES], 10) * 1024 * 1024) || null;
 
         this.cpuSnapshots = [];
         this.eventLoopSnapshots = [];
@@ -96,7 +92,7 @@ export default class Snapshotter {
                 this.maxMemoryBytes = totalBytes;
             } else {
                 this.maxMemoryBytes = Math.ceil(totalBytes / 4);
-                log.info(`Snapshotter: Setting max memory of this run to ${Math.round(this.maxMemoryBytes / 1024 / 1024)} MB.`);
+                log.info(`Snapshotter: Setting max memory of this run to ${Math.round(this.maxMemoryBytes / 1024 / 1024)} MB. Use the ${ENV_VARS.MEMORY_MBYTES} environment variable to override.`); // eslint-disable-line max-len
             }
         }
 

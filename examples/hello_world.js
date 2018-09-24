@@ -12,6 +12,8 @@ Apify.main(async () => {
             console.log(`Title of ${request.url}: ${title}`);
             await Apify.utils.puppeteer.enqueueLinks(page, 'a', pseudoUrls, requestQueue);
         },
+        maxRequestsPerCrawl: 100,
+        maxConcurrency: 10,
     });
 
     await crawler.run();

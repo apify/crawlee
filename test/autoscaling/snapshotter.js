@@ -141,9 +141,9 @@ describe('Snapshotter', () => {
     });
 
     it('correctly marks memoryOverloaded', async () => {
+        process.env[ENV_VARS.MEMORY_MBYTES] = 20;
         const options = {
             memorySnapshotIntervalSecs: 0.1,
-            maxMemoryMbytes: 20,
         };
 
         const snapshotter = new Snapshotter(options);
@@ -158,6 +158,7 @@ describe('Snapshotter', () => {
         expect(memorySnapshots[0].isOverloaded).to.be.eql(true);
         expect(memorySnapshots[1].isOverloaded).to.be.eql(true);
         expect(memorySnapshots[2].isOverloaded).to.be.eql(false);
+        delete process.env[ENV_VARS.MEMORY_MBYTES];
     });
 
     it('.get...Sample limits amount of samples', async () => {
