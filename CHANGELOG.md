@@ -1,3 +1,8 @@
+0.8.7 / 2018-09-25
+==================
+- Updated documentation and README.
+- Bugfixes in `RequestQueueLocal`
+
 0.8.3 / 2018-09-22
 ==================
 - Updated documentation and README.
@@ -5,7 +10,7 @@
 
 0.8.0 / 2018-09-19
 ==================
-- BREAKING CHANGES IN AUTOSCALED POOL
+- **BREAKING CHANGES IN AUTOSCALED POOL**
    - It has been completely rebuilt for better performance.
    - It also now works locally.
    - see [Migration Guide](MIGRATIONS.md) for more information.
