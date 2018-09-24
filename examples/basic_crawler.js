@@ -1,6 +1,6 @@
 /**
  * This is the most basic example of the Apify SDK, which demonstrates some of its
- * elementary tools such as the
+ * elementary tools, such as the
  * [BasicCrawler](https://www.apify.com/docs/sdk/apify-runtime-js/latest#BasicCrawler)
  * and [RequestList](https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList) classes.
  * The script just downloads several web pages with plain HTTP requests (using the
