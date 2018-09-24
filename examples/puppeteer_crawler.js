@@ -1,9 +1,9 @@
 /**
  * This example demonstrates how to use [PuppeteerCrawler](https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerCrawler)
  * in combination with [RequestList](https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList)
- * and [RequestQueue](https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue) to recursively scrape
+ * and [RequestQueue](https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue) to recursively scrape the
  * Hacker News website (https://news.ycombinator.com) using headless Chrome / Puppeteer.
- * The crawlers starts with a single URL, finds links to next pages,
+ * The crawler starts with a single URL, finds links to next pages,
  * enqueues them and continues until no more desired links are available.
  * The results are stored to the default dataset. In local configuration, the results are stored as JSON files in `./apify_storage/datasets/default`
  */
@@ -30,13 +30,13 @@ Apify.main(async () => {
         requestList,
         requestQueue,
 
-        // Run Puppeteer in headless mode. If you headless to false, you'll see the scraping
+        // Run Puppeteer in headless mode. If you set headless to false, you'll see the scraping
         // browsers showing up on your screen. This is great for debugging.
         launchPuppeteerOptions: { headless: true },
 
         // This function will be called for each URL to crawl.
         // Here you can write the Puppeteer scripts you are familiar with,
-        // with the exception that browsers and pages are automatically managed by Apify SDK.
+        // with the exception that browsers and pages are automatically managed by the Apify SDK.
         // The function accepts a single parameter, which is an object with the following fields:
         // - request: an instance of the Request class with information such as URL and HTTP method
         // - page: Puppeteer's Page object (see https://pptr.dev/#show=api-class-page)
