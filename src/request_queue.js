@@ -30,7 +30,7 @@ export const MAX_QUERIES_FOR_CONSISTENCY = 6;
 const writeFilePromised = Promise.promisify(fs.writeFile);
 const readdirPromised = Promise.promisify(fs.readdir);
 const readFilePromised = Promise.promisify(fs.readFile);
-const deleteFilePromised = Promise.promisify(fs.unlink);
+const renamePromised = Promise.promisify(fs.rename);
 const emptyDirPromised = Promise.promisify(fsExtra.emptyDir);
 
 const { requestQueues } = apifyClient;
@@ -723,21 +723,19 @@ export class RequestQueueLocal {
 
                 if (!request.handledAt) request.handledAt = new Date();
 
-                return Promise
-                    .all([
-                        writeFilePromised(dest, JSON.stringify(request, null, 4)),
-                        deleteFilePromised(source),
-                    ])
+                return writeFilePromised(source, JSON.stringify(request, null, 4))
+                    .then(() => renamePromised(source, dest))
                     .then(() => {
                         this.pendingCount--;
                         this.inProgressCount--;
                         delete this.queueOrderNoInProgress[queueOrderNo];
-                    })
-                    .then(() => ({
-                        requestId: request.id,
-                        wasAlreadyHandled: false,
-                        wasAlreadyPresent: true,
-                    }));
+
+                        return {
+                            requestId: request.id,
+                            wasAlreadyHandled: false,
+                            wasAlreadyPresent: true,
+                        };
+                    });
             });
     }
 
@@ -748,28 +746,30 @@ export class RequestQueueLocal {
             .then(() => {
                 const oldQueueOrderNo = this.requestIdToQueueOrderNo[request.id];
                 const newQueueOrderNo = this._getQueueOrderNo(forefront);
+                const source = this._getFilePath(oldQueueOrderNo);
+                const dest = this._getFilePath(newQueueOrderNo);
 
                 if (!this.queueOrderNoInProgress[oldQueueOrderNo]) {
                     throw new Error(`Cannot reclaim request ${request.id} that is not in progress!`);
                 }
 
                 this.requestIdToQueueOrderNo[request.id] = newQueueOrderNo;
+                this.queueOrderNoInProgress[newQueueOrderNo] = true;
 
-                return Promise
-                    .all([
-                        writeFilePromised(this._getFilePath(newQueueOrderNo), JSON.stringify(request, null, 4)),
-                        deleteFilePromised(this._getFilePath(oldQueueOrderNo)),
-                    ])
+                return writeFilePromised(source, JSON.stringify(request, null, 4))
+                    .then(() => renamePromised(source, dest))
                     .then(() => {
                         this.inProgressCount--;
                         delete this.queueOrderNoInProgress[oldQueueOrderNo];
+                        delete this.queueOrderNoInProgress[newQueueOrderNo];
+
+                        return {
+                            requestId: request.id,
+                            wasAlreadyHandled: false,
+                            wasAlreadyPresent: true,
+                        };
                     });
-            })
-            .then(() => ({
-                requestId: request.id,
-                wasAlreadyHandled: false,
-                wasAlreadyPresent: true,
-            }));
+            });
     }
 
     isEmpty() {
