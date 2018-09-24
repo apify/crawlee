@@ -214,7 +214,7 @@ Install the CLI by running:
 npm -g install apify-cli
 ```
 
-You might need to run the above command with `sudo`, depending on your configuration.
+You might need to run the above command with `sudo`, depending on how crazy your configuration is.
 
 Now create a boilerplate of your new web crawling project by running:
 
@@ -222,8 +222,8 @@ Now create a boilerplate of your new web crawling project by running:
 apify create my-hello-world
 ```
 
-The CLI will prompt you to select a project template and then it creates a
-directory called `my-hello-world` with a Node.js project files.
+The CLI will prompt you to select a project boilerplate template - just pick "Hello world".
+The tool will create a directory called `my-hello-world` with a Node.js project files.
 You can run the project as follows:
 
 ```bash
