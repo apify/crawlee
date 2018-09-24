@@ -201,7 +201,7 @@ export const main = (userFunc) => {
                 }
             });
     } catch (err) {
-        // This can happen e.g. if there's no Promise dependency
+        // This can happen if, e.g. there's no Promise dependency
         exitWithError(err, EXIT_CODES.ERROR_UNKNOWN, 'Unknown error occurred');
     }
 };
@@ -216,7 +216,7 @@ export const main = (userFunc) => {
  *
  * The result of the function is an {@linkcode ActorRun} object
  * that contains details about the actor run and its output (if any).
- * If the actor run failed, the function fails with {@linkcode ApifyCallError} expcetion.
+ * If the actor run failed, the function fails with {@linkcode ApifyCallError} exception.
  *
  * **Example usage:**
  *
