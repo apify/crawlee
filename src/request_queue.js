@@ -752,7 +752,6 @@ export class RequestQueueLocal {
                 }
 
                 this.requestIdToQueueOrderNo[request.id] = newQueueOrderNo;
-                this.queueOrderNoInProgress[newQueueOrderNo] = true;
 
                 // NOTE: First write to old file and then rename to new one to do the operation atomically.
                 //       Situation where two files exists at the same time may cause race condition bugs.
@@ -761,7 +760,6 @@ export class RequestQueueLocal {
                     .then(() => {
                         this.inProgressCount--;
                         delete this.queueOrderNoInProgress[oldQueueOrderNo];
-                        delete this.queueOrderNoInProgress[newQueueOrderNo];
 
                         return {
                             requestId: request.id,
