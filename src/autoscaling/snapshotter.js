@@ -84,7 +84,7 @@ export default class Snapshotter {
     }
 
     /**
-     * Starts capturing snapshots in configured intervals.
+     * Starts capturing snapshots at configured intervals.
      * @return {Promise}
      * @ignore
      */
