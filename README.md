@@ -142,7 +142,7 @@ The Apify SDK is available as the <a href="https://www.npmjs.com/package/apify">
     at the maximum capacity of the system.
   </li>
   <li>
-    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerUtils"><code>PuppeteerUtils</code></a>
+    <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#utils-puppeteer"><code>PuppeteerUtils</code></a>
     - Provides several helper functions useful for web scraping. For example, to inject jQuery into web pages
     or to hide browser origin.
   </li>
@@ -862,7 +862,7 @@ await store.delete('some-key');
 ```
 
 To see a real-world example of how to get the input from the key-value store, see the
-[screenshots.js](https://github.com/apifytech/apify-js/blob/feature/better-readme/examples/screenshots.js) example.
+[screenshots.js](https://github.com/apifytech/apify-js/blob/master/examples/screenshots.js) example.
 
 
 ### Dataset
@@ -921,7 +921,7 @@ await dataset.pushData([
 ```
 
 To see how to use the dataset to store crawler results, see the
-[cheerio_crawler.js](https://github.com/apifytech/apify-js/blob/feature/better-readme/examples/cheerio_crawler.js) example.
+[cheerio_crawler.js](https://github.com/apifytech/apify-js/blob/master/examples/cheerio_crawler.js) example.
 
 
 ### Request queue
@@ -978,7 +978,7 @@ await queue.reclaimRequest(request2);
 ```
 
 To see how to use the request queue with a crawler, see the
-[puppeteer_crawler.js](https://github.com/apifytech/apify-js/blob/feature/better-readme/examples/puppeteer_crawler.js) example.
+[puppeteer_crawler.js](https://github.com/apifytech/apify-js/blob/master/examples/puppeteer_crawler.js) example.
 
 
 ## Puppeteer live view
