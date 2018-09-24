@@ -784,7 +784,7 @@ The following table shows the basic environment variables used by Apify SDK:
           <tr>
               <td><code>APIFY_LOG_LEVEL</code></td>
               <td>
-                Specifies the Apify SDK log level, which can be one of the following values (in order of severity):
+                Specifies the minimum log level, which can be one of the following values (in order of severity):
                 <code>DEBUG</code>, <code>INFO</code>, <code>WARNING</code>, <code>SOFT_FAIL</code> and <code>ERROR</code>.
                 By default, the log level is set to <code>INFO</code>, which means that <code>DEBUG</code> messages
                 are not printed to console.
