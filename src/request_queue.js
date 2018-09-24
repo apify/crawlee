@@ -677,7 +677,7 @@ export class RequestQueueLocal {
     async fetchNextRequest() {
         await this.initializationPromise;
 
-        const files = readdirPromised(this.localPendingEmulationPath);
+        const files = await readdirPromised(this.localPendingEmulationPath);
 
         let request = null;
         while (!request && files.length) {
