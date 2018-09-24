@@ -22,6 +22,7 @@
     "opts": {
         "template": "./node_modules/apify-jsdoc-template",
         "encoding": "utf8",
-        "destination": ".docs"
+        "destination": ".docs",
+        "recurse": true
     }
 }
