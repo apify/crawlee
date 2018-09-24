@@ -721,6 +721,8 @@ export class RequestQueueLocal {
 
                 if (!request.handledAt) request.handledAt = new Date();
 
+                // NOTE: First write to old file and then rename to new one to do the operation atomically.
+                //       Situation where two files exists at the same time may cause race condition bugs.
                 return writeFilePromised(source, JSON.stringify(request, null, 4))
                     .then(() => renamePromised(source, dest))
                     .then(() => {
@@ -754,6 +756,8 @@ export class RequestQueueLocal {
                 this.requestIdToQueueOrderNo[request.id] = newQueueOrderNo;
                 this.queueOrderNoInProgress[newQueueOrderNo] = true;
 
+                // NOTE: First write to old file and then rename to new one to do the operation atomically.
+                //       Situation where two files exists at the same time may cause race condition bugs.
                 return writeFilePromised(source, JSON.stringify(request, null, 4))
                     .then(() => renamePromised(source, dest))
                     .then(() => {
