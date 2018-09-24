@@ -102,9 +102,9 @@ export const maybeStringify = (value, options) => {
  * {@link Apify#openKeyValueStore|`Apify.openKeyValueStore()`} function instead.
  *
  * Each actor run is associated with a default key-value store, which is created exclusively
- * for the run. By convention, the actor input and output is stored into the
+ * for the run. By convention, the actor input and output are stored into the
  * default key-value store under the `INPUT` and `OUTPUT` key, respectively.
- * Typically the input and output is a JSON file, although it can be any other format.
+ * Typically, input and output are JSON files, although it can be any other format.
  * To access the default key-value store directly, you can use the
  * {@linkcode Apify.getValue|Apify.getValue()}
  * and {@linkcode Apify.getValue|Apify.setValue()} convenience functions.
@@ -202,7 +202,7 @@ export class KeyValueStore {
     }
 
     /**
-     * Saves or deleted a record to the key-value store.
+     * Saves or deletes a record in the key-value store.
      * The function returns a promise that resolves once the record has been saved or deleted.
      *
      * **Example usage:**
