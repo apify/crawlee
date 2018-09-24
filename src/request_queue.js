@@ -678,24 +678,33 @@ export class RequestQueueLocal {
     fetchNextRequest() {
         return this.initializationPromise
             .then(() => readdirPromised(this.localPendingEmulationPath))
-            .then((files) => {
-                let queueOrderNo;
+            .then(async (files) => {
+                let request = null;
 
-                _.find(files, (filename) => {
-                    const no = filePathToQueueOrderNo(filename);
+                while (!request && files.length) {
+                    const filename = files.shift();
+                    const queueOrderNo = filePathToQueueOrderNo(filename);
 
-                    if (!this.queueOrderNoInProgress[no]) {
-                        queueOrderNo = no;
-                        return true;
+                    if (this.queueOrderNoInProgress[queueOrderNo]) continue; // eslint-disable-line
+
+                    this.queueOrderNoInProgress[queueOrderNo] = true;
+                    this.inProgressCount++;
+
+                    // TODO: There must be a better way. This try/catch is here because there is a race condition between
+                    //       between this and call to reclaimRequest() or markRequestHandled() that may move/rename/deleted
+                    //       the file between readdirPromised() and this function.
+                    //       Ie. the file gets listed in readdirPromised() but removed from this.queueOrderNoInProgres
+                    //       meanwhile causing this to fail.
+                    try {
+                        request = await this._getRequestByQueueOrderNo(queueOrderNo);
+                    } catch (err) {
+                        delete this.queueOrderNoInProgress[queueOrderNo];
+                        this.inProgressCount--;
+                        if (err.code !== 'ENOENT') throw err;
                     }
-                });
+                }
 
-                if (!queueOrderNo) return null;
-
-                this.queueOrderNoInProgress[queueOrderNo] = true;
-                this.inProgressCount++;
-
-                return this._getRequestByQueueOrderNo(queueOrderNo);
+                return request;
             });
     }
 
@@ -714,10 +723,11 @@ export class RequestQueueLocal {
 
                 if (!request.handledAt) request.handledAt = new Date();
 
-                return Promise.all([
-                    writeFilePromised(dest, JSON.stringify(request, null, 4)),
-                    deleteFilePromised(source),
-                ])
+                return Promise
+                    .all([
+                        writeFilePromised(dest, JSON.stringify(request, null, 4)),
+                        deleteFilePromised(source),
+                    ])
                     .then(() => {
                         this.pendingCount--;
                         this.inProgressCount--;
@@ -745,10 +755,11 @@ export class RequestQueueLocal {
 
                 this.requestIdToQueueOrderNo[request.id] = newQueueOrderNo;
 
-                return Promise.all([
-                    writeFilePromised(this._getFilePath(newQueueOrderNo), JSON.stringify(request, null, 4)),
-                    deleteFilePromised(this._getFilePath(oldQueueOrderNo)),
-                ])
+                return Promise
+                    .all([
+                        writeFilePromised(this._getFilePath(newQueueOrderNo), JSON.stringify(request, null, 4)),
+                        deleteFilePromised(this._getFilePath(oldQueueOrderNo)),
+                    ])
                     .then(() => {
                         this.inProgressCount--;
                         delete this.queueOrderNoInProgress[oldQueueOrderNo];
