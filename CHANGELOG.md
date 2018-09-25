@@ -1,4 +1,4 @@
-0.8.7 / 2018-09-25
+0.8.8 / 2018-09-25
 ==================
 - Updated documentation and README.
 - Bugfixes in `RequestQueueLocal`
