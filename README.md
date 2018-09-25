@@ -21,6 +21,10 @@
   View the full <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest/" target="_blank">Apify SDK Programmer's Reference</a> on a separate page.
 </div>
 
+<p align="center">
+  <img src="https://www.apify.com/ext/logo.png" width="250" />
+</p>
+
 ## Table of Contents
 
 <!-- toc -->
