@@ -908,7 +908,7 @@ section in the Apify app. The actual data is exported using the
 This way you can easily share crawling results.
 
 Each actor run is associated with a **default dataset**, which is created exclusively for the actor run.
-Typically it is used to store crawling results specific for the actor run. Its usage is optional.
+Typically, it is used to store crawling results specific for the actor run. Its usage is optional.
 
 In the Apify SDK, the dataset is represented by the
 <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#Dataset"><code>Dataset</code></a>
@@ -959,7 +959,7 @@ several URLs and then recursively follow links to other pages.
 The data structure supports both breadth-first and depth-first crawling orders.
 
 Each actor run is associated with a **default request queue**, which is created exclusively for the actor run.
-Typically it is used to store URLs to crawl in the specific actor run. Its usage is optional.
+Typically, it is used to store URLs to crawl in the specific actor run. Its usage is optional.
 
 In Apify SDK, the request queue is represented by the
 <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue"><code>RequestQueue</code></a>
@@ -1036,7 +1036,7 @@ To simplify debugging, you may also want to add the
 `{ slowMo: 300 }` option to slow down all browser operation.
 See <a href="https://pptr.dev/#?product=Puppeteer&version=v1.6.0&show=api-puppeteerlaunchoptions" target="_blank">Puppeteer documentation</a> for details.
 
-Once the live view is enabled, you can open http://localhost:4321 and you will see a page like this:
+Once live view is enabled, you can open http://localhost:4321 and you will see a page like this:
 
 <img src="https://www.apify.com/ext/sdk_assets/puppeteer-live-view-dashboard.png" width="600p">
 
@@ -1045,7 +1045,7 @@ Click on the magnifying glass icon to view page detail, showing page screenshot 
 <img src="https://www.apify.com/ext/sdk_assets/puppeteer-live-view-detail.png" width="600p">
 
 For more information, read the <a href="https://kb.apify.com/actor/debugging-your-actors-with-live-view" target="_blank">Debugging your actors with Live View</a>
-article in Apify Knowlege base.
+article in Apify Knowlege Base.
 
 ## Support
 
