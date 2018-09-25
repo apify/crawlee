@@ -9,7 +9,7 @@
   It provides tools to manage and automatically scale a pool of headless Chrome / Puppeteer instances,
   to maintain queues of URLs to crawl, store crawling results to a local filesystem or into the cloud,
   rotate proxies and much more.
-  The SDK is available as an <a href="https://www.npmjs.com/package/apify" target="_blank"><code>apify</code></a> NPM package.
+  The SDK is available as the <a href="https://www.npmjs.com/package/apify" target="_blank"><code>apify</code></a> NPM package.
   It can be used either stand-alone in your own applications
   or in <a href="https://www.apify.com/docs/actor" target="_blank">actors</a>
   running on the <a href="https://www.apify.com/" target="_blank">Apify Cloud</a>.
@@ -80,7 +80,7 @@ and focus on writing code specific to the target website, rather than developing
 
 ## Overview
 
-The Apify SDK is available as an <a href="https://www.npmjs.com/package/apify"><code>apify</code></a> NPM package and it provides the following tools:
+The Apify SDK is available as the <a href="https://www.npmjs.com/package/apify"><code>apify</code></a> NPM package and it provides the following tools:
 
 <ul>
   <li>
@@ -250,7 +250,7 @@ and [Apify Actor](https://www.apify.com/docs/actor) documentation.
 ### Usage on the Apify Cloud
 
 You can also develop your web scraping project
-in an online code editor directly on the Apify Cloud. You'll need to have an Apify Account.
+in an online code editor directly on the [Apify Cloud](https://www.apify.com/). You'll need to have an Apify Account.
 Go to [Actors](https://my.apify.com/actors)
 page in the app, click <i>Create new</i> and then go to the
 <i>Source</i> tab and start writing your code or paste one of the code examples below.
@@ -653,7 +653,7 @@ and sends them to your email using the [apify/send-mail](https://www.apify.com/a
 To make the example work, you'll need an [Apify Account](https://my.apify.com/).
 Go to [Account - Integrations](https://my.apify.com/account#/integrations) page to obtain your API token
 and set it to the `APIFY_TOKEN` environment variable, or run the script using the CLI.
-If you deploy this actor to the Apify Platform then you can set up a scheduler for early
+If you deploy this actor to the Apify Cloud then you can set up a scheduler for early
 morning. Don't miss the chance of your life to get rich!
 
 ```javascript
