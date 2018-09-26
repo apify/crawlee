@@ -202,9 +202,7 @@ Apify.main(async () => {
 
 When you run the example, you should see Chrome browser automated.
 
-![](./pic/pic1s.png =600x)
-
-![Chrome browsers automated using Apify SDK](https://raw.githubusercontent.com/apifytech/apify-js/feature/readme/docs/hello-world-browsers.gif)
+![Chrome browsers automated using Apify SDK](https://raw.githubusercontent.com/apifytech/apify-js/feature/readme/docs/hello-world-browsers.gif =600x)
 
 By default, Apify SDK stores data to
 `./apify_storage` in the current working directory.
