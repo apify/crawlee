@@ -1049,11 +1049,15 @@ See <a href="https://pptr.dev/#?product=Puppeteer&version=v1.6.0&show=api-puppet
 
 Once live view is enabled, you can open http://localhost:4321 and you will see a page like this:
 
-<img src="https://www.apify.com/ext/sdk_assets/puppeteer-live-view-dashboard.png" width="600p">
+<div style="text-align:center">
+  <img src="https://www.apify.com/ext/sdk_assets/puppeteer-live-view-dashboard.png" width="600p">
+</div>
 
 Click on the magnifying glass icon to view page detail, showing page screenshot and raw HTML:
 
-<img src="https://www.apify.com/ext/sdk_assets/puppeteer-live-view-detail.png" width="600p">
+<div style="text-align:center">
+  <img src="https://www.apify.com/ext/sdk_assets/puppeteer-live-view-detail.png" width="600p">
+</div>
 
 For more information, read the <a href="https://kb.apify.com/actor/debugging-your-actors-with-live-view" target="_blank">Debugging your actors with Live View</a>
 article in Apify Knowlege Base.
