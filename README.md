@@ -200,6 +200,10 @@ Apify.main(async () => {
 });
 ```
 
+When you run the example, you should see Chrome browser automated.
+
+![Image of automated Chrome browsers](https://raw.githubusercontent.com/apifytech/apify-js/feature/readme/docs/hello-world-browsers.gif)
+
 By default, Apify SDK stores data to
 `./apify_storage` in the current working directory.
 You can override this behavior by setting either the
