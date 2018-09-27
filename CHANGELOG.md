@@ -1,3 +1,8 @@
+xxx
+==================
+- Updated documentation and README, consolidated images.
+- Added CONTRIBUTING.md
+
 0.8.8 / 2018-09-25
 ==================
 - Updated documentation and README.
