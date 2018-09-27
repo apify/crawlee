@@ -711,7 +711,7 @@ It opens a [web page](http://goldengatebridge75.org/news/webcam.html) that conta
 Bridge, takes a screenshot of the page and saves it as output.
 
 This actor
-can be invoked synchronously using a single HTTP request to directly obtain its output as a reponse,
+can be invoked synchronously using a single HTTP request to directly obtain its output as a response,
 using the [Run actor synchronously](https://www.apify.com/docs/api/v2#/reference/actors/run-actor-synchronously/without-input)
 Apify API endpoint.
 The example is also shared as the [apify/example-golden-gate-webcam](https://www.apify.com/apify/example-golden-gate-webcam)
