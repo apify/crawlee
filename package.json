@@ -1,6 +1,6 @@
 {
   "name": "apify",
-  "version": "0.8.9",
+  "version": "0.8.10",
   "description": "The scalable web crawling and scraping library for JavaScript",
   "engines": {
     "node": ">=8.0.0"
