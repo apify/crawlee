@@ -1076,6 +1076,8 @@ For questions, you can ask on [Stack Overflow](https://stackoverflow.com/questio
 
 Your code contributions are welcome and you'll be praised to eternity!
 If you have any ideas for improvements, either submit an issue or create a pull request.
+For contribution guidelines and the code of conduct,
+see [CONTRIBUTING.md](https://github.com/apifytech/apify-js/blob/master/CONTRIBUTING.md).
 
 ## License
 
