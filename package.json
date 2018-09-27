@@ -48,7 +48,7 @@
     "lint:fix": "./node_modules/.bin/eslint ./src ./test --ext .js,.jsx --fix"
   },
   "dependencies": {
-    "apify-shared": "0.0.58",
+    "apify-shared": "0.0.59",
     "apify-client": "^0.3.0",
     "bluebird": "^3.5.0",
     "cheerio": "^1.0.0-rc.2",
@@ -57,7 +57,7 @@
     "jquery": "^3.3.1",
     "mime": "^2.3.1",
     "proxy-chain": "^0.2.4",
-    "@apify/ps-tree": "^1.1.1",
+    "@apify/ps-tree": "^1.1.2",
     "request-promise": "^4.2.2",
     "rimraf": "^2.6.1",
     "underscore": "^1.9.0",
@@ -70,7 +70,7 @@
     "babel-polyfill": "^6.26.0",
     "babel-preset-env": "^1.6.1",
     "basic-auth-parser": "^0.0.2",
-    "chai": "^4.0.2",
+    "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
     "eslint": "^5.5.0",
     "eslint-config-airbnb": "^17.1.0",
