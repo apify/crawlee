@@ -304,7 +304,8 @@ node basic_crawler.js
 ```
 
 Note that for production projects you should set either the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variable in order
-to tell the SDK how to store its data and crawling state. See [Local stand-alone usage](#local-stand-alone-usage) above for details.
+to tell the SDK how to store its data and crawling state. For details, see
+[Environment variables](#environment-variables) and [Data storage](#data-storage).
 
 Alternatively, if you're [using the Apify CLI](#local-usage-with-apify-command-line-interface-cli),
 you can copy and paste the source code of each of the examples into the `main.js`
@@ -1071,6 +1072,17 @@ For questions, you can ask on [Stack Overflow](https://stackoverflow.com/questio
 
 Your code contributions are welcome and you'll be praised to eternity!
 If you have any ideas for improvements, either submit an issue or create a pull request.
+
+## License
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE.md](LICENSE.md) file for details.
+
+## Acknowledgments
+
+Many thanks to [Chema Balsas](https://www.npmjs.com/~jbalsas) for giving up the `apify` package name
+on NPM and renaming his project to [jsdocify](https://www.npmjs.com/package/jsdocify).
+
+
 
 </div>
 
