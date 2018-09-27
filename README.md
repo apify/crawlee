@@ -1079,7 +1079,8 @@ If you have any ideas for improvements, either submit an issue or create a pull 
 
 ## License
 
-This project is licensed under the Apache License 2.0 - see the [LICENSE.md](LICENSE.md) file for details.
+This project is licensed under the Apache License 2.0 -
+see the [LICENSE.md](https://github.com/apifytech/apify-js/blob/master/LICENSE.md) file for details.
 
 ## Acknowledgments
 
