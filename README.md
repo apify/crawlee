@@ -55,6 +55,8 @@
 - [Puppeteer live view](#puppeteer-live-view)
 - [Support](#support)
 - [Contributing](#contributing)
+- [License](#license)
+- [Acknowledgments](#acknowledgments)
 
 <!-- tocstop -->
 
@@ -123,7 +125,7 @@ The Apify SDK is available as the <a href="https://www.npmjs.com/package/apify">
   </li>
   <li>
     <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue"><code>RequestQueue</code></a>
-    - Represents a queue of URLs to crawl, which is stored either on a local filesystem or in the Apify Cloud.
+    - Represents a queue of URLs to crawl, which is stored either on a local filesystem or in the [Apify Cloud](https://www.apify.com).
     The queue is used for deep crawling of websites, where you start with
     several URLs and then recursively follow links to other pages.
     The data structure supports both breadth-first and depth-first crawling orders.
@@ -200,7 +202,7 @@ Apify.main(async () => {
 });
 ```
 
-When you run the example, you should see Chrome browser automated.
+When you run the example, you should see Apify SDK automating several Chrome browsers.
 
 <p style="text-align:center" align="center">
   <img src="./docs/hello-world-browsers.gif?raw=true" width="600">
@@ -217,7 +219,7 @@ and [Data storage](#data-storage).
 
 To avoid the need to set the environment variables manually,
 to create a boilerplate of your project,
-and to enable pushing and running your code on the Apify Cloud,
+and to enable pushing and running your code on the [Apify Cloud](https://www.apify.com),
 you can use the
 <a href="https://github.com/apifytech/apify-cli">Apify command-line interface</a> (CLI) tool.
 
@@ -572,7 +574,7 @@ In local configuration, the input is stored in the default key-value store's dir
 { "sources": [{ "url": "https://www.google.com" }, { "url": "https://www.duckduckgo.com" }] }
 ```
 
-On the Apify Cloud, the input can be either set manually
+On the [Apify Cloud](https://www.apify.com), the input can be either set manually
 in the UI app or passed as the POST payload to the [Run actor API call](https://www.apify.com/docs/api/v2#/reference/actors/run-collection/run-actor).
 For more details, see [Input and output](https://www.apify.com/docs/actor#input-output)
 in the Apify Actor documentation.
@@ -667,7 +669,7 @@ and sends them to your email using the [apify/send-mail](https://www.apify.com/a
 To make the example work, you'll need an [Apify Account](https://my.apify.com/).
 Go to [Account - Integrations](https://my.apify.com/account#/integrations) page to obtain your API token
 and set it to the `APIFY_TOKEN` environment variable, or run the script using the CLI.
-If you deploy this actor to the Apify Cloud then you can set up a scheduler for early
+If you deploy this actor to the [Apify Cloud](https://www.apify.com) then you can set up a scheduler for early
 morning. Don't miss the chance of your life to get rich!
 
 ```javascript
@@ -833,7 +835,7 @@ in the Apify actor documentation.
 
 The Apify SDK has several data storage types that are useful for specific tasks.
 The data is stored either on local disk to a directory defined by the `APIFY_LOCAL_STORAGE_DIR` environment variable,
-or on the Apify Cloud under the user account identified by the API token defined by the `APIFY_TOKEN` environment variable.
+or on the [Apify Cloud](https://www.apify.com) under the user account identified by the API token defined by the `APIFY_TOKEN` environment variable.
 If neither of these variables is defined, by default Apify SDK sets `APIFY_LOCAL_STORAGE_DIR`
 to `./apify_storage` in the current working directory and prints a warning.
 
@@ -914,7 +916,7 @@ You can imagine a dataset as a table, where each object is a row and its attribu
 Dataset is an append-only storage - you can only add new records to it but you cannot modify or remove
 existing records.
 
-When the dataset is stored in the Apify Cloud,
+When the dataset is stored in the [Apify Cloud](https://www.apify.com),
 you can export its data to the following formats: HTML, JSON, CSV, Excel, XML and RSS.
 The datasets are displayed on the actor run details page and in the [Storage](https://my.apify.com/storage)
 section in the Apify app. The actual data is exported using the
