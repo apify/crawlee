@@ -49,9 +49,10 @@ const DEFAULT_OPTIONS = {
  * @param {Number} [options.snapshotHistorySecs=60]
  *   Sets the interval in seconds for which a history of resource snapshots
  *   will be kept. Increasing this to very high numbers will affect performance.
+ * @alias module:Snapshotter
  * @ignore
  */
-export default class Snapshotter {
+class Snapshotter {
     constructor(options = {}) {
         const {
             eventLoopSnapshotIntervalSecs,
@@ -262,3 +263,8 @@ export default class Snapshotter {
         snapshots.splice(0, oldCount);
     }
 }
+
+/**
+ * @module Snapshotter
+ */
+export default Snapshotter;

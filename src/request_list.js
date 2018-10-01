@@ -124,8 +124,9 @@ const ensureUniqueKeyValid = (uniqueKey) => {
  *   URLs will be kept in the list. It does not protect the user from having duplicates in user set
  *   `uniqueKey`s however. It is the user's responsibility to ensure uniqueness of their unique keys,
  *   if they wish to keep more than just a single copy in the `RequestList`.
+ * @alias module:RequestList
  */
-export default class RequestList {
+class RequestList {
     constructor(opts = {}) {
         checkParamOrThrow(opts, 'options', 'Object');
 
@@ -502,3 +503,8 @@ export default class RequestList {
         return this.requests.length;
     }
 }
+
+/**
+ * @module RequestList
+ */
+export default RequestList;

@@ -110,8 +110,9 @@ const DEFAULT_OPTIONS = {
  *   the system status reports. If a custom snapshotter is set in the options, it will be used
  *   by the pool.
  *   See <a href="https://github.com/apifytech/apify-js/blob/develop/src/autoscaling/system_status.js">SystemStatus</a> source code for more details.
+ * @alias module:AutoscaledPool
  */
-export default class AutoscaledPool {
+class AutoscaledPool {
     constructor(options = {}) {
         const {
             maxConcurrency,
@@ -397,3 +398,8 @@ export default class AutoscaledPool {
         if (this.snapshotter) await this.snapshotter.stop();
     }
 }
+
+/**
+ * @module AutoscaledPool
+ */
+export default AutoscaledPool;

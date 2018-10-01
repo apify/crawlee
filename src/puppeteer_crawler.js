@@ -128,8 +128,9 @@ const PAGE_CLOSE_TIMEOUT_MILLIS = 30000;
  *
  * @see {@link CheerioCrawler}
  * @see {@link BasicCrawler}
+ * @alias module:PuppeteerCrawler
  */
-export default class PuppeteerCrawler {
+class PuppeteerCrawler {
     constructor(opts) {
         // For backwards compatibility, in the future we can remove this...
         if (!opts.retireInstanceAfterRequestCount && opts.abortInstanceAfterRequestCount) {
@@ -267,3 +268,8 @@ export default class PuppeteerCrawler {
         }
     }
 }
+
+/**
+ * @module PuppeteerCrawler
+ */
+export default PuppeteerCrawler;

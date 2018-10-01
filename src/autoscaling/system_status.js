@@ -40,9 +40,10 @@ const DEFAULT_OPTIONS = {
  * @param {Number} [options.maxCpuOverloadedRatio=0.1]
  *   Sets the maximum ratio of overloaded snapshots in a CPU sample.
  *   If the sample exceeds this ratio, the system will be overloaded.
+ * @alias module:SystemStatus
  * @ignore
  */
-export default class SystemStatus {
+class SystemStatus {
     constructor(options = {}) {
         const {
             currentHistorySecs,
@@ -172,3 +173,8 @@ export default class SystemStatus {
         };
     }
 }
+
+/**
+ * @module SystemStatus
+ */
+export default SystemStatus;

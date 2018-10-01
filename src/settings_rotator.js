@@ -13,6 +13,7 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
  * @param {Object} options
  * @param {Function} options.newSettingsFunction
  * @param {Number} options.maxUsages
+ * @ignore
  */
 export default class SettingsRotator {
     constructor(opts) {

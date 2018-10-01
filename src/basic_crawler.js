@@ -104,8 +104,9 @@ const DEFAULT_OPTIONS = {
  *
  * @see {@link CheerioCrawler}
  * @see {@link PuppeteerCrawler}
+ * @alias module:BasicCrawler
  */
-export default class BasicCrawler {
+class BasicCrawler {
     constructor(opts) {
         const {
             requestList,
@@ -325,3 +326,8 @@ export default class BasicCrawler {
         return this.handleFailedRequestFunction({ request, error }); // This function prints an error message.
     }
 }
+
+/**
+ * @module BasicCrawler
+ */
+export default BasicCrawler;

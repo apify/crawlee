@@ -90,8 +90,9 @@ const parsePurl = (purl) => {
  *   Options for the new {@linkcode Request} instances created for matching URLs.
  * @see {@linkcode Request}
  * @see {@linkcode Request}
+ * @alias module:PseudoUrl
  */
-export default class PseudoUrl {
+class PseudoUrl {
     constructor(purl, requestTemplate = {}) {
         checkParamOrThrow(purl, 'purl', 'String');
         checkParamOrThrow(requestTemplate, 'requestTemplate', 'Object');
@@ -124,3 +125,8 @@ export default class PseudoUrl {
         return new Request(Object.assign({ url }, this.requestTemplate));
     }
 }
+
+/**
+ * @module PseudoUrl
+ */
+export default PseudoUrl;

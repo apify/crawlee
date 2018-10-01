@@ -66,8 +66,9 @@ export const computeUniqueKey = (url, keepUrlFragment) => normalizeUrl(url, keep
  *   For example, the request won't be retried in a case of an error for example.
  * @see {@link RequestList}
  * @see {@link RequestQueue}
+ * @alias module:Request
  */
-export default class Request {
+class Request {
     constructor(opts = {}) {
         checkParamOrThrow(opts, 'opts', 'Object');
 
@@ -133,3 +134,8 @@ export default class Request {
         this.errorMessages.push(message);
     }
 }
+
+/**
+ * @module Request
+ */
+export default Request;

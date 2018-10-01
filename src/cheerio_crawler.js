@@ -132,8 +132,9 @@ const DEFAULT_OPTIONS = {
  *
  * @see {@link BasicCrawler}
  * @see {@link PuppeteerCrawler}
+ * @alias module:CheerioCrawler
  */
-export default class CheerioCrawler {
+class CheerioCrawler {
     constructor(opts = {}) {
         const {
             requestFunction,
@@ -271,3 +272,8 @@ export default class CheerioCrawler {
         });
     }
 }
+
+/**
+ * @module CheerioCrawler
+ */
+export default CheerioCrawler;
