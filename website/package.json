@@ -6,9 +6,11 @@
     "publish-gh-pages": "docusaurus-publish",
     "write-translations": "docusaurus-write-translations",
     "version": "docusaurus-version",
-    "rename-version": "docusaurus-rename-version"
+    "rename-version": "docusaurus-rename-version",
+    "generate": "node ./tools/build_docs.js"
   },
   "devDependencies": {
-    "docusaurus": "^1.4.0"
+    "docusaurus": "^1.4.0",
+    "jsdoc-to-markdown": "^4.0.1"
   }
 }
