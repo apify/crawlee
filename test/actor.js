@@ -6,7 +6,7 @@ import 'babel-polyfill';
 import sinon from 'sinon';
 import Promise from 'bluebird';
 import { delayPromise } from 'apify-shared/utilities';
-import { ENV_VARS, ACT_TASK_STATUSES, LOCAL_ENV_VARS } from 'apify-shared/consts';
+import { ENV_VARS, ACT_JOB_STATUSES, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import { ApifyCallError } from '../build/errors';
 
 chai.use(chaiAsPromised);
@@ -236,8 +236,8 @@ describe('Apify.call()', () => {
         const token = 'some-token';
         const defaultKeyValueStoreId = 'some-store-id';
         const run = { id: 'some-run-id', actId, defaultKeyValueStoreId };
-        const runningRun = Object.assign({}, run, { status: ACT_TASK_STATUSES.RUNNING });
-        const finishedRun = Object.assign({}, run, { status: ACT_TASK_STATUSES.SUCCEEDED });
+        const runningRun = Object.assign({}, run, { status: ACT_JOB_STATUSES.RUNNING });
+        const finishedRun = Object.assign({}, run, { status: ACT_JOB_STATUSES.SUCCEEDED });
         const input = 'something';
         const contentType = 'text/plain';
         const output = { contentType, body: 'some-output' };
@@ -279,8 +279,8 @@ describe('Apify.call()', () => {
         const token = 'token';
         const defaultKeyValueStoreId = 'some-store-id';
         const run = { id: 'some-run-id', actId, defaultKeyValueStoreId };
-        const runningRun = Object.assign({}, run, { status: ACT_TASK_STATUSES.RUNNING });
-        const finishedRun = Object.assign({}, run, { status: ACT_TASK_STATUSES.SUCCEEDED });
+        const runningRun = Object.assign({}, run, { status: ACT_JOB_STATUSES.RUNNING });
+        const finishedRun = Object.assign({}, run, { status: ACT_JOB_STATUSES.SUCCEEDED });
         const output = 'some-output';
         const expected = Object.assign({}, finishedRun, { output });
 
@@ -320,8 +320,8 @@ describe('Apify.call()', () => {
         const token = 'token';
         const defaultKeyValueStoreId = 'some-store-id';
         const run = { id: 'some-run-id', actId, defaultKeyValueStoreId };
-        const runningRun = Object.assign({}, run, { status: ACT_TASK_STATUSES.RUNNING });
-        const finishedRun = Object.assign({}, run, { status: ACT_TASK_STATUSES.SUCCEEDED });
+        const runningRun = Object.assign({}, run, { status: ACT_JOB_STATUSES.RUNNING });
+        const finishedRun = Object.assign({}, run, { status: ACT_JOB_STATUSES.SUCCEEDED });
         const output = 'some-output';
         const expected = Object.assign({}, finishedRun, { output });
 
@@ -361,8 +361,8 @@ describe('Apify.call()', () => {
         const token = 'token';
         const defaultKeyValueStoreId = 'some-store-id';
         const run = { id: 'some-run-id', actId, defaultKeyValueStoreId };
-        const runningRun = Object.assign({}, run, { status: ACT_TASK_STATUSES.RUNNING });
-        const finishedRun = Object.assign({}, run, { status: ACT_TASK_STATUSES.SUCCEEDED });
+        const runningRun = Object.assign({}, run, { status: ACT_JOB_STATUSES.RUNNING });
+        const finishedRun = Object.assign({}, run, { status: ACT_JOB_STATUSES.SUCCEEDED });
         const input = { a: 'b' };
         const output = 'some-output';
         const expected = Object.assign({}, finishedRun, { output });
@@ -404,8 +404,8 @@ describe('Apify.call()', () => {
         const token = 'some-token';
         const defaultKeyValueStoreId = 'some-store-id';
         const run = { id: 'some-run-id', actId, defaultKeyValueStoreId };
-        const runningRun = Object.assign({}, run, { status: ACT_TASK_STATUSES.RUNNING });
-        const finishedRun = Object.assign({}, run, { status: ACT_TASK_STATUSES.SUCCEEDED });
+        const runningRun = Object.assign({}, run, { status: ACT_JOB_STATUSES.RUNNING });
+        const finishedRun = Object.assign({}, run, { status: ACT_JOB_STATUSES.SUCCEEDED });
         const input = { a: 'b' };
         const output = { body: 'some-output' };
         const expected = Object.assign({}, finishedRun, { output });
@@ -445,8 +445,8 @@ describe('Apify.call()', () => {
         const token = 'some-token';
         const defaultKeyValueStoreId = 'some-store-id';
         const run = { id: 'some-run-id', actId, defaultKeyValueStoreId };
-        const runningRun = Object.assign({}, run, { status: ACT_TASK_STATUSES.RUNNING });
-        const finishedRun = Object.assign({}, run, { status: ACT_TASK_STATUSES.SUCCEEDED });
+        const runningRun = Object.assign({}, run, { status: ACT_JOB_STATUSES.RUNNING });
+        const finishedRun = Object.assign({}, run, { status: ACT_JOB_STATUSES.SUCCEEDED });
 
         const actsMock = sinon.mock(Apify.client.acts);
         actsMock.expects('runAct')
@@ -479,7 +479,7 @@ describe('Apify.call()', () => {
         const token = 'some-token';
         const defaultKeyValueStoreId = 'some-store-id';
         const run = { id: 'some-run-id', actId, defaultKeyValueStoreId };
-        const runningRun = Object.assign({}, run, { status: ACT_TASK_STATUSES.RUNNING });
+        const runningRun = Object.assign({}, run, { status: ACT_JOB_STATUSES.RUNNING });
         const waitSecs = 1;
 
         const actsMock = sinon.mock(Apify.client.acts);
@@ -511,8 +511,8 @@ describe('Apify.call()', () => {
         const token = 'some-token';
         const defaultKeyValueStoreId = 'some-store-id';
         const run = { id: 'some-run-id', actId, defaultKeyValueStoreId };
-        const runningRun = Object.assign({}, run, { status: ACT_TASK_STATUSES.RUNNING });
-        const finishedRun = Object.assign({}, run, { status: ACT_TASK_STATUSES.SUCCEEDED });
+        const runningRun = Object.assign({}, run, { status: ACT_JOB_STATUSES.RUNNING });
+        const finishedRun = Object.assign({}, run, { status: ACT_JOB_STATUSES.SUCCEEDED });
         const input = 'something';
         const contentType = 'text/plain';
         const output = { contentType, body: 'some-output' };
@@ -553,7 +553,7 @@ describe('Apify.call()', () => {
         const token = 'some-token';
         const defaultKeyValueStoreId = 'some-store-id';
         const run = { id: 'some-run-id', actId, defaultKeyValueStoreId };
-        const readyRun = Object.assign({}, run, { status: ACT_TASK_STATUSES.READY });
+        const readyRun = Object.assign({}, run, { status: ACT_JOB_STATUSES.READY });
         const waitSecs = 0;
 
         const actsMock = sinon.mock(Apify.client.acts);
@@ -579,8 +579,8 @@ describe('Apify.call()', () => {
         const actId = 'some-act-id';
         const token = 'some-token';
         const run = { id: 'some-run-id' };
-        const runningRun = Object.assign({}, run, { status: ACT_TASK_STATUSES.RUNNING });
-        const failedRun = Object.assign({}, run, { status: ACT_TASK_STATUSES.ABORTED });
+        const runningRun = Object.assign({}, run, { status: ACT_JOB_STATUSES.RUNNING });
+        const failedRun = Object.assign({}, run, { status: ACT_JOB_STATUSES.ABORTED });
 
         const actsMock = sinon.mock(Apify.client.acts);
         actsMock.expects('runAct')
@@ -596,7 +596,7 @@ describe('Apify.call()', () => {
             .call(actId, null, { token })
             .then(() => { throw new Error('This was suppose to fail!'); }, (err) => {
                 expect(err).to.be.instanceOf(ApifyCallError);
-                expect(err.run.status).to.be.eql(ACT_TASK_STATUSES.ABORTED);
+                expect(err.run.status).to.be.eql(ACT_JOB_STATUSES.ABORTED);
                 expect(err.run).to.be.eql(failedRun);
             });
     });

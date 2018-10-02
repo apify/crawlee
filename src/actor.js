@@ -4,7 +4,7 @@ import Promise from 'bluebird';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { APIFY_PROXY_VALUE_REGEX } from 'apify-shared/regexs';
-import { ENV_VARS, LOCAL_ENV_VARS, ACT_TASK_TERMINAL_STATUSES, ACT_TASK_STATUSES } from 'apify-shared/consts';
+import { ENV_VARS, LOCAL_ENV_VARS, ACT_JOB_TERMINAL_STATUSES, ACT_JOB_STATUSES } from 'apify-shared/consts';
 import { EXIT_CODES } from './constants';
 import { initializeEvents, stopEvents } from './events';
 import { newPromise, apifyClient, addCharsetToContentType } from './utils';
@@ -346,8 +346,8 @@ export const call = (actId, input, opts = {}) => {
                     });
                 }
 
-                if (!_.contains(ACT_TASK_TERMINAL_STATUSES, updatedRun.status)) return waitForRunToFinish(updatedRun);
-                if (updatedRun.status !== ACT_TASK_STATUSES.SUCCEEDED) throw new ApifyCallError(updatedRun);
+                if (!_.contains(ACT_JOB_TERMINAL_STATUSES, updatedRun.status)) return waitForRunToFinish(updatedRun);
+                if (updatedRun.status !== ACT_JOB_STATUSES.SUCCEEDED) throw new ApifyCallError(updatedRun);
                 if (!fetchOutput) return updatedRun;
 
                 return addOutputToRun(updatedRun);
