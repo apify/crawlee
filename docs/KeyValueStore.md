@@ -68,13 +68,13 @@ await store.delete('some-key');
 
 
 * [KeyValueStore](#KeyValueStore)
-    * [.getValue(key)](#KeyValueStore+getValue) ⇒ <code>Promise.&lt;Object&gt;</code>
-    * [.setValue(key, value, [options])](#KeyValueStore+setValue) ⇒ <code>Promise</code>
-    * [.delete()](#KeyValueStore+delete) ⇒ <code>Promise</code>
+    * [`.getValue(key)`](#KeyValueStore+getValue) ⇒ <code>Promise.&lt;Object&gt;</code>
+    * [`.setValue(key, value, [options])`](#KeyValueStore+setValue) ⇒ <code>Promise</code>
+    * [`.delete()`](#KeyValueStore+delete) ⇒ <code>Promise</code>
 
 <a name="KeyValueStore+getValue"></a>
 
-### keyValueStore.getValue(key) ⇒ <code>Promise.&lt;Object&gt;</code>
+### `keyValueStore.getValue(key)` ⇒ <code>Promise.&lt;Object&gt;</code>
 Gets a value from the key-value store.
 
 The function returns a promise that resolves to the record value,
@@ -108,7 +108,7 @@ const buffer = await store.getValue('screenshot1.png');
 
 <a name="KeyValueStore+setValue"></a>
 
-### keyValueStore.setValue(key, value, [options]) ⇒ <code>Promise</code>
+### `keyValueStore.setValue(key, value, [options])` ⇒ <code>Promise</code>
 Saves or deletes a record in the key-value store.
 The function returns a promise that resolves once the record has been saved or deleted.
 
@@ -150,7 +150,7 @@ otherwise the actor process might finish before the value is stored!
 
 <a name="KeyValueStore+delete"></a>
 
-### keyValueStore.delete() ⇒ <code>Promise</code>
+### `keyValueStore.delete()` ⇒ <code>Promise</code>
 Removes the key-value store either from the Apify cloud storage or from the local directory,
 depending on the mode of operation.
 

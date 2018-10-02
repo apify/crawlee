@@ -459,7 +459,6 @@ const getOrCreateKeyValueStore = (storeIdOrName) => {
  *   Returns a promise that resolves to an instance of the `KeyValueStore` class.
  * @memberof module:Apify
  * @name openKeyValueStore
- * @instance
  * @function
  */
 export const openKeyValueStore = (storeIdOrName) => {
@@ -500,7 +499,6 @@ export const openKeyValueStore = (storeIdOrName) => {
  *
  * @memberof module:Apify
  * @name getValue
- * @instance
  * @function
  */
 export const getValue = key => openKeyValueStore().then(store => store.getValue(key));
@@ -545,7 +543,6 @@ export const getValue = key => openKeyValueStore().then(store => store.getValue(
  *
  * @memberof module:Apify
  * @name setValue
- * @instance
  * @function
  */
 export const setValue = (key, value, options) => openKeyValueStore().then(store => store.setValue(key, value, options));

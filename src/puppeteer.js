@@ -169,7 +169,6 @@ const getPuppeteerOrThrow = () => {
  *   Promise object that resolves to Puppeteer's `Browser` instance.
  * @memberof module:Apify
  * @name launchPuppeteer
- * @instance
  * @function
  */
 export const launchPuppeteer = (opts = {}) => {

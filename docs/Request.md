@@ -31,19 +31,19 @@ request.pushErrorMessage(new Error('Request failed!'));
 const foo = request.userData.foo;
 ```
 
-**Kind**: Exported class  
+**Kind**: global class of [<code>Request</code>](#module_Request)  
 **See**
 
 - [RequestList](RequestList)
 - [RequestQueue](#RequestQueue)
 
 * [Request](#exp_module_Request--Request) ⏏
-    * [new Request(opts)](#new_module_Request--Request_new)
-    * [.pushErrorMessage(errorOrMessage)](#module_Request--Request+pushErrorMessage)
+    * [`new Request(opts)`](#new_module_Request--Request_new)
+    * [`.pushErrorMessage(errorOrMessage)`](#module_Request--Request+pushErrorMessage)
 
 <a name="new_module_Request--Request_new"></a>
 
-### new Request(opts)
+### `new Request(opts)`
 
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -61,7 +61,7 @@ const foo = request.userData.foo;
 
 <a name="module_Request--Request+pushErrorMessage"></a>
 
-### request.pushErrorMessage(errorOrMessage)
+### `request.pushErrorMessage(errorOrMessage)`
 Stores information about an error occurred during processing of this request.
 
 **Kind**: instance method of [<code>Request</code>](#exp_module_Request--Request)  

@@ -51,17 +51,17 @@ await dataset.pushData([
 **Kind**: global class  
 
 * [Dataset](#Dataset)
-    * [.pushData(data)](#Dataset+pushData) ⇒ <code>Promise</code>
-    * [.getData(options)](#Dataset+getData) ⇒ <code>Promise</code>
-    * [.getInfo(opts)](#Dataset+getInfo) ⇒ <code>Promise</code>
-    * [.forEach(iteratee, opts, index)](#Dataset+forEach) ⇒ <code>Promise.&lt;undefined&gt;</code>
-    * [.map(iteratee, opts, index)](#Dataset+map) ⇒ <code>Promise.&lt;Array&gt;</code>
-    * [.reduce(iteratee, memo, opts, index)](#Dataset+reduce) ⇒ <code>Promise.&lt;\*&gt;</code>
-    * [.delete()](#Dataset+delete) ⇒ <code>Promise</code>
+    * [`.pushData(data)`](#Dataset+pushData) ⇒ <code>Promise</code>
+    * [`.getData(options)`](#Dataset+getData) ⇒ <code>Promise</code>
+    * [`.getInfo(opts)`](#Dataset+getInfo) ⇒ <code>Promise</code>
+    * [`.forEach(iteratee, opts, index)`](#Dataset+forEach) ⇒ <code>Promise.&lt;undefined&gt;</code>
+    * [`.map(iteratee, opts, index)`](#Dataset+map) ⇒ <code>Promise.&lt;Array&gt;</code>
+    * [`.reduce(iteratee, memo, opts, index)`](#Dataset+reduce) ⇒ <code>Promise.&lt;\*&gt;</code>
+    * [`.delete()`](#Dataset+delete) ⇒ <code>Promise</code>
 
 <a name="Dataset+pushData"></a>
 
-### dataset.pushData(data) ⇒ <code>Promise</code>
+### `dataset.pushData(data)` ⇒ <code>Promise</code>
 Stores an object or an array of objects to the dataset.
 The function returns a promise that resolves when the operation finishes.
 It has no result, but throws on invalid args or other errors.
@@ -92,7 +92,7 @@ and re-attempt the save of the data from this item onwards to prevent duplicates
 
 <a name="Dataset+getData"></a>
 
-### dataset.getData(options) ⇒ <code>Promise</code>
+### `dataset.getData(options)` ⇒ <code>Promise</code>
 Returns items in the dataset based on the provided parameters.
 
 If format is `json` then the function doesn't return an array of records but {@linkcode PaginationList} instead.
@@ -118,7 +118,7 @@ If format is `json` then the function doesn't return an array of records but {@l
 
 <a name="Dataset+getInfo"></a>
 
-### dataset.getInfo(opts) ⇒ <code>Promise</code>
+### `dataset.getInfo(opts)` ⇒ <code>Promise</code>
 Returns an object containing general information about the dataset.
 
 **Kind**: instance method of [<code>Dataset</code>](#Dataset)  
@@ -141,7 +141,7 @@ Returns an object containing general information about the dataset.
 ```
 <a name="Dataset+forEach"></a>
 
-### dataset.forEach(iteratee, opts, index) ⇒ <code>Promise.&lt;undefined&gt;</code>
+### `dataset.forEach(iteratee, opts, index)` ⇒ <code>Promise.&lt;undefined&gt;</code>
 Iterates over dataset items, yielding each in turn to an `iteratee` function.
 Each invocation of `iteratee` is called with three arguments: `(element, index)`.
 
@@ -162,7 +162,7 @@ If `iteratee` returns a Promise then it is awaited before a next call.
 
 <a name="Dataset+map"></a>
 
-### dataset.map(iteratee, opts, index) ⇒ <code>Promise.&lt;Array&gt;</code>
+### `dataset.map(iteratee, opts, index)` ⇒ <code>Promise.&lt;Array&gt;</code>
 Produces a new array of values by mapping each value in list through a transformation function (`iteratee`).
 Each invocation of `iteratee` is called with three arguments: `(element, index)`.
 
@@ -183,7 +183,7 @@ If `iteratee` returns a `Promise` then it's awaited before a next call.
 
 <a name="Dataset+reduce"></a>
 
-### dataset.reduce(iteratee, memo, opts, index) ⇒ <code>Promise.&lt;\*&gt;</code>
+### `dataset.reduce(iteratee, memo, opts, index)` ⇒ <code>Promise.&lt;\*&gt;</code>
 Boils down a list of values into a single value.
 
 Memo is the initial state of the reduction, and each successive step of it should be returned by `iteratee`.
@@ -210,7 +210,7 @@ If `iteratee` returns a `Promise` then it's awaited before a next call.
 
 <a name="Dataset+delete"></a>
 
-### dataset.delete() ⇒ <code>Promise</code>
+### `dataset.delete()` ⇒ <code>Promise</code>
 Removes the dataset either from the Apify cloud storage or from the local directory,
 depending on the mode of operation.
 

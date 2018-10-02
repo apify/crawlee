@@ -68,7 +68,6 @@ export const newClient = () => {
  *
  * @memberof module:Apify
  * @name client
- * @instance
  */
 export const apifyClient = newClient();
 
@@ -127,7 +126,6 @@ const createIsDockerPromise = () => {
  *
  * @memberof module:Apify
  * @name isDocker
- * @instance
  * @function
  */
 export const isDocker = (forceReset) => {
@@ -207,7 +205,6 @@ export const weightedAvg = (arrValues, arrWeights) => {
  *
  * @memberof module:Apify
  * @name getMemoryInfo
- * @instance
  * @function
  */
 export const getMemoryInfo = async () => {
@@ -333,7 +330,6 @@ export const createTimeoutPromise = (timeoutMillis, errorMessage) => {
  *
  * @memberof module:Apify
  * @name isAtHome
- * @instance
  * @function
  */
 export const isAtHome = () => !!process.env[ENV_VARS.IS_AT_HOME];

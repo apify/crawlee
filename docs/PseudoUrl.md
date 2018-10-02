@@ -39,20 +39,20 @@ const purl = new Apify.PseudoUrl('http://www.example.com/pages/[(\w|-)*]');
 if (purl.matches('http://www.example.com/pages/my-awesome-page')) console.log('Match!');
 ```
 
-**Kind**: Exported class  
+**Kind**: global class of [<code>PseudoUrl</code>](#module_PseudoUrl)  
 **See**
 
 - {@linkcode Request}
 - {@linkcode Request}
 
 * [PseudoUrl](#exp_module_PseudoUrl--PseudoUrl) ⏏
-    * [new PseudoUrl(purl, requestTemplate)](#new_module_PseudoUrl--PseudoUrl_new)
-    * [.matches(url)](#module_PseudoUrl--PseudoUrl+matches) ⇒ <code>Boolean</code>
-    * [.createRequest(url)](#module_PseudoUrl--PseudoUrl+createRequest) ⇒ <code>Request</code>
+    * [`new PseudoUrl(purl, requestTemplate)`](#new_module_PseudoUrl--PseudoUrl_new)
+    * [`.matches(url)`](#module_PseudoUrl--PseudoUrl+matches) ⇒ <code>Boolean</code>
+    * [`.createRequest(url)`](#module_PseudoUrl--PseudoUrl+createRequest) ⇒ <code>Request</code>
 
 <a name="new_module_PseudoUrl--PseudoUrl_new"></a>
 
-### new PseudoUrl(purl, requestTemplate)
+### `new PseudoUrl(purl, requestTemplate)`
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -61,7 +61,7 @@ if (purl.matches('http://www.example.com/pages/my-awesome-page')) console.log('M
 
 <a name="module_PseudoUrl--PseudoUrl+matches"></a>
 
-### pseudoUrl.matches(url) ⇒ <code>Boolean</code>
+### `pseudoUrl.matches(url)` ⇒ <code>Boolean</code>
 Determines whether a URL matches this pseudo-URL pattern.
 
 **Kind**: instance method of [<code>PseudoUrl</code>](#exp_module_PseudoUrl--PseudoUrl)  
@@ -73,7 +73,7 @@ Determines whether a URL matches this pseudo-URL pattern.
 
 <a name="module_PseudoUrl--PseudoUrl+createRequest"></a>
 
-### pseudoUrl.createRequest(url) ⇒ <code>Request</code>
+### `pseudoUrl.createRequest(url)` ⇒ <code>Request</code>
 Creates a Request object from requestTemplate and given URL.
 
 **Kind**: instance method of [<code>PseudoUrl</code>](#exp_module_PseudoUrl--PseudoUrl)  

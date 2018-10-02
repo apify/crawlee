@@ -637,7 +637,6 @@ const getOrCreateDataset = (datasetIdOrName) => {
  *   Returns a promise that resolves to an instance of the `Dataset` class.
  * @memberof module:Apify
  * @name openDataset
- * @instance
  * @function
  */
 export const openDataset = (datasetIdOrName) => {
@@ -676,7 +675,6 @@ export const openDataset = (datasetIdOrName) => {
  *
  * @memberof module:Apify
  * @name pushData
- * @instance
  * @function
  */
 export const pushData = item => openDataset().then(dataset => dataset.pushData(item));

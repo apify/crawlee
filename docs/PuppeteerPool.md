@@ -38,16 +38,16 @@ const page3 = await puppeteerPool.newPage();
 await puppeteerPool.destroy();
 ```
 
-**Kind**: Exported class  
+**Kind**: global class of [<code>PuppeteerPool</code>](#module_PuppeteerPool)  
 * [PuppeteerPool](#exp_module_PuppeteerPool--PuppeteerPool) ⏏
-    * [new PuppeteerPool()](#new_module_PuppeteerPool--PuppeteerPool_new)
-    * [.newPage()](#module_PuppeteerPool--PuppeteerPool+newPage) ⇒ <code>Promise.&lt;Puppeteer.Page&gt;</code>
-    * [.destroy()](#module_PuppeteerPool--PuppeteerPool+destroy) ⇒ <code>Promise</code>
-    * [.retire(browser)](#module_PuppeteerPool--PuppeteerPool+retire) ⇒ <code>Promise</code>
+    * [`new PuppeteerPool()`](#new_module_PuppeteerPool--PuppeteerPool_new)
+    * [`.newPage()`](#module_PuppeteerPool--PuppeteerPool+newPage) ⇒ <code>Promise.&lt;Puppeteer.Page&gt;</code>
+    * [`.destroy()`](#module_PuppeteerPool--PuppeteerPool+destroy) ⇒ <code>Promise</code>
+    * [`.retire(browser)`](#module_PuppeteerPool--PuppeteerPool+retire) ⇒ <code>Promise</code>
 
 <a name="new_module_PuppeteerPool--PuppeteerPool_new"></a>
 
-### new PuppeteerPool()
+### `new PuppeteerPool()`
 
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -61,19 +61,19 @@ await puppeteerPool.destroy();
 
 <a name="module_PuppeteerPool--PuppeteerPool+newPage"></a>
 
-### puppeteerPool.newPage() ⇒ <code>Promise.&lt;Puppeteer.Page&gt;</code>
+### `puppeteerPool.newPage()` ⇒ <code>Promise.&lt;Puppeteer.Page&gt;</code>
 Opens new tab in one of the browsers and returns promise that resolves to its Puppeteer.Page.
 
 **Kind**: instance method of [<code>PuppeteerPool</code>](#exp_module_PuppeteerPool--PuppeteerPool)  
 <a name="module_PuppeteerPool--PuppeteerPool+destroy"></a>
 
-### puppeteerPool.destroy() ⇒ <code>Promise</code>
+### `puppeteerPool.destroy()` ⇒ <code>Promise</code>
 Closes all the browsers.
 
 **Kind**: instance method of [<code>PuppeteerPool</code>](#exp_module_PuppeteerPool--PuppeteerPool)  
 <a name="module_PuppeteerPool--PuppeteerPool+retire"></a>
 
-### puppeteerPool.retire(browser) ⇒ <code>Promise</code>
+### `puppeteerPool.retire(browser)` ⇒ <code>Promise</code>
 Manually retires a Puppeteer Browser instance from the pool. The browser will continue
 to process open pages so that they may gracefully finish. This is unlike browser.close()
 which will forcibly terminate the browser and all open pages will be closed.

@@ -43,20 +43,20 @@ const crawler = new Apify.PuppeteerCrawler({
 await crawler.run();
 ```
 
-**Kind**: Exported class  
+**Kind**: global class of [<code>PuppeteerCrawler</code>](#module_PuppeteerCrawler)  
 **See**
 
 - [CheerioCrawler](CheerioCrawler)
 - [BasicCrawler](BasicCrawler)
 
 * [PuppeteerCrawler](#exp_module_PuppeteerCrawler--PuppeteerCrawler) ⏏
-    * [new PuppeteerCrawler(options)](#new_module_PuppeteerCrawler--PuppeteerCrawler_new)
-    * [.run()](#module_PuppeteerCrawler--PuppeteerCrawler+run) ⇒ <code>Promise</code>
-    * [.abort()](#module_PuppeteerCrawler--PuppeteerCrawler+abort) ⇒ <code>Promise</code>
+    * [`new PuppeteerCrawler(options)`](#new_module_PuppeteerCrawler--PuppeteerCrawler_new)
+    * [`.run()`](#module_PuppeteerCrawler--PuppeteerCrawler+run) ⇒ <code>Promise</code>
+    * [`.abort()`](#module_PuppeteerCrawler--PuppeteerCrawler+abort) ⇒ <code>Promise</code>
 
 <a name="new_module_PuppeteerCrawler--PuppeteerCrawler_new"></a>
 
-### new PuppeteerCrawler(options)
+### `new PuppeteerCrawler(options)`
 
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -81,13 +81,13 @@ await crawler.run();
 
 <a name="module_PuppeteerCrawler--PuppeteerCrawler+run"></a>
 
-### puppeteerCrawler.run() ⇒ <code>Promise</code>
+### `puppeteerCrawler.run()` ⇒ <code>Promise</code>
 Runs the crawler. Returns promise that gets resolved once all the requests got processed.
 
 **Kind**: instance method of [<code>PuppeteerCrawler</code>](#exp_module_PuppeteerCrawler--PuppeteerCrawler)  
 <a name="module_PuppeteerCrawler--PuppeteerCrawler+abort"></a>
 
-### puppeteerCrawler.abort() ⇒ <code>Promise</code>
+### `puppeteerCrawler.abort()` ⇒ <code>Promise</code>
 Stops the crawler by preventing crawls of additional pages and terminating the running ones.
 
 **Kind**: instance method of [<code>PuppeteerCrawler</code>](#exp_module_PuppeteerCrawler--PuppeteerCrawler)  

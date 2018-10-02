@@ -56,20 +56,20 @@ const crawler = new Apify.BasicCrawler({
 await crawler.run();
 ```
 
-**Kind**: Exported class  
+**Kind**: global class of [<code>BasicCrawler</code>](#module_BasicCrawler)  
 **See**
 
 - [CheerioCrawler](CheerioCrawler)
 - [PuppeteerCrawler](PuppeteerCrawler)
 
 * [BasicCrawler](#exp_module_BasicCrawler--BasicCrawler) ⏏
-    * [new BasicCrawler(options)](#new_module_BasicCrawler--BasicCrawler_new)
-    * [.run()](#module_BasicCrawler--BasicCrawler+run) ⇒ <code>Promise</code>
-    * [.abort()](#module_BasicCrawler--BasicCrawler+abort) ⇒ <code>Promise</code>
+    * [`new BasicCrawler(options)`](#new_module_BasicCrawler--BasicCrawler_new)
+    * [`.run()`](#module_BasicCrawler--BasicCrawler+run) ⇒ <code>Promise</code>
+    * [`.abort()`](#module_BasicCrawler--BasicCrawler+abort) ⇒ <code>Promise</code>
 
 <a name="new_module_BasicCrawler--BasicCrawler_new"></a>
 
-### new BasicCrawler(options)
+### `new BasicCrawler(options)`
 
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -86,13 +86,13 @@ await crawler.run();
 
 <a name="module_BasicCrawler--BasicCrawler+run"></a>
 
-### basicCrawler.run() ⇒ <code>Promise</code>
+### `basicCrawler.run()` ⇒ <code>Promise</code>
 Runs the crawler. Returns a promise that gets resolved once all the requests are processed.
 
 **Kind**: instance method of [<code>BasicCrawler</code>](#exp_module_BasicCrawler--BasicCrawler)  
 <a name="module_BasicCrawler--BasicCrawler+abort"></a>
 
-### basicCrawler.abort() ⇒ <code>Promise</code>
+### `basicCrawler.abort()` ⇒ <code>Promise</code>
 Aborts the crawler by preventing additional requests and terminating the running ones.
 
 **Kind**: instance method of [<code>BasicCrawler</code>](#exp_module_BasicCrawler--BasicCrawler)  

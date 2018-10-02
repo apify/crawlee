@@ -68,18 +68,18 @@ await queue.reclaimRequest(request2);
 **Kind**: global class  
 
 * [RequestQueue](#RequestQueue)
-    * [.addRequest(request, [opts])](#RequestQueue+addRequest) ⇒ [<code>RequestOperationInfo</code>](#RequestOperationInfo)
-    * [.getRequest(requestId)](#RequestQueue+getRequest) ⇒ <code>Promise.&lt;Request&gt;</code>
-    * [.fetchNextRequest()](#RequestQueue+fetchNextRequest) ⇒ <code>Promise.&lt;Request&gt;</code>
-    * [.markRequestHandled(request)](#RequestQueue+markRequestHandled) ⇒ [<code>Promise.&lt;RequestOperationInfo&gt;</code>](#RequestOperationInfo)
-    * [.reclaimRequest(request, [opts])](#RequestQueue+reclaimRequest) ⇒ [<code>Promise.&lt;RequestOperationInfo&gt;</code>](#RequestOperationInfo)
-    * [.isEmpty()](#RequestQueue+isEmpty) ⇒ <code>Promise.&lt;Boolean&gt;</code>
-    * [.isFinished()](#RequestQueue+isFinished) ⇒ <code>Promise.&lt;Boolean&gt;</code>
-    * [.delete()](#RequestQueue+delete) ⇒ <code>Promise</code>
+    * [`.addRequest(request, [opts])`](#RequestQueue+addRequest) ⇒ [<code>RequestOperationInfo</code>](#RequestOperationInfo)
+    * [`.getRequest(requestId)`](#RequestQueue+getRequest) ⇒ <code>Promise.&lt;Request&gt;</code>
+    * [`.fetchNextRequest()`](#RequestQueue+fetchNextRequest) ⇒ <code>Promise.&lt;Request&gt;</code>
+    * [`.markRequestHandled(request)`](#RequestQueue+markRequestHandled) ⇒ [<code>Promise.&lt;RequestOperationInfo&gt;</code>](#RequestOperationInfo)
+    * [`.reclaimRequest(request, [opts])`](#RequestQueue+reclaimRequest) ⇒ [<code>Promise.&lt;RequestOperationInfo&gt;</code>](#RequestOperationInfo)
+    * [`.isEmpty()`](#RequestQueue+isEmpty) ⇒ <code>Promise.&lt;Boolean&gt;</code>
+    * [`.isFinished()`](#RequestQueue+isFinished) ⇒ <code>Promise.&lt;Boolean&gt;</code>
+    * [`.delete()`](#RequestQueue+delete) ⇒ <code>Promise</code>
 
 <a name="RequestQueue+addRequest"></a>
 
-### requestQueue.addRequest(request, [opts]) ⇒ [<code>RequestOperationInfo</code>](#RequestOperationInfo)
+### `requestQueue.addRequest(request, [opts])` ⇒ [<code>RequestOperationInfo</code>](#RequestOperationInfo)
 Adds a request to the queue.
 
 **Kind**: instance method of [<code>RequestQueue</code>](#RequestQueue)  
@@ -92,7 +92,7 @@ Adds a request to the queue.
 
 <a name="RequestQueue+getRequest"></a>
 
-### requestQueue.getRequest(requestId) ⇒ <code>Promise.&lt;Request&gt;</code>
+### `requestQueue.getRequest(requestId)` ⇒ <code>Promise.&lt;Request&gt;</code>
 Gets the request from the queue specified by ID.
 
 **Kind**: instance method of [<code>RequestQueue</code>](#RequestQueue)  
@@ -103,13 +103,13 @@ Gets the request from the queue specified by ID.
 
 <a name="RequestQueue+fetchNextRequest"></a>
 
-### requestQueue.fetchNextRequest() ⇒ <code>Promise.&lt;Request&gt;</code>
+### `requestQueue.fetchNextRequest()` ⇒ <code>Promise.&lt;Request&gt;</code>
 Returns next request in the queue to be processed.
 
 **Kind**: instance method of [<code>RequestQueue</code>](#RequestQueue)  
 <a name="RequestQueue+markRequestHandled"></a>
 
-### requestQueue.markRequestHandled(request) ⇒ [<code>Promise.&lt;RequestOperationInfo&gt;</code>](#RequestOperationInfo)
+### `requestQueue.markRequestHandled(request)` ⇒ [<code>Promise.&lt;RequestOperationInfo&gt;</code>](#RequestOperationInfo)
 Marks request handled after successfull processing.
 
 **Kind**: instance method of [<code>RequestQueue</code>](#RequestQueue)  
@@ -120,7 +120,7 @@ Marks request handled after successfull processing.
 
 <a name="RequestQueue+reclaimRequest"></a>
 
-### requestQueue.reclaimRequest(request, [opts]) ⇒ [<code>Promise.&lt;RequestOperationInfo&gt;</code>](#RequestOperationInfo)
+### `requestQueue.reclaimRequest(request, [opts])` ⇒ [<code>Promise.&lt;RequestOperationInfo&gt;</code>](#RequestOperationInfo)
 Reclaims failed request back to the queue,
 so that it can be processed later again.
 
@@ -134,7 +134,7 @@ so that it can be processed later again.
 
 <a name="RequestQueue+isEmpty"></a>
 
-### requestQueue.isEmpty() ⇒ <code>Promise.&lt;Boolean&gt;</code>
+### `requestQueue.isEmpty()` ⇒ <code>Promise.&lt;Boolean&gt;</code>
 Resolves to `true` if the next call to `fetchNextRequest()` will return `null`, otherwise it resolves to `false`.
 Note that even if the queue is empty, there might be some pending requests currently being processed.
 
@@ -144,7 +144,7 @@ the function might occasionally return a false negative, but it should never ret
 **Kind**: instance method of [<code>RequestQueue</code>](#RequestQueue)  
 <a name="RequestQueue+isFinished"></a>
 
-### requestQueue.isFinished() ⇒ <code>Promise.&lt;Boolean&gt;</code>
+### `requestQueue.isFinished()` ⇒ <code>Promise.&lt;Boolean&gt;</code>
 Resolves to `true` if all requests were already handled and there are no more left.
 Due to the nature of distributed storage systems,
 the function might occasionally return a false negative, but it will never return a false positive.
@@ -152,7 +152,7 @@ the function might occasionally return a false negative, but it will never retur
 **Kind**: instance method of [<code>RequestQueue</code>](#RequestQueue)  
 <a name="RequestQueue+delete"></a>
 
-### requestQueue.delete() ⇒ <code>Promise</code>
+### `requestQueue.delete()` ⇒ <code>Promise</code>
 Removes the queue either from the Apify cloud storage or from the local directory,
 depending on the mode of operation.
 

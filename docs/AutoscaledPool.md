@@ -51,13 +51,13 @@ await pool.run();
 
 **Kind**: global class of [<code>AutoscaledPool</code>](#module_AutoscaledPool)  
 * [AutoscaledPool](#exp_module_AutoscaledPool--AutoscaledPool) ⏏
-    * [new AutoscaledPool(options)](#new_module_AutoscaledPool--AutoscaledPool_new)
-    * [.run()](#module_AutoscaledPool--AutoscaledPool+run) ⇒ <code>Promise</code>
-    * [.abort()](#module_AutoscaledPool--AutoscaledPool+abort) ⇒ <code>Promise</code>
+    * [`new AutoscaledPool(options)`](#new_module_AutoscaledPool--AutoscaledPool_new)
+    * [`.run()`](#module_AutoscaledPool--AutoscaledPool+run) ⇒ <code>Promise</code>
+    * [`.abort()`](#module_AutoscaledPool--AutoscaledPool+abort) ⇒ <code>Promise</code>
 
 <a name="new_module_AutoscaledPool--AutoscaledPool_new"></a>
 
-### new AutoscaledPool(options)
+### `new AutoscaledPool(options)`
 
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -78,16 +78,14 @@ await pool.run();
 
 <a name="module_AutoscaledPool--AutoscaledPool+run"></a>
 
-### autoscaledPool.run() ⇒ <code>Promise</code>
+### `autoscaledPool.run()` ⇒ <code>Promise</code>
 Runs the auto-scaled pool. Returns a promise that gets resolved or rejected once
 all the tasks are finished or one of them fails.
 
 **Kind**: instance method of [<code>AutoscaledPool</code>](#exp_module_AutoscaledPool--AutoscaledPool)  
-**Fulfil**: <code>void</code>  
-**Reject**: <code>Error</code>  
 <a name="module_AutoscaledPool--AutoscaledPool+abort"></a>
 
-### autoscaledPool.abort() ⇒ <code>Promise</code>
+### `autoscaledPool.abort()` ⇒ <code>Promise</code>
 Aborts the run of the auto-scaled pool, discards all currently running tasks and destroys it.
 
 **Kind**: instance method of [<code>AutoscaledPool</code>](#exp_module_AutoscaledPool--AutoscaledPool)  

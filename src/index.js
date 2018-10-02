@@ -32,11 +32,6 @@ if (process.env[EMULATION_ENV_VAR]) {
 }
 
 /**
- *{include-readme-1}
- *{include-readme-2}
- *{include-readme-3}
- *
- * <h2>Programmer's reference</h2>
  *
  * The following sections describe all functions and properties provided by the `apify` package.
  * All of them are instance members exported directly by the main module.

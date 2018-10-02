@@ -820,7 +820,6 @@ const getOrCreateQueue = (queueIdOrName) => {
  *   Returns a promise that resolves to an instance of the `RequestQueue` class.
  * @memberof module:Apify
  * @name openRequestQueue
- * @instance
  */
 export const openRequestQueue = (queueIdOrName) => {
     checkParamOrThrow(queueIdOrName, 'queueIdOrName', 'Maybe String');

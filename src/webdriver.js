@@ -306,7 +306,6 @@ export const browse = (url, options) => {
  *
  * @memberof module:Apify
  * @name launchWebDriver
- * @instance
  * @function
  */
 export const launchWebDriver = (opts) => {

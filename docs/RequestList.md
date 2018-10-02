@@ -59,4 +59,4 @@ await requestList.markRequestHandled(request1);
 await requestList.reclaimRequest(request2);
 ```
 
-**Kind**: Exported class  
+**Kind**: global class of [<code>RequestList</code>](#module_RequestList)  
