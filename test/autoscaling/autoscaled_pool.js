@@ -103,9 +103,9 @@ describe('AutoscaledPool', () => {
             pool = new AutoscaledPool({
                 minConcurrency: 1,
                 maxConcurrency: 100,
-                runTaskFunction: () => Promise.resolve(),
-                isFinishedFunction: () => Promise.resolve(false),
-                isTaskReadyFunction: () => Promise.resolve(true),
+                runTaskFunction: async () => {},
+                isFinishedFunction: async () => false,
+                isTaskReadyFunction: async () => true,
             });
             pool.systemStatus = systemStatus;
         });
@@ -150,6 +150,44 @@ describe('AutoscaledPool', () => {
             newConcurrency = pool.desiredConcurrency - Math.ceil(pool.desiredConcurrency * pool.scaleDownStepRatio);
             pool._autoscale(cb);
             expect(pool.desiredConcurrency).to.be.eql(newConcurrency);
+        });
+
+        it('works at minConcurrency when currently overloaded', async () => {
+            let limit = 5;
+            let concurrencyLog = [];
+            let count = 0;
+            pool.systemStatus.okNow = false;
+            pool.runTaskFunction = async () => {
+                await delayPromise(10);
+                count++;
+            };
+            pool.isFinishedFunction = async () => count >= limit;
+            pool.isTaskReadyFunction = async () => count < limit;
+            pool.desiredConcurrency = 10;
+            pool._currentConcurrency = pool.currentConcurrency;
+
+            Object.defineProperty(pool, 'currentConcurrency', {
+                get() {
+                    return this._currentConcurrency;
+                },
+                set(v) {
+                    concurrencyLog.push(v);
+                    this._currentConcurrency = v;
+                },
+            });
+
+            expect(pool.currentConcurrency).to.be.eql(0);
+
+            await pool.run();
+            expect(concurrencyLog.some(n => n > 1)).to.be.eql(false);
+
+            limit = 50;
+            concurrencyLog = [];
+            count = 0;
+            pool.minConcurrency = 5;
+
+            await pool.run();
+            expect(concurrencyLog.some(n => n > 5)).to.be.eql(false);
         });
     });
 
