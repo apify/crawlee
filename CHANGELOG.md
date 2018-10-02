@@ -1,4 +1,4 @@
-xxx
+0.8.12 / 2018-10-02
 ==================
 - Allow AutoscaledPool to run tasks up to minConcurrency even when the system is overloaded.
 
