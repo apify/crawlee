@@ -228,15 +228,15 @@ export default class AutoscaledPool {
         // Check if the function was invoked by the maybeRunInterval and use an empty function if not.
         const done = intervalCallback || (() => {});
 
-        // Only run task if:
-        // - we're not already querying for a task
+        // Prevent starting a new task if:
+        // - we are already querying for a task.
         if (this.queryingIsTaskReady) return done();
-        // - we will not exceed desired concurrency.
+        // - we would exceed desired concurrency.
         if (this.currentConcurrency >= this.desiredConcurrency) return done();
-        // - system is not overloaded now
+        // - system is overloaded now and we are at or above minConcurrency
         const currentStatus = this.systemStatus.getCurrentStatus();
         const { isSystemIdle } = currentStatus;
-        if (!isSystemIdle) {
+        if (!isSystemIdle && this.currentConcurrency >= this.minConcurrency) {
             log.debug('AutoscaledPool: Task will not be run. System is overloaded.', currentStatus);
             return done();
         }

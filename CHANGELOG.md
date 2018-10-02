@@ -1,3 +1,7 @@
+xxx
+==================
+- Allow AutoscaledPool to run tasks up to minConcurrency even when the system is overloaded.
+
 0.8.11 / 2018-09-27
 ==================
 - Upgraded @apify/ps-tree depedency (fixes "Error: spawn ps ENFILE"), upgraded other NPM packages

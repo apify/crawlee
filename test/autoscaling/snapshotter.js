@@ -137,7 +137,7 @@ describe('Snapshotter', () => {
                 expect(ss.exceededMillis).to.be.eql(0);
             }
         });
-        expect(overloadedCount).to.be.eql(1);
+        expect(overloadedCount).to.be.above(0);
     });
 
     it('correctly marks memoryOverloaded', async () => {
