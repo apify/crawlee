@@ -36,6 +36,33 @@
       "doc5": {
         "title": "Fifth Document"
       },
+      "examples/ex-basic_crawler": {
+        "title": "Basic Crawler"
+      },
+      "examples/ex-call_actor": {
+        "title": "Call Actor"
+      },
+      "examples/ex-cheerio_crawler": {
+        "title": "Cheerio Crawler"
+      },
+      "examples/ex-hello_world": {
+        "title": "Hello World"
+      },
+      "examples/ex-puppeteer_crawler": {
+        "title": "Puppeteer Crawler"
+      },
+      "examples/ex-puppeteer_proxy": {
+        "title": "Puppeteer Proxy"
+      },
+      "examples/ex-puppeteer_sitemap": {
+        "title": "Puppeteer Sitemap"
+      },
+      "examples/ex-screenshots": {
+        "title": "Screenshots"
+      },
+      "examples/ex-synchronous_run": {
+        "title": "Synchronous Run"
+      },
       "exports": {
         "title": "exports"
       },

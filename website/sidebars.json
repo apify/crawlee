@@ -1,7 +1,17 @@
 {
   "docs": {
     "Getting Started": ["doc1"],
-    "Examples": ["doc2"],
+    "Examples": [
+        "examples/ex-hello_world",
+        "examples/ex-basic_crawler",
+        "examples/ex-cheerio_crawler",
+        "examples/ex-puppeteer_crawler",
+        "examples/ex-puppeteer_proxy",
+        "examples/ex-puppeteer_sitemap",
+        "examples/ex-screenshots",
+        "examples/ex-call_actor",
+        "examples/ex-synchronous_run"
+    ],
     "API": [
         "apify",
         "autoscaledpool",

@@ -1,7 +1,10 @@
-/**
- * Run the following example to perform a recursive crawl of a website using Puppeteer.
- */
+---
+id: ex-hello_world
+title: Hello World
+---
 
+Run the following example to perform a recursive crawl of a website using Puppeteer.
+```
 const Apify = require('apify');
 
 Apify.main(async () => {
@@ -22,3 +25,4 @@ Apify.main(async () => {
 
     await crawler.run();
 });
+```
