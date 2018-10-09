@@ -45,7 +45,7 @@ describe('BasicCrawler', () => {
         await basicCrawler.run();
 
         expect(processed).to.be.eql(sources);
-        expect(Date.now() - startedAt).to.be.within(200, 500);
+        expect(Date.now() - startedAt).to.be.within(200, 1000);
         expect(await requestList.isFinished()).to.be.eql(true);
         expect(await requestList.isEmpty()).to.be.eql(true);
     });
