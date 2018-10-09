@@ -129,7 +129,7 @@ describe('dataset', () => {
             const cTime = info.createdAt.getTime();
             let mTime = info.modifiedAt.getTime();
 
-            expect(cTime).to.be.below(Date.now());
+            expect(cTime).to.be.below(Date.now() + 1);
             expect(cTime).to.be.eql(mTime);
 
             await dataset.pushData([
