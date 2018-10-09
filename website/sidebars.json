@@ -1,8 +1,7 @@
 {
   "docs": {
-    "Getting Started": ["doc1"],
+    "Introduction": ["examples/ex-hello_world"],
     "Examples": [
-        "examples/ex-hello_world",
         "examples/ex-basic_crawler",
         "examples/ex-cheerio_crawler",
         "examples/ex-puppeteer_crawler",
@@ -13,18 +12,18 @@
         "examples/ex-synchronous_run"
     ],
     "API": [
-        "apify",
-        "autoscaledpool",
-        "basiccrawler",
-        "cheeriocrawler",
-        "dataset",
-        "keyvaluestore",
-        "pseudourl",
-        "puppeteercrawler",
-        "puppeteerpool",
-        "request",
-        "requestlist",
-        "requestqueue"
+        "api/apify",
+        "api/autoscaledpool",
+        "api/basiccrawler",
+        "api/cheeriocrawler",
+        "api/dataset",
+        "api/keyvaluestore",
+        "api/pseudourl",
+        "api/puppeteercrawler",
+        "api/puppeteerpool",
+        "api/request",
+        "api/requestlist",
+        "api/requestqueue"
     ]
   }
 }

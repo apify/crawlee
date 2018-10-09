@@ -15,7 +15,7 @@ Go to [Account - Integrations](https://my.apify.com/account#/integrations) page 
 and set it to the `APIFY_TOKEN` environment variable, or run the script using the CLI.
 If you deploy this actor to the Apify platform then you can set up a scheduler for early
 morning. Don't miss the chance of your life to get rich!
-```
+```javascript
 const Apify = require('apify');
 
 Apify.main(async () => {

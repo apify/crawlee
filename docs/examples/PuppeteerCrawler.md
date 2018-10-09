@@ -10,7 +10,7 @@ Hacker News website (https://news.ycombinator.com) using headless Chrome / Puppe
 The crawler starts with a single URL, finds links to next pages,
 enqueues them and continues until no more desired links are available.
 The results are stored to the default dataset. In local configuration, the results are stored as JSON files in `./apify_storage/datasets/default`
-```
+```javascript
 const Apify = require('apify');
 
 Apify.main(async () => {

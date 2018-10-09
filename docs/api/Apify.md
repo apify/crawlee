@@ -39,11 +39,11 @@ The event emitter is initialized by calling <a href="#module-Apify-main"><code>A
 
 ```javascript
 Apify.main(async () => {
-  &nbsp;
+    
   Apify.events.on('cpuInfo', (data) => {
     if (data.isCpuOverloaded) console.log('Oh no, the CPU is overloaded!');
   });
-.  &nbsp;
+  
 });
 ```
 

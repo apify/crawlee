@@ -32,16 +32,18 @@ let persistStateInterval = null;
  * **Example usage:**
  *
  * ```javascript
- * Apify.main(async () => {
- *   &nbsp;
- *   Apify.events.on('cpuInfo', (data) => {
- *     if (data.isCpuOverloaded) console.log('Oh no, the CPU is overloaded!');
- *   });
- *.  &nbsp;
+ * Apify.events.on('cpuInfo', (data) => {
+ *   if (data.isCpuOverloaded) console.log('Oh no, the CPU is overloaded!');
  * });
  * ```
  *
  * The following table shows all currently emitted events:
+ *
+ * | Event name | Data                             | Description |
+ * | `cpuInfo`  | `{ "isCpuOverloaded": Boolean }` | The event is emitted approximately every second
+ *                 and it indicates whether the actor is using the maximum of available CPU resources.
+ *                 If that's the case, the actor should not add more workload.
+ *                 For example, this event is used by the <a href="#AutoscaledPool">AutoscaledPool</a> class. |
  *
  * <table class="table table-bordered table-condensed">
  *     <thead>

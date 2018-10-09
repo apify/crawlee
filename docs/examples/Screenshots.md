@@ -24,7 +24,7 @@ in the UI app or passed as the POST payload to the
 [Run actor API call](https://www.apify.com/docs/api/v2#/reference/actors/run-collection/run-actor).
 For more details, see [Input and output](https://www.apify.com/docs/actor#input-output)
 in the Apify Actor documentation.
-```
+```javascript
 const Apify = require('apify');
 
 Apify.main(async () => {

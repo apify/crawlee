@@ -17,7 +17,7 @@ async function main() {
     /* input and output paths */
     const sourceFiles = path.join(__dirname, '..', '..', 'src', '**', '*.js');
     const exampleFiles = path.join(__dirname, '..', '..', 'examples', '**', '*.js');
-    const sourceFilesOutputDir = path.join(__dirname, '..', '..', 'docs');
+    const sourceFilesOutputDir = path.join(__dirname, '..', '..', 'docs', 'api');
     const exampleFilesOutputDir = path.join(__dirname, '..', '..', 'docs', 'examples');
 
     /* get template data */

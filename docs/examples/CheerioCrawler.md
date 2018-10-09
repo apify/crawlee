@@ -7,7 +7,7 @@ This example demonstrates how to use [CheerioCrawler](https://www.apify.com/docs
 to crawl a list of URLs from an external file,
 load each URL using a plain HTTP request, parse the HTML using [cheerio](https://www.npmjs.com/package/cheerio)
 and extract some data from it: the page title and all H1 tags.
-```
+```javascript
 const Apify = require('apify');
 
 // Apify.utils contains various utilities, e.g. for logging.

@@ -5,36 +5,41 @@
     "previous": "Previous",
     "tagline": "Turn any website into an API.",
     "docs": {
-      "apify": {
+      "api/apify": {
         "title": "Apify"
       },
-      "autoscaledpool": {
+      "api/autoscaledpool": {
         "title": "AutoscaledPool"
       },
-      "basiccrawler": {
+      "api/basiccrawler": {
         "title": "BasicCrawler"
       },
-      "cheeriocrawler": {
+      "api/cheeriocrawler": {
         "title": "CheerioCrawler"
       },
-      "dataset": {
+      "api/dataset": {
         "title": "Dataset"
       },
-      "doc1": {
-        "title": "Latin-ish",
-        "sidebar_label": "Example Page"
+      "api/keyvaluestore": {
+        "title": "KeyValueStore"
       },
-      "doc2": {
-        "title": "document number 2"
+      "api/pseudourl": {
+        "title": "PseudoUrl"
       },
-      "doc3": {
-        "title": "This is document number 3"
+      "api/puppeteercrawler": {
+        "title": "PuppeteerCrawler"
       },
-      "doc4": {
-        "title": "Other Document"
+      "api/puppeteerpool": {
+        "title": "PuppeteerPool"
       },
-      "doc5": {
-        "title": "Fifth Document"
+      "api/request": {
+        "title": "Request"
+      },
+      "api/requestlist": {
+        "title": "RequestList"
+      },
+      "api/requestqueue": {
+        "title": "RequestQueue"
       },
       "examples/ex-basic_crawler": {
         "title": "Basic Crawler"
@@ -62,30 +67,6 @@
       },
       "examples/ex-synchronous_run": {
         "title": "Synchronous Run"
-      },
-      "exports": {
-        "title": "exports"
-      },
-      "keyvaluestore": {
-        "title": "KeyValueStore"
-      },
-      "pseudourl": {
-        "title": "PseudoUrl"
-      },
-      "puppeteercrawler": {
-        "title": "PuppeteerCrawler"
-      },
-      "puppeteerpool": {
-        "title": "PuppeteerPool"
-      },
-      "request": {
-        "title": "Request"
-      },
-      "requestlist": {
-        "title": "RequestList"
-      },
-      "requestqueue": {
-        "title": "RequestQueue"
       }
     },
     "links": {
@@ -95,7 +76,7 @@
       "Blog": "Blog"
     },
     "categories": {
-      "Getting Started": "Getting Started",
+      "Introduction": "Introduction",
       "Examples": "Examples",
       "API": "API"
     }

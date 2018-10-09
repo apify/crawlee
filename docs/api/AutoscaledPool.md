@@ -63,7 +63,7 @@ await pool.run();
 | --- | --- | --- | --- |
 | options | <code>Object</code> |  |  |
 | options.runTaskFunction | <code>function</code> |  | A function that performs an asynchronous resource-intensive task.   The function must either be labeled `async` or return a promise. |
-| options.isTaskReadyFunction | <code>function</code> |  | A function that indicates whether `runTaskFunction` should be called.   This function is called every time there is free capacity for a new task and it should   indicate whether it should start or not by resolving to either `true` or `false.   Besides its obvious use, it is also useful for task throttling to save resources. |
+| options.isTaskReadyFunction | <code>function</code> |  | A function that indicates whether `runTaskFunction` should be called. This function is called every time there is free capacity for a new task and it should   indicate whether it should start or not by resolving to either `true` or `false.   Besides its obvious use, it is also useful for task throttling to save resources. |
 | options.isFinishedFunction | <code>function</code> |  | A function that is called only when there are no tasks to be processed.   If it resolves to `true` then the pool's run finishes. Being called only   when there are no tasks being processed means that as long as `isTaskReadyFunction()`   keeps resolving to `true`, `isFinishedFunction()` will never be called.   To abort a run, use the `pool.abort()` method. |
 | [options.minConcurrency] | <code>Number</code> | <code>1</code> | Minimum number of tasks running in parallel. |
 | [options.maxConcurrency] | <code>Number</code> | <code>1000</code> | Maximum number of tasks running in parallel. |

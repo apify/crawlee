@@ -11,7 +11,7 @@ The script just downloads several web pages with plain HTTP requests (using the
 [request-promise](https://www.npmjs.com/package/request-promise) library)
 and stores their raw HTML and URL to the default dataset.
 In local configuration, the data will be stored as JSON files in `./apify_storage/datasets/default`.
-```
+```javascript
 const Apify = require('apify');
 const requestPromise = require('request-promise');
 

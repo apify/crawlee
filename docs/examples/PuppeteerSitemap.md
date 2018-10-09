@@ -7,7 +7,7 @@ This example demonstrates how to use `PuppeteerCrawler` to crawl a list of web p
 specified in a sitemap. The crawler extracts page title and URL from each page
 and stores them as a record to the default dataset.
 In local configuration, the results are stored as JSON files in `./apify_storage/datasets/default`
-```
+```javascript
 const Apify = require('apify');
 
 Apify.main(async () => {

@@ -10,7 +10,7 @@ that has access to the proxy.
 The proxy password is available on the [Proxy](https://my.apify.com/proxy) page in the app.
 Just set it to the `APIFY_PROXY_PASSWORD` environment variable
 or run the script using the CLI.
-```
+```javascript
 const Apify = require('apify');
 
 Apify.main(async () => {

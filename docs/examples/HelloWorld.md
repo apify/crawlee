@@ -4,7 +4,7 @@ title: Hello World
 ---
 
 Run the following example to perform a recursive crawl of a website using Puppeteer.
-```
+```javascript
 const Apify = require('apify');
 
 Apify.main(async () => {
