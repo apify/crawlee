@@ -348,6 +348,31 @@ describe('AutoscaledPool', () => {
         await pool.run();
         expect(finished).to.be.eql(false);
     });
+
+    it('should only finish after tasks complete', async () => {
+        let started = false;
+        let completed = false;
+
+        const pool = new AutoscaledPool({
+            runTaskFunction: async () => {
+                started = true;
+                await delayPromise(100);
+                completed = true;
+            },
+
+            isFinishedFunction: async () => {
+                return started;
+            },
+
+            isTaskReadyFunction: async () => {
+                return !started;
+            },
+        });
+
+        await pool.run();
+        expect(started).to.be.eql(true);
+        expect(completed).to.be.eql(true);
+    });
 });
 
 /* eslint-enable no-underscore-dangle */

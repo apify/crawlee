@@ -371,7 +371,7 @@ class AutoscaledPool {
      */
     async _maybeFinish() {
         if (this.queryingIsFinished) return;
-        if (this.runningCount > 0) return;
+        if (this.currentConcurrency > 0) return;
 
         this.queryingIsFinished = true;
         try {

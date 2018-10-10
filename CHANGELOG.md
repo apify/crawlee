@@ -1,3 +1,8 @@
+0.8.13 / 2018-10-09
+===================
+- Fixed `AutoscaledPool` terminating before all tasks are finished.
+- Migrated to v 0.1.0 of `apify-shared`.
+
 0.8.12 / 2018-10-02
 ==================
 - Allow AutoscaledPool to run tasks up to minConcurrency even when the system is overloaded.
