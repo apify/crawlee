@@ -170,6 +170,8 @@ export default class RequestList {
         this.isLoading = false;
         this.isInitialized = false;
         this.sources = sources;
+
+        this._handledRequestsCount = 0;
     }
 
     /**
@@ -370,6 +372,8 @@ export default class RequestList {
 
                 delete this.inProgress[uniqueKey];
                 this.isStatePersisted = false;
+
+                this._handledRequestsCount++;
             });
     }
 
@@ -500,5 +504,14 @@ export default class RequestList {
      */
     length() {
         return this.requests.length;
+    }
+
+    /**
+     * Returns the total number of requests that have been marked as handled.
+     *
+     * @returns {number}
+     */
+    handledRequestsCount() {
+        return this._handledRequestsCount;
     }
 }
