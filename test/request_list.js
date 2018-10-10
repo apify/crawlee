@@ -550,4 +550,20 @@ describe('Apify.RequestList', () => {
 
         log.restore();
     });
+
+    it('should correctly return the number of handled requests with handledRequestsCount()', async () => {
+        const sources = [
+            { url: 'https://example.com/1' },
+            { url: 'https://example.com/2' },
+            { url: 'https://example.com/3' },
+        ];
+        const requestList = new Apify.RequestList({ sources });
+        await requestList.initialize();
+        const requests = await Promise.all(sources.map(async () => requestList.fetchNextRequest()));
+        expect(requestList.handledRequestsCount()).to.be.eql(0);
+        await requestList.markRequestHandled(requests[0]);
+        await requestList.markRequestHandled(requests[1]);
+        await requestList.markRequestHandled(requests[2]);
+        expect(requestList.handledRequestsCount()).to.be.eql(3);
+    });
 });
