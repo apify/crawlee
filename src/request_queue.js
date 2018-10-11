@@ -40,13 +40,12 @@ const queuesCache = new LruCache({ maxLength: MAX_OPENED_QUEUES }); // Open queu
  * @ignore
  */
 const validateAddRequestParams = (request, opts) => {
-    let newRequest;
-    try {
-        checkParamPrototypeOrThrow(request, 'request', Request, 'Apify.Request');
-    } catch (_) {
-        // Delegates request constructor object validation to the Request constructor
-        newRequest = new Request(request);
+    checkParamOrThrow(request, 'request', 'Object');
+
+    if (!(request instanceof Request)) {
+        request = new Request(request);
     }
+
     checkParamOrThrow(opts, 'opts', 'Object');
 
     const { forefront = false } = opts;
@@ -55,7 +54,7 @@ const validateAddRequestParams = (request, opts) => {
 
     if (request.id) throw new Error('Request has already "id" so it cannot be added to the queue!');
 
-    return { forefront, newRequest };
+    return { forefront, request };
 };
 
 /**
@@ -216,7 +215,7 @@ export class RequestQueue {
      * @return {RequestOperationInfo}
      */
     addRequest(request, opts = {}) {
-        const { forefront, newRequest } = validateAddRequestParams(request, opts);
+        const { forefront, request: newRequest } = validateAddRequestParams(request, opts);
 
         if (newRequest) {
             request = newRequest;
@@ -637,7 +636,7 @@ export class RequestQueueLocal {
     }
 
     addRequest(request, opts = {}) {
-        const { forefront, newRequest } = validateAddRequestParams(request, opts);
+        const { forefront, request: newRequest } = validateAddRequestParams(request, opts);
 
         if (newRequest) {
             request = newRequest;
