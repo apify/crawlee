@@ -256,6 +256,30 @@ describe('Apify.utils.puppeteer', () => {
         }
     });
 
+    it('cacheResponses() throws when rule with invalid type is provided', async () => {
+        const mockedPage = {
+            setRequestInterception: () => {},
+            on: () => {},
+        };
+
+        const testRuleType = async (value) => {
+            try {
+                await Apify.utils.puppeteer.cacheResponses(mockedPage, {}, [value]);
+            } catch (error) {
+                // this is valid path for this test
+                return;
+            }
+
+            expect(`Rule '${value}' should have thrown error`).to.be.equal('');
+        };
+        await testRuleType(0);
+        await testRuleType(1);
+        await testRuleType(null);
+        await testRuleType([]);
+        await testRuleType(['']);
+        await testRuleType(() => {});
+    });
+
     it('compileScript() works', async () => {
         const { compileScript } = Apify.utils.puppeteer;
         const scriptStringGood = 'await page.goto("about:blank"); return await page.content();';

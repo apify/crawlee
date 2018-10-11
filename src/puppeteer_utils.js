@@ -213,6 +213,9 @@ const cacheResponses = async (page, cache, responseUrlRules) => {
     checkParamOrThrow(cache, 'cache', 'Object');
     checkParamOrThrow(responseUrlRules, 'responseUrlRules', 'Array');
 
+    // Check that rules are either String or RegExp
+    responseUrlRules.forEach((rule, index) => checkParamOrThrow(rule, `responseUrlRules[${index}]`, 'String | RegExp'));
+
     // Required to be able to intercept requests
     await page.setRequestInterception(true);
 
@@ -236,16 +239,13 @@ const cacheResponses = async (page, cache, responseUrlRules) => {
         const shouldCache = responseUrlRules.some((rule) => {
             if (typeof rule === 'string') return url.includes(rule);
             if (rule instanceof RegExp) return rule.test(url);
-
-            // @TODO: Throw error?
-            return false;
         });
 
         try {
             if (shouldCache) {
                 const buffer = await response.buffer();
                 cache[url] = {
-                    url,
+                    status: response.status(),
                     headers: response.headers(),
                     body: buffer,
                 };
