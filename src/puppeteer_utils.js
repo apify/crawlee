@@ -198,6 +198,65 @@ const blockResources = async (page, resourceTypes = ['stylesheet', 'font', 'imag
 };
 
 /**
+ * Enables caching of intercepted responses into provided object. Automaticaly enables request interception in puppeteer.
+ * *IMPORTANT*: Caching responses stores them to memory, so too loose rules could cause memory leaks for longer running crawlers.
+ *   This issue should be resolved or atleast mitigated in future iterations of this feature.
+ * @param {Page} page                               Puppeteer's `Page` object
+ * @param {Object} cache                            Object in which responses are stored
+ * @param {Array<String|RegExp>} responseUrlRules   List of rules that are used to check if response should be cached.
+ *   String rules are compared as page.url().includes(rule) while RegExp rules are evaluated as rule.test(page.url()).
+ * @return {Promise<void>}
+ * @memberof utils.puppeteer
+ */
+const cacheResponses = async (page, cache, responseUrlRules) => {
+    checkParamOrThrow(page, 'page', 'Object');
+    checkParamOrThrow(cache, 'cache', 'Object');
+    checkParamOrThrow(responseUrlRules, 'responseUrlRules', 'Array');
+
+    // Required to be able to intercept requests
+    await page.setRequestInterception(true);
+
+    page.on('request', async (request) => {
+        const url = request.url();
+
+        if (cache[url]) {
+            await request.respond(cache[url]);
+            return;
+        }
+
+        request.continue();
+    });
+
+    page.on('response', async (response) => {
+        const url = response.url();
+
+        // Response is already cached, do nothing
+        if (cache[url]) return;
+
+        const shouldCache = responseUrlRules.some((rule) => {
+            if (typeof rule === 'string') return url.includes(rule);
+            if (rule instanceof RegExp) return rule.test(url);
+
+            // @TODO: Throw error?
+            return false;
+        });
+
+        try {
+            if (shouldCache) {
+                const buffer = await response.buffer();
+                cache[url] = {
+                    url,
+                    headers: response.headers(),
+                    body: buffer,
+                };
+            }
+        } catch (e) {
+            // ignore errors, usualy means that buffer is empty or broken connection
+        }
+    });
+};
+
+/**
  * Compiles a Puppeteer script into an async function that may be executed at any time
  * by providing it with the following object:
  * ```
@@ -264,5 +323,6 @@ export const puppeteerUtils = {
     enqueueRequestsFromClickableElements,
     enqueueLinks,
     blockResources,
+    cacheResponses,
     compileScript,
 };
