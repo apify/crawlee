@@ -204,6 +204,10 @@ export class RequestQueue {
     /**
      * Adds a request to the queue.
      *
+     * If the request with the same `Request.uniqueKey` property is already present in the queue,
+     * it will not be updated. You can find out this happened from the resulting
+     * {@linkcode RequestOperationInfo} object.
+     *
      * @param {Request} request Request object
      * @param {Object} [opts]
      * @param {Boolean} [opts.forefront] If `true`, the request will be added to the foremost position in the queue.
