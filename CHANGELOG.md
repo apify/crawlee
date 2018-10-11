@@ -1,3 +1,7 @@
+0.8.14 / 2018-10-11
+===================
+- Added `Apify.utils.puppeteer.cacheResponses` to enable response caching in headless Chromium.
+
 0.8.13 / 2018-10-09
 ===================
 - Fixed `AutoscaledPool` terminating before all tasks are finished.
