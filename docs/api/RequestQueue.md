@@ -9,7 +9,7 @@ Represents a queue of URLs to crawl, which is used for deep crawling of websites
 where you start with several URLs and then recursively
 follow links to other pages. The data structure supports both breadth-first and depth-first crawling orders.
 
-Each URL is represented using an instance of the [`Request`](Request) class.
+Each URL is represented using an instance of the [`Request`](request) class.
 The queue can only contain unique URLs. More precisely, it can only contain `Request` instances
 with distinct `uniqueKey` properties. By default, `uniqueKey` is generated from the URL, but it can also be overridden.
 To add a single URL multiple times to the queue,
@@ -83,24 +83,49 @@ await queue.reclaimRequest(request2);
 Adds a request to the queue.
 
 **Kind**: instance method of [<code>RequestQueue</code>](#RequestQueue)  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| request | <code>Request</code> | Request object |
-| [opts] | <code>Object</code> |  |
-| [opts.forefront] | <code>Boolean</code> | If `true`, the request will be added to the foremost position in the queue. |
-
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>request</code></td><td><code>Request</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Request object</p>
+</td></tr><tr>
+<td><code>[opts]</code></td><td><code>Object</code></td>
+</tr>
+<tr>
+<td colspan="3"></td></tr><tr>
+<td><code>[opts.forefront]</code></td><td><code>Boolean</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>If <code>true</code>, the request will be added to the foremost position in the queue.</p>
+</td></tr></tbody>
+</table>
 <a name="RequestQueue+getRequest"></a>
 
 ### `requestQueue.getRequest(requestId)` ⇒ <code>Promise.&lt;Request&gt;</code>
 Gets the request from the queue specified by ID.
 
 **Kind**: instance method of [<code>RequestQueue</code>](#RequestQueue)  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| requestId | <code>String</code> | Request ID |
-
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>requestId</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Request ID</p>
+</td></tr></tbody>
+</table>
 <a name="RequestQueue+fetchNextRequest"></a>
 
 ### `requestQueue.fetchNextRequest()` ⇒ <code>Promise.&lt;Request&gt;</code>
@@ -113,11 +138,19 @@ Returns next request in the queue to be processed.
 Marks request handled after successfull processing.
 
 **Kind**: instance method of [<code>RequestQueue</code>](#RequestQueue)  
-
-| Param | Type |
-| --- | --- |
-| request | <code>Request</code> | 
-
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>request</code></td><td><code>Request</code></td>
+</tr>
+<tr>
+</tr></tbody>
+</table>
 <a name="RequestQueue+reclaimRequest"></a>
 
 ### `requestQueue.reclaimRequest(request, [opts])` ⇒ [<code>Promise.&lt;RequestOperationInfo&gt;</code>](#RequestOperationInfo)
@@ -125,13 +158,29 @@ Reclaims failed request back to the queue,
 so that it can be processed later again.
 
 **Kind**: instance method of [<code>RequestQueue</code>](#RequestQueue)  
-
-| Param | Type | Default | Description |
-| --- | --- | --- | --- |
-| request | <code>Request</code> |  |  |
-| [opts] | <code>Object</code> |  |  |
-| [opts.forefront] | <code>Boolean</code> | <code>false</code> | If true then requests gets returned to the begining of the queue   and to the back of the queue otherwise. |
-
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th><th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>request</code></td><td><code>Request</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"></td></tr><tr>
+<td><code>[opts]</code></td><td><code>Object</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"></td></tr><tr>
+<td><code>[opts.forefront]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>If true then requests gets returned to the begining of the queue
+  and to the back of the queue otherwise.</p>
+</td></tr></tbody>
+</table>
 <a name="RequestQueue+isEmpty"></a>
 
 ### `requestQueue.isEmpty()` ⇒ <code>Promise.&lt;Boolean&gt;</code>

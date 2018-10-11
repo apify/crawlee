@@ -1,5 +1,5 @@
 ---
-id: ex-basic_crawler
+id: basiccrawler
 title: Basic Crawler
 ---
 

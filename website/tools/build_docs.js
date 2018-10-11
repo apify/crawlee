@@ -9,11 +9,37 @@ const writeFile = promisify(fs.writeFile);
 /* eslint-disable no-shadow */
 
 const getHeader = (title, prefix = '') => {
-    const id = `${prefix}${title.replace(' ', '_').toLowerCase()}`;
+    const id = `${prefix}${title.replace(' ', '').toLowerCase()}`;
     return `---\nid: ${id}\ntitle: ${title}\n---\n`;
 };
 
-async function main() {
+const getRenderOptions = (template, data) => ({
+    template,
+    data,
+    'name-format': true,
+    'param-list-format': 'table',
+    helper: [path.join(__dirname, 'helpers.js')],
+    partial: [path.join(__dirname, 'partials', 'params-table.hbs')],
+});
+
+const readFileFromLine = async (path, lineNumber = 1) => {
+    return new Promise((resolve, reject) => {
+        const output = [];
+        const rl = readline.createInterface({
+            input: fs.createReadStream(path),
+            crlfDelay: Infinity,
+        });
+        let lineCounter = 0;
+        rl.on('line', (line) => {
+            lineCounter++;
+            if (lineCounter >= lineNumber) output.push(line);
+        });
+        rl.on('close', () => resolve(output.join('\n')));
+        rl.on('error', err => reject(err));
+    });
+};
+
+const main = async () => {
     /* input and output paths */
     const sourceFiles = path.join(__dirname, '..', '..', 'src', '**', '*.js');
     const exampleFiles = path.join(__dirname, '..', '..', 'examples', '**', '*.js');
@@ -32,7 +58,7 @@ async function main() {
         const codeblock = `${sep}javascript\n${code}\n${sep}`;
 
         const title = filename.split('.')[0].split('_').map(word => `${word[0].toUpperCase()}${word.substr(1)}`).join(' ');
-        const header = getHeader(title, 'ex-');
+        const header = getHeader(title);
         const markdown = `${header}\n${description}\n${codeblock}`;
         await writeFile(path.join(exampleFilesOutputDir, `${title.replace(' ', '')}.md`), markdown);
     });
@@ -51,7 +77,7 @@ async function main() {
     const header = getHeader(mainModule);
     const template = `{{#module name="${mainModule}"}}{{>docs}}{{/module}}`;
     console.log(`Rendering ${mainModule}, template: ${template}`); // eslint-disable-line no-console
-    const output = jsdoc2md.renderSync({ data: templateData, template, 'name-format': true });
+    const output = jsdoc2md.renderSync(getRenderOptions(template, templateData));
     fs.writeFileSync(path.resolve(sourceFilesOutputDir, `${mainModule}.md`), header + output);
 
     // create a doc file file for each class
@@ -59,26 +85,9 @@ async function main() {
         const header = getHeader(className);
         const template = `{{#class name="${className}"}}{{>docs}}{{/class}}`;
         console.log(`Rendering ${className}, template: ${template}`); // eslint-disable-line no-console
-        const output = jsdoc2md.renderSync({ data: templateData, template, 'name-format': true });
+        const output = jsdoc2md.renderSync(getRenderOptions(template, templateData));
         fs.writeFileSync(path.resolve(sourceFilesOutputDir, `${className}.md`), header + output);
     });
-
-    async function readFileFromLine(path, lineNumber = 1) {
-        return new Promise((resolve, reject) => {
-            const output = [];
-            const rl = readline.createInterface({
-                input: fs.createReadStream(path),
-                crlfDelay: Infinity,
-            });
-            let lineCounter = 0;
-            rl.on('line', (line) => {
-                lineCounter++;
-                if (lineCounter >= lineNumber) output.push(line);
-            });
-            rl.on('close', () => resolve(output.join('\n')));
-            rl.on('error', err => reject(err));
-        });
-    }
-}
+};
 
 main();

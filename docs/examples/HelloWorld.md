@@ -1,5 +1,5 @@
 ---
-id: ex-hello_world
+id: helloworld
 title: Hello World
 ---
 

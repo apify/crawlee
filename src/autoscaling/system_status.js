@@ -17,7 +17,7 @@ const DEFAULT_OPTIONS = {
  * messages in the snapshots, with the weights being the time intervals
  * between the snapshots. Each resource is calculated separately
  * and the system is overloaded whenever at least one resource is overloaded.
- * The class is used by the {@linkcode AutoscaledPool} class.
+ * The class is used by the {@link AutoscaledPool} class.
  *
  * `getCurrentStatus()` returns a boolean that represents the current status of the system.
  * The length of the current timeframe in seconds is configurable
@@ -41,7 +41,6 @@ const DEFAULT_OPTIONS = {
  *   Sets the maximum ratio of overloaded snapshots in a CPU sample.
  *   If the sample exceeds this ratio, the system will be overloaded.
  * @alias module:SystemStatus
- * @ignore
  */
 class SystemStatus {
     constructor(options = {}) {
@@ -71,7 +70,6 @@ class SystemStatus {
      * Returns true if the system has not been overloaded in the last
      * currentHistorySecs seconds, otherwise returns false.
      * @return {Boolean}
-     * @ignore
      */
     getCurrentStatus() {
         return this._isSystemIdle(this.currentHistorySecs);
@@ -81,7 +79,6 @@ class SystemStatus {
      * Returns true if the system has not been overloaded in the full
      * history of the snapshotter (which is configurable in the snapshotter).
      * @return {Boolean}
-     * @ignore
      */
     getHistoricalStatus() {
         return this._isSystemIdle();

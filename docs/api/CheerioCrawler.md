@@ -71,8 +71,8 @@ await crawler.run();
 **Kind**: global class of [<code>CheerioCrawler</code>](#module_CheerioCrawler)  
 **See**
 
-- [BasicCrawler](BasicCrawler)
-- [PuppeteerCrawler](PuppeteerCrawler)
+- [BasicCrawler](basiccrawler)
+- [PuppeteerCrawler](puppeteercrawler)
 
 * [CheerioCrawler](#exp_module_CheerioCrawler--CheerioCrawler) ⏏
     * [`new CheerioCrawler(options)`](#new_module_CheerioCrawler--CheerioCrawler_new)
@@ -82,24 +82,102 @@ await crawler.run();
 <a name="new_module_CheerioCrawler--CheerioCrawler_new"></a>
 
 ### `new CheerioCrawler(options)`
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th><th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>options</code></td><td><code>Object</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"></td></tr><tr>
+<td><code>options.handlePageFunction</code></td><td><code>function</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>User-provided function that performs the logic of the crawler. It is called for each page
+  loaded and parsed by the crawler.</p>
+<p>  The function that receives an object as argument, with the following three fields:</p>
+  <ul>
+    <li><code>$</code>: the Cheerio object</li>
+    <li><code>html</code>: the raw HTML</li>
+    <li><code>request</code>: the <a href="request"><code>Request</code></a> object representing the URL to crawl</li>
+  </ul>
 
-| Param | Type | Default | Description |
-| --- | --- | --- | --- |
-| options | <code>Object</code> |  |  |
-| options.handlePageFunction | <code>function</code> |  | User-provided function that performs the logic of the crawler. It is called for each page   loaded and parsed by the crawler.   The function that receives an object as argument, with the following three fields:   <ul>     <li>`$`: the Cheerio object</li>     <li>`html`: the raw HTML</li>     <li>`request`: the [`Request`](Request) object representing the URL to crawl</li>   </ul>   If the function returns a promise, it is awaited. |
-| options.requestList | <code>RequestList</code> |  | Static list of URLs to be processed.   Either RequestList or RequestQueue must be provided. |
-| options.requestQueue | [<code>RequestQueue</code>](#RequestQueue) |  | Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.   Either RequestList or RequestQueue must be provided. |
-| [options.requestFunction] | <code>function</code> |  | Overrides the function that performs the HTTP request to get the raw HTML needed for Cheerio.   See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/cheerio_crawler.js#L264">GitHub</a> for default behavior. |
-| [options.handlePageTimeoutSecs] | <code>Number</code> | <code>300</code> | Timeout in which the function passed as `options.handlePageFunction` needs to finish, given in seconds. |
-| [options.requestTimeoutSecs] | <code>Number</code> | <code>30</code> | Timeout in which the function passed as `options.requestFunction` needs to finish, given in seconds. |
-| [options.ignoreSslErrors] | <code>Boolean</code> | <code>false</code> | If set to true, SSL certificate errors will be ignored. This is dependent on using the default   request function. If using a custom request function, user needs to implement this functionality. |
-| [options.handleFailedRequestFunction] | <code>function</code> |  | Function that handles requests that failed more then `option.maxRequestRetries` times.   See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/cheerio_crawler.js#L13">GitHub</a> for default behavior. |
-| [options.maxRequestRetries] | <code>Number</code> | <code>3</code> | How many times the request is retried if either `requestFunction` or `handlePageFunction` failed. |
-| [options.maxRequestsPerCrawl] | <code>Number</code> |  | Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached.   Always set this value in order to prevent infinite loops in misconfigured crawlers.   Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value. |
-| [options.autoscaledPoolOptions] | <code>Object</code> |  | Custom options passed to the underlying [`AutoscaledPool`](AutoscaledPool) instance constructor.   Note that the `runTaskFunction`, `isTaskReadyFunction` and `isFinishedFunction` options   are provided by `CheerioCrawler` and cannot be overridden. |
-| [options.minConcurrency] | <code>Object</code> | <code>1</code> | Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding `AutoscaledPool` option. |
-| [options.maxConcurrency] | <code>Object</code> | <code>1000</code> | Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding `AutoscaledPool` option. |
-
+<p>  If the function returns a promise, it is awaited.</p>
+</td></tr><tr>
+<td><code>options.requestList</code></td><td><code>RequestList</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Static list of URLs to be processed.
+  Either RequestList or RequestQueue must be provided.</p>
+</td></tr><tr>
+<td><code>options.requestQueue</code></td><td><code><a href="#RequestQueue">RequestQueue</a></code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
+  Either RequestList or RequestQueue must be provided.</p>
+</td></tr><tr>
+<td><code>[options.requestFunction]</code></td><td><code>function</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Overrides the function that performs the HTTP request to get the raw HTML needed for Cheerio.
+  See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/cheerio_crawler.js#L264">GitHub</a> for default behavior.</p>
+</td></tr><tr>
+<td><code>[options.handlePageTimeoutSecs]</code></td><td><code>Number</code></td><td><code>300</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Timeout in which the function passed as <code>options.handlePageFunction</code> needs to finish, given in seconds.</p>
+</td></tr><tr>
+<td><code>[options.requestTimeoutSecs]</code></td><td><code>Number</code></td><td><code>30</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Timeout in which the function passed as <code>options.requestFunction</code> needs to finish, given in seconds.</p>
+</td></tr><tr>
+<td><code>[options.ignoreSslErrors]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>If set to true, SSL certificate errors will be ignored. This is dependent on using the default
+  request function. If using a custom request function, user needs to implement this functionality.</p>
+</td></tr><tr>
+<td><code>[options.handleFailedRequestFunction]</code></td><td><code>function</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Function that handles requests that failed more then <code>option.maxRequestRetries</code> times.
+  See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/cheerio_crawler.js#L13">GitHub</a> for default behavior.</p>
+</td></tr><tr>
+<td><code>[options.maxRequestRetries]</code></td><td><code>Number</code></td><td><code>3</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>How many times the request is retried if either <code>requestFunction</code> or <code>handlePageFunction</code> failed.</p>
+</td></tr><tr>
+<td><code>[options.maxRequestsPerCrawl]</code></td><td><code>Number</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached.
+  Always set this value in order to prevent infinite loops in misconfigured crawlers.
+  Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.</p>
+</td></tr><tr>
+<td><code>[options.autoscaledPoolOptions]</code></td><td><code>Object</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Custom options passed to the underlying <a href="autoscaledpool"><code>AutoscaledPool</code></a> instance constructor.
+  Note that the <code>runTaskFunction</code>, <code>isTaskReadyFunction</code> and <code>isFinishedFunction</code> options
+  are provided by <code>CheerioCrawler</code> and cannot be overridden.</p>
+</td></tr><tr>
+<td><code>[options.minConcurrency]</code></td><td><code>Object</code></td><td><code>1</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding <code>AutoscaledPool</code> option.</p>
+</td></tr><tr>
+<td><code>[options.maxConcurrency]</code></td><td><code>Object</code></td><td><code>1000</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding <code>AutoscaledPool</code> option.</p>
+</td></tr></tbody>
+</table>
 <a name="module_CheerioCrawler--CheerioCrawler+run"></a>
 
 ### `cheerioCrawler.run()` ⇒ <code>Promise</code>

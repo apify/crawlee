@@ -41,31 +41,40 @@
       "api/requestqueue": {
         "title": "RequestQueue"
       },
-      "examples/ex-basic_crawler": {
+      "api/snapshotter": {
+        "title": "Snapshotter"
+      },
+      "api/some": {
+        "title": "api/some"
+      },
+      "api/systemstatus": {
+        "title": "SystemStatus"
+      },
+      "examples/basiccrawler": {
         "title": "Basic Crawler"
       },
-      "examples/ex-call_actor": {
+      "examples/callactor": {
         "title": "Call Actor"
       },
-      "examples/ex-cheerio_crawler": {
+      "examples/cheeriocrawler": {
         "title": "Cheerio Crawler"
       },
-      "examples/ex-hello_world": {
+      "examples/helloworld": {
         "title": "Hello World"
       },
-      "examples/ex-puppeteer_crawler": {
+      "examples/puppeteercrawler": {
         "title": "Puppeteer Crawler"
       },
-      "examples/ex-puppeteer_proxy": {
+      "examples/puppeteerproxy": {
         "title": "Puppeteer Proxy"
       },
-      "examples/ex-puppeteer_sitemap": {
+      "examples/puppeteersitemap": {
         "title": "Puppeteer Sitemap"
       },
-      "examples/ex-screenshots": {
+      "examples/screenshots": {
         "title": "Screenshots"
       },
-      "examples/ex-synchronous_run": {
+      "examples/synchronousrun": {
         "title": "Synchronous Run"
       }
     },
@@ -78,7 +87,8 @@
     "categories": {
       "Introduction": "Introduction",
       "Examples": "Examples",
-      "API": "API"
+      "API Reference": "API Reference",
+      "Autoscaling": "Autoscaling"
     }
   },
   "pages-strings": {

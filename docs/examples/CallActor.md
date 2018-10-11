@@ -1,5 +1,5 @@
 ---
-id: ex-call_actor
+id: callactor
 title: Call Actor
 ---
 

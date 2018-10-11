@@ -12,7 +12,7 @@ Dataset is an append-only storage - you can only add new records to it but you c
 Typically it is used to store crawling results.
 
 Do not instantiate this class directly, use the
-[`Apify.openDataset()`](Apify#openDataset) function instead.
+[`Apify.openDataset()`](apify#opendataset) function instead.
 
 `Dataset` stores its data either on local disk or in the Apify cloud,
 depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variable is set.
@@ -85,11 +85,21 @@ and re-attempt the save of the data from this item onwards to prevent duplicates
 
 **Kind**: instance method of [<code>Dataset</code>](#Dataset)  
 **Returns**: <code>Promise</code> - Returns a promise that resolves once the data is saved.  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| data | <code>Object</code> \| <code>Array</code> | Object or array of objects containing data to be stored in the default dataset. The objects must be serializable to JSON and the JSON representation of each object must be smaller than 9MB. |
-
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>data</code></td><td><code>Object</code> | <code>Array</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Object or array of objects containing data to be stored in the default dataset.
+The objects must be serializable to JSON and the JSON representation of each object must be smaller than 9MB.</p>
+</td></tr></tbody>
+</table>
 <a name="Dataset+getData"></a>
 
 ### `dataset.getData(options)` ⇒ <code>Promise</code>
@@ -98,35 +108,110 @@ Returns items in the dataset based on the provided parameters.
 If format is `json` then the function doesn't return an array of records but {@linkcode PaginationList} instead.
 
 **Kind**: instance method of [<code>Dataset</code>](#Dataset)  
-
-| Param | Type | Default | Description |
-| --- | --- | --- | --- |
-| options | <code>Object</code> |  |  |
-| [options.format] | <code>String</code> | <code>&#x27;json&#x27;</code> | Format of the items, possible values are: `json`, `csv`, `xlsx`, `html`, `xml` and `rss`. |
-| [options.offset] | <code>Number</code> | <code>0</code> | Number of array elements that should be skipped at the start. |
-| [options.limit] | <code>Number</code> | <code>250000</code> | Maximum number of array elements to return. |
-| [options.desc] | <code>Boolean</code> |  | If `true` then the objects are sorted by `createdAt` in descending order.   Otherwise they are sorted in ascending order. |
-| [options.fields] | <code>Array</code> |  | An array of field names that will be included in the result. If omitted, all fields are included in the results. |
-| [options.unwind] | <code>String</code> |  | Specifies a name of the field in the result objects that will be used to unwind the resulting objects.   By default, the results are returned as they are. |
-| [options.disableBodyParser] | <code>Boolean</code> |  | If `true` then response from API will not be parsed. |
-| [options.attachment] | <code>Number</code> |  | If `true` then the response will define the `Content-Disposition: attachment` HTTP header, forcing a web   browser to download the file rather than to display it. By default, this header is not present. |
-| [options.delimiter] | <code>String</code> | <code>&#x27;,&#x27;</code> | A delimiter character for CSV files, only used if `format` is `csv`.   You might need to URL-encode the character (e.g. use `%09` for tab or `%3B` for semicolon). |
-| [options.bom] | <code>Number</code> |  | All responses are encoded in UTF-8 encoding. By default, the CSV files are prefixed with the UTF-8 Byte   Order Mark (BOM), while JSON, JSONL, XML, HTML and RSS files are not. If you want to override this default   behavior, set `bom` option to `true` to include the BOM, or set `bom` to `false` to skip it. |
-| [options.xmlRoot] | <code>String</code> |  | Overrides the default root element name of the XML output. By default, the root element is `results`. |
-| [options.xmlRow] | <code>String</code> |  | Overrides the default element name that wraps each page or page function result object in XML output.   By default, the element name is `page` or `result`, depending on the value of the `simplified` option. |
-| [options.skipHeaderRow] | <code>Number</code> |  | If set to `1` then header row in csv format is skipped. |
-
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th><th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>options</code></td><td><code>Object</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"></td></tr><tr>
+<td><code>[options.format]</code></td><td><code>String</code></td><td><code>&#x27;json&#x27;</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Format of the items, possible values are: <code>json</code>, <code>csv</code>, <code>xlsx</code>, <code>html</code>, <code>xml</code> and <code>rss</code>.</p>
+</td></tr><tr>
+<td><code>[options.offset]</code></td><td><code>Number</code></td><td><code>0</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Number of array elements that should be skipped at the start.</p>
+</td></tr><tr>
+<td><code>[options.limit]</code></td><td><code>Number</code></td><td><code>250000</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Maximum number of array elements to return.</p>
+</td></tr><tr>
+<td><code>[options.desc]</code></td><td><code>Boolean</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>If <code>true</code> then the objects are sorted by <code>createdAt</code> in descending order.
+  Otherwise they are sorted in ascending order.</p>
+</td></tr><tr>
+<td><code>[options.fields]</code></td><td><code>Array</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>An array of field names that will be included in the result. If omitted, all fields are included in the results.</p>
+</td></tr><tr>
+<td><code>[options.unwind]</code></td><td><code>String</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Specifies a name of the field in the result objects that will be used to unwind the resulting objects.
+  By default, the results are returned as they are.</p>
+</td></tr><tr>
+<td><code>[options.disableBodyParser]</code></td><td><code>Boolean</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>If <code>true</code> then response from API will not be parsed.</p>
+</td></tr><tr>
+<td><code>[options.attachment]</code></td><td><code>Number</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>If <code>true</code> then the response will define the <code>Content-Disposition: attachment</code> HTTP header, forcing a web
+  browser to download the file rather than to display it. By default, this header is not present.</p>
+</td></tr><tr>
+<td><code>[options.delimiter]</code></td><td><code>String</code></td><td><code>&#x27;,&#x27;</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>A delimiter character for CSV files, only used if <code>format</code> is <code>csv</code>.
+  You might need to URL-encode the character (e.g. use <code>%09</code> for tab or <code>%3b</code> for semicolon).</p>
+</td></tr><tr>
+<td><code>[options.bom]</code></td><td><code>Number</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>All responses are encoded in UTF-8 encoding. By default, the CSV files are prefixed with the UTF-8 Byte
+  Order Mark (bom), while JSON, JSONL, XML, HTML and RSS files are not. If you want to override this default
+  behavior, set <code>bom</code> option to <code>true</code> to include the BOM, or set <code>bom</code> to <code>false</code> to skip it.</p>
+</td></tr><tr>
+<td><code>[options.xmlRoot]</code></td><td><code>String</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Overrides the default root element name of the XML output. By default, the root element is <code>results</code>.</p>
+</td></tr><tr>
+<td><code>[options.xmlRow]</code></td><td><code>String</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Overrides the default element name that wraps each page or page function result object in XML output.
+  By default, the element name is <code>page</code> or <code>result</code>, depending on the value of the <code>simplified</code> option.</p>
+</td></tr><tr>
+<td><code>[options.skipHeaderRow]</code></td><td><code>Number</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>If set to <code>1</code> then header row in csv format is skipped.</p>
+</td></tr></tbody>
+</table>
 <a name="Dataset+getInfo"></a>
 
 ### `dataset.getInfo(opts)` ⇒ <code>Promise</code>
 Returns an object containing general information about the dataset.
 
 **Kind**: instance method of [<code>Dataset</code>](#Dataset)  
-
-| Param | Type |
-| --- | --- |
-| opts | <code>Object</code> | 
-
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>opts</code></td><td><code>Object</code></td>
+</tr>
+<tr>
+</tr></tbody>
+</table>
 **Example**  
 ```js
 {
@@ -148,18 +233,53 @@ Each invocation of `iteratee` is called with three arguments: `(element, index)`
 If `iteratee` returns a Promise then it is awaited before a next call.
 
 **Kind**: instance method of [<code>Dataset</code>](#Dataset)  
-
-| Param | Type | Default | Description |
-| --- | --- | --- | --- |
-| iteratee | <code>function</code> |  |  |
-| opts | <code>Opts</code> |  |  |
-| [options.offset] | <code>Number</code> | <code>0</code> | Number of array elements that should be skipped at the start. |
-| [options.desc] | <code>Number</code> |  | If `1` then the objects are sorted by `createdAt` in descending order. |
-| [options.fields] | <code>Array</code> |  | If provided then returned objects will only contain specified keys |
-| [options.unwind] | <code>String</code> |  | If provided then objects will be unwound based on provided field. |
-| [options.limit] | <code>Number</code> | <code>250000</code> | How many items to load in one request. |
-| index | <code>Number</code> |  | [description] |
-
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th><th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>iteratee</code></td><td><code>function</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"></td></tr><tr>
+<td><code>opts</code></td><td><code>Opts</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"></td></tr><tr>
+<td><code>[options.offset]</code></td><td><code>Number</code></td><td><code>0</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Number of array elements that should be skipped at the start.</p>
+</td></tr><tr>
+<td><code>[options.desc]</code></td><td><code>Number</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>If <code>1</code> then the objects are sorted by <code>createdAt</code> in descending order.</p>
+</td></tr><tr>
+<td><code>[options.fields]</code></td><td><code>Array</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>If provided then returned objects will only contain specified keys</p>
+</td></tr><tr>
+<td><code>[options.unwind]</code></td><td><code>String</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>If provided then objects will be unwound based on provided field.</p>
+</td></tr><tr>
+<td><code>[options.limit]</code></td><td><code>Number</code></td><td><code>250000</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>How many items to load in one request.</p>
+</td></tr><tr>
+<td><code>index</code></td><td><code>Number</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>[description]</p>
+</td></tr></tbody>
+</table>
 <a name="Dataset+map"></a>
 
 ### `dataset.map(iteratee, opts, index)` ⇒ <code>Promise.&lt;Array&gt;</code>
@@ -169,18 +289,53 @@ Each invocation of `iteratee` is called with three arguments: `(element, index)`
 If `iteratee` returns a `Promise` then it's awaited before a next call.
 
 **Kind**: instance method of [<code>Dataset</code>](#Dataset)  
-
-| Param | Type | Default | Description |
-| --- | --- | --- | --- |
-| iteratee | <code>function</code> |  |  |
-| opts | <code>Opts</code> |  |  |
-| [options.offset] | <code>Number</code> | <code>0</code> | Number of array elements that should be skipped at the start. |
-| [options.desc] | <code>Number</code> |  | If 1 then the objects are sorted by createdAt in descending order. |
-| [options.fields] | <code>Array</code> |  | If provided then returned objects will only contain specified keys |
-| [options.unwind] | <code>String</code> |  | If provided then objects will be unwound based on provided field. |
-| [options.limit] | <code>Number</code> | <code>250000</code> | How many items to load in one request. |
-| index | <code>Number</code> |  | [description] |
-
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th><th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>iteratee</code></td><td><code>function</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"></td></tr><tr>
+<td><code>opts</code></td><td><code>Opts</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"></td></tr><tr>
+<td><code>[options.offset]</code></td><td><code>Number</code></td><td><code>0</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Number of array elements that should be skipped at the start.</p>
+</td></tr><tr>
+<td><code>[options.desc]</code></td><td><code>Number</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>If 1 then the objects are sorted by createdAt in descending order.</p>
+</td></tr><tr>
+<td><code>[options.fields]</code></td><td><code>Array</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>If provided then returned objects will only contain specified keys</p>
+</td></tr><tr>
+<td><code>[options.unwind]</code></td><td><code>String</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>If provided then objects will be unwound based on provided field.</p>
+</td></tr><tr>
+<td><code>[options.limit]</code></td><td><code>Number</code></td><td><code>250000</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>How many items to load in one request.</p>
+</td></tr><tr>
+<td><code>index</code></td><td><code>Number</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>[description]</p>
+</td></tr></tbody>
+</table>
 <a name="Dataset+reduce"></a>
 
 ### `dataset.reduce(iteratee, memo, opts, index)` ⇒ <code>Promise.&lt;\*&gt;</code>
@@ -195,19 +350,57 @@ The first element is instead passed as the memo in the invocation of the `iterat
 If `iteratee` returns a `Promise` then it's awaited before a next call.
 
 **Kind**: instance method of [<code>Dataset</code>](#Dataset)  
-
-| Param | Type | Default | Description |
-| --- | --- | --- | --- |
-| iteratee | <code>function</code> |  |  |
-| memo | <code>\*</code> |  |  |
-| opts | <code>Opts</code> |  |  |
-| [options.offset] | <code>Number</code> | <code>0</code> | Number of array elements that should be skipped at the start. |
-| [options.desc] | <code>Number</code> |  | If 1 then the objects are sorted by createdAt in descending order. |
-| [options.fields] | <code>Array</code> |  | If provided then returned objects will only contain specified keys |
-| [options.unwind] | <code>String</code> |  | If provided then objects will be unwound based on provided field. |
-| [options.limit] | <code>Number</code> | <code>250000</code> | How many items to load in one request. |
-| index | <code>Number</code> |  | [description] |
-
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th><th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>iteratee</code></td><td><code>function</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"></td></tr><tr>
+<td><code>memo</code></td><td><code>*</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"></td></tr><tr>
+<td><code>opts</code></td><td><code>Opts</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"></td></tr><tr>
+<td><code>[options.offset]</code></td><td><code>Number</code></td><td><code>0</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Number of array elements that should be skipped at the start.</p>
+</td></tr><tr>
+<td><code>[options.desc]</code></td><td><code>Number</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>If 1 then the objects are sorted by createdAt in descending order.</p>
+</td></tr><tr>
+<td><code>[options.fields]</code></td><td><code>Array</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>If provided then returned objects will only contain specified keys</p>
+</td></tr><tr>
+<td><code>[options.unwind]</code></td><td><code>String</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>If provided then objects will be unwound based on provided field.</p>
+</td></tr><tr>
+<td><code>[options.limit]</code></td><td><code>Number</code></td><td><code>250000</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>How many items to load in one request.</p>
+</td></tr><tr>
+<td><code>index</code></td><td><code>Number</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>[description]</p>
+</td></tr></tbody>
+</table>
 <a name="Dataset+delete"></a>
 
 ### `dataset.delete()` ⇒ <code>Promise</code>

@@ -8,7 +8,7 @@ title: RequestList
 Represents a static list of URLs to crawl.
 The URLs can be provided either in code or parsed from a text file hosted on the web.
 
-Each URL is represented using an instance of the [`Request`](Request) class.
+Each URL is represented using an instance of the [`Request`](request) class.
 The list can only contain unique URLs. More precisely, it can only contain `Request` instances
 with distinct `uniqueKey` properties. By default, `uniqueKey` is generated from the URL, but it can also be overridden.
 To add a single URL multiple times to the list,

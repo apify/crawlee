@@ -21,17 +21,17 @@ const DEFAULT_OPTIONS = {
  * The pool only starts new tasks if there is enough free CPU and memory available
  * and the Javascript event loop is not blocked.
  *
- * The information about the CPU and memory usage is obtained by the `Snapshotter` class,
+ * The information about the CPU and memory usage is obtained by the {@link Snapshotter} class,
  * which makes regular snapshots of system resources that may be either local
  * or from the Apify cloud infrastructure in case the process is running on the Apify platform.
  * Meaningful data gathered from these snapshots is provided to `AutoscaledPool` by the `SystemStatus` class.
  *
  * Before running the pool, you need to implement the following three functions:
- * {@link AutoscaledPool#runTaskFunction|`runTaskFunction()`},
- * {@link AutoscaledPool#isTaskReadyFunction|`isTaskReadyFunction()`} and
- * {@link AutoscaledPool#isFinishedFunction|`isFinishedFunction()`}.
+ * `runTaskFunction()`,
+ * `isTaskReadyFunction()` and
+ * `isFinishedFunction()`.
  *
- * The auto-scaled pool is started by calling the {@link AutoscaledPool#run|`run()`} function.
+ * The auto-scaled pool is started by calling the [`run()`](autoscaledpool#run) function.
  * The pool periodically queries the `isTaskReadyFunction()` function
  * for more tasks, managing optimal concurrency, until the function resolves to `false`. The pool then queries
  * the `isFinishedFunction()`. If it resolves to `true`, the run finishes. If it resolves to `false`, it assumes
@@ -61,7 +61,8 @@ const DEFAULT_OPTIONS = {
  * await pool.run();
  * ```
  *
- * @param {Object} options
+ * @param {Object} options All AutoscaledPool parameters are passed
+ *   via an options object with the following keys:
  * @param {Function} options.runTaskFunction
  *   A function that performs an asynchronous resource-intensive task.
  *   The function must either be labeled `async` or return a promise.

@@ -1,5 +1,5 @@
 ---
-id: ex-puppeteer_sitemap
+id: puppeteersitemap
 title: Puppeteer Sitemap
 ---
 

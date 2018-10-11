@@ -33,7 +33,8 @@ const DEFAULT_OPTIONS = {
  * CPU tracking is available only on the Apify platform and the CPU overloaded event is read
  * directly off the container and is not configurable.
  *
- * @param {Object} options
+ * @param {Object} [options] All Snapshotter parameters are passed
+ *   via an options object with the following keys:
  * @param {Number} [options.eventLoopSnapshotIntervalSecs=0.5]
  *   Defines the interval of measuring the event loop response time.
  * @param {Number} [options.maxBlockedMillis=50]
@@ -50,7 +51,6 @@ const DEFAULT_OPTIONS = {
  *   Sets the interval in seconds for which a history of resource snapshots
  *   will be kept. Increasing this to very high numbers will affect performance.
  * @alias module:Snapshotter
- * @ignore
  */
 class Snapshotter {
     constructor(options = {}) {
@@ -83,7 +83,6 @@ class Snapshotter {
     /**
      * Starts capturing snapshots at configured intervals.
      * @return {Promise}
-     * @ignore
      */
     async start() {
         // Ensure max memory is correctly computed.
@@ -106,7 +105,6 @@ class Snapshotter {
     /**
      * Stops all resource capturing.
      * @return {Promise}
-     * @ignore
      */
     async stop() {
         betterClearInterval(this.eventLoopInterval);
@@ -121,7 +119,6 @@ class Snapshotter {
      * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
      * @param {Number} [sampleDurationMillis]
      * @return {Array} sample
-     * @ignore
      */
     getMemorySample(sampleDurationMillis) {
         return this._getSample(this.memorySnapshots, sampleDurationMillis);
@@ -132,7 +129,6 @@ class Snapshotter {
      * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
      * @param {Number} [sampleDurationMillis]
      * @return {Array} sample
-     * @ignore
      */
     getEventLoopSample(sampleDurationMillis) {
         return this._getSample(this.eventLoopSnapshots, sampleDurationMillis);
@@ -143,7 +139,6 @@ class Snapshotter {
      * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
      * @param {Number} [sampleDurationMillis]
      * @return {Array} sample
-     * @ignore
      */
     getCpuSample(sampleDurationMillis) {
         return this._getSample(this.cpuSnapshots, sampleDurationMillis);

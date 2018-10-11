@@ -9,7 +9,7 @@ Provides a simple framework for the parallel crawling of web pages,
 whose URLs are fed either from a static list
 or from a dynamic queue of URLs.
 
-`BasicCrawler` invokes the user-provided `handleRequestFunction` for each [`Request`](Request)
+`BasicCrawler` invokes the user-provided `handleRequestFunction` for each [`Request`](request)
 object, which corresponds to a single URL to crawl.
 The `Request` objects are fed from the [`RequestList`](RequestList) or [`RequestQueue`](#RequestQueue)
 instances provided by the `requestList` or `requestQueue` constructor options, respectively.
@@ -59,8 +59,8 @@ await crawler.run();
 **Kind**: global class of [<code>BasicCrawler</code>](#module_BasicCrawler)  
 **See**
 
-- [CheerioCrawler](CheerioCrawler)
-- [PuppeteerCrawler](PuppeteerCrawler)
+- [CheerioCrawler](cheeriocrawler)
+- [PuppeteerCrawler](puppeteercrawler)
 
 * [BasicCrawler](#exp_module_BasicCrawler--BasicCrawler) ⏏
     * [`new BasicCrawler(options)`](#new_module_BasicCrawler--BasicCrawler_new)
@@ -70,20 +70,77 @@ await crawler.run();
 <a name="new_module_BasicCrawler--BasicCrawler_new"></a>
 
 ### `new BasicCrawler(options)`
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th><th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>options</code></td><td><code>Object</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"></td></tr><tr>
+<td><code>options.handleRequestFunction</code></td><td><code>function</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>User-provided function that performs the logic of the crawler. It is called for each URL to crawl.</p>
+<p>  The function that receives an object as argument, with the following field:</p>
+  <ul>
+    <li><code>request</code>: the <a href="request"><code>Request</code></a> object representing the URL to crawl</li>
+  </ul>
 
-| Param | Type | Default | Description |
-| --- | --- | --- | --- |
-| options | <code>Object</code> |  |  |
-| options.handleRequestFunction | <code>function</code> |  | User-provided function that performs the logic of the crawler. It is called for each URL to crawl.   The function that receives an object as argument, with the following field:   <ul>     <li>`request`: the [`Request`](Request) object representing the URL to crawl</li>   </ul>   The function must return a promise. |
-| options.requestList | <code>RequestList</code> |  | Static list of URLs to be processed.   Either `RequestList` or `RequestQueue` must be provided. |
-| options.requestQueue | [<code>RequestQueue</code>](#RequestQueue) |  | Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.   Either RequestList or RequestQueue must be provided. |
-| [options.handleFailedRequestFunction] | <code>function</code> |  | Function that handles requests that failed more then `option.maxRequestRetries` times.   See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/basic_crawler.js#L11">GitHub</a> for default behavior. |
-| [options.maxRequestRetries] | <code>Number</code> | <code>3</code> | How many times the request is retried if `handleRequestFunction` failed. |
-| [options.maxRequestsPerCrawl] | <code>Number</code> |  | Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached.   Always set this value in order to prevent infinite loops in misconfigured crawlers.   Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value. |
-| [options.autoscaledPoolOptions] | <code>Object</code> |  | Custom options passed to the underlying [`AutoscaledPool`](AutoscaledPool) instance constructor.   Note that the `runTaskFunction`, `isTaskReadyFunction` and `isFinishedFunction` options   are provided by `BasicCrawler` and cannot be overridden. |
-| [options.minConcurrency] | <code>Object</code> | <code>1</code> | Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding `AutoscaledPool` option. |
-| [options.maxConcurrency] | <code>Object</code> | <code>1000</code> | Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding `AutoscaledPool` option. |
-
+<p>  The function must return a promise.</p>
+</td></tr><tr>
+<td><code>options.requestList</code></td><td><code>RequestList</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Static list of URLs to be processed.
+  Either <code>RequestList</code> or <code>RequestQueue</code> must be provided.</p>
+</td></tr><tr>
+<td><code>options.requestQueue</code></td><td><code><a href="#RequestQueue">RequestQueue</a></code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
+  Either RequestList or RequestQueue must be provided.</p>
+</td></tr><tr>
+<td><code>[options.handleFailedRequestFunction]</code></td><td><code>function</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Function that handles requests that failed more then <code>option.maxRequestRetries</code> times.
+  See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/basic_crawler.js#L11">GitHub</a> for default behavior.</p>
+</td></tr><tr>
+<td><code>[options.maxRequestRetries]</code></td><td><code>Number</code></td><td><code>3</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>How many times the request is retried if <code>handleRequestFunction</code> failed.</p>
+</td></tr><tr>
+<td><code>[options.maxRequestsPerCrawl]</code></td><td><code>Number</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached.
+  Always set this value in order to prevent infinite loops in misconfigured crawlers.
+  Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.</p>
+</td></tr><tr>
+<td><code>[options.autoscaledPoolOptions]</code></td><td><code>Object</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Custom options passed to the underlying <a href="autoscaledpool"><code>AutoscaledPool</code></a> instance constructor.
+  Note that the <code>runTaskFunction</code>, <code>isTaskReadyFunction</code> and <code>isFinishedFunction</code> options
+  are provided by <code>BasicCrawler</code> and cannot be overridden.</p>
+</td></tr><tr>
+<td><code>[options.minConcurrency]</code></td><td><code>Object</code></td><td><code>1</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding <code>AutoscaledPool</code> option.</p>
+</td></tr><tr>
+<td><code>[options.maxConcurrency]</code></td><td><code>Object</code></td><td><code>1000</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding <code>AutoscaledPool</code> option.</p>
+</td></tr></tbody>
+</table>
 <a name="module_BasicCrawler--BasicCrawler+run"></a>
 
 ### `basicCrawler.run()` ⇒ <code>Promise</code>

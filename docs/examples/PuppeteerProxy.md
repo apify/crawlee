@@ -1,5 +1,5 @@
 ---
-id: ex-puppeteer_proxy
+id: puppeteerproxy
 title: Puppeteer Proxy
 ---
 

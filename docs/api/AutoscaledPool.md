@@ -9,17 +9,17 @@ Manages a pool of asynchronous resource-intensive tasks that are executed in par
 The pool only starts new tasks if there is enough free CPU and memory available
 and the Javascript event loop is not blocked.
 
-The information about the CPU and memory usage is obtained by the `Snapshotter` class,
+The information about the CPU and memory usage is obtained by the [Snapshotter](snapshotter) class,
 which makes regular snapshots of system resources that may be either local
 or from the Apify cloud infrastructure in case the process is running on the Apify platform.
 Meaningful data gathered from these snapshots is provided to `AutoscaledPool` by the `SystemStatus` class.
 
 Before running the pool, you need to implement the following three functions:
-[`runTaskFunction()`](AutoscaledPool#runTaskFunction),
-[`isTaskReadyFunction()`](AutoscaledPool#isTaskReadyFunction) and
-[`isFinishedFunction()`](AutoscaledPool#isFinishedFunction).
+`runTaskFunction()`,
+`isTaskReadyFunction()` and
+`isFinishedFunction()`.
 
-The auto-scaled pool is started by calling the [`run()`](AutoscaledPool#run) function.
+The auto-scaled pool is started by calling the [`run()`](autoscaledpool#run) function.
 The pool periodically queries the `isTaskReadyFunction()` function
 for more tasks, managing optimal concurrency, until the function resolves to `false`. The pool then queries
 the `isFinishedFunction()`. If it resolves to `true`, the run finishes. If it resolves to `false`, it assumes
@@ -58,24 +58,105 @@ await pool.run();
 <a name="new_module_AutoscaledPool--AutoscaledPool_new"></a>
 
 ### `new AutoscaledPool(options)`
-
-| Param | Type | Default | Description |
-| --- | --- | --- | --- |
-| options | <code>Object</code> |  |  |
-| options.runTaskFunction | <code>function</code> |  | A function that performs an asynchronous resource-intensive task.   The function must either be labeled `async` or return a promise. |
-| options.isTaskReadyFunction | <code>function</code> |  | A function that indicates whether `runTaskFunction` should be called. This function is called every time there is free capacity for a new task and it should   indicate whether it should start or not by resolving to either `true` or `false.   Besides its obvious use, it is also useful for task throttling to save resources. |
-| options.isFinishedFunction | <code>function</code> |  | A function that is called only when there are no tasks to be processed.   If it resolves to `true` then the pool's run finishes. Being called only   when there are no tasks being processed means that as long as `isTaskReadyFunction()`   keeps resolving to `true`, `isFinishedFunction()` will never be called.   To abort a run, use the `pool.abort()` method. |
-| [options.minConcurrency] | <code>Number</code> | <code>1</code> | Minimum number of tasks running in parallel. |
-| [options.maxConcurrency] | <code>Number</code> | <code>1000</code> | Maximum number of tasks running in parallel. |
-| [options.desiredConcurrencyRatio] | <code>Number</code> | <code>0.95</code> | Minimum level of desired concurrency to reach before more scaling up is allowed. |
-| [options.scaleUpStepRatio] | <code>Number</code> | <code>0.05</code> | Defines the fractional amount of desired concurrency to be added with each scaling up.   The minimum scaling step is one. |
-| [options.scaleDownStepRatio] | <code>Number</code> | <code>0.05</code> | Defines the amount of desired concurrency to be subtracted with each scaling down.   The minimum scaling step is one. |
-| [options.maybeRunIntervalSecs] | <code>Number</code> | <code>0.5</code> | Indicates how often the pool should call the `runTaskFunction()` to start a new task, in seconds.   This has no effect on starting new tasks immediately after a task completes. |
-| [options.loggingIntervalSecs] | <code>Number</code> | <code>60</code> | Specifies a period in which the instance logs its state, in seconds.   Set to `null` to disable periodic logging. |
-| [options.autoscaleIntervalSecs] | <code>Number</code> | <code>10</code> | Defines in seconds how often the pool should attempt to adjust the desired concurrency   based on the latest system status. Setting it lower than 1 might have a severe impact on performance.   We suggest using a value from 5 to 20. |
-| [options.snapshotterOptions] | <code>Number</code> |  | Options to be passed down to the `Snapshotter` constructor. This is useful for fine-tuning   the snapshot intervals and history.   See <a href="https://github.com/apifytech/apify-js/blob/develop/src/autoscaling/snapshotter.js">Snapshotter</a> source code for more details. |
-| [options.systemStatusOptions] | <code>Number</code> |  | Options to be passed down to the `SystemStatus` constructor. This is useful for fine-tuning   the system status reports. If a custom snapshotter is set in the options, it will be used   by the pool.   See <a href="https://github.com/apifytech/apify-js/blob/develop/src/autoscaling/system_status.js">SystemStatus</a> source code for more details. |
-
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th><th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>options</code></td><td><code>Object</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>All AutoscaledPool parameters are passed
+  via an options object with the following keys:</p>
+</td></tr><tr>
+<td><code>options.runTaskFunction</code></td><td><code>function</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>A function that performs an asynchronous resource-intensive task.
+  The function must either be labeled <code>async</code> or return a promise.</p>
+</td></tr><tr>
+<td><code>options.isTaskReadyFunction</code></td><td><code>function</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>A function that indicates whether <code>runTaskFunction</code> should be called.
+  This function is called every time there is free capacity for a new task and it should
+  indicate whether it should start or not by resolving to either <code>true</code> or `false.
+  Besides its obvious use, it is also useful for task throttling to save resources.</p>
+</td></tr><tr>
+<td><code>options.isFinishedFunction</code></td><td><code>function</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>A function that is called only when there are no tasks to be processed.
+  If it resolves to <code>true</code> then the pool&#39;s run finishes. Being called only
+  when there are no tasks being processed means that as long as <code>isTaskReadyFunction()</code>
+  keeps resolving to <code>true</code>, <code>isFinishedFunction()</code> will never be called.
+  To abort a run, use the <code>pool.abort()</code> method.</p>
+</td></tr><tr>
+<td><code>[options.minConcurrency]</code></td><td><code>Number</code></td><td><code>1</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Minimum number of tasks running in parallel.</p>
+</td></tr><tr>
+<td><code>[options.maxConcurrency]</code></td><td><code>Number</code></td><td><code>1000</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Maximum number of tasks running in parallel.</p>
+</td></tr><tr>
+<td><code>[options.desiredConcurrencyRatio]</code></td><td><code>Number</code></td><td><code>0.95</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Minimum level of desired concurrency to reach before more scaling up is allowed.</p>
+</td></tr><tr>
+<td><code>[options.scaleUpStepRatio]</code></td><td><code>Number</code></td><td><code>0.05</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Defines the fractional amount of desired concurrency to be added with each scaling up.
+  The minimum scaling step is one.</p>
+</td></tr><tr>
+<td><code>[options.scaleDownStepRatio]</code></td><td><code>Number</code></td><td><code>0.05</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Defines the amount of desired concurrency to be subtracted with each scaling down.
+  The minimum scaling step is one.</p>
+</td></tr><tr>
+<td><code>[options.maybeRunIntervalSecs]</code></td><td><code>Number</code></td><td><code>0.5</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Indicates how often the pool should call the <code>runTaskFunction()</code> to start a new task, in seconds.
+  This has no effect on starting new tasks immediately after a task completes.</p>
+</td></tr><tr>
+<td><code>[options.loggingIntervalSecs]</code></td><td><code>Number</code></td><td><code>60</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Specifies a period in which the instance logs its state, in seconds.
+  Set to <code>null</code> to disable periodic logging.</p>
+</td></tr><tr>
+<td><code>[options.autoscaleIntervalSecs]</code></td><td><code>Number</code></td><td><code>10</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Defines in seconds how often the pool should attempt to adjust the desired concurrency
+  based on the latest system status. Setting it lower than 1 might have a severe impact on performance.
+  We suggest using a value from 5 to 20.</p>
+</td></tr><tr>
+<td><code>[options.snapshotterOptions]</code></td><td><code>Number</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Options to be passed down to the <code>Snapshotter</code> constructor. This is useful for fine-tuning
+  the snapshot intervals and history.
+  See <a href="https://github.com/apifytech/apify-js/blob/develop/src/autoscaling/snapshotter.js">Snapshotter</a> source code for more details.</p>
+</td></tr><tr>
+<td><code>[options.systemStatusOptions]</code></td><td><code>Number</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Options to be passed down to the <code>SystemStatus</code> constructor. This is useful for fine-tuning
+  the system status reports. If a custom snapshotter is set in the options, it will be used
+  by the pool.
+  See <a href="https://github.com/apifytech/apify-js/blob/develop/src/autoscaling/system_status.js">SystemStatus</a> source code for more details.</p>
+</td></tr></tbody>
+</table>
 <a name="module_AutoscaledPool--AutoscaledPool+run"></a>
 
 ### `autoscaledPool.run()` ⇒ <code>Promise</code>

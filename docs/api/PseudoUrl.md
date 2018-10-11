@@ -5,7 +5,7 @@ title: PseudoUrl
 <a name="exp_module_PseudoUrl--PseudoUrl"></a>
 
 ## PseudoUrl ⏏
-Represents a pseudo URL (PURL) - an URL pattern used by web crawlers
+Represents a pseudo URL (purl) - an URL pattern used by web crawlers
 to specify which URLs should the crawler visit.
 This class is used by the {@linkcode enqueueLinks|Apify.utils.puppeteer.enqueueLinks()} function.
 
@@ -53,12 +53,25 @@ if (purl.matches('http://www.example.com/pages/my-awesome-page')) console.log('M
 <a name="new_module_PseudoUrl--PseudoUrl_new"></a>
 
 ### `new PseudoUrl(purl, requestTemplate)`
-
-| Param | Type | Description |
-| --- | --- | --- |
-| purl | <code>String</code> | Pseudo URL. |
-| requestTemplate | <code>Object</code> | Options for the new {@linkcode Request} instances created for matching URLs. |
-
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>purl</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Pseudo URL.</p>
+</td></tr><tr>
+<td><code>requestTemplate</code></td><td><code>Object</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Options for the new {@linkcode Request} instances created for matching URLs.</p>
+</td></tr></tbody>
+</table>
 <a name="module_PseudoUrl--PseudoUrl+matches"></a>
 
 ### `pseudoUrl.matches(url)` ⇒ <code>Boolean</code>
@@ -66,19 +79,36 @@ Determines whether a URL matches this pseudo-URL pattern.
 
 **Kind**: instance method of [<code>PseudoUrl</code>](#exp_module_PseudoUrl--PseudoUrl)  
 **Returns**: <code>Boolean</code> - Returns `true` if given URL matches pseudo URL.  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| url | <code>String</code> | URL to be matched. |
-
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>url</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>URL to be matched.</p>
+</td></tr></tbody>
+</table>
 <a name="module_PseudoUrl--PseudoUrl+createRequest"></a>
 
 ### `pseudoUrl.createRequest(url)` ⇒ <code>Request</code>
 Creates a Request object from requestTemplate and given URL.
 
 **Kind**: instance method of [<code>PseudoUrl</code>](#exp_module_PseudoUrl--PseudoUrl)  
-
-| Param | Type |
-| --- | --- |
-| url | <code>String</code> | 
-
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>url</code></td><td><code>String</code></td>
+</tr>
+<tr>
+</tr></tbody>
+</table>

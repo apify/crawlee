@@ -1,5 +1,5 @@
 ---
-id: ex-cheerio_crawler
+id: cheeriocrawler
 title: Cheerio Crawler
 ---
 

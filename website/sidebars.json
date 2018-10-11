@@ -1,17 +1,17 @@
 {
   "docs": {
-    "Introduction": ["examples/ex-hello_world"],
+    "Introduction": ["examples/helloworld"],
     "Examples": [
-        "examples/ex-basic_crawler",
-        "examples/ex-cheerio_crawler",
-        "examples/ex-puppeteer_crawler",
-        "examples/ex-puppeteer_proxy",
-        "examples/ex-puppeteer_sitemap",
-        "examples/ex-screenshots",
-        "examples/ex-call_actor",
-        "examples/ex-synchronous_run"
+        "examples/basiccrawler",
+        "examples/cheeriocrawler",
+        "examples/puppeteercrawler",
+        "examples/puppeteerproxy",
+        "examples/puppeteersitemap",
+        "examples/screenshots",
+        "examples/callactor",
+        "examples/synchronousrun"
     ],
-    "API": [
+    "API Reference": [
         "api/apify",
         "api/autoscaledpool",
         "api/basiccrawler",
@@ -25,5 +25,11 @@
         "api/requestlist",
         "api/requestqueue"
     ]
-  }
+  },
+    "autoscaling": {
+        "Autoscaling": [
+            "api/snapshotter",
+            "api/systemstatus"
+        ]
+    }
 }

@@ -11,7 +11,7 @@ represented by a unique key and associated with a MIME content type. Key-value s
 for saving screenshots, actor inputs and outputs, web pages, PDFs or to persist the state of crawlers.
 
 Do not instantiate this class directly, use the
-[`Apify.openKeyValueStore()`](Apify#openKeyValueStore) function instead.
+[`Apify.openKeyValueStore()`](apify#openkeyvaluestore) function instead.
 
 Each actor run is associated with a default key-value store, which is created exclusively
 for the run. By convention, the actor input and output are stored into the
@@ -101,11 +101,20 @@ const buffer = await store.getValue('screenshot1.png');
 **Returns**: <code>Promise.&lt;Object&gt;</code> - Returns a promise that resolves to an object, string
   or <a href="https://nodejs.org/api/buffer.html"><code>Buffer</code></a>, depending
   on the MIME content type of the record.  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| key | <code>String</code> | Key of the record. |
-
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>key</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Key of the record.</p>
+</td></tr></tbody>
+</table>
 <a name="KeyValueStore+setValue"></a>
 
 ### `keyValueStore.setValue(key, value, [options])` ⇒ <code>Promise</code>
@@ -140,14 +149,41 @@ otherwise the actor process might finish before the value is stored!
 
 **Kind**: instance method of [<code>KeyValueStore</code>](#KeyValueStore)  
 **Returns**: <code>Promise</code> - Returns a promise that resolves once the value is stored or deleted.  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| key | <code>String</code> | Unique record key. |
-| value | <code>Object</code> \| <code>String</code> \| <code>Buffer</code> | Record data, which can be one of the following values:   <ul>     <li>If `null`, the record in the key-value store is deleted.</li>     <li>If no `options.contentType` is specified, `value` can be any JavaScript object and it will be stringified to JSON.</li>     <li>If `options.contentType` is specified, `value` is considered raw data and it must be a `String`     or <a href="https://nodejs.org/api/buffer.html"><code>Buffer</code></a>.</li>   </ul>   For any other value an error will be thrown. |
-| [options] | <code>Object</code> |  |
-| [options.contentType] | <code>String</code> | Specifies a custom MIME content type of the record. |
-
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>key</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Unique record key.</p>
+</td></tr><tr>
+<td><code>value</code></td><td><code>Object</code> | <code>String</code> | <code>Buffer</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Record data, which can be one of the following values:
+  <ul>
+    <li>If <code>null</code>, the record in the key-value store is deleted.</li>
+    <li>If no <code>options.contentType</code> is specified, <code>value</code> can be any JavaScript object and it will be stringified to JSON.</li>
+    <li>If <code>options.contentType</code> is specified, <code>value</code> is considered raw data and it must be a <code>String</code>
+    or <a href="https://nodejs.org/api/buffer.html"><code>Buffer</code></a>.</li>
+  </ul>
+  For any other value an error will be thrown.</p>
+</td></tr><tr>
+<td><code>[options]</code></td><td><code>Object</code></td>
+</tr>
+<tr>
+<td colspan="3"></td></tr><tr>
+<td><code>[options.contentType]</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Specifies a custom MIME content type of the record.</p>
+</td></tr></tbody>
+</table>
 <a name="KeyValueStore+delete"></a>
 
 ### `keyValueStore.delete()` ⇒ <code>Promise</code>

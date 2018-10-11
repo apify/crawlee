@@ -1,5 +1,5 @@
 ---
-id: ex-synchronous_run
+id: synchronousrun
 title: Synchronous Run
 ---
 

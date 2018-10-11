@@ -1,5 +1,5 @@
 ---
-id: ex-screenshots
+id: screenshots
 title: Screenshots
 ---
 

@@ -1,5 +1,5 @@
 ---
-id: ex-puppeteer_crawler
+id: puppeteercrawler
 title: Puppeteer Crawler
 ---
 

@@ -38,16 +38,18 @@ The event emitter is initialized by calling <a href="#module-Apify-main"><code>A
 **Example usage:**
 
 ```javascript
-Apify.main(async () => {
-    
-  Apify.events.on('cpuInfo', (data) => {
-    if (data.isCpuOverloaded) console.log('Oh no, the CPU is overloaded!');
-  });
-  
+Apify.events.on('cpuInfo', (data) => {
+  if (data.isCpuOverloaded) console.log('Oh no, the CPU is overloaded!');
 });
 ```
 
 The following table shows all currently emitted events:
+
+| Event name | Data                             | Description |
+| `cpuInfo`  | `{ "isCpuOverloaded": Boolean }` | The event is emitted approximately every second
+                and it indicates whether the actor is using the maximum of available CPU resources.
+                If that's the case, the actor should not add more workload.
+                For example, this event is used by the <a href="#AutoscaledPool">AutoscaledPool</a> class. |
 
 <table class="table table-bordered table-condensed">
     <thead>
@@ -94,7 +96,7 @@ The following table shows all currently emitted events:
 
 ### `Apify.openRequestQueue` ⇒ [<code>Promise.&lt;RequestQueue&gt;</code>](#RequestQueue)
 Opens a request queue and returns a promise resolving to an instance
-of the [`RequestQueue`](#RequestQueue) class.
+of the [`RequestQueue`](#requestqueue) class.
 
 `RequestQueue` represents a queue of URLs to crawl, which is stored either on local filesystem or in the cloud.
 The queue is used for deep crawling of websites, where you start with several URLs and then
@@ -105,11 +107,21 @@ For more details and code examples, see the [`RequestQueue`](#RequestQueue) clas
 
 **Kind**: static property of [<code>Apify</code>](#module_Apify)  
 **Returns**: [<code>Promise.&lt;RequestQueue&gt;</code>](#RequestQueue) - Returns a promise that resolves to an instance of the `RequestQueue` class.  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| [queueIdOrName] | <code>string</code> | ID or name of the request queue to be opened. If `null` or `undefined`,   the function returns the default request queue associated with the actor run. |
-
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>[queueIdOrName]</code></td><td><code>string</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>ID or name of the request queue to be opened. If <code>null</code> or <code>undefined</code>,
+  the function returns the default request queue associated with the actor run.</p>
+</td></tr></tbody>
+</table>
 <a name="module_Apify.client"></a>
 
 ### `Apify.client`
@@ -135,7 +147,7 @@ It has the following properties:
 
 ```javascript
 {
-    // ID of the actor (APIFY_ACT_ID)
+    // ID of the actor (apify_act_id)
     actId: String,
 &nbsp;
     // ID of the actor run (APIFY_ACT_RUN_ID)
@@ -234,15 +246,25 @@ Apify.main(async () => {
 ```
 
 **Kind**: static method of [<code>Apify</code>](#module_Apify)  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| userFunc | <code>function</code> | User function to be executed. If it returns a promise, the promise will be awaited. The user function is called with no arguments. |
-
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>userFunc</code></td><td><code>function</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>User function to be executed. If it returns a promise,
+the promise will be awaited. The user function is called with no arguments.</p>
+</td></tr></tbody>
+</table>
 <a name="module_Apify.call"></a>
 
 ### `Apify.call(actId, [input], [options])` ⇒ [<code>Promise.&lt;ActorRun&gt;</code>](#ActorRun)
-Runs an actor on the Apify platform using the current user account (determined by the `APIFY_TOKEN` environment variable),
+Runs an actor on the Apify platform using the current user account (determined by the `apify_token` environment variable),
 waits for the actor to finish and fetches its output.
 
 By passing the `waitSecs` option you can reduce the maximum amount of time to wait for the run to finish.
@@ -271,20 +293,75 @@ with {@linkcode ApifyCallError}.
 
 - [<code>ApifyCallError</code>](#ApifyCallError) If the run did not succeed, e.g. if it failed or timed out.
 
-
-| Param | Type | Default | Description |
-| --- | --- | --- | --- |
-| actId | <code>String</code> |  | Either `username/actor-name` or actor ID. |
-| [input] | <code>Object</code> \| <code>String</code> \| <code>Buffer</code> |  | Input for the actor. If it is an object, it will be stringified to  JSON and its content type is set to `application/json; charset=utf-8`.  Otherwise the `options.contentType` parameter must be provided. |
-| [options] | <code>Object</code> |  | Object with settings |
-| [options.contentType] | <code>String</code> |  | Content type for the `input`. If not specified,  `input` is expected to be an object that will be stringified to JSON and content type set to  `application/json; charset=utf-8`. If `options.contentType` is specified, then `input` must be a  `String` or `Buffer`. |
-| [options.token] | <code>String</code> |  | User API token that is used to run the actor. By default, it is taken from the `APIFY_TOKEN` environment variable. |
-| [options.memory] | <code>Number</code> |  | Memory in megabytes which will be allocated for the new actor run. |
-| [options.build] | <code>String</code> |  | Tag or number of the actor build to run (e.g. `beta` or `1.2.345`).  If not provided, the run uses build tag or number from the default actor run configuration (typically `latest`). |
-| [options.waitSecs] | <code>String</code> |  | Maximum time to wait for the actor run to finish, in seconds.  If the limit is reached, the returned promise is resolved to a run object that will have  status `READY` or `RUNNING` and it will not contain the actor run output.  If `waitSecs` is null or undefined, the function waits for the actor to finish (default behavior). |
-| [options.fetchOutput] | <code>Boolean</code> | <code>true</code> | If `false` then the function does not fetch output of the actor. |
-| [options.disableBodyParser] | <code>Boolean</code> | <code>false</code> | If `true` then the function will not attempt to parse the  actor's output and will return it in a raw `Buffer`. |
-
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th><th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>actId</code></td><td><code>String</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Either <code>username/actor-name</code> or actor ID.</p>
+</td></tr><tr>
+<td><code>[input]</code></td><td><code>Object</code> | <code>String</code> | <code>Buffer</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Input for the actor. If it is an object, it will be stringified to
+ JSON and its content type is set to <code>application/json; charset=utf-8</code>.
+ Otherwise the <code>options.contentType</code> parameter must be provided.</p>
+</td></tr><tr>
+<td><code>[options]</code></td><td><code>Object</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Object with settings</p>
+</td></tr><tr>
+<td><code>[options.contentType]</code></td><td><code>String</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Content type for the <code>input</code>. If not specified,
+ <code>input</code> is expected to be an object that will be stringified to JSON and content type set to
+ <code>application/json; charset=utf-8</code>. If <code>options.contentType</code> is specified, then <code>input</code> must be a
+ <code>String</code> or <code>Buffer</code>.</p>
+</td></tr><tr>
+<td><code>[options.token]</code></td><td><code>String</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>User API token that is used to run the actor. By default, it is taken from the <code>APIFY_TOKEN</code> environment variable.</p>
+</td></tr><tr>
+<td><code>[options.memory]</code></td><td><code>Number</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Memory in megabytes which will be allocated for the new actor run.</p>
+</td></tr><tr>
+<td><code>[options.build]</code></td><td><code>String</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Tag or number of the actor build to run (e.g. <code>beta</code> or <code>1.2.345</code>).
+ If not provided, the run uses build tag or number from the default actor run configuration (typically <code>latest</code>).</p>
+</td></tr><tr>
+<td><code>[options.waitSecs]</code></td><td><code>String</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Maximum time to wait for the actor run to finish, in seconds.
+ If the limit is reached, the returned promise is resolved to a run object that will have
+ status <code>READY</code> or <code>RUNNING</code> and it will not contain the actor run output.
+ If <code>waitSecs</code> is null or undefined, the function waits for the actor to finish (default behavior).</p>
+</td></tr><tr>
+<td><code>[options.fetchOutput]</code></td><td><code>Boolean</code></td><td><code>true</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>If <code>false</code> then the function does not fetch output of the actor.</p>
+</td></tr><tr>
+<td><code>[options.disableBodyParser]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>If <code>true</code> then the function will not attempt to parse the
+ actor&#39;s output and will return it in a raw <code>Buffer</code>.</p>
+</td></tr></tbody>
+</table>
 <a name="module_Apify.getApifyProxyUrl"></a>
 
 ### `Apify.getApifyProxyUrl(opts)` ⇒ <code>String</code>
@@ -298,14 +375,40 @@ or the <a href="https://www.apify.com/docs/proxy">documentation</a>.
 
 **Kind**: static method of [<code>Apify</code>](#module_Apify)  
 **Returns**: <code>String</code> - Returns the proxy URL, e.g. `http://auto:my_password@proxy.apify.com:8000`.  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| opts | <code>Object</code> |  |
-| opts.password | <code>String</code> | User's password for the proxy. By default, it is taken from the `APIFY_PROXY_PASSWORD` environment variable, which is automatically set by the system when running the actors on the Apify cloud. |
-| [opts.groups] | <code>Array.&lt;String&gt;</code> | Array of Apify Proxy groups to be used. If not provided, the proxy will select the groups automatically. |
-| [opts.session] | <code>String</code> | Apify Proxy session identifier to be used by the Chrome browser. All HTTP requests going through the proxy with the same session identifier will use the same target proxy server (i.e. the same IP address). The identifier can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`. |
-
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>opts</code></td><td><code>Object</code></td>
+</tr>
+<tr>
+<td colspan="3"></td></tr><tr>
+<td><code>opts.password</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>User&#39;s password for the proxy.
+By default, it is taken from the <code>APIFY_PROXY_PASSWORD</code> environment variable,
+which is automatically set by the system when running the actors on the Apify cloud.</p>
+</td></tr><tr>
+<td><code>[opts.groups]</code></td><td><code>Array.&lt;String&gt;</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Array of Apify Proxy groups to be used.
+If not provided, the proxy will select the groups automatically.</p>
+</td></tr><tr>
+<td><code>[opts.session]</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Apify Proxy session identifier to be used by the Chrome browser.
+All HTTP requests going through the proxy with the same session identifier
+will use the same target proxy server (i.e. the same ip address).
+The identifier can only contain the following characters: <code>0-9</code>, <code>a-z</code>, <code>A-Z</code>, <code>&quot;.&quot;</code>, <code>&quot;_&quot;</code> and <code>&quot;~&quot;</code>.</p>
+</td></tr></tbody>
+</table>
 <a name="module_Apify.openDataset"></a>
 
 ### `Apify.openDataset([datasetIdOrName])` ⇒ [<code>Promise.&lt;Dataset&gt;</code>](#Dataset)
@@ -319,17 +422,27 @@ For more details and code examples, see the {@linkcode Dataset} class.
 
 **Kind**: static method of [<code>Apify</code>](#module_Apify)  
 **Returns**: [<code>Promise.&lt;Dataset&gt;</code>](#Dataset) - Returns a promise that resolves to an instance of the `Dataset` class.  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| [datasetIdOrName] | <code>string</code> | ID or name of the dataset to be opened. If `null` or `undefined`,   the function returns the default dataset associated with the actor run. |
-
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>[datasetIdOrName]</code></td><td><code>string</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>ID or name of the dataset to be opened. If <code>null</code> or <code>undefined</code>,
+  the function returns the default dataset associated with the actor run.</p>
+</td></tr></tbody>
+</table>
 <a name="module_Apify.pushData"></a>
 
 ### `Apify.pushData(data)` ⇒ <code>Promise</code>
 Stores an object or an array of objects to the default {@linkcode Dataset} of the current actor run.
 
-This is just a convenient shortcut for [`Dataset.pushData()`](#Dataset+pushData).
+This is just a convenient shortcut for [`Dataset.pushData()`](#dataset+pushdata).
 For example, calling the following code:
 ```javascript
 await Apify.pushData({ myValue: 123 });
@@ -348,12 +461,22 @@ otherwise the actor process might finish before the data is stored!
 
 **Kind**: static method of [<code>Apify</code>](#module_Apify)  
 **Returns**: <code>Promise</code> - Returns a promise that resolves once the data is saved.  
-**See**: [Dataset](#Dataset)  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| data | <code>Object</code> \| <code>Array</code> | Object or array of objects containing data to be stored in the default dataset. The objects must be serializable to JSON and the JSON representation of each object must be smaller than 9MB. |
-
+**See**: [Dataset](#dataset)  
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>data</code></td><td><code>Object</code> | <code>Array</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Object or array of objects containing data to be stored in the default dataset.
+The objects must be serializable to JSON and the JSON representation of each object must be smaller than 9MB.</p>
+</td></tr></tbody>
+</table>
 <a name="module_Apify.openKeyValueStore"></a>
 
 ### `Apify.openKeyValueStore([storeIdOrName])` ⇒ [<code>Promise.&lt;KeyValueStore&gt;</code>](#KeyValueStore)
@@ -367,17 +490,27 @@ For more details and code examples, see the {@linkcode KeyValueStore} class.
 
 **Kind**: static method of [<code>Apify</code>](#module_Apify)  
 **Returns**: [<code>Promise.&lt;KeyValueStore&gt;</code>](#KeyValueStore) - Returns a promise that resolves to an instance of the `KeyValueStore` class.  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| [storeIdOrName] | <code>string</code> | ID or name of the key-value store to be opened. If `null` or `undefined`,   the function returns the default key-value store associated with the actor run. |
-
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>[storeIdOrName]</code></td><td><code>string</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>ID or name of the key-value store to be opened. If <code>null</code> or <code>undefined</code>,
+  the function returns the default key-value store associated with the actor run.</p>
+</td></tr></tbody>
+</table>
 <a name="module_Apify.getValue"></a>
 
 ### `Apify.getValue(key)` ⇒ <code>Promise.&lt;Object&gt;</code>
 Gets a value from the default {@linkcode KeyValueStore} associated with the current actor run.
 
-This is just a convenient shortcut for [`KeyValueStore.getValue()`](#KeyValueStore+getValue).
+This is just a convenient shortcut for [`KeyValueStore.getValue()`](#keyvaluestore+getvalue).
 For example, calling the following code:
 ```javascript
 const input = await Apify.getValue('INPUT');
@@ -396,18 +529,27 @@ and [`KeyValueStore.getValue()`](#KeyValueStore+getValue).
 
 **Kind**: static method of [<code>Apify</code>](#module_Apify)  
 **Returns**: <code>Promise.&lt;Object&gt;</code> - Returns a promise that resolves once the record is stored.  
-**See**: [KeyValueStore](#KeyValueStore)  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| key | <code>String</code> | Unique record key. |
-
+**See**: [KeyValueStore](#keyvaluestore)  
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>key</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Unique record key.</p>
+</td></tr></tbody>
+</table>
 <a name="module_Apify.setValue"></a>
 
 ### `Apify.setValue(key, value, [options])` ⇒ <code>Promise</code>
 Stores or deletes a value in the default {@linkcode KeyValueStore} associated with the current actor run.
 
-This is just a convenient shortcut for [`KeyValueStore.setValue()`](#KeyValueStore+setValue).
+This is just a convenient shortcut for [`KeyValueStore.setValue()`](#keyvaluestore+setvalue).
 For example, calling the following code:
 ```javascript
 await Apify.setValue('OUTPUT', { foo: "bar" });
@@ -426,15 +568,42 @@ and [`KeyValueStore.setValue()`](#KeyValueStore+setValue).
 
 **Kind**: static method of [<code>Apify</code>](#module_Apify)  
 **Returns**: <code>Promise</code> - Returns a promise that resolves once the value is stored or deleted.  
-**See**: [KeyValueStore](#KeyValueStore)  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| key | <code>String</code> | Unique record key. |
-| value | <code>Object</code> \| <code>String</code> \| <code>Buffer</code> | Record data, which can be one of the following values:   <ul>     <li>If `null`, the record in the key-value store is deleted.</li>     <li>If no `options.contentType` is specified, `value` can be any JavaScript object and it will be stringified to JSON.</li>     <li>If `options.contentType` is specified, `value` is considered raw data and it must be a `String`     or <a href="https://nodejs.org/api/buffer.html"><code>Buffer</code></a>.</li>   </ul>   For any other value an error will be thrown. |
-| [options] | <code>Object</code> |  |
-| [options.contentType] | <code>String</code> | Specifies a custom MIME content type of the record. |
-
+**See**: [KeyValueStore](#keyvaluestore)  
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>key</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Unique record key.</p>
+</td></tr><tr>
+<td><code>value</code></td><td><code>Object</code> | <code>String</code> | <code>Buffer</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Record data, which can be one of the following values:
+  <ul>
+    <li>If <code>null</code>, the record in the key-value store is deleted.</li>
+    <li>If no <code>options.contentType</code> is specified, <code>value</code> can be any JavaScript object and it will be stringified to JSON.</li>
+    <li>If <code>options.contentType</code> is specified, <code>value</code> is considered raw data and it must be a <code>String</code>
+    or <a href="https://nodejs.org/api/buffer.html"><code>Buffer</code></a>.</li>
+  </ul>
+  For any other value an error will be thrown.</p>
+</td></tr><tr>
+<td><code>[options]</code></td><td><code>Object</code></td>
+</tr>
+<tr>
+<td colspan="3"></td></tr><tr>
+<td><code>[options.contentType]</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Specifies a custom MIME content type of the record.</p>
+</td></tr></tbody>
+</table>
 <a name="module_Apify.launchPuppeteer"></a>
 
 ### `Apify.launchPuppeteer([opts])` ⇒ <code>Promise</code>
@@ -479,11 +648,21 @@ For an example of usage, see the <a href="https://www.apify.com/apify/example-pu
 
 **Kind**: static method of [<code>Apify</code>](#module_Apify)  
 **Returns**: <code>Promise</code> - Promise object that resolves to Puppeteer's `Browser` instance.  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| [opts] | [<code>LaunchPuppeteerOptions</code>](#LaunchPuppeteerOptions) | Optional settings passed to `puppeteer.launch()`. Additionally the object can   contain the following fields: |
-
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>[opts]</code></td><td><code><a href="#LaunchPuppeteerOptions">LaunchPuppeteerOptions</a></code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Optional settings passed to <code>puppeteer.launch()</code>. Additionally the object can
+  contain the following fields:</p>
+</td></tr></tbody>
+</table>
 <a name="module_Apify.isDocker"></a>
 
 ### `Apify.isDocker()` ⇒ <code>Promise</code>
@@ -503,7 +682,7 @@ Returns memory statistics of the process and the system, which is an object with
   // Amount of free memory in the system or container
   freeBytes: Number,
   &nbsp;
-  // Amount of memory used (= totalBytes - freeBytes)
+  // Amount of memory used (= totalbytes - freebytes)
   usedBytes: Number,
   // Amount of memory used the current Node.js process
   mainProcessBytes: Number,
@@ -545,11 +724,36 @@ for more details.
 For an example of usage, see the <a href="https://www.apify.com/apify/example-selenium">apify/example-selenium</a> actor.
 
 **Kind**: static method of [<code>Apify</code>](#module_Apify)  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| [opts] | <code>Object</code> | Optional settings passed to `puppeteer.launch()`. Additionally the object can contain the following fields: |
-| [opts.proxyUrl] | <code>String</code> | URL to a proxy server. Currently only `http://` scheme is supported. Port number must be specified. For example, `http://example.com:1234`. |
-| [opts.headless] | <code>String</code> | Indicates that the browser will be started in headless mode. If the option is not defined, and the `APIFY_HEADLESS` environment variable has value `1` and `APIFY_XVFB` is NOT `1`, the value defaults to `true`, otherwise it will be `false`. |
-| [opts.userAgent] | <code>String</code> | User-Agent for the browser. If not provided, the function sets it to a reasonable default. |
-
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>[opts]</code></td><td><code>Object</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Optional settings passed to <code>puppeteer.launch()</code>. Additionally the object can contain the following fields:</p>
+</td></tr><tr>
+<td><code>[opts.proxyUrl]</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>URL to a proxy server. Currently only <code>http://</code> scheme is supported.
+Port number must be specified. For example, <code>http://example.com:1234</code>.</p>
+</td></tr><tr>
+<td><code>[opts.headless]</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Indicates that the browser will be started in headless mode.
+If the option is not defined, and the <code>APIFY_HEADLESS</code> environment variable has value <code>1</code>
+and <code>APIFY_XVFB</code> is NOT <code>1</code>, the value defaults to <code>true</code>, otherwise it will be <code>false</code>.</p>
+</td></tr><tr>
+<td><code>[opts.userAgent]</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>User-Agent for the browser.
+If not provided, the function sets it to a reasonable default.</p>
+</td></tr></tbody>
+</table>
