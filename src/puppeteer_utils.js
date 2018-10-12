@@ -257,6 +257,116 @@ const cacheResponses = async (page, cache, responseUrlRules) => {
 };
 
 /**
+ * Setup which requests done by the page should be block and which responses should be cached.
+ * This helper function exists mainly because it's not possible to attach two handler's that both intercept the same request.
+ * *IMPORTANT*: Caching responses stores them to memory, so too loose rules could cause memory leaks for longer running crawlers.
+ *   This issue should be resolved or atleast mitigated in future iterations of this feature.
+ * String rules are compared as request().url().includes(rule) while RegExp rules are evaluated as rule.test(request.url()).
+ * If defined then blockRequestFunction should take Puppeteer.Request object and return boolean value.
+ * If defined then cacheResponseFunction should take Puppeteer.Response object and should return boolean value.
+ * @param  {Page} options.page                                  Puppeteer's `Page` object
+ * @param  {Object} options.cache                               Object in which responses are stored
+ * @param  {Function} options.blockRequestFunction              Function which evaluates whether request should be aborted
+ * @param  {Array<String|RegExp>} options.blockRequestUrlRules  List of rules that are used to check if request should be aborted.
+ * @param  {Function} options.blockedRequestErrorCode           Which error code be the blocked request resolved with (default is: 'aborted')
+ *   List of all available error codes can be found here: https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#requestaborterrorcode
+ * @param  {Function} options.cacheResponseFunction             Function which evaluates whether response should be aborted
+ * @param  {Array<String|RegExp} options.cacheResponseUrlRules  List of rules that are used to check if response should be cached.
+ * @return {Void}
+ * @memberof utils.puppeteer
+ */
+const blockRequestsOrCacheResponses = async ({
+    page,
+    cache,
+    blockRequestFunction,
+    blockRequestUrlRules,
+    blockedRequestErrorCode = 'aborted',
+    cacheResponseFunction,
+    cacheResponseUrlRules,
+}) => {
+    checkParamOrThrow(page, 'page', 'Object');
+    checkParamOrThrow(cache, 'cache', 'Object');
+    checkParamOrThrow(blockedRequestErrorCode, 'blockedRequestErrorCode', 'String');
+    checkParamOrThrow(blockRequestFunction, 'blockUrlRules', 'Maybe Function');
+    checkParamOrThrow(blockRequestUrlRules, 'cacheUrlRules', 'Maybe Array');
+    checkParamOrThrow(cacheResponseFunction, 'blockUrlRules', 'Maybe Function');
+    checkParamOrThrow(cacheResponseUrlRules, 'cacheUrlRules', 'Maybe Array');
+
+    // Check that block request url rules are either String or RegExp
+    if (blockRequestUrlRules) {
+        blockRequestUrlRules.forEach((rule, index) => checkParamOrThrow(rule, `responseUrlRules[${index}]`, 'String | RegExp'));
+    } else {
+        blockRequestUrlRules = [];
+    }
+
+    // Check that cache resonse url rules are either String or RegExp
+    if (cacheResponseUrlRules) {
+        cacheResponseUrlRules.forEach((rule, index) => checkParamOrThrow(rule, `responseUrlRules[${index}]`, 'String | RegExp'));
+    } else {
+        cacheResponseUrlRules = [];
+    }
+
+    // Required to be able to intercept requests
+    await page.setRequestInterception(true);
+
+    page.on('request', async (request) => {
+        const url = request.url();
+
+        // If user provided custom function to check request, run it first
+        let shouldBeAborted = blockRequestFunction && blockRequestFunction(request);
+        if (!shouldBeAborted) {
+            // Check if current url matches any of the rules for blocking
+            shouldBeAborted = blockRequestUrlRules.some((rule) => {
+                if (typeof rule === 'string') return url.includes(rule);
+                if (rule instanceof RegExp) return rule.test(url);
+            });
+        }
+
+        // Abort the request if it does meet any of the rules
+        if (shouldBeAborted) return request.abort(blockedRequestErrorCode);
+
+        // If the url is already cached then immediately respond with localy stored response.
+        if (cache[url]) {
+            await request.respond(cache[url]);
+            return;
+        }
+
+        // If nothing matched, continue the function
+        request.continue();
+    });
+
+    page.on('response', async (response) => {
+        const url = response.url();
+
+        // Response is already cached, do nothing
+        if (cache[url]) return;
+
+        // If user provided custom function to check response, run it first
+        let shouldBeCached = cacheResponseFunction && cacheResponseFunction(response);
+        if (!shouldBeCached) {
+            // Check that the url matches any of the rules for caching
+            shouldBeCached = cacheResponseUrlRules.some((rule) => {
+                if (typeof rule === 'string') return url.includes(rule);
+                if (rule instanceof RegExp) return rule.test(url);
+            });
+        }
+        // This response should not be cached, do nothing
+        if (!shouldBeCached) return;
+
+        try {
+            const buffer = await response.buffer();
+            cache[url] = {
+                status: response.status(),
+                headers: response.headers(),
+                body: buffer,
+            };
+        } catch (e) {
+            // ignore errors, usualy means that buffer is empty or broken connection
+        }
+    });
+};
+
+/**
  * Compiles a Puppeteer script into an async function that may be executed at any time
  * by providing it with the following object:
  * ```
@@ -324,5 +434,6 @@ export const puppeteerUtils = {
     enqueueLinks,
     blockResources,
     cacheResponses,
+    blockRequestsOrCacheResponses,
     compileScript,
 };

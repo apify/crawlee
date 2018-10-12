@@ -280,6 +280,102 @@ describe('Apify.utils.puppeteer', () => {
         await testRuleType(() => {});
     });
 
+    it('supports blockRequestsOrCacheResponses()', async () => {
+        const browser = await Apify.launchPuppeteer({ headless: true });
+
+        const getResourcesLoadedFromWiki = async ({
+            cache,
+            blockRequestFunction,
+            blockRequestUrlRules,
+            cacheResponseFunction,
+            cacheResponseUrlRules,
+        }) => {
+            const responses = [];
+            const page = await browser.newPage();
+            await Apify.utils.puppeteer.blockRequestsOrCacheResponses({
+                page,
+                cache,
+                blockRequestFunction,
+                blockRequestUrlRules,
+                cacheResponseFunction,
+                cacheResponseUrlRules,
+            });
+            page.on('response', async (response) => {
+                if (cache[response.url()]) return;
+                responses.push(response.url());
+            });
+            await page.goto('https://www.wikipedia.org/', { waitUntil: 'networkidle0' });
+            await page.close();
+            return responses;
+        };
+
+        try {
+            let cache = {};
+            const normalRun = await getResourcesLoadedFromWiki({ cache });
+
+            // Check that request blocking through url rules works
+            const blockedImagesThroughRules = await getResourcesLoadedFromWiki({
+                cache,
+                blockRequestUrlRules: ['.png', /.+\.svg/i],
+            });
+            expect(normalRun.length).to.be.above(blockedImagesThroughRules.length);
+
+            // Check that request blocking through custom function works well
+            const blockedImagesThroughFunction = await getResourcesLoadedFromWiki({
+                cache,
+                blockRequestFunction: request => request.resourceType() === 'image',
+            });
+            expect(blockedImagesThroughRules).to.be.deep.equal(blockedImagesThroughFunction);
+
+            // Check that response caching through url rules works well
+            const cachedThroughRulesFirstRun = await getResourcesLoadedFromWiki({ cache, cacheResponseUrlRules: ['.png', /.+\.svg/i] });
+            const cachedThroughRulesSecondRun = await getResourcesLoadedFromWiki({ cache, cacheResponseUrlRules: ['.png', /.+\.svg/i] });
+            expect(cachedThroughRulesFirstRun.length).to.be.above(cachedThroughRulesSecondRun.length);
+
+            // Check that response caching through custom function works well
+            cache = {};
+            let cacheResponseFunction = response => response.request().resourceType() === 'image';
+            const cachedThroughFunctionFirstRun = await getResourcesLoadedFromWiki({ cache, cacheResponseFunction });
+            const cachedThroughFunctionSecondRun = await getResourcesLoadedFromWiki({ cache, cacheResponseFunction });
+
+            expect(cachedThroughFunctionFirstRun).to.be.deep.equal(cachedThroughRulesFirstRun);
+            expect(cachedThroughRulesSecondRun).to.be.deep.equal(cachedThroughFunctionSecondRun);
+            expect(blockedImagesThroughFunction).to.be.deep.equal(cachedThroughFunctionSecondRun);
+
+            // Check that all 4 methods can be used together
+            const blockRequestFunction = request => request.url().includes('.svg');
+            cacheResponseFunction = response => response.url().includes('index');
+            const blockRequestUrlRules = ['.png'];
+            const cacheResponseUrlRules = ['gt-ie9'];
+            const allOptionsFirstRun = await getResourcesLoadedFromWiki({
+                cache,
+                blockRequestFunction,
+                blockRequestUrlRules,
+                cacheResponseFunction,
+                cacheResponseUrlRules,
+            });
+
+            // Check if blocking worked
+            expect(allOptionsFirstRun.length).to.be.below(normalRun.length);
+            allOptionsFirstRun.forEach(url => expect(url).to.not.include('.png'));
+            allOptionsFirstRun.forEach(url => expect(url).to.not.include('.svg'));
+
+            const allOptionsSecondRun = await getResourcesLoadedFromWiki({
+                cache,
+                blockRequestFunction,
+                blockRequestUrlRules,
+                cacheResponseFunction,
+                cacheResponseUrlRules,
+            });
+
+            // Check if caching worked
+            expect(allOptionsSecondRun.length).to.be.below(allOptionsFirstRun.length);
+            allOptionsSecondRun.forEach(url => expect(url).to.not.include('.js'));
+        } finally {
+            await browser.close();
+        }
+    });
+
     it('compileScript() works', async () => {
         const { compileScript } = Apify.utils.puppeteer;
         const scriptStringGood = 'await page.goto("about:blank"); return await page.content();';
