@@ -224,7 +224,11 @@ export default class PuppeteerPool {
                 });
                 // This one is done manually in Puppeteerpool.newPage() so that it happens immediately.
                 // browser.on('targetcreated', () => instance.activePages++);
-                browser.on('targetdestroyed', () => {
+                browser.on('targetdestroyed', (target) => {
+                    // The event is also called for service workers and Chromium extensions, which must be ignored!
+                    const type = target.type();
+                    if (type !== 'page' && type !== 'other') return;
+
                     instance.activePages--;
 
                     if (instance.activePages === 0 && this.retiredInstances[id]) {

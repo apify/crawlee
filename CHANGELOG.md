@@ -1,3 +1,8 @@
+xxx
+===================
+- Bugfix in `PuppeteerPool`: Pages were sometimes considered closed even though they weren't
+- Improvements in documentation
+
 0.8.14 / 2018-10-11
 ===================
 - Added `Apify.utils.puppeteer.cacheResponses` to enable response caching in headless Chromium.
