@@ -1,31 +1,37 @@
 {
-  "docs": {
-    "Introduction": ["examples/helloworld"],
-    "Examples": [
-        "examples/basiccrawler",
-        "examples/cheeriocrawler",
-        "examples/puppeteercrawler",
-        "examples/puppeteerproxy",
-        "examples/puppeteersitemap",
-        "examples/screenshots",
-        "examples/callactor",
-        "examples/synchronousrun"
-    ],
-    "API Reference": [
-        "api/apify",
-        "api/autoscaledpool",
-        "api/basiccrawler",
-        "api/cheeriocrawler",
-        "api/dataset",
-        "api/keyvaluestore",
-        "api/pseudourl",
-        "api/puppeteercrawler",
-        "api/puppeteerpool",
-        "api/request",
-        "api/requestlist",
-        "api/requestqueue"
-    ]
-  },
+    "docs": {
+        "Introduction": [
+            "examples/helloworld"
+        ],
+        "API Reference": [
+            "api/apify",
+            "api/autoscaledpool",
+            "api/basiccrawler",
+            "api/cheeriocrawler",
+            "api/dataset",
+            "api/keyvaluestore",
+            "api/pseudourl",
+            "api/puppeteercrawler",
+            "api/puppeteerpool",
+            "api/request",
+            "api/requestlist",
+            "api/requestqueue",
+            "api/utils",
+            "api/puppeteer"
+        ]
+    },
+    "examples": {
+        "Examples": [
+            "examples/basiccrawler",
+            "examples/cheeriocrawler",
+            "examples/puppeteercrawler",
+            "examples/puppeteerproxy",
+            "examples/puppeteersitemap",
+            "examples/screenshots",
+            "examples/callactor",
+            "examples/synchronousrun"
+        ]
+    },
     "autoscaling": {
         "Autoscaling": [
             "api/snapshotter",

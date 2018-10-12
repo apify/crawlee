@@ -33,8 +33,8 @@ if (process.env[EMULATION_ENV_VAR]) {
 
 /**
  * The following section describes all functions and properties provided by the `apify` package,
- * except individual classes that have their separate, detailed, documentation pages.
- * All of them are instance members exported directly by the main module.
+ * except individual classes and namespaces that have their separate, detailed, documentation pages
+ * accessible from the left sidebar.
  *
  * @module Apify
  */

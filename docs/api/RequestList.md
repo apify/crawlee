@@ -7,25 +7,25 @@ title: RequestList
 Represents a static list of URLs to crawl.
 The URLs can be provided either in code or parsed from a text file hosted on the web.
 
-Each URL is represented using an instance of the [`Request`](request) class.
+Each URL is represented using an instance of the [``Request``](Request) class.
 The list can only contain unique URLs. More precisely, it can only contain `Request` instances
 with distinct `uniqueKey` properties. By default, `uniqueKey` is generated from the URL, but it can also be overridden.
 To add a single URL multiple times to the list,
 corresponding `Request` objects will need to have different `uniqueKey` properties.
 You can use the `keepDuplicateUrls` option to do this for you.
 
-Once you create an instance of `RequestList`, you need to call [`initialize()`](requestlist#initialize)
+Once you create an instance of `RequestList`, you need to call [``initialize()``](RequestList#initialize)
 before the instance can be used. After that, no more URLs can be added to the list.
 
-`RequestList` is used by [`BasicCrawler`](basiccrawler), [`CheerioCrawler`](cheeriocrawler)
-and [`PuppeteerCrawler`](puppeteercrawler) as a source of URLs to crawl.
-Unlike [`RequestQueue`](#requestqueue), `RequestList` is static but it can contain even millions of URLs.
+`RequestList` is used by [``BasicCrawler``](BasicCrawler), [``CheerioCrawler``](CheerioCrawler)
+and [``PuppeteerCrawler``](PuppeteerCrawler) as a source of URLs to crawl.
+Unlike [``RequestQueue``](requestqueue), `RequestList` is static but it can contain even millions of URLs.
 
 `RequestList` has an internal state where it stores information which requests were handled,
 which are in progress or which were reclaimed.
 The state might be automatically persisted to the default key-value store by setting the `persistStateKey` option
 so that if the Node.js process is restarted,
-the crawling can continue where it left off. For more details, see [`KeyValueStore`](#keyvaluestore).
+the crawling can continue where it left off. For more details, see [``KeyValueStore``](keyvaluestore).
 
 **Example usage:**
 

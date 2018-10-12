@@ -18,7 +18,7 @@ const readFilePromised = Promise.promisify(fs.readFile);
  *
  * @param {Page} page Puppeteer [Page](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page) object.
  * @return {Promise}
- * @memberof utils.puppeteer
+ * @memberOf puppeteer
  */
 const hideWebDriver = async (page) => {
     checkParamOrThrow(page, 'page', 'Object');
@@ -60,7 +60,7 @@ const hideWebDriver = async (page) => {
  * @param {Page} page Puppeteer [Page](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page) object.
  * @param {String} filePath File path
  * @return {Promise}
- * @memberof utils.puppeteer
+ * @memberOf puppeteer
  */
 const injectFile = async (page, filePath) => {
     checkParamOrThrow(page, 'page', 'Object');
@@ -81,7 +81,7 @@ const injectFile = async (page, filePath) => {
  *
  * @param {Page} page Puppeteer [Page](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page) object.
  * @return {Promise}
- * @memberof utils.puppeteer
+ * @memberOf puppeteer
  */
 const injectJQuery = (page) => {
     checkParamOrThrow(page, 'page', 'Object');
@@ -97,7 +97,7 @@ const injectJQuery = (page) => {
  *
  * @param {Page} page Puppeteer [Page](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page) object.
  * @return {Promise}
- * @memberof utils.puppeteer
+ * @memberOf puppeteer
  */
 const injectUnderscore = (page) => {
     checkParamOrThrow(page, 'page', 'Object');
@@ -146,7 +146,7 @@ const enqueueRequestsFromClickableElements = async (page, selector, purls, reque
  *   Request queue object where URLs will be enqueued.
  * @return {Promise<RequestOperationInfo[]>}
  *   Promise that resolves to an array of {@linkcode RequestOperationInfo} objects.
- * @memberof utils.puppeteer
+ * @memberOf puppeteer
  */
 const enqueueLinks = async (page, selector, purls, requestQueue) => {
     checkParamOrThrow(page, 'page', 'Object');
@@ -186,7 +186,7 @@ const enqueueLinks = async (page, selector, purls, requestQueue) => {
  * @param {Page} page Puppeteer's `Page` object
  * @param {Array<String>} resourceTypes Array of resource types to block.
  * @return {Promise<void>}
- * @memberof utils.puppeteer
+ * @memberOf puppeteer
  */
 const blockResources = async (page, resourceTypes = ['stylesheet', 'font', 'image', 'media']) => {
     await page.setRequestInterception(true);
@@ -206,7 +206,7 @@ const blockResources = async (page, resourceTypes = ['stylesheet', 'font', 'imag
  * @param {Array<String|RegExp>} responseUrlRules   List of rules that are used to check if response should be cached.
  *   String rules are compared as page.url().includes(rule) while RegExp rules are evaluated as rule.test(page.url()).
  * @return {Promise<void>}
- * @memberof utils.puppeteer
+ * @memberOf puppeteer
  */
 const cacheResponses = async (page, cache, responseUrlRules) => {
     checkParamOrThrow(page, 'page', 'Object');
@@ -277,7 +277,7 @@ const cacheResponses = async (page, cache, responseUrlRules) => {
  *
  * @param {String} scriptString
  * @return {Function} async ({ page, request }) => { scriptString }
- * @memberof utils.puppeteer
+ * @memberOf puppeteer
  */
 const compileScript = (scriptString) => {
     const funcString = `async ({ page, request }) => {${scriptString}}`;
@@ -303,6 +303,7 @@ const compileScript = (scriptString) => {
  *
  * ```javascript
  * const Apify = require('apify');
+ * const { puppeteer } = Apify.utils;
  *
  * // Open https://www.example.com in Puppeteer
  * const browser = await Apify.launchPuppeteer();
@@ -310,10 +311,9 @@ const compileScript = (scriptString) => {
  * await page.goto('https://www.example.com');
  *
  * // Inject jQuery into a page
- * await Apify.utils.puppeteer.injectJQuery(page);
+ * await puppeteer.injectJQuery(page);
  * ```
- * @namespace utils.puppeteer
- * @name utils.puppeteer
+ * @namespace puppeteer
  */
 export const puppeteerUtils = {
     hideWebDriver,

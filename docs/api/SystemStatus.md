@@ -10,7 +10,7 @@ The system status is calculated using a weighted average of overloaded
 messages in the snapshots, with the weights being the time intervals
 between the snapshots. Each resource is calculated separately
 and the system is overloaded whenever at least one resource is overloaded.
-The class is used by the [AutoscaledPool](autoscaledpool) class.
+The class is used by the [`AutoscaledPool`](AutoscaledPool) class.
 
 `getCurrentStatus()` returns a boolean that represents the current status of the system.
 The length of the current timeframe in seconds is configurable

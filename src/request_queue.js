@@ -806,18 +806,17 @@ const getOrCreateQueue = (queueIdOrName) => {
  * Opens a request queue and returns a promise resolving to an instance
  * of the {@link RequestQueue} class.
  *
- * `RequestQueue` represents a queue of URLs to crawl, which is stored either on local filesystem or in the cloud.
+ * {@link RequestQueue} represents a queue of URLs to crawl, which is stored either on local filesystem or in the cloud.
  * The queue is used for deep crawling of websites, where you start with several URLs and then
  * recursively follow links to other pages. The data structure supports both breadth-first
  * and depth-first crawling orders.
  *
- * For more details and code examples, see the [`RequestQueue`]{@link RequestQueue} class.
+ * For more details and code examples, see the {@link RequestQueue} class.
  *
  * @param {string} [queueIdOrName]
  *   ID or name of the request queue to be opened. If `null` or `undefined`,
  *   the function returns the default request queue associated with the actor run.
  * @returns {Promise<RequestQueue>}
- *   Returns a promise that resolves to an instance of the `RequestQueue` class.
  * @memberof module:Apify
  * @name openRequestQueue
  */

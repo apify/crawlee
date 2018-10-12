@@ -10,7 +10,7 @@ represented by a unique key and associated with a MIME content type. Key-value s
 for saving screenshots, actor inputs and outputs, web pages, PDFs or to persist the state of crawlers.
 
 Do not instantiate this class directly, use the
-[`Apify.openKeyValueStore()`](apify#openkeyvaluestore) function instead.
+[``Apify.openKeyValueStore()``](Apify#openKeyValueStore) function instead.
 
 Each actor run is associated with a default key-value store, which is created exclusively
 for the run. By convention, the actor input and output are stored into the

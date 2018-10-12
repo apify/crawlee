@@ -32,39 +32,31 @@ const tryParseDate = (str) => {
  * {
  *     // ID of the actor (APIFY_ACT_ID)
  *     actId: String,
- * &nbsp;
  *     // ID of the actor run (APIFY_ACT_RUN_ID)
  *     actRunId: String,
- * &nbsp;
  *     // ID of the user who started the actor - note that it might be
  *     // different than the owner of the actor (APIFY_USER_ID)
  *     userId: String,
- * &nbsp;
  *     // Authentication token representing privileges given to the actor run,
  *     // it can be passed to various Apify APIs (APIFY_TOKEN).
  *     token: String,
- * &nbsp;
  *     // Date when the actor was started (APIFY_STARTED_AT)
  *     startedAt: Date,
- * &nbsp;
  *     // Date when the actor will time out (APIFY_TIMEOUT_AT)
  *     timeoutAt: Date,
- * &nbsp;
  *     // ID of the key-value store where input and output data of this
  *     // actor is stored (APIFY_DEFAULT_KEY_VALUE_STORE_ID)
  *     defaultKeyValueStoreId: String,
- * &nbsp;
  *     // ID of the dataset where input and output data of this
  *     // actor is stored (APIFY_DEFAULT_DATASET_ID)
  *     defaultDatasetId: String,
- * &nbsp;
  *     // Amount of memory allocated for the actor,
  *     // in megabytes (APIFY_MEMORY_MBYTES)
  *     memoryMbytes: Number,
  * }
  * ```
  * For the list of the `APIFY_XXX` environment variables, see
- * <a href="http://localhost/docs/actor.php#run-env-vars" target="_blank">Actor documentation</a>.
+ * <a href="https://www.apify.com/docs/actor#run-env-vars" target="_blank">Actor documentation</a>.
  * If some of the variables are not defined or are invalid, the corresponding value in the resulting object will be null.
  *
  * @returns {Object}
@@ -102,7 +94,7 @@ export const getEnv = () => {
  *   <li>When running on the Apify platform (i.e. <code>APIFY_IS_AT_HOME</code> environment variable is set),
  *   it sets up a connection to listen for platform events.
  *   For example, to get a notification about an imminent migration to another server.
- *   See <a href="#module-Apify-events"><code>Apify.events</code></a> for details.
+ *   See <a href="apify#apifyevents"><code>Apify.events</code></a> for details.
  *   </li>
  *   <li>It checks that either <code>APIFY_TOKEN</code> or <code>APIFY_LOCAL_STORAGE_DIR</code> environment variable
  *   is defined. If not, the functions sets <code>APIFY_LOCAL_STORAGE_DIR</code> to <code>./apify_storage</code>

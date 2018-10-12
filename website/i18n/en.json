@@ -26,6 +26,9 @@
       "api/pseudourl": {
         "title": "PseudoUrl"
       },
+      "api/puppeteer": {
+        "title": "utilspuppeteer"
+      },
       "api/puppeteercrawler": {
         "title": "PuppeteerCrawler"
       },
@@ -44,11 +47,11 @@
       "api/snapshotter": {
         "title": "Snapshotter"
       },
-      "api/some": {
-        "title": "api/some"
-      },
       "api/systemstatus": {
         "title": "SystemStatus"
+      },
+      "api/utils": {
+        "title": "utils"
       },
       "examples/basiccrawler": {
         "title": "Basic Crawler"
@@ -80,14 +83,14 @@
     },
     "links": {
       "Docs": "Docs",
+      "Examples": "Examples",
       "API": "API",
-      "Help": "Help",
-      "Blog": "Blog"
+      "GitHub": "GitHub"
     },
     "categories": {
       "Introduction": "Introduction",
-      "Examples": "Examples",
       "API Reference": "API Reference",
+      "Examples": "Examples",
       "Autoscaling": "Autoscaling"
     }
   },

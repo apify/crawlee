@@ -8,18 +8,18 @@ Represents a queue of URLs to crawl, which is used for deep crawling of websites
 where you start with several URLs and then recursively
 follow links to other pages. The data structure supports both breadth-first and depth-first crawling orders.
 
-Each URL is represented using an instance of the [`Request`](request) class.
+Each URL is represented using an instance of the [``Request``](Request) class.
 The queue can only contain unique URLs. More precisely, it can only contain `Request` instances
 with distinct `uniqueKey` properties. By default, `uniqueKey` is generated from the URL, but it can also be overridden.
 To add a single URL multiple times to the queue,
 corresponding `Request` objects will need to have different `uniqueKey` properties.
 
 Do not instantiate this class directly, use the
-[`Apify.openRequestQueue()`](apify#openrequestqueue) function instead.
+[``Apify.openRequestQueue()``](Apify#openRequestQueue) function instead.
 
-`RequestQueue` is used by [`BasicCrawler`](basiccrawler), [`CheerioCrawler`](cheeriocrawler)
-and [`PuppeteerCrawler`](puppeteercrawler) as a source of URLs to crawl.
-Unlike [`RequestList`](requestlist), `RequestQueue` supports dynamic adding and removing of requests.
+`RequestQueue` is used by [``BasicCrawler``](BasicCrawler), [``CheerioCrawler``](CheerioCrawler)
+and [``PuppeteerCrawler``](PuppeteerCrawler) as a source of URLs to crawl.
+Unlike [``RequestList``](RequestList), `RequestQueue` supports dynamic adding and removing of requests.
 On the other hand, the queue is not optimized for operations that add or remove a large number of URLs in a batch.
 
 `RequestQueue` stores its data either on local disk or in the Apify cloud,
@@ -66,18 +66,18 @@ await queue.reclaimRequest(request2);
 
 
 * [RequestQueue](requestqueue)
-    * [`.addRequest(request, [opts])`](requestqueue+addRequest) ⇒ [<code>RequestOperationInfo</code>](requestOperationInfo)
+    * [`.addRequest(request, [opts])`](requestqueue+addRequest) ⇒ [<code>RequestOperationInfo</code>](#RequestOperationInfo)
     * [`.getRequest(requestId)`](requestqueue+getRequest) ⇒ <code>Promise&lt;Request&gt;</code>
     * [`.fetchNextRequest()`](requestqueue+fetchNextRequest) ⇒ <code>Promise&lt;Request&gt;</code>
-    * [`.markRequestHandled(request)`](requestqueue+markRequestHandled) ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](requestOperationInfo)
-    * [`.reclaimRequest(request, [opts])`](requestqueue+reclaimRequest) ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](requestOperationInfo)
+    * [`.markRequestHandled(request)`](requestqueue+markRequestHandled) ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](#RequestOperationInfo)
+    * [`.reclaimRequest(request, [opts])`](requestqueue+reclaimRequest) ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](#RequestOperationInfo)
     * [`.isEmpty()`](requestqueue+isEmpty) ⇒ <code>Promise&lt;Boolean&gt;</code>
     * [`.isFinished()`](requestqueue+isFinished) ⇒ <code>Promise&lt;Boolean&gt;</code>
     * [`.delete()`](requestqueue+delete) ⇒ <code>Promise</code>
 
 <a name="RequestQueue+addRequest"></a>
 
-## `requestQueue.addRequest(request, [opts])` ⇒ [<code>RequestOperationInfo</code>](requestOperationInfo)
+## `requestQueue.addRequest(request, [opts])` ⇒ [<code>RequestOperationInfo</code>](#RequestOperationInfo)
 Adds a request to the queue.
 
 <table>
@@ -129,7 +129,7 @@ Returns next request in the queue to be processed.
 
 <a name="RequestQueue+markRequestHandled"></a>
 
-## `requestQueue.markRequestHandled(request)` ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](requestOperationInfo)
+## `requestQueue.markRequestHandled(request)` ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](#RequestOperationInfo)
 Marks request handled after successfull processing.
 
 <table>
@@ -147,7 +147,7 @@ Marks request handled after successfull processing.
 </table>
 <a name="RequestQueue+reclaimRequest"></a>
 
-## `requestQueue.reclaimRequest(request, [opts])` ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](requestOperationInfo)
+## `requestQueue.reclaimRequest(request, [opts])` ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](#RequestOperationInfo)
 Reclaims failed request back to the queue,
 so that it can be processed later again.
 

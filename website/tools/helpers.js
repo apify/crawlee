@@ -8,7 +8,7 @@ exports.inlineLinks = (text, options) => {
             const linked = ddata._link(link.url, options); // eslint-disable-line no-underscore-dangle
             if (link.caption === link.url) link.caption = linked.name;
             if (linked.url) link.url = linked.url;
-            text = text.replace(link.original, `[${link.caption}](${link.url.toLowerCase()})`);
+            text = text.replace(link.original, `[\`${link.caption}\`](${link.url})`);
         });
     }
     return text;

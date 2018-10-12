@@ -44,8 +44,8 @@ await crawler.run();
 
 **See**
 
-- [CheerioCrawler](cheeriocrawler)
-- [BasicCrawler](basiccrawler)
+- [`CheerioCrawler`](CheerioCrawler)
+- [`BasicCrawler`](BasicCrawler)
 
 * [PuppeteerCrawler](#exp_module_PuppeteerCrawler--PuppeteerCrawler) ⏏
     * [`new PuppeteerCrawler(options)`](#new_module_PuppeteerCrawler--PuppeteerCrawler_new)
@@ -171,7 +171,7 @@ await crawler.run();
 <td><code>[options.autoscaledPoolOptions]</code></td><td><code>Object</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>Custom options passed to the underlying <a href="autoscaledpool"><code>AutoscaledPool</code></a> instance constructor.
+<td colspan="3"><p>Custom options passed to the underlying <a href="AutoscaledPool"><code>AutoscaledPool</code></a> instance constructor.
   Note that the <code>runTaskFunction</code>, <code>isTaskReadyFunction</code> and <code>isFinishedFunction</code> options
   are provided by <code>PuppeteerCrawler</code> and should not be overridden.</p>
 </td></tr><tr>

@@ -11,7 +11,7 @@ Dataset is an append-only storage - you can only add new records to it but you c
 Typically it is used to store crawling results.
 
 Do not instantiate this class directly, use the
-[`Apify.openDataset()`](apify#opendataset) function instead.
+[``Apify.openDataset()``](Apify#openDataset) function instead.
 
 `Dataset` stores its data either on local disk or in the Apify cloud,
 depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variable is set.
@@ -54,7 +54,7 @@ await dataset.pushData([
     * [`.getInfo(opts)`](dataset+getInfo) ⇒ <code>Promise</code>
     * [`.forEach(iteratee, opts, index)`](dataset+forEach) ⇒ <code>Promise&lt;undefined&gt;</code>
     * [`.map(iteratee, opts, index)`](dataset+map) ⇒ <code>Promise&lt;Array&gt;</code>
-    * [`.reduce(iteratee, memo, opts, index)`](dataset+reduce) ⇒ <code>Promise.&lt;\*&gt;</code>
+    * [`.reduce(iteratee, memo, opts, index)`](dataset+reduce) ⇒ <code>Promise&lt;\*&gt;</code>
     * [`.delete()`](dataset+delete) ⇒ <code>Promise</code>
 
 <a name="Dataset+pushData"></a>
@@ -331,7 +331,7 @@ If `iteratee` returns a `Promise` then it's awaited before a next call.
 </table>
 <a name="Dataset+reduce"></a>
 
-## `dataset.reduce(iteratee, memo, opts, index)` ⇒ <code>Promise.&lt;\*&gt;</code>
+## `dataset.reduce(iteratee, memo, opts, index)` ⇒ <code>Promise&lt;\*&gt;</code>
 Boils down a list of values into a single value.
 
 Memo is the initial state of the reduction, and each successive step of it should be returned by `iteratee`.

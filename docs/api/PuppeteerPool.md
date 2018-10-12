@@ -13,7 +13,7 @@ access web pages from various countries etc.
 Additionally, the reuse of browser instances instances speeds up crawling,
 and the retirement of instances helps mitigate effects of memory leaks in Chrome.
 
-`PuppeteerPool` is internally used by the [`PuppeteerCrawler`](puppeteercrawler) class.
+`PuppeteerPool` is internally used by the [``PuppeteerCrawler``](PuppeteerCrawler) class.
 
 **Example usage:**
 
@@ -39,7 +39,7 @@ await puppeteerPool.destroy();
 
 * [PuppeteerPool](#exp_module_PuppeteerPool--PuppeteerPool) ⏏
     * [`new PuppeteerPool()`](#new_module_PuppeteerPool--PuppeteerPool_new)
-    * [`.newPage()`](puppeteerpool--PuppeteerPool+newPage) ⇒ <code>Promise.&lt;Puppeteer.Page&gt;</code>
+    * [`.newPage()`](puppeteerpool--PuppeteerPool+newPage) ⇒ <code>Promise&lt;Puppeteer.Page&gt;</code>
     * [`.destroy()`](puppeteerpool--PuppeteerPool+destroy) ⇒ <code>Promise</code>
     * [`.retire(browser)`](puppeteerpool--PuppeteerPool+retire) ⇒ <code>Promise</code>
 
@@ -105,7 +105,7 @@ await puppeteerPool.destroy();
 </table>
 <a name="module_PuppeteerPool--PuppeteerPool+newPage"></a>
 
-## `puppeteerPool.newPage()` ⇒ <code>Promise.&lt;Puppeteer.Page&gt;</code>
+## `puppeteerPool.newPage()` ⇒ <code>Promise&lt;Puppeteer.Page&gt;</code>
 Opens new tab in one of the browsers and returns promise that resolves to its Puppeteer.Page.
 
 <a name="module_PuppeteerPool--PuppeteerPool+destroy"></a>

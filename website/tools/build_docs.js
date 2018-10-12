@@ -8,11 +8,13 @@ const writeFile = promisify(fs.writeFile);
 
 /* eslint-disable no-shadow */
 
-let classNames;
+const classNames = [];
+const namespaces = [];
 
-const getHeader = (title, prefix = '') => {
-    const id = `${prefix}${title.replace(' ', '').toLowerCase()}`;
-    return `---\nid: ${id}\ntitle: ${title}\n---\n`;
+const getHeader = (title) => {
+    const prefix = title === 'puppeteer' ? 'utils' : '';
+    const id = title.replace(' ', '').toLowerCase();
+    return `---\nid: ${id}\ntitle: ${prefix}${title}\n---\n`;
 };
 
 const getRenderOptions = (template, data) => ({
@@ -45,14 +47,18 @@ const readFileFromLine = async (path, lineNumber = 1) => {
 const generateFinalMarkdown = (title, text) => {
     const header = getHeader(title);
     // Remove Class titles so we don't have double page titles with Docusaurus.
-    const rx = new RegExp(`# ${title}.*?\n`);
+    const rx = new RegExp(`# \`?${title}\`?.*?\n`);
     text = text.replace(rx, '');
     // Remove 'Kind' annotations.
     text = text.replace(/\*\*Kind\*\*.*\n/g, '');
     // Remove dots in type annotations
-    text = text.replace(/([A-Z][a-z]+)\.(&lt;[A-z]+&gt;)/g, '$1$2');
+    const dotsRx = /([A-Z][a-z]+)\.(&lt;.+&gt;)/g;
+    const replacer = (match, p1, p2) => {
+        return p1 + p2.replace(dotsRx, replacer);
+    };
+    text = text.replace(dotsRx, replacer);
     // Fix links
-    const classRx = new RegExp(`#(module_)?((${classNames.join(')|(')}))`, 'g');
+    const classRx = new RegExp(`#(module_)?((${classNames.join(')|(')})$)`, 'g');
     text = text.replace(classRx, (match, p1, p2) => p2.toLowerCase());
     return header + text;
 };
@@ -84,17 +90,32 @@ const main = async () => {
     await Promise.all(examplePromises);
 
     /* reduce templateData to an array of class names */
-    classNames = templateData.reduce((classNames, identifier) => {
+    templateData.forEach((identifier) => {
         if (identifier.kind === 'class' && !identifier.ignore) classNames.push(identifier.name);
-        return classNames;
-    }, []);
+        if (identifier.kind === 'namespace' && !identifier.ignore) namespaces.push(identifier.name);
+    });
 
 
     // create a doc file for Apify
     const mainModule = 'Apify';
     const template = `{{#module name="${mainModule}"}}{{>docs}}{{/module}}`;
     console.log(`Rendering ${mainModule}, template: ${template}`); // eslint-disable-line no-console
-    const output = jsdoc2md.renderSync(getRenderOptions(template, templateData));
+    const moduleData = [];
+    const otherData = [];
+    templateData.forEach((item) => {
+        if (item.id.startsWith('module:Apify')) moduleData.push(item);
+        else otherData.push(item);
+    });
+    const comparator = (a, b) => {
+        const nameA = a.name.toLowerCase();
+        const nameB = b.name.toLowerCase();
+        if (nameA < nameB) return -1;
+        if (nameA > nameB) return 1;
+        return 0;
+    };
+    const finalData = moduleData.sort(comparator).concat(otherData);
+
+    const output = jsdoc2md.renderSync(getRenderOptions(template, finalData));
     const markdown = generateFinalMarkdown(mainModule, output);
     fs.writeFileSync(path.resolve(sourceFilesOutputDir, `${mainModule}.md`), markdown);
 
@@ -105,6 +126,15 @@ const main = async () => {
         const output = jsdoc2md.renderSync(getRenderOptions(template, templateData));
         const markdown = generateFinalMarkdown(className, output);
         fs.writeFileSync(path.resolve(sourceFilesOutputDir, `${className}.md`), markdown);
+    });
+
+    // create a doc file file for each namespace
+    namespaces.forEach((name) => {
+        const template = `{{#namespace name="${name}"}}{{>docs}}{{/namespace}}`;
+        console.log(`Rendering ${name}, template: ${template}`); // eslint-disable-line no-console
+        const output = jsdoc2md.renderSync(getRenderOptions(template, templateData));
+        const markdown = generateFinalMarkdown(name, output);
+        fs.writeFileSync(path.resolve(sourceFilesOutputDir, `${name}.md`), markdown);
     });
 };
 

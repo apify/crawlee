@@ -32,12 +32,12 @@ const foo = request.userData.foo;
 
 **See**
 
-- [RequestList](requestlist)
-- [RequestQueue](#requestqueue)
+- [`RequestList`](RequestList)
+- [`RequestQueue`](requestqueue)
 
 * [Request](#exp_module_Request--Request) ⏏
     * [`new Request(opts)`](#new_module_Request--Request_new)
-    * [`.pushErrorMessage(errorOrMessage)`](request--Request+pushErrorMessage)
+    * [`.pushErrorMessage(errorOrMessage)`](#module_Request--Request+pushErrorMessage)
 
 <a name="new_module_Request--Request_new"></a>
 
