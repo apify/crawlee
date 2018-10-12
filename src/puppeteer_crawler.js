@@ -19,13 +19,19 @@ const PAGE_CLOSE_TIMEOUT_MILLIS = 30000;
 /**
  * Provides a simple framework for parallel crawling of web pages
  * using headless Chrome with [Puppeteer](https://github.com/GoogleChrome/puppeteer).
- * The URLs of pages to visit are given by `Request` objects that are fed from a list (see `RequestList` class)
- * or from a dynamic queue (see `RequestQueue` class).
+ * The URLs of pages to visit are given by {@linkcode Request} objects that are fed from
+ * a static list (see {@linkcode RequestList} class)
+ * or from a dynamic queue (see {@linkcode RequestQueue} class).
  *
  * `PuppeteerCrawler` opens a new Chrome page (i.e. tab) for each `Request` object to crawl
  * and then calls the function provided by user as the `handlePageFunction` option.
  * New tasks are only started if there is enough free CPU and memory available,
- * using the `AutoscaledPool` class internally.
+ * using the {@linkcode AutoscaledPool} class internally.
+ *
+ * Note that the pool of Puppeteer instances is internally managed by
+ * the {@linkcode PuppeteerPool} class. Many constructor options
+ * such as `maxOpenPagesPerInstance` or `launchPuppeteerFunction` are passed directly
+ * to `PuppeteerPool` constructor.
  *
  * **Example usage:**
  *
@@ -116,7 +122,7 @@ const PAGE_CLOSE_TIMEOUT_MILLIS = 30000;
  *   See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_crawler.js#L9">GitHub</a> for default behavior.
  * @param {LaunchPuppeteerOptions} [options.launchPuppeteerOptions]
  *   Options used by `Apify.launchPuppeteer()` to start new Puppeteer instances.
- *   See `launchPuppeteerOptions` parameter of {@linkcode PuppeteerPool}'s constructor.
+ *   See `launchPuppeteerOptions` parameter of {@linkcode PuppeteerPool}.
  * @param {Object} [options.autoscaledPoolOptions]
  *   Custom options passed to the underlying {@link AutoscaledPool|`AutoscaledPool`} instance constructor.
  *   Note that the `runTaskFunction`, `isTaskReadyFunction` and `isFinishedFunction` options
@@ -143,11 +149,11 @@ export default class PuppeteerCrawler {
             pageOpsTimeoutMillis, // Deprecated, remove in the future.
             handlePageTimeoutSecs,
 
-            // Autoscaled pool shorthands
+            // AutoscaledPool shorthands
             maxConcurrency,
             minConcurrency,
 
-            // Basic crawler options
+            // BasicCrawler options
             requestList,
             requestQueue,
             maxRequestRetries,
@@ -155,7 +161,8 @@ export default class PuppeteerCrawler {
             handleFailedRequestFunction,
             autoscaledPoolOptions,
 
-            // Puppeteer Pool options
+            // PuppeteerPool options
+            // TODO: We should put these into a single object, similarly to autoscaledPoolOptions
             maxOpenPagesPerInstance,
             retireInstanceAfterRequestCount,
             instanceKillerIntervalMillis,
