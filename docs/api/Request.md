@@ -4,7 +4,6 @@ title: Request
 ---
 <a name="exp_module_Request--Request"></a>
 
-## Request ⏏
 Represents a URL to be crawled, optionally including HTTP method, headers, payload and other metadata.
 The `Request` object also stores information about errors that occurred during processing of the request.
 
@@ -24,14 +23,13 @@ const request = new Apify.Request({
 ...
 
 request.userData.foo = 'bar';
-request.pushErrorMessage(new error('request failed!'));
+request.pushErrorMessage(new Error('Request failed!'));
 
 ...
 
 const foo = request.userData.foo;
 ```
 
-**Kind**: global class of [<code>Request</code>](#module_Request)  
 **See**
 
 - [RequestList](requestlist)
@@ -39,11 +37,11 @@ const foo = request.userData.foo;
 
 * [Request](#exp_module_Request--Request) ⏏
     * [`new Request(opts)`](#new_module_Request--Request_new)
-    * [`.pushErrorMessage(errorOrMessage)`](#module_Request--Request+pushErrorMessage)
+    * [`.pushErrorMessage(errorOrMessage)`](request--Request+pushErrorMessage)
 
 <a name="new_module_Request--Request_new"></a>
 
-### `new Request(opts)`
+## `new Request(opts)`
 <table>
 <thead>
 <tr>
@@ -89,7 +87,7 @@ to override the default behavior and specify which URLs shall be considered equa
 <tr>
 <td colspan="3"><p>Indicates how many times the URL was retried in a case of error.</p>
 </td></tr><tr>
-<td><code>[opts.errorMessages]</code></td><td><code>Array.&lt;String&gt;</code></td><td></td>
+<td><code>[opts.errorMessages]</code></td><td><code>Array&lt;String&gt;</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>An array of error messages from request processing.</p>
@@ -121,10 +119,9 @@ to override the default behavior and specify which URLs shall be considered equa
 </table>
 <a name="module_Request--Request+pushErrorMessage"></a>
 
-### `request.pushErrorMessage(errorOrMessage)`
+## `request.pushErrorMessage(errorOrMessage)`
 Stores information about an error occurred during processing of this request.
 
-**Kind**: instance method of [<code>Request</code>](#exp_module_Request--Request)  
 <table>
 <thead>
 <tr>

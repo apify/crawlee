@@ -102,8 +102,6 @@ const DEFAULT_OPTIONS = {
  * @param {Object} [options.maxConcurrency=1000]
  *   Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding `AutoscaledPool` option.
  *
- * @see {@link CheerioCrawler}
- * @see {@link PuppeteerCrawler}
  * @alias module:BasicCrawler
  */
 class BasicCrawler {

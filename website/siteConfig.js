@@ -48,14 +48,14 @@ const siteConfig = {
     users,
 
     /* path to images for header/footer */
-    headerIcon: 'img/docusaurus.svg',
-    footerIcon: 'img/docusaurus.svg',
-    favicon: 'img/favicon.png',
+    headerIcon: 'img/apify_logo.svg',
+    footerIcon: 'img/apify_logo.svg',
+    favicon: 'img/favicon.ico',
 
     /* Colors for website */
     colors: {
-        primaryColor: '#2E8555',
-        secondaryColor: '#205C3B',
+        primaryColor: '#001F5B',
+        secondaryColor: '#FF9012',
     },
 
     /* Custom fonts for website */
@@ -89,8 +89,8 @@ const siteConfig = {
     cleanUrl: true,
 
     // Open Graph and Twitter card images.
-    ogImage: 'img/docusaurus.png',
-    twitterImage: 'img/docusaurus.png',
+    ogImage: 'img/apify_logo.png',
+    twitterImage: 'img/apify_logo.png',
 
     // You may provide arbitrary config keys to be used as needed by your
     // template. For example, if you need your repo's URL...

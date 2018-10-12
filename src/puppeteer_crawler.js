@@ -2,6 +2,7 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import log from 'apify-shared/log';
 import _ from 'underscore';
 import BasicCrawler from './basic_crawler';
+import RequestList from './request_list';
 import PuppeteerPool from './puppeteer_pool';
 import { createTimeoutPromise } from './utils';
 
@@ -60,7 +61,7 @@ const PAGE_CLOSE_TIMEOUT_MILLIS = 30000;
  *   It is passed an object with the following fields:
  *   `request` is an instance of the `Request` object with details about the URL to open, HTTP method etc.
  *   `page` is an instance of the `Puppeteer.Page` class with `page.goto(request.url)` already called.
- * @param {RequestList} options.requestList
+ * @param {module:RequestList} options.requestList
  *   List of the requests to be processed.
  *   Either RequestList or RequestQueue must be provided.
  *   See the `requestList` parameter of `BasicCrawler` for more details.

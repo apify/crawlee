@@ -4,7 +4,6 @@ title: RequestList
 ---
 <a name="exp_module_RequestList--RequestList"></a>
 
-## RequestList ⏏
 Represents a static list of URLs to crawl.
 The URLs can be provided either in code or parsed from a text file hosted on the web.
 
@@ -15,18 +14,18 @@ To add a single URL multiple times to the list,
 corresponding `Request` objects will need to have different `uniqueKey` properties.
 You can use the `keepDuplicateUrls` option to do this for you.
 
-Once you create an instance of `RequestList`, you need to call [`initialize()`](RequestList#initialize)
+Once you create an instance of `RequestList`, you need to call [`initialize()`](requestlist#initialize)
 before the instance can be used. After that, no more URLs can be added to the list.
 
-`RequestList` is used by [`BasicCrawler`](BasicCrawler), [`CheerioCrawler`](CheerioCrawler)
-and [`PuppeteerCrawler`](PuppeteerCrawler) as a source of URLs to crawl.
-Unlike [`RequestQueue`](#RequestQueue), `RequestList` is static but it can contain even millions of URLs.
+`RequestList` is used by [`BasicCrawler`](basiccrawler), [`CheerioCrawler`](cheeriocrawler)
+and [`PuppeteerCrawler`](puppeteercrawler) as a source of URLs to crawl.
+Unlike [`RequestQueue`](#requestqueue), `RequestList` is static but it can contain even millions of URLs.
 
 `RequestList` has an internal state where it stores information which requests were handled,
 which are in progress or which were reclaimed.
 The state might be automatically persisted to the default key-value store by setting the `persistStateKey` option
 so that if the Node.js process is restarted,
-the crawling can continue where it left off. For more details, see [`KeyValueStore`](#KeyValueStore).
+the crawling can continue where it left off. For more details, see [`KeyValueStore`](#keyvaluestore).
 
 **Example usage:**
 
@@ -59,4 +58,3 @@ await requestList.markRequestHandled(request1);
 await requestList.reclaimRequest(request2);
 ```
 
-**Kind**: global class of [<code>RequestList</code>](#module_RequestList)  

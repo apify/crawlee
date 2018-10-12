@@ -24,20 +24,19 @@ const DEFAULT_OPTIONS = {
  * The information about the CPU and memory usage is obtained by the {@link Snapshotter} class,
  * which makes regular snapshots of system resources that may be either local
  * or from the Apify cloud infrastructure in case the process is running on the Apify platform.
- * Meaningful data gathered from these snapshots is provided to `AutoscaledPool` by the `SystemStatus` class.
+ * Meaningful data gathered from these snapshots is provided to `AutoscaledPool` by the {@link SystemStatus} class.
  *
  * Before running the pool, you need to implement the following three functions:
  * `runTaskFunction()`,
  * `isTaskReadyFunction()` and
  * `isFinishedFunction()`.
  *
- * The auto-scaled pool is started by calling the [`run()`](autoscaledpool#run) function.
+ * The auto-scaled pool is started by calling the `run()` function.
  * The pool periodically queries the `isTaskReadyFunction()` function
  * for more tasks, managing optimal concurrency, until the function resolves to `false`. The pool then queries
- * the `isFinishedFunction()`. If it resolves to `true`, the run finishes. If it resolves to `false`, it assumes
- * there will be more tasks available later and keeps querying for tasks, until finally both the
- * `isTaskReadyFunction()` and `isFinishedFunction()` functions resolve to `true`. If any of the tasks throws
- * then the `run()` function rejects the promise with an error.
+ * the `isFinishedFunction()`. If it resolves to `true`, the run finishes after all running task complete.
+ * If it resolves to `false`, it assumes there will be more tasks available later and keeps periodically querying for tasks.
+ * If any of the tasks throws then the `run()` function rejects the promise with an error.
  *
  * The pool evaluates whether it should start a new task every time one of the tasks finishes
  * and also in the interval set by the `options.maybeRunIntervalSecs` parameter.
@@ -62,7 +61,8 @@ const DEFAULT_OPTIONS = {
  * ```
  *
  * @param {Object} options All AutoscaledPool parameters are passed
- *   via an options object with the following keys:
+ *   via an options object with the following keys. Parameters listed in
+ *   [brackets] are optional.
  * @param {Function} options.runTaskFunction
  *   A function that performs an asynchronous resource-intensive task.
  *   The function must either be labeled `async` or return a promise.
@@ -103,14 +103,12 @@ const DEFAULT_OPTIONS = {
  *   based on the latest system status. Setting it lower than 1 might have a severe impact on performance.
  *   We suggest using a value from 5 to 20.
  * @param {Number} [options.snapshotterOptions]
- *   Options to be passed down to the `Snapshotter` constructor. This is useful for fine-tuning
+ *   Options to be passed down to the {@link Snapshotter} constructor. This is useful for fine-tuning
  *   the snapshot intervals and history.
- *   See <a href="https://github.com/apifytech/apify-js/blob/develop/src/autoscaling/snapshotter.js">Snapshotter</a> source code for more details.
  * @param {Number} [options.systemStatusOptions]
- *   Options to be passed down to the `SystemStatus` constructor. This is useful for fine-tuning
+ *   Options to be passed down to the {@link SystemStatus} constructor. This is useful for fine-tuning
  *   the system status reports. If a custom snapshotter is set in the options, it will be used
  *   by the pool.
- *   See <a href="https://github.com/apifytech/apify-js/blob/develop/src/autoscaling/system_status.js">SystemStatus</a> source code for more details.
  * @alias module:AutoscaledPool
  */
 class AutoscaledPool {

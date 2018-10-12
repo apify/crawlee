@@ -4,7 +4,6 @@ title: KeyValueStore
 ---
 <a name="KeyValueStore"></a>
 
-## KeyValueStore
 The `KeyValueStore` class represents a key-value store, a simple data storage that is used
 for saving and reading data records or files. Each data record is
 represented by a unique key and associated with a MIME content type. Key-value stores are ideal
@@ -60,21 +59,20 @@ const value = await store.getValue('some-key');
 await store.delete('some-key');
 ```
 
-**Kind**: global class  
 **See**
 
 - {@linkcode Apify.getValue|Apify.getValue()}
 - {@linkcode Apify.setValue|Apify.setValue()}
 
 
-* [KeyValueStore](#KeyValueStore)
-    * [`.getValue(key)`](#KeyValueStore+getValue) ⇒ <code>Promise.&lt;Object&gt;</code>
-    * [`.setValue(key, value, [options])`](#KeyValueStore+setValue) ⇒ <code>Promise</code>
-    * [`.delete()`](#KeyValueStore+delete) ⇒ <code>Promise</code>
+* [KeyValueStore](keyvaluestore)
+    * [`.getValue(key)`](keyvaluestore+getValue) ⇒ <code>Promise&lt;Object&gt;</code>
+    * [`.setValue(key, value, [options])`](keyvaluestore+setValue) ⇒ <code>Promise</code>
+    * [`.delete()`](keyvaluestore+delete) ⇒ <code>Promise</code>
 
 <a name="KeyValueStore+getValue"></a>
 
-### `keyValueStore.getValue(key)` ⇒ <code>Promise.&lt;Object&gt;</code>
+## `keyValueStore.getValue(key)` ⇒ <code>Promise&lt;Object&gt;</code>
 Gets a value from the key-value store.
 
 The function returns a promise that resolves to the record value,
@@ -97,8 +95,7 @@ const store = await Apify.openKeyValueStore('my-screenshots');
 const buffer = await store.getValue('screenshot1.png');
 ```
 
-**Kind**: instance method of [<code>KeyValueStore</code>](#KeyValueStore)  
-**Returns**: <code>Promise.&lt;Object&gt;</code> - Returns a promise that resolves to an object, string
+**Returns**: <code>Promise&lt;Object&gt;</code> - Returns a promise that resolves to an object, string
   or <a href="https://nodejs.org/api/buffer.html"><code>Buffer</code></a>, depending
   on the MIME content type of the record.  
 <table>
@@ -117,7 +114,7 @@ const buffer = await store.getValue('screenshot1.png');
 </table>
 <a name="KeyValueStore+setValue"></a>
 
-### `keyValueStore.setValue(key, value, [options])` ⇒ <code>Promise</code>
+## `keyValueStore.setValue(key, value, [options])` ⇒ <code>Promise</code>
 Saves or deletes a record in the key-value store.
 The function returns a promise that resolves once the record has been saved or deleted.
 
@@ -147,7 +144,6 @@ To retrieve a value from the key-value store, use the
 **IMPORTANT:** Always make sure to use the `await` keyword when calling `setValue()`,
 otherwise the actor process might finish before the value is stored!
 
-**Kind**: instance method of [<code>KeyValueStore</code>](#KeyValueStore)  
 **Returns**: <code>Promise</code> - Returns a promise that resolves once the value is stored or deleted.  
 <table>
 <thead>
@@ -186,8 +182,7 @@ otherwise the actor process might finish before the value is stored!
 </table>
 <a name="KeyValueStore+delete"></a>
 
-### `keyValueStore.delete()` ⇒ <code>Promise</code>
+## `keyValueStore.delete()` ⇒ <code>Promise</code>
 Removes the key-value store either from the Apify cloud storage or from the local directory,
 depending on the mode of operation.
 
-**Kind**: instance method of [<code>KeyValueStore</code>](#KeyValueStore)  

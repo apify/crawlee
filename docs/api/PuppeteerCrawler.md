@@ -4,9 +4,8 @@ title: PuppeteerCrawler
 ---
 <a name="exp_module_PuppeteerCrawler--PuppeteerCrawler"></a>
 
-## PuppeteerCrawler ⏏
 Provides a simple framework for parallel crawling of web pages
-using headless Chrome with [Puppeteer](https://github.com/googlechrome/puppeteer).
+using headless Chrome with [Puppeteer](https://github.com/GoogleChrome/puppeteer).
 The URLs of pages to visit are given by `Request` objects that are fed from a list (see `RequestList` class)
 or from a dynamic queue (see `RequestQueue` class).
 
@@ -43,7 +42,6 @@ const crawler = new Apify.PuppeteerCrawler({
 await crawler.run();
 ```
 
-**Kind**: global class of [<code>PuppeteerCrawler</code>](#module_PuppeteerCrawler)  
 **See**
 
 - [CheerioCrawler](cheeriocrawler)
@@ -51,12 +49,12 @@ await crawler.run();
 
 * [PuppeteerCrawler](#exp_module_PuppeteerCrawler--PuppeteerCrawler) ⏏
     * [`new PuppeteerCrawler(options)`](#new_module_PuppeteerCrawler--PuppeteerCrawler_new)
-    * [`.run()`](#module_PuppeteerCrawler--PuppeteerCrawler+run) ⇒ <code>Promise</code>
-    * [`.abort()`](#module_PuppeteerCrawler--PuppeteerCrawler+abort) ⇒ <code>Promise</code>
+    * [`.run()`](puppeteercrawler--PuppeteerCrawler+run) ⇒ <code>Promise</code>
+    * [`.abort()`](puppeteercrawler--PuppeteerCrawler+abort) ⇒ <code>Promise</code>
 
 <a name="new_module_PuppeteerCrawler--PuppeteerCrawler_new"></a>
 
-### `new PuppeteerCrawler(options)`
+## `new PuppeteerCrawler(options)`
 <table>
 <thead>
 <tr>
@@ -77,14 +75,14 @@ await crawler.run();
   <code>request</code> is an instance of the <code>Request</code> object with details about the URL to open, HTTP method etc.
   <code>page</code> is an instance of the <code>Puppeteer.Page</code> class with <code>page.goto(request.url)</code> already called.</p>
 </td></tr><tr>
-<td><code>options.requestList</code></td><td><code>RequestList</code></td><td></td>
+<td><code>options.requestList</code></td><td><code><a href="requestlist">RequestList</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>List of the requests to be processed.
   Either RequestList or RequestQueue must be provided.
   See the <code>requestList</code> parameter of <code>BasicCrawler</code> for more details.</p>
 </td></tr><tr>
-<td><code>options.requestQueue</code></td><td><code><a href="#RequestQueue">RequestQueue</a></code></td><td></td>
+<td><code>options.requestQueue</code></td><td><code><a href="requestqueue">RequestQueue</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Queue of the requests to be processed.
@@ -190,13 +188,11 @@ await crawler.run();
 </table>
 <a name="module_PuppeteerCrawler--PuppeteerCrawler+run"></a>
 
-### `puppeteerCrawler.run()` ⇒ <code>Promise</code>
+## `puppeteerCrawler.run()` ⇒ <code>Promise</code>
 Runs the crawler. Returns promise that gets resolved once all the requests got processed.
 
-**Kind**: instance method of [<code>PuppeteerCrawler</code>](#exp_module_PuppeteerCrawler--PuppeteerCrawler)  
 <a name="module_PuppeteerCrawler--PuppeteerCrawler+abort"></a>
 
-### `puppeteerCrawler.abort()` ⇒ <code>Promise</code>
+## `puppeteerCrawler.abort()` ⇒ <code>Promise</code>
 Stops the crawler by preventing crawls of additional pages and terminating the running ones.
 
-**Kind**: instance method of [<code>PuppeteerCrawler</code>](#exp_module_PuppeteerCrawler--PuppeteerCrawler)  

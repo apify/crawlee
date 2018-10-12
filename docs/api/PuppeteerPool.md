@@ -4,8 +4,7 @@ title: PuppeteerPool
 ---
 <a name="exp_module_PuppeteerPool--PuppeteerPool"></a>
 
-## PuppeteerPool ⏏
-Manages a pool of Chrome browser instances controlled using [Puppeteer](https://github.com/googlechrome/puppeteer).
+Manages a pool of Chrome browser instances controlled using [Puppeteer](https://github.com/GoogleChrome/puppeteer).
 `PuppeteerPool` reuses Chrome instances and tabs using specific
 browser rotation and retirement policies.
 This is useful in order to facilitate rotation of proxies, cookies
@@ -14,7 +13,7 @@ access web pages from various countries etc.
 Additionally, the reuse of browser instances instances speeds up crawling,
 and the retirement of instances helps mitigate effects of memory leaks in Chrome.
 
-`PuppeteerPool` is internally used by the [`PuppeteerCrawler`](PuppeteerCrawler) class.
+`PuppeteerPool` is internally used by the [`PuppeteerCrawler`](puppeteercrawler) class.
 
 **Example usage:**
 
@@ -38,16 +37,15 @@ const page3 = await puppeteerPool.newPage();
 await puppeteerPool.destroy();
 ```
 
-**Kind**: global class of [<code>PuppeteerPool</code>](#module_PuppeteerPool)  
 * [PuppeteerPool](#exp_module_PuppeteerPool--PuppeteerPool) ⏏
     * [`new PuppeteerPool()`](#new_module_PuppeteerPool--PuppeteerPool_new)
-    * [`.newPage()`](#module_PuppeteerPool--PuppeteerPool+newPage) ⇒ <code>Promise.&lt;Puppeteer.Page&gt;</code>
-    * [`.destroy()`](#module_PuppeteerPool--PuppeteerPool+destroy) ⇒ <code>Promise</code>
-    * [`.retire(browser)`](#module_PuppeteerPool--PuppeteerPool+retire) ⇒ <code>Promise</code>
+    * [`.newPage()`](puppeteerpool--PuppeteerPool+newPage) ⇒ <code>Promise.&lt;Puppeteer.Page&gt;</code>
+    * [`.destroy()`](puppeteerpool--PuppeteerPool+destroy) ⇒ <code>Promise</code>
+    * [`.retire(browser)`](puppeteerpool--PuppeteerPool+retire) ⇒ <code>Promise</code>
 
 <a name="new_module_PuppeteerPool--PuppeteerPool_new"></a>
 
-### `new PuppeteerPool()`
+## `new PuppeteerPool()`
 <table>
 <thead>
 <tr>
@@ -107,24 +105,21 @@ await puppeteerPool.destroy();
 </table>
 <a name="module_PuppeteerPool--PuppeteerPool+newPage"></a>
 
-### `puppeteerPool.newPage()` ⇒ <code>Promise.&lt;Puppeteer.Page&gt;</code>
+## `puppeteerPool.newPage()` ⇒ <code>Promise.&lt;Puppeteer.Page&gt;</code>
 Opens new tab in one of the browsers and returns promise that resolves to its Puppeteer.Page.
 
-**Kind**: instance method of [<code>PuppeteerPool</code>](#exp_module_PuppeteerPool--PuppeteerPool)  
 <a name="module_PuppeteerPool--PuppeteerPool+destroy"></a>
 
-### `puppeteerPool.destroy()` ⇒ <code>Promise</code>
+## `puppeteerPool.destroy()` ⇒ <code>Promise</code>
 Closes all the browsers.
 
-**Kind**: instance method of [<code>PuppeteerPool</code>](#exp_module_PuppeteerPool--PuppeteerPool)  
 <a name="module_PuppeteerPool--PuppeteerPool+retire"></a>
 
-### `puppeteerPool.retire(browser)` ⇒ <code>Promise</code>
+## `puppeteerPool.retire(browser)` ⇒ <code>Promise</code>
 Manually retires a Puppeteer Browser instance from the pool. The browser will continue
 to process open pages so that they may gracefully finish. This is unlike browser.close()
 which will forcibly terminate the browser and all open pages will be closed.
 
-**Kind**: instance method of [<code>PuppeteerPool</code>](#exp_module_PuppeteerPool--PuppeteerPool)  
 <table>
 <thead>
 <tr>

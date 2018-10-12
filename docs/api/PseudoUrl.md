@@ -4,8 +4,7 @@ title: PseudoUrl
 ---
 <a name="exp_module_PseudoUrl--PseudoUrl"></a>
 
-## PseudoUrl ⏏
-Represents a pseudo URL (purl) - an URL pattern used by web crawlers
+Represents a pseudo URL (PURL) - an URL pattern used by web crawlers
 to specify which URLs should the crawler visit.
 This class is used by the {@linkcode enqueueLinks|Apify.utils.puppeteer.enqueueLinks()} function.
 
@@ -39,7 +38,6 @@ const purl = new Apify.PseudoUrl('http://www.example.com/pages/[(\w|-)*]');
 if (purl.matches('http://www.example.com/pages/my-awesome-page')) console.log('Match!');
 ```
 
-**Kind**: global class of [<code>PseudoUrl</code>](#module_PseudoUrl)  
 **See**
 
 - {@linkcode Request}
@@ -47,12 +45,12 @@ if (purl.matches('http://www.example.com/pages/my-awesome-page')) console.log('M
 
 * [PseudoUrl](#exp_module_PseudoUrl--PseudoUrl) ⏏
     * [`new PseudoUrl(purl, requestTemplate)`](#new_module_PseudoUrl--PseudoUrl_new)
-    * [`.matches(url)`](#module_PseudoUrl--PseudoUrl+matches) ⇒ <code>Boolean</code>
-    * [`.createRequest(url)`](#module_PseudoUrl--PseudoUrl+createRequest) ⇒ <code>Request</code>
+    * [`.matches(url)`](pseudourl--PseudoUrl+matches) ⇒ <code>Boolean</code>
+    * [`.createRequest(url)`](pseudourl--PseudoUrl+createRequest) ⇒ <code>Request</code>
 
 <a name="new_module_PseudoUrl--PseudoUrl_new"></a>
 
-### `new PseudoUrl(purl, requestTemplate)`
+## `new PseudoUrl(purl, requestTemplate)`
 <table>
 <thead>
 <tr>
@@ -74,10 +72,9 @@ if (purl.matches('http://www.example.com/pages/my-awesome-page')) console.log('M
 </table>
 <a name="module_PseudoUrl--PseudoUrl+matches"></a>
 
-### `pseudoUrl.matches(url)` ⇒ <code>Boolean</code>
+## `pseudoUrl.matches(url)` ⇒ <code>Boolean</code>
 Determines whether a URL matches this pseudo-URL pattern.
 
-**Kind**: instance method of [<code>PseudoUrl</code>](#exp_module_PseudoUrl--PseudoUrl)  
 **Returns**: <code>Boolean</code> - Returns `true` if given URL matches pseudo URL.  
 <table>
 <thead>
@@ -95,10 +92,9 @@ Determines whether a URL matches this pseudo-URL pattern.
 </table>
 <a name="module_PseudoUrl--PseudoUrl+createRequest"></a>
 
-### `pseudoUrl.createRequest(url)` ⇒ <code>Request</code>
+## `pseudoUrl.createRequest(url)` ⇒ <code>Request</code>
 Creates a Request object from requestTemplate and given URL.
 
-**Kind**: instance method of [<code>PseudoUrl</code>](#exp_module_PseudoUrl--PseudoUrl)  
 <table>
 <thead>
 <tr>

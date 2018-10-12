@@ -4,7 +4,6 @@ title: RequestQueue
 ---
 <a name="RequestQueue"></a>
 
-## RequestQueue
 Represents a queue of URLs to crawl, which is used for deep crawling of websites
 where you start with several URLs and then recursively
 follow links to other pages. The data structure supports both breadth-first and depth-first crawling orders.
@@ -16,11 +15,11 @@ To add a single URL multiple times to the queue,
 corresponding `Request` objects will need to have different `uniqueKey` properties.
 
 Do not instantiate this class directly, use the
-[`Apify.openRequestQueue()`](Apify#openRequestQueue) function instead.
+[`Apify.openRequestQueue()`](apify#openrequestqueue) function instead.
 
-`RequestQueue` is used by [`BasicCrawler`](BasicCrawler), [`CheerioCrawler`](CheerioCrawler)
-and [`PuppeteerCrawler`](PuppeteerCrawler) as a source of URLs to crawl.
-Unlike [`RequestList`](RequestList), `RequestQueue` supports dynamic adding and removing of requests.
+`RequestQueue` is used by [`BasicCrawler`](basiccrawler), [`CheerioCrawler`](cheeriocrawler)
+and [`PuppeteerCrawler`](puppeteercrawler) as a source of URLs to crawl.
+Unlike [`RequestList`](requestlist), `RequestQueue` supports dynamic adding and removing of requests.
 On the other hand, the queue is not optimized for operations that add or remove a large number of URLs in a batch.
 
 `RequestQueue` stores its data either on local disk or in the Apify cloud,
@@ -65,24 +64,22 @@ await queue.markRequestHandled(request1);
 await queue.reclaimRequest(request2);
 ```
 
-**Kind**: global class  
 
-* [RequestQueue](#RequestQueue)
-    * [`.addRequest(request, [opts])`](#RequestQueue+addRequest) ⇒ [<code>RequestOperationInfo</code>](#RequestOperationInfo)
-    * [`.getRequest(requestId)`](#RequestQueue+getRequest) ⇒ <code>Promise.&lt;Request&gt;</code>
-    * [`.fetchNextRequest()`](#RequestQueue+fetchNextRequest) ⇒ <code>Promise.&lt;Request&gt;</code>
-    * [`.markRequestHandled(request)`](#RequestQueue+markRequestHandled) ⇒ [<code>Promise.&lt;RequestOperationInfo&gt;</code>](#RequestOperationInfo)
-    * [`.reclaimRequest(request, [opts])`](#RequestQueue+reclaimRequest) ⇒ [<code>Promise.&lt;RequestOperationInfo&gt;</code>](#RequestOperationInfo)
-    * [`.isEmpty()`](#RequestQueue+isEmpty) ⇒ <code>Promise.&lt;Boolean&gt;</code>
-    * [`.isFinished()`](#RequestQueue+isFinished) ⇒ <code>Promise.&lt;Boolean&gt;</code>
-    * [`.delete()`](#RequestQueue+delete) ⇒ <code>Promise</code>
+* [RequestQueue](requestqueue)
+    * [`.addRequest(request, [opts])`](requestqueue+addRequest) ⇒ [<code>RequestOperationInfo</code>](requestOperationInfo)
+    * [`.getRequest(requestId)`](requestqueue+getRequest) ⇒ <code>Promise&lt;Request&gt;</code>
+    * [`.fetchNextRequest()`](requestqueue+fetchNextRequest) ⇒ <code>Promise&lt;Request&gt;</code>
+    * [`.markRequestHandled(request)`](requestqueue+markRequestHandled) ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](requestOperationInfo)
+    * [`.reclaimRequest(request, [opts])`](requestqueue+reclaimRequest) ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](requestOperationInfo)
+    * [`.isEmpty()`](requestqueue+isEmpty) ⇒ <code>Promise&lt;Boolean&gt;</code>
+    * [`.isFinished()`](requestqueue+isFinished) ⇒ <code>Promise&lt;Boolean&gt;</code>
+    * [`.delete()`](requestqueue+delete) ⇒ <code>Promise</code>
 
 <a name="RequestQueue+addRequest"></a>
 
-### `requestQueue.addRequest(request, [opts])` ⇒ [<code>RequestOperationInfo</code>](#RequestOperationInfo)
+## `requestQueue.addRequest(request, [opts])` ⇒ [<code>RequestOperationInfo</code>](requestOperationInfo)
 Adds a request to the queue.
 
-**Kind**: instance method of [<code>RequestQueue</code>](#RequestQueue)  
 <table>
 <thead>
 <tr>
@@ -108,10 +105,9 @@ Adds a request to the queue.
 </table>
 <a name="RequestQueue+getRequest"></a>
 
-### `requestQueue.getRequest(requestId)` ⇒ <code>Promise.&lt;Request&gt;</code>
+## `requestQueue.getRequest(requestId)` ⇒ <code>Promise&lt;Request&gt;</code>
 Gets the request from the queue specified by ID.
 
-**Kind**: instance method of [<code>RequestQueue</code>](#RequestQueue)  
 <table>
 <thead>
 <tr>
@@ -128,16 +124,14 @@ Gets the request from the queue specified by ID.
 </table>
 <a name="RequestQueue+fetchNextRequest"></a>
 
-### `requestQueue.fetchNextRequest()` ⇒ <code>Promise.&lt;Request&gt;</code>
+## `requestQueue.fetchNextRequest()` ⇒ <code>Promise&lt;Request&gt;</code>
 Returns next request in the queue to be processed.
 
-**Kind**: instance method of [<code>RequestQueue</code>](#RequestQueue)  
 <a name="RequestQueue+markRequestHandled"></a>
 
-### `requestQueue.markRequestHandled(request)` ⇒ [<code>Promise.&lt;RequestOperationInfo&gt;</code>](#RequestOperationInfo)
+## `requestQueue.markRequestHandled(request)` ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](requestOperationInfo)
 Marks request handled after successfull processing.
 
-**Kind**: instance method of [<code>RequestQueue</code>](#RequestQueue)  
 <table>
 <thead>
 <tr>
@@ -153,11 +147,10 @@ Marks request handled after successfull processing.
 </table>
 <a name="RequestQueue+reclaimRequest"></a>
 
-### `requestQueue.reclaimRequest(request, [opts])` ⇒ [<code>Promise.&lt;RequestOperationInfo&gt;</code>](#RequestOperationInfo)
+## `requestQueue.reclaimRequest(request, [opts])` ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](requestOperationInfo)
 Reclaims failed request back to the queue,
 so that it can be processed later again.
 
-**Kind**: instance method of [<code>RequestQueue</code>](#RequestQueue)  
 <table>
 <thead>
 <tr>
@@ -183,26 +176,23 @@ so that it can be processed later again.
 </table>
 <a name="RequestQueue+isEmpty"></a>
 
-### `requestQueue.isEmpty()` ⇒ <code>Promise.&lt;Boolean&gt;</code>
+## `requestQueue.isEmpty()` ⇒ <code>Promise&lt;Boolean&gt;</code>
 Resolves to `true` if the next call to `fetchNextRequest()` will return `null`, otherwise it resolves to `false`.
 Note that even if the queue is empty, there might be some pending requests currently being processed.
 
 Due to the nature of distributed storage systems,
 the function might occasionally return a false negative, but it should never return a false positive!
 
-**Kind**: instance method of [<code>RequestQueue</code>](#RequestQueue)  
 <a name="RequestQueue+isFinished"></a>
 
-### `requestQueue.isFinished()` ⇒ <code>Promise.&lt;Boolean&gt;</code>
+## `requestQueue.isFinished()` ⇒ <code>Promise&lt;Boolean&gt;</code>
 Resolves to `true` if all requests were already handled and there are no more left.
 Due to the nature of distributed storage systems,
 the function might occasionally return a false negative, but it will never return a false positive.
 
-**Kind**: instance method of [<code>RequestQueue</code>](#RequestQueue)  
 <a name="RequestQueue+delete"></a>
 
-### `requestQueue.delete()` ⇒ <code>Promise</code>
+## `requestQueue.delete()` ⇒ <code>Promise</code>
 Removes the queue either from the Apify cloud storage or from the local directory,
 depending on the mode of operation.
 
-**Kind**: instance method of [<code>RequestQueue</code>](#RequestQueue)  

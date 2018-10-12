@@ -8,6 +8,8 @@ const writeFile = promisify(fs.writeFile);
 
 /* eslint-disable no-shadow */
 
+let classNames;
+
 const getHeader = (title, prefix = '') => {
     const id = `${prefix}${title.replace(' ', '').toLowerCase()}`;
     return `---\nid: ${id}\ntitle: ${title}\n---\n`;
@@ -18,6 +20,7 @@ const getRenderOptions = (template, data) => ({
     data,
     'name-format': true,
     'param-list-format': 'table',
+    'heading-depth': 1,
     helper: [path.join(__dirname, 'helpers.js')],
     partial: [path.join(__dirname, 'partials', 'params-table.hbs')],
 });
@@ -37,6 +40,21 @@ const readFileFromLine = async (path, lineNumber = 1) => {
         rl.on('close', () => resolve(output.join('\n')));
         rl.on('error', err => reject(err));
     });
+};
+
+const generateFinalMarkdown = (title, text) => {
+    const header = getHeader(title);
+    // Remove Class titles so we don't have double page titles with Docusaurus.
+    const rx = new RegExp(`# ${title}.*?\n`);
+    text = text.replace(rx, '');
+    // Remove 'Kind' annotations.
+    text = text.replace(/\*\*Kind\*\*.*\n/g, '');
+    // Remove dots in type annotations
+    text = text.replace(/([A-Z][a-z]+)\.(&lt;[A-z]+&gt;)/g, '$1$2');
+    // Fix links
+    const classRx = new RegExp(`#(module_)?((${classNames.join(')|(')}))`, 'g');
+    text = text.replace(classRx, (match, p1, p2) => p2.toLowerCase());
+    return header + text;
 };
 
 const main = async () => {
@@ -66,7 +84,7 @@ const main = async () => {
     await Promise.all(examplePromises);
 
     /* reduce templateData to an array of class names */
-    const classNames = templateData.reduce((classNames, identifier) => {
+    classNames = templateData.reduce((classNames, identifier) => {
         if (identifier.kind === 'class' && !identifier.ignore) classNames.push(identifier.name);
         return classNames;
     }, []);
@@ -74,19 +92,19 @@ const main = async () => {
 
     // create a doc file for Apify
     const mainModule = 'Apify';
-    const header = getHeader(mainModule);
     const template = `{{#module name="${mainModule}"}}{{>docs}}{{/module}}`;
     console.log(`Rendering ${mainModule}, template: ${template}`); // eslint-disable-line no-console
     const output = jsdoc2md.renderSync(getRenderOptions(template, templateData));
-    fs.writeFileSync(path.resolve(sourceFilesOutputDir, `${mainModule}.md`), header + output);
+    const markdown = generateFinalMarkdown(mainModule, output);
+    fs.writeFileSync(path.resolve(sourceFilesOutputDir, `${mainModule}.md`), markdown);
 
     // create a doc file file for each class
     classNames.forEach((className) => {
-        const header = getHeader(className);
         const template = `{{#class name="${className}"}}{{>docs}}{{/class}}`;
         console.log(`Rendering ${className}, template: ${template}`); // eslint-disable-line no-console
         const output = jsdoc2md.renderSync(getRenderOptions(template, templateData));
-        fs.writeFileSync(path.resolve(sourceFilesOutputDir, `${className}.md`), header + output);
+        const markdown = generateFinalMarkdown(className, output);
+        fs.writeFileSync(path.resolve(sourceFilesOutputDir, `${className}.md`), markdown);
     });
 };
 

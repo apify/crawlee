@@ -4,7 +4,6 @@ title: Dataset
 ---
 <a name="Dataset"></a>
 
-## Dataset
 The `Dataset` class represents a store for structured data where each object stored has the same attributes,
 such as online store products or real estate offers. You can imagine it as a table,
 where each object is a row and its attributes are columns.
@@ -48,20 +47,19 @@ await dataset.pushData([
 ]);
 ```
 
-**Kind**: global class  
 
-* [Dataset](#Dataset)
-    * [`.pushData(data)`](#Dataset+pushData) ⇒ <code>Promise</code>
-    * [`.getData(options)`](#Dataset+getData) ⇒ <code>Promise</code>
-    * [`.getInfo(opts)`](#Dataset+getInfo) ⇒ <code>Promise</code>
-    * [`.forEach(iteratee, opts, index)`](#Dataset+forEach) ⇒ <code>Promise.&lt;undefined&gt;</code>
-    * [`.map(iteratee, opts, index)`](#Dataset+map) ⇒ <code>Promise.&lt;Array&gt;</code>
-    * [`.reduce(iteratee, memo, opts, index)`](#Dataset+reduce) ⇒ <code>Promise.&lt;\*&gt;</code>
-    * [`.delete()`](#Dataset+delete) ⇒ <code>Promise</code>
+* [Dataset](dataset)
+    * [`.pushData(data)`](dataset+pushData) ⇒ <code>Promise</code>
+    * [`.getData(options)`](dataset+getData) ⇒ <code>Promise</code>
+    * [`.getInfo(opts)`](dataset+getInfo) ⇒ <code>Promise</code>
+    * [`.forEach(iteratee, opts, index)`](dataset+forEach) ⇒ <code>Promise&lt;undefined&gt;</code>
+    * [`.map(iteratee, opts, index)`](dataset+map) ⇒ <code>Promise&lt;Array&gt;</code>
+    * [`.reduce(iteratee, memo, opts, index)`](dataset+reduce) ⇒ <code>Promise.&lt;\*&gt;</code>
+    * [`.delete()`](dataset+delete) ⇒ <code>Promise</code>
 
 <a name="Dataset+pushData"></a>
 
-### `dataset.pushData(data)` ⇒ <code>Promise</code>
+## `dataset.pushData(data)` ⇒ <code>Promise</code>
 Stores an object or an array of objects to the dataset.
 The function returns a promise that resolves when the operation finishes.
 It has no result, but throws on invalid args or other errors.
@@ -83,7 +81,6 @@ the items have already been saved to the dataset while other items from the sour
 To overcome this limitation, the developer may, for example, read the last item saved in the dataset
 and re-attempt the save of the data from this item onwards to prevent duplicates.
 
-**Kind**: instance method of [<code>Dataset</code>](#Dataset)  
 **Returns**: <code>Promise</code> - Returns a promise that resolves once the data is saved.  
 <table>
 <thead>
@@ -102,12 +99,11 @@ The objects must be serializable to JSON and the JSON representation of each obj
 </table>
 <a name="Dataset+getData"></a>
 
-### `dataset.getData(options)` ⇒ <code>Promise</code>
+## `dataset.getData(options)` ⇒ <code>Promise</code>
 Returns items in the dataset based on the provided parameters.
 
 If format is `json` then the function doesn't return an array of records but {@linkcode PaginationList} instead.
 
-**Kind**: instance method of [<code>Dataset</code>](#Dataset)  
 <table>
 <thead>
 <tr>
@@ -167,13 +163,13 @@ If format is `json` then the function doesn't return an array of records but {@l
 </tr>
 <tr>
 <td colspan="3"><p>A delimiter character for CSV files, only used if <code>format</code> is <code>csv</code>.
-  You might need to URL-encode the character (e.g. use <code>%09</code> for tab or <code>%3b</code> for semicolon).</p>
+  You might need to URL-encode the character (e.g. use <code>%09</code> for tab or <code>%3B</code> for semicolon).</p>
 </td></tr><tr>
 <td><code>[options.bom]</code></td><td><code>Number</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>All responses are encoded in UTF-8 encoding. By default, the CSV files are prefixed with the UTF-8 Byte
-  Order Mark (bom), while JSON, JSONL, XML, HTML and RSS files are not. If you want to override this default
+  Order Mark (BOM), while JSON, JSONL, XML, HTML and RSS files are not. If you want to override this default
   behavior, set <code>bom</code> option to <code>true</code> to include the BOM, or set <code>bom</code> to <code>false</code> to skip it.</p>
 </td></tr><tr>
 <td><code>[options.xmlRoot]</code></td><td><code>String</code></td><td></td>
@@ -195,10 +191,9 @@ If format is `json` then the function doesn't return an array of records but {@l
 </table>
 <a name="Dataset+getInfo"></a>
 
-### `dataset.getInfo(opts)` ⇒ <code>Promise</code>
+## `dataset.getInfo(opts)` ⇒ <code>Promise</code>
 Returns an object containing general information about the dataset.
 
-**Kind**: instance method of [<code>Dataset</code>](#Dataset)  
 <table>
 <thead>
 <tr>
@@ -226,13 +221,12 @@ Returns an object containing general information about the dataset.
 ```
 <a name="Dataset+forEach"></a>
 
-### `dataset.forEach(iteratee, opts, index)` ⇒ <code>Promise.&lt;undefined&gt;</code>
+## `dataset.forEach(iteratee, opts, index)` ⇒ <code>Promise&lt;undefined&gt;</code>
 Iterates over dataset items, yielding each in turn to an `iteratee` function.
 Each invocation of `iteratee` is called with three arguments: `(element, index)`.
 
 If `iteratee` returns a Promise then it is awaited before a next call.
 
-**Kind**: instance method of [<code>Dataset</code>](#Dataset)  
 <table>
 <thead>
 <tr>
@@ -282,13 +276,12 @@ If `iteratee` returns a Promise then it is awaited before a next call.
 </table>
 <a name="Dataset+map"></a>
 
-### `dataset.map(iteratee, opts, index)` ⇒ <code>Promise.&lt;Array&gt;</code>
+## `dataset.map(iteratee, opts, index)` ⇒ <code>Promise&lt;Array&gt;</code>
 Produces a new array of values by mapping each value in list through a transformation function (`iteratee`).
 Each invocation of `iteratee` is called with three arguments: `(element, index)`.
 
 If `iteratee` returns a `Promise` then it's awaited before a next call.
 
-**Kind**: instance method of [<code>Dataset</code>](#Dataset)  
 <table>
 <thead>
 <tr>
@@ -338,7 +331,7 @@ If `iteratee` returns a `Promise` then it's awaited before a next call.
 </table>
 <a name="Dataset+reduce"></a>
 
-### `dataset.reduce(iteratee, memo, opts, index)` ⇒ <code>Promise.&lt;\*&gt;</code>
+## `dataset.reduce(iteratee, memo, opts, index)` ⇒ <code>Promise.&lt;\*&gt;</code>
 Boils down a list of values into a single value.
 
 Memo is the initial state of the reduction, and each successive step of it should be returned by `iteratee`.
@@ -349,7 +342,6 @@ The first element is instead passed as the memo in the invocation of the `iterat
 
 If `iteratee` returns a `Promise` then it's awaited before a next call.
 
-**Kind**: instance method of [<code>Dataset</code>](#Dataset)  
 <table>
 <thead>
 <tr>
@@ -403,8 +395,7 @@ If `iteratee` returns a `Promise` then it's awaited before a next call.
 </table>
 <a name="Dataset+delete"></a>
 
-### `dataset.delete()` ⇒ <code>Promise</code>
+## `dataset.delete()` ⇒ <code>Promise</code>
 Removes the dataset either from the Apify cloud storage or from the local directory,
 depending on the mode of operation.
 
-**Kind**: instance method of [<code>Dataset</code>](#Dataset)  

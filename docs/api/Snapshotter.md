@@ -4,7 +4,6 @@ title: Snapshotter
 ---
 <a name="exp_module_Snapshotter--Snapshotter"></a>
 
-## Snapshotter ⏏
 Creates snapshots of system resources at given intervals and marks the resource
 as either overloaded or not during the last interval. Keeps a history of the snapshots.
 It tracks the following resources: Memory, EventLoop and CPU.
@@ -23,18 +22,17 @@ Event loop becomes overloaded if it slows down by more than the `maxBlockedMilli
 CPU tracking is available only on the Apify platform and the CPU overloaded event is read
 directly off the container and is not configurable.
 
-**Kind**: global class of [<code>Snapshotter</code>](#module_Snapshotter)  
 * [Snapshotter](#exp_module_Snapshotter--Snapshotter) ⏏
     * [`new Snapshotter([options])`](#new_module_Snapshotter--Snapshotter_new)
-    * [`.start()`](#module_Snapshotter--Snapshotter+start) ⇒ <code>Promise</code>
-    * [`.stop()`](#module_Snapshotter--Snapshotter+stop) ⇒ <code>Promise</code>
-    * [`.getMemorySample([sampleDurationMillis])`](#module_Snapshotter--Snapshotter+getMemorySample) ⇒ <code>Array</code>
-    * [`.getEventLoopSample([sampleDurationMillis])`](#module_Snapshotter--Snapshotter+getEventLoopSample) ⇒ <code>Array</code>
-    * [`.getCpuSample([sampleDurationMillis])`](#module_Snapshotter--Snapshotter+getCpuSample) ⇒ <code>Array</code>
+    * [`.start()`](snapshotter--Snapshotter+start) ⇒ <code>Promise</code>
+    * [`.stop()`](snapshotter--Snapshotter+stop) ⇒ <code>Promise</code>
+    * [`.getMemorySample([sampleDurationMillis])`](snapshotter--Snapshotter+getMemorySample) ⇒ <code>Array</code>
+    * [`.getEventLoopSample([sampleDurationMillis])`](snapshotter--Snapshotter+getEventLoopSample) ⇒ <code>Array</code>
+    * [`.getCpuSample([sampleDurationMillis])`](snapshotter--Snapshotter+getCpuSample) ⇒ <code>Array</code>
 
 <a name="new_module_Snapshotter--Snapshotter_new"></a>
 
-### `new Snapshotter([options])`
+## `new Snapshotter([options])`
 <table>
 <thead>
 <tr>
@@ -82,23 +80,20 @@ directly off the container and is not configurable.
 </table>
 <a name="module_Snapshotter--Snapshotter+start"></a>
 
-### `snapshotter.start()` ⇒ <code>Promise</code>
+## `snapshotter.start()` ⇒ <code>Promise</code>
 Starts capturing snapshots at configured intervals.
 
-**Kind**: instance method of [<code>Snapshotter</code>](#exp_module_Snapshotter--Snapshotter)  
 <a name="module_Snapshotter--Snapshotter+stop"></a>
 
-### `snapshotter.stop()` ⇒ <code>Promise</code>
+## `snapshotter.stop()` ⇒ <code>Promise</code>
 Stops all resource capturing.
 
-**Kind**: instance method of [<code>Snapshotter</code>](#exp_module_Snapshotter--Snapshotter)  
 <a name="module_Snapshotter--Snapshotter+getMemorySample"></a>
 
-### `snapshotter.getMemorySample([sampleDurationMillis])` ⇒ <code>Array</code>
+## `snapshotter.getMemorySample([sampleDurationMillis])` ⇒ <code>Array</code>
 Returns a sample of latest memory snapshots, with the size of the sample defined
 by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
 
-**Kind**: instance method of [<code>Snapshotter</code>](#exp_module_Snapshotter--Snapshotter)  
 **Returns**: <code>Array</code> - sample  
 <table>
 <thead>
@@ -115,11 +110,10 @@ by the sampleDurationMillis parameter. If omitted, it returns a full snapshot hi
 </table>
 <a name="module_Snapshotter--Snapshotter+getEventLoopSample"></a>
 
-### `snapshotter.getEventLoopSample([sampleDurationMillis])` ⇒ <code>Array</code>
+## `snapshotter.getEventLoopSample([sampleDurationMillis])` ⇒ <code>Array</code>
 Returns a sample of latest event loop snapshots, with the size of the sample defined
 by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
 
-**Kind**: instance method of [<code>Snapshotter</code>](#exp_module_Snapshotter--Snapshotter)  
 **Returns**: <code>Array</code> - sample  
 <table>
 <thead>
@@ -136,11 +130,10 @@ by the sampleDurationMillis parameter. If omitted, it returns a full snapshot hi
 </table>
 <a name="module_Snapshotter--Snapshotter+getCpuSample"></a>
 
-### `snapshotter.getCpuSample([sampleDurationMillis])` ⇒ <code>Array</code>
+## `snapshotter.getCpuSample([sampleDurationMillis])` ⇒ <code>Array</code>
 Returns a sample of latest CPU snapshots, with the size of the sample defined
 by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
 
-**Kind**: instance method of [<code>Snapshotter</code>](#exp_module_Snapshotter--Snapshotter)  
 **Returns**: <code>Array</code> - sample  
 <table>
 <thead>

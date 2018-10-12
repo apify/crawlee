@@ -4,7 +4,6 @@ title: AutoscaledPool
 ---
 <a name="exp_module_AutoscaledPool--AutoscaledPool"></a>
 
-## AutoscaledPool ⏏
 Manages a pool of asynchronous resource-intensive tasks that are executed in parallel.
 The pool only starts new tasks if there is enough free CPU and memory available
 and the Javascript event loop is not blocked.
@@ -12,20 +11,19 @@ and the Javascript event loop is not blocked.
 The information about the CPU and memory usage is obtained by the [Snapshotter](snapshotter) class,
 which makes regular snapshots of system resources that may be either local
 or from the Apify cloud infrastructure in case the process is running on the Apify platform.
-Meaningful data gathered from these snapshots is provided to `AutoscaledPool` by the `SystemStatus` class.
+Meaningful data gathered from these snapshots is provided to `AutoscaledPool` by the [SystemStatus](systemstatus) class.
 
 Before running the pool, you need to implement the following three functions:
 `runTaskFunction()`,
 `isTaskReadyFunction()` and
 `isFinishedFunction()`.
 
-The auto-scaled pool is started by calling the [`run()`](autoscaledpool#run) function.
+The auto-scaled pool is started by calling the `run()` function.
 The pool periodically queries the `isTaskReadyFunction()` function
 for more tasks, managing optimal concurrency, until the function resolves to `false`. The pool then queries
-the `isFinishedFunction()`. If it resolves to `true`, the run finishes. If it resolves to `false`, it assumes
-there will be more tasks available later and keeps querying for tasks, until finally both the
-`isTaskReadyFunction()` and `isFinishedFunction()` functions resolve to `true`. If any of the tasks throws
-then the `run()` function rejects the promise with an error.
+the `isFinishedFunction()`. If it resolves to `true`, the run finishes after all running task complete.
+If it resolves to `false`, it assumes there will be more tasks available later and keeps periodically querying for tasks.
+If any of the tasks throws then the `run()` function rejects the promise with an error.
 
 The pool evaluates whether it should start a new task every time one of the tasks finishes
 and also in the interval set by the `options.maybeRunIntervalSecs` parameter.
@@ -49,15 +47,14 @@ const pool = new Apify.AutoscaledPool({
 await pool.run();
 ```
 
-**Kind**: global class of [<code>AutoscaledPool</code>](#module_AutoscaledPool)  
 * [AutoscaledPool](#exp_module_AutoscaledPool--AutoscaledPool) ⏏
     * [`new AutoscaledPool(options)`](#new_module_AutoscaledPool--AutoscaledPool_new)
-    * [`.run()`](#module_AutoscaledPool--AutoscaledPool+run) ⇒ <code>Promise</code>
-    * [`.abort()`](#module_AutoscaledPool--AutoscaledPool+abort) ⇒ <code>Promise</code>
+    * [`.run()`](autoscaledpool--AutoscaledPool+run) ⇒ <code>Promise</code>
+    * [`.abort()`](autoscaledpool--AutoscaledPool+abort) ⇒ <code>Promise</code>
 
 <a name="new_module_AutoscaledPool--AutoscaledPool_new"></a>
 
-### `new AutoscaledPool(options)`
+## `new AutoscaledPool(options)`
 <table>
 <thead>
 <tr>
@@ -70,7 +67,8 @@ await pool.run();
 </tr>
 <tr>
 <td colspan="3"><p>All AutoscaledPool parameters are passed
-  via an options object with the following keys:</p>
+  via an options object with the following keys. Parameters listed in
+  [brackets] are optional.</p>
 </td></tr><tr>
 <td><code>options.runTaskFunction</code></td><td><code>function</code></td><td></td>
 </tr>
@@ -144,29 +142,25 @@ await pool.run();
 <td><code>[options.snapshotterOptions]</code></td><td><code>Number</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>Options to be passed down to the <code>Snapshotter</code> constructor. This is useful for fine-tuning
-  the snapshot intervals and history.
-  See <a href="https://github.com/apifytech/apify-js/blob/develop/src/autoscaling/snapshotter.js">Snapshotter</a> source code for more details.</p>
+<td colspan="3"><p>Options to be passed down to the <a href="snapshotter">Snapshotter</a> constructor. This is useful for fine-tuning
+  the snapshot intervals and history.</p>
 </td></tr><tr>
 <td><code>[options.systemStatusOptions]</code></td><td><code>Number</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>Options to be passed down to the <code>SystemStatus</code> constructor. This is useful for fine-tuning
+<td colspan="3"><p>Options to be passed down to the <a href="systemstatus">SystemStatus</a> constructor. This is useful for fine-tuning
   the system status reports. If a custom snapshotter is set in the options, it will be used
-  by the pool.
-  See <a href="https://github.com/apifytech/apify-js/blob/develop/src/autoscaling/system_status.js">SystemStatus</a> source code for more details.</p>
+  by the pool.</p>
 </td></tr></tbody>
 </table>
 <a name="module_AutoscaledPool--AutoscaledPool+run"></a>
 
-### `autoscaledPool.run()` ⇒ <code>Promise</code>
+## `autoscaledPool.run()` ⇒ <code>Promise</code>
 Runs the auto-scaled pool. Returns a promise that gets resolved or rejected once
 all the tasks are finished or one of them fails.
 
-**Kind**: instance method of [<code>AutoscaledPool</code>](#exp_module_AutoscaledPool--AutoscaledPool)  
 <a name="module_AutoscaledPool--AutoscaledPool+abort"></a>
 
-### `autoscaledPool.abort()` ⇒ <code>Promise</code>
+## `autoscaledPool.abort()` ⇒ <code>Promise</code>
 Aborts the run of the auto-scaled pool, discards all currently running tasks and destroys it.
 
-**Kind**: instance method of [<code>AutoscaledPool</code>](#exp_module_AutoscaledPool--AutoscaledPool)  
