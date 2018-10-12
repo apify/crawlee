@@ -51,10 +51,13 @@ const DEFAULT_OPTIONS = {
  *         // Run some resource-intensive asynchronous operation here.
  *     },
  *     isTaskReadyFunction: async () => {
- *         // Tell the pool whether more tasks are ready to be processed. (true / false)
+ *         // Tell the pool whether more tasks are ready to be processed.
+ *         // Return true or false
  *     },
  *     isFinishedFunction: async () => {
- *         // Tell the pool whether it should finish or wait for more tasks to become available. (true / false)
+ *         // Tell the pool whether it should finish
+ *         // or wait for more tasks to become available.
+ *         // Return true or false
  *     }
  * });
  *
