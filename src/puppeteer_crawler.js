@@ -116,7 +116,7 @@ const PAGE_CLOSE_TIMEOUT_MILLIS = 30000;
  *   See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_crawler.js#L9">GitHub</a> for default behavior.
  * @param {LaunchPuppeteerOptions} [options.launchPuppeteerOptions]
  *   Options used by `Apify.launchPuppeteer()` to start new Puppeteer instances.
- *   See `launchPuppeteerOptions` parameter of `PuppeteerPool`.
+ *   See `launchPuppeteerOptions` parameter of {@linkcode PuppeteerPool}'s constructor.
  * @param {Object} [options.autoscaledPoolOptions]
  *   Custom options passed to the underlying {@link AutoscaledPool|`AutoscaledPool`} instance constructor.
  *   Note that the `runTaskFunction`, `isTaskReadyFunction` and `isFinishedFunction` options
