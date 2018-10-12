@@ -24,7 +24,10 @@ const getRenderOptions = (template, data) => ({
     'param-list-format': 'table',
     'heading-depth': 1,
     helper: [path.join(__dirname, 'helpers.js')],
-    partial: [path.join(__dirname, 'partials', 'params-table.hbs')],
+    partial: [
+        path.join(__dirname, 'partials', 'params-table.hbs'),
+        path.join(__dirname, 'partials', 'properties-table.hbs'),
+    ],
 });
 
 const readFileFromLine = async (path, lineNumber = 1) => {

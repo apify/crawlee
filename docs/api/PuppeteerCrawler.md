@@ -6,13 +6,19 @@ title: PuppeteerCrawler
 
 Provides a simple framework for parallel crawling of web pages
 using headless Chrome with [Puppeteer](https://github.com/GoogleChrome/puppeteer).
-The URLs of pages to visit are given by `Request` objects that are fed from a list (see `RequestList` class)
-or from a dynamic queue (see `RequestQueue` class).
+The URLs of pages to visit are given by {@linkcode Request} objects that are fed from
+a static list (see {@linkcode RequestList} class)
+or from a dynamic queue (see {@linkcode RequestQueue} class).
 
 `PuppeteerCrawler` opens a new Chrome page (i.e. tab) for each `Request` object to crawl
 and then calls the function provided by user as the `handlePageFunction` option.
 New tasks are only started if there is enough free CPU and memory available,
-using the `AutoscaledPool` class internally.
+using the {@linkcode AutoscaledPool} class internally.
+
+Note that the pool of Puppeteer instances is internally managed by
+the {@linkcode PuppeteerPool} class. Many constructor options
+such as `maxOpenPagesPerInstance` or `launchPuppeteerFunction` are passed directly
+to `PuppeteerPool` constructor.
 
 **Example usage:**
 
@@ -166,7 +172,7 @@ await crawler.run();
 </tr>
 <tr>
 <td colspan="3"><p>Options used by <code>Apify.launchPuppeteer()</code> to start new Puppeteer instances.
-  See <code>launchPuppeteerOptions</code> parameter of <code>PuppeteerPool</code>.</p>
+  See <code>launchPuppeteerOptions</code> parameter of {@linkcode PuppeteerPool}.</p>
 </td></tr><tr>
 <td><code>[options.autoscaledPoolOptions]</code></td><td><code>Object</code></td><td></td>
 </tr>

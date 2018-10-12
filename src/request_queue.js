@@ -163,9 +163,9 @@ const getRequestId = (uniqueKey) => {
  * const queueWithName = await Apify.openRequestQueue('some-name');
  *
  * // Enqueue few requests
- * await queue.addRequest(new Apify.Request({ url: 'http://example.com/aaa'}));
- * await queue.addRequest(new Apify.Request({ url: 'http://example.com/bbb'}));
- * await queue.addRequest(new Apify.Request({ url: 'http://example.com/foo/bar'}), { forefront: true });
+ * await queue.addRequest(new Apify.Request({ url: 'http://example.com/aaa' }));
+ * await queue.addRequest(new Apify.Request({ url: 'http://example.com/bbb' }));
+ * await queue.addRequest(new Apify.Request({ url: 'http://example.com/foo/bar' }), { forefront: true });
  *
  * // Get requests from queue
  * const request1 = await queue.fetchNextRequest();
@@ -203,6 +203,10 @@ export class RequestQueue {
 
     /**
      * Adds a request to the queue.
+     *
+     * If the request with the same `Request.uniqueKey` property is already present in the queue,
+     * it will not be updated. You can find out this happened from the resulting
+     * {@linkcode RequestOperationInfo} object.
      *
      * @param {Request} request Request object
      * @param {Object} [opts]

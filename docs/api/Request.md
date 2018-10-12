@@ -30,10 +30,21 @@ request.pushErrorMessage(new Error('Request failed!'));
 const foo = request.userData.foo;
 ```
 
-**See**
+**Properties**
 
-- [`RequestList`](RequestList)
-- [`RequestQueue`](requestqueue)
+| Name | Type | Description |
+| --- | --- | --- |
+| `id` | <code>String</code> | Request ID |
+| `url` | <code>String</code> | URL of the web page to crawl. |
+| `uniqueKey` | <code>String</code> | A unique key identifying the request.   Two requests with the same `uniqueKey` are considered as pointing to the same URL. |
+| `method` | <code>String</code> | HTTP method, e.g. `GET` or `POST`. |
+| `payload` | <code>String</code> | HTTP request payload, e.g. for POST requests. |
+| `retryCount` | <code>Number</code> | Indicates the number of times the crawling of the request has been retried on error. |
+| `errorMessages` | <code>Array&lt;String&gt;</code> | An array of error messages from request processing. |
+| `headers` | <code>Object</code> | Object with HTTP headers. Key is header name, value is the value. |
+| `userData` | <code>Object</code> | Custom user data assigned to the request. |
+| `ignoreErrors` | <code>Boolean</code> | If `true` then errors in processing of this are ignored.   For example, the request won't be retried in a case of an error for example. |
+| `handledAt` | <code>Date</code> | Indicates the time when the request has been processed.   Is `null` if the request has not been crawler yet. |
 
 * [Request](#exp_module_Request--Request) ⏏
     * [`new Request(opts)`](#new_module_Request--Request_new)
@@ -70,7 +81,7 @@ of <code>http://www.example.com/something</code>. The <code>keepUrlFragment</cod
 determines whether URL hash fragment is included in the <code>uniqueKey</code> or not. Beware that the HTTP method
 and payload is not included in the <code>uniqueKey</code>, so requests to the same URL but with different
 HTTP methods or different POST payloads are all considered equal.</p>
-<p>You can set <code>uniqueKey</code> property to arbitrary non-empty text value in order
+<p>Pass an arbitrary non-empty text value to the <code>uniqueKey</code> property
 to override the default behavior and specify which URLs shall be considered equal.</p>
 </td></tr><tr>
 <td><code>[opts.method]</code></td><td><code>String</code></td><td><code>&#x27;GET&#x27;</code></td>
@@ -92,7 +103,7 @@ to override the default behavior and specify which URLs shall be considered equa
 <tr>
 <td colspan="3"><p>An array of error messages from request processing.</p>
 </td></tr><tr>
-<td><code>[opts.headers]</code></td><td><code>String</code></td><td><code>{}</code></td>
+<td><code>[opts.headers]</code></td><td><code>Object</code></td><td><code>{}</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>HTTP headers.</p>
