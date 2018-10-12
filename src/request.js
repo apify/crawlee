@@ -30,7 +30,7 @@ export const computeUniqueKey = (url, keepUrlFragment) => normalizeUrl(url, keep
  *
  * const foo = request.userData.foo;
  * ```
- *
+ * @class
  * @param {object} opts
  * @param {String} opts.url URL of the web page to crawl.
  * @param {String} [opts.uniqueKey] A unique key identifying the request.
@@ -43,7 +43,7 @@ export const computeUniqueKey = (url, keepUrlFragment) => normalizeUrl(url, keep
  * and payload is not included in the `uniqueKey`, so requests to the same URL but with different
  * HTTP methods or different POST payloads are all considered equal.
  *
- * You can set `uniqueKey` property to arbitrary non-empty text value in order
+ * Pass an arbitrary non-empty text value to the `uniqueKey` property
  * to override the default behavior and specify which URLs shall be considered equal.
  * @param {String} [opts.method='GET']
  * @param {String|Buffer} [opts.payload]
@@ -52,7 +52,7 @@ export const computeUniqueKey = (url, keepUrlFragment) => normalizeUrl(url, keep
  *   Indicates how many times the URL was retried in a case of error.
  * @param {String[]} [opts.errorMessages]
  *   An array of error messages from request processing.
- * @param {String} [opts.headers={}]
+ * @param {Object} [opts.headers={}]
  *   HTTP headers.
  * @param {Object} [opts.userData={}]
  *   Custom user data assigned to the request.
@@ -66,6 +66,32 @@ export const computeUniqueKey = (url, keepUrlFragment) => normalizeUrl(url, keep
  *   For example, the request won't be retried in a case of an error for example.
  * @see {@link RequestList}
  * @see {@link RequestQueue}
+ *
+ * @property {String} id
+ *   Request ID
+ * @property {String} url
+ *   URL of the web page to crawl.
+ * @property {String} uniqueKey
+ *   A unique key identifying the request.
+ *   Two requests with the same `uniqueKey` are considered as pointing to the same URL.
+ * @property {String} method
+ *   HTTP method, e.g. `GET` or `POST`.
+ * @property {String} payload
+ *   HTTP request payload, e.g. for POST requests.
+ * @property {Number} retryCount
+ *   Indicates the number of times the crawling of the request has been retried on error.
+ * @property {String[]} errorMessages
+ *   An array of error messages from request processing.
+ * @property {Object} headers
+ *   Object with HTTP headers. Key is header name, value is the value.
+ * @property {Object} userData
+ *   Custom user data assigned to the request.
+ * @property {Boolean} ignoreErrors
+ *   If `true` then errors in processing of this are ignored.
+ *   For example, the request won't be retried in a case of an error for example.
+ * @property {Date} handledAt
+ *   Indicates the time when the request has been processed.
+ *   Is `null` if the request has not been crawler yet.
  */
 export default class Request {
     constructor(opts = {}) {
