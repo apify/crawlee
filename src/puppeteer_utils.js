@@ -268,10 +268,10 @@ const cacheResponses = async (page, cache, responseUrlRules) => {
  * @param  {Object} options.cache                               Object in which responses are stored
  * @param  {Function} options.blockRequestFunction              Function which evaluates whether request should be aborted
  * @param  {Array<String|RegExp>} options.blockRequestUrlRules  List of rules that are used to check if request should be aborted.
- * @param  {Function} options.blockedRequestErrorCode           Which error code be the blocked request resolved with (default is: 'aborted')
+ * @param  {Function} options.blockedRequestErrorCode           Which error code should be the blocked request resolved with (default is: 'aborted')
  *   List of all available error codes can be found here: https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#requestaborterrorcode
  * @param  {Function} options.cacheResponseFunction             Function which evaluates whether response should be aborted
- * @param  {Array<String|RegExp} options.cacheResponseUrlRules  List of rules that are used to check if response should be cached.
+ * @param  {Array<String|RegExp>} options.cacheResponseUrlRules  List of rules that are used to check if response should be cached.
  * @return {Void}
  * @memberof utils.puppeteer
  */
