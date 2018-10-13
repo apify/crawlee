@@ -11,7 +11,7 @@ Dataset is an append-only storage - you can only add new records to it but you c
 Typically it is used to store crawling results.
 
 Do not instantiate this class directly, use the
-[``Apify.openDataset()``](Apify#openDataset) function instead.
+[``Apify.openDataset()``](apify#opendataset) function instead.
 
 `Dataset` stores its data either on local disk or in the Apify cloud,
 depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variable is set.
@@ -48,14 +48,14 @@ await dataset.pushData([
 ```
 
 
-* [Dataset](dataset)
-    * [`.pushData(data)`](dataset+pushData) ⇒ <code>Promise</code>
-    * [`.getData(options)`](dataset+getData) ⇒ <code>Promise</code>
-    * [`.getInfo(opts)`](dataset+getInfo) ⇒ <code>Promise</code>
-    * [`.forEach(iteratee, opts, index)`](dataset+forEach) ⇒ <code>Promise&lt;undefined&gt;</code>
-    * [`.map(iteratee, opts, index)`](dataset+map) ⇒ <code>Promise&lt;Array&gt;</code>
-    * [`.reduce(iteratee, memo, opts, index)`](dataset+reduce) ⇒ <code>Promise&lt;\*&gt;</code>
-    * [`.delete()`](dataset+delete) ⇒ <code>Promise</code>
+* [Dataset]dataset
+    * [`.pushData(data)`](#Dataset+pushData) ⇒ <code>Promise</code>
+    * [`.getData(options)`](#Dataset+getData) ⇒ <code>Promise</code>
+    * [`.getInfo(opts)`](#Dataset+getInfo) ⇒ <code>Promise</code>
+    * [`.forEach(iteratee, opts, index)`](#Dataset+forEach) ⇒ <code>Promise&lt;undefined&gt;</code>
+    * [`.map(iteratee, opts, index)`](#Dataset+map) ⇒ <code>Promise&lt;Array&gt;</code>
+    * [`.reduce(iteratee, memo, opts, index)`](#Dataset+reduce) ⇒ <code>Promise&lt;\*&gt;</code>
+    * [`.delete()`](#Dataset+delete) ⇒ <code>Promise</code>
 
 <a name="Dataset+pushData"></a>
 

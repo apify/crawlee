@@ -13,7 +13,7 @@ access web pages from various countries etc.
 Additionally, the reuse of browser instances instances speeds up crawling,
 and the retirement of instances helps mitigate effects of memory leaks in Chrome.
 
-`PuppeteerPool` is internally used by the [``PuppeteerCrawler``](PuppeteerCrawler) class.
+`PuppeteerPool` is internally used by the [``PuppeteerCrawler``](puppeteercrawler) class.
 
 **Example usage:**
 
@@ -39,9 +39,9 @@ await puppeteerPool.destroy();
 
 * [PuppeteerPool](#exp_module_PuppeteerPool--PuppeteerPool) ⏏
     * [`new PuppeteerPool()`](#new_module_PuppeteerPool--PuppeteerPool_new)
-    * [`.newPage()`](puppeteerpool--PuppeteerPool+newPage) ⇒ <code>Promise&lt;Puppeteer.Page&gt;</code>
-    * [`.destroy()`](puppeteerpool--PuppeteerPool+destroy) ⇒ <code>Promise</code>
-    * [`.retire(browser)`](puppeteerpool--PuppeteerPool+retire) ⇒ <code>Promise</code>
+    * [`.newPage()`](#module_PuppeteerPool--PuppeteerPool+newPage) ⇒ <code>Promise&lt;Puppeteer.Page&gt;</code>
+    * [`.destroy()`](#module_PuppeteerPool--PuppeteerPool+destroy) ⇒ <code>Promise</code>
+    * [`.retire(browser)`](#module_PuppeteerPool--PuppeteerPool+retire) ⇒ <code>Promise</code>
 
 <a name="new_module_PuppeteerPool--PuppeteerPool_new"></a>
 

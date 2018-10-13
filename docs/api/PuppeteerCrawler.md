@@ -50,13 +50,13 @@ await crawler.run();
 
 **See**
 
-- [`CheerioCrawler`](CheerioCrawler)
-- [`BasicCrawler`](BasicCrawler)
+- [`CheerioCrawler`](cheeriocrawler)
+- [`BasicCrawler`](basiccrawler)
 
 * [PuppeteerCrawler](#exp_module_PuppeteerCrawler--PuppeteerCrawler) ⏏
     * [`new PuppeteerCrawler(options)`](#new_module_PuppeteerCrawler--PuppeteerCrawler_new)
-    * [`.run()`](puppeteercrawler--PuppeteerCrawler+run) ⇒ <code>Promise</code>
-    * [`.abort()`](puppeteercrawler--PuppeteerCrawler+abort) ⇒ <code>Promise</code>
+    * [`.run()`](#module_PuppeteerCrawler--PuppeteerCrawler+run) ⇒ <code>Promise</code>
+    * [`.abort()`](#module_PuppeteerCrawler--PuppeteerCrawler+abort) ⇒ <code>Promise</code>
 
 <a name="new_module_PuppeteerCrawler--PuppeteerCrawler_new"></a>
 
@@ -81,14 +81,14 @@ await crawler.run();
   <code>request</code> is an instance of the <code>Request</code> object with details about the URL to open, HTTP method etc.
   <code>page</code> is an instance of the <code>Puppeteer.Page</code> class with <code>page.goto(request.url)</code> already called.</p>
 </td></tr><tr>
-<td><code>options.requestList</code></td><td><code><a href="requestlist">RequestList</a></code></td><td></td>
+<td><code>options.requestList</code></td><td><code><a href="#RequestList">RequestList</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>List of the requests to be processed.
   Either RequestList or RequestQueue must be provided.
   See the <code>requestList</code> parameter of <code>BasicCrawler</code> for more details.</p>
 </td></tr><tr>
-<td><code>options.requestQueue</code></td><td><code><a href="requestqueue">RequestQueue</a></code></td><td></td>
+<td><code>options.requestQueue</code></td><td><code><a href="#RequestQueue">RequestQueue</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Queue of the requests to be processed.
@@ -177,7 +177,7 @@ await crawler.run();
 <td><code>[options.autoscaledPoolOptions]</code></td><td><code>Object</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>Custom options passed to the underlying <a href="AutoscaledPool"><code>AutoscaledPool</code></a> instance constructor.
+<td colspan="3"><p>Custom options passed to the underlying <a href="autoscaledpool"><code>AutoscaledPool</code></a> instance constructor.
   Note that the <code>runTaskFunction</code>, <code>isTaskReadyFunction</code> and <code>isFinishedFunction</code> options
   are provided by <code>PuppeteerCrawler</code> and should not be overridden.</p>
 </td></tr><tr>

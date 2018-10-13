@@ -8,10 +8,10 @@ Manages a pool of asynchronous resource-intensive tasks that are executed in par
 The pool only starts new tasks if there is enough free CPU and memory available
 and the Javascript event loop is not blocked.
 
-The information about the CPU and memory usage is obtained by the [`Snapshotter`](Snapshotter) class,
+The information about the CPU and memory usage is obtained by the [`Snapshotter`](snapshotter) class,
 which makes regular snapshots of system resources that may be either local
 or from the Apify cloud infrastructure in case the process is running on the Apify platform.
-Meaningful data gathered from these snapshots is provided to `AutoscaledPool` by the [`SystemStatus`](SystemStatus) class.
+Meaningful data gathered from these snapshots is provided to `AutoscaledPool` by the [`SystemStatus`](systemstatus) class.
 
 Before running the pool, you need to implement the following three functions:
 `runTaskFunction()`,
@@ -52,8 +52,8 @@ await pool.run();
 
 * [AutoscaledPool](#exp_module_AutoscaledPool--AutoscaledPool) ⏏
     * [`new AutoscaledPool(options)`](#new_module_AutoscaledPool--AutoscaledPool_new)
-    * [`.run()`](autoscaledpool--AutoscaledPool+run) ⇒ <code>Promise</code>
-    * [`.abort()`](autoscaledpool--AutoscaledPool+abort) ⇒ <code>Promise</code>
+    * [`.run()`](#module_AutoscaledPool--AutoscaledPool+run) ⇒ <code>Promise</code>
+    * [`.abort()`](#module_AutoscaledPool--AutoscaledPool+abort) ⇒ <code>Promise</code>
 
 <a name="new_module_AutoscaledPool--AutoscaledPool_new"></a>
 
@@ -145,13 +145,13 @@ await pool.run();
 <td><code>[options.snapshotterOptions]</code></td><td><code>Number</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>Options to be passed down to the <a href="Snapshotter"><code>Snapshotter</code></a> constructor. This is useful for fine-tuning
+<td colspan="3"><p>Options to be passed down to the <a href="snapshotter"><code>Snapshotter</code></a> constructor. This is useful for fine-tuning
   the snapshot intervals and history.</p>
 </td></tr><tr>
 <td><code>[options.systemStatusOptions]</code></td><td><code>Number</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>Options to be passed down to the <a href="SystemStatus"><code>SystemStatus</code></a> constructor. This is useful for fine-tuning
+<td colspan="3"><p>Options to be passed down to the <a href="systemstatus"><code>SystemStatus</code></a> constructor. This is useful for fine-tuning
   the system status reports. If a custom snapshotter is set in the options, it will be used
   by the pool.</p>
 </td></tr></tbody>

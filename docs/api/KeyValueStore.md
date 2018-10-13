@@ -10,15 +10,15 @@ represented by a unique key and associated with a MIME content type. Key-value s
 for saving screenshots, actor inputs and outputs, web pages, PDFs or to persist the state of crawlers.
 
 Do not instantiate this class directly, use the
-[``Apify.openKeyValueStore()``](Apify#openKeyValueStore) function instead.
+[``Apify.openKeyValueStore()``](apify#openkeyvaluestore) function instead.
 
 Each actor run is associated with a default key-value store, which is created exclusively
 for the run. By convention, the actor input and output are stored into the
 default key-value store under the `INPUT` and `OUTPUT` key, respectively.
 Typically, input and output are JSON files, although it can be any other format.
 To access the default key-value store directly, you can use the
-{@linkcode Apify.getValue|Apify.getValue()}
-and {@linkcode Apify.getValue|Apify.setValue()} convenience functions.
+[`Apify.getValue()`](apify.getvalue)
+and [`Apify.setValue()`](apify.getvalue) convenience functions.
 
 `KeyValueStore` stores its data either on local disk or in the Apify cloud,
 depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variable is set.
@@ -59,16 +59,11 @@ const value = await store.getValue('some-key');
 await store.delete('some-key');
 ```
 
-**See**
 
-- {@linkcode Apify.getValue|Apify.getValue()}
-- {@linkcode Apify.setValue|Apify.setValue()}
-
-
-* [KeyValueStore](keyvaluestore)
-    * [`.getValue(key)`](keyvaluestore+getValue) ⇒ <code>Promise&lt;Object&gt;</code>
-    * [`.setValue(key, value, [options])`](keyvaluestore+setValue) ⇒ <code>Promise</code>
-    * [`.delete()`](keyvaluestore+delete) ⇒ <code>Promise</code>
+* [KeyValueStore]keyvaluestore
+    * [`.getValue(key)`](#KeyValueStore+getValue) ⇒ <code>Promise&lt;Object&gt;</code>
+    * [`.setValue(key, value, [options])`](#KeyValueStore+setValue) ⇒ <code>Promise</code>
+    * [`.delete()`](#KeyValueStore+delete) ⇒ <code>Promise</code>
 
 <a name="KeyValueStore+getValue"></a>
 

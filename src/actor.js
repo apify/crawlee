@@ -206,9 +206,9 @@ export const main = (userFunc) => {
  * By passing the `waitSecs` option you can reduce the maximum amount of time to wait for the run to finish.
  * If the value is less than or equal to zero, the function returns immediately after the run is started.
  *
- * The result of the function is an {@linkcode ActorRun} object
+ * The result of the function is an {@link ActorRun} object
  * that contains details about the actor run and its output (if any).
- * If the actor run failed, the function fails with {@linkcode ApifyCallError} exception.
+ * If the actor run failed, the function fails with {@link ApifyCallError} exception.
  *
  * **Example usage:**
  *
@@ -225,10 +225,10 @@ export const main = (userFunc) => {
  *  Either `username/actor-name` or actor ID.
  * @param {Object|String|Buffer} [input]
  *  Input for the actor. If it is an object, it will be stringified to
- *  JSON and its content type is set to `application/json; charset=utf-8`.
+ *  JSON and its content type set to `application/json; charset=utf-8`.
  *  Otherwise the `options.contentType` parameter must be provided.
  * @param {Object} [options]
- *   Object with settings
+ *   Object with the settings below:
  * @param {String} [options.contentType]
  *  Content type for the `input`. If not specified,
  *  `input` is expected to be an object that will be stringified to JSON and content type set to
@@ -238,6 +238,7 @@ export const main = (userFunc) => {
  *  User API token that is used to run the actor. By default, it is taken from the `APIFY_TOKEN` environment variable.
  * @param {Number} [options.memory]
  *  Memory in megabytes which will be allocated for the new actor run.
+ *  If not provided, the run uses memory of the default actor run configuration.
  * @param {String} [options.build]
  *  Tag or number of the actor build to run (e.g. `beta` or `1.2.345`).
  *  If not provided, the run uses build tag or number from the default actor run configuration (typically `latest`).
@@ -251,29 +252,27 @@ export const main = (userFunc) => {
  * @param {Boolean} [options.disableBodyParser=false]
  *  If `true` then the function will not attempt to parse the
  *  actor's output and will return it in a raw `Buffer`.
- * @returns {Promise<ActorRun>} Returns a promise that resolves to an instance
- * of {@linkcode ActorRun}. If the actor run fails, the promise is rejected
- * with {@linkcode ApifyCallError}.
+ * @returns {Promise<ActorRun>}
  * @throws {ApifyCallError} If the run did not succeed, e.g. if it failed or timed out.
  *
  * @memberof module:Apify
  * @function
  * @name call
  */
-export const call = (actId, input, opts = {}) => {
+export const call = (actId, input, options = {}) => {
     const { acts, keyValueStores } = apifyClient;
 
     checkParamOrThrow(actId, 'actId', 'String');
-    checkParamOrThrow(opts, 'opts', 'Object');
+    checkParamOrThrow(options, 'opts', 'Object');
 
     // Common options.
-    const { token } = opts;
+    const { token } = options;
     checkParamOrThrow(token, 'token', 'Maybe String');
     const defaultOpts = { actId };
     if (token) defaultOpts.token = token;
 
     // RunAct() options.
-    const { build, memory } = opts;
+    const { build, memory } = options;
     const runActOpts = {};
     checkParamOrThrow(build, 'build', 'Maybe String');
     checkParamOrThrow(memory, 'memory', 'Maybe Number');
@@ -281,18 +280,18 @@ export const call = (actId, input, opts = {}) => {
     if (memory) runActOpts.memory = memory;
 
     if (input) {
-        input = maybeStringify(input, opts);
+        input = maybeStringify(input, options);
 
         checkParamOrThrow(input, 'input', 'Buffer|String');
-        checkParamOrThrow(opts.contentType, 'contentType', 'String');
+        checkParamOrThrow(options.contentType, 'contentType', 'String');
 
-        if (opts.contentType) runActOpts.contentType = addCharsetToContentType(opts.contentType);
+        if (options.contentType) runActOpts.contentType = addCharsetToContentType(options.contentType);
         runActOpts.body = input;
     }
 
     // GetAct() options.
-    const { timeoutSecs, fetchOutput = true } = opts;
-    let { waitSecs } = opts;
+    const { timeoutSecs, fetchOutput = true } = options;
+    let { waitSecs } = options;
     // TODO: This is bad, timeoutSecs should be used! Fix this and mark as breaking change!!!
     //       The comments should be * @param {Number} [options.timeoutSecs]
     //  *  Time limit for the finish of the actor run, in seconds.
@@ -307,7 +306,7 @@ export const call = (actId, input, opts = {}) => {
     const waitUntil = typeof waitSecs === 'number' ? Date.now() + (waitSecs * 1000) : null;
 
     // GetRecord() options.
-    const { disableBodyParser } = opts;
+    const { disableBodyParser } = options;
     checkParamOrThrow(disableBodyParser, 'disableBodyParser', 'Maybe Boolean');
 
     // Adds run.output field to given run and returns it.
@@ -436,24 +435,27 @@ export const call = (actId, input, opts = {}) => {
 
 
 /**
- * Constructs the URL to the Apify Proxy using the specified settings.
+ * Constructs an Apify Proxy URL using the specified settings.
  * The proxy URL can be used from Apify actors, web browsers or any other HTTP
  * proxy-enabled applications.
  *
  * For more information, see
- * the <a href="https://my.apify.com/proxy">Apify Proxy</a> page in the app
- * or the <a href="https://www.apify.com/docs/proxy">documentation</a>.
+ * the <a href="https://my.apify.com/proxy" target="_blank">Apify Proxy</a> page in the app
+ * or the <a href="https://www.apify.com/docs/proxy" target="_blank">documentation</a>.
  *
- * @param {Object} opts
- * @param {String} opts.password User's password for the proxy.
- * By default, it is taken from the `APIFY_PROXY_PASSWORD` environment variable,
- * which is automatically set by the system when running the actors on the Apify cloud.
- * @param {String[]} [opts.groups] Array of Apify Proxy groups to be used.
- * If not provided, the proxy will select the groups automatically.
- * @param {String} [opts.session] Apify Proxy session identifier to be used by the Chrome browser.
- * All HTTP requests going through the proxy with the same session identifier
- * will use the same target proxy server (i.e. the same IP address).
- * The identifier can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
+ * @param {Object} options
+ *   Object with the settings below:
+ * @param {String} [options.password] User's password for the proxy.
+ *   By default, it is taken from the `APIFY_PROXY_PASSWORD` environment variable,
+ *   which is automatically set by the system when running the actors on the Apify cloud,
+ *   or when using the <a href="https://github.com/apifytech/apify-cli" target="_blank">Apify CLI</a>
+ *   package and the user previously logged in (called `apify login`).
+ * @param {String[]} [options.groups] Array of Apify Proxy groups to be used.
+ *   If not provided, the proxy will select the groups automatically.
+ * @param {String} [options.session] Apify Proxy session identifier to be used by the Chrome browser.
+ *   All HTTP requests going through the proxy with the same session identifier
+ *   will use the same target proxy server (i.e. the same IP address), unless using Residential proxies.
+ *   The identifier can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
  *
  * @returns {String} Returns the proxy URL, e.g. `http://auto:my_password@proxy.apify.com:8000`.
  *
@@ -461,16 +463,16 @@ export const call = (actId, input, opts = {}) => {
  * @function
  * @name getApifyProxyUrl
  */
-export const getApifyProxyUrl = (opts = {}) => {
+export const getApifyProxyUrl = (options = {}) => {
     // For backwards compatibility.
     // TODO: remove this when we release v1.0.0
-    if (!opts.groups && opts.apifyProxyGroups) {
+    if (!options.groups && options.apifyProxyGroups) {
         log.warning('Parameter `apifyProxyGroups` of Apify.getApifyProxyUrl() is deprecated!!! Use `groups` instead!');
-        opts.groups = opts.apifyProxyGroups;
+        options.groups = options.apifyProxyGroups;
     }
-    if (!opts.session && opts.apifyProxySession) {
+    if (!options.session && options.apifyProxySession) {
         log.warning('Parameter `apifyProxySession` of Apify.getApifyProxyUrl() is deprecated!!! Use `session` instead!');
-        opts.session = opts.apifyProxySession;
+        options.session = options.apifyProxySession;
     }
 
     const {
@@ -484,7 +486,7 @@ export const getApifyProxyUrl = (opts = {}) => {
         // parameters so we need to override this in error messages.
         groupsParamName = 'opts.groups',
         sessionParamName = 'opts.session',
-    } = opts;
+    } = options;
 
     const getMissingParamErrorMgs = (param, env) => `Apify Proxy ${param} must be provided as parameter or "${env}" environment variable!`;
     const throwInvalidProxyValueError = (param) => {

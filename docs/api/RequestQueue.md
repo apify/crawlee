@@ -8,18 +8,18 @@ Represents a queue of URLs to crawl, which is used for deep crawling of websites
 where you start with several URLs and then recursively
 follow links to other pages. The data structure supports both breadth-first and depth-first crawling orders.
 
-Each URL is represented using an instance of the [``Request``](Request) class.
+Each URL is represented using an instance of the [``Request``](request) class.
 The queue can only contain unique URLs. More precisely, it can only contain `Request` instances
 with distinct `uniqueKey` properties. By default, `uniqueKey` is generated from the URL, but it can also be overridden.
 To add a single URL multiple times to the queue,
 corresponding `Request` objects will need to have different `uniqueKey` properties.
 
 Do not instantiate this class directly, use the
-[``Apify.openRequestQueue()``](Apify#openRequestQueue) function instead.
+[``Apify.openRequestQueue()``](apify#openrequestqueue) function instead.
 
-`RequestQueue` is used by [``BasicCrawler``](BasicCrawler), [``CheerioCrawler``](CheerioCrawler)
-and [``PuppeteerCrawler``](PuppeteerCrawler) as a source of URLs to crawl.
-Unlike [``RequestList``](RequestList), `RequestQueue` supports dynamic adding and removing of requests.
+`RequestQueue` is used by [``BasicCrawler``](basiccrawler), [``CheerioCrawler``](cheeriocrawler)
+and [``PuppeteerCrawler``](puppeteercrawler) as a source of URLs to crawl.
+Unlike [``RequestList``](#requestlist), `RequestQueue` supports dynamic adding and removing of requests.
 On the other hand, the queue is not optimized for operations that add or remove a large number of URLs in a batch.
 
 `RequestQueue` stores its data either on local disk or in the Apify cloud,
@@ -65,15 +65,15 @@ await queue.reclaimRequest(request2);
 ```
 
 
-* [RequestQueue](requestqueue)
-    * [`.addRequest(request, [opts])`](requestqueue+addRequest) ⇒ [<code>RequestOperationInfo</code>](#RequestOperationInfo)
-    * [`.getRequest(requestId)`](requestqueue+getRequest) ⇒ <code>Promise&lt;Request&gt;</code>
-    * [`.fetchNextRequest()`](requestqueue+fetchNextRequest) ⇒ <code>Promise&lt;Request&gt;</code>
-    * [`.markRequestHandled(request)`](requestqueue+markRequestHandled) ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](#RequestOperationInfo)
-    * [`.reclaimRequest(request, [opts])`](requestqueue+reclaimRequest) ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](#RequestOperationInfo)
-    * [`.isEmpty()`](requestqueue+isEmpty) ⇒ <code>Promise&lt;Boolean&gt;</code>
-    * [`.isFinished()`](requestqueue+isFinished) ⇒ <code>Promise&lt;Boolean&gt;</code>
-    * [`.delete()`](requestqueue+delete) ⇒ <code>Promise</code>
+* [RequestQueue]requestqueue
+    * [`.addRequest(request, [opts])`](#RequestQueue+addRequest) ⇒ [<code>RequestOperationInfo</code>](#RequestOperationInfo)
+    * [`.getRequest(requestId)`](#RequestQueue+getRequest) ⇒ <code>Promise&lt;Request&gt;</code>
+    * [`.fetchNextRequest()`](#RequestQueue+fetchNextRequest) ⇒ <code>Promise&lt;Request&gt;</code>
+    * [`.markRequestHandled(request)`](#RequestQueue+markRequestHandled) ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](#RequestOperationInfo)
+    * [`.reclaimRequest(request, [opts])`](#RequestQueue+reclaimRequest) ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](#RequestOperationInfo)
+    * [`.isEmpty()`](#RequestQueue+isEmpty) ⇒ <code>Promise&lt;Boolean&gt;</code>
+    * [`.isFinished()`](#RequestQueue+isFinished) ⇒ <code>Promise&lt;Boolean&gt;</code>
+    * [`.delete()`](#RequestQueue+delete) ⇒ <code>Promise</code>
 
 <a name="RequestQueue+addRequest"></a>
 

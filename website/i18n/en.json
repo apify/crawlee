@@ -27,7 +27,7 @@
         "title": "PseudoUrl"
       },
       "api/puppeteer": {
-        "title": "utilspuppeteer"
+        "title": "utils.puppeteer"
       },
       "api/puppeteercrawler": {
         "title": "PuppeteerCrawler"

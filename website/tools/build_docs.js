@@ -12,7 +12,7 @@ const classNames = [];
 const namespaces = [];
 
 const getHeader = (title) => {
-    const prefix = title === 'puppeteer' ? 'utils' : '';
+    const prefix = title === 'puppeteer' ? 'utils.' : '';
     const id = title.replace(' ', '').toLowerCase();
     return `---\nid: ${id}\ntitle: ${prefix}${title}\n---\n`;
 };
@@ -61,8 +61,11 @@ const generateFinalMarkdown = (title, text) => {
     };
     text = text.replace(dotsRx, replacer);
     // Fix links
-    const classRx = new RegExp(`#(module_)?((${classNames.join(')|(')})$)`, 'g');
-    text = text.replace(classRx, (match, p1, p2) => p2.toLowerCase());
+    const classRx = new RegExp(`\\(#(module_)?((${classNames.join(')|(')}))\\)`, 'g');
+    text = text.replace(classRx, (match, p1, p2) => {
+        // if (p2.includes('+')) return p2;
+        return p2.toLowerCase();
+    });
     return header + text;
 };
 

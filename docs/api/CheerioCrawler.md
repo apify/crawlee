@@ -13,7 +13,7 @@ invokes the user-provided `handlePageFunction` to extract page data
 using a [jQuery](https://jquery.com/)-like interface to parsed HTML DOM.
 
 The source URLs are represented using `Request` objects that
-are fed from the [``RequestList``](RequestList) or [``RequestQueue``](requestqueue)
+are fed from the [``RequestList``](#requestlist) or [``RequestQueue``](#requestqueue)
 instances provided by the `requestList` or `requestQueue` constructor options, respectively.
 
 If both `requestList` and `requestQueue` is used, the instance first
@@ -26,7 +26,7 @@ By default, `CheerioCrawler` downloads HTML using the [request-promise](https://
 You can override this behavior by setting the `requestFunction` option.
 
 New requests are only started if there is enough free CPU and memory available,
-using the functionality provided by the [``AutoscaledPool``](AutoscaledPool) class.
+using the functionality provided by the [``AutoscaledPool``](autoscaledpool) class.
 All `AutoscaledPool` configuration options can be passed to the `autoscaledPoolOptions` parameter
 of the `CheerioCrawler` constructor.
 For user convenience, the `minConcurrency` and `maxConcurrency` options are available directly.
@@ -69,13 +69,13 @@ await crawler.run();
 
 **See**
 
-- [`BasicCrawler`](BasicCrawler)
-- [`PuppeteerCrawler`](PuppeteerCrawler)
+- [`BasicCrawler`](basiccrawler)
+- [`PuppeteerCrawler`](puppeteercrawler)
 
 * [CheerioCrawler](#exp_module_CheerioCrawler--CheerioCrawler) ⏏
     * [`new CheerioCrawler(options)`](#new_module_CheerioCrawler--CheerioCrawler_new)
-    * [`.run()`](cheeriocrawler--CheerioCrawler+run) ⇒ <code>Promise</code>
-    * [`.abort()`](cheeriocrawler--CheerioCrawler+abort) ⇒ <code>Promise</code>
+    * [`.run()`](#module_CheerioCrawler--CheerioCrawler+run) ⇒ <code>Promise</code>
+    * [`.abort()`](#module_CheerioCrawler--CheerioCrawler+abort) ⇒ <code>Promise</code>
 
 <a name="new_module_CheerioCrawler--CheerioCrawler_new"></a>
 
@@ -101,18 +101,18 @@ await crawler.run();
   <ul>
     <li><code>$</code>: the Cheerio object</li>
     <li><code>html</code>: the raw HTML</li>
-    <li><code>request</code>: the <a href="Request"><code>Request</code></a> object representing the URL to crawl</li>
+    <li><code>request</code>: the <a href="request"><code>Request</code></a> object representing the URL to crawl</li>
   </ul>
 
 <p>  If the function returns a promise, it is awaited.</p>
 </td></tr><tr>
-<td><code>options.requestList</code></td><td><code>RequestList</code></td><td></td>
+<td><code>options.requestList</code></td><td><code><a href="#RequestList">RequestList</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Static list of URLs to be processed.
   Either RequestList or RequestQueue must be provided.</p>
 </td></tr><tr>
-<td><code>options.requestQueue</code></td><td><code><a href="requestqueue">RequestQueue</a></code></td><td></td>
+<td><code>options.requestQueue</code></td><td><code><a href="#RequestQueue">RequestQueue</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
@@ -161,7 +161,7 @@ await crawler.run();
 <td><code>[options.autoscaledPoolOptions]</code></td><td><code>Object</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>Custom options passed to the underlying <a href="AutoscaledPool"><code>AutoscaledPool</code></a> instance constructor.
+<td colspan="3"><p>Custom options passed to the underlying <a href="autoscaledpool"><code>AutoscaledPool</code></a> instance constructor.
   Note that the <code>runTaskFunction</code>, <code>isTaskReadyFunction</code> and <code>isFinishedFunction</code> options
   are provided by <code>CheerioCrawler</code> and cannot be overridden.</p>
 </td></tr><tr>

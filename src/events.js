@@ -25,8 +25,9 @@ let eventsWs = null;
 let persistStateInterval = null;
 
 /**
- * Gets an instance of Node.js' [EventEmitter](https://nodejs.org/api/events.html#events_class_eventemitter) class
- * that emits various events from the SDK or the Apify platform.
+ * Gets an instance of a Node.js'
+ * <a href="https://nodejs.org/api/events.html#events_class_eventemitter" target="_blank">EventEmitter</a>
+ * class that emits various events from the SDK or the Apify platform.
  * The event emitter is initialized by calling the [`Apify.main()`](#module_Apify.main) function.
  *
  * **Example usage:**

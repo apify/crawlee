@@ -24,11 +24,11 @@ directly off the container and is not configurable.
 
 * [Snapshotter](#exp_module_Snapshotter--Snapshotter) ⏏
     * [`new Snapshotter([options])`](#new_module_Snapshotter--Snapshotter_new)
-    * [`.start()`](snapshotter--Snapshotter+start) ⇒ <code>Promise</code>
-    * [`.stop()`](snapshotter--Snapshotter+stop) ⇒ <code>Promise</code>
-    * [`.getMemorySample([sampleDurationMillis])`](snapshotter--Snapshotter+getMemorySample) ⇒ <code>Array</code>
-    * [`.getEventLoopSample([sampleDurationMillis])`](snapshotter--Snapshotter+getEventLoopSample) ⇒ <code>Array</code>
-    * [`.getCpuSample([sampleDurationMillis])`](snapshotter--Snapshotter+getCpuSample) ⇒ <code>Array</code>
+    * [`.start()`](#module_Snapshotter--Snapshotter+start) ⇒ <code>Promise</code>
+    * [`.stop()`](#module_Snapshotter--Snapshotter+stop) ⇒ <code>Promise</code>
+    * [`.getMemorySample([sampleDurationMillis])`](#module_Snapshotter--Snapshotter+getMemorySample) ⇒ <code>Array</code>
+    * [`.getEventLoopSample([sampleDurationMillis])`](#module_Snapshotter--Snapshotter+getEventLoopSample) ⇒ <code>Array</code>
+    * [`.getCpuSample([sampleDurationMillis])`](#module_Snapshotter--Snapshotter+getCpuSample) ⇒ <code>Array</code>
 
 <a name="new_module_Snapshotter--Snapshotter_new"></a>
 

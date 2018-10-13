@@ -182,10 +182,8 @@ export const weightedAvg = (arrValues, arrWeights) => {
  * {
  *   // Total memory available in the system or container
  *   totalBytes: Number,
- *   &nbsp;
  *   // Amount of free memory in the system or container
  *   freeBytes: Number,
- *   &nbsp;
  *   // Amount of memory used (= totalBytes - freeBytes)
  *   usedBytes: Number,
  *   // Amount of memory used the current Node.js process
@@ -201,7 +199,7 @@ export const weightedAvg = (arrValues, arrWeights) => {
  * Beware that the function is quite inefficient because it spawns a new process.
  * Therefore you shouldn't call it too often, like more than once per second.
  *
- * @returns {Promise} Returns a promise.
+ * @returns {Promise<Object>}
  *
  * @memberof module:Apify
  * @name getMemoryInfo

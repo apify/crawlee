@@ -8,9 +8,9 @@ Provides a simple framework for the parallel crawling of web pages,
 whose URLs are fed either from a static list
 or from a dynamic queue of URLs.
 
-`BasicCrawler` invokes the user-provided `handleRequestFunction` for each [``Request``](Request)
+`BasicCrawler` invokes the user-provided `handleRequestFunction` for each [``Request``](request)
 object, which corresponds to a single URL to crawl.
-The `Request` objects are fed from the [``RequestList``](RequestList) or [``RequestQueue``](requestqueue)
+The `Request` objects are fed from the [``RequestList``](#requestlist) or [``RequestQueue``](#requestqueue)
 instances provided by the `requestList` or `requestQueue` constructor options, respectively.
 
 If both `requestList` and `requestQueue` is used, the instance first
@@ -20,7 +20,7 @@ their processing. This ensures that a single URL is not crawled multiple times.
 The crawler finishes if there are no more `Request` objects to crawl.
 
 New requests are only launched if there is enough free CPU and memory available,
-using the functionality provided by the [``AutoscaledPool``](AutoscaledPool) class.
+using the functionality provided by the [``AutoscaledPool``](autoscaledpool) class.
 All `AutoscaledPool` configuration options can be passed to the `autoscaledPoolOptions` parameter
 of the `CheerioCrawler` constructor.
 For user convenience, the `minConcurrency` and `maxConcurrency` options are available directly in the constructor.
@@ -57,8 +57,8 @@ await crawler.run();
 
 * [BasicCrawler](#exp_module_BasicCrawler--BasicCrawler) ⏏
     * [`new BasicCrawler(options)`](#new_module_BasicCrawler--BasicCrawler_new)
-    * [`.run()`](basiccrawler--BasicCrawler+run) ⇒ <code>Promise</code>
-    * [`.abort()`](basiccrawler--BasicCrawler+abort) ⇒ <code>Promise</code>
+    * [`.run()`](#module_BasicCrawler--BasicCrawler+run) ⇒ <code>Promise</code>
+    * [`.abort()`](#module_BasicCrawler--BasicCrawler+abort) ⇒ <code>Promise</code>
 
 <a name="new_module_BasicCrawler--BasicCrawler_new"></a>
 
@@ -81,18 +81,18 @@ await crawler.run();
 <td colspan="3"><p>User-provided function that performs the logic of the crawler. It is called for each URL to crawl.</p>
 <p>  The function that receives an object as argument, with the following field:</p>
   <ul>
-    <li><code>request</code>: the <a href="Request"><code>Request</code></a> object representing the URL to crawl</li>
+    <li><code>request</code>: the <a href="request"><code>Request</code></a> object representing the URL to crawl</li>
   </ul>
 
 <p>  The function must return a promise.</p>
 </td></tr><tr>
-<td><code>options.requestList</code></td><td><code>RequestList</code></td><td></td>
+<td><code>options.requestList</code></td><td><code><a href="#RequestList">RequestList</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Static list of URLs to be processed.
   Either <code>RequestList</code> or <code>RequestQueue</code> must be provided.</p>
 </td></tr><tr>
-<td><code>options.requestQueue</code></td><td><code><a href="requestqueue">RequestQueue</a></code></td><td></td>
+<td><code>options.requestQueue</code></td><td><code><a href="#RequestQueue">RequestQueue</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
@@ -119,7 +119,7 @@ await crawler.run();
 <td><code>[options.autoscaledPoolOptions]</code></td><td><code>Object</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>Custom options passed to the underlying <a href="AutoscaledPool"><code>AutoscaledPool</code></a> instance constructor.
+<td colspan="3"><p>Custom options passed to the underlying <a href="autoscaledpool"><code>AutoscaledPool</code></a> instance constructor.
   Note that the <code>runTaskFunction</code>, <code>isTaskReadyFunction</code> and <code>isFinishedFunction</code> options
   are provided by <code>BasicCrawler</code> and cannot be overridden.</p>
 </td></tr><tr>

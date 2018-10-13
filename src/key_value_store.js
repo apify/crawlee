@@ -106,8 +106,8 @@ export const maybeStringify = (value, options) => {
  * default key-value store under the `INPUT` and `OUTPUT` key, respectively.
  * Typically, input and output are JSON files, although it can be any other format.
  * To access the default key-value store directly, you can use the
- * {@linkcode Apify.getValue|Apify.getValue()}
- * and {@linkcode Apify.getValue|Apify.setValue()} convenience functions.
+ * {@link Apify.getValue|Apify.getValue()}
+ * and {@link Apify.getValue|Apify.setValue()} convenience functions.
  *
  * `KeyValueStore` stores its data either on local disk or in the Apify cloud,
  * depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variable is set.
@@ -148,8 +148,6 @@ export const maybeStringify = (value, options) => {
  * await store.delete('some-key');
  * ```
  * @hideconstructor
- * @see {@linkcode Apify.getValue|Apify.getValue()}
- * @see {@linkcode Apify.setValue|Apify.setValue()}
  */
 export class KeyValueStore {
     constructor(storeId, storeName) {
@@ -472,9 +470,9 @@ export const openKeyValueStore = (storeIdOrName) => {
 
 
 /**
- * Gets a value from the default {@linkcode KeyValueStore} associated with the current actor run.
+ * Gets a value from the default {@link KeyValueStore} associated with the current actor run.
  *
- * This is just a convenient shortcut for {@link KeyValueStore#getValue|`KeyValueStore.getValue()`}.
+ * This is just a convenient shortcut for [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+getValue).
  * For example, calling the following code:
  * ```javascript
  * const input = await Apify.getValue('INPUT');

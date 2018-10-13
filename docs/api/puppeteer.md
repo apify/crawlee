@@ -1,6 +1,6 @@
 ---
 id: puppeteer
-title: utilspuppeteer
+title: utils.puppeteer
 ---
 <a name="puppeteer"></a>
 
@@ -157,7 +157,7 @@ To create a Request object function uses `requestTemplate` from a matching Pseud
 <tr>
 <td colspan="3"><p>An array of pseudo-URLs matching the URLs to be enqueued.</p>
 </td></tr><tr>
-<td><code>requestQueue</code></td><td><code><a href="requestqueue">RequestQueue</a></code></td>
+<td><code>requestQueue</code></td><td><code><a href="#RequestQueue">RequestQueue</a></code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Request queue object where URLs will be enqueued.</p>

@@ -45,8 +45,8 @@ if (purl.matches('http://www.example.com/pages/my-awesome-page')) console.log('M
 
 * [PseudoUrl](#exp_module_PseudoUrl--PseudoUrl) ⏏
     * [`new PseudoUrl(purl, requestTemplate)`](#new_module_PseudoUrl--PseudoUrl_new)
-    * [`.matches(url)`](pseudourl--PseudoUrl+matches) ⇒ <code>Boolean</code>
-    * [`.createRequest(url)`](pseudourl--PseudoUrl+createRequest) ⇒ <code>Request</code>
+    * [`.matches(url)`](#module_PseudoUrl--PseudoUrl+matches) ⇒ <code>Boolean</code>
+    * [`.createRequest(url)`](#module_PseudoUrl--PseudoUrl+createRequest) ⇒ <code>Request</code>
 
 <a name="new_module_PseudoUrl--PseudoUrl_new"></a>
 
