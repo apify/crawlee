@@ -88,7 +88,6 @@ export const computeUniqueKey = (url, keepUrlFragment) => normalizeUrl(url, keep
  * @property {Date} handledAt
  *   Indicates the time when the request has been processed.
  *   Is `null` if the request has not been crawler yet.
- * @alias module:Request
  */
 class Request {
     constructor(opts = {}) {
@@ -157,7 +156,4 @@ class Request {
     }
 }
 
-/**
- * @module Request
- */
 export default Request;

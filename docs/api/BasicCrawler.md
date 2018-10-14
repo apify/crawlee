@@ -2,7 +2,7 @@
 id: basiccrawler
 title: BasicCrawler
 ---
-<a name="exp_module_BasicCrawler--BasicCrawler"></a>
+<a name="BasicCrawler"></a>
 
 Provides a simple framework for the parallel crawling of web pages,
 whose URLs are fed either from a static list
@@ -10,7 +10,7 @@ or from a dynamic queue of URLs.
 
 `BasicCrawler` invokes the user-provided `handleRequestFunction` for each [``Request``](request)
 object, which corresponds to a single URL to crawl.
-The `Request` objects are fed from the [``RequestList``](#requestlist) or [``RequestQueue``](#requestqueue)
+The `Request` objects are fed from the [``RequestList``](requestlist) or [``RequestQueue``](requestqueue)
 instances provided by the `requestList` or `requestQueue` constructor options, respectively.
 
 If both `requestList` and `requestQueue` is used, the instance first
@@ -55,12 +55,13 @@ const crawler = new Apify.BasicCrawler({
 await crawler.run();
 ```
 
-* [BasicCrawler](#exp_module_BasicCrawler--BasicCrawler) ⏏
-    * [`new BasicCrawler(options)`](#new_module_BasicCrawler--BasicCrawler_new)
-    * [`.run()`](#module_BasicCrawler--BasicCrawler+run) ⇒ <code>Promise</code>
-    * [`.abort()`](#module_BasicCrawler--BasicCrawler+abort) ⇒ <code>Promise</code>
 
-<a name="new_module_BasicCrawler--BasicCrawler_new"></a>
+* [BasicCrawler](basiccrawler)
+    * [`new BasicCrawler(options)`](#new_BasicCrawler_new)
+    * [`.run()`](#BasicCrawler+run) ⇒ <code>Promise</code>
+    * [`.abort()`](#BasicCrawler+abort) ⇒ <code>Promise</code>
+
+<a name="new_BasicCrawler_new"></a>
 
 ## `new BasicCrawler(options)`
 <table>
@@ -86,13 +87,13 @@ await crawler.run();
 
 <p>  The function must return a promise.</p>
 </td></tr><tr>
-<td><code>options.requestList</code></td><td><code><a href="#RequestList">RequestList</a></code></td><td></td>
+<td><code>options.requestList</code></td><td><code><a href="requestlist">RequestList</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Static list of URLs to be processed.
   Either <code>RequestList</code> or <code>RequestQueue</code> must be provided.</p>
 </td></tr><tr>
-<td><code>options.requestQueue</code></td><td><code><a href="#RequestQueue">RequestQueue</a></code></td><td></td>
+<td><code>options.requestQueue</code></td><td><code><a href="requestqueue">RequestQueue</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
@@ -134,12 +135,12 @@ await crawler.run();
 <td colspan="3"><p>Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding <code>AutoscaledPool</code> option.</p>
 </td></tr></tbody>
 </table>
-<a name="module_BasicCrawler--BasicCrawler+run"></a>
+<a name="BasicCrawler+run"></a>
 
 ## `basicCrawler.run()` ⇒ <code>Promise</code>
 Runs the crawler. Returns a promise that gets resolved once all the requests are processed.
 
-<a name="module_BasicCrawler--BasicCrawler+abort"></a>
+<a name="BasicCrawler+abort"></a>
 
 ## `basicCrawler.abort()` ⇒ <code>Promise</code>
 Aborts the crawler by preventing additional requests and terminating the running ones.

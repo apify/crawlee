@@ -101,8 +101,6 @@ const DEFAULT_OPTIONS = {
  *   Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding `AutoscaledPool` option.
  * @param {Object} [options.maxConcurrency=1000]
  *   Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding `AutoscaledPool` option.
- *
- * @alias module:BasicCrawler
  */
 class BasicCrawler {
     constructor(opts) {
@@ -325,7 +323,4 @@ class BasicCrawler {
     }
 }
 
-/**
- * @module BasicCrawler
- */
 export default BasicCrawler;

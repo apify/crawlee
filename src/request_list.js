@@ -503,15 +503,4 @@ class RequestList {
     }
 }
 
-// Support both a default export (for backwards compatibility)
-// and a named export (for docs and consistency with RequestQueue).
-
-// Docs generation breaks for RequestList when module:RequestList notation is used,
-// probably due to some bug in `jsdoc-to-markdown`. When renamed to RList,
-// it works fine, so I guess it has to do with some namespace clashing with
-// Request and a bug in the parser.
-
-// Using 'exports' directly with the class breaks the constructor notation in docs,
-// showing `new exports.RequestList()` instead of just `new RequestList()`.
-exports.RequestList = RequestList;
 export default RequestList;

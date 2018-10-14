@@ -61,11 +61,8 @@ const generateFinalMarkdown = (title, text) => {
     };
     text = text.replace(dotsRx, replacer);
     // Fix links
-    const classRx = new RegExp(`\\(#(module_)?((${classNames.join(')|(')}))\\)`, 'g');
-    text = text.replace(classRx, (match, p1, p2) => {
-        // if (p2.includes('+')) return p2;
-        return p2.toLowerCase();
-    });
+    const linksRx = new RegExp(`([("])#(module_)?(${classNames.join('|')})([)"])`, 'gi');
+    text = text.replace(linksRx, (match, p1, p2, p3, p4) => p1 + p3.toLowerCase() + p4);
     return header + text;
 };
 

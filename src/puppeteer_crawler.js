@@ -131,10 +131,6 @@ const PAGE_CLOSE_TIMEOUT_MILLIS = 30000;
  *   Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding `AutoscaledPool` option.
  * @param {Object} [options.maxConcurrency=1000]
  *   Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding `AutoscaledPool` option.
- *
- * @see {@link CheerioCrawler}
- * @see {@link BasicCrawler}
- * @alias module:PuppeteerCrawler
  */
 class PuppeteerCrawler {
     constructor(opts) {
@@ -276,7 +272,5 @@ class PuppeteerCrawler {
     }
 }
 
-/**
- * @module PuppeteerCrawler
- */
+
 export default PuppeteerCrawler;

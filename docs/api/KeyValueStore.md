@@ -60,7 +60,7 @@ await store.delete('some-key');
 ```
 
 
-* [KeyValueStore]keyvaluestore
+* [KeyValueStore](keyvaluestore)
     * [`.getValue(key)`](#KeyValueStore+getValue) ⇒ <code>Promise&lt;Object&gt;</code>
     * [`.setValue(key, value, [options])`](#KeyValueStore+setValue) ⇒ <code>Promise</code>
     * [`.delete()`](#KeyValueStore+delete) ⇒ <code>Promise</code>

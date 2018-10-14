@@ -2,7 +2,7 @@
 id: pseudourl
 title: PseudoUrl
 ---
-<a name="exp_module_PseudoUrl--PseudoUrl"></a>
+<a name="PseudoUrl"></a>
 
 Represents a pseudo URL (PURL) - an URL pattern used by web crawlers
 to specify which URLs should the crawler visit.
@@ -38,17 +38,13 @@ const purl = new Apify.PseudoUrl('http://www.example.com/pages/[(\w|-)*]');
 if (purl.matches('http://www.example.com/pages/my-awesome-page')) console.log('Match!');
 ```
 
-**See**
 
-- {@linkcode Request}
-- {@linkcode Request}
+* [PseudoUrl](pseudourl)
+    * [`new PseudoUrl(purl, requestTemplate)`](#new_PseudoUrl_new)
+    * [`.matches(url)`](#PseudoUrl+matches) ⇒ <code>Boolean</code>
+    * [`.createRequest(url)`](#PseudoUrl+createRequest) ⇒ [<code>Request</code>](request)
 
-* [PseudoUrl](#exp_module_PseudoUrl--PseudoUrl) ⏏
-    * [`new PseudoUrl(purl, requestTemplate)`](#new_module_PseudoUrl--PseudoUrl_new)
-    * [`.matches(url)`](#module_PseudoUrl--PseudoUrl+matches) ⇒ <code>Boolean</code>
-    * [`.createRequest(url)`](#module_PseudoUrl--PseudoUrl+createRequest) ⇒ <code>Request</code>
-
-<a name="new_module_PseudoUrl--PseudoUrl_new"></a>
+<a name="new_PseudoUrl_new"></a>
 
 ## `new PseudoUrl(purl, requestTemplate)`
 <table>
@@ -70,7 +66,7 @@ if (purl.matches('http://www.example.com/pages/my-awesome-page')) console.log('M
 <td colspan="3"><p>Options for the new {@linkcode Request} instances created for matching URLs.</p>
 </td></tr></tbody>
 </table>
-<a name="module_PseudoUrl--PseudoUrl+matches"></a>
+<a name="PseudoUrl+matches"></a>
 
 ## `pseudoUrl.matches(url)` ⇒ <code>Boolean</code>
 Determines whether a URL matches this pseudo-URL pattern.
@@ -90,9 +86,9 @@ Determines whether a URL matches this pseudo-URL pattern.
 <td colspan="3"><p>URL to be matched.</p>
 </td></tr></tbody>
 </table>
-<a name="module_PseudoUrl--PseudoUrl+createRequest"></a>
+<a name="PseudoUrl+createRequest"></a>
 
-## `pseudoUrl.createRequest(url)` ⇒ <code>Request</code>
+## `pseudoUrl.createRequest(url)` ⇒ [<code>Request</code>](request)
 Creates a Request object from requestTemplate and given URL.
 
 <table>

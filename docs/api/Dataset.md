@@ -48,7 +48,7 @@ await dataset.pushData([
 ```
 
 
-* [Dataset]dataset
+* [Dataset](dataset)
     * [`.pushData(data)`](#Dataset+pushData) ⇒ <code>Promise</code>
     * [`.getData(options)`](#Dataset+getData) ⇒ <code>Promise</code>
     * [`.getInfo(opts)`](#Dataset+getInfo) ⇒ <code>Promise</code>

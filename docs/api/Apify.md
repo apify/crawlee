@@ -22,9 +22,9 @@ accessible from the left sidebar.
     * [`.launchPuppeteer([opts])`](#module_Apify.launchPuppeteer) ⇒ <code>Promise</code>
     * [`.launchWebDriver([opts])`](#module_Apify.launchWebDriver) ⇒ <code>Promise</code>
     * [`.main(userFunc)`](#module_Apify.main)
-    * [`.openDataset([datasetIdOrName])`](#module_Apify.openDataset) ⇒ [<code>Promise&lt;Dataset&gt;</code>]dataset
-    * [`.openKeyValueStore([storeIdOrName])`](#module_Apify.openKeyValueStore) ⇒ [<code>Promise&lt;KeyValueStore&gt;</code>]keyvaluestore
-    * [`.openRequestQueue`](#module_Apify.openRequestQueue) ⇒ [<code>Promise&lt;RequestQueue&gt;</code>]requestqueue
+    * [`.openDataset([datasetIdOrName])`](#module_Apify.openDataset) ⇒ [<code>Promise&lt;Dataset&gt;</code>](dataset)
+    * [`.openKeyValueStore([storeIdOrName])`](#module_Apify.openKeyValueStore) ⇒ [<code>Promise&lt;KeyValueStore&gt;</code>](keyvaluestore)
+    * [`.openRequestQueue`](#module_Apify.openRequestQueue) ⇒ [<code>Promise&lt;RequestQueue&gt;</code>](requestqueue)
     * [`.pushData(data)`](#module_Apify.pushData) ⇒ <code>Promise</code>
     * [`.setValue(key, value, [options])`](#module_Apify.setValue) ⇒ <code>Promise</code>
 
@@ -186,7 +186,7 @@ The following table shows all currently emitted events:
             <td colspan="2">
                 Emitted when the actor running on the Apify platform is going to be migrated to another worker server soon.
                 You can use it to persist the state of the actor and abort the run, to speed up migration.
-                For example, this is used by the [`RequestList`](#requestlist) class.
+                For example, this is used by the [`RequestList`](requestlist) class.
             </td>
         </tr>
         <tr>
@@ -319,7 +319,7 @@ Therefore you shouldn't call it too often, like more than once per second.
 <a name="module_Apify.getValue"></a>
 
 ## `Apify.getValue(key)` ⇒ <code>Promise&lt;Object&gt;</code>
-Gets a value from the default [`KeyValueStore`](#keyvaluestore) associated with the current actor run.
+Gets a value from the default [`KeyValueStore`](keyvaluestore) associated with the current actor run.
 
 This is just a convenient shortcut for [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+getValue).
 For example, calling the following code:
@@ -339,7 +339,7 @@ For more information, see [``Apify.openKeyValueStore()``](apify.openkeyvaluestor
 and [``KeyValueStore.getValue()``](#KeyValueStore+getValue).
 
 **Returns**: <code>Promise&lt;Object&gt;</code> - Returns a promise that resolves once the record is stored.  
-**See**: [`KeyValueStore`](#keyvaluestore)  
+**See**: [`KeyValueStore`](keyvaluestore)  
 <table>
 <thead>
 <tr>
@@ -550,7 +550,7 @@ the promise will be awaited. The user function is called with no arguments.</p>
 </table>
 <a name="module_Apify.openDataset"></a>
 
-## `Apify.openDataset([datasetIdOrName])` ⇒ [<code>Promise&lt;Dataset&gt;</code>]dataset
+## `Apify.openDataset([datasetIdOrName])` ⇒ [<code>Promise&lt;Dataset&gt;</code>](dataset)
 Opens a dataset and returns a promise resolving to an instance of the {@linkcode Dataset} class.
 
 Datasets are used to store structured data where each object stored has the same attributes,
@@ -559,7 +559,7 @@ The actual data is stored either on the local filesystem or in the cloud.
 
 For more details and code examples, see the {@linkcode Dataset} class.
 
-**Returns**: [<code>Promise&lt;Dataset&gt;</code>]dataset - Returns a promise that resolves to an instance of the `Dataset` class.  
+**Returns**: [<code>Promise&lt;Dataset&gt;</code>](dataset) - Returns a promise that resolves to an instance of the `Dataset` class.  
 <table>
 <thead>
 <tr>
@@ -577,7 +577,7 @@ For more details and code examples, see the {@linkcode Dataset} class.
 </table>
 <a name="module_Apify.openKeyValueStore"></a>
 
-## `Apify.openKeyValueStore([storeIdOrName])` ⇒ [<code>Promise&lt;KeyValueStore&gt;</code>]keyvaluestore
+## `Apify.openKeyValueStore([storeIdOrName])` ⇒ [<code>Promise&lt;KeyValueStore&gt;</code>](keyvaluestore)
 Opens a key-value store and returns a promise resolving to an instance of the {@linkcode KeyValueStore} class.
 
 Key-value stores are used to store records or files, along with their MIME content type.
@@ -586,7 +586,7 @@ The actual data is stored either on a local filesystem or in the Apify cloud.
 
 For more details and code examples, see the {@linkcode KeyValueStore} class.
 
-**Returns**: [<code>Promise&lt;KeyValueStore&gt;</code>]keyvaluestore - Returns a promise that resolves to an instance of the `KeyValueStore` class.  
+**Returns**: [<code>Promise&lt;KeyValueStore&gt;</code>](keyvaluestore) - Returns a promise that resolves to an instance of the `KeyValueStore` class.  
 <table>
 <thead>
 <tr>
@@ -604,16 +604,16 @@ For more details and code examples, see the {@linkcode KeyValueStore} class.
 </table>
 <a name="module_Apify.openRequestQueue"></a>
 
-## `Apify.openRequestQueue` ⇒ [<code>Promise&lt;RequestQueue&gt;</code>]requestqueue
+## `Apify.openRequestQueue` ⇒ [<code>Promise&lt;RequestQueue&gt;</code>](requestqueue)
 Opens a request queue and returns a promise resolving to an instance
-of the [`RequestQueue`](#requestqueue) class.
+of the [`RequestQueue`](requestqueue) class.
 
-[`RequestQueue`](#requestqueue) represents a queue of URLs to crawl, which is stored either on local filesystem or in the cloud.
+[`RequestQueue`](requestqueue) represents a queue of URLs to crawl, which is stored either on local filesystem or in the cloud.
 The queue is used for deep crawling of websites, where you start with several URLs and then
 recursively follow links to other pages. The data structure supports both breadth-first
 and depth-first crawling orders.
 
-For more details and code examples, see the [`RequestQueue`](#requestqueue) class.
+For more details and code examples, see the [`RequestQueue`](requestqueue) class.
 
 <table>
 <thead>
@@ -653,7 +653,7 @@ For more information, see [``Apify.openDataset()``](apify.opendataset) and [``Da
 otherwise the actor process might finish before the data is stored!
 
 **Returns**: <code>Promise</code> - Returns a promise that resolves once the data is saved.  
-**See**: [`Dataset`](#dataset)  
+**See**: [`Dataset`](dataset)  
 <table>
 <thead>
 <tr>
@@ -692,7 +692,7 @@ For more information, see [``Apify.openKeyValueStore()``](apify.openkeyvaluestor
 and [``KeyValueStore.setValue()``](#KeyValueStore+setValue).
 
 **Returns**: <code>Promise</code> - Returns a promise that resolves once the value is stored or deleted.  
-**See**: [`KeyValueStore`](#keyvaluestore)  
+**See**: [`KeyValueStore`](keyvaluestore)  
 <table>
 <thead>
 <tr>

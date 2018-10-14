@@ -19,13 +19,13 @@ before the instance can be used. After that, no more URLs can be added to the li
 
 `RequestList` is used by [``BasicCrawler``](basiccrawler), [``CheerioCrawler``](cheeriocrawler)
 and [``PuppeteerCrawler``](puppeteercrawler) as a source of URLs to crawl.
-Unlike [``RequestQueue``](#requestqueue), `RequestList` is static but it can contain even millions of URLs.
+Unlike [``RequestQueue``](requestqueue), `RequestList` is static but it can contain even millions of URLs.
 
 `RequestList` has an internal state where it stores information which requests were handled,
 which are in progress or which were reclaimed.
 The state might be automatically persisted to the default key-value store by setting the `persistStateKey` option
 so that if the Node.js process is restarted,
-the crawling can continue where it left off. For more details, see [``KeyValueStore``](#keyvaluestore).
+the crawling can continue where it left off. For more details, see [``KeyValueStore``](keyvaluestore).
 
 **Example usage:**
 
@@ -59,13 +59,13 @@ await requestList.reclaimRequest(request2);
 ```
 
 
-* [RequestList]requestlist
+* [RequestList](requestlist)
     * [`new RequestList(options)`](#new_RequestList_new)
     * [`.initialize()`](#RequestList+initialize) ⇒ <code>Promise</code>
     * [`.getState()`](#RequestList+getState) ⇒
     * [`.isEmpty()`](#RequestList+isEmpty) ⇒ <code>Promise&lt;Boolean&gt;</code>
     * [`.isFinished()`](#RequestList+isFinished) ⇒ <code>Promise&lt;boolean&gt;</code>
-    * [`.fetchNextRequest()`](#RequestList+fetchNextRequest) ⇒ <code>Promise&lt;Request&gt;</code>
+    * [`.fetchNextRequest()`](#RequestList+fetchNextRequest) ⇒ [<code>Promise&lt;Request&gt;</code>](request)
     * [`.markRequestHandled(request)`](#RequestList+markRequestHandled) ⇒ <code>Promise</code>
     * [`.reclaimRequest(request)`](#RequestList+reclaimRequest) ⇒ <code>Promise</code>
     * [`.length()`](#RequestList+length)
@@ -167,7 +167,7 @@ Returns `true` if all requests were already handled and there are no more left.
 
 <a name="RequestList+fetchNextRequest"></a>
 
-## `requestList.fetchNextRequest()` ⇒ <code>Promise&lt;Request&gt;</code>
+## `requestList.fetchNextRequest()` ⇒ [<code>Promise&lt;Request&gt;</code>](request)
 Gets the next `Request` to process. First, the function gets a request previously reclaimed
 using [``reclaimRequest()``](#RequestList+reclaimRequest) function, if there is any.
 Otherwise it gets a next request from the sources.
@@ -188,7 +188,7 @@ Marks request as handled after successful processing.
 </thead>
 <tbody>
 <tr>
-<td><code>request</code></td><td><code>Request</code></td>
+<td><code>request</code></td><td><code><a href="request">Request</a></code></td>
 </tr>
 <tr>
 </tr></tbody>
@@ -207,7 +207,7 @@ The request will become available in the next `this.fetchNextRequest()`.
 </thead>
 <tbody>
 <tr>
-<td><code>request</code></td><td><code>Request</code></td>
+<td><code>request</code></td><td><code><a href="request">Request</a></code></td>
 </tr>
 <tr>
 </tr></tbody>

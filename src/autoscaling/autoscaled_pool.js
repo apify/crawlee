@@ -112,7 +112,6 @@ const DEFAULT_OPTIONS = {
  *   Options to be passed down to the {@link SystemStatus} constructor. This is useful for fine-tuning
  *   the system status reports. If a custom snapshotter is set in the options, it will be used
  *   by the pool.
- * @alias module:AutoscaledPool
  */
 class AutoscaledPool {
     constructor(options = {}) {
@@ -401,7 +400,4 @@ class AutoscaledPool {
     }
 }
 
-/**
- * @module AutoscaledPool
- */
 export default AutoscaledPool;

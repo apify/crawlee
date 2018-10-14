@@ -19,7 +19,7 @@ Do not instantiate this class directly, use the
 
 `RequestQueue` is used by [``BasicCrawler``](basiccrawler), [``CheerioCrawler``](cheeriocrawler)
 and [``PuppeteerCrawler``](puppeteercrawler) as a source of URLs to crawl.
-Unlike [``RequestList``](#requestlist), `RequestQueue` supports dynamic adding and removing of requests.
+Unlike [``RequestList``](requestlist), `RequestQueue` supports dynamic adding and removing of requests.
 On the other hand, the queue is not optimized for operations that add or remove a large number of URLs in a batch.
 
 `RequestQueue` stores its data either on local disk or in the Apify cloud,
@@ -65,10 +65,10 @@ await queue.reclaimRequest(request2);
 ```
 
 
-* [RequestQueue]requestqueue
+* [RequestQueue](requestqueue)
     * [`.addRequest(request, [opts])`](#RequestQueue+addRequest) ⇒ [<code>RequestOperationInfo</code>](#RequestOperationInfo)
-    * [`.getRequest(requestId)`](#RequestQueue+getRequest) ⇒ <code>Promise&lt;Request&gt;</code>
-    * [`.fetchNextRequest()`](#RequestQueue+fetchNextRequest) ⇒ <code>Promise&lt;Request&gt;</code>
+    * [`.getRequest(requestId)`](#RequestQueue+getRequest) ⇒ [<code>Promise&lt;Request&gt;</code>](request)
+    * [`.fetchNextRequest()`](#RequestQueue+fetchNextRequest) ⇒ [<code>Promise&lt;Request&gt;</code>](request)
     * [`.markRequestHandled(request)`](#RequestQueue+markRequestHandled) ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](#RequestOperationInfo)
     * [`.reclaimRequest(request, [opts])`](#RequestQueue+reclaimRequest) ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](#RequestOperationInfo)
     * [`.isEmpty()`](#RequestQueue+isEmpty) ⇒ <code>Promise&lt;Boolean&gt;</code>
@@ -92,7 +92,7 @@ it will not be updated. You can find out this happened from the resulting
 </thead>
 <tbody>
 <tr>
-<td><code>request</code></td><td><code>Request</code></td>
+<td><code>request</code></td><td><code><a href="request">Request</a></code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Request object</p>
@@ -109,7 +109,7 @@ it will not be updated. You can find out this happened from the resulting
 </table>
 <a name="RequestQueue+getRequest"></a>
 
-## `requestQueue.getRequest(requestId)` ⇒ <code>Promise&lt;Request&gt;</code>
+## `requestQueue.getRequest(requestId)` ⇒ [<code>Promise&lt;Request&gt;</code>](request)
 Gets the request from the queue specified by ID.
 
 <table>
@@ -128,7 +128,7 @@ Gets the request from the queue specified by ID.
 </table>
 <a name="RequestQueue+fetchNextRequest"></a>
 
-## `requestQueue.fetchNextRequest()` ⇒ <code>Promise&lt;Request&gt;</code>
+## `requestQueue.fetchNextRequest()` ⇒ [<code>Promise&lt;Request&gt;</code>](request)
 Returns next request in the queue to be processed.
 
 <a name="RequestQueue+markRequestHandled"></a>
@@ -144,7 +144,7 @@ Marks request handled after successfull processing.
 </thead>
 <tbody>
 <tr>
-<td><code>request</code></td><td><code>Request</code></td>
+<td><code>request</code></td><td><code><a href="request">Request</a></code></td>
 </tr>
 <tr>
 </tr></tbody>
@@ -163,7 +163,7 @@ so that it can be processed later again.
 </thead>
 <tbody>
 <tr>
-<td><code>request</code></td><td><code>Request</code></td><td></td>
+<td><code>request</code></td><td><code><a href="request">Request</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"></td></tr><tr>

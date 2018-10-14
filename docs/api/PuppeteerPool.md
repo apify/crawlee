@@ -2,7 +2,7 @@
 id: puppeteerpool
 title: PuppeteerPool
 ---
-<a name="exp_module_PuppeteerPool--PuppeteerPool"></a>
+<a name="PuppeteerPool"></a>
 
 Manages a pool of Chrome browser instances controlled using [Puppeteer](https://github.com/GoogleChrome/puppeteer).
 `PuppeteerPool` reuses Chrome instances and tabs using specific
@@ -37,13 +37,14 @@ const page3 = await puppeteerPool.newPage();
 await puppeteerPool.destroy();
 ```
 
-* [PuppeteerPool](#exp_module_PuppeteerPool--PuppeteerPool) ⏏
-    * [`new PuppeteerPool()`](#new_module_PuppeteerPool--PuppeteerPool_new)
-    * [`.newPage()`](#module_PuppeteerPool--PuppeteerPool+newPage) ⇒ <code>Promise&lt;Puppeteer.Page&gt;</code>
-    * [`.destroy()`](#module_PuppeteerPool--PuppeteerPool+destroy) ⇒ <code>Promise</code>
-    * [`.retire(browser)`](#module_PuppeteerPool--PuppeteerPool+retire) ⇒ <code>Promise</code>
 
-<a name="new_module_PuppeteerPool--PuppeteerPool_new"></a>
+* [PuppeteerPool](puppeteerpool)
+    * [`new PuppeteerPool()`](#new_PuppeteerPool_new)
+    * [`.newPage()`](#PuppeteerPool+newPage) ⇒ <code>Promise&lt;Puppeteer.Page&gt;</code>
+    * [`.destroy()`](#PuppeteerPool+destroy) ⇒ <code>Promise</code>
+    * [`.retire(browser)`](#PuppeteerPool+retire) ⇒ <code>Promise</code>
+
+<a name="new_PuppeteerPool_new"></a>
 
 ## `new PuppeteerPool()`
 <table>
@@ -103,17 +104,17 @@ await puppeteerPool.destroy();
 <p>  The <code>options.recycleDiskCache</code> setting should not be used together with <code>--disk-cache-dir</code> argument in <code>options.launchPuppeteerOptions.args</code>.</p>
 </td></tr></tbody>
 </table>
-<a name="module_PuppeteerPool--PuppeteerPool+newPage"></a>
+<a name="PuppeteerPool+newPage"></a>
 
 ## `puppeteerPool.newPage()` ⇒ <code>Promise&lt;Puppeteer.Page&gt;</code>
 Opens new tab in one of the browsers and returns promise that resolves to its Puppeteer.Page.
 
-<a name="module_PuppeteerPool--PuppeteerPool+destroy"></a>
+<a name="PuppeteerPool+destroy"></a>
 
 ## `puppeteerPool.destroy()` ⇒ <code>Promise</code>
 Closes all the browsers.
 
-<a name="module_PuppeteerPool--PuppeteerPool+retire"></a>
+<a name="PuppeteerPool+retire"></a>
 
 ## `puppeteerPool.retire(browser)` ⇒ <code>Promise</code>
 Manually retires a Puppeteer Browser instance from the pool. The browser will continue

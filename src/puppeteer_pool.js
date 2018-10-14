@@ -129,7 +129,6 @@ class PuppeteerInstance {
  *   *IMPORTANT:* Currently this feature only works in headful mode, because of a bug in Chromium.
  *
  *   The `options.recycleDiskCache` setting should not be used together with `--disk-cache-dir` argument in `options.launchPuppeteerOptions.args`.
- * @alias module:PuppeteerPool
  */
 class PuppeteerPool {
     constructor(opts = {}) {
@@ -490,7 +489,4 @@ class PuppeteerPool {
     }
 }
 
-/**
- * @module PuppeteerPool
- */
 export default PuppeteerPool;

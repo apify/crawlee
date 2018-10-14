@@ -2,7 +2,7 @@
 id: snapshotter
 title: Snapshotter
 ---
-<a name="exp_module_Snapshotter--Snapshotter"></a>
+<a name="Snapshotter"></a>
 
 Creates snapshots of system resources at given intervals and marks the resource
 as either overloaded or not during the last interval. Keeps a history of the snapshots.
@@ -22,15 +22,16 @@ Event loop becomes overloaded if it slows down by more than the `maxBlockedMilli
 CPU tracking is available only on the Apify platform and the CPU overloaded event is read
 directly off the container and is not configurable.
 
-* [Snapshotter](#exp_module_Snapshotter--Snapshotter) ⏏
-    * [`new Snapshotter([options])`](#new_module_Snapshotter--Snapshotter_new)
-    * [`.start()`](#module_Snapshotter--Snapshotter+start) ⇒ <code>Promise</code>
-    * [`.stop()`](#module_Snapshotter--Snapshotter+stop) ⇒ <code>Promise</code>
-    * [`.getMemorySample([sampleDurationMillis])`](#module_Snapshotter--Snapshotter+getMemorySample) ⇒ <code>Array</code>
-    * [`.getEventLoopSample([sampleDurationMillis])`](#module_Snapshotter--Snapshotter+getEventLoopSample) ⇒ <code>Array</code>
-    * [`.getCpuSample([sampleDurationMillis])`](#module_Snapshotter--Snapshotter+getCpuSample) ⇒ <code>Array</code>
 
-<a name="new_module_Snapshotter--Snapshotter_new"></a>
+* [Snapshotter](snapshotter)
+    * [`new Snapshotter([options])`](#new_Snapshotter_new)
+    * [`.start()`](#Snapshotter+start) ⇒ <code>Promise</code>
+    * [`.stop()`](#Snapshotter+stop) ⇒ <code>Promise</code>
+    * [`.getMemorySample([sampleDurationMillis])`](#Snapshotter+getMemorySample) ⇒ <code>Array</code>
+    * [`.getEventLoopSample([sampleDurationMillis])`](#Snapshotter+getEventLoopSample) ⇒ <code>Array</code>
+    * [`.getCpuSample([sampleDurationMillis])`](#Snapshotter+getCpuSample) ⇒ <code>Array</code>
+
+<a name="new_Snapshotter_new"></a>
 
 ## `new Snapshotter([options])`
 <table>
@@ -78,17 +79,17 @@ directly off the container and is not configurable.
   will be kept. Increasing this to very high numbers will affect performance.</p>
 </td></tr></tbody>
 </table>
-<a name="module_Snapshotter--Snapshotter+start"></a>
+<a name="Snapshotter+start"></a>
 
 ## `snapshotter.start()` ⇒ <code>Promise</code>
 Starts capturing snapshots at configured intervals.
 
-<a name="module_Snapshotter--Snapshotter+stop"></a>
+<a name="Snapshotter+stop"></a>
 
 ## `snapshotter.stop()` ⇒ <code>Promise</code>
 Stops all resource capturing.
 
-<a name="module_Snapshotter--Snapshotter+getMemorySample"></a>
+<a name="Snapshotter+getMemorySample"></a>
 
 ## `snapshotter.getMemorySample([sampleDurationMillis])` ⇒ <code>Array</code>
 Returns a sample of latest memory snapshots, with the size of the sample defined
@@ -108,7 +109,7 @@ by the sampleDurationMillis parameter. If omitted, it returns a full snapshot hi
 <tr>
 </tr></tbody>
 </table>
-<a name="module_Snapshotter--Snapshotter+getEventLoopSample"></a>
+<a name="Snapshotter+getEventLoopSample"></a>
 
 ## `snapshotter.getEventLoopSample([sampleDurationMillis])` ⇒ <code>Array</code>
 Returns a sample of latest event loop snapshots, with the size of the sample defined
@@ -128,7 +129,7 @@ by the sampleDurationMillis parameter. If omitted, it returns a full snapshot hi
 <tr>
 </tr></tbody>
 </table>
-<a name="module_Snapshotter--Snapshotter+getCpuSample"></a>
+<a name="Snapshotter+getCpuSample"></a>
 
 ## `snapshotter.getCpuSample([sampleDurationMillis])` ⇒ <code>Array</code>
 Returns a sample of latest CPU snapshots, with the size of the sample defined

@@ -2,7 +2,7 @@
 id: cheeriocrawler
 title: CheerioCrawler
 ---
-<a name="exp_module_CheerioCrawler--CheerioCrawler"></a>
+<a name="CheerioCrawler"></a>
 
 Provides a framework for the parallel crawling of web pages using plain HTTP requests and
 [cheerio](https://www.npmjs.com/package/cheerio) HTML parser.
@@ -13,7 +13,7 @@ invokes the user-provided `handlePageFunction` to extract page data
 using a [jQuery](https://jquery.com/)-like interface to parsed HTML DOM.
 
 The source URLs are represented using `Request` objects that
-are fed from the [``RequestList``](#requestlist) or [``RequestQueue``](#requestqueue)
+are fed from the [``RequestList``](requestlist) or [``RequestQueue``](requestqueue)
 instances provided by the `requestList` or `requestQueue` constructor options, respectively.
 
 If both `requestList` and `requestQueue` is used, the instance first
@@ -67,17 +67,13 @@ const crawler = new Apify.CheerioCrawler({
 await crawler.run();
 ```
 
-**See**
 
-- [`BasicCrawler`](basiccrawler)
-- [`PuppeteerCrawler`](puppeteercrawler)
+* [CheerioCrawler](cheeriocrawler)
+    * [`new CheerioCrawler(options)`](#new_CheerioCrawler_new)
+    * [`.run()`](#CheerioCrawler+run) ⇒ <code>Promise</code>
+    * [`.abort()`](#CheerioCrawler+abort) ⇒ <code>Promise</code>
 
-* [CheerioCrawler](#exp_module_CheerioCrawler--CheerioCrawler) ⏏
-    * [`new CheerioCrawler(options)`](#new_module_CheerioCrawler--CheerioCrawler_new)
-    * [`.run()`](#module_CheerioCrawler--CheerioCrawler+run) ⇒ <code>Promise</code>
-    * [`.abort()`](#module_CheerioCrawler--CheerioCrawler+abort) ⇒ <code>Promise</code>
-
-<a name="new_module_CheerioCrawler--CheerioCrawler_new"></a>
+<a name="new_CheerioCrawler_new"></a>
 
 ## `new CheerioCrawler(options)`
 <table>
@@ -106,13 +102,13 @@ await crawler.run();
 
 <p>  If the function returns a promise, it is awaited.</p>
 </td></tr><tr>
-<td><code>options.requestList</code></td><td><code><a href="#RequestList">RequestList</a></code></td><td></td>
+<td><code>options.requestList</code></td><td><code><a href="requestlist">RequestList</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Static list of URLs to be processed.
   Either RequestList or RequestQueue must be provided.</p>
 </td></tr><tr>
-<td><code>options.requestQueue</code></td><td><code><a href="#RequestQueue">RequestQueue</a></code></td><td></td>
+<td><code>options.requestQueue</code></td><td><code><a href="requestqueue">RequestQueue</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
@@ -176,12 +172,12 @@ await crawler.run();
 <td colspan="3"><p>Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding <code>AutoscaledPool</code> option.</p>
 </td></tr></tbody>
 </table>
-<a name="module_CheerioCrawler--CheerioCrawler+run"></a>
+<a name="CheerioCrawler+run"></a>
 
 ## `cheerioCrawler.run()` ⇒ <code>Promise</code>
 Runs the crawler. Returns promise that gets resolved once all the requests got processed.
 
-<a name="module_CheerioCrawler--CheerioCrawler+abort"></a>
+<a name="CheerioCrawler+abort"></a>
 
 ## `cheerioCrawler.abort()` ⇒ <code>Promise</code>
 Aborts the crawler by preventing crawls of additional pages and terminating the running ones.

@@ -2,7 +2,7 @@
 id: systemstatus
 title: SystemStatus
 ---
-<a name="exp_module_SystemStatus--SystemStatus"></a>
+<a name="SystemStatus"></a>
 
 Provides a simple interface to reading system status from a Snapshotter instance.
 It only exposes two functions `getCurrentStatus()` and `getHistoricalStatus()`.
@@ -21,12 +21,13 @@ of snapshots to be considered for the calculation.
 of the system. It considers the full snapshot history available
 in the Snapshotter instance.
 
-* [SystemStatus](#exp_module_SystemStatus--SystemStatus) ⏏
-    * [`new SystemStatus(options)`](#new_module_SystemStatus--SystemStatus_new)
-    * [`.getCurrentStatus()`](#module_SystemStatus--SystemStatus+getCurrentStatus) ⇒ <code>Boolean</code>
-    * [`.getHistoricalStatus()`](#module_SystemStatus--SystemStatus+getHistoricalStatus) ⇒ <code>Boolean</code>
 
-<a name="new_module_SystemStatus--SystemStatus_new"></a>
+* [SystemStatus](systemstatus)
+    * [`new SystemStatus(options)`](#new_SystemStatus_new)
+    * [`.getCurrentStatus()`](#SystemStatus+getCurrentStatus) ⇒ <code>Boolean</code>
+    * [`.getHistoricalStatus()`](#SystemStatus+getHistoricalStatus) ⇒ <code>Boolean</code>
+
+<a name="new_SystemStatus_new"></a>
 
 ## `new SystemStatus(options)`
 <table>
@@ -65,13 +66,13 @@ in the Snapshotter instance.
   If the sample exceeds this ratio, the system will be overloaded.</p>
 </td></tr></tbody>
 </table>
-<a name="module_SystemStatus--SystemStatus+getCurrentStatus"></a>
+<a name="SystemStatus+getCurrentStatus"></a>
 
 ## `systemStatus.getCurrentStatus()` ⇒ <code>Boolean</code>
 Returns true if the system has not been overloaded in the last
 currentHistorySecs seconds, otherwise returns false.
 
-<a name="module_SystemStatus--SystemStatus+getHistoricalStatus"></a>
+<a name="SystemStatus+getHistoricalStatus"></a>
 
 ## `systemStatus.getHistoricalStatus()` ⇒ <code>Boolean</code>
 Returns true if the system has not been overloaded in the full

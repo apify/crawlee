@@ -2,7 +2,7 @@
 id: request
 title: Request
 ---
-<a name="exp_module_Request--Request"></a>
+<a name="Request"></a>
 
 Represents a URL to be crawled, optionally including HTTP method, headers, payload and other metadata.
 The `Request` object also stores information about errors that occurred during processing of the request.
@@ -46,11 +46,12 @@ const foo = request.userData.foo;
 | `ignoreErrors` | <code>Boolean</code> | If `true` then errors in processing of this are ignored.   For example, the request won't be retried in a case of an error for example. |
 | `handledAt` | <code>Date</code> | Indicates the time when the request has been processed.   Is `null` if the request has not been crawler yet. |
 
-* [Request](#exp_module_Request--Request) ⏏
-    * [`new Request(opts)`](#new_module_Request--Request_new)
-    * [`.pushErrorMessage(errorOrMessage)`](#module_Request--Request+pushErrorMessage)
 
-<a name="new_module_Request--Request_new"></a>
+* [Request](request)
+    * [`new Request(opts)`](#new_Request_new)
+    * [`.pushErrorMessage(errorOrMessage)`](#Request+pushErrorMessage)
+
+<a name="new_Request_new"></a>
 
 ## `new Request(opts)`
 <table>
@@ -128,7 +129,7 @@ to override the default behavior and specify which URLs shall be considered equa
   For example, the request won&#39;t be retried in a case of an error for example.</p>
 </td></tr></tbody>
 </table>
-<a name="module_Request--Request+pushErrorMessage"></a>
+<a name="Request+pushErrorMessage"></a>
 
 ## `request.pushErrorMessage(errorOrMessage)`
 Stores information about an error occurred during processing of this request.

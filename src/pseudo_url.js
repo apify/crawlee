@@ -88,9 +88,6 @@ const parsePurl = (purl) => {
  *   Pseudo URL.
  * @param {Object} requestTemplate
  *   Options for the new {@linkcode Request} instances created for matching URLs.
- * @see {@linkcode Request}
- * @see {@linkcode Request}
- * @alias module:PseudoUrl
  */
 class PseudoUrl {
     constructor(purl, requestTemplate = {}) {
@@ -126,7 +123,4 @@ class PseudoUrl {
     }
 }
 
-/**
- * @module PseudoUrl
- */
 export default PseudoUrl;

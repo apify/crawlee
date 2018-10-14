@@ -2,7 +2,7 @@
 id: autoscaledpool
 title: AutoscaledPool
 ---
-<a name="exp_module_AutoscaledPool--AutoscaledPool"></a>
+<a name="AutoscaledPool"></a>
 
 Manages a pool of asynchronous resource-intensive tasks that are executed in parallel.
 The pool only starts new tasks if there is enough free CPU and memory available
@@ -50,12 +50,13 @@ const pool = new Apify.AutoscaledPool({
 await pool.run();
 ```
 
-* [AutoscaledPool](#exp_module_AutoscaledPool--AutoscaledPool) ⏏
-    * [`new AutoscaledPool(options)`](#new_module_AutoscaledPool--AutoscaledPool_new)
-    * [`.run()`](#module_AutoscaledPool--AutoscaledPool+run) ⇒ <code>Promise</code>
-    * [`.abort()`](#module_AutoscaledPool--AutoscaledPool+abort) ⇒ <code>Promise</code>
 
-<a name="new_module_AutoscaledPool--AutoscaledPool_new"></a>
+* [AutoscaledPool](autoscaledpool)
+    * [`new AutoscaledPool(options)`](#new_AutoscaledPool_new)
+    * [`.run()`](#AutoscaledPool+run) ⇒ <code>Promise</code>
+    * [`.abort()`](#AutoscaledPool+abort) ⇒ <code>Promise</code>
+
+<a name="new_AutoscaledPool_new"></a>
 
 ## `new AutoscaledPool(options)`
 <table>
@@ -156,13 +157,13 @@ await pool.run();
   by the pool.</p>
 </td></tr></tbody>
 </table>
-<a name="module_AutoscaledPool--AutoscaledPool+run"></a>
+<a name="AutoscaledPool+run"></a>
 
 ## `autoscaledPool.run()` ⇒ <code>Promise</code>
 Runs the auto-scaled pool. Returns a promise that gets resolved or rejected once
 all the tasks are finished or one of them fails.
 
-<a name="module_AutoscaledPool--AutoscaledPool+abort"></a>
+<a name="AutoscaledPool+abort"></a>
 
 ## `autoscaledPool.abort()` ⇒ <code>Promise</code>
 Aborts the run of the auto-scaled pool, discards all currently running tasks and destroys it.
