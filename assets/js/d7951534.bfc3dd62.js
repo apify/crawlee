@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunk=self.webpackChunk||[]).push([[58498],{72106:e=>{e.exports=JSON.parse('{"title":"Guides","keywords":["guides"],"slug":"/guides","permalink":"/docs/guides","navigation":{"previous":{"title":"Running in the Cloud","permalink":"/docs/introduction/deployment"},"next":{"title":"Request Storage","permalink":"/docs/guides/request-storage"}}}')}}]);
