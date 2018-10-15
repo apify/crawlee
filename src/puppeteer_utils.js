@@ -261,9 +261,9 @@ const cacheResponses = async (page, cache, responseUrlRules) => {
  * This helper function exists mainly because it's not possible to attach two handler's that both intercept the same request.
  * *IMPORTANT*: Caching responses stores them to memory, so too loose rules could cause memory leaks for longer running crawlers.
  *   This issue should be resolved or atleast mitigated in future iterations of this feature.
- * String rules are compared as request().url().includes(rule) while RegExp rules are evaluated as rule.test(request.url()).
- * If defined then blockRequestFunction should take Puppeteer.Request object and return boolean value.
- * If defined then cacheResponseFunction should take Puppeteer.Response object and should return boolean value.
+ * String rules are compared as `request().url().includes(rule)`` while RegExp rules are evaluated as `rule.test(request.url())`.
+ * If defined then `blockRequestFunction` should take `Puppeteer.Request` object and return boolean value.
+ * If defined then `cacheResponseFunction` should take `Puppeteer.Response` object and should return boolean value.
  * @param  {Page} options.page                                  Puppeteer's `Page` object
  * @param  {Object} options.cache                               Object in which responses are stored
  * @param  {Function} options.blockRequestFunction              Function which evaluates whether request should be aborted
