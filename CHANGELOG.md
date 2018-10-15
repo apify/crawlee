@@ -1,3 +1,7 @@
+0.9.x / ???
+===================
+- Upgraded Puppeteer to 1.9.0
+
 0.8.14 / 2018-10-11
 ===================
 - Added `Apify.utils.puppeteer.cacheResponses` to enable response caching in headless Chromium.
