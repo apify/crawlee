@@ -31,21 +31,73 @@ const foo = request.userData.foo;
 ```
 
 **Properties**
-
-| Name | Type | Description |
-| --- | --- | --- |
-| `id` | <code>String</code> | Request ID |
-| `url` | <code>String</code> | URL of the web page to crawl. |
-| `uniqueKey` | <code>String</code> | A unique key identifying the request.   Two requests with the same `uniqueKey` are considered as pointing to the same URL. |
-| `method` | <code>String</code> | HTTP method, e.g. `GET` or `POST`. |
-| `payload` | <code>String</code> | HTTP request payload, e.g. for POST requests. |
-| `retryCount` | <code>Number</code> | Indicates the number of times the crawling of the request has been retried on error. |
-| `errorMessages` | <code>Array&lt;String&gt;</code> | An array of error messages from request processing. |
-| `headers` | <code>Object</code> | Object with HTTP headers. Key is header name, value is the value. |
-| `userData` | <code>Object</code> | Custom user data assigned to the request. |
-| `ignoreErrors` | <code>Boolean</code> | If `true` then errors in processing of this are ignored.   For example, the request won't be retried in a case of an error for example. |
-| `handledAt` | <code>Date</code> | Indicates the time when the request has been processed.   Is `null` if the request has not been crawler yet. |
-
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Request ID</p>
+</td></tr><tr>
+<td><code>url</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>URL of the web page to crawl.</p>
+</td></tr><tr>
+<td><code>uniqueKey</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>A unique key identifying the request.
+  Two requests with the same <code>uniqueKey</code> are considered as pointing to the same URL.</p>
+</td></tr><tr>
+<td><code>method</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>HTTP method, e.g. <code>GET</code> or <code>POST</code>.</p>
+</td></tr><tr>
+<td><code>payload</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>HTTP request payload, e.g. for POST requests.</p>
+</td></tr><tr>
+<td><code>retryCount</code></td><td><code>Number</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Indicates the number of times the crawling of the request has been retried on error.</p>
+</td></tr><tr>
+<td><code>errorMessages</code></td><td><code>Array&lt;String&gt;</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>An array of error messages from request processing.</p>
+</td></tr><tr>
+<td><code>headers</code></td><td><code>Object</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Object with HTTP headers. Key is header name, value is the value.</p>
+</td></tr><tr>
+<td><code>userData</code></td><td><code>Object</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Custom user data assigned to the request.</p>
+</td></tr><tr>
+<td><code>ignoreErrors</code></td><td><code>Boolean</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>If <code>true</code> then errors in processing of this are ignored.
+  For example, the request won&#39;t be retried in a case of an error for example.</p>
+</td></tr><tr>
+<td><code>handledAt</code></td><td><code>Date</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Indicates the time when the request has been processed.
+  Is <code>null</code> if the request has not been crawler yet.</p>
+</td></tr></tbody>
+</table>
 
 * [Request](request)
     * [`new Request(opts)`](#new_Request_new)

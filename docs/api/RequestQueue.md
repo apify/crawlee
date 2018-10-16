@@ -66,18 +66,18 @@ await queue.reclaimRequest(request2);
 
 
 * [RequestQueue](requestqueue)
-    * [`.addRequest(request, [opts])`](#RequestQueue+addRequest) ⇒ [<code>RequestOperationInfo</code>](#RequestOperationInfo)
+    * [`.addRequest(request, [opts])`](#RequestQueue+addRequest) ⇒ [<code>RequestOperationInfo</code>](../typedefs/requestoperationinfo)
     * [`.getRequest(requestId)`](#RequestQueue+getRequest) ⇒ [<code>Promise&lt;Request&gt;</code>](request)
     * [`.fetchNextRequest()`](#RequestQueue+fetchNextRequest) ⇒ [<code>Promise&lt;Request&gt;</code>](request)
-    * [`.markRequestHandled(request)`](#RequestQueue+markRequestHandled) ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](#RequestOperationInfo)
-    * [`.reclaimRequest(request, [opts])`](#RequestQueue+reclaimRequest) ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](#RequestOperationInfo)
+    * [`.markRequestHandled(request)`](#RequestQueue+markRequestHandled) ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](../typedefs/requestoperationinfo)
+    * [`.reclaimRequest(request, [opts])`](#RequestQueue+reclaimRequest) ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](../typedefs/requestoperationinfo)
     * [`.isEmpty()`](#RequestQueue+isEmpty) ⇒ <code>Promise&lt;Boolean&gt;</code>
     * [`.isFinished()`](#RequestQueue+isFinished) ⇒ <code>Promise&lt;Boolean&gt;</code>
     * [`.delete()`](#RequestQueue+delete) ⇒ <code>Promise</code>
 
 <a name="RequestQueue+addRequest"></a>
 
-## `requestQueue.addRequest(request, [opts])` ⇒ [<code>RequestOperationInfo</code>](#RequestOperationInfo)
+## `requestQueue.addRequest(request, [opts])` ⇒ [<code>RequestOperationInfo</code>](../typedefs/requestoperationinfo)
 Adds a request to the queue.
 
 If the request with the same `Request.uniqueKey` property is already present in the queue,
@@ -133,7 +133,7 @@ Returns next request in the queue to be processed.
 
 <a name="RequestQueue+markRequestHandled"></a>
 
-## `requestQueue.markRequestHandled(request)` ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](#RequestOperationInfo)
+## `requestQueue.markRequestHandled(request)` ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](../typedefs/requestoperationinfo)
 Marks request handled after successfull processing.
 
 <table>
@@ -151,7 +151,7 @@ Marks request handled after successfull processing.
 </table>
 <a name="RequestQueue+reclaimRequest"></a>
 
-## `requestQueue.reclaimRequest(request, [opts])` ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](#RequestOperationInfo)
+## `requestQueue.reclaimRequest(request, [opts])` ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](../typedefs/requestoperationinfo)
 Reclaims failed request back to the queue,
 so that it can be processed later again.
 

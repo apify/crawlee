@@ -85,7 +85,7 @@ await puppeteerPool.destroy();
 <tr>
 <td colspan="3"><p>Overrides the default function to launch a new <code>Puppeteer</code> instance.</p>
 </td></tr><tr>
-<td><code>[options.launchPuppeteerOptions]</code></td><td><code><a href="#LaunchPuppeteerOptions">LaunchPuppeteerOptions</a></code></td><td></td>
+<td><code>[options.launchPuppeteerOptions]</code></td><td><code><a href="../typedefs/launchpuppeteeroptions">LaunchPuppeteerOptions</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Options used by <code>Apify.launchPuppeteer()</code> to start new Puppeteer instances.</p>

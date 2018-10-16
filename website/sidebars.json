@@ -33,9 +33,18 @@
         ]
     },
     "autoscaling": {
-        "Autoscaling": [
+        "Autoscaling Tools": [
             "api/snapshotter",
             "api/systemstatus"
+        ]
+    },
+    "typedefs": {
+        "Type Definitions": [
+            "typedefs/actorrun",
+            "typedefs/apifycallerror",
+            "typedefs/launchpuppeteeroptions",
+            "typedefs/paginationlist",
+            "typedefs/requestoperationinfo"
         ]
     }
 }

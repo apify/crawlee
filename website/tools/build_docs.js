@@ -10,6 +10,7 @@ const writeFile = promisify(fs.writeFile);
 
 const classNames = [];
 const namespaces = [];
+const typedefs = [];
 
 const getHeader = (title) => {
     const prefix = title === 'puppeteer' ? 'utils.' : '';
@@ -60,9 +61,13 @@ const generateFinalMarkdown = (title, text) => {
         return p1 + p2.replace(dotsRx, replacer);
     };
     text = text.replace(dotsRx, replacer);
-    // Fix links
+    // Fix class links
     const linksRx = new RegExp(`([("])#(module_)?(${classNames.join('|')})([)"])`, 'gi');
     text = text.replace(linksRx, (match, p1, p2, p3, p4) => p1 + p3.toLowerCase() + p4);
+    // Fix typedef links
+    const typeLinkRx = new RegExp(`([("])#(module_)?(${typedefs.join('|')})([)"])`, 'gi');
+    text = text.replace(typeLinkRx, (match, p1, p2, p3, p4) => `${p1}../typedefs/${p3.toLowerCase()}${p4}`);
+
     return header + text;
 };
 
@@ -71,6 +76,7 @@ const main = async () => {
     const sourceFiles = path.join(__dirname, '..', '..', 'src', '**', '*.js');
     const exampleFiles = path.join(__dirname, '..', '..', 'examples', '**', '*.js');
     const sourceFilesOutputDir = path.join(__dirname, '..', '..', 'docs', 'api');
+    const typeFilesOutputDir = path.join(__dirname, '..', '..', 'docs', 'typedefs');
     const exampleFilesOutputDir = path.join(__dirname, '..', '..', 'docs', 'examples');
 
     /* get template data */
@@ -96,6 +102,7 @@ const main = async () => {
     templateData.forEach((identifier) => {
         if (identifier.kind === 'class' && !identifier.ignore) classNames.push(identifier.name);
         if (identifier.kind === 'namespace' && !identifier.ignore) namespaces.push(identifier.name);
+        if (identifier.kind === 'typedef' && !identifier.ignore) typedefs.push(identifier.name);
     });
 
 
@@ -138,6 +145,15 @@ const main = async () => {
         const output = jsdoc2md.renderSync(getRenderOptions(template, templateData));
         const markdown = generateFinalMarkdown(name, output);
         fs.writeFileSync(path.resolve(sourceFilesOutputDir, `${name}.md`), markdown);
+    });
+
+    // create a doc file for each type
+    typedefs.forEach((name) => {
+        const template = `{{#identifier name="${name}"}}{{>docs}}{{/identifier}}`;
+        console.log(`Rendering ${name}, template: ${template}`); // eslint-disable-line no-console
+        const output = jsdoc2md.renderSync(getRenderOptions(template, templateData));
+        const markdown = generateFinalMarkdown(name, output);
+        fs.writeFileSync(path.resolve(typeFilesOutputDir, `${name}.md`), markdown);
     });
 };
 

@@ -164,7 +164,7 @@ await crawler.run();
   See <code>launchPuppeteerFunction</code> parameter of <code>PuppeteerPool</code>.
   See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_crawler.js#L9">GitHub</a> for default behavior.</p>
 </td></tr><tr>
-<td><code>[options.launchPuppeteerOptions]</code></td><td><code><a href="#LaunchPuppeteerOptions">LaunchPuppeteerOptions</a></code></td><td></td>
+<td><code>[options.launchPuppeteerOptions]</code></td><td><code><a href="../typedefs/launchpuppeteeroptions">LaunchPuppeteerOptions</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Options used by <code>Apify.launchPuppeteer()</code> to start new Puppeteer instances.

@@ -79,6 +79,21 @@
       },
       "examples/synchronousrun": {
         "title": "Synchronous Run"
+      },
+      "typedefs/actorrun": {
+        "title": "ActorRun"
+      },
+      "typedefs/apifycallerror": {
+        "title": "ApifyCallError"
+      },
+      "typedefs/launchpuppeteeroptions": {
+        "title": "LaunchPuppeteerOptions"
+      },
+      "typedefs/paginationlist": {
+        "title": "PaginationList"
+      },
+      "typedefs/requestoperationinfo": {
+        "title": "RequestOperationInfo"
       }
     },
     "links": {
@@ -91,7 +106,8 @@
       "Introduction": "Introduction",
       "API Reference": "API Reference",
       "Examples": "Examples",
-      "Autoscaling": "Autoscaling"
+      "Autoscaling": "Autoscaling",
+      "Type Definitions": "Type Definitions"
     }
   },
   "pages-strings": {

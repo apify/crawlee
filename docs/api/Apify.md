@@ -10,7 +10,7 @@ accessible from the left sidebar.
 
 
 * [Apify](#module_Apify)
-    * [`.call(actId, [input], [options])`](#module_Apify.call) ⇒ [<code>Promise&lt;ActorRun&gt;</code>](#ActorRun)
+    * [`.call(actId, [input], [options])`](#module_Apify.call) ⇒ [<code>Promise&lt;ActorRun&gt;</code>](../typedefs/actorrun)
     * [`.client`](#module_Apify.client)
     * [`.events`](#module_Apify.events)
     * [`.getApifyProxyUrl(options)`](#module_Apify.getApifyProxyUrl) ⇒ <code>String</code>
@@ -30,16 +30,16 @@ accessible from the left sidebar.
 
 <a name="module_Apify.call"></a>
 
-## `Apify.call(actId, [input], [options])` ⇒ [<code>Promise&lt;ActorRun&gt;</code>](#ActorRun)
+## `Apify.call(actId, [input], [options])` ⇒ [<code>Promise&lt;ActorRun&gt;</code>](../typedefs/actorrun)
 Runs an actor on the Apify platform using the current user account (determined by the `APIFY_TOKEN` environment variable),
 waits for the actor to finish and fetches its output.
 
 By passing the `waitSecs` option you can reduce the maximum amount of time to wait for the run to finish.
 If the value is less than or equal to zero, the function returns immediately after the run is started.
 
-The result of the function is an [`ActorRun`](#actorrun) object
+The result of the function is an [`ActorRun`](../typedefs/actorrun) object
 that contains details about the actor run and its output (if any).
-If the actor run failed, the function fails with [`ApifyCallError`](#apifycallerror) exception.
+If the actor run failed, the function fails with [`ApifyCallError`](../typedefs/apifycallerror) exception.
 
 **Example usage:**
 
@@ -54,7 +54,7 @@ Apify API endpoint and few others to obtain the output.
 
 **Throws**:
 
-- [<code>ApifyCallError</code>](#ApifyCallError) If the run did not succeed, e.g. if it failed or timed out.
+- [<code>ApifyCallError</code>](../typedefs/apifycallerror) If the run did not succeed, e.g. if it failed or timed out.
 
 <table>
 <thead>
@@ -175,7 +175,7 @@ The following table shows all currently emitted events:
                 The event is emitted approximately every second
                 and it indicates whether the actor is using the maximum of available CPU resources.
                 If that's the case, the actor should not add more workload.
-                For example, this event is used by the [`AutoscaledPool`](autoscaledpool) class.
+                For example, this event is used by the <a href="autoscaledpool">AutoscaledPool</a> class.
             </td>
         </tr>
         <tr>
@@ -186,7 +186,7 @@ The following table shows all currently emitted events:
             <td colspan="2">
                 Emitted when the actor running on the Apify platform is going to be migrated to another worker server soon.
                 You can use it to persist the state of the actor and abort the run, to speed up migration.
-                For example, this is used by the [`RequestList`](requestlist) class.
+                For example, this is used by the <a href="requestlist">RequestList</a> class.
             </td>
         </tr>
         <tr>
@@ -415,7 +415,7 @@ For an example of usage, see the [Synchronous run Example](../examples/synchrono
 </thead>
 <tbody>
 <tr>
-<td><code>[options]</code></td><td><code><a href="#LaunchPuppeteerOptions">LaunchPuppeteerOptions</a></code></td>
+<td><code>[options]</code></td><td><code><a href="../typedefs/launchpuppeteeroptions">LaunchPuppeteerOptions</a></code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Optional settings passed to <code>puppeteer.launch()</code>. Additionally the object can
