@@ -132,24 +132,25 @@ const getPuppeteerOrThrow = () => {
  *
  * <ul>
  *    <li>
- *        Passes the setting from the `APIFY_HEADLESS` environment variable to the `headless` option,
- *        unless it was already defined by the caller or `APIFY_XVFB` environment variable is set to `1`.
- *        Note that Apify Actor cloud platform automatically sets `APIFY_HEADLESS=1` to all running actors.
+ *        Passes the setting from the <code>APIFY_HEADLESS</code> environment variable to the <code>headless</code> option,
+ *        unless it was already defined by the caller or <code>APIFY_XVFB</code> environment variable is set to <code>1</code>.
+ *        Note that Apify Actor cloud platform automatically sets <code>APIFY_HEADLESS=1</code> to all running actors.
  *    </li>
  *    <li>
- *        Takes the `proxyUrl` option, checks it and adds it to `args` as `--proxy-server=XXX`.
+ *        Takes the <code>proxyUrl</code> option, checks it and adds it to <code>args</code> as <code>--proxy-server=XXX</code>.
  *        If the proxy uses authentication, the function sets up an anonymous proxy HTTP
  *        to make the proxy work with headless Chrome. For more information, read the
  *        <a href="https://blog.apify.com/how-to-make-headless-chrome-and-puppeteer-use-a-proxy-server-with-authentication-249a21a79212"
  *        target="_blank">blog post about proxy-chain library</a>.
  *    </li>
  *    <li>
- *        If `opts.useApifyProxy` is `true` then the function generates a URL of
+ *        If <code>options.useApifyProxy</code> is <code>true</code> then the function generates a URL of
  *        <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a>
- *        based on `opts.apifyProxyGroups` and `opts.apifyProxySession` and passes it as `opts.proxyUrl`.
+ *        based on <code>options.apifyProxyGroups</code> and <code>options.apifyProxySession</code> and passes it as <code>options.proxyUrl</code>.
  *    </li>
  *    <li>
- *        The function adds `--no-sandbox` to `args` to enable running headless Chrome in a Docker container on the Apify platform.
+ *        The function adds <code>--no-sandbox</code> to <code>args</code> to enable running
+ *        headless Chrome in a Docker container on the Apify platform.
  *    </li>
  * </ul>
  *
@@ -160,28 +161,28 @@ const getPuppeteerOrThrow = () => {
  * <a href="https://www.apify.com/docs/actor#base-images" target="_blank">Apify Actor documentation</a>
  * for details.
  *
- * For an example of usage, see the <a href="https://www.apify.com/apify/example-puppeteer">apify/example-puppeteer</a> actor.
+ * For an example of usage, see the [Synchronous run Example](../examples/synchronousrun) or the [Puppeteer proxy Example](../examples/puppeteerproxy)
  *
- * @param {LaunchPuppeteerOptions} [opts]
+ * @param {LaunchPuppeteerOptions} [options]
  *   Optional settings passed to `puppeteer.launch()`. Additionally the object can
  *   contain the following fields:
- * @returns {Promise}
- *   Promise object that resolves to Puppeteer's `Browser` instance.
+ * @returns {Promise<Browser>}
+ *   Promise that resolves to Puppeteer's `Browser` instance.
  * @memberof module:Apify
  * @name launchPuppeteer
  * @function
  */
-export const launchPuppeteer = (opts = {}) => {
-    checkParamOrThrow(opts, 'opts', 'Object');
-    checkParamOrThrow(opts.args, 'opts.args', 'Maybe [String]');
-    checkParamOrThrow(opts.proxyUrl, 'opts.proxyUrl', 'Maybe String');
-    checkParamOrThrow(opts.useApifyProxy, 'opts.useApifyProxy', 'Maybe Boolean');
-    checkParamOrThrow(opts.liveView, 'opts.liveView', 'Maybe Boolean');
-    checkParamOrThrow(opts.liveViewOptions, 'opts.liveViewOptoins', 'Maybe Object');
-    if (opts.useApifyProxy && opts.proxyUrl) throw new Error('Cannot combine "opts.useApifyProxy" with "opts.proxyUrl"!');
+export const launchPuppeteer = (options = {}) => {
+    checkParamOrThrow(options, 'options', 'Object');
+    checkParamOrThrow(options.args, 'options.args', 'Maybe [String]');
+    checkParamOrThrow(options.proxyUrl, 'options.proxyUrl', 'Maybe String');
+    checkParamOrThrow(options.useApifyProxy, 'options.useApifyProxy', 'Maybe Boolean');
+    checkParamOrThrow(options.liveView, 'options.liveView', 'Maybe Boolean');
+    checkParamOrThrow(options.liveViewOptions, 'options.liveViewOptoins', 'Maybe Object');
+    if (options.useApifyProxy && options.proxyUrl) throw new Error('Cannot combine "options.useApifyProxy" with "options.proxyUrl"!');
 
     const puppeteer = getPuppeteerOrThrow();
-    const optsCopy = Object.assign({}, opts);
+    const optsCopy = Object.assign({}, options);
 
     optsCopy.args = optsCopy.args || [];
     optsCopy.args.push('--no-sandbox');
@@ -196,8 +197,8 @@ export const launchPuppeteer = (opts = {}) => {
         optsCopy.proxyUrl = getApifyProxyUrl({
             groups: optsCopy.apifyProxyGroups,
             session: optsCopy.apifyProxySession,
-            groupsParamName: 'opts.apifyProxyGroups',
-            sessionParamName: 'opts.apifyProxySession',
+            groupsParamName: 'options.apifyProxyGroups',
+            sessionParamName: 'options.apifyProxySession',
         });
     }
 

@@ -485,16 +485,15 @@ export const openKeyValueStore = (storeIdOrName) => {
  * await store.getValue('INPUT');
  * ```
  *
- * To store the value to the default-key value store, you can use the {@link Apify#setValue|`Apify.setValue()`} function.
+ * To store the value to the default-key value store, you can use the [`Apify.setValue()`](#module_Apify.setValue) function.
  *
- * For more information, see {@link Apify.openKeyValueStore|`Apify.openKeyValueStore()`}
- * and {@link KeyValueStore#getValue|`KeyValueStore.getValue()`}.
+ * For more information, see [`Apify.openKeyValueStore()`](#module_Apify.openKeyValueStore)
+ * and [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+getValue).
  *
  * @param {String} key
  *   Unique record key.
  * @returns {Promise<Object>}
  *   Returns a promise that resolves once the record is stored.
- * @see {@link KeyValueStore}
  *
  * @memberof module:Apify
  * @name getValue

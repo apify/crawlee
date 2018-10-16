@@ -23,8 +23,8 @@ const users = [
 const siteConfig = {
     title: 'Apify SDK', // Title for your website.
     tagline: 'Turn any website into an API.',
-    url: 'https://sdk.apify.com', // Your website URL
-    baseUrl: '/', // Base URL for your project */
+    url: ' https://apifytech.github.io', // Your website URL
+    baseUrl: '/apify-js/', // Base URL for your project */
     // For github.io type URLs, you would set the url and baseUrl like:
     //   url: 'https://facebook.github.io',
     //   baseUrl: '/test-site/',

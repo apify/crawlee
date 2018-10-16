@@ -103,7 +103,7 @@ const DEFAULT_OPTIONS = {
  *   Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding `AutoscaledPool` option.
  */
 class BasicCrawler {
-    constructor(opts) {
+    constructor(options) {
         const {
             requestList,
             requestQueue,
@@ -116,18 +116,18 @@ class BasicCrawler {
             // AutoscaledPool shorthands
             minConcurrency,
             maxConcurrency,
-        } = _.defaults(opts, DEFAULT_OPTIONS);
+        } = _.defaults(options, DEFAULT_OPTIONS);
 
-        checkParamPrototypeOrThrow(requestList, 'opts.requestList', RequestList, 'Apify.RequestList', true);
-        checkParamPrototypeOrThrow(requestQueue, 'opts.requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue', true);
-        checkParamOrThrow(handleRequestFunction, 'opts.handleRequestFunction', 'Function');
-        checkParamOrThrow(handleFailedRequestFunction, 'opts.handleFailedRequestFunction', 'Function');
-        checkParamOrThrow(maxRequestRetries, 'opts.maxRequestRetries', 'Number');
-        checkParamOrThrow(maxRequestsPerCrawl, 'opts.maxRequestsPerCrawl', 'Maybe Number');
-        checkParamOrThrow(autoscaledPoolOptions, 'opts.autoscaledPoolOptions', 'Object');
+        checkParamPrototypeOrThrow(requestList, 'options.requestList', RequestList, 'Apify.RequestList', true);
+        checkParamPrototypeOrThrow(requestQueue, 'options.requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue', true);
+        checkParamOrThrow(handleRequestFunction, 'options.handleRequestFunction', 'Function');
+        checkParamOrThrow(handleFailedRequestFunction, 'options.handleFailedRequestFunction', 'Function');
+        checkParamOrThrow(maxRequestRetries, 'options.maxRequestRetries', 'Number');
+        checkParamOrThrow(maxRequestsPerCrawl, 'options.maxRequestsPerCrawl', 'Maybe Number');
+        checkParamOrThrow(autoscaledPoolOptions, 'options.autoscaledPoolOptions', 'Object');
 
         if (!requestList && !requestQueue) {
-            throw new Error('At least one of the parameters "opts.requestList" and "opts.requestQueue" must be provided!');
+            throw new Error('At least one of the parameters "options.requestList" and "options.requestQueue" must be provided!');
         }
 
         this.requestList = requestList;

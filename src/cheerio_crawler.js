@@ -131,7 +131,7 @@ const DEFAULT_OPTIONS = {
  *   Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding `AutoscaledPool` option.
  */
 class CheerioCrawler {
-    constructor(opts = {}) {
+    constructor(options = {}) {
         const {
             requestFunction,
             handlePageFunction,
@@ -150,13 +150,13 @@ class CheerioCrawler {
             maxRequestsPerCrawl,
             handleFailedRequestFunction,
             autoscaledPoolOptions,
-        } = _.defaults(opts, DEFAULT_OPTIONS);
+        } = _.defaults(options, DEFAULT_OPTIONS);
 
-        checkParamOrThrow(handlePageFunction, 'opts.handlePageFunction', 'Function');
-        checkParamOrThrow(requestFunction, 'opts.requestFunction', 'Maybe Function');
-        checkParamOrThrow(requestTimeoutSecs, 'opts.requestTimeoutSecs', 'Number');
-        checkParamOrThrow(handlePageTimeoutSecs, 'opts.handlePageTimeoutSecs', 'Number');
-        checkParamOrThrow(ignoreSslErrors, 'opts.ignoreSslErrors', 'Boolean');
+        checkParamOrThrow(handlePageFunction, 'options.handlePageFunction', 'Function');
+        checkParamOrThrow(requestFunction, 'options.requestFunction', 'Maybe Function');
+        checkParamOrThrow(requestTimeoutSecs, 'options.requestTimeoutSecs', 'Number');
+        checkParamOrThrow(handlePageTimeoutSecs, 'options.handlePageTimeoutSecs', 'Number');
+        checkParamOrThrow(ignoreSslErrors, 'options.ignoreSslErrors', 'Boolean');
 
         this.ignoreSslErrors = ignoreSslErrors;
 

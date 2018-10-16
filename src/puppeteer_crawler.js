@@ -133,11 +133,11 @@ const PAGE_CLOSE_TIMEOUT_MILLIS = 30000;
  *   Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding `AutoscaledPool` option.
  */
 class PuppeteerCrawler {
-    constructor(opts) {
+    constructor(options) {
         // For backwards compatibility, in the future we can remove this...
-        if (!opts.retireInstanceAfterRequestCount && opts.abortInstanceAfterRequestCount) {
+        if (!options.retireInstanceAfterRequestCount && options.abortInstanceAfterRequestCount) {
             log.warning('PuppeteerCrawler: Parameter `abortInstanceAfterRequestCount` is deprecated! Use `retireInstanceAfterRequestCount` instead!');
-            opts.retireInstanceAfterRequestCount = opts.abortInstanceAfterRequestCount;
+            options.retireInstanceAfterRequestCount = options.abortInstanceAfterRequestCount;
         }
 
         const {
@@ -166,11 +166,11 @@ class PuppeteerCrawler {
             killInstanceAfterMillis,
             launchPuppeteerFunction,
             launchPuppeteerOptions,
-        } = _.defaults(opts, DEFAULT_OPTIONS);
+        } = _.defaults(options, DEFAULT_OPTIONS);
 
-        checkParamOrThrow(handlePageFunction, 'opts.handlePageFunction', 'Function');
-        checkParamOrThrow(handleFailedRequestFunction, 'opts.handleFailedRequestFunction', 'Maybe Function');
-        checkParamOrThrow(gotoFunction, 'opts.gotoFunction', 'Function');
+        checkParamOrThrow(handlePageFunction, 'options.handlePageFunction', 'Function');
+        checkParamOrThrow(handleFailedRequestFunction, 'options.handleFailedRequestFunction', 'Maybe Function');
+        checkParamOrThrow(gotoFunction, 'options.gotoFunction', 'Function');
 
         this.handlePageFunction = handlePageFunction;
         this.gotoFunction = gotoFunction;

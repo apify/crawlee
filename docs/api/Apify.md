@@ -19,7 +19,7 @@ accessible from the left sidebar.
     * [`.getValue(key)`](#module_Apify.getValue) ⇒ <code>Promise&lt;Object&gt;</code>
     * [`.isAtHome()`](#module_Apify.isAtHome) ⇒ <code>Boolean</code>
     * [`.isDocker()`](#module_Apify.isDocker) ⇒ <code>Promise</code>
-    * [`.launchPuppeteer([opts])`](#module_Apify.launchPuppeteer) ⇒ <code>Promise</code>
+    * [`.launchPuppeteer([options])`](#module_Apify.launchPuppeteer) ⇒ <code>Promise&lt;Browser&gt;</code>
     * [`.launchWebDriver([opts])`](#module_Apify.launchWebDriver) ⇒ <code>Promise</code>
     * [`.main(userFunc)`](#module_Apify.main)
     * [`.openDataset([datasetIdOrName])`](#module_Apify.openDataset) ⇒ [<code>Promise&lt;Dataset&gt;</code>](dataset)
@@ -333,13 +333,12 @@ const store = await Apify.openKeyValueStore();
 await store.getValue('INPUT');
 ```
 
-To store the value to the default-key value store, you can use the [``Apify.setValue()``](apify#setvalue) function.
+To store the value to the default-key value store, you can use the [`Apify.setValue()`](#module_Apify.setValue) function.
 
-For more information, see [``Apify.openKeyValueStore()``](apify.openkeyvaluestore)
-and [``KeyValueStore.getValue()``](#KeyValueStore+getValue).
+For more information, see [`Apify.openKeyValueStore()`](#module_Apify.openKeyValueStore)
+and [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+getValue).
 
 **Returns**: <code>Promise&lt;Object&gt;</code> - Returns a promise that resolves once the record is stored.  
-**See**: [`KeyValueStore`](keyvaluestore)  
 <table>
 <thead>
 <tr>
@@ -362,11 +361,11 @@ Returns `true` when code is running on Apify platform and `false` otherwise (for
 <a name="module_Apify.isDocker"></a>
 
 ## `Apify.isDocker()` ⇒ <code>Promise</code>
-Returns promise that resolves to true if the code is running in a Docker container.
+Returns a `Promise` that resolves to true if the code is running in a Docker container.
 
 <a name="module_Apify.launchPuppeteer"></a>
 
-## `Apify.launchPuppeteer([opts])` ⇒ <code>Promise</code>
+## `Apify.launchPuppeteer([options])` ⇒ <code>Promise&lt;Browser&gt;</code>
 Launches headless Chrome using Puppeteer pre-configured to work within the Apify platform.
 The function has the same argument and the return value as `puppeteer.launch()`.
 See <a href="https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#puppeteerlaunchoptions" target="_blank">
@@ -376,24 +375,25 @@ The `launchPuppeteer()` function alters the following Puppeteer options:
 
 <ul>
    <li>
-       Passes the setting from the `APIFY_HEADLESS` environment variable to the `headless` option,
-       unless it was already defined by the caller or `APIFY_XVFB` environment variable is set to `1`.
-       Note that Apify Actor cloud platform automatically sets `APIFY_HEADLESS=1` to all running actors.
+       Passes the setting from the <code>APIFY_HEADLESS</code> environment variable to the <code>headless</code> option,
+       unless it was already defined by the caller or <code>APIFY_XVFB</code> environment variable is set to <code>1</code>.
+       Note that Apify Actor cloud platform automatically sets <code>APIFY_HEADLESS=1</code> to all running actors.
    </li>
    <li>
-       Takes the `proxyUrl` option, checks it and adds it to `args` as `--proxy-server=XXX`.
+       Takes the <code>proxyUrl</code> option, checks it and adds it to <code>args</code> as <code>--proxy-server=XXX</code>.
        If the proxy uses authentication, the function sets up an anonymous proxy HTTP
        to make the proxy work with headless Chrome. For more information, read the
        <a href="https://blog.apify.com/how-to-make-headless-chrome-and-puppeteer-use-a-proxy-server-with-authentication-249a21a79212"
        target="_blank">blog post about proxy-chain library</a>.
    </li>
    <li>
-       If `opts.useApifyProxy` is `true` then the function generates a URL of
+       If <code>options.useApifyProxy</code> is <code>true</code> then the function generates a URL of
        <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a>
-       based on `opts.apifyProxyGroups` and `opts.apifyProxySession` and passes it as `opts.proxyUrl`.
+       based on <code>options.apifyProxyGroups</code> and <code>options.apifyProxySession</code> and passes it as <code>options.proxyUrl</code>.
    </li>
    <li>
-       The function adds `--no-sandbox` to `args` to enable running headless Chrome in a Docker container on the Apify platform.
+       The function adds <code>--no-sandbox</code> to <code>args</code> to enable running
+       headless Chrome in a Docker container on the Apify platform.
    </li>
 </ul>
 
@@ -404,9 +404,9 @@ by using the `apify/actor-node-chrome` base Docker image for your actor - see
 <a href="https://www.apify.com/docs/actor#base-images" target="_blank">Apify Actor documentation</a>
 for details.
 
-For an example of usage, see the <a href="https://www.apify.com/apify/example-puppeteer">apify/example-puppeteer</a> actor.
+For an example of usage, see the [Synchronous run Example](../examples/synchronousrun) or the [Puppeteer proxy Example](../examples/puppeteerproxy)
 
-**Returns**: <code>Promise</code> - Promise object that resolves to Puppeteer's `Browser` instance.  
+**Returns**: <code>Promise&lt;Browser&gt;</code> - Promise that resolves to Puppeteer's `Browser` instance.  
 <table>
 <thead>
 <tr>
@@ -415,7 +415,7 @@ For an example of usage, see the <a href="https://www.apify.com/apify/example-pu
 </thead>
 <tbody>
 <tr>
-<td><code>[opts]</code></td><td><code><a href="#LaunchPuppeteerOptions">LaunchPuppeteerOptions</a></code></td>
+<td><code>[options]</code></td><td><code><a href="#LaunchPuppeteerOptions">LaunchPuppeteerOptions</a></code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Optional settings passed to <code>puppeteer.launch()</code>. Additionally the object can

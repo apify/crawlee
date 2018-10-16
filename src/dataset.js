@@ -261,9 +261,9 @@ export class Dataset {
      *   If set to `1` then header row in csv format is skipped.
      * @return {Promise}
      */
-    getData(opts = {}) {
+    getData(options = {}) {
         const { datasetId } = this;
-        const params = Object.assign({ datasetId }, opts);
+        const params = Object.assign({ datasetId }, options);
 
         return datasets.getItems(params);
     }

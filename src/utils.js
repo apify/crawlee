@@ -120,7 +120,7 @@ const createIsDockerPromise = () => {
 };
 
 /**
- * Returns promise that resolves to true if the code is running in a Docker container.
+ * Returns a `Promise` that resolves to true if the code is running in a Docker container.
  *
  * @return {Promise}
  *

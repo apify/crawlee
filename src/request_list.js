@@ -126,10 +126,10 @@ const ensureUniqueKeyValid = (uniqueKey) => {
  *   if they wish to keep more than just a single copy in the `RequestList`.
  */
 class RequestList {
-    constructor(opts = {}) {
-        checkParamOrThrow(opts, 'options', 'Object');
+    constructor(options = {}) {
+        checkParamOrThrow(options, 'options', 'Object');
 
-        const { sources, persistStateKey, state, keepDuplicateUrls = false } = opts;
+        const { sources, persistStateKey, state, keepDuplicateUrls = false } = options;
 
         checkParamOrThrow(sources, 'options.sources', 'Array');
         checkParamOrThrow(state, 'options.state', 'Maybe Object');
