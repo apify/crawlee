@@ -73,7 +73,7 @@ class SystemStatus {
     /**
      * Returns an object with the following structure:
      *
-     * ```
+     * ```javascript
      * {
      *     isSystemIdle: Boolean,
      *     memInfo: Object,
@@ -85,7 +85,7 @@ class SystemStatus {
      * Where the `isSystemIdle` property is set to `false` if the system
      * has been overloaded in the last `options.currentHistorySecs` seconds,
      * and `true` otherwise.
-     * @return {Boolean}
+     * @return {Object}
      */
     getCurrentStatus() {
         return this._isSystemIdle(this.currentHistorySecs);
@@ -94,7 +94,7 @@ class SystemStatus {
     /**
      * Returns an object with the following structure:
      *
-     * ```
+     * ```javascript
      * {
      *     isSystemIdle: Boolean,
      *     memInfo: Object,
@@ -106,7 +106,7 @@ class SystemStatus {
      * Where the `isSystemIdle` property is set to `false` if the system
      * has been overloaded in the full history of the {@link Snapshotter}
      * (which is configurable in the {@link Snapshotter}) and `true` otherwise.
-     * @return {Boolean}
+     * @return {Object}
      */
     getHistoricalStatus() {
         return this._isSystemIdle();

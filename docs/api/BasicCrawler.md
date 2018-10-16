@@ -4,26 +4,27 @@ title: BasicCrawler
 ---
 <a name="BasicCrawler"></a>
 
-Provides a simple framework for the parallel crawling of web pages,
+Provides a simple framework for parallel crawling of web pages,
 whose URLs are fed either from a static list
 or from a dynamic queue of URLs.
 
-`BasicCrawler` invokes the user-provided `handleRequestFunction` for each [``Request``](request)
-object, which corresponds to a single URL to crawl.
-The `Request` objects are fed from the [``RequestList``](requestlist) or [``RequestQueue``](requestqueue)
-instances provided by the `requestList` or `requestQueue` constructor options, respectively.
+`BasicCrawler` invokes the user-provided [`handleRequestFunction()`](#new_BasicCrawler_new)
+for each [`Request`](request) object, which represents a single URL to crawl.
+The [`Request`](request) objects are fed from the [`RequestList`](requestlist) or the [`RequestQueue`](requestqueue)
+instances provided by the [`requestList`](#new_BasicCrawler_new) or [`requestQueue`](#new_BasicCrawler_new)
+constructor options, respectively.
 
-If both `requestList` and `requestQueue` is used, the instance first
-processes URLs from the `RequestList` and automatically enqueues all of them to `RequestQueue` before it starts
-their processing. This ensures that a single URL is not crawled multiple times.
+If both [`requestList`](#new_BasicCrawler_new) and [`requestQueue`](#new_BasicCrawler_new) options are used,
+the instance first processes URLs from the [`RequestList`](requestlist) and automatically enqueues all of them
+to [`RequestQueue`](requestqueue) before it starts their processing. This ensures that a single URL is not crawled multiple times.
 
-The crawler finishes if there are no more `Request` objects to crawl.
+The crawler finishes if there are no more [`Request`](request) objects to crawl.
 
-New requests are only launched if there is enough free CPU and memory available,
-using the functionality provided by the [``AutoscaledPool``](autoscaledpool) class.
-All `AutoscaledPool` configuration options can be passed to the `autoscaledPoolOptions` parameter
-of the `CheerioCrawler` constructor.
-For user convenience, the `minConcurrency` and `maxConcurrency` options are available directly in the constructor.
+New requests are only dispatched when there is enough free CPU and memory available,
+using the functionality provided by the [`AutoscaledPool`](autoscaledpool) class.
+All [`AutoscaledPool`](autoscaledpool) configuration options can be passed to the [`autoscaledPoolOptions`](#new_BasicCrawler_new)
+parameter of the `BasicCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency`
+[`AutoscaledPool`](autoscaledpool) options are available directly the `BasicCrawler` constructor.
 
 **Example usage:**
 
@@ -75,40 +76,44 @@ await crawler.run();
 <td><code>options</code></td><td><code>Object</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"></td></tr><tr>
+<td colspan="3"><p>All <code>BasicCrawler</code> parameters are passed
+  via an options object with the following keys:</p>
+</td></tr><tr>
 <td><code>options.handleRequestFunction</code></td><td><code>function</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>User-provided function that performs the logic of the crawler. It is called for each URL to crawl.</p>
-<p>  The function that receives an object as argument, with the following field:</p>
-  <ul>
-    <li><code>request</code>: the <a href="request"><code>Request</code></a> object representing the URL to crawl</li>
-  </ul>
-
+<p>  The function receives the following object as an argument:</p>
+<pre><code>  {
+      request: Request
+  }
+</code></pre><p>  With the <a href="request"><code>Request</code></a> object representing the URL to crawl.</p>
 <p>  The function must return a promise.</p>
 </td></tr><tr>
 <td><code>options.requestList</code></td><td><code><a href="requestlist">RequestList</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Static list of URLs to be processed.
-  Either <code>RequestList</code> or <code>RequestQueue</code> must be provided.</p>
+  Either <a href="requestlist"><code>RequestList</code></a> or <a href="requestqueue"><code>RequestQueue</code></a> must be provided.</p>
 </td></tr><tr>
 <td><code>options.requestQueue</code></td><td><code><a href="requestqueue">RequestQueue</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
-  Either RequestList or RequestQueue must be provided.</p>
+  Either <a href="requestlist"><code>RequestList</code></a> or <a href="requestqueue"><code>RequestQueue</code></a> must be provided.</p>
 </td></tr><tr>
 <td><code>[options.handleFailedRequestFunction]</code></td><td><code>function</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>Function that handles requests that failed more then <code>option.maxRequestRetries</code> times.
-  See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/basic_crawler.js#L11">GitHub</a> for default behavior.</p>
+<td colspan="3"><p>Function that handles requests that failed more then <code>options.maxRequestRetries</code> times.
+  See source code on
+  <a href="https://github.com/apifytech/apify-js/blob/master/src/basic_crawler.js#L11" target="_blank">GitHub</a>
+  for default behavior.</p>
 </td></tr><tr>
 <td><code>[options.maxRequestRetries]</code></td><td><code>Number</code></td><td><code>3</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>How many times the request is retried if <code>handleRequestFunction</code> failed.</p>
+<td colspan="3"><p>How many times the request is retried if <a href="#new_BasicCrawler_new"><code>handleRequestFunction()</code></a> fails.</p>
 </td></tr><tr>
 <td><code>[options.maxRequestsPerCrawl]</code></td><td><code>Number</code></td><td></td>
 </tr>
@@ -120,19 +125,19 @@ await crawler.run();
 <td><code>[options.autoscaledPoolOptions]</code></td><td><code>Object</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>Custom options passed to the underlying <a href="autoscaledpool"><code>AutoscaledPool</code></a> instance constructor.
+<td colspan="3"><p>Custom options passed to the underlying <a href="autoscaledpool"><code>AutoscaledPool</code></a> constructor.
   Note that the <code>runTaskFunction</code>, <code>isTaskReadyFunction</code> and <code>isFinishedFunction</code> options
   are provided by <code>BasicCrawler</code> and cannot be overridden.</p>
 </td></tr><tr>
 <td><code>[options.minConcurrency]</code></td><td><code>Object</code></td><td><code>1</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding <code>AutoscaledPool</code> option.</p>
+<td colspan="3"><p>Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding <a href="autoscaledpool"><code>AutoscaledPool</code></a> option.</p>
 </td></tr><tr>
 <td><code>[options.maxConcurrency]</code></td><td><code>Object</code></td><td><code>1000</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding <code>AutoscaledPool</code> option.</p>
+<td colspan="3"><p>Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding <a href="autoscaledpool"><code>AutoscaledPool</code></a> option.</p>
 </td></tr></tbody>
 </table>
 <a name="BasicCrawler+run"></a>
