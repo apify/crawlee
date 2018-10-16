@@ -18,22 +18,22 @@ const DEFAULT_OPTIONS = {
  * Creates snapshots of system resources at given intervals and marks the resource
  * as either overloaded or not during the last interval. Keeps a history of the snapshots.
  * It tracks the following resources: Memory, EventLoop and CPU.
- * The class is used by the {@linkcode AutoscaledPool} class.
+ * The class is used by the {@link AutoscaledPool} class.
  *
  * There are differences in behavior when running locally and on the Apify platform,
  * but those differences are handled internally by the class and do not affect its interface.
  *
- * Memory becomes overloaded if its current use exceeds the `minFreeMemoryRatio` option.
+ * Memory becomes overloaded if its current use exceeds the `maxUsedMemoryRatio` option.
  * It's computed using the total memory available to the container when running on
  * the Apify platform and a quarter of total system memory when running locally.
- * Use of total memory may be overridden by using the `maxBlockedRatio` option.
+ * Max total memory may be overridden by using the `APIFY_MEMORY_MBYTES` environment variable.
  *
  * Event loop becomes overloaded if it slows down by more than the `maxBlockedMillis` option.
  *
  * CPU tracking is available only on the Apify platform and the CPU overloaded event is read
  * directly off the container and is not configurable.
  *
- * @param {Object} [options] All Snapshotter parameters are passed
+ * @param {Object} [options] All `Snapshotter` parameters are passed
  *   via an options object with the following keys:
  * @param {Number} [options.eventLoopSnapshotIntervalSecs=0.5]
  *   Defines the interval of measuring the event loop response time.
@@ -42,10 +42,10 @@ const DEFAULT_OPTIONS = {
  *   Exceeding this limit overloads the event loop.
  * @param {Number} [options.memorySnapshotIntervalSecs=1]
  *   Defines the interval of measuring memory consumption.
- *   The measurement itself is resource intensive (25 - 50ms async),
- *   therefore, setting this interval below 1 second is not recommended.
+ *   The measurement itself is resource intensive (25 - 50ms async).
+ *   Therefore, setting this interval below 1 second is not recommended.
  * @param {Number} [options.maxUsedMemoryRatio=0.7]
- *   Defines the maximum ratio of memory that can be used.
+ *   Defines the maximum ratio of total memory that can be used.
  *   Exceeding this limit overloads the memory.
  * @param {Number} [options.snapshotHistorySecs=60]
  *   Sets the interval in seconds for which a history of resource snapshots
@@ -117,7 +117,7 @@ class Snapshotter {
      * Returns a sample of latest memory snapshots, with the size of the sample defined
      * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
      * @param {Number} [sampleDurationMillis]
-     * @return {Array} sample
+     * @return {Array}
      */
     getMemorySample(sampleDurationMillis) {
         return this._getSample(this.memorySnapshots, sampleDurationMillis);
@@ -127,7 +127,7 @@ class Snapshotter {
      * Returns a sample of latest event loop snapshots, with the size of the sample defined
      * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
      * @param {Number} [sampleDurationMillis]
-     * @return {Array} sample
+     * @return {Array}
      */
     getEventLoopSample(sampleDurationMillis) {
         return this._getSample(this.eventLoopSnapshots, sampleDurationMillis);
@@ -137,7 +137,7 @@ class Snapshotter {
      * Returns a sample of latest CPU snapshots, with the size of the sample defined
      * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
      * @param {Number} [sampleDurationMillis]
-     * @return {Array} sample
+     * @return {Array}
      */
     getCpuSample(sampleDurationMillis) {
         return this._getSample(this.cpuSnapshots, sampleDurationMillis);
@@ -147,7 +147,7 @@ class Snapshotter {
      * Finds the latest snapshots by sampleDurationMillis in the provided array.
      * @param {Array} snapshots
      * @param {Number} [sampleDurationMillis]
-     * @return {Array} sample
+     * @return {Array}
      * @ignore
      */
     _getSample(snapshots, sampleDurationMillis) { // eslint-disable-line class-methods-use-this

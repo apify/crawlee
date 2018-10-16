@@ -14,16 +14,16 @@ or from the Apify cloud infrastructure in case the process is running on the Api
 Meaningful data gathered from these snapshots is provided to `AutoscaledPool` by the [`SystemStatus`](systemstatus) class.
 
 Before running the pool, you need to implement the following three functions:
-`runTaskFunction()`,
-`isTaskReadyFunction()` and
-`isFinishedFunction()`.
+[`runTaskFunction()`](#new_AutoscaledPool_new),
+[`isTaskReadyFunction()`](#new_AutoscaledPool_new) and
+[`isFinishedFunction()`](#new_AutoscaledPool_new).
 
-The auto-scaled pool is started by calling the `run()` function.
-The pool periodically queries the `isTaskReadyFunction()` function
+The auto-scaled pool is started by calling the [`run()`](#AutoscaledPool+run) function.
+The pool periodically queries the [`isTaskReadyFunction()`](#new_AutoscaledPool_new) function
 for more tasks, managing optimal concurrency, until the function resolves to `false`. The pool then queries
-the `isFinishedFunction()`. If it resolves to `true`, the run finishes after all running task complete.
+the [`isFinishedFunction()`](#new_AutoscaledPool_new). If it resolves to `true`, the run finishes after all running tasks complete.
 If it resolves to `false`, it assumes there will be more tasks available later and keeps periodically querying for tasks.
-If any of the tasks throws then the `run()` function rejects the promise with an error.
+If any of the tasks throws then the [`run()`](#AutoscaledPool+run) function rejects the promise with an error.
 
 The pool evaluates whether it should start a new task every time one of the tasks finishes
 and also in the interval set by the `options.maybeRunIntervalSecs` parameter.
@@ -70,9 +70,8 @@ await pool.run();
 <td><code>options</code></td><td><code>Object</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>All AutoscaledPool parameters are passed
-  via an options object with the following keys. Parameters listed in
-  [brackets] are optional.</p>
+<td colspan="3"><p>All <code>AutoscaledPool</code> parameters are passed
+  via an options object with the following keys.</p>
 </td></tr><tr>
 <td><code>options.runTaskFunction</code></td><td><code>function</code></td><td></td>
 </tr>
@@ -85,7 +84,7 @@ await pool.run();
 <tr>
 <td colspan="3"><p>A function that indicates whether <code>runTaskFunction</code> should be called.
   This function is called every time there is free capacity for a new task and it should
-  indicate whether it should start or not by resolving to either <code>true</code> or `false.
+  indicate whether it should start a new task or not by resolving to either <code>true</code> or `false.
   Besides its obvious use, it is also useful for task throttling to save resources.</p>
 </td></tr><tr>
 <td><code>options.isFinishedFunction</code></td><td><code>function</code></td><td></td>
@@ -95,7 +94,7 @@ await pool.run();
   If it resolves to <code>true</code> then the pool&#39;s run finishes. Being called only
   when there are no tasks being processed means that as long as <code>isTaskReadyFunction()</code>
   keeps resolving to <code>true</code>, <code>isFinishedFunction()</code> will never be called.
-  To abort a run, use the <code>pool.abort()</code> method.</p>
+  To abort a run, use the <a href="#AutoscaledPool+abort"><code>abort()</code></a> method.</p>
 </td></tr><tr>
 <td><code>[options.minConcurrency]</code></td><td><code>Number</code></td><td><code>1</code></td>
 </tr>

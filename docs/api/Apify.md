@@ -671,7 +671,7 @@ The objects must be serializable to JSON and the JSON representation of each obj
 ## `Apify.setValue(key, value, [options])`
 Stores or deletes a value in the default [`KeyValueStore`](keyvaluestore) associated with the current actor run.
 
-This is just a convenient shortcut for [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+setValue).
+This is just a convenient shortcut for [`keyValueStore.setValue()`](keyvaluestore#KeyValueStore+setValue).
 For example, calling the following code:
 ```javascript
 await Apify.setValue('OUTPUT', { foo: "bar" });
@@ -683,10 +683,10 @@ const store = await Apify.openKeyValueStore();
 await store.setValue('OUTPUT', { foo: "bar" });
 ```
 
-To get a value from the default-key value store, you can use the [`Apify.setValue()`](#module_Apify.getValue) function.
+To get a value from the default-key value store, you can use the [`Apify.getValue()`](#module_Apify.getValue) function.
 
 For more information, see [`Apify.openKeyValueStore()`](#module_Apify.openKeyValueStore)
-and [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+setValue).
+and [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+getValue).
 
 <table>
 <thead>

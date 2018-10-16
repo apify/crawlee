@@ -504,7 +504,7 @@ export const getValue = key => openKeyValueStore().then(store => store.getValue(
 /**
  * Stores or deletes a value in the default {@link KeyValueStore} associated with the current actor run.
  *
- * This is just a convenient shortcut for [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+setValue).
+ * This is just a convenient shortcut for [`keyValueStore.setValue()`](keyvaluestore#KeyValueStore+setValue).
  * For example, calling the following code:
  * ```javascript
  * await Apify.setValue('OUTPUT', { foo: "bar" });
@@ -516,10 +516,10 @@ export const getValue = key => openKeyValueStore().then(store => store.getValue(
  * await store.setValue('OUTPUT', { foo: "bar" });
  * ```
  *
- * To get a value from the default-key value store, you can use the [`Apify.setValue()`](#module_Apify.getValue) function.
+ * To get a value from the default-key value store, you can use the [`Apify.getValue()`](#module_Apify.getValue) function.
  *
  * For more information, see [`Apify.openKeyValueStore()`](#module_Apify.openKeyValueStore)
- * and [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+setValue).
+ * and [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+getValue).
  *
  * @param {String} key
  *   Unique record key.

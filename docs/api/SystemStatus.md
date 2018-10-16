@@ -4,32 +4,35 @@ title: SystemStatus
 ---
 <a name="SystemStatus"></a>
 
-Provides a simple interface to reading system status from a Snapshotter instance.
-It only exposes two functions `getCurrentStatus()` and `getHistoricalStatus()`.
+Provides a simple interface to reading system status from a [`Snapshotter`](snapshotter) instance.
+It only exposes two functions [`getCurrentStatus()`](#SystemStatus+getCurrentStatus)
+and [`getHistoricalStatus()`](#SystemStatus+getHistoricalStatus).
 The system status is calculated using a weighted average of overloaded
 messages in the snapshots, with the weights being the time intervals
 between the snapshots. Each resource is calculated separately
 and the system is overloaded whenever at least one resource is overloaded.
 The class is used by the [`AutoscaledPool`](autoscaledpool) class.
 
-`getCurrentStatus()` returns a boolean that represents the current status of the system.
+[`getCurrentStatus()`](#SystemStatus+getCurrentStatus)
+returns a boolean that represents the current status of the system.
 The length of the current timeframe in seconds is configurable
-by the currentHistorySecs option and represents the max age
+by the `currentHistorySecs` option and represents the max age
 of snapshots to be considered for the calculation.
 
-`getHistoricalStatus()` returns a boolean that represents the long-term status
+[`getHistoricalStatus()`](#SystemStatus+getHistoricalStatus)
+returns a boolean that represents the long-term status
 of the system. It considers the full snapshot history available
-in the Snapshotter instance.
+in the [`Snapshotter`](snapshotter) instance.
 
 
 * [SystemStatus](systemstatus)
-    * [`new SystemStatus(options)`](#new_SystemStatus_new)
+    * [`new SystemStatus([options])`](#new_SystemStatus_new)
     * [`.getCurrentStatus()`](#SystemStatus+getCurrentStatus) ⇒ <code>Boolean</code>
     * [`.getHistoricalStatus()`](#SystemStatus+getHistoricalStatus) ⇒ <code>Boolean</code>
 
 <a name="new_SystemStatus_new"></a>
 
-## `new SystemStatus(options)`
+## `new SystemStatus([options])`
 <table>
 <thead>
 <tr>
@@ -38,14 +41,17 @@ in the Snapshotter instance.
 </thead>
 <tbody>
 <tr>
-<td><code>options</code></td><td><code>Object</code></td><td></td>
+<td><code>[options]</code></td><td><code>Object</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"></td></tr><tr>
+<td colspan="3"><p>All <code>SystemStatus</code> parameters are passed
+  via an options object with the following keys:</p>
+</td></tr><tr>
 <td><code>[options.currentHistorySecs]</code></td><td><code>Number</code></td><td><code>5</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Defines max age of snapshots used in the <code>isOk()</code> measurement.</p>
+<td colspan="3"><p>Defines max age of snapshots used in the
+  <a href="#SystemStatus+getCurrentStatus"><code>getCurrentStatus()</code></a> measurement.</p>
 </td></tr><tr>
 <td><code>[options.maxMemoryOverloadedRatio]</code></td><td><code>Number</code></td><td><code>0.2</code></td>
 </tr>
@@ -69,12 +75,36 @@ in the Snapshotter instance.
 <a name="SystemStatus+getCurrentStatus"></a>
 
 ## `systemStatus.getCurrentStatus()` ⇒ <code>Boolean</code>
-Returns true if the system has not been overloaded in the last
-currentHistorySecs seconds, otherwise returns false.
+Returns an object with the following structure:
+
+```
+{
+    isSystemIdle: Boolean,
+    memInfo: Object,
+    eventLoopInfo: Object,
+    cpuInfo: Object
+}
+```
+
+Where the `isSystemIdle` property is set to `false` if the system
+has been overloaded in the last `options.currentHistorySecs` seconds,
+and `true` otherwise.
 
 <a name="SystemStatus+getHistoricalStatus"></a>
 
 ## `systemStatus.getHistoricalStatus()` ⇒ <code>Boolean</code>
-Returns true if the system has not been overloaded in the full
-history of the snapshotter (which is configurable in the snapshotter).
+Returns an object with the following structure:
+
+```
+{
+    isSystemIdle: Boolean,
+    memInfo: Object,
+    eventLoopInfo: Object,
+    cpuInfo: Object
+}
+```
+
+Where the `isSystemIdle` property is set to `false` if the system
+has been overloaded in the full history of the [`Snapshotter`](snapshotter)
+(which is configurable in the [`Snapshotter`](snapshotter)) and `true` otherwise.
 

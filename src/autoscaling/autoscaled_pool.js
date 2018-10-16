@@ -27,16 +27,16 @@ const DEFAULT_OPTIONS = {
  * Meaningful data gathered from these snapshots is provided to `AutoscaledPool` by the {@link SystemStatus} class.
  *
  * Before running the pool, you need to implement the following three functions:
- * `runTaskFunction()`,
- * `isTaskReadyFunction()` and
- * `isFinishedFunction()`.
+ * [`runTaskFunction()`](#new_AutoscaledPool_new),
+ * [`isTaskReadyFunction()`](#new_AutoscaledPool_new) and
+ * [`isFinishedFunction()`](#new_AutoscaledPool_new).
  *
- * The auto-scaled pool is started by calling the `run()` function.
- * The pool periodically queries the `isTaskReadyFunction()` function
+ * The auto-scaled pool is started by calling the [`run()`](#AutoscaledPool+run) function.
+ * The pool periodically queries the [`isTaskReadyFunction()`](#new_AutoscaledPool_new) function
  * for more tasks, managing optimal concurrency, until the function resolves to `false`. The pool then queries
- * the `isFinishedFunction()`. If it resolves to `true`, the run finishes after all running task complete.
+ * the [`isFinishedFunction()`](#new_AutoscaledPool_new). If it resolves to `true`, the run finishes after all running tasks complete.
  * If it resolves to `false`, it assumes there will be more tasks available later and keeps periodically querying for tasks.
- * If any of the tasks throws then the `run()` function rejects the promise with an error.
+ * If any of the tasks throws then the [`run()`](#AutoscaledPool+run) function rejects the promise with an error.
  *
  * The pool evaluates whether it should start a new task every time one of the tasks finishes
  * and also in the interval set by the `options.maybeRunIntervalSecs` parameter.
@@ -63,9 +63,8 @@ const DEFAULT_OPTIONS = {
  * await pool.run();
  * ```
  *
- * @param {Object} options All AutoscaledPool parameters are passed
- *   via an options object with the following keys. Parameters listed in
- *   [brackets] are optional.
+ * @param {Object} options All `AutoscaledPool` parameters are passed
+ *   via an options object with the following keys.
  * @param {Function} options.runTaskFunction
  *   A function that performs an asynchronous resource-intensive task.
  *   The function must either be labeled `async` or return a promise.
@@ -73,7 +72,7 @@ const DEFAULT_OPTIONS = {
  * @param {Function} options.isTaskReadyFunction
  *   A function that indicates whether `runTaskFunction` should be called.
  *   This function is called every time there is free capacity for a new task and it should
- *   indicate whether it should start or not by resolving to either `true` or `false.
+ *   indicate whether it should start a new task or not by resolving to either `true` or `false.
  *   Besides its obvious use, it is also useful for task throttling to save resources.
  *
  * @param {Function} options.isFinishedFunction
@@ -81,7 +80,7 @@ const DEFAULT_OPTIONS = {
  *   If it resolves to `true` then the pool's run finishes. Being called only
  *   when there are no tasks being processed means that as long as `isTaskReadyFunction()`
  *   keeps resolving to `true`, `isFinishedFunction()` will never be called.
- *   To abort a run, use the `pool.abort()` method.
+ *   To abort a run, use the [`abort()`](#AutoscaledPool+abort) method.
  *
  * @param {Number} [options.minConcurrency=1]
  *   Minimum number of tasks running in parallel.
