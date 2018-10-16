@@ -11,22 +11,22 @@ Dataset is an append-only storage - you can only add new records to it but you c
 Typically it is used to store crawling results.
 
 Do not instantiate this class directly, use the
-[``Apify.openDataset()``](apify#opendataset) function instead.
+[`Apify.openDataset()`](apify#module_Apify.openDataset) function instead.
 
 `Dataset` stores its data either on local disk or in the Apify cloud,
-depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variable is set.
+depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variables are set.
 
 If the `APIFY_LOCAL_STORAGE_DIR` environment variable is set, the data is stored in
 the local directory in the following files:
 ```
-[APIFY_LOCAL_STORAGE_DIR]/datasets/[DATASET_ID]/[INDEX].json
+{APIFY_LOCAL_STORAGE_DIR}/datasets/{DATASET_ID}/{INDEX}.json
 ```
-Note that `[DATASET_ID]` is the name or ID of the dataset. The default dataset has ID `default`,
+Note that `{DATASET_ID}` is the name or ID of the dataset. The default dataset has ID: `default`,
 unless you override it by setting the `APIFY_DEFAULT_DATASET_ID` environment variable.
-Each dataset item is stored as a separate JSON file, where `[INDEX]` is a zero-based index of the item in the dataset.
+Each dataset item is stored as a separate JSON file, where `{INDEX}` is a zero-based index of the item in the dataset.
 
-If the `APIFY_TOKEN` environment variable is provided instead, the data is stored
-in the [Apify Dataset](https://www.apify.com/docs/storage#dataset) cloud storage.
+If the `APIFY_TOKEN` environment variable is provided instead, the data are stored
+in the <a href="https://www.apify.com/docs/storage#dataset" target="_blank">Apify Dataset</a> cloud storage.
 
 **Example usage:**
 
@@ -50,11 +50,11 @@ await dataset.pushData([
 
 * [Dataset](dataset)
     * [`.pushData(data)`](#Dataset+pushData) ⇒ <code>Promise</code>
-    * [`.getData(options)`](#Dataset+getData) ⇒ <code>Promise</code>
-    * [`.getInfo(opts)`](#Dataset+getInfo) ⇒ <code>Promise</code>
-    * [`.forEach(iteratee, opts, index)`](#Dataset+forEach) ⇒ <code>Promise&lt;undefined&gt;</code>
-    * [`.map(iteratee, opts, index)`](#Dataset+map) ⇒ <code>Promise&lt;Array&gt;</code>
-    * [`.reduce(iteratee, memo, opts, index)`](#Dataset+reduce) ⇒ <code>Promise&lt;\*&gt;</code>
+    * [`.getData([options])`](#Dataset+getData) ⇒ <code>Promise</code>
+    * [`.getInfo()`](#Dataset+getInfo) ⇒ <code>Promise&lt;Object&gt;</code>
+    * [`.forEach(iteratee, [options], [index])`](#Dataset+forEach) ⇒ <code>Promise</code>
+    * [`.map(iteratee, options)`](#Dataset+map) ⇒ <code>Promise&lt;Array&gt;</code>
+    * [`.reduce(iteratee, memo, options)`](#Dataset+reduce) ⇒ <code>Promise&lt;\*&gt;</code>
     * [`.delete()`](#Dataset+delete) ⇒ <code>Promise</code>
 
 <a name="Dataset+pushData"></a>
@@ -67,7 +67,7 @@ It has no result, but throws on invalid args or other errors.
 **IMPORTANT**: Make sure to use the `await` keyword when calling `pushData()`,
 otherwise the actor process might finish before the data is stored!
 
-The size of the data is limited by the receiving API and therefore `pushData` will only
+The size of the data is limited by the receiving API and therefore `pushData()` will only
 allow objects whose JSON representation is smaller than 9MB. When an array is passed,
 none of the included objects
 may be larger than 9MB, but the array itself may be of any size.
@@ -76,12 +76,11 @@ The function internally
 chunks the array into separate items and pushes them sequentially.
 The chunking process is stable (keeps order of data), but it does not provide a transaction
 safety mechanism. Therefore, in the event of an uploading error (after several automatic retries),
-the function's promise will reject and the dataset will be left in a state where some of
+the function's Promise will reject and the dataset will be left in a state where some of
 the items have already been saved to the dataset while other items from the source array were not.
 To overcome this limitation, the developer may, for example, read the last item saved in the dataset
 and re-attempt the save of the data from this item onwards to prevent duplicates.
 
-**Returns**: <code>Promise</code> - Returns a promise that resolves once the data is saved.  
 <table>
 <thead>
 <tr>
@@ -99,10 +98,10 @@ The objects must be serializable to JSON and the JSON representation of each obj
 </table>
 <a name="Dataset+getData"></a>
 
-## `dataset.getData(options)` ⇒ <code>Promise</code>
+## `dataset.getData([options])` ⇒ <code>Promise</code>
 Returns items in the dataset based on the provided parameters.
 
-If format is `json` then the function doesn't return an array of records but {@linkcode PaginationList} instead.
+If format is `json` then the function doesn't return an array of records but [`PaginationList`](../typedefs/paginationlist) instead.
 
 <table>
 <thead>
@@ -112,10 +111,12 @@ If format is `json` then the function doesn't return an array of records but {@l
 </thead>
 <tbody>
 <tr>
-<td><code>options</code></td><td><code>Object</code></td><td></td>
+<td><code>[options]</code></td><td><code>Object</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"></td></tr><tr>
+<td colspan="3"><p>All <code>getData()</code> parameters are passed
+  via an options object with the following keys:</p>
+</td></tr><tr>
 <td><code>[options.format]</code></td><td><code>String</code></td><td><code>&#x27;json&#x27;</code></td>
 </tr>
 <tr>
@@ -131,7 +132,7 @@ If format is `json` then the function doesn't return an array of records but {@l
 <tr>
 <td colspan="3"><p>Maximum number of array elements to return.</p>
 </td></tr><tr>
-<td><code>[options.desc]</code></td><td><code>Boolean</code></td><td></td>
+<td><code>[options.desc]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>If <code>true</code> then the objects are sorted by <code>createdAt</code> in descending order.
@@ -148,12 +149,12 @@ If format is `json` then the function doesn't return an array of records but {@l
 <td colspan="3"><p>Specifies a name of the field in the result objects that will be used to unwind the resulting objects.
   By default, the results are returned as they are.</p>
 </td></tr><tr>
-<td><code>[options.disableBodyParser]</code></td><td><code>Boolean</code></td><td></td>
+<td><code>[options.disableBodyParser]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>If <code>true</code> then response from API will not be parsed.</p>
 </td></tr><tr>
-<td><code>[options.attachment]</code></td><td><code>Number</code></td><td></td>
+<td><code>[options.attachment]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>If <code>true</code> then the response will define the <code>Content-Disposition: attachment</code> HTTP header, forcing a web
@@ -165,50 +166,37 @@ If format is `json` then the function doesn't return an array of records but {@l
 <td colspan="3"><p>A delimiter character for CSV files, only used if <code>format</code> is <code>csv</code>.
   You might need to URL-encode the character (e.g. use <code>%09</code> for tab or <code>%3B</code> for semicolon).</p>
 </td></tr><tr>
-<td><code>[options.bom]</code></td><td><code>Number</code></td><td></td>
+<td><code>[options.bom]</code></td><td><code>Boolean</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>All responses are encoded in UTF-8 encoding. By default, the CSV files are prefixed with the UTF-8 Byte
   Order Mark (BOM), while JSON, JSONL, XML, HTML and RSS files are not. If you want to override this default
   behavior, set <code>bom</code> option to <code>true</code> to include the BOM, or set <code>bom</code> to <code>false</code> to skip it.</p>
 </td></tr><tr>
-<td><code>[options.xmlRoot]</code></td><td><code>String</code></td><td></td>
+<td><code>[options.xmlRoot]</code></td><td><code>String</code></td><td><code>&#x27;results&#x27;</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Overrides the default root element name of the XML output. By default, the root element is <code>results</code>.</p>
 </td></tr><tr>
-<td><code>[options.xmlRow]</code></td><td><code>String</code></td><td></td>
+<td><code>[options.xmlRow]</code></td><td><code>String</code></td><td><code>&#x27;page&#x27;</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Overrides the default element name that wraps each page or page function result object in XML output.
   By default, the element name is <code>page</code> or <code>result</code>, depending on the value of the <code>simplified</code> option.</p>
 </td></tr><tr>
-<td><code>[options.skipHeaderRow]</code></td><td><code>Number</code></td><td></td>
+<td><code>[options.skipHeaderRow]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>If set to <code>1</code> then header row in csv format is skipped.</p>
+<td colspan="3"><p>If set to <code>true</code> then header row in CSV format is skipped.</p>
 </td></tr></tbody>
 </table>
 <a name="Dataset+getInfo"></a>
 
-## `dataset.getInfo(opts)` ⇒ <code>Promise</code>
+## `dataset.getInfo()` ⇒ <code>Promise&lt;Object&gt;</code>
 Returns an object containing general information about the dataset.
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>opts</code></td><td><code>Object</code></td>
-</tr>
-<tr>
-</tr></tbody>
-</table>
-**Example**  
-```js
+**Example:**
+```
 {
   "id": "WkzbQMuFYuamGv3YF",
   "name": "d7b9MDYsbtX5L7XAj",
@@ -219,13 +207,14 @@ Returns an object containing general information about the dataset.
   "itemsCount": 0
 }
 ```
+
 <a name="Dataset+forEach"></a>
 
-## `dataset.forEach(iteratee, opts, index)` ⇒ <code>Promise&lt;undefined&gt;</code>
-Iterates over dataset items, yielding each in turn to an `iteratee` function.
-Each invocation of `iteratee` is called with three arguments: `(element, index)`.
+## `dataset.forEach(iteratee, [options], [index])` ⇒ <code>Promise</code>
+Iterates over dataset items, yielding each in turn to an `iteratee()` function.
+Each invocation of `iteratee()` is called with two arguments: `(element, index)`.
 
-If `iteratee` returns a Promise then it is awaited before a next call.
+If the `iteratee()` returns a Promise then it is awaited before a next call.
 
 <table>
 <thead>
@@ -239,24 +228,26 @@ If `iteratee` returns a Promise then it is awaited before a next call.
 </tr>
 <tr>
 <td colspan="3"></td></tr><tr>
-<td><code>opts</code></td><td><code>Opts</code></td><td></td>
+<td><code>[options]</code></td><td><code>Object</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"></td></tr><tr>
+<td colspan="3"><p>All <code>forEach()</code> parameters are passed
+  via an options object with the following keys:</p>
+</td></tr><tr>
 <td><code>[options.offset]</code></td><td><code>Number</code></td><td><code>0</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Number of array elements that should be skipped at the start.</p>
 </td></tr><tr>
-<td><code>[options.desc]</code></td><td><code>Number</code></td><td></td>
+<td><code>[options.desc]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>If <code>1</code> then the objects are sorted by <code>createdAt</code> in descending order.</p>
+<td colspan="3"><p>If <code>true</code> then the objects are sorted by <code>createdAt</code> in descending order.</p>
 </td></tr><tr>
 <td><code>[options.fields]</code></td><td><code>Array</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>If provided then returned objects will only contain specified keys</p>
+<td colspan="3"><p>If provided then returned objects will only contain specified keys.</p>
 </td></tr><tr>
 <td><code>[options.unwind]</code></td><td><code>String</code></td><td></td>
 </tr>
@@ -268,17 +259,17 @@ If `iteratee` returns a Promise then it is awaited before a next call.
 <tr>
 <td colspan="3"><p>How many items to load in one request.</p>
 </td></tr><tr>
-<td><code>index</code></td><td><code>Number</code></td><td></td>
+<td><code>[index]</code></td><td><code>Number</code></td><td><code>0</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>[description]</p>
+<td colspan="3"><p>Controls the initial index number passed to the <code>iteratee()</code>.</p>
 </td></tr></tbody>
 </table>
 <a name="Dataset+map"></a>
 
-## `dataset.map(iteratee, opts, index)` ⇒ <code>Promise&lt;Array&gt;</code>
-Produces a new array of values by mapping each value in list through a transformation function (`iteratee`).
-Each invocation of `iteratee` is called with three arguments: `(element, index)`.
+## `dataset.map(iteratee, options)` ⇒ <code>Promise&lt;Array&gt;</code>
+Produces a new array of values by mapping each value in list through a transformation function `iteratee()`.
+Each invocation of `iteratee()` is called with two arguments: `(element, index)`.
 
 If `iteratee` returns a `Promise` then it's awaited before a next call.
 
@@ -294,19 +285,21 @@ If `iteratee` returns a `Promise` then it's awaited before a next call.
 </tr>
 <tr>
 <td colspan="3"></td></tr><tr>
-<td><code>opts</code></td><td><code>Opts</code></td><td></td>
+<td><code>options</code></td><td><code>Object</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"></td></tr><tr>
+<td colspan="3"><p>All <code>map()</code> parameters are passed
+  via an options object with the following keys:</p>
+</td></tr><tr>
 <td><code>[options.offset]</code></td><td><code>Number</code></td><td><code>0</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Number of array elements that should be skipped at the start.</p>
 </td></tr><tr>
-<td><code>[options.desc]</code></td><td><code>Number</code></td><td></td>
+<td><code>[options.desc]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>If 1 then the objects are sorted by createdAt in descending order.</p>
+<td colspan="3"><p>If <code>true</code> then the objects are sorted by createdAt in descending order.</p>
 </td></tr><tr>
 <td><code>[options.fields]</code></td><td><code>Array</code></td><td></td>
 </tr>
@@ -322,25 +315,20 @@ If `iteratee` returns a `Promise` then it's awaited before a next call.
 </tr>
 <tr>
 <td colspan="3"><p>How many items to load in one request.</p>
-</td></tr><tr>
-<td><code>index</code></td><td><code>Number</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>[description]</p>
 </td></tr></tbody>
 </table>
 <a name="Dataset+reduce"></a>
 
-## `dataset.reduce(iteratee, memo, opts, index)` ⇒ <code>Promise&lt;\*&gt;</code>
-Boils down a list of values into a single value.
+## `dataset.reduce(iteratee, memo, options)` ⇒ <code>Promise&lt;\*&gt;</code>
+Reduces a list of values down to a single value.
 
-Memo is the initial state of the reduction, and each successive step of it should be returned by `iteratee`.
-The `iteratee` is passed three arguments: the `memo`, then the value and index of the iteration.
+Memo is the initial state of the reduction, and each successive step of it should be returned by `iteratee()`.
+The `iteratee()` is passed three arguments: the `memo`, then the `value` and `index` of the iteration.
 
-If no `memo` is passed to the initial invocation of reduce, the `iteratee` is not invoked on the first element of the list.
-The first element is instead passed as the memo in the invocation of the `iteratee` on the next element in the list.
+If no `memo` is passed to the initial invocation of reduce, the `iteratee()` is not invoked on the first element of the list.
+The first element is instead passed as the memo in the invocation of the `iteratee()` on the next element in the list.
 
-If `iteratee` returns a `Promise` then it's awaited before a next call.
+If `iteratee()` returns a `Promise` then it's awaited before a next call.
 
 <table>
 <thead>
@@ -357,20 +345,23 @@ If `iteratee` returns a `Promise` then it's awaited before a next call.
 <td><code>memo</code></td><td><code>*</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"></td></tr><tr>
-<td><code>opts</code></td><td><code>Opts</code></td><td></td>
+<td colspan="3"><p>Initial state of the reduction.</p>
+</td></tr><tr>
+<td><code>options</code></td><td><code>Object</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"></td></tr><tr>
+<td colspan="3"><p>All <code>reduce()</code> parameters are passed
+  via an options object with the following keys:</p>
+</td></tr><tr>
 <td><code>[options.offset]</code></td><td><code>Number</code></td><td><code>0</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Number of array elements that should be skipped at the start.</p>
 </td></tr><tr>
-<td><code>[options.desc]</code></td><td><code>Number</code></td><td></td>
+<td><code>[options.desc]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>If 1 then the objects are sorted by createdAt in descending order.</p>
+<td colspan="3"><p>If <code>true</code> then the objects are sorted by createdAt in descending order.</p>
 </td></tr><tr>
 <td><code>[options.fields]</code></td><td><code>Array</code></td><td></td>
 </tr>
@@ -386,11 +377,6 @@ If `iteratee` returns a `Promise` then it's awaited before a next call.
 </tr>
 <tr>
 <td colspan="3"><p>How many items to load in one request.</p>
-</td></tr><tr>
-<td><code>index</code></td><td><code>Number</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>[description]</p>
 </td></tr></tbody>
 </table>
 <a name="Dataset+delete"></a>

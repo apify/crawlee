@@ -4,8 +4,8 @@ title: PaginationList
 ---
 <a name="PaginationList"></a>
 
-Represents one page of data items from the {@linkcode Dataset}.
-For more details, see {@linkcode Dataset#getData|Dataset.getData()}.
+Represents one page of data items from the [`Dataset`](dataset).
+For more details, see [`Dataset.getData()`](dataset#Dataset+getData).
 
 **Properties**
 <table>
