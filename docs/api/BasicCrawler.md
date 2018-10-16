@@ -22,7 +22,7 @@ The crawler finishes if there are no more [`Request`](request) objects to crawl.
 
 New requests are only dispatched when there is enough free CPU and memory available,
 using the functionality provided by the [`AutoscaledPool`](autoscaledpool) class.
-All [`AutoscaledPool`](autoscaledpool) configuration options can be passed to the [`autoscaledPoolOptions`](#new_BasicCrawler_new)
+All [`AutoscaledPool`](autoscaledpool) configuration options can be passed to the `autoscaledPoolOptions`
 parameter of the `BasicCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency`
 [`AutoscaledPool`](autoscaledpool) options are available directly the `BasicCrawler` constructor.
 
@@ -87,8 +87,8 @@ await crawler.run();
 <pre><code>  {
       request: Request
   }
-</code></pre><p>  With the <a href="request"><code>Request</code></a> object representing the URL to crawl.</p>
-<p>  The function must return a promise.</p>
+</code></pre><p>  With the <a href="request"><code>Request</code></a> object representing the URL to crawl.
+  The function must return a promise.</p>
 </td></tr><tr>
 <td><code>options.requestList</code></td><td><code><a href="requestlist">RequestList</a></code></td><td></td>
 </tr>

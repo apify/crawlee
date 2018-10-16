@@ -34,7 +34,7 @@ const DEFAULT_OPTIONS = {
  *
  * New requests are only dispatched when there is enough free CPU and memory available,
  * using the functionality provided by the {@link AutoscaledPool} class.
- * All {@link AutoscaledPool} configuration options can be passed to the [`autoscaledPoolOptions`](#new_BasicCrawler_new)
+ * All {@link AutoscaledPool} configuration options can be passed to the `autoscaledPoolOptions`
  * parameter of the `BasicCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency`
  * {@link AutoscaledPool} options are available directly the `BasicCrawler` constructor.
  *

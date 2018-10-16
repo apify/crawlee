@@ -5,31 +5,32 @@ title: CheerioCrawler
 <a name="CheerioCrawler"></a>
 
 Provides a framework for the parallel crawling of web pages using plain HTTP requests and
-[cheerio](https://www.npmjs.com/package/cheerio) HTML parser.
+<a href="https://www.npmjs.com/package/cheerio" target="_blank">cheerio</a> HTML parser.
 
 `CheerioCrawler` downloads each URL using a plain HTTP request,
-parses the HTML content using cheerio and then
-invokes the user-provided `handlePageFunction` to extract page data
-using a [jQuery](https://jquery.com/)-like interface to parsed HTML DOM.
+parses the HTML content using <a href="https://www.npmjs.com/package/cheerio" target="_blank">cheerio</a>
+and then invokes the user-provided [`handlePageFunction()`](#new_CheerioCrawler_new) to extract page data
+using a <a href="https://jquery.com/" target="_blank">jQuery</a>-like interface to the parsed HTML DOM.
 
-The source URLs are represented using `Request` objects that
-are fed from the [``RequestList``](requestlist) or [``RequestQueue``](requestqueue)
-instances provided by the `requestList` or `requestQueue` constructor options, respectively.
+The source URLs are represented using [`Request`](request) objects that are fed from
+[`RequestList`](requestlist) or [`RequestQueue`](requestqueue) instances provided by the [`requestList`](#new_CheerioCrawler_new)
+or [`requestQueue`](#new_CheerioCrawler_new) constructor options, respectively.
 
-If both `requestList` and `requestQueue` is used, the instance first
-processes URLs from the `RequestList` and automatically enqueues all of them to `RequestQueue` before it starts
-their processing. This ensures that a single URL is not crawled multiple times.
+If both [`requestList`](#new_CheerioCrawler_new) and [`requestQueue`](#new_CheerioCrawler_new) are used,
+the instance first processes URLs from the [`RequestList`](requestlist) and automatically enqueues all of them
+to [`RequestQueue`](requestqueue) before it starts their processing. This ensures that a single URL is not crawled multiple times.
 
-The crawler finishes if there are no more `Request` objects to crawl.
+The crawler finishes when there are no more [`Request`](request) objects to crawl.
 
-By default, `CheerioCrawler` downloads HTML using the [request-promise](https://www.npmjs.com/package/request-promise) NPM package.
+By default, `CheerioCrawler` downloads HTML using the
+<a href="https://www.npmjs.com/package/request-promise" target="_blank">request-promise</a> NPM package.
 You can override this behavior by setting the `requestFunction` option.
 
-New requests are only started if there is enough free CPU and memory available,
-using the functionality provided by the [``AutoscaledPool``](autoscaledpool) class.
-All `AutoscaledPool` configuration options can be passed to the `autoscaledPoolOptions` parameter
-of the `CheerioCrawler` constructor.
-For user convenience, the `minConcurrency` and `maxConcurrency` options are available directly.
+New requests are only dispatched when there is enough free CPU and memory available,
+using the functionality provided by the [`AutoscaledPool`](autoscaledpool) class.
+All [`AutoscaledPool`](autoscaledpool) configuration options can be passed to the `autoscaledPoolOptions`
+parameter of the `CheerioCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency`
+[`AutoscaledPool`](autoscaledpool) options are available directly the `CheerioCrawler` constructor.
 
 **Example usage:**
 
@@ -87,32 +88,34 @@ await crawler.run();
 <td><code>options</code></td><td><code>Object</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"></td></tr><tr>
+<td colspan="3"><p>All <code>CheerioCrawler</code> parameters are passed
+  via an options object with the following keys:</p>
+</td></tr><tr>
 <td><code>options.handlePageFunction</code></td><td><code>function</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>User-provided function that performs the logic of the crawler. It is called for each page
   loaded and parsed by the crawler.</p>
-<p>  The function that receives an object as argument, with the following three fields:</p>
-  <ul>
-    <li><code>$</code>: the Cheerio object</li>
-    <li><code>html</code>: the raw HTML</li>
-    <li><code>request</code>: the <a href="request"><code>Request</code></a> object representing the URL to crawl</li>
-  </ul>
-
-<p>  If the function returns a promise, it is awaited.</p>
+<p>  The function receives the following object as an argument:</p>
+<pre><code>  {
+      $: Cheerio, // the Cheerio object with parsed HTML
+      html: String // the raw HTML of the page
+      request: Request
+  }
+</code></pre><p>  With the <a href="request"><code>Request</code></a> object representing the URL to crawl.
+  If the function returns a promise, it is awaited.</p>
 </td></tr><tr>
 <td><code>options.requestList</code></td><td><code><a href="requestlist">RequestList</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Static list of URLs to be processed.
-  Either RequestList or RequestQueue must be provided.</p>
+  Either <a href="requestlist"><code>RequestList</code></a> or <a href="requestqueue"><code>RequestQueue</code></a> must be provided.</p>
 </td></tr><tr>
 <td><code>options.requestQueue</code></td><td><code><a href="requestqueue">RequestQueue</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
-  Either RequestList or RequestQueue must be provided.</p>
+  Either <a href="requestlist"><code>RequestList</code></a> or <a href="requestqueue"><code>RequestQueue</code></a> must be provided.</p>
 </td></tr><tr>
 <td><code>[options.requestFunction]</code></td><td><code>function</code></td><td></td>
 </tr>
@@ -134,7 +137,7 @@ await crawler.run();
 </tr>
 <tr>
 <td colspan="3"><p>If set to true, SSL certificate errors will be ignored. This is dependent on using the default
-  request function. If using a custom request function, user needs to implement this functionality.</p>
+  request function. If using a custom <code>options.requestFunction</code>, user needs to implement this functionality.</p>
 </td></tr><tr>
 <td><code>[options.handleFailedRequestFunction]</code></td><td><code>function</code></td><td></td>
 </tr>
@@ -157,19 +160,19 @@ await crawler.run();
 <td><code>[options.autoscaledPoolOptions]</code></td><td><code>Object</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>Custom options passed to the underlying <a href="autoscaledpool"><code>AutoscaledPool</code></a> instance constructor.
+<td colspan="3"><p>Custom options passed to the underlying <a href="autoscaledpool"><code>AutoscaledPool</code></a> constructor.
   Note that the <code>runTaskFunction</code>, <code>isTaskReadyFunction</code> and <code>isFinishedFunction</code> options
   are provided by <code>CheerioCrawler</code> and cannot be overridden.</p>
 </td></tr><tr>
 <td><code>[options.minConcurrency]</code></td><td><code>Object</code></td><td><code>1</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding <code>AutoscaledPool</code> option.</p>
+<td colspan="3"><p>Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding <a href="autoscaledpool"><code>AutoscaledPool</code></a> option.</p>
 </td></tr><tr>
 <td><code>[options.maxConcurrency]</code></td><td><code>Object</code></td><td><code>1000</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding <code>AutoscaledPool</code> option.</p>
+<td colspan="3"><p>Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding <a href="autoscaledpool"><code>AutoscaledPool</code></a> option.</p>
 </td></tr></tbody>
 </table>
 <a name="CheerioCrawler+run"></a>
