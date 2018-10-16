@@ -20,13 +20,13 @@ accessible from the left sidebar.
     * [`.isAtHome()`](#module_Apify.isAtHome) ⇒ <code>Boolean</code>
     * [`.isDocker()`](#module_Apify.isDocker) ⇒ <code>Promise</code>
     * [`.launchPuppeteer([options])`](#module_Apify.launchPuppeteer) ⇒ <code>Promise&lt;Browser&gt;</code>
-    * [`.launchWebDriver([opts])`](#module_Apify.launchWebDriver) ⇒ <code>Promise</code>
+    * [`.launchWebDriver([options])`](#module_Apify.launchWebDriver) ⇒ <code>Promise</code>
     * [`.main(userFunc)`](#module_Apify.main)
     * [`.openDataset([datasetIdOrName])`](#module_Apify.openDataset) ⇒ [<code>Promise&lt;Dataset&gt;</code>](dataset)
     * [`.openKeyValueStore([storeIdOrName])`](#module_Apify.openKeyValueStore) ⇒ [<code>Promise&lt;KeyValueStore&gt;</code>](keyvaluestore)
     * [`.openRequestQueue`](#module_Apify.openRequestQueue) ⇒ [<code>Promise&lt;RequestQueue&gt;</code>](requestqueue)
-    * [`.pushData(data)`](#module_Apify.pushData) ⇒ <code>Promise</code>
-    * [`.setValue(key, value, [options])`](#module_Apify.setValue) ⇒ <code>Promise</code>
+    * [`.pushData(item)`](#module_Apify.pushData) ⇒ <code>Promise</code>
+    * [`.setValue(key, value, [options])`](#module_Apify.setValue)
 
 <a name="module_Apify.call"></a>
 
@@ -175,7 +175,7 @@ The following table shows all currently emitted events:
                 The event is emitted approximately every second
                 and it indicates whether the actor is using the maximum of available CPU resources.
                 If that's the case, the actor should not add more workload.
-                For example, this event is used by the <a href="autoscaledpool">AutoscaledPool</a> class.
+                For example, this event is used by the <a href="autoscaledpool"><code>AutoscaledPool</code></a> class.
             </td>
         </tr>
         <tr>
@@ -186,7 +186,7 @@ The following table shows all currently emitted events:
             <td colspan="2">
                 Emitted when the actor running on the Apify platform is going to be migrated to another worker server soon.
                 You can use it to persist the state of the actor and abort the run, to speed up migration.
-                For example, this is used by the <a href="requestlist">RequestList</a> class.
+                For example, this is used by the <a href="requestlist"><code>RequestList</code></a> class.
             </td>
         </tr>
         <tr>
@@ -418,13 +418,14 @@ For an example of usage, see the [Synchronous run Example](../examples/synchrono
 <td><code>[options]</code></td><td><code><a href="../typedefs/launchpuppeteeroptions">LaunchPuppeteerOptions</a></code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Optional settings passed to <code>puppeteer.launch()</code>. Additionally the object can
-  contain the following fields:</p>
+<td colspan="3"><p>Optional settings passed to <code>puppeteer.launch()</code>. In addition to
+  <a href="https://pptr.dev/#?product=Puppeteer&show=api-puppeteerlaunchoptions" target="_blank">Puppeteer&#39;s options</a>
+  the object may contain our own <a href="../typedefs/launchpuppeteeroptions"><code>LaunchPuppeteerOptions</code></a> that enable additional features.</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.launchWebDriver"></a>
 
-## `Apify.launchWebDriver([opts])` ⇒ <code>Promise</code>
+## `Apify.launchWebDriver([options])` ⇒ <code>Promise</code>
 Opens a new instance of Chrome web browser
 controlled by <a href="http://www.seleniumhq.org/projects/webdriver/" target="_blank">Selenium WebDriver</a>.
 The result of the function is the new instance of the
@@ -438,7 +439,7 @@ For example, you can use the `apify/actor-node-chrome` base Docker image for you
 <a href="https://www.apify.com/docs/actor#base-images" target="_blank">documentation</a>
 for more details.
 
-For an example of usage, see the <a href="https://www.apify.com/apify/example-selenium">apify/example-selenium</a> actor.
+For an example of usage, see the <a href="https://www.apify.com/apify/example-selenium" target="_blank">apify/example-selenium</a> actor.
 
 <table>
 <thead>
@@ -448,25 +449,25 @@ For an example of usage, see the <a href="https://www.apify.com/apify/example-se
 </thead>
 <tbody>
 <tr>
-<td><code>[opts]</code></td><td><code>Object</code></td>
+<td><code>[options]</code></td><td><code>Object</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Optional settings passed to <code>puppeteer.launch()</code>. Additionally the object can contain the following fields:</p>
+<td colspan="3"><p>Optional settings passed to WebDriver. Additionally the object can contain the following fields:</p>
 </td></tr><tr>
-<td><code>[opts.proxyUrl]</code></td><td><code>String</code></td>
+<td><code>[options.proxyUrl]</code></td><td><code>String</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>URL to a proxy server. Currently only <code>http://</code> scheme is supported.
 Port number must be specified. For example, <code>http://example.com:1234</code>.</p>
 </td></tr><tr>
-<td><code>[opts.headless]</code></td><td><code>String</code></td>
+<td><code>[options.headless]</code></td><td><code>String</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Indicates that the browser will be started in headless mode.
 If the option is not defined, and the <code>APIFY_HEADLESS</code> environment variable has value <code>1</code>
 and <code>APIFY_XVFB</code> is NOT <code>1</code>, the value defaults to <code>true</code>, otherwise it will be <code>false</code>.</p>
 </td></tr><tr>
-<td><code>[opts.userAgent]</code></td><td><code>String</code></td>
+<td><code>[options.userAgent]</code></td><td><code>String</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>User-Agent for the browser.
@@ -493,7 +494,7 @@ The function performs the following actions:
   is defined. If not, the functions sets <code>APIFY_LOCAL_STORAGE_DIR</code> to <code>./apify_storage</code>
   inside the current working directory. This is to simplify running code examples.
   </li>
-  <li>It invokes the user function passed as the `userFunc` parameter.</li>
+  <li>It invokes the user function passed as the <code>userFunc</code> parameter.</li>
   <li>If the user function returned a promise, waits for it to resolve.</li>
   <li>If the user function throws an exception or some other error is encountered,
       prints error details to console so that they are stored to the log.</li>
@@ -551,15 +552,14 @@ the promise will be awaited. The user function is called with no arguments.</p>
 <a name="module_Apify.openDataset"></a>
 
 ## `Apify.openDataset([datasetIdOrName])` ⇒ [<code>Promise&lt;Dataset&gt;</code>](dataset)
-Opens a dataset and returns a promise resolving to an instance of the {@linkcode Dataset} class.
+Opens a dataset and returns a promise resolving to an instance of the [`Dataset`](dataset) class.
 
 Datasets are used to store structured data where each object stored has the same attributes,
 such as online store products or real estate offers.
 The actual data is stored either on the local filesystem or in the cloud.
 
-For more details and code examples, see the {@linkcode Dataset} class.
+For more details and code examples, see the [`Dataset`](dataset) class.
 
-**Returns**: [<code>Promise&lt;Dataset&gt;</code>](dataset) - Returns a promise that resolves to an instance of the `Dataset` class.  
 <table>
 <thead>
 <tr>
@@ -578,15 +578,14 @@ For more details and code examples, see the {@linkcode Dataset} class.
 <a name="module_Apify.openKeyValueStore"></a>
 
 ## `Apify.openKeyValueStore([storeIdOrName])` ⇒ [<code>Promise&lt;KeyValueStore&gt;</code>](keyvaluestore)
-Opens a key-value store and returns a promise resolving to an instance of the {@linkcode KeyValueStore} class.
+Opens a key-value store and returns a promise resolving to an instance of the [`KeyValueStore`](keyvaluestore) class.
 
 Key-value stores are used to store records or files, along with their MIME content type.
 The records are stored and retrieved using a unique key.
 The actual data is stored either on a local filesystem or in the Apify cloud.
 
-For more details and code examples, see the {@linkcode KeyValueStore} class.
+For more details and code examples, see the [`KeyValueStore`](keyvaluestore) class.
 
-**Returns**: [<code>Promise&lt;KeyValueStore&gt;</code>](keyvaluestore) - Returns a promise that resolves to an instance of the `KeyValueStore` class.  
 <table>
 <thead>
 <tr>
@@ -632,10 +631,10 @@ For more details and code examples, see the [`RequestQueue`](requestqueue) class
 </table>
 <a name="module_Apify.pushData"></a>
 
-## `Apify.pushData(data)` ⇒ <code>Promise</code>
-Stores an object or an array of objects to the default {@linkcode Dataset} of the current actor run.
+## `Apify.pushData(item)` ⇒ <code>Promise</code>
+Stores an object or an array of objects to the default [`Dataset`](dataset) of the current actor run.
 
-This is just a convenient shortcut for [``Dataset.pushData()``](#Dataset+pushData).
+This is just a convenient shortcut for [`dataset.pushData()`](dataset#Dataset+pushData).
 For example, calling the following code:
 ```javascript
 await Apify.pushData({ myValue: 123 });
@@ -647,13 +646,11 @@ const dataset = await Apify.openDataset();
 await dataset.pushData({ myValue: 123 });
 ```
 
-For more information, see [``Apify.openDataset()``](apify.opendataset) and [``Dataset.pushData()``](#Dataset+pushData)
+For more information, see [`Apify.openDataset()`](apify#module_Apify.openDataset) and [`dataset.pushData()`](dataset#Dataset+pushData)
 
 **IMPORTANT**: Make sure to use the `await` keyword when calling `pushData()`,
-otherwise the actor process might finish before the data is stored!
+otherwise the actor process might finish before the data are stored!
 
-**Returns**: <code>Promise</code> - Returns a promise that resolves once the data is saved.  
-**See**: [`Dataset`](dataset)  
 <table>
 <thead>
 <tr>
@@ -662,7 +659,7 @@ otherwise the actor process might finish before the data is stored!
 </thead>
 <tbody>
 <tr>
-<td><code>data</code></td><td><code>Object</code> | <code>Array</code></td>
+<td><code>item</code></td><td><code>Object</code> | <code>Array</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Object or array of objects containing data to be stored in the default dataset.
@@ -671,10 +668,10 @@ The objects must be serializable to JSON and the JSON representation of each obj
 </table>
 <a name="module_Apify.setValue"></a>
 
-## `Apify.setValue(key, value, [options])` ⇒ <code>Promise</code>
-Stores or deletes a value in the default {@linkcode KeyValueStore} associated with the current actor run.
+## `Apify.setValue(key, value, [options])`
+Stores or deletes a value in the default [`KeyValueStore`](keyvaluestore) associated with the current actor run.
 
-This is just a convenient shortcut for [``KeyValueStore.setValue()``](#KeyValueStore+setValue).
+This is just a convenient shortcut for [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+setValue).
 For example, calling the following code:
 ```javascript
 await Apify.setValue('OUTPUT', { foo: "bar" });
@@ -686,13 +683,11 @@ const store = await Apify.openKeyValueStore();
 await store.setValue('OUTPUT', { foo: "bar" });
 ```
 
-To get a value from the default-key value store, you can use the [``Apify.getValue()``](apify#getvalue) function.
+To get a value from the default-key value store, you can use the [`Apify.setValue()`](#module_Apify.getValue) function.
 
-For more information, see [``Apify.openKeyValueStore()``](apify.openkeyvaluestore)
-and [``KeyValueStore.setValue()``](#KeyValueStore+setValue).
+For more information, see [`Apify.openKeyValueStore()`](#module_Apify.openKeyValueStore)
+and [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+setValue).
 
-**Returns**: <code>Promise</code> - Returns a promise that resolves once the value is stored or deleted.  
-**See**: [`KeyValueStore`](keyvaluestore)  
 <table>
 <thead>
 <tr>
@@ -714,7 +709,7 @@ and [``KeyValueStore.setValue()``](#KeyValueStore+setValue).
     <li>If <code>null</code>, the record in the key-value store is deleted.</li>
     <li>If no <code>options.contentType</code> is specified, <code>value</code> can be any JavaScript object and it will be stringified to JSON.</li>
     <li>If <code>options.contentType</code> is specified, <code>value</code> is considered raw data and it must be a <code>String</code>
-    or <a href="https://nodejs.org/api/buffer.html"><code>Buffer</code></a>.</li>
+    or <a href="https://nodejs.org/api/buffer.html" target="_blank"><code>Buffer</code></a>.</li>
   </ul>
   For any other value an error will be thrown.</p>
 </td></tr><tr>

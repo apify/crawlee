@@ -164,8 +164,9 @@ const getPuppeteerOrThrow = () => {
  * For an example of usage, see the [Synchronous run Example](../examples/synchronousrun) or the [Puppeteer proxy Example](../examples/puppeteerproxy)
  *
  * @param {LaunchPuppeteerOptions} [options]
- *   Optional settings passed to `puppeteer.launch()`. Additionally the object can
- *   contain the following fields:
+ *   Optional settings passed to `puppeteer.launch()`. In addition to
+ *   <a href="https://pptr.dev/#?product=Puppeteer&show=api-puppeteerlaunchoptions" target="_blank">Puppeteer's options</a>
+ *   the object may contain our own [`LaunchPuppeteerOptions`](../typedefs/launchpuppeteeroptions) that enable additional features.
  * @returns {Promise<Browser>}
  *   Promise that resolves to Puppeteer's `Browser` instance.
  * @memberof module:Apify

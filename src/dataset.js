@@ -622,19 +622,18 @@ const getOrCreateDataset = (datasetIdOrName) => {
 
 
 /**
- * Opens a dataset and returns a promise resolving to an instance of the {@linkcode Dataset} class.
+ * Opens a dataset and returns a promise resolving to an instance of the {@link Dataset} class.
  *
  * Datasets are used to store structured data where each object stored has the same attributes,
  * such as online store products or real estate offers.
  * The actual data is stored either on the local filesystem or in the cloud.
  *
- * For more details and code examples, see the {@linkcode Dataset} class.
+ * For more details and code examples, see the {@link Dataset} class.
  *
  * @param {string} [datasetIdOrName]
  *   ID or name of the dataset to be opened. If `null` or `undefined`,
  *   the function returns the default dataset associated with the actor run.
  * @returns {Promise<Dataset>}
- *   Returns a promise that resolves to an instance of the `Dataset` class.
  * @memberof module:Apify
  * @name openDataset
  * @function
@@ -649,9 +648,9 @@ export const openDataset = (datasetIdOrName) => {
 };
 
 /**
- * Stores an object or an array of objects to the default {@linkcode Dataset} of the current actor run.
+ * Stores an object or an array of objects to the default {@link Dataset} of the current actor run.
  *
- * This is just a convenient shortcut for {@link Dataset#pushData|`Dataset.pushData()`}.
+ * This is just a convenient shortcut for [`dataset.pushData()`](dataset#Dataset+pushData).
  * For example, calling the following code:
  * ```javascript
  * await Apify.pushData({ myValue: 123 });
@@ -663,15 +662,14 @@ export const openDataset = (datasetIdOrName) => {
  * await dataset.pushData({ myValue: 123 });
  * ```
  *
- * For more information, see {@link Apify.openDataset|`Apify.openDataset()`} and {@link Dataset#pushData|`Dataset.pushData()`}
+ * For more information, see [`Apify.openDataset()`](apify#module_Apify.openDataset) and [`dataset.pushData()`](dataset#Dataset+pushData)
  *
  * **IMPORTANT**: Make sure to use the `await` keyword when calling `pushData()`,
- * otherwise the actor process might finish before the data is stored!
+ * otherwise the actor process might finish before the data are stored!
  *
- * @param {Object|Array} data Object or array of objects containing data to be stored in the default dataset.
+ * @param {Object|Array} item Object or array of objects containing data to be stored in the default dataset.
  * The objects must be serializable to JSON and the JSON representation of each object must be smaller than 9MB.
- * @returns {Promise} Returns a promise that resolves once the data is saved.
- * @see {@link Dataset}
+ * @returns {Promise}
  *
  * @memberof module:Apify
  * @name pushData
