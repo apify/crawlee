@@ -20,6 +20,7 @@ const users = [
     },
 ];
 
+const repoUrl = 'https://github.com/apifytech/apify-js';
 const siteConfig = {
     title: 'Apify SDK', // Title for your website.
     tagline: 'Turn any website into an API.',
@@ -41,7 +42,7 @@ const siteConfig = {
         { doc: 'examples/helloworld', label: 'Docs' },
         { doc: 'examples/basiccrawler', label: 'Examples' },
         { doc: 'api/apify', label: 'API' },
-        { href: 'https://github.com/apifytech/apify-js', label: 'GitHub' },
+        { href: repoUrl, label: 'GitHub' },
         // { page: 'help', label: 'Help' },
         // { blog: true, label: 'Blog' },
     ],
@@ -98,6 +99,7 @@ const siteConfig = {
     // You may provide arbitrary config keys to be used as needed by your
     // template. For example, if you need your repo's URL...
     //   repoUrl: 'https://github.com/facebook/test-site',
+    repoUrl,
 };
 
 module.exports = siteConfig;

@@ -99,30 +99,31 @@ export const maybeStringify = (value, options) => {
  * for saving screenshots, actor inputs and outputs, web pages, PDFs or to persist the state of crawlers.
  *
  * Do not instantiate this class directly, use the
- * {@link Apify#openKeyValueStore|`Apify.openKeyValueStore()`} function instead.
+ * [`Apify.openKeyValueStore()`](apify#module_Apify.openKeyValueStore) function instead.
  *
  * Each actor run is associated with a default key-value store, which is created exclusively
  * for the run. By convention, the actor input and output are stored into the
  * default key-value store under the `INPUT` and `OUTPUT` key, respectively.
  * Typically, input and output are JSON files, although it can be any other format.
  * To access the default key-value store directly, you can use the
- * {@link Apify.getValue|Apify.getValue()}
- * and {@link Apify.getValue|Apify.setValue()} convenience functions.
+ * [`Apify.getValue()`](apify#module_Apify.getValue)
+ * and [`Apify.setValue()`](apify#module_Apify.setValue) convenience functions.
  *
  * `KeyValueStore` stores its data either on local disk or in the Apify cloud,
- * depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variable is set.
+ * depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variables are set.
  *
  * If the `APIFY_LOCAL_STORAGE_DIR` environment variable is set, the data is stored in
  * the local directory in the following files:
  * ```
- * [APIFY_LOCAL_STORAGE_DIR]/key_value_stores/[STORE_ID]/[KEY].[EXT]
+ * {APIFY_LOCAL_STORAGE_DIR}/key_value_stores/{STORE_ID}/{INDEX}.{EXT}
  * ```
- * Note that `[STORE_ID]` is the name or ID of the key-value store. The default key value store has ID `default`,
+ * Note that `{STORE_ID}` is the name or ID of the key-value store. The default key value store has ID: `default`,
  * unless you override it by setting the `APIFY_DEFAULT_KEY_VALUE_STORE_ID` environment variable.
- * The `[KEY]` is the key of the record and `[EXT]` corresponds to the MIME content type of the data value.
+ * The `{KEY}` is the key of the record and `{EXT}` corresponds to the MIME content type of the data value.
  *
- * If the `APIFY_TOKEN` environment variable is provided instead, the data is stored
- * in the [Apify Dataset](https://www.apify.com/docs/storage#dataset) cloud storage.
+ * If the `APIFY_TOKEN` environment variable is provided instead, the data is stored in the
+ * <a href="https://www.apify.com/docs/storage#key-value-store" target="_blank">Apify Key-Value Store</a>
+ * cloud storage.
  *
  * **Example usage:**
  *

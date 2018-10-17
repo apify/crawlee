@@ -9,207 +9,274 @@ const React = require('react');
 
 const CompLibrary = require('../../core/CompLibrary.js');
 
-const MarkdownBlock = CompLibrary.MarkdownBlock; /* Used to read markdown */
+const MarkdownBlock = CompLibrary.MarkdownBlock;
+/* Used to read markdown */
 const Container = CompLibrary.Container;
 const GridBlock = CompLibrary.GridBlock;
 
 const siteConfig = require(`${process.cwd()}/siteConfig.js`);
 
 function imgUrl(img) {
-  return `${siteConfig.baseUrl}img/${img}`;
+    return `${siteConfig.baseUrl}img/${img}`;
 }
 
 function docUrl(doc, language) {
-  return `${siteConfig.baseUrl}docs/${language ? `${language}/` : ''}${doc}`;
+    return `${siteConfig.baseUrl}docs/${language ? `${language}/` : ''}${doc}`;
 }
 
 function pageUrl(page, language) {
-  return siteConfig.baseUrl + (language ? `${language}/` : '') + page;
+    return siteConfig.baseUrl + (language ? `${language}/` : '') + page;
 }
 
 class Button extends React.Component {
-  render() {
-    return (
-      <div className="pluginWrapper buttonWrapper">
-        <a className="button" href={this.props.href} target={this.props.target}>
-          {this.props.children}
-        </a>
-      </div>
-    );
-  }
+    render() {
+        return (
+            <div className="pluginWrapper buttonWrapper">
+                <a className="button" href={this.props.href} target={this.props.target}>
+                    {this.props.children}
+                </a>
+            </div>
+        );
+    }
 }
 
 Button.defaultProps = {
-  target: '_self',
+    target: '_self',
 };
 
 const SplashContainer = props => (
-  <div className="homeContainer">
-    <div className="homeSplashFade">
-      <div className="wrapper homeWrapper">{props.children}</div>
+    <div className="homeContainer">
+        <div className="homeSplashFade">
+            <div className="wrapper homeWrapper">{props.children}</div>
+        </div>
     </div>
-  </div>
 );
 
 const Logo = props => (
-  <div className="projectLogo">
-    <img src={props.img_src} alt="Project Logo" />
-  </div>
+    <div className="projectLogo">
+        <img src={props.img_src} alt="Project Logo"/>
+    </div>
 );
 
 const ProjectTitle = () => (
-  <h2 className="projectTitle">
-    {siteConfig.title}
-    <small>{siteConfig.tagline}</small>
-  </h2>
+    <h2 className="projectTitle">
+        {siteConfig.title}
+        <small>{siteConfig.tagline}</small>
+    </h2>
 );
 
 const PromoSection = props => (
-  <div className="section promoSection">
-    <div className="promoRow">
-      <div className="pluginRowBlock">{props.children}</div>
+    <div className="section promoSection">
+        <div className="promoRow">
+            <div className="pluginRowBlock">{props.children}</div>
+        </div>
     </div>
-  </div>
 );
 
 class HomeSplash extends React.Component {
-  render() {
-    const language = this.props.language || '';
-    return (
-      <SplashContainer>
-        <Logo img_src={imgUrl('docusaurus.svg')} />
-        <div className="inner">
-          <ProjectTitle />
-          <PromoSection>
-            <Button href="#try">Try It Out</Button>
-            <Button href={docUrl('doc1.html', language)}>Example Link</Button>
-            <Button href={docUrl('doc2.html', language)}>Example Link 2</Button>
-          </PromoSection>
-        </div>
-      </SplashContainer>
-    );
-  }
+    render() {
+        const language = this.props.language || '';
+        return (
+            <SplashContainer>
+                <Logo img_src={imgUrl('apify_logo.svg')}/>
+                <div className="inner">
+                    <ProjectTitle/>
+                    <PromoSection>
+                        <Button href={docUrl('api/apify', language)}>Read the Docs</Button>
+                        <Button href={docUrl('examples/basiccrawler', language)}>See Examples</Button>
+                        <Button href="#try">Try It Out</Button>
+                    </PromoSection>
+                </div>
+                <a
+                    className="github-button"
+                    href={this.props.config.repoUrl}
+                    data-icon="octicon-star"
+                    data-count-href="/apifytech/apify-js/stargazers"
+                    data-show-count="true"
+                    data-count-aria-label="# stargazers on GitHub"
+                    aria-label="Star Apify SDK on GitHub">
+                    Star
+                </a>
+            </SplashContainer>
+        );
+    }
 }
 
 const Block = props => (
-  <Container
-    padding={['bottom', 'top']}
-    id={props.id}
-    background={props.background}>
-    <GridBlock align="center" contents={props.children} layout={props.layout} />
-  </Container>
+    <Container
+        padding={['bottom', 'top']}
+        id={props.id}
+        background={props.background}>
+        <GridBlock align={props.gridBlockAlign || 'center'} contents={props.children} layout={props.layout}/>
+    </Container>
 );
 
 const Features = () => (
-  <Block layout="fourColumn">
-    {[
-      {
-        content: 'This is the content of my feature',
-        image: imgUrl('docusaurus.svg'),
-        imageAlign: 'top',
-        title: 'Feature One',
-      },
-      {
-        content: 'The content of my second feature',
-        image: imgUrl('docusaurus.svg'),
-        imageAlign: 'top',
-        title: 'Feature Two',
-      },
-    ]}
-  </Block>
+    <Block layout="fourColumn">
+        {[
+            {
+                content: '**JavaScript** is the language of the web. Although there are JavaScript tools like `puppeteer` and `cheerio`, ' +
+                    'there was no universal framework that would enable **large-scale high-performance** web scraping and crawling of any website. **Until now!**',
+                image: imgUrl('javascript_logo.svg'),
+                imageAlign: 'top',
+                title: 'Runs on JavaScript',
+            },
+            {
+                content: 'Run **headless Chrome** or Selenium, manage **lists and queues** of URLs to crawl, run crawlers in **parallel** at maximum system capacity. ' +
+                    'Handle **storage and export** of results and rotate **proxies**.',
+                image: imgUrl('puppeteer_logo.png'),
+                imageAlign: 'top',
+                title: 'Automates any web workflow',
+            },
+            {
+                content: '`Apify SDK` can be used **stand-alone** in your Node.js projects or it can run as a **serverless microservice on the Apify Cloud Platform**. ' +
+                    '[Get started.](https://my.apify.com/actors)',
+                image: imgUrl('cloud_icon.svg'),
+                imageAlign: 'top',
+                title: 'Works locally and in the cloud',
+            }
+        ]}
+    </Block>
 );
 
-const FeatureCallout = () => (
-  <div
-    className="productShowcaseSection paddingBottom"
-    style={{textAlign: 'center'}}>
-    <h2>Feature Callout</h2>
-    <MarkdownBlock>These are features of this project</MarkdownBlock>
-  </div>
+// const FeatureCallout = () => (
+//     <div
+//         className="productShowcaseSection paddingBottom"
+//         style={{ textAlign: 'center' }}>
+//         <h2>All the features you need are already included</h2>
+//         <MarkdownBlock>
+//             We have built three different crawler classes for you so you can be up and running in no time.
+//             Do you need to crawl just plain HTML? Use our **blazing fast** [`CheerioCrawler`](examples/cheeriocrawler).
+//
+//             For complex websites that use **React, Vue** and other front-end javascript libraries and require real-time manipulation,
+//             spawn a headless browser with our [`PuppeteerCrawler`](examples/puppeteercrawler).
+//
+//             And if you need **control of all aspects** of your crawling, just use the bare bones [`BasicCrawler`](examples/basiccrawler)
+//
+//             All of your crawlers will be automatically **scaled** based on available system resources with our [`AutoscaledPool`](api/AutoscaledPool).
+//             And if you use the [Apify Cloud Platform](https://my.apify.com/actors), we will also provide you with a pool of **Proxies** to avoid detection.
+//
+//             For your persistence needs, check out the [`Dataset`](api/dataset) and [`Key-Value Store`](api/keyvaluestore) storages.
+//         </MarkdownBlock>
+//     </div>
+// );
+
+const EasyCrawling = () => (
+    <Block background="light" gridBlockAlign="left">
+        {[
+            {
+                content: 'We have built three different crawler classes for you so you can be up and running in no time. ' +
+                    'Do you need to crawl just plain HTML? Use our **blazing fast** [`CheerioCrawler`](examples/cheeriocrawler).\n' +
+                    'For complex websites that use **React, Vue** and other front-end javascript libraries and require real-time manipulation, ' +
+                    'spawn a headless browser with [`PuppeteerCrawler`](examples/puppeteercrawler).\n' +
+                    'And if you need **control of all aspects** of your crawling, just use the bare bones [`BasicCrawler`](examples/basiccrawler)',
+                image: imgUrl('chrome_scrape.gif'),
+                imageAlign: 'right',
+                title: 'Easy Crawling',
+            },
+        ]}
+    </Block>
 );
 
-const LearnHow = () => (
-  <Block background="light">
-    {[
-      {
-        content: 'Talk about learning how to use this',
-        image: imgUrl('docusaurus.svg'),
-        imageAlign: 'right',
-        title: 'Learn How',
-      },
-    ]}
-  </Block>
+const PowerfulTools = () => (
+    <Block gridBlockAlign="left">
+        {[
+            {
+                content: 'All of your crawlers will be automatically **scaled** based on available system resources with our [`AutoscaledPool`](api/AutoscaledPool), ' +
+                    'and if you use the [Apify Cloud Platform](https://my.apify.com/actors), we will also provide you with a pool of **Proxies** to avoid detection. ' +
+                    'For your persistence needs, check out the [`Dataset`](api/dataset) and [`Key-Value Store`](api/keyvaluestore) storages.',
+                image: imgUrl('source_code.png'),
+                imageAlign: 'left',
+                title: 'Powerful Tools',
+            },
+        ]}
+    </Block>
 );
+
 
 const TryOut = () => (
-  <Block id="try">
-    {[
-      {
-        content: 'Talk about trying this out',
-        image: imgUrl('docusaurus.svg'),
-        imageAlign: 'left',
-        title: 'Try it Out',
-      },
-    ]}
-  </Block>
+    <Block id="try" background="light" gridBlockAlign="left">
+        {[
+            {
+                content: 'Install **Apify SDK:**\n' +
+                    '```\n' +
+                    'npm install apify\n' +
+                    '```\n' +
+                    'Watch it recursively crawl [IANA](https://www.iana.org)\n' +
+                    '```\n' +
+                    'const Apify = require(\'apify\');\n' +
+                    '\n' +
+                    'Apify.main(async () => {\n' +
+                    '    const requestQueue = await Apify.openRequestQueue();\n' +
+                    '    await requestQueue.addRequest(new Apify.Request({ url: \'https://www.iana.org/\' }));\n' +
+                    '    const pseudoUrls = [new Apify.PseudoUrl(\'https://www.iana.org/[.*]\')];\n' +
+                    '\n' +
+                    '    const crawler = new Apify.PuppeteerCrawler({\n' +
+                    '        requestQueue,\n' +
+                    '        handlePageFunction: async ({ request, page }) => {\n' +
+                    '            const title = await page.title();\n' +
+                    '            console.log(`Title of ${request.url}: ${title}`);\n' +
+                    '            await Apify.utils.puppeteer.enqueueLinks(page, \'a\', pseudoUrls, requestQueue);\n' +
+                    '        },\n' +
+                    '        maxRequestsPerCrawl: 100,\n' +
+                    '        maxConcurrency: 10,\n' +
+                    '    });\n' +
+                    '\n' +
+                    '    await crawler.run();\n' +
+                    '});\n' +
+                    '```\n',
+                // image: imgUrl('apify_logo.svg'),
+                // imageAlign: 'right',
+                title: 'Try it Out',
+            },
+        ]}
+    </Block>
 );
 
-const Description = () => (
-  <Block background="dark">
-    {[
-      {
-        content: 'This is another description of how this project is useful',
-        image: imgUrl('docusaurus.svg'),
-        imageAlign: 'right',
-        title: 'Description',
-      },
-    ]}
-  </Block>
-);
-
-const Showcase = props => {
-  if ((siteConfig.users || []).length === 0) {
-    return null;
-  }
-
-  const showcase = siteConfig.users.filter(user => user.pinned).map(user => (
-    <a href={user.infoLink} key={user.infoLink}>
-      <img src={user.image} alt={user.caption} title={user.caption} />
-    </a>
-  ));
-
-  return (
-    <div className="productShowcaseSection paddingBottom">
-      <h2>Who is Using This?</h2>
-      <p>This project is used by all these people</p>
-      <div className="logos">{showcase}</div>
-      <div className="more-users">
-        <a className="button" href={pageUrl('users.html', props.language)}>
-          More {siteConfig.title} Users
-        </a>
-      </div>
-    </div>
-  );
-};
+// const Showcase = props => {
+//     if ((siteConfig.users || []).length === 0) {
+//         return null;
+//     }
+//
+//     const showcase = siteConfig.users.filter(user => user.pinned)
+//         .map(user => (
+//             <a href={user.infoLink} key={user.infoLink}>
+//                 <img src={user.image} alt={user.caption} title={user.caption}/>
+//             </a>
+//         ));
+//
+//     return (
+//         <div className="productShowcaseSection paddingBottom">
+//             <h2>Who is Using This?</h2>
+//             <p>This project is used by all these people</p>
+//             <div className="logos">{showcase}</div>
+//             <div className="more-users">
+//                 <a className="button" href={pageUrl('users.html', props.language)}>
+//                     More {siteConfig.title} Users
+//                 </a>
+//             </div>
+//         </div>
+//     );
+// };
 
 class Index extends React.Component {
-  render() {
-    const language = this.props.language || '';
+    render() {
+        const language = this.props.language || '';
 
-    return (
-      <div>
-        <HomeSplash language={language} />
-        <div className="mainContainer">
-          <Features />
-          <FeatureCallout />
-          <LearnHow />
-          <TryOut />
-          <Description />
-          <Showcase language={language} />
-        </div>
-      </div>
-    );
-  }
+        return (
+            <div>
+                <HomeSplash language={language} config={siteConfig}/>
+                <div className="mainContainer">
+                    <Features/>
+                    {/*<FeatureCallout/>*/}
+                    <EasyCrawling/>
+                    <PowerfulTools/>
+                    <TryOut/>
+                    {/*<Showcase language={language}/>*/}
+                </div>
+            </div>
+        );
+    }
 }
 
 module.exports = Index;
