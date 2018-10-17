@@ -1,4 +1,4 @@
-xxx
+0.8.15 / 2018-10-17
 ===================
 - Bugfix in `PuppeteerPool`: Pages were sometimes considered closed even though they weren't
 - Improvements in documentation
