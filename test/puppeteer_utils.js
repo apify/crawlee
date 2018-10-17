@@ -224,6 +224,62 @@ describe('Apify.utils.puppeteer', () => {
         }
     });
 
+    it('supports cacheResponses()', async () => {
+        const browser = await Apify.launchPuppeteer({ headless: true });
+        const cache = {};
+
+        const getResourcesLoadedFromWiki = async () => {
+            let downloadedBytes = 0;
+            const page = await browser.newPage();
+            // Cache all javascript files, png files and svg files
+            await Apify.utils.puppeteer.cacheResponses(page, cache, ['.js', /.+\.png/i, /.+\.svg/i]);
+            page.on('response', async (response) => {
+                if (cache[response.url()]) return;
+                try {
+                    const buffer = await response.buffer();
+                    downloadedBytes += buffer.byteLength;
+                } catch (e) {
+                    // do nothing
+                }
+            });
+            await page.goto('https://www.wikipedia.org/', { waitUntil: 'networkidle0' });
+            await page.close();
+            return downloadedBytes;
+        };
+
+        try {
+            const bytesDownloadedOnFirstRun = await getResourcesLoadedFromWiki();
+            const bytesDownloadedOnSecondRun = await getResourcesLoadedFromWiki();
+            expect(bytesDownloadedOnSecondRun).to.be.below(bytesDownloadedOnFirstRun);
+        } finally {
+            await browser.close();
+        }
+    });
+
+    it('cacheResponses() throws when rule with invalid type is provided', async () => {
+        const mockedPage = {
+            setRequestInterception: () => {},
+            on: () => {},
+        };
+
+        const testRuleType = async (value) => {
+            try {
+                await Apify.utils.puppeteer.cacheResponses(mockedPage, {}, [value]);
+            } catch (error) {
+                // this is valid path for this test
+                return;
+            }
+
+            expect(`Rule '${value}' should have thrown error`).to.be.equal('');
+        };
+        await testRuleType(0);
+        await testRuleType(1);
+        await testRuleType(null);
+        await testRuleType([]);
+        await testRuleType(['']);
+        await testRuleType(() => {});
+    });
+
     it('compileScript() works', async () => {
         const { compileScript } = Apify.utils.puppeteer;
         const scriptStringGood = 'await page.goto("about:blank"); return await page.content();';
