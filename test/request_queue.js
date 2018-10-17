@@ -142,6 +142,14 @@ describe('RequestQueue', () => {
             expect(await anotherQueue.isEmpty()).to.be.eql(true);
             expect(await anotherQueue.isFinished()).to.be.eql(true);
         });
+
+        it('should accept Request constructor object in addRequest()', async () => {
+            expectNotUsingLocalStorage();
+            const queue = new RequestQueue('some-id');
+            expect(() => {
+                queue.addRequest({ url: 'http://example.com/a' });
+            }).to.not.throw();
+        });
     });
 
     describe('remote', async () => {
@@ -426,6 +434,53 @@ describe('RequestQueue', () => {
 
             mock.verify();
             mock.restore();
+        });
+
+        it('should not add handled request to queue head dict', async () => {
+            expectNotUsingLocalStorage();
+
+            const { Request } = Apify;
+
+            const queue = new RequestQueue('some-id', 'some-name');
+            const mock = sinon.mock(apifyClient.requestQueues);
+
+            const requestA = new Request({ url: 'http://example.com/a' });
+
+            mock.expects('addRequest')
+                .once()
+                .withArgs({
+                    queueId: 'some-id',
+                    request: requestA,
+                    forefront: true,
+                })
+                .returns(Promise.resolve({
+                    requestId: 'a',
+                    wasAlreadyHandled: true,
+                    wasAlreadyPresent: true,
+                }));
+            mock.expects('getRequest')
+                .never();
+            mock.expects('getHead')
+                .once()
+                .withArgs({
+                    queueId: 'some-id',
+                    limit: QUERY_HEAD_MIN_LENGTH,
+                })
+                .returns(Promise.resolve({ items: [] }));
+
+            await queue.addRequest(requestA, { forefront: true });
+            expect(await queue.fetchNextRequest()).to.be.eql(null);
+
+            mock.verify();
+            mock.restore();
+        });
+
+        it('should accept Request constructor object in addRequest()', async () => {
+            expectNotUsingLocalStorage();
+            const queue = new RequestQueue('some-id');
+            expect(() => {
+                queue.addRequest({ url: 'http://example.com/a' });
+            }).to.not.throw();
         });
     });
 
