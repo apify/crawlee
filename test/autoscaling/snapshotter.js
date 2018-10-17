@@ -145,9 +145,9 @@ describe('Snapshotter', () => {
 
         const snapshotter = new Snapshotter(options);
         await snapshotter.start();
-        await Apify.utils.sleep(199);
+        await Apify.utils.sleep(250);
         snapshotter.maxMemoryBytes = toBytes(1000); // Override memory to get an OK reading.
-        await Apify.utils.sleep(199);
+        await Apify.utils.sleep(250);
         await snapshotter.stop();
         const memorySnapshots = snapshotter.getMemorySample();
 
