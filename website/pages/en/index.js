@@ -104,7 +104,7 @@ class HomeSplash extends React.Component {
 
 const Block = props => (
     <Container
-        padding={['bottom']}
+        padding={props.paddingBottomOnly ? ['bottom'] : ['bottom', 'top']}
         id={props.id}
         background={props.background}>
         <GridBlock align={props.gridBlockAlign || 'center'} contents={props.children} layout={props.layout}/>
@@ -112,7 +112,7 @@ const Block = props => (
 );
 
 const Features = () => (
-    <Block layout="fourColumn">
+    <Block layout="fourColumn" paddingBottomOnly>
         {[
             {
                 content: '**JavaScript** is the language of the web. Although there are JavaScript tools like `puppeteer` and `cheerio`, ' +
