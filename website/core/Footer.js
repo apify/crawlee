@@ -72,32 +72,23 @@ class Footer extends React.Component {
                     <div>
                         <h5>More</h5>
                         <a href="https://www.apify.com" target="_blank">Apify Cloud Platform</a>
+                        <a href="https://docusaurus.io" target="_blank">Docusaurus</a>
                         <a href={this.props.config.repoUrl} target="_blank">GitHub</a>
-                        <a
-                            className="github-button"
-                            href={this.props.config.repoUrl}
-                            data-icon="octicon-star"
-                            data-count-href="/apifytech/apify-js/stargazers"
-                            data-show-count="true"
-                            data-count-aria-label="# stargazers on GitHub"
-                            aria-label="Star Apify SDK on GitHub">
-                            Star
-                        </a>
                     </div>
                 </section>
 
-                <a
-                    href="https://code.facebook.com/projects/"
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="fbOpenSource">
-                    <img
-                        src={`${this.props.config.baseUrl}img/oss_logo.png`}
-                        alt="Facebook Open Source"
-                        width="170"
-                        height="45"
-                    />
-                </a>
+                {/*<a*/}
+                    {/*href="https://docusaurus.io"*/}
+                    {/*target="_blank"*/}
+                    {/*rel="noreferrer noopener"*/}
+                    {/*className="fbOpenSource">*/}
+                    {/*<img*/}
+                        {/*src={`${this.props.config.baseUrl}img/docusaurus.svg`}*/}
+                        {/*alt="Docusaurus"*/}
+                        {/*width="80"*/}
+                        {/*height="80"*/}
+                    {/*/>*/}
+                {/*</a>*/}
                 <section className="copyright">{this.props.config.copyright}</section>
             </footer>
         );
