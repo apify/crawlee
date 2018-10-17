@@ -1,6 +1,6 @@
 /**
- * This example shows shows a quick actor that has a run time of just a few seconds.
- * It opens a [web page](http://goldengatebridge75.org/news/webcam.html) that contains webcam stream from the Golden Gate
+ * This example shows a quick actor that has a run time of just a few seconds.
+ * It opens a [web page](http://goldengatebridge75.org/news/webcam.html) that contains a webcam stream from the Golden Gate
  * Bridge, takes a screenshot of the page and saves it as output.
  *
  * This actor

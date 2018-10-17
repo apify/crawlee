@@ -1,4 +1,5 @@
 build
+build-docs
 node_modules
 *.log
 *.pid
@@ -12,5 +13,4 @@ pids
 .idea
 yarn.lock
 package-lock.json
-docs
 tmp

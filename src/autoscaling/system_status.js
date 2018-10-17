@@ -24,7 +24,7 @@ const DEFAULT_OPTIONS = {
  * by the currentHistorySecs option and represents the max age
  * of snapshots to be considered for the calculation.
  *
- * `getHistoricalStatus()` returns a boolean that represents the long term status
+ * `getHistoricalStatus()` returns a boolean that represents the long-term status
  * of the system. It considers the full snapshot history available
  * in the Snapshotter instance.
  *

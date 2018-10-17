@@ -6,7 +6,7 @@
  * The script extracts the current Bitcoin prices from Kraken.com
  * and sends them to your email using the [apify/send-mail](https://www.apify.com/apify/send-mail) actor.
  *
- * To make the example work, you'll need an [Apify account](https://my.apify.com/).
+ * To make the example work, you'll need an [Apify Account](https://my.apify.com/).
  * Go to [Account - Integrations](https://my.apify.com/account#/integrations) page to obtain your API token
  * and set it to the `APIFY_TOKEN` environment variable, or run the script using the CLI.
  * If you deploy this actor to the Apify platform then you can set up a scheduler for early
@@ -40,5 +40,5 @@ Apify.main(async () => {
         html: `<h1>Kraken.com BTC</h1>${tradedPricesHtml}`,
     });
 
-    console.log('Email was sent. Good luck!');
+    console.log('Email sent. Good luck!');
 });

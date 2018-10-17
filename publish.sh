@@ -12,7 +12,7 @@ BRANCH_UP_TO_DATE=`git status | grep 'nothing to commit' | tr -s \n ' '`;
 GIT_TAG="v${PACKAGE_VERSION}"
 
 # Upload doc to S3 configuration
-DOC_DIR=${PWD}"/docs"
+DOC_DIR="${PWD}/build-docs"
 AWS_BUCKET="apify-runtime-js-doc"
 
 if [ -z "${BRANCH_UP_TO_DATE}" ]; then

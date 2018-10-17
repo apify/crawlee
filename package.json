@@ -1,7 +1,7 @@
 {
   "name": "apify",
-  "version": "0.8.6",
-  "description": "Web scraping and automation SDK",
+  "version": "0.8.13",
+  "description": "The scalable web crawling and scraping library for JavaScript",
   "engines": {
     "node": ">=8.0.0"
   },
@@ -38,7 +38,7 @@
   ],
   "scripts": {
     "build": "rm -rf ./build && babel src --out-dir build",
-    "build-doc": "npm run clean && npm run build && node ./node_modules/jsdoc/jsdoc.js --package ./package.json -c ./jsdoc/conf.json -d docs",
+    "build-doc": "npm run clean && npm run build && node ./node_modules/jsdoc/jsdoc.js --package ./package.json -c ./docs/jsdoc-conf.json -d ./build-docs",
     "build-toc": "./node_modules/.bin/markdown-toc README.md -i",
     "test": "npm run build &&  nyc --reporter=html --reporter=text mocha --timeout 60000 --compilers js:babel-core/register --recursive",
     "prepare": "npm run build-toc && npm run build",
@@ -48,8 +48,9 @@
     "lint:fix": "./node_modules/.bin/eslint ./src ./test --ext .js,.jsx --fix"
   },
   "dependencies": {
-    "apify-shared": "0.0.58",
+    "@apify/ps-tree": "^1.1.2",
     "apify-client": "^0.3.0",
+    "apify-shared": "^0.1.0",
     "bluebird": "^3.5.0",
     "cheerio": "^1.0.0-rc.2",
     "content-type": "^1.0.3",
@@ -57,7 +58,6 @@
     "jquery": "^3.3.1",
     "mime": "^2.3.1",
     "proxy-chain": "^0.2.4",
-    "@apify/ps-tree": "^1.1.1",
     "request-promise": "^4.2.2",
     "rimraf": "^2.6.1",
     "underscore": "^1.9.0",
@@ -70,7 +70,7 @@
     "babel-polyfill": "^6.26.0",
     "babel-preset-env": "^1.6.1",
     "basic-auth-parser": "^0.0.2",
-    "chai": "^4.0.2",
+    "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
     "eslint": "^5.5.0",
     "eslint-config-airbnb": "^17.1.0",

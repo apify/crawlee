@@ -80,7 +80,7 @@ export default class Snapshotter {
     }
 
     /**
-     * Starts capturing snapshots in configured intervals.
+     * Starts capturing snapshots at configured intervals.
      * @return {Promise}
      * @ignore
      */
@@ -92,7 +92,7 @@ export default class Snapshotter {
                 this.maxMemoryBytes = totalBytes;
             } else {
                 this.maxMemoryBytes = Math.ceil(totalBytes / 4);
-                log.info(`Snapshotter: Setting max memory of this run to ${Math.round(this.maxMemoryBytes / 1024 / 1024)} MB. Use the ${ENV_VARS.MEMORY_MBYTES} environment variable to override.`); // eslint-disable-line max-len
+                log.info(`Snapshotter: Setting max memory of this run to ${Math.round(this.maxMemoryBytes / 1024 / 1024)} MB. Use the ${ENV_VARS.MEMORY_MBYTES} environment variable to override it.`); // eslint-disable-line max-len
             }
         }
 

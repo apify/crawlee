@@ -1,3 +1,26 @@
+0.8.13 / 2018-10-09
+===================
+- Fixed `AutoscaledPool` terminating before all tasks are finished.
+- Migrated to v 0.1.0 of `apify-shared`.
+
+0.8.12 / 2018-10-02
+==================
+- Allow AutoscaledPool to run tasks up to minConcurrency even when the system is overloaded.
+
+0.8.11 / 2018-09-27
+==================
+- Upgraded @apify/ps-tree depedency (fixes "Error: spawn ps ENFILE"), upgraded other NPM packages
+
+0.8.10 / 2018-09-27
+==================
+- Updated documentation and README, consolidated images.
+- Added CONTRIBUTING.md
+
+0.8.8 / 2018-09-25
+==================
+- Updated documentation and README.
+- Bugfixes in `RequestQueueLocal`
+
 0.8.3 / 2018-09-22
 ==================
 - Updated documentation and README.
@@ -5,7 +28,7 @@
 
 0.8.0 / 2018-09-19
 ==================
-- BREAKING CHANGES IN AUTOSCALED POOL
+- **BREAKING CHANGES IN AUTOSCALED POOL**
    - It has been completely rebuilt for better performance.
    - It also now works locally.
    - see [Migration Guide](MIGRATIONS.md) for more information.
