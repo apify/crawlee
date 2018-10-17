@@ -40,7 +40,12 @@ const queuesCache = new LruCache({ maxLength: MAX_OPENED_QUEUES }); // Open queu
  * @ignore
  */
 const validateAddRequestParams = (request, opts) => {
-    checkParamPrototypeOrThrow(request, 'request', Request, 'Apify.Request');
+    checkParamOrThrow(request, 'request', 'Object');
+
+    if (!(request instanceof Request)) {
+        request = new Request(request);
+    }
+
     checkParamOrThrow(opts, 'opts', 'Object');
 
     const { forefront = false } = opts;
@@ -49,7 +54,7 @@ const validateAddRequestParams = (request, opts) => {
 
     if (request.id) throw new Error('Request has already "id" so it cannot be added to the queue!');
 
-    return { forefront };
+    return { forefront, request };
 };
 
 /**
@@ -208,13 +213,18 @@ export class RequestQueue {
      * it will not be updated. You can find out this happened from the resulting
      * {@linkcode RequestOperationInfo} object.
      *
-     * @param {Request} request Request object
+     * @param {Request|Object} request Request object, or object to construct a Request
      * @param {Object} [opts]
      * @param {Boolean} [opts.forefront] If `true`, the request will be added to the foremost position in the queue.
      * @return {RequestOperationInfo}
      */
     addRequest(request, opts = {}) {
-        const { forefront } = validateAddRequestParams(request, opts);
+        const { forefront, request: newRequest } = validateAddRequestParams(request, opts);
+
+        if (newRequest) {
+            request = newRequest;
+        }
+
         const cacheKey = getRequestId(request.uniqueKey);
         const cachedInfo = this.requestsCache.get(cacheKey);
 
@@ -630,7 +640,11 @@ export class RequestQueueLocal {
     }
 
     addRequest(request, opts = {}) {
-        const { forefront } = validateAddRequestParams(request, opts);
+        const { forefront, request: newRequest } = validateAddRequestParams(request, opts);
+
+        if (newRequest) {
+            request = newRequest;
+        }
 
         return this.initializationPromise
             .then(() => {
