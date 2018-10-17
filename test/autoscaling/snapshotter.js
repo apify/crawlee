@@ -5,7 +5,7 @@ import * as Apify from '../../build/index';
 import events from '../../build/events';
 import Snapshotter from '../../build/autoscaling/snapshotter';
 
-const toBytes = x => x * 1024 * 1024;
+// const toBytes = x => x * 1024 * 1024;
 
 describe('Snapshotter', () => {
     let logLevel;
