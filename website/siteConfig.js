@@ -9,23 +9,25 @@
 // site configuration options.
 
 // List of projects/orgs using your project for the users page.
-const users = [
-    {
-        caption: 'User1',
-        // You will need to prepend the image path with your baseUrl
-        // if it is not '/', like: '/test-site/img/docusaurus.svg'.
-        image: '/img/docusaurus.svg',
-        infoLink: 'https://www.facebook.com',
-        pinned: true,
-    },
-];
+// const users = [
+//     {
+//         caption: 'User1',
+//         // You will need to prepend the image path with your baseUrl
+//         // if it is not '/', like: '/test-site/img/docusaurus.svg'.
+//         image: '/img/docusaurus.svg',
+//         infoLink: 'https://www.facebook.com',
+//         pinned: true,
+//     },
+// ];
 
 const repoUrl = 'https://github.com/apifytech/apify-js';
+
 const siteConfig = {
     title: 'Apify SDK', // Title for your website.
     tagline: 'Turn any website into an API.',
-    url: ' https://apifytech.github.io', // Your website URL
-    baseUrl: '/apify-js/', // Base URL for your project */
+    url: 'https://sdk.apify.com', // Your website URL
+    cname: 'sdk.apify.com',
+    baseUrl: '/', // Base URL for your project */
     // For github.io type URLs, you would set the url and baseUrl like:
     //   url: 'https://facebook.github.io',
     //   baseUrl: '/test-site/',
@@ -48,7 +50,7 @@ const siteConfig = {
     ],
 
     // If you have users set above, you add it here:
-    users,
+    // users,
 
     /* path to images for header/footer */
     headerIcon: 'img/apify_logo.svg',
@@ -85,7 +87,9 @@ const siteConfig = {
     },
 
     // Add custom scripts here that would be placed in <script> tags.
-    scripts: ['https://buttons.github.io/buttons.js'],
+    scripts: [
+        'https://buttons.github.io/buttons.js',
+    ],
 
     // On page navigation for the current documentation page.
     onPageNav: 'separate',
