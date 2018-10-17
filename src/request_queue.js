@@ -245,11 +245,11 @@ export class RequestQueue {
                 forefront,
             })
             .then((requestOperationInfo) => {
-                const { requestId } = requestOperationInfo;
+                const { requestId, wasAlreadyHandled } = requestOperationInfo;
 
                 this._cacheRequest(cacheKey, requestOperationInfo);
 
-                if (forefront && !this.requestIdsInProgress[requestId]) {
+                if (forefront && !this.requestIdsInProgress[requestId] && !wasAlreadyHandled) {
                     this.queueHeadDict.add(requestId, requestId, true);
                 }
 
