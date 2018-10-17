@@ -78,7 +78,7 @@ class HomeSplash extends React.Component {
         const language = this.props.language || '';
         return (
             <SplashContainer>
-                <Logo img_src={imgUrl('apify_logo.svg')}/>
+                {/*<Logo img_src={imgUrl('apify_logo.svg')}/>*/}
                 <div className="inner">
                     <ProjectTitle/>
                     <PromoSection>
@@ -104,7 +104,7 @@ class HomeSplash extends React.Component {
 
 const Block = props => (
     <Container
-        padding={['bottom', 'top']}
+        padding={['bottom']}
         id={props.id}
         background={props.background}>
         <GridBlock align={props.gridBlockAlign || 'center'} contents={props.children} layout={props.layout}/>
