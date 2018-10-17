@@ -2,6 +2,7 @@ xxx
 ===================
 - Bugfix in `PuppeteerPool`: Pages were sometimes considered closed even though they weren't
 - Improvements in documentation
+- Upgraded Puppeteer to 1.9.0
 
 0.8.14 / 2018-10-11
 ===================
