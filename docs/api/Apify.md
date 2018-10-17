@@ -26,7 +26,7 @@ accessible from the left sidebar.
     * [`.openKeyValueStore([storeIdOrName])`](#module_Apify.openKeyValueStore) ⇒ [<code>Promise&lt;KeyValueStore&gt;</code>](keyvaluestore)
     * [`.openRequestQueue`](#module_Apify.openRequestQueue) ⇒ [<code>Promise&lt;RequestQueue&gt;</code>](requestqueue)
     * [`.pushData(item)`](#module_Apify.pushData) ⇒ <code>Promise</code>
-    * [`.setValue(key, value, [options])`](#module_Apify.setValue)
+    * [`.setValue(key, value, [options])`](#module_Apify.setValue) ⇒ <code>Promise</code>
 
 <a name="module_Apify.call"></a>
 
@@ -668,7 +668,7 @@ The objects must be serializable to JSON and the JSON representation of each obj
 </table>
 <a name="module_Apify.setValue"></a>
 
-## `Apify.setValue(key, value, [options])`
+## `Apify.setValue(key, value, [options])` ⇒ <code>Promise</code>
 Stores or deletes a value in the default [`KeyValueStore`](keyvaluestore) associated with the current actor run.
 
 This is just a convenient shortcut for [`keyValueStore.setValue()`](keyvaluestore#KeyValueStore+setValue).

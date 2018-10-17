@@ -92,10 +92,10 @@ it will not be updated. You can find out this happened from the resulting
 </thead>
 <tbody>
 <tr>
-<td><code>request</code></td><td><code><a href="request">Request</a></code></td>
+<td><code>request</code></td><td><code><a href="request">Request</a></code> | <code>Object</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Request object</p>
+<td colspan="3"><p>Request object, or object to construct a Request</p>
 </td></tr><tr>
 <td><code>[opts]</code></td><td><code>Object</code></td>
 </tr>

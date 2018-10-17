@@ -162,18 +162,18 @@ export class KeyValueStore {
     /**
      * Gets a value from the key-value store.
      *
-     * The function returns a promise that resolves to the record value,
+     * The function returns a `Promise` that resolves to the record value,
      * whose JavaScript type depends on the MIME content type of the record.
      * Records with the `application/json`
      * content type are automatically parsed and returned as a JavaScript object.
      * Similarly, records with `text/plain` content types are returned as a string.
      * For all other content types, the value is returned as a raw
-     * <a href="https://nodejs.org/api/buffer.html"><code>Buffer</code></a> instance.
+     * <a href="https://nodejs.org/api/buffer.html" target="_blank"><code>Buffer</code></a> instance.
      *
-     * If the record does not exist, the functions resolves to `null`.
+     * If the record does not exist, the function resolves to `null`.
      *
      * To save or delete a value in the key-value store, use the
-     * {@linkcode KeyValueStore#setValue|KeyValueStore.setValue()} function.
+     * {@link KeyValueStore#setValue} function.
      *
      * **Example usage:**
      *
@@ -183,10 +183,10 @@ export class KeyValueStore {
      * ```
      *
      * @param {String} key
-     *   Key of the record.
-     * @returns {Promise<Object>}
+     *   Unique key of the record.
+     * @returns {Promise<Object|String|Buffer>}
      *   Returns a promise that resolves to an object, string
-     *   or <a href="https://nodejs.org/api/buffer.html"><code>Buffer</code></a>, depending
+     *   or <a href="https://nodejs.org/api/buffer.html" target="_blank"><code>Buffer</code></a>, depending
      *   on the MIME content type of the record.
      */
     getValue(key) {
@@ -219,32 +219,32 @@ export class KeyValueStore {
      * await store.setValue('RESULTS', 'my text data', { contentType: 'text/plain' });
      * ```
      * If you set custom content type, `value` must be either a string or
-     * <a href="https://nodejs.org/api/buffer.html"><code>Buffer</code></a>, otherwise an error will be thrown.
+     * <a href="https://nodejs.org/api/buffer.html" target="_blank"><code>Buffer</code></a>, otherwise an error will be thrown.
      *
-     * If `value` is null, the record is deleted instead. Note that the `setValue()` function succeeds
+     * If `value` is `null`, the record is deleted instead. Note that the `setValue()` function succeeds
      * regardless whether the record existed or not.
      *
      * To retrieve a value from the key-value store, use the
-     * {@linkcode KeyValueStore#setValue|KeyValueStore.getValue()} function.
+     * {@link KeyValueStore#getValue} function.
      *
      * **IMPORTANT:** Always make sure to use the `await` keyword when calling `setValue()`,
      * otherwise the actor process might finish before the value is stored!
      *
      * @param {String} key
-     *   Unique record key.
+     *   Unique key of the record.
      * @param {Object|String|Buffer} value
      *   Record data, which can be one of the following values:
      *   <ul>
      *     <li>If `null`, the record in the key-value store is deleted.</li>
      *     <li>If no `options.contentType` is specified, `value` can be any JavaScript object and it will be stringified to JSON.</li>
-     *     <li>If `options.contentType` is specified, `value` is considered raw data and it must be a `String`
-     *     or <a href="https://nodejs.org/api/buffer.html"><code>Buffer</code></a>.</li>
+     *     <li>If `options.contentType` is specified, `value` is considered raw data and it must be either a `String`
+     *     or <a href="https://nodejs.org/api/buffer.html" target="_blank"><code>Buffer</code></a>.</li>
      *   </ul>
      *   For any other value an error will be thrown.
      * @param {Object} [options]
      * @param {String} [options.contentType]
      *   Specifies a custom MIME content type of the record.
-     * @returns {Promise} Returns a promise that resolves once the value is stored or deleted.
+     * @returns {Promise}
      *
      */
     setValue(key, value, options = {}) {
@@ -536,6 +536,7 @@ export const getValue = key => openKeyValueStore().then(store => store.getValue(
  * @param {Object} [options]
  * @param {String} [options.contentType]
  *   Specifies a custom MIME content type of the record.
+ * @return {Promise}
  * @memberof module:Apify
  * @name setValue
  * @function
