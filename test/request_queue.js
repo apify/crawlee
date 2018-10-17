@@ -142,6 +142,14 @@ describe('RequestQueue', () => {
             expect(await anotherQueue.isEmpty()).to.be.eql(true);
             expect(await anotherQueue.isFinished()).to.be.eql(true);
         });
+
+        it('should accept Request constructor object in addRequest()', async () => {
+            expectNotUsingLocalStorage();
+            const queue = new RequestQueue('some-id');
+            expect(() => {
+                queue.addRequest({ url: 'http://example.com/a' });
+            }).to.not.throw();
+        });
     });
 
     describe('remote', async () => {
@@ -426,6 +434,14 @@ describe('RequestQueue', () => {
 
             mock.verify();
             mock.restore();
+        });
+
+        it('should accept Request constructor object in addRequest()', async () => {
+            expectNotUsingLocalStorage();
+            const queue = new RequestQueue('some-id');
+            expect(() => {
+                queue.addRequest({ url: 'http://example.com/a' });
+            }).to.not.throw();
         });
     });
 
