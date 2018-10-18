@@ -5,7 +5,7 @@ title: RequestOperationInfo
 <a name="RequestOperationInfo"></a>
 
 A helper class that is used to report results from the
-{@linkcode enqueueLinks|Apify.utils.puppeteer.enqueueLinks()} function.
+[`Apify.utils.puppeteer.enqueueLinks()`](../api/puppeteer#puppeteer.enqueueLinks) function.
 
 **Properties**
 <table>

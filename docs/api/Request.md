@@ -117,7 +117,9 @@ const foo = request.userData.foo;
 <td><code>options</code></td><td><code>object</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"></td></tr><tr>
+<td colspan="3"><p>All <code>Request</code> parameters are passed
+  via an options object with the following keys:</p>
+</td></tr><tr>
 <td><code>options.url</code></td><td><code>String</code></td><td></td>
 </tr>
 <tr>

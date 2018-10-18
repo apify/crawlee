@@ -7,25 +7,24 @@ title: RequestList
 Represents a static list of URLs to crawl.
 The URLs can be provided either in code or parsed from a text file hosted on the web.
 
-Each URL is represented using an instance of the [``Request``](request) class.
+Each URL is represented using an instance of the [`Request`](request) class.
 The list can only contain unique URLs. More precisely, it can only contain `Request` instances
 with distinct `uniqueKey` properties. By default, `uniqueKey` is generated from the URL, but it can also be overridden.
-To add a single URL multiple times to the list,
-corresponding `Request` objects will need to have different `uniqueKey` properties.
-You can use the `keepDuplicateUrls` option to do this for you.
+To add a single URL to the list multiple times, corresponding [`Request`](request) objects will need to have different
+`uniqueKey` properties. You can use the `keepDuplicateUrls` option to do this for you when initializing the
+`RequestList` from sources.
 
-Once you create an instance of `RequestList`, you need to call [``initialize()``](#RequestList+initialize)
+Once you create an instance of `RequestList`, you need to call the [`initialize`](#RequestList+initialize) function
 before the instance can be used. After that, no more URLs can be added to the list.
 
-`RequestList` is used by [``BasicCrawler``](basiccrawler), [``CheerioCrawler``](cheeriocrawler)
-and [``PuppeteerCrawler``](puppeteercrawler) as a source of URLs to crawl.
-Unlike [``RequestQueue``](requestqueue), `RequestList` is static but it can contain even millions of URLs.
+`RequestList` is used by [`BasicCrawler`](basiccrawler), [`CheerioCrawler`](cheeriocrawler)
+and [`PuppeteerCrawler`](puppeteercrawler) as a source of URLs to crawl.
+Unlike [`RequestQueue`](requestqueue), `RequestList` is static but it can contain even millions of URLs.
 
-`RequestList` has an internal state where it stores information which requests were handled,
-which are in progress or which were reclaimed.
-The state might be automatically persisted to the default key-value store by setting the `persistStateKey` option
-so that if the Node.js process is restarted,
-the crawling can continue where it left off. For more details, see [``KeyValueStore``](keyvaluestore).
+`RequestList` has an internal state where it stores information about which requests were already handled,
+which are in progress and which were reclaimed. The state might be automatically persisted to the default
+key-value store by setting the `persistStateKey` option o that if the Node.js process is restarted,
+the crawling can continue where it left off. For more details, see [`KeyValueStore`](keyvaluestore).
 
 **Example usage:**
 
@@ -62,13 +61,13 @@ await requestList.reclaimRequest(request2);
 * [RequestList](requestlist)
     * [`new RequestList(options)`](#new_RequestList_new)
     * [`.initialize()`](#RequestList+initialize) ⇒ <code>Promise</code>
-    * [`.getState()`](#RequestList+getState) ⇒
+    * [`.getState()`](#RequestList+getState) ⇒ <code>Object</code>
     * [`.isEmpty()`](#RequestList+isEmpty) ⇒ <code>Promise&lt;Boolean&gt;</code>
-    * [`.isFinished()`](#RequestList+isFinished) ⇒ <code>Promise&lt;boolean&gt;</code>
+    * [`.isFinished()`](#RequestList+isFinished) ⇒ <code>Promise&lt;Boolean&gt;</code>
     * [`.fetchNextRequest()`](#RequestList+fetchNextRequest) ⇒ [<code>Promise&lt;Request&gt;</code>](request)
     * [`.markRequestHandled(request)`](#RequestList+markRequestHandled) ⇒ <code>Promise</code>
     * [`.reclaimRequest(request)`](#RequestList+reclaimRequest) ⇒ <code>Promise</code>
-    * [`.length()`](#RequestList+length)
+    * [`.length()`](#RequestList+length) ⇒ <code>Number</code>
 
 <a name="new_RequestList_new"></a>
 
@@ -84,7 +83,9 @@ await requestList.reclaimRequest(request2);
 <td><code>options</code></td><td><code>Object</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"></td></tr><tr>
+<td colspan="3"><p>All <code>RequestList</code> parameters are passed
+  via an options object with the following keys:</p>
+</td></tr><tr>
 <td><code>options.sources</code></td><td><code>Array</code></td><td></td>
 </tr>
 <tr>
@@ -93,28 +94,32 @@ await requestList.reclaimRequest(request2);
  Additionally a <code>requestsFromUrl</code> property may be used instead of <code>url</code>,
  which will instruct the <code>RequestList</code> to download the sources from the given remote location.
  The URLs will be parsed from the received response.</p>
-<pre><code class="lang-javascript">[
+<pre><code>[
     // One URL
     { method: &#39;GET&#39;, url: &#39;http://example.com/a/b&#39; },
     // Batch import of URLs from a file hosted on the web
     { method: &#39;POST&#39;, requestsFromUrl: &#39;http://example.com/urls.txt&#39; },
 ]
-</code></pre>
-</td></tr><tr>
+</code></pre></td></tr><tr>
 <td><code>[options.persistStateKey]</code></td><td><code>String</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>Identifies the key in the default key-value store under which the <code>RequestList</code> persists its state.
-  If this is set then <code>RequestList</code>
-  persists its state in regular intervals and loads the state from there in case it is restarted
-  due to an error or system reboot.</p>
+<td colspan="3"><p>Identifies the key in the default key-value store under which the <code>RequestList</code> persists its
+  state. State represents a position of the last scraped request in the list. If this is set then <code>RequestList</code>
+  persists this state in regular intervals and loads the state from there in case it is restarted due to an error or system reboot.</p>
+<p>  <strong>IMPORTANT:</strong>
+  The state represents only a pointer/index of a request in the list. The full contents of the list are not persisted.
+  Therefore, the user is responsible for either persisting the list on her own or a consistent order of the requests
+  in the list must be preserved. This is especially important when downloading a live list of URLs from a remote resource,
+  since the change in the source URL list would change the resulting <code>RequestList</code> on error/restart and the state
+  of crawling will be impossible to restore, resulting in an error.</p>
 </td></tr><tr>
 <td><code>[options.state]</code></td><td><code>Object</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>The state object that the <code>RequestList</code> will be initialized from.
   It is in the form as returned by <code>RequestList.getState()</code>, such as follows:</p>
-<pre><code class="lang-javascript">{
+<pre><code>{
     nextIndex: 5,
     nextUniqueKey: &#39;unique-key-5&#39;
     inProgress: {
@@ -122,18 +127,18 @@ await requestList.reclaimRequest(request2);
         &#39;unique-key-4&#39;: true,
     },
 }
-</code></pre>
-<p>  Note that the preferred (and simpler) way to persist the state of crawling of the <code>RequestList</code>
+</code></pre><p>  Note that the preferred (and simpler) way to persist the state of crawling of the <code>RequestList</code>
   is to use the <code>persistStateKey</code> parameter instead.</p>
 </td></tr><tr>
 <td><code>[options.keepDuplicateUrls]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>By default, <code>RequestList</code> will deduplicate the provided URLs. Default deduplication is based
-  on the <code>uniqueKey</code> property of passed source <a href="request"><code>Request</code></a> objects. If the property is not present,
-  it is generated by normalizing the URL. If present, it is kept intact. In any case, only one request per <code>uniqueKey</code> is added
-  to the <code>RequestList</code> resulting in removing of duplicate URLs / unique keys.
-  Setting <code>keepDuplicateUrls</code> to <code>true</code> will append an additional identifier to the <code>uniqueKey</code>
+  on the <code>uniqueKey</code> property of passed source <a href="request"><code>Request</code></a> objects.</p>
+<p>  If the property is not present, it is generated by normalizing the URL. If present, it is kept intact.
+  In any case, only one request per <code>uniqueKey</code> is added to the <code>RequestList</code> resulting in removal
+  of duplicate URLs / unique keys.</p>
+<p>  Setting <code>keepDuplicateUrls</code> to <code>true</code> will append an additional identifier to the <code>uniqueKey</code>
   of each request that does not already include a <code>uniqueKey</code>. Therefore, duplicate
   URLs will be kept in the list. It does not protect the user from having duplicates in user set
   <code>uniqueKey</code>s however. It is the user&#39;s responsibility to ensure uniqueness of their unique keys,
@@ -148,31 +153,30 @@ This function must be called before you can start using the instance in a meanin
 
 <a name="RequestList+getState"></a>
 
-## `requestList.getState()` ⇒
+## `requestList.getState()` ⇒ <code>Object</code>
 Returns an object representing the internal state of the `RequestList` instance.
-Note that the objects fields can change in future releases.
+Note that the object's fields can change in future releases.
 
-**Returns**: Object  
 <a name="RequestList+isEmpty"></a>
 
 ## `requestList.isEmpty()` ⇒ <code>Promise&lt;Boolean&gt;</code>
-Resolves to `true` if the next call to [``fetchNextRequest()``](#RequestList+fetchNextRequest)
-will return `null`, otherwise it resolves to `false`.
+Resolves to `true` if the next call to [`fetchNextRequest`](#RequestList+fetchNextRequest) function
+would return `null`, otherwise it resolves to `false`.
 Note that even if the list is empty, there might be some pending requests currently being processed.
 
 <a name="RequestList+isFinished"></a>
 
-## `requestList.isFinished()` ⇒ <code>Promise&lt;boolean&gt;</code>
+## `requestList.isFinished()` ⇒ <code>Promise&lt;Boolean&gt;</code>
 Returns `true` if all requests were already handled and there are no more left.
 
 <a name="RequestList+fetchNextRequest"></a>
 
 ## `requestList.fetchNextRequest()` ⇒ [<code>Promise&lt;Request&gt;</code>](request)
-Gets the next `Request` to process. First, the function gets a request previously reclaimed
-using [``reclaimRequest()``](#RequestList+reclaimRequest) function, if there is any.
-Otherwise it gets a next request from the sources.
+Gets the next [`Request`](request) to process. First, the function gets a request previously reclaimed
+using the [`reclaimRequest`](#RequestList+reclaimRequest) function, if there is any.
+Otherwise it gets the next request from sources.
 
-The function gets `null` if there are no more
+The function's `Promise` resolves to `null` if there are no more
 requests to process.
 
 <a name="RequestList+markRequestHandled"></a>
@@ -214,6 +218,6 @@ The request will become available in the next `this.fetchNextRequest()`.
 </table>
 <a name="RequestList+length"></a>
 
-## `requestList.length()`
+## `requestList.length()` ⇒ <code>Number</code>
 Returns the total number of unique requests present in the `RequestList`.
 

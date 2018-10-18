@@ -8,35 +8,35 @@ Represents a queue of URLs to crawl, which is used for deep crawling of websites
 where you start with several URLs and then recursively
 follow links to other pages. The data structure supports both breadth-first and depth-first crawling orders.
 
-Each URL is represented using an instance of the [``Request``](request) class.
-The queue can only contain unique URLs. More precisely, it can only contain `Request` instances
+Each URL is represented using an instance of the [`Request`](request) class.
+The queue can only contain unique URLs. More precisely, it can only contain [`Request`](request) instances
 with distinct `uniqueKey` properties. By default, `uniqueKey` is generated from the URL, but it can also be overridden.
 To add a single URL multiple times to the queue,
-corresponding `Request` objects will need to have different `uniqueKey` properties.
+corresponding [`Request`](request) objects will need to have different `uniqueKey` properties.
 
 Do not instantiate this class directly, use the
-[``Apify.openRequestQueue()``](apify#openrequestqueue) function instead.
+[`Apify.openRequestQueue()`](apify#module_Apify.openRequestQueue) function instead.
 
-`RequestQueue` is used by [``BasicCrawler``](basiccrawler), [``CheerioCrawler``](cheeriocrawler)
-and [``PuppeteerCrawler``](puppeteercrawler) as a source of URLs to crawl.
-Unlike [``RequestList``](requestlist), `RequestQueue` supports dynamic adding and removing of requests.
+`RequestQueue` is used by [`BasicCrawler`](basiccrawler), [`CheerioCrawler`](cheeriocrawler)
+and [`PuppeteerCrawler`](puppeteercrawler) as a source of URLs to crawl.
+Unlike [`RequestList`](requestlist), `RequestQueue` supports dynamic adding and removing of requests.
 On the other hand, the queue is not optimized for operations that add or remove a large number of URLs in a batch.
 
-`RequestQueue` stores its data either on local disk or in the Apify cloud,
+`RequestQueue` stores its data either on local disk or in the Apify Cloud,
 depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variable is set.
 
 If the `APIFY_LOCAL_STORAGE_DIR` environment variable is set, the queue data is stored in
 that local directory as follows:
 ```
-[APIFY_LOCAL_STORAGE_DIR]/request_queues/[QUEUE_ID]/[STATE]/[NUMBER].json
+{APIFY_LOCAL_STORAGE_DIR}/request_queues/{QUEUE_ID}/{STATE}/{NUMBER}.json
 ```
-Note that `[QUEUE_ID]` is the name or ID of the request queue. The default queue has ID `default`,
+Note that `{QUEUE_ID}` is the name or ID of the request queue. The default queue has ID: `default`,
 unless you override it by setting the `APIFY_DEFAULT_REQUEST_QUEUE_ID` environment variable.
-Each request in the queue is stored as a separate JSON file, where `[STATE]` is either `handled` or `pending`,
-and `[NUMBER]` is an integer indicating the position of the request in the queue.
+Each request in the queue is stored as a separate JSON file, where `{STATE}` is either `handled` or `pending`,
+and `{NUMBER}` is an integer indicating the position of the request in the queue.
 
 If the `APIFY_TOKEN` environment variable is provided instead, the data is stored
-in the [Apify Request Queue](https://www.apify.com/docs/storage#queue) cloud storage.
+in the <a href="https://www.apify.com/docs/storage#queue" target="_blank">Apify Request Queue</a> cloud storage.
 
 **Example usage:**
 
@@ -66,42 +66,42 @@ await queue.reclaimRequest(request2);
 
 
 * [RequestQueue](requestqueue)
-    * [`.addRequest(request, [opts])`](#RequestQueue+addRequest) ⇒ [<code>RequestOperationInfo</code>](../typedefs/requestoperationinfo)
+    * [`.addRequest(request, [options])`](#RequestQueue+addRequest) ⇒ [<code>RequestOperationInfo</code>](../typedefs/requestoperationinfo)
     * [`.getRequest(requestId)`](#RequestQueue+getRequest) ⇒ [<code>Promise&lt;Request&gt;</code>](request)
     * [`.fetchNextRequest()`](#RequestQueue+fetchNextRequest) ⇒ [<code>Promise&lt;Request&gt;</code>](request)
     * [`.markRequestHandled(request)`](#RequestQueue+markRequestHandled) ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](../typedefs/requestoperationinfo)
-    * [`.reclaimRequest(request, [opts])`](#RequestQueue+reclaimRequest) ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](../typedefs/requestoperationinfo)
+    * [`.reclaimRequest(request, [options])`](#RequestQueue+reclaimRequest) ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](../typedefs/requestoperationinfo)
     * [`.isEmpty()`](#RequestQueue+isEmpty) ⇒ <code>Promise&lt;Boolean&gt;</code>
     * [`.isFinished()`](#RequestQueue+isFinished) ⇒ <code>Promise&lt;Boolean&gt;</code>
     * [`.delete()`](#RequestQueue+delete) ⇒ <code>Promise</code>
 
 <a name="RequestQueue+addRequest"></a>
 
-## `requestQueue.addRequest(request, [opts])` ⇒ [<code>RequestOperationInfo</code>](../typedefs/requestoperationinfo)
+## `requestQueue.addRequest(request, [options])` ⇒ [<code>RequestOperationInfo</code>](../typedefs/requestoperationinfo)
 Adds a request to the queue.
 
-If the request with the same `Request.uniqueKey` property is already present in the queue,
-it will not be updated. You can find out this happened from the resulting
-{@linkcode RequestOperationInfo} object.
+If a request with the same `uniqueKey` property is already present in the queue,
+it will not be updated. You can find out whether this happened from the resulting
+[`RequestOperationInfo`](../typedefs/requestoperationinfo) object.
 
 <table>
 <thead>
 <tr>
-<th>Param</th><th>Type</th>
+<th>Param</th><th>Type</th><th>Default</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>request</code></td><td><code><a href="request">Request</a></code> | <code>Object</code></td>
+<td><code>request</code></td><td><code><a href="request">Request</a></code> | <code>Object</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>Request object, or object to construct a Request</p>
+<td colspan="3"><p>Request object, or an Object to construct a Request from.</p>
 </td></tr><tr>
-<td><code>[opts]</code></td><td><code>Object</code></td>
+<td><code>[options]</code></td><td><code>Object</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"></td></tr><tr>
-<td><code>[opts.forefront]</code></td><td><code>Boolean</code></td>
+<td><code>[options.forefront]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>If <code>true</code>, the request will be added to the foremost position in the queue.</p>
@@ -134,7 +134,7 @@ Returns next request in the queue to be processed.
 <a name="RequestQueue+markRequestHandled"></a>
 
 ## `requestQueue.markRequestHandled(request)` ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](../typedefs/requestoperationinfo)
-Marks request handled after successfull processing.
+Marks request handled after successful processing.
 
 <table>
 <thead>
@@ -151,7 +151,7 @@ Marks request handled after successfull processing.
 </table>
 <a name="RequestQueue+reclaimRequest"></a>
 
-## `requestQueue.reclaimRequest(request, [opts])` ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](../typedefs/requestoperationinfo)
+## `requestQueue.reclaimRequest(request, [options])` ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](../typedefs/requestoperationinfo)
 Reclaims failed request back to the queue,
 so that it can be processed later again.
 
@@ -167,21 +167,21 @@ so that it can be processed later again.
 </tr>
 <tr>
 <td colspan="3"></td></tr><tr>
-<td><code>[opts]</code></td><td><code>Object</code></td><td></td>
+<td><code>[options]</code></td><td><code>Object</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"></td></tr><tr>
-<td><code>[opts.forefront]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
+<td><code>[options.forefront]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>If true then requests gets returned to the begining of the queue
+<td colspan="3"><p>If <code>true</code> then requests get returned to the start of the queue
   and to the back of the queue otherwise.</p>
 </td></tr></tbody>
 </table>
 <a name="RequestQueue+isEmpty"></a>
 
 ## `requestQueue.isEmpty()` ⇒ <code>Promise&lt;Boolean&gt;</code>
-Resolves to `true` if the next call to `fetchNextRequest()` will return `null`, otherwise it resolves to `false`.
+Resolves to `true` if the next call to [`fetchNextRequest`](#RequestQueue+fetchNextRequest) would return `null`, otherwise it resolves to `false`.
 Note that even if the queue is empty, there might be some pending requests currently being processed.
 
 Due to the nature of distributed storage systems,
@@ -197,6 +197,6 @@ the function might occasionally return a false negative, but it will never retur
 <a name="RequestQueue+delete"></a>
 
 ## `requestQueue.delete()` ⇒ <code>Promise</code>
-Removes the queue either from the Apify cloud storage or from the local directory,
+Removes the queue either from the Apify Cloud storage or from the local directory,
 depending on the mode of operation.
 
