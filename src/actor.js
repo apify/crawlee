@@ -353,12 +353,13 @@ export const call = (actId, input, options = {}) => {
 
 /**
  * Represents information about an actor run, as returned by the
- * {@linkcode Apify#call|Apify.call()} function.
+ * [`Apify.call()`](../api/apify#module_Apify.call) function.
  * The object is almost equivalent to the JSON response
  * of the
- * [Actor run](https://www.apify.com/docs/api/v2#/reference/actors/run-collection/run-actor)
+ * <a href="https://www.apify.com/docs/api/v2#/reference/actors/run-collection/run-actor" target="_blank">Actor run</a>
  * Apify API endpoint and extended with certain fields.
- * For more details, see [Runs](https://www.apify.com/docs/actor#run) in Apify actor documentation.
+ * For more details, see
+ * <a href="https://www.apify.com/docs/actor#run" target="_blank">Runs.</a>
  *
  * @typedef {Object} ActorRun
  * @property {String} id
@@ -371,10 +372,11 @@ export const call = (actId, input, options = {}) => {
  *   Time when the actor run finished. Contains `null` for running actors.
  * @property {String} status
  *   Status of the run. For possible values, see
- *   [Run lifecycle](https://www.apify.com/docs/actor#run-lifecycle) in Apify actor documentation.
+ *   <a href="https://www.apify.com/docs/actor#run-lifecycle" target="_blank">Run lifecycle</a>
+ *   in Apify actor documentation.
  * @property {Object} meta
  *   Actor run meta-data. For example:
- *   ```javascript
+ *   ```
  *   {
  *     "origin": "API",
  *     "clientIp": "1.2.3.4",
@@ -383,7 +385,7 @@ export const call = (actId, input, options = {}) => {
  *   ```
  * @property {Object} stats
  *   An object containing various actor run statistics. For example:
- *   ```javascript
+ *   ```
  *   {
  *     "inputBodyLen": 22,
  *     "restartCount": 0,
@@ -393,7 +395,7 @@ export const call = (actId, input, options = {}) => {
  *   Beware that object fields might change in future releases.
  * @property {Object} options
  *   Actor run options. For example:
- *   ```javascript
+ *   ```
  *   {
  *     "build": "latest",
  *     "timeoutSecs": 0,
@@ -403,27 +405,29 @@ export const call = (actId, input, options = {}) => {
  *   ```
  * @property {String} buildId
  *   ID of the actor build used for the run. For details, see
- *   [Builds](https://www.apify.com/docs/actor#build) in Apify actor documentation.
+ *   <a href="https://www.apify.com/docs/actor#build" target="_blank">Builds</a>
+ *   in Apify actor documentation.
  * @property {String} buildNumber
  *   Number of the actor build used for the run. For example, `0.0.10`.
  * @property {Number} exitCode
  *   Exit code of the actor run process. It's `null` if actor is still running.
  * @property {String} defaultKeyValueStoreId
- *   ID of the default key-value store associated with the actor run. See {@linkcode KeyValueStore} for details.
+ *   ID of the default key-value store associated with the actor run. See [`KeyValueStore`](../api/keyvaluestore) for details.
  * @property {String} defaultDatasetId
- *   ID of the default dataset associated with the actor run. See {@linkcode Dataset} for details.
+ *   ID of the default dataset associated with the actor run. See [`Dataset`](../api/dataset) for details.
  * @property {String} defaultRequestQueueId
- *   ID of the default request queue associated with the actor run. See {@linkcode RequestQueue} for details.
+ *   ID of the default request queue associated with the actor run. See [`RequestQueue`](../api/requestqueue) for details.
  * @property {String} containerUrl
  *   URL on which the web server running inside actor run's Docker container can be accessed.
- *   For more details, see [Container web server](https://www.apify.com/docs/actor#container-web-server)
+ *   For more details, see
+ *   <a href="https://www.apify.com/docs/actor#container-web-server" target="_blank">Container web server</a>
  *   in Apify actor documentation.
  * @property {Object} output
  *   Contains output of the actor run. The value is `null` or `undefined` in case the actor is still running,
- *   or if you pass `false` to the `fetchOutput` option of {@linkcode Apify#call|Apify.call()}.
+ *   or if you pass `false` to the `fetchOutput` option of [`Apify.call()`](../api/apify#module_Apify.call).
  *
  *   For example:
- *   ```javascript
+ *   ```
  *   {
  *     "contentType": "application/json; charset=utf-8",
  *     "body": {

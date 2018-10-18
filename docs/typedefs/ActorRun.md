@@ -5,12 +5,13 @@ title: ActorRun
 <a name="ActorRun"></a>
 
 Represents information about an actor run, as returned by the
-{@linkcode Apify#call|Apify.call()} function.
+[`Apify.call()`](../api/apify#module_Apify.call) function.
 The object is almost equivalent to the JSON response
 of the
-[Actor run](https://www.apify.com/docs/api/v2#/reference/actors/run-collection/run-actor)
+<a href="https://www.apify.com/docs/api/v2#/reference/actors/run-collection/run-actor" target="_blank">Actor run</a>
 Apify API endpoint and extended with certain fields.
-For more details, see [Runs](https://www.apify.com/docs/actor#run) in Apify actor documentation.
+For more details, see
+<a href="https://www.apify.com/docs/actor#run" target="_blank">Runs.</a>
 
 **Properties**
 <table>
@@ -45,48 +46,47 @@ For more details, see [Runs](https://www.apify.com/docs/actor#run) in Apify acto
 </tr>
 <tr>
 <td colspan="3"><p>Status of the run. For possible values, see
-  <a href="https://www.apify.com/docs/actor#run-lifecycle">Run lifecycle</a> in Apify actor documentation.</p>
+  <a href="https://www.apify.com/docs/actor#run-lifecycle" target="_blank">Run lifecycle</a>
+  in Apify actor documentation.</p>
 </td></tr><tr>
 <td><code>meta</code></td><td><code>Object</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Actor run meta-data. For example:</p>
-<pre><code class="lang-javascript">  {
+<pre><code>  {
     &quot;origin&quot;: &quot;API&quot;,
     &quot;clientIp&quot;: &quot;1.2.3.4&quot;,
     &quot;userAgent&quot;: &quot;ApifyClient/0.2.13 (Linux; Node/v8.11.3)&quot;
   }
-</code></pre>
-</td></tr><tr>
+</code></pre></td></tr><tr>
 <td><code>stats</code></td><td><code>Object</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>An object containing various actor run statistics. For example:</p>
-<pre><code class="lang-javascript">  {
+<pre><code>  {
     &quot;inputBodyLen&quot;: 22,
     &quot;restartCount&quot;: 0,
     &quot;workersUsed&quot;: 1,
   }
-</code></pre>
-<p>  Beware that object fields might change in future releases.</p>
+</code></pre><p>  Beware that object fields might change in future releases.</p>
 </td></tr><tr>
 <td><code>options</code></td><td><code>Object</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Actor run options. For example:</p>
-<pre><code class="lang-javascript">  {
+<pre><code>  {
     &quot;build&quot;: &quot;latest&quot;,
     &quot;timeoutSecs&quot;: 0,
     &quot;memoryMbytes&quot;: 256,
     &quot;diskMbytes&quot;: 512
   }
-</code></pre>
-</td></tr><tr>
+</code></pre></td></tr><tr>
 <td><code>buildId</code></td><td><code>String</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>ID of the actor build used for the run. For details, see
-  <a href="https://www.apify.com/docs/actor#build">Builds</a> in Apify actor documentation.</p>
+  <a href="https://www.apify.com/docs/actor#build" target="_blank">Builds</a>
+  in Apify actor documentation.</p>
 </td></tr><tr>
 <td><code>buildNumber</code></td><td><code>String</code></td>
 </tr>
@@ -101,37 +101,37 @@ For more details, see [Runs](https://www.apify.com/docs/actor#run) in Apify acto
 <td><code>defaultKeyValueStoreId</code></td><td><code>String</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>ID of the default key-value store associated with the actor run. See {@linkcode KeyValueStore} for details.</p>
+<td colspan="3"><p>ID of the default key-value store associated with the actor run. See <a href="../api/keyvaluestore"><code>KeyValueStore</code></a> for details.</p>
 </td></tr><tr>
 <td><code>defaultDatasetId</code></td><td><code>String</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>ID of the default dataset associated with the actor run. See {@linkcode Dataset} for details.</p>
+<td colspan="3"><p>ID of the default dataset associated with the actor run. See <a href="../api/dataset"><code>Dataset</code></a> for details.</p>
 </td></tr><tr>
 <td><code>defaultRequestQueueId</code></td><td><code>String</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>ID of the default request queue associated with the actor run. See {@linkcode RequestQueue} for details.</p>
+<td colspan="3"><p>ID of the default request queue associated with the actor run. See <a href="../api/requestqueue"><code>RequestQueue</code></a> for details.</p>
 </td></tr><tr>
 <td><code>containerUrl</code></td><td><code>String</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>URL on which the web server running inside actor run&#39;s Docker container can be accessed.
-  For more details, see <a href="https://www.apify.com/docs/actor#container-web-server">Container web server</a>
+  For more details, see
+  <a href="https://www.apify.com/docs/actor#container-web-server" target="_blank">Container web server</a>
   in Apify actor documentation.</p>
 </td></tr><tr>
 <td><code>output</code></td><td><code>Object</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Contains output of the actor run. The value is <code>null</code> or <code>undefined</code> in case the actor is still running,
-  or if you pass <code>false</code> to the <code>fetchOutput</code> option of {@linkcode Apify#call|Apify.call()}.</p>
+  or if you pass <code>false</code> to the <code>fetchOutput</code> option of <a href="../api/apify#module_Apify.call"><code>Apify.call()</code></a>.</p>
 <p>  For example:</p>
-<pre><code class="lang-javascript">  {
+<pre><code>  {
     &quot;contentType&quot;: &quot;application/json; charset=utf-8&quot;,
     &quot;body&quot;: {
       &quot;message&quot;: &quot;Hello world!&quot;
     }
   }
-</code></pre>
-</td></tr></tbody>
+</code></pre></td></tr></tbody>
 </table>

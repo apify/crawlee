@@ -24,7 +24,7 @@ const repoUrl = 'https://github.com/apifytech/apify-js';
 
 const siteConfig = {
     title: 'Apify SDK', // Title for your website.
-    tagline: 'Turn any website into an API.',
+    tagline: 'The scalable web crawling and scraping library for JavaScript.',
     url: 'https://sdk.apify.com', // Your website URL
     cname: 'sdk.apify.com',
     baseUrl: '/', // Base URL for your project */
@@ -41,9 +41,9 @@ const siteConfig = {
 
     // For no header links in the top nav bar -> headerLinks: [],
     headerLinks: [
-        { doc: 'examples/helloworld', label: 'Docs' },
+        { doc: 'examples/helloworld', label: 'Introduction' },
         { doc: 'examples/basiccrawler', label: 'Examples' },
-        { doc: 'api/apify', label: 'API' },
+        { doc: 'api/apify', label: 'Reference' },
         { href: repoUrl, label: 'GitHub' },
         // { page: 'help', label: 'Help' },
         // { blog: true, label: 'Blog' },

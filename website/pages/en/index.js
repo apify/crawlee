@@ -124,7 +124,7 @@ const Features = () => (
             {
                 content: 'Run **headless Chrome** or Selenium, manage **lists and queues** of URLs to crawl, run crawlers in **parallel** at maximum system capacity. ' +
                     'Handle **storage and export** of results and rotate **proxies**.',
-                image: imgUrl('puppeteer_logo.png'),
+                image: imgUrl('robot.png'),
                 imageAlign: 'top',
                 title: 'Automates any web workflow',
             },
@@ -198,11 +198,11 @@ const TryOut = () => (
     <Block id="try" background="light" gridBlockAlign="left">
         {[
             {
-                content: 'Install **Apify SDK:**\n' +
+                content: 'Install **Apify SDK** into a Node.js project. You must have Node.js 8 or higher installed.\n' +
                     '```\n' +
                     'npm install apify\n' +
                     '```\n' +
-                    'Watch it recursively crawl [IANA](https://www.iana.org)\n' +
+                    'Copy the following code into a file in the project, for example `main.js`:\n' +
                     '```\n' +
                     'const Apify = require(\'apify\');\n' +
                     '\n' +
@@ -224,6 +224,11 @@ const TryOut = () => (
                     '\n' +
                     '    await crawler.run();\n' +
                     '});\n' +
+                    '```\n' +
+                    'Execute the following command in the project\'s folder and watch it recursively crawl ' +
+                    '[IANA](https://www.iana.org) with Puppeteer and Chromium.\n' +
+                    '```\n' +
+                    'node main.js\n' +
                     '```\n',
                 // image: imgUrl('apify_logo.svg'),
                 // imageAlign: 'right',

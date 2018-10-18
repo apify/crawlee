@@ -96,8 +96,8 @@ export const chunkBySize = (items, limitBytes) => {
 };
 
 /**
- * Represents one page of data items from the {@link Dataset}.
- * For more details, see [`Dataset.getData()`](dataset#Dataset+getData).
+ * Represents one page of data items from the [`Dataset`](../api/dataset).
+ * For more details, see [`Dataset.getData()`](../api/dataset#Dataset+getData).
  *
  * @typedef {Object} PaginationList
  * @property {Array} items

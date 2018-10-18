@@ -3,7 +3,7 @@
   "localized-strings": {
     "next": "Next",
     "previous": "Previous",
-    "tagline": "Turn any website into an API.",
+    "tagline": "The scalable web crawling and scraping library for JavaScript.",
     "docs": {
       "api/apify": {
         "title": "Apify"
@@ -97,9 +97,9 @@
       }
     },
     "links": {
-      "Docs": "Docs",
+      "Introduction": "Introduction",
       "Examples": "Examples",
-      "API": "API",
+      "Reference": "Reference",
       "GitHub": "GitHub"
     },
     "categories": {
