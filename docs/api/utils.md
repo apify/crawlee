@@ -22,8 +22,8 @@ await Apify.utils.sleep(1500);
     * [`.URL_NO_COMMAS_REGEX`](#utils.URL_NO_COMMAS_REGEX)
     * [`.URL_WITH_COMMAS_REGEX`](#utils.URL_WITH_COMMAS_REGEX)
     * [`.sleep(millis)`](#utils.sleep) ⇒ <code>Promise</code>
-    * [`.downloadListOfUrls(url, [encoding], [urlRegExp])`](#utils.downloadListOfUrls) ⇒ <code>Promise</code>
-    * [`.extractUrls(string, [urlRegExp])`](#utils.extractUrls) ⇒ <code>Array</code>
+    * [`.downloadListOfUrls(url, [encoding], [urlRegExp])`](#utils.downloadListOfUrls) ⇒ <code>Promise&lt;Array&lt;String&gt;&gt;</code>
+    * [`.extractUrls(string, [urlRegExp])`](#utils.extractUrls) ⇒ <code>Array&lt;String&gt;</code>
     * [`.getRandomUserAgent()`](#utils.getRandomUserAgent) ⇒ <code>String</code>
 
 <a name="utils.URL_NO_COMMAS_REGEX"></a>
@@ -35,19 +35,19 @@ and does not support URLs containing commas or spaces. The URLs also may contain
 <a name="utils.URL_WITH_COMMAS_REGEX"></a>
 
 ## `utils.URL_WITH_COMMAS_REGEX`
-Regular expression that, in addition to the default regular expression URL_NO_COMMAS_REGEX, supports matching commas in URL path and query.
+Regular expression that, in addition to the default regular expression `URL_NO_COMMAS_REGEX`, supports matching commas in URL path and query.
 Note, however, that this may prevent parsing URLs from comma delimited lists, or the URLs may become malformed.
 
 <a name="utils.sleep"></a>
 
 ## `utils.sleep(millis)` ⇒ <code>Promise</code>
-Returns a promise that resolves after a specific period of time. This is useful to implement waiting
+Returns a `Promise` that resolves after a specific period of time. This is useful to implement waiting
 in your code, e.g. to prevent overloading of target website or to avoid bot detection.
 
 **Example usage:**
 
-```javascript
-const Apify = require('apify);
+```
+const Apify = require('apify');
 
 ...
 
@@ -71,7 +71,7 @@ await Apify.utils.sleep(1500);
 </table>
 <a name="utils.downloadListOfUrls"></a>
 
-## `utils.downloadListOfUrls(url, [encoding], [urlRegExp])` ⇒ <code>Promise</code>
+## `utils.downloadListOfUrls(url, [encoding], [urlRegExp])` ⇒ <code>Promise&lt;Array&lt;String&gt;&gt;</code>
 Returns a promise that resolves to an array of urls parsed from the resource available at the provided url.
 Optionally, custom regular expression and encoding may be provided.
 
@@ -98,7 +98,7 @@ Optionally, custom regular expression and encoding may be provided.
 </table>
 <a name="utils.extractUrls"></a>
 
-## `utils.extractUrls(string, [urlRegExp])` ⇒ <code>Array</code>
+## `utils.extractUrls(string, [urlRegExp])` ⇒ <code>Array&lt;String&gt;</code>
 Collects all URLs in an arbitrary string to an array, optionally using a custom regular expression.
 
 <table>

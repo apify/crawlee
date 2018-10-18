@@ -22,7 +22,7 @@ import { USER_AGENT_LIST } from './constants';
  */
 const URL_NO_COMMAS_REGEX = XRegExp('https?://(www\\.)?[\\p{L}0-9][-\\p{L}0-9@:%._\\+~#=]{0,254}[\\p{L}0-9]\\.[a-z]{2,63}(:\\d{1,5})?(/[-\\p{L}0-9@:%_\\+.~#?&//=\\(\\)]*)?', 'gi'); // eslint-disable-line
 /**
- * Regular expression that, in addition to the default regular expression URL_NO_COMMAS_REGEX, supports matching commas in URL path and query.
+ * Regular expression that, in addition to the default regular expression `URL_NO_COMMAS_REGEX`, supports matching commas in URL path and query.
  * Note, however, that this may prevent parsing URLs from comma delimited lists, or the URLs may become malformed.
  * @memberOf utils
  */
@@ -333,13 +333,13 @@ export const createTimeoutPromise = (timeoutMillis, errorMessage) => {
 export const isAtHome = () => !!process.env[ENV_VARS.IS_AT_HOME];
 
 /**
- * Returns a promise that resolves after a specific period of time. This is useful to implement waiting
+ * Returns a `Promise` that resolves after a specific period of time. This is useful to implement waiting
  * in your code, e.g. to prevent overloading of target website or to avoid bot detection.
  *
  * **Example usage:**
  *
- * ```javascript
- * const Apify = require('apify);
+ * ```
+ * const Apify = require('apify');
  *
  * ...
  *
@@ -361,7 +361,7 @@ const sleep = (millis) => {
  * @param {String} url
  * @param {String} [encoding='utf8']
  * @param {RegExp} [urlRegExp=URL_NO_COMMAS_REGEX]
- * @returns {Promise}
+ * @returns {Promise<String[]>}
  * @memberOf utils
  */
 const downloadListOfUrls = ({ url, encoding = 'utf8', urlRegExp = URL_NO_COMMAS_REGEX }) => {
@@ -380,7 +380,7 @@ const downloadListOfUrls = ({ url, encoding = 'utf8', urlRegExp = URL_NO_COMMAS_
  * Collects all URLs in an arbitrary string to an array, optionally using a custom regular expression.
  * @param {String} string
  * @param {RegExp} [urlRegExp=URL_NO_COMMAS_REGEX]
- * @returns {Array}
+ * @returns {String[]}
  * @memberOf utils
  */
 const extractUrls = ({ string, urlRegExp = URL_NO_COMMAS_REGEX }) => {

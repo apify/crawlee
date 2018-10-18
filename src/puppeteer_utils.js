@@ -16,7 +16,8 @@ const readFilePromised = Promise.promisify(fs.readFile);
  * Hides certain Puppeteer fingerprints from the page, in order to help avoid detection of the crawler.
  * The function should be called on a newly-created page object before navigating to the target crawled page.
  *
- * @param {Page} page Puppeteer [Page](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page) object.
+ * @param {Page} page
+ *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
  * @return {Promise}
  * @memberOf puppeteer
  */
@@ -57,7 +58,8 @@ const hideWebDriver = async (page) => {
  * Unlike Puppeteer's `addScriptTag` function, this function works on pages
  * with arbitrary Cross-Origin Resource Sharing (CORS) policies.
  *
- * @param {Page} page Puppeteer [Page](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page) object.
+ * @param {Page} page
+ *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
  * @param {String} filePath File path
  * @return {Promise}
  * @memberOf puppeteer
@@ -72,14 +74,15 @@ const injectFile = async (page, filePath) => {
 };
 
 /**
- * Injects [jQuery](https://jquery.com/) library into a Puppeteer page.
+ * Injects the <a href="https://jquery.com/" target="_blank"><code>jQuery</code></a> library into a Puppeteer page.
  * jQuery is often useful for various web scraping and crawling tasks,
  * e.g. to extract data from HTML elements using CSS selectors.
  *
  * Beware that the injected jQuery object will be set to the `window.$` variable and thus it might cause conflicts with
  * libraries included by the page that use the same variable (e.g. another version of jQuery).
  *
- * @param {Page} page Puppeteer [Page](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page) object.
+ * @param {Page} page
+ *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
  * @return {Promise}
  * @memberOf puppeteer
  */
@@ -91,7 +94,7 @@ const injectJQuery = (page) => {
 };
 
 /**
- * Injects [Underscore.js](https://underscorejs.org/) library into a Puppeteer page.
+ * Injects the <a href="https://underscorejs.org/" target="_blank"><code>Underscore.js</code></a> library into a Puppeteer page.
  * Beware that the injected Underscore object will be set to the `window._` variable and thus it might cause conflicts with
  * libraries included by the page that use the same variable.
  *
@@ -130,28 +133,28 @@ const enqueueRequestsFromClickableElements = async (page, selector, purls, reque
 
 /**
  * Finds HTML elements matching a CSS selector, clicks the elements and if a redirect is triggered and destination URL matches
- * one of the provided pseudo-URLs, then the function enqueues that URL to a given request queue.
- * To create a Request object function uses `requestTemplate` from a matching Pseudo-URL.
+ * one of the provided {@link PseudoUrl}s, then the function enqueues that URL to a given request queue.
+ * To create a Request object function uses `requestTemplate` from a matching {@link PseudoUrl}.
  *
  * *WARNING*: This is work in progress. Currently the function doesn't click elements and only takes their `href` attribute and so
  *            is working only for link (`a`) elements, but not for buttons or JavaScript links.
  *
  * @param {Page} page
- *   Puppeteer [Page](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page) object.
+ *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
  * @param {String} selector
  *   CSS selector matching elements to be clicked.
  * @param {PseudoUrl[]} pseudoUrls
- *   An array of pseudo-URLs matching the URLs to be enqueued.
+ *   An array of {@link PseudoUrl}s matching the URLs to be enqueued.
  * @param {RequestQueue} requestQueue
  *   Request queue object where URLs will be enqueued.
  * @return {Promise<RequestOperationInfo[]>}
- *   Promise that resolves to an array of {@linkcode RequestOperationInfo} objects.
+ *   Promise that resolves to an array of {@link RequestOperationInfo} objects.
  * @memberOf puppeteer
  */
-const enqueueLinks = async (page, selector, purls, requestQueue) => {
+const enqueueLinks = async (page, selector, pseudoUrls, requestQueue) => {
     checkParamOrThrow(page, 'page', 'Object');
     checkParamOrThrow(selector, 'selector', 'String');
-    checkParamOrThrow(purls, 'purls', 'Array');
+    checkParamOrThrow(pseudoUrls, 'purls', 'Array');
     checkParamPrototypeOrThrow(requestQueue, 'requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue');
 
     /* istanbul ignore next */
@@ -160,7 +163,7 @@ const enqueueLinks = async (page, selector, purls, requestQueue) => {
     const requests = [];
 
     urls.forEach((url) => {
-        purls
+        pseudoUrls
             .filter(purl => purl.matches(url))
             .forEach(purl => requests.push(purl.createRequest(url)));
     });
@@ -179,13 +182,14 @@ const enqueueLinks = async (page, selector, purls, requestQueue) => {
  * `document`, `stylesheet`, `image`, `media`, `font`, `script`, `texttrack`, `xhr`, `fetch`,
  * `eventsource`, `websocket`, `manifest`, `other`.
  * For more details, see Puppeteer's
- * <a href="https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#requestresourcetype">Request.resourceType() documentation</a>.
+ * <a href="https://pptr.dev/#?product=Puppeteer&show=api-requestresourcetype" target="_blank">Request.resourceType() documentation</a>.
  *
  * By default, the function blocks these resource types: `stylesheet`, `font`, `image`, `media`.
  *
- * @param {Page} page Puppeteer's `Page` object
- * @param {Array<String>} resourceTypes Array of resource types to block.
- * @return {Promise<void>}
+ * @param {Page} page
+ *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
+ * @param {String[]} resourceTypes Array of resource types to block.
+ * @return {Promise}
  * @memberOf puppeteer
  */
 const blockResources = async (page, resourceTypes = ['stylesheet', 'font', 'image', 'media']) => {
@@ -198,14 +202,17 @@ const blockResources = async (page, resourceTypes = ['stylesheet', 'font', 'imag
 };
 
 /**
- * Enables caching of intercepted responses into provided object. Automaticaly enables request interception in puppeteer.
+ * Enables caching of intercepted responses into a provided object. Automatically enables request interception in Puppeteer.
  * *IMPORTANT*: Caching responses stores them to memory, so too loose rules could cause memory leaks for longer running crawlers.
  *   This issue should be resolved or atleast mitigated in future iterations of this feature.
- * @param {Page} page                               Puppeteer's `Page` object
- * @param {Object} cache                            Object in which responses are stored
- * @param {Array<String|RegExp>} responseUrlRules   List of rules that are used to check if response should be cached.
+ * @param {Page} page
+ *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
+ * @param {Object} cache
+ *   Object in which responses are stored
+ * @param {Array<String|RegExp>} responseUrlRules
+ *   List of rules that are used to check if the response should be cached.
  *   String rules are compared as page.url().includes(rule) while RegExp rules are evaluated as rule.test(page.url()).
- * @return {Promise<void>}
+ * @return {Promise}
  * @memberOf puppeteer
  */
 const cacheResponses = async (page, cache, responseUrlRules) => {
@@ -261,30 +268,38 @@ const cacheResponses = async (page, cache, responseUrlRules) => {
  * by providing it with the following object:
  * ```
  * {
- *    page: Puppeteer.Page,
- *    request: Apify.Request,
+ *    page: Page,
+ *    request: Request,
  * }
  * ```
- * The function is compiled by using the scriptString parameter as the function's body,
- * so any limitations to function bodies apply. Return value of the function is the return
- * value of the function body = scriptString parameter.
+ * Where `page` is a Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a>
+ * and `request` is a {@link Request}.
  *
- * As a security measure, no globals such as 'process' or 'require' are accessible
+ * The function is compiled by using the `scriptString` parameter as the function's body,
+ * so any limitations to function bodies apply. Return value of the compiled function
+ * is the return value of the function body = the `scriptString` parameter.
+ *
+ * As a security measure, no globals such as `process` or `require` are accessible
  * from within the function body. Note that the function does not provide a safe
  * sandbox and even though globals are not easily accessible, malicious code may
  * still execute in the main process via prototype manipulation. Therefore you
  * should only use this function to execute sanitized or safe code.
  *
+ * Custom context may also be provided using the `context` parameter. To improve security,
+ * make sure to only pass the really necessary objects to the context. Preferably making
+ * secured copies beforehand.
+ *
  * @param {String} scriptString
- * @return {Function} async ({ page, request }) => { scriptString }
+ * @param {Object} context
+ * @return {Function} `async ({ page, request }) => { scriptString }`
  * @memberOf puppeteer
  */
-const compileScript = (scriptString) => {
+const compileScript = (scriptString, context = Object.create(null)) => {
     const funcString = `async ({ page, request }) => {${scriptString}}`;
 
     let func;
     try {
-        func = vm.runInNewContext(funcString, Object.create(null)); // "Secure" the context by removing prototypes.
+        func = vm.runInNewContext(funcString, context); // "Secure" the context by removing prototypes, unless custom context is provided.
     } catch (err) {
         log.exception(err, 'Cannot compile script!');
         throw err;

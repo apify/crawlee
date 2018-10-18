@@ -28,9 +28,9 @@ await puppeteer.injectJQuery(page);
     * [`.injectJQuery(page)`](#puppeteer.injectJQuery) ⇒ <code>Promise</code>
     * [`.injectUnderscore(page)`](#puppeteer.injectUnderscore) ⇒ <code>Promise</code>
     * [`.enqueueLinks(page, selector, pseudoUrls, requestQueue)`](#puppeteer.enqueueLinks) ⇒ <code>Promise&lt;Array&lt;RequestOperationInfo&gt;&gt;</code>
-    * [`.blockResources(page, resourceTypes)`](#puppeteer.blockResources) ⇒ <code>Promise&lt;void&gt;</code>
-    * [`.cacheResponses(page, cache, responseUrlRules)`](#puppeteer.cacheResponses) ⇒ <code>Promise&lt;void&gt;</code>
-    * [`.compileScript(scriptString)`](#puppeteer.compileScript) ⇒ <code>function</code>
+    * [`.blockResources(page, resourceTypes)`](#puppeteer.blockResources) ⇒ <code>Promise</code>
+    * [`.cacheResponses(page, cache, responseUrlRules)`](#puppeteer.cacheResponses) ⇒ <code>Promise</code>
+    * [`.compileScript(scriptString, context)`](#puppeteer.compileScript) ⇒ <code>function</code>
 
 <a name="puppeteer.hideWebDriver"></a>
 
@@ -49,7 +49,7 @@ The function should be called on a newly-created page object before navigating t
 <td><code>page</code></td><td><code>Page</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Puppeteer <a href="https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page">Page</a> object.</p>
+<td colspan="3"><p>Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.</p>
 </td></tr></tbody>
 </table>
 <a name="puppeteer.injectFile"></a>
@@ -70,7 +70,7 @@ with arbitrary Cross-Origin Resource Sharing (CORS) policies.
 <td><code>page</code></td><td><code>Page</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Puppeteer <a href="https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page">Page</a> object.</p>
+<td colspan="3"><p>Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.</p>
 </td></tr><tr>
 <td><code>filePath</code></td><td><code>String</code></td>
 </tr>
@@ -81,7 +81,7 @@ with arbitrary Cross-Origin Resource Sharing (CORS) policies.
 <a name="puppeteer.injectJQuery"></a>
 
 ## `puppeteer.injectJQuery(page)` ⇒ <code>Promise</code>
-Injects [jQuery](https://jquery.com/) library into a Puppeteer page.
+Injects the <a href="https://jquery.com/" target="_blank"><code>jQuery</code></a> library into a Puppeteer page.
 jQuery is often useful for various web scraping and crawling tasks,
 e.g. to extract data from HTML elements using CSS selectors.
 
@@ -99,13 +99,13 @@ libraries included by the page that use the same variable (e.g. another version 
 <td><code>page</code></td><td><code>Page</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Puppeteer <a href="https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page">Page</a> object.</p>
+<td colspan="3"><p>Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.</p>
 </td></tr></tbody>
 </table>
 <a name="puppeteer.injectUnderscore"></a>
 
 ## `puppeteer.injectUnderscore(page)` ⇒ <code>Promise</code>
-Injects [Underscore.js](https://underscorejs.org/) library into a Puppeteer page.
+Injects the <a href="https://underscorejs.org/" target="_blank"><code>Underscore.js</code></a> library into a Puppeteer page.
 Beware that the injected Underscore object will be set to the `window._` variable and thus it might cause conflicts with
 libraries included by the page that use the same variable.
 
@@ -127,13 +127,13 @@ libraries included by the page that use the same variable.
 
 ## `puppeteer.enqueueLinks(page, selector, pseudoUrls, requestQueue)` ⇒ <code>Promise&lt;Array&lt;RequestOperationInfo&gt;&gt;</code>
 Finds HTML elements matching a CSS selector, clicks the elements and if a redirect is triggered and destination URL matches
-one of the provided pseudo-URLs, then the function enqueues that URL to a given request queue.
-To create a Request object function uses `requestTemplate` from a matching Pseudo-URL.
+one of the provided [`PseudoUrl`](pseudourl)s, then the function enqueues that URL to a given request queue.
+To create a Request object function uses `requestTemplate` from a matching [`PseudoUrl`](pseudourl).
 
 *WARNING*: This is work in progress. Currently the function doesn't click elements and only takes their `href` attribute and so
            is working only for link (`a`) elements, but not for buttons or JavaScript links.
 
-**Returns**: <code>Promise&lt;Array&lt;RequestOperationInfo&gt;&gt;</code> - Promise that resolves to an array of {@linkcode RequestOperationInfo} objects.  
+**Returns**: <code>Promise&lt;Array&lt;RequestOperationInfo&gt;&gt;</code> - Promise that resolves to an array of [`RequestOperationInfo`](../typedefs/requestoperationinfo) objects.  
 <table>
 <thead>
 <tr>
@@ -145,7 +145,7 @@ To create a Request object function uses `requestTemplate` from a matching Pseud
 <td><code>page</code></td><td><code>Page</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Puppeteer <a href="https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page">Page</a> object.</p>
+<td colspan="3"><p>Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.</p>
 </td></tr><tr>
 <td><code>selector</code></td><td><code>String</code></td>
 </tr>
@@ -155,7 +155,7 @@ To create a Request object function uses `requestTemplate` from a matching Pseud
 <td><code>pseudoUrls</code></td><td><code><a href="pseudourl">Array&lt;PseudoUrl&gt;</a></code></td>
 </tr>
 <tr>
-<td colspan="3"><p>An array of pseudo-URLs matching the URLs to be enqueued.</p>
+<td colspan="3"><p>An array of <a href="pseudourl"><code>PseudoUrl</code></a>s matching the URLs to be enqueued.</p>
 </td></tr><tr>
 <td><code>requestQueue</code></td><td><code><a href="requestqueue">RequestQueue</a></code></td>
 </tr>
@@ -165,7 +165,7 @@ To create a Request object function uses `requestTemplate` from a matching Pseud
 </table>
 <a name="puppeteer.blockResources"></a>
 
-## `puppeteer.blockResources(page, resourceTypes)` ⇒ <code>Promise&lt;void&gt;</code>
+## `puppeteer.blockResources(page, resourceTypes)` ⇒ <code>Promise</code>
 Forces the browser tab to block loading certain page resources,
 using the `Page.setRequestInterception(value)` method.
 This is useful to speed up crawling of websites.
@@ -176,7 +176,7 @@ The following resource types are currently supported:
 `document`, `stylesheet`, `image`, `media`, `font`, `script`, `texttrack`, `xhr`, `fetch`,
 `eventsource`, `websocket`, `manifest`, `other`.
 For more details, see Puppeteer's
-<a href="https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#requestresourcetype">Request.resourceType() documentation</a>.
+<a href="https://pptr.dev/#?product=Puppeteer&show=api-requestresourcetype" target="_blank">Request.resourceType() documentation</a>.
 
 By default, the function blocks these resource types: `stylesheet`, `font`, `image`, `media`.
 
@@ -191,7 +191,7 @@ By default, the function blocks these resource types: `stylesheet`, `font`, `ima
 <td><code>page</code></td><td><code>Page</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Puppeteer&#39;s <code>Page</code> object</p>
+<td colspan="3"><p>Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.</p>
 </td></tr><tr>
 <td><code>resourceTypes</code></td><td><code>Array&lt;String&gt;</code></td>
 </tr>
@@ -201,8 +201,8 @@ By default, the function blocks these resource types: `stylesheet`, `font`, `ima
 </table>
 <a name="puppeteer.cacheResponses"></a>
 
-## `puppeteer.cacheResponses(page, cache, responseUrlRules)` ⇒ <code>Promise&lt;void&gt;</code>
-Enables caching of intercepted responses into provided object. Automaticaly enables request interception in puppeteer.
+## `puppeteer.cacheResponses(page, cache, responseUrlRules)` ⇒ <code>Promise</code>
+Enables caching of intercepted responses into a provided object. Automatically enables request interception in Puppeteer.
 *IMPORTANT*: Caching responses stores them to memory, so too loose rules could cause memory leaks for longer running crawlers.
   This issue should be resolved or atleast mitigated in future iterations of this feature.
 
@@ -217,7 +217,7 @@ Enables caching of intercepted responses into provided object. Automaticaly enab
 <td><code>page</code></td><td><code>Page</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Puppeteer&#39;s <code>Page</code> object</p>
+<td colspan="3"><p>Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.</p>
 </td></tr><tr>
 <td><code>cache</code></td><td><code>Object</code></td>
 </tr>
@@ -227,32 +227,39 @@ Enables caching of intercepted responses into provided object. Automaticaly enab
 <td><code>responseUrlRules</code></td><td><code>Array&lt;(String|RegExp)&gt;</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>List of rules that are used to check if response should be cached.
+<td colspan="3"><p>List of rules that are used to check if the response should be cached.
   String rules are compared as page.url().includes(rule) while RegExp rules are evaluated as rule.test(page.url()).</p>
 </td></tr></tbody>
 </table>
 <a name="puppeteer.compileScript"></a>
 
-## `puppeteer.compileScript(scriptString)` ⇒ <code>function</code>
+## `puppeteer.compileScript(scriptString, context)` ⇒ <code>function</code>
 Compiles a Puppeteer script into an async function that may be executed at any time
 by providing it with the following object:
 ```
 {
-   page: Puppeteer.Page,
-   request: Apify.Request,
+   page: Page,
+   request: Request,
 }
 ```
-The function is compiled by using the scriptString parameter as the function's body,
-so any limitations to function bodies apply. Return value of the function is the return
-value of the function body = scriptString parameter.
+Where `page` is a Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a>
+and `request` is a [`Request`](request).
 
-As a security measure, no globals such as 'process' or 'require' are accessible
+The function is compiled by using the `scriptString` parameter as the function's body,
+so any limitations to function bodies apply. Return value of the compiled function
+is the return value of the function body = the `scriptString` parameter.
+
+As a security measure, no globals such as `process` or `require` are accessible
 from within the function body. Note that the function does not provide a safe
 sandbox and even though globals are not easily accessible, malicious code may
 still execute in the main process via prototype manipulation. Therefore you
 should only use this function to execute sanitized or safe code.
 
-**Returns**: <code>function</code> - async ({ page, request }) => { scriptString }  
+Custom context may also be provided using the `context` parameter. To improve security,
+make sure to only pass the really necessary objects to the context. Preferably making
+secured copies beforehand.
+
+**Returns**: <code>function</code> - `async ({ page, request }) => { scriptString }`  
 <table>
 <thead>
 <tr>
@@ -262,6 +269,10 @@ should only use this function to execute sanitized or safe code.
 <tbody>
 <tr>
 <td><code>scriptString</code></td><td><code>String</code></td>
+</tr>
+<tr>
+</tr><tr>
+<td><code>context</code></td><td><code>Object</code></td>
 </tr>
 <tr>
 </tr></tbody>
