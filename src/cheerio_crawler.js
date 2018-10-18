@@ -44,7 +44,7 @@ const DEFAULT_OPTIONS = {
  * using the functionality provided by the {@link AutoscaledPool} class.
  * All {@link AutoscaledPool} configuration options can be passed to the `autoscaledPoolOptions`
  * parameter of the `CheerioCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency`
- * {@link AutoscaledPool} options are available directly the `CheerioCrawler` constructor.
+ * {@link AutoscaledPool} options are available directly in the `CheerioCrawler` constructor.
  *
  * **Example usage:**
  *
@@ -118,7 +118,7 @@ const DEFAULT_OPTIONS = {
  *   Function that handles requests that failed more then `option.maxRequestRetries` times.
  *   See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/cheerio_crawler.js#L13">GitHub</a> for default behavior.
  * @param {Number} [options.maxRequestRetries=3]
- *   How many times the request is retried if either `requestFunction` or `handlePageFunction` failed.
+ *   Indicates how many times the request is retried if either `requestFunction` or `handlePageFunction` fails.
  * @param {Number} [options.maxRequestsPerCrawl]
  *   Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached.
  *   Always set this value in order to prevent infinite loops in misconfigured crawlers.

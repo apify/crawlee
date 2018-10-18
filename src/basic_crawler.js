@@ -36,7 +36,7 @@ const DEFAULT_OPTIONS = {
  * using the functionality provided by the {@link AutoscaledPool} class.
  * All {@link AutoscaledPool} configuration options can be passed to the `autoscaledPoolOptions`
  * parameter of the `BasicCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency`
- * {@link AutoscaledPool} options are available directly the `BasicCrawler` constructor.
+ * {@link AutoscaledPool} options are available directly in the `BasicCrawler` constructor.
  *
  * **Example usage:**
  *
@@ -93,7 +93,7 @@ const DEFAULT_OPTIONS = {
  *   <a href="https://github.com/apifytech/apify-js/blob/master/src/basic_crawler.js#L11" target="_blank">GitHub</a>
  *   for default behavior.
  * @param {Number} [options.maxRequestRetries=3]
- *   How many times the request is retried if [`handleRequestFunction()`](#new_BasicCrawler_new) fails.
+ *   Indicates how many times the request is retried if [`handleRequestFunction()`](#new_BasicCrawler_new) fails.
  * @param {Number} [options.maxRequestsPerCrawl]
  *   Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached.
  *   Always set this value in order to prevent infinite loops in misconfigured crawlers.

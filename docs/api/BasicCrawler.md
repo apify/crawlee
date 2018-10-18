@@ -24,7 +24,7 @@ New requests are only dispatched when there is enough free CPU and memory availa
 using the functionality provided by the [`AutoscaledPool`](autoscaledpool) class.
 All [`AutoscaledPool`](autoscaledpool) configuration options can be passed to the `autoscaledPoolOptions`
 parameter of the `BasicCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency`
-[`AutoscaledPool`](autoscaledpool) options are available directly the `BasicCrawler` constructor.
+[`AutoscaledPool`](autoscaledpool) options are available directly in the `BasicCrawler` constructor.
 
 **Example usage:**
 
@@ -113,7 +113,7 @@ await crawler.run();
 <td><code>[options.maxRequestRetries]</code></td><td><code>Number</code></td><td><code>3</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>How many times the request is retried if <a href="#new_BasicCrawler_new"><code>handleRequestFunction()</code></a> fails.</p>
+<td colspan="3"><p>Indicates how many times the request is retried if <a href="#new_BasicCrawler_new"><code>handleRequestFunction()</code></a> fails.</p>
 </td></tr><tr>
 <td><code>[options.maxRequestsPerCrawl]</code></td><td><code>Number</code></td><td></td>
 </tr>

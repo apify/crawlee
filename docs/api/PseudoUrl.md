@@ -26,7 +26,7 @@ respectively. For example, the following PURL:
 http://www.example.com/search?do[\x5B]load[\x5D]=1
 ```
 will match the URL:
-```
+```http
 http://www.example.com/search?do[load]=1
 ```
 
