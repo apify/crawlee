@@ -79,7 +79,9 @@ await crawler.run();
 <td><code>options</code></td><td><code>Object</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"></td></tr><tr>
+<td colspan="3"><p>All <code>PuppeteerCrawler</code> parameters are passed
+  via an options object with the following keys:</p>
+</td></tr><tr>
 <td><code>options.handlePageFunction</code></td><td><code>function</code></td><td></td>
 </tr>
 <tr>
@@ -87,12 +89,14 @@ await crawler.run();
   It is passed an object with the following fields:</p>
 <pre><code>  {
       request: Request,
-      page: Puppeteer.Page
+      page: Page,
+      puppeteerPool: PuppeteerPool
   }
 </code></pre><p>  <code>request</code> is an instance of the <a href="request"><code>Request</code></a> object with details about the URL to open, HTTP method etc.
   <code>page</code> is an instance of the <code>Puppeteer</code>
   <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a>
-  class with <code>page.goto(request.url)</code> already called.</p>
+  class with <code>page.goto(request.url)</code> already called.
+  <code>puppeteerPool</code> is an instance of the <a href="puppeteerpool"><code>PuppeteerPool</code></a> used by this <code>PuppeteerCrawler</code>.</p>
 </td></tr><tr>
 <td><code>options.requestList</code></td><td><code><a href="requestlist">RequestList</a></code></td><td></td>
 </tr>
@@ -161,8 +165,8 @@ await crawler.run();
 <td><code>[options.instanceKillerIntervalMillis]</code></td><td><code>Number</code></td><td><code>60000</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>How often the launched Puppeteer instances are checked whether they can be
-  closed. See <code>instanceKillerIntervalMillis</code> parameter of <a href="puppeteerpool"><code>PuppeteerPool</code></a>.</p>
+<td colspan="3"><p>Indicates how often are the open Puppeteer instances checked whether they can be closed.
+  See <code>instanceKillerIntervalMillis</code> parameter of <a href="puppeteerpool"><code>PuppeteerPool</code></a>.</p>
 </td></tr><tr>
 <td><code>[options.killInstanceAfterMillis]</code></td><td><code>Number</code></td><td><code>300000</code></td>
 </tr>
@@ -178,7 +182,9 @@ await crawler.run();
 <tr>
 <td colspan="3"><p>Overrides the default function to launch a new Puppeteer instance.
   See <code>launchPuppeteerFunction</code> parameter of <a href="puppeteerpool"><code>PuppeteerPool</code></a>.
-  See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_pool.js#L28">GitHub</a> for default behavior.</p>
+  See source code on
+  <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_pool.js#L28" target="_blank">GitHub</a>
+  for default behavior.</p>
 </td></tr><tr>
 <td><code>[options.launchPuppeteerOptions]</code></td><td><code><a href="../typedefs/launchpuppeteeroptions">LaunchPuppeteerOptions</a></code></td><td></td>
 </tr>
@@ -212,5 +218,5 @@ Runs the crawler. Returns promise that gets resolved once all the requests got p
 <a name="PuppeteerCrawler+abort"></a>
 
 ## `puppeteerCrawler.abort()` ⇒ <code>Promise</code>
-Stops the crawler by preventing crawls of additional pages and terminating the running ones.
+Aborts the crawler by preventing crawls of additional pages and terminating the running ones.
 

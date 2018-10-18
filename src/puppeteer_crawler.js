@@ -80,7 +80,8 @@ const PAGE_CLOSE_TIMEOUT_MILLIS = 30000;
  *   ```
  *   {
  *       request: Request,
- *       page: Puppeteer.Page
+ *       page: Page,
+ *       puppeteerPool: PuppeteerPool
  *   }
  *   ```
  *
@@ -88,6 +89,7 @@ const PAGE_CLOSE_TIMEOUT_MILLIS = 30000;
  *   `page` is an instance of the `Puppeteer`
  *   <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a>
  *   class with `page.goto(request.url)` already called.
+ *   `puppeteerPool` is an instance of the {@link PuppeteerPool} used by this `PuppeteerCrawler`.
  * @param {RequestList} options.requestList
  *   Static list of URLs to be processed.
  *   Either {@link RequestList} or {@link RequestQueue} must be provided.
@@ -129,8 +131,8 @@ const PAGE_CLOSE_TIMEOUT_MILLIS = 30000;
  *   be handled by a new browser instance.
  *   See `retireInstanceAfterRequestCount` parameter of {@link PuppeteerPool}.
  * @param {Number} [options.instanceKillerIntervalMillis=60000]
- *   How often the launched Puppeteer instances are checked whether they can be
- *   closed. See `instanceKillerIntervalMillis` parameter of {@link PuppeteerPool}.
+ *   Indicates how often are the open Puppeteer instances checked whether they can be closed.
+ *   See `instanceKillerIntervalMillis` parameter of {@link PuppeteerPool}.
  * @param {Number} [options.killInstanceAfterMillis=300000]
  *   If Puppeteer instance reaches the `options.retireInstanceAfterRequestCount` limit then
  *   it is considered retired and no more tabs will be opened. After the last tab is closed
@@ -140,7 +142,9 @@ const PAGE_CLOSE_TIMEOUT_MILLIS = 30000;
  * @param {Function} [options.launchPuppeteerFunction]
  *   Overrides the default function to launch a new Puppeteer instance.
  *   See `launchPuppeteerFunction` parameter of {@link PuppeteerPool}.
- *   See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_pool.js#L28">GitHub</a> for default behavior.
+ *   See source code on
+ *   <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_pool.js#L28" target="_blank">GitHub</a>
+ *   for default behavior.
  * @param {LaunchPuppeteerOptions} [options.launchPuppeteerOptions]
  *   Options used by [`Apify.launchPuppeteer()`](apify#module_Apify.launchPuppeteer) to start new Puppeteer instances.
  *   See `launchPuppeteerOptions` parameter of {@link PuppeteerPool} and [`LaunchPuppeteerOptions`](../typedefs/launchpuppeteeroptions).
