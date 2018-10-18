@@ -1,9 +1,9 @@
 {
     "docs": {
-        "Introduction": [
+        "Guide": [
             "examples/helloworld"
         ],
-        "API Reference": [
+        "Reference": [
             "api/apify",
             "api/autoscaledpool",
             "api/basiccrawler",

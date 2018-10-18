@@ -97,14 +97,14 @@
       }
     },
     "links": {
-      "Introduction": "Introduction",
+      "Guide": "Guide",
       "Examples": "Examples",
       "Reference": "Reference",
       "GitHub": "GitHub"
     },
     "categories": {
-      "Introduction": "Introduction",
-      "API Reference": "API Reference",
+      "Guide": "Guide",
+      "Reference": "Reference",
       "Examples": "Examples",
       "Autoscaling Tools": "Autoscaling Tools",
       "Type Definitions": "Type Definitions"
