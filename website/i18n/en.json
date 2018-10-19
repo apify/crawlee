@@ -68,17 +68,35 @@
       "examples/puppeteercrawler": {
         "title": "Puppeteer Crawler"
       },
-      "examples/puppeteerproxy": {
-        "title": "Puppeteer Proxy"
-      },
       "examples/puppeteersitemap": {
         "title": "Puppeteer Sitemap"
+      },
+      "examples/puppeteerwithproxy": {
+        "title": "Puppeteer With Proxy"
       },
       "examples/screenshots": {
         "title": "Screenshots"
       },
       "examples/synchronousrun": {
         "title": "Synchronous Run"
+      },
+      "guides/datastorage": {
+        "title": "Data Storage"
+      },
+      "guides/environmentvariables": {
+        "title": "Environment Variables"
+      },
+      "guides/gettingstarted": {
+        "title": "Getting Started"
+      },
+      "guides/motivation": {
+        "title": "Motivation"
+      },
+      "guides/puppeteerliveview": {
+        "title": "Puppeteer Live View"
+      },
+      "guides/whatisanactor": {
+        "title": "What is an Actor"
       },
       "typedefs/actorrun": {
         "title": "ActorRun"

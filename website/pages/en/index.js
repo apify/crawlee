@@ -208,7 +208,7 @@ const TryOut = () => (
                     '\n' +
                     'Apify.main(async () => {\n' +
                     '    const requestQueue = await Apify.openRequestQueue();\n' +
-                    '    await requestQueue.addRequest(new Apify.Request({ url: \'https://www.iana.org/\' }));\n' +
+                    '    await requestQueue.addRequest({ url: \'https://www.iana.org/\' });\n' +
                     '    const pseudoUrls = [new Apify.PseudoUrl(\'https://www.iana.org/[.*]\')];\n' +
                     '\n' +
                     '    const crawler = new Apify.PuppeteerCrawler({\n' +

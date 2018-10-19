@@ -1,7 +1,12 @@
 {
     "docs": {
         "Guide": [
-            "examples/helloworld"
+            "guides/motivation",
+            "guides/gettingstarted",
+            "guides/whatisanactor",
+            "guides/environmentvariables",
+            "guides/datastorage",
+            "guides/puppeteerliveview"
         ],
         "Reference": [
             "api/apify",
