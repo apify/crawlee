@@ -1,6 +1,6 @@
 ---
-id: puppeteerproxy
-title: Puppeteer Proxy
+id: puppeteerwithproxy
+title: Puppeteer With Proxy
 ---
 
 This example demonstrates how to load pages in headless Chrome / Puppeteer

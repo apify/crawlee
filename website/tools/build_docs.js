@@ -14,7 +14,7 @@ const typedefs = [];
 
 const getHeader = (title) => {
     const prefix = title === 'puppeteer' ? 'utils.' : '';
-    const id = title.replace(' ', '').toLowerCase();
+    const id = title.replace(/\s/g, '').toLowerCase();
     return `---\nid: ${id}\ntitle: ${prefix}${title}\n---\n`;
 };
 
@@ -93,7 +93,7 @@ const main = async () => {
         const title = filename.split('.')[0].split('_').map(word => `${word[0].toUpperCase()}${word.substr(1)}`).join(' ');
         const header = getHeader(title);
         const markdown = `${header}\n${description}\n${codeblock}`;
-        await writeFile(path.join(exampleFilesOutputDir, `${title.replace(' ', '')}.md`), markdown);
+        await writeFile(path.join(exampleFilesOutputDir, `${title.replace(/\s/g, '')}.md`), markdown);
     });
 
     await Promise.all(examplePromises);
