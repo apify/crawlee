@@ -41,6 +41,7 @@ const siteConfig = {
 
     // For no header links in the top nav bar -> headerLinks: [],
     headerLinks: [
+        { search: true },
         { doc: 'examples/helloworld', label: 'Guide' },
         { doc: 'examples/basiccrawler', label: 'Examples' },
         { doc: 'api/apify', label: 'Reference' },
@@ -61,6 +62,12 @@ const siteConfig = {
     colors: {
         primaryColor: '#001F5B',
         secondaryColor: '#FF9012',
+    },
+
+    algolia: {
+        apiKey: process.env.ALGOLIA_API_KEY,
+        indexName: 'apify_sdk',
+        algoliaOptions: {}, // Optional, if provided by Algolia
     },
 
     /* Custom fonts for website */
