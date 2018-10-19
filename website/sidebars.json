@@ -30,7 +30,7 @@
             "examples/basiccrawler",
             "examples/cheeriocrawler",
             "examples/puppeteercrawler",
-            "examples/puppeteerproxy",
+            "examples/puppeteerwithproxy",
             "examples/puppeteersitemap",
             "examples/screenshots",
             "examples/callactor",
