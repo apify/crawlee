@@ -1,3 +1,13 @@
+0.8.15 / 2018-10-17
+===================
+- Bugfix in `PuppeteerPool`: Pages were sometimes considered closed even though they weren't
+- Improvements in documentation
+- Upgraded Puppeteer to 1.9.0
+
+0.8.14 / 2018-10-11
+===================
+- Added `Apify.utils.puppeteer.cacheResponses` to enable response caching in headless Chromium.
+
 0.8.13 / 2018-10-09
 ===================
 - Fixed `AutoscaledPool` terminating before all tasks are finished.
