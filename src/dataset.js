@@ -96,8 +96,8 @@ export const chunkBySize = (items, limitBytes) => {
 };
 
 /**
- * Represents one page of data items from the {@linkcode Dataset}.
- * For more details, see {@linkcode Dataset#getData|Dataset.getData()}.
+ * Represents one page of data items from the [`Dataset`](../api/dataset).
+ * For more details, see [`Dataset.getData()`](../api/dataset#Dataset+getData).
  *
  * @typedef {Object} PaginationList
  * @property {Array} items
@@ -120,22 +120,22 @@ export const chunkBySize = (items, limitBytes) => {
  * Typically it is used to store crawling results.
  *
  * Do not instantiate this class directly, use the
- * {@link Apify#openDataset|`Apify.openDataset()`} function instead.
+ * [`Apify.openDataset()`](apify#module_Apify.openDataset) function instead.
  *
  * `Dataset` stores its data either on local disk or in the Apify cloud,
- * depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variable is set.
+ * depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variables are set.
  *
  * If the `APIFY_LOCAL_STORAGE_DIR` environment variable is set, the data is stored in
  * the local directory in the following files:
  * ```
- * [APIFY_LOCAL_STORAGE_DIR]/datasets/[DATASET_ID]/[INDEX].json
+ * {APIFY_LOCAL_STORAGE_DIR}/datasets/{DATASET_ID}/{INDEX}.json
  * ```
- * Note that `[DATASET_ID]` is the name or ID of the dataset. The default dataset has ID `default`,
+ * Note that `{DATASET_ID}` is the name or ID of the dataset. The default dataset has ID: `default`,
  * unless you override it by setting the `APIFY_DEFAULT_DATASET_ID` environment variable.
- * Each dataset item is stored as a separate JSON file, where `[INDEX]` is a zero-based index of the item in the dataset.
+ * Each dataset item is stored as a separate JSON file, where `{INDEX}` is a zero-based index of the item in the dataset.
  *
- * If the `APIFY_TOKEN` environment variable is provided instead, the data is stored
- * in the [Apify Dataset](https://www.apify.com/docs/storage#dataset) cloud storage.
+ * If the `APIFY_TOKEN` environment variable is provided instead, the data are stored
+ * in the <a href="https://www.apify.com/docs/storage#dataset" target="_blank">Apify Dataset</a> cloud storage.
  *
  * **Example usage:**
  *
@@ -174,7 +174,7 @@ export class Dataset {
      * **IMPORTANT**: Make sure to use the `await` keyword when calling `pushData()`,
      * otherwise the actor process might finish before the data is stored!
      *
-     * The size of the data is limited by the receiving API and therefore `pushData` will only
+     * The size of the data is limited by the receiving API and therefore `pushData()` will only
      * allow objects whose JSON representation is smaller than 9MB. When an array is passed,
      * none of the included objects
      * may be larger than 9MB, but the array itself may be of any size.
@@ -183,14 +183,14 @@ export class Dataset {
      * chunks the array into separate items and pushes them sequentially.
      * The chunking process is stable (keeps order of data), but it does not provide a transaction
      * safety mechanism. Therefore, in the event of an uploading error (after several automatic retries),
-     * the function's promise will reject and the dataset will be left in a state where some of
+     * the function's Promise will reject and the dataset will be left in a state where some of
      * the items have already been saved to the dataset while other items from the source array were not.
      * To overcome this limitation, the developer may, for example, read the last item saved in the dataset
      * and re-attempt the save of the data from this item onwards to prevent duplicates.
      *
      * @param {Object|Array} data Object or array of objects containing data to be stored in the default dataset.
      * The objects must be serializable to JSON and the JSON representation of each object must be smaller than 9MB.
-     * @returns {Promise} Returns a promise that resolves once the data is saved.
+     * @return {Promise}
      */
     pushData(data) {
         checkParamOrThrow(data, 'data', 'Array | Object');
@@ -223,16 +223,17 @@ export class Dataset {
     /**
      * Returns items in the dataset based on the provided parameters.
      *
-     * If format is `json` then the function doesn't return an array of records but {@linkcode PaginationList} instead.
+     * If format is `json` then the function doesn't return an array of records but {@link PaginationList} instead.
      *
-     * @param {Object} options
+     * @param {Object} [options] All `getData()` parameters are passed
+     *   via an options object with the following keys:
      * @param {String} [options.format='json']
      *   Format of the items, possible values are: `json`, `csv`, `xlsx`, `html`, `xml` and `rss`.
      * @param {Number} [options.offset=0]
      *   Number of array elements that should be skipped at the start.
      * @param {Number} [options.limit=250000]
      *   Maximum number of array elements to return.
-     * @param {Boolean} [options.desc]
+     * @param {Boolean} [options.desc=false]
      *   If `true` then the objects are sorted by `createdAt` in descending order.
      *   Otherwise they are sorted in ascending order.
      * @param {Array} [options.fields]
@@ -240,30 +241,30 @@ export class Dataset {
      * @param {String} [options.unwind]
      *   Specifies a name of the field in the result objects that will be used to unwind the resulting objects.
      *   By default, the results are returned as they are.
-     * @param {Boolean} [options.disableBodyParser]
+     * @param {Boolean} [options.disableBodyParser=false]
      *   If `true` then response from API will not be parsed.
-     * @param {Number} [options.attachment]
+     * @param {Boolean} [options.attachment=false]
      *   If `true` then the response will define the `Content-Disposition: attachment` HTTP header, forcing a web
      *   browser to download the file rather than to display it. By default, this header is not present.
      * @param {String} [options.delimiter=',']
      *   A delimiter character for CSV files, only used if `format` is `csv`.
      *   You might need to URL-encode the character (e.g. use `%09` for tab or `%3B` for semicolon).
-     * @param {Number} [options.bom]
+     * @param {Boolean} [options.bom]
      *   All responses are encoded in UTF-8 encoding. By default, the CSV files are prefixed with the UTF-8 Byte
      *   Order Mark (BOM), while JSON, JSONL, XML, HTML and RSS files are not. If you want to override this default
      *   behavior, set `bom` option to `true` to include the BOM, or set `bom` to `false` to skip it.
-     * @param {String} [options.xmlRoot]
+     * @param {String} [options.xmlRoot='results']
      *   Overrides the default root element name of the XML output. By default, the root element is `results`.
-     * @param {String} [options.xmlRow]
+     * @param {String} [options.xmlRow='page']
      *   Overrides the default element name that wraps each page or page function result object in XML output.
      *   By default, the element name is `page` or `result`, depending on the value of the `simplified` option.
-     * @param {Number} [options.skipHeaderRow]
-     *   If set to `1` then header row in csv format is skipped.
+     * @param {Boolean} [options.skipHeaderRow=false]
+     *   If set to `true` then header row in CSV format is skipped.
      * @return {Promise}
      */
-    getData(opts = {}) {
+    getData(options = {}) {
         const { datasetId } = this;
-        const params = Object.assign({ datasetId }, opts);
+        const params = Object.assign({ datasetId }, options);
 
         return datasets.getItems(params);
     }
@@ -271,7 +272,8 @@ export class Dataset {
     /**
      * Returns an object containing general information about the dataset.
      *
-     * @example
+     * **Example:**
+     * ```
      * {
      *   "id": "WkzbQMuFYuamGv3YF",
      *   "name": "d7b9MDYsbtX5L7XAj",
@@ -281,39 +283,40 @@ export class Dataset {
      *   "accessedAt": "2015-12-14T08:36:13.202Z",
      *   "itemsCount": 0
      * }
+     * ```
      *
-     * @param {Object} opts
-     * @returns {Promise}
+     * @returns {Promise<Object>}
      */
-    getInfo(opts = {}) {
+    getInfo(options = {}) {
         const { datasetId } = this;
-        const params = Object.assign({ datasetId }, opts);
+        const params = Object.assign({ datasetId }, options);
 
         return datasets.getDataset(params);
     }
 
     /**
-     * Iterates over dataset items, yielding each in turn to an `iteratee` function.
-     * Each invocation of `iteratee` is called with three arguments: `(element, index)`.
+     * Iterates over dataset items, yielding each in turn to an `iteratee()` function.
+     * Each invocation of `iteratee()` is called with two arguments: `(element, index)`.
      *
-     * If `iteratee` returns a Promise then it is awaited before a next call.
+     * If the `iteratee()` returns a Promise then it is awaited before a next call.
      *
      * @param {Function} iteratee
-     * @param {Opts} opts
-     * @param {Number} [options.offset=0] - Number of array elements that should be skipped at the start.
-     * @param {Number} [options.desc] - If `1` then the objects are sorted by `createdAt` in descending order.
-     * @param {Array} [options.fields] - If provided then returned objects will only contain specified keys
-     * @param {String} [options.unwind] - If provided then objects will be unwound based on provided field.
-     * @param {Number} [options.limit=250000] - How many items to load in one request.
-     * @param {Number} index [description]
-     * @return {Promise<undefined>}
+     * @param {Object} [options] All `forEach()` parameters are passed
+     *   via an options object with the following keys:
+     * @param {Number} [options.offset=0] Number of array elements that should be skipped at the start.
+     * @param {Boolean} [options.desc=false] If `true` then the objects are sorted by `createdAt` in descending order.
+     * @param {Array} [options.fields] If provided then returned objects will only contain specified keys.
+     * @param {String} [options.unwind] If provided then objects will be unwound based on provided field.
+     * @param {Number} [options.limit=250000] How many items to load in one request.
+     * @param {Number} [index=0] Controls the initial index number passed to the `iteratee()`.
+     * @return {Promise}
      */
-    forEach(iteratee, opts = {}, index = 0) {
-        if (!opts.offset) opts.offset = 0;
-        if (opts.format && opts.format !== 'json') throw new Error('Dataset.forEach/map/reduce() support only a "json" format.');
+    forEach(iteratee, options = {}, index = 0) {
+        if (!options.offset) options.offset = 0;
+        if (options.format && options.format !== 'json') throw new Error('Dataset.forEach/map/reduce() support only a "json" format.');
 
         return this
-            .getData(opts)
+            .getData(options)
             .then(({ items, total, limit, offset }) => {
                 return Promise
                     .mapSeries(items, item => iteratee(item, index++))
@@ -322,7 +325,7 @@ export class Dataset {
 
                         if (newOffset >= total) return undefined;
 
-                        const newOpts = Object.assign({}, opts, {
+                        const newOpts = Object.assign({}, options, {
                             offset: newOffset,
                         });
 
@@ -332,22 +335,22 @@ export class Dataset {
     }
 
     /**
-     * Produces a new array of values by mapping each value in list through a transformation function (`iteratee`).
-     * Each invocation of `iteratee` is called with three arguments: `(element, index)`.
+     * Produces a new array of values by mapping each value in list through a transformation function `iteratee()`.
+     * Each invocation of `iteratee()` is called with two arguments: `(element, index)`.
      *
      * If `iteratee` returns a `Promise` then it's awaited before a next call.
      *
      * @param {Function} iteratee
-     * @param {Opts} opts
-     * @param {Number} [options.offset=0] - Number of array elements that should be skipped at the start.
-     * @param {Number} [options.desc] - If 1 then the objects are sorted by createdAt in descending order.
-     * @param {Array} [options.fields] - If provided then returned objects will only contain specified keys
-     * @param {String} [options.unwind] - If provided then objects will be unwound based on provided field.
-     * @param {Number} [options.limit=250000] - How many items to load in one request.
-     * @param {Number} index [description]
+     * @param {Object} options All `map()` parameters are passed
+     *   via an options object with the following keys:
+     * @param {Number} [options.offset=0] Number of array elements that should be skipped at the start.
+     * @param {Boolean} [options.desc=false] If `true` then the objects are sorted by createdAt in descending order.
+     * @param {Array} [options.fields] If provided then returned objects will only contain specified keys
+     * @param {String} [options.unwind] If provided then objects will be unwound based on provided field.
+     * @param {Number} [options.limit=250000] How many items to load in one request.
      * @return {Promise<Array>}
      */
-    map(iteratee, opts) {
+    map(iteratee, options) {
         const result = [];
 
         const wrappedFunc = (item, index) => {
@@ -358,33 +361,33 @@ export class Dataset {
         };
 
         return this
-            .forEach(wrappedFunc, opts)
+            .forEach(wrappedFunc, options)
             .then(() => result);
     }
 
     /**
-     * Boils down a list of values into a single value.
+     * Reduces a list of values down to a single value.
      *
-     * Memo is the initial state of the reduction, and each successive step of it should be returned by `iteratee`.
-     * The `iteratee` is passed three arguments: the `memo`, then the value and index of the iteration.
+     * Memo is the initial state of the reduction, and each successive step of it should be returned by `iteratee()`.
+     * The `iteratee()` is passed three arguments: the `memo`, then the `value` and `index` of the iteration.
      *
-     * If no `memo` is passed to the initial invocation of reduce, the `iteratee` is not invoked on the first element of the list.
-     * The first element is instead passed as the memo in the invocation of the `iteratee` on the next element in the list.
+     * If no `memo` is passed to the initial invocation of reduce, the `iteratee()` is not invoked on the first element of the list.
+     * The first element is instead passed as the memo in the invocation of the `iteratee()` on the next element in the list.
      *
-     * If `iteratee` returns a `Promise` then it's awaited before a next call.
+     * If `iteratee()` returns a `Promise` then it's awaited before a next call.
      *
      * @param {Function} iteratee
-     * @param {*} memo
-     * @param {Opts} opts
-     * @param {Number} [options.offset=0] - Number of array elements that should be skipped at the start.
-     * @param {Number} [options.desc] - If 1 then the objects are sorted by createdAt in descending order.
-     * @param {Array} [options.fields] - If provided then returned objects will only contain specified keys
-     * @param {String} [options.unwind] - If provided then objects will be unwound based on provided field.
-     * @param {Number} [options.limit=250000] - How many items to load in one request.
-     * @param {Number} index [description]
+     * @param {*} memo Initial state of the reduction.
+     * @param {Object} options All `reduce()` parameters are passed
+     *   via an options object with the following keys:
+     * @param {Number} [options.offset=0] Number of array elements that should be skipped at the start.
+     * @param {Boolean} [options.desc=false] If `true` then the objects are sorted by createdAt in descending order.
+     * @param {Array} [options.fields] If provided then returned objects will only contain specified keys
+     * @param {String} [options.unwind] If provided then objects will be unwound based on provided field.
+     * @param {Number} [options.limit=250000] How many items to load in one request.
      * @return {Promise<*>}
      */
-    reduce(iteratee, memo, opts) {
+    reduce(iteratee, memo, options) {
         let currentMemo = memo;
 
         const wrappedFunc = (item, index) => {
@@ -401,7 +404,7 @@ export class Dataset {
         };
 
         return this
-            .forEach(wrappedFunc, opts)
+            .forEach(wrappedFunc, options)
             .then(() => currentMemo);
     }
 
@@ -622,22 +625,20 @@ const getOrCreateDataset = (datasetIdOrName) => {
 
 
 /**
- * Opens a dataset and returns a promise resolving to an instance of the {@linkcode Dataset} class.
+ * Opens a dataset and returns a promise resolving to an instance of the {@link Dataset} class.
  *
  * Datasets are used to store structured data where each object stored has the same attributes,
  * such as online store products or real estate offers.
  * The actual data is stored either on the local filesystem or in the cloud.
  *
- * For more details and code examples, see the {@linkcode Dataset} class.
+ * For more details and code examples, see the {@link Dataset} class.
  *
  * @param {string} [datasetIdOrName]
  *   ID or name of the dataset to be opened. If `null` or `undefined`,
  *   the function returns the default dataset associated with the actor run.
  * @returns {Promise<Dataset>}
- *   Returns a promise that resolves to an instance of the `Dataset` class.
  * @memberof module:Apify
  * @name openDataset
- * @instance
  * @function
  */
 export const openDataset = (datasetIdOrName) => {
@@ -650,9 +651,9 @@ export const openDataset = (datasetIdOrName) => {
 };
 
 /**
- * Stores an object or an array of objects to the default {@linkcode Dataset} of the current actor run.
+ * Stores an object or an array of objects to the default {@link Dataset} of the current actor run.
  *
- * This is just a convenient shortcut for {@link Dataset#pushData|`Dataset.pushData()`}.
+ * This is just a convenient shortcut for [`dataset.pushData()`](dataset#Dataset+pushData).
  * For example, calling the following code:
  * ```javascript
  * await Apify.pushData({ myValue: 123 });
@@ -664,19 +665,17 @@ export const openDataset = (datasetIdOrName) => {
  * await dataset.pushData({ myValue: 123 });
  * ```
  *
- * For more information, see {@link Apify.openDataset|`Apify.openDataset()`} and {@link Dataset#pushData|`Dataset.pushData()`}
+ * For more information, see [`Apify.openDataset()`](apify#module_Apify.openDataset) and [`dataset.pushData()`](dataset#Dataset+pushData)
  *
  * **IMPORTANT**: Make sure to use the `await` keyword when calling `pushData()`,
- * otherwise the actor process might finish before the data is stored!
+ * otherwise the actor process might finish before the data are stored!
  *
- * @param {Object|Array} data Object or array of objects containing data to be stored in the default dataset.
+ * @param {Object|Array} item Object or array of objects containing data to be stored in the default dataset.
  * The objects must be serializable to JSON and the JSON representation of each object must be smaller than 9MB.
- * @returns {Promise} Returns a promise that resolves once the data is saved.
- * @see {@link Dataset}
+ * @returns {Promise}
  *
  * @memberof module:Apify
  * @name pushData
- * @instance
  * @function
  */
 export const pushData = item => openDataset().then(dataset => dataset.pushData(item));

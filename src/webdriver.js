@@ -292,25 +292,24 @@ export const browse = (url, options) => {
  * <a href="https://www.apify.com/docs/actor#base-images" target="_blank">documentation</a>
  * for more details.
  *
- * For an example of usage, see the <a href="https://www.apify.com/apify/example-selenium">apify/example-selenium</a> actor.
+ * For an example of usage, see the <a href="https://www.apify.com/apify/example-selenium" target="_blank">apify/example-selenium</a> actor.
  *
- * @param {Object} [opts] Optional settings passed to `puppeteer.launch()`. Additionally the object can contain the following fields:
- * @param {String} [opts.proxyUrl] - URL to a proxy server. Currently only `http://` scheme is supported.
+ * @param {Object} [options] Optional settings passed to WebDriver. Additionally the object can contain the following fields:
+ * @param {String} [options.proxyUrl] - URL to a proxy server. Currently only `http://` scheme is supported.
  * Port number must be specified. For example, `http://example.com:1234`.
- * @param {String} [opts.headless] - Indicates that the browser will be started in headless mode.
+ * @param {String} [options.headless] - Indicates that the browser will be started in headless mode.
  * If the option is not defined, and the `APIFY_HEADLESS` environment variable has value `1`
  * and `APIFY_XVFB` is NOT `1`, the value defaults to `true`, otherwise it will be `false`.
- * @param {String} [opts.userAgent] - User-Agent for the browser.
+ * @param {String} [options.userAgent] - User-Agent for the browser.
  * If not provided, the function sets it to a reasonable default.
  * @returns {Promise}
  *
  * @memberof module:Apify
  * @name launchWebDriver
- * @instance
  * @function
  */
-export const launchWebDriver = (opts) => {
-    const args = processBrowseArgs(undefined, opts);
+export const launchWebDriver = (options) => {
+    const args = processBrowseArgs(undefined, options);
     const browser = new Browser(args.options);
 
     // NOTE: eventually get rid of the Browser class

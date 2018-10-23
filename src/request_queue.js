@@ -115,7 +115,7 @@ const getRequestId = (uniqueKey) => {
 
 /**
  * A helper class that is used to report results from the
- * {@linkcode enqueueLinks|Apify.utils.puppeteer.enqueueLinks()} function.
+ * [`Apify.utils.puppeteer.enqueueLinks()`](../api/puppeteer#puppeteer.enqueueLinks) function.
  *
  * @typedef {Object} RequestOperationInfo
  * @property {Boolean} wasAlreadyPresent Indicates if request was already present in the queue.
@@ -128,35 +128,35 @@ const getRequestId = (uniqueKey) => {
  * where you start with several URLs and then recursively
  * follow links to other pages. The data structure supports both breadth-first and depth-first crawling orders.
  *
- * Each URL is represented using an instance of the {@link Request|`Request`} class.
- * The queue can only contain unique URLs. More precisely, it can only contain `Request` instances
+ * Each URL is represented using an instance of the {@link Request} class.
+ * The queue can only contain unique URLs. More precisely, it can only contain {@link Request} instances
  * with distinct `uniqueKey` properties. By default, `uniqueKey` is generated from the URL, but it can also be overridden.
  * To add a single URL multiple times to the queue,
- * corresponding `Request` objects will need to have different `uniqueKey` properties.
+ * corresponding {@link Request} objects will need to have different `uniqueKey` properties.
  *
  * Do not instantiate this class directly, use the
- * {@link Apify#openRequestQueue|`Apify.openRequestQueue()`} function instead.
+ * [`Apify.openRequestQueue()`](apify#module_Apify.openRequestQueue) function instead.
  *
- * `RequestQueue` is used by {@link BasicCrawler|`BasicCrawler`}, {@link CheerioCrawler|`CheerioCrawler`}
- * and {@link PuppeteerCrawler|`PuppeteerCrawler`} as a source of URLs to crawl.
- * Unlike {@link RequestList|`RequestList`}, `RequestQueue` supports dynamic adding and removing of requests.
+ * `RequestQueue` is used by {@link BasicCrawler}, {@link CheerioCrawler}
+ * and {@link PuppeteerCrawler} as a source of URLs to crawl.
+ * Unlike {@link RequestList}, `RequestQueue` supports dynamic adding and removing of requests.
  * On the other hand, the queue is not optimized for operations that add or remove a large number of URLs in a batch.
  *
- * `RequestQueue` stores its data either on local disk or in the Apify cloud,
+ * `RequestQueue` stores its data either on local disk or in the Apify Cloud,
  * depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variable is set.
  *
  * If the `APIFY_LOCAL_STORAGE_DIR` environment variable is set, the queue data is stored in
  * that local directory as follows:
  * ```
- * [APIFY_LOCAL_STORAGE_DIR]/request_queues/[QUEUE_ID]/[STATE]/[NUMBER].json
+ * {APIFY_LOCAL_STORAGE_DIR}/request_queues/{QUEUE_ID}/{STATE}/{NUMBER}.json
  * ```
- * Note that `[QUEUE_ID]` is the name or ID of the request queue. The default queue has ID `default`,
+ * Note that `{QUEUE_ID}` is the name or ID of the request queue. The default queue has ID: `default`,
  * unless you override it by setting the `APIFY_DEFAULT_REQUEST_QUEUE_ID` environment variable.
- * Each request in the queue is stored as a separate JSON file, where `[STATE]` is either `handled` or `pending`,
- * and `[NUMBER]` is an integer indicating the position of the request in the queue.
+ * Each request in the queue is stored as a separate JSON file, where `{STATE}` is either `handled` or `pending`,
+ * and `{NUMBER}` is an integer indicating the position of the request in the queue.
  *
  * If the `APIFY_TOKEN` environment variable is provided instead, the data is stored
- * in the [Apify Request Queue](https://www.apify.com/docs/storage#queue) cloud storage.
+ * in the <a href="https://www.apify.com/docs/storage#queue" target="_blank">Apify Request Queue</a> cloud storage.
  *
  * **Example usage:**
  *
@@ -209,17 +209,17 @@ export class RequestQueue {
     /**
      * Adds a request to the queue.
      *
-     * If the request with the same `Request.uniqueKey` property is already present in the queue,
-     * it will not be updated. You can find out this happened from the resulting
-     * {@linkcode RequestOperationInfo} object.
+     * If a request with the same `uniqueKey` property is already present in the queue,
+     * it will not be updated. You can find out whether this happened from the resulting
+     * {@link RequestOperationInfo} object.
      *
-     * @param {Request|Object} request Request object, or object to construct a Request
-     * @param {Object} [opts]
-     * @param {Boolean} [opts.forefront] If `true`, the request will be added to the foremost position in the queue.
+     * @param {Request|Object} request Request object, or an Object to construct a Request from.
+     * @param {Object} [options]
+     * @param {Boolean} [options.forefront=false] If `true`, the request will be added to the foremost position in the queue.
      * @return {RequestOperationInfo}
      */
-    addRequest(request, opts = {}) {
-        const { forefront, request: newRequest } = validateAddRequestParams(request, opts);
+    addRequest(request, options = {}) {
+        const { forefront, request: newRequest } = validateAddRequestParams(request, options);
 
         if (newRequest) {
             request = newRequest;
@@ -306,7 +306,7 @@ export class RequestQueue {
     }
 
     /**
-     * Marks request handled after successfull processing.
+     * Marks request handled after successful processing.
      *
      * @param {Request} request
      * @return {Promise<RequestOperationInfo>}
@@ -338,14 +338,14 @@ export class RequestQueue {
      * so that it can be processed later again.
      *
      * @param {Request} request
-     * @param {Object} [opts]
-     * @param {Boolean} [opts.forefront=false]
-     *   If true then requests gets returned to the begining of the queue
+     * @param {Object} [options]
+     * @param {Boolean} [options.forefront=false]
+     *   If `true` then requests get returned to the start of the queue
      *   and to the back of the queue otherwise.
      * @return {Promise<RequestOperationInfo>}
      */
-    reclaimRequest(request, opts = {}) {
-        const { forefront } = validateReclaimRequestParams(request, opts);
+    reclaimRequest(request, options = {}) {
+        const { forefront } = validateReclaimRequestParams(request, options);
 
         return requestQueues
             .updateRequest({
@@ -364,7 +364,7 @@ export class RequestQueue {
     }
 
     /**
-     * Resolves to `true` if the next call to `fetchNextRequest()` will return `null`, otherwise it resolves to `false`.
+     * Resolves to `true` if the next call to {@link RequestQueue#fetchNextRequest} would return `null`, otherwise it resolves to `false`.
      * Note that even if the queue is empty, there might be some pending requests currently being processed.
      *
      * Due to the nature of distributed storage systems,
@@ -519,7 +519,7 @@ export class RequestQueue {
     }
 
     /**
-     * Removes the queue either from the Apify cloud storage or from the local directory,
+     * Removes the queue either from the Apify Cloud storage or from the local directory,
      * depending on the mode of operation.
      *
      * @return {Promise}
@@ -822,23 +822,21 @@ const getOrCreateQueue = (queueIdOrName) => {
 
 /**
  * Opens a request queue and returns a promise resolving to an instance
- * of the {@link RequestQueue|`RequestQueue`} class.
+ * of the {@link RequestQueue} class.
  *
- * `RequestQueue` represents a queue of URLs to crawl, which is stored either on local filesystem or in the cloud.
+ * {@link RequestQueue} represents a queue of URLs to crawl, which is stored either on local filesystem or in the cloud.
  * The queue is used for deep crawling of websites, where you start with several URLs and then
  * recursively follow links to other pages. The data structure supports both breadth-first
  * and depth-first crawling orders.
  *
- * For more details and code examples, see the {@link RequestQueue|`RequestQueue`} class.
+ * For more details and code examples, see the {@link RequestQueue} class.
  *
  * @param {string} [queueIdOrName]
  *   ID or name of the request queue to be opened. If `null` or `undefined`,
  *   the function returns the default request queue associated with the actor run.
  * @returns {Promise<RequestQueue>}
- *   Returns a promise that resolves to an instance of the `RequestQueue` class.
  * @memberof module:Apify
  * @name openRequestQueue
- * @instance
  */
 export const openRequestQueue = (queueIdOrName) => {
     checkParamOrThrow(queueIdOrName, 'queueIdOrName', 'Maybe String');

@@ -1,0 +1,151 @@
+---
+id: puppeteerpool
+title: PuppeteerPool
+---
+<a name="PuppeteerPool"></a>
+
+Manages a pool of Chrome browser instances controlled using
+<a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a>.
+
+`PuppeteerPool` reuses Chrome instances and tabs using specific browser rotation and retirement policies.
+This is useful in order to facilitate rotation of proxies, cookies
+or other settings in order to prevent detection of your web scraping bot,
+access web pages from various countries etc.
+
+Additionally, the reuse of browser instances instances speeds up crawling,
+and the retirement of instances helps mitigate effects of memory leaks in Chrome.
+
+`PuppeteerPool` is internally used by the [`PuppeteerCrawler`](puppeteercrawler) class.
+
+**Example usage:**
+
+```javascript
+const puppeteerPool = new PuppeteerPool({
+  launchPuppeteerFunction: () => {
+    // Use a new proxy with a new IP address for each new Chrome instance
+    return Apify.launchPuppeteer({
+       apifyProxySession: Math.random(),
+    });
+  },
+});
+
+const page1 = await puppeteerPool.newPage();
+const page2 = await puppeteerPool.newPage();
+const page3 = await puppeteerPool.newPage();
+
+// ... do something with the pages ...
+
+// Close all browsers.
+await puppeteerPool.destroy();
+```
+
+
+* [PuppeteerPool](puppeteerpool)
+    * [`new PuppeteerPool([options])`](#new_PuppeteerPool_new)
+    * [`.newPage()`](#PuppeteerPool+newPage) ⇒ <code>Promise&lt;Page&gt;</code>
+    * [`.destroy()`](#PuppeteerPool+destroy) ⇒ <code>Promise</code>
+    * [`.retire(browser)`](#PuppeteerPool+retire) ⇒ <code>Promise</code>
+
+<a name="new_PuppeteerPool_new"></a>
+
+## `new PuppeteerPool([options])`
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th><th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>[options]</code></td><td><code>Object</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>All <code>PuppeteerPool</code> parameters are passed
+  via an options object with the following keys:</p>
+</td></tr><tr>
+<td><code>[options.maxOpenPagesPerInstance]</code></td><td><code>Number</code></td><td><code>50</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Maximum number of open pages (i.e. tabs) per browser. When this limit is reached, new pages are loaded in a new browser instance.</p>
+</td></tr><tr>
+<td><code>[options.retireInstanceAfterRequestCount]</code></td><td><code>Number</code></td><td><code>100</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Maximum number of requests that can be processed by a single browser instance.
+  After the limit is reached, the browser is retired and new requests are
+  handled by a new browser instance.</p>
+</td></tr><tr>
+<td><code>[options.instanceKillerIntervalMillis]</code></td><td><code>Number</code></td><td><code>60000</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Indicates how often are the open Puppeteer instances checked whether they can be closed.</p>
+</td></tr><tr>
+<td><code>[options.killInstanceAfterMillis]</code></td><td><code>Number</code></td><td><code>300000</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>When Puppeteer instance reaches the <code>options.retireInstanceAfterRequestCount</code> limit then
+  it is considered retired and no more tabs will be opened. After the last tab is closed the
+  whole browser is closed too. This parameter defines a time limit between the last tab was opened and
+  before the browser is closed even if there are pending open tabs.</p>
+</td></tr><tr>
+<td><code>[options.launchPuppeteerFunction]</code></td><td><code>function</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Overrides the default function to launch a new <code>Puppeteer</code> instance.
+  See source code on
+  <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_pool.js#L28" target="_blank">GitHub</a>
+  for default behavior.</p>
+</td></tr><tr>
+<td><code>[options.launchPuppeteerOptions]</code></td><td><code><a href="../typedefs/launchpuppeteeroptions">LaunchPuppeteerOptions</a></code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Options used by <code>Apify.launchPuppeteer()</code> to start new Puppeteer instances.
+  See <a href="../typedefs/launchpuppeteeroptions"><code>LaunchPuppeteerOptions</code></a>.</p>
+</td></tr><tr>
+<td><code>[options.recycleDiskCache]</code></td><td><code>Boolean</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Enables recycling of disk cache directories by Chrome instances.
+  When a browser instance is closed, its disk cache directory is not deleted but it&#39;s used by a newly opened browser instance.
+  This is useful to reduce amount of data that needs to be downloaded to speed up crawling and reduce proxy usage.
+  Note that the new browser starts with empty cookies, local storage etc. so this setting doesn&#39;t affect anonymity of your crawler.</p>
+<p>  Beware that the disk cache directories can consume a lot of disk space.
+  To limit the space consumed, you can pass the <code>--disk-cache-size=X</code> argument to <code>options.launchPuppeteerOptions.args</code>,
+  where <code>X</code> is the approximate maximum number of bytes for disk cache.</p>
+<p>  <em>IMPORTANT:</em> Currently this feature only works in <strong>headful</strong> mode, because of a bug in Chromium.</p>
+<p>  The <code>options.recycleDiskCache</code> setting should not be used together with <code>--disk-cache-dir</code> argument in <code>options.launchPuppeteerOptions.args</code>.</p>
+</td></tr></tbody>
+</table>
+<a name="PuppeteerPool+newPage"></a>
+
+## `puppeteerPool.newPage()` ⇒ <code>Promise&lt;Page&gt;</code>
+Opens new tab in one of the browsers in the pool and returns a `Promise`
+that resolves to an instance of a Puppeteer
+<a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a>.
+
+<a name="PuppeteerPool+destroy"></a>
+
+## `puppeteerPool.destroy()` ⇒ <code>Promise</code>
+Closes all open browsers.
+
+<a name="PuppeteerPool+retire"></a>
+
+## `puppeteerPool.retire(browser)` ⇒ <code>Promise</code>
+Manually retires a Puppeteer
+<a href="https://pptr.dev/#?product=Puppeteer&show=api-class-browser" target="_blank"><code>Browser</code></a>
+instance from the pool. The browser will continue to process open pages so that they may gracefully finish.
+This is unlike `browser.close()` which will forcibly terminate the browser and all open pages will be closed.
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>browser</code></td><td><code>Browser</code></td>
+</tr>
+<tr>
+</tr></tbody>
+</table>

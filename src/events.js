@@ -25,59 +25,60 @@ let eventsWs = null;
 let persistStateInterval = null;
 
 /**
- * Gets an instance of Node.js' <a href="https://nodejs.org/api/events.html#events_class_eventemitter">EventEmitter</a> class
- * that emits various events from the SDK or the Apify platform.
- * The event emitter is initialized by calling <a href="#module-Apify-main"><code>Apify.main()</code></a> function.
+ * Gets an instance of a Node.js'
+ * <a href="https://nodejs.org/api/events.html#events_class_eventemitter" target="_blank">EventEmitter</a>
+ * class that emits various events from the SDK or the Apify platform.
+ * The event emitter is initialized by calling the [`Apify.main()`](#module_Apify.main) function.
  *
  * **Example usage:**
  *
  * ```javascript
- * Apify.main(async () => {
- *   &nbsp;
- *   Apify.events.on('cpuInfo', (data) => {
- *     if (data.isCpuOverloaded) console.log('Oh no, the CPU is overloaded!');
- *   });
- *.  &nbsp;
+ * Apify.events.on('cpuInfo', (data) => {
+ *   if (data.isCpuOverloaded) console.log('Oh no, the CPU is overloaded!');
  * });
  * ```
  *
  * The following table shows all currently emitted events:
- *
- * <table class="table table-bordered table-condensed">
+ * <table>
  *     <thead>
  *         <tr>
  *             <th>Event name</th>
  *             <th>Data</th>
- *             <th>Description</th>
  *     </thead>
  *     <tbody>
  *         <tr>
- *             <td>`cpuInfo`</td>
- *             <td>`{ "isCpuOverloaded": Boolean }`</td>
- *             <td>
+ *             <td><code>cpuInfo</code></td>
+ *             <td><code>{ "isCpuOverloaded": Boolean }</code></td>
+ *         </tr>
+ *         <tr>
+ *             <td colspan="2">
  *                 The event is emitted approximately every second
  *                 and it indicates whether the actor is using the maximum of available CPU resources.
  *                 If that's the case, the actor should not add more workload.
- *                 For example, this event is used by the <a href="#AutoscaledPool">AutoscaledPool</a> class.
+ *                 For example, this event is used by the <a href="autoscaledpool"><code>AutoscaledPool</code></a> class.
  *             </td>
  *         </tr>
  *         <tr>
- *             <td>`migrating`</td>
+ *             <td><code>migrating</code></td>
  *             <td>None</td>
- *             <td>
+ *         </tr>
+ *         <tr>
+ *             <td colspan="2">
  *                 Emitted when the actor running on the Apify platform is going to be migrated to another worker server soon.
  *                 You can use it to persist the state of the actor and abort the run, to speed up migration.
- *                 For example, this is used by the <a href="#RequestList">RequestList</a> class.
+ *                 For example, this is used by the <a href="requestlist"><code>RequestList</code></a> class.
  *             </td>
  *         </tr>
  *         <tr>
- *             <td>`persistState`</td>
- *             <td>`{ "isMigrating": Boolean }`</td>
- *             <td>
+ *             <td><code>persistState</code></td>
+ *             <td><code>{ "isMigrating": Boolean }</code></td>
+ *         </tr>
+ *         <tr>
+ *             <td colspan="2">
  *                 Emitted in regular intervals to notify all components of Apify SDK that it is time to persist
  *                 their state, in order to avoid repeating all work when the actor restarts.
- *                 This event is automatically emitted together with the `migrating` event,
- *                 in which case the `isMigrating` flag is set to `true`. Otherwise the flag is `false`.
+ *                 This event is automatically emitted together with the <code>migrating</code> event,
+ *                 in which case the <code>isMigrating</code> flag is set to <code>true</code>. Otherwise the flag is <code>false</code>.
  *             </td>
  *         </tr>
  *     </tbody>

@@ -18,20 +18,31 @@ const PAGE_CLOSE_TIMEOUT_MILLIS = 30000;
 
 /**
  * Provides a simple framework for parallel crawling of web pages
- * using headless Chrome with [Puppeteer](https://github.com/GoogleChrome/puppeteer).
- * The URLs of pages to visit are given by {@linkcode Request} objects that are fed from
- * a static list (see {@linkcode RequestList} class)
- * or from a dynamic queue (see {@linkcode RequestQueue} class).
+ * using headless Chrome with <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a>.
  *
- * `PuppeteerCrawler` opens a new Chrome page (i.e. tab) for each `Request` object to crawl
- * and then calls the function provided by user as the `handlePageFunction` option.
- * New tasks are only started if there is enough free CPU and memory available,
- * using the {@linkcode AutoscaledPool} class internally.
+ * The source URLs are represented using {@link Request} objects that are fed from
+ * {@link RequestList} or {@link RequestQueue} instances provided by the [`requestList`](#new_PuppeteerCrawler_new)
+ * or [`requestQueue`](#new_PuppeteerCrawler_new) constructor options, respectively.
+ *
+ * If both [`requestList`](#new_PuppeteerCrawler_new) and [`requestQueue`](#new_PuppeteerCrawler_new) are used,
+ * the instance first processes URLs from the {@link RequestList} and automatically enqueues all of them
+ * to {@link RequestQueue} before it starts their processing. This ensures that a single URL is not crawled multiple times.
+ *
+ * The crawler finishes when there are no more {@link Request} objects to crawl.
+ *
+ * `PuppeteerCrawler` opens a new Chrome page (i.e. tab) for each {@link Request} object to crawl
+ * and then calls the function provided by user as the [`handlePageFunction()`](#new_PuppeteerCrawler_new) option.
+ *
+ * New pages are only opened when there is enough free CPU and memory available,
+ * using the functionality provided by the {@link AutoscaledPool} class.
+ * All {@link AutoscaledPool} configuration options can be passed to the `autoscaledPoolOptions`
+ * parameter of the `PuppeteerCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency`
+ * {@link AutoscaledPool} options are available directly in the `PuppeteerCrawler` constructor.
  *
  * Note that the pool of Puppeteer instances is internally managed by
- * the {@linkcode PuppeteerPool} class. Many constructor options
+ * the {@link PuppeteerPool} class. Many constructor options
  * such as `maxOpenPagesPerInstance` or `launchPuppeteerFunction` are passed directly
- * to `PuppeteerPool` constructor.
+ * to {@link PuppeteerPool} constructor.
  *
  * **Example usage:**
  *
@@ -60,87 +71,98 @@ const PAGE_CLOSE_TIMEOUT_MILLIS = 30000;
  *
  * await crawler.run();
  * ```
- * @param {Object} options
+ * @param {Object} options All `PuppeteerCrawler` parameters are passed
+ *   via an options object with the following keys:
  * @param {Function} options.handlePageFunction
  *   Function that is called to process each request.
  *   It is passed an object with the following fields:
- *   `request` is an instance of the `Request` object with details about the URL to open, HTTP method etc.
- *   `page` is an instance of the `Puppeteer.Page` class with `page.goto(request.url)` already called.
+ *
+ *   ```
+ *   {
+ *       request: Request,
+ *       page: Page,
+ *       puppeteerPool: PuppeteerPool
+ *   }
+ *   ```
+ *
+ *   `request` is an instance of the {@link Request} object with details about the URL to open, HTTP method etc.
+ *   `page` is an instance of the `Puppeteer`
+ *   <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a>
+ *   class with `page.goto(request.url)` already called.
+ *   `puppeteerPool` is an instance of the {@link PuppeteerPool} used by this `PuppeteerCrawler`.
  * @param {RequestList} options.requestList
- *   List of the requests to be processed.
- *   Either RequestList or RequestQueue must be provided.
- *   See the `requestList` parameter of `BasicCrawler` for more details.
+ *   Static list of URLs to be processed.
+ *   Either {@link RequestList} or {@link RequestQueue} must be provided.
  * @param {RequestQueue} options.requestQueue
- *   Queue of the requests to be processed.
- *   Either RequestList or RequestQueue must be provided.
- *   See the `requestQueue` parameter of `BasicCrawler` for more details.
+ *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
+ *   Either {@link RequestList} or {@link RequestQueue} must be provided.
  * @param {Number} [options.handlePageTimeoutSecs=300]
  *   Timeout in which the function passed as `options.handlePageFunction` needs to finish, in seconds.
  * @param {Function} [options.gotoFunction]
- *   Overrides the function that opens the request in Puppeteer. The function should return a result of Puppeteer's
- *   <a href="https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#pagegotourl-options">page.goto()</a> function,
- *   i.e. a promise resolving to the <a href="https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-response">Response</a> object.
+ *   Overrides the function that opens the page in Puppeteer. The function should return the result of Puppeteer's
+ *   <a href="https://pptr.dev/#?product=Puppeteer&show=api-pagegotourl-options" target="_blank">page.goto()</a> function,
+ *   i.e. a `Promise` resolving to the <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-response" target="_blank">Response</a> object.
  *
- *   For example, this is useful if you need to extend the page load timeout or select different criteria
+ *   This is useful if you need to extend the page load timeout or select different criteria
  *   to determine that the navigation succeeded.
  *
  *   Note that a single page object is only used to process a single request and it is closed afterwards.
  *
- *   See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_crawler.js#L9">GitHub</a> for default behavior.
+ *   See source code on
+ *   <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_crawler.js#L9" target="_blank">GitHub</a>
+ *   for default behavior.
  * @param {Function} [options.handleFailedRequestFunction]
- *   Function to handle requests that failed more than `option.maxRequestRetries` times. See the `handleFailedRequestFunction`
- *   parameter of `Apify.BasicCrawler` for details.
- *   See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_crawler.js#L13">GitHub</a> for default behavior.
+ *   Function to handle requests that failed more than `option.maxRequestRetries` times.
+ *   See source code on
+ *   <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_crawler.js#L11" target="_blank">GitHub</a>
+ *   for default behavior.
  * @param {Number} [options.maxRequestRetries=3]
- *   Indicates how many times each request is retried if `handleRequestFunction` failed.
- *   See `maxRequestRetries` parameter of `BasicCrawler`.
+ *    Indicates how many times the request is retried if either `handlePageFunction()` or `gotoFunction()` fails.
  * @param {Number} [options.maxRequestsPerCrawl]
  *   Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached.
  *   Always set this value in order to prevent infinite loops in misconfigured crawlers.
  *   Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.
- *   See `maxRequestsPerCrawl` parameter of `BasicCrawler`.
  * @param {Number} [options.maxOpenPagesPerInstance=50]
  *   Maximum number of opened tabs per browser. If this limit is reached then a new
- *   browser instance is started. See `maxOpenPagesPerInstance` parameter of `PuppeteerPool`.
+ *   browser instance is started. See `maxOpenPagesPerInstance` parameter of {@link PuppeteerPool}.
  * @param {Number} [options.retireInstanceAfterRequestCount=100]
  *   Maximum number of requests that can be processed by a single browser instance.
  *   After the limit is reached the browser will be retired and new requests will
  *   be handled by a new browser instance.
- *   See `retireInstanceAfterRequestCount` parameter of `PuppeteerPool`.
+ *   See `retireInstanceAfterRequestCount` parameter of {@link PuppeteerPool}.
  * @param {Number} [options.instanceKillerIntervalMillis=60000]
- *   How often the launched Puppeteer instances are checked whether they can be
- *   closed. See `instanceKillerIntervalMillis` parameter of `PuppeteerPool`.
+ *   Indicates how often are the open Puppeteer instances checked whether they can be closed.
+ *   See `instanceKillerIntervalMillis` parameter of {@link PuppeteerPool}.
  * @param {Number} [options.killInstanceAfterMillis=300000]
  *   If Puppeteer instance reaches the `options.retireInstanceAfterRequestCount` limit then
  *   it is considered retired and no more tabs will be opened. After the last tab is closed
  *   the whole browser is closed too. This parameter defines a time limit for inactivity
  *   after which the browser is closed even if there are pending tabs. See
- *   `killInstanceAfterMillis` parameter of `PuppeteerPool`.
+ *   `killInstanceAfterMillis` parameter of {@link PuppeteerPool}.
  * @param {Function} [options.launchPuppeteerFunction]
  *   Overrides the default function to launch a new Puppeteer instance.
- *   See `launchPuppeteerFunction` parameter of `PuppeteerPool`.
- *   See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_crawler.js#L9">GitHub</a> for default behavior.
+ *   See `launchPuppeteerFunction` parameter of {@link PuppeteerPool}.
+ *   See source code on
+ *   <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_pool.js#L28" target="_blank">GitHub</a>
+ *   for default behavior.
  * @param {LaunchPuppeteerOptions} [options.launchPuppeteerOptions]
- *   Options used by `Apify.launchPuppeteer()` to start new Puppeteer instances.
- *   See `launchPuppeteerOptions` parameter of {@linkcode PuppeteerPool}.
+ *   Options used by [`Apify.launchPuppeteer()`](apify#module_Apify.launchPuppeteer) to start new Puppeteer instances.
+ *   See `launchPuppeteerOptions` parameter of {@link PuppeteerPool} and [`LaunchPuppeteerOptions`](../typedefs/launchpuppeteeroptions).
  * @param {Object} [options.autoscaledPoolOptions]
- *   Custom options passed to the underlying {@link AutoscaledPool|`AutoscaledPool`} instance constructor.
+ *   Custom options passed to the underlying {@link AutoscaledPool} instance constructor.
  *   Note that the `runTaskFunction`, `isTaskReadyFunction` and `isFinishedFunction` options
  *   are provided by `PuppeteerCrawler` and should not be overridden.
  * @param {Object} [options.minConcurrency=1]
- *   Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding `AutoscaledPool` option.
+ *   Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
  * @param {Object} [options.maxConcurrency=1000]
- *   Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding `AutoscaledPool` option.
- *
- * @see {@link CheerioCrawler}
- * @see {@link BasicCrawler}
+ *   Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
  */
-export default class PuppeteerCrawler {
-    constructor(opts) {
+class PuppeteerCrawler {
+    constructor(options) {
         // For backwards compatibility, in the future we can remove this...
-        if (!opts.retireInstanceAfterRequestCount && opts.abortInstanceAfterRequestCount) {
+        if (!options.retireInstanceAfterRequestCount && options.abortInstanceAfterRequestCount) {
             log.warning('PuppeteerCrawler: Parameter `abortInstanceAfterRequestCount` is deprecated! Use `retireInstanceAfterRequestCount` instead!');
-            opts.retireInstanceAfterRequestCount = opts.abortInstanceAfterRequestCount;
+            options.retireInstanceAfterRequestCount = options.abortInstanceAfterRequestCount;
         }
 
         const {
@@ -169,11 +191,11 @@ export default class PuppeteerCrawler {
             killInstanceAfterMillis,
             launchPuppeteerFunction,
             launchPuppeteerOptions,
-        } = _.defaults(opts, DEFAULT_OPTIONS);
+        } = _.defaults(options, DEFAULT_OPTIONS);
 
-        checkParamOrThrow(handlePageFunction, 'opts.handlePageFunction', 'Function');
-        checkParamOrThrow(handleFailedRequestFunction, 'opts.handleFailedRequestFunction', 'Maybe Function');
-        checkParamOrThrow(gotoFunction, 'opts.gotoFunction', 'Function');
+        checkParamOrThrow(handlePageFunction, 'options.handlePageFunction', 'Function');
+        checkParamOrThrow(handleFailedRequestFunction, 'options.handleFailedRequestFunction', 'Maybe Function');
+        checkParamOrThrow(gotoFunction, 'options.gotoFunction', 'Function');
 
         this.handlePageFunction = handlePageFunction;
         this.gotoFunction = gotoFunction;
@@ -232,7 +254,7 @@ export default class PuppeteerCrawler {
     }
 
     /**
-     * Stops the crawler by preventing crawls of additional pages and terminating the running ones.
+     * Aborts the crawler by preventing crawls of additional pages and terminating the running ones.
      *
      * @return {Promise}
      */
@@ -274,3 +296,6 @@ export default class PuppeteerCrawler {
         }
     }
 }
+
+
+export default PuppeteerCrawler;

@@ -99,30 +99,31 @@ export const maybeStringify = (value, options) => {
  * for saving screenshots, actor inputs and outputs, web pages, PDFs or to persist the state of crawlers.
  *
  * Do not instantiate this class directly, use the
- * {@link Apify#openKeyValueStore|`Apify.openKeyValueStore()`} function instead.
+ * [`Apify.openKeyValueStore()`](apify#module_Apify.openKeyValueStore) function instead.
  *
  * Each actor run is associated with a default key-value store, which is created exclusively
  * for the run. By convention, the actor input and output are stored into the
  * default key-value store under the `INPUT` and `OUTPUT` key, respectively.
  * Typically, input and output are JSON files, although it can be any other format.
  * To access the default key-value store directly, you can use the
- * {@linkcode Apify.getValue|Apify.getValue()}
- * and {@linkcode Apify.getValue|Apify.setValue()} convenience functions.
+ * [`Apify.getValue()`](apify#module_Apify.getValue)
+ * and [`Apify.setValue()`](apify#module_Apify.setValue) convenience functions.
  *
  * `KeyValueStore` stores its data either on local disk or in the Apify cloud,
- * depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variable is set.
+ * depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variables are set.
  *
  * If the `APIFY_LOCAL_STORAGE_DIR` environment variable is set, the data is stored in
  * the local directory in the following files:
  * ```
- * [APIFY_LOCAL_STORAGE_DIR]/key_value_stores/[STORE_ID]/[KEY].[EXT]
+ * {APIFY_LOCAL_STORAGE_DIR}/key_value_stores/{STORE_ID}/{INDEX}.{EXT}
  * ```
- * Note that `[STORE_ID]` is the name or ID of the key-value store. The default key value store has ID `default`,
+ * Note that `{STORE_ID}` is the name or ID of the key-value store. The default key value store has ID: `default`,
  * unless you override it by setting the `APIFY_DEFAULT_KEY_VALUE_STORE_ID` environment variable.
- * The `[KEY]` is the key of the record and `[EXT]` corresponds to the MIME content type of the data value.
+ * The `{KEY}` is the key of the record and `{EXT}` corresponds to the MIME content type of the data value.
  *
- * If the `APIFY_TOKEN` environment variable is provided instead, the data is stored
- * in the [Apify Dataset](https://www.apify.com/docs/storage#dataset) cloud storage.
+ * If the `APIFY_TOKEN` environment variable is provided instead, the data is stored in the
+ * <a href="https://www.apify.com/docs/storage#key-value-store" target="_blank">Apify Key-Value Store</a>
+ * cloud storage.
  *
  * **Example usage:**
  *
@@ -148,8 +149,6 @@ export const maybeStringify = (value, options) => {
  * await store.delete('some-key');
  * ```
  * @hideconstructor
- * @see {@linkcode Apify.getValue|Apify.getValue()}
- * @see {@linkcode Apify.setValue|Apify.setValue()}
  */
 export class KeyValueStore {
     constructor(storeId, storeName) {
@@ -163,18 +162,18 @@ export class KeyValueStore {
     /**
      * Gets a value from the key-value store.
      *
-     * The function returns a promise that resolves to the record value,
+     * The function returns a `Promise` that resolves to the record value,
      * whose JavaScript type depends on the MIME content type of the record.
      * Records with the `application/json`
      * content type are automatically parsed and returned as a JavaScript object.
      * Similarly, records with `text/plain` content types are returned as a string.
      * For all other content types, the value is returned as a raw
-     * <a href="https://nodejs.org/api/buffer.html"><code>Buffer</code></a> instance.
+     * <a href="https://nodejs.org/api/buffer.html" target="_blank"><code>Buffer</code></a> instance.
      *
-     * If the record does not exist, the functions resolves to `null`.
+     * If the record does not exist, the function resolves to `null`.
      *
      * To save or delete a value in the key-value store, use the
-     * {@linkcode KeyValueStore#setValue|KeyValueStore.setValue()} function.
+     * {@link KeyValueStore#setValue} function.
      *
      * **Example usage:**
      *
@@ -184,10 +183,10 @@ export class KeyValueStore {
      * ```
      *
      * @param {String} key
-     *   Key of the record.
-     * @returns {Promise<Object>}
+     *   Unique key of the record.
+     * @returns {Promise<Object|String|Buffer>}
      *   Returns a promise that resolves to an object, string
-     *   or <a href="https://nodejs.org/api/buffer.html"><code>Buffer</code></a>, depending
+     *   or <a href="https://nodejs.org/api/buffer.html" target="_blank"><code>Buffer</code></a>, depending
      *   on the MIME content type of the record.
      */
     getValue(key) {
@@ -220,32 +219,32 @@ export class KeyValueStore {
      * await store.setValue('RESULTS', 'my text data', { contentType: 'text/plain' });
      * ```
      * If you set custom content type, `value` must be either a string or
-     * <a href="https://nodejs.org/api/buffer.html"><code>Buffer</code></a>, otherwise an error will be thrown.
+     * <a href="https://nodejs.org/api/buffer.html" target="_blank"><code>Buffer</code></a>, otherwise an error will be thrown.
      *
-     * If `value` is null, the record is deleted instead. Note that the `setValue()` function succeeds
+     * If `value` is `null`, the record is deleted instead. Note that the `setValue()` function succeeds
      * regardless whether the record existed or not.
      *
      * To retrieve a value from the key-value store, use the
-     * {@linkcode KeyValueStore#setValue|KeyValueStore.getValue()} function.
+     * {@link KeyValueStore#getValue} function.
      *
      * **IMPORTANT:** Always make sure to use the `await` keyword when calling `setValue()`,
      * otherwise the actor process might finish before the value is stored!
      *
      * @param {String} key
-     *   Unique record key.
+     *   Unique key of the record.
      * @param {Object|String|Buffer} value
      *   Record data, which can be one of the following values:
      *   <ul>
      *     <li>If `null`, the record in the key-value store is deleted.</li>
      *     <li>If no `options.contentType` is specified, `value` can be any JavaScript object and it will be stringified to JSON.</li>
-     *     <li>If `options.contentType` is specified, `value` is considered raw data and it must be a `String`
-     *     or <a href="https://nodejs.org/api/buffer.html"><code>Buffer</code></a>.</li>
+     *     <li>If `options.contentType` is specified, `value` is considered raw data and it must be either a `String`
+     *     or <a href="https://nodejs.org/api/buffer.html" target="_blank"><code>Buffer</code></a>.</li>
      *   </ul>
      *   For any other value an error will be thrown.
      * @param {Object} [options]
      * @param {String} [options.contentType]
      *   Specifies a custom MIME content type of the record.
-     * @returns {Promise} Returns a promise that resolves once the value is stored or deleted.
+     * @returns {Promise}
      *
      */
     setValue(key, value, options = {}) {
@@ -444,22 +443,20 @@ const getOrCreateKeyValueStore = (storeIdOrName) => {
 
 
 /**
- * Opens a key-value store and returns a promise resolving to an instance of the {@linkcode KeyValueStore} class.
+ * Opens a key-value store and returns a promise resolving to an instance of the {@link KeyValueStore} class.
  *
  * Key-value stores are used to store records or files, along with their MIME content type.
  * The records are stored and retrieved using a unique key.
  * The actual data is stored either on a local filesystem or in the Apify cloud.
  *
- * For more details and code examples, see the {@linkcode KeyValueStore} class.
+ * For more details and code examples, see the {@link KeyValueStore} class.
  *
  * @param {string} [storeIdOrName]
  *   ID or name of the key-value store to be opened. If `null` or `undefined`,
  *   the function returns the default key-value store associated with the actor run.
  * @returns {Promise<KeyValueStore>}
- *   Returns a promise that resolves to an instance of the `KeyValueStore` class.
  * @memberof module:Apify
  * @name openKeyValueStore
- * @instance
  * @function
  */
 export const openKeyValueStore = (storeIdOrName) => {
@@ -471,11 +468,12 @@ export const openKeyValueStore = (storeIdOrName) => {
         : openRemoteStorage(storeIdOrName, ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID, KeyValueStore, storesCache, getOrCreateKeyValueStore);
 };
 
+//
 
 /**
- * Gets a value from the default {@linkcode KeyValueStore} associated with the current actor run.
+ * Gets a value from the default {@link KeyValueStore} associated with the current actor run.
  *
- * This is just a convenient shortcut for {@link KeyValueStore#getValue|`KeyValueStore.getValue()`}.
+ * This is just a convenient shortcut for [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+getValue).
  * For example, calling the following code:
  * ```javascript
  * const input = await Apify.getValue('INPUT');
@@ -487,29 +485,27 @@ export const openKeyValueStore = (storeIdOrName) => {
  * await store.getValue('INPUT');
  * ```
  *
- * To store the value to the default-key value store, you can use the {@link Apify#setValue|`Apify.setValue()`} function.
+ * To store the value to the default-key value store, you can use the [`Apify.setValue()`](#module_Apify.setValue) function.
  *
- * For more information, see {@link Apify.openKeyValueStore|`Apify.openKeyValueStore()`}
- * and {@link KeyValueStore#getValue|`KeyValueStore.getValue()`}.
+ * For more information, see [`Apify.openKeyValueStore()`](#module_Apify.openKeyValueStore)
+ * and [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+getValue).
  *
  * @param {String} key
  *   Unique record key.
  * @returns {Promise<Object>}
  *   Returns a promise that resolves once the record is stored.
- * @see {@link KeyValueStore}
  *
  * @memberof module:Apify
  * @name getValue
- * @instance
  * @function
  */
 export const getValue = key => openKeyValueStore().then(store => store.getValue(key));
 
 
 /**
- * Stores or deletes a value in the default {@linkcode KeyValueStore} associated with the current actor run.
+ * Stores or deletes a value in the default {@link KeyValueStore} associated with the current actor run.
  *
- * This is just a convenient shortcut for {@link KeyValueStore#setValue|`KeyValueStore.setValue()`}.
+ * This is just a convenient shortcut for [`keyValueStore.setValue()`](keyvaluestore#KeyValueStore+setValue).
  * For example, calling the following code:
  * ```javascript
  * await Apify.setValue('OUTPUT', { foo: "bar" });
@@ -521,10 +517,10 @@ export const getValue = key => openKeyValueStore().then(store => store.getValue(
  * await store.setValue('OUTPUT', { foo: "bar" });
  * ```
  *
- * To get a value from the default-key value store, you can use the {@link Apify#getValue|`Apify.getValue()`} function.
+ * To get a value from the default-key value store, you can use the [`Apify.getValue()`](#module_Apify.getValue) function.
  *
- * For more information, see {@link Apify.openKeyValueStore|`Apify.openKeyValueStore()`}
- * and {@link KeyValueStore#setValue|`KeyValueStore.setValue()`}.
+ * For more information, see [`Apify.openKeyValueStore()`](#module_Apify.openKeyValueStore)
+ * and [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+getValue).
  *
  * @param {String} key
  *   Unique record key.
@@ -534,18 +530,15 @@ export const getValue = key => openKeyValueStore().then(store => store.getValue(
  *     <li>If `null`, the record in the key-value store is deleted.</li>
  *     <li>If no `options.contentType` is specified, `value` can be any JavaScript object and it will be stringified to JSON.</li>
  *     <li>If `options.contentType` is specified, `value` is considered raw data and it must be a `String`
- *     or <a href="https://nodejs.org/api/buffer.html"><code>Buffer</code></a>.</li>
+ *     or <a href="https://nodejs.org/api/buffer.html" target="_blank"><code>Buffer</code></a>.</li>
  *   </ul>
  *   For any other value an error will be thrown.
  * @param {Object} [options]
  * @param {String} [options.contentType]
  *   Specifies a custom MIME content type of the record.
- * @returns {Promise} Returns a promise that resolves once the value is stored or deleted.
- * @see {@link KeyValueStore}
- *
+ * @return {Promise}
  * @memberof module:Apify
  * @name setValue
- * @instance
  * @function
  */
 export const setValue = (key, value, options) => openKeyValueStore().then(store => store.setValue(key, value, options));

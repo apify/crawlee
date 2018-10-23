@@ -66,16 +66,18 @@ class PuppeteerInstance {
 }
 
 /**
- * Manages a pool of Chrome browser instances controlled using [Puppeteer](https://github.com/GoogleChrome/puppeteer).
- * `PuppeteerPool` reuses Chrome instances and tabs using specific
- * browser rotation and retirement policies.
+ * Manages a pool of Chrome browser instances controlled using
+ * <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a>.
+ *
+ * `PuppeteerPool` reuses Chrome instances and tabs using specific browser rotation and retirement policies.
  * This is useful in order to facilitate rotation of proxies, cookies
  * or other settings in order to prevent detection of your web scraping bot,
  * access web pages from various countries etc.
+ *
  * Additionally, the reuse of browser instances instances speeds up crawling,
  * and the retirement of instances helps mitigate effects of memory leaks in Chrome.
  *
- * `PuppeteerPool` is internally used by the {@link PuppeteerCrawler|`PuppeteerCrawler`} class.
+ * `PuppeteerPool` is internally used by the {@link PuppeteerCrawler} class.
  *
  * **Example usage:**
  *
@@ -98,24 +100,29 @@ class PuppeteerInstance {
  * // Close all browsers.
  * await puppeteerPool.destroy();
  * ```
- *
+ * @param {Object} [options] All `PuppeteerPool` parameters are passed
+ *   via an options object with the following keys:
  * @param {Number} [options.maxOpenPagesPerInstance=50]
  *   Maximum number of open pages (i.e. tabs) per browser. When this limit is reached, new pages are loaded in a new browser instance.
  * @param {Number} [options.retireInstanceAfterRequestCount=100]
  *   Maximum number of requests that can be processed by a single browser instance.
  *   After the limit is reached, the browser is retired and new requests are
- *   be handled by a new browser instance.
+ *   handled by a new browser instance.
  * @param {Number} [options.instanceKillerIntervalMillis=60000]
- *   Indicates how often opened Puppeteer instances are checked whether they can be closed.
+ *   Indicates how often are the open Puppeteer instances checked whether they can be closed.
  * @param {Number} [options.killInstanceAfterMillis=300000]
  *   When Puppeteer instance reaches the `options.retireInstanceAfterRequestCount` limit then
  *   it is considered retired and no more tabs will be opened. After the last tab is closed the
  *   whole browser is closed too. This parameter defines a time limit between the last tab was opened and
  *   before the browser is closed even if there are pending open tabs.
- * @param {Function} [options.launchPuppeteerFunction=launchPuppeteerOptions&nbsp;=>&nbsp;Apify.launchPuppeteer(launchPuppeteerOptions)]
+ * @param {Function} [options.launchPuppeteerFunction]
  *   Overrides the default function to launch a new `Puppeteer` instance.
+ *   See source code on
+ *   <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_pool.js#L28" target="_blank">GitHub</a>
+ *   for default behavior.
  * @param {LaunchPuppeteerOptions} [options.launchPuppeteerOptions]
  *   Options used by `Apify.launchPuppeteer()` to start new Puppeteer instances.
+ *   See [`LaunchPuppeteerOptions`](../typedefs/launchpuppeteeroptions).
  * @param {Boolean} [options.recycleDiskCache]
  *   Enables recycling of disk cache directories by Chrome instances.
  *   When a browser instance is closed, its disk cache directory is not deleted but it's used by a newly opened browser instance.
@@ -126,11 +133,11 @@ class PuppeteerInstance {
  *   To limit the space consumed, you can pass the `--disk-cache-size=X` argument to `options.launchPuppeteerOptions.args`,
  *   where `X` is the approximate maximum number of bytes for disk cache.
  *
- *   *IMPORTANT:* Currently this feature only works in headful mode, because of a bug in Chromium.
+ *   *IMPORTANT:* Currently this feature only works in **headful** mode, because of a bug in Chromium.
  *
  *   The `options.recycleDiskCache` setting should not be used together with `--disk-cache-dir` argument in `options.launchPuppeteerOptions.args`.
  */
-export default class PuppeteerPool {
+class PuppeteerPool {
     constructor(opts = {}) {
         checkParamOrThrow(opts, 'opts', 'Object');
 
@@ -368,9 +375,11 @@ export default class PuppeteerPool {
     }
 
     /**
-     * Opens new tab in one of the browsers and returns promise that resolves to its Puppeteer.Page.
+     * Opens new tab in one of the browsers in the pool and returns a `Promise`
+     * that resolves to an instance of a Puppeteer
+     * <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a>.
      *
-     * @return {Promise<Puppeteer.Page>}
+     * @return {Promise<Page>}
      */
     async newPage() {
         let instance;
@@ -413,7 +422,7 @@ export default class PuppeteerPool {
     }
 
     /**
-     * Closes all the browsers.
+     * Closes all open browsers.
      * @return {Promise}
      */
     destroy() {
@@ -458,7 +467,7 @@ export default class PuppeteerPool {
 
     /**
      * Finds a PuppeteerInstance given a Puppeteer Browser running in the instance.
-     * @param {Puppeteer.Browser} browser
+     * @param {Browser} browser
      * @return {Promise}
      * @ignore
      */
@@ -478,10 +487,11 @@ export default class PuppeteerPool {
     }
 
     /**
-     * Manually retires a Puppeteer Browser instance from the pool. The browser will continue
-     * to process open pages so that they may gracefully finish. This is unlike browser.close()
-     * which will forcibly terminate the browser and all open pages will be closed.
-     * @param {Puppeteer.Browser} browser
+     * Manually retires a Puppeteer
+     * <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-browser" target="_blank"><code>Browser</code></a>
+     * instance from the pool. The browser will continue to process open pages so that they may gracefully finish.
+     * This is unlike `browser.close()` which will forcibly terminate the browser and all open pages will be closed.
+     * @param {Browser} browser
      * @return {Promise}
      */
     retire(browser) {
@@ -492,3 +502,5 @@ export default class PuppeteerPool {
             });
     }
 }
+
+export default PuppeteerPool;
