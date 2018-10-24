@@ -3,7 +3,7 @@ id: puppeteersitemap
 title: Puppeteer Sitemap
 ---
 
-This example demonstrates how to use `PuppeteerCrawler` to crawl a list of web pages
+This example demonstrates how to use [`PuppeteerCrawler`](../api/puppeteercrawler) to crawl a list of web pages
 specified in a sitemap. The crawler extracts page title and URL from each page
 and stores them as a record to the default dataset.
 In local configuration, the results are stored as JSON files in `./apify_storage/datasets/default`

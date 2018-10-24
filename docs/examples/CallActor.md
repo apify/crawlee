@@ -4,17 +4,17 @@ title: Call Actor
 ---
 
 This example demonstrates how to start an Apify actor using
-<a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-call"><code>Apify.call()</code></a>
+[`Apify.call()`](../api/apify#module_Apify.call)
 and how to call Apify API using
-<a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-client"><code>Apify.client</code></a>.
-The script extracts the current Bitcoin prices from Kraken.com
-and sends them to your email using the [apify/send-mail](https://www.apify.com/apify/send-mail) actor.
+[`Apify.client`](../api/apify#module_Apify.client).
+The script extracts the current Bitcoin prices from <a href="https://www.kraken.com/" target="_blank">Kraken.com</a>
+and sends them to your email using the <a href="https://www.apify.com/apify/send-mail" target="_blank">apify/send-mail</a> actor.
 
-To make the example work, you'll need an [Apify Account](https://my.apify.com/).
-Go to [Account - Integrations](https://my.apify.com/account#/integrations) page to obtain your API token
-and set it to the `APIFY_TOKEN` environment variable, or run the script using the CLI.
-If you deploy this actor to the Apify platform then you can set up a scheduler for early
-morning. Don't miss the chance of your life to get rich!
+To make the example work, you'll need an <a href="https://my.apify.com/" target="_blank">Apify Account</a>.
+Go to <a href="https://my.apify.com/account#/integrations" target="_blank">Account - Integrations</a> page to obtain your API token
+and set it to the `APIFY_TOKEN` [environment variable](../guides/environmentvariables), or run the script using the CLI.
+If you deploy this actor to the Apify Cloud then you can set up a scheduler for early
+morning.
 ```javascript
 const Apify = require('apify');
 

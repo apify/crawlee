@@ -3,9 +3,9 @@ id: cheeriocrawler
 title: Cheerio Crawler
 ---
 
-This example demonstrates how to use [CheerioCrawler](https://www.apify.com/docs/sdk/apify-runtime-js/latest#CheerioCrawler)
+This example demonstrates how to use [`CheerioCrawler`](../api/cheeriocrawler)
 to crawl a list of URLs from an external file,
-load each URL using a plain HTTP request, parse the HTML using [cheerio](https://www.npmjs.com/package/cheerio)
+load each URL using a plain HTTP request, parse the HTML using <a href="https://www.npmjs.com/package/cheerio" target="_blank">cheerio</a>
 and extract some data from it: the page title and all H1 tags.
 ```javascript
 const Apify = require('apify');

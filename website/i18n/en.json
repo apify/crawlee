@@ -98,6 +98,15 @@
       "guides/whatisanactor": {
         "title": "What is an Actor"
       },
+      "readme/introduction": {
+        "title": "readme/introduction"
+      },
+      "readme/overview": {
+        "title": "readme/overview"
+      },
+      "readme/support": {
+        "title": "readme/support"
+      },
       "typedefs/actorrun": {
         "title": "ActorRun"
       },

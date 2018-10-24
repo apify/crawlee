@@ -1,8 +1,8 @@
 /**
- * This example demonstrates how to use [PuppeteerCrawler](https://www.apify.com/docs/sdk/apify-runtime-js/latest#PuppeteerCrawler)
- * in combination with [RequestList](https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList)
- * and [RequestQueue](https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestQueue) to recursively scrape the
- * Hacker News website (https://news.ycombinator.com) using headless Chrome / Puppeteer.
+ * This example demonstrates how to use [`PuppeteerCrawler`](../api/puppeteercrawler)
+ * in combination with [`RequestList`](../api/requestlist)
+ * and [`RequestQueue`](../api/requestqueue) to recursively scrape the
+ * <a href="https://news.ycombinator.com" target="_blank">Hacker News website</a> using headless Chrome / Puppeteer.
  * The crawler starts with a single URL, finds links to next pages,
  * enqueues them and continues until no more desired links are available.
  * The results are stored to the default dataset. In local configuration, the results are stored as JSON files in `./apify_storage/datasets/default`
