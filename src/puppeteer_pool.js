@@ -136,15 +136,19 @@ class PuppeteerInstance {
  *   *IMPORTANT:* Currently this feature only works in **headful** mode, because of a bug in Chromium.
  *
  *   The `options.recycleDiskCache` setting should not be used together with `--disk-cache-dir` argument in `options.launchPuppeteerOptions.args`.
+ * @param {String[]} [options.proxyUrls]
+ *   An array of custom proxy URLs to be used by the `PuppeteerPool` instance. Custom proxies are not compatible
+ *   with Apify Proxy. Therefore, by using the `proxyUrls` parameter, all Apify Proxy groups will be automatically disabled
+ *   including the `auto` group. The provided custom proxies' order will be randomized and the resulting list rotated.
  */
 class PuppeteerPool {
-    constructor(opts = {}) {
-        checkParamOrThrow(opts, 'opts', 'Object');
+    constructor(options = {}) {
+        checkParamOrThrow(options, 'options', 'Object');
 
         // For backwards compatibility, in the future we can remove this...
-        if (!opts.retireInstanceAfterRequestCount && opts.abortInstanceAfterRequestCount) {
+        if (!options.retireInstanceAfterRequestCount && options.abortInstanceAfterRequestCount) {
             log.warning('PuppeteerPool: Parameter `abortInstanceAfterRequestCount` is deprecated! Use `retireInstanceAfterRequestCount` instead!');
-            opts.retireInstanceAfterRequestCount = opts.abortInstanceAfterRequestCount;
+            options.retireInstanceAfterRequestCount = options.abortInstanceAfterRequestCount;
         }
 
         const {
@@ -155,15 +159,17 @@ class PuppeteerPool {
             killInstanceAfterMillis,
             launchPuppeteerOptions,
             recycleDiskCache,
-        } = _.defaults(opts, DEFAULT_OPTIONS);
+            proxyUrls,
+        } = _.defaults(options, DEFAULT_OPTIONS);
 
-        checkParamOrThrow(maxOpenPagesPerInstance, 'opts.maxOpenPagesPerInstance', 'Number');
-        checkParamOrThrow(retireInstanceAfterRequestCount, 'opts.retireInstanceAfterRequestCount', 'Number');
-        checkParamOrThrow(launchPuppeteerFunction, 'opts.launchPuppeteerFunction', 'Function');
-        checkParamOrThrow(instanceKillerIntervalMillis, 'opts.instanceKillerIntervalMillis', 'Number');
-        checkParamOrThrow(killInstanceAfterMillis, 'opts.killInstanceAfterMillis', 'Number');
-        checkParamOrThrow(launchPuppeteerOptions, 'opts.launchPuppeteerOptions', 'Maybe Object');
-        checkParamOrThrow(recycleDiskCache, 'opts.recycleDiskCache', 'Maybe Boolean');
+        checkParamOrThrow(maxOpenPagesPerInstance, 'options.maxOpenPagesPerInstance', 'Number');
+        checkParamOrThrow(retireInstanceAfterRequestCount, 'options.retireInstanceAfterRequestCount', 'Number');
+        checkParamOrThrow(launchPuppeteerFunction, 'options.launchPuppeteerFunction', 'Function');
+        checkParamOrThrow(instanceKillerIntervalMillis, 'options.instanceKillerIntervalMillis', 'Number');
+        checkParamOrThrow(killInstanceAfterMillis, 'options.killInstanceAfterMillis', 'Number');
+        checkParamOrThrow(launchPuppeteerOptions, 'options.launchPuppeteerOptions', 'Maybe Object');
+        checkParamOrThrow(recycleDiskCache, 'options.recycleDiskCache', 'Maybe Boolean');
+        checkParamOrThrow(proxyUrls, 'options.proxyUrls', 'Maybe Array');
 
         // The recycleDiskCache option is only supported in headful mode
         // See https://bugs.chromium.org/p/chromium/issues/detail?id=882431
@@ -179,10 +185,11 @@ class PuppeteerPool {
         this.retireInstanceAfterRequestCount = retireInstanceAfterRequestCount;
         this.killInstanceAfterMillis = killInstanceAfterMillis;
         this.recycledDiskCacheDirs = recycleDiskCache ? new LinkedList() : null;
+        this.proxyUrls = _.shuffle(proxyUrls);
         this.launchPuppeteerFunction = async () => {
             // Do not modify passed launchPuppeteerOptions!
-            const options = _.clone(launchPuppeteerOptions) || {};
-            options.args = _.clone(options.args || []);
+            let opts = _.clone(launchPuppeteerOptions) || {};
+            opts.args = _.clone(opts.args || []);
 
             // If requested, use recycled disk cache directory
             let diskCacheDir = null;
@@ -190,10 +197,22 @@ class PuppeteerPool {
                 diskCacheDir = this.recycledDiskCacheDirs.length > 0
                     ? this.recycledDiskCacheDirs.removeFirst()
                     : await mkdtempAsync(DISK_CACHE_DIR);
-                options.args.push(`--disk-cache-dir=${diskCacheDir}`);
+                opts.args.push(`--disk-cache-dir=${diskCacheDir}`);
             }
 
-            const browser = await launchPuppeteerFunction(options);
+            // Select correct proxy options
+            if (this.proxyUrls) {
+                if (this.proxyUrls.length === 0) {
+                    log.warning('PuppeteerPool: Using "options.proxyUrls" parameter with 0 proxies. Proxy is disabled.');
+                } else if (opts.useApifyProxy) {
+                    log.warning('PuppeteerPool: Using "options.proxyUrls" parameter in conjuction with '
+                            + '"options.launchPuppeteerOptions.useApifyProxy" parameter. Apify Proxy is disabled.');
+                }
+                opts = _.omit(opts, ['useApifyProxy', 'apifyProxyGroups', 'apifyProxySession']);
+                opts.proxyUrl = this.proxyUrls[this.lastUsedProxyUrlIndex % this.proxyUrls.length];
+            }
+
+            const browser = await launchPuppeteerFunction(opts);
             browser.recycleDiskCacheDir = diskCacheDir;
             return browser;
         };
@@ -202,6 +221,7 @@ class PuppeteerPool {
         this.browserCounter = 0;
         this.activeInstances = {};
         this.retiredInstances = {};
+        this.lastUsedProxyUrlIndex = 0;
         this.instanceKillerInterval = setInterval(() => this._killRetiredInstances(), instanceKillerIntervalMillis);
 
         // ensure termination on SIGINT
