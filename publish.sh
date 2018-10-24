@@ -21,10 +21,8 @@ if [ -z "${BRANCH_UP_TO_DATE}" ]; then
 fi
 
 echo "Generating documentation ..."
-npm run build-doc
-
-echo "Uploading docs to S3 ..."
-aws s3 cp "${DOC_DIR}/" "s3://${AWS_BUCKET}/${GIT_TAG}/" --recursive --region us-east-1 --acl public-read --cache-control "public, max-age=86400"
+npm run build-docs
+npm run build-readme
 
 echo "Pushing to git ..."
 git push

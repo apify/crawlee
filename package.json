@@ -38,8 +38,8 @@
   ],
   "scripts": {
     "build": "rm -rf ./build && babel src --out-dir build",
-    "build-doc": "npm run clean && npm run build && node ./node_modules/jsdoc/jsdoc.js --package ./package.json -c ./docs/jsdoc-conf.json -d ./build-docs",
-    "build-toc": "./node_modules/.bin/markdown-toc README.md -i",
+    "build-docs": "npm run clean && npm run build && node ./website/tools/build_docs.js",
+    "build-readme": "node ./tools/build_readme.js",
     "test": "npm run build &&  nyc --reporter=html --reporter=text mocha --timeout 60000 --compilers js:babel-core/register --recursive",
     "prepare": "npm run build-toc && npm run build",
     "prepublishOnly": "(test $RUNNING_FROM_SCRIPT || (echo \"You must use publish.sh instead of 'npm publish' directly!\"; exit 1)) && npm test && npm run lint",
@@ -81,7 +81,6 @@
     "eslint-plugin-react": "^7.0.1",
     "jsdoc": "^3.4.3",
     "jsdoc-export-default-interop": "^0.3.1",
-    "markdown-toc": "^1.2.0",
     "mocha": "^3.5.3",
     "nyc": "^13.0.1",
     "portastic": "^1.0.1",
