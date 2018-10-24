@@ -5,8 +5,9 @@ import _ from 'underscore';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
-import { RequestQueue, RequestQueueLocal } from './request_queue';
+import { RequestQueue, RequestQueueLocal, openRequestQueue } from './request_queue';
 import Request from './request';
+import PseudoUrl from './pseudo_url';
 
 const jqueryPath = require.resolve('jquery');
 const underscorePath = require.resolve('underscore');
@@ -132,6 +133,12 @@ const enqueueRequestsFromClickableElements = async (page, selector, purls, reque
 };
 
 /**
+ * To enable direct use of the Actor UI `pseudoUrls` output while keeping high performance,
+ * all the pseudoUrls from the output are only constructed once and kept in a cache
+ * by the `enqueueLinks()` function.
+ */
+const enqueueLinksCache = new WeakMap();
+/**
  * Finds HTML elements matching a CSS selector, clicks the elements and if a redirect is triggered and destination URL matches
  * one of the provided {@link PseudoUrl}s, then the function enqueues that URL to a given request queue.
  * To create a Request object function uses `requestTemplate` from a matching {@link PseudoUrl}.
@@ -143,30 +150,59 @@ const enqueueRequestsFromClickableElements = async (page, selector, purls, reque
  *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
  * @param {String} selector
  *   CSS selector matching elements to be clicked.
- * @param {PseudoUrl[]} pseudoUrls
- *   An array of {@link PseudoUrl}s matching the URLs to be enqueued.
  * @param {RequestQueue} requestQueue
- *   Request queue object where URLs will be enqueued.
+ *   {@link RequestQueue} instance where URLs will be enqueued.
+ * @param {PseudoUrl[]|Object[]|String[]} [pseudoUrls]
+ *   An array of {@link PseudoUrl}s matching the URLs to be enqueued,
+ *   or an array of Strings or Objects from which the {@link PseudoUrl}s should be constructed
+ *   The Objects must include at least a `purl` property, which holds a pseudoUrl string.
+ *   All remaining keys will be used as the `requestTemplate` argument of the {@link PseudoUrl} constructor.
  * @return {Promise<RequestOperationInfo[]>}
  *   Promise that resolves to an array of {@link RequestOperationInfo} objects.
  * @memberOf puppeteer
  */
-const enqueueLinks = async (page, selector, pseudoUrls, requestQueue) => {
+const enqueueLinks = async (page, selector, requestQueue, pseudoUrls = []) => {
+    // TODO: Remove after v1.0.0 gets released.
+    // Check for pseudoUrls as a third parameter.
+    if (Array.isArray(requestQueue)) {
+        log.warning('Argument "pseudoUrls" as the third parameter to enqueueLinks() is deprecated. '
+            + 'Use enqueueLinks(page, selector, requestQueue, pseudoUrls) instead. "pseudoUrls" are now optional.');
+        const tmp = requestQueue;
+        requestQueue = pseudoUrls;
+        pseudoUrls = tmp;
+    }
+
     checkParamOrThrow(page, 'page', 'Object');
     checkParamOrThrow(selector, 'selector', 'String');
-    checkParamOrThrow(pseudoUrls, 'purls', 'Array');
     checkParamPrototypeOrThrow(requestQueue, 'requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue');
+    checkParamOrThrow(pseudoUrls, 'pseudoUrls', 'Array');
+
+    // Check and cache the pseudoUrls
+    let pseudoUrlInstances = enqueueLinksCache.get(pseudoUrls);
+    if (!pseudoUrlInstances) {
+        pseudoUrlInstances = pseudoUrls.map((item, idx) => {
+            checkParamOrThrow(item, `pseudoUrls[${idx}]`, 'Object|String');
+            if (item instanceof PseudoUrl) return item;
+            if (typeof item === 'string') return new PseudoUrl(item);
+            return new PseudoUrl(item.purl, _.omit(item, 'purl'));
+        });
+        enqueueLinksCache.set(pseudoUrls, pseudoUrlInstances);
+    }
 
     /* istanbul ignore next */
     const getHrefs = linkEls => linkEls.map(link => link.href).filter(href => !!href);
     const urls = await page.$$eval(selector, getHrefs);
-    const requests = [];
+    let requests = [];
 
-    urls.forEach((url) => {
-        pseudoUrls
-            .filter(purl => purl.matches(url))
-            .forEach(purl => requests.push(purl.createRequest(url)));
-    });
+    if (pseudoUrlInstances.length) {
+        urls.forEach((url) => {
+            pseudoUrlInstances
+                .filter(purl => purl.matches(url))
+                .forEach(purl => requests.push(purl.createRequest(url)));
+        });
+    } else {
+        requests = urls.map(url => ({ url }));
+    }
 
     return Promise.mapSeries(requests, request => requestQueue.addRequest(request));
 };
