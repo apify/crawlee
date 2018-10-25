@@ -16,26 +16,27 @@ const DEFAULT_OPTIONS = {
 };
 
 /**
- * Provides a simple framework for the parallel crawling of web pages,
+ * Provides a simple framework for parallel crawling of web pages,
  * whose URLs are fed either from a static list
  * or from a dynamic queue of URLs.
  *
- * `BasicCrawler` invokes the user-provided `handleRequestFunction` for each {@link Request|`Request`}
- * object, which corresponds to a single URL to crawl.
- * The `Request` objects are fed from the {@link RequestList|`RequestList`} or {@link RequestQueue|`RequestQueue`}
- * instances provided by the `requestList` or `requestQueue` constructor options, respectively.
+ * `BasicCrawler` invokes the user-provided [`handleRequestFunction()`](#new_BasicCrawler_new)
+ * for each {@link Request} object, which represents a single URL to crawl.
+ * The {@link Request} objects are fed from the {@link RequestList} or the {@link RequestQueue}
+ * instances provided by the [`requestList`](#new_BasicCrawler_new) or [`requestQueue`](#new_BasicCrawler_new)
+ * constructor options, respectively.
  *
- * If both `requestList` and `requestQueue` is used, the instance first
- * processes URLs from the `RequestList` and automatically enqueues all of them to `RequestQueue` before it starts
- * their processing. This ensures that a single URL is not crawled multiple times.
+ * If both [`requestList`](#new_BasicCrawler_new) and [`requestQueue`](#new_BasicCrawler_new) options are used,
+ * the instance first processes URLs from the {@link RequestList} and automatically enqueues all of them
+ * to {@link RequestQueue} before it starts their processing. This ensures that a single URL is not crawled multiple times.
  *
- * The crawler finishes if there are no more `Request` objects to crawl.
+ * The crawler finishes if there are no more {@link Request} objects to crawl.
  *
- * New requests are only launched if there is enough free CPU and memory available,
- * using the functionality provided by the {@link AutoscaledPool|`AutoscaledPool`} class.
- * All `AutoscaledPool` configuration options can be passed to the `autoscaledPoolOptions` parameter
- * of the `CheerioCrawler` constructor.
- * For user convenience, the `minConcurrency` and `maxConcurrency` options are available directly in the constructor.
+ * New requests are only dispatched when there is enough free CPU and memory available,
+ * using the functionality provided by the {@link AutoscaledPool} class.
+ * All {@link AutoscaledPool} configuration options can be passed to the `autoscaledPoolOptions`
+ * parameter of the `BasicCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency`
+ * {@link AutoscaledPool} options are available directly in the `BasicCrawler` constructor.
  *
  * **Example usage:**
  *
@@ -67,46 +68,47 @@ const DEFAULT_OPTIONS = {
  * await crawler.run();
  * ```
  *
- * @param {Object} options
+ * @param {Object} options All `BasicCrawler` parameters are passed
+ *   via an options object with the following keys:
  * @param {Function} options.handleRequestFunction
  *   User-provided function that performs the logic of the crawler. It is called for each URL to crawl.
  *
- *   The function that receives an object as argument, with the following field:
- *
- *   <ul>
- *     <li>`request`: the {@link Request|`Request`} object representing the URL to crawl</li>
- *   </ul>
- *
+ *   The function receives the following object as an argument:
+ *   ```
+ *   {
+ *       request: Request
+ *   }
+ *   ```
+ *   With the {@link Request} object representing the URL to crawl.
  *   The function must return a promise.
  * @param {RequestList} options.requestList
  *   Static list of URLs to be processed.
- *   Either `RequestList` or `RequestQueue` must be provided.
+ *   Either {@link RequestList} or {@link RequestQueue} must be provided.
  * @param {RequestQueue} options.requestQueue
  *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
- *   Either RequestList or RequestQueue must be provided.
+ *   Either {@link RequestList} or {@link RequestQueue} must be provided.
  * @param {Function} [options.handleFailedRequestFunction]
- *   Function that handles requests that failed more then `option.maxRequestRetries` times.
- *   See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/basic_crawler.js#L11">GitHub</a> for default behavior.
+ *   Function that handles requests that failed more then `options.maxRequestRetries` times.
+ *   See source code on
+ *   <a href="https://github.com/apifytech/apify-js/blob/master/src/basic_crawler.js#L11" target="_blank">GitHub</a>
+ *   for default behavior.
  * @param {Number} [options.maxRequestRetries=3]
- *   How many times the request is retried if `handleRequestFunction` failed.
+ *   Indicates how many times the request is retried if [`handleRequestFunction()`](#new_BasicCrawler_new) fails.
  * @param {Number} [options.maxRequestsPerCrawl]
  *   Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached.
  *   Always set this value in order to prevent infinite loops in misconfigured crawlers.
  *   Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.
  * @param {Object} [options.autoscaledPoolOptions]
- *   Custom options passed to the underlying {@link AutoscaledPool|`AutoscaledPool`} instance constructor.
+ *   Custom options passed to the underlying {@link AutoscaledPool} constructor.
  *   Note that the `runTaskFunction`, `isTaskReadyFunction` and `isFinishedFunction` options
  *   are provided by `BasicCrawler` and cannot be overridden.
  * @param {Object} [options.minConcurrency=1]
- *   Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding `AutoscaledPool` option.
+ *   Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
  * @param {Object} [options.maxConcurrency=1000]
- *   Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding `AutoscaledPool` option.
- *
- * @see {@link CheerioCrawler}
- * @see {@link PuppeteerCrawler}
+ *   Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
  */
-export default class BasicCrawler {
-    constructor(opts) {
+class BasicCrawler {
+    constructor(options) {
         const {
             requestList,
             requestQueue,
@@ -119,18 +121,18 @@ export default class BasicCrawler {
             // AutoscaledPool shorthands
             minConcurrency,
             maxConcurrency,
-        } = _.defaults(opts, DEFAULT_OPTIONS);
+        } = _.defaults(options, DEFAULT_OPTIONS);
 
-        checkParamPrototypeOrThrow(requestList, 'opts.requestList', RequestList, 'Apify.RequestList', true);
-        checkParamPrototypeOrThrow(requestQueue, 'opts.requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue', true);
-        checkParamOrThrow(handleRequestFunction, 'opts.handleRequestFunction', 'Function');
-        checkParamOrThrow(handleFailedRequestFunction, 'opts.handleFailedRequestFunction', 'Function');
-        checkParamOrThrow(maxRequestRetries, 'opts.maxRequestRetries', 'Number');
-        checkParamOrThrow(maxRequestsPerCrawl, 'opts.maxRequestsPerCrawl', 'Maybe Number');
-        checkParamOrThrow(autoscaledPoolOptions, 'opts.autoscaledPoolOptions', 'Object');
+        checkParamPrototypeOrThrow(requestList, 'options.requestList', RequestList, 'Apify.RequestList', true);
+        checkParamPrototypeOrThrow(requestQueue, 'options.requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue', true);
+        checkParamOrThrow(handleRequestFunction, 'options.handleRequestFunction', 'Function');
+        checkParamOrThrow(handleFailedRequestFunction, 'options.handleFailedRequestFunction', 'Function');
+        checkParamOrThrow(maxRequestRetries, 'options.maxRequestRetries', 'Number');
+        checkParamOrThrow(maxRequestsPerCrawl, 'options.maxRequestsPerCrawl', 'Maybe Number');
+        checkParamOrThrow(autoscaledPoolOptions, 'options.autoscaledPoolOptions', 'Object');
 
         if (!requestList && !requestQueue) {
-            throw new Error('At least one of the parameters "opts.requestList" and "opts.requestQueue" must be provided!');
+            throw new Error('At least one of the parameters "options.requestList" and "options.requestQueue" must be provided!');
         }
 
         this.requestList = requestList;
@@ -325,3 +327,5 @@ export default class BasicCrawler {
         return this.handleFailedRequestFunction({ request, error }); // This function prints an error message.
     }
 }
+
+export default BasicCrawler;

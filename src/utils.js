@@ -22,7 +22,7 @@ import { USER_AGENT_LIST } from './constants';
  */
 const URL_NO_COMMAS_REGEX = XRegExp('https?://(www\\.)?[\\p{L}0-9][-\\p{L}0-9@:%._\\+~#=]{0,254}[\\p{L}0-9]\\.[a-z]{2,63}(:\\d{1,5})?(/[-\\p{L}0-9@:%_\\+.~#?&//=\\(\\)]*)?', 'gi'); // eslint-disable-line
 /**
- * Regular expression that, in addition to the default regular expression URL_NO_COMMAS_REGEX, supports matching commas in URL path and query.
+ * Regular expression that, in addition to the default regular expression `URL_NO_COMMAS_REGEX`, supports matching commas in URL path and query.
  * Note, however, that this may prevent parsing URLs from comma delimited lists, or the URLs may become malformed.
  * @memberOf utils
  */
@@ -54,21 +54,20 @@ export const newClient = () => {
 
 /**
  * Gets the default instance of the `ApifyClient` class provided
- * by the <a href="https://www.apify.com/docs/sdk/apify-client-js/latest" target="_blank">apify-client</a> NPM package.
- * The instance is created automatically by the Apify SDK
- * and it is configured using the `APIFY_API_BASE_URL`, `APIFY_USER_ID` and `APIFY_TOKEN`
- * environment variables.
+ * <a href="https://www.apify.com/docs/sdk/apify-client-js/latest"
+ * target="_blank">apify-client</a> by the NPM package.
+ * The instance is created automatically by the Apify SDK and it is configured using the
+ * `APIFY_API_BASE_URL`, `APIFY_USER_ID` and `APIFY_TOKEN` environment variables.
  *
- * The instance is used for all underlying calls to the Apify API
- * in functions such as <a href="#module-Apify-getValue">Apify.getValue()</a>
- * or <a href="#module-Apify-call">Apify.call()</a>.
+ * The instance is used for all underlying calls to the Apify API in functions such as
+ * [`Apify.getValue()`](#module_Apify.getValue) or [`Apify.call()`](#module_Apify.call).
  * The settings of the client can be globally altered by calling the
- * <a href="https://www.apify.com/docs/sdk/apify-client-js/latest#ApifyClient-setOptions"><code>Apify.client.setOptions()</code></a> function.
+ * <a href="https://www.apify.com/docs/sdk/apify-client-js/latest#ApifyClient-setOptions"
+ * target="_blank">`Apify.client.setOptions()`</a> function.
  * Beware that altering these settings might have unintended effects on the entire Apify SDK package.
  *
  * @memberof module:Apify
  * @name client
- * @instance
  */
 export const apifyClient = newClient();
 
@@ -121,13 +120,12 @@ const createIsDockerPromise = () => {
 };
 
 /**
- * Returns promise that resolves to true if the code is running in a Docker container.
+ * Returns a `Promise` that resolves to true if the code is running in a Docker container.
  *
  * @return {Promise}
  *
  * @memberof module:Apify
  * @name isDocker
- * @instance
  * @function
  */
 export const isDocker = (forceReset) => {
@@ -184,10 +182,8 @@ export const weightedAvg = (arrValues, arrWeights) => {
  * {
  *   // Total memory available in the system or container
  *   totalBytes: Number,
- *   &nbsp;
  *   // Amount of free memory in the system or container
  *   freeBytes: Number,
- *   &nbsp;
  *   // Amount of memory used (= totalBytes - freeBytes)
  *   usedBytes: Number,
  *   // Amount of memory used the current Node.js process
@@ -203,11 +199,10 @@ export const weightedAvg = (arrValues, arrWeights) => {
  * Beware that the function is quite inefficient because it spawns a new process.
  * Therefore you shouldn't call it too often, like more than once per second.
  *
- * @returns {Promise} Returns a promise.
+ * @returns {Promise<Object>}
  *
  * @memberof module:Apify
  * @name getMemoryInfo
- * @instance
  * @function
  */
 export const getMemoryInfo = async () => {
@@ -333,19 +328,18 @@ export const createTimeoutPromise = (timeoutMillis, errorMessage) => {
  *
  * @memberof module:Apify
  * @name isAtHome
- * @instance
  * @function
  */
 export const isAtHome = () => !!process.env[ENV_VARS.IS_AT_HOME];
 
 /**
- * Returns a promise that resolves after a specific period of time. This is useful to implement waiting
+ * Returns a `Promise` that resolves after a specific period of time. This is useful to implement waiting
  * in your code, e.g. to prevent overloading of target website or to avoid bot detection.
  *
  * **Example usage:**
  *
- * ```javascript
- * const Apify = require('apify);
+ * ```
+ * const Apify = require('apify');
  *
  * ...
  *
@@ -367,7 +361,7 @@ const sleep = (millis) => {
  * @param {String} url
  * @param {String} [encoding='utf8']
  * @param {RegExp} [urlRegExp=URL_NO_COMMAS_REGEX]
- * @returns {Promise}
+ * @returns {Promise<String[]>}
  * @memberOf utils
  */
 const downloadListOfUrls = ({ url, encoding = 'utf8', urlRegExp = URL_NO_COMMAS_REGEX }) => {
@@ -386,7 +380,7 @@ const downloadListOfUrls = ({ url, encoding = 'utf8', urlRegExp = URL_NO_COMMAS_
  * Collects all URLs in an arbitrary string to an array, optionally using a custom regular expression.
  * @param {String} string
  * @param {RegExp} [urlRegExp=URL_NO_COMMAS_REGEX]
- * @returns {Array}
+ * @returns {String[]}
  * @memberOf utils
  */
 const extractUrls = ({ string, urlRegExp = URL_NO_COMMAS_REGEX }) => {
@@ -467,7 +461,7 @@ export const ensureTokenOrLocalStorageEnvExists = (storageName) => {
  * **Example usage:**
  *
  * ```javascript
- * const Apify = require('apify);
+ * const Apify = require('apify');
  *
  * ...
  *

@@ -21,10 +21,8 @@ if [ -z "${BRANCH_UP_TO_DATE}" ]; then
 fi
 
 echo "Generating documentation ..."
-npm run build-doc
-
-echo "Uploading docs to S3 ..."
-aws s3 cp "${DOC_DIR}/" "s3://${AWS_BUCKET}/${GIT_TAG}/" --recursive --region us-east-1 --acl public-read --cache-control "public, max-age=86400"
+npm run build-docs
+npm run build-readme
 
 echo "Pushing to git ..."
 git push
@@ -38,9 +36,6 @@ if [ "${BRANCH}" = "master" ]; then
     else
         echo "Tagging version ${PACKAGE_VERSION} with tag \"latest\" ..."
         RUNNING_FROM_SCRIPT=1 npm dist-tag add ${PACKAGE_NAME}@${PACKAGE_VERSION} latest
-        echo "Copy doc to latest folder..."
-        aws s3 cp "s3://${AWS_BUCKET}/${GIT_TAG}/" "s3://${AWS_BUCKET}/latest/" --recursive --region us-east-1 --acl public-read --cache-control "public, max-age=3600"
-        aws cloudfront create-invalidation --distribution-id E2KZVJE3BFW9XZ --paths "/docs/sdk/apify-runtime-js/latest/*"
     fi
 
 # Any other branch gets published as BETA and we don't allow to override tag of existing version.
@@ -52,11 +47,6 @@ else
     git tag ${GIT_TAG}
     git push origin ${GIT_TAG}
     echo "Git tag: ${GIT_TAG} created."
-
-    echo "Copy docs to S3 to beta folder..."
-    aws s3 cp "s3://${AWS_BUCKET}/${GIT_TAG}/" "s3://${AWS_BUCKET}/beta/" --recursive --region us-east-1 --acl public-read --cache-control "public, max-age=3600"
-    aws cloudfront create-invalidation --distribution-id E2KZVJE3BFW9XZ --paths "/docs/sdk/apify-runtime-js/beta/*"
-
 fi
 
 

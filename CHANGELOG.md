@@ -1,3 +1,8 @@
+0.8.16 / 2018-10-23
+===================
+**- Created dedicated project page at https://sdk.apify.com
+- Improved docs, texts, guides and other texts, pointed links to new page
+
 0.8.15 / 2018-10-17
 ===================
 - Bugfix in `PuppeteerPool`: Pages were sometimes considered closed even though they weren't

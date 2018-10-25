@@ -1,10 +1,10 @@
 /**
  * This is the most basic example of the Apify SDK, which demonstrates some of its
  * elementary tools, such as the
- * [BasicCrawler](https://www.apify.com/docs/sdk/apify-runtime-js/latest#BasicCrawler)
- * and [RequestList](https://www.apify.com/docs/sdk/apify-runtime-js/latest#RequestList) classes.
+ * [`BasicCrawler`](../api/basiccrawler)
+ * and [`RequestList`](../api/requestlist) classes.
  * The script just downloads several web pages with plain HTTP requests (using the
- * [request-promise](https://www.npmjs.com/package/request-promise) library)
+ * <a href="https://www.npmjs.com/package/request-promise" target="_blank">request-promise</a> library)
  * and stores their raw HTML and URL to the default dataset.
  * In local configuration, the data will be stored as JSON files in `./apify_storage/datasets/default`.
  */

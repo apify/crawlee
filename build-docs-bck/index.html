@@ -1,0 +1,5030 @@
+<main id="main">
+    <div class="line">
+        <div class="wrap">
+            <div class="docs-wrap cf">
+                <nav class="docs-menu mt-none">
+                    <div>
+                        <ul><li><a href="#Apify">Apify</a><ul><li><a href="#module-Apify-events">events</a></li><li><a href="#module-Apify-client">client</a></li><li><a href="#module-Apify-openRequestQueue">openRequestQueue</a></li><li><a href="#module-Apify-call">call</a></li><li><a href="#module-Apify-getApifyProxyUrl">getApifyProxyUrl</a></li><li><a href="#module-Apify-getEnv">getEnv</a></li><li><a href="#module-Apify-main">main</a></li><li><a href="#module-Apify-getMemoryInfo">getMemoryInfo</a></li><li><a href="#module-Apify-getValue">getValue</a></li><li><a href="#module-Apify-isAtHome">isAtHome</a></li><li><a href="#module-Apify-isDocker">isDocker</a></li><li><a href="#module-Apify-launchPuppeteer">launchPuppeteer</a></li><li><a href="#module-Apify-launchWebDriver">launchWebDriver</a></li><li><a href="#module-Apify-openDataset">openDataset</a></li><li><a href="#module-Apify-openKeyValueStore">openKeyValueStore</a></li><li><a href="#module-Apify-pushData">pushData</a></li><li><a href="#module-Apify-setValue">setValue</a></li></ul></li><li><a href="#AutoscaledPool">AutoscaledPool</a><ul><li><a href="#AutoscaledPool-abort">abort</a></li><li><a href="#AutoscaledPool-run">run</a></li></ul></li><li><a href="#BasicCrawler">BasicCrawler</a><ul><li><a href="#BasicCrawler-abort">abort</a></li><li><a href="#BasicCrawler-run">run</a></li></ul></li><li><a href="#CheerioCrawler">CheerioCrawler</a><ul><li><a href="#CheerioCrawler-abort">abort</a></li><li><a href="#CheerioCrawler-run">run</a></li></ul></li><li><a href="#Dataset">Dataset</a><ul><li><a href="#Dataset-delete">delete</a></li><li><a href="#Dataset-forEach">forEach</a></li><li><a href="#Dataset-getData">getData</a></li><li><a href="#Dataset-getInfo">getInfo</a></li><li><a href="#Dataset-map">map</a></li><li><a href="#Dataset-pushData">pushData</a></li><li><a href="#Dataset-reduce">reduce</a></li></ul></li><li><a href="#KeyValueStore">KeyValueStore</a><ul><li><a href="#KeyValueStore-delete">delete</a></li><li><a href="#KeyValueStore-getValue">getValue</a></li><li><a href="#KeyValueStore-setValue">setValue</a></li></ul></li><li><a href="#PseudoUrl">PseudoUrl</a><ul><li><a href="#PseudoUrl-createRequest">createRequest</a></li><li><a href="#PseudoUrl-matches">matches</a></li></ul></li><li><a href="#PuppeteerCrawler">PuppeteerCrawler</a><ul><li><a href="#PuppeteerCrawler-abort">abort</a></li><li><a href="#PuppeteerCrawler-run">run</a></li></ul></li><li><a href="#PuppeteerPool">PuppeteerPool</a><ul><li><a href="#PuppeteerPool-destroy">destroy</a></li><li><a href="#PuppeteerPool-newPage">newPage</a></li><li><a href="#PuppeteerPool-retire">retire</a></li></ul></li><li><a href="#Request">Request</a><ul><li><a href="#Request-pushErrorMessage">pushErrorMessage</a></li></ul></li><li><a href="#RequestList">RequestList</a><ul><li><a href="#RequestList-fetchNextRequest">fetchNextRequest</a></li><li><a href="#RequestList-getState">getState</a></li><li><a href="#RequestList-initialize">initialize</a></li><li><a href="#RequestList-isEmpty">isEmpty</a></li><li><a href="#RequestList-isFinished">isFinished</a></li><li><a href="#RequestList-length">length</a></li><li><a href="#RequestList-markRequestHandled">markRequestHandled</a></li><li><a href="#RequestList-reclaimRequest">reclaimRequest</a></li></ul></li><li><a href="#RequestQueue">RequestQueue</a><ul><li><a href="#RequestQueue-addRequest">addRequest</a></li><li><a href="#RequestQueue-delete">delete</a></li><li><a href="#RequestQueue-fetchNextRequest">fetchNextRequest</a></li><li><a href="#RequestQueue-getRequest">getRequest</a></li><li><a href="#RequestQueue-isEmpty">isEmpty</a></li><li><a href="#RequestQueue-isFinished">isFinished</a></li><li><a href="#RequestQueue-markRequestHandled">markRequestHandled</a></li><li><a href="#RequestQueue-reclaimRequest">reclaimRequest</a></li></ul></li><li><a href="#SettingsRotator">SettingsRotator</a><ul><li><a href="#SettingsRotator-fetchSettings">fetchSettings</a></li><li><a href="#SettingsRotator-reclaimSettings">reclaimSettings</a></li></ul></li><li><a href="#utils">utils</a><ul><li><a href="#utils-URL-NO-COMMAS-REGEX">URL_NO_COMMAS_REGEX</a></li><li><a href="#utils-URL-WITH-COMMAS-REGEX">URL_WITH_COMMAS_REGEX</a></li><li><a href="#utils-downloadListOfUrls">downloadListOfUrls</a></li><li><a href="#utils-extractUrls">extractUrls</a></li><li><a href="#utils-getRandomUserAgent">getRandomUserAgent</a></li><li><a href="#utils-sleep">sleep</a></li></ul></li><li><a href="#utils-puppeteer">puppeteer</a><ul><li><a href="#utils-puppeteer-blockResources">blockResources</a></li><li><a href="#utils-puppeteer-cacheResponses">cacheResponses</a></li><li><a href="#utils-puppeteer-compileScript">compileScript</a></li><li><a href="#utils-puppeteer-enqueueLinks">enqueueLinks</a></li><li><a href="#utils-puppeteer-hideWebDriver">hideWebDriver</a></li><li><a href="#utils-puppeteer-injectFile">injectFile</a></li><li><a href="#utils-puppeteer-injectJQuery">injectJQuery</a></li><li><a href="#utils-puppeteer-injectUnderscore">injectUnderscore</a></li></ul></li><li><a href="#Globals">Globals</a><ul><li><a href="#ActorRun">ActorRun</a></li><li><a href="#ApifyCallError">ApifyCallError</a></li><li><a href="#LaunchPuppeteerOptions">LaunchPuppeteerOptions</a></li><li><a href="#PaginationList">PaginationList</a></li><li><a href="#RequestOperationInfo">RequestOperationInfo</a></li></ul></li></ul>
+                    </div>
+                </nav>
+                <div class="docs-content mleft">
+                    
+<div id="Apify">
+
+<header>
+<h1>The scalable web crawling and scraping library for JavaScript 0.8.14  <a href="https://www.apify.com/docs/sdk" target="_blank" rel="noopener noreferrer"><i class="fa fa-github"></i></a></h1>
+    
+</header>
+
+<article>
+    <div class="container-overview">
+<div class="description"><p>{include-readme-1}
+{include-readme-2}
+{include-readme-3}</p>
+<h2>Programmer's reference</h2>
+
+<p>The following sections describe all functions and properties provided by the <code>apify</code> package.
+All of them are instance members exported directly by the main module.</p></div>
+<section id="Apify" class="sub-sec">
+</section>
+</div>
+<div class="subsection">
+          <h3 class="subsection-title">Members (3)</h3>
+<div class="members">
+  <h4 class="name" id="module-Apify-events"><span class="type-signature">(static) </span>events<span class="type-signature"></span></h4>
+<div class="description">
+      <p>Gets an instance of Node.js' <a href="#https-nodejs-org-api-events-events-class-eventemitter">EventEmitter</a> class
+that emits various events from the SDK or the Apify platform.
+The event emitter is initialized by calling <a href="#module-Apify-main"><code>Apify.main()</code></a> function.</p>
+<p><strong>Example usage:</strong></p>
+<pre class="prettyprint source lang-javascript"><code>Apify.main(async () => {
+  &nbsp;
+  Apify.events.on('cpuInfo', (data) => {
+    if (data.isCpuOverloaded) console.log('Oh no, the CPU is overloaded!');
+  });
+.  &nbsp;
+});</code></pre><p>The following table shows all currently emitted events:</p>
+<table class="table table-bordered table-condensed">
+    <thead>
+        <tr>
+            <th>Event name</th>
+            <th>Data</th>
+            <th>Description</th>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>cpuInfo</code></td>
+            <td><code>{ &quot;isCpuOverloaded&quot;: Boolean }</code></td>
+            <td>
+                The event is emitted approximately every second
+                and it indicates whether the actor is using the maximum of available CPU resources.
+                If that's the case, the actor should not add more workload.
+                For example, this event is used by the <a href="#AutoscaledPool">AutoscaledPool</a> class.
+            </td>
+        </tr>
+        <tr>
+            <td><code>migrating</code></td>
+            <td>None</td>
+            <td>
+                Emitted when the actor running on the Apify platform is going to be migrated to another worker server soon.
+                You can use it to persist the state of the actor and abort the run, to speed up migration.
+                For example, this is used by the <a href="#RequestList">RequestList</a> class.
+            </td>
+        </tr>
+        <tr>
+            <td><code>persistState</code></td>
+            <td><code>{ &quot;isMigrating&quot;: Boolean }</code></td>
+            <td>
+                Emitted in regular intervals to notify all components of Apify SDK that it is time to persist
+                their state, in order to avoid repeating all work when the actor restarts.
+                This event is automatically emitted together with the <code>migrating</code> event,
+                in which case the <code>isMigrating</code> flag is set to <code>true</code>. Otherwise the flag is <code>false</code>.
+            </td>
+        </tr>
+    </tbody>
+</table>
+  </div>
+</div>
+<div class="members">
+  <h4 class="name" id="module-Apify-client"><span class="type-signature"></span>client<span class="type-signature"></span></h4>
+<div class="description">
+      <p>Gets the default instance of the <code>ApifyClient</code> class provided
+by the <a href="https://www.apify.com/docs/sdk/apify-client-js/latest" target="_blank">apify-client</a> NPM package.
+The instance is created automatically by the Apify SDK
+and it is configured using the <code>APIFY_API_BASE_URL</code>, <code>APIFY_USER_ID</code> and <code>APIFY_TOKEN</code>
+environment variables.</p>
+<p>The instance is used for all underlying calls to the Apify API
+in functions such as <a href="#module-Apify-getValue">Apify.getValue()</a>
+or <a href="#module-Apify-call">Apify.call()</a>.
+The settings of the client can be globally altered by calling the
+<a href="https://www.apify.com/docs/sdk/apify-client-js/latest#ApifyClient-setOptions"><code>Apify.client.setOptions()</code></a> function.
+Beware that altering these settings might have unintended effects on the entire Apify SDK package.</p>
+  </div>
+</div>
+<div class="members">
+  <h4 class="name" id="module-Apify-openRequestQueue"><span class="type-signature"></span>openRequestQueue<span class="type-signature"></span></h4>
+<div class="description">
+      <p>Opens a request queue and returns a promise resolving to an instance
+of the <a href="#RequestQueue"><code>RequestQueue</code></a> class.</p>
+<p><code>RequestQueue</code> represents a queue of URLs to crawl, which is stored either on local filesystem or in the cloud.
+The queue is used for deep crawling of websites, where you start with several URLs and then
+recursively follow links to other pages. The data structure supports both breadth-first
+and depth-first crawling orders.</p>
+<p>For more details and code examples, see the <a href="#RequestQueue"><code>RequestQueue</code></a> class.</p>
+  </div>
+</div>
+</div>
+<div class="subsection">
+          <h3 class="subsection-title">Methods (14)</h3>
+<section id="module-Apify-call" class="sub-sec">
+<h4>call<span class="signature">(actId, input<span class="signature-attributes">opt</span>, options<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Promise.&lt;<a href="#ActorRun">ActorRun</a>&gt;}</span></h4>
+<div class="description">
+    <p>Runs an actor on the Apify platform using the current user account (determined by the <code>APIFY_TOKEN</code> environment variable),
+waits for the actor to finish and fetches its output.</p>
+<p>By passing the <code>waitSecs</code> option you can reduce the maximum amount of time to wait for the run to finish.
+If the value is less than or equal to zero, the function returns immediately after the run is started.</p>
+<p>The result of the function is an <a href="#ActorRun"><code>ActorRun</code></a> object
+that contains details about the actor run and its output (if any).
+If the actor run failed, the function fails with <a href="#ApifyCallError"><code>ApifyCallError</code></a> exception.</p>
+<p><strong>Example usage:</strong></p>
+<pre class="prettyprint source lang-javascript"><code>const run = await Apify.call('apify/hello-world', { myInput: 123 });
+console.log(`Received message: ${run.output.body.message}`);</code></pre><p>Internally, the <code>call()</code> function calls the
+<a href="https://www.apify.com/docs/api/v2#/reference/actors/run-collection/run-actor" target="_blank">Run actor</a>
+Apify API endpoint and few others to obtain the output.</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>actId</code></b>
+(
+<span class="param-type">String</span>
+
+)
+-
+Either <code>username/actor-name</code> or actor ID.
+</li>
+<li>
+<b><code>input</code></b>
+(
+<span class="param-type">Object</span>
+|
+
+<span class="param-type">String</span>
+|
+
+<span class="param-type">Buffer</span>
+
+)
+&lt;optional>
+-
+Input for the actor. If it is an object, it will be stringified to
+ JSON and its content type is set to <code>application/json; charset=utf-8</code>.
+ Otherwise the <code>options.contentType</code> parameter must be provided.
+</li>
+<li>
+<b><code>options</code></b>
+(
+<span class="param-type">Object</span>
+
+)
+&lt;optional>
+-
+Object with settings
+<div class="params">
+<ul>
+<li>
+<b><code>contentType</code></b>
+(
+<span class="param-type">String</span>
+
+)
+&lt;optional>
+-
+Content type for the <code>input</code>. If not specified,
+ <code>input</code> is expected to be an object that will be stringified to JSON and content type set to
+ <code>application/json; charset=utf-8</code>. If <code>options.contentType</code> is specified, then <code>input</code> must be a
+ <code>String</code> or <code>Buffer</code>.
+</li>
+<li>
+<b><code>token</code></b>
+(
+<span class="param-type">String</span>
+
+)
+&lt;optional>
+-
+User API token that is used to run the actor. By default, it is taken from the <code>APIFY_TOKEN</code> environment variable.
+</li>
+<li>
+<b><code>memory</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+Memory in megabytes which will be allocated for the new actor run.
+</li>
+<li>
+<b><code>build</code></b>
+(
+<span class="param-type">String</span>
+
+)
+&lt;optional>
+-
+Tag or number of the actor build to run (e.g. <code>beta</code> or <code>1.2.345</code>).
+ If not provided, the run uses build tag or number from the default actor run configuration (typically <code>latest</code>).
+</li>
+<li>
+<b><code>waitSecs</code></b>
+(
+<span class="param-type">String</span>
+
+)
+&lt;optional>
+-
+Maximum time to wait for the actor run to finish, in seconds.
+ If the limit is reached, the returned promise is resolved to a run object that will have
+ status <code>READY</code> or <code>RUNNING</code> and it will not contain the actor run output.
+ If <code>waitSecs</code> is null or undefined, the function waits for the actor to finish (default behavior).
+</li>
+<li>
+<b><code>fetchOutput</code></b>
+(
+<span class="param-type">Boolean</span>
+
+)
+&lt;optional>
+-
+If <code>false</code> then the function does not fetch output of the actor.
+Defaults to <code>true</code>.
+</li>
+<li>
+<b><code>disableBodyParser</code></b>
+(
+<span class="param-type">Boolean</span>
+
+)
+&lt;optional>
+-
+If <code>true</code> then the function will not attempt to parse the
+ actor's output and will return it in a raw <code>Buffer</code>.
+Defaults to <code>false</code>.
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<h5>Throws:</h5>
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>If the run did not succeed, e.g. if it failed or timed out.</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                (
+<span class="param-type"><a href="#ApifyCallError">ApifyCallError</a></span>
+
+)
+</dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise.&lt;<a href="#ActorRun">ActorRun</a>&gt;</span>
+
+)
+- Returns a promise that resolves to an instance
+of <a href="#ActorRun"><code>ActorRun</code></a>. If the actor run fails, the promise is rejected
+with <a href="#ApifyCallError"><code>ApifyCallError</code></a>.
+    
+</li>
+</section>
+<section id="module-Apify-getApifyProxyUrl" class="sub-sec">
+<h4>getApifyProxyUrl<span class="signature">(opts)</span><span class="type-signature"> &rarr; {String}</span></h4>
+<div class="description">
+    <p>Constructs the URL to the Apify Proxy using the specified settings.
+The proxy URL can be used from Apify actors, web browsers or any other HTTP
+proxy-enabled applications.</p>
+<p>For more information, see
+the <a href="https://my.apify.com/proxy">Apify Proxy</a> page in the app
+or the <a href="https://www.apify.com/docs/proxy">documentation</a>.</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>opts</code></b>
+(
+<span class="param-type">Object</span>
+
+)
+<div class="params">
+<ul>
+<li>
+<b><code>password</code></b>
+(
+<span class="param-type">String</span>
+
+)
+-
+User's password for the proxy.
+By default, it is taken from the <code>APIFY_PROXY_PASSWORD</code> environment variable,
+which is automatically set by the system when running the actors on the Apify cloud.
+</li>
+<li>
+<b><code>groups</code></b>
+(
+<span class="param-type">Array.&lt;String&gt;</span>
+
+)
+&lt;optional>
+-
+Array of Apify Proxy groups to be used.
+If not provided, the proxy will select the groups automatically.
+</li>
+<li>
+<b><code>session</code></b>
+(
+<span class="param-type">String</span>
+
+)
+&lt;optional>
+-
+Apify Proxy session identifier to be used by the Chrome browser.
+All HTTP requests going through the proxy with the same session identifier
+will use the same target proxy server (i.e. the same IP address).
+The identifier can only contain the following characters: <code>0-9</code>, <code>a-z</code>, <code>A-Z</code>, <code>&quot;.&quot;</code>, <code>&quot;_&quot;</code> and <code>&quot;~&quot;</code>.
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">String</span>
+
+)
+- Returns the proxy URL, e.g. <code>http://auto:my_password@proxy.apify.com:8000</code>.
+    
+</li>
+</section>
+<section id="module-Apify-getEnv" class="sub-sec">
+<h4>getEnv<span class="signature">()</span><span class="type-signature"> &rarr; {Object}</span></h4>
+<div class="description">
+    <p>Returns a new object which contains information parsed from the <code>APIFY_XXX</code> environment variables.
+It has the following properties:</p>
+<pre class="prettyprint source lang-javascript"><code>{
+    // ID of the actor (APIFY_ACT_ID)
+    actId: String,
+&nbsp;
+    // ID of the actor run (APIFY_ACT_RUN_ID)
+    actRunId: String,
+&nbsp;
+    // ID of the user who started the actor - note that it might be
+    // different than the owner of the actor (APIFY_USER_ID)
+    userId: String,
+&nbsp;
+    // Authentication token representing privileges given to the actor run,
+    // it can be passed to various Apify APIs (APIFY_TOKEN).
+    token: String,
+&nbsp;
+    // Date when the actor was started (APIFY_STARTED_AT)
+    startedAt: Date,
+&nbsp;
+    // Date when the actor will time out (APIFY_TIMEOUT_AT)
+    timeoutAt: Date,
+&nbsp;
+    // ID of the key-value store where input and output data of this
+    // actor is stored (APIFY_DEFAULT_KEY_VALUE_STORE_ID)
+    defaultKeyValueStoreId: String,
+&nbsp;
+    // ID of the dataset where input and output data of this
+    // actor is stored (APIFY_DEFAULT_DATASET_ID)
+    defaultDatasetId: String,
+&nbsp;
+    // Amount of memory allocated for the actor,
+    // in megabytes (APIFY_MEMORY_MBYTES)
+    memoryMbytes: Number,
+}</code></pre><p>For the list of the <code>APIFY_XXX</code> environment variables, see
+<a href="http://localhost/docs/actor.php#run-env-vars" target="_blank">Actor documentation</a>.
+If some of the variables are not defined or are invalid, the corresponding value in the resulting object will be null.</p>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Object</span>
+
+)
+</li>
+</section>
+<section id="module-Apify-main" class="sub-sec">
+<h4>main<span class="signature">(userFunc)</span><span class="type-signature"></span></h4>
+<div class="description">
+    <p>Runs the main user function that performs the job of the actor.</p>
+<p><code>Apify.main()</code> is especially useful when you're running your code in an actor on the Apify platform.
+Note that its use is optional - the function is provided merely for your convenience.</p>
+<p>The function performs the following actions:</p>
+<ol>
+  <li>When running on the Apify platform (i.e. <code>APIFY_IS_AT_HOME</code> environment variable is set),
+  it sets up a connection to listen for platform events.
+  For example, to get a notification about an imminent migration to another server.
+  See <a href="#module-Apify-events"><code>Apify.events</code></a> for details.
+  </li>
+  <li>It checks that either <code>APIFY_TOKEN</code> or <code>APIFY_LOCAL_STORAGE_DIR</code> environment variable
+  is defined. If not, the functions sets <code>APIFY_LOCAL_STORAGE_DIR</code> to <code>./apify_storage</code>
+  inside the current working directory. This is to simplify running code examples.
+  </li>
+  <li>It invokes the user function passed as the <code>userFunc</code> parameter.</li>
+  <li>If the user function returned a promise, waits for it to resolve.</li>
+  <li>If the user function throws an exception or some other error is encountered,
+      prints error details to console so that they are stored to the log.</li>
+  <li>Exits the Node.js process, with zero exit code on success and non-zero on errors.</li>
+</ol>
+
+<p>The user function can be synchronous:</p>
+<pre class="prettyprint source lang-javascript"><code>Apify.main(() => {
+  // My synchronous function that returns immediately
+  console.log('Hello world from actor!');
+});</code></pre><p>If the user function returns a promise, it is considered asynchronous:</p>
+<pre class="prettyprint source lang-javascript"><code>const request = require('request-promise');
+
+Apify.main(() => {
+  // My asynchronous function that returns a promise
+  return request('http://www.example.com').then((html) => {
+    console.log(html);
+  });
+});</code></pre><p>To simplify your code, you can take advantage of the <code>async</code>/<code>await</code> keywords:</p>
+<pre class="prettyprint source lang-javascript"><code>const request = require('request-promise');
+
+Apify.main(async () => {
+  // My asynchronous function
+  const html = await request('http://www.example.com');
+  console.log(html);
+});</code></pre>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>userFunc</code></b>
+(
+<span class="param-type">function</span>
+
+)
+-
+User function to be executed. If it returns a promise,
+the promise will be awaited. The user function is called with no arguments.
+</li>
+</ul>
+</div>
+</section>
+<section id="module-Apify-getMemoryInfo" class="sub-sec">
+<h4>getMemoryInfo<span class="signature">()</span><span class="type-signature"> &rarr; {Promise}</span></h4>
+<div class="description">
+    <p>Returns memory statistics of the process and the system, which is an object with the following properties:</p>
+<pre class="prettyprint source lang-javascript"><code>{
+  // Total memory available in the system or container
+  totalBytes: Number,
+  &nbsp;
+  // Amount of free memory in the system or container
+  freeBytes: Number,
+  &nbsp;
+  // Amount of memory used (= totalBytes - freeBytes)
+  usedBytes: Number,
+  // Amount of memory used the current Node.js process
+  mainProcessBytes: Number,
+  // Amount of memory used by child processes of the current Node.js process
+  childProcessesBytes: Number,
+}</code></pre><p>If the process runs inside of Docker, the <code>getMemoryInfo</code> gets container memory limits,
+otherwise it gets system memory limits.</p>
+<p>Beware that the function is quite inefficient because it spawns a new process.
+Therefore you shouldn't call it too often, like more than once per second.</p>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise</span>
+
+)
+- Returns a promise.
+    
+</li>
+</section>
+<section id="module-Apify-getValue" class="sub-sec">
+<h4>getValue<span class="signature">(key)</span><span class="type-signature"> &rarr; {Promise.&lt;Object&gt;}</span></h4>
+<div class="description">
+    <p>Gets a value from the default <a href="#KeyValueStore"><code>KeyValueStore</code></a> associated with the current actor run.</p>
+<p>This is just a convenient shortcut for <a href="#KeyValueStore-getValue"><code>KeyValueStore.getValue()</code></a>.
+For example, calling the following code:</p>
+<pre class="prettyprint source lang-javascript"><code>const input = await Apify.getValue('INPUT');</code></pre><p>is equivalent to:</p>
+<pre class="prettyprint source lang-javascript"><code>const store = await Apify.openKeyValueStore();
+await store.getValue('INPUT');</code></pre><p>To store the value to the default-key value store, you can use the <code>Apify.setValue()</code> function.</p>
+<p>For more information, see <code>Apify.openKeyValueStore()</code>
+and <a href="#KeyValueStore-getValue"><code>KeyValueStore.getValue()</code></a>.</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>key</code></b>
+(
+<span class="param-type">String</span>
+
+)
+-
+Unique record key.
+</li>
+</ul>
+</div>
+<dl class="details">
+    <dt class="tag-see">See:</dt>
+    <dd class="tag-see">
+      <ul>
+        <li><a href="#KeyValueStore">KeyValueStore</a></li>
+        </ul>
+    </dd>
+  </dl>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise.&lt;Object&gt;</span>
+
+)
+- Returns a promise that resolves once the record is stored.
+    
+</li>
+</section>
+<section id="module-Apify-isAtHome" class="sub-sec">
+<h4>isAtHome<span class="signature">()</span><span class="type-signature"> &rarr; {Boolean}</span></h4>
+<div class="description">
+    <p>Returns <code>true</code> when code is running on Apify platform and <code>false</code> otherwise (for example locally).</p>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Boolean</span>
+
+)
+</li>
+</section>
+<section id="module-Apify-isDocker" class="sub-sec">
+<h4>isDocker<span class="signature">()</span><span class="type-signature"> &rarr; {Promise}</span></h4>
+<div class="description">
+    <p>Returns promise that resolves to true if the code is running in a Docker container.</p>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise</span>
+
+)
+</li>
+</section>
+<section id="module-Apify-launchPuppeteer" class="sub-sec">
+<h4>launchPuppeteer<span class="signature">(opts<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Promise}</span></h4>
+<div class="description">
+    <p>Launches headless Chrome using Puppeteer pre-configured to work within the Apify platform.
+The function has the same argument and the return value as <code>puppeteer.launch()</code>.
+See <a href="https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#puppeteerlaunchoptions" target="_blank">
+Puppeteer documentation</a> for more details.</p>
+<p>The <code>launchPuppeteer()</code> function alters the following Puppeteer options:</p>
+<ul>
+   <li>
+       Passes the setting from the <code>APIFY_HEADLESS</code> environment variable to the <code>headless</code> option,
+       unless it was already defined by the caller or <code>APIFY_XVFB</code> environment variable is set to <code>1</code>.
+       Note that Apify Actor cloud platform automatically sets <code>APIFY_HEADLESS=1</code> to all running actors.
+   </li>
+   <li>
+       Takes the <code>proxyUrl</code> option, checks it and adds it to <code>args</code> as <code>--proxy-server=XXX</code>.
+       If the proxy uses authentication, the function sets up an anonymous proxy HTTP
+       to make the proxy work with headless Chrome. For more information, read the
+       <a href="https://blog.apify.com/how-to-make-headless-chrome-and-puppeteer-use-a-proxy-server-with-authentication-249a21a79212"
+       target="_blank">blog post about proxy-chain library</a>.
+   </li>
+   <li>
+       If <code>opts.useApifyProxy</code> is <code>true</code> then the function generates a URL of
+       <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a>
+       based on <code>opts.apifyProxyGroups</code> and <code>opts.apifyProxySession</code> and passes it as <code>opts.proxyUrl</code>.
+   </li>
+   <li>
+       The function adds <code>--no-sandbox</code> to <code>args</code> to enable running headless Chrome in a Docker container on the Apify platform.
+   </li>
+</ul>
+
+<p>To use this function, you need to have the <a href="https://www.npmjs.com/package/puppeteer" target="_blank">puppeteer</a>
+NPM package installed in your project.
+When running on the Apify cloud platform, you can achieve that simply
+by using the <code>apify/actor-node-chrome</code> base Docker image for your actor - see
+<a href="https://www.apify.com/docs/actor#base-images" target="_blank">Apify Actor documentation</a>
+for details.</p>
+<p>For an example of usage, see the <a href="https://www.apify.com/apify/example-puppeteer">apify/example-puppeteer</a> actor.</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>opts</code></b>
+(
+<span class="param-type"><a href="#LaunchPuppeteerOptions">LaunchPuppeteerOptions</a></span>
+
+)
+&lt;optional>
+-
+Optional settings passed to <code>puppeteer.launch()</code>. Additionally the object can
+  contain the following fields:
+</li>
+</ul>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise</span>
+
+)
+- Promise object that resolves to Puppeteer's <code>Browser</code> instance.
+    
+</li>
+</section>
+<section id="module-Apify-launchWebDriver" class="sub-sec">
+<h4>launchWebDriver<span class="signature">(opts<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Promise}</span></h4>
+<div class="description">
+    <p>Opens a new instance of Chrome web browser
+controlled by <a href="http://www.seleniumhq.org/projects/webdriver/" target="_blank">Selenium WebDriver</a>.
+The result of the function is the new instance of the
+<a href="#http-seleniumhq-github-io-selenium-docs-api-javascript-module-selenium-webdriver-index-exports-WebDriver" target="_blank">
+WebDriver</a>
+class.</p>
+<p>To use this function, you need to have Google Chrome and
+<a href="https://sites.google.com/a/chromium.org/chromedriver/" target="_blank">ChromeDriver</a> installed in your environment.
+For example, you can use the <code>apify/actor-node-chrome</code> base Docker image for your actor - see
+<a href="https://www.apify.com/docs/actor#base-images" target="_blank">documentation</a>
+for more details.</p>
+<p>For an example of usage, see the <a href="https://www.apify.com/apify/example-selenium">apify/example-selenium</a> actor.</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>opts</code></b>
+(
+<span class="param-type">Object</span>
+
+)
+&lt;optional>
+-
+Optional settings passed to <code>puppeteer.launch()</code>. Additionally the object can contain the following fields:
+<div class="params">
+<ul>
+<li>
+<b><code>proxyUrl</code></b>
+(
+<span class="param-type">String</span>
+
+)
+&lt;optional>
+-
+URL to a proxy server. Currently only <code>http://</code> scheme is supported.
+Port number must be specified. For example, <code>http://example.com:1234</code>.
+</li>
+<li>
+<b><code>headless</code></b>
+(
+<span class="param-type">String</span>
+
+)
+&lt;optional>
+-
+Indicates that the browser will be started in headless mode.
+If the option is not defined, and the <code>APIFY_HEADLESS</code> environment variable has value <code>1</code>
+and <code>APIFY_XVFB</code> is NOT <code>1</code>, the value defaults to <code>true</code>, otherwise it will be <code>false</code>.
+</li>
+<li>
+<b><code>userAgent</code></b>
+(
+<span class="param-type">String</span>
+
+)
+&lt;optional>
+-
+User-Agent for the browser.
+If not provided, the function sets it to a reasonable default.
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise</span>
+
+)
+</li>
+</section>
+<section id="module-Apify-openDataset" class="sub-sec">
+<h4>openDataset<span class="signature">(datasetIdOrName<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Promise.&lt;<a href="#Dataset">Dataset</a>&gt;}</span></h4>
+<div class="description">
+    <p>Opens a dataset and returns a promise resolving to an instance of the <a href="#Dataset"><code>Dataset</code></a> class.</p>
+<p>Datasets are used to store structured data where each object stored has the same attributes,
+such as online store products or real estate offers.
+The actual data is stored either on the local filesystem or in the cloud.</p>
+<p>For more details and code examples, see the <a href="#Dataset"><code>Dataset</code></a> class.</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>datasetIdOrName</code></b>
+(
+<span class="param-type">string</span>
+
+)
+&lt;optional>
+-
+ID or name of the dataset to be opened. If <code>null</code> or <code>undefined</code>,
+  the function returns the default dataset associated with the actor run.
+</li>
+</ul>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise.&lt;<a href="#Dataset">Dataset</a>&gt;</span>
+
+)
+- Returns a promise that resolves to an instance of the <code>Dataset</code> class.
+    
+</li>
+</section>
+<section id="module-Apify-openKeyValueStore" class="sub-sec">
+<h4>openKeyValueStore<span class="signature">(storeIdOrName<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Promise.&lt;<a href="#KeyValueStore">KeyValueStore</a>&gt;}</span></h4>
+<div class="description">
+    <p>Opens a key-value store and returns a promise resolving to an instance of the <a href="#KeyValueStore"><code>KeyValueStore</code></a> class.</p>
+<p>Key-value stores are used to store records or files, along with their MIME content type.
+The records are stored and retrieved using a unique key.
+The actual data is stored either on a local filesystem or in the Apify cloud.</p>
+<p>For more details and code examples, see the <a href="#KeyValueStore"><code>KeyValueStore</code></a> class.</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>storeIdOrName</code></b>
+(
+<span class="param-type">string</span>
+
+)
+&lt;optional>
+-
+ID or name of the key-value store to be opened. If <code>null</code> or <code>undefined</code>,
+  the function returns the default key-value store associated with the actor run.
+</li>
+</ul>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise.&lt;<a href="#KeyValueStore">KeyValueStore</a>&gt;</span>
+
+)
+- Returns a promise that resolves to an instance of the <code>KeyValueStore</code> class.
+    
+</li>
+</section>
+<section id="module-Apify-pushData" class="sub-sec">
+<h4>pushData<span class="signature">(data)</span><span class="type-signature"> &rarr; {Promise}</span></h4>
+<div class="description">
+    <p>Stores an object or an array of objects to the default <a href="#Dataset"><code>Dataset</code></a> of the current actor run.</p>
+<p>This is just a convenient shortcut for <a href="#Dataset-pushData"><code>Dataset.pushData()</code></a>.
+For example, calling the following code:</p>
+<pre class="prettyprint source lang-javascript"><code>await Apify.pushData({ myValue: 123 });</code></pre><p>is equivalent to:</p>
+<pre class="prettyprint source lang-javascript"><code>const dataset = await Apify.openDataset();
+await dataset.pushData({ myValue: 123 });</code></pre><p>For more information, see <code>Apify.openDataset()</code> and <a href="#Dataset-pushData"><code>Dataset.pushData()</code></a></p>
+<p><strong>IMPORTANT</strong>: Make sure to use the <code>await</code> keyword when calling <code>pushData()</code>,
+otherwise the actor process might finish before the data is stored!</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>data</code></b>
+(
+<span class="param-type">Object</span>
+|
+
+<span class="param-type">Array</span>
+
+)
+-
+Object or array of objects containing data to be stored in the default dataset.
+The objects must be serializable to JSON and the JSON representation of each object must be smaller than 9MB.
+</li>
+</ul>
+</div>
+<dl class="details">
+    <dt class="tag-see">See:</dt>
+    <dd class="tag-see">
+      <ul>
+        <li><a href="#Dataset">Dataset</a></li>
+        </ul>
+    </dd>
+  </dl>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise</span>
+
+)
+- Returns a promise that resolves once the data is saved.
+    
+</li>
+</section>
+<section id="module-Apify-setValue" class="sub-sec">
+<h4>setValue<span class="signature">(key, value, options<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Promise}</span></h4>
+<div class="description">
+    <p>Stores or deletes a value in the default <a href="#KeyValueStore"><code>KeyValueStore</code></a> associated with the current actor run.</p>
+<p>This is just a convenient shortcut for <a href="#KeyValueStore-setValue"><code>KeyValueStore.setValue()</code></a>.
+For example, calling the following code:</p>
+<pre class="prettyprint source lang-javascript"><code>await Apify.setValue('OUTPUT', { foo: &quot;bar&quot; });</code></pre><p>is equivalent to:</p>
+<pre class="prettyprint source lang-javascript"><code>const store = await Apify.openKeyValueStore();
+await store.setValue('OUTPUT', { foo: &quot;bar&quot; });</code></pre><p>To get a value from the default-key value store, you can use the <code>Apify.getValue()</code> function.</p>
+<p>For more information, see <code>Apify.openKeyValueStore()</code>
+and <a href="#KeyValueStore-setValue"><code>KeyValueStore.setValue()</code></a>.</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>key</code></b>
+(
+<span class="param-type">String</span>
+
+)
+-
+Unique record key.
+</li>
+<li>
+<b><code>value</code></b>
+(
+<span class="param-type">Object</span>
+|
+
+<span class="param-type">String</span>
+|
+
+<span class="param-type">Buffer</span>
+
+)
+-
+Record data, which can be one of the following values:
+  <ul>
+    <li>If <code>null</code>, the record in the key-value store is deleted.</li>
+    <li>If no <code>options.contentType</code> is specified, <code>value</code> can be any JavaScript object and it will be stringified to JSON.</li>
+    <li>If <code>options.contentType</code> is specified, <code>value</code> is considered raw data and it must be a <code>String</code>
+    or <a href="#https-nodejs-org-api-buffer"><code>Buffer</code></a>.</li>
+  </ul>
+  For any other value an error will be thrown.
+</li>
+<li>
+<b><code>options</code></b>
+(
+<span class="param-type">Object</span>
+
+)
+&lt;optional>
+<div class="params">
+<ul>
+<li>
+<b><code>contentType</code></b>
+(
+<span class="param-type">String</span>
+
+)
+&lt;optional>
+-
+Specifies a custom MIME content type of the record.
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<dl class="details">
+    <dt class="tag-see">See:</dt>
+    <dd class="tag-see">
+      <ul>
+        <li><a href="#KeyValueStore">KeyValueStore</a></li>
+        </ul>
+    </dd>
+  </dl>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise</span>
+
+)
+- Returns a promise that resolves once the value is stored or deleted.
+    
+</li>
+</section>
+</div>
+</article>
+
+</div>
+<div id="AutoscaledPool">
+
+<header>
+<h2>
+        AutoscaledPool
+        </h2>
+<div class="class-description"><p>Manages a pool of asynchronous resource-intensive tasks that are executed in parallel.
+The pool only starts new tasks if there is enough free CPU and memory available
+and the Javascript event loop is not blocked.</p>
+<p>The information about the CPU and memory usage is obtained by the <code>Snapshotter</code> class,
+which makes regular snapshots of system resources that may be either local
+or from the Apify cloud infrastructure in case the process is running on the Apify platform.
+Meaningful data gathered from these snapshots is provided to <code>AutoscaledPool</code> by the <code>SystemStatus</code> class.</p>
+<p>Before running the pool, you need to implement the following three functions:
+<code>runTaskFunction()</code>,
+<code>isTaskReadyFunction()</code> and
+<code>isFinishedFunction()</code>.</p>
+<p>The auto-scaled pool is started by calling the <a href="#AutoscaledPool-run"><code>run()</code></a> function.
+The pool periodically queries the <code>isTaskReadyFunction()</code> function
+for more tasks, managing optimal concurrency, until the function resolves to <code>false</code>. The pool then queries
+the <code>isFinishedFunction()</code>. If it resolves to <code>true</code>, the run finishes. If it resolves to <code>false</code>, it assumes
+there will be more tasks available later and keeps querying for tasks, until finally both the
+<code>isTaskReadyFunction()</code> and <code>isFinishedFunction()</code> functions resolve to <code>true</code>. If any of the tasks throws
+then the <code>run()</code> function rejects the promise with an error.</p>
+<p>The pool evaluates whether it should start a new task every time one of the tasks finishes
+and also in the interval set by the <code>options.maybeRunIntervalSecs</code> parameter.</p>
+<p><strong>Example usage:</strong></p>
+<pre class="prettyprint source lang-javascript"><code>const pool = new Apify.AutoscaledPool({
+    maxConcurrency: 50,
+    runTaskFunction: async () => {
+        // Run some resource-intensive asynchronous operation here.
+    },
+    isTaskReadyFunction: async () => {
+        // Tell the pool whether more tasks are ready to be processed. (true / false)
+    },
+    isFinishedFunction: async () => {
+        // Tell the pool whether it should finish or wait for more tasks to become available. (true / false)
+    }
+});
+
+await pool.run();</code></pre></div>
+</header>
+
+<article>
+    <div class="container-overview">
+<section id="AutoscaledPool" class="sub-sec">
+<h2>Constructor</h2>
+<h4>new AutoscaledPool<span class="signature">(options)</span><span class="type-signature"></span></h4>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>options</code></b>
+(
+<span class="param-type">Object</span>
+
+)
+<div class="params">
+<ul>
+<li>
+<b><code>runTaskFunction</code></b>
+(
+<span class="param-type">function</span>
+
+)
+-
+A function that performs an asynchronous resource-intensive task.
+  The function must either be labeled <code>async</code> or return a promise.
+</li>
+<li>
+<b><code>isTaskReadyFunction</code></b>
+(
+<span class="param-type">function</span>
+
+)
+-
+A function that indicates whether <code>runTaskFunction</code> should be called.
+  This function is called every time there is free capacity for a new task and it should
+  indicate whether it should start or not by resolving to either <code>true</code> or `false.
+  Besides its obvious use, it is also useful for task throttling to save resources.
+</li>
+<li>
+<b><code>isFinishedFunction</code></b>
+(
+<span class="param-type">function</span>
+
+)
+-
+A function that is called only when there are no tasks to be processed.
+  If it resolves to <code>true</code> then the pool's run finishes. Being called only
+  when there are no tasks being processed means that as long as <code>isTaskReadyFunction()</code>
+  keeps resolving to <code>true</code>, <code>isFinishedFunction()</code> will never be called.
+  To abort a run, use the <code>pool.abort()</code> method.
+</li>
+<li>
+<b><code>minConcurrency</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+Minimum number of tasks running in parallel.
+Defaults to <code>1</code>.
+</li>
+<li>
+<b><code>maxConcurrency</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+Maximum number of tasks running in parallel.
+Defaults to <code>1000</code>.
+</li>
+<li>
+<b><code>desiredConcurrencyRatio</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+Minimum level of desired concurrency to reach before more scaling up is allowed.
+Defaults to <code>0.95</code>.
+</li>
+<li>
+<b><code>scaleUpStepRatio</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+Defines the fractional amount of desired concurrency to be added with each scaling up.
+  The minimum scaling step is one.
+Defaults to <code>0.05</code>.
+</li>
+<li>
+<b><code>scaleDownStepRatio</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+Defines the amount of desired concurrency to be subtracted with each scaling down.
+  The minimum scaling step is one.
+Defaults to <code>0.05</code>.
+</li>
+<li>
+<b><code>maybeRunIntervalSecs</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+Indicates how often the pool should call the <code>runTaskFunction()</code> to start a new task, in seconds.
+  This has no effect on starting new tasks immediately after a task completes.
+Defaults to <code>0.5</code>.
+</li>
+<li>
+<b><code>loggingIntervalSecs</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+Specifies a period in which the instance logs its state, in seconds.
+  Set to <code>null</code> to disable periodic logging.
+Defaults to <code>60</code>.
+</li>
+<li>
+<b><code>autoscaleIntervalSecs</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+Defines in seconds how often the pool should attempt to adjust the desired concurrency
+  based on the latest system status. Setting it lower than 1 might have a severe impact on performance.
+  We suggest using a value from 5 to 20.
+Defaults to <code>10</code>.
+</li>
+<li>
+<b><code>snapshotterOptions</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+Options to be passed down to the <code>Snapshotter</code> constructor. This is useful for fine-tuning
+  the snapshot intervals and history.
+  See <a href="https://github.com/apifytech/apify-js/blob/develop/src/autoscaling/snapshotter.js">Snapshotter</a> source code for more details.
+</li>
+<li>
+<b><code>systemStatusOptions</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+Options to be passed down to the <code>SystemStatus</code> constructor. This is useful for fine-tuning
+  the system status reports. If a custom snapshotter is set in the options, it will be used
+  by the pool.
+  See <a href="https://github.com/apifytech/apify-js/blob/develop/src/autoscaling/system_status.js">SystemStatus</a> source code for more details.
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</section>
+</div>
+<div class="subsection">
+          <h3 class="subsection-title">Methods (2)</h3>
+<section id="AutoscaledPool-abort" class="sub-sec">
+<h4>abort<span class="signature">()</span><span class="type-signature"> &rarr; {Promise}</span></h4>
+<div class="description">
+    <p>Aborts the run of the auto-scaled pool, discards all currently running tasks and destroys it.</p>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise</span>
+
+)
+</li>
+</section>
+<section id="AutoscaledPool-run" class="sub-sec">
+<h4>run<span class="signature">()</span><span class="type-signature"> &rarr; {Promise}</span></h4>
+<div class="description">
+    <p>Runs the auto-scaled pool. Returns a promise that gets resolved or rejected once
+all the tasks are finished or one of them fails.</p>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise</span>
+
+)
+</li>
+</section>
+</div>
+</article>
+
+</div>
+<div id="BasicCrawler">
+
+<header>
+<h2>
+        BasicCrawler
+        </h2>
+<div class="class-description"><p>Provides a simple framework for the parallel crawling of web pages,
+whose URLs are fed either from a static list
+or from a dynamic queue of URLs.</p>
+<p><code>BasicCrawler</code> invokes the user-provided <code>handleRequestFunction</code> for each <a href="#Request"><code>Request</code></a>
+object, which corresponds to a single URL to crawl.
+The <code>Request</code> objects are fed from the <a href="#RequestList"><code>RequestList</code></a> or <a href="#RequestQueue"><code>RequestQueue</code></a>
+instances provided by the <code>requestList</code> or <code>requestQueue</code> constructor options, respectively.</p>
+<p>If both <code>requestList</code> and <code>requestQueue</code> is used, the instance first
+processes URLs from the <code>RequestList</code> and automatically enqueues all of them to <code>RequestQueue</code> before it starts
+their processing. This ensures that a single URL is not crawled multiple times.</p>
+<p>The crawler finishes if there are no more <code>Request</code> objects to crawl.</p>
+<p>New requests are only launched if there is enough free CPU and memory available,
+using the functionality provided by the <a href="#AutoscaledPool"><code>AutoscaledPool</code></a> class.
+All <code>AutoscaledPool</code> configuration options can be passed to the <code>autoscaledPoolOptions</code> parameter
+of the <code>CheerioCrawler</code> constructor.
+For user convenience, the <code>minConcurrency</code> and <code>maxConcurrency</code> options are available directly in the constructor.</p>
+<p><strong>Example usage:</strong></p>
+<pre class="prettyprint source lang-javascript"><code>const rp = require('request-promise');
+
+// Prepare a list of URLs to crawl
+const requestList = new Apify.RequestList({
+  sources: [
+      { url: 'http://www.example.com/page-1' },
+      { url: 'http://www.example.com/page-2' },
+  ],
+});
+await requestList.initialize();
+
+// Crawl the URLs
+const crawler = new Apify.BasicCrawler({
+    requestList,
+    handleRequestFunction: async ({ request }) => {
+        // 'request' contains an instance of the Request class
+        // Here we simply fetch the HTML of the page and store it to a dataset
+        await Apify.pushData({
+            url: request.url,
+            html: await rp(request.url),
+        })
+    },
+});
+
+await crawler.run();</code></pre></div>
+</header>
+
+<article>
+    <div class="container-overview">
+<section id="BasicCrawler" class="sub-sec">
+<h2>Constructor</h2>
+<h4>new BasicCrawler<span class="signature">(options)</span><span class="type-signature"></span></h4>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>options</code></b>
+(
+<span class="param-type">Object</span>
+
+)
+<div class="params">
+<ul>
+<li>
+<b><code>handleRequestFunction</code></b>
+(
+<span class="param-type">function</span>
+
+)
+-
+User-provided function that performs the logic of the crawler. It is called for each URL to crawl.
+<p>  The function that receives an object as argument, with the following field:</p>
+  <ul>
+    <li><code>request</code>: the <a href="#Request"><code>Request</code></a> object representing the URL to crawl</li>
+  </ul>
+
+<p>  The function must return a promise.</p>
+</li>
+<li>
+<b><code>requestList</code></b>
+(
+<span class="param-type"><a href="#RequestList">RequestList</a></span>
+
+)
+-
+Static list of URLs to be processed.
+  Either <code>RequestList</code> or <code>RequestQueue</code> must be provided.
+</li>
+<li>
+<b><code>requestQueue</code></b>
+(
+<span class="param-type"><a href="#RequestQueue">RequestQueue</a></span>
+
+)
+-
+Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
+  Either RequestList or RequestQueue must be provided.
+</li>
+<li>
+<b><code>handleFailedRequestFunction</code></b>
+(
+<span class="param-type">function</span>
+
+)
+&lt;optional>
+-
+Function that handles requests that failed more then <code>option.maxRequestRetries</code> times.
+  See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/basic_crawler.js#L11">GitHub</a> for default behavior.
+</li>
+<li>
+<b><code>maxRequestRetries</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+How many times the request is retried if <code>handleRequestFunction</code> failed.
+Defaults to <code>3</code>.
+</li>
+<li>
+<b><code>maxRequestsPerCrawl</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached.
+  Always set this value in order to prevent infinite loops in misconfigured crawlers.
+  Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.
+</li>
+<li>
+<b><code>autoscaledPoolOptions</code></b>
+(
+<span class="param-type">Object</span>
+
+)
+&lt;optional>
+-
+Custom options passed to the underlying <a href="#AutoscaledPool"><code>AutoscaledPool</code></a> instance constructor.
+  Note that the <code>runTaskFunction</code>, <code>isTaskReadyFunction</code> and <code>isFinishedFunction</code> options
+  are provided by <code>BasicCrawler</code> and cannot be overridden.
+</li>
+<li>
+<b><code>minConcurrency</code></b>
+(
+<span class="param-type">Object</span>
+
+)
+&lt;optional>
+-
+Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding <code>AutoscaledPool</code> option.
+Defaults to <code>1</code>.
+</li>
+<li>
+<b><code>maxConcurrency</code></b>
+(
+<span class="param-type">Object</span>
+
+)
+&lt;optional>
+-
+Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding <code>AutoscaledPool</code> option.
+Defaults to <code>1000</code>.
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<dl class="details">
+    <dt class="tag-see">See:</dt>
+    <dd class="tag-see">
+      <ul>
+        <li><a href="#CheerioCrawler">CheerioCrawler</a></li>
+<li><a href="#PuppeteerCrawler">PuppeteerCrawler</a></li>
+        </ul>
+    </dd>
+  </dl>
+</section>
+</div>
+<div class="subsection">
+          <h3 class="subsection-title">Methods (2)</h3>
+<section id="BasicCrawler-abort" class="sub-sec">
+<h4>abort<span class="signature">()</span><span class="type-signature"> &rarr; {Promise}</span></h4>
+<div class="description">
+    <p>Aborts the crawler by preventing additional requests and terminating the running ones.</p>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise</span>
+
+)
+</li>
+</section>
+<section id="BasicCrawler-run" class="sub-sec">
+<h4>run<span class="signature">()</span><span class="type-signature"> &rarr; {Promise}</span></h4>
+<div class="description">
+    <p>Runs the crawler. Returns a promise that gets resolved once all the requests are processed.</p>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise</span>
+
+)
+</li>
+</section>
+</div>
+</article>
+
+</div>
+<div id="CheerioCrawler">
+
+<header>
+<h2>
+        CheerioCrawler
+        </h2>
+<div class="class-description"><p>Provides a framework for the parallel crawling of web pages using plain HTTP requests and
+<a href="https://www.npmjs.com/package/cheerio">cheerio</a> HTML parser.</p>
+<p><code>CheerioCrawler</code> downloads each URL using a plain HTTP request,
+parses the HTML content using cheerio and then
+invokes the user-provided <code>handlePageFunction</code> to extract page data
+using a <a href="https://jquery.com/">jQuery</a>-like interface to parsed HTML DOM.</p>
+<p>The source URLs are represented using <code>Request</code> objects that
+are fed from the <a href="#RequestList"><code>RequestList</code></a> or <a href="#RequestQueue"><code>RequestQueue</code></a>
+instances provided by the <code>requestList</code> or <code>requestQueue</code> constructor options, respectively.</p>
+<p>If both <code>requestList</code> and <code>requestQueue</code> is used, the instance first
+processes URLs from the <code>RequestList</code> and automatically enqueues all of them to <code>RequestQueue</code> before it starts
+their processing. This ensures that a single URL is not crawled multiple times.</p>
+<p>The crawler finishes if there are no more <code>Request</code> objects to crawl.</p>
+<p>By default, <code>CheerioCrawler</code> downloads HTML using the <a href="https://www.npmjs.com/package/request-promise">request-promise</a> NPM package.
+You can override this behavior by setting the <code>requestFunction</code> option.</p>
+<p>New requests are only started if there is enough free CPU and memory available,
+using the functionality provided by the <a href="#AutoscaledPool"><code>AutoscaledPool</code></a> class.
+All <code>AutoscaledPool</code> configuration options can be passed to the <code>autoscaledPoolOptions</code> parameter
+of the <code>CheerioCrawler</code> constructor.
+For user convenience, the <code>minConcurrency</code> and <code>maxConcurrency</code> options are available directly.</p>
+<p><strong>Example usage:</strong></p>
+<pre class="prettyprint source lang-javascript"><code>// Prepare a list of URLs to crawl
+const requestList = new Apify.RequestList({
+  sources: [
+      { url: 'http://www.example.com/page-1' },
+      { url: 'http://www.example.com/page-2' },
+  ],
+});
+await requestList.initialize();
+
+// Crawl the URLs
+const crawler = new Apify.CheerioCrawler({
+    requestList,
+    handlePageFunction: async ({ $, html, request }) => {
+const data = [];
+// Do some data extraction from the page with Cheerio.
+        $('.some-collection').each((index, el) => {
+            data.push({ title: $(el).find('.some-title').text() });
+        });
+// Save the data to dataset.
+        await Apify.pushData({
+            url: request.url,
+            html,
+            data,
+        })
+    },
+});
+
+await crawler.run();</code></pre></div>
+</header>
+
+<article>
+    <div class="container-overview">
+<section id="CheerioCrawler" class="sub-sec">
+<h2>Constructor</h2>
+<h4>new CheerioCrawler<span class="signature">(options)</span><span class="type-signature"></span></h4>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>options</code></b>
+(
+<span class="param-type">Object</span>
+
+)
+<div class="params">
+<ul>
+<li>
+<b><code>handlePageFunction</code></b>
+(
+<span class="param-type">function</span>
+
+)
+-
+User-provided function that performs the logic of the crawler. It is called for each page
+  loaded and parsed by the crawler.
+<p>  The function that receives an object as argument, with the following three fields:</p>
+  <ul>
+    <li><code>$</code>: the Cheerio object</li>
+    <li><code>html</code>: the raw HTML</li>
+    <li><code>request</code>: the <a href="#Request"><code>Request</code></a> object representing the URL to crawl</li>
+  </ul>
+
+<p>  If the function returns a promise, it is awaited.</p>
+</li>
+<li>
+<b><code>requestList</code></b>
+(
+<span class="param-type"><a href="#RequestList">RequestList</a></span>
+
+)
+-
+Static list of URLs to be processed.
+  Either RequestList or RequestQueue must be provided.
+</li>
+<li>
+<b><code>requestQueue</code></b>
+(
+<span class="param-type"><a href="#RequestQueue">RequestQueue</a></span>
+
+)
+-
+Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
+  Either RequestList or RequestQueue must be provided.
+</li>
+<li>
+<b><code>requestFunction</code></b>
+(
+<span class="param-type">function</span>
+
+)
+&lt;optional>
+-
+Overrides the function that performs the HTTP request to get the raw HTML needed for Cheerio.
+  See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/cheerio_crawler.js#L264">GitHub</a> for default behavior.
+</li>
+<li>
+<b><code>handlePageTimeoutSecs</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+Timeout in which the function passed as <code>options.handlePageFunction</code> needs to finish, given in seconds.
+Defaults to <code>300</code>.
+</li>
+<li>
+<b><code>requestTimeoutSecs</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+Timeout in which the function passed as <code>options.requestFunction</code> needs to finish, given in seconds.
+Defaults to <code>30</code>.
+</li>
+<li>
+<b><code>ignoreSslErrors</code></b>
+(
+<span class="param-type">Boolean</span>
+
+)
+&lt;optional>
+-
+If set to true, SSL certificate errors will be ignored. This is dependent on using the default
+  request function. If using a custom request function, user needs to implement this functionality.
+Defaults to <code>false</code>.
+</li>
+<li>
+<b><code>handleFailedRequestFunction</code></b>
+(
+<span class="param-type">function</span>
+
+)
+&lt;optional>
+-
+Function that handles requests that failed more then <code>option.maxRequestRetries</code> times.
+  See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/cheerio_crawler.js#L13">GitHub</a> for default behavior.
+</li>
+<li>
+<b><code>maxRequestRetries</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+How many times the request is retried if either <code>requestFunction</code> or <code>handlePageFunction</code> failed.
+Defaults to <code>3</code>.
+</li>
+<li>
+<b><code>maxRequestsPerCrawl</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached.
+  Always set this value in order to prevent infinite loops in misconfigured crawlers.
+  Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.
+</li>
+<li>
+<b><code>autoscaledPoolOptions</code></b>
+(
+<span class="param-type">Object</span>
+
+)
+&lt;optional>
+-
+Custom options passed to the underlying <a href="#AutoscaledPool"><code>AutoscaledPool</code></a> instance constructor.
+  Note that the <code>runTaskFunction</code>, <code>isTaskReadyFunction</code> and <code>isFinishedFunction</code> options
+  are provided by <code>CheerioCrawler</code> and cannot be overridden.
+</li>
+<li>
+<b><code>minConcurrency</code></b>
+(
+<span class="param-type">Object</span>
+
+)
+&lt;optional>
+-
+Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding <code>AutoscaledPool</code> option.
+Defaults to <code>1</code>.
+</li>
+<li>
+<b><code>maxConcurrency</code></b>
+(
+<span class="param-type">Object</span>
+
+)
+&lt;optional>
+-
+Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding <code>AutoscaledPool</code> option.
+Defaults to <code>1000</code>.
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<dl class="details">
+    <dt class="tag-see">See:</dt>
+    <dd class="tag-see">
+      <ul>
+        <li><a href="#BasicCrawler">BasicCrawler</a></li>
+<li><a href="#PuppeteerCrawler">PuppeteerCrawler</a></li>
+        </ul>
+    </dd>
+  </dl>
+</section>
+</div>
+<div class="subsection">
+          <h3 class="subsection-title">Methods (2)</h3>
+<section id="CheerioCrawler-abort" class="sub-sec">
+<h4>abort<span class="signature">()</span><span class="type-signature"> &rarr; {Promise}</span></h4>
+<div class="description">
+    <p>Aborts the crawler by preventing crawls of additional pages and terminating the running ones.</p>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise</span>
+
+)
+</li>
+</section>
+<section id="CheerioCrawler-run" class="sub-sec">
+<h4>run<span class="signature">()</span><span class="type-signature"> &rarr; {Promise}</span></h4>
+<div class="description">
+    <p>Runs the crawler. Returns promise that gets resolved once all the requests got processed.</p>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise</span>
+
+)
+</li>
+</section>
+</div>
+</article>
+
+</div>
+<div id="Dataset">
+
+<header>
+<h2>
+        Dataset
+        </h2>
+<div class="class-description"><p>The <code>Dataset</code> class represents a store for structured data where each object stored has the same attributes,
+such as online store products or real estate offers. You can imagine it as a table,
+where each object is a row and its attributes are columns.
+Dataset is an append-only storage - you can only add new records to it but you cannot modify or remove existing records.
+Typically it is used to store crawling results.</p>
+<p>Do not instantiate this class directly, use the
+<code>Apify.openDataset()</code> function instead.</p>
+<p><code>Dataset</code> stores its data either on local disk or in the Apify cloud,
+depending on whether the <code>APIFY_LOCAL_STORAGE_DIR</code> or <code>APIFY_TOKEN</code> environment variable is set.</p>
+<p>If the <code>APIFY_LOCAL_STORAGE_DIR</code> environment variable is set, the data is stored in
+the local directory in the following files:</p>
+<pre class="prettyprint source"><code>[APIFY_LOCAL_STORAGE_DIR]/datasets/[DATASET_ID]/[INDEX].json</code></pre><p>Note that <code>[DATASET_ID]</code> is the name or ID of the dataset. The default dataset has ID <code>default</code>,
+unless you override it by setting the <code>APIFY_DEFAULT_DATASET_ID</code> environment variable.
+Each dataset item is stored as a separate JSON file, where <code>[INDEX]</code> is a zero-based index of the item in the dataset.</p>
+<p>If the <code>APIFY_TOKEN</code> environment variable is provided instead, the data is stored
+in the <a href="https://www.apify.com/docs/storage#dataset">Apify Dataset</a> cloud storage.</p>
+<p><strong>Example usage:</strong></p>
+<pre class="prettyprint source lang-javascript"><code>// Write a single row to the default dataset
+await Apify.pushData({ col1: 123, col2: 'val2' });
+
+// Open a named dataset
+const dataset = await Apify.openDataset('some-name');
+
+// Write a single row
+await dataset.pushData({ foo: 'bar' });
+
+// Write multiple rows
+await dataset.pushData([
+  { foo: 'bar2', col2: 'val2' },
+  { col3: 123 },
+]);</code></pre></div>
+</header>
+
+<article>
+    <div class="container-overview">
+<section id="Dataset" class="sub-sec">
+<h2>Constructor</h2>
+<h4>new Dataset<span class="signature">()</span><span class="type-signature"></span></h4>
+</section>
+</div>
+<div class="subsection">
+          <h3 class="subsection-title">Methods (7)</h3>
+<section id="Dataset-delete" class="sub-sec">
+<h4>delete<span class="signature">()</span><span class="type-signature"> &rarr; {Promise}</span></h4>
+<div class="description">
+    <p>Removes the dataset either from the Apify cloud storage or from the local directory,
+depending on the mode of operation.</p>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise</span>
+
+)
+</li>
+</section>
+<section id="Dataset-forEach" class="sub-sec">
+<h4>forEach<span class="signature">(iteratee, opts, index)</span><span class="type-signature"> &rarr; {Promise.&lt;undefined&gt;}</span></h4>
+<div class="description">
+    <p>Iterates over dataset items, yielding each in turn to an <code>iteratee</code> function.
+Each invocation of <code>iteratee</code> is called with three arguments: <code>(element, index)</code>.</p>
+<p>If <code>iteratee</code> returns a Promise then it is awaited before a next call.</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>iteratee</code></b>
+(
+<span class="param-type">function</span>
+
+)
+-
+</li>
+<li>
+<b><code>opts</code></b>
+(
+<span class="param-type">Opts</span>
+
+)
+-
+</li>
+<li>
+<b><code>options.offset</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+Number of array elements that should be skipped at the start.
+Defaults to <code>0</code>.
+</li>
+<li>
+<b><code>options.desc</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+If <code>1</code> then the objects are sorted by <code>createdAt</code> in descending order.
+</li>
+<li>
+<b><code>options.fields</code></b>
+(
+<span class="param-type">Array</span>
+
+)
+&lt;optional>
+-
+If provided then returned objects will only contain specified keys
+</li>
+<li>
+<b><code>options.unwind</code></b>
+(
+<span class="param-type">String</span>
+
+)
+&lt;optional>
+-
+If provided then objects will be unwound based on provided field.
+</li>
+<li>
+<b><code>options.limit</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+How many items to load in one request.
+Defaults to <code>250000</code>.
+</li>
+<li>
+<b><code>index</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+-
+[description]
+</li>
+</ul>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise.&lt;undefined&gt;</span>
+
+)
+</li>
+</section>
+<section id="Dataset-getData" class="sub-sec">
+<h4>getData<span class="signature">(options)</span><span class="type-signature"> &rarr; {Promise}</span></h4>
+<div class="description">
+    <p>Returns items in the dataset based on the provided parameters.</p>
+<p>If format is <code>json</code> then the function doesn't return an array of records but <a href="#PaginationList"><code>PaginationList</code></a> instead.</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>options</code></b>
+(
+<span class="param-type">Object</span>
+
+)
+<div class="params">
+<ul>
+<li>
+<b><code>format</code></b>
+(
+<span class="param-type">String</span>
+
+)
+&lt;optional>
+-
+Format of the items, possible values are: <code>json</code>, <code>csv</code>, <code>xlsx</code>, <code>html</code>, <code>xml</code> and <code>rss</code>.
+Defaults to <code>'json'</code>.
+</li>
+<li>
+<b><code>offset</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+Number of array elements that should be skipped at the start.
+Defaults to <code>0</code>.
+</li>
+<li>
+<b><code>limit</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+Maximum number of array elements to return.
+Defaults to <code>250000</code>.
+</li>
+<li>
+<b><code>desc</code></b>
+(
+<span class="param-type">Boolean</span>
+
+)
+&lt;optional>
+-
+If <code>true</code> then the objects are sorted by <code>createdAt</code> in descending order.
+  Otherwise they are sorted in ascending order.
+</li>
+<li>
+<b><code>fields</code></b>
+(
+<span class="param-type">Array</span>
+
+)
+&lt;optional>
+-
+An array of field names that will be included in the result. If omitted, all fields are included in the results.
+</li>
+<li>
+<b><code>unwind</code></b>
+(
+<span class="param-type">String</span>
+
+)
+&lt;optional>
+-
+Specifies a name of the field in the result objects that will be used to unwind the resulting objects.
+  By default, the results are returned as they are.
+</li>
+<li>
+<b><code>disableBodyParser</code></b>
+(
+<span class="param-type">Boolean</span>
+
+)
+&lt;optional>
+-
+If <code>true</code> then response from API will not be parsed.
+</li>
+<li>
+<b><code>attachment</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+If <code>true</code> then the response will define the <code>Content-Disposition: attachment</code> HTTP header, forcing a web
+  browser to download the file rather than to display it. By default, this header is not present.
+</li>
+<li>
+<b><code>delimiter</code></b>
+(
+<span class="param-type">String</span>
+
+)
+&lt;optional>
+-
+A delimiter character for CSV files, only used if <code>format</code> is <code>csv</code>.
+  You might need to URL-encode the character (e.g. use <code>%09</code> for tab or <code>%3B</code> for semicolon).
+Defaults to <code>','</code>.
+</li>
+<li>
+<b><code>bom</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+All responses are encoded in UTF-8 encoding. By default, the CSV files are prefixed with the UTF-8 Byte
+  Order Mark (BOM), while JSON, JSONL, XML, HTML and RSS files are not. If you want to override this default
+  behavior, set <code>bom</code> option to <code>true</code> to include the BOM, or set <code>bom</code> to <code>false</code> to skip it.
+</li>
+<li>
+<b><code>xmlRoot</code></b>
+(
+<span class="param-type">String</span>
+
+)
+&lt;optional>
+-
+Overrides the default root element name of the XML output. By default, the root element is <code>results</code>.
+</li>
+<li>
+<b><code>xmlRow</code></b>
+(
+<span class="param-type">String</span>
+
+)
+&lt;optional>
+-
+Overrides the default element name that wraps each page or page function result object in XML output.
+  By default, the element name is <code>page</code> or <code>result</code>, depending on the value of the <code>simplified</code> option.
+</li>
+<li>
+<b><code>skipHeaderRow</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+If set to <code>1</code> then header row in csv format is skipped.
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise</span>
+
+)
+</li>
+</section>
+<section id="Dataset-getInfo" class="sub-sec">
+<h4>getInfo<span class="signature">(opts)</span><span class="type-signature"> &rarr; {Promise}</span></h4>
+<div class="description">
+    <p>Returns an object containing general information about the dataset.</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>opts</code></b>
+(
+<span class="param-type">Object</span>
+
+)
+</li>
+</ul>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise</span>
+
+)
+</li>
+<h5>Example</h5>
+<pre class="prettyprint"><code>{
+  "id": "WkzbQMuFYuamGv3YF",
+  "name": "d7b9MDYsbtX5L7XAj",
+  "userId": "wRsJZtadYvn4mBZmm",
+  "createdAt": "2015-12-12T07:34:14.202Z",
+  "modifiedAt": "2015-12-13T08:36:13.202Z",
+  "accessedAt": "2015-12-14T08:36:13.202Z",
+  "itemsCount": 0
+}</code></pre>
+</section>
+<section id="Dataset-map" class="sub-sec">
+<h4>map<span class="signature">(iteratee, opts, index)</span><span class="type-signature"> &rarr; {Promise.&lt;Array&gt;}</span></h4>
+<div class="description">
+    <p>Produces a new array of values by mapping each value in list through a transformation function (<code>iteratee</code>).
+Each invocation of <code>iteratee</code> is called with three arguments: <code>(element, index)</code>.</p>
+<p>If <code>iteratee</code> returns a <code>Promise</code> then it's awaited before a next call.</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>iteratee</code></b>
+(
+<span class="param-type">function</span>
+
+)
+-
+</li>
+<li>
+<b><code>opts</code></b>
+(
+<span class="param-type">Opts</span>
+
+)
+-
+</li>
+<li>
+<b><code>options.offset</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+Number of array elements that should be skipped at the start.
+Defaults to <code>0</code>.
+</li>
+<li>
+<b><code>options.desc</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+If 1 then the objects are sorted by createdAt in descending order.
+</li>
+<li>
+<b><code>options.fields</code></b>
+(
+<span class="param-type">Array</span>
+
+)
+&lt;optional>
+-
+If provided then returned objects will only contain specified keys
+</li>
+<li>
+<b><code>options.unwind</code></b>
+(
+<span class="param-type">String</span>
+
+)
+&lt;optional>
+-
+If provided then objects will be unwound based on provided field.
+</li>
+<li>
+<b><code>options.limit</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+How many items to load in one request.
+Defaults to <code>250000</code>.
+</li>
+<li>
+<b><code>index</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+-
+[description]
+</li>
+</ul>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise.&lt;Array&gt;</span>
+
+)
+</li>
+</section>
+<section id="Dataset-pushData" class="sub-sec">
+<h4>pushData<span class="signature">(data)</span><span class="type-signature"> &rarr; {Promise}</span></h4>
+<div class="description">
+    <p>Stores an object or an array of objects to the dataset.
+The function returns a promise that resolves when the operation finishes.
+It has no result, but throws on invalid args or other errors.</p>
+<p><strong>IMPORTANT</strong>: Make sure to use the <code>await</code> keyword when calling <code>pushData()</code>,
+otherwise the actor process might finish before the data is stored!</p>
+<p>The size of the data is limited by the receiving API and therefore <code>pushData</code> will only
+allow objects whose JSON representation is smaller than 9MB. When an array is passed,
+none of the included objects
+may be larger than 9MB, but the array itself may be of any size.</p>
+<p>The function internally
+chunks the array into separate items and pushes them sequentially.
+The chunking process is stable (keeps order of data), but it does not provide a transaction
+safety mechanism. Therefore, in the event of an uploading error (after several automatic retries),
+the function's promise will reject and the dataset will be left in a state where some of
+the items have already been saved to the dataset while other items from the source array were not.
+To overcome this limitation, the developer may, for example, read the last item saved in the dataset
+and re-attempt the save of the data from this item onwards to prevent duplicates.</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>data</code></b>
+(
+<span class="param-type">Object</span>
+|
+
+<span class="param-type">Array</span>
+
+)
+-
+Object or array of objects containing data to be stored in the default dataset.
+The objects must be serializable to JSON and the JSON representation of each object must be smaller than 9MB.
+</li>
+</ul>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise</span>
+
+)
+- Returns a promise that resolves once the data is saved.
+    
+</li>
+</section>
+<section id="Dataset-reduce" class="sub-sec">
+<h4>reduce<span class="signature">(iteratee, memo, opts, index)</span><span class="type-signature"> &rarr; {Promise.&lt;*&gt;}</span></h4>
+<div class="description">
+    <p>Boils down a list of values into a single value.</p>
+<p>Memo is the initial state of the reduction, and each successive step of it should be returned by <code>iteratee</code>.
+The <code>iteratee</code> is passed three arguments: the <code>memo</code>, then the value and index of the iteration.</p>
+<p>If no <code>memo</code> is passed to the initial invocation of reduce, the <code>iteratee</code> is not invoked on the first element of the list.
+The first element is instead passed as the memo in the invocation of the <code>iteratee</code> on the next element in the list.</p>
+<p>If <code>iteratee</code> returns a <code>Promise</code> then it's awaited before a next call.</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>iteratee</code></b>
+(
+<span class="param-type">function</span>
+
+)
+-
+</li>
+<li>
+<b><code>memo</code></b>
+(
+<span class="param-type">*</span>
+
+)
+-
+</li>
+<li>
+<b><code>opts</code></b>
+(
+<span class="param-type">Opts</span>
+
+)
+-
+</li>
+<li>
+<b><code>options.offset</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+Number of array elements that should be skipped at the start.
+Defaults to <code>0</code>.
+</li>
+<li>
+<b><code>options.desc</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+If 1 then the objects are sorted by createdAt in descending order.
+</li>
+<li>
+<b><code>options.fields</code></b>
+(
+<span class="param-type">Array</span>
+
+)
+&lt;optional>
+-
+If provided then returned objects will only contain specified keys
+</li>
+<li>
+<b><code>options.unwind</code></b>
+(
+<span class="param-type">String</span>
+
+)
+&lt;optional>
+-
+If provided then objects will be unwound based on provided field.
+</li>
+<li>
+<b><code>options.limit</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+How many items to load in one request.
+Defaults to <code>250000</code>.
+</li>
+<li>
+<b><code>index</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+-
+[description]
+</li>
+</ul>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise.&lt;*&gt;</span>
+
+)
+</li>
+</section>
+</div>
+</article>
+
+</div>
+<div id="KeyValueStore">
+
+<header>
+<h2>
+        KeyValueStore
+        </h2>
+<div class="class-description"><p>The <code>KeyValueStore</code> class represents a key-value store, a simple data storage that is used
+for saving and reading data records or files. Each data record is
+represented by a unique key and associated with a MIME content type. Key-value stores are ideal
+for saving screenshots, actor inputs and outputs, web pages, PDFs or to persist the state of crawlers.</p>
+<p>Do not instantiate this class directly, use the
+<code>Apify.openKeyValueStore()</code> function instead.</p>
+<p>Each actor run is associated with a default key-value store, which is created exclusively
+for the run. By convention, the actor input and output are stored into the
+default key-value store under the <code>INPUT</code> and <code>OUTPUT</code> key, respectively.
+Typically, input and output are JSON files, although it can be any other format.
+To access the default key-value store directly, you can use the
+<code>Apify.getValue()</code>
+and <code>Apify.setValue()</code> convenience functions.</p>
+<p><code>KeyValueStore</code> stores its data either on local disk or in the Apify cloud,
+depending on whether the <code>APIFY_LOCAL_STORAGE_DIR</code> or <code>APIFY_TOKEN</code> environment variable is set.</p>
+<p>If the <code>APIFY_LOCAL_STORAGE_DIR</code> environment variable is set, the data is stored in
+the local directory in the following files:</p>
+<pre class="prettyprint source"><code>[APIFY_LOCAL_STORAGE_DIR]/key_value_stores/[STORE_ID]/[KEY].[EXT]</code></pre><p>Note that <code>[STORE_ID]</code> is the name or ID of the key-value store. The default key value store has ID <code>default</code>,
+unless you override it by setting the <code>APIFY_DEFAULT_KEY_VALUE_STORE_ID</code> environment variable.
+The <code>[KEY]</code> is the key of the record and <code>[EXT]</code> corresponds to the MIME content type of the data value.</p>
+<p>If the <code>APIFY_TOKEN</code> environment variable is provided instead, the data is stored
+in the <a href="https://www.apify.com/docs/storage#dataset">Apify Dataset</a> cloud storage.</p>
+<p><strong>Example usage:</strong></p>
+<pre class="prettyprint source lang-javascript"><code>// Get actor input from the default key-value store
+const input = await Apify.getValue('INPUT');
+
+// Write actor output to the default key-value store.
+await Apify.setValue('OUTPUT', { myResult: 123 });
+
+// Open a named key-value store
+const store = await Apify.openKeyValueStore('some-name');
+
+// Write a record. JavaScript object is automatically converted to JSON,
+// strings and binary buffers are stored as they are
+await store.setValue('some-key', { foo: 'bar' });
+
+// Read a record. Note that JSON is automatically parsed to a JavaScript object,
+// text data returned as a string and other data is returned as binary buffer
+const value = await store.getValue('some-key');
+// Delete record
+await store.delete('some-key');</code></pre></div>
+</header>
+
+<article>
+    <div class="container-overview">
+<section id="KeyValueStore" class="sub-sec">
+<h2>Constructor</h2>
+<h4>new KeyValueStore<span class="signature">()</span><span class="type-signature"></span></h4>
+<dl class="details">
+    <dt class="tag-see">See:</dt>
+    <dd class="tag-see">
+      <ul>
+        <li><code>Apify.getValue()</code></li>
+<li><code>Apify.setValue()</code></li>
+        </ul>
+    </dd>
+  </dl>
+</section>
+</div>
+<div class="subsection">
+          <h3 class="subsection-title">Methods (3)</h3>
+<section id="KeyValueStore-delete" class="sub-sec">
+<h4>delete<span class="signature">()</span><span class="type-signature"> &rarr; {Promise}</span></h4>
+<div class="description">
+    <p>Removes the key-value store either from the Apify cloud storage or from the local directory,
+depending on the mode of operation.</p>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise</span>
+
+)
+</li>
+</section>
+<section id="KeyValueStore-getValue" class="sub-sec">
+<h4>getValue<span class="signature">(key)</span><span class="type-signature"> &rarr; {Promise.&lt;Object&gt;}</span></h4>
+<div class="description">
+    <p>Gets a value from the key-value store.</p>
+<p>The function returns a promise that resolves to the record value,
+whose JavaScript type depends on the MIME content type of the record.
+Records with the <code>application/json</code>
+content type are automatically parsed and returned as a JavaScript object.
+Similarly, records with <code>text/plain</code> content types are returned as a string.
+For all other content types, the value is returned as a raw
+<a href="#https-nodejs-org-api-buffer"><code>Buffer</code></a> instance.</p>
+<p>If the record does not exist, the functions resolves to <code>null</code>.</p>
+<p>To save or delete a value in the key-value store, use the
+<a href="#KeyValueStore-setValue"><code>KeyValueStore.setValue()</code></a> function.</p>
+<p><strong>Example usage:</strong></p>
+<pre class="prettyprint source lang-javascript"><code>const store = await Apify.openKeyValueStore('my-screenshots');
+const buffer = await store.getValue('screenshot1.png');</code></pre>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>key</code></b>
+(
+<span class="param-type">String</span>
+
+)
+-
+Key of the record.
+</li>
+</ul>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise.&lt;Object&gt;</span>
+
+)
+- Returns a promise that resolves to an object, string
+  or <a href="#https-nodejs-org-api-buffer"><code>Buffer</code></a>, depending
+  on the MIME content type of the record.
+    
+</li>
+</section>
+<section id="KeyValueStore-setValue" class="sub-sec">
+<h4>setValue<span class="signature">(key, value, options<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Promise}</span></h4>
+<div class="description">
+    <p>Saves or deletes a record in the key-value store.
+The function returns a promise that resolves once the record has been saved or deleted.</p>
+<p><strong>Example usage:</strong></p>
+<pre class="prettyprint source lang-javascript"><code>const store = await Apify.openKeyValueStore('my-store');
+await store.setValue('RESULTS', 'my text data', { contentType: 'text/plain' });</code></pre><p>By default, <code>value</code> is converted to JSON and stored with the
+<code>application/json; charset=utf-8</code> MIME content type.
+To store the value with another content type, pass it in the options as follows:</p>
+<pre class="prettyprint source lang-javascript"><code>const store = await Apify.openKeyValueStore('my-store');
+await store.setValue('RESULTS', 'my text data', { contentType: 'text/plain' });</code></pre><p>If you set custom content type, <code>value</code> must be either a string or
+<a href="#https-nodejs-org-api-buffer"><code>Buffer</code></a>, otherwise an error will be thrown.</p>
+<p>If <code>value</code> is null, the record is deleted instead. Note that the <code>setValue()</code> function succeeds
+regardless whether the record existed or not.</p>
+<p>To retrieve a value from the key-value store, use the
+<a href="#KeyValueStore-setValue"><code>KeyValueStore.getValue()</code></a> function.</p>
+<p><strong>IMPORTANT:</strong> Always make sure to use the <code>await</code> keyword when calling <code>setValue()</code>,
+otherwise the actor process might finish before the value is stored!</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>key</code></b>
+(
+<span class="param-type">String</span>
+
+)
+-
+Unique record key.
+</li>
+<li>
+<b><code>value</code></b>
+(
+<span class="param-type">Object</span>
+|
+
+<span class="param-type">String</span>
+|
+
+<span class="param-type">Buffer</span>
+
+)
+-
+Record data, which can be one of the following values:
+  <ul>
+    <li>If <code>null</code>, the record in the key-value store is deleted.</li>
+    <li>If no <code>options.contentType</code> is specified, <code>value</code> can be any JavaScript object and it will be stringified to JSON.</li>
+    <li>If <code>options.contentType</code> is specified, <code>value</code> is considered raw data and it must be a <code>String</code>
+    or <a href="#https-nodejs-org-api-buffer"><code>Buffer</code></a>.</li>
+  </ul>
+  For any other value an error will be thrown.
+</li>
+<li>
+<b><code>options</code></b>
+(
+<span class="param-type">Object</span>
+
+)
+&lt;optional>
+<div class="params">
+<ul>
+<li>
+<b><code>contentType</code></b>
+(
+<span class="param-type">String</span>
+
+)
+&lt;optional>
+-
+Specifies a custom MIME content type of the record.
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise</span>
+
+)
+- Returns a promise that resolves once the value is stored or deleted.
+    
+</li>
+</section>
+</div>
+</article>
+
+</div>
+<div id="PseudoUrl">
+
+<header>
+<h2>
+        PseudoUrl
+        </h2>
+<div class="class-description"><p>Represents a pseudo URL (PURL) - an URL pattern used by web crawlers
+to specify which URLs should the crawler visit.
+This class is used by the <code>Apify.utils.puppeteer.enqueueLinks()</code> function.</p>
+<p>A PURL is simply a URL with special directives enclosed in <code>[]</code> brackets.
+Currently, the only supported directive is <code>[regexp]</code>,
+which defines a JavaScript-style regular expression to match against the URL.</p>
+<p>For example, a PURL <code>http://www.example.com/pages/[(\w|-)*]</code> will match all of the following URLs:</p>
+<ul>
+    <li><code>http://www.example.com/pages/</code></li>
+    <li><code>http://www.example.com/pages/my-awesome-page</code></li>
+    <li><code>http://www.example.com/pages/something</code></li>
+</ul>
+
+<p>If either <code>[</code> or <code>]</code> is part of the normal query string, it must be encoded as <code>[\x5B]</code> or <code>[\x5D]</code>,
+respectively. For example, the following PURL:</p>
+<pre class="prettyprint source"><code>http://www.example.com/search?do[\x5B]load[\x5D]=1</code></pre><p>will match the URL:</p>
+<pre class="prettyprint source"><code>http://www.example.com/search?do[load]=1</code></pre><p><strong>Example usage:</strong></p>
+<pre class="prettyprint source lang-javascript"><code>const purl = new Apify.PseudoUrl('http://www.example.com/pages/[(\w|-)*]');
+
+if (purl.matches('http://www.example.com/pages/my-awesome-page')) console.log('Match!');</code></pre></div>
+</header>
+
+<article>
+    <div class="container-overview">
+<section id="PseudoUrl" class="sub-sec">
+<h2>Constructor</h2>
+<h4>new PseudoUrl<span class="signature">(purl, requestTemplate)</span><span class="type-signature"></span></h4>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>purl</code></b>
+(
+<span class="param-type">String</span>
+
+)
+-
+Pseudo URL.
+</li>
+<li>
+<b><code>requestTemplate</code></b>
+(
+<span class="param-type">Object</span>
+
+)
+-
+Options for the new <a href="#Request"><code>Request</code></a> instances created for matching URLs.
+</li>
+</ul>
+</div>
+<dl class="details">
+    <dt class="tag-see">See:</dt>
+    <dd class="tag-see">
+      <ul>
+        <li><a href="#Request"><code>Request</code></a></li>
+<li><a href="#Request"><code>Request</code></a></li>
+        </ul>
+    </dd>
+  </dl>
+</section>
+</div>
+<div class="subsection">
+          <h3 class="subsection-title">Methods (2)</h3>
+<section id="PseudoUrl-createRequest" class="sub-sec">
+<h4>createRequest<span class="signature">(url)</span><span class="type-signature"> &rarr; {<a href="#Request">Request</a>}</span></h4>
+<div class="description">
+    <p>Creates a Request object from requestTemplate and given URL.</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>url</code></b>
+(
+<span class="param-type">String</span>
+
+)
+</li>
+</ul>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type"><a href="#Request">Request</a></span>
+
+)
+</li>
+</section>
+<section id="PseudoUrl-matches" class="sub-sec">
+<h4>matches<span class="signature">(url)</span><span class="type-signature"> &rarr; {Boolean}</span></h4>
+<div class="description">
+    <p>Determines whether a URL matches this pseudo-URL pattern.</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>url</code></b>
+(
+<span class="param-type">String</span>
+
+)
+-
+URL to be matched.
+</li>
+</ul>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Boolean</span>
+
+)
+- Returns <code>true</code> if given URL matches pseudo URL.
+    
+</li>
+</section>
+</div>
+</article>
+
+</div>
+<div id="PuppeteerCrawler">
+
+<header>
+<h2>
+        PuppeteerCrawler
+        </h2>
+<div class="class-description"><p>Provides a simple framework for parallel crawling of web pages
+using headless Chrome with <a href="https://github.com/GoogleChrome/puppeteer">Puppeteer</a>.
+The URLs of pages to visit are given by <code>Request</code> objects that are fed from a list (see <code>RequestList</code> class)
+or from a dynamic queue (see <code>RequestQueue</code> class).</p>
+<p><code>PuppeteerCrawler</code> opens a new Chrome page (i.e. tab) for each <code>Request</code> object to crawl
+and then calls the function provided by user as the <code>handlePageFunction</code> option.
+New tasks are only started if there is enough free CPU and memory available,
+using the <code>AutoscaledPool</code> class internally.</p>
+<p><strong>Example usage:</strong></p>
+<pre class="prettyprint source lang-javascript"><code>const crawler = new Apify.PuppeteerCrawler({
+    requestList,
+    handlePageFunction: async ({ page, request }) => {
+        // This function is called to extract data from a single web page
+        // 'page' is an instance of Puppeteer.Page with page.goto(request.url) already called
+        // 'request' is an instance of Request class with information about the page to load
+        await Apify.pushData({
+            title: await page.title(),
+            url: request.url,
+            succeeded: true,
+        })
+    },
+    handleFailedRequestFunction: async ({ request }) => {
+        // This function is called when crawling of a request failed too many time
+        await Apify.pushData({
+            url: request.url,
+            succeeded: false,
+            errors: request.errorMessages,
+        })
+    },
+});
+
+await crawler.run();</code></pre></div>
+</header>
+
+<article>
+    <div class="container-overview">
+<section id="PuppeteerCrawler" class="sub-sec">
+<h2>Constructor</h2>
+<h4>new PuppeteerCrawler<span class="signature">(options)</span><span class="type-signature"></span></h4>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>options</code></b>
+(
+<span class="param-type">Object</span>
+
+)
+<div class="params">
+<ul>
+<li>
+<b><code>handlePageFunction</code></b>
+(
+<span class="param-type">function</span>
+
+)
+-
+Function that is called to process each request.
+  It is passed an object with the following fields:
+  <code>request</code> is an instance of the <code>Request</code> object with details about the URL to open, HTTP method etc.
+  <code>page</code> is an instance of the <code>Puppeteer.Page</code> class with <code>page.goto(request.url)</code> already called.
+</li>
+<li>
+<b><code>requestList</code></b>
+(
+<span class="param-type"><a href="#RequestList">RequestList</a></span>
+
+)
+-
+List of the requests to be processed.
+  Either RequestList or RequestQueue must be provided.
+  See the <code>requestList</code> parameter of <code>BasicCrawler</code> for more details.
+</li>
+<li>
+<b><code>requestQueue</code></b>
+(
+<span class="param-type"><a href="#RequestQueue">RequestQueue</a></span>
+
+)
+-
+Queue of the requests to be processed.
+  Either RequestList or RequestQueue must be provided.
+  See the <code>requestQueue</code> parameter of <code>BasicCrawler</code> for more details.
+</li>
+<li>
+<b><code>handlePageTimeoutSecs</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+Timeout in which the function passed as <code>options.handlePageFunction</code> needs to finish, in seconds.
+Defaults to <code>300</code>.
+</li>
+<li>
+<b><code>gotoFunction</code></b>
+(
+<span class="param-type">function</span>
+
+)
+&lt;optional>
+-
+Overrides the function that opens the request in Puppeteer. The function should return a result of Puppeteer's
+  <a href="https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#pagegotourl-options">page.goto()</a> function,
+  i.e. a promise resolving to the <a href="https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-response">Response</a> object.
+<p>  For example, this is useful if you need to extend the page load timeout or select different criteria
+  to determine that the navigation succeeded.</p>
+<p>  Note that a single page object is only used to process a single request and it is closed afterwards.</p>
+<p>  See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_crawler.js#L9">GitHub</a> for default behavior.</p>
+</li>
+<li>
+<b><code>handleFailedRequestFunction</code></b>
+(
+<span class="param-type">function</span>
+
+)
+&lt;optional>
+-
+Function to handle requests that failed more than <code>option.maxRequestRetries</code> times. See the <code>handleFailedRequestFunction</code>
+  parameter of <code>Apify.BasicCrawler</code> for details.
+  See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_crawler.js#L13">GitHub</a> for default behavior.
+</li>
+<li>
+<b><code>maxRequestRetries</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+Indicates how many times each request is retried if <code>handleRequestFunction</code> failed.
+  See <code>maxRequestRetries</code> parameter of <code>BasicCrawler</code>.
+Defaults to <code>3</code>.
+</li>
+<li>
+<b><code>maxRequestsPerCrawl</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached.
+  Always set this value in order to prevent infinite loops in misconfigured crawlers.
+  Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.
+  See <code>maxRequestsPerCrawl</code> parameter of <code>BasicCrawler</code>.
+</li>
+<li>
+<b><code>maxOpenPagesPerInstance</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+Maximum number of opened tabs per browser. If this limit is reached then a new
+  browser instance is started. See <code>maxOpenPagesPerInstance</code> parameter of <code>PuppeteerPool</code>.
+Defaults to <code>50</code>.
+</li>
+<li>
+<b><code>retireInstanceAfterRequestCount</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+Maximum number of requests that can be processed by a single browser instance.
+  After the limit is reached the browser will be retired and new requests will
+  be handled by a new browser instance.
+  See <code>retireInstanceAfterRequestCount</code> parameter of <code>PuppeteerPool</code>.
+Defaults to <code>100</code>.
+</li>
+<li>
+<b><code>instanceKillerIntervalMillis</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+How often the launched Puppeteer instances are checked whether they can be
+  closed. See <code>instanceKillerIntervalMillis</code> parameter of <code>PuppeteerPool</code>.
+Defaults to <code>60000</code>.
+</li>
+<li>
+<b><code>killInstanceAfterMillis</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+If Puppeteer instance reaches the <code>options.retireInstanceAfterRequestCount</code> limit then
+  it is considered retired and no more tabs will be opened. After the last tab is closed
+  the whole browser is closed too. This parameter defines a time limit for inactivity
+  after which the browser is closed even if there are pending tabs. See
+  <code>killInstanceAfterMillis</code> parameter of <code>PuppeteerPool</code>.
+Defaults to <code>300000</code>.
+</li>
+<li>
+<b><code>launchPuppeteerFunction</code></b>
+(
+<span class="param-type">function</span>
+
+)
+&lt;optional>
+-
+Overrides the default function to launch a new Puppeteer instance.
+  See <code>launchPuppeteerFunction</code> parameter of <code>PuppeteerPool</code>.
+  See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_crawler.js#L9">GitHub</a> for default behavior.
+</li>
+<li>
+<b><code>launchPuppeteerOptions</code></b>
+(
+<span class="param-type"><a href="#LaunchPuppeteerOptions">LaunchPuppeteerOptions</a></span>
+
+)
+&lt;optional>
+-
+Options used by <code>Apify.launchPuppeteer()</code> to start new Puppeteer instances.
+  See <code>launchPuppeteerOptions</code> parameter of <code>PuppeteerPool</code>.
+</li>
+<li>
+<b><code>autoscaledPoolOptions</code></b>
+(
+<span class="param-type">Object</span>
+
+)
+&lt;optional>
+-
+Custom options passed to the underlying <a href="#AutoscaledPool"><code>AutoscaledPool</code></a> instance constructor.
+  Note that the <code>runTaskFunction</code>, <code>isTaskReadyFunction</code> and <code>isFinishedFunction</code> options
+  are provided by <code>PuppeteerCrawler</code> and should not be overridden.
+</li>
+<li>
+<b><code>minConcurrency</code></b>
+(
+<span class="param-type">Object</span>
+
+)
+&lt;optional>
+-
+Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding <code>AutoscaledPool</code> option.
+Defaults to <code>1</code>.
+</li>
+<li>
+<b><code>maxConcurrency</code></b>
+(
+<span class="param-type">Object</span>
+
+)
+&lt;optional>
+-
+Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding <code>AutoscaledPool</code> option.
+Defaults to <code>1000</code>.
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<dl class="details">
+    <dt class="tag-see">See:</dt>
+    <dd class="tag-see">
+      <ul>
+        <li><a href="#CheerioCrawler">CheerioCrawler</a></li>
+<li><a href="#BasicCrawler">BasicCrawler</a></li>
+        </ul>
+    </dd>
+  </dl>
+</section>
+</div>
+<div class="subsection">
+          <h3 class="subsection-title">Methods (2)</h3>
+<section id="PuppeteerCrawler-abort" class="sub-sec">
+<h4>abort<span class="signature">()</span><span class="type-signature"> &rarr; {Promise}</span></h4>
+<div class="description">
+    <p>Stops the crawler by preventing crawls of additional pages and terminating the running ones.</p>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise</span>
+
+)
+</li>
+</section>
+<section id="PuppeteerCrawler-run" class="sub-sec">
+<h4>run<span class="signature">()</span><span class="type-signature"> &rarr; {Promise}</span></h4>
+<div class="description">
+    <p>Runs the crawler. Returns promise that gets resolved once all the requests got processed.</p>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise</span>
+
+)
+</li>
+</section>
+</div>
+</article>
+
+</div>
+<div id="PuppeteerPool">
+
+<header>
+<h2>
+        PuppeteerPool
+        </h2>
+<div class="class-description"><p>Manages a pool of Chrome browser instances controlled using <a href="https://github.com/GoogleChrome/puppeteer">Puppeteer</a>.
+<code>PuppeteerPool</code> reuses Chrome instances and tabs using specific
+browser rotation and retirement policies.
+This is useful in order to facilitate rotation of proxies, cookies
+or other settings in order to prevent detection of your web scraping bot,
+access web pages from various countries etc.
+Additionally, the reuse of browser instances instances speeds up crawling,
+and the retirement of instances helps mitigate effects of memory leaks in Chrome.</p>
+<p><code>PuppeteerPool</code> is internally used by the <a href="#PuppeteerCrawler"><code>PuppeteerCrawler</code></a> class.</p>
+<p><strong>Example usage:</strong></p>
+<pre class="prettyprint source lang-javascript"><code>const puppeteerPool = new PuppeteerPool({
+  launchPuppeteerFunction: () => {
+    // Use a new proxy with a new IP address for each new Chrome instance
+    return Apify.launchPuppeteer({
+       apifyProxySession: Math.random(),
+    });
+  },
+});
+
+const page1 = await puppeteerPool.newPage();
+const page2 = await puppeteerPool.newPage();
+const page3 = await puppeteerPool.newPage();
+
+// ... do something with the pages ...
+
+// Close all browsers.
+await puppeteerPool.destroy();</code></pre></div>
+</header>
+
+<article>
+    <div class="container-overview">
+<section id="PuppeteerPool" class="sub-sec">
+<h2>Constructor</h2>
+<h4>new PuppeteerPool<span class="signature">()</span><span class="type-signature"></span></h4>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>options.maxOpenPagesPerInstance</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+Maximum number of open pages (i.e. tabs) per browser. When this limit is reached, new pages are loaded in a new browser instance.
+Defaults to <code>50</code>.
+</li>
+<li>
+<b><code>options.retireInstanceAfterRequestCount</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+Maximum number of requests that can be processed by a single browser instance.
+  After the limit is reached, the browser is retired and new requests are
+  be handled by a new browser instance.
+Defaults to <code>100</code>.
+</li>
+<li>
+<b><code>options.instanceKillerIntervalMillis</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+Indicates how often opened Puppeteer instances are checked whether they can be closed.
+Defaults to <code>60000</code>.
+</li>
+<li>
+<b><code>options.killInstanceAfterMillis</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+When Puppeteer instance reaches the <code>options.retireInstanceAfterRequestCount</code> limit then
+  it is considered retired and no more tabs will be opened. After the last tab is closed the
+  whole browser is closed too. This parameter defines a time limit between the last tab was opened and
+  before the browser is closed even if there are pending open tabs.
+Defaults to <code>300000</code>.
+</li>
+<li>
+<b><code>options.launchPuppeteerFunction</code></b>
+(
+<span class="param-type">function</span>
+
+)
+&lt;optional>
+-
+Overrides the default function to launch a new <code>Puppeteer</code> instance.
+Defaults to <code>launchPuppeteerOptions&nbsp;=>&nbsp;Apify.launchPuppeteer(launchPuppeteerOptions)</code>.
+</li>
+<li>
+<b><code>options.launchPuppeteerOptions</code></b>
+(
+<span class="param-type"><a href="#LaunchPuppeteerOptions">LaunchPuppeteerOptions</a></span>
+
+)
+&lt;optional>
+-
+Options used by <code>Apify.launchPuppeteer()</code> to start new Puppeteer instances.
+</li>
+<li>
+<b><code>options.recycleDiskCache</code></b>
+(
+<span class="param-type">Boolean</span>
+
+)
+&lt;optional>
+-
+Enables recycling of disk cache directories by Chrome instances.
+  When a browser instance is closed, its disk cache directory is not deleted but it's used by a newly opened browser instance.
+  This is useful to reduce amount of data that needs to be downloaded to speed up crawling and reduce proxy usage.
+  Note that the new browser starts with empty cookies, local storage etc. so this setting doesn't affect anonymity of your crawler.
+<p>  Beware that the disk cache directories can consume a lot of disk space.
+  To limit the space consumed, you can pass the <code>--disk-cache-size=X</code> argument to <code>options.launchPuppeteerOptions.args</code>,
+  where <code>X</code> is the approximate maximum number of bytes for disk cache.</p>
+<p>  <em>IMPORTANT:</em> Currently this feature only works in headful mode, because of a bug in Chromium.</p>
+<p>  The <code>options.recycleDiskCache</code> setting should not be used together with <code>--disk-cache-dir</code> argument in <code>options.launchPuppeteerOptions.args</code>.</p>
+</li>
+</ul>
+</div>
+</section>
+</div>
+<div class="subsection">
+          <h3 class="subsection-title">Methods (3)</h3>
+<section id="PuppeteerPool-destroy" class="sub-sec">
+<h4>destroy<span class="signature">()</span><span class="type-signature"> &rarr; {Promise}</span></h4>
+<div class="description">
+    <p>Closes all the browsers.</p>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise</span>
+
+)
+</li>
+</section>
+<section id="PuppeteerPool-newPage" class="sub-sec">
+<h4>newPage<span class="signature">()</span><span class="type-signature"> &rarr; {Promise.&lt;Puppeteer.Page&gt;}</span></h4>
+<div class="description">
+    <p>Opens new tab in one of the browsers and returns promise that resolves to its Puppeteer.Page.</p>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise.&lt;Puppeteer.Page&gt;</span>
+
+)
+</li>
+</section>
+<section id="PuppeteerPool-retire" class="sub-sec">
+<h4>retire<span class="signature">(browser)</span><span class="type-signature"> &rarr; {Promise}</span></h4>
+<div class="description">
+    <p>Manually retires a Puppeteer Browser instance from the pool. The browser will continue
+to process open pages so that they may gracefully finish. This is unlike browser.close()
+which will forcibly terminate the browser and all open pages will be closed.</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>browser</code></b>
+(
+<span class="param-type">Puppeteer.Browser</span>
+
+)
+</li>
+</ul>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise</span>
+
+)
+</li>
+</section>
+</div>
+</article>
+
+</div>
+<div id="Request">
+
+<header>
+<h2>
+        Request
+        </h2>
+<div class="class-description"><p>Represents a URL to be crawled, optionally including HTTP method, headers, payload and other metadata.
+The <code>Request</code> object also stores information about errors that occurred during processing of the request.</p>
+<p>Each <code>Request</code> instance has the <code>uniqueKey</code> property, which is be either specified
+manually in constructor or generated automatically from the URL. Two requests with the same <code>uniqueKey</code>
+are considered as pointing to the same web page. This behavior applies to all Apify SDK classes,
+such as <a href="#RequestList"><code>RequestList</code></a>, <a href="#RequestQueue"><code>RequestQueue</code></a> or <a href="#PuppeteerCrawler"><code>PuppeteerCrawler</code></a>.</p>
+<p>Example use:</p>
+<pre class="prettyprint source lang-javascript"><code>const request = new Apify.Request({
+    url: 'http://www.example.com',
+    headers: { Accept: 'application/json' },
+});
+
+...
+
+request.userData.foo = 'bar';
+request.pushErrorMessage(new Error('Request failed!'));
+
+...
+
+const foo = request.userData.foo;</code></pre></div>
+</header>
+
+<article>
+    <div class="container-overview">
+<section id="Request" class="sub-sec">
+<h2>Constructor</h2>
+<h4>new Request<span class="signature">(opts)</span><span class="type-signature"></span></h4>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>opts</code></b>
+(
+<span class="param-type">object</span>
+
+)
+<div class="params">
+<ul>
+<li>
+<b><code>url</code></b>
+(
+<span class="param-type">String</span>
+
+)
+-
+URL of the web page to crawl.
+</li>
+<li>
+<b><code>uniqueKey</code></b>
+(
+<span class="param-type">String</span>
+
+)
+&lt;optional>
+-
+A unique key identifying the request.
+Two requests with the same <code>uniqueKey</code> are considered as pointing to the same URL.
+<p>If <code>uniqueKey</code> is not provided, then it is automatically generated by normalizing the URL.
+For example, the URL of <code>HTTP://www.EXAMPLE.com/something/</code> will be generated the <code>uniqueKey</code>
+of <code>http://www.example.com/something</code>. The <code>keepUrlFragment</code> option
+determines whether URL hash fragment is included in the <code>uniqueKey</code> or not. Beware that the HTTP method
+and payload is not included in the <code>uniqueKey</code>, so requests to the same URL but with different
+HTTP methods or different POST payloads are all considered equal.</p>
+<p>You can set <code>uniqueKey</code> property to arbitrary non-empty text value in order
+to override the default behavior and specify which URLs shall be considered equal.</p>
+</li>
+<li>
+<b><code>method</code></b>
+(
+<span class="param-type">String</span>
+
+)
+&lt;optional>
+-
+Defaults to <code>'GET'</code>.
+</li>
+<li>
+<b><code>payload</code></b>
+(
+<span class="param-type">String</span>
+|
+
+<span class="param-type">Buffer</span>
+
+)
+&lt;optional>
+-
+HTTP request payload, e.g. for POST requests.
+</li>
+<li>
+<b><code>retryCount</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+&lt;optional>
+-
+Indicates how many times the URL was retried in a case of error.
+Defaults to <code>0</code>.
+</li>
+<li>
+<b><code>errorMessages</code></b>
+(
+<span class="param-type">Array.&lt;String&gt;</span>
+
+)
+&lt;optional>
+-
+An array of error messages from request processing.
+</li>
+<li>
+<b><code>headers</code></b>
+(
+<span class="param-type">String</span>
+
+)
+&lt;optional>
+-
+HTTP headers.
+Defaults to <code>{}</code>.
+</li>
+<li>
+<b><code>userData</code></b>
+(
+<span class="param-type">Object</span>
+
+)
+&lt;optional>
+-
+Custom user data assigned to the request.
+Defaults to <code>{}</code>.
+</li>
+<li>
+<b><code>keepUrlFragment</code></b>
+(
+<span class="param-type">Boolean</span>
+
+)
+&lt;optional>
+-
+If <code>false</code> then hash part is removed from the URL when computing the <code>uniqueKey</code> property.
+  For example, this causes the <code>http://www.example.com#foo</code> and <code>http://www.example.com#bar</code> URLs
+  to have the same <code>uniqueKey</code> of <code>http://www.example.com</code> and thus the URLs are considered equal.
+  Note that this option only has effect if <code>uniqueKey</code> is not set.
+Defaults to <code>false</code>.
+</li>
+<li>
+<b><code>ignoreErrors</code></b>
+(
+<span class="param-type">String</span>
+
+)
+&lt;optional>
+-
+If <code>true</code> then errors in processing of this will be ignored.
+  For example, the request won't be retried in a case of an error for example.
+Defaults to <code>false</code>.
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<dl class="details">
+    <dt class="tag-see">See:</dt>
+    <dd class="tag-see">
+      <ul>
+        <li><a href="#RequestList">RequestList</a></li>
+<li><a href="#RequestQueue">RequestQueue</a></li>
+        </ul>
+    </dd>
+  </dl>
+</section>
+</div>
+<div class="subsection">
+          <h3 class="subsection-title">Methods (1)</h3>
+<section id="Request-pushErrorMessage" class="sub-sec">
+<h4>pushErrorMessage<span class="signature">(errorOrMessage)</span><span class="type-signature"></span></h4>
+<div class="description">
+    <p>Stores information about an error occurred during processing of this request.</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>errorOrMessage</code></b>
+(
+<span class="param-type">Error</span>
+|
+
+<span class="param-type">String</span>
+
+)
+-
+Error object or error message to be stored in request.
+</li>
+</ul>
+</div>
+</section>
+</div>
+</article>
+
+</div>
+<div id="RequestList">
+
+<header>
+<h2>
+        RequestList
+        </h2>
+<div class="class-description"><p>Represents a static list of URLs to crawl.
+The URLs can be provided either in code or parsed from a text file hosted on the web.</p>
+<p>Each URL is represented using an instance of the <a href="#Request"><code>Request</code></a> class.
+The list can only contain unique URLs. More precisely, it can only contain <code>Request</code> instances
+with distinct <code>uniqueKey</code> properties. By default, <code>uniqueKey</code> is generated from the URL, but it can also be overridden.
+To add a single URL multiple times to the list,
+corresponding <code>Request</code> objects will need to have different <code>uniqueKey</code> properties.
+You can use the <code>keepDuplicateUrls</code> option to do this for you.</p>
+<p>Once you create an instance of <code>RequestList</code>, you need to call <a href="#RequestList-initialize"><code>initialize()</code></a>
+before the instance can be used. After that, no more URLs can be added to the list.</p>
+<p><code>RequestList</code> is used by <a href="#BasicCrawler"><code>BasicCrawler</code></a>, <a href="#CheerioCrawler"><code>CheerioCrawler</code></a>
+and <a href="#PuppeteerCrawler"><code>PuppeteerCrawler</code></a> as a source of URLs to crawl.
+Unlike <a href="#RequestQueue"><code>RequestQueue</code></a>, <code>RequestList</code> is static but it can contain even millions of URLs.</p>
+<p><code>RequestList</code> has an internal state where it stores information which requests were handled,
+which are in progress or which were reclaimed.
+The state might be automatically persisted to the default key-value store by setting the <code>persistStateKey</code> option
+so that if the Node.js process is restarted,
+the crawling can continue where it left off. For more details, see <a href="#KeyValueStore"><code>KeyValueStore</code></a>.</p>
+<p><strong>Example usage:</strong></p>
+<pre class="prettyprint source lang-javascript"><code>const requestList = new Apify.RequestList({
+    sources: [
+        // Separate requests
+        { url: 'http://www.example.com/page-1', method: 'GET', headers: {} },
+        { url: 'http://www.example.com/page-2', userData: { foo: 'bar' }},
+// Bulk load of URLs from file `http://www.example.com/my-url-list.txt`
+        // Note that all URLs must start with http:// or https://
+        { requestsFromUrl: 'http://www.example.com/my-url-list.txt', userData: { isFromUrl: true } },
+    ],
+    persistStateKey: 'my-crawling-state'
+});
+
+// This call loads and parses the URLs from the remote file.
+await requestList.initialize();
+
+// Get requests from list
+const request1 = await requestList.fetchNextRequest();
+const request2 = await requestList.fetchNextRequest();
+const request3 = await requestList.fetchNextRequest();
+
+// Mark some of them as handled
+await requestList.markRequestHandled(request1);
+
+// If processing fails then reclaim it back to the list
+await requestList.reclaimRequest(request2);</code></pre></div>
+</header>
+
+<article>
+    <div class="container-overview">
+<section id="RequestList" class="sub-sec">
+<h2>Constructor</h2>
+<h4>new RequestList<span class="signature">(options)</span><span class="type-signature"></span></h4>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>options</code></b>
+(
+<span class="param-type">Object</span>
+
+)
+<div class="params">
+<ul>
+<li>
+<b><code>sources</code></b>
+(
+<span class="param-type">Array</span>
+
+)
+-
+An array of sources for the <code>RequestList</code>. Its contents can either be just plain objects,
+ defining at least the 'url' property or instances of the <a href="#Request"><code>Request</code></a> class.
+ Additionally a <code>requestsFromUrl</code> property may be used instead of <code>url</code>,
+ which will instruct the <code>RequestList</code> to download the sources from the given remote location.
+ The URLs will be parsed from the received response.
+<pre class="prettyprint source lang-javascript"><code>[
+    // One URL
+    { method: 'GET', url: 'http://example.com/a/b' },
+    // Batch import of URLs from a file hosted on the web
+    { method: 'POST', requestsFromUrl: 'http://example.com/urls.txt' },
+]</code></pre>
+</li>
+<li>
+<b><code>persistStateKey</code></b>
+(
+<span class="param-type">String</span>
+
+)
+&lt;optional>
+-
+Identifies the key in the default key-value store under which the <code>RequestList</code> persists its state.
+  If this is set then <code>RequestList</code>
+  persists its state in regular intervals and loads the state from there in case it is restarted
+  due to an error or system reboot.
+</li>
+<li>
+<b><code>state</code></b>
+(
+<span class="param-type">Object</span>
+
+)
+&lt;optional>
+-
+The state object that the <code>RequestList</code> will be initialized from.
+  It is in the form as returned by <code>RequestList.getState()</code>, such as follows:
+<pre class="prettyprint source lang-javascript"><code>{
+    nextIndex: 5,
+    nextUniqueKey: 'unique-key-5'
+    inProgress: {
+        'unique-key-1': true,
+        'unique-key-4': true,
+    },
+}</code></pre><p>  Note that the preferred (and simpler) way to persist the state of crawling of the <code>RequestList</code>
+  is to use the <code>persistStateKey</code> parameter instead.</p>
+</li>
+<li>
+<b><code>keepDuplicateUrls</code></b>
+(
+<span class="param-type">Boolean</span>
+
+)
+&lt;optional>
+-
+By default, <code>RequestList</code> will deduplicate the provided URLs. Default deduplication is based
+  on the <code>uniqueKey</code> property of passed source <a href="#Request">Request</a> objects. If the property is not present,
+  it is generated by normalizing the URL. If present, it is kept intact. In any case, only one request per <code>uniqueKey</code> is added
+  to the <code>RequestList</code> resulting in removing of duplicate URLs / unique keys.
+  Setting <code>keepDuplicateUrls</code> to <code>true</code> will append an additional identifier to the <code>uniqueKey</code>
+  of each request that does not already include a <code>uniqueKey</code>. Therefore, duplicate
+  URLs will be kept in the list. It does not protect the user from having duplicates in user set
+  <code>uniqueKey</code>s however. It is the user's responsibility to ensure uniqueness of their unique keys,
+  if they wish to keep more than just a single copy in the <code>RequestList</code>.
+Defaults to <code>false</code>.
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</section>
+</div>
+<div class="subsection">
+          <h3 class="subsection-title">Methods (8)</h3>
+<section id="RequestList-fetchNextRequest" class="sub-sec">
+<h4>fetchNextRequest<span class="signature">()</span><span class="type-signature"> &rarr; {Promise.&lt;<a href="#Request">Request</a>&gt;}</span></h4>
+<div class="description">
+    <p>Gets the next <code>Request</code> to process. First, the function gets a request previously reclaimed
+using <a href="#RequestList-reclaimRequest"><code>reclaimRequest()</code></a> function, if there is any.
+Otherwise it gets a next request from the sources.</p>
+<p>The function gets <code>null</code> if there are no more
+requests to process.</p>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise.&lt;<a href="#Request">Request</a>&gt;</span>
+
+)
+</li>
+</section>
+<section id="RequestList-getState" class="sub-sec">
+<h4>getState<span class="signature">()</span><span class="type-signature"></span></h4>
+<div class="description">
+    <p>Returns an object representing the internal state of the <code>RequestList</code> instance.
+Note that the objects fields can change in future releases.</p>
+</div>
+<h5>Returns:</h5>
+</section>
+<section id="RequestList-initialize" class="sub-sec">
+<h4>initialize<span class="signature">()</span><span class="type-signature"> &rarr; {Promise}</span></h4>
+<div class="description">
+    <p>Loads all remote sources of URLs and potentially starts periodic state persistence.
+This function must be called before you can start using the instance in a meaningful way.</p>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise</span>
+
+)
+</li>
+</section>
+<section id="RequestList-isEmpty" class="sub-sec">
+<h4>isEmpty<span class="signature">()</span><span class="type-signature"> &rarr; {Promise.&lt;Boolean&gt;}</span></h4>
+<div class="description">
+    <p>Resolves to <code>true</code> if the next call to <a href="#RequestList-fetchNextRequest"><code>fetchNextRequest()</code></a>
+will return <code>null</code>, otherwise it resolves to <code>false</code>.
+Note that even if the list is empty, there might be some pending requests currently being processed.</p>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise.&lt;Boolean&gt;</span>
+
+)
+</li>
+</section>
+<section id="RequestList-isFinished" class="sub-sec">
+<h4>isFinished<span class="signature">()</span><span class="type-signature"> &rarr; {Promise.&lt;boolean&gt;}</span></h4>
+<div class="description">
+    <p>Returns <code>true</code> if all requests were already handled and there are no more left.</p>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise.&lt;boolean&gt;</span>
+
+)
+</li>
+</section>
+<section id="RequestList-length" class="sub-sec">
+<h4>length<span class="signature">()</span><span class="type-signature"></span></h4>
+<div class="description">
+    <p>Returns the total number of unique requests present in the <code>RequestList</code>.</p>
+</div>
+</section>
+<section id="RequestList-markRequestHandled" class="sub-sec">
+<h4>markRequestHandled<span class="signature">(request)</span><span class="type-signature"> &rarr; {Promise}</span></h4>
+<div class="description">
+    <p>Marks request as handled after successful processing.</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>request</code></b>
+(
+<span class="param-type"><a href="#Request">Request</a></span>
+
+)
+</li>
+</ul>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise</span>
+
+)
+</li>
+</section>
+<section id="RequestList-reclaimRequest" class="sub-sec">
+<h4>reclaimRequest<span class="signature">(request)</span><span class="type-signature"> &rarr; {Promise}</span></h4>
+<div class="description">
+    <p>Reclaims request to the list if its processing failed.
+The request will become available in the next <code>this.fetchNextRequest()</code>.</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>request</code></b>
+(
+<span class="param-type"><a href="#Request">Request</a></span>
+
+)
+</li>
+</ul>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise</span>
+
+)
+</li>
+</section>
+</div>
+</article>
+
+</div>
+<div id="RequestQueue">
+
+<header>
+<h2>
+        RequestQueue
+        </h2>
+<div class="class-description"><p>Represents a queue of URLs to crawl, which is used for deep crawling of websites
+where you start with several URLs and then recursively
+follow links to other pages. The data structure supports both breadth-first and depth-first crawling orders.</p>
+<p>Each URL is represented using an instance of the <a href="#Request"><code>Request</code></a> class.
+The queue can only contain unique URLs. More precisely, it can only contain <code>Request</code> instances
+with distinct <code>uniqueKey</code> properties. By default, <code>uniqueKey</code> is generated from the URL, but it can also be overridden.
+To add a single URL multiple times to the queue,
+corresponding <code>Request</code> objects will need to have different <code>uniqueKey</code> properties.</p>
+<p>Do not instantiate this class directly, use the
+<code>Apify.openRequestQueue()</code> function instead.</p>
+<p><code>RequestQueue</code> is used by <a href="#BasicCrawler"><code>BasicCrawler</code></a>, <a href="#CheerioCrawler"><code>CheerioCrawler</code></a>
+and <a href="#PuppeteerCrawler"><code>PuppeteerCrawler</code></a> as a source of URLs to crawl.
+Unlike <a href="#RequestList"><code>RequestList</code></a>, <code>RequestQueue</code> supports dynamic adding and removing of requests.
+On the other hand, the queue is not optimized for operations that add or remove a large number of URLs in a batch.</p>
+<p><code>RequestQueue</code> stores its data either on local disk or in the Apify cloud,
+depending on whether the <code>APIFY_LOCAL_STORAGE_DIR</code> or <code>APIFY_TOKEN</code> environment variable is set.</p>
+<p>If the <code>APIFY_LOCAL_STORAGE_DIR</code> environment variable is set, the queue data is stored in
+that local directory as follows:</p>
+<pre class="prettyprint source"><code>[APIFY_LOCAL_STORAGE_DIR]/request_queues/[QUEUE_ID]/[STATE]/[NUMBER].json</code></pre><p>Note that <code>[QUEUE_ID]</code> is the name or ID of the request queue. The default queue has ID <code>default</code>,
+unless you override it by setting the <code>APIFY_DEFAULT_REQUEST_QUEUE_ID</code> environment variable.
+Each request in the queue is stored as a separate JSON file, where <code>[STATE]</code> is either <code>handled</code> or <code>pending</code>,
+and <code>[NUMBER]</code> is an integer indicating the position of the request in the queue.</p>
+<p>If the <code>APIFY_TOKEN</code> environment variable is provided instead, the data is stored
+in the <a href="https://www.apify.com/docs/storage#queue">Apify Request Queue</a> cloud storage.</p>
+<p><strong>Example usage:</strong></p>
+<pre class="prettyprint source lang-javascript"><code>// Open the default request queue associated with the actor run
+const queue = await Apify.openRequestQueue();
+
+// Open a named request queue
+const queueWithName = await Apify.openRequestQueue('some-name');
+
+// Enqueue few requests
+await queue.addRequest(new Apify.Request({ url: 'http://example.com/aaa'}));
+await queue.addRequest(new Apify.Request({ url: 'http://example.com/bbb'}));
+await queue.addRequest(new Apify.Request({ url: 'http://example.com/foo/bar'}), { forefront: true });
+
+// Get requests from queue
+const request1 = await queue.fetchNextRequest();
+const request2 = await queue.fetchNextRequest();
+const request3 = await queue.fetchNextRequest();
+
+// Mark a request as handled
+await queue.markRequestHandled(request1);
+
+// If processing of a request fails then reclaim it back to the queue, so that it's crawled again
+await queue.reclaimRequest(request2);</code></pre></div>
+</header>
+
+<article>
+    <div class="container-overview">
+<section id="RequestQueue" class="sub-sec">
+<h2>Constructor</h2>
+<h4>new RequestQueue<span class="signature">()</span><span class="type-signature"></span></h4>
+</section>
+</div>
+<div class="subsection">
+          <h3 class="subsection-title">Methods (8)</h3>
+<section id="RequestQueue-addRequest" class="sub-sec">
+<h4>addRequest<span class="signature">(request, opts<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {<a href="#RequestOperationInfo">RequestOperationInfo</a>}</span></h4>
+<div class="description">
+    <p>Adds a request to the queue.</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>request</code></b>
+(
+<span class="param-type"><a href="#Request">Request</a></span>
+
+)
+-
+Request object
+</li>
+<li>
+<b><code>opts</code></b>
+(
+<span class="param-type">Object</span>
+
+)
+&lt;optional>
+<div class="params">
+<ul>
+<li>
+<b><code>forefront</code></b>
+(
+<span class="param-type">Boolean</span>
+
+)
+&lt;optional>
+-
+If <code>true</code>, the request will be added to the foremost position in the queue.
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type"><a href="#RequestOperationInfo">RequestOperationInfo</a></span>
+
+)
+</li>
+</section>
+<section id="RequestQueue-delete" class="sub-sec">
+<h4>delete<span class="signature">()</span><span class="type-signature"> &rarr; {Promise}</span></h4>
+<div class="description">
+    <p>Removes the queue either from the Apify cloud storage or from the local directory,
+depending on the mode of operation.</p>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise</span>
+
+)
+</li>
+</section>
+<section id="RequestQueue-fetchNextRequest" class="sub-sec">
+<h4>fetchNextRequest<span class="signature">()</span><span class="type-signature"> &rarr; {Promise.&lt;<a href="#Request">Request</a>&gt;}</span></h4>
+<div class="description">
+    <p>Returns next request in the queue to be processed.</p>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise.&lt;<a href="#Request">Request</a>&gt;</span>
+
+)
+</li>
+</section>
+<section id="RequestQueue-getRequest" class="sub-sec">
+<h4>getRequest<span class="signature">(requestId)</span><span class="type-signature"> &rarr; {Promise.&lt;<a href="#Request">Request</a>&gt;}</span></h4>
+<div class="description">
+    <p>Gets the request from the queue specified by ID.</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>requestId</code></b>
+(
+<span class="param-type">String</span>
+
+)
+-
+Request ID
+</li>
+</ul>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise.&lt;<a href="#Request">Request</a>&gt;</span>
+
+)
+</li>
+</section>
+<section id="RequestQueue-isEmpty" class="sub-sec">
+<h4>isEmpty<span class="signature">()</span><span class="type-signature"> &rarr; {Promise.&lt;Boolean&gt;}</span></h4>
+<div class="description">
+    <p>Resolves to <code>true</code> if the next call to <code>fetchNextRequest()</code> will return <code>null</code>, otherwise it resolves to <code>false</code>.
+Note that even if the queue is empty, there might be some pending requests currently being processed.</p>
+<p>Due to the nature of distributed storage systems,
+the function might occasionally return a false negative, but it should never return a false positive!</p>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise.&lt;Boolean&gt;</span>
+
+)
+</li>
+</section>
+<section id="RequestQueue-isFinished" class="sub-sec">
+<h4>isFinished<span class="signature">()</span><span class="type-signature"> &rarr; {Promise.&lt;Boolean&gt;}</span></h4>
+<div class="description">
+    <p>Resolves to <code>true</code> if all requests were already handled and there are no more left.
+Due to the nature of distributed storage systems,
+the function might occasionally return a false negative, but it will never return a false positive.</p>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise.&lt;Boolean&gt;</span>
+
+)
+</li>
+</section>
+<section id="RequestQueue-markRequestHandled" class="sub-sec">
+<h4>markRequestHandled<span class="signature">(request)</span><span class="type-signature"> &rarr; {Promise.&lt;<a href="#RequestOperationInfo">RequestOperationInfo</a>&gt;}</span></h4>
+<div class="description">
+    <p>Marks request handled after successfull processing.</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>request</code></b>
+(
+<span class="param-type"><a href="#Request">Request</a></span>
+
+)
+</li>
+</ul>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise.&lt;<a href="#RequestOperationInfo">RequestOperationInfo</a>&gt;</span>
+
+)
+</li>
+</section>
+<section id="RequestQueue-reclaimRequest" class="sub-sec">
+<h4>reclaimRequest<span class="signature">(request, opts<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Promise.&lt;<a href="#RequestOperationInfo">RequestOperationInfo</a>&gt;}</span></h4>
+<div class="description">
+    <p>Reclaims failed request back to the queue,
+so that it can be processed later again.</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>request</code></b>
+(
+<span class="param-type"><a href="#Request">Request</a></span>
+
+)
+</li>
+<li>
+<b><code>opts</code></b>
+(
+<span class="param-type">Object</span>
+
+)
+&lt;optional>
+<div class="params">
+<ul>
+<li>
+<b><code>forefront</code></b>
+(
+<span class="param-type">Boolean</span>
+
+)
+&lt;optional>
+-
+If true then requests gets returned to the begining of the queue
+  and to the back of the queue otherwise.
+Defaults to <code>false</code>.
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise.&lt;<a href="#RequestOperationInfo">RequestOperationInfo</a>&gt;</span>
+
+)
+</li>
+</section>
+</div>
+</article>
+
+</div>
+<div id="SettingsRotator">
+
+<header>
+<h2>
+        SettingsRotator
+        </h2>
+<div class="class-description"><p>Rotates settings created by a user-provided function passed
+via <code>newSettingsFunction</code>.
+This is useful during web crawling to dynamically change settings and thus
+avoid detection of the crawler.</p>
+<p>This class is still work in progress, more features will be added soon.</p></div>
+</header>
+
+<article>
+    <div class="container-overview">
+<section id="SettingsRotator" class="sub-sec">
+<h2>Constructor</h2>
+<h4>new SettingsRotator<span class="signature">(options)</span><span class="type-signature"></span></h4>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>options</code></b>
+(
+<span class="param-type">Object</span>
+
+)
+<div class="params">
+<ul>
+<li>
+<b><code>newSettingsFunction</code></b>
+(
+<span class="param-type">function</span>
+
+)
+</li>
+<li>
+<b><code>maxUsages</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</section>
+</div>
+<div class="subsection">
+          <h3 class="subsection-title">Methods (2)</h3>
+<section id="SettingsRotator-fetchSettings" class="sub-sec">
+<h4>fetchSettings<span class="signature">()</span><span class="type-signature"> &rarr; {*}</span></h4>
+<div class="description">
+    <p>Fetches a settings object.</p>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">*</span>
+
+)
+</li>
+</section>
+<section id="SettingsRotator-reclaimSettings" class="sub-sec">
+<h4>reclaimSettings<span class="signature">(settings)</span><span class="type-signature"></span></h4>
+<div class="description">
+    <p>Reclaims settings after use.</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>settings</code></b>
+(
+<span class="param-type">*</span>
+
+)
+</li>
+</ul>
+</div>
+</section>
+</div>
+</article>
+
+</div>
+<div id="utils">
+
+<header>
+<h2>
+        utils
+        </h2>
+</header>
+
+<article>
+    <div class="container-overview">
+<div class="description"><p>A namespace that contains various utilities.</p>
+<p><strong>Example usage:</strong></p>
+<pre class="prettyprint source lang-javascript"><code>const Apify = require('apify);
+
+...
+
+// Sleep 1.5 seconds
+await Apify.utils.sleep(1500);</code></pre></div>
+</div>
+<div class="subsection">
+          <h3 class="subsection-title">Members (2)</h3>
+<div class="members">
+  <h4 class="name" id="utils-URL-NO-COMMAS-REGEX"><span class="type-signature">(static, constant) </span>URL_NO_COMMAS_REGEX<span class="type-signature"></span></h4>
+<div class="description">
+      <p>Default regular expression to match URLs in a string that may be plain text, JSON, CSV or other. It supports common URL characters
+and does not support URLs containing commas or spaces. The URLs also may contain Unicode letters (not symbols).</p>
+  </div>
+</div>
+<div class="members">
+  <h4 class="name" id="utils-URL-WITH-COMMAS-REGEX"><span class="type-signature">(static, constant) </span>URL_WITH_COMMAS_REGEX<span class="type-signature"></span></h4>
+<div class="description">
+      <p>Regular expression that, in addition to the default regular expression URL_NO_COMMAS_REGEX, supports matching commas in URL path and query.
+Note, however, that this may prevent parsing URLs from comma delimited lists, or the URLs may become malformed.</p>
+  </div>
+</div>
+</div>
+<div class="subsection">
+          <h3 class="subsection-title">Methods (4)</h3>
+<section id="utils-downloadListOfUrls" class="sub-sec">
+<h4>downloadListOfUrls<span class="signature">(url, encoding<span class="signature-attributes">opt</span>, urlRegExp<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Promise}</span></h4>
+<div class="description">
+    <p>Returns a promise that resolves to an array of urls parsed from the resource available at the provided url.
+Optionally, custom regular expression and encoding may be provided.</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>url</code></b>
+(
+<span class="param-type">String</span>
+
+)
+-
+</li>
+<li>
+<b><code>encoding</code></b>
+(
+<span class="param-type">String</span>
+
+)
+&lt;optional>
+-
+Defaults to <code>'utf8'</code>.
+</li>
+<li>
+<b><code>urlRegExp</code></b>
+(
+<span class="param-type">RegExp</span>
+
+)
+&lt;optional>
+-
+Defaults to <code>URL_NO_COMMAS_REGEX</code>.
+</li>
+</ul>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise</span>
+
+)
+</li>
+</section>
+<section id="utils-extractUrls" class="sub-sec">
+<h4>extractUrls<span class="signature">(string, urlRegExp<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Array}</span></h4>
+<div class="description">
+    <p>Collects all URLs in an arbitrary string to an array, optionally using a custom regular expression.</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>string</code></b>
+(
+<span class="param-type">String</span>
+
+)
+-
+</li>
+<li>
+<b><code>urlRegExp</code></b>
+(
+<span class="param-type">RegExp</span>
+
+)
+&lt;optional>
+-
+Defaults to <code>URL_NO_COMMAS_REGEX</code>.
+</li>
+</ul>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Array</span>
+
+)
+</li>
+</section>
+<section id="utils-getRandomUserAgent" class="sub-sec">
+<h4>getRandomUserAgent<span class="signature">()</span><span class="type-signature"> &rarr; {String}</span></h4>
+<div class="description">
+    <p>Returns a randomly selected User-Agent header out of a list of the most common headers.</p>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">String</span>
+
+)
+</li>
+</section>
+<section id="utils-sleep" class="sub-sec">
+<h4>sleep<span class="signature">(millis)</span><span class="type-signature"> &rarr; {Promise}</span></h4>
+<div class="description">
+    <p>Returns a promise that resolves after a specific period of time. This is useful to implement waiting
+in your code, e.g. to prevent overloading of target website or to avoid bot detection.</p>
+<p><strong>Example usage:</strong></p>
+<pre class="prettyprint source lang-javascript"><code>const Apify = require('apify);
+
+...
+
+// Sleep 1.5 seconds
+await Apify.utils.sleep(1500);</code></pre>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>millis</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+-
+Period of time to sleep, in milliseconds. If not a positive number, the returned promise resolves immediately.
+</li>
+</ul>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise</span>
+
+)
+</li>
+</section>
+</div>
+</article>
+
+</div>
+<div id="utils-puppeteer">
+
+<header>
+<h2>
+        utils.puppeteer
+        </h2>
+</header>
+
+<article>
+    <div class="container-overview">
+<div class="description"><p>A namespace that contains various Puppeteer utilities.</p>
+<p><strong>Example usage:</strong></p>
+<pre class="prettyprint source lang-javascript"><code>const Apify = require('apify');
+
+// Open https://www.example.com in Puppeteer
+const browser = await Apify.launchPuppeteer();
+const page = await browser.newPage();
+await page.goto('https://www.example.com');
+
+// Inject jQuery into a page
+await Apify.utils.puppeteer.injectJQuery(page);</code></pre></div>
+</div>
+<div class="subsection">
+          <h3 class="subsection-title">Methods (8)</h3>
+<section id="utils-puppeteer-blockResources" class="sub-sec">
+<h4>blockResources<span class="signature">(page, resourceTypes)</span><span class="type-signature"> &rarr; {Promise.&lt;void&gt;}</span></h4>
+<div class="description">
+    <p>Forces the browser tab to block loading certain page resources,
+using the <code>Page.setRequestInterception(value)</code> method.
+This is useful to speed up crawling of websites.</p>
+<p>The resource types to block can be controlled using the <code>resourceTypes</code> parameter,
+which indicates the types of resources as they are perceived by the rendering engine.
+The following resource types are currently supported:
+<code>document</code>, <code>stylesheet</code>, <code>image</code>, <code>media</code>, <code>font</code>, <code>script</code>, <code>texttrack</code>, <code>xhr</code>, <code>fetch</code>,
+<code>eventsource</code>, <code>websocket</code>, <code>manifest</code>, <code>other</code>.
+For more details, see Puppeteer's
+<a href="https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#requestresourcetype">Request.resourceType() documentation</a>.</p>
+<p>By default, the function blocks these resource types: <code>stylesheet</code>, <code>font</code>, <code>image</code>, <code>media</code>.</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>page</code></b>
+(
+<span class="param-type">Page</span>
+
+)
+-
+Puppeteer's <code>Page</code> object
+</li>
+<li>
+<b><code>resourceTypes</code></b>
+(
+<span class="param-type">Array.&lt;String&gt;</span>
+
+)
+-
+Array of resource types to block.
+</li>
+</ul>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise.&lt;void&gt;</span>
+
+)
+</li>
+</section>
+<section id="utils-puppeteer-cacheResponses" class="sub-sec">
+<h4>cacheResponses<span class="signature">(page, cache, responseUrlRules)</span><span class="type-signature"> &rarr; {Promise.&lt;void&gt;}</span></h4>
+<div class="description">
+    <p>Enables caching of intercepted responses into provided object. Automaticaly enables request interception in puppeteer.
+<em>IMPORTANT</em>: Caching responses stores them to memory, so too loose rules could cause memory leaks for longer running crawlers.
+  This issue should be resolved or atleast mitigated in future iterations of this feature.</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>page</code></b>
+(
+<span class="param-type">Page</span>
+
+)
+-
+Puppeteer's <code>Page</code> object
+</li>
+<li>
+<b><code>cache</code></b>
+(
+<span class="param-type">Object</span>
+
+)
+-
+Object in which responses are stored
+</li>
+<li>
+<b><code>responseUrlRules</code></b>
+(
+<span class="param-type">Array.&lt;(String|RegExp)&gt;</span>
+
+)
+-
+List of rules that are used to check if response should be cached.
+  String rules are compared as page.url().includes(rule) while RegExp rules are evaluated as rule.test(page.url()).
+</li>
+</ul>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise.&lt;void&gt;</span>
+
+)
+</li>
+</section>
+<section id="utils-puppeteer-compileScript" class="sub-sec">
+<h4>compileScript<span class="signature">(scriptString)</span><span class="type-signature"> &rarr; {function}</span></h4>
+<div class="description">
+    <p>Compiles a Puppeteer script into an async function that may be executed at any time
+by providing it with the following object:</p>
+<pre class="prettyprint source"><code>{
+   page: Puppeteer.Page,
+   request: Apify.Request,
+}</code></pre><p>The function is compiled by using the scriptString parameter as the function's body,
+so any limitations to function bodies apply. Return value of the function is the return
+value of the function body = scriptString parameter.</p>
+<p>As a security measure, no globals such as 'process' or 'require' are accessible
+from within the function body. Note that the function does not provide a safe
+sandbox and even though globals are not easily accessible, malicious code may
+still execute in the main process via prototype manipulation. Therefore you
+should only use this function to execute sanitized or safe code.</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>scriptString</code></b>
+(
+<span class="param-type">String</span>
+
+)
+</li>
+</ul>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">function</span>
+
+)
+- async ({ page, request }) =&gt; { scriptString }
+    
+</li>
+</section>
+<section id="utils-puppeteer-enqueueLinks" class="sub-sec">
+<h4>enqueueLinks<span class="signature">(page, selector, pseudoUrls, requestQueue)</span><span class="type-signature"> &rarr; {Promise.<Array.&lt;<a href="#RequestOperationInfo">RequestOperationInfo</a>&gt;}</span></h4>
+<div class="description">
+    <p>Finds HTML elements matching a CSS selector, clicks the elements and if a redirect is triggered and destination URL matches
+one of the provided pseudo-URLs, then the function enqueues that URL to a given request queue.
+To create a Request object function uses <code>requestTemplate</code> from a matching Pseudo-URL.</p>
+<p><em>WARNING</em>: This is work in progress. Currently the function doesn't click elements and only takes their <code>href</code> attribute and so
+           is working only for link (<code>a</code>) elements, but not for buttons or JavaScript links.</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>page</code></b>
+(
+<span class="param-type">Page</span>
+
+)
+-
+Puppeteer <a href="https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page">Page</a> object.
+</li>
+<li>
+<b><code>selector</code></b>
+(
+<span class="param-type">String</span>
+
+)
+-
+CSS selector matching elements to be clicked.
+</li>
+<li>
+<b><code>pseudoUrls</code></b>
+(
+<span class="param-type">Array.&lt;<a href="#PseudoUrl">PseudoUrl</a>&gt;</span>
+
+)
+-
+An array of pseudo-URLs matching the URLs to be enqueued.
+</li>
+<li>
+<b><code>requestQueue</code></b>
+(
+<span class="param-type"><a href="#RequestQueue">RequestQueue</a></span>
+
+)
+-
+Request queue object where URLs will be enqueued.
+</li>
+</ul>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise.<Array.&lt;<a href="#RequestOperationInfo">RequestOperationInfo</a>&gt;</span>
+
+)
+- Promise that resolves to an array of <a href="#RequestOperationInfo"><code>RequestOperationInfo</code></a> objects.
+    
+</li>
+</section>
+<section id="utils-puppeteer-hideWebDriver" class="sub-sec">
+<h4>hideWebDriver<span class="signature">(page)</span><span class="type-signature"> &rarr; {Promise}</span></h4>
+<div class="description">
+    <p>Hides certain Puppeteer fingerprints from the page, in order to help avoid detection of the crawler.
+The function should be called on a newly-created page object before navigating to the target crawled page.</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>page</code></b>
+(
+<span class="param-type">Page</span>
+
+)
+-
+Puppeteer <a href="https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page">Page</a> object.
+</li>
+</ul>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise</span>
+
+)
+</li>
+</section>
+<section id="utils-puppeteer-injectFile" class="sub-sec">
+<h4>injectFile<span class="signature">(page, filePath)</span><span class="type-signature"> &rarr; {Promise}</span></h4>
+<div class="description">
+    <p>Injects a JavaScript file into a Puppeteer page.
+Unlike Puppeteer's <code>addScriptTag</code> function, this function works on pages
+with arbitrary Cross-Origin Resource Sharing (CORS) policies.</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>page</code></b>
+(
+<span class="param-type">Page</span>
+
+)
+-
+Puppeteer <a href="https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page">Page</a> object.
+</li>
+<li>
+<b><code>filePath</code></b>
+(
+<span class="param-type">String</span>
+
+)
+-
+File path
+</li>
+</ul>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise</span>
+
+)
+</li>
+</section>
+<section id="utils-puppeteer-injectJQuery" class="sub-sec">
+<h4>injectJQuery<span class="signature">(page)</span><span class="type-signature"> &rarr; {Promise}</span></h4>
+<div class="description">
+    <p>Injects <a href="https://jquery.com/">jQuery</a> library into a Puppeteer page.
+jQuery is often useful for various web scraping and crawling tasks,
+e.g. to extract data from HTML elements using CSS selectors.</p>
+<p>Beware that the injected jQuery object will be set to the <code>window.$</code> variable and thus it might cause conflicts with
+libraries included by the page that use the same variable (e.g. another version of jQuery).</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>page</code></b>
+(
+<span class="param-type">Page</span>
+
+)
+-
+Puppeteer <a href="https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page">Page</a> object.
+</li>
+</ul>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise</span>
+
+)
+</li>
+</section>
+<section id="utils-puppeteer-injectUnderscore" class="sub-sec">
+<h4>injectUnderscore<span class="signature">(page)</span><span class="type-signature"> &rarr; {Promise}</span></h4>
+<div class="description">
+    <p>Injects <a href="https://underscorejs.org/">Underscore.js</a> library into a Puppeteer page.
+Beware that the injected Underscore object will be set to the <code>window._</code> variable and thus it might cause conflicts with
+libraries included by the page that use the same variable.</p>
+</div>
+<h5>Parameters:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>page</code></b>
+(
+<span class="param-type">Page</span>
+
+)
+-
+Puppeteer <a href="https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page">Page</a> object.
+</li>
+</ul>
+</div>
+<h5>Returns:</h5>
+<li>
+    (
+<span class="param-type">Promise</span>
+
+)
+</li>
+</section>
+</div>
+</article>
+
+</div>
+<div id="Globals">
+
+<header>
+<h2>
+        Globals
+        </h2>
+</header>
+
+<article>
+    <div class="container-overview">
+</div>
+<div class="subsection">
+        <h3 class="subsection-title">Type Definitions</h3>
+<div class="members">
+  <h4 class="name" id="ActorRun">ActorRun</h4>
+<div class="description">
+      <p>Represents information about an actor run, as returned by the
+<code>Apify.call()</code> function.
+The object is almost equivalent to the JSON response
+of the
+<a href="https://www.apify.com/docs/api/v2#/reference/actors/run-collection/run-actor">Actor run</a>
+Apify API endpoint and extended with certain fields.
+For more details, see <a href="https://www.apify.com/docs/actor#run">Runs</a> in Apify actor documentation.</p>
+  </div>
+<h5 class="subsection-title">Properties:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>id</code></b>
+(
+<span class="param-type">String</span>
+
+)
+</td>
+-
+Actor run ID
+</li>
+<li>
+<b><code>actId</code></b>
+(
+<span class="param-type">String</span>
+
+)
+</td>
+-
+Actor ID
+</li>
+<li>
+<b><code>startedAt</code></b>
+(
+<span class="param-type">Date</span>
+
+)
+</td>
+-
+Time when the actor run started
+</li>
+<li>
+<b><code>finishedAt</code></b>
+(
+<span class="param-type">Date</span>
+
+)
+</td>
+-
+Time when the actor run finished. Contains <code>null</code> for running actors.
+</li>
+<li>
+<b><code>status</code></b>
+(
+<span class="param-type">String</span>
+
+)
+</td>
+-
+Status of the run. For possible values, see
+  <a href="https://www.apify.com/docs/actor#run-lifecycle">Run lifecycle</a> in Apify actor documentation.
+</li>
+<li>
+<b><code>meta</code></b>
+(
+<span class="param-type">Object</span>
+
+)
+</td>
+-
+Actor run meta-data. For example:
+<pre class="prettyprint source lang-javascript"><code>  {
+    &quot;origin&quot;: &quot;API&quot;,
+    &quot;clientIp&quot;: &quot;1.2.3.4&quot;,
+    &quot;userAgent&quot;: &quot;ApifyClient/0.2.13 (Linux; Node/v8.11.3)&quot;
+  }</code></pre>
+</li>
+<li>
+<b><code>stats</code></b>
+(
+<span class="param-type">Object</span>
+
+)
+</td>
+-
+An object containing various actor run statistics. For example:
+<pre class="prettyprint source lang-javascript"><code>  {
+    &quot;inputBodyLen&quot;: 22,
+    &quot;restartCount&quot;: 0,
+    &quot;workersUsed&quot;: 1,
+  }</code></pre><p>  Beware that object fields might change in future releases.</p>
+</li>
+<li>
+<b><code>options</code></b>
+(
+<span class="param-type">Object</span>
+
+)
+</td>
+-
+Actor run options. For example:
+<pre class="prettyprint source lang-javascript"><code>  {
+    &quot;build&quot;: &quot;latest&quot;,
+    &quot;timeoutSecs&quot;: 0,
+    &quot;memoryMbytes&quot;: 256,
+    &quot;diskMbytes&quot;: 512
+  }</code></pre>
+</li>
+<li>
+<b><code>buildId</code></b>
+(
+<span class="param-type">String</span>
+
+)
+</td>
+-
+ID of the actor build used for the run. For details, see
+  <a href="https://www.apify.com/docs/actor#build">Builds</a> in Apify actor documentation.
+</li>
+<li>
+<b><code>buildNumber</code></b>
+(
+<span class="param-type">String</span>
+
+)
+</td>
+-
+Number of the actor build used for the run. For example, <code>0.0.10</code>.
+</li>
+<li>
+<b><code>exitCode</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+</td>
+-
+Exit code of the actor run process. It's <code>null</code> if actor is still running.
+</li>
+<li>
+<b><code>defaultKeyValueStoreId</code></b>
+(
+<span class="param-type">String</span>
+
+)
+</td>
+-
+ID of the default key-value store associated with the actor run. See <a href="#KeyValueStore"><code>KeyValueStore</code></a> for details.
+</li>
+<li>
+<b><code>defaultDatasetId</code></b>
+(
+<span class="param-type">String</span>
+
+)
+</td>
+-
+ID of the default dataset associated with the actor run. See <a href="#Dataset"><code>Dataset</code></a> for details.
+</li>
+<li>
+<b><code>defaultRequestQueueId</code></b>
+(
+<span class="param-type">String</span>
+
+)
+</td>
+-
+ID of the default request queue associated with the actor run. See <a href="#RequestQueue"><code>RequestQueue</code></a> for details.
+</li>
+<li>
+<b><code>containerUrl</code></b>
+(
+<span class="param-type">String</span>
+
+)
+</td>
+-
+URL on which the web server running inside actor run's Docker container can be accessed.
+  For more details, see <a href="https://www.apify.com/docs/actor#container-web-server">Container web server</a>
+  in Apify actor documentation.
+</li>
+<li>
+<b><code>output</code></b>
+(
+<span class="param-type">Object</span>
+
+)
+</td>
+-
+Contains output of the actor run. The value is <code>null</code> or <code>undefined</code> in case the actor is still running,
+  or if you pass <code>false</code> to the <code>fetchOutput</code> option of <code>Apify.call()</code>.
+<p>  For example:</p>
+<pre class="prettyprint source lang-javascript"><code>  {
+    &quot;contentType&quot;: &quot;application/json; charset=utf-8&quot;,
+    &quot;body&quot;: {
+      &quot;message&quot;: &quot;Hello world!&quot;
+    }
+  }</code></pre>
+</li>
+
+</ul>
+</div>
+</div>
+<div class="members">
+  <h4 class="name" id="ApifyCallError">ApifyCallError</h4>
+<div class="description">
+      <p>The class represents exceptions thrown
+by the <code>Apify.call()</code> function.</p>
+  </div>
+<h5 class="subsection-title">Properties:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>message</code></b>
+(
+<span class="param-type">String</span>
+
+)
+</td>
+-
+Error message
+</li>
+<li>
+<b><code>name</code></b>
+(
+<span class="param-type">String</span>
+
+)
+</td>
+-
+Contains <code>ApifyCallError</code>
+</li>
+<li>
+<b><code>run</code></b>
+(
+<span class="param-type"><a href="#ActorRun">ActorRun</a></span>
+
+)
+</td>
+-
+Object representing the failed actor run.
+</li>
+
+</ul>
+</div>
+</div>
+<div class="members">
+  <h4 class="name" id="LaunchPuppeteerOptions">LaunchPuppeteerOptions</h4>
+<div class="description">
+      <p>Represents options passed to the <code>Apify.launchPuppeteer()</code>
+function.</p>
+  </div>
+<h5 class="subsection-title">Properties:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>opts.proxyUrl</code></b>
+(
+<span class="param-type">String</span>
+
+)
+</td>
+-
+URL to a HTTP proxy server. It must define the port number,
+  and it might also contain proxy username and password.
+<p>  For example: <code>http://bob:pass123@proxy.example.com:1234</code>.</p>
+</li>
+<li>
+<b><code>opts.userAgent</code></b>
+(
+<span class="param-type">String</span>
+
+)
+</td>
+-
+The <code>User-Agent</code> HTTP header used by the browser.
+  If not provided, the function sets <code>User-Agent</code> to a reasonable default
+  to reduce the chance of detection of the crawler.
+</li>
+<li>
+<b><code>opts.useChrome</code></b>
+(
+<span class="param-type">Boolean</span>
+
+)
+</td>
+-
+If <code>true</code> and <code>opts.executablePath</code> is not set,
+  Puppeteer will launch full Google Chrome browser available on the machine
+  rather than the bundled Chromium. The path to Chrome executable
+  is taken from the <code>APIFY_CHROME_EXECUTABLE_PATH</code> environment variable if provided,
+  or defaults to the typical Google Chrome executable location specific for the operating system.
+  By default, this option is <code>false</code>.
+Defaults to <code>false</code>.
+</li>
+<li>
+<b><code>opts.useApifyProxy</code></b>
+(
+<span class="param-type">Boolean</span>
+
+)
+</td>
+-
+If set to <code>true</code>, Puppeteer will be configured to use
+  <a href="https://my.apify.com/proxy" target="_blank">Apify Proxy</a> for all connections.
+  For more information, see the <a href="https://www.apify.com/docs/proxy">documentation</a>
+Defaults to <code>false</code>.
+</li>
+<li>
+<b><code>opts.apifyProxyGroups</code></b>
+(
+<span class="param-type">Array.&lt;String&gt;</span>
+
+)
+</td>
+-
+An array of proxy groups to be used
+  by the <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a>.
+  Only applied if the <code>useApifyProxy</code> option is <code>true</code>.
+</li>
+<li>
+<b><code>opts.apifyProxySession</code></b>
+(
+<span class="param-type">String</span>
+
+)
+</td>
+-
+Apify Proxy session identifier to be used by all the Chrome browsers.
+  All HTTP requests going through the proxy with the same session identifier
+  will use the same target proxy server (i.e. the same IP address).
+  The identifier can only contain the following characters: <code>0-9</code>, <code>a-z</code>, <code>A-Z</code>, <code>&quot;.&quot;</code>, <code>&quot;_&quot;</code> and <code>&quot;~&quot;</code>.
+  Only applied if the <code>useApifyProxy</code> option is <code>true</code>.
+</li>
+<li>
+<b><code>opts.liveView</code></b>
+(
+<span class="param-type">Boolean</span>
+
+)
+</td>
+-
+If set to <code>true</code>, a PuppeteerLiveViewServer will be started to enable
+  screenshot and html capturing of visited pages using PuppeteerLiveViewBrowser.
+Defaults to <code>false</code>.
+</li>
+<li>
+<b><code>opts.liveViewOptions</code></b>
+(
+<span class="param-type">Object</span>
+
+)
+</td>
+-
+Settings for <code>PuppeteerLiveViewBrowser</code> started using <code>launchPuppeteer()</code>.
+<div class="params">
+<ul>
+<li>
+<b><code>id</code></b>
+(
+<span class="param-type">String</span>
+
+)
+</td>
+-
+Custom ID of a browser instance in live view.
+</li>
+<li>
+<b><code>screenshotTimeoutMillis</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+</td>
+-
+Time in milliseconds before a screenshot capturing
+  will time out and the actor continues with execution. Screenshot capturing pauses execution within the given page.
+</li>
+
+</ul>
+</div>
+</li>
+
+</ul>
+</div>
+</div>
+<div class="members">
+  <h4 class="name" id="PaginationList">PaginationList</h4>
+<div class="description">
+      <p>Represents one page of data items from the <a href="#Dataset"><code>Dataset</code></a>.
+For more details, see <a href="#Dataset-getData"><code>Dataset.getData()</code></a>.</p>
+  </div>
+<h5 class="subsection-title">Properties:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>items</code></b>
+(
+<span class="param-type">Array</span>
+
+)
+</td>
+-
+Array of returned items.
+</li>
+<li>
+<b><code>total</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+</td>
+-
+Total number of object.
+</li>
+<li>
+<b><code>offset</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+</td>
+-
+Number of Request objects that was skipped at the start.
+</li>
+<li>
+<b><code>count</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+</td>
+-
+Number of returned objects.
+</li>
+<li>
+<b><code>limit</code></b>
+(
+<span class="param-type">Number</span>
+
+)
+</td>
+-
+Requested limit on the number of items.
+</li>
+
+</ul>
+</div>
+</div>
+<div class="members">
+  <h4 class="name" id="RequestOperationInfo">RequestOperationInfo</h4>
+<div class="description">
+      <p>A helper class that is used to report results from the
+<code>Apify.utils.puppeteer.enqueueLinks()</code> function.</p>
+  </div>
+<h5 class="subsection-title">Properties:</h5>
+<div class="params">
+<ul>
+<li>
+<b><code>wasAlreadyPresent</code></b>
+(
+<span class="param-type">Boolean</span>
+
+)
+</td>
+-
+Indicates if request was already present in the queue.
+</li>
+<li>
+<b><code>wasAlreadyHandled</code></b>
+(
+<span class="param-type">Boolean</span>
+
+)
+</td>
+-
+Indicates if request was already marked as handled.
+</li>
+<li>
+<b><code>requestId</code></b>
+(
+<span class="param-type">String</span>
+
+)
+</td>
+-
+The ID of the added request
+</li>
+
+</ul>
+</div>
+</div>
+</div>
+</article>
+
+</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>

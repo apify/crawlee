@@ -1,0 +1,55 @@
+{
+    "docs": {
+        "Guide": [
+            "guides/motivation",
+            "guides/gettingstarted",
+            "guides/whatisanactor",
+            "guides/environmentvariables",
+            "guides/datastorage",
+            "guides/puppeteerliveview"
+        ],
+        "Reference": [
+            "api/apify",
+            "api/autoscaledpool",
+            "api/basiccrawler",
+            "api/cheeriocrawler",
+            "api/dataset",
+            "api/keyvaluestore",
+            "api/pseudourl",
+            "api/puppeteercrawler",
+            "api/puppeteerpool",
+            "api/request",
+            "api/requestlist",
+            "api/requestqueue",
+            "api/utils",
+            "api/puppeteer"
+        ]
+    },
+    "examples": {
+        "Examples": [
+            "examples/basiccrawler",
+            "examples/cheeriocrawler",
+            "examples/puppeteercrawler",
+            "examples/puppeteerwithproxy",
+            "examples/puppeteersitemap",
+            "examples/screenshots",
+            "examples/callactor",
+            "examples/synchronousrun"
+        ]
+    },
+    "autoscaling": {
+        "Autoscaling Tools": [
+            "api/snapshotter",
+            "api/systemstatus"
+        ]
+    },
+    "typedefs": {
+        "Type Definitions": [
+            "typedefs/actorrun",
+            "typedefs/apifycallerror",
+            "typedefs/launchpuppeteeroptions",
+            "typedefs/paginationlist",
+            "typedefs/requestoperationinfo"
+        ]
+    }
+}

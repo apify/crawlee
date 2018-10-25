@@ -1,9 +1,9 @@
 /**
  * This example demonstrates how to read and write
  * data to the default key-value store using
- * <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-getValue"><code>Apify.getValue()</code></a>
+ * [`Apify.getValue()`](../api/apify#module_Apify.getValue)
  * and
- * <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#module-Apify-setValue"><code>Apify.setValue()</code></a>.
+ * [`Apify.setValue()`](../api/apify#module_Apify.setValue).
  * The script crawls a list of URLs using Puppeteer,
  * captures a screenshot of each page and saves it to the store. The list of URLs is
  * provided as actor input that is also read from the store.
@@ -17,8 +17,8 @@
  *
  * On the Apify cloud platform, the input can be either set manually
  * in the UI app or passed as the POST payload to the
- * [Run actor API call](https://www.apify.com/docs/api/v2#/reference/actors/run-collection/run-actor).
- * For more details, see [Input and output](https://www.apify.com/docs/actor#input-output)
+ * <a href="https://www.apify.com/docs/api/v2#/reference/actors/run-collection/run-actor" target="_blank">Run actor API call</a>.
+ * For more details, see <a href="https://www.apify.com/docs/actor#input-output" target="_blank">Input and output</a>
  * in the Apify Actor documentation.
  */
 

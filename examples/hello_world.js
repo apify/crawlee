@@ -1,8 +1,12 @@
+/**
+ * Run the following example to perform a recursive crawl of a website using Puppeteer.
+ */
+
 const Apify = require('apify');
 
 Apify.main(async () => {
     const requestQueue = await Apify.openRequestQueue();
-    await requestQueue.addRequest(new Apify.Request({ url: 'https://www.iana.org/' }));
+    await requestQueue.addRequest({ url: 'https://www.iana.org/' });
     const pseudoUrls = [new Apify.PseudoUrl('https://www.iana.org/[.*]')];
 
     const crawler = new Apify.PuppeteerCrawler({

@@ -21,23 +21,22 @@ const DEFAULT_OPTIONS = {
  * The pool only starts new tasks if there is enough free CPU and memory available
  * and the Javascript event loop is not blocked.
  *
- * The information about the CPU and memory usage is obtained by the `Snapshotter` class,
+ * The information about the CPU and memory usage is obtained by the {@link Snapshotter} class,
  * which makes regular snapshots of system resources that may be either local
  * or from the Apify cloud infrastructure in case the process is running on the Apify platform.
- * Meaningful data gathered from these snapshots is provided to `AutoscaledPool` by the `SystemStatus` class.
+ * Meaningful data gathered from these snapshots is provided to `AutoscaledPool` by the {@link SystemStatus} class.
  *
  * Before running the pool, you need to implement the following three functions:
- * {@link AutoscaledPool#runTaskFunction|`runTaskFunction()`},
- * {@link AutoscaledPool#isTaskReadyFunction|`isTaskReadyFunction()`} and
- * {@link AutoscaledPool#isFinishedFunction|`isFinishedFunction()`}.
+ * [`runTaskFunction()`](#new_AutoscaledPool_new),
+ * [`isTaskReadyFunction()`](#new_AutoscaledPool_new) and
+ * [`isFinishedFunction()`](#new_AutoscaledPool_new).
  *
- * The auto-scaled pool is started by calling the {@link AutoscaledPool#run|`run()`} function.
- * The pool periodically queries the `isTaskReadyFunction()` function
+ * The auto-scaled pool is started by calling the [`run()`](#AutoscaledPool+run) function.
+ * The pool periodically queries the [`isTaskReadyFunction()`](#new_AutoscaledPool_new) function
  * for more tasks, managing optimal concurrency, until the function resolves to `false`. The pool then queries
- * the `isFinishedFunction()`. If it resolves to `true`, the run finishes. If it resolves to `false`, it assumes
- * there will be more tasks available later and keeps querying for tasks, until finally both the
- * `isTaskReadyFunction()` and `isFinishedFunction()` functions resolve to `true`. If any of the tasks throws
- * then the `run()` function rejects the promise with an error.
+ * the [`isFinishedFunction()`](#new_AutoscaledPool_new). If it resolves to `true`, the run finishes after all running tasks complete.
+ * If it resolves to `false`, it assumes there will be more tasks available later and keeps periodically querying for tasks.
+ * If any of the tasks throws then the [`run()`](#AutoscaledPool+run) function rejects the promise with an error.
  *
  * The pool evaluates whether it should start a new task every time one of the tasks finishes
  * and also in the interval set by the `options.maybeRunIntervalSecs` parameter.
@@ -64,7 +63,8 @@ const DEFAULT_OPTIONS = {
  * await pool.run();
  * ```
  *
- * @param {Object} options
+ * @param {Object} options All `AutoscaledPool` parameters are passed
+ *   via an options object with the following keys.
  * @param {Function} options.runTaskFunction
  *   A function that performs an asynchronous resource-intensive task.
  *   The function must either be labeled `async` or return a promise.
@@ -72,7 +72,7 @@ const DEFAULT_OPTIONS = {
  * @param {Function} options.isTaskReadyFunction
  *   A function that indicates whether `runTaskFunction` should be called.
  *   This function is called every time there is free capacity for a new task and it should
- *   indicate whether it should start or not by resolving to either `true` or `false.
+ *   indicate whether it should start a new task or not by resolving to either `true` or `false.
  *   Besides its obvious use, it is also useful for task throttling to save resources.
  *
  * @param {Function} options.isFinishedFunction
@@ -80,7 +80,7 @@ const DEFAULT_OPTIONS = {
  *   If it resolves to `true` then the pool's run finishes. Being called only
  *   when there are no tasks being processed means that as long as `isTaskReadyFunction()`
  *   keeps resolving to `true`, `isFinishedFunction()` will never be called.
- *   To abort a run, use the `pool.abort()` method.
+ *   To abort a run, use the [`abort()`](#AutoscaledPool+abort) method.
  *
  * @param {Number} [options.minConcurrency=1]
  *   Minimum number of tasks running in parallel.
@@ -105,16 +105,14 @@ const DEFAULT_OPTIONS = {
  *   based on the latest system status. Setting it lower than 1 might have a severe impact on performance.
  *   We suggest using a value from 5 to 20.
  * @param {Number} [options.snapshotterOptions]
- *   Options to be passed down to the `Snapshotter` constructor. This is useful for fine-tuning
+ *   Options to be passed down to the {@link Snapshotter} constructor. This is useful for fine-tuning
  *   the snapshot intervals and history.
- *   See <a href="https://github.com/apifytech/apify-js/blob/develop/src/autoscaling/snapshotter.js">Snapshotter</a> source code for more details.
  * @param {Number} [options.systemStatusOptions]
- *   Options to be passed down to the `SystemStatus` constructor. This is useful for fine-tuning
+ *   Options to be passed down to the {@link SystemStatus} constructor. This is useful for fine-tuning
  *   the system status reports. If a custom snapshotter is set in the options, it will be used
  *   by the pool.
- *   See <a href="https://github.com/apifytech/apify-js/blob/develop/src/autoscaling/system_status.js">SystemStatus</a> source code for more details.
  */
-export default class AutoscaledPool {
+class AutoscaledPool {
     constructor(options = {}) {
         const {
             maxConcurrency,
@@ -400,3 +398,5 @@ export default class AutoscaledPool {
         if (this.snapshotter) await this.snapshotter.stop();
     }
 }
+
+export default AutoscaledPool;

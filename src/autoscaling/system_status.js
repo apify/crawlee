@@ -11,26 +11,31 @@ const DEFAULT_OPTIONS = {
 };
 
 /**
- * Provides a simple interface to reading system status from a Snapshotter instance.
- * It only exposes two functions `getCurrentStatus()` and `getHistoricalStatus()`.
+ * Provides a simple interface to reading system status from a {@link Snapshotter} instance.
+ * It only exposes two functions [`getCurrentStatus()`](#SystemStatus+getCurrentStatus)
+ * and [`getHistoricalStatus()`](#SystemStatus+getHistoricalStatus).
  * The system status is calculated using a weighted average of overloaded
  * messages in the snapshots, with the weights being the time intervals
  * between the snapshots. Each resource is calculated separately
  * and the system is overloaded whenever at least one resource is overloaded.
- * The class is used by the {@linkcode AutoscaledPool} class.
+ * The class is used by the {@link AutoscaledPool} class.
  *
- * `getCurrentStatus()` returns a boolean that represents the current status of the system.
+ * [`getCurrentStatus()`](#SystemStatus+getCurrentStatus)
+ * returns a boolean that represents the current status of the system.
  * The length of the current timeframe in seconds is configurable
- * by the currentHistorySecs option and represents the max age
+ * by the `currentHistorySecs` option and represents the max age
  * of snapshots to be considered for the calculation.
  *
- * `getHistoricalStatus()` returns a boolean that represents the long-term status
+ * [`getHistoricalStatus()`](#SystemStatus+getHistoricalStatus)
+ * returns a boolean that represents the long-term status
  * of the system. It considers the full snapshot history available
- * in the Snapshotter instance.
+ * in the {@link Snapshotter} instance.
  *
- * @param {Object} options
+ * @param {Object} [options] All `SystemStatus` parameters are passed
+ *   via an options object with the following keys:
  * @param {Number} [options.currentHistorySecs=5]
- *   Defines max age of snapshots used in the `isOk()` measurement.
+ *   Defines max age of snapshots used in the
+ *   [`getCurrentStatus()`](#SystemStatus+getCurrentStatus) measurement.
  * @param {Number} [options.maxMemoryOverloadedRatio=0.2]
  *   Sets the maximum ratio of overloaded snapshots in a memory sample.
  *   If the sample exceeds this ratio, the system will be overloaded.
@@ -40,9 +45,8 @@ const DEFAULT_OPTIONS = {
  * @param {Number} [options.maxCpuOverloadedRatio=0.1]
  *   Sets the maximum ratio of overloaded snapshots in a CPU sample.
  *   If the sample exceeds this ratio, the system will be overloaded.
- * @ignore
  */
-export default class SystemStatus {
+class SystemStatus {
     constructor(options = {}) {
         const {
             currentHistorySecs,
@@ -67,28 +71,49 @@ export default class SystemStatus {
     }
 
     /**
-     * Returns true if the system has not been overloaded in the last
-     * currentHistorySecs seconds, otherwise returns false.
-     * @return {Boolean}
-     * @ignore
+     * Returns an object with the following structure:
+     *
+     * ```javascript
+     * {
+     *     isSystemIdle: Boolean,
+     *     memInfo: Object,
+     *     eventLoopInfo: Object,
+     *     cpuInfo: Object
+     * }
+     * ```
+     *
+     * Where the `isSystemIdle` property is set to `false` if the system
+     * has been overloaded in the last `options.currentHistorySecs` seconds,
+     * and `true` otherwise.
+     * @return {Object}
      */
     getCurrentStatus() {
         return this._isSystemIdle(this.currentHistorySecs);
     }
 
     /**
-     * Returns true if the system has not been overloaded in the full
-     * history of the snapshotter (which is configurable in the snapshotter).
-     * @return {Boolean}
-     * @ignore
+     * Returns an object with the following structure:
+     *
+     * ```javascript
+     * {
+     *     isSystemIdle: Boolean,
+     *     memInfo: Object,
+     *     eventLoopInfo: Object,
+     *     cpuInfo: Object
+     * }
+     * ```
+     *
+     * Where the `isSystemIdle` property is set to `false` if the system
+     * has been overloaded in the full history of the {@link Snapshotter}
+     * (which is configurable in the {@link Snapshotter}) and `true` otherwise.
+     * @return {Object}
      */
     getHistoricalStatus() {
         return this._isSystemIdle();
     }
 
     /**
-     * Returns true if the system has been overloaded
-     * in the last sampleDurationMillis.
+     * Returns a system status object.
      *
      * @param {Number} [sampleDurationMillis]
      * @return {Boolean}
@@ -172,3 +197,5 @@ export default class SystemStatus {
         };
     }
 }
+
+export default SystemStatus;

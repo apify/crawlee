@@ -52,27 +52,27 @@ const parsePurl = (purl) => {
 /**
  * Represents a pseudo URL (PURL) - an URL pattern used by web crawlers
  * to specify which URLs should the crawler visit.
- * This class is used by the {@linkcode enqueueLinks|Apify.utils.puppeteer.enqueueLinks()} function.
+ * This class is used by the [utils.puppeteer.enqueueLinks()](puppeteer#puppeteer.enqueueLinks) function.
  *
  * A PURL is simply a URL with special directives enclosed in `[]` brackets.
- * Currently, the only supported directive is `[regexp]`,
+ * Currently, the only supported directive is `[RegExp]`,
  * which defines a JavaScript-style regular expression to match against the URL.
  *
  * For example, a PURL `http://www.example.com/pages/[(\w|-)*]` will match all of the following URLs:
  *
  * <ul>
- *     <li>`http://www.example.com/pages/`</li>
- *     <li>`http://www.example.com/pages/my-awesome-page`</li>
- *     <li>`http://www.example.com/pages/something`</li>
+ *     <li><code>http://www.example.com/pages/</code></li>
+ *     <li><code>http://www.example.com/pages/my-awesome-page</code></li>
+ *     <li><code>http://www.example.com/pages/something</code></li>
  * </ul>
  *
  * If either `[` or `]` is part of the normal query string, it must be encoded as `[\x5B]` or `[\x5D]`,
  * respectively. For example, the following PURL:
- * ```
+ * ```http
  * http://www.example.com/search?do[\x5B]load[\x5D]=1
  * ```
  * will match the URL:
- * ```
+ * ```http
  * http://www.example.com/search?do[load]=1
  * ```
  *
@@ -87,11 +87,9 @@ const parsePurl = (purl) => {
  * @param {String} purl
  *   Pseudo URL.
  * @param {Object} requestTemplate
- *   Options for the new {@linkcode Request} instances created for matching URLs.
- * @see {@linkcode Request}
- * @see {@linkcode Request}
+ *   Options for the new {@link Request} instances created for matching URLs.
  */
-export default class PseudoUrl {
+class PseudoUrl {
     constructor(purl, requestTemplate = {}) {
         checkParamOrThrow(purl, 'purl', 'String');
         checkParamOrThrow(requestTemplate, 'requestTemplate', 'Object');
@@ -124,3 +122,5 @@ export default class PseudoUrl {
         return new Request(Object.assign({ url }, this.requestTemplate));
     }
 }
+
+export default PseudoUrl;

@@ -19,31 +19,32 @@ const DEFAULT_OPTIONS = {
 
 /**
  * Provides a framework for the parallel crawling of web pages using plain HTTP requests and
- * [cheerio](https://www.npmjs.com/package/cheerio) HTML parser.
+ * <a href="https://www.npmjs.com/package/cheerio" target="_blank">cheerio</a> HTML parser.
  *
  * `CheerioCrawler` downloads each URL using a plain HTTP request,
- * parses the HTML content using cheerio and then
- * invokes the user-provided `handlePageFunction` to extract page data
- * using a [jQuery](https://jquery.com/)-like interface to parsed HTML DOM.
+ * parses the HTML content using <a href="https://www.npmjs.com/package/cheerio" target="_blank">cheerio</a>
+ * and then invokes the user-provided [`handlePageFunction()`](#new_CheerioCrawler_new) to extract page data
+ * using a <a href="https://jquery.com/" target="_blank">jQuery</a>-like interface to the parsed HTML DOM.
  *
- * The source URLs are represented using `Request` objects that
- * are fed from the {@link RequestList|`RequestList`} or {@link RequestQueue|`RequestQueue`}
- * instances provided by the `requestList` or `requestQueue` constructor options, respectively.
+ * The source URLs are represented using {@link Request} objects that are fed from
+ * {@link RequestList} or {@link RequestQueue} instances provided by the [`requestList`](#new_CheerioCrawler_new)
+ * or [`requestQueue`](#new_CheerioCrawler_new) constructor options, respectively.
  *
- * If both `requestList` and `requestQueue` is used, the instance first
- * processes URLs from the `RequestList` and automatically enqueues all of them to `RequestQueue` before it starts
- * their processing. This ensures that a single URL is not crawled multiple times.
+ * If both [`requestList`](#new_CheerioCrawler_new) and [`requestQueue`](#new_CheerioCrawler_new) are used,
+ * the instance first processes URLs from the {@link RequestList} and automatically enqueues all of them
+ * to {@link RequestQueue} before it starts their processing. This ensures that a single URL is not crawled multiple times.
  *
- * The crawler finishes if there are no more `Request` objects to crawl.
+ * The crawler finishes when there are no more {@link Request} objects to crawl.
  *
- * By default, `CheerioCrawler` downloads HTML using the [request-promise](https://www.npmjs.com/package/request-promise) NPM package.
+ * By default, `CheerioCrawler` downloads HTML using the
+ * <a href="https://www.npmjs.com/package/request-promise" target="_blank">request-promise</a> NPM package.
  * You can override this behavior by setting the `requestFunction` option.
  *
- * New requests are only started if there is enough free CPU and memory available,
- * using the functionality provided by the {@link AutoscaledPool|`AutoscaledPool`} class.
- * All `AutoscaledPool` configuration options can be passed to the `autoscaledPoolOptions` parameter
- * of the `CheerioCrawler` constructor.
- * For user convenience, the `minConcurrency` and `maxConcurrency` options are available directly.
+ * New requests are only dispatched when there is enough free CPU and memory available,
+ * using the functionality provided by the {@link AutoscaledPool} class.
+ * All {@link AutoscaledPool} configuration options can be passed to the `autoscaledPoolOptions`
+ * parameter of the `CheerioCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency`
+ * {@link AutoscaledPool} options are available directly in the `CheerioCrawler` constructor.
  *
  * **Example usage:**
  *
@@ -81,27 +82,28 @@ const DEFAULT_OPTIONS = {
  * await crawler.run();
  * ```
  *
- * @param {Object} options
+ * @param {Object} options All `CheerioCrawler` parameters are passed
+ *   via an options object with the following keys:
  * @param {Function} options.handlePageFunction
  *   User-provided function that performs the logic of the crawler. It is called for each page
  *   loaded and parsed by the crawler.
  *
- *   The function that receives an object as argument, with the following three fields:
- *
- *   <ul>
- *     <li>`$`: the Cheerio object</li>
- *     <li>`html`: the raw HTML</li>
- *     <li>`request`: the {@link Request|`Request`} object representing the URL to crawl</li>
- *   </ul>
- *
+ *   The function receives the following object as an argument:
+ *   ```
+ *   {
+ *       $: Cheerio, // the Cheerio object with parsed HTML
+ *       html: String // the raw HTML of the page
+ *       request: Request
+ *   }
+ *   ```
+ *   With the {@link Request} object representing the URL to crawl.
  *   If the function returns a promise, it is awaited.
- *
  * @param {RequestList} options.requestList
  *   Static list of URLs to be processed.
- *   Either RequestList or RequestQueue must be provided.
+ *   Either {@link RequestList} or {@link RequestQueue} must be provided.
  * @param {RequestQueue} options.requestQueue
  *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
- *   Either RequestList or RequestQueue must be provided.
+ *   Either {@link RequestList} or {@link RequestQueue} must be provided.
  * @param {Function} [options.requestFunction]
  *   Overrides the function that performs the HTTP request to get the raw HTML needed for Cheerio.
  *   See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/cheerio_crawler.js#L264">GitHub</a> for default behavior.
@@ -111,30 +113,27 @@ const DEFAULT_OPTIONS = {
  *   Timeout in which the function passed as `options.requestFunction` needs to finish, given in seconds.
  * @param {Boolean} [options.ignoreSslErrors=false]
  *   If set to true, SSL certificate errors will be ignored. This is dependent on using the default
- *   request function. If using a custom request function, user needs to implement this functionality.
+ *   request function. If using a custom `options.requestFunction`, user needs to implement this functionality.
  * @param {Function} [options.handleFailedRequestFunction]
  *   Function that handles requests that failed more then `option.maxRequestRetries` times.
  *   See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/cheerio_crawler.js#L13">GitHub</a> for default behavior.
  * @param {Number} [options.maxRequestRetries=3]
- *   How many times the request is retried if either `requestFunction` or `handlePageFunction` failed.
+ *   Indicates how many times the request is retried if either `requestFunction` or `handlePageFunction` fails.
  * @param {Number} [options.maxRequestsPerCrawl]
  *   Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached.
  *   Always set this value in order to prevent infinite loops in misconfigured crawlers.
  *   Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.
  * @param {Object} [options.autoscaledPoolOptions]
- *   Custom options passed to the underlying {@link AutoscaledPool|`AutoscaledPool`} instance constructor.
+ *   Custom options passed to the underlying {@link AutoscaledPool} constructor.
  *   Note that the `runTaskFunction`, `isTaskReadyFunction` and `isFinishedFunction` options
  *   are provided by `CheerioCrawler` and cannot be overridden.
  * @param {Object} [options.minConcurrency=1]
- *   Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding `AutoscaledPool` option.
+ *   Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
  * @param {Object} [options.maxConcurrency=1000]
- *   Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding `AutoscaledPool` option.
- *
- * @see {@link BasicCrawler}
- * @see {@link PuppeteerCrawler}
+ *   Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
  */
-export default class CheerioCrawler {
-    constructor(opts = {}) {
+class CheerioCrawler {
+    constructor(options = {}) {
         const {
             requestFunction,
             handlePageFunction,
@@ -153,13 +152,13 @@ export default class CheerioCrawler {
             maxRequestsPerCrawl,
             handleFailedRequestFunction,
             autoscaledPoolOptions,
-        } = _.defaults(opts, DEFAULT_OPTIONS);
+        } = _.defaults(options, DEFAULT_OPTIONS);
 
-        checkParamOrThrow(handlePageFunction, 'opts.handlePageFunction', 'Function');
-        checkParamOrThrow(requestFunction, 'opts.requestFunction', 'Maybe Function');
-        checkParamOrThrow(requestTimeoutSecs, 'opts.requestTimeoutSecs', 'Number');
-        checkParamOrThrow(handlePageTimeoutSecs, 'opts.handlePageTimeoutSecs', 'Number');
-        checkParamOrThrow(ignoreSslErrors, 'opts.ignoreSslErrors', 'Boolean');
+        checkParamOrThrow(handlePageFunction, 'options.handlePageFunction', 'Function');
+        checkParamOrThrow(requestFunction, 'options.requestFunction', 'Maybe Function');
+        checkParamOrThrow(requestTimeoutSecs, 'options.requestTimeoutSecs', 'Number');
+        checkParamOrThrow(handlePageTimeoutSecs, 'options.handlePageTimeoutSecs', 'Number');
+        checkParamOrThrow(ignoreSslErrors, 'options.ignoreSslErrors', 'Boolean');
 
         this.ignoreSslErrors = ignoreSslErrors;
 
@@ -271,3 +270,5 @@ export default class CheerioCrawler {
         });
     }
 }
+
+export default CheerioCrawler;
