@@ -5,7 +5,7 @@ import _ from 'underscore';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
-import { RequestQueue, RequestQueueLocal, openRequestQueue } from './request_queue';
+import { RequestQueue, RequestQueueLocal } from './request_queue';
 import Request from './request';
 import PseudoUrl from './pseudo_url';
 
