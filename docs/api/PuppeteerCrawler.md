@@ -177,6 +177,14 @@ await crawler.run();
   after which the browser is closed even if there are pending tabs. See
   <code>killInstanceAfterMillis</code> parameter of <a href="puppeteerpool"><code>PuppeteerPool</code></a>.</p>
 </td></tr><tr>
+<td><code>[options.proxyUrls]</code></td><td><code>Array&lt;String&gt;</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>An array of custom proxy URLs to be used by the <a href="puppeteerpool"><code>PuppeteerPool</code></a> instance.
+  The provided custom proxies&#39; order will be randomized and the resulting list rotated.
+  Custom proxies are not compatible with Apify Proxy and an attempt to use both
+  configuration options will cause an error to be thrown on startup.</p>
+</td></tr><tr>
 <td><code>[options.launchPuppeteerFunction]</code></td><td><code>function</code></td><td></td>
 </tr>
 <tr>
