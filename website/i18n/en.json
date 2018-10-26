@@ -53,6 +53,9 @@
       "api/utils": {
         "title": "utils"
       },
+      "api/utilslog": {
+        "title": "utils.log"
+      },
       "examples/basiccrawler": {
         "title": "Basic Crawler"
       },

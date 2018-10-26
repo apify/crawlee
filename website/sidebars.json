@@ -22,7 +22,8 @@
             "api/requestlist",
             "api/requestqueue",
             "api/utils",
-            "api/puppeteer"
+            "api/puppeteer",
+            "api/utilslog"
         ]
     },
     "examples": {
