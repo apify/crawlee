@@ -13,4 +13,4 @@ It can be used either stand-alone in your own applications
 or in <a href="https://www.apify.com/docs/actor" target="_blank">actors</a>
 running on the <a href="https://www.apify.com/" target="_blank">Apify Cloud</a>.
 
->  View the full <a href="https://sdk.apify.com" target="_blank">Apify SDK Programmer's Reference</a> on a separate page.
+**View full documentation, guides and examples on the dedicated <a href="https://sdk.apify.com" target="_blank">Apify SDK project website</a>**
