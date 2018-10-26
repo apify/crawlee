@@ -115,7 +115,7 @@ const Features = () => (
     <Block layout="fourColumn" paddingBottomOnly>
         {[
             {
-                content: '**JavaScript** is the language of the web. Although there are JavaScript tools like `puppeteer` and `cheerio`, ' +
+                content: '**JavaScript** is the language of the web. Although there are JavaScript tools like [puppeteer](https://www.npmjs.com/package/puppeteer) and [cheerio](https://www.npmjs.com/package/cheerio), ' +
                     'there was no universal framework that would enable **large-scale high-performance** web scraping and crawling of any website. **Until now!**',
                 image: imgUrl('javascript_logo.svg'),
                 imageAlign: 'top',
@@ -129,8 +129,8 @@ const Features = () => (
                 title: 'Automates any web workflow',
             },
             {
-                content: '`Apify SDK` can be used **stand-alone** in your Node.js projects or it can run as a **serverless microservice on the Apify Cloud Platform**. ' +
-                    '[Get started.](https://my.apify.com/actors)',
+                content: 'Apify SDK can be used **stand-alone** in your Node.js projects or it can run as a **serverless microservice on the Apify Cloud Platform**. ' +
+                    '[Get started with Apify Cloud](https://my.apify.com/actors)',
                 image: imgUrl('cloud_icon.svg'),
                 imageAlign: 'top',
                 title: 'Works locally and in the cloud',
@@ -165,14 +165,14 @@ const EasyCrawling = () => (
     <Block background="light" gridBlockAlign="left">
         {[
             {
-                content: 'We have built three different crawler classes for you so you can be up and running in no time. ' +
-                    'Do you need to crawl just plain HTML? Use our **blazing fast** [`CheerioCrawler`](examples/cheeriocrawler).\n' +
-                    'For complex websites that use **React, Vue** and other front-end javascript libraries and require real-time manipulation, ' +
+                content: 'There are three main class that you can use to start crawling web in no time. ' +
+                    'Do you need to crawl just the plain HTML? Use the **blazing fast** [`CheerioCrawler`](examples/cheeriocrawler).\n' +
+                    'For complex websites that use **React**, **Vue** or other front-end javascript libraries and require JavaScript execution, ' +
                     'spawn a headless browser with [`PuppeteerCrawler`](examples/puppeteercrawler).\n' +
-                    'And if you need **control of all aspects** of your crawling, just use the bare bones [`BasicCrawler`](examples/basiccrawler)',
+                    'To **control of all aspects** of your crawling, just use the bare bones [`BasicCrawler`](examples/basiccrawler)',
                 image: imgUrl('chrome_scrape.gif'),
                 imageAlign: 'right',
-                title: 'Easy Crawling',
+                title: 'Easy crawling',
             },
         ]}
     </Block>
@@ -182,12 +182,12 @@ const PowerfulTools = () => (
     <Block gridBlockAlign="left">
         {[
             {
-                content: 'All of your crawlers will be automatically **scaled** based on available system resources with our [`AutoscaledPool`](api/AutoscaledPool), ' +
-                    'and if you use the [Apify Cloud Platform](https://my.apify.com/actors), we will also provide you with a pool of **Proxies** to avoid detection. ' +
-                    'For your persistence needs, check out the [`Dataset`](api/dataset) and [`Key-Value Store`](api/keyvaluestore) storages.',
+                content: 'All the crawlers are automatically **scaled** based on available system resources using the [`AutoscaledPool`](docs/api/AutoscaledPool) class. ' +
+                    'When you run your code on the [Apify Cloud](https://my.apify.com/actors), you can also take advantage of a pool of **proxies** to avoid detection. ' +
+                    'For the data storage, you can use the [`Dataset`](docs/api/dataset) and [`Key-value store`](docs/api/keyvaluestore) classes.',
                 image: imgUrl('source_code.png'),
                 imageAlign: 'left',
-                title: 'Powerful Tools',
+                title: 'Powerful tools',
             },
         ]}
     </Block>
@@ -232,7 +232,7 @@ const TryOut = () => (
                     '```\n',
                 // image: imgUrl('apify_logo.svg'),
                 // imageAlign: 'right',
-                title: 'Try it Out',
+                title: 'Try it out',
             },
         ]}
     </Block>
