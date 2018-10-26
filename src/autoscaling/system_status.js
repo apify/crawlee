@@ -54,7 +54,7 @@ class SystemStatus {
             maxEventLoopOverloadedRatio,
             maxCpuOverloadedRatio,
             snapshotter,
-        } = _.defaults(options, DEFAULT_OPTIONS);
+        } = _.defaults({}, options, DEFAULT_OPTIONS);
 
         checkParamOrThrow(currentHistorySecs, 'options.currentHistorySecs', 'Number');
         checkParamOrThrow(maxMemoryOverloadedRatio, 'options.maxMemoryOverloadedRatio', 'Number');

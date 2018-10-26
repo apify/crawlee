@@ -3,7 +3,8 @@ import chaiAsPromised from 'chai-as-promised';
 import log from 'apify-shared/log';
 import _ from 'underscore';
 import { delayPromise } from 'apify-shared/utilities';
-import * as Apify from '../build/index';
+import { ENV_VARS } from 'apify-shared/consts';
+import Apify from '../build/index';
 
 chai.use(chaiAsPromised);
 
@@ -180,7 +181,7 @@ describe('CheerioCrawler', () => {
             log.setLevel(ll);
         });
 
-        it('should timeout after requestTimeoutSecs', async () => {
+        it('after requestTimeoutSecs', async () => {
             const sources = [
                 { url: 'http://example.com/?q=0' },
                 { url: 'http://example.com/?q=1' },
@@ -221,7 +222,7 @@ describe('CheerioCrawler', () => {
             });
         });
 
-        it('should timeout after handlePageTimeoutSecs', async () => {
+        it('after handlePageTimeoutSecs', async () => {
             const sources = [
                 { url: 'http://example.com/?q=0' },
                 { url: 'http://example.com/?q=1' },
@@ -255,6 +256,125 @@ describe('CheerioCrawler', () => {
                 expect(request.errorMessages).to.have.lengthOf(2);
                 expect(request.errorMessages[0]).to.include('handlePageFunction timed out');
                 expect(request.errorMessages[1]).to.include('handlePageFunction timed out');
+            });
+        });
+    });
+
+    describe('proxy', () => {
+        let requestList;
+        beforeEach(async () => {
+            requestList = new Apify.RequestList({
+                sources: [
+                    { url: 'http://example.com/?q=0' },
+                    { url: 'http://example.com/?q=1' },
+                    { url: 'http://example.com/?q=2' },
+                    { url: 'http://example.com/?q=3' },
+                ],
+            });
+            await requestList.initialize();
+        });
+
+        afterEach(() => {
+            requestList = null;
+        });
+
+        /* eslint-disable no-underscore-dangle */
+        it('should work with proxyUrls array', async () => {
+            const proxies = [];
+            const crawler = new Apify.CheerioCrawler({
+                requestList,
+                handlePageFunction: async () => {},
+                requestFunction: async ({ request }) => {
+                    const opts = crawler._getRequestOptions(request);
+                    proxies.push(opts.proxy);
+                    // it needs to return something valid
+                    return 'html';
+                },
+                proxyUrls: ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'],
+            });
+
+            const shuffled = crawler.proxyUrls;
+            await crawler.run();
+
+            expect(proxies).to.have.lengthOf(4);
+            expect(proxies[0]).to.be.eql(shuffled[0]);
+            expect(proxies[1]).to.be.eql(shuffled[1]);
+            expect(proxies[2]).to.be.eql(shuffled[2]);
+            expect(proxies[3]).to.be.eql(shuffled[0]);
+        });
+
+        it('should work with useApifyProxy', async () => {
+            process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
+            const proxies = [];
+            const useApifyProxy = true;
+            const apifyProxyGroups = ['GROUP1', 'GROUP2'];
+            const apifyProxySession = 'session';
+
+            const proxy = Apify.getApifyProxyUrl({
+                groups: apifyProxyGroups,
+                session: apifyProxySession,
+            });
+
+            const crawler = new Apify.CheerioCrawler({
+                requestList,
+                handlePageFunction: async () => {},
+                requestFunction: async ({ request }) => {
+                    const opts = crawler._getRequestOptions(request);
+                    proxies.push(opts.proxy);
+                    // it needs to return something valid
+                    return 'html';
+                },
+                useApifyProxy,
+                apifyProxyGroups,
+                apifyProxySession,
+            });
+
+            await crawler.run();
+            delete process.env[ENV_VARS.PROXY_PASSWORD];
+
+            // expect(proxies).to.have.lengthOf(1);
+            expect(proxies[0]).to.be.eql(proxy);
+            expect(proxies[1]).to.be.eql(proxy);
+            expect(proxies[2]).to.be.eql(proxy);
+            expect(proxies[3]).to.be.eql(proxy);
+        });
+
+        describe('throws', () => {
+            /* eslint-disable no-new */
+            beforeEach(() => {
+                log.setLevel(log.LEVELS.OFF);
+            });
+            afterEach(async () => {
+                log.setLevel(log.LEVELS.ERROR);
+            });
+
+            it('when proxyUrls is used together with useApifyProxy', async () => {
+                try {
+                    new Apify.CheerioCrawler({
+                        requestList,
+                        handlePageFunction: async () => {},
+                        requestFunction: async () => {},
+                        proxyUrls: ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'],
+                        useApifyProxy: true,
+                    });
+                    throw new Error('Invalid error.');
+                } catch (err) {
+                    expect(err.message).to.include('useApifyProxy');
+                }
+            });
+
+            it('when proxyUrls array is empty', async () => {
+                try {
+                    new Apify.CheerioCrawler({
+                        requestList,
+                        handlePageFunction: async () => {},
+                        requestFunction: async () => {},
+                        proxyUrls: [],
+                    });
+                    throw new Error('Invalid error.');
+                } catch (err) {
+                    expect(err.message).to.include('must not be empty');
+                }
             });
         });
     });

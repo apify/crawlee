@@ -137,9 +137,10 @@ class PuppeteerInstance {
  *
  *   The `options.recycleDiskCache` setting should not be used together with `--disk-cache-dir` argument in `options.launchPuppeteerOptions.args`.
  * @param {String[]} [options.proxyUrls]
- *   An array of custom proxy URLs to be used by the `PuppeteerPool` instance. Custom proxies are not compatible
- *   with Apify Proxy. Therefore, by using the `proxyUrls` parameter, all Apify Proxy groups will be automatically disabled
- *   including the `auto` group. The provided custom proxies' order will be randomized and the resulting list rotated.
+ *   An array of custom proxy URLs to be used by the `PuppeteerPool` instance.
+ *   The provided custom proxies' order will be randomized and the resulting list rotated.
+ *   Custom proxies are not compatible with Apify Proxy and an attempt to use both
+ *   configuration options will cause an error to be thrown on startup.
  */
 class PuppeteerPool {
     constructor(options = {}) {
@@ -160,7 +161,7 @@ class PuppeteerPool {
             launchPuppeteerOptions,
             recycleDiskCache,
             proxyUrls,
-        } = _.defaults(options, DEFAULT_OPTIONS);
+        } = _.defaults({}, options, DEFAULT_OPTIONS);
 
         checkParamOrThrow(maxOpenPagesPerInstance, 'options.maxOpenPagesPerInstance', 'Number');
         checkParamOrThrow(retireInstanceAfterRequestCount, 'options.retireInstanceAfterRequestCount', 'Number');
@@ -204,8 +205,7 @@ class PuppeteerPool {
 
             // Rotate custom proxyUrls.
             if (this.proxyUrls) {
-                opts.proxyUrl = this.proxyUrls[this.lastUsedProxyUrlIndex % this.proxyUrls.length];
-                this.lastUsedProxyUrlIndex++;
+                opts.proxyUrl = this.proxyUrls[this.lastUsedProxyUrlIndex++ % this.proxyUrls.length];
             }
 
             const browser = await launchPuppeteerFunction(opts);

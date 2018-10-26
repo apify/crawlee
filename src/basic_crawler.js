@@ -121,7 +121,7 @@ class BasicCrawler {
             // AutoscaledPool shorthands
             minConcurrency,
             maxConcurrency,
-        } = _.defaults(options, DEFAULT_OPTIONS);
+        } = _.defaults({}, options, DEFAULT_OPTIONS);
 
         checkParamPrototypeOrThrow(requestList, 'options.requestList', RequestList, 'Apify.RequestList', true);
         checkParamPrototypeOrThrow(requestQueue, 'options.requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue', true);
@@ -167,7 +167,7 @@ class BasicCrawler {
             },
         };
 
-        this.autoscaledPoolOptions = _.defaults(basicCrawlerAutoscaledPoolConfiguration, autoscaledPoolOptions);
+        this.autoscaledPoolOptions = _.defaults({}, basicCrawlerAutoscaledPoolConfiguration, autoscaledPoolOptions);
     }
 
     /**
