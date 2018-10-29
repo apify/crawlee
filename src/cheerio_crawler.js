@@ -93,7 +93,8 @@ const DEFAULT_OPTIONS = {
  *   {
  *       $: Cheerio, // the Cheerio object with parsed HTML
  *       html: String // the raw HTML of the page
- *       request: Request
+ *       request: Request,
+ *       response: Object // a response object with properties such as the HTTP status code
  *   }
  *   ```
  *   With the {@link Request} object representing the URL to crawl.
