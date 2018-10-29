@@ -184,6 +184,13 @@ to override the default behavior and specify which URLs shall be considered equa
 ## `request.pushErrorMessage(errorOrMessage)`
 Stores information about an error that occurred during processing of this request.
 
+You should always use Error instances when throwing errors in JavaScript.
+
+Nevertheless, to improve the debugging experience when using third party libraries
+that may not always throw an Error instance, the function performs a type
+inspection of the passed argument and attempts to extract as much information
+as possible, since just throwing a bad type error makes any debugging rather difficult.
+
 <table>
 <thead>
 <tr>
