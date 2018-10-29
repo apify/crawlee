@@ -22,10 +22,43 @@ describe('Apify.Request', () => {
 
         expect(request.errorMessages).to.be.eql(null);
 
-        request.pushErrorMessage(new Error('foo'));
-        request.pushErrorMessage('bar');
+        // Make a circular, unstringifiable object.
+        const circularObj = { prop: 1 };
+        circularObj.obj = circularObj;
 
-        expect(request.errorMessages).to.be.eql(['foo', 'bar']);
+        const arr = [1, 2, 3];
+        const arrJson = JSON.stringify(arr, null, 2);
+
+        const obj = { one: 1, two: 'two' };
+        const objJson = JSON.stringify(obj, null, 2);
+
+        request.pushErrorMessage(undefined);
+        request.pushErrorMessage(false);
+        request.pushErrorMessage(5);
+        request.pushErrorMessage(() => 2);
+        request.pushErrorMessage('bar');
+        request.pushErrorMessage(Symbol('A Symbol'));
+        request.pushErrorMessage(null);
+        request.pushErrorMessage(new Error('foo'));
+        request.pushErrorMessage({ message: 'A message.' });
+        request.pushErrorMessage([1, 2, 3]);
+        request.pushErrorMessage(obj);
+        request.pushErrorMessage(circularObj);
+
+        expect(request.errorMessages).to.be.eql([
+            'Received: "undefined" of type: "undefined" instead of a proper message.',
+            'Received: "false" of type: "boolean" instead of a proper message.',
+            'Received: "5" of type: "number" instead of a proper message.',
+            'Received: "() => 2" of type: "function" instead of a proper message.',
+            'bar',
+            'Symbol(A Symbol)',
+            'Received: "null" instead of a proper message.',
+            'foo',
+            'A message.',
+            arrJson,
+            objJson,
+            'Received an Object that is not stringifiable to JSON and has the following keys: prop; obj',
+        ]);
     });
 
     it('should should allow to have a GET request with payload', () => {

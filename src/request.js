@@ -1,6 +1,5 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { normalizeUrl } from 'apify-shared/utilities';
-import _ from 'underscore';
 
 export const computeUniqueKey = (url, keepUrlFragment) => normalizeUrl(url, keepUrlFragment);
 
@@ -146,19 +145,47 @@ class Request {
     /**
      * Stores information about an error that occurred during processing of this request.
      *
+     * You should always use Error instances when throwing errors in JavaScript.
+     *
+     * Nevertheless, to improve the debugging experience when using third party libraries
+     * that may not always throw an Error instance, the function performs a type
+     * inspection of the passed argument and attempts to extract as much information
+     * as possible, since just throwing a bad type error makes any debugging rather difficult.
+     *
      * @param {Error|String} errorOrMessage Error object or error message to be stored in the request.
      */
     pushErrorMessage(errorOrMessage) {
-        if (!_.isString(errorOrMessage) && !(errorOrMessage instanceof Error)) {
-            throw new Error('Parameter errorOrMessage must be a String or an instance of Error');
+        let message;
+        const type = typeof errorOrMessage;
+        switch (type) {
+        case 'undefined':
+        case 'boolean':
+        case 'number':
+        case 'function':
+            message = `Received: "${errorOrMessage}" of type: "${type}" instead of a proper message.`; break;
+        case 'string':
+            message = errorOrMessage; break;
+        case 'symbol':
+            message = errorOrMessage.toString(); break;
+        case 'object':
+            if (!errorOrMessage) {
+                message = 'Received: "null" instead of a proper message.';
+            } else if (errorOrMessage.message) {
+                message = errorOrMessage.message; // eslint-disable-line prefer-destructuring
+            } else {
+                try {
+                    message = JSON.stringify(errorOrMessage, null, 2);
+                } catch (err) {
+                    const keys = Object.keys(errorOrMessage).join('; ');
+                    message = `Received an Object that is not stringifiable to JSON and has the following keys: ${keys}`;
+                }
+            }
+            break;
+        default:
+            message = 'Unable to extract any message from the received error.';
         }
 
-        const message = errorOrMessage instanceof Error
-            ? errorOrMessage.message
-            : errorOrMessage;
-
         if (!this.errorMessages) this.errorMessages = [];
-
         this.errorMessages.push(message);
     }
 }
