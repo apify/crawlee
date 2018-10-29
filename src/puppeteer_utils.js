@@ -1,6 +1,6 @@
 import fs from 'fs';
 import vm from 'vm';
-import Promise from 'bluebird';
+import util from 'util';
 import _ from 'underscore';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
@@ -11,7 +11,7 @@ import PseudoUrl from './pseudo_url';
 
 const jqueryPath = require.resolve('jquery');
 const underscorePath = require.resolve('underscore');
-const readFilePromised = Promise.promisify(fs.readFile);
+const readFilePromised = util.promisify(fs.readFile);
 
 /**
  * Hides certain Puppeteer fingerprints from the page, in order to help avoid detection of the crawler.
@@ -129,15 +129,29 @@ const enqueueRequestsFromClickableElements = async (page, selector, purls, reque
     const urls = await page.$$eval(selector, getHrefs);
     const requests = urls.filter(matchesPseudoUrl).map(url => new Request(Object.assign({ url }, requestOpts)));
 
-    return Promise.mapSeries(requests, request => requestQueue.addRequest(request));
+    const requestOperationInfos = [];
+    for (const request of requests) {
+        requestOperationInfos.push(await requestQueue.addRequest(request));
+    }
+    return requestOperationInfos;
 };
 
 /**
  * To enable direct use of the Actor UI `pseudoUrls` output while keeping high performance,
  * all the pseudoUrls from the output are only constructed once and kept in a cache
  * by the `enqueueLinks()` function.
+ * @ignore
  */
-const enqueueLinksCache = new WeakMap();
+const enqueueLinksCache = new Map();
+const MAX_ENQUEUE_LINKS_CACHE_SIZE = 1000;
+
+/**
+ * Remove with 1.0.0
+ * @ignore
+ * @todo
+ */
+let logDeprecationWarning = true;
+
 /**
  * Finds HTML elements matching a CSS selector, clicks the elements and if a redirect is triggered and destination URL matches
  * one of the provided {@link PseudoUrl}s, then the function enqueues that URL to a given request queue.
@@ -165,8 +179,11 @@ const enqueueLinks = async (page, selector, requestQueue, pseudoUrls = []) => {
     // TODO: Remove after v1.0.0 gets released.
     // Check for pseudoUrls as a third parameter.
     if (Array.isArray(requestQueue)) {
-        log.warning('Argument "pseudoUrls" as the third parameter to enqueueLinks() is deprecated. '
-            + 'Use enqueueLinks(page, selector, requestQueue, pseudoUrls) instead. "pseudoUrls" are now optional.');
+        if (logDeprecationWarning) {
+            log.warning('Argument "pseudoUrls" as the third parameter to enqueueLinks() is deprecated. '
+                + 'Use enqueueLinks(page, selector, requestQueue, pseudoUrls) instead. "pseudoUrls" are now optional.');
+            logDeprecationWarning = false;
+        }
         const tmp = requestQueue;
         requestQueue = pseudoUrls;
         pseudoUrls = tmp;
@@ -177,17 +194,24 @@ const enqueueLinks = async (page, selector, requestQueue, pseudoUrls = []) => {
     checkParamPrototypeOrThrow(requestQueue, 'requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue');
     checkParamOrThrow(pseudoUrls, 'pseudoUrls', 'Array');
 
-    // Check and cache the pseudoUrls
-    let pseudoUrlInstances = enqueueLinksCache.get(pseudoUrls);
-    if (!pseudoUrlInstances) {
-        pseudoUrlInstances = pseudoUrls.map((item, idx) => {
-            checkParamOrThrow(item, `pseudoUrls[${idx}]`, 'Object|String');
-            if (item instanceof PseudoUrl) return item;
-            if (typeof item === 'string') return new PseudoUrl(item);
-            return new PseudoUrl(item.purl, _.omit(item, 'purl'));
-        });
-        enqueueLinksCache.set(pseudoUrls, pseudoUrlInstances);
-    }
+    // Construct pseudoUrls from input where necessary.
+    const pseudoUrlInstances = pseudoUrls.map((item, idx) => {
+        // Get pseudoUrl instance from cache.
+        let pUrl = enqueueLinksCache.get(item);
+        if (pUrl) return pUrl;
+        // Nothing in cache, make a new instance.
+        checkParamOrThrow(item, `pseudoUrls[${idx}]`, 'Object|String');
+        if (item instanceof PseudoUrl) pUrl = item;
+        else if (typeof item === 'string') pUrl = new PseudoUrl(item);
+        else pUrl = new PseudoUrl(item.purl, _.omit(item, 'purl'));
+        // Manage cache
+        enqueueLinksCache.set(item, pUrl);
+        if (enqueueLinksCache.size > MAX_ENQUEUE_LINKS_CACHE_SIZE) {
+            const key = enqueueLinksCache.keys().next().value;
+            enqueueLinksCache.delete(key);
+        }
+        return pUrl;
+    });
 
     /* istanbul ignore next */
     const getHrefs = linkEls => linkEls.map(link => link.href).filter(href => !!href);
@@ -204,7 +228,11 @@ const enqueueLinks = async (page, selector, requestQueue, pseudoUrls = []) => {
         requests = urls.map(url => ({ url }));
     }
 
-    return Promise.mapSeries(requests, request => requestQueue.addRequest(request));
+    const requestOperationInfos = [];
+    for (const request of requests) {
+        requestOperationInfos.push(await requestQueue.addRequest(request));
+    }
+    return requestOperationInfos;
 };
 
 /**
