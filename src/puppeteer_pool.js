@@ -326,8 +326,8 @@ class PuppeteerPool {
                 return;
             }
 
-            const browser = await instance.browserPromise;
             try {
+                const browser = await instance.browserPromise;
                 const pages = await browser.pages();
                 // NOTE: we are killing instance when the number of pages is less or equal to 1 because there is always about:blank page.
                 if (pages.length <= 1) {
