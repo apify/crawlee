@@ -101,7 +101,8 @@ await crawler.run();
 <pre><code>  {
       $: Cheerio, // the Cheerio object with parsed HTML
       html: String // the raw HTML of the page
-      request: Request
+      request: Request,
+      response: Object // a response object with properties such as the HTTP status code
   }
 </code></pre><p>  With the <a href="request"><code>Request</code></a> object representing the URL to crawl.
   If the function returns a promise, it is awaited.</p>
