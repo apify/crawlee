@@ -94,6 +94,21 @@ module.exports = {
     // utils
     utils: Object.assign(publicUtils, {
         puppeteer: puppeteerUtils,
+        /**
+         * Apify.utils contains various utilities for logging `WARNING,ERROR,OFF,DEBUG,INFO`.All logs are always kept.
+         *
+         * **Example usage:**
+         *
+         * ```javascript
+         * const Apify = require('apify');
+         * const { log } = Apify.utils;
+         * log.setLevel(log.LEVELS.WARNING);
+         * ```
+         *
+         * @namespace utils.log
+         */
         log,
     }),
 };
+
+

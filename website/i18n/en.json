@@ -23,6 +23,9 @@
       "api/keyvaluestore": {
         "title": "KeyValueStore"
       },
+      "api/log": {
+        "title": "log"
+      },
       "api/pseudourl": {
         "title": "PseudoUrl"
       },
@@ -52,9 +55,6 @@
       },
       "api/utils": {
         "title": "utils"
-      },
-      "api/utilslog": {
-        "title": "utils.log"
       },
       "examples/basiccrawler": {
         "title": "Basic Crawler"
