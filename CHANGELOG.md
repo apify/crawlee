@@ -1,3 +1,7 @@
+xxx
+===================
+- Fixed `RequestQueue.addRequest()` to gracefully handle invalid URLs
+
 0.8.17 / 2018-10-30
 ===================
 - Reworked `request.pushErrorMessage()` to support any message and not throw.
