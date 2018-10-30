@@ -1,3 +1,4 @@
+import util from 'util';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { normalizeUrl } from 'apify-shared/utilities';
 
@@ -157,36 +158,24 @@ class Request {
     pushErrorMessage(errorOrMessage) {
         let message;
         const type = typeof errorOrMessage;
-        switch (type) {
-        case 'undefined':
-        case 'boolean':
-        case 'number':
-        case 'function':
-            message = `Received: "${errorOrMessage}" of type: "${type}" instead of a proper message.`; break;
-        case 'string':
-            message = errorOrMessage; break;
-        case 'symbol':
-            message = errorOrMessage.toString(); break;
-        case 'object':
+        if (type === 'object') {
             if (!errorOrMessage) {
-                message = 'Received: "null" instead of a proper message.';
-            } else if (Array.isArray(errorOrMessage)) {
-                message = `Received: "array" instead of a proper message.\nContents: ${errorOrMessage}`;
+                message = 'null';
             } else if (errorOrMessage.message) {
                 message = errorOrMessage.message; // eslint-disable-line prefer-destructuring
             } else if (errorOrMessage.toString() !== '[object Object]') {
                 message = errorOrMessage.toString();
             } else {
                 try {
-                    message = JSON.stringify(errorOrMessage, null, 2);
+                    message = util.inspect(errorOrMessage);
                 } catch (err) {
-                    const keys = Object.keys(errorOrMessage).join('; ');
-                    message = `Received an Object that is not stringifiable to JSON and has the following keys: ${keys}`;
+                    message = 'Unable to extract any message from the received object.';
                 }
             }
-            break;
-        default:
-            message = 'Unable to extract any message from the received error.';
+        } else if (type === 'undefined') {
+            message = 'undefined';
+        } else {
+            message = errorOrMessage.toString();
         }
 
         if (!this.errorMessages) this.errorMessages = [];

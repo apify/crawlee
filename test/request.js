@@ -1,3 +1,4 @@
+import util from 'util';
 import { expect } from 'chai';
 import { computeUniqueKey } from '../build/request';
 import Apify from '../build/index';
@@ -25,11 +26,10 @@ describe('Apify.Request', () => {
         // Make a circular, unstringifiable object.
         const circularObj = { prop: 1 };
         circularObj.obj = circularObj;
-
-        const arr = [1, 2, 3];
+        const circularObjInspect = util.inspect(circularObj);
 
         const obj = { one: 1, two: 'two' };
-        const objJson = JSON.stringify(obj, null, 2);
+        const objInspect = util.inspect(obj);
 
         const toStr = {
             toString() {
@@ -52,19 +52,19 @@ describe('Apify.Request', () => {
         request.pushErrorMessage(circularObj);
 
         expect(request.errorMessages).to.be.eql([
-            'Received: "undefined" of type: "undefined" instead of a proper message.',
-            'Received: "false" of type: "boolean" instead of a proper message.',
-            'Received: "5" of type: "number" instead of a proper message.',
-            'Received: "() => 2" of type: "function" instead of a proper message.',
+            'undefined',
+            'false',
+            '5',
+            '() => 2',
             'bar',
             'Symbol(A Symbol)',
-            'Received: "null" instead of a proper message.',
+            'null',
             'foo',
             'A message.',
-            `Received: "array" instead of a proper message.\nContents: ${arr}`,
-            objJson,
+            '1,2,3',
+            objInspect,
             'toString',
-            'Received an Object that is not stringifiable to JSON and has the following keys: prop; obj',
+            circularObjInspect,
         ]);
     });
 
