@@ -158,7 +158,7 @@ const getPuppeteerOrThrow = () => {
  *
  * To use this function, you need to have the <a href="https://www.npmjs.com/package/puppeteer" target="_blank">puppeteer</a>
  * NPM package installed in your project.
- * When running on the Apify cloud platform, you can achieve that simply
+ * When running on the Apify cloud, you can achieve that simply
  * by using the `apify/actor-node-chrome` base Docker image for your actor - see
  * <a href="https://www.apify.com/docs/actor#base-images" target="_blank">Apify Actor documentation</a>
  * for details.

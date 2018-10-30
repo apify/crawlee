@@ -129,7 +129,7 @@ const Features = () => (
                 title: 'Automates any web workflow',
             },
             {
-                content: 'Apify SDK can be used **stand-alone** in your Node.js projects or it can run as a **serverless microservice on the Apify Cloud Platform**. ' +
+                content: 'Apify SDK can be used **stand-alone** in your Node.js projects or it can run as a **serverless microservice on the Apify Cloud**. ' +
                     '[Get started with Apify Cloud](https://my.apify.com/actors)',
                 image: imgUrl('cloud_icon.svg'),
                 imageAlign: 'top',
@@ -154,7 +154,7 @@ const Features = () => (
 //             And if you need **control of all aspects** of your crawling, just use the bare bones [`BasicCrawler`](examples/basiccrawler)
 //
 //             All of your crawlers will be automatically **scaled** based on available system resources with our [`AutoscaledPool`](api/AutoscaledPool).
-//             And if you use the [Apify Cloud Platform](https://my.apify.com/actors), we will also provide you with a pool of **Proxies** to avoid detection.
+//             And if you use the [Apify Cloud](https://my.apify.com/actors), we will also provide you with a pool of **Proxies** to avoid detection.
 //
 //             For your persistence needs, check out the [`Dataset`](api/dataset) and [`Key-Value Store`](api/keyvaluestore) storages.
 //         </MarkdownBlock>

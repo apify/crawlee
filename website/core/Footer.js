@@ -73,7 +73,7 @@ class Footer extends React.Component {
                     </div>
                     <div>
                         <h5>More</h5>
-                        <a href="https://www.apify.com" target="_blank">Apify Cloud Platform</a>
+                        <a href="https://www.apify.com" target="_blank">Apify Cloud</a>
                         <a href="https://docusaurus.io" target="_blank">Docusaurus</a>
                         <a href={this.props.config.repoUrl} target="_blank">GitHub</a>
                     </div>
