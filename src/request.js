@@ -154,13 +154,21 @@ class Request {
      * as possible, since just throwing a bad type error makes any debugging rather difficult.
      *
      * @param {Error|String} errorOrMessage Error object or error message to be stored in the request.
+     * @param {Object} [options]
+     * @param {Boolean} [options.omitStack=false] Only push the error message without stack trace when true.
      */
-    pushErrorMessage(errorOrMessage) {
+    pushErrorMessage(errorOrMessage, options = {}) {
+        const { omitStack } = options;
         let message;
         const type = typeof errorOrMessage;
         if (type === 'object') {
             if (!errorOrMessage) {
                 message = 'null';
+            } else if (errorOrMessage instanceof Error) {
+                message = omitStack
+                    ? errorOrMessage.message
+                    // Use inspect because .toString() just returns the message.
+                    : util.inspect(errorOrMessage);
             } else if (errorOrMessage.message) {
                 message = errorOrMessage.message; // eslint-disable-line prefer-destructuring
             } else if (errorOrMessage.toString() !== '[object Object]') {

@@ -44,7 +44,7 @@ describe('Apify.Request', () => {
         request.pushErrorMessage('bar');
         request.pushErrorMessage(Symbol('A Symbol'));
         request.pushErrorMessage(null);
-        request.pushErrorMessage(new Error('foo'));
+        request.pushErrorMessage(new Error('foo'), { omitStack: true });
         request.pushErrorMessage({ message: 'A message.' });
         request.pushErrorMessage([1, 2, 3]);
         request.pushErrorMessage(obj);
@@ -66,6 +66,12 @@ describe('Apify.Request', () => {
             'toString',
             circularObjInspect,
         ]);
+
+        request.pushErrorMessage(new Error('error message.'));
+        const last = request.errorMessages.pop();
+        expect(last).to.include('error message');
+        expect(last).to.include(' at ');
+        expect(last).to.include(__filename.split(/[\\/]/g).pop());
     });
 
     it('should should allow to have a GET request with payload', () => {
