@@ -1,3 +1,10 @@
+0.8.17 / 2018-10-30
+===================
+- Reworked `request.pushErrorMessage()` to support any message and not throw.
+- Added Apify Proxy (`useApifyProxy`) support to `CheerioCrawler`.
+- Added custom `proxyUrls` support to `PuppeteerPool` and `CheerioCrawler`.
+- Added Actor UI `pseudoUrls` output support to `Apify.utils.puppeteer.enqueueLinks()`.
+
 0.8.16 / 2018-10-23
 ===================
 - Created dedicated project page at https://sdk.apify.com
