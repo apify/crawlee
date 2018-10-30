@@ -213,7 +213,7 @@ export class RequestQueue {
      * it will not be updated. You can find out whether this happened from the resulting
      * {@link RequestOperationInfo} object.
      *
-     * @param {Request|Object} request Request object, or an Object to construct a Request from.
+     * @param {Request|Object} request {@link Request} object, or an object to construct a `Request` instance from.
      * @param {Object} [options]
      * @param {Boolean} [options.forefront=false] If `true`, the request will be added to the foremost position in the queue.
      * @return {RequestOperationInfo}

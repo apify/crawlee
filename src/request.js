@@ -130,9 +130,12 @@ class Request {
 
         if (method === 'GET' && payload) throw new Error('Request with GET method cannot have a payload.');
 
+        if (!url) throw new Error('The "url" option cannot be empty string.');
+
         this.id = id;
         this.url = url;
-        this.uniqueKey = uniqueKey || computeUniqueKey(url, keepUrlFragment);
+        // NOTE: If URL is invalid, computeUniqueKey() returns null which was causing weird errors
+        this.uniqueKey = uniqueKey || computeUniqueKey(url, keepUrlFragment) || url;
         this.method = method;
         this.payload = payload;
         this.retryCount = retryCount;

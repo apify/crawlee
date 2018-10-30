@@ -1,4 +1,4 @@
-import chai, { expect } from 'chai';
+import chai, { assert, expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import _ from 'underscore';
 import 'babel-polyfill';
@@ -81,6 +81,32 @@ describe('RequestQueue', () => {
             expectDirNonEmpty(queueDir);
             await queue.delete();
             expectDirEmpty(queueDir);
+        });
+
+        it('handles invalid URLs gracefully', async () => {
+            const queue = new RequestQueueLocal('my-queue-x', LOCAL_STORAGE_DIR);
+
+            try {
+                await queue.addRequest({ url: '' });
+                assert.fail('This should not happen');
+            } catch (e) {
+                expect(e.message).to.contain('The "url" option cannot be empty string');
+            }
+            await queue.addRequest(new Apify.Request({ url: 'something' }));
+            await Apify.utils.sleep(20);
+            await queue.addRequest({ url: 'dummy' });
+
+            const request2 = await queue.fetchNextRequest();
+            const request1 = await queue.fetchNextRequest();
+
+            expect(request1.url).to.be.eql('dummy');
+            expect(request1.uniqueKey).to.be.eql('dummy');
+
+            expect(request2.url).to.be.eql('something');
+            expect(request2.uniqueKey).to.be.eql('something');
+
+            expect(await queue.getRequest(request1.id)).to.be.eql(request1);
+            expect(await queue.getRequest(request2.id)).to.be.eql(request2);
         });
 
         it('supports forefront param in reclaimRequest()', async () => {
