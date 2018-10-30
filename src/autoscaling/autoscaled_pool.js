@@ -128,7 +128,7 @@ class AutoscaledPool {
             isTaskReadyFunction,
             systemStatusOptions,
             snapshotterOptions,
-        } = _.defaults(options, DEFAULT_OPTIONS);
+        } = _.defaults({}, options, DEFAULT_OPTIONS);
 
         checkParamOrThrow(maxConcurrency, 'options.maxConcurrency', 'Number');
         checkParamOrThrow(minConcurrency, 'options.minConcurrency', 'Number');

@@ -8,7 +8,7 @@ Provides a framework for the parallel crawling of web pages using plain HTTP req
 <a href="https://www.npmjs.com/package/cheerio" target="_blank">cheerio</a> HTML parser.
 
 `CheerioCrawler` downloads each URL using a plain HTTP request,
-parses the HTML content using <a href="https://www.npmjs.com/package/cheerio" target="_blank">cheerio</a>
+parses the HTML content using <a href="https://www.npmjs.com/package/cheerio" target="_blank">Cheerio</a>
 and then invokes the user-provided [`handlePageFunction()`](#new_CheerioCrawler_new) to extract page data
 using a <a href="https://jquery.com/" target="_blank">jQuery</a>-like interface to the parsed HTML DOM.
 
@@ -24,7 +24,8 @@ The crawler finishes when there are no more [`Request`](request) objects to craw
 
 By default, `CheerioCrawler` downloads HTML using the
 <a href="https://www.npmjs.com/package/request-promise" target="_blank">request-promise</a> NPM package.
-You can override this behavior by setting the `requestFunction` option.
+You can override this behavior by setting the `requestFunction` option. If you want to keep `request-promise`,
+but use different than default options, use the `requestOptions` parameter.
 
 New requests are only dispatched when there is enough free CPU and memory available,
 using the functionality provided by the [`AutoscaledPool`](autoscaledpool) class.
@@ -70,13 +71,13 @@ await crawler.run();
 
 
 * [CheerioCrawler](cheeriocrawler)
-    * [`new CheerioCrawler(options)`](#new_CheerioCrawler_new)
+    * [`new CheerioCrawler(options, [useApifyProxy], [apifyProxyGroups], [apifyProxySession])`](#new_CheerioCrawler_new)
     * [`.run()`](#CheerioCrawler+run) ⇒ <code>Promise</code>
     * [`.abort()`](#CheerioCrawler+abort) ⇒ <code>Promise</code>
 
 <a name="new_CheerioCrawler_new"></a>
 
-## `new CheerioCrawler(options)`
+## `new CheerioCrawler(options, [useApifyProxy], [apifyProxyGroups], [apifyProxySession])`
 <table>
 <thead>
 <tr>
@@ -121,8 +122,16 @@ await crawler.run();
 <td><code>[options.requestFunction]</code></td><td><code>function</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>Overrides the function that performs the HTTP request to get the raw HTML needed for Cheerio.
+<td colspan="3"><p>Overrides the default function that performs the HTTP request to get the raw HTML needed for Cheerio.
   See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/cheerio_crawler.js#L264">GitHub</a> for default behavior.</p>
+</td></tr><tr>
+<td><code>[options.requestOptions]</code></td><td><code>Object</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Represents the options passed to the <code>requestFunction</code>, which are essentially the options passed to
+  <a href="https://www.npmjs.com/package/request-promise" target="_blank">request-promise</a> to make the HTTP call.
+  Provided <code>requestOptions</code> are merged with defaults so if you only need to add a parameter, there&#39;s no need to duplicate
+  the whole object.</p>
 </td></tr><tr>
 <td><code>[options.handlePageTimeoutSecs]</code></td><td><code>Number</code></td><td><code>300</code></td>
 </tr>
@@ -139,6 +148,37 @@ await crawler.run();
 <tr>
 <td colspan="3"><p>If set to true, SSL certificate errors will be ignored. This is dependent on using the default
   request function. If using a custom <code>options.requestFunction</code>, user needs to implement this functionality.</p>
+</td></tr><tr>
+<td><code>[useApifyProxy]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>If set to <code>true</code>, <code>CheerioCrawler</code> will be configured to use
+  <a href="https://my.apify.com/proxy" target="_blank">Apify Proxy</a> for all connections.
+  For more information, see the <a href="https://www.apify.com/docs/proxy" target="_blank">documentation</a></p>
+</td></tr><tr>
+<td><code>[apifyProxyGroups]</code></td><td><code>Array&lt;String&gt;</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>An array of proxy groups to be used
+  by the <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a>.
+  Only applied if the <code>useApifyProxy</code> option is <code>true</code>.</p>
+</td></tr><tr>
+<td><code>[apifyProxySession]</code></td><td><code>String</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Apify Proxy session identifier to be used with requests made by <code>CheerioCrawler</code>.
+  All HTTP requests going through the proxy with the same session identifier
+  will use the same target proxy server (i.e. the same IP address).
+  The identifier can only contain the following characters: <code>0-9</code>, <code>a-z</code>, <code>A-Z</code>, <code>&quot;.&quot;</code>, <code>&quot;_&quot;</code> and <code>&quot;~&quot;</code>.
+  Only applied if the <code>useApifyProxy</code> option is <code>true</code>.</p>
+</td></tr><tr>
+<td><code>[options.proxyUrls]</code></td><td><code>Array&lt;String&gt;</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>An array of custom proxy URLs to be used by the <code>CheerioCrawler</code> instance.
+  The provided custom proxies&#39; order will be randomized and the resulting list rotated.
+  Custom proxies are not compatible with Apify Proxy and an attempt to use both
+  configuration options will cause an error to be thrown on startup.</p>
 </td></tr><tr>
 <td><code>[options.handleFailedRequestFunction]</code></td><td><code>function</code></td><td></td>
 </tr>

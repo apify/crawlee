@@ -139,6 +139,11 @@ const PAGE_CLOSE_TIMEOUT_MILLIS = 30000;
  *   the whole browser is closed too. This parameter defines a time limit for inactivity
  *   after which the browser is closed even if there are pending tabs. See
  *   `killInstanceAfterMillis` parameter of {@link PuppeteerPool}.
+ * @param {String[]} [options.proxyUrls]
+ *   An array of custom proxy URLs to be used by the {@link PuppeteerPool} instance.
+ *   The provided custom proxies' order will be randomized and the resulting list rotated.
+ *   Custom proxies are not compatible with Apify Proxy and an attempt to use both
+ *   configuration options will cause an error to be thrown on startup.
  * @param {Function} [options.launchPuppeteerFunction]
  *   Overrides the default function to launch a new Puppeteer instance.
  *   See `launchPuppeteerFunction` parameter of {@link PuppeteerPool}.
@@ -189,9 +194,10 @@ class PuppeteerCrawler {
             retireInstanceAfterRequestCount,
             instanceKillerIntervalMillis,
             killInstanceAfterMillis,
+            proxyUrls,
             launchPuppeteerFunction,
             launchPuppeteerOptions,
-        } = _.defaults(options, DEFAULT_OPTIONS);
+        } = _.defaults({}, options, DEFAULT_OPTIONS);
 
         checkParamOrThrow(handlePageFunction, 'options.handlePageFunction', 'Function');
         checkParamOrThrow(handleFailedRequestFunction, 'options.handleFailedRequestFunction', 'Maybe Function');
@@ -208,6 +214,7 @@ class PuppeteerCrawler {
             retireInstanceAfterRequestCount,
             instanceKillerIntervalMillis,
             killInstanceAfterMillis,
+            proxyUrls,
             launchPuppeteerFunction,
             launchPuppeteerOptions,
         };
