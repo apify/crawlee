@@ -143,7 +143,33 @@ const enqueueRequestsFromClickableElements = async (page, selector, purls, reque
  * @ignore
  */
 const enqueueLinksCache = new Map();
-const MAX_ENQUEUE_LINKS_CACHE_SIZE = 1000;
+export const MAX_ENQUEUE_LINKS_CACHE_SIZE = 1000;
+
+/**
+ * Helper factory used in the `enqeueLinks()` function.
+ * @param {Array} pseudoUrls
+ * @returns {Array}
+ * @ignore
+ */
+export const constructPseudoUrlInstances = (pseudoUrls) => {
+    return pseudoUrls.map((item, idx) => {
+        // Get pseudoUrl instance from cache.
+        let pUrl = enqueueLinksCache.get(item);
+        if (pUrl) return pUrl;
+        // Nothing in cache, make a new instance.
+        checkParamOrThrow(item, `pseudoUrls[${idx}]`, 'Object|String');
+        if (item instanceof PseudoUrl) pUrl = item;
+        else if (typeof item === 'string') pUrl = new PseudoUrl(item);
+        else pUrl = new PseudoUrl(item.purl, _.omit(item, 'purl'));
+        // Manage cache
+        enqueueLinksCache.set(item, pUrl);
+        if (enqueueLinksCache.size > MAX_ENQUEUE_LINKS_CACHE_SIZE) {
+            const key = enqueueLinksCache.keys().next().value;
+            enqueueLinksCache.delete(key);
+        }
+        return pUrl;
+    });
+};
 
 /**
  * Remove with 1.0.0
@@ -195,23 +221,7 @@ const enqueueLinks = async (page, selector, requestQueue, pseudoUrls = []) => {
     checkParamOrThrow(pseudoUrls, 'pseudoUrls', 'Array');
 
     // Construct pseudoUrls from input where necessary.
-    const pseudoUrlInstances = pseudoUrls.map((item, idx) => {
-        // Get pseudoUrl instance from cache.
-        let pUrl = enqueueLinksCache.get(item);
-        if (pUrl) return pUrl;
-        // Nothing in cache, make a new instance.
-        checkParamOrThrow(item, `pseudoUrls[${idx}]`, 'Object|String');
-        if (item instanceof PseudoUrl) pUrl = item;
-        else if (typeof item === 'string') pUrl = new PseudoUrl(item);
-        else pUrl = new PseudoUrl(item.purl, _.omit(item, 'purl'));
-        // Manage cache
-        enqueueLinksCache.set(item, pUrl);
-        if (enqueueLinksCache.size > MAX_ENQUEUE_LINKS_CACHE_SIZE) {
-            const key = enqueueLinksCache.keys().next().value;
-            enqueueLinksCache.delete(key);
-        }
-        return pUrl;
-    });
+    const pseudoUrlInstances = constructPseudoUrlInstances(pseudoUrls);
 
     /* istanbul ignore next */
     const getHrefs = linkEls => linkEls.map(link => link.href).filter(href => !!href);

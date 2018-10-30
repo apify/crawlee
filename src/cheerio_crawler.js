@@ -15,6 +15,8 @@ const DEFAULT_OPTIONS = {
 
         log.error('CheerioCrawler: Request failed and reached maximum retries', details);
     },
+    ignoreSslErrors: false,
+    useApifyProxy: false,
 };
 
 /**
@@ -190,11 +192,11 @@ class CheerioCrawler {
         checkParamOrThrow(requestOptions, 'options.requestOptions', 'Maybe Object');
         checkParamOrThrow(requestTimeoutSecs, 'options.requestTimeoutSecs', 'Number');
         checkParamOrThrow(handlePageTimeoutSecs, 'options.handlePageTimeoutSecs', 'Number');
-        checkParamOrThrow(ignoreSslErrors, 'options.ignoreSslErrors', 'Maybe Boolean');
-        checkParamOrThrow(useApifyProxy, 'options.useApifyProxy', 'Maybe Boolean');
-        checkParamOrThrow(apifyProxyGroups, 'options.apifyProxyGroups', 'Maybe Array');
+        checkParamOrThrow(ignoreSslErrors, 'options.ignoreSslErrors', 'Boolean');
+        checkParamOrThrow(useApifyProxy, 'options.useApifyProxy', 'Boolean');
+        checkParamOrThrow(apifyProxyGroups, 'options.apifyProxyGroups', 'Maybe [String]');
         checkParamOrThrow(apifyProxySession, 'options.apifyProxySession', 'Maybe String');
-        checkParamOrThrow(proxyUrls, 'options.proxyUrls', 'Maybe Array');
+        checkParamOrThrow(proxyUrls, 'options.proxyUrls', 'Maybe [String]');
         // Enforce valid proxy configuration
         if (proxyUrls && !proxyUrls.length) throw new Error('Parameter "options.proxyUrls" of type Array must not be empty');
         if (useApifyProxy && proxyUrls) throw new Error('Cannot combine "options.useApifyProxy" with "options.proxyUrls"!');
