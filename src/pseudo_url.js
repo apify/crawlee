@@ -52,7 +52,7 @@ const parsePurl = (purl) => {
 /**
  * Represents a pseudo URL (PURL) - an URL pattern used by web crawlers
  * to specify which URLs should the crawler visit.
- * This class is used by the [utils.puppeteer.enqueueLinks()](puppeteer#puppeteer.enqueueLinks) function.
+ * This class is used by the [`utils.puppeteer.enqueueLinks()`](puppeteer#puppeteer.enqueueLinks) function.
  *
  * A PURL is simply a URL with special directives enclosed in `[]` brackets.
  * Currently, the only supported directive is `[RegExp]`,
