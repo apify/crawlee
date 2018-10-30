@@ -167,8 +167,8 @@ class Request {
             } else if (errorOrMessage instanceof Error) {
                 message = omitStack
                     ? errorOrMessage.message
-                    // Use inspect because .toString() just returns the message.
-                    : util.inspect(errorOrMessage);
+                    // .stack includes the message
+                    : errorOrMessage.stack;
             } else if (errorOrMessage.message) {
                 message = errorOrMessage.message; // eslint-disable-line prefer-destructuring
             } else if (errorOrMessage.toString() !== '[object Object]') {

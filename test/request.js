@@ -18,7 +18,7 @@ describe('Apify.Request', () => {
         expect(normalizedUrl).to.not.eql(url);
     });
 
-    it('should should allow to push error messages', () => {
+    it('should allow to push error messages', () => {
         const request = new Apify.Request({ url: 'http://example.com' });
 
         expect(request.errorMessages).to.be.eql(null);
@@ -69,7 +69,7 @@ describe('Apify.Request', () => {
 
         request.pushErrorMessage(new Error('error message.'));
         const last = request.errorMessages.pop();
-        expect(last).to.include('error message');
+        expect(last).to.include('error message.');
         expect(last).to.include(' at ');
         expect(last).to.include(__filename.split(/[\\/]/g).pop());
     });
