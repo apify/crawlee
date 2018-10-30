@@ -1,3 +1,7 @@
+0.8.18 / 2018-10-30
+===================
+- Fix a bug in `CheerioCrawler` where `useApifyProxy` would only work with `apifyProxyGroups`.
+
 0.8.17 / 2018-10-30
 ===================
 - Reworked `request.pushErrorMessage()` to support any message and not throw.
