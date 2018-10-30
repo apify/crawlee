@@ -39,7 +39,7 @@ const DEFAULT_OPTIONS = {
  * @param {Number} [options.maxMemoryOverloadedRatio=0.2]
  *   Sets the maximum ratio of overloaded snapshots in a memory sample.
  *   If the sample exceeds this ratio, the system will be overloaded.
- * @param {Number} [options.maxEventLoopOverloadedRatio=0.02]
+ * @param {Number} [options.maxEventLoopOverloadedRatio=0.2]
  *   Sets the maximum ratio of overloaded snapshots in an event loop sample.
  *   If the sample exceeds this ratio, the system will be overloaded.
  * @param {Number} [options.maxCpuOverloadedRatio=0.1]
