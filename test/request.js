@@ -27,10 +27,15 @@ describe('Apify.Request', () => {
         circularObj.obj = circularObj;
 
         const arr = [1, 2, 3];
-        const arrJson = JSON.stringify(arr, null, 2);
 
         const obj = { one: 1, two: 'two' };
         const objJson = JSON.stringify(obj, null, 2);
+
+        const toStr = {
+            toString() {
+                return 'toString';
+            },
+        };
 
         request.pushErrorMessage(undefined);
         request.pushErrorMessage(false);
@@ -43,6 +48,7 @@ describe('Apify.Request', () => {
         request.pushErrorMessage({ message: 'A message.' });
         request.pushErrorMessage([1, 2, 3]);
         request.pushErrorMessage(obj);
+        request.pushErrorMessage(toStr);
         request.pushErrorMessage(circularObj);
 
         expect(request.errorMessages).to.be.eql([
@@ -55,8 +61,9 @@ describe('Apify.Request', () => {
             'Received: "null" instead of a proper message.',
             'foo',
             'A message.',
-            arrJson,
+            `Received: "array" instead of a proper message.\nContents: ${arr}`,
             objJson,
+            'toString',
             'Received an Object that is not stringifiable to JSON and has the following keys: prop; obj',
         ]);
     });

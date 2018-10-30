@@ -170,8 +170,12 @@ class Request {
         case 'object':
             if (!errorOrMessage) {
                 message = 'Received: "null" instead of a proper message.';
+            } else if (Array.isArray(errorOrMessage)) {
+                message = `Received: "array" instead of a proper message.\nContents: ${errorOrMessage}`;
             } else if (errorOrMessage.message) {
                 message = errorOrMessage.message; // eslint-disable-line prefer-destructuring
+            } else if (errorOrMessage.toString() !== '[object Object]') {
+                message = errorOrMessage.toString();
             } else {
                 try {
                     message = JSON.stringify(errorOrMessage, null, 2);
