@@ -91,7 +91,8 @@ class Snapshotter {
                 this.maxMemoryBytes = totalBytes;
             } else {
                 this.maxMemoryBytes = Math.ceil(totalBytes / 4);
-                log.info(`Snapshotter: Setting max memory of this run to ${Math.round(this.maxMemoryBytes / 1024 / 1024)} MB. Use the ${ENV_VARS.MEMORY_MBYTES} environment variable to override it.`); // eslint-disable-line max-len
+                // NOTE: Log as AutoscaledPool, so that users are not confused what "Snapshotter" is
+                log.info(`AutoscaledPool: Setting max memory of this run to ${Math.round(this.maxMemoryBytes / 1024 / 1024)} MB. Use the ${ENV_VARS.MEMORY_MBYTES} environment variable to override it.`); // eslint-disable-line max-len
             }
         }
 
@@ -187,7 +188,7 @@ class Snapshotter {
 
             this.memorySnapshots.push(snapshot);
         } catch (err) {
-            log.exception(err, 'Snapshotter: Memory snapshot failed.');
+            log.exception(err, 'AutoscaledPool: Memory snapshot failed.');
         } finally {
             intervalCallback();
         }
@@ -219,7 +220,7 @@ class Snapshotter {
             if (delta > this.maxBlockedMillis) snapshot.isOverloaded = true;
             this.eventLoopSnapshots.push(snapshot);
         } catch (err) {
-            log.exception(err, 'Snapshotter: Event Loop snapshot failed.');
+            log.exception(err, 'AutoscaledPool: Event loop snapshot failed.');
         } finally {
             intervalCallback();
         }
