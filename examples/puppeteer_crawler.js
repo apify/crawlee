@@ -14,7 +14,7 @@ Apify.main(async () => {
     // Create and initialize an instance of the RequestList class that contains the start URL.
     const requestList = new Apify.RequestList({
         sources: [
-            { url: 'http://www.ycombinator.com/' },
+            { url: 'https://news.ycombinator.com/' },
         ],
     });
     await requestList.initialize();
@@ -32,7 +32,10 @@ Apify.main(async () => {
 
         // Here you can set options that are passed to the Apify.launchPuppeteer() function.
         // For example, you can set "slowMo" to slow down Puppeteer operations to simplify debugging
-        launchPuppeteerOptions: { slowMo: 2000 },
+        launchPuppeteerOptions: { slowMo: 500 },
+
+        // Stop crawling after several pages
+        maxRequestsPerCrawl: 10,
 
         // This function will be called for each URL to crawl.
         // Here you can write the Puppeteer scripts you are familiar with,
