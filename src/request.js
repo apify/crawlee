@@ -32,7 +32,7 @@ export const computeUniqueKey = (url, keepUrlFragment) => normalizeUrl(url, keep
  * ```
  * @param {object} options All `Request` parameters are passed
  *   via an options object with the following keys:
- * @param {String} options.url URL of the web page to crawl.
+ * @param {String} options.url URL of the web page to crawl. It must be a non-empty string.
  * @param {String} [options.uniqueKey] A unique key identifying the request.
  * Two requests with the same `uniqueKey` are considered as pointing to the same URL.
  *
