@@ -19,26 +19,12 @@ await Apify.utils.sleep(1500);
 
 
 * [`utils`](#utils) : <code>object</code>
-    * [`.log`](#utils.log) : <code>object</code>
     * [`.URL_NO_COMMAS_REGEX`](#utils.URL_NO_COMMAS_REGEX)
     * [`.URL_WITH_COMMAS_REGEX`](#utils.URL_WITH_COMMAS_REGEX)
     * [`.sleep(millis)`](#utils.sleep) ⇒ <code>Promise</code>
     * [`.downloadListOfUrls(url, [encoding], [urlRegExp])`](#utils.downloadListOfUrls) ⇒ <code>Promise&lt;Array&lt;String&gt;&gt;</code>
     * [`.extractUrls(string, [urlRegExp])`](#utils.extractUrls) ⇒ <code>Array&lt;String&gt;</code>
     * [`.getRandomUserAgent()`](#utils.getRandomUserAgent) ⇒ <code>String</code>
-
-<a name="utils.log"></a>
-
-## `utils.log` : <code>object</code>
-Apify.utils contains various utilities for logging `WARNING,ERROR,OFF,DEBUG,INFO`.All logs are always kept.
-
-**Example usage:**
-
-```javascript
-const Apify = require('apify');
-const { log } = Apify.utils;
-log.setLevel(log.LEVELS.WARNING);
-```
 
 <a name="utils.URL_NO_COMMAS_REGEX"></a>
 

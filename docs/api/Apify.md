@@ -10,23 +10,26 @@ accessible from the left sidebar.
 
 
 * [Apify](#module_Apify)
-    * [`.call(actId, [input], [options])`](#module_Apify.call) ⇒ [<code>Promise&lt;ActorRun&gt;</code>](../typedefs/actorrun)
-    * [`.client`](#module_Apify.client)
-    * [`.events`](#module_Apify.events)
-    * [`.getApifyProxyUrl(options)`](#module_Apify.getApifyProxyUrl) ⇒ <code>String</code>
-    * [`.getEnv()`](#module_Apify.getEnv) ⇒ <code>Object</code>
-    * [`.getMemoryInfo()`](#module_Apify.getMemoryInfo) ⇒ <code>Promise&lt;Object&gt;</code>
-    * [`.getValue(key)`](#module_Apify.getValue) ⇒ <code>Promise&lt;Object&gt;</code>
-    * [`.isAtHome()`](#module_Apify.isAtHome) ⇒ <code>Boolean</code>
-    * [`.isDocker()`](#module_Apify.isDocker) ⇒ <code>Promise</code>
-    * [`.launchPuppeteer([options])`](#module_Apify.launchPuppeteer) ⇒ <code>Promise&lt;Browser&gt;</code>
-    * [`.launchWebDriver([options])`](#module_Apify.launchWebDriver) ⇒ <code>Promise</code>
-    * [`.main(userFunc)`](#module_Apify.main)
-    * [`.openDataset([datasetIdOrName])`](#module_Apify.openDataset) ⇒ [<code>Promise&lt;Dataset&gt;</code>](dataset)
-    * [`.openKeyValueStore([storeIdOrName])`](#module_Apify.openKeyValueStore) ⇒ [<code>Promise&lt;KeyValueStore&gt;</code>](keyvaluestore)
-    * [`.openRequestQueue`](#module_Apify.openRequestQueue) ⇒ [<code>Promise&lt;RequestQueue&gt;</code>](requestqueue)
-    * [`.pushData(item)`](#module_Apify.pushData) ⇒ <code>Promise</code>
-    * [`.setValue(key, value, [options])`](#module_Apify.setValue) ⇒ <code>Promise</code>
+    * _static_
+        * [`.call(actId, [input], [options])`](#module_Apify.call) ⇒ [<code>Promise&lt;ActorRun&gt;</code>](../typedefs/actorrun)
+        * [`.client`](#module_Apify.client)
+        * [`.events`](#module_Apify.events)
+        * [`.getApifyProxyUrl(options)`](#module_Apify.getApifyProxyUrl) ⇒ <code>String</code>
+        * [`.getEnv()`](#module_Apify.getEnv) ⇒ <code>Object</code>
+        * [`.getMemoryInfo()`](#module_Apify.getMemoryInfo) ⇒ <code>Promise&lt;Object&gt;</code>
+        * [`.getValue(key)`](#module_Apify.getValue) ⇒ <code>Promise&lt;Object&gt;</code>
+        * [`.isAtHome()`](#module_Apify.isAtHome) ⇒ <code>Boolean</code>
+        * [`.isDocker()`](#module_Apify.isDocker) ⇒ <code>Promise</code>
+        * [`.launchPuppeteer([options])`](#module_Apify.launchPuppeteer) ⇒ <code>Promise&lt;Browser&gt;</code>
+        * [`.launchWebDriver([options])`](#module_Apify.launchWebDriver) ⇒ <code>Promise</code>
+        * [`.main(userFunc)`](#module_Apify.main)
+        * [`.openDataset([datasetIdOrName])`](#module_Apify.openDataset) ⇒ [<code>Promise&lt;Dataset&gt;</code>](dataset)
+        * [`.openKeyValueStore([storeIdOrName])`](#module_Apify.openKeyValueStore) ⇒ [<code>Promise&lt;KeyValueStore&gt;</code>](keyvaluestore)
+        * [`.openRequestQueue`](#module_Apify.openRequestQueue) ⇒ [<code>Promise&lt;RequestQueue&gt;</code>](requestqueue)
+        * [`.pushData(item)`](#module_Apify.pushData) ⇒ <code>Promise</code>
+        * [`.setValue(key, value, [options])`](#module_Apify.setValue) ⇒ <code>Promise</code>
+    * _inner_
+        * [`~utils`](#module_Apify..utils) : <code>object</code>
 
 <a name="module_Apify.call"></a>
 
@@ -723,3 +726,16 @@ and [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+getValue).
 <td colspan="3"><p>Specifies a custom MIME content type of the record.</p>
 </td></tr></tbody>
 </table>
+<a name="module_Apify..utils"></a>
+
+## `Apify~utils` : <code>object</code>
+Apify.utils contains various utilities for logging `WARNING,ERROR,OFF,DEBUG,INFO`.All logs are always kept.
+
+**Example usage:**
+
+```javascript
+const Apify = require('apify');
+const { log } = Apify.utils;
+log.setLevel(log.LEVELS.WARNING);
+```
+

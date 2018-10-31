@@ -105,7 +105,7 @@ module.exports = {
          * log.setLevel(log.LEVELS.WARNING);
          * ```
          *
-         * @namespace utils.log
+         * @namespace utils
          */
         log,
     }),
