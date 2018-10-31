@@ -1,3 +1,4 @@
+import util from 'util';
 import rqst from 'request';
 import _ from 'underscore';
 import cheerio from 'cheerio';
@@ -308,19 +309,59 @@ class CheerioCrawler {
     }
 
     /**
-     * Default request function to be used.
+     * Default request function to be used. It performs optimizations
+     * on the request such as only downloading the request body if the
+     * received content type
      * @ignore
      */
     async _defaultRequestFunction({ request }) {
         return new Promise((resolve, reject) => {
+            // Using the streaming API of Request to be able to
+            // handle the response based on headers receieved.
             rqst(this._getRequestOptions(request))
-                .on('response', (res) => {
-                    const { type, encoding } = contentType(res);
-
-
-                    if (res.statusCode >= 500) {
-
+                .on('response', async (res) => {
+                    // Throw away the body if it's not loadable by Cheerio.
+                    // Request will not be retried since it's safe to assume
+                    let cType;
+                    try {
+                        cType = contentType.parse(res);
+                    } catch (err) {
+                        log.info(`CheerioCrawler: Received invalid Content-Type for URL: ${request.url} Skipping.`);
+                        res.destroy();
+                        return resolve(null);
                     }
+                    if (cType.type !== 'text/html') {
+                        log.info(`CheerioCrawler: Received Content-Type: ${cType.type} for URL: ${request.url} Skipping.`);
+                        res.destroy();
+                        return resolve(null);
+                    }
+
+                    // Read the body into a string since Cheerio does not support streaming
+                    let body;
+                    try {
+                        body = await this._readStreamIntoString(stream, cType.encoding);
+                    } catch (err) {
+                        // Error in reading the body
+                        return reject(err);
+                    }
+
+                    // 500 codes are handled as errors, requests will be retried.
+                    // Some message extraction is attempted.
+                    if (res.statusCode >= 500) {
+                        try {
+                            // Error responses are often JSON so attempt to parse it.
+                            const errorResponse = JSON.parse(body);
+                            let { message } = errorResponse;
+                            if (!message) message = util.inspect(errorResponse, { depth: 1, maxArrayLength: 10 });
+                            return reject(new Error(message));
+                        } catch (err) {
+                            // If not a JSON, just take the string and trim it to 100 characters.
+                            return reject(new Error(body.substr(0, 100)));
+                        }
+                    }
+
+                    // 200-499 responses are considered OK and will not be retried
+                    resolve(body);
                 })
                 .on('error', err => reject(err));
         });
@@ -335,7 +376,7 @@ class CheerioCrawler {
         const mandatoryRequestOptions = {
             url: request.url,
             method: request.method,
-            headers: request.headers,
+            headers: Object.assign({}, request.headers, { Accept: 'text/html' }),
             strictSSL: !this.ignoreSslErrors,
             resolveWithFullResponse: true,
             simple: false,
