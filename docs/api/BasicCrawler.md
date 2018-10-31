@@ -29,7 +29,7 @@ parameter of the `BasicCrawler` constructor. For user convenience, the `minConcu
 **Example usage:**
 
 ```javascript
-const rp = require('request-promise');
+const rp = require('request-promise-native');
 
 // Prepare a list of URLs to crawl
 const requestList = new Apify.RequestList({

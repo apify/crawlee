@@ -101,7 +101,7 @@ const foo = request.userData.foo;
 
 * [Request](request)
     * [`new Request(options)`](#new_Request_new)
-    * [`.pushErrorMessage(errorOrMessage)`](#Request+pushErrorMessage)
+    * [`.pushErrorMessage(errorOrMessage, [options])`](#Request+pushErrorMessage)
 
 <a name="new_Request_new"></a>
 
@@ -181,7 +181,7 @@ to override the default behavior and specify which URLs shall be considered equa
 </table>
 <a name="Request+pushErrorMessage"></a>
 
-## `request.pushErrorMessage(errorOrMessage)`
+## `request.pushErrorMessage(errorOrMessage, [options])`
 Stores information about an error that occurred during processing of this request.
 
 You should always use Error instances when throwing errors in JavaScript.
@@ -194,14 +194,23 @@ as possible, since just throwing a bad type error makes any debugging rather dif
 <table>
 <thead>
 <tr>
-<th>Param</th><th>Type</th>
+<th>Param</th><th>Type</th><th>Default</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>errorOrMessage</code></td><td><code>Error</code> | <code>String</code></td>
+<td><code>errorOrMessage</code></td><td><code>Error</code> | <code>String</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Error object or error message to be stored in the request.</p>
+</td></tr><tr>
+<td><code>[options]</code></td><td><code>Object</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"></td></tr><tr>
+<td><code>[options.omitStack]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Only push the error message without stack trace when true.</p>
 </td></tr></tbody>
 </table>

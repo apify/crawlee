@@ -41,7 +41,7 @@ const DEFAULT_OPTIONS = {
  * **Example usage:**
  *
  * ```javascript
- * const rp = require('request-promise');
+ * const rp = require('request-promise-native');
  *
  * // Prepare a list of URLs to crawl
  * const requestList = new Apify.RequestList({

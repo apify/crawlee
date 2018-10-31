@@ -1,6 +1,7 @@
-import rp from 'request-promise';
+import rqst from 'request';
 import _ from 'underscore';
 import cheerio from 'cheerio';
+import contentType from 'content-type';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import BasicCrawler from './basic_crawler';
@@ -39,9 +40,8 @@ const DEFAULT_OPTIONS = {
  * The crawler finishes when there are no more {@link Request} objects to crawl.
  *
  * By default, `CheerioCrawler` downloads HTML using the
- * <a href="https://www.npmjs.com/package/request-promise" target="_blank">request-promise</a> NPM package.
- * You can override this behavior by setting the `requestFunction` option. If you want to keep `request-promise`,
- * but use different than default options, use the `requestOptions` parameter.
+ * <a href="https://www.npmjs.com/package/request" target="_blank">request</a> NPM package.
+ * You can use the `requestOptions` parameter to pass additional options to `request`.
  *
  * New requests are only dispatched when there is enough free CPU and memory available,
  * using the functionality provided by the {@link AutoscaledPool} class.
@@ -97,7 +97,7 @@ const DEFAULT_OPTIONS = {
  *       $: Cheerio, // the Cheerio object with parsed HTML
  *       html: String // the raw HTML of the page
  *       request: Request,
- *       response: Object // a response object with properties such as the HTTP status code
+ *       response: Object // a http.IncomingMessage object with properties such as the `statusCode`
  *   }
  *   ```
  *   With the {@link Request} object representing the URL to crawl.
@@ -108,14 +108,18 @@ const DEFAULT_OPTIONS = {
  * @param {RequestQueue} options.requestQueue
  *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
  *   Either {@link RequestList} or {@link RequestQueue} must be provided.
- * @param {Function} [options.requestFunction]
- *   Overrides the default function that performs the HTTP request to get the raw HTML needed for Cheerio.
- *   See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/cheerio_crawler.js#L264">GitHub</a> for default behavior.
  * @param {Object} [options.requestOptions]
- *   Represents the options passed to the `requestFunction`, which are essentially the options passed to
- *   <a href="https://www.npmjs.com/package/request-promise" target="_blank">request-promise</a> to make the HTTP call.
- *   Provided `requestOptions` are merged with defaults so if you only need to add a parameter, there's no need to duplicate
- *   the whole object.
+ *   Represents the options passed to
+ *   <a href="https://www.npmjs.com/package/request" target="_blank">request</a> to make the HTTP call.
+ *   Provided `requestOptions` are added to internal defaults that cannot be overridden to ensure
+ *   the operation of `CheerioCrawler` and all its options. If you need more granular control over
+ *   your requests, use {@link BasicCrawler}.
+ *
+ *   The internal defaults include:
+ *      - `url`, `method`, `headers`: provided by `requestList` and/or `requestQueue`
+ *      - `strictSSL`: use `options.ignoreSslErrors`
+ *      - `proxy`: use `options.useApifyProxy` or `options.proxyUrls`
+ *
  * @param {Number} [options.handlePageTimeoutSecs=300]
  *   Timeout in which the function passed as `options.handlePageFunction` needs to finish, given in seconds.
  * @param {Number} [options.requestTimeoutSecs=30]
@@ -189,6 +193,7 @@ class CheerioCrawler {
 
         checkParamOrThrow(handlePageFunction, 'options.handlePageFunction', 'Function');
         checkParamOrThrow(requestFunction, 'options.requestFunction', 'Maybe Function');
+        if (requestFunction) log.warning('CheerioCrawler: options.requestFunction is deprecated. Use BasicCrawler instead.');
         checkParamOrThrow(requestOptions, 'options.requestOptions', 'Maybe Object');
         checkParamOrThrow(requestTimeoutSecs, 'options.requestTimeoutSecs', 'Number');
         checkParamOrThrow(handlePageTimeoutSecs, 'options.handlePageTimeoutSecs', 'Number');
@@ -288,6 +293,7 @@ class CheerioCrawler {
             this.rejectOnAbortPromise,
         ]);
 
+
         let html;
         if (typeof response === 'string') html = response;
         else if (typeof response === 'object' && typeof response.body === 'string') html = response.body;
@@ -306,7 +312,18 @@ class CheerioCrawler {
      * @ignore
      */
     async _defaultRequestFunction({ request }) {
-        return rp(this._getRequestOptions(request));
+        return new Promise((resolve, reject) => {
+            rqst(this._getRequestOptions(request))
+                .on('response', (res) => {
+                    const { type, encoding } = contentType(res);
+
+
+                    if (res.statusCode >= 500) {
+
+                    }
+                })
+                .on('error', err => reject(err));
+        });
     }
 
     /**
@@ -315,7 +332,7 @@ class CheerioCrawler {
      * @ignore
      */
     _getRequestOptions(request) {
-        const defaultRequestOptions = {
+        const mandatoryRequestOptions = {
             url: request.url,
             method: request.method,
             headers: request.headers,
@@ -324,7 +341,7 @@ class CheerioCrawler {
             simple: false,
             proxy: this._getProxyUrl(),
         };
-        return _.defaults({}, this.requestOptions, defaultRequestOptions);
+        return Object.assign({}, this.requestOptions, mandatoryRequestOptions);
     }
 
     /**
@@ -345,6 +362,19 @@ class CheerioCrawler {
             return this.proxyUrls[this.lastUsedProxyUrlIndex++ % this.proxyUrls.length];
         }
         return null;
+    }
+
+    async _readStreamIntoString(stream, encoding) { // eslint-disable-line class-methods-use-this
+        return new Promise((resolve, reject) => {
+            const chunks = [];
+            stream
+                .on('data', chunk => chunks.push(chunk))
+                .on('error', err => reject(err))
+                .on('end', () => {
+                    const buffer = Buffer.concat(chunks);
+                    resolve(buffer.toString(encoding));
+                });
+        });
     }
 }
 

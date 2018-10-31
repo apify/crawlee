@@ -23,9 +23,8 @@ to [`RequestQueue`](requestqueue) before it starts their processing. This ensure
 The crawler finishes when there are no more [`Request`](request) objects to crawl.
 
 By default, `CheerioCrawler` downloads HTML using the
-<a href="https://www.npmjs.com/package/request-promise" target="_blank">request-promise</a> NPM package.
-You can override this behavior by setting the `requestFunction` option. If you want to keep `request-promise`,
-but use different than default options, use the `requestOptions` parameter.
+<a href="https://www.npmjs.com/package/request" target="_blank">request</a> NPM package.
+You can use the `requestOptions` parameter to pass additional options to `request`.
 
 New requests are only dispatched when there is enough free CPU and memory available,
 using the functionality provided by the [`AutoscaledPool`](autoscaledpool) class.
@@ -102,7 +101,7 @@ await crawler.run();
       $: Cheerio, // the Cheerio object with parsed HTML
       html: String // the raw HTML of the page
       request: Request,
-      response: Object // a response object with properties such as the HTTP status code
+      response: Object // a http.IncomingMessage object with properties such as the `statusCode`
   }
 </code></pre><p>  With the <a href="request"><code>Request</code></a> object representing the URL to crawl.
   If the function returns a promise, it is awaited.</p>
@@ -119,20 +118,19 @@ await crawler.run();
 <td colspan="3"><p>Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
   Either <a href="requestlist"><code>RequestList</code></a> or <a href="requestqueue"><code>RequestQueue</code></a> must be provided.</p>
 </td></tr><tr>
-<td><code>[options.requestFunction]</code></td><td><code>function</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>Overrides the default function that performs the HTTP request to get the raw HTML needed for Cheerio.
-  See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/cheerio_crawler.js#L264">GitHub</a> for default behavior.</p>
-</td></tr><tr>
 <td><code>[options.requestOptions]</code></td><td><code>Object</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>Represents the options passed to the <code>requestFunction</code>, which are essentially the options passed to
-  <a href="https://www.npmjs.com/package/request-promise" target="_blank">request-promise</a> to make the HTTP call.
-  Provided <code>requestOptions</code> are merged with defaults so if you only need to add a parameter, there&#39;s no need to duplicate
-  the whole object.</p>
-</td></tr><tr>
+<td colspan="3"><p>Represents the options passed to
+  <a href="https://www.npmjs.com/package/request" target="_blank">request</a> to make the HTTP call.
+  Provided <code>requestOptions</code> are added to internal defaults that cannot be overridden to ensure
+  the operation of <code>CheerioCrawler</code> and all its options. If you need more granular control over
+  your requests, use <a href="basiccrawler"><code>BasicCrawler</code></a>.</p>
+<p>  The internal defaults include:</p>
+<pre><code> - `url`, `method`, `headers`: provided by `requestList` and/or `requestQueue`
+ - `strictSSL`: use `options.ignoreSslErrors`
+ - `proxy`: use `options.useApifyProxy` or `options.proxyUrls`
+</code></pre></td></tr><tr>
 <td><code>[options.handlePageTimeoutSecs]</code></td><td><code>Number</code></td><td><code>300</code></td>
 </tr>
 <tr>

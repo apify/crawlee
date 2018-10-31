@@ -118,7 +118,7 @@ export const getEnv = () => {
  *
  * If the user function returns a promise, it is considered asynchronous:
  * ```javascript
- * const request = require('request-promise');
+ * const request = require('request-promise-native');
  *
  * Apify.main(() => {
  *   // My asynchronous function that returns a promise
@@ -131,7 +131,7 @@ export const getEnv = () => {
  * To simplify your code, you can take advantage of the `async`/`await` keywords:
  *
  * ```javascript
- * const request = require('request-promise');
+ * const request = require('request-promise-native');
  *
  * Apify.main(async () => {
  *   // My asynchronous function

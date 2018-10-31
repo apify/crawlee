@@ -49,7 +49,7 @@
   },
   "dependencies": {
     "@apify/ps-tree": "^1.1.2",
-    "apify-client": "^0.3.3",
+    "apify-client": "^0.3.4",
     "apify-shared": "^0.1.7",
     "bluebird": "^3.5.0",
     "cheerio": "^1.0.0-rc.2",
@@ -58,7 +58,8 @@
     "jquery": "^3.3.1",
     "mime": "^2.3.1",
     "proxy-chain": "^0.2.4",
-    "request-promise": "^4.2.2",
+    "request": "^2.88.0",
+    "request-promise-native": "^1.0.5",
     "rimraf": "^2.6.1",
     "underscore": "^1.9.0",
     "ws": "^6.0.0",
