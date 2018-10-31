@@ -1,6 +1,7 @@
 xxx
 ===================
 - Fixed `RequestQueue.addRequest()` to gracefully handle invalid URLs
+- Added `request` field to `RequestOperationInfo`
 
 0.8.17 / 2018-10-30
 ===================

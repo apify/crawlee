@@ -113,14 +113,18 @@ const getRequestId = (uniqueKey) => {
         : str;
 };
 
+// TODO: Let's rename RequestOperationInfo to QueueOperationInfo, it makes more sense, it's not used anywhere
+
 /**
- * A helper class that is used to report results from the
- * [`Apify.utils.puppeteer.enqueueLinks()`](../api/puppeteer#puppeteer.enqueueLinks) function.
+ * A helper class that is used to report results from various
+ * [`RequestQueue`](../api/requestqueue) functions as well as
+ * [`Apify.utils.puppeteer.enqueueLinks()`](../api/puppeteer#puppeteer.enqueueLinks).
  *
  * @typedef {Object} RequestOperationInfo
  * @property {Boolean} wasAlreadyPresent Indicates if request was already present in the queue.
  * @property {Boolean} wasAlreadyHandled Indicates if request was already marked as handled.
  * @property {String} requestId The ID of the added request
+ * @property {Request} request The original `Request` object passed to the `RequestQueue` function.
  */
 
 /**
@@ -235,6 +239,8 @@ export class RequestQueue {
                 // request was already handled is there because just one client should be using one queue.
                 wasAlreadyHandled: cachedInfo.isHandled,
                 requestId: cachedInfo.id,
+                // TODO: Why not set request.id to cachedInfo.id???
+                request,
             });
         }
 
@@ -253,6 +259,9 @@ export class RequestQueue {
                     this.queueHeadDict.add(requestId, requestId, true);
                 }
 
+                // TODO: Why not set request.id to cachedInfo.id???
+                requestOperationInfo.request = request;
+
                 return requestOperationInfo;
             });
     }
@@ -265,6 +274,8 @@ export class RequestQueue {
      */
     getRequest(requestId) {
         validateGetRequestParams(requestId);
+
+        // TODO: Could we also use requestsCache here? It would be consistent with addRequest()
 
         return requestQueues
             .getRequest({
@@ -329,6 +340,8 @@ export class RequestQueue {
                 this._removeFromInProgress(request.id);
                 this._cacheRequest(getRequestId(request.uniqueKey), requestOperationInfo);
 
+                requestOperationInfo.request = request;
+
                 return requestOperationInfo;
             });
     }
@@ -358,6 +371,8 @@ export class RequestQueue {
                 this._cacheRequest(getRequestId(request.uniqueKey), requestOperationInfo);
 
                 if (forefront) this.queueHeadDict.add(request.id, request.id, true);
+
+                requestOperationInfo.request = request;
 
                 return requestOperationInfo;
             });
@@ -651,6 +666,7 @@ export class RequestQueueLocal {
                 const queueOrderNo = this._getQueueOrderNo(forefront);
 
                 // Add ID as server does.
+                // TODO: This way of cloning doesn't preserve Dates!
                 const requestCopy = JSON.parse(JSON.stringify(request));
                 requestCopy.id = getRequestId(request.uniqueKey);
 
@@ -662,6 +678,7 @@ export class RequestQueueLocal {
                             requestId: existingRequest.id,
                             wasAlreadyHandled: existingRequest && existingRequest.handledAt,
                             wasAlreadyPresent: true,
+                            request,
                         }));
                 }
 
@@ -675,6 +692,7 @@ export class RequestQueueLocal {
                         requestId: requestCopy.id,
                         wasAlreadyHandled: false,
                         wasAlreadyPresent: false,
+                        request,
                     }));
             });
     }
@@ -750,6 +768,7 @@ export class RequestQueueLocal {
                             requestId: request.id,
                             wasAlreadyHandled: false,
                             wasAlreadyPresent: true,
+                            request,
                         };
                     });
             });
@@ -783,6 +802,7 @@ export class RequestQueueLocal {
                             requestId: request.id,
                             wasAlreadyHandled: false,
                             wasAlreadyPresent: true,
+                            request,
                         };
                     });
             });

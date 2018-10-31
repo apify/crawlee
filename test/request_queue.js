@@ -28,9 +28,17 @@ describe('RequestQueue', () => {
         it('should work', async () => {
             const queue = new RequestQueueLocal('my-queue-0', LOCAL_STORAGE_DIR);
 
-            await queue.addRequest(new Apify.Request({ url: 'http://example.com/first' }));
+            const req1 = new Apify.Request({ url: 'http://example.com/first' });
+            const info1 = await queue.addRequest(req1);
             await queue.addRequest(new Apify.Request({ url: 'http://example.com/middle' }));
             await queue.addRequest(new Apify.Request({ url: 'http://example.com/last-but-first' }), { forefront: true });
+
+            expect(info1).to.contain({
+                wasAlreadyPresent: false,
+                wasAlreadyHandled: false,
+                request: req1,
+            });
+            expect(info1.requestId).to.be.a('string');
 
             const request3 = await queue.fetchNextRequest();
             const request1 = await queue.fetchNextRequest();
@@ -60,8 +68,15 @@ describe('RequestQueue', () => {
 
             await queue.markRequestHandled(request3);
             await queue.reclaimRequest(request1);
-            await queue.reclaimRequest(request2);
+            const info2 = await queue.reclaimRequest(request2);
             expect(await queue.isEmpty()).to.be.eql(false);
+
+            expect(info2).to.contain({
+                wasAlreadyPresent: true,
+                wasAlreadyHandled: false,
+                request: request2,
+            });
+            expect(info2.requestId).to.be.a('string');
 
             const handledRequest3 = await queue.getRequest(request3.id);
             expect(handledRequest3.handledAt).to.be.an.instanceof(Date);
@@ -70,8 +85,15 @@ describe('RequestQueue', () => {
             expect(await queue.fetchNextRequest()).to.be.eql(request1);
             expect(await queue.fetchNextRequest()).to.be.eql(request2);
             expect(await queue.fetchNextRequest()).to.be.eql(null);
-            await queue.markRequestHandled(request1);
+            const info3 = await queue.markRequestHandled(request1);
             await queue.markRequestHandled(request2);
+
+            expect(info3).to.contain({
+                wasAlreadyPresent: true,
+                wasAlreadyHandled: false,
+                request: request1,
+            });
+            expect(info3.requestId).to.be.a('string');
 
             expect(await queue.isEmpty()).to.be.eql(true);
             expect(await queue.isFinished()).to.be.eql(true);
@@ -195,7 +217,7 @@ describe('RequestQueue', () => {
                     request: requestA,
                     forefront: false,
                 })
-                .returns(Promise.resolve({ requestId: 'a', wasAlreadyHandled: false, wasAlreadyPresent: false }));
+                .returns(Promise.resolve({ requestId: 'a', wasAlreadyHandled: false, wasAlreadyPresent: false, request: requestA }));
             await queue.addRequest(requestA);
 
             const requestB = new Request({ url: 'http://example.com/b' });
@@ -206,7 +228,7 @@ describe('RequestQueue', () => {
                     request: requestB,
                     forefront: true,
                 })
-                .returns(Promise.resolve({ requestId: 'b', wasAlreadyHandled: false, wasAlreadyPresent: false }));
+                .returns(Promise.resolve({ requestId: 'b', wasAlreadyHandled: false, wasAlreadyPresent: false, request: requestB }));
             await queue.addRequest(requestB, { forefront: true });
             expect(queue.queueHeadDict.length()).to.be.eql(1);
             expect(queue.inProgressCount).to.be.eql(0);
@@ -232,7 +254,7 @@ describe('RequestQueue', () => {
                     request: requestB,
                     forefront: true,
                 })
-                .returns(Promise.resolve({ requestId: requestB.id, wasAlreadyHandled: false, wasAlreadyPresent: true }));
+                .returns(Promise.resolve({ requestId: requestB.id, wasAlreadyHandled: false, wasAlreadyPresent: true, request: requestB }));
             await queue.reclaimRequest(requestB, { forefront: true });
             expect(queue.queueHeadDict.length()).to.be.eql(1);
             expect(queue.inProgressCount).to.be.eql(0);
@@ -258,7 +280,7 @@ describe('RequestQueue', () => {
                     queueId: 'some-id',
                     request: requestB,
                 })
-                .returns(Promise.resolve({ requestId: requestB.id, wasAlreadyHandled: false, wasAlreadyPresent: true }));
+                .returns(Promise.resolve({ requestId: requestB.id, wasAlreadyHandled: false, wasAlreadyPresent: true, request: requestB }));
             await queue.markRequestHandled(requestB);
             expect(queue.queueHeadDict.length()).to.be.eql(0);
             expect(queue.inProgressCount).to.be.eql(0);
@@ -324,6 +346,7 @@ describe('RequestQueue', () => {
                     requestId: 'a',
                     wasAlreadyHandled: false,
                     wasAlreadyPresent: false,
+                    request: requestA,
                 }));
             await queue.addRequest(requestA);
 
@@ -333,6 +356,7 @@ describe('RequestQueue', () => {
                 requestId: 'a',
                 wasAlreadyPresent: true,
                 wasAlreadyHandled: false,
+                request: requestB,
             });
 
             mock.verify();
@@ -362,6 +386,7 @@ describe('RequestQueue', () => {
                     requestId: 'x',
                     wasAlreadyHandled: true,
                     wasAlreadyPresent: true,
+                    request: requestX,
                 }));
             await queue.addRequest(requestX);
 
@@ -371,6 +396,7 @@ describe('RequestQueue', () => {
                 requestId: 'x',
                 wasAlreadyPresent: true,
                 wasAlreadyHandled: true,
+                request: requestY,
             });
 
             mock.verify();
@@ -406,6 +432,7 @@ describe('RequestQueue', () => {
                 requestId: 'a',
                 wasAlreadyPresent: true,
                 wasAlreadyHandled: false,
+                request: requestA,
             });
 
             mock.verify();
@@ -435,6 +462,7 @@ describe('RequestQueue', () => {
                     requestId: 'a',
                     wasAlreadyHandled: false,
                     wasAlreadyPresent: false,
+                    request: requestA,
                 }));
             await queue.addRequest(requestA, { forefront: true });
 
@@ -483,6 +511,7 @@ describe('RequestQueue', () => {
                     requestId: 'a',
                     wasAlreadyHandled: true,
                     wasAlreadyPresent: true,
+                    request: requestA,
                 }));
             mock.expects('getRequest')
                 .never();
