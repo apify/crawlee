@@ -113,14 +113,12 @@ const getRequestId = (uniqueKey) => {
         : str;
 };
 
-// TODO: Let's rename RequestOperationInfo to QueueOperationInfo, it makes more sense, it's not used anywhere
-
 /**
  * A helper class that is used to report results from various
  * [`RequestQueue`](../api/requestqueue) functions as well as
  * [`Apify.utils.puppeteer.enqueueLinks()`](../api/puppeteer#puppeteer.enqueueLinks).
  *
- * @typedef {Object} RequestOperationInfo
+ * @typedef {Object} QueueOperationInfo
  * @property {Boolean} wasAlreadyPresent Indicates if request was already present in the queue.
  * @property {Boolean} wasAlreadyHandled Indicates if request was already marked as handled.
  * @property {String} requestId The ID of the added request
@@ -215,12 +213,12 @@ export class RequestQueue {
      *
      * If a request with the same `uniqueKey` property is already present in the queue,
      * it will not be updated. You can find out whether this happened from the resulting
-     * {@link RequestOperationInfo} object.
+     * {@link QueueOperationInfo} object.
      *
      * @param {Request|Object} request {@link Request} object, or an object to construct a `Request` instance from.
      * @param {Object} [options]
      * @param {Boolean} [options.forefront=false] If `true`, the request will be added to the foremost position in the queue.
-     * @return {RequestOperationInfo}
+     * @return {QueueOperationInfo}
      */
     addRequest(request, options = {}) {
         const { forefront, request: newRequest } = validateAddRequestParams(request, options);
@@ -250,19 +248,19 @@ export class RequestQueue {
                 queueId: this.queueId,
                 forefront,
             })
-            .then((requestOperationInfo) => {
-                const { requestId, wasAlreadyHandled } = requestOperationInfo;
+            .then((queueOperationInfo) => {
+                const { requestId, wasAlreadyHandled } = queueOperationInfo;
 
-                this._cacheRequest(cacheKey, requestOperationInfo);
+                this._cacheRequest(cacheKey, queueOperationInfo);
 
                 if (forefront && !this.requestIdsInProgress[requestId] && !wasAlreadyHandled) {
                     this.queueHeadDict.add(requestId, requestId, true);
                 }
 
                 // TODO: Why not set request.id to cachedInfo.id???
-                requestOperationInfo.request = request;
+                queueOperationInfo.request = request;
 
-                return requestOperationInfo;
+                return queueOperationInfo;
             });
     }
 
@@ -320,7 +318,7 @@ export class RequestQueue {
      * Marks request handled after successful processing.
      *
      * @param {Request} request
-     * @return {Promise<RequestOperationInfo>}
+     * @return {Promise<QueueOperationInfo>}
      */
     markRequestHandled(request) {
         validateMarkRequestHandledParams(request);
@@ -336,13 +334,13 @@ export class RequestQueue {
                 request,
                 queueId: this.queueId,
             })
-            .then((requestOperationInfo) => {
+            .then((queueOperationInfo) => {
                 this._removeFromInProgress(request.id);
-                this._cacheRequest(getRequestId(request.uniqueKey), requestOperationInfo);
+                this._cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
 
-                requestOperationInfo.request = request;
+                queueOperationInfo.request = request;
 
-                return requestOperationInfo;
+                return queueOperationInfo;
             });
     }
 
@@ -355,7 +353,7 @@ export class RequestQueue {
      * @param {Boolean} [options.forefront=false]
      *   If `true` then requests get returned to the start of the queue
      *   and to the back of the queue otherwise.
-     * @return {Promise<RequestOperationInfo>}
+     * @return {Promise<QueueOperationInfo>}
      */
     reclaimRequest(request, options = {}) {
         const { forefront } = validateReclaimRequestParams(request, options);
@@ -366,15 +364,15 @@ export class RequestQueue {
                 queueId: this.queueId,
                 forefront,
             })
-            .then((requestOperationInfo) => {
+            .then((queueOperationInfo) => {
                 this._removeFromInProgress(request.id);
-                this._cacheRequest(getRequestId(request.uniqueKey), requestOperationInfo);
+                this._cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
 
                 if (forefront) this.queueHeadDict.add(request.id, request.id, true);
 
-                requestOperationInfo.request = request;
+                queueOperationInfo.request = request;
 
-                return requestOperationInfo;
+                return queueOperationInfo;
             });
     }
 
@@ -411,15 +409,15 @@ export class RequestQueue {
      *
      * @ignore
      */
-    _cacheRequest(cacheKey, requestOperationInfo) {
+    _cacheRequest(cacheKey, queueOperationInfo) {
         checkParamOrThrow(cacheKey, 'cacheKey', 'String');
-        checkParamOrThrow(requestOperationInfo, 'requestOperationInfo', 'Object');
-        checkParamOrThrow(requestOperationInfo.requestId, 'requestOperationInfo.requestId', 'String');
-        checkParamOrThrow(requestOperationInfo.wasAlreadyHandled, 'requestOperationInfo.wasAlreadyHandled', 'Boolean');
+        checkParamOrThrow(queueOperationInfo, 'queueOperationInfo', 'Object');
+        checkParamOrThrow(queueOperationInfo.requestId, 'queueOperationInfo.requestId', 'String');
+        checkParamOrThrow(queueOperationInfo.wasAlreadyHandled, 'queueOperationInfo.wasAlreadyHandled', 'Boolean');
 
         this.requestsCache.add(cacheKey, {
-            id: requestOperationInfo.requestId,
-            isHandled: requestOperationInfo.wasAlreadyHandled,
+            id: queueOperationInfo.requestId,
+            isHandled: queueOperationInfo.wasAlreadyHandled,
         });
     }
 

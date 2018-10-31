@@ -119,8 +119,8 @@
       "typedefs/paginationlist": {
         "title": "PaginationList"
       },
-      "typedefs/requestoperationinfo": {
-        "title": "RequestOperationInfo"
+      "typedefs/queueoperationinfo": {
+        "title": "QueueOperationInfo"
       }
     },
     "links": {
