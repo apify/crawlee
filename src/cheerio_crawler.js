@@ -339,7 +339,7 @@ class CheerioCrawler {
                     // Read the body into a string since Cheerio does not support streaming
                     let body;
                     try {
-                        body = await this._readStreamIntoString(stream, cType.encoding);
+                        body = await this._readStreamIntoString(res, cType.encoding);
                     } catch (err) {
                         // Error in reading the body
                         return reject(err);
