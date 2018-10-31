@@ -24,7 +24,10 @@ const repoUrl = 'https://github.com/apifytech/apify-js';
 
 const siteConfig = {
     title: 'Apify SDK', // Title for your website.
-    tagline: 'The scalable web crawling and scraping library for JavaScript.',
+    // This is also used as page meta description for SEO, so write it carefully.
+    // TODO: Take this from package.json
+    // eslint-disable-next-line max-len
+    tagline: 'The scalable web crawling and scraping library for JavaScript. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.',
     url: 'https://sdk.apify.com', // Your website URL
     cname: 'sdk.apify.com',
     baseUrl: '/', // Base URL for your project */

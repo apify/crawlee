@@ -114,6 +114,14 @@ await puppeteerPool.destroy();
   where <code>X</code> is the approximate maximum number of bytes for disk cache.</p>
 <p>  <em>IMPORTANT:</em> Currently this feature only works in <strong>headful</strong> mode, because of a bug in Chromium.</p>
 <p>  The <code>options.recycleDiskCache</code> setting should not be used together with <code>--disk-cache-dir</code> argument in <code>options.launchPuppeteerOptions.args</code>.</p>
+</td></tr><tr>
+<td><code>[options.proxyUrls]</code></td><td><code>Array&lt;String&gt;</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>An array of custom proxy URLs to be used by the <code>PuppeteerPool</code> instance.
+  The provided custom proxies&#39; order will be randomized and the resulting list rotated.
+  Custom proxies are not compatible with Apify Proxy and an attempt to use both
+  configuration options will cause an error to be thrown on startup.</p>
 </td></tr></tbody>
 </table>
 <a name="PuppeteerPool+newPage"></a>

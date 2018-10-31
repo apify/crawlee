@@ -59,7 +59,7 @@ in the [`Snapshotter`](snapshotter) instance.
 <td colspan="3"><p>Sets the maximum ratio of overloaded snapshots in a memory sample.
   If the sample exceeds this ratio, the system will be overloaded.</p>
 </td></tr><tr>
-<td><code>[options.maxEventLoopOverloadedRatio]</code></td><td><code>Number</code></td><td><code>0.02</code></td>
+<td><code>[options.maxEventLoopOverloadedRatio]</code></td><td><code>Number</code></td><td><code>0.2</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Sets the maximum ratio of overloaded snapshots in an event loop sample.
