@@ -6,6 +6,7 @@ import log from 'apify-shared/log';
 import 'babel-polyfill';
 import { ENV_VARS } from 'apify-shared/consts';
 import * as Apify from '../build/index';
+import { launchPuppeteer } from '../build/puppeteer';
 
 chai.use(chaiAsPromised);
 
@@ -313,5 +314,73 @@ describe('PuppeteerPool', () => {
         // Check cache dirs were deleted
         expect(fs.existsSync(dir1)).to.be.eql(false);
         expect(fs.existsSync(dir3)).to.be.eql(false);
+    });
+
+    describe('the proxyUrls parameter', () => {
+        it('supports rotation of custom proxies', async () => {
+            const optionsLog = [];
+            const pool = new Apify.PuppeteerPool({
+                maxOpenPagesPerInstance: 1,
+                proxyUrls: ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'],
+                launchPuppeteerFunction: async (launchOpts) => {
+                    optionsLog.push(launchOpts);
+                    return launchPuppeteer(launchOpts);
+                },
+            });
+            const proxies = [...pool.proxyUrls];
+            // Open 4 browsers to do full rotation cycle
+            await pool.newPage();
+            await pool.newPage();
+            await pool.newPage();
+            await pool.newPage();
+            await pool.destroy();
+
+            expect(optionsLog).to.have.lengthOf(4);
+            expect(optionsLog[0].proxyUrl).to.be.eql(proxies[0]);
+            expect(optionsLog[1].proxyUrl).to.be.eql(proxies[1]);
+            expect(optionsLog[2].proxyUrl).to.be.eql(proxies[2]);
+            expect(optionsLog[3].proxyUrl).to.be.eql(proxies[0]);
+        });
+
+        describe('throws', () => {
+            let pool;
+            beforeEach(() => {
+                log.setLevel(log.LEVELS.OFF);
+            });
+            afterEach(async () => {
+                log.setLevel(log.LEVELS.ERROR);
+                if (pool) await pool.destroy();
+            });
+
+            it('when used with useApifyProxy', async () => {
+                pool = new Apify.PuppeteerPool({
+                    maxOpenPagesPerInstance: 1,
+                    proxyUrls: ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'],
+                    launchPuppeteerOptions: {
+                        useApifyProxy: true,
+                        apifyProxyGroups: ['G1', 'G2'],
+                    },
+                });
+
+                try {
+                    await pool.newPage();
+                    throw new Error('Invalid error.');
+                } catch (err) {
+                    expect(err.message).to.include('useApifyProxy');
+                }
+            });
+
+            it('when empty', async () => {
+                try {
+                    pool = new Apify.PuppeteerPool({
+                        maxOpenPagesPerInstance: 1,
+                        proxyUrls: [],
+                    });
+                    throw new Error('Invalid error.');
+                } catch (err) {
+                    expect(err.message).to.include('must not be empty');
+                }
+            });
+        });
     });
 });

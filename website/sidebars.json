@@ -49,7 +49,7 @@
             "typedefs/apifycallerror",
             "typedefs/launchpuppeteeroptions",
             "typedefs/paginationlist",
-            "typedefs/requestoperationinfo"
+            "typedefs/queueoperationinfo"
         ]
     }
 }

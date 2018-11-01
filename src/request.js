@@ -1,6 +1,6 @@
+import util from 'util';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { normalizeUrl } from 'apify-shared/utilities';
-import _ from 'underscore';
 
 export const computeUniqueKey = (url, keepUrlFragment) => normalizeUrl(url, keepUrlFragment);
 
@@ -32,7 +32,7 @@ export const computeUniqueKey = (url, keepUrlFragment) => normalizeUrl(url, keep
  * ```
  * @param {object} options All `Request` parameters are passed
  *   via an options object with the following keys:
- * @param {String} options.url URL of the web page to crawl.
+ * @param {String} options.url URL of the web page to crawl. It must be a non-empty string.
  * @param {String} [options.uniqueKey] A unique key identifying the request.
  * Two requests with the same `uniqueKey` are considered as pointing to the same URL.
  *
@@ -130,9 +130,12 @@ class Request {
 
         if (method === 'GET' && payload) throw new Error('Request with GET method cannot have a payload.');
 
+        if (!url) throw new Error('The "url" option cannot be empty string.');
+
         this.id = id;
         this.url = url;
-        this.uniqueKey = uniqueKey || computeUniqueKey(url, keepUrlFragment);
+        // NOTE: If URL is invalid, computeUniqueKey() returns null which was causing weird errors
+        this.uniqueKey = uniqueKey || computeUniqueKey(url, keepUrlFragment) || url;
         this.method = method;
         this.payload = payload;
         this.retryCount = retryCount;
@@ -146,19 +149,47 @@ class Request {
     /**
      * Stores information about an error that occurred during processing of this request.
      *
+     * You should always use Error instances when throwing errors in JavaScript.
+     *
+     * Nevertheless, to improve the debugging experience when using third party libraries
+     * that may not always throw an Error instance, the function performs a type
+     * inspection of the passed argument and attempts to extract as much information
+     * as possible, since just throwing a bad type error makes any debugging rather difficult.
+     *
      * @param {Error|String} errorOrMessage Error object or error message to be stored in the request.
+     * @param {Object} [options]
+     * @param {Boolean} [options.omitStack=false] Only push the error message without stack trace when true.
      */
-    pushErrorMessage(errorOrMessage) {
-        if (!_.isString(errorOrMessage) && !(errorOrMessage instanceof Error)) {
-            throw new Error('Parameter errorOrMessage must be a String or an instance of Error');
+    pushErrorMessage(errorOrMessage, options = {}) {
+        const { omitStack } = options;
+        let message;
+        const type = typeof errorOrMessage;
+        if (type === 'object') {
+            if (!errorOrMessage) {
+                message = 'null';
+            } else if (errorOrMessage instanceof Error) {
+                message = omitStack
+                    ? errorOrMessage.message
+                    // .stack includes the message
+                    : errorOrMessage.stack;
+            } else if (errorOrMessage.message) {
+                message = errorOrMessage.message; // eslint-disable-line prefer-destructuring
+            } else if (errorOrMessage.toString() !== '[object Object]') {
+                message = errorOrMessage.toString();
+            } else {
+                try {
+                    message = util.inspect(errorOrMessage);
+                } catch (err) {
+                    message = 'Unable to extract any message from the received object.';
+                }
+            }
+        } else if (type === 'undefined') {
+            message = 'undefined';
+        } else {
+            message = errorOrMessage.toString();
         }
 
-        const message = errorOrMessage instanceof Error
-            ? errorOrMessage.message
-            : errorOrMessage;
-
         if (!this.errorMessages) this.errorMessages = [];
-
         this.errorMessages.push(message);
     }
 }

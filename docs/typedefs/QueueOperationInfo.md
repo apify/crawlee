@@ -1,8 +1,8 @@
 ---
-id: requestoperationinfo
-title: RequestOperationInfo
+id: queueoperationinfo
+title: QueueOperationInfo
 ---
-<a name="RequestOperationInfo"></a>
+<a name="QueueOperationInfo"></a>
 
 A helper class that is used to report results from the
 [`Apify.utils.puppeteer.enqueueLinks()`](../api/puppeteer#puppeteer.enqueueLinks) function.

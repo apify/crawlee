@@ -52,7 +52,7 @@ const parsePurl = (purl) => {
 /**
  * Represents a pseudo URL (PURL) - an URL pattern used by web crawlers
  * to specify which URLs should the crawler visit.
- * This class is used by the [utils.puppeteer.enqueueLinks()](puppeteer#puppeteer.enqueueLinks) function.
+ * This class is used by the [`utils.puppeteer.enqueueLinks()`](puppeteer#puppeteer.enqueueLinks) function.
  *
  * A PURL is simply a URL with special directives enclosed in `[]` brackets.
  * Currently, the only supported directive is `[RegExp]`,
@@ -79,7 +79,9 @@ const parsePurl = (purl) => {
  * **Example usage:**
  *
  * ```javascript
- * const purl = new Apify.PseudoUrl('http://www.example.com/pages/[(\w|-)*]');
+ * const purl = new Apify.PseudoUrl('http://www.example.com/pages/[(\w|-)*]', {
+ *   userData: { foo: 'bar' },
+ * });
  *
  * if (purl.matches('http://www.example.com/pages/my-awesome-page')) console.log('Match!');
  * ```
@@ -87,7 +89,8 @@ const parsePurl = (purl) => {
  * @param {String} purl
  *   Pseudo URL.
  * @param {Object} requestTemplate
- *   Options for the new {@link Request} instances created for matching URLs.
+ *   Options for the new {@link Request} instances created for matching URLs
+ *   by the [utils.puppeteer.enqueueLinks()](puppeteer#puppeteer.enqueueLinks) function.
  */
 class PseudoUrl {
     constructor(purl, requestTemplate = {}) {
@@ -113,7 +116,7 @@ class PseudoUrl {
     }
 
     /**
-     * Creates a Request object from requestTemplate and given URL.
+     * Creates a Request object from a provided `requestTemplate` and given URL.
      *
      * @param {String} url
      * @return {Request}

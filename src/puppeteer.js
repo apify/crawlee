@@ -158,12 +158,12 @@ const getPuppeteerOrThrow = () => {
  *
  * To use this function, you need to have the <a href="https://www.npmjs.com/package/puppeteer" target="_blank">puppeteer</a>
  * NPM package installed in your project.
- * When running on the Apify cloud platform, you can achieve that simply
+ * When running on the Apify cloud, you can achieve that simply
  * by using the `apify/actor-node-chrome` base Docker image for your actor - see
  * <a href="https://www.apify.com/docs/actor#base-images" target="_blank">Apify Actor documentation</a>
  * for details.
  *
- * For an example of usage, see the [Synchronous run Example](../examples/synchronousrun) or the [Puppeteer proxy Example](../examples/puppeteerproxy)
+ * For an example of usage, see the [Synchronous run Example](../examples/synchronousrun) or the [Puppeteer proxy Example](../examples/puppeteerwithproxy)
  *
  * @param {LaunchPuppeteerOptions} [options]
  *   Optional settings passed to `puppeteer.launch()`. In addition to
