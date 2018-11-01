@@ -4,7 +4,7 @@ import { anonymizeProxy, closeAnonymizedProxy, redactUrl } from 'proxy-chain';
 import log from 'apify-shared/log';
 import { ENV_VARS } from 'apify-shared/consts';
 import { DEFAULT_USER_AGENT } from './constants';
-import { newPromise, getTypicalChromeExecutablePath } from './utils';
+import { newPromise, getTypicalChromeExecutablePath, isAtHome } from './utils';
 import { getApifyProxyUrl } from './actor';
 import { registerBrowserForLiveView } from './puppeteer_live_view_server';
 
@@ -118,7 +118,11 @@ const getPuppeteerOrThrow = () => {
         // This is an optional dependency because it is quite large, only require it when used (ie. image with Chrome)
         return require('puppeteer'); // eslint-disable-line global-require
     } catch (err) {
-        if (err.code === 'MODULE_NOT_FOUND') err.message = 'Cannot find module \'puppeteer\'. Did you choose the correct base Docker image?';
+        if (err.code === 'MODULE_NOT_FOUND') {
+            err.message = isAtHome()
+                ? 'Cannot find module \'puppeteer\'. Did you choose the correct base Docker image (apify/node-chrome-*)?'
+                : 'Cannot find module \'puppeteer\'. Did you you install \'puppeteer\' package?';
+        }
 
         throw err;
     }
