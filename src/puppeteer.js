@@ -120,7 +120,7 @@ const getPuppeteerOrThrow = () => {
     } catch (err) {
         if (err.code === 'MODULE_NOT_FOUND') {
             err.message = isAtHome()
-                ? 'Cannot find module \'puppeteer\'. Did you choose the correct base Docker image (apify/node-chrome-*)?'
+                ? 'Cannot find module \'puppeteer\'. Did you choose the correct base Docker image (apify/actor-node-chrome-*)?'
                 : 'Cannot find module \'puppeteer\'. Did you you install \'puppeteer\' package?';
         }
 
