@@ -730,6 +730,11 @@ describe('dataset', () => {
             mock.expects('openLocalStorage').once();
             Apify.openDataset();
 
+            mock.expects('openLocalStorage').once();
+            Apify.openDataset('xxx');
+            mock.expects('openRemoteStorage').once();
+            Apify.openDataset('xxx', true);
+
             delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
             process.env[ENV_VARS.TOKEN] = 'xxx';
 

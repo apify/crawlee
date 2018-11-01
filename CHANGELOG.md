@@ -3,6 +3,7 @@ xxx
 - Fixed `RequestQueue.addRequest()` to gracefully handle invalid URLs
 - Renamed `RequestOperationInfo` to `QueueOperationInfo`
 - Added `request` field to `QueueOperationInfo`
+- Added option enforcing cloud storage to be used in `openKeyValueStore()`, `openDataset()` and `openRequestQueue()`
 
 0.8.18 / 2018-10-30
 ===================

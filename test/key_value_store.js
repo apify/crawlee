@@ -168,6 +168,11 @@ describe('KeyValueStore', () => {
             mock.expects('openLocalStorage').once();
             await Apify.openKeyValueStore();
 
+            mock.expects('openLocalStorage').once();
+            Apify.openKeyValueStore('xxx');
+            mock.expects('openRemoteStorage').once();
+            Apify.openKeyValueStore('xxx', true);
+
             delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
             process.env[ENV_VARS.TOKEN] = 'xxx';
 
