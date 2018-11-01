@@ -174,7 +174,7 @@ export const constructPseudoUrlInstances = (pseudoUrls) => {
 /**
  * Remove with 1.0.0
  * @ignore
- * @todo
+ * @todo deprecate
  */
 let logDeprecationWarning = true;
 

@@ -166,10 +166,10 @@ const EasyCrawling = () => (
         {[
             {
                 content: 'There are three main class that you can use to start crawling web in no time. ' +
-                    'Do you need to crawl just the plain HTML? Use the **blazing fast** [`CheerioCrawler`](examples/cheeriocrawler).\n' +
+                    'Do you need to crawl just the plain HTML? Use the **blazing fast** [`CheerioCrawler`](docs/examples/cheeriocrawler).\n' +
                     'For complex websites that use **React**, **Vue** or other front-end javascript libraries and require JavaScript execution, ' +
-                    'spawn a headless browser with [`PuppeteerCrawler`](examples/puppeteercrawler).\n' +
-                    'To **control of all aspects** of your crawling, just use the bare bones [`BasicCrawler`](examples/basiccrawler)',
+                    'spawn a headless browser with [`PuppeteerCrawler`](docs/examples/puppeteercrawler).\n' +
+                    'To **control of all aspects** of your crawling, just use the bare bones [`BasicCrawler`](docs/examples/basiccrawler)',
                 image: imgUrl('chrome_scrape.gif'),
                 imageAlign: 'right',
                 title: 'Easy crawling',
@@ -182,7 +182,7 @@ const PowerfulTools = () => (
     <Block gridBlockAlign="left">
         {[
             {
-                content: 'All the crawlers are automatically **scaled** based on available system resources using the [`AutoscaledPool`](docs/api/AutoscaledPool) class. ' +
+                content: 'All the crawlers are automatically **scaled** based on available system resources using the [`AutoscaledPool`](docs/api/autoscaledpool) class. ' +
                     'When you run your code on the [Apify Cloud](https://my.apify.com/actors), you can also take advantage of a pool of **proxies** to avoid detection. ' +
                     'For the data storage, you can use the [`Dataset`](docs/api/dataset) and [`Key-value store`](docs/api/keyvaluestore) classes.',
                 image: imgUrl('source_code.png'),

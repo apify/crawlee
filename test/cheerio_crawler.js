@@ -307,6 +307,35 @@ describe('CheerioCrawler', () => {
             process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
             const proxies = [];
             const useApifyProxy = true;
+
+            const proxy = Apify.getApifyProxyUrl();
+
+            const crawler = new Apify.CheerioCrawler({
+                requestList,
+                handlePageFunction: async () => {},
+                requestFunction: async ({ request }) => {
+                    const opts = crawler._getRequestOptions(request);
+                    proxies.push(opts.proxy);
+                    // it needs to return something valid
+                    return 'html';
+                },
+                useApifyProxy,
+            });
+
+            await crawler.run();
+            delete process.env[ENV_VARS.PROXY_PASSWORD];
+
+            // expect(proxies).to.have.lengthOf(1);
+            expect(proxies[0]).to.be.eql(proxy);
+            expect(proxies[1]).to.be.eql(proxy);
+            expect(proxies[2]).to.be.eql(proxy);
+            expect(proxies[3]).to.be.eql(proxy);
+        });
+
+        it('should work with useApifyProxy and other opts', async () => {
+            process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
+            const proxies = [];
+            const useApifyProxy = true;
             const apifyProxyGroups = ['GROUP1', 'GROUP2'];
             const apifyProxySession = 'session';
 

@@ -335,7 +335,7 @@ class CheerioCrawler {
     _getProxyUrl() {
         if (this.useApifyProxy) {
             return getApifyProxyUrl({
-                groups: [...this.apifyProxyGroups],
+                groups: this.apifyProxyGroups,
                 session: this.apifyProxySession,
                 groupsParamName: 'options.apifyProxyGroups',
                 sessionParamName: 'options.apifyProxySession',
