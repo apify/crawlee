@@ -32,7 +32,7 @@ export const computeUniqueKey = (url, keepUrlFragment) => normalizeUrl(url, keep
  * ```
  * @param {object} options All `Request` parameters are passed
  *   via an options object with the following keys:
- * @param {String} options.url URL of the web page to crawl.
+ * @param {String} options.url URL of the web page to crawl. It must be a non-empty string.
  * @param {String} [options.uniqueKey] A unique key identifying the request.
  * Two requests with the same `uniqueKey` are considered as pointing to the same URL.
  *
@@ -130,9 +130,12 @@ class Request {
 
         if (method === 'GET' && payload) throw new Error('Request with GET method cannot have a payload.');
 
+        if (!url) throw new Error('The "url" option cannot be empty string.');
+
         this.id = id;
         this.url = url;
-        this.uniqueKey = uniqueKey || computeUniqueKey(url, keepUrlFragment);
+        // NOTE: If URL is invalid, computeUniqueKey() returns null which was causing weird errors
+        this.uniqueKey = uniqueKey || computeUniqueKey(url, keepUrlFragment) || url;
         this.method = method;
         this.payload = payload;
         this.retryCount = retryCount;
