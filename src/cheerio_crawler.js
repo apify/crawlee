@@ -244,6 +244,10 @@ class CheerioCrawler {
             maxConcurrency,
             autoscaledPoolOptions,
         });
+
+        // Set Request as an internal property to enable mocking in tests,
+        // since Sinon can't mock it due to it being a Function.
+        this.rqst = rqst;
     }
 
     /**
@@ -318,57 +322,62 @@ class CheerioCrawler {
         return new Promise((resolve, reject) => {
             // Using the streaming API of Request to be able to
             // handle the response based on headers receieved.
-            rqst(this._getRequestOptions(request))
+            this.rqst(this._getRequestOptions(request))
                 .on('response', async (res) => {
-                    // Throw away the body if it's not loadable by Cheerio.
-                    // Request will not be retried since it's safe to assume
+                    // First check what kind of response we received.
                     let cType;
                     try {
                         cType = contentType.parse(res);
                     } catch (err) {
-                        log.info(`CheerioCrawler: Received invalid Content-Type for URL: ${request.url} Skipping.`);
                         res.destroy();
-                        return resolve(null);
-                    }
-                    if (cType.type !== 'text/html') {
-                        log.info(`CheerioCrawler: Received Content-Type: ${cType.type} for URL: ${request.url} Skipping.`);
-                        res.destroy();
-                        return resolve(null);
+                        // No reason to parse the body if the Content-Type header is invalid.
+                        return reject(new Error(`CheerioCrawler: Invalid Content-Type header for URL: ${request.url}`));
                     }
 
-                    // Read the body into a string since Cheerio does not support streaming
+                    const { type, encoding } = cType;
+                    // Read the body into a string since Cheerio does not support streaming.
                     let body;
                     try {
-                        body = await this._readStreamIntoString(res, cType.encoding);
+                        body = await this._readStreamIntoString(res, encoding);
                     } catch (err) {
-                        // Error in reading the body
+                        // Error in reading the body.
                         return reject(err);
                     }
 
                     // 500 codes are handled as errors, requests will be retried.
-                    // Some message extraction is attempted.
-                    if (res.statusCode >= 500) {
-                        try {
-                            // Error responses are often JSON so attempt to parse it.
+                    const status = res.statusCode;
+                    if (status >= 500) {
+                        // Errors are often sent as JSON, so attempt to parse them,
+                        // despite Accept header being set to text/html.
+                        if (type === 'application/json') {
                             const errorResponse = JSON.parse(body);
                             let { message } = errorResponse;
                             if (!message) message = util.inspect(errorResponse, { depth: 1, maxArrayLength: 10 });
-                            return reject(new Error(message));
-                        } catch (err) {
-                            // If not a JSON, just take the string and trim it to 100 characters.
-                            return reject(new Error(body.substr(0, 100)));
+                            return reject(new Error(`${status} - ${message}`));
                         }
+                        // It's not a JSON so it's probably some text. Get the first 100 chars of it.
+                        return reject(new Error(`${status} - Internal Server Error: ${body.substr(0, 100)}`));
                     }
 
-                    // 200-499 responses are considered OK and will not be retried
-                    resolve(body);
+                    // Handle situations where the server explicitly states that
+                    // it will not serve the resource as text/html by skipping.
+                    if (status === 406) {
+                        return log.error(`CheerioCrawler: Resource ${request.url} is not available in HTML format. Skipping resource.`);
+                    }
+
+                    // Other 200-499 responses are considered OK, but first check the content type.
+                    if (type === 'text/html') {
+                        resolve(body);
+                    } else {
+                        log.error(`CheerioCrawler: Resource ${request.url} served Content-Type ${type} instead of text/html. Skipping resource.`);
+                    }
                 })
                 .on('error', err => reject(err));
         });
     }
 
     /**
-     * Combines the provided `requestOptions` with default values.
+     * Combines the provided `requestOptions` with mandatory (non-overridable) values.
      * @param {Request} request
      * @ignore
      */
@@ -405,6 +414,15 @@ class CheerioCrawler {
         return null;
     }
 
+    /**
+     * Flushes the provided stream into a Buffer and transforms
+     * it to a String using the provided encoding or utf-8 as default.
+     *
+     * @param {stream.Readable} stream
+     * @param {String} [encoding]
+     * @returns {Promise<String>}
+     * @private
+     */
     async _readStreamIntoString(stream, encoding) { // eslint-disable-line class-methods-use-this
         return new Promise((resolve, reject) => {
             const chunks = [];
