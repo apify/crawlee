@@ -3,6 +3,9 @@ xxx
 - Fixed `RequestQueue.addRequest()` to gracefully handle invalid URLs
 - Renamed `RequestOperationInfo` to `QueueOperationInfo`
 - Added `request` field to `QueueOperationInfo`
+- **WARNING**: Deprecated parameter `timeoutSecs` of `Apify.call()` was removed use `waitSecs` instead.
+  Parameter `timeout` is used for actor run timeout.
+- Added `Apify.callTask()` that enables to start actor task and fetch its output.
 
 0.8.18 / 2018-10-30
 ===================

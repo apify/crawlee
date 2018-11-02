@@ -25,25 +25,25 @@ const tryParseDate = (str) => {
 };
 
 /**
- * Waits for given run to finish. If "timeoutSecs" is reached then returns unfinished run.
+ * Waits for given run to finish. If "waitSecs" is reached then returns unfinished run.
  *
  * @ignore
  */
-const waitForRunToFinish = async ({ actId, runId, token, timeoutSecs }) => {
+const waitForRunToFinish = async ({ actId, runId, token, waitSecs }) => {
     let updatedRun;
 
     const { acts } = apifyClient;
     const startedAt = Date.now();
     const shouldRepeat = () => {
-        if (timeoutSecs && (Date.now() - startedAt) / 1000 >= timeoutSecs) return false;
+        if (waitSecs && (Date.now() - startedAt) / 1000 >= waitSecs) return false;
         if (updatedRun && ACT_JOB_TERMINAL_STATUSES.includes(updatedRun.status)) return false;
 
         return true;
     };
 
     while (shouldRepeat()) {
-        const waitForFinish = timeoutSecs
-            ? Math.round(timeoutSecs - (Date.now() - startedAt) / 1000)
+        const waitForFinish = waitSecs
+            ? Math.round(waitSecs - (Date.now() - startedAt) / 1000)
             : 999999;
 
         updatedRun = await acts.getRun({ actId, runId, token, waitForFinish });
@@ -276,14 +276,17 @@ export const main = (userFunc) => {
  * @param {Number} [options.memory]
  *  Memory in megabytes which will be allocated for the new actor run.
  *  If not provided, the run uses memory of the default actor run configuration.
+ * @param {Number} [options.timeout]
+ *  Timeout for the act run in seconds. Zero value means there is no timeout.
+ *  If not provided, the run uses timeout of the default actor run configuration.
  * @param {String} [options.build]
  *  Tag or number of the actor build to run (e.g. `beta` or `1.2.345`).
  *  If not provided, the run uses build tag or number from the default actor run configuration (typically `latest`).
- * @param {String} [options.timeoutSecs]
+ * @param {String} [options.waitSecs]
  *  Maximum time to wait for the actor run to finish, in seconds.
  *  If the limit is reached, the returned promise is resolved to a run object that will have
  *  status `READY` or `RUNNING` and it will not contain the actor run output.
- *  If `timeoutSecs` is null or undefined, the function waits for the actor to finish (default behavior).
+ *  If `waitSecs` is null or undefined, the function waits for the actor to finish (default behavior).
  * @param {Boolean} [options.fetchOutput=true]
  *  If `false` then the function does not fetch output of the actor.
  * @param {Boolean} [options.disableBodyParser=false]
@@ -309,12 +312,14 @@ export const call = async (actId, input, options = {}) => {
     checkParamOrThrow(token, 'token', 'Maybe String');
 
     // RunAct() options.
-    const { build, memory } = optionsCopy;
+    const { build, memory, timeout } = optionsCopy;
     const runActOpts = {};
     checkParamOrThrow(build, 'build', 'Maybe String');
     checkParamOrThrow(memory, 'memory', 'Maybe Number');
+    checkParamOrThrow(timeout, 'timeout', 'Maybe Number');
     if (build) runActOpts.build = build;
     if (memory) runActOpts.memory = memory;
+    if (timeout >= 0) runActOpts.timeout = timeout; // Zero is valid value!
     if (input) {
         input = maybeStringify(input, optionsCopy);
 
@@ -326,17 +331,17 @@ export const call = async (actId, input, options = {}) => {
     }
 
     // Run actor.
-    const { timeoutSecs } = options;
-    checkParamOrThrow(timeoutSecs, 'timeoutSecs', 'Maybe Number');
+    const { waitSecs } = options;
+    checkParamOrThrow(waitSecs, 'waitSecs', 'Maybe Number');
     const run = await acts.runAct(Object.assign({ actId, token }, runActOpts));
-    if (timeoutSecs <= 0) return run; // In this case there is nothing more to do.
+    if (waitSecs <= 0) return run; // In this case there is nothing more to do.
 
     // Wait for run to finish.
     const updatedRun = await waitForRunToFinish({
         actId,
         runId: run.id,
         token,
-        timeoutSecs,
+        waitSecs,
     });
 
     // Finish if output is not requested or run haven't finished.
@@ -385,11 +390,11 @@ export const call = async (actId, input, options = {}) => {
  *   Object with the settings below:
  * @param {String} [options.token]
  *  User API token that is used to run the actor. By default, it is taken from the `APIFY_TOKEN` environment variable.
- * @param {String} [options.timeoutSecs]
+ * @param {String} [options.waitSecs]
  *  Maximum time to wait for the actor run to finish, in seconds.
  *  If the limit is reached, the returned promise is resolved to a run object that will have
  *  status `READY` or `RUNNING` and it will not contain the actor run output.
- *  If `timeoutSecs` is null or undefined, the function waits for the actor to finish (default behavior).
+ *  If `waitSecs` is null or undefined, the function waits for the actor to finish (default behavior).
  * @returns {Promise<ActorRun>}
  * @throws {ApifyCallError} If the run did not succeed, e.g. if it failed or timed out.
  *
@@ -410,17 +415,17 @@ export const callTask = async (taskId, input, options = {}) => {
     checkParamOrThrow(token, 'token', 'Maybe String');
 
     // Run task.
-    const { timeoutSecs } = options;
-    checkParamOrThrow(timeoutSecs, 'timeoutSecs', 'Maybe Number');
+    const { waitSecs } = options;
+    checkParamOrThrow(waitSecs, 'waitSecs', 'Maybe Number');
     const run = await tasks.runTask({ taskId, token });
-    if (timeoutSecs <= 0) return run; // In this case there is nothing more to do.
+    if (waitSecs <= 0) return run; // In this case there is nothing more to do.
 
     // Wait for run to finish.
     const updatedRun = await waitForRunToFinish({
         actId: run.actId,
         runId: run.id,
         token,
-        timeoutSecs,
+        waitSecs,
     });
 
     // Finish if output is not requested or run haven't finished.
@@ -486,7 +491,7 @@ export const callTask = async (taskId, input, options = {}) => {
  *   ```
  *   {
  *     "build": "latest",
- *     "timeoutSecs": 0,
+ *     "waitSecs": 0,
  *     "memoryMbytes": 256,
  *     "diskMbytes": 512
  *   }

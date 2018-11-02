@@ -244,10 +244,11 @@ describe('Apify.call()', () => {
         const expected = Object.assign({}, finishedRun, { output });
         const build = 'xxx';
         const memory = 1024;
+        const timeout = 60;
 
         const actsMock = sinon.mock(Apify.client.acts);
         actsMock.expects('runAct')
-            .withExactArgs({ token, actId, contentType: `${contentType}; charset=utf-8`, body: input, build, memory })
+            .withExactArgs({ token, actId, contentType: `${contentType}; charset=utf-8`, body: input, build, memory, timeout })
             .once()
             .returns(Promise.resolve(runningRun));
         actsMock.expects('getRun')
@@ -266,7 +267,7 @@ describe('Apify.call()', () => {
             .returns(Promise.resolve(output));
 
         return Apify
-            .call(actId, input, { contentType, token, disableBodyParser: true, build, memory })
+            .call(actId, input, { contentType, token, disableBodyParser: true, build, memory, timeout })
             .then((callOutput) => {
                 expect(callOutput).to.be.eql(expected);
                 keyValueStoresMock.restore();
@@ -480,7 +481,7 @@ describe('Apify.call()', () => {
         const defaultKeyValueStoreId = 'some-store-id';
         const run = { id: 'some-run-id', actId, defaultKeyValueStoreId };
         const runningRun = Object.assign({}, run, { status: ACT_JOB_STATUSES.RUNNING });
-        const timeoutSecs = 1;
+        const waitSecs = 1;
 
         const actsMock = sinon.mock(Apify.client.acts);
         actsMock.expects('runAct')
@@ -488,17 +489,17 @@ describe('Apify.call()', () => {
             .once()
             .returns(Promise.resolve(runningRun));
         actsMock.expects('getRun')
-            .withExactArgs({ token, actId, runId: run.id, waitForFinish: timeoutSecs })
+            .withExactArgs({ token, actId, runId: run.id, waitForFinish: waitSecs })
             .once()
             .returns(new Promise((resolve) => {
-                setTimeout(() => resolve(runningRun), timeoutSecs * 1000);
+                setTimeout(() => resolve(runningRun), waitSecs * 1000 * 2);
             }));
 
         const keyValueStoresMock = sinon.mock(Apify.client.keyValueStores);
         keyValueStoresMock.expects('getRecord').never();
 
         return Apify
-            .call(actId, null, { token, timeoutSecs })
+            .call(actId, null, { token, waitSecs })
             .then((callOutput) => {
                 expect(callOutput).to.be.eql(runningRun);
                 keyValueStoresMock.restore();
@@ -554,7 +555,7 @@ describe('Apify.call()', () => {
         const defaultKeyValueStoreId = 'some-store-id';
         const run = { id: 'some-run-id', actId, defaultKeyValueStoreId };
         const readyRun = Object.assign({}, run, { status: ACT_JOB_STATUSES.READY });
-        const timeoutSecs = 0;
+        const waitSecs = 0;
 
         const actsMock = sinon.mock(Apify.client.acts);
         actsMock.expects('runAct')
@@ -567,7 +568,7 @@ describe('Apify.call()', () => {
         keyValueStoresMock.expects('getRecord').never();
 
         return Apify
-            .call(actId, null, { token, timeoutSecs })
+            .call(actId, null, { token, waitSecs })
             .then((callOutput) => {
                 expect(callOutput).to.be.eql(readyRun);
                 keyValueStoresMock.restore();
@@ -686,7 +687,7 @@ describe('Apify.callTask()', () => {
     });
 
     it('timeouts as expected with unfinished run', () => {
-        const timeoutSecs = 1;
+        const waitSecs = 1;
         const taskId = 'some-act-id';
         const actId = 'xxx';
         const token = 'some-token';
@@ -702,17 +703,17 @@ describe('Apify.callTask()', () => {
 
         const actsMock = sinon.mock(Apify.client.acts);
         actsMock.expects('getRun')
-            .withExactArgs({ token, actId, runId: run.id, waitForFinish: timeoutSecs })
+            .withExactArgs({ token, actId, runId: run.id, waitForFinish: waitSecs })
             .once()
             .returns(new Promise((resolve) => {
-                setTimeout(() => resolve(runningRun), timeoutSecs * 1000);
+                setTimeout(() => resolve(runningRun), waitSecs * 1000 * 2);
             }));
 
         const keyValueStoresMock = sinon.mock(Apify.client.keyValueStores);
         keyValueStoresMock.expects('getRecord').never();
 
         return Apify
-            .callTask(taskId, undefined, { token, disableBodyParser: true, fetchOutput: false, timeoutSecs })
+            .callTask(taskId, undefined, { token, disableBodyParser: true, fetchOutput: false, waitSecs })
             .then((callOutput) => {
                 expect(callOutput).to.be.eql(runningRun);
                 keyValueStoresMock.restore();
@@ -766,7 +767,7 @@ describe('Apify.callTask()', () => {
     });
 
     it('returns immediately with zero timeout', () => {
-        const timeoutSecs = 0;
+        const waitSecs = 0;
         const taskId = 'some-act-id';
         const actId = 'xxx';
         const token = 'some-token';
@@ -787,7 +788,7 @@ describe('Apify.callTask()', () => {
         keyValueStoresMock.expects('getRecord').never();
 
         return Apify
-            .callTask(taskId, undefined, { token, timeoutSecs })
+            .callTask(taskId, undefined, { token, waitSecs })
             .then((callOutput) => {
                 expect(callOutput).to.be.eql(readyRun);
                 keyValueStoresMock.restore();
