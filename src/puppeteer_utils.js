@@ -129,11 +129,11 @@ const enqueueRequestsFromClickableElements = async (page, selector, purls, reque
     const urls = await page.$$eval(selector, getHrefs);
     const requests = urls.filter(matchesPseudoUrl).map(url => new Request(Object.assign({ url }, requestOpts)));
 
-    const requestOperationInfos = [];
+    const queueOperationInfos = [];
     for (const request of requests) {
-        requestOperationInfos.push(await requestQueue.addRequest(request));
+        queueOperationInfos.push(await requestQueue.addRequest(request));
     }
-    return requestOperationInfos;
+    return queueOperationInfos;
 };
 
 /**
@@ -197,8 +197,8 @@ let logDeprecationWarning = true;
  *   or an array of Strings or Objects from which the {@link PseudoUrl}s should be constructed
  *   The Objects must include at least a `purl` property, which holds a pseudoUrl string.
  *   All remaining keys will be used as the `requestTemplate` argument of the {@link PseudoUrl} constructor.
- * @return {Promise<RequestOperationInfo[]>}
- *   Promise that resolves to an array of {@link RequestOperationInfo} objects.
+ * @return {Promise<QueueOperationInfo[]>}
+ *   Promise that resolves to an array of {@link QueueOperationInfo} objects.
  * @memberOf puppeteer
  */
 const enqueueLinks = async (page, selector, requestQueue, pseudoUrls = []) => {
@@ -238,11 +238,11 @@ const enqueueLinks = async (page, selector, requestQueue, pseudoUrls = []) => {
         requests = urls.map(url => ({ url }));
     }
 
-    const requestOperationInfos = [];
+    const queueOperationInfos = [];
     for (const request of requests) {
-        requestOperationInfos.push(await requestQueue.addRequest(request));
+        queueOperationInfos.push(await requestQueue.addRequest(request));
     }
-    return requestOperationInfos;
+    return queueOperationInfos;
 };
 
 /**
