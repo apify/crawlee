@@ -298,12 +298,72 @@ describe('CheerioCrawler', () => {
             headers.forEach(h => expect(h.Accept).to.be.eql('text/html'));
         });
 
+        describe('by skipping', () => {
+            let crawler;
+            let handlePageInvocationCount = 0;
+            let handleFailInvocationCount = 0;
+            let logMessages = [];
+            let origLogError;
+            beforeEach(() => {
+                crawler = new Apify.CheerioCrawler({
+                    requestList,
+                    maxRequestRetries: 1,
+                    handlePageFunction: async () => {
+                        handlePageInvocationCount++;
+                    },
+                    handleFailedRequestFunction: async () => {
+                        handleFailInvocationCount++;
+                    },
+                });
+                origLogError = log.error;
+                log.error = arg => logMessages.push(arg);
+            });
+            afterEach(async () => {
+                crawler = null;
+                handlePageInvocationCount = 0;
+                logMessages = [];
+                log.error = origLogError;
+                origLogError = null;
+            });
+
+            it('when 406 is received', async () => {
+                // Mock Request to respond with a 406.
+                crawler.rqst = () => {
+                    const response = new Readable({
+                        read() {
+                            this.push('x');
+                            this.push(null);
+                        },
+                    });
+                    response.headers = {
+                        'content-type': 'text/plain',
+                    };
+                    response.statusCode = 406;
+
+                    const ee = new EventEmitter();
+
+                    setTimeout(() => {
+                        ee.emit('response', response);
+                    }, 0);
+
+                    return ee;
+                };
+
+                await crawler.run();
+
+                expect(handlePageInvocationCount).to.be.eql(4);
+                expect(handleFailInvocationCount).to.be.eql(0);
+                expect(logMessages).to.have.lengthOf(4);
+                logMessages.forEach(msg => expect(msg).to.include('is not available in HTML format'));
+            });
+        });
+
         describe('by throwing', () => {
             let crawler;
             let handlePageInvocationCount = 0;
             let errorMessages = [];
             beforeEach(() => {
-                // log.setLevel(log.LEVELS.OFF);
+                log.setLevel(log.LEVELS.OFF);
                 crawler = new Apify.CheerioCrawler({
                     requestList,
                     maxRequestRetries: 1,
@@ -316,7 +376,7 @@ describe('CheerioCrawler', () => {
                 });
             });
             afterEach(async () => {
-                // log.setLevel(log.LEVELS.ERROR);
+                log.setLevel(log.LEVELS.ERROR);
                 crawler = null;
                 handlePageInvocationCount = 0;
                 errorMessages = [];
@@ -353,7 +413,7 @@ describe('CheerioCrawler', () => {
             });
 
             it('when response stream emits an error event', async () => {
-                // Mock Request to inject invalid response headers.
+                // Mock Request to emit an error after a while.
                 crawler.rqst = () => {
                     const start = Date.now();
                     const response = new Readable({
@@ -383,6 +443,96 @@ describe('CheerioCrawler', () => {
                 expect(handlePageInvocationCount).to.be.eql(0);
                 expect(errorMessages).to.have.lengthOf(8);
                 errorMessages.forEach(msg => expect(msg).to.include('Error in stream.'));
+            });
+
+            it('when request stream emits an error event', async () => {
+                // Mock Request to emit an error after a while.
+                crawler.rqst = () => {
+                    const response = new Readable({
+                        // Just do nothing
+                        read() {},
+                    });
+                    response.headers = {
+                        'content-type': 'text/html',
+                    };
+
+                    const ee = new EventEmitter();
+
+                    setTimeout(() => {
+                        ee.emit('response', response);
+                        setTimeout(() => {
+                            ee.emit('error', new Error('Request Error.'));
+                        }, 0);
+                    }, 0);
+
+                    return ee;
+                };
+
+                await crawler.run();
+
+                expect(handlePageInvocationCount).to.be.eql(0);
+                expect(errorMessages).to.have.lengthOf(8);
+                errorMessages.forEach(msg => expect(msg).to.include('Request Error.'));
+            });
+
+            it('when statusCode >= 500 and text/html is received', async () => {
+                crawler.rqst = () => {
+                    const response = new Readable({
+                        // Just do nothing
+                        read() {
+                            this.push('x');
+                            this.push(null);
+                        },
+                    });
+                    response.headers = {
+                        'content-type': 'text/html',
+                    };
+                    response.statusCode = 500;
+
+                    const ee = new EventEmitter();
+
+                    setTimeout(() => {
+                        ee.emit('response', response);
+                    }, 0);
+
+                    return ee;
+                };
+
+                await crawler.run();
+
+                expect(handlePageInvocationCount).to.be.eql(0);
+                expect(errorMessages).to.have.lengthOf(8);
+                errorMessages.forEach(msg => expect(msg).to.include('Internal Server Error: x'));
+            });
+
+            it('when statusCode >= 500 and application/json is received', async () => {
+                crawler.rqst = () => {
+                    const response = new Readable({
+                        // Just do nothing
+                        read() {
+                            this.push(JSON.stringify({ message: 'Hello' }));
+                            this.push(null);
+                        },
+                    });
+                    response.headers = {
+                        'content-type': 'application/json',
+                    };
+                    response.statusCode = 500;
+
+                    const ee = new EventEmitter();
+
+                    setTimeout(() => {
+                        ee.emit('response', response);
+                    }, 0);
+
+                    return ee;
+                };
+
+                await crawler.run();
+
+                expect(handlePageInvocationCount).to.be.eql(0);
+                expect(errorMessages).to.have.lengthOf(8);
+                errorMessages.forEach(msg => expect(msg).to.include('500 - Hello'));
             });
         });
     });
