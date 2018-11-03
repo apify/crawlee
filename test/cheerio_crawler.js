@@ -298,66 +298,6 @@ describe('CheerioCrawler', () => {
             headers.forEach(h => expect(h.Accept).to.be.eql('text/html'));
         });
 
-        describe('by skipping', () => {
-            let crawler;
-            let handlePageInvocationCount = 0;
-            let handleFailInvocationCount = 0;
-            let logMessages = [];
-            let origLogError;
-            beforeEach(() => {
-                crawler = new Apify.CheerioCrawler({
-                    requestList,
-                    maxRequestRetries: 1,
-                    handlePageFunction: async () => {
-                        handlePageInvocationCount++;
-                    },
-                    handleFailedRequestFunction: async () => {
-                        handleFailInvocationCount++;
-                    },
-                });
-                origLogError = log.error;
-                log.error = arg => logMessages.push(arg);
-            });
-            afterEach(async () => {
-                crawler = null;
-                handlePageInvocationCount = 0;
-                logMessages = [];
-                log.error = origLogError;
-                origLogError = null;
-            });
-
-            it('when 406 is received', async () => {
-                // Mock Request to respond with a 406.
-                crawler.rqst = () => {
-                    const response = new Readable({
-                        read() {
-                            this.push('x');
-                            this.push(null);
-                        },
-                    });
-                    response.headers = {
-                        'content-type': 'text/plain',
-                    };
-                    response.statusCode = 406;
-
-                    const ee = new EventEmitter();
-
-                    setTimeout(() => {
-                        ee.emit('response', response);
-                    }, 0);
-
-                    return ee;
-                };
-
-                await crawler.run();
-
-                expect(handlePageInvocationCount).to.be.eql(4);
-                expect(handleFailInvocationCount).to.be.eql(0);
-                expect(logMessages).to.have.lengthOf(4);
-                logMessages.forEach(msg => expect(msg).to.include('is not available in HTML format'));
-            });
-        });
-
         describe('by throwing', () => {
             let crawler;
             let handlePageInvocationCount = 0;
@@ -533,6 +473,66 @@ describe('CheerioCrawler', () => {
                 expect(handlePageInvocationCount).to.be.eql(0);
                 expect(errorMessages).to.have.lengthOf(8);
                 errorMessages.forEach(msg => expect(msg).to.include('500 - Hello'));
+            });
+
+            it('when 406 is received', async () => {
+                // Mock Request to respond with a 406.
+                crawler.rqst = () => {
+                    const response = new Readable({
+                        read() {
+                            this.push('x');
+                            this.push(null);
+                        },
+                    });
+                    response.headers = {
+                        'content-type': 'text/plain',
+                    };
+                    response.statusCode = 406;
+
+                    const ee = new EventEmitter();
+
+                    setTimeout(() => {
+                        ee.emit('response', response);
+                    }, 0);
+
+                    return ee;
+                };
+
+                await crawler.run();
+
+                expect(handlePageInvocationCount).to.be.eql(0);
+                expect(errorMessages).to.have.lengthOf(4);
+                errorMessages.forEach(msg => expect(msg).to.include('is not available in HTML format'));
+            });
+
+            it('when status is ok, but a wrong content type is received', async () => {
+                // Mock Request to respond with a 406.
+                crawler.rqst = () => {
+                    const response = new Readable({
+                        read() {
+                            this.push('x');
+                            this.push(null);
+                        },
+                    });
+                    response.headers = {
+                        'content-type': 'application/json',
+                    };
+                    response.statusCode = 200;
+
+                    const ee = new EventEmitter();
+
+                    setTimeout(() => {
+                        ee.emit('response', response);
+                    }, 0);
+
+                    return ee;
+                };
+
+                await crawler.run();
+
+                expect(handlePageInvocationCount).to.be.eql(0);
+                expect(errorMessages).to.have.lengthOf(4);
+                errorMessages.forEach(msg => expect(msg).to.include('served Content-Type application/json instead of text/html'));
             });
         });
     });

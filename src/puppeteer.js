@@ -163,7 +163,8 @@ const getPuppeteerOrThrow = () => {
  * <a href="https://www.apify.com/docs/actor#base-images" target="_blank">Apify Actor documentation</a>
  * for details.
  *
- * For an example of usage, see the [Synchronous run Example](../examples/synchronousrun) or the [Puppeteer proxy Example](../examples/puppeteerwithproxy)
+ * For an example of usage, see the [Synchronous run Example](../examples/synchronousrun)
+ * or the [Puppeteer proxy Example](../examples/puppeteerwithproxy)
  *
  * @param {LaunchPuppeteerOptions} [options]
  *   Optional settings passed to `puppeteer.launch()`. In addition to

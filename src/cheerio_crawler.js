@@ -356,20 +356,25 @@ class CheerioCrawler {
                             return reject(new Error(`${status} - ${message}`));
                         }
                         // It's not a JSON so it's probably some text. Get the first 100 chars of it.
-                        return reject(new Error(`${status} - Internal Server Error: ${body.substr(0, 100)}`));
+                        return reject(new Error(`CheerioCrawler: ${status} - Internal Server Error: ${body.substr(0, 100)}`));
                     }
 
                     // Handle situations where the server explicitly states that
                     // it will not serve the resource as text/html by skipping.
                     if (status === 406) {
-                        return log.error(`CheerioCrawler: Resource ${request.url} is not available in HTML format. Skipping resource.`);
+                        request.skip();
+                        return reject(new Error(`CheerioCrawler: Resource ${request.url} is not available in HTML format. Skipping resource.`));
                     }
 
                     // Other 200-499 responses are considered OK, but first check the content type.
                     if (type === 'text/html') {
-                        resolve(body);
+                        res.body = body;
+                        resolve(res);
                     } else {
-                        log.error(`CheerioCrawler: Resource ${request.url} served Content-Type ${type} instead of text/html. Skipping resource.`);
+                        request.skip();
+                        reject(new Error(
+                            `CheerioCrawler: Resource ${request.url} served Content-Type ${type} instead of text/html. Skipping resource.`,
+                        ));
                     }
                 })
                 .on('error', err => reject(err));

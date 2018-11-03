@@ -310,8 +310,8 @@ class BasicCrawler {
         // If we got here, it means we actually want to handle the error.
         request.pushErrorMessage(error);
 
-        // Reclaim and retry request if retryCount is not exceeded.
-        if (request.retryCount < this.maxRequestRetries) {
+        // Reclaim and retry request if request is not skipped and retryCount is not exceeded.
+        if (!request.skipped && request.retryCount < this.maxRequestRetries) {
             request.retryCount++;
             log.exception(error, 'BasicCrawler: handleRequestFunction failed, reclaiming failed request back to the list or queue', { // eslint-disable-line max-len
                 url: request.url,

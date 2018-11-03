@@ -144,6 +144,7 @@ class Request {
         this.userData = userData;
         this.ignoreErrors = ignoreErrors;
         this.handledAt = handledAt && new Date(handledAt);
+        this.skipped = false;
     }
 
     /**
@@ -191,6 +192,15 @@ class Request {
 
         if (!this.errorMessages) this.errorMessages = [];
         this.errorMessages.push(message);
+    }
+
+    /**
+     * Marks the request as skipped which in turn prevents {@link BasicCrawler}
+     * (and {@PuppeteerCrawler} + {@CheerioCrawler}, since they use {@BasicCrawler} internally)
+     * from retrying the request after an error occurs.
+     */
+    skip() {
+        this.skipped = true;
     }
 }
 
