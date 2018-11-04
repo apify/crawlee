@@ -323,6 +323,7 @@ class CheerioCrawler {
             // Using the streaming API of Request to be able to
             // handle the response based on headers receieved.
             this.rqst(this._getRequestOptions(request))
+                .on('error', err => reject(err))
                 .on('response', async (res) => {
                     // First check what kind of response we received.
                     let cType;
@@ -335,18 +336,17 @@ class CheerioCrawler {
                     }
 
                     const { type, encoding } = cType;
-                    // Read the body into a string since Cheerio does not support streaming.
-                    let body;
-                    try {
-                        body = await this._readStreamIntoString(res, encoding);
-                    } catch (err) {
-                        // Error in reading the body.
-                        return reject(err);
-                    }
 
                     // 500 codes are handled as errors, requests will be retried.
                     const status = res.statusCode;
                     if (status >= 500) {
+                        let body;
+                        try {
+                            body = await this._readStreamIntoString(res, encoding);
+                        } catch (err) {
+                            // Error in reading the body.
+                            return reject(err);
+                        }
                         // Errors are often sent as JSON, so attempt to parse them,
                         // despite Accept header being set to text/html.
                         if (type === 'application/json') {
@@ -363,21 +363,27 @@ class CheerioCrawler {
                     // it will not serve the resource as text/html by skipping.
                     if (status === 406) {
                         request.skip();
+                        res.destroy();
                         return reject(new Error(`CheerioCrawler: Resource ${request.url} is not available in HTML format. Skipping resource.`));
                     }
 
                     // Other 200-499 responses are considered OK, but first check the content type.
                     if (type === 'text/html') {
-                        res.body = body;
-                        resolve(res);
+                        try {
+                            res.body = await this._readStreamIntoString(res, encoding);
+                            resolve(res);
+                        } catch (err) {
+                            // Error in reading the body.
+                            reject(err);
+                        }
                     } else {
                         request.skip();
+                        res.destroy();
                         reject(new Error(
                             `CheerioCrawler: Resource ${request.url} served Content-Type ${type} instead of text/html. Skipping resource.`,
                         ));
                     }
-                })
-                .on('error', err => reject(err));
+                });
         });
     }
 

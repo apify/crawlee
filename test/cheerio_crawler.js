@@ -302,6 +302,11 @@ describe('CheerioCrawler', () => {
             let crawler;
             let handlePageInvocationCount = 0;
             let errorMessages = [];
+            let chunkReadCount = 0;
+            const getChunk = (chunk = 'x') => {
+                chunkReadCount++;
+                return chunk;
+            };
             beforeEach(() => {
                 log.setLevel(log.LEVELS.OFF);
                 crawler = new Apify.CheerioCrawler({
@@ -319,6 +324,7 @@ describe('CheerioCrawler', () => {
                 log.setLevel(log.LEVELS.ERROR);
                 crawler = null;
                 handlePageInvocationCount = 0;
+                chunkReadCount = 0;
                 errorMessages = [];
             });
 
@@ -328,7 +334,7 @@ describe('CheerioCrawler', () => {
                 crawler.rqst = () => {
                     const response = new Readable({
                         read() {
-                            this.push('x');
+                            this.push(getChunk());
                             this.push(null);
                         },
                     });
@@ -350,6 +356,7 @@ describe('CheerioCrawler', () => {
                 expect(handlePageInvocationCount).to.be.eql(0);
                 expect(errorMessages).to.have.lengthOf(8);
                 errorMessages.forEach(msg => expect(msg).to.include('Invalid Content-Type header'));
+                expect(chunkReadCount).to.be.eql(0);
             });
 
             it('when response stream emits an error event', async () => {
@@ -362,7 +369,7 @@ describe('CheerioCrawler', () => {
                                 this.emit('error', new Error('Error in stream.'));
                                 return;
                             }
-                            this.push('x');
+                            this.push(getChunk());
                         },
                     });
                     response.headers = {
@@ -418,9 +425,8 @@ describe('CheerioCrawler', () => {
             it('when statusCode >= 500 and text/html is received', async () => {
                 crawler.rqst = () => {
                     const response = new Readable({
-                        // Just do nothing
                         read() {
-                            this.push('x');
+                            this.push(getChunk());
                             this.push(null);
                         },
                     });
@@ -443,6 +449,7 @@ describe('CheerioCrawler', () => {
                 expect(handlePageInvocationCount).to.be.eql(0);
                 expect(errorMessages).to.have.lengthOf(8);
                 errorMessages.forEach(msg => expect(msg).to.include('Internal Server Error: x'));
+                expect(chunkReadCount).to.be.eql(8);
             });
 
             it('when statusCode >= 500 and application/json is received', async () => {
@@ -450,7 +457,7 @@ describe('CheerioCrawler', () => {
                     const response = new Readable({
                         // Just do nothing
                         read() {
-                            this.push(JSON.stringify({ message: 'Hello' }));
+                            this.push(getChunk(JSON.stringify({ message: 'Hello' })));
                             this.push(null);
                         },
                     });
@@ -473,6 +480,7 @@ describe('CheerioCrawler', () => {
                 expect(handlePageInvocationCount).to.be.eql(0);
                 expect(errorMessages).to.have.lengthOf(8);
                 errorMessages.forEach(msg => expect(msg).to.include('500 - Hello'));
+                expect(chunkReadCount).to.be.eql(8);
             });
 
             it('when 406 is received', async () => {
@@ -480,7 +488,7 @@ describe('CheerioCrawler', () => {
                 crawler.rqst = () => {
                     const response = new Readable({
                         read() {
-                            this.push('x');
+                            this.push(getChunk());
                             this.push(null);
                         },
                     });
@@ -503,6 +511,7 @@ describe('CheerioCrawler', () => {
                 expect(handlePageInvocationCount).to.be.eql(0);
                 expect(errorMessages).to.have.lengthOf(4);
                 errorMessages.forEach(msg => expect(msg).to.include('is not available in HTML format'));
+                expect(chunkReadCount).to.be.eql(0);
             });
 
             it('when status is ok, but a wrong content type is received', async () => {
@@ -510,7 +519,7 @@ describe('CheerioCrawler', () => {
                 crawler.rqst = () => {
                     const response = new Readable({
                         read() {
-                            this.push('x');
+                            this.push(getChunk());
                             this.push(null);
                         },
                     });
@@ -533,6 +542,7 @@ describe('CheerioCrawler', () => {
                 expect(handlePageInvocationCount).to.be.eql(0);
                 expect(errorMessages).to.have.lengthOf(4);
                 errorMessages.forEach(msg => expect(msg).to.include('served Content-Type application/json instead of text/html'));
+                expect(chunkReadCount).to.be.eql(0);
             });
         });
     });
