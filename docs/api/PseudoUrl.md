@@ -6,7 +6,7 @@ title: PseudoUrl
 
 Represents a pseudo URL (PURL) - an URL pattern used by web crawlers
 to specify which URLs should the crawler visit.
-This class is used by the [utils.puppeteer.enqueueLinks()](puppeteer#puppeteer.enqueueLinks) function.
+This class is used by the [`utils.puppeteer.enqueueLinks()`](puppeteer#puppeteer.enqueueLinks) function.
 
 A PURL is simply a URL with special directives enclosed in `[]` brackets.
 Currently, the only supported directive is `[RegExp]`,
@@ -33,7 +33,9 @@ http://www.example.com/search?do[load]=1
 **Example usage:**
 
 ```javascript
-const purl = new Apify.PseudoUrl('http://www.example.com/pages/[(\w|-)*]');
+const purl = new Apify.PseudoUrl('http://www.example.com/pages/[(\w|-)*]', {
+  userData: { foo: 'bar' },
+});
 
 if (purl.matches('http://www.example.com/pages/my-awesome-page')) console.log('Match!');
 ```
@@ -63,7 +65,8 @@ if (purl.matches('http://www.example.com/pages/my-awesome-page')) console.log('M
 <td><code>requestTemplate</code></td><td><code>Object</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Options for the new <a href="request"><code>Request</code></a> instances created for matching URLs.</p>
+<td colspan="3"><p>Options for the new <a href="request"><code>Request</code></a> instances created for matching URLs
+  by the <a href="puppeteer#puppeteer.enqueueLinks">utils.puppeteer.enqueueLinks()</a> function.</p>
 </td></tr></tbody>
 </table>
 <a name="PseudoUrl+matches"></a>
@@ -89,7 +92,7 @@ Determines whether a URL matches this pseudo-URL pattern.
 <a name="PseudoUrl+createRequest"></a>
 
 ## `pseudoUrl.createRequest(url)` ⇒ [<code>Request</code>](request)
-Creates a Request object from requestTemplate and given URL.
+Creates a Request object from a provided `requestTemplate` and given URL.
 
 <table>
 <thead>
