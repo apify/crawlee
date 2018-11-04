@@ -398,8 +398,6 @@ class CheerioCrawler {
             method: request.method,
             headers: Object.assign({}, request.headers, { Accept: 'text/html' }),
             strictSSL: !this.ignoreSslErrors,
-            resolveWithFullResponse: true,
-            simple: false,
             proxy: this._getProxyUrl(),
         };
         return Object.assign({}, this.requestOptions, mandatoryRequestOptions);
