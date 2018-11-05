@@ -34,6 +34,9 @@ if [ "${BRANCH}" = "master" ]; then
         RUNNING_FROM_SCRIPT=1 npm dist-tag add ${PACKAGE_NAME}@${PACKAGE_VERSION} latest
     fi
 
+    # TODO: We should call this automatically, and force user to have the necessary env vars set!
+    echo "IMPORTANT: Now publish the new documentation by running website/publish_docs.sh !!!"
+
 # Any other branch gets published as BETA and we don't allow to override tag of existing version.
 else
     echo "Publishing version ${PACKAGE_VERSION} with tag \"beta\" ..."
