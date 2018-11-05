@@ -116,7 +116,7 @@ const Features = () => (
         {[
             {
                 content: '**JavaScript** is the language of the web. Although there are JavaScript tools like [puppeteer](https://www.npmjs.com/package/puppeteer) and [cheerio](https://www.npmjs.com/package/cheerio), ' +
-                    'there was no universal framework that would enable the **large-scale high-performance** web scraping and crawling of any website. **Until now!**',
+                    'there was no universal framework that would enable **large-scale high-performance** web scraping and crawling of any website. **Until now!**',
                 image: imgUrl('javascript_logo.svg'),
                 imageAlign: 'top',
                 title: 'Runs on JavaScript',
@@ -165,11 +165,11 @@ const EasyCrawling = () => (
     <Block background="light" gridBlockAlign="left">
         {[
             {
-                content: 'There are three main class that you can use to start crawling the web in no time. ' +
+                content: 'There are three main classes that you can use to start crawling the web in no time. ' +
                     'Need to crawl plain HTML? Use the **blazing fast** [`CheerioCrawler`](docs/examples/cheeriocrawler).\n' +
                     'For complex websites that use **React**, **Vue** or other front-end javascript libraries and require JavaScript execution, ' +
                     'spawn a headless browser with [`PuppeteerCrawler`](docs/examples/puppeteercrawler).\n' +
-                    'To **control of all aspects** of your crawling, just use the bare bones [`BasicCrawler`](docs/examples/basiccrawler)',
+                    'To **control all aspects** of your crawling, just use the bare bones [`BasicCrawler`](docs/examples/basiccrawler)',
                 image: imgUrl('chrome_scrape.gif'),
                 imageAlign: 'right',
                 title: 'Easy crawling',
