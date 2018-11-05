@@ -636,7 +636,8 @@ const getOrCreateDataset = (datasetIdOrName) => {
  * @param {string} [datasetIdOrName]
  *   ID or name of the dataset to be opened. If `null` or `undefined`,
  *   the function returns the default dataset associated with the actor run.
- * @param {boolean} [enforceCloud=false]
+ * @param {object} [options]
+ * @param {boolean} [options.forceCloud=false]
  *   If set to `true` then enforces cloud storage usage. This way is possible to combine local and
  *   cloud storages when devloping locally.
  * @returns {Promise<Dataset>}
@@ -644,11 +645,15 @@ const getOrCreateDataset = (datasetIdOrName) => {
  * @name openDataset
  * @function
  */
-export const openDataset = (datasetIdOrName, enforceCloud = false) => {
+export const openDataset = (datasetIdOrName, options = {}) => {
     checkParamOrThrow(datasetIdOrName, 'datasetIdOrName', 'Maybe String');
+    checkParamOrThrow(options, 'options', 'Object');
     ensureTokenOrLocalStorageEnvExists('dataset');
 
-    return process.env[ENV_VARS.LOCAL_STORAGE_DIR] && !enforceCloud
+    const { forceCloud = false } = options;
+    checkParamOrThrow(forceCloud, 'options.forceCloud', 'Boolean');
+
+    return process.env[ENV_VARS.LOCAL_STORAGE_DIR] && !forceCloud
         ? openLocalStorage(datasetIdOrName, ENV_VARS.DEFAULT_DATASET_ID, DatasetLocal, datasetsCache)
         : openRemoteStorage(datasetIdOrName, ENV_VARS.DEFAULT_DATASET_ID, Dataset, datasetsCache, getOrCreateDataset);
 };

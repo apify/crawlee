@@ -551,7 +551,7 @@ describe('RequestQueue', () => {
             mock.expects('openLocalStorage').once();
             Apify.openRequestQueue('xxx');
             mock.expects('openRemoteStorage').once();
-            Apify.openRequestQueue('xxx', true);
+            Apify.openRequestQueue('xxx', { forceCloud: true });
 
             delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
             process.env[ENV_VARS.TOKEN] = 'xxx';
