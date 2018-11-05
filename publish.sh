@@ -11,14 +11,14 @@ BRANCH=`git status | grep 'On branch' | cut -d ' ' -f 3`
 BRANCH_UP_TO_DATE=`git status | grep 'nothing to commit' | tr -s \n ' '`;
 GIT_TAG="v${PACKAGE_VERSION}"
 
+echo "Generating documentation ..."
+npm run build-docs
+npm run build-readme
+
 if [ -z "${BRANCH_UP_TO_DATE}" ]; then
     printf "${RED}You have uncommitted changes!${NC}\n"
     exit 1
 fi
-
-echo "Generating documentation ..."
-npm run build-docs
-npm run build-readme
 
 echo "Pushing to git ..."
 git push

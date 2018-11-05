@@ -215,7 +215,7 @@ For more information, see
 the <a href="https://my.apify.com/proxy" target="_blank">Apify Proxy</a> page in the app
 or the <a href="https://www.apify.com/docs/proxy" target="_blank">documentation</a>.
 
-**Returns**: <code>String</code> - Returns the proxy URL, e.g. `http://auto:my_password@proxy.apify.com:8000`.
+**Returns**: <code>String</code> - Returns the proxy URL, e.g. `http://auto:my_password@proxy.apify.com:8000`.  
 <table>
 <thead>
 <tr>
@@ -338,7 +338,7 @@ To store the value to the default-key value store, you can use the [`Apify.setVa
 For more information, see [`Apify.openKeyValueStore()`](#module_Apify.openKeyValueStore)
 and [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+getValue).
 
-**Returns**: <code>Promise&lt;Object&gt;</code> - Returns a promise that resolves once the record is stored.
+**Returns**: <code>Promise&lt;Object&gt;</code> - Returns a promise that resolves once the record is stored.  
 <table>
 <thead>
 <tr>
@@ -406,7 +406,7 @@ for details.
 
 For an example of usage, see the [Synchronous run Example](../examples/synchronousrun) or the [Puppeteer proxy Example](../examples/puppeteerwithproxy)
 
-**Returns**: <code>Promise&lt;Browser&gt;</code> - Promise that resolves to Puppeteer's `Browser` instance.
+**Returns**: <code>Promise&lt;Browser&gt;</code> - Promise that resolves to Puppeteer's `Browser` instance.  
 <table>
 <thead>
 <tr>
