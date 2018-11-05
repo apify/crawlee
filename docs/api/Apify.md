@@ -404,7 +404,8 @@ by using the `apify/actor-node-chrome` base Docker image for your actor - see
 <a href="https://www.apify.com/docs/actor#base-images" target="_blank">Apify Actor documentation</a>
 for details.
 
-For an example of usage, see the [Synchronous run Example](../examples/synchronousrun) or the [Puppeteer proxy Example](../examples/puppeteerwithproxy)
+For an example of usage, see the [Synchronous run Example](../examples/synchronousrun)
+or the [Puppeteer proxy Example](../examples/puppeteerwithproxy)
 
 **Returns**: <code>Promise&lt;Browser&gt;</code> - Promise that resolves to Puppeteer's `Browser` instance.  
 <table>
