@@ -515,6 +515,36 @@ describe('Apify.RequestList', () => {
         expect(requestList.length()).to.be.eql(4);
     });
 
+    it('it gets correct handledCount()', async () => {
+        const sources = [
+            { url: 'https://www.example.com' },
+            { url: 'https://www.ams360.com' },
+            { url: 'https://www.anybus.com' },
+            { url: 'https://www.anychart.com' },
+            { url: 'https://www.example.com' },
+        ];
+
+        const requestList = new Apify.RequestList({
+            sources,
+        });
+
+        await requestList.initialize();
+
+        const req1 = await requestList.fetchNextRequest();
+        const req2 = await requestList.fetchNextRequest();
+        const req3 = await requestList.fetchNextRequest();
+        expect(requestList.handledCount()).to.be.eql(0);
+
+        await requestList.markRequestHandled(req2);
+        expect(requestList.handledCount()).to.be.eql(1);
+
+        await requestList.markRequestHandled(req3);
+        expect(requestList.handledCount()).to.be.eql(2);
+
+        await requestList.reclaimRequest(req1);
+        expect(requestList.handledCount()).to.be.eql(2);
+    });
+
     it('should correctly keep duplicate URLs while keepDuplicateUrls is set', async () => {
         const sources = [
             { url: 'https://www.example.com' },
