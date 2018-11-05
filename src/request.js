@@ -198,9 +198,15 @@ class Request {
      * Marks the request as skipped which in turn prevents {@link BasicCrawler}
      * (and {@PuppeteerCrawler} + {@CheerioCrawler}, since they use {@BasicCrawler} internally)
      * from retrying the request after an error occurs.
+     *
+     * Optionally accepts a message that will be used to construct
+     * and throw an Error.
+     *
+     * @param {String} [message]
      */
-    skip() {
+    skip(message) {
         this.skipped = true;
+        if (message) throw new Error(message);
     }
 }
 
