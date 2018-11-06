@@ -243,12 +243,20 @@ describe('Apify.call()', () => {
         const output = { contentType, body: 'some-output' };
         const expected = Object.assign({}, finishedRun, { output });
         const build = 'xxx';
-        const memory = 1024;
-        const timeout = 60;
+        const memoryMbytes = 1024;
+        const timeoutSecs = 60;
 
         const actsMock = sinon.mock(Apify.client.acts);
         actsMock.expects('runAct')
-            .withExactArgs({ token, actId, contentType: `${contentType}; charset=utf-8`, body: input, build, memory, timeout })
+            .withExactArgs({
+                token,
+                actId,
+                contentType: `${contentType}; charset=utf-8`,
+                body: input,
+                build,
+                memory: memoryMbytes,
+                timeout: timeoutSecs,
+            })
             .once()
             .returns(Promise.resolve(runningRun));
         actsMock.expects('getRun')
@@ -267,7 +275,7 @@ describe('Apify.call()', () => {
             .returns(Promise.resolve(output));
 
         return Apify
-            .call(actId, input, { contentType, token, disableBodyParser: true, build, memory, timeout })
+            .call(actId, input, { contentType, token, disableBodyParser: true, build, memoryMbytes, timeoutSecs })
             .then((callOutput) => {
                 expect(callOutput).to.be.eql(expected);
                 keyValueStoresMock.restore();
@@ -549,7 +557,7 @@ describe('Apify.call()', () => {
             });
     });
 
-    it('returns immediately with zero timeout', () => {
+    it('returns immediately with zero ', () => {
         const actId = 'some-act-id';
         const token = 'some-token';
         const defaultKeyValueStoreId = 'some-store-id';
@@ -686,7 +694,7 @@ describe('Apify.callTask()', () => {
             });
     });
 
-    it('timeouts as expected with unfinished run', () => {
+    it('s as expected with unfinished run', () => {
         const waitSecs = 1;
         const taskId = 'some-act-id';
         const actId = 'xxx';
@@ -766,7 +774,7 @@ describe('Apify.callTask()', () => {
             });
     });
 
-    it('returns immediately with zero timeout', () => {
+    it('returns immediately with zero ', () => {
         const waitSecs = 0;
         const taskId = 'some-act-id';
         const actId = 'xxx';

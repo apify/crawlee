@@ -273,10 +273,10 @@ export const main = (userFunc) => {
  *  `String` or `Buffer`.
  * @param {String} [options.token]
  *  User API token that is used to run the actor. By default, it is taken from the `APIFY_TOKEN` environment variable.
- * @param {Number} [options.memory]
+ * @param {Number} [options.memoryMbytes]
  *  Memory in megabytes which will be allocated for the new actor run.
  *  If not provided, the run uses memory of the default actor run configuration.
- * @param {Number} [options.timeout]
+ * @param {Number} [options.timeoutSecs]
  *  Timeout for the act run in seconds. Zero value means there is no timeout.
  *  If not provided, the run uses timeout of the default actor run configuration.
  * @param {String} [options.build]
@@ -312,14 +312,14 @@ export const call = async (actId, input, options = {}) => {
     checkParamOrThrow(token, 'token', 'Maybe String');
 
     // RunAct() options.
-    const { build, memory, timeout } = optionsCopy;
+    const { build, memoryMbytes, timeoutSecs } = optionsCopy;
     const runActOpts = {};
     checkParamOrThrow(build, 'build', 'Maybe String');
-    checkParamOrThrow(memory, 'memory', 'Maybe Number');
-    checkParamOrThrow(timeout, 'timeout', 'Maybe Number');
+    checkParamOrThrow(memoryMbytes, 'memoryMbytes', 'Maybe Number');
+    checkParamOrThrow(timeoutSecs, 'timeoutSecs', 'Maybe Number');
     if (build) runActOpts.build = build;
-    if (memory) runActOpts.memory = memory;
-    if (timeout >= 0) runActOpts.timeout = timeout; // Zero is valid value!
+    if (memoryMbytes) runActOpts.memory = memoryMbytes;
+    if (timeoutSecs >= 0) runActOpts.timeout = timeoutSecs; // Zero is valid value!
     if (input) {
         input = maybeStringify(input, optionsCopy);
 
