@@ -25,6 +25,44 @@ const tryParseDate = (str) => {
 };
 
 /**
+ * Waits for given run to finish. If "waitSecs" is reached then returns unfinished run.
+ *
+ * @ignore
+ */
+const waitForRunToFinish = async ({ actId, runId, token, waitSecs }) => {
+    let updatedRun;
+
+    const { acts } = apifyClient;
+    const startedAt = Date.now();
+    const shouldRepeat = () => {
+        if (waitSecs && (Date.now() - startedAt) / 1000 >= waitSecs) return false;
+        if (updatedRun && ACT_JOB_TERMINAL_STATUSES.includes(updatedRun.status)) return false;
+
+        return true;
+    };
+
+    while (shouldRepeat()) {
+        const waitForFinish = waitSecs
+            ? Math.round(waitSecs - (Date.now() - startedAt) / 1000)
+            : 999999;
+
+        updatedRun = await acts.getRun({ actId, runId, token, waitForFinish });
+
+        // It might take some time for database replicas to get up-to-date,
+        // so getRun() might return null. Wait a little bit and try it again.
+        if (!updatedRun) await Promise.delay(250);
+    }
+
+    if (!updatedRun) throw new ApifyCallError({ id: runId, actId }, 'Apify.call() failed, cannot fetch run from a server');
+    if (
+        updatedRun.status !== ACT_JOB_STATUSES.SUCCEEDED
+        && updatedRun.status !== ACT_JOB_STATUSES.RUNNING
+    ) throw new ApifyCallError(updatedRun);
+
+    return updatedRun;
+};
+
+/**
  * Returns a new object which contains information parsed from the `APIFY_XXX` environment variables.
  * It has the following properties:
  *
@@ -198,7 +236,6 @@ export const main = (userFunc) => {
     }
 };
 
-
 /**
  * Runs an actor on the Apify platform using the current user account (determined by the `APIFY_TOKEN` environment variable),
  * waits for the actor to finish and fetches its output.
@@ -236,9 +273,12 @@ export const main = (userFunc) => {
  *  `String` or `Buffer`.
  * @param {String} [options.token]
  *  User API token that is used to run the actor. By default, it is taken from the `APIFY_TOKEN` environment variable.
- * @param {Number} [options.memory]
+ * @param {Number} [options.memoryMbytes]
  *  Memory in megabytes which will be allocated for the new actor run.
  *  If not provided, the run uses memory of the default actor run configuration.
+ * @param {Number} [options.timeoutSecs]
+ *  Timeout for the act run in seconds. Zero value means there is no timeout.
+ *  If not provided, the run uses timeout of the default actor run configuration.
  * @param {String} [options.build]
  *  Tag or number of the actor build to run (e.g. `beta` or `1.2.345`).
  *  If not provided, the run uses build tag or number from the default actor run configuration (typically `latest`).
@@ -259,97 +299,150 @@ export const main = (userFunc) => {
  * @function
  * @name call
  */
-export const call = (actId, input, options = {}) => {
+export const call = async (actId, input, options = {}) => {
     const { acts, keyValueStores } = apifyClient;
+    // Use optionsCopy here as maybeStringify() may override contentType
+    const optionsCopy = Object.assign({}, options);
 
     checkParamOrThrow(actId, 'actId', 'String');
     checkParamOrThrow(options, 'opts', 'Object');
 
     // Common options.
-    const { token } = options;
+    const { token } = optionsCopy;
     checkParamOrThrow(token, 'token', 'Maybe String');
-    const defaultOpts = { actId };
-    if (token) defaultOpts.token = token;
 
     // RunAct() options.
-    const { build, memory } = options;
+    const { build, memoryMbytes, timeoutSecs } = optionsCopy;
     const runActOpts = {};
     checkParamOrThrow(build, 'build', 'Maybe String');
-    checkParamOrThrow(memory, 'memory', 'Maybe Number');
+    checkParamOrThrow(memoryMbytes, 'memoryMbytes', 'Maybe Number');
+    checkParamOrThrow(timeoutSecs, 'timeoutSecs', 'Maybe Number');
     if (build) runActOpts.build = build;
-    if (memory) runActOpts.memory = memory;
-
+    if (memoryMbytes) runActOpts.memory = memoryMbytes;
+    if (timeoutSecs >= 0) runActOpts.timeout = timeoutSecs; // Zero is valid value!
     if (input) {
-        input = maybeStringify(input, options);
+        input = maybeStringify(input, optionsCopy);
 
         checkParamOrThrow(input, 'input', 'Buffer|String');
-        checkParamOrThrow(options.contentType, 'contentType', 'String');
+        checkParamOrThrow(optionsCopy.contentType, 'contentType', 'String');
 
-        if (options.contentType) runActOpts.contentType = addCharsetToContentType(options.contentType);
+        if (optionsCopy.contentType) runActOpts.contentType = addCharsetToContentType(optionsCopy.contentType);
         runActOpts.body = input;
     }
 
-    // GetAct() options.
-    const { timeoutSecs, fetchOutput = true } = options;
-    let { waitSecs } = options;
-    // TODO: This is bad, timeoutSecs should be used! Fix this and mark as breaking change!!!
-    //       The comments should be * @param {Number} [options.timeoutSecs]
-    //  *  Time limit for the finish of the actor run, in seconds.
-    //  *  If the limit is reached the resulting run will have the `TIMED-OUT` status.
-    //  *  If not provided, the run uses timeout specified in the default actor run configuration.
-    //       And there's no point to have waitSecs more than
-    //       30 secs anyway, since connection will break.
-    // Backwards compatibility: waitSecs used to be called timeoutSecs
-    if (typeof timeoutSecs === 'number' && typeof waitSecs !== 'number') waitSecs = timeoutSecs;
+    // Run actor.
+    const { waitSecs } = options;
     checkParamOrThrow(waitSecs, 'waitSecs', 'Maybe Number');
-    checkParamOrThrow(fetchOutput, 'fetchOutput', 'Boolean');
-    const waitUntil = typeof waitSecs === 'number' ? Date.now() + (waitSecs * 1000) : null;
+    const run = await acts.runAct(Object.assign({ actId, token }, runActOpts));
+    if (waitSecs <= 0) return run; // In this case there is nothing more to do.
 
-    // GetRecord() options.
-    const { disableBodyParser } = options;
-    checkParamOrThrow(disableBodyParser, 'disableBodyParser', 'Maybe Boolean');
+    // Wait for run to finish.
+    const updatedRun = await waitForRunToFinish({
+        actId,
+        runId: run.id,
+        token,
+        waitSecs,
+    });
 
-    // Adds run.output field to given run and returns it.
-    const addOutputToRun = (run) => {
-        const getRecordOpts = { key: 'OUTPUT', storeId: run.defaultKeyValueStoreId };
-        if (disableBodyParser) getRecordOpts.disableBodyParser = disableBodyParser;
+    // Finish if output is not requested or run haven't finished.
+    const { fetchOutput = true } = options;
+    if (!fetchOutput || updatedRun.status !== ACT_JOB_STATUSES.SUCCEEDED) return updatedRun;
 
-        return keyValueStores
-            .getRecord(getRecordOpts)
-            .then(output => Object.assign({}, run, { output }));
-    };
+    // Fetch output.
+    const { disableBodyParser = false } = options;
+    checkParamOrThrow(disableBodyParser, 'disableBodyParser', 'Boolean');
+    const output = await keyValueStores.getRecord({
+        key: 'OUTPUT',
+        storeId: updatedRun.defaultKeyValueStoreId,
+        disableBodyParser,
+    });
 
-    // Keeps requesting given run until it gets finished or timeout is reached.
-    const waitForRunToFinish = (run) => {
-        const waitForFinish = waitUntil !== null ? Math.round((waitUntil - Date.now()) / 1000) : 999999;
-
-        // We are timing out ...
-        if (waitForFinish <= 0) return Promise.resolve(run);
-
-        return acts
-            .getRun(Object.assign({}, defaultOpts, { waitForFinish, runId: run.id }))
-            .then((updatedRun) => {
-                // It might take some time for database replicas to get up-to-date,
-                // so getRun() might return null. Wait a little bit and try it again.
-                if (!updatedRun) {
-                    return Promise.delay(250).then(() => {
-                        return waitForRunToFinish(run);
-                    });
-                }
-
-                if (!_.contains(ACT_JOB_TERMINAL_STATUSES, updatedRun.status)) return waitForRunToFinish(updatedRun);
-                if (updatedRun.status !== ACT_JOB_STATUSES.SUCCEEDED) throw new ApifyCallError(updatedRun);
-                if (!fetchOutput) return updatedRun;
-
-                return addOutputToRun(updatedRun);
-            });
-    };
-
-    return acts
-        .runAct(Object.assign({}, defaultOpts, runActOpts))
-        .then(run => waitForRunToFinish(run));
+    return Object.assign({}, updatedRun, { output });
 };
 
+/**
+ * Runs an actor actor on the Apify platform using the current user account (determined by the `APIFY_TOKEN` environment variable),
+ * waits for the actor to finish and fetches its output.
+ *
+ * By passing the `waitSecs` option you can reduce the maximum amount of time to wait for the run to finish.
+ * If the value is less than or equal to zero, the function returns immediately after the run is started.
+ *
+ * The result of the function is an {@link ActorRun} object
+ * that contains details about the actor run and its output (if any).
+ * If the actor run failed, the function fails with {@link ApifyCallError} exception.
+ *
+ * **Example usage:**
+ *
+ * ```javascript
+ * const run = await Apify.call('apify/hello-world-task');
+ * console.log(`Received message: ${run.output.body.message}`);
+ * ```
+ *
+ * Internally, the `call()` function calls the
+ * <a href="https://www.apify.com/docs/api/v2#/reference/actor-tasks/runs-collection/run-task-asynchronously" target="_blank">Run actor</a>
+ * Apify API endpoint and few others to obtain the output.
+ *
+ * @param {String} taskId
+ *  Either `username/task-name` or task ID.
+ * @param {Object|String|Buffer} [input]
+ *   This parameter is not supported yet. You must pass either `null` or `undefined` value!
+ * @param {Object} [options]
+ *   Object with the settings below:
+ * @param {String} [options.token]
+ *  User API token that is used to run the actor. By default, it is taken from the `APIFY_TOKEN` environment variable.
+ * @param {String} [options.waitSecs]
+ *  Maximum time to wait for the actor run to finish, in seconds.
+ *  If the limit is reached, the returned promise is resolved to a run object that will have
+ *  status `READY` or `RUNNING` and it will not contain the actor run output.
+ *  If `waitSecs` is null or undefined, the function waits for the actor to finish (default behavior).
+ * @returns {Promise<ActorRun>}
+ * @throws {ApifyCallError} If the run did not succeed, e.g. if it failed or timed out.
+ *
+ * @memberof module:Apify
+ * @function
+ * @name call
+ */
+export const callTask = async (taskId, input, options = {}) => {
+    const { tasks, keyValueStores } = apifyClient;
+
+    if (input) throw new Error('Parameter "input" of Apify.callTask() is not supported yet!');
+
+    checkParamOrThrow(taskId, 'taskId', 'String');
+    checkParamOrThrow(options, 'opts', 'Object');
+
+    // Common options.
+    const { token } = options;
+    checkParamOrThrow(token, 'token', 'Maybe String');
+
+    // Run task.
+    const { waitSecs } = options;
+    checkParamOrThrow(waitSecs, 'waitSecs', 'Maybe Number');
+    const run = await tasks.runTask({ taskId, token });
+    if (waitSecs <= 0) return run; // In this case there is nothing more to do.
+
+    // Wait for run to finish.
+    const updatedRun = await waitForRunToFinish({
+        actId: run.actId,
+        runId: run.id,
+        token,
+        waitSecs,
+    });
+
+    // Finish if output is not requested or run haven't finished.
+    const { fetchOutput = true } = options;
+    if (!fetchOutput || updatedRun.status !== ACT_JOB_STATUSES.SUCCEEDED) return updatedRun;
+
+    // Fetch output.
+    const { disableBodyParser = false } = options;
+    checkParamOrThrow(disableBodyParser, 'disableBodyParser', 'Boolean');
+    const output = await keyValueStores.getRecord({
+        key: 'OUTPUT',
+        storeId: updatedRun.defaultKeyValueStoreId,
+        disableBodyParser,
+    });
+
+    return Object.assign({}, updatedRun, { output });
+};
 
 /**
  * Represents information about an actor run, as returned by the
@@ -398,7 +491,7 @@ export const call = (actId, input, options = {}) => {
  *   ```
  *   {
  *     "build": "latest",
- *     "timeoutSecs": 0,
+ *     "waitSecs": 0,
  *     "memoryMbytes": 256,
  *     "diskMbytes": 512
  *   }
