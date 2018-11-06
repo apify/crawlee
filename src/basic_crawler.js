@@ -297,21 +297,11 @@ class BasicCrawler {
         // All running requests are reclaimed and will be retried.
         if (!this.isRunning) return source.reclaimRequest(request);
 
-        // If we use the ignore errors option, we mark request as handled and do not retry.
-        if (request.ignoreErrors) {
-            log.exception(error, 'BasicCrawler: handleRequestFunction failed, request.ignoreErrors=true so marking the request as handled', { // eslint-disable-line max-len
-                url: request.url,
-                retryCount: request.retryCount,
-            });
-            this.handledRequestsCount++;
-            return source.markRequestHandled(request);
-        }
-
-        // If we got here, it means we actually want to handle the error.
+        // If we got here, it means we actually want to process the error.
         request.pushErrorMessage(error);
 
-        // Reclaim and retry request if request is not skipped and retryCount is not exceeded.
-        if (!request.skipped && request.retryCount < this.maxRequestRetries) {
+        // Reclaim and retry request if flagged as retriable and retryCount is not exceeded.
+        if (request.retry && request.retryCount < this.maxRequestRetries) {
             request.retryCount++;
             log.exception(error, 'BasicCrawler: handleRequestFunction failed, reclaiming failed request back to the list or queue', { // eslint-disable-line max-len
                 url: request.url,
@@ -320,7 +310,8 @@ class BasicCrawler {
             return source.reclaimRequest(request);
         }
 
-        // This is the final fallback. If we get here, the request failed more than retryCount times and will not be retried anymore.
+        // If we get here, the request is either not retriable
+        // or failed more than retryCount times and will not be retried anymore.
         // Mark the request as failed and do not retry.
         this.handledRequestsCount++;
         await source.markRequestHandled(request);

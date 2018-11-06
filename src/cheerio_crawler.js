@@ -362,26 +362,27 @@ class CheerioCrawler {
                     // Handle situations where the server explicitly states that
                     // it will not serve the resource as text/html by skipping.
                     if (status === 406) {
-                        request.skip();
+                        request.doNotRetry();
                         res.destroy();
                         return reject(new Error(`CheerioCrawler: Resource ${request.url} is not available in HTML format. Skipping resource.`));
                     }
 
                     // Other 200-499 responses are considered OK, but first check the content type.
-                    if (type === 'text/html') {
-                        try {
-                            res.body = await this._readStreamIntoString(res, encoding);
-                            resolve(res);
-                        } catch (err) {
-                            // Error in reading the body.
-                            reject(err);
-                        }
-                    } else {
-                        request.skip();
+                    if (type !== 'text/html') {
+                        request.doNotRetry();
                         res.destroy();
                         reject(new Error(
                             `CheerioCrawler: Resource ${request.url} served Content-Type ${type} instead of text/html. Skipping resource.`,
                         ));
+                    }
+
+                    // Content-Type is fine. Read the body and respond.
+                    try {
+                        res.body = await this._readStreamIntoString(res, encoding);
+                        resolve(res);
+                    } catch (err) {
+                        // Error in reading the body.
+                        reject(err);
                     }
                 });
         });
