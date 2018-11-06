@@ -244,10 +244,6 @@ class CheerioCrawler {
             maxConcurrency,
             autoscaledPoolOptions,
         });
-
-        // Set Request as an internal property to enable mocking in tests,
-        // since Sinon can't mock it due to it being a Function.
-        this.rqst = rqst;
     }
 
     /**
@@ -322,7 +318,9 @@ class CheerioCrawler {
         return new Promise((resolve, reject) => {
             // Using the streaming API of Request to be able to
             // handle the response based on headers receieved.
-            this.rqst(this._getRequestOptions(request))
+            const opts = this._getRequestOptions(request);
+            const method = opts.method.toLowerCase();
+            rqst[method](opts)
                 .on('error', err => reject(err))
                 .on('response', async (res) => {
                     // First check what kind of response we received.
@@ -371,7 +369,7 @@ class CheerioCrawler {
                     if (type !== 'text/html') {
                         request.doNotRetry();
                         res.destroy();
-                        reject(new Error(
+                        return reject(new Error(
                             `CheerioCrawler: Resource ${request.url} served Content-Type ${type} instead of text/html. Skipping resource.`,
                         ));
                     }

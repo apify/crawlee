@@ -1,5 +1,6 @@
 import { Readable } from 'stream';
 import EventEmitter from 'events';
+import rqst from 'request';
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import log from 'apify-shared/log';
@@ -300,6 +301,7 @@ describe('CheerioCrawler', () => {
 
         describe('by throwing', () => {
             let crawler;
+            let originalGet;
             let handlePageInvocationCount = 0;
             let errorMessages = [];
             let chunkReadCount = 0;
@@ -307,6 +309,15 @@ describe('CheerioCrawler', () => {
                 chunkReadCount++;
                 return chunk;
             };
+
+            before(() => {
+                originalGet = rqst.get;
+            });
+
+            after(() => {
+                rqst.get = originalGet;
+            });
+
             beforeEach(() => {
                 log.setLevel(log.LEVELS.OFF);
                 crawler = new Apify.CheerioCrawler({
@@ -331,7 +342,7 @@ describe('CheerioCrawler', () => {
 
             it('when invalid Content-Type header is received', async () => {
                 // Mock Request to inject invalid response headers.
-                crawler.rqst = () => {
+                rqst.get = () => {
                     const response = new Readable({
                         read() {
                             this.push(getChunk());
@@ -361,7 +372,7 @@ describe('CheerioCrawler', () => {
 
             it('when response stream emits an error event', async () => {
                 // Mock Request to emit an error after a while.
-                crawler.rqst = () => {
+                rqst.get = () => {
                     const start = Date.now();
                     const response = new Readable({
                         read() {
@@ -394,7 +405,7 @@ describe('CheerioCrawler', () => {
 
             it('when request stream emits an error event', async () => {
                 // Mock Request to emit an error after a while.
-                crawler.rqst = () => {
+                rqst.get = () => {
                     const response = new Readable({
                         // Just do nothing
                         read() {},
@@ -423,7 +434,7 @@ describe('CheerioCrawler', () => {
             });
 
             it('when statusCode >= 500 and text/html is received', async () => {
-                crawler.rqst = () => {
+                rqst.get = () => {
                     const response = new Readable({
                         read() {
                             this.push(getChunk());
@@ -453,7 +464,7 @@ describe('CheerioCrawler', () => {
             });
 
             it('when statusCode >= 500 and application/json is received', async () => {
-                crawler.rqst = () => {
+                rqst.get = () => {
                     const response = new Readable({
                         // Just do nothing
                         read() {
@@ -485,7 +496,7 @@ describe('CheerioCrawler', () => {
 
             it('when 406 is received', async () => {
                 // Mock Request to respond with a 406.
-                crawler.rqst = () => {
+                rqst.get = () => {
                     const response = new Readable({
                         read() {
                             this.push(getChunk());
@@ -516,7 +527,7 @@ describe('CheerioCrawler', () => {
 
             it('when status is ok, but a wrong content type is received', async () => {
                 // Mock Request to respond with a 406.
-                crawler.rqst = () => {
+                rqst.get = () => {
                     const response = new Readable({
                         read() {
                             this.push(getChunk());
