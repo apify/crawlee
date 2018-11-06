@@ -13,8 +13,8 @@ export const APIFY_CALL_ERROR_NAME = 'ApifyCallError';
  *   Object representing the failed actor run.
  */
 export class ApifyCallError extends Error {
-    constructor(run) {
-        super(`The actor invoked by Apify.call() did not succeed (run ID: ${run.id})`);
+    constructor(run, message = 'The actor invoked by Apify.call() did not succeed') {
+        super(`${message} (run ID: ${run.id})`);
         this.name = APIFY_CALL_ERROR_NAME;
         this.run = run;
 
