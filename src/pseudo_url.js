@@ -90,7 +90,7 @@ const parsePurl = (purl) => {
  *   Pseudo URL.
  * @param {Object} requestTemplate
  *   Options for the new {@link Request} instances created for matching URLs
- *   by the [utils.puppeteer.enqueueLinks()](puppeteer#puppeteer.enqueueLinks) function.
+ *   by the [`utils.puppeteer.enqueueLinks()`](puppeteer#puppeteer.enqueueLinks) function.
  */
 class PseudoUrl {
     constructor(purl, requestTemplate = {}) {
