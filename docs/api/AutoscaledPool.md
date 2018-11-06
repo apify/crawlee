@@ -53,6 +53,8 @@ await pool.run();
 
 * [AutoscaledPool](autoscaledpool)
     * [`new AutoscaledPool(options)`](#new_AutoscaledPool_new)
+    * [`.setMaxConcurrency(maxConcurrency)`](#AutoscaledPool+setMaxConcurrency)
+    * [`.setMinConcurrency(minConcurrency)`](#AutoscaledPool+setMinConcurrency)
     * [`.run()`](#AutoscaledPool+run) ⇒ <code>Promise</code>
     * [`.abort()`](#AutoscaledPool+abort) ⇒ <code>Promise</code>
 
@@ -155,6 +157,42 @@ await pool.run();
   the system status reports. If a custom snapshotter is set in the options, it will be used
   by the pool.</p>
 </td></tr></tbody>
+</table>
+<a name="AutoscaledPool+setMaxConcurrency"></a>
+
+## `autoscaledPool.setMaxConcurrency(maxConcurrency)`
+Overrides max concurrency configuration.
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>maxConcurrency</code></td><td><code>Number</code></td>
+</tr>
+<tr>
+</tr></tbody>
+</table>
+<a name="AutoscaledPool+setMinConcurrency"></a>
+
+## `autoscaledPool.setMinConcurrency(minConcurrency)`
+Overrides min concurrency configuration.
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>minConcurrency</code></td><td><code>Number</code></td>
+</tr>
+<tr>
+</tr></tbody>
 </table>
 <a name="AutoscaledPool+run"></a>
 
