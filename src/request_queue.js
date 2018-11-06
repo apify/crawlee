@@ -852,15 +852,23 @@ const getOrCreateQueue = (queueIdOrName) => {
  * @param {string} [queueIdOrName]
  *   ID or name of the request queue to be opened. If `null` or `undefined`,
  *   the function returns the default request queue associated with the actor run.
+ * @param {object} [options]
+ * @param {boolean} [options.forceCloud=false]
+ *   If set to `true` then enforces cloud storage usage. This way is possible to combine local and
+ *   cloud storages when devloping locally.
  * @returns {Promise<RequestQueue>}
  * @memberof module:Apify
  * @name openRequestQueue
  */
-export const openRequestQueue = (queueIdOrName) => {
+export const openRequestQueue = (queueIdOrName, options = {}) => {
     checkParamOrThrow(queueIdOrName, 'queueIdOrName', 'Maybe String');
+    checkParamOrThrow(options, 'options', 'Object');
     ensureTokenOrLocalStorageEnvExists('request queue');
 
-    return process.env[ENV_VARS.LOCAL_STORAGE_DIR]
+    const { forceCloud = false } = options;
+    checkParamOrThrow(forceCloud, 'options.forceCloud', 'Boolean');
+
+    return process.env[ENV_VARS.LOCAL_STORAGE_DIR] && !forceCloud
         ? openLocalStorage(queueIdOrName, ENV_VARS.DEFAULT_REQUEST_QUEUE_ID, RequestQueueLocal, queuesCache)
         : openRemoteStorage(queueIdOrName, ENV_VARS.DEFAULT_REQUEST_QUEUE_ID, RequestQueue, queuesCache, getOrCreateQueue);
 };

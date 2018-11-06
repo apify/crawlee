@@ -454,16 +454,24 @@ const getOrCreateKeyValueStore = (storeIdOrName) => {
  * @param {string} [storeIdOrName]
  *   ID or name of the key-value store to be opened. If `null` or `undefined`,
  *   the function returns the default key-value store associated with the actor run.
+ * @param {object} [options]
+ * @param {boolean} [options.forceCloud=false]
+ *   If set to `true` then enforces cloud storage usage. This way is possible to combine local and
+ *   cloud storages when devloping locally.
  * @returns {Promise<KeyValueStore>}
  * @memberof module:Apify
  * @name openKeyValueStore
  * @function
  */
-export const openKeyValueStore = (storeIdOrName) => {
+export const openKeyValueStore = (storeIdOrName, options = {}) => {
     checkParamOrThrow(storeIdOrName, 'storeIdOrName', 'Maybe String');
+    checkParamOrThrow(options, 'options', 'Object');
     ensureTokenOrLocalStorageEnvExists('key value store');
 
-    return process.env[ENV_VARS.LOCAL_STORAGE_DIR]
+    const { forceCloud = false } = options;
+    checkParamOrThrow(forceCloud, 'options.forceCloud', 'Boolean');
+
+    return process.env[ENV_VARS.LOCAL_STORAGE_DIR] && !forceCloud
         ? openLocalStorage(storeIdOrName, ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID, KeyValueStoreLocal, storesCache)
         : openRemoteStorage(storeIdOrName, ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID, KeyValueStore, storesCache, getOrCreateKeyValueStore);
 };
