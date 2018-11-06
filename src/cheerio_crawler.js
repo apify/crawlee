@@ -238,6 +238,9 @@ class CheerioCrawler {
             maxConcurrency,
             autoscaledPoolOptions,
         });
+
+        // See the _suppressTunnelAgentAssertError function.
+        this.tunnelAgentExceptionListener = null;
     }
 
     /**
@@ -250,10 +253,13 @@ class CheerioCrawler {
 
         this.isRunning = true;
         this.rejectOnAbortPromise = new Promise((r, reject) => { this.rejectOnAbort = reject; });
+        this._suppressTunnelAgentAssertError();
         try {
             this.isRunningPromise = this.basicCrawler.run();
             await this.isRunningPromise;
             this.isRunning = false;
+            process.removeListener('uncaughtException', this.tunnelAgentExceptionListener);
+            this.tunnelAgentExceptionListener = null;
         } catch (err) {
             this.isRunning = false; // Doing this before rejecting to make sure it's set when error handlers fire.
             this.rejectOnAbort(err);
@@ -345,6 +351,39 @@ class CheerioCrawler {
             return this.proxyUrls[this.lastUsedProxyUrlIndex++ % this.proxyUrls.length];
         }
         return null;
+    }
+
+    /**
+     * The handler this function attaches overcomes a long standing bug in
+     * the tunnel-agent NPM package that is used by the Request package internally.
+     * The package throws an assertion error in a callback scope that cannot be
+     * caught by conventional means and shuts down the running process.
+     * @ignore
+     */
+    _suppressTunnelAgentAssertError() {
+        // Only set the handler if it's not already set.
+        if (this.tunnelAgentExceptionListener) return;
+        this.tunnelAgentExceptionListener = process.on('uncaughtException', (err) => {
+            try {
+                const code = err.code === 'ERR_ASSERTION';
+                const name = err.name === 'AssertionError [ERR_ASSERTION]';
+                const operator = err.operator === '==';
+                const value = err.expected === 0;
+                const stack = err.stack.includes('/tunnel-agent/index.js');
+                // If this passes, we can be reasonably sure that it's
+                // the right error from tunnel-agent.
+                if (code && name && operator && value && stack) {
+                    log.error('CheerioCrawler: Tunnel-Agent assertion error intercepted. The affected request will timeout.');
+                    return;
+                }
+            } catch (caughtError) {
+                // Catch any exception resulting from the duck-typing
+                // check. It only means that the error is not the one
+                // we're looking for.
+            }
+            // Rethrow the original error if it's not a match.
+            throw err;
+        });
     }
 }
 
