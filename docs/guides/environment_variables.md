@@ -29,7 +29,7 @@ The following table shows the basic environment variables used by Apify SDK:
             <td><code>APIFY_TOKEN</code></td>
             <td>
               The API token for your Apify Account. It is used to access the Apify API, e.g. to access cloud storage or to run an actor in the Apify Cloud.
-              You can find your API token on the <a href="https://my.apify.com/account#intergrations" target="_blank">Account - Integrations</a> page.
+              You can find your API token on the <a href="https://my.apify.com/account#integrations" target="_blank">Account - Integrations</a> page.
               If omitted, you should define the <code>APIFY_LOCAL_STORAGE_DIR</code> environment variable instead.
             </td>
           </tr>
