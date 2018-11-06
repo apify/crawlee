@@ -28,13 +28,13 @@ await Apify.utils.sleep(1500);
 
 <a name="utils.URL_NO_COMMAS_REGEX"></a>
 
-## `utils.URL_NO_COMMAS_REGEX`
+## `utils.URL\_NO\_COMMAS\_REGEX`
 Default regular expression to match URLs in a string that may be plain text, JSON, CSV or other. It supports common URL characters
 and does not support URLs containing commas or spaces. The URLs also may contain Unicode letters (not symbols).
 
 <a name="utils.URL_WITH_COMMAS_REGEX"></a>
 
-## `utils.URL_WITH_COMMAS_REGEX`
+## `utils.URL\_WITH\_COMMAS\_REGEX`
 Regular expression that, in addition to the default regular expression `URL_NO_COMMAS_REGEX`, supports matching commas in URL path and query.
 Note, however, that this may prevent parsing URLs from comma delimited lists, or the URLs may become malformed.
 

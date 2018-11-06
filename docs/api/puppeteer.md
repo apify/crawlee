@@ -133,7 +133,7 @@ To create a Request object function uses `requestTemplate` from a matching [`Pse
 *WARNING*: This is work in progress. Currently the function doesn't click elements and only takes their `href` attribute and so
            is working only for link (`a`) elements, but not for buttons or JavaScript links.
 
-**Returns**: <code>Promise&lt;Array&lt;QueueOperationInfo&gt;&gt;</code> - Promise that resolves to an array of [`QueueOperationInfo`](../typedefs/queueoperationinfo) objects.
+**Returns**: <code>Promise&lt;Array&lt;QueueOperationInfo&gt;&gt;</code> - Promise that resolves to an array of [`QueueOperationInfo`](../typedefs/queueoperationinfo) objects.  
 <table>
 <thead>
 <tr>
@@ -262,7 +262,7 @@ Custom context may also be provided using the `context` parameter. To improve se
 make sure to only pass the really necessary objects to the context. Preferably making
 secured copies beforehand.
 
-**Returns**: <code>function</code> - `async ({ page, request }) => { scriptString }`
+**Returns**: <code>function</code> - `async ({ page, request }) => { scriptString }`  
 <table>
 <thead>
 <tr>

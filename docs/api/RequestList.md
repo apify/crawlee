@@ -68,6 +68,7 @@ await requestList.reclaimRequest(request2);
     * [`.markRequestHandled(request)`](#RequestList+markRequestHandled) ⇒ <code>Promise</code>
     * [`.reclaimRequest(request)`](#RequestList+reclaimRequest) ⇒ <code>Promise</code>
     * [`.length()`](#RequestList+length) ⇒ <code>Number</code>
+    * [`.handledCount()`](#RequestList+handledCount) ⇒ <code>Number</code>
 
 <a name="new_RequestList_new"></a>
 
@@ -220,4 +221,9 @@ The request will become available in the next `this.fetchNextRequest()`.
 
 ## `requestList.length()` ⇒ <code>Number</code>
 Returns the total number of unique requests present in the `RequestList`.
+
+<a name="RequestList+handledCount"></a>
+
+## `requestList.handledCount()` ⇒ <code>Number</code>
+Returns number of handled requests.
 

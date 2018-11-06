@@ -174,6 +174,24 @@ class AutoscaledPool {
     }
 
     /**
+     * Overrides max concurrency configuration.
+     *
+     * @param {Number} maxConcurrency
+     */
+    setMaxConcurrency(maxConcurrency) {
+        this.maxConcurrency = maxConcurrency;
+    }
+
+    /**
+     * Overrides min concurrency configuration.
+     *
+     * @param {Number} minConcurrency
+     */
+    setMinConcurrency(minConcurrency) {
+        this.minConcurrency = minConcurrency;
+    }
+
+    /**
      * Runs the auto-scaled pool. Returns a promise that gets resolved or rejected once
      * all the tasks are finished or one of them fails.
      *

@@ -11,18 +11,14 @@ BRANCH=`git status | grep 'On branch' | cut -d ' ' -f 3`
 BRANCH_UP_TO_DATE=`git status | grep 'nothing to commit' | tr -s \n ' '`;
 GIT_TAG="v${PACKAGE_VERSION}"
 
-# Upload doc to S3 configuration
-DOC_DIR="${PWD}/build-docs"
-AWS_BUCKET="apify-runtime-js-doc"
+echo "Generating documentation ..."
+npm run build-docs
+npm run build-readme
 
 if [ -z "${BRANCH_UP_TO_DATE}" ]; then
     printf "${RED}You have uncommitted changes!${NC}\n"
     exit 1
 fi
-
-echo "Generating documentation ..."
-npm run build-docs
-npm run build-readme
 
 echo "Pushing to git ..."
 git push
@@ -37,6 +33,9 @@ if [ "${BRANCH}" = "master" ]; then
         echo "Tagging version ${PACKAGE_VERSION} with tag \"latest\" ..."
         RUNNING_FROM_SCRIPT=1 npm dist-tag add ${PACKAGE_NAME}@${PACKAGE_VERSION} latest
     fi
+
+    # TODO: We should call this automatically, and force user to have the necessary env vars set!
+    echo "IMPORTANT: Now publish the new documentation by running website/publish_docs.sh !!!"
 
 # Any other branch gets published as BETA and we don't allow to override tag of existing version.
 else

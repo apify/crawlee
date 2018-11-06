@@ -123,7 +123,7 @@ const foo = request.userData.foo;
 <td><code>options.url</code></td><td><code>String</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>URL of the web page to crawl.</p>
+<td colspan="3"><p>URL of the web page to crawl. It must be a non-empty string.</p>
 </td></tr><tr>
 <td><code>[options.uniqueKey]</code></td><td><code>String</code></td><td></td>
 </tr>

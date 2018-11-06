@@ -95,7 +95,7 @@ it will not be updated. You can find out whether this happened from the resultin
 <td><code>request</code></td><td><code><a href="request">Request</a></code> | <code>Object</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>Request object, or an Object to construct a Request from.</p>
+<td colspan="3"><p><a href="request"><code>Request</code></a> object, or an object to construct a <code>Request</code> instance from.</p>
 </td></tr><tr>
 <td><code>[options]</code></td><td><code>Object</code></td><td></td>
 </tr>

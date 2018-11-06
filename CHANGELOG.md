@@ -1,5 +1,9 @@
 xxx
 ===================
+- Fixed `Apify.utils.puppeteer.enqueueLinks` to allow `null` value for `pseudoUrls` param
+
+0.8.19 / 2018-11-05
+===================
 - Fixed `RequestQueue.addRequest()` to gracefully handle invalid URLs
 - Renamed `RequestOperationInfo` to `QueueOperationInfo`
 - Added `request` field to `QueueOperationInfo`
@@ -7,6 +11,7 @@ xxx
     For time of waiting for run to finish use `waitSecs` parameter.
 - **WARNING**: Parameter `memory` of `Apify.call()` was renamed to `memoryMbytes`.
 - Added `Apify.callTask()` that enables to start actor task and fetch its output.
+- Added option enforcing cloud storage to be used in `openKeyValueStore()`, `openDataset()` and `openRequestQueue()`
 
 0.8.18 / 2018-10-30
 ===================
