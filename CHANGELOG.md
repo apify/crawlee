@@ -1,3 +1,7 @@
+xxx
+===================
+- Fixed `Apify.utils.puppeteer.enqueueLinks` to allow `null` value for `pseudoUrls` param
+
 0.8.19 / 2018-11-05
 ===================
 - Fixed `RequestQueue.addRequest()` to gracefully handle invalid URLs

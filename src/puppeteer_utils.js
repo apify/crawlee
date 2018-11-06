@@ -197,11 +197,13 @@ let logDeprecationWarning = true;
  *   or an array of Strings or Objects from which the {@link PseudoUrl}s should be constructed
  *   The Objects must include at least a `purl` property, which holds a pseudoUrl string.
  *   All remaining keys will be used as the `requestTemplate` argument of the {@link PseudoUrl} constructor.
+ *   If `pseudoUrls` is an empty array, null or undefined, then the function
+ *   enqueues all links found on the page.
  * @return {Promise<QueueOperationInfo[]>}
  *   Promise that resolves to an array of {@link QueueOperationInfo} objects.
  * @memberOf puppeteer
  */
-const enqueueLinks = async (page, selector, requestQueue, pseudoUrls = []) => {
+const enqueueLinks = async (page, selector, requestQueue, pseudoUrls) => {
     // TODO: Remove after v1.0.0 gets released.
     // Check for pseudoUrls as a third parameter.
     if (Array.isArray(requestQueue)) {
@@ -218,10 +220,10 @@ const enqueueLinks = async (page, selector, requestQueue, pseudoUrls = []) => {
     checkParamOrThrow(page, 'page', 'Object');
     checkParamOrThrow(selector, 'selector', 'String');
     checkParamPrototypeOrThrow(requestQueue, 'requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue');
-    checkParamOrThrow(pseudoUrls, 'pseudoUrls', 'Array');
+    checkParamOrThrow(pseudoUrls, 'pseudoUrls', 'Maybe Array');
 
     // Construct pseudoUrls from input where necessary.
-    const pseudoUrlInstances = constructPseudoUrlInstances(pseudoUrls);
+    const pseudoUrlInstances = constructPseudoUrlInstances(pseudoUrls || []);
 
     /* istanbul ignore next */
     const getHrefs = linkEls => linkEls.map(link => link.href).filter(href => !!href);
