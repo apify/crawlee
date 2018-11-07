@@ -163,7 +163,9 @@ To create a Request object function uses `requestTemplate` from a matching [`Pse
 <td colspan="3"><p>An array of <a href="pseudourl"><code>PseudoUrl</code></a>s matching the URLs to be enqueued,
   or an array of Strings or Objects from which the <a href="pseudourl"><code>PseudoUrl</code></a>s should be constructed
   The Objects must include at least a <code>purl</code> property, which holds a pseudoUrl string.
-  All remaining keys will be used as the <code>requestTemplate</code> argument of the <a href="pseudourl"><code>PseudoUrl</code></a> constructor.</p>
+  All remaining keys will be used as the <code>requestTemplate</code> argument of the <a href="pseudourl"><code>PseudoUrl</code></a> constructor.
+  If <code>pseudoUrls</code> is an empty array, null or undefined, then the function
+  enqueues all links found on the page.</p>
 </td></tr></tbody>
 </table>
 <a name="puppeteer.blockResources"></a>

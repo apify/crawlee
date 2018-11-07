@@ -89,26 +89,29 @@ await crawler.run();
   It is passed an object with the following fields:</p>
 <pre><code>  {
       request: Request,
+      response: Response,
       page: Page,
       puppeteerPool: PuppeteerPool
   }
 </code></pre><p>  <code>request</code> is an instance of the <a href="request"><code>Request</code></a> object with details about the URL to open, HTTP method etc.
-  <code>page</code> is an instance of the <code>Puppeteer</code>
+  <code>response</code> is an instance of the <code>Puppeteer</code>
   <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a>
-  class with <code>page.goto(request.url)</code> already called.
+  <code>page</code> is an instance of the <code>Puppeteer</code>
+  <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-response" target="_blank"><code>Response</code></a>,
+  which is the main resource response as returned by <code>page.goto(request.url)</code>.
   <code>puppeteerPool</code> is an instance of the <a href="puppeteerpool"><code>PuppeteerPool</code></a> used by this <code>PuppeteerCrawler</code>.</p>
 </td></tr><tr>
 <td><code>options.requestList</code></td><td><code><a href="requestlist">RequestList</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Static list of URLs to be processed.
-  Either <a href="requestlist"><code>RequestList</code></a> or <a href="requestqueue"><code>RequestQueue</code></a> must be provided.</p>
+  Either <code>requestList</code> or <code>requestQueue</code> option must be provided (or both).</p>
 </td></tr><tr>
 <td><code>options.requestQueue</code></td><td><code><a href="requestqueue">RequestQueue</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
-  Either <a href="requestlist"><code>RequestList</code></a> or <a href="requestqueue"><code>RequestQueue</code></a> must be provided.</p>
+  Either <code>requestList</code> or <code>requestQueue</code> option must be provided (or both).</p>
 </td></tr><tr>
 <td><code>[options.handlePageTimeoutSecs]</code></td><td><code>Number</code></td><td><code>300</code></td>
 </tr>

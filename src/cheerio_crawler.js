@@ -104,10 +104,10 @@ const DEFAULT_OPTIONS = {
  *   If the function returns a promise, it is awaited.
  * @param {RequestList} options.requestList
  *   Static list of URLs to be processed.
- *   Either {@link RequestList} or {@link RequestQueue} must be provided.
+ *   Either `requestList` or `requestQueue` option must be provided (or both).
  * @param {RequestQueue} options.requestQueue
  *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
- *   Either {@link RequestList} or {@link RequestQueue} must be provided.
+ *   Either `requestList` or `requestQueue` option must be provided (or both).
  * @param {Function} [options.requestFunction]
  *   Overrides the default function that performs the HTTP request to get the raw HTML needed for Cheerio.
  *   See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/cheerio_crawler.js#L264">GitHub</a> for default behavior.
