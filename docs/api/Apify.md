@@ -11,6 +11,7 @@ accessible from the left sidebar.
 
 * [Apify](#module_Apify)
     * [`.call(actId, [input], [options])`](#module_Apify.call) ⇒ [<code>Promise&lt;ActorRun&gt;</code>](../typedefs/actorrun)
+    * [`.callTask(taskId, [input], [options])`](#module_Apify.callTask) ⇒ [<code>Promise&lt;ActorRun&gt;</code>](../typedefs/actorrun)
     * [`.client`](#module_Apify.client)
     * [`.events`](#module_Apify.events)
     * [`.getApifyProxyUrl(options)`](#module_Apify.getApifyProxyUrl) ⇒ <code>String</code>
@@ -22,8 +23,8 @@ accessible from the left sidebar.
     * [`.launchPuppeteer([options])`](#module_Apify.launchPuppeteer) ⇒ <code>Promise&lt;Browser&gt;</code>
     * [`.launchWebDriver([options])`](#module_Apify.launchWebDriver) ⇒ <code>Promise</code>
     * [`.main(userFunc)`](#module_Apify.main)
-    * [`.openDataset([datasetIdOrName])`](#module_Apify.openDataset) ⇒ [<code>Promise&lt;Dataset&gt;</code>](dataset)
-    * [`.openKeyValueStore([storeIdOrName])`](#module_Apify.openKeyValueStore) ⇒ [<code>Promise&lt;KeyValueStore&gt;</code>](keyvaluestore)
+    * [`.openDataset([datasetIdOrName], [options])`](#module_Apify.openDataset) ⇒ [<code>Promise&lt;Dataset&gt;</code>](dataset)
+    * [`.openKeyValueStore([storeIdOrName], [options])`](#module_Apify.openKeyValueStore) ⇒ [<code>Promise&lt;KeyValueStore&gt;</code>](keyvaluestore)
     * [`.openRequestQueue`](#module_Apify.openRequestQueue) ⇒ [<code>Promise&lt;RequestQueue&gt;</code>](requestqueue)
     * [`.pushData(item)`](#module_Apify.pushData) ⇒ <code>Promise</code>
     * [`.setValue(key, value, [options])`](#module_Apify.setValue) ⇒ <code>Promise</code>
@@ -94,11 +95,17 @@ Apify API endpoint and few others to obtain the output.
 <tr>
 <td colspan="3"><p>User API token that is used to run the actor. By default, it is taken from the <code>APIFY_TOKEN</code> environment variable.</p>
 </td></tr><tr>
-<td><code>[options.memory]</code></td><td><code>Number</code></td><td></td>
+<td><code>[options.memoryMbytes]</code></td><td><code>Number</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Memory in megabytes which will be allocated for the new actor run.
  If not provided, the run uses memory of the default actor run configuration.</p>
+</td></tr><tr>
+<td><code>[options.timeoutSecs]</code></td><td><code>Number</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Timeout for the act run in seconds. Zero value means there is no timeout.
+ If not provided, the run uses timeout of the default actor run configuration.</p>
 </td></tr><tr>
 <td><code>[options.build]</code></td><td><code>String</code></td><td></td>
 </tr>
@@ -124,6 +131,71 @@ Apify API endpoint and few others to obtain the output.
 <tr>
 <td colspan="3"><p>If <code>true</code> then the function will not attempt to parse the
  actor&#39;s output and will return it in a raw <code>Buffer</code>.</p>
+</td></tr></tbody>
+</table>
+<a name="module_Apify.callTask"></a>
+
+## `Apify.callTask(taskId, [input], [options])` ⇒ [<code>Promise&lt;ActorRun&gt;</code>](../typedefs/actorrun)
+Runs an actor actor on the Apify platform using the current user account (determined by the `APIFY_TOKEN` environment variable),
+waits for the actor to finish and fetches its output.
+
+By passing the `waitSecs` option you can reduce the maximum amount of time to wait for the run to finish.
+If the value is less than or equal to zero, the function returns immediately after the run is started.
+
+The result of the function is an [`ActorRun`](../typedefs/actorrun) object
+that contains details about the actor run and its output (if any).
+If the actor run failed, the function fails with [`ApifyCallError`](../typedefs/apifycallerror) exception.
+
+**Example usage:**
+
+```javascript
+const run = await Apify.call('apify/hello-world-task');
+console.log(`Received message: ${run.output.body.message}`);
+```
+
+Internally, the `call()` function calls the
+<a href="https://www.apify.com/docs/api/v2#/reference/actor-tasks/runs-collection/run-task-asynchronously" target="_blank">Run actor</a>
+Apify API endpoint and few others to obtain the output.
+
+**Throws**:
+
+- [<code>ApifyCallError</code>](../typedefs/apifycallerror) If the run did not succeed, e.g. if it failed or timed out.
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>taskId</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Either <code>username/task-name</code> or task ID.</p>
+</td></tr><tr>
+<td><code>[input]</code></td><td><code>Object</code> | <code>String</code> | <code>Buffer</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>This parameter is not supported yet. You must pass either <code>null</code> or <code>undefined</code> value!</p>
+</td></tr><tr>
+<td><code>[options]</code></td><td><code>Object</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Object with the settings below:</p>
+</td></tr><tr>
+<td><code>[options.token]</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>User API token that is used to run the actor. By default, it is taken from the <code>APIFY_TOKEN</code> environment variable.</p>
+</td></tr><tr>
+<td><code>[options.waitSecs]</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Maximum time to wait for the actor run to finish, in seconds.
+ If the limit is reached, the returned promise is resolved to a run object that will have
+ status <code>READY</code> or <code>RUNNING</code> and it will not contain the actor run output.
+ If <code>waitSecs</code> is null or undefined, the function waits for the actor to finish (default behavior).</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.client"></a>
@@ -552,7 +624,7 @@ the promise will be awaited. The user function is called with no arguments.</p>
 </table>
 <a name="module_Apify.openDataset"></a>
 
-## `Apify.openDataset([datasetIdOrName])` ⇒ [<code>Promise&lt;Dataset&gt;</code>](dataset)
+## `Apify.openDataset([datasetIdOrName], [options])` ⇒ [<code>Promise&lt;Dataset&gt;</code>](dataset)
 Opens a dataset and returns a promise resolving to an instance of the [`Dataset`](dataset) class.
 
 Datasets are used to store structured data where each object stored has the same attributes,
@@ -564,21 +636,31 @@ For more details and code examples, see the [`Dataset`](dataset) class.
 <table>
 <thead>
 <tr>
-<th>Param</th><th>Type</th>
+<th>Param</th><th>Type</th><th>Default</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>[datasetIdOrName]</code></td><td><code>string</code></td>
+<td><code>[datasetIdOrName]</code></td><td><code>string</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>ID or name of the dataset to be opened. If <code>null</code> or <code>undefined</code>,
   the function returns the default dataset associated with the actor run.</p>
+</td></tr><tr>
+<td><code>[options]</code></td><td><code>object</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"></td></tr><tr>
+<td><code>[options.forceCloud]</code></td><td><code>boolean</code></td><td><code>false</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>If set to <code>true</code> then enforces cloud storage usage. This way is possible to combine local and
+  cloud storages when devloping locally.</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.openKeyValueStore"></a>
 
-## `Apify.openKeyValueStore([storeIdOrName])` ⇒ [<code>Promise&lt;KeyValueStore&gt;</code>](keyvaluestore)
+## `Apify.openKeyValueStore([storeIdOrName], [options])` ⇒ [<code>Promise&lt;KeyValueStore&gt;</code>](keyvaluestore)
 Opens a key-value store and returns a promise resolving to an instance of the [`KeyValueStore`](keyvaluestore) class.
 
 Key-value stores are used to store records or files, along with their MIME content type.
@@ -590,16 +672,26 @@ For more details and code examples, see the [`KeyValueStore`](keyvaluestore) cla
 <table>
 <thead>
 <tr>
-<th>Param</th><th>Type</th>
+<th>Param</th><th>Type</th><th>Default</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>[storeIdOrName]</code></td><td><code>string</code></td>
+<td><code>[storeIdOrName]</code></td><td><code>string</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>ID or name of the key-value store to be opened. If <code>null</code> or <code>undefined</code>,
   the function returns the default key-value store associated with the actor run.</p>
+</td></tr><tr>
+<td><code>[options]</code></td><td><code>object</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"></td></tr><tr>
+<td><code>[options.forceCloud]</code></td><td><code>boolean</code></td><td><code>false</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>If set to <code>true</code> then enforces cloud storage usage. This way is possible to combine local and
+  cloud storages when devloping locally.</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.openRequestQueue"></a>
@@ -618,16 +710,26 @@ For more details and code examples, see the [`RequestQueue`](requestqueue) class
 <table>
 <thead>
 <tr>
-<th>Param</th><th>Type</th>
+<th>Param</th><th>Type</th><th>Default</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>[queueIdOrName]</code></td><td><code>string</code></td>
+<td><code>[queueIdOrName]</code></td><td><code>string</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>ID or name of the request queue to be opened. If <code>null</code> or <code>undefined</code>,
   the function returns the default request queue associated with the actor run.</p>
+</td></tr><tr>
+<td><code>[options]</code></td><td><code>object</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"></td></tr><tr>
+<td><code>[options.forceCloud]</code></td><td><code>boolean</code></td><td><code>false</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>If set to <code>true</code> then enforces cloud storage usage. This way is possible to combine local and
+  cloud storages when devloping locally.</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.pushData"></a>

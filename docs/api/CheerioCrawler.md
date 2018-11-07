@@ -111,13 +111,13 @@ await crawler.run();
 </tr>
 <tr>
 <td colspan="3"><p>Static list of URLs to be processed.
-  Either <a href="requestlist"><code>RequestList</code></a> or <a href="requestqueue"><code>RequestQueue</code></a> must be provided.</p>
+  Either <code>requestList</code> or <code>requestQueue</code> option must be provided (or both).</p>
 </td></tr><tr>
 <td><code>options.requestQueue</code></td><td><code><a href="requestqueue">RequestQueue</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
-  Either <a href="requestlist"><code>RequestList</code></a> or <a href="requestqueue"><code>RequestQueue</code></a> must be provided.</p>
+  Either <code>requestList</code> or <code>requestQueue</code> option must be provided (or both).</p>
 </td></tr><tr>
 <td><code>[options.requestFunction]</code></td><td><code>function</code></td><td></td>
 </tr>
