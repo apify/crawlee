@@ -80,22 +80,25 @@ const PAGE_CLOSE_TIMEOUT_MILLIS = 30000;
  *   ```
  *   {
  *       request: Request,
+ *       response: Response,
  *       page: Page,
  *       puppeteerPool: PuppeteerPool
  *   }
  *   ```
  *
  *   `request` is an instance of the {@link Request} object with details about the URL to open, HTTP method etc.
- *   `page` is an instance of the `Puppeteer`
+ *   `response` is an instance of the `Puppeteer`
  *   <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a>
- *   class with `page.goto(request.url)` already called.
+ *   `page` is an instance of the `Puppeteer`
+ *   <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-response" target="_blank"><code>Response</code></a>,
+ *   which is the main resource response as returned by `page.goto(request.url)`.
  *   `puppeteerPool` is an instance of the {@link PuppeteerPool} used by this `PuppeteerCrawler`.
  * @param {RequestList} options.requestList
  *   Static list of URLs to be processed.
- *   Either {@link RequestList} or {@link RequestQueue} must be provided.
+ *   Either `requestList` or `requestQueue` option must be provided (or both).
  * @param {RequestQueue} options.requestQueue
  *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
- *   Either {@link RequestList} or {@link RequestQueue} must be provided.
+ *   Either `requestList` or `requestQueue` option must be provided (or both).
  * @param {Number} [options.handlePageTimeoutSecs=300]
  *   Timeout in which the function passed as `options.handlePageFunction` needs to finish, in seconds.
  * @param {Function} [options.gotoFunction]
