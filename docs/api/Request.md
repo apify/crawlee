@@ -65,6 +65,11 @@ const foo = request.userData.foo;
 <tr>
 <td colspan="3"><p>HTTP request payload, e.g. for POST requests.</p>
 </td></tr><tr>
+<td><code>retry</code></td><td><code>Boolean</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Indicates whether the request will be automatically retried or not.</p>
+</td></tr><tr>
 <td><code>retryCount</code></td><td><code>Number</code></td>
 </tr>
 <tr>
@@ -85,12 +90,6 @@ const foo = request.userData.foo;
 <tr>
 <td colspan="3"><p>Custom user data assigned to the request.</p>
 </td></tr><tr>
-<td><code>ignoreErrors</code></td><td><code>Boolean</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>If <code>true</code> then errors in processing of this request are ignored.
-  For example, the request won&#39;t be retried in a case of an error.</p>
-</td></tr><tr>
 <td><code>handledAt</code></td><td><code>Date</code></td>
 </tr>
 <tr>
@@ -102,7 +101,7 @@ const foo = request.userData.foo;
 * [Request](request)
     * [`new Request(options)`](#new_Request_new)
     * [`.pushErrorMessage(errorOrMessage, [options])`](#Request+pushErrorMessage)
-    * [`.skip()`](#Request+skip)
+    * [`.doNotRetry([message])`](#Request+doNotRetry)
 
 <a name="new_Request_new"></a>
 
@@ -172,12 +171,6 @@ to override the default behavior and specify which URLs shall be considered equa
   For example, this causes the <code>http://www.example.com#foo</code> and <code>http://www.example.com#bar</code> URLs
   to have the same <code>uniqueKey</code> of <code>http://www.example.com</code> and thus the URLs are considered equal.
   Note that this option only has an effect if <code>uniqueKey</code> is not set.</p>
-</td></tr><tr>
-<td><code>[options.ignoreErrors]</code></td><td><code>String</code></td><td><code>false</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>If <code>true</code> then errors in processing of this request will be ignored.
-  For example, the request won&#39;t be retried in a case of an error.</p>
 </td></tr></tbody>
 </table>
 <a name="Request+pushErrorMessage"></a>
@@ -215,10 +208,26 @@ as possible, since just throwing a bad type error makes any debugging rather dif
 <td colspan="3"><p>Only push the error message without stack trace when true.</p>
 </td></tr></tbody>
 </table>
-<a name="Request+skip"></a>
+<a name="Request+doNotRetry"></a>
 
-## `request.skip()`
-Marks the request as skipped which in turn prevents [`BasicCrawler`](basiccrawler)
+## `request.doNotRetry([message])`
+Flags the request with no retry which prevents [`BasicCrawler`](basiccrawler)
 (and {@PuppeteerCrawler} + {@CheerioCrawler}, since they use {@BasicCrawler} internally)
 from retrying the request after an error occurs.
 
+Optionally accepts a message that will be used to construct
+and throw an Error.
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>[message]</code></td><td><code>String</code></td>
+</tr>
+<tr>
+</tr></tbody>
+</table>
