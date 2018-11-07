@@ -102,6 +102,7 @@ const foo = request.userData.foo;
 * [Request](request)
     * [`new Request(options)`](#new_Request_new)
     * [`.pushErrorMessage(errorOrMessage, [options])`](#Request+pushErrorMessage)
+    * [`.skip()`](#Request+skip)
 
 <a name="new_Request_new"></a>
 
@@ -214,3 +215,10 @@ as possible, since just throwing a bad type error makes any debugging rather dif
 <td colspan="3"><p>Only push the error message without stack trace when true.</p>
 </td></tr></tbody>
 </table>
+<a name="Request+skip"></a>
+
+## `request.skip()`
+Marks the request as skipped which in turn prevents [`BasicCrawler`](basiccrawler)
+(and {@PuppeteerCrawler} + {@CheerioCrawler}, since they use {@BasicCrawler} internally)
+from retrying the request after an error occurs.
+

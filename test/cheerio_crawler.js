@@ -1,3 +1,6 @@
+import { Readable } from 'stream';
+import EventEmitter from 'events';
+import rqst from 'request';
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import log from 'apify-shared/log';
@@ -8,6 +11,7 @@ import Apify from '../build/index';
 
 chai.use(chaiAsPromised);
 
+/* eslint-disable no-underscore-dangle */
 describe('CheerioCrawler', () => {
     const comparator = (a, b) => {
         a = Number(/q=(\d+)$/.exec(a.url)[1]);
@@ -260,6 +264,300 @@ describe('CheerioCrawler', () => {
         });
     });
 
+    describe('should ensure text/html Content-Type', () => {
+        let requestList;
+        beforeEach(async () => {
+            requestList = new Apify.RequestList({
+                sources: [
+                    { url: 'http://example.com/?q=0' },
+                    { url: 'http://example.com/?q=1' },
+                    { url: 'http://example.com/?q=2' },
+                    { url: 'http://example.com/?q=3' },
+                ],
+            });
+            await requestList.initialize();
+        });
+
+        afterEach(() => {
+            requestList = null;
+        });
+
+        it('by setting a correct Accept header', async () => {
+            const headers = [];
+            const crawler = new Apify.CheerioCrawler({
+                requestList,
+                handlePageFunction: async () => {},
+                requestFunction: async ({ request }) => {
+                    const opts = crawler._getRequestOptions(request);
+                    headers.push(opts.headers);
+                    // it needs to return something valid
+                    return 'html';
+                },
+            });
+
+            await crawler.run();
+            headers.forEach(h => expect(h.Accept).to.be.eql('text/html'));
+        });
+
+        describe('by throwing', () => {
+            let crawler;
+            let originalGet;
+            let handlePageInvocationCount = 0;
+            let errorMessages = [];
+            let chunkReadCount = 0;
+            const getChunk = (chunk = 'x') => {
+                chunkReadCount++;
+                return chunk;
+            };
+
+            before(() => {
+                originalGet = rqst.get;
+            });
+
+            after(() => {
+                rqst.get = originalGet;
+            });
+
+            beforeEach(() => {
+                log.setLevel(log.LEVELS.OFF);
+                crawler = new Apify.CheerioCrawler({
+                    requestList,
+                    maxRequestRetries: 1,
+                    handlePageFunction: async () => {
+                        handlePageInvocationCount++;
+                    },
+                    handleFailedRequestFunction: async ({ request }) => {
+                        errorMessages = [...errorMessages, ...request.errorMessages];
+                    },
+                });
+            });
+            afterEach(async () => {
+                log.setLevel(log.LEVELS.ERROR);
+                crawler = null;
+                handlePageInvocationCount = 0;
+                chunkReadCount = 0;
+                errorMessages = [];
+            });
+
+
+            it('when invalid Content-Type header is received', async () => {
+                // Mock Request to inject invalid response headers.
+                rqst.get = () => {
+                    const response = new Readable({
+                        read() {
+                            this.push(getChunk());
+                            this.push(null);
+                        },
+                    });
+                    response.headers = {
+                        'content-type': '000',
+                    };
+
+                    const ee = new EventEmitter();
+
+                    setTimeout(() => {
+                        ee.emit('response', response);
+                    }, 0);
+
+                    return ee;
+                };
+
+                await crawler.run();
+
+                expect(handlePageInvocationCount).to.be.eql(0);
+                expect(errorMessages).to.have.lengthOf(8);
+                errorMessages.forEach(msg => expect(msg).to.include('Invalid Content-Type header'));
+                expect(chunkReadCount).to.be.eql(0);
+            });
+
+            it('when response stream emits an error event', async () => {
+                // Mock Request to emit an error after a while.
+                rqst.get = () => {
+                    const start = Date.now();
+                    const response = new Readable({
+                        read() {
+                            if (Date.now() > start + 1) {
+                                this.emit('error', new Error('Error in stream.'));
+                                return;
+                            }
+                            this.push(getChunk());
+                        },
+                    });
+                    response.headers = {
+                        'content-type': 'text/html',
+                    };
+
+                    const ee = new EventEmitter();
+
+                    setTimeout(() => {
+                        ee.emit('response', response);
+                    }, 0);
+
+                    return ee;
+                };
+
+                await crawler.run();
+
+                expect(handlePageInvocationCount).to.be.eql(0);
+                expect(errorMessages).to.have.lengthOf(8);
+                errorMessages.forEach(msg => expect(msg).to.include('Error in stream.'));
+            });
+
+            it('when request stream emits an error event', async () => {
+                // Mock Request to emit an error after a while.
+                rqst.get = () => {
+                    const response = new Readable({
+                        // Just do nothing
+                        read() {},
+                    });
+                    response.headers = {
+                        'content-type': 'text/html',
+                    };
+
+                    const ee = new EventEmitter();
+
+                    setTimeout(() => {
+                        ee.emit('response', response);
+                        setTimeout(() => {
+                            ee.emit('error', new Error('Request Error.'));
+                        }, 0);
+                    }, 0);
+
+                    return ee;
+                };
+
+                await crawler.run();
+
+                expect(handlePageInvocationCount).to.be.eql(0);
+                expect(errorMessages).to.have.lengthOf(8);
+                errorMessages.forEach(msg => expect(msg).to.include('Request Error.'));
+            });
+
+            it('when statusCode >= 500 and text/html is received', async () => {
+                rqst.get = () => {
+                    const response = new Readable({
+                        read() {
+                            this.push(getChunk());
+                            this.push(null);
+                        },
+                    });
+                    response.headers = {
+                        'content-type': 'text/html',
+                    };
+                    response.statusCode = 500;
+
+                    const ee = new EventEmitter();
+
+                    setTimeout(() => {
+                        ee.emit('response', response);
+                    }, 0);
+
+                    return ee;
+                };
+
+                await crawler.run();
+
+                expect(handlePageInvocationCount).to.be.eql(0);
+                expect(errorMessages).to.have.lengthOf(8);
+                errorMessages.forEach(msg => expect(msg).to.include('Internal Server Error: x'));
+                expect(chunkReadCount).to.be.eql(8);
+            });
+
+            it('when statusCode >= 500 and application/json is received', async () => {
+                rqst.get = () => {
+                    const response = new Readable({
+                        // Just do nothing
+                        read() {
+                            this.push(getChunk(JSON.stringify({ message: 'Hello' })));
+                            this.push(null);
+                        },
+                    });
+                    response.headers = {
+                        'content-type': 'application/json',
+                    };
+                    response.statusCode = 500;
+
+                    const ee = new EventEmitter();
+
+                    setTimeout(() => {
+                        ee.emit('response', response);
+                    }, 0);
+
+                    return ee;
+                };
+
+                await crawler.run();
+
+                expect(handlePageInvocationCount).to.be.eql(0);
+                expect(errorMessages).to.have.lengthOf(8);
+                errorMessages.forEach(msg => expect(msg).to.include('500 - Hello'));
+                expect(chunkReadCount).to.be.eql(8);
+            });
+
+            it('when 406 is received', async () => {
+                // Mock Request to respond with a 406.
+                rqst.get = () => {
+                    const response = new Readable({
+                        read() {
+                            this.push(getChunk());
+                            this.push(null);
+                        },
+                    });
+                    response.headers = {
+                        'content-type': 'text/plain',
+                    };
+                    response.statusCode = 406;
+
+                    const ee = new EventEmitter();
+
+                    setTimeout(() => {
+                        ee.emit('response', response);
+                    }, 0);
+
+                    return ee;
+                };
+
+                await crawler.run();
+
+                expect(handlePageInvocationCount).to.be.eql(0);
+                expect(errorMessages).to.have.lengthOf(4);
+                errorMessages.forEach(msg => expect(msg).to.include('is not available in HTML format'));
+                expect(chunkReadCount).to.be.eql(0);
+            });
+
+            it('when status is ok, but a wrong content type is received', async () => {
+                // Mock Request to respond with a 406.
+                rqst.get = () => {
+                    const response = new Readable({
+                        read() {
+                            this.push(getChunk());
+                            this.push(null);
+                        },
+                    });
+                    response.headers = {
+                        'content-type': 'application/json',
+                    };
+                    response.statusCode = 200;
+
+                    const ee = new EventEmitter();
+
+                    setTimeout(() => {
+                        ee.emit('response', response);
+                    }, 0);
+
+                    return ee;
+                };
+
+                await crawler.run();
+
+                expect(handlePageInvocationCount).to.be.eql(0);
+                expect(errorMessages).to.have.lengthOf(4);
+                errorMessages.forEach(msg => expect(msg).to.include('served Content-Type application/json instead of text/html'));
+                expect(chunkReadCount).to.be.eql(0);
+            });
+        });
+    });
+
     describe('proxy', () => {
         let requestList;
         beforeEach(async () => {
@@ -278,7 +576,6 @@ describe('CheerioCrawler', () => {
             requestList = null;
         });
 
-        /* eslint-disable no-underscore-dangle */
         it('should work with proxyUrls array', async () => {
             const proxies = [];
             const crawler = new Apify.CheerioCrawler({
