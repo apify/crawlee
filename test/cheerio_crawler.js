@@ -704,4 +704,70 @@ describe('CheerioCrawler', () => {
             });
         });
     });
+
+    // It would make sense to also test that the listener does not prevent other
+    // uncaught exceptions from exiting the process, but since the exceptions
+    // thrown from within the listener cannot be caught anymore, there's no way
+    // to do this, because the re-thrown error will always crash the test process.
+    describe('tunnel-agent error handler', () => {
+        const throwNextTick = (err) => {
+            process.nextTick(() => {
+                throw err;
+            });
+        };
+
+        let mochaListener;
+
+        before(() => {
+            log.setLevel(log.LEVELS.OFF);
+            mochaListener = process.listeners('uncaughtException').shift();
+            process.removeListener('uncaughtException', mochaListener);
+        });
+        after(() => {
+            log.setLevel(log.LEVELS.ERROR);
+            process.on('uncaughtException', mochaListener);
+        });
+
+        it('should suppress tunnel-agent errors', async () => {
+            let handlePageCalled = false;
+            let handleFailedRequestCallCount = 0;
+
+            const requestList = new Apify.RequestList({
+                sources: [
+                    { url: 'http://example.com/?q=0' },
+                    { url: 'http://example.com/?q=1' },
+                    { url: 'http://example.com/?q=2' },
+                    { url: 'http://example.com/?q=3' },
+                ],
+            });
+
+            const crawler = new Apify.CheerioCrawler({
+                requestList,
+                requestFunction: async () => {
+                    const err = new Error();
+                    err.code = 'ERR_ASSERTION';
+                    err.name = 'AssertionError [ERR_ASSERTION]';
+                    err.operator = '==';
+                    err.expected = 0;
+                    err.stack = ('xxx/tunnel-agent/index.js/yyyy');
+                    throwNextTick(err);
+                    // will never resolve
+                    await new Promise((r, rj) => {}); // eslint-disable-line no-unused-vars
+                },
+                requestTimeoutSecs: 1 / 1000,
+                handlePageFunction: () => {
+                    handlePageCalled = true;
+                },
+                handleFailedRequestFunction: () => {
+                    handleFailedRequestCallCount++;
+                },
+            });
+
+            await requestList.initialize();
+            await crawler.run();
+
+            expect(handlePageCalled).to.be.eql(false);
+            expect(handleFailedRequestCallCount).to.be.eql(4);
+        });
+    });
 });
