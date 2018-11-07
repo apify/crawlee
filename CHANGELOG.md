@@ -1,5 +1,9 @@
-xxx
+0.9.0 / 2018-11-07
 ===================
+- Added the ability of `CheerioCrawler` to request and download only `text/html` responses.
+- Added a workaround for a long standing `tunnel-agent` package error to `CheerioCrawler`.
+- Added `request.doNotRetry()` function to prevent further retries of a `request`.
+- Deprecated `request.ignoreErrors` option. Use `request.doNotRetry`.
 - Fixed `Apify.utils.puppeteer.enqueueLinks` to allow `null` value for `pseudoUrls` param
 - Fixed `RequestQueue.addRequest()` to gracefully handle invalid URLs
 - Renamed `RequestOperationInfo` to `QueueOperationInfo`
