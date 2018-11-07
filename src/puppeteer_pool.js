@@ -123,19 +123,6 @@ class PuppeteerInstance {
  * @param {LaunchPuppeteerOptions} [options.launchPuppeteerOptions]
  *   Options used by `Apify.launchPuppeteer()` to start new Puppeteer instances.
  *   See [`LaunchPuppeteerOptions`](../typedefs/launchpuppeteeroptions).
- * @param {Boolean} [options.recycleDiskCache]
- *   Enables recycling of disk cache directories by Chrome instances.
- *   When a browser instance is closed, its disk cache directory is not deleted but it's used by a newly opened browser instance.
- *   This is useful to reduce amount of data that needs to be downloaded to speed up crawling and reduce proxy usage.
- *   Note that the new browser starts with empty cookies, local storage etc. so this setting doesn't affect anonymity of your crawler.
- *
- *   Beware that the disk cache directories can consume a lot of disk space.
- *   To limit the space consumed, you can pass the `--disk-cache-size=X` argument to `options.launchPuppeteerOptions.args`,
- *   where `X` is the approximate maximum number of bytes for disk cache.
- *
- *   *IMPORTANT:* Currently this feature only works in **headful** mode, because of a bug in Chromium.
- *
- *   The `options.recycleDiskCache` setting should not be used together with `--disk-cache-dir` argument in `options.launchPuppeteerOptions.args`.
  * @param {String[]} [options.proxyUrls]
  *   An array of custom proxy URLs to be used by the `PuppeteerPool` instance.
  *   The provided custom proxies' order will be randomized and the resulting list rotated.
@@ -159,9 +146,13 @@ class PuppeteerPool {
             instanceKillerIntervalMillis,
             killInstanceAfterMillis,
             launchPuppeteerOptions,
-            recycleDiskCache,
+            // recycleDiskCache,
             proxyUrls,
         } = _.defaults({}, options, DEFAULT_OPTIONS);
+
+        // Disabling the feature since tests started failing.
+        // Re-enable once the issues upstream are fixed.
+        const recycleDiskCache = false;
 
         checkParamOrThrow(maxOpenPagesPerInstance, 'options.maxOpenPagesPerInstance', 'Number');
         checkParamOrThrow(retireInstanceAfterRequestCount, 'options.retireInstanceAfterRequestCount', 'Number');
