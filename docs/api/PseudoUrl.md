@@ -66,7 +66,7 @@ if (purl.matches('http://www.example.com/pages/my-awesome-page')) console.log('M
 </tr>
 <tr>
 <td colspan="3"><p>Options for the new <a href="request"><code>Request</code></a> instances created for matching URLs
-  by the <a href="puppeteer#puppeteer.enqueueLinks">utils.puppeteer.enqueueLinks()</a> function.</p>
+  by the <a href="puppeteer#puppeteer.enqueueLinks"><code>utils.puppeteer.enqueueLinks()</code></a> function.</p>
 </td></tr></tbody>
 </table>
 <a name="PseudoUrl+matches"></a>

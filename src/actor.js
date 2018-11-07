@@ -400,7 +400,7 @@ export const call = async (actId, input, options = {}) => {
  *
  * @memberof module:Apify
  * @function
- * @name call
+ * @name callTask
  */
 export const callTask = async (taskId, input, options = {}) => {
     const { tasks, keyValueStores } = apifyClient;
