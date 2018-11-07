@@ -83,10 +83,10 @@ const DEFAULT_OPTIONS = {
  *   The function must return a promise.
  * @param {RequestList} options.requestList
  *   Static list of URLs to be processed.
- *   Either {@link RequestList} or {@link RequestQueue} must be provided.
+ *   Either `requestList` or `requestQueue` option must be provided.
  * @param {RequestQueue} options.requestQueue
  *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
- *   Either {@link RequestList} or {@link RequestQueue} must be provided.
+ *   Either `requestList` or `requestQueue` option must be provided.
  * @param {Function} [options.handleFailedRequestFunction]
  *   Function that handles requests that failed more then `options.maxRequestRetries` times.
  *   See source code on

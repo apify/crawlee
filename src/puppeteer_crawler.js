@@ -95,10 +95,10 @@ const PAGE_CLOSE_TIMEOUT_MILLIS = 30000;
  *   `puppeteerPool` is an instance of the {@link PuppeteerPool} used by this `PuppeteerCrawler`.
  * @param {RequestList} options.requestList
  *   Static list of URLs to be processed.
- *   Either {@link RequestList} or {@link RequestQueue} must be provided.
+ *   Either `requestList` or `requestQueue` option must be provided.
  * @param {RequestQueue} options.requestQueue
  *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
- *   Either {@link RequestList} or {@link RequestQueue} must be provided.
+ *   Either `requestList` or `requestQueue` option must be provided.
  * @param {Number} [options.handlePageTimeoutSecs=300]
  *   Timeout in which the function passed as `options.handlePageFunction` needs to finish, in seconds.
  * @param {Function} [options.gotoFunction]
