@@ -2,7 +2,7 @@ import 'babel-polyfill';
 import _ from 'underscore';
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
-import request from 'request-promise';
+import request from 'request-promise-native';
 import sinon from 'sinon';
 import { delayPromise } from 'apify-shared/utilities';
 import { ACTOR_EVENT_NAMES_EX } from '../build/constants';
