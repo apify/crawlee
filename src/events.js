@@ -79,6 +79,9 @@ let persistStateInterval = null;
  *                 their state, in order to avoid repeating all work when the actor restarts.
  *                 This event is automatically emitted together with the <code>migrating</code> event,
  *                 in which case the <code>isMigrating</code> flag is set to <code>true</code>. Otherwise the flag is <code>false</code>.
+ *                 <br><br>
+ *                 Note that the <code>persistState</code> event is provided merely for user convenience,
+ *                 you can achieve the same effect using `setInterval()` and listening for the `migrating` event.
  *             </td>
  *         </tr>
  *     </tbody>
