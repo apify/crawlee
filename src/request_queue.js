@@ -157,8 +157,11 @@ const getRequestId = (uniqueKey) => {
  * Each request in the queue is stored as a separate JSON file, where `{STATE}` is either `handled` or `pending`,
  * and `{NUMBER}` is an integer indicating the position of the request in the queue.
  *
- * If the `APIFY_TOKEN` environment variable is provided instead, the data is stored
- * in the <a href="https://www.apify.com/docs/storage#queue" target="_blank">Apify Request Queue</a> cloud storage.
+ * If the `APIFY_TOKEN` environment variable is set but `APIFY_LOCAL_STORAGE_DIR` not, the data is stored in the
+ * <a href="https://www.apify.com/docs/storage#queue" target="_blank">Apify Request Queue</a>
+ * cloud storage. Note that you can force usage of the cloud storage also by passing the `forceCloud`
+ * option to [`Apify.openRequestQueue()`](apify#module_Apify.openRequestQueue) function,
+ * even if the `APIFY_LOCAL_STORAGE_DIR` variable is set.
  *
  * **Example usage:**
  *
@@ -854,8 +857,8 @@ const getOrCreateQueue = (queueIdOrName) => {
  *   the function returns the default request queue associated with the actor run.
  * @param {object} [options]
  * @param {boolean} [options.forceCloud=false]
- *   If set to `true` then enforces cloud storage usage. This way is possible to combine local and
- *   cloud storages when devloping locally.
+ *   If set to `true` then the function uses cloud storage usage even if the `APIFY_LOCAL_STORAGE_DIR`
+ *   environment variable is set. This way it is possible to combine local and cloud storage.
  * @returns {Promise<RequestQueue>}
  * @memberof module:Apify
  * @name openRequestQueue

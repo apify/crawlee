@@ -58,8 +58,8 @@ const validateSetValueParams = (key, value, options) => {
     if (!key) throw new Error('The "key" parameter cannot be empty');
 
     if (!KEY_VALUE_STORE_KEY_REGEX.test(key)) {
-        throw new Error('The "key" parameter may contain only the following characters: '
-            + "[a-zA-Z0-9!-_.'()");
+        throw new Error('The "key" parameter must be at most 256 characters long and only contain the following characters: '
+            + "a-zA-Z0-9!-_.'()");
     }
 };
 
@@ -121,9 +121,11 @@ export const maybeStringify = (value, options) => {
  * unless you override it by setting the `APIFY_DEFAULT_KEY_VALUE_STORE_ID` environment variable.
  * The `{KEY}` is the key of the record and `{EXT}` corresponds to the MIME content type of the data value.
  *
- * If the `APIFY_TOKEN` environment variable is provided instead, the data is stored in the
- * <a href="https://www.apify.com/docs/storage#key-value-store" target="_blank">Apify Key-Value Store</a>
- * cloud storage.
+ * If the `APIFY_TOKEN` environment variable is set but `APIFY_LOCAL_STORAGE_DIR` not, the data is stored in the
+ * <a href="https://www.apify.com/docs/storage#key-value-store" target="_blank">Apify Key-value store</a>
+ * cloud storage. Note that you can force usage of the cloud storage also by passing the `forceCloud`
+ * option to [`Apify.openKeyValueStore()`](apify#module_Apify.openKeyValueStore) function,
+ * even if the `APIFY_LOCAL_STORAGE_DIR` variable is set.
  *
  * **Example usage:**
  *
@@ -183,7 +185,8 @@ export class KeyValueStore {
      * ```
      *
      * @param {String} key
-     *   Unique key of the record.
+     *   Unique key of the record. It can be at most 256 characters long and only consist
+     *   of the following characters: `[a-zA-Z0-9!-_.'()`
      * @returns {Promise<Object|String|Buffer>}
      *   Returns a promise that resolves to an object, string
      *   or <a href="https://nodejs.org/api/buffer.html" target="_blank"><code>Buffer</code></a>, depending
@@ -211,6 +214,8 @@ export class KeyValueStore {
      * await store.setValue('RESULTS', 'my text data', { contentType: 'text/plain' });
      * ```
      *
+     * Beware that the key can be at most 256 characters long and only contain the following characters: `a-zA-Z0-9!-_.'()`
+     *
      * By default, `value` is converted to JSON and stored with the
      * `application/json; charset=utf-8` MIME content type.
      * To store the value with another content type, pass it in the options as follows:
@@ -231,7 +236,8 @@ export class KeyValueStore {
      * otherwise the actor process might finish before the value is stored!
      *
      * @param {String} key
-     *   Unique key of the record.
+     *   Unique key of the record. It can be at most 256 characters long and only consist
+     *   of the following characters: `[a-zA-Z0-9!-_.'()`
      * @param {Object|String|Buffer} value
      *   Record data, which can be one of the following values:
      *   <ul>
@@ -456,8 +462,8 @@ const getOrCreateKeyValueStore = (storeIdOrName) => {
  *   the function returns the default key-value store associated with the actor run.
  * @param {object} [options]
  * @param {boolean} [options.forceCloud=false]
- *   If set to `true` then enforces cloud storage usage. This way is possible to combine local and
- *   cloud storages when devloping locally.
+ *   If set to `true` then the function uses cloud storage usage even if the `APIFY_LOCAL_STORAGE_DIR`
+ *   environment variable is set. This way it is possible to combine local and cloud storage.
  * @returns {Promise<KeyValueStore>}
  * @memberof module:Apify
  * @name openKeyValueStore
