@@ -10,6 +10,15 @@ chai.use(chaiAsPromised);
 /* global process, describe, it */
 
 describe('Apify.utils.puppeteer', () => {
+    let ll;
+    before(() => {
+        ll = log.getLevel();
+        log.setLevel(log.LEVELS.ERROR);
+    });
+    after(() => {
+        log.setLevel(ll);
+    });
+
     it('injectJQuery()', async () => {
         const browser = await Apify.launchPuppeteer({ headless: true });
 

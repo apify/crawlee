@@ -136,11 +136,19 @@ describe('BasicCrawler', () => {
         expect(await requestList.isEmpty()).to.be.eql(true);
     });
 
-    it('should not retry requests with retry set to false ', async () => {
+    it('should not retry requests with noRetry set to true ', async () => {
+        const noRetryRequest = new Apify.Request({ url: 'http://example.com/3' });
+        try {
+            noRetryRequest.doNotRetry('no retry');
+            throw new Error('wrong error');
+        } catch (err) {
+            expect(err.message).to.be.eql('no retry');
+        }
+
         const sources = [
-            { url: 'http://example.com/1', retry: false },
+            { url: 'http://example.com/1', noRetry: true },
             { url: 'http://example.com/2' },
-            { url: 'http://example.com/3', retry: false },
+            noRetryRequest,
         ];
         const processed = {};
         const requestList = new Apify.RequestList({ sources });

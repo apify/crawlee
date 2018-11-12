@@ -301,7 +301,7 @@ class BasicCrawler {
         request.pushErrorMessage(error);
 
         // Reclaim and retry request if flagged as retriable and retryCount is not exceeded.
-        if (request.retry && request.retryCount < this.maxRequestRetries) {
+        if (!request.noRetry && request.retryCount < this.maxRequestRetries) {
             request.retryCount++;
             log.exception(error, 'BasicCrawler: handleRequestFunction failed, reclaiming failed request back to the list or queue', { // eslint-disable-line max-len
                 url: request.url,

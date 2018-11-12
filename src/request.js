@@ -102,7 +102,7 @@ class Request {
             uniqueKey,
             method = 'GET',
             payload = null,
-            retry = true,
+            noRetry = false,
             retryCount = 0,
             errorMessages = null,
             headers = {},
@@ -117,7 +117,7 @@ class Request {
         checkParamOrThrow(uniqueKey, 'uniqueKey', 'Maybe String');
         checkParamOrThrow(method, 'method', 'String');
         checkParamOrThrow(payload, 'payload', 'Maybe Buffer | String');
-        checkParamOrThrow(retry, 'retry', 'Boolean');
+        checkParamOrThrow(noRetry, 'retry', 'Boolean');
         checkParamOrThrow(retryCount, 'retryCount', 'Number');
         checkParamOrThrow(errorMessages, 'errorMessages', 'Maybe Array');
         checkParamOrThrow(headers, 'headers', 'Object');
@@ -134,7 +134,7 @@ class Request {
         this.uniqueKey = uniqueKey || computeUniqueKey(url, keepUrlFragment) || url;
         this.method = method;
         this.payload = payload;
-        this.retry = retry;
+        this.noRetry = noRetry;
         this.retryCount = retryCount;
         this.errorMessages = errorMessages;
         this.headers = headers;
@@ -200,7 +200,7 @@ class Request {
      * @param {String} [message]
      */
     doNotRetry(message) {
-        this.retry = false;
+        this.noRetry = true;
         if (message) throw new Error(message);
     }
 }
