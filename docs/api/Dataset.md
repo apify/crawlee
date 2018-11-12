@@ -25,8 +25,11 @@ Note that `{DATASET_ID}` is the name or ID of the dataset. The default dataset h
 unless you override it by setting the `APIFY_DEFAULT_DATASET_ID` environment variable.
 Each dataset item is stored as a separate JSON file, where `{INDEX}` is a zero-based index of the item in the dataset.
 
-If the `APIFY_TOKEN` environment variable is provided instead, the data are stored
-in the <a href="https://www.apify.com/docs/storage#dataset" target="_blank">Apify Dataset</a> cloud storage.
+If the `APIFY_TOKEN` environment variable is set but `APIFY_LOCAL_STORAGE_DIR` not, the data is stored in the
+<a href="https://www.apify.com/docs/storage#dataset" target="_blank">Apify Dataset</a>
+cloud storage. Note that you can force usage of the cloud storage also by passing the `forceCloud`
+option to [`Apify.openDataset()`](apify#module_Apify.openDataset) function,
+even if the `APIFY_LOCAL_STORAGE_DIR` variable is set.
 
 **Example usage:**
 

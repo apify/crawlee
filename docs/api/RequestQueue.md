@@ -35,8 +35,11 @@ unless you override it by setting the `APIFY_DEFAULT_REQUEST_QUEUE_ID` environme
 Each request in the queue is stored as a separate JSON file, where `{STATE}` is either `handled` or `pending`,
 and `{NUMBER}` is an integer indicating the position of the request in the queue.
 
-If the `APIFY_TOKEN` environment variable is provided instead, the data is stored
-in the <a href="https://www.apify.com/docs/storage#queue" target="_blank">Apify Request Queue</a> cloud storage.
+If the `APIFY_TOKEN` environment variable is set but `APIFY_LOCAL_STORAGE_DIR` not, the data is stored in the
+<a href="https://www.apify.com/docs/storage#queue" target="_blank">Apify Request Queue</a>
+cloud storage. Note that you can force usage of the cloud storage also by passing the `forceCloud`
+option to [`Apify.openRequestQueue()`](apify#module_Apify.openRequestQueue) function,
+even if the `APIFY_LOCAL_STORAGE_DIR` variable is set.
 
 **Example usage:**
 

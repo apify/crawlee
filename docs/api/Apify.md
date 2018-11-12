@@ -271,6 +271,9 @@ The following table shows all currently emitted events:
                 their state, in order to avoid repeating all work when the actor restarts.
                 This event is automatically emitted together with the <code>migrating</code> event,
                 in which case the <code>isMigrating</code> flag is set to <code>true</code>. Otherwise the flag is <code>false</code>.
+                <br><br>
+                Note that the <code>persistState</code> event is provided merely for user convenience,
+                you can achieve the same effect using `setInterval()` and listening for the `migrating` event.
             </td>
         </tr>
     </tbody>
@@ -654,8 +657,8 @@ For more details and code examples, see the [`Dataset`](dataset) class.
 <td><code>[options.forceCloud]</code></td><td><code>boolean</code></td><td><code>false</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>If set to <code>true</code> then enforces cloud storage usage. This way is possible to combine local and
-  cloud storages when devloping locally.</p>
+<td colspan="3"><p>If set to <code>true</code> then the function uses cloud storage usage even if the <code>APIFY_LOCAL_STORAGE_DIR</code>
+  environment variable is set. This way it is possible to combine local and cloud storage.</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.openKeyValueStore"></a>
@@ -690,8 +693,8 @@ For more details and code examples, see the [`KeyValueStore`](keyvaluestore) cla
 <td><code>[options.forceCloud]</code></td><td><code>boolean</code></td><td><code>false</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>If set to <code>true</code> then enforces cloud storage usage. This way is possible to combine local and
-  cloud storages when devloping locally.</p>
+<td colspan="3"><p>If set to <code>true</code> then the function uses cloud storage usage even if the <code>APIFY_LOCAL_STORAGE_DIR</code>
+  environment variable is set. This way it is possible to combine local and cloud storage.</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.openRequestQueue"></a>
@@ -728,8 +731,8 @@ For more details and code examples, see the [`RequestQueue`](requestqueue) class
 <td><code>[options.forceCloud]</code></td><td><code>boolean</code></td><td><code>false</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>If set to <code>true</code> then enforces cloud storage usage. This way is possible to combine local and
-  cloud storages when devloping locally.</p>
+<td colspan="3"><p>If set to <code>true</code> then the function uses cloud storage usage even if the <code>APIFY_LOCAL_STORAGE_DIR</code>
+  environment variable is set. This way it is possible to combine local and cloud storage.</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.pushData"></a>

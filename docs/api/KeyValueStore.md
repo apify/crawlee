@@ -32,9 +32,11 @@ Note that `{STORE_ID}` is the name or ID of the key-value store. The default key
 unless you override it by setting the `APIFY_DEFAULT_KEY_VALUE_STORE_ID` environment variable.
 The `{KEY}` is the key of the record and `{EXT}` corresponds to the MIME content type of the data value.
 
-If the `APIFY_TOKEN` environment variable is provided instead, the data is stored in the
-<a href="https://www.apify.com/docs/storage#key-value-store" target="_blank">Apify Key-Value Store</a>
-cloud storage.
+If the `APIFY_TOKEN` environment variable is set but `APIFY_LOCAL_STORAGE_DIR` not, the data is stored in the
+<a href="https://www.apify.com/docs/storage#key-value-store" target="_blank">Apify Key-value store</a>
+cloud storage. Note that you can force usage of the cloud storage also by passing the `forceCloud`
+option to [`Apify.openKeyValueStore()`](apify#module_Apify.openKeyValueStore) function,
+even if the `APIFY_LOCAL_STORAGE_DIR` variable is set.
 
 **Example usage:**
 
@@ -105,7 +107,8 @@ const buffer = await store.getValue('screenshot1.png');
 <td><code>key</code></td><td><code>String</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Unique key of the record.</p>
+<td colspan="3"><p>Unique key of the record. It can be at most 256 characters long and only consist
+  of the following characters: <code>[a-zA-Z0-9!-_.&#39;()</code></p>
 </td></tr></tbody>
 </table>
 <a name="KeyValueStore+setValue"></a>
@@ -120,6 +123,8 @@ The function returns a promise that resolves once the record has been saved or d
 const store = await Apify.openKeyValueStore('my-store');
 await store.setValue('RESULTS', 'my text data', { contentType: 'text/plain' });
 ```
+
+Beware that the key can be at most 256 characters long and only contain the following characters: `a-zA-Z0-9!-_.'()`
 
 By default, `value` is converted to JSON and stored with the
 `application/json; charset=utf-8` MIME content type.
@@ -151,7 +156,8 @@ otherwise the actor process might finish before the value is stored!
 <td><code>key</code></td><td><code>String</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Unique key of the record.</p>
+<td colspan="3"><p>Unique key of the record. It can be at most 256 characters long and only consist
+  of the following characters: <code>[a-zA-Z0-9!-_.&#39;()</code></p>
 </td></tr><tr>
 <td><code>value</code></td><td><code>Object</code> | <code>String</code> | <code>Buffer</code></td>
 </tr>
