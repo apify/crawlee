@@ -1,3 +1,8 @@
+0.9.3 / 2018-11-12
+==================
+- Bug fixes and improvements of internals.
+- Package updates.
+
 0.9.0 / 2018-11-07
 ===================
 - Added the ability of `CheerioCrawler` to request and download only `text/html` responses.
