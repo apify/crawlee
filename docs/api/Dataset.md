@@ -207,7 +207,7 @@ Returns an object containing general information about the dataset.
   "createdAt": "2015-12-12T07:34:14.202Z",
   "modifiedAt": "2015-12-13T08:36:13.202Z",
   "accessedAt": "2015-12-14T08:36:13.202Z",
-  "itemsCount": 0
+  "itemCount": 0
 }
 ```
 

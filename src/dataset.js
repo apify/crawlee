@@ -284,7 +284,7 @@ export class Dataset {
      *   "createdAt": "2015-12-12T07:34:14.202Z",
      *   "modifiedAt": "2015-12-13T08:36:13.202Z",
      *   "accessedAt": "2015-12-14T08:36:13.202Z",
-     *   "itemsCount": 0
+     *   "itemCount": 0
      * }
      * ```
      *
@@ -523,7 +523,7 @@ export class DatasetLocal {
                     createdAt: this.createdAt,
                     modifiedAt: this.modifiedAt,
                     accessedAt: this.accessedAt,
-                    itemsCount: this.counter,
+                    itemCount: this.counter,
                 };
             });
     }

@@ -124,7 +124,7 @@ describe('dataset', () => {
             expect(info.id).to.be.eql(datasetName);
             expect(info.name).to.be.eql(datasetName);
             expect(info.userId).to.be.eql(null);
-            expect(info.itemsCount).to.be.eql(0);
+            expect(info.itemCount).to.be.eql(0);
 
             const cTime = info.createdAt.getTime();
             let mTime = info.modifiedAt.getTime();
@@ -145,7 +145,7 @@ describe('dataset', () => {
             expect(info.id).to.be.eql(datasetName);
             expect(info.name).to.be.eql(datasetName);
             expect(info.userId).to.be.eql(null);
-            expect(info.itemsCount).to.be.eql(4);
+            expect(info.itemCount).to.be.eql(4);
 
             mTime = info.modifiedAt.getTime();
             let aTime = info.accessedAt.getTime();
@@ -168,7 +168,7 @@ describe('dataset', () => {
             expect(info.id).to.be.eql(datasetName);
             expect(info.name).to.be.eql(datasetName);
             expect(info.userId).to.be.eql(userId);
-            expect(info.itemsCount).to.be.eql(4);
+            expect(info.itemCount).to.be.eql(4);
 
             const cTime2 = info.createdAt.getTime();
             mTime = info.modifiedAt.getTime();
@@ -500,7 +500,7 @@ describe('dataset', () => {
                 createdAt: '2015-12-12T07:34:14.202Z',
                 modifiedAt: '2015-12-13T08:36:13.202Z',
                 accessedAt: '2015-12-14T08:36:13.202Z',
-                itemsCount: 0,
+                itemCount: 0,
             };
 
             mock.expects('getDataset')

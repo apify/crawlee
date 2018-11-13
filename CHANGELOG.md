@@ -1,3 +1,7 @@
+xxx
+==================
+- Bugfix: `Dataset.getInfo()` sometimes returned an object with `itemsCount` field instead of `itemCount`
+
 0.9.3 / 2018-11-12
 ==================
 - Bug fixes and improvements of internals.
