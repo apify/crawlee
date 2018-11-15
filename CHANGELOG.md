@@ -1,7 +1,7 @@
 xxx
 ==================
-- Automatically adding `--disable-background-timer-throttling` and `--enable-resource-load-scheduler=false`
-  Chrome flags in `Apify.launchPuppeteer()`
+- Automatically adding `--enable-resource-load-scheduler=false`
+  Chrome flag in `Apify.launchPuppeteer()`
   to make crawling of pages in all tabs run equally fast.
 
 0.9.3 / 2018-11-12
