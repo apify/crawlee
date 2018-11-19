@@ -1,4 +1,4 @@
-xxx
+0.9.5 / 2018-11-19
 ==================
 - Bugfix: `Apify.call()` was causing permissions error.
 
