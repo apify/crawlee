@@ -359,9 +359,11 @@ const sleep = (millis) => {
  * Optionally, custom regular expression and encoding may be provided.
  *
  * @param {Object} options
- * @param {String} options.url
- * @param {String} [options.encoding='utf8']
+ * @param {String} options.url URL to the file
+ * @param {String} [options.encoding='utf8'] The encoding of the file.
  * @param {RegExp} [options.urlRegExp=URL_NO_COMMAS_REGEX]
+ *   Custom regular expression to identify the URLs in the file to extract.
+ *   The regular expression should be case-insensitive and have global flag set (i.e. `/something/gi`).
  * @returns {Promise<String[]>}
  * @memberOf utils
  */
