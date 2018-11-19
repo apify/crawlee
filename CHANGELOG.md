@@ -1,4 +1,4 @@
-xxx
+0.9.4 / 2018-11-19
 ==================
 - Automatically adding `--enable-resource-load-scheduler=false`
   Chrome flag in `Apify.launchPuppeteer()`
