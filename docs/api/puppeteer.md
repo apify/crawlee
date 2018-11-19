@@ -27,7 +27,7 @@ await puppeteer.injectJQuery(page);
     * [`.injectFile(page, filePath)`](#puppeteer.injectFile) ⇒ <code>Promise</code>
     * [`.injectJQuery(page)`](#puppeteer.injectJQuery) ⇒ <code>Promise</code>
     * [`.injectUnderscore(page)`](#puppeteer.injectUnderscore) ⇒ <code>Promise</code>
-    * [`.enqueueLinks(page, selector, requestQueue, [pseudoUrls])`](#puppeteer.enqueueLinks) ⇒ <code>Promise&lt;Array&lt;RequestOperationInfo&gt;&gt;</code>
+    * [`.enqueueLinks(page, selector, requestQueue, [pseudoUrls])`](#puppeteer.enqueueLinks) ⇒ <code>Promise&lt;Array&lt;QueueOperationInfo&gt;&gt;</code>
     * [`.blockResources(page, resourceTypes)`](#puppeteer.blockResources) ⇒ <code>Promise</code>
     * [`.cacheResponses(page, cache, responseUrlRules)`](#puppeteer.cacheResponses) ⇒ <code>Promise</code>
     * [`.compileScript(scriptString, context)`](#puppeteer.compileScript) ⇒ <code>function</code>
@@ -88,6 +88,18 @@ e.g. to extract data from HTML elements using CSS selectors.
 Beware that the injected jQuery object will be set to the `window.$` variable and thus it might cause conflicts with
 libraries included by the page that use the same variable (e.g. another version of jQuery).
 
+Example usage:
+```javascript
+await Apify.utils.puppeteer.injectJQuery(page);
+const title = await page.evaluate(() => {
+  return $('head title').text();
+});
+```
+
+Note that `injectJQuery()` does not affect the Puppeteer's
+<a href="https://pptr.dev/#?product=Puppeteer&show=api-pageselector" target="_blank"><code>Page.$()</code></a>
+function in any way.
+
 <table>
 <thead>
 <tr>
@@ -125,7 +137,7 @@ libraries included by the page that use the same variable.
 </table>
 <a name="puppeteer.enqueueLinks"></a>
 
-## `puppeteer.enqueueLinks(page, selector, requestQueue, [pseudoUrls])` ⇒ <code>Promise&lt;Array&lt;RequestOperationInfo&gt;&gt;</code>
+## `puppeteer.enqueueLinks(page, selector, requestQueue, [pseudoUrls])` ⇒ <code>Promise&lt;Array&lt;QueueOperationInfo&gt;&gt;</code>
 Finds HTML elements matching a CSS selector, clicks the elements and if a redirect is triggered and destination URL matches
 one of the provided [`PseudoUrl`](pseudourl)s, then the function enqueues that URL to a given request queue.
 To create a Request object function uses `requestTemplate` from a matching [`PseudoUrl`](pseudourl).
@@ -133,7 +145,7 @@ To create a Request object function uses `requestTemplate` from a matching [`Pse
 *WARNING*: This is work in progress. Currently the function doesn't click elements and only takes their `href` attribute and so
            is working only for link (`a`) elements, but not for buttons or JavaScript links.
 
-**Returns**: <code>Promise&lt;Array&lt;RequestOperationInfo&gt;&gt;</code> - Promise that resolves to an array of [`RequestOperationInfo`](../typedefs/requestoperationinfo) objects.  
+**Returns**: <code>Promise&lt;Array&lt;QueueOperationInfo&gt;&gt;</code> - Promise that resolves to an array of [`QueueOperationInfo`](../typedefs/queueoperationinfo) objects.  
 <table>
 <thead>
 <tr>
@@ -163,7 +175,9 @@ To create a Request object function uses `requestTemplate` from a matching [`Pse
 <td colspan="3"><p>An array of <a href="pseudourl"><code>PseudoUrl</code></a>s matching the URLs to be enqueued,
   or an array of Strings or Objects from which the <a href="pseudourl"><code>PseudoUrl</code></a>s should be constructed
   The Objects must include at least a <code>purl</code> property, which holds a pseudoUrl string.
-  All remaining keys will be used as the <code>requestTemplate</code> argument of the <a href="pseudourl"><code>PseudoUrl</code></a> constructor.</p>
+  All remaining keys will be used as the <code>requestTemplate</code> argument of the <a href="pseudourl"><code>PseudoUrl</code></a> constructor.
+  If <code>pseudoUrls</code> is an empty array, null or undefined, then the function
+  enqueues all links found on the page.</p>
 </td></tr></tbody>
 </table>
 <a name="puppeteer.blockResources"></a>

@@ -15,7 +15,7 @@
  * { "sources": [{ "url": "https://www.google.com" }, { "url": "https://www.duckduckgo.com" }] }
  * ```
  *
- * On the Apify cloud platform, the input can be either set manually
+ * On the Apify cloud, the input can be either set manually
  * in the UI app or passed as the POST payload to the
  * <a href="https://www.apify.com/docs/api/v2#/reference/actors/run-collection/run-actor" target="_blank">Run actor API call</a>.
  * For more details, see <a href="https://www.apify.com/docs/actor#input-output" target="_blank">Input and output</a>

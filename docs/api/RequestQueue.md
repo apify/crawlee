@@ -35,8 +35,11 @@ unless you override it by setting the `APIFY_DEFAULT_REQUEST_QUEUE_ID` environme
 Each request in the queue is stored as a separate JSON file, where `{STATE}` is either `handled` or `pending`,
 and `{NUMBER}` is an integer indicating the position of the request in the queue.
 
-If the `APIFY_TOKEN` environment variable is provided instead, the data is stored
-in the <a href="https://www.apify.com/docs/storage#queue" target="_blank">Apify Request Queue</a> cloud storage.
+If the `APIFY_TOKEN` environment variable is set but `APIFY_LOCAL_STORAGE_DIR` not, the data is stored in the
+<a href="https://www.apify.com/docs/storage#queue" target="_blank">Apify Request Queue</a>
+cloud storage. Note that you can force usage of the cloud storage also by passing the `forceCloud`
+option to [`Apify.openRequestQueue()`](apify#module_Apify.openRequestQueue) function,
+even if the `APIFY_LOCAL_STORAGE_DIR` variable is set.
 
 **Example usage:**
 
@@ -66,23 +69,23 @@ await queue.reclaimRequest(request2);
 
 
 * [RequestQueue](requestqueue)
-    * [`.addRequest(request, [options])`](#RequestQueue+addRequest) ⇒ [<code>RequestOperationInfo</code>](../typedefs/requestoperationinfo)
+    * [`.addRequest(request, [options])`](#RequestQueue+addRequest) ⇒ [<code>QueueOperationInfo</code>](../typedefs/queueoperationinfo)
     * [`.getRequest(requestId)`](#RequestQueue+getRequest) ⇒ [<code>Promise&lt;Request&gt;</code>](request)
     * [`.fetchNextRequest()`](#RequestQueue+fetchNextRequest) ⇒ [<code>Promise&lt;Request&gt;</code>](request)
-    * [`.markRequestHandled(request)`](#RequestQueue+markRequestHandled) ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](../typedefs/requestoperationinfo)
-    * [`.reclaimRequest(request, [options])`](#RequestQueue+reclaimRequest) ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](../typedefs/requestoperationinfo)
+    * [`.markRequestHandled(request)`](#RequestQueue+markRequestHandled) ⇒ [<code>Promise&lt;QueueOperationInfo&gt;</code>](../typedefs/queueoperationinfo)
+    * [`.reclaimRequest(request, [options])`](#RequestQueue+reclaimRequest) ⇒ [<code>Promise&lt;QueueOperationInfo&gt;</code>](../typedefs/queueoperationinfo)
     * [`.isEmpty()`](#RequestQueue+isEmpty) ⇒ <code>Promise&lt;Boolean&gt;</code>
     * [`.isFinished()`](#RequestQueue+isFinished) ⇒ <code>Promise&lt;Boolean&gt;</code>
     * [`.delete()`](#RequestQueue+delete) ⇒ <code>Promise</code>
 
 <a name="RequestQueue+addRequest"></a>
 
-## `requestQueue.addRequest(request, [options])` ⇒ [<code>RequestOperationInfo</code>](../typedefs/requestoperationinfo)
+## `requestQueue.addRequest(request, [options])` ⇒ [<code>QueueOperationInfo</code>](../typedefs/queueoperationinfo)
 Adds a request to the queue.
 
 If a request with the same `uniqueKey` property is already present in the queue,
 it will not be updated. You can find out whether this happened from the resulting
-[`RequestOperationInfo`](../typedefs/requestoperationinfo) object.
+[`QueueOperationInfo`](../typedefs/queueoperationinfo) object.
 
 <table>
 <thead>
@@ -95,7 +98,7 @@ it will not be updated. You can find out whether this happened from the resultin
 <td><code>request</code></td><td><code><a href="request">Request</a></code> | <code>Object</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>Request object, or an Object to construct a Request from.</p>
+<td colspan="3"><p><a href="request"><code>Request</code></a> object, or an object to construct a <code>Request</code> instance from.</p>
 </td></tr><tr>
 <td><code>[options]</code></td><td><code>Object</code></td><td></td>
 </tr>
@@ -133,7 +136,7 @@ Returns next request in the queue to be processed.
 
 <a name="RequestQueue+markRequestHandled"></a>
 
-## `requestQueue.markRequestHandled(request)` ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](../typedefs/requestoperationinfo)
+## `requestQueue.markRequestHandled(request)` ⇒ [<code>Promise&lt;QueueOperationInfo&gt;</code>](../typedefs/queueoperationinfo)
 Marks request handled after successful processing.
 
 <table>
@@ -151,7 +154,7 @@ Marks request handled after successful processing.
 </table>
 <a name="RequestQueue+reclaimRequest"></a>
 
-## `requestQueue.reclaimRequest(request, [options])` ⇒ [<code>Promise&lt;RequestOperationInfo&gt;</code>](../typedefs/requestoperationinfo)
+## `requestQueue.reclaimRequest(request, [options])` ⇒ [<code>Promise&lt;QueueOperationInfo&gt;</code>](../typedefs/queueoperationinfo)
 Reclaims failed request back to the queue,
 so that it can be processed later again.
 

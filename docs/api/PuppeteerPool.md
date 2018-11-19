@@ -102,19 +102,6 @@ await puppeteerPool.destroy();
 <td colspan="3"><p>Options used by <code>Apify.launchPuppeteer()</code> to start new Puppeteer instances.
   See <a href="../typedefs/launchpuppeteeroptions"><code>LaunchPuppeteerOptions</code></a>.</p>
 </td></tr><tr>
-<td><code>[options.recycleDiskCache]</code></td><td><code>Boolean</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>Enables recycling of disk cache directories by Chrome instances.
-  When a browser instance is closed, its disk cache directory is not deleted but it&#39;s used by a newly opened browser instance.
-  This is useful to reduce amount of data that needs to be downloaded to speed up crawling and reduce proxy usage.
-  Note that the new browser starts with empty cookies, local storage etc. so this setting doesn&#39;t affect anonymity of your crawler.</p>
-<p>  Beware that the disk cache directories can consume a lot of disk space.
-  To limit the space consumed, you can pass the <code>--disk-cache-size=X</code> argument to <code>options.launchPuppeteerOptions.args</code>,
-  where <code>X</code> is the approximate maximum number of bytes for disk cache.</p>
-<p>  <em>IMPORTANT:</em> Currently this feature only works in <strong>headful</strong> mode, because of a bug in Chromium.</p>
-<p>  The <code>options.recycleDiskCache</code> setting should not be used together with <code>--disk-cache-dir</code> argument in <code>options.launchPuppeteerOptions.args</code>.</p>
-</td></tr><tr>
 <td><code>[options.proxyUrls]</code></td><td><code>Array&lt;String&gt;</code></td><td></td>
 </tr>
 <tr>

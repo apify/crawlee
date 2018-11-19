@@ -134,8 +134,11 @@ export const chunkBySize = (items, limitBytes) => {
  * unless you override it by setting the `APIFY_DEFAULT_DATASET_ID` environment variable.
  * Each dataset item is stored as a separate JSON file, where `{INDEX}` is a zero-based index of the item in the dataset.
  *
- * If the `APIFY_TOKEN` environment variable is provided instead, the data are stored
- * in the <a href="https://www.apify.com/docs/storage#dataset" target="_blank">Apify Dataset</a> cloud storage.
+ * If the `APIFY_TOKEN` environment variable is set but `APIFY_LOCAL_STORAGE_DIR` not, the data is stored in the
+ * <a href="https://www.apify.com/docs/storage#dataset" target="_blank">Apify Dataset</a>
+ * cloud storage. Note that you can force usage of the cloud storage also by passing the `forceCloud`
+ * option to [`Apify.openDataset()`](apify#module_Apify.openDataset) function,
+ * even if the `APIFY_LOCAL_STORAGE_DIR` variable is set.
  *
  * **Example usage:**
  *
@@ -636,16 +639,24 @@ const getOrCreateDataset = (datasetIdOrName) => {
  * @param {string} [datasetIdOrName]
  *   ID or name of the dataset to be opened. If `null` or `undefined`,
  *   the function returns the default dataset associated with the actor run.
+ * @param {object} [options]
+ * @param {boolean} [options.forceCloud=false]
+ *   If set to `true` then the function uses cloud storage usage even if the `APIFY_LOCAL_STORAGE_DIR`
+ *   environment variable is set. This way it is possible to combine local and cloud storage.
  * @returns {Promise<Dataset>}
  * @memberof module:Apify
  * @name openDataset
  * @function
  */
-export const openDataset = (datasetIdOrName) => {
+export const openDataset = (datasetIdOrName, options = {}) => {
     checkParamOrThrow(datasetIdOrName, 'datasetIdOrName', 'Maybe String');
+    checkParamOrThrow(options, 'options', 'Object');
     ensureTokenOrLocalStorageEnvExists('dataset');
 
-    return process.env[ENV_VARS.LOCAL_STORAGE_DIR]
+    const { forceCloud = false } = options;
+    checkParamOrThrow(forceCloud, 'options.forceCloud', 'Boolean');
+
+    return process.env[ENV_VARS.LOCAL_STORAGE_DIR] && !forceCloud
         ? openLocalStorage(datasetIdOrName, ENV_VARS.DEFAULT_DATASET_ID, DatasetLocal, datasetsCache)
         : openRemoteStorage(datasetIdOrName, ENV_VARS.DEFAULT_DATASET_ID, Dataset, datasetsCache, getOrCreateDataset);
 };

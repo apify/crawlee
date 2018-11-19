@@ -1,3 +1,31 @@
+0.9.4 / 2018-11-19
+==================
+- Automatically adding `--enable-resource-load-scheduler=false`
+  Chrome flag in `Apify.launchPuppeteer()`
+  to make crawling of pages in all tabs run equally fast.
+
+0.9.3 / 2018-11-12
+==================
+- Bug fixes and improvements of internals.
+- Package updates.
+
+0.9.0 / 2018-11-07
+===================
+- Added the ability of `CheerioCrawler` to request and download only `text/html` responses.
+- Added a workaround for a long standing `tunnel-agent` package error to `CheerioCrawler`.
+- Added `request.doNotRetry()` function to prevent further retries of a `request`.
+- Deprecated `request.ignoreErrors` option. Use `request.doNotRetry`.
+- Fixed `Apify.utils.puppeteer.enqueueLinks` to allow `null` value for `pseudoUrls` param
+- Fixed `RequestQueue.addRequest()` to gracefully handle invalid URLs
+- Renamed `RequestOperationInfo` to `QueueOperationInfo`
+- Added `request` field to `QueueOperationInfo`
+- **WARNING**: Parameter `timeoutSecs` of `Apify.call()` is used for actor run timeout.
+    For time of waiting for run to finish use `waitSecs` parameter.
+- **WARNING**: Parameter `memory` of `Apify.call()` was renamed to `memoryMbytes`.
+- Added `Apify.callTask()` that enables to start actor task and fetch its output.
+- Added option enforcing cloud storage to be used in `openKeyValueStore()`, `openDataset()` and `openRequestQueue()`
+- Added `autoscaledPool.setMinConcurrency()` and `autoscaledPool.setMinConcurrency()`
+
 0.8.18 / 2018-10-30
 ===================
 - Fix a bug in `CheerioCrawler` where `useApifyProxy` would only work with `apifyProxyGroups`.

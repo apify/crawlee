@@ -4,7 +4,7 @@ import { anonymizeProxy, closeAnonymizedProxy, redactUrl } from 'proxy-chain';
 import log from 'apify-shared/log';
 import { ENV_VARS } from 'apify-shared/consts';
 import { DEFAULT_USER_AGENT } from './constants';
-import { newPromise, getTypicalChromeExecutablePath } from './utils';
+import { newPromise, getTypicalChromeExecutablePath, isAtHome } from './utils';
 import { getApifyProxyUrl } from './actor';
 import { registerBrowserForLiveView } from './puppeteer_live_view_server';
 
@@ -118,7 +118,11 @@ const getPuppeteerOrThrow = () => {
         // This is an optional dependency because it is quite large, only require it when used (ie. image with Chrome)
         return require('puppeteer'); // eslint-disable-line global-require
     } catch (err) {
-        if (err.code === 'MODULE_NOT_FOUND') err.message = 'Cannot find module \'puppeteer\'. Did you choose the correct base Docker image?';
+        if (err.code === 'MODULE_NOT_FOUND') {
+            err.message = isAtHome()
+                ? 'Cannot find module \'puppeteer\'. Did you choose the correct base Docker image (apify/actor-node-chrome-*)?'
+                : 'Cannot find module \'puppeteer\'. Did you you install \'puppeteer\' package?';
+        }
 
         throw err;
     }
@@ -153,17 +157,20 @@ const getPuppeteerOrThrow = () => {
  *    <li>
  *        The function adds <code>--no-sandbox</code> to <code>args</code> to enable running
  *        headless Chrome in a Docker container on the Apify platform.
+ *        Also it adds <code>--enable-resource-load-scheduler=false</code>
+ *        to make crawling of pages in all tabs run equally fast.
  *    </li>
  * </ul>
  *
  * To use this function, you need to have the <a href="https://www.npmjs.com/package/puppeteer" target="_blank">puppeteer</a>
  * NPM package installed in your project.
- * When running on the Apify cloud platform, you can achieve that simply
+ * When running on the Apify cloud, you can achieve that simply
  * by using the `apify/actor-node-chrome` base Docker image for your actor - see
  * <a href="https://www.apify.com/docs/actor#base-images" target="_blank">Apify Actor documentation</a>
  * for details.
  *
- * For an example of usage, see the [Synchronous run Example](../examples/synchronousrun) or the [Puppeteer proxy Example](../examples/puppeteerproxy)
+ * For an example of usage, see the [Synchronous run Example](../examples/synchronousrun)
+ * or the [Puppeteer proxy Example](../examples/puppeteerwithproxy)
  *
  * @param {LaunchPuppeteerOptions} [options]
  *   Optional settings passed to `puppeteer.launch()`. In addition to
@@ -189,6 +196,8 @@ export const launchPuppeteer = (options = {}) => {
 
     optsCopy.args = optsCopy.args || [];
     optsCopy.args.push('--no-sandbox');
+    // TODO: It's not clear that this works, keep eye on https://bugs.chromium.org/p/chromium/issues/detail?id=723233
+    optsCopy.args.push('--enable-resource-load-scheduler=false');
     if (optsCopy.headless == null) {
         // Forcing headless with liveView, otherwise screenshots redirect user to new browser window
         optsCopy.headless = optsCopy.liveView || (process.env[ENV_VARS.HEADLESS] === '1' && process.env[ENV_VARS.XVFB] !== '1');

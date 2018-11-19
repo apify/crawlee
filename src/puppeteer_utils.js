@@ -82,6 +82,18 @@ const injectFile = async (page, filePath) => {
  * Beware that the injected jQuery object will be set to the `window.$` variable and thus it might cause conflicts with
  * libraries included by the page that use the same variable (e.g. another version of jQuery).
  *
+ * Example usage:
+ * ```javascript
+ * await Apify.utils.puppeteer.injectJQuery(page);
+ * const title = await page.evaluate(() => {
+ *   return $('head title').text();
+ * });
+ * ```
+ *
+ * Note that `injectJQuery()` does not affect the Puppeteer's
+ * <a href="https://pptr.dev/#?product=Puppeteer&show=api-pageselector" target="_blank"><code>Page.$()</code></a>
+ * function in any way.
+ *
  * @param {Page} page
  *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
  * @return {Promise}
@@ -129,11 +141,11 @@ const enqueueRequestsFromClickableElements = async (page, selector, purls, reque
     const urls = await page.$$eval(selector, getHrefs);
     const requests = urls.filter(matchesPseudoUrl).map(url => new Request(Object.assign({ url }, requestOpts)));
 
-    const requestOperationInfos = [];
+    const queueOperationInfos = [];
     for (const request of requests) {
-        requestOperationInfos.push(await requestQueue.addRequest(request));
+        queueOperationInfos.push(await requestQueue.addRequest(request));
     }
-    return requestOperationInfos;
+    return queueOperationInfos;
 };
 
 /**
@@ -197,11 +209,13 @@ let logDeprecationWarning = true;
  *   or an array of Strings or Objects from which the {@link PseudoUrl}s should be constructed
  *   The Objects must include at least a `purl` property, which holds a pseudoUrl string.
  *   All remaining keys will be used as the `requestTemplate` argument of the {@link PseudoUrl} constructor.
- * @return {Promise<RequestOperationInfo[]>}
- *   Promise that resolves to an array of {@link RequestOperationInfo} objects.
+ *   If `pseudoUrls` is an empty array, null or undefined, then the function
+ *   enqueues all links found on the page.
+ * @return {Promise<QueueOperationInfo[]>}
+ *   Promise that resolves to an array of {@link QueueOperationInfo} objects.
  * @memberOf puppeteer
  */
-const enqueueLinks = async (page, selector, requestQueue, pseudoUrls = []) => {
+const enqueueLinks = async (page, selector, requestQueue, pseudoUrls) => {
     // TODO: Remove after v1.0.0 gets released.
     // Check for pseudoUrls as a third parameter.
     if (Array.isArray(requestQueue)) {
@@ -218,10 +232,10 @@ const enqueueLinks = async (page, selector, requestQueue, pseudoUrls = []) => {
     checkParamOrThrow(page, 'page', 'Object');
     checkParamOrThrow(selector, 'selector', 'String');
     checkParamPrototypeOrThrow(requestQueue, 'requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue');
-    checkParamOrThrow(pseudoUrls, 'pseudoUrls', 'Array');
+    checkParamOrThrow(pseudoUrls, 'pseudoUrls', 'Maybe Array');
 
     // Construct pseudoUrls from input where necessary.
-    const pseudoUrlInstances = constructPseudoUrlInstances(pseudoUrls);
+    const pseudoUrlInstances = constructPseudoUrlInstances(pseudoUrls || []);
 
     /* istanbul ignore next */
     const getHrefs = linkEls => linkEls.map(link => link.href).filter(href => !!href);
@@ -238,11 +252,11 @@ const enqueueLinks = async (page, selector, requestQueue, pseudoUrls = []) => {
         requests = urls.map(url => ({ url }));
     }
 
-    const requestOperationInfos = [];
+    const queueOperationInfos = [];
     for (const request of requests) {
-        requestOperationInfos.push(await requestQueue.addRequest(request));
+        queueOperationInfos.push(await requestQueue.addRequest(request));
     }
-    return requestOperationInfos;
+    return queueOperationInfos;
 };
 
 /**

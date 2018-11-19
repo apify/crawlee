@@ -129,7 +129,7 @@ const Features = () => (
                 title: 'Automates any web workflow',
             },
             {
-                content: 'Apify SDK can be used **stand-alone** in your Node.js projects or it can run as a **serverless microservice on the Apify Cloud Platform**. ' +
+                content: 'Apify SDK can be used **stand-alone** in your Node.js projects or it can run as a **serverless microservice on the Apify Cloud**. ' +
                     '[Get started with Apify Cloud](https://my.apify.com/actors)',
                 image: imgUrl('cloud_icon.svg'),
                 imageAlign: 'top',
@@ -145,8 +145,8 @@ const Features = () => (
 //         style={{ textAlign: 'center' }}>
 //         <h2>All the features you need are already included</h2>
 //         <MarkdownBlock>
-//             We have built three different crawler classes for you so you can be up and running in no time.
-//             Do you need to crawl just plain HTML? Use our **blazing fast** [`CheerioCrawler`](examples/cheeriocrawler).
+//             We've built three different crawler classes for you so that you can be up and running in no time.
+//             Need to crawl plain HTML? Use our **blazing fast** [`CheerioCrawler`](examples/cheeriocrawler).
 //
 //             For complex websites that use **React, Vue** and other front-end javascript libraries and require real-time manipulation,
 //             spawn a headless browser with our [`PuppeteerCrawler`](examples/puppeteercrawler).
@@ -154,7 +154,7 @@ const Features = () => (
 //             And if you need **control of all aspects** of your crawling, just use the bare bones [`BasicCrawler`](examples/basiccrawler)
 //
 //             All of your crawlers will be automatically **scaled** based on available system resources with our [`AutoscaledPool`](api/AutoscaledPool).
-//             And if you use the [Apify Cloud Platform](https://my.apify.com/actors), we will also provide you with a pool of **Proxies** to avoid detection.
+//             And if you use the [Apify Cloud](https://my.apify.com/actors), we will also provide you with a pool of **Proxies** to avoid detection.
 //
 //             For your persistence needs, check out the [`Dataset`](api/dataset) and [`Key-Value Store`](api/keyvaluestore) storages.
 //         </MarkdownBlock>
@@ -165,11 +165,11 @@ const EasyCrawling = () => (
     <Block background="light" gridBlockAlign="left">
         {[
             {
-                content: 'There are three main class that you can use to start crawling web in no time. ' +
-                    'Do you need to crawl just the plain HTML? Use the **blazing fast** [`CheerioCrawler`](docs/examples/cheeriocrawler).\n' +
+                content: 'There are three main classes that you can use to start crawling the web in no time. ' +
+                    'Need to crawl plain HTML? Use the **blazing fast** [`CheerioCrawler`](docs/examples/cheeriocrawler).\n' +
                     'For complex websites that use **React**, **Vue** or other front-end javascript libraries and require JavaScript execution, ' +
                     'spawn a headless browser with [`PuppeteerCrawler`](docs/examples/puppeteercrawler).\n' +
-                    'To **control of all aspects** of your crawling, just use the bare bones [`BasicCrawler`](docs/examples/basiccrawler)',
+                    'To **control all aspects** of your crawling, just use the bare bones [`BasicCrawler`](docs/examples/basiccrawler)',
                 image: imgUrl('chrome_scrape.gif'),
                 imageAlign: 'right',
                 title: 'Easy crawling',
@@ -184,7 +184,7 @@ const PowerfulTools = () => (
             {
                 content: 'All the crawlers are automatically **scaled** based on available system resources using the [`AutoscaledPool`](docs/api/autoscaledpool) class. ' +
                     'When you run your code on the [Apify Cloud](https://my.apify.com/actors), you can also take advantage of a pool of **proxies** to avoid detection. ' +
-                    'For the data storage, you can use the [`Dataset`](docs/api/dataset) and [`KeyValueStore`](docs/api/keyvaluestore) classes.',
+                    'For data storage, you can use the [`Dataset`](docs/api/dataset) and [`Key-value store`](docs/api/keyvaluestore) classes.',
                 image: imgUrl('source_code.png'),
                 imageAlign: 'left',
                 title: 'Powerful tools',

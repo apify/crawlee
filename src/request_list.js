@@ -509,7 +509,20 @@ class RequestList {
      * @returns {Number}
      */
     length() {
+        this._ensureIsInitialized();
+
         return this.requests.length;
+    }
+
+    /**
+     * Returns number of handled requests.
+     *
+     * @returns {Number}
+     */
+    handledCount() {
+        this._ensureIsInitialized();
+
+        return this.nextIndex - _.size(this.inProgress);
     }
 }
 

@@ -76,7 +76,7 @@ For more details, see
 <td colspan="3"><p>Actor run options. For example:</p>
 <pre><code>  {
     &quot;build&quot;: &quot;latest&quot;,
-    &quot;timeoutSecs&quot;: 0,
+    &quot;waitSecs&quot;: 0,
     &quot;memoryMbytes&quot;: 256,
     &quot;diskMbytes&quot;: 512
   }

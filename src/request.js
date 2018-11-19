@@ -32,7 +32,7 @@ export const computeUniqueKey = (url, keepUrlFragment) => normalizeUrl(url, keep
  * ```
  * @param {object} options All `Request` parameters are passed
  *   via an options object with the following keys:
- * @param {String} options.url URL of the web page to crawl.
+ * @param {String} options.url URL of the web page to crawl. It must be a non-empty string.
  * @param {String} [options.uniqueKey] A unique key identifying the request.
  * Two requests with the same `uniqueKey` are considered as pointing to the same URL.
  *
@@ -66,9 +66,6 @@ export const computeUniqueKey = (url, keepUrlFragment) => normalizeUrl(url, keep
  *   For example, this causes the `http://www.example.com#foo` and `http://www.example.com#bar` URLs
  *   to have the same `uniqueKey` of `http://www.example.com` and thus the URLs are considered equal.
  *   Note that this option only has an effect if `uniqueKey` is not set.
- * @param {String} [options.ignoreErrors=false]
- *   If `true` then errors in processing of this request will be ignored.
- *   For example, the request won't be retried in a case of an error.
  *
  * @property {String} id
  *   Request ID
@@ -81,6 +78,8 @@ export const computeUniqueKey = (url, keepUrlFragment) => normalizeUrl(url, keep
  *   HTTP method, e.g. `GET` or `POST`.
  * @property {String} payload
  *   HTTP request payload, e.g. for POST requests.
+ * @property {Boolean} retry
+ *   Indicates whether the request will be automatically retried or not.
  * @property {Number} retryCount
  *   Indicates the number of times the crawling of the request has been retried on error.
  * @property {String[]} errorMessages
@@ -89,9 +88,6 @@ export const computeUniqueKey = (url, keepUrlFragment) => normalizeUrl(url, keep
  *   Object with HTTP headers. Key is header name, value is the value.
  * @property {Object} userData
  *   Custom user data assigned to the request.
- * @property {Boolean} ignoreErrors
- *   If `true` then errors in processing of this request are ignored.
- *   For example, the request won't be retried in a case of an error.
  * @property {Date} handledAt
  *   Indicates the time when the request has been processed.
  *   Is `null` if the request has not been crawled yet.
@@ -106,12 +102,12 @@ class Request {
             uniqueKey,
             method = 'GET',
             payload = null,
+            noRetry = false,
             retryCount = 0,
             errorMessages = null,
             headers = {},
             userData = {},
             keepUrlFragment = false,
-            ignoreErrors = false,
             handledAt = null,
         } = options;
 
@@ -121,25 +117,28 @@ class Request {
         checkParamOrThrow(uniqueKey, 'uniqueKey', 'Maybe String');
         checkParamOrThrow(method, 'method', 'String');
         checkParamOrThrow(payload, 'payload', 'Maybe Buffer | String');
+        checkParamOrThrow(noRetry, 'retry', 'Boolean');
         checkParamOrThrow(retryCount, 'retryCount', 'Number');
         checkParamOrThrow(errorMessages, 'errorMessages', 'Maybe Array');
         checkParamOrThrow(headers, 'headers', 'Object');
         checkParamOrThrow(userData, 'userData', 'Object');
-        checkParamOrThrow(ignoreErrors, 'ignoreErrors', 'Boolean');
         checkParamOrThrow(handledAt, 'handledAt', 'Maybe String | Date');
 
         if (method === 'GET' && payload) throw new Error('Request with GET method cannot have a payload.');
 
+        if (!url) throw new Error('The "url" option cannot be empty string.');
+
         this.id = id;
         this.url = url;
-        this.uniqueKey = uniqueKey || computeUniqueKey(url, keepUrlFragment);
+        // NOTE: If URL is invalid, computeUniqueKey() returns null which was causing weird errors
+        this.uniqueKey = uniqueKey || computeUniqueKey(url, keepUrlFragment) || url;
         this.method = method;
         this.payload = payload;
+        this.noRetry = noRetry;
         this.retryCount = retryCount;
         this.errorMessages = errorMessages;
         this.headers = headers;
         this.userData = userData;
-        this.ignoreErrors = ignoreErrors;
         this.handledAt = handledAt && new Date(handledAt);
     }
 
@@ -188,6 +187,21 @@ class Request {
 
         if (!this.errorMessages) this.errorMessages = [];
         this.errorMessages.push(message);
+    }
+
+    /**
+     * Flags the request with no retry which prevents {@link BasicCrawler}
+     * (and {@PuppeteerCrawler} + {@CheerioCrawler}, since they use {@BasicCrawler} internally)
+     * from retrying the request after an error occurs.
+     *
+     * Optionally accepts a message that will be used to construct
+     * and throw an Error.
+     *
+     * @param {String} [message]
+     */
+    doNotRetry(message) {
+        this.noRetry = true;
+        if (message) throw new Error(message);
     }
 }
 

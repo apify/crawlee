@@ -136,11 +136,19 @@ describe('BasicCrawler', () => {
         expect(await requestList.isEmpty()).to.be.eql(true);
     });
 
-    it('should not retry requests with ignoreErrors set to true ', async () => {
+    it('should not retry requests with noRetry set to true ', async () => {
+        const noRetryRequest = new Apify.Request({ url: 'http://example.com/3' });
+        try {
+            noRetryRequest.doNotRetry('no retry');
+            throw new Error('wrong error');
+        } catch (err) {
+            expect(err.message).to.be.eql('no retry');
+        }
+
         const sources = [
-            { url: 'http://example.com/1', ignoreErrors: true },
+            { url: 'http://example.com/1', noRetry: true },
             { url: 'http://example.com/2' },
-            { url: 'http://example.com/3', ignoreErrors: true },
+            noRetryRequest,
         ];
         const processed = {};
         const requestList = new Apify.RequestList({ sources });
@@ -170,17 +178,17 @@ describe('BasicCrawler', () => {
         await basicCrawler.run();
 
         expect(processed['http://example.com/1'].userData.foo).to.be.eql('bar');
-        expect(processed['http://example.com/1'].errorMessages).to.be.a('null');
+        expect(processed['http://example.com/1'].errorMessages).to.have.lengthOf(1);
         expect(processed['http://example.com/1'].retryCount).to.be.eql(0);
         expect(processed['http://example.com/3'].userData.foo).to.be.eql('bar');
-        expect(processed['http://example.com/3'].errorMessages).to.be.a('null');
+        expect(processed['http://example.com/3'].errorMessages).to.have.lengthOf(1);
         expect(processed['http://example.com/3'].retryCount).to.be.eql(0);
 
         expect(processed['http://example.com/2'].userData.foo).to.be.eql('bar');
         expect(processed['http://example.com/2'].errorMessages).to.have.lengthOf(11);
         expect(processed['http://example.com/2'].retryCount).to.be.eql(10);
 
-        expect(handleFailedRequestFunctionCalls).to.be.eql(1);
+        expect(handleFailedRequestFunctionCalls).to.be.eql(3);
 
         expect(await requestList.isFinished()).to.be.eql(true);
         expect(await requestList.isEmpty()).to.be.eql(true);

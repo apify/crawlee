@@ -168,6 +168,11 @@ describe('KeyValueStore', () => {
             mock.expects('openLocalStorage').once();
             await Apify.openKeyValueStore();
 
+            mock.expects('openLocalStorage').once();
+            Apify.openKeyValueStore('xxx');
+            mock.expects('openRemoteStorage').once();
+            Apify.openKeyValueStore('xxx', { forceCloud: true });
+
             delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
             process.env[ENV_VARS.TOKEN] = 'xxx';
 
@@ -248,7 +253,7 @@ describe('KeyValueStore', () => {
             delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
         });
 
-        it('throws on invalid characters in key', async () => {
+        it('throws on invalid key', async () => {
             const store = new KeyValueStoreLocal('my-store-id', LOCAL_STORAGE_DIR);
             const INVALID_CHARACTERS = '?|\\/"*<>%:';
             let counter = 0;
@@ -257,11 +262,21 @@ describe('KeyValueStore', () => {
                 try {
                     await store.setValue(`my_id_${char}`, 'value');
                 } catch (err) {
-                    if (err.message.match('The "key" parameter may contain only the following characters')) counter++;
+                    if (err.message.match('The "key" parameter must be at most 256 characters')) counter++;
                 }
             }
 
             expect(counter).to.be.eql(INVALID_CHARACTERS.length);
+
+            // TODO: This throws "ENAMETOOLONG: name too long, unlink" !!!
+            // await store.setValue('X'.repeat(256), 'value');
+
+            // test max length
+            try {
+                await store.setValue('X'.repeat(257), 'value');
+            } catch (err) {
+                if (err.message.match('The "key" parameter must be at most 256 characters')) counter++;
+            }
         });
 
         it('throws if APIFY_DEFAULT_KEY_VALUE_STORE_ID env var is not defined and we use cloud storage', async () => {
