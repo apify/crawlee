@@ -1,3 +1,8 @@
+xxx
+==================
+- `Apify.launchPuppeteer()` now sets the `defaultViewport` option if not provided by user,
+  to improve screenshots and debugging experience.
+
 0.9.4 / 2018-11-19
 ==================
 - Automatically adding `--enable-resource-load-scheduler=false`
