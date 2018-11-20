@@ -358,28 +358,28 @@ const sleep = (millis) => {
  * Returns a promise that resolves to an array of urls parsed from the resource available at the provided url.
  * Optionally, custom regular expression and encoding may be provided.
  *
- * @param {String} url
- * @param {String} [encoding='utf8']
- * @param {RegExp} [urlRegExp=URL_NO_COMMAS_REGEX]
+ * @param {Object} options
+ * @param {String} options.url URL to the file
+ * @param {String} [options.encoding='utf8'] The encoding of the file.
+ * @param {RegExp} [options.urlRegExp=URL_NO_COMMAS_REGEX]
+ *   Custom regular expression to identify the URLs in the file to extract.
+ *   The regular expression should be case-insensitive and have global flag set (i.e. `/something/gi`).
  * @returns {Promise<String[]>}
  * @memberOf utils
  */
-const downloadListOfUrls = ({ url, encoding = 'utf8', urlRegExp = URL_NO_COMMAS_REGEX }) => {
-    try {
-        checkParamOrThrow(url, 'url', 'String');
-        checkParamOrThrow(encoding, 'string', 'String');
-        checkParamOrThrow(urlRegExp, 'urlRegExp', 'RegExp');
-    } catch (err) {
-        return Promise.reject(err);
-    }
-    return requestPromise.get({ url, encoding })
-        .then(string => extractUrls({ string, urlRegExp }));
+const downloadListOfUrls = async ({ url, encoding = 'utf8', urlRegExp = URL_NO_COMMAS_REGEX }) => {
+    checkParamOrThrow(url, 'url', 'String');
+    checkParamOrThrow(encoding, 'string', 'String');
+    checkParamOrThrow(urlRegExp, 'urlRegExp', 'RegExp');
+
+    const string = await requestPromise.get({ url, encoding });
+    return extractUrls({ string, urlRegExp });
 };
 
 /**
  * Collects all URLs in an arbitrary string to an array, optionally using a custom regular expression.
  * @param {String} string
- * @param {RegExp} [urlRegExp=URL_NO_COMMAS_REGEX]
+ * @param {RegExp} [urlRegExp=Apify.utils.URL_NO_COMMAS_REGEX]
  * @returns {String[]}
  * @memberOf utils
  */

@@ -1,3 +1,7 @@
+0.9.5 / 2018-11-19
+==================
+- Bugfix: `Apify.call()` was causing permissions error.
+
 0.9.4 / 2018-11-19
 ==================
 - Automatically adding `--enable-resource-load-scheduler=false`
