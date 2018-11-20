@@ -1,3 +1,7 @@
+0.9.6 / 2018-11-20
+==================
+- Improvements in deployment script.
+
 0.9.5 / 2018-11-19
 ==================
 - Bugfix: `Apify.call()` was causing permissions error.
