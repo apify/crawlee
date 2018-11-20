@@ -16,8 +16,8 @@ const LAUNCH_PUPPETEER_LOG_OMIT_OPTS = [
 ];
 
 const LAUNCH_PUPPETEER_DEFAULT_VIEWPORT = {
-    width: 1200,
-    height: 900,
+    width: 1366,
+    height: 768,
 };
 
 /**
