@@ -97,12 +97,12 @@ await crawler.run();
 <td colspan="3"><p>User-provided function that performs the logic of the crawler. It is called for each page
   loaded and parsed by the crawler.</p>
 <p>  The function receives the following object as an argument:</p>
-<pre><code>  {
-      $: Cheerio, // the Cheerio object with parsed HTML
-      html: String // the raw HTML of the page
-      request: Request,
-      response: Object // a http.IncomingMessage object with properties such as the `statusCode`
-  }
+<pre><code>{
+  $: Cheerio, // the Cheerio object with parsed HTML
+  html: String // the raw HTML of the page
+  request: Request,
+  response: Object // a http.IncomingMessage object with properties such as the `statusCode`
+}
 </code></pre><p>  With the <a href="request"><code>Request</code></a> object representing the URL to crawl.
   If the function returns a promise, it is awaited.</p>
 </td></tr><tr>
@@ -181,8 +181,16 @@ await crawler.run();
 <td><code>[options.handleFailedRequestFunction]</code></td><td><code>function</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>Function that handles requests that failed more then <code>option.maxRequestRetries</code> times.
-  See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/cheerio_crawler.js#L13">GitHub</a> for default behavior.</p>
+<td colspan="3"><p>A function to handle requests that failed more than <code>option.maxRequestRetries</code> times.</p>
+<p>  The function receives the following object as an argument:</p>
+<pre><code>{
+  request: Request,
+  error: Error,
+}
+</code></pre><p>  where the <a href="request"><code>Request</code></a> instance corresponds to the failed request, and the <code>Error</code> instance
+  represents the last error thrown during processing of the request.</p>
+<p>  See <a href="https://github.com/apifytech/apify-js/blob/master/src/cheerio_crawler.js#L13">source code</a>
+  for the default implementation of this function.</p>
 </td></tr><tr>
 <td><code>[options.maxRequestRetries]</code></td><td><code>Number</code></td><td><code>3</code></td>
 </tr>

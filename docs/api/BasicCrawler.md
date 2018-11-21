@@ -84,10 +84,10 @@ await crawler.run();
 <tr>
 <td colspan="3"><p>User-provided function that performs the logic of the crawler. It is called for each URL to crawl.</p>
 <p>  The function receives the following object as an argument:</p>
-<pre><code>  {
-      request: Request
-  }
-</code></pre><p>  With the <a href="request"><code>Request</code></a> object representing the URL to crawl.
+<pre><code>{
+  request: Request
+}
+</code></pre><p>  where the <a href="request"><code>Request</code></a> instance represents the URL to crawl.
   The function must return a promise.</p>
 </td></tr><tr>
 <td><code>options.requestList</code></td><td><code><a href="requestlist">RequestList</a></code></td><td></td>
@@ -105,10 +105,17 @@ await crawler.run();
 <td><code>[options.handleFailedRequestFunction]</code></td><td><code>function</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>Function that handles requests that failed more then <code>options.maxRequestRetries</code> times.
-  See source code on
-  <a href="https://github.com/apifytech/apify-js/blob/master/src/basic_crawler.js#L11" target="_blank">GitHub</a>
-  for default behavior.</p>
+<td colspan="3"><p>A function to handle requests that failed more than <code>option.maxRequestRetries</code> times.</p>
+<p>  The function receives the following object as an argument:</p>
+<pre><code>{
+  request: Request,
+  error: Error,
+}
+</code></pre><p>  where the <a href="request"><code>Request</code></a> instance corresponds to the failed request, and the <code>Error</code> instance
+  represents the last error thrown during processing of the request.</p>
+<p>  See
+  <a href="https://github.com/apifytech/apify-js/blob/master/src/basic_crawler.js#L11" target="_blank">source code</a>
+  for the default implementation of this function.</p>
 </td></tr><tr>
 <td><code>[options.maxRequestRetries]</code></td><td><code>Number</code></td><td><code>3</code></td>
 </tr>

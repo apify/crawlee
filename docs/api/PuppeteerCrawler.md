@@ -87,12 +87,12 @@ await crawler.run();
 <tr>
 <td colspan="3"><p>Function that is called to process each request.
   It is passed an object with the following fields:</p>
-<pre><code>  {
-      request: Request,
-      response: Response,
-      page: Page,
-      puppeteerPool: PuppeteerPool
-  }
+<pre><code>{
+  request: Request,
+  response: Response,
+  page: Page,
+  puppeteerPool: PuppeteerPool
+}
 </code></pre><p>  <code>request</code> is an instance of the <a href="request"><code>Request</code></a> object with details about the URL to open, HTTP method etc.
   <code>response</code> is an instance of the <code>Puppeteer</code>
   <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a>
@@ -134,10 +134,17 @@ await crawler.run();
 <td><code>[options.handleFailedRequestFunction]</code></td><td><code>function</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>Function to handle requests that failed more than <code>option.maxRequestRetries</code> times.
-  See source code on
-  <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_crawler.js#L11" target="_blank">GitHub</a>
-  for default behavior.</p>
+<td colspan="3"><p>A function to handle requests that failed more than <code>option.maxRequestRetries</code> times.</p>
+<p>  The function receives the following object as an argument:</p>
+<pre><code>{
+  request: Request,
+  error: Error,
+}
+</code></pre><p>  Where the <a href="request"><code>Request</code></a> instance corresponds to the failed request, and the <code>Error</code> instance
+  represents the last error thrown during processing of the request.</p>
+<p>  See
+  <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_crawler.js#L11" target="_blank">source code</a>
+  for the default implementation of this function.</p>
 </td></tr><tr>
 <td><code>[options.maxRequestRetries]</code></td><td><code>Number</code></td><td><code>3</code></td>
 </tr>

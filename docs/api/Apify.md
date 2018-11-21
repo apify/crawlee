@@ -472,6 +472,12 @@ The `launchPuppeteer()` function alters the following Puppeteer options:
        Also it adds <code>--enable-resource-load-scheduler=false</code>
        to make crawling of pages in all tabs run equally fast.
    </li>
+   <li>
+       Sets <code>defaultViewport</code> Puppeteer option (if not already set)
+       to a more reasonable default for screenshots and debugging.
+       You can set `options.defaultViewport` to `null` if you prefer to let Puppeteer
+       choose the default viewport size.
+   </li>
 </ul>
 
 To use this function, you need to have the <a href="https://www.npmjs.com/package/puppeteer" target="_blank">puppeteer</a>
