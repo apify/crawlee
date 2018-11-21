@@ -297,15 +297,15 @@ describe('Apify.call()', () => {
 
         const actsMock = sinon.mock(Apify.client.acts);
         actsMock.expects('runAct')
-            .withExactArgs({ actId, token: undefined })
+            .withExactArgs({ actId })
             .once()
             .returns(Promise.resolve(runningRun));
         actsMock.expects('getRun')
-            .withExactArgs({ actId, runId: run.id, waitForFinish: 999999, token: undefined })
+            .withExactArgs({ actId, runId: run.id, waitForFinish: 999999 })
             .once()
             .returns(Promise.resolve(runningRun));
         actsMock.expects('getRun')
-            .withExactArgs({ actId, runId: run.id, waitForFinish: 999999, token: undefined })
+            .withExactArgs({ actId, runId: run.id, waitForFinish: 999999 })
             .once()
             .returns(Promise.resolve(finishedRun));
 
@@ -338,15 +338,15 @@ describe('Apify.call()', () => {
 
         const actsMock = sinon.mock(Apify.client.acts);
         actsMock.expects('runAct')
-            .withExactArgs({ actId, token: undefined })
+            .withExactArgs({ actId })
             .once()
             .returns(Promise.resolve(runningRun));
         actsMock.expects('getRun')
-            .withExactArgs({ actId, runId: run.id, waitForFinish: 999999, token: undefined })
+            .withExactArgs({ actId, runId: run.id, waitForFinish: 999999 })
             .once()
             .returns(Promise.resolve(runningRun));
         actsMock.expects('getRun')
-            .withExactArgs({ actId, runId: run.id, waitForFinish: 999999, token: undefined })
+            .withExactArgs({ actId, runId: run.id, waitForFinish: 999999 })
             .once()
             .returns(Promise.resolve(finishedRun));
 
@@ -380,16 +380,16 @@ describe('Apify.call()', () => {
 
         const actsMock = sinon.mock(Apify.client.acts);
         actsMock.expects('runAct')
-            .withExactArgs({ actId, contentType: 'application/json; charset=utf-8', body: JSON.stringify(input, null, 2), token: undefined })
+            .withExactArgs({ actId, contentType: 'application/json; charset=utf-8', body: JSON.stringify(input, null, 2) })
             .once()
             .returns(Promise.resolve(runningRun));
 
         actsMock.expects('getRun')
-            .withExactArgs({ actId, runId: run.id, waitForFinish: 999999, token: undefined })
+            .withExactArgs({ actId, runId: run.id, waitForFinish: 999999 })
             .once()
             .returns(Promise.resolve(runningRun));
         actsMock.expects('getRun')
-            .withExactArgs({ actId, runId: run.id, waitForFinish: 999999, token: undefined })
+            .withExactArgs({ actId, runId: run.id, waitForFinish: 999999 })
             .once()
             .returns(Promise.resolve(finishedRun));
 
@@ -815,13 +815,13 @@ describe('Apify.callTask()', () => {
 
         const tasksMock = sinon.mock(Apify.client.tasks);
         tasksMock.expects('runTask')
-            .withExactArgs({ token: undefined, taskId })
+            .withExactArgs({ taskId })
             .once()
             .returns(Promise.resolve(readyRun));
 
         const actsMock = sinon.mock(Apify.client.acts);
         actsMock.expects('getRun')
-            .withExactArgs({ token: undefined, actId, runId: run.id, waitForFinish: 999999 })
+            .withExactArgs({ actId, runId: run.id, waitForFinish: 999999 })
             .once()
             .returns(Promise.resolve(failedRun));
 

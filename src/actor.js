@@ -41,23 +41,27 @@ const waitForRunToFinish = async ({ actId, runId, token, waitSecs }) => {
         return true;
     };
 
+    const getRunOpts = { actId, runId };
+    if (token) getRunOpts.token = token;
+
     while (shouldRepeat()) {
-        const waitForFinish = waitSecs
+        getRunOpts.waitForFinish = waitSecs
             ? Math.round(waitSecs - (Date.now() - startedAt) / 1000)
             : 999999;
 
-        updatedRun = await acts.getRun({ actId, runId, token, waitForFinish });
+        updatedRun = await acts.getRun(getRunOpts);
 
         // It might take some time for database replicas to get up-to-date,
         // so getRun() might return null. Wait a little bit and try it again.
         if (!updatedRun) await Promise.delay(250);
     }
 
-    if (!updatedRun) throw new ApifyCallError({ id: runId, actId }, 'Apify.call() failed, cannot fetch run from a server');
-    if (
-        updatedRun.status !== ACT_JOB_STATUSES.SUCCEEDED
-        && updatedRun.status !== ACT_JOB_STATUSES.RUNNING
-    ) throw new ApifyCallError(updatedRun);
+    if (!updatedRun) {
+        throw new ApifyCallError({ id: runId, actId }, 'Apify.call() failed, cannot fetch run from a server');
+    }
+    if (updatedRun.status !== ACT_JOB_STATUSES.SUCCEEDED && updatedRun.status !== ACT_JOB_STATUSES.RUNNING) {
+        throw new ApifyCallError(updatedRun);
+    }
 
     return updatedRun;
 };
@@ -313,10 +317,13 @@ export const call = async (actId, input, options = {}) => {
 
     // RunAct() options.
     const { build, memoryMbytes, timeoutSecs } = optionsCopy;
-    const runActOpts = {};
+    const runActOpts = {
+        actId,
+    };
     checkParamOrThrow(build, 'build', 'Maybe String');
     checkParamOrThrow(memoryMbytes, 'memoryMbytes', 'Maybe Number');
     checkParamOrThrow(timeoutSecs, 'timeoutSecs', 'Maybe Number');
+    if (token) runActOpts.token = token;
     if (build) runActOpts.build = build;
     if (memoryMbytes) runActOpts.memory = memoryMbytes;
     if (timeoutSecs >= 0) runActOpts.timeout = timeoutSecs; // Zero is valid value!
@@ -333,7 +340,7 @@ export const call = async (actId, input, options = {}) => {
     // Run actor.
     const { waitSecs } = options;
     checkParamOrThrow(waitSecs, 'waitSecs', 'Maybe Number');
-    const run = await acts.runAct(Object.assign({ actId, token }, runActOpts));
+    const run = await acts.runAct(runActOpts);
     if (waitSecs <= 0) return run; // In this case there is nothing more to do.
 
     // Wait for run to finish.
@@ -417,7 +424,9 @@ export const callTask = async (taskId, input, options = {}) => {
     // Run task.
     const { waitSecs } = options;
     checkParamOrThrow(waitSecs, 'waitSecs', 'Maybe Number');
-    const run = await tasks.runTask({ taskId, token });
+    const opts = { taskId };
+    if (token) opts.token = token;
+    const run = await tasks.runTask(opts);
     if (waitSecs <= 0) return run; // In this case there is nothing more to do.
 
     // Wait for run to finish.

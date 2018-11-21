@@ -2,6 +2,20 @@ xxx
 ==================
 - Bugfix: `Dataset.getInfo()` sometimes returned an object with `itemsCount` field instead of `itemCount`
 
+0.9.6 / 2018-11-20
+==================
+- Improvements in deployment script.
+
+0.9.5 / 2018-11-19
+==================
+- Bugfix: `Apify.call()` was causing permissions error.
+
+0.9.4 / 2018-11-19
+==================
+- Automatically adding `--enable-resource-load-scheduler=false`
+  Chrome flag in `Apify.launchPuppeteer()`
+  to make crawling of pages in all tabs run equally fast.
+
 0.9.3 / 2018-11-12
 ==================
 - Bug fixes and improvements of internals.

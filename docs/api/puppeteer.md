@@ -88,6 +88,18 @@ e.g. to extract data from HTML elements using CSS selectors.
 Beware that the injected jQuery object will be set to the `window.$` variable and thus it might cause conflicts with
 libraries included by the page that use the same variable (e.g. another version of jQuery).
 
+Example usage:
+```javascript
+await Apify.utils.puppeteer.injectJQuery(page);
+const title = await page.evaluate(() => {
+  return $('head title').text();
+});
+```
+
+Note that `injectJQuery()` does not affect the Puppeteer's
+<a href="https://pptr.dev/#?product=Puppeteer&show=api-pageselector" target="_blank"><code>Page.$()</code></a>
+function in any way.
+
 <table>
 <thead>
 <tr>

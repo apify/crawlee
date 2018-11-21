@@ -22,19 +22,19 @@ await Apify.utils.sleep(1500);
     * [`.URL_NO_COMMAS_REGEX`](#utils.URL_NO_COMMAS_REGEX)
     * [`.URL_WITH_COMMAS_REGEX`](#utils.URL_WITH_COMMAS_REGEX)
     * [`.sleep(millis)`](#utils.sleep) ⇒ <code>Promise</code>
-    * [`.downloadListOfUrls(url, [encoding], [urlRegExp])`](#utils.downloadListOfUrls) ⇒ <code>Promise&lt;Array&lt;String&gt;&gt;</code>
+    * [`.downloadListOfUrls(options)`](#utils.downloadListOfUrls) ⇒ <code>Promise&lt;Array&lt;String&gt;&gt;</code>
     * [`.extractUrls(string, [urlRegExp])`](#utils.extractUrls) ⇒ <code>Array&lt;String&gt;</code>
     * [`.getRandomUserAgent()`](#utils.getRandomUserAgent) ⇒ <code>String</code>
 
 <a name="utils.URL_NO_COMMAS_REGEX"></a>
 
-## `utils.URL_NO_COMMAS_REGEX`
+## `utils.URL\_NO\_COMMAS\_REGEX`
 Default regular expression to match URLs in a string that may be plain text, JSON, CSV or other. It supports common URL characters
 and does not support URLs containing commas or spaces. The URLs also may contain Unicode letters (not symbols).
 
 <a name="utils.URL_WITH_COMMAS_REGEX"></a>
 
-## `utils.URL_WITH_COMMAS_REGEX`
+## `utils.URL\_WITH\_COMMAS\_REGEX`
 Regular expression that, in addition to the default regular expression `URL_NO_COMMAS_REGEX`, supports matching commas in URL path and query.
 Note, however, that this may prevent parsing URLs from comma delimited lists, or the URLs may become malformed.
 
@@ -71,7 +71,7 @@ await Apify.utils.sleep(1500);
 </table>
 <a name="utils.downloadListOfUrls"></a>
 
-## `utils.downloadListOfUrls(url, [encoding], [urlRegExp])` ⇒ <code>Promise&lt;Array&lt;String&gt;&gt;</code>
+## `utils.downloadListOfUrls(options)` ⇒ <code>Promise&lt;Array&lt;String&gt;&gt;</code>
 Returns a promise that resolves to an array of urls parsed from the resource available at the provided url.
 Optionally, custom regular expression and encoding may be provided.
 
@@ -83,18 +83,26 @@ Optionally, custom regular expression and encoding may be provided.
 </thead>
 <tbody>
 <tr>
-<td><code>url</code></td><td><code>String</code></td><td></td>
+<td><code>options</code></td><td><code>Object</code></td><td></td>
 </tr>
 <tr>
-</tr><tr>
-<td><code>[encoding]</code></td><td><code>String</code></td><td><code>&#x27;utf8&#x27;</code></td>
+<td colspan="3"></td></tr><tr>
+<td><code>options.url</code></td><td><code>String</code></td><td></td>
 </tr>
 <tr>
-</tr><tr>
-<td><code>[urlRegExp]</code></td><td><code>RegExp</code></td><td><code>URL_NO_COMMAS_REGEX</code></td>
+<td colspan="3"><p>URL to the file</p>
+</td></tr><tr>
+<td><code>[options.encoding]</code></td><td><code>String</code></td><td><code>&#x27;utf8&#x27;</code></td>
 </tr>
 <tr>
-</tr></tbody>
+<td colspan="3"><p>The encoding of the file.</p>
+</td></tr><tr>
+<td><code>[options.urlRegExp]</code></td><td><code>RegExp</code></td><td><code>URL_NO_COMMAS_REGEX</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Custom regular expression to identify the URLs in the file to extract.
+  The regular expression should be case-insensitive and have global flag set (i.e. <code>/something/gi</code>).</p>
+</td></tr></tbody>
 </table>
 <a name="utils.extractUrls"></a>
 
@@ -113,7 +121,7 @@ Collects all URLs in an arbitrary string to an array, optionally using a custom 
 </tr>
 <tr>
 </tr><tr>
-<td><code>[urlRegExp]</code></td><td><code>RegExp</code></td><td><code>URL_NO_COMMAS_REGEX</code></td>
+<td><code>[urlRegExp]</code></td><td><code>RegExp</code></td><td><code>Apify.utils.URL_NO_COMMAS_REGEX</code></td>
 </tr>
 <tr>
 </tr></tbody>
