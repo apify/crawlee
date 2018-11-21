@@ -93,14 +93,14 @@ const DEFAULT_OPTIONS = {
  *   loaded and parsed by the crawler.
  *
  *   The function receives the following object as an argument:
- *   ```
- *   {
- *       $: Cheerio, // the Cheerio object with parsed HTML
- *       html: String // the raw HTML of the page
- *       request: Request,
- *       response: Object // a http.IncomingMessage object with properties such as the `statusCode`
- *   }
- *   ```
+ * ```
+ * {
+ *   $: Cheerio, // the Cheerio object with parsed HTML
+ *   html: String // the raw HTML of the page
+ *   request: Request,
+ *   response: Object // a http.IncomingMessage object with properties such as the `statusCode`
+ * }
+ * ```
  *   With the {@link Request} object representing the URL to crawl.
  *   If the function returns a promise, it is awaited.
  * @param {RequestList} options.requestList
@@ -148,8 +148,20 @@ const DEFAULT_OPTIONS = {
  *   Custom proxies are not compatible with Apify Proxy and an attempt to use both
  *   configuration options will cause an error to be thrown on startup.
  * @param {Function} [options.handleFailedRequestFunction]
- *   Function that handles requests that failed more then `option.maxRequestRetries` times.
- *   See source code on <a href="https://github.com/apifytech/apify-js/blob/master/src/cheerio_crawler.js#L13">GitHub</a> for default behavior.
+ *   A function to handle requests that failed more than `option.maxRequestRetries` times.
+ *
+ *   The function receives the following object as an argument:
+ * ```
+ * {
+ *   request: Request,
+ *   error: Error,
+ * }
+ * ```
+ *   where the {@link Request} instance corresponds to the failed request, and the `Error` instance
+ *   represents the last error thrown during processing of the request.
+ *
+ *   See <a href="https://github.com/apifytech/apify-js/blob/master/src/cheerio_crawler.js#L13">source code</a>
+ *   for the default implementation of this function.
  * @param {Number} [options.maxRequestRetries=3]
  *   Indicates how many times the request is retried if either `requestFunction` or `handlePageFunction` fails.
  * @param {Number} [options.maxRequestsPerCrawl]

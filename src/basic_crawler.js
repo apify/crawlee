@@ -74,12 +74,12 @@ const DEFAULT_OPTIONS = {
  *   User-provided function that performs the logic of the crawler. It is called for each URL to crawl.
  *
  *   The function receives the following object as an argument:
- *   ```
- *   {
- *       request: Request
- *   }
- *   ```
- *   With the {@link Request} object representing the URL to crawl.
+ * ```
+ * {
+ *   request: Request
+ * }
+ * ```
+ *   where the {@link Request} instance represents the URL to crawl.
  *   The function must return a promise.
  * @param {RequestList} options.requestList
  *   Static list of URLs to be processed.
@@ -88,10 +88,21 @@ const DEFAULT_OPTIONS = {
  *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
  *   Either `requestList` or `requestQueue` option must be provided (or both).
  * @param {Function} [options.handleFailedRequestFunction]
- *   Function that handles requests that failed more then `options.maxRequestRetries` times.
- *   See source code on
- *   <a href="https://github.com/apifytech/apify-js/blob/master/src/basic_crawler.js#L11" target="_blank">GitHub</a>
- *   for default behavior.
+ *   A function to handle requests that failed more than `option.maxRequestRetries` times.
+ *
+ *   The function receives the following object as an argument:
+ * ```
+ * {
+ *   request: Request,
+ *   error: Error,
+ * }
+ * ```
+ *   where the {@link Request} instance corresponds to the failed request, and the `Error` instance
+ *   represents the last error thrown during processing of the request.
+ *
+ *   See
+ *   <a href="https://github.com/apifytech/apify-js/blob/master/src/basic_crawler.js#L11" target="_blank">source code</a>
+ *   for the default implementation of this function.
  * @param {Number} [options.maxRequestRetries=3]
  *   Indicates how many times the request is retried if [`handleRequestFunction()`](#new_BasicCrawler_new) fails.
  * @param {Number} [options.maxRequestsPerCrawl]

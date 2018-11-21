@@ -15,6 +15,11 @@ const LAUNCH_PUPPETEER_LOG_OMIT_OPTS = [
     'proxyUrl', 'userAgent', 'useApifyProxy', 'apifyProxySession', 'apifyProxyGroups',
 ];
 
+const LAUNCH_PUPPETEER_DEFAULT_VIEWPORT = {
+    width: 1366,
+    height: 768,
+};
+
 /**
  * Represents options passed to the
  * [`Apify.launchPuppeteer()`](../api/apify#module_Apify.launchPuppeteer)
@@ -160,6 +165,12 @@ const getPuppeteerOrThrow = () => {
  *        Also it adds <code>--enable-resource-load-scheduler=false</code>
  *        to make crawling of pages in all tabs run equally fast.
  *    </li>
+ *    <li>
+ *        Sets <code>defaultViewport</code> Puppeteer option (if not already set)
+ *        to a more reasonable default for screenshots and debugging.
+ *        You can set `options.defaultViewport` to `null` if you prefer to let Puppeteer
+ *        choose the default viewport size.
+ *    </li>
  * </ul>
  *
  * To use this function, you need to have the <a href="https://www.npmjs.com/package/puppeteer" target="_blank">puppeteer</a>
@@ -212,6 +223,9 @@ export const launchPuppeteer = (options = {}) => {
             groupsParamName: 'options.apifyProxyGroups',
             sessionParamName: 'options.apifyProxySession',
         });
+    }
+    if (optsCopy.defaultViewport === undefined) {
+        optsCopy.defaultViewport = LAUNCH_PUPPETEER_DEFAULT_VIEWPORT;
     }
 
     // When User-Agent is not set and we're using Chromium or headless mode,

@@ -1,5 +1,7 @@
 xxx
 ==================
+- `Apify.launchPuppeteer()` now sets the `defaultViewport` option if not provided by user,
+  to improve screenshots and debugging experience.
 - Bugfix: `Dataset.getInfo()` sometimes returned an object with `itemsCount` field instead of `itemCount`
 
 0.9.6 / 2018-11-20

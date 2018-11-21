@@ -77,14 +77,14 @@ const PAGE_CLOSE_TIMEOUT_MILLIS = 30000;
  *   Function that is called to process each request.
  *   It is passed an object with the following fields:
  *
- *   ```
- *   {
- *       request: Request,
- *       response: Response,
- *       page: Page,
- *       puppeteerPool: PuppeteerPool
- *   }
- *   ```
+ * ```
+ * {
+ *   request: Request,
+ *   response: Response,
+ *   page: Page,
+ *   puppeteerPool: PuppeteerPool
+ * }
+ * ```
  *
  *   `request` is an instance of the {@link Request} object with details about the URL to open, HTTP method etc.
  *   `response` is an instance of the `Puppeteer`
@@ -115,10 +115,21 @@ const PAGE_CLOSE_TIMEOUT_MILLIS = 30000;
  *   <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_crawler.js#L9" target="_blank">GitHub</a>
  *   for default behavior.
  * @param {Function} [options.handleFailedRequestFunction]
- *   Function to handle requests that failed more than `option.maxRequestRetries` times.
- *   See source code on
- *   <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_crawler.js#L11" target="_blank">GitHub</a>
- *   for default behavior.
+ *   A function to handle requests that failed more than `option.maxRequestRetries` times.
+ *
+ *   The function receives the following object as an argument:
+ * ```
+ * {
+ *   request: Request,
+ *   error: Error,
+ * }
+ * ```
+ *   Where the {@link Request} instance corresponds to the failed request, and the `Error` instance
+ *   represents the last error thrown during processing of the request.
+ *
+ *   See
+ *   <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_crawler.js#L11" target="_blank">source code</a>
+ *   for the default implementation of this function.
  * @param {Number} [options.maxRequestRetries=3]
  *    Indicates how many times the request is retried if either `handlePageFunction()` or `gotoFunction()` fails.
  * @param {Number} [options.maxRequestsPerCrawl]
