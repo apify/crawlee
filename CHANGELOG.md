@@ -1,4 +1,4 @@
-xxx
+0.9.7 / 2018-11-20
 ==================
 - `Apify.launchPuppeteer()` now sets the `defaultViewport` option if not provided by user,
   to improve screenshots and debugging experience.
