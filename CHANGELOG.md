@@ -1,3 +1,7 @@
+xxx
+==================
+- Bugfix: `Dataset.getInfo()` sometimes returned an object with `itemsCount` field instead of `itemCount`
+
 0.9.6 / 2018-11-20
 ==================
 - Improvements in deployment script.
