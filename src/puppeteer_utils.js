@@ -247,7 +247,7 @@ const enqueueLinks = async (...args) => {
     if (args.length === 1) {
         [{ page, selector = 'a', requestQueue, pseudoUrls, userData = {} }] = args;
     } else {
-        [page, selector = 'ą', requestQueue, pseudoUrls, userData = {}] = args;
+        [page, selector = 'a', requestQueue, pseudoUrls, userData = {}] = args;
         if (logDeprecationWarning) {
             log.warning('Passing individual arguments to enqueueLinks() is deprecated. '
                 + 'Use an options object: enqueueLinks({ page, selector, requestQueue, pseudoUrls, userData }) instead.');
