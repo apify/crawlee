@@ -266,7 +266,7 @@ const enqueueLinks = async (...args) => {
     checkParamOrThrow(selector, 'selector', 'String');
     checkParamPrototypeOrThrow(requestQueue, 'requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue');
     checkParamOrThrow(pseudoUrls, 'pseudoUrls', 'Maybe Array');
-    checkParamOrThrow(userData, 'userData', 'Object');
+    checkParamOrThrow(userData, 'userData', 'Maybe Object');
 
     // Construct pseudoUrls from input where necessary.
     const pseudoUrlInstances = constructPseudoUrlInstances(pseudoUrls || []);
