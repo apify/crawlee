@@ -197,33 +197,66 @@ let logDeprecationWarning = true;
  *
  * *WARNING*: This is work in progress. Currently the function doesn't click elements and only takes their `href` attribute and so
  *            is working only for link (`a`) elements, but not for buttons or JavaScript links.
- *
- * @param {Page} page
+ * @param {Object} options
+ * @param {Page} options.page
  *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
- * @param {String} selector
- *   CSS selector matching elements to be clicked.
- * @param {RequestQueue} requestQueue
+ * @param {RequestQueue} options.requestQueue
  *   {@link RequestQueue} instance where URLs will be enqueued.
- * @param {PseudoUrl[]|Object[]|String[]} [pseudoUrls]
+ * @param {String} [options.selector='a']
+ *   CSS selector matching elements to be clicked.
+ * @param {PseudoUrl[]|Object[]|String[]} [options.pseudoUrls]
  *   An array of {@link PseudoUrl}s matching the URLs to be enqueued,
  *   or an array of Strings or Objects from which the {@link PseudoUrl}s should be constructed
  *   The Objects must include at least a `purl` property, which holds a pseudoUrl string.
  *   All remaining keys will be used as the `requestTemplate` argument of the {@link PseudoUrl} constructor.
  *   If `pseudoUrls` is an empty array, null or undefined, then the function
  *   enqueues all links found on the page.
+ * @param {Object} [options.userData]
+ *   Object that will be merged with the new Request's userData, overriding any values that
+ *   were set via templating from pseudoUrls. This is useful when you need to override generic
+ *   userData set by PseudoURL template in specific use cases.
+ *   **Example:**
+ *   ```
+ *   // pseudoUrl.userData
+ *   {
+ *       name: 'John',
+ *       surname: 'Doe',
+ *   }
+ *
+ *   // userData
+ *   {
+ *       name: 'Albert',
+ *       age: 31
+ *   }
+ *
+ *   // enqueued request.userData
+ *   {
+ *       name: 'Albert',
+ *       surname: 'Doe',
+ *       age: 31,
+ *   }
+ *   ```
  * @return {Promise<QueueOperationInfo[]>}
  *   Promise that resolves to an array of {@link QueueOperationInfo} objects.
  * @memberOf puppeteer
  */
-const enqueueLinks = async (page, selector, requestQueue, pseudoUrls) => {
+const enqueueLinks = async (...args) => {
     // TODO: Remove after v1.0.0 gets released.
-    // Check for pseudoUrls as a third parameter.
-    if (Array.isArray(requestQueue)) {
+    // Refactor enqueueLinks to use an options object and keep backwards compatibility
+    let page, selector, requestQueue, pseudoUrls, userData; // eslint-disable-line
+    if (args.length === 1) {
+        [{ page, selector = 'a', requestQueue, pseudoUrls, userData = {} }] = args;
+    } else {
+        [page, selector = 'ą', requestQueue, pseudoUrls, userData = {}] = args;
         if (logDeprecationWarning) {
-            log.warning('Argument "pseudoUrls" as the third parameter to enqueueLinks() is deprecated. '
-                + 'Use enqueueLinks(page, selector, requestQueue, pseudoUrls) instead. "pseudoUrls" are now optional.');
+            log.warning('Passing individual arguments to enqueueLinks() is deprecated. '
+                + 'Use an options object: enqueueLinks({ page, selector, requestQueue, pseudoUrls, userData }) instead.');
             logDeprecationWarning = false;
         }
+    }
+
+    // Check for pseudoUrls as a third parameter.
+    if (Array.isArray(requestQueue)) {
         const tmp = requestQueue;
         requestQueue = pseudoUrls;
         pseudoUrls = tmp;
@@ -233,6 +266,7 @@ const enqueueLinks = async (page, selector, requestQueue, pseudoUrls) => {
     checkParamOrThrow(selector, 'selector', 'String');
     checkParamPrototypeOrThrow(requestQueue, 'requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue');
     checkParamOrThrow(pseudoUrls, 'pseudoUrls', 'Maybe Array');
+    checkParamOrThrow(userData, 'userData', 'Object');
 
     // Construct pseudoUrls from input where necessary.
     const pseudoUrlInstances = constructPseudoUrlInstances(pseudoUrls || []);
@@ -249,11 +283,13 @@ const enqueueLinks = async (page, selector, requestQueue, pseudoUrls) => {
                 .forEach(purl => requests.push(purl.createRequest(url)));
         });
     } else {
-        requests = urls.map(url => ({ url }));
+        requests = urls.map(url => new Request({ url }));
     }
 
     const queueOperationInfos = [];
     for (const request of requests) {
+        // Inject custom userData
+        Object.assign(request.userData, userData);
         queueOperationInfos.push(await requestQueue.addRequest(request));
     }
     return queueOperationInfos;
