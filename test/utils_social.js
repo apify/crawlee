@@ -1,3 +1,4 @@
+import _ from 'underscore';
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 // import * as utils from '../build/utils';
@@ -302,13 +303,13 @@ describe('utils.social.phonesFromUrls()', () => {
     });
 });
 
-
-
-
 describe('utils.social.handlesFromHtml()', () => {
     const EMPTY_RESULT = {
         emails: [],
         phones: [],
+        linkedIns: [],
+        instagrams: [],
+        twitters: [],
     };
 
     it('handles invalid arg', () => {
@@ -329,25 +330,77 @@ describe('utils.social.handlesFromHtml()', () => {
                     <title>Bla</title> 
                 </head>
                 <a>
-                    <p>bob@example.com</p>                    
+                    <p>bob@example.com</p>     
+                    bob@example.com testing skipping duplicates  xxx@blabla                  
                     <p>carl&#64;example.com</p>
                     <a href="mailto:alice@example.com"></a>
                     <a href="mailto:david&#64;example.com"></a>    
    
-                    <a href="skip.this.one@gmail.com"></a>
+                    <a href="skip.this.one@gmail.com"></a>  
                     <img src="http://somewhere.com/ skip.this.one.too@gmail.com " />
                     <a href="http://somewhere.com/ skip.this.one.too@gmail.com "></a>
                     
-                    &#43;420775222222
+                    &#43;420775222222  
                     +4207751111111
+                    +4207751111111  test duplicate
+                    1 2 3 4 5 6 7 8 9 0
                     <a href="skip.this.one: +42099999999"></a>
                     <a href="tel://+42077533333"></a>
+                    
+                    https://www.linkedin.com/in/bobnewman/
+                    https://www.linkedin.com/in/alicenewman/
+                    https://www.linkedin.com/in/alicenewman/ duplicate
+                    http://www.linkedin.com/in/nohttps/
+                    https://cz.linkedin.com/in/somecountry
+                    https://www.linkedin.com/in/carl-newman/ignored-sub-link
+                    https://www.linkedin.com/in/first-last-123456a
+                    <a href="https://www.linkedin.com/in/jancurn">Profile</a>
+                    <a href="https://www.linkedin.com/in/carl-newman-5555555a/detail/recent-activity/">Sub-link</a>
+                    
+                    https://www.instagram.com/old_prague/
+                    https://www.instagram.com/old_prague
+                    
+                    https://www.instagram.com/newyorkarea/
+                    
+                    <a href="https://www.instagram.com/york">link</a>
                     
                 </body>
             </html>
         `)).to.eql({
             emails: ['alice@example.com', 'bob@example.com', 'carl@example.com', 'david@example.com'],
             phones: ['+4207751111111', '+420775222222', '+42077533333'],
+            linkedIns: [
+                'http://www.linkedin.com/in/nohttps',
+                'https://cz.linkedin.com/in/somecountry',
+                'https://www.linkedin.com/in/alicenewman',
+                'https://www.linkedin.com/in/bobnewman',
+                'https://www.linkedin.com/in/carl-newman',
+                'https://www.linkedin.com/in/carl-newman-5555555a',
+                'https://www.linkedin.com/in/first-last-123456a',
+                'https://www.linkedin.com/in/jancurn',
+            ],
+            instagrams: [
+                'https://www.instagram.com/newyorkarea',
+                'https://www.instagram.com/old_prague',
+                'https://www.instagram.com/york',
+            ],
+            twitters: [],
         });
+    });
+});
+
+describe('utils.social REGEXPES', () => {
+    it('exist', () => {
+        expect(_.isRegExp(social.EMAIL_REGEX)).to.eql(true);
+        expect(_.isRegExp(social.EMAIL_REGEX_GLOBAL)).to.eql(true);
+
+        expect(_.isRegExp(social.LINKEDIN_URL_REGEX)).to.eql(true);
+        expect(_.isRegExp(social.LINKEDIN_URL_REGEX_GLOBAL)).to.eql(true);
+
+        expect(_.isRegExp(social.INSTAGRAM_URL_REGEX)).to.eql(true);
+        expect(_.isRegExp(social.INSTAGRAM_URL_REGEX_GLOBAL)).to.eql(true);
+
+        expect(_.isRegExp(social.TWITTER_URL_REGEX)).to.eql(true);
+        expect(_.isRegExp(social.TWITTER_URL_REGEX_GLOBAL)).to.eql(true);
     });
 });
