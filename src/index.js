@@ -17,6 +17,7 @@ import SettingsRotator from './settings_rotator';
 import { apifyClient, getMemoryInfo, isAtHome, publicUtils } from './utils';
 import { browse, launchWebDriver } from './webdriver';
 import { puppeteerUtils } from './puppeteer_utils';
+import { socialUtils } from './utils_social';
 import PseudoUrl from './pseudo_url';
 
 /* globals module */
@@ -95,6 +96,7 @@ module.exports = {
     // utils
     utils: Object.assign(publicUtils, {
         puppeteer: puppeteerUtils,
+        social: socialUtils,
         log,
     }),
 };
