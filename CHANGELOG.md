@@ -1,3 +1,8 @@
+xxx
+==================
+- Added new `Apify.utils.social` namespace with new functions and constants
+- Updated NPM dependencies
+
 0.9.7 / 2018-11-20
 ==================
 - `Apify.launchPuppeteer()` now sets the `defaultViewport` option if not provided by user,

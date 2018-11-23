@@ -51,7 +51,7 @@
   "dependencies": {
     "@apify/ps-tree": "^1.1.2",
     "apify-client": "^0.5.0",
-    "apify-shared": "^0.1.9",
+    "apify-shared": "^0.1.11",
     "bluebird": "^3.5.3",
     "cheerio": "^1.0.0-rc.2",
     "content-type": "^1.0.4",
