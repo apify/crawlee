@@ -56,6 +56,7 @@
     "cheerio": "^1.0.0-rc.2",
     "content-type": "^1.0.4",
     "fs-extra": "^7.0.1",
+    "html-to-text": "^4.0.0",
     "jquery": "^3.3.1",
     "mime": "^2.3.1",
     "proxy-chain": "^0.2.5",
@@ -63,7 +64,7 @@
     "request-promise-native": "^1.0.5",
     "rimraf": "^2.6.2",
     "underscore": "^1.9.1",
-    "ws": "^6.1.0",
+    "ws": "^6.1.2",
     "xregexp": "^4.2.0"
   },
   "devDependencies": {
