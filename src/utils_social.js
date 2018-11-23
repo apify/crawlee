@@ -27,12 +27,36 @@ const emailsFromText = (text) => {
  * The function extracts email addresses from a list of URLs.
  * Basically it looks for all `mailto:` URLs and returns valid email addresses from them.
  * Note that the function preserves the order of emails and keep duplicates.
- * @param {String[]} Array of URLs.
+ * @param {String[]} urls Array of URLs.
  * @return {String[]} Array of emails addresses found.
  * If no emails are found, the function returns an empty array.
  * @memberOf utils.social
  */
 const emailsFromUrls = (urls) => {
+    if (!Array.isArray(urls)) throw new Error('The "urls" parameter must be an array');
+
+    const emails = [];
+    for (const url of urls) {
+        if (!url) continue;
+        if (!EMAIL_URL_PREFIX_REGEX.test(url)) continue;
+
+        const email = url.replace(EMAIL_URL_PREFIX_REGEX, '').trim();
+        if (EMAIL_REGEX.test(email)) emails.push(email);
+    }
+    return emails;
+};
+
+
+/**
+ * The function extracts email addresses from a HTML text.
+ * It looks for `mailto:` links as well as email addresses in the text content.
+ * Note that the function preserves the order of emails and keep duplicates.
+ * @param {String} html HTML document
+ * @return {String[]} Array of emails addresses found.
+ * If no emails are found, the function returns an empty array.
+ * @memberOf utils.social
+ */
+const emailsFromHtml = (html) => {
     if (!Array.isArray(urls)) throw new Error('The "urls" parameter must be an array');
 
     const emails = [];
@@ -108,7 +132,7 @@ const SKIP_PHONE_REGEXS = [
 
 
 const PHONE_REGEX_GLOBAL = new RegExp(`(${PHONE_REGEXS_STRINGS.join('|')})`, 'ig');
-const PHONE_REGEX = new RegExp(`^(${PHONE_REGEXS_STRINGS.join('|')})$`, 'ig');
+const PHONE_REGEX = new RegExp(`^(${PHONE_REGEXS_STRINGS.join('|')})$`, 'i');
 const SKIP_PHONE_REGEX = new RegExp(`^(${SKIP_PHONE_REGEXS.join('|')})$`, 'i');
 
 
@@ -150,10 +174,12 @@ const phonesFromText = (text) => {
  * @memberOf utils
  */
 const phonesFromUrls = (urls) => {
+    if (!Array.isArray(urls)) throw new Error('The "urls" parameter must be an array');
+
     const phones = [];
     for (const url of urls) {
         if (!url) continue;
-        if (!EMAIL_URL_PREFIX_REGEX.test(url)) continue;
+        if (!PHONE_URL_PREFIX_REGEX.test(url)) continue;
 
         const phone = url.replace(PHONE_URL_PREFIX_REGEX, '').trim();
         if (PHONE_REGEX.test(phone)) phones.push(phone);

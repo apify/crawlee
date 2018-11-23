@@ -267,48 +267,37 @@ describe('utils.social.phonesFromUrls()', () => {
 
         expect(social.phonesFromUrls([
             'tel:12345678',
-            'tel:/12345678',
-            'tel://12345678',
-            'phone:12345678',
-            'phone:/12345678',
-            'phone://12345678',
-            'telephone:12345678',
-            'telephone:/12345678',
-            'telephone://12345678',
+            'tel:/22345678', //
+            'tel://32345678',
+            'phone:42345678', //
+            'phone:/52345678',
+            'phone://62345678',
+            'telephone:72345678',
+            'telephone:/82345678',
+            'telephone://92345678',
         ])).to.eql([
             '12345678',
-            '12345678',
-            '12345678',
-            '12345678',
-            '12345678',
-            '12345678',
-            '12345678',
-            '12345678',
+            '22345678',
+            '32345678',
+            '42345678',
+            '52345678',
+            '62345678',
+            '72345678',
+            '82345678',
+            '92345678',
         ]);
 
-        expect(social.emailsFromUrls([
+        expect(social.phonesFromUrls([
+            'https://www.example.com',
+            'ftp://www.example.com',
+            '1234567',
+            '+42055555567',
+            'tel://+42012345678',
+            'tel://+420.123.456',
             'http://www.example.com',
-            'mailto:info@example.com',
-            'mailto:info@example.com',
-            'email.without.mailto.prefix@example.com',
-            '',
-            '\n\n\n',
         ])).to.eql([
-            'info@example.com',
-            'info@example.com',
-        ]);
-
-        expect(social.emailsFromUrls([
-            'http://www.example.com',
-            'mailto:info@example.com',
-            'mailto:info@example.com',
-            'email.without.mailto.prefix@example.com',
-            '',
-            '\n\n\n',
-        ])).to.eql([
-            'info@example.com',
-            'info@example.com',
+            '+42012345678',
+            '+420.123.456',
         ]);
     });
 });
-
