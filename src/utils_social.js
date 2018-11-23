@@ -1,3 +1,4 @@
+/* eslint-disable no-continue */
 import _ from 'underscore';
 
 // Regex inspired by https://zapier.com/blog/extract-links-email-phone-regex/
@@ -17,8 +18,8 @@ const EMAIL_URL_PREFIX_REGEX = /^mailto:/i;
  * @memberOf utils.social
  */
 const emailsFromText = (text) => {
-    const emails = _.isString(text) ? text.match(EMAIL_REGEX_GLOBAL) : [];
-    return emails || [];
+    if (!_.isString(text)) return [];
+    return text.match(EMAIL_REGEX_GLOBAL) || [];
 };
 
 
@@ -36,12 +37,11 @@ const emailsFromUrls = (urls) => {
 
     const emails = [];
     for (const url of urls) {
-        if (url && EMAIL_URL_PREFIX_REGEX.test(url)) {
-            const email = url.replace(EMAIL_URL_PREFIX_REGEX, '').trim();
-            if (EMAIL_REGEX.test(email)) {
-                emails.push(email);
-            }
-        }
+        if (!url) continue;
+        if (!EMAIL_URL_PREFIX_REGEX.test(url)) continue;
+
+        const email = url.replace(EMAIL_URL_PREFIX_REGEX, '').trim();
+        if (EMAIL_REGEX.test(email)) emails.push(email);
     }
     return emails;
 };
@@ -58,51 +58,48 @@ const PHONE_URL_PREFIX_REGEX = /^(tel|phone|telephone):(\/)?(\/)?/i;
 // It's pretty much impossible (and unmaintainable) to have just one large regular expression for all possible phone numbers.
 // So here we define various regular expression for typical phone number patterns, which are then used to compile
 // a single large regular expressions. Add more patterns as needed.
-const PHONE_REGEXS_STRS = [
+const PHONE_REGEXS_STRINGS = [
     // 775123456
     '[0-9]{6,15}',
 
+    // 1(413)555-2378 or 1(413)555.2378 or 1 (413) 555-2378 or 1 (413) 555 2378 or (303) 494-2320
+    '([0-9]{1,4}( )?)?\\([0-9]{2,4}\\)( )?[0-9]{2,4}(( )?(-|.))?( )?[0-9]{2,6}',
+
+    // 1(262) 955-95-79 or 1(262)955.95.79
+    '([0-9]{1,4}( )?)?\\([0-9]{2,4}\\)( )?[0-9]{2,4}(( )?(-|.))?( )?[0-9]{2,6}',
+
     // 413-577-1234-564
     '[0-9]{2,4}-[0-9]{2,4}-[0-9]{2,4}-[0-9]{2,6}',
-
     // 413-577-1234
     '[0-9]{2,4}-[0-9]{2,4}-[0-9]{2,6}',
-
     // 413-577
     '[0-9]{2,4}-[0-9]{2,6}',
 
     // 413.577.1234.564
     '[0-9]{2,4}\\.[0-9]{2,4}\\.[0-9]{2,4}\\.[0-9]{2,6}',
-
     // 413.577.1234
     '[0-9]{2,4}\\.[0-9]{2,4}\\.[0-9]{2,6}',
-
     // 413.577
     '[0-9]{2,4}\\.[0-9]{2,6}',
 
-    // 413 577 1234
-    '[0-9]{2,4} [0-9]{2,4} [0-9]{2,6}',
-
     // 413 577 1234 564
     '[0-9]{2,4}\\.[0-9]{2,4}\\.[0-9]{2,4}\\.[0-9]{2,6}',
-
-    // 1(413)555-2378 or 1 (413) 555-2378 or 1 (413) 555 2378 or (303) 494-2320
-    '([0-9]{1,4}( )?)?\\([0-9]{2,4}\\)( )?[0-9]{2,4}(( )?-)?( )?[0-9]{2,6}',
-
-    // TODO: (262) 955-95-79
-    // TODO: skip strings that looks like dates (e.g. "2005-11-22")
+    // 413 577 1234
+    '[0-9]{2,4} [0-9]{2,4} [0-9]{2,6}',
+    // 123 4567
+    '[0-9]{2,4} [0-9]{3,8}',
 ];
 
 // All phones might be prefixed with '+' or '00'
-for (let i = 0; i < PHONE_REGEXS_STRS.length; i++) {
-    PHONE_REGEXS_STRS[i] = `(00|\\+)?${PHONE_REGEXS_STRS[i]}`;
+for (let i = 0; i < PHONE_REGEXS_STRINGS.length; i++) {
+    PHONE_REGEXS_STRINGS[i] = `(00|\\+)?${PHONE_REGEXS_STRINGS[i]}`;
 }
 
 // The minimum number of digits a phone number can contain.
-// That's because the PHONE_REGEXS_STRS patterns are quite wide and report a lot of false positives.
+// That's because the PHONE_REGEXS_STRINGS patterns are quite wide and report a lot of false positives.
 const PHONE_MIN_DIGITS = 7;
 
-// These are patterns that might be matched by PHONE_REGEXS_STRS,
+// These are patterns that might be matched by PHONE_REGEXS_STRINGS,
 // but which are most likely not phone numbers. Add more patterns as needed.
 const SKIP_PHONE_REGEXS = [
     // 2018-11-10
@@ -110,24 +107,24 @@ const SKIP_PHONE_REGEXS = [
 ];
 
 
-const PHONE_REGEX_GLOBAL = new RegExp(`(${PHONE_REGEXS_STRS.join('|')})`, 'ig');
+const PHONE_REGEX_GLOBAL = new RegExp(`(${PHONE_REGEXS_STRINGS.join('|')})`, 'ig');
+const PHONE_REGEX = new RegExp(`^(${PHONE_REGEXS_STRINGS.join('|')})$`, 'ig');
 const SKIP_PHONE_REGEX = new RegExp(`^(${SKIP_PHONE_REGEXS.join('|')})$`, 'i');
 
 
 /**
  * The function attempts to extract phone numbers from a text. Please note that
- * this might not be exactly accurate, since phone numbers have a variety of forms and conventions.
- * If you find some problems, please [file an issue](https://github.com/apifytech/apify-js/issues).
+ * the results might not be accurate, since phone numbers appear in a large variety of formats and conventions.
+ * If you encounter some problems, please [file an issue](https://github.com/apifytech/apify-js/issues).
  * @param {String} text Text to search the phone numbers in.
  * @return {String[]} Array of phone numbers found.
  * If no phone numbers are found, the function returns an empty array.
  * @memberOf utils
  */
 const phonesFromText = (text) => {
-    if (!text) return [];
+    if (!_.isString(text)) return [];
 
     let phones = text.match(PHONE_REGEX_GLOBAL) || [];
-
     phones = phones.filter((phone) => {
         if (!phone) return false;
 
@@ -154,14 +151,14 @@ const phonesFromText = (text) => {
  */
 const phonesFromUrls = (urls) => {
     const phones = [];
-    urls.forEach((url) => {
-        if (url && PHONE_URL_PREFIX_REGEX.test(url)) {
-            phones.push(url.replace(PHONE_URL_PREFIX_REGEX, ''));
-        }
-    });
+    for (const url of urls) {
+        if (!url) continue;
+        if (!EMAIL_URL_PREFIX_REGEX.test(url)) continue;
 
-    // The phones from URLs need to pass the same criteria as phones in text
-    return phonesFromText(phones.join('\n'));
+        const phone = url.replace(PHONE_URL_PREFIX_REGEX, '').trim();
+        if (PHONE_REGEX.test(phone)) phones.push(phone);
+    }
+    return phones;
 };
 
 
@@ -183,60 +180,3 @@ export const socialUtils = {
     phonesFromText,
     phonesFromUrls,
 };
-
-
-/*
-console.dir(PHONE_REGEX_GLOBAL);
-
-const testPhones = `
-775123456
-+420775123456
-00420775123456
-
-413-577-1234
-981-413-777-8888
-413.233.2343
-562-3113
-401 311 7898
-1 (413) 555-2378
-1(413)555-2378
-1 (413) 555-2378
-1 (413) 555 2378
-
-4135552375
-
-+44 7911 123456
-
-123-456-789
-123 456 789
-  123.456.789
-
-(000)000-0000
-(000)000 0000
-(000)000.0000
-(000) 000-0000
-(000) 000 0000
-(000) 000.0000
-
-000-0000
-000 0000
-000.0000
-
-0000000
-0000000000
-(000)0000000
-
-`;
-
-if (testPhones) {
-    console.log('Test found phone numbers:');
-    let m;
-    do {
-        m = PHONE_REGEX_GLOBAL.exec(testPhones);
-        if (m) console.log(m[0]);
-    } while (m);
-}
-
-process.exit(0);
-
-*/
