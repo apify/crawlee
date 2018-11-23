@@ -1,5 +1,7 @@
 /* eslint-disable no-continue */
 import _ from 'underscore';
+import htmlToText from 'html-to-text';
+import cheerio from 'cheerio';
 
 // Regex inspired by https://zapier.com/blog/extract-links-email-phone-regex/
 // eslint-disable-next-line max-len
@@ -33,30 +35,6 @@ const emailsFromText = (text) => {
  * @memberOf utils.social
  */
 const emailsFromUrls = (urls) => {
-    if (!Array.isArray(urls)) throw new Error('The "urls" parameter must be an array');
-
-    const emails = [];
-    for (const url of urls) {
-        if (!url) continue;
-        if (!EMAIL_URL_PREFIX_REGEX.test(url)) continue;
-
-        const email = url.replace(EMAIL_URL_PREFIX_REGEX, '').trim();
-        if (EMAIL_REGEX.test(email)) emails.push(email);
-    }
-    return emails;
-};
-
-
-/**
- * The function extracts email addresses from a HTML text.
- * It looks for `mailto:` links as well as email addresses in the text content.
- * Note that the function preserves the order of emails and keep duplicates.
- * @param {String} html HTML document
- * @return {String[]} Array of emails addresses found.
- * If no emails are found, the function returns an empty array.
- * @memberOf utils.social
- */
-const emailsFromHtml = (html) => {
     if (!Array.isArray(urls)) throw new Error('The "urls" parameter must be an array');
 
     const emails = [];
@@ -189,6 +167,53 @@ const phonesFromUrls = (urls) => {
 
 
 /**
+ * The functions attempts to extract the following social handles from a HTML document:
+ * emails, phones. Note that the function removes duplicates.
+ * @param {String} html HTML document
+ * @return {*} An object with social handles. It has the following strucute:
+ * ```
+ * {
+ *   emails: String[],
+ *   phones: String[],
+ * }
+ * ```
+ */
+const handlesFromHtml = (html) => {
+    const result = {
+        emails: [],
+        phones: [],
+    };
+
+    if (!_.isString(html)) return result;
+
+    // We use ignoreHref and ignoreImage options so that the text doesn't contain links,
+    // since their parts can be interpreted as e.g. phone numbers.
+    const text = htmlToText.fromString(html, { ignoreHref: true, ignoreImage: true });
+
+    // TODO: Both html-to-text and cheerio use htmlparser2, the parsing could be done only once to improve performance
+    const $ = cheerio.load(html, { decodeEntities: true });
+
+    // Find all <a> links with href tag
+    const linkUrls = [];
+    $('a[href]').each((index, elem) => {
+        if (elem) linkUrls.push($(elem).attr('href'));
+    });
+
+    // TODO: We should probably normalize all the handles to lower-case
+
+    result.emails = emailsFromUrls(linkUrls).concat(emailsFromText(text));
+    result.emails.sort();
+    result.emails = _.uniq(result.emails, true);
+
+    result.phones = phonesFromUrls(linkUrls).concat(phonesFromText(text));
+    result.phones.sort();
+    result.phones = _.uniq(result.phones, true);
+
+    return result;
+};
+
+
+/**
  * A namespace that contains various Puppeteer utilities.
  *
  * **Example usage:**
@@ -205,4 +230,5 @@ export const socialUtils = {
     emailsFromUrls,
     phonesFromText,
     phonesFromUrls,
+    handlesFromHtml,
 };

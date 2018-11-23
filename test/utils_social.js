@@ -301,3 +301,53 @@ describe('utils.social.phonesFromUrls()', () => {
         ]);
     });
 });
+
+
+
+
+describe('utils.social.handlesFromHtml()', () => {
+    const EMPTY_RESULT = {
+        emails: [],
+        phones: [],
+    };
+
+    it('handles invalid arg', () => {
+        expect(social.handlesFromHtml()).to.eql(EMPTY_RESULT);
+        expect(social.handlesFromHtml(undefined)).to.eql(EMPTY_RESULT);
+        expect(social.handlesFromHtml(null)).to.eql(EMPTY_RESULT);
+        expect(social.handlesFromHtml({})).to.eql(EMPTY_RESULT);
+        expect(social.handlesFromHtml(1234)).to.eql(EMPTY_RESULT);
+    });
+
+    it('works', () => {
+        expect(social.handlesFromHtml('')).to.eql(EMPTY_RESULT);
+        expect(social.handlesFromHtml('         ')).to.eql(EMPTY_RESULT);
+
+        expect(social.handlesFromHtml(`
+            <html>
+                <head>
+                    <title>Bla</title> 
+                </head>
+                <a>
+                    <p>bob@example.com</p>                    
+                    <p>carl&#64;example.com</p>
+                    <a href="mailto:alice@example.com"></a>
+                    <a href="mailto:david&#64;example.com"></a>    
+   
+                    <a href="skip.this.one@gmail.com"></a>
+                    <img src="http://somewhere.com/ skip.this.one.too@gmail.com " />
+                    <a href="http://somewhere.com/ skip.this.one.too@gmail.com "></a>
+                    
+                    &#43;420775222222
+                    +4207751111111
+                    <a href="skip.this.one: +42099999999"></a>
+                    <a href="tel://+42077533333"></a>
+                    
+                </body>
+            </html>
+        `)).to.eql({
+            emails: ['alice@example.com', 'bob@example.com', 'carl@example.com', 'david@example.com'],
+            phones: ['+4207751111111', '+420775222222', '+42077533333'],
+        });
+    });
+});
