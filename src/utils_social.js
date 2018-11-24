@@ -73,6 +73,7 @@ const PHONE_URL_PREFIX_REGEX = /^(tel|phone|telephone):(\/)?(\/)?/i;
 // It's pretty much impossible (and unmaintainable) to have just one large regular expression for all possible phone numbers.
 // So here we define various regular expression for typical phone number patterns, which are then used to compile
 // a single large regular expressions. Add more patterns as needed.
+// NOTE: The patterns are tested in the order as written below, so the longer ones should be before the shorter ones!
 const PHONE_REGEXS_STRINGS = [
     // 775123456
     '[0-9]{6,15}',
@@ -98,7 +99,7 @@ const PHONE_REGEXS_STRINGS = [
     '[0-9]{2,4}\\.[0-9]{2,6}',
 
     // 413 577 1234 564
-    '[0-9]{2,4}\\.[0-9]{2,4}\\.[0-9]{2,4}\\.[0-9]{2,6}',
+    '[0-9]{2,4} [0-9]{2,4} [0-9]{2,4} [0-9]{2,6}',
     // 413 577 1234
     '[0-9]{2,4} [0-9]{2,4} [0-9]{2,6}',
     // 123 4567
@@ -184,19 +185,19 @@ const phonesFromUrls = (urls) => {
 //   They are used to prevent matching URLs in strings like "blahttps://www.example.com"
 
 // eslint-disable-next-line max-len
-const LINKEDIN_PROFILE_REGEX_STRING = '(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:(?:[a-z]+\\.)?linkedin\\.com\\/in\\/)([a-z0-9\\-_%]{2,60})(?![a-z0-9\\-_%])(?:/)?';
+const LINKEDIN_REGEX_STRING = '(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:(?:[a-z]+\\.)?linkedin\\.com\\/in\\/)([a-z0-9\\-_%]{2,60})(?![a-z0-9\\-_%])(?:/)?';
 
 // eslint-disable-next-line max-len
-const INSTAGRAM_PROFILE_REGEX_STRING = '(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:(?:www\\.)?(?:instagram\\.com|instagr\\.am)\\/)([a-z0-9_.]{2,30})(?![a-z0-9_.])(?:/)?';
+const INSTAGRAM_REGEX_STRING = '(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:(?:www\\.)?(?:instagram\\.com|instagr\\.am)\\/)([a-z0-9_.]{2,30})(?![a-z0-9_.])(?:/)?';
 
 const TWITTER_RESERVED_PATHS = 'oauth|account|tos|privacy|signup|home|hashtag|search|login|widgets|i|settings|start|share|intent|oct';
 // eslint-disable-next-line max-len, quotes
-const TWITTER_PROFILE_REGEX_STRING = `(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:www.)?(?:twitter.com)\\/(?!(?:${TWITTER_RESERVED_PATHS})(?:[\\'\\"\\?\\.\\/]|$))([a-z0-9_]{1,15})(?![a-z0-9_])(?:/)?`;
+const TWITTER_REGEX_STRING = `(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:www.)?(?:twitter.com)\\/(?!(?:${TWITTER_RESERVED_PATHS})(?:[\\'\\"\\?\\.\\/]|$))([a-z0-9_]{1,15})(?![a-z0-9_])(?:/)?`;
 
 // eslint-disable-next-line max-len, quotes
 const FACEBOOK_RESERVED_PATHS = 'rsrc\\.php|apps|groups|events|l\\.php|friends|images|photo.php|chat|ajax|dyi|common|policies|login|recover|reg|help|security|messages|marketplace|pages|live|bookmarks|games|fundraisers|saved|gaming|salesgroups|jobs|people|ads|ad_campaign|weather|offers|recommendations|crisisresponse|onthisday|developers|settings';
 // eslint-disable-next-line max-len, quotes
-const FACEBOOK_PROFILE_REGEX_STRING = `(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:www.)?(?:facebook.com|fb.com)\\/(?!(?:${FACEBOOK_RESERVED_PATHS})(?:[\\'\\"\\?\\.\\/]|$))(profile\\.php\\?id\\=[0-9]{3,20}|(?!profile\\.php)[a-z0-9\\.]{5,51})(?![a-z0-9\\.])(?:/)?`;
+const FACEBOOK_REGEX_STRING = `(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:www.)?(?:facebook.com|fb.com)\\/(?!(?:${FACEBOOK_RESERVED_PATHS})(?:[\\'\\"\\?\\.\\/]|$))(profile\\.php\\?id\\=[0-9]{3,20}|(?!profile\\.php)[a-z0-9\\.]{5,51})(?![a-z0-9\\.])(?:/)?`;
 
 
 /**
@@ -210,7 +211,7 @@ const FACEBOOK_PROFILE_REGEX_STRING = `(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:www.)?(?
  * @type {RegExp}
  * @memberOf utils.social
  */
-const LINKEDIN_PROFILE_REGEX = new RegExp(`^${LINKEDIN_PROFILE_REGEX_STRING}$`, 'i');
+const LINKEDIN_REGEX = new RegExp(`^${LINKEDIN_REGEX_STRING}$`, 'i');
 
 /**
  * Regular expression to find multiple LinkedIn profile URLs in a text.
@@ -218,7 +219,7 @@ const LINKEDIN_PROFILE_REGEX = new RegExp(`^${LINKEDIN_PROFILE_REGEX_STRING}$`, 
  * @type {RegExp}
  * @memberOf utils.social
  */
-const LINKEDIN_PROFILE_REGEX_GLOBAL = new RegExp(LINKEDIN_PROFILE_REGEX_STRING, 'ig');
+const LINKEDIN_REGEX_GLOBAL = new RegExp(LINKEDIN_REGEX_STRING, 'ig');
 
 
 /**
@@ -227,7 +228,7 @@ const LINKEDIN_PROFILE_REGEX_GLOBAL = new RegExp(LINKEDIN_PROFILE_REGEX_STRING, 
  * @type {RegExp}
  * @memberOf utils.social
  */
-const INSTAGRAM_PROFILE_REGEX = new RegExp(`^${INSTAGRAM_PROFILE_REGEX_STRING}$`, 'i');
+const INSTAGRAM_REGEX = new RegExp(`^${INSTAGRAM_REGEX_STRING}$`, 'i');
 
 /**
  * Regular expression to find multiple Instagram profile URLs in a text.
@@ -235,7 +236,7 @@ const INSTAGRAM_PROFILE_REGEX = new RegExp(`^${INSTAGRAM_PROFILE_REGEX_STRING}$`
  * @type {RegExp}
  * @memberOf utils.social
  */
-const INSTAGRAM_PROFILE_REGEX_GLOBAL = new RegExp(INSTAGRAM_PROFILE_REGEX_STRING, 'ig');
+const INSTAGRAM_REGEX_GLOBAL = new RegExp(INSTAGRAM_REGEX_STRING, 'ig');
 
 
 /**
@@ -244,7 +245,7 @@ const INSTAGRAM_PROFILE_REGEX_GLOBAL = new RegExp(INSTAGRAM_PROFILE_REGEX_STRING
  * @type {RegExp}
  * @memberOf utils.social
  */
-const TWITTER_PROFILE_REGEX = new RegExp(`^${TWITTER_PROFILE_REGEX_STRING}$`, 'i');
+const TWITTER_REGEX = new RegExp(`^${TWITTER_REGEX_STRING}$`, 'i');
 
 /**
  * Regular expression to find multiple Instagram profile URLs in a text.
@@ -252,7 +253,7 @@ const TWITTER_PROFILE_REGEX = new RegExp(`^${TWITTER_PROFILE_REGEX_STRING}$`, 'i
  * @type {RegExp}
  * @memberOf utils.social
  */
-const TWITTER_PROFILE_REGEX_GLOBAL = new RegExp(TWITTER_PROFILE_REGEX_STRING, 'ig');
+const TWITTER_REGEX_GLOBAL = new RegExp(TWITTER_REGEX_STRING, 'ig');
 
 /**
  * Regular expression to exactly match a single Facebook user profile URL.
@@ -260,7 +261,7 @@ const TWITTER_PROFILE_REGEX_GLOBAL = new RegExp(TWITTER_PROFILE_REGEX_STRING, 'i
  * @type {RegExp}
  * @memberOf utils.social
  */
-const FACEBOOK_PROFILE_REGEX = new RegExp(`^${FACEBOOK_PROFILE_REGEX_STRING}$`, 'i');
+const FACEBOOK_REGEX = new RegExp(`^${FACEBOOK_REGEX_STRING}$`, 'i');
 
 /**
  * Regular expression to find multiple Instagram profile URLs in a text.
@@ -268,7 +269,7 @@ const FACEBOOK_PROFILE_REGEX = new RegExp(`^${FACEBOOK_PROFILE_REGEX_STRING}$`, 
  * @type {RegExp}
  * @memberOf utils.social
  */
-const FACEBOOK_PROFILE_REGEX_GLOBAL = new RegExp(FACEBOOK_PROFILE_REGEX_STRING, 'ig');
+const FACEBOOK_REGEX_GLOBAL = new RegExp(FACEBOOK_REGEX_STRING, 'ig');
 
 
 /**
@@ -284,10 +285,10 @@ const FACEBOOK_PROFILE_REGEX_GLOBAL = new RegExp(FACEBOOK_PROFILE_REGEX_STRING, 
  * {
  *   emails: String[],
  *   phones: String[],
- *   linkedInUrls: String[],
- *   twitterProfiles: String[],
- *   instagramProfiles: String[],
- *   facebookProfiles: String[],
+ *   linkedIns: String[],
+ *   twitters: String[],
+ *   instagrams: String[],
+ *   facebooks: String[],
  * }
  * ```
  */
@@ -295,10 +296,10 @@ const parseHandlesFromHtml = (html, data = null) => {
     const result = {
         emails: [],
         phones: [],
-        linkedInProfiles: [],
-        twitterProfiles: [],
-        instagramProfiles: [],
-        facebookProfiles: [],
+        linkedIns: [],
+        twitters: [],
+        instagrams: [],
+        facebooks: [],
     };
 
     if (!_.isString(html)) return result;
@@ -306,17 +307,17 @@ const parseHandlesFromHtml = (html, data = null) => {
     // We use ignoreHref and ignoreImage options so that the text doesn't contain links,
     // since their parts can be interpreted as e.g. phone numbers.
     const text = htmlToText.fromString(html, { ignoreHref: true, ignoreImage: true }) || '';
+    if (data) data.text = text;
 
     // TODO: Both html-to-text and cheerio use htmlparser2, the parsing could be done only once to improve performance
     const $ = cheerio.load(html, { decodeEntities: true });
+    if (data) data.$ = $;
 
     // Find all <a> links with href tag
     const linkUrls = [];
     $('a[href]').each((index, elem) => {
         if (elem) linkUrls.push($(elem).attr('href'));
     });
-
-    // TODO: We should probably normalize all the handles to lower-case
 
     result.emails = emailsFromUrls(linkUrls).concat(emailsFromText(text));
     result.phones = phonesFromUrls(linkUrls).concat(phonesFromText(text));
@@ -325,21 +326,16 @@ const parseHandlesFromHtml = (html, data = null) => {
     //  https://www.linkedin.com/in/carl-newman-123456a/detail/recent-activity/
     // they match just:
     //  https://www.linkedin.com/in/carl-newman-123456a
-    result.linkedInProfiles = html.match(LINKEDIN_PROFILE_REGEX_GLOBAL) || [];
-    result.twitterProfiles = html.match(TWITTER_PROFILE_REGEX_GLOBAL) || [];
-    result.instagramProfiles = html.match(INSTAGRAM_PROFILE_REGEX_GLOBAL) || [];
-    result.facebookProfiles = html.match(FACEBOOK_PROFILE_REGEX_GLOBAL) || [];
+    result.linkedIns = html.match(LINKEDIN_REGEX_GLOBAL) || [];
+    result.twitters = html.match(TWITTER_REGEX_GLOBAL) || [];
+    result.instagrams = html.match(INSTAGRAM_REGEX_GLOBAL) || [];
+    result.facebooks = html.match(FACEBOOK_REGEX_GLOBAL) || [];
 
     // Sort and deduplicate handles
     // eslint-disable-next-line guard-for-in, no-restricted-syntax
     for (const key in result) {
         result[key].sort();
         result[key] = _.uniq(result[key], true);
-    }
-
-    if (data) {
-        data.text = text;
-        data.$ = $;
     }
 
     return result;
@@ -370,15 +366,15 @@ export const socialUtils = {
     EMAIL_REGEX,
     EMAIL_REGEX_GLOBAL,
 
-    LINKEDIN_PROFILE_REGEX,
-    LINKEDIN_PROFILE_REGEX_GLOBAL,
+    LINKEDIN_REGEX,
+    LINKEDIN_REGEX_GLOBAL,
 
-    INSTAGRAM_PROFILE_REGEX,
-    INSTAGRAM_PROFILE_REGEX_GLOBAL,
+    INSTAGRAM_REGEX,
+    INSTAGRAM_REGEX_GLOBAL,
 
-    TWITTER_PROFILE_REGEX,
-    TWITTER_PROFILE_REGEX_GLOBAL,
+    TWITTER_REGEX,
+    TWITTER_REGEX_GLOBAL,
 
-    FACEBOOK_PROFILE_REGEX,
-    FACEBOOK_PROFILE_REGEX_GLOBAL,
+    FACEBOOK_REGEX,
+    FACEBOOK_REGEX_GLOBAL,
 };

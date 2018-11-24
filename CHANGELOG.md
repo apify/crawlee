@@ -1,3 +1,7 @@
+0.9.9 / 2018-11-24
+==================
+- Improvements in `Apify.utils.social` functions and tests
+
 0.9.8 / 2018-11-24
 ==================
 - Added new `Apify.utils.social` namespace with function to extract emails, phone and social profile URLs
