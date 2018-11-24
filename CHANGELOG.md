@@ -1,4 +1,4 @@
-0.9.9 / 2018-11-24
+0.9.10 / 2018-11-24
 ==================
 - Improvements in `Apify.utils.social` functions and tests
 
