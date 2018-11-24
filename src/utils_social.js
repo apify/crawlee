@@ -134,7 +134,7 @@ const SKIP_PHONE_REGEX = new RegExp(`^(${SKIP_PHONE_REGEXS.join('|')})$`, 'i');
  * @param {String} text Text to search the phone numbers in.
  * @return {String[]} Array of phone numbers found.
  * If no phone numbers are found, the function returns an empty array.
- * @memberOf utils
+ * @memberOf utils.social
  */
 const phonesFromText = (text) => {
     if (!_.isString(text)) return [];
@@ -162,7 +162,7 @@ const phonesFromText = (text) => {
  * @param {String[]} urls Array of URLs.
  * @return {String[]} Array of phone numbers found.
  * If no phone numbers are found, the function returns an empty array.
- * @memberOf utils
+ * @memberOf utils.social
  */
 const phonesFromUrls = (urls) => {
     if (!Array.isArray(urls)) throw new Error('The "urls" parameter must be an array');
@@ -205,7 +205,7 @@ const FACEBOOK_PROFILE_REGEX_STRING = `(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:www.)?(?
  *
  * Example usage:
  * ```
- * xx
+ * TODO
  * ```
  * @type {RegExp}
  * @memberOf utils.social
