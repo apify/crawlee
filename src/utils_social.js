@@ -345,6 +345,7 @@ const parseHandlesFromHtml = (html, data = null) => {
     return result;
 };
 
+// TODO: Add nice example of parseHandlesFromHtml() and regular
 
 /**
  * A namespace that contains various utilities to help you extract social handles
