@@ -303,28 +303,29 @@ describe('utils.social.phonesFromUrls()', () => {
     });
 });
 
-describe('utils.social.handlesFromHtml()', () => {
+describe('utils.social.parseHandlesFromHtml()', () => {
     const EMPTY_RESULT = {
         emails: [],
         phones: [],
-        linkedIns: [],
-        instagrams: [],
-        twitters: [],
+        linkedInProfiles: [],
+        twitterProfiles: [],
+        instagramProfiles: [],
+        facebookProfiles: [],
     };
 
     it('handles invalid arg', () => {
-        expect(social.handlesFromHtml()).to.eql(EMPTY_RESULT);
-        expect(social.handlesFromHtml(undefined)).to.eql(EMPTY_RESULT);
-        expect(social.handlesFromHtml(null)).to.eql(EMPTY_RESULT);
-        expect(social.handlesFromHtml({})).to.eql(EMPTY_RESULT);
-        expect(social.handlesFromHtml(1234)).to.eql(EMPTY_RESULT);
+        expect(social.parseHandlesFromHtml()).to.eql(EMPTY_RESULT);
+        expect(social.parseHandlesFromHtml(undefined)).to.eql(EMPTY_RESULT);
+        expect(social.parseHandlesFromHtml(null)).to.eql(EMPTY_RESULT);
+        expect(social.parseHandlesFromHtml({})).to.eql(EMPTY_RESULT);
+        expect(social.parseHandlesFromHtml(1234)).to.eql(EMPTY_RESULT);
     });
 
     it('works', () => {
-        expect(social.handlesFromHtml('')).to.eql(EMPTY_RESULT);
-        expect(social.handlesFromHtml('         ')).to.eql(EMPTY_RESULT);
+        expect(social.parseHandlesFromHtml('')).to.eql(EMPTY_RESULT);
+        expect(social.parseHandlesFromHtml('         ')).to.eql(EMPTY_RESULT);
 
-        expect(social.handlesFromHtml(`
+        expect(social.parseHandlesFromHtml(`
             <html>
                 <head>
                     <title>Bla</title> 
@@ -347,7 +348,7 @@ describe('utils.social.handlesFromHtml()', () => {
                     <a href="skip.this.one: +42099999999"></a>
                     <a href="tel://+42077533333"></a>
                     
-                    https://www.linkedin.com/in/bobnewman/
+                    https://www.linkedin.com/in/bobnewman
                     https://www.linkedin.com/in/alicenewman/
                     https://www.linkedin.com/in/alicenewman/ duplicate
                     http://www.linkedin.com/in/nohttps/
@@ -358,49 +359,381 @@ describe('utils.social.handlesFromHtml()', () => {
                     <a href="https://www.linkedin.com/in/carl-newman-5555555a/detail/recent-activity/">Sub-link</a>
                     
                     https://www.instagram.com/old_prague/
-                    https://www.instagram.com/old_prague
-                    
-                    https://www.instagram.com/newyorkarea/
-                    
+                    https://www.instagram.com/old_prague/ duplicate
+                    instagram.com/old_prague                    
+                    https://www.instagram.com/newyorkarea/                    
                     <a href="https://www.instagram.com/york">link</a>
+                    <a href="https://www.instagram.com/york2/something">sub-link</a>
+                    
+                    <a href="twitter.com/betasomething">link</a>
+                    https://www.twitter.com/apify
+                    https://www.twitter.com/apify duplicate                    
+                    <a href="twitter.com/cblabla/sub-dir/">link</a>
+                    
+                    <a href="facebook.com/carl.username123/sub-dir/">link</a>                    
+                    https://www.facebook.com/bob.username123/
+                    https://www.facebook.com/bob.username123/ duplicate
+                    http://www.facebook.com/alice.username123
+                    <a href="https://www.facebook.com/profile.php?id=1155802082&xxx=5">link x</a>
+                    <a href="fb.com/dada5678?query=1">link</a>
                     
                 </body>
             </html>
         `)).to.eql({
             emails: ['alice@example.com', 'bob@example.com', 'carl@example.com', 'david@example.com'],
             phones: ['+4207751111111', '+420775222222', '+42077533333'],
-            linkedIns: [
-                'http://www.linkedin.com/in/nohttps',
+            linkedInProfiles: [
+                'http://www.linkedin.com/in/nohttps/',
                 'https://cz.linkedin.com/in/somecountry',
-                'https://www.linkedin.com/in/alicenewman',
+                'https://www.linkedin.com/in/alicenewman/',
                 'https://www.linkedin.com/in/bobnewman',
-                'https://www.linkedin.com/in/carl-newman',
-                'https://www.linkedin.com/in/carl-newman-5555555a',
+                'https://www.linkedin.com/in/carl-newman-5555555a/',
+                'https://www.linkedin.com/in/carl-newman/',
                 'https://www.linkedin.com/in/first-last-123456a',
                 'https://www.linkedin.com/in/jancurn',
             ],
-            instagrams: [
-                'https://www.instagram.com/newyorkarea',
-                'https://www.instagram.com/old_prague',
+            instagramProfiles: [
+                'https://www.instagram.com/newyorkarea/',
+                'https://www.instagram.com/old_prague/',
                 'https://www.instagram.com/york',
+                'https://www.instagram.com/york2/',
+                'instagram.com/old_prague',
             ],
-            twitters: [],
+            twitterProfiles: [
+                'https://www.twitter.com/apify',
+                'twitter.com/betasomething',
+                'twitter.com/cblabla/',
+            ],
+            facebookProfiles: [
+                'facebook.com/carl.username123/',
+                'fb.com/dada5678',
+                'http://www.facebook.com/alice.username123',
+                'https://www.facebook.com/bob.username123/',
+                'https://www.facebook.com/profile.php?id=1155802082',
+            ],
         });
+    });
+
+    it('data is set correctly', () => {
+        const data = {};
+        social.parseHandlesFromHtml(`
+            <html>
+                <head>
+                    <title>Bla</title> 
+                </head>
+                <body>
+                    Body content
+                </body>
+            </html>
+        `, data);
+
+        expect(data.$('body').text().trim()).to.eql('Body content');
+        expect(data.text.trim()).to.eql('Body content');
     });
 });
 
-describe('utils.social REGEXPES', () => {
-    it('exist', () => {
+describe('utils.social', () => {
+    it('EMAIL_REGEX', () => {
         expect(_.isRegExp(social.EMAIL_REGEX)).to.eql(true);
         expect(_.isRegExp(social.EMAIL_REGEX_GLOBAL)).to.eql(true);
 
-        expect(_.isRegExp(social.LINKEDIN_URL_REGEX)).to.eql(true);
-        expect(_.isRegExp(social.LINKEDIN_URL_REGEX_GLOBAL)).to.eql(true);
+        expect(social.EMAIL_REGEX.flags).to.eql('i');
+        expect(social.EMAIL_REGEX_GLOBAL.flags).to.eql('gi');
 
-        expect(_.isRegExp(social.INSTAGRAM_URL_REGEX)).to.eql(true);
-        expect(_.isRegExp(social.INSTAGRAM_URL_REGEX_GLOBAL)).to.eql(true);
+        expect(social.EMAIL_REGEX.test('bob@example.com')).to.eql(true);
+        expect(social.EMAIL_REGEX.test('ALICE@EXAMPLE.COM')).to.eql(true);
 
-        expect(_.isRegExp(social.TWITTER_URL_REGEX)).to.eql(true);
-        expect(_.isRegExp(social.TWITTER_URL_REGEX_GLOBAL)).to.eql(true);
+        expect(social.EMAIL_REGEX.test('bob+something@example.co.uk')).to.eql(true);
+        expect(social.EMAIL_REGEX.test('really.long.email.address@really.long.domain.name.travel')).to.eql(true);
+        expect(social.EMAIL_REGEX.test('really-long-email-address@really.long.domain.name.travel')).to.eql(true);
+        expect(social.EMAIL_REGEX.test('really_long_email_address@really.long.domain.name.travel')).to.eql(true);
+
+        expect(social.EMAIL_REGEX.test('a alice@example.com')).to.eql(false);
+        expect(social.EMAIL_REGEX.test('bob@example.com alice@example.com')).to.eql(false);
+        expect(social.EMAIL_REGEX.test('')).to.eql(false);
+        expect(social.EMAIL_REGEX.test('dummy')).to.eql(false);
+
+        expect(social.EMAIL_REGEX_GLOBAL.test('bob@example.com')).to.eql(true);
+        expect('bob@example.com alice@example.com'.match(social.EMAIL_REGEX_GLOBAL))
+            .to.eql(['bob@example.com', 'alice@example.com']);
+
+        expect(''.match(social.EMAIL_REGEX_GLOBAL)).to.eql(null);
+        expect(' dummy '.match(social.EMAIL_REGEX_GLOBAL)).to.eql(null);
+    });
+
+    it('LINKEDIN_PROFILE_REGEX', () => {
+        expect(_.isRegExp(social.LINKEDIN_PROFILE_REGEX)).to.eql(true);
+        expect(_.isRegExp(social.LINKEDIN_PROFILE_REGEX_GLOBAL)).to.eql(true);
+
+        expect(social.LINKEDIN_PROFILE_REGEX.flags).to.eql('i');
+        expect(social.LINKEDIN_PROFILE_REGEX_GLOBAL.flags).to.eql('gi');
+
+        expect(social.LINKEDIN_PROFILE_REGEX.test('https://www.linkedin.com/in/bobnewman')).to.eql(true);
+        expect(social.LINKEDIN_PROFILE_REGEX.test('https://www.linkedin.com/in/bobnewman/')).to.eql(true);
+        expect(social.LINKEDIN_PROFILE_REGEX.test('http://www.linkedin.com/in/bobnewman')).to.eql(true);
+        expect(social.LINKEDIN_PROFILE_REGEX.test('http://ie.linkedin.com/in/bobnewman')).to.eql(true);
+        expect(social.LINKEDIN_PROFILE_REGEX.test('https://linkedin.com/in/bobnewman')).to.eql(true);
+        expect(social.LINKEDIN_PROFILE_REGEX.test('https://www.linkedin.com/in/carl-newman')).to.eql(true);
+        expect(social.LINKEDIN_PROFILE_REGEX.test('https://www.linkedin.com/in/first-last-123456a')).to.eql(true);
+        expect(social.LINKEDIN_PROFILE_REGEX.test('https://www.linkedin.com/in/first_last_1%23456a')).to.eql(true);
+        expect(social.LINKEDIN_PROFILE_REGEX.test('HTTPS://WWW.LINKEDIN.COM/IN/CARL-NEWMAN')).to.eql(true);
+        expect(social.LINKEDIN_PROFILE_REGEX.test('www.linkedin.com/in/bobnewman')).to.eql(true);
+        expect(social.LINKEDIN_PROFILE_REGEX.test('linkedin.com/in/bobnewman')).to.eql(true);
+
+        // Test there is just on matching group for the username
+        expect('https://www.linkedin.com/in/bobnewman/'.match(social.LINKEDIN_PROFILE_REGEX)[1]).to.eql('bobnewman');
+        expect('http://www.linkedin.com/in/bobnewman'.match(social.LINKEDIN_PROFILE_REGEX)[1]).to.eql('bobnewman');
+        expect('www.linkedin.com/in/bobnewman/'.match(social.LINKEDIN_PROFILE_REGEX)[1]).to.eql('bobnewman');
+        expect('linkedin.com/in/bobnewman'.match(social.LINKEDIN_PROFILE_REGEX)[1]).to.eql('bobnewman');
+
+        expect(social.LINKEDIN_PROFILE_REGEX.test('')).to.eql(false);
+        expect(social.LINKEDIN_PROFILE_REGEX.test('dummy')).to.eql(false);
+        expect(social.LINKEDIN_PROFILE_REGEX.test('a https://www.linkedin.com/in/bobnewman')).to.eql(false);
+        expect(social.LINKEDIN_PROFILE_REGEX.test('https://linkedin.com/in/bobnewman/sub-page')).to.eql(false);
+        expect(social.LINKEDIN_PROFILE_REGEX.test('xhttps://www.linkedin.com/in/carl-newman')).to.eql(false);
+        expect(social.LINKEDIN_PROFILE_REGEX.test('0https://www.linkedin.com/in/carl-newman')).to.eql(false);
+        expect(social.LINKEDIN_PROFILE_REGEX.test('_https://www.linkedin.com/in/carl-newman')).to.eql(false);
+        expect(social.LINKEDIN_PROFILE_REGEX.test('xlinkedin.com/in/bobnewman')).to.eql(false);
+        expect(social.LINKEDIN_PROFILE_REGEX.test('_linkedin.com/in/bobnewman')).to.eql(false);
+        expect(social.LINKEDIN_PROFILE_REGEX.test('0linkedin.com/in/bobnewman')).to.eql(false);
+        expect(social.LINKEDIN_PROFILE_REGEX.test('https://www.linkedin.com/in/bobnewman/?param=bla')).to.eql(false);
+        expect(social.LINKEDIN_PROFILE_REGEX.test('://linkedin.com/in/bobnewman')).to.eql(false);
+        expect(social.LINKEDIN_PROFILE_REGEX.test('https://www.linkedin.com/in/bob https://www.linkedin.com/in/alice')).to.eql(false);
+
+        expect(social.LINKEDIN_PROFILE_REGEX_GLOBAL.test('https://www.linkedin.com/in/bobnewman')).to.eql(true);
+        expect(`
+            https://www.linkedin.com/in/bobnewman 
+            "http://ie.linkedin.com/in/alicenewman"
+            https://www.linkedin.com/in/someverylongnamesomeverylongnamesomeverylongnamesomeverylongnamesomeverylongnamesomeverylongname
+            linkedin.com/in/carlnewman
+            `.match(social.LINKEDIN_PROFILE_REGEX_GLOBAL))
+            .to.eql([
+                'https://www.linkedin.com/in/bobnewman',
+                'http://ie.linkedin.com/in/alicenewman',
+                'linkedin.com/in/carlnewman',
+            ]);
+        expect(`
+            -https://www.linkedin.com/in/bobnewman/sub-dir
+            :http://ie.linkedin.com/in/alicenewman?param=1
+            xlinkedin.com/in/carlnewman
+            alinkedin.com/in/carlnewman
+            _linkedin.com/in/carlnewman
+            `.match(social.LINKEDIN_PROFILE_REGEX_GLOBAL))
+            .to.eql([
+                'https://www.linkedin.com/in/bobnewman/',
+                'http://ie.linkedin.com/in/alicenewman',
+            ]);
+        expect(''.match(social.LINKEDIN_PROFILE_REGEX_GLOBAL)).to.eql(null);
+    });
+
+    it('INSTAGRAM_PROFILE_REGEX', () => {
+        expect(_.isRegExp(social.INSTAGRAM_PROFILE_REGEX)).to.eql(true);
+        expect(_.isRegExp(social.INSTAGRAM_PROFILE_REGEX_GLOBAL)).to.eql(true);
+
+        expect(social.INSTAGRAM_PROFILE_REGEX.flags).to.eql('i');
+        expect(social.INSTAGRAM_PROFILE_REGEX_GLOBAL.flags).to.eql('gi');
+
+        expect(social.INSTAGRAM_PROFILE_REGEX.test('https://www.instagram.com/old_prague')).to.eql(true);
+        expect(social.INSTAGRAM_PROFILE_REGEX.test('https://www.instagram.com/old_prague/')).to.eql(true);
+        expect(social.INSTAGRAM_PROFILE_REGEX.test('http://www.instagram.com/old_prague/')).to.eql(true);
+        expect(social.INSTAGRAM_PROFILE_REGEX.test('https://instagram.com/old_prague/')).to.eql(true);
+        expect(social.INSTAGRAM_PROFILE_REGEX.test('HTTPS://INSTAGR.AM/OLD_PRAGUE/')).to.eql(true);
+        expect(social.INSTAGRAM_PROFILE_REGEX.test('http://instagr.am/old_prague/')).to.eql(true);
+        expect(social.INSTAGRAM_PROFILE_REGEX.test('https://www.instagr.am/old_prague/')).to.eql(true);
+        expect(social.INSTAGRAM_PROFILE_REGEX.test('www.instagram.com/old_prague/')).to.eql(true);
+        expect(social.INSTAGRAM_PROFILE_REGEX.test('instagram.com/old_prague/')).to.eql(true);
+        expect(social.INSTAGRAM_PROFILE_REGEX.test('www.instagr.am/old_prague/')).to.eql(true);
+        expect(social.INSTAGRAM_PROFILE_REGEX.test('instagr.am/old_prague/')).to.eql(true);
+
+        // Test there is just on matching group for the username
+        expect('https://www.instagram.com/old_prague/'.match(social.INSTAGRAM_PROFILE_REGEX)[1]).to.eql('old_prague');
+        expect('http://www.instagram.com/old_prague/'.match(social.INSTAGRAM_PROFILE_REGEX)[1]).to.eql('old_prague');
+        expect('www.instagram.com/old_prague'.match(social.INSTAGRAM_PROFILE_REGEX)[1]).to.eql('old_prague');
+        expect('instagram.com/old_prague'.match(social.INSTAGRAM_PROFILE_REGEX)[1]).to.eql('old_prague');
+
+        expect(social.INSTAGRAM_PROFILE_REGEX.test('')).to.eql(false);
+        expect(social.INSTAGRAM_PROFILE_REGEX.test('dummy')).to.eql(false);
+        expect(social.INSTAGRAM_PROFILE_REGEX.test('a https://www.instagram.com/old_prague')).to.eql(false);
+        expect(social.INSTAGRAM_PROFILE_REGEX.test('https://www.instagram.com/a')).to.eql(false);
+        expect(social.INSTAGRAM_PROFILE_REGEX.test('https://www.instagram.com/old_prague/sub-page')).to.eql(false);
+        expect(social.INSTAGRAM_PROFILE_REGEX.test('xhttps://www.instagram.com/old_prague')).to.eql(false);
+        expect(social.INSTAGRAM_PROFILE_REGEX.test('0https://www.instagram.com/old_prague')).to.eql(false);
+        expect(social.INSTAGRAM_PROFILE_REGEX.test('_https://www.instagram.com/old_prague')).to.eql(false);
+        expect(social.INSTAGRAM_PROFILE_REGEX.test('xinstagram.com/old_prague')).to.eql(false);
+        expect(social.INSTAGRAM_PROFILE_REGEX.test('_instagram.com/old_prague')).to.eql(false);
+        expect(social.INSTAGRAM_PROFILE_REGEX.test('0instagram.com/old_prague')).to.eql(false);
+        expect(social.INSTAGRAM_PROFILE_REGEX.test('https://www.instagram.com/old_prague/?param=bla')).to.eql(false);
+        expect(social.INSTAGRAM_PROFILE_REGEX.test('://www.instagram.com/old_prague')).to.eql(false);
+        expect(social.INSTAGRAM_PROFILE_REGEX.test('http://www.instagram.com/old_prague http://www.instagram.com/old_brno')).to.eql(false);
+
+        expect(social.INSTAGRAM_PROFILE_REGEX_GLOBAL.test('https://www.instagram.com/old_prague')).to.eql(true);
+        expect(`
+                https://www.instagram.com/old_prague
+                https://www.instagram.com/someverylongusernamethatisnotgood 
+                "instagram.com/old_brno"
+                http://instagr.am/old_plzen
+                `.match(social.INSTAGRAM_PROFILE_REGEX_GLOBAL))
+            .to.eql([
+                'https://www.instagram.com/old_prague',
+                'instagram.com/old_brno',
+                'http://instagr.am/old_plzen',
+            ]);
+        expect(`
+                -https://www.instagram.com/old_prague/sub-dir
+                instagr.am/old_plzen?param=1
+                xinstagram.com/old_brno
+                ainstagram.com/old_brno
+                _instagram.com/old_brno
+                `.match(social.INSTAGRAM_PROFILE_REGEX_GLOBAL))
+            .to.eql([
+                'https://www.instagram.com/old_prague/',
+                'instagr.am/old_plzen',
+            ]);
+        expect(''.match(social.INSTAGRAM_PROFILE_REGEX_GLOBAL)).to.eql(null);
+    });
+
+    it('TWITTER_PROFILE_REGEX', () => {
+        expect(_.isRegExp(social.TWITTER_PROFILE_REGEX)).to.eql(true);
+        expect(_.isRegExp(social.TWITTER_PROFILE_REGEX_GLOBAL)).to.eql(true);
+
+        expect(social.TWITTER_PROFILE_REGEX.flags).to.eql('i');
+        expect(social.TWITTER_PROFILE_REGEX_GLOBAL.flags).to.eql('gi');
+
+        expect(social.TWITTER_PROFILE_REGEX.test('https://www.twitter.com/apify')).to.eql(true);
+        expect(social.TWITTER_PROFILE_REGEX.test('https://www.twitter.com/apify/')).to.eql(true);
+        expect(social.TWITTER_PROFILE_REGEX.test('https://www.twitter.com/aa_bb_123')).to.eql(true);
+        expect(social.TWITTER_PROFILE_REGEX.test('http://www.twitter.com/apify')).to.eql(true);
+        expect(social.TWITTER_PROFILE_REGEX.test('https://twitter.com/apify')).to.eql(true);
+        expect(social.TWITTER_PROFILE_REGEX.test('http://twitter.com/apify')).to.eql(true);
+        expect(social.TWITTER_PROFILE_REGEX.test('www.twitter.com/apify')).to.eql(true);
+        expect(social.TWITTER_PROFILE_REGEX.test('twitter.com/apify')).to.eql(true);
+
+        // Test there is just on matching group for the username
+        expect('https://www.twitter.com/apify/'.match(social.TWITTER_PROFILE_REGEX)[1]).to.eql('apify');
+        expect('http://www.twitter.com/apify'.match(social.TWITTER_PROFILE_REGEX)[1]).to.eql('apify');
+        expect('www.twitter.com/apify'.match(social.TWITTER_PROFILE_REGEX)[1]).to.eql('apify');
+        expect('twitter.com/apify'.match(social.TWITTER_PROFILE_REGEX)[1]).to.eql('apify');
+
+        expect(social.TWITTER_PROFILE_REGEX.test('')).to.eql(false);
+        expect(social.TWITTER_PROFILE_REGEX.test('dummy')).to.eql(false);
+        expect(social.TWITTER_PROFILE_REGEX.test('a https://www.twitter.com/apify')).to.eql(false);
+        expect(social.TWITTER_PROFILE_REGEX.test('https://www.twitter.com/apify/sub-page')).to.eql(false);
+        expect(social.TWITTER_PROFILE_REGEX.test('xhttps://www.twitter.com/apify')).to.eql(false);
+        expect(social.TWITTER_PROFILE_REGEX.test('0https://www.twitter.com/apify')).to.eql(false);
+        expect(social.TWITTER_PROFILE_REGEX.test('_https://www.twitter.com/apify')).to.eql(false);
+        expect(social.TWITTER_PROFILE_REGEX.test('xtwitter.com/apify')).to.eql(false);
+        expect(social.TWITTER_PROFILE_REGEX.test('_twitter.com/apify')).to.eql(false);
+        expect(social.TWITTER_PROFILE_REGEX.test('0twitter.com/apify')).to.eql(false);
+        expect(social.TWITTER_PROFILE_REGEX.test('https://www.twitter.com/apify?param=bla')).to.eql(false);
+        expect(social.TWITTER_PROFILE_REGEX.test('://www.twitter.com/apify')).to.eql(false);
+        expect(social.TWITTER_PROFILE_REGEX.test('https://www.twitter.com/apify https://www.twitter.com/jack')).to.eql(false);
+        expect(social.TWITTER_PROFILE_REGEX.test('https://www.twitter.com/oauth')).to.eql(false);
+        expect(social.TWITTER_PROFILE_REGEX.test('https://www.twitter.com/account')).to.eql(false);
+        expect(social.TWITTER_PROFILE_REGEX.test('https://www.twitter.com/privacy/')).to.eql(false);
+
+        expect(social.TWITTER_PROFILE_REGEX_GLOBAL.test('https://www.twitter.com/apify')).to.eql(true);
+        expect(`
+                https://www.twitter.com/apify
+                www.twitter.com/jack/sub-dir
+                www.twitter.com/invalidverylongtwitterhandlenotgood
+                twitter.com/bob123?param=1
+                `.match(social.TWITTER_PROFILE_REGEX_GLOBAL))
+            .to.eql([
+                'https://www.twitter.com/apify',
+                'www.twitter.com/jack/',
+                'twitter.com/bob123',
+            ]);
+        expect(`
+                -https://www.twitter.com/apify
+                twitter.com/jack
+                twitter.com/carl123
+                xtwitter.com/bob
+                atwitter.com/bob
+                _twitter.com/bob
+                `.match(social.TWITTER_PROFILE_REGEX_GLOBAL))
+            .to.eql([
+                'https://www.twitter.com/apify',
+                'twitter.com/jack',
+                'twitter.com/carl123',
+            ]);
+        expect(''.match(social.TWITTER_PROFILE_REGEX_GLOBAL)).to.eql(null);
+    });
+
+    it('FACEBOOK_PROFILE_REGEX', () => {
+        expect(_.isRegExp(social.FACEBOOK_PROFILE_REGEX)).to.eql(true);
+        expect(_.isRegExp(social.FACEBOOK_PROFILE_REGEX_GLOBAL)).to.eql(true);
+
+        expect(social.FACEBOOK_PROFILE_REGEX.flags).to.eql('i');
+        expect(social.FACEBOOK_PROFILE_REGEX_GLOBAL.flags).to.eql('gi');
+
+        expect(social.FACEBOOK_PROFILE_REGEX.test('https://www.facebook.com/someusername')).to.eql(true);
+        expect(social.FACEBOOK_PROFILE_REGEX.test('https://www.facebook.com/someusername/')).to.eql(true);
+        expect(social.FACEBOOK_PROFILE_REGEX.test('http://www.facebook.com/some.username123')).to.eql(true);
+        expect(social.FACEBOOK_PROFILE_REGEX.test('www.facebook.com/someusername')).to.eql(true);
+        expect(social.FACEBOOK_PROFILE_REGEX.test('facebook.com/someusername')).to.eql(true);
+        expect(social.FACEBOOK_PROFILE_REGEX.test('https://www.fb.com/someusername')).to.eql(true);
+        expect(social.FACEBOOK_PROFILE_REGEX.test('https://www.fb.com/someusername/')).to.eql(true);
+        expect(social.FACEBOOK_PROFILE_REGEX.test('http://www.fb.com/some.username123')).to.eql(true);
+        expect(social.FACEBOOK_PROFILE_REGEX.test('www.fb.com/someusername')).to.eql(true);
+        expect(social.FACEBOOK_PROFILE_REGEX.test('fb.com/someusername')).to.eql(true);
+
+        expect(social.FACEBOOK_PROFILE_REGEX.test('https://www.facebook.com/profile.php?id=1155802082')).to.eql(true);
+        expect(social.FACEBOOK_PROFILE_REGEX.test('http://www.facebook.com/profile.php?id=1155802082')).to.eql(true);
+        expect(social.FACEBOOK_PROFILE_REGEX.test('www.facebook.com/profile.php?id=1155802082')).to.eql(true);
+        expect(social.FACEBOOK_PROFILE_REGEX.test('facebook.com/profile.php?id=1155802082')).to.eql(true);
+        expect(social.FACEBOOK_PROFILE_REGEX.test('fb.com/profile.php?id=1155802082')).to.eql(true);
+
+        // Test there is just on matching group for the username
+        expect('https://www.facebook.com/someusername/'.match(social.FACEBOOK_PROFILE_REGEX)[1]).to.eql('someusername');
+        expect('https://www.facebook.com/someusername'.match(social.FACEBOOK_PROFILE_REGEX)[1]).to.eql('someusername');
+        expect('https://www.facebook.com/profile.php?id=1155802082'.match(social.FACEBOOK_PROFILE_REGEX)[1]).to.eql('profile.php?id=1155802082');
+        expect('fb.com/someusername'.match(social.FACEBOOK_PROFILE_REGEX)[1]).to.eql('someusername');
+
+        expect(social.FACEBOOK_PROFILE_REGEX.test('')).to.eql(false);
+        expect(social.FACEBOOK_PROFILE_REGEX.test('dummy')).to.eql(false);
+        expect(social.FACEBOOK_PROFILE_REGEX.test('a https://www.facebook.com/someusername')).to.eql(false);
+        expect(social.FACEBOOK_PROFILE_REGEX.test('https://www.facebook.com/a')).to.eql(false);
+        expect(social.FACEBOOK_PROFILE_REGEX.test('https://www.facebook.com/someusername/sub-page')).to.eql(false);
+        expect(social.FACEBOOK_PROFILE_REGEX.test('http://www.facebook.com/profile.php')).to.eql(false);
+        expect(social.FACEBOOK_PROFILE_REGEX.test('xhttps://www.facebook.com/someusername')).to.eql(false);
+        expect(social.FACEBOOK_PROFILE_REGEX.test('0https://www.facebook.com/someusername')).to.eql(false);
+        expect(social.FACEBOOK_PROFILE_REGEX.test('_https://www.facebook.com/someusername')).to.eql(false);
+        expect(social.FACEBOOK_PROFILE_REGEX.test('xfacebook.com/someusername')).to.eql(false);
+        expect(social.FACEBOOK_PROFILE_REGEX.test('_facebook.com/someusername')).to.eql(false);
+        expect(social.FACEBOOK_PROFILE_REGEX.test('0facebook.com/someusername')).to.eql(false);
+        expect(social.FACEBOOK_PROFILE_REGEX.test('https://www.facebook.com/someusername?param=bla')).to.eql(false);
+
+        expect(social.FACEBOOK_PROFILE_REGEX.test('://www.facebook.com/someusername')).to.eql(false);
+        expect(social.FACEBOOK_PROFILE_REGEX.test('https://www.facebook.com/someusername https://www.facebook.com/jack')).to.eql(false);
+        expect(social.FACEBOOK_PROFILE_REGEX.test('https://www.facebook.com/groups')).to.eql(false);
+        expect(social.FACEBOOK_PROFILE_REGEX.test('https://www.facebook.com/events')).to.eql(false);
+        expect(social.FACEBOOK_PROFILE_REGEX.test('https://www.facebook.com/policies/')).to.eql(false);
+
+        expect(social.FACEBOOK_PROFILE_REGEX_GLOBAL.test('https://www.facebook.com/someusername')).to.eql(true);
+        expect(`
+                https://www.facebook.com/someusername?param=123
+                www.facebook.com/another123/sub-dir
+                https://www.facebook.com/waytoolongusernamewaytoolongusernamewaytoolongusernamewaytoolongusernamewaytoolongusername
+                fb.com/bob123
+                `.match(social.FACEBOOK_PROFILE_REGEX_GLOBAL))
+            .to.eql([
+                'https://www.facebook.com/someusername',
+                'www.facebook.com/another123/',
+                'fb.com/bob123',
+            ]);
+        expect(`
+                -https://www.facebook.com/someusername/
+                facebook.com/jack4567
+                fb.com/carl123
+                xfacebook.com/bob
+                afacebook.com/bob
+                _facebook.com/bob
+                `.match(social.FACEBOOK_PROFILE_REGEX_GLOBAL))
+            .to.eql([
+                'https://www.facebook.com/someusername/',
+                'facebook.com/jack4567',
+                'fb.com/carl123',
+            ]);
+        expect(''.match(social.FACEBOOK_PROFILE_REGEX_GLOBAL)).to.eql(null);
     });
 });

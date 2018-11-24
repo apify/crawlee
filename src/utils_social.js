@@ -3,6 +3,8 @@ import _ from 'underscore';
 import htmlToText from 'html-to-text';
 import cheerio from 'cheerio';
 
+// TODO: Finish docs and examples !!!
+
 // Regex inspired by https://zapier.com/blog/extract-links-email-phone-regex/
 // eslint-disable-next-line max-len
 const EMAIL_REGEX_STRING = '(?:[a-z0-9!#$%&\'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&\'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\\])';
@@ -176,24 +178,39 @@ const phonesFromUrls = (urls) => {
     return phones;
 };
 
+// NOTEs about the regular expressions
+// - They have just a single matching group for the profile username, all other groups are non-matching
+// - They use a negative lookbehind and lookahead assertions, which are only supported in Node 8+.
+//   They are used to prevent matching URLs in strings like "blahttps://www.example.com"
 
-const LINKEDIN_URL_REGEX_STRING = '(http(s)?:\\/\\/)?([a-z]+\\.)?linkedin\\.com\\/in\\/[a-zA-Z0-9\\-_%]+';
-const INSTAGRAM_URL_REGEX_STRING = '(http(s)?:\\/\\)?([a-z]+\\.)?(instagram\\.com|instagr\\.am)\\/[a-z0-9_.]{2,30}';
-// const INSTAGRAM_URL_REGEX_STRING = '(?:(^|[^0-9a-z]))(((http|https):\\/\\/)?((www\\.)?(?:instagram.com|instagr.am)\\/([A-Za-z0-9_.]{2,30})))';
+// eslint-disable-next-line max-len
+const LINKEDIN_PROFILE_REGEX_STRING = '(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:(?:[a-z]+\\.)?linkedin\\.com\\/in\\/)([a-z0-9\\-_%]{2,60})(?![a-z0-9\\-_%])(?:/)?';
+
+// eslint-disable-next-line max-len
+const INSTAGRAM_PROFILE_REGEX_STRING = '(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:(?:www\\.)?(?:instagram\\.com|instagr\\.am)\\/)([a-z0-9_.]{2,30})(?![a-z0-9_.])(?:/)?';
+
+const TWITTER_RESERVED_PATHS = 'oauth|account|tos|privacy|signup|home|hashtag|search|login|widgets|i|settings|start|share|intent|oct';
 // eslint-disable-next-line max-len, quotes
-const TWITTER_URL_REGEX_STRING = `(?:(?:http|https):\\/\\/)?(?:www.)?(?:twitter.com)\\/(?!(oauth|account|tos|privacy|signup|home|hashtag|search|login|widgets|i|settings|start|share|intent|oct)([\\'\\"\\?\\.\\/]|$))([A-Za-z0-9_]{1,15})`;
+const TWITTER_PROFILE_REGEX_STRING = `(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:www.)?(?:twitter.com)\\/(?!(?:${TWITTER_RESERVED_PATHS})(?:[\\'\\"\\?\\.\\/]|$))([a-z0-9_]{1,15})(?![a-z0-9_])(?:/)?`;
 
-// https://www.facebook.com/profile.php?id=1153222087
-// https://www.facebook.com/julianwaldthaler
-//
+// eslint-disable-next-line max-len, quotes
+const FACEBOOK_RESERVED_PATHS = 'rsrc\\.php|apps|groups|events|l\\.php|friends|images|photo.php|chat|ajax|dyi|common|policies|login|recover|reg|help|security|messages|marketplace|pages|live|bookmarks|games|fundraisers|saved|gaming|salesgroups|jobs|people|ads|ad_campaign|weather|offers|recommendations|crisisresponse|onthisday|developers|settings';
+// eslint-disable-next-line max-len, quotes
+const FACEBOOK_PROFILE_REGEX_STRING = `(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:www.)?(?:facebook.com|fb.com)\\/(?!(?:${FACEBOOK_RESERVED_PATHS})(?:[\\'\\"\\?\\.\\/]|$))(profile\\.php\\?id\\=[0-9]{3,20}|(?!profile\\.php)[a-z0-9\\.]{5,51})(?![a-z0-9\\.])(?:/)?`;
+
 
 /**
- * Regular expression to exactly match a single LinkedIn profile URL.
- * It has the following form: `/^...$/i`.
+ * Regular expression to exactly match a single LinkedIn profile URL, without any additional
+ * subdirectories or query parameters. The regular expression has the following form: `/^...$/i`.
+ *
+ * Example usage:
+ * ```
+ * xx
+ * ```
  * @type {RegExp}
  * @memberOf utils.social
  */
-const LINKEDIN_URL_REGEX = new RegExp(`^${LINKEDIN_URL_REGEX_STRING}$`, 'i');
+const LINKEDIN_PROFILE_REGEX = new RegExp(`^${LINKEDIN_PROFILE_REGEX_STRING}$`, 'i');
 
 /**
  * Regular expression to find multiple LinkedIn profile URLs in a text.
@@ -201,7 +218,7 @@ const LINKEDIN_URL_REGEX = new RegExp(`^${LINKEDIN_URL_REGEX_STRING}$`, 'i');
  * @type {RegExp}
  * @memberOf utils.social
  */
-const LINKEDIN_URL_REGEX_GLOBAL = new RegExp(LINKEDIN_URL_REGEX_STRING, 'ig');
+const LINKEDIN_PROFILE_REGEX_GLOBAL = new RegExp(LINKEDIN_PROFILE_REGEX_STRING, 'ig');
 
 
 /**
@@ -210,7 +227,7 @@ const LINKEDIN_URL_REGEX_GLOBAL = new RegExp(LINKEDIN_URL_REGEX_STRING, 'ig');
  * @type {RegExp}
  * @memberOf utils.social
  */
-const INSTAGRAM_URL_REGEX = new RegExp(`^${INSTAGRAM_URL_REGEX_STRING}$`, 'i');
+const INSTAGRAM_PROFILE_REGEX = new RegExp(`^${INSTAGRAM_PROFILE_REGEX_STRING}$`, 'i');
 
 /**
  * Regular expression to find multiple Instagram profile URLs in a text.
@@ -218,7 +235,7 @@ const INSTAGRAM_URL_REGEX = new RegExp(`^${INSTAGRAM_URL_REGEX_STRING}$`, 'i');
  * @type {RegExp}
  * @memberOf utils.social
  */
-const INSTAGRAM_URL_REGEX_GLOBAL = new RegExp(INSTAGRAM_URL_REGEX_STRING, 'ig');
+const INSTAGRAM_PROFILE_REGEX_GLOBAL = new RegExp(INSTAGRAM_PROFILE_REGEX_STRING, 'ig');
 
 
 /**
@@ -227,7 +244,7 @@ const INSTAGRAM_URL_REGEX_GLOBAL = new RegExp(INSTAGRAM_URL_REGEX_STRING, 'ig');
  * @type {RegExp}
  * @memberOf utils.social
  */
-const TWITTER_URL_REGEX = new RegExp(`^${TWITTER_URL_REGEX_STRING}$`, 'i');
+const TWITTER_PROFILE_REGEX = new RegExp(`^${TWITTER_PROFILE_REGEX_STRING}$`, 'i');
 
 /**
  * Regular expression to find multiple Instagram profile URLs in a text.
@@ -235,29 +252,53 @@ const TWITTER_URL_REGEX = new RegExp(`^${TWITTER_URL_REGEX_STRING}$`, 'i');
  * @type {RegExp}
  * @memberOf utils.social
  */
-const TWITTER_URL_REGEX_GLOBAL = new RegExp(TWITTER_URL_REGEX_STRING, 'ig');
+const TWITTER_PROFILE_REGEX_GLOBAL = new RegExp(TWITTER_PROFILE_REGEX_STRING, 'ig');
+
+/**
+ * Regular expression to exactly match a single Facebook user profile URL.
+ * It has the following form: `/^...$/i`.
+ * @type {RegExp}
+ * @memberOf utils.social
+ */
+const FACEBOOK_PROFILE_REGEX = new RegExp(`^${FACEBOOK_PROFILE_REGEX_STRING}$`, 'i');
+
+/**
+ * Regular expression to find multiple Instagram profile URLs in a text.
+ * It has the following form: `/.../ig`.
+ * @type {RegExp}
+ * @memberOf utils.social
+ */
+const FACEBOOK_PROFILE_REGEX_GLOBAL = new RegExp(FACEBOOK_PROFILE_REGEX_STRING, 'ig');
 
 
 /**
- * The functions attempts to extract the following social handles from a HTML document:
- * emails, phones. Note that the function removes duplicates.
- * @param {String} html HTML document
- * @return {*} An object with social handles. It has the following strucute:
+ * The functions attempts to extract emails, phones and social profile URLs from a HTML document,
+ * specifically LinkedIn, Twitter, Instagram and Facebook profile URLs.
+ * The function removes duplicates from the resulting arrays and sorts the items alphabetically.
+ * @param {String} html HTML text
+ * @param {Object} data Optional object which will receive the `text` and `$` properties
+ *   that contain text content of the HTML and `cheerio` object, respectively. This is an optimization
+ *   so that the caller doesn't need to parse the HTML document again, if needed.
+ * @return {*} An object with social handles. It has the following structure:
  * ```
  * {
  *   emails: String[],
  *   phones: String[],
  *   linkedInUrls: String[],
+ *   twitterProfiles: String[],
+ *   instagramProfiles: String[],
+ *   facebookProfiles: String[],
  * }
  * ```
  */
-const handlesFromHtml = (html) => {
+const parseHandlesFromHtml = (html, data = null) => {
     const result = {
         emails: [],
         phones: [],
-        linkedIns: [],
-        twitters: [],
-        instagrams: [],
+        linkedInProfiles: [],
+        twitterProfiles: [],
+        instagramProfiles: [],
+        facebookProfiles: [],
     };
 
     if (!_.isString(html)) return result;
@@ -280,20 +321,26 @@ const handlesFromHtml = (html) => {
     result.emails = emailsFromUrls(linkUrls).concat(emailsFromText(text));
     result.phones = phonesFromUrls(linkUrls).concat(phonesFromText(text));
 
-    // Note that these regexps extract just the base profile path. For example, for URL:
+    // Note that these regexps extract just the base profile path. For example for
     //  https://www.linkedin.com/in/carl-newman-123456a/detail/recent-activity/
     // they match just:
     //  https://www.linkedin.com/in/carl-newman-123456a
-    result.linkedIns = html.match(LINKEDIN_URL_REGEX_GLOBAL) || [];
-    result.twitters = html.match(TWITTER_URL_REGEX_GLOBAL) || [];
-    result.instagrams = html.match(INSTAGRAM_URL_REGEX_GLOBAL) || [];
-    // result.facebooks = html.match(INSTAGRAM_URL_REGEX_GLOBAL) || [];
+    result.linkedInProfiles = html.match(LINKEDIN_PROFILE_REGEX_GLOBAL) || [];
+    result.twitterProfiles = html.match(TWITTER_PROFILE_REGEX_GLOBAL) || [];
+    result.instagramProfiles = html.match(INSTAGRAM_PROFILE_REGEX_GLOBAL) || [];
+    result.facebookProfiles = html.match(FACEBOOK_PROFILE_REGEX_GLOBAL) || [];
 
     // Sort and deduplicate handles
-    ['emails', 'phones', 'linkedIns', 'instagrams'].forEach((property) => {
-        result[property].sort();
-        result[property] = _.uniq(result[property], true);
-    });
+    // eslint-disable-next-line guard-for-in, no-restricted-syntax
+    for (const key in result) {
+        result[key].sort();
+        result[key] = _.uniq(result[key], true);
+    }
+
+    if (data) {
+        data.text = text;
+        data.$ = $;
+    }
 
     return result;
 };
@@ -301,7 +348,6 @@ const handlesFromHtml = (html) => {
 
 /**
  * A namespace that contains various utilities to help you extract social handles
- * lie
  * from text, URLs and and HTML documents.
  *
  * **Example usage:**
@@ -318,17 +364,20 @@ export const socialUtils = {
     emailsFromUrls,
     phonesFromText,
     phonesFromUrls,
-    handlesFromHtml,
+    parseHandlesFromHtml,
 
     EMAIL_REGEX,
     EMAIL_REGEX_GLOBAL,
 
-    LINKEDIN_URL_REGEX,
-    LINKEDIN_URL_REGEX_GLOBAL,
+    LINKEDIN_PROFILE_REGEX,
+    LINKEDIN_PROFILE_REGEX_GLOBAL,
 
-    INSTAGRAM_URL_REGEX,
-    INSTAGRAM_URL_REGEX_GLOBAL,
+    INSTAGRAM_PROFILE_REGEX,
+    INSTAGRAM_PROFILE_REGEX_GLOBAL,
 
-    TWITTER_URL_REGEX,
-    TWITTER_URL_REGEX_GLOBAL,
+    TWITTER_PROFILE_REGEX,
+    TWITTER_PROFILE_REGEX_GLOBAL,
+
+    FACEBOOK_PROFILE_REGEX,
+    FACEBOOK_PROFILE_REGEX_GLOBAL,
 };

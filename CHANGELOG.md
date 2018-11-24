@@ -1,6 +1,7 @@
 xxx
 ==================
-- Added new `Apify.utils.social` namespace with new functions and constants
+- Added new `Apify.utils.social` namespace with function to extract emails, phone and social profile URLs
+  from HTML and text documents. Specifically, it supports Twitter, LinkedIn, Instagram and Facebook profiles.
 - Updated NPM dependencies
 
 0.9.7 / 2018-11-20
