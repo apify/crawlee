@@ -1,4 +1,4 @@
-xxx
+0.9.8 / 2018-11-24
 ==================
 - Added new `Apify.utils.social` namespace with function to extract emails, phone and social profile URLs
   from HTML and text documents. Specifically, it supports Twitter, LinkedIn, Instagram and Facebook profiles.
