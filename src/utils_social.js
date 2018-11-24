@@ -13,7 +13,7 @@ const EMAIL_REGEX_STRING = '(?:[a-z0-9!#$%&\'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&\'
  * Regular expression to exactly match a single email address.
  * It has the following form: `/^...$/i`.
  * @type {RegExp}
- * @memberOf utils.social
+ * @memberOf social
  */
 const EMAIL_REGEX = new RegExp(`^${EMAIL_REGEX_STRING}$`, 'i');
 
@@ -21,7 +21,7 @@ const EMAIL_REGEX = new RegExp(`^${EMAIL_REGEX_STRING}$`, 'i');
  * Regular expression to find multiple email addresses in a text.
  * It has the following form: `/.../ig`.
  * @type {RegExp}
- * @memberOf utils.social
+ * @memberOf social
  */
 const EMAIL_REGEX_GLOBAL = new RegExp(EMAIL_REGEX_STRING, 'ig');
 
@@ -35,7 +35,7 @@ const EMAIL_URL_PREFIX_REGEX = /^mailto:/i;
  * @param {String} text Text to search in.
  * @return {String[]} Array of emails addresses found.
  * If no emails are found, the function returns an empty array.
- * @memberOf utils.social
+ * @memberOf social
  */
 const emailsFromText = (text) => {
     if (!_.isString(text)) return [];
@@ -50,7 +50,7 @@ const emailsFromText = (text) => {
  * @param {String[]} urls Array of URLs.
  * @return {String[]} Array of emails addresses found.
  * If no emails are found, the function returns an empty array.
- * @memberOf utils.social
+ * @memberOf social
  */
 const emailsFromUrls = (urls) => {
     if (!Array.isArray(urls)) throw new Error('The "urls" parameter must be an array');
@@ -135,7 +135,7 @@ const SKIP_PHONE_REGEX = new RegExp(`^(${SKIP_PHONE_REGEXS.join('|')})$`, 'i');
  * @param {String} text Text to search the phone numbers in.
  * @return {String[]} Array of phone numbers found.
  * If no phone numbers are found, the function returns an empty array.
- * @memberOf utils.social
+ * @memberOf social
  */
 const phonesFromText = (text) => {
     if (!_.isString(text)) return [];
@@ -163,7 +163,7 @@ const phonesFromText = (text) => {
  * @param {String[]} urls Array of URLs.
  * @return {String[]} Array of phone numbers found.
  * If no phone numbers are found, the function returns an empty array.
- * @memberOf utils.social
+ * @memberOf social
  */
 const phonesFromUrls = (urls) => {
     if (!Array.isArray(urls)) throw new Error('The "urls" parameter must be an array');
@@ -209,7 +209,7 @@ const FACEBOOK_REGEX_STRING = `(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:www.)?(?:faceboo
  * TODO
  * ```
  * @type {RegExp}
- * @memberOf utils.social
+ * @memberOf social
  */
 const LINKEDIN_REGEX = new RegExp(`^${LINKEDIN_REGEX_STRING}$`, 'i');
 
@@ -217,7 +217,7 @@ const LINKEDIN_REGEX = new RegExp(`^${LINKEDIN_REGEX_STRING}$`, 'i');
  * Regular expression to find multiple LinkedIn profile URLs in a text.
  * It has the following form: `/.../ig`.
  * @type {RegExp}
- * @memberOf utils.social
+ * @memberOf social
  */
 const LINKEDIN_REGEX_GLOBAL = new RegExp(LINKEDIN_REGEX_STRING, 'ig');
 
@@ -226,7 +226,7 @@ const LINKEDIN_REGEX_GLOBAL = new RegExp(LINKEDIN_REGEX_STRING, 'ig');
  * Regular expression to exactly match a single Instagram profile URL.
  * It has the following form: `/^...$/i`.
  * @type {RegExp}
- * @memberOf utils.social
+ * @memberOf social
  */
 const INSTAGRAM_REGEX = new RegExp(`^${INSTAGRAM_REGEX_STRING}$`, 'i');
 
@@ -234,7 +234,7 @@ const INSTAGRAM_REGEX = new RegExp(`^${INSTAGRAM_REGEX_STRING}$`, 'i');
  * Regular expression to find multiple Instagram profile URLs in a text.
  * It has the following form: `/.../ig`.
  * @type {RegExp}
- * @memberOf utils.social
+ * @memberOf social
  */
 const INSTAGRAM_REGEX_GLOBAL = new RegExp(INSTAGRAM_REGEX_STRING, 'ig');
 
@@ -243,7 +243,7 @@ const INSTAGRAM_REGEX_GLOBAL = new RegExp(INSTAGRAM_REGEX_STRING, 'ig');
  * Regular expression to exactly match a single Instagram profile URL.
  * It has the following form: `/^...$/i`.
  * @type {RegExp}
- * @memberOf utils.social
+ * @memberOf social
  */
 const TWITTER_REGEX = new RegExp(`^${TWITTER_REGEX_STRING}$`, 'i');
 
@@ -251,7 +251,7 @@ const TWITTER_REGEX = new RegExp(`^${TWITTER_REGEX_STRING}$`, 'i');
  * Regular expression to find multiple Instagram profile URLs in a text.
  * It has the following form: `/.../ig`.
  * @type {RegExp}
- * @memberOf utils.social
+ * @memberOf social
  */
 const TWITTER_REGEX_GLOBAL = new RegExp(TWITTER_REGEX_STRING, 'ig');
 
@@ -259,7 +259,7 @@ const TWITTER_REGEX_GLOBAL = new RegExp(TWITTER_REGEX_STRING, 'ig');
  * Regular expression to exactly match a single Facebook user profile URL.
  * It has the following form: `/^...$/i`.
  * @type {RegExp}
- * @memberOf utils.social
+ * @memberOf social
  */
 const FACEBOOK_REGEX = new RegExp(`^${FACEBOOK_REGEX_STRING}$`, 'i');
 
@@ -267,7 +267,7 @@ const FACEBOOK_REGEX = new RegExp(`^${FACEBOOK_REGEX_STRING}$`, 'i');
  * Regular expression to find multiple Instagram profile URLs in a text.
  * It has the following form: `/.../ig`.
  * @type {RegExp}
- * @memberOf utils.social
+ * @memberOf social
  */
 const FACEBOOK_REGEX_GLOBAL = new RegExp(FACEBOOK_REGEX_STRING, 'ig');
 
