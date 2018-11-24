@@ -67,8 +67,8 @@ const emailsFromUrls = (urls) => {
 };
 
 
-// Supports URLs starting with `tel://`, `tel:/` and `tel:`, and similarly `phone` and `telephone`
-const PHONE_URL_PREFIX_REGEX = /^(tel|phone|telephone):(\/)?(\/)?/i;
+// Supports URLs starting with `tel://`, `tel:/` and `tel:`, and similarly `phone`, `telephone` and `callto`
+const PHONE_URL_PREFIX_REGEX = /^(tel|phone|telephone|callto):(\/)?(\/)?/i;
 
 // It's pretty much impossible (and unmaintainable) to have just one large regular expression for all possible phone numbers.
 // So here we define various regular expression for typical phone number patterns, which are then used to compile
