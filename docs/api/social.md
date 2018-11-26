@@ -17,8 +17,6 @@ const emails = Apify.utils.social.emailsFromText('alice@example.com bob@example.
 
 
 * [`social`](#social) : <code>object</code>
-    * [`.EMAIL_REGEX`](#social.EMAIL_REGEX) : <code>RegExp</code>
-    * [`.EMAIL_REGEX_GLOBAL`](#social.EMAIL_REGEX_GLOBAL) : <code>RegExp</code>
     * [`.LINKEDIN_REGEX`](#social.LINKEDIN_REGEX) : <code>RegExp</code>
     * [`.LINKEDIN_REGEX_GLOBAL`](#social.LINKEDIN_REGEX_GLOBAL) : <code>RegExp</code>
     * [`.INSTAGRAM_REGEX`](#social.INSTAGRAM_REGEX) : <code>RegExp</code>
@@ -27,26 +25,16 @@ const emails = Apify.utils.social.emailsFromText('alice@example.com bob@example.
     * [`.TWITTER_REGEX_GLOBAL`](#social.TWITTER_REGEX_GLOBAL) : <code>RegExp</code>
     * [`.FACEBOOK_REGEX`](#social.FACEBOOK_REGEX) : <code>RegExp</code>
     * [`.FACEBOOK_REGEX_GLOBAL`](#social.FACEBOOK_REGEX_GLOBAL) : <code>RegExp</code>
+    * [`.EMAIL_REGEX`](#social.EMAIL_REGEX) : <code>RegExp</code>
+    * [`.EMAIL_REGEX_GLOBAL`](#social.EMAIL_REGEX_GLOBAL) : <code>RegExp</code>
     * [`.emailsFromText(text)`](#social.emailsFromText) ⇒ <code>Array&lt;String&gt;</code>
     * [`.emailsFromUrls(urls)`](#social.emailsFromUrls) ⇒ <code>Array&lt;String&gt;</code>
     * [`.phonesFromText(text)`](#social.phonesFromText) ⇒ <code>Array&lt;String&gt;</code>
     * [`.phonesFromUrls(urls)`](#social.phonesFromUrls) ⇒ <code>Array&lt;String&gt;</code>
 
-<a name="social.EMAIL_REGEX"></a>
-
-## `social.EMAIL_REGEX` : <code>RegExp</code>
-Regular expression to exactly match a single email address.
-It has the following form: `/^...$/i`.
-
-<a name="social.EMAIL_REGEX_GLOBAL"></a>
-
-## `social.EMAIL_REGEX_GLOBAL` : <code>RegExp</code>
-Regular expression to find multiple email addresses in a text.
-It has the following form: `/.../ig`.
-
 <a name="social.LINKEDIN_REGEX"></a>
 
-## `social.LINKEDIN_REGEX` : <code>RegExp</code>
+## `social.LINKEDIN\_REGEX` : <code>RegExp</code>
 Regular expression to exactly match a single LinkedIn profile URL, without any additional
 subdirectories or query parameters. The regular expression has the following form: `/^...$/i`.
 
@@ -57,44 +45,56 @@ TODO
 
 <a name="social.LINKEDIN_REGEX_GLOBAL"></a>
 
-## `social.LINKEDIN_REGEX_GLOBAL` : <code>RegExp</code>
+## `social.LINKEDIN\_REGEX\_GLOBAL` : <code>RegExp</code>
 Regular expression to find multiple LinkedIn profile URLs in a text.
 It has the following form: `/.../ig`.
 
 <a name="social.INSTAGRAM_REGEX"></a>
 
-## `social.INSTAGRAM_REGEX` : <code>RegExp</code>
+## `social.INSTAGRAM\_REGEX` : <code>RegExp</code>
 Regular expression to exactly match a single Instagram profile URL.
 It has the following form: `/^...$/i`.
 
 <a name="social.INSTAGRAM_REGEX_GLOBAL"></a>
 
-## `social.INSTAGRAM_REGEX_GLOBAL` : <code>RegExp</code>
+## `social.INSTAGRAM\_REGEX\_GLOBAL` : <code>RegExp</code>
 Regular expression to find multiple Instagram profile URLs in a text.
 It has the following form: `/.../ig`.
 
 <a name="social.TWITTER_REGEX"></a>
 
-## `social.TWITTER_REGEX` : <code>RegExp</code>
+## `social.TWITTER\_REGEX` : <code>RegExp</code>
 Regular expression to exactly match a single Instagram profile URL.
 It has the following form: `/^...$/i`.
 
 <a name="social.TWITTER_REGEX_GLOBAL"></a>
 
-## `social.TWITTER_REGEX_GLOBAL` : <code>RegExp</code>
+## `social.TWITTER\_REGEX\_GLOBAL` : <code>RegExp</code>
 Regular expression to find multiple Instagram profile URLs in a text.
 It has the following form: `/.../ig`.
 
 <a name="social.FACEBOOK_REGEX"></a>
 
-## `social.FACEBOOK_REGEX` : <code>RegExp</code>
+## `social.FACEBOOK\_REGEX` : <code>RegExp</code>
 Regular expression to exactly match a single Facebook user profile URL.
 It has the following form: `/^...$/i`.
 
 <a name="social.FACEBOOK_REGEX_GLOBAL"></a>
 
-## `social.FACEBOOK_REGEX_GLOBAL` : <code>RegExp</code>
+## `social.FACEBOOK\_REGEX\_GLOBAL` : <code>RegExp</code>
 Regular expression to find multiple Instagram profile URLs in a text.
+It has the following form: `/.../ig`.
+
+<a name="social.EMAIL_REGEX"></a>
+
+## `social.EMAIL\_REGEX` : <code>RegExp</code>
+Regular expression to exactly match a single email address.
+It has the following form: `/^...$/i`.
+
+<a name="social.EMAIL_REGEX_GLOBAL"></a>
+
+## `social.EMAIL\_REGEX\_GLOBAL` : <code>RegExp</code>
+Regular expression to find multiple email addresses in a text.
 It has the following form: `/.../ig`.
 
 <a name="social.emailsFromText"></a>
