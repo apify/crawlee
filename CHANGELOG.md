@@ -1,5 +1,5 @@
-xxx
-==================
+0.9.11 / 2018-11-26
+===================
 - Added back support for `memory` option in `Apify.call()`, write deprecation warning instead of silently failing
 
 0.9.10 / 2018-11-24
