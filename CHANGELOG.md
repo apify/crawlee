@@ -1,5 +1,9 @@
-0.9.10 / 2018-11-24
+xxx
 ==================
+- Added back support for `memory` option in `Apify.call()`, write deprecation warning instead of silently failing
+
+0.9.10 / 2018-11-24
+===================
 - Improvements in `Apify.utils.social` functions and tests
 
 0.9.8 / 2018-11-24
@@ -43,9 +47,9 @@
 - Fixed `RequestQueue.addRequest()` to gracefully handle invalid URLs
 - Renamed `RequestOperationInfo` to `QueueOperationInfo`
 - Added `request` field to `QueueOperationInfo`
-- **WARNING**: Parameter `timeoutSecs` of `Apify.call()` is used for actor run timeout.
+- **DEPRECATION WARNING**: Parameter `timeoutSecs` of `Apify.call()` is used for actor run timeout.
     For time of waiting for run to finish use `waitSecs` parameter.
-- **WARNING**: Parameter `memory` of `Apify.call()` was renamed to `memoryMbytes`.
+- **DEPRECATION WARNING**: Parameter `memory` of `Apify.call()` was renamed to `memoryMbytes`.
 - Added `Apify.callTask()` that enables to start actor task and fetch its output.
 - Added option enforcing cloud storage to be used in `openKeyValueStore()`, `openDataset()` and `openRequestQueue()`
 - Added `autoscaledPool.setMinConcurrency()` and `autoscaledPool.setMinConcurrency()`

@@ -283,6 +283,58 @@ describe('Apify.call()', () => {
             });
     });
 
+    it('supports legacy "memory" option', () => {
+        const actId = 'some-act-id';
+        const token = 'some-token';
+        const defaultKeyValueStoreId = 'some-store-id';
+        const run = { id: 'some-run-id', actId, defaultKeyValueStoreId };
+        const runningRun = Object.assign({}, run, { status: ACT_JOB_STATUSES.RUNNING });
+        const finishedRun = Object.assign({}, run, { status: ACT_JOB_STATUSES.SUCCEEDED });
+        const input = 'something';
+        const contentType = 'text/plain';
+        const output = { contentType, body: 'some-output' };
+        const expected = Object.assign({}, finishedRun, { output });
+        const build = 'xxx';
+        const memory = 8192;
+        const timeoutSecs = 60;
+
+        const actsMock = sinon.mock(Apify.client.acts);
+        actsMock.expects('runAct')
+            .withExactArgs({
+                token,
+                actId,
+                contentType: `${contentType}; charset=utf-8`,
+                body: input,
+                build,
+                memory,
+                timeout: timeoutSecs,
+            })
+            .once()
+            .returns(Promise.resolve(runningRun));
+        actsMock.expects('getRun')
+            .withExactArgs({ token, actId, runId: run.id, waitForFinish: 999999 })
+            .once()
+            .returns(Promise.resolve(runningRun));
+        actsMock.expects('getRun')
+            .withExactArgs({ token, actId, runId: run.id, waitForFinish: 999999 })
+            .once()
+            .returns(Promise.resolve(finishedRun));
+
+        const keyValueStoresMock = sinon.mock(Apify.client.keyValueStores);
+        keyValueStoresMock.expects('getRecord')
+            .withExactArgs({ storeId: run.defaultKeyValueStoreId, key: 'OUTPUT', disableBodyParser: true })
+            .once()
+            .returns(Promise.resolve(output));
+
+        return Apify
+            .call(actId, input, { contentType, token, disableBodyParser: true, build, memory, timeoutSecs })
+            .then((callOutput) => {
+                expect(callOutput).to.be.eql(expected);
+                keyValueStoresMock.restore();
+                actsMock.restore();
+            });
+    });
+
     it('works without opts and input', () => {
         const actId = 'some-act-id';
         const token = 'token';
