@@ -1,4 +1,4 @@
-xxx
+0.9.12 / 2018-11-26
 ===================
 - Added warning if the Node.js is an older version that doesn't support regular expression syntax used by the tools in
   the `Apify.utils.social` namespace, instead of failing to start.
