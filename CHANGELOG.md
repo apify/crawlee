@@ -1,3 +1,7 @@
+0.9.13 / 2018-11-26
+===================
+- Updated NPM packages to fix a vulnerability reported at https://github.com/dominictarr/event-stream/issues/116
+
 0.9.12 / 2018-11-26
 ===================
 - Added warning if the Node.js is an older version that doesn't support regular expression syntax used by the tools in
