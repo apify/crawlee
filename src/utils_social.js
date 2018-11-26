@@ -2,6 +2,7 @@
 import _ from 'underscore';
 import htmlToText from 'html-to-text';
 import cheerio from 'cheerio';
+import log from 'apify-shared/log';
 
 // TODO: Finish docs and examples !!!
 
@@ -200,76 +201,94 @@ const FACEBOOK_RESERVED_PATHS = 'rsrc\\.php|apps|groups|events|l\\.php|friends|i
 const FACEBOOK_REGEX_STRING = `(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:www.)?(?:facebook.com|fb.com)\\/(?!(?:${FACEBOOK_RESERVED_PATHS})(?:[\\'\\"\\?\\.\\/]|$))(profile\\.php\\?id\\=[0-9]{3,20}|(?!profile\\.php)[a-z0-9\\.]{5,51})(?![a-z0-9\\.])(?:/)?`;
 
 
-/**
- * Regular expression to exactly match a single LinkedIn profile URL, without any additional
- * subdirectories or query parameters. The regular expression has the following form: `/^...$/i`.
- *
- * Example usage:
- * ```
- * TODO
- * ```
- * @type {RegExp}
- * @memberOf social
- */
-const LINKEDIN_REGEX = new RegExp(`^${LINKEDIN_REGEX_STRING}$`, 'i');
+let LINKEDIN_REGEX;
+let LINKEDIN_REGEX_GLOBAL;
+let INSTAGRAM_REGEX;
+let INSTAGRAM_REGEX_GLOBAL;
+let TWITTER_REGEX;
+let TWITTER_REGEX_GLOBAL;
+let FACEBOOK_REGEX;
+let FACEBOOK_REGEX_GLOBAL;
 
-/**
- * Regular expression to find multiple LinkedIn profile URLs in a text.
- * It has the following form: `/.../ig`.
- * @type {RegExp}
- * @memberOf social
- */
-const LINKEDIN_REGEX_GLOBAL = new RegExp(LINKEDIN_REGEX_STRING, 'ig');
+try {
+    /**
+     * Regular expression to exactly match a single LinkedIn profile URL, without any additional
+     * subdirectories or query parameters. The regular expression has the following form: `/^...$/i`.
+     *
+     * Example usage:
+     * ```
+     * TODO
+     * ```
+     * @type {RegExp}
+     * @memberOf social
+     */
+    LINKEDIN_REGEX = new RegExp(`^${LINKEDIN_REGEX_STRING}$`, 'i');
 
+    /**
+     * Regular expression to find multiple LinkedIn profile URLs in a text.
+     * It has the following form: `/.../ig`.
+     * @type {RegExp}
+     * @memberOf social
+     */
+    LINKEDIN_REGEX_GLOBAL = new RegExp(LINKEDIN_REGEX_STRING, 'ig');
 
-/**
- * Regular expression to exactly match a single Instagram profile URL.
- * It has the following form: `/^...$/i`.
- * @type {RegExp}
- * @memberOf social
- */
-const INSTAGRAM_REGEX = new RegExp(`^${INSTAGRAM_REGEX_STRING}$`, 'i');
+    /**
+     * Regular expression to exactly match a single Instagram profile URL.
+     * It has the following form: `/^...$/i`.
+     * @type {RegExp}
+     * @memberOf social
+     */
+    INSTAGRAM_REGEX = new RegExp(`^${INSTAGRAM_REGEX_STRING}$`, 'i');
 
-/**
- * Regular expression to find multiple Instagram profile URLs in a text.
- * It has the following form: `/.../ig`.
- * @type {RegExp}
- * @memberOf social
- */
-const INSTAGRAM_REGEX_GLOBAL = new RegExp(INSTAGRAM_REGEX_STRING, 'ig');
+    /**
+     * Regular expression to find multiple Instagram profile URLs in a text.
+     * It has the following form: `/.../ig`.
+     * @type {RegExp}
+     * @memberOf social
+     */
+    INSTAGRAM_REGEX_GLOBAL = new RegExp(INSTAGRAM_REGEX_STRING, 'ig');
 
+    /**
+     * Regular expression to exactly match a single Instagram profile URL.
+     * It has the following form: `/^...$/i`.
+     * @type {RegExp}
+     * @memberOf social
+     */
+    TWITTER_REGEX = new RegExp(`^${TWITTER_REGEX_STRING}$`, 'i');
 
-/**
- * Regular expression to exactly match a single Instagram profile URL.
- * It has the following form: `/^...$/i`.
- * @type {RegExp}
- * @memberOf social
- */
-const TWITTER_REGEX = new RegExp(`^${TWITTER_REGEX_STRING}$`, 'i');
+    /**
+     * Regular expression to find multiple Instagram profile URLs in a text.
+     * It has the following form: `/.../ig`.
+     * @type {RegExp}
+     * @memberOf social
+     */
+    TWITTER_REGEX_GLOBAL = new RegExp(TWITTER_REGEX_STRING, 'ig');
 
-/**
- * Regular expression to find multiple Instagram profile URLs in a text.
- * It has the following form: `/.../ig`.
- * @type {RegExp}
- * @memberOf social
- */
-const TWITTER_REGEX_GLOBAL = new RegExp(TWITTER_REGEX_STRING, 'ig');
+    /**
+     * Regular expression to exactly match a single Facebook user profile URL.
+     * It has the following form: `/^...$/i`.
+     * @type {RegExp}
+     * @memberOf social
+     */
+    FACEBOOK_REGEX = new RegExp(`^${FACEBOOK_REGEX_STRING}$`, 'i');
 
-/**
- * Regular expression to exactly match a single Facebook user profile URL.
- * It has the following form: `/^...$/i`.
- * @type {RegExp}
- * @memberOf social
- */
-const FACEBOOK_REGEX = new RegExp(`^${FACEBOOK_REGEX_STRING}$`, 'i');
-
-/**
- * Regular expression to find multiple Instagram profile URLs in a text.
- * It has the following form: `/.../ig`.
- * @type {RegExp}
- * @memberOf social
- */
-const FACEBOOK_REGEX_GLOBAL = new RegExp(FACEBOOK_REGEX_STRING, 'ig');
+    /**
+     * Regular expression to find multiple Instagram profile URLs in a text.
+     * It has the following form: `/.../ig`.
+     * @type {RegExp}
+     * @memberOf social
+     */
+    FACEBOOK_REGEX_GLOBAL = new RegExp(FACEBOOK_REGEX_STRING, 'ig');
+} catch (e) {
+    // Older version of Node don't support negative lookbehind and lookahead expressions.
+    // Show warning instead of just failing.
+    if (e && e.message && e.message.includes('Invalid group')) {
+        // eslint-disable-next-line max-len
+        log.warning(`Your version of Node.js (${process.version}) doesn't support the regular expression syntax used by Apify.utils.social tools. The tools will not work. Please upgrade your Node.js to the latest version.`);
+    } else {
+        throw e;
+    }
+}
 
 
 /**
