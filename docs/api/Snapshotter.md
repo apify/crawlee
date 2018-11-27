@@ -6,7 +6,7 @@ title: Snapshotter
 
 Creates snapshots of system resources at given intervals and marks the resource
 as either overloaded or not during the last interval. Keeps a history of the snapshots.
-It tracks the following resources: Memory, EventLoop and CPU.
+It tracks the following resources: Memory, EventLoop, API and CPU.
 The class is used by the [`AutoscaledPool`](autoscaledpool) class.
 
 There are differences in behavior when running locally and on the Apify platform,
@@ -19,6 +19,9 @@ Max total memory may be overridden by using the `APIFY_MEMORY_MBYTES` environmen
 
 Event loop becomes overloaded if it slows down by more than the `maxBlockedMillis` option.
 
+Client becomes overloaded when rate limit errors (429 - Too Many Requests),
+typically received from the request queue exceed the set limit within the set interval.
+
 CPU tracking is available only on the Apify platform and the CPU overloaded event is read
 directly off the container and is not configurable.
 
@@ -30,6 +33,7 @@ directly off the container and is not configurable.
     * [`.getMemorySample([sampleDurationMillis])`](#Snapshotter+getMemorySample) ⇒ <code>Array</code>
     * [`.getEventLoopSample([sampleDurationMillis])`](#Snapshotter+getEventLoopSample) ⇒ <code>Array</code>
     * [`.getCpuSample([sampleDurationMillis])`](#Snapshotter+getCpuSample) ⇒ <code>Array</code>
+    * [`.getClientSample(sampleDurationMillis)`](#Snapshotter+getClientSample) ⇒ <code>Array</code>
 
 <a name="new_Snapshotter_new"></a>
 
@@ -53,6 +57,12 @@ directly off the container and is not configurable.
 <tr>
 <td colspan="3"><p>Defines the interval of measuring the event loop response time.</p>
 </td></tr><tr>
+<td><code>[options.clientSnapshotIntervalSecs]</code></td><td><code>Number</code></td><td><code>1</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Defines the interval of checking the current state
+  of the remote API client.</p>
+</td></tr><tr>
 <td><code>[options.maxBlockedMillis]</code></td><td><code>Number</code></td><td><code>50</code></td>
 </tr>
 <tr>
@@ -71,6 +81,12 @@ directly off the container and is not configurable.
 <tr>
 <td colspan="3"><p>Defines the maximum ratio of total memory that can be used.
   Exceeding this limit overloads the memory.</p>
+</td></tr><tr>
+<td><code>[options.maxClientErrors]</code></td><td><code>Number</code></td><td><code>1</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Defines the maximum number of new rate limit errors within
+  the given interval.</p>
 </td></tr><tr>
 <td><code>[options.snapshotHistorySecs]</code></td><td><code>Number</code></td><td><code>60</code></td>
 </tr>
@@ -142,6 +158,25 @@ by the sampleDurationMillis parameter. If omitted, it returns a full snapshot hi
 <tbody>
 <tr>
 <td><code>[sampleDurationMillis]</code></td><td><code>Number</code></td>
+</tr>
+<tr>
+</tr></tbody>
+</table>
+<a name="Snapshotter+getClientSample"></a>
+
+## `snapshotter.getClientSample(sampleDurationMillis)` ⇒ <code>Array</code>
+Returns a sample of latest Client snapshots, with the size of the sample defined
+by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sampleDurationMillis</code></td><td><code>Number</code></td>
 </tr>
 <tr>
 </tr></tbody>
