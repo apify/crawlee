@@ -260,7 +260,21 @@ class BasicCrawler {
             await source.markRequestHandled(request);
             this.handledRequestsCount++;
         } catch (err) {
-            await this._requestFunctionErrorHandler(err, request, source);
+            try {
+                // TODO Errors thrown from within the error handler will in most cases terminate
+                // the crawler because runTaskFunction errors kill autoscaled pool
+                // which is correct, since in this case, RequestQueue is probably in an unknown
+                // state. However, it's also troublesome when RequestQueue is overloaded
+                // since it may actually cause the crawlers to crash.
+                await this._requestFunctionErrorHandler(err, request, source);
+            } catch (secondaryError) {
+                log.exception(secondaryError, 'BasicCrawler: runTaskFunction error handler threw an exception. '
+                    + 'This places the RequestQueue into an unknown state and crawling will be terminated. '
+                    + 'This most likely happened due to RequestQueue being overloaded and unable to handle '
+                    + 'Request updates even after exponential backoff. Try limiting the concurrency '
+                    + 'of the run by using the maxConcurrency option.');
+                throw secondaryError;
+            }
         }
     }
 
