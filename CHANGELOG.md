@@ -1,3 +1,7 @@
+0.9.14 / 2018-11-26
+===================
+- Added `_getPublicUrl` function to `KeyValueStoreLocal`
+
 0.9.13 / 2018-11-26
 ===================
 - Updated NPM packages to fix a vulnerability reported at https://github.com/dominictarr/event-stream/issues/116

@@ -427,6 +427,20 @@ export class KeyValueStoreLocal {
     _getPath(fileName) {
         return path.resolve(this.localStoragePath, fileName);
     }
+
+    /**
+     * Retrieves the full public url of the designated file.
+     * @param {String} fileName 
+     */
+    _getPublicUrl( fileName ) {
+        ensureTokenOrLocalStorageEnvExists('key value store');
+        var storeId = process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID]; 
+
+        const publicUrl = `https://api.apify.com/v2/key-value-stores/${storeId}/records/${fileName}`;
+        const publicLocalUrl = `file://${this.localStoragePath}/${fileName}`;
+
+        return process.env[_consts.ENV_VARS.LOCAL_STORAGE_DIR] && !this.forceCloud ? publicLocalUrl : publicUrl;
+    }
 }
 
 /**
