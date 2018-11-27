@@ -231,11 +231,13 @@ describe('KeyValueStore', () => {
 
             const circularObj = {};
             circularObj.xxx = circularObj;
-            const jsonErrMsg = 'The "value" parameter cannot be stringified to JSON';
-            await expect(Apify.setValue('key', circularObj)).to.be.rejectedWith(jsonErrMsg);
-            await expect(Apify.setValue('key', undefined)).to.be.rejectedWith(jsonErrMsg);
-            await expect(Apify.setValue('key', () => {})).to.be.rejectedWith(jsonErrMsg);
-            await expect(Apify.setValue('key')).to.be.rejectedWith(jsonErrMsg);
+            const circularErrMsg = 'The "value" parameter cannot be stringified to JSON: Converting circular structure to JSON';
+            const undefinedErrMsg = 'The "value" parameter was stringified to JSON and returned undefined. '
+                + 'Make sure you\'re not trying to stringify a Function.';
+            await expect(Apify.setValue('key', circularObj)).to.be.rejectedWith(circularErrMsg);
+            await expect(Apify.setValue('key', undefined)).to.be.rejectedWith(undefinedErrMsg);
+            await expect(Apify.setValue('key', () => {})).to.be.rejectedWith(undefinedErrMsg);
+            await expect(Apify.setValue('key')).to.be.rejectedWith(undefinedErrMsg);
 
             const contTypeRedundantErrMsg = 'The "options.contentType" parameter must not be used when removing the record';
             await expect(Apify.setValue('key', null, { contentType: 'image/png' })).to.be.rejectedWith(contTypeRedundantErrMsg);
