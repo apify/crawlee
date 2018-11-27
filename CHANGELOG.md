@@ -1,3 +1,8 @@
+0.9.14 / 2018-11-27
+===================
+- Added API response tracking to AutoscaledPool, leveraging `Apify.client.stats` object. It now overloads the system
+  when a large amount of  429 - Too Many Requests is received.
+
 0.9.13 / 2018-11-26
 ===================
 - Updated NPM packages to fix a vulnerability reported at https://github.com/dominictarr/event-stream/issues/116
