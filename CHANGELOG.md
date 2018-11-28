@@ -1,6 +1,6 @@
-0.9.14 / 2018-11-26
+xxx
 ===================
-- Added `_getPublicUrl` function to `KeyValueStoreLocal`
+- Added `getPublicUrl` function to `KeyValueStoreLocal`
 
 0.9.13 / 2018-11-26
 ===================
