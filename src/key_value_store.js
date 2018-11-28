@@ -289,6 +289,12 @@ export class KeyValueStore {
                 if (this.storeName) storesCache.remove(this.storeName);
             });
     }
+
+    getPublicUrl(fileName) {
+        ensureTokenOrLocalStorageEnvExists('key value store');
+        const publicUrl = `https://api.apify.com/v2/key-value-stores/${this.storeId}/records/${fileName}`;
+        return publicUrl;
+    }
 }
 
 /**
@@ -430,16 +436,12 @@ export class KeyValueStoreLocal {
 
     /**
      * Retrieves the full public url of the designated file.
-     * @param {String} fileName 
+     * @param {String} fileName
      */
-    _getPublicUrl( fileName ) {
+    getPublicUrl(fileName) {
         ensureTokenOrLocalStorageEnvExists('key value store');
-        var storeId = process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID]; 
-
-        const publicUrl = `https://api.apify.com/v2/key-value-stores/${storeId}/records/${fileName}`;
         const publicLocalUrl = `file://${this.localStoragePath}/${fileName}`;
-
-        return process.env[_consts.ENV_VARS.LOCAL_STORAGE_DIR] && !this.forceCloud ? publicLocalUrl : publicUrl;
+        return process.env[ENV_VARS.LOCAL_STORAGE_DIR] && !this.forceCloud ? publicLocalUrl : publicUrl;
     }
 }
 
