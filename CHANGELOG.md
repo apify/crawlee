@@ -1,3 +1,31 @@
+0.9.14 / 2018-11-27
+===================
+- Added API response tracking to AutoscaledPool, leveraging `Apify.client.stats` object. It now overloads the system
+  when a large amount of  429 - Too Many Requests is received.
+
+0.9.13 / 2018-11-26
+===================
+- Updated NPM packages to fix a vulnerability reported at https://github.com/dominictarr/event-stream/issues/116
+
+0.9.12 / 2018-11-26
+===================
+- Added warning if the Node.js is an older version that doesn't support regular expression syntax used by the tools in
+  the `Apify.utils.social` namespace, instead of failing to start.
+
+0.9.11 / 2018-11-26
+===================
+- Added back support for `memory` option in `Apify.call()`, write deprecation warning instead of silently failing
+
+0.9.10 / 2018-11-24
+===================
+- Improvements in `Apify.utils.social` functions and tests
+
+0.9.8 / 2018-11-24
+==================
+- Added new `Apify.utils.social` namespace with function to extract emails, phone and social profile URLs
+  from HTML and text documents. Specifically, it supports Twitter, LinkedIn, Instagram and Facebook profiles.
+- Updated NPM dependencies
+
 0.9.7 / 2018-11-20
 ==================
 - `Apify.launchPuppeteer()` now sets the `defaultViewport` option if not provided by user,
@@ -33,9 +61,9 @@
 - Fixed `RequestQueue.addRequest()` to gracefully handle invalid URLs
 - Renamed `RequestOperationInfo` to `QueueOperationInfo`
 - Added `request` field to `QueueOperationInfo`
-- **WARNING**: Parameter `timeoutSecs` of `Apify.call()` is used for actor run timeout.
+- **DEPRECATION WARNING**: Parameter `timeoutSecs` of `Apify.call()` is used for actor run timeout.
     For time of waiting for run to finish use `waitSecs` parameter.
-- **WARNING**: Parameter `memory` of `Apify.call()` was renamed to `memoryMbytes`.
+- **DEPRECATION WARNING**: Parameter `memory` of `Apify.call()` was renamed to `memoryMbytes`.
 - Added `Apify.callTask()` that enables to start actor task and fetch its output.
 - Added option enforcing cloud storage to be used in `openKeyValueStore()`, `openDataset()` and `openRequestQueue()`
 - Added `autoscaledPool.setMinConcurrency()` and `autoscaledPool.setMinConcurrency()`

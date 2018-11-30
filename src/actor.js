@@ -240,6 +240,9 @@ export const main = (userFunc) => {
     }
 };
 
+let callMemoryWarningIssued = false;
+
+
 /**
  * Runs an actor on the Apify platform using the current user account (determined by the `APIFY_TOKEN` environment variable),
  * waits for the actor to finish and fetches its output.
@@ -316,10 +319,22 @@ export const call = async (actId, input, options = {}) => {
     checkParamOrThrow(token, 'token', 'Maybe String');
 
     // RunAct() options.
-    const { build, memoryMbytes, timeoutSecs } = optionsCopy;
+    const { build, memory, timeoutSecs } = optionsCopy;
+    let { memoryMbytes } = optionsCopy;
     const runActOpts = {
         actId,
     };
+
+    // HOTFIX: Some old actors use "memory", so we need to keep them working for a while
+    if (memory && !memoryMbytes) {
+        memoryMbytes = memory;
+        if (!callMemoryWarningIssued) {
+            callMemoryWarningIssued = true;
+            // eslint-disable-next-line max-len
+            log.warning('The "memory" option of the Apify.call() function has been deprecated and will be removed in the future. Use "memoryMbytes" instead!');
+        }
+    }
+
     checkParamOrThrow(build, 'build', 'Maybe String');
     checkParamOrThrow(memoryMbytes, 'memoryMbytes', 'Maybe Number');
     checkParamOrThrow(timeoutSecs, 'timeoutSecs', 'Maybe Number');

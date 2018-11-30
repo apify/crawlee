@@ -85,7 +85,8 @@ export const maybeStringify = (value, options) => {
         }
 
         if (value === undefined) {
-            throw new Error('The "value" parameter cannot be stringified to JSON.');
+            throw new Error('The "value" parameter was stringified to JSON and returned undefined. '
+                + 'Make sure you\'re not trying to stringify a Function.');
         }
     }
 

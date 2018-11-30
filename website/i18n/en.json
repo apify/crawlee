@@ -47,6 +47,9 @@
       "api/snapshotter": {
         "title": "Snapshotter"
       },
+      "api/social": {
+        "title": "utils.social"
+      },
       "api/systemstatus": {
         "title": "SystemStatus"
       },

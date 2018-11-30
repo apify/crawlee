@@ -13,7 +13,7 @@ const namespaces = [];
 const typedefs = [];
 
 const getHeader = (title) => {
-    const prefix = title === 'puppeteer' ? 'utils.' : '';
+    const prefix = /puppeteer|social|log/.test(title) ? 'utils.' : '';
     const id = title.replace(/\s/g, '').toLowerCase();
     return `---\nid: ${id}\ntitle: ${prefix}${title}\n---\n`;
 };

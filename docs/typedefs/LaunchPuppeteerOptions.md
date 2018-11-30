@@ -4,9 +4,11 @@ title: LaunchPuppeteerOptions
 ---
 <a name="LaunchPuppeteerOptions"></a>
 
-Represents options passed to the
+An object representing options passed to the
 [`Apify.launchPuppeteer()`](../api/apify#module_Apify.launchPuppeteer)
-function.
+function. In this object, you can pass any options supported by the
+[`puppeteer.launch()`](https://pptr.dev/#?product=Puppeteer&show=api-puppeteerlaunchoptions),
+as well as the additional options provided by Apify SDK listed below.
 
 **Properties**
 <table>

@@ -8,6 +8,7 @@ const DEFAULT_OPTIONS = {
     maxMemoryOverloadedRatio: 0.2,
     maxEventLoopOverloadedRatio: 0.2,
     maxCpuOverloadedRatio: 0.4,
+    maxClientOverloadedRatio: 0.2,
 };
 
 /**
@@ -42,8 +43,11 @@ const DEFAULT_OPTIONS = {
  * @param {Number} [options.maxEventLoopOverloadedRatio=0.2]
  *   Sets the maximum ratio of overloaded snapshots in an event loop sample.
  *   If the sample exceeds this ratio, the system will be overloaded.
- * @param {Number} [options.maxCpuOverloadedRatio=0.1]
+ * @param {Number} [options.maxCpuOverloadedRatio=0.4]
  *   Sets the maximum ratio of overloaded snapshots in a CPU sample.
+ *   If the sample exceeds this ratio, the system will be overloaded.
+ * @param {Number} [options.maxClientOverloadedRatio=0.2]
+ *   Sets the maximum ratio of overloaded snapshots in a Client sample.
  *   If the sample exceeds this ratio, the system will be overloaded.
  */
 class SystemStatus {
@@ -53,6 +57,7 @@ class SystemStatus {
             maxMemoryOverloadedRatio,
             maxEventLoopOverloadedRatio,
             maxCpuOverloadedRatio,
+            maxClientOverloadedRatio,
             snapshotter,
         } = _.defaults({}, options, DEFAULT_OPTIONS);
 
@@ -60,12 +65,14 @@ class SystemStatus {
         checkParamOrThrow(maxMemoryOverloadedRatio, 'options.maxMemoryOverloadedRatio', 'Number');
         checkParamOrThrow(maxEventLoopOverloadedRatio, 'options.maxEventLoopOverloadedRatio', 'Number');
         checkParamOrThrow(maxCpuOverloadedRatio, 'options.maxCpuOverloadedRatio', 'Number');
+        checkParamOrThrow(maxClientOverloadedRatio, 'options.maxClientOverloadedRatio', 'Number');
         checkParamOrThrow(snapshotter, 'options.snapshotter', 'Maybe Object');
 
         this.currentHistorySecs = currentHistorySecs * 1000;
         this.maxMemoryOverloadedRatio = maxMemoryOverloadedRatio;
         this.maxEventLoopOverloadedRatio = maxEventLoopOverloadedRatio;
         this.maxCpuOverloadedRatio = maxCpuOverloadedRatio;
+        this.maxClientOverloadedRatio = maxClientOverloadedRatio;
 
         this.snapshotter = snapshotter || new Snapshotter();
     }
@@ -123,17 +130,19 @@ class SystemStatus {
         const memInfo = this._isMemoryOverloaded(sampleDurationMillis);
         const eventLoopInfo = this._isEventLoopOverloaded(sampleDurationMillis);
         const cpuInfo = this._isCpuOverloaded(sampleDurationMillis);
+        const clientInfo = this._isClientOverloaded(sampleDurationMillis);
         return {
-            isSystemIdle: !memInfo.isOverloaded && !eventLoopInfo.isOverloaded && !cpuInfo.isOverloaded,
+            isSystemIdle: !memInfo.isOverloaded && !eventLoopInfo.isOverloaded && !cpuInfo.isOverloaded && !clientInfo.isOverloaded,
             memInfo,
             eventLoopInfo,
             cpuInfo,
+            clientInfo,
         };
     }
 
     /**
-     * Returns true if the memory has been overloaded
-     * in the last sampleDurationMillis.
+     * Returns an object with an isOverloaded property set to true
+     * if the memory has been overloaded in the last sampleDurationMillis.
      *
      * @param {Number} sampleDurationMillis
      * @return {Object}
@@ -145,8 +154,8 @@ class SystemStatus {
     }
 
     /**
-     * Returns true if the event loop has been overloaded
-     * in the last sampleDurationMillis.
+     * Returns an object with an isOverloaded property set to true
+     * if the event loop has been overloaded in the last sampleDurationMillis.
      *
      * @param {Number} sampleDurationMillis
      * @return {Object}
@@ -168,6 +177,18 @@ class SystemStatus {
     _isCpuOverloaded(sampleDurationMillis) {
         const sample = this.snapshotter.getCpuSample(sampleDurationMillis);
         return this._isSampleOverloaded(sample, this.maxCpuOverloadedRatio);
+    }
+
+    /**
+     * Returns an object with an isOverloaded property set to true
+     * if the client has been overloaded in the last sampleDurationMillis.
+     * @param sampleDurationMillis
+     * @return {{isOverloaded, maxOverloadedRatio, actualRatio}}
+     * @private
+     */
+    _isClientOverloaded(sampleDurationMillis) {
+        const sample = this.snapshotter.getClientSample(sampleDurationMillis);
+        return this._isSampleOverloaded(sample, this.maxClientOverloadedRatio);
     }
 
     /**

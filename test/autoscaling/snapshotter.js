@@ -4,6 +4,7 @@ import { ACTOR_EVENT_NAMES, ENV_VARS } from 'apify-shared/consts';
 import * as Apify from '../../build/index';
 import events from '../../build/events';
 import Snapshotter from '../../build/autoscaling/snapshotter';
+import { apifyClient } from '../../build/utils';
 
 // const toBytes = x => x * 1024 * 1024;
 
@@ -19,13 +20,23 @@ describe('Snapshotter', () => {
     });
 
     it('should collect snapshots with some values', async () => {
+        // mock client data
+        const oldStats = apifyClient.stats;
+        apifyClient.stats = {};
+        apifyClient.stats.rateLimitErrors = 0;
+
         const snapshotter = new Snapshotter();
         await snapshotter.start();
-        await Apify.utils.sleep(1250);
+
+        await Apify.utils.sleep(625);
+        apifyClient.stats.rateLimitErrors = 2;
+        await Apify.utils.sleep(625);
+
         await snapshotter.stop();
         const memorySnapshots = snapshotter.getMemorySample();
         const eventLoopSnapshots = snapshotter.getEventLoopSample();
         const cpuSnapshots = snapshotter.getCpuSample();
+        const clientSnapshots = snapshotter.getClientSample();
 
         expect(cpuSnapshots).to.be.an('array');
         expect(cpuSnapshots).to.have.lengthOf(0);
@@ -49,6 +60,16 @@ describe('Snapshotter', () => {
             expect(ss.isOverloaded).to.be.a('boolean');
             expect(ss.exceededMillis).to.be.a('number');
         });
+
+        expect(clientSnapshots).to.be.an('array');
+        expect(clientSnapshots).to.have.lengthOf(2);
+        clientSnapshots.forEach((ss) => {
+            expect(ss.createdAt).to.be.a('date');
+            expect(ss.isOverloaded).to.be.a('boolean');
+            expect(ss.rateLimitErrorCount).to.be.a('number');
+        });
+
+        apifyClient.stats = oldStats;
     });
 
     it('should override default timers', async () => {
@@ -162,7 +183,36 @@ describe('Snapshotter', () => {
     });
     */
 
-    it('.get...Sample limits amount of samples', async () => {
+    it('correctly marks clientOverloaded', async () => {
+        // mock client data
+        const oldStats = apifyClient.stats;
+        apifyClient.stats = {};
+        apifyClient.stats.rateLimitErrors = 0;
+
+        const options = {
+            clientSnapshotIntervalSecs: 0.001,
+        };
+
+        const snapshotter = new Snapshotter(options);
+        await snapshotter.start();
+        apifyClient.stats.rateLimitErrors = 1;
+        await Apify.utils.sleep(1);
+        apifyClient.stats.rateLimitErrors = 2;
+        await Apify.utils.sleep(1);
+        apifyClient.stats.rateLimitErrors = 10000;
+        await Apify.utils.sleep(1);
+        await snapshotter.stop();
+        const clientSnapshots = snapshotter.getClientSample();
+
+        expect(clientSnapshots.length).to.be.above(2);
+        expect(clientSnapshots[0].isOverloaded).to.be.eql(false);
+        expect(clientSnapshots[1].isOverloaded).to.be.eql(false);
+        expect(clientSnapshots[clientSnapshots.length - 1].isOverloaded).to.be.eql(true);
+
+        apifyClient.stats = oldStats;
+    });
+
+    it('.get[.*]Sample limits amount of samples', async () => {
         const SAMPLE_SIZE_MILLIS = 120;
         const options = {
             eventLoopSnapshotIntervalSecs: 0.01,

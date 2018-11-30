@@ -65,10 +65,16 @@ in the [`Snapshotter`](snapshotter) instance.
 <td colspan="3"><p>Sets the maximum ratio of overloaded snapshots in an event loop sample.
   If the sample exceeds this ratio, the system will be overloaded.</p>
 </td></tr><tr>
-<td><code>[options.maxCpuOverloadedRatio]</code></td><td><code>Number</code></td><td><code>0.1</code></td>
+<td><code>[options.maxCpuOverloadedRatio]</code></td><td><code>Number</code></td><td><code>0.4</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Sets the maximum ratio of overloaded snapshots in a CPU sample.
+  If the sample exceeds this ratio, the system will be overloaded.</p>
+</td></tr><tr>
+<td><code>[options.maxClientOverloadedRatio]</code></td><td><code>Number</code></td><td><code>0.2</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Sets the maximum ratio of overloaded snapshots in a Client sample.
   If the sample exceeds this ratio, the system will be overloaded.</p>
 </td></tr></tbody>
 </table>
