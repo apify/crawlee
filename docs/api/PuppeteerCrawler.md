@@ -95,9 +95,9 @@ await crawler.run();
 }
 </code></pre><p>  <code>request</code> is an instance of the <a href="request"><code>Request</code></a> object with details about the URL to open, HTTP method etc.
   <code>response</code> is an instance of the <code>Puppeteer</code>
-  <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a>
+  <a href="https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page" target="_blank"><code>Page</code></a>
   <code>page</code> is an instance of the <code>Puppeteer</code>
-  <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-response" target="_blank"><code>Response</code></a>,
+  <a href="https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#-class-response" target="_blank"><code>Response</code></a>,
   which is the main resource response as returned by <code>page.goto(request.url)</code>.
   <code>puppeteerPool</code> is an instance of the <a href="puppeteerpool"><code>PuppeteerPool</code></a> used by this <code>PuppeteerCrawler</code>.</p>
 </td></tr><tr>
@@ -122,8 +122,8 @@ await crawler.run();
 </tr>
 <tr>
 <td colspan="3"><p>Overrides the function that opens the page in Puppeteer. The function should return the result of Puppeteer&#39;s
-  <a href="https://pptr.dev/#?product=Puppeteer&show=api-pagegotourl-options" target="_blank">page.goto()</a> function,
-  i.e. a <code>Promise</code> resolving to the <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-response" target="_blank">Response</a> object.</p>
+  <a href="https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#pagegotourl-options" target="_blank">page.goto()</a> function,
+  i.e. a <code>Promise</code> resolving to the <a href="https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-response" target="_blank">Response</a> object.</p>
 <p>  This is useful if you need to extend the page load timeout or select different criteria
   to determine that the navigation succeeded.</p>
 <p>  Note that a single page object is only used to process a single request and it is closed afterwards.</p>
