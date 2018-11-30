@@ -1,6 +1,6 @@
 xxx
 ===================
-- Upgraded Puppeteer to 1.10.0
+- Upgraded Puppeteer to 1.11.0
 
 0.9.14 / 2018-11-27
 ===================
