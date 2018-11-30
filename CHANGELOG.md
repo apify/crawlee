@@ -1,3 +1,7 @@
+xxx
+===================
+- Upgraded Puppeteer to 1.11.0
+
 0.9.14 / 2018-11-27
 ===================
 - Added API response tracking to AutoscaledPool, leveraging `Apify.client.stats` object. It now overloads the system
