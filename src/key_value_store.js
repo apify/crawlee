@@ -25,7 +25,7 @@ const emptyDirPromised = Promise.promisify(fsExtra.emptyDir);
 
 const { keyValueStores } = apifyClient;
 const storesCache = new LruCache({ maxLength: MAX_OPENED_STORES }); // Open key-value stores are stored here.
-const publicUrl = 'https://api.apify.com/v2/key-value-stores' // Will be replaced with env var in future.
+const publicUrl = 'https://api.apify.com/v2/key-value-stores'; // Will be replaced with env var in future.
 
 /**
  * Helper function to validate params of *.getValue().
@@ -292,8 +292,8 @@ export class KeyValueStore {
     }
 
     getPublicUrl(fileName) {
-        ensureTokenOrLocalStorageEnvExists('key value store'); 
-        return publicUrl + `${this.storeId}/records/${fileName}`;;
+        ensureTokenOrLocalStorageEnvExists('key value store');
+        return `${publicUrl}/${this.storeId}/records/${fileName}`;
     }
 }
 
@@ -441,7 +441,7 @@ export class KeyValueStoreLocal {
     getPublicUrl(fileName) {
         ensureTokenOrLocalStorageEnvExists('key value store');
         const publicLocalUrl = `file://${this.localStoragePath}/${fileName}`;
-        const defaultUrl = `file://${this.localStoragePath}/default`
+        const defaultUrl = `file://${this.localStoragePath}/default`;
         return process.env[ENV_VARS.LOCAL_STORAGE_DIR] && !this.forceCloud ? publicLocalUrl : defaultUrl;
     }
 }
