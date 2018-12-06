@@ -212,12 +212,26 @@ let FACEBOOK_REGEX_GLOBAL;
 
 try {
     /**
-     * Regular expression to exactly match a single LinkedIn profile URL, without any additional
-     * subdirectories or query parameters. The regular expression has the following form: `/^...$/i`.
+     * Regular expression to exactly match a single LinkedIn profile URL.
+     * It has the following form: `/^...$/i` and matches URLs such as:
+     * ```
+     * https://www.linkedin.com/in/alan-turing
+     * en.linkedin.com/in/alan-turing
+     * linkedin.com/in/alan-turing
+     * ```
+     *
+     * The regular expression does NOT match URLs with additional
+     * subdirectories or query parameters, such as:
+     * ```
+     * https://www.linkedin.com/in/alan-turing/latest-activity
+     * en.linkedin.com/in/alan-turing?param=123
+     * ```
      *
      * Example usage:
      * ```
-     * TODO
+     * if (Apify.utils.social.LINKEDIN_REGEX.test('https://www.linkedin.com/in/alan-turing')) {
+     *     console.log('Match!');
+     * }
      * ```
      * @type {RegExp}
      * @memberOf social
@@ -225,8 +239,26 @@ try {
     LINKEDIN_REGEX = new RegExp(`^${LINKEDIN_REGEX_STRING}$`, 'i');
 
     /**
-     * Regular expression to find multiple LinkedIn profile URLs in a text.
-     * It has the following form: `/.../ig`.
+     * Regular expression to find multiple LinkedIn profile URLs in a text or HTML.
+     * It has the following form: `/.../ig` and matches URLs such as:
+     * ```
+     * https://www.linkedin.com/in/alan-turing
+     * en.linkedin.com/in/alan-turing
+     * linkedin.com/in/alan-turing
+     * ```
+     *
+     * The regular expression does NOT match URLs with additional
+     * subdirectories or query parameters, such as:
+     * ```
+     * https://www.linkedin.com/in/alan-turing/latest-activity
+     * en.linkedin.com/in/alan-turing?param=123
+     * ```
+     *
+     * Example usage:
+     * ```
+     * const matches = text.match(Apify.utils.social.LINKEDIN_REGEX_GLOBAL);
+     * if (matches) console.log(`${matches.length} matches found!`);
+     * ```
      * @type {RegExp}
      * @memberOf social
      */

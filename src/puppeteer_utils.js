@@ -272,11 +272,13 @@ const enqueueLinks = async (page, selector, requestQueue, pseudoUrls) => {
  * For more details, see Puppeteer's
  * <a href="https://pptr.dev/#?product=Puppeteer&show=api-requestresourcetype" target="_blank">Request.resourceType() documentation</a>.
  *
- * By default, the function blocks these resource types: `stylesheet`, `font`, `image`, `media`.
+ * If the `resourceTypes` parameter is not provided,
+ * by default the function blocks these resource types: `stylesheet`, `font`, `image`, `media`.
  *
  * @param {Page} page
  *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
- * @param {String[]} resourceTypes Array of resource types to block.
+ * @param {String[]} [resourceTypes=['stylesheet', 'font', 'image', 'media']]
+ *   Array of resource types to block.
  * @return {Promise}
  * @memberOf puppeteer
  */
