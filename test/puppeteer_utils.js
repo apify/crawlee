@@ -136,16 +136,16 @@ describe('Apify.utils.puppeteer', () => {
 
         it('works with PseudoUrl instances', async () => {
             const enqueued = [];
-            const queue = new RequestQueue('xxx');
-            queue.addRequest = async (request) => {
+            const requestQueue = new RequestQueue('xxx');
+            requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
-            const purls = [
+            const pseudoUrls = [
                 new Apify.PseudoUrl('https://example.com/[(\\w|-|/)*]', { method: 'POST' }),
                 new Apify.PseudoUrl('[http|https]://cool.com/', { userData: { foo: 'bar' } }),
             ];
 
-            await Apify.utils.puppeteer.enqueueLinks(page, '.click', queue, purls);
+            await Apify.utils.puppeteer.enqueueLinks({ page, selector: '.click', requestQueue, pseudoUrls });
 
             expect(enqueued).to.have.lengthOf(3);
 
@@ -164,16 +164,16 @@ describe('Apify.utils.puppeteer', () => {
 
         it('works with Actor UI output object', async () => {
             const enqueued = [];
-            const queue = new RequestQueue('xxx');
-            queue.addRequest = async (request) => {
+            const requestQueue = new RequestQueue('xxx');
+            requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
-            const purls = [
+            const pseudoUrls = [
                 { purl: 'https://example.com/[(\\w|-|/)*]', method: 'POST' },
                 { purl: '[http|https]://cool.com/', userData: { foo: 'bar' } },
             ];
 
-            await Apify.utils.puppeteer.enqueueLinks(page, '.click', queue, purls);
+            await Apify.utils.puppeteer.enqueueLinks({ page, selector: '.click', requestQueue, pseudoUrls });
 
             expect(enqueued).to.have.lengthOf(3);
 
@@ -192,16 +192,16 @@ describe('Apify.utils.puppeteer', () => {
 
         it('works with string pseudoUrls', async () => {
             const enqueued = [];
-            const queue = new RequestQueue('xxx');
-            queue.addRequest = async (request) => {
+            const requestQueue = new RequestQueue('xxx');
+            requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
-            const purls = [
+            const pseudoUrls = [
                 'https://example.com/[(\\w|-|/)*]',
                 '[http|https]://cool.com/',
             ];
 
-            await Apify.utils.puppeteer.enqueueLinks(page, '.click', queue, purls);
+            await Apify.utils.puppeteer.enqueueLinks({ page, selector: '.click', requestQueue, pseudoUrls });
 
             expect(enqueued).to.have.lengthOf(3);
 
@@ -220,89 +220,90 @@ describe('Apify.utils.puppeteer', () => {
 
         it('works with undefined pseudoUrls[]', async () => {
             const enqueued = [];
-            const queue = new RequestQueue('xxx');
-            queue.addRequest = async (request) => {
+            const requestQueue = new RequestQueue('xxx');
+            requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
 
-            await Apify.utils.puppeteer.enqueueLinks(page, '.click', queue);
+            await Apify.utils.puppeteer.enqueueLinks({ page, selector: '.click', requestQueue });
 
             expect(enqueued).to.have.lengthOf(4);
 
             expect(enqueued[0].url).to.be.eql('https://example.com/a/b/first');
-            expect(enqueued[0].method).to.be.eql(undefined);
-            expect(enqueued[0].userData).to.be.eql(undefined);
+            expect(enqueued[0].method).to.be.eql('GET');
+            expect(enqueued[0].userData).to.be.eql({});
 
             expect(enqueued[1].url).to.be.eql('https://example.com/a/b/third');
-            expect(enqueued[1].method).to.be.eql(undefined);
-            expect(enqueued[1].userData).to.be.eql(undefined);
+            expect(enqueued[1].method).to.be.eql('GET');
+            expect(enqueued[1].userData).to.be.eql({});
 
             expect(enqueued[2].url).to.be.eql('https://another.com/a/fifth');
-            expect(enqueued[2].method).to.be.eql(undefined);
-            expect(enqueued[2].userData).to.be.eql(undefined);
+            expect(enqueued[2].method).to.be.eql('GET');
+            expect(enqueued[2].userData).to.be.eql({});
 
             expect(enqueued[3].url).to.be.eql('http://cool.com/');
-            expect(enqueued[3].method).to.be.eql(undefined);
-            expect(enqueued[3].userData).to.be.eql(undefined);
+            expect(enqueued[3].method).to.be.eql('GET');
+            expect(enqueued[3].userData).to.be.eql({});
         });
 
         it('works with null pseudoUrls[]', async () => {
             const enqueued = [];
-            const queue = new RequestQueue('xxx');
-            queue.addRequest = async (request) => {
+            const requestQueue = new RequestQueue('xxx');
+            requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
 
-            await Apify.utils.puppeteer.enqueueLinks(page, '.click', queue, null);
+            await Apify.utils.puppeteer.enqueueLinks({ page, selector: '.click', requestQueue, pseudoUrls: null });
 
             expect(enqueued).to.have.lengthOf(4);
 
             expect(enqueued[0].url).to.be.eql('https://example.com/a/b/first');
-            expect(enqueued[0].method).to.be.eql(undefined);
-            expect(enqueued[0].userData).to.be.eql(undefined);
+            expect(enqueued[0].method).to.be.eql('GET');
+            expect(enqueued[0].userData).to.be.eql({});
 
             expect(enqueued[1].url).to.be.eql('https://example.com/a/b/third');
-            expect(enqueued[1].method).to.be.eql(undefined);
-            expect(enqueued[1].userData).to.be.eql(undefined);
+            expect(enqueued[1].method).to.be.eql('GET');
+            expect(enqueued[1].userData).to.be.eql({});
 
             expect(enqueued[2].url).to.be.eql('https://another.com/a/fifth');
-            expect(enqueued[2].method).to.be.eql(undefined);
-            expect(enqueued[2].userData).to.be.eql(undefined);
+            expect(enqueued[2].method).to.be.eql('GET');
+            expect(enqueued[2].userData).to.be.eql({});
 
             expect(enqueued[3].url).to.be.eql('http://cool.com/');
-            expect(enqueued[3].method).to.be.eql(undefined);
-            expect(enqueued[3].userData).to.be.eql(undefined);
+            expect(enqueued[3].method).to.be.eql('GET');
+            expect(enqueued[3].userData).to.be.eql({});
         });
 
         it('works with empty pseudoUrls[]', async () => {
             const enqueued = [];
-            const queue = new RequestQueue('xxx');
-            queue.addRequest = async (request) => {
+            const requestQueue = new RequestQueue('xxx');
+            requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
 
-            await Apify.utils.puppeteer.enqueueLinks(page, '.click', queue, []);
+            await Apify.utils.puppeteer.enqueueLinks({ page, selector: '.click', requestQueue, pseudoUrls: [] });
 
             expect(enqueued).to.have.lengthOf(4);
 
             expect(enqueued[0].url).to.be.eql('https://example.com/a/b/first');
-            expect(enqueued[0].method).to.be.eql(undefined);
-            expect(enqueued[0].userData).to.be.eql(undefined);
+            expect(enqueued[0].method).to.be.eql('GET');
+            expect(enqueued[0].userData).to.be.eql({});
 
             expect(enqueued[1].url).to.be.eql('https://example.com/a/b/third');
-            expect(enqueued[1].method).to.be.eql(undefined);
-            expect(enqueued[1].userData).to.be.eql(undefined);
+            expect(enqueued[1].method).to.be.eql('GET');
+            expect(enqueued[1].userData).to.be.eql({});
 
             expect(enqueued[2].url).to.be.eql('https://another.com/a/fifth');
-            expect(enqueued[2].method).to.be.eql(undefined);
-            expect(enqueued[2].userData).to.be.eql(undefined);
+            expect(enqueued[2].method).to.be.eql('GET');
+            expect(enqueued[2].userData).to.be.eql({});
 
             expect(enqueued[3].url).to.be.eql('http://cool.com/');
-            expect(enqueued[3].method).to.be.eql(undefined);
-            expect(enqueued[3].userData).to.be.eql(undefined);
+            expect(enqueued[3].method).to.be.eql('GET');
+            expect(enqueued[3].userData).to.be.eql({});
         });
 
-        it('works with swapped pseudoUrls[] and requestQueue arguments', async () => {
+        // TODO Remove with 1.0.0
+        it('works with individual args instead of options object', async () => {
             const enqueued = [];
             const queue = new RequestQueue('xxx');
             queue.addRequest = async (request) => {
@@ -318,42 +319,42 @@ describe('Apify.utils.puppeteer', () => {
             log.warning = (item) => { logOutput.push(item); };
 
             try {
-                await Apify.utils.puppeteer.enqueueLinks(page, '.click', purls, queue);
+                await Apify.utils.puppeteer.enqueueLinks(page, '.click', purls, queue, { hello: 'world' });
 
                 expect(enqueued).to.have.lengthOf(3);
 
                 expect(enqueued[0].url).to.be.eql('https://example.com/a/b/first');
                 expect(enqueued[0].method).to.be.eql('POST');
-                expect(enqueued[0].userData).to.be.eql({});
+                expect(enqueued[0].userData).to.be.eql({ hello: 'world' });
 
                 expect(enqueued[1].url).to.be.eql('https://example.com/a/b/third');
                 expect(enqueued[1].method).to.be.eql('POST');
-                expect(enqueued[1].userData).to.be.eql({});
+                expect(enqueued[1].userData).to.be.eql({ hello: 'world' });
 
                 expect(enqueued[2].url).to.be.eql('http://cool.com/');
                 expect(enqueued[2].method).to.be.eql('GET');
-                expect(enqueued[2].userData.foo).to.be.eql('bar');
+                expect(enqueued[2].userData).to.be.eql({ hello: 'world', foo: 'bar' });
             } finally {
                 log.warning = originalLogWarning;
             }
 
             expect(logOutput.length).to.be.eql(1);
-            expect(logOutput[0]).to.include('Argument "pseudoUrls"');
+            expect(logOutput[0]).to.include('options object');
         });
         it('throws with sparse pseudoUrls[]', async () => {
             const enqueued = [];
-            const queue = new RequestQueue('xxx');
-            queue.addRequest = async (request) => {
+            const requestQueue = new RequestQueue('xxx');
+            requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
-            const purls = [
+            const pseudoUrls = [
                 new Apify.PseudoUrl('https://example.com/[(\\w|-|/)*]', { method: 'POST' }),
                 null,
                 new Apify.PseudoUrl('[http|https]://cool.com/', { userData: { foo: 'bar' } }),
             ];
 
             try {
-                await Apify.utils.puppeteer.enqueueLinks(page, '.click', queue, purls);
+                await Apify.utils.puppeteer.enqueueLinks({ page, selector: '.click', requestQueue, pseudoUrls });
                 throw new Error('Wrong error.');
             } catch (err) {
                 expect(err.message).to.include('pseudoUrls[1]');

@@ -1,3 +1,11 @@
+0.9.15 / 2018-11-30
+===================
+- Upgraded Puppeteer to 1.11.0
+- **DEPRECATION WARNING:** `Apify.utils.puppeteer.enqueueLinks()` now uses an options object instead of individual parameters
+  and supports passing of `userData` to the enqueued `request`. Previously: `enqueueLinks(page, selector, requestQueue, pseudoUrls)`
+  Now: `enqueueLinks({ page, selector, requestQueue, pseudoUrls, userData })`. Using individual parameters is **DEPRECATED**.
+   
+
 0.9.14 / 2018-11-27
 ===================
 - Added API response tracking to AutoscaledPool, leveraging `Apify.client.stats` object. It now overloads the system
