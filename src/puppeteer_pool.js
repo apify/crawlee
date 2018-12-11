@@ -179,7 +179,7 @@ class PuppeteerPool {
         this.retireInstanceAfterRequestCount = retireInstanceAfterRequestCount;
         this.killInstanceAfterMillis = killInstanceAfterMillis;
         this.recycledDiskCacheDirs = recycleDiskCache ? new LinkedList() : null;
-        this.proxyUrls = _.shuffle(proxyUrls);
+        this.proxyUrls = proxyUrls ? _.shuffle(proxyUrls) : null;
         this.launchPuppeteerFunction = async () => {
             // Do not modify passed launchPuppeteerOptions!
             const opts = _.clone(launchPuppeteerOptions) || {};
