@@ -1,3 +1,8 @@
+xxx
+===================
+- Fixed an issue where an error would be thrown when `datasetLocal.getData()` was invoked
+  with an overflowing offset. It now correctly returns an empty `Array`.
+
 0.9.15 / 2018-11-30
 ===================
 - Upgraded Puppeteer to 1.11.0
