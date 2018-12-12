@@ -1,5 +1,6 @@
 xxx
 ===================
+- Bugfix: PuppeteerPool was incorrectly overriding `proxyUrls` even if they were not defined.
 - Fixed an issue where an error would be thrown when `datasetLocal.getData()` was invoked
   with an overflowing offset. It now correctly returns an empty `Array`.
 
@@ -9,7 +10,6 @@ xxx
 - **DEPRECATION WARNING:** `Apify.utils.puppeteer.enqueueLinks()` now uses an options object instead of individual parameters
   and supports passing of `userData` to the enqueued `request`. Previously: `enqueueLinks(page, selector, requestQueue, pseudoUrls)`
   Now: `enqueueLinks({ page, selector, requestQueue, pseudoUrls, userData })`. Using individual parameters is **DEPRECATED**.
-   
 
 0.9.14 / 2018-11-27
 ===================
