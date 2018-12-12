@@ -107,6 +107,14 @@ describe('dataset', () => {
                 count: 2,
                 limit: 2,
             });
+
+            expect(await dataset.getData({ offset: 10 })).to.be.eql({
+                items: [],
+                total: 4,
+                offset: 10,
+                count: 0,
+                limit: LOCAL_GET_ITEMS_DEFAULT_LIMIT,
+            });
         });
 
         it('getInfo() should work', async () => {
