@@ -1,3 +1,10 @@
+xxx
+===================
+- `autoscaledPool.isFinishedFunction()` and `autoscaledPool.isTaskReadyFunction()` exceptions
+  will now cause the `Promise` returned by `autoscaledPool.run()` to reject instead of just
+  logging a message. This is in line with the `autoscaledPool.runTaskFunction()` behavior. 
+
+
 0.9.15 / 2018-11-30
 ===================
 - Upgraded Puppeteer to 1.11.0
