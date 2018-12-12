@@ -490,6 +490,10 @@ describe('utils.social', () => {
             expect(social.LINKEDIN_REGEX.test('www.linkedin.com/in/bobnewman')).to.eql(true);
             expect(social.LINKEDIN_REGEX.test('linkedin.com/in/bobnewman')).to.eql(true);
 
+            expect(social.LINKEDIN_REGEX.test('https://www.linkedin.com/in/alan-turing')).to.eql(true);
+            expect(social.LINKEDIN_REGEX.test('en.linkedin.com/in/alan-turing')).to.eql(true);
+            expect(social.LINKEDIN_REGEX.test('linkedin.com/in/alan-turing')).to.eql(true);
+
             // Test there is just on matching group for the username
             expect('https://www.linkedin.com/in/bobnewman/'.match(social.LINKEDIN_REGEX)[1]).to.eql('bobnewman');
             expect('http://www.linkedin.com/in/bobnewman'.match(social.LINKEDIN_REGEX)[1]).to.eql('bobnewman');

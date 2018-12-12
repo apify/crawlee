@@ -252,7 +252,13 @@ let callMemoryWarningIssued = false;
  *
  * The result of the function is an {@link ActorRun} object
  * that contains details about the actor run and its output (if any).
- * If the actor run failed, the function fails with {@link ApifyCallError} exception.
+ * If the actor run fails, the function throws the {@link ApifyCallError} exception.
+ *
+ * If you want to run an actor task rather than an actor, please use the
+ * [`Apify.callTask()`](../api/apify#module_Apify.callTask) function instead.
+ *
+ * For more information about actors, read the
+ * <a href="https://www.apify.com/docs/actor" target="_blank">documentation</a>.
  *
  * **Example usage:**
  *
@@ -261,9 +267,9 @@ let callMemoryWarningIssued = false;
  * console.log(`Received message: ${run.output.body.message}`);
  * ```
  *
- * Internally, the `call()` function calls the
+ * Internally, the `call()` function invokes the
  * <a href="https://www.apify.com/docs/api/v2#/reference/actors/run-collection/run-actor" target="_blank">Run actor</a>
- * Apify API endpoint and few others to obtain the output.
+ * and several other API endpoints to obtain the output.
  *
  * @param {String} actId
  *  Either `username/actor-name` or actor ID.
@@ -284,7 +290,7 @@ let callMemoryWarningIssued = false;
  *  Memory in megabytes which will be allocated for the new actor run.
  *  If not provided, the run uses memory of the default actor run configuration.
  * @param {Number} [options.timeoutSecs]
- *  Timeout for the act run in seconds. Zero value means there is no timeout.
+ *  Timeout for the actor run in seconds. Zero value means there is no timeout.
  *  If not provided, the run uses timeout of the default actor run configuration.
  * @param {String} [options.build]
  *  Tag or number of the actor build to run (e.g. `beta` or `1.2.345`).
@@ -383,8 +389,8 @@ export const call = async (actId, input, options = {}) => {
 };
 
 /**
- * Runs an actor on the Apify platform using the current user account (determined by the `APIFY_TOKEN` environment variable),
- * waits for the actor to finish and fetches its output.
+ * Runs an actor task on the Apify platform using the current user account (determined by the `APIFY_TOKEN` environment variable),
+ * waits for the task to finish and fetches its output.
  *
  * By passing the `waitSecs` option you can reduce the maximum amount of time to wait for the run to finish.
  * If the value is less than or equal to zero, the function returns immediately after the run is started.
@@ -393,16 +399,22 @@ export const call = async (actId, input, options = {}) => {
  * that contains details about the actor run and its output (if any).
  * If the actor run failed, the function fails with {@link ApifyCallError} exception.
  *
+ * Note that an actor task is a saved input configuration and options for an actor.
+ * If you want to run an actor directly rather than an actor task, please use the
+ * [`Apify.call()`](../api/apify#module_Apify.call) function instead.
+ *
+ * For more information about actor tasks, read the [`documentation`](https://www.apify.com/docs/tasks).
+ *
  * **Example usage:**
  *
  * ```javascript
- * const run = await Apify.call('apify/hello-world-task');
+ * const run = await Apify.callTask('bob/some-task');
  * console.log(`Received message: ${run.output.body.message}`);
  * ```
  *
- * Internally, the `call()` function calls the
- * <a href="https://www.apify.com/docs/api/v2#/reference/actor-tasks/runs-collection/run-task-asynchronously" target="_blank">Run actor</a>
- * Apify API endpoint and few others to obtain the output.
+ * Internally, the `callTask()` function calls the
+ * <a href="https://www.apify.com/docs/api/v2#/reference/actor-tasks/runs-collection/run-task-asynchronously" target="_blank">Run task</a>
+ * and several other API endpoints to obtain the output.
  *
  * @param {String} taskId
  *  Either `username/task-name` or task ID.
@@ -470,7 +482,7 @@ export const callTask = async (taskId, input, options = {}) => {
 
 /**
  * Represents information about an actor run, as returned by the
- * [`Apify.call()`](../api/apify#module_Apify.call) function.
+ * [`Apify.call()`](../api/apify#module_Apify.call) or [`Apify.callTask()`](../api/apify#module_Apify.callTask) function.
  * The object is almost equivalent to the JSON response
  * of the
  * <a href="https://www.apify.com/docs/api/v2#/reference/actors/run-collection/run-actor" target="_blank">Actor run</a>

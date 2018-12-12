@@ -84,6 +84,9 @@ const DEFAULT_OPTIONS = {
  *
  * @param {Number} [options.minConcurrency=1]
  *   Minimum number of tasks running in parallel.
+ *
+ *   *WARNING:* If you set this value too high with respect to the available system memory and CPU, your code might run extremely slow or crash.
+ *   If you're not sure, just keep the default value and the concurrency will scale up automatically.
  * @param {Number} [options.maxConcurrency=1000]
  *   Maximum number of tasks running in parallel.
  * @param {Number} [options.desiredConcurrencyRatio=0.95]
@@ -185,6 +188,8 @@ class AutoscaledPool {
     /**
      * Overrides min concurrency configuration.
      *
+     * *WARNING:* If you set this value too high with respect to the available system memory and CPU, your code might run extremely slow or crash.
+     * If you're not sure, just keep the default value and the concurrency will scale up automatically.
      * @param {Number} minConcurrency
      */
     setMinConcurrency(minConcurrency) {
