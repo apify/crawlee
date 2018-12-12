@@ -257,7 +257,8 @@ let callMemoryWarningIssued = false;
  * If you want to run an actor task rather than an actor, please use the
  * [`Apify.callTask()`](../api/apify#module_Apify.callTask) function instead.
  *
- * For more information about actors, read the [`documentation`](https://www.apify.com/docs/actor).
+ * For more information about actors, read the
+ * <a href="https://www.apify.com/docs/actor" target="_blank">documentation</a>.
  *
  * **Example usage:**
  *
