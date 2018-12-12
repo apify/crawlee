@@ -246,6 +246,37 @@ describe('AutoscaledPool', () => {
 
             await expect(pool.run()).to.be.rejectedWith('some-runtask-error');
         });
+
+        it('when isFinishedFunction throws', async () => {
+            let count = 0;
+            const pool = new AutoscaledPool({
+                minConcurrency: 10,
+                maxConcurrency: 10,
+                runTaskFunction: async () => { count++; },
+                isFinishedFunction: async () => { throw new Error('some-finished-error'); },
+                isTaskReadyFunction: async () => count < 1,
+            });
+
+
+            await expect(pool.run()).to.be.rejectedWith('some-finished-error');
+        });
+
+        it('when isTaskReadyFunction throws', async () => {
+            let count = 0;
+            const pool = new AutoscaledPool({
+                minConcurrency: 10,
+                maxConcurrency: 10,
+                runTaskFunction: async () => { count++; },
+                isFinishedFunction: async () => false,
+                isTaskReadyFunction: async () => {
+                    if (count > 1) throw new Error('some-ready-error');
+                    else return true;
+                },
+            });
+
+
+            await expect(pool.run()).to.be.rejectedWith('some-ready-error');
+        });
     });
 
 

@@ -265,7 +265,12 @@ class AutoscaledPool {
         try {
             isTaskReady = await this.isTaskReadyFunction();
         } catch (err) {
-            log.exception(err, 'AutoscaledPool: isTaskReadyFunction failed');
+            // We might have already rejected this promise.
+            if (this.reject) {
+                // No need to log all concurrent errors.
+                log.exception(err, 'AutoscaledPool: isTaskReadyFunction failed');
+                this.reject(err);
+            }
         } finally {
             this.queryingIsTaskReady = false;
         }
@@ -293,9 +298,9 @@ class AutoscaledPool {
         } catch (err) {
             // We might have already rejected this promise.
             if (this.reject) {
-                this.reject(err);
                 // No need to log all concurrent errors.
-                log.exception(err, 'AutoscaledPool: runTaskFunction failed');
+                log.exception(err, 'AutoscaledPool: runTaskFunction failed.');
+                this.reject(err);
             }
         }
     }
@@ -396,7 +401,11 @@ class AutoscaledPool {
             const isFinished = await this.isFinishedFunction();
             if (isFinished && this.resolve) this.resolve();
         } catch (err) {
-            log.exception(err, 'AutoscaledPool: isFinishedFunction failed');
+            if (this.reject) {
+                // No need to log all concurrent errors.
+                log.exception(err, 'AutoscaledPool: isFinishedFunction failed.');
+                this.reject(err);
+            }
         } finally {
             this.queryingIsFinished = false;
         }
