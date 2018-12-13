@@ -313,7 +313,7 @@ class PuppeteerCrawler {
             return await Promise.race([pageOperationsPromise, this.rejectOnAbortPromise]);
         } finally {
             try {
-                await Promise.race([page.close(), createTimeoutPromise(PAGE_CLOSE_TIMEOUT_MILLIS, 'Operation timed out.')]);
+                await Promise.race([this.puppeteerPool.recyclePage(page), createTimeoutPromise(PAGE_CLOSE_TIMEOUT_MILLIS, 'Operation timed out.')]);
             } catch (err) {
                 log.debug('PuppeteerCrawler: Page.close() failed.', { reason: err && err.message });
             }
