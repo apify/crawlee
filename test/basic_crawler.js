@@ -287,6 +287,11 @@ describe('BasicCrawler', () => {
             handleRequestFunction,
         });
 
+        sinon.stub(Apify.client.requestQueues, 'getQueue')
+            .returns(Promise.resolve({
+                handledRequestCount: 0,
+            }));
+
         // It enqueues all requests from RequestList to RequestQueue.
         const mock = sinon.mock(requestQueue);
         mock.expects('addRequest')
@@ -378,6 +383,7 @@ describe('BasicCrawler', () => {
         expect(await requestList.isEmpty()).to.be.eql(true);
 
         mock.verify();
+        sinon.restore();
     });
 
     it('should say that task is not ready requestList is not set and requestQueue is empty', async () => {
@@ -397,6 +403,11 @@ describe('BasicCrawler', () => {
         const processed = [];
         const queue = [];
         let isFinished = false;
+
+        sinon.stub(Apify.client.requestQueues, 'getQueue')
+            .returns(Promise.resolve({
+                handledRequestCount: 0,
+            }));
 
         const basicCrawler = new Apify.BasicCrawler({
             requestQueue,
@@ -435,6 +446,7 @@ describe('BasicCrawler', () => {
         expect(processed.includes(request0, request1)).to.be.eql(true);
 
         mock.verify();
+        sinon.restore();
     });
 
     it('should support maxRequestsPerCrawl parameter', async () => {
