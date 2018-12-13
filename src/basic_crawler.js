@@ -361,8 +361,7 @@ class BasicCrawler {
      */
     async _loadHandledRequestCount() {
         if (this.requestQueue) {
-            const queueInfo = await apifyClient.requestQueues.getQueue({ queueId: this.requestQueue.queueId });
-            this.handledRequestsCount = queueInfo.handledRequestCount;
+            this.handledRequestsCount = await this.requestQueue.handledCount();
         } else if (this.requestList) {
             this.handledRequestsCount = this.requestList.handledCount();
         }
