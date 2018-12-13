@@ -5,7 +5,6 @@ import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import AutoscaledPool from './autoscaling/autoscaled_pool';
 import RequestList from './request_list';
 import { RequestQueue, RequestQueueLocal } from './request_queue';
-import { apifyClient } from './utils';
 
 const DEFAULT_OPTIONS = {
     maxRequestRetries: 3,
