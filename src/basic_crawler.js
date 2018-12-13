@@ -5,6 +5,7 @@ import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import AutoscaledPool from './autoscaling/autoscaled_pool';
 import RequestList from './request_list';
 import { RequestQueue, RequestQueueLocal } from './request_queue';
+import { apifyClient } from './utils';
 
 const DEFAULT_OPTIONS = {
     maxRequestRetries: 3,
@@ -192,6 +193,7 @@ class BasicCrawler {
     async run() {
         if (this.isRunning) return this.isRunningPromise;
 
+        await this._loadHandledRequestCount();
         this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions);
         this.isRunning = true;
         this.rejectOnAbortPromise = new Promise((r, reject) => { this.rejectOnAbort = reject; });
@@ -344,6 +346,26 @@ class BasicCrawler {
         this.handledRequestsCount++;
         await source.markRequestHandled(request);
         return this.handleFailedRequestFunction({ request, error }); // This function prints an error message.
+    }
+
+    /**
+     * Updates handledRequestsCount from possibly stored counts,
+     * usually after worker migration. Since one of the stores
+     * needs to have priority when both are present,
+     * it is the request queue, because generally, the request
+     * list will first be dumped into the queue and then left
+     * empty.
+     *
+     * @return {Promise}
+     * @ignore
+     */
+    async _loadHandledRequestCount() {
+        if (this.requestQueue) {
+            const queueInfo = await apifyClient.requestQueues.getQueue({ queueId: this.requestQueue.queueId });
+            this.handledRequestsCount = queueInfo.handledRequestCount;
+        } else if (this.requestList) {
+            this.handledRequestsCount = this.requestList.handledCount();
+        }
     }
 }
 
