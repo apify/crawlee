@@ -59,6 +59,9 @@ const hideWebDriver = async (page) => {
  * Unlike Puppeteer's `addScriptTag` function, this function works on pages
  * with arbitrary Cross-Origin Resource Sharing (CORS) policies.
  *
+ * Make sure that you're injecting the file after the page has loaded (after `page.goto()`). Otherwise,
+ * the navigation will override the existing environment and the library will no longer be available.
+ *
  * @param {Page} page
  *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
  * @param {String} filePath File path
@@ -81,6 +84,9 @@ const injectFile = async (page, filePath) => {
  *
  * Beware that the injected jQuery object will be set to the `window.$` variable and thus it might cause conflicts with
  * libraries included by the page that use the same variable (e.g. another version of jQuery).
+ *
+ * Also make sure that you're injecting jQuery after the page has loaded (after `page.goto()`). Otherwise,
+ * the navigation will override the existing environment and the library will no longer be available.
  *
  * Example usage:
  * ```javascript
@@ -110,6 +116,9 @@ const injectJQuery = (page) => {
  * Injects the <a href="https://underscorejs.org/" target="_blank"><code>Underscore.js</code></a> library into a Puppeteer page.
  * Beware that the injected Underscore object will be set to the `window._` variable and thus it might cause conflicts with
  * libraries included by the page that use the same variable.
+ *
+ * Also make sure that you're injecting Underscore after the page has loaded (after `page.goto()`). Otherwise,
+ * the navigation will override the existing environment and the library will no longer be available.
  *
  * @param {Page} page Puppeteer [Page](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page) object.
  * @return {Promise}
