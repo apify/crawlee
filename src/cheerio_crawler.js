@@ -98,11 +98,20 @@ const DEFAULT_OPTIONS = {
  *   $: Cheerio, // the Cheerio object with parsed HTML
  *   html: String // the raw HTML of the page
  *   request: Request,
- *   response: Object // a http.IncomingMessage object with properties such as the `statusCode`
+ *   response: Object // An instance of Node's http.IncomingMessage object
  * }
  * ```
  *   With the {@link Request} object representing the URL to crawl.
- *   If the function returns a promise, it is awaited.
+ *
+ *   If the function returns a promise, it is awaited by the crawler.
+ *
+ *   If the function throws an exception, the crawler will try to re-crawl the
+ *   request later, up to `option.maxRequestRetries` times.
+ *   If all the retries fail, the crawler calls the function
+ *   provided to the `options.handleFailedRequestFunction` parameter.
+ *   To make this work, you should **always**
+ *   let your function throw exceptions rather than catch them.
+ *   The exceptions are logged to the request using the {@link Request.pushErrorMessage} function.
  * @param {RequestList} options.requestList
  *   Static list of URLs to be processed.
  *   Either `requestList` or `requestQueue` option must be provided (or both).

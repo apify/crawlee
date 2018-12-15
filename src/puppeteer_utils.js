@@ -79,16 +79,18 @@ const injectFile = async (page, filePath) => {
 
 /**
  * Injects the <a href="https://jquery.com/" target="_blank"><code>jQuery</code></a> library into a Puppeteer page.
- * jQuery is often useful for various web scraping and crawling tasks,
- * e.g. to extract data from HTML elements using CSS selectors.
+ * jQuery is often useful for various web scraping and crawling tasks.
+ * For example, it can help extract text from HTML elements using CSS selectors.
  *
  * Beware that the injected jQuery object will be set to the `window.$` variable and thus it might cause conflicts with
- * libraries included by the page that use the same variable (e.g. another version of jQuery).
+ * other libraries included by the page that use the same variable name (e.g. another version of jQuery).
+ * This can affect functionality of page's scripts.
  *
- * Also make sure that you're injecting jQuery after the page has loaded (after `page.goto()`). Otherwise,
- * the navigation will override the existing environment and the library will no longer be available.
+ * Also make sure that you're injecting jQuery after the page has loaded
+ * (i.e. after [`page.goto()`](https://pptr.dev/#?product=Puppeteer&show=api-pagegotourl-options)).
+ * Otherwise, the navigation will override the existing environment and the library will no longer be available.
  *
- * Example usage:
+ * **Example usage:**
  * ```javascript
  * await Apify.utils.puppeteer.injectJQuery(page);
  * const title = await page.evaluate(() => {
@@ -114,11 +116,22 @@ const injectJQuery = (page) => {
 
 /**
  * Injects the <a href="https://underscorejs.org/" target="_blank"><code>Underscore.js</code></a> library into a Puppeteer page.
- * Beware that the injected Underscore object will be set to the `window._` variable and thus it might cause conflicts with
- * libraries included by the page that use the same variable.
  *
- * Also make sure that you're injecting Underscore after the page has loaded (after `page.goto()`). Otherwise,
- * the navigation will override the existing environment and the library will no longer be available.
+ * Beware that the injected Underscore object will be set to the `window._` variable and thus it might cause conflicts with
+ * libraries included by the page that use the same variable name.
+ * This can affect functionality of page's scripts.
+ *
+ * Also make sure that you're injecting Underscore after the page has loaded
+ * (i.e. after [`page.goto()`](https://pptr.dev/#?product=Puppeteer&show=api-pagegotourl-options)).
+ * Otherwise, the navigation will override the existing environment and the library will no longer be available.
+ *
+ * **Example usage:**
+ * ```javascript
+ * await Apify.utils.puppeteer.injectUnderscore(page);
+ * const escapedHtml = await page.evaluate(() => {
+ *   return _.escape('<h1>Hello</h1>');
+ * });
+ * ```
  *
  * @param {Page} page Puppeteer [Page](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page) object.
  * @return {Promise}
@@ -305,11 +318,11 @@ const enqueueLinks = async (...args) => {
 };
 
 /**
- * Forces the browser tab to block loading certain page resources,
- * using the `Page.setRequestInterception(value)` method.
- * This is useful to speed up crawling of websites.
+ * Forces the Puppeteer browser tab to block loading certain HTTP resources.
+ * This is useful to speed up crawling of websites, since it reduces the amount
+ * of data that need to be downloaded from the web.
  *
- * The resource types to block can be controlled using the `resourceTypes` parameter,
+ * The resource types to block can be specified using the `resourceTypes` parameter,
  * which indicates the types of resources as they are perceived by the rendering engine.
  * The following resource types are currently supported:
  * `document`, `stylesheet`, `image`, `media`, `font`, `script`, `texttrack`, `xhr`, `fetch`,
@@ -319,6 +332,26 @@ const enqueueLinks = async (...args) => {
  *
  * If the `resourceTypes` parameter is not provided,
  * by default the function blocks these resource types: `stylesheet`, `font`, `image`, `media`.
+ *
+ * Note that the `blockResources` function internally uses Puppeteer's
+ * [`Page.setRequestInterception()`](https://pptr.dev/#?product=Puppeteer&show=api-pagesetrequestinterceptionvalue) function,
+ * which can only be used once per `Page` object.
+ *
+ * **Example usage**
+ * ```javascript
+ * const Apify = require('apify');
+ *
+ * const browser = await Apify.launchPuppeteer();
+ * const page = await browser.newPage();
+ *
+ * // Block all resources except for the main HTML document
+ * await Apify.utils.puppeteer.blockResources(page,
+ *   ['stylesheet', 'image', 'media', 'font', 'script', 'texttrack', 'xhr',
+ *    'fetch', 'eventsource', 'websocket', 'manifest', 'other']
+ * );
+ *
+ * await page.goto('https://www.example.com');
+ * ```
  *
  * @param {Page} page
  *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
@@ -447,7 +480,8 @@ const compileScript = (scriptString, context = Object.create(null)) => {
 
 
 /**
- * A namespace that contains various Puppeteer utilities.
+ * A namespace that contains various utilities for
+ * [Puppeteer](https://github.com/GoogleChrome/puppeteer) - the headless Chrome Node API.
  *
  * **Example usage:**
  *
