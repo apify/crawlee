@@ -137,15 +137,15 @@ const DEFAULT_OPTIONS = {
  * @param {Boolean} [options.ignoreSslErrors=false]
  *   If set to true, SSL certificate errors will be ignored. This is dependent on using the default
  *   request function. If using a custom `options.requestFunction`, user needs to implement this functionality.
- * @param {Boolean} [useApifyProxy=false]
+ * @param {Boolean} [options.useApifyProxy=false]
  *   If set to `true`, `CheerioCrawler` will be configured to use
  *   <a href="https://my.apify.com/proxy" target="_blank">Apify Proxy</a> for all connections.
  *   For more information, see the <a href="https://www.apify.com/docs/proxy" target="_blank">documentation</a>
- * @param {String[]} [apifyProxyGroups]
+ * @param {String[]} [options.apifyProxyGroups]
  *   An array of proxy groups to be used
  *   by the <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a>.
  *   Only applied if the `useApifyProxy` option is `true`.
- * @param {String} [apifyProxySession]
+ * @param {String} [options.apifyProxySession]
  *   Apify Proxy session identifier to be used with requests made by `CheerioCrawler`.
  *   All HTTP requests going through the proxy with the same session identifier
  *   will use the same target proxy server (i.e. the same IP address).
