@@ -65,7 +65,7 @@ const DEFAULT_OPTIONS = {
  * // Crawl the URLs
  * const crawler = new Apify.CheerioCrawler({
  *     requestList,
- *     handlePageFunction: async ({ $, html, request }) => {
+ *     handlePageFunction: async ({ request, response, html, $ }) => {
  *
  *         const data = [];
  *
