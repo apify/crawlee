@@ -221,8 +221,8 @@ class CheerioCrawler {
         checkParamOrThrow(requestOptions, 'options.requestOptions', 'Maybe Object');
         checkParamOrThrow(requestTimeoutSecs, 'options.requestTimeoutSecs', 'Number');
         checkParamOrThrow(handlePageTimeoutSecs, 'options.handlePageTimeoutSecs', 'Number');
-        checkParamOrThrow(ignoreSslErrors, 'options.ignoreSslErrors', 'Boolean');
-        checkParamOrThrow(useApifyProxy, 'options.useApifyProxy', 'Boolean');
+        checkParamOrThrow(ignoreSslErrors, 'options.ignoreSslErrors', 'Maybe Boolean');
+        checkParamOrThrow(useApifyProxy, 'options.useApifyProxy', 'Maybe Boolean');
         checkParamOrThrow(apifyProxyGroups, 'options.apifyProxyGroups', 'Maybe [String]');
         checkParamOrThrow(apifyProxySession, 'options.apifyProxySession', 'Maybe String');
         checkParamOrThrow(proxyUrls, 'options.proxyUrls', 'Maybe [String]');
