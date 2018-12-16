@@ -66,7 +66,6 @@ const DEFAULT_OPTIONS = {
  * const crawler = new Apify.CheerioCrawler({
  *     requestList,
  *     handlePageFunction: async ({ request, response, html, $ }) => {
- *
  *         const data = [];
  *
  *         // Do some data extraction from the page with Cheerio.
