@@ -7,6 +7,9 @@
  * <a href="https://www.npmjs.com/package/request-promise" target="_blank">request-promise</a> library)
  * and stores their raw HTML and URL to the default dataset.
  * In local configuration, the data will be stored as JSON files in `./apify_storage/datasets/default`.
+ *
+ * To run this example on the Apify Platform, select the `Node.js 8 on Alpine Linux (apify/actor-node-basic)` base image
+ * on the source tab of your actor configuration.
  */
 
 const Apify = require('apify');
