@@ -3,6 +3,9 @@
  * specified in a sitemap. The crawler extracts page title and URL from each page
  * and stores them as a record to the default dataset.
  * In local configuration, the results are stored as JSON files in `./apify_storage/datasets/default`
+ *
+ * To run this example on the Apify Platform, select the `Node.js 8 + Chrome on Debian (apify/actor-node-chrome)` base image
+ * on the source tab of your actor configuration.
  */
 
 const Apify = require('apify');

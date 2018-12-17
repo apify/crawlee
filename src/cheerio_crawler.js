@@ -65,8 +65,7 @@ const DEFAULT_OPTIONS = {
  * // Crawl the URLs
  * const crawler = new Apify.CheerioCrawler({
  *     requestList,
- *     handlePageFunction: async ({ $, html, request }) => {
- *
+ *     handlePageFunction: async ({ request, response, html, $ }) => {
  *         const data = [];
  *
  *         // Do some data extraction from the page with Cheerio.
@@ -98,11 +97,20 @@ const DEFAULT_OPTIONS = {
  *   $: Cheerio, // the Cheerio object with parsed HTML
  *   html: String // the raw HTML of the page
  *   request: Request,
- *   response: Object // a http.IncomingMessage object with properties such as the `statusCode`
+ *   response: Object // An instance of Node's http.IncomingMessage object
  * }
  * ```
  *   With the {@link Request} object representing the URL to crawl.
- *   If the function returns a promise, it is awaited.
+ *
+ *   If the function returns a promise, it is awaited by the crawler.
+ *
+ *   If the function throws an exception, the crawler will try to re-crawl the
+ *   request later, up to `option.maxRequestRetries` times.
+ *   If all the retries fail, the crawler calls the function
+ *   provided to the `options.handleFailedRequestFunction` parameter.
+ *   To make this work, you should **always**
+ *   let your function throw exceptions rather than catch them.
+ *   The exceptions are logged to the request using the {@link Request.pushErrorMessage} function.
  * @param {RequestList} options.requestList
  *   Static list of URLs to be processed.
  *   Either `requestList` or `requestQueue` option must be provided (or both).
@@ -128,15 +136,15 @@ const DEFAULT_OPTIONS = {
  * @param {Boolean} [options.ignoreSslErrors=false]
  *   If set to true, SSL certificate errors will be ignored. This is dependent on using the default
  *   request function. If using a custom `options.requestFunction`, user needs to implement this functionality.
- * @param {Boolean} [useApifyProxy=false]
+ * @param {Boolean} [options.useApifyProxy=false]
  *   If set to `true`, `CheerioCrawler` will be configured to use
  *   <a href="https://my.apify.com/proxy" target="_blank">Apify Proxy</a> for all connections.
  *   For more information, see the <a href="https://www.apify.com/docs/proxy" target="_blank">documentation</a>
- * @param {String[]} [apifyProxyGroups]
+ * @param {String[]} [options.apifyProxyGroups]
  *   An array of proxy groups to be used
  *   by the <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a>.
  *   Only applied if the `useApifyProxy` option is `true`.
- * @param {String} [apifyProxySession]
+ * @param {String} [options.apifyProxySession]
  *   Apify Proxy session identifier to be used with requests made by `CheerioCrawler`.
  *   All HTTP requests going through the proxy with the same session identifier
  *   will use the same target proxy server (i.e. the same IP address).
@@ -213,8 +221,8 @@ class CheerioCrawler {
         checkParamOrThrow(requestOptions, 'options.requestOptions', 'Maybe Object');
         checkParamOrThrow(requestTimeoutSecs, 'options.requestTimeoutSecs', 'Number');
         checkParamOrThrow(handlePageTimeoutSecs, 'options.handlePageTimeoutSecs', 'Number');
-        checkParamOrThrow(ignoreSslErrors, 'options.ignoreSslErrors', 'Boolean');
-        checkParamOrThrow(useApifyProxy, 'options.useApifyProxy', 'Boolean');
+        checkParamOrThrow(ignoreSslErrors, 'options.ignoreSslErrors', 'Maybe Boolean');
+        checkParamOrThrow(useApifyProxy, 'options.useApifyProxy', 'Maybe Boolean');
         checkParamOrThrow(apifyProxyGroups, 'options.apifyProxyGroups', 'Maybe [String]');
         checkParamOrThrow(apifyProxySession, 'options.apifyProxySession', 'Maybe String');
         checkParamOrThrow(proxyUrls, 'options.proxyUrls', 'Maybe [String]');
