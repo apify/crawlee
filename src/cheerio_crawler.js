@@ -1,4 +1,5 @@
 import util from 'util';
+import zlib from 'zlib';
 import rqst from 'request';
 import _ from 'underscore';
 import cheerio from 'cheerio';
@@ -416,7 +417,10 @@ class CheerioCrawler {
         const mandatoryRequestOptions = {
             url: request.url,
             method: request.method,
-            headers: Object.assign({}, request.headers, { Accept: 'text/html' }),
+            headers: Object.assign({}, request.headers, {
+                Accept: 'text/html',
+                'Accept-Encoding': 'gzip, deflate',
+            }),
             strictSSL: !this.ignoreSslErrors,
             proxy: this._getProxyUrl(),
         };
@@ -447,12 +451,25 @@ class CheerioCrawler {
      * Flushes the provided stream into a Buffer and transforms
      * it to a String using the provided encoding or utf-8 as default.
      *
-     * @param {stream.Readable} stream
+     * If the stream data is compressed, decompresses it using
+     * the Content-Encoding header.
+     *
+     * @param {http.IncomingMessage} response
      * @param {String} [encoding]
      * @returns {Promise<String>}
      * @private
      */
-    async _readStreamIntoString(stream, encoding) { // eslint-disable-line class-methods-use-this
+    async _readStreamIntoString(response, encoding) { // eslint-disable-line class-methods-use-this
+        const compression = response.headers['content-encoding'];
+        let stream = response;
+        if (compression) {
+            let decompressor;
+            if (compression === 'gzip') decompressor = zlib.createGunzip();
+            else if (compression === 'deflate') decompressor = zlib.createInflate();
+            else throw new Error(`CheerioCrawler: Invalid Content-Encoding header. Expected gzip or deflate, but received: ${compression}`);
+            stream = response.pipe(decompressor);
+        }
+
         return new Promise((resolve, reject) => {
             const chunks = [];
             stream
