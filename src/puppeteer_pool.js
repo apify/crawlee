@@ -15,7 +15,7 @@ const PROCESS_KILL_TIMEOUT_MILLIS = 5000;
 const PAGE_CLOSE_KILL_TIMEOUT_MILLIS = 1000;
 
 const DEFAULT_OPTIONS = {
-    reusePages: true,
+    reusePages: false,
     // Don't make these too large, otherwise Puppeteer might start crashing weirdly,
     // and the default settings should just work
     maxOpenPagesPerInstance: 50,
@@ -103,7 +103,7 @@ class PuppeteerInstance {
  * ```
  * @param {Object} [options] All `PuppeteerPool` parameters are passed
  *   via an options object with the following keys:
- * @param {boolean} [options.reusePages=true]
+ * @param {boolean} [options.reusePages=false]
  *   Individual browser tabs will be reused after their task is complete instead
  *   of closing them and spawning a new tab. This saves CPU resources.
  *   Try disabling this feature if you encounter any weird behavior in your crawlers.
@@ -216,11 +216,15 @@ class PuppeteerPool {
         this.browserCounter = 0;
         this.activeInstances = {};
         this.retiredInstances = {};
-        this.idlePages = [];
-        this.closedPages = new WeakSet();
-        this.pagesToInstancesMap = new WeakMap();
         this.lastUsedProxyUrlIndex = 0;
         this.instanceKillerInterval = setInterval(() => this._killRetiredInstances(), instanceKillerIntervalMillis);
+        this.idlePages = [];
+        // WeakSet/Map items do not prevent garbage collection,
+        // and thus no management of the collections is needed.
+        // They will automatically empty themselves once there
+        // are no references to the stored pages.
+        this.closedPages = new WeakSet();
+        this.pagesToInstancesMap = new WeakMap();
 
         // ensure termination on SIGINT
         this.sigintListener = () => this._killAllInstances();
@@ -405,7 +409,7 @@ class PuppeteerPool {
      * @param {PuppeteerInstance} instance
      * @ignore
      */
-    _updateInstance(instance) {
+    _incrementPageCount(instance) {
         instance.lastPageOpenedAt = Date.now();
         instance.totalPages++;
         if (instance.totalPages >= this.retireInstanceAfterRequestCount) this._retireInstance(instance);
@@ -433,7 +437,7 @@ class PuppeteerPool {
             const instance = this.pagesToInstancesMap.get(idlePage);
             const instanceIsActive = !!this.activeInstances[instance.id];
             if (pageIsNotClosed && instanceIsActive) {
-                this._updateInstance(instance);
+                this._incrementPageCount(instance);
                 return idlePage;
             }
         }
@@ -455,7 +459,7 @@ class PuppeteerPool {
             .find(inst => inst.activePages < this.maxOpenPagesPerInstance);
 
         if (!instance) instance = this._launchInstance();
-        this._updateInstance(instance);
+        this._incrementPageCount(instance);
         instance.activePages++;
 
         try {
@@ -483,11 +487,14 @@ class PuppeteerPool {
         page.close = async (...args) => {
             this.closedPages.add(page);
             return originalPageClose.apply(page, args)
-                .catch(err => log.debug('PuppeteerPool: Page.close() failed', { errorMessage: err.message, id: instance.id }));
+                .catch((err) => {
+                    const instance = this.pagesToInstancesMap.get(page);
+                    log.debug('PuppeteerPool: Page.close() failed', { errorMessage: err.message, id: instance.id });
+                });
         };
 
         page.once('error', (error) => {
-            log.exception(error, 'PuppeteerPool: page crashed');
+            log.exception(error, 'PuppeteerPool: page crashed.');
             page.close();
         });
         return page;

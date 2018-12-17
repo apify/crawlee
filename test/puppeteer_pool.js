@@ -319,8 +319,10 @@ describe('PuppeteerPool', () => {
     });
 
     describe('reuse of browser tabs', () => {
-        it('should work by default', async () => {
-            const pool = new Apify.PuppeteerPool();
+        it('should work', async () => {
+            const pool = new Apify.PuppeteerPool({
+                reusePages: true,
+            });
             const firstPage = await pool.newPage();
             const secondPage = await pool.newPage();
             await pool.recyclePage(firstPage);
@@ -351,24 +353,28 @@ describe('PuppeteerPool', () => {
         it('should not open new browsers when idle pages are available', async () => {
             const pool = new Apify.PuppeteerPool({
                 maxOpenPagesPerInstance: 1,
+                reusePages: true,
             });
 
-            let page = await pool.newPage();
-            await pool.recyclePage(page);
-            expect(Object.keys(pool.activeInstances).length).to.be.eql(1);
-
-            page = await pool.newPage();
-            await pool.recyclePage(page);
-            expect(Object.keys(pool.activeInstances).length).to.be.eql(1);
-
-            page = await pool.newPage();
+            const pageOne = await pool.newPage();
+            await pool.recyclePage(pageOne);
             expect(Object.keys(pool.activeInstances).length).to.be.eql(1);
 
             const pageTwo = await pool.newPage();
+            expect(pageOne === pageTwo).to.be.eql(true);
+            await pool.recyclePage(pageTwo);
+            expect(Object.keys(pool.activeInstances).length).to.be.eql(1);
+
+            const pageThree = await pool.newPage();
+            expect(pageTwo === pageThree).to.be.eql(true);
+            expect(Object.keys(pool.activeInstances).length).to.be.eql(1);
+
+            const pageFour = await pool.newPage();
+            expect(pageFour === pageThree).to.be.eql(false);
             expect(Object.keys(pool.activeInstances).length).to.be.eql(2);
 
-            await pool.recyclePage(page);
-            await pool.recyclePage(pageTwo);
+            await pool.recyclePage(pageThree);
+            await pool.recyclePage(pageFour);
             await pool.newPage();
             await pool.newPage();
             expect(Object.keys(pool.activeInstances).length).to.be.eql(2);
@@ -379,6 +385,7 @@ describe('PuppeteerPool', () => {
         it('should count towards retireInstanceAfterRequestCount option', async () => {
             const pool = new Apify.PuppeteerPool({
                 retireInstanceAfterRequestCount: 2,
+                reusePages: true,
             });
 
             const len = obj => Object.keys(obj).length;
@@ -414,7 +421,7 @@ describe('PuppeteerPool', () => {
         });
 
         it('should skip closed pages', async () => {
-            const pool = new Apify.PuppeteerPool();
+            const pool = new Apify.PuppeteerPool({ reusePages: true });
 
             const firstPage = await pool.newPage();
             const secondPage = await pool.newPage();
