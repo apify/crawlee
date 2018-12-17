@@ -168,7 +168,6 @@ class BasicCrawler {
         const isMaxPagesExceeded = () => maxRequestsPerCrawl && maxRequestsPerCrawl <= this.handledRequestsCount;
 
         const { isFinishedFunction } = autoscaledPoolOptions;
-        this.isFinishedFunction = isFinishedFunction || this._defaultIsFinishedFunction;
 
         const basicCrawlerAutoscaledPoolConfiguration = {
             minConcurrency,
@@ -191,14 +190,17 @@ class BasicCrawler {
                     return true;
                 }
 
-                const isFinished = await this.isFinishedFunction();
+                const isFinished = isFinishedFunction
+                    ? isFinishedFunction()
+                    : this._defaultIsFinishedFunction();
+
                 if (isFinished) {
-                    if (isFinishedFunction) {
-                        log.info('BasicCrawler: Crawler\'s custom isFinishedFunction() returned true, the Crawler will shut down.');
-                    } else {
-                        log.info('BasicCrawler: All the Crawler\'s storages are finished (empty and processed), the Crawler will shut down.');
-                    }
+                    const reason = isFinishedFunction
+                        ? 'BasicCrawler: Crawler\'s custom isFinishedFunction() returned true, the Crawler will shut down.'
+                        : 'BasicCrawler: All the requests from request list and/or request queue have been processed, the Crawler will shut down.';
+                    log.info(reason);
                 }
+
                 return isFinished;
             },
         };
