@@ -6,7 +6,7 @@ import contentType from 'content-type';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import BasicCrawler from './basic_crawler';
-import { createTimeoutPromise } from './utils';
+import { addTimeoutToPromise } from './utils';
 import { getApifyProxyUrl } from './actor';
 
 const DEFAULT_OPTIONS = {
@@ -318,8 +318,7 @@ class CheerioCrawler {
         // rejectOnAbortPromise rejects when .abort() is called or BasicCrawler throws.
         // All running pages are therefore terminated with an error to be reclaimed and retried.
         const response = await Promise.race([
-            rfPromise,
-            createTimeoutPromise(this.requestTimeoutMillis, 'CheerioCrawler: requestFunction timed out.'),
+            addTimeoutToPromise(rfPromise, this.requestTimeoutMillis, 'CheerioCrawler: requestFunction timed out.'),
             this.rejectOnAbortPromise,
         ]);
 
@@ -331,8 +330,11 @@ class CheerioCrawler {
 
         const $ = cheerio.load(html);
         await Promise.race([
-            this.handlePageFunction({ $, html, request, response }),
-            createTimeoutPromise(this.handlePageTimeoutMillis, 'CheerioCrawler: handlePageFunction timed out.'),
+            addTimeoutToPromise(
+                this.handlePageFunction({ $, html, request, response }),
+                this.handlePageTimeoutMillis,
+                'CheerioCrawler: handlePageFunction timed out.',
+            ),
             this.rejectOnAbortPromise,
         ]);
     }

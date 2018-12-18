@@ -41,7 +41,7 @@
     "build": "rm -rf ./build && babel src --out-dir build",
     "build-docs": "npm run clean && npm run build && node ./website/tools/build_docs.js",
     "build-readme": "node ./tools/build_readme.js",
-    "test": "npm run build &&  nyc --reporter=html --reporter=text mocha --timeout 60000 --compilers js:babel-core/register --recursive --exit",
+    "test": "npm run build &&  nyc --reporter=html --reporter=text mocha --timeout 60000 --compilers js:babel-core/register --recursive",
     "prepare": "npm run build",
     "prepublishOnly": "(test $RUNNING_FROM_SCRIPT || (echo \"You must use publish.sh instead of 'npm publish' directly!\"; exit 1)) && npm test && npm run lint",
     "clean": "rm -rf build",

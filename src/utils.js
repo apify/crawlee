@@ -1,7 +1,7 @@
-import Promise from 'bluebird';
 import contentTypeParser from 'content-type';
 import os from 'os';
 import fs from 'fs';
+import util from 'util';
 import fsExtra from 'fs-extra';
 import ApifyClient from 'apify-client';
 import psTree from '@apify/ps-tree';
@@ -28,8 +28,8 @@ const URL_NO_COMMAS_REGEX = XRegExp('https?://(www\\.)?[\\p{L}0-9][-\\p{L}0-9@:%
  */
 const URL_WITH_COMMAS_REGEX = XRegExp('https?://(www\\.)?[\\p{L}0-9][-\\p{L}0-9@:%._\\+~#=]{0,254}[\\p{L}0-9]\\.[a-z]{2,63}(:\\d{1,5})?(/[-\\p{L}0-9@:%_\\+,.~#?&//=\\(\\)]*)?', 'gi'); // eslint-disable-line
 
-const ensureDirPromised = Promise.promisify(fsExtra.ensureDir);
-const psTreePromised = Promise.promisify(psTree);
+const ensureDirPromised = util.promisify(fsExtra.ensureDir);
+const psTreePromised = util.promisify(psTree);
 
 /**
  * Creates an instance of ApifyClient using options as defined in the environment variables.
@@ -104,12 +104,12 @@ export const addCharsetToContentType = (contentType) => {
 
 let isDockerPromiseCache;
 const createIsDockerPromise = () => {
-    const promise1 = Promise
+    const promise1 = util
         .promisify(fs.stat)('/.dockerenv')
         .then(() => true)
         .catch(() => false);
 
-    const promise2 = Promise
+    const promise2 = util
         .promisify(fs.readFile)('/proc/self/cgroup', 'utf8')
         .then(content => content.indexOf('docker') !== -1)
         .catch(() => false);
@@ -240,7 +240,7 @@ export const getMemoryInfo = async () => {
     } else {
         // When running inside Docker container, use container memory limits
         // This must be promisified here so that we can mock it.
-        const readPromised = Promise.promisify(fs.readFile);
+        const readPromised = util.promisify(fs.readFile);
 
         const [totalBytesStr, usedBytesStr] = await Promise.all([
             readPromised('/sys/fs/cgroup/memory/memory.limit_in_bytes'),
@@ -262,7 +262,7 @@ export const getMemoryInfo = async () => {
 };
 
 /**
- * Helper function that detrermines if given parameter is an instance of Promise.
+ * Helper function that determines if given parameter is an instance of Promise.
  *
  * @ignore
  */
@@ -307,6 +307,31 @@ export const getTypicalChromeExecutablePath = () => {
     case 'win32': return 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe';
     default: return 'google-chrome';
     }
+};
+
+/**
+ * Wraps the provided Promise with another one that rejects with the given errorMessage
+ * after the given timeoutMillis, unless the original promise resolves or rejects earlier.
+ *
+ * @param {Promise} promise
+ * @param {number} timeoutMillis
+ * @param {string} errorMessage
+ */
+export const addTimeoutToPromise = (promise, timeoutMillis, errorMessage) => {
+    return new Promise((resolve, reject) => {
+        if (!isPromise(promise)) throw new Error('Parameter promise of type Promise must be provided.');
+        checkParamOrThrow(timeoutMillis, 'timeoutMillis', 'Number');
+        checkParamOrThrow(errorMessage, 'errorMessage', 'String');
+
+        const timeout = setTimeout(() => reject(new Error(errorMessage)), timeoutMillis);
+        promise.then((data) => {
+            clearTimeout(timeout);
+            resolve(data);
+        }, (reason) => {
+            clearTimeout(timeout);
+            reject(reason);
+        });
+    });
 };
 
 /**
