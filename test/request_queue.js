@@ -191,12 +191,40 @@ describe('RequestQueue', () => {
             expect(await anotherQueue.isFinished()).to.be.eql(true);
         });
 
-        it('should accept Request constructor object in addRequest()', async () => {
+        it('should accept plain object in addRequest()', async () => {
             expectNotUsingLocalStorage();
             const queue = new RequestQueue('some-id');
             expect(() => {
                 queue.addRequest({ url: 'http://example.com/a' });
             }).to.not.throw();
+        });
+
+        it('should return correct handledCount', async () => {
+            const queue = new RequestQueueLocal('id', LOCAL_STORAGE_DIR);
+            let count = await queue.handledCount();
+            expect(count).to.be.eql(0);
+            const r1 = new Apify.Request({ url: 'http://example.com/1' });
+            const r2 = new Apify.Request({ url: 'http://example.com/2' });
+            const r3 = new Apify.Request({ url: 'http://example.com/3' });
+            await queue.addRequest(r1);
+            await queue.addRequest(r2);
+            count = await queue.handledCount();
+            expect(count).to.be.eql(0);
+            const rf1 = await queue.fetchNextRequest();
+            await queue.markRequestHandled(rf1);
+            count = await queue.handledCount();
+            expect(count).to.be.eql(1);
+            await queue.addRequest(r3);
+            const rf2 = await queue.fetchNextRequest();
+            await queue.markRequestHandled(rf2);
+            const rf3 = await queue.fetchNextRequest();
+            await queue.markRequestHandled(rf3);
+            count = await queue.handledCount();
+            expect(count).to.be.eql(3);
+
+            const newQueue = new RequestQueueLocal('id', LOCAL_STORAGE_DIR);
+            count = await newQueue.handledCount();
+            expect(count).to.be.eql(3);
         });
     });
 
@@ -439,7 +467,7 @@ describe('RequestQueue', () => {
             mock.restore();
         });
 
-        it('shoud handle situation when newly created request is not available yet', async () => {
+        it('should handle situation when newly created request is not available yet', async () => {
             expectNotUsingLocalStorage();
 
             const { Request } = Apify;
@@ -530,12 +558,25 @@ describe('RequestQueue', () => {
             mock.restore();
         });
 
-        it('should accept Request constructor object in addRequest()', async () => {
+        it('should accept plain object in addRequest()', async () => {
             expectNotUsingLocalStorage();
             const queue = new RequestQueue('some-id');
             expect(() => {
                 queue.addRequest({ url: 'http://example.com/a' });
             }).to.not.throw();
+        });
+
+        it('should return correct handledCount', async () => {
+            const stub = sinon
+                .stub(apifyClient.requestQueues, 'getQueue')
+                .returns(Promise.resolve({
+                    handledRequestCount: 33,
+                }));
+            const queue = new RequestQueue('id');
+            const count = await queue.handledCount();
+            expect(count).to.be.eql(33);
+            sinon.assert.callCount(stub, 1);
+            sinon.restore();
         });
     });
 
