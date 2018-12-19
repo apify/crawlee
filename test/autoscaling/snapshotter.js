@@ -1,12 +1,13 @@
 import { expect } from 'chai';
+import sinon from 'sinon';
 import log from 'apify-shared/log';
 import { ACTOR_EVENT_NAMES, ENV_VARS } from 'apify-shared/consts';
 import * as Apify from '../../build/index';
 import events from '../../build/events';
 import Snapshotter from '../../build/autoscaling/snapshotter';
-import { apifyClient } from '../../build/utils';
+import * as utils from '../../build/utils';
 
-// const toBytes = x => x * 1024 * 1024;
+const toBytes = x => x * 1024 * 1024;
 
 describe('Snapshotter', () => {
     let logLevel;
@@ -21,15 +22,15 @@ describe('Snapshotter', () => {
 
     it('should collect snapshots with some values', async () => {
         // mock client data
-        const oldStats = apifyClient.stats;
-        apifyClient.stats = {};
-        apifyClient.stats.rateLimitErrors = 0;
+        const oldStats = utils.apifyClient.stats;
+        utils.apifyClient.stats = {};
+        utils.apifyClient.stats.rateLimitErrors = 0;
 
         const snapshotter = new Snapshotter();
         await snapshotter.start();
 
         await Apify.utils.sleep(625);
-        apifyClient.stats.rateLimitErrors = 2;
+        utils.apifyClient.stats.rateLimitErrors = 2;
         await Apify.utils.sleep(625);
 
         await snapshotter.stop();
@@ -69,7 +70,7 @@ describe('Snapshotter', () => {
             expect(ss.rateLimitErrorCount).to.be.a('number');
         });
 
-        apifyClient.stats = oldStats;
+        utils.apifyClient.stats = oldStats;
     });
 
     it('should override default timers', async () => {
@@ -158,58 +159,65 @@ describe('Snapshotter', () => {
         expect(overloadedCount).to.be.above(0);
     });
 
-    /*
-    TODO: Fix this test. It's failing under load when the 2nd snapshot happens in the second half of the time
-          or the third one doesn't happen at all.
-    it('correctly marks memoryOverloaded', async () => {
-        process.env[ENV_VARS.MEMORY_MBYTES] = 20;
-        const options = {
-            memorySnapshotIntervalSecs: 0.1,
+    it('correctly marks memoryOverloaded', async () => { /* eslint-disable no-underscore-dangle */
+        const noop = () => {};
+        const memoryData = {
+            mainProcessBytes: toBytes(1000),
+            childProcessesBytes: toBytes(1000),
         };
+        const getMem = async () => Object.assign({}, memoryData);
+        const stub = sinon.stub(utils, 'getMemoryInfo');
+        stub.callsFake(getMem);
 
-        const snapshotter = new Snapshotter(options);
-        await snapshotter.start();
-        await Apify.utils.sleep(199);
-        snapshotter.maxMemoryBytes = toBytes(1000); // Override memory to get an OK reading.
-        await Apify.utils.sleep(199);
-        await snapshotter.stop();
+        process.env[ENV_VARS.MEMORY_MBYTES] = '10000';
+
+        const snapshotter = new Snapshotter({ maxUsedMemoryRatio: 0.5 });
+        await snapshotter._snapshotMemory(noop);
+        memoryData.mainProcessBytes = toBytes(2000);
+        await snapshotter._snapshotMemory(noop);
+        memoryData.childProcessesBytes = toBytes(2000);
+        await snapshotter._snapshotMemory(noop);
+        memoryData.mainProcessBytes = toBytes(3001);
+        await snapshotter._snapshotMemory(noop);
+        memoryData.childProcessesBytes = toBytes(1999);
+        await snapshotter._snapshotMemory(noop);
         const memorySnapshots = snapshotter.getMemorySample();
 
-        expect(memorySnapshots.length).to.be.above(2);
-        expect(memorySnapshots[0].isOverloaded).to.be.eql(true);
-        expect(memorySnapshots[1].isOverloaded).to.be.eql(true);
+        expect(memorySnapshots.length).to.be.eql(5);
+        expect(memorySnapshots[0].isOverloaded).to.be.eql(false);
+        expect(memorySnapshots[1].isOverloaded).to.be.eql(false);
         expect(memorySnapshots[2].isOverloaded).to.be.eql(false);
+        expect(memorySnapshots[3].isOverloaded).to.be.eql(true);
+        expect(memorySnapshots[4].isOverloaded).to.be.eql(false);
+
         delete process.env[ENV_VARS.MEMORY_MBYTES];
     });
-    */
 
-    it('correctly marks clientOverloaded', async () => {
+    it('correctly marks clientOverloaded', async () => { /* eslint-disable no-underscore-dangle */
+        const noop = () => {};
         // mock client data
-        const oldStats = apifyClient.stats;
-        apifyClient.stats = {};
-        apifyClient.stats.rateLimitErrors = 0;
+        const oldStats = utils.apifyClient.stats;
+        utils.apifyClient.stats = {};
+        utils.apifyClient.stats.rateLimitErrors = 0;
 
-        const options = {
-            clientSnapshotIntervalSecs: 0.001,
-        };
+        const snapshotter = new Snapshotter();
+        snapshotter._snapshotClient(noop);
+        utils.apifyClient.stats.rateLimitErrors = 1;
+        snapshotter._snapshotClient(noop);
+        utils.apifyClient.stats.rateLimitErrors = 2;
+        snapshotter._snapshotClient(noop);
+        utils.apifyClient.stats.rateLimitErrors = 4;
+        snapshotter._snapshotClient(noop);
 
-        const snapshotter = new Snapshotter(options);
-        await snapshotter.start();
-        apifyClient.stats.rateLimitErrors = 1;
-        await Apify.utils.sleep(1);
-        apifyClient.stats.rateLimitErrors = 2;
-        await Apify.utils.sleep(1);
-        apifyClient.stats.rateLimitErrors = 10000;
-        await Apify.utils.sleep(1);
-        await snapshotter.stop();
         const clientSnapshots = snapshotter.getClientSample();
 
-        expect(clientSnapshots.length).to.be.above(2);
+        expect(clientSnapshots.length).to.be.eql(4);
         expect(clientSnapshots[0].isOverloaded).to.be.eql(false);
         expect(clientSnapshots[1].isOverloaded).to.be.eql(false);
-        expect(clientSnapshots[clientSnapshots.length - 1].isOverloaded).to.be.eql(true);
+        expect(clientSnapshots[2].isOverloaded).to.be.eql(false);
+        expect(clientSnapshots[3].isOverloaded).to.be.eql(true);
 
-        apifyClient.stats = oldStats;
+        utils.apifyClient.stats = oldStats;
     });
 
     it('.get[.*]Sample limits amount of samples', async () => {
