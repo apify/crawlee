@@ -1,9 +1,9 @@
 import { expect } from 'chai';
 import proxy from 'proxy';
 import http from 'http';
+import util from 'util';
 import portastic from 'portastic';
 import basicAuthParser from 'basic-auth-parser';
-import Promise from 'bluebird';
 import _ from 'underscore';
 import sinon from 'sinon';
 import { ENV_VARS } from 'apify-shared/consts';
@@ -59,7 +59,7 @@ after(function () {
     process.env[ENV_VARS.HEADLESS] = prevEnvHeadless;
 
     this.timeout(5 * 1000);
-    if (proxyServer) return Promise.promisify(proxyServer.close).bind(proxyServer)();
+    if (proxyServer) return util.promisify(proxyServer.close).bind(proxyServer)();
 });
 
 
@@ -160,7 +160,7 @@ describe('Apify.launchPuppeteer()', () => {
             });
     });
 
-    it('supports useChrome option', () => {
+    it('supports useChrome option', async () => {
         const mock = sinon.mock(utils);
         mock.expects('getTypicalChromeExecutablePath').once();
 
@@ -169,27 +169,27 @@ describe('Apify.launchPuppeteer()', () => {
             useChrome: true,
             headless: true,
         };
-
-        return Apify.launchPuppeteer(opts)
-            .then((result) => {
-                browser = result;
-            })
-            .then(() => {
-                return browser.newPage();
-            })
-            .then((page) => {
-                return page.content();
-            })
-            .then(() => {
-                return browser.close();
-            })
-            .finally(() => {
-                mock.verify();
-                mock.restore();
-            });
+        try {
+            await Apify.launchPuppeteer(opts)
+                .then((result) => {
+                    browser = result;
+                })
+                .then(() => {
+                    return browser.newPage();
+                })
+                .then((page) => {
+                    return page.content();
+                })
+                .then(() => {
+                    return browser.close();
+                });
+        } finally {
+            mock.verify();
+            mock.restore();
+        }
     });
 
-    it('should allow to use Apify proxy', () => {
+    it('should allow to use Apify proxy', async () => {
         process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
         process.env[ENV_VARS.PROXY_HOSTNAME] = 'my.host.com';
         process.env[ENV_VARS.PROXY_PORT] = 123;
@@ -205,21 +205,22 @@ describe('Apify.launchPuppeteer()', () => {
             })
             .returns(null); // Return null so that it doesn't start proxy-chain
 
-        return Apify
-            .launchPuppeteer({
-                useApifyProxy: true,
-                apifyProxySession: 'xxx',
-                apifyProxyGroups: ['yyy'],
-                headless: true,
-            })
-            .then(browser => browser.close())
-            .finally(() => {
-                mock.verify();
-                mock.restore();
-                delete process.env[ENV_VARS.PROXY_PASSWORD];
-                delete process.env[ENV_VARS.PROXY_HOSTNAME];
-                delete process.env[ENV_VARS.PROXY_PORT];
-            });
+        try {
+            await Apify
+                .launchPuppeteer({
+                    useApifyProxy: true,
+                    apifyProxySession: 'xxx',
+                    apifyProxyGroups: ['yyy'],
+                    headless: true,
+                })
+                .then(browser => browser.close());
+        } finally {
+            mock.verify();
+            mock.restore();
+            delete process.env[ENV_VARS.PROXY_PASSWORD];
+            delete process.env[ENV_VARS.PROXY_HOSTNAME];
+            delete process.env[ENV_VARS.PROXY_PORT];
+        }
     });
 
     it('should throw when useApifyProxy=true and proxy password is not set', () => {

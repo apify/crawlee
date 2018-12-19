@@ -4,7 +4,6 @@ import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import 'babel-polyfill';
 import sinon from 'sinon';
-import Promise from 'bluebird';
 import { delayPromise } from 'apify-shared/utilities';
 import { ENV_VARS, ACT_JOB_STATUSES, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import { ApifyCallError } from '../build/errors';
@@ -38,7 +37,7 @@ const popFreePort = () => freePorts.pop();
  * Helper function that enables testing of Apify.main()
  * @returns Promise
  */
-const testMain = ({ userFunc, exitCode }) => {
+const testMain = async ({ userFunc, exitCode }) => {
     // Mock process.exit() to check exit code and prevent process exit
     const processMock = sinon.mock(process);
     const exitExpectation = processMock
@@ -49,47 +48,48 @@ const testMain = ({ userFunc, exitCode }) => {
 
     let error = null;
 
-    return Promise.resolve()
-        .then(() => {
-            return new Promise((resolve, reject) => {
-                // Invoke main() function, the promise resolves after the user function is run
-                Apify.main(() => {
-                    try {
-                        // Wait for all tasks in Node.js event loop to finish
+    try {
+        await Promise.resolve()
+            .then(() => {
+                return new Promise((resolve, reject) => {
+                    // Invoke main() function, the promise resolves after the user function is run
+                    Apify.main(() => {
+                        try {
+                            // Wait for all tasks in Node.js event loop to finish
+                            resolve();
+                        } catch (err) {
+                            reject(err);
+                            return;
+                        }
+                        // Call user func to test other behavior (note that it can throw)
+                        if (userFunc) return userFunc();
+                    });
+                })
+                    .catch((err) => {
+                        error = err;
+                    });
+            })
+            .then(() => {
+                // Waits max 1000 millis for process.exit() mock to be called
+                // console.log(`XXX: grand finale: ${err}`);
+                return new Promise((resolve) => {
+                    const waitUntil = Date.now() + 1000;
+                    const intervalId = setInterval(() => {
+                        // console.log('test for exitExpectation.called');
+                        if (!exitExpectation.called && Date.now() < waitUntil) return;
+                        clearInterval(intervalId);
+                        // console.log(`exitExpectation.called: ${exitExpectation.called}`);
                         resolve();
-                    } catch (err) {
-                        reject(err);
-                        return;
-                    }
-                    // Call user func to test other behavior (note that it can throw)
-                    if (userFunc) return userFunc();
+                    }, 10);
                 });
             })
-                .catch((err) => {
-                    error = err;
-                });
-        })
-        .then(() => {
-            // Waits max 1000 millis for process.exit() mock to be called
-            // console.log(`XXX: grand finale: ${err}`);
-            return new Promise((resolve) => {
-                const waitUntil = Date.now() + 1000;
-                const intervalId = setInterval(() => {
-                    // console.log('test for exitExpectation.called');
-                    if (!exitExpectation.called && Date.now() < waitUntil) return;
-                    clearInterval(intervalId);
-                    // console.log(`exitExpectation.called: ${exitExpectation.called}`);
-                    resolve();
-                }, 10);
+            .then(() => {
+                if (error) throw error;
+                processMock.verify();
             });
-        })
-        .then(() => {
-            if (error) throw error;
-            processMock.verify();
-        })
-        .finally(() => {
-            processMock.restore();
-        });
+    } finally {
+        processMock.restore();
+    }
 };
 
 

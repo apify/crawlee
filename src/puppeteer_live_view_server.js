@@ -310,7 +310,10 @@ export default class PuppeteerLiveViewServer extends EventEmitter {
     addBrowser(browser) {
         this.browsers.add(browser);
         this.emit('browsercreated', browser);
-        browser.on('disconnected', () => this.deleteBrowser(browser));
+        browser.on('disconnected', () => {
+            this.deleteBrowser(browser);
+            if (!this.browsers.size) this.httpServer.close();
+        });
     }
 
     /**
