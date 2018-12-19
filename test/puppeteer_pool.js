@@ -89,7 +89,7 @@ describe('PuppeteerPool', () => {
         expect(pool.retiredInstances[0].activePages).to.be.eql(3);
         expect(pool.retiredInstances[0].totalPages).to.be.eql(5);
 
-        // Kill the remaning 3 pages from the 1st browser to see that it gets closed.
+        // Kill the remaining 3 pages from the 1st browser to see that it gets closed.
         await (await browsers[2]).close();
         await (await browsers[6]).close();
 
@@ -316,6 +316,145 @@ describe('PuppeteerPool', () => {
         // Check cache dirs were deleted
         expect(fs.existsSync(dir1)).to.be.eql(false);
         expect(fs.existsSync(dir3)).to.be.eql(false);
+    });
+
+    describe('reuse of browser tabs', () => {
+        it('should work', async () => {
+            const pool = new Apify.PuppeteerPool({
+                reusePages: true,
+            });
+            const firstPage = await pool.newPage();
+            const secondPage = await pool.newPage();
+            await pool.recyclePage(firstPage);
+            const recycledFirstPage = await pool.newPage();
+            const thirdPage = await pool.newPage();
+            await pool.recyclePage(thirdPage);
+            await pool.recyclePage(secondPage);
+            const recycledThirdPage = await pool.newPage();
+            const recycledSecondPage = await pool.newPage();
+
+            expect(recycledFirstPage === firstPage).to.be.eql(true);
+            expect(recycledSecondPage === secondPage).to.be.eql(true);
+            expect(recycledThirdPage === thirdPage).to.be.eql(true);
+
+            expect(firstPage === secondPage).to.be.eql(false);
+            expect(firstPage === thirdPage).to.be.eql(false);
+            expect(firstPage === recycledSecondPage).to.be.eql(false);
+            expect(firstPage === recycledThirdPage).to.be.eql(false);
+            expect(secondPage === thirdPage).to.be.eql(false);
+            expect(secondPage === recycledFirstPage).to.be.eql(false);
+            expect(secondPage === recycledThirdPage).to.be.eql(false);
+            expect(thirdPage === recycledFirstPage).to.be.eql(false);
+            expect(thirdPage === recycledSecondPage).to.be.eql(false);
+
+            await pool.destroy();
+        });
+
+        it('should not open new browsers when idle pages are available', async () => {
+            const pool = new Apify.PuppeteerPool({
+                maxOpenPagesPerInstance: 1,
+                reusePages: true,
+            });
+
+            const pageOne = await pool.newPage();
+            await pool.recyclePage(pageOne);
+            expect(Object.keys(pool.activeInstances).length).to.be.eql(1);
+
+            const pageTwo = await pool.newPage();
+            expect(pageOne === pageTwo).to.be.eql(true);
+            await pool.recyclePage(pageTwo);
+            expect(Object.keys(pool.activeInstances).length).to.be.eql(1);
+
+            const pageThree = await pool.newPage();
+            expect(pageTwo === pageThree).to.be.eql(true);
+            expect(Object.keys(pool.activeInstances).length).to.be.eql(1);
+
+            const pageFour = await pool.newPage();
+            expect(pageFour === pageThree).to.be.eql(false);
+            expect(Object.keys(pool.activeInstances).length).to.be.eql(2);
+
+            await pool.recyclePage(pageThree);
+            await pool.recyclePage(pageFour);
+            await pool.newPage();
+            await pool.newPage();
+            expect(Object.keys(pool.activeInstances).length).to.be.eql(2);
+
+            await pool.destroy();
+        });
+
+        it('should count towards retireInstanceAfterRequestCount option', async () => {
+            const pool = new Apify.PuppeteerPool({
+                retireInstanceAfterRequestCount: 2,
+                reusePages: true,
+            });
+
+            const len = obj => Object.keys(obj).length;
+
+            let page = await pool.newPage();
+            await pool.recyclePage(page);
+            expect(len(pool.activeInstances)).to.be.eql(1);
+            expect(len(pool.retiredInstances)).to.be.eql(0);
+
+            page = await pool.newPage();
+            await pool.recyclePage(page);
+            expect(len(pool.activeInstances)).to.be.eql(0);
+            expect(len(pool.retiredInstances)).to.be.eql(1);
+
+            page = await pool.newPage();
+            expect(len(pool.activeInstances)).to.be.eql(1);
+            expect(len(pool.retiredInstances)).to.be.eql(1);
+
+            const pageTwo = await pool.newPage();
+            expect(len(pool.activeInstances)).to.be.eql(0);
+            expect(len(pool.retiredInstances)).to.be.eql(2);
+
+            await pool.recyclePage(page);
+            await pool.recyclePage(pageTwo);
+            expect(len(pool.activeInstances)).to.be.eql(0);
+            await pool.newPage();
+            expect(len(pool.activeInstances)).to.be.eql(1);
+            await pool.newPage();
+            expect(len(pool.retiredInstances)).to.be.eql(3);
+            expect(len(pool.activeInstances)).to.be.eql(0);
+
+            await pool.destroy();
+        });
+
+        it('should skip closed pages', async () => {
+            const pool = new Apify.PuppeteerPool({ reusePages: true });
+
+            const firstPage = await pool.newPage();
+            const secondPage = await pool.newPage();
+            await pool.recyclePage(firstPage);
+            await pool.recyclePage(secondPage);
+            await firstPage.close();
+            const recycledSecondPage = await pool.newPage();
+            const thirdPage = await pool.newPage();
+            await thirdPage.close();
+            const fourthPage = await pool.newPage();
+            await secondPage.close();
+            const fifthPage = await pool.newPage();
+            await pool.recyclePage(recycledSecondPage);
+            await pool.recyclePage(thirdPage);
+            await pool.recyclePage(fourthPage);
+            await pool.recyclePage(fifthPage);
+            await fourthPage.close();
+            const recycledFifthPage = await pool.newPage();
+
+            expect(recycledSecondPage === secondPage).to.be.eql(true);
+            expect(recycledFifthPage === fifthPage).to.be.eql(true);
+
+            const all = [firstPage, secondPage, thirdPage, fourthPage, fifthPage, recycledSecondPage, recycledFifthPage];
+            const matches = page => all.filter(x => page === x).length;
+
+            expect(matches(firstPage)).to.be.eql(1);
+            expect(matches(secondPage)).to.be.eql(2);
+            expect(matches(thirdPage)).to.be.eql(1);
+            expect(matches(fourthPage)).to.be.eql(1);
+            expect(matches(fifthPage)).to.be.eql(2);
+
+            await pool.destroy();
+        });
     });
 
     describe('the proxyUrls parameter', () => {
