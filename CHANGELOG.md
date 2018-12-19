@@ -1,4 +1,4 @@
-xxx
+0.10.0 / 2018-12-19
 ===================
 - `autoscaledPool.isFinishedFunction()` and `autoscaledPool.isTaskReadyFunction()` exceptions
   will now cause the `Promise` returned by `autoscaledPool.run()` to reject instead of just
@@ -6,10 +6,12 @@ xxx
 - Bugfix: PuppeteerPool was incorrectly overriding `proxyUrls` even if they were not defined.
 - Fixed an issue where an error would be thrown when `datasetLocal.getData()` was invoked
   with an overflowing offset. It now correctly returns an empty `Array`.
-- Added the `reusePages` option to `PuppeteerPool`. It will now reuse existing tabs by default
-  instead of opening new ones for each page.
+- Added the `reusePages` option to `PuppeteerPool`. It will now reuse existing tabs
+  instead of opening new ones for each page when enabled.
 - `BasicCrawler` (and therefore all Crawlers) now logs a message explaining why it finished.
 - Fixed an issue where `maxRequestsPerCrawl` option would not be honored after restart or migration.
+- Fixed an issue with timeout promises that would sometimes keep the process hanging.
+- `CheerioCrawler` now accepts `gzip` and `deflate` compressed responses.
 
 0.9.15 / 2018-11-30
 ===================
