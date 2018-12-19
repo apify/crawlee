@@ -1,3 +1,4 @@
+import EventEmitter from 'events';
 import log from 'apify-shared/log';
 import { ENV_VARS } from 'apify-shared/consts';
 import { main, getEnv, call, callTask, getApifyProxyUrl } from './actor';
@@ -21,6 +22,9 @@ import { socialUtils } from './utils_social';
 import PseudoUrl from './pseudo_url';
 
 /* globals module */
+
+// Increase the global limit for event emitter memory leak warnings.
+EventEmitter.defaultMaxListeners = 50;
 
 // Log as plain text not JSON
 log.logJson = false;
