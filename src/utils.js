@@ -316,6 +316,7 @@ export const getTypicalChromeExecutablePath = () => {
  * @param {Promise} promise
  * @param {number} timeoutMillis
  * @param {string} errorMessage
+ * @ignore
  */
 export const addTimeoutToPromise = (promise, timeoutMillis, errorMessage) => {
     return new Promise((resolve, reject) => {
