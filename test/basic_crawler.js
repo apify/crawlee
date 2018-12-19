@@ -289,6 +289,9 @@ describe('BasicCrawler', () => {
 
         // It enqueues all requests from RequestList to RequestQueue.
         const mock = sinon.mock(requestQueue);
+        mock.expects('handledCount')
+            .once()
+            .returns(Promise.resolve(0));
         mock.expects('addRequest')
             .once()
             .withArgs(new Apify.Request(sources[0]), { forefront: true })
@@ -420,6 +423,7 @@ describe('BasicCrawler', () => {
         const request1 = new Apify.Request({ url: 'http://example.com/1' });
 
         const mock = sinon.mock(requestQueue);
+        mock.expects('handledCount').once().returns(Promise.resolve());
         mock.expects('markRequestHandled').once().withArgs(request0).returns(Promise.resolve());
         mock.expects('markRequestHandled').once().withArgs(request1).returns(Promise.resolve());
         mock.expects('isFinished').never();
@@ -435,6 +439,7 @@ describe('BasicCrawler', () => {
         expect(processed.includes(request0, request1)).to.be.eql(true);
 
         mock.verify();
+        sinon.restore();
     });
 
     it('should support maxRequestsPerCrawl parameter', async () => {
@@ -487,5 +492,88 @@ describe('BasicCrawler', () => {
 
         expect(await requestList.isFinished()).to.be.eql(false);
         expect(await requestList.isEmpty()).to.be.eql(false);
+    });
+
+    it('should load handledRequestCount from storages', async () => {
+        const requestQueue = new RequestQueue('id');
+        requestQueue.isEmpty = async () => false;
+        requestQueue.isFinished = async () => false;
+        requestQueue.fetchNextRequest = async () => (new Apify.Request({ id: 'id', url: 'http://example.com' }));
+        requestQueue.markRequestHandled = async () => {};
+        let stub = sinon
+            .stub(requestQueue, 'handledCount')
+            .returns(33);
+
+        let count = 0;
+        let crawler = new Apify.BasicCrawler({
+            requestQueue,
+            maxConcurrency: 1,
+            handleRequestFunction: async () => {
+                await delayPromise(1);
+                count++;
+            },
+            maxRequestsPerCrawl: 40,
+        });
+
+        await crawler.run();
+        sinon.assert.called(stub);
+        expect(count).to.be.eql(7);
+        sinon.restore();
+
+        const sources = _.range(1, 10).map(i => ({ url: `http://example.com/${i}` }));
+        let requestList = new Apify.RequestList({ sources });
+        await requestList.initialize();
+        stub = sinon
+            .stub(requestList, 'handledCount')
+            .returns(33);
+
+        count = 0;
+        crawler = new Apify.BasicCrawler({
+            requestList,
+            maxConcurrency: 1,
+            handleRequestFunction: async () => {
+                await delayPromise(1);
+                count++;
+            },
+            maxRequestsPerCrawl: 40,
+        });
+
+        await crawler.run();
+        sinon.assert.called(stub);
+        expect(count).to.be.eql(7);
+        sinon.restore();
+
+        requestList = new Apify.RequestList({ sources });
+        await requestList.initialize();
+        const listStub = sinon
+            .stub(requestList, 'handledCount')
+            .returns(20);
+
+        const queueStub = sinon
+            .stub(requestQueue, 'handledCount')
+            .returns(33);
+
+        const addRequestStub = sinon
+            .stub(requestQueue, 'addRequest')
+            .returns(Promise.resolve());
+
+        count = 0;
+        crawler = new Apify.BasicCrawler({
+            requestList,
+            requestQueue,
+            maxConcurrency: 1,
+            handleRequestFunction: async () => {
+                await delayPromise(1);
+                count++;
+            },
+            maxRequestsPerCrawl: 40,
+        });
+
+        await crawler.run();
+        sinon.assert.called(queueStub);
+        sinon.assert.notCalled(listStub);
+        sinon.assert.callCount(addRequestStub, 7);
+        expect(count).to.be.eql(7);
+        sinon.restore();
     });
 });

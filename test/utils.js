@@ -4,7 +4,6 @@ import sinon from 'sinon';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import Promise from 'bluebird';
 import requestPromise from 'request-promise-native';
 import LruCache from 'apify-shared/lru_cache';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';

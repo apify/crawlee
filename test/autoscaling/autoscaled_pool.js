@@ -246,48 +246,57 @@ describe('AutoscaledPool', () => {
 
             await expect(pool.run()).to.be.rejectedWith('some-runtask-error');
         });
+
+        it('when isFinishedFunction throws', async () => {
+            let count = 0;
+            const pool = new AutoscaledPool({
+                minConcurrency: 10,
+                maxConcurrency: 10,
+                runTaskFunction: async () => { count++; },
+                isFinishedFunction: async () => { throw new Error('some-finished-error'); },
+                isTaskReadyFunction: async () => count < 1,
+            });
+
+
+            await expect(pool.run()).to.be.rejectedWith('some-finished-error');
+        });
+
+        it('when isTaskReadyFunction throws', async () => {
+            let count = 0;
+            const pool = new AutoscaledPool({
+                minConcurrency: 10,
+                maxConcurrency: 10,
+                runTaskFunction: async () => { count++; },
+                isFinishedFunction: async () => false,
+                isTaskReadyFunction: async () => {
+                    if (count > 1) throw new Error('some-ready-error');
+                    else return true;
+                },
+            });
+
+
+            await expect(pool.run()).to.be.rejectedWith('some-ready-error');
+        });
     });
 
 
     it('should not handle tasks added after isFinishedFunction returned true', async () => {
-        const tasks = [];
-        const finished = [];
-
-        let isFinished = false;
-
-        // Prepare 3 tasks.
-        tasks.push(() => delayPromise(10).then(() => finished.push(0)));
-        tasks.push(() => delayPromise(10).then(() => finished.push(1)));
-        tasks.push(() => delayPromise(10).then(() => finished.push(2)));
+        const isFinished = async () => count > 10;
+        let count = 0;
 
         // Run the pool and close it after 3s.
         const pool = new AutoscaledPool({
             minConcurrency: 3,
-            runTaskFunction: () => {
-                const task = tasks.shift();
-                if (!task) return;
-                return task();
-            },
-            isFinishedFunction: () => Promise.resolve(isFinished),
-            isTaskReadyFunction: () => Promise.resolve(!isFinished),
+            runTaskFunction: async () => delayPromise(1).then(() => { count++; }),
+            isFinishedFunction: async () => isFinished(),
+            isTaskReadyFunction: async () => !await isFinished(),
         });
         pool.maybeRunIntervalMillis = 5;
 
-        const poolPromise = pool.run();
-        // This is an important part of the test to see if the tasks do not get
-        // stuck in a microtask cycle. Do not refactor this to some other scheduling.
-        setTimeout(() => {
-            isFinished = true;
-        }, 50);
-        // Add 2 tasks after 70ms.
-        setTimeout(() => tasks.push(() => delayPromise(5).then(() => finished.push(3))), 70);
-        setTimeout(() => tasks.push(() => delayPromise(5).then(() => finished.push(4))), 70);
-        // Make sure tasks were not added.
-        await delayPromise(100);
-
+        await pool.run();
+        await delayPromise(10);
         // Check finished tasks.
-        await poolPromise;
-        expect(finished).to.be.eql([0, 1, 2]);
+        expect(count).to.be.within(11, 13);
     });
 
     it('should break and resume when the task queue is empty for a while', async () => {
