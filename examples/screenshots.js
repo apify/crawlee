@@ -20,6 +20,9 @@
  * <a href="https://www.apify.com/docs/api/v2#/reference/actors/run-collection/run-actor" target="_blank">Run actor API call</a>.
  * For more details, see <a href="https://www.apify.com/docs/actor#input-output" target="_blank">Input and output</a>
  * in the Apify Actor documentation.
+ *
+ * To run this example on the Apify Platform, select the `Node.js 8 + Chrome on Debian (apify/actor-node-chrome)` base image
+ * on the source tab of your actor configuration.
  */
 
 const Apify = require('apify');

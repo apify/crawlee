@@ -584,11 +584,10 @@ export class DatasetLocal {
      */
     _getItemIndexes(offset = 0, limit = this.counter) {
         if (limit === null) throw new Error('DatasetLocal must be initialize before calling this._getItemIndexes()!');
-
-        return _.range(
-            offset + 1,
-            Math.min(offset + limit, this.counter) + 1,
-        );
+        const start = offset + 1;
+        const end = Math.min(offset + limit, this.counter) + 1;
+        if (start > end) return [];
+        return _.range(start, end);
     }
 
     /**

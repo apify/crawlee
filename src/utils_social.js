@@ -212,12 +212,25 @@ let FACEBOOK_REGEX_GLOBAL;
 
 try {
     /**
-     * Regular expression to exactly match a single LinkedIn profile URL, without any additional
-     * subdirectories or query parameters. The regular expression has the following form: `/^...$/i`.
+     * Regular expression to exactly match a single LinkedIn profile URL.
+     * It has the following form: `/^...$/i` and matches URLs such as:
+     * ```
+     * https://www.linkedin.com/in/alan-turing
+     * en.linkedin.com/in/alan-turing
+     * linkedin.com/in/alan-turing
+     * ```
+     *
+     * The regular expression does NOT match URLs with additional
+     * subdirectories or query parameters, such as:
+     * ```
+     * https://www.linkedin.com/in/linus-torvalds/latest-activity
+     * ```
      *
      * Example usage:
      * ```
-     * TODO
+     * if (Apify.utils.social.LINKEDIN_REGEX.test('https://www.linkedin.com/in/alan-turing')) {
+     *     console.log('Match!');
+     * }
      * ```
      * @type {RegExp}
      * @memberOf social
@@ -225,8 +238,29 @@ try {
     LINKEDIN_REGEX = new RegExp(`^${LINKEDIN_REGEX_STRING}$`, 'i');
 
     /**
-     * Regular expression to find multiple LinkedIn profile URLs in a text.
-     * It has the following form: `/.../ig`.
+     * Regular expression to find multiple LinkedIn profile URLs in a text or HTML.
+     * It has the following form: `/.../ig` and matches URLs such as:
+     * ```
+     * https://www.linkedin.com/in/alan-turing
+     * en.linkedin.com/in/alan-turing
+     * linkedin.com/in/alan-turing
+     * ```
+     *
+     * If the profile URL contains subdirectories or query parameters, the regular expression
+     * extracts just the base part of the profile URL. For example, from text such as:
+     * ```
+     * https://www.linkedin.com/in/linus-torvalds/latest-activity
+     * ```
+     * the expression extracts just the following base URL:
+     * ```
+     * https://www.linkedin.com/in/linus-torvalds
+     * ```
+     *
+     * Example usage:
+     * ```
+     * const matches = text.match(Apify.utils.social.LINKEDIN_REGEX_GLOBAL);
+     * if (matches) console.log(`${matches.length} LinkedIn profiles found!`);
+     * ```
      * @type {RegExp}
      * @memberOf social
      */
@@ -234,54 +268,170 @@ try {
 
     /**
      * Regular expression to exactly match a single Instagram profile URL.
-     * It has the following form: `/^...$/i`.
+     * It has the following form: `/^...$/i` and matches URLs such as:
+     * ```
+     * https://www.instagram.com/old_prague
+     * www.instagram.com/old_prague/
+     * instagr.am/old_prague
+     * ```
+     *
+     * The regular expression does NOT match URLs with additional
+     * subdirectories or query parameters, such as:
+     * ```
+     * https://www.instagram.com/cristiano/followers
+     * ```
+     *
+     * Example usage:
+     * ```
+     * if (Apify.utils.social.INSTAGRAM_REGEX_STRING.test('https://www.instagram.com/old_prague')) {
+     *     console.log('Match!');
+     * }
+     * ```
      * @type {RegExp}
      * @memberOf social
      */
     INSTAGRAM_REGEX = new RegExp(`^${INSTAGRAM_REGEX_STRING}$`, 'i');
 
     /**
-     * Regular expression to find multiple Instagram profile URLs in a text.
-     * It has the following form: `/.../ig`.
+     * Regular expression to find multiple Instagram profile URLs in a text or HTML.
+     * It has the following form: `/.../ig` and matches URLs such as:
+     * ```
+     * https://www.instagram.com/old_prague
+     * www.instagram.com/old_prague/
+     * instagr.am/old_prague
+     * ```
+     *
+     * If the profile URL contains subdirectories or query parameters, the regular expression
+     * extracts just the base part of the profile URL. For example, from text such as:
+     * ```
+     * https://www.instagram.com/cristiano/followers
+     * ```
+     * the expression extracts just the following base URL:
+     * ```
+     * https://www.instagram.com/cristiano
+     * ```
+     *
+     * Example usage:
+     * ```
+     * const matches = text.match(Apify.utils.social.INSTAGRAM_REGEX_GLOBAL);
+     * if (matches) console.log(`${matches.length} Instagram profiles found!`);
+     * ```
      * @type {RegExp}
      * @memberOf social
      */
     INSTAGRAM_REGEX_GLOBAL = new RegExp(INSTAGRAM_REGEX_STRING, 'ig');
 
     /**
-     * Regular expression to exactly match a single Instagram profile URL.
-     * It has the following form: `/^...$/i`.
+     * Regular expression to exactly match a single Twitter profile URL.
+     * It has the following form: `/^...$/i` and matches URLs such as:
+     * ```
+     * https://www.twitter.com/apify
+     * twitter.com/apify
+     * ```
+     *
+     * The regular expression does NOT match URLs with additional
+     * subdirectories or query parameters, such as:
+     * ```
+     * https://www.twitter.com/realdonaldtrump/following
+     * ```
+     *
+     * Example usage:
+     * ```
+     * if (Apify.utils.social.TWITTER_REGEX_STRING.test('https://www.twitter.com/apify')) {
+     *     console.log('Match!');
+     * }
+     * ```
      * @type {RegExp}
      * @memberOf social
      */
     TWITTER_REGEX = new RegExp(`^${TWITTER_REGEX_STRING}$`, 'i');
 
     /**
-     * Regular expression to find multiple Instagram profile URLs in a text.
-     * It has the following form: `/.../ig`.
+     * Regular expression to find multiple Twitter profile URLs in a text or HTML.
+     * It has the following form: `/.../ig` and matches URLs such as:
+     * ```
+     * https://www.twitter.com/apify
+     * twitter.com/apify
+     * ```
+     *
+     * If the profile URL contains subdirectories or query parameters, the regular expression
+     * extracts just the base part of the profile URL. For example, from text such as:
+     * ```
+     * https://www.twitter.com/realdonaldtrump/following
+     * ```
+     * the expression extracts only the following base URL:
+     * ```
+     * https://www.twitter.com/realdonaldtrump
+     * ```
+     *
+     * Example usage:
+     * ```
+     * const matches = text.match(Apify.utils.social.TWITTER_REGEX_STRING);
+     * if (matches) console.log(`${matches.length} Twitter profiles found!`);
+     * ```
      * @type {RegExp}
      * @memberOf social
      */
     TWITTER_REGEX_GLOBAL = new RegExp(TWITTER_REGEX_STRING, 'ig');
 
     /**
-     * Regular expression to exactly match a single Facebook user profile URL.
-     * It has the following form: `/^...$/i`.
+     * Regular expression to exactly match a single Facebook profile URL.
+     * It has the following form: `/^...$/i` and matches URLs such as:
+     * ```
+     * https://www.facebook.com/apifytech
+     * facebook.com/apifytech
+     * fb.com/apifytech
+     * https://www.facebook.com/profile.php?id=123456789
+     * ```
+     *
+     * The regular expression does NOT match URLs with additional
+     * subdirectories or query parameters, such as:
+     * ```
+     * https://www.facebook.com/apifytech/photos
+     * ```
+     *
+     * Example usage:
+     * ```
+     * if (Apify.utils.social.FACEBOOK_REGEX_STRING.test('https://www.facebook.com/apifytech')) {
+     *     console.log('Match!');
+     * }
+     * ```
      * @type {RegExp}
      * @memberOf social
      */
     FACEBOOK_REGEX = new RegExp(`^${FACEBOOK_REGEX_STRING}$`, 'i');
 
     /**
-     * Regular expression to find multiple Instagram profile URLs in a text.
-     * It has the following form: `/.../ig`.
+     * Regular expression to find multiple Facebook profile URLs in a text or HTML.
+     * It has the following form: `/.../ig` and matches URLs such as:
+     * ```
+     * https://www.facebook.com/apifytech
+     * facebook.com/apifytech
+     * fb.com/apifytech
+     * ```
+     *
+     * If the profile URL contains subdirectories or query parameters, the regular expression
+     * extracts just the base part of the profile URL. For example, from text such as:
+     * ```
+     * https://www.facebook.com/apifytech/photos
+     * ```
+     * the expression extracts only the following base URL:
+     * ```
+     * https://www.facebook.com/apifytech
+     * ```
+     *
+     * Example usage:
+     * ```
+     * const matches = text.match(Apify.utils.social.FACEBOOK_REGEX_GLOBAL);
+     * if (matches) console.log(`${matches.length} Facebook profiles found!`);
+     * ```
      * @type {RegExp}
      * @memberOf social
      */
     FACEBOOK_REGEX_GLOBAL = new RegExp(FACEBOOK_REGEX_STRING, 'ig');
 } catch (e) {
-    // Older version of Node don't support negative lookbehind and lookahead expressions.
-    // Show warning instead of just failing.
+    // Older versions of Node don't support negative lookbehind and lookahead expressions.
+    // Show warning instead of failing.
     if (e && e.message && e.message.includes('Invalid group')) {
         // eslint-disable-next-line max-len
         log.warning(`Your version of Node.js (${process.version}) doesn't support the regular expression syntax used by Apify.utils.social tools. The tools will not work. Please upgrade your Node.js to the latest version.`);
@@ -292,14 +442,11 @@ try {
 
 
 /**
- * The functions attempts to extract emails, phones and social profile URLs from a HTML document,
+ * The function attempts to extract emails, phone numbers and social profile URLs from a HTML document,
  * specifically LinkedIn, Twitter, Instagram and Facebook profile URLs.
  * The function removes duplicates from the resulting arrays and sorts the items alphabetically.
- * @param {String} html HTML text
- * @param {Object} data Optional object which will receive the `text` and `$` properties
- *   that contain text content of the HTML and `cheerio` object, respectively. This is an optimization
- *   so that the caller doesn't need to parse the HTML document again, if needed.
- * @return {*} An object with social handles. It has the following structure:
+ *
+ * The result of the function is an object with the following structure:
  * ```
  * {
  *   emails: String[],
@@ -310,6 +457,23 @@ try {
  *   facebooks: String[],
  * }
  * ```
+ *
+ * **Example usage:**
+ * ```javascript
+ * const puppeteer = await Apify.launchPuppeteer();
+ * await puppeteer.goto('http://www.example.com');
+ * const html = await puppeteer.content();
+ *
+ * const result = Apify.utils.social.parseHandlesFromHtml(html);
+ * console.log('Social handles:');
+ * console.dir(result);
+ * ```
+ *
+ * @param {String} html HTML text
+ * @param {Object} data Optional object which will receive the `text` and `$` properties
+ *   that contain text content of the HTML and `cheerio` object, respectively. This is an optimization
+ *   so that the caller doesn't need to parse the HTML document again, if needed.
+ * @return {*} An object with the social handles.
  */
 const parseHandlesFromHtml = (html, data = null) => {
     const result = {
