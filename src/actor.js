@@ -29,7 +29,7 @@ const tryParseDate = (str) => {
  *
  * @ignore
  */
-const waitForRunToFinish = async ({ actId, runId, token, waitSecs }) => {
+const waitForRunToFinish = async ({ actId, runId, token, waitSecs, taskId }) => {
     let updatedRun;
 
     const { acts } = apifyClient;
@@ -57,10 +57,13 @@ const waitForRunToFinish = async ({ actId, runId, token, waitSecs }) => {
     }
 
     if (!updatedRun) {
-        throw new ApifyCallError({ id: runId, actId }, 'Apify.call() failed, cannot fetch run from a server');
+        throw new ApifyCallError({ id: runId, actId }, 'Apify.call() failed, cannot fetch actor run details from the server');
     }
     if (updatedRun.status !== ACT_JOB_STATUSES.SUCCEEDED && updatedRun.status !== ACT_JOB_STATUSES.RUNNING) {
-        throw new ApifyCallError(updatedRun);
+        const message = taskId
+            ? `The actor task ${taskId} invoked by Apify.call() did not succeed`
+            : `The actor ${actId} invoked by Apify.call() did not succeed`;
+        throw new ApifyCallError(updatedRun, message);
     }
 
     return updatedRun;
@@ -462,6 +465,7 @@ export const callTask = async (taskId, input, options = {}) => {
         runId: run.id,
         token,
         waitSecs,
+        taskId,
     });
 
     // Finish if output is not requested or run haven't finished.
