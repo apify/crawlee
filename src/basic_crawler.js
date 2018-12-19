@@ -168,6 +168,7 @@ class BasicCrawler {
         const isMaxPagesExceeded = () => maxRequestsPerCrawl && maxRequestsPerCrawl <= this.handledRequestsCount;
 
         const { isFinishedFunction } = autoscaledPoolOptions;
+
         const basicCrawlerAutoscaledPoolConfiguration = {
             minConcurrency,
             maxConcurrency,
@@ -182,11 +183,25 @@ class BasicCrawler {
                 return this._isTaskReadyFunction();
             },
             isFinishedFunction: async () => {
-                if (isMaxPagesExceeded() || !this.isRunning) return true;
+                if (!this.isRunning) return true;
+                if (isMaxPagesExceeded()) {
+                    log.info('BasicCrawler: Crawler reached the max requests per crawl limit by crawling '
+                        + `${this.handledRequestsCount} requests and will shut down.`);
+                    return true;
+                }
 
-                return isFinishedFunction
+                const isFinished = isFinishedFunction
                     ? isFinishedFunction()
                     : this._defaultIsFinishedFunction();
+
+                if (isFinished) {
+                    const reason = isFinishedFunction
+                        ? 'BasicCrawler: Crawler\'s custom isFinishedFunction() returned true, the Crawler will shut down.'
+                        : 'BasicCrawler: All the requests from request list and/or request queue have been processed, the Crawler will shut down.';
+                    log.info(reason);
+                }
+
+                return isFinished;
             },
         };
 
@@ -201,6 +216,7 @@ class BasicCrawler {
     async run() {
         if (this.isRunning) return this.isRunningPromise;
 
+        await this._loadHandledRequestCount();
         this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions);
         this.isRunning = true;
         this.rejectOnAbortPromise = new Promise((r, reject) => { this.rejectOnAbort = reject; });
@@ -353,6 +369,25 @@ class BasicCrawler {
         this.handledRequestsCount++;
         await source.markRequestHandled(request);
         return this.handleFailedRequestFunction({ request, error }); // This function prints an error message.
+    }
+
+    /**
+     * Updates handledRequestsCount from possibly stored counts,
+     * usually after worker migration. Since one of the stores
+     * needs to have priority when both are present,
+     * it is the request queue, because generally, the request
+     * list will first be dumped into the queue and then left
+     * empty.
+     *
+     * @return {Promise}
+     * @ignore
+     */
+    async _loadHandledRequestCount() {
+        if (this.requestQueue) {
+            this.handledRequestsCount = await this.requestQueue.handledCount();
+        } else if (this.requestList) {
+            this.handledRequestsCount = this.requestList.handledCount();
+        }
     }
 }
 

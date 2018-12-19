@@ -3,7 +3,7 @@ import log from 'apify-shared/log';
 import _ from 'underscore';
 import BasicCrawler from './basic_crawler';
 import PuppeteerPool from './puppeteer_pool';
-import { createTimeoutPromise } from './utils';
+import { addTimeoutToPromise } from './utils';
 
 const DEFAULT_OPTIONS = {
     gotoFunction: async ({ request, page }) => page.goto(request.url, { timeout: 60000 }),
@@ -234,7 +234,7 @@ class PuppeteerCrawler {
         this.gotoFunction = gotoFunction;
 
         if (pageOpsTimeoutMillis) log.warning('options.pageOpsTimeoutMillis is deprecated, use options.handlePageTimeoutSecs instead.');
-        this.handlePageTimeoutSecs = handlePageTimeoutSecs || Math.ceil(pageOpsTimeoutMillis / 1000);
+        this.handlePageTimeoutMillis = handlePageTimeoutSecs * 1000 || pageOpsTimeoutMillis;
 
         this.puppeteerPoolOptions = {
             maxOpenPagesPerInstance,
@@ -246,7 +246,7 @@ class PuppeteerCrawler {
             launchPuppeteerOptions,
         };
 
-        this.puppeteerPool = new PuppeteerPool(this.puppeteerPoolOptions);
+        this.puppeteerPool = null; // Constructed when .run()
 
         this.basicCrawler = new BasicCrawler({
             // Basic crawler options.
@@ -311,19 +311,18 @@ class PuppeteerCrawler {
         try {
             const pageOperationsPromise = this
                 .gotoFunction({ page, request, puppeteerPool: this.puppeteerPool })
-                .then((response) => {
-                    return Promise.race([
-                        this.handlePageFunction({ page, request, puppeteerPool: this.puppeteerPool, response }),
-                        createTimeoutPromise(this.handlePageTimeoutSecs * 1000, 'PuppeteerCrawler: handlePageFunction timed out.'),
-                    ]);
-                });
+                .then(response => addTimeoutToPromise(
+                    this.handlePageFunction({ page, request, puppeteerPool: this.puppeteerPool, response }),
+                    this.handlePageTimeoutMillis,
+                    'PuppeteerCrawler: handlePageFunction timed out.',
+                ));
 
             // rejectOnAbortPromise rejects when .abort() is called or BasicCrawler throws.
             // All running pages are therefore terminated with an error to be reclaimed and retried.
             return await Promise.race([pageOperationsPromise, this.rejectOnAbortPromise]);
         } finally {
             try {
-                await Promise.race([this.puppeteerPool.recyclePage(page), createTimeoutPromise(PAGE_CLOSE_TIMEOUT_MILLIS, 'Operation timed out.')]);
+                await addTimeoutToPromise(this.puppeteerPool.recyclePage(page), PAGE_CLOSE_TIMEOUT_MILLIS, 'Operation timed out.');
             } catch (err) {
                 log.debug('PuppeteerCrawler: Page.close() failed.', { reason: err && err.message });
             }
