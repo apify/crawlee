@@ -125,38 +125,31 @@ describe('Snapshotter', () => {
         }
     });
 
-    it('correctly marks eventLoopOverloaded', async () => {
-        const options = {
-            eventLoopSnapshotIntervalSecs: 0.01,
-            maxBlockedMillis: 10,
+    it('correctly marks eventLoopOverloaded', () => { /* eslint-disable no-underscore-dangle */
+        const noop = () => {};
+        const block = (millis) => {
+            const start = Date.now();
+            while (start + millis > Date.now()) { /* empty */ }
         };
-        const TICK = options.eventLoopSnapshotIntervalSecs * 1000;
-        const DELAY = 75;
 
-        const snapshotter = new Snapshotter(options);
-        await snapshotter.start();
-        await Apify.utils.sleep(3 * TICK);
-        const start = Date.now();
-        let now = Date.now();
-        while (now < start + DELAY) {
-            now = Date.now();
-        }
-        await Apify.utils.sleep(3 * TICK);
-        await snapshotter.stop();
-        const eventLoopSnapshots = snapshotter.getEventLoopSample();
-        expect(eventLoopSnapshots.length).to.be.above(6);
-        let overloadedCount = 0;
-        eventLoopSnapshots.forEach((ss, idx) => {
-            if (ss.isOverloaded) {
-                overloadedCount++;
-                const prev = eventLoopSnapshots[idx - 1].createdAt;
-                const curr = ss.createdAt;
-                expect(curr - prev).to.be.above(snapshotter.maxBlockedMillis);
-            } else {
-                expect(ss.exceededMillis).to.be.eql(0);
-            }
-        });
-        expect(overloadedCount).to.be.above(0);
+        const snapshotter = new Snapshotter({ maxBlockedMillis: 5, eventLoopSnapshotIntervalSecs: 0 });
+        snapshotter._snapshotEventLoop(noop);
+        block(1);
+        snapshotter._snapshotEventLoop(noop);
+        block(2);
+        snapshotter._snapshotEventLoop(noop);
+        block(7);
+        snapshotter._snapshotEventLoop(noop);
+        block(3);
+        snapshotter._snapshotEventLoop(noop);
+        const loopSnapshots = snapshotter.getEventLoopSample();
+
+        expect(loopSnapshots.length).to.be.eql(5);
+        expect(loopSnapshots[0].isOverloaded).to.be.eql(false);
+        expect(loopSnapshots[1].isOverloaded).to.be.eql(false);
+        expect(loopSnapshots[2].isOverloaded).to.be.eql(false);
+        expect(loopSnapshots[3].isOverloaded).to.be.eql(true);
+        expect(loopSnapshots[4].isOverloaded).to.be.eql(false);
     });
 
     it('correctly marks memoryOverloaded', async () => { /* eslint-disable no-underscore-dangle */
@@ -193,7 +186,7 @@ describe('Snapshotter', () => {
         delete process.env[ENV_VARS.MEMORY_MBYTES];
     });
 
-    it('correctly marks clientOverloaded', async () => { /* eslint-disable no-underscore-dangle */
+    it('correctly marks clientOverloaded', () => { /* eslint-disable no-underscore-dangle */
         const noop = () => {};
         // mock client data
         const oldStats = utils.apifyClient.stats;
