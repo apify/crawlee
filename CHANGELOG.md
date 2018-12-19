@@ -6,6 +6,7 @@ xxx
 - Bugfix: PuppeteerPool was incorrectly overriding `proxyUrls` even if they were not defined.
 - Fixed an issue where an error would be thrown when `datasetLocal.getData()` was invoked
   with an overflowing offset. It now correctly returns an empty `Array`.
+- `BasicCrawler` (and therefore all Crawlers) now logs a message explaining why it finished.
 - Fixed an issue where `maxRequestsPerCrawl` option would not be honored after restart or migration.
 
 0.9.15 / 2018-11-30
