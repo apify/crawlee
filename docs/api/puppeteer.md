@@ -4,7 +4,8 @@ title: utils.puppeteer
 ---
 <a name="puppeteer"></a>
 
-A namespace that contains various Puppeteer utilities.
+A namespace that contains various utilities for
+[Puppeteer](https://github.com/GoogleChrome/puppeteer) - the headless Chrome Node API.
 
 **Example usage:**
 
@@ -28,7 +29,7 @@ await puppeteer.injectJQuery(page);
     * [`.injectJQuery(page)`](#puppeteer.injectJQuery) ⇒ <code>Promise</code>
     * [`.injectUnderscore(page)`](#puppeteer.injectUnderscore) ⇒ <code>Promise</code>
     * [`.enqueueLinks(options)`](#puppeteer.enqueueLinks) ⇒ <code>Promise&lt;Array&lt;QueueOperationInfo&gt;&gt;</code>
-    * [`.blockResources(page, resourceTypes)`](#puppeteer.blockResources) ⇒ <code>Promise</code>
+    * [`.blockResources(page, [resourceTypes])`](#puppeteer.blockResources) ⇒ <code>Promise</code>
     * [`.cacheResponses(page, cache, responseUrlRules)`](#puppeteer.cacheResponses) ⇒ <code>Promise</code>
     * [`.compileScript(scriptString, context)`](#puppeteer.compileScript) ⇒ <code>function</code>
 
@@ -59,6 +60,9 @@ Injects a JavaScript file into a Puppeteer page.
 Unlike Puppeteer's `addScriptTag` function, this function works on pages
 with arbitrary Cross-Origin Resource Sharing (CORS) policies.
 
+Make sure that you're injecting the file after the page has loaded (after `page.goto()`). Otherwise,
+the navigation will override the existing environment and the library will no longer be available.
+
 <table>
 <thead>
 <tr>
@@ -82,13 +86,18 @@ with arbitrary Cross-Origin Resource Sharing (CORS) policies.
 
 ## `puppeteer.injectJQuery(page)` ⇒ <code>Promise</code>
 Injects the <a href="https://jquery.com/" target="_blank"><code>jQuery</code></a> library into a Puppeteer page.
-jQuery is often useful for various web scraping and crawling tasks,
-e.g. to extract data from HTML elements using CSS selectors.
+jQuery is often useful for various web scraping and crawling tasks.
+For example, it can help extract text from HTML elements using CSS selectors.
 
 Beware that the injected jQuery object will be set to the `window.$` variable and thus it might cause conflicts with
-libraries included by the page that use the same variable (e.g. another version of jQuery).
+other libraries included by the page that use the same variable name (e.g. another version of jQuery).
+This can affect functionality of page's scripts.
 
-Example usage:
+Also make sure that you're injecting jQuery after the page has loaded
+(i.e. after [`page.goto()`](https://pptr.dev/#?product=Puppeteer&show=api-pagegotourl-options)).
+Otherwise, the navigation will override the existing environment and the library will no longer be available.
+
+**Example usage:**
 ```javascript
 await Apify.utils.puppeteer.injectJQuery(page);
 const title = await page.evaluate(() => {
@@ -118,8 +127,22 @@ function in any way.
 
 ## `puppeteer.injectUnderscore(page)` ⇒ <code>Promise</code>
 Injects the <a href="https://underscorejs.org/" target="_blank"><code>Underscore.js</code></a> library into a Puppeteer page.
+
 Beware that the injected Underscore object will be set to the `window._` variable and thus it might cause conflicts with
-libraries included by the page that use the same variable.
+libraries included by the page that use the same variable name.
+This can affect functionality of page's scripts.
+
+Also make sure that you're injecting Underscore after the page has loaded
+(i.e. after [`page.goto()`](https://pptr.dev/#?product=Puppeteer&show=api-pagegotourl-options)).
+Otherwise, the navigation will override the existing environment and the library will no longer be available.
+
+**Example usage:**
+```javascript
+await Apify.utils.puppeteer.injectUnderscore(page);
+const escapedHtml = await page.evaluate(() => {
+  return _.escape('<h1>Hello</h1>');
+});
+```
 
 <table>
 <thead>
@@ -212,12 +235,12 @@ To create a Request object function uses `requestTemplate` from a matching [`Pse
 </table>
 <a name="puppeteer.blockResources"></a>
 
-## `puppeteer.blockResources(page, resourceTypes)` ⇒ <code>Promise</code>
-Forces the browser tab to block loading certain page resources,
-using the `Page.setRequestInterception(value)` method.
-This is useful to speed up crawling of websites.
+## `puppeteer.blockResources(page, [resourceTypes])` ⇒ <code>Promise</code>
+Forces the Puppeteer browser tab to block loading certain HTTP resources.
+This is useful to speed up crawling of websites, since it reduces the amount
+of data that need to be downloaded from the web.
 
-The resource types to block can be controlled using the `resourceTypes` parameter,
+The resource types to block can be specified using the `resourceTypes` parameter,
 which indicates the types of resources as they are perceived by the rendering engine.
 The following resource types are currently supported:
 `document`, `stylesheet`, `image`, `media`, `font`, `script`, `texttrack`, `xhr`, `fetch`,
@@ -225,22 +248,43 @@ The following resource types are currently supported:
 For more details, see Puppeteer's
 <a href="https://pptr.dev/#?product=Puppeteer&show=api-requestresourcetype" target="_blank">Request.resourceType() documentation</a>.
 
-By default, the function blocks these resource types: `stylesheet`, `font`, `image`, `media`.
+If the `resourceTypes` parameter is not provided,
+by default the function blocks these resource types: `stylesheet`, `font`, `image`, `media`.
+
+Note that the `blockResources` function internally uses Puppeteer's
+[`Page.setRequestInterception()`](https://pptr.dev/#?product=Puppeteer&show=api-pagesetrequestinterceptionvalue) function,
+which can only be used once per `Page` object.
+
+**Example usage**
+```javascript
+const Apify = require('apify');
+
+const browser = await Apify.launchPuppeteer();
+const page = await browser.newPage();
+
+// Block all resources except for the main HTML document
+await Apify.utils.puppeteer.blockResources(page,
+  ['stylesheet', 'image', 'media', 'font', 'script', 'texttrack', 'xhr',
+   'fetch', 'eventsource', 'websocket', 'manifest', 'other']
+);
+
+await page.goto('https://www.example.com');
+```
 
 <table>
 <thead>
 <tr>
-<th>Param</th><th>Type</th>
+<th>Param</th><th>Type</th><th>Default</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>page</code></td><td><code>Page</code></td>
+<td><code>page</code></td><td><code>Page</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.</p>
 </td></tr><tr>
-<td><code>resourceTypes</code></td><td><code>Array&lt;String&gt;</code></td>
+<td><code>[resourceTypes]</code></td><td><code>Array&lt;String&gt;</code></td><td><code>[&#x27;stylesheet&#x27;, &#x27;font&#x27;, &#x27;image&#x27;, &#x27;media&#x27;]</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Array of resource types to block.</p>

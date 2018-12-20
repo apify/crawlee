@@ -45,6 +45,7 @@ await puppeteerPool.destroy();
     * [`.newPage()`](#PuppeteerPool+newPage) ⇒ <code>Promise&lt;Page&gt;</code>
     * [`.destroy()`](#PuppeteerPool+destroy) ⇒ <code>Promise</code>
     * [`.retire(browser)`](#PuppeteerPool+retire) ⇒ <code>Promise</code>
+    * [`.recyclePage(page)`](#PuppeteerPool+recyclePage) ⇒ <code>Promise</code>
 
 <a name="new_PuppeteerPool_new"></a>
 
@@ -62,6 +63,13 @@ await puppeteerPool.destroy();
 <tr>
 <td colspan="3"><p>All <code>PuppeteerPool</code> parameters are passed
   via an options object with the following keys:</p>
+</td></tr><tr>
+<td><code>[options.reusePages]</code></td><td><code>boolean</code></td><td><code>false</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Individual browser tabs will be reused after their task is complete instead
+  of closing them and spawning a new tab. This saves CPU resources.
+  Try disabling this feature if you encounter any weird behavior in your crawlers.</p>
 </td></tr><tr>
 <td><code>[options.maxOpenPagesPerInstance]</code></td><td><code>Number</code></td><td><code>50</code></td>
 </tr>
@@ -114,9 +122,11 @@ await puppeteerPool.destroy();
 <a name="PuppeteerPool+newPage"></a>
 
 ## `puppeteerPool.newPage()` ⇒ <code>Promise&lt;Page&gt;</code>
-Opens new tab in one of the browsers in the pool and returns a `Promise`
-that resolves to an instance of a Puppeteer
-<a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a>.
+Produces a new page instance either by reusing an idle page that currently isn't processing
+any request or by spawning a new page (new browser tab) in one of the available
+browsers when no idle pages are available.
+
+To spawn a new browser tab for each page, set the `reusePages` constructor option to false.
 
 <a name="PuppeteerPool+destroy"></a>
 
@@ -140,6 +150,31 @@ This is unlike `browser.close()` which will forcibly terminate the browser and a
 <tbody>
 <tr>
 <td><code>browser</code></td><td><code>Browser</code></td>
+</tr>
+<tr>
+</tr></tbody>
+</table>
+<a name="PuppeteerPool+recyclePage"></a>
+
+## `puppeteerPool.recyclePage(page)` ⇒ <code>Promise</code>
+Recycles the page, which means that it will be enqueued for future reuse
+instead of spawning a new tab. This is done automatically unless the `reusePages`
+option of the `PuppeteerPool` constructor is set to false. You can also use this
+function manually to tell the pool that you no longer need this specific page
+and it can be reused in the future.
+
+Using this function without setting the `reusePages` option to false causes
+this function to trigger a page.close().
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>page</code></td><td><code>Page</code></td>
 </tr>
 <tr>
 </tr></tbody>

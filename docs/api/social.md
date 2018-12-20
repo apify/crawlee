@@ -35,55 +35,205 @@ const emails = Apify.utils.social.emailsFromText('alice@example.com bob@example.
 <a name="social.LINKEDIN_REGEX"></a>
 
 ## `social.LINKEDIN\_REGEX` : <code>RegExp</code>
-Regular expression to exactly match a single LinkedIn profile URL, without any additional
-subdirectories or query parameters. The regular expression has the following form: `/^...$/i`.
+Regular expression to exactly match a single LinkedIn profile URL.
+It has the following form: `/^...$/i` and matches URLs such as:
+```
+https://www.linkedin.com/in/alan-turing
+en.linkedin.com/in/alan-turing
+linkedin.com/in/alan-turing
+```
+
+The regular expression does NOT match URLs with additional
+subdirectories or query parameters, such as:
+```
+https://www.linkedin.com/in/linus-torvalds/latest-activity
+```
 
 Example usage:
 ```
-TODO
+if (Apify.utils.social.LINKEDIN_REGEX.test('https://www.linkedin.com/in/alan-turing')) {
+    console.log('Match!');
+}
 ```
 
 <a name="social.LINKEDIN_REGEX_GLOBAL"></a>
 
 ## `social.LINKEDIN\_REGEX\_GLOBAL` : <code>RegExp</code>
-Regular expression to find multiple LinkedIn profile URLs in a text.
-It has the following form: `/.../ig`.
+Regular expression to find multiple LinkedIn profile URLs in a text or HTML.
+It has the following form: `/.../ig` and matches URLs such as:
+```
+https://www.linkedin.com/in/alan-turing
+en.linkedin.com/in/alan-turing
+linkedin.com/in/alan-turing
+```
+
+If the profile URL contains subdirectories or query parameters, the regular expression
+extracts just the base part of the profile URL. For example, from text such as:
+```
+https://www.linkedin.com/in/linus-torvalds/latest-activity
+```
+the expression extracts just the following base URL:
+```
+https://www.linkedin.com/in/linus-torvalds
+```
+
+Example usage:
+```
+const matches = text.match(Apify.utils.social.LINKEDIN_REGEX_GLOBAL);
+if (matches) console.log(`${matches.length} LinkedIn profiles found!`);
+```
 
 <a name="social.INSTAGRAM_REGEX"></a>
 
 ## `social.INSTAGRAM\_REGEX` : <code>RegExp</code>
 Regular expression to exactly match a single Instagram profile URL.
-It has the following form: `/^...$/i`.
+It has the following form: `/^...$/i` and matches URLs such as:
+```
+https://www.instagram.com/old_prague
+www.instagram.com/old_prague/
+instagr.am/old_prague
+```
+
+The regular expression does NOT match URLs with additional
+subdirectories or query parameters, such as:
+```
+https://www.instagram.com/cristiano/followers
+```
+
+Example usage:
+```
+if (Apify.utils.social.INSTAGRAM_REGEX_STRING.test('https://www.instagram.com/old_prague')) {
+    console.log('Match!');
+}
+```
 
 <a name="social.INSTAGRAM_REGEX_GLOBAL"></a>
 
 ## `social.INSTAGRAM\_REGEX\_GLOBAL` : <code>RegExp</code>
-Regular expression to find multiple Instagram profile URLs in a text.
-It has the following form: `/.../ig`.
+Regular expression to find multiple Instagram profile URLs in a text or HTML.
+It has the following form: `/.../ig` and matches URLs such as:
+```
+https://www.instagram.com/old_prague
+www.instagram.com/old_prague/
+instagr.am/old_prague
+```
+
+If the profile URL contains subdirectories or query parameters, the regular expression
+extracts just the base part of the profile URL. For example, from text such as:
+```
+https://www.instagram.com/cristiano/followers
+```
+the expression extracts just the following base URL:
+```
+https://www.instagram.com/cristiano
+```
+
+Example usage:
+```
+const matches = text.match(Apify.utils.social.INSTAGRAM_REGEX_GLOBAL);
+if (matches) console.log(`${matches.length} Instagram profiles found!`);
+```
 
 <a name="social.TWITTER_REGEX"></a>
 
 ## `social.TWITTER\_REGEX` : <code>RegExp</code>
-Regular expression to exactly match a single Instagram profile URL.
-It has the following form: `/^...$/i`.
+Regular expression to exactly match a single Twitter profile URL.
+It has the following form: `/^...$/i` and matches URLs such as:
+```
+https://www.twitter.com/apify
+twitter.com/apify
+```
+
+The regular expression does NOT match URLs with additional
+subdirectories or query parameters, such as:
+```
+https://www.twitter.com/realdonaldtrump/following
+```
+
+Example usage:
+```
+if (Apify.utils.social.TWITTER_REGEX_STRING.test('https://www.twitter.com/apify')) {
+    console.log('Match!');
+}
+```
 
 <a name="social.TWITTER_REGEX_GLOBAL"></a>
 
 ## `social.TWITTER\_REGEX\_GLOBAL` : <code>RegExp</code>
-Regular expression to find multiple Instagram profile URLs in a text.
-It has the following form: `/.../ig`.
+Regular expression to find multiple Twitter profile URLs in a text or HTML.
+It has the following form: `/.../ig` and matches URLs such as:
+```
+https://www.twitter.com/apify
+twitter.com/apify
+```
+
+If the profile URL contains subdirectories or query parameters, the regular expression
+extracts just the base part of the profile URL. For example, from text such as:
+```
+https://www.twitter.com/realdonaldtrump/following
+```
+the expression extracts only the following base URL:
+```
+https://www.twitter.com/realdonaldtrump
+```
+
+Example usage:
+```
+const matches = text.match(Apify.utils.social.TWITTER_REGEX_STRING);
+if (matches) console.log(`${matches.length} Twitter profiles found!`);
+```
 
 <a name="social.FACEBOOK_REGEX"></a>
 
 ## `social.FACEBOOK\_REGEX` : <code>RegExp</code>
-Regular expression to exactly match a single Facebook user profile URL.
-It has the following form: `/^...$/i`.
+Regular expression to exactly match a single Facebook profile URL.
+It has the following form: `/^...$/i` and matches URLs such as:
+```
+https://www.facebook.com/apifytech
+facebook.com/apifytech
+fb.com/apifytech
+https://www.facebook.com/profile.php?id=123456789
+```
+
+The regular expression does NOT match URLs with additional
+subdirectories or query parameters, such as:
+```
+https://www.facebook.com/apifytech/photos
+```
+
+Example usage:
+```
+if (Apify.utils.social.FACEBOOK_REGEX_STRING.test('https://www.facebook.com/apifytech')) {
+    console.log('Match!');
+}
+```
 
 <a name="social.FACEBOOK_REGEX_GLOBAL"></a>
 
 ## `social.FACEBOOK\_REGEX\_GLOBAL` : <code>RegExp</code>
-Regular expression to find multiple Instagram profile URLs in a text.
-It has the following form: `/.../ig`.
+Regular expression to find multiple Facebook profile URLs in a text or HTML.
+It has the following form: `/.../ig` and matches URLs such as:
+```
+https://www.facebook.com/apifytech
+facebook.com/apifytech
+fb.com/apifytech
+```
+
+If the profile URL contains subdirectories or query parameters, the regular expression
+extracts just the base part of the profile URL. For example, from text such as:
+```
+https://www.facebook.com/apifytech/photos
+```
+the expression extracts only the following base URL:
+```
+https://www.facebook.com/apifytech
+```
+
+Example usage:
+```
+const matches = text.match(Apify.utils.social.FACEBOOK_REGEX_GLOBAL);
+if (matches) console.log(`${matches.length} Facebook profiles found!`);
+```
 
 <a name="social.EMAIL_REGEX"></a>
 

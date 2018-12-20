@@ -102,6 +102,8 @@ await pool.run();
 </tr>
 <tr>
 <td colspan="3"><p>Minimum number of tasks running in parallel.</p>
+<p>  <em>WARNING:</em> If you set this value too high with respect to the available system memory and CPU, your code might run extremely slow or crash.
+  If you&#39;re not sure, just keep the default value and the concurrency will scale up automatically.</p>
 </td></tr><tr>
 <td><code>[options.maxConcurrency]</code></td><td><code>Number</code></td><td><code>1000</code></td>
 </tr>
@@ -180,6 +182,9 @@ Overrides max concurrency configuration.
 
 ## `autoscaledPool.setMinConcurrency(minConcurrency)`
 Overrides min concurrency configuration.
+
+*WARNING:* If you set this value too high with respect to the available system memory and CPU, your code might run extremely slow or crash.
+If you're not sure, just keep the default value and the concurrency will scale up automatically.
 
 <table>
 <thead>

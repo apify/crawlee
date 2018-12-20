@@ -47,8 +47,7 @@ await requestList.initialize();
 // Crawl the URLs
 const crawler = new Apify.CheerioCrawler({
     requestList,
-    handlePageFunction: async ({ $, html, request }) => {
-
+    handlePageFunction: async ({ request, response, html, $ }) => {
         const data = [];
 
         // Do some data extraction from the page with Cheerio.
@@ -70,13 +69,13 @@ await crawler.run();
 
 
 * [CheerioCrawler](cheeriocrawler)
-    * [`new CheerioCrawler(options, [useApifyProxy], [apifyProxyGroups], [apifyProxySession])`](#new_CheerioCrawler_new)
+    * [`new CheerioCrawler(options)`](#new_CheerioCrawler_new)
     * [`.run()`](#CheerioCrawler+run) ⇒ <code>Promise</code>
     * [`.abort()`](#CheerioCrawler+abort) ⇒ <code>Promise</code>
 
 <a name="new_CheerioCrawler_new"></a>
 
-## `new CheerioCrawler(options, [useApifyProxy], [apifyProxyGroups], [apifyProxySession])`
+## `new CheerioCrawler(options)`
 <table>
 <thead>
 <tr>
@@ -101,10 +100,17 @@ await crawler.run();
   $: Cheerio, // the Cheerio object with parsed HTML
   html: String // the raw HTML of the page
   request: Request,
-  response: Object // a http.IncomingMessage object with properties such as the `statusCode`
+  response: Object // An instance of Node&#39;s http.IncomingMessage object
 }
-</code></pre><p>  With the <a href="request"><code>Request</code></a> object representing the URL to crawl.
-  If the function returns a promise, it is awaited.</p>
+</code></pre><p>  With the <a href="request"><code>Request</code></a> object representing the URL to crawl.</p>
+<p>  If the function returns a promise, it is awaited by the crawler.</p>
+<p>  If the function throws an exception, the crawler will try to re-crawl the
+  request later, up to <code>option.maxRequestRetries</code> times.
+  If all the retries fail, the crawler calls the function
+  provided to the <code>options.handleFailedRequestFunction</code> parameter.
+  To make this work, you should <strong>always</strong>
+  let your function throw exceptions rather than catch them.
+  The exceptions are logged to the request using the <a href="request.pusherrormessage"><code>Request.pushErrorMessage</code></a> function.</p>
 </td></tr><tr>
 <td><code>options.requestList</code></td><td><code><a href="requestlist">RequestList</a></code></td><td></td>
 </tr>
@@ -147,21 +153,21 @@ await crawler.run();
 <td colspan="3"><p>If set to true, SSL certificate errors will be ignored. This is dependent on using the default
   request function. If using a custom <code>options.requestFunction</code>, user needs to implement this functionality.</p>
 </td></tr><tr>
-<td><code>[useApifyProxy]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
+<td><code>[options.useApifyProxy]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>If set to <code>true</code>, <code>CheerioCrawler</code> will be configured to use
   <a href="https://my.apify.com/proxy" target="_blank">Apify Proxy</a> for all connections.
   For more information, see the <a href="https://www.apify.com/docs/proxy" target="_blank">documentation</a></p>
 </td></tr><tr>
-<td><code>[apifyProxyGroups]</code></td><td><code>Array&lt;String&gt;</code></td><td></td>
+<td><code>[options.apifyProxyGroups]</code></td><td><code>Array&lt;String&gt;</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>An array of proxy groups to be used
   by the <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a>.
   Only applied if the <code>useApifyProxy</code> option is <code>true</code>.</p>
 </td></tr><tr>
-<td><code>[apifyProxySession]</code></td><td><code>String</code></td><td></td>
+<td><code>[options.apifyProxySession]</code></td><td><code>String</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Apify Proxy session identifier to be used with requests made by <code>CheerioCrawler</code>.
@@ -215,6 +221,8 @@ await crawler.run();
 </tr>
 <tr>
 <td colspan="3"><p>Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding <a href="autoscaledpool"><code>AutoscaledPool</code></a> option.</p>
+<p>  <em>WARNING:</em> If you set this value too high with respect to the available system memory and CPU, your crawler will run extremely slow or crash.
+  If you&#39;re not sure, just keep the default value and the concurrency will scale up automatically.</p>
 </td></tr><tr>
 <td><code>[options.maxConcurrency]</code></td><td><code>Object</code></td><td><code>1000</code></td>
 </tr>

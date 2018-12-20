@@ -40,7 +40,13 @@ If the value is less than or equal to zero, the function returns immediately aft
 
 The result of the function is an [`ActorRun`](../typedefs/actorrun) object
 that contains details about the actor run and its output (if any).
-If the actor run failed, the function fails with [`ApifyCallError`](../typedefs/apifycallerror) exception.
+If the actor run fails, the function throws the [`ApifyCallError`](../typedefs/apifycallerror) exception.
+
+If you want to run an actor task rather than an actor, please use the
+[`Apify.callTask()`](../api/apify#module_Apify.callTask) function instead.
+
+For more information about actors, read the
+<a href="https://www.apify.com/docs/actor" target="_blank">documentation</a>.
 
 **Example usage:**
 
@@ -49,9 +55,9 @@ const run = await Apify.call('apify/hello-world', { myInput: 123 });
 console.log(`Received message: ${run.output.body.message}`);
 ```
 
-Internally, the `call()` function calls the
+Internally, the `call()` function invokes the
 <a href="https://www.apify.com/docs/api/v2#/reference/actors/run-collection/run-actor" target="_blank">Run actor</a>
-Apify API endpoint and few others to obtain the output.
+and several other API endpoints to obtain the output.
 
 **Throws**:
 
@@ -104,7 +110,7 @@ Apify API endpoint and few others to obtain the output.
 <td><code>[options.timeoutSecs]</code></td><td><code>Number</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>Timeout for the act run in seconds. Zero value means there is no timeout.
+<td colspan="3"><p>Timeout for the actor run in seconds. Zero value means there is no timeout.
  If not provided, the run uses timeout of the default actor run configuration.</p>
 </td></tr><tr>
 <td><code>[options.build]</code></td><td><code>String</code></td><td></td>
@@ -136,8 +142,8 @@ Apify API endpoint and few others to obtain the output.
 <a name="module_Apify.callTask"></a>
 
 ## `Apify.callTask(taskId, [input], [options])` ⇒ [<code>Promise&lt;ActorRun&gt;</code>](../typedefs/actorrun)
-Runs an actor on the Apify platform using the current user account (determined by the `APIFY_TOKEN` environment variable),
-waits for the actor to finish and fetches its output.
+Runs an actor task on the Apify platform using the current user account (determined by the `APIFY_TOKEN` environment variable),
+waits for the task to finish and fetches its output.
 
 By passing the `waitSecs` option you can reduce the maximum amount of time to wait for the run to finish.
 If the value is less than or equal to zero, the function returns immediately after the run is started.
@@ -146,16 +152,22 @@ The result of the function is an [`ActorRun`](../typedefs/actorrun) object
 that contains details about the actor run and its output (if any).
 If the actor run failed, the function fails with [`ApifyCallError`](../typedefs/apifycallerror) exception.
 
+Note that an actor task is a saved input configuration and options for an actor.
+If you want to run an actor directly rather than an actor task, please use the
+[`Apify.call()`](../api/apify#module_Apify.call) function instead.
+
+For more information about actor tasks, read the [`documentation`](https://www.apify.com/docs/tasks).
+
 **Example usage:**
 
 ```javascript
-const run = await Apify.call('apify/hello-world-task');
+const run = await Apify.callTask('bob/some-task');
 console.log(`Received message: ${run.output.body.message}`);
 ```
 
-Internally, the `call()` function calls the
-<a href="https://www.apify.com/docs/api/v2#/reference/actor-tasks/runs-collection/run-task-asynchronously" target="_blank">Run actor</a>
-Apify API endpoint and few others to obtain the output.
+Internally, the `callTask()` function calls the
+<a href="https://www.apify.com/docs/api/v2#/reference/actor-tasks/runs-collection/run-task-asynchronously" target="_blank">Run task</a>
+and several other API endpoints to obtain the output.
 
 **Throws**:
 
