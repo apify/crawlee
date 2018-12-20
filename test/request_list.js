@@ -1,9 +1,9 @@
-import 'babel-polyfill';
 import _ from 'underscore';
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import request from 'request-promise-native';
 import sinon from 'sinon';
+import log from 'apify-shared/log';
 import { delayPromise } from 'apify-shared/utilities';
 import { ACTOR_EVENT_NAMES_EX } from '../build/constants';
 import Apify from '../build/index';
@@ -13,6 +13,16 @@ import * as utils from '../build/utils';
 chai.use(chaiAsPromised);
 
 describe('Apify.RequestList', () => {
+    let ll;
+    before(() => {
+        ll = log.getLevel();
+        log.setLevel(log.LEVELS.ERROR);
+    });
+
+    after(() => {
+        log.setLevel(ll);
+    });
+
     it('should not accept to pages with same uniqueKey', async () => {
         const requestList = new Apify.RequestList({
             sources: [
@@ -60,7 +70,7 @@ describe('Apify.RequestList', () => {
         await expect(requestList.markRequestHandled(requestObj)).to.not.be.rejectedWith();
     });
 
-    it('should correctly initialized itself', async () => {
+    it('should correctly initialize itself', async () => {
         const sources = [
             { url: 'https://example.com/1' },
             { url: 'https://example.com/2' },
@@ -389,7 +399,7 @@ describe('Apify.RequestList', () => {
         expect(requestList.inProgress).to.include(requestList.reclaimed);
     });
 
-    it('should correctly persists its state when persistStateKey is set', async () => {
+    it('should correctly persist its state when persistStateKey is set', async () => {
         const PERSIST_STATE_KEY = 'some-key';
         const mock = sinon.mock(keyValueStore);
 
@@ -409,11 +419,11 @@ describe('Apify.RequestList', () => {
 
         const requestList = new Apify.RequestList(opts);
         await requestList.initialize();
-        expect(requestList.isStatePersisted).to.be.eql(true);
+        expect(requestList.isCurrentStatePersisted).to.be.eql(true);
 
         // Fetch one request and check that state is not persisted.
         const request1 = await requestList.fetchNextRequest();
-        expect(requestList.isStatePersisted).to.be.eql(false);
+        expect(requestList.isCurrentStatePersisted).to.be.eql(false);
 
         // Persist state.
         mock.expects('setValue')
@@ -422,24 +432,24 @@ describe('Apify.RequestList', () => {
             .returns(Promise.resolve());
         Apify.events.emit(ACTOR_EVENT_NAMES_EX.PERSIST_STATE);
         await delayPromise(1);
-        expect(requestList.isStatePersisted).to.be.eql(true);
+        expect(requestList.isCurrentStatePersisted).to.be.eql(true);
 
         // Do some other changes and persist it again.
         const request2 = await requestList.fetchNextRequest();
-        expect(requestList.isStatePersisted).to.be.eql(false);
+        expect(requestList.isCurrentStatePersisted).to.be.eql(false);
         await requestList.markRequestHandled(request2);
-        expect(requestList.isStatePersisted).to.be.eql(false);
+        expect(requestList.isCurrentStatePersisted).to.be.eql(false);
         mock.expects('setValue')
             .once()
             .withArgs(PERSIST_STATE_KEY, requestList.getState())
             .returns(Promise.resolve());
         Apify.events.emit(ACTOR_EVENT_NAMES_EX.PERSIST_STATE);
         await delayPromise(1);
-        expect(requestList.isStatePersisted).to.be.eql(true);
+        expect(requestList.isCurrentStatePersisted).to.be.eql(true);
 
         // Reclaim event doesn't change the state.
         await requestList.reclaimRequest(request1);
-        expect(requestList.isStatePersisted).to.be.eql(true);
+        expect(requestList.isCurrentStatePersisted).to.be.eql(true);
 
         // Now initiate new request list from saved state and check that it's same as state
         // of original request list.
@@ -561,7 +571,8 @@ describe('Apify.RequestList', () => {
         await requestList.initialize();
         expect(requestList.length()).to.be.eql(4);
 
-        const log = sinon.stub(console, 'log');
+        log.setLevel(log.LEVELS.INFO);
+        const logStub = sinon.stub(console, 'log');
 
         requestList = new Apify.RequestList({
             sources: sources.concat([
@@ -575,9 +586,10 @@ describe('Apify.RequestList', () => {
 
         await requestList.initialize();
         expect(requestList.length()).to.be.eql(6);
-        expect(log.called).to.be.eql(true);
-        expect(log.getCall(0).args[0]).to.include('Check your sources\' unique keys.');
+        expect(logStub.called).to.be.eql(true);
+        expect(logStub.getCall(0).args[0]).to.include('Check your sources\' unique keys.');
 
-        log.restore();
+        logStub.restore();
+        log.setLevel(log.LEVELS.ERROR);
     });
 });
