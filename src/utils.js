@@ -11,6 +11,7 @@ import { delayPromise, getRandomInt } from 'apify-shared/utilities';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { USER_AGENT_LIST } from './constants';
+import cheerio from 'cheerio';
 
 /* globals process */
 
@@ -481,6 +482,69 @@ export const ensureTokenOrLocalStorageEnvExists = (storageName) => {
     }
 };
 
+
+
+/**
+ * The function converts a HTML document to plain text.
+ *
+ * Unlike packages like https://www.npmjs.com/package/html-to-text, the function doesn't attempt to preserve any formatting,
+ * but it makes best effort to correctly place newlines and spaces in the text, so that words are correctly separated
+ * in order to enable extraction of data from the text (e.g. phone numbers).
+ * @param html
+ * @return {*}
+ */
+export const htmlToText = (html) => {
+    const $ = cheerio.load(html, { decodeEntities: true });
+
+    // Remove these elements
+    $('script, style, svg, canvas, img').remove();
+
+    // Remove HTML comments
+    const $comments = $('*').contents().filter(function () {
+        return this.nodeType === 8;
+    });
+    $comments.each(function () {
+        $(this).remove();
+    });
+
+    // Remove attributes
+    $('*').each(function (index, elem) {
+        const $elem = $(elem);
+        for (const name in this.attribs) {
+            $elem.removeAttr(name);
+        }
+    });
+
+    let html = return $('body').html();
+
+    return html;
+
+    // Now, convert various HTML tags to text
+    // html.replace('<br>')
+
+
+    /*
+
+
+    const handler = new htmlparser.DomHandler((error, dom) => {}, { verbose: true });
+
+    new htmlparser.Parser(handler).parseComplete(html);
+
+    var result = '';
+    var baseElements = Array.isArray(options.baseElement) ? options.baseElement : [options.baseElement];
+    for (var idx = 0; idx < baseElements.length; ++idx) {
+        result += walk(filterBody(handler.dom, options, baseElements[idx]), options);
+    }
+    if (options.collapseNewlines) {
+        result = result.trim().replace(/\r/g, '').replace(/\n+/g, '\n');
+    }
+    return trimEnd(result);
+*/
+
+    return html;
+};
+
+
 /**
  * A namespace that contains various utilities.
  *
@@ -501,6 +565,7 @@ export const publicUtils = {
     downloadListOfUrls,
     extractUrls,
     getRandomUserAgent,
+    htmlToText,
     URL_NO_COMMAS_REGEX,
     URL_WITH_COMMAS_REGEX,
 };

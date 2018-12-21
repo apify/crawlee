@@ -14,6 +14,17 @@ chai.use(chaiAsPromised);
 
 /* global process, describe, it */
 
+describe('utils.htmlToText()', () => {
+
+    it('works', () => {
+        const html = fs.readFileSync('/Users/jan/Projects/apify-js/test_html/prunty.html');
+
+        const text = utils.htmlToText(html);
+        console.log(text);
+    });
+});
+
+
 describe('utils.newClient()', () => {
     it('reads environment variables correctly', () => {
         process.env[ENV_VARS.API_BASE_URL] = 'http://www.example.com:1234/path/';
