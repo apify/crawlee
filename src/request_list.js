@@ -1,16 +1,14 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import log from 'apify-shared/log';
 import _ from 'underscore';
-import { ENV_VARS } from 'apify-shared/consts';
 import { ACTOR_EVENT_NAMES_EX } from './constants';
 import Request from './request';
 import events from './events';
-import { ensureTokenOrLocalStorageEnvExists, getFirstKey, openLocalStorage, openRemoteStorage, publicUtils } from './utils';
+import { getFirstKey, publicUtils } from './utils';
 import { getValue, setValue } from './key_value_store';
-import { RequestQueue, RequestQueueLocal } from './request_queue';
 
-const STATE_PERSISTENCE_KEY = 'REQUEST_LIST_STATE';
-const SOURCES_PERSISTENCE_KEY = 'REQUEST_LIST_SOURCES';
+export const STATE_PERSISTENCE_KEY = 'REQUEST_LIST_STATE';
+export const SOURCES_PERSISTENCE_KEY = 'REQUEST_LIST_SOURCES';
 
 /**
  * Represents a static list of URLs to crawl.
@@ -159,6 +157,7 @@ class RequestList {
         this.persistStateKey = persistStateKey;
 
         // If the stateKeyPrefix is set then we persist url list and state into default key-value store under keys with this prefix.
+        this.initialState = state;
         this.shouldPersist = !!stateKeyPrefix;
         this.stateKey = null;
         this.sourcesKey = null;
@@ -170,24 +169,13 @@ class RequestList {
         // If this option is set then all requests will get a pre-generated unique ID and duplicate URLs will be kept in the list.
         this.keepDuplicateUrls = keepDuplicateUrls;
 
-        this.isCurrentStatePersisted = true;
+        // Starts as true because until we handle the first request, the list is effectively persisted by doing nothing.
+        this.isStatePersisted = true;
+        // Starts as false because we don't know yet and sources might change in the meantime (eg. download from live list).
+        this.areSourcesPersisted = false;
         this.isLoading = false;
         this.isInitialized = false;
         this.sources = sources;
-
-        // We will initialize everything from this state in this.initialize();
-        if (state) {
-            this.initialStatePromise = Promise.resolve([state]);
-        } else if (stateKeyPrefix) {
-            this.initialStatePromise = Promise.all([
-                getValue(this.stateKey),
-                getValue(this.sourcesKey),
-            ]);
-        } else if (persistStateKey) {
-            this.initialStatePromise = Promise.all([getValue(persistStateKey)]);
-        } else {
-            this.initialStatePromise = Promise.resolve([]);
-        }
     }
 
     /**
@@ -202,9 +190,23 @@ class RequestList {
         }
         this.isLoading = true;
 
-        const [state, sources] = await this.initialStatePromise;
+        let state;
+        let sources;
+        if (this.initialState) {
+            log.debug('RequestList: Loading previous state from options.state argument.');
+            state = this.initialState;
+        } else if (this.shouldPersist) {
+            log.debug('RequestList: Loading previous state and sources from key value store.');
+            [state, sources] = await Promise.all([
+                getValue(this.stateKey),
+                getValue(this.sourcesKey),
+            ]);
+        } else if (this.persistStateKey) {
+            state = await getValue(this.persistStateKey);
+        }
 
         // If there are no sources, it just means that we've not persisted any (yet).
+        if (sources) this.areSourcesPersisted = true;
         const actualSources = sources || this.sources;
 
         // We'll load all sources in sequence to ensure that they get loaded in the right order.
@@ -216,7 +218,7 @@ class RequestList {
         this._restoreState(state);
         this.isInitialized = true;
         // TODO refactor after persistStateKey removal.
-        if (this.shouldPersist) await this._persistSources();
+        if (this.shouldPersist && !this.areSourcesPersisted) await this._persistSources();
         if (this.shouldPersist || this.persistStateKey) {
             events.on(ACTOR_EVENT_NAMES_EX.PERSIST_STATE, this.persistState.bind(this));
         }
@@ -237,10 +239,10 @@ class RequestList {
             throw new Error('RequestList: Cannot persist state. options.stateKeyPrefix is not set.');
         }
         const key = this.stateKey || this.persistStateKey;
-        if (this.isCurrentStatePersisted) return;
+        if (this.isStatePersisted) return;
         try {
             await setValue(key, this.getState());
-            this.isCurrentStatePersisted = true;
+            this.isStatePersisted = true;
         } catch (err) {
             log.exception(err, 'RequestList attempted to persist state, but failed.');
         }
@@ -255,7 +257,8 @@ class RequestList {
      * @ignore
      */
     async _persistSources() {
-        return setValue(this.sourcesKey, this.sources);
+        await setValue(this.sourcesKey, this.sources);
+        this.areSourcesPersisted = true;
     }
 
     /**
@@ -385,7 +388,7 @@ class RequestList {
             const request = this.requests[this.nextIndex];
             this.inProgress[request.uniqueKey] = true;
             this.nextIndex++;
-            this.isCurrentStatePersisted = false;
+            this.isStatePersisted = false;
             return request;
         }
 
@@ -407,7 +410,7 @@ class RequestList {
         this._ensureIsInitialized();
 
         delete this.inProgress[uniqueKey];
-        this.isCurrentStatePersisted = false;
+        this.isStatePersisted = false;
     }
 
     /**

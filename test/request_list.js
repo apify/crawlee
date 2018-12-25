@@ -9,6 +9,7 @@ import { ACTOR_EVENT_NAMES_EX } from '../build/constants';
 import Apify from '../build/index';
 import * as keyValueStore from '../build/key_value_store';
 import * as utils from '../build/utils';
+import { STATE_PERSISTENCE_KEY, SOURCES_PERSISTENCE_KEY } from '../build/request_list';
 
 chai.use(chaiAsPromised);
 
@@ -419,11 +420,11 @@ describe('Apify.RequestList', () => {
 
         const requestList = new Apify.RequestList(opts);
         await requestList.initialize();
-        expect(requestList.isCurrentStatePersisted).to.be.eql(true);
+        expect(requestList.isStatePersisted).to.be.eql(true);
 
         // Fetch one request and check that state is not persisted.
         const request1 = await requestList.fetchNextRequest();
-        expect(requestList.isCurrentStatePersisted).to.be.eql(false);
+        expect(requestList.isStatePersisted).to.be.eql(false);
 
         // Persist state.
         mock.expects('setValue')
@@ -432,24 +433,24 @@ describe('Apify.RequestList', () => {
             .returns(Promise.resolve());
         Apify.events.emit(ACTOR_EVENT_NAMES_EX.PERSIST_STATE);
         await delayPromise(1);
-        expect(requestList.isCurrentStatePersisted).to.be.eql(true);
+        expect(requestList.isStatePersisted).to.be.eql(true);
 
         // Do some other changes and persist it again.
         const request2 = await requestList.fetchNextRequest();
-        expect(requestList.isCurrentStatePersisted).to.be.eql(false);
+        expect(requestList.isStatePersisted).to.be.eql(false);
         await requestList.markRequestHandled(request2);
-        expect(requestList.isCurrentStatePersisted).to.be.eql(false);
+        expect(requestList.isStatePersisted).to.be.eql(false);
         mock.expects('setValue')
             .once()
             .withArgs(PERSIST_STATE_KEY, requestList.getState())
             .returns(Promise.resolve());
         Apify.events.emit(ACTOR_EVENT_NAMES_EX.PERSIST_STATE);
         await delayPromise(1);
-        expect(requestList.isCurrentStatePersisted).to.be.eql(true);
+        expect(requestList.isStatePersisted).to.be.eql(true);
 
         // Reclaim event doesn't change the state.
         await requestList.reclaimRequest(request1);
-        expect(requestList.isCurrentStatePersisted).to.be.eql(true);
+        expect(requestList.isStatePersisted).to.be.eql(true);
 
         // Now initiate new request list from saved state and check that it's same as state
         // of original request list.
@@ -463,6 +464,100 @@ describe('Apify.RequestList', () => {
 
         mock.verify();
         mock.restore();
+    });
+
+    it('should correctly persist its state when stateKeyPrefix is set', async () => {
+        const STATE_PREFIX = 'prefix';
+        const STATE_KEY = `${STATE_PREFIX}-${STATE_PERSISTENCE_KEY}`;
+        const SOURCES_KEY = `${STATE_PREFIX}-${SOURCES_PERSISTENCE_KEY}`;
+        const sources = [
+            { url: 'https://example.com/1' },
+            { url: 'https://example.com/2' },
+            { url: 'https://example.com/3' },
+        ];
+        const mock = sinon.mock(keyValueStore);
+
+        mock.expects('getValue')
+            .once()
+            .withArgs(STATE_KEY)
+            .returns(null);
+        mock.expects('getValue')
+            .once()
+            .withArgs(SOURCES_KEY)
+            .returns(null);
+
+        const opts = {
+            sources: [...sources],
+            stateKeyPrefix: STATE_PREFIX,
+        };
+
+        const requestList = new Apify.RequestList(opts);
+        expect(requestList.areSourcesPersisted).to.be.eql(false);
+
+        mock.expects('setValue')
+            .once()
+            .withArgs(SOURCES_KEY, sources)
+            .returns(Promise.resolve());
+
+        await requestList.initialize();
+        expect(requestList.isStatePersisted).to.be.eql(true);
+        expect(requestList.areSourcesPersisted).to.be.eql(true);
+
+        // Fetch one request and check that state is not persisted.
+        const request1 = await requestList.fetchNextRequest();
+        expect(requestList.isStatePersisted).to.be.eql(false);
+        expect(requestList.areSourcesPersisted).to.be.eql(true);
+
+        // Persist state.
+        mock.expects('setValue')
+            .once()
+            .withArgs(STATE_KEY, requestList.getState())
+            .returns(Promise.resolve());
+        Apify.events.emit(ACTOR_EVENT_NAMES_EX.PERSIST_STATE);
+        await delayPromise(1);
+        expect(requestList.isStatePersisted).to.be.eql(true);
+        expect(requestList.areSourcesPersisted).to.be.eql(true);
+
+        // Do some other changes and persist it again.
+        const request2 = await requestList.fetchNextRequest();
+        expect(requestList.isStatePersisted).to.be.eql(false);
+        expect(requestList.areSourcesPersisted).to.be.eql(true);
+        await requestList.markRequestHandled(request2);
+        expect(requestList.isStatePersisted).to.be.eql(false);
+        expect(requestList.areSourcesPersisted).to.be.eql(true);
+        mock.expects('setValue')
+            .once()
+            .withArgs(STATE_KEY, requestList.getState())
+            .returns(Promise.resolve());
+        Apify.events.emit(ACTOR_EVENT_NAMES_EX.PERSIST_STATE);
+        await delayPromise(1);
+        expect(requestList.isStatePersisted).to.be.eql(true);
+        expect(requestList.areSourcesPersisted).to.be.eql(true);
+
+        // Reclaim event doesn't change the state.
+        await requestList.reclaimRequest(request1);
+        expect(requestList.isStatePersisted).to.be.eql(true);
+        expect(requestList.areSourcesPersisted).to.be.eql(true);
+
+        // Now initiate new request list from saved state and check that it's same as state
+        // of original request list.
+        mock.expects('getValue')
+            .once()
+            .withArgs(STATE_KEY)
+            .returns(Promise.resolve(requestList.getState()));
+        mock.expects('getValue')
+            .once()
+            .withArgs(SOURCES_KEY)
+            .returns(sources);
+        const requestList2 = new Apify.RequestList({
+            sources: [{ url: 'https://iana.com' }], // change the sources to see if overridden
+            stateKeyPrefix: STATE_PREFIX,
+        });
+        await requestList2.initialize();
+        expect(requestList2.getState()).to.be.eql(requestList.getState());
+        expect(requestList2.requests).to.be.eql(requestList.requests);
+
+        mock.verify();
     });
 
     it('handles correctly inconsistent inProgress fields in state', async () => {
