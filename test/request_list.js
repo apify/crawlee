@@ -687,4 +687,100 @@ describe('Apify.RequestList', () => {
         logStub.restore();
         log.setLevel(log.LEVELS.ERROR);
     });
+
+    describe('Apify.openRequestList()', () => {
+        it('should work', async () => {
+            const mock = sinon.mock(keyValueStore);
+            mock.expects('getValue').atLeast(1).resolves();
+            mock.expects('setValue').atLeast(1).resolves();
+
+            const name = 'xxx';
+            const sources = [{ url: 'https://example.com' }];
+
+            const rl = await Apify.openRequestList(name, sources);
+            expect(rl).to.be.instanceof(Apify.RequestList);
+            expect(rl.stateKey.startsWith(name)).to.be.eql(true);
+            expect(rl.sourcesKey.startsWith(name)).to.be.eql(true);
+            expect(rl.sources).to.be.eql(sources);
+            expect(rl.isInitialized).to.be.eql(true);
+
+            mock.verify();
+        });
+        it('should work with string sources', async () => {
+            const mock = sinon.mock(keyValueStore);
+            mock.expects('getValue').atLeast(1).resolves();
+            mock.expects('setValue').atLeast(1).resolves();
+
+            const name = 'xxx';
+            const sources = ['https://example.com'];
+
+            const rl = await Apify.openRequestList(name, sources);
+            expect(rl).to.be.instanceof(Apify.RequestList);
+            expect(rl.stateKey.startsWith(name)).to.be.eql(true);
+            expect(rl.sourcesKey.startsWith(name)).to.be.eql(true);
+            expect(rl.sources).to.be.eql(sources.map(url => ({ url })));
+            expect(rl.isInitialized).to.be.eql(true);
+
+            mock.verify();
+        });
+        it('should correctly pass options', async () => {
+            const mock = sinon.mock(keyValueStore);
+            mock.expects('getValue').atLeast(1).resolves();
+            mock.expects('setValue').atLeast(1).resolves();
+
+            const name = 'xxx';
+            const sources = [{ url: 'https://example.com' }];
+            const options = {
+                keepDuplicateUrls: true,
+                stateKeyPrefix: 'yyy',
+            };
+
+            const rl = await Apify.openRequestList(name, sources, options);
+            expect(rl).to.be.instanceof(Apify.RequestList);
+            expect(rl.stateKey.startsWith(name)).to.be.eql(true);
+            expect(rl.sourcesKey.startsWith(name)).to.be.eql(true);
+            expect(rl.sources).to.be.eql(sources);
+            expect(rl.isInitialized).to.be.eql(true);
+            expect(rl.keepDuplicateUrls).to.be.eql(true);
+
+            mock.verify();
+        });
+        it('should work with null name', async () => {
+            const mock = sinon.mock(keyValueStore);
+            mock.expects('getValue').never().resolves();
+            mock.expects('setValue').never().resolves();
+
+            const name = null;
+            const sources = [{ url: 'https://example.com' }];
+
+            const rl = await Apify.openRequestList(name, sources);
+            expect(rl).to.be.instanceof(Apify.RequestList);
+            expect(rl.shouldPersist).to.be.eql(false);
+            expect(rl.stateKey).to.be.eql(null);
+            expect(rl.sourcesKey).to.be.eql(null);
+            expect(rl.sources).to.be.eql(sources);
+            expect(rl.isInitialized).to.be.eql(true);
+
+            mock.verify();
+        });
+        it('should throw on invalid parameters', async () => {
+            const args = [
+                [],
+                ['x', []],
+                ['x', [6]],
+                ['x', [[]], {}],
+                ['x', [[]], []],
+            ];
+            for (const arg of args) {
+                try {
+                    await Apify.openRequestList(...arg);
+                    throw new Error('wrong error');
+                } catch (err) {
+                    expect(err.message).to.not.be.eql('wrong error');
+                    expect(err.message).to.include('Parameter');
+                    expect(err.message).to.not.be.eql('must');
+                }
+            }
+        });
+    });
 });

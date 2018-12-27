@@ -117,7 +117,7 @@ export const SOURCES_PERSISTENCE_KEY = 'REQUEST_LIST_SOURCES';
  *   `uniqueKey`s however. It is the user's responsibility to ensure uniqueness of their unique keys
  *   if they wish to keep more than just a single copy in the `RequestList`.
  */
-class RequestList {
+export class RequestList {
     constructor(options = {}) {
         checkParamOrThrow(options, 'options', 'Object');
 
@@ -562,8 +562,6 @@ class RequestList {
     }
 }
 
-export default RequestList;
-
 /**
  * Opens a request list and returns a promise resolving to an instance
  * of the {@link RequestList} class that is already initialized.
@@ -606,5 +604,6 @@ export const openRequestList = async (listName, sources, options = {}) => {
         stateKeyPrefix: listName,
         sources,
     });
-    return rl.initialize();
+    await rl.initialize();
+    return rl;
 };
