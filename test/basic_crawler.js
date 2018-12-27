@@ -54,11 +54,13 @@ describe('BasicCrawler', () => {
 
         let basicCrawler;
         let isStopped;
+        let resolveAbortPromise;
+        const abortPromise = new Promise((res) => { resolveAbortPromise = res; });
         const processed = [];
         const requestList = new Apify.RequestList({ sources });
         const handleRequestFunction = async ({ request }) => {
             if (request.url.endsWith('200') && !isStopped) {
-                await basicCrawler.abort();
+                await basicCrawler.abort().then(resolveAbortPromise);
                 isStopped = true;
             } else {
                 await delayPromise(10);
@@ -82,6 +84,8 @@ describe('BasicCrawler', () => {
         expect(await requestList.isFinished()).to.be.eql(false);
         expect(await requestList.isEmpty()).to.be.eql(false);
 
+        // We need to check if the abort procedure finished before restarting, otherwise everything goes crazy.
+        await abortPromise;
         await basicCrawler.run();
         expect(processed.length).to.be.within(500, 525);
         expect(new Set(processed.map(p => p.url))).to.be.eql(new Set(sources.map(s => s.url)));
