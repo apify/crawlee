@@ -21,6 +21,7 @@ await Apify.utils.sleep(1500);
 * [`utils`](#utils) : <code>object</code>
     * [`.URL_NO_COMMAS_REGEX`](#utils.URL_NO_COMMAS_REGEX)
     * [`.URL_WITH_COMMAS_REGEX`](#utils.URL_WITH_COMMAS_REGEX)
+    * [`.isDocker()`](#utils.isDocker) ⇒ <code>Promise</code>
     * [`.sleep(millis)`](#utils.sleep) ⇒ <code>Promise</code>
     * [`.downloadListOfUrls(options)`](#utils.downloadListOfUrls) ⇒ <code>Promise&lt;Array&lt;String&gt;&gt;</code>
     * [`.extractUrls(string, [urlRegExp])`](#utils.extractUrls) ⇒ <code>Array&lt;String&gt;</code>
@@ -37,6 +38,11 @@ and does not support URLs containing commas or spaces. The URLs also may contain
 ## `utils.URL\_WITH\_COMMAS\_REGEX`
 Regular expression that, in addition to the default regular expression `URL_NO_COMMAS_REGEX`, supports matching commas in URL path and query.
 Note, however, that this may prevent parsing URLs from comma delimited lists, or the URLs may become malformed.
+
+<a name="utils.isDocker"></a>
+
+## `utils.isDocker()` ⇒ <code>Promise</code>
+Returns a `Promise` that resolves to true if the code is running in a Docker container.
 
 <a name="utils.sleep"></a>
 
