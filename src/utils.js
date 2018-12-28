@@ -124,7 +124,7 @@ const createIsDockerPromise = () => {
  *
  * @return {Promise}
  *
- * @memberof module:Apify
+ * @memberof utils
  * @name isDocker
  * @function
  */
@@ -497,6 +497,7 @@ export const ensureTokenOrLocalStorageEnvExists = (storageName) => {
  * @namespace utils
  */
 export const publicUtils = {
+    isDocker,
     sleep,
     downloadListOfUrls,
     extractUrls,
