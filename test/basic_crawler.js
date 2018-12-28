@@ -51,50 +51,6 @@ describe('BasicCrawler', () => {
         expect(await requestList.isEmpty()).to.be.eql(true);
     });
 
-    it('should abort and resume', async () => {
-        const sources = _.range(500).map(index => ({ url: `https://example.com/${index + 1}` }));
-
-        let basicCrawler;
-        let isStopped;
-        let resolveAbortPromise;
-        const abortPromise = new Promise((res) => { resolveAbortPromise = res; });
-        const processed = [];
-        const requestList = new Apify.RequestList({ sources });
-        const handleRequestFunction = async ({ request }) => {
-            if (request.url.endsWith('200') && !isStopped) {
-                await basicCrawler.abort().then(resolveAbortPromise);
-                isStopped = true;
-            } else {
-                await delayPromise(10);
-                processed.push(_.pick(request, 'url'));
-            }
-        };
-
-        basicCrawler = new Apify.BasicCrawler({
-            requestList,
-            minConcurrency: 25,
-            maxConcurrency: 25,
-            handleRequestFunction,
-        });
-
-        await requestList.initialize();
-
-        // The crawler will stop after 200 requests
-        await basicCrawler.run();
-
-        expect(processed.length).to.be.within(175, 200);
-        expect(await requestList.isFinished()).to.be.eql(false);
-        expect(await requestList.isEmpty()).to.be.eql(false);
-
-        // We need to check if the abort procedure finished before restarting, otherwise everything goes crazy.
-        await abortPromise;
-        await basicCrawler.run();
-        expect(processed.length).to.be.within(500, 525);
-        expect(new Set(processed.map(p => p.url))).to.be.eql(new Set(sources.map(s => s.url)));
-        expect(await requestList.isFinished()).to.be.eql(true);
-        expect(await requestList.isEmpty()).to.be.eql(true);
-    });
-
     it('should pause on migration event and persist RequestList state', async () => {
         const sources = _.range(500).map(index => ({ url: `https://example.com/${index + 1}` }));
 
