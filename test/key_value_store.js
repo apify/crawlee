@@ -1,6 +1,5 @@
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
-import 'babel-polyfill';
 import sinon from 'sinon';
 import path from 'path';
 import { ENV_VARS } from 'apify-shared/consts';

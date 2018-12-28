@@ -3,7 +3,6 @@ import fs from 'fs';
 import chaiAsPromised from 'chai-as-promised';
 import _ from 'underscore';
 import log from 'apify-shared/log';
-import 'babel-polyfill';
 import { ENV_VARS } from 'apify-shared/consts';
 import * as Apify from '../build/index';
 import { launchPuppeteer } from '../build/puppeteer';
