@@ -20,6 +20,15 @@ const DEFAULT_OPTIONS = {
     },
     ignoreSslErrors: false,
     useApifyProxy: false,
+    autoscaledPoolOptions: {
+        snapshotterOptions: {
+            eventLoopSnapshotIntervalSecs: 2,
+            maxBlockedMillis: 100,
+        },
+        systemStatusOptions: {
+            maxEventLoopOverloadedRatio: 0.7,
+        },
+    },
 };
 
 /**
