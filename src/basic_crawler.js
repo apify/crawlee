@@ -1,10 +1,25 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import _ from 'underscore';
 import log from 'apify-shared/log';
+import { ACTOR_EVENT_NAMES } from 'apify-shared/consts';
 import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import AutoscaledPool from './autoscaling/autoscaled_pool';
 import { RequestList } from './request_list';
 import { RequestQueue, RequestQueueLocal } from './request_queue';
+import events from './events';
+
+/**
+ * Since there's no set number of seconds before the container is terminated after
+ * a migration event, we need some reasonable number to use for RequestList persistence.
+ * Once a migration event is received, the Crawler will be paused and it will wait for
+ * this long before persisting the RequestList state. This should allow most healthy
+ * requests to finish and be marked as handled, thus lowering the amount of duplicate
+ * results after migration.
+ *
+ * @type {number}
+ * @ignore
+ */
+const SAFE_MIGRATION_WAIT_MILLIS = 20000;
 
 const DEFAULT_OPTIONS = {
     maxRequestRetries: 3,
@@ -206,6 +221,9 @@ class BasicCrawler {
         };
 
         this.autoscaledPoolOptions = _.defaults({}, basicCrawlerAutoscaledPoolConfiguration, autoscaledPoolOptions);
+
+        // Attach a listener to handle migration events gracefully.
+        events.on(ACTOR_EVENT_NAMES.MIGRATING, this._pauseOnMigration.bind(this));
     }
 
     /**
@@ -239,6 +257,23 @@ class BasicCrawler {
         this.isRunning = false;
         await this.autoscaledPool.abort();
         this.rejectOnAbort(new Error('BasicCrawler: .abort() function has been called. Aborting the crawler.'));
+    }
+
+    async _pauseOnMigration() {
+        if (!this.isRunning) return;
+        await this.autoscaledPool.pause(SAFE_MIGRATION_WAIT_MILLIS)
+            .catch(() => {
+                log.error('BasicCrawler: The crawler was paused due to migration to another host, '
+                    + 'but some requests did not finish in time. Those requests\' results may be duplicated.');
+            });
+        if (this.requestList) {
+            await this.requestList.persistState()
+                .catch(() => {
+                    log.error('BasicCrawler: The crawler attempted to persist it\'s request list\'s state and failed due to invalid config. '
+                        + 'Make sure to use either Apify.openRequestList() or the "stateKeyPrefix" option of RequestList constructor '
+                        + 'to ensure your crawling state is persisted through host migrations and restarts.');
+                });
+        }
     }
 
     /**
