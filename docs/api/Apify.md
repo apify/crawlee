@@ -19,7 +19,6 @@ accessible from the left sidebar.
     * [`.getMemoryInfo()`](#module_Apify.getMemoryInfo) ⇒ <code>Promise&lt;Object&gt;</code>
     * [`.getValue(key)`](#module_Apify.getValue) ⇒ <code>Promise&lt;Object&gt;</code>
     * [`.isAtHome()`](#module_Apify.isAtHome) ⇒ <code>Boolean</code>
-    * [`.isDocker()`](#module_Apify.isDocker) ⇒ <code>Promise</code>
     * [`.launchPuppeteer([options])`](#module_Apify.launchPuppeteer) ⇒ <code>Promise&lt;Browser&gt;</code>
     * [`.launchWebDriver([options])`](#module_Apify.launchWebDriver) ⇒ <code>Promise</code>
     * [`.main(userFunc)`](#module_Apify.main)
@@ -444,11 +443,6 @@ and [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+getValue).
 
 ## `Apify.isAtHome()` ⇒ <code>Boolean</code>
 Returns `true` when code is running on Apify platform and `false` otherwise (for example locally).
-
-<a name="module_Apify.isDocker"></a>
-
-## `Apify.isDocker()` ⇒ <code>Promise</code>
-Returns a `Promise` that resolves to true if the code is running in a Docker container.
 
 <a name="module_Apify.launchPuppeteer"></a>
 
