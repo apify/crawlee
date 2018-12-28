@@ -82,7 +82,8 @@ const PAGE_CLOSE_TIMEOUT_MILLIS = 30000;
  *   request: Request,
  *   response: Response,
  *   page: Page,
- *   puppeteerPool: PuppeteerPool
+ *   puppeteerPool: PuppeteerPool,
+ *   autoscaledPool: AutoscaledPool
  * }
  * ```
  *

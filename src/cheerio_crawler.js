@@ -107,7 +107,8 @@ const DEFAULT_OPTIONS = {
  *   $: Cheerio, // the Cheerio object with parsed HTML
  *   html: String // the raw HTML of the page
  *   request: Request,
- *   response: Object // An instance of Node's http.IncomingMessage object
+ *   response: Object // An instance of Node's http.IncomingMessage object,
+ *   autoscaledPool: AutoscaledPool
  * }
  * ```
  *   With the {@link Request} object representing the URL to crawl.
@@ -189,7 +190,9 @@ const DEFAULT_OPTIONS = {
  * @param {Object} [options.autoscaledPoolOptions]
  *   Custom options passed to the underlying {@link AutoscaledPool} constructor.
  *   Note that the `runTaskFunction`, `isTaskReadyFunction` and `isFinishedFunction` options
- *   are provided by `CheerioCrawler` and cannot be overridden.
+ *   are provided by `CheerioCrawler` and cannot be overridden. Reasonable {@link Snapshotter}
+ *   and {@link SystemStatus} defaults are provided to account for the fact that `cheerio`
+ *   parses HTML synchronously and therefore blocks the event loop.
  * @param {Object} [options.minConcurrency=1]
  *   Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
  *

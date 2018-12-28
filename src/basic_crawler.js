@@ -91,7 +91,8 @@ const DEFAULT_OPTIONS = {
  *   The function receives the following object as an argument:
  * ```
  * {
- *   request: Request
+ *   request: Request,
+ *   autoscaledPool: AutoscaledPool
  * }
  * ```
  *   where the {@link Request} instance represents the URL to crawl.

@@ -228,7 +228,15 @@ class AutoscaledPool {
     }
 
     /**
-     * Aborts the run of the auto-scaled pool, discards all currently running tasks and destroys it.
+     * Aborts the run of the auto-scaled pool and destroys it. The promise returned from
+     * the [`run()`](#AutoscaledPool+run) function will immediately resolve, no more new tasks
+     * will be spawned and all running tasks will be left in their current state.
+     *
+     * Due to the nature of the tasks, auto-scaled pool cannot reliably guarantee abortion
+     * of all the running tasks, therefore, no abortion is attempted and some of the tasks
+     * may finish, while others may not. Essentially, auto-scaled pool doesn't care about
+     * their state after the invocation of `.abort()`, but that does not mean that some
+     * parts of their asynchronous chains of commands will not execute.
      *
      * @return {Promise}
      */
@@ -247,6 +255,10 @@ class AutoscaledPool {
      * The function's promise will resolve once all running tasks have completed and the pool
      * is effectively idle. If the `timeoutSecs` argument is provided, the promise will reject
      * with a timeout error after the `timeoutSecs` seconds.
+     *
+     * The promise returned from the [`run()`](#AutoscaledPool+run) function will not resolve
+     * when `.pause()` is invoked (unlike abort, which resolves it).
+     *
      * @param {number} [timeoutSecs]
      * @return {Promise}
      */
