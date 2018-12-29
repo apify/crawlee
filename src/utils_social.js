@@ -1,6 +1,5 @@
 /* eslint-disable no-continue */
 import _ from 'underscore';
-import htmlToText from 'html-to-text';
 import cheerio from 'cheerio';
 import log from 'apify-shared/log';
 
@@ -487,14 +486,13 @@ const parseHandlesFromHtml = (html, data = null) => {
 
     if (!_.isString(html)) return result;
 
-    // We use ignoreHref and ignoreImage options so that the text doesn't contain links,
-    // since their parts can be interpreted as e.g. phone numbers.
-    const text = htmlToText.fromString(html, { ignoreHref: true, ignoreImage: true }) || '';
-    if (data) data.text = text;
-
-    // TODO: Both html-to-text and cheerio use htmlparser2, the parsing could be done only once to improve performance
     const $ = cheerio.load(html, { decodeEntities: true });
     if (data) data.$ = $;
+
+    // We use ignoreHref and ignoreImage options so that the text doesn't contain links,
+    // since their parts can be interpreted as e.g. phone numbers.
+    const text = Apify.utils.htmlToText($);
+    if (data) data.text = text;
 
     // Find all <a> links with href tag
     const linkUrls = [];

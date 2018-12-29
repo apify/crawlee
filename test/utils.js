@@ -4,6 +4,7 @@ import sinon from 'sinon';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import cheerio from 'cheerio';
 import requestPromise from 'request-promise-native';
 import LruCache from 'apify-shared/lru_cache';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
@@ -13,17 +14,6 @@ import Apify from '../build/index';
 chai.use(chaiAsPromised);
 
 /* global process, describe, it */
-
-describe('utils.htmlToText()', () => {
-
-    it('works', () => {
-        const html = fs.readFileSync('/Users/jan/Projects/apify-js/test_html/prunty.html');
-
-        const text = utils.htmlToText(html);
-        console.log(text);
-    });
-});
-
 
 describe('utils.newClient()', () => {
     it('reads environment variables correctly', () => {
@@ -666,3 +656,105 @@ describe('utils.openRemoteStorage()', async () => {
         delete process.env['some-env'];
     });
 });
+
+const checkHtmlToText = (html, expectedText) => {
+    const text1 = utils.htmlToText(html);
+    expect(text1).to.eql(expectedText);
+
+    // Test embedding into <body> gives the same result
+    if (typeof html === 'string') {
+        const html2 = `
+        <html>
+            <head>
+                <title>Title should be ignored</title>
+                <style>
+                    .styles_should_be_ignored_too {}
+                </style>
+                <script type="application/javascript">
+                    scriptsShouldBeIgnoredToo();
+                </script>
+            </head>
+            <body>
+                ${html}
+            </body>
+        </html>`;
+        const text2 = utils.htmlToText(html2);
+        expect(text2).to.eql(expectedText);
+    }
+};
+
+describe('utils.htmlToText()', () => {
+    it('handles invalid args', () => {
+        checkHtmlToText(null, '');
+        checkHtmlToText('', '');
+        checkHtmlToText(0, '');
+        checkHtmlToText(undefined, '');
+    });
+
+    it('handles basic HTML elements correctly', () => {
+        checkHtmlToText('Plain text node', 'Plain text node');
+        checkHtmlToText('   Plain    text     node    ', 'Plain text node');
+        checkHtmlToText('   \nPlain    text     node  \n  ', 'Plain text node');
+
+        checkHtmlToText('<h1>Header 1</h1> <h2>Header 2</h2>', 'Header 1\nHeader 2');
+        checkHtmlToText('<h1>Header 1</h1> <h2>Header 2</h2><br>', 'Header 1\nHeader 2');
+        checkHtmlToText('<h1>Header 1</h1> <h2>Header 2</h2><br><br>', 'Header 1\nHeader 2');
+        checkHtmlToText('<h1>Header 1</h1> <h2>Header 2</h2><br><br><br>', 'Header 1\nHeader 2');
+
+        checkHtmlToText('<h1>Header 1</h1><br><h2>Header 2</h2><br><br><br>', 'Header 1\n\nHeader 2');
+        checkHtmlToText('<h1>Header 1</h1> <br> <h2>Header 2</h2><br><br><br>', 'Header 1\n\nHeader 2');
+        checkHtmlToText('<h1>Header 1</h1>  \n <br>\n<h2>Header 2</h2><br><br><br>', 'Header 1\n\nHeader 2');
+        checkHtmlToText('<h1>Header 1</h1>  \n <br>\n<br><h2>Header 2</h2><br><br><br>', 'Header 1\n\n\nHeader 2');
+        checkHtmlToText('<h1>Header 1</h1>  \n <br>\n<br><br><h2>Header 2</h2><br><br><br>', 'Header 1\n\n\n\nHeader 2');
+
+        checkHtmlToText('<div><div>Div</div><p>Paragraph</p></div>', 'Div\nParagraph');
+        checkHtmlToText('<div>Div1</div><!-- Some comments --><div>Div2</div>', 'Div1\nDiv2');
+
+        checkHtmlToText('<div>Div1</div><style>Skip styles</style>', 'Div1');
+        checkHtmlToText('<script>Skip_scripts();</script><div>Div1</div>', 'Div1');
+        checkHtmlToText('<SCRIPT>Skip_scripts();</SCRIPT><div>Div1</div>', 'Div1');
+        checkHtmlToText('<svg>Skip svg</svg><div>Div1</div>', 'Div1');
+        checkHtmlToText('<canvas>Skip canvas</canvas><div>Div1</div>', 'Div1');
+
+        checkHtmlToText('<b>A  B  C  D  E\n\nF  G</b>', 'A B C D E F G');
+        checkHtmlToText('<pre>A  B  C  D  E\n\nF  G</pre>', 'A  B  C  D  E\n\nF  G');
+
+        checkHtmlToText(
+            '<h1>Heading 1</h1><div><div><div><div>Deep  Div</div></div></div></div><h2>Heading       2</h2>',
+            'Heading 1\nDeep Div\nHeading 2',
+        );
+
+        checkHtmlToText('<a>this_word</a>_should_<b></b>be_<span>one</span>', 'this_word_should_be_one');
+        checkHtmlToText('<span attributes="should" be="ignored">some <span>text</span></span>', 'some text');
+
+        checkHtmlToText(
+            `<table>
+                <tr>
+                    <td>Cell    A1</td><td>Cell A2</td>
+                    <td>    Cell A3    </td>
+                </tr>
+                <tr>
+                    <td>Cell    B1</td><td>Cell B2</td>
+                </tr>
+            </table>`,
+            'Cell A1\tCell A2\tCell A3 \t\nCell B1\tCell B2',
+        );
+    });
+
+    it('handles HTML entities correctly', () => {
+        checkHtmlToText('<span>&aacute; &eacute;</span>', 'á é');
+    });
+
+    xit('handles complex HTML document', () => {
+        // TODO: Test some longer HTML document
+    });
+
+    it('works with Cheerio object', () => {
+        const html1 = '<html><body>Some text</body></html>';
+        checkHtmlToText(cheerio.load(html1, { decodeEntities: true }), 'Some text');
+
+        const html2 = '<h1>Text outside of body</h1>';
+        checkHtmlToText(cheerio.load(html2, { decodeEntities: true }), 'Text outside of body');
+    });
+});
+
