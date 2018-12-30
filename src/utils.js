@@ -517,7 +517,7 @@ const BLOCK_TAGS_REGEX = /^(p|h1|h2|h3|h4|h5|h6|ol|ul|li|pre|address|blockquote|
  * @return {String} Plain text
  * @memberOf utils
  */
-export const htmlToText = (html) => {
+const htmlToText = (html) => {
     if (!html) return '';
 
     const $ = typeof html === 'function' ? html : cheerio.load(html, { decodeEntities: true });
