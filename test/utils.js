@@ -658,7 +658,7 @@ describe('utils.openRemoteStorage()', async () => {
 });
 
 const checkHtmlToText = (html, expectedText, hasBody = false) => {
-    const text1 = utils.htmlToText(html);
+    const text1 = Apify.utils.htmlToText(html);
     expect(text1).to.eql(expectedText);
 
     // Test embedding into <body> gives the same result
@@ -678,7 +678,7 @@ const checkHtmlToText = (html, expectedText, hasBody = false) => {
                 ${html}
             </body>
         </html>`;
-        const text2 = utils.htmlToText(html2);
+        const text2 = Apify.utils.htmlToText(html2);
         expect(text2).to.eql(expectedText);
     }
 };

@@ -2,7 +2,7 @@
 import _ from 'underscore';
 import cheerio from 'cheerio';
 import log from 'apify-shared/log';
-import { htmlToText } from './utils';
+import { publicUtils } from './utils';
 
 // TODO: Finish docs and examples !!!
 
@@ -490,7 +490,7 @@ const parseHandlesFromHtml = (html, data = null) => {
     const $ = cheerio.load(html, { decodeEntities: true });
     if (data) data.$ = $;
 
-    const text = htmlToText($);
+    const text = publicUtils.htmlToText($);
     if (data) data.text = text;
 
     // Find all <a> links with href tag
