@@ -28,7 +28,7 @@ git push
 if [ "${BRANCH}" = "master" ]; then
     EXISTING_NPM_VERSION=$(npm view ${PACKAGE_NAME} versions --json | grep ${PACKAGE_VERSION} | tee) # Using tee to swallow non-zero exit code
     if [ -z "${EXISTING_NPM_VERSION}" ]; then
-        printf "${RED}Version ${PACKAGE_VERSION} was not yet published on NPM. Note that you can only publish to NPM from \"develop\" branch!${NC}\n"
+        printf "${RED}Version ${PACKAGE_VERSION} was not yet published on NPM. Note that you can only publish to NPM from non-master branch!${NC}\n"
         exit 1
     else
         echo "Tagging version ${PACKAGE_VERSION} with tag \"latest\" ..."
