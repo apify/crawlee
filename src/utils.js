@@ -515,6 +515,7 @@ const BLOCK_TAGS_REGEX = /^(p|h1|h2|h3|h4|h5|h6|ol|ul|li|pre|address|blockquote|
  * @param {String|Function} html HTML text or parsed HTML represented using a
  * [cheerio](https://www.npmjs.com/package/cheerio) function.
  * @return {String} Plain text
+ * @memberOf utils
  */
 export const htmlToText = (html) => {
     if (!html) return '';
