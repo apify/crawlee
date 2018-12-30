@@ -523,7 +523,7 @@ export const htmlToText = (html) => {
     let text = '';
 
     const process = (elems) => {
-        const len = elems.length;
+        const len = elems ? elems.length : 0;
         for (let i = 0; i < len; i++) {
             const elem = elems[i];
             if (elem.type === 'text') {
