@@ -125,7 +125,7 @@ const createIsDockerPromise = () => {
  *
  * @return {Promise}
  *
- * @memberof module:Apify
+ * @memberof utils
  * @name isDocker
  * @function
  */
@@ -575,6 +575,7 @@ export const htmlToText = (html) => {
  * @namespace utils
  */
 export const publicUtils = {
+    isDocker,
     sleep,
     downloadListOfUrls,
     extractUrls,
