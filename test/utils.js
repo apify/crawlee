@@ -657,12 +657,12 @@ describe('utils.openRemoteStorage()', async () => {
     });
 });
 
-const checkHtmlToText = (html, expectedText) => {
+const checkHtmlToText = (html, expectedText, hasBody = false) => {
     const text1 = utils.htmlToText(html);
     expect(text1).to.eql(expectedText);
 
     // Test embedding into <body> gives the same result
-    if (typeof html === 'string') {
+    if (typeof html === 'string' && !hasBody) {
         const html2 = `
         <html>
             <head>
@@ -745,8 +745,36 @@ describe('utils.htmlToText()', () => {
         checkHtmlToText('<span>&aacute; &eacute;</span>', 'á é');
     });
 
-    xit('handles complex HTML document', () => {
-        // TODO: Test some longer HTML document
+    it('handles larger HTML documents', () => {
+        const html1 = fs.readFileSync(path.join(__dirname, 'data', 'html_to_text_test.html'), 'utf8');
+
+        // Careful here - don't change spaces in the text below or the test will break!
+        /* eslint-disable no-tabs */
+        checkHtmlToText(
+            html1,
+            `Let's start with a simple text. 
+The ships hung in the sky, much the way that bricks don't. 
+These aren't the Droids you're looking for
+I'm sorry, Dave. I'm afraid I can't do that.
+I'm sorry, Dave. I'm afraid I can't do that.
+A1	A2	A3	
+B1	B2	B3	B 4	
+This is some text with inline elements and HTML entities (>bla<) 
+Test
+a
+few
+line
+breaks
+Spaces in an inline text should be completely ignored. 
+But,
+    a pre-formatted
+                block  should  be  kept
+                                       pre-formatted.
+The Greatest Science Fiction Quotes Of All Time 
+Don't know, I don't know such stuff. I just do eyes, ju-, ju-, just eyes... just genetic design, just eyes. You Nexus, huh? I design your eyes.`,
+            true,
+        );
+        /* eslint-enable no-tabs */
     });
 
     it('works with Cheerio object', () => {
@@ -757,4 +785,3 @@ describe('utils.htmlToText()', () => {
         checkHtmlToText(cheerio.load(html2, { decodeEntities: true }), 'Text outside of body');
     });
 });
-
