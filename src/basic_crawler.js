@@ -196,8 +196,8 @@ class BasicCrawler {
 
                 if (isFinished) {
                     const reason = isFinishedFunction
-                        ? 'BasicCrawler: Crawler\'s custom isFinishedFunction() returned true, the Crawler will shut down.'
-                        : 'BasicCrawler: All the requests from request list and/or request queue have been processed, the Crawler will shut down.';
+                        ? 'BasicCrawler: Crawler\'s custom isFinishedFunction() returned true, the crawler will shut down.'
+                        : 'BasicCrawler: All the requests from request list and/or request queue have been processed, the crawler will shut down.';
                     log.info(reason);
                 }
 

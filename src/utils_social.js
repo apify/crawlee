@@ -1,8 +1,8 @@
 /* eslint-disable no-continue */
 import _ from 'underscore';
-import htmlToText from 'html-to-text';
 import cheerio from 'cheerio';
 import log from 'apify-shared/log';
+import { publicUtils } from './utils';
 
 // TODO: Finish docs and examples !!!
 
@@ -196,7 +196,7 @@ const TWITTER_RESERVED_PATHS = 'oauth|account|tos|privacy|signup|home|hashtag|se
 const TWITTER_REGEX_STRING = `(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:www.)?(?:twitter.com)\\/(?!(?:${TWITTER_RESERVED_PATHS})(?:[\\'\\"\\?\\.\\/]|$))([a-z0-9_]{1,15})(?![a-z0-9_])(?:/)?`;
 
 // eslint-disable-next-line max-len, quotes
-const FACEBOOK_RESERVED_PATHS = 'rsrc\\.php|apps|groups|events|l\\.php|friends|images|photo.php|chat|ajax|dyi|common|policies|login|recover|reg|help|security|messages|marketplace|pages|live|bookmarks|games|fundraisers|saved|gaming|salesgroups|jobs|people|ads|ad_campaign|weather|offers|recommendations|crisisresponse|onthisday|developers|settings';
+const FACEBOOK_RESERVED_PATHS = 'rsrc\\.php|apps|groups|events|l\\.php|friends|images|photo.php|chat|ajax|dyi|common|policies|login|recover|reg|help|security|messages|marketplace|pages|live|bookmarks|games|fundraisers|saved|gaming|salesgroups|jobs|people|ads|ad_campaign|weather|offers|recommendations|crisisresponse|onthisday|developers|settings|connect|business|plugins|intern|sharer';
 // eslint-disable-next-line max-len, quotes
 const FACEBOOK_REGEX_STRING = `(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:www.)?(?:facebook.com|fb.com)\\/(?!(?:${FACEBOOK_RESERVED_PATHS})(?:[\\'\\"\\?\\.\\/]|$))(profile\\.php\\?id\\=[0-9]{3,20}|(?!profile\\.php)[a-z0-9\\.]{5,51})(?![a-z0-9\\.])(?:/)?`;
 
@@ -487,14 +487,11 @@ const parseHandlesFromHtml = (html, data = null) => {
 
     if (!_.isString(html)) return result;
 
-    // We use ignoreHref and ignoreImage options so that the text doesn't contain links,
-    // since their parts can be interpreted as e.g. phone numbers.
-    const text = htmlToText.fromString(html, { ignoreHref: true, ignoreImage: true }) || '';
-    if (data) data.text = text;
-
-    // TODO: Both html-to-text and cheerio use htmlparser2, the parsing could be done only once to improve performance
     const $ = cheerio.load(html, { decodeEntities: true });
     if (data) data.$ = $;
+
+    const text = publicUtils.htmlToText($);
+    if (data) data.text = text;
 
     // Find all <a> links with href tag
     const linkUrls = [];

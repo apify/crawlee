@@ -1,3 +1,9 @@
+0.10.2 / 2018-12-30
+===================
+- Added `Apify.utils.htmlToText()` function to convert HTML to text and removed unncessary `html-to-text` dependency.
+  The new function is now used in `Apify.utils.social.parseHandlesFromHtml()`.
+- Updated `DEFAULT_USER_AGENT`
+
 0.10.0 / 2018-12-19
 ===================
 - `autoscaledPool.isFinishedFunction()` and `autoscaledPool.isTaskReadyFunction()` exceptions
