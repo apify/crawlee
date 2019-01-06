@@ -1,4 +1,7 @@
-# Getting Started
+---
+id: gettingstarted
+title: Getting Started
+---
 Without the right tools, crawling and scraping the web can be a difficult thing. At the very least, you need an HTTP client to make the necessary requests, but that only gets you raw HTML and sometimes not even that. Then you have to read this HTML and extract the data you're interested in. Once extracted, it must be stored in a machine readable format and easily accessible for further processing, because it is the processed data that hold value.
 
 Apify SDK covers the process end-to-end. From crawling the web for links and scraping the raw data to storing it in various machine readable formats, ready for processing. With this guide in hand, you should have your own data extraction solutions up and running in a few hours.
@@ -129,7 +132,7 @@ Let's start super easy. Visit one page, get its title and close. First of all we
 const Apify = require('apify');
 ```
 
-Easy right? It doesn't get much more difficult, trust me. For the purposes of this tutorial, we'll be scraping our own webpage [https://www.apify.com](https://www.apify.com). Now, to get there, we need a `Request` with the page's URL in one of our sources, `RequestList` or `RequestQueue`. Let's go with `RequestQueue` for now.
+Easy right? It doesn't get much more difficult, trust me. For the purposes of this tutorial, we'll be scraping our own webpage <a href="https://www.apify.com" target="_blank">https://www.apify.com</a>. Now, to get there, we need a `Request` with the page's URL in one of our sources, `RequestList` or `RequestQueue`. Let's go with `RequestQueue` for now.
 
 ```js
 const Apify = require('apify');
@@ -144,7 +147,7 @@ Apify.main(async () => {
 ```
 > If you're not familiar with the `async` and `await` keywords used in the example, trust that it is a native syntax in modern JavaScript and you can [learn more about it here](https://nikgrozev.com/2017/10/01/async-await/).
 
-The `requestQueue.addRequest()` function automatically converts the plain object we passed to it to a `Request` instance, so now we have a `RequestQueue` instance that holds one `Request` instance which points to `https://www.apify.com`. Now we need the `handlePageFunction`.
+The [`requestQueue.addRequest()`](../api/requestqueue#RequestQueue+addRequest) function automatically converts the plain object we passed to it to a `Request` instance, so now we have a `requestQueue` that holds one `request` which points to `https://www.apify.com`. Now we need the `handlePageFunction`.
 
 ```js
 // We'll define the function separately so it's more obvious.
@@ -157,7 +160,7 @@ const handlePageFunction = async ({ request, $ }) => {
 }
 ```
 
-Wait, where did the `$` come from? Remember what we learned about the `handlePageFunction` earlier. It expects a plain `Object` as an argument that will always have a `request` property, but it will also have other properties, depending on the chosen crawler class. Well, `$` is a property provided by the `CheerioCrawler` class, that we`ll set up right now.
+Wait, where did the `$` come from? Remember what we learned about the `handlePageFunction` earlier. It expects a plain `Object` as an argument that will always have a `request` property, but it will also have other properties, depending on the chosen crawler class. Well, `$` is a property provided by the `CheerioCrawler` class which we'll set up right now.
 
 ```js
 const Apify = require('apify');
