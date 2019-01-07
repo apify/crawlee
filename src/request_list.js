@@ -30,8 +30,16 @@ export const SOURCES_PERSISTENCE_KEY = 'REQUEST_LIST_SOURCES';
  *
  * `RequestList` has an internal state where it stores information about which requests were already handled,
  * which are in progress and which were reclaimed. The state may be automatically persisted to the default
- * key-value store by setting the `stateKeyPrefix` option so that if the Node.js process is restarted,
+ * key-value store by setting the `persistStateKey` option so that if the Node.js process is restarted,
  * the crawling can continue where it left off. For more details, see {@link KeyValueStore}.
+ *
+ * The internal state is closely tied to the provided sources (URLs) to validate it's position in the list
+ * after a migration or restart. Therefore, if the sources change, the state will become corrupted and
+ * `RequestList` will raise an exception. This typically happens when using a live list of URLs downloaded
+ * from the internet as sources. Either from some service's API, or using the `requestsFromUrl` option.
+ * If that's your case, please use the `persistSourcesKey` option in conjunction with `persistStateKey`,
+ * it will persist the initial sources to the default key-value store and load them after restart,
+ * which will prevent any issues that a live list of URLs might cause.
  *
  * **Example usage:**
  *
@@ -46,7 +54,8 @@ export const SOURCES_PERSISTENCE_KEY = 'REQUEST_LIST_SOURCES';
  *         // Note that all URLs must start with http:// or https://
  *         { requestsFromUrl: 'http://www.example.com/my-url-list.txt', userData: { isFromUrl: true } },
  *     ],
- *     stateKeyPrefix: 'my-state'
+ *     persistStateKey: 'my-state',
+ *     persistSourcesKey: 'my-sources'
  * });
  *
  * // This call loads and parses the URLs from the remote file.
@@ -81,7 +90,7 @@ export const SOURCES_PERSISTENCE_KEY = 'REQUEST_LIST_SOURCES';
  *     { method: 'POST', requestsFromUrl: 'http://example.com/urls.txt' },
  * ]
  * ```
- * @param {String} [options.stateKeyPrefix]
+ * @param {String} [options.persistStateKey]
  *   Identifies the keys in the default key-value store under which the `RequestList` persists its
  *   initial sources and current state. State represents a position of the last scraped request in the list.
  *   If this is set then `RequestList`persists all of its sources and the state in regular intervals
@@ -121,17 +130,12 @@ export class RequestList {
     constructor(options = {}) {
         checkParamOrThrow(options, 'options', 'Object');
 
-        const { sources, persistStateKey, stateKeyPrefix, state, keepDuplicateUrls = false } = options;
-
-        // TODO Deprecation. Remove with 1.0.0.
-        if (persistStateKey) log.warning('RequestList: options.persistStateKey is deprecated. Use options.stateKeyPrefix instead.');
-        if (persistStateKey && stateKeyPrefix) log.warning('RequestList: Using options.stateKeyPrefix instead of options.persistStateKey.');
+        const { sources, persistStateKey, persistSourcesKey, state, keepDuplicateUrls = false } = options;
 
         checkParamOrThrow(sources, 'options.sources', 'Array');
         checkParamOrThrow(state, 'options.state', 'Maybe Object');
-        checkParamOrThrow(stateKeyPrefix, 'options.persistStateKey', 'Maybe String');
-        checkParamOrThrow(stateKeyPrefix, 'options.stateKeyPrefix', 'Maybe String');
-        if (stateKeyPrefix && !stateKeyPrefix.length) throw new Error('Parameter options.stateKeyPrefix must not be an empty string.');
+        checkParamOrThrow(persistStateKey, 'options.persistStateKey', 'Maybe String');
+        checkParamOrThrow(persistSourcesKey, 'options.persistSourcesKey', 'Maybe String');
         checkParamOrThrow(keepDuplicateUrls, 'options.keepDuplicateUrls', 'Maybe Boolean');
 
         // Array of all requests from all sources, in the order as they appeared in sources.
@@ -153,18 +157,10 @@ export class RequestList {
         // Note that reclaimedRequests is always a subset of inProgressRequests!
         this.reclaimed = {};
 
-        // TODO Deprecated.
         this.persistStateKey = persistStateKey;
+        this.persistSourcesKey = persistSourcesKey;
 
-        // If the stateKeyPrefix is set then we persist url list and state into default key-value store under keys with this prefix.
         this.initialState = state;
-        this.shouldPersist = !!stateKeyPrefix;
-        this.stateKey = null;
-        this.sourcesKey = null;
-        if (this.shouldPersist) {
-            this.stateKey = `${stateKeyPrefix}-${STATE_PERSISTENCE_KEY}`;
-            this.sourcesKey = `${stateKeyPrefix}-${SOURCES_PERSISTENCE_KEY}`;
-        }
 
         // If this option is set then all requests will get a pre-generated unique ID and duplicate URLs will be kept in the list.
         this.keepDuplicateUrls = keepDuplicateUrls;
@@ -190,20 +186,7 @@ export class RequestList {
         }
         this.isLoading = true;
 
-        let state;
-        let sources;
-        if (this.initialState) {
-            log.debug('RequestList: Loading previous state from options.state argument.');
-            state = this.initialState;
-        } else if (this.shouldPersist) {
-            log.debug('RequestList: Loading previous state and sources from key value store.');
-            [state, sources] = await Promise.all([
-                getValue(this.stateKey),
-                getValue(this.sourcesKey),
-            ]);
-        } else if (this.persistStateKey) {
-            state = await getValue(this.persistStateKey);
-        }
+        const [state, sources] = await this._loadStateAndSources();
 
         // If there are no sources, it just means that we've not persisted any (yet).
         if (sources) this.areSourcesPersisted = true;
@@ -217,9 +200,8 @@ export class RequestList {
 
         this._restoreState(state);
         this.isInitialized = true;
-        // TODO refactor after persistStateKey removal.
-        if (this.shouldPersist && !this.areSourcesPersisted) await this._persistSources();
-        if (this.shouldPersist || this.persistStateKey) {
+        if (this.persistSourcesKey && !this.areSourcesPersisted) await this._persistSources();
+        if (this.persistStateKey) {
             events.on(ACTOR_EVENT_NAMES_EX.PERSIST_STATE, this.persistState.bind(this));
         }
     }
@@ -234,14 +216,12 @@ export class RequestList {
      * @return {Promise}
      */
     async persistState() {
-        // TODO refactor after persistStateKey removal.
-        if (!this.shouldPersist && !this.persistStateKey) {
-            throw new Error('RequestList: Cannot persist state. options.stateKeyPrefix is not set.');
+        if (!this.persistStateKey) {
+            throw new Error('RequestList: Cannot persist state. options.persistStateKey is not set.');
         }
-        const key = this.stateKey || this.persistStateKey;
         if (this.isStatePersisted) return;
         try {
-            await setValue(key, this.getState());
+            await setValue(this.persistStateKey, this.getState());
             this.isStatePersisted = true;
         } catch (err) {
             log.exception(err, 'RequestList attempted to persist state, but failed.');
@@ -250,14 +230,14 @@ export class RequestList {
 
     /**
      * Unlike persistState(), this is used only internally, since the sources
-     * are automatically persisted at RequestList initialization (if the prefix is set),
+     * are automatically persisted at RequestList initialization (if the persistSourcesKey is set),
      * but there's no reason to persist it again afterwards, because RequestList is immutable.
      *
      * @return {Promise}
      * @ignore
      */
     async _persistSources() {
-        await setValue(this.sourcesKey, this.sources);
+        await setValue(this.persistSourcesKey, this.sources);
         this.areSourcesPersisted = true;
     }
 
@@ -318,6 +298,29 @@ export class RequestList {
 
         // All in-progress requests need to be recrawled
         this.reclaimed = _.clone(this.inProgress);
+    }
+
+    /**
+     * Attempts to load state and sources using the `RequestList` configuration
+     * and returns a tuple of [state, sources] where each may be null if not loaded.
+     *
+     * @return {Promise<Array>}
+     * @ignore
+     */
+    async _loadStateAndSources() {
+        let state;
+        if (this.initialState) {
+            log.debug('RequestList: Loading previous state from options.state argument.');
+            state = this.initialState;
+        } else if (this.persistStateKey) {
+            log.debug('RequestList: Loading previous state from key value store using the persistStateKey.');
+            state = getValue(this.persistStateKey);
+        }
+        if (this.persistSourcesKey) {
+            log.debug('RequestList: Loading sources from key value store using the persistSourcesKey.');
+            return Promise.all([state, getValue(this.persistSourcesKey)]);
+        }
+        return [await state, null];
     }
 
     /**
@@ -573,9 +576,27 @@ export class RequestList {
  *
  * For more details and code examples, see the {@link RequestList} class.
  *
+ * **Example Usage:**
+ *
+ * ```javascript
+ * const sources = [
+ *     'https://www.example.com',
+ *     'https://www.google.com',
+ *     'https://www.bing.com'
+ * ];
+ *
+ * const requestList = await Apify.openRequestList('my-name', sources);
+ * ```
+ *
  * @param {string|null} listName
- *   Name of the request list to be opened. It will be used as a prefix for key value store
- *   values that persist request list data, such as `REQUEST_LIST_STATE` or `REQUEST_LIST_SOURCES`.
+ *   Name of the request list to be opened. Setting a name enables the `RequestList`'s state to be persisted
+ *   in the key value store. This is useful in case of a restart or migration. Since `RequestList` is only
+ *   stored in memory, a restart or migration wipes it clean. Setting a name will enable the `RequestList`'s
+ *   state to survive those situations and continue where it left off.
+ *
+ *   The name will be used as a prefix in key value store, producing keys such as `NAME-REQUEST_LIST_STATE`
+ *   and `NAME-REQUEST_LIST_SOURCES`.
+ *
  *   If `null`, the list will not be persisted and will only be stored in memory. Process restart
  *   will then cause the list to be crawled again from the beginning. We suggest always using a name.
  * @param {Object[]|string[]} sources
@@ -585,7 +606,7 @@ export class RequestList {
  *   options for details.
  * @param {Object} [options]
  *   The (`new RequestList`)(RequestList#new_RequestList_new) options. Note that the listName parameter supersedes
- *   the `stateKeyPrefix` option and the sources parameter supersedes the `sources` option.
+ *   the `persistStateKey` and `persistSourcesKey` options and the sources parameter supersedes the `sources` option.
  * @returns {Promise<RequestList>}
  * @memberof module:Apify
  * @name openRequestList
@@ -601,7 +622,8 @@ export const openRequestList = async (listName, sources, options = {}) => {
 
     const rl = new RequestList({
         ...options,
-        stateKeyPrefix: listName,
+        persistStateKey: listName ? `${listName}-${STATE_PERSISTENCE_KEY}` : null,
+        persistSourcesKey: listName ? `${listName}-${SOURCES_PERSISTENCE_KEY}` : null,
         sources,
     });
     await rl.initialize();
