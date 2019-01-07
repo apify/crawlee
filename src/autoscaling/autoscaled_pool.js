@@ -161,6 +161,7 @@ class AutoscaledPool {
         this.isTaskReadyFunction = isTaskReadyFunction;
 
         // Internal properties.
+        this.isPaused = false;
         this.desiredConcurrency = this.minConcurrency;
         this.currentConcurrency = 0;
         this.lastLoggingTime = 0;
@@ -239,6 +240,49 @@ class AutoscaledPool {
     }
 
     /**
+     * Prevents the auto-scaled pool from starting new tasks, but allows the running ones to finish
+     * (unlike abort, which terminates them). Used together with [`resume()`](#AutoscaledPool+resume)
+     *
+     * The function's promise will resolve once all running tasks have completed and the pool
+     * is effectively idle. If the `timeoutSecs` argument is provided, the promise will reject
+     * with a timeout error after the `timeoutSecs` seconds.
+     * @param {number} [timeoutSecs]
+     * @return {Promise}
+     */
+    async pause(timeoutSecs) {
+        this.isPaused = true;
+        return new Promise((resolve, reject) => {
+            let timeout;
+            if (timeoutSecs) {
+                timeout = setTimeout(() => {
+                    const err = new Error('AutoscaledPool: The pool\'s running tasks did not finish'
+                        + `in ${timeoutSecs} secs after pool.pause() invocation.`);
+                    reject(err);
+                }, timeoutSecs);
+            }
+
+            const interval = setInterval(() => {
+                if (this.currentConcurrency <= 0) {
+                    // Clean up timeout and interval to prevent process hanging.
+                    if (timeout) clearTimeout(timeout);
+                    clearInterval(interval);
+                    resolve();
+                }
+            }, this.maybeRunIntervalMillis);
+        });
+    }
+
+    /**
+     * Resumes the operation of the autoscaled-pool by allowing more tasks to be run.
+     * Used together with [`pause()`](#AutoscaledPool+pause)
+     *
+     * Tasks will automatically start running again in `options.maybeRunIntervalSecs`.
+     */
+    resume() {
+        this.isPaused = false;
+    }
+
+    /**
      * Starts a new task
      * if the number of running tasks (current concurrency) is lower than desired concurrency
      * and the system is not currently overloaded
@@ -253,6 +297,8 @@ class AutoscaledPool {
         const done = intervalCallback || (() => {});
 
         // Prevent starting a new task if:
+        // - the pool is paused
+        if (this.isPaused) return done();
         // - we are already querying for a task.
         if (this.queryingIsTaskReady) return done();
         // - we would exceed desired concurrency.
@@ -318,6 +364,9 @@ class AutoscaledPool {
      * @ignore
      */
     _autoscale(intervalCallback) {
+        // Don't scale if paused.
+        if (this.isPaused) return intervalCallback();
+
         // Only scale up if:
         // - system has not been overloaded lately.
         const systemStatus = this.systemStatus.getHistoricalStatus();
