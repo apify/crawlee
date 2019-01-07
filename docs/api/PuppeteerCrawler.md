@@ -63,7 +63,6 @@ await crawler.run();
 * [PuppeteerCrawler](puppeteercrawler)
     * [`new PuppeteerCrawler(options)`](#new_PuppeteerCrawler_new)
     * [`.run()`](#PuppeteerCrawler+run) ⇒ <code>Promise</code>
-    * [`.abort()`](#PuppeteerCrawler+abort) ⇒ <code>Promise</code>
 
 <a name="new_PuppeteerCrawler_new"></a>
 
@@ -91,7 +90,8 @@ await crawler.run();
   request: Request,
   response: Response,
   page: Page,
-  puppeteerPool: PuppeteerPool
+  puppeteerPool: PuppeteerPool,
+  autoscaledPool: AutoscaledPool
 }
 </code></pre><p>  <code>request</code> is an instance of the <a href="request"><code>Request</code></a> object with details about the URL to open, HTTP method etc.
   <code>response</code> is an instance of the <code>Puppeteer</code>
@@ -242,9 +242,4 @@ await crawler.run();
 
 ## `puppeteerCrawler.run()` ⇒ <code>Promise</code>
 Runs the crawler. Returns promise that gets resolved once all the requests got processed.
-
-<a name="PuppeteerCrawler+abort"></a>
-
-## `puppeteerCrawler.abort()` ⇒ <code>Promise</code>
-Aborts the crawler by preventing crawls of additional pages and terminating the running ones.
 

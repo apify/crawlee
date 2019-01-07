@@ -24,6 +24,7 @@ accessible from the left sidebar.
     * [`.main(userFunc)`](#module_Apify.main)
     * [`.openDataset([datasetIdOrName], [options])`](#module_Apify.openDataset) ⇒ [<code>Promise&lt;Dataset&gt;</code>](dataset)
     * [`.openKeyValueStore([storeIdOrName], [options])`](#module_Apify.openKeyValueStore) ⇒ [<code>Promise&lt;KeyValueStore&gt;</code>](keyvaluestore)
+    * [`.openRequestList`](#module_Apify.openRequestList) ⇒ [<code>Promise&lt;RequestList&gt;</code>](requestlist)
     * [`.openRequestQueue`](#module_Apify.openRequestQueue) ⇒ [<code>Promise&lt;RequestQueue&gt;</code>](requestqueue)
     * [`.pushData(item)`](#module_Apify.pushData) ⇒ <code>Promise</code>
     * [`.setValue(key, value, [options])`](#module_Apify.setValue) ⇒ <code>Promise</code>
@@ -709,6 +710,66 @@ For more details and code examples, see the [`KeyValueStore`](keyvaluestore) cla
 <tr>
 <td colspan="3"><p>If set to <code>true</code> then the function uses cloud storage usage even if the <code>APIFY_LOCAL_STORAGE_DIR</code>
   environment variable is set. This way it is possible to combine local and cloud storage.</p>
+</td></tr></tbody>
+</table>
+<a name="module_Apify.openRequestList"></a>
+
+## `Apify.openRequestList` ⇒ [<code>Promise&lt;RequestList&gt;</code>](requestlist)
+Opens a request list and returns a promise resolving to an instance
+of the [`RequestList`](requestlist) class that is already initialized.
+
+[`RequestList`](requestlist) represents a list of URLs to crawl, which is always stored in memory.
+To enable picking up where left off after a process restart, the request list sources
+are persisted to the key value store at initialization of the list. Then, while crawling,
+a small state object is regularly persisted to keep track of the crawling status.
+
+For more details and code examples, see the [`RequestList`](requestlist) class.
+
+**Example Usage:**
+
+```javascript
+const sources = [
+    'https://www.example.com',
+    'https://www.google.com',
+    'https://www.bing.com'
+];
+
+const requestList = await Apify.openRequestList('my-name', sources);
+```
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>listName</code></td><td><code>string</code> | <code>null</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Name of the request list to be opened. Setting a name enables the <code>RequestList</code>&#39;s state to be persisted
+  in the key value store. This is useful in case of a restart or migration. Since <code>RequestList</code> is only
+  stored in memory, a restart or migration wipes it clean. Setting a name will enable the <code>RequestList</code>&#39;s
+  state to survive those situations and continue where it left off.</p>
+<p>  The name will be used as a prefix in key value store, producing keys such as <code>NAME-REQUEST_LIST_STATE</code>
+  and <code>NAME-REQUEST_LIST_SOURCES</code>.</p>
+<p>  If <code>null</code>, the list will not be persisted and will only be stored in memory. Process restart
+  will then cause the list to be crawled again from the beginning. We suggest always using a name.</p>
+</td></tr><tr>
+<td><code>sources</code></td><td><code>Array&lt;Object&gt;</code> | <code>Array&lt;string&gt;</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Sources represent the URLs to crawl. It can either be a <code>string[]</code> with plain URLs or an <code>Object[]</code>.
+  The objects&#39; contents can either be just plain objects, defining at least the &#39;url&#39; property
+  or instances of the <a href="request"><code>Request</code></a> class. See the (<code>new RequestList</code>)(RequestList#new_RequestList_new)
+  options for details.</p>
+</td></tr><tr>
+<td><code>[options]</code></td><td><code>Object</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>The (<code>new RequestList</code>)(RequestList#new_RequestList_new) options. Note that the listName parameter supersedes
+  the <code>persistStateKey</code> and <code>persistSourcesKey</code> options and the sources parameter supersedes the <code>sources</code> option.</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.openRequestQueue"></a>
