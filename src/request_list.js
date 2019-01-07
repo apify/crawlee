@@ -573,9 +573,27 @@ export class RequestList {
  *
  * For more details and code examples, see the {@link RequestList} class.
  *
+ * **Example Usage:**
+ *
+ * ```javascript
+ * const sources = [
+ *     'https://www.example.com',
+ *     'https://www.google.com',
+ *     'https://www.bing.com'
+ * ];
+ *
+ * const requestList = await Apify.openRequestList('my-name', sources);
+ * ```
+ *
  * @param {string|null} listName
- *   Name of the request list to be opened. It will be used as a prefix for key value store
- *   values that persist request list data, such as `REQUEST_LIST_STATE` or `REQUEST_LIST_SOURCES`.
+ *   Name of the request list to be opened. Setting a name enables the `RequestList`'s state to be persisted
+ *   in the key value store. This is useful in case of a restart or migration. Since `RequestList` is only
+ *   stored in memory, a restart or migration wipes it clean. Setting a name will enable the `RequestList`'s
+ *   state to survive those situations and continue where it left off.
+ *
+ *   The name will be used as a prefix in key value store, producing keys such as `NAME-REQUEST_LIST_STATE`
+ *   and `NAME-REQUEST_LIST_SOURCES`.
+ *
  *   If `null`, the list will not be persisted and will only be stored in memory. Process restart
  *   will then cause the list to be crawled again from the beginning. We suggest always using a name.
  * @param {Object[]|string[]} sources
