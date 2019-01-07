@@ -1,4 +1,4 @@
-0.10.4 / 2018-01-07
+0.11.0 / 2018-01-07
 ===================
 - Added sources persistence option to `RequestList` that works best in conjunction with the state persistence,
   but can be toggled separately too.
