@@ -292,7 +292,7 @@ class PuppeteerCrawler {
         try {
             const response = await this.gotoFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool });
             await addTimeoutToPromise(
-                this.handlePageFunction({ page, request, puppeteerPool: this.puppeteerPool, response }),
+                this.handlePageFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool, response }),
                 this.handlePageTimeoutMillis,
                 'PuppeteerCrawler: handlePageFunction timed out.',
             );
