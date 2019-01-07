@@ -20,6 +20,15 @@ const DEFAULT_OPTIONS = {
     },
     ignoreSslErrors: false,
     useApifyProxy: false,
+    autoscaledPoolOptions: {
+        snapshotterOptions: {
+            eventLoopSnapshotIntervalSecs: 2,
+            maxBlockedMillis: 100,
+        },
+        systemStatusOptions: {
+            maxEventLoopOverloadedRatio: 0.7,
+        },
+    },
 };
 
 /**
@@ -98,7 +107,8 @@ const DEFAULT_OPTIONS = {
  *   $: Cheerio, // the Cheerio object with parsed HTML
  *   html: String // the raw HTML of the page
  *   request: Request,
- *   response: Object // An instance of Node's http.IncomingMessage object
+ *   response: Object // An instance of Node's http.IncomingMessage object,
+ *   autoscaledPool: AutoscaledPool
  * }
  * ```
  *   With the {@link Request} object representing the URL to crawl.
@@ -180,7 +190,9 @@ const DEFAULT_OPTIONS = {
  * @param {Object} [options.autoscaledPoolOptions]
  *   Custom options passed to the underlying {@link AutoscaledPool} constructor.
  *   Note that the `runTaskFunction`, `isTaskReadyFunction` and `isFinishedFunction` options
- *   are provided by `CheerioCrawler` and cannot be overridden.
+ *   are provided by `CheerioCrawler` and cannot be overridden. Reasonable {@link Snapshotter}
+ *   and {@link SystemStatus} defaults are provided to account for the fact that `cheerio`
+ *   parses HTML synchronously and therefore blocks the event loop.
  * @param {Object} [options.minConcurrency=1]
  *   Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
  *
@@ -231,17 +243,10 @@ class CheerioCrawler {
         if (proxyUrls && !proxyUrls.length) throw new Error('Parameter "options.proxyUrls" of type Array must not be empty');
         if (useApifyProxy && proxyUrls) throw new Error('Cannot combine "options.useApifyProxy" with "options.proxyUrls"!');
 
-        this.requestFunction = async ({ request }) => {
-            if (!this.isRunning) throw new Error('CheerioCrawler is stopped.');
-            const rfPromise = requestFunction
-                ? requestFunction({ request })
-                : this._defaultRequestFunction({ request });
-
-            // Return the response of requestFunction or throw.
-            return Promise.race([
-                rfPromise,
-                this.rejectOnAbortPromise,
-            ]);
+        this.requestFunction = async ({ request, autoscaledPool }) => {
+            return requestFunction
+                ? requestFunction({ request, autoscaledPool })
+                : this._defaultRequestFunction({ request, autoscaledPool });
         };
         this.requestOptions = requestOptions;
         this.handlePageFunction = handlePageFunction;
@@ -271,6 +276,7 @@ class CheerioCrawler {
 
         // See the _suppressTunnelAgentAssertError function.
         this.tunnelAgentExceptionListener = null;
+        this.isRunningPromise = null;
     }
 
     /**
@@ -279,32 +285,13 @@ class CheerioCrawler {
      * @return {Promise}
      */
     async run() {
-        if (this.isRunning) return this.isRunningPromise;
+        if (this.isRunningPromise) return this.isRunningPromise;
 
-        this.isRunning = true;
-        this.rejectOnAbortPromise = new Promise((r, reject) => { this.rejectOnAbort = reject; });
         this._suppressTunnelAgentAssertError();
-        try {
-            this.isRunningPromise = this.basicCrawler.run();
-            await this.isRunningPromise;
-            this.isRunning = false;
-            process.removeListener('uncaughtException', this.tunnelAgentExceptionListener);
-            this.tunnelAgentExceptionListener = null;
-        } catch (err) {
-            this.isRunning = false; // Doing this before rejecting to make sure it's set when error handlers fire.
-            this.rejectOnAbort(err);
-        }
-    }
-
-    /**
-     * Aborts the crawler by preventing crawls of additional pages and terminating the running ones.
-     *
-     * @return {Promise}
-     */
-    async abort() {
-        this.isRunning = false;
-        await this.basicCrawler.abort();
-        this.rejectOnAbort(new Error('CheerioCrawler: .abort() function has been called. Aborting the crawler.'));
+        this.isRunningPromise = this.basicCrawler.run();
+        await this.isRunningPromise;
+        process.removeListener('uncaughtException', this.tunnelAgentExceptionListener);
+        this.tunnelAgentExceptionListener = null;
     }
 
     /**
@@ -312,17 +299,12 @@ class CheerioCrawler {
      *
      * @ignore
      */
-    async _handleRequestFunction({ request }) {
-        if (!this.isRunning) throw new Error('CheerioCrawler is stopped.');
-
-        const rfPromise = this.requestFunction({ request });
-        // rejectOnAbortPromise rejects when .abort() is called or BasicCrawler throws.
-        // All running pages are therefore terminated with an error to be reclaimed and retried.
-        const response = await Promise.race([
-            addTimeoutToPromise(rfPromise, this.requestTimeoutMillis, 'CheerioCrawler: requestFunction timed out.'),
-            this.rejectOnAbortPromise,
-        ]);
-
+    async _handleRequestFunction({ request, autoscaledPool }) {
+        const response = await addTimeoutToPromise(
+            this.requestFunction({ request, autoscaledPool }),
+            this.requestTimeoutMillis,
+            'CheerioCrawler: requestFunction timed out.',
+        );
 
         let html;
         if (typeof response === 'string') html = response;
@@ -330,14 +312,11 @@ class CheerioCrawler {
         else throw new Error('CheerioCrawler: requestFunction returned neither string, nor an object with a body property of type string.');
 
         const $ = cheerio.load(html);
-        await Promise.race([
-            addTimeoutToPromise(
-                this.handlePageFunction({ $, html, request, response }),
-                this.handlePageTimeoutMillis,
-                'CheerioCrawler: handlePageFunction timed out.',
-            ),
-            this.rejectOnAbortPromise,
-        ]);
+        return addTimeoutToPromise(
+            this.handlePageFunction({ $, html, request, response, autoscaledPool }),
+            this.handlePageTimeoutMillis,
+            'CheerioCrawler: handlePageFunction timed out.',
+        );
     }
 
     /**
@@ -502,7 +481,7 @@ class CheerioCrawler {
     _suppressTunnelAgentAssertError() {
         // Only set the handler if it's not already set.
         if (this.tunnelAgentExceptionListener) return;
-        this.tunnelAgentExceptionListener = process.on('uncaughtException', (err) => {
+        this.tunnelAgentExceptionListener = (err) => {
             try {
                 const code = err.code === 'ERR_ASSERTION';
                 const name = err.name === 'AssertionError [ERR_ASSERTION]';
@@ -522,7 +501,8 @@ class CheerioCrawler {
             }
             // Rethrow the original error if it's not a match.
             throw err;
-        });
+        };
+        process.on('uncaughtException', this.tunnelAgentExceptionListener);
     }
 }
 

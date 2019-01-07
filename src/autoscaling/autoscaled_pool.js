@@ -161,7 +161,7 @@ class AutoscaledPool {
         this.isTaskReadyFunction = isTaskReadyFunction;
 
         // Internal properties.
-        this.isPaused = false;
+        this.isStopped = false;
         this.desiredConcurrency = this.minConcurrency;
         this.currentConcurrency = 0;
         this.lastLoggingTime = 0;
@@ -228,11 +228,20 @@ class AutoscaledPool {
     }
 
     /**
-     * Aborts the run of the auto-scaled pool, discards all currently running tasks and destroys it.
+     * Aborts the run of the auto-scaled pool and destroys it. The promise returned from
+     * the [`run()`](#AutoscaledPool+run) function will immediately resolve, no more new tasks
+     * will be spawned and all running tasks will be left in their current state.
+     *
+     * Due to the nature of the tasks, auto-scaled pool cannot reliably guarantee abortion
+     * of all the running tasks, therefore, no abortion is attempted and some of the tasks
+     * may finish, while others may not. Essentially, auto-scaled pool doesn't care about
+     * their state after the invocation of `.abort()`, but that does not mean that some
+     * parts of their asynchronous chains of commands will not execute.
      *
      * @return {Promise}
      */
     async abort() {
+        this.isStopped = true;
         if (this.resolve) {
             this.resolve();
             await this._destroy();
@@ -246,11 +255,16 @@ class AutoscaledPool {
      * The function's promise will resolve once all running tasks have completed and the pool
      * is effectively idle. If the `timeoutSecs` argument is provided, the promise will reject
      * with a timeout error after the `timeoutSecs` seconds.
+     *
+     * The promise returned from the [`run()`](#AutoscaledPool+run) function will not resolve
+     * when `.pause()` is invoked (unlike abort, which resolves it).
+     *
      * @param {number} [timeoutSecs]
      * @return {Promise}
      */
     async pause(timeoutSecs) {
-        this.isPaused = true;
+        if (this.isStopped) return;
+        this.isStopped = true;
         return new Promise((resolve, reject) => {
             let timeout;
             if (timeoutSecs) {
@@ -279,7 +293,7 @@ class AutoscaledPool {
      * Tasks will automatically start running again in `options.maybeRunIntervalSecs`.
      */
     resume() {
-        this.isPaused = false;
+        this.isStopped = false;
     }
 
     /**
@@ -297,8 +311,8 @@ class AutoscaledPool {
         const done = intervalCallback || (() => {});
 
         // Prevent starting a new task if:
-        // - the pool is paused
-        if (this.isPaused) return done();
+        // - the pool is paused or aborted
+        if (this.isStopped) return done();
         // - we are already querying for a task.
         if (this.queryingIsTaskReady) return done();
         // - we would exceed desired concurrency.
@@ -365,7 +379,7 @@ class AutoscaledPool {
      */
     _autoscale(intervalCallback) {
         // Don't scale if paused.
-        if (this.isPaused) return intervalCallback();
+        if (this.isStopped) return intervalCallback();
 
         // Only scale up if:
         // - system has not been overloaded lately.
