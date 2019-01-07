@@ -1,4 +1,3 @@
-import 'babel-polyfill';
 import WebSocket from 'ws';
 import sinon from 'sinon';
 import { expect } from 'chai';

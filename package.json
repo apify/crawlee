@@ -3,7 +3,7 @@
   "version": "0.10.3",
   "description": "The scalable web crawling and scraping library for JavaScript. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.",
   "engines": {
-    "node": ">=8.0.0"
+    "node": ">=8.14.0"
   },
   "main": "build/index.js",
   "keywords": [
@@ -41,7 +41,7 @@
     "build": "rm -rf ./build && babel src --out-dir build",
     "build-docs": "npm run clean && npm run build && node ./website/tools/build_docs.js",
     "build-readme": "node ./tools/build_readme.js",
-    "test": "npm run build &&  nyc --reporter=html --reporter=text mocha --timeout 60000 --require babel-core/register --recursive --exit",
+    "test": "npm run build &&  nyc --reporter=html --reporter=text mocha --timeout 60000 --require @babel/register --recursive --exit",
     "prepare": "npm run build",
     "prepublishOnly": "(test $RUNNING_FROM_SCRIPT || (echo \"You must use publish.sh instead of 'npm publish' directly!\"; exit 1)) && npm test && npm run lint",
     "clean": "rm -rf build",
@@ -64,12 +64,13 @@
     "rimraf": "^2.6.2",
     "underscore": "^1.9.1",
     "ws": "^6.1.2",
-    "xregexp": "^4.2.0"
+    "xregexp": "4.2.0"
   },
   "devDependencies": {
-    "babel-cli": "^6.26.0",
-    "babel-polyfill": "^6.26.0",
-    "babel-preset-env": "^1.7.0",
+    "@babel/cli": "^7.0.0",
+    "@babel/core": "^7.0.0",
+    "@babel/preset-env": "^7.0.0",
+    "@babel/register": "^7.0.0",
     "basic-auth-parser": "^0.0.2",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
