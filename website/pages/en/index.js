@@ -216,7 +216,7 @@ const TryOut = () => (
                     '        handlePageFunction: async ({ request, page }) => {\n' +
                     '            const title = await page.title();\n' +
                     '            console.log(`Title of ${request.url}: ${title}`);\n' +
-                    '            await Apify.utils.puppeteer.enqueueLinks(page, \'a\', pseudoUrls, requestQueue);\n' +
+                    '            await Apify.utils.puppeteer.enqueueLinks({ page, selector: \'a\', pseudoUrls, requestQueue });\n' +
                     '        },\n' +
                     '        maxRequestsPerCrawl: 100,\n' +
                     '        maxConcurrency: 10,\n' +

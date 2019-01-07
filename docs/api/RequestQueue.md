@@ -51,9 +51,9 @@ const queue = await Apify.openRequestQueue();
 const queueWithName = await Apify.openRequestQueue('some-name');
 
 // Enqueue few requests
-await queue.addRequest(new Apify.Request({ url: 'http://example.com/aaa' }));
-await queue.addRequest(new Apify.Request({ url: 'http://example.com/bbb' }));
-await queue.addRequest(new Apify.Request({ url: 'http://example.com/foo/bar' }), { forefront: true });
+await queue.addRequest({ url: 'http://example.com/aaa' });
+await queue.addRequest({ url: 'http://example.com/bbb' });
+await queue.addRequest({ url: 'http://example.com/foo/bar' }, { forefront: true });
 
 // Get requests from queue
 const request1 = await queue.fetchNextRequest();
