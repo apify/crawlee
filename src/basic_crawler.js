@@ -181,6 +181,7 @@ class BasicCrawler {
         this.maxRequestRetries = maxRequestRetries;
         this.handledRequestsCount = 0;
 
+        let shouldLogMaxPagesExceeded = true;
         const isMaxPagesExceeded = () => maxRequestsPerCrawl && maxRequestsPerCrawl <= this.handledRequestsCount;
 
         const { isFinishedFunction } = autoscaledPoolOptions;
@@ -190,14 +191,22 @@ class BasicCrawler {
             maxConcurrency,
             runTaskFunction: this._runTaskFunction.bind(this),
             isTaskReadyFunction: async () => {
-                if (isMaxPagesExceeded()) return false;
+                if (isMaxPagesExceeded()) {
+                    if (shouldLogMaxPagesExceeded) {
+                        log.info('BasicCrawler: Crawler reached the maxRequestsPerCrawl limit of '
+                            + `${maxRequestsPerCrawl} requests and will shut down soon. Requests that are in progress will be allowed to finish.`);
+                        shouldLogMaxPagesExceeded = false;
+                    }
+                    return false;
+                }
 
                 return this._isTaskReadyFunction();
             },
             isFinishedFunction: async () => {
                 if (isMaxPagesExceeded()) {
-                    log.info('BasicCrawler: Crawler reached the max requests per crawl limit by crawling '
-                        + `${this.handledRequestsCount} requests and will shut down.`);
+                    log.info(`BasicCrawler: Earlier, the crawler reached the maxRequestsPerCrawl limit of ${maxRequestsPerCrawl} requests `
+                        + 'and all requests that were in progress at that time have now finished. '
+                        + `In total, the crawler processed ${this.handledRequestsCount} requests and will shut down.`);
                     return true;
                 }
 
