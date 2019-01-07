@@ -9,7 +9,6 @@ import { ACTOR_EVENT_NAMES_EX } from '../build/constants';
 import Apify from '../build/index';
 import * as keyValueStore from '../build/key_value_store';
 import * as utils from '../build/utils';
-import { STATE_PERSISTENCE_KEY, SOURCES_PERSISTENCE_KEY } from '../build/request_list';
 
 chai.use(chaiAsPromised);
 
@@ -463,98 +462,63 @@ describe('Apify.RequestList', () => {
         expect(requestList2.getState()).to.be.eql(requestList.getState());
 
         mock.verify();
-        mock.restore();
     });
 
-    it('should correctly persist its state when stateKeyPrefix is set', async () => {
-        const STATE_PREFIX = 'prefix';
-        const STATE_KEY = `${STATE_PREFIX}-${STATE_PERSISTENCE_KEY}`;
-        const SOURCES_KEY = `${STATE_PREFIX}-${SOURCES_PERSISTENCE_KEY}`;
-        const sources = [
-            { url: 'https://example.com/1' },
-            { url: 'https://example.com/2' },
-            { url: 'https://example.com/3' },
-        ];
+    it('should correctly persist its sources when persistSourcesKey is set', async () => {
+        const PERSIST_SOURCES_KEY = 'some-key';
         const mock = sinon.mock(keyValueStore);
 
-        mock.expects('getValue')
-            .once()
-            .withArgs(STATE_KEY)
-            .returns(null);
-        mock.expects('getValue')
-            .once()
-            .withArgs(SOURCES_KEY)
-            .returns(null);
-
         const opts = {
-            sources: [...sources],
-            stateKeyPrefix: STATE_PREFIX,
+            sources: [
+                { url: 'https://example.com/1' },
+                { url: 'https://example.com/2' },
+                { url: 'https://example.com/3' },
+            ],
+            persistSourcesKey: PERSIST_SOURCES_KEY,
         };
 
         const requestList = new Apify.RequestList(opts);
         expect(requestList.areSourcesPersisted).to.be.eql(false);
 
+        // Expect an attempt to load sources.
+        mock.expects('getValue')
+            .once()
+            .withArgs(PERSIST_SOURCES_KEY)
+            .returns(null);
+
+        // Expect persist sources.
         mock.expects('setValue')
             .once()
-            .withArgs(SOURCES_KEY, sources)
+            .withArgs(PERSIST_SOURCES_KEY, requestList.sources)
             .returns(Promise.resolve());
 
         await requestList.initialize();
-        expect(requestList.isStatePersisted).to.be.eql(true);
         expect(requestList.areSourcesPersisted).to.be.eql(true);
 
-        // Fetch one request and check that state is not persisted.
-        const request1 = await requestList.fetchNextRequest();
-        expect(requestList.isStatePersisted).to.be.eql(false);
-        expect(requestList.areSourcesPersisted).to.be.eql(true);
+        const opts2 = {
+            sources: [
+                { url: 'https://test.com/1' },
+                { url: 'https://test.com/2' },
+                { url: 'https://test.com/3' },
+            ],
+            persistSourcesKey: PERSIST_SOURCES_KEY,
+        };
 
-        // Persist state.
-        mock.expects('setValue')
-            .once()
-            .withArgs(STATE_KEY, requestList.getState())
-            .returns(Promise.resolve());
-        Apify.events.emit(ACTOR_EVENT_NAMES_EX.PERSIST_STATE);
-        await delayPromise(1);
-        expect(requestList.isStatePersisted).to.be.eql(true);
-        expect(requestList.areSourcesPersisted).to.be.eql(true);
+        const requestList2 = new Apify.RequestList(opts2);
+        expect(requestList2.areSourcesPersisted).to.be.eql(false);
 
-        // Do some other changes and persist it again.
-        const request2 = await requestList.fetchNextRequest();
-        expect(requestList.isStatePersisted).to.be.eql(false);
-        expect(requestList.areSourcesPersisted).to.be.eql(true);
-        await requestList.markRequestHandled(request2);
-        expect(requestList.isStatePersisted).to.be.eql(false);
-        expect(requestList.areSourcesPersisted).to.be.eql(true);
-        mock.expects('setValue')
-            .once()
-            .withArgs(STATE_KEY, requestList.getState())
-            .returns(Promise.resolve());
-        Apify.events.emit(ACTOR_EVENT_NAMES_EX.PERSIST_STATE);
-        await delayPromise(1);
-        expect(requestList.isStatePersisted).to.be.eql(true);
-        expect(requestList.areSourcesPersisted).to.be.eql(true);
-
-        // Reclaim event doesn't change the state.
-        await requestList.reclaimRequest(request1);
-        expect(requestList.isStatePersisted).to.be.eql(true);
-        expect(requestList.areSourcesPersisted).to.be.eql(true);
-
-        // Now initiate new request list from saved state and check that it's same as state
-        // of original request list.
+        // Now initialize new request list from saved sources and check that
+        // they are same as state of original request list.
         mock.expects('getValue')
             .once()
-            .withArgs(STATE_KEY)
-            .returns(Promise.resolve(requestList.getState()));
-        mock.expects('getValue')
-            .once()
-            .withArgs(SOURCES_KEY)
-            .returns(sources);
-        const requestList2 = new Apify.RequestList({
-            sources: [{ url: 'https://iana.com' }], // change the sources to see if overridden
-            stateKeyPrefix: STATE_PREFIX,
-        });
+            .withArgs(PERSIST_SOURCES_KEY)
+            .returns(Promise.resolve(requestList.sources));
+
+        mock.expects('setValue')
+            .never();
+
         await requestList2.initialize();
-        expect(requestList2.getState()).to.be.eql(requestList.getState());
+        expect(requestList2.areSourcesPersisted).to.be.eql(true);
         expect(requestList2.requests).to.be.eql(requestList.requests);
 
         mock.verify();
@@ -699,8 +663,8 @@ describe('Apify.RequestList', () => {
 
             const rl = await Apify.openRequestList(name, sources);
             expect(rl).to.be.instanceof(Apify.RequestList);
-            expect(rl.stateKey.startsWith(name)).to.be.eql(true);
-            expect(rl.sourcesKey.startsWith(name)).to.be.eql(true);
+            expect(rl.persistStateKey.startsWith(name)).to.be.eql(true);
+            expect(rl.persistSourcesKey.startsWith(name)).to.be.eql(true);
             expect(rl.sources).to.be.eql(sources);
             expect(rl.isInitialized).to.be.eql(true);
 
@@ -716,8 +680,8 @@ describe('Apify.RequestList', () => {
 
             const rl = await Apify.openRequestList(name, sources);
             expect(rl).to.be.instanceof(Apify.RequestList);
-            expect(rl.stateKey.startsWith(name)).to.be.eql(true);
-            expect(rl.sourcesKey.startsWith(name)).to.be.eql(true);
+            expect(rl.persistStateKey.startsWith(name)).to.be.eql(true);
+            expect(rl.persistSourcesKey.startsWith(name)).to.be.eql(true);
             expect(rl.sources).to.be.eql(sources.map(url => ({ url })));
             expect(rl.isInitialized).to.be.eql(true);
 
@@ -732,13 +696,13 @@ describe('Apify.RequestList', () => {
             const sources = [{ url: 'https://example.com' }];
             const options = {
                 keepDuplicateUrls: true,
-                stateKeyPrefix: 'yyy',
+                persistStateKeyPrefix: 'yyy',
             };
 
             const rl = await Apify.openRequestList(name, sources, options);
             expect(rl).to.be.instanceof(Apify.RequestList);
-            expect(rl.stateKey.startsWith(name)).to.be.eql(true);
-            expect(rl.sourcesKey.startsWith(name)).to.be.eql(true);
+            expect(rl.persistStateKey.startsWith(name)).to.be.eql(true);
+            expect(rl.persistSourcesKey.startsWith(name)).to.be.eql(true);
             expect(rl.sources).to.be.eql(sources);
             expect(rl.isInitialized).to.be.eql(true);
             expect(rl.keepDuplicateUrls).to.be.eql(true);
@@ -755,9 +719,8 @@ describe('Apify.RequestList', () => {
 
             const rl = await Apify.openRequestList(name, sources);
             expect(rl).to.be.instanceof(Apify.RequestList);
-            expect(rl.shouldPersist).to.be.eql(false);
-            expect(rl.stateKey).to.be.eql(null);
-            expect(rl.sourcesKey).to.be.eql(null);
+            expect(rl.persistStateKey).to.be.eql(null);
+            expect(rl.persistSourcesKey).to.be.eql(null);
             expect(rl.sources).to.be.eql(sources);
             expect(rl.isInitialized).to.be.eql(true);
 
