@@ -1,4 +1,4 @@
-xxx
+0.10.4 / 2018-01-07
 ===================
 - Added sources persistence option to `RequestList` that works best in conjunction with the state persistence,
   but can be toggled separately too.
@@ -6,6 +6,7 @@ xxx
   `RequestList` created using this function will automatically persist state and sources.
 - Added `pool.pause()` and `pool.resume()` functions to `AutoscaledPool`. You can now pause the pool,
   which will prevent additional tasks from being run and wait for the running ones to finish.
+- Fixed a memory leak in `CheerioCrawler` and potentially other crawlers.
 
 0.10.2 / 2018-12-30
 ===================
