@@ -1,3 +1,7 @@
+0.11.1 / 2018-01-07
+===================
+- Fix missing `autoscaledPool` parameter in `handlePageFunction` of `PuppeteerCrawler`.
+
 0.11.0 / 2018-01-07
 ===================
 - **BREAKING CHANGE:** `basicCrawler.abort()`, `cheerioCrawler.abort()` and `puppeteerCrawler.abort()` functions
