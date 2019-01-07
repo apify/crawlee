@@ -4,6 +4,8 @@ xxx
   but can be toggled separately too.
 - Added `Apify.openRequestList()` function to place it in line with `RequestQueue`, `KeyValueStore` and `Dataset`.
   `RequestList` created using this function will automatically persist state and sources.
+- Added `pool.pause()` and `pool.resume()` functions to `AutoscaledPool`. You can now pause the pool,
+  which will prevent additional tasks from being run and wait for the running ones to finish.
 
 0.10.2 / 2018-12-30
 ===================
