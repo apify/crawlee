@@ -33,7 +33,7 @@
   "bugs": {
     "url": "https://github.com/apifytech/apify-js/issues"
   },
-  "homepage": "https://www.apify.com/docs/sdk",
+  "homepage": "https://sdk.apify.com/",
   "files": [
     "build"
   ],
