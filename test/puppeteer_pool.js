@@ -392,20 +392,16 @@ describe('PuppeteerPool', () => {
             let page = await pool.newPage();
             await pool.recyclePage(page);
             expect(len(pool.activeInstances)).to.be.eql(1);
-            expect(len(pool.retiredInstances)).to.be.eql(0);
 
             page = await pool.newPage();
             await pool.recyclePage(page);
             expect(len(pool.activeInstances)).to.be.eql(0);
-            expect(len(pool.retiredInstances)).to.be.eql(1);
 
             page = await pool.newPage();
             expect(len(pool.activeInstances)).to.be.eql(1);
-            expect(len(pool.retiredInstances)).to.be.eql(1);
 
             const pageTwo = await pool.newPage();
             expect(len(pool.activeInstances)).to.be.eql(0);
-            expect(len(pool.retiredInstances)).to.be.eql(2);
 
             await pool.recyclePage(page);
             await pool.recyclePage(pageTwo);
@@ -413,7 +409,6 @@ describe('PuppeteerPool', () => {
             await pool.newPage();
             expect(len(pool.activeInstances)).to.be.eql(1);
             await pool.newPage();
-            expect(len(pool.retiredInstances)).to.be.eql(3);
             expect(len(pool.activeInstances)).to.be.eql(0);
 
             await pool.destroy();
