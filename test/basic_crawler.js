@@ -1,11 +1,12 @@
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import _ from 'underscore';
-import 'babel-polyfill';
 import sinon from 'sinon';
 import log from 'apify-shared/log';
+import { ACTOR_EVENT_NAMES } from 'apify-shared/consts';
 import { delayPromise } from 'apify-shared/utilities';
 import * as Apify from '../build/index';
+import * as keyValueStore from '../build/key_value_store';
 import { RequestQueue, RequestQueueLocal } from '../build/request_queue';
 import { LOCAL_STORAGE_DIR } from './_helper';
 
@@ -50,44 +51,48 @@ describe('BasicCrawler', () => {
         expect(await requestList.isEmpty()).to.be.eql(true);
     });
 
-    it('should abort and resume', async () => {
+    it('should pause on migration event and persist RequestList state', async () => {
         const sources = _.range(500).map(index => ({ url: `https://example.com/${index + 1}` }));
 
-        let basicCrawler;
-        let isStopped;
+        let persistResolve;
+        const persistPromise = new Promise((res) => { persistResolve = res; });
+
+        // Mock the calls to persist sources.
+        const mock = sinon.mock(keyValueStore);
+        mock.expects('getValue').twice().resolves(null);
+        mock.expects('setValue').once().resolves();
+
         const processed = [];
-        const requestList = new Apify.RequestList({ sources });
+        const requestList = await Apify.openRequestList('reqList', sources);
         const handleRequestFunction = async ({ request }) => {
-            if (request.url.endsWith('200') && !isStopped) {
-                await basicCrawler.abort();
-                isStopped = true;
-            } else {
-                await delayPromise(10);
-                processed.push(_.pick(request, 'url'));
-            }
+            if (request.url.endsWith('200')) Apify.events.emit(ACTOR_EVENT_NAMES.MIGRATING);
+            processed.push(_.pick(request, 'url'));
         };
 
-        basicCrawler = new Apify.BasicCrawler({
+        const basicCrawler = new Apify.BasicCrawler({
             requestList,
             minConcurrency: 25,
             maxConcurrency: 25,
             handleRequestFunction,
         });
 
-        await requestList.initialize();
+        let finished = false;
+        // Mock the call to persist state.
+        mock.expects('setValue').once().callsFake(async () => { persistResolve(); });
+        // The crawler will pause after 200 requests
+        const runPromise = basicCrawler.run();
+        runPromise.then(() => { finished = true; });
+        await persistPromise;
 
-        // The crawler will stop after 200 requests
-        await basicCrawler.run();
-
-        expect(processed.length).to.be.within(175, 200);
+        expect(finished).to.be.eql(false);
         expect(await requestList.isFinished()).to.be.eql(false);
         expect(await requestList.isEmpty()).to.be.eql(false);
+        expect(processed.length).to.be.eql(200);
 
-        await basicCrawler.run();
-        expect(processed.length).to.be.within(500, 525);
-        expect(new Set(processed.map(p => p.url))).to.be.eql(new Set(sources.map(s => s.url)));
-        expect(await requestList.isFinished()).to.be.eql(true);
-        expect(await requestList.isEmpty()).to.be.eql(true);
+        mock.verify();
+
+        // clean up
+        await basicCrawler.autoscaledPool._destroy(); // eslint-disable-line no-underscore-dangle
     });
 
     it('should retry failed requests', async () => {

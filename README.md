@@ -116,7 +116,7 @@ The Apify SDK is available as the <a href="https://www.npmjs.com/package/apify">
   </li>
 </ul>
 
-## Getting Started
+## Getting Started Quick
 The Apify SDK requires <a href="https://nodejs.org/en/" target="_blank">Node.js</a> 8 or later.
 
 ### Local stand-alone usage
@@ -144,7 +144,7 @@ Apify.main(async () => {
         handlePageFunction: async ({ request, page }) => {
             const title = await page.title();
             console.log(`Title of ${request.url}: ${title}`);
-            await Apify.utils.puppeteer.enqueueLinks(page, 'a', pseudoUrls, requestQueue);
+            await Apify.utils.puppeteer.enqueueLinks({ page, selector: 'a', pseudoUrls, requestQueue });
         },
         maxRequestsPerCrawl: 100,
         maxConcurrency: 10,

@@ -9,7 +9,7 @@ console.log('Reading documentation files.');
 const introduction = readFileSync(path.join(docPath, 'readme', 'introduction.md'), 'utf8');
 const motivation = readFileSync(path.join(docPath, 'guides', 'motivation.md'), 'utf8');
 const overview = readFileSync(path.join(docPath, 'readme', 'overview.md'), 'utf8');
-const gettingStarted = readFileSync(path.join(docPath, 'guides', 'getting_started.md'), 'utf8');
+const gettingStarted = readFileSync(path.join(docPath, 'guides', 'getting_started_quick.md'), 'utf8');
 const support = readFileSync(path.join(docPath, 'readme', 'support.md'), 'utf8');
 
 const headerRx = /---.*?title: (.+)\n.*?---/s;

@@ -1,10 +1,25 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import _ from 'underscore';
 import log from 'apify-shared/log';
+import { ACTOR_EVENT_NAMES } from 'apify-shared/consts';
 import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import AutoscaledPool from './autoscaling/autoscaled_pool';
-import RequestList from './request_list';
+import { RequestList } from './request_list';
 import { RequestQueue, RequestQueueLocal } from './request_queue';
+import events from './events';
+
+/**
+ * Since there's no set number of seconds before the container is terminated after
+ * a migration event, we need some reasonable number to use for RequestList persistence.
+ * Once a migration event is received, the Crawler will be paused and it will wait for
+ * this long before persisting the RequestList state. This should allow most healthy
+ * requests to finish and be marked as handled, thus lowering the amount of duplicate
+ * results after migration.
+ *
+ * @type {number}
+ * @ignore
+ */
+const SAFE_MIGRATION_WAIT_MILLIS = 20000;
 
 const DEFAULT_OPTIONS = {
     maxRequestRetries: 3,
@@ -76,7 +91,8 @@ const DEFAULT_OPTIONS = {
  *   The function receives the following object as an argument:
  * ```
  * {
- *   request: Request
+ *   request: Request,
+ *   autoscaledPool: AutoscaledPool
  * }
  * ```
  *   where the {@link Request} instance represents the URL to crawl.
@@ -165,6 +181,7 @@ class BasicCrawler {
         this.maxRequestRetries = maxRequestRetries;
         this.handledRequestsCount = 0;
 
+        let shouldLogMaxPagesExceeded = true;
         const isMaxPagesExceeded = () => maxRequestsPerCrawl && maxRequestsPerCrawl <= this.handledRequestsCount;
 
         const { isFinishedFunction } = autoscaledPoolOptions;
@@ -172,21 +189,24 @@ class BasicCrawler {
         const basicCrawlerAutoscaledPoolConfiguration = {
             minConcurrency,
             maxConcurrency,
-            runTaskFunction: async () => {
-                if (!this.isRunning) return null;
-
-                return this._runTaskFunction();
-            },
+            runTaskFunction: this._runTaskFunction.bind(this),
             isTaskReadyFunction: async () => {
-                if (isMaxPagesExceeded() || !this.isRunning) return false;
+                if (isMaxPagesExceeded()) {
+                    if (shouldLogMaxPagesExceeded) {
+                        log.info('BasicCrawler: Crawler reached the maxRequestsPerCrawl limit of '
+                            + `${maxRequestsPerCrawl} requests and will shut down soon. Requests that are in progress will be allowed to finish.`);
+                        shouldLogMaxPagesExceeded = false;
+                    }
+                    return false;
+                }
 
                 return this._isTaskReadyFunction();
             },
             isFinishedFunction: async () => {
-                if (!this.isRunning) return true;
                 if (isMaxPagesExceeded()) {
-                    log.info('BasicCrawler: Crawler reached the max requests per crawl limit by crawling '
-                        + `${this.handledRequestsCount} requests and will shut down.`);
+                    log.info(`BasicCrawler: Earlier, the crawler reached the maxRequestsPerCrawl limit of ${maxRequestsPerCrawl} requests `
+                        + 'and all requests that were in progress at that time have now finished. '
+                        + `In total, the crawler processed ${this.handledRequestsCount} requests and will shut down.`);
                     return true;
                 }
 
@@ -206,6 +226,11 @@ class BasicCrawler {
         };
 
         this.autoscaledPoolOptions = _.defaults({}, basicCrawlerAutoscaledPoolConfiguration, autoscaledPoolOptions);
+
+        this.isRunningPromise = null;
+
+        // Attach a listener to handle migration events gracefully.
+        events.on(ACTOR_EVENT_NAMES.MIGRATING, this._pauseOnMigration.bind(this));
     }
 
     /**
@@ -214,31 +239,33 @@ class BasicCrawler {
      * @return {Promise}
      */
     async run() {
-        if (this.isRunning) return this.isRunningPromise;
+        if (this.isRunningPromise) return this.isRunningPromise;
 
         await this._loadHandledRequestCount();
         this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions);
-        this.isRunning = true;
-        this.rejectOnAbortPromise = new Promise((r, reject) => { this.rejectOnAbort = reject; });
         this.isRunningPromise = this.autoscaledPool.run();
-        try {
-            await this.isRunningPromise;
-            this.isRunning = false;
-        } catch (err) {
-            this.isRunning = false; // Doing this before rejecting to make sure it's set when error handlers fire.
-            this.rejectOnAbort(err);
-        }
+        await this.isRunningPromise;
     }
 
-    /**
-     * Aborts the crawler by preventing additional requests and terminating the running ones.
-     *
-     * @return {Promise}
-     */
-    async abort() {
-        this.isRunning = false;
-        await this.autoscaledPool.abort();
-        this.rejectOnAbort(new Error('BasicCrawler: .abort() function has been called. Aborting the crawler.'));
+    async _pauseOnMigration() {
+        await this.autoscaledPool.pause(SAFE_MIGRATION_WAIT_MILLIS)
+            .catch(() => {
+                log.error('BasicCrawler: The crawler was paused due to migration to another host, '
+                    + 'but some requests did not finish in time. Those requests\' results may be duplicated.');
+            });
+        if (this.requestList) {
+            await this.requestList.persistState()
+                .catch((err) => {
+                    if (err.message.includes('Cannot persist state.')) {
+                        log.error('BasicCrawler: The crawler attempted to persist it\'s request list\'s state and failed due to invalid config. '
+                            + 'Make sure to use either Apify.openRequestList() or the "stateKeyPrefix" option of RequestList constructor '
+                            + 'to ensure your crawling state is persisted through host migrations and restarts.');
+                    } else {
+                        log.exception(err, 'BasicCrawler: An unexpected error occured when the crawler '
+                            + 'attempted to persist it\'s request list\'s state. ');
+                    }
+                });
+        }
     }
 
     /**
@@ -282,9 +309,7 @@ class BasicCrawler {
         if (!request) return;
 
         try {
-            // rejectOnAbortPromise rejects when .abort() is called or AutoscaledPool throws.
-            // All running tasks are therefore terminated with an error to be reclaimed and retried.
-            await Promise.race([this.handleRequestFunction({ request }), this.rejectOnAbortPromise]);
+            await this.handleRequestFunction({ request, autoscaledPool: this.autoscaledPool });
             await source.markRequestHandled(request);
             this.handledRequestsCount++;
         } catch (err) {
@@ -346,11 +371,6 @@ class BasicCrawler {
      * @ignore
      */
     async _requestFunctionErrorHandler(error, request, source) {
-        // Handles case where the crawler was aborted.
-        // All running requests are reclaimed and will be retried.
-        if (!this.isRunning) return source.reclaimRequest(request);
-
-        // If we got here, it means we actually want to process the error.
         request.pushErrorMessage(error);
 
         // Reclaim and retry request if flagged as retriable and retryCount is not exceeded.

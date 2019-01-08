@@ -71,7 +71,6 @@ await crawler.run();
 * [CheerioCrawler](cheeriocrawler)
     * [`new CheerioCrawler(options)`](#new_CheerioCrawler_new)
     * [`.run()`](#CheerioCrawler+run) ⇒ <code>Promise</code>
-    * [`.abort()`](#CheerioCrawler+abort) ⇒ <code>Promise</code>
 
 <a name="new_CheerioCrawler_new"></a>
 
@@ -100,7 +99,8 @@ await crawler.run();
   $: Cheerio, // the Cheerio object with parsed HTML
   html: String // the raw HTML of the page
   request: Request,
-  response: Object // An instance of Node&#39;s http.IncomingMessage object
+  response: Object // An instance of Node&#39;s http.IncomingMessage object,
+  autoscaledPool: AutoscaledPool
 }
 </code></pre><p>  With the <a href="request"><code>Request</code></a> object representing the URL to crawl.</p>
 <p>  If the function returns a promise, it is awaited by the crawler.</p>
@@ -215,7 +215,9 @@ await crawler.run();
 <tr>
 <td colspan="3"><p>Custom options passed to the underlying <a href="autoscaledpool"><code>AutoscaledPool</code></a> constructor.
   Note that the <code>runTaskFunction</code>, <code>isTaskReadyFunction</code> and <code>isFinishedFunction</code> options
-  are provided by <code>CheerioCrawler</code> and cannot be overridden.</p>
+  are provided by <code>CheerioCrawler</code> and cannot be overridden. Reasonable <a href="snapshotter"><code>Snapshotter</code></a>
+  and <a href="systemstatus"><code>SystemStatus</code></a> defaults are provided to account for the fact that <code>cheerio</code>
+  parses HTML synchronously and therefore blocks the event loop.</p>
 </td></tr><tr>
 <td><code>[options.minConcurrency]</code></td><td><code>Object</code></td><td><code>1</code></td>
 </tr>
@@ -234,9 +236,4 @@ await crawler.run();
 
 ## `cheerioCrawler.run()` ⇒ <code>Promise</code>
 Runs the crawler. Returns promise that gets resolved once all the requests got processed.
-
-<a name="CheerioCrawler+abort"></a>
-
-## `cheerioCrawler.abort()` ⇒ <code>Promise</code>
-Aborts the crawler by preventing crawls of additional pages and terminating the running ones.
 

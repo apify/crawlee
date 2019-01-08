@@ -60,7 +60,6 @@ await crawler.run();
 * [BasicCrawler](basiccrawler)
     * [`new BasicCrawler(options)`](#new_BasicCrawler_new)
     * [`.run()`](#BasicCrawler+run) ⇒ <code>Promise</code>
-    * [`.abort()`](#BasicCrawler+abort) ⇒ <code>Promise</code>
 
 <a name="new_BasicCrawler_new"></a>
 
@@ -85,7 +84,8 @@ await crawler.run();
 <td colspan="3"><p>User-provided function that performs the logic of the crawler. It is called for each URL to crawl.</p>
 <p>  The function receives the following object as an argument:</p>
 <pre><code>{
-  request: Request
+  request: Request,
+  autoscaledPool: AutoscaledPool
 }
 </code></pre><p>  where the <a href="request"><code>Request</code></a> instance represents the URL to crawl.</p>
 <p>  The function must return a promise, which is then awaited by the crawler.</p>
@@ -160,9 +160,4 @@ await crawler.run();
 
 ## `basicCrawler.run()` ⇒ <code>Promise</code>
 Runs the crawler. Returns a promise that gets resolved once all the requests are processed.
-
-<a name="BasicCrawler+abort"></a>
-
-## `basicCrawler.abort()` ⇒ <code>Promise</code>
-Aborts the crawler by preventing additional requests and terminating the running ones.
 

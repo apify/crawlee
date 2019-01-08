@@ -1,4 +1,3 @@
-import 'babel-polyfill';
 import _ from 'underscore';
 import { expect } from 'chai';
 import Apify from '../build/index';

@@ -12,7 +12,7 @@ import { launchPuppeteer } from './puppeteer';
 import PuppeteerCrawler from './puppeteer_crawler';
 import PuppeteerPool from './puppeteer_pool';
 import Request from './request';
-import RequestList from './request_list';
+import { RequestList, openRequestList } from './request_list';
 import { openRequestQueue } from './request_queue';
 import SettingsRotator from './settings_rotator';
 import { apifyClient, getMemoryInfo, isAtHome, publicUtils } from './utils';
@@ -88,6 +88,7 @@ module.exports = {
     // Requests
     Request,
     RequestList,
+    openRequestList,
     openRequestQueue,
 
     // Settings rotator

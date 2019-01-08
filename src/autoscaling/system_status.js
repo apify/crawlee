@@ -6,7 +6,7 @@ import { weightedAvg } from '../utils';
 const DEFAULT_OPTIONS = {
     currentHistorySecs: 5,
     maxMemoryOverloadedRatio: 0.2,
-    maxEventLoopOverloadedRatio: 0.2,
+    maxEventLoopOverloadedRatio: 0.4,
     maxCpuOverloadedRatio: 0.4,
     maxClientOverloadedRatio: 0.2,
 };

@@ -1,3 +1,22 @@
+0.11.1 / 2018-01-07
+===================
+- Fix missing `autoscaledPool` parameter in `handlePageFunction` of `PuppeteerCrawler`.
+
+0.11.0 / 2018-01-07
+===================
+- **BREAKING CHANGE:** `basicCrawler.abort()`, `cheerioCrawler.abort()` and `puppeteerCrawler.abort()` functions
+  were removed in favor of a single new `autoscaledPool.abort()` function.
+
+- Added a reference to the running `AutoscaledPool` instance to the options object of `BasicCrawler`'s
+  `handleRequestFunction` and to the `handlePageFunction` of `CheerioCrawler` and `PuppeteerCrawler`.  
+- Added sources persistence option to `RequestList` that works best in conjunction with the state persistence,
+  but can be toggled separately too.
+- Added `Apify.openRequestList()` function to place it in line with `RequestQueue`, `KeyValueStore` and `Dataset`.
+  `RequestList` created using this function will automatically persist state and sources.
+- Added `pool.pause()` and `pool.resume()` functions to `AutoscaledPool`. You can now pause the pool,
+  which will prevent additional tasks from being run and wait for the running ones to finish.
+- Fixed a memory leak in `CheerioCrawler` and potentially other crawlers.
+
 0.10.2 / 2018-12-30
 ===================
 - Added `Apify.utils.htmlToText()` function to convert HTML to text and removed unncessary `html-to-text` dependency.

@@ -82,7 +82,8 @@ const PAGE_CLOSE_TIMEOUT_MILLIS = 30000;
  *   request: Request,
  *   response: Response,
  *   page: Page,
- *   puppeteerPool: PuppeteerPool
+ *   puppeteerPool: PuppeteerPool,
+ *   autoscaledPool: AutoscaledPool
  * }
  * ```
  *
@@ -270,32 +271,15 @@ class PuppeteerCrawler {
      * @return {Promise}
      */
     async run() {
-        if (this.isRunning) return this.isRunningPromise;
+        if (this.isRunningPromise) return this.isRunningPromise;
 
         this.puppeteerPool = new PuppeteerPool(this.puppeteerPoolOptions);
-        this.isRunning = true;
-        this.rejectOnAbortPromise = new Promise((r, reject) => { this.rejectOnAbort = reject; });
         try {
             this.isRunningPromise = this.basicCrawler.run();
             await this.isRunningPromise;
-            this.isRunning = false;
-        } catch (err) {
-            this.isRunning = false; // Doing this before rejecting to make sure it's set when error handlers fire.
-            this.rejectOnAbort(err);
         } finally {
             this.puppeteerPool.destroy();
         }
-    }
-
-    /**
-     * Aborts the crawler by preventing crawls of additional pages and terminating the running ones.
-     *
-     * @return {Promise}
-     */
-    async abort() {
-        this.isRunning = false;
-        await this.basicCrawler.abort();
-        this.rejectOnAbort(new Error('PuppeteerCrawler: .abort() function has been called. Aborting the crawler.'));
     }
 
     /**
@@ -303,26 +287,22 @@ class PuppeteerCrawler {
      *
      * @ignore
      */
-    async _handleRequestFunction({ request }) {
-        if (!this.isRunning) throw new Error('PuppeteerCrawler is stopped.'); // Pool will be destroyed.
-
+    async _handleRequestFunction({ request, autoscaledPool }) {
         const page = await this.puppeteerPool.newPage();
-
         try {
-            const pageOperationsPromise = this
-                .gotoFunction({ page, request, puppeteerPool: this.puppeteerPool })
-                .then(response => addTimeoutToPromise(
-                    this.handlePageFunction({ page, request, puppeteerPool: this.puppeteerPool, response }),
-                    this.handlePageTimeoutMillis,
-                    'PuppeteerCrawler: handlePageFunction timed out.',
-                ));
-
-            // rejectOnAbortPromise rejects when .abort() is called or BasicCrawler throws.
-            // All running pages are therefore terminated with an error to be reclaimed and retried.
-            return await Promise.race([pageOperationsPromise, this.rejectOnAbortPromise]);
+            const response = await this.gotoFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool });
+            await addTimeoutToPromise(
+                this.handlePageFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool, response }),
+                this.handlePageTimeoutMillis,
+                'PuppeteerCrawler: handlePageFunction timed out.',
+            );
         } finally {
             try {
-                await addTimeoutToPromise(this.puppeteerPool.recyclePage(page), PAGE_CLOSE_TIMEOUT_MILLIS, 'Operation timed out.');
+                await addTimeoutToPromise(
+                    this.puppeteerPool.recyclePage(page),
+                    PAGE_CLOSE_TIMEOUT_MILLIS,
+                    'Operation timed out.',
+                );
             } catch (err) {
                 log.debug('PuppeteerCrawler: Page.close() failed.', { reason: err && err.message });
             }

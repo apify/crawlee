@@ -1,6 +1,5 @@
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
-import 'babel-polyfill';
 import fs from 'fs-extra';
 import path from 'path';
 import sinon from 'sinon';

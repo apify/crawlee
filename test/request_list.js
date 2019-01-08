@@ -1,9 +1,9 @@
-import 'babel-polyfill';
 import _ from 'underscore';
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import request from 'request-promise-native';
 import sinon from 'sinon';
+import log from 'apify-shared/log';
 import { delayPromise } from 'apify-shared/utilities';
 import { ACTOR_EVENT_NAMES_EX } from '../build/constants';
 import Apify from '../build/index';
@@ -13,6 +13,16 @@ import * as utils from '../build/utils';
 chai.use(chaiAsPromised);
 
 describe('Apify.RequestList', () => {
+    let ll;
+    before(() => {
+        ll = log.getLevel();
+        log.setLevel(log.LEVELS.ERROR);
+    });
+
+    after(() => {
+        log.setLevel(ll);
+    });
+
     it('should not accept to pages with same uniqueKey', async () => {
         const requestList = new Apify.RequestList({
             sources: [
@@ -60,7 +70,7 @@ describe('Apify.RequestList', () => {
         await expect(requestList.markRequestHandled(requestObj)).to.not.be.rejectedWith();
     });
 
-    it('should correctly initialized itself', async () => {
+    it('should correctly initialize itself', async () => {
         const sources = [
             { url: 'https://example.com/1' },
             { url: 'https://example.com/2' },
@@ -389,7 +399,7 @@ describe('Apify.RequestList', () => {
         expect(requestList.inProgress).to.include(requestList.reclaimed);
     });
 
-    it('should correctly persists its state when persistStateKey is set', async () => {
+    it('should correctly persist its state when persistStateKey is set', async () => {
         const PERSIST_STATE_KEY = 'some-key';
         const mock = sinon.mock(keyValueStore);
 
@@ -452,7 +462,66 @@ describe('Apify.RequestList', () => {
         expect(requestList2.getState()).to.be.eql(requestList.getState());
 
         mock.verify();
-        mock.restore();
+    });
+
+    it('should correctly persist its sources when persistSourcesKey is set', async () => {
+        const PERSIST_SOURCES_KEY = 'some-key';
+        const mock = sinon.mock(keyValueStore);
+
+        const opts = {
+            sources: [
+                { url: 'https://example.com/1' },
+                { url: 'https://example.com/2' },
+                { url: 'https://example.com/3' },
+            ],
+            persistSourcesKey: PERSIST_SOURCES_KEY,
+        };
+
+        const requestList = new Apify.RequestList(opts);
+        expect(requestList.areSourcesPersisted).to.be.eql(false);
+
+        // Expect an attempt to load sources.
+        mock.expects('getValue')
+            .once()
+            .withArgs(PERSIST_SOURCES_KEY)
+            .returns(null);
+
+        // Expect persist sources.
+        mock.expects('setValue')
+            .once()
+            .withArgs(PERSIST_SOURCES_KEY, requestList.sources)
+            .returns(Promise.resolve());
+
+        await requestList.initialize();
+        expect(requestList.areSourcesPersisted).to.be.eql(true);
+
+        const opts2 = {
+            sources: [
+                { url: 'https://test.com/1' },
+                { url: 'https://test.com/2' },
+                { url: 'https://test.com/3' },
+            ],
+            persistSourcesKey: PERSIST_SOURCES_KEY,
+        };
+
+        const requestList2 = new Apify.RequestList(opts2);
+        expect(requestList2.areSourcesPersisted).to.be.eql(false);
+
+        // Now initialize new request list from saved sources and check that
+        // they are same as state of original request list.
+        mock.expects('getValue')
+            .once()
+            .withArgs(PERSIST_SOURCES_KEY)
+            .returns(Promise.resolve(requestList.sources));
+
+        mock.expects('setValue')
+            .never();
+
+        await requestList2.initialize();
+        expect(requestList2.areSourcesPersisted).to.be.eql(true);
+        expect(requestList2.requests).to.be.eql(requestList.requests);
+
+        mock.verify();
     });
 
     it('handles correctly inconsistent inProgress fields in state', async () => {
@@ -561,7 +630,8 @@ describe('Apify.RequestList', () => {
         await requestList.initialize();
         expect(requestList.length()).to.be.eql(4);
 
-        const log = sinon.stub(console, 'log');
+        log.setLevel(log.LEVELS.INFO);
+        const logStub = sinon.stub(console, 'log');
 
         requestList = new Apify.RequestList({
             sources: sources.concat([
@@ -575,9 +645,105 @@ describe('Apify.RequestList', () => {
 
         await requestList.initialize();
         expect(requestList.length()).to.be.eql(6);
-        expect(log.called).to.be.eql(true);
-        expect(log.getCall(0).args[0]).to.include('Check your sources\' unique keys.');
+        expect(logStub.called).to.be.eql(true);
+        expect(logStub.getCall(0).args[0]).to.include('Check your sources\' unique keys.');
 
-        log.restore();
+        logStub.restore();
+        log.setLevel(log.LEVELS.ERROR);
+    });
+
+    describe('Apify.openRequestList()', () => {
+        it('should work', async () => {
+            const mock = sinon.mock(keyValueStore);
+            mock.expects('getValue').atLeast(1).resolves();
+            mock.expects('setValue').atLeast(1).resolves();
+
+            const name = 'xxx';
+            const sources = [{ url: 'https://example.com' }];
+
+            const rl = await Apify.openRequestList(name, sources);
+            expect(rl).to.be.instanceof(Apify.RequestList);
+            expect(rl.persistStateKey.startsWith(name)).to.be.eql(true);
+            expect(rl.persistSourcesKey.startsWith(name)).to.be.eql(true);
+            expect(rl.sources).to.be.eql(sources);
+            expect(rl.isInitialized).to.be.eql(true);
+
+            mock.verify();
+        });
+        it('should work with string sources', async () => {
+            const mock = sinon.mock(keyValueStore);
+            mock.expects('getValue').atLeast(1).resolves();
+            mock.expects('setValue').atLeast(1).resolves();
+
+            const name = 'xxx';
+            const sources = ['https://example.com'];
+
+            const rl = await Apify.openRequestList(name, sources);
+            expect(rl).to.be.instanceof(Apify.RequestList);
+            expect(rl.persistStateKey.startsWith(name)).to.be.eql(true);
+            expect(rl.persistSourcesKey.startsWith(name)).to.be.eql(true);
+            expect(rl.sources).to.be.eql(sources.map(url => ({ url })));
+            expect(rl.isInitialized).to.be.eql(true);
+
+            mock.verify();
+        });
+        it('should correctly pass options', async () => {
+            const mock = sinon.mock(keyValueStore);
+            mock.expects('getValue').atLeast(1).resolves();
+            mock.expects('setValue').atLeast(1).resolves();
+
+            const name = 'xxx';
+            const sources = [{ url: 'https://example.com' }];
+            const options = {
+                keepDuplicateUrls: true,
+                persistStateKeyPrefix: 'yyy',
+            };
+
+            const rl = await Apify.openRequestList(name, sources, options);
+            expect(rl).to.be.instanceof(Apify.RequestList);
+            expect(rl.persistStateKey.startsWith(name)).to.be.eql(true);
+            expect(rl.persistSourcesKey.startsWith(name)).to.be.eql(true);
+            expect(rl.sources).to.be.eql(sources);
+            expect(rl.isInitialized).to.be.eql(true);
+            expect(rl.keepDuplicateUrls).to.be.eql(true);
+
+            mock.verify();
+        });
+        it('should work with null name', async () => {
+            const mock = sinon.mock(keyValueStore);
+            mock.expects('getValue').never().resolves();
+            mock.expects('setValue').never().resolves();
+
+            const name = null;
+            const sources = [{ url: 'https://example.com' }];
+
+            const rl = await Apify.openRequestList(name, sources);
+            expect(rl).to.be.instanceof(Apify.RequestList);
+            expect(rl.persistStateKey).to.be.eql(null);
+            expect(rl.persistSourcesKey).to.be.eql(null);
+            expect(rl.sources).to.be.eql(sources);
+            expect(rl.isInitialized).to.be.eql(true);
+
+            mock.verify();
+        });
+        it('should throw on invalid parameters', async () => {
+            const args = [
+                [],
+                ['x', []],
+                ['x', [6]],
+                ['x', [[]], {}],
+                ['x', [[]], []],
+            ];
+            for (const arg of args) {
+                try {
+                    await Apify.openRequestList(...arg);
+                    throw new Error('wrong error');
+                } catch (err) {
+                    expect(err.message).to.not.be.eql('wrong error');
+                    expect(err.message).to.include('Parameter');
+                    expect(err.message).to.not.be.eql('must');
+                }
+            }
+        });
     });
 });
