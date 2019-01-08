@@ -419,6 +419,40 @@ describe('PuppeteerPool', () => {
             await pool.destroy();
         });
 
+        it('should close pages in retired instances', async () => {
+            const pool = new Apify.PuppeteerPool({
+                retireInstanceAfterRequestCount: 1,
+                reusePages: true,
+            });
+
+            // Open 3 pages, should have 3 retired instances later.
+            const pages = [
+                await pool.newPage(),
+                await pool.newPage(),
+                await pool.newPage(),
+            ];
+
+            let closeCounter = 0;
+
+            // Recycle all pages, this should just make them idle.
+            for (const p of pages) {
+                const { close } = p;
+                p.close = (...args) => { // eslint-disable-line no-loop-func
+                    closeCounter++;
+                    close.apply(p, ...args);
+                };
+                await pool.recyclePage(p);
+            }
+
+            // Get one new page. This should flush all the idle ones because
+            // they are in retired instances.
+            await pool.newPage();
+
+            expect(closeCounter).to.be.eql(3);
+
+            await pool.destroy();
+        });
+
         it('should skip closed pages', async () => {
             const pool = new Apify.PuppeteerPool({ reusePages: true });
 

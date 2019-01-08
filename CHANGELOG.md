@@ -1,3 +1,8 @@
+xxx
+===================
+- Fix missing `reusePages` configuration parameter in `PuppeteerCrawler`.
+- Fix a memory leak where `reusePages` would prevent browsers from closing.
+
 0.11.1 / 2018-01-07
 ===================
 - Fix missing `autoscaledPool` parameter in `handlePageFunction` of `PuppeteerCrawler`.
