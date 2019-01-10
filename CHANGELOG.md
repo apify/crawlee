@@ -1,4 +1,4 @@
-xxx
+0.11.2 / 2018-01-10
 ===================
 - Fix missing `reusePages` configuration parameter in `PuppeteerCrawler`.
 - Fix a memory leak where `reusePages` would prevent browsers from closing.
