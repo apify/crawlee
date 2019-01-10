@@ -594,8 +594,12 @@ class PuppeteerPool {
      * @return {Promise}
      */
     async recyclePage(page) {
-        if (this.reusePages) this.idlePages.push(page);
-        else await page.close();
+        if (this.reusePages) {
+            page.removeAllListeners();
+            this.idlePages.push(page);
+        } else {
+            await page.close();
+        }
     }
 }
 

@@ -483,6 +483,10 @@ describe('PuppeteerPool', () => {
 
             await pool.destroy();
         });
+
+        xit('should work together with request interception', async () => {
+            // TODO
+        });
     });
 
     describe('the proxyUrls parameter', () => {

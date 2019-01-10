@@ -1,3 +1,7 @@
+0.11.3 / 2018-01-10
+===================
+- Fix `reusePages` causing Puppeteer to fail when used together with request interception.
+
 0.11.2 / 2018-01-10
 ===================
 - Fix missing `reusePages` configuration parameter in `PuppeteerCrawler`.
