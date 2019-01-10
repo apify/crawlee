@@ -1,3 +1,8 @@
+xxx
+===================
+- Fix missing `reusePages` configuration parameter in `PuppeteerCrawler`.
+- Fix a memory leak where `reusePages` would prevent browsers from closing.
+
 0.11.1 / 2018-01-07
 ===================
 - Fix missing `autoscaledPool` parameter in `handlePageFunction` of `PuppeteerCrawler`.
@@ -5,7 +10,7 @@
 0.11.0 / 2018-01-07
 ===================
 - **BREAKING CHANGE:** `basicCrawler.abort()`, `cheerioCrawler.abort()` and `puppeteerCrawler.abort()` functions
-  were removed in favor of a single new `autoscaledPool.abort()` function.
+  were removed in favor of a single `autoscaledPool.abort()` function.
 
 - Added a reference to the running `AutoscaledPool` instance to the options object of `BasicCrawler`'s
   `handleRequestFunction` and to the `handlePageFunction` of `CheerioCrawler` and `PuppeteerCrawler`.  
