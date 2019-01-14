@@ -290,6 +290,21 @@ export class KeyValueStore {
                 if (this.storeName) storesCache.remove(this.storeName);
             });
     }
+
+    /**
+     * Returns a PaginationList up to 1000 items for a given store.
+     * @link https://www.apify.com/docs/api/apify-client-js/latest#ApifyClient-keyValueStores-listKeys
+     *
+     * @return {Promise}
+     */
+    listKeys(options) {
+        const optionsDefaults = {
+            storeId: this.storeId,
+        };
+        options = Object.assign(optionsDefaults, options);
+        return keyValueStores
+            .listKeys(options);
+    }
 }
 
 /**
@@ -361,6 +376,33 @@ export class KeyValueStoreLocal {
         return emptyDirPromised(this.localStoragePath)
             .then(() => {
                 storesCache.remove(this.storeId);
+            });
+    }
+
+    /**
+     * Implements the listKeys on a local datastore.
+     * Format adheres to apify-client key-value-store response, except without chunking to 1000 items.
+     * @todo: Apify should set a contract for PaginationList and enforce it.
+     *  @example "isTruncated" is not described in @link https://sdk.apify.com/docs/typedefs/paginationlist
+     *  @example "items {key,size}" is not described @link https://sdk.apify.com/docs/typedefs/paginationlist
+     *  @example "items {size}" is bytes?
+     *
+     * @ignore
+     */
+    listKeys(options) {
+        return readdirPromised(this.localStoragePath)
+            .then((files) => {
+                for (var i = 0; i < files.length; i++) {
+                    files[i] = {key:path.parse(files[i]).name}
+                }
+                return {
+                    items: files,
+                    count: files.length,
+                    limit: files.length,
+                    isTruncated: false,
+                    exclusiveStartKey: null,
+                    nextExclusiveStartKey: null
+                };
             });
     }
 
