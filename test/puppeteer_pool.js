@@ -392,20 +392,16 @@ describe('PuppeteerPool', () => {
             let page = await pool.newPage();
             await pool.recyclePage(page);
             expect(len(pool.activeInstances)).to.be.eql(1);
-            expect(len(pool.retiredInstances)).to.be.eql(0);
 
             page = await pool.newPage();
             await pool.recyclePage(page);
             expect(len(pool.activeInstances)).to.be.eql(0);
-            expect(len(pool.retiredInstances)).to.be.eql(1);
 
             page = await pool.newPage();
             expect(len(pool.activeInstances)).to.be.eql(1);
-            expect(len(pool.retiredInstances)).to.be.eql(1);
 
             const pageTwo = await pool.newPage();
             expect(len(pool.activeInstances)).to.be.eql(0);
-            expect(len(pool.retiredInstances)).to.be.eql(2);
 
             await pool.recyclePage(page);
             await pool.recyclePage(pageTwo);
@@ -413,8 +409,41 @@ describe('PuppeteerPool', () => {
             await pool.newPage();
             expect(len(pool.activeInstances)).to.be.eql(1);
             await pool.newPage();
-            expect(len(pool.retiredInstances)).to.be.eql(3);
             expect(len(pool.activeInstances)).to.be.eql(0);
+
+            await pool.destroy();
+        });
+
+        it('should close pages in retired instances', async () => {
+            const pool = new Apify.PuppeteerPool({
+                retireInstanceAfterRequestCount: 1,
+                reusePages: true,
+            });
+
+            // Open 3 pages, should have 3 retired instances later.
+            const pages = [
+                await pool.newPage(),
+                await pool.newPage(),
+                await pool.newPage(),
+            ];
+
+            let closeCounter = 0;
+
+            // Recycle all pages, this should just make them idle.
+            for (const p of pages) {
+                const { close } = p;
+                p.close = (...args) => { // eslint-disable-line no-loop-func
+                    closeCounter++;
+                    close.apply(p, ...args);
+                };
+                await pool.recyclePage(p);
+            }
+
+            // Get one new page. This should flush all the idle ones because
+            // they are in retired instances.
+            await pool.newPage();
+
+            expect(closeCounter).to.be.eql(3);
 
             await pool.destroy();
         });
@@ -453,6 +482,10 @@ describe('PuppeteerPool', () => {
             expect(matches(fifthPage)).to.be.eql(2);
 
             await pool.destroy();
+        });
+
+        xit('should work together with request interception', async () => {
+            // TODO
         });
     });
 

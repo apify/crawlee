@@ -166,6 +166,13 @@ await crawler.run();
   Always set this value in order to prevent infinite loops in misconfigured crawlers.
   Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.</p>
 </td></tr><tr>
+<td><code>[options.reusePages]</code></td><td><code>boolean</code></td><td><code>false</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Individual browser tabs will be reused after their task is complete instead
+  of closing them and spawning a new tab. This saves CPU resources.
+  See <code>reusePages</code> parameter of <a href="puppeteerpool"><code>PuppeteerPool</code></a>.</p>
+</td></tr><tr>
 <td><code>[options.maxOpenPagesPerInstance]</code></td><td><code>Number</code></td><td><code>50</code></td>
 </tr>
 <tr>

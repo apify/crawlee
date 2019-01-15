@@ -440,6 +440,10 @@ class PuppeteerPool {
                 this._incrementPageCount(instance);
                 return idlePage;
             }
+            // Close pages of retired instances so they don't keep hanging there forever.
+            if (pageIsNotClosed && !instanceIsActive) {
+                await idlePage.close();
+            }
         }
         // If there are no live pages to be reused, we spawn a new tab.
         return this._openNewTab();
@@ -590,8 +594,12 @@ class PuppeteerPool {
      * @return {Promise}
      */
     async recyclePage(page) {
-        if (this.reusePages) this.idlePages.push(page);
-        else await page.close();
+        if (this.reusePages) {
+            page.removeAllListeners();
+            this.idlePages.push(page);
+        } else {
+            await page.close();
+        }
     }
 }
 
