@@ -297,12 +297,21 @@ export class Dataset {
     }
 
     /**
-     * Iterates over dataset items, yielding each in turn to an `iteratee()` function.
-     * Each invocation of `iteratee()` is called with two arguments: `(element, index)`.
+     * Iterates over dataset items, yielding each in turn to an `iteratee` function.
+     * Each invocation of `iteratee` is called with two arguments: `(item, index)`.
      *
-     * If the `iteratee()` returns a Promise then it is awaited before a next call.
+     * If the `iteratee` function returns a Promise then it is awaited before the next call.
+     * If it throws an error, the iteration is aborted and the `forEach` functions throws the error.
      *
-     * @param {Function} iteratee
+     * **Example usage**
+     * ```javascript
+     * const dataset = await Apify.openDataset('my-results');
+     * dataset.forEach(async (item, index) => {
+     *   console.log(`Item at ${index}: ${JSON.stringify(item)}`);
+     * });
+     * ```
+     *
+     * @param {Function} iteratee A function that is called for every item in the dataset.
      * @param {Object} [options] All `forEach()` parameters are passed
      *   via an options object with the following keys:
      * @param {Number} [options.offset=0] Number of array elements that should be skipped at the start.
@@ -310,7 +319,7 @@ export class Dataset {
      * @param {Array} [options.fields] If provided then returned objects will only contain specified keys.
      * @param {String} [options.unwind] If provided then objects will be unwound based on provided field.
      * @param {Number} [options.limit=250000] How many items to load in one request.
-     * @param {Number} [index=0] Controls the initial index number passed to the `iteratee()`.
+     * @param {Number} [index=0] Specifies the initial index number passed to the `iteratee` function.
      * @return {Promise}
      */
     forEach(iteratee, options = {}, index = 0) {
