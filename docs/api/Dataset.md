@@ -166,8 +166,7 @@ If format is `json` then the function doesn't return an array of records but [`P
 <td><code>[options.delimiter]</code></td><td><code>String</code></td><td><code>&#x27;,&#x27;</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>A delimiter character for CSV files, only used if <code>format</code> is <code>csv</code>.
-  You might need to URL-encode the character (e.g. use <code>%09</code> for tab or <code>%3B</code> for semicolon).</p>
+<td colspan="3"><p>A delimiter character for CSV files, only used if <code>format</code> is <code>csv</code>.</p>
 </td></tr><tr>
 <td><code>[options.bom]</code></td><td><code>Boolean</code></td><td></td>
 </tr>
@@ -214,10 +213,19 @@ Returns an object containing general information about the dataset.
 <a name="Dataset+forEach"></a>
 
 ## `dataset.forEach(iteratee, [options], [index])` ⇒ <code>Promise</code>
-Iterates over dataset items, yielding each in turn to an `iteratee()` function.
-Each invocation of `iteratee()` is called with two arguments: `(element, index)`.
+Iterates over dataset items, yielding each in turn to an `iteratee` function.
+Each invocation of `iteratee` is called with two arguments: `(item, index)`.
 
-If the `iteratee()` returns a Promise then it is awaited before a next call.
+If the `iteratee` function returns a Promise then it is awaited before the next call.
+If it throws an error, the iteration is aborted and the `forEach` functions throws the error.
+
+**Example usage**
+```javascript
+const dataset = await Apify.openDataset('my-results');
+dataset.forEach(async (item, index) => {
+  console.log(`Item at ${index}: ${JSON.stringify(item)}`);
+});
+```
 
 <table>
 <thead>
@@ -230,7 +238,8 @@ If the `iteratee()` returns a Promise then it is awaited before a next call.
 <td><code>iteratee</code></td><td><code>function</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"></td></tr><tr>
+<td colspan="3"><p>A function that is called for every item in the dataset.</p>
+</td></tr><tr>
 <td><code>[options]</code></td><td><code>Object</code></td><td></td>
 </tr>
 <tr>
@@ -265,7 +274,7 @@ If the `iteratee()` returns a Promise then it is awaited before a next call.
 <td><code>[index]</code></td><td><code>Number</code></td><td><code>0</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Controls the initial index number passed to the <code>iteratee()</code>.</p>
+<td colspan="3"><p>Specifies the initial index number passed to the <code>iteratee</code> function.</p>
 </td></tr></tbody>
 </table>
 <a name="Dataset+map"></a>
