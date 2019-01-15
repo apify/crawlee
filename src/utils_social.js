@@ -451,12 +451,18 @@ try {
  * {
  *   emails: String[],
  *   phones: String[],
+ *   phonesUncertain: String[],
  *   linkedIns: String[],
  *   twitters: String[],
  *   instagrams: String[],
  *   facebooks: String[],
  * }
  * ```
+ *
+ * Note that the `phones` field contains phone numbers extracted from the special phone links
+ * such as `<a href="tel:+1234556789">call us</a>` (see {@link phonesFromUrls})
+ * and potentially other sources with high certainty, while `phonesUncertain` contains phone numbers
+ * extracted from the plain text, which might be very inaccurate.
  *
  * **Example usage:**
  * ```javascript
@@ -479,13 +485,14 @@ const parseHandlesFromHtml = (html, data = null) => {
     const result = {
         emails: [],
         phones: [],
+        phonesUncertain: [],
         linkedIns: [],
         twitters: [],
         instagrams: [],
         facebooks: [],
     };
 
-    // TODO: extract phone numbers from JSON+LD, only put sure phones in "phones", add "phonesGuessed" for others
+    // TODO: maybe extract phone numbers from JSON+LD
 
     if (!_.isString(html)) return result;
 
@@ -502,7 +509,8 @@ const parseHandlesFromHtml = (html, data = null) => {
     });
 
     result.emails = emailsFromUrls(linkUrls).concat(emailsFromText(text));
-    result.phones = phonesFromUrls(linkUrls).concat(phonesFromText(text));
+    result.phones = phonesFromUrls(linkUrls);
+    result.phonesUncertain = phonesFromText(text);
 
     // Note that these regexps extract just the base profile path. For example for
     //  https://www.linkedin.com/in/carl-newman-123456a/detail/recent-activity/

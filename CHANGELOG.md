@@ -1,3 +1,8 @@
+xxx
+===================
+- Improvements in `Apify.utils.social.parseHandlesFromHtml` and `Apify.utils.htmlToText`
+- Updated docs
+
 0.11.3 / 2018-01-10
 ===================
 - Fix `reusePages` causing Puppeteer to fail when used together with request interception.

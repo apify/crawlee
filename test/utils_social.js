@@ -315,6 +315,7 @@ describe('utils.social', () => {
         const EMPTY_RESULT = {
             emails: [],
             phones: [],
+            phonesUncertain: [],
             linkedIns: [],
             twitters: [],
             instagrams: [],
@@ -389,7 +390,8 @@ describe('utils.social', () => {
                 </html>
             `)).to.eql({
                 emails: ['alice@example.com', 'bob@example.com', 'carl@example.com', 'david@example.com'],
-                phones: ['+4207751111111', '+420775222222', '+42077533333'],
+                phones: ['+42077533333'],
+                phonesUncertain: ['+4207751111111', '+420775222222'],
                 linkedIns: [
                     'http://www.linkedin.com/in/nohttps/',
                     'https://cz.linkedin.com/in/somecountry',
