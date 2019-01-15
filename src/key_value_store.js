@@ -292,10 +292,12 @@ export class KeyValueStore {
     }
 
     /**
-     * Returns a PaginationList up to 1000 items for a given store.
+     * Returns a PaginationList of the keys from the KeyValueStore.
+     * @param {Object} options
+     * @param {String} [options.exclusiveStartKey] - All keys up to this one (including) are skipped from the result.
+     * @param {Number} [options.limit] - Number of keys to be returned. Maximum value is 1000
+     * @returns {PaginationList}
      * @link https://www.apify.com/docs/api/apify-client-js/latest#ApifyClient-keyValueStores-listKeys
-     *
-     * @return {Promise}
      */
     listKeys(options) {
         const optionsDefaults = {
