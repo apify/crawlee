@@ -480,6 +480,8 @@ try {
  *   that contain text content of the HTML and `cheerio` object, respectively. This is an optimization
  *   so that the caller doesn't need to parse the HTML document again, if needed.
  * @return {*} An object with the social handles.
+ *
+ * @memberOf social
  */
 const parseHandlesFromHtml = (html, data = null) => {
     const result = {
