@@ -1,4 +1,4 @@
-xxx
+0.11.4 / 2018-01-15
 ===================
 - Improvements in `Apify.utils.social.parseHandlesFromHtml` and `Apify.utils.htmlToText`
 - Updated docs
