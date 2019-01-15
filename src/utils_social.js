@@ -485,6 +485,8 @@ const parseHandlesFromHtml = (html, data = null) => {
         facebooks: [],
     };
 
+    // TODO: extract phone numbers from JSON+LD, only put sure phones in "phones", add "phonesGuessed" for others
+
     if (!_.isString(html)) return result;
 
     const $ = cheerio.load(html, { decodeEntities: true });

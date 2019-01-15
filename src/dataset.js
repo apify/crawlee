@@ -251,7 +251,6 @@ export class Dataset {
      *   browser to download the file rather than to display it. By default, this header is not present.
      * @param {String} [options.delimiter=',']
      *   A delimiter character for CSV files, only used if `format` is `csv`.
-     *   You might need to URL-encode the character (e.g. use `%09` for tab or `%3B` for semicolon).
      * @param {Boolean} [options.bom]
      *   All responses are encoded in UTF-8 encoding. By default, the CSV files are prefixed with the UTF-8 Byte
      *   Order Mark (BOM), while JSON, JSONL, XML, HTML and RSS files are not. If you want to override this default
