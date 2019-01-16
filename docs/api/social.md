@@ -31,6 +31,7 @@ const emails = Apify.utils.social.emailsFromText('alice@example.com bob@example.
     * [`.emailsFromUrls(urls)`](#social.emailsFromUrls) ⇒ <code>Array&lt;String&gt;</code>
     * [`.phonesFromText(text)`](#social.phonesFromText) ⇒ <code>Array&lt;String&gt;</code>
     * [`.phonesFromUrls(urls)`](#social.phonesFromUrls) ⇒ <code>Array&lt;String&gt;</code>
+    * [`.parseHandlesFromHtml(html, data)`](#social.parseHandlesFromHtml) ⇒ <code>\*</code>
 
 <a name="social.LINKEDIN_REGEX"></a>
 
@@ -335,5 +336,63 @@ If no phone numbers are found, the function returns an empty array.
 </tr>
 <tr>
 <td colspan="3"><p>Array of URLs.</p>
+</td></tr></tbody>
+</table>
+<a name="social.parseHandlesFromHtml"></a>
+
+## `social.parseHandlesFromHtml(html, data)` ⇒ <code>\*</code>
+The function attempts to extract emails, phone numbers and social profile URLs from a HTML document,
+specifically LinkedIn, Twitter, Instagram and Facebook profile URLs.
+The function removes duplicates from the resulting arrays and sorts the items alphabetically.
+
+The result of the function is an object with the following structure:
+```
+{
+  emails: String[],
+  phones: String[],
+  phonesUncertain: String[],
+  linkedIns: String[],
+  twitters: String[],
+  instagrams: String[],
+  facebooks: String[],
+}
+```
+
+Note that the `phones` field contains phone numbers extracted from the special phone links
+such as `<a href="tel:+1234556789">call us</a>` (see [`phonesFromUrls`](phonesfromurls))
+and potentially other sources with high certainty, while `phonesUncertain` contains phone numbers
+extracted from the plain text, which might be very inaccurate.
+
+**Example usage:**
+```javascript
+const puppeteer = await Apify.launchPuppeteer();
+await puppeteer.goto('http://www.example.com');
+const html = await puppeteer.content();
+
+const result = Apify.utils.social.parseHandlesFromHtml(html);
+console.log('Social handles:');
+console.dir(result);
+```
+
+**Returns**: <code>\*</code> - An object with the social handles.  
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th><th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>html</code></td><td><code>String</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>HTML text</p>
+</td></tr><tr>
+<td><code>data</code></td><td><code>Object</code></td><td><code></code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Optional object which will receive the <code>text</code> and <code>$</code> properties
+  that contain text content of the HTML and <code>cheerio</code> object, respectively. This is an optimization
+  so that the caller doesn&#39;t need to parse the HTML document again, if needed.</p>
 </td></tr></tbody>
 </table>
