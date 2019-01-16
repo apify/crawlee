@@ -369,12 +369,11 @@ describe('KeyValueStore', () => {
     });
 
     describe('listKeys', async () => {
-        //@todo create remote test without specifying private userID or storageID
-
+        // @todo create remote test without specifying private userID or storageID
         it('should receive a PaginationList from local', async () => {
             process.env[ENV_VARS.LOCAL_STORAGE_DIR] = await LOCAL_STORAGE_DIR;
             process.env[ENV_VARS.TOKEN] = 'xxx';
-            
+
             const store = await Apify.openKeyValueStore('some-name-1');
             await store.setValue('key-1', 'xxxx', { contentType: 'text/plain; charset=utf-8' });
             await store.setValue('key-2', 'xxxx', { contentType: 'text/plain; charset=utf-8' });

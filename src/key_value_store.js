@@ -391,11 +391,11 @@ export class KeyValueStoreLocal {
      *
      * @ignore
      */
-    listKeys(options) {
+    listKeys() {
         return readdirPromised(this.localStoragePath)
             .then((files) => {
-                for (var i = 0; i < files.length; i++) {
-                    files[i] = {key:path.parse(files[i]).name}
+                for (let i = 0; i < files.length; i++) {
+                    files[i] = { key: path.parse(files[i]).name };
                 }
                 return {
                     items: files,
@@ -403,7 +403,7 @@ export class KeyValueStoreLocal {
                     limit: files.length,
                     isTruncated: false,
                     exclusiveStartKey: null,
-                    nextExclusiveStartKey: null
+                    nextExclusiveStartKey: null,
                 };
             });
     }
