@@ -374,6 +374,7 @@ describe('KeyValueStore', () => {
         it('should receive a PaginationList from local', async () => {
             process.env[ENV_VARS.LOCAL_STORAGE_DIR] = await LOCAL_STORAGE_DIR;
             process.env[ENV_VARS.TOKEN] = 'xxx';
+            
             const store = await Apify.openKeyValueStore('some-name-1');
             await store.setValue('key-1', 'xxxx', { contentType: 'text/plain; charset=utf-8' });
             await store.setValue('key-2', 'xxxx', { contentType: 'text/plain; charset=utf-8' });
@@ -382,6 +383,9 @@ describe('KeyValueStore', () => {
             await expect(paginationList.count).to.eql(2);
             await expect(paginationList.items[0].key).to.eql('key-1');
             await expect(paginationList.items[1].key).to.eql('key-2');
+
+            delete process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID];
+            delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
         });
     });
 });
