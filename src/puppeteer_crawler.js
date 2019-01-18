@@ -147,10 +147,6 @@ const PAGE_CLOSE_TIMEOUT_MILLIS = 30000;
  *   Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached.
  *   Always set this value in order to prevent infinite loops in misconfigured crawlers.
  *   Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.
- * @param {boolean} [options.reusePages=false]
- *   Individual browser tabs will be reused after their task is complete instead
- *   of closing them and spawning a new tab. This saves CPU resources.
- *   See `reusePages` parameter of {@link PuppeteerPool}.
  * @param {Number} [options.maxOpenPagesPerInstance=50]
  *   Maximum number of opened tabs per browser. If this limit is reached then a new
  *   browser instance is started. See `maxOpenPagesPerInstance` parameter of {@link PuppeteerPool}.

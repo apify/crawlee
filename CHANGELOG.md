@@ -1,3 +1,8 @@
+0.11.5 / 2018-01-18
+===================
+- Disabled the `PuppeteerPool` `reusePages` option for now, due to a memory leak.
+- Added a `keyValueStore.forEachKey()` method to iterate all keys in the store.
+
 0.11.4 / 2018-01-15
 ===================
 - Improvements in `Apify.utils.social.parseHandlesFromHtml` and `Apify.utils.htmlToText`
