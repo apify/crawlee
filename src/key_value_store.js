@@ -291,7 +291,6 @@ export class KeyValueStore {
             });
     }
 
-    // noinspection JSCommentMatchesSignature
     /**
      * Iterates over key value store keys, yielding each in turn to an `iteratee` function.
      * Each invocation of `iteratee` is called with two arguments: `(item, index)`.
@@ -310,7 +309,7 @@ export class KeyValueStore {
      * @param {Function} iteratee A function that is called for every key in the key value store.
      * @param {Object} [options] All `forEachKey()` parameters are passed
      *   via an options object with the following keys:
-     * @param {string} [options.exclusiveStartKey] Number of array elements that should be skipped at the start.
+     * @param {string} [options.exclusiveStartKey] All keys up to this one (including) are skipped from the result.
      * @return {Promise}
      */
     async forEachKey(iteratee, options = {}, index = 0) {
