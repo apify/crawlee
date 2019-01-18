@@ -96,23 +96,6 @@ export const chunkBySize = (items, limitBytes) => {
 };
 
 /**
- * Represents one page of data items from the [`Dataset`](../api/dataset).
- * For more details, see [`Dataset.getData()`](../api/dataset#Dataset+getData).
- *
- * @typedef {Object} PaginationList
- * @property {Array} items
- *   Array of returned items.
- * @property {Number} total
- *   Total number of object.
- * @property {Number} offset
- *   Number of Request objects that was skipped at the start.
- * @property {Number} count
- *   Number of returned objects.
- * @property {Number} limit
- *   Requested limit on the number of items.
- */
-
-/**
  * The `Dataset` class represents a store for structured data where each object stored has the same attributes,
  * such as online store products or real estate offers. You can imagine it as a table,
  * where each object is a row and its attributes are columns.
@@ -226,8 +209,6 @@ export class Dataset {
     /**
      * Returns items in the dataset based on the provided parameters.
      *
-     * If format is `json` then the function doesn't return an array of records but {@link PaginationList} instead.
-     *
      * @param {Object} [options] All `getData()` parameters are passed
      *   via an options object with the following keys:
      * @param {String} [options.format='json']
@@ -262,7 +243,7 @@ export class Dataset {
      *   By default, the element name is `page` or `result`, depending on the value of the `simplified` option.
      * @param {Boolean} [options.skipHeaderRow=false]
      *   If set to `true` then header row in CSV format is skipped.
-     * @return {Promise}
+     * @return {Promise<Array|String|Buffer>}
      */
     getData(options = {}) {
         const { datasetId } = this;
@@ -301,7 +282,7 @@ export class Dataset {
      * Each invocation of `iteratee` is called with two arguments: `(item, index)`.
      *
      * If the `iteratee` function returns a Promise then it is awaited before the next call.
-     * If it throws an error, the iteration is aborted and the `forEach` functions throws the error.
+     * If it throws an error, the iteration is aborted and the `forEach` function throws the error.
      *
      * **Example usage**
      * ```javascript

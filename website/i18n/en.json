@@ -125,9 +125,6 @@
       "typedefs/launchpuppeteeroptions": {
         "title": "LaunchPuppeteerOptions"
       },
-      "typedefs/paginationlist": {
-        "title": "PaginationList"
-      },
       "typedefs/queueoperationinfo": {
         "title": "QueueOperationInfo"
       }
