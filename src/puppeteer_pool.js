@@ -103,10 +103,6 @@ class PuppeteerInstance {
  * ```
  * @param {Object} [options] All `PuppeteerPool` parameters are passed
  *   via an options object with the following keys:
- * @param {boolean} [options.reusePages=false]
- *   Individual browser tabs will be reused after their task is complete instead
- *   of closing them and spawning a new tab. This saves CPU resources.
- *   Try disabling this feature if you encounter any weird behavior in your crawlers.
  * @param {Number} [options.maxOpenPagesPerInstance=50]
  *   Maximum number of open pages (i.e. tabs) per browser. When this limit is reached, new pages are loaded in a new browser instance.
  * @param {Number} [options.retireInstanceAfterRequestCount=100]
@@ -147,7 +143,6 @@ class PuppeteerPool {
         }
 
         const {
-            reusePages,
             maxOpenPagesPerInstance,
             retireInstanceAfterRequestCount,
             launchPuppeteerFunction,
@@ -161,6 +156,8 @@ class PuppeteerPool {
         // Disabling the feature since tests started failing.
         // Re-enable once the issues upstream are fixed.
         const recycleDiskCache = false;
+        // Disabling due to memory leak.
+        const reusePages = false;
 
         checkParamOrThrow(reusePages, 'options.reusePages', 'Boolean');
         checkParamOrThrow(maxOpenPagesPerInstance, 'options.maxOpenPagesPerInstance', 'Number');

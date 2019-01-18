@@ -53,7 +53,7 @@ await dataset.pushData([
 
 * [Dataset](dataset)
     * [`.pushData(data)`](#Dataset+pushData) ⇒ <code>Promise</code>
-    * [`.getData([options])`](#Dataset+getData) ⇒ <code>Promise</code>
+    * [`.getData([options])`](#Dataset+getData) ⇒ <code>Promise&lt;(Array\|String\|Buffer)&gt;</code>
     * [`.getInfo()`](#Dataset+getInfo) ⇒ <code>Promise&lt;Object&gt;</code>
     * [`.forEach(iteratee, [options], [index])`](#Dataset+forEach) ⇒ <code>Promise</code>
     * [`.map(iteratee, options)`](#Dataset+map) ⇒ <code>Promise&lt;Array&gt;</code>
@@ -101,10 +101,8 @@ The objects must be serializable to JSON and the JSON representation of each obj
 </table>
 <a name="Dataset+getData"></a>
 
-## `dataset.getData([options])` ⇒ <code>Promise</code>
+## `dataset.getData([options])` ⇒ <code>Promise&lt;(Array\|String\|Buffer)&gt;</code>
 Returns items in the dataset based on the provided parameters.
-
-If format is `json` then the function doesn't return an array of records but [`PaginationList`](../typedefs/paginationlist) instead.
 
 <table>
 <thead>
@@ -217,7 +215,7 @@ Iterates over dataset items, yielding each in turn to an `iteratee` function.
 Each invocation of `iteratee` is called with two arguments: `(item, index)`.
 
 If the `iteratee` function returns a Promise then it is awaited before the next call.
-If it throws an error, the iteration is aborted and the `forEach` functions throws the error.
+If it throws an error, the iteration is aborted and the `forEach` function throws the error.
 
 **Example usage**
 ```javascript

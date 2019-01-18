@@ -318,7 +318,7 @@ describe('PuppeteerPool', () => {
     });
 
     describe('reuse of browser tabs', () => {
-        it('should work', async () => {
+        xit('should work', async () => {
             const pool = new Apify.PuppeteerPool({
                 reusePages: true,
             });
@@ -349,7 +349,7 @@ describe('PuppeteerPool', () => {
             await pool.destroy();
         });
 
-        it('should not open new browsers when idle pages are available', async () => {
+        xit('should not open new browsers when idle pages are available', async () => {
             const pool = new Apify.PuppeteerPool({
                 maxOpenPagesPerInstance: 1,
                 reusePages: true,
@@ -381,7 +381,7 @@ describe('PuppeteerPool', () => {
             await pool.destroy();
         });
 
-        it('should count towards retireInstanceAfterRequestCount option', async () => {
+        xit('should count towards retireInstanceAfterRequestCount option', async () => {
             const pool = new Apify.PuppeteerPool({
                 retireInstanceAfterRequestCount: 2,
                 reusePages: true,
@@ -414,7 +414,7 @@ describe('PuppeteerPool', () => {
             await pool.destroy();
         });
 
-        it('should close pages in retired instances', async () => {
+        xit('should close pages in retired instances', async () => {
             const pool = new Apify.PuppeteerPool({
                 retireInstanceAfterRequestCount: 1,
                 reusePages: true,
@@ -448,7 +448,7 @@ describe('PuppeteerPool', () => {
             await pool.destroy();
         });
 
-        it('should skip closed pages', async () => {
+        xit('should skip closed pages', async () => {
             const pool = new Apify.PuppeteerPool({ reusePages: true });
 
             const firstPage = await pool.newPage();
