@@ -64,13 +64,6 @@ await puppeteerPool.destroy();
 <td colspan="3"><p>All <code>PuppeteerPool</code> parameters are passed
   via an options object with the following keys:</p>
 </td></tr><tr>
-<td><code>[options.reusePages]</code></td><td><code>boolean</code></td><td><code>false</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Individual browser tabs will be reused after their task is complete instead
-  of closing them and spawning a new tab. This saves CPU resources.
-  Try disabling this feature if you encounter any weird behavior in your crawlers.</p>
-</td></tr><tr>
 <td><code>[options.maxOpenPagesPerInstance]</code></td><td><code>Number</code></td><td><code>50</code></td>
 </tr>
 <tr>
