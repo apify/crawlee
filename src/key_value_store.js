@@ -291,21 +291,42 @@ export class KeyValueStore {
             });
     }
 
+    // noinspection JSCommentMatchesSignature
     /**
-     * Returns a PaginationList of the keys from the KeyValueStore.
-     * @param {Object} options
-     * @param {String} [options.exclusiveStartKey] - All keys up to this one (including) are skipped from the result.
-     * @param {Number} [options.limit] - Number of keys to be returned. Maximum value is 1000
-     * @returns {PaginationList}
-     * @link https://www.apify.com/docs/api/apify-client-js/latest#ApifyClient-keyValueStores-listKeys
+     * Iterates over key value store keys, yielding each in turn to an `iteratee` function.
+     * Each invocation of `iteratee` is called with two arguments: `(item, index)`.
+     *
+     * If the `iteratee` function returns a Promise then it is awaited before the next call.
+     * If it throws an error, the iteration is aborted and the `forEachKey` function throws the error.
+     *
+     * **Example usage**
+     * ```javascript
+     * const keyValueStore = await Apify.openKeyValueStore();
+     * keyValueStore.forEachKey(async (key, index) => {
+     *   console.log(`Key at ${index}: ${key}`);
+     * });
+     * ```
+     *
+     * @param {Function} iteratee A function that is called for every key in the key value store.
+     * @param {Object} [options] All `forEachKey()` parameters are passed
+     *   via an options object with the following keys:
+     * @param {string} [options.exclusiveStartKey] Number of array elements that should be skipped at the start.
+     * @return {Promise}
      */
-    listKeys(options) {
-        const optionsDefaults = {
-            storeId: this.storeId,
-        };
-        options = Object.assign(optionsDefaults, options);
-        return keyValueStores
-            .listKeys(options);
+    async forEachKey(iteratee, options = {}, index = 0) {
+        const { exclusiveStartKey } = options;
+        checkParamOrThrow(iteratee, 'iteratee', 'Function');
+        checkParamOrThrow(exclusiveStartKey, 'options.exclusiveStartKey', 'Maybe String');
+        checkParamOrThrow(index, 'index', 'Number');
+
+        const response = await keyValueStores.listKeys({ storeId: this.storeId, exclusiveStartKey });
+        const { nextExclusiveStartKey, isTruncated, items } = response.data;
+        for (const key of items) {
+            await iteratee(key, index++);
+        }
+        return isTruncated
+            ? this.forEachKey(iteratee, { exclusiveStartKey: nextExclusiveStartKey }, index)
+            : undefined; // [].forEach() returns undefined.
     }
 }
 
@@ -381,31 +402,21 @@ export class KeyValueStoreLocal {
             });
     }
 
-    /**
-     * Implements the listKeys on a local datastore.
-     * Format adheres to apify-client key-value-store response, except without chunking to 1000 items.
-     * @todo: Apify should set a contract for PaginationList and enforce it.
-     *  @example "isTruncated" is not described in @link https://sdk.apify.com/docs/typedefs/paginationlist
-     *  @example "items {key,size}" is not described @link https://sdk.apify.com/docs/typedefs/paginationlist
-     *  @example "items {size}" is bytes?
-     *
-     * @ignore
-     */
-    listKeys() {
-        return readdirPromised(this.localStoragePath)
-            .then((files) => {
-                for (let i = 0; i < files.length; i++) {
-                    files[i] = { key: path.parse(files[i]).name };
-                }
-                return {
-                    items: files,
-                    count: files.length,
-                    limit: files.length,
-                    isTruncated: false,
-                    exclusiveStartKey: null,
-                    nextExclusiveStartKey: null,
-                };
-            });
+    async forEachKey(iteratee, options = {}, index = 0) {
+        const { exclusiveStartKey } = options;
+        checkParamOrThrow(iteratee, 'iteratee', 'Function');
+        checkParamOrThrow(exclusiveStartKey, 'options.exclusiveStartKey', 'Maybe String');
+        checkParamOrThrow(index, 'index', 'Number');
+
+        const files = await readdirPromised(this.localStoragePath);
+        let keys = files.map(file => path.parse(file).name).sort(); // Array is sorted to emulate API.
+        if (exclusiveStartKey) {
+            const keyPos = keys.indexOf(exclusiveStartKey);
+            if (keyPos !== -1) keys = keys.slice(keyPos + 1);
+        }
+        for (const key of keys) {
+            await iteratee(key, index++);
+        }
     }
 
     /**
