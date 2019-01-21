@@ -213,30 +213,55 @@ export const constructPseudoUrlInstances = (pseudoUrls) => {
 let logDeprecationWarning = true;
 
 /**
- * Finds HTML elements matching a CSS selector, clicks the elements and if a redirect is triggered and destination URL matches
- * one of the provided {@link PseudoUrl}s, then the function enqueues that URL to a given request queue.
- * To create a Request object function uses `requestTemplate` from a matching {@link PseudoUrl}.
+ * The function finds HTML anchor (`&lt;a&gt;`) elements matching a specific CSS selector on a Puppeteer page,
+ * and enqueues the corresponding links to the provided {@link RequestQueue}.
+ * Optionally, the function allows you to filter the target links URLs using an array of {@link PseudoUrl} objects
+ * and override settings of the enqueued {@link Request} objects.
  *
- * *WARNING*: This is work in progress. Currently the function doesn't click elements and only takes their `href` attribute and so
- *            is working only for link (`a`) elements, but not for buttons or JavaScript links.
+ * *IMPORTANT*: This is a work in progress. Currently the function only supports `&lt;a&gt;` elements with
+ * `href` attribute point to some URL. However, in the future the function will also support
+ * JavaScript links, buttons and form submissions.
+ *
+ * **Example usage**
+ *
+ * ```javascript
+ * const Apify = require('apify');
+ *
+ * const browser = await Apify.launchPuppeteer();
+ * const page = await browser.goto('https://www.example.com');
+ * const requestQueue = await Apify.openRequestQueue();
+ *
+ * await Apify.utils.puppeteer.enqueueLinks({
+ *   page,
+ *   requestQueue,
+ *   selector: 'a.product-detail',
+ *   pseudoUrls: [
+ *       'https://www.example.com/handbags/[.*]'
+ *       'https://www.example.com/purses/[.*]'
+ *   ],
+ * });
+ * ```
+ *
  * @param {Object} options
  * @param {Page} options.page
  *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
  * @param {RequestQueue} options.requestQueue
- *   {@link RequestQueue} instance where URLs will be enqueued.
+ *   A request queue to which the URLs will be enqueued.
  * @param {String} [options.selector='a']
- *   CSS selector matching elements to be clicked.
+ *   A CSS selector matching links to be enqueued.
  * @param {PseudoUrl[]|Object[]|String[]} [options.pseudoUrls]
  *   An array of {@link PseudoUrl}s matching the URLs to be enqueued,
- *   or an array of Strings or Objects from which the {@link PseudoUrl}s should be constructed
- *   The Objects must include at least a `purl` property, which holds a pseudoUrl string.
+ *   or an array of strings or objects from which the {@link PseudoUrl}s can be constructed.
+ *   The objects must include at least the `purl` property, which holds the pseudo-URL string.
  *   All remaining keys will be used as the `requestTemplate` argument of the {@link PseudoUrl} constructor.
- *   If `pseudoUrls` is an empty array, null or undefined, then the function
+ *   which lets you specify special properties for the enqueued {@link Request} objects.
+ *
+ *   If `pseudoUrls` is an empty array, `null` or `undefined`, then the function
  *   enqueues all links found on the page.
  * @param {Object} [options.userData]
- *   Object that will be merged with the new Request's userData, overriding any values that
- *   were set via templating from pseudoUrls. This is useful when you need to override generic
- *   userData set by PseudoURL template in specific use cases.
+ *   An object that will be merged with the new {@link Request}'s `userData`, overriding any values that
+ *   were set via templating from `pseudoUrls`. This is useful when you need to override generic
+ *   `userData` set by the {@link PseudoUrl} template in specific use cases.
  *   **Example:**
  *   ```
  *   // pseudoUrl.userData

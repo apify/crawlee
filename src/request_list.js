@@ -576,7 +576,7 @@ export class RequestList {
  *
  * For more details and code examples, see the {@link RequestList} class.
  *
- * **Example Usage:**
+ * **Example usage:**
  *
  * ```javascript
  * const sources = [
