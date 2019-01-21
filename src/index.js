@@ -15,7 +15,7 @@ import Request from './request';
 import { RequestList, openRequestList } from './request_list';
 import { openRequestQueue } from './request_queue';
 import SettingsRotator from './settings_rotator';
-import { apifyClient, getMemoryInfo, isAtHome, publicUtils } from './utils';
+import { apifyClient, getMemoryInfo, isAtHome, publicUtils, logSystemInfo } from './utils';
 import { browse, launchWebDriver } from './webdriver';
 import { puppeteerUtils } from './puppeteer_utils';
 import { socialUtils } from './utils_social';
@@ -35,6 +35,8 @@ if (process.env[EMULATION_ENV_VAR]) {
     log.warning(`Environment variable "${EMULATION_ENV_VAR}" is deprecated!!! Use "${ENV_VARS.LOCAL_STORAGE_DIR}" instead!`);
     if (!process.env[ENV_VARS.LOCAL_STORAGE_DIR]) process.env[ENV_VARS.LOCAL_STORAGE_DIR] = process.env[EMULATION_ENV_VAR];
 }
+
+logSystemInfo();
 
 /**
  * The following section describes all functions and properties provided by the `apify` package,
