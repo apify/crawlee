@@ -365,8 +365,11 @@ extracted from the plain text, which might be very inaccurate.
 
 **Example usage:**
 ```javascript
-const puppeteer = await Apify.launchPuppeteer();
-await puppeteer.goto('http://www.example.com');
+const Apify = require('apify');
+
+const browser = await Apify.launchPuppeteer();
+const page = await browser.newPage();
+await page.goto('http://www.example.com');
 const html = await puppeteer.content();
 
 const result = Apify.utils.social.parseHandlesFromHtml(html);

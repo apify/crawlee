@@ -725,7 +725,7 @@ a small state object is regularly persisted to keep track of the crawling status
 
 For more details and code examples, see the [`RequestList`](requestlist) class.
 
-**Example Usage:**
+**Example usage:**
 
 ```javascript
 const sources = [

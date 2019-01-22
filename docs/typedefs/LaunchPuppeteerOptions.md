@@ -4,11 +4,11 @@ title: LaunchPuppeteerOptions
 ---
 <a name="LaunchPuppeteerOptions"></a>
 
-An object representing options passed to the
-[`Apify.launchPuppeteer()`](../api/apify#module_Apify.launchPuppeteer)
-function. In this object, you can pass any options supported by the
-[`puppeteer.launch()`](https://pptr.dev/#?product=Puppeteer&show=api-puppeteerlaunchoptions),
-as well as the additional options provided by Apify SDK listed below.
+Apify extends the launch options of Puppeteer.
+You can use any of the
+<a href="https://pptr.dev/#?product=Puppeteer&show=api-puppeteerlaunchoptions" target="_blank"><code>puppeteer.launch()</code></a>
+options in the [`Apify.launchPuppeteer()`](../api/apify#module_Apify.launchPuppeteer)
+function and in addition, all the options available below.
 
 **Properties**
 <table>
@@ -19,6 +19,13 @@ as well as the additional options provided by Apify SDK listed below.
 </thead>
 <tbody>
 <tr>
+<td><code>...</code></td><td></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>You can use any of the
+  <a href="https://pptr.dev/#?product=Puppeteer&show=api-puppeteerlaunchoptions" target="_blank"><code>puppeteer.launch()</code></a>
+  options too.</p>
+</td></tr><tr>
 <td><code>[proxyUrl]</code></td><td><code>String</code></td><td></td>
 </tr>
 <tr>
