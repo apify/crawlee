@@ -4,7 +4,7 @@ import cheerio from 'cheerio';
 import log from 'apify-shared/log';
 import { publicUtils } from './utils';
 
-// TODO: Finish docs and examples !!!
+// TODO: We could support URLs like https://www.linkedin.com/company/some-company-inc
 
 // Regex inspired by https://zapier.com/blog/extract-links-email-phone-regex/
 // eslint-disable-next-line max-len
@@ -536,7 +536,6 @@ const parseHandlesFromHtml = (html, data = null) => {
     return result;
 };
 
-// TODO: Add nice example of parseHandlesFromHtml() and regular
 
 /**
  * A namespace that contains various utilities to help you extract social handles
