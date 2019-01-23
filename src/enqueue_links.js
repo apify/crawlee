@@ -47,6 +47,7 @@ export const constructPseudoUrlInstances = (pseudoUrls) => {
  * @param {Page} page
  * @param {string} selector
  * @returns {string[]}
+ * @ignore
  */
 export const extractUrlsFromPage = async (page, selector) => {
     /* istanbul ignore next */
@@ -59,6 +60,7 @@ export const extractUrlsFromPage = async (page, selector) => {
  * @param {Function} $
  * @param {string} selector
  * @returns {string[]}
+ * @ignore
  */
 export const extraxtUrlsFromCheerio = ($, selector) => {
     return $(selector).map((i, el) => $(el).attr('href')).get().filter(href => !!href);
@@ -149,7 +151,7 @@ let logDeprecationWarning = true;
  *   ```
  * @return {Promise<QueueOperationInfo[]>}
  *   Promise that resolves to an array of {@link QueueOperationInfo} objects.
- * @memberOf puppeteer
+ * @memberOf utils
  */
 export const enqueueLinks = async (...args) => {
     // TODO: Remove after v1.0.0 gets released.
