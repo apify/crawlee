@@ -334,6 +334,34 @@ describe('enqueueLinks()', () => {
             $ = null;
         });
 
+        it('works from utils namespace', async () => {
+            const enqueued = [];
+            const requestQueue = new RequestQueue('xxx');
+            requestQueue.addRequest = async (request) => {
+                enqueued.push(request);
+            };
+            const pseudoUrls = [
+                new Apify.PseudoUrl('https://example.com/[(\\w|-|/)*]', { method: 'POST' }),
+                new Apify.PseudoUrl('[http|https]://cool.com/', { userData: { foo: 'bar' } }),
+            ];
+
+            await Apify.utils.enqueueLinks({ $, selector: '.click', requestQueue, pseudoUrls });
+
+            expect(enqueued).to.have.lengthOf(3);
+
+            expect(enqueued[0].url).to.be.eql('https://example.com/a/b/first');
+            expect(enqueued[0].method).to.be.eql('POST');
+            expect(enqueued[0].userData).to.be.eql({});
+
+            expect(enqueued[1].url).to.be.eql('https://example.com/a/b/third');
+            expect(enqueued[1].method).to.be.eql('POST');
+            expect(enqueued[1].userData).to.be.eql({});
+
+            expect(enqueued[2].url).to.be.eql('http://cool.com/');
+            expect(enqueued[2].method).to.be.eql('GET');
+            expect(enqueued[2].userData.foo).to.be.eql('bar');
+        });
+
         it('works with PseudoUrl instances', async () => {
             const enqueued = [];
             const requestQueue = new RequestQueue('xxx');
