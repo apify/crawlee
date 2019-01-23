@@ -42,6 +42,29 @@ export const constructPseudoUrlInstances = (pseudoUrls) => {
 };
 
 /**
+ * Extracts URLs from a given Puppeteer Page.
+ *
+ * @param {Page} page
+ * @param {string} selector
+ * @returns {string[]}
+ */
+export const extractUrlsFromPage = async (page, selector) => {
+    /* istanbul ignore next */
+    return page.$$eval(selector, linkEls => linkEls.map(link => link.href).filter(href => !!href));
+};
+
+/**
+ * Extracts URLs from a given Cheerio object.
+ *
+ * @param {Function} $
+ * @param {string} selector
+ * @returns {string[]}
+ */
+export const extraxtUrlsFromCheerio = ($, selector) => {
+    return $(selector).map((i, el) => $(el).attr('href')).get().filter(href => !!href);
+};
+
+/**
  * Remove with 1.0.0
  * @ignore
  * @todo deprecate
@@ -131,9 +154,9 @@ let logDeprecationWarning = true;
 export const enqueueLinks = async (...args) => {
     // TODO: Remove after v1.0.0 gets released.
     // Refactor enqueueLinks to use an options object and keep backwards compatibility
-    let page, selector, requestQueue, pseudoUrls, userData; // eslint-disable-line
+    let page, $, selector, requestQueue, pseudoUrls, userData; // eslint-disable-line
     if (args.length === 1) {
-        [{ page, selector = 'a', requestQueue, pseudoUrls, userData = {} }] = args;
+        [{ page, $, selector = 'a', requestQueue, pseudoUrls, userData = {} }] = args;
     } else {
         [page, selector = 'a', requestQueue, pseudoUrls, userData = {}] = args;
         if (logDeprecationWarning) {
@@ -150,7 +173,14 @@ export const enqueueLinks = async (...args) => {
         pseudoUrls = tmp;
     }
 
-    checkParamOrThrow(page, 'page', 'Object');
+    checkParamOrThrow(page, 'page', 'Maybe Object');
+    checkParamOrThrow($, '$', 'Maybe Function');
+    if (!page && !$) {
+        throw new Error('One of the parameters "options.page" or "options.$" must be provided!');
+    }
+    if (page && $) {
+        throw new Error('Only one of the parameters "options.page" or "options.$" must be provided!');
+    }
     checkParamOrThrow(selector, 'selector', 'String');
     checkParamPrototypeOrThrow(requestQueue, 'requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue');
     checkParamOrThrow(pseudoUrls, 'pseudoUrls', 'Maybe Array');
@@ -159,9 +189,7 @@ export const enqueueLinks = async (...args) => {
     // Construct pseudoUrls from input where necessary.
     const pseudoUrlInstances = constructPseudoUrlInstances(pseudoUrls || []);
 
-    /* istanbul ignore next */
-    const getHrefs = linkEls => linkEls.map(link => link.href).filter(href => !!href);
-    const urls = await page.$$eval(selector, getHrefs);
+    const urls = page ? await extractUrlsFromPage(page, selector) : extraxtUrlsFromCheerio($, selector);
     let requests = [];
 
     if (pseudoUrlInstances.length) {

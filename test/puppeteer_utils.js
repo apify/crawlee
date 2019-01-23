@@ -1,6 +1,7 @@
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import Apify from '../build/index';
+import { RequestQueue } from '../build/request_queue';
 
 const { utils: { log } } = Apify;
 
