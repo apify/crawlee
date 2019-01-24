@@ -332,6 +332,7 @@ const compileScript = (scriptString, context = Object.create(null)) => {
     return func;
 };
 
+let logEnqueueLinksDeprecationWarning = true;
 
 /**
  * A namespace that contains various utilities for
@@ -359,7 +360,14 @@ export const puppeteerUtils = {
     injectJQuery,
     injectUnderscore,
     enqueueRequestsFromClickableElements,
-    enqueueLinks,
+    enqueueLinks: async (...args) => {
+        if (logEnqueueLinksDeprecationWarning) {
+            log.warning('Using enqueueLinks() from the Apify.utils.puppeteer namespace is deprecated. '
+                + 'Please use the Apify.utils.enqueueLinks().');
+            logEnqueueLinksDeprecationWarning = false;
+            return enqueueLinks(...args);
+        }
+    },
     blockResources,
     cacheResponses,
     compileScript,

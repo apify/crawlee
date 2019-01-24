@@ -16,7 +16,7 @@ const enqueueLinksCache = new Map();
 export const MAX_ENQUEUE_LINKS_CACHE_SIZE = 1000;
 
 /**
- * Helper factory used in the `enqeueLinks()` function.
+ * Helper factory used in the `enqueueLinks()` function.
  * @param {Array} pseudoUrls
  * @returns {Array}
  * @ignore

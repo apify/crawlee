@@ -98,8 +98,15 @@ describe('Apify.utils.puppeteer', () => {
         }
     });
 
+    // TODO Remove with 1.0.0. This is here as a backwards comp for moving
+    // the function from utils.puppeteer to utils.
     it('enqueueLinks() exists in this namespace', async () => {
         expect(Apify.utils.puppeteer.enqueueLinks).to.be.a('function');
+        try {
+            await Apify.utils.puppeteer.enqueueLinks({ page: {}, $: () => {} });
+        } catch (err) {
+            expect(err.message).to.be.eql('Only one of the parameters "options.page" or "options.$" must be provided!');
+        }
     });
 
     it('supports blockResources() with default values', async () => {
