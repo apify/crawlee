@@ -1,3 +1,8 @@
+0.11.6 / 2018-01-24
+===================
+- **DEPRECATION WARNING** `Apify.utils.puppeteer.enqueueLinks()` was moved to `Apify.utils.enqueueLinks()`.
+- `Apify.utils.enqueueLinks()` now supports `options.$` property to enqueue links from a Cheerio object.
+
 0.11.5 / 2018-01-18
 ===================
 - Disabled the `PuppeteerPool` `reusePages` option for now, due to a memory leak.
