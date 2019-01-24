@@ -53,11 +53,11 @@ await dataset.pushData([
 
 * [Dataset](dataset)
     * [`.pushData(data)`](#Dataset+pushData) ⇒ <code>Promise</code>
-    * [`.getData([options])`](#Dataset+getData) ⇒ <code>Promise&lt;(Array\|String\|Buffer)&gt;</code>
+    * [`.getData([options])`](#Dataset+getData) ⇒ <code>Promise&lt;(Array|String|Buffer)&gt;</code>
     * [`.getInfo()`](#Dataset+getInfo) ⇒ <code>Promise&lt;Object&gt;</code>
     * [`.forEach(iteratee, [options], [index])`](#Dataset+forEach) ⇒ <code>Promise</code>
     * [`.map(iteratee, options)`](#Dataset+map) ⇒ <code>Promise&lt;Array&gt;</code>
-    * [`.reduce(iteratee, memo, options)`](#Dataset+reduce) ⇒ <code>Promise&lt;\*&gt;</code>
+    * [`.reduce(iteratee, memo, options)`](#Dataset+reduce) ⇒ <code>Promise&lt;*&gt;</code>
     * [`.delete()`](#Dataset+delete) ⇒ <code>Promise</code>
 
 <a name="Dataset+pushData"></a>
@@ -101,7 +101,7 @@ The objects must be serializable to JSON and the JSON representation of each obj
 </table>
 <a name="Dataset+getData"></a>
 
-## `dataset.getData([options])` ⇒ <code>Promise&lt;(Array\|String\|Buffer)&gt;</code>
+## `dataset.getData([options])` ⇒ <code>Promise&lt;(Array|String|Buffer)&gt;</code>
 Returns items in the dataset based on the provided parameters.
 
 <table>
@@ -329,7 +329,7 @@ If `iteratee` returns a `Promise` then it's awaited before a next call.
 </table>
 <a name="Dataset+reduce"></a>
 
-## `dataset.reduce(iteratee, memo, options)` ⇒ <code>Promise&lt;\*&gt;</code>
+## `dataset.reduce(iteratee, memo, options)` ⇒ <code>Promise&lt;*&gt;</code>
 Reduces a list of values down to a single value.
 
 Memo is the initial state of the reduction, and each successive step of it should be returned by `iteratee()`.

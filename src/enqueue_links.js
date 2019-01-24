@@ -74,7 +74,7 @@ export const extraxtUrlsFromCheerio = ($, selector) => {
 let logDeprecationWarning = true;
 
 /**
- * The function finds elements matching a specific CSS selector (HTML anchor (`&lt;a&gt;`) by default)
+ * The function finds elements matching a specific CSS selector (HTML anchor (`<a>`) by default)
  * either in a Puppeteer page, or in a Cheerio object (parsed HTML),
  * and enqueues the corresponding links to the provided {@link RequestQueue}.
  * Optionally, the function allows you to filter the target links' URLs using an array of {@link PseudoUrl} objects
@@ -93,7 +93,7 @@ let logDeprecationWarning = true;
  * const page = await browser.goto('https://www.example.com');
  * const requestQueue = await Apify.openRequestQueue();
  *
- * await Apify.utils.puppeteer.enqueueLinks({
+ * await Apify.utils.enqueueLinks({
  *   page,
  *   requestQueue,
  *   selector: 'a.product-detail',
@@ -105,11 +105,13 @@ let logDeprecationWarning = true;
  * ```
  *
  * @param {Object} options
+ *   All `enqueueLinks()` parameters are passed
+ *   via an options object with the following keys:
  * @param {Page} options.page
  *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
  *   Either `page` or `$` option must be provided.
  * @param {Cheerio} options.$
- *   <a href="https://www.npmjs.com/package/cheerio" target="_blank"><code>Cheerio</code></a> object.
+ *   <a href="https://github.com/cheeriojs/cheerio" target="_blank"><code>Cheerio</code></a> object with loaded HTML.
  *   Either `page` or `$` option must be provided.
  * @param {RequestQueue} options.requestQueue
  *   A request queue to which the URLs will be enqueued.
@@ -128,30 +130,34 @@ let logDeprecationWarning = true;
  *   An object that will be merged with the new {@link Request}'s `userData`, overriding any values that
  *   were set via templating from `pseudoUrls`. This is useful when you need to override generic
  *   `userData` set by the {@link PseudoUrl} template in specific use cases.
+ *
  *   **Example:**
- *   ```
- *   // pseudoUrl.userData
- *   {
- *       name: 'John',
- *       surname: 'Doe',
- *   }
- *
- *   // userData
- *   {
- *       name: 'Albert',
- *       age: 31
- *   }
- *
- *   // enqueued request.userData
- *   {
- *       name: 'Albert',
- *       surname: 'Doe',
- *       age: 31,
- *   }
- *   ```
+ * ```
+ * // pseudoUrl.userData
+ * {
+ *     name: 'John',
+ *     surname: 'Doe',
+ * }
+ * ```
+ * ```
+ * // userData
+ * {
+ *     name: 'Albert',
+ *     age: 31
+ * }
+ * ```
+ * ```
+ * // Enqueued request.userData
+ * {
+ *     name: 'Albert',
+ *     surname: 'Doe',
+ *     age: 31,
+ * }
+ * ```
  * @return {Promise<QueueOperationInfo[]>}
  *   Promise that resolves to an array of {@link QueueOperationInfo} objects.
  * @memberOf utils
+ * @name enqueueLinks
  */
 export const enqueueLinks = async (...args) => {
     // TODO: Remove after v1.0.0 gets released.

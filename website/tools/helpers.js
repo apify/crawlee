@@ -14,3 +14,8 @@ exports.inlineLinks = (text, options) => {
     }
     return text;
 };
+
+exports.escape = function escape(input) {
+    if (typeof input !== 'string') return null;
+    return input.replace(/([*|])/g, '$1');
+};

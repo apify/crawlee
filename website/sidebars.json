@@ -23,6 +23,7 @@
             "api/requestlist",
             "api/requestqueue",
             "api/utils",
+            "api/log",
             "api/puppeteer",
             "api/social"
         ]
