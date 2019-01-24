@@ -17,7 +17,7 @@ export const MAX_ENQUEUE_LINKS_CACHE_SIZE = 1000;
 
 /**
  * Helper factory used in the `enqueueLinks()` function.
- * @param {Array} pseudoUrls
+ * @param {string[]|Object[]} pseudoUrls
  * @returns {Array}
  * @ignore
  */
@@ -27,10 +27,15 @@ export const constructPseudoUrlInstances = (pseudoUrls) => {
         let pUrl = enqueueLinksCache.get(item);
         if (pUrl) return pUrl;
         // Nothing in cache, make a new instance.
-        checkParamOrThrow(item, `pseudoUrls[${idx}]`, 'Object|String');
+        checkParamOrThrow(item, `pseudoUrls[${idx}]`, 'RegExp|Object|String');
+
+        // If it's already a PseudoURL, just save it.
         if (item instanceof PseudoUrl) pUrl = item;
-        else if (typeof item === 'string') pUrl = new PseudoUrl(item);
+        // If it's a string or RegExp, construct a PURL from it directly.
+        else if (typeof item === 'string' || item instanceof RegExp) pUrl = new PseudoUrl(item);
+        // If it's an object, look for a purl property and use it and the rest to construct a PURL with a Request template.
         else pUrl = new PseudoUrl(item.purl, _.omit(item, 'purl'));
+
         // Manage cache
         enqueueLinksCache.set(item, pUrl);
         if (enqueueLinksCache.size > MAX_ENQUEUE_LINKS_CACHE_SIZE) {
@@ -117,10 +122,11 @@ let logDeprecationWarning = true;
  *   A request queue to which the URLs will be enqueued.
  * @param {String} [options.selector='a']
  *   A CSS selector matching links to be enqueued.
- * @param {PseudoUrl[]|Object[]|String[]} [options.pseudoUrls]
+ * @param {Object[]|String[]} [options.pseudoUrls]
  *   An array of {@link PseudoUrl}s matching the URLs to be enqueued,
- *   or an array of strings or objects from which the {@link PseudoUrl}s can be constructed.
- *   The objects must include at least the `purl` property, which holds the pseudo-URL string.
+ *   or an array of strings or RegExps or plain Objects from which the {@link PseudoUrl}s can be constructed.
+ *
+ *   The plain objects must include at least the `purl` property, which holds the pseudo-URL string or RegExp.
  *   All remaining keys will be used as the `requestTemplate` argument of the {@link PseudoUrl} constructor.
  *   which lets you specify special properties for the enqueued {@link Request} objects.
  *

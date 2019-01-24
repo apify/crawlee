@@ -52,11 +52,13 @@ const parsePurl = (purl) => {
 /**
  * Represents a pseudo URL (PURL) - an URL pattern used by web crawlers
  * to specify which URLs should the crawler visit.
- * This class is used by the [`utils.puppeteer.enqueueLinks()`](puppeteer#puppeteer.enqueueLinks) function.
+ * This class is used by the [`utils.enqueueLinks()`](utils#utils.enqueueLinks) function.
  *
  * A PURL is simply a URL with special directives enclosed in `[]` brackets.
  * Currently, the only supported directive is `[RegExp]`,
  * which defines a JavaScript-style regular expression to match against the URL.
+ *
+ * The matching of PURLs against URLs is always case insensitive.
  *
  * For example, a PURL `http://www.example.com/pages/[(\w|-)*]` will match all of the following URLs:
  *
@@ -86,22 +88,25 @@ const parsePurl = (purl) => {
  * if (purl.matches('http://www.example.com/pages/my-awesome-page')) console.log('Match!');
  * ```
  *
- * @param {String} purl
- *   Pseudo URL.
+ * @param {String|RegExp} purl
+ *   Pseudo URL string or a RegExp instance.
  * @param {Object} requestTemplate
  *   Options for the new {@link Request} instances created for matching URLs
- *   by the [`utils.puppeteer.enqueueLinks()`](puppeteer#puppeteer.enqueueLinks) function.
+ *   by the [`utils.enqueueLinks()`](utils#utils.enqueueLinks) function.
  */
 class PseudoUrl {
     constructor(purl, requestTemplate = {}) {
-        checkParamOrThrow(purl, 'purl', 'String');
+        checkParamOrThrow(purl, 'purl', 'String|RegExp');
         checkParamOrThrow(requestTemplate, 'requestTemplate', 'Object');
 
-        const regex = parsePurl(purl);
+        if (purl instanceof RegExp) {
+            this.regex = purl;
+        } else {
+            const regex = parsePurl(purl);
+            log.debug('PURL parsed', { purl, regex });
+            this.regex = new RegExp(regex, 'i');
+        }
 
-        log.debug('PURL parsed', { purl, regex });
-
-        this.regex = new RegExp(regex);
         this.requestTemplate = requestTemplate;
     }
 

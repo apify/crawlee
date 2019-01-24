@@ -99,12 +99,12 @@ await Apify.utils.enqueueLinks({
 <tr>
 <td colspan="3"><p>A CSS selector matching links to be enqueued.</p>
 </td></tr><tr>
-<td><code>[options.pseudoUrls]</code></td><td><code><a href="pseudourl">Array&lt;PseudoUrl&gt;</a></code> | <code>Array&lt;Object&gt;</code> | <code>Array&lt;String&gt;</code></td><td></td>
+<td><code>[options.pseudoUrls]</code></td><td><code>Array&lt;Object&gt;</code> | <code>Array&lt;String&gt;</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>An array of <a href="pseudourl"><code>PseudoUrl</code></a>s matching the URLs to be enqueued,
-  or an array of strings or objects from which the <a href="pseudourl"><code>PseudoUrl</code></a>s can be constructed.
-  The objects must include at least the <code>purl</code> property, which holds the pseudo-URL string.
+  or an array of strings or RegExps or plain Objects from which the <a href="pseudourl"><code>PseudoUrl</code></a>s can be constructed.</p>
+<p>  The plain objects must include at least the <code>purl</code> property, which holds the pseudo-URL string or RegExp.
   All remaining keys will be used as the <code>requestTemplate</code> argument of the <a href="pseudourl"><code>PseudoUrl</code></a> constructor.
   which lets you specify special properties for the enqueued <a href="request"><code>Request</code></a> objects.</p>
 <p>  If <code>pseudoUrls</code> is an empty array, <code>null</code> or <code>undefined</code>, then the function
