@@ -64,14 +64,14 @@ await store.delete('some-key');
 
 
 * [KeyValueStore](keyvaluestore)
-    * [`.getValue(key)`](#KeyValueStore+getValue) ⇒ <code>Promise&lt;(Object\|String\|Buffer)&gt;</code>
+    * [`.getValue(key)`](#KeyValueStore+getValue) ⇒ <code>Promise&lt;(Object|String|Buffer)&gt;</code>
     * [`.setValue(key, value, [options])`](#KeyValueStore+setValue) ⇒ <code>Promise</code>
     * [`.delete()`](#KeyValueStore+delete) ⇒ <code>Promise</code>
     * [`.forEachKey(iteratee, [options])`](#KeyValueStore+forEachKey) ⇒ <code>Promise</code>
 
 <a name="KeyValueStore+getValue"></a>
 
-## `keyValueStore.getValue(key)` ⇒ <code>Promise&lt;(Object\|String\|Buffer)&gt;</code>
+## `keyValueStore.getValue(key)` ⇒ <code>Promise&lt;(Object|String|Buffer)&gt;</code>
 Gets a value from the key-value store.
 
 The function returns a `Promise` that resolves to the record value,
@@ -94,7 +94,7 @@ const store = await Apify.openKeyValueStore('my-screenshots');
 const buffer = await store.getValue('screenshot1.png');
 ```
 
-**Returns**: <code>Promise&lt;(Object\|String\|Buffer)&gt;</code> - Returns a promise that resolves to an object, string
+**Returns**: <code>Promise&lt;(Object|String|Buffer)&gt;</code> - Returns a promise that resolves to an object, string
   or <a href="https://nodejs.org/api/buffer.html" target="_blank"><code>Buffer</code></a>, depending
   on the MIME content type of the record.  
 <table>

@@ -24,7 +24,7 @@ function and in addition, all the options available below.
 <tr>
 <td colspan="3"><p>You can use any of the
   <a href="https://pptr.dev/#?product=Puppeteer&show=api-puppeteerlaunchoptions" target="_blank"><code>puppeteer.launch()</code></a>
-  options too.</p>
+  options.</p>
 </td></tr><tr>
 <td><code>[proxyUrl]</code></td><td><code>String</code></td><td></td>
 </tr>
