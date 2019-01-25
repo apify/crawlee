@@ -752,25 +752,25 @@ describe('utils.htmlToText()', () => {
         /* eslint-disable no-tabs */
         checkHtmlToText(
             html1,
-            `Let's start with a simple text. 
-The ships hung in the sky, much the way that bricks don't. 
+            `Let's start with a simple text.
+The ships hung in the sky, much the way that bricks don't.
 These aren't the Droids you're looking for
 I'm sorry, Dave. I'm afraid I can't do that.
 I'm sorry, Dave. I'm afraid I can't do that.
-A1	A2	A3	
-B1	B2	B3	B 4	
-This is some text with inline elements and HTML entities (>bla<) 
+A1	A2	A3
+B1	B2	B3	B 4
+This is some text with inline elements and HTML entities (>bla<)
 Test
 a
 few
 line
 breaks
-Spaces in an inline text should be completely ignored. 
+Spaces in an inline text should be completely ignored.
 But,
     a pre-formatted
                 block  should  be  kept
                                        pre-formatted.
-The Greatest Science Fiction Quotes Of All Time 
+The Greatest Science Fiction Quotes Of All Time
 Don't know, I don't know such stuff. I just do eyes, ju-, ju-, just eyes... just genetic design, just eyes. You Nexus, huh? I design your eyes.`,
             true,
         );
@@ -783,5 +783,70 @@ Don't know, I don't know such stuff. I just do eyes, ju-, ju-, just eyes... just
 
         const html2 = '<h1>Text outside of body</h1>';
         checkHtmlToText(cheerio.load(html2, { decodeEntities: true }), 'Text outside of body');
+    });
+});
+
+
+describe('utils.createRequestDebugInfo()', () => {
+    it('handles Puppeteer response', () => {
+        const request = {
+            id: 'some-id',
+            url: 'https://example.com',
+            method: 'POST',
+            retryCount: 2,
+            errorMessages: ['xxx'],
+            someThingElse: 'xxx',
+            someOther: 'yyy',
+        };
+
+        const response = {
+            status: () => 201,
+            another: 'yyy',
+        };
+
+        const additionalFields = {
+            foo: 'bar',
+        };
+
+        expect(Apify.utils.createRequestDebugInfo(request, response, additionalFields)).to.be.eql({
+            requestId: 'some-id',
+            url: 'https://example.com',
+            method: 'POST',
+            retryCount: 2,
+            errorMessages: ['xxx'],
+            statusCode: 201,
+            foo: 'bar',
+        });
+    });
+
+    it('handles NodeJS response', () => {
+        const request = {
+            id: 'some-id',
+            url: 'https://example.com',
+            method: 'POST',
+            retryCount: 2,
+            errorMessages: ['xxx'],
+            someThingElse: 'xxx',
+            someOther: 'yyy',
+        };
+
+        const response = {
+            statusCode: 201,
+            another: 'yyy',
+        };
+
+        const additionalFields = {
+            foo: 'bar',
+        };
+
+        expect(Apify.utils.createRequestDebugInfo(request, response, additionalFields)).to.be.eql({
+            requestId: 'some-id',
+            url: 'https://example.com',
+            method: 'POST',
+            retryCount: 2,
+            errorMessages: ['xxx'],
+            statusCode: 201,
+            foo: 'bar',
+        });
     });
 });

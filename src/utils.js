@@ -1,5 +1,6 @@
 import contentTypeParser from 'content-type';
 import os from 'os';
+import _ from 'underscore';
 import fs from 'fs';
 import util from 'util';
 import fsExtra from 'fs-extra';
@@ -560,6 +561,35 @@ const htmlToText = (html) => {
     return text.trim();
 };
 
+/**
+ * Creates a standardized debug info from request and response. This info is usually added to dataset under the hidden `#debug` field.
+ *
+ * @param {Object} request [Apify.Request](https://sdk.apify.com/docs/api/request) object.
+ * @param {Object} [response] Puppeteer [Response](https://pptr.dev/#?product=Puppeteer&version=v1.11.0&show=api-class-response) object
+ * or NodeJS [http.ServerResponse](https://nodejs.org/api/http.html#http_class_http_serverresponse) object
+ * @param {Object} [additionalFields] Object containing additional fields to be added.
+
+ * @return {Object}
+ * @memberOf utils
+ */
+const createRequestDebugInfo = (request, response = {}, additionalFields = {}) => {
+    checkParamOrThrow(request, 'request', 'Object');
+    checkParamOrThrow(response, 'response', 'Object');
+    checkParamOrThrow(additionalFields, 'additionalFields', 'Object');
+
+    return Object.assign(
+        {
+            requestId: request.id,
+            url: request.url,
+            method: request.method,
+            retryCount: request.retryCount,
+            errorMessages: request.errorMessages,
+            // Puppeteer response has .status() funtion and NodeJS response ,statusCode property.
+            statusCode: _.isFunction(response.status) ? response.status() : response.statusCode,
+        },
+        additionalFields,
+    );
+};
 
 /**
  * A namespace that contains various utilities.
@@ -585,4 +615,5 @@ export const publicUtils = {
     htmlToText,
     URL_NO_COMMAS_REGEX,
     URL_WITH_COMMAS_REGEX,
+    createRequestDebugInfo,
 };
