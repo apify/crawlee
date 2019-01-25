@@ -7,6 +7,7 @@
 ===================
 - Disabled the `PuppeteerPool` `reusePages` option for now, due to a memory leak.
 - Added a `keyValueStore.forEachKey()` method to iterate all keys in the store.
+- Better error message for an invalid `launchPuppeteerFunction` passed to `PuppeteerPool`.
 
 0.11.4 / 2018-01-15
 ===================
