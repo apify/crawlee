@@ -92,10 +92,12 @@ await puppeteerPool.destroy();
 <td><code>[options.launchPuppeteerFunction]</code></td><td><code>function</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>Overrides the default function to launch a new <code>Puppeteer</code> instance.
-  See source code on
+<td colspan="3"><p>Overrides the default function to launch a new Puppeteer instance.
+  The function must return a promise resolving to
+  <a href="https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-browser"><code>Browser</code></a> instance.
+  See the source code on
   <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_pool.js#L28" target="_blank">GitHub</a>
-  for default behavior.</p>
+  for the default implementation.</p>
 </td></tr><tr>
 <td><code>[options.launchPuppeteerOptions]</code></td><td><code><a href="../typedefs/launchpuppeteeroptions">LaunchPuppeteerOptions</a></code></td><td></td>
 </tr>
