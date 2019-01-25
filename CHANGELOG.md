@@ -1,3 +1,7 @@
+xxxxxxxxxxxxxxxxxxx
+===================
+- Added `utils.createRequestDebugInfo()` function to create a standardized debug info from request and response.
+
 0.11.5 / 2018-01-18
 ===================
 - Disabled the `PuppeteerPool` `reusePages` option for now, due to a memory leak.
@@ -27,7 +31,7 @@
   were removed in favor of a single `autoscaledPool.abort()` function.
 
 - Added a reference to the running `AutoscaledPool` instance to the options object of `BasicCrawler`'s
-  `handleRequestFunction` and to the `handlePageFunction` of `CheerioCrawler` and `PuppeteerCrawler`.  
+  `handleRequestFunction` and to the `handlePageFunction` of `CheerioCrawler` and `PuppeteerCrawler`.
 - Added sources persistence option to `RequestList` that works best in conjunction with the state persistence,
   but can be toggled separately too.
 - Added `Apify.openRequestList()` function to place it in line with `RequestQueue`, `KeyValueStore` and `Dataset`.
@@ -46,7 +50,7 @@
 ===================
 - `autoscaledPool.isFinishedFunction()` and `autoscaledPool.isTaskReadyFunction()` exceptions
   will now cause the `Promise` returned by `autoscaledPool.run()` to reject instead of just
-  logging a message. This is in line with the `autoscaledPool.runTaskFunction()` behavior. 
+  logging a message. This is in line with the `autoscaledPool.runTaskFunction()` behavior.
 - Bugfix: PuppeteerPool was incorrectly overriding `proxyUrls` even if they were not defined.
 - Fixed an issue where an error would be thrown when `datasetLocal.getData()` was invoked
   with an overflowing offset. It now correctly returns an empty `Array`.
