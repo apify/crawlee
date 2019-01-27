@@ -2,6 +2,8 @@ xxx
 ===================
 - `PseudoUrl` can now be constructed with a `RegExp`.
 - `Apify.utils.enqueueLinks()` now accepts `RegExp` instances in its `pseudoUrls` parameter.
+- `Apify.utils.enqueueLinks()` now accepts a `baseUrl` option that enables resolution of relative URLs
+   when parsing a Cheerio object. (It's done automatically in browser when using Puppeteer).
 - Better error message for an invalid `launchPuppeteerFunction` passed to `PuppeteerPool`.
 
 0.11.6 / 2018-01-24
