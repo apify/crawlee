@@ -82,7 +82,7 @@ It comes with a free account, so let's go to our
 <a href="https://my.apify.com/sign-up" target="_blank">sign-up page</a>
 and create one, if you haven't already. Don't forget to verify your email. Without it, you won't be able to run any projects.
 
-Once you're in, you might by prompted by our in-app help to walk through a step-by-step guide into some of our new features. Feel free to finish that, if you'd like, but once you're done, click on the **Actors** tab in the left menu. You might be tempted to go directly to Crawlers, because what the heck are **Actors**, right? Bear with me, **Actors** are the tool that you really want! To read more about them, see: [What is an Actor](./whatisanactor).
+Once you're in, you might be prompted by our in-app help to walk through a step-by-step guide into some of our new features. Feel free to finish that, if you'd like, but once you're done, click on the **Actors** tab in the left menu. You might be tempted to go directly to Crawlers, because what the heck are **Actors**, right? Bear with me, **Actors** are the tool that you really want! To read more about them, see: [What is an Actor](./whatisanactor).
 
 ### Creating a new project
 In the page that shows after clicking on Actors in the left menu, choose **Create new**. Give it a name in the form that opens, let's say, `my-new-actor`. Disregard all the available options for now and save your changes.
