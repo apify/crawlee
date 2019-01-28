@@ -570,7 +570,7 @@ const htmlToText = (html) => {
  * @param {Object} [additionalFields] Object containing additional fields to be added.
 
  * @return {Object}
- * @memberOf utils
+ * @ignore
  */
 const createRequestDebugInfo = (request, response = {}, additionalFields = {}) => {
     checkParamOrThrow(request, 'request', 'Object');
