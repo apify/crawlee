@@ -25,7 +25,8 @@ const HTML = `
             Don't know, I don't know such stuff. I just do eyes, ju-, ju-, just eyes... just genetic design,
             just eyes. You Nexus, huh? I design your <a class="click" href="http://cool.com/">eyes</a>.
         </p>
-        <a href="/x/relative">This is a relative link.</a>
+        <a href="/x/absolutepath">This is a relative link.</a>
+        <a href="y/relativepath">This is a relative link.</a>
     </body>
 </html>
 `;
@@ -600,9 +601,9 @@ describe('enqueueLinks()', () => {
                 enqueued.push(request);
             };
 
-            await enqueueLinks({ $, requestQueue, baseUrl: 'http://www.absolute.com/removethis' });
+            await enqueueLinks({ $, requestQueue, baseUrl: 'http://www.absolute.com/removethis/' });
 
-            expect(enqueued).to.have.lengthOf(6);
+            expect(enqueued).to.have.lengthOf(7);
 
             expect(enqueued[0].url).to.be.eql('https://example.com/a/b/first');
             expect(enqueued[0].method).to.be.eql('GET');
@@ -624,9 +625,13 @@ describe('enqueueLinks()', () => {
             expect(enqueued[4].method).to.be.eql('GET');
             expect(enqueued[4].userData).to.be.eql({});
 
-            expect(enqueued[5].url).to.be.eql('http://www.absolute.com/x/relative');
+            expect(enqueued[5].url).to.be.eql('http://www.absolute.com/x/absolutepath');
             expect(enqueued[5].method).to.be.eql('GET');
             expect(enqueued[5].userData).to.be.eql({});
+
+            expect(enqueued[6].url).to.be.eql('http://www.absolute.com/removethis/y/relativepath');
+            expect(enqueued[6].method).to.be.eql('GET');
+            expect(enqueued[6].userData).to.be.eql({});
         });
 
         it('throws on finding a relative link with no baseUrl set', async () => {
@@ -639,7 +644,7 @@ describe('enqueueLinks()', () => {
                 await enqueueLinks({ $, requestQueue });
                 throw new Error('wrong error');
             } catch (err) {
-                expect(err.message).to.include('/x/relative');
+                expect(err.message).to.include('/x/absolutepath');
             }
             expect(enqueued).to.have.lengthOf(0);
         });
