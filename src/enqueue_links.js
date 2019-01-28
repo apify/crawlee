@@ -73,7 +73,7 @@ export const extraxtUrlsFromCheerio = ($, selector, baseUrl) => {
     return $(selector)
         .map((i, el) => $(el).attr('href'))
         .get()
-        .filter(href => href)
+        .filter(href => !!href)
         .map((href) => {
             // Throw a meaningful error when only a relative URL would be extracted instead of waiting for the Request to fail later.
             const isHrefAbsolute = /^[a-z][a-z0-9+.-]*:/.test(href); // Grabbed this in 'is-absolute-url' package.
