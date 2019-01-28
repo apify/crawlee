@@ -36,6 +36,7 @@ if (process.env[EMULATION_ENV_VAR]) {
     if (!process.env[ENV_VARS.LOCAL_STORAGE_DIR]) process.env[ENV_VARS.LOCAL_STORAGE_DIR] = process.env[EMULATION_ENV_VAR];
 }
 
+// Logging some basic system info (apify and apify-client version, NodeJS version, ...).
 logSystemInfo();
 
 /**
