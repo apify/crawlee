@@ -19,6 +19,7 @@ await Apify.utils.sleep(1500);
 
 
 * [`utils`](#utils) : <code>object</code>
+    * [`.enqueueLinks`](#utils.enqueueLinks) ⇒ <code>Promise&lt;Array&lt;QueueOperationInfo&gt;&gt;</code>
     * [`.URL_NO_COMMAS_REGEX`](#utils.URL_NO_COMMAS_REGEX)
     * [`.URL_WITH_COMMAS_REGEX`](#utils.URL_WITH_COMMAS_REGEX)
     * [`.isDocker()`](#utils.isDocker) ⇒ <code>Promise</code>
@@ -28,15 +29,121 @@ await Apify.utils.sleep(1500);
     * [`.getRandomUserAgent()`](#utils.getRandomUserAgent) ⇒ <code>String</code>
     * [`.htmlToText(html)`](#utils.htmlToText) ⇒ <code>String</code>
 
+<a name="utils.enqueueLinks"></a>
+
+## `utils.enqueueLinks` ⇒ <code>Promise&lt;Array&lt;QueueOperationInfo&gt;&gt;</code>
+The function finds elements matching a specific CSS selector (HTML anchor (`<a>`) by default)
+either in a Puppeteer page, or in a Cheerio object (parsed HTML),
+and enqueues the corresponding links to the provided [`RequestQueue`](requestqueue).
+Optionally, the function allows you to filter the target links' URLs using an array of [`PseudoUrl`](pseudourl) objects
+and override settings of the enqueued [`Request`](request) objects.
+
+*IMPORTANT*: This is a work in progress. Currently the function only supports elements with
+`href` attribute pointing to a URL. However, in the future the function will also support
+JavaScript links, buttons and form submissions when used with a Puppeteer Page.
+
+**Example usage**
+
+```javascript
+const Apify = require('apify');
+
+const browser = await Apify.launchPuppeteer();
+const page = await browser.goto('https://www.example.com');
+const requestQueue = await Apify.openRequestQueue();
+
+await Apify.utils.enqueueLinks({
+  page,
+  requestQueue,
+  selector: 'a.product-detail',
+  pseudoUrls: [
+      'https://www.example.com/handbags/[.*]'
+      'https://www.example.com/purses/[.*]'
+  ],
+});
+```
+
+**Returns**: <code>Promise&lt;Array&lt;QueueOperationInfo&gt;&gt;</code> - Promise that resolves to an array of [`QueueOperationInfo`](../typedefs/queueoperationinfo) objects.  
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th><th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>options</code></td><td><code>Object</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>All <code>enqueueLinks()</code> parameters are passed
+  via an options object with the following keys:</p>
+</td></tr><tr>
+<td><code>options.page</code></td><td><code>Page</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
+  Either <code>page</code> or <code>$</code> option must be provided.</p>
+</td></tr><tr>
+<td><code>options.$</code></td><td><code>Cheerio</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p><a href="https://github.com/cheeriojs/cheerio" target="_blank"><code>Cheerio</code></a> object with loaded HTML.
+  Either <code>page</code> or <code>$</code> option must be provided.</p>
+</td></tr><tr>
+<td><code>options.requestQueue</code></td><td><code><a href="requestqueue">RequestQueue</a></code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>A request queue to which the URLs will be enqueued.</p>
+</td></tr><tr>
+<td><code>[options.selector]</code></td><td><code>String</code></td><td><code>&#x27;a&#x27;</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>A CSS selector matching links to be enqueued.</p>
+</td></tr><tr>
+<td><code>[options.pseudoUrls]</code></td><td><code>Array&lt;Object&gt;</code> | <code>Array&lt;String&gt;</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>An array of <a href="pseudourl"><code>PseudoUrl</code></a>s matching the URLs to be enqueued,
+  or an array of strings or RegExps or plain Objects from which the <a href="pseudourl"><code>PseudoUrl</code></a>s can be constructed.</p>
+<p>  The plain objects must include at least the <code>purl</code> property, which holds the pseudo-URL string or RegExp.
+  All remaining keys will be used as the <code>requestTemplate</code> argument of the <a href="pseudourl"><code>PseudoUrl</code></a> constructor.
+  which lets you specify special properties for the enqueued <a href="request"><code>Request</code></a> objects.</p>
+<p>  If <code>pseudoUrls</code> is an empty array, <code>null</code> or <code>undefined</code>, then the function
+  enqueues all links found on the page.</p>
+</td></tr><tr>
+<td><code>[options.userData]</code></td><td><code>Object</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>An object that will be merged with the new <a href="request"><code>Request</code></a>&#39;s <code>userData</code>, overriding any values that
+  were set via templating from <code>pseudoUrls</code>. This is useful when you need to override generic
+  <code>userData</code> set by the <a href="pseudourl"><code>PseudoUrl</code></a> template in specific use cases.</p>
+<p>  <strong>Example:</strong></p>
+<pre><code>// pseudoUrl.userData
+{
+    name: &#39;John&#39;,
+    surname: &#39;Doe&#39;,
+}
+</code></pre><pre><code>// userData
+{
+    name: &#39;Albert&#39;,
+    age: 31
+}
+</code></pre><pre><code>// Enqueued request.userData
+{
+    name: &#39;Albert&#39;,
+    surname: &#39;Doe&#39;,
+    age: 31,
+}
+</code></pre></td></tr></tbody>
+</table>
 <a name="utils.URL_NO_COMMAS_REGEX"></a>
 
-## `utils.URL\_NO\_COMMAS\_REGEX`
+## `utils.URL_NO_COMMAS_REGEX`
 Default regular expression to match URLs in a string that may be plain text, JSON, CSV or other. It supports common URL characters
 and does not support URLs containing commas or spaces. The URLs also may contain Unicode letters (not symbols).
 
 <a name="utils.URL_WITH_COMMAS_REGEX"></a>
 
-## `utils.URL\_WITH\_COMMAS\_REGEX`
+## `utils.URL_WITH_COMMAS_REGEX`
 Regular expression that, in addition to the default regular expression `URL_NO_COMMAS_REGEX`, supports matching commas in URL path and query.
 Note, however, that this may prevent parsing URLs from comma delimited lists, or the URLs may become malformed.
 

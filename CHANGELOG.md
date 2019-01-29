@@ -1,6 +1,14 @@
 xxxxxxxxxxxxxxxxxxx
 ===================
 - Added `utils.createRequestDebugInfo()` function to create a standardized debug info from request and response.
+- `PseudoUrl` can now be constructed with a `RegExp`.
+- `Apify.utils.enqueueLinks()` now accepts `RegExp` instances in its `pseudoUrls` parameter.
+- Better error message for an invalid `launchPuppeteerFunction` passed to `PuppeteerPool`.
+
+0.11.6 / 2018-01-24
+===================
+- **DEPRECATION WARNING** `Apify.utils.puppeteer.enqueueLinks()` was moved to `Apify.utils.enqueueLinks()`.
+- `Apify.utils.enqueueLinks()` now supports `options.$` property to enqueue links from a Cheerio object.
 
 0.11.5 / 2018-01-18
 ===================

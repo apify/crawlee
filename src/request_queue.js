@@ -116,7 +116,7 @@ const getRequestId = (uniqueKey) => {
 /**
  * A helper class that is used to report results from various
  * [`RequestQueue`](../api/requestqueue) functions as well as
- * [`Apify.utils.puppeteer.enqueueLinks()`](../api/puppeteer#puppeteer.enqueueLinks).
+ * [`Apify.utils.enqueueLinks()`](../api/utils#utils.enqueueLinks).
  *
  * @typedef {Object} QueueOperationInfo
  * @property {Boolean} wasAlreadyPresent Indicates if request was already present in the queue.

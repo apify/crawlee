@@ -117,10 +117,12 @@ class PuppeteerInstance {
  *   whole browser is closed too. This parameter defines a time limit between the last tab was opened and
  *   before the browser is closed even if there are pending open tabs.
  * @param {Function} [options.launchPuppeteerFunction]
- *   Overrides the default function to launch a new `Puppeteer` instance.
- *   See source code on
+ *   Overrides the default function to launch a new Puppeteer instance.
+ *   The function must return a promise resolving to
+ *   [`Browser`](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-browser) instance.
+ *   See the source code on
  *   <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_pool.js#L28" target="_blank">GitHub</a>
- *   for default behavior.
+ *   for the default implementation.
  * @param {LaunchPuppeteerOptions} [options.launchPuppeteerOptions]
  *   Options used by `Apify.launchPuppeteer()` to start new Puppeteer instances.
  *   See [`LaunchPuppeteerOptions`](../typedefs/launchpuppeteeroptions).
@@ -205,6 +207,10 @@ class PuppeteerPool {
             }
 
             const browser = await launchPuppeteerFunction(opts);
+            if (!browser || typeof browser.newPage !== 'function') {
+                // eslint-disable-next-line max-len
+                throw new Error("The custom 'launchPuppeteerFunction' passed to PuppeteerPool must return a promise resolving to Puppeteer's Browser instance.");
+            }
             browser.recycleDiskCacheDir = diskCacheDir;
             return browser;
         };
