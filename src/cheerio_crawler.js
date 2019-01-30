@@ -12,7 +12,7 @@ import { getApifyProxyUrl } from './actor';
 
 const DEFAULT_OPTIONS = {
     requestTimeoutSecs: 30,
-    handlePageTimeoutSecs: 300,
+    handlePageTimeoutSecs: 60,
     handleFailedRequestFunction: ({ request }) => {
         const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
 
@@ -140,10 +140,10 @@ const DEFAULT_OPTIONS = {
  *      - `strictSSL`: use `options.ignoreSslErrors`
  *      - `proxy`: use `options.useApifyProxy` or `options.proxyUrls`
  *
- * @param {Number} [options.handlePageTimeoutSecs=300]
+ * @param {Number} [options.handlePageTimeoutSecs=60]
  *   Timeout in which the function passed as `options.handlePageFunction` needs to finish, given in seconds.
  * @param {Number} [options.requestTimeoutSecs=30]
- *   Timeout in which the function passed as `options.requestFunction` needs to finish, given in seconds.
+ *   Timeout in which the HTTP request to the resource needs to finish, given in seconds.
  * @param {Boolean} [options.ignoreSslErrors=false]
  *   If set to true, SSL certificate errors will be ignored. This is dependent on using the default
  *   request function. If using a custom `options.requestFunction`, user needs to implement this functionality.
@@ -204,7 +204,6 @@ const DEFAULT_OPTIONS = {
 class CheerioCrawler {
     constructor(options = {}) {
         const {
-            requestFunction,
             requestOptions,
             handlePageFunction,
             requestTimeoutSecs,
@@ -229,8 +228,6 @@ class CheerioCrawler {
         } = _.defaults({}, options, DEFAULT_OPTIONS);
 
         checkParamOrThrow(handlePageFunction, 'options.handlePageFunction', 'Function');
-        checkParamOrThrow(requestFunction, 'options.requestFunction', 'Maybe Function');
-        if (requestFunction) log.warning('CheerioCrawler: options.requestFunction is deprecated. Use BasicCrawler instead.');
         checkParamOrThrow(requestOptions, 'options.requestOptions', 'Maybe Object');
         checkParamOrThrow(requestTimeoutSecs, 'options.requestTimeoutSecs', 'Number');
         checkParamOrThrow(handlePageTimeoutSecs, 'options.handlePageTimeoutSecs', 'Number');
@@ -243,11 +240,6 @@ class CheerioCrawler {
         if (proxyUrls && !proxyUrls.length) throw new Error('Parameter "options.proxyUrls" of type Array must not be empty');
         if (useApifyProxy && proxyUrls) throw new Error('Cannot combine "options.useApifyProxy" with "options.proxyUrls"!');
 
-        this.requestFunction = async ({ request, autoscaledPool }) => {
-            return requestFunction
-                ? requestFunction({ request, autoscaledPool })
-                : this._defaultRequestFunction({ request, autoscaledPool });
-        };
         this.requestOptions = requestOptions;
         this.handlePageFunction = handlePageFunction;
         this.handlePageTimeoutMillis = handlePageTimeoutSecs * 1000;
@@ -301,15 +293,13 @@ class CheerioCrawler {
      */
     async _handleRequestFunction({ request, autoscaledPool }) {
         const response = await addTimeoutToPromise(
-            this.requestFunction({ request, autoscaledPool }),
+            this._requestFunction({ request }),
             this.requestTimeoutMillis,
             'CheerioCrawler: requestFunction timed out.',
         );
 
-        let html;
-        if (typeof response === 'string') html = response;
-        else if (typeof response === 'object' && typeof response.body === 'string') html = response.body;
-        else throw new Error('CheerioCrawler: requestFunction returned neither string, nor an object with a body property of type string.');
+        const html = response.body;
+        request.loadedUrl = response.request.uri.href;
 
         const $ = cheerio.load(html);
         return addTimeoutToPromise(
@@ -320,12 +310,12 @@ class CheerioCrawler {
     }
 
     /**
-     * Default request function to be used. It performs optimizations
+     * Function to make the HTTP request. It performs optimizations
      * on the request such as only downloading the request body if the
-     * received content type
+     * received content type matches text/html.
      * @ignore
      */
-    async _defaultRequestFunction({ request }) {
+    async _requestFunction({ request }) {
         return new Promise((resolve, reject) => {
             // Using the streaming API of Request to be able to
             // handle the response based on headers receieved.

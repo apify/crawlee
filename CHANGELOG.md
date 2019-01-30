@@ -1,3 +1,8 @@
+xxx
+===================
+- Added `loadedUrl` property to `Request` that contains the `request.url` after redirects.
+- Reduced default `handlePageTimeoutSecs` for both `CheerioCrawler` and `PuppeteerCrawler` to `60` seconds.
+
 0.11.7 / 2018/01/30
 ===================
 - Apify SDK now logs basic system info when `required`.

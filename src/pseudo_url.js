@@ -58,7 +58,8 @@ const parsePurl = (purl) => {
  * Currently, the only supported directive is `[RegExp]`,
  * which defines a JavaScript-style regular expression to match against the URL.
  *
- * The matching of PURLs against URLs is always case insensitive.
+ * The matching of Pseudo URL string against URLs is always case insensitive.
+ * If you need case sensitive matching, use an appropriate `RegExp` in place of a Pseudo URL string.
  *
  * For example, a PURL `http://www.example.com/pages/[(\w|-)*]` will match all of the following URLs:
  *
@@ -89,7 +90,9 @@ const parsePurl = (purl) => {
  * ```
  *
  * @param {String|RegExp} purl
- *   Pseudo URL string or a RegExp instance.
+ *   Pseudo URL string or a `RegExp` instance.
+ *   Using a `RegExp` instance enables more granular control,
+ *   such as making the matching case sensitive.
  * @param {Object} requestTemplate
  *   Options for the new {@link Request} instances created for matching URLs
  *   by the [`utils.enqueueLinks()`](utils#utils.enqueueLinks) function.
