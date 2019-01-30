@@ -102,24 +102,24 @@ describe('CheerioCrawler', () => {
             const processed = [];
             const failed = [];
             const requestList = new Apify.RequestList({ sources });
-            const requestFunction = async () => {
-                await delayPromise(3000);
-                return '<html><head></head><body>Body</body></html>';
-            };
             const handlePageFunction = async ({ request }) => {
                 processed.push(request);
             };
 
             const cheerioCrawler = new Apify.CheerioCrawler({
                 requestList,
-                requestTimeoutSecs: 0.05,
+                requestTimeoutSecs: 5 / 1000,
                 maxRequestRetries: 1,
                 minConcurrency: 2,
                 maxConcurrency: 2,
                 handlePageFunction,
-                requestFunction,
                 handleFailedRequestFunction: ({ request }) => failed.push(request),
             });
+
+            cheerioCrawler._requestFunction = async () => {
+                await delayPromise(300);
+                return '<html><head></head><body>Body</body></html>';
+            };
 
             await requestList.initialize();
             await cheerioCrawler.run();
@@ -197,13 +197,14 @@ describe('CheerioCrawler', () => {
             const crawler = new Apify.CheerioCrawler({
                 requestList,
                 handlePageFunction: async () => {},
-                requestFunction: async ({ request }) => {
-                    const opts = crawler._getRequestOptions(request);
-                    headers.push(opts.headers);
-                    // it needs to return something valid
-                    return 'html';
-                },
             });
+
+            crawler._requestFunction = async ({ request }) => {
+                const opts = crawler._getRequestOptions(request);
+                headers.push(opts.headers);
+                // it needs to return something valid
+                return Object.assign({ body: 'html' }, responseMock);
+            };
 
             await crawler.run();
             headers.forEach(h => expect(h['Accept-Encoding']).to.be.eql('gzip, deflate'));
@@ -346,13 +347,14 @@ describe('CheerioCrawler', () => {
             const crawler = new Apify.CheerioCrawler({
                 requestList,
                 handlePageFunction: async () => {},
-                requestFunction: async ({ request }) => {
-                    const opts = crawler._getRequestOptions(request);
-                    headers.push(opts.headers);
-                    // it needs to return something valid
-                    return 'html';
-                },
             });
+
+            crawler._requestFunction = async ({ request }) => {
+                const opts = crawler._getRequestOptions(request);
+                headers.push(opts.headers);
+                // it needs to return something valid
+                return Object.assign({ body: 'html' }, responseMock);
+            };
 
             await crawler.run();
             headers.forEach(h => expect(h.Accept).to.be.eql('text/html'));
