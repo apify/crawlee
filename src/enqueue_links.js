@@ -69,7 +69,7 @@ export const extractUrlsFromPage = async (page, selector) => {
  * @returns {string[]}
  * @ignore
  */
-export const extraxtUrlsFromCheerio = ($, selector, baseUrl) => {
+export const extractUrlsFromCheerio = ($, selector, baseUrl) => {
     return $(selector)
         .map((i, el) => $(el).attr('href'))
         .get()
@@ -224,7 +224,7 @@ export const enqueueLinks = async (...args) => {
     // Construct pseudoUrls from input where necessary.
     const pseudoUrlInstances = constructPseudoUrlInstances(pseudoUrls || []);
 
-    const urls = page ? await extractUrlsFromPage(page, selector) : extraxtUrlsFromCheerio($, selector, baseUrl);
+    const urls = page ? await extractUrlsFromPage(page, selector) : extractUrlsFromCheerio($, selector, baseUrl);
     let requests = [];
 
     if (pseudoUrlInstances.length) {
