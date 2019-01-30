@@ -1,3 +1,4 @@
+import { URL } from 'url';
 import _ from 'underscore';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
@@ -64,11 +65,26 @@ export const extractUrlsFromPage = async (page, selector) => {
  *
  * @param {Function} $
  * @param {string} selector
+ * @param {string} baseUrl
  * @returns {string[]}
  * @ignore
  */
-export const extraxtUrlsFromCheerio = ($, selector) => {
-    return $(selector).map((i, el) => $(el).attr('href')).get().filter(href => !!href);
+export const extractUrlsFromCheerio = ($, selector, baseUrl) => {
+    return $(selector)
+        .map((i, el) => $(el).attr('href'))
+        .get()
+        .filter(href => !!href)
+        .map((href) => {
+            // Throw a meaningful error when only a relative URL would be extracted instead of waiting for the Request to fail later.
+            const isHrefAbsolute = /^[a-z][a-z0-9+.-]*:/.test(href); // Grabbed this in 'is-absolute-url' package.
+            if (!isHrefAbsolute && !baseUrl) {
+                throw new Error(`An extracted URL: ${href} is relative and options.baseUrl is not set. `
+                    + 'Use options.baseUrl in utils.enqueueLinks() to automatically resolve relative URLs.');
+            }
+            return baseUrl
+                ? (new URL(href, baseUrl)).href
+                : href;
+        });
 };
 
 /**
@@ -122,6 +138,9 @@ let logDeprecationWarning = true;
  *   A request queue to which the URLs will be enqueued.
  * @param {String} [options.selector='a']
  *   A CSS selector matching links to be enqueued.
+ * @param {string} [options.baseUrl]
+ *   A base URL that will be used to resolve relative URLs when using Cheerio. Ignored when using Puppeteer,
+ *   since the relative URL resolution is done inside the browser automatically.
  * @param {Object[]|String[]} [options.pseudoUrls]
  *   An array of {@link PseudoUrl}s matching the URLs to be enqueued,
  *   or an array of strings or RegExps or plain Objects from which the {@link PseudoUrl}s can be constructed.
@@ -168,9 +187,9 @@ let logDeprecationWarning = true;
 export const enqueueLinks = async (...args) => {
     // TODO: Remove after v1.0.0 gets released.
     // Refactor enqueueLinks to use an options object and keep backwards compatibility
-    let page, $, selector, requestQueue, pseudoUrls, userData; // eslint-disable-line
+    let page, $, selector, requestQueue, baseUrl, pseudoUrls, userData; // eslint-disable-line
     if (args.length === 1) {
-        [{ page, $, selector = 'a', requestQueue, pseudoUrls, userData = {} }] = args;
+        [{ page, $, selector = 'a', requestQueue, baseUrl, pseudoUrls, userData = {} }] = args;
     } else {
         [page, selector = 'a', requestQueue, pseudoUrls, userData = {}] = args;
         if (logDeprecationWarning) {
@@ -197,13 +216,15 @@ export const enqueueLinks = async (...args) => {
     }
     checkParamOrThrow(selector, 'selector', 'String');
     checkParamPrototypeOrThrow(requestQueue, 'requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue');
+    checkParamOrThrow(baseUrl, 'baseUrl', 'Maybe String');
+    if (baseUrl && page) log.warning('The parameter options.baseUrl can only be used when parsing a Cheerio object. It will be ignored.');
     checkParamOrThrow(pseudoUrls, 'pseudoUrls', 'Maybe Array');
     checkParamOrThrow(userData, 'userData', 'Maybe Object');
 
     // Construct pseudoUrls from input where necessary.
     const pseudoUrlInstances = constructPseudoUrlInstances(pseudoUrls || []);
 
-    const urls = page ? await extractUrlsFromPage(page, selector) : extraxtUrlsFromCheerio($, selector);
+    const urls = page ? await extractUrlsFromPage(page, selector) : extractUrlsFromCheerio($, selector, baseUrl);
     let requests = [];
 
     if (pseudoUrlInstances.length) {

@@ -6,6 +6,31 @@ import { RequestQueue } from '../build/request_queue';
 
 const { utils: { log } } = Apify;
 
+const HTML = `
+<html>
+    <head>
+        <title>Example</title>
+    </head>
+    <body>
+        <p>
+            The ships hung in the sky, much the <a class="click" href="https://example.com/a/b/first">way that</a> bricks don't.
+        </p>
+        <ul>
+            <li>These aren't the Droids you're looking for</li>
+            <li><a href="https://example.com/a/second">I'm sorry, Dave. I'm afraid I can't do that.</a></li>
+            <li><a class="click" href="https://example.com/a/b/third">I'm sorry, Dave. I'm afraid I can't do that.</a></li>
+        </ul>
+        <a class="click" href="https://another.com/a/fifth">The Greatest Science Fiction Quotes Of All Time</a>
+        <p>
+            Don't know, I don't know such stuff. I just do eyes, ju-, ju-, just eyes... just genetic design,
+            just eyes. You Nexus, huh? I design your <a class="click" href="http://cool.com/">eyes</a>.
+        </p>
+        <a href="/x/absolutepath">This is a relative link.</a>
+        <a href="y/relativepath">This is a relative link.</a>
+    </body>
+</html>
+`;
+
 describe('enqueueLinks()', () => {
     let ll;
     before(() => {
@@ -24,26 +49,7 @@ describe('enqueueLinks()', () => {
         beforeEach(async () => {
             browser = await Apify.launchPuppeteer({ headless: true });
             page = await browser.newPage();
-            await page.setContent(`<html>
-                <head>
-                    <title>Example</title>
-                </head>
-                <body>
-                    <p>
-                        The ships hung in the sky, much the <a class="click" href="https://example.com/a/b/first">way that</a> bricks don't.
-                    </p>
-                    <ul>
-                        <li>These aren't the Droids you're looking for</li>
-                        <li><a href="https://example.com/a/second">I'm sorry, Dave. I'm afraid I can't do that.</a></li>
-                        <li><a class="click" href="https://example.com/a/b/third">I'm sorry, Dave. I'm afraid I can't do that.</a></li>
-                    </ul>
-                    <a class="click" href="https://another.com/a/fifth">The Greatest Science Fiction Quotes Of All Time</a>
-                    <p>
-                        Don't know, I don't know such stuff. I just do eyes, ju-, ju-, just eyes... just genetic design,
-                        just eyes. You Nexus, huh? I design your <a class="click" href="http://cool.com/">eyes</a>.
-                    </p>
-                </body>
-            </html>`);
+            await page.setContent(HTML);
         });
 
         afterEach(async () => {
@@ -336,26 +342,7 @@ describe('enqueueLinks()', () => {
         let $;
 
         beforeEach(async () => {
-            $ = cheerio.load(`<html>
-                <head>
-                    <title>Example</title>
-                </head>
-                <body>
-                    <p>
-                        The ships hung in the sky, much the <a class="click" href="https://example.com/a/b/first">way that</a> bricks don't.
-                    </p>
-                    <ul>
-                        <li>These aren't the Droids you're looking for</li>
-                        <li><a href="https://example.com/a/second">I'm sorry, Dave. I'm afraid I can't do that.</a></li>
-                        <li><a class="click" href="https://example.com/a/b/third">I'm sorry, Dave. I'm afraid I can't do that.</a></li>
-                    </ul>
-                    <a class="click" href="https://another.com/a/fifth">The Greatest Science Fiction Quotes Of All Time</a>
-                    <p>
-                        Don't know, I don't know such stuff. I just do eyes, ju-, ju-, just eyes... just genetic design,
-                        just eyes. You Nexus, huh? I design your <a class="click" href="http://cool.com/">eyes</a>.
-                    </p>
-                </body>
-            </html>`);
+            $ = cheerio.load(HTML);
         });
 
         afterEach(async () => {
@@ -605,6 +592,61 @@ describe('enqueueLinks()', () => {
                 expect(err.message).to.include('pseudoUrls[1]');
                 expect(enqueued).to.have.lengthOf(0);
             }
+        });
+
+        it('correctly resolves relative URLs', async () => {
+            const enqueued = [];
+            const requestQueue = new RequestQueue('xxx');
+            requestQueue.addRequest = async (request) => {
+                enqueued.push(request);
+            };
+
+            await enqueueLinks({ $, requestQueue, baseUrl: 'http://www.absolute.com/removethis/' });
+
+            expect(enqueued).to.have.lengthOf(7);
+
+            expect(enqueued[0].url).to.be.eql('https://example.com/a/b/first');
+            expect(enqueued[0].method).to.be.eql('GET');
+            expect(enqueued[0].userData).to.be.eql({});
+
+            expect(enqueued[1].url).to.be.eql('https://example.com/a/second');
+            expect(enqueued[1].method).to.be.eql('GET');
+            expect(enqueued[1].userData).to.be.eql({});
+
+            expect(enqueued[2].url).to.be.eql('https://example.com/a/b/third');
+            expect(enqueued[2].method).to.be.eql('GET');
+            expect(enqueued[2].userData).to.be.eql({});
+
+            expect(enqueued[3].url).to.be.eql('https://another.com/a/fifth');
+            expect(enqueued[3].method).to.be.eql('GET');
+            expect(enqueued[3].userData).to.be.eql({});
+
+            expect(enqueued[4].url).to.be.eql('http://cool.com/');
+            expect(enqueued[4].method).to.be.eql('GET');
+            expect(enqueued[4].userData).to.be.eql({});
+
+            expect(enqueued[5].url).to.be.eql('http://www.absolute.com/x/absolutepath');
+            expect(enqueued[5].method).to.be.eql('GET');
+            expect(enqueued[5].userData).to.be.eql({});
+
+            expect(enqueued[6].url).to.be.eql('http://www.absolute.com/removethis/y/relativepath');
+            expect(enqueued[6].method).to.be.eql('GET');
+            expect(enqueued[6].userData).to.be.eql({});
+        });
+
+        it('throws on finding a relative link with no baseUrl set', async () => {
+            const enqueued = [];
+            const requestQueue = new RequestQueue('xxx');
+            requestQueue.addRequest = async (request) => {
+                enqueued.push(request);
+            };
+            try {
+                await enqueueLinks({ $, requestQueue });
+                throw new Error('wrong error');
+            } catch (err) {
+                expect(err.message).to.include('/x/absolutepath');
+            }
+            expect(enqueued).to.have.lengthOf(0);
         });
     });
 });
