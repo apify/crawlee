@@ -8,13 +8,15 @@ import psTree from '@apify/ps-tree';
 import requestPromise from 'request-promise-native';
 import XRegExp from 'xregexp';
 import cheerio from 'cheerio';
+import log from 'apify-shared/log';
 import { delayPromise, getRandomInt } from 'apify-shared/utilities';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import { checkParamOrThrow } from 'apify-client/build/utils';
+import { version as apifyClientVersion } from 'apify-client/package.json';
+import { version as apifyVersion } from '../package.json';
 import { USER_AGENT_LIST } from './constants';
 
 /* globals process */
-
 
 /**
  * Default regular expression to match URLs in a string that may be plain text, JSON, CSV or other. It supports common URL characters
@@ -51,6 +53,18 @@ export const newClient = () => {
     if (apiBaseUrl) opts.baseUrl = apiBaseUrl;
 
     return new ApifyClient(opts);
+};
+
+/**
+ * Logs info about system, node version and apify package version.
+ */
+export const logSystemInfo = () => {
+    log.info('System info', {
+        apifyVersion,
+        apifyClientVersion,
+        osType: os.type(),
+        nodeVersion: process.version,
+    });
 };
 
 /**
@@ -559,7 +573,6 @@ const htmlToText = (html) => {
 
     return text.trim();
 };
-
 
 /**
  * A namespace that contains various utilities.
