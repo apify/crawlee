@@ -1,5 +1,6 @@
-xxxxxxxxxxxxxxxxxxx
+0.11.7 / 2018/01/30
 ===================
+- Apify SDK now logs basic system info when `required`.
 - Added `utils.createRequestDebugInfo()` function to create a standardized debug info from request and response.
 - `PseudoUrl` can now be constructed with a `RegExp`.
 - `Apify.utils.enqueueLinks()` now accepts `RegExp` instances in its `pseudoUrls` parameter.
