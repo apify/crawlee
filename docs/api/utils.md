@@ -99,6 +99,12 @@ await Apify.utils.enqueueLinks({
 <tr>
 <td colspan="3"><p>A CSS selector matching links to be enqueued.</p>
 </td></tr><tr>
+<td><code>[options.baseUrl]</code></td><td><code>string</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>A base URL that will be used to resolve relative URLs when using Cheerio. Ignored when using Puppeteer,
+  since the relative URL resolution is done inside the browser automatically.</p>
+</td></tr><tr>
 <td><code>[options.pseudoUrls]</code></td><td><code>Array&lt;Object&gt;</code> | <code>Array&lt;String&gt;</code></td><td></td>
 </tr>
 <tr>
