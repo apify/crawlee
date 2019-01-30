@@ -1229,7 +1229,7 @@ Apify.main(async () => {
         handlePageFunction: async (context) => {
             const { request } = context;
             log.info(`Processing ${request.url}`);
-            router[request.userData.label](context);
+            await router[request.userData.label](context);
         }
     });
 
