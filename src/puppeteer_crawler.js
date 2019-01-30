@@ -292,6 +292,10 @@ class PuppeteerCrawler {
     async _handleRequestFunction({ request, autoscaledPool }) {
         const page = await this.puppeteerPool.newPage();
         try {
+            // Delete loadedUrl before navigation to prevent user
+            // from getting an old loadedUrl in his custom gotoFunction
+            request.loadedUrl = null;
+
             const response = await this.gotoFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool });
             request.loadedUrl = page.url();
             await addTimeoutToPromise(
