@@ -1,3 +1,7 @@
+0.11.6 / 2018-01-31
+===================
+- Fixed a `keyValueStore.forEachKey()` method.
+
 0.11.5 / 2018-01-18
 ===================
 - Disabled the `PuppeteerPool` `reusePages` option for now, due to a memory leak.
