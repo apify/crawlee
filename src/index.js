@@ -15,10 +15,11 @@ import Request from './request';
 import { RequestList, openRequestList } from './request_list';
 import { openRequestQueue } from './request_queue';
 import SettingsRotator from './settings_rotator';
-import { apifyClient, getMemoryInfo, isAtHome, publicUtils } from './utils';
+import { apifyClient, getMemoryInfo, isAtHome, publicUtils, logSystemInfo } from './utils';
 import { browse, launchWebDriver } from './webdriver';
 import { puppeteerUtils } from './puppeteer_utils';
 import { socialUtils } from './utils_social';
+import { enqueueLinks } from './enqueue_links';
 import PseudoUrl from './pseudo_url';
 
 /* globals module */
@@ -35,6 +36,9 @@ if (process.env[EMULATION_ENV_VAR]) {
     log.warning(`Environment variable "${EMULATION_ENV_VAR}" is deprecated!!! Use "${ENV_VARS.LOCAL_STORAGE_DIR}" instead!`);
     if (!process.env[ENV_VARS.LOCAL_STORAGE_DIR]) process.env[ENV_VARS.LOCAL_STORAGE_DIR] = process.env[EMULATION_ENV_VAR];
 }
+
+// Logging some basic system info (apify and apify-client version, NodeJS version, ...).
+logSystemInfo();
 
 /**
  * The following section describes all functions and properties provided by the `apify` package,
@@ -103,6 +107,7 @@ module.exports = {
         puppeteer: puppeteerUtils,
         social: socialUtils,
         log,
+        enqueueLinks,
     }),
 };
 
@@ -130,16 +135,25 @@ module.exports = {
  *
  * **Example:**
  * ```
- * log.info('INFO') // prints INFO
- * log.debug('DEBUG') // doesn't print anything
+ * const Apify = require('apify');
+ * const { log } = Apify.utils;
  *
- * log.setLevel(log.LEVELS.DEBUG)
- * log.debug('DEBUG') // prints DEBUG
+ * log.info('Information message', { someData: 123 }); // prints message
+ * log.debug('Debug message', { debugData: 'hello' }); // doesn't print anything
  *
- * log.setLevel(log.LEVELS.ERROR)
- * log.debug('DEBUG') // doesn't print anything
- * log.info('INFO') // doesn't print anything
- * log.error('ERROR') // prints ERROR
+ * log.setLevel(log.LEVELS.DEBUG);
+ * log.debug('Debug message'); // prints message
+ *
+ * log.setLevel(log.LEVELS.ERROR);
+ * log.debug('Debug message'); // doesn't print anything
+ * log.info('Info message'); // doesn't print anything
+ *
+ * log.error('Error message', { errorDetails: 'This is bad!' }); // prints message
+ * try {
+ *   throw new Error('Not good!');
+ * } catch (e) {
+ *   log.exception(e, 'Exception occurred', { errorDetails: 'This is really bad!' }); // prints message
+ * }
  * ```
  *
  * Another very useful way of setting the log level is by setting the `APIFY_LOG_LEVEL`

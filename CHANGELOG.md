@@ -1,6 +1,21 @@
-0.11.6 / 2018-01-31
+xxx
 ===================
-- Fixed a `keyValueStore.forEachKey()` method.
+- Fixed the `keyValueStore.forEachKey()` method.
+
+0.11.7 / 2018/01/30
+===================
+- Apify SDK now logs basic system info when `required`.
+- Added `utils.createRequestDebugInfo()` function to create a standardized debug info from request and response.
+- `PseudoUrl` can now be constructed with a `RegExp`.
+- `Apify.utils.enqueueLinks()` now accepts `RegExp` instances in its `pseudoUrls` parameter.
+- `Apify.utils.enqueueLinks()` now accepts a `baseUrl` option that enables resolution of relative URLs
+   when parsing a Cheerio object. (It's done automatically in browser when using Puppeteer).
+- Better error message for an invalid `launchPuppeteerFunction` passed to `PuppeteerPool`.
+
+0.11.6 / 2018-01-24
+===================
+- **DEPRECATION WARNING** `Apify.utils.puppeteer.enqueueLinks()` was moved to `Apify.utils.enqueueLinks()`.
+- `Apify.utils.enqueueLinks()` now supports `options.$` property to enqueue links from a Cheerio object.
 
 0.11.5 / 2018-01-18
 ===================
@@ -31,7 +46,7 @@
   were removed in favor of a single `autoscaledPool.abort()` function.
 
 - Added a reference to the running `AutoscaledPool` instance to the options object of `BasicCrawler`'s
-  `handleRequestFunction` and to the `handlePageFunction` of `CheerioCrawler` and `PuppeteerCrawler`.  
+  `handleRequestFunction` and to the `handlePageFunction` of `CheerioCrawler` and `PuppeteerCrawler`.
 - Added sources persistence option to `RequestList` that works best in conjunction with the state persistence,
   but can be toggled separately too.
 - Added `Apify.openRequestList()` function to place it in line with `RequestQueue`, `KeyValueStore` and `Dataset`.
@@ -50,7 +65,7 @@
 ===================
 - `autoscaledPool.isFinishedFunction()` and `autoscaledPool.isTaskReadyFunction()` exceptions
   will now cause the `Promise` returned by `autoscaledPool.run()` to reject instead of just
-  logging a message. This is in line with the `autoscaledPool.runTaskFunction()` behavior. 
+  logging a message. This is in line with the `autoscaledPool.runTaskFunction()` behavior.
 - Bugfix: PuppeteerPool was incorrectly overriding `proxyUrls` even if they were not defined.
 - Fixed an issue where an error would be thrown when `datasetLocal.getData()` was invoked
   with an overflowing offset. It now correctly returns an empty `Array`.

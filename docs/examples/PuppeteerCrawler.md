@@ -72,17 +72,14 @@ Apify.main(async () => {
             // Store the results to the default dataset.
             await Apify.pushData(data);
 
-            // Find the link to the next page using Puppeteer functions.
-            let nextHref;
-            try {
-                nextHref = await page.$eval('.morelink', el => el.href);
-            } catch (err) {
-                console.log(`${request.url} is the last page!`);
-                return;
-            }
+            // Find a link to the next page and enqueue it if it exists.
+            const infos = await Apify.utils.puppeteer.enqueueLinks({
+                page,
+                requestQueue,
+                selector: '.morelink',
+            });
 
-            // Enqueue the link to the RequestQueue
-            await requestQueue.addRequest(new Apify.Request({ url: nextHref }));
+            if (infos.length === 0) console.log(`${request.url} is the last page!`);
         },
 
         // This function is called if the page processing failed more than maxRequestRetries+1 times.

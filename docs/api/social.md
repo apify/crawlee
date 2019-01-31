@@ -31,11 +31,11 @@ const emails = Apify.utils.social.emailsFromText('alice@example.com bob@example.
     * [`.emailsFromUrls(urls)`](#social.emailsFromUrls) ⇒ <code>Array&lt;String&gt;</code>
     * [`.phonesFromText(text)`](#social.phonesFromText) ⇒ <code>Array&lt;String&gt;</code>
     * [`.phonesFromUrls(urls)`](#social.phonesFromUrls) ⇒ <code>Array&lt;String&gt;</code>
-    * [`.parseHandlesFromHtml(html, data)`](#social.parseHandlesFromHtml) ⇒ <code>\*</code>
+    * [`.parseHandlesFromHtml(html, data)`](#social.parseHandlesFromHtml) ⇒ <code>*</code>
 
 <a name="social.LINKEDIN_REGEX"></a>
 
-## `social.LINKEDIN\_REGEX` : <code>RegExp</code>
+## `social.LINKEDIN_REGEX` : <code>RegExp</code>
 Regular expression to exactly match a single LinkedIn profile URL.
 It has the following form: `/^...$/i` and matches URLs such as:
 ```
@@ -59,7 +59,7 @@ if (Apify.utils.social.LINKEDIN_REGEX.test('https://www.linkedin.com/in/alan-tur
 
 <a name="social.LINKEDIN_REGEX_GLOBAL"></a>
 
-## `social.LINKEDIN\_REGEX\_GLOBAL` : <code>RegExp</code>
+## `social.LINKEDIN_REGEX_GLOBAL` : <code>RegExp</code>
 Regular expression to find multiple LinkedIn profile URLs in a text or HTML.
 It has the following form: `/.../ig` and matches URLs such as:
 ```
@@ -86,7 +86,7 @@ if (matches) console.log(`${matches.length} LinkedIn profiles found!`);
 
 <a name="social.INSTAGRAM_REGEX"></a>
 
-## `social.INSTAGRAM\_REGEX` : <code>RegExp</code>
+## `social.INSTAGRAM_REGEX` : <code>RegExp</code>
 Regular expression to exactly match a single Instagram profile URL.
 It has the following form: `/^...$/i` and matches URLs such as:
 ```
@@ -110,7 +110,7 @@ if (Apify.utils.social.INSTAGRAM_REGEX_STRING.test('https://www.instagram.com/ol
 
 <a name="social.INSTAGRAM_REGEX_GLOBAL"></a>
 
-## `social.INSTAGRAM\_REGEX\_GLOBAL` : <code>RegExp</code>
+## `social.INSTAGRAM_REGEX_GLOBAL` : <code>RegExp</code>
 Regular expression to find multiple Instagram profile URLs in a text or HTML.
 It has the following form: `/.../ig` and matches URLs such as:
 ```
@@ -137,7 +137,7 @@ if (matches) console.log(`${matches.length} Instagram profiles found!`);
 
 <a name="social.TWITTER_REGEX"></a>
 
-## `social.TWITTER\_REGEX` : <code>RegExp</code>
+## `social.TWITTER_REGEX` : <code>RegExp</code>
 Regular expression to exactly match a single Twitter profile URL.
 It has the following form: `/^...$/i` and matches URLs such as:
 ```
@@ -160,7 +160,7 @@ if (Apify.utils.social.TWITTER_REGEX_STRING.test('https://www.twitter.com/apify'
 
 <a name="social.TWITTER_REGEX_GLOBAL"></a>
 
-## `social.TWITTER\_REGEX\_GLOBAL` : <code>RegExp</code>
+## `social.TWITTER_REGEX_GLOBAL` : <code>RegExp</code>
 Regular expression to find multiple Twitter profile URLs in a text or HTML.
 It has the following form: `/.../ig` and matches URLs such as:
 ```
@@ -186,7 +186,7 @@ if (matches) console.log(`${matches.length} Twitter profiles found!`);
 
 <a name="social.FACEBOOK_REGEX"></a>
 
-## `social.FACEBOOK\_REGEX` : <code>RegExp</code>
+## `social.FACEBOOK_REGEX` : <code>RegExp</code>
 Regular expression to exactly match a single Facebook profile URL.
 It has the following form: `/^...$/i` and matches URLs such as:
 ```
@@ -211,7 +211,7 @@ if (Apify.utils.social.FACEBOOK_REGEX_STRING.test('https://www.facebook.com/apif
 
 <a name="social.FACEBOOK_REGEX_GLOBAL"></a>
 
-## `social.FACEBOOK\_REGEX\_GLOBAL` : <code>RegExp</code>
+## `social.FACEBOOK_REGEX_GLOBAL` : <code>RegExp</code>
 Regular expression to find multiple Facebook profile URLs in a text or HTML.
 It has the following form: `/.../ig` and matches URLs such as:
 ```
@@ -238,13 +238,13 @@ if (matches) console.log(`${matches.length} Facebook profiles found!`);
 
 <a name="social.EMAIL_REGEX"></a>
 
-## `social.EMAIL\_REGEX` : <code>RegExp</code>
+## `social.EMAIL_REGEX` : <code>RegExp</code>
 Regular expression to exactly match a single email address.
 It has the following form: `/^...$/i`.
 
 <a name="social.EMAIL_REGEX_GLOBAL"></a>
 
-## `social.EMAIL\_REGEX\_GLOBAL` : <code>RegExp</code>
+## `social.EMAIL_REGEX_GLOBAL` : <code>RegExp</code>
 Regular expression to find multiple email addresses in a text.
 It has the following form: `/.../ig`.
 
@@ -340,7 +340,7 @@ If no phone numbers are found, the function returns an empty array.
 </table>
 <a name="social.parseHandlesFromHtml"></a>
 
-## `social.parseHandlesFromHtml(html, data)` ⇒ <code>\*</code>
+## `social.parseHandlesFromHtml(html, data)` ⇒ <code>*</code>
 The function attempts to extract emails, phone numbers and social profile URLs from a HTML document,
 specifically LinkedIn, Twitter, Instagram and Facebook profile URLs.
 The function removes duplicates from the resulting arrays and sorts the items alphabetically.
@@ -365,8 +365,11 @@ extracted from the plain text, which might be very inaccurate.
 
 **Example usage:**
 ```javascript
-const puppeteer = await Apify.launchPuppeteer();
-await puppeteer.goto('http://www.example.com');
+const Apify = require('apify');
+
+const browser = await Apify.launchPuppeteer();
+const page = await browser.newPage();
+await page.goto('http://www.example.com');
 const html = await puppeteer.content();
 
 const result = Apify.utils.social.parseHandlesFromHtml(html);
@@ -374,7 +377,7 @@ console.log('Social handles:');
 console.dir(result);
 ```
 
-**Returns**: <code>\*</code> - An object with the social handles.  
+**Returns**: <code>*</code> - An object with the social handles.  
 <table>
 <thead>
 <tr>

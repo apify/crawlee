@@ -21,13 +21,17 @@ const LAUNCH_PUPPETEER_DEFAULT_VIEWPORT = {
 };
 
 /**
- * An object representing options passed to the
- * [`Apify.launchPuppeteer()`](../api/apify#module_Apify.launchPuppeteer)
- * function. In this object, you can pass any options supported by the
- * [`puppeteer.launch()`](https://pptr.dev/#?product=Puppeteer&show=api-puppeteerlaunchoptions),
- * as well as the additional options provided by Apify SDK listed below.
+ * Apify extends the launch options of Puppeteer.
+ * You can use any of the
+ * <a href="https://pptr.dev/#?product=Puppeteer&show=api-puppeteerlaunchoptions" target="_blank"><code>puppeteer.launch()</code></a>
+ * options in the [`Apify.launchPuppeteer()`](../api/apify#module_Apify.launchPuppeteer)
+ * function and in addition, all the options available below.
  *
  * @typedef {Object} LaunchPuppeteerOptions
+ * @property ...
+ *   You can use any of the
+ *   <a href="https://pptr.dev/#?product=Puppeteer&show=api-puppeteerlaunchoptions" target="_blank"><code>puppeteer.launch()</code></a>
+ *   options.
  * @property {String} [proxyUrl]
  *   URL to a HTTP proxy server. It must define the port number,
  *   and it may also contain proxy username and password.

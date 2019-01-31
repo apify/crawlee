@@ -7,7 +7,7 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import { RequestQueue, RequestQueueLocal } from './request_queue';
 import Request from './request';
-import PseudoUrl from './pseudo_url';
+import { enqueueLinks } from './enqueue_links';
 
 const jqueryPath = require.resolve('jquery');
 const underscorePath = require.resolve('underscore');
@@ -170,152 +170,6 @@ const enqueueRequestsFromClickableElements = async (page, selector, purls, reque
     return queueOperationInfos;
 };
 
-/**
- * To enable direct use of the Actor UI `pseudoUrls` output while keeping high performance,
- * all the pseudoUrls from the output are only constructed once and kept in a cache
- * by the `enqueueLinks()` function.
- * @ignore
- */
-const enqueueLinksCache = new Map();
-export const MAX_ENQUEUE_LINKS_CACHE_SIZE = 1000;
-
-/**
- * Helper factory used in the `enqeueLinks()` function.
- * @param {Array} pseudoUrls
- * @returns {Array}
- * @ignore
- */
-export const constructPseudoUrlInstances = (pseudoUrls) => {
-    return pseudoUrls.map((item, idx) => {
-        // Get pseudoUrl instance from cache.
-        let pUrl = enqueueLinksCache.get(item);
-        if (pUrl) return pUrl;
-        // Nothing in cache, make a new instance.
-        checkParamOrThrow(item, `pseudoUrls[${idx}]`, 'Object|String');
-        if (item instanceof PseudoUrl) pUrl = item;
-        else if (typeof item === 'string') pUrl = new PseudoUrl(item);
-        else pUrl = new PseudoUrl(item.purl, _.omit(item, 'purl'));
-        // Manage cache
-        enqueueLinksCache.set(item, pUrl);
-        if (enqueueLinksCache.size > MAX_ENQUEUE_LINKS_CACHE_SIZE) {
-            const key = enqueueLinksCache.keys().next().value;
-            enqueueLinksCache.delete(key);
-        }
-        return pUrl;
-    });
-};
-
-/**
- * Remove with 1.0.0
- * @ignore
- * @todo deprecate
- */
-let logDeprecationWarning = true;
-
-/**
- * Finds HTML elements matching a CSS selector, clicks the elements and if a redirect is triggered and destination URL matches
- * one of the provided {@link PseudoUrl}s, then the function enqueues that URL to a given request queue.
- * To create a Request object function uses `requestTemplate` from a matching {@link PseudoUrl}.
- *
- * *WARNING*: This is work in progress. Currently the function doesn't click elements and only takes their `href` attribute and so
- *            is working only for link (`a`) elements, but not for buttons or JavaScript links.
- * @param {Object} options
- * @param {Page} options.page
- *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
- * @param {RequestQueue} options.requestQueue
- *   {@link RequestQueue} instance where URLs will be enqueued.
- * @param {String} [options.selector='a']
- *   CSS selector matching elements to be clicked.
- * @param {PseudoUrl[]|Object[]|String[]} [options.pseudoUrls]
- *   An array of {@link PseudoUrl}s matching the URLs to be enqueued,
- *   or an array of Strings or Objects from which the {@link PseudoUrl}s should be constructed
- *   The Objects must include at least a `purl` property, which holds a pseudoUrl string.
- *   All remaining keys will be used as the `requestTemplate` argument of the {@link PseudoUrl} constructor.
- *   If `pseudoUrls` is an empty array, null or undefined, then the function
- *   enqueues all links found on the page.
- * @param {Object} [options.userData]
- *   Object that will be merged with the new Request's userData, overriding any values that
- *   were set via templating from pseudoUrls. This is useful when you need to override generic
- *   userData set by PseudoURL template in specific use cases.
- *   **Example:**
- *   ```
- *   // pseudoUrl.userData
- *   {
- *       name: 'John',
- *       surname: 'Doe',
- *   }
- *
- *   // userData
- *   {
- *       name: 'Albert',
- *       age: 31
- *   }
- *
- *   // enqueued request.userData
- *   {
- *       name: 'Albert',
- *       surname: 'Doe',
- *       age: 31,
- *   }
- *   ```
- * @return {Promise<QueueOperationInfo[]>}
- *   Promise that resolves to an array of {@link QueueOperationInfo} objects.
- * @memberOf puppeteer
- */
-const enqueueLinks = async (...args) => {
-    // TODO: Remove after v1.0.0 gets released.
-    // Refactor enqueueLinks to use an options object and keep backwards compatibility
-    let page, selector, requestQueue, pseudoUrls, userData; // eslint-disable-line
-    if (args.length === 1) {
-        [{ page, selector = 'a', requestQueue, pseudoUrls, userData = {} }] = args;
-    } else {
-        [page, selector = 'a', requestQueue, pseudoUrls, userData = {}] = args;
-        if (logDeprecationWarning) {
-            log.warning('Passing individual arguments to enqueueLinks() is deprecated. '
-                + 'Use an options object: enqueueLinks({ page, selector, requestQueue, pseudoUrls, userData }) instead.');
-            logDeprecationWarning = false;
-        }
-    }
-
-    // Check for pseudoUrls as a third parameter.
-    if (Array.isArray(requestQueue)) {
-        const tmp = requestQueue;
-        requestQueue = pseudoUrls;
-        pseudoUrls = tmp;
-    }
-
-    checkParamOrThrow(page, 'page', 'Object');
-    checkParamOrThrow(selector, 'selector', 'String');
-    checkParamPrototypeOrThrow(requestQueue, 'requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue');
-    checkParamOrThrow(pseudoUrls, 'pseudoUrls', 'Maybe Array');
-    checkParamOrThrow(userData, 'userData', 'Maybe Object');
-
-    // Construct pseudoUrls from input where necessary.
-    const pseudoUrlInstances = constructPseudoUrlInstances(pseudoUrls || []);
-
-    /* istanbul ignore next */
-    const getHrefs = linkEls => linkEls.map(link => link.href).filter(href => !!href);
-    const urls = await page.$$eval(selector, getHrefs);
-    let requests = [];
-
-    if (pseudoUrlInstances.length) {
-        urls.forEach((url) => {
-            pseudoUrlInstances
-                .filter(purl => purl.matches(url))
-                .forEach(purl => requests.push(purl.createRequest(url)));
-        });
-    } else {
-        requests = urls.map(url => new Request({ url }));
-    }
-
-    const queueOperationInfos = [];
-    for (const request of requests) {
-        // Inject custom userData
-        Object.assign(request.userData, userData);
-        queueOperationInfos.push(await requestQueue.addRequest(request));
-    }
-    return queueOperationInfos;
-};
 
 /**
  * Forces the Puppeteer browser tab to block loading certain HTTP resources.
@@ -478,6 +332,7 @@ const compileScript = (scriptString, context = Object.create(null)) => {
     return func;
 };
 
+let logEnqueueLinksDeprecationWarning = true;
 
 /**
  * A namespace that contains various utilities for
@@ -505,7 +360,14 @@ export const puppeteerUtils = {
     injectJQuery,
     injectUnderscore,
     enqueueRequestsFromClickableElements,
-    enqueueLinks,
+    enqueueLinks: async (...args) => {
+        if (logEnqueueLinksDeprecationWarning) {
+            log.warning('Using enqueueLinks() from the Apify.utils.puppeteer namespace is deprecated. '
+                + 'Please use the Apify.utils.enqueueLinks().');
+            logEnqueueLinksDeprecationWarning = false;
+            return enqueueLinks(...args);
+        }
+    },
     blockResources,
     cacheResponses,
     compileScript,

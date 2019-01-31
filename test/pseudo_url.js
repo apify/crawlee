@@ -3,11 +3,17 @@ import Apify from '../build/index';
 
 describe('Apify.PseudoUrl', () => {
     it('matches() should work', () => {
-        const purl = new Apify.PseudoUrl('http://www.example.com/pages/[(\\w|-)*]'); // eslint-disable-line
+        let purl = new Apify.PseudoUrl('http://www.example.com/PAGES/[(\\w|-)*]'); // eslint-disable-line
 
-        expect(purl.matches('http://www.example.com/pages/')).to.be.eql(true);
+        expect(purl.matches('http://www.example.com/PAGES/')).to.be.eql(true);
         expect(purl.matches('http://www.example.com/pages/my-awesome-page')).to.be.eql(true);
-        expect(purl.matches('http://www.example.com/pages/not@working')).to.be.eql(false);
+        expect(purl.matches('http://www.example.com/PAGES/not@working')).to.be.eql(false);
+
+        purl = new Apify.PseudoUrl(/example\.com\/pages/);
+
+        expect(purl.matches('http://www.example.com/PAGES/')).to.be.eql(false);
+        expect(purl.matches('http://www.example.com/pages/my-awesome-page')).to.be.eql(true);
+        expect(purl.matches('http://www.example.com/pages/not@working')).to.be.eql(true);
     });
 
     it('createRequest() should work', () => {
