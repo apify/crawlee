@@ -380,11 +380,9 @@ describe('KeyValueStore', () => {
                     exclusiveStartKey: 'key0',
                 })
                 .resolves({
-                    data: {
-                        isTruncated: true,
-                        nextExclusiveStartKey: 'key2',
-                        items: ['key1', 'key2'],
-                    },
+                    isTruncated: true,
+                    nextExclusiveStartKey: 'key2',
+                    items: ['key1', 'key2'],
                 });
             mock.expects('listKeys')
                 .once()
@@ -393,11 +391,10 @@ describe('KeyValueStore', () => {
                     exclusiveStartKey: 'key2',
                 })
                 .resolves({
-                    data: {
-                        isTruncated: true,
-                        nextExclusiveStartKey: 'key4',
-                        items: ['key3', 'key4'],
-                    } });
+                    isTruncated: true,
+                    nextExclusiveStartKey: 'key4',
+                    items: ['key3', 'key4'],
+                });
             mock.expects('listKeys')
                 .once()
                 .withArgs({
@@ -405,11 +402,10 @@ describe('KeyValueStore', () => {
                     exclusiveStartKey: 'key4',
                 })
                 .resolves({
-                    data: {
-                        isTruncated: false,
-                        nextExclusiveStartKey: null,
-                        items: ['key5'],
-                    } });
+                    isTruncated: false,
+                    nextExclusiveStartKey: null,
+                    items: ['key5'],
+                });
 
             const results = [];
             await store.forEachKey(async (key, index) => {

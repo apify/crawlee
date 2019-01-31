@@ -319,7 +319,7 @@ export class KeyValueStore {
         checkParamOrThrow(index, 'index', 'Number');
 
         const response = await keyValueStores.listKeys({ storeId: this.storeId, exclusiveStartKey });
-        const { nextExclusiveStartKey, isTruncated, items } = response.data;
+        const { nextExclusiveStartKey, isTruncated, items } = response;
         for (const key of items) {
             await iteratee(key, index++);
         }
