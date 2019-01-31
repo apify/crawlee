@@ -1,3 +1,7 @@
+xxx
+===================
+- Fixed the `keyValueStore.forEachKey()` method.
+
 0.11.7 / 2018/01/30
 ===================
 - Apify SDK now logs basic system info when `required`.
