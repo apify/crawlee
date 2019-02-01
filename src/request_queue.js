@@ -305,6 +305,7 @@ export class RequestQueue {
                 return this
                     .getRequest(nextId)
                     .then((request) => {
+                        // TODO: What happens when getRequest() fails? Shouldn't we run the code below too???
                         // We need to handle this situation because request may not be available
                         // immediately after adding to the queue.
                         if (!request) {
