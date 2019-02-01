@@ -186,6 +186,33 @@ describe('Snapshotter', () => {
         delete process.env[ENV_VARS.MEMORY_MBYTES];
     });
 
+    it('correctly logs critical memory overload', () => {
+        const memoryDataOverloaded = {
+            mainProcessBytes: toBytes(3100),
+            childProcessesBytes: toBytes(3000),
+        };
+        const memoryDataNotOverloaded = {
+            mainProcessBytes: toBytes(2500),
+            childProcessesBytes: toBytes(2500),
+        };
+        let logged = false;
+        const warning = () => { logged = true; };
+        const stub = sinon.stub(log, 'warning');
+        stub.callsFake(warning);
+        process.env[ENV_VARS.MEMORY_MBYTES] = '10000';
+        const snapshotter = new Snapshotter({ maxUsedMemoryRatio: 0.5 });
+
+        snapshotter._memoryOverloadWarning(memoryDataOverloaded);
+        expect(logged).to.be.eql(true);
+
+        logged = false;
+
+        snapshotter._memoryOverloadWarning(memoryDataNotOverloaded);
+        expect(logged).to.be.eql(false);
+
+        delete process.env[ENV_VARS.MEMORY_MBYTES];
+    });
+
     it('correctly marks clientOverloaded', () => { /* eslint-disable no-underscore-dangle */
         const noop = () => {};
         // mock client data

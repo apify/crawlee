@@ -15,6 +15,7 @@ const DEFAULT_OPTIONS = {
     snapshotHistorySecs: 30,
     maxClientErrors: 1,
 };
+const CRITICAL_OVERLOAD_RATIO = 1.2;
 
 /**
  * Creates snapshots of system resources at given intervals and marks the resource
@@ -222,10 +223,30 @@ class Snapshotter {
             });
 
             this.memorySnapshots.push(snapshot);
+            this._memoryOverloadWarning(memInfo);
         } catch (err) {
             log.exception(err, 'Snapshotter: Memory snapshot failed.');
         } finally {
             intervalCallback();
+        }
+    }
+
+    /**
+     * Checks for critical memory overload and logs it to the console.
+     * @ignore
+     * @param {Object} memoryInfo - Memory information
+     */
+    _memoryOverloadWarning(memoryInfo) {
+        try {
+            const criticalOverloadRation = this.maxUsedMemoryRatio * CRITICAL_OVERLOAD_RATIO;
+            const { mainProcessBytes, childProcessesBytes } = memoryInfo;
+            const usedBytes = mainProcessBytes + childProcessesBytes;
+            const isCriticalOverload = usedBytes / this.maxMemoryBytes > criticalOverloadRation;
+            if (isCriticalOverload) {
+                log.warning(`Memory is critical overloaded. Overload ratio: ${usedBytes / this.maxMemoryBytes}`);
+            }
+        } catch (e) {
+            log.exception(e, 'Snapshotter: Memory leak warning failed.');
         }
     }
 
