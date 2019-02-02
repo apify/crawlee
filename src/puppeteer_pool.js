@@ -15,6 +15,7 @@ const PROCESS_KILL_TIMEOUT_MILLIS = 5000;
 const PAGE_CLOSE_KILL_TIMEOUT_MILLIS = 1000;
 
 const DEFAULT_OPTIONS = {
+    reusePages: false,
     // Don't make these too large, otherwise Puppeteer might start crashing weirdly,
     // and the default settings should just work
     maxOpenPagesPerInstance: 50,
@@ -153,7 +154,10 @@ class PuppeteerPool {
         // Disabling the feature since tests started failing.
         // Re-enable once the issues upstream are fixed.
         const recycleDiskCache = false;
+        // Disabling due to memory leak.
+        const reusePages = false;
 
+        checkParamOrThrow(reusePages, 'options.reusePages', 'Boolean');
         checkParamOrThrow(maxOpenPagesPerInstance, 'options.maxOpenPagesPerInstance', 'Number');
         checkParamOrThrow(retireInstanceAfterRequestCount, 'options.retireInstanceAfterRequestCount', 'Number');
         checkParamOrThrow(launchPuppeteerFunction, 'options.launchPuppeteerFunction', 'Function');
@@ -175,11 +179,12 @@ class PuppeteerPool {
         }
 
         // Config.
+        this.reusePages = reusePages;
         this.maxOpenPagesPerInstance = maxOpenPagesPerInstance;
         this.retireInstanceAfterRequestCount = retireInstanceAfterRequestCount;
         this.killInstanceAfterMillis = killInstanceAfterMillis;
         this.recycledDiskCacheDirs = recycleDiskCache ? new LinkedList() : null;
-        this.proxyUrls = _.shuffle(proxyUrls);
+        this.proxyUrls = proxyUrls ? _.shuffle(proxyUrls) : null;
         this.launchPuppeteerFunction = async () => {
             // Do not modify passed launchPuppeteerOptions!
             const opts = _.clone(launchPuppeteerOptions) || {};
@@ -210,6 +215,13 @@ class PuppeteerPool {
         this.retiredInstances = {};
         this.lastUsedProxyUrlIndex = 0;
         this.instanceKillerInterval = setInterval(() => this._killRetiredInstances(), instanceKillerIntervalMillis);
+        this.idlePages = [];
+        // WeakSet/Map items do not prevent garbage collection,
+        // and thus no management of the collections is needed.
+        // They will automatically empty themselves once there
+        // are no references to the stored pages.
+        this.closedPages = new WeakSet();
+        this.pagesToInstancesMap = new WeakMap();
 
         // ensure termination on SIGINT
         this.sigintListener = () => this._killAllInstances();
@@ -389,43 +401,73 @@ class PuppeteerPool {
     }
 
     /**
+     * Updates the instance metadata when a new page is opened.
+     *
+     * @param {PuppeteerInstance} instance
+     * @ignore
+     */
+    _incrementPageCount(instance) {
+        instance.lastPageOpenedAt = Date.now();
+        instance.totalPages++;
+        if (instance.totalPages >= this.retireInstanceAfterRequestCount) this._retireInstance(instance);
+    }
+
+    /**
+     * Produces a new page instance either by reusing an idle page that currently isn't processing
+     * any request or by spawning a new page (new browser tab) in one of the available
+     * browsers when no idle pages are available.
+     *
+     * To spawn a new browser tab for each page, set the `reusePages` constructor option to false.
+     *
+     * @return {Promise<Page>}
+     */
+    async newPage() {
+        let idlePage;
+        // We don't need to check whether options.reusePages is true,
+        // because if it's false, the array will be empty and the loop will never start.
+        while (idlePage = this.idlePages.shift()) { // eslint-disable-line no-cond-assign
+            // Since pages can close for various reasons that we have no control over,
+            // we need to make sure that we're only using live pages, so we go
+            // through the queue until we get a page that's live, which means
+            // that it's not closed and its browser is not retired.
+            const pageIsNotClosed = !this.closedPages.has(idlePage);
+            const instance = this.pagesToInstancesMap.get(idlePage);
+            const instanceIsActive = !!this.activeInstances[instance.id];
+            if (pageIsNotClosed && instanceIsActive) {
+                this._incrementPageCount(instance);
+                return idlePage;
+            }
+            // Close pages of retired instances so they don't keep hanging there forever.
+            if (pageIsNotClosed && !instanceIsActive) {
+                await idlePage.close();
+            }
+        }
+        // If there are no live pages to be reused, we spawn a new tab.
+        return this._openNewTab();
+    }
+
+    /**
      * Opens new tab in one of the browsers in the pool and returns a `Promise`
      * that resolves to an instance of a Puppeteer
      * <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a>.
      *
      * @return {Promise<Page>}
+     * @ignore
      */
-    async newPage() {
-        let instance;
-
-        _.mapObject(this.activeInstances, (inst) => {
-            if (inst.activePages >= this.maxOpenPagesPerInstance) return;
-
-            instance = inst;
-        });
+    async _openNewTab() {
+        let instance = Object
+            .values(this.activeInstances)
+            .find(inst => inst.activePages < this.maxOpenPagesPerInstance);
 
         if (!instance) instance = this._launchInstance();
-
-        instance.lastPageOpenedAt = Date.now();
-        instance.totalPages++;
+        this._incrementPageCount(instance);
         instance.activePages++;
-
-        if (instance.totalPages >= this.retireInstanceAfterRequestCount) this._retireInstance(instance);
 
         try {
             const browser = await instance.browserPromise;
             const page = await browser.newPage();
-
-            page.once('error', (error) => {
-                log.exception(error, 'PuppeteerPool: page crashed');
-                // Swallow errors from Page.close()
-                page.close()
-                    .catch(err => log.debug('PuppeteerPool: Page.close() failed', { errorMessage: err.message, id: instance.id }));
-            });
-
-            // TODO: log console messages page.on('console', message => log.debug(`Chrome console: ${message.text}`));
-
-            return page;
+            this.pagesToInstancesMap.set(page, instance);
+            return this._decoratePage(page);
         } catch (err) {
             log.exception(err, 'PuppeteerPool: browser.newPage() failed', { id: instance.id });
             this._retireInstance(instance);
@@ -433,6 +475,30 @@ class PuppeteerPool {
             // !TODO: don't throw an error but repeat newPage with some delay
             throw err;
         }
+    }
+
+    /**
+     * Adds the necessary boilerplate to allow page reuse and also
+     * captures page.close() errors to prevent meaningless log clutter.
+     * @param page
+     * @ignore
+     */
+    _decoratePage(page) {
+        const originalPageClose = page.close;
+        page.close = async (...args) => {
+            this.closedPages.add(page);
+            return originalPageClose.apply(page, args)
+                .catch((err) => {
+                    const instance = this.pagesToInstancesMap.get(page);
+                    log.debug('PuppeteerPool: Page.close() failed', { errorMessage: err.message, id: instance.id });
+                });
+        };
+
+        page.once('error', (error) => {
+            log.exception(error, 'PuppeteerPool: page crashed.');
+            page.close();
+        });
+        return page;
     }
 
     /**
@@ -509,6 +575,28 @@ class PuppeteerPool {
         const instance = await this._findInstanceByBrowser(browser);
         if (instance) return this._retireInstance(instance);
         log.debug('PuppeteerPool: browser is retired already');
+    }
+
+    /**
+     * Recycles the page, which means that it will be enqueued for future reuse
+     * instead of spawning a new tab. This is done automatically unless the `reusePages`
+     * option of the `PuppeteerPool` constructor is set to false. You can also use this
+     * function manually to tell the pool that you no longer need this specific page
+     * and it can be reused in the future.
+     *
+     * Using this function without setting the `reusePages` option to false causes
+     * this function to trigger a page.close().
+     *
+     * @param {Page} page
+     * @return {Promise}
+     */
+    async recyclePage(page) {
+        if (this.reusePages) {
+            page.removeAllListeners();
+            this.idlePages.push(page);
+        } else {
+            await page.close();
+        }
     }
 }
 

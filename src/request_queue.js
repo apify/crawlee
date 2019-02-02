@@ -173,9 +173,9 @@ const getRequestId = (uniqueKey) => {
  * const queueWithName = await Apify.openRequestQueue('some-name');
  *
  * // Enqueue few requests
- * await queue.addRequest(new Apify.Request({ url: 'http://example.com/aaa' }));
- * await queue.addRequest(new Apify.Request({ url: 'http://example.com/bbb' }));
- * await queue.addRequest(new Apify.Request({ url: 'http://example.com/foo/bar' }), { forefront: true });
+ * await queue.addRequest({ url: 'http://example.com/aaa' });
+ * await queue.addRequest({ url: 'http://example.com/bbb' });
+ * await queue.addRequest({ url: 'http://example.com/foo/bar' }, { forefront: true });
  *
  * // Get requests from queue
  * const request1 = await queue.fetchNextRequest();
@@ -550,6 +550,16 @@ export class RequestQueue {
                 if (this.queueName) queuesCache.remove(this.queueName);
             });
     }
+
+    /**
+     * Returns the number of handled requests.
+     *
+     * @return {Promise<number>}
+     */
+    async handledCount() {
+        const queueInfo = await requestQueues.getQueue({ queueId: this.queueId });
+        return queueInfo.handledRequestCount;
+    }
 }
 
 /**
@@ -582,6 +592,7 @@ export class RequestQueueLocal {
 
         this.queueOrderNoCounter = 0; // Counter used in _getQueueOrderNo to ensure there won't be a collision.
         this.pendingCount = 0;
+        this._handledCount = 0;
         this.inProgressCount = 0;
         this.requestIdToQueueOrderNo = {};
         this.queueOrderNoInProgress = {};
@@ -600,6 +611,7 @@ export class RequestQueueLocal {
         ]);
 
         this.pendingCount = pending.length;
+        this._handledCount = handled.length;
 
         const handledPaths = handled.map(filename => path.join(this.localHandledEmulationPath, filename));
         const pendingPaths = pending.map(filename => path.join(this.localPendingEmulationPath, filename));
@@ -762,6 +774,7 @@ export class RequestQueueLocal {
                     .then(() => renamePromised(source, dest))
                     .then(() => {
                         this.pendingCount--;
+                        this._handledCount++;
                         this.inProgressCount--;
                         delete this.queueOrderNoInProgress[queueOrderNo];
 
@@ -824,6 +837,11 @@ export class RequestQueueLocal {
             .then(() => {
                 queuesCache.remove(this.queueId);
             });
+    }
+
+    async handledCount() {
+        await this.initializationPromise;
+        return this._handledCount;
     }
 }
 

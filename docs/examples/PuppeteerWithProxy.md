@@ -10,6 +10,9 @@ that has access to the proxy.
 The proxy password is available on the <a href="https://my.apify.com/proxy" target="_blank">Proxy</a> page in the app.
 Just set it to the `APIFY_PROXY_PASSWORD` [environment variable](../guides/environmentvariables)
 or run the script using the CLI.
+
+To run this example on the Apify Platform, select the `Node.js 8 + Chrome on Debian (apify/actor-node-chrome)` base image
+on the source tab of your actor configuration.
 ```javascript
 const Apify = require('apify');
 

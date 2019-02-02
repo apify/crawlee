@@ -57,6 +57,8 @@ await pool.run();
     * [`.setMinConcurrency(minConcurrency)`](#AutoscaledPool+setMinConcurrency)
     * [`.run()`](#AutoscaledPool+run) ⇒ <code>Promise</code>
     * [`.abort()`](#AutoscaledPool+abort) ⇒ <code>Promise</code>
+    * [`.pause([timeoutSecs])`](#AutoscaledPool+pause) ⇒ <code>Promise</code>
+    * [`.resume()`](#AutoscaledPool+resume)
 
 <a name="new_AutoscaledPool_new"></a>
 
@@ -102,6 +104,8 @@ await pool.run();
 </tr>
 <tr>
 <td colspan="3"><p>Minimum number of tasks running in parallel.</p>
+<p>  <em>WARNING:</em> If you set this value too high with respect to the available system memory and CPU, your code might run extremely slow or crash.
+  If you&#39;re not sure, just keep the default value and the concurrency will scale up automatically.</p>
 </td></tr><tr>
 <td><code>[options.maxConcurrency]</code></td><td><code>Number</code></td><td><code>1000</code></td>
 </tr>
@@ -181,6 +185,9 @@ Overrides max concurrency configuration.
 ## `autoscaledPool.setMinConcurrency(minConcurrency)`
 Overrides min concurrency configuration.
 
+*WARNING:* If you set this value too high with respect to the available system memory and CPU, your code might run extremely slow or crash.
+If you're not sure, just keep the default value and the concurrency will scale up automatically.
+
 <table>
 <thead>
 <tr>
@@ -203,5 +210,47 @@ all the tasks are finished or one of them fails.
 <a name="AutoscaledPool+abort"></a>
 
 ## `autoscaledPool.abort()` ⇒ <code>Promise</code>
-Aborts the run of the auto-scaled pool, discards all currently running tasks and destroys it.
+Aborts the run of the auto-scaled pool and destroys it. The promise returned from
+the [`run()`](#AutoscaledPool+run) function will immediately resolve, no more new tasks
+will be spawned and all running tasks will be left in their current state.
+
+Due to the nature of the tasks, auto-scaled pool cannot reliably guarantee abortion
+of all the running tasks, therefore, no abortion is attempted and some of the tasks
+may finish, while others may not. Essentially, auto-scaled pool doesn't care about
+their state after the invocation of `.abort()`, but that does not mean that some
+parts of their asynchronous chains of commands will not execute.
+
+<a name="AutoscaledPool+pause"></a>
+
+## `autoscaledPool.pause([timeoutSecs])` ⇒ <code>Promise</code>
+Prevents the auto-scaled pool from starting new tasks, but allows the running ones to finish
+(unlike abort, which terminates them). Used together with [`resume()`](#AutoscaledPool+resume)
+
+The function's promise will resolve once all running tasks have completed and the pool
+is effectively idle. If the `timeoutSecs` argument is provided, the promise will reject
+with a timeout error after the `timeoutSecs` seconds.
+
+The promise returned from the [`run()`](#AutoscaledPool+run) function will not resolve
+when `.pause()` is invoked (unlike abort, which resolves it).
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>[timeoutSecs]</code></td><td><code>number</code></td>
+</tr>
+<tr>
+</tr></tbody>
+</table>
+<a name="AutoscaledPool+resume"></a>
+
+## `autoscaledPool.resume()`
+Resumes the operation of the autoscaled-pool by allowing more tasks to be run.
+Used together with [`pause()`](#AutoscaledPool+pause)
+
+Tasks will automatically start running again in `options.maybeRunIntervalSecs`.
 

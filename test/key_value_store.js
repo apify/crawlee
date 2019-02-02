@@ -1,6 +1,5 @@
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
-import 'babel-polyfill';
 import sinon from 'sinon';
 import path from 'path';
 import { ENV_VARS } from 'apify-shared/consts';
@@ -232,11 +231,13 @@ describe('KeyValueStore', () => {
 
             const circularObj = {};
             circularObj.xxx = circularObj;
-            const jsonErrMsg = 'The "value" parameter cannot be stringified to JSON';
-            await expect(Apify.setValue('key', circularObj)).to.be.rejectedWith(jsonErrMsg);
-            await expect(Apify.setValue('key', undefined)).to.be.rejectedWith(jsonErrMsg);
-            await expect(Apify.setValue('key', () => {})).to.be.rejectedWith(jsonErrMsg);
-            await expect(Apify.setValue('key')).to.be.rejectedWith(jsonErrMsg);
+            const circularErrMsg = 'The "value" parameter cannot be stringified to JSON: Converting circular structure to JSON';
+            const undefinedErrMsg = 'The "value" parameter was stringified to JSON and returned undefined. '
+                + 'Make sure you\'re not trying to stringify a Function.';
+            await expect(Apify.setValue('key', circularObj)).to.be.rejectedWith(circularErrMsg);
+            await expect(Apify.setValue('key', undefined)).to.be.rejectedWith(undefinedErrMsg);
+            await expect(Apify.setValue('key', () => {})).to.be.rejectedWith(undefinedErrMsg);
+            await expect(Apify.setValue('key')).to.be.rejectedWith(undefinedErrMsg);
 
             const contTypeRedundantErrMsg = 'The "options.contentType" parameter must not be used when removing the record';
             await expect(Apify.setValue('key', null, { contentType: 'image/png' })).to.be.rejectedWith(contTypeRedundantErrMsg);
@@ -367,6 +368,7 @@ describe('KeyValueStore', () => {
         });
     });
 
+
     describe('getPublicUrl', () => {
         it('should return the local url of a file', () => {
             process.env[ENV_VARS.LOCAL_STORAGE_DIR] = LOCAL_STORAGE_DIR;
@@ -383,6 +385,92 @@ describe('KeyValueStore', () => {
 
             expect(store.getPublicUrl('file')).to.equal(`${publicUrl}/my-store-id/records/file`);
             delete process.env[ENV_VARS.TOKEN];
-        })
+
+        });
+    });
+
+    describe('forEachKey', () => {
+        it('should work remotely', async () => {
+            const storeId = 'some-id-1';
+            const store = new KeyValueStore(storeId, 'some-name-1');
+            const mock = sinon.mock(apifyClient.keyValueStores);
+
+            mock.expects('listKeys')
+                .once()
+                .withArgs({
+                    storeId,
+                    exclusiveStartKey: 'key0',
+                })
+                .resolves({
+                    data: {
+                        isTruncated: true,
+                        nextExclusiveStartKey: 'key2',
+                        items: ['key1', 'key2'],
+                    },
+                });
+            mock.expects('listKeys')
+                .once()
+                .withArgs({
+                    storeId,
+                    exclusiveStartKey: 'key2',
+                })
+                .resolves({
+                    data: {
+                        isTruncated: true,
+                        nextExclusiveStartKey: 'key4',
+                        items: ['key3', 'key4'],
+                    } });
+            mock.expects('listKeys')
+                .once()
+                .withArgs({
+                    storeId,
+                    exclusiveStartKey: 'key4',
+                })
+                .resolves({
+                    data: {
+                        isTruncated: false,
+                        nextExclusiveStartKey: null,
+                        items: ['key5'],
+                    } });
+
+            const results = [];
+            await store.forEachKey(async (key, index) => {
+                results.push([key, index]);
+            }, { exclusiveStartKey: 'key0' });
+
+            expect(results).to.have.lengthOf(5);
+            results.forEach((r, i) => {
+                expect(r[1]).to.be.eql(i);
+                expect(r[0]).to.be.eql(`key${i + 1}`);
+            });
+
+            mock.verify();
+        });
+
+        it('should work locally', async () => {
+            const storeId = 'some-id-1';
+            const store = new KeyValueStoreLocal(storeId, LOCAL_STORAGE_DIR);
+
+            for (let i = 0; i < 10; i++) {
+                await store.setValue(`key${i}`, {});
+            }
+
+            const results = [];
+            await store.forEachKey((key, index) => {
+                results.push([key, index]);
+            }, { exclusiveStartKey: 'key3' });
+
+            expect(results).to.have.lengthOf(6);
+            results.forEach((r, i) => {
+                expect(r[1]).to.be.eql(i);
+                expect(r[0]).to.be.eql(`key${i + 4}`);
+            });
+
+            // Delete works.
+            const storeDir = path.join(LOCAL_STORAGE_DIR, LOCAL_STORAGE_SUBDIR, storeId);
+            expectDirNonEmpty(storeDir);
+            await store.delete();
+            expectDirEmpty(storeDir);
+        });
     });
 });

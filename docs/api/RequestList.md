@@ -22,9 +22,17 @@ and [`PuppeteerCrawler`](puppeteercrawler) as a source of URLs to crawl.
 Unlike [`RequestQueue`](requestqueue), `RequestList` is static but it can contain even millions of URLs.
 
 `RequestList` has an internal state where it stores information about which requests were already handled,
-which are in progress and which were reclaimed. The state might be automatically persisted to the default
-key-value store by setting the `persistStateKey` option o that if the Node.js process is restarted,
+which are in progress and which were reclaimed. The state may be automatically persisted to the default
+key-value store by setting the `persistStateKey` option so that if the Node.js process is restarted,
 the crawling can continue where it left off. For more details, see [`KeyValueStore`](keyvaluestore).
+
+The internal state is closely tied to the provided sources (URLs) to validate it's position in the list
+after a migration or restart. Therefore, if the sources change, the state will become corrupted and
+`RequestList` will raise an exception. This typically happens when using a live list of URLs downloaded
+from the internet as sources. Either from some service's API, or using the `requestsFromUrl` option.
+If that's your case, please use the `persistSourcesKey` option in conjunction with `persistStateKey`,
+it will persist the initial sources to the default key-value store and load them after restart,
+which will prevent any issues that a live list of URLs might cause.
 
 **Example usage:**
 
@@ -39,7 +47,8 @@ const requestList = new Apify.RequestList({
         // Note that all URLs must start with http:// or https://
         { requestsFromUrl: 'http://www.example.com/my-url-list.txt', userData: { isFromUrl: true } },
     ],
-    persistStateKey: 'my-crawling-state'
+    persistStateKey: 'my-state',
+    persistSourcesKey: 'my-sources'
 });
 
 // This call loads and parses the URLs from the remote file.
@@ -59,8 +68,9 @@ await requestList.reclaimRequest(request2);
 
 
 * [RequestList](requestlist)
-    * [`new RequestList(options)`](#new_RequestList_new)
+    * [`new exports.RequestList(options)`](#new_RequestList_new)
     * [`.initialize()`](#RequestList+initialize) ⇒ <code>Promise</code>
+    * [`.persistState()`](#RequestList+persistState) ⇒ <code>Promise</code>
     * [`.getState()`](#RequestList+getState) ⇒ <code>Object</code>
     * [`.isEmpty()`](#RequestList+isEmpty) ⇒ <code>Promise&lt;Boolean&gt;</code>
     * [`.isFinished()`](#RequestList+isFinished) ⇒ <code>Promise&lt;Boolean&gt;</code>
@@ -72,7 +82,7 @@ await requestList.reclaimRequest(request2);
 
 <a name="new_RequestList_new"></a>
 
-## `new RequestList(options)`
+## `new exports.RequestList(options)`
 <table>
 <thead>
 <tr>
@@ -105,15 +115,10 @@ await requestList.reclaimRequest(request2);
 <td><code>[options.persistStateKey]</code></td><td><code>String</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>Identifies the key in the default key-value store under which the <code>RequestList</code> persists its
-  state. State represents a position of the last scraped request in the list. If this is set then <code>RequestList</code>
-  persists this state in regular intervals and loads the state from there in case it is restarted due to an error or system reboot.</p>
-<p>  <strong>IMPORTANT:</strong>
-  The state represents only a pointer/index of a request in the list. The full contents of the list are not persisted.
-  Therefore, the user is responsible for either persisting the list on her own or a consistent order of the requests
-  in the list must be preserved. This is especially important when downloading a live list of URLs from a remote resource,
-  since the change in the source URL list would change the resulting <code>RequestList</code> on error/restart and the state
-  of crawling will be impossible to restore, resulting in an error.</p>
+<td colspan="3"><p>Identifies the keys in the default key-value store under which the <code>RequestList</code> persists its
+  initial sources and current state. State represents a position of the last scraped request in the list.
+  If this is set then <code>RequestList</code>persists all of its sources and the state in regular intervals
+  to key value store and loads the state from there in case it is restarted due to an error or system reboot.</p>
 </td></tr><tr>
 <td><code>[options.state]</code></td><td><code>Object</code></td><td></td>
 </tr>
@@ -129,7 +134,7 @@ await requestList.reclaimRequest(request2);
     },
 }
 </code></pre><p>  Note that the preferred (and simpler) way to persist the state of crawling of the <code>RequestList</code>
-  is to use the <code>persistStateKey</code> parameter instead.</p>
+  is to use the <code>stateKeyPrefix</code> parameter instead.</p>
 </td></tr><tr>
 <td><code>[options.keepDuplicateUrls]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
 </tr>
@@ -142,7 +147,7 @@ await requestList.reclaimRequest(request2);
 <p>  Setting <code>keepDuplicateUrls</code> to <code>true</code> will append an additional identifier to the <code>uniqueKey</code>
   of each request that does not already include a <code>uniqueKey</code>. Therefore, duplicate
   URLs will be kept in the list. It does not protect the user from having duplicates in user set
-  <code>uniqueKey</code>s however. It is the user&#39;s responsibility to ensure uniqueness of their unique keys,
+  <code>uniqueKey</code>s however. It is the user&#39;s responsibility to ensure uniqueness of their unique keys
   if they wish to keep more than just a single copy in the <code>RequestList</code>.</p>
 </td></tr></tbody>
 </table>
@@ -151,6 +156,15 @@ await requestList.reclaimRequest(request2);
 ## `requestList.initialize()` ⇒ <code>Promise</code>
 Loads all remote sources of URLs and potentially starts periodic state persistence.
 This function must be called before you can start using the instance in a meaningful way.
+
+<a name="RequestList+persistState"></a>
+
+## `requestList.persistState()` ⇒ <code>Promise</code>
+Persists the current state of the `RequestList` into the default [`KeyValueStore`](keyvaluestore).
+The state is persisted automatically in regular intervals, but calling this method manually
+is useful in cases where you want to have the most current state available after you pause
+or stop fetching its requests. For example after you pause or abort a crawl. Or just before
+a server migration.
 
 <a name="RequestList+getState"></a>
 

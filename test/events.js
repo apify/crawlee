@@ -1,7 +1,5 @@
-import 'babel-polyfill';
 import WebSocket from 'ws';
 import sinon from 'sinon';
-import Promise from 'bluebird';
 import { expect } from 'chai';
 import { delayPromise } from 'apify-shared/utilities';
 import { ENV_VARS } from 'apify-shared/consts';

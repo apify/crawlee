@@ -1,6 +1,79 @@
+<<<<<<< HEAD
 xxx
 ===================
 - Added `getPublicUrl` function to `KeyValueStoreLocal`
+=======
+0.11.5 / 2018-01-18
+===================
+- Disabled the `PuppeteerPool` `reusePages` option for now, due to a memory leak.
+- Added a `keyValueStore.forEachKey()` method to iterate all keys in the store.
+
+0.11.4 / 2018-01-15
+===================
+- Improvements in `Apify.utils.social.parseHandlesFromHtml` and `Apify.utils.htmlToText`
+- Updated docs
+
+0.11.3 / 2018-01-10
+===================
+- Fix `reusePages` causing Puppeteer to fail when used together with request interception.
+
+0.11.2 / 2018-01-10
+===================
+- Fix missing `reusePages` configuration parameter in `PuppeteerCrawler`.
+- Fix a memory leak where `reusePages` would prevent browsers from closing.
+
+0.11.1 / 2018-01-07
+===================
+- Fix missing `autoscaledPool` parameter in `handlePageFunction` of `PuppeteerCrawler`.
+
+0.11.0 / 2018-01-07
+===================
+- **BREAKING CHANGE:** `basicCrawler.abort()`, `cheerioCrawler.abort()` and `puppeteerCrawler.abort()` functions
+  were removed in favor of a single `autoscaledPool.abort()` function.
+
+- Added a reference to the running `AutoscaledPool` instance to the options object of `BasicCrawler`'s
+  `handleRequestFunction` and to the `handlePageFunction` of `CheerioCrawler` and `PuppeteerCrawler`.  
+- Added sources persistence option to `RequestList` that works best in conjunction with the state persistence,
+  but can be toggled separately too.
+- Added `Apify.openRequestList()` function to place it in line with `RequestQueue`, `KeyValueStore` and `Dataset`.
+  `RequestList` created using this function will automatically persist state and sources.
+- Added `pool.pause()` and `pool.resume()` functions to `AutoscaledPool`. You can now pause the pool,
+  which will prevent additional tasks from being run and wait for the running ones to finish.
+- Fixed a memory leak in `CheerioCrawler` and potentially other crawlers.
+
+0.10.2 / 2018-12-30
+===================
+- Added `Apify.utils.htmlToText()` function to convert HTML to text and removed unncessary `html-to-text` dependency.
+  The new function is now used in `Apify.utils.social.parseHandlesFromHtml()`.
+- Updated `DEFAULT_USER_AGENT`
+
+0.10.0 / 2018-12-19
+===================
+- `autoscaledPool.isFinishedFunction()` and `autoscaledPool.isTaskReadyFunction()` exceptions
+  will now cause the `Promise` returned by `autoscaledPool.run()` to reject instead of just
+  logging a message. This is in line with the `autoscaledPool.runTaskFunction()` behavior. 
+- Bugfix: PuppeteerPool was incorrectly overriding `proxyUrls` even if they were not defined.
+- Fixed an issue where an error would be thrown when `datasetLocal.getData()` was invoked
+  with an overflowing offset. It now correctly returns an empty `Array`.
+- Added the `reusePages` option to `PuppeteerPool`. It will now reuse existing tabs
+  instead of opening new ones for each page when enabled.
+- `BasicCrawler` (and therefore all Crawlers) now logs a message explaining why it finished.
+- Fixed an issue where `maxRequestsPerCrawl` option would not be honored after restart or migration.
+- Fixed an issue with timeout promises that would sometimes keep the process hanging.
+- `CheerioCrawler` now accepts `gzip` and `deflate` compressed responses.
+
+0.9.15 / 2018-11-30
+===================
+- Upgraded Puppeteer to 1.11.0
+- **DEPRECATION WARNING:** `Apify.utils.puppeteer.enqueueLinks()` now uses an options object instead of individual parameters
+  and supports passing of `userData` to the enqueued `request`. Previously: `enqueueLinks(page, selector, requestQueue, pseudoUrls)`
+  Now: `enqueueLinks({ page, selector, requestQueue, pseudoUrls, userData })`. Using individual parameters is **DEPRECATED**.
+
+0.9.14 / 2018-11-27
+===================
+- Added API response tracking to AutoscaledPool, leveraging `Apify.client.stats` object. It now overloads the system
+  when a large amount of  429 - Too Many Requests is received.
+>>>>>>> upstream/master
 
 0.9.13 / 2018-11-26
 ===================

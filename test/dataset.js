@@ -1,6 +1,5 @@
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
-import 'babel-polyfill';
 import fs from 'fs-extra';
 import path from 'path';
 import sinon from 'sinon';
@@ -106,6 +105,14 @@ describe('dataset', () => {
                 offset: 1,
                 count: 2,
                 limit: 2,
+            });
+
+            expect(await dataset.getData({ offset: 10 })).to.be.eql({
+                items: [],
+                total: 4,
+                offset: 10,
+                count: 0,
+                limit: LOCAL_GET_ITEMS_DEFAULT_LIMIT,
             });
         });
 

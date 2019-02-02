@@ -3,21 +3,23 @@ import { betterSetInterval, betterClearInterval } from 'apify-shared/utilities';
 import log from 'apify-shared/log';
 import { ACTOR_EVENT_NAMES, ENV_VARS } from 'apify-shared/consts';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { getMemoryInfo, isAtHome } from '../utils';
+import { getMemoryInfo, isAtHome, apifyClient } from '../utils';
 import events from '../events';
 
 const DEFAULT_OPTIONS = {
     eventLoopSnapshotIntervalSecs: 0.5,
     maxBlockedMillis: 50, // 0.05
     memorySnapshotIntervalSecs: 1,
+    clientSnapshotIntervalSecs: 1,
     maxUsedMemoryRatio: 0.7,
     snapshotHistorySecs: 30,
+    maxClientErrors: 1,
 };
 
 /**
  * Creates snapshots of system resources at given intervals and marks the resource
  * as either overloaded or not during the last interval. Keeps a history of the snapshots.
- * It tracks the following resources: Memory, EventLoop and CPU.
+ * It tracks the following resources: Memory, EventLoop, API and CPU.
  * The class is used by the {@link AutoscaledPool} class.
  *
  * There are differences in behavior when running locally and on the Apify platform,
@@ -30,6 +32,9 @@ const DEFAULT_OPTIONS = {
  *
  * Event loop becomes overloaded if it slows down by more than the `maxBlockedMillis` option.
  *
+ * Client becomes overloaded when rate limit errors (429 - Too Many Requests),
+ * typically received from the request queue exceed the set limit within the set interval.
+ *
  * CPU tracking is available only on the Apify platform and the CPU overloaded event is read
  * directly off the container and is not configurable.
  *
@@ -37,6 +42,9 @@ const DEFAULT_OPTIONS = {
  *   via an options object with the following keys:
  * @param {Number} [options.eventLoopSnapshotIntervalSecs=0.5]
  *   Defines the interval of measuring the event loop response time.
+ * @param {Number} [options.clientSnapshotIntervalSecs=1]
+ *   Defines the interval of checking the current state
+ *   of the remote API client.
  * @param {Number} [options.maxBlockedMillis=50]
  *   Maximum allowed delay of the event loop in milliseconds.
  *   Exceeding this limit overloads the event loop.
@@ -47,6 +55,9 @@ const DEFAULT_OPTIONS = {
  * @param {Number} [options.maxUsedMemoryRatio=0.7]
  *   Defines the maximum ratio of total memory that can be used.
  *   Exceeding this limit overloads the memory.
+ * @param {Number} [options.maxClientErrors=1]
+ *   Defines the maximum number of new rate limit errors within
+ *   the given interval.
  * @param {Number} [options.snapshotHistorySecs=60]
  *   Sets the interval in seconds for which a history of resource snapshots
  *   will be kept. Increasing this to very high numbers will affect performance.
@@ -56,27 +67,39 @@ class Snapshotter {
         const {
             eventLoopSnapshotIntervalSecs,
             memorySnapshotIntervalSecs,
+            clientSnapshotIntervalSecs,
             snapshotHistorySecs,
             maxBlockedMillis,
             maxUsedMemoryRatio,
+            maxClientErrors,
         } = _.defaults({}, options, DEFAULT_OPTIONS);
 
         checkParamOrThrow(eventLoopSnapshotIntervalSecs, 'options.eventLoopSnapshotIntervalSecs', 'Number');
         checkParamOrThrow(memorySnapshotIntervalSecs, 'options.memorySnapshotIntervalSecs', 'Number');
         checkParamOrThrow(snapshotHistorySecs, 'options.snapshotHistorySecs', 'Number');
+        checkParamOrThrow(clientSnapshotIntervalSecs, 'options.clientSnapshotIntervalSecs', 'Number');
         checkParamOrThrow(maxBlockedMillis, 'options.maxBlockedMillis', 'Number');
         checkParamOrThrow(maxUsedMemoryRatio, 'options.maxUsedMemoryRatio', 'Number');
+        checkParamOrThrow(maxClientErrors, 'options.maxClientErrors', 'Number');
+
 
         this.eventLoopSnapshotIntervalMillis = eventLoopSnapshotIntervalSecs * 1000;
         this.memorySnapshotIntervalMillis = memorySnapshotIntervalSecs * 1000;
+        this.clientSnapshotIntervalMillis = clientSnapshotIntervalSecs * 1000;
         this.snapshotHistoryMillis = snapshotHistorySecs * 1000;
         this.maxBlockedMillis = maxBlockedMillis;
         this.maxUsedMemoryRatio = maxUsedMemoryRatio;
+        this.maxClientErrors = maxClientErrors;
         this.maxMemoryBytes = (parseInt(process.env[ENV_VARS.MEMORY_MBYTES], 10) * 1024 * 1024) || null;
 
         this.cpuSnapshots = [];
         this.eventLoopSnapshots = [];
         this.memorySnapshots = [];
+        this.clientSnapshots = [];
+
+        this.eventLoopInterval = null;
+        this.memoryInterval = null;
+        this.clientInterval = null;
     }
 
     /**
@@ -99,6 +122,7 @@ class Snapshotter {
         // Start snapshotting.
         this.eventLoopInterval = betterSetInterval(this._snapshotEventLoop.bind(this), this.eventLoopSnapshotIntervalMillis);
         this.memoryInterval = betterSetInterval(this._snapshotMemory.bind(this), this.memorySnapshotIntervalMillis);
+        this.clientInterval = betterSetInterval(this._snapshotClient.bind(this), this.clientSnapshotIntervalMillis);
         events.on(ACTOR_EVENT_NAMES.CPU_INFO, this._snapshotCpu.bind(this));
     }
 
@@ -109,6 +133,7 @@ class Snapshotter {
     async stop() {
         betterClearInterval(this.eventLoopInterval);
         betterClearInterval(this.memoryInterval);
+        betterClearInterval(this.clientInterval);
         events.removeListener(ACTOR_EVENT_NAMES.CPU_INFO, this._snapshotCpu);
         // Allow microtask queue to unwind before stop returns.
         await new Promise(resolve => setImmediate(resolve));
@@ -142,6 +167,16 @@ class Snapshotter {
      */
     getCpuSample(sampleDurationMillis) {
         return this._getSample(this.cpuSnapshots, sampleDurationMillis);
+    }
+
+    /**
+     * Returns a sample of latest Client snapshots, with the size of the sample defined
+     * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
+     * @param {Number} sampleDurationMillis
+     * @return {Array}
+     */
+    getClientSample(sampleDurationMillis) {
+        return this._getSample(this.clientSnapshots, sampleDurationMillis);
     }
 
     /**
@@ -188,7 +223,7 @@ class Snapshotter {
 
             this.memorySnapshots.push(snapshot);
         } catch (err) {
-            log.exception(err, 'AutoscaledPool: Memory snapshot failed.');
+            log.exception(err, 'Snapshotter: Memory snapshot failed.');
         } finally {
             intervalCallback();
         }
@@ -220,7 +255,7 @@ class Snapshotter {
             if (delta > this.maxBlockedMillis) snapshot.isOverloaded = true;
             this.eventLoopSnapshots.push(snapshot);
         } catch (err) {
-            log.exception(err, 'AutoscaledPool: Event loop snapshot failed.');
+            log.exception(err, 'Snapshotter: Event loop snapshot failed.');
         } finally {
             intervalCallback();
         }
@@ -239,6 +274,40 @@ class Snapshotter {
             createdAt,
             isOverloaded: cpuInfoEvent.isCpuOverloaded,
         });
+    }
+
+    /**
+     * Creates a snapshot of current API state.
+     * @param intervalCallback
+     * @return {number}
+     * @private
+     */
+    _snapshotClient(intervalCallback) {
+        try {
+            const now = new Date();
+            this._pruneSnapshots(this.clientSnapshots, now);
+
+            const currentErrCount = apifyClient.stats.rateLimitErrors;
+
+            // Handle empty snapshots array
+            const snapshot = {
+                createdAt: now,
+                isOverloaded: false,
+                rateLimitErrorCount: currentErrCount,
+            };
+            const previousSnapshot = this.clientSnapshots[this.clientSnapshots.length - 1];
+            if (!previousSnapshot) return this.clientSnapshots.push(snapshot);
+
+            // Compare with previous snapshot
+            const { rateLimitErrorCount } = previousSnapshot;
+            const delta = currentErrCount - rateLimitErrorCount;
+            if (delta > this.maxClientErrors) snapshot.isOverloaded = true;
+            this.clientSnapshots.push(snapshot);
+        } catch (err) {
+            log.exception(err, 'Snapshotter: Client snapshot failed.');
+        } finally {
+            intervalCallback();
+        }
     }
 
     /**

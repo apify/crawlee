@@ -4,6 +4,9 @@ title: Hello World
 ---
 
 Run the following example to perform a recursive crawl of a website using Puppeteer.
+
+To run this example on the Apify Platform, select the `Node.js 8 + Chrome on Debian (apify/actor-node-chrome)` base image
+on the source tab of your actor configuration.
 ```javascript
 const Apify = require('apify');
 
@@ -17,7 +20,7 @@ Apify.main(async () => {
         handlePageFunction: async ({ request, page }) => {
             const title = await page.title();
             console.log(`Title of ${request.url}: ${title}`);
-            await Apify.utils.puppeteer.enqueueLinks(page, 'a', pseudoUrls, requestQueue);
+            await Apify.utils.puppeteer.enqueueLinks({ page, selector: 'a', pseudoUrls, requestQueue });
         },
         maxRequestsPerCrawl: 100,
         maxConcurrency: 10,

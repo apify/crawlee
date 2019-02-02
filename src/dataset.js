@@ -96,23 +96,6 @@ export const chunkBySize = (items, limitBytes) => {
 };
 
 /**
- * Represents one page of data items from the [`Dataset`](../api/dataset).
- * For more details, see [`Dataset.getData()`](../api/dataset#Dataset+getData).
- *
- * @typedef {Object} PaginationList
- * @property {Array} items
- *   Array of returned items.
- * @property {Number} total
- *   Total number of object.
- * @property {Number} offset
- *   Number of Request objects that was skipped at the start.
- * @property {Number} count
- *   Number of returned objects.
- * @property {Number} limit
- *   Requested limit on the number of items.
- */
-
-/**
  * The `Dataset` class represents a store for structured data where each object stored has the same attributes,
  * such as online store products or real estate offers. You can imagine it as a table,
  * where each object is a row and its attributes are columns.
@@ -226,8 +209,6 @@ export class Dataset {
     /**
      * Returns items in the dataset based on the provided parameters.
      *
-     * If format is `json` then the function doesn't return an array of records but {@link PaginationList} instead.
-     *
      * @param {Object} [options] All `getData()` parameters are passed
      *   via an options object with the following keys:
      * @param {String} [options.format='json']
@@ -251,7 +232,6 @@ export class Dataset {
      *   browser to download the file rather than to display it. By default, this header is not present.
      * @param {String} [options.delimiter=',']
      *   A delimiter character for CSV files, only used if `format` is `csv`.
-     *   You might need to URL-encode the character (e.g. use `%09` for tab or `%3B` for semicolon).
      * @param {Boolean} [options.bom]
      *   All responses are encoded in UTF-8 encoding. By default, the CSV files are prefixed with the UTF-8 Byte
      *   Order Mark (BOM), while JSON, JSONL, XML, HTML and RSS files are not. If you want to override this default
@@ -263,7 +243,7 @@ export class Dataset {
      *   By default, the element name is `page` or `result`, depending on the value of the `simplified` option.
      * @param {Boolean} [options.skipHeaderRow=false]
      *   If set to `true` then header row in CSV format is skipped.
-     * @return {Promise}
+     * @return {Promise<Array|String|Buffer>}
      */
     getData(options = {}) {
         const { datasetId } = this;
@@ -298,12 +278,21 @@ export class Dataset {
     }
 
     /**
-     * Iterates over dataset items, yielding each in turn to an `iteratee()` function.
-     * Each invocation of `iteratee()` is called with two arguments: `(element, index)`.
+     * Iterates over dataset items, yielding each in turn to an `iteratee` function.
+     * Each invocation of `iteratee` is called with two arguments: `(item, index)`.
      *
-     * If the `iteratee()` returns a Promise then it is awaited before a next call.
+     * If the `iteratee` function returns a Promise then it is awaited before the next call.
+     * If it throws an error, the iteration is aborted and the `forEach` function throws the error.
      *
-     * @param {Function} iteratee
+     * **Example usage**
+     * ```javascript
+     * const dataset = await Apify.openDataset('my-results');
+     * dataset.forEach(async (item, index) => {
+     *   console.log(`Item at ${index}: ${JSON.stringify(item)}`);
+     * });
+     * ```
+     *
+     * @param {Function} iteratee A function that is called for every item in the dataset.
      * @param {Object} [options] All `forEach()` parameters are passed
      *   via an options object with the following keys:
      * @param {Number} [options.offset=0] Number of array elements that should be skipped at the start.
@@ -311,7 +300,7 @@ export class Dataset {
      * @param {Array} [options.fields] If provided then returned objects will only contain specified keys.
      * @param {String} [options.unwind] If provided then objects will be unwound based on provided field.
      * @param {Number} [options.limit=250000] How many items to load in one request.
-     * @param {Number} [index=0] Controls the initial index number passed to the `iteratee()`.
+     * @param {Number} [index=0] Specifies the initial index number passed to the `iteratee` function.
      * @return {Promise}
      */
     forEach(iteratee, options = {}, index = 0) {
@@ -584,11 +573,10 @@ export class DatasetLocal {
      */
     _getItemIndexes(offset = 0, limit = this.counter) {
         if (limit === null) throw new Error('DatasetLocal must be initialize before calling this._getItemIndexes()!');
-
-        return _.range(
-            offset + 1,
-            Math.min(offset + limit, this.counter) + 1,
-        );
+        const start = offset + 1;
+        const end = Math.min(offset + limit, this.counter) + 1;
+        if (start > end) return [];
+        return _.range(start, end);
     }
 
     /**

@@ -60,7 +60,6 @@ await crawler.run();
 * [BasicCrawler](basiccrawler)
     * [`new BasicCrawler(options)`](#new_BasicCrawler_new)
     * [`.run()`](#BasicCrawler+run) ⇒ <code>Promise</code>
-    * [`.abort()`](#BasicCrawler+abort) ⇒ <code>Promise</code>
 
 <a name="new_BasicCrawler_new"></a>
 
@@ -85,10 +84,18 @@ await crawler.run();
 <td colspan="3"><p>User-provided function that performs the logic of the crawler. It is called for each URL to crawl.</p>
 <p>  The function receives the following object as an argument:</p>
 <pre><code>{
-  request: Request
+  request: Request,
+  autoscaledPool: AutoscaledPool
 }
-</code></pre><p>  where the <a href="request"><code>Request</code></a> instance represents the URL to crawl.
-  The function must return a promise.</p>
+</code></pre><p>  where the <a href="request"><code>Request</code></a> instance represents the URL to crawl.</p>
+<p>  The function must return a promise, which is then awaited by the crawler.</p>
+<p>  If the function throws an exception, the crawler will try to re-crawl the
+  request later, up to <code>option.maxRequestRetries</code> times.
+  If all the retries fail, the crawler calls the function
+  provided to the <code>options.handleFailedRequestFunction</code> parameter.
+  To make this work, you should <strong>always</strong>
+  let your function throw exceptions rather than catch them.
+  The exceptions are logged to the request using the <a href="request.pusherrormessage"><code>Request.pushErrorMessage</code></a> function.</p>
 </td></tr><tr>
 <td><code>options.requestList</code></td><td><code><a href="requestlist">RequestList</a></code></td><td></td>
 </tr>
@@ -140,6 +147,8 @@ await crawler.run();
 </tr>
 <tr>
 <td colspan="3"><p>Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding <a href="autoscaledpool"><code>AutoscaledPool</code></a> option.</p>
+<p>  <em>WARNING:</em> If you set this value too high with respect to the available system memory and CPU, your crawler will run extremely slow or crash.
+  If you&#39;re not sure, just keep the default value and the concurrency will scale up automatically.</p>
 </td></tr><tr>
 <td><code>[options.maxConcurrency]</code></td><td><code>Object</code></td><td><code>1000</code></td>
 </tr>
@@ -151,9 +160,4 @@ await crawler.run();
 
 ## `basicCrawler.run()` ⇒ <code>Promise</code>
 Runs the crawler. Returns a promise that gets resolved once all the requests are processed.
-
-<a name="BasicCrawler+abort"></a>
-
-## `basicCrawler.abort()` ⇒ <code>Promise</code>
-Aborts the crawler by preventing additional requests and terminating the running ones.
 

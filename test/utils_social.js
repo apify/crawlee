@@ -315,6 +315,7 @@ describe('utils.social', () => {
         const EMPTY_RESULT = {
             emails: [],
             phones: [],
+            phonesUncertain: [],
             linkedIns: [],
             twitters: [],
             instagrams: [],
@@ -389,7 +390,8 @@ describe('utils.social', () => {
                 </html>
             `)).to.eql({
                 emails: ['alice@example.com', 'bob@example.com', 'carl@example.com', 'david@example.com'],
-                phones: ['+4207751111111', '+420775222222', '+42077533333'],
+                phones: ['+42077533333'],
+                phonesUncertain: ['+4207751111111', '+420775222222'],
                 linkedIns: [
                     'http://www.linkedin.com/in/nohttps/',
                     'https://cz.linkedin.com/in/somecountry',
@@ -489,6 +491,10 @@ describe('utils.social', () => {
             expect(social.LINKEDIN_REGEX.test('HTTPS://WWW.LINKEDIN.COM/IN/CARL-NEWMAN')).to.eql(true);
             expect(social.LINKEDIN_REGEX.test('www.linkedin.com/in/bobnewman')).to.eql(true);
             expect(social.LINKEDIN_REGEX.test('linkedin.com/in/bobnewman')).to.eql(true);
+
+            expect(social.LINKEDIN_REGEX.test('https://www.linkedin.com/in/alan-turing')).to.eql(true);
+            expect(social.LINKEDIN_REGEX.test('en.linkedin.com/in/alan-turing')).to.eql(true);
+            expect(social.LINKEDIN_REGEX.test('linkedin.com/in/alan-turing')).to.eql(true);
 
             // Test there is just on matching group for the username
             expect('https://www.linkedin.com/in/bobnewman/'.match(social.LINKEDIN_REGEX)[1]).to.eql('bobnewman');

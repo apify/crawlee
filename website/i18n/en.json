@@ -23,6 +23,9 @@
       "api/keyvaluestore": {
         "title": "KeyValueStore"
       },
+      "api/log": {
+        "title": "utils.log"
+      },
       "api/pseudourl": {
         "title": "PseudoUrl"
       },
@@ -89,6 +92,9 @@
       "guides/environmentvariables": {
         "title": "Environment Variables"
       },
+      "guides/gettingstartedquick": {
+        "title": "Getting Started Quick"
+      },
       "guides/gettingstarted": {
         "title": "Getting Started"
       },
@@ -118,9 +124,6 @@
       },
       "typedefs/launchpuppeteeroptions": {
         "title": "LaunchPuppeteerOptions"
-      },
-      "typedefs/paginationlist": {
-        "title": "PaginationList"
       },
       "typedefs/queueoperationinfo": {
         "title": "QueueOperationInfo"

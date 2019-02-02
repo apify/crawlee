@@ -3,6 +3,7 @@
         "Guide": [
             "guides/motivation",
             "guides/gettingstarted",
+            "guides/gettingstartedquick",
             "guides/whatisanactor",
             "guides/environmentvariables",
             "guides/datastorage",

@@ -2,9 +2,9 @@ import _ from 'underscore';
 import { expect, assert } from 'chai';
 import proxy from 'proxy';
 import http from 'http';
+import util from 'util';
 import portastic from 'portastic';
 import basicAuthParser from 'basic-auth-parser';
-import Promise from 'bluebird';
 // import fs from 'fs';
 
 import { processBrowseArgs, getDefaultBrowseOptions } from '../build/webdriver';
@@ -54,7 +54,7 @@ before(() => {
 
 after(function () {
     this.timeout(30 * 1000);
-    if (proxyServer) return Promise.promisify(proxyServer.close).bind(proxyServer)();
+    if (proxyServer) return util.promisify(proxyServer.close).bind(proxyServer)();
 });
 
 describe('getDefaultBrowseOptions()', () => {

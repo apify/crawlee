@@ -51,9 +51,9 @@ const queue = await Apify.openRequestQueue();
 const queueWithName = await Apify.openRequestQueue('some-name');
 
 // Enqueue few requests
-await queue.addRequest(new Apify.Request({ url: 'http://example.com/aaa' }));
-await queue.addRequest(new Apify.Request({ url: 'http://example.com/bbb' }));
-await queue.addRequest(new Apify.Request({ url: 'http://example.com/foo/bar' }), { forefront: true });
+await queue.addRequest({ url: 'http://example.com/aaa' });
+await queue.addRequest({ url: 'http://example.com/bbb' });
+await queue.addRequest({ url: 'http://example.com/foo/bar' }, { forefront: true });
 
 // Get requests from queue
 const request1 = await queue.fetchNextRequest();
@@ -77,6 +77,7 @@ await queue.reclaimRequest(request2);
     * [`.isEmpty()`](#RequestQueue+isEmpty) ⇒ <code>Promise&lt;Boolean&gt;</code>
     * [`.isFinished()`](#RequestQueue+isFinished) ⇒ <code>Promise&lt;Boolean&gt;</code>
     * [`.delete()`](#RequestQueue+delete) ⇒ <code>Promise</code>
+    * [`.handledCount()`](#RequestQueue+handledCount) ⇒ <code>Promise&lt;number&gt;</code>
 
 <a name="RequestQueue+addRequest"></a>
 
@@ -202,4 +203,9 @@ the function might occasionally return a false negative, but it will never retur
 ## `requestQueue.delete()` ⇒ <code>Promise</code>
 Removes the queue either from the Apify Cloud storage or from the local directory,
 depending on the mode of operation.
+
+<a name="RequestQueue+handledCount"></a>
+
+## `requestQueue.handledCount()` ⇒ <code>Promise&lt;number&gt;</code>
+Returns the number of handled requests.
 

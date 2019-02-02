@@ -84,6 +84,9 @@ const DEFAULT_OPTIONS = {
  *
  * @param {Number} [options.minConcurrency=1]
  *   Minimum number of tasks running in parallel.
+ *
+ *   *WARNING:* If you set this value too high with respect to the available system memory and CPU, your code might run extremely slow or crash.
+ *   If you're not sure, just keep the default value and the concurrency will scale up automatically.
  * @param {Number} [options.maxConcurrency=1000]
  *   Maximum number of tasks running in parallel.
  * @param {Number} [options.desiredConcurrencyRatio=0.95]
@@ -158,6 +161,7 @@ class AutoscaledPool {
         this.isTaskReadyFunction = isTaskReadyFunction;
 
         // Internal properties.
+        this.isStopped = false;
         this.desiredConcurrency = this.minConcurrency;
         this.currentConcurrency = 0;
         this.lastLoggingTime = 0;
@@ -185,6 +189,8 @@ class AutoscaledPool {
     /**
      * Overrides min concurrency configuration.
      *
+     * *WARNING:* If you set this value too high with respect to the available system memory and CPU, your code might run extremely slow or crash.
+     * If you're not sure, just keep the default value and the concurrency will scale up automatically.
      * @param {Number} minConcurrency
      */
     setMinConcurrency(minConcurrency) {
@@ -222,15 +228,72 @@ class AutoscaledPool {
     }
 
     /**
-     * Aborts the run of the auto-scaled pool, discards all currently running tasks and destroys it.
+     * Aborts the run of the auto-scaled pool and destroys it. The promise returned from
+     * the [`run()`](#AutoscaledPool+run) function will immediately resolve, no more new tasks
+     * will be spawned and all running tasks will be left in their current state.
+     *
+     * Due to the nature of the tasks, auto-scaled pool cannot reliably guarantee abortion
+     * of all the running tasks, therefore, no abortion is attempted and some of the tasks
+     * may finish, while others may not. Essentially, auto-scaled pool doesn't care about
+     * their state after the invocation of `.abort()`, but that does not mean that some
+     * parts of their asynchronous chains of commands will not execute.
      *
      * @return {Promise}
      */
     async abort() {
+        this.isStopped = true;
         if (this.resolve) {
             this.resolve();
             await this._destroy();
         }
+    }
+
+    /**
+     * Prevents the auto-scaled pool from starting new tasks, but allows the running ones to finish
+     * (unlike abort, which terminates them). Used together with [`resume()`](#AutoscaledPool+resume)
+     *
+     * The function's promise will resolve once all running tasks have completed and the pool
+     * is effectively idle. If the `timeoutSecs` argument is provided, the promise will reject
+     * with a timeout error after the `timeoutSecs` seconds.
+     *
+     * The promise returned from the [`run()`](#AutoscaledPool+run) function will not resolve
+     * when `.pause()` is invoked (unlike abort, which resolves it).
+     *
+     * @param {number} [timeoutSecs]
+     * @return {Promise}
+     */
+    async pause(timeoutSecs) {
+        if (this.isStopped) return;
+        this.isStopped = true;
+        return new Promise((resolve, reject) => {
+            let timeout;
+            if (timeoutSecs) {
+                timeout = setTimeout(() => {
+                    const err = new Error('AutoscaledPool: The pool\'s running tasks did not finish'
+                        + `in ${timeoutSecs} secs after pool.pause() invocation.`);
+                    reject(err);
+                }, timeoutSecs);
+            }
+
+            const interval = setInterval(() => {
+                if (this.currentConcurrency <= 0) {
+                    // Clean up timeout and interval to prevent process hanging.
+                    if (timeout) clearTimeout(timeout);
+                    clearInterval(interval);
+                    resolve();
+                }
+            }, this.maybeRunIntervalMillis);
+        });
+    }
+
+    /**
+     * Resumes the operation of the autoscaled-pool by allowing more tasks to be run.
+     * Used together with [`pause()`](#AutoscaledPool+pause)
+     *
+     * Tasks will automatically start running again in `options.maybeRunIntervalSecs`.
+     */
+    resume() {
+        this.isStopped = false;
     }
 
     /**
@@ -248,6 +311,8 @@ class AutoscaledPool {
         const done = intervalCallback || (() => {});
 
         // Prevent starting a new task if:
+        // - the pool is paused or aborted
+        if (this.isStopped) return done();
         // - we are already querying for a task.
         if (this.queryingIsTaskReady) return done();
         // - we would exceed desired concurrency.
@@ -265,7 +330,12 @@ class AutoscaledPool {
         try {
             isTaskReady = await this.isTaskReadyFunction();
         } catch (err) {
-            log.exception(err, 'AutoscaledPool: isTaskReadyFunction failed');
+            // We might have already rejected this promise.
+            if (this.reject) {
+                // No need to log all concurrent errors.
+                log.exception(err, 'AutoscaledPool: isTaskReadyFunction failed');
+                this.reject(err);
+            }
         } finally {
             this.queryingIsTaskReady = false;
         }
@@ -293,9 +363,9 @@ class AutoscaledPool {
         } catch (err) {
             // We might have already rejected this promise.
             if (this.reject) {
-                this.reject(err);
                 // No need to log all concurrent errors.
-                log.exception(err, 'AutoscaledPool: runTaskFunction failed');
+                log.exception(err, 'AutoscaledPool: runTaskFunction failed.');
+                this.reject(err);
             }
         }
     }
@@ -308,6 +378,9 @@ class AutoscaledPool {
      * @ignore
      */
     _autoscale(intervalCallback) {
+        // Don't scale if paused.
+        if (this.isStopped) return intervalCallback();
+
         // Only scale up if:
         // - system has not been overloaded lately.
         const systemStatus = this.systemStatus.getHistoricalStatus();
@@ -396,7 +469,11 @@ class AutoscaledPool {
             const isFinished = await this.isFinishedFunction();
             if (isFinished && this.resolve) this.resolve();
         } catch (err) {
-            log.exception(err, 'AutoscaledPool: isFinishedFunction failed');
+            if (this.reject) {
+                // No need to log all concurrent errors.
+                log.exception(err, 'AutoscaledPool: isFinishedFunction failed.');
+                this.reject(err);
+            }
         } finally {
             this.queryingIsFinished = false;
         }

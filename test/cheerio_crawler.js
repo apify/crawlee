@@ -1,10 +1,12 @@
 import { Readable } from 'stream';
+import fs from 'fs';
+import path from 'path';
+import zlib from 'zlib';
 import EventEmitter from 'events';
 import rqst from 'request';
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import log from 'apify-shared/log';
-import _ from 'underscore';
 import { delayPromise } from 'apify-shared/utilities';
 import { ENV_VARS } from 'apify-shared/consts';
 import Apify from '../build/index';
@@ -118,62 +120,6 @@ describe('CheerioCrawler', () => {
         });
     });
 
-    it('should abort and resume', async () => {
-        const sources = _.range(100).map(index => ({ url: `https://example.com/?q=${index + 1}` }));
-        let cheerioCrawler;
-        let isStopped = false;
-        const processed = [];
-        const failed = [];
-        const requestList = new Apify.RequestList({ sources });
-        const requestFunction = async ({ request }) => {
-            await delayPromise(2);
-            return `<html><head><title>${request.url[request.url.length - 1]}</title></head><body>Body</body></html>`;
-        };
-        const handlePageFunction = async ({ $, html, request }) => {
-            if (request.url.endsWith('45') && !isStopped) {
-                await cheerioCrawler.abort();
-                isStopped = true;
-            } else {
-                request.userData.title = $('title').text();
-                request.userData.html = html;
-                processed.push(request);
-            }
-        };
-
-        cheerioCrawler = new Apify.CheerioCrawler({
-            requestList,
-            minConcurrency: 5,
-            maxConcurrency: 5,
-            requestFunction,
-            handlePageFunction,
-            handleFailedRequestFunction: ({ request }) => failed.push(request),
-        });
-
-        await requestList.initialize();
-        await cheerioCrawler.run();
-
-        expect(processed.length).to.be.within(40, 50);
-        expect(failed).to.have.lengthOf(0);
-
-        processed.sort(comparator);
-
-        for (let i = 0; i < 40; i++) {
-            const request = processed[i];
-            expect(request.url).to.be.eql(sources[i].url);
-            expect(request.userData.title).to.be.eql(request.url[request.url.length - 1]);
-        }
-
-        await Apify.utils.sleep(10); // Wait for event loop to unwind.
-        await cheerioCrawler.run();
-
-        expect(processed.length).to.be.within(100, 110);
-        expect(failed).to.have.lengthOf(0);
-        expect(new Set(processed.map(p => p.url))).to.be.eql(new Set(sources.map(s => s.url)));
-        processed.forEach((request) => {
-            expect(request.userData.title).to.be.eql(request.url[request.url.length - 1]);
-        });
-    });
-
     describe('should timeout', () => {
         let ll;
         before(() => {
@@ -260,6 +206,156 @@ describe('CheerioCrawler', () => {
                 expect(request.errorMessages).to.have.lengthOf(2);
                 expect(request.errorMessages[0]).to.include('handlePageFunction timed out');
                 expect(request.errorMessages[1]).to.include('handlePageFunction timed out');
+            });
+        });
+    });
+
+    describe('should handle compressed payloads', () => {
+        let requestList;
+        const originalGet = rqst.get;
+        beforeEach(async () => {
+            log.setLevel(log.LEVELS.OFF);
+            requestList = new Apify.RequestList({
+                sources: [
+                    { url: 'http://example.com/?q=0' },
+                    { url: 'http://example.com/?q=1' },
+                    { url: 'http://example.com/?q=2' },
+                    { url: 'http://example.com/?q=3' },
+                ],
+            });
+            await requestList.initialize();
+        });
+
+        afterEach(() => {
+            log.setLevel(log.LEVELS.ERROR);
+            requestList = null;
+            rqst.get = originalGet;
+        });
+
+        it('by setting a correct Accept-Encoding header', async () => {
+            const headers = [];
+            const crawler = new Apify.CheerioCrawler({
+                requestList,
+                handlePageFunction: async () => {},
+                requestFunction: async ({ request }) => {
+                    const opts = crawler._getRequestOptions(request);
+                    headers.push(opts.headers);
+                    // it needs to return something valid
+                    return 'html';
+                },
+            });
+
+            await crawler.run();
+            headers.forEach(h => expect(h['Accept-Encoding']).to.be.eql('gzip, deflate'));
+        });
+
+        it('by decompressing a gzip compressed response', async () => {
+            const sourceFilePath = path.join(__dirname, 'data', 'sample.html');
+            const allHTML = [];
+            const crawler = new Apify.CheerioCrawler({
+                requestList,
+                handlePageFunction: async ({ html }) => {
+                    allHTML.push(html);
+                },
+            });
+            // Mock Request to inject a gzipped stream.
+            rqst.get = () => {
+                const response = fs.createReadStream(sourceFilePath).pipe(zlib.createGzip());
+                response.headers = {
+                    'content-type': 'text/html', // to avoid throwing
+                    'content-encoding': 'gzip',
+                };
+
+                const ee = new EventEmitter();
+
+                setTimeout(() => {
+                    ee.emit('response', response);
+                }, 0);
+
+                return ee;
+            };
+
+            await crawler.run();
+
+            const rawHtml = fs.readFileSync(sourceFilePath, 'utf8');
+            expect(allHTML).to.have.lengthOf(4);
+            allHTML.forEach((html) => {
+                expect(html).to.be.eql(rawHtml);
+            });
+        });
+
+        it('by decompressing a deflate compressed response', async () => {
+            const sourceFilePath = path.join(__dirname, 'data', 'sample.html');
+            const allHTML = [];
+            const crawler = new Apify.CheerioCrawler({
+                requestList,
+                handlePageFunction: async ({ html }) => {
+                    allHTML.push(html);
+                },
+            });
+            // Mock Request to inject a gzipped stream.
+            rqst.get = () => {
+                const response = fs.createReadStream(sourceFilePath).pipe(zlib.createDeflate());
+                response.headers = {
+                    'content-type': 'text/html', // to avoid throwing
+                    'content-encoding': 'deflate',
+                };
+
+                const ee = new EventEmitter();
+
+                setTimeout(() => {
+                    ee.emit('response', response);
+                }, 0);
+
+                return ee;
+            };
+
+            await crawler.run();
+
+            const rawHtml = fs.readFileSync(sourceFilePath, 'utf8');
+            expect(allHTML).to.have.lengthOf(4);
+            allHTML.forEach((html) => {
+                expect(html).to.be.eql(rawHtml);
+            });
+        });
+
+        it('by throwing on unsupported Content-Encoding', async () => {
+            const sourceFilePath = path.join(__dirname, 'data', 'sample.html');
+            let handlePageInvocationCount = 0;
+            let allErrors = [];
+            const crawler = new Apify.CheerioCrawler({
+                requestList,
+                handlePageFunction: async () => {
+                    handlePageInvocationCount++;
+                },
+                handleFailedRequestFunction: async ({ request }) => {
+                    allErrors = allErrors.concat(request.errorMessages);
+                },
+            });
+            // Mock Request to inject a gzipped stream.
+            rqst.get = () => {
+                const response = fs.createReadStream(sourceFilePath);
+                response.headers = {
+                    'content-type': 'text/html', // to avoid throwing
+                    'content-encoding': 'compress',
+                };
+
+                const ee = new EventEmitter();
+
+                setTimeout(() => {
+                    ee.emit('response', response);
+                }, 0);
+
+                return ee;
+            };
+
+            await crawler.run();
+
+            expect(allErrors).to.have.lengthOf(16);
+            expect(handlePageInvocationCount).to.be.eql(0);
+            allErrors.forEach((err) => {
+                expect(err).to.include('Invalid Content-Encoding header');
+                expect(err).to.include('compress');
             });
         });
     });

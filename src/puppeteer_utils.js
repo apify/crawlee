@@ -59,6 +59,9 @@ const hideWebDriver = async (page) => {
  * Unlike Puppeteer's `addScriptTag` function, this function works on pages
  * with arbitrary Cross-Origin Resource Sharing (CORS) policies.
  *
+ * Make sure that you're injecting the file after the page has loaded (after `page.goto()`). Otherwise,
+ * the navigation will override the existing environment and the library will no longer be available.
+ *
  * @param {Page} page
  *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
  * @param {String} filePath File path
@@ -76,13 +79,18 @@ const injectFile = async (page, filePath) => {
 
 /**
  * Injects the <a href="https://jquery.com/" target="_blank"><code>jQuery</code></a> library into a Puppeteer page.
- * jQuery is often useful for various web scraping and crawling tasks,
- * e.g. to extract data from HTML elements using CSS selectors.
+ * jQuery is often useful for various web scraping and crawling tasks.
+ * For example, it can help extract text from HTML elements using CSS selectors.
  *
  * Beware that the injected jQuery object will be set to the `window.$` variable and thus it might cause conflicts with
- * libraries included by the page that use the same variable (e.g. another version of jQuery).
+ * other libraries included by the page that use the same variable name (e.g. another version of jQuery).
+ * This can affect functionality of page's scripts.
  *
- * Example usage:
+ * Also make sure that you're injecting jQuery after the page has loaded
+ * (i.e. after [`page.goto()`](https://pptr.dev/#?product=Puppeteer&show=api-pagegotourl-options)).
+ * Otherwise, the navigation will override the existing environment and the library will no longer be available.
+ *
+ * **Example usage:**
  * ```javascript
  * await Apify.utils.puppeteer.injectJQuery(page);
  * const title = await page.evaluate(() => {
@@ -108,8 +116,22 @@ const injectJQuery = (page) => {
 
 /**
  * Injects the <a href="https://underscorejs.org/" target="_blank"><code>Underscore.js</code></a> library into a Puppeteer page.
+ *
  * Beware that the injected Underscore object will be set to the `window._` variable and thus it might cause conflicts with
- * libraries included by the page that use the same variable.
+ * libraries included by the page that use the same variable name.
+ * This can affect functionality of page's scripts.
+ *
+ * Also make sure that you're injecting Underscore after the page has loaded
+ * (i.e. after [`page.goto()`](https://pptr.dev/#?product=Puppeteer&show=api-pagegotourl-options)).
+ * Otherwise, the navigation will override the existing environment and the library will no longer be available.
+ *
+ * **Example usage:**
+ * ```javascript
+ * await Apify.utils.puppeteer.injectUnderscore(page);
+ * const escapedHtml = await page.evaluate(() => {
+ *   return _.escape('<h1>Hello</h1>');
+ * });
+ * ```
  *
  * @param {Page} page Puppeteer [Page](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page) object.
  * @return {Promise}
@@ -197,33 +219,66 @@ let logDeprecationWarning = true;
  *
  * *WARNING*: This is work in progress. Currently the function doesn't click elements and only takes their `href` attribute and so
  *            is working only for link (`a`) elements, but not for buttons or JavaScript links.
- *
- * @param {Page} page
+ * @param {Object} options
+ * @param {Page} options.page
  *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
- * @param {String} selector
- *   CSS selector matching elements to be clicked.
- * @param {RequestQueue} requestQueue
+ * @param {RequestQueue} options.requestQueue
  *   {@link RequestQueue} instance where URLs will be enqueued.
- * @param {PseudoUrl[]|Object[]|String[]} [pseudoUrls]
+ * @param {String} [options.selector='a']
+ *   CSS selector matching elements to be clicked.
+ * @param {PseudoUrl[]|Object[]|String[]} [options.pseudoUrls]
  *   An array of {@link PseudoUrl}s matching the URLs to be enqueued,
  *   or an array of Strings or Objects from which the {@link PseudoUrl}s should be constructed
  *   The Objects must include at least a `purl` property, which holds a pseudoUrl string.
  *   All remaining keys will be used as the `requestTemplate` argument of the {@link PseudoUrl} constructor.
  *   If `pseudoUrls` is an empty array, null or undefined, then the function
  *   enqueues all links found on the page.
+ * @param {Object} [options.userData]
+ *   Object that will be merged with the new Request's userData, overriding any values that
+ *   were set via templating from pseudoUrls. This is useful when you need to override generic
+ *   userData set by PseudoURL template in specific use cases.
+ *   **Example:**
+ *   ```
+ *   // pseudoUrl.userData
+ *   {
+ *       name: 'John',
+ *       surname: 'Doe',
+ *   }
+ *
+ *   // userData
+ *   {
+ *       name: 'Albert',
+ *       age: 31
+ *   }
+ *
+ *   // enqueued request.userData
+ *   {
+ *       name: 'Albert',
+ *       surname: 'Doe',
+ *       age: 31,
+ *   }
+ *   ```
  * @return {Promise<QueueOperationInfo[]>}
  *   Promise that resolves to an array of {@link QueueOperationInfo} objects.
  * @memberOf puppeteer
  */
-const enqueueLinks = async (page, selector, requestQueue, pseudoUrls) => {
+const enqueueLinks = async (...args) => {
     // TODO: Remove after v1.0.0 gets released.
-    // Check for pseudoUrls as a third parameter.
-    if (Array.isArray(requestQueue)) {
+    // Refactor enqueueLinks to use an options object and keep backwards compatibility
+    let page, selector, requestQueue, pseudoUrls, userData; // eslint-disable-line
+    if (args.length === 1) {
+        [{ page, selector = 'a', requestQueue, pseudoUrls, userData = {} }] = args;
+    } else {
+        [page, selector = 'a', requestQueue, pseudoUrls, userData = {}] = args;
         if (logDeprecationWarning) {
-            log.warning('Argument "pseudoUrls" as the third parameter to enqueueLinks() is deprecated. '
-                + 'Use enqueueLinks(page, selector, requestQueue, pseudoUrls) instead. "pseudoUrls" are now optional.');
+            log.warning('Passing individual arguments to enqueueLinks() is deprecated. '
+                + 'Use an options object: enqueueLinks({ page, selector, requestQueue, pseudoUrls, userData }) instead.');
             logDeprecationWarning = false;
         }
+    }
+
+    // Check for pseudoUrls as a third parameter.
+    if (Array.isArray(requestQueue)) {
         const tmp = requestQueue;
         requestQueue = pseudoUrls;
         pseudoUrls = tmp;
@@ -233,6 +288,7 @@ const enqueueLinks = async (page, selector, requestQueue, pseudoUrls) => {
     checkParamOrThrow(selector, 'selector', 'String');
     checkParamPrototypeOrThrow(requestQueue, 'requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue');
     checkParamOrThrow(pseudoUrls, 'pseudoUrls', 'Maybe Array');
+    checkParamOrThrow(userData, 'userData', 'Maybe Object');
 
     // Construct pseudoUrls from input where necessary.
     const pseudoUrlInstances = constructPseudoUrlInstances(pseudoUrls || []);
@@ -249,22 +305,24 @@ const enqueueLinks = async (page, selector, requestQueue, pseudoUrls) => {
                 .forEach(purl => requests.push(purl.createRequest(url)));
         });
     } else {
-        requests = urls.map(url => ({ url }));
+        requests = urls.map(url => new Request({ url }));
     }
 
     const queueOperationInfos = [];
     for (const request of requests) {
+        // Inject custom userData
+        Object.assign(request.userData, userData);
         queueOperationInfos.push(await requestQueue.addRequest(request));
     }
     return queueOperationInfos;
 };
 
 /**
- * Forces the browser tab to block loading certain page resources,
- * using the `Page.setRequestInterception(value)` method.
- * This is useful to speed up crawling of websites.
+ * Forces the Puppeteer browser tab to block loading certain HTTP resources.
+ * This is useful to speed up crawling of websites, since it reduces the amount
+ * of data that need to be downloaded from the web.
  *
- * The resource types to block can be controlled using the `resourceTypes` parameter,
+ * The resource types to block can be specified using the `resourceTypes` parameter,
  * which indicates the types of resources as they are perceived by the rendering engine.
  * The following resource types are currently supported:
  * `document`, `stylesheet`, `image`, `media`, `font`, `script`, `texttrack`, `xhr`, `fetch`,
@@ -272,11 +330,33 @@ const enqueueLinks = async (page, selector, requestQueue, pseudoUrls) => {
  * For more details, see Puppeteer's
  * <a href="https://pptr.dev/#?product=Puppeteer&show=api-requestresourcetype" target="_blank">Request.resourceType() documentation</a>.
  *
- * By default, the function blocks these resource types: `stylesheet`, `font`, `image`, `media`.
+ * If the `resourceTypes` parameter is not provided,
+ * by default the function blocks these resource types: `stylesheet`, `font`, `image`, `media`.
+ *
+ * Note that the `blockResources` function internally uses Puppeteer's
+ * [`Page.setRequestInterception()`](https://pptr.dev/#?product=Puppeteer&show=api-pagesetrequestinterceptionvalue) function,
+ * which can only be used once per `Page` object.
+ *
+ * **Example usage**
+ * ```javascript
+ * const Apify = require('apify');
+ *
+ * const browser = await Apify.launchPuppeteer();
+ * const page = await browser.newPage();
+ *
+ * // Block all resources except for the main HTML document
+ * await Apify.utils.puppeteer.blockResources(page,
+ *   ['stylesheet', 'image', 'media', 'font', 'script', 'texttrack', 'xhr',
+ *    'fetch', 'eventsource', 'websocket', 'manifest', 'other']
+ * );
+ *
+ * await page.goto('https://www.example.com');
+ * ```
  *
  * @param {Page} page
  *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
- * @param {String[]} resourceTypes Array of resource types to block.
+ * @param {String[]} [resourceTypes=['stylesheet', 'font', 'image', 'media']]
+ *   Array of resource types to block.
  * @return {Promise}
  * @memberOf puppeteer
  */
@@ -400,7 +480,8 @@ const compileScript = (scriptString, context = Object.create(null)) => {
 
 
 /**
- * A namespace that contains various Puppeteer utilities.
+ * A namespace that contains various utilities for
+ * [Puppeteer](https://github.com/GoogleChrome/puppeteer) - the headless Chrome Node API.
  *
  * **Example usage:**
  *

@@ -19,12 +19,12 @@ accessible from the left sidebar.
     * [`.getMemoryInfo()`](#module_Apify.getMemoryInfo) ⇒ <code>Promise&lt;Object&gt;</code>
     * [`.getValue(key)`](#module_Apify.getValue) ⇒ <code>Promise&lt;Object&gt;</code>
     * [`.isAtHome()`](#module_Apify.isAtHome) ⇒ <code>Boolean</code>
-    * [`.isDocker()`](#module_Apify.isDocker) ⇒ <code>Promise</code>
     * [`.launchPuppeteer([options])`](#module_Apify.launchPuppeteer) ⇒ <code>Promise&lt;Browser&gt;</code>
     * [`.launchWebDriver([options])`](#module_Apify.launchWebDriver) ⇒ <code>Promise</code>
     * [`.main(userFunc)`](#module_Apify.main)
     * [`.openDataset([datasetIdOrName], [options])`](#module_Apify.openDataset) ⇒ [<code>Promise&lt;Dataset&gt;</code>](dataset)
     * [`.openKeyValueStore([storeIdOrName], [options])`](#module_Apify.openKeyValueStore) ⇒ [<code>Promise&lt;KeyValueStore&gt;</code>](keyvaluestore)
+    * [`.openRequestList`](#module_Apify.openRequestList) ⇒ [<code>Promise&lt;RequestList&gt;</code>](requestlist)
     * [`.openRequestQueue`](#module_Apify.openRequestQueue) ⇒ [<code>Promise&lt;RequestQueue&gt;</code>](requestqueue)
     * [`.pushData(item)`](#module_Apify.pushData) ⇒ <code>Promise</code>
     * [`.setValue(key, value, [options])`](#module_Apify.setValue) ⇒ <code>Promise</code>
@@ -40,7 +40,13 @@ If the value is less than or equal to zero, the function returns immediately aft
 
 The result of the function is an [`ActorRun`](../typedefs/actorrun) object
 that contains details about the actor run and its output (if any).
-If the actor run failed, the function fails with [`ApifyCallError`](../typedefs/apifycallerror) exception.
+If the actor run fails, the function throws the [`ApifyCallError`](../typedefs/apifycallerror) exception.
+
+If you want to run an actor task rather than an actor, please use the
+[`Apify.callTask()`](../api/apify#module_Apify.callTask) function instead.
+
+For more information about actors, read the
+<a href="https://www.apify.com/docs/actor" target="_blank">documentation</a>.
 
 **Example usage:**
 
@@ -49,9 +55,9 @@ const run = await Apify.call('apify/hello-world', { myInput: 123 });
 console.log(`Received message: ${run.output.body.message}`);
 ```
 
-Internally, the `call()` function calls the
+Internally, the `call()` function invokes the
 <a href="https://www.apify.com/docs/api/v2#/reference/actors/run-collection/run-actor" target="_blank">Run actor</a>
-Apify API endpoint and few others to obtain the output.
+and several other API endpoints to obtain the output.
 
 **Throws**:
 
@@ -104,7 +110,7 @@ Apify API endpoint and few others to obtain the output.
 <td><code>[options.timeoutSecs]</code></td><td><code>Number</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>Timeout for the act run in seconds. Zero value means there is no timeout.
+<td colspan="3"><p>Timeout for the actor run in seconds. Zero value means there is no timeout.
  If not provided, the run uses timeout of the default actor run configuration.</p>
 </td></tr><tr>
 <td><code>[options.build]</code></td><td><code>String</code></td><td></td>
@@ -136,8 +142,8 @@ Apify API endpoint and few others to obtain the output.
 <a name="module_Apify.callTask"></a>
 
 ## `Apify.callTask(taskId, [input], [options])` ⇒ [<code>Promise&lt;ActorRun&gt;</code>](../typedefs/actorrun)
-Runs an actor actor on the Apify platform using the current user account (determined by the `APIFY_TOKEN` environment variable),
-waits for the actor to finish and fetches its output.
+Runs an actor task on the Apify platform using the current user account (determined by the `APIFY_TOKEN` environment variable),
+waits for the task to finish and fetches its output.
 
 By passing the `waitSecs` option you can reduce the maximum amount of time to wait for the run to finish.
 If the value is less than or equal to zero, the function returns immediately after the run is started.
@@ -146,16 +152,22 @@ The result of the function is an [`ActorRun`](../typedefs/actorrun) object
 that contains details about the actor run and its output (if any).
 If the actor run failed, the function fails with [`ApifyCallError`](../typedefs/apifycallerror) exception.
 
+Note that an actor task is a saved input configuration and options for an actor.
+If you want to run an actor directly rather than an actor task, please use the
+[`Apify.call()`](../api/apify#module_Apify.call) function instead.
+
+For more information about actor tasks, read the [`documentation`](https://www.apify.com/docs/tasks).
+
 **Example usage:**
 
 ```javascript
-const run = await Apify.call('apify/hello-world-task');
+const run = await Apify.callTask('bob/some-task');
 console.log(`Received message: ${run.output.body.message}`);
 ```
 
-Internally, the `call()` function calls the
-<a href="https://www.apify.com/docs/api/v2#/reference/actor-tasks/runs-collection/run-task-asynchronously" target="_blank">Run actor</a>
-Apify API endpoint and few others to obtain the output.
+Internally, the `callTask()` function calls the
+<a href="https://www.apify.com/docs/api/v2#/reference/actor-tasks/runs-collection/run-task-asynchronously" target="_blank">Run task</a>
+and several other API endpoints to obtain the output.
 
 **Throws**:
 
@@ -433,11 +445,6 @@ and [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+getValue).
 ## `Apify.isAtHome()` ⇒ <code>Boolean</code>
 Returns `true` when code is running on Apify platform and `false` otherwise (for example locally).
 
-<a name="module_Apify.isDocker"></a>
-
-## `Apify.isDocker()` ⇒ <code>Promise</code>
-Returns a `Promise` that resolves to true if the code is running in a Docker container.
-
 <a name="module_Apify.launchPuppeteer"></a>
 
 ## `Apify.launchPuppeteer([options])` ⇒ <code>Promise&lt;Browser&gt;</code>
@@ -703,6 +710,66 @@ For more details and code examples, see the [`KeyValueStore`](keyvaluestore) cla
 <tr>
 <td colspan="3"><p>If set to <code>true</code> then the function uses cloud storage usage even if the <code>APIFY_LOCAL_STORAGE_DIR</code>
   environment variable is set. This way it is possible to combine local and cloud storage.</p>
+</td></tr></tbody>
+</table>
+<a name="module_Apify.openRequestList"></a>
+
+## `Apify.openRequestList` ⇒ [<code>Promise&lt;RequestList&gt;</code>](requestlist)
+Opens a request list and returns a promise resolving to an instance
+of the [`RequestList`](requestlist) class that is already initialized.
+
+[`RequestList`](requestlist) represents a list of URLs to crawl, which is always stored in memory.
+To enable picking up where left off after a process restart, the request list sources
+are persisted to the key value store at initialization of the list. Then, while crawling,
+a small state object is regularly persisted to keep track of the crawling status.
+
+For more details and code examples, see the [`RequestList`](requestlist) class.
+
+**Example Usage:**
+
+```javascript
+const sources = [
+    'https://www.example.com',
+    'https://www.google.com',
+    'https://www.bing.com'
+];
+
+const requestList = await Apify.openRequestList('my-name', sources);
+```
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>listName</code></td><td><code>string</code> | <code>null</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Name of the request list to be opened. Setting a name enables the <code>RequestList</code>&#39;s state to be persisted
+  in the key value store. This is useful in case of a restart or migration. Since <code>RequestList</code> is only
+  stored in memory, a restart or migration wipes it clean. Setting a name will enable the <code>RequestList</code>&#39;s
+  state to survive those situations and continue where it left off.</p>
+<p>  The name will be used as a prefix in key value store, producing keys such as <code>NAME-REQUEST_LIST_STATE</code>
+  and <code>NAME-REQUEST_LIST_SOURCES</code>.</p>
+<p>  If <code>null</code>, the list will not be persisted and will only be stored in memory. Process restart
+  will then cause the list to be crawled again from the beginning. We suggest always using a name.</p>
+</td></tr><tr>
+<td><code>sources</code></td><td><code>Array&lt;Object&gt;</code> | <code>Array&lt;string&gt;</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Sources represent the URLs to crawl. It can either be a <code>string[]</code> with plain URLs or an <code>Object[]</code>.
+  The objects&#39; contents can either be just plain objects, defining at least the &#39;url&#39; property
+  or instances of the <a href="request"><code>Request</code></a> class. See the (<code>new RequestList</code>)(RequestList#new_RequestList_new)
+  options for details.</p>
+</td></tr><tr>
+<td><code>[options]</code></td><td><code>Object</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>The (<code>new RequestList</code>)(RequestList#new_RequestList_new) options. Note that the listName parameter supersedes
+  the <code>persistStateKey</code> and <code>persistSourcesKey</code> options and the sources parameter supersedes the <code>sources</code> option.</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.openRequestQueue"></a>
