@@ -438,11 +438,11 @@ export class KeyValueStoreLocal {
      * Retrieves the full public url of the designated file.
      * @param {String} fileName
      */
-    getPublicUrl(fileName) {
+    getPublicUrl(fileName, store_id) {
+        store_id = store_id ? store_id : 'default';
         ensureTokenOrLocalStorageEnvExists('key value store');
-        const publicLocalUrl = `file://${this.localStoragePath}/${fileName}`;
-        const defaultUrl = `file://${this.localStoragePath}/default`;
-        return process.env[ENV_VARS.LOCAL_STORAGE_DIR] && !this.forceCloud ? publicLocalUrl : defaultUrl;
+        const publicLocalUrl = `file:/${this.localStoragePath}/${store_id}/${fileName}`;
+        return publicLocalUrl;
     }
 }
 
