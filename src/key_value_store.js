@@ -294,7 +294,7 @@ export class KeyValueStore {
 
     /**
      * Iterates over key value store keys, yielding each in turn to an `iteratee` function.
-     * Each invocation of `iteratee` is called with three arguments: `(item, size, index)`.
+     * Each invocation of `iteratee` is called with three arguments: `(item, index, info)`.
      *
      * If the `iteratee` function returns a Promise then it is awaited before the next call.
      * If it throws an error, the iteration is aborted and the `forEachKey` function throws the error.
@@ -302,8 +302,8 @@ export class KeyValueStore {
      * **Example usage**
      * ```javascript
      * const keyValueStore = await Apify.openKeyValueStore();
-     * keyValueStore.forEachKey(async (key, size, index) => {
-     *   console.log(`Key at ${index}: ${key} has size ${size}`);
+     * keyValueStore.forEachKey(async (key, index, info) => {
+     *   console.log(`Key at ${index}: ${key} has size ${info.size}`);
      * });
      * ```
      *
@@ -322,7 +322,7 @@ export class KeyValueStore {
         const response = await keyValueStores.listKeys({ storeId: this.storeId, exclusiveStartKey });
         const { nextExclusiveStartKey, isTruncated, items } = response;
         for (const item of items) {
-            await iteratee(item.key, item.size, index++);
+            await iteratee(item.key, index++, { size: item.size });
         }
         return isTruncated
             ? this.forEachKey(iteratee, { exclusiveStartKey: nextExclusiveStartKey }, index)
@@ -411,10 +411,17 @@ export class KeyValueStoreLocal {
         const files = await readdirPromised(this.localStoragePath);
         let keys = [];
         for (const file of files) {
-            keys.push({
-                key: path.parse(file).name,
-                size: (await statPromised(this._getPath(file))).size,
-            });
+            try {
+                const { size } = await statPromised(this._getPath(file));
+                keys.push({
+                    key: path.parse(file).name,
+                    info: { size },
+                });
+            } catch (e) {
+                if (e.code !== 'ENOENT') {
+                    throw e;
+                }
+            }
         }
 
         keys = keys.sort((a, b) => {
@@ -428,7 +435,7 @@ export class KeyValueStoreLocal {
             if (keyPos !== -1) keys = keys.slice(keyPos + 1);
         }
         for (const item of keys) {
-            await iteratee(item.key, item.size, index++);
+            await iteratee(item.key, index++, item.info);
         }
     }
 

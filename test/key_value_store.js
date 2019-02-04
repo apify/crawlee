@@ -414,14 +414,14 @@ describe('KeyValueStore', () => {
                 });
 
             const results = [];
-            await store.forEachKey(async (key, size, index) => {
-                results.push([key, size, index]);
+            await store.forEachKey(async (key, index, info) => {
+                results.push([key, index, info]);
             }, { exclusiveStartKey: 'key0' });
 
             expect(results).to.have.lengthOf(5);
             results.forEach((r, i) => {
-                expect(r[2]).to.be.eql(i);
-                expect(r[1]).to.be.eql(i + 1);
+                expect(r[2]).to.be.eql({ size: i + 1 });
+                expect(r[1]).to.be.eql(i);
                 expect(r[0]).to.be.eql(`key${i + 1}`);
             });
 
@@ -437,14 +437,14 @@ describe('KeyValueStore', () => {
             }
 
             const results = [];
-            await store.forEachKey((key, size, index) => {
-                results.push([key, size, index]);
+            await store.forEachKey((key, index, info) => {
+                results.push([key, index, info]);
             }, { exclusiveStartKey: 'key3' });
 
             expect(results).to.have.lengthOf(6);
             results.forEach((r, i) => {
-                expect(r[2]).to.be.eql(i);
-                expect(r[1]).to.be.eql(2);
+                expect(r[2]).to.be.eql({ size: 2 });
+                expect(r[1]).to.be.eql(i);
                 expect(r[0]).to.be.eql(`key${i + 4}`);
             });
 
