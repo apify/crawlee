@@ -7,7 +7,6 @@ import { KeyValueStoreLocal, KeyValueStore, maybeStringify, getFileNameRegexp, L
 import * as utils from '../build/utils';
 import * as Apify from '../build/index';
 import { LOCAL_STORAGE_DIR, emptyLocalStorageSubdir, expectDirEmpty, expectDirNonEmpty } from './_helper';
-import { doesNotReject } from 'assert';
 
 const { apifyClient } = utils;
 
@@ -373,8 +372,7 @@ describe('KeyValueStore', () => {
         it('should return the local url of a file', () => {
             process.env[ENV_VARS.LOCAL_STORAGE_DIR] = LOCAL_STORAGE_DIR;
             const store = new KeyValueStoreLocal('my-store-id', LOCAL_STORAGE_DIR);
-            
-            expect(store.getPublicUrl('file','my-store-id')).to.equal(`file:/${store.localStoragePath}/my-store-id/file`);
+            expect(store.getPublicUrl('file', 'my-store-id')).to.equal(`file:/${store.localStoragePath}/my-store-id/file`);
             delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
         });
 
@@ -385,7 +383,6 @@ describe('KeyValueStore', () => {
 
             expect(store.getPublicUrl('file')).to.equal(`${publicUrl}/my-store-id/records/file`);
             delete process.env[ENV_VARS.TOKEN];
-
         });
     });
 

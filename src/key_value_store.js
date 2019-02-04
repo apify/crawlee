@@ -494,10 +494,12 @@ export class KeyValueStoreLocal {
      * Retrieves the full public url of the designated file.
      * @param {String} fileName
      */
-    getPublicUrl(fileName, store_id) {
-        store_id = store_id ? store_id : 'default';
+    getPublicUrl(fileName, storeId) {
+        if (!storeId) {
+            storeId = 'default';
+        }
         ensureTokenOrLocalStorageEnvExists('key value store');
-        const publicLocalUrl = `file:/${this.localStoragePath}/${store_id}/${fileName}`;
+        const publicLocalUrl = `file:/${this.localStoragePath}/${storeId}/${fileName}`;
         return publicLocalUrl;
     }
 }
