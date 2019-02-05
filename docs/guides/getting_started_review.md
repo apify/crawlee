@@ -7,10 +7,10 @@ Without the right tools, crawling and scraping the web can be a difficult thing.
 Apify SDK covers the process end-to-end. From crawling the web for links and scraping the raw data to storing it in various machine readable formats, ready for processing. With this guide in hand, you should have your own data extraction solutions up and running in a few hours.
 
 ## Intro
-The goal of this getting started guide is to provide a step-by-step introduction to all the features of the Apify SDK. It will walk you through creating the simplest of crawlers that only print text to console, all the way up to complex systems that crawl pages, interact with them as if a real user were sitting in front of a real browser and output structured data.
+The goal of this guide is to provide a step-by-step introduction to all the features of the Apify SDK. It will walk you through creating the simplest of crawlers that only print text to console, all the way up to complex systems that crawl pages, interact with them as if a real user were sitting in front of a real browser and output structured data.
 
 Since Apify SDK is usable both locally on any computer and on the
-<a href="https://my.apify.com" target="_blank">Apify Platform</a>,
+<a href="https://my.apify.com" target="_blank">Apify platform</a>,
 you will be able to use the source code in both environments interchangeably. Nevertheless, some initial setup is still required, so choose your preferred starting environment and let's get into it.
 
 ## Setting up locally
