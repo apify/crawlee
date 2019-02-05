@@ -6,7 +6,7 @@ const { utils: { log } } = Apify;
 
 chai.use(chaiAsPromised);
 
-/* global process, describe, it */
+/* global describe, it */
 
 describe('Apify.utils.puppeteer', () => {
     let ll;
