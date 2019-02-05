@@ -93,7 +93,7 @@
     "why-is-node-running": "^2.0.3"
   },
   "optionalDependencies": {
-    "puppeteer": "^1.11.0",
+    "puppeteer": "1.11.0",
     "selenium-webdriver": "^3.6.0"
   }
 }
