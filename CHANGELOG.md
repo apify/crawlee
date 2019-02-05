@@ -1,6 +1,7 @@
-xxx
+0.11.8 / 2018/02/05
 ===================
-- Fixed the `keyValueStore.forEachKey()` method.
+- Fix the `keyValueStore.forEachKey()` method.
+- Fix version of `puppeteer` to prevent errors with automatic updates.
 
 0.11.7 / 2018/01/30
 ===================
