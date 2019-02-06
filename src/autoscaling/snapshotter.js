@@ -15,7 +15,7 @@ const DEFAULT_OPTIONS = {
     snapshotHistorySecs: 30,
     maxClientErrors: 1,
 };
-const CRITICAL_OVERLOAD_RATIO = 1.2;
+const RESERVE_MEMORY_RATIO = 0.5;
 
 /**
  * Creates snapshots of system resources at given intervals and marks the resource
@@ -197,8 +197,11 @@ class Snapshotter {
         const latestTime = snapshots[idx - 1].createdAt;
         while (idx--) {
             const snapshot = snapshots[idx];
-            if (latestTime - snapshot.createdAt <= sampleDurationMillis) sample.unshift(snapshot);
-            else break;
+            if (latestTime - snapshot.createdAt <= sampleDurationMillis) {
+                sample.unshift(snapshot);
+            } else {
+                break;
+            }
         }
         return sample;
     }
@@ -238,12 +241,19 @@ class Snapshotter {
      */
     _memoryOverloadWarning(memoryInfo) {
         try {
-            const criticalOverloadRation = this.maxUsedMemoryRatio * CRITICAL_OVERLOAD_RATIO;
+            const maxDesiredMemoryBytes = this.maxUsedMemoryRatio * this.maxMemoryBytes;
+            const reserveMemory = this.maxMemoryBytes * (1 - this.maxUsedMemoryRatio) * RESERVE_MEMORY_RATIO;
+            const criticalOverloadBytes = maxDesiredMemoryBytes + reserveMemory;
             const { mainProcessBytes, childProcessesBytes } = memoryInfo;
             const usedBytes = mainProcessBytes + childProcessesBytes;
-            const isCriticalOverload = usedBytes / this.maxMemoryBytes > criticalOverloadRation;
+            const isCriticalOverload = usedBytes > criticalOverloadBytes;
             if (isCriticalOverload) {
-                log.warning(`Memory is critical overloaded. Overload ratio: ${usedBytes / this.maxMemoryBytes}`);
+                const usedPercentage = usedBytes / this.maxMemoryBytes * 100;
+                const toMb = bytes => bytes / (1024 ** 2);
+                log.warning(
+                    `Memory is critical overloaded.
+                     Used ${toMb(usedBytes)} MB of ${toMb(this.maxMemoryBytes)} MB (${usedPercentage}%)`,
+                );
             }
         } catch (e) {
             log.exception(e, 'Snapshotter: Memory leak warning failed.');
@@ -342,8 +352,11 @@ class Snapshotter {
         let oldCount = 0;
         for (let i = 0; i < snapshots.length; i++) {
             const { createdAt } = snapshots[i];
-            if (now - createdAt > this.snapshotHistoryMillis) oldCount++;
-            else break;
+            if (now - createdAt > this.snapshotHistoryMillis) {
+                oldCount++;
+            } else {
+                break;
+            }
         }
         snapshots.splice(0, oldCount);
     }

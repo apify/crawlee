@@ -188,12 +188,12 @@ describe('Snapshotter', () => {
 
     it('correctly logs critical memory overload', () => {
         const memoryDataOverloaded = {
-            mainProcessBytes: toBytes(3100),
+            mainProcessBytes: toBytes(4600),
             childProcessesBytes: toBytes(3000),
         };
         const memoryDataNotOverloaded = {
-            mainProcessBytes: toBytes(2500),
-            childProcessesBytes: toBytes(2500),
+            mainProcessBytes: toBytes(3750),
+            childProcessesBytes: toBytes(3750),
         };
         let logged = false;
         const warning = () => { logged = true; };
