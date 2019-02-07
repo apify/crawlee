@@ -1,3 +1,7 @@
+xxx
+===================
+- Added memory overload warning log
+
 0.11.8 / 2018/02/05
 ===================
 - Fix the `keyValueStore.forEachKey()` method.
