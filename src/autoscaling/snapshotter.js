@@ -197,11 +197,8 @@ class Snapshotter {
         const latestTime = snapshots[idx - 1].createdAt;
         while (idx--) {
             const snapshot = snapshots[idx];
-            if (latestTime - snapshot.createdAt <= sampleDurationMillis) {
-                sample.unshift(snapshot);
-            } else {
-                break;
-            }
+            if (latestTime - snapshot.createdAt <= sampleDurationMillis) sample.unshift(snapshot);
+            else break;
         }
         return sample;
     }
