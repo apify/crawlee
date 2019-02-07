@@ -247,7 +247,7 @@ class Snapshotter {
             if (isCriticalOverload) {
                 const usedPercentage = usedBytes / this.maxMemoryBytes * 100;
                 const toMb = bytes => bytes / (1024 ** 2);
-                log.warning(`Memory is critical overloaded. Used ${toMb(usedBytes)} MB of ${toMb(this.maxMemoryBytes)} MB (${usedPercentage}%)`);
+                log.warning(`Memory is critically overloaded. Used ${toMb(usedBytes)} MB of ${toMb(this.maxMemoryBytes)} MB (${usedPercentage}%)`);
             }
         } catch (e) {
             log.exception(e, 'Snapshotter: Memory leak warning failed.');
@@ -346,11 +346,8 @@ class Snapshotter {
         let oldCount = 0;
         for (let i = 0; i < snapshots.length; i++) {
             const { createdAt } = snapshots[i];
-            if (now - createdAt > this.snapshotHistoryMillis) {
-                oldCount++;
-            } else {
-                break;
-            }
+            if (now - createdAt > this.snapshotHistoryMillis) oldCount++;
+            else break;
         }
         snapshots.splice(0, oldCount);
     }
