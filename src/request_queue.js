@@ -325,6 +325,7 @@ export class RequestQueue {
      * @return {Promise<QueueOperationInfo>}
      */
     markRequestHandled(request) {
+        // TODO: This function should also support object instead of Apify.Request()
         validateMarkRequestHandledParams(request);
 
         if (!this.requestIdsInProgress[request.id]) {
@@ -363,6 +364,7 @@ export class RequestQueue {
     reclaimRequest(request, options = {}) {
         const { forefront } = validateReclaimRequestParams(request, options);
 
+        // TODO: This function should also support object instead of Apify.Request()
         // TODO: If request hasn't been changed since the last getRequest(),
         // we don't need to call updateRequest() and thus improve performance.
         return requestQueues
