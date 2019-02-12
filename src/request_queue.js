@@ -363,6 +363,8 @@ export class RequestQueue {
     reclaimRequest(request, options = {}) {
         const { forefront } = validateReclaimRequestParams(request, options);
 
+        // TODO: If request hasn't been changed since the last getRequest(),
+        // we don't need to call updateRequest() and thus improve performance.
         return requestQueues
             .updateRequest({
                 request,
