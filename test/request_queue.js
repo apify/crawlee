@@ -6,7 +6,10 @@ import path from 'path';
 import { ENV_VARS } from 'apify-shared/consts';
 import * as Apify from '../build/index';
 import * as utils from '../build/utils';
-import { RequestQueueLocal, RequestQueue, LOCAL_STORAGE_SUBDIR, QUERY_HEAD_MIN_LENGTH } from '../build/request_queue';
+import {
+    RequestQueueLocal, RequestQueue,
+    LOCAL_STORAGE_SUBDIR, QUERY_HEAD_MIN_LENGTH, API_PROCESSED_REQUESTS_DELAY_MILLIS,
+} from '../build/request_queue';
 import { emptyLocalStorageSubdir, LOCAL_STORAGE_DIR, expectNotUsingLocalStorage, expectDirEmpty, expectDirNonEmpty } from './_helper';
 
 const { apifyClient } = utils;
@@ -191,11 +194,11 @@ describe('RequestQueue', () => {
         });
 
         it('should accept plain object in addRequest()', async () => {
-            expectNotUsingLocalStorage();
-            const queue = new RequestQueue('some-id');
-            expect(() => {
-                queue.addRequest({ url: 'http://example.com/a' });
-            }).to.not.throw();
+            const queue = new RequestQueueLocal('some-id', LOCAL_STORAGE_DIR);
+            await queue.addRequest({ url: 'http://example.com/a' });
+            expect(
+                (await queue.fetchNextRequest()).url,
+            ).to.be.eql('http://example.com/a');
         });
 
         it('should return correct handledCount', async () => {
@@ -350,7 +353,7 @@ describe('RequestQueue', () => {
             mock.restore();
         });
 
-        it('should cache requests new locally', async () => {
+        it('should cache new requests locally', async () => {
             expectNotUsingLocalStorage();
 
             const { Request } = Apify;
@@ -560,9 +563,17 @@ describe('RequestQueue', () => {
         it('should accept plain object in addRequest()', async () => {
             expectNotUsingLocalStorage();
             const queue = new RequestQueue('some-id');
-            expect(() => {
-                queue.addRequest({ url: 'http://example.com/a' });
-            }).to.not.throw();
+            const mock = sinon.mock(apifyClient.requestQueues);
+            mock.expects('addRequest')
+                .once()
+                .returns(Promise.resolve({
+                    requestId: 'xxx',
+                    wasAlreadyHandled: false,
+                    wasAlreadyPresent: false,
+                }));
+            await queue.addRequest({ url: 'http://example.com/a' });
+            mock.verify();
+            mock.restore();
         });
 
         it('should return correct handledCount', async () => {
@@ -576,6 +587,44 @@ describe('RequestQueue', () => {
             expect(count).to.be.eql(33);
             sinon.assert.callCount(stub, 1);
             sinon.restore();
+        });
+
+        it('should always wait for a queue head to become consistent before marking queue as finished', async () => {
+            expectNotUsingLocalStorage();
+
+            const queue = new RequestQueue('some-id', 'some-name');
+            const mock = sinon.mock(apifyClient.requestQueues);
+
+            // Return head with modifiedAt = now so it will retry the call.
+            mock.expects('getHead')
+                .once()
+                .withArgs({
+                    queueId: 'some-id',
+                    limit: QUERY_HEAD_MIN_LENGTH,
+                })
+                .returns(Promise.resolve({
+                    limit: 5,
+                    queueModifiedAt: new Date(),
+                    items: [],
+                }));
+
+            // And now return return date which makes the queue consistent.
+            mock.expects('getHead')
+                .once()
+                .withArgs({
+                    queueId: 'some-id',
+                    limit: QUERY_HEAD_MIN_LENGTH,
+                })
+                .returns(Promise.resolve({
+                    limit: 5,
+                    queueModifiedAt: new Date(Date.now() - API_PROCESSED_REQUESTS_DELAY_MILLIS),
+                    items: [],
+                }));
+
+            expect(await queue.isFinished()).to.be.eql(true);
+
+            mock.verify();
+            mock.restore();
         });
     });
 

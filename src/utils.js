@@ -595,6 +595,7 @@ const createRequestDebugInfo = (request, response = {}, additionalFields = {}) =
         {
             requestId: request.id,
             url: request.url,
+            loadedUrl: request.loadedUrl,
             method: request.method,
             retryCount: request.retryCount,
             errorMessages: request.errorMessages,

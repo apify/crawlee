@@ -91,10 +91,14 @@ export const SOURCES_PERSISTENCE_KEY = 'REQUEST_LIST_SOURCES';
  * ]
  * ```
  * @param {String} [options.persistStateKey]
- *   Identifies the keys in the default key-value store under which the `RequestList` persists its
- *   initial sources and current state. State represents a position of the last scraped request in the list.
- *   If this is set then `RequestList`persists all of its sources and the state in regular intervals
+ *   Identifies the key in the default key-value store under which the `RequestList` persists its
+ *   current state. State represents a position of the last scraped request in the list.
+ *   If this is set then `RequestList`persists the state in regular intervals
  *   to key value store and loads the state from there in case it is restarted due to an error or system reboot.
+ * @param {String} [options.persistSourcesKey]
+ *   Identifies the key in the default key-value store under which the `RequestList` persists its
+ *   initial sources. If this is set then `RequestList`persists all of its sources
+ *   to key value store at initialization and loads them from there in case it is restarted due to an error or system reboot.
  * @param {Object} [options.state]
  *   The state object that the `RequestList` will be initialized from.
  *   It is in the form as returned by `RequestList.getState()`, such as follows:
