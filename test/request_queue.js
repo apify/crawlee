@@ -8,7 +8,7 @@ import * as Apify from '../build/index';
 import * as utils from '../build/utils';
 import {
     RequestQueueLocal, RequestQueue,
-    LOCAL_STORAGE_SUBDIR, QUERY_HEAD_MIN_LENGTH, MAX_QUERIES_FOR_CONSISTENCY, API_PROCESSED_REQUESTS_DELAY_MILLIS,
+    LOCAL_STORAGE_SUBDIR, QUERY_HEAD_MIN_LENGTH, API_PROCESSED_REQUESTS_DELAY_MILLIS,
 } from '../build/request_queue';
 import { emptyLocalStorageSubdir, LOCAL_STORAGE_DIR, expectNotUsingLocalStorage, expectDirEmpty, expectDirNonEmpty } from './_helper';
 
@@ -197,7 +197,7 @@ describe('RequestQueue', () => {
             const queue = new RequestQueueLocal('some-id', LOCAL_STORAGE_DIR);
             await queue.addRequest({ url: 'http://example.com/a' });
             expect(
-                (await queue.fetchNextRequest()).url
+                (await queue.fetchNextRequest()).url,
             ).to.be.eql('http://example.com/a');
         });
 
@@ -570,7 +570,7 @@ describe('RequestQueue', () => {
                     requestId: 'xxx',
                     wasAlreadyHandled: false,
                     wasAlreadyPresent: false,
-                }))
+                }));
             await queue.addRequest({ url: 'http://example.com/a' });
             mock.verify();
             mock.restore();
@@ -629,7 +629,6 @@ describe('RequestQueue', () => {
     });
 
     describe('Apify.openRequestQueue', async () => {
-        return;
         it('should work', () => {
             const mock = sinon.mock(utils);
 
