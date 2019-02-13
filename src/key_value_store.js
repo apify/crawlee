@@ -26,6 +26,7 @@ const emptyDirPromised = Promise.promisify(fsExtra.emptyDir);
 
 const { keyValueStores } = apifyClient;
 const storesCache = new LruCache({ maxLength: MAX_OPENED_STORES }); // Open key-value stores are stored here.
+const publicUrl = 'https://api.apify.com/v2/key-value-stores'; // Will be replaced with env var in future.
 
 /**
  * Helper function to validate params of *.getValue().
@@ -292,6 +293,12 @@ export class KeyValueStore {
             });
     }
 
+
+    getPublicUrl(fileName) {
+        ensureTokenOrLocalStorageEnvExists('key value store');
+        return `${publicUrl}/${this.storeId}/records/${fileName}`;
+    }
+
     /**
      * Iterates over key value store keys, yielding each in turn to an `iteratee` function.
      * Each invocation of `iteratee` is called with three arguments: `(item, index, info)`.
@@ -502,6 +509,19 @@ export class KeyValueStoreLocal {
      */
     _getPath(fileName) {
         return path.resolve(this.localStoragePath, fileName);
+    }
+
+    /**
+     * Retrieves the full public url of the designated file.
+     * @param {String} fileName
+     */
+    getPublicUrl(fileName, storeId) {
+        if (!storeId) {
+            storeId = 'default';
+        }
+        ensureTokenOrLocalStorageEnvExists('key value store');
+        const publicLocalUrl = `file:/${this.localStoragePath}/${storeId}/${fileName}`;
+        return publicLocalUrl;
     }
 }
 

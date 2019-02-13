@@ -1,6 +1,7 @@
 xxx
 ===================
 - Added memory overload warning log message.
+- Added `keyValueStore.getPublicUrl` function.
 
 0.11.8 / 2019-02-05
 ===================
@@ -92,6 +93,7 @@ xxx
 ===================
 - Added API response tracking to AutoscaledPool, leveraging `Apify.client.stats` object. It now overloads the system
   when a large amount of  429 - Too Many Requests is received.
+>>>>>>> upstream/master
 
 0.9.13 / 2018-11-26
 ===================
