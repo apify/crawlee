@@ -194,7 +194,7 @@ export const getEnv = () => {
  */
 export const main = (userFunc) => {
     if (!userFunc || typeof (userFunc) !== 'function') {
-        throw new Error('Handler function must be provided as a parameter');
+        throw new Error(`Apify.main() accepts a single parameter that must be a function (was '${userFunc === null ? 'null' : typeof (userFunc)}').`);
     }
 
     if (!process.env[ENV_VARS.LOCAL_STORAGE_DIR] && !process.env[ENV_VARS.TOKEN]) {
@@ -227,7 +227,7 @@ export const main = (userFunc) => {
                 stopEvents();
                 clearInterval(intervalId);
                 if (!exited) {
-                    exitWithError(err, EXIT_CODES.ERROR_USER_FUNCTION_THREW, 'User function threw an exception:');
+                    exitWithError(err, EXIT_CODES.ERROR_USER_FUNCTION_THREW, 'The function passed to Apify.main() threw an exception:');
                 }
             })
             .then(() => {
