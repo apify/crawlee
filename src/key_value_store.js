@@ -11,6 +11,7 @@ import { checkParamOrThrow, parseBody } from 'apify-client/build/utils';
 import {
     addCharsetToContentType, apifyClient, ensureDirExists, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists,
 } from './utils';
+import { APIFY_API_BASE_URL } from './constants';
 
 export const LOCAL_STORAGE_SUBDIR = LOCAL_STORAGE_SUBDIRS.keyValueStores;
 const MAX_OPENED_STORES = 1000;
@@ -26,7 +27,6 @@ const emptyDirPromised = Promise.promisify(fsExtra.emptyDir);
 
 const { keyValueStores } = apifyClient;
 const storesCache = new LruCache({ maxLength: MAX_OPENED_STORES }); // Open key-value stores are stored here.
-const publicUrl = 'https://api.apify.com/v2/key-value-stores'; // Will be replaced with env var in future.
 
 /**
  * Helper function to validate params of *.getValue().
@@ -293,10 +293,15 @@ export class KeyValueStore {
             });
     }
 
-
-    getPublicUrl(fileName) {
-        ensureTokenOrLocalStorageEnvExists('key value store');
-        return `${publicUrl}/${this.storeId}/records/${fileName}`;
+    /**
+     * Returns a URL for the given key that may be used to publicly
+     * access the value in the remote key value store.
+     *
+     * @param {string} key
+     * @return {string}
+     */
+    getPublicUrl(key) {
+        return `${APIFY_API_BASE_URL}/key-value-stores/${this.storeId}/records/${key}`;
     }
 
     /**
@@ -521,16 +526,17 @@ export class KeyValueStoreLocal {
     }
 
     /**
-     * Retrieves the full public url of the designated file.
-     * @param {String} fileName
+     * Returns a file:// URL for the given fileName that may be used to
+     * access the value on the local drive.
+     *
+     * Unlike in the remote store where key is sufficient, a full fileName
+     * must be provided here including the extension for the URL to be valid.
+     *
+     * @param {string} fileName
+     * @return {string}
      */
-    getPublicUrl(fileName, storeId) {
-        if (!storeId) {
-            storeId = 'default';
-        }
-        ensureTokenOrLocalStorageEnvExists('key value store');
-        const publicLocalUrl = `file:/${this.localStoragePath}/${storeId}/${fileName}`;
-        return publicLocalUrl;
+    getPublicUrl(fileName) {
+        return `file://${this._getPath(fileName)}`;
     }
 }
 

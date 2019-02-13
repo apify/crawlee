@@ -373,7 +373,7 @@ describe('KeyValueStore', () => {
         it('should return the local url of a file', () => {
             process.env[ENV_VARS.LOCAL_STORAGE_DIR] = LOCAL_STORAGE_DIR;
             const store = new KeyValueStoreLocal('my-store-id', LOCAL_STORAGE_DIR);
-            expect(store.getPublicUrl('file', 'my-store-id')).to.equal(`file:/${store.localStoragePath}/my-store-id/file`);
+            expect(store.getPublicUrl('file.txt')).to.equal(`file://${store.localStoragePath}/file.txt`);
             delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
         });
 
