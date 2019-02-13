@@ -7,7 +7,7 @@ import { addTimeoutToPromise } from './utils';
 
 const DEFAULT_OPTIONS = {
     gotoFunction: async ({ request, page }) => page.goto(request.url, { timeout: 60000 }),
-    handlePageTimeoutSecs: 300,
+    handlePageTimeoutSecs: 60,
     handleFailedRequestFunction: ({ request }) => {
         const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
         log.error('PuppeteerCrawler: Request failed and reached maximum retries', details);
@@ -110,7 +110,7 @@ const PAGE_CLOSE_TIMEOUT_MILLIS = 30000;
  * @param {RequestQueue} options.requestQueue
  *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
  *   Either `requestList` or `requestQueue` option must be provided (or both).
- * @param {Number} [options.handlePageTimeoutSecs=300]
+ * @param {Number} [options.handlePageTimeoutSecs=60]
  *   Timeout in which the function passed as `options.handlePageFunction` needs to finish, in seconds.
  * @param {Function} [options.gotoFunction]
  *   Overrides the function that opens the page in Puppeteer. The function should return the result of Puppeteer's
@@ -293,6 +293,7 @@ class PuppeteerCrawler {
         const page = await this.puppeteerPool.newPage();
         try {
             const response = await this.gotoFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool });
+            request.loadedUrl = page.url();
             await addTimeoutToPromise(
                 this.handlePageFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool, response }),
                 this.handlePageTimeoutMillis,

@@ -72,6 +72,13 @@ export const computeUniqueKey = (url, keepUrlFragment) => normalizeUrl(url, keep
  *   Request ID
  * @property {String} url
  *   URL of the web page to crawl.
+ * @property {String} loadedUrl
+ *   An actually loaded URL after redirects, if present. HTTP redirects are guaranteed
+ *   to be included.
+ *
+ *   When using {@link PuppeteerCrawler}, meta tag and JavaScript redirects may,
+ *   or may not be included, depending on their nature. This generally means that redirects,
+ *   which happen immediately will most likely be included, but delayed redirects will not.
  * @property {String} uniqueKey
  *   A unique key identifying the request.
  *   Two requests with the same `uniqueKey` are considered as pointing to the same URL.
@@ -100,6 +107,7 @@ class Request {
         const {
             id,
             url,
+            loadedUrl = null,
             uniqueKey,
             method = 'GET',
             payload = null,
@@ -115,6 +123,7 @@ class Request {
 
         checkParamOrThrow(id, 'id', 'Maybe String');
         checkParamOrThrow(url, 'url', 'String');
+        checkParamOrThrow(loadedUrl, 'url', 'Maybe String');
         checkParamOrThrow(uniqueKey, 'uniqueKey', 'Maybe String');
         checkParamOrThrow(method, 'method', 'String');
         checkParamOrThrow(payload, 'payload', 'Maybe Buffer | String');
@@ -131,6 +140,7 @@ class Request {
 
         this.id = id;
         this.url = url;
+        this.loadedUrl = loadedUrl;
         // NOTE: If URL is invalid, computeUniqueKey() returns null which was causing weird errors
         this.uniqueKey = uniqueKey || computeUniqueKey(url, keepUrlFragment) || url;
         this.method = method;

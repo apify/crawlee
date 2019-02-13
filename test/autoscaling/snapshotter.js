@@ -126,30 +126,30 @@ describe('Snapshotter', () => {
     });
 
     it('correctly marks eventLoopOverloaded', () => { /* eslint-disable no-underscore-dangle */
-        const noop = () => {};
-        const block = (millis) => {
-            const start = Date.now();
-            while (start + millis > Date.now()) { /* empty */ }
-        };
+        const clock = sinon.useFakeTimers();
+        try {
+            const noop = () => {};
+            const snapshotter = new Snapshotter({ maxBlockedMillis: 5, eventLoopSnapshotIntervalSecs: 0 });
+            snapshotter._snapshotEventLoop(noop);
+            clock.tick(1);
+            snapshotter._snapshotEventLoop(noop);
+            clock.tick(2);
+            snapshotter._snapshotEventLoop(noop);
+            clock.tick(7);
+            snapshotter._snapshotEventLoop(noop);
+            clock.tick(3);
+            snapshotter._snapshotEventLoop(noop);
+            const loopSnapshots = snapshotter.getEventLoopSample();
 
-        const snapshotter = new Snapshotter({ maxBlockedMillis: 5, eventLoopSnapshotIntervalSecs: 0 });
-        snapshotter._snapshotEventLoop(noop);
-        block(1);
-        snapshotter._snapshotEventLoop(noop);
-        block(2);
-        snapshotter._snapshotEventLoop(noop);
-        block(7);
-        snapshotter._snapshotEventLoop(noop);
-        block(3);
-        snapshotter._snapshotEventLoop(noop);
-        const loopSnapshots = snapshotter.getEventLoopSample();
-
-        expect(loopSnapshots.length).to.be.eql(5);
-        expect(loopSnapshots[0].isOverloaded).to.be.eql(false);
-        expect(loopSnapshots[1].isOverloaded).to.be.eql(false);
-        expect(loopSnapshots[2].isOverloaded).to.be.eql(false);
-        expect(loopSnapshots[3].isOverloaded).to.be.eql(true);
-        expect(loopSnapshots[4].isOverloaded).to.be.eql(false);
+            expect(loopSnapshots.length).to.be.eql(5);
+            expect(loopSnapshots[0].isOverloaded).to.be.eql(false);
+            expect(loopSnapshots[1].isOverloaded).to.be.eql(false);
+            expect(loopSnapshots[2].isOverloaded).to.be.eql(false);
+            expect(loopSnapshots[3].isOverloaded).to.be.eql(true);
+            expect(loopSnapshots[4].isOverloaded).to.be.eql(false);
+        } finally {
+            clock.restore();
+        }
     });
 
     it('correctly marks memoryOverloaded', async () => { /* eslint-disable no-underscore-dangle */

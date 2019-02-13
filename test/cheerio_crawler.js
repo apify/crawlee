@@ -13,6 +13,15 @@ import Apify from '../build/index';
 
 chai.use(chaiAsPromised);
 
+// Add common props to mocked request responses.
+const responseMock = {
+    request: {
+        uri: {
+            href: 'loadedUrl',
+        },
+    },
+};
+
 /* eslint-disable no-underscore-dangle */
 describe('CheerioCrawler', () => {
     const comparator = (a, b) => {
@@ -73,53 +82,6 @@ describe('CheerioCrawler', () => {
         });
     });
 
-    it('should work with custom request function', async () => {
-        const sources = [
-            { url: 'http://example.com/?q=0' },
-            { url: 'http://example.com/?q=1' },
-            { url: 'http://example.com/?q=2' },
-            { url: 'http://example.com/?q=3' },
-            { url: 'http://example.com/?q=4' },
-            { url: 'http://example.com/?q=5' },
-            { url: 'http://example.com/?q=6' },
-        ];
-        const processed = [];
-        const failed = [];
-        const requestList = new Apify.RequestList({ sources });
-        const requestFunction = async ({ request }) => {
-            await delayPromise(1);
-            return `<html><head><title>${request.url[request.url.length - 1]}</title></head><body>Body</body></html>`;
-        };
-        const handlePageFunction = async ({ $, html, request }) => {
-            request.userData.title = $('title').text();
-            request.userData.html = html;
-            processed.push(request);
-        };
-
-        const cheerioCrawler = new Apify.CheerioCrawler({
-            requestList,
-            minConcurrency: 2,
-            maxConcurrency: 2,
-            handlePageFunction,
-            requestFunction,
-            handleFailedRequestFunction: ({ request }) => failed.push(request),
-        });
-
-        await requestList.initialize();
-        await cheerioCrawler.run();
-
-        expect(processed).to.have.lengthOf(7);
-        expect(failed).to.have.lengthOf(0);
-
-        processed.sort(comparator);
-        processed.forEach((request, id) => {
-            expect(request.url).to.be.eql(sources[id].url);
-            expect(request.userData.title).to.be.eql(String(id));
-            expect(request.userData.html).to.be.a('string');
-            expect(request.userData.html.length).not.to.be.eql(0);
-        });
-    });
-
     describe('should timeout', () => {
         let ll;
         before(() => {
@@ -140,24 +102,24 @@ describe('CheerioCrawler', () => {
             const processed = [];
             const failed = [];
             const requestList = new Apify.RequestList({ sources });
-            const requestFunction = async () => {
-                await delayPromise(3000);
-                return '<html><head></head><body>Body</body></html>';
-            };
             const handlePageFunction = async ({ request }) => {
                 processed.push(request);
             };
 
             const cheerioCrawler = new Apify.CheerioCrawler({
                 requestList,
-                requestTimeoutSecs: 0.05,
+                requestTimeoutSecs: 5 / 1000,
                 maxRequestRetries: 1,
                 minConcurrency: 2,
                 maxConcurrency: 2,
                 handlePageFunction,
-                requestFunction,
                 handleFailedRequestFunction: ({ request }) => failed.push(request),
             });
+
+            cheerioCrawler._requestFunction = async () => {
+                await delayPromise(300);
+                return '<html><head></head><body>Body</body></html>';
+            };
 
             await requestList.initialize();
             await cheerioCrawler.run();
@@ -214,7 +176,6 @@ describe('CheerioCrawler', () => {
         let requestList;
         const originalGet = rqst.get;
         beforeEach(async () => {
-            log.setLevel(log.LEVELS.OFF);
             requestList = new Apify.RequestList({
                 sources: [
                     { url: 'http://example.com/?q=0' },
@@ -227,7 +188,6 @@ describe('CheerioCrawler', () => {
         });
 
         afterEach(() => {
-            log.setLevel(log.LEVELS.ERROR);
             requestList = null;
             rqst.get = originalGet;
         });
@@ -237,13 +197,14 @@ describe('CheerioCrawler', () => {
             const crawler = new Apify.CheerioCrawler({
                 requestList,
                 handlePageFunction: async () => {},
-                requestFunction: async ({ request }) => {
-                    const opts = crawler._getRequestOptions(request);
-                    headers.push(opts.headers);
-                    // it needs to return something valid
-                    return 'html';
-                },
             });
+
+            crawler._requestFunction = async ({ request }) => {
+                const opts = crawler._getRequestOptions(request);
+                headers.push(opts.headers);
+                // it needs to return something valid
+                return Object.assign({ body: 'html' }, responseMock);
+            };
 
             await crawler.run();
             headers.forEach(h => expect(h['Accept-Encoding']).to.be.eql('gzip, deflate'));
@@ -265,6 +226,7 @@ describe('CheerioCrawler', () => {
                     'content-type': 'text/html', // to avoid throwing
                     'content-encoding': 'gzip',
                 };
+                Object.assign(response, responseMock);
 
                 const ee = new EventEmitter();
 
@@ -300,6 +262,7 @@ describe('CheerioCrawler', () => {
                     'content-type': 'text/html', // to avoid throwing
                     'content-encoding': 'deflate',
                 };
+                Object.assign(response, responseMock);
 
                 const ee = new EventEmitter();
 
@@ -339,6 +302,7 @@ describe('CheerioCrawler', () => {
                     'content-type': 'text/html', // to avoid throwing
                     'content-encoding': 'compress',
                 };
+                Object.assign(response, responseMock);
 
                 const ee = new EventEmitter();
 
@@ -383,13 +347,14 @@ describe('CheerioCrawler', () => {
             const crawler = new Apify.CheerioCrawler({
                 requestList,
                 handlePageFunction: async () => {},
-                requestFunction: async ({ request }) => {
-                    const opts = crawler._getRequestOptions(request);
-                    headers.push(opts.headers);
-                    // it needs to return something valid
-                    return 'html';
-                },
             });
+
+            crawler._requestFunction = async ({ request }) => {
+                const opts = crawler._getRequestOptions(request);
+                headers.push(opts.headers);
+                // it needs to return something valid
+                return Object.assign({ body: 'html' }, responseMock);
+            };
 
             await crawler.run();
             headers.forEach(h => expect(h.Accept).to.be.eql('text/html'));
@@ -677,14 +642,15 @@ describe('CheerioCrawler', () => {
             const crawler = new Apify.CheerioCrawler({
                 requestList,
                 handlePageFunction: async () => {},
-                requestFunction: async ({ request }) => {
-                    const opts = crawler._getRequestOptions(request);
-                    proxies.push(opts.proxy);
-                    // it needs to return something valid
-                    return 'html';
-                },
                 proxyUrls: ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'],
             });
+
+            crawler._requestFunction = async ({ request }) => {
+                const opts = crawler._getRequestOptions(request);
+                proxies.push(opts.proxy);
+                // it needs to return something valid
+                return Object.assign({ body: 'html' }, responseMock);
+            };
 
             const shuffled = crawler.proxyUrls;
             await crawler.run();
@@ -706,14 +672,15 @@ describe('CheerioCrawler', () => {
             const crawler = new Apify.CheerioCrawler({
                 requestList,
                 handlePageFunction: async () => {},
-                requestFunction: async ({ request }) => {
-                    const opts = crawler._getRequestOptions(request);
-                    proxies.push(opts.proxy);
-                    // it needs to return something valid
-                    return 'html';
-                },
                 useApifyProxy,
             });
+
+            crawler._requestFunction = async ({ request }) => {
+                const opts = crawler._getRequestOptions(request);
+                proxies.push(opts.proxy);
+                // it needs to return something valid
+                return Object.assign({ body: 'html' }, responseMock);
+            };
 
             await crawler.run();
             delete process.env[ENV_VARS.PROXY_PASSWORD];
@@ -740,16 +707,17 @@ describe('CheerioCrawler', () => {
             const crawler = new Apify.CheerioCrawler({
                 requestList,
                 handlePageFunction: async () => {},
-                requestFunction: async ({ request }) => {
-                    const opts = crawler._getRequestOptions(request);
-                    proxies.push(opts.proxy);
-                    // it needs to return something valid
-                    return 'html';
-                },
                 useApifyProxy,
                 apifyProxyGroups,
                 apifyProxySession,
             });
+
+            crawler._requestFunction = async ({ request }) => {
+                const opts = crawler._getRequestOptions(request);
+                proxies.push(opts.proxy);
+                // it needs to return something valid
+                return Object.assign({ body: 'html' }, responseMock);
+            };
 
             await crawler.run();
             delete process.env[ENV_VARS.PROXY_PASSWORD];
@@ -775,7 +743,6 @@ describe('CheerioCrawler', () => {
                     new Apify.CheerioCrawler({
                         requestList,
                         handlePageFunction: async () => {},
-                        requestFunction: async () => {},
                         proxyUrls: ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'],
                         useApifyProxy: true,
                     });
@@ -790,7 +757,6 @@ describe('CheerioCrawler', () => {
                     new Apify.CheerioCrawler({
                         requestList,
                         handlePageFunction: async () => {},
-                        requestFunction: async () => {},
                         proxyUrls: [],
                     });
                     throw new Error('Invalid error.');
@@ -839,17 +805,6 @@ describe('CheerioCrawler', () => {
 
             const crawler = new Apify.CheerioCrawler({
                 requestList,
-                requestFunction: async () => {
-                    const err = new Error();
-                    err.code = 'ERR_ASSERTION';
-                    err.name = 'AssertionError [ERR_ASSERTION]';
-                    err.operator = '==';
-                    err.expected = 0;
-                    err.stack = ('xxx/tunnel-agent/index.js/yyyy');
-                    throwNextTick(err);
-                    // will never resolve
-                    await new Promise((r, rj) => {}); // eslint-disable-line no-unused-vars
-                },
                 requestTimeoutSecs: 1 / 1000,
                 handlePageFunction: () => {
                     handlePageCalled = true;
@@ -858,6 +813,18 @@ describe('CheerioCrawler', () => {
                     handleFailedRequestCallCount++;
                 },
             });
+
+            crawler._requestFunction = async () => {
+                const err = new Error();
+                err.code = 'ERR_ASSERTION';
+                err.name = 'AssertionError [ERR_ASSERTION]';
+                err.operator = '==';
+                err.expected = 0;
+                err.stack = ('xxx/tunnel-agent/index.js/yyyy');
+                throwNextTick(err);
+                // will never resolve
+                await new Promise(() => {});
+            };
 
             await requestList.initialize();
             await crawler.run();
