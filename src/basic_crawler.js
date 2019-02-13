@@ -309,6 +309,9 @@ class BasicCrawler {
         const request = await this._fetchNextRequest();
         if (!request) return;
 
+        // Reset loadedUrl so an old one is not carried over to retries.
+        request.loadedUrl = null;
+
         try {
             await this.handleRequestFunction({ request, autoscaledPool: this.autoscaledPool });
             await source.markRequestHandled(request);

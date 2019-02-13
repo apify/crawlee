@@ -792,6 +792,7 @@ describe('utils.createRequestDebugInfo()', () => {
         const request = {
             id: 'some-id',
             url: 'https://example.com',
+            loadedUrl: 'https://example.com',
             method: 'POST',
             retryCount: 2,
             errorMessages: ['xxx'],
@@ -811,6 +812,7 @@ describe('utils.createRequestDebugInfo()', () => {
         expect(Apify.utils.createRequestDebugInfo(request, response, additionalFields)).to.be.eql({
             requestId: 'some-id',
             url: 'https://example.com',
+            loadedUrl: 'https://example.com',
             method: 'POST',
             retryCount: 2,
             errorMessages: ['xxx'],
@@ -823,6 +825,7 @@ describe('utils.createRequestDebugInfo()', () => {
         const request = {
             id: 'some-id',
             url: 'https://example.com',
+            loadedUrl: 'https://example.com',
             method: 'POST',
             retryCount: 2,
             errorMessages: ['xxx'],
@@ -842,6 +845,7 @@ describe('utils.createRequestDebugInfo()', () => {
         expect(Apify.utils.createRequestDebugInfo(request, response, additionalFields)).to.be.eql({
             requestId: 'some-id',
             url: 'https://example.com',
+            loadedUrl: 'https://example.com',
             method: 'POST',
             retryCount: 2,
             errorMessages: ['xxx'],
