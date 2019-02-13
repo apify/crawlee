@@ -18,6 +18,29 @@ describe('Apify.Request', () => {
         expect(normalizedUrl).to.not.eql(url);
     });
 
+    it('works', () => {
+        const data = {
+            id: '123',
+            url: 'http://www.example.com',
+            uniqueKey: 'uniq',
+            method: 'POST',
+            payload: 'Some payload',
+            noRetry: true,
+            retryCount: 1,
+            errorMessages: [
+                'Something bad',
+            ],
+            headers: {
+                Test: 'Bla',
+            },
+            userData: {
+                yo: 123,
+            },
+            handledAt: new Date(),
+        };
+        expect(new Apify.Request(data)).to.include(data);
+    });
+
     it('should allow to push error messages', () => {
         const request = new Apify.Request({ url: 'http://example.com' });
 

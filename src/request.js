@@ -1,3 +1,4 @@
+import _ from 'underscore';
 import util from 'util';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { normalizeUrl } from 'apify-shared/utilities';
@@ -139,7 +140,12 @@ class Request {
         this.errorMessages = errorMessages;
         this.headers = headers;
         this.userData = userData;
-        this.handledAt = handledAt && new Date(handledAt);
+
+        // TODO: What is this text parsing good for? There's no unit test for it...
+        // eslint-disable-next-line no-nested-ternary
+        this.handledAt = _.isDate(handledAt)
+            ? handledAt
+            : (handledAt ? new Date(handledAt) : null);
     }
 
     /**
