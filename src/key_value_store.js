@@ -21,6 +21,7 @@ const readFilePromised = Promise.promisify(fs.readFile);
 const readdirPromised = Promise.promisify(fs.readdir);
 const writeFilePromised = Promise.promisify(fs.writeFile);
 const unlinkPromised = Promise.promisify(fs.unlink);
+const statPromised = Promise.promisify(fs.stat);
 const emptyDirPromised = Promise.promisify(fsExtra.emptyDir);
 
 const { keyValueStores } = apifyClient;
@@ -293,7 +294,7 @@ export class KeyValueStore {
 
     /**
      * Iterates over key value store keys, yielding each in turn to an `iteratee` function.
-     * Each invocation of `iteratee` is called with two arguments: `(item, index)`.
+     * Each invocation of `iteratee` is called with three arguments: `(item, index, info)`.
      *
      * If the `iteratee` function returns a Promise then it is awaited before the next call.
      * If it throws an error, the iteration is aborted and the `forEachKey` function throws the error.
@@ -301,8 +302,8 @@ export class KeyValueStore {
      * **Example usage**
      * ```javascript
      * const keyValueStore = await Apify.openKeyValueStore();
-     * keyValueStore.forEachKey(async (key, index) => {
-     *   console.log(`Key at ${index}: ${key}`);
+     * keyValueStore.forEachKey(async (key, index, info) => {
+     *   console.log(`Key at ${index}: ${key} has size ${info.size}`);
      * });
      * ```
      *
@@ -319,9 +320,9 @@ export class KeyValueStore {
         checkParamOrThrow(index, 'index', 'Number');
 
         const response = await keyValueStores.listKeys({ storeId: this.storeId, exclusiveStartKey });
-        const { nextExclusiveStartKey, isTruncated, items } = response.data;
-        for (const key of items) {
-            await iteratee(key, index++);
+        const { nextExclusiveStartKey, isTruncated, items } = response;
+        for (const item of items) {
+            await iteratee(item.key, index++, { size: item.size });
         }
         return isTruncated
             ? this.forEachKey(iteratee, { exclusiveStartKey: nextExclusiveStartKey }, index)
@@ -408,13 +409,33 @@ export class KeyValueStoreLocal {
         checkParamOrThrow(index, 'index', 'Number');
 
         const files = await readdirPromised(this.localStoragePath);
-        let keys = files.map(file => path.parse(file).name).sort(); // Array is sorted to emulate API.
+        let keys = [];
+        for (const file of files) {
+            try {
+                const { size } = await statPromised(this._getPath(file));
+                keys.push({
+                    key: path.parse(file).name,
+                    info: { size },
+                });
+            } catch (e) {
+                if (e.code !== 'ENOENT') {
+                    throw e;
+                }
+            }
+        }
+
+        keys = keys.sort((a, b) => {
+            if (a.key < b.key) return -1;
+            if (a.key > b.key) return 1;
+            return 0;
+        }); // Array is sorted to emulate API.
+
         if (exclusiveStartKey) {
-            const keyPos = keys.indexOf(exclusiveStartKey);
+            const keyPos = keys.findIndex(item => item.key === exclusiveStartKey);
             if (keyPos !== -1) keys = keys.slice(keyPos + 1);
         }
-        for (const key of keys) {
-            await iteratee(key, index++);
+        for (const item of keys) {
+            await iteratee(item.key, index++, item.info);
         }
     }
 

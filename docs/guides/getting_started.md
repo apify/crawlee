@@ -237,7 +237,7 @@ But `CheerioCrawler` is far from useless! It really shines when you need to do e
    - Does not enable any manipulation of the website before scraping
 
 ### Basic use of [`CheerioCrawler`](../api/cheeriocrawler)
-Now that we have an idea of the crawler's inner workings, let's build one. We'll use the example from the previous section and improve on it by letting it truly crawl the page, finding new links as it goes, enqueuing them into the `RequestQueue` and then scraping them. We'll also save some data to the [`Dataset`](../api/dataset), instead of just printing the results to the console.
+Now that we have an idea of the crawler's inner workings, let's build one. We'll use the example from the previous section and improve on it by letting it truly crawl the page, finding new links as it goes, enqueuing them into the `RequestQueue` and then scraping them.
 
 #### Refresher
 Just to refresh your memory, in the previous section we built a very simple crawler that downloads HTML of a single page, reads its title and prints it to the console. This is the original source code:

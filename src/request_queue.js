@@ -305,6 +305,7 @@ export class RequestQueue {
                 return this
                     .getRequest(nextId)
                     .then((request) => {
+                        // TODO: What happens when getRequest() fails? Shouldn't we run the code below too???
                         // We need to handle this situation because request may not be available
                         // immediately after adding to the queue.
                         if (!request) {
@@ -324,6 +325,7 @@ export class RequestQueue {
      * @return {Promise<QueueOperationInfo>}
      */
     markRequestHandled(request) {
+        // TODO: This function should also support object instead of Apify.Request()
         validateMarkRequestHandledParams(request);
 
         if (!this.requestIdsInProgress[request.id]) {
@@ -348,8 +350,9 @@ export class RequestQueue {
     }
 
     /**
-     * Reclaims failed request back to the queue,
-     * so that it can be processed later again.
+     * Reclaims failed request back to the queue, so that it can be processed later again.
+     * The request record in the queue is updated using the provided `request` parameter.
+     * For example, this lets you store the number of retries for the request.
      *
      * @param {Request} request
      * @param {Object} [options]
@@ -361,6 +364,9 @@ export class RequestQueue {
     reclaimRequest(request, options = {}) {
         const { forefront } = validateReclaimRequestParams(request, options);
 
+        // TODO: This function should also support object instead of Apify.Request()
+        // TODO: If request hasn't been changed since the last getRequest(),
+        // we don't need to call updateRequest() and thus improve performance.
         return requestQueues
             .updateRequest({
                 request,

@@ -250,6 +250,7 @@ class BasicCrawler {
     async _pauseOnMigration() {
         await this.autoscaledPool.pause(SAFE_MIGRATION_WAIT_MILLIS)
             .catch(() => {
+                // TODO: How can we be sure it's the right exception? We should check it
                 log.error('BasicCrawler: The crawler was paused due to migration to another host, '
                     + 'but some requests did not finish in time. Those requests\' results may be duplicated.');
             });

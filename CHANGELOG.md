@@ -2,8 +2,14 @@ xxx
 ===================
 - Added `loadedUrl` property to `Request` that contains the `request.url` after redirects.
 - Reduced default `handlePageTimeoutSecs` for both `CheerioCrawler` and `PuppeteerCrawler` to `60` seconds.
+- Added memory overload warning log message.
 
-0.11.7 / 2018/01/30
+0.11.8 / 2019-02-05
+===================
+- Fix the `keyValueStore.forEachKey()` method.
+- Fix version of `puppeteer` to prevent errors with automatic updates.
+
+0.11.7 / 2019-01-30
 ===================
 - Apify SDK now logs basic system info when `required`.
 - Added `utils.createRequestDebugInfo()` function to create a standardized debug info from request and response.
@@ -13,35 +19,35 @@ xxx
    when parsing a Cheerio object. (It's done automatically in browser when using Puppeteer).
 - Better error message for an invalid `launchPuppeteerFunction` passed to `PuppeteerPool`.
 
-0.11.6 / 2018-01-24
+0.11.6 / 2019-01-24
 ===================
 - **DEPRECATION WARNING** `Apify.utils.puppeteer.enqueueLinks()` was moved to `Apify.utils.enqueueLinks()`.
 - `Apify.utils.enqueueLinks()` now supports `options.$` property to enqueue links from a Cheerio object.
 
-0.11.5 / 2018-01-18
+0.11.5 / 2019-01-18
 ===================
 - Disabled the `PuppeteerPool` `reusePages` option for now, due to a memory leak.
 - Added a `keyValueStore.forEachKey()` method to iterate all keys in the store.
 
-0.11.4 / 2018-01-15
+0.11.4 / 2019-01-15
 ===================
 - Improvements in `Apify.utils.social.parseHandlesFromHtml` and `Apify.utils.htmlToText`
 - Updated docs
 
-0.11.3 / 2018-01-10
+0.11.3 / 2019-01-10
 ===================
 - Fix `reusePages` causing Puppeteer to fail when used together with request interception.
 
-0.11.2 / 2018-01-10
+0.11.2 / 2019-01-10
 ===================
 - Fix missing `reusePages` configuration parameter in `PuppeteerCrawler`.
 - Fix a memory leak where `reusePages` would prevent browsers from closing.
 
-0.11.1 / 2018-01-07
+0.11.1 / 2019-01-07
 ===================
 - Fix missing `autoscaledPool` parameter in `handlePageFunction` of `PuppeteerCrawler`.
 
-0.11.0 / 2018-01-07
+0.11.0 / 2019-01-07
 ===================
 - **BREAKING CHANGE:** `basicCrawler.abort()`, `cheerioCrawler.abort()` and `puppeteerCrawler.abort()` functions
   were removed in favor of a single `autoscaledPool.abort()` function.

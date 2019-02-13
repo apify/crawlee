@@ -135,16 +135,25 @@ module.exports = {
  *
  * **Example:**
  * ```
- * log.info('INFO') // prints INFO
- * log.debug('DEBUG') // doesn't print anything
+ * const Apify = require('apify');
+ * const { log } = Apify.utils;
  *
- * log.setLevel(log.LEVELS.DEBUG)
- * log.debug('DEBUG') // prints DEBUG
+ * log.info('Information message', { someData: 123 }); // prints message
+ * log.debug('Debug message', { debugData: 'hello' }); // doesn't print anything
  *
- * log.setLevel(log.LEVELS.ERROR)
- * log.debug('DEBUG') // doesn't print anything
- * log.info('INFO') // doesn't print anything
- * log.error('ERROR') // prints ERROR
+ * log.setLevel(log.LEVELS.DEBUG);
+ * log.debug('Debug message'); // prints message
+ *
+ * log.setLevel(log.LEVELS.ERROR);
+ * log.debug('Debug message'); // doesn't print anything
+ * log.info('Info message'); // doesn't print anything
+ *
+ * log.error('Error message', { errorDetails: 'This is bad!' }); // prints message
+ * try {
+ *   throw new Error('Not good!');
+ * } catch (e) {
+ *   log.exception(e, 'Exception occurred', { errorDetails: 'This is really bad!' }); // prints message
+ * }
  * ```
  *
  * Another very useful way of setting the log level is by setting the `APIFY_LOG_LEVEL`
