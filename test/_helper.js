@@ -7,9 +7,9 @@ export const LOCAL_STORAGE_DIR = path.join(__dirname, '..', 'tmp', 'local-emulat
 
 // Log unhandled rejections.
 process.on('unhandledRejection', (err) => {
-    console.log('---------------------------------------------------------------------');
-    console.log('- ERROR: Killing tests because of unhandled promise rejection !!!!! -');
-    console.log('---------------------------------------------------------------------');
+    console.log('----------------------------------------------------------------');
+    console.log('- ERROR: Exiting tests because of unhandled promise rejection! -');
+    console.log('----------------------------------------------------------------');
     console.log(err);
     process.exit(1);
 });
