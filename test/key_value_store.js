@@ -212,6 +212,7 @@ describe('KeyValueStore', () => {
         it('throws on invalid args', async () => {
             process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID] = '12345';
             process.env[ENV_VARS.LOCAL_STORAGE_DIR] = LOCAL_STORAGE_DIR;
+
             await expect(Apify.setValue()).to.be.rejectedWith('Parameter "key" of type String must be provided');
             await expect(Apify.setValue('', null)).to.be.rejectedWith('The "key" parameter cannot be empty');
             await expect(Apify.setValue('', 'some value')).to.be.rejectedWith('The "key" parameter cannot be empty');

@@ -355,31 +355,38 @@ export class KeyValueStoreLocal {
         this.initializationPromise = ensureDirExists(this.localStoragePath);
     }
 
-    getValue(key) {
+    async getValue(key) {
         validateGetValueParams(key);
 
-        return this.initializationPromise
-            .then(() => this._handleFile(key, readFilePromised))
-            .then((result) => {
-                return result
-                    ? parseBody(result.returnValue, mime.getType(result.fileName))
-                    : null;
-            })
-            .catch((err) => {
-                throw new Error(`Error reading file '${key}' in directory '${this.localStoragePath}' referred by ${ENV_VARS.LOCAL_STORAGE_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len
-            });
+        await this.initializationPromise;
+
+        try {
+            const result = await this._handleFile(key, readFilePromised);
+            return result
+                ? parseBody(result.returnValue, mime.getType(result.fileName))
+                : null;
+        } catch (err) {
+            throw new Error(`Error reading file '${key}' in directory '${this.localStoragePath}' referred by ${ENV_VARS.LOCAL_STORAGE_DIR} environment variable: ${err.message}`); // eslint-disable-line
+        }
     }
 
-    setValue(key, value, options = {}) {
+    async setValue(key, value, options = {}) {
         validateSetValueParams(key, value, options);
+
+        await this.initializationPromise;
 
         // Make copy of options, don't update what user passed.
         const optionsCopy = Object.assign({}, options);
 
-        const deletePromise = this._handleFile(key, unlinkPromised);
+        // First remove original file.
+        try {
+            await this._handleFile(key, unlinkPromised);
+        } catch (err) {
+            throw new Error(`Error removing file '${key}' in directory '${this.localStoragePath}' referred by ${ENV_VARS.LOCAL_STORAGE_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len
+        }
 
-        // In this case delete the record.
-        if (value === null) return deletePromise;
+        // In this case just delete the record.
+        if (value === null) return;
 
         value = maybeStringify(value, optionsCopy);
 
@@ -387,18 +394,18 @@ export class KeyValueStoreLocal {
         const extension = mime.getExtension(contentType) || DEFAULT_LOCAL_FILE_EXTENSION;
         const filePath = this._getPath(`${key}.${extension}`);
 
-        return deletePromise
-            .then(() => writeFilePromised(filePath, value))
-            .catch((err) => {
-                throw new Error(`Error writing file '${key}' in directory '${this.localStoragePath}' referred by ${ENV_VARS.LOCAL_STORAGE_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len
-            });
+        try {
+            await writeFilePromised(filePath, value);
+        } catch (err) {
+            throw new Error(`Error writing file '${key}' in directory '${this.localStoragePath}' referred by ${ENV_VARS.LOCAL_STORAGE_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len
+        }
     }
 
-    delete() {
-        return emptyDirPromised(this.localStoragePath)
-            .then(() => {
-                storesCache.remove(this.storeId);
-            });
+    async delete() {
+        await this.initializationPromise;
+        await emptyDirPromised(this.localStoragePath);
+
+        storesCache.remove(this.storeId);
     }
 
     async forEachKey(iteratee, options = {}, index = 0) {
@@ -406,6 +413,8 @@ export class KeyValueStoreLocal {
         checkParamOrThrow(iteratee, 'iteratee', 'Function');
         checkParamOrThrow(exclusiveStartKey, 'options.exclusiveStartKey', 'Maybe String');
         checkParamOrThrow(index, 'index', 'Number');
+
+        await this.initializationPromise;
 
         const files = await readdirPromised(this.localStoragePath);
         let keys = files.map(file => path.parse(file).name).sort(); // Array is sorted to emulate API.
