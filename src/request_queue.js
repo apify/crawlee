@@ -205,10 +205,6 @@ export class RequestQueue {
         // Caching requests to avoid duplicite addRequest() calls.
         // Key is computed using getRequestId() and value is { id, isHandled }.
         this.requestsCache = new LruCache({ maxLength: MAX_CACHED_REQUESTS });
-
-        // This contains false if we were not able to get queue head with queueModifiedAt older than
-        // at least API_PROCESSED_REQUESTS_DELAY_MILLIS.
-        this.isHeadConsistent = true;
     }
 
     /**
@@ -396,8 +392,8 @@ export class RequestQueue {
      */
     isEmpty() {
         return this
-            ._ensureHeadIsNonEmpty()
-            .then(() => this.isHeadConsistent && this.queueHeadDict.length() === 0);
+            ._ensureHeadIsNonEmpty(true)
+            .then(isHeadConsistent => isHeadConsistent && this.queueHeadDict.length() === 0);
     }
 
     /**
@@ -409,8 +405,8 @@ export class RequestQueue {
      */
     isFinished() {
         return this
-            ._ensureHeadIsNonEmpty()
-            .then(() => this.isHeadConsistent && this.inProgressCount === 0 && this.queueHeadDict.length() === 0);
+            ._ensureHeadIsNonEmpty(true)
+            .then(isHeadConsistent => isHeadConsistent && this.inProgressCount === 0 && this.queueHeadDict.length() === 0);
     }
 
     /**
@@ -468,7 +464,7 @@ export class RequestQueue {
         checkParamOrThrow(iteration, 'iteration', 'Number');
 
         // If is nonempty resolve immediately.
-        if (this.queueHeadDict.length()) return Promise.resolve();
+        if (this.queueHeadDict.length()) return Promise.resolve(true);
 
         if (!this.queryQueueHeadPromise) {
             const queryStartedAt = new Date();
@@ -500,8 +496,6 @@ export class RequestQueue {
 
         return this.queryQueueHeadPromise
             .then(({ queueModifiedAt, limitReached, prevLimit, queryStartedAt }) => {
-                this.isHeadConsistent = true;
-
                 // If queue is still empty then it's likely because some of the other calls waiting
                 // for this promise already consumed all the returned requests or the limit was too
                 // low and contained only requests in progress.
@@ -511,32 +505,25 @@ export class RequestQueue {
 
                 // If checkModifiedAt=true then we must ensure that queueModifiedAt is older than
                 // queryStartedAt for at least API_PROCESSED_REQUESTS_DELAY_MILLIS.
-                const shouldRepeatForConsistency = (
-                    checkModifiedAt
-                    && (queryStartedAt - queueModifiedAt > API_PROCESSED_REQUESTS_DELAY_MILLIS)
-                    && iteration
-                );
+                const shouldRepeatForConsistency = checkModifiedAt && (queryStartedAt - queueModifiedAt < API_PROCESSED_REQUESTS_DELAY_MILLIS);
 
-                if (shouldRepeatWithHigherLimit || shouldRepeatForConsistency) {
-                    // If we are queriing for consistency then we limit the number of queries to MAX_QUERIES_FOR_CONSISTENCY.
-                    // If this is reached then we set this.isHeadConsistent=true so that empty() and finished() returns
-                    // maybe false negative.
-                    if (!shouldRepeatWithHigherLimit && iteration > MAX_QUERIES_FOR_CONSISTENCY) {
-                        this.isHeadConsistent = false;
-                        return;
-                    }
+                // If both are false then head is consistent and we may exit.
+                if (!shouldRepeatWithHigherLimit && !shouldRepeatForConsistency) return true;
 
-                    const nextLimit = shouldRepeatWithHigherLimit
-                        ? prevLimit * 1.5
-                        : prevLimit;
+                // If we are querying for consistency then we limit the number of queries to MAX_QUERIES_FOR_CONSISTENCY.
+                // If this is reached then we return false so that empty() and finished() returns possibly false negative.
+                if (!shouldRepeatWithHigherLimit && iteration > MAX_QUERIES_FOR_CONSISTENCY) return false;
 
-                    const delayMillis = shouldRepeatForConsistency
-                        ? API_PROCESSED_REQUESTS_DELAY_MILLIS
-                        : 0;
+                const nextLimit = shouldRepeatWithHigherLimit
+                    ? prevLimit * 1.5
+                    : prevLimit;
 
-                    return delayPromise(delayMillis)
-                        .then(() => this._ensureHeadIsNonEmpty(checkModifiedAt, nextLimit, iteration + 1));
-                }
+                const delayMillis = shouldRepeatForConsistency
+                    ? API_PROCESSED_REQUESTS_DELAY_MILLIS
+                    : 0;
+
+                return delayPromise(delayMillis)
+                    .then(() => this._ensureHeadIsNonEmpty(checkModifiedAt, nextLimit, iteration + 1));
             });
     }
 
