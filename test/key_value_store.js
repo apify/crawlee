@@ -382,7 +382,10 @@ describe('KeyValueStore', () => {
                 .resolves({
                     isTruncated: true,
                     nextExclusiveStartKey: 'key2',
-                    items: ['key1', 'key2'],
+                    items: [
+                        { key: 'key1', size: 1 },
+                        { key: 'key2', size: 2 },
+                    ],
                 });
             mock.expects('listKeys')
                 .once()
@@ -393,7 +396,10 @@ describe('KeyValueStore', () => {
                 .resolves({
                     isTruncated: true,
                     nextExclusiveStartKey: 'key4',
-                    items: ['key3', 'key4'],
+                    items: [
+                        { key: 'key3', size: 3 },
+                        { key: 'key4', size: 4 },
+                    ],
                 });
             mock.expects('listKeys')
                 .once()
@@ -404,16 +410,17 @@ describe('KeyValueStore', () => {
                 .resolves({
                     isTruncated: false,
                     nextExclusiveStartKey: null,
-                    items: ['key5'],
+                    items: [{ key: 'key5', size: 5 }],
                 });
 
             const results = [];
-            await store.forEachKey(async (key, index) => {
-                results.push([key, index]);
+            await store.forEachKey(async (key, index, info) => {
+                results.push([key, index, info]);
             }, { exclusiveStartKey: 'key0' });
 
             expect(results).to.have.lengthOf(5);
             results.forEach((r, i) => {
+                expect(r[2]).to.be.eql({ size: i + 1 });
                 expect(r[1]).to.be.eql(i);
                 expect(r[0]).to.be.eql(`key${i + 1}`);
             });
@@ -430,12 +437,13 @@ describe('KeyValueStore', () => {
             }
 
             const results = [];
-            await store.forEachKey((key, index) => {
-                results.push([key, index]);
+            await store.forEachKey((key, index, info) => {
+                results.push([key, index, info]);
             }, { exclusiveStartKey: 'key3' });
 
             expect(results).to.have.lengthOf(6);
             results.forEach((r, i) => {
+                expect(r[2]).to.be.eql({ size: 2 });
                 expect(r[1]).to.be.eql(i);
                 expect(r[0]).to.be.eql(`key${i + 4}`);
             });
