@@ -95,7 +95,6 @@ xxx
 ===================
 - Added API response tracking to AutoscaledPool, leveraging `Apify.client.stats` object. It now overloads the system
   when a large amount of  429 - Too Many Requests is received.
->>>>>>> upstream/master
 
 0.9.13 / 2018-11-26
 ===================
