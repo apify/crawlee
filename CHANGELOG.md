@@ -1,7 +1,10 @@
 xxx
 ===================
-- Added `loadedUrl` property to `Request` that contains the `request.url` after redirects.
-- Reduced default `handlePageTimeoutSecs` for both `CheerioCrawler` and `PuppeteerCrawler` to `60` seconds.
+- **BREAKING CHANGE:** Reduced default `handlePageTimeoutSecs` for both `CheerioCrawler` and `PuppeteerCrawler` from 300 to 60 seconds,
+  in order to prevent stalling crawlers.
+- **BREAKING CHANGE:** `PseudoUrl` now performs case-insensitive matching, even for the query string part of the URLs.
+  If you need case sensitive matching, use an appropriate `RegExp` in place of a Pseudo URL string
+- Added `loadedUrl` property to `Request` that contains the final URL of the loaded page after all redirects.
 - Added memory overload warning log message.
 - Added `keyValueStore.getPublicUrl` function.
 
