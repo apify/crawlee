@@ -7,6 +7,7 @@ xxx
 - Added `loadedUrl` property to `Request` that contains the final URL of the loaded page after all redirects.
 - Added memory overload warning log message.
 - Added `keyValueStore.getPublicUrl` function.
+- Added `AutoscaledPool.setDesiredConcurrency()` function, improved docs
 
 0.11.8 / 2019-02-05
 ===================

@@ -83,12 +83,12 @@ const DEFAULT_OPTIONS = {
  *   To abort a run, use the [`abort()`](#AutoscaledPool+abort) method.
  *
  * @param {Number} [options.minConcurrency=1]
- *   Minimum number of tasks running in parallel.
+ *   The minimum number of tasks running in parallel.
  *
  *   *WARNING:* If you set this value too high with respect to the available system memory and CPU, your code might run extremely slow or crash.
  *   If you're not sure, just keep the default value and the concurrency will scale up automatically.
  * @param {Number} [options.maxConcurrency=1000]
- *   Maximum number of tasks running in parallel.
+ *   The maximum number of tasks running in parallel.
  * @param {Number} [options.desiredConcurrencyRatio=0.95]
  *   Minimum level of desired concurrency to reach before more scaling up is allowed.
  * @param {Number} [options.scaleUpStepRatio=0.05]
@@ -114,6 +114,18 @@ const DEFAULT_OPTIONS = {
  *   Options to be passed down to the {@link SystemStatus} constructor. This is useful for fine-tuning
  *   the system status reports. If a custom snapshotter is set in the options, it will be used
  *   by the pool.
+ *
+ * @property {Number} minConcurrency
+ *   The minimum number of tasks running in parallel.
+ *   To change this property safely, please use the {@link setMinConcurrency} function.
+ * @property {Number} maxConcurrency
+ *   The maximum number of tasks running in parallel.
+ *   To change this property safely, please use the {@link setMaxConcurrency} function.
+ * @property {Number} desiredConcurrency
+ *   The estimated number of parallel tasks that the system can currently support.
+ *   To change this property safely, please use the {@link setDesiredConcurrency} function.
+ * @property {Number} currentConcurrency
+ *   The number of tasks currently running in parallel.
  */
 class AutoscaledPool {
     constructor(options = {}) {
@@ -195,6 +207,18 @@ class AutoscaledPool {
      */
     setMinConcurrency(minConcurrency) {
         this.minConcurrency = minConcurrency;
+    }
+
+    /**
+     * Sets current desired concurrency for the pool.
+     *
+     * @param {Number} maxConcurrency
+     */
+    setDesiredConcurrency(desiredConcurrency) {
+        if (!(this.minConcurrency <= desiredConcurrency && desiredConcurrency <= this.maxConcurrency)) {
+            throw new Error(`The desired concurrency must be an integer from ${this.minConcurrency} to ${this.maxConcurrency}`);
+        }
+        this.desiredConcurrency = desiredConcurrency;
     }
 
     /**

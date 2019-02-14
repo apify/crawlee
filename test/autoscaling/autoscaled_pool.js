@@ -81,6 +81,15 @@ describe('AutoscaledPool', () => {
         const startedAt = Date.now();
         await pool.run();
 
+        // Test setDesiredConcurrency()
+        pool.setDesiredConcurrency(10);
+        expect(() => {
+            pool.setDesiredConcurrency(100);
+        }).to.throw(Error);
+        expect(() => {
+            pool.setDesiredConcurrency(-100);
+        }).to.throw(Error);
+
         expect(result).to.be.eql(_.range(0, 100));
         expect(Date.now() - startedAt).to.be.within(50, 200);
     });
