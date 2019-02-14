@@ -534,6 +534,7 @@ export class KeyValueStoreLocal {
      *
      * @param {string} fileName
      * @return {string}
+     * @ignore
      */
     getPublicUrl(fileName) {
         return `file://${this._getPath(fileName)}`;
