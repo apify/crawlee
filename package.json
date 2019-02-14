@@ -64,7 +64,7 @@
     "rimraf": "^2.6.2",
     "underscore": "^1.9.1",
     "ws": "^6.1.2",
-    "xregexp": "4.2.0"
+    "xregexp": "^4.2.4"
   },
   "devDependencies": {
     "@babel/cli": "^7.0.0",

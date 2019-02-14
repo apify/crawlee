@@ -4,7 +4,7 @@ xxx
   in order to prevent stalling crawlers.
 - **BREAKING CHANGE:** `PseudoUrl` now performs case-insensitive matching, even for the query string part of the URLs.
   If you need case sensitive matching, use an appropriate `RegExp` in place of a Pseudo URL string
-- **Upgraded to Puppeteer version 1.12.2**
+- **Upgraded to puppeteer@1.12.2** and xregexp@4.2.4
 - Added `loadedUrl` property to `Request` that contains the final URL of the loaded page after all redirects.
 - Added memory overload warning log message.
 - Added `keyValueStore.getPublicUrl` function.
