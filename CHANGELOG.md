@@ -3,6 +3,7 @@ xxx
 - Added `loadedUrl` property to `Request` that contains the `request.url` after redirects.
 - Reduced default `handlePageTimeoutSecs` for both `CheerioCrawler` and `PuppeteerCrawler` to `60` seconds.
 - Added memory overload warning log message.
+- Added `keyValueStore.getPublicUrl` function.
 
 0.11.8 / 2019-02-05
 ===================

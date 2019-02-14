@@ -120,3 +120,9 @@ export const USER_AGENT_LIST = [
     'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:56.0) Gecko/20100101 Firefox/56.0',
     'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36 OPR/56.0.3051.99',
 ];
+
+/**
+ * Base URL of Apify's API endpoints.
+ * @type {string}
+ */
+export const APIFY_API_BASE_URL = 'https://api.apify.com/v2';
