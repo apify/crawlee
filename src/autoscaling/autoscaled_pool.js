@@ -117,15 +117,16 @@ const DEFAULT_OPTIONS = {
  *
  * @property {Number} minConcurrency
  *   The minimum number of tasks running in parallel.
- *   To change this property safely, please use the {@link setMinConcurrency} function.
+ *   To change this property safely, use the {@link setMinConcurrency} function.
  * @property {Number} maxConcurrency
  *   The maximum number of tasks running in parallel.
- *   To change this property safely, please use the {@link setMaxConcurrency} function.
+ *   To change this property safely, use the {@link setMaxConcurrency} function.
  * @property {Number} desiredConcurrency
  *   The estimated number of parallel tasks that the system can currently support.
- *   To change this property safely, please use the {@link setDesiredConcurrency} function.
+ *   To change this property safely, use the {@link setDesiredConcurrency} function.
  * @property {Number} currentConcurrency
  *   The number of tasks currently running in parallel.
+ *   Do NOT set this field directly, otherwise the auto-scaled pool will get to an inconsistent state.
  */
 class AutoscaledPool {
     constructor(options = {}) {
