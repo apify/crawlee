@@ -7,7 +7,7 @@ import { APIFY_PROXY_VALUE_REGEX } from 'apify-shared/regexs';
 import { ENV_VARS, LOCAL_ENV_VARS, ACT_JOB_TERMINAL_STATUSES, ACT_JOB_STATUSES } from 'apify-shared/consts';
 import { EXIT_CODES } from './constants';
 import { initializeEvents, stopEvents } from './events';
-import { newPromise, apifyClient, addCharsetToContentType } from './utils';
+import { apifyClient, addCharsetToContentType } from './utils';
 import { maybeStringify } from './key_value_store';
 import { ApifyCallError } from './errors';
 
