@@ -131,6 +131,16 @@ const setEnv = (env) => {
 };
 
 describe('Apify.getEnv()', () => {
+    let prevEnv;
+
+    before(() => {
+        prevEnv = Apify.getEnv();
+    });
+
+    after(() => {
+        setEnv(prevEnv);
+    });
+
     it('works with null values', () => {
         const expectedEnv = getEmptyEnv();
         setEnv(expectedEnv);
@@ -218,11 +228,9 @@ describe('Apify.main()', () => {
 
     it('on exception in promised user function the process exits with code 91', () => {
         return testMain({
-            userFunc: () => {
-                return delayPromise(20)
-                    .then(() => {
-                        throw new Error('Text exception II');
-                    });
+            userFunc: async () => {
+                await delayPromise(20);
+                throw new Error('Test exception II');
             },
             exitCode: 91,
         });

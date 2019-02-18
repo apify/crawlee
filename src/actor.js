@@ -219,28 +219,29 @@ export const main = (userFunc) => {
     // Such a construct is used for testing of actor timeouts and aborts.
     const intervalId = setInterval(_.noop, 9999999);
 
-    try {
-        newPromise()
-            .then(() => initializeEvents())
-            .then(() => userFunc())
-            .catch((err) => {
-                stopEvents();
-                clearInterval(intervalId);
-                if (!exited) {
-                    exitWithError(err, EXIT_CODES.ERROR_USER_FUNCTION_THREW, 'The function passed to Apify.main() threw an exception:');
-                }
-            })
-            .then(() => {
-                stopEvents();
-                clearInterval(intervalId);
-                if (!exited) {
-                    process.exit(EXIT_CODES.SUCCESS);
-                }
-            });
-    } catch (err) {
-        // This can happen if, e.g. there's no Promise dependency
+    // Using async here to have nice stack traces for errors
+    const run = async () => {
+        initializeEvents();
+        try {
+            await userFunc();
+
+            stopEvents();
+            clearInterval(intervalId);
+            if (!exited) {
+                process.exit(EXIT_CODES.SUCCESS);
+            }
+        } catch (err) {
+            stopEvents();
+            clearInterval(intervalId);
+            if (!exited) {
+                exitWithError(err, EXIT_CODES.ERROR_USER_FUNCTION_THREW, 'The function passed to Apify.main() threw an exception:');
+            }
+        }
+    };
+
+    run().catch((err) => {
         exitWithError(err, EXIT_CODES.ERROR_UNKNOWN, 'Unknown error occurred');
-    }
+    });
 };
 
 let callMemoryWarningIssued = false;

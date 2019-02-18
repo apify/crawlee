@@ -8,7 +8,10 @@ xxx
 - Added `loadedUrl` property to `Request` that contains the final URL of the loaded page after all redirects.
 - Added memory overload warning log message.
 - Added `keyValueStore.getPublicUrl` function.
-- Updated `DEFAULT_USER_AGENT` and `USER_AGENT_LIST`
+- Updated `DEFAULT_USER_AGENT` and `USER_AGENT_LIST` with new User Agents
+- Bugfix: `LocalRequestQueue.getRequest()` threw an exception if request was not found
+- Added `RequestQueue.getInfo()` function
+- Improved `Apify.main()` to provide nicer stack traces on errors
 
 0.11.8 / 2019-02-05
 ===================
