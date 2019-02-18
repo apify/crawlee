@@ -50,6 +50,7 @@ describe('RequestQueue', () => {
             expect(await queue.getRequest(request2.id)).to.be.eql(request2);
             expect(await queue.getRequest(request3.id)).to.be.eql(request3);
             expect(await queue.getRequest(request1.id)).to.not.be.eql(request3);
+            expect(await queue.getRequest('non-exiting')).to.be.eql(null);
 
             expect(request3.url).to.be.eql('http://example.com/last-but-first');
             expect(request1.url).to.be.eql('http://example.com/first');
@@ -201,32 +202,76 @@ describe('RequestQueue', () => {
             ).to.be.eql('http://example.com/a');
         });
 
-        it('should return correct handledCount', async () => {
-            const queue = new RequestQueueLocal('id', LOCAL_STORAGE_DIR);
+        it('getInfo() and handledCount() should work', async () => {
+            const queueName = 'stats-queue';
+            const queue = new RequestQueueLocal(queueName, LOCAL_STORAGE_DIR);
             let count = await queue.handledCount();
+            let info;
             expect(count).to.be.eql(0);
             const r1 = new Apify.Request({ url: 'http://example.com/1' });
             const r2 = new Apify.Request({ url: 'http://example.com/2' });
             const r3 = new Apify.Request({ url: 'http://example.com/3' });
-            await queue.addRequest(r1);
+            const op1 = await queue.addRequest(r1);
             await queue.addRequest(r2);
+
             count = await queue.handledCount();
+            info = await queue.getInfo();
             expect(count).to.be.eql(0);
+            expect(info).to.be.an('object');
+            expect(info.id).to.be.eql(queueName);
+            expect(info.name).to.be.eql(queueName);
+            expect(info.userId).to.be.eql(null);
+            expect(info.totalRequestCount).to.be.eql(2);
+            expect(info.pendingRequestCount).to.be.eql(2);
+            expect(info.handledRequestCount).to.be.eql(0);
+            const cTime = info.createdAt.getTime();
+            let mTime = info.modifiedAt.getTime();
+            expect(cTime).to.be.below(Date.now() + 1);
+            expect(cTime).to.be.eql(mTime);
+
             const rf1 = await queue.fetchNextRequest();
             await queue.markRequestHandled(rf1);
             count = await queue.handledCount();
+            info = await queue.getInfo();
             expect(count).to.be.eql(1);
+            expect(info.totalRequestCount).to.be.eql(2);
+            expect(info.pendingRequestCount).to.be.eql(1);
+            expect(info.handledRequestCount).to.be.eql(1);
+
             await queue.addRequest(r3);
             const rf2 = await queue.fetchNextRequest();
             await queue.markRequestHandled(rf2);
             const rf3 = await queue.fetchNextRequest();
             await queue.markRequestHandled(rf3);
             count = await queue.handledCount();
+            info = await queue.getInfo();
             expect(count).to.be.eql(3);
+            expect(info.totalRequestCount).to.be.eql(3);
+            expect(info.pendingRequestCount).to.be.eql(0);
+            expect(info.handledRequestCount).to.be.eql(3);
 
-            const newQueue = new RequestQueueLocal('id', LOCAL_STORAGE_DIR);
+            // Test access time
+            await Apify.utils.sleep(11);
+            await queue.getRequest(op1.requestId);
+            await Apify.utils.sleep(11);
+            const now = Date.now();
+            await Apify.utils.sleep(11);
+            info = await queue.getInfo();
+            const cTime2 = info.createdAt.getTime();
+            mTime = info.modifiedAt.getTime();
+            const aTime = info.accessedAt.getTime();
+            expect(cTime).to.be.eql(cTime2);
+            expect(mTime).to.be.below(aTime);
+            expect(mTime).to.be.below(now);
+            expect(aTime).to.be.below(now);
+
+            const newQueue = new RequestQueueLocal(queueName, LOCAL_STORAGE_DIR);
             count = await newQueue.handledCount();
+            info = await queue.getInfo();
             expect(count).to.be.eql(3);
+            expect(info.totalRequestCount).to.be.eql(3);
+            expect(info.pendingRequestCount).to.be.eql(0);
+            expect(info.handledRequestCount).to.be.eql(3);
         });
     });
 
@@ -275,6 +320,17 @@ describe('RequestQueue', () => {
             expect(requestBFromQueue).to.be.eql(requestB);
             expect(queue.queueHeadDict.length()).to.be.eql(0);
             expect(queue.inProgressCount).to.be.eql(1);
+
+            // getRequest() returns null if object was not found.
+            mock.expects('getRequest')
+                .once()
+                .withArgs({
+                    queueId: 'some-id',
+                    requestId: 'non-existent',
+                })
+                .returns(Promise.resolve(null));
+            const requestXFromQueue = await queue.getRequest('non-existent');
+            expect(requestXFromQueue).to.be.eql(null);
 
             // Reclaim it.
             mock.expects('updateRequest')
@@ -622,6 +678,34 @@ describe('RequestQueue', () => {
                 }));
 
             expect(await queue.isFinished()).to.be.eql(true);
+
+            mock.verify();
+            mock.restore();
+        });
+
+        it('getInfo() should work', async () => {
+            const queue = new RequestQueue('some-id', 'some-name');
+            const mock = sinon.mock(apifyClient.requestQueues);
+
+            const expected = {
+                id: 'WkzbQMuFYuamGv3YF',
+                name: 'my-queue',
+                userId: 'wRsJZtadYvn4mBZmm',
+                createdAt: new Date('2015-12-12T07:34:14.202Z'),
+                modifiedAt: new Date('2015-12-13T08:36:13.202Z'),
+                accessedAt: new Date('2015-12-14T08:36:13.202Z'),
+                totalRequestCount: 0,
+                handledRequestCount: 0,
+                pendingRequestCount: 0,
+            };
+
+            mock.expects('getQueue')
+                .once()
+                .returns(Promise.resolve(expected));
+
+            const result = await queue.getInfo();
+
+            expect(result).to.be.eql(expected);
 
             mock.verify();
             mock.restore();

@@ -30,6 +30,7 @@ const writeFilePromised = Promise.promisify(fs.writeFile);
 const readdirPromised = Promise.promisify(fs.readdir);
 const readFilePromised = Promise.promisify(fs.readFile);
 const renamePromised = Promise.promisify(fs.rename);
+const statPromised = Promise.promisify(fs.stat);
 const emptyDirPromised = Promise.promisify(fsExtra.emptyDir);
 
 const { requestQueues } = apifyClient;
@@ -267,25 +268,24 @@ export class RequestQueue {
      * Gets the request from the queue specified by ID.
      *
      * @param {String} requestId Request ID
-     * @return {Promise<Request>}
+     * @return {Promise<Request>} Returns the request object, or `null` if it was not found.
      */
-    getRequest(requestId) {
+    async getRequest(requestId) {
         validateGetRequestParams(requestId);
 
         // TODO: Could we also use requestsCache here? It would be consistent with addRequest()
+        const obj = await requestQueues.getRequest({
+            requestId,
+            queueId: this.queueId,
+        });
 
-        return requestQueues
-            .getRequest({
-                requestId,
-                queueId: this.queueId,
-            })
-            .then(obj => (obj ? new Request(obj) : obj));
+        return obj ? new Request(obj) : obj;
     }
 
     /**
      * Returns next request in the queue to be processed.
      *
-     * @returns {Promise<Request>}
+     * @returns {Promise<Request>} Returns the request object, or `null` if there are no more pending requests.
      */
     fetchNextRequest() {
         return this
@@ -550,8 +550,38 @@ export class RequestQueue {
      * @return {Promise<number>}
      */
     async handledCount() {
+        // TODO: We should deprectate this function in favor of getInfo()
         const queueInfo = await requestQueues.getQueue({ queueId: this.queueId });
         return queueInfo.handledRequestCount;
+    }
+
+    /**
+     * Returns an object containing general information about the request queue.
+     *
+     * **Example:**
+     * ```
+     * {
+     *   "id": "WkzbQMuFYuamGv3YF",
+     *   "name": "my-queue",
+     *   "userId": "wRsJZtadYvn4mBZmm",
+     *   "createdAt": new Date("2015-12-12T07:34:14.202Z"),
+     *   "modifiedAt": new Date("2015-12-13T08:36:13.202Z"),
+     *   "accessedAt": new Date("2015-12-14T08:36:13.202Z"),
+     *   totalRequestCount: 0,
+     *   handledRequestCount: 0,
+     *   pendingRequestCount: 0,
+     * }
+     * ```
+     * @param {Object} [options={}]
+     *   Additional options passed to Apify API Client's
+     *   [getQueue](https://www.apify.com/docs/api/apify-client-js/latest#ApifyClient-requestQueues-getQueue) function.
+     * @returns {Promise<Object>}
+     */
+    getInfo(options = {}) {
+        const { queueId } = this;
+        const params = Object.assign({ queueId }, options);
+
+        return requestQueues.getQueue(params);
     }
 }
 
@@ -590,6 +620,10 @@ export class RequestQueueLocal {
         this.requestIdToQueueOrderNo = {};
         this.queueOrderNoInProgress = {};
 
+        this.createdAt = null;
+        this.modifiedAt = null;
+        this.accessedAt = null;
+
         this.initializationPromise = this._initialize();
     }
 
@@ -609,6 +643,11 @@ export class RequestQueueLocal {
         const handledPaths = handled.map(filename => path.join(this.localHandledEmulationPath, filename));
         const pendingPaths = pending.map(filename => path.join(this.localPendingEmulationPath, filename));
         const filePaths = handledPaths.concat(pendingPaths);
+
+        const stats = await statPromised(this.localPendingEmulationPath);
+        this.createdAt = stats.birthtime;
+        this.modifiedAt = stats.mtime;
+        this.accessedAt = stats.atime;
 
         return Promise.mapSeries(filePaths, filepath => this._readFile(filepath));
     }
@@ -709,6 +748,9 @@ export class RequestQueueLocal {
         return this.initializationPromise
             .then(() => {
                 const queueOrderNo = this.requestIdToQueueOrderNo[requestId];
+
+                // TODO: We should update the last access time to files...
+                if (!queueOrderNo) return null;
 
                 return this._getRequestByQueueOrderNo(queueOrderNo);
             });
@@ -835,6 +877,24 @@ export class RequestQueueLocal {
     async handledCount() {
         await this.initializationPromise;
         return this._handledCount;
+    }
+
+    async getInfo() {
+        await this.initializationPromise;
+
+        const id = this.queueId;
+        const name = id === ENV_VARS.DEFAULT_REQUEST_QUEUE_ID ? null : id;
+        return {
+            id,
+            name,
+            userId: process.env[ENV_VARS.USER_ID] || null,
+            createdAt: this.createdAt,
+            modifiedAt: this.modifiedAt,
+            accessedAt: this.accessedAt,
+            totalRequestCount: this._handledCount + this.pendingCount,
+            handledRequestCount: this._handledCount,
+            pendingRequestCount: this.pendingCount,
+        };
     }
 }
 
