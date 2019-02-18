@@ -251,11 +251,11 @@ describe('RequestQueue', () => {
             expect(info.handledRequestCount).to.be.eql(3);
 
             // Test access time
-            await Apify.utils.sleep(11);
+            await Apify.utils.sleep(2);
             await queue.getRequest(op1.requestId);
-            await Apify.utils.sleep(11);
+            await Apify.utils.sleep(2);
             const now = Date.now();
-            await Apify.utils.sleep(11);
+            await Apify.utils.sleep(2);
             info = await queue.getInfo();
             const cTime2 = info.createdAt.getTime();
             mTime = info.modifiedAt.getTime();
