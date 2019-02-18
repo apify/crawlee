@@ -259,14 +259,19 @@ export class Dataset {
      * ```
      * {
      *   "id": "WkzbQMuFYuamGv3YF",
-     *   "name": "d7b9MDYsbtX5L7XAj",
+     *   "name": "my-dataset",
      *   "userId": "wRsJZtadYvn4mBZmm",
-     *   "createdAt": "2015-12-12T07:34:14.202Z",
-     *   "modifiedAt": "2015-12-13T08:36:13.202Z",
-     *   "accessedAt": "2015-12-14T08:36:13.202Z",
-     *   "itemCount": 0
+     *   "createdAt": new Date("2015-12-12T07:34:14.202Z"),
+     *   "modifiedAt": new Date("2015-12-13T08:36:13.202Z"),
+     *   "accessedAt": new Date("2015-12-14T08:36:13.202Z"),
+     *   "itemCount": 14,
+     *   "cleanItemCount": 10
      * }
      * ```
+     *
+     * @param {Object} [options={}]
+     *   Additional options passed to Apify API Client's
+     *   [getDataset](https://www.apify.com/docs/api/apify-client-js/latest#ApifyClient-datasets-getDataset) function.
      *
      * @returns {Promise<Object>}
      */
@@ -431,6 +436,11 @@ export class DatasetLocal {
         this.localStoragePath = path.resolve(path.join(localStorageDir, LOCAL_STORAGE_SUBDIR, datasetId));
         this.counter = null;
         this.datasetId = datasetId;
+
+        this.createdAt = null;
+        this.modifiedAt = null;
+        this.accessedAt = null;
+
         this.initializationPromise = this._initialize();
     }
 
@@ -513,6 +523,8 @@ export class DatasetLocal {
                     modifiedAt: this.modifiedAt,
                     accessedAt: this.accessedAt,
                     itemCount: this.counter,
+                    // TODO: This number is not counted correctly!
+                    cleanItemCount: this.counter,
                 };
             });
     }
