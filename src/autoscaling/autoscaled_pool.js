@@ -114,19 +114,6 @@ const DEFAULT_OPTIONS = {
  *   Options to be passed down to the {@link SystemStatus} constructor. This is useful for fine-tuning
  *   the system status reports. If a custom snapshotter is set in the options, it will be used
  *   by the pool.
- *
- * @property {Number} minConcurrency
- *   The minimum number of tasks running in parallel.
- *   To change this property safely, use the {@link setMinConcurrency} function.
- * @property {Number} maxConcurrency
- *   The maximum number of tasks running in parallel.
- *   To change this property safely, use the {@link setMaxConcurrency} function.
- * @property {Number} desiredConcurrency
- *   The estimated number of parallel tasks that the system can currently support.
- *   To change this property safely, use the {@link setDesiredConcurrency} function.
- * @property {Number} currentConcurrency
- *   The number of tasks currently running in parallel.
- *   Do NOT set this field directly, otherwise the auto-scaled pool will get to an inconsistent state.
  */
 class AutoscaledPool {
     constructor(options = {}) {
@@ -161,8 +148,6 @@ class AutoscaledPool {
         checkParamOrThrow(snapshotterOptions, 'options.snapshotterOptions', 'Maybe Object');
 
         // Configurable properties.
-        this.maxConcurrency = maxConcurrency;
-        this.minConcurrency = minConcurrency;
         this.desiredConcurrencyRatio = desiredConcurrencyRatio;
         this.scaleUpStepRatio = scaleUpStepRatio;
         this.scaleDownStepRatio = scaleDownStepRatio;
@@ -174,9 +159,11 @@ class AutoscaledPool {
         this.isTaskReadyFunction = isTaskReadyFunction;
 
         // Internal properties.
+        this._maxConcurrency = maxConcurrency;
+        this._minConcurrency = minConcurrency;
+        this._desiredConcurrency = this._minConcurrency;
+        this._currentConcurrency = 0;
         this.isStopped = false;
-        this.desiredConcurrency = this.minConcurrency;
-        this.currentConcurrency = 0;
         this.lastLoggingTime = 0;
         this.resolve = null;
         this.reject = null;
@@ -190,36 +177,79 @@ class AutoscaledPool {
         this.systemStatus = new SystemStatus(ssoCopy);
     }
 
+
     /**
-     * Overrides max concurrency configuration.
-     *
-     * @param {Number} maxConcurrency
+     * @private
      */
     setMaxConcurrency(maxConcurrency) {
-        this.maxConcurrency = maxConcurrency;
+        log.deprecated('AutoscaledPool.setMaxConcurrency() is deprecated, use the "maxConcurrency" property instead');
+        this._maxConcurrency = maxConcurrency;
     }
 
     /**
-     * Overrides min concurrency configuration.
+     * @private
+     */
+    setMinConcurrency(minConcurrency) {
+        log.deprecated('AutoscaledPool.setMaxConcurrency() is deprecated, use the "maxConcurrency" property instead');
+        this._minConcurrency = minConcurrency;
+    }
+
+
+    /**
+     * Gets the minimum number of tasks running in parallel.
+     */
+    get minConcurrency() {
+        return this._minConcurrency;
+    }
+
+    /**
+     * Sets the minimum number of tasks running in parallel.
      *
      * *WARNING:* If you set this value too high with respect to the available system memory and CPU, your code might run extremely slow or crash.
      * If you're not sure, just keep the default value and the concurrency will scale up automatically.
-     * @param {Number} minConcurrency
      */
-    setMinConcurrency(minConcurrency) {
-        this.minConcurrency = minConcurrency;
+    set minConcurrency(value) {
+        this._minConcurrency = value;
     }
 
     /**
-     * Sets current desired concurrency for the pool.
-     *
-     * @param {Number} maxConcurrency
+     * Gets the maximum number of tasks running in parallel.
      */
-    setDesiredConcurrency(desiredConcurrency) {
-        if (!(this.minConcurrency <= desiredConcurrency && desiredConcurrency <= this.maxConcurrency)) {
-            throw new Error(`The desired concurrency must be an integer from ${this.minConcurrency} to ${this.maxConcurrency}`);
+    get maxConcurrency() {
+        return this._maxConcurrency;
+    }
+
+    /**
+     * Sets the maximum number of tasks running in parallel.
+     */
+    set maxConcurrency(value) {
+        this._maxConcurrency = value;
+    }
+
+    /**
+     * Gets the desired concurrency for the pool,
+     * which is an estimated number of parallel tasks that the system can currently support.
+     */
+    get desiredConcurrency() {
+        return this._desiredConcurrency;
+    }
+
+    /**
+     * Sets the desired concurrency for the pool, i.e. the number of tasks that should be running
+     * in parallel if there's large enough supply of tasks.
+     */
+    set desiredConcurrency(value) {
+        if (!(this._minConcurrency <= value && value <= this._maxConcurrency)) {
+            throw new Error(`The desired concurrency must be an integer from ${this._minConcurrency} to ${this._maxConcurrency}`);
         }
-        this.desiredConcurrency = desiredConcurrency;
+        this._desiredConcurrency = value;
+    }
+
+    /**
+     * Gets the the number of parallel tasks currently running in the pool.
+     */
+    get currentConcurrency() {
+        return this._currentConcurrency;
     }
 
     /**
@@ -301,7 +331,7 @@ class AutoscaledPool {
             }
 
             const interval = setInterval(() => {
-                if (this.currentConcurrency <= 0) {
+                if (this._currentConcurrency <= 0) {
                     // Clean up timeout and interval to prevent process hanging.
                     if (timeout) clearTimeout(timeout);
                     clearInterval(interval);
@@ -341,11 +371,11 @@ class AutoscaledPool {
         // - we are already querying for a task.
         if (this.queryingIsTaskReady) return done();
         // - we would exceed desired concurrency.
-        if (this.currentConcurrency >= this.desiredConcurrency) return done();
+        if (this._currentConcurrency >= this._desiredConcurrency) return done();
         // - system is overloaded now and we are at or above minConcurrency
         const currentStatus = this.systemStatus.getCurrentStatus();
         const { isSystemIdle } = currentStatus;
-        if (!isSystemIdle && this.currentConcurrency >= this.minConcurrency) {
+        if (!isSystemIdle && this._currentConcurrency >= this._minConcurrency) {
             log.debug('AutoscaledPool: Task will not be run. System is overloaded.', currentStatus);
             return done();
         }
@@ -372,7 +402,7 @@ class AutoscaledPool {
 
         try {
             // Everything's fine. Run task.
-            this.currentConcurrency++;
+            this._currentConcurrency++;
             // Try to run next task to build up concurrency,
             // but defer it so it doesn't create a cycle.
             setImmediate(this._maybeRunTask);
@@ -382,7 +412,7 @@ class AutoscaledPool {
 
             // Execute the current task.
             await this.runTaskFunction();
-            this.currentConcurrency--;
+            this._currentConcurrency--;
             // Run task after the previous one finished.
             setImmediate(this._maybeRunTask);
         } catch (err) {
@@ -411,10 +441,10 @@ class AutoscaledPool {
         const systemStatus = this.systemStatus.getHistoricalStatus();
         const { isSystemIdle } = systemStatus;
         // - we're not already at max concurrency.
-        const weAreNotAtMax = this.desiredConcurrency < this.maxConcurrency;
+        const weAreNotAtMax = this._desiredConcurrency < this._maxConcurrency;
         // - current concurrency reaches at least the given ratio of desired concurrency.
-        const minCurrentConcurrency = Math.floor(this.desiredConcurrency * this.desiredConcurrencyRatio);
-        const weAreReachingDesiredConcurrency = this.currentConcurrency >= minCurrentConcurrency;
+        const minCurrentConcurrency = Math.floor(this._desiredConcurrency * this.desiredConcurrencyRatio);
+        const weAreReachingDesiredConcurrency = this._currentConcurrency >= minCurrentConcurrency;
 
         if (isSystemIdle && weAreNotAtMax && weAreReachingDesiredConcurrency) this._scaleUp(systemStatus);
 
@@ -422,7 +452,7 @@ class AutoscaledPool {
         // - the system has been overloaded lately.
         const isSystemOverloaded = !isSystemIdle;
         // - we're over min concurrency.
-        const weAreNotAtMin = this.desiredConcurrency > this.minConcurrency;
+        const weAreNotAtMin = this._desiredConcurrency > this._minConcurrency;
 
         if (isSystemOverloaded && weAreNotAtMin) this._scaleDown(systemStatus);
 
@@ -432,8 +462,8 @@ class AutoscaledPool {
             if (now > this.lastLoggingTime + this.loggingIntervalMillis) {
                 this.lastLoggingTime = now;
                 log.info('AutoscaledPool state', {
-                    currentConcurrency: this.currentConcurrency,
-                    desiredConcurrency: this.desiredConcurrency,
+                    currentConcurrency: this._currentConcurrency,
+                    desiredConcurrency: this._desiredConcurrency,
                     systemStatus,
                 });
             }
@@ -451,11 +481,11 @@ class AutoscaledPool {
      * @ignore
      */
     _scaleUp(systemStatus) {
-        const step = Math.ceil(this.desiredConcurrency * this.scaleUpStepRatio);
-        this.desiredConcurrency = Math.min(this.maxConcurrency, this.desiredConcurrency + step);
+        const step = Math.ceil(this._desiredConcurrency * this.scaleUpStepRatio);
+        this._desiredConcurrency = Math.min(this._maxConcurrency, this._desiredConcurrency + step);
         log.debug('AutoscaledPool: scaling up', {
-            oldConcurrency: this.desiredConcurrency - step,
-            newConcurrency: this.desiredConcurrency,
+            oldConcurrency: this._desiredConcurrency - step,
+            newConcurrency: this._desiredConcurrency,
             systemStatus,
         });
     }
@@ -468,11 +498,11 @@ class AutoscaledPool {
      * @ignore
      */
     _scaleDown(systemStatus) {
-        const step = Math.ceil(this.desiredConcurrency * this.scaleUpStepRatio);
-        this.desiredConcurrency = Math.max(this.minConcurrency, this.desiredConcurrency - step);
+        const step = Math.ceil(this._desiredConcurrency * this.scaleUpStepRatio);
+        this._desiredConcurrency = Math.max(this._minConcurrency, this._desiredConcurrency - step);
         log.debug('AutoscaledPool: scaling down', {
-            oldConcurrency: this.desiredConcurrency + step,
-            newConcurrency: this.desiredConcurrency,
+            oldConcurrency: this._desiredConcurrency + step,
+            newConcurrency: this._desiredConcurrency,
             systemStatus,
         });
     }
@@ -487,7 +517,7 @@ class AutoscaledPool {
      */
     async _maybeFinish() {
         if (this.queryingIsFinished) return;
-        if (this.currentConcurrency > 0) return;
+        if (this._currentConcurrency > 0) return;
 
         this.queryingIsFinished = true;
         try {
