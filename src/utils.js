@@ -15,8 +15,9 @@ import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { version as apifyClientVersion } from 'apify-client/package.json';
 import { version as apifyVersion } from '../package.json';
-import { USER_AGENT_LIST } from './constants';
+import userAgents from 'user-agents';
 
+    
 /* globals process */
 
 /**
@@ -437,8 +438,7 @@ const extractUrls = ({ string, urlRegExp = URL_NO_COMMAS_REGEX }) => {
  * @memberOf utils
  */
 const getRandomUserAgent = () => {
-    const index = getRandomInt(USER_AGENT_LIST.length);
-    return USER_AGENT_LIST[index];
+    return new userAgents().toString();
 };
 
 /**
