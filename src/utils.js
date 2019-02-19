@@ -10,14 +10,13 @@ import requestPromise from 'request-promise-native';
 import XRegExp from 'xregexp';
 import cheerio from 'cheerio';
 import log from 'apify-shared/log';
-import { delayPromise, getRandomInt } from 'apify-shared/utilities';
+import UserAgents from 'user-agents';
+import { delayPromise } from 'apify-shared/utilities';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { version as apifyClientVersion } from 'apify-client/package.json';
 import { version as apifyVersion } from '../package.json';
-import userAgents from 'user-agents';
 
-    
 /* globals process */
 
 /**
@@ -438,7 +437,7 @@ const extractUrls = ({ string, urlRegExp = URL_NO_COMMAS_REGEX }) => {
  * @memberOf utils
  */
 const getRandomUserAgent = () => {
-    return new userAgents().toString();
+    return new UserAgents().toString();
 };
 
 /**
