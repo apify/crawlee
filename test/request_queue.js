@@ -227,7 +227,7 @@ describe('RequestQueue', () => {
             const cTime = info.createdAt.getTime();
             let mTime = info.modifiedAt.getTime();
             expect(cTime).to.be.below(Date.now() + 1);
-            expect(cTime).to.be.eql(mTime);
+            expect(cTime).to.be.at.most(mTime);
 
             const rf1 = await queue.fetchNextRequest();
             await queue.markRequestHandled(rf1);
