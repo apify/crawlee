@@ -94,7 +94,7 @@ const parsePurl = (purl) => {
  * });
  *
  * // Using a regular expression
- * const purl2 = new Apify.PseudoUrl(/http:\/\/www\.example\.com\/pages\/(\\w|-)+);
+ * const purl2 = new Apify.PseudoUrl(/http:\/\/www\.example\.com\/pages\/(\w|-)+/);
  *
  * if (purl.matches('http://www.example.com/pages/my-awesome-page')) console.log('Match!');
  * ```
