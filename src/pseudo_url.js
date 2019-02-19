@@ -50,7 +50,7 @@ const parsePurl = (purl) => {
 };
 
 /**
- * Represents a pseudo URL (PURL) - an URL pattern used by web crawlers
+ * Represents a pseudo-URL (PURL) - an URL pattern used by web crawlers
  * to specify which URLs should the crawler visit.
  * This class is used by the [`utils.enqueueLinks()`](utils#utils.enqueueLinks) function.
  *
@@ -58,8 +58,10 @@ const parsePurl = (purl) => {
  * Currently, the only supported directive is `[RegExp]`,
  * which defines a JavaScript-style regular expression to match against the URL.
  *
- * The matching of Pseudo URL string against URLs is always case insensitive.
- * If you need case sensitive matching, use an appropriate `RegExp` in place of a Pseudo URL string.
+ * The `PseudoUrl` class can be constructed either using a pseudo-URL string
+ * or a regular expression (an instance of the `RegExp` object).
+ * With a pseudo-URL string, the matching is always case-insensitive.
+ * If you need case-sensitive matching, use an appropriate `RegExp` object.
  *
  * For example, a PURL `http://www.example.com/pages/[(\w|-)*]` will match all of the following URLs:
  *
@@ -90,7 +92,7 @@ const parsePurl = (purl) => {
  * ```
  *
  * @param {String|RegExp} purl
- *   Pseudo URL string or a `RegExp` instance.
+ *   A pseudo-URL string or a regular expression object.
  *   Using a `RegExp` instance enables more granular control,
  *   such as making the matching case sensitive.
  * @param {Object} requestTemplate
@@ -117,7 +119,7 @@ class PseudoUrl {
      * Determines whether a URL matches this pseudo-URL pattern.
      *
      * @param {String} url URL to be matched.
-     * @return {Boolean} Returns `true` if given URL matches pseudo URL.
+     * @return {Boolean} Returns `true` if given URL matches pseudo-URL.
      */
     matches(url) {
         return _.isString(url) && url.match(this.regex) !== null;
