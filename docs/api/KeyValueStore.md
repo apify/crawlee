@@ -67,6 +67,7 @@ await store.delete('some-key');
     * [`.getValue(key)`](#KeyValueStore+getValue) ⇒ <code>Promise&lt;(Object|String|Buffer)&gt;</code>
     * [`.setValue(key, value, [options])`](#KeyValueStore+setValue) ⇒ <code>Promise</code>
     * [`.delete()`](#KeyValueStore+delete) ⇒ <code>Promise</code>
+    * [`.getPublicUrl(key)`](#KeyValueStore+getPublicUrl) ⇒ <code>string</code>
     * [`.forEachKey(iteratee, [options])`](#KeyValueStore+forEachKey) ⇒ <code>Promise</code>
 
 <a name="KeyValueStore+getValue"></a>
@@ -188,11 +189,30 @@ otherwise the actor process might finish before the value is stored!
 Removes the key-value store either from the Apify cloud storage or from the local directory,
 depending on the mode of operation.
 
+<a name="KeyValueStore+getPublicUrl"></a>
+
+## `keyValueStore.getPublicUrl(key)` ⇒ <code>string</code>
+Returns a URL for the given key that may be used to publicly
+access the value in the remote key value store.
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>key</code></td><td><code>string</code></td>
+</tr>
+<tr>
+</tr></tbody>
+</table>
 <a name="KeyValueStore+forEachKey"></a>
 
 ## `keyValueStore.forEachKey(iteratee, [options])` ⇒ <code>Promise</code>
 Iterates over key value store keys, yielding each in turn to an `iteratee` function.
-Each invocation of `iteratee` is called with two arguments: `(item, index)`.
+Each invocation of `iteratee` is called with three arguments: `(item, index, info)`.
 
 If the `iteratee` function returns a Promise then it is awaited before the next call.
 If it throws an error, the iteration is aborted and the `forEachKey` function throws the error.
@@ -200,8 +220,8 @@ If it throws an error, the iteration is aborted and the `forEachKey` function th
 **Example usage**
 ```javascript
 const keyValueStore = await Apify.openKeyValueStore();
-keyValueStore.forEachKey(async (key, index) => {
-  console.log(`Key at ${index}: ${key}`);
+keyValueStore.forEachKey(async (key, index, info) => {
+  console.log(`Key at ${index}: ${key} has size ${info.size}`);
 });
 ```
 

@@ -49,6 +49,15 @@ const foo = request.userData.foo;
 <tr>
 <td colspan="3"><p>URL of the web page to crawl.</p>
 </td></tr><tr>
+<td><code>loadedUrl</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>An actually loaded URL after redirects, if present. HTTP redirects are guaranteed
+  to be included.</p>
+<p>  When using <a href="puppeteercrawler"><code>PuppeteerCrawler</code></a>, meta tag and JavaScript redirects may,
+  or may not be included, depending on their nature. This generally means that redirects,
+  which happen immediately will most likely be included, but delayed redirects will not.</p>
+</td></tr><tr>
 <td><code>uniqueKey</code></td><td><code>String</code></td>
 </tr>
 <tr>
