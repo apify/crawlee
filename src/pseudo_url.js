@@ -71,6 +71,7 @@ const parsePurl = (purl) => {
  *     <li><code>http://www.example.com/pages/something</code></li>
  * </ul>
  *
+ * Be careful to correctly escape special characters in the pseudo-URL string.
  * If either `[` or `]` is part of the normal query string, it must be encoded as `[\x5B]` or `[\x5D]`,
  * respectively. For example, the following PURL:
  * ```http
@@ -81,12 +82,19 @@ const parsePurl = (purl) => {
  * http://www.example.com/search?do[load]=1
  * ```
  *
+ * If the regular expression in the pseudo-URL contains a backslash character (\),
+ * you need to escape it with another back backslash, as shown in the example below.
+ *
  * **Example usage:**
  *
  * ```javascript
- * const purl = new Apify.PseudoUrl('http://www.example.com/pages/[(\w|-)*]', {
+ * // Using a pseudo-URL string
+ * const purl = new Apify.PseudoUrl('http://www.example.com/pages/[(\\w|-)+]', {
  *   userData: { foo: 'bar' },
  * });
+ *
+ * // Using a regular expression
+ * const purl2 = new Apify.PseudoUrl(/http:\/\/www\.example\.com\/pages\/(\\w|-)+);
  *
  * if (purl.matches('http://www.example.com/pages/my-awesome-page')) console.log('Match!');
  * ```
