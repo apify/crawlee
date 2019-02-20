@@ -1,5 +1,4 @@
-import chai, { expect } from 'chai';
-import chaiAsPromised from 'chai-as-promised';
+import { expect } from 'chai';
 import fs from 'fs-extra';
 import path from 'path';
 import sinon from 'sinon';
@@ -12,8 +11,6 @@ import * as Apify from '../build/index';
 import { LOCAL_STORAGE_DIR, emptyLocalStorageSubdir, expectDirEmpty, expectDirNonEmpty } from './_helper';
 
 const { apifyClient } = utils;
-
-chai.use(chaiAsPromised);
 
 const read = (datasetName, index) => {
     const fileName = `${leftpad(index, LOCAL_FILENAME_DIGITS, 0)}.json`;

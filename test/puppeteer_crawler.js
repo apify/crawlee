@@ -1,10 +1,7 @@
-import chai, { expect } from 'chai';
-import chaiAsPromised from 'chai-as-promised';
+import { expect } from 'chai';
 import log from 'apify-shared/log';
 import { ENV_VARS } from 'apify-shared/consts';
 import * as Apify from '../build/index';
-
-chai.use(chaiAsPromised);
 
 describe('PuppeteerCrawler', () => {
     let prevEnvHeadless;

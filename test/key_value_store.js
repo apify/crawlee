@@ -1,5 +1,4 @@
-import chai, { expect } from 'chai';
-import chaiAsPromised from 'chai-as-promised';
+import { expect } from 'chai';
 import sinon from 'sinon';
 import path from 'path';
 import { ENV_VARS, KEY_VALUE_STORE_KEYS } from 'apify-shared/consts';
@@ -9,8 +8,6 @@ import * as Apify from '../build/index';
 import { LOCAL_STORAGE_DIR, emptyLocalStorageSubdir, expectDirEmpty, expectDirNonEmpty } from './_helper';
 
 const { apifyClient } = utils;
-
-chai.use(chaiAsPromised);
 
 describe('KeyValueStore', () => {
     before(() => apifyClient.setOptions({ token: 'xxx' }));

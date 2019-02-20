@@ -1,5 +1,4 @@
-import chai, { expect } from 'chai';
-import chaiAsPromised from 'chai-as-promised';
+import { expect } from 'chai';
 import sinon from 'sinon';
 import _ from 'underscore';
 import fs from 'fs';
@@ -11,8 +10,6 @@ import LruCache from 'apify-shared/lru_cache';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import * as utils from '../build/utils';
 import Apify from '../build/index';
-
-chai.use(chaiAsPromised);
 
 /* global process, describe, it */
 
