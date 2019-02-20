@@ -255,26 +255,30 @@ export class Dataset {
     /**
      * Returns an object containing general information about the dataset.
      *
+     * The function returns the same object as the Apify API Client's
+     * [getDataset](https://www.apify.com/docs/api/apify-client-js/latest#ApifyClient-datasets-getDataset)
+     * function, which in turn calls the
+     * [Get dataset](https://www.apify.com/docs/api/v2#/reference/datasets/dataset/get-dataset)
+     * API endpoint.
+     *
      * **Example:**
      * ```
      * {
      *   "id": "WkzbQMuFYuamGv3YF",
-     *   "name": "d7b9MDYsbtX5L7XAj",
+     *   "name": "my-dataset",
      *   "userId": "wRsJZtadYvn4mBZmm",
-     *   "createdAt": "2015-12-12T07:34:14.202Z",
-     *   "modifiedAt": "2015-12-13T08:36:13.202Z",
-     *   "accessedAt": "2015-12-14T08:36:13.202Z",
-     *   "itemCount": 0
+     *   "createdAt": new Date("2015-12-12T07:34:14.202Z"),
+     *   "modifiedAt": new Date("2015-12-13T08:36:13.202Z"),
+     *   "accessedAt": new Date("2015-12-14T08:36:13.202Z"),
+     *   "itemCount": 14,
+     *   "cleanItemCount": 10
      * }
      * ```
      *
      * @returns {Promise<Object>}
      */
-    getInfo(options = {}) {
-        const { datasetId } = this;
-        const params = Object.assign({ datasetId }, options);
-
-        return datasets.getDataset(params);
+    async getInfo() {
+        return datasets.getDataset({ datasetId: this.datasetId });
     }
 
     /**
@@ -431,6 +435,11 @@ export class DatasetLocal {
         this.localStoragePath = path.resolve(path.join(localStorageDir, LOCAL_STORAGE_SUBDIR, datasetId));
         this.counter = null;
         this.datasetId = datasetId;
+
+        this.createdAt = null;
+        this.modifiedAt = null;
+        this.accessedAt = null;
+
         this.initializationPromise = this._initialize();
     }
 
@@ -500,21 +509,25 @@ export class DatasetLocal {
             });
     }
 
-    getInfo() {
-        return this.initializationPromise
-            .then(() => {
-                const id = this.datasetId;
-                const name = id === ENV_VARS.DEFAULT_DATASET_ID ? null : id;
-                return {
-                    id,
-                    name,
-                    userId: process.env[ENV_VARS.USER_ID] || null,
-                    createdAt: this.createdAt,
-                    modifiedAt: this.modifiedAt,
-                    accessedAt: this.accessedAt,
-                    itemCount: this.counter,
-                };
-            });
+    async getInfo() {
+        await this.initializationPromise;
+
+        const id = this.datasetId;
+        const name = id === ENV_VARS.DEFAULT_DATASET_ID ? null : id;
+        const result = {
+            id,
+            name,
+            userId: process.env[ENV_VARS.USER_ID] || null,
+            createdAt: this.createdAt,
+            modifiedAt: this.modifiedAt,
+            accessedAt: this.accessedAt,
+            itemCount: this.counter,
+            // TODO: This number is not counted correctly!
+            cleanItemCount: this.counter,
+        };
+
+        this._updateMetadata();
+        return result;
     }
 
     forEach(iteratee) {

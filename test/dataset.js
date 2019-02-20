@@ -30,7 +30,7 @@ describe('dataset', () => {
     afterEach(() => emptyLocalStorageSubdir(LOCAL_STORAGE_SUBDIR));
 
     describe('local', async () => {
-        it('should succesfully save data', async () => {
+        it('should successfully save data', async () => {
             const dataset = new DatasetLocal('my-dataset', LOCAL_STORAGE_DIR);
 
             await dataset.pushData({ foo: 'bar' });
@@ -122,7 +122,7 @@ describe('dataset', () => {
             await Apify.utils.sleep(2);
 
             // Save orig env var since it persists over tests.
-            const original = process.env[ENV_VARS.USER_ID];
+            const originalUserId = process.env[ENV_VARS.USER_ID];
             // Try empty ID
             delete process.env[ENV_VARS.USER_ID];
 
@@ -132,10 +132,9 @@ describe('dataset', () => {
             expect(info.name).to.be.eql(datasetName);
             expect(info.userId).to.be.eql(null);
             expect(info.itemCount).to.be.eql(0);
-
+            expect(info.cleanItemCount).to.be.eql(0);
             const cTime = info.createdAt.getTime();
             let mTime = info.modifiedAt.getTime();
-
             expect(cTime).to.be.below(Date.now() + 1);
             expect(cTime).to.be.eql(mTime);
 
@@ -153,10 +152,9 @@ describe('dataset', () => {
             expect(info.name).to.be.eql(datasetName);
             expect(info.userId).to.be.eql(null);
             expect(info.itemCount).to.be.eql(4);
-
+            expect(info.cleanItemCount).to.be.eql(4);
             mTime = info.modifiedAt.getTime();
             let aTime = info.accessedAt.getTime();
-
             expect(cTime).to.be.below(Date.now());
             expect(cTime).to.be.below(mTime);
             expect(mTime).to.be.eql(aTime);
@@ -176,18 +174,18 @@ describe('dataset', () => {
             expect(info.name).to.be.eql(datasetName);
             expect(info.userId).to.be.eql(userId);
             expect(info.itemCount).to.be.eql(4);
-
+            expect(info.cleanItemCount).to.be.eql(4);
             const cTime2 = info.createdAt.getTime();
             mTime = info.modifiedAt.getTime();
             aTime = info.accessedAt.getTime();
-
             expect(cTime).to.be.eql(cTime2);
             expect(mTime).to.be.below(aTime);
             expect(mTime).to.be.below(now);
             expect(aTime).to.be.below(now);
 
             // Restore.
-            process.env[ENV_VARS.USER_ID] = original;
+            delete process.env[ENV_VARS.USER_ID];
+            if (originalUserId) process.env[ENV_VARS.USER_ID] = originalUserId;
         });
 
         it('forEach() should work', async () => {
@@ -504,10 +502,11 @@ describe('dataset', () => {
                 id: 'WkzbQMuFYuamGv3YF',
                 name: 'd7b9MDYsbtX5L7XAj',
                 userId: 'wRsJZtadYvn4mBZmm',
-                createdAt: '2015-12-12T07:34:14.202Z',
-                modifiedAt: '2015-12-13T08:36:13.202Z',
-                accessedAt: '2015-12-14T08:36:13.202Z',
-                itemCount: 0,
+                createdAt: new Date('2015-12-12T07:34:14.202Z'),
+                modifiedAt: new Date('2015-12-13T08:36:13.202Z'),
+                accessedAt: new Date('2015-12-14T08:36:13.202Z'),
+                itemCount: 14,
+                cleanItemCount: 10,
             };
 
             mock.expects('getDataset')
