@@ -11,7 +11,7 @@ import XRegExp from 'xregexp';
 import cheerio from 'cheerio';
 import log from 'apify-shared/log';
 import UserAgents from 'user-agents';
-import { delayPromise } from 'apify-shared/utilities';
+import { delayPromise, getRandomInt } from 'apify-shared/utilities';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { version as apifyClientVersion } from 'apify-client/package.json';
@@ -34,6 +34,7 @@ const URL_WITH_COMMAS_REGEX = XRegExp('https?://(www\\.)?[\\p{L}0-9][-\\p{L}0-9@
 
 const ensureDirPromised = util.promisify(fsExtra.ensureDir);
 const psTreePromised = util.promisify(psTree);
+let userAgentList = null;
 
 /**
  * Creates an instance of ApifyClient using options as defined in the environment variables.
@@ -437,7 +438,11 @@ const extractUrls = ({ string, urlRegExp = URL_NO_COMMAS_REGEX }) => {
  * @memberOf utils
  */
 const getRandomUserAgent = () => {
-    return new UserAgents().toString();
+    if (userAgentList === null) {
+        const generateUserAgent = new UserAgents({ deviceCategory: 'desktop', userAgent: /^Mozilla/ });
+        userAgentList = Array(500).fill().map(() => generateUserAgent());
+    }
+    return userAgentList[getRandomInt(userAgentList.length)].toString();
 };
 
 /**
