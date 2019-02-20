@@ -2,7 +2,7 @@ import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import sinon from 'sinon';
 import path from 'path';
-import { ENV_VARS } from 'apify-shared/consts';
+import { ENV_VARS, KEY_VALUE_STORE_KEYS } from 'apify-shared/consts';
 import { KeyValueStoreLocal, KeyValueStore, maybeStringify, getFileNameRegexp, LOCAL_STORAGE_SUBDIR } from '../build/key_value_store';
 import * as utils from '../build/utils';
 import * as Apify from '../build/index';
@@ -473,6 +473,25 @@ describe('KeyValueStore', () => {
             expectDirNonEmpty(storeDir);
             await store.delete();
             expectDirEmpty(storeDir);
+        });
+    });
+
+    describe('getInput', async () => {
+        it('should work', async () => {
+            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = 'something';
+            const defaultStore = await Apify.openKeyValueStore();
+
+            // Uses default value.
+            defaultStore.getValue = async key => expect(key).to.be.eql(KEY_VALUE_STORE_KEYS.INPUT);
+            await Apify.getInput();
+
+            // Uses value from env var.
+            process.env[ENV_VARS.INPUT_KEY] = 'some-value';
+            defaultStore.getValue = async key => expect(key).to.be.eql('some-value');
+            await Apify.getInput();
+
+            delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
+            delete process.env[ENV_VARS.INPUT_KEY];
         });
     });
 });

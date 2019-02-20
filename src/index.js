@@ -7,7 +7,7 @@ import BasicCrawler from './basic_crawler';
 import CheerioCrawler from './cheerio_crawler';
 import { pushData, openDataset } from './dataset';
 import events, { initializeEvents, stopEvents } from './events';
-import { getValue, setValue, openKeyValueStore } from './key_value_store';
+import { getValue, setValue, getInput, openKeyValueStore } from './key_value_store';
 import { launchPuppeteer } from './puppeteer';
 import PuppeteerCrawler from './puppeteer_crawler';
 import PuppeteerPool from './puppeteer_pool';
@@ -79,6 +79,7 @@ module.exports = {
     // Key-value store
     getValue,
     setValue,
+    getInput,
     openKeyValueStore,
 
     // Puppeteer

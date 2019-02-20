@@ -6,7 +6,7 @@ import contentTypeParser from 'content-type';
 import LruCache from 'apify-shared/lru_cache';
 import mime from 'mime';
 import { KEY_VALUE_STORE_KEY_REGEX } from 'apify-shared/regexs';
-import { ENV_VARS, LOCAL_STORAGE_SUBDIRS } from 'apify-shared/consts';
+import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, KEY_VALUE_STORE_KEYS } from 'apify-shared/consts';
 import { checkParamOrThrow, parseBody } from 'apify-client/build/utils';
 import {
     addCharsetToContentType, apifyClient, ensureDirExists, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists,
@@ -594,8 +594,6 @@ export const openKeyValueStore = (storeIdOrName, options = {}) => {
         : openRemoteStorage(storeIdOrName, ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID, KeyValueStore, storesCache, getOrCreateKeyValueStore);
 };
 
-//
-
 /**
  * Gets a value from the default {@link KeyValueStore} associated with the current actor run.
  *
@@ -625,8 +623,7 @@ export const openKeyValueStore = (storeIdOrName, options = {}) => {
  * @name getValue
  * @function
  */
-export const getValue = key => openKeyValueStore().then(store => store.getValue(key));
-
+export const getValue = async key => openKeyValueStore().then(store => store.getValue(key));
 
 /**
  * Stores or deletes a value in the default {@link KeyValueStore} associated with the current actor run.
@@ -667,4 +664,29 @@ export const getValue = key => openKeyValueStore().then(store => store.getValue(
  * @name setValue
  * @function
  */
-export const setValue = (key, value, options) => openKeyValueStore().then(store => store.setValue(key, value, options));
+export const setValue = async (key, value, options) => openKeyValueStore().then(store => store.setValue(key, value, options));
+
+/**
+ * Gets the actor input value from the default {@link KeyValueStore} associated with the current actor run.
+ *
+ * This is just a convenient shortcut for [`keyValueStore.getValue('INPUT')`](keyvaluestore#KeyValueStore+getValue).
+ * For example, calling the following code:
+ * ```javascript
+ * const input = await Apify.getInput();
+ * ```
+ *
+ * is equivalent to:
+ * ```javascript
+ * const store = await Apify.openKeyValueStore();
+ * await store.getValue('INPUT');
+ * ```
+ *
+ * For more information, see [`Apify.openKeyValueStore()`](#module_Apify.openKeyValueStore)
+ * and [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+getValue).
+ *
+ * @returns {Promise<Object>}
+ *   Returns a promise that resolves once the record is stored.
+ * @memberof module:Apify
+ * @name getInput
+ */
+export const getInput = async () => getValue(process.env[ENV_VARS.INPUT_KEY] || KEY_VALUE_STORE_KEYS.INPUT);
