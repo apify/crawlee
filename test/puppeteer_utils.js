@@ -20,18 +20,40 @@ describe('Apify.utils.puppeteer', () => {
     });
 
     it('injectFile()', async () => {
+        /* eslint-disable no-shadow */
         const browser = await Apify.launchPuppeteer({ headless: true });
-        try {
+        const survive = async (browser) => {
+            // Survive navigations
             const page = await browser.newPage();
-            await Apify.utils.puppeteer.injectFile(page, path.join(__dirname, 'data', 'inject_file.js'));
-            // let result = await page.evaluate(() => window.injectedVariable);
-            // expect(result).to.be.eql(42);
+            let result = await page.evaluate(() => window.injectedVariable === 42);
+            expect(result).to.be.eql(false);
+            await Apify.utils.puppeteer.injectFile(page, path.join(__dirname, 'data', 'inject_file.txt'), { surviveNavigations: true });
+            result = await page.evaluate(() => window.injectedVariable);
+            expect(result).to.be.eql(42);
             await page.goto('about:chrome');
-            let result = await page.evaluate(() => window.injectedVariable);
+            result = await page.evaluate(() => window.injectedVariable);
             expect(result).to.be.eql(42);
             await page.goto('https://www.example.com');
             result = await page.evaluate(() => window.injectedVariable);
             expect(result).to.be.eql(42);
+        };
+        const remove = async (browser) => {
+            // Remove with navigations
+            const page = await browser.newPage();
+            let result = await page.evaluate(() => window.injectedVariable === 42);
+            expect(result).to.be.eql(false);
+            await page.goto('about:chrome');
+            result = await page.evaluate(() => window.injectedVariable === 42);
+            expect(result).to.be.eql(false);
+            await Apify.utils.puppeteer.injectFile(page, path.join(__dirname, 'data', 'inject_file.txt'));
+            result = await page.evaluate(() => window.injectedVariable);
+            expect(result).to.be.eql(42);
+            await page.goto('https://www.example.com');
+            result = await page.evaluate(() => window.injectedVariable === 42);
+            expect(result).to.be.eql(false);
+        };
+        try {
+            await Promise.all([survive(browser), remove(browser)]);
         } finally {
             browser.close();
         }

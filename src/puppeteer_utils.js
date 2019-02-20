@@ -9,8 +9,8 @@ import { RequestQueue, RequestQueueLocal } from './request_queue';
 import Request from './request';
 import { enqueueLinks } from './enqueue_links';
 
-const jqueryPath = require.resolve('jquery');
-const underscorePath = require.resolve('underscore');
+const jqueryPath = require.resolve('jquery/dist/jquery.min');
+const underscorePath = require.resolve('underscore/underscore-min');
 const readFilePromised = util.promisify(fs.readFile);
 
 /**
@@ -62,16 +62,23 @@ const hideWebDriver = async (page) => {
  * @param {Page} page
  *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
  * @param {String} filePath File path
+ * @param {Object} [options]
+ * @param {boolean} [options.surviveNavigations]
+ *   Enables the injected script to survive page navigations and reloads without need to be re-injected manually.
+ *   This does not mean, however, that internal state will be preserved. Just that it will be automatically
+ *   re-injected on each navigation before any other scripts get the chance to execute.
  * @return {Promise}
  * @memberOf puppeteer
  */
-const injectFile = async (page, filePath) => {
+const injectFile = async (page, filePath, options = {}) => {
     checkParamOrThrow(page, 'page', 'Object');
     checkParamOrThrow(filePath, 'filePath', 'String');
+    checkParamOrThrow(options, 'options', 'Object');
 
     const contents = await readFilePromised(filePath, 'utf8');
+    if (options.surviveNavigations) await page.evaluateOnNewDocument(contents);
 
-    return page.evaluateOnNewDocument(contents);
+    return page.evaluate(contents);
 };
 
 /**
@@ -104,7 +111,7 @@ const injectJQuery = (page) => {
     checkParamOrThrow(page, 'page', 'Object');
 
     // TODO: For better performance we could use minimized version of the script
-    return injectFile(page, jqueryPath);
+    return injectFile(page, jqueryPath, { surviveNavigations: true });
 };
 
 /**
@@ -130,7 +137,7 @@ const injectUnderscore = (page) => {
     checkParamOrThrow(page, 'page', 'Object');
 
     // TODO: For better performance we could use minimized version of the script
-    return injectFile(page, underscorePath);
+    return injectFile(page, underscorePath, { surviveNavigations: true });
 };
 
 /**
