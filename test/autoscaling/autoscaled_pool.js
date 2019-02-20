@@ -81,6 +81,16 @@ describe('AutoscaledPool', () => {
         const startedAt = Date.now();
         await pool.run();
 
+        // Test setDesiredConcurrency()
+        pool.desiredConcurrency = 10;
+        expect(pool.desiredConcurrency).to.be.eql(10);
+        expect(() => {
+            pool.desiredConcurrency = 100;
+        }).to.throw(Error);
+        expect(() => {
+            pool.desiredConcurrency = -100;
+        }).to.throw(Error);
+
         expect(result).to.be.eql(_.range(0, 100));
         expect(Date.now() - startedAt).to.be.within(50, 200);
     });
@@ -117,12 +127,12 @@ describe('AutoscaledPool', () => {
             pool._autoscale(cb);
             expect(pool.desiredConcurrency).to.be.eql(2); // because currentConcurrency is not high enough;
 
-            pool.currentConcurrency = 2;
+            pool._currentConcurrency = 2;
             pool._autoscale(cb);
             expect(pool.desiredConcurrency).to.be.eql(3);
 
             systemStatus.okNow = false; // this should have no effect
-            pool.currentConcurrency = 3;
+            pool._currentConcurrency = 3;
             pool._autoscale(cb);
             expect(pool.desiredConcurrency).to.be.eql(4);
 
@@ -134,13 +144,13 @@ describe('AutoscaledPool', () => {
         it('works with high values', () => {
             // Should not scale because current concurrency is too low.
             pool.desiredConcurrency = 50;
-            pool.currentConcurrency = Math.floor(pool.desiredConcurrency * pool.desiredConcurrencyRatio) - 1;
+            pool._currentConcurrency = Math.floor(pool.desiredConcurrency * pool.desiredConcurrencyRatio) - 1;
             systemStatus.okLately = true;
             pool._autoscale(cb);
             expect(pool.desiredConcurrency).to.be.eql(50);
 
             // Should scale because we bumped up current concurrency.
-            pool.currentConcurrency = Math.floor(pool.desiredConcurrency * pool.desiredConcurrencyRatio);
+            pool._currentConcurrency = Math.floor(pool.desiredConcurrency * pool.desiredConcurrencyRatio);
             let newConcurrency = pool.desiredConcurrency + Math.ceil(pool.desiredConcurrency * pool.scaleUpStepRatio);
             pool._autoscale(cb);
             expect(pool.desiredConcurrency).to.be.eql(newConcurrency);
