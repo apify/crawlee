@@ -156,8 +156,9 @@ Marks request handled after successful processing.
 <a name="RequestQueue+reclaimRequest"></a>
 
 ## `requestQueue.reclaimRequest(request, [options])` ⇒ [<code>Promise&lt;QueueOperationInfo&gt;</code>](../typedefs/queueoperationinfo)
-Reclaims failed request back to the queue,
-so that it can be processed later again.
+Reclaims failed request back to the queue, so that it can be processed later again.
+The request record in the queue is updated using the provided `request` parameter.
+For example, this lets you store the number of retries for the request.
 
 <table>
 <thead>

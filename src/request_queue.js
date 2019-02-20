@@ -30,6 +30,7 @@ const writeFilePromised = Promise.promisify(fs.writeFile);
 const readdirPromised = Promise.promisify(fs.readdir);
 const readFilePromised = Promise.promisify(fs.readFile);
 const renamePromised = Promise.promisify(fs.rename);
+const statPromised = Promise.promisify(fs.stat);
 const emptyDirPromised = Promise.promisify(fsExtra.emptyDir);
 
 const { requestQueues } = apifyClient;
@@ -267,25 +268,24 @@ export class RequestQueue {
      * Gets the request from the queue specified by ID.
      *
      * @param {String} requestId Request ID
-     * @return {Promise<Request>}
+     * @return {Promise<Request>} Returns the request object, or `null` if it was not found.
      */
-    getRequest(requestId) {
+    async getRequest(requestId) {
         validateGetRequestParams(requestId);
 
         // TODO: Could we also use requestsCache here? It would be consistent with addRequest()
+        const obj = await requestQueues.getRequest({
+            requestId,
+            queueId: this.queueId,
+        });
 
-        return requestQueues
-            .getRequest({
-                requestId,
-                queueId: this.queueId,
-            })
-            .then(obj => (obj ? new Request(obj) : obj));
+        return obj ? new Request(obj) : obj;
     }
 
     /**
      * Returns next request in the queue to be processed.
      *
-     * @returns {Promise<Request>}
+     * @returns {Promise<Request>} Returns the request object, or `null` if there are no more pending requests.
      */
     fetchNextRequest() {
         return this
@@ -550,8 +550,39 @@ export class RequestQueue {
      * @return {Promise<number>}
      */
     async handledCount() {
+        // TODO: We should deprectate this function in favor of getInfo()
         const queueInfo = await requestQueues.getQueue({ queueId: this.queueId });
         return queueInfo.handledRequestCount;
+    }
+
+    /**
+     * Returns an object containing general information about the request queue.
+     *
+     * The function returns the same object as the Apify API Client's
+     * [getQueue](https://www.apify.com/docs/api/apify-client-js/latest#ApifyClient-requestQueues-getQueue)
+     * function, which in turn calls the
+     * [Get request queue](https://www.apify.com/docs/api/v2#/reference/request-queues/queue/get-request-queue)
+     * API endpoint.
+     *
+     * **Example:**
+     * ```
+     * {
+     *   "id": "WkzbQMuFYuamGv3YF",
+     *   "name": "my-queue",
+     *   "userId": "wRsJZtadYvn4mBZmm",
+     *   "createdAt": new Date("2015-12-12T07:34:14.202Z"),
+     *   "modifiedAt": new Date("2015-12-13T08:36:13.202Z"),
+     *   "accessedAt": new Date("2015-12-14T08:36:13.202Z"),
+     *   totalRequestCount: 0,
+     *   handledRequestCount: 0,
+     *   pendingRequestCount: 0,
+     * }
+     * ```
+     *
+     * @returns {Promise<Object>}
+     */
+    async getInfo() {
+        return requestQueues.getQueue({ queueId: this.queueId });
     }
 }
 
@@ -590,6 +621,10 @@ export class RequestQueueLocal {
         this.requestIdToQueueOrderNo = {};
         this.queueOrderNoInProgress = {};
 
+        this.createdAt = null;
+        this.modifiedAt = null;
+        this.accessedAt = null;
+
         this.initializationPromise = this._initialize();
     }
 
@@ -609,6 +644,11 @@ export class RequestQueueLocal {
         const handledPaths = handled.map(filename => path.join(this.localHandledEmulationPath, filename));
         const pendingPaths = pending.map(filename => path.join(this.localPendingEmulationPath, filename));
         const filePaths = handledPaths.concat(pendingPaths);
+
+        const stats = await statPromised(this.localPendingEmulationPath);
+        this.createdAt = stats.birthtime;
+        this.modifiedAt = stats.mtime;
+        this.accessedAt = stats.atime;
 
         return Promise.mapSeries(filePaths, filepath => this._readFile(filepath));
     }
@@ -676,6 +716,8 @@ export class RequestQueueLocal {
                 const requestCopy = JSON.parse(JSON.stringify(request));
                 requestCopy.id = getRequestId(request.uniqueKey);
 
+                this._updateMetadata(true);
+
                 // If request already exists then don't override it!
                 if (this.requestIdToQueueOrderNo[requestCopy.id]) {
                     return this
@@ -710,6 +752,11 @@ export class RequestQueueLocal {
             .then(() => {
                 const queueOrderNo = this.requestIdToQueueOrderNo[requestId];
 
+                this._updateMetadata();
+
+                // TODO: We should update the last access time to files...
+                if (!queueOrderNo) return null;
+
                 return this._getRequestByQueueOrderNo(queueOrderNo);
             });
     }
@@ -718,6 +765,8 @@ export class RequestQueueLocal {
         await this.initializationPromise;
 
         const files = await readdirPromised(this.localPendingEmulationPath);
+
+        this._updateMetadata();
 
         let request = null;
         while (!request && files.length) {
@@ -761,6 +810,8 @@ export class RequestQueueLocal {
 
                 if (!request.handledAt) request.handledAt = new Date();
 
+                this._updateMetadata(true);
+
                 // NOTE: First write to old file and then rename to new one to do the operation atomically.
                 //       Situation where two files exists at the same time may cause race condition bugs.
                 return writeFilePromised(source, JSON.stringify(request, null, 4))
@@ -797,6 +848,8 @@ export class RequestQueueLocal {
 
                 this.requestIdToQueueOrderNo[request.id] = newQueueOrderNo;
 
+                this._updateMetadata(true);
+
                 // NOTE: First write to old file and then rename to new one to do the operation atomically.
                 //       Situation where two files exists at the same time may cause race condition bugs.
                 return writeFilePromised(source, JSON.stringify(request, null, 4))
@@ -815,26 +868,54 @@ export class RequestQueueLocal {
             });
     }
 
-    isEmpty() {
-        return this.initializationPromise
-            .then(() => this.pendingCount === this.inProgressCount);
+    async isEmpty() {
+        await this.initializationPromise;
+        this._updateMetadata();
+        return this.pendingCount === this.inProgressCount;
     }
 
-    isFinished() {
-        return this.initializationPromise
-            .then(() => this.pendingCount === 0);
+    async isFinished() {
+        await this.initializationPromise;
+        this._updateMetadata();
+        return this.pendingCount === 0;
     }
 
-    delete() {
-        return emptyDirPromised(this.localStoragePath)
-            .then(() => {
-                queuesCache.remove(this.queueId);
-            });
+    async delete() {
+        await emptyDirPromised(this.localStoragePath);
+        queuesCache.remove(this.queueId);
     }
 
     async handledCount() {
         await this.initializationPromise;
+        this._updateMetadata();
         return this._handledCount;
+    }
+
+    async getInfo() {
+        await this.initializationPromise;
+
+        const id = this.queueId;
+        const name = id === ENV_VARS.DEFAULT_REQUEST_QUEUE_ID ? null : id;
+        const result = {
+            id,
+            name,
+            userId: process.env[ENV_VARS.USER_ID] || null,
+            createdAt: this.createdAt,
+            modifiedAt: this.modifiedAt,
+            accessedAt: this.accessedAt,
+            totalRequestCount: this._handledCount + this.pendingCount,
+            handledRequestCount: this._handledCount,
+            pendingRequestCount: this.pendingCount,
+        };
+
+        this._updateMetadata();
+        return result;
+    }
+
+    _updateMetadata(isModified) {
+        const date = new Date();
+        this.accessedAt = date;
+        if (isModified) this.modifiedAt = date;
     }
 }
 

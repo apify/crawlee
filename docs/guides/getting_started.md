@@ -427,10 +427,10 @@ Using `enqueueLinks()` we can squash the first 3 into a single function call, if
 // Assuming previous existence of the '$' and 'requestQueue' variables.
 await enqueueLinks({ $, requestQueue });
 ```
-That's all we need to do to enqueue all `<a href="...">` links from the given page to the given queue. Easy, right? Scratch number 1 and 3 off the list. Only number 2 remains and to tackle this one, we need to talk about yet another new concept, the Pseudo URL.
+That's all we need to do to enqueue all `<a href="...">` links from the given page to the given queue. Easy, right? Scratch number 1 and 3 off the list. Only number 2 remains and to tackle this one, we need to talk about yet another new concept, the pseudo-URL.
 
-#### Introduction to Pseudo URLs
-Pseudo URLs are represented by our `PseudoUrl` class and even though the name sounds discouraging, they're a pretty simple concept. They're just URLs with some parts replaced by wildcards (read <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions">regular expressions</a>). They are matched against URLs to find specific links, domains, patterns, file extensions and so on.
+#### Introduction to pseudo-URLs
+Pseudo-URLs are represented by our `PseudoUrl` class and even though the name sounds discouraging, they're a pretty simple concept. They're just URLs with some parts replaced by wildcards (read <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions">regular expressions</a>). They are matched against URLs to find specific links, domains, patterns, file extensions and so on.
 
 In scraping, there usually are patterns to be found in the websites' URLs that can be leveraged to scrape only the pages we're interested in. Imagine a typical online store. It has different categories which list different items The URL for might looks something like this:
 
@@ -449,12 +449,12 @@ Going to this page would produce a list of offered computers. Then, clicking on 
 https://www.online-store.com/items/613804
 ```
 
-As you can see, there's a structure to the links. In the real world, the structure might not always be perfectly obvious, but it's very often there. Pseudo URLs help to use this structure to select only the relevant links from a given page.
+As you can see, there's a structure to the links. In the real world, the structure might not always be perfectly obvious, but it's very often there. Pseudo-URLs help to use this structure to select only the relevant links from a given page.
 
-#### Structure of a Pseudo URL
-Pseudo URL is a URL with <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions">regular expressions</a>) enclosed in `[]` brackets. Since we're running Node.js, the regular expressions should follow the JavaScript style.
+#### Structure of a pseudo-URL
+Pseudo-URL is a URL with <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions">regular expressions</a>) enclosed in `[]` brackets. Since we're running Node.js, the regular expressions should follow the JavaScript style.
 
-For example, a Pseudo URL 
+For example, a pseudo-URL 
 
 ```
 https://www.online-store.com/categories/[(\w|-)+]
@@ -475,7 +475,7 @@ https://www.online-store.com/items/613804
 
 This way, you can easily find just the URLs that you're looking for while ignoring the rest.
 
-A Pseudo URL may include any number of bracketed regular expressions, so you can compose much more complex matching logic. The following Pseudo URL will match the items in the store even if the links use the non-secure `http` protocol, omit the `www` from the hostname or use different TLD.
+A pseudo-URL may include any number of bracketed regular expressions, so you can compose much more complex matching logic. The following Pseudo URL will match the items in the store even if the links use the non-secure `http` protocol, omit the `www` from the hostname or use different TLD.
 
 ```
 http[s?]://[(www)?\.]online-store.[com|net|org]/items/[\d+]
@@ -502,7 +502,7 @@ www.online-store.org/items/7003
 #### Using `enqueueLinks()` to filter links
 That's been quite a lot of theory and examples. We might as well put it to practice. Going back to our `CheerioCrawler` exercise, we still have number 2 left to cross off the list - filter links pointing to `apify.com`. We've already shown that at the very least, the `enqueueLinks()` function needs two arguments. The source, in our case the `$` object, and the destination - the `requestQueue`. To filter links, we need to add a third argument: `pseudoUrls`.
 
-The `options.pseudoUrls` argument is always an `Array`, but its contents can take on many forms. [See the reference](../api/utils#utils.enqueueLinks) for all of them. Since we just need to filter out same domain links, we'll keep it simple and use a Pseudo URL `string`.
+The `options.pseudoUrls` argument is always an `Array`, but its contents can take on many forms. [See the reference](../api/utils#utils.enqueueLinks) for all of them. Since we just need to filter out same domain links, we'll keep it simple and use a pseudo-URL `string`.
 
 ```js
 // Assuming previous existence of the '$' and 'requestQueue' variables.
@@ -514,7 +514,7 @@ const options = {
 
 await enqueueLinks(options);
 ```
-> To break the Pseudo URL string down, we're looking for both `http` and `https` protocols and the links may only lead to `apify.com` and its subdomains, such as `my.apify.com`, `sdk.apify.com` etc. Literally, the bracketed expression for subdomain allows all dashes `-`, word characters `\w` and dots `.`. The final brackets `[.*]` allow everything. If this is complex to you, we suggest <a href="https://www.regular-expressions.info/tutorial.html" target="_blank">reading a tutorial</a> or two on regular expression syntax.
+> To break the pseudo-URL string down, we're looking for both `http` and `https` protocols and the links may only lead to `apify.com` and its subdomains, such as `my.apify.com`, `sdk.apify.com` etc. Literally, the bracketed expression for subdomain allows all dashes `-`, word characters `\w` and dots `.`. The final brackets `[.*]` allow everything. If this is complex to you, we suggest <a href="https://www.regular-expressions.info/tutorial.html" target="_blank">reading a tutorial</a> or two on regular expression syntax.
 
 #### Integrating `enqueueLinks()` into our crawler
 That was fairly easy, wasn't it. That ticks the number 2 off our list and we're done! Let's take a look at the original crawler code, where we enqueued all the links manually.

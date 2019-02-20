@@ -115,10 +115,17 @@ await requestList.reclaimRequest(request2);
 <td><code>[options.persistStateKey]</code></td><td><code>String</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>Identifies the keys in the default key-value store under which the <code>RequestList</code> persists its
-  initial sources and current state. State represents a position of the last scraped request in the list.
-  If this is set then <code>RequestList</code>persists all of its sources and the state in regular intervals
+<td colspan="3"><p>Identifies the key in the default key-value store under which the <code>RequestList</code> persists its
+  current state. State represents a position of the last scraped request in the list.
+  If this is set then <code>RequestList</code>persists the state in regular intervals
   to key value store and loads the state from there in case it is restarted due to an error or system reboot.</p>
+</td></tr><tr>
+<td><code>[options.persistSourcesKey]</code></td><td><code>String</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Identifies the key in the default key-value store under which the <code>RequestList</code> persists its
+  initial sources. If this is set then <code>RequestList</code>persists all of its sources
+  to key value store at initialization and loads them from there in case it is restarted due to an error or system reboot.</p>
 </td></tr><tr>
 <td><code>[options.state]</code></td><td><code>Object</code></td><td></td>
 </tr>

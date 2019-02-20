@@ -50,7 +50,7 @@ const parsePurl = (purl) => {
 };
 
 /**
- * Represents a pseudo URL (PURL) - an URL pattern used by web crawlers
+ * Represents a pseudo-URL (PURL) - an URL pattern used by web crawlers
  * to specify which URLs should the crawler visit.
  * This class is used by the [`utils.enqueueLinks()`](utils#utils.enqueueLinks) function.
  *
@@ -58,8 +58,10 @@ const parsePurl = (purl) => {
  * Currently, the only supported directive is `[RegExp]`,
  * which defines a JavaScript-style regular expression to match against the URL.
  *
- * The matching of Pseudo URL string against URLs is always case insensitive.
- * If you need case sensitive matching, use an appropriate `RegExp` in place of a Pseudo URL string.
+ * The `PseudoUrl` class can be constructed either using a pseudo-URL string
+ * or a regular expression (an instance of the `RegExp` object).
+ * With a pseudo-URL string, the matching is always case-insensitive.
+ * If you need case-sensitive matching, use an appropriate `RegExp` object.
  *
  * For example, a PURL `http://www.example.com/pages/[(\w|-)*]` will match all of the following URLs:
  *
@@ -69,6 +71,7 @@ const parsePurl = (purl) => {
  *     <li><code>http://www.example.com/pages/something</code></li>
  * </ul>
  *
+ * Be careful to correctly escape special characters in the pseudo-URL string.
  * If either `[` or `]` is part of the normal query string, it must be encoded as `[\x5B]` or `[\x5D]`,
  * respectively. For example, the following PURL:
  * ```http
@@ -79,18 +82,25 @@ const parsePurl = (purl) => {
  * http://www.example.com/search?do[load]=1
  * ```
  *
+ * If the regular expression in the pseudo-URL contains a backslash character (\),
+ * you need to escape it with another back backslash, as shown in the example below.
+ *
  * **Example usage:**
  *
  * ```javascript
- * const purl = new Apify.PseudoUrl('http://www.example.com/pages/[(\w|-)*]', {
+ * // Using a pseudo-URL string
+ * const purl = new Apify.PseudoUrl('http://www.example.com/pages/[(\\w|-)+]', {
  *   userData: { foo: 'bar' },
  * });
+ *
+ * // Using a regular expression
+ * const purl2 = new Apify.PseudoUrl(/http:\/\/www\.example\.com\/pages\/(\w|-)+/);
  *
  * if (purl.matches('http://www.example.com/pages/my-awesome-page')) console.log('Match!');
  * ```
  *
  * @param {String|RegExp} purl
- *   Pseudo URL string or a `RegExp` instance.
+ *   A pseudo-URL string or a regular expression object.
  *   Using a `RegExp` instance enables more granular control,
  *   such as making the matching case sensitive.
  * @param {Object} requestTemplate
@@ -117,7 +127,7 @@ class PseudoUrl {
      * Determines whether a URL matches this pseudo-URL pattern.
      *
      * @param {String} url URL to be matched.
-     * @return {Boolean} Returns `true` if given URL matches pseudo URL.
+     * @return {Boolean} Returns `true` if given URL matches pseudo-URL.
      */
     matches(url) {
         return _.isString(url) && url.match(this.regex) !== null;

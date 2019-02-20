@@ -121,7 +121,7 @@ await crawler.run();
 <td colspan="3"><p>Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
   Either <code>requestList</code> or <code>requestQueue</code> option must be provided (or both).</p>
 </td></tr><tr>
-<td><code>[options.handlePageTimeoutSecs]</code></td><td><code>Number</code></td><td><code>300</code></td>
+<td><code>[options.handlePageTimeoutSecs]</code></td><td><code>Number</code></td><td><code>60</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Timeout in which the function passed as <code>options.handlePageFunction</code> needs to finish, in seconds.</p>

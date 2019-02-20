@@ -4,12 +4,17 @@ xxx
   in order to prevent stalling crawlers.
 - **BREAKING CHANGE:** `PseudoUrl` now performs case-insensitive matching, even for the query string part of the URLs.
   If you need case sensitive matching, use an appropriate `RegExp` in place of a Pseudo URL string
+- **Upgraded to puppeteer@1.12.2** and xregexp@4.2.4
 - Added `loadedUrl` property to `Request` that contains the final URL of the loaded page after all redirects.
 - Added memory overload warning log message.
 - Added `keyValueStore.getPublicUrl` function.
 - Added `minConcurrency`, `maxConcurrency`, `desiredConcurrency`
   and `currentConcurrency` properties to `AutoscaledPool`, improved docs
 - Deprecated `AutoscaledPool.setMinConcurrency` and `AutoscaledPool.setMaxConcurrency` functions
+- Updated `DEFAULT_USER_AGENT` and `USER_AGENT_LIST` with new User Agents
+- Bugfix: `LocalRequestQueue.getRequest()` threw an exception if request was not found
+- Added `RequestQueue.getInfo()` function
+- Improved `Apify.main()` to provide nicer stack traces on errors
 
 0.11.8 / 2019-02-05
 ===================

@@ -137,7 +137,7 @@ await crawler.run();
  - `strictSSL`: use `options.ignoreSslErrors`
  - `proxy`: use `options.useApifyProxy` or `options.proxyUrls`
 </code></pre></td></tr><tr>
-<td><code>[options.handlePageTimeoutSecs]</code></td><td><code>Number</code></td><td><code>300</code></td>
+<td><code>[options.handlePageTimeoutSecs]</code></td><td><code>Number</code></td><td><code>60</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Timeout in which the function passed as <code>options.handlePageFunction</code> needs to finish, given in seconds.</p>
@@ -145,7 +145,7 @@ await crawler.run();
 <td><code>[options.requestTimeoutSecs]</code></td><td><code>Number</code></td><td><code>30</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Timeout in which the function passed as <code>options.requestFunction</code> needs to finish, given in seconds.</p>
+<td colspan="3"><p>Timeout in which the HTTP request to the resource needs to finish, given in seconds.</p>
 </td></tr><tr>
 <td><code>[options.ignoreSslErrors]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
 </tr>
