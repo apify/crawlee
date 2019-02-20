@@ -321,7 +321,7 @@ class AutoscaledPool {
         const currentStatus = this.systemStatus.getCurrentStatus();
         const { isSystemIdle } = currentStatus;
         if (!isSystemIdle && this.currentConcurrency >= this.minConcurrency) {
-            log.debug('AutoscaledPool: Task will not be run. System is overloaded.', currentStatus);
+            log.debug('AutoscaledPool: Task will not run, system is overloaded.', currentStatus);
             return done();
         }
         // - a task is ready.
