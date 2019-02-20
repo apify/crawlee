@@ -380,7 +380,7 @@ describe('Apify.utils.extractUrls()', () => {
         const text = fs.readFileSync(path.join(__dirname, 'data', 'lipsum.txt'), 'utf8').split('');
         const ID = 'ů';
         const maxIndex = text.length - 1;
-        array.forEach((_, index) => {
+        array.forEach((__, index) => {
             const indexInText = (index * 17) % maxIndex;
             if (text[indexInText] === ID) {
                 text[indexInText + 1] = ID;
