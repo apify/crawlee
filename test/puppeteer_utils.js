@@ -1,3 +1,4 @@
+import path from 'path';
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import Apify from '../build/index';
@@ -16,6 +17,24 @@ describe('Apify.utils.puppeteer', () => {
     });
     after(() => {
         log.setLevel(ll);
+    });
+
+    it('injectFile()', async () => {
+        const browser = await Apify.launchPuppeteer({ headless: true });
+        try {
+            const page = await browser.newPage();
+            await Apify.utils.puppeteer.injectFile(page, path.join(__dirname, 'data', 'inject_file.js'));
+            // let result = await page.evaluate(() => window.injectedVariable);
+            // expect(result).to.be.eql(42);
+            await page.goto('about:chrome');
+            let result = await page.evaluate(() => window.injectedVariable);
+            expect(result).to.be.eql(42);
+            await page.goto('https://www.example.com');
+            result = await page.evaluate(() => window.injectedVariable);
+            expect(result).to.be.eql(42);
+        } finally {
+            browser.close();
+        }
     });
 
     it('injectJQuery()', async () => {
