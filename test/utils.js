@@ -1,6 +1,7 @@
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import sinon from 'sinon';
+import _ from 'underscore';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -752,25 +753,25 @@ describe('utils.htmlToText()', () => {
         /* eslint-disable */
         checkHtmlToText(
             html1,
-            `Let's start with a simple text. 
-The ships hung in the sky, much the way that bricks don't. 
+            `Let's start with a simple text.
+The ships hung in the sky, much the way that bricks don't.
 These aren't the Droids you're looking for
 I'm sorry, Dave. I'm afraid I can't do that.
 I'm sorry, Dave. I'm afraid I can't do that.
 A1	A2	A3\t
 B1	B2	B3	B 4\t
-This is some text with inline elements and HTML entities (>bla<) 
+This is some text with inline elements and HTML entities (>bla<)
 Test
 a
 few
 line
 breaks
-Spaces in an inline text should be completely ignored. 
+Spaces in an inline text should be completely ignored.
 But,
     a pre-formatted
                 block  should  be  kept
                                        pre-formatted.
-The Greatest Science Fiction Quotes Of All Time 
+The Greatest Science Fiction Quotes Of All Time
 Don't know, I don't know such stuff. I just do eyes, ju-, ju-, just eyes... just genetic design, just eyes. You Nexus, huh? I design your eyes.`,
             true,
         );
@@ -851,6 +852,21 @@ describe('utils.createRequestDebugInfo()', () => {
             errorMessages: ['xxx'],
             statusCode: 201,
             foo: 'bar',
+        });
+    });
+});
+
+describe('utils.snakeCaseToCamelCase()', () => {
+    it('should camel case all sneaky cases of snake case', () => {
+        const tests = {
+            aaa_bbb_: 'aaaBbb',
+            '': '',
+            AaA_bBb_cCc: 'aaaBbbCcc',
+            a_1_b_1a: 'a1B1a',
+        };
+
+        _.mapObject(tests, (camelCase, snakeCase) => {
+            expect(utils.snakeCaseToCamelCase(snakeCase)).to.be.eql(camelCase);
         });
     });
 });

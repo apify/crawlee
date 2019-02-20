@@ -502,7 +502,6 @@ export const ensureTokenOrLocalStorageEnvExists = (storageName) => {
 const SKIP_TAGS_REGEX = /^(script|style|canvas|svg|noscript)$/i;
 const BLOCK_TAGS_REGEX = /^(p|h1|h2|h3|h4|h5|h6|ol|ul|li|pre|address|blockquote|dl|div|fieldset|form|table|tr|select|option)$/i;
 
-
 /**
  * The function converts a HTML document to a plain text.
  *
@@ -604,6 +603,25 @@ const createRequestDebugInfo = (request, response = {}, additionalFields = {}) =
         },
         additionalFields,
     );
+};
+
+/**
+ * Converts SNAKE_CASE to camelCase.
+ *
+ * @param {String} snakeCaseStr
+ * @return {String}
+ * @ignore
+ */
+export const snakeCaseToCamelCase = (snakeCaseStr) => {
+    return snakeCaseStr
+        .toLowerCase()
+        .split('_')
+        .map((part, index) => {
+            return index > 0
+                ? part.charAt(0).toUpperCase() + part.slice(1)
+                : part;
+        })
+        .join('');
 };
 
 /**
