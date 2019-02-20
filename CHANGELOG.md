@@ -8,6 +8,9 @@ xxx
 - Added `loadedUrl` property to `Request` that contains the final URL of the loaded page after all redirects.
 - Added memory overload warning log message.
 - Added `keyValueStore.getPublicUrl` function.
+- Added `minConcurrency`, `maxConcurrency`, `desiredConcurrency`
+  and `currentConcurrency` properties to `AutoscaledPool`, improved docs
+- Deprecated `AutoscaledPool.setMinConcurrency` and `AutoscaledPool.setMaxConcurrency` functions
 - Updated `DEFAULT_USER_AGENT` and `USER_AGENT_LIST` with new User Agents
 - Bugfix: `LocalRequestQueue.getRequest()` threw an exception if request was not found
 - Added `RequestQueue.getInfo()` function
