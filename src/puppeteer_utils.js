@@ -90,6 +90,8 @@ const injectFile = async (page, filePath, options = {}) => {
  * other libraries included by the page that use the same variable name (e.g. another version of jQuery).
  * This can affect functionality of page's scripts.
  *
+ * The injected jQuery will survive page navigations and reloads.
+ *
  * **Example usage:**
  * ```javascript
  * await Apify.utils.puppeteer.injectJQuery(page);
@@ -120,6 +122,8 @@ const injectJQuery = (page) => {
  * Beware that the injected Underscore object will be set to the `window._` variable and thus it might cause conflicts with
  * libraries included by the page that use the same variable name.
  * This can affect functionality of page's scripts.
+ *
+ * The injected Underscore will survive page navigations and reloads.
  *
  * **Example usage:**
  * ```javascript
