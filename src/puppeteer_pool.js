@@ -241,7 +241,7 @@ class PuppeteerPool {
      */
     _launchInstance() {
         const id = this.browserCounter++;
-        log.debug('PuppeteerPool: launching new browser', { id });
+        log.debug('PuppeteerPool: Launching new browser', { id });
 
         const browserPromise = this.launchPuppeteerFunction();
         const instance = new PuppeteerInstance(id, browserPromise);
@@ -266,7 +266,7 @@ class PuppeteerPool {
         try {
             browser = await browserPromise;
         } catch (err) {
-            log.exception(err, 'PuppeteerPool: browser launch failed', { id });
+            log.exception(err, 'PuppeteerPool: Browser launch failed', { id });
             delete this.activeInstances[id];
             return;
         }
@@ -294,7 +294,7 @@ class PuppeteerPool {
                 // TODO: Alternatively we could close here the first about:blank tab, which will cause
                 // the browser to be closed immediately without waiting
                 setTimeout(() => {
-                    log.debug('PuppeteerPool: killing retired browser because it has no active pages', { id });
+                    log.debug('PuppeteerPool: Killing retired browser because it has no active pages', { id });
                     this._killInstance(instance);
                 }, PAGE_CLOSE_KILL_TIMEOUT_MILLIS);
             }
@@ -311,7 +311,7 @@ class PuppeteerPool {
 
         if (!this.activeInstances[id]) return log.debug('PuppeteerPool: browser is retired already', { id });
 
-        log.debug('PuppeteerPool: retiring browser', { id });
+        log.debug('PuppeteerPool: Retiring browser', { id });
 
         this.retiredInstances[id] = instance;
         delete this.activeInstances[id];
@@ -325,7 +325,7 @@ class PuppeteerPool {
      * @ignore
      */
     _killRetiredInstances() {
-        log.debug('PuppeteerPool: retired browsers count', { count: _.values(this.retiredInstances).length });
+        log.debug('PuppeteerPool: Retired browsers count', { count: _.values(this.retiredInstances).length });
 
         _.mapObject(this.retiredInstances, async (instance) => {
             // Kill instances that are more than this.killInstanceAfterMillis from last opened page
@@ -340,11 +340,11 @@ class PuppeteerPool {
                 const pages = await browser.pages();
                 // NOTE: we are killing instance when the number of pages is less or equal to 1 because there is always about:blank page.
                 if (pages.length <= 1) {
-                    log.debug('PuppeteerPool: killing retired browser because it has no open tabs', { id: instance.id });
+                    log.debug('PuppeteerPool: Killing retired browser because it has no open tabs', { id: instance.id });
                     this._killInstance(instance);
                 }
             } catch (err) {
-                log.exception(err, 'PuppeteerPool: browser.pages() failed', { id: instance.id });
+                log.exception(err, 'PuppeteerPool: Browser.pages() failed', { id: instance.id });
                 this._killInstance(instance);
             }
         });
@@ -359,13 +359,13 @@ class PuppeteerPool {
         const { id, childProcess, killed, browserPromise } = instance;
         if (killed) return;
 
-        log.debug('PuppeteerPool: killing browser', { id });
+        log.debug('PuppeteerPool: Killing browser', { id });
 
         delete this.retiredInstances[id];
 
         const recycleDiskCache = () => {
             if (!instance.recycleDiskCacheDir) return;
-            log.debug('PuppeteerPool: recycling disk cache dir', { id, diskCacheDir: instance.recycleDiskCacheDir });
+            log.debug('PuppeteerPool: Recycling disk cache dir', { id, diskCacheDir: instance.recycleDiskCacheDir });
             this.recycledDiskCacheDirs.add(instance.recycleDiskCacheDir);
             instance.recycleDiskCacheDir = null;
         };
@@ -386,7 +386,7 @@ class PuppeteerPool {
             await browser.close();
             recycleDiskCache();
         } catch (err) {
-            log.exception(err, 'PuppeteerPool: cannot close the browser instance', { id });
+            log.exception(err, 'PuppeteerPool: Cannot close the browser instance', { id });
         }
     }
 
@@ -475,7 +475,7 @@ class PuppeteerPool {
             this.pagesToInstancesMap.set(page, instance);
             return this._decoratePage(page);
         } catch (err) {
-            log.exception(err, 'PuppeteerPool: browser.newPage() failed', { id: instance.id });
+            log.exception(err, 'PuppeteerPool: Browser.newPage() failed', { id: instance.id });
             this._retireInstance(instance);
 
             // !TODO: don't throw an error but repeat newPage with some delay
@@ -501,7 +501,7 @@ class PuppeteerPool {
         };
 
         page.once('error', (error) => {
-            log.exception(error, 'PuppeteerPool: page crashed.');
+            log.exception(error, 'PuppeteerPool: Page crashed.');
             page.close();
         });
         return page;
@@ -542,7 +542,7 @@ class PuppeteerPool {
             }
             await Promise.all(dirDeletionPromises);
         } catch (err) {
-            log.exception(err, 'PuppeteerPool: cannot close the browsers');
+            log.exception(err, 'PuppeteerPool: Cannot close the browsers');
         }
     }
 
@@ -580,7 +580,7 @@ class PuppeteerPool {
     async retire(browser) {
         const instance = await this._findInstanceByBrowser(browser);
         if (instance) return this._retireInstance(instance);
-        log.debug('PuppeteerPool: browser is retired already');
+        log.debug('PuppeteerPool: Browser is retired already');
     }
 
     /**
