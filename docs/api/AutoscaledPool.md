@@ -53,8 +53,13 @@ await pool.run();
 
 * [AutoscaledPool](autoscaledpool)
     * [`new AutoscaledPool(options)`](#new_AutoscaledPool_new)
-    * [`.setMaxConcurrency(maxConcurrency)`](#AutoscaledPool+setMaxConcurrency)
-    * [`.setMinConcurrency(minConcurrency)`](#AutoscaledPool+setMinConcurrency)
+    * [`.minConcurrency`](#AutoscaledPool+minConcurrency)
+    * [`.minConcurrency`](#AutoscaledPool+minConcurrency)
+    * [`.maxConcurrency`](#AutoscaledPool+maxConcurrency)
+    * [`.maxConcurrency`](#AutoscaledPool+maxConcurrency)
+    * [`.desiredConcurrency`](#AutoscaledPool+desiredConcurrency)
+    * [`.desiredConcurrency`](#AutoscaledPool+desiredConcurrency)
+    * [`.currentConcurrency`](#AutoscaledPool+currentConcurrency)
     * [`.run()`](#AutoscaledPool+run) ⇒ <code>Promise</code>
     * [`.abort()`](#AutoscaledPool+abort) ⇒ <code>Promise</code>
     * [`.pause([timeoutSecs])`](#AutoscaledPool+pause) ⇒ <code>Promise</code>
@@ -103,14 +108,14 @@ await pool.run();
 <td><code>[options.minConcurrency]</code></td><td><code>Number</code></td><td><code>1</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Minimum number of tasks running in parallel.</p>
+<td colspan="3"><p>The minimum number of tasks running in parallel.</p>
 <p>  <em>WARNING:</em> If you set this value too high with respect to the available system memory and CPU, your code might run extremely slow or crash.
   If you&#39;re not sure, just keep the default value and the concurrency will scale up automatically.</p>
 </td></tr><tr>
 <td><code>[options.maxConcurrency]</code></td><td><code>Number</code></td><td><code>1000</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Maximum number of tasks running in parallel.</p>
+<td colspan="3"><p>The maximum number of tasks running in parallel.</p>
 </td></tr><tr>
 <td><code>[options.desiredConcurrencyRatio]</code></td><td><code>Number</code></td><td><code>0.95</code></td>
 </tr>
@@ -162,45 +167,46 @@ await pool.run();
   by the pool.</p>
 </td></tr></tbody>
 </table>
-<a name="AutoscaledPool+setMaxConcurrency"></a>
+<a name="AutoscaledPool+minConcurrency"></a>
 
-## `autoscaledPool.setMaxConcurrency(maxConcurrency)`
-Overrides max concurrency configuration.
+## `autoscaledPool.minConcurrency`
+Gets the minimum number of tasks running in parallel.
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>maxConcurrency</code></td><td><code>Number</code></td>
-</tr>
-<tr>
-</tr></tbody>
-</table>
-<a name="AutoscaledPool+setMinConcurrency"></a>
+<a name="AutoscaledPool+minConcurrency"></a>
 
-## `autoscaledPool.setMinConcurrency(minConcurrency)`
-Overrides min concurrency configuration.
+## `autoscaledPool.minConcurrency`
+Sets the minimum number of tasks running in parallel.
 
 *WARNING:* If you set this value too high with respect to the available system memory and CPU, your code might run extremely slow or crash.
 If you're not sure, just keep the default value and the concurrency will scale up automatically.
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>minConcurrency</code></td><td><code>Number</code></td>
-</tr>
-<tr>
-</tr></tbody>
-</table>
+<a name="AutoscaledPool+maxConcurrency"></a>
+
+## `autoscaledPool.maxConcurrency`
+Gets the maximum number of tasks running in parallel.
+
+<a name="AutoscaledPool+maxConcurrency"></a>
+
+## `autoscaledPool.maxConcurrency`
+Sets the maximum number of tasks running in parallel.
+
+<a name="AutoscaledPool+desiredConcurrency"></a>
+
+## `autoscaledPool.desiredConcurrency`
+Gets the desired concurrency for the pool,
+which is an estimated number of parallel tasks that the system can currently support.
+
+<a name="AutoscaledPool+desiredConcurrency"></a>
+
+## `autoscaledPool.desiredConcurrency`
+Sets the desired concurrency for the pool, i.e. the number of tasks that should be running
+in parallel if there's large enough supply of tasks.
+
+<a name="AutoscaledPool+currentConcurrency"></a>
+
+## `autoscaledPool.currentConcurrency`
+Gets the the number of parallel tasks currently running in the pool.
+
 <a name="AutoscaledPool+run"></a>
 
 ## `autoscaledPool.run()` ⇒ <code>Promise</code>
