@@ -34,7 +34,6 @@ const URL_WITH_COMMAS_REGEX = XRegExp('https?://(www\\.)?[\\p{L}0-9][-\\p{L}0-9@
 
 const ensureDirPromised = util.promisify(fsExtra.ensureDir);
 const psTreePromised = util.promisify(psTree);
-let userAgentList = null;
 
 /**
  * Creates an instance of ApifyClient using options as defined in the environment variables.
@@ -437,12 +436,20 @@ const extractUrls = ({ string, urlRegExp = URL_NO_COMMAS_REGEX }) => {
  * @returns {String}
  * @memberOf utils
  */
+let userAgentList = null;
+const MAX_USER_AGENTS_COUNT = 50;
 const getRandomUserAgent = () => {
     if (userAgentList === null) {
-        const generateUserAgent = new UserAgents({ deviceCategory: 'desktop', userAgent: /^Mozilla/ });
-        userAgentList = Array(500).fill().map(() => generateUserAgent());
+        let count = 0;
+        userAgentList = new UserAgents((data) => {
+            if (data.deviceCategory !== 'desktop') return false;
+            if (!data.userAgent.startsWith('Mozilla')) return false;
+            if (++count > MAX_USER_AGENTS_COUNT) return false;
+            return true;
+        });
     }
-    return userAgentList[getRandomInt(userAgentList.length)].toString();
+
+    return userAgentList.random().toString();
 };
 
 /**
