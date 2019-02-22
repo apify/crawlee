@@ -195,16 +195,23 @@ Returns items in the dataset based on the provided parameters.
 ## `dataset.getInfo()` ⇒ <code>Promise&lt;Object&gt;</code>
 Returns an object containing general information about the dataset.
 
+The function returns the same object as the Apify API Client's
+[getDataset](https://www.apify.com/docs/api/apify-client-js/latest#ApifyClient-datasets-getDataset)
+function, which in turn calls the
+[Get dataset](https://www.apify.com/docs/api/v2#/reference/datasets/dataset/get-dataset)
+API endpoint.
+
 **Example:**
 ```
 {
   "id": "WkzbQMuFYuamGv3YF",
-  "name": "d7b9MDYsbtX5L7XAj",
+  "name": "my-dataset",
   "userId": "wRsJZtadYvn4mBZmm",
-  "createdAt": "2015-12-12T07:34:14.202Z",
-  "modifiedAt": "2015-12-13T08:36:13.202Z",
-  "accessedAt": "2015-12-14T08:36:13.202Z",
-  "itemCount": 0
+  "createdAt": new Date("2015-12-12T07:34:14.202Z"),
+  "modifiedAt": new Date("2015-12-13T08:36:13.202Z"),
+  "accessedAt": new Date("2015-12-14T08:36:13.202Z"),
+  "itemCount": 14,
+  "cleanItemCount": 10
 }
 ```
 
@@ -220,7 +227,7 @@ If it throws an error, the iteration is aborted and the `forEach` function throw
 **Example usage**
 ```javascript
 const dataset = await Apify.openDataset('my-results');
-dataset.forEach(async (item, index) => {
+await dataset.forEach(async (item, index) => {
   console.log(`Item at ${index}: ${JSON.stringify(item)}`);
 });
 ```

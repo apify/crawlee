@@ -291,7 +291,7 @@ export class Dataset {
      * **Example usage**
      * ```javascript
      * const dataset = await Apify.openDataset('my-results');
-     * dataset.forEach(async (item, index) => {
+     * await dataset.forEach(async (item, index) => {
      *   console.log(`Item at ${index}: ${JSON.stringify(item)}`);
      * });
      * ```

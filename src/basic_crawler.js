@@ -321,15 +321,14 @@ class BasicCrawler {
                 // TODO Errors thrown from within the error handler will in most cases terminate
                 // the crawler because runTaskFunction errors kill autoscaled pool
                 // which is correct, since in this case, RequestQueue is probably in an unknown
-                // state. However, it's also troublesome when RequestQueue is overloaded
-                // since it may actually cause the crawlers to crash.
+                // state.
                 await this._requestFunctionErrorHandler(err, request, source);
             } catch (secondaryError) {
                 log.exception(secondaryError, 'BasicCrawler: runTaskFunction error handler threw an exception. '
-                    + 'This places the RequestQueue into an unknown state and crawling will be terminated. '
-                    + 'This most likely happened due to RequestQueue being overloaded and unable to handle '
-                    + 'Request updates even after exponential backoff. Try limiting the concurrency '
-                    + 'of the run by using the maxConcurrency option.');
+                    + 'This places the crawler and it\'s underlying storages into an unknown state and crawling will be terminated. '
+                    + 'This may have happened due to an internal error of Apify\'s API or due to a misconfigured crawler. '
+                    + 'If you are sure that there is no error in your code, selecting "Restart on error" in the actor\'s settings'
+                    + 'will make sure that the run continues where it left off, if programmed to handle restarts correctly.');
                 throw secondaryError;
             }
         }

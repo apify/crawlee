@@ -220,7 +220,7 @@ If it throws an error, the iteration is aborted and the `forEachKey` function th
 **Example usage**
 ```javascript
 const keyValueStore = await Apify.openKeyValueStore();
-keyValueStore.forEachKey(async (key, index, info) => {
+await keyValueStore.forEachKey(async (key, index, info) => {
   console.log(`Key at ${index}: ${key} has size ${info.size}`);
 });
 ```

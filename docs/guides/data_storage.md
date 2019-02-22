@@ -71,7 +71,7 @@ await store.setValue('some-key', { foo: 'bar' });
 const value = await store.getValue('some-key');
 
 // Delete record
-await store.delete('some-key');
+await store.setValue('some-key', null);
 ```
 
 To see a real-world example of how to get the input from the key-value store, see the
