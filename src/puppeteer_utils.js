@@ -76,9 +76,10 @@ const injectFile = async (page, filePath, options = {}) => {
     checkParamOrThrow(options, 'options', 'Object');
 
     const contents = await readFilePromised(filePath, 'utf8');
-    if (options.surviveNavigations) await page.evaluateOnNewDocument(contents);
-
-    return page.evaluate(contents);
+    const evalP = page.evaluate(contents);
+    return options.surviveNavigations
+        ? Promise.all([page.evaluateOnNewDocument(contents), evalP])
+        : evalP;
 };
 
 /**
