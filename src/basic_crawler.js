@@ -249,21 +249,25 @@ class BasicCrawler {
 
     async _pauseOnMigration() {
         await this.autoscaledPool.pause(SAFE_MIGRATION_WAIT_MILLIS)
-            .catch(() => {
-                // TODO: How can we be sure it's the right exception? We should check it
-                log.error('BasicCrawler: The crawler was paused due to migration to another host, '
-                    + 'but some requests did not finish in time. Those requests\' results may be duplicated.');
+            .catch((err) => {
+                if (err.message.includes('running tasks did not finish')) {
+                    log.error('BasicCrawler: The crawler was paused due to migration to another host, '
+                        + 'but some requests did not finish in time. Those requests\' results may be duplicated.');
+                } else {
+                    throw err;
+                }
             });
         if (this.requestList) {
+            if (await this.requestList.isFinished()) return;
             await this.requestList.persistState()
                 .catch((err) => {
                     if (err.message.includes('Cannot persist state.')) {
-                        log.error('BasicCrawler: The crawler attempted to persist it\'s request list\'s state and failed due to invalid config. '
-                            + 'Make sure to use either Apify.openRequestList() or the "stateKeyPrefix" option of RequestList constructor '
-                            + 'to ensure your crawling state is persisted through host migrations and restarts.');
+                        log.error('BasicCrawler: The crawler attempted to persist its request list\'s state and failed due to missing or '
+                            + 'invalid config. Make sure to use either Apify.openRequestList() or the "stateKeyPrefix" option of RequestList '
+                            + 'constructor to ensure your crawling state is persisted through host migrations and restarts.');
                     } else {
                         log.exception(err, 'BasicCrawler: An unexpected error occured when the crawler '
-                            + 'attempted to persist it\'s request list\'s state. ');
+                            + 'attempted to persist its request list\'s state.');
                     }
                 });
         }
