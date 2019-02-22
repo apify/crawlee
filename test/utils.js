@@ -1,4 +1,5 @@
 import chai, { expect } from 'chai';
+import { URL } from 'url';
 import chaiAsPromised from 'chai-as-promised';
 import sinon from 'sinon';
 import fs from 'fs';
