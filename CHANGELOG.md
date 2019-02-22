@@ -1,3 +1,8 @@
+next
+===================
+- Added back the `recycleDiskCache` option to `PuppeteerPool` now that it is supported
+  even in headless mode ([read more](https://bugs.chromium.org/p/chromium/issues/detail?id=882431))
+
 xxx
 ===================
 - **BREAKING CHANGE:** Reduced default `handlePageTimeoutSecs` for both `CheerioCrawler` and `PuppeteerCrawler` from 300 to 60 seconds,
