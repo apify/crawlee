@@ -62,6 +62,7 @@
     "request": "^2.88.0",
     "request-promise-native": "^1.0.5",
     "rimraf": "^2.6.2",
+    "robots-parser": "^2.1.1",
     "underscore": "^1.9.1",
     "user-agents": "^1.0.172",
     "ws": "^6.1.2",

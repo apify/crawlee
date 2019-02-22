@@ -11,7 +11,9 @@ import XRegExp from 'xregexp';
 import cheerio from 'cheerio';
 import log from 'apify-shared/log';
 import UserAgents from 'user-agents';
-import { delayPromise, getRandomInt } from 'apify-shared/utilities';
+import robotsParser from 'robots-parser';
+
+import { delayPromise } from 'apify-shared/utilities';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { version as apifyClientVersion } from 'apify-client/package.json';
@@ -616,6 +618,65 @@ const createRequestDebugInfo = (request, response = {}, additionalFields = {}) =
     );
 };
 
+let robotsTxtsparser = null;
+const getRobotsTxt = async (url, content = '') => {
+    checkParamOrThrow(url, 'url', 'URL');
+    const robotsTxtUrl = util.format('%s//%s/robots.txt', url.protocol, url.host);
+    let robotsTxt = content;
+
+    if (!content.trim()) {
+        robotsTxt = await requestPromise.get({ url: robotsTxtUrl, encoding: 'utf8' });
+    }
+
+    robotsTxtsparser = robotsParser(robotsTxtUrl, robotsTxt);
+};
+
+/**
+ * Returns true if allowed, false if not allowed.
+ *
+ * Will return undefined if the URL is not valid for the robots.txt file.
+ *
+ * @param  {URL} url
+ * @param  {string?} ua
+ * @return {boolean?}
+ */
+const isAllowedRobotsTxt = (url, ua) => {
+    checkParamOrThrow(url, 'url', 'URL');
+    checkParamOrThrow(ua, 'ua', 'String');
+
+    return robotsTxtsparser.isAllowed(url.href, ua);
+};
+
+/**
+ * Returns true if disallowed, false if allowed.
+ *
+ * Will return undefined if the URL is not valid for the robots.txt file.
+ *
+ * @param  {URL} url
+ * @param  {string?} ua
+ * @return {boolean?}
+ */
+const isDisallowedRobotsTxt = (url, ua) => {
+    checkParamOrThrow(url, 'url', 'URL');
+    checkParamOrThrow(ua, 'ua', 'String');
+
+    return robotsTxtsparser.isDisallowed(url.href, ua);
+};
+
+/**
+ * Gets the crawl delay if there is one.
+ *
+ * Will return undefined if there is no crawl delay set.
+ *
+ * @param  {string} ua
+ * @return {number?}
+ */
+const getCrawlDelayRobotsTxt = (ua) => {
+    checkParamOrThrow(ua, 'ua', 'String');
+
+    return robotsTxtsparser.getCrawlDelay(ua);
+};
+
 /**
  * A namespace that contains various utilities.
  *
@@ -641,4 +702,8 @@ export const publicUtils = {
     URL_NO_COMMAS_REGEX,
     URL_WITH_COMMAS_REGEX,
     createRequestDebugInfo,
+    getRobotsTxt,
+    isAllowedRobotsTxt,
+    isDisallowedRobotsTxt,
+    getCrawlDelayRobotsTxt,
 };

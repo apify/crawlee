@@ -850,3 +850,63 @@ describe('utils.createRequestDebugInfo()', () => {
         });
     });
 });
+
+describe('utils.RobotsTxt', () => {
+    before(async () => {
+        const contentRobotsTxt = [
+            'User-agent: *',
+            'Disallow: *deny_all/$',
+            'crawl-delay: 10',
+
+            'User-agent: Googlebot',
+            'Disallow: *deny_googlebot/$',
+            'crawl-delay: 1',
+
+            'user-agent: Mozilla',
+            'crawl-delay: 2',
+        ].join('\n');
+        await utils.publicUtils.getRobotsTxt(new URL('http://www.example.com/'), contentRobotsTxt);
+    });
+
+    describe('utils.isAllowedRobotsTxt()', () => {
+        it('works', () => {
+            expect(utils.publicUtils.isAllowedRobotsTxt(new URL('http://www.example.com/response_200/'), 'Googlebot')).to.eql(true);
+            expect(utils.publicUtils.isAllowedRobotsTxt(new URL('http://www.example.com/deny_googlebot/'), 'Googlebot')).to.eql(false);
+            expect(utils.publicUtils.isAllowedRobotsTxt(new URL('http://www.example.com//deny_all/'), 'Googlebot')).to.eql(true);
+            expect(utils.publicUtils.isAllowedRobotsTxt(new URL('http://www.example.com//response_200/'), 'Mozilla')).to.eql(true);
+            expect(utils.publicUtils.isAllowedRobotsTxt(new URL('http://www.example.com//deny_googlebot/'), 'Mozilla')).to.eql(true);
+            expect(utils.publicUtils.isAllowedRobotsTxt(new URL('http://www.example.com//deny_all/'), 'Mozilla')).to.eql(true);
+        });
+    });
+
+    describe('utils.isDisallowedRobotsTxt()', () => {
+        it('works', () => {
+            expect(utils.publicUtils.isDisallowedRobotsTxt(new URL('http://www.example.com//response_200/'), 'Googlebot')).to.eql(false);
+            expect(utils.publicUtils.isDisallowedRobotsTxt(new URL('http://www.example.com//deny_googlebot/'), 'Googlebot')).to.eql(true);
+            expect(utils.publicUtils.isDisallowedRobotsTxt(new URL('http://www.example.com//deny_all/'), 'Googlebot')).to.eql(false);
+            expect(utils.publicUtils.isDisallowedRobotsTxt(new URL('http://www.example.com//response_200/'), 'Mozilla')).to.eql(false);
+            expect(utils.publicUtils.isDisallowedRobotsTxt(new URL('http://www.example.com//deny_googlebot/'), 'Mozilla')).to.eql(false);
+            expect(utils.publicUtils.isDisallowedRobotsTxt(new URL('http://www.example.com//deny_all/'), 'Mozilla')).to.eql(false);
+        });
+    });
+
+    describe('utils.getCrawlDelayRobotsTxt()', async () => {
+        it('works', async () => {
+            expect(utils.publicUtils.getCrawlDelayRobotsTxt('Googlebot')).to.equal(1);
+            expect(utils.publicUtils.getCrawlDelayRobotsTxt('Mozilla/5.0')).to.equal(2);
+            expect(utils.publicUtils.getCrawlDelayRobotsTxt('')).to.equal(10);
+
+            const contentRobotsTxt = [
+                '# We love crawlers!',
+                'User-agent: *',
+                'Disallow:',
+            ].join('\n');
+
+            await utils.publicUtils.getRobotsTxt(new URL('http://www.example.com/'), contentRobotsTxt);
+
+            expect(utils.publicUtils.getCrawlDelayRobotsTxt('Googlebot')).to.equal(undefined);
+            expect(utils.publicUtils.getCrawlDelayRobotsTxt('Mozilla/5.0')).to.equal(undefined);
+            expect(utils.publicUtils.getCrawlDelayRobotsTxt('')).to.equal(undefined);
+        });
+    });
+});
