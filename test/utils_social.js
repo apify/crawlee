@@ -1,7 +1,10 @@
 import _ from 'underscore';
-import { expect } from 'chai';
+import chai, { expect } from 'chai';
+import chaiAsPromised from 'chai-as-promised';
 // import * as utils from '../build/utils';
 import Apify from '../build/index';
+
+chai.use(chaiAsPromised);
 
 const { social } = Apify.utils;
 
@@ -39,7 +42,7 @@ describe('utils.social', () => {
             testEmailsFromText(`
                 this'is'also'valid'email@EXAMPLE.travel
                 easy-address@some-domain.co.uk \n\n
-                 easy-address@some-domain.co.uk
+                 easy-address@some-domain.co.uk  
                   not @ an.email.com
                   @also.not.an.email
                   `, [
@@ -127,10 +130,10 @@ describe('utils.social', () => {
         it('extracts phones correctly', () => {
             testPhonesFromText(`
                 +420775123456 +420775123456
-
+                
                 +420 775 123 456
-
-                775123456 775123456   \n\n
+                            
+                775123456 775123456   \n\n        
                 00420775123456
                 1234567 1234567890
                 +44 7911 123456
@@ -219,7 +222,7 @@ describe('utils.social', () => {
                000-0000
                 000 0000
                 000.0000
-
+                
                 0000000
                 0000000000
                 (000)0000000
@@ -334,26 +337,26 @@ describe('utils.social', () => {
             expect(social.parseHandlesFromHtml(`
                 <html>
                     <head>
-                        <title>Bla</title>
+                        <title>Bla</title> 
                     </head>
                     <a>
-                        <p>bob@example.com</p>
-                        bob@example.com testing skipping duplicates  xxx@blabla
+                        <p>bob@example.com</p>     
+                        bob@example.com testing skipping duplicates  xxx@blabla                  
                         <p>carl&#64;example.com</p>
                         <a href="mailto:alice@example.com"></a>
-                        <a href="mailto:david&#64;example.com"></a>
-
-                        <a href="skip.this.one@gmail.com"></a>
+                        <a href="mailto:david&#64;example.com"></a>    
+       
+                        <a href="skip.this.one@gmail.com"></a>  
                         <img src="http://somewhere.com/ skip.this.one.too@gmail.com " />
                         <a href="http://somewhere.com/ skip.this.one.too@gmail.com "></a>
-
-                        &#43;420775222222
+                        
+                        &#43;420775222222  
                         +4207751111111
                         +4207751111111  test duplicate
                         1 2 3 4 5 6 7 8 9 0
                         <a href="skip.this.one: +42099999999"></a>
                         <a href="tel://+42077533333"></a>
-
+                        
                         https://www.linkedin.com/in/bobnewman
                         https://www.linkedin.com/in/alicenewman/
                         https://www.linkedin.com/in/alicenewman/ duplicate
@@ -363,26 +366,26 @@ describe('utils.social', () => {
                         https://www.linkedin.com/in/first-last-123456a
                         <a href="https://www.linkedin.com/in/jancurn">Profile</a>
                         <a href="https://www.linkedin.com/in/carl-newman-5555555a/detail/recent-activity/">Sub-link</a>
-
+                        
                         https://www.instagram.com/old_prague/
                         https://www.instagram.com/old_prague/ duplicate
-                        instagram.com/old_prague
-                        https://www.instagram.com/newyorkarea/
+                        instagram.com/old_prague                    
+                        https://www.instagram.com/newyorkarea/                    
                         <a href="https://www.instagram.com/york">link</a>
                         <a href="https://www.instagram.com/york2/something">sub-link</a>
-
+                        
                         <a href="twitter.com/betasomething">link</a>
                         https://www.twitter.com/apify
-                        https://www.twitter.com/apify duplicate
+                        https://www.twitter.com/apify duplicate                    
                         <a href="twitter.com/cblabla/sub-dir/">link</a>
-
-                        <a href="facebook.com/carl.username123/sub-dir/">link</a>
+                        
+                        <a href="facebook.com/carl.username123/sub-dir/">link</a>                    
                         https://www.facebook.com/bob.username123/
                         https://www.facebook.com/bob.username123/ duplicate
                         http://www.facebook.com/alice.username123
                         <a href="https://www.facebook.com/profile.php?id=1155802082&xxx=5">link x</a>
                         <a href="fb.com/dada5678?query=1">link</a>
-
+                        
                     </body>
                 </html>
             `)).to.eql({
@@ -426,7 +429,7 @@ describe('utils.social', () => {
             social.parseHandlesFromHtml(`
                 <html>
                     <head>
-                        <title>Bla</title>
+                        <title>Bla</title> 
                     </head>
                     <body>
                         Body content
@@ -515,7 +518,7 @@ describe('utils.social', () => {
 
             expect(social.LINKEDIN_REGEX_GLOBAL.test('https://www.linkedin.com/in/bobnewman')).to.eql(true);
             expect(`
-                https://www.linkedin.com/in/bobnewman
+                https://www.linkedin.com/in/bobnewman 
                 "http://ie.linkedin.com/in/alicenewman"
                 https://www.linkedin.com/in/someverylongnamesomeverylongnamesomeverylongnamesomeverylongnamesomeverylongnamesomeverylongname
                 linkedin.com/in/carlnewman
@@ -584,7 +587,7 @@ describe('utils.social', () => {
             expect(social.INSTAGRAM_REGEX_GLOBAL.test('https://www.instagram.com/old_prague')).to.eql(true);
             expect(`
                     https://www.instagram.com/old_prague
-                    https://www.instagram.com/someverylongusernamethatisnotgood
+                    https://www.instagram.com/someverylongusernamethatisnotgood 
                     "instagram.com/old_brno"
                     http://instagr.am/old_plzen
                     `.match(social.INSTAGRAM_REGEX_GLOBAL))

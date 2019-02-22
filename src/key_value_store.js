@@ -626,7 +626,11 @@ export const openKeyValueStore = (storeIdOrName, options = {}) => {
  * @name getValue
  * @function
  */
-export const getValue = async key => openKeyValueStore().then(store => store.getValue(key));
+export const getValue = async (key) => {
+    const store = await openKeyValueStore();
+
+    return store.getValue(key);
+};
 
 /**
  * Stores or deletes a value in the default {@link KeyValueStore} associated with the current actor run.
@@ -667,7 +671,11 @@ export const getValue = async key => openKeyValueStore().then(store => store.get
  * @name setValue
  * @function
  */
-export const setValue = async (key, value, options) => openKeyValueStore().then(store => store.setValue(key, value, options));
+export const setValue = async (key, value, options) => {
+    const store = await openKeyValueStore();
+
+    return store.setValue(key, value, options);
+};
 
 /**
  * Gets the actor input value from the default {@link KeyValueStore} associated with the current actor run.
