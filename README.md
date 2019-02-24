@@ -88,7 +88,7 @@ The Apify SDK is available as the <a href="https://www.npmjs.com/package/apify">
     export to formats like JSON, JSONL, CSV, XML, Excel or HTML.
     The data is stored on a local filesystem or in the Apify Cloud.
     Datasets are useful for storing and sharing large tabular crawling results,
-    such as a list of products or real estate offers.
+    such as a list of products from an online store or real estate offers.
   </li>
   <li>
     <a href="https://sdk.apify.com/docs/api/keyvaluestore"><code>KeyValueStore</code></a>
