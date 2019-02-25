@@ -25,7 +25,7 @@ await puppeteer.injectJQuery(page);
 
 * [`puppeteer`](#puppeteer) : <code>object</code>
     * [`.hideWebDriver(page)`](#puppeteer.hideWebDriver) ⇒ <code>Promise</code>
-    * [`.injectFile(page, filePath)`](#puppeteer.injectFile) ⇒ <code>Promise</code>
+    * [`.injectFile(page, filePath, [options])`](#puppeteer.injectFile) ⇒ <code>Promise</code>
     * [`.injectJQuery(page)`](#puppeteer.injectJQuery) ⇒ <code>Promise</code>
     * [`.injectUnderscore(page)`](#puppeteer.injectUnderscore) ⇒ <code>Promise</code>
     * [`.blockResources(page, [resourceTypes])`](#puppeteer.blockResources) ⇒ <code>Promise</code>
@@ -54,13 +54,12 @@ The function should be called on a newly-created page object before navigating t
 </table>
 <a name="puppeteer.injectFile"></a>
 
-## `puppeteer.injectFile(page, filePath)` ⇒ <code>Promise</code>
+## `puppeteer.injectFile(page, filePath, [options])` ⇒ <code>Promise</code>
 Injects a JavaScript file into a Puppeteer page.
 Unlike Puppeteer's `addScriptTag` function, this function works on pages
 with arbitrary Cross-Origin Resource Sharing (CORS) policies.
 
-Make sure that you're injecting the file after the page has loaded (after `page.goto()`). Otherwise,
-the navigation will override the existing environment and the library will no longer be available.
+File contents are cached for up to 10 files to limit file system access.
 
 <table>
 <thead>
@@ -79,6 +78,17 @@ the navigation will override the existing environment and the library will no lo
 </tr>
 <tr>
 <td colspan="3"><p>File path</p>
+</td></tr><tr>
+<td><code>[options]</code></td><td><code>Object</code></td>
+</tr>
+<tr>
+<td colspan="3"></td></tr><tr>
+<td><code>[options.surviveNavigations]</code></td><td><code>boolean</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Enables the injected script to survive page navigations and reloads without need to be re-injected manually.
+  This does not mean, however, that internal state will be preserved. Just that it will be automatically
+  re-injected on each navigation before any other scripts get the chance to execute.</p>
 </td></tr></tbody>
 </table>
 <a name="puppeteer.injectJQuery"></a>
@@ -92,9 +102,7 @@ Beware that the injected jQuery object will be set to the `window.$` variable an
 other libraries included by the page that use the same variable name (e.g. another version of jQuery).
 This can affect functionality of page's scripts.
 
-Also make sure that you're injecting jQuery after the page has loaded
-(i.e. after [`page.goto()`](https://pptr.dev/#?product=Puppeteer&show=api-pagegotourl-options)).
-Otherwise, the navigation will override the existing environment and the library will no longer be available.
+The injected jQuery will survive page navigations and reloads.
 
 **Example usage:**
 ```javascript
@@ -131,9 +139,7 @@ Beware that the injected Underscore object will be set to the `window._` variabl
 libraries included by the page that use the same variable name.
 This can affect functionality of page's scripts.
 
-Also make sure that you're injecting Underscore after the page has loaded
-(i.e. after [`page.goto()`](https://pptr.dev/#?product=Puppeteer&show=api-pagegotourl-options)).
-Otherwise, the navigation will override the existing environment and the library will no longer be available.
+The injected Underscore will survive page navigations and reloads.
 
 **Example usage:**
 ```javascript
