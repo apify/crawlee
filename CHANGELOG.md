@@ -1,4 +1,4 @@
-xxx
+0.12.0 / 2019-02-25
 ===================
 - **BREAKING CHANGE:** Reduced default `handlePageTimeoutSecs` for both `CheerioCrawler` and `PuppeteerCrawler` from 300 to 60 seconds,
   in order to prevent stalling crawlers.
