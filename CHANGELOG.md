@@ -1,4 +1,4 @@
-xxx
+0.12.0 / 2019-02-25
 ===================
 -- Added `Apify.metamorph()`, see documentation for more information.
 
@@ -19,7 +19,7 @@ xxx
 - Bugfix: `LocalRequestQueue.getRequest()` threw an exception if request was not found
 - Added `RequestQueue.getInfo()` function
 - Improved `Apify.main()` to provide nicer stack traces on errors
-- `Apify.utils.puppeteer.injectFile()` now supports injection that survives page navigations.
+- `Apify.utils.puppeteer.injectFile()` now supports injection that survives page navigations and caches file contents.
 
 0.11.8 / 2019-02-05
 ===================

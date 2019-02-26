@@ -108,7 +108,6 @@ const getEmptyEnv = () => {
 };
 
 const setEnv = (env) => {
-    delete process.env.APIFY_INTERNAL_PORT;
     delete process.env.APIFY_ACT_ID;
     delete process.env.APIFY_ACT_RUN_ID;
     delete process.env.APIFY_USER_ID;
@@ -118,7 +117,6 @@ const setEnv = (env) => {
     delete process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID;
     delete process.env.APIFY_DEFAULT_DATASET_ID;
 
-    // if (env.internalPort) process.env.APIFY_INTERNAL_PORT = env.internalPort.toString();
     if (env.actId) process.env.APIFY_ACT_ID = env.actId;
     if (env.actRunId) process.env.APIFY_ACT_RUN_ID = env.actRunId;
     if (env.userId) process.env.APIFY_USER_ID = env.userId;
