@@ -7,11 +7,13 @@ import { APIFY_PROXY_VALUE_REGEX } from 'apify-shared/regexs';
 import { ENV_VARS, LOCAL_ENV_VARS, ACT_JOB_TERMINAL_STATUSES, ACT_JOB_STATUSES } from 'apify-shared/consts';
 import { EXIT_CODES } from './constants';
 import { initializeEvents, stopEvents } from './events';
-import { apifyClient, addCharsetToContentType } from './utils';
+import { apifyClient, addCharsetToContentType, sleep } from './utils';
 import { maybeStringify } from './key_value_store';
 import { ApifyCallError } from './errors';
 
 /* globals process */
+
+const METAMORPH_AFTER_SLEEP_MILLIS = 300000;
 
 /**
  * Tries to parse a string with date.
@@ -483,6 +485,68 @@ export const callTask = async (taskId, input, options = {}) => {
     });
 
     return Object.assign({}, updatedRun, { output });
+};
+
+
+/**
+ * Metamorphs current actor run into a run of another actor with given input.
+ * After this function is called the actor container gets stopped and restarted as a run of given actor.
+ *
+ * @param {String} actorId
+ *  Either `username/actor-name` or actor ID of an actor to which we want to metamorph.
+ * @param {Object|String|Buffer} [input]
+ *  Input for the actor. If it is an object, it will be stringified to
+ *  JSON and its content type set to `application/json; charset=utf-8`.
+ *  Otherwise the `options.contentType` parameter must be provided.
+ * @param {Object} [options]
+ *   Object with the settings below:
+ * @param {String} [options.contentType]
+ *  Content type for the `input`. If not specified,
+ *  `input` is expected to be an object that will be stringified to JSON and content type set to
+ *  `application/json; charset=utf-8`. If `options.contentType` is specified, then `input` must be a
+ *  `String` or `Buffer`.
+ * @param {String} [options.build]
+ *  Tag or number of the target actor build to metamorph into (e.g. `beta` or `1.2.345`).
+ *  If not provided, the run uses build tag or number from the default actor run configuration (typically `latest`).
+ * @returns {Promise<undefined>}
+ *
+ * @memberof module:Apify
+ * @function
+ * @name metamorph
+ */
+export const metamorph = async (actorId, input, options = {}) => {
+    // Use optionsCopy here as maybeStringify() may override contentType
+    const optionsCopy = Object.assign({}, options);
+    const { acts } = apifyClient;
+
+    checkParamOrThrow(actorId, 'actorId', 'String');
+    checkParamOrThrow(optionsCopy, 'opts', 'Object');
+    checkParamOrThrow(optionsCopy.build, 'options.build', 'Maybe String');
+    checkParamOrThrow(optionsCopy.contentType, 'options.contentType', 'Maybe String');
+
+    const actId = process.env[ENV_VARS.ACTOR_ID];
+    const runId = process.env[ENV_VARS.ACTOR_RUN_ID];
+    if (!actId) throw new Error(`Environment variable ${ENV_VARS.ACTOR_ID} must be provided!`);
+    if (!runId) throw new Error(`Environment variable ${ENV_VARS.ACTOR_RUN_ID} must be provided!`);
+
+    if (input) {
+        input = maybeStringify(input, optionsCopy);
+        checkParamOrThrow(input, 'input', 'Buffer|String');
+        if (optionsCopy.contentType) optionsCopy.contentType = addCharsetToContentType(optionsCopy.contentType);
+    }
+
+    await acts.metamorphRun({
+        actId,
+        runId,
+        targetActorId: actorId,
+        contentType: optionsCopy.contentType,
+        body: input,
+        build: optionsCopy.build,
+    });
+
+    // Wait some time for container to be stopped.
+    // NOTE: option.customAfterSleepMillis is used in tests
+    await sleep(optionsCopy.customAfterSleepMillis || METAMORPH_AFTER_SLEEP_MILLIS);
 };
 
 /**

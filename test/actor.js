@@ -896,6 +896,104 @@ describe('Apify.callTask()', () => {
     });
 });
 
+describe('Apify.metamorph()', () => {
+    it('works as expected', async () => {
+        const runId = 'some-run-id';
+        const actorId = 'some-actor-id';
+        const targetActorId = 'some-target-actor-id';
+        const contentType = 'application/json';
+        const input = '{ "foo": "bar" }';
+        const build = 'beta';
+
+        process.env[ENV_VARS.ACTOR_ID] = actorId;
+        process.env[ENV_VARS.ACTOR_RUN_ID] = runId;
+
+        const actsMock = sinon.mock(Apify.client.acts);
+        actsMock.expects('metamorphRun')
+            .withExactArgs({
+                runId,
+                actId: actorId,
+                targetActorId,
+                body: input,
+                contentType: 'application/json; charset=utf-8',
+                build,
+            })
+            .once()
+            .returns(Promise.resolve());
+
+
+        await Apify.metamorph(targetActorId, input, { contentType, build, customAfterSleepMillis: 1 });
+
+        delete process.env[ENV_VARS.ACTOR_ID];
+        delete process.env[ENV_VARS.ACTOR_RUN_ID];
+
+        actsMock.verify();
+        actsMock.restore();
+    });
+
+    it('works without opts and input', async () => {
+        const runId = 'some-run-id';
+        const actorId = 'some-actor-id';
+        const targetActorId = 'some-target-actor-id';
+
+        process.env[ENV_VARS.ACTOR_ID] = actorId;
+        process.env[ENV_VARS.ACTOR_RUN_ID] = runId;
+
+        const actsMock = sinon.mock(Apify.client.acts);
+        actsMock.expects('metamorphRun')
+            .withExactArgs({
+                runId,
+                actId: actorId,
+                targetActorId,
+                body: undefined,
+                build: undefined,
+                contentType: undefined,
+            })
+            .once()
+            .returns(Promise.resolve());
+
+
+        await Apify.metamorph(targetActorId, undefined, { customAfterSleepMillis: 1 });
+
+        delete process.env[ENV_VARS.ACTOR_ID];
+        delete process.env[ENV_VARS.ACTOR_RUN_ID];
+
+        actsMock.verify();
+        actsMock.restore();
+    });
+
+    it('stringifies to JSON', async () => {
+        const runId = 'some-run-id';
+        const actorId = 'some-actor-id';
+        const targetActorId = 'some-target-actor-id';
+        const input = { foo: 'bar' };
+
+        process.env[ENV_VARS.ACTOR_ID] = actorId;
+        process.env[ENV_VARS.ACTOR_RUN_ID] = runId;
+
+        const actsMock = sinon.mock(Apify.client.acts);
+        actsMock.expects('metamorphRun')
+            .withExactArgs({
+                runId,
+                actId: actorId,
+                targetActorId,
+                body: JSON.stringify(input, null, 2),
+                contentType: 'application/json; charset=utf-8',
+                build: undefined,
+            })
+            .once()
+            .returns(Promise.resolve());
+
+        await Apify.metamorph(targetActorId, input, { customAfterSleepMillis: 1 });
+
+        delete process.env[ENV_VARS.ACTOR_ID];
+        delete process.env[ENV_VARS.ACTOR_RUN_ID];
+
+        actsMock.verify();
+        actsMock.restore();
+    });
+});
+
 describe('Apify.getApifyProxyUrl()', () => {
     it('should work', () => {
         process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';

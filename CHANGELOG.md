@@ -1,5 +1,9 @@
 xxx
 ===================
+-- Added `Apify.metamorph()`, see documentation for more information.
+
+xxx
+===================
 - **BREAKING CHANGE:** Reduced default `handlePageTimeoutSecs` for both `CheerioCrawler` and `PuppeteerCrawler` from 300 to 60 seconds,
   in order to prevent stalling crawlers.
 - **BREAKING CHANGE:** `PseudoUrl` now performs case-insensitive matching, even for the query string part of the URLs.

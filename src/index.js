@@ -1,7 +1,7 @@
 import EventEmitter from 'events';
 import log from 'apify-shared/log';
 import { ENV_VARS } from 'apify-shared/consts';
-import { main, getEnv, call, callTask, getApifyProxyUrl } from './actor';
+import { main, getEnv, call, callTask, getApifyProxyUrl, metamorph } from './actor';
 import AutoscaledPool from './autoscaling/autoscaled_pool';
 import BasicCrawler from './basic_crawler';
 import CheerioCrawler from './cheerio_crawler';
@@ -53,6 +53,7 @@ module.exports = {
     getEnv,
     call,
     callTask,
+    metamorph,
     getMemoryInfo,
     getApifyProxyUrl,
     isAtHome,

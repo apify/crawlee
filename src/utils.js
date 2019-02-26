@@ -392,7 +392,7 @@ export const isAtHome = () => !!process.env[ENV_VARS.IS_AT_HOME];
  * @memberof utils
  * @return {Promise}
  */
-const sleep = (millis) => {
+export const sleep = (millis) => {
     return delayPromise(millis);
 };
 
