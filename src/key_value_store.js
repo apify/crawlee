@@ -125,7 +125,7 @@ export const maybeStringify = (value, options) => {
  * The `{KEY}` is the key of the record and `{EXT}` corresponds to the MIME content type of the data value.
  *
  * If the `APIFY_TOKEN` environment variable is set but `APIFY_LOCAL_STORAGE_DIR` not, the data is stored in the
- * <a href="https://www.apify.com/docs/storage#key-value-store" target="_blank">Apify Key-value store</a>
+ * <a href="https://apify.com/docs/storage#key-value-store" target="_blank">Apify Key-value store</a>
  * cloud storage. Note that you can force usage of the cloud storage also by passing the `forceCloud`
  * option to [`Apify.openKeyValueStore()`](apify#module_Apify.openKeyValueStore) function,
  * even if the `APIFY_LOCAL_STORAGE_DIR` variable is set.

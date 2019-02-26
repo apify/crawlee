@@ -101,7 +101,7 @@ const waitForRunToFinish = async ({ actId, runId, token, waitSecs, taskId }) => 
  * }
  * ```
  * For the list of the `APIFY_XXX` environment variables, see
- * <a href="https://www.apify.com/docs/actor#run-env-vars" target="_blank">Actor documentation</a>.
+ * <a href="https://apify.com/docs/actor#run-env-vars" target="_blank">Actor documentation</a>.
  * If some of the variables are not defined or are invalid, the corresponding value in the resulting object will be null.
  *
  * @returns {Object}
@@ -262,7 +262,7 @@ let callMemoryWarningIssued = false;
  * [`Apify.callTask()`](../api/apify#module_Apify.callTask) function instead.
  *
  * For more information about actors, read the
- * <a href="https://www.apify.com/docs/actor" target="_blank">documentation</a>.
+ * <a href="https://apify.com/docs/actor" target="_blank">documentation</a>.
  *
  * **Example usage:**
  *
@@ -272,7 +272,7 @@ let callMemoryWarningIssued = false;
  * ```
  *
  * Internally, the `call()` function invokes the
- * <a href="https://www.apify.com/docs/api/v2#/reference/actors/run-collection/run-actor" target="_blank">Run actor</a>
+ * <a href="https://apify.com/docs/api/v2#/reference/actors/run-collection/run-actor" target="_blank">Run actor</a>
  * and several other API endpoints to obtain the output.
  *
  * @param {String} actId
@@ -407,7 +407,7 @@ export const call = async (actId, input, options = {}) => {
  * If you want to run an actor directly rather than an actor task, please use the
  * [`Apify.call()`](../api/apify#module_Apify.call) function instead.
  *
- * For more information about actor tasks, read the [`documentation`](https://www.apify.com/docs/tasks).
+ * For more information about actor tasks, read the [`documentation`](https://apify.com/docs/tasks).
  *
  * **Example usage:**
  *
@@ -417,7 +417,7 @@ export const call = async (actId, input, options = {}) => {
  * ```
  *
  * Internally, the `callTask()` function calls the
- * <a href="https://www.apify.com/docs/api/v2#/reference/actor-tasks/runs-collection/run-task-asynchronously" target="_blank">Run task</a>
+ * <a href="https://apify.com/docs/api/v2#/reference/actor-tasks/runs-collection/run-task-asynchronously" target="_blank">Run task</a>
  * and several other API endpoints to obtain the output.
  *
  * @param {String} taskId
@@ -490,10 +490,10 @@ export const callTask = async (taskId, input, options = {}) => {
  * [`Apify.call()`](../api/apify#module_Apify.call) or [`Apify.callTask()`](../api/apify#module_Apify.callTask) function.
  * The object is almost equivalent to the JSON response
  * of the
- * <a href="https://www.apify.com/docs/api/v2#/reference/actors/run-collection/run-actor" target="_blank">Actor run</a>
+ * <a href="https://apify.com/docs/api/v2#/reference/actors/run-collection/run-actor" target="_blank">Actor run</a>
  * Apify API endpoint and extended with certain fields.
  * For more details, see
- * <a href="https://www.apify.com/docs/actor#run" target="_blank">Runs.</a>
+ * <a href="https://apify.com/docs/actor#run" target="_blank">Runs.</a>
  *
  * @typedef {Object} ActorRun
  * @property {String} id
@@ -506,7 +506,7 @@ export const callTask = async (taskId, input, options = {}) => {
  *   Time when the actor run finished. Contains `null` for running actors.
  * @property {String} status
  *   Status of the run. For possible values, see
- *   <a href="https://www.apify.com/docs/actor#run-lifecycle" target="_blank">Run lifecycle</a>
+ *   <a href="https://apify.com/docs/actor#run-lifecycle" target="_blank">Run lifecycle</a>
  *   in Apify actor documentation.
  * @property {Object} meta
  *   Actor run meta-data. For example:
@@ -539,7 +539,7 @@ export const callTask = async (taskId, input, options = {}) => {
  *   ```
  * @property {String} buildId
  *   ID of the actor build used for the run. For details, see
- *   <a href="https://www.apify.com/docs/actor#build" target="_blank">Builds</a>
+ *   <a href="https://apify.com/docs/actor#build" target="_blank">Builds</a>
  *   in Apify actor documentation.
  * @property {String} buildNumber
  *   Number of the actor build used for the run. For example, `0.0.10`.
@@ -554,7 +554,7 @@ export const callTask = async (taskId, input, options = {}) => {
  * @property {String} containerUrl
  *   URL on which the web server running inside actor run's Docker container can be accessed.
  *   For more details, see
- *   <a href="https://www.apify.com/docs/actor#container-web-server" target="_blank">Container web server</a>
+ *   <a href="https://apify.com/docs/actor#container-web-server" target="_blank">Container web server</a>
  *   in Apify actor documentation.
  * @property {Object} output
  *   Contains output of the actor run. The value is `null` or `undefined` in case the actor is still running,
@@ -579,7 +579,7 @@ export const callTask = async (taskId, input, options = {}) => {
  *
  * For more information, see
  * the <a href="https://my.apify.com/proxy" target="_blank">Apify Proxy</a> page in the app
- * or the <a href="https://www.apify.com/docs/proxy" target="_blank">documentation</a>.
+ * or the <a href="https://apify.com/docs/proxy" target="_blank">documentation</a>.
  *
  * @param {Object} options
  *   Object with the settings below:
