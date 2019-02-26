@@ -489,10 +489,10 @@ export const callTask = async (taskId, input, options = {}) => {
 
 
 /**
- * Metamorphs current actor run into a run of another actor with given input.
- * After this function is called the actor container gets stopped and restarted as a run of given actor.
+ * Transforms this actor run to an actor run of a given actor. The system stops the current container and starts new container
+ * a instead. All the default storages are preserved and the new input is stored under the `INPUT-1` key in the same default key-value store.
  *
- * @param {String} actorId
+ * @param {String} targetActorId
  *  Either `username/actor-name` or actor ID of an actor to which we want to metamorph.
  * @param {Object|String|Buffer} [input]
  *  Input for the actor. If it is an object, it will be stringified to
@@ -514,19 +514,19 @@ export const callTask = async (taskId, input, options = {}) => {
  * @function
  * @name metamorph
  */
-export const metamorph = async (actorId, input, options = {}) => {
+export const metamorph = async (targetActorId, input, options = {}) => {
     // Use optionsCopy here as maybeStringify() may override contentType
     const optionsCopy = Object.assign({}, options);
     const { acts } = apifyClient;
 
-    checkParamOrThrow(actorId, 'actorId', 'String');
+    checkParamOrThrow(targetActorId, 'targetActorId', 'String');
     checkParamOrThrow(optionsCopy, 'opts', 'Object');
     checkParamOrThrow(optionsCopy.build, 'options.build', 'Maybe String');
     checkParamOrThrow(optionsCopy.contentType, 'options.contentType', 'Maybe String');
 
-    const actId = process.env[ENV_VARS.ACTOR_ID];
+    const actorId = process.env[ENV_VARS.ACTOR_ID];
     const runId = process.env[ENV_VARS.ACTOR_RUN_ID];
-    if (!actId) throw new Error(`Environment variable ${ENV_VARS.ACTOR_ID} must be provided!`);
+    if (!actorId) throw new Error(`Environment variable ${ENV_VARS.ACTOR_ID} must be provided!`);
     if (!runId) throw new Error(`Environment variable ${ENV_VARS.ACTOR_RUN_ID} must be provided!`);
 
     if (input) {
@@ -536,9 +536,9 @@ export const metamorph = async (actorId, input, options = {}) => {
     }
 
     await acts.metamorphRun({
-        actId,
+        actId: actorId,
         runId,
-        targetActorId: actorId,
+        targetActorId,
         contentType: optionsCopy.contentType,
         body: input,
         build: optionsCopy.build,
