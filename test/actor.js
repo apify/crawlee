@@ -713,10 +713,22 @@ describe('Apify.callTask()', () => {
         const finishedRun = Object.assign({}, run, { status: ACT_JOB_STATUSES.SUCCEEDED });
         const output = { contentType: 'application/json', body: 'some-output' };
         const expected = Object.assign({}, finishedRun, { output });
+        const input = { foo: 'bar' };
+        const memoryMbytes = 256;
+        const timeoutSecs = 60;
+        const build = 'beta';
 
         const tasksMock = sinon.mock(Apify.client.tasks);
         tasksMock.expects('runTask')
-            .withExactArgs({ token, taskId })
+            .withExactArgs({
+                token,
+                taskId,
+                body: JSON.stringify(input, null, 2),
+                contentType: 'application/json; charset=utf-8',
+                memory: memoryMbytes,
+                timeout: timeoutSecs,
+                build,
+            })
             .once()
             .returns(Promise.resolve(runningRun));
 
@@ -737,7 +749,7 @@ describe('Apify.callTask()', () => {
             .returns(Promise.resolve(output));
 
         return Apify
-            .callTask(taskId, undefined, { token, disableBodyParser: true })
+            .callTask(taskId, input, { token, disableBodyParser: true, memoryMbytes, timeoutSecs, build })
             .then((callOutput) => {
                 expect(callOutput).to.be.eql(expected);
                 keyValueStoresMock.restore();
