@@ -280,6 +280,7 @@ describe('CheerioCrawler', () => {
         });
 
         it('by throwing on unsupported Content-Encoding', async () => {
+            log.setLevel(log.LEVELS.OFF);
             const sourceFilePath = path.join(__dirname, 'data', 'sample.html');
             let handlePageInvocationCount = 0;
             let allErrors = [];
@@ -297,7 +298,7 @@ describe('CheerioCrawler', () => {
                 const response = fs.createReadStream(sourceFilePath);
                 response.headers = {
                     'content-type': 'text/html', // to avoid throwing
-                    'content-encoding': 'compress',
+                    'content-encoding': 'bad-encoding',
                 };
                 Object.assign(response, responseMock);
 
@@ -316,8 +317,9 @@ describe('CheerioCrawler', () => {
             expect(handlePageInvocationCount).to.be.eql(0);
             allErrors.forEach((err) => {
                 expect(err).to.include('Invalid Content-Encoding header');
-                expect(err).to.include('compress');
+                expect(err).to.include('bad-encoding');
             });
+            log.setLevel(log.LEVELS.ERROR);
         });
     });
 

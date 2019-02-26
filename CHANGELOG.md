@@ -1,4 +1,4 @@
-xxx
+0.12.0 / 2019-02-25
 ===================
 - **BREAKING CHANGE:** Reduced default `handlePageTimeoutSecs` for both `CheerioCrawler` and `PuppeteerCrawler` from 300 to 60 seconds,
   in order to prevent stalling crawlers.
@@ -15,6 +15,7 @@ xxx
 - Bugfix: `LocalRequestQueue.getRequest()` threw an exception if request was not found
 - Added `RequestQueue.getInfo()` function
 - Improved `Apify.main()` to provide nicer stack traces on errors
+- `Apify.utils.puppeteer.injectFile()` now supports injection that survives page navigations and caches file contents.
 
 0.11.8 / 2019-02-05
 ===================

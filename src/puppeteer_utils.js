@@ -5,13 +5,16 @@ import _ from 'underscore';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
+import LruCache from 'apify-shared/lru_cache';
 import { RequestQueue, RequestQueueLocal } from './request_queue';
 import Request from './request';
 import { enqueueLinks } from './enqueue_links';
 
-const jqueryPath = require.resolve('jquery');
-const underscorePath = require.resolve('underscore');
+const jqueryPath = require.resolve('jquery/dist/jquery.min');
+const underscorePath = require.resolve('underscore/underscore-min');
 const readFilePromised = util.promisify(fs.readFile);
+
+const MAX_INJECT_FILE_CACHE_SIZE = 10;
 
 /**
  * Hides certain Puppeteer fingerprints from the page, in order to help avoid detection of the crawler.
@@ -55,26 +58,42 @@ const hideWebDriver = async (page) => {
 };
 
 /**
+ * Cache contents of previously injected files to limit file system access.
+ */
+const injectedFilesCache = new LruCache({ maxLength: MAX_INJECT_FILE_CACHE_SIZE });
+
+/**
  * Injects a JavaScript file into a Puppeteer page.
  * Unlike Puppeteer's `addScriptTag` function, this function works on pages
  * with arbitrary Cross-Origin Resource Sharing (CORS) policies.
  *
- * Make sure that you're injecting the file after the page has loaded (after `page.goto()`). Otherwise,
- * the navigation will override the existing environment and the library will no longer be available.
+ * File contents are cached for up to 10 files to limit file system access.
  *
  * @param {Page} page
  *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
  * @param {String} filePath File path
+ * @param {Object} [options]
+ * @param {boolean} [options.surviveNavigations]
+ *   Enables the injected script to survive page navigations and reloads without need to be re-injected manually.
+ *   This does not mean, however, that internal state will be preserved. Just that it will be automatically
+ *   re-injected on each navigation before any other scripts get the chance to execute.
  * @return {Promise}
  * @memberOf puppeteer
  */
-const injectFile = async (page, filePath) => {
+const injectFile = async (page, filePath, options = {}) => {
     checkParamOrThrow(page, 'page', 'Object');
     checkParamOrThrow(filePath, 'filePath', 'String');
+    checkParamOrThrow(options, 'options', 'Object');
 
-    const contents = await readFilePromised(filePath, 'utf8');
-
-    return page.evaluate(contents);
+    let contents = injectedFilesCache.get(filePath);
+    if (!contents) {
+        contents = await readFilePromised(filePath, 'utf8');
+        injectedFilesCache.add(filePath, contents);
+    }
+    const evalP = page.evaluate(contents);
+    return options.surviveNavigations
+        ? Promise.all([page.evaluateOnNewDocument(contents), evalP])
+        : evalP;
 };
 
 /**
@@ -86,9 +105,7 @@ const injectFile = async (page, filePath) => {
  * other libraries included by the page that use the same variable name (e.g. another version of jQuery).
  * This can affect functionality of page's scripts.
  *
- * Also make sure that you're injecting jQuery after the page has loaded
- * (i.e. after [`page.goto()`](https://pptr.dev/#?product=Puppeteer&show=api-pagegotourl-options)).
- * Otherwise, the navigation will override the existing environment and the library will no longer be available.
+ * The injected jQuery will survive page navigations and reloads.
  *
  * **Example usage:**
  * ```javascript
@@ -111,7 +128,7 @@ const injectJQuery = (page) => {
     checkParamOrThrow(page, 'page', 'Object');
 
     // TODO: For better performance we could use minimized version of the script
-    return injectFile(page, jqueryPath);
+    return injectFile(page, jqueryPath, { surviveNavigations: true });
 };
 
 /**
@@ -121,9 +138,7 @@ const injectJQuery = (page) => {
  * libraries included by the page that use the same variable name.
  * This can affect functionality of page's scripts.
  *
- * Also make sure that you're injecting Underscore after the page has loaded
- * (i.e. after [`page.goto()`](https://pptr.dev/#?product=Puppeteer&show=api-pagegotourl-options)).
- * Otherwise, the navigation will override the existing environment and the library will no longer be available.
+ * The injected Underscore will survive page navigations and reloads.
  *
  * **Example usage:**
  * ```javascript
@@ -141,7 +156,7 @@ const injectUnderscore = (page) => {
     checkParamOrThrow(page, 'page', 'Object');
 
     // TODO: For better performance we could use minimized version of the script
-    return injectFile(page, underscorePath);
+    return injectFile(page, underscorePath, { surviveNavigations: true });
 };
 
 /**

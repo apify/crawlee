@@ -78,6 +78,7 @@ await queue.reclaimRequest(request2);
     * [`.isFinished()`](#RequestQueue+isFinished) ⇒ <code>Promise&lt;Boolean&gt;</code>
     * [`.delete()`](#RequestQueue+delete) ⇒ <code>Promise</code>
     * [`.handledCount()`](#RequestQueue+handledCount) ⇒ <code>Promise&lt;number&gt;</code>
+    * [`.getInfo()`](#RequestQueue+getInfo) ⇒ <code>Promise&lt;Object&gt;</code>
 
 <a name="RequestQueue+addRequest"></a>
 
@@ -116,6 +117,7 @@ it will not be updated. You can find out whether this happened from the resultin
 ## `requestQueue.getRequest(requestId)` ⇒ [<code>Promise&lt;Request&gt;</code>](request)
 Gets the request from the queue specified by ID.
 
+**Returns**: [<code>Promise&lt;Request&gt;</code>](request) - Returns the request object, or `null` if it was not found.  
 <table>
 <thead>
 <tr>
@@ -135,6 +137,7 @@ Gets the request from the queue specified by ID.
 ## `requestQueue.fetchNextRequest()` ⇒ [<code>Promise&lt;Request&gt;</code>](request)
 Returns next request in the queue to be processed.
 
+**Returns**: [<code>Promise&lt;Request&gt;</code>](request) - Returns the request object, or `null` if there are no more pending requests.  
 <a name="RequestQueue+markRequestHandled"></a>
 
 ## `requestQueue.markRequestHandled(request)` ⇒ [<code>Promise&lt;QueueOperationInfo&gt;</code>](../typedefs/queueoperationinfo)
@@ -209,4 +212,30 @@ depending on the mode of operation.
 
 ## `requestQueue.handledCount()` ⇒ <code>Promise&lt;number&gt;</code>
 Returns the number of handled requests.
+
+<a name="RequestQueue+getInfo"></a>
+
+## `requestQueue.getInfo()` ⇒ <code>Promise&lt;Object&gt;</code>
+Returns an object containing general information about the request queue.
+
+The function returns the same object as the Apify API Client's
+[getQueue](https://www.apify.com/docs/api/apify-client-js/latest#ApifyClient-requestQueues-getQueue)
+function, which in turn calls the
+[Get request queue](https://www.apify.com/docs/api/v2#/reference/request-queues/queue/get-request-queue)
+API endpoint.
+
+**Example:**
+```
+{
+  "id": "WkzbQMuFYuamGv3YF",
+  "name": "my-queue",
+  "userId": "wRsJZtadYvn4mBZmm",
+  "createdAt": new Date("2015-12-12T07:34:14.202Z"),
+  "modifiedAt": new Date("2015-12-13T08:36:13.202Z"),
+  "accessedAt": new Date("2015-12-14T08:36:13.202Z"),
+  totalRequestCount: 0,
+  handledRequestCount: 0,
+  pendingRequestCount: 0,
+}
+```
 

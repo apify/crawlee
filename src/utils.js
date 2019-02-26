@@ -578,12 +578,12 @@ const htmlToText = (html) => {
  * Creates a standardized debug info from request and response. This info is usually added to dataset under the hidden `#debug` field.
  *
  * @param {Object} request [Apify.Request](https://sdk.apify.com/docs/api/request) object.
- * @param {Object} [response] Puppeteer [Response](https://pptr.dev/#?product=Puppeteer&version=v1.11.0&show=api-class-response) object
- * or NodeJS [http.ServerResponse](https://nodejs.org/api/http.html#http_class_http_serverresponse) object
+ * @param {Object} [response]
+ *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&version=v1.11.0&show=api-class-response" target="_blank"><code>Response</code></a>
+ *   or NodeJS <a href="https://nodejs.org/api/http.html#http_class_http_serverresponse" target="_blank"><code>http.ServerResponse</code></a>.
  * @param {Object} [additionalFields] Object containing additional fields to be added.
 
  * @return {Object}
- * @ignore
  */
 const createRequestDebugInfo = (request, response = {}, additionalFields = {}) => {
     checkParamOrThrow(request, 'request', 'Object');

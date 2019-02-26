@@ -317,7 +317,7 @@ export class KeyValueStore {
      * **Example usage**
      * ```javascript
      * const keyValueStore = await Apify.openKeyValueStore();
-     * keyValueStore.forEachKey(async (key, index, info) => {
+     * await keyValueStore.forEachKey(async (key, index, info) => {
      *   console.log(`Key at ${index}: ${key} has size ${info.size}`);
      * });
      * ```
