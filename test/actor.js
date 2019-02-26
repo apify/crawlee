@@ -383,6 +383,37 @@ describe('Apify.call()', () => {
             });
     });
 
+    it('should not fail when run get stuck in READY state', () => {
+        const actId = 'some-act-id';
+        const token = 'token';
+        const defaultKeyValueStoreId = 'some-store-id';
+        const run = { id: 'some-run-id', actId, defaultKeyValueStoreId };
+        const readyRun = Object.assign({}, run, { status: ACT_JOB_STATUSES.READY });
+
+        Apify.client.setOptions({ token });
+
+        const actsMock = sinon.mock(Apify.client.acts);
+        actsMock.expects('runAct')
+            .withExactArgs({ actId })
+            .once()
+            .returns(Promise.resolve(readyRun));
+        actsMock.expects('getRun')
+            .withExactArgs({ actId, runId: run.id, waitForFinish: 1 })
+            .once()
+            .returns(new Promise(resolve => setTimeout(() => resolve(readyRun), 1100)));
+
+        const keyValueStoresMock = sinon.mock(Apify.client.keyValueStores);
+        keyValueStoresMock.expects('getRecord').never();
+
+        return Apify
+            .call(actId, undefined, { waitSecs: 1 })
+            .then((callOutput) => {
+                expect(callOutput).to.be.eql(readyRun);
+                keyValueStoresMock.restore();
+                actsMock.restore();
+            });
+    });
+
     it('works without opts with null input', () => {
         const actId = 'some-act-id';
         const token = 'token';
