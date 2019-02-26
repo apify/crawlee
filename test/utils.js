@@ -745,34 +745,10 @@ describe('utils.htmlToText()', () => {
 
     it('handles larger HTML documents', () => {
         const html1 = fs.readFileSync(path.join(__dirname, 'data', 'html_to_text_test.html'), 'utf8');
+        const text1 = fs.readFileSync(path.join(__dirname, 'data', 'html_to_text_test.txt'), 'utf8');
 
         // Careful here - don't change any whitespace in the text below or the test will break, even trailing!
-        /* eslint-disable */
-        checkHtmlToText(
-            html1,
-            `Let's start with a simple text.
-The ships hung in the sky, much the way that bricks don't.
-These aren't the Droids you're looking for
-I'm sorry, Dave. I'm afraid I can't do that.
-I'm sorry, Dave. I'm afraid I can't do that.
-A1	A2	A3\t
-B1	B2	B3	B 4\t
-This is some text with inline elements and HTML entities (>bla<)
-Test
-a
-few
-line
-breaks
-Spaces in an inline text should be completely ignored.
-But,
-    a pre-formatted
-                block  should  be  kept
-                                       pre-formatted.
-The Greatest Science Fiction Quotes Of All Time
-Don't know, I don't know such stuff. I just do eyes, ju-, ju-, just eyes... just genetic design, just eyes. You Nexus, huh? I design your eyes.`,
-            true,
-        );
-        /* eslint-enable */
+        checkHtmlToText(html1, text1, true);
     });
 
     it('works with Cheerio object', () => {
@@ -783,7 +759,6 @@ Don't know, I don't know such stuff. I just do eyes, ju-, ju-, just eyes... just
         checkHtmlToText(cheerio.load(html2, { decodeEntities: true }), 'Text outside of body');
     });
 });
-
 
 describe('utils.createRequestDebugInfo()', () => {
     it('handles Puppeteer response', () => {
