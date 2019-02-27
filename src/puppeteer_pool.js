@@ -472,6 +472,7 @@ class PuppeteerPool {
         try {
             const browser = await instance.browserPromise;
             const page = await browser.newPage();
+            this._focusOldestTab(browser).catch(() => log.debug('Could not focus oldest tab.'));
             this.pagesToInstancesMap.set(page, instance);
             return this._decoratePage(page);
         } catch (err) {
@@ -505,6 +506,18 @@ class PuppeteerPool {
             page.close();
         });
         return page;
+    }
+
+    /**
+     * Tells Chromium to focus oldest tab. This is to work around Chromium
+     * throttling CPU and network in inactive tabs.
+     *
+     * @param {Browser} browser
+     * @ignore
+     */
+    async _focusOldestTab(browser) { // eslint-disable-line class-methods-use-this
+        const pages = await browser.pages();
+        if (pages.length > 1) return pages[1].bringToFront();
     }
 
     /**
