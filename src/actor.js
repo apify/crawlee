@@ -489,8 +489,8 @@ export const callTask = async (taskId, input, options = {}) => {
 
 
 /**
- * Transforms this actor run to an actor run of a given actor. The system stops the current container and starts new container
- * a instead. All the default storages are preserved and the new input is stored under the `INPUT-1` key in the same default key-value store.
+ * Transforms this actor run to an actor run of a given actor. The system stops the current container and starts the new container
+ * instead. All the default storages are preserved and the new input is stored under the `INPUT-2` key in the same default key-value store.
  *
  * @param {String} targetActorId
  *  Either `username/actor-name` or actor ID of an actor to which we want to metamorph.
