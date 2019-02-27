@@ -4,10 +4,10 @@ import Promise from 'bluebird';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { APIFY_PROXY_VALUE_REGEX } from 'apify-shared/regexs';
-import { ENV_VARS, LOCAL_ENV_VARS, ACT_JOB_TERMINAL_STATUSES, ACT_JOB_STATUSES } from 'apify-shared/consts';
+import { ENV_VARS, INTEGER_ENV_VARS, LOCAL_ENV_VARS, ACT_JOB_TERMINAL_STATUSES, ACT_JOB_STATUSES } from 'apify-shared/consts';
 import { EXIT_CODES } from './constants';
 import { initializeEvents, stopEvents } from './events';
-import { apifyClient, addCharsetToContentType, sleep } from './utils';
+import { apifyClient, addCharsetToContentType, sleep, snakeCaseToCamelCase } from './utils';
 import { maybeStringify } from './key_value_store';
 import { ApifyCallError } from './errors';
 
@@ -115,18 +115,22 @@ const waitForRunToFinish = async ({ actId, runId, token, waitSecs, taskId }) => 
 export const getEnv = () => {
     // NOTE: Don't throw if env vars are invalid to simplify local development and debugging of actors
     const env = process.env || {};
-    return {
-        actId: env[ENV_VARS.ACT_ID] || null,
-        actRunId: env[ENV_VARS.ACT_RUN_ID] || null,
-        userId: env[ENV_VARS.USER_ID] || null,
-        token: env[ENV_VARS.TOKEN] || null,
-        startedAt: tryParseDate(env[ENV_VARS.STARTED_AT]) || null,
-        timeoutAt: tryParseDate(env[ENV_VARS.TIMEOUT_AT]) || null,
-        defaultKeyValueStoreId: env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID] || null,
-        defaultDatasetId: env[ENV_VARS.DEFAULT_DATASET_ID] || null,
-        // internalPort: parseInt(env[ENV_VARS.INTERNAL_PORT], 10) || null,
-        memoryMbytes: parseInt(env[ENV_VARS.MEMORY_MBYTES], 10) || null,
-    };
+    const envVars = {};
+
+    _.mapObject(ENV_VARS, (fullName, shortName) => {
+        const camelCaseName = snakeCaseToCamelCase(shortName);
+        let value = env[fullName];
+
+        // Parse dates and integers.
+        if (value && fullName.endsWith('_AT')) value = tryParseDate(value);
+        else if (_.contains(INTEGER_ENV_VARS, fullName)) value = parseInt(value, 10);
+
+        envVars[camelCaseName] = value || value === 0
+            ? value
+            : null;
+    });
+
+    return envVars;
 };
 
 /**

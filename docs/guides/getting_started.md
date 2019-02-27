@@ -1155,10 +1155,10 @@ Anyway, to spark some ideas, let's look at two more things. First, passing an in
 We will not go into `KeyValueStore` details here, but for the sake of `INPUT` you need to remember that there is a function that helps you get it (or anything else from the store, actually):
 
 ```js
-const input = await Apify.getValue('INPUT');
+const input = await Apify.getInput();
 ```
 
-On the Apify Platform, the actor's input that you can set in the Console is automatically saved to the default `KeyValueStore` under the key `INPUT`. So it follows that by calling [`Apify.getValue('INPUT')`](../api/apify#apify.getValue) you retrieve the value under the given key and voila, there's your `INPUT`.
+On the Apify Platform, the actor's input that you can set in the Console is automatically saved to the default `KeyValueStore` under the key `INPUT`. So it follows that by calling [`Apify.getInput()`](../api/apify#apify.getValue) you retrieve the value under the given key and voila, there's your `INPUT`.
 
 Running locally, you need to place an `INPUT.json` file in your default key value store for this to work.
 
@@ -1185,7 +1185,7 @@ Once we have that, we can load it in the actor and populate the crawler's source
 
 ```js
 // ...
-const input = await Apify.getValue('INPUT');
+const input = await Apify.getInput();
     
 const sources = input.map(category => ({
     url: `https://www.apify.com/library?type=acts&category=${category}`,
@@ -1240,7 +1240,7 @@ Apify.main(async () => {
 
 async function getSources() {
     log.debug('Getting sources.');
-    const input = await Apify.getValue('INPUT');
+    const input = await Apify.getInput();
 
     return input.map(category => ({
         url: `https://www.apify.com/library?type=acts&category=${category}`,

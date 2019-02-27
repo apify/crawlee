@@ -1,6 +1,5 @@
 import _ from 'underscore';
-import chai, { expect } from 'chai';
-import chaiAsPromised from 'chai-as-promised';
+import { expect } from 'chai';
 import request from 'request-promise-native';
 import sinon from 'sinon';
 import log from 'apify-shared/log';
@@ -9,8 +8,6 @@ import { ACTOR_EVENT_NAMES_EX } from '../build/constants';
 import Apify from '../build/index';
 import * as keyValueStore from '../build/key_value_store';
 import * as utils from '../build/utils';
-
-chai.use(chaiAsPromised);
 
 describe('Apify.RequestList', () => {
     let ll;

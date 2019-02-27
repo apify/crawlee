@@ -1,13 +1,10 @@
-import chai, { expect } from 'chai';
+import { expect } from 'chai';
 import fs from 'fs';
-import chaiAsPromised from 'chai-as-promised';
 import _ from 'underscore';
 import log from 'apify-shared/log';
 import { ENV_VARS } from 'apify-shared/consts';
 import * as Apify from '../build/index';
 import { launchPuppeteer } from '../build/puppeteer';
-
-chai.use(chaiAsPromised);
 
 const shortSleep = (millis = 25) => new Promise(resolve => setTimeout(resolve, millis));
 

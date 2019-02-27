@@ -1,13 +1,10 @@
 import path from 'path';
 import _ from 'underscore';
-import chai, { expect } from 'chai';
-import chaiAsPromised from 'chai-as-promised';
+import { expect } from 'chai';
 import sinon from 'sinon';
 import { delayPromise } from 'apify-shared/utilities';
 import { ENV_VARS, ACT_JOB_STATUSES, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import { ApifyCallError } from '../build/errors';
-
-chai.use(chaiAsPromised);
 
 // NOTE: test use of require() here because this is how its done in acts
 const Apify = require('../build/index');
@@ -144,7 +141,7 @@ describe('Apify.getEnv()', () => {
         setEnv(expectedEnv);
 
         const env = Apify.getEnv();
-        expect(env).to.eql(expectedEnv);
+        expect(env).to.containSubset(expectedEnv);
     });
 
     it('works with with non-null values', () => {
@@ -163,10 +160,9 @@ describe('Apify.getEnv()', () => {
         setEnv(expectedEnv);
 
         const env = Apify.getEnv();
-        expect(env).to.eql(expectedEnv);
+        expect(env).to.containSubset(expectedEnv);
     });
 });
-
 
 describe('Apify.main()', () => {
     it('throws on invalid args', () => {
