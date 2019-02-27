@@ -16,12 +16,14 @@ accessible from the left sidebar.
     * [`.events`](#module_Apify.events)
     * [`.getApifyProxyUrl(options)`](#module_Apify.getApifyProxyUrl) ⇒ <code>String</code>
     * [`.getEnv()`](#module_Apify.getEnv) ⇒ <code>Object</code>
+    * [`.getInput`](#module_Apify.getInput) ⇒ <code>Promise&lt;Object&gt;</code>
     * [`.getMemoryInfo()`](#module_Apify.getMemoryInfo) ⇒ <code>Promise&lt;Object&gt;</code>
     * [`.getValue(key)`](#module_Apify.getValue) ⇒ <code>Promise&lt;Object&gt;</code>
     * [`.isAtHome()`](#module_Apify.isAtHome) ⇒ <code>Boolean</code>
     * [`.launchPuppeteer([options])`](#module_Apify.launchPuppeteer) ⇒ <code>Promise&lt;Browser&gt;</code>
     * [`.launchWebDriver([options])`](#module_Apify.launchWebDriver) ⇒ <code>Promise</code>
     * [`.main(userFunc)`](#module_Apify.main)
+    * [`.metamorph(targetActorId, [input], [options])`](#module_Apify.metamorph) ⇒ <code>Promise&lt;undefined&gt;</code>
     * [`.openDataset([datasetIdOrName], [options])`](#module_Apify.openDataset) ⇒ [<code>Promise&lt;Dataset&gt;</code>](dataset)
     * [`.openKeyValueStore([storeIdOrName], [options])`](#module_Apify.openKeyValueStore) ⇒ [<code>Promise&lt;KeyValueStore&gt;</code>](keyvaluestore)
     * [`.openRequestList`](#module_Apify.openRequestList) ⇒ [<code>Promise&lt;RequestList&gt;</code>](requestlist)
@@ -377,6 +379,27 @@ For the list of the `APIFY_XXX` environment variables, see
 <a href="https://www.apify.com/docs/actor#run-env-vars" target="_blank">Actor documentation</a>.
 If some of the variables are not defined or are invalid, the corresponding value in the resulting object will be null.
 
+<a name="module_Apify.getInput"></a>
+
+## `Apify.getInput` ⇒ <code>Promise&lt;Object&gt;</code>
+Gets the actor input value from the default [`KeyValueStore`](keyvaluestore) associated with the current actor run.
+
+This is just a convenient shortcut for [`keyValueStore.getValue('INPUT')`](keyvaluestore#KeyValueStore+getValue).
+For example, calling the following code:
+```javascript
+const input = await Apify.getInput();
+```
+
+is equivalent to:
+```javascript
+const store = await Apify.openKeyValueStore();
+await store.getValue('INPUT');
+```
+
+For more information, see [`Apify.openKeyValueStore()`](#module_Apify.openKeyValueStore)
+and [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+getValue).
+
+**Returns**: <code>Promise&lt;Object&gt;</code> - Returns a promise that resolves once the record is stored.  
 <a name="module_Apify.getMemoryInfo"></a>
 
 ## `Apify.getMemoryInfo()` ⇒ <code>Promise&lt;Object&gt;</code>
@@ -411,13 +434,13 @@ Gets a value from the default [`KeyValueStore`](keyvaluestore) associated with t
 This is just a convenient shortcut for [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+getValue).
 For example, calling the following code:
 ```javascript
-const input = await Apify.getValue('INPUT');
+const input = await Apify.getValue('my-key');
 ```
 
 is equivalent to:
 ```javascript
 const store = await Apify.openKeyValueStore();
-await store.getValue('INPUT');
+await store.getValue('my-key');
 ```
 
 To store the value to the default-key value store, you can use the [`Apify.setValue()`](#module_Apify.setValue) function.
@@ -638,6 +661,52 @@ Apify.main(async () => {
 <tr>
 <td colspan="3"><p>User function to be executed. If it returns a promise,
 the promise will be awaited. The user function is called with no arguments.</p>
+</td></tr></tbody>
+</table>
+<a name="module_Apify.metamorph"></a>
+
+## `Apify.metamorph(targetActorId, [input], [options])` ⇒ <code>Promise&lt;undefined&gt;</code>
+Transforms this actor run to an actor run of a given actor. The system stops the current container and starts the new container
+instead. All the default storages are preserved and the new input is stored under the `INPUT-METAMORPH-1` key in the same default key-value store.
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>targetActorId</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Either <code>username/actor-name</code> or actor ID of an actor to which we want to metamorph.</p>
+</td></tr><tr>
+<td><code>[input]</code></td><td><code>Object</code> | <code>String</code> | <code>Buffer</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Input for the actor. If it is an object, it will be stringified to
+ JSON and its content type set to <code>application/json; charset=utf-8</code>.
+ Otherwise the <code>options.contentType</code> parameter must be provided.</p>
+</td></tr><tr>
+<td><code>[options]</code></td><td><code>Object</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Object with the settings below:</p>
+</td></tr><tr>
+<td><code>[options.contentType]</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Content type for the <code>input</code>. If not specified,
+ <code>input</code> is expected to be an object that will be stringified to JSON and content type set to
+ <code>application/json; charset=utf-8</code>. If <code>options.contentType</code> is specified, then <code>input</code> must be a
+ <code>String</code> or <code>Buffer</code>.</p>
+</td></tr><tr>
+<td><code>[options.build]</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Tag or number of the target actor build to metamorph into (e.g. <code>beta</code> or <code>1.2.345</code>).
+ If not provided, the run uses build tag or number from the default actor run configuration (typically <code>latest</code>).</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.openDataset"></a>

@@ -33,7 +33,7 @@ const Apify = require('apify');
 Apify.main(async () => {
     // Read the actor input configuration containing the URLs for the screenshot.
     // By convention, the input is present in the actor's default key-value store under the "INPUT" key.
-    const input = await Apify.getValue('INPUT');
+    const input = await Apify.getInput();
     if (!input) throw new Error('Have you passed the correct INPUT ?');
 
     const { sources } = input;

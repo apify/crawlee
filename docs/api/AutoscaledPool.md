@@ -53,13 +53,13 @@ await pool.run();
 
 * [AutoscaledPool](autoscaledpool)
     * [`new AutoscaledPool(options)`](#new_AutoscaledPool_new)
+    * [`.minConcurrency`](#AutoscaledPool+minConcurrency) ⇒ <code>number</code>
     * [`.minConcurrency`](#AutoscaledPool+minConcurrency)
-    * [`.minConcurrency`](#AutoscaledPool+minConcurrency)
+    * [`.maxConcurrency`](#AutoscaledPool+maxConcurrency) ⇒ <code>number</code>
     * [`.maxConcurrency`](#AutoscaledPool+maxConcurrency)
-    * [`.maxConcurrency`](#AutoscaledPool+maxConcurrency)
+    * [`.desiredConcurrency`](#AutoscaledPool+desiredConcurrency) ⇒ <code>number</code>
     * [`.desiredConcurrency`](#AutoscaledPool+desiredConcurrency)
-    * [`.desiredConcurrency`](#AutoscaledPool+desiredConcurrency)
-    * [`.currentConcurrency`](#AutoscaledPool+currentConcurrency)
+    * [`.currentConcurrency`](#AutoscaledPool+currentConcurrency) ⇒ <code>number</code>
     * [`.run()`](#AutoscaledPool+run) ⇒ <code>Promise</code>
     * [`.abort()`](#AutoscaledPool+abort) ⇒ <code>Promise</code>
     * [`.pause([timeoutSecs])`](#AutoscaledPool+pause) ⇒ <code>Promise</code>
@@ -169,7 +169,7 @@ await pool.run();
 </table>
 <a name="AutoscaledPool+minConcurrency"></a>
 
-## `autoscaledPool.minConcurrency`
+## `autoscaledPool.minConcurrency` ⇒ <code>number</code>
 Gets the minimum number of tasks running in parallel.
 
 <a name="AutoscaledPool+minConcurrency"></a>
@@ -180,9 +180,22 @@ Sets the minimum number of tasks running in parallel.
 *WARNING:* If you set this value too high with respect to the available system memory and CPU, your code might run extremely slow or crash.
 If you're not sure, just keep the default value and the concurrency will scale up automatically.
 
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>value</code></td><td><code>number</code></td>
+</tr>
+<tr>
+</tr></tbody>
+</table>
 <a name="AutoscaledPool+maxConcurrency"></a>
 
-## `autoscaledPool.maxConcurrency`
+## `autoscaledPool.maxConcurrency` ⇒ <code>number</code>
 Gets the maximum number of tasks running in parallel.
 
 <a name="AutoscaledPool+maxConcurrency"></a>
@@ -190,9 +203,22 @@ Gets the maximum number of tasks running in parallel.
 ## `autoscaledPool.maxConcurrency`
 Sets the maximum number of tasks running in parallel.
 
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>value</code></td><td><code>number</code></td>
+</tr>
+<tr>
+</tr></tbody>
+</table>
 <a name="AutoscaledPool+desiredConcurrency"></a>
 
-## `autoscaledPool.desiredConcurrency`
+## `autoscaledPool.desiredConcurrency` ⇒ <code>number</code>
 Gets the desired concurrency for the pool,
 which is an estimated number of parallel tasks that the system can currently support.
 
@@ -202,9 +228,22 @@ which is an estimated number of parallel tasks that the system can currently sup
 Sets the desired concurrency for the pool, i.e. the number of tasks that should be running
 in parallel if there's large enough supply of tasks.
 
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>value</code></td><td><code>number</code></td>
+</tr>
+<tr>
+</tr></tbody>
+</table>
 <a name="AutoscaledPool+currentConcurrency"></a>
 
-## `autoscaledPool.currentConcurrency`
+## `autoscaledPool.currentConcurrency` ⇒ <code>number</code>
 Gets the the number of parallel tasks currently running in the pool.
 
 <a name="AutoscaledPool+run"></a>
