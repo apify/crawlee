@@ -1,5 +1,4 @@
-import chai, { expect } from 'chai';
-import chaiAsPromised from 'chai-as-promised';
+import { expect } from 'chai';
 import _ from 'underscore';
 import sinon from 'sinon';
 import log from 'apify-shared/log';
@@ -9,8 +8,6 @@ import * as Apify from '../build/index';
 import * as keyValueStore from '../build/key_value_store';
 import { RequestQueue, RequestQueueLocal } from '../build/request_queue';
 import { LOCAL_STORAGE_DIR } from './_helper';
-
-chai.use(chaiAsPromised);
 
 describe('BasicCrawler', () => {
     let logLevel;

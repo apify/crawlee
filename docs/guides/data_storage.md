@@ -54,7 +54,7 @@ The following code demonstrates basic operations of key-value stores:
 
 ```javascript
 // Get actor input from the default key-value store
-const input = await Apify.getValue('INPUT');
+const input = await Apify.getInput();
 
 // Write actor output to the default key-value store.
 await Apify.setValue('OUTPUT', { myResult: 123 });

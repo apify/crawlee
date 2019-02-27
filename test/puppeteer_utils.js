@@ -1,11 +1,8 @@
+import { expect } from 'chai';
 import path from 'path';
-import chai, { expect } from 'chai';
-import chaiAsPromised from 'chai-as-promised';
 import Apify from '../build/index';
 
 const { utils: { log } } = Apify;
-
-chai.use(chaiAsPromised);
 
 /* global describe, it */
 

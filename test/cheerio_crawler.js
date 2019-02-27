@@ -4,14 +4,11 @@ import path from 'path';
 import zlib from 'zlib';
 import EventEmitter from 'events';
 import rqst from 'request';
-import chai, { expect } from 'chai';
-import chaiAsPromised from 'chai-as-promised';
+import { expect } from 'chai';
 import log from 'apify-shared/log';
 import { delayPromise } from 'apify-shared/utilities';
 import { ENV_VARS } from 'apify-shared/consts';
 import Apify from '../build/index';
-
-chai.use(chaiAsPromised);
 
 // Add common props to mocked request responses.
 const responseMock = {
