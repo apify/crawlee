@@ -1,3 +1,7 @@
+0.12.2 / 2019-02-27
+===================
+- Added oldest active tab focusing to `PuppeteerPool` to combat resource throttling in Chromium.
+
 0.12.1 / 2019-02-27
 ===================
 - Added `Apify.metamorph()`, see documentation for more information.
