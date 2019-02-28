@@ -29,7 +29,7 @@ const DEFAULT_OPTIONS = {
             maxEventLoopOverloadedRatio: 0.7,
         },
     },
-    beforeRequest: ({ request }) => request,
+    beforeRequestFunction: ({ request }) => request,
 };
 
 /**
@@ -226,7 +226,7 @@ class CheerioCrawler {
             maxRequestsPerCrawl,
             handleFailedRequestFunction,
             autoscaledPoolOptions,
-            beforeRequest,
+            beforeRequestFunction,
         } = _.defaults({}, options, DEFAULT_OPTIONS);
 
         checkParamOrThrow(handlePageFunction, 'options.handlePageFunction', 'Function');
@@ -238,7 +238,7 @@ class CheerioCrawler {
         checkParamOrThrow(apifyProxyGroups, 'options.apifyProxyGroups', 'Maybe [String]');
         checkParamOrThrow(apifyProxySession, 'options.apifyProxySession', 'Maybe String');
         checkParamOrThrow(proxyUrls, 'options.proxyUrls', 'Maybe [String]');
-        checkParamOrThrow(handlePageFunction, 'options.beforeRequest', 'Maybe Function');
+        checkParamOrThrow(handlePageFunction, 'options.beforeRequestFunction', 'Maybe Function');
         // Enforce valid proxy configuration
         if (proxyUrls && !proxyUrls.length) throw new Error('Parameter "options.proxyUrls" of type Array must not be empty');
         if (useApifyProxy && proxyUrls) throw new Error('Cannot combine "options.useApifyProxy" with "options.proxyUrls"!');
@@ -253,7 +253,7 @@ class CheerioCrawler {
         this.apifyProxySession = apifyProxySession;
         this.proxyUrls = _.shuffle(proxyUrls);
         this.lastUsedProxyUrlIndex = 0;
-        this.beforeRequest = beforeRequest;
+        this.beforeRequestFunction = beforeRequestFunction;
 
         this.basicCrawler = new BasicCrawler({
             // Basic crawler options.
@@ -296,7 +296,7 @@ class CheerioCrawler {
      * @ignore
      */
     async _handleRequestFunction({ request, autoscaledPool }) {
-        const modifiedRequest = await this.beforeRequest({ request });
+        const modifiedRequest = await this.beforeRequestFunction({ request });
         const response = await addTimeoutToPromise(
             this._requestFunction({ request: modifiedRequest }),
             this.requestTimeoutMillis,
