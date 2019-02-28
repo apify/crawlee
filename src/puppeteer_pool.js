@@ -13,6 +13,7 @@ import { addTimeoutToPromise } from './utils';
 /* global process */
 
 const PROCESS_KILL_TIMEOUT_MILLIS = 5000;
+const OPEN_NEW_TAB_RETRIES = 2;
 
 const DEFAULT_OPTIONS = {
     reusePages: false,
@@ -460,7 +461,7 @@ class PuppeteerPool {
             }
         }
         // If there are no live pages to be reused, we spawn a new tab.
-        return this._openNewTab(2);
+        return this._openNewTab(OPEN_NEW_TAB_RETRIES);
     }
 
     /**
@@ -497,9 +498,7 @@ class PuppeteerPool {
                 return new Promise((resolve) => {
                     // We can do this because _retireInstance is synchronous
                     // so the page will open in a different browser.
-                    setImmediate(() => {
-                        resolve(this._openNewTab(--retryCount));
-                    });
+                    resolve(this._openNewTab(--retryCount));
                 });
             }
             const betterError = new Error(`PuppeteerPool: browser.newPage() failed: ${instance.id}.`);

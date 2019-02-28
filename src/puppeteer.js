@@ -206,7 +206,7 @@ export const launchPuppeteer = (options = {}) => {
     checkParamOrThrow(options.proxyUrl, 'options.proxyUrl', 'Maybe String');
     checkParamOrThrow(options.useApifyProxy, 'options.useApifyProxy', 'Maybe Boolean');
     checkParamOrThrow(options.liveView, 'options.liveView', 'Maybe Boolean');
-    checkParamOrThrow(options.liveViewOptions, 'options.liveViewOptoins', 'Maybe Object');
+    checkParamOrThrow(options.liveViewOptions, 'options.liveViewOptions', 'Maybe Object');
     if (options.useApifyProxy && options.proxyUrl) throw new Error('Cannot combine "options.useApifyProxy" with "options.proxyUrl"!');
 
     const puppeteer = getPuppeteerOrThrow();
