@@ -14,8 +14,6 @@ const DEFAULT_OPTIONS = {
     },
 };
 
-const PAGE_CLOSE_TIMEOUT_MILLIS = 30000;
-
 /**
  * Provides a simple framework for parallel crawling of web pages
  * using headless Chrome with <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a>.
@@ -147,37 +145,18 @@ const PAGE_CLOSE_TIMEOUT_MILLIS = 30000;
  *   Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached.
  *   Always set this value in order to prevent infinite loops in misconfigured crawlers.
  *   Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.
- * @param {Number} [options.maxOpenPagesPerInstance=50]
- *   Maximum number of opened tabs per browser. If this limit is reached then a new
- *   browser instance is started. See `maxOpenPagesPerInstance` parameter of {@link PuppeteerPool}.
- * @param {Number} [options.retireInstanceAfterRequestCount=100]
- *   Maximum number of requests that can be processed by a single browser instance.
- *   After the limit is reached the browser will be retired and new requests will
- *   be handled by a new browser instance.
- *   See `retireInstanceAfterRequestCount` parameter of {@link PuppeteerPool}.
- * @param {Number} [options.instanceKillerIntervalMillis=60000]
- *   Indicates how often are the open Puppeteer instances checked whether they can be closed.
- *   See `instanceKillerIntervalMillis` parameter of {@link PuppeteerPool}.
- * @param {Number} [options.killInstanceAfterMillis=300000]
- *   If Puppeteer instance reaches the `options.retireInstanceAfterRequestCount` limit then
- *   it is considered retired and no more tabs will be opened. After the last tab is closed
- *   the whole browser is closed too. This parameter defines a time limit for inactivity
- *   after which the browser is closed even if there are pending tabs. See
- *   `killInstanceAfterMillis` parameter of {@link PuppeteerPool}.
- * @param {String[]} [options.proxyUrls]
- *   An array of custom proxy URLs to be used by the {@link PuppeteerPool} instance.
- *   The provided custom proxies' order will be randomized and the resulting list rotated.
- *   Custom proxies are not compatible with Apify Proxy and an attempt to use both
- *   configuration options will cause an error to be thrown on startup.
+ * @param {Object} [options.puppeteerPoolOptions]
+ *   Custom options passed to the underlying {@link PuppeteerPool} constructor.
+ *   You can tweak those to fine-tune browser management.
  * @param {Function} [options.launchPuppeteerFunction]
  *   Overrides the default function to launch a new Puppeteer instance.
- *   See `launchPuppeteerFunction` parameter of {@link PuppeteerPool}.
+ *   Shortcut to the corresponding {@link PuppeteerPool} option.
  *   See source code on
  *   <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_pool.js#L28" target="_blank">GitHub</a>
  *   for default behavior.
  * @param {LaunchPuppeteerOptions} [options.launchPuppeteerOptions]
  *   Options used by [`Apify.launchPuppeteer()`](apify#module_Apify.launchPuppeteer) to start new Puppeteer instances.
- *   See `launchPuppeteerOptions` parameter of {@link PuppeteerPool} and [`LaunchPuppeteerOptions`](../typedefs/launchpuppeteeroptions).
+ *   Shortcut to the corresponding {@link PuppeteerPool} option. See [`LaunchPuppeteerOptions`](../typedefs/launchpuppeteeroptions).
  * @param {Object} [options.autoscaledPoolOptions]
  *   Custom options passed to the underlying {@link AutoscaledPool} instance constructor.
  *   Note that the `runTaskFunction`, `isTaskReadyFunction` and `isFinishedFunction` options
@@ -192,16 +171,9 @@ const PAGE_CLOSE_TIMEOUT_MILLIS = 30000;
  */
 class PuppeteerCrawler {
     constructor(options) {
-        // For backwards compatibility, in the future we can remove this...
-        if (!options.retireInstanceAfterRequestCount && options.abortInstanceAfterRequestCount) {
-            log.warning('PuppeteerCrawler: Parameter `abortInstanceAfterRequestCount` is deprecated! Use `retireInstanceAfterRequestCount` instead!');
-            options.retireInstanceAfterRequestCount = options.abortInstanceAfterRequestCount;
-        }
-
         const {
             handlePageFunction,
             gotoFunction,
-            pageOpsTimeoutMillis, // Deprecated, remove in the future.
             handlePageTimeoutSecs,
 
             // AutoscaledPool shorthands
@@ -216,38 +188,25 @@ class PuppeteerCrawler {
             handleFailedRequestFunction,
             autoscaledPoolOptions,
 
-            // PuppeteerPool options
-            // TODO: We should put these into a single object, similarly to autoscaledPoolOptions
-            reusePages,
-            maxOpenPagesPerInstance,
-            retireInstanceAfterRequestCount,
-            instanceKillerIntervalMillis,
-            killInstanceAfterMillis,
-            proxyUrls,
+            // PuppeteerPool options and shorthands
+            puppeteerPoolOptions,
             launchPuppeteerFunction,
             launchPuppeteerOptions,
         } = _.defaults({}, options, DEFAULT_OPTIONS);
 
         checkParamOrThrow(handlePageFunction, 'options.handlePageFunction', 'Function');
+        checkParamOrThrow(handlePageTimeoutSecs, 'options.handlePageTimeoutSecs', 'Number');
         checkParamOrThrow(handleFailedRequestFunction, 'options.handleFailedRequestFunction', 'Maybe Function');
         checkParamOrThrow(gotoFunction, 'options.gotoFunction', 'Function');
+        checkParamOrThrow(puppeteerPoolOptions, 'options.puppeteerPoolOptions', 'Maybe Object');
 
         this.handlePageFunction = handlePageFunction;
         this.gotoFunction = gotoFunction;
 
-        if (pageOpsTimeoutMillis) log.warning('options.pageOpsTimeoutMillis is deprecated, use options.handlePageTimeoutSecs instead.');
-        this.handlePageTimeoutMillis = handlePageTimeoutSecs * 1000 || pageOpsTimeoutMillis;
+        this.handlePageTimeoutMillis = handlePageTimeoutSecs * 1000;
 
-        this.puppeteerPoolOptions = {
-            reusePages,
-            maxOpenPagesPerInstance,
-            retireInstanceAfterRequestCount,
-            instanceKillerIntervalMillis,
-            killInstanceAfterMillis,
-            proxyUrls,
-            launchPuppeteerFunction,
-            launchPuppeteerOptions,
-        };
+        // puppeteerPoolOptions can be null or undefined or Object, so we merge it this way, because null is not replaced by defaults above.
+        this.puppeteerPoolOptions = Object.assign({}, puppeteerPoolOptions, { launchPuppeteerFunction, launchPuppeteerOptions });
 
         this.puppeteerPool = null; // Constructed when .run()
 
@@ -258,6 +217,7 @@ class PuppeteerCrawler {
             maxRequestRetries,
             maxRequestsPerCrawl,
             handleRequestFunction: (...args) => this._handleRequestFunction(...args),
+            handleRequestTimeoutSecs: handlePageTimeoutSecs * 2,
             handleFailedRequestFunction,
 
             // Autoscaled pool options.
@@ -300,15 +260,7 @@ class PuppeteerCrawler {
                 'PuppeteerCrawler: handlePageFunction timed out.',
             );
         } finally {
-            try {
-                await addTimeoutToPromise(
-                    this.puppeteerPool.recyclePage(page),
-                    PAGE_CLOSE_TIMEOUT_MILLIS,
-                    'Operation timed out.',
-                );
-            } catch (err) {
-                log.debug('PuppeteerCrawler: Page.close() failed.', { reason: err && err.message });
-            }
+            await this.puppeteerPool.recyclePage(page);
         }
     }
 }
