@@ -578,4 +578,24 @@ describe('BasicCrawler', () => {
         expect(count).to.be.eql(7);
         sinon.restore();
     });
+
+    it('should timeout after handleRequestTimeoutSecs', async () => {
+        const url = 'https://example.com';
+        const requestList = new Apify.RequestList({ sources: [{ url }] });
+        await requestList.initialize();
+
+        const results = [];
+        const crawler = new Apify.BasicCrawler({
+            requestList,
+            handleRequestTimeoutSecs: 0.01,
+            maxRequestRetries: 1,
+            handleRequestFunction: () => delayPromise(1000),
+            handleFailedRequestFunction: ({ request }) => results.push(request),
+        });
+
+        await crawler.run();
+        expect(results).to.have.lengthOf(1);
+        expect(results[0].url).to.be.eql(url);
+        results[0].errorMessages.forEach(msg => expect(msg).to.include('handleRequestFunction timed out'));
+    });
 });
