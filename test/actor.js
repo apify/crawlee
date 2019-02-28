@@ -9,6 +9,8 @@ import { ApifyCallError } from '../build/errors';
 // NOTE: test use of require() here because this is how its done in acts
 const Apify = require('../build/index');
 
+const { utils: { log } } = Apify;
+
 /* global process, describe, it */
 
 // TODO: override console.log() to test the error messages (now they are printed to console)
@@ -1027,6 +1029,8 @@ describe('Apify.getApifyProxyUrl()', () => {
 
     // Test old params - session, groups
     it('should be backwards compatible', () => {
+        const ll = log.getLevel();
+        log.setLevel(log.LEVELS.ERROR);
         process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
         process.env[ENV_VARS.PROXY_HOSTNAME] = 'my.host.com';
         process.env[ENV_VARS.PROXY_PORT] = 123;
@@ -1060,6 +1064,7 @@ describe('Apify.getApifyProxyUrl()', () => {
             hostname: 'your.host.com',
             port: 345,
         })).to.be.eql('http://auto:xyz@your.host.com:345');
+        log.setLevel(ll);
     });
 
     it('should throw on invalid proxy args', () => {
