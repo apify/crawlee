@@ -258,6 +258,7 @@ class CheerioCrawler {
             maxRequestRetries,
             maxRequestsPerCrawl,
             handleRequestFunction: (...args) => this._handleRequestFunction(...args),
+            handleRequestTimeoutSecs: handlePageTimeoutSecs * 2,
             handleFailedRequestFunction,
 
             // Autoscaled pool options.
