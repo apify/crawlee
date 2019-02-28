@@ -557,19 +557,20 @@ describe('PuppeteerPool', () => {
     describe('prevents hanging of puppeteer operations', () => {
         let pool;
         beforeEach(() => {
+            log.setLevel(log.LEVELS.OFF);
             pool = new Apify.PuppeteerPool({
-                puppeteerOperationTimeoutSecs: 0.5,
+                puppeteerOperationTimeoutSecs: 0.05,
                 launchPuppeteerOptions: {
                     headless: true,
                 },
             });
         });
-        afterEach(() => pool.destroy());
+        afterEach(async () => {
+            log.setLevel(log.LEVELS.ERROR);
+            await pool.destroy();
+        });
 
         it('should work', async () => {
-            const page = await pool.newPage();
-            const browser = page.browser();
-            browser.newPage = () => shortSleep(2000);
             try {
                 await pool._openNewTab(0); // eslint-disable-line no-underscore-dangle
                 throw new Error('invalid error');

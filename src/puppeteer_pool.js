@@ -257,11 +257,25 @@ class PuppeteerPool {
         const id = this.browserCounter++;
         log.debug('PuppeteerPool: Launching new browser', { id });
 
+        const launchPromise = this.launchPuppeteerFunction();
         const browserPromise = addTimeoutToPromise(
-            this.launchPuppeteerFunction(),
+            launchPromise,
             this.puppeteerOperationTimeoutMillis,
             'PuppeteerPool: launchPuppeteerFunction timed out.',
         );
+
+        // If the browserPromise times out, the browser may still be started
+        // later and will not be managed by pool, so we need to get rid of it.
+        browserPromise.catch(async (err) => {
+            if (err.stack.includes('launchPuppeteerFunction timed out')) {
+                try {
+                    const browser = await launchPromise;
+                    browser.disconnect();
+                    browser.process().kill('SIGKILL');
+                } catch (e) { /* do nothing, will be handled elsewhere */ }
+            }
+        });
+
         const instance = new PuppeteerInstance(id, browserPromise);
         this.activeInstances[id] = instance;
 
