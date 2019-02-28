@@ -14,6 +14,7 @@ import { addTimeoutToPromise } from './utils';
 
 const PROCESS_KILL_TIMEOUT_MILLIS = 5000;
 const OPEN_NEW_TAB_RETRIES = 2;
+const PAGE_CLOSE_KILL_TIMEOUT_MILLIS = 1000;
 
 const DEFAULT_OPTIONS = {
     reusePages: false,
@@ -306,8 +307,12 @@ class PuppeteerPool {
             instance.activePages--;
 
             if (instance.activePages === 0 && this.retiredInstances[id]) {
-                log.debug('PuppeteerPool: Killing retired browser because it has no active pages', { id });
-                this._killInstance(instance);
+                // Run this with a delay, otherwise page.close() that initiated this 'targetdestroyed' event
+                // might fail with "Protocol error (Target.closeTarget): Target closed."
+                setTimeout(() => {
+                    log.debug('PuppeteerPool: Killing retired browser because it has no active pages', { id });
+                    this._killInstance(instance);
+                }, PAGE_CLOSE_KILL_TIMEOUT_MILLIS);
             }
         });
     }
@@ -394,8 +399,7 @@ class PuppeteerPool {
         try {
             const browser = await browserPromise;
             instance.killed = true;
-            // Close the about:blank page to close the browser.
-            await (await browser.pages())[0].close();
+            await browser.close();
             recycleDiskCache();
         } catch (err) {
             log.exception(err, 'PuppeteerPool: Cannot close the browser instance, it will be killed forcibly.', { id });

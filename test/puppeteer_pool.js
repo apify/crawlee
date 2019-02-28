@@ -553,4 +553,29 @@ describe('PuppeteerPool', () => {
             });
         });
     });
+
+    describe('prevents hanging of puppeteer operations', () => {
+        let pool;
+        beforeEach(() => {
+            pool = new Apify.PuppeteerPool({
+                puppeteerOperationTimeoutSecs: 0.5,
+                launchPuppeteerOptions: {
+                    headless: true,
+                },
+            });
+        });
+        afterEach(() => pool.destroy());
+
+        it('should work', async () => {
+            const page = await pool.newPage();
+            const browser = page.browser();
+            browser.newPage = () => shortSleep(2000);
+            try {
+                await pool._openNewTab(0); // eslint-disable-line no-underscore-dangle
+                throw new Error('invalid error');
+            } catch (err) {
+                expect(err.stack).to.include('timed out');
+            }
+        });
+    });
 });
