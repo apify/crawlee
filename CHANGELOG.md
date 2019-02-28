@@ -1,3 +1,13 @@
+xxx
+===================
+- **BREAKING CHANGE:** Added `puppeteerOperationTimeoutSecs` option to `PuppeteerPool`.
+  It defaults to 15 seconds and all Puppeteer operations such as `browser.newPage()`
+  or `puppeteer.launch()` will now time out. This is to prevent hanging requests.
+- **BREAKING CHANGE:** Added `handleRequestTimeoutSecs` option to `BasicCrawler` with a 60 second default.
+- `CheerioCrawler` and `PuppeteerCrawler` now automatically set `handleRequestTimeoutSecs` to double of
+  `handlePageTimeoutSecs`.
+- `puppeteerPool.newPage()` now retries twice before throwing an error.
+
 0.12.2 / 2019-02-27
 ===================
 - Added oldest active tab focusing to `PuppeteerPool` to combat resource throttling in Chromium.
