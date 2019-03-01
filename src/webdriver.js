@@ -289,10 +289,10 @@ export const browse = (url, options) => {
  * To use this function, you need to have Google Chrome and
  * <a href="https://sites.google.com/a/chromium.org/chromedriver/" target="_blank">ChromeDriver</a> installed in your environment.
  * For example, you can use the `apify/actor-node-chrome` base Docker image for your actor - see
- * <a href="https://www.apify.com/docs/actor#base-images" target="_blank">documentation</a>
+ * <a href="https://apify.com/docs/actor#base-images" target="_blank">documentation</a>
  * for more details.
  *
- * For an example of usage, see the <a href="https://www.apify.com/apify/example-selenium" target="_blank">apify/example-selenium</a> actor.
+ * For an example of usage, see the <a href="https://apify.com/apify/example-selenium" target="_blank">apify/example-selenium</a> actor.
  *
  * @param {Object} [options] Optional settings passed to WebDriver. Additionally the object can contain the following fields:
  * @param {String} [options.proxyUrl] - URL to a proxy server. Currently only `http://` scheme is supported.

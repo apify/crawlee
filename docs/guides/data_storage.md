@@ -5,7 +5,7 @@ title: Data Storage
 
 The Apify SDK has several data storage types that are useful for specific tasks.
 The data is stored either on local disk to a directory defined by the `APIFY_LOCAL_STORAGE_DIR` environment variable,
-or on the <a href="https://www.apify.com" target="_blank">Apify Cloud</a> under the user account identified by the API token defined by the `APIFY_TOKEN` environment variable.
+or on the <a href="https://apify.com" target="_blank">Apify Cloud</a> under the user account identified by the API token defined by the `APIFY_TOKEN` environment variable.
 If neither of these variables is defined, by default Apify SDK sets `APIFY_LOCAL_STORAGE_DIR`
 to `./apify_storage` in the current working directory and prints a warning.
 
@@ -16,9 +16,9 @@ No code changes are needed.
 
 **Related links**
 
-* <a href="https://www.apify.com/docs/storage" target="_blank">Apify cloud storage documentation</a>
+* <a href="https://apify.com/docs/storage" target="_blank">Apify cloud storage documentation</a>
 * <a href="https://my.apify.com/storage" target="_blank">View storage in Apify app</a>
-* <a href="https://www.apify.com/docs/api/v2#/reference/key-value-stores" target="_blank">API reference</a>
+* <a href="https://apify.com/docs/api/v2#/reference/key-value-stores" target="_blank">API reference</a>
 
 ## Key-value store
 
@@ -86,11 +86,11 @@ You can imagine a dataset as a table, where each object is a row and its attribu
 Dataset is an append-only storage - you can only add new records to it but you cannot modify or remove
 existing records.
 
-When the dataset is stored in the <a href="https://www.apify.com" target="_blank">Apify Cloud</a>,
+When the dataset is stored in the <a href="https://apify.com" target="_blank">Apify Cloud</a>,
 you can export its data to the following formats: HTML, JSON, CSV, Excel, XML and RSS.
 The datasets are displayed on the actor run details page and in the <a href="https://my.apify.com/storage" target="_blank">Storage</a>
 section in the Apify app. The actual data is exported using the
-<a href="https://www.apify.com/docs/api/v2#/reference/datasets/item-collection/get-items" target="_blank">Get dataset items</a> Apify API endpoint.
+<a href="https://apify.com/docs/api/v2#/reference/datasets/item-collection/get-items" target="_blank">Get dataset items</a> Apify API endpoint.
 This way you can easily share crawling results.
 
 Each actor run is associated with a **default dataset**, which is created exclusively for the actor run.

@@ -55,7 +55,7 @@ and [Data storage](datastorage).
 To avoid the need to set the environment variables manually,
 to create a boilerplate of your project,
 and to enable pushing and running your code on the
-<a href="https://www.apify.com" target="_blank">Apify Cloud</a>,
+<a href="https://apify.com" target="_blank">Apify Cloud</a>,
 you can use the
 <a href="https://github.com/apifytech/apify-cli" target="_blank">Apify command-line interface</a>
 (CLI) tool.
@@ -98,20 +98,20 @@ apify push
 
 Your script will be uploaded to the Apify Cloud and built there so that it can be run.
 For more information, view the
-<a href="https://www.apify.com/docs/cli" target="_blank">Apify CLI</a>
+<a href="https://apify.com/docs/cli" target="_blank">Apify CLI</a>
 and
-<a href="https://www.apify.com/docs/actor" target="_blank">Apify Actor</a>
+<a href="https://apify.com/docs/actor" target="_blank">Apify Actor</a>
 documentation.
 
 ## Usage on the Apify Cloud
 
 You can also develop your web scraping project
 in an online code editor directly on the
-<a href="https://www.apify.com" target="_blank">Apify Cloud</a>.
+<a href="https://apify.com" target="_blank">Apify Cloud</a>.
 You'll need to have an Apify Account.
 Go to <a href="https://my.apify.com/actors" target="_blank">Actors</a>,
 page in the app, click <i>Create new</i> and then go to the
 <i>Source</i> tab and start writing your code or paste one of the examples from the Examples section.
 
 For more information, view the
-<a href="https://www.apify.com/docs/actor#quick-start" target="_blank">Apify actors quick start guide</a>.
+<a href="https://apify.com/docs/actor#quick-start" target="_blank">Apify actors quick start guide</a>.
