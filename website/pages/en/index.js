@@ -183,8 +183,8 @@ const PowerfulTools = () => (
         {[
             {
                 content: 'All the crawlers are automatically **scaled** based on available system resources using the [`AutoscaledPool`](docs/api/autoscaledpool) class. ' +
-                    'When you run your code on the [Apify Cloud](https://my.apify.com/actors), you can also take advantage of a pool of **proxies** to avoid detection. ' +
-                    'For data storage, you can use the [`Dataset`](docs/api/dataset) and [`Key-value store`](docs/api/keyvaluestore) classes.',
+                    'When you run your code on the [Apify Cloud](https://my.apify.com/actors), you can also take advantage of a [pool of proxies](https://apify.com/proxy) to avoid detection. ' +
+                    'For data storage, you can use the [`Dataset`](docs/api/dataset), [`KeyValueStore`](docs/api/keyvaluestore) and [`RequestQueue`](docs/api/requestqueue) classes.',
                 image: imgUrl('source_code.png'),
                 imageAlign: 'left',
                 title: 'Powerful tools',
