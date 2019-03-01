@@ -947,7 +947,7 @@ const $wrapper = $('header div.wrap');
 const results = {
     title: $wrapper.find('h1').text(),
     description: $wrapper.find('p').text(),
-    lastRunDate: new Date(+$wrapper.find('time').eq(1).attr('datetime')),
+    lastRunDate: new Date(Number($wrapper.find('time').eq(1).attr('datetime'))),
 };
 ```
 
