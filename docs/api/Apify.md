@@ -48,7 +48,7 @@ If you want to run an actor task rather than an actor, please use the
 [`Apify.callTask()`](../api/apify#module_Apify.callTask) function instead.
 
 For more information about actors, read the
-<a href="https://www.apify.com/docs/actor" target="_blank">documentation</a>.
+<a href="https://apify.com/docs/actor" target="_blank">documentation</a>.
 
 **Example usage:**
 
@@ -58,7 +58,7 @@ console.log(`Received message: ${run.output.body.message}`);
 ```
 
 Internally, the `call()` function invokes the
-<a href="https://www.apify.com/docs/api/v2#/reference/actors/run-collection/run-actor" target="_blank">Run actor</a>
+<a href="https://apify.com/docs/api/v2#/reference/actors/run-collection/run-actor" target="_blank">Run actor</a>
 and several other API endpoints to obtain the output.
 
 **Throws**:
@@ -158,7 +158,7 @@ Note that an actor task is a saved input configuration and options for an actor.
 If you want to run an actor directly rather than an actor task, please use the
 [`Apify.call()`](../api/apify#module_Apify.call) function instead.
 
-For more information about actor tasks, read the [`documentation`](https://www.apify.com/docs/tasks).
+For more information about actor tasks, read the [`documentation`](https://apify.com/docs/tasks).
 
 **Example usage:**
 
@@ -168,7 +168,7 @@ console.log(`Received message: ${run.output.body.message}`);
 ```
 
 Internally, the `callTask()` function calls the
-<a href="https://www.apify.com/docs/api/v2#/reference/actor-tasks/runs-collection/run-task-asynchronously" target="_blank">Run task</a>
+<a href="https://apify.com/docs/api/v2#/reference/actor-tasks/runs-collection/run-task-asynchronously" target="_blank">Run task</a>
 and several other API endpoints to obtain the output.
 
 **Throws**:
@@ -216,7 +216,7 @@ and several other API endpoints to obtain the output.
 
 ## `Apify.client`
 Gets the default instance of the `ApifyClient` class provided
-<a href="https://www.apify.com/docs/sdk/apify-client-js/latest"
+<a href="https://apify.com/docs/sdk/apify-client-js/latest"
 target="_blank">apify-client</a> by the NPM package.
 The instance is created automatically by the Apify SDK and it is configured using the
 `APIFY_API_BASE_URL`, `APIFY_USER_ID` and `APIFY_TOKEN` environment variables.
@@ -224,7 +224,7 @@ The instance is created automatically by the Apify SDK and it is configured usin
 The instance is used for all underlying calls to the Apify API in functions such as
 [`Apify.getValue()`](#module_Apify.getValue) or [`Apify.call()`](#module_Apify.call).
 The settings of the client can be globally altered by calling the
-<a href="https://www.apify.com/docs/sdk/apify-client-js/latest#ApifyClient-setOptions"
+<a href="https://apify.com/docs/sdk/apify-client-js/latest#ApifyClient-setOptions"
 target="_blank">`Apify.client.setOptions()`</a> function.
 Beware that altering these settings might have unintended effects on the entire Apify SDK package.
 
@@ -302,7 +302,7 @@ proxy-enabled applications.
 
 For more information, see
 the <a href="https://my.apify.com/proxy" target="_blank">Apify Proxy</a> page in the app
-or the <a href="https://www.apify.com/docs/proxy" target="_blank">documentation</a>.
+or the <a href="https://apify.com/docs/proxy" target="_blank">documentation</a>.
 
 **Returns**: <code>String</code> - Returns the proxy URL, e.g. `http://auto:my_password@proxy.apify.com:8000`.  
 <table>
@@ -376,7 +376,7 @@ It has the following properties:
 }
 ```
 For the list of the `APIFY_XXX` environment variables, see
-<a href="https://www.apify.com/docs/actor#run-env-vars" target="_blank">Actor documentation</a>.
+<a href="https://apify.com/docs/actor#run-env-vars" target="_blank">Actor documentation</a>.
 If some of the variables are not defined or are invalid, the corresponding value in the resulting object will be null.
 
 <a name="module_Apify.getInput"></a>
@@ -493,7 +493,7 @@ The `launchPuppeteer()` function alters the following Puppeteer options:
    </li>
    <li>
        If <code>options.useApifyProxy</code> is <code>true</code> then the function generates a URL of
-       <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a>
+       <a href="https://apify.com/docs/proxy" target="_blank">Apify Proxy</a>
        based on <code>options.apifyProxyGroups</code> and <code>options.apifyProxySession</code> and passes it as <code>options.proxyUrl</code>.
    </li>
    <li>
@@ -514,7 +514,7 @@ To use this function, you need to have the <a href="https://www.npmjs.com/packag
 NPM package installed in your project.
 When running on the Apify cloud, you can achieve that simply
 by using the `apify/actor-node-chrome` base Docker image for your actor - see
-<a href="https://www.apify.com/docs/actor#base-images" target="_blank">Apify Actor documentation</a>
+<a href="https://apify.com/docs/actor#base-images" target="_blank">Apify Actor documentation</a>
 for details.
 
 For an example of usage, see the [Synchronous run Example](../examples/synchronousrun)
@@ -550,10 +550,10 @@ class.
 To use this function, you need to have Google Chrome and
 <a href="https://sites.google.com/a/chromium.org/chromedriver/" target="_blank">ChromeDriver</a> installed in your environment.
 For example, you can use the `apify/actor-node-chrome` base Docker image for your actor - see
-<a href="https://www.apify.com/docs/actor#base-images" target="_blank">documentation</a>
+<a href="https://apify.com/docs/actor#base-images" target="_blank">documentation</a>
 for more details.
 
-For an example of usage, see the <a href="https://www.apify.com/apify/example-selenium" target="_blank">apify/example-selenium</a> actor.
+For an example of usage, see the <a href="https://apify.com/apify/example-selenium" target="_blank">apify/example-selenium</a> actor.
 
 <table>
 <thead>

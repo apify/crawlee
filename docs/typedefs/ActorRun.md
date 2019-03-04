@@ -8,10 +8,10 @@ Represents information about an actor run, as returned by the
 [`Apify.call()`](../api/apify#module_Apify.call) or [`Apify.callTask()`](../api/apify#module_Apify.callTask) function.
 The object is almost equivalent to the JSON response
 of the
-<a href="https://www.apify.com/docs/api/v2#/reference/actors/run-collection/run-actor" target="_blank">Actor run</a>
+<a href="https://apify.com/docs/api/v2#/reference/actors/run-collection/run-actor" target="_blank">Actor run</a>
 Apify API endpoint and extended with certain fields.
 For more details, see
-<a href="https://www.apify.com/docs/actor#run" target="_blank">Runs.</a>
+<a href="https://apify.com/docs/actor#run" target="_blank">Runs.</a>
 
 **Properties**
 <table>
@@ -46,7 +46,7 @@ For more details, see
 </tr>
 <tr>
 <td colspan="3"><p>Status of the run. For possible values, see
-  <a href="https://www.apify.com/docs/actor#run-lifecycle" target="_blank">Run lifecycle</a>
+  <a href="https://apify.com/docs/actor#run-lifecycle" target="_blank">Run lifecycle</a>
   in Apify actor documentation.</p>
 </td></tr><tr>
 <td><code>meta</code></td><td><code>Object</code></td>
@@ -85,7 +85,7 @@ For more details, see
 </tr>
 <tr>
 <td colspan="3"><p>ID of the actor build used for the run. For details, see
-  <a href="https://www.apify.com/docs/actor#build" target="_blank">Builds</a>
+  <a href="https://apify.com/docs/actor#build" target="_blank">Builds</a>
   in Apify actor documentation.</p>
 </td></tr><tr>
 <td><code>buildNumber</code></td><td><code>String</code></td>
@@ -118,7 +118,7 @@ For more details, see
 <tr>
 <td colspan="3"><p>URL on which the web server running inside actor run&#39;s Docker container can be accessed.
   For more details, see
-  <a href="https://www.apify.com/docs/actor#container-web-server" target="_blank">Container web server</a>
+  <a href="https://apify.com/docs/actor#container-web-server" target="_blank">Container web server</a>
   in Apify actor documentation.</p>
 </td></tr><tr>
 <td><code>output</code></td><td><code>Object</code></td>
