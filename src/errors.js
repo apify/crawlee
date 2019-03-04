@@ -8,7 +8,7 @@ export const APIFY_CALL_ERROR_NAME = 'ApifyCallError';
  * @property {String} message
  *   Error message
  * @property {String} name
- *   Contains `ApifyCallError`
+ *   Contains `"ApifyCallError"`
  * @property {ActorRun} run
  *   Object representing the failed actor run.
  */
