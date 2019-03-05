@@ -1,3 +1,7 @@
+0.12.2 / 2019-03-05
+===================
+- Parameters `input` and `options` added to `Apify.callTask()`.
+
 0.12.2 / 2019-02-27
 ===================
 - Added oldest active tab focusing to `PuppeteerPool` to combat resource throttling in Chromium.
