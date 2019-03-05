@@ -85,7 +85,7 @@ const addInputOptionsOrThrow = (input, contentType, options) => {
     checkParamOrThrow(options.body, 'input', 'Buffer|String');
     checkParamOrThrow(options.contentType, 'contentType', 'String');
 
-    if (options.contentType) options.contentType = addCharsetToContentType(options.contentType);
+    options.contentType = addCharsetToContentType(options.contentType);
 };
 
 /**
