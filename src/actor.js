@@ -60,7 +60,11 @@ const waitForRunToFinish = async ({ actId, runId, token, waitSecs, taskId }) => 
         throw new ApifyCallError({ id: runId, actId }, 'Apify.call() failed, cannot fetch actor run details from the server');
     }
     const { status } = updatedRun;
-    if (status !== ACT_JOB_STATUSES.SUCCEEDED && (status !== ACT_JOB_STATUSES.RUNNING && status !== ACT_JOB_STATUSES.READY)) {
+    if (
+        status !== ACT_JOB_STATUSES.SUCCEEDED
+        && status !== ACT_JOB_STATUSES.RUNNING
+        && status !== ACT_JOB_STATUSES.READY
+    ) {
         const message = taskId
             ? `The actor task ${taskId} invoked by Apify.call() did not succeed`
             : `The actor ${actId} invoked by Apify.call() did not succeed`;
