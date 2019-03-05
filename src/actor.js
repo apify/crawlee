@@ -61,7 +61,12 @@ const waitForRunToFinish = async ({ actId, runId, token, waitSecs, taskId }) => 
     if (!updatedRun) {
         throw new ApifyCallError({ id: runId, actId }, 'Apify.call() failed, cannot fetch actor run details from the server');
     }
-    if (updatedRun.status !== ACT_JOB_STATUSES.SUCCEEDED && updatedRun.status !== ACT_JOB_STATUSES.RUNNING) {
+    const { status } = updatedRun;
+    if (
+        status !== ACT_JOB_STATUSES.SUCCEEDED
+        && status !== ACT_JOB_STATUSES.RUNNING
+        && status !== ACT_JOB_STATUSES.READY
+    ) {
         const message = taskId
             ? `The actor task ${taskId} invoked by Apify.call() did not succeed`
             : `The actor ${actId} invoked by Apify.call() did not succeed`;
@@ -69,6 +74,24 @@ const waitForRunToFinish = async ({ actId, runId, token, waitSecs, taskId }) => 
     }
 
     return updatedRun;
+};
+
+/**
+ * Parses input and contentType and appends it to a given options object.
+ * Throws if input is not valid.
+ *
+ * @ignore
+ */
+const addInputOptionsOrThrow = (input, contentType, options) => {
+    options.contentType = contentType;
+
+    // NOTE: this function modifies contentType property on options object if needed.
+    options.body = maybeStringify(input, options);
+
+    checkParamOrThrow(options.body, 'input', 'Buffer|String');
+    checkParamOrThrow(options.contentType, 'contentType', 'String');
+
+    options.contentType = addCharsetToContentType(options.contentType);
 };
 
 /**
@@ -324,19 +347,17 @@ let callMemoryWarningIssued = false;
  */
 export const call = async (actId, input, options = {}) => {
     const { acts, keyValueStores } = apifyClient;
-    // Use optionsCopy here as maybeStringify() may override contentType
-    const optionsCopy = Object.assign({}, options);
 
     checkParamOrThrow(actId, 'actId', 'String');
     checkParamOrThrow(options, 'opts', 'Object');
 
     // Common options.
-    const { token } = optionsCopy;
+    const { token } = options;
     checkParamOrThrow(token, 'token', 'Maybe String');
 
     // RunAct() options.
-    const { build, memory, timeoutSecs } = optionsCopy;
-    let { memoryMbytes } = optionsCopy;
+    const { build, memory, timeoutSecs } = options;
+    let { memoryMbytes } = options;
     const runActOpts = {
         actId,
     };
@@ -358,15 +379,7 @@ export const call = async (actId, input, options = {}) => {
     if (build) runActOpts.build = build;
     if (memoryMbytes) runActOpts.memory = memoryMbytes;
     if (timeoutSecs >= 0) runActOpts.timeout = timeoutSecs; // Zero is valid value!
-    if (input) {
-        input = maybeStringify(input, optionsCopy);
-
-        checkParamOrThrow(input, 'input', 'Buffer|String');
-        checkParamOrThrow(optionsCopy.contentType, 'contentType', 'String');
-
-        if (optionsCopy.contentType) runActOpts.contentType = addCharsetToContentType(optionsCopy.contentType);
-        runActOpts.body = input;
-    }
+    if (input) addInputOptionsOrThrow(input, options.contentType, runActOpts);
 
     // Run actor.
     const { waitSecs } = options;
@@ -429,16 +442,33 @@ export const call = async (actId, input, options = {}) => {
  * @param {String} taskId
  *  Either `username/task-name` or task ID.
  * @param {Object|String|Buffer} [input]
- *   This parameter is not supported yet. You must pass either `null` or `undefined` value!
+ *  Input overrides for the actor task. If it is an object, it will be stringified to
+ *  JSON and its content type set to `application/json; charset=utf-8`.
+ *  Otherwise the `options.contentType` parameter must be provided.
+ *  Provided input will be merged with actor task input.
  * @param {Object} [options]
  *   Object with the settings below:
+ * @param {String} [options.contentType]
+ *  Content type for the `input`. If not specified,
+ *  `input` is expected to be an object that will be stringified to JSON and content type set to
+ *  `application/json; charset=utf-8`. If `options.contentType` is specified, then `input` must be a
+ *  `String` or `Buffer`.
  * @param {String} [options.token]
  *  User API token that is used to run the actor. By default, it is taken from the `APIFY_TOKEN` environment variable.
+ * @param {Number} [options.memoryMbytes]
+ *  Memory in megabytes which will be allocated for the new actor task run.
+ *  If not provided, the run uses memory of the default actor run configuration.
+ * @param {Number} [options.timeoutSecs]
+ *  Timeout for the actor task run in seconds. Zero value means there is no timeout.
+ *  If not provided, the run uses timeout of the default actor run configuration.
+ * @param {String} [options.build]
+ *  Tag or number of the actor build to run (e.g. `beta` or `1.2.345`).
+ *  If not provided, the run uses build tag or number from the default actor run configuration (typically `latest`).
  * @param {String} [options.waitSecs]
- *  Maximum time to wait for the actor run to finish, in seconds.
+ *  Maximum time to wait for the actor task run to finish, in seconds.
  *  If the limit is reached, the returned promise is resolved to a run object that will have
  *  status `READY` or `RUNNING` and it will not contain the actor run output.
- *  If `waitSecs` is null or undefined, the function waits for the actor to finish (default behavior).
+ *  If `waitSecs` is null or undefined, the function waits for the actor task to finish (default behavior).
  * @returns {Promise<ActorRun>}
  * @throws {ApifyCallError} If the run did not succeed, e.g. if it failed or timed out.
  *
@@ -449,8 +479,6 @@ export const call = async (actId, input, options = {}) => {
 export const callTask = async (taskId, input, options = {}) => {
     const { tasks, keyValueStores } = apifyClient;
 
-    if (input) throw new Error('Parameter "input" of Apify.callTask() is not supported yet!');
-
     checkParamOrThrow(taskId, 'taskId', 'String');
     checkParamOrThrow(options, 'opts', 'Object');
 
@@ -458,12 +486,22 @@ export const callTask = async (taskId, input, options = {}) => {
     const { token } = options;
     checkParamOrThrow(token, 'token', 'Maybe String');
 
-    // Run task.
+    // Run task options.
+    const { build, memoryMbytes, timeoutSecs } = options;
+    const runTaskOpts = { taskId };
+    checkParamOrThrow(build, 'build', 'Maybe String');
+    checkParamOrThrow(memoryMbytes, 'memoryMbytes', 'Maybe Number');
+    checkParamOrThrow(timeoutSecs, 'timeoutSecs', 'Maybe Number');
+    if (token) runTaskOpts.token = token;
+    if (build) runTaskOpts.build = build;
+    if (memoryMbytes) runTaskOpts.memory = memoryMbytes;
+    if (timeoutSecs >= 0) runTaskOpts.timeout = timeoutSecs; // Zero is valid value!
+    if (input) addInputOptionsOrThrow(input, options.contentType, runTaskOpts);
+
+    // Start task.
     const { waitSecs } = options;
     checkParamOrThrow(waitSecs, 'waitSecs', 'Maybe Number');
-    const opts = { taskId };
-    if (token) opts.token = token;
-    const run = await tasks.runTask(opts);
+    const run = await tasks.runTask(runTaskOpts);
     if (waitSecs <= 0) return run; // In this case there is nothing more to do.
 
     // Wait for run to finish.
