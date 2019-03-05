@@ -79,6 +79,34 @@ describe('CheerioCrawler', () => {
         });
     });
 
+    it('should trigger prepareRequestFunction', async () => {
+        const MODIFIED_URL = 'http://example.com/?q=2';
+        const sources = [
+            { url: 'http://example.com/' },
+
+        ];
+        let failed = null;
+        let success;
+        const requestList = new Apify.RequestList({ sources });
+        const handlePageFunction = async ({ request }) => { success = request; };
+        await requestList.initialize();
+
+        const cheerioCrawler = new Apify.CheerioCrawler({
+            requestList,
+            handlePageFunction,
+            handleFailedRequestFunction: ({ request }) => {
+                failed = request;
+            },
+            prepareRequestFunction: async ({ request }) => {
+                request.url = MODIFIED_URL;
+                return request;
+            },
+        });
+        await cheerioCrawler.run();
+        expect(failed).to.be.eql(null);
+        expect(success.url).to.be.eql(MODIFIED_URL);
+    });
+
     describe('should timeout', () => {
         let ll;
         before(() => {
