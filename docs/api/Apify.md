@@ -191,25 +191,54 @@ and several other API endpoints to obtain the output.
 <td><code>[input]</code></td><td><code>Object</code> | <code>String</code> | <code>Buffer</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>This parameter is not supported yet. You must pass either <code>null</code> or <code>undefined</code> value!</p>
+<td colspan="3"><p>Input overrides for the actor task. If it is an object, it will be stringified to
+ JSON and its content type set to <code>application/json; charset=utf-8</code>.
+ Otherwise the <code>options.contentType</code> parameter must be provided.
+ Provided input will be merged with actor task input.</p>
 </td></tr><tr>
 <td><code>[options]</code></td><td><code>Object</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Object with the settings below:</p>
 </td></tr><tr>
+<td><code>[options.contentType]</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Content type for the <code>input</code>. If not specified,
+ <code>input</code> is expected to be an object that will be stringified to JSON and content type set to
+ <code>application/json; charset=utf-8</code>. If <code>options.contentType</code> is specified, then <code>input</code> must be a
+ <code>String</code> or <code>Buffer</code>.</p>
+</td></tr><tr>
 <td><code>[options.token]</code></td><td><code>String</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>User API token that is used to run the actor. By default, it is taken from the <code>APIFY_TOKEN</code> environment variable.</p>
 </td></tr><tr>
+<td><code>[options.memoryMbytes]</code></td><td><code>Number</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Memory in megabytes which will be allocated for the new actor task run.
+ If not provided, the run uses memory of the default actor run configuration.</p>
+</td></tr><tr>
+<td><code>[options.timeoutSecs]</code></td><td><code>Number</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Timeout for the actor task run in seconds. Zero value means there is no timeout.
+ If not provided, the run uses timeout of the default actor run configuration.</p>
+</td></tr><tr>
+<td><code>[options.build]</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Tag or number of the actor build to run (e.g. <code>beta</code> or <code>1.2.345</code>).
+ If not provided, the run uses build tag or number from the default actor run configuration (typically <code>latest</code>).</p>
+</td></tr><tr>
 <td><code>[options.waitSecs]</code></td><td><code>String</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Maximum time to wait for the actor run to finish, in seconds.
+<td colspan="3"><p>Maximum time to wait for the actor task run to finish, in seconds.
  If the limit is reached, the returned promise is resolved to a run object that will have
  status <code>READY</code> or <code>RUNNING</code> and it will not contain the actor run output.
- If <code>waitSecs</code> is null or undefined, the function waits for the actor to finish (default behavior).</p>
+ If <code>waitSecs</code> is null or undefined, the function waits for the actor task to finish (default behavior).</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.client"></a>

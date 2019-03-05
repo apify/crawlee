@@ -24,7 +24,7 @@ by the [`Apify.call()`](../api/apify#module_Apify.call) function.
 <td><code>name</code></td><td><code>String</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Contains <code>ApifyCallError</code></p>
+<td colspan="3"><p>Contains <code>&quot;ApifyCallError&quot;</code></p>
 </td></tr><tr>
 <td><code>run</code></td><td><code><a href="../typedefs/actorrun">ActorRun</a></code></td>
 </tr>
