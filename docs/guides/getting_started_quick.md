@@ -1,6 +1,6 @@
 ---
-id: gettingstartedquick
-title: Getting Started Quick
+id: quickstart
+title: Quick Start
 ---
 The Apify SDK requires <a href="https://nodejs.org/en/" target="_blank">Node.js</a> 8 or later.
 
