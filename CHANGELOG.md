@@ -457,7 +457,7 @@
 
 0.5.7 / 2018-03-06
 ==================
-- A lot of new stuff. Everything is backwards compatible. Check https://www.apify.com/docs/sdk/apify-runtime-js/latest for reference
+- A lot of new stuff. Everything is backwards compatible. Check https://apify.com/docs/sdk/apify-runtime-js/latest for reference
 
 0.5.0 / 2018-02-08
 ===================

@@ -10,7 +10,7 @@ to maintain queues of URLs to crawl, store crawling results to a local filesyste
 rotate proxies and much more.
 The SDK is available as the <a href="https://www.npmjs.com/package/apify" target="_blank"><code>apify</code></a> NPM package.
 It can be used either stand-alone in your own applications
-or in <a href="https://www.apify.com/docs/actor" target="_blank">actors</a>
-running on the <a href="https://www.apify.com/" target="_blank">Apify Cloud</a>.
+or in <a href="https://apify.com/docs/actor" target="_blank">actors</a>
+running on the <a href="https://apify.com/" target="_blank">Apify Cloud</a>.
 
 **View full documentation, guides and examples on the dedicated <a href="https://sdk.apify.com" target="_blank">Apify SDK project website</a>**
