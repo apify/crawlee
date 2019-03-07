@@ -175,7 +175,7 @@ const getPuppeteerOrThrow = () => {
  *    <li>
  *        Sets <code>defaultViewport</code> Puppeteer option (if not already set)
  *        to a more reasonable default for screenshots and debugging.
- *        You can set `options.defaultViewport` to `null` if you prefer to let Puppeteer
+ *        You can set <code>options.defaultViewport</code> to <code>null</code> if you prefer to let Puppeteer
  *        choose the default viewport size.
  *    </li>
  * </ul>
