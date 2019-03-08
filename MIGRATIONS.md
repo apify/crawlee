@@ -5,7 +5,7 @@
 Originally, AutoscaledPool was just a single class that handled everything. Now it's split into 3 different classes.
 As such, the configuration changed dramatically. The API is the same however.
 
-Mainly the parameter `workerFunction` was replaced with combination of 3 parameters `runTaskFunction`, `isTaskReadyFunction` and `isFinishedFunction`. For more information and examples check <a href="https://www.apify.com/docs/sdk/apify-runtime-js/latest#AutoscaledPool" target="_blank">AutoscaledPool documentation</a>.
+Mainly the parameter `workerFunction` was replaced with combination of 3 parameters `runTaskFunction`, `isTaskReadyFunction` and `isFinishedFunction`. For more information and examples check <a href="https://sdk.apify.com/docs/api/autoscaledpool#docsNav" target="_blank">AutoscaledPool documentation</a>.
 
 If you were using any of the following options, you should see the current documentation and migrate accordingly:
 

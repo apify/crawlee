@@ -36,7 +36,7 @@ The Apify SDK is available as the <a href="https://www.npmjs.com/package/apify">
   </li>
   <li>
     <a href="https://sdk.apify.com/docs/api/requestqueue"><code>RequestQueue</code></a>
-    - Represents a queue of URLs to crawl, which is stored either on a local filesystem or in the <a href="https://www.apify.com" target="_blank">Apify Cloud</a>.
+    - Represents a queue of URLs to crawl, which is stored either on a local filesystem or in the <a href="https://apify.com" target="_blank">Apify Cloud</a>.
     The queue is used for deep crawling of websites, where you start with
     several URLs and then recursively follow links to other pages.
     The data structure supports both breadth-first and depth-first crawling orders.

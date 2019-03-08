@@ -621,9 +621,9 @@ We can see that some of the information is available directly on the list page, 
 Knowing that we will use plain HTTP requests, we immediately know that we won't be able to manipulate the website in any way. We will only be able to go through the HTML it gives us and parse our data from there. This might sound like a huge limitation, but you might be surprised in how effective it might be. Let's get on it!
 
 #### The start URL(s)
-This is where we start our crawl. It's convenient to start as close to our data as possible. For example, it wouldn't make much sense to start at `www.apify.com` and look for a `library` link there, when we already know that everything we want to extract can be found at the `www.apify.com/library` page.
+This is where we start our crawl. It's convenient to start as close to our data as possible. For example, it wouldn't make much sense to start at `apify.com` and look for a `library` link there, when we already know that everything we want to extract can be found at the `apify.com/library` page.
 
-Once we look at the `www.apify.com/library` page more carefully though, we see that the categories themselves produce URLs that we can use to access those individual categories.
+Once we look at the `apify.com/library` page more carefully though, we see that the categories themselves produce URLs that we can use to access those individual categories.
 
 ```
 https://apify.com/library?category=ENTERTAINMENT
@@ -769,7 +769,7 @@ In the previous chapter, we've used the `Apify.utils.enqueueLinks()` function li
 await enqueueLinks({
     $,
     requestQueue,
-    pseudoUrls: ['http[s?]://[[-\w.]+]apify.com[.*]']
+    pseudoUrls: ['http[s?]://apify.com[.*]']
 });
 ```
 While very useful in that scenario, we need something different now. Instead of finding all the `<a href="..">` links that match the `pseudoUrl`, we need to find only the specific ones that will take us to the actor detail pages. Otherwise, we'd be visiting a lot of other pages that we're not interested in. Using the power of DevTools and yet another `enqueueLinks()` parameter, this becomes fairly easy.
