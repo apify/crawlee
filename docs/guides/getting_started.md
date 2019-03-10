@@ -31,13 +31,6 @@ node -v
 npm -v
 ```
 
-### Adding Apify SDK to an existing project
-Apify SDK can be added as a dependency into any Node.js project, so if you already have a project that you'd like to add web crawling, scraping and automation capabilities to, just run the following command in the project's folder and you're good to go.
-
-```bash
-npm install apify
-```
-
 ### Creating a new project
 The fastest and best way to create new projects with the Apify SDK is to use our own 
 <a href="https://www.npmjs.com/package/apify-cli" target="_blank">Apify CLI</a>.
@@ -280,10 +273,20 @@ There are numerous approaches to finding links to follow when crawling the web. 
 const links = $('a[href]').map((i, el) => $(el).attr('href')).get();
 ```
 
-Our new function finds all the `<a>` elements that contain the `href` attribute and extracts the attributes into an array of strings.
+Our new function finds all the `<a>` elements that contain the `href` attribute and extracts the attributes into an array of strings. There is a problem though. There can be relative links in the list and those can't be used on their own. We need to resolve them using our domain as base URL and we will use one of Node.js' standard libraries to do this.
+
+```js
+// At the top of the file:
+const { URL } = require('url');
+
+// ...
+
+const ourDomain = 'https://apify.com';
+const absoluteUrls = links.map(link => new URL(link, ourDomain));
+```
 
 #### Filtering links to same domain
-Websites typically contain a lot of links that lead away from the original page. This is normal, but when crawling a website, we usually want to crawl this one site and do not let our crawler wander away to Google, Facebook and Twitter. Therefore, we need to filter out the off-domain links and only keep the ones that lead to the same domain. We will use one of Node.js' standard libraries to do this.
+Websites typically contain a lot of links that lead away from the original page. This is normal, but when crawling a website, we usually want to crawl this one site and do not let our crawler wander away to Google, Facebook and Twitter. Therefore, we need to filter out the off-domain links and only keep the ones that lead to the same domain.
 
 > Don't worry, we'll learn how to do this with a single function call using Apify in a few moments.
 
@@ -296,10 +299,9 @@ const { URL } = require('url');
 const links = $('a[href]').map((i, el) => $(el).attr('href')).get();
 
 const ourDomain = 'apify.com'
-const sameDomainLinks = links.filter((link) => {
-    const linkHostname = new URL(link).hostname;
-    return linkHostname.endsWith(ourDomain); // Capture even sdk.apify.com etc.
-});
+const absoluteUrls = links.map(link => new URL(link, ourDomain));
+
+const sameDomainLinks = absoluteUrls.filter(url => url.href.startsWith(ourDomain));
 
 // ...
 ```
@@ -315,17 +317,16 @@ const { URL } = require('url');
 
 const links = $('a[href]').map((i, el) => $(el).attr('href')).get();
 
-const ourDomain = 'apify.com'
-const sameDomainLinks = links.filter((link) => {
-    const linkHostname = new URL(link).hostname;
-    return linkHostname.endsWith(ourDomain); // Capture even sdk.apify.com etc.
-});
+const ourDomain = 'https://apify.com';
+const absoluteUrls = links.map(link => new URL(link, ourDomain));
+
+const sameDomainLinks = absoluteUrls.filter(url => url.href.startsWith(ourDomain));
 
 // Add the requests in series. There's of course room for speed
 // improvement by parallelization. Try to implement it, if you wish.
+console.log(`Enqueueing ${sameDomainLinks.length} URLs.`);
 for (const url of sameDomainLinks) {
-    console.log(`Enqueueing ${url}`);
-    await requestQueue.addRequest({ url });
+    await requestQueue.addRequest({ url: url.href });
 }
 
 // ...
@@ -363,17 +364,16 @@ Apify.main(async () => {
         // Here starts the new part of handlePageFunction.
         const links = $('a[href]').map((i, el) => $(el).attr('href')).get();
 
-        const ourDomain = 'apify.com'
-        const sameDomainLinks = links.filter((link) => {
-            const linkHostname = new URL(link).hostname;
-            return linkHostname.endsWith(ourDomain);
-        });
-		
-		 for (const url of sameDomainLinks) {
-		     console.log(`Enqueueing ${url}`);
-		     await requestQueue.addRequest({ url });
-		 }
-    }
+        const ourDomain = 'https://apify.com';
+        const absoluteUrls = links.map(link => new URL(link, ourDomain));
+
+        const sameDomainLinks = absoluteUrls.filter(url => url.href.startsWith(ourDomain));
+     
+        console.log(`Enqueueing ${sameDomainLinks.length} URLs.`);
+        for (const url of sameDomainLinks) {
+            await requestQueue.addRequest({ url: url.href });
+        }
+    };
     
     const crawler = new Apify.CheerioCrawler({
         maxRequestsPerCrawl: 20, // <------ This is new too.
