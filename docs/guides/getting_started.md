@@ -31,13 +31,6 @@ node -v
 npm -v
 ```
 
-### Adding Apify SDK to an existing project
-Apify SDK can be added as a dependency into any Node.js project, so if you already have a project that you'd like to add web crawling, scraping and automation capabilities to, just run the following command in the project's folder and you're good to go.
-
-```bash
-npm install apify
-```
-
 ### Creating a new project
 The fastest and best way to create new projects with the Apify SDK is to use our own 
 <a href="https://www.npmjs.com/package/apify-cli" target="_blank">Apify CLI</a>.
@@ -76,7 +69,7 @@ Did you see all that? If you did, congratulations! You're ready to go!
 ## Setting up on the Apify Platform
 Maybe you don't have Node.js installed and don't want the hassle. Or you can't install anything on your computer because you're using a company provided one. Or perhaps you'd just prefer to start working in the cloud right away. Well, no worries, we've got you covered.
 
-The <a href="https://my.apify.com" target="_blank">Apify Platform</a> is the foundational product of <a href="https://www.apify.com" target="_blank">Apify</a>. It's a serverless cloud computing platform, specifically designed for any web automation jobs, that may include crawling and scraping, but really works amazing for any batch jobs and long running tasks.
+The <a href="https://my.apify.com" target="_blank">Apify Platform</a> is the foundational product of <a href="https://apify.com" target="_blank">Apify</a>. It's a serverless cloud computing platform, specifically designed for any web automation jobs, that may include crawling and scraping, but really works amazing for any batch jobs and long running tasks.
 
 It comes with a free account, so let's go to our
 <a href="https://my.apify.com/sign-up" target="_blank">sign-up page</a>
@@ -90,7 +83,7 @@ In the page that shows after clicking on Actors in the left menu, choose **Creat
 Now click on the **Sources** tab at the top. Disregard the version and environment variables inputs for now and proceed directly to **Source code**. This is where you develop the actor, if you choose not to do it locally. Just press **Run** below the **Source code** panel. It will automatically build and run the example source code. You should start seeing log messages that represent the build and after the build is complete, log messages of the running actor. Feel free to check out the other **Run** tabs, such as **Info**, where you can find useful information about the run, or **Key-value-store**, where the actor's **INPUT** and **OUTPUT** are stored.
 
 Good job. You're now ready to run your own source code on the Apify Platform. For more information visit the
-<a href="https://www.apify.com/docs/actor" target="_blank">Actor documentation page</a>,
+<a href="https://apify.com/docs/actor" target="_blank">Actor documentation page</a>,
 where you'll find everything about the platform's various options.
 
 ## First crawler
@@ -132,7 +125,7 @@ Let's start super easy. Visit one page, get its title and close. First of all we
 const Apify = require('apify');
 ```
 
-Easy right? It doesn't get much more difficult, trust me. For the purposes of this tutorial, we'll be scraping our own webpage <a href="https://www.apify.com" target="_blank">https://www.apify.com</a>. Now, to get there, we need a `Request` with the page's URL in one of our sources, `RequestList` or `RequestQueue`. Let's go with `RequestQueue` for now.
+Easy right? It doesn't get much more difficult, trust me. For the purposes of this tutorial, we'll be scraping our own webpage <a href="https://apify.com" target="_blank">https://apify.com</a>. Now, to get there, we need a `Request` with the page's URL in one of our sources, `RequestList` or `RequestQueue`. Let's go with `RequestQueue` for now.
 
 ```js
 const Apify = require('apify');
@@ -142,12 +135,12 @@ Apify.main(async () => {
     // First we create the request queue instance.
     const requestQueue = await Apify.openRequestQueue();
     // And then we add a request to it.
-    await requestQueue.addRequest({ url: 'https://www.apify.com' });
+    await requestQueue.addRequest({ url: 'https://apify.com' });
 });
 ```
 > If you're not familiar with the `async` and `await` keywords used in the example, trust that it is a native syntax in modern JavaScript and you can [learn more about it here](https://nikgrozev.com/2017/10/01/async-await/).
 
-The [`requestQueue.addRequest()`](../api/requestqueue#RequestQueue+addRequest) function automatically converts the plain object we passed to it to a `Request` instance, so now we have a `requestQueue` that holds one `request` which points to `https://www.apify.com`. Now we need the `handlePageFunction`.
+The [`requestQueue.addRequest()`](../api/requestqueue#RequestQueue+addRequest) function automatically converts the plain object we passed to it to a `Request` instance, so now we have a `requestQueue` that holds one `request` which points to `https://apify.com`. Now we need the `handlePageFunction`.
 
 ```js
 // We'll define the function separately so it's more obvious.
@@ -167,7 +160,7 @@ const Apify = require('apify');
 
 Apify.main(async () => {
     const requestQueue = await Apify.openRequestQueue();
-    await requestQueue.addRequest({ url: 'https://www.apify.com' });
+    await requestQueue.addRequest({ url: 'https://apify.com' });
     
     const handlePageFunction = async ({ request, $ }) => {
         const title = $('title').text();
@@ -185,13 +178,13 @@ Apify.main(async () => {
 });
 ```
 
-And we're done! You just created your first crawler from scratch. It will download the HTML of `https://www.apify.com`, find the `<title>` element, get its text content and print it to console. Good job!
+And we're done! You just created your first crawler from scratch. It will download the HTML of `https://apify.com`, find the `<title>` element, get its text content and print it to console. Good job!
 
 To run the code locally, copy and paste the code, if you haven't already typed it in yourself, to the `main.js` file in the `my-new-project` we created earlier and run `apify run` from that project's directory.
 
 To run the code on Apify Platform, just replace the original example with your new code and hit Run.
 
-Whichever environment you choose, you should see the message `The title of "https://www.apify.com" is: Web Scraping, Data Extraction and Automation - Apify.` printed to the screen. If you do, congratulations and let's move onto some bigger challenges! And if you feel like you don't really know what just happened there, no worries, it will all become clear when you learn more about the `CheerioCrawler`.
+Whichever environment you choose, you should see the message `The title of "https://apify.com" is: Web Scraping, Data Extraction and Automation - Apify.` printed to the screen. If you do, congratulations and let's move onto some bigger challenges! And if you feel like you don't really know what just happened there, no worries, it will all become clear when you learn more about the `CheerioCrawler`.
 
 
 ## CheerioCrawler aka jQuery crawler
@@ -247,7 +240,7 @@ const Apify = require('apify');
 
 Apify.main(async () => {
     const requestQueue = await Apify.openRequestQueue();
-    await requestQueue.addRequest({ url: 'https://www.apify.com' });
+    await requestQueue.addRequest({ url: 'https://apify.com' });
     
     const handlePageFunction = async ({ request, $ }) => {
         const title = $('title').text();
@@ -274,16 +267,26 @@ Earlier we said that we would let the crawler:
 So let's get to it!
 
 #### Finding new links
-There are numerous approaches to finding links to follow when crawling the web. For our purposes, we will be looking for `<a>` elements that contain the `href` attribute. For example `<a href="https://www.apify.com/library>This is a link to Apify Library</a>`. To do this, we need to update our Cheerio function.
+There are numerous approaches to finding links to follow when crawling the web. For our purposes, we will be looking for `<a>` elements that contain the `href` attribute. For example `<a href="https://apify.com/library>This is a link to Apify Library</a>`. To do this, we need to update our Cheerio function.
 
 ```js
 const links = $('a[href]').map((i, el) => $(el).attr('href')).get();
 ```
 
-Our new function finds all the `<a>` elements that contain the `href` attribute and extracts the attributes into an array of strings.
+Our new function finds all the `<a>` elements that contain the `href` attribute and extracts the attributes into an array of strings. There is a problem though. There can be relative links in the list and those can't be used on their own. We need to resolve them using our domain as base URL and we will use one of Node.js' standard libraries to do this.
+
+```js
+// At the top of the file:
+const { URL } = require('url');
+
+// ...
+
+const ourDomain = 'https://apify.com';
+const absoluteUrls = links.map(link => new URL(link, ourDomain));
+```
 
 #### Filtering links to same domain
-Websites typically contain a lot of links that lead away from the original page. This is normal, but when crawling a website, we usually want to crawl this one site and do not let our crawler wander away to Google, Facebook and Twitter. Therefore, we need to filter out the off-domain links and only keep the ones that lead to the same domain. We will use one of Node.js' standard libraries to do this.
+Websites typically contain a lot of links that lead away from the original page. This is normal, but when crawling a website, we usually want to crawl this one site and do not let our crawler wander away to Google, Facebook and Twitter. Therefore, we need to filter out the off-domain links and only keep the ones that lead to the same domain.
 
 > Don't worry, we'll learn how to do this with a single function call using Apify in a few moments.
 
@@ -296,10 +299,9 @@ const { URL } = require('url');
 const links = $('a[href]').map((i, el) => $(el).attr('href')).get();
 
 const ourDomain = 'apify.com'
-const sameDomainLinks = links.filter((link) => {
-    const linkHostname = new URL(link).hostname;
-    return linkHostname.endsWith(ourDomain); // Capture even sdk.apify.com etc.
-});
+const absoluteUrls = links.map(link => new URL(link, ourDomain));
+
+const sameDomainLinks = absoluteUrls.filter(url => url.href.startsWith(ourDomain));
 
 // ...
 ```
@@ -315,17 +317,16 @@ const { URL } = require('url');
 
 const links = $('a[href]').map((i, el) => $(el).attr('href')).get();
 
-const ourDomain = 'apify.com'
-const sameDomainLinks = links.filter((link) => {
-    const linkHostname = new URL(link).hostname;
-    return linkHostname.endsWith(ourDomain); // Capture even sdk.apify.com etc.
-});
+const ourDomain = 'https://apify.com';
+const absoluteUrls = links.map(link => new URL(link, ourDomain));
+
+const sameDomainLinks = absoluteUrls.filter(url => url.href.startsWith(ourDomain));
 
 // Add the requests in series. There's of course room for speed
 // improvement by parallelization. Try to implement it, if you wish.
+console.log(`Enqueueing ${sameDomainLinks.length} URLs.`);
 for (const url of sameDomainLinks) {
-    console.log(`Enqueueing ${url}`);
-    await requestQueue.addRequest({ url });
+    await requestQueue.addRequest({ url: url.href });
 }
 
 // ...
@@ -354,7 +355,7 @@ const Apify = require('apify');
 
 Apify.main(async () => {
     const requestQueue = await Apify.openRequestQueue();
-    await requestQueue.addRequest({ url: 'https://www.apify.com' });
+    await requestQueue.addRequest({ url: 'https://apify.com' });
     
     const handlePageFunction = async ({ request, $ }) => {
         const title = $('title').text();
@@ -363,17 +364,16 @@ Apify.main(async () => {
         // Here starts the new part of handlePageFunction.
         const links = $('a[href]').map((i, el) => $(el).attr('href')).get();
 
-        const ourDomain = 'apify.com'
-        const sameDomainLinks = links.filter((link) => {
-            const linkHostname = new URL(link).hostname;
-            return linkHostname.endsWith(ourDomain);
-        });
-		
-		 for (const url of sameDomainLinks) {
-		     console.log(`Enqueueing ${url}`);
-		     await requestQueue.addRequest({ url });
-		 }
-    }
+        const ourDomain = 'https://apify.com';
+        const absoluteUrls = links.map(link => new URL(link, ourDomain));
+
+        const sameDomainLinks = absoluteUrls.filter(url => url.href.startsWith(ourDomain));
+     
+        console.log(`Enqueueing ${sameDomainLinks.length} URLs.`);
+        for (const url of sameDomainLinks) {
+            await requestQueue.addRequest({ url: url.href });
+        }
+    };
     
     const crawler = new Apify.CheerioCrawler({
         maxRequestsPerCrawl: 20, // <------ This is new too.
@@ -427,10 +427,10 @@ Using `enqueueLinks()` we can squash the first 3 into a single function call, if
 // Assuming previous existence of the '$' and 'requestQueue' variables.
 await enqueueLinks({ $, requestQueue });
 ```
-That's all we need to do to enqueue all `<a href="...">` links from the given page to the given queue. Easy, right? Scratch number 1 and 3 off the list. Only number 2 remains and to tackle this one, we need to talk about yet another new concept, the Pseudo URL.
+That's all we need to do to enqueue all `<a href="...">` links from the given page to the given queue. Easy, right? Scratch number 1 and 3 off the list. Only number 2 remains and to tackle this one, we need to talk about yet another new concept, the pseudo-URL.
 
-#### Introduction to Pseudo URLs
-Pseudo URLs are represented by our `PseudoUrl` class and even though the name sounds discouraging, they're a pretty simple concept. They're just URLs with some parts replaced by wildcards (read <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions">regular expressions</a>). They are matched against URLs to find specific links, domains, patterns, file extensions and so on.
+#### Introduction to pseudo-URLs
+Pseudo-URLs are represented by our `PseudoUrl` class and even though the name sounds discouraging, they're a pretty simple concept. They're just URLs with some parts replaced by wildcards (read <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions">regular expressions</a>). They are matched against URLs to find specific links, domains, patterns, file extensions and so on.
 
 In scraping, there usually are patterns to be found in the websites' URLs that can be leveraged to scrape only the pages we're interested in. Imagine a typical online store. It has different categories which list different items The URL for might looks something like this:
 
@@ -449,12 +449,12 @@ Going to this page would produce a list of offered computers. Then, clicking on 
 https://www.online-store.com/items/613804
 ```
 
-As you can see, there's a structure to the links. In the real world, the structure might not always be perfectly obvious, but it's very often there. Pseudo URLs help to use this structure to select only the relevant links from a given page.
+As you can see, there's a structure to the links. In the real world, the structure might not always be perfectly obvious, but it's very often there. Pseudo-URLs help to use this structure to select only the relevant links from a given page.
 
-#### Structure of a Pseudo URL
-Pseudo URL is a URL with <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions">regular expressions</a>) enclosed in `[]` brackets. Since we're running Node.js, the regular expressions should follow the JavaScript style.
+#### Structure of a pseudo-URL
+Pseudo-URL is a URL with <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions">regular expressions</a>) enclosed in `[]` brackets. Since we're running Node.js, the regular expressions should follow the JavaScript style.
 
-For example, a Pseudo URL 
+For example, a pseudo-URL 
 
 ```
 https://www.online-store.com/categories/[(\w|-)+]
@@ -475,7 +475,7 @@ https://www.online-store.com/items/613804
 
 This way, you can easily find just the URLs that you're looking for while ignoring the rest.
 
-A Pseudo URL may include any number of bracketed regular expressions, so you can compose much more complex matching logic. The following Pseudo URL will match the items in the store even if the links use the non-secure `http` protocol, omit the `www` from the hostname or use different TLD.
+A pseudo-URL may include any number of bracketed regular expressions, so you can compose much more complex matching logic. The following Pseudo URL will match the items in the store even if the links use the non-secure `http` protocol, omit the `www` from the hostname or use different TLD.
 
 ```
 http[s?]://[(www)?\.]online-store.[com|net|org]/items/[\d+]
@@ -502,7 +502,7 @@ www.online-store.org/items/7003
 #### Using `enqueueLinks()` to filter links
 That's been quite a lot of theory and examples. We might as well put it to practice. Going back to our `CheerioCrawler` exercise, we still have number 2 left to cross off the list - filter links pointing to `apify.com`. We've already shown that at the very least, the `enqueueLinks()` function needs two arguments. The source, in our case the `$` object, and the destination - the `requestQueue`. To filter links, we need to add a third argument: `pseudoUrls`.
 
-The `options.pseudoUrls` argument is always an `Array`, but its contents can take on many forms. [See the reference](../api/utils#utils.enqueueLinks) for all of them. Since we just need to filter out same domain links, we'll keep it simple and use a Pseudo URL `string`.
+The `options.pseudoUrls` argument is always an `Array`, but its contents can take on many forms. [See the reference](../api/utils#utils.enqueueLinks) for all of them. Since we just need to filter out same domain links, we'll keep it simple and use a pseudo-URL `string`.
 
 ```js
 // Assuming previous existence of the '$' and 'requestQueue' variables.
@@ -514,7 +514,7 @@ const options = {
 
 await enqueueLinks(options);
 ```
-> To break the Pseudo URL string down, we're looking for both `http` and `https` protocols and the links may only lead to `apify.com` and its subdomains, such as `my.apify.com`, `sdk.apify.com` etc. Literally, the bracketed expression for subdomain allows all dashes `-`, word characters `\w` and dots `.`. The final brackets `[.*]` allow everything. If this is complex to you, we suggest <a href="https://www.regular-expressions.info/tutorial.html" target="_blank">reading a tutorial</a> or two on regular expression syntax.
+> To break the pseudo-URL string down, we're looking for both `http` and `https` protocols and the links may only lead to `apify.com` and its subdomains, such as `my.apify.com`, `sdk.apify.com` etc. Literally, the bracketed expression for subdomain allows all dashes `-`, word characters `\w` and dots `.`. The final brackets `[.*]` allow everything. If this is complex to you, we suggest <a href="https://www.regular-expressions.info/tutorial.html" target="_blank">reading a tutorial</a> or two on regular expression syntax.
 
 #### Integrating `enqueueLinks()` into our crawler
 That was fairly easy, wasn't it. That ticks the number 2 off our list and we're done! Let's take a look at the original crawler code, where we enqueued all the links manually.
@@ -525,7 +525,7 @@ const Apify = require('apify');
 
 Apify.main(async () => {
     const requestQueue = await Apify.openRequestQueue();
-    await requestQueue.addRequest({ url: 'https://www.apify.com' });
+    await requestQueue.addRequest({ url: 'https://apify.com' });
     
     const handlePageFunction = async ({ request, $ }) => {
         const title = $('title').text();
@@ -562,7 +562,7 @@ const Apify = require('apify');
 
 Apify.main(async () => {
     const requestQueue = await Apify.openRequestQueue();
-    await requestQueue.addRequest({ url: 'https://www.apify.com' });
+    await requestQueue.addRequest({ url: 'https://apify.com' });
     
     const handlePageFunction = async ({ request, $ }) => {
         const title = $('title').text();
@@ -597,7 +597,7 @@ And that's it! No more parsing the links from HTML using Cheerio, filtering them
 We hear you young padawan! First, learn how to crawl, you must. Only then, save data, you can!
 
 ### Making a library crawler
-Fortunately, we don't have to travel to a galaxy far far away to find a good candidate for learning how to scrape structured data. The <a href="https://www.apify.com/library" target="_blank">Apify Library</a> is a library of public actors that anyone can grab and use. You can find ready-made solutions for crawling Google Places, Amazon, Google SERPs, Booking, Kickstarter and many other websites. Feel free to check them out! It also poses a great place to practice our jedi scraping skills since it has categories, lists and details. That's almost like our imaginary `online-store.com` from the previous chapter.
+Fortunately, we don't have to travel to a galaxy far far away to find a good candidate for learning how to scrape structured data. The <a href="https://apify.com/library" target="_blank">Apify Library</a> is a library of public actors that anyone can grab and use. You can find ready-made solutions for crawling Google Places, Amazon, Google SERPs, Booking, Kickstarter and many other websites. Feel free to check them out! It also poses a great place to practice our jedi scraping skills since it has categories, lists and details. That's almost like our imaginary `online-store.com` from the previous chapter.
 
 ### The importance of having a plan
 Sometimes scraping is really straightforward, but most of the times, it really pays out to do a little bit of research first. How is the website structured? Can I scrape it only with HTTP requests (read "with `CheerioCrawler`") or would I need a full browser solution? Are there any anti-scraping protections in place? Do I need to parse the HTML or can I get the data otherwise, such as directly from the website's API. Jakub, one of Apify's founders wrote a <a href="https://blog.apify.com/web-scraping-in-2018-forget-html-use-xhrs-metadata-or-javascript-variables-8167f252439c" target="_blank">great article about all the different techniques</a> and tips and tricks so make sure to check that out!
@@ -621,12 +621,12 @@ We can see that some of the information is available directly on the list page, 
 Knowing that we will use plain HTTP requests, we immediately know that we won't be able to manipulate the website in any way. We will only be able to go through the HTML it gives us and parse our data from there. This might sound like a huge limitation, but you might be surprised in how effective it might be. Let's get on it!
 
 #### The start URL(s)
-This is where we start our crawl. It's convenient to start as close to our data as possible. For example, it wouldn't make much sense to start at `www.apify.com` and look for a `library` link there, when we already know that everything we want to extract can be found at the `www.apify.com/library` page.
+This is where we start our crawl. It's convenient to start as close to our data as possible. For example, it wouldn't make much sense to start at `apify.com` and look for a `library` link there, when we already know that everything we want to extract can be found at the `apify.com/library` page.
 
-Once we look at the `www.apify.com/library` page more carefully though, we see that the categories themselves produce URLs that we can use to access those individual categories.
+Once we look at the `apify.com/library` page more carefully though, we see that the categories themselves produce URLs that we can use to access those individual categories.
 
 ```
-https://www.apify.com/library?category=ENTERTAINMENT
+https://apify.com/library?category=ENTERTAINMENT
 ```
 
 Should we write down all the category URLs down and use all of them as start URLs? It's definitely possible, but what if a new category appears on the page later? We would not learn about it unless we manually visit the page and inspect it again. So scraping the category links off the library page definitely makes sense. This way we always get an up to date list of categories.
@@ -640,11 +640,11 @@ So we're back to the pre-selected list of URLs. Since we cannot scrape the list 
 Therefore, after careful consideration, we've determined that we should use multiple start URLs and that they should look as follows:
 
 ```
-https://www.apify.com/library?type=acts&category=TRAVEL
-https://www.apify.com/library?type=acts&category=ECOMMERCE
-https://www.apify.com/library?type=acts&category=ENTERTAINMENT
+https://apify.com/library?type=acts&category=TRAVEL
+https://apify.com/library?type=acts&category=ECOMMERCE
+https://apify.com/library?type=acts&category=ENTERTAINMENT
 ```
-> The `type=acts` query parameter comes from selecting `Actors only` in the `Show` dropdown. This is in line with us only wanting to scrape actors' data. If you're wondering how we've created these URLs, simply visit the `https://www.apify.com/library` page, select `Actors only` in the `Show` dropdown and click on one of the categories in the left hand menu. The correct URL will show up in your browser's address bar.
+> The `type=acts` query parameter comes from selecting `Actors only` in the `Show` dropdown. This is in line with us only wanting to scrape actors' data. If you're wondering how we've created these URLs, simply visit the `https://apify.com/library` page, select `Actors only` in the `Show` dropdown and click on one of the categories in the left hand menu. The correct URL will show up in your browser's address bar.
 
 ### The crawling strategy
 Now that we know where to start, we need to figure out where to go next. Since we've eliminated one level of crawling by selecting the categories manually, we only need to crawl the actor detail pages now. The algorithm therefore follows:
@@ -663,9 +663,9 @@ Now that we know where to start, we need to figure out where to go next. Since w
 
 ```js
 const sources = [
-    'https://www.apify.com/library?type=acts&category=TRAVEL',
-    'https://www.apify.com/library?type=acts&category=ECOMMERCE',
-    'https://www.apify.com/library?type=acts&category=ENTERTAINMENT'
+    'https://apify.com/library?type=acts&category=TRAVEL',
+    'https://apify.com/library?type=acts&category=ECOMMERCE',
+    'https://apify.com/library?type=acts&category=ENTERTAINMENT'
 ];
 
 const requestList = await Apify.openRequestList('categories', sources);
@@ -702,9 +702,9 @@ const Apify = require('apify');
 Apify.main(async () => {
 
     const sources = [
-        'https://www.apify.com/library?type=acts&category=TRAVEL',
-        'https://www.apify.com/library?type=acts&category=ECOMMERCE',
-        'https://www.apify.com/library?type=acts&category=ENTERTAINMENT'
+        'https://apify.com/library?type=acts&category=TRAVEL',
+        'https://apify.com/library?type=acts&category=ECOMMERCE',
+        'https://apify.com/library?type=acts&category=ENTERTAINMENT'
     ];
 
     const requestList = await Apify.openRequestList('x', sources);
@@ -734,7 +734,7 @@ You might be wondering how we got that `.item` selector. After analyzing the cat
 At time of this writing, there are only 2 actors in the Travel category, so we'll use this one for our examples, since it will make everything much less cluttered. Now, go to 
 
 ```
-https://www.apify.com/library?type=acts&category=TRAVEL
+https://apify.com/library?type=acts&category=TRAVEL
 ```
 and open DevTools either by right clicking anywhere in the page and selecting `Inspect`, or by pressing `F12` or by any other means relevant to your system. Once you're there, you'll see a bunch of DevToolsy stuff and a view of the category page with the individual actor cards.
 
@@ -769,7 +769,7 @@ In the previous chapter, we've used the `Apify.utils.enqueueLinks()` function li
 await enqueueLinks({
     $,
     requestQueue,
-    pseudoUrls: ['http[s?]://[[-\w.]+]apify.com[.*]']
+    pseudoUrls: ['http[s?]://apify.com[.*]']
 });
 ```
 While very useful in that scenario, we need something different now. Instead of finding all the `<a href="..">` links that match the `pseudoUrl`, we need to find only the specific ones that will take us to the actor detail pages. Otherwise, we'd be visiting a lot of other pages that we're not interested in. Using the power of DevTools and yet another `enqueueLinks()` parameter, this becomes fairly easy.
@@ -811,7 +811,7 @@ Earlier we've learned that `pseudoUrls` are not required and if omitted, all lin
 This is probably the weirdest and most complicated addition to the list. This is not the place to talk at length about <a href="https://stackoverflow.com/questions/2005079/absolute-vs-relative-urls" target="_blank">absolute and relative paths</a>, but in short, the links we encounter in a page can either be absolute, such as:
 
 ```
-https://www.apify.com/john-doe/my-actor
+https://apify.com/john-doe/my-actor
 ```
 
 or relative:
@@ -838,9 +838,9 @@ const Apify = require('apify');
 Apify.main(async () => {
 
     const sources = [
-        'https://www.apify.com/library?type=acts&category=TRAVEL',
-        'https://www.apify.com/library?type=acts&category=ECOMMERCE',
-        'https://www.apify.com/library?type=acts&category=ENTERTAINMENT'
+        'https://apify.com/library?type=acts&category=TRAVEL',
+        'https://apify.com/library?type=acts&category=ECOMMERCE',
+        'https://apify.com/library?type=acts&category=ENTERTAINMENT'
     ];
 
     const requestList = await Apify.openRequestList('x', sources);
@@ -892,7 +892,7 @@ At the beginning of this chapter, we've created a list of information we wanted 
 Some information is lying right there in front of us without even having to touch the actor detail pages. The `URL` we already have - the `request.url`. And by looking at it carefully, we realize that it already includes the `owner` and the `unique identifier` too. We can just split the `string` and be on our way then!
 
 ```js
-// request.url = https://www.apify.com/johndoe/amazing-web-crawler
+// request.url = https://apify.com/johndoe/amazing-web-crawler
 
 const urlArr = request.url.split('/').slice(-2); // ['johndoe', 'amazing-web-crawler']
 const uniqueIdentifier = urlArr.join('/'); // 'johndoe/amazing-web-crawler'
@@ -947,7 +947,7 @@ const $wrapper = $('header div.wrap');
 const results = {
     title: $wrapper.find('h1').text(),
     description: $wrapper.find('p').text(),
-    lastRunDate: new Date(+$wrapper.find('time').eq(1).attr('datetime')),
+    lastRunDate: new Date(Number($wrapper.find('time').eq(1).attr('datetime'))),
 };
 ```
 
@@ -997,9 +997,9 @@ const Apify = require('apify');
 Apify.main(async () => {
 
     const sources = [
-        'https://www.apify.com/library?type=acts&category=TRAVEL',
-        'https://www.apify.com/library?type=acts&category=ECOMMERCE',
-        'https://www.apify.com/library?type=acts&category=ENTERTAINMENT'
+        'https://apify.com/library?type=acts&category=TRAVEL',
+        'https://apify.com/library?type=acts&category=ECOMMERCE',
+        'https://apify.com/library?type=acts&category=ENTERTAINMENT'
     ];
 
     const requestList = await Apify.openRequestList('x', sources);
@@ -1070,9 +1070,9 @@ const Apify = require('apify');
 Apify.main(async () => {
 
     const sources = [
-        'https://www.apify.com/library?type=acts&category=TRAVEL',
-        'https://www.apify.com/library?type=acts&category=ECOMMERCE',
-        'https://www.apify.com/library?type=acts&category=ENTERTAINMENT'
+        'https://apify.com/library?type=acts&category=TRAVEL',
+        'https://apify.com/library?type=acts&category=ECOMMERCE',
+        'https://apify.com/library?type=acts&category=ENTERTAINMENT'
     ];
 
     const requestList = await Apify.openRequestList('x', sources);
@@ -1155,10 +1155,10 @@ Anyway, to spark some ideas, let's look at two more things. First, passing an in
 We will not go into `KeyValueStore` details here, but for the sake of `INPUT` you need to remember that there is a function that helps you get it (or anything else from the store, actually):
 
 ```js
-const input = await Apify.getValue('INPUT');
+const input = await Apify.getInput();
 ```
 
-On the Apify Platform, the actor's input that you can set in the Console is automatically saved to the default `KeyValueStore` under the key `INPUT`. So it follows that by calling [`Apify.getValue('INPUT')`](../api/apify#apify.getValue) you retrieve the value under the given key and voila, there's your `INPUT`.
+On the Apify Platform, the actor's input that you can set in the Console is automatically saved to the default `KeyValueStore` under the key `INPUT`. So it follows that by calling [`Apify.getInput()`](../api/apify#apify.getValue) you retrieve the value under the given key and voila, there's your `INPUT`.
 
 Running locally, you need to place an `INPUT.json` file in your default key value store for this to work.
 
@@ -1185,10 +1185,10 @@ Once we have that, we can load it in the actor and populate the crawler's source
 
 ```js
 // ...
-const input = await Apify.getValue('INPUT');
+const input = await Apify.getInput();
     
 const sources = input.map(category => ({
-    url: `https://www.apify.com/library?type=acts&category=${category}`,
+    url: `https://apify.com/library?type=acts&category=${category}`,
     userData: {
         label: 'CATEGORY'
     }
@@ -1240,10 +1240,10 @@ Apify.main(async () => {
 
 async function getSources() {
     log.debug('Getting sources.');
-    const input = await Apify.getValue('INPUT');
+    const input = await Apify.getInput();
 
     return input.map(category => ({
-        url: `https://www.apify.com/library?type=acts&category=${category}`,
+        url: `https://apify.com/library?type=acts&category=${category}`,
         userData: {
             label: 'CATEGORY'
         }
