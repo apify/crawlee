@@ -384,7 +384,7 @@ Apify.main(async () => {
     await crawler.run();
 });
 ```
-No matter if you followed along with our coding or just copy pasted the resulting source, try running it now, perhaps even in both environments. You should see the crawler log the **title** of the first page, then a couple of **enqueueing** messages, followed by the **title** of the first enqueued page and so on and so on.
+No matter if you followed along with our coding or just copy pasted the resulting source, try running it now, perhaps even in both environments. You should see the crawler log the **title** of the first page, then the **enqueueing** message showing number of URLs, followed by the **title** of the first enqueued page and so on and so on.
 
 > If you need help with running the code, refer back to the chapters on environment setup: [Setting up locally](#settinguplocally) and [Setting up on the Apify Platform](#settingupontheapifyplatform).
 
