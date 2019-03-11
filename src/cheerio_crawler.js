@@ -182,6 +182,19 @@ const DEFAULT_OPTIONS = {
  *
  *   See <a href="https://github.com/apifytech/apify-js/blob/master/src/cheerio_crawler.js#L13">source code</a>
  *   for the default implementation of this function.
+ * @param {Function} [options.prepareRequestFunction]
+ *   A function that executes before calling the request.
+ *   This function is suitable for setting dynamic properties such as cookies to {@link Request}.
+ *
+ *   The function receives the following object as an argument:
+ * ```
+ * {
+ *   request: Request
+ * }
+ * ```
+ *   where the {@link Request} instance corresponds to the failed request.
+ *    The function Should always return {@link Request}.
+ *
  * @param {Number} [options.maxRequestRetries=3]
  *   Indicates how many times the request is retried if either `requestFunction` or `handlePageFunction` fails.
  * @param {Number} [options.maxRequestsPerCrawl]
