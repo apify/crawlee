@@ -184,7 +184,7 @@ const DEFAULT_OPTIONS = {
  *   for the default implementation of this function.
  * @param {Function} [options.prepareRequestFunction]
  *   A function that executes before calling the request.
- *   This function is suitable for setting dynamic properties such as cookies to {@link Request}.
+ *   This function is suitable for setting dynamic properties such as cookies to the {@link Request}.
  *
  *   The function receives the following object as an argument:
  * ```
@@ -192,8 +192,9 @@ const DEFAULT_OPTIONS = {
  *   request: Request
  * }
  * ```
- *   where the {@link Request} instance corresponds to the failed request.
- *    The function Should always return {@link Request}.
+ *   where the {@link Request} instance corresponds to the initialized request.
+ *
+ *   The function should always return {@link Request}.
  *
  * @param {Number} [options.maxRequestRetries=3]
  *   Indicates how many times the request is retried if either `requestFunction` or `handlePageFunction` fails.
