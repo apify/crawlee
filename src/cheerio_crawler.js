@@ -140,7 +140,7 @@ const DEFAULT_OPTIONS = {
  *      - `url`, `method`, `headers`: provided by `requestList` and/or `requestQueue`
  *      - `strictSSL`: use `options.ignoreSslErrors`
  *      - `proxy`: use `options.useApifyProxy` or `options.proxyUrls`
- * 
+ *
  * @param {Function} [options.prepareRequestFunction]
  *   A function that executes before the HTTP request is made to the target resource.
  *   This function is suitable for setting dynamic properties such as cookies to the {@link Request}.
