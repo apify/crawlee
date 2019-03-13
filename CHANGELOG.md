@@ -1,4 +1,4 @@
-0.12.2 / 2019-03-05
+0.12.4 / 2019-03-05
 ===================
 - Parameters `input` and `options` added to `Apify.callTask()`.
 
