@@ -150,10 +150,10 @@ const DEFAULT_OPTIONS = {
  * @param {Boolean} [options.useApifyProxy=false]
  *   If set to `true`, `CheerioCrawler` will be configured to use
  *   <a href="https://my.apify.com/proxy" target="_blank">Apify Proxy</a> for all connections.
- *   For more information, see the <a href="https://www.apify.com/docs/proxy" target="_blank">documentation</a>
+ *   For more information, see the <a href="https://apify.com/docs/proxy" target="_blank">documentation</a>
  * @param {String[]} [options.apifyProxyGroups]
  *   An array of proxy groups to be used
- *   by the <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a>.
+ *   by the <a href="https://apify.com/docs/proxy" target="_blank">Apify Proxy</a>.
  *   Only applied if the `useApifyProxy` option is `true`.
  * @param {String} [options.apifyProxySession]
  *   Apify Proxy session identifier to be used with requests made by `CheerioCrawler`.

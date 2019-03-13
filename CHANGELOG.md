@@ -4,9 +4,15 @@ xxx
   It defaults to 15 seconds and all Puppeteer operations such as `browser.newPage()`
   or `puppeteer.launch()` will now time out. This is to prevent hanging requests.
 - **BREAKING CHANGE:** Added `handleRequestTimeoutSecs` option to `BasicCrawler` with a 60 second default.
+- **DEPRECATED:** `PuppeteerPool` options in the `PuppeteerCrawler` constructor are now deprecated.
+  Please use the new `puppeteerPoolOptions` argument of type `Object` to pass them. `launchPuppeteerFunction`
+  and `launchPuppeteerOptions` are still available as shortcuts for convenience.   
 - `CheerioCrawler` and `PuppeteerCrawler` now automatically set `handleRequestTimeoutSecs` to double of
   `handlePageTimeoutSecs`.
-- `puppeteerPool.newPage()` now retries twice before throwing an error.
+
+0.12.4 / 2019-03-05
+===================
+- Parameters `input` and `options` added to `Apify.callTask()`.
 
 0.12.2 / 2019-02-27
 ===================
@@ -463,7 +469,7 @@ xxx
 
 0.5.7 / 2018-03-06
 ==================
-- A lot of new stuff. Everything is backwards compatible. Check https://www.apify.com/docs/sdk/apify-runtime-js/latest for reference
+- A lot of new stuff. Everything is backwards compatible. Check https://apify.com/docs/sdk/apify-runtime-js/latest for reference
 
 0.5.0 / 2018-02-08
 ===================

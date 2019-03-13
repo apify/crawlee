@@ -51,10 +51,10 @@ const LAUNCH_PUPPETEER_DEFAULT_VIEWPORT = {
  * @property {Boolean} [useApifyProxy=false]
  *   If set to `true`, Puppeteer will be configured to use
  *   <a href="https://my.apify.com/proxy" target="_blank">Apify Proxy</a> for all connections.
- *   For more information, see the <a href="https://www.apify.com/docs/proxy" target="_blank">documentation</a>
+ *   For more information, see the <a href="https://apify.com/docs/proxy" target="_blank">documentation</a>
  * @property {String[]} [apifyProxyGroups]
  *   An array of proxy groups to be used
- *   by the <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a>.
+ *   by the <a href="https://apify.com/docs/proxy" target="_blank">Apify Proxy</a>.
  *   Only applied if the `useApifyProxy` option is `true`.
  * @property {String} [apifyProxySession]
  *   Apify Proxy session identifier to be used by all the Chrome browsers.
@@ -163,7 +163,7 @@ const getPuppeteerOrThrow = () => {
  *    </li>
  *    <li>
  *        If <code>options.useApifyProxy</code> is <code>true</code> then the function generates a URL of
- *        <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a>
+ *        <a href="https://apify.com/docs/proxy" target="_blank">Apify Proxy</a>
  *        based on <code>options.apifyProxyGroups</code> and <code>options.apifyProxySession</code> and passes it as <code>options.proxyUrl</code>.
  *    </li>
  *    <li>
@@ -175,7 +175,7 @@ const getPuppeteerOrThrow = () => {
  *    <li>
  *        Sets <code>defaultViewport</code> Puppeteer option (if not already set)
  *        to a more reasonable default for screenshots and debugging.
- *        You can set `options.defaultViewport` to `null` if you prefer to let Puppeteer
+ *        You can set <code>options.defaultViewport</code> to <code>null</code> if you prefer to let Puppeteer
  *        choose the default viewport size.
  *    </li>
  * </ul>
@@ -184,7 +184,7 @@ const getPuppeteerOrThrow = () => {
  * NPM package installed in your project.
  * When running on the Apify cloud, you can achieve that simply
  * by using the `apify/actor-node-chrome` base Docker image for your actor - see
- * <a href="https://www.apify.com/docs/actor#base-images" target="_blank">Apify Actor documentation</a>
+ * <a href="https://apify.com/docs/actor#base-images" target="_blank">Apify Actor documentation</a>
  * for details.
  *
  * For an example of usage, see the [Synchronous run Example](../examples/synchronousrun)

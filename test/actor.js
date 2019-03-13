@@ -379,6 +379,37 @@ describe('Apify.call()', () => {
             });
     });
 
+    it('should not fail when run get stuck in READY state', () => {
+        const actId = 'some-act-id';
+        const token = 'token';
+        const defaultKeyValueStoreId = 'some-store-id';
+        const run = { id: 'some-run-id', actId, defaultKeyValueStoreId };
+        const readyRun = Object.assign({}, run, { status: ACT_JOB_STATUSES.READY });
+
+        Apify.client.setOptions({ token });
+
+        const actsMock = sinon.mock(Apify.client.acts);
+        actsMock.expects('runAct')
+            .withExactArgs({ actId })
+            .once()
+            .returns(Promise.resolve(readyRun));
+        actsMock.expects('getRun')
+            .withExactArgs({ actId, runId: run.id, waitForFinish: 1 })
+            .once()
+            .returns(new Promise(resolve => setTimeout(() => resolve(readyRun), 1100)));
+
+        const keyValueStoresMock = sinon.mock(Apify.client.keyValueStores);
+        keyValueStoresMock.expects('getRecord').never();
+
+        return Apify
+            .call(actId, undefined, { waitSecs: 1 })
+            .then((callOutput) => {
+                expect(callOutput).to.be.eql(readyRun);
+                keyValueStoresMock.restore();
+                actsMock.restore();
+            });
+    });
+
     it('works without opts with null input', () => {
         const actId = 'some-act-id';
         const token = 'token';
@@ -678,10 +709,22 @@ describe('Apify.callTask()', () => {
         const finishedRun = Object.assign({}, run, { status: ACT_JOB_STATUSES.SUCCEEDED });
         const output = { contentType: 'application/json', body: 'some-output' };
         const expected = Object.assign({}, finishedRun, { output });
+        const input = { foo: 'bar' };
+        const memoryMbytes = 256;
+        const timeoutSecs = 60;
+        const build = 'beta';
 
         const tasksMock = sinon.mock(Apify.client.tasks);
         tasksMock.expects('runTask')
-            .withExactArgs({ token, taskId })
+            .withExactArgs({
+                token,
+                taskId,
+                body: JSON.stringify(input, null, 2),
+                contentType: 'application/json; charset=utf-8',
+                memory: memoryMbytes,
+                timeout: timeoutSecs,
+                build,
+            })
             .once()
             .returns(Promise.resolve(runningRun));
 
@@ -702,7 +745,7 @@ describe('Apify.callTask()', () => {
             .returns(Promise.resolve(output));
 
         return Apify
-            .callTask(taskId, undefined, { token, disableBodyParser: true })
+            .callTask(taskId, input, { token, disableBodyParser: true, memoryMbytes, timeoutSecs, build })
             .then((callOutput) => {
                 expect(callOutput).to.be.eql(expected);
                 keyValueStoresMock.restore();
