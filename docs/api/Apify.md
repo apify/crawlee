@@ -316,7 +316,7 @@ The following table shows all currently emitted events:
                 in which case the <code>isMigrating</code> flag is set to <code>true</code>. Otherwise the flag is <code>false</code>.
                 <br><br>
                 Note that the <code>persistState</code> event is provided merely for user convenience,
-                you can achieve the same effect using `setInterval()` and listening for the `migrating` event.
+                you can achieve the same effect using <code>setInterval()</code> and listening for the <code>migrating</code> event.
             </td>
         </tr>
     </tbody>
@@ -534,7 +534,7 @@ The `launchPuppeteer()` function alters the following Puppeteer options:
    <li>
        Sets <code>defaultViewport</code> Puppeteer option (if not already set)
        to a more reasonable default for screenshots and debugging.
-       You can set `options.defaultViewport` to `null` if you prefer to let Puppeteer
+       You can set <code>options.defaultViewport</code> to <code>null</code> if you prefer to let Puppeteer
        choose the default viewport size.
    </li>
 </ul>
