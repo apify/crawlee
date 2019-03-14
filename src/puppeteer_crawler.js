@@ -4,6 +4,7 @@ import _ from 'underscore';
 import BasicCrawler from './basic_crawler';
 import PuppeteerPool from './puppeteer_pool';
 import { addTimeoutToPromise } from './utils';
+import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from './constants';
 
 const DEFAULT_OPTIONS = {
     gotoFunction: async ({ request, page }) => page.goto(request.url, { timeout: 60000 }),
@@ -192,6 +193,14 @@ class PuppeteerCrawler {
             puppeteerPoolOptions,
             launchPuppeteerFunction,
             launchPuppeteerOptions,
+
+            // TODO Deprecated PuppeteerPool options
+            maxOpenPagesPerInstance,
+            retireInstanceAfterRequestCount,
+            instanceKillerIntervalMillis,
+            killInstanceAfterMillis,
+            proxyUrls,
+
         } = _.defaults({}, options, DEFAULT_OPTIONS);
 
         checkParamOrThrow(handlePageFunction, 'options.handlePageFunction', 'Function');
@@ -205,8 +214,24 @@ class PuppeteerCrawler {
 
         this.handlePageTimeoutMillis = handlePageTimeoutSecs * 1000;
 
+        // TODO Deprecated in 3/2019
+        const deprecatedPuppeteerPoolOptions = {
+            maxOpenPagesPerInstance,
+            retireInstanceAfterRequestCount,
+            instanceKillerIntervalMillis,
+            killInstanceAfterMillis,
+            proxyUrls,
+        };
+        Object.entries(deprecatedPuppeteerPoolOptions).forEach(([key, value]) => {
+            if (value) log.deprecated(`PuppeteerCrawler: options.${key} is deprecated. Use options.puppeteerPoolOptions instead.`);
+        });
         // puppeteerPoolOptions can be null or undefined or Object, so we merge it this way, because null is not replaced by defaults above.
-        this.puppeteerPoolOptions = Object.assign({}, puppeteerPoolOptions, { launchPuppeteerFunction, launchPuppeteerOptions });
+        this.puppeteerPoolOptions = Object.assign(
+            {},
+            puppeteerPoolOptions,
+            { launchPuppeteerFunction, launchPuppeteerOptions },
+            deprecatedPuppeteerPoolOptions,
+        );
 
         this.puppeteerPool = null; // Constructed when .run()
 
@@ -217,7 +242,7 @@ class PuppeteerCrawler {
             maxRequestRetries,
             maxRequestsPerCrawl,
             handleRequestFunction: (...args) => this._handleRequestFunction(...args),
-            handleRequestTimeoutSecs: handlePageTimeoutSecs * 2,
+            handleRequestTimeoutSecs: handlePageTimeoutSecs * BASIC_CRAWLER_TIMEOUT_MULTIPLIER,
             handleFailedRequestFunction,
 
             // Autoscaled pool options.

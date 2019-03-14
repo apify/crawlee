@@ -9,6 +9,7 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import BasicCrawler from './basic_crawler';
 import { addTimeoutToPromise } from './utils';
 import { getApifyProxyUrl } from './actor';
+import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from './constants';
 
 const DEFAULT_OPTIONS = {
     requestTimeoutSecs: 30,
@@ -258,7 +259,7 @@ class CheerioCrawler {
             maxRequestRetries,
             maxRequestsPerCrawl,
             handleRequestFunction: (...args) => this._handleRequestFunction(...args),
-            handleRequestTimeoutSecs: handlePageTimeoutSecs * 2,
+            handleRequestTimeoutSecs: handlePageTimeoutSecs * BASIC_CRAWLER_TIMEOUT_MULTIPLIER,
             handleFailedRequestFunction,
 
             // Autoscaled pool options.
@@ -404,6 +405,9 @@ class CheerioCrawler {
             strictSSL: !this.ignoreSslErrors,
             proxy: this._getProxyUrl(),
         };
+
+        if (/PATCH|POST|PUT/.test(request.method)) mandatoryRequestOptions.body = request.payload;
+
         return Object.assign({}, this.requestOptions, mandatoryRequestOptions);
     }
 

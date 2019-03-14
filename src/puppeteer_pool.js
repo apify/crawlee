@@ -13,7 +13,6 @@ import { addTimeoutToPromise } from './utils';
 /* global process */
 
 const PROCESS_KILL_TIMEOUT_MILLIS = 5000;
-const OPEN_NEW_TAB_RETRIES = 2;
 const PAGE_CLOSE_KILL_TIMEOUT_MILLIS = 1000;
 
 const DEFAULT_OPTIONS = {
@@ -257,17 +256,18 @@ class PuppeteerPool {
         const id = this.browserCounter++;
         log.debug('PuppeteerPool: Launching new browser', { id });
 
+        const errorMessageChunk = 'launchPuppeteerFunction timed out.';
         const launchPromise = this.launchPuppeteerFunction();
         const browserPromise = addTimeoutToPromise(
             launchPromise,
             this.puppeteerOperationTimeoutMillis,
-            'PuppeteerPool: launchPuppeteerFunction timed out.',
+            `PuppeteerPool: ${errorMessageChunk}`,
         );
 
         // If the browserPromise times out, the browser may still be started
         // later and will not be managed by pool, so we need to get rid of it.
         browserPromise.catch(async (err) => {
-            if (err.stack.includes('launchPuppeteerFunction timed out')) {
+            if (err.stack.includes(errorMessageChunk)) {
                 try {
                     const browser = await launchPromise;
                     browser.disconnect();
@@ -479,7 +479,7 @@ class PuppeteerPool {
             }
         }
         // If there are no live pages to be reused, we spawn a new tab.
-        return this._openNewTab(OPEN_NEW_TAB_RETRIES);
+        return this._openNewTab();
     }
 
     /**
@@ -487,11 +487,10 @@ class PuppeteerPool {
      * that resolves to an instance of a Puppeteer
      * <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a>.
      *
-     * @param {number} retryCount
      * @return {Promise<Page>}
      * @ignore
      */
-    async _openNewTab(retryCount) {
+    async _openNewTab() {
         let instance = Object
             .values(this.activeInstances)
             .find(inst => inst.activePages < this.maxOpenPagesPerInstance);
@@ -512,13 +511,6 @@ class PuppeteerPool {
             return this._decoratePage(page);
         } catch (err) {
             this._retireInstance(instance);
-            if (retryCount) {
-                return new Promise((resolve) => {
-                    // We can do this because _retireInstance is synchronous
-                    // so the page will open in a different browser.
-                    resolve(this._openNewTab(--retryCount));
-                });
-            }
             const betterError = new Error(`PuppeteerPool: browser.newPage() failed: ${instance.id}.`);
             betterError.stack = err.stack;
             throw betterError;
