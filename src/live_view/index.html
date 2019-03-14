@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+<head>
+    <title>Live view</title>
+    <style>
+        body {
+            font-family: sans-serif;
+        }
+        img#screenshotImg {
+            width: 100%
+        }
+        .urlDiv {
+            margin-bottom: 8px;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.slim.js"></script>
+    <script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
+    <script src="./init-last-snapshot.js"></script>
+    <link href="./prism.css" rel="stylesheet" />
+    <script>
+        function showSnapshot(snapshot) {
+            if (!snapshot) return;
+            $('#pageUrl').text(snapshot.pageUrl).attr('href', snapshot.pageUrl);
+            $('#htmlContent').text(snapshot.htmlContent);
+            $('#screenshotImg').attr('src', `./screenshot?index=${snapshot.screenshotIndex}`);
+            $('#waitContainer').hide();
+            $('#snapshotContainer').show();
+            Prism.highlightAll();
+        }
+        $(function () {
+            var socket = io();
+            socket.on('snapshot', showSnapshot);
+            socket.on('connect', function() {
+                console.log('Client ID: ' + socket.id);
+            });
+            // Show initial snapshot obtained from /init-last-snapshot.js
+            showSnapshot(window.lastSnapshot);
+            $('#screenshotLink').click(function (event) {
+                event.preventDefault();
+                $('#screenshotDiv').show();
+                $('#htmlDiv').hide();
+            });
+            $('#htmlLink').click(function () {
+                event.preventDefault();
+                $('#screenshotDiv').hide();
+                $('#htmlDiv').show();
+            });
+        });
+    </script>
+</head>
+<body>
+
+<script src="./prism.js"></script>
+
+<p id="waitContainer">
+    Waiting for the snapshot...<br>
+    <img src="./loading.gif"/>
+</p>
+
+<div id="snapshotContainer" style="display: none">
+    <div class="urlDiv">
+        URL: <a href="#" id="pageUrl" target="_blank" rel="noopener noreferrer"></a>
+    </div>
+
+    <div style="width: 100%">
+        <a href="#" id="screenshotLink">Screenshot</a> | <a href="#" id="htmlLink">HTML</a>
+
+        <div id="screenshotDiv">
+            <img id="screenshotImg" src="./loading.gif"/>
+        </div>
+
+        <div id="htmlDiv" style="display: none; font-size: 13px;">
+            <pre><code id="htmlContent" class="language-html"></code></pre>
+        </div>
+    </div>
+</div>
+
+
+</body>
+</html>
