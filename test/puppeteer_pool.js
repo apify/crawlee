@@ -229,16 +229,12 @@ describe('PuppeteerPool', () => {
 
     // Test started failing on 6.10.2018. Probably some change upstream.
     // Disabling the feature until resolved.
-    xit('supports recycleDiskCache option', async () => {
-        // NOTE: This feature only works in headful mode now
-        // See https://bugs.chromium.org/p/chromium/issues/detail?id=882431
-        const isMacOs = process.platform === 'darwin';
-
+    it('supports recycleDiskCache option', async () => {
         const pool = new Apify.PuppeteerPool({
             maxOpenPagesPerInstance: 1,
             retireInstanceAfterRequestCount: 1,
             recycleDiskCache: true,
-            launchPuppeteerOptions: { headless: !isMacOs },
+            launchPuppeteerOptions: { headless: true },
         });
 
         // log.setLevel(log.LEVELS.DEBUG);
@@ -247,6 +243,8 @@ describe('PuppeteerPool', () => {
 
         const page1 = await pool.newPage();
         const dir1 = page1.browser().recycleDiskCacheDir;
+
+        console.log(dir1);
 
         expect(fs.existsSync(dir1)).to.be.eql(true);
 
@@ -294,9 +292,7 @@ describe('PuppeteerPool', () => {
         const cookies2after = await page2.cookies(url);
         expect(cookies2after.length).to.be.at.least(1);
 
-        if (isMacOs) {
-            expect(fromDiskCache2).to.be.at.least(1);
-        }
+        expect(fromDiskCache2).to.be.at.least(1);
 
         // Open third browser while second is still open, it should use a new cache directory
         const page3 = await pool.newPage();

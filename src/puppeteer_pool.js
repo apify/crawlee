@@ -149,13 +149,10 @@ class PuppeteerPool {
             killInstanceAfterMillis,
             killInstanceAfterSecs,
             launchPuppeteerOptions,
-            // recycleDiskCache,
+            recycleDiskCache,
             proxyUrls,
         } = _.defaults({}, options, DEFAULT_OPTIONS);
 
-        // Disabling the feature since tests started failing.
-        // Re-enable once the issues upstream are fixed.
-        const recycleDiskCache = false;
         // Disabling due to memory leak.
         const reusePages = false;
 
@@ -179,15 +176,6 @@ class PuppeteerPool {
         checkParamOrThrow(proxyUrls, 'options.proxyUrls', 'Maybe Array');
         // Enforce non-empty proxyUrls array
         if (proxyUrls && !proxyUrls.length) throw new Error('Parameter "options.proxyUrls" of type Array must not be empty');
-
-        // The recycleDiskCache option is only supported in headful mode
-        // See https://bugs.chromium.org/p/chromium/issues/detail?id=882431
-        if (recycleDiskCache
-            && ((!launchPuppeteerOptions
-                || (launchPuppeteerOptions && launchPuppeteerOptions.headless)
-                || (launchPuppeteerOptions && launchPuppeteerOptions.headless === undefined && !launchPuppeteerOptions.devtools)))) {
-            log.warning('PuppeteerPool: The "recycleDiskCache" is currently only supported in headful mode. Disk cache will not be recycled.');
-        }
 
         // Config.
         this.reusePages = reusePages;
