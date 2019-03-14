@@ -7,6 +7,7 @@ import AutoscaledPool from './autoscaling/autoscaled_pool';
 import { RequestList } from './request_list';
 import { RequestQueue, RequestQueueLocal } from './request_queue';
 import events from './events';
+import { addTimeoutToPromise } from './utils';
 
 /**
  * Since there's no set number of seconds before the container is terminated after
@@ -23,6 +24,7 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
 
 const DEFAULT_OPTIONS = {
     maxRequestRetries: 3,
+    handleRequestTimeoutSecs: 60,
     handleFailedRequestFunction: ({ request }) => {
         const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
         log.error('BasicCrawler: Request failed and reached maximum retries', details);
@@ -112,6 +114,8 @@ const DEFAULT_OPTIONS = {
  * @param {RequestQueue} options.requestQueue
  *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
  *   Either `requestList` or `requestQueue` option must be provided (or both).
+ * @param {number} [options.handleRequestTimeoutSecs=60]
+ *   Timeout in which the function passed as `options.handleRequestFunction` needs to finish, in seconds.
  * @param {Function} [options.handleFailedRequestFunction]
  *   A function to handle requests that failed more than `option.maxRequestRetries` times.
  *
@@ -152,6 +156,7 @@ class BasicCrawler {
             requestList,
             requestQueue,
             handleRequestFunction,
+            handleRequestTimeoutSecs,
             handleFailedRequestFunction,
             maxRequestRetries,
             maxRequestsPerCrawl,
@@ -165,6 +170,7 @@ class BasicCrawler {
         checkParamPrototypeOrThrow(requestList, 'options.requestList', RequestList, 'Apify.RequestList', true);
         checkParamPrototypeOrThrow(requestQueue, 'options.requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue', true);
         checkParamOrThrow(handleRequestFunction, 'options.handleRequestFunction', 'Function');
+        checkParamOrThrow(handleRequestTimeoutSecs, 'options.handleRequestTimeoutSecs', 'Number');
         checkParamOrThrow(handleFailedRequestFunction, 'options.handleFailedRequestFunction', 'Function');
         checkParamOrThrow(maxRequestRetries, 'options.maxRequestRetries', 'Number');
         checkParamOrThrow(maxRequestsPerCrawl, 'options.maxRequestsPerCrawl', 'Maybe Number');
@@ -177,6 +183,7 @@ class BasicCrawler {
         this.requestList = requestList;
         this.requestQueue = requestQueue;
         this.handleRequestFunction = handleRequestFunction;
+        this.handleRequestTimeoutMillis = handleRequestTimeoutSecs * 1000;
         this.handleFailedRequestFunction = handleFailedRequestFunction;
         this.maxRequestRetries = maxRequestRetries;
         this.handledRequestsCount = 0;
@@ -317,19 +324,19 @@ class BasicCrawler {
         request.loadedUrl = null;
 
         try {
-            await this.handleRequestFunction({ request, autoscaledPool: this.autoscaledPool });
+            await addTimeoutToPromise(
+                this.handleRequestFunction({ request, autoscaledPool: this.autoscaledPool }),
+                this.handleRequestTimeoutMillis,
+                'BasicCrawler: handleRequestFunction timed out.',
+            );
             await source.markRequestHandled(request);
             this.handledRequestsCount++;
         } catch (err) {
             try {
-                // TODO Errors thrown from within the error handler will in most cases terminate
-                // the crawler because runTaskFunction errors kill autoscaled pool
-                // which is correct, since in this case, RequestQueue is probably in an unknown
-                // state.
                 await this._requestFunctionErrorHandler(err, request, source);
             } catch (secondaryError) {
                 log.exception(secondaryError, 'BasicCrawler: runTaskFunction error handler threw an exception. '
-                    + 'This places the crawler and it\'s underlying storages into an unknown state and crawling will be terminated. '
+                    + 'This places the crawler and its underlying storages into an unknown state and crawling will be terminated. '
                     + 'This may have happened due to an internal error of Apify\'s API or due to a misconfigured crawler. '
                     + 'If you are sure that there is no error in your code, selecting "Restart on error" in the actor\'s settings'
                     + 'will make sure that the run continues where it left off, if programmed to handle restarts correctly.');

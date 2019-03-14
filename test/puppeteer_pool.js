@@ -536,7 +536,7 @@ describe('PuppeteerPool', () => {
                     await pool.newPage();
                     throw new Error('Invalid error.');
                 } catch (err) {
-                    expect(err.message).to.include('useApifyProxy');
+                    expect(err.stack).to.include('useApifyProxy');
                 }
             });
 
@@ -551,6 +551,32 @@ describe('PuppeteerPool', () => {
                     expect(err.message).to.include('must not be empty');
                 }
             });
+        });
+    });
+
+    describe('prevents hanging of puppeteer operations', () => {
+        let pool;
+        beforeEach(() => {
+            log.setLevel(log.LEVELS.OFF);
+            pool = new Apify.PuppeteerPool({
+                puppeteerOperationTimeoutSecs: 0.05,
+                launchPuppeteerOptions: {
+                    headless: true,
+                },
+            });
+        });
+        afterEach(async () => {
+            log.setLevel(log.LEVELS.ERROR);
+            await pool.destroy();
+        });
+
+        it('should work', async () => {
+            try {
+                await pool._openNewTab(0); // eslint-disable-line no-underscore-dangle
+                throw new Error('invalid error');
+            } catch (err) {
+                expect(err.stack).to.include('timed out');
+            }
         });
     });
 });
