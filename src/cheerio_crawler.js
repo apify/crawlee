@@ -30,6 +30,7 @@ const DEFAULT_OPTIONS = {
             maxEventLoopOverloadedRatio: 0.7,
         },
     },
+    prepareRequestFunction: ({ request }) => request,
 };
 
 /**
@@ -141,6 +142,20 @@ const DEFAULT_OPTIONS = {
  *      - `strictSSL`: use `options.ignoreSslErrors`
  *      - `proxy`: use `options.useApifyProxy` or `options.proxyUrls`
  *
+ * @param {Function} [options.prepareRequestFunction]
+ *   A function that executes before the HTTP request is made to the target resource.
+ *   This function is suitable for setting dynamic properties such as cookies to the {@link Request}.
+ *
+ *   The function receives the following object as an argument:
+ * ```
+ * {
+ *   request: Request
+ * }
+ * ```
+ *   where the {@link Request} instance corresponds to the initialized request.
+ *
+ *   The function should always return {@link Request}.
+ *
  * @param {Number} [options.handlePageTimeoutSecs=60]
  *   Timeout in which the function passed as `options.handlePageFunction` needs to finish, given in seconds.
  * @param {Number} [options.requestTimeoutSecs=30]
@@ -226,6 +241,7 @@ class CheerioCrawler {
             maxRequestsPerCrawl,
             handleFailedRequestFunction,
             autoscaledPoolOptions,
+            prepareRequestFunction,
         } = _.defaults({}, options, DEFAULT_OPTIONS);
 
         checkParamOrThrow(handlePageFunction, 'options.handlePageFunction', 'Function');
@@ -237,6 +253,7 @@ class CheerioCrawler {
         checkParamOrThrow(apifyProxyGroups, 'options.apifyProxyGroups', 'Maybe [String]');
         checkParamOrThrow(apifyProxySession, 'options.apifyProxySession', 'Maybe String');
         checkParamOrThrow(proxyUrls, 'options.proxyUrls', 'Maybe [String]');
+        checkParamOrThrow(prepareRequestFunction, 'options.prepareRequestFunction', 'Maybe Function');
         // Enforce valid proxy configuration
         if (proxyUrls && !proxyUrls.length) throw new Error('Parameter "options.proxyUrls" of type Array must not be empty');
         if (useApifyProxy && proxyUrls) throw new Error('Cannot combine "options.useApifyProxy" with "options.proxyUrls"!');
@@ -251,6 +268,7 @@ class CheerioCrawler {
         this.apifyProxySession = apifyProxySession;
         this.proxyUrls = _.shuffle(proxyUrls);
         this.lastUsedProxyUrlIndex = 0;
+        this.prepareRequestFunction = prepareRequestFunction;
 
         this.basicCrawler = new BasicCrawler({
             // Basic crawler options.
@@ -294,8 +312,9 @@ class CheerioCrawler {
      * @ignore
      */
     async _handleRequestFunction({ request, autoscaledPool }) {
+        const modifiedRequest = await this.prepareRequestFunction({ request });
         const response = await addTimeoutToPromise(
-            this._requestFunction({ request }),
+            this._requestFunction({ request: modifiedRequest }),
             this.requestTimeoutMillis,
             'CheerioCrawler: requestFunction timed out.',
         );
