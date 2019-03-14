@@ -1,9 +1,4 @@
-next
-===================
-- Added back the `recycleDiskCache` option to `PuppeteerPool` now that it is supported
-  even in headless mode ([read more](https://bugs.chromium.org/p/chromium/issues/detail?id=882431))
-
-xxx
+0.13.0 / 2019-03-14
 ===================
 - **BREAKING CHANGE:** Added `puppeteerOperationTimeoutSecs` option to `PuppeteerPool`.
   It defaults to 15 seconds and all Puppeteer operations such as `browser.newPage()`
@@ -16,6 +11,8 @@ xxx
   their `handlePageTimeoutSecs`. This is a precaution that should keep requests from hanging forever.
 - Added `options.prepareRequestFunction()` to `CheerioCrawler` constructor to enable modification
   of `Request` before the HTTP request is made to the target URL.
+- Added back the `recycleDiskCache` option to `PuppeteerPool` now that it is supported
+  even in headless mode ([read more](https://bugs.chromium.org/p/chromium/issues/detail?id=882431))
 
 0.12.4 / 2019-03-05
 ===================

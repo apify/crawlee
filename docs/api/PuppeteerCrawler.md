@@ -166,48 +166,17 @@ await crawler.run();
   Always set this value in order to prevent infinite loops in misconfigured crawlers.
   Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.</p>
 </td></tr><tr>
-<td><code>[options.maxOpenPagesPerInstance]</code></td><td><code>Number</code></td><td><code>50</code></td>
+<td><code>[options.puppeteerPoolOptions]</code></td><td><code>Object</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>Maximum number of opened tabs per browser. If this limit is reached then a new
-  browser instance is started. See <code>maxOpenPagesPerInstance</code> parameter of <a href="puppeteerpool"><code>PuppeteerPool</code></a>.</p>
-</td></tr><tr>
-<td><code>[options.retireInstanceAfterRequestCount]</code></td><td><code>Number</code></td><td><code>100</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Maximum number of requests that can be processed by a single browser instance.
-  After the limit is reached the browser will be retired and new requests will
-  be handled by a new browser instance.
-  See <code>retireInstanceAfterRequestCount</code> parameter of <a href="puppeteerpool"><code>PuppeteerPool</code></a>.</p>
-</td></tr><tr>
-<td><code>[options.instanceKillerIntervalMillis]</code></td><td><code>Number</code></td><td><code>60000</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Indicates how often are the open Puppeteer instances checked whether they can be closed.
-  See <code>instanceKillerIntervalMillis</code> parameter of <a href="puppeteerpool"><code>PuppeteerPool</code></a>.</p>
-</td></tr><tr>
-<td><code>[options.killInstanceAfterMillis]</code></td><td><code>Number</code></td><td><code>300000</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>If Puppeteer instance reaches the <code>options.retireInstanceAfterRequestCount</code> limit then
-  it is considered retired and no more tabs will be opened. After the last tab is closed
-  the whole browser is closed too. This parameter defines a time limit for inactivity
-  after which the browser is closed even if there are pending tabs. See
-  <code>killInstanceAfterMillis</code> parameter of <a href="puppeteerpool"><code>PuppeteerPool</code></a>.</p>
-</td></tr><tr>
-<td><code>[options.proxyUrls]</code></td><td><code>Array&lt;String&gt;</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>An array of custom proxy URLs to be used by the <a href="puppeteerpool"><code>PuppeteerPool</code></a> instance.
-  The provided custom proxies&#39; order will be randomized and the resulting list rotated.
-  Custom proxies are not compatible with Apify Proxy and an attempt to use both
-  configuration options will cause an error to be thrown on startup.</p>
+<td colspan="3"><p>Custom options passed to the underlying <a href="puppeteerpool"><code>PuppeteerPool</code></a> constructor.
+  You can tweak those to fine-tune browser management.</p>
 </td></tr><tr>
 <td><code>[options.launchPuppeteerFunction]</code></td><td><code>function</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Overrides the default function to launch a new Puppeteer instance.
-  See <code>launchPuppeteerFunction</code> parameter of <a href="puppeteerpool"><code>PuppeteerPool</code></a>.
+  Shortcut to the corresponding <a href="puppeteerpool"><code>PuppeteerPool</code></a> option.
   See source code on
   <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_pool.js#L28" target="_blank">GitHub</a>
   for default behavior.</p>
@@ -216,7 +185,7 @@ await crawler.run();
 </tr>
 <tr>
 <td colspan="3"><p>Options used by <a href="apify#module_Apify.launchPuppeteer"><code>Apify.launchPuppeteer()</code></a> to start new Puppeteer instances.
-  See <code>launchPuppeteerOptions</code> parameter of <a href="puppeteerpool"><code>PuppeteerPool</code></a> and <a href="../typedefs/launchpuppeteeroptions"><code>LaunchPuppeteerOptions</code></a>.</p>
+  Shortcut to the corresponding <a href="puppeteerpool"><code>PuppeteerPool</code></a> option. See <a href="../typedefs/launchpuppeteeroptions"><code>LaunchPuppeteerOptions</code></a>.</p>
 </td></tr><tr>
 <td><code>[options.autoscaledPoolOptions]</code></td><td><code>Object</code></td><td></td>
 </tr>
