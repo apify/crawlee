@@ -10,8 +10,8 @@ to maintain queues of URLs to crawl, store crawling results to a local filesyste
 rotate proxies and much more.
 The SDK is available as the <a href="https://www.npmjs.com/package/apify" target="_blank"><code>apify</code></a> NPM package.
 It can be used either stand-alone in your own applications
-or in <a href="https://www.apify.com/docs/actor" target="_blank">actors</a>
-running on the <a href="https://www.apify.com/" target="_blank">Apify Cloud</a>.
+or in <a href="https://apify.com/docs/actor" target="_blank">actors</a>
+running on the <a href="https://apify.com/" target="_blank">Apify Cloud</a>.
 
 **View full documentation, guides and examples on the dedicated <a href="https://sdk.apify.com" target="_blank">Apify SDK project website</a>**
 
@@ -77,7 +77,7 @@ The Apify SDK is available as the <a href="https://www.npmjs.com/package/apify">
   </li>
   <li>
     <a href="https://sdk.apify.com/docs/api/requestqueue"><code>RequestQueue</code></a>
-    - Represents a queue of URLs to crawl, which is stored either on a local filesystem or in the <a href="https://www.apify.com" target="_blank">Apify Cloud</a>.
+    - Represents a queue of URLs to crawl, which is stored either on a local filesystem or in the <a href="https://apify.com" target="_blank">Apify Cloud</a>.
     The queue is used for deep crawling of websites, where you start with
     several URLs and then recursively follow links to other pages.
     The data structure supports both breadth-first and depth-first crawling orders.
@@ -116,7 +116,7 @@ The Apify SDK is available as the <a href="https://www.npmjs.com/package/apify">
   </li>
 </ul>
 
-## Getting Started Quick
+## Quick Start
 The Apify SDK requires <a href="https://nodejs.org/en/" target="_blank">Node.js</a> 8 or later.
 
 ### Local stand-alone usage
@@ -170,7 +170,7 @@ and [Data storage](https://sdk.apify.com/docs/guides/datastorage).
 To avoid the need to set the environment variables manually,
 to create a boilerplate of your project,
 and to enable pushing and running your code on the
-<a href="https://www.apify.com" target="_blank">Apify Cloud</a>,
+<a href="https://apify.com" target="_blank">Apify Cloud</a>,
 you can use the
 <a href="https://github.com/apifytech/apify-cli" target="_blank">Apify command-line interface</a>
 (CLI) tool.
@@ -213,23 +213,23 @@ apify push
 
 Your script will be uploaded to the Apify Cloud and built there so that it can be run.
 For more information, view the
-<a href="https://www.apify.com/docs/cli" target="_blank">Apify CLI</a>
+<a href="https://apify.com/docs/cli" target="_blank">Apify CLI</a>
 and
-<a href="https://www.apify.com/docs/actor" target="_blank">Apify Actor</a>
+<a href="https://apify.com/docs/actor" target="_blank">Apify Actor</a>
 documentation.
 
 ### Usage on the Apify Cloud
 
 You can also develop your web scraping project
 in an online code editor directly on the
-<a href="https://www.apify.com" target="_blank">Apify Cloud</a>.
+<a href="https://apify.com" target="_blank">Apify Cloud</a>.
 You'll need to have an Apify Account.
 Go to <a href="https://my.apify.com/actors" target="_blank">Actors</a>,
 page in the app, click <i>Create new</i> and then go to the
 <i>Source</i> tab and start writing your code or paste one of the examples from the Examples section.
 
 For more information, view the
-<a href="https://www.apify.com/docs/actor#quick-start" target="_blank">Apify actors quick start guide</a>.
+<a href="https://apify.com/docs/actor#quick-start" target="_blank">Apify actors quick start guide</a>.
 
 ## Support
 

@@ -81,7 +81,7 @@ let persistStateInterval = null;
  *                 in which case the <code>isMigrating</code> flag is set to <code>true</code>. Otherwise the flag is <code>false</code>.
  *                 <br><br>
  *                 Note that the <code>persistState</code> event is provided merely for user convenience,
- *                 you can achieve the same effect using `setInterval()` and listening for the `migrating` event.
+ *                 you can achieve the same effect using <code>setInterval()</code> and listening for the <code>migrating</code> event.
  *             </td>
  *         </tr>
  *     </tbody>

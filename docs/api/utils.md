@@ -22,8 +22,8 @@ await Apify.utils.sleep(1500);
     * [`.enqueueLinks`](#utils.enqueueLinks) ⇒ <code>Promise&lt;Array&lt;QueueOperationInfo&gt;&gt;</code>
     * [`.URL_NO_COMMAS_REGEX`](#utils.URL_NO_COMMAS_REGEX)
     * [`.URL_WITH_COMMAS_REGEX`](#utils.URL_WITH_COMMAS_REGEX)
+    * [`.exports.sleep`](#utils.exports.sleep) ⇒ <code>Promise</code>
     * [`.isDocker()`](#utils.isDocker) ⇒ <code>Promise</code>
-    * [`.sleep(millis)`](#utils.sleep) ⇒ <code>Promise</code>
     * [`.downloadListOfUrls(options)`](#utils.downloadListOfUrls) ⇒ <code>Promise&lt;Array&lt;String&gt;&gt;</code>
     * [`.extractUrls(string, [urlRegExp])`](#utils.extractUrls) ⇒ <code>Array&lt;String&gt;</code>
     * [`.getRandomUserAgent()`](#utils.getRandomUserAgent) ⇒ <code>String</code>
@@ -153,14 +153,9 @@ and does not support URLs containing commas or spaces. The URLs also may contain
 Regular expression that, in addition to the default regular expression `URL_NO_COMMAS_REGEX`, supports matching commas in URL path and query.
 Note, however, that this may prevent parsing URLs from comma delimited lists, or the URLs may become malformed.
 
-<a name="utils.isDocker"></a>
+<a name="utils.exports.sleep"></a>
 
-## `utils.isDocker()` ⇒ <code>Promise</code>
-Returns a `Promise` that resolves to true if the code is running in a Docker container.
-
-<a name="utils.sleep"></a>
-
-## `utils.sleep(millis)` ⇒ <code>Promise</code>
+## `utils.exports.sleep` ⇒ <code>Promise</code>
 Returns a `Promise` that resolves after a specific period of time. This is useful to implement waiting
 in your code, e.g. to prevent overloading of target website or to avoid bot detection.
 
@@ -189,6 +184,11 @@ await Apify.utils.sleep(1500);
 <td colspan="3"><p>Period of time to sleep, in milliseconds. If not a positive number, the returned promise resolves immediately.</p>
 </td></tr></tbody>
 </table>
+<a name="utils.isDocker"></a>
+
+## `utils.isDocker()` ⇒ <code>Promise</code>
+Returns a `Promise` that resolves to true if the code is running in a Docker container.
+
 <a name="utils.downloadListOfUrls"></a>
 
 ## `utils.downloadListOfUrls(options)` ⇒ <code>Promise&lt;Array&lt;String&gt;&gt;</code>

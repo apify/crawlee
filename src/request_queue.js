@@ -159,7 +159,7 @@ const getRequestId = (uniqueKey) => {
  * and `{NUMBER}` is an integer indicating the position of the request in the queue.
  *
  * If the `APIFY_TOKEN` environment variable is set but `APIFY_LOCAL_STORAGE_DIR` not, the data is stored in the
- * <a href="https://www.apify.com/docs/storage#queue" target="_blank">Apify Request Queue</a>
+ * <a href="https://apify.com/docs/storage#queue" target="_blank">Apify Request Queue</a>
  * cloud storage. Note that you can force usage of the cloud storage also by passing the `forceCloud`
  * option to [`Apify.openRequestQueue()`](apify#module_Apify.openRequestQueue) function,
  * even if the `APIFY_LOCAL_STORAGE_DIR` variable is set.
@@ -559,20 +559,20 @@ export class RequestQueue {
      * Returns an object containing general information about the request queue.
      *
      * The function returns the same object as the Apify API Client's
-     * [getQueue](https://www.apify.com/docs/api/apify-client-js/latest#ApifyClient-requestQueues-getQueue)
+     * [getQueue](https://apify.com/docs/api/apify-client-js/latest#ApifyClient-requestQueues-getQueue)
      * function, which in turn calls the
-     * [Get request queue](https://www.apify.com/docs/api/v2#/reference/request-queues/queue/get-request-queue)
+     * [Get request queue](https://apify.com/docs/api/v2#/reference/request-queues/queue/get-request-queue)
      * API endpoint.
      *
      * **Example:**
      * ```
      * {
-     *   "id": "WkzbQMuFYuamGv3YF",
-     *   "name": "my-queue",
-     *   "userId": "wRsJZtadYvn4mBZmm",
-     *   "createdAt": new Date("2015-12-12T07:34:14.202Z"),
-     *   "modifiedAt": new Date("2015-12-13T08:36:13.202Z"),
-     *   "accessedAt": new Date("2015-12-14T08:36:13.202Z"),
+     *   id: "WkzbQMuFYuamGv3YF",
+     *   name: "my-queue",
+     *   userId: "wRsJZtadYvn4mBZmm",
+     *   createdAt: new Date("2015-12-12T07:34:14.202Z"),
+     *   modifiedAt: new Date("2015-12-13T08:36:13.202Z"),
+     *   accessedAt: new Date("2015-12-14T08:36:13.202Z"),
      *   totalRequestCount: 0,
      *   handledRequestCount: 0,
      *   pendingRequestCount: 0,

@@ -1,6 +1,6 @@
 {
   "name": "apify",
-  "version": "0.11.8",
+  "version": "0.12.4",
   "description": "The scalable web crawling and scraping library for JavaScript. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.",
   "engines": {
     "node": ">=8.14.0"
@@ -18,7 +18,7 @@
   "author": {
     "name": "Apify",
     "email": "support@apify.com",
-    "url": "https://www.apify.com"
+    "url": "https://apify.com"
   },
   "contributors": [
     "Jan Curn <jan@apify.com>",
@@ -50,8 +50,8 @@
   },
   "dependencies": {
     "@apify/ps-tree": "^1.1.3",
-    "apify-client": "^0.5.5",
-    "apify-shared": "^0.1.20",
+    "apify-client": "^0.5.7",
+    "apify-shared": "^0.1.23",
     "bluebird": "^3.5.3",
     "cheerio": "^1.0.0-rc.2",
     "content-type": "^1.0.4",
@@ -74,6 +74,7 @@
     "basic-auth-parser": "^0.0.2",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
+    "chai-subset": "^1.6.0",
     "eslint": "^5.9.0",
     "eslint-config-airbnb": "^17.1.0",
     "eslint-config-airbnb-base": "^13.1.0",
@@ -84,7 +85,7 @@
     "jsdoc": "^3.5.5",
     "jsdoc-export-default-interop": "^0.3.1",
     "mocha": "^5.2.0",
-    "nyc": "^13.1.0",
+    "nyc": "^13.3.0",
     "portastic": "^1.0.1",
     "proxy": "^0.2.4",
     "sinon": "^7.1.1",

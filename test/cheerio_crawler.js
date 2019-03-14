@@ -4,14 +4,11 @@ import path from 'path';
 import zlib from 'zlib';
 import EventEmitter from 'events';
 import rqst from 'request';
-import chai, { expect } from 'chai';
-import chaiAsPromised from 'chai-as-promised';
+import { expect } from 'chai';
 import log from 'apify-shared/log';
 import { delayPromise } from 'apify-shared/utilities';
 import { ENV_VARS } from 'apify-shared/consts';
 import Apify from '../build/index';
-
-chai.use(chaiAsPromised);
 
 // Add common props to mocked request responses.
 const responseMock = {
@@ -80,6 +77,34 @@ describe('CheerioCrawler', () => {
             expect(request.userData.html).to.be.a('string');
             expect(request.userData.html.length).not.to.be.eql(0);
         });
+    });
+
+    it('should trigger prepareRequestFunction', async () => {
+        const MODIFIED_URL = 'http://example.com/?q=2';
+        const sources = [
+            { url: 'http://example.com/' },
+
+        ];
+        let failed = null;
+        let success;
+        const requestList = new Apify.RequestList({ sources });
+        const handlePageFunction = async ({ request }) => { success = request; };
+        await requestList.initialize();
+
+        const cheerioCrawler = new Apify.CheerioCrawler({
+            requestList,
+            handlePageFunction,
+            handleFailedRequestFunction: ({ request }) => {
+                failed = request;
+            },
+            prepareRequestFunction: async ({ request }) => {
+                request.url = MODIFIED_URL;
+                return request;
+            },
+        });
+        await cheerioCrawler.run();
+        expect(failed).to.be.eql(null);
+        expect(success.url).to.be.eql(MODIFIED_URL);
     });
 
     describe('should timeout', () => {
@@ -157,6 +182,9 @@ describe('CheerioCrawler', () => {
                 handlePageFunction,
                 handleFailedRequestFunction: ({ request }) => failed.push(request),
             });
+
+            // Override low value to prevent seeing timeouts from BasicCrawler
+            cheerioCrawler.basicCrawler.handleRequestTimeoutMillis = 10000;
 
             await requestList.initialize();
             await cheerioCrawler.run();
@@ -283,6 +311,7 @@ describe('CheerioCrawler', () => {
         });
 
         it('by throwing on unsupported Content-Encoding', async () => {
+            log.setLevel(log.LEVELS.OFF);
             const sourceFilePath = path.join(__dirname, 'data', 'sample.html');
             let handlePageInvocationCount = 0;
             let allErrors = [];
@@ -300,7 +329,7 @@ describe('CheerioCrawler', () => {
                 const response = fs.createReadStream(sourceFilePath);
                 response.headers = {
                     'content-type': 'text/html', // to avoid throwing
-                    'content-encoding': 'compress',
+                    'content-encoding': 'bad-encoding',
                 };
                 Object.assign(response, responseMock);
 
@@ -319,8 +348,9 @@ describe('CheerioCrawler', () => {
             expect(handlePageInvocationCount).to.be.eql(0);
             allErrors.forEach((err) => {
                 expect(err).to.include('Invalid Content-Encoding header');
-                expect(err).to.include('compress');
+                expect(err).to.include('bad-encoding');
             });
+            log.setLevel(log.LEVELS.ERROR);
         });
     });
 

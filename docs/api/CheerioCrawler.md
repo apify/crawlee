@@ -158,13 +158,13 @@ await crawler.run();
 <tr>
 <td colspan="3"><p>If set to <code>true</code>, <code>CheerioCrawler</code> will be configured to use
   <a href="https://my.apify.com/proxy" target="_blank">Apify Proxy</a> for all connections.
-  For more information, see the <a href="https://www.apify.com/docs/proxy" target="_blank">documentation</a></p>
+  For more information, see the <a href="https://apify.com/docs/proxy" target="_blank">documentation</a></p>
 </td></tr><tr>
 <td><code>[options.apifyProxyGroups]</code></td><td><code>Array&lt;String&gt;</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>An array of proxy groups to be used
-  by the <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a>.
+  by the <a href="https://apify.com/docs/proxy" target="_blank">Apify Proxy</a>.
   Only applied if the <code>useApifyProxy</code> option is <code>true</code>.</p>
 </td></tr><tr>
 <td><code>[options.apifyProxySession]</code></td><td><code>String</code></td><td></td>
@@ -197,6 +197,18 @@ await crawler.run();
   represents the last error thrown during processing of the request.</p>
 <p>  See <a href="https://github.com/apifytech/apify-js/blob/master/src/cheerio_crawler.js#L13">source code</a>
   for the default implementation of this function.</p>
+</td></tr><tr>
+<td><code>[options.prepareRequestFunction]</code></td><td><code>function</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>A function that executes before calling the request.
+  This function is suitable for setting dynamic properties such as cookies to <a href="request"><code>Request</code></a>.</p>
+<p>  The function receives the following object as an argument:</p>
+<pre><code>{
+  request: Request
+}
+</code></pre><p>  where the <a href="request"><code>Request</code></a> instance corresponds to the initialized request.</p>
+<p>  The function Should always return <a href="request"><code>Request</code></a>.</p>
 </td></tr><tr>
 <td><code>[options.maxRequestRetries]</code></td><td><code>Number</code></td><td><code>3</code></td>
 </tr>

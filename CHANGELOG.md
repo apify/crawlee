@@ -5,6 +5,31 @@ next
 
 xxx
 ===================
+- **BREAKING CHANGE:** Added `puppeteerOperationTimeoutSecs` option to `PuppeteerPool`.
+  It defaults to 15 seconds and all Puppeteer operations such as `browser.newPage()`
+  or `puppeteer.launch()` will now time out. This is to prevent hanging requests.
+- **BREAKING CHANGE:** Added `handleRequestTimeoutSecs` option to `BasicCrawler` with a 60 second default.
+- **DEPRECATED:** `PuppeteerPool` options in the `PuppeteerCrawler` constructor are now deprecated.
+  Please use the new `puppeteerPoolOptions` argument of type `Object` to pass them. `launchPuppeteerFunction`
+  and `launchPuppeteerOptions` are still available as shortcuts for convenience.   
+- `CheerioCrawler` and `PuppeteerCrawler` now automatically set `handleRequestTimeoutSecs` to double of
+  `handlePageTimeoutSecs`.
+
+0.12.4 / 2019-03-05
+===================
+- Parameters `input` and `options` added to `Apify.callTask()`.
+
+0.12.2 / 2019-02-27
+===================
+- Added oldest active tab focusing to `PuppeteerPool` to combat resource throttling in Chromium.
+
+0.12.1 / 2019-02-27
+===================
+- Added `Apify.metamorph()`, see documentation for more information.
+- Added `Apify.getInput()`
+
+0.12.0 / 2019-02-25
+===================
 - **BREAKING CHANGE:** Reduced default `handlePageTimeoutSecs` for both `CheerioCrawler` and `PuppeteerCrawler` from 300 to 60 seconds,
   in order to prevent stalling crawlers.
 - **BREAKING CHANGE:** `PseudoUrl` now performs case-insensitive matching, even for the query string part of the URLs.
@@ -20,7 +45,7 @@ xxx
 - Bugfix: `LocalRequestQueue.getRequest()` threw an exception if request was not found
 - Added `RequestQueue.getInfo()` function
 - Improved `Apify.main()` to provide nicer stack traces on errors
-- `Apify.utils.puppeteer.injectFile()` now supports injection that survives page navigations.
+- `Apify.utils.puppeteer.injectFile()` now supports injection that survives page navigations and caches file contents.
 
 0.11.8 / 2019-02-05
 ===================
@@ -449,7 +474,7 @@ xxx
 
 0.5.7 / 2018-03-06
 ==================
-- A lot of new stuff. Everything is backwards compatible. Check https://www.apify.com/docs/sdk/apify-runtime-js/latest for reference
+- A lot of new stuff. Everything is backwards compatible. Check https://apify.com/docs/sdk/apify-runtime-js/latest for reference
 
 0.5.0 / 2018-02-08
 ===================

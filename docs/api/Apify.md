@@ -16,12 +16,14 @@ accessible from the left sidebar.
     * [`.events`](#module_Apify.events)
     * [`.getApifyProxyUrl(options)`](#module_Apify.getApifyProxyUrl) ⇒ <code>String</code>
     * [`.getEnv()`](#module_Apify.getEnv) ⇒ <code>Object</code>
+    * [`.getInput`](#module_Apify.getInput) ⇒ <code>Promise&lt;Object&gt;</code>
     * [`.getMemoryInfo()`](#module_Apify.getMemoryInfo) ⇒ <code>Promise&lt;Object&gt;</code>
     * [`.getValue(key)`](#module_Apify.getValue) ⇒ <code>Promise&lt;Object&gt;</code>
     * [`.isAtHome()`](#module_Apify.isAtHome) ⇒ <code>Boolean</code>
     * [`.launchPuppeteer([options])`](#module_Apify.launchPuppeteer) ⇒ <code>Promise&lt;Browser&gt;</code>
     * [`.launchWebDriver([options])`](#module_Apify.launchWebDriver) ⇒ <code>Promise</code>
     * [`.main(userFunc)`](#module_Apify.main)
+    * [`.metamorph(targetActorId, [input], [options])`](#module_Apify.metamorph) ⇒ <code>Promise&lt;undefined&gt;</code>
     * [`.openDataset([datasetIdOrName], [options])`](#module_Apify.openDataset) ⇒ [<code>Promise&lt;Dataset&gt;</code>](dataset)
     * [`.openKeyValueStore([storeIdOrName], [options])`](#module_Apify.openKeyValueStore) ⇒ [<code>Promise&lt;KeyValueStore&gt;</code>](keyvaluestore)
     * [`.openRequestList`](#module_Apify.openRequestList) ⇒ [<code>Promise&lt;RequestList&gt;</code>](requestlist)
@@ -46,7 +48,7 @@ If you want to run an actor task rather than an actor, please use the
 [`Apify.callTask()`](../api/apify#module_Apify.callTask) function instead.
 
 For more information about actors, read the
-<a href="https://www.apify.com/docs/actor" target="_blank">documentation</a>.
+<a href="https://apify.com/docs/actor" target="_blank">documentation</a>.
 
 **Example usage:**
 
@@ -56,7 +58,7 @@ console.log(`Received message: ${run.output.body.message}`);
 ```
 
 Internally, the `call()` function invokes the
-<a href="https://www.apify.com/docs/api/v2#/reference/actors/run-collection/run-actor" target="_blank">Run actor</a>
+<a href="https://apify.com/docs/api/v2#/reference/actors/run-collection/run-actor" target="_blank">Run actor</a>
 and several other API endpoints to obtain the output.
 
 **Throws**:
@@ -156,7 +158,7 @@ Note that an actor task is a saved input configuration and options for an actor.
 If you want to run an actor directly rather than an actor task, please use the
 [`Apify.call()`](../api/apify#module_Apify.call) function instead.
 
-For more information about actor tasks, read the [`documentation`](https://www.apify.com/docs/tasks).
+For more information about actor tasks, read the [`documentation`](https://apify.com/docs/tasks).
 
 **Example usage:**
 
@@ -166,7 +168,7 @@ console.log(`Received message: ${run.output.body.message}`);
 ```
 
 Internally, the `callTask()` function calls the
-<a href="https://www.apify.com/docs/api/v2#/reference/actor-tasks/runs-collection/run-task-asynchronously" target="_blank">Run task</a>
+<a href="https://apify.com/docs/api/v2#/reference/actor-tasks/runs-collection/run-task-asynchronously" target="_blank">Run task</a>
 and several other API endpoints to obtain the output.
 
 **Throws**:
@@ -189,32 +191,61 @@ and several other API endpoints to obtain the output.
 <td><code>[input]</code></td><td><code>Object</code> | <code>String</code> | <code>Buffer</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>This parameter is not supported yet. You must pass either <code>null</code> or <code>undefined</code> value!</p>
+<td colspan="3"><p>Input overrides for the actor task. If it is an object, it will be stringified to
+ JSON and its content type set to <code>application/json; charset=utf-8</code>.
+ Otherwise the <code>options.contentType</code> parameter must be provided.
+ Provided input will be merged with actor task input.</p>
 </td></tr><tr>
 <td><code>[options]</code></td><td><code>Object</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Object with the settings below:</p>
 </td></tr><tr>
+<td><code>[options.contentType]</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Content type for the <code>input</code>. If not specified,
+ <code>input</code> is expected to be an object that will be stringified to JSON and content type set to
+ <code>application/json; charset=utf-8</code>. If <code>options.contentType</code> is specified, then <code>input</code> must be a
+ <code>String</code> or <code>Buffer</code>.</p>
+</td></tr><tr>
 <td><code>[options.token]</code></td><td><code>String</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>User API token that is used to run the actor. By default, it is taken from the <code>APIFY_TOKEN</code> environment variable.</p>
 </td></tr><tr>
+<td><code>[options.memoryMbytes]</code></td><td><code>Number</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Memory in megabytes which will be allocated for the new actor task run.
+ If not provided, the run uses memory of the default actor run configuration.</p>
+</td></tr><tr>
+<td><code>[options.timeoutSecs]</code></td><td><code>Number</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Timeout for the actor task run in seconds. Zero value means there is no timeout.
+ If not provided, the run uses timeout of the default actor run configuration.</p>
+</td></tr><tr>
+<td><code>[options.build]</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Tag or number of the actor build to run (e.g. <code>beta</code> or <code>1.2.345</code>).
+ If not provided, the run uses build tag or number from the default actor run configuration (typically <code>latest</code>).</p>
+</td></tr><tr>
 <td><code>[options.waitSecs]</code></td><td><code>String</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Maximum time to wait for the actor run to finish, in seconds.
+<td colspan="3"><p>Maximum time to wait for the actor task run to finish, in seconds.
  If the limit is reached, the returned promise is resolved to a run object that will have
  status <code>READY</code> or <code>RUNNING</code> and it will not contain the actor run output.
- If <code>waitSecs</code> is null or undefined, the function waits for the actor to finish (default behavior).</p>
+ If <code>waitSecs</code> is null or undefined, the function waits for the actor task to finish (default behavior).</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.client"></a>
 
 ## `Apify.client`
 Gets the default instance of the `ApifyClient` class provided
-<a href="https://www.apify.com/docs/sdk/apify-client-js/latest"
+<a href="https://apify.com/docs/sdk/apify-client-js/latest"
 target="_blank">apify-client</a> by the NPM package.
 The instance is created automatically by the Apify SDK and it is configured using the
 `APIFY_API_BASE_URL`, `APIFY_USER_ID` and `APIFY_TOKEN` environment variables.
@@ -222,7 +253,7 @@ The instance is created automatically by the Apify SDK and it is configured usin
 The instance is used for all underlying calls to the Apify API in functions such as
 [`Apify.getValue()`](#module_Apify.getValue) or [`Apify.call()`](#module_Apify.call).
 The settings of the client can be globally altered by calling the
-<a href="https://www.apify.com/docs/sdk/apify-client-js/latest#ApifyClient-setOptions"
+<a href="https://apify.com/docs/sdk/apify-client-js/latest#ApifyClient-setOptions"
 target="_blank">`Apify.client.setOptions()`</a> function.
 Beware that altering these settings might have unintended effects on the entire Apify SDK package.
 
@@ -300,7 +331,7 @@ proxy-enabled applications.
 
 For more information, see
 the <a href="https://my.apify.com/proxy" target="_blank">Apify Proxy</a> page in the app
-or the <a href="https://www.apify.com/docs/proxy" target="_blank">documentation</a>.
+or the <a href="https://apify.com/docs/proxy" target="_blank">documentation</a>.
 
 **Returns**: <code>String</code> - Returns the proxy URL, e.g. `http://auto:my_password@proxy.apify.com:8000`.  
 <table>
@@ -374,9 +405,30 @@ It has the following properties:
 }
 ```
 For the list of the `APIFY_XXX` environment variables, see
-<a href="https://www.apify.com/docs/actor#run-env-vars" target="_blank">Actor documentation</a>.
+<a href="https://apify.com/docs/actor#run-env-vars" target="_blank">Actor documentation</a>.
 If some of the variables are not defined or are invalid, the corresponding value in the resulting object will be null.
 
+<a name="module_Apify.getInput"></a>
+
+## `Apify.getInput` ⇒ <code>Promise&lt;Object&gt;</code>
+Gets the actor input value from the default [`KeyValueStore`](keyvaluestore) associated with the current actor run.
+
+This is just a convenient shortcut for [`keyValueStore.getValue('INPUT')`](keyvaluestore#KeyValueStore+getValue).
+For example, calling the following code:
+```javascript
+const input = await Apify.getInput();
+```
+
+is equivalent to:
+```javascript
+const store = await Apify.openKeyValueStore();
+await store.getValue('INPUT');
+```
+
+For more information, see [`Apify.openKeyValueStore()`](#module_Apify.openKeyValueStore)
+and [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+getValue).
+
+**Returns**: <code>Promise&lt;Object&gt;</code> - Returns a promise that resolves once the record is stored.  
 <a name="module_Apify.getMemoryInfo"></a>
 
 ## `Apify.getMemoryInfo()` ⇒ <code>Promise&lt;Object&gt;</code>
@@ -411,13 +463,13 @@ Gets a value from the default [`KeyValueStore`](keyvaluestore) associated with t
 This is just a convenient shortcut for [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+getValue).
 For example, calling the following code:
 ```javascript
-const input = await Apify.getValue('INPUT');
+const input = await Apify.getValue('my-key');
 ```
 
 is equivalent to:
 ```javascript
 const store = await Apify.openKeyValueStore();
-await store.getValue('INPUT');
+await store.getValue('my-key');
 ```
 
 To store the value to the default-key value store, you can use the [`Apify.setValue()`](#module_Apify.setValue) function.
@@ -470,7 +522,7 @@ The `launchPuppeteer()` function alters the following Puppeteer options:
    </li>
    <li>
        If <code>options.useApifyProxy</code> is <code>true</code> then the function generates a URL of
-       <a href="https://www.apify.com/docs/proxy" target="_blank">Apify Proxy</a>
+       <a href="https://apify.com/docs/proxy" target="_blank">Apify Proxy</a>
        based on <code>options.apifyProxyGroups</code> and <code>options.apifyProxySession</code> and passes it as <code>options.proxyUrl</code>.
    </li>
    <li>
@@ -491,7 +543,7 @@ To use this function, you need to have the <a href="https://www.npmjs.com/packag
 NPM package installed in your project.
 When running on the Apify cloud, you can achieve that simply
 by using the `apify/actor-node-chrome` base Docker image for your actor - see
-<a href="https://www.apify.com/docs/actor#base-images" target="_blank">Apify Actor documentation</a>
+<a href="https://apify.com/docs/actor#base-images" target="_blank">Apify Actor documentation</a>
 for details.
 
 For an example of usage, see the [Synchronous run Example](../examples/synchronousrun)
@@ -527,10 +579,10 @@ class.
 To use this function, you need to have Google Chrome and
 <a href="https://sites.google.com/a/chromium.org/chromedriver/" target="_blank">ChromeDriver</a> installed in your environment.
 For example, you can use the `apify/actor-node-chrome` base Docker image for your actor - see
-<a href="https://www.apify.com/docs/actor#base-images" target="_blank">documentation</a>
+<a href="https://apify.com/docs/actor#base-images" target="_blank">documentation</a>
 for more details.
 
-For an example of usage, see the <a href="https://www.apify.com/apify/example-selenium" target="_blank">apify/example-selenium</a> actor.
+For an example of usage, see the <a href="https://apify.com/apify/example-selenium" target="_blank">apify/example-selenium</a> actor.
 
 <table>
 <thead>
@@ -638,6 +690,52 @@ Apify.main(async () => {
 <tr>
 <td colspan="3"><p>User function to be executed. If it returns a promise,
 the promise will be awaited. The user function is called with no arguments.</p>
+</td></tr></tbody>
+</table>
+<a name="module_Apify.metamorph"></a>
+
+## `Apify.metamorph(targetActorId, [input], [options])` ⇒ <code>Promise&lt;undefined&gt;</code>
+Transforms this actor run to an actor run of a given actor. The system stops the current container and starts the new container
+instead. All the default storages are preserved and the new input is stored under the `INPUT-METAMORPH-1` key in the same default key-value store.
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>targetActorId</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Either <code>username/actor-name</code> or actor ID of an actor to which we want to metamorph.</p>
+</td></tr><tr>
+<td><code>[input]</code></td><td><code>Object</code> | <code>String</code> | <code>Buffer</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Input for the actor. If it is an object, it will be stringified to
+ JSON and its content type set to <code>application/json; charset=utf-8</code>.
+ Otherwise the <code>options.contentType</code> parameter must be provided.</p>
+</td></tr><tr>
+<td><code>[options]</code></td><td><code>Object</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Object with the settings below:</p>
+</td></tr><tr>
+<td><code>[options.contentType]</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Content type for the <code>input</code>. If not specified,
+ <code>input</code> is expected to be an object that will be stringified to JSON and content type set to
+ <code>application/json; charset=utf-8</code>. If <code>options.contentType</code> is specified, then <code>input</code> must be a
+ <code>String</code> or <code>Buffer</code>.</p>
+</td></tr><tr>
+<td><code>[options.build]</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Tag or number of the target actor build to metamorph into (e.g. <code>beta</code> or <code>1.2.345</code>).
+ If not provided, the run uses build tag or number from the default actor run configuration (typically <code>latest</code>).</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.openDataset"></a>

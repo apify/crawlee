@@ -1,13 +1,13 @@
 import EventEmitter from 'events';
 import log from 'apify-shared/log';
 import { ENV_VARS } from 'apify-shared/consts';
-import { main, getEnv, call, callTask, getApifyProxyUrl } from './actor';
+import { main, getEnv, call, callTask, getApifyProxyUrl, metamorph } from './actor';
 import AutoscaledPool from './autoscaling/autoscaled_pool';
 import BasicCrawler from './basic_crawler';
 import CheerioCrawler from './cheerio_crawler';
 import { pushData, openDataset } from './dataset';
 import events, { initializeEvents, stopEvents } from './events';
-import { getValue, setValue, openKeyValueStore } from './key_value_store';
+import { getValue, setValue, getInput, openKeyValueStore } from './key_value_store';
 import { launchPuppeteer } from './puppeteer';
 import PuppeteerCrawler from './puppeteer_crawler';
 import PuppeteerPool from './puppeteer_pool';
@@ -53,6 +53,7 @@ module.exports = {
     getEnv,
     call,
     callTask,
+    metamorph,
     getMemoryInfo,
     getApifyProxyUrl,
     isAtHome,
@@ -79,6 +80,7 @@ module.exports = {
     // Key-value store
     getValue,
     setValue,
+    getInput,
     openKeyValueStore,
 
     // Puppeteer

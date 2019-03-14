@@ -20,6 +20,8 @@ To access the default key-value store directly, you can use the
 [`Apify.getValue()`](apify#module_Apify.getValue)
 and [`Apify.setValue()`](apify#module_Apify.setValue) convenience functions.
 
+To access the input, you can also use the [`Apify.getInput()`](apify#module_Apify.getInput) convenience function.
+
 `KeyValueStore` stores its data either on local disk or in the Apify cloud,
 depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variables are set.
 
@@ -33,7 +35,7 @@ unless you override it by setting the `APIFY_DEFAULT_KEY_VALUE_STORE_ID` environ
 The `{KEY}` is the key of the record and `{EXT}` corresponds to the MIME content type of the data value.
 
 If the `APIFY_TOKEN` environment variable is set but `APIFY_LOCAL_STORAGE_DIR` not, the data is stored in the
-<a href="https://www.apify.com/docs/storage#key-value-store" target="_blank">Apify Key-value store</a>
+<a href="https://apify.com/docs/storage#key-value-store" target="_blank">Apify Key-value store</a>
 cloud storage. Note that you can force usage of the cloud storage also by passing the `forceCloud`
 option to [`Apify.openKeyValueStore()`](apify#module_Apify.openKeyValueStore) function,
 even if the `APIFY_LOCAL_STORAGE_DIR` variable is set.
@@ -42,7 +44,8 @@ even if the `APIFY_LOCAL_STORAGE_DIR` variable is set.
 
 ```javascript
 // Get actor input from the default key-value store
-const input = await Apify.getValue('INPUT');
+const input = await Apify.getInput();
+const otherValue = Apify.getValue('my-key');
 
 // Write actor output to the default key-value store.
 await Apify.setValue('OUTPUT', { myResult: 123 });

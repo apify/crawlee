@@ -1,5 +1,4 @@
-import chai, { assert, expect } from 'chai';
-import chaiAsPromised from 'chai-as-promised';
+import { assert, expect } from 'chai';
 import _ from 'underscore';
 import sinon from 'sinon';
 import path from 'path';
@@ -13,8 +12,6 @@ import {
 import { emptyLocalStorageSubdir, LOCAL_STORAGE_DIR, expectNotUsingLocalStorage, expectDirEmpty, expectDirNonEmpty } from './_helper';
 
 const { apifyClient } = utils;
-
-chai.use(chaiAsPromised);
 
 const expectRequestsSame = (req1, req2) => {
     expect(_.omit(req1, 'id')).to.be.eql(_.omit(req2, 'id'));

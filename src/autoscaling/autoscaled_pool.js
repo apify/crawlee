@@ -179,7 +179,7 @@ class AutoscaledPool {
 
 
     /**
-     * @private
+     * @ignore
      */
     setMaxConcurrency(maxConcurrency) {
         log.deprecated('AutoscaledPool.setMaxConcurrency() is deprecated, use the "maxConcurrency" property instead');
@@ -187,7 +187,7 @@ class AutoscaledPool {
     }
 
     /**
-     * @private
+     * @ignore
      */
     setMinConcurrency(minConcurrency) {
         log.deprecated('AutoscaledPool.setMaxConcurrency() is deprecated, use the "maxConcurrency" property instead');
@@ -197,6 +197,8 @@ class AutoscaledPool {
 
     /**
      * Gets the minimum number of tasks running in parallel.
+     *
+     * @return {number}
      */
     get minConcurrency() {
         return this._minConcurrency;
@@ -207,6 +209,8 @@ class AutoscaledPool {
      *
      * *WARNING:* If you set this value too high with respect to the available system memory and CPU, your code might run extremely slow or crash.
      * If you're not sure, just keep the default value and the concurrency will scale up automatically.
+     *
+     * @param {number} value
      */
     set minConcurrency(value) {
         this._minConcurrency = value;
@@ -214,6 +218,8 @@ class AutoscaledPool {
 
     /**
      * Gets the maximum number of tasks running in parallel.
+     *
+     * @return {number}
      */
     get maxConcurrency() {
         return this._maxConcurrency;
@@ -221,6 +227,8 @@ class AutoscaledPool {
 
     /**
      * Sets the maximum number of tasks running in parallel.
+     *
+     * @param {number} value
      */
     set maxConcurrency(value) {
         this._maxConcurrency = value;
@@ -229,6 +237,8 @@ class AutoscaledPool {
     /**
      * Gets the desired concurrency for the pool,
      * which is an estimated number of parallel tasks that the system can currently support.
+     *
+     * @return {number}
      */
     get desiredConcurrency() {
         return this._desiredConcurrency;
@@ -237,6 +247,8 @@ class AutoscaledPool {
     /**
      * Sets the desired concurrency for the pool, i.e. the number of tasks that should be running
      * in parallel if there's large enough supply of tasks.
+     *
+     * @param {number} value
      */
     set desiredConcurrency(value) {
         if (!(this._minConcurrency <= value && value <= this._maxConcurrency)) {
@@ -247,6 +259,8 @@ class AutoscaledPool {
 
     /**
      * Gets the the number of parallel tasks currently running in the pool.
+     *
+     * @return {number}
      */
     get currentConcurrency() {
         return this._currentConcurrency;

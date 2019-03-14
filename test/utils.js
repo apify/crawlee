@@ -1,6 +1,6 @@
-import chai, { expect } from 'chai';
-import chaiAsPromised from 'chai-as-promised';
+import { expect } from 'chai';
 import sinon from 'sinon';
+import _ from 'underscore';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -10,8 +10,6 @@ import LruCache from 'apify-shared/lru_cache';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import * as utils from '../build/utils';
 import Apify from '../build/index';
-
-chai.use(chaiAsPromised);
 
 /* global process, describe, it */
 
@@ -382,7 +380,7 @@ describe('Apify.utils.extractUrls()', () => {
         const text = fs.readFileSync(path.join(__dirname, 'data', 'lipsum.txt'), 'utf8').split('');
         const ID = 'ů';
         const maxIndex = text.length - 1;
-        array.forEach((_, index) => {
+        array.forEach((__, index) => {
             const indexInText = (index * 17) % maxIndex;
             if (text[indexInText] === ID) {
                 text[indexInText + 1] = ID;
@@ -747,34 +745,10 @@ describe('utils.htmlToText()', () => {
 
     it('handles larger HTML documents', () => {
         const html1 = fs.readFileSync(path.join(__dirname, 'data', 'html_to_text_test.html'), 'utf8');
+        const text1 = fs.readFileSync(path.join(__dirname, 'data', 'html_to_text_test.txt'), 'utf8');
 
         // Careful here - don't change any whitespace in the text below or the test will break, even trailing!
-        /* eslint-disable */
-        checkHtmlToText(
-            html1,
-            `Let's start with a simple text. 
-The ships hung in the sky, much the way that bricks don't. 
-These aren't the Droids you're looking for
-I'm sorry, Dave. I'm afraid I can't do that.
-I'm sorry, Dave. I'm afraid I can't do that.
-A1	A2	A3\t
-B1	B2	B3	B 4\t
-This is some text with inline elements and HTML entities (>bla<) 
-Test
-a
-few
-line
-breaks
-Spaces in an inline text should be completely ignored. 
-But,
-    a pre-formatted
-                block  should  be  kept
-                                       pre-formatted.
-The Greatest Science Fiction Quotes Of All Time 
-Don't know, I don't know such stuff. I just do eyes, ju-, ju-, just eyes... just genetic design, just eyes. You Nexus, huh? I design your eyes.`,
-            true,
-        );
-        /* eslint-enable */
+        checkHtmlToText(html1, text1, true);
     });
 
     it('works with Cheerio object', () => {
@@ -785,7 +759,6 @@ Don't know, I don't know such stuff. I just do eyes, ju-, ju-, just eyes... just
         checkHtmlToText(cheerio.load(html2, { decodeEntities: true }), 'Text outside of body');
     });
 });
-
 
 describe('utils.createRequestDebugInfo()', () => {
     it('handles Puppeteer response', () => {
@@ -852,5 +825,56 @@ describe('utils.createRequestDebugInfo()', () => {
             statusCode: 201,
             foo: 'bar',
         });
+    });
+});
+
+describe('utils.snakeCaseToCamelCase()', () => {
+    it('should camel case all sneaky cases of snake case', () => {
+        const tests = {
+            aaa_bbb_: 'aaaBbb',
+            '': '',
+            AaA_bBb_cCc: 'aaaBbbCcc',
+            a_1_b_1a: 'a1B1a',
+        };
+
+        _.mapObject(tests, (camelCase, snakeCase) => {
+            expect(utils.snakeCaseToCamelCase(snakeCase)).to.be.eql(camelCase);
+        });
+    });
+});
+
+describe('utils.addTimeoutToPromise()', () => {
+    it('should timeout', async () => {
+        const clock = sinon.useFakeTimers();
+        try {
+            const p = utils.addTimeoutToPromise(
+                new Promise(r => setTimeout(r, 500)),
+                100,
+                'Timed out.',
+            );
+            clock.tick(101);
+            await p;
+            throw new Error('Wrong error.');
+        } catch (err) {
+            expect(err.message).to.be.eql('Timed out.');
+        } finally {
+            clock.restore();
+        }
+    });
+    it('should not timeout too soon', async () => {
+        const clock = sinon.useFakeTimers();
+        try {
+            const p = utils.addTimeoutToPromise(
+                new Promise(r => setTimeout(() => r('Done'), 100)),
+                500,
+                'Timed out.',
+            );
+            clock.tick(101);
+            expect(await p).to.be.eql('Done');
+        } catch (err) {
+            throw new Error('This should not fail.');
+        } finally {
+            clock.restore();
+        }
     });
 });

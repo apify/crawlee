@@ -70,7 +70,7 @@ export const logSystemInfo = () => {
 
 /**
  * Gets the default instance of the `ApifyClient` class provided
- * <a href="https://www.apify.com/docs/sdk/apify-client-js/latest"
+ * <a href="https://apify.com/docs/sdk/apify-client-js/latest"
  * target="_blank">apify-client</a> by the NPM package.
  * The instance is created automatically by the Apify SDK and it is configured using the
  * `APIFY_API_BASE_URL`, `APIFY_USER_ID` and `APIFY_TOKEN` environment variables.
@@ -78,7 +78,7 @@ export const logSystemInfo = () => {
  * The instance is used for all underlying calls to the Apify API in functions such as
  * [`Apify.getValue()`](#module_Apify.getValue) or [`Apify.call()`](#module_Apify.call).
  * The settings of the client can be globally altered by calling the
- * <a href="https://www.apify.com/docs/sdk/apify-client-js/latest#ApifyClient-setOptions"
+ * <a href="https://apify.com/docs/sdk/apify-client-js/latest#ApifyClient-setOptions"
  * target="_blank">`Apify.client.setOptions()`</a> function.
  * Beware that altering these settings might have unintended effects on the entire Apify SDK package.
  *
@@ -335,19 +335,20 @@ export const getTypicalChromeExecutablePath = () => {
  * @ignore
  */
 export const addTimeoutToPromise = (promise, timeoutMillis, errorMessage) => {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
         if (!isPromise(promise)) throw new Error('Parameter promise of type Promise must be provided.');
         checkParamOrThrow(timeoutMillis, 'timeoutMillis', 'Number');
         checkParamOrThrow(errorMessage, 'errorMessage', 'String');
 
         const timeout = setTimeout(() => reject(new Error(errorMessage)), timeoutMillis);
-        promise.then((data) => {
-            clearTimeout(timeout);
+        try {
+            const data = await promise;
             resolve(data);
-        }, (reason) => {
+        } catch (err) {
+            reject(err);
+        } finally {
             clearTimeout(timeout);
-            reject(reason);
-        });
+        }
     });
 };
 
@@ -392,7 +393,7 @@ export const isAtHome = () => !!process.env[ENV_VARS.IS_AT_HOME];
  * @memberof utils
  * @return {Promise}
  */
-const sleep = (millis) => {
+export const sleep = (millis) => {
     return delayPromise(millis);
 };
 
@@ -502,7 +503,6 @@ export const ensureTokenOrLocalStorageEnvExists = (storageName) => {
 const SKIP_TAGS_REGEX = /^(script|style|canvas|svg|noscript)$/i;
 const BLOCK_TAGS_REGEX = /^(p|h1|h2|h3|h4|h5|h6|ol|ul|li|pre|address|blockquote|dl|div|fieldset|form|table|tr|select|option)$/i;
 
-
 /**
  * The function converts a HTML document to a plain text.
  *
@@ -579,12 +579,12 @@ const htmlToText = (html) => {
  * Creates a standardized debug info from request and response. This info is usually added to dataset under the hidden `#debug` field.
  *
  * @param {Object} request [Apify.Request](https://sdk.apify.com/docs/api/request) object.
- * @param {Object} [response] Puppeteer [Response](https://pptr.dev/#?product=Puppeteer&version=v1.11.0&show=api-class-response) object
- * or NodeJS [http.ServerResponse](https://nodejs.org/api/http.html#http_class_http_serverresponse) object
+ * @param {Object} [response]
+ *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&version=v1.11.0&show=api-class-response" target="_blank"><code>Response</code></a>
+ *   or NodeJS <a href="https://nodejs.org/api/http.html#http_class_http_serverresponse" target="_blank"><code>http.ServerResponse</code></a>.
  * @param {Object} [additionalFields] Object containing additional fields to be added.
 
  * @return {Object}
- * @ignore
  */
 const createRequestDebugInfo = (request, response = {}, additionalFields = {}) => {
     checkParamOrThrow(request, 'request', 'Object');
@@ -604,6 +604,25 @@ const createRequestDebugInfo = (request, response = {}, additionalFields = {}) =
         },
         additionalFields,
     );
+};
+
+/**
+ * Converts SNAKE_CASE to camelCase.
+ *
+ * @param {String} snakeCaseStr
+ * @return {String}
+ * @ignore
+ */
+export const snakeCaseToCamelCase = (snakeCaseStr) => {
+    return snakeCaseStr
+        .toLowerCase()
+        .split('_')
+        .map((part, index) => {
+            return index > 0
+                ? part.charAt(0).toUpperCase() + part.slice(1)
+                : part;
+        })
+        .join('');
 };
 
 /**

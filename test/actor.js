@@ -1,16 +1,15 @@
 import path from 'path';
 import _ from 'underscore';
-import chai, { expect } from 'chai';
-import chaiAsPromised from 'chai-as-promised';
+import { expect } from 'chai';
 import sinon from 'sinon';
 import { delayPromise } from 'apify-shared/utilities';
 import { ENV_VARS, ACT_JOB_STATUSES, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import { ApifyCallError } from '../build/errors';
 
-chai.use(chaiAsPromised);
-
 // NOTE: test use of require() here because this is how its done in acts
 const Apify = require('../build/index');
+
+const { utils: { log } } = Apify;
 
 /* global process, describe, it */
 
@@ -108,7 +107,6 @@ const getEmptyEnv = () => {
 };
 
 const setEnv = (env) => {
-    delete process.env.APIFY_INTERNAL_PORT;
     delete process.env.APIFY_ACT_ID;
     delete process.env.APIFY_ACT_RUN_ID;
     delete process.env.APIFY_USER_ID;
@@ -118,7 +116,6 @@ const setEnv = (env) => {
     delete process.env.APIFY_DEFAULT_KEY_VALUE_STORE_ID;
     delete process.env.APIFY_DEFAULT_DATASET_ID;
 
-    // if (env.internalPort) process.env.APIFY_INTERNAL_PORT = env.internalPort.toString();
     if (env.actId) process.env.APIFY_ACT_ID = env.actId;
     if (env.actRunId) process.env.APIFY_ACT_RUN_ID = env.actRunId;
     if (env.userId) process.env.APIFY_USER_ID = env.userId;
@@ -146,7 +143,7 @@ describe('Apify.getEnv()', () => {
         setEnv(expectedEnv);
 
         const env = Apify.getEnv();
-        expect(env).to.eql(expectedEnv);
+        expect(env).to.containSubset(expectedEnv);
     });
 
     it('works with with non-null values', () => {
@@ -165,10 +162,9 @@ describe('Apify.getEnv()', () => {
         setEnv(expectedEnv);
 
         const env = Apify.getEnv();
-        expect(env).to.eql(expectedEnv);
+        expect(env).to.containSubset(expectedEnv);
     });
 });
-
 
 describe('Apify.main()', () => {
     it('throws on invalid args', () => {
@@ -378,6 +374,37 @@ describe('Apify.call()', () => {
             .call(actId)
             .then((callOutput) => {
                 expect(callOutput).to.be.eql(expected);
+                keyValueStoresMock.restore();
+                actsMock.restore();
+            });
+    });
+
+    it('should not fail when run get stuck in READY state', () => {
+        const actId = 'some-act-id';
+        const token = 'token';
+        const defaultKeyValueStoreId = 'some-store-id';
+        const run = { id: 'some-run-id', actId, defaultKeyValueStoreId };
+        const readyRun = Object.assign({}, run, { status: ACT_JOB_STATUSES.READY });
+
+        Apify.client.setOptions({ token });
+
+        const actsMock = sinon.mock(Apify.client.acts);
+        actsMock.expects('runAct')
+            .withExactArgs({ actId })
+            .once()
+            .returns(Promise.resolve(readyRun));
+        actsMock.expects('getRun')
+            .withExactArgs({ actId, runId: run.id, waitForFinish: 1 })
+            .once()
+            .returns(new Promise(resolve => setTimeout(() => resolve(readyRun), 1100)));
+
+        const keyValueStoresMock = sinon.mock(Apify.client.keyValueStores);
+        keyValueStoresMock.expects('getRecord').never();
+
+        return Apify
+            .call(actId, undefined, { waitSecs: 1 })
+            .then((callOutput) => {
+                expect(callOutput).to.be.eql(readyRun);
                 keyValueStoresMock.restore();
                 actsMock.restore();
             });
@@ -682,10 +709,22 @@ describe('Apify.callTask()', () => {
         const finishedRun = Object.assign({}, run, { status: ACT_JOB_STATUSES.SUCCEEDED });
         const output = { contentType: 'application/json', body: 'some-output' };
         const expected = Object.assign({}, finishedRun, { output });
+        const input = { foo: 'bar' };
+        const memoryMbytes = 256;
+        const timeoutSecs = 60;
+        const build = 'beta';
 
         const tasksMock = sinon.mock(Apify.client.tasks);
         tasksMock.expects('runTask')
-            .withExactArgs({ token, taskId })
+            .withExactArgs({
+                token,
+                taskId,
+                body: JSON.stringify(input, null, 2),
+                contentType: 'application/json; charset=utf-8',
+                memory: memoryMbytes,
+                timeout: timeoutSecs,
+                build,
+            })
             .once()
             .returns(Promise.resolve(runningRun));
 
@@ -706,7 +745,7 @@ describe('Apify.callTask()', () => {
             .returns(Promise.resolve(output));
 
         return Apify
-            .callTask(taskId, undefined, { token, disableBodyParser: true })
+            .callTask(taskId, input, { token, disableBodyParser: true, memoryMbytes, timeoutSecs, build })
             .then((callOutput) => {
                 expect(callOutput).to.be.eql(expected);
                 keyValueStoresMock.restore();
@@ -896,6 +935,104 @@ describe('Apify.callTask()', () => {
     });
 });
 
+describe('Apify.metamorph()', () => {
+    it('works as expected', async () => {
+        const runId = 'some-run-id';
+        const actorId = 'some-actor-id';
+        const targetActorId = 'some-target-actor-id';
+        const contentType = 'application/json';
+        const input = '{ "foo": "bar" }';
+        const build = 'beta';
+
+        process.env[ENV_VARS.ACTOR_ID] = actorId;
+        process.env[ENV_VARS.ACTOR_RUN_ID] = runId;
+
+        const actsMock = sinon.mock(Apify.client.acts);
+        actsMock.expects('metamorphRun')
+            .withExactArgs({
+                runId,
+                actId: actorId,
+                targetActorId,
+                body: input,
+                contentType: 'application/json; charset=utf-8',
+                build,
+            })
+            .once()
+            .returns(Promise.resolve());
+
+
+        await Apify.metamorph(targetActorId, input, { contentType, build, customAfterSleepMillis: 1 });
+
+        delete process.env[ENV_VARS.ACTOR_ID];
+        delete process.env[ENV_VARS.ACTOR_RUN_ID];
+
+        actsMock.verify();
+        actsMock.restore();
+    });
+
+    it('works without opts and input', async () => {
+        const runId = 'some-run-id';
+        const actorId = 'some-actor-id';
+        const targetActorId = 'some-target-actor-id';
+
+        process.env[ENV_VARS.ACTOR_ID] = actorId;
+        process.env[ENV_VARS.ACTOR_RUN_ID] = runId;
+
+        const actsMock = sinon.mock(Apify.client.acts);
+        actsMock.expects('metamorphRun')
+            .withExactArgs({
+                runId,
+                actId: actorId,
+                targetActorId,
+                body: undefined,
+                build: undefined,
+                contentType: undefined,
+            })
+            .once()
+            .returns(Promise.resolve());
+
+
+        await Apify.metamorph(targetActorId, undefined, { customAfterSleepMillis: 1 });
+
+        delete process.env[ENV_VARS.ACTOR_ID];
+        delete process.env[ENV_VARS.ACTOR_RUN_ID];
+
+        actsMock.verify();
+        actsMock.restore();
+    });
+
+    it('stringifies to JSON', async () => {
+        const runId = 'some-run-id';
+        const actorId = 'some-actor-id';
+        const targetActorId = 'some-target-actor-id';
+        const input = { foo: 'bar' };
+
+        process.env[ENV_VARS.ACTOR_ID] = actorId;
+        process.env[ENV_VARS.ACTOR_RUN_ID] = runId;
+
+        const actsMock = sinon.mock(Apify.client.acts);
+        actsMock.expects('metamorphRun')
+            .withExactArgs({
+                runId,
+                actId: actorId,
+                targetActorId,
+                body: JSON.stringify(input, null, 2),
+                contentType: 'application/json; charset=utf-8',
+                build: undefined,
+            })
+            .once()
+            .returns(Promise.resolve());
+
+        await Apify.metamorph(targetActorId, input, { customAfterSleepMillis: 1 });
+
+        delete process.env[ENV_VARS.ACTOR_ID];
+        delete process.env[ENV_VARS.ACTOR_RUN_ID];
+
+        actsMock.verify();
+        actsMock.restore();
+    });
+});
+
 describe('Apify.getApifyProxyUrl()', () => {
     it('should work', () => {
         process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
@@ -935,6 +1072,8 @@ describe('Apify.getApifyProxyUrl()', () => {
 
     // Test old params - session, groups
     it('should be backwards compatible', () => {
+        const ll = log.getLevel();
+        log.setLevel(log.LEVELS.ERROR);
         process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
         process.env[ENV_VARS.PROXY_HOSTNAME] = 'my.host.com';
         process.env[ENV_VARS.PROXY_PORT] = 123;
@@ -968,6 +1107,7 @@ describe('Apify.getApifyProxyUrl()', () => {
             hostname: 'your.host.com',
             port: 345,
         })).to.be.eql('http://auto:xyz@your.host.com:345');
+        log.setLevel(ll);
     });
 
     it('should throw on invalid proxy args', () => {

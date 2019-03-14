@@ -5,6 +5,7 @@ import _ from 'underscore';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
+import LruCache from 'apify-shared/lru_cache';
 import { RequestQueue, RequestQueueLocal } from './request_queue';
 import Request from './request';
 import { enqueueLinks } from './enqueue_links';
@@ -12,6 +13,8 @@ import { enqueueLinks } from './enqueue_links';
 const jqueryPath = require.resolve('jquery/dist/jquery.min');
 const underscorePath = require.resolve('underscore/underscore-min');
 const readFilePromised = util.promisify(fs.readFile);
+
+const MAX_INJECT_FILE_CACHE_SIZE = 10;
 
 /**
  * Hides certain Puppeteer fingerprints from the page, in order to help avoid detection of the crawler.
@@ -55,9 +58,16 @@ const hideWebDriver = async (page) => {
 };
 
 /**
+ * Cache contents of previously injected files to limit file system access.
+ */
+const injectedFilesCache = new LruCache({ maxLength: MAX_INJECT_FILE_CACHE_SIZE });
+
+/**
  * Injects a JavaScript file into a Puppeteer page.
  * Unlike Puppeteer's `addScriptTag` function, this function works on pages
  * with arbitrary Cross-Origin Resource Sharing (CORS) policies.
+ *
+ * File contents are cached for up to 10 files to limit file system access.
  *
  * @param {Page} page
  *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
@@ -75,7 +85,11 @@ const injectFile = async (page, filePath, options = {}) => {
     checkParamOrThrow(filePath, 'filePath', 'String');
     checkParamOrThrow(options, 'options', 'Object');
 
-    const contents = await readFilePromised(filePath, 'utf8');
+    let contents = injectedFilesCache.get(filePath);
+    if (!contents) {
+        contents = await readFilePromised(filePath, 'utf8');
+        injectedFilesCache.add(filePath, contents);
+    }
     const evalP = page.evaluate(contents);
     return options.surviveNavigations
         ? Promise.all([page.evaluateOnNewDocument(contents), evalP])
