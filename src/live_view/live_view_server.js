@@ -2,9 +2,10 @@ const http = require('http');
 const fs = require('fs');
 const express = require('express');
 const socketio = require('socket.io');
-const utils = require('apify-shared/utilities');
-const log = require('apify-shared/log');
+const { promisifyServerListen } = require('apify-shared/utilities');
 const { ENV_VARS, LOCAL_ENV_VARS } = require('apify-shared/consts');
+
+const { utils: { log } } = Apify;
 
 const DELETE_SCREENSHOT_FILE_TIMEOUT_MILLIS = 10 * 1000;
 
@@ -14,8 +15,8 @@ class LiveViewServer {
 
         this.port = parseInt(containerPort, 10);
         if (!(this.port >= 0 && this.port <= 65535)) {
-            throw new Error(`Cannot start LiveViewServer - invalid port specified by the ${
-                ENV_VARS.CONTAINER_PORT} environment variable (was "${containerPort}").`);
+            throw new Error('Cannot start LiveViewServer - invalid port specified by the '
+                + `${ENV_VARS.CONTAINER_PORT} environment variable (was "${containerPort}").`);
         }
         this.liveViewUrl = process.env[ENV_VARS.CONTAINER_URL] || LOCAL_ENV_VARS[ENV_VARS.CONTAINER_URL];
 
@@ -71,7 +72,7 @@ class LiveViewServer {
      * Starts the HTTP server.
      */
     async start() {
-        await utils.promisifyServerListen(this.httpServer)(this.port);
+        await promisifyServerListen(this.httpServer)(this.port);
         log.info('Live view web server started', { publicUrl: this.liveViewUrl });
     }
 
@@ -87,7 +88,7 @@ class LiveViewServer {
         this.lastSnapshot = {
             pageUrl,
             htmlContent,
-            screenshotIndex: this.lastScreenshotIndex
+            screenshotIndex: this.lastScreenshotIndex,
         };
         this.screenshotIndexToFilePath[this.lastScreenshotIndex] = screenshotFilePath;
 
@@ -106,7 +107,7 @@ class LiveViewServer {
                 });
             }, DELETE_SCREENSHOT_FILE_TIMEOUT_MILLIS);
         }
-    };
+    }
 
     hasClients() {
         return this.clientCount > 0;
