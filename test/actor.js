@@ -1149,6 +1149,7 @@ describe('Apify.webhook()', () => {
         const expectedRequestUrl = 'http://example.com/api';
 
         process.env[ENV_VARS.ACTOR_RUN_ID] = runId;
+        process.env[ENV_VARS.IS_AT_HOME] = '1';
 
         const webhooksMock = sinon.mock(Apify.client.webhooks);
 
@@ -1168,6 +1169,7 @@ describe('Apify.webhook()', () => {
         await Apify.webhook({ eventTypes: expectedEventTypes, requestUrl: expectedRequestUrl });
 
         delete process.env[ENV_VARS.ACTOR_RUN_ID];
+        delete process.env[ENV_VARS.IS_AT_HOME];
 
         webhooksMock.verify();
         webhooksMock.restore();
@@ -1189,5 +1191,22 @@ describe('Apify.webhook()', () => {
         webhooksMock.restore();
         logMock.verify();
         logMock.restore();
+    });
+
+    it('should failed without actor run ID', async () => {
+        const expectedEventTypes = ['ACTOR.RUN.SUCCEEDED'];
+        const expectedRequestUrl = 'http://example.com/api';
+
+        process.env[ENV_VARS.IS_AT_HOME] = '1';
+
+        let isThrow;
+        try {
+            await Apify.webhook({ eventTypes: expectedEventTypes, requestUrl: expectedRequestUrl });
+        } catch (err) {
+            isThrow = true;
+        }
+        expect(isThrow).to.be.eql(true);
+
+        delete process.env[ENV_VARS.IS_AT_HOME];
     });
 });

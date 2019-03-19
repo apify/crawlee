@@ -7,7 +7,7 @@ import { APIFY_PROXY_VALUE_REGEX } from 'apify-shared/regexs';
 import { ENV_VARS, INTEGER_ENV_VARS, LOCAL_ENV_VARS, ACT_JOB_TERMINAL_STATUSES, ACT_JOB_STATUSES } from 'apify-shared/consts';
 import { EXIT_CODES } from './constants';
 import { initializeEvents, stopEvents } from './events';
-import { apifyClient, addCharsetToContentType, sleep, snakeCaseToCamelCase } from './utils';
+import { apifyClient, addCharsetToContentType, sleep, snakeCaseToCamelCase, isAtHome } from './utils';
 import { maybeStringify } from './key_value_store';
 import { ApifyCallError } from './errors';
 
@@ -787,13 +787,17 @@ export const webhook = async ({ eventTypes, requestUrl }) => {
     checkParamOrThrow(eventTypes, 'eventTypes', '[String]');
     checkParamOrThrow(requestUrl, 'requestUrl', 'String');
 
-    const runId = process.env[ENV_VARS.ACTOR_RUN_ID];
-    if (!runId) {
+    if (!isAtHome()) {
         log.warning('Apify.webhook() is only supported when running on the Apify platform. The webhook will not be invoked.');
         return;
     }
 
-    const webhook = await apifyClient.webhooks.createWebhook({
+    const runId = process.env[ENV_VARS.ACTOR_RUN_ID];
+    if (!runId) {
+        throw new Error(`Environment variable ${ENV_VARS.ACTOR_RUN_ID} must be provided!`);
+    }
+
+    return apifyClient.webhooks.createWebhook({
         isAdHoc: true,
         eventTypes,
         condition: {
@@ -801,6 +805,4 @@ export const webhook = async ({ eventTypes, requestUrl }) => {
         },
         requestUrl,
     });
-
-    return webhook;
 };
