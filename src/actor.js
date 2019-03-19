@@ -764,3 +764,40 @@ export const getApifyProxyUrl = (options = {}) => {
 
     return `http://${username}:${password}@${hostname}:${port}`;
 };
+
+/**
+ *
+ * Creates adhoc webhook for current actor run.
+ * Webkooks are supported only for runs on Apify cloud.
+ *
+ * @param eventTypes {String[]} - Array of event types, which you can set for actor run, see
+ * the <a href="https://apify.com/docs/webhooks#events-actor-run" target="_blank">actor run events</a> in the Apify doc.
+ * @param requestUrl {String} - URL which will be requested using HTTP POST request, when actor run will be in specific event type.
+ *
+ * @return {Promise<Webhook|undefined>}
+ *
+ * @memberof module:Apify
+ * @function
+ * @name createAdHocWebhook
+ */
+export const createAdHocWebhook = async (eventTypes, requestUrl) => {
+    checkParamOrThrow(eventTypes, 'eventTypes', 'Array');
+    checkParamOrThrow(requestUrl, 'requestUrl', 'String');
+
+    const runId = process.env[ENV_VARS.ACTOR_RUN_ID];
+    if (!runId) {
+        log.warning('Webhooks are not supported locally! We skipped createAdHocWebhook() invocation.');
+        return;
+    }
+
+    const webhook = await apifyClient.webhooks.createWebhook({
+        isAdHoc: true,
+        eventTypes,
+        condition: {
+            actorRunId: runId,
+        },
+        requestUrl,
+    });
+
+    return webhook;
+};

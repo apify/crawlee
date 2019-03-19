@@ -1135,3 +1135,36 @@ describe('Apify.getApifyProxyUrl()', () => {
         delete process.env[ENV_VARS.PROXY_PORT];
     });
 });
+
+
+describe('Apify.createAdhocWebhook()', () => {
+    it('works', async () => {
+        const runId = 'my-run-id';
+        const expectedEventTypes = ['ACTOR.RUN.SUCCEEDED'];
+        const expectedRequestUrl = 'http://example.com/api';
+
+        process.env[ENV_VARS.ACTOR_RUN_ID] = runId;
+
+        const webhooksMock = sinon.mock(Apify.client.webhooks);
+
+        webhooksMock.expects('createWebhook')
+            .withExactArgs({
+                isAdHoc: true,
+                eventTypes: expectedEventTypes,
+                condition: {
+                    actorRunId: runId,
+                },
+                requestUrl: expectedRequestUrl,
+            })
+            .once()
+            .returns(Promise.resolve());
+
+
+        await Apify.createAdHocWebhook(expectedEventTypes, expectedRequestUrl);
+
+        delete process.env[ENV_VARS.ACTOR_RUN_ID];
+
+        webhooksMock.verify();
+        webhooksMock.restore();
+    });
+});
