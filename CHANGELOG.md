@@ -1,6 +1,6 @@
 0.13.1 / 2019-03-19
 ===================
-- Added `Apify.createAdHocWebhook()`
+- Added `Apify.webhook()`
 
 0.13.0 / 2019-03-14
 ===================

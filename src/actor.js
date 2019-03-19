@@ -767,26 +767,29 @@ export const getApifyProxyUrl = (options = {}) => {
 
 /**
  *
- * Creates adhoc webhook for current actor run.
- * Webkooks are supported only for runs on Apify cloud.
+ * Creates an ad-hoc webhook for the current actor run, which lets you receive a notification when the actor run finished or failed.
+ * For more information about Apify actor webhooks, please see the <a href="https://apify.com/docs/webhook" target="_blank">documentation</a>.
  *
- * @param eventTypes {String[]} - Array of event types, which you can set for actor run, see
+ * Note that webhooks are only supported for actors running on the Apify platform.
+ * In local environment, the function will print a warning and have no effect.
+ *
+ * @param options.eventTypes {String[]} - Array of event types, which you can set for actor run, see
  * the <a href="https://apify.com/docs/webhooks#events-actor-run" target="_blank">actor run events</a> in the Apify doc.
- * @param requestUrl {String} - URL which will be requested using HTTP POST request, when actor run will be in specific event type.
+ * @param options.requestUrl {String} - URL which will be requested using HTTP POST request, when actor run will be in specific event type.
  *
- * @return {Promise<Webhook|undefined>}
+ * @return {Promise<Object|undefined>}
  *
  * @memberof module:Apify
  * @function
- * @name createAdHocWebhook
+ * @name webhook
  */
-export const createAdHocWebhook = async (eventTypes, requestUrl) => {
-    checkParamOrThrow(eventTypes, 'eventTypes', 'Array');
+export const webhook = async ({ eventTypes, requestUrl }) => {
+    checkParamOrThrow(eventTypes, 'eventTypes', '[String]');
     checkParamOrThrow(requestUrl, 'requestUrl', 'String');
 
     const runId = process.env[ENV_VARS.ACTOR_RUN_ID];
     if (!runId) {
-        log.warning('Webhooks are not supported locally! We skipped createAdHocWebhook() invocation.');
+        log.warning('Apify.webhook() is only supported when running on the Apify platform. The webhook will not be invoked.');
         return;
     }
 

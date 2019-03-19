@@ -1142,7 +1142,7 @@ describe('Apify.getApifyProxyUrl()', () => {
 });
 
 
-describe('Apify.createAdhocWebhook()', () => {
+describe('Apify.webhook()', () => {
     it('works', async () => {
         const runId = 'my-run-id';
         const expectedEventTypes = ['ACTOR.RUN.SUCCEEDED'];
@@ -1165,11 +1165,29 @@ describe('Apify.createAdhocWebhook()', () => {
             .returns(Promise.resolve());
 
 
-        await Apify.createAdHocWebhook(expectedEventTypes, expectedRequestUrl);
+        await Apify.webhook({ eventTypes: expectedEventTypes, requestUrl: expectedRequestUrl });
 
         delete process.env[ENV_VARS.ACTOR_RUN_ID];
 
         webhooksMock.verify();
         webhooksMock.restore();
+    });
+
+    it('on local logs warning and does nothing', async () => {
+        const expectedEventTypes = ['ACTOR.RUN.SUCCEEDED'];
+        const expectedRequestUrl = 'http://example.com/api';
+
+        const webhooksMock = sinon.mock(Apify.client.webhooks);
+        webhooksMock.expects('createWebhook').never();
+
+        const logMock = sinon.mock(log);
+        logMock.expects('warning').once();
+
+        await Apify.webhook({ eventTypes: expectedEventTypes, requestUrl: expectedRequestUrl });
+
+        webhooksMock.verify();
+        webhooksMock.restore();
+        logMock.verify();
+        logMock.restore();
     });
 });
