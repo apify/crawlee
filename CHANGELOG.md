@@ -1,3 +1,7 @@
+0.13.1 / 2019-03-19
+===================
+- Added `Apify.createAdHocWebhook()`
+
 0.13.0 / 2019-03-14
 ===================
 - **BREAKING CHANGE:** Added `puppeteerOperationTimeoutSecs` option to `PuppeteerPool`.

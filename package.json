@@ -1,6 +1,6 @@
 {
   "name": "apify",
-  "version": "0.13.0",
+  "version": "0.13.1",
   "description": "The scalable web crawling and scraping library for JavaScript. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.",
   "engines": {
     "node": ">=8.14.0"
