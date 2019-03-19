@@ -1,3 +1,19 @@
+0.13.0 / 2019-03-14
+===================
+- **BREAKING CHANGE:** Added `puppeteerOperationTimeoutSecs` option to `PuppeteerPool`.
+  It defaults to 15 seconds and all Puppeteer operations such as `browser.newPage()`
+  or `puppeteer.launch()` will now time out. This is to prevent hanging requests.
+- **BREAKING CHANGE:** Added `handleRequestTimeoutSecs` option to `BasicCrawler` with a 60 second default.
+- **DEPRECATED:** `PuppeteerPool` options in the `PuppeteerCrawler` constructor are now deprecated.
+  Please use the new `puppeteerPoolOptions` argument of type `Object` to pass them. `launchPuppeteerFunction`
+  and `launchPuppeteerOptions` are still available as shortcuts for convenience.   
+- `CheerioCrawler` and `PuppeteerCrawler` now automatically set `handleRequestTimeoutSecs` to 10 times
+  their `handlePageTimeoutSecs`. This is a precaution that should keep requests from hanging forever.
+- Added `options.prepareRequestFunction()` to `CheerioCrawler` constructor to enable modification
+  of `Request` before the HTTP request is made to the target URL.
+- Added back the `recycleDiskCache` option to `PuppeteerPool` now that it is supported
+  even in headless mode ([read more](https://bugs.chromium.org/p/chromium/issues/detail?id=882431))
+
 0.12.4 / 2019-03-05
 ===================
 - Parameters `input` and `options` added to `Apify.callTask()`.

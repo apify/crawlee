@@ -842,3 +842,39 @@ describe('utils.snakeCaseToCamelCase()', () => {
         });
     });
 });
+
+describe('utils.addTimeoutToPromise()', () => {
+    it('should timeout', async () => {
+        const clock = sinon.useFakeTimers();
+        try {
+            const p = utils.addTimeoutToPromise(
+                new Promise(r => setTimeout(r, 500)),
+                100,
+                'Timed out.',
+            );
+            clock.tick(101);
+            await p;
+            throw new Error('Wrong error.');
+        } catch (err) {
+            expect(err.message).to.be.eql('Timed out.');
+        } finally {
+            clock.restore();
+        }
+    });
+    it('should not timeout too soon', async () => {
+        const clock = sinon.useFakeTimers();
+        try {
+            const p = utils.addTimeoutToPromise(
+                new Promise(r => setTimeout(() => r('Done'), 100)),
+                500,
+                'Timed out.',
+            );
+            clock.tick(101);
+            expect(await p).to.be.eql('Done');
+        } catch (err) {
+            throw new Error('This should not fail.');
+        } finally {
+            clock.restore();
+        }
+    });
+});

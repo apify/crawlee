@@ -76,12 +76,19 @@ await puppeteerPool.destroy();
   After the limit is reached, the browser is retired and new requests are
   handled by a new browser instance.</p>
 </td></tr><tr>
-<td><code>[options.instanceKillerIntervalMillis]</code></td><td><code>Number</code></td><td><code>60000</code></td>
+<td><code>[options.puppeteerOperationTimeoutSecs]</code></td><td><code>Number</code></td><td><code>15</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>All browser management operations such as launching a new browser, opening a new page
+  or closing a page will timeout after the set number of seconds and the connected
+  browser will be retired.</p>
+</td></tr><tr>
+<td><code>[options.instanceKillerIntervalSecs]</code></td><td><code>Number</code></td><td><code>60</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Indicates how often are the open Puppeteer instances checked whether they can be closed.</p>
 </td></tr><tr>
-<td><code>[options.killInstanceAfterMillis]</code></td><td><code>Number</code></td><td><code>300000</code></td>
+<td><code>[options.killInstanceAfterSecs]</code></td><td><code>Number</code></td><td><code>300</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>When Puppeteer instance reaches the <code>options.retireInstanceAfterRequestCount</code> limit then

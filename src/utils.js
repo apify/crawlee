@@ -335,19 +335,20 @@ export const getTypicalChromeExecutablePath = () => {
  * @ignore
  */
 export const addTimeoutToPromise = (promise, timeoutMillis, errorMessage) => {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
         if (!isPromise(promise)) throw new Error('Parameter promise of type Promise must be provided.');
         checkParamOrThrow(timeoutMillis, 'timeoutMillis', 'Number');
         checkParamOrThrow(errorMessage, 'errorMessage', 'String');
 
         const timeout = setTimeout(() => reject(new Error(errorMessage)), timeoutMillis);
-        promise.then((data) => {
-            clearTimeout(timeout);
+        try {
+            const data = await promise;
             resolve(data);
-        }, (reason) => {
+        } catch (err) {
+            reject(err);
+        } finally {
             clearTimeout(timeout);
-            reject(reason);
-        });
+        }
     });
 };
 
