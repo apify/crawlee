@@ -1,7 +1,7 @@
 import EventEmitter from 'events';
 import log from 'apify-shared/log';
 import { ENV_VARS } from 'apify-shared/consts';
-import { main, getEnv, call, callTask, getApifyProxyUrl, metamorph, webhook } from './actor';
+import { main, getEnv, call, callTask, getApifyProxyUrl, metamorph, addWebhook } from './actor';
 import AutoscaledPool from './autoscaling/autoscaled_pool';
 import BasicCrawler from './basic_crawler';
 import CheerioCrawler from './cheerio_crawler';
@@ -58,7 +58,7 @@ module.exports = {
     getApifyProxyUrl,
     isAtHome,
     client: apifyClient,
-    webhook,
+    addWebhook,
 
     // Autoscaled pool
     AutoscaledPool,

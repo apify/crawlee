@@ -1142,7 +1142,7 @@ describe('Apify.getApifyProxyUrl()', () => {
 });
 
 
-describe('Apify.webhook()', () => {
+describe('Apify.addWebhook()', () => {
     it('works', async () => {
         const runId = 'my-run-id';
         const expectedEventTypes = ['ACTOR.RUN.SUCCEEDED'];
@@ -1166,7 +1166,7 @@ describe('Apify.webhook()', () => {
             .returns(Promise.resolve());
 
 
-        await Apify.webhook({ eventTypes: expectedEventTypes, requestUrl: expectedRequestUrl });
+        await Apify.addWebhook({ eventTypes: expectedEventTypes, requestUrl: expectedRequestUrl });
 
         delete process.env[ENV_VARS.ACTOR_RUN_ID];
         delete process.env[ENV_VARS.IS_AT_HOME];
@@ -1185,7 +1185,7 @@ describe('Apify.webhook()', () => {
         const logMock = sinon.mock(log);
         logMock.expects('warning').once();
 
-        await Apify.webhook({ eventTypes: expectedEventTypes, requestUrl: expectedRequestUrl });
+        await Apify.addWebhook({ eventTypes: expectedEventTypes, requestUrl: expectedRequestUrl });
 
         webhooksMock.verify();
         webhooksMock.restore();
@@ -1201,7 +1201,7 @@ describe('Apify.webhook()', () => {
 
         let isThrow;
         try {
-            await Apify.webhook({ eventTypes: expectedEventTypes, requestUrl: expectedRequestUrl });
+            await Apify.addWebhook({ eventTypes: expectedEventTypes, requestUrl: expectedRequestUrl });
         } catch (err) {
             isThrow = true;
         }

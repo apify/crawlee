@@ -781,14 +781,14 @@ export const getApifyProxyUrl = (options = {}) => {
  *
  * @memberof module:Apify
  * @function
- * @name webhook
+ * @name addWebhook
  */
-export const webhook = async ({ eventTypes, requestUrl }) => {
+export const addWebhook = async ({ eventTypes, requestUrl }) => {
     checkParamOrThrow(eventTypes, 'eventTypes', '[String]');
     checkParamOrThrow(requestUrl, 'requestUrl', 'String');
 
     if (!isAtHome()) {
-        log.warning('Apify.webhook() is only supported when running on the Apify platform. The webhook will not be invoked.');
+        log.warning('Apify.addWebhook() is only supported when running on the Apify platform. The webhook will not be invoked.');
         return;
     }
 
