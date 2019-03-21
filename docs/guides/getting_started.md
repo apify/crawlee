@@ -509,18 +509,51 @@ The `options.pseudoUrls` argument is always an `Array`, but its contents can tak
 const options = {
     $,
     requestQueue,
-    pseudoUrls: ['http[s?]://[[-\w.]+]apify.com[.*]']
+    pseudoUrls: ['http[s?]://apify.com[.*]']
 };
 
 await enqueueLinks(options);
 ```
-> To break the pseudo-URL string down, we're looking for both `http` and `https` protocols and the links may only lead to `apify.com` and its subdomains, such as `my.apify.com`, `sdk.apify.com` etc. Literally, the bracketed expression for subdomain allows all dashes `-`, word characters `\w` and dots `.`. The final brackets `[.*]` allow everything. If this is complex to you, we suggest <a href="https://www.regular-expressions.info/tutorial.html" target="_blank">reading a tutorial</a> or two on regular expression syntax.
+
+> To break the pseudo-URL string down, we're looking for both `http` and `https` protocols and the links may only lead to `apify.com` domain. The final brackets `[.*]` allow everything, so `apify.com/contact` as well as `apify.com/library` will match. If this is complex to you, we suggest <a href="https://www.regular-expressions.info/tutorial.html" target="_blank">reading a tutorial</a> or two on regular expression syntax.
+
+#### Resolving relative URLs with `enqueueLinks()`
+
+**TLDR;** Just use `baseUrl: request.loadedUrl` when working with `CheerioCrawler`.
+
+This is probably the weirdest and most complicated addition to the list. This is not the place to talk at length about <a href="https://stackoverflow.com/questions/2005079/absolute-vs-relative-urls" target="_blank">absolute and relative paths</a>, but in short, the links we encounter in a page can either be absolute, such as:
+
+```
+https://apify.com/john-doe/my-actor
+```
+
+or relative:
+
+```
+/john-doe/my-actor
+```
+
+Browsers handle this automatically, but since we're only using plain HTTP requests, we need to tell the `enqueueLinks()` function how to resolve the relative links to the absolute ones, so we can use them for scraping. This is where the `response.loadedUrl` comes into play, because it returns the correct URL to use as `baseUrl`.
+
+```js
+// Assuming previous existence of the '$', 'requestQueue' and 'request' variables.
+const options = {
+    $,
+    requestQueue,
+    pseudoUrls: ['http[s?]://apify.com[.*]'],
+    baseUrl: request.loadedUrl,
+};
+
+await enqueueLinks(options);
+```
+
+> Even though it seems possible, we can't use the `request.url` of our `Request` instances, because the page could have been redirected and the final URL would be different from the one we requested.
 
 #### Integrating `enqueueLinks()` into our crawler
 That was fairly easy, wasn't it. That ticks the number 2 off our list and we're done! Let's take a look at the original crawler code, where we enqueued all the links manually.
 
 ```js
-const { URL } = require('url'); // <------ This is related to enqueuing.
+const { URL } = require('url'); // <------ This is new.
 const Apify = require('apify');
 
 Apify.main(async () => {
@@ -531,23 +564,22 @@ Apify.main(async () => {
         const title = $('title').text();
         console.log(`The title of "${request.url}" is: ${title}.`);
         
-        // Here starts the enqueueing part of handlePageFunction.
+        // Here starts the new part of handlePageFunction.
         const links = $('a[href]').map((i, el) => $(el).attr('href')).get();
 
-        const ourDomain = 'apify.com'
-        const sameDomainLinks = links.filter((link) => {
-            const linkHostname = new URL(link).hostname;
-            return linkHostname.endsWith(ourDomain);
-        });
-		
-		 for (const url of sameDomainLinks) {
-		     console.log(`Enqueueing ${url}`);
-		     await requestQueue.addRequest({ url });
-		 }
-    }
+        const ourDomain = 'https://apify.com';
+        const absoluteUrls = links.map(link => new URL(link, ourDomain));
+
+        const sameDomainLinks = absoluteUrls.filter(url => url.href.startsWith(ourDomain));
+     
+        console.log(`Enqueueing ${sameDomainLinks.length} URLs.`);
+        for (const url of sameDomainLinks) {
+            await requestQueue.addRequest({ url: url.href });
+        }
+    };
     
     const crawler = new Apify.CheerioCrawler({
-        maxRequestsPerCrawl: 20,
+        maxRequestsPerCrawl: 20, // <------ This is new too.
         requestQueue,
         handlePageFunction
     });
@@ -559,6 +591,7 @@ Since we've already prepared the `enqueueLinks()` options, we can just replace a
 
 ```js
 const Apify = require('apify');
+const { utils: { enqueueLinks } } = Apify;
 
 Apify.main(async () => {
     const requestQueue = await Apify.openRequestQueue();
@@ -569,12 +602,14 @@ Apify.main(async () => {
         console.log(`The title of "${request.url}" is: ${title}.`);
         
         // Enqueue links
-        await enqueueLinks({
+        const enqueued = await enqueueLinks({
             $,
             requestQueue,
-            pseudoUrls: ['http[s?]://[[-\w.]+]apify.com[.*]']
+            pseudoUrls: ['http[s?]://apify.com[.*]'],
+            baseUrl: request.loadedUrl,
         });
-    }
+        console.log(`Enqueued ${enqueued.length} URLs.`);
+    };
     
     const crawler = new Apify.CheerioCrawler({
         maxRequestsPerCrawl: 20,
@@ -585,7 +620,6 @@ Apify.main(async () => {
     await crawler.run();
 });
 ```
-> We've lost one thing by refactoring to `enqueueLinks()`. Can you spot it? Can you reimplement it using the return value of `enqueueLinks()`?
 
 And that's it! No more parsing the links from HTML using Cheerio, filtering them and enqueueing them one by one It all gets done automatically! `enqueueLinks()` is just one example of Apify SDK's powerful helper functions. They're all designed to make your life easier so you can focus on getting your data, while leaving the mundane crawling management to your tools.
 
@@ -769,13 +803,14 @@ In the previous chapter, we've used the `Apify.utils.enqueueLinks()` function li
 await enqueueLinks({
     $,
     requestQueue,
-    pseudoUrls: ['http[s?]://apify.com[.*]']
+    pseudoUrls: ['http[s?]://apify.com[.*]'],
+    baseUrl: request.loadedUrl,
 });
 ```
 While very useful in that scenario, we need something different now. Instead of finding all the `<a href="..">` links that match the `pseudoUrl`, we need to find only the specific ones that will take us to the actor detail pages. Otherwise, we'd be visiting a lot of other pages that we're not interested in. Using the power of DevTools and yet another `enqueueLinks()` parameter, this becomes fairly easy.
 
 ```js
-const handlePageFunction = async ({ $, request, response }) => {
+const handlePageFunction = async ({ $, request }) => {
     console.log(`Processing ${request.url}`);
 
     // Only enqueue new links from the category pages.
@@ -784,7 +819,7 @@ const handlePageFunction = async ({ $, request, response }) => {
             $,
             requestQueue,
             selector: 'a.item',
-            baseUrl: response.request.uri.href, // <-- Ugly, we know.
+            baseUrl: request.loadedUrl,
             userData: {
                 detailPage: true
             }
@@ -803,26 +838,6 @@ When we previously used `enqueueLinks()`, we were not providing any `selector` p
 
 ##### The missing `pseudoUrls`
 Earlier we've learned that `pseudoUrls` are not required and if omitted, all links matching the given `selector` will be enqueued. This is exactly what we need, so we're skipping `pseudoUrls` this time. That does not mean that you can't use `pseudoUrls` together with a custom `selector` though, because you absolutely can!
-
-##### The `baseUrl` parameter of `enqueueLinks()`
-
-**TLDR;** Just use `baseUrl: response.request.uri.href` when working with `CheerioCrawler`.
-
-This is probably the weirdest and most complicated addition to the list. This is not the place to talk at length about <a href="https://stackoverflow.com/questions/2005079/absolute-vs-relative-urls" target="_blank">absolute and relative paths</a>, but in short, the links we encounter in a page can either be absolute, such as:
-
-```
-https://apify.com/john-doe/my-actor
-```
-
-or relative:
-
-```
-/john-doe/my-actor
-```
-
-Browsers handle this automatically, but since we're only using plain HTTP requests, we need to tell the `enqueueLinks()` function how to resolve the relative links to the absolute ones, so we can use them for scraping. This is where the `response.request.uri.href` comes into play, because it returns the correct URL to use as `baseUrl`.
-
-> Even though it seems possible, we can't use the `request.url` of our `Request` instances, because the page could have been redirected and the final URL would be different from the one we requested. We're working on adding a `request.loadedUrl` property that would solve this for us.
 
 ##### Finally, the `userData` of `enqueueLinks()`
 You will see `userData` used often throughout Apify SDK and it's nothing more than a place to store the user's data on a `Request` instance. You can access it by `request.userData` and it's a plain `Object` that can be used to store anything that needs to survive a single `handlePageFunction()` invocation.
