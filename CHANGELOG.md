@@ -1,3 +1,7 @@
+xxx
+===================
+- `Snapshotter` now marks Apify Client overloaded on the basis of 2nd retry errors.
+
 0.13.0 / 2019-03-14
 ===================
 - **BREAKING CHANGE:** Added `puppeteerOperationTimeoutSecs` option to `PuppeteerPool`.
