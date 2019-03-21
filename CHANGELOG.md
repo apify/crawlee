@@ -1,4 +1,4 @@
-xxx
+0.13.1 / 2019-03-21
 ===================
 - `Snapshotter` now marks Apify Client overloaded on the basis of 2nd retry errors.
 - Added `Apify.addWebhook()` to invoke a webhook when an actor run ends.

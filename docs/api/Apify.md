@@ -10,6 +10,7 @@ accessible from the left sidebar.
 
 
 * [Apify](#module_Apify)
+    * [`.addWebhook()`](#module_Apify.addWebhook) ⇒ <code>Promise&lt;(Object|undefined)&gt;</code>
     * [`.call(actId, [input], [options])`](#module_Apify.call) ⇒ [<code>Promise&lt;ActorRun&gt;</code>](../typedefs/actorrun)
     * [`.callTask(taskId, [input], [options])`](#module_Apify.callTask) ⇒ [<code>Promise&lt;ActorRun&gt;</code>](../typedefs/actorrun)
     * [`.client`](#module_Apify.client)
@@ -31,6 +32,35 @@ accessible from the left sidebar.
     * [`.pushData(item)`](#module_Apify.pushData) ⇒ <code>Promise</code>
     * [`.setValue(key, value, [options])`](#module_Apify.setValue) ⇒ <code>Promise</code>
 
+<a name="module_Apify.addWebhook"></a>
+
+## `Apify.addWebhook()` ⇒ <code>Promise&lt;(Object|undefined)&gt;</code>
+Creates an ad-hoc webhook for the current actor run, which lets you receive a notification when the actor run finished or failed.
+For more information about Apify actor webhooks, please see the <a href="https://apify.com/docs/webhook" target="_blank">documentation</a>.
+
+Note that webhooks are only supported for actors running on the Apify platform.
+In local environment, the function will print a warning and have no effect.
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>options.eventTypes</code></td><td><code>Array&lt;String&gt;</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Array of event types, which you can set for actor run, see
+the <a href="https://apify.com/docs/webhooks#events-actor-run" target="_blank">actor run events</a> in the Apify doc.</p>
+</td></tr><tr>
+<td><code>options.requestUrl</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>URL which will be requested using HTTP POST request, when actor run will be in specific event type.</p>
+</td></tr></tbody>
+</table>
 <a name="module_Apify.call"></a>
 
 ## `Apify.call(actId, [input], [options])` ⇒ [<code>Promise&lt;ActorRun&gt;</code>](../typedefs/actorrun)
