@@ -1,3 +1,7 @@
+0.13.2 / 2019-03-21
+===================
+- Fix `REQUEST_QUEUE_HEAD_MAX_LIMIT` is not defined error.
+
 0.13.1 / 2019-03-21
 ===================
 - `Snapshotter` now marks Apify Client overloaded on the basis of 2nd retry errors.
