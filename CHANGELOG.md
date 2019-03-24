@@ -1,3 +1,7 @@
+0.13.3 / 2019-03-21
+===================
+- Fix `puppeteerPoolOptions` object not being used in `PuppeteerCrawler`.
+
 0.13.2 / 2019-03-21
 ===================
 - Fix `REQUEST_QUEUE_HEAD_MAX_LIMIT` is not defined error.
