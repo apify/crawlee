@@ -226,11 +226,11 @@ class PuppeteerCrawler {
             if (value) log.deprecated(`PuppeteerCrawler: options.${key} is deprecated. Use options.puppeteerPoolOptions instead.`);
         });
         // puppeteerPoolOptions can be null or undefined or Object, so we merge it this way, because null is not replaced by defaults above.
-        this.puppeteerPoolOptions = Object.assign(
+        this.puppeteerPoolOptions = _.defaults(
             {},
-            puppeteerPoolOptions,
             { launchPuppeteerFunction, launchPuppeteerOptions },
             deprecatedPuppeteerPoolOptions,
+            puppeteerPoolOptions,
         );
 
         this.puppeteerPool = null; // Constructed when .run()
