@@ -772,15 +772,9 @@ https://apify.com/library?type=acts&category=TRAVEL
 ```
 and open DevTools either by right clicking anywhere in the page and selecting `Inspect`, or by pressing `F12` or by any other means relevant to your system. Once you're there, you'll see a bunch of DevToolsy stuff and a view of the category page with the individual actor cards.
 
-> [ADD SCREENSHOT]
-
 Now, find the `Select an element` tool and use it to select one of the actor cards. Make sure to select the whole card, not some of its contents, such as its title or description.
 
-> [ADD SCREENSHOT]
-
 In the resulting HTML display, it will put your cursor somewhere. Inspect the HTML around it. You'll see that there are CSS classes attached to the different HTML elements.
-
-> [ADD SCREENSHOT]
 
 By hovering over the individual elements, you will see their placement in the page's view. It's easy to see the page's structure around the actor cards now. All the cards are displayed in a `<div>` with a class of `itemsWrapper`. This one holds another `<div>` with the class of `items-grid` and finally, the individual cards are represented by an `<a>` element with the class of `item`.
 
@@ -893,14 +887,16 @@ This concludes our Crawling strategy section, because we have taught the crawler
 At the beginning of this chapter, we've created a list of information we wanted to collect about the actors in the library. Let's review that and figure out ways to access it.
 
    1. URL
-   2. title
-   3. owner
-   3. unique identifier (such as `johndoe/amazing-web-crawler`)
-   4. description
-   5. when it was last run
-   6. how many times it was used
+   3. Owner
+   3. Unique identifier (such as `johndoe/amazing-web-crawler`)
+   2. Title
+   4. Description
+   5. Last run date
+   6. Number of runs
+   
+![data to scrape](./img/getting-started/scraping-practice.png "Overview of data to be scraped.")
 
-#### The obvious ones: `URL`, `owner` and `unique identifier`
+#### Scraping the URL, Owner and Unique identifier
 Some information is lying right there in front of us without even having to touch the actor detail pages. The `URL` we already have - the `request.url`. And by looking at it carefully, we realize that it already includes the `owner` and the `unique identifier` too. We can just split the `string` and be on our way then!
 
 ```js
@@ -913,38 +909,43 @@ const owner = urlArr[0]; // 'johndoe'
 
 > It's always a matter of preference, whether to store this information separately in the resulting dataset, or not. Whoever uses the dataset can easily parse the `owner` from the `URL`, so should we duplicate the data unnecessarily? Our opinion is that unless the increased data consumption would be too large to bear, it's always better to make the dataset as readable as possible. Someone might want to filter by `owner` for example and keeping only the `URL` in the dataset would make this complicated without using additional tools.
 
-#### Scraping the `title`, `description`, `lastRunDate` and `runCount`
-We cannot conjure this information out of anything that we already have, so let's finally get to some scraping! For starters, we open one of the detail pages and use our DevTools-Fu to figure out how to get the title of the actor.
+#### Scraping Title, Description, Last run date and Number of runs
+Now it's time to add more data to the results. Let's open one of the actor detail pages in the Library, for example the [`apify/web-scraper`](https://apify.com/apify/web-scraper) page and use our DevTools-Fu to figure out how to get the title of the actor.
 
-Not surprisingly, we find out that the title is there under a `<h1>` tag, as titles should be. Maybe surprisingly, we find that there are actually two `<h1>` tags on the detail page. This should get us thinking. Is there any parent element that perhaps wraps all the information that we want to scrape? Yes, there is! The `<div class="wrap ...">` is a common ancestor to everything. So let's start with getting that element first.
+##### Title
+![actor title](./img/getting-started/title-01.png "Finding actor title in DevTools.")
 
-Unfortunately, running
+By using the element selector tool, we find out that the title is there under an `<h1>` tag, as titles should be. Maybe surprisingly, we find that there are actually two `<h1>` tags on the detail page. This should get us thinking. Is there any parent element that perhaps wraps all the information that we want to scrape? Yes, there is! The `<div class="wrap ...">` is a common ancestor to everything. So let's start by getting that element first.
+
+> Remember that you can press CTRL+F (CMD+F) in the Elements tab of DevTools to open the search bar where you can quickly search for elements using their selectors.
+
+Using the search bar to find `div.wrap` in the DevTools reveals that it's not the only `div.wrap` in the page, so we need to make the selector a little bit more specific by adding its parent element: `header div.wrap`.
+
+![actor title selector](./img/getting-started/title-02.png "Finding actor title in DevTools.")
 
 ```js
-document.querySelectorAll('div.wrap');
+// Using jQuery.
+const $wrapper = $('header div.wrap');
 ```
+> Always make sure to use the DevTools to verify your scraping process and assumptions. It's faster than changing the crawler code all the time.
 
-in the DevTools reveals that it's not the only `'div.wrap'` in the page, so we need to make the selector a little bit more specific by adding a `<header>` parent.
+Getting the title should now be pretty easy. We know that it's in the `$wrapper` so we just need to find it there using `jQuery`:
 
 ```js
 const $wrapper = $('header div.wrap');
-```
-> Always make sure to use the DevTools and its Console to verify your scraping process and assumptions. It's faster than changing the crawler code all the time.
-
-Getting the title should now be pretty easy. We know that it's in the `$wrapper` so we just need to find it there:
-
-```js
-const $wrapper = $('header div.wrap');
-const results = {
+return {
     title: $wrapper.find('h1').text(),
 };
 ```
 
+##### Description
 Getting the actor's description is a piece of cake. We already have the boilerplate ready, so all we need to do is add a new selection.
+
+![actor description selector](./img/getting-started/description.png "Finding actor description in DevTools.")
 
 ```js
 const $wrapper = $('header div.wrap');
-const results = {
+return {
     title: $wrapper.find('h1').text(),
     description: $wrapper.find('p').text(),
 };
@@ -952,26 +953,30 @@ const results = {
 
 Getting the `lastRunDate` and `runCount` is not as straightforward as the previous items, but not to worry, it's still pretty simple.
 
-The DevTools tell us, that the `lastRunDate` can be found in the second of the two `<time>` elements in the `$wrapper`.
+##### Last run date
+The DevTools tell us that the `lastRunDate` can be found in the second of the two `<time>` elements in the `$wrapper`.
+
+![actor last run date selector](./img/getting-started/last-run-date.png "Finding actor last run date in DevTools.")
 
 ```js
 const $wrapper = $('header div.wrap');
-const results = {
+return {
     title: $wrapper.find('h1').text(),
     description: $wrapper.find('p').text(),
     lastRunDate: new Date(Number($wrapper.find('time').eq(1).attr('datetime'))),
 };
 ```
 
-If you're wondering where that insanity came from, I'm sorry. I just could not resist putting it on a single line! In the end, it's quite readable. We take our `$wrapper` and find the `<time>` elements it contains. There are two, so we grab the second one using the `.eq(1)` call and then we read its `datetime` attribute, because thats where the timestamp is stored as a `string`.
+It might look a little too complex at first glance, but let me walk you through it. We take our `$wrapper` and find the `<time>` elements it contains. There are two, so we grab the second one using the `.eq(1)` call (it's zero indexed) and then we read its `datetime` attribute, because that's where a unix timestamp is stored as a `string`.
 
 But we would much rather see a readable date in our results, not a unix timestamp, so we need to convert it. Unfortunately the `new Date()` constructor will not accept a `string`, so we cast the `string` to a `number` using the `Number()` function before actually calling `new Date()`. Phew!
 
-And we're finishing up with the `runCount`. There's no specific element like `<time>`, so we need to create a complex selector and then do a transformation on the result.
+##### Run count
+And so we're finishing up with the `runCount`. There's no specific element like `<time>`, so we need to create a complex selector and then do a transformation on the result.
 
 ```js
 const $wrapper = $('header div.wrap');
-const results = {
+return {
     title: $wrapper.find('h1').text(),
     description: $wrapper.find('p').text(),
     lastRunDate: new Date(Number($wrapper.find('time').eq(1).attr('datetime'))),
@@ -981,7 +986,7 @@ const results = {
 
 The `div.stats > span:nth-of-type(3)` looks complicated, but it only reads that we're looking for a `<div class="stats ...">` element and within that element we're looking for the third `<span>` element. We grab its text, but we're only interested in the number of runs. So we parse the number out using a regular expression, but its type is still a `string`, so we finally convert the result to a `number` by wrapping it with a `Number()` call.
 
-And there we have it! All the data we needed in a single `results` object. For the sake of completeness, let's add the properties we parsed from the URL earlier and finish with a `console.log(results)` to see the fruit of our efforts.
+And there we have it! All the data we needed in a single object. For the sake of completeness, let's add the properties we parsed from the URL earlier and we're good to go.
 
 ```js
 const urlArr = request.url.split('/').slice(-2); 
@@ -1014,14 +1019,14 @@ Apify.main(async () => {
         'https://apify.com/library?type=acts&category=ENTERTAINMENT'
     ];
 
-    const requestList = await Apify.openRequestList('x', sources);
+    const requestList = await Apify.openRequestList('categories', sources);
     const requestQueue = await Apify.openRequestQueue();
 
     const crawler = new Apify.CheerioCrawler({
         maxRequestsPerCrawl: 50,
         requestList,
         requestQueue,
-        handlePageFunction: async ({ $, request, response }) => {
+        handlePageFunction: async ({ $, request }) => {
             console.log(`Processing ${request.url}`);
             
             // This is our new scraping logic.
@@ -1047,7 +1052,7 @@ Apify.main(async () => {
                     $,
                     requestQueue,
                     selector: 'a.item',
-                    baseUrl: response.request.uri.href,
+                    baseUrl: request.loadedUrl,
                     userData: {
                         detailPage: true
                     }
@@ -1087,14 +1092,14 @@ Apify.main(async () => {
         'https://apify.com/library?type=acts&category=ENTERTAINMENT'
     ];
 
-    const requestList = await Apify.openRequestList('x', sources);
+    const requestList = await Apify.openRequestList('categories', sources);
     const requestQueue = await Apify.openRequestQueue();
 
     const crawler = new Apify.CheerioCrawler({
         maxRequestsPerCrawl: 50,
         requestList,
         requestQueue,
-        handlePageFunction: async ({ $, request, response }) => {
+        handlePageFunction: async ({ $, request }) => {
             console.log(`Processing ${request.url}`);
             
             // This is our new scraping logic.
@@ -1120,7 +1125,7 @@ Apify.main(async () => {
                     $,
                     requestQueue,
                     selector: 'a.item',
-                    baseUrl: response.request.uri.href,
+                    baseUrl: request.loadedUrl,
                     userData: {
                         detailPage: true
                     }
@@ -1206,7 +1211,7 @@ const sources = input.map(category => ({
     }
 }));
     
-const requestList = await Apify.openRequestList('x', sources);
+const requestList = await Apify.openRequestList('categories', sources);
 // ...
 ```
 The `userData.label` is also a convention that we've been using for quite some time to label different `Requests`. We know that this is a category URL so we `label` it `CATEGORY`. This way, we can easily make decisions in the `handlePageFunction` without having to inspect the URL itself.
@@ -1230,7 +1235,7 @@ const { utils: { log } } = Apify;
 
 Apify.main(async () => {
     log.info('Starting actor.');
-    const requestList = await Apify.openRequestList('x', await getSources());
+    const requestList = await Apify.openRequestList('categories', await getSources());
     const requestQueue = await Apify.openRequestQueue();
     const router = createRouter(requestQueue);
 
@@ -1264,11 +1269,11 @@ async function getSources() {
 
 function createRouter(requestQueue) {
     return {
-        CATEGORY: async ({ $, response }) => Apify.utils.enqueueLinks({
+        CATEGORY: async ({ $, request }) => Apify.utils.enqueueLinks({
             $,
             requestQueue,
             selector: 'a.item',
-            baseUrl: response.request.uri.href,
+            baseUrl: request.loadedUrl,
             userData: {
                 label: 'DETAIL'
             }
