@@ -643,15 +643,17 @@ For the purposes of this tutorial, let's just go ahead with HTTP requests and HT
 #### Choosing the data we need
 A good first step is always to figure out what it is we want to scrape and where to find it. For the time being, let's just agree that we want to scrape all actors (see the `Show` dropdown) in all categories (which can be found on the left side of the page) and for each actor we want to get its 
 
-   1. URL
-   2. title
-   3. owner
-   3. unique identifier (such as `johndoe/amazing-web-crawler`)
-   4. description
-   5. when it was last run
-   6. how many times it was used
+ 1. URL
+ 2. Owner
+ 3. Unique identifier (such as `apify/web-scraper`)
+ 4. Title
+ 5. Description
+ 6. Last run date
+ 7. Number of runs
+     
+We can see that some of the information is available directly on the list page, but for details such as "Last run date" or "Number of runs" we'll need to open the actor detail pages too.
 
-We can see that some of the information is available directly on the list page, but for details such as "last run" or "uses" we'll need to open the actor detail pages too.
+![data to scrape](/img/getting-started/scraping-practice.png "Overview of data to be scraped.")
 
 #### Analyzing the target
 Knowing that we will use plain HTTP requests, we immediately know that we won't be able to manipulate the website in any way. We will only be able to go through the HTML it gives us and parse our data from there. This might sound like a huge limitation, but you might be surprised in how effective it might be. Let's get on it!
@@ -886,25 +888,25 @@ This concludes our Crawling strategy section, because we have taught the crawler
 ### Scraping data
 At the beginning of this chapter, we've created a list of information we wanted to collect about the actors in the library. Let's review that and figure out ways to access it.
 
-   1. URL
-   3. Owner
-   3. Unique identifier (such as `johndoe/amazing-web-crawler`)
-   2. Title
-   4. Description
-   5. Last run date
-   6. Number of runs
+1. URL
+2. Owner
+3. Unique identifier (such as `apify/web-scraper`)
+4. Title
+5. Description
+6. Last run date
+7. Number of runs
    
-![data to scrape](./img/getting-started/scraping-practice.png "Overview of data to be scraped.")
+![data to scrape](/img/getting-started/scraping-practice.png "Overview of data to be scraped.")
 
 #### Scraping the URL, Owner and Unique identifier
 Some information is lying right there in front of us without even having to touch the actor detail pages. The `URL` we already have - the `request.url`. And by looking at it carefully, we realize that it already includes the `owner` and the `unique identifier` too. We can just split the `string` and be on our way then!
 
 ```js
-// request.url = https://apify.com/johndoe/amazing-web-crawler
+// request.url = https://apify.com/apify/web-scraper
 
-const urlArr = request.url.split('/').slice(-2); // ['johndoe', 'amazing-web-crawler']
-const uniqueIdentifier = urlArr.join('/'); // 'johndoe/amazing-web-crawler'
-const owner = urlArr[0]; // 'johndoe'
+const urlArr = request.url.split('/').slice(-2); // ['apify', 'web-scraper']
+const uniqueIdentifier = urlArr.join('/'); // 'apify/web-scraper'
+const owner = urlArr[0]; // 'apify'
 ```
 
 > It's always a matter of preference, whether to store this information separately in the resulting dataset, or not. Whoever uses the dataset can easily parse the `owner` from the `URL`, so should we duplicate the data unnecessarily? Our opinion is that unless the increased data consumption would be too large to bear, it's always better to make the dataset as readable as possible. Someone might want to filter by `owner` for example and keeping only the `URL` in the dataset would make this complicated without using additional tools.
@@ -913,7 +915,7 @@ const owner = urlArr[0]; // 'johndoe'
 Now it's time to add more data to the results. Let's open one of the actor detail pages in the Library, for example the [`apify/web-scraper`](https://apify.com/apify/web-scraper) page and use our DevTools-Fu to figure out how to get the title of the actor.
 
 ##### Title
-![actor title](./img/getting-started/title-01.png "Finding actor title in DevTools.")
+![actor title](/img/getting-started/title-01.png "Finding actor title in DevTools.")
 
 By using the element selector tool, we find out that the title is there under an `<h1>` tag, as titles should be. Maybe surprisingly, we find that there are actually two `<h1>` tags on the detail page. This should get us thinking. Is there any parent element that perhaps wraps all the information that we want to scrape? Yes, there is! The `<div class="wrap ...">` is a common ancestor to everything. So let's start by getting that element first.
 
@@ -921,7 +923,7 @@ By using the element selector tool, we find out that the title is there under an
 
 Using the search bar to find `div.wrap` in the DevTools reveals that it's not the only `div.wrap` in the page, so we need to make the selector a little bit more specific by adding its parent element: `header div.wrap`.
 
-![actor title selector](./img/getting-started/title-02.png "Finding actor title in DevTools.")
+![actor title selector](/img/getting-started/title-02.png "Finding actor title in DevTools.")
 
 ```js
 // Using jQuery.
@@ -941,7 +943,7 @@ return {
 ##### Description
 Getting the actor's description is a piece of cake. We already have the boilerplate ready, so all we need to do is add a new selection.
 
-![actor description selector](./img/getting-started/description.png "Finding actor description in DevTools.")
+![actor description selector](/img/getting-started/description.png "Finding actor description in DevTools.")
 
 ```js
 const $wrapper = $('header div.wrap');
@@ -956,7 +958,7 @@ Getting the `lastRunDate` and `runCount` is not as straightforward as the previo
 ##### Last run date
 The DevTools tell us that the `lastRunDate` can be found in the second of the two `<time>` elements in the `$wrapper`.
 
-![actor last run date selector](./img/getting-started/last-run-date.png "Finding actor last run date in DevTools.")
+![actor last run date selector](/img/getting-started/last-run-date.png "Finding actor last run date in DevTools.")
 
 ```js
 const $wrapper = $('header div.wrap');
