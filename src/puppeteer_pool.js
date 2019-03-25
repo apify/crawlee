@@ -131,7 +131,7 @@ class PuppeteerInstance {
  * @param {LaunchPuppeteerOptions} [options.launchPuppeteerOptions]
  *   Options used by `Apify.launchPuppeteer()` to start new Puppeteer instances.
  *   See [`LaunchPuppeteerOptions`](../typedefs/launchpuppeteeroptions).
- * @param {Boolean} [options.recycleDiskCache]
+ * @param {Boolean} [options.recycleDiskCache=false]
  *   Enables recycling of disk cache directories by Chrome instances.
  *   When a browser instance is closed, its disk cache directory is not deleted but it's used by a newly opened browser instance.
  *   This is useful to reduce amount of data that needs to be downloaded to speed up crawling and reduce proxy usage.
