@@ -121,9 +121,9 @@ const DEFAULT_OPTIONS = {
  *
  *   Note that a single page object is only used to process a single request and it is closed afterwards.
  *
- *   See source code on
- *   <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_crawler.js#L9" target="_blank">GitHub</a>
- *   for default behavior.
+ *   By default, the function invokes Puppeteer's `Page.goto()` with a timeout of 60 seconds.
+ *   For details, see source code on
+ *   <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_crawler.js#L9" target="_blank">GitHub</a>.
  * @param {Function} [options.handleFailedRequestFunction]
  *   A function to handle requests that failed more than `option.maxRequestRetries` times.
  *
