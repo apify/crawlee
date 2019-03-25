@@ -54,10 +54,12 @@ Let's try that!
 cd my-new-project
 ```
 ```bash
-apify run
+apify run -p
 ```
 
-You should start seeing log messages in the terminal as the system boots up and after a second, a Chromium browser window should pop up. In the window, you'll see quickly changing pages and back in the terminal, you should see the titles (contents of the &lt;title&gt; HTML tags) of the pages printed.
+> The `-p` flag is great to remember, because it stands for `--purge` and it clears out your persistent storages before starting the actor. `INPUT.json` and named storages are kept. Whenever you're just restarting your actor and you're not interested in the data of the previous run, you should use `apify run -p` to prevent the old state from messing with your current run. If this is confusing, don't worry. You'll learn about storages and `INPUT.json` soon.
+
+You should start seeing log messages in the terminal as the system boots up and after a second, a Chromium browser window should pop up. In the window, you'll see quickly changing pages and back in the terminal, you should see the titles (contents of the `<title>` HTML tags) of the pages printed.
 
 You can always terminate the crawl with a keypress in the terminal:
 
@@ -75,7 +77,7 @@ It comes with a free account, so let's go to our
 <a href="https://my.apify.com/sign-up" target="_blank">sign-up page</a>
 and create one, if you haven't already. Don't forget to verify your email. Without it, you won't be able to run any projects.
 
-Once you're in, you might be prompted by our in-app help to walk through a step-by-step guide into some of our new features. Feel free to finish that, if you'd like, but once you're done, click on the **Actors** tab in the left menu. You might be tempted to go directly to Crawlers, because what the heck are **Actors**, right? Bear with me, **Actors** are the tool that you really want! To read more about them, see: [What is an Actor](./whatisanactor).
+Once you're in, you might be prompted by our in-app help to walk through a step-by-step guide into some of our new features. Feel free to finish that, if you'd like, but once you're done, click on the **Actors** tab in the left menu. To read more about **Actors**, see: [What is an Actor](./whatisanactor).
 
 ### Creating a new project
 In the page that shows after clicking on Actors in the left menu, choose **Create new**. Give it a name in the form that opens, let's say, `my-new-actor`. Disregard all the available options for now and save your changes.
@@ -741,16 +743,14 @@ Apify.main(async () => {
         'https://apify.com/library?type=acts&category=ENTERTAINMENT'
     ];
 
-    const requestList = await Apify.openRequestList('x', sources);
-    const requestQueue = await Apify.openRequestQueue();
+    const requestList = await Apify.openRequestList('categories', sources);
 
     const crawler = new Apify.CheerioCrawler({
-        maxRequestsPerCrawl: 10,
         requestList,
-        requestQueue,
         handlePageFunction: async ({ $, request }) => {
             $('.item').each((i, el) => { // <---- Select all the actor cards.
-                console.log($(el).text());
+                const text = $(el).text();
+                console.log(`ITEM: ${text}\n`);
             })
         }
     });
@@ -830,9 +830,6 @@ const handlePageFunction = async ({ $, request }) => {
 
 The code should look pretty familiar to you. It's a very simple `handlePageFunction` where we log the currently processed URL to the console and enqueue more links. But there are also a few new, interesting additions. Let's break it down.
 
-##### The `response` parameter of the `handlePageFunction()`
-You might have noticed that we've added a third parameter to the function's definition - `response`. The response is actually the HTTP response object that our crawler received when making the HTTP request to the target website. It contains useful information like the HTTP `statusCode` and the original HTTP `request` we've made to the website. Note that this is NOT the same object as our own `Request` instance, that's available as the `request` parameter of the `handlePageFunction`. The `response.request` object is a low level representation provided by the underlying HTTP client library and is not provided by Apify SDK.
-
 ##### The `selector` parameter of `enqueueLinks()`
 When we previously used `enqueueLinks()`, we were not providing any `selector` parameter and it was fine, because we wanted to use the default setting, which is `a` - finds all `<a>` elements. But now, we need to be more specific. There are multiple `<a>` links on the given category page, but we're only interested in those that will take us to item (actor) details. Using the DevTools, we found out that we can select the links we wanted using the `a.item` selector, which selects all the `<a class="item ...">` elements. And those are exactly the ones we're interested in.
 
@@ -840,12 +837,12 @@ When we previously used `enqueueLinks()`, we were not providing any `selector` p
 Earlier we've learned that `pseudoUrls` are not required and if omitted, all links matching the given `selector` will be enqueued. This is exactly what we need, so we're skipping `pseudoUrls` this time. That does not mean that you can't use `pseudoUrls` together with a custom `selector` though, because you absolutely can!
 
 ##### Finally, the `userData` of `enqueueLinks()`
-You will see `userData` used often throughout Apify SDK and it's nothing more than a place to store the user's data on a `Request` instance. You can access it by `request.userData` and it's a plain `Object` that can be used to store anything that needs to survive a single `handlePageFunction()` invocation.
+You will see `userData` used often throughout Apify SDK and it's nothing more than a place to store your own data on a `Request` instance. You can access it by `request.userData` and it's a plain `Object` that can be used to store anything that needs to survive the full life-cycle of the `Request`.
 
 Using the `userData` parameter of `enqueueLinks()` will populate all the `Request` instances it creates and enqueues with the provided data. In our case, we use it to mark the enqueued `Requests` as a `detailPage` so that we can easily differentiate between the category pages and the detail pages.
 
 #### Another sanity check
-It's always good to work step by step. We have this new enqueueing logic in place, so let's test it out:
+It's always good to work step by step. We have this new enqueueing logic in place and since the previous [Sanity check](#sanity-check) worked only with a `RequestList`, because we were not enqueueing anything so don't forget to add back the `RequestQueue` and `maxRequestsPerCrawl` limit. Let's test it out!
 
 ```js
 const Apify = require('apify');
@@ -858,14 +855,14 @@ Apify.main(async () => {
         'https://apify.com/library?type=acts&category=ENTERTAINMENT'
     ];
 
-    const requestList = await Apify.openRequestList('x', sources);
-    const requestQueue = await Apify.openRequestQueue();
+    const requestList = await Apify.openRequestList('categories', sources);
+    const requestQueue = await Apify.openRequestQueue(); // <----------------
 
     const crawler = new Apify.CheerioCrawler({
-        maxRequestsPerCrawl: 50,
+        maxRequestsPerCrawl: 50, // <----------------------------------------
         requestList,
-        requestQueue,
-        handlePageFunction: async ({ $, request, response }) => {
+        requestQueue, // <---------------------------------------------------
+        handlePageFunction: async ({ $, request }) => {
             console.log(`Processing ${request.url}`);
 
             // Only enqueue new links from the category pages.
@@ -874,7 +871,7 @@ Apify.main(async () => {
                     $,
                     requestQueue,
                     selector: 'a.item',
-                    baseUrl: response.request.uri.href,
+                    baseUrl: request.loadedUrl,
                     userData: {
                         detailPage: true
                     }
@@ -888,7 +885,7 @@ Apify.main(async () => {
 });
 ```
 
-There's actually nothing new here. We've only added the `handlePageFunction()` with the `enqueueLinks()` logic from the previous section to the code we've written earlier. As always, try running it in an environment of your choice. You should see the crawler output a number of links to the console, as it crawls the category pages first and then all the links to the actor detail pages it found.
+We've added the `handlePageFunction()` with the `enqueueLinks()` logic from the previous section to the code we've written earlier. As always, try running it in an environment of your choice. You should see the crawler output a number of links to the console, as it crawls the category pages first and then all the links to the actor detail pages it found.
 
 This concludes our Crawling strategy section, because we have taught the crawler to visit all the pages we need. Let's continue with scraping the tasty data.
 
