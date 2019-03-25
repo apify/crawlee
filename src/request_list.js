@@ -542,7 +542,7 @@ export class RequestList {
      */
     _ensureIsInitialized() {
         if (!this.isInitialized) {
-            throw new Error('RequestList is not initialized. You must call "await requestList.initialize();" before using it!');
+            throw new Error('RequestList is not initialized; you must call "await requestList.initialize()" before using it!');
         }
     }
 
