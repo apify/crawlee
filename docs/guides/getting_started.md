@@ -54,10 +54,12 @@ Let's try that!
 cd my-new-project
 ```
 ```bash
-apify run
+apify run -p
 ```
 
-You should start seeing log messages in the terminal as the system boots up and after a second, a Chromium browser window should pop up. In the window, you'll see quickly changing pages and back in the terminal, you should see the titles (contents of the &lt;title&gt; HTML tags) of the pages printed.
+> The `-p` flag is great to remember, because it stands for `--purge` and it clears out your persistent storages before starting the actor. `INPUT.json` and named storages are kept. Whenever you're just restarting your actor and you're not interested in the data of the previous run, you should use `apify run -p` to prevent the old state from messing with your current run. If this is confusing, don't worry. You'll learn about storages and `INPUT.json` soon.
+
+You should start seeing log messages in the terminal as the system boots up and after a second, a Chromium browser window should pop up. In the window, you'll see quickly changing pages and back in the terminal, you should see the titles (contents of the `<title>` HTML tags) of the pages printed.
 
 You can always terminate the crawl with a keypress in the terminal:
 
@@ -75,7 +77,7 @@ It comes with a free account, so let's go to our
 <a href="https://my.apify.com/sign-up" target="_blank">sign-up page</a>
 and create one, if you haven't already. Don't forget to verify your email. Without it, you won't be able to run any projects.
 
-Once you're in, you might be prompted by our in-app help to walk through a step-by-step guide into some of our new features. Feel free to finish that, if you'd like, but once you're done, click on the **Actors** tab in the left menu. You might be tempted to go directly to Crawlers, because what the heck are **Actors**, right? Bear with me, **Actors** are the tool that you really want! To read more about them, see: [What is an Actor](./whatisanactor).
+Once you're in, you might be prompted by our in-app help to walk through a step-by-step guide into some of our new features. Feel free to finish that, if you'd like, but once you're done, click on the **Actors** tab in the left menu. To read more about **Actors**, see: [What is an Actor](./whatisanactor).
 
 ### Creating a new project
 In the page that shows after clicking on Actors in the left menu, choose **Create new**. Give it a name in the form that opens, let's say, `my-new-actor`. Disregard all the available options for now and save your changes.
@@ -641,15 +643,17 @@ For the purposes of this tutorial, let's just go ahead with HTTP requests and HT
 #### Choosing the data we need
 A good first step is always to figure out what it is we want to scrape and where to find it. For the time being, let's just agree that we want to scrape all actors (see the `Show` dropdown) in all categories (which can be found on the left side of the page) and for each actor we want to get its 
 
-   1. URL
-   2. title
-   3. owner
-   3. unique identifier (such as `johndoe/amazing-web-crawler`)
-   4. description
-   5. when it was last run
-   6. how many times it was used
+ 1. URL
+ 2. Owner
+ 3. Unique identifier (such as `apify/web-scraper`)
+ 4. Title
+ 5. Description
+ 6. Last run date
+ 7. Number of runs
+     
+We can see that some of the information is available directly on the list page, but for details such as "Last run date" or "Number of runs" we'll need to open the actor detail pages too.
 
-We can see that some of the information is available directly on the list page, but for details such as "last run" or "uses" we'll need to open the actor detail pages too.
+![data to scrape](/img/getting-started/scraping-practice.png "Overview of data to be scraped.")
 
 #### Analyzing the target
 Knowing that we will use plain HTTP requests, we immediately know that we won't be able to manipulate the website in any way. We will only be able to go through the HTML it gives us and parse our data from there. This might sound like a huge limitation, but you might be surprised in how effective it might be. Let's get on it!
@@ -741,16 +745,14 @@ Apify.main(async () => {
         'https://apify.com/library?type=acts&category=ENTERTAINMENT'
     ];
 
-    const requestList = await Apify.openRequestList('x', sources);
-    const requestQueue = await Apify.openRequestQueue();
+    const requestList = await Apify.openRequestList('categories', sources);
 
     const crawler = new Apify.CheerioCrawler({
-        maxRequestsPerCrawl: 10,
         requestList,
-        requestQueue,
         handlePageFunction: async ({ $, request }) => {
             $('.item').each((i, el) => { // <---- Select all the actor cards.
-                console.log($(el).text());
+                const text = $(el).text();
+                console.log(`ITEM: ${text}\n`);
             })
         }
     });
@@ -772,15 +774,9 @@ https://apify.com/library?type=acts&category=TRAVEL
 ```
 and open DevTools either by right clicking anywhere in the page and selecting `Inspect`, or by pressing `F12` or by any other means relevant to your system. Once you're there, you'll see a bunch of DevToolsy stuff and a view of the category page with the individual actor cards.
 
-> [ADD SCREENSHOT]
-
 Now, find the `Select an element` tool and use it to select one of the actor cards. Make sure to select the whole card, not some of its contents, such as its title or description.
 
-> [ADD SCREENSHOT]
-
 In the resulting HTML display, it will put your cursor somewhere. Inspect the HTML around it. You'll see that there are CSS classes attached to the different HTML elements.
-
-> [ADD SCREENSHOT]
 
 By hovering over the individual elements, you will see their placement in the page's view. It's easy to see the page's structure around the actor cards now. All the cards are displayed in a `<div>` with a class of `itemsWrapper`. This one holds another `<div>` with the class of `items-grid` and finally, the individual cards are represented by an `<a>` element with the class of `item`.
 
@@ -830,9 +826,6 @@ const handlePageFunction = async ({ $, request }) => {
 
 The code should look pretty familiar to you. It's a very simple `handlePageFunction` where we log the currently processed URL to the console and enqueue more links. But there are also a few new, interesting additions. Let's break it down.
 
-##### The `response` parameter of the `handlePageFunction()`
-You might have noticed that we've added a third parameter to the function's definition - `response`. The response is actually the HTTP response object that our crawler received when making the HTTP request to the target website. It contains useful information like the HTTP `statusCode` and the original HTTP `request` we've made to the website. Note that this is NOT the same object as our own `Request` instance, that's available as the `request` parameter of the `handlePageFunction`. The `response.request` object is a low level representation provided by the underlying HTTP client library and is not provided by Apify SDK.
-
 ##### The `selector` parameter of `enqueueLinks()`
 When we previously used `enqueueLinks()`, we were not providing any `selector` parameter and it was fine, because we wanted to use the default setting, which is `a` - finds all `<a>` elements. But now, we need to be more specific. There are multiple `<a>` links on the given category page, but we're only interested in those that will take us to item (actor) details. Using the DevTools, we found out that we can select the links we wanted using the `a.item` selector, which selects all the `<a class="item ...">` elements. And those are exactly the ones we're interested in.
 
@@ -840,12 +833,12 @@ When we previously used `enqueueLinks()`, we were not providing any `selector` p
 Earlier we've learned that `pseudoUrls` are not required and if omitted, all links matching the given `selector` will be enqueued. This is exactly what we need, so we're skipping `pseudoUrls` this time. That does not mean that you can't use `pseudoUrls` together with a custom `selector` though, because you absolutely can!
 
 ##### Finally, the `userData` of `enqueueLinks()`
-You will see `userData` used often throughout Apify SDK and it's nothing more than a place to store the user's data on a `Request` instance. You can access it by `request.userData` and it's a plain `Object` that can be used to store anything that needs to survive a single `handlePageFunction()` invocation.
+You will see `userData` used often throughout Apify SDK and it's nothing more than a place to store your own data on a `Request` instance. You can access it by `request.userData` and it's a plain `Object` that can be used to store anything that needs to survive the full life-cycle of the `Request`.
 
 Using the `userData` parameter of `enqueueLinks()` will populate all the `Request` instances it creates and enqueues with the provided data. In our case, we use it to mark the enqueued `Requests` as a `detailPage` so that we can easily differentiate between the category pages and the detail pages.
 
 #### Another sanity check
-It's always good to work step by step. We have this new enqueueing logic in place, so let's test it out:
+It's always good to work step by step. We have this new enqueueing logic in place and since the previous [Sanity check](#sanity-check) worked only with a `RequestList`, because we were not enqueueing anything so don't forget to add back the `RequestQueue` and `maxRequestsPerCrawl` limit. Let's test it out!
 
 ```js
 const Apify = require('apify');
@@ -858,14 +851,14 @@ Apify.main(async () => {
         'https://apify.com/library?type=acts&category=ENTERTAINMENT'
     ];
 
-    const requestList = await Apify.openRequestList('x', sources);
-    const requestQueue = await Apify.openRequestQueue();
+    const requestList = await Apify.openRequestList('categories', sources);
+    const requestQueue = await Apify.openRequestQueue(); // <----------------
 
     const crawler = new Apify.CheerioCrawler({
-        maxRequestsPerCrawl: 50,
+        maxRequestsPerCrawl: 50, // <----------------------------------------
         requestList,
-        requestQueue,
-        handlePageFunction: async ({ $, request, response }) => {
+        requestQueue, // <---------------------------------------------------
+        handlePageFunction: async ({ $, request }) => {
             console.log(`Processing ${request.url}`);
 
             // Only enqueue new links from the category pages.
@@ -874,7 +867,7 @@ Apify.main(async () => {
                     $,
                     requestQueue,
                     selector: 'a.item',
-                    baseUrl: response.request.uri.href,
+                    baseUrl: request.loadedUrl,
                     userData: {
                         detailPage: true
                     }
@@ -888,66 +881,73 @@ Apify.main(async () => {
 });
 ```
 
-There's actually nothing new here. We've only added the `handlePageFunction()` with the `enqueueLinks()` logic from the previous section to the code we've written earlier. As always, try running it in an environment of your choice. You should see the crawler output a number of links to the console, as it crawls the category pages first and then all the links to the actor detail pages it found.
+We've added the `handlePageFunction()` with the `enqueueLinks()` logic from the previous section to the code we've written earlier. As always, try running it in an environment of your choice. You should see the crawler output a number of links to the console, as it crawls the category pages first and then all the links to the actor detail pages it found.
 
 This concludes our Crawling strategy section, because we have taught the crawler to visit all the pages we need. Let's continue with scraping the tasty data.
 
 ### Scraping data
 At the beginning of this chapter, we've created a list of information we wanted to collect about the actors in the library. Let's review that and figure out ways to access it.
 
-   1. URL
-   2. title
-   3. owner
-   3. unique identifier (such as `johndoe/amazing-web-crawler`)
-   4. description
-   5. when it was last run
-   6. how many times it was used
+1. URL
+2. Owner
+3. Unique identifier (such as `apify/web-scraper`)
+4. Title
+5. Description
+6. Last run date
+7. Number of runs
+   
+![data to scrape](/img/getting-started/scraping-practice.png "Overview of data to be scraped.")
 
-#### The obvious ones: `URL`, `owner` and `unique identifier`
+#### Scraping the URL, Owner and Unique identifier
 Some information is lying right there in front of us without even having to touch the actor detail pages. The `URL` we already have - the `request.url`. And by looking at it carefully, we realize that it already includes the `owner` and the `unique identifier` too. We can just split the `string` and be on our way then!
 
 ```js
-// request.url = https://apify.com/johndoe/amazing-web-crawler
+// request.url = https://apify.com/apify/web-scraper
 
-const urlArr = request.url.split('/').slice(-2); // ['johndoe', 'amazing-web-crawler']
-const uniqueIdentifier = urlArr.join('/'); // 'johndoe/amazing-web-crawler'
-const owner = urlArr[0]; // 'johndoe'
+const urlArr = request.url.split('/').slice(-2); // ['apify', 'web-scraper']
+const uniqueIdentifier = urlArr.join('/'); // 'apify/web-scraper'
+const owner = urlArr[0]; // 'apify'
 ```
 
 > It's always a matter of preference, whether to store this information separately in the resulting dataset, or not. Whoever uses the dataset can easily parse the `owner` from the `URL`, so should we duplicate the data unnecessarily? Our opinion is that unless the increased data consumption would be too large to bear, it's always better to make the dataset as readable as possible. Someone might want to filter by `owner` for example and keeping only the `URL` in the dataset would make this complicated without using additional tools.
 
-#### Scraping the `title`, `description`, `lastRunDate` and `runCount`
-We cannot conjure this information out of anything that we already have, so let's finally get to some scraping! For starters, we open one of the detail pages and use our DevTools-Fu to figure out how to get the title of the actor.
+#### Scraping Title, Description, Last run date and Number of runs
+Now it's time to add more data to the results. Let's open one of the actor detail pages in the Library, for example the [`apify/web-scraper`](https://apify.com/apify/web-scraper) page and use our DevTools-Fu to figure out how to get the title of the actor.
 
-Not surprisingly, we find out that the title is there under a `<h1>` tag, as titles should be. Maybe surprisingly, we find that there are actually two `<h1>` tags on the detail page. This should get us thinking. Is there any parent element that perhaps wraps all the information that we want to scrape? Yes, there is! The `<div class="wrap ...">` is a common ancestor to everything. So let's start with getting that element first.
+##### Title
+![actor title](/img/getting-started/title-01.png "Finding actor title in DevTools.")
 
-Unfortunately, running
+By using the element selector tool, we find out that the title is there under an `<h1>` tag, as titles should be. Maybe surprisingly, we find that there are actually two `<h1>` tags on the detail page. This should get us thinking. Is there any parent element that perhaps wraps all the information that we want to scrape? Yes, there is! The `<div class="wrap ...">` is a common ancestor to everything. So let's start by getting that element first.
+
+> Remember that you can press CTRL+F (CMD+F) in the Elements tab of DevTools to open the search bar where you can quickly search for elements using their selectors.
+
+Using the search bar to find `div.wrap` in the DevTools reveals that it's not the only `div.wrap` in the page, so we need to make the selector a little bit more specific by adding its parent element: `header div.wrap`.
+
+![actor title selector](/img/getting-started/title-02.png "Finding actor title in DevTools.")
 
 ```js
-document.querySelectorAll('div.wrap');
+// Using jQuery.
+const $wrapper = $('header div.wrap');
 ```
+> Always make sure to use the DevTools to verify your scraping process and assumptions. It's faster than changing the crawler code all the time.
 
-in the DevTools reveals that it's not the only `'div.wrap'` in the page, so we need to make the selector a little bit more specific by adding a `<header>` parent.
+Getting the title should now be pretty easy. We know that it's in the `$wrapper` so we just need to find it there using `jQuery`:
 
 ```js
 const $wrapper = $('header div.wrap');
-```
-> Always make sure to use the DevTools and its Console to verify your scraping process and assumptions. It's faster than changing the crawler code all the time.
-
-Getting the title should now be pretty easy. We know that it's in the `$wrapper` so we just need to find it there:
-
-```js
-const $wrapper = $('header div.wrap');
-const results = {
+return {
     title: $wrapper.find('h1').text(),
 };
 ```
 
+##### Description
 Getting the actor's description is a piece of cake. We already have the boilerplate ready, so all we need to do is add a new selection.
+
+![actor description selector](/img/getting-started/description.png "Finding actor description in DevTools.")
 
 ```js
 const $wrapper = $('header div.wrap');
-const results = {
+return {
     title: $wrapper.find('h1').text(),
     description: $wrapper.find('p').text(),
 };
@@ -955,26 +955,30 @@ const results = {
 
 Getting the `lastRunDate` and `runCount` is not as straightforward as the previous items, but not to worry, it's still pretty simple.
 
-The DevTools tell us, that the `lastRunDate` can be found in the second of the two `<time>` elements in the `$wrapper`.
+##### Last run date
+The DevTools tell us that the `lastRunDate` can be found in the second of the two `<time>` elements in the `$wrapper`.
+
+![actor last run date selector](/img/getting-started/last-run-date.png "Finding actor last run date in DevTools.")
 
 ```js
 const $wrapper = $('header div.wrap');
-const results = {
+return {
     title: $wrapper.find('h1').text(),
     description: $wrapper.find('p').text(),
     lastRunDate: new Date(Number($wrapper.find('time').eq(1).attr('datetime'))),
 };
 ```
 
-If you're wondering where that insanity came from, I'm sorry. I just could not resist putting it on a single line! In the end, it's quite readable. We take our `$wrapper` and find the `<time>` elements it contains. There are two, so we grab the second one using the `.eq(1)` call and then we read its `datetime` attribute, because thats where the timestamp is stored as a `string`.
+It might look a little too complex at first glance, but let me walk you through it. We take our `$wrapper` and find the `<time>` elements it contains. There are two, so we grab the second one using the `.eq(1)` call (it's zero indexed) and then we read its `datetime` attribute, because that's where a unix timestamp is stored as a `string`.
 
 But we would much rather see a readable date in our results, not a unix timestamp, so we need to convert it. Unfortunately the `new Date()` constructor will not accept a `string`, so we cast the `string` to a `number` using the `Number()` function before actually calling `new Date()`. Phew!
 
-And we're finishing up with the `runCount`. There's no specific element like `<time>`, so we need to create a complex selector and then do a transformation on the result.
+##### Run count
+And so we're finishing up with the `runCount`. There's no specific element like `<time>`, so we need to create a complex selector and then do a transformation on the result.
 
 ```js
 const $wrapper = $('header div.wrap');
-const results = {
+return {
     title: $wrapper.find('h1').text(),
     description: $wrapper.find('p').text(),
     lastRunDate: new Date(Number($wrapper.find('time').eq(1).attr('datetime'))),
@@ -984,7 +988,7 @@ const results = {
 
 The `div.stats > span:nth-of-type(3)` looks complicated, but it only reads that we're looking for a `<div class="stats ...">` element and within that element we're looking for the third `<span>` element. We grab its text, but we're only interested in the number of runs. So we parse the number out using a regular expression, but its type is still a `string`, so we finally convert the result to a `number` by wrapping it with a `Number()` call.
 
-And there we have it! All the data we needed in a single `results` object. For the sake of completeness, let's add the properties we parsed from the URL earlier and finish with a `console.log(results)` to see the fruit of our efforts.
+And there we have it! All the data we needed in a single object. For the sake of completeness, let's add the properties we parsed from the URL earlier and we're good to go.
 
 ```js
 const urlArr = request.url.split('/').slice(-2); 
@@ -1017,14 +1021,14 @@ Apify.main(async () => {
         'https://apify.com/library?type=acts&category=ENTERTAINMENT'
     ];
 
-    const requestList = await Apify.openRequestList('x', sources);
+    const requestList = await Apify.openRequestList('categories', sources);
     const requestQueue = await Apify.openRequestQueue();
 
     const crawler = new Apify.CheerioCrawler({
         maxRequestsPerCrawl: 50,
         requestList,
         requestQueue,
-        handlePageFunction: async ({ $, request, response }) => {
+        handlePageFunction: async ({ $, request }) => {
             console.log(`Processing ${request.url}`);
             
             // This is our new scraping logic.
@@ -1050,7 +1054,7 @@ Apify.main(async () => {
                     $,
                     requestQueue,
                     selector: 'a.item',
-                    baseUrl: response.request.uri.href,
+                    baseUrl: request.loadedUrl,
                     userData: {
                         detailPage: true
                     }
@@ -1090,14 +1094,14 @@ Apify.main(async () => {
         'https://apify.com/library?type=acts&category=ENTERTAINMENT'
     ];
 
-    const requestList = await Apify.openRequestList('x', sources);
+    const requestList = await Apify.openRequestList('categories', sources);
     const requestQueue = await Apify.openRequestQueue();
 
     const crawler = new Apify.CheerioCrawler({
         maxRequestsPerCrawl: 50,
         requestList,
         requestQueue,
-        handlePageFunction: async ({ $, request, response }) => {
+        handlePageFunction: async ({ $, request }) => {
             console.log(`Processing ${request.url}`);
             
             // This is our new scraping logic.
@@ -1123,7 +1127,7 @@ Apify.main(async () => {
                     $,
                     requestQueue,
                     selector: 'a.item',
-                    baseUrl: response.request.uri.href,
+                    baseUrl: request.loadedUrl,
                     userData: {
                         detailPage: true
                     }
@@ -1209,7 +1213,7 @@ const sources = input.map(category => ({
     }
 }));
     
-const requestList = await Apify.openRequestList('x', sources);
+const requestList = await Apify.openRequestList('categories', sources);
 // ...
 ```
 The `userData.label` is also a convention that we've been using for quite some time to label different `Requests`. We know that this is a category URL so we `label` it `CATEGORY`. This way, we can easily make decisions in the `handlePageFunction` without having to inspect the URL itself.
@@ -1233,7 +1237,7 @@ const { utils: { log } } = Apify;
 
 Apify.main(async () => {
     log.info('Starting actor.');
-    const requestList = await Apify.openRequestList('x', await getSources());
+    const requestList = await Apify.openRequestList('categories', await getSources());
     const requestQueue = await Apify.openRequestQueue();
     const router = createRouter(requestQueue);
 
@@ -1267,11 +1271,11 @@ async function getSources() {
 
 function createRouter(requestQueue) {
     return {
-        CATEGORY: async ({ $, response }) => Apify.utils.enqueueLinks({
+        CATEGORY: async ({ $, request }) => Apify.utils.enqueueLinks({
             $,
             requestQueue,
             selector: 'a.item',
-            baseUrl: response.request.uri.href,
+            baseUrl: request.loadedUrl,
             userData: {
                 label: 'DETAIL'
             }

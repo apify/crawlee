@@ -4,8 +4,7 @@ title: Puppeteer Crawler
 ---
 
 This example demonstrates how to use [`PuppeteerCrawler`](../api/puppeteercrawler)
-in combination with [`RequestList`](../api/requestlist)
-and [`RequestQueue`](../api/requestqueue) to recursively scrape the
+in combination with [`RequestQueue`](../api/requestqueue) to recursively scrape the
 <a href="https://news.ycombinator.com" target="_blank">Hacker News website</a> using headless Chrome / Puppeteer.
 The crawler starts with a single URL, finds links to next pages,
 enqueues them and continues until no more desired links are available.
@@ -17,23 +16,14 @@ on the source tab of your actor configuration.
 const Apify = require('apify');
 
 Apify.main(async () => {
-    // Create and initialize an instance of the RequestList class that contains the start URL.
-    const requestList = new Apify.RequestList({
-        sources: [
-            { url: 'https://news.ycombinator.com/' },
-        ],
-    });
-    await requestList.initialize();
-
     // Apify.openRequestQueue() is a factory to get a preconfigured RequestQueue instance.
+    // We add our first request to it - the initial page the crawler will visit.
     const requestQueue = await Apify.openRequestQueue();
+    await requestQueue.addRequest({ url: 'https://news.ycombinator.com/' });
 
     // Create an instance of the PuppeteerCrawler class - a crawler
     // that automatically loads the URLs in headless Chrome / Puppeteer.
     const crawler = new Apify.PuppeteerCrawler({
-        // The crawler will first fetch start URLs from the RequestList
-        // and then the newly discovered URLs from the RequestQueue
-        requestList,
         requestQueue,
 
         // Here you can set options that are passed to the Apify.launchPuppeteer() function.
@@ -85,6 +75,9 @@ Apify.main(async () => {
         // This function is called if the page processing failed more than maxRequestRetries+1 times.
         handleFailedRequestFunction: async ({ request }) => {
             console.log(`Request ${request.url} failed too many times`);
+            await Apify.pushData({
+                '#debug': Apify.utils.createRequestDebugInfo(request),
+            });
         },
     });
 
