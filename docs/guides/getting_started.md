@@ -1171,20 +1171,19 @@ Anyway, to spark some ideas, let's look at two more things. First, passing an in
 #### Meet the `INPUT`
 `INPUT` is just a convention on how we call the actor's input. Because there's no magic in actors, just features, the `INPUT` is actually nothing more than a key in the default [`KeyValueStore`](../api/keyvaluestore) that's, by convention, used as input on Apify Platform. Also by convention, the `INPUT` is mostly expected to be of `Content-Type: application/json`.
 
-We will not go into `KeyValueStore` details here, but for the sake of `INPUT` you need to remember that there is a function that helps you get it (or anything else from the store, actually):
+We will not go into `KeyValueStore` details here, but for the sake of `INPUT` you need to remember that there is a function that helps you get it.
 
 ```js
 const input = await Apify.getInput();
 ```
 
-On the Apify Platform, the actor's input that you can set in the Console is automatically saved to the default `KeyValueStore` under the key `INPUT`. So it follows that by calling [`Apify.getInput()`](../api/apify#apify.getValue) you retrieve the value under the given key and voila, there's your `INPUT`.
+On the Apify Platform, the actor's input that you can set in the Console is automatically saved to the default `KeyValueStore` under the key `INPUT` and by calling [`Apify.getInput()`](../api/apify#apify.getValue) you retrieve the value from the `KeyValueStore`.
 
 Running locally, you need to place an `INPUT.json` file in your default key value store for this to work.
 
 ```
 {PROJECT_FOLDER}/apify_storage/key-value-stores/default/INPUT.json
 ```
-But since there's really no local `INPUT` form that works by convention, you might as well just call it `MY_COOL_INPUT.json` and use the `MY_COOL_INPUT` key to retrieve it. There's really no magic behind the scenes when retrieving `INPUT`.
 
 #### Use `INPUT` to seed our actor with categories
 Currently we're using the full URLs of categories as sources, but it's quite obvious that we only need the final parameters, the rest of the URL is always the same. Knowing that, we can pass an array of those parameters on `INPUT` and build the URLs dynamically, which would allow us to scrape different categories without changing the source code. Let's get to it!
@@ -1226,20 +1225,27 @@ But perhaps we should not stop at refactoring the `if` clauses. There are severa
 
 In the following code we've made several changes.
 
+   - Split the code into multiple files.
    - Added the `Apify.utils.log` and replaced `console.log` with it.
    - Added a `getSources()` function to encapsulate `INPUT` consumption.
    - Added a `createRouter()` function to make our routing cleaner, without nested `if` clauses.
    - Removed the `maxRequestsPerCrawl` limit.
 
+> To create a multi-file actor on the Apify Platform, select **Multiple source files** in the **Type** dropdown on the **Source** screen.
+
+In our `main.js` file, we place the general structure of the crawler:
+
 ```js
+// main.js
 const Apify = require('apify');
+const tools = require('./tools');
 const { utils: { log } } = Apify;
 
 Apify.main(async () => {
     log.info('Starting actor.');
-    const requestList = await Apify.openRequestList('categories', await getSources());
+    const requestList = await Apify.openRequestList('categories', await tools.getSources());
     const requestQueue = await Apify.openRequestQueue();
-    const router = createRouter(requestQueue);
+    const router = tools.createRouter({ requestQueue });
 
     log.debug('Setting up crawler.');
     const crawler = new Apify.CheerioCrawler({
@@ -1248,7 +1254,7 @@ Apify.main(async () => {
         handlePageFunction: async (context) => {
             const { request } = context;
             log.info(`Processing ${request.url}`);
-            await router[request.userData.label](context);
+            await router(request.userData.label, context);
         }
     });
 
@@ -1256,11 +1262,19 @@ Apify.main(async () => {
     await crawler.run();
     log.info('Actor finished.');
 });
+```
 
-async function getSources() {
+Then in a separate `tools.js`, we add our helper functions:
+
+```js
+// tools.js
+const Apify = require('apify');
+const routes = require('./routes');
+const { utils: { log } } = Apify;
+
+exports.getSources = async () => {
     log.debug('Getting sources.');
     const input = await Apify.getInput();
-
     return input.map(category => ({
         url: `https://apify.com/library?type=acts&category=${category}`,
         userData: {
@@ -1269,56 +1283,70 @@ async function getSources() {
     }));
 }
 
-function createRouter(requestQueue) {
-    return {
-        CATEGORY: async ({ $, request }) => Apify.utils.enqueueLinks({
-            $,
-            requestQueue,
-            selector: 'a.item',
-            baseUrl: request.loadedUrl,
-            userData: {
-                label: 'DETAIL'
-            }
-        }),
-        DETAIL: async ({ $, request }) => {
-            const urlArr = request.url.split('/').slice(-2);
-            const $wrapper = $('header div.wrap');
-
-            log.debug('Scraping results.');
-            const results = {
-                url: request.url,
-                uniqueIdentifier: urlArr.join('/'),
-                owner: urlArr[0],
-                title: $wrapper.find('h1').text(),
-                description: $wrapper.find('p').text(),
-                lastRunDate: new Date(Number($wrapper.find('time').eq(1).attr('datetime'))),
-                runCount: Number($wrapper.find('div.stats > span:nth-of-type(3)').text().match(/\d+/)[0]),
-            };
-
-            log.debug('Pushing data to dataset.');
-            await Apify.pushData(results);
-        }
+exports.createRouter = (globalContext) => {
+    return async function(routeName, requestContext) {
+        const route = routes[routeName];
+        if (!route) throw new Error(`No route for name: ${routeName}`);
+        log.debug(`Invoking route: ${routeName}`);
+        return route(requestContext, globalContext);
     }
 }
 ```
 
-It might not seem like an improvement at first, but let us tell you a little bit more about the changes. We're hopeful that in the end, you'll agree with us.
+And finally our routes in a separate `routes.js` file:
+
+```js
+// routes.js
+const Apify = require('apify');
+const { utils: { log } } = Apify;
+
+exports.CATEGORY = async ({ $, request }, { requestQueue }) => {
+    return Apify.utils.enqueueLinks({
+        $,
+        requestQueue,
+        selector: 'a.item',
+        baseUrl: request.loadedUrl,
+        userData: {
+            label: 'DETAIL'
+        }
+    })
+}
+
+exports.DETAIL = async ({ $, request }) => {
+    const urlArr = request.url.split('/').slice(-2);
+    const $wrapper = $('header div.wrap');
+
+    log.debug('Scraping results.');
+    const results = {
+        url: request.url,
+        uniqueIdentifier: urlArr.join('/'),
+        owner: urlArr[0],
+        title: $wrapper.find('h1').text(),
+        description: $wrapper.find('p').text(),
+        lastRunDate: new Date(Number($wrapper.find('time').eq(1).attr('datetime'))),
+        runCount: Number($wrapper.find('div.stats > span:nth-of-type(3)').text().match(/\d+/)[0]),
+    };
+
+    log.debug('Pushing data to dataset.');
+    await Apify.pushData(results);
+}
+```
+
+Let us tell you a little bit more about the changes. We're hopeful that in the end, you'll agree that this structure makes the actor more readable and manageable.
+
+#### Splitting your code into multiple files
+It was not always the case, but now that Apify Platform has a multifile editor, there's no reason not to split your code into multiple files and keep your logic separate. Less code in a single file means less code you need to think about at any time, and that's a great thing!
 
 #### Using `Apify.utils.log` instead of `console.log`
 We wont go into great lengths here to talk about `utils.log` here, because you can read [it all in the documentation](../api/log), but there's just one thing that we need to stress: **log levels**.
 
-`utils.log` enables you to use different log levels, such as `log.debug`, `log.info` or `log.warning`. It not only makes your log more readable, but it also allows selective turning off of some levels by either calling the `utils.log.setLevel()` function or by setting an `APIFY_LOG_LEVEL` variable. This is huge! Because you can now add a lot of debug logs in your actor, which will help you when something goes wrong and turn them on or off with a simple `INPUT` change, or by setting an environmet variable.
+`utils.log` enables you to use different log levels, such as `log.debug`, `log.info` or `log.warning`. It not only makes your log more readable, but it also allows selective turning off of some levels by either calling the `utils.log.setLevel()` function or by setting an `APIFY_LOG_LEVEL` variable. This is huge! Because you can now add a lot of debug logs in your actor, which will help you when something goes wrong and turn them on or off with a simple `INPUT` change, or by setting an environment variable.
 
-The punch line? Use `Apify.utils.log` now and thank us later when something goes wrong!
+The punch line? Use `Apify.utils.log` instead of `console.log` now and thank us later when something goes wrong!
 
 #### Using a router to structure your crawling
-At first, it might seem much more readable using just a simple `if / else` statement to select different logic based on the crawled pages, but trust me, it becomes far less impressive when working with more than 2 different pages and it definitely starts to fall apart when the logic to handle each page spans tens or hundreds of lines of code.
+At first, it might seem more readable using just a simple `if / else` statement to select different logic based on the crawled pages, but trust me, it becomes far less impressive when working with more than 2 different pages and it definitely starts to fall apart when the logic to handle each page spans tens or hundreds of lines of code.
 
-It's a good practice in any programming to split your logic into bite sized chunks that are easy to read and reason about. Scrolling through a thousand line long `handlePageFunction()` where everything interacts with everything and variables can be used everywhere is not a beautiful thing to do and a pain to debug.
-
-> You might say that putting all this into a huge router object doesn't help, but that's just an example. In a more complex scenario, each of the routes would be a separate function that lives somewhere else, probably in an entirely different file, to keep it lean and readable.
-
-#### Splitting your code into multiple files
-It was not always the case, but now that Apify Platform has a multifile editor, there's no reason not to split your code into multiple files and keep your logic separate. Less code in a single file means less code you need to think about at any time, and that's a great thing! Going back to our final code, we could keep all the functions in a separate file and just `require` them to the `main.js`, making it even more concise.
+It's a good practice in any programming to split your logic into bite sized chunks that are easy to read and reason about. Scrolling through a thousand line long `handlePageFunction()` where everything interacts with everything and variables can be used everywhere is not a beautiful thing to do and a pain to debug. That's why we prefer the separation of routes into a special file and with large routes, we would even suggest having one file per route.
 
 > TO BE CONTINUED with details on `PuppeteerCrawler` and other features...
