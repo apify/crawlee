@@ -1,3 +1,7 @@
+0.13.4 / 2019-03-26
+===================
+- Fix bug in `addWebhook` invocation.
+
 0.13.3 / 2019-03-21
 ===================
 - Fix `puppeteerPoolOptions` object not being used in `PuppeteerCrawler`.
