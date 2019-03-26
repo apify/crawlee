@@ -112,7 +112,7 @@ await puppeteerPool.destroy();
 <td colspan="3"><p>Options used by <code>Apify.launchPuppeteer()</code> to start new Puppeteer instances.
   See <a href="../typedefs/launchpuppeteeroptions"><code>LaunchPuppeteerOptions</code></a>.</p>
 </td></tr><tr>
-<td><code>[options.recycleDiskCache]</code></td><td><code>Boolean</code></td><td></td>
+<td><code>[options.recycleDiskCache]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Enables recycling of disk cache directories by Chrome instances.
