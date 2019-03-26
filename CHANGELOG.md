@@ -1,6 +1,16 @@
-0.13.1 / 2019-03-19
+0.13.3 / 2019-03-21
 ===================
-- Added `Apify.addWebhook()`
+- Fix `puppeteerPoolOptions` object not being used in `PuppeteerCrawler`.
+
+0.13.2 / 2019-03-21
+===================
+- Fix `REQUEST_QUEUE_HEAD_MAX_LIMIT` is not defined error.
+
+0.13.1 / 2019-03-21
+===================
+- `Snapshotter` now marks Apify Client overloaded on the basis of 2nd retry errors.
+- Added `Apify.addWebhook()` to invoke a webhook when an actor run ends.
+  Currently this only works on the Apify Platform and will print a warning when ran locally.
 
 0.13.0 / 2019-03-14
 ===================

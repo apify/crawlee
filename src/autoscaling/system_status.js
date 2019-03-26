@@ -8,7 +8,7 @@ const DEFAULT_OPTIONS = {
     maxMemoryOverloadedRatio: 0.2,
     maxEventLoopOverloadedRatio: 0.4,
     maxCpuOverloadedRatio: 0.4,
-    maxClientOverloadedRatio: 0.2,
+    maxClientOverloadedRatio: 0.3,
 };
 
 /**

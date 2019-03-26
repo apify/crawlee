@@ -20,7 +20,7 @@ Apify.main(async () => {
         handlePageFunction: async ({ request, page }) => {
             const title = await page.title();
             console.log(`Title of ${request.url}: ${title}`);
-            await Apify.utils.puppeteer.enqueueLinks({ page, selector: 'a', pseudoUrls, requestQueue });
+            await Apify.utils.enqueueLinks({ page, selector: 'a', pseudoUrls, requestQueue });
         },
         maxRequestsPerCrawl: 100,
         maxConcurrency: 10,
