@@ -29,6 +29,7 @@ const hideWebDriver = async (page) => {
     checkParamOrThrow(page, 'page', 'Object');
 
     await page.evaluateOnNewDocument(() => {
+        /* global Navigator, window */
         var modifiedNavigator; // eslint-disable-line no-var
         try {
             if (Navigator.prototype.hasOwnProperty('webdriver')) { // eslint-disable-line no-prototype-builtins
