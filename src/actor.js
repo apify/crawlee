@@ -798,11 +798,13 @@ export const addWebhook = async ({ eventTypes, requestUrl }) => {
     }
 
     return apifyClient.webhooks.createWebhook({
-        isAdHoc: true,
-        eventTypes,
-        condition: {
-            actorRunId: runId,
+        webhook: {
+            isAdHoc: true,
+            eventTypes,
+            condition: {
+                actorRunId: runId,
+            },
+            requestUrl,
         },
-        requestUrl,
     });
 };

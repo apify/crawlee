@@ -1153,15 +1153,17 @@ describe('Apify.addWebhook()', () => {
 
         const webhooksMock = sinon.mock(Apify.client.webhooks);
 
+        const webhook = {
+            isAdHoc: true,
+            eventTypes: expectedEventTypes,
+            condition: {
+                actorRunId: runId,
+            },
+            requestUrl: expectedRequestUrl,
+        };
+
         webhooksMock.expects('createWebhook')
-            .withExactArgs({
-                isAdHoc: true,
-                eventTypes: expectedEventTypes,
-                condition: {
-                    actorRunId: runId,
-                },
-                requestUrl: expectedRequestUrl,
-            })
+            .withExactArgs({ webhook })
             .once()
             .returns(Promise.resolve());
 
