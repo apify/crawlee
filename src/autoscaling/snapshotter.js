@@ -246,7 +246,7 @@ class Snapshotter {
             const isCriticalOverload = usedBytes > criticalOverloadBytes;
             if (isCriticalOverload) {
                 const usedPercentage = usedBytes / this.maxMemoryBytes * 100;
-                const toMb = bytes => bytes / (1024 ** 2);
+                const toMb = bytes => Math.round(bytes / (1024 ** 2));
                 log.warning(`Memory is critically overloaded. Used ${toMb(usedBytes)} MB of ${toMb(this.maxMemoryBytes)} MB (${usedPercentage}%)`);
             }
         } catch (e) {
