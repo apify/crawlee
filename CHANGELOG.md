@@ -1,3 +1,7 @@
+0.13.5 / 2019-03-27
+===================
+- Fix `RequestQueue` throttling at high concurrency.
+
 0.13.4 / 2019-03-26
 ===================
 - Fix bug in `addWebhook` invocation.
