@@ -90,7 +90,6 @@
     "proxy": "^0.2.4",
     "sinon": "^7.1.1",
     "sinon-stub-promise": "^4.0.0",
-    "tmp": "^0.0.33",
     "why-is-node-running": "^2.0.3"
   },
   "optionalDependencies": {
