@@ -145,9 +145,24 @@ describe('Apify.utils_request', () => {
             expect(response.body).to.eql(CONTENT);
         });
 
-        it('it throws error for 500+', async () => {
+        it('it does not throw error for 400+ error codes when throwOnHttpError is false', async () => {
             const options = {
                 url: `http://${HOST}:${port}/500`,
+
+            };
+            let error;
+            try {
+                await requestBetter(options);
+            } catch (e) {
+                error = e;
+            }
+            expect(error).to.be.undefined; // eslint-disable-line
+        });
+
+        it('it does not throw error for 400+ error codes when throwOnHttpError is true', async () => {
+            const options = {
+                url: `http://${HOST}:${port}/500`,
+                throwOnHttpError: true,
 
             };
             let error;
@@ -160,9 +175,10 @@ describe('Apify.utils_request', () => {
             expect(error.message.includes(ERROR_BODY)).to.be.eql(true);
         });
 
-        it('it throws error when the body cannot be parsed and the code is 500', async () => {
+        it('it throws error when the body cannot be parsed and the code is 500 when throwOnHttpError is true', async () => {
             const options = {
                 url: `http://${HOST}:${port}/500/invalidBody`,
+                throwOnHttpError: true,
 
             };
             let error;
@@ -188,9 +204,10 @@ describe('Apify.utils_request', () => {
             expect(error.message).to.exist; // eslint-disable-line
         });
 
-        it('it returns json when 500 even if content-type is different', async () => {
+        it('it returns json when 500 even if content-type is different, throwOnHttpError is true ', async () => {
             const options = {
                 url: `http://${HOST}:${port}/500/json`,
+                throwOnHttpError: true,
 
             };
             let error;
@@ -292,7 +309,7 @@ describe('Apify.utils_request', () => {
             expect(error.message).to.eql('The response body is empty');
         });
 
-        it('it throws for other contentType then - text/html; charset=utf-8', async () => {
+        it('it throws for other contentType then - text/html', async () => {
             const options = {
                 url: `http://${HOST}:${port}/invalidContentType`,
             };

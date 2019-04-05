@@ -77,6 +77,9 @@ const FIREFOX_DESKTOP_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14
  *  [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage)
  *  class and it should return `true` if request should be aborted, or `false` otherwise.
  *
+ *  @param [options.throwOnHttpError=false]
+ *  If set to true function throws and error on 4XX and 5XX response codes.
+ *
  *  @return {{ response, body }}
  *   Returns an object with two properties: `response` is the instance of
  *   Node's [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) class,
@@ -94,6 +97,7 @@ export const requestBetter = async (options) => {
             removeRefererHeader: false,
             headers: {},
             method: 'GET',
+            throwOnHttpError: false,
         };
 
         const opts = Object.assign(defaultOptions, options);
@@ -101,12 +105,12 @@ export const requestBetter = async (options) => {
         rqst[method](opts)
             .on('error', err => reject(err))
             .on('response', async (res) => {
-                // no need to catch invalid content header - it is already caught by request
+                // No need to catch invalid content header - it is already caught by request
                 const { type, encoding } = contentType.parse(res);
 
-                // 500 codes are handled as errors, requests will be retried.
+                // 5XX codes are handled as errors, requests will be retried.
                 const status = res.statusCode;
-                if (status >= 500) {
+                if (status >= 400 && opts.throwOnHttpError) {
                     let body;
                     try {
                         body = await readStreamIntoString(res, encoding);
@@ -244,7 +248,7 @@ export const requestLikeBrowser = async (options) => {
     opts.headers = Object.assign(browserHeaders, opts.headers);
 
     const response = await requestBetter(opts);
-    const receivedContentType = response.headers['content-type'];
+    const { type } = contentType.parse(response.headers['content-type']);
 
     // Handle situations where the server explicitly states that
     // it will not serve the resource as text/html by skipping.
@@ -252,8 +256,8 @@ export const requestLikeBrowser = async (options) => {
         throw new Error(`requestLikeBrowser: Resource ${options.url} is not available in HTML format. Skipping resource.`);
     }
 
-    if (receivedContentType.toLowerCase() !== 'text/html; charset=utf-8') {
-        throw new Error(`Received unexpected Content-Type: ${receivedContentType}`);
+    if (type.toLowerCase() !== 'text/html') {
+        throw new Error(`Received unexpected Content-Type: ${type}`);
     }
 
     const { body } = response;
