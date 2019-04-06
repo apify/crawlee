@@ -111,6 +111,41 @@ describe('Apify.utils_request', () => {
             expect(response.request.headers).to.be.empty; // eslint-disable-line no-unused-expressions
         });
 
+        it('passes response to abortFunction and aborts request', async () => {
+            let constructorName;
+            let aborted = false;
+            const data = {
+                url: `http://${HOST}:${port}/gzip`,
+                abortFunction: (response) => {
+                    constructorName = response.constructor.name;
+                    response.on('aborted', () => {
+                        aborted = true;
+                    });
+                    return true;
+                },
+
+            };
+            await requestBetter(data);
+            expect(constructorName).to.be.eql('IncomingMessage');
+            expect(aborted).to.be.eql(true);
+        });
+
+        it('it does not aborts request when aborts function returns false', async () => {
+            let aborted = false;
+            const data = {
+                url: `http://${HOST}:${port}/gzip`,
+                abortFunction: (response) => {
+                    response.on('aborted', () => {
+                        aborted = true;
+                    });
+                    return false;
+                },
+
+            };
+            await requestBetter(data);
+            expect(aborted).to.be.eql(false);
+        });
+
         it('decompress gzip', async () => {
             const options = {
                 url: `http://${HOST}:${port}/gzip`,

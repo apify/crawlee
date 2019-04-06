@@ -70,20 +70,18 @@ const FIREFOX_DESKTOP_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14
  *  An HTTP proxy to be used. Supports proxy authentication with Basic Auth.
  * @param [options.strictSSL=true]
  *  If `true`, requires SSL/TLS certificates to be valid.
- * @param [options.abort]
+ * @param [options.abortFunction]
  *  A function that determines whether the request should be aborted. It is called when the server
  *  responds with the HTTP headers, but before the actual data is downloaded.
  *  The function receives a single argument - an instance of Node's
  *  [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage)
  *  class and it should return `true` if request should be aborted, or `false` otherwise.
- *
- *  @param [options.throwOnHttpError=false]
+ * @param [options.throwOnHttpError=false]
  *  If set to true function throws and error on 4XX and 5XX response codes.
- *
- *  @return {{ response, body }}
- *   Returns an object with two properties: `response` is the instance of
- *   Node's [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) class,
- *   `body` is a `String`, `Buffer` or `Object`, depending on the `encoding` and `json` options.
+ * @return {{ response, body }}
+ *  Returns an object with two properties: `response` is the instance of
+ *  Node's [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) class,
+ *  `body` is a `String`, `Buffer` or `Object`, depending on the `encoding` and `json` options.
  */
 export const requestBetter = async (options) => {
     return new Promise((resolve, reject) => {
@@ -98,13 +96,19 @@ export const requestBetter = async (options) => {
             headers: {},
             method: 'GET',
             throwOnHttpError: false,
+            abortFunction: () => false,
         };
 
         const opts = Object.assign(defaultOptions, options);
         const method = opts.method.toLowerCase();
-        rqst[method](opts)
+        const request = rqst[method](opts)
             .on('error', err => reject(err))
             .on('response', async (res) => {
+                const shouldAbort = opts.abortFunction(res);
+                if (shouldAbort) {
+                    request.abort();
+                }
+
                 // No need to catch invalid content header - it is already caught by request
                 const { type, encoding } = contentType.parse(res);
 
