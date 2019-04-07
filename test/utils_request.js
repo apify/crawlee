@@ -115,10 +115,10 @@ describe('Apify.utils_request', () => {
             let constructorName;
             let aborted = false;
             const data = {
-                url: `http://${HOST}:${port}/gzip`,
+                url: `http://${HOST}:${port}/empty`,
                 abortFunction: (response) => {
                     constructorName = response.constructor.name;
-                    response.on('aborted', () => {
+                    response.request.on('abort', () => {
                         aborted = true;
                     });
                     return true;

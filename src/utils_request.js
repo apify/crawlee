@@ -4,11 +4,31 @@ import util from 'util';
 import zlib from 'zlib';
 import * as url from 'url';
 import { decompressStream } from 'iltorb';
+import _ from 'underscore';
 
 const FIREFOX_MOBILE_USER_AGENT = 'Mozilla/5.0 (Android 9.0; Mobile; rv:66.0) Gecko/66.0 Firefox/66.0';
 const FIREFOX_DESKTOP_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_3) AppleWebKit/605.1.15 (KHTML, like Gecko)'
     + ' Version/11.1.1 Safari/605.1.15';
 
+const REQUEST_BETTER_DEFAULT_OPTIONS = {
+    json: false,
+    gzip: false,
+    maxRedirects: 10,
+    followRedirect: true,
+    removeRefererHeader: false,
+    headers: {},
+    method: 'GET',
+    throwOnHttpError: false,
+    abortFunction: () => false,
+};
+
+const REQUEST_LIKE_BROWSER_DEFAULT_OPTIONS = {
+    countryCode: 'US',
+    languageCode: 'en',
+    headers: {},
+    method: 'GET',
+    useMobileVersion: false,
+};
 /**
  * Sends a HTTP request and returns the response.
  * The function has similar functionality and options as the [request](https://www.npmjs.com/package/request) NPM package,
@@ -85,26 +105,20 @@ const FIREFOX_DESKTOP_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14
  */
 export const requestBetter = async (options) => {
     return new Promise((resolve, reject) => {
-        // Using the streaming API of Request to be able to
-        // handle the response based on headers receieved.
-        const defaultOptions = {
-            json: false,
-            gzip: false,
-            maxRedirects: 10,
-            followRedirect: true,
-            removeRefererHeader: false,
-            headers: {},
-            method: 'GET',
-            throwOnHttpError: false,
-            abortFunction: () => false,
-        };
+        const opts = _.defaults({}, options, REQUEST_BETTER_DEFAULT_OPTIONS);
 
-        const opts = Object.assign(defaultOptions, options);
+        const {
+            abortFunction,
+            throwOnHttpError,
+        } = opts;
         const method = opts.method.toLowerCase();
-        const request = rqst[method](opts)
+
+        // Using the streaming API of Request to be able to
+        const request = rqst[method](opts);
+        request
             .on('error', err => reject(err))
             .on('response', async (res) => {
-                const shouldAbort = opts.abortFunction(res);
+                const shouldAbort = abortFunction(res);
                 if (shouldAbort) {
                     request.abort();
                 }
@@ -112,9 +126,9 @@ export const requestBetter = async (options) => {
                 // No need to catch invalid content header - it is already caught by request
                 const { type, encoding } = contentType.parse(res);
 
-                // 5XX codes are handled as errors, requests will be retried.
+                // 5XX and 4XX codes are handled as errors, requests will be retried.
                 const status = res.statusCode;
-                if (status >= 400 && opts.throwOnHttpError) {
+                if (status >= 400 && throwOnHttpError) {
                     let body;
                     try {
                         body = await readStreamIntoString(res, encoding);
@@ -228,14 +242,7 @@ async function readStreamIntoString(response, encoding) { // eslint-disable-line
  *  `body` is a `String`, `Buffer` or `Object`, depending on the `encoding` and `json` options.
  */
 export const requestLikeBrowser = async (options) => {
-    const defaultOptions = {
-        countryCode: 'US',
-        languageCode: 'en',
-        headers: {},
-        method: 'GET',
-        useMobileVersion: false,
-    };
-    const opts = Object.assign(defaultOptions, options);
+    const opts = _.defaults({}, options, REQUEST_LIKE_BROWSER_DEFAULT_OPTIONS);
 
     const parsedUrl = url.parse(opts.url);
 
@@ -249,7 +256,7 @@ export const requestLikeBrowser = async (options) => {
         Connection: 'keep-alive',
         'Upgrade-Insecure-Requests': '1',
     };
-    opts.headers = Object.assign(browserHeaders, opts.headers);
+    opts.headers = _.defaults({}, opts.headers, browserHeaders);
 
     const response = await requestBetter(opts);
     const { type } = contentType.parse(response.headers['content-type']);
