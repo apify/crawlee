@@ -21,12 +21,16 @@ describe('Apify.utils_request', () => {
         app.get('/406', (req, res) => {
             res.setHeader('content-type', 'text/html; charset=utf-8');
             res.status(406);
-            res.send('CONTENT');
+            res.send(CONTENT);
+        });
+
+        app.get('/echo', (req, res) => {
+            res.send(CONTENT);
         });
 
         app.get('/invalidContentType', (req, res) => {
             res.setHeader('content-type', 'application/json');
-            res.send('CONTENT');
+            res.send(CONTENT);
         });
 
         app.get('/gzip', (req, res) => {
@@ -257,18 +261,9 @@ describe('Apify.utils_request', () => {
     });
 
     describe('Apify.requestAsBrowser', async () => {
-        it('passes crunchbase.com non browser request blocking', async () => {
-            const data = {
-                url: 'https://www.crunchbase.com/',
-                html: true,
-            };
-            const { response } = await requestLikeBrowser(data);
-            expect(response.statusCode).to.eql(200);
-        });
-
         it('it uses mobile user-agent whe mobile property is set to true ', async () => {
             const data = {
-                url: 'https://www.crunchbase.com/',
+                url: `http://${HOST}:${port}/echo`,
                 html: true,
                 useMobileVersion: true,
             };
@@ -279,7 +274,7 @@ describe('Apify.utils_request', () => {
 
         it('it uses desktop user-agent by default ', async () => {
             const data = {
-                url: 'https://www.crunchbase.com/',
+                url: `http://${HOST}:${port}/echo`,
                 html: true,
             };
             const { response } = await requestLikeBrowser(data);
@@ -291,9 +286,9 @@ describe('Apify.utils_request', () => {
         });
 
         it('it sets correct hosts', async () => {
-            const host = 'www.crunchbase.com';
+            const host = `${HOST}:${port}`;
             const options = {
-                url: `https://${host}`,
+                url: `http://${host}/echo`,
             };
 
             const { response } = await requestLikeBrowser(options);
@@ -303,9 +298,9 @@ describe('Apify.utils_request', () => {
         });
 
         it('it uses correct default language', async () => {
-            const host = 'www.crunchbase.com';
+            const host = `${HOST}:${port}`;
             const options = {
-                url: `https://${host}`,
+                url: `http://${host}/echo`,
             };
 
             const { response } = await requestLikeBrowser(options);
