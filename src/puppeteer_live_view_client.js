@@ -3,6 +3,8 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 // Everything gets destroyed slowly to make the UX better
 const DESTROY_FADEOUT_MILLIS = 2000;
 
+/* global document, window */
+
 /**
  * Creates a page line in the Index.
  *

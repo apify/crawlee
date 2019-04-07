@@ -4,8 +4,9 @@ import path from 'path';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import LruCache from 'apify-shared/lru_cache';
 import ListDictionary from 'apify-shared/list_dictionary';
-import { ENV_VARS, LOCAL_STORAGE_SUBDIRS } from 'apify-shared/consts';
+import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, REQUEST_QUEUE_HEAD_MAX_LIMIT } from 'apify-shared/consts';
 import { delayPromise, checkParamPrototypeOrThrow } from 'apify-shared/utilities';
+import log from 'apify-shared/log';
 import Promise from 'bluebird';
 import crypto from 'crypto';
 import Request from './request';
@@ -384,16 +385,17 @@ export class RequestQueue {
     /**
      * Resolves to `true` if the next call to {@link RequestQueue#fetchNextRequest} would return `null`, otherwise it resolves to `false`.
      * Note that even if the queue is empty, there might be some pending requests currently being processed.
+     * Due to the nature of distributed storage systems, the function might occasionally return a false negative,
+     * but it will never return a false positive.
      *
-     * Due to the nature of distributed storage systems,
-     * the function might occasionally return a false negative, but it should never return a false positive!
+     * If you need to ensure that there is no activity in the queue, use {@link RequestQueue#isFinished}.
      *
      * @returns {Promise<Boolean>}
      */
     isEmpty() {
         return this
-            ._ensureHeadIsNonEmpty(true)
-            .then(isHeadConsistent => isHeadConsistent && this.queueHeadDict.length() === 0);
+            ._ensureHeadIsNonEmpty()
+            .then(() => this.queueHeadDict.length() === 0);
     }
 
     /**
@@ -502,6 +504,9 @@ export class RequestQueue {
                 //
                 // If limit was not reached in the call then there are no more requests to be returned.
                 const shouldRepeatWithHigherLimit = !this.queueHeadDict.length() && limitReached && prevLimit < REQUEST_QUEUE_HEAD_MAX_LIMIT;
+                if (prevLimit >= REQUEST_QUEUE_HEAD_MAX_LIMIT) {
+                    log.warning(`'RequestQueue: We've reached the maximum number of requests in progress: ${REQUEST_QUEUE_HEAD_MAX_LIMIT}.'`);
+                }
 
                 // If checkModifiedAt=true then we must ensure that queueModifiedAt is older than
                 // queryStartedAt for at least API_PROCESSED_REQUESTS_DELAY_MILLIS.

@@ -7,7 +7,7 @@ import { APIFY_PROXY_VALUE_REGEX } from 'apify-shared/regexs';
 import { ENV_VARS, INTEGER_ENV_VARS, LOCAL_ENV_VARS, ACT_JOB_TERMINAL_STATUSES, ACT_JOB_STATUSES } from 'apify-shared/consts';
 import { EXIT_CODES } from './constants';
 import { initializeEvents, stopEvents } from './events';
-import { apifyClient, addCharsetToContentType, sleep, snakeCaseToCamelCase } from './utils';
+import { apifyClient, addCharsetToContentType, sleep, snakeCaseToCamelCase, isAtHome } from './utils';
 import { maybeStringify } from './key_value_store';
 import { ApifyCallError } from './errors';
 
@@ -763,4 +763,48 @@ export const getApifyProxyUrl = (options = {}) => {
     }
 
     return `http://${username}:${password}@${hostname}:${port}`;
+};
+
+/**
+ *
+ * Creates an ad-hoc webhook for the current actor run, which lets you receive a notification when the actor run finished or failed.
+ * For more information about Apify actor webhooks, please see the <a href="https://apify.com/docs/webhook" target="_blank">documentation</a>.
+ *
+ * Note that webhooks are only supported for actors running on the Apify platform.
+ * In local environment, the function will print a warning and have no effect.
+ *
+ * @param options.eventTypes {String[]} - Array of event types, which you can set for actor run, see
+ * the <a href="https://apify.com/docs/webhooks#events-actor-run" target="_blank">actor run events</a> in the Apify doc.
+ * @param options.requestUrl {String} - URL which will be requested using HTTP POST request, when actor run will be in specific event type.
+ *
+ * @return {Promise<Object|undefined>}
+ *
+ * @memberof module:Apify
+ * @function
+ * @name addWebhook
+ */
+export const addWebhook = async ({ eventTypes, requestUrl }) => {
+    checkParamOrThrow(eventTypes, 'eventTypes', '[String]');
+    checkParamOrThrow(requestUrl, 'requestUrl', 'String');
+
+    if (!isAtHome()) {
+        log.warning('Apify.addWebhook() is only supported when running on the Apify platform. The webhook will not be invoked.');
+        return;
+    }
+
+    const runId = process.env[ENV_VARS.ACTOR_RUN_ID];
+    if (!runId) {
+        throw new Error(`Environment variable ${ENV_VARS.ACTOR_RUN_ID} must be provided!`);
+    }
+
+    return apifyClient.webhooks.createWebhook({
+        webhook: {
+            isAdHoc: true,
+            eventTypes,
+            condition: {
+                actorRunId: runId,
+            },
+            requestUrl,
+        },
+    });
 };

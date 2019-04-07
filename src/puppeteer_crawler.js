@@ -121,9 +121,9 @@ const DEFAULT_OPTIONS = {
  *
  *   Note that a single page object is only used to process a single request and it is closed afterwards.
  *
- *   See source code on
- *   <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_crawler.js#L9" target="_blank">GitHub</a>
- *   for default behavior.
+ *   By default, the function invokes Puppeteer's `Page.goto()` with a timeout of 60 seconds.
+ *   For details, see source code on
+ *   <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_crawler.js#L9" target="_blank">GitHub</a>.
  * @param {Function} [options.handleFailedRequestFunction]
  *   A function to handle requests that failed more than `option.maxRequestRetries` times.
  *
@@ -226,11 +226,11 @@ class PuppeteerCrawler {
             if (value) log.deprecated(`PuppeteerCrawler: options.${key} is deprecated. Use options.puppeteerPoolOptions instead.`);
         });
         // puppeteerPoolOptions can be null or undefined or Object, so we merge it this way, because null is not replaced by defaults above.
-        this.puppeteerPoolOptions = Object.assign(
+        this.puppeteerPoolOptions = _.defaults(
             {},
-            puppeteerPoolOptions,
             { launchPuppeteerFunction, launchPuppeteerOptions },
             deprecatedPuppeteerPoolOptions,
+            puppeteerPoolOptions,
         );
 
         this.puppeteerPool = null; // Constructed when .run()

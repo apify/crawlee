@@ -370,7 +370,7 @@ const Apify = require('apify');
 const browser = await Apify.launchPuppeteer();
 const page = await browser.newPage();
 await page.goto('http://www.example.com');
-const html = await puppeteer.content();
+const html = await page.content();
 
 const result = Apify.utils.social.parseHandlesFromHtml(html);
 console.log('Social handles:');

@@ -1140,3 +1140,75 @@ describe('Apify.getApifyProxyUrl()', () => {
         delete process.env[ENV_VARS.PROXY_PORT];
     });
 });
+
+
+describe('Apify.addWebhook()', () => {
+    it('works', async () => {
+        const runId = 'my-run-id';
+        const expectedEventTypes = ['ACTOR.RUN.SUCCEEDED'];
+        const expectedRequestUrl = 'http://example.com/api';
+
+        process.env[ENV_VARS.ACTOR_RUN_ID] = runId;
+        process.env[ENV_VARS.IS_AT_HOME] = '1';
+
+        const webhooksMock = sinon.mock(Apify.client.webhooks);
+
+        const webhook = {
+            isAdHoc: true,
+            eventTypes: expectedEventTypes,
+            condition: {
+                actorRunId: runId,
+            },
+            requestUrl: expectedRequestUrl,
+        };
+
+        webhooksMock.expects('createWebhook')
+            .withExactArgs({ webhook })
+            .once()
+            .returns(Promise.resolve());
+
+
+        await Apify.addWebhook({ eventTypes: expectedEventTypes, requestUrl: expectedRequestUrl });
+
+        delete process.env[ENV_VARS.ACTOR_RUN_ID];
+        delete process.env[ENV_VARS.IS_AT_HOME];
+
+        webhooksMock.verify();
+        webhooksMock.restore();
+    });
+
+    it('on local logs warning and does nothing', async () => {
+        const expectedEventTypes = ['ACTOR.RUN.SUCCEEDED'];
+        const expectedRequestUrl = 'http://example.com/api';
+
+        const webhooksMock = sinon.mock(Apify.client.webhooks);
+        webhooksMock.expects('createWebhook').never();
+
+        const logMock = sinon.mock(log);
+        logMock.expects('warning').once();
+
+        await Apify.addWebhook({ eventTypes: expectedEventTypes, requestUrl: expectedRequestUrl });
+
+        webhooksMock.verify();
+        webhooksMock.restore();
+        logMock.verify();
+        logMock.restore();
+    });
+
+    it('should failed without actor run ID', async () => {
+        const expectedEventTypes = ['ACTOR.RUN.SUCCEEDED'];
+        const expectedRequestUrl = 'http://example.com/api';
+
+        process.env[ENV_VARS.IS_AT_HOME] = '1';
+
+        let isThrow;
+        try {
+            await Apify.addWebhook({ eventTypes: expectedEventTypes, requestUrl: expectedRequestUrl });
+        } catch (err) {
+            isThrow = true;
+        }
+        expect(isThrow).to.be.eql(true);
+
+        delete process.env[ENV_VARS.IS_AT_HOME];
+    });
+});

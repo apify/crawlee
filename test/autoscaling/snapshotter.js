@@ -24,13 +24,13 @@ describe('Snapshotter', () => {
         // mock client data
         const oldStats = utils.apifyClient.stats;
         utils.apifyClient.stats = {};
-        utils.apifyClient.stats.rateLimitErrors = 0;
+        utils.apifyClient.stats.rateLimitErrors = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
         const snapshotter = new Snapshotter();
         await snapshotter.start();
 
         await Apify.utils.sleep(625);
-        utils.apifyClient.stats.rateLimitErrors = 2;
+        utils.apifyClient.stats.rateLimitErrors = [0, 0, 2, 0, 0, 0, 0, 0, 0, 0];
         await Apify.utils.sleep(625);
 
         await snapshotter.stop();
@@ -218,15 +218,15 @@ describe('Snapshotter', () => {
         // mock client data
         const oldStats = utils.apifyClient.stats;
         utils.apifyClient.stats = {};
-        utils.apifyClient.stats.rateLimitErrors = 0;
+        utils.apifyClient.stats.rateLimitErrors = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
-        const snapshotter = new Snapshotter();
+        const snapshotter = new Snapshotter({ maxClientErrors: 1 });
         snapshotter._snapshotClient(noop);
-        utils.apifyClient.stats.rateLimitErrors = 1;
+        utils.apifyClient.stats.rateLimitErrors = [1, 1, 1, 0, 0, 0, 0, 0, 0, 0];
         snapshotter._snapshotClient(noop);
-        utils.apifyClient.stats.rateLimitErrors = 2;
+        utils.apifyClient.stats.rateLimitErrors = [10, 5, 2, 0, 0, 0, 0, 0, 0, 0];
         snapshotter._snapshotClient(noop);
-        utils.apifyClient.stats.rateLimitErrors = 4;
+        utils.apifyClient.stats.rateLimitErrors = [100, 24, 4, 2, 0, 0, 0, 0, 0, 0];
         snapshotter._snapshotClient(noop);
 
         const clientSnapshots = snapshotter.getClientSample();

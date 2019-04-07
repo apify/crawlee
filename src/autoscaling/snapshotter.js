@@ -13,7 +13,7 @@ const DEFAULT_OPTIONS = {
     clientSnapshotIntervalSecs: 1,
     maxUsedMemoryRatio: 0.7,
     snapshotHistorySecs: 30,
-    maxClientErrors: 1,
+    maxClientErrors: 3,
 };
 const RESERVE_MEMORY_RATIO = 0.5;
 
@@ -246,7 +246,7 @@ class Snapshotter {
             const isCriticalOverload = usedBytes > criticalOverloadBytes;
             if (isCriticalOverload) {
                 const usedPercentage = usedBytes / this.maxMemoryBytes * 100;
-                const toMb = bytes => bytes / (1024 ** 2);
+                const toMb = bytes => Math.round(bytes / (1024 ** 2));
                 log.warning(`Memory is critically overloaded. Used ${toMb(usedBytes)} MB of ${toMb(this.maxMemoryBytes)} MB (${usedPercentage}%)`);
             }
         } catch (e) {
@@ -302,7 +302,13 @@ class Snapshotter {
     }
 
     /**
-     * Creates a snapshot of current API state.
+     * Creates a snapshot of current API state by checking for
+     * rate limit errors. Only errors produced by a 2nd retry
+     * of the API call are considered for snapshotting since
+     * earlier errors may just be caused by a random spike in
+     * number of requests and do not necessarily signify API
+     * overloading.
+     *
      * @param intervalCallback
      * @return {number}
      * @private
@@ -312,7 +318,8 @@ class Snapshotter {
             const now = new Date();
             this._pruneSnapshots(this.clientSnapshots, now);
 
-            const currentErrCount = apifyClient.stats.rateLimitErrors;
+            const allErrorCounts = apifyClient.stats.rateLimitErrors;
+            const currentErrCount = allErrorCounts[2]; // 2nd retry.
 
             // Handle empty snapshots array
             const snapshot = {

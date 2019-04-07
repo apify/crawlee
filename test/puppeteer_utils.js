@@ -4,7 +4,7 @@ import Apify from '../build/index';
 
 const { utils: { log } } = Apify;
 
-/* global describe, it */
+/* global window */
 
 describe('Apify.utils.puppeteer', () => {
     let ll;
@@ -76,6 +76,7 @@ describe('Apify.utils.puppeteer', () => {
 
             await Apify.utils.puppeteer.injectJQuery(page);
             const result2 = await page.evaluate(() => {
+                /* global $ */
                 return {
                     isDefined: window.jQuery === window.$,
                     text: $('h1').text(),
@@ -104,6 +105,7 @@ describe('Apify.utils.puppeteer', () => {
 
             await Apify.utils.puppeteer.injectUnderscore(page);
             const result2 = await page.evaluate(() => {
+                /* global _ */
                 return { isDefined: _.isEmpty({}) };
             });
             expect(result2).to.eql({ isDefined: true });
