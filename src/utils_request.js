@@ -121,6 +121,7 @@ export const requestBetter = async (options) => {
                 const shouldAbort = abortFunction(res);
                 if (shouldAbort) {
                     request.abort();
+                    res.destroy();
                 }
 
                 // No need to catch invalid content header - it is already caught by request
