@@ -57,7 +57,7 @@ const handleRequest = (request, interceptRequestHandlers) => {
  * Adds request interception handler in similar to `page.on('request', handler);` but in addition to that
  * supports multiple parallel handlers.
  *
- * All the handlers are executed in a serie as were added.
+ * All the handlers are executed sequentially in the order as they were added.
  * Each of the handlers must call one of `request.continue()`, `request.abort()` and `request.respond()`.
  * In addition to that any of the handlers may modify the request object by passing its overrides to `request.continue()`.
  * If multiple handlers modify same property then the last one wins.
