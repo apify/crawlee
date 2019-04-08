@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import zlib from 'zlib';
 import express from 'express';
 import { compress } from 'iltorb';
-import { requestBetter, requestLikeBrowser } from '../build/utils_request';
+import { requestExtended, requestLikeBrowser } from '../build/utils_request';
 import { startExpressAppPromise } from './_helper';
 
 const CONTENT = 'CONTENT';
@@ -103,16 +103,15 @@ describe('Apify.utils_request', () => {
         server.close();
     });
 
-    describe('Apify.requestBetter', async () => {
+    describe('Apify.requestExtended', async () => {
         it('works', async () => {
             const data = {
                 url: 'https://api.apify.com/v2/browser-info',
             };
-            const response = await requestBetter(data);
+            const response = await requestExtended(data);
             expect(response.statusCode)
                 .to
                 .eql(200);
-            expect(response.request.headers).to.be.empty; // eslint-disable-line no-unused-expressions
         });
 
         it('passes response to abortFunction and aborts request', async () => {
@@ -129,7 +128,7 @@ describe('Apify.utils_request', () => {
                 },
 
             };
-            await requestBetter(data);
+            await requestExtended(data);
             expect(constructorName).to.be.eql('IncomingMessage');
             expect(aborted).to.be.eql(true);
         });
@@ -146,7 +145,7 @@ describe('Apify.utils_request', () => {
                 },
 
             };
-            await requestBetter(data);
+            await requestExtended(data);
             expect(aborted).to.be.eql(false);
         });
 
@@ -156,7 +155,7 @@ describe('Apify.utils_request', () => {
 
             };
 
-            const response = await requestBetter(options);
+            const response = await requestExtended(options);
             expect(response.body)
                 .to
                 .eql(CONTENT);
@@ -168,7 +167,7 @@ describe('Apify.utils_request', () => {
 
             };
 
-            const response = await requestBetter(options);
+            const response = await requestExtended(options);
             expect(response.body)
                 .to
                 .eql(CONTENT);
@@ -180,7 +179,7 @@ describe('Apify.utils_request', () => {
 
             };
 
-            const response = await requestBetter(options);
+            const response = await requestExtended(options);
             expect(response.body).to.eql(CONTENT);
         });
 
@@ -191,7 +190,7 @@ describe('Apify.utils_request', () => {
             };
             let error;
             try {
-                await requestBetter(options);
+                await requestExtended(options);
             } catch (e) {
                 error = e;
             }
@@ -206,7 +205,7 @@ describe('Apify.utils_request', () => {
             };
             let error;
             try {
-                await requestBetter(options);
+                await requestExtended(options);
             } catch (e) {
                 error = e;
             }
@@ -222,7 +221,7 @@ describe('Apify.utils_request', () => {
             };
             let error;
             try {
-                await requestBetter(options);
+                await requestExtended(options);
             } catch (e) {
                 error = e;
             }
@@ -236,7 +235,7 @@ describe('Apify.utils_request', () => {
             };
             let error;
             try {
-                await requestBetter(options);
+                await requestExtended(options);
             } catch (e) {
                 error = e;
             }
@@ -251,7 +250,7 @@ describe('Apify.utils_request', () => {
             };
             let error;
             try {
-                await requestBetter(options);
+                await requestExtended(options);
             } catch (e) {
                 error = e;
             }
@@ -267,7 +266,7 @@ describe('Apify.utils_request', () => {
                 html: true,
                 useMobileVersion: true,
             };
-            const { response } = await requestLikeBrowser(data);
+            const response = await requestLikeBrowser(data);
             expect(response.statusCode).to.eql(200);
             expect(response.request.headers['User-Agent']).to.be.eql('Mozilla/5.0 (Android 9.0; Mobile; rv:66.0) Gecko/66.0 Firefox/66.0');
         });
@@ -277,7 +276,7 @@ describe('Apify.utils_request', () => {
                 url: `http://${HOST}:${port}/echo`,
                 html: true,
             };
-            const { response } = await requestLikeBrowser(data);
+            const response = await requestLikeBrowser(data);
             expect(response.statusCode).to.eql(200);
             expect(response.request.headers['User-Agent'])
                 .to
@@ -291,7 +290,7 @@ describe('Apify.utils_request', () => {
                 url: `http://${host}/echo`,
             };
 
-            const { response } = await requestLikeBrowser(options);
+            const response = await requestLikeBrowser(options);
 
             expect(response.statusCode).to.eql(200);
             expect(response.request.headers.Host).to.be.eql(host);
@@ -303,7 +302,7 @@ describe('Apify.utils_request', () => {
                 url: `http://${host}/echo`,
             };
 
-            const { response } = await requestLikeBrowser(options);
+            const response = await requestLikeBrowser(options);
 
             expect(response.statusCode).to.eql(200);
             expect(response.request.headers.Host).to.be.eql(host);

@@ -10,9 +10,9 @@ const FIREFOX_MOBILE_USER_AGENT = 'Mozilla/5.0 (Android 9.0; Mobile; rv:66.0) Ge
 const FIREFOX_DESKTOP_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_3) AppleWebKit/605.1.15 (KHTML, like Gecko)'
     + ' Version/11.1.1 Safari/605.1.15';
 
-const REQUEST_BETTER_DEFAULT_OPTIONS = {
+const REQUEST_EXTENDED_DEFAULT_OPTIONS = {
     json: false,
-    gzip: false,
+    gzip: true,
     maxRedirects: 10,
     followRedirect: true,
     removeRefererHeader: false,
@@ -55,7 +55,7 @@ const REQUEST_LIKE_BROWSER_DEFAULT_OPTIONS = {
  *  they are defined in the `headers` parameter, in which case the function leaves them untouched.
  *  For example, even if you define `{ 'Content-Length': null }`, the function doesn't define
  *  the 'Content-Length' header and the request will not contain it (due to the `null` value).
-  * @param [options.body]
+ * @param [options.body]
  *  HTTP payload for PATCH, POST and PUT requests. Must be a `Buffer` or `String`.
  * @param [options.followRedirect=true]
  *  Follow HTTP 3xx responses as redirects (default: true).
@@ -72,7 +72,7 @@ const REQUEST_LIKE_BROWSER_DEFAULT_OPTIONS = {
  *  Anything else (including the default value of undefined) will be passed as the encoding parameter to `toString()`,
  *  (meaning this is effectively utf8 by default).
  *  (Note: if you expect binary data, you should set encoding: null.)
- * @param [options.gzip=false]
+ * @param [options.gzip=true]
  *  If `true`, the function adds an `Accept-Encoding: gzip` header to request compressed content encodings from the server
  *  (if not already present) and decode supported content encodings in the response.
  *  Note that you can achieve the same effect by adding the `Accept-Encoding: gzip` header directly to `options.headers`,
@@ -103,9 +103,9 @@ const REQUEST_LIKE_BROWSER_DEFAULT_OPTIONS = {
  *  Node's [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) class,
  *  `body` is a `String`, `Buffer` or `Object`, depending on the `encoding` and `json` options.
  */
-export const requestBetter = async (options) => {
+export const requestExtended = async (options) => {
     return new Promise((resolve, reject) => {
-        const opts = _.defaults({}, options, REQUEST_BETTER_DEFAULT_OPTIONS);
+        const opts = _.defaults({}, options, REQUEST_EXTENDED_DEFAULT_OPTIONS);
 
         const {
             abortFunction,
@@ -124,29 +124,23 @@ export const requestBetter = async (options) => {
                     res.destroy();
                 }
 
-                // No need to catch invalid content header - it is already caught by request
-                const { type, encoding } = contentType.parse(res);
+                let cType;
+                try {
+                    cType = contentType.parse(res);
+                } catch (err) {
+                    res.destroy();
+                    // No reason to parse the body if the Content-Type header is invalid.
+                    return reject(new Error(`utils.requestBetter: Invalid Content-Type header for URL: ${request.url}`));
+                }
+
+                const { encoding } = cType;
 
                 // 5XX and 4XX codes are handled as errors, requests will be retried.
                 const status = res.statusCode;
+
                 if (status >= 400 && throwOnHttpError) {
-                    let body;
-                    try {
-                        body = await readStreamIntoString(res, encoding);
-                    } catch (err) {
-                        // Error in reading the body.
-                        return reject(err);
-                    }
-                    // Errors are often sent as JSON, so attempt to parse them,
-                    // despite Accept header being set to something different.
-                    if (type === 'application/json') {
-                        const errorResponse = JSON.parse(body);
-                        let { message } = errorResponse;
-                        if (!message) message = util.inspect(errorResponse, { depth: 1, maxArrayLength: 10 });
-                        return reject(new Error(`${status} - ${message}`));
-                    }
-                    // It's not a JSON so it's probably some text. Get the first 100 chars of it.
-                    return reject(new Error(`requestBetter: ${status} - Internal Server Error: ${body.substr(0, 100)}`));
+                    const error = await getMoreErrorInfo(res, cType);
+                    reject(error);
                 }
 
                 // Content-Type is fine. Read the body and respond.
@@ -162,11 +156,44 @@ export const requestBetter = async (options) => {
 };
 
 /**
+ * Gets more info about the error.
+ * Errors are often sent as JSON, so attempt to parse them, despite Accept header being set to something different.
+ * @param {http.IncomingMessage} response
+ * @param {Object} cType
+ * @param {String} cType.type
+ * @param {String} cType.encoding
+ * @returns {Promise<Error>}
+ */
+async function getMoreErrorInfo(response, cType) {
+    const { type, encoding } = cType;
+    const { status } = response;
+    let body;
+    try {
+        body = await readStreamIntoString(response, encoding);
+    } catch (err) {
+        // Error in reading the body.
+        return err;
+    }
+
+    if (type === 'application/json') {
+        const errorResponse = JSON.parse(body);
+        let { message } = errorResponse;
+        if (!message) {
+            message = util.inspect(errorResponse, {
+                depth: 1,
+                maxArrayLength: 10,
+            });
+        }
+        return new Error(`${status} - ${message}`);
+    }
+    // It's not a JSON so it's probably some text. Get the first 100 chars of it.
+    return new Error(`utils.requestBetter: ${status} - Internal Server Error: ${body.substr(0, 100)}...`);
+}
+
+/**
  * Flushes the provided stream into a Buffer and transforms
  * it to a String using the provided encoding or utf-8 as default.
  *
- * If the stream data is compressed, decompresses it using
- * the Content-Encoding header.
  *
  * @param {http.IncomingMessage} response
  * @param {String} [encoding]
@@ -174,6 +201,27 @@ export const requestBetter = async (options) => {
  * @private
  */
 async function readStreamIntoString(response, encoding) { // eslint-disable-line class-methods-use-this
+    const stream = decompress(response);
+
+    return new Promise((resolve, reject) => {
+        const chunks = [];
+        stream
+            .on('data', chunk => chunks.push(chunk))
+            .on('error', err => reject(err))
+            .on('end', () => {
+                const buffer = Buffer.concat(chunks);
+                resolve(buffer.toString(encoding));
+            });
+    });
+}
+
+/**
+ * Gets decompressed response from
+ * If the stream data is compressed, decompresses it using the Content-Encoding header.
+ * @param {http.IncomingMessage} response
+ * @returns {http.IncomingMessage|Stream} - Decompressed response
+ */
+function decompress(response) {
     const compression = response.headers['content-encoding'];
     let stream = response;
     if (compression) {
@@ -195,18 +243,9 @@ async function readStreamIntoString(response, encoding) { // eslint-disable-line
         }
         stream = response.pipe(decompressor);
     }
-
-    return new Promise((resolve, reject) => {
-        const chunks = [];
-        stream
-            .on('data', chunk => chunks.push(chunk))
-            .on('error', err => reject(err))
-            .on('end', () => {
-                const buffer = Buffer.concat(chunks);
-                resolve(buffer.toString(encoding));
-            });
-    });
+    return stream;
 }
+
 /**
  * Sends a HTTP request that looks like a request sent by a web browser,
  * fully emulating browser's HTTP headers.
@@ -237,10 +276,9 @@ async function readStreamIntoString(response, encoding) { // eslint-disable-line
  * @param [options.isMobile]
  *  If `true`, the function uses User-Agent of a mobile browser.
  *
- * @return {{ response, body }}
+ * @return {response}
  *  Returns an object with two properties: `response` is the instance of
- *  Node's [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) class,
- *  `body` is a `String`, `Buffer` or `Object`, depending on the `encoding` and `json` options.
+ *  Node's [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) class
  */
 export const requestLikeBrowser = async (options) => {
     const opts = _.defaults({}, options, REQUEST_LIKE_BROWSER_DEFAULT_OPTIONS);
@@ -259,7 +297,7 @@ export const requestLikeBrowser = async (options) => {
     };
     opts.headers = _.defaults({}, opts.headers, browserHeaders);
 
-    const response = await requestBetter(opts);
+    const response = await requestExtended(opts);
     const { type } = contentType.parse(response.headers['content-type']);
 
     // Handle situations where the server explicitly states that
@@ -276,5 +314,5 @@ export const requestLikeBrowser = async (options) => {
 
     if (!body) throw new Error('The response body is empty');
 
-    return { response, body };
+    return response;
 };
