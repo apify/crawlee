@@ -309,7 +309,10 @@ export class KeyValueStore {
 
     /**
      * Iterates over key value store keys, yielding each in turn to an `iteratee` function.
-     * Each invocation of `iteratee` is called with three arguments: `(item, index, info)`.
+     * Each invocation of `iteratee` is called with three arguments: `(key, index, info)`, where `key`
+     * is the record key, `index` is a zero-based index of the key in the current iteration
+     * (regardless of `options.exclusiveStartKey`) and `info` is an object that contains a single property `size`
+     * indicating size of the record in bytes.
      *
      * If the `iteratee` function returns a Promise then it is awaited before the next call.
      * If it throws an error, the iteration is aborted and the `forEachKey` function throws the error.
