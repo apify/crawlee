@@ -1,7 +1,6 @@
 import { expect } from 'chai';
 import Apify from '../build/index';
 
-const { utils: { log } } = Apify;
 const { addInterceptRequestHandler, removeInterceptRequestHandler } = Apify.utils.puppeteer;
 
 // Simple page with image, script and stylesheet links.
