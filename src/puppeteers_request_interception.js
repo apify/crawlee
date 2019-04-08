@@ -16,10 +16,12 @@ const handleRequest = (request, interceptRequestHandlers) => {
     let wasAborted = false;
     let wasResponded = false;
     let wasContinued = false;
+    const requestOverrides = {};
 
     const originalContinue = request.continue.bind(request);
-    request.continue = () => {
+    request.continue = (overrides) => {
         wasContinued = true;
+        Object.assign(requestOverrides, overrides);
     };
 
     request.abort = _.wrap(request.abort.bind(request), (abort, ...args) => {
@@ -29,7 +31,7 @@ const handleRequest = (request, interceptRequestHandlers) => {
     });
 
     request.respond = _.wrap(request.respond.bind(request), (respond, ...args) => {
-        wasResponded = false;
+        wasResponded = true;
 
         return respond(...args);
     });
@@ -48,12 +50,52 @@ const handleRequest = (request, interceptRequestHandlers) => {
         return wasAborted || wasResponded;
     });
 
-    if (!wasAborted && !wasResponded) originalContinue();
+    if (!wasAborted && !wasResponded) return originalContinue(requestOverrides);
 };
 
 /**
- * Adds request interception handler in similar as `page.on('request', handler);` but in addition to that
+ * Adds request interception handler in similar to `page.on('request', handler);` but in addition to that
  * supports multiple parallel handlers.
+ *
+ * All the handlers are executed in a serie as were added.
+ * Each of the handlers must call one of `request.continue()`, `request.abort()` and `request.respond()`.
+ * In addition to that any of the handlers may modify the request object by passing its overrides to `request.continue()`.
+ * If multiple handlers modify same property then the last one wins.
+ *
+ * If one the handlers calls `request.abort()` or `request.respond()` then request is not propagated further
+ * to any of the remaining handlers.
+ *
+ *
+ * **Example usage:**
+ *
+ * ```javascript
+ * // Replace images with placeholder.
+ * await addInterceptRequestHandler(page, (request) => {
+ *     if (request.resourceType() === 'image') {
+ *         return request.respond({
+ *             statusCode: 200,
+ *             contentType: 'image/jpeg',
+ *             body: placeholderImageBuffer,
+ *         });
+ *     }
+ *     return request.continue();
+ * });
+ *
+ * // Abort all the scripts.
+ * await addInterceptRequestHandler(page, (request) => {
+ *     if (request.resourceType() === 'script') return request.abort();
+ *     return request.continue();
+ * });
+ *
+ * // Change requests to post.
+ * await addInterceptRequestHandler(page, (request) => {
+ *     return request.continue({
+ *          method: 'POST',
+ *     });
+ * });
+ *
+ * await page.goto('http://example.com');
+ * ```
  *
  * @param {Page} page
  *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.

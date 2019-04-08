@@ -367,12 +367,14 @@ export const gotoExtended = async (page, request, gotoOptions = {}) => {
 
     if (method !== 'GET' || payload || !_.isEmpty(headers)) {
         const interceptRequestHandler = async (interceptedRequest) => {
-            if (method !== 'GET') interceptedRequest._method = method; // eslint-disable-line
-            if (payload) interceptedRequest._postData = payload; // eslint-disable-line
-            if (!_.isEmpty(headers)) interceptedRequest._headers = headers; // eslint-disable-line
+            const overrides = {};
 
+            if (method !== 'GET') overrides.method = method;
+            if (payload) overrides.postData = payload;
+            if (!_.isEmpty(headers)) overrides.headers = headers;
+
+            await interceptedRequest.continue(overrides);
             await removeInterceptRequestHandler(page, interceptRequestHandler); // We wan't this to be called only for the initial request.
-            await interceptedRequest.continue();
         };
 
         await addInterceptRequestHandler(page, interceptRequestHandler);
