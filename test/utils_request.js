@@ -2,8 +2,10 @@ import { expect } from 'chai';
 import zlib from 'zlib';
 import express from 'express';
 import { compress } from 'iltorb';
+import sinon from 'sinon';
 import { requestExtended, requestLikeBrowser } from '../build/utils_request';
 import { startExpressAppPromise } from './_helper';
+import Apify from '../build';
 
 const CONTENT = 'CONTENT';
 const HOST = '127.0.0.1';
@@ -13,9 +15,12 @@ const JSON_BODY = {
 };
 
 describe('Apify.utils_request', () => {
+    let mochaListener;
     let port;
     let server;
     before(async () => {
+        mochaListener = process.listeners('uncaughtException').shift();
+        process.removeListener('uncaughtException', mochaListener);
         const app = express();
 
         app.get('/406', (req, res) => {
@@ -101,6 +106,7 @@ describe('Apify.utils_request', () => {
 
     after(() => {
         server.close();
+        process.on('uncaughtException', mochaListener);
     });
 
     describe('Apify.requestExtended', async () => {
@@ -128,9 +134,59 @@ describe('Apify.utils_request', () => {
                 },
 
             };
-            await requestExtended(data);
+
+            let error;
+            try {
+                await requestExtended(data);
+            } catch (e) {
+                error = e;
+            }
+
             expect(constructorName).to.be.eql('IncomingMessage');
+            expect(error.message).to.eql(`utils.requestBetter: Request for ${data.url} aborted due to abortFunction`);
             expect(aborted).to.be.eql(true);
+        });
+
+        it('should suppress tunnel-agent errors', async () => {
+            const throwNextTick = (err) => {
+                process.nextTick(() => {
+                    throw err;
+                });
+            };
+            const abortFunction = async () => {
+                const err = new Error();
+                err.code = 'ERR_ASSERTION';
+                err.name = 'AssertionError [ERR_ASSERTION]';
+                err.operator = '==';
+                err.expected = 0;
+                err.stack = ('xxx/tunnel-agent/index.js/yyyy');
+                throwNextTick(err);
+                // will never resolve
+                await new Promise(() => {
+                });
+            };
+            const data = {
+                url: `http://${HOST}:${port}/gzip`,
+                abortFunction,
+
+            };
+            let message;
+            const stubbedErrorLog = sinon
+                .stub(Apify.utils.log, 'error')
+                .callsFake(async (msg) => {
+                    message = msg;
+                });
+            let error;
+            try {
+                await requestExtended(data);
+            } catch (e) {
+                error = e;
+            }
+
+            expect(message).to.be.eql('utils.requestExtended: Tunnel-Agent assertion error intercepted.');
+            expect(error).to.exist //eslint-disable-line
+
+            stubbedErrorLog.restore();
         });
 
         it('it does not aborts request when aborts function returns false', async () => {
@@ -320,7 +376,7 @@ describe('Apify.utils_request', () => {
             }
 
             expect(error).to.exist; //eslint-disable-line
-            expect(error.message).to.eql(`requestLikeBrowser: Resource ${options.url} is not available in HTML format. Skipping resource.`);
+            expect(error.message).to.eql(`utils.requestBetter: Request for ${options.url} aborted due to abortFunction`);
         });
 
         it('it throws for empty response body', async () => {
@@ -350,7 +406,7 @@ describe('Apify.utils_request', () => {
             }
 
             expect(error).to.exist; //eslint-disable-line
-            expect(error.message.includes('Received unexpected Content-Type:')).to.eql(true);
+            expect(error.message).to.eql(`utils.requestBetter: Request for ${options.url} aborted due to abortFunction`);
         });
     });
 });

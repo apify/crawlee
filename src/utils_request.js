@@ -5,6 +5,7 @@ import zlib from 'zlib';
 import * as url from 'url';
 import { decompressStream } from 'iltorb';
 import _ from 'underscore';
+import log from 'apify-shared/log';
 
 const FIREFOX_MOBILE_USER_AGENT = 'Mozilla/5.0 (Android 9.0; Mobile; rv:66.0) Gecko/66.0 Firefox/66.0';
 const FIREFOX_DESKTOP_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_3) AppleWebKit/605.1.15 (KHTML, like Gecko)'
@@ -29,6 +30,8 @@ const REQUEST_LIKE_BROWSER_DEFAULT_OPTIONS = {
     method: 'GET',
     useMobileVersion: false,
 };
+
+let tunnelAgentExceptionListener;
 /**
  * Sends a HTTP request and returns the response.
  * The function has similar functionality and options as the [request](https://www.npmjs.com/package/request) NPM package,
@@ -104,6 +107,8 @@ const REQUEST_LIKE_BROWSER_DEFAULT_OPTIONS = {
  *  `body` is a `String`, `Buffer` or `Object`, depending on the `encoding` and `json` options.
  */
 export const requestExtended = async (options) => {
+    suppressTunnelAgentAssertError();
+
     return new Promise((resolve, reject) => {
         const opts = _.defaults({}, options, REQUEST_EXTENDED_DEFAULT_OPTIONS);
 
@@ -118,10 +123,19 @@ export const requestExtended = async (options) => {
         request
             .on('error', err => reject(err))
             .on('response', async (res) => {
-                const shouldAbort = abortFunction(res);
+                let shouldAbort;
+
+                try {
+                    shouldAbort = abortFunction(res);
+                } catch (e) {
+                    reject(e);
+                }
+
                 if (shouldAbort) {
                     request.abort();
                     res.destroy();
+
+                    return reject(new Error(`utils.requestBetter: Request for ${opts.url} aborted due to abortFunction`));
                 }
 
                 let cType;
@@ -284,6 +298,10 @@ export const requestLikeBrowser = async (options) => {
     const opts = _.defaults({}, options, REQUEST_LIKE_BROWSER_DEFAULT_OPTIONS);
 
     const parsedUrl = url.parse(opts.url);
+    const abortFunction = (res) => {
+        const { type } = contentType.parse(res.headers['content-type']);
+        return res.statusCode === 406 || type.toLowerCase() !== 'text/html';
+    };
 
     const browserHeaders = {
         Host: parsedUrl.host,
@@ -296,19 +314,10 @@ export const requestLikeBrowser = async (options) => {
         'Upgrade-Insecure-Requests': '1',
     };
     opts.headers = _.defaults({}, opts.headers, browserHeaders);
+    opts.abortFunction = abortFunction;
 
     const response = await requestExtended(opts);
-    const { type } = contentType.parse(response.headers['content-type']);
 
-    // Handle situations where the server explicitly states that
-    // it will not serve the resource as text/html by skipping.
-    if (response.statusCode === 406) {
-        throw new Error(`requestLikeBrowser: Resource ${options.url} is not available in HTML format. Skipping resource.`);
-    }
-
-    if (type.toLowerCase() !== 'text/html') {
-        throw new Error(`Received unexpected Content-Type: ${type}`);
-    }
 
     const { body } = response;
 
@@ -316,3 +325,37 @@ export const requestLikeBrowser = async (options) => {
 
     return response;
 };
+
+/**
+ * The handler this function attaches overcomes a long standing bug in
+ * the tunnel-agent NPM package that is used by the Request package internally.
+ * The package throws an assertion error in a callback scope that cannot be
+ * caught by conventional means and shuts down the running process.
+ * @ignore
+ */
+function suppressTunnelAgentAssertError() {
+    // Only set the handler if it's not already set.
+    if (tunnelAgentExceptionListener) return;
+    tunnelAgentExceptionListener = (err) => {
+        try {
+            const code = err.code === 'ERR_ASSERTION';
+            const name = err.name === 'AssertionError [ERR_ASSERTION]';
+            const operator = err.operator === '==';
+            const value = err.expected === 0;
+            const stack = err.stack.includes('/tunnel-agent/index.js');
+            // If this passes, we can be reasonably sure that it's
+            // the right error from tunnel-agent.
+            if (code && name && operator && value && stack) {
+                log.error('utils.requestExtended: Tunnel-Agent assertion error intercepted.');
+                return;
+            }
+        } catch (caughtError) {
+            // Catch any exception resulting from the duck-typing
+            // check. It only means that the error is not the one
+            // we're looking for.
+        }
+        // Rethrow the original error if it's not a match.
+        throw err;
+    };
+    process.on('uncaughtException', tunnelAgentExceptionListener);
+}
