@@ -1,5 +1,5 @@
 import http from 'http';
-import fs from 'fs';
+import fs from 'fs-extra';
 import path from 'path';
 import { promisify } from 'util';
 import express from 'express';
@@ -14,6 +14,7 @@ const MAX_SCREENSHOT_FILES = 10;
 
 const writeFile = promisify(fs.writeFile);
 const unlink = promisify(fs.unlink);
+const ensureDir = promisify(fs.ensureDir);
 
 export default class LiveViewServer {
     constructor(options = {}) {
@@ -37,7 +38,7 @@ export default class LiveViewServer {
         this.screenshotIndexToFilePath = {};
 
         // Setup HTTP server and Express router
-        this.isRunning = false;
+        this._isRunning = false;
         this.httpServer = http.createServer();
         this.app = express();
 
@@ -84,15 +85,31 @@ export default class LiveViewServer {
      * Starts the HTTP server.
      */
     async start() {
+        await ensureDir(this.screenshotDirectoryPath);
         await promisifyServerListen(this.httpServer)(this.port);
         log.info('Live view web server started', { publicUrl: this.liveViewUrl });
-        this.isRunning = true;
+        this._isRunning = true;
+    }
+
+    async stop() {
+        return new Promise((resolve) => {
+            this.httpServer.close((err) => {
+                this._isRunning = false;
+                if (err) log.exception(err, 'Live view web server could not be stopped.');
+                else log.info('Live view web server stopped.');
+                resolve();
+            });
+        });
     }
 
     async serve(page) {
         if (!this.hasClients()) return;
         const snapshot = await this._makeSnapshot(page);
         await this._pushSnapshot(snapshot);
+    }
+
+    get isRunning() {
+        return this._isRunning;
     }
 
     hasClients() {
