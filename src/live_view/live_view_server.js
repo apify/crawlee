@@ -1,16 +1,26 @@
-const http = require('http');
-const fs = require('fs');
-const express = require('express');
-const socketio = require('socket.io');
-const { promisifyServerListen } = require('apify-shared/utilities');
-const { ENV_VARS, LOCAL_ENV_VARS } = require('apify-shared/consts');
+import http from 'http';
+import fs from 'fs';
+import path from 'path';
+import { promisify } from 'util';
+import express from 'express';
+import socketio from 'socket.io';
+import log from 'apify-shared/log';
+import { promisifyServerListen } from 'apify-shared/utilities';
+import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 
-const { utils: { log } } = Apify;
+const DEFAULT_SCREENSHOT_DIRECTORY_PATH = path.resolve('live_view');
+const MAX_SCREENSHOT_FILES = 10;
 
-const DELETE_SCREENSHOT_FILE_TIMEOUT_MILLIS = 10 * 1000;
 
-class LiveViewServer {
-    constructor() {
+const writeFile = promisify(fs.writeFile);
+const unlink = promisify(fs.unlink);
+
+export default class LiveViewServer {
+    constructor(options = {}) {
+        const {
+            screenshotDirectoryPath = DEFAULT_SCREENSHOT_DIRECTORY_PATH,
+        } = options;
+
         const containerPort = process.env[ENV_VARS.CONTAINER_PORT] || LOCAL_ENV_VARS[ENV_VARS.CONTAINER_PORT];
 
         this.port = parseInt(containerPort, 10);
@@ -19,6 +29,7 @@ class LiveViewServer {
                 + `${ENV_VARS.CONTAINER_PORT} environment variable (was "${containerPort}").`);
         }
         this.liveViewUrl = process.env[ENV_VARS.CONTAINER_URL] || LOCAL_ENV_VARS[ENV_VARS.CONTAINER_URL];
+        this.screenshotDirectoryPath = screenshotDirectoryPath;
 
         // Snapshot data
         this.lastSnapshot = null;
@@ -26,6 +37,7 @@ class LiveViewServer {
         this.screenshotIndexToFilePath = {};
 
         // Setup HTTP server and Express router
+        this.isRunning = false;
         this.httpServer = http.createServer();
         this.app = express();
 
@@ -74,45 +86,54 @@ class LiveViewServer {
     async start() {
         await promisifyServerListen(this.httpServer)(this.port);
         log.info('Live view web server started', { publicUrl: this.liveViewUrl });
+        this.isRunning = true;
     }
 
-    /**
-     * To be called when the snapshot of screen and HTML content was saved.
-     */
-    async pushSnapshot(screenshotFilePath, htmlContent, pageUrl) {
-        log.info('LiveViewServer.pushSnapshot()', { pageUrl });
-
-        const prevScreenshotIndex = this.lastScreenshotIndex;
-
-        this.lastScreenshotIndex++;
-        this.lastSnapshot = {
-            pageUrl,
-            htmlContent,
-            screenshotIndex: this.lastScreenshotIndex,
-        };
-        this.screenshotIndexToFilePath[this.lastScreenshotIndex] = screenshotFilePath;
-
-        // Send new snapshot to clients
-        log.info('Sending live view snapshot', { snapshot: this.lastSnapshot });
-        this.socketio.emit('snapshot', this.lastSnapshot);
-
-        // Delete screenshot after a while, maybe some client still wants to download it
-        const prevFilePath = this.screenshotIndexToFilePath[prevScreenshotIndex];
-        if (prevFilePath) {
-            setTimeout(() => {
-                delete this.screenshotIndexToFilePath[prevScreenshotIndex];
-                log.debug('Deleting screenshot', { path: prevFilePath });
-                fs.unlink(prevFilePath, (err) => {
-                    if (err) log.exception(err, 'Cannot delete file', { path: prevFilePath });
-                });
-            }, DELETE_SCREENSHOT_FILE_TIMEOUT_MILLIS);
-        }
+    async serve(page) {
+        if (!this.hasClients()) return;
+        const snapshot = await this._makeSnapshot(page);
+        await this._pushSnapshot(snapshot);
     }
 
     hasClients() {
         return this.clientCount > 0;
     }
+
+    getScreenshotPath(screenshotIndex) {
+        return path.join(this.screenshotDirectoryPath, screenshotIndex);
+    }
+
+    async _makeSnapshot(page) {
+        const pageUrl = page.url();
+        log.info('Making live view snapshot.', { pageUrl });
+        const [htmlContent, screenshot] = await Promise.all([
+            page.content(),
+            page.screenshot(),
+        ]);
+
+        const screenshotIndex = this.lastScreenshotIndex++;
+
+        await writeFile(this.getScreenshotPath(screenshotIndex), screenshot);
+        if (screenshotIndex > MAX_SCREENSHOT_FILES) {
+            this._deleteScreenshot(MAX_SCREENSHOT_FILES - screenshotIndex);
+        }
+
+        const snapshot = { pageUrl, htmlContent, screenshotIndex };
+        this.lastSnapshot = snapshot;
+        return snapshot;
+    }
+
+    /**
+     * To be called when the snapshot of screen and HTML content was saved.
+     */
+    async _pushSnapshot(snapshot) {
+        // Send new snapshot to clients
+        log.info('Sending live view snapshot', { snapshot });
+        this.socketio.emit('snapshot', snapshot);
+    }
+
+    _deleteScreenshot(screenshotIndex) { // eslint-disable-line class-methods-use-this
+        unlink(this.getScreenshotPath(screenshotIndex))
+            .catch(err => log.exception(err, 'Cannot delete live view screenshot.'));
+    }
 }
-
-
-module.exports = LiveViewServer;
