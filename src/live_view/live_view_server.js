@@ -5,11 +5,12 @@ import { promisify } from 'util';
 import express from 'express';
 import socketio from 'socket.io';
 import log from 'apify-shared/log';
+import { checkParamOrThrow } from 'apify-client/build/utils';
 import { promisifyServerListen } from 'apify-shared/utilities';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 
 const DEFAULT_SCREENSHOT_DIRECTORY_PATH = path.resolve('live_view');
-const MAX_SCREENSHOT_FILES = 10;
+const DEFAULT_MAX_SCREENSHOT_FILES = 10;
 
 
 const writeFile = promisify(fs.writeFile);
@@ -20,6 +21,7 @@ export default class LiveViewServer {
     constructor(options = {}) {
         const {
             screenshotDirectoryPath = DEFAULT_SCREENSHOT_DIRECTORY_PATH,
+            maxScreenshotFiles = DEFAULT_MAX_SCREENSHOT_FILES,
         } = options;
 
         const containerPort = process.env[ENV_VARS.CONTAINER_PORT] || LOCAL_ENV_VARS[ENV_VARS.CONTAINER_PORT];
@@ -30,12 +32,15 @@ export default class LiveViewServer {
                 + `${ENV_VARS.CONTAINER_PORT} environment variable (was "${containerPort}").`);
         }
         this.liveViewUrl = process.env[ENV_VARS.CONTAINER_URL] || LOCAL_ENV_VARS[ENV_VARS.CONTAINER_URL];
+
+        checkParamOrThrow(screenshotDirectoryPath, 'options.screenshotDirectoryPath', 'String');
+        checkParamOrThrow(maxScreenshotFiles, 'options.maxScreenshotFiles', 'Number');
         this.screenshotDirectoryPath = screenshotDirectoryPath;
+        this.maxScreenshotFiles = maxScreenshotFiles;
 
         // Snapshot data
         this.lastSnapshot = null;
         this.lastScreenshotIndex = 0;
-        this.screenshotIndexToFilePath = {};
 
         // Setup HTTP server and Express router
         this._isRunning = false;
@@ -51,14 +56,9 @@ export default class LiveViewServer {
         });
 
         // Serves JPEG with the last screenshot
-        this.app.get('/screenshot', (req, res) => {
-            const screenshotIndex = req.query.index;
-            const filePath = this.screenshotIndexToFilePath[screenshotIndex];
-            if (!filePath) {
-                return res.status(404).send('Oops, there is no such screenshot.');
-            }
-            // TODO: Limit snapshot sizes to avoid choking the system (was 5MB),
-            // return replacement image if too large
+        this.app.get('/screenshot/:index', (req, res) => {
+            const screenshotIndex = req.params.index;
+            const filePath = this.getScreenshotPath(screenshotIndex);
             res.sendFile(filePath);
         });
 
@@ -117,7 +117,7 @@ export default class LiveViewServer {
     }
 
     getScreenshotPath(screenshotIndex) {
-        return path.join(this.screenshotDirectoryPath, screenshotIndex);
+        return path.join(this.screenshotDirectoryPath, `${screenshotIndex}`);
     }
 
     async _makeSnapshot(page) {
@@ -131,8 +131,8 @@ export default class LiveViewServer {
         const screenshotIndex = this.lastScreenshotIndex++;
 
         await writeFile(this.getScreenshotPath(screenshotIndex), screenshot);
-        if (screenshotIndex > MAX_SCREENSHOT_FILES) {
-            this._deleteScreenshot(MAX_SCREENSHOT_FILES - screenshotIndex);
+        if (screenshotIndex > this.maxScreenshotFiles - 1) {
+            this._deleteScreenshot(screenshotIndex - this.maxScreenshotFiles);
         }
 
         const snapshot = { pageUrl, htmlContent, screenshotIndex };

@@ -22,7 +22,7 @@
             if (!snapshot) return;
             $('#pageUrl').text(snapshot.pageUrl).attr('href', snapshot.pageUrl);
             $('#htmlContent').text(snapshot.htmlContent);
-            $('#screenshotImg').attr('src', `./screenshot?index=${snapshot.screenshotIndex}`);
+            $('#screenshotImg').attr('src', `./screenshot/${snapshot.screenshotIndex}`);
             $('#waitContainer').hide();
             $('#snapshotContainer').show();
             Prism.highlightAll();
