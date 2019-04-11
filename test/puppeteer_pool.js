@@ -575,4 +575,40 @@ describe('PuppeteerPool', () => {
             }
         });
     });
+
+    describe('enables LiveView', () => {
+        before(() => {
+            process.env[ENV_VARS.IS_AT_HOME] = '1';
+        });
+        after(() => {
+            delete process.env[ENV_VARS.IS_AT_HOME];
+        });
+        it('should work', async () => {
+            const serveCalledWith = [];
+            let started = 0;
+            let stopped = 0;
+            const pool = new Apify.PuppeteerPool({
+                launchPuppeteerOptions: { headless: true },
+                useLiveView: true,
+            });
+            pool.liveViewServer.start = async () => {
+                started++;
+                pool.liveViewServer._isRunning = true; // eslint-disable-line no-underscore-dangle
+            };
+            pool.liveViewServer.serve = async arg => serveCalledWith.push(arg);
+            pool.liveViewServer.stop = async () => stopped++;
+
+            for (let i = 0; i < 3; i++) {
+                const page = await pool.newPage();
+                await pool.recyclePage(page);
+            }
+
+            expect(started).to.be.eql(1);
+            expect(serveCalledWith).to.have.lengthOf(3);
+            serveCalledWith.forEach(item => expect(item.constructor.name === 'Page'));
+
+            await pool.destroy();
+            expect(stopped).to.be.eql(1);
+        });
+    });
 });

@@ -92,6 +92,7 @@ export default class LiveViewServer {
     }
 
     async stop() {
+        this.httpServer.unref();
         return new Promise((resolve) => {
             this.httpServer.close((err) => {
                 this._isRunning = false;

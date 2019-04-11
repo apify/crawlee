@@ -31,7 +31,7 @@ const DEFAULT_OPTIONS = {
     launchPuppeteerFunction: launchPuppeteerOptions => launchPuppeteer(launchPuppeteerOptions),
 
     recycleDiskCache: false,
-    liveView: false,
+    useLiveView: false,
 };
 
 const mkdtempAsync = util.promisify(fs.mkdtemp);
@@ -466,6 +466,7 @@ class PuppeteerPool {
      * @return {Promise<Page>}
      */
     async newPage() {
+        if (this.liveViewServer && !this.liveViewServer.isRunning) await this.liveViewServer.start();
         let idlePage;
         // We don't need to check whether options.reusePages is true,
         // because if it's false, the array will be empty and the loop will never start.
@@ -596,7 +597,10 @@ class PuppeteerPool {
             }
             await Promise.all(dirDeletionPromises);
         } catch (err) {
-            log.exception(err, 'PuppeteerPool: Cannot close the browsers');
+            log.exception(err, 'PuppeteerPool: Cannot close the browsers.');
+        }
+        if (this.liveViewServer) {
+            await this.liveViewServer.stop().catch(err => log.exception(err, 'PuppeteerPool: Cannot close LiveViewServer.'));
         }
     }
 
@@ -670,11 +674,10 @@ class PuppeteerPool {
     }
 
     async _serveLiveView(page) {
-        if (!this.liveViewServer.isRunning) await this.liveViewServer.start();
         const browser = page.browser();
-        const instance = this._findInstanceByBrowser(browser);
+        const instance = await this._findInstanceByBrowser(browser);
         // Only take snapshots in the most recently opened browser.
-        if (instance.id !== this.browserCounter) return;
+        if (instance.id !== this.browserCounter - 1) return;
         await this.liveViewServer.serve(page);
     }
 }

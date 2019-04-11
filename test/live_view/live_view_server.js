@@ -3,7 +3,7 @@ import { promisify } from 'util';
 import rqst from 'request-promise-native';
 import fs from 'fs-extra';
 import { expect } from 'chai';
-import io from 'socket.io-client'; // eslint-disable-line
+import io from 'socket.io-client';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import Apify from '../../build/index';
 import { LOCAL_STORAGE_DIR } from '../_helper';
@@ -54,16 +54,11 @@ describe('LiveViewServer', () => {
 
     it('should connect over websocket', async () => {
         const socket = io(BASE_URL);
-        const connected = new Promise((resolve) => {
-            socket.on('connect', async () => {
-                expect(lvs.hasClients()).to.be.eql(true);
-                await lvs.stop();
-                socket.close();
-                resolve();
-            });
-        });
         await lvs.start();
-        await connected;
+        await new Promise(resolve => socket.on('connect', resolve));
+        expect(lvs.hasClients()).to.be.eql(true);
+        socket.close();
+        await lvs.stop();
     });
 
     describe('when connected', () => {
@@ -107,7 +102,7 @@ describe('LiveViewServer', () => {
         it('should not store more than maxScreenshotFiles screenshots', async () => {
             const snapshots = [];
             socket.on('snapshot', s => snapshots.push(s));
-            await Promise.all(Array(3).fill(null).map(_ => lvs.serve(fakePage)));
+            await Promise.all(Array(3).fill(null).map(() => lvs.serve(fakePage)));
             const screenshots = await Promise.all(snapshots
                 .sort((a, b) => a.screenshotIndex - b.screenshotIndex)
                 .map((snap, idx) => {

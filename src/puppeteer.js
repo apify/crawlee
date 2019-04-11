@@ -6,7 +6,6 @@ import { ENV_VARS } from 'apify-shared/consts';
 import { DEFAULT_USER_AGENT } from './constants';
 import { getTypicalChromeExecutablePath, isAtHome } from './utils';
 import { getApifyProxyUrl } from './actor';
-import { registerBrowserForLiveView } from './puppeteer_live_view_server';
 
 /* global process, require */
 
@@ -65,17 +64,6 @@ const LAUNCH_PUPPETEER_DEFAULT_VIEWPORT = {
  * @property ${String} [puppeteerModule]
  *   Require path to a module to be used instead of default 'puppeteer'. This enables usage
  *   of various Puppeteer wrappers such as 'puppeteer-extra'.
- * @property {Boolean} [liveView=false]
- *   If set to `true`, a `PuppeteerLiveViewServer` will be started to enable
- *   screenshot and html capturing of visited pages using `PuppeteerLiveViewBrowser`.
- * @property {Object} [liveViewOptions]
- *   Settings for `PuppeteerLiveViewBrowser` started using `launchPuppeteer()`.
- * @property {String} [liveViewOptions.liveViewId]
- *   Custom ID of a browser instance in live view.
- * @property {Number} [liveViewOptions.screenshotTimeoutMillis=3000]
- *   Time in milliseconds before a screenshot capturing
- *   will time out and the actor continues with execution.
- *   Screenshot capturing pauses execution within the given page.
  */
 
 /**
@@ -201,9 +189,11 @@ export const launchPuppeteer = async (options = {}) => {
     checkParamOrThrow(options.proxyUrl, 'options.proxyUrl', 'Maybe String');
     checkParamOrThrow(options.useApifyProxy, 'options.useApifyProxy', 'Maybe Boolean');
     checkParamOrThrow(options.puppeteerModule, 'options.puppeteerModule', 'Maybe String');
-    checkParamOrThrow(options.liveView, 'options.liveView', 'Maybe Boolean');
-    checkParamOrThrow(options.liveViewOptions, 'options.liveViewOptions', 'Maybe Object');
     if (options.useApifyProxy && options.proxyUrl) throw new Error('Cannot combine "options.useApifyProxy" with "options.proxyUrl"!');
+    if (options.liveView || options.liveViewOptions) {
+        log.deprecated('Live view is deprecated in Apify.launchPuppeteer() and launchPuppeteerOptions. '
+            + 'Use options.useLiveView in PuppeteerPool. For live view with Apify.launchPuppeteer(), use Apify.LiveViewServer.');
+    }
 
     const puppeteer = getPuppeteerOrThrow(options.puppeteerModule);
     const optsCopy = Object.assign({}, options);
@@ -213,8 +203,7 @@ export const launchPuppeteer = async (options = {}) => {
     // TODO: It's not clear that this works, keep eye on https://bugs.chromium.org/p/chromium/issues/detail?id=723233
     optsCopy.args.push('--enable-resource-load-scheduler=false');
     if (optsCopy.headless == null) {
-        // Forcing headless with liveView, otherwise screenshots redirect user to new browser window
-        optsCopy.headless = optsCopy.liveView || (process.env[ENV_VARS.HEADLESS] === '1' && process.env[ENV_VARS.XVFB] !== '1');
+        optsCopy.headless = process.env[ENV_VARS.HEADLESS] === '1' && process.env[ENV_VARS.XVFB] !== '1';
     }
     if (optsCopy.useChrome && (optsCopy.executablePath === undefined || optsCopy.executablePath === null)) {
         optsCopy.executablePath = process.env[ENV_VARS.CHROME_EXECUTABLE_PATH] || getTypicalChromeExecutablePath();
@@ -241,19 +230,7 @@ export const launchPuppeteer = async (options = {}) => {
         optsCopy.args.push(`--user-agent=${userAgent}`);
     }
 
-    let browserPromise;
-    if (optsCopy.proxyUrl) {
-        browserPromise = launchPuppeteerWithProxy(puppeteer, optsCopy);
-    } else {
-        log.info('Launching Puppeteer', _.omit(optsCopy, LAUNCH_PUPPETEER_LOG_OMIT_OPTS));
-        browserPromise = puppeteer.launch(optsCopy);
-    }
-
-    // Start LiveView server if requested
-    if (optsCopy.liveView) {
-        const browser = await browserPromise;
-        return registerBrowserForLiveView(browser, optsCopy.liveViewOptions).then(() => wrapped);
-    }
-
-    return wrapped;
+    if (optsCopy.proxyUrl) return launchPuppeteerWithProxy(puppeteer, optsCopy);
+    log.info('Launching Puppeteer', _.omit(optsCopy, LAUNCH_PUPPETEER_LOG_OMIT_OPTS));
+    return puppeteer.launch(optsCopy);
 };
