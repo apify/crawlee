@@ -594,6 +594,7 @@ describe('PuppeteerPool', () => {
             pool.liveViewServer.start = async () => {
                 started++;
                 pool.liveViewServer._isRunning = true; // eslint-disable-line no-underscore-dangle
+                pool.liveViewServer.clientCount++;
             };
             pool.liveViewServer.serve = async arg => serveCalledWith.push(arg);
             pool.liveViewServer.stop = async () => stopped++;

@@ -12,6 +12,17 @@
         .urlDiv {
             margin-bottom: 8px;
         }
+        button {
+            color: white;
+            border-radius: 4px;
+            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+        }
+        #enableButton {
+            background: rgb(28, 184, 65);
+        }
+        #disableButton {
+            background: rgb(202, 60, 60);
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.slim.js"></script>
     <script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
@@ -27,20 +38,37 @@
             $('#snapshotContainer').show();
             Prism.highlightAll();
         }
-        $(function () {
-            var socket = io();
+        function connect() {
+            const socket = io();
             socket.on('snapshot', showSnapshot);
-            socket.on('connect', function() {
+            socket.on('connect', () => {
                 console.log('Client ID: ' + socket.id);
             });
+            return socket;
+        }
+        $(() => {
+            let socket;
             // Show initial snapshot obtained from /init-last-snapshot.js
             showSnapshot(window.lastSnapshot);
-            $('#screenshotLink').click(function (event) {
+            $('#enableButton').click((event) => {
+                event.preventDefault();
+                socket = connect();
+                $('#waitContainer').show();
+                $('#enableButton').hide();
+                $('#disableButton').show();
+            });
+            $('#disableButton').click((event) => {
+                event.preventDefault();
+                if (socket) socket.close();
+                $('#enableButton').show();
+                $('#disableButton').hide();
+            });
+            $('#screenshotLink').click((event) => {
                 event.preventDefault();
                 $('#screenshotDiv').show();
                 $('#htmlDiv').hide();
             });
-            $('#htmlLink').click(function () {
+            $('#htmlLink').click(() => {
                 event.preventDefault();
                 $('#screenshotDiv').hide();
                 $('#htmlDiv').show();
@@ -52,7 +80,12 @@
 
 <script src="./prism.js"></script>
 
-<p id="waitContainer">
+<header id="header">
+    <button id="enableButton">Enable Live View</button>
+    <button id="disableButton" style="display: none">Disable Live View</button>
+</header>
+
+<p id="waitContainer" style="display: none">
     Waiting for the snapshot...<br>
     <img src="./loading.gif"/>
 </p>

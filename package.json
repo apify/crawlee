@@ -38,7 +38,7 @@
         "build"
     ],
     "scripts": {
-        "build": "rm -rf ./build && babel src --out-dir build",
+        "build": "rm -rf ./build && babel src --out-dir build --copy-files",
         "build-docs": "npm run clean && npm run build && node ./website/tools/build_docs.js",
         "build-readme": "node ./tools/build_readme.js",
         "test": "npm run build &&  nyc --reporter=html --reporter=text mocha --timeout 60000 --require @babel/register --recursive --exit",

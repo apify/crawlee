@@ -653,7 +653,7 @@ class PuppeteerPool {
      * @return {Promise}
      */
     async recyclePage(page) {
-        if (this.liveViewServer) {
+        if (this.liveViewServer && this.liveViewServer.hasClients()) {
             await this._serveLiveView(page)
                 .catch(err => log.exception(err, 'LiveView failed to be served.'));
         }
@@ -675,7 +675,16 @@ class PuppeteerPool {
 
     async _serveLiveView(page) {
         const browser = page.browser();
+        const pages = await browser.pages();
+
+        // We only serve the second page of the browser.
+        // First page is about:blank and the others are disregarded.
+        if (pages[1] !== page) return;
+
         const instance = await this._findInstanceByBrowser(browser);
+        // Sometimes the browser gets killed and there's no instance.
+        if (!instance) return;
+
         // Only take snapshots in the most recently opened browser.
         if (instance.id !== this.browserCounter - 1) return;
         await this.liveViewServer.serve(page);
