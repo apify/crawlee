@@ -17,6 +17,35 @@ const writeFile = promisify(fs.writeFile);
 const unlink = promisify(fs.unlink);
 const ensureDir = promisify(fs.ensureDir);
 
+/**
+ * `LiveViewServer` enables serving of browser snapshots via web sockets. It includes it's own client
+ * that provides a simple frontend to viewing the captured snapshots. A snapshot consists of three
+ * pieces of information, the currently opened URL, the content of the page (HTML) and its screenshot.
+ *
+ * `LiveViewServer` is useful when you want to be able to inspect the current browser status on demand.
+ * When no client is connected, the webserver consumes very low resources so it should have a close
+ * to zero impact on performance. Only once a client connects the server will start serving snapshots.
+ * Once no longer needed, it can be disabled again in the client to remove any performance impact.
+ *
+ * NOTE: Screenshot taking in browser typically takes around 300ms. So having the `LiveViewServer`
+ * always serve snapshots will have a significant impact on performance.
+ *
+ * When running on the Apify Platform and using {@link PuppeteerPool}, the `LiveViewServer` can be
+ * easily used just by providing the `useLiveView = true` option to the {@link PuppeteerPool}.
+ * It will take snapshots of the first page of the latest browser. Taking snapshots of only a
+ * single page improves performance and stability dramatically in high concurrency situations.
+ *
+ * When running locally, it is often best to use headful browser for debugging, since it provides
+ * a better view into the browser, including DevTools.
+ *
+ * @param {Object} [options] All `LiveViewServer` parameters are passed
+ *   via an options object with the following keys:
+ * @param {string} [options.screenshotDirectoryPath] By default, the screenshots are saved to
+ *   the `live_view` directory in the process' working directory. Provide a different
+ *   absolute path to change the settings.
+ * @param {number} [options.maxScreenshotFiles=10] Limits the number of screenshots stored
+ *   by the server. This is to prevent using up too much disk space.
+ */
 export default class LiveViewServer {
     constructor(options = {}) {
         const {
@@ -43,7 +72,9 @@ export default class LiveViewServer {
     }
 
     /**
-     * Starts the HTTP server.
+     * Starts the HTTP server with web socket connections enabled.
+     * Snapshots will not be created until a client has connected.
+     * @return {Promise}
      */
     async start() {
         await ensureDir(this.screenshotDirectoryPath);
@@ -52,6 +83,11 @@ export default class LiveViewServer {
         this._isRunning = true;
     }
 
+    /**
+     * Prevents the server from receiving more connections. Existing connections
+     * will not be terminated, but the server will not prevent a process exit.
+     * @return {Promise}
+     */
     async stop() {
         this.httpServer.unref();
         return new Promise((resolve) => {
@@ -64,20 +100,48 @@ export default class LiveViewServer {
         });
     }
 
+    /**
+     * Serves the snapshot to all connected clients.
+     *
+     * ```json
+     * {
+     *     "pageUrl": "https://www.example.com,
+     *     "htmlContent": "<html><body> ....",
+     *     "screenshotIndex": 3
+     * }
+     * ```
+     *
+     * Screenshots are not served directly, only their index number
+     * which is used by client to retrieve the screenshot.
+     *
+     * @param {Page} page
+     * @return {Promise}
+     */
     async serve(page) {
         if (!this.hasClients()) return;
         const snapshot = await this._makeSnapshot(page);
         await this._pushSnapshot(snapshot);
     }
 
+    /**
+     * @return {boolean}
+     */
     get isRunning() {
         return this._isRunning;
     }
 
+    /**
+     * @return {boolean}
+     */
     hasClients() {
         return this.clientCount > 0;
     }
 
+    /**
+     * Returns an absolute path to the screenshot with the given index.
+     * @param {number} screenshotIndex
+     * @return {string}
+     */
     getScreenshotPath(screenshotIndex) {
         return path.join(this.screenshotDirectoryPath, `${screenshotIndex}`);
     }
@@ -102,9 +166,6 @@ export default class LiveViewServer {
         return snapshot;
     }
 
-    /**
-     * To be called when the snapshot of screen and HTML content was saved.
-     */
     async _pushSnapshot(snapshot) {
         // Send new snapshot to clients
         log.debug('Sending live view snapshot', { snapshot });
