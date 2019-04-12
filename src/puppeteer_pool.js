@@ -104,8 +104,13 @@ class PuppeteerInstance {
  * // Close all browsers.
  * await puppeteerPool.destroy();
  * ```
- * @param {Object} [options] All `PuppeteerPool` parameters are passed
+ * @param {Object} [options]
+ *   All `PuppeteerPool` parameters are passed
  *   via an options object with the following keys:
+ * @param {boolean} [options.useLiveView]
+ *   Enables the use of a preconfigured {@link LiveViewServer} that serves snapshots
+ *   just before a page would be recycled by `PuppeteerPool`. If there are no clients
+ *   connected, it has close to zero impact on performance.
  * @param {Number} [options.maxOpenPagesPerInstance=50]
  *   Maximum number of open pages (i.e. tabs) per browser. When this limit is reached, new pages are loaded in a new browser instance.
  * @param {Number} [options.retireInstanceAfterRequestCount=100]
