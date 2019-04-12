@@ -191,8 +191,9 @@ export const launchPuppeteer = async (options = {}) => {
     checkParamOrThrow(options.puppeteerModule, 'options.puppeteerModule', 'Maybe String');
     if (options.useApifyProxy && options.proxyUrl) throw new Error('Cannot combine "options.useApifyProxy" with "options.proxyUrl"!');
     if (options.liveView || options.liveViewOptions) {
-        log.deprecated('Live view is deprecated in Apify.launchPuppeteer() and launchPuppeteerOptions. '
-            + 'Use options.useLiveView in PuppeteerPool. For live view with Apify.launchPuppeteer(), use Apify.LiveViewServer.');
+        log.deprecated('Live view is no longer available in Apify.launchPuppeteer() and launchPuppeteerOptions. '
+            + 'Use options.useLiveView in PuppeteerPool for an updated version. '
+            + 'For live view with Apify.launchPuppeteer(), use Apify.LiveViewServer.');
     }
 
     const puppeteer = getPuppeteerOrThrow(options.puppeteerModule);
