@@ -102,18 +102,21 @@ describe('LiveViewServer', () => {
         it('should not store more than maxScreenshotFiles screenshots', async () => {
             const snapshots = [];
             socket.on('snapshot', s => snapshots.push(s));
-            await Promise.all(Array(3).fill(null).map(() => lvs.serve(fakePage)));
-            const screenshots = await Promise.all(snapshots
-                .sort((a, b) => a.screenshotIndex - b.screenshotIndex)
-                .map((snap, idx) => {
-                    expect(snap.screenshotIndex).to.be.eql(idx);
-                    return snap;
-                })
-                .map(({ screenshotIndex }) => rqst(`${BASE_URL}/screenshot/${screenshotIndex}`)));
-            screenshots.forEach((s, idx) => expect(s).to.be.eql(`screenshot${idx}`));
-            const files = await readdir(LOCAL_STORAGE_SUBDIR);
-            expect(files).to.have.lengthOf(2);
-            files.forEach((f, idx) => expect(f).to.be.eql(`${idx + 1}`));
+            await Promise.all(Array(5).fill(null).map(() => lvs.serve(fakePage)));
+            const files = await new Promise((resolve, reject) => {
+                const interval = setInterval(async () => {
+                    const files = await readdir(LOCAL_STORAGE_SUBDIR); // eslint-disable-line no-shadow
+                    if (files.length === 2) {
+                        clearInterval(interval);
+                        resolve(files);
+                    }
+                }, 10);
+                setTimeout(() => {
+                    clearInterval(interval);
+                    reject(new Error('Files were not deleted in 2000ms.'));
+                }, 2000);
+            });
+            files.forEach((f, idx) => expect(f).to.be.eql(`${idx + 3}`));
         });
     });
 });
