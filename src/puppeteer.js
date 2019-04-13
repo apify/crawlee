@@ -7,6 +7,7 @@ import { DEFAULT_USER_AGENT } from './constants';
 import { newPromise, getTypicalChromeExecutablePath, isAtHome } from './utils';
 import { getApifyProxyUrl } from './actor';
 import { registerBrowserForLiveView } from './puppeteer_live_view_server';
+import Stealth from './stealth/stealth';
 
 /* global process, require */
 
@@ -139,7 +140,6 @@ const getPuppeteerOrThrow = () => {
         throw err;
     }
 };
-
 /**
  * Launches headless Chrome using Puppeteer pre-configured to work within the Apify platform.
  * The function has the same argument and the return value as `puppeteer.launch()`.
@@ -210,6 +210,18 @@ export const launchPuppeteer = (options = {}) => {
     if (options.useApifyProxy && options.proxyUrl) throw new Error('Cannot combine "options.useApifyProxy" with "options.proxyUrl"!');
 
     const puppeteer = getPuppeteerOrThrow();
+
+    // Add stealth
+    if (options.stealth) {
+        const prevLaunch = puppeteer.launch;
+        const newLaunch = async function (...args) {
+            const browser = await prevLaunch.bind(puppeteer)(...args);
+            const stealth = new Stealth(options.stealth);
+            return stealth.getStealthBrowser(browser);
+        };
+
+        puppeteer.launch = newLaunch.bind(puppeteer);
+    }
     const optsCopy = Object.assign({}, options);
 
     optsCopy.args = optsCopy.args || [];

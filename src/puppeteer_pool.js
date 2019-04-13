@@ -7,7 +7,6 @@ import log from 'apify-shared/log';
 import LinkedList from 'apify-shared/linked_list';
 import rimraf from 'rimraf';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import Stealth from './stealth';
 import { launchPuppeteer } from './puppeteer';
 import { addTimeoutToPromise } from './utils';
 
@@ -217,12 +216,8 @@ class PuppeteerPool {
                 opts.proxyUrl = this.proxyUrls[this.lastUsedProxyUrlIndex++ % this.proxyUrls.length];
             }
 
-            let browser = await launchPuppeteerFunction(opts);
+            const browser = await launchPuppeteerFunction(opts);
             // Maybe apply hiding tricks
-            if (opts.stealth) {
-                const stealth = new Stealth(opts.stealth);
-                browser = stealth.getStealthBrowser(browser);
-            }
             if (!browser || typeof browser.newPage !== 'function') {
                 // eslint-disable-next-line max-len
                 throw new Error("The custom 'launchPuppeteerFunction' passed to PuppeteerPool must return a promise resolving to Puppeteer's Browser instance.");
