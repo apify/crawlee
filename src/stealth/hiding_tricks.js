@@ -1,12 +1,5 @@
 /* eslint no-undef: 0 */
 
-/* istanbul ignore next */
-const mockRuntime = () => {
-    window.navigator.chrome = {
-        runtime: {},
-        // etc.
-    };
-};
 
 /* istanbul ignore next */
 const hideWebDriver = () => {
@@ -54,8 +47,7 @@ const hackPermissions = () => {
 /* istanbul ignore next */
 const addLanguage = () => {
     Object.defineProperty(window.navigator, 'languages', {
-        get: () => ['en-US', 'en'],
-        configurable: true,
+        get: () => ['cs', 'en-US', 'en'],
     });
 };
 
@@ -300,12 +292,15 @@ const emulateConsoleDebug = () => {
 // Should be mocked more properly - this one will bypass only some stupid tests
 const mockChrome = () => {
     Object.defineProperty(window, 'chrome', {
-        value: {},
+        value: {
+            runtime: {},
+        },
     });
 };
 
 /* istanbul ignore next */
 // not sure if this hack does not broke iframe on websites... Should figure out how to test properly
+// Should cover that it is custom function same as the permission query
 const mocksChromeInIframe = () => {
     const oldCreate = document.createElement.bind(document);
     const newCreate = (...args) => {
@@ -349,7 +344,6 @@ export default {
     addLanguage,
     hideWebDriver,
     hackPermissions,
-    mockRuntime,
     mockChrome,
     mocksChromeInIframe,
     mockDeviceMemory,

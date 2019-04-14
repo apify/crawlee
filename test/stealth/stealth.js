@@ -32,25 +32,6 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
         return browser.close();
     });
 
-    it('it mocks chrome runtime', async () => {
-        const browser = await Apify.launchPuppeteer({
-            stealth: {
-                mockRuntime: true,
-            },
-            headless: true,
-            useChrome: true,
-        });
-
-        const page = await browser.newPage();
-        await page.goto('file://test_website.html');
-        const chrome = await page.evaluate(() => window.navigator.chrome); // eslint-disable-line
-
-        expect(chrome).to.be.an('object');
-        expect(chrome.runtime).to.be.empty; // eslint-disable-line
-
-        return browser.close();
-    });
-
     it('it hides webDriver', async () => {
         const browser = await Apify.launchPuppeteer({
             stealth: {
@@ -172,7 +153,9 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
         const page = await browser.newPage();
         await page.goto('file://test_website.html');
         const { hasChrome } = await getFingerPrint(page);
-
+        const chrome = await page.evaluate(() => window.chrome); //eslint-disable-line
+        expect(chrome).to.be.an('object');
+        expect(chrome.runtime).to.not.be.empty; // eslint-disable-line
         expect(hasChrome).to.be.eql(true);
 
         return browser.close();
@@ -220,7 +203,6 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
                 addPlugins: true,
                 emulateWindowFrame: true,
                 hideWebDriver: true,
-                mockRuntime: true,
                 emulateWebGL: true,
                 hackPermissions: true,
                 addLanguage: true,
