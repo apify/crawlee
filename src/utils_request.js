@@ -316,14 +316,7 @@ export const requestLikeBrowser = async (options) => {
     opts.headers = _.defaults({}, opts.headers, browserHeaders);
     opts.abortFunction = abortFunction;
 
-    const response = await requestExtended(opts);
-
-
-    const { body } = response;
-
-    if (!body) throw new Error('The response body is empty');
-
-    return response;
+    return requestExtended(opts);
 };
 
 /**

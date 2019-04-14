@@ -379,7 +379,7 @@ describe('Apify.utils_request', () => {
             expect(error.message).to.eql(`utils.requestBetter: Request for ${options.url} aborted due to abortFunction`);
         });
 
-        it('it throws for empty response body', async () => {
+        it('it does not throw for empty response body', async () => {
             const options = {
                 url: `http://${HOST}:${port}/empty`,
             };
@@ -390,8 +390,7 @@ describe('Apify.utils_request', () => {
                 error = e;
             }
 
-            expect(error).to.exist; //eslint-disable-line
-            expect(error.message).to.eql('The response body is empty');
+            expect(error).to.not.exist; //eslint-disable-line
         });
 
         it('it throws for other contentType then - text/html', async () => {
