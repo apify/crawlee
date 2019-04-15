@@ -16,12 +16,15 @@ const handleRequest = (request, interceptRequestHandlers) => {
     let wasAborted = false;
     let wasResponded = false;
     let wasContinued = false;
-    const requestOverrides = {};
+    const accumulatedOverrides = {
+        headers: request.headers(),
+    };
 
     const originalContinue = request.continue.bind(request);
-    request.continue = (overrides) => {
+    request.continue = (overrides = {}) => {
         wasContinued = true;
-        Object.assign(requestOverrides, overrides);
+        const headers = Object.assign({}, accumulatedOverrides.headers, overrides.headers);
+        Object.assign(accumulatedOverrides, overrides, { headers });
     };
 
     request.abort = _.wrap(request.abort.bind(request), (abort, ...args) => {
@@ -50,7 +53,7 @@ const handleRequest = (request, interceptRequestHandlers) => {
         return wasAborted || wasResponded;
     });
 
-    if (!wasAborted && !wasResponded) return originalContinue(requestOverrides);
+    if (!wasAborted && !wasResponded) return originalContinue(accumulatedOverrides);
 };
 
 /**
@@ -59,8 +62,10 @@ const handleRequest = (request, interceptRequestHandlers) => {
  *
  * All the handlers are executed sequentially in the order as they were added.
  * Each of the handlers must call one of `request.continue()`, `request.abort()` and `request.respond()`.
- * In addition to that any of the handlers may modify the request object by passing its overrides to `request.continue()`.
- * If multiple handlers modify same property then the last one wins.
+ * In addition to that any of the handlers may modify the request object (method, postData, headers)
+ * by passing its overrides to `request.continue()`.
+ * If multiple handlers modify same property then the last one wins. Headers are merged separately so you can
+ * override only a value of specific header.
  *
  * If one the handlers calls `request.abort()` or `request.respond()` then request is not propagated further
  * to any of the remaining handlers.
@@ -142,7 +147,7 @@ export const removeInterceptRequestHandler = async (page, handler) => {
 
     pageInterceptRequestHandlersMap.set(page, handlersArray);
 
-    // There are no more handlers so we can't turn off request interception and remove master handler.
+    // There are no more handlers so we can turn off request interception and remove master handler.
     if (handlersArray.length === 0) {
         await page.setRequestInterception(false);
         const requestHandler = pageInterceptRequestMasterHandlerMap.get(page);

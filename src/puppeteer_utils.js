@@ -366,7 +366,13 @@ export const gotoExtended = async (page, request, gotoOptions = {}) => {
     const { method, headers, payload } = request;
 
     if (method !== 'GET' || payload || !_.isEmpty(headers)) {
+        let wasCalled = false;
         const interceptRequestHandler = async (interceptedRequest) => {
+            // We want to ensure that this won't get executed again in a case that there is a subsequent request
+            // for example for some asset file link from main HTML.
+            if (wasCalled) return interceptedRequest.continue();
+
+            wasCalled = true;
             const overrides = {};
 
             if (method !== 'GET') overrides.method = method;
