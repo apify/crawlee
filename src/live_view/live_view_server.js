@@ -18,7 +18,7 @@ const unlink = promisify(fs.unlink);
 const ensureDir = promisify(fs.ensureDir);
 
 /**
- * `LiveViewServer` enables serving of browser snapshots via web sockets. It includes it's own client
+ * `LiveViewServer` enables serving of browser snapshots via web sockets. It includes its own client
  * that provides a simple frontend to viewing the captured snapshots. A snapshot consists of three
  * pieces of information, the currently opened URL, the content of the page (HTML) and its screenshot.
  *
@@ -30,13 +30,15 @@ const ensureDir = promisify(fs.ensureDir);
  * NOTE: Screenshot taking in browser typically takes around 300ms. So having the `LiveViewServer`
  * always serve snapshots will have a significant impact on performance.
  *
- * When running on the Apify Platform and using {@link PuppeteerPool}, the `LiveViewServer` can be
+ * When using {@link PuppeteerPool}, the `LiveViewServer` can be
  * easily used just by providing the `useLiveView = true` option to the {@link PuppeteerPool}.
+ * It can also be initiated via {@link PuppeteerCrawler} `puppeteerPoolOptions`.
+ *
  * It will take snapshots of the first page of the latest browser. Taking snapshots of only a
  * single page improves performance and stability dramatically in high concurrency situations.
  *
- * When running locally, it is often best to use headful browser for debugging, since it provides
- * a better view into the browser, including DevTools.
+ * When running locally, it is often best to use a headful browser for debugging, since it provides
+ * a better view into the browser, including DevTools, but `LiveViewServer` works too.
  *
  * @param {Object} [options] All `LiveViewServer` parameters are passed
  *   via an options object with the following keys:
@@ -126,7 +128,7 @@ export default class LiveViewServer {
     /**
      * @return {boolean}
      */
-    get isRunning() {
+    isRunning() {
         return this._isRunning;
     }
 
@@ -143,7 +145,7 @@ export default class LiveViewServer {
      * @return {string}
      */
     getScreenshotPath(screenshotIndex) {
-        return path.join(this.screenshotDirectoryPath, `${screenshotIndex}`);
+        return path.join(this.screenshotDirectoryPath, `${screenshotIndex}.png`);
     }
 
     async _makeSnapshot(page) {
@@ -172,7 +174,12 @@ export default class LiveViewServer {
         this.socketio.emit('snapshot', snapshot);
     }
 
-    _deleteScreenshot(screenshotIndex) { // eslint-disable-line class-methods-use-this
+    /**
+     * Initiates an async delete and does not wait for it to complete.
+     * @param screenshotIndex
+     * @ignore
+     */
+    _deleteScreenshot(screenshotIndex) {
         unlink(this.getScreenshotPath(screenshotIndex))
             .catch(err => log.exception(err, 'Cannot delete live view screenshot.'));
     }

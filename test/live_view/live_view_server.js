@@ -47,9 +47,9 @@ describe('LiveViewServer', () => {
 
     it('should start and stop', async () => {
         await lvs.start();
-        expect(lvs.isRunning).to.be.eql(true);
+        expect(lvs.isRunning()).to.be.eql(true);
         await lvs.stop();
-        expect(lvs.isRunning).to.be.eql(false);
+        expect(lvs.isRunning()).to.be.eql(false);
     });
 
     it('should connect over websocket', async () => {
@@ -116,7 +116,7 @@ describe('LiveViewServer', () => {
                     reject(new Error('Files were not deleted in 2000ms.'));
                 }, 2000);
             });
-            files.forEach((f, idx) => expect(f).to.be.eql(`${idx + 3}`));
+            files.forEach((f, idx) => expect(f).to.be.eql(`${idx + 3}.png`));
         });
     });
 });

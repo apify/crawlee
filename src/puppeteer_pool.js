@@ -206,10 +206,7 @@ class PuppeteerPool {
         this.killInstanceAfterMillis = killInstanceAfterMillis || killInstanceAfterSecs * 1000;
         this.recycledDiskCacheDirs = recycleDiskCache ? new LinkedList() : null;
         this.proxyUrls = proxyUrls ? _.shuffle(proxyUrls) : null;
-        if (useLiveView && !isAtHome()) {
-            log.warning('LiveView can only be used on the Apify Platform. Use headful mode for debugging locally.');
-        }
-        this.liveViewServer = useLiveView && isAtHome() ? new LiveViewServer() : null;
+        this.liveViewServer = useLiveView ? new LiveViewServer() : null;
         this.launchPuppeteerFunction = async () => {
             // Do not modify passed launchPuppeteerOptions!
             const opts = _.clone(launchPuppeteerOptions) || {};
@@ -471,7 +468,7 @@ class PuppeteerPool {
      * @return {Promise<Page>}
      */
     async newPage() {
-        if (this.liveViewServer && !this.liveViewServer.isRunning) await this.liveViewServer.start();
+        if (this.liveViewServer && !this.liveViewServer.isRunning()) await this.liveViewServer.start();
         let idlePage;
         // We don't need to check whether options.reusePages is true,
         // because if it's false, the array will be empty and the loop will never start.
