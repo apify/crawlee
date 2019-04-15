@@ -475,7 +475,7 @@ describe('KeyValueStore', () => {
 
     describe('getInput', async () => {
         it('should work', async () => {
-            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = 'something';
+            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = LOCAL_STORAGE_DIR;
             const defaultStore = await Apify.openKeyValueStore();
 
             // Uses default value.

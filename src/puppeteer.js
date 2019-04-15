@@ -4,9 +4,8 @@ import { anonymizeProxy, closeAnonymizedProxy, redactUrl } from 'proxy-chain';
 import log from 'apify-shared/log';
 import { ENV_VARS } from 'apify-shared/consts';
 import { DEFAULT_USER_AGENT } from './constants';
-import { newPromise, getTypicalChromeExecutablePath, isAtHome } from './utils';
+import { getTypicalChromeExecutablePath, isAtHome } from './utils';
 import { getApifyProxyUrl } from './actor';
-import { registerBrowserForLiveView } from './puppeteer_live_view_server';
 
 /* global process, require */
 
@@ -62,17 +61,9 @@ const LAUNCH_PUPPETEER_DEFAULT_VIEWPORT = {
  *   will use the same target proxy server (i.e. the same IP address).
  *   The identifier can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
  *   Only applied if the `useApifyProxy` option is `true`.
- * @property {Boolean} [liveView=false]
- *   If set to `true`, a `PuppeteerLiveViewServer` will be started to enable
- *   screenshot and html capturing of visited pages using `PuppeteerLiveViewBrowser`.
- * @property {Object} [liveViewOptions]
- *   Settings for `PuppeteerLiveViewBrowser` started using `launchPuppeteer()`.
- * @property {String} [liveViewOptions.liveViewId]
- *   Custom ID of a browser instance in live view.
- * @property {Number} [liveViewOptions.screenshotTimeoutMillis=3000]
- *   Time in milliseconds before a screenshot capturing
- *   will time out and the actor continues with execution.
- *   Screenshot capturing pauses execution within the given page.
+ * @property ${String} [puppeteerModule]
+ *   Require path to a module to be used instead of default 'puppeteer'. This enables usage
+ *   of various Puppeteer wrappers such as 'puppeteer-extra'.
  */
 
 /**
@@ -80,60 +71,52 @@ const LAUNCH_PUPPETEER_DEFAULT_VIEWPORT = {
  *
  * @ignore
  */
-const launchPuppeteerWithProxy = (puppeteer, opts) => {
-    let anonymizedProxyUrl;
-
+const launchPuppeteerWithProxy = async (puppeteer, opts) => {
     // Parse and validate proxy URL and anonymize it
-    // NOTE: anonymizeProxy() throws on invalid proxy URL, so it must not be inside a Promise!
-    return anonymizeProxy(opts.proxyUrl)
-        .then((result) => {
-            anonymizedProxyUrl = result;
-            opts.args.push(`--proxy-server=${anonymizedProxyUrl}`);
-        })
-        .then(() => {
-            const optsForLog = _.omit(opts, LAUNCH_PUPPETEER_LOG_OMIT_OPTS);
-            optsForLog.proxyUrl = redactUrl(opts.proxyUrl);
-            optsForLog.args = opts.args.slice(0, opts.args.length - 1);
-            log.info('Launching Puppeteer', optsForLog);
+    const anonymizedProxyUrl = await anonymizeProxy(opts.proxyUrl);
+    opts.args.push(`--proxy-server=${anonymizedProxyUrl}`);
+    const optsForLog = _.omit(opts, LAUNCH_PUPPETEER_LOG_OMIT_OPTS);
+    optsForLog.proxyUrl = redactUrl(opts.proxyUrl);
+    optsForLog.args = opts.args.slice(0, opts.args.length - 1);
 
-            return puppeteer.launch(opts);
-        })
-        // Close anonymization proxy server when Puppeteer finishes
-        .then((browser) => {
-            const cleanUp = () => {
-                // Don't wait for finish, only log errors
-                closeAnonymizedProxy(anonymizedProxyUrl, true)
-                    .catch((err) => {
-                        console.log(`WARNING: closeAnonymizedProxy() failed with: ${err.stack || err}`);
-                    });
-            };
+    log.info('Launching Puppeteer', optsForLog);
+    const browser = await puppeteer.launch(opts);
 
-            browser.on('disconnected', cleanUp);
+    // Close anonymization proxy server when Puppeteer finishes
+    const cleanUp = () => {
+        // Don't wait for finish, only log errors
+        closeAnonymizedProxy(anonymizedProxyUrl, true)
+            .catch(err => log.exception(err, 'closeAnonymizedProxy() failed.'));
+    };
 
-            const prevClose = browser.close.bind(browser);
-            browser.close = () => {
-                cleanUp();
-                return prevClose();
-            };
+    browser.on('disconnected', cleanUp);
 
-            return browser;
-        });
+    const prevClose = browser.close.bind(browser);
+    browser.close = () => {
+        cleanUp();
+        return prevClose();
+    };
+
+    return browser;
 };
 
 /**
  * Requires `puppeteer` package or throws meaningful error if not installed.
  *
+ * @param {string} puppeteerModule
  * @ignore
  */
-const getPuppeteerOrThrow = () => {
+const getPuppeteerOrThrow = (puppeteerModule = 'puppeteer') => {
+    checkParamOrThrow(puppeteerModule, 'puppeteerModule', 'String');
     try {
         // This is an optional dependency because it is quite large, only require it when used (ie. image with Chrome)
-        return require('puppeteer'); // eslint-disable-line global-require
+        return require(puppeteerModule); // eslint-disable-line
     } catch (err) {
         if (err.code === 'MODULE_NOT_FOUND') {
+            const msg = `Cannot find module '${puppeteerModule}'. Did you you install the '${puppeteerModule}' package?`;
             err.message = isAtHome()
-                ? 'Cannot find module \'puppeteer\'. Did you choose the correct base Docker image (apify/actor-node-chrome-*)?'
-                : 'Cannot find module \'puppeteer\'. Did you you install \'puppeteer\' package?';
+                ? `${msg} The 'puppeteer' package is automatically bundled when using apify/actor-node-chrome-* Base image.`
+                : msg;
         }
 
         throw err;
@@ -200,16 +183,20 @@ const getPuppeteerOrThrow = () => {
  * @name launchPuppeteer
  * @function
  */
-export const launchPuppeteer = (options = {}) => {
+export const launchPuppeteer = async (options = {}) => {
     checkParamOrThrow(options, 'options', 'Object');
     checkParamOrThrow(options.args, 'options.args', 'Maybe [String]');
     checkParamOrThrow(options.proxyUrl, 'options.proxyUrl', 'Maybe String');
     checkParamOrThrow(options.useApifyProxy, 'options.useApifyProxy', 'Maybe Boolean');
-    checkParamOrThrow(options.liveView, 'options.liveView', 'Maybe Boolean');
-    checkParamOrThrow(options.liveViewOptions, 'options.liveViewOptions', 'Maybe Object');
+    checkParamOrThrow(options.puppeteerModule, 'options.puppeteerModule', 'Maybe String');
     if (options.useApifyProxy && options.proxyUrl) throw new Error('Cannot combine "options.useApifyProxy" with "options.proxyUrl"!');
+    if (options.liveView || options.liveViewOptions) {
+        log.deprecated('Live view is no longer available in Apify.launchPuppeteer() and launchPuppeteerOptions. '
+            + 'Use options.useLiveView in PuppeteerPool for an updated version. '
+            + 'For live view with Apify.launchPuppeteer(), use Apify.LiveViewServer.');
+    }
 
-    const puppeteer = getPuppeteerOrThrow();
+    const puppeteer = getPuppeteerOrThrow(options.puppeteerModule);
     const optsCopy = Object.assign({}, options);
 
     optsCopy.args = optsCopy.args || [];
@@ -217,8 +204,7 @@ export const launchPuppeteer = (options = {}) => {
     // TODO: It's not clear that this works, keep eye on https://bugs.chromium.org/p/chromium/issues/detail?id=723233
     optsCopy.args.push('--enable-resource-load-scheduler=false');
     if (optsCopy.headless == null) {
-        // Forcing headless with liveView, otherwise screenshots redirect user to new browser window
-        optsCopy.headless = optsCopy.liveView || (process.env[ENV_VARS.HEADLESS] === '1' && process.env[ENV_VARS.XVFB] !== '1');
+        optsCopy.headless = process.env[ENV_VARS.HEADLESS] === '1' && process.env[ENV_VARS.XVFB] !== '1';
     }
     if (optsCopy.useChrome && (optsCopy.executablePath === undefined || optsCopy.executablePath === null)) {
         optsCopy.executablePath = process.env[ENV_VARS.CHROME_EXECUTABLE_PATH] || getTypicalChromeExecutablePath();
@@ -245,19 +231,7 @@ export const launchPuppeteer = (options = {}) => {
         optsCopy.args.push(`--user-agent=${userAgent}`);
     }
 
-    let browserPromise;
-    if (optsCopy.proxyUrl) {
-        browserPromise = launchPuppeteerWithProxy(puppeteer, optsCopy);
-    } else {
-        log.info('Launching Puppeteer', _.omit(optsCopy, LAUNCH_PUPPETEER_LOG_OMIT_OPTS));
-        browserPromise = puppeteer.launch(optsCopy);
-    }
-
-    // Ensure that the returned promise is of type Bluebird.
-    const wrapped = newPromise().then(() => browserPromise);
-
-    // Start LiveView server if requested
-    if (optsCopy.liveView) return registerBrowserForLiveView(wrapped, optsCopy.liveViewOptions).then(() => wrapped);
-
-    return wrapped;
+    if (optsCopy.proxyUrl) return launchPuppeteerWithProxy(puppeteer, optsCopy);
+    log.info('Launching Puppeteer', _.omit(optsCopy, LAUNCH_PUPPETEER_LOG_OMIT_OPTS));
+    return puppeteer.launch(optsCopy);
 };
