@@ -1,3 +1,7 @@
+0.13.7 / 2019-04-04
+===================
+- Fix a bug where invalid response from `RequestQueue` would occasionally cause crawlers to crash.
+
 0.13.5 / 2019-03-27
 ===================
 - Fix `RequestQueue` throttling at high concurrency.
