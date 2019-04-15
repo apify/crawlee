@@ -8,7 +8,7 @@ import LinkedList from 'apify-shared/linked_list';
 import rimraf from 'rimraf';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { launchPuppeteer } from './puppeteer';
-import { addTimeoutToPromise, isAtHome } from './utils';
+import { addTimeoutToPromise } from './utils';
 import LiveViewServer from './live_view/live_view_server';
 
 /* global process */
