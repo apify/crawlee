@@ -128,8 +128,6 @@ const injectFile = async (page, filePath, options = {}) => {
  */
 const injectJQuery = (page) => {
     checkParamOrThrow(page, 'page', 'Object');
-
-    // TODO: For better performance we could use minimized version of the script
     return injectFile(page, jqueryPath, { surviveNavigations: true });
 };
 
@@ -156,8 +154,6 @@ const injectJQuery = (page) => {
  */
 const injectUnderscore = (page) => {
     checkParamOrThrow(page, 'page', 'Object');
-
-    // TODO: For better performance we could use minimized version of the script
     return injectFile(page, underscorePath, { surviveNavigations: true });
 };
 
@@ -346,17 +342,18 @@ const compileScript = (scriptString, context = Object.create(null)) => {
 };
 
 /**
- * Extended version of page.goto() allowing to perform requests with HTTP method other than GET,
+ * Extended version of Puppeteer's `page.goto()` allowing to perform requests with HTTP method other than GET,
  * with custom headers and POST payload. URL, method, headers and payload are taken from
  * request parameter that must be an instance of Apify.Request class.
  *
  * @param {Page} page
  *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
- * @param {Request} request {@link Request} object.
- * @param {Object} gotoOptions Custom options for page.goto().
+ * @param {Request} request
+ * @param {Object} gotoOptions Custom options for `page.goto()`.
  * @return {Promise<Response>}
  *
  * @memberOf puppeteer
+ * @name gotoExtended
  */
 export const gotoExtended = async (page, request, gotoOptions = {}) => {
     checkParamOrThrow(page, 'page', 'Object');

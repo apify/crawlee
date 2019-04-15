@@ -8,6 +8,8 @@
 - Added `Apify.utils.requestLikeBrowser` which uses `requestExtended` and disguises as a request made by browser.
 - Added `Apify.utils.puppeteer.addInterceptRequestHandler` and `removeInterceptRequestHandler` which
   can be used to add multiple request interception handlers to Puppeteer's pages.
+- Added `puppeteerModule` to `LaunchPuppeteerOptions` which enables use of other Puppeteer modules,
+  such as `puppeteer-extra` instead of plain `puppeteer`.
 
 0.13.7 / 2019-04-04
 ===================

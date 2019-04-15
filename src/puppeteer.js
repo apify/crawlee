@@ -61,9 +61,9 @@ const LAUNCH_PUPPETEER_DEFAULT_VIEWPORT = {
  *   will use the same target proxy server (i.e. the same IP address).
  *   The identifier can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
  *   Only applied if the `useApifyProxy` option is `true`.
- * @property ${String} [puppeteerModule]
- *   Require path to a module to be used instead of default 'puppeteer'. This enables usage
- *   of various Puppeteer wrappers such as 'puppeteer-extra'.
+ * @property {String} [puppeteerModule]
+ *   Require path to a module to be used instead of default `puppeteer`. This enables usage
+ *   of various Puppeteer wrappers such as `puppeteer-extra`.
  */
 
 /**

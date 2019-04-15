@@ -289,9 +289,10 @@ function decompress(response) {
  *  URL of the target endpoint. Supports both HTTP and HTTPS schemes.
  * @param [options.method=GET]
  *  HTTP method.
- * @param [options.headers={}]
- *  Additional HTTP headers to add. It's recommended not to use this option,
- *  because it can ruin the signature of the web browser. TODO: Maybe let's remove this completely?
+ * @param [options.headers]
+ *  Additional HTTP headers to add. It's only recommended to use this option,
+ *  with headers that are typically added by websites, such as cookies. Overriding
+ *  default browser headers will remove the masking this function provides.
  * @param [options.languageCode=en]
  *  Two-letter ISO 639 language code.
  * @param [options.countryCode=US]

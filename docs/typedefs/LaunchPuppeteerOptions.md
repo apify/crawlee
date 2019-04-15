@@ -73,27 +73,10 @@ function and in addition, all the options available below.
   The identifier can only contain the following characters: <code>0-9</code>, <code>a-z</code>, <code>A-Z</code>, <code>&quot;.&quot;</code>, <code>&quot;_&quot;</code> and <code>&quot;~&quot;</code>.
   Only applied if the <code>useApifyProxy</code> option is <code>true</code>.</p>
 </td></tr><tr>
-<td><code>[liveView]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
+<td><code>[puppeteerModule]</code></td><td><code>String</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>If set to <code>true</code>, a <code>PuppeteerLiveViewServer</code> will be started to enable
-  screenshot and html capturing of visited pages using <code>PuppeteerLiveViewBrowser</code>.</p>
-</td></tr><tr>
-<td><code>[liveViewOptions]</code></td><td><code>Object</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>Settings for <code>PuppeteerLiveViewBrowser</code> started using <code>launchPuppeteer()</code>.</p>
-</td></tr><tr>
-<td><code>[liveViewOptions.liveViewId]</code></td><td><code>String</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>Custom ID of a browser instance in live view.</p>
-</td></tr><tr>
-<td><code>[liveViewOptions.screenshotTimeoutMillis]</code></td><td><code>Number</code></td><td><code>3000</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Time in milliseconds before a screenshot capturing
-  will time out and the actor continues with execution.
-  Screenshot capturing pauses execution within the given page.</p>
+<td colspan="3"><p>Require path to a module to be used instead of default <code>puppeteer</code>. This enables usage
+  of various Puppeteer wrappers such as <code>puppeteer-extra</code>.</p>
 </td></tr></tbody>
 </table>

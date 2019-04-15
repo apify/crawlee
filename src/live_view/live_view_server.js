@@ -48,7 +48,7 @@ const ensureDir = promisify(fs.ensureDir);
  * @param {number} [options.maxScreenshotFiles=10] Limits the number of screenshots stored
  *   by the server. This is to prevent using up too much disk space.
  */
-export default class LiveViewServer {
+class LiveViewServer {
     constructor(options = {}) {
         const {
             screenshotDirectoryPath = DEFAULT_SCREENSHOT_DIRECTORY_PATH,
@@ -107,7 +107,7 @@ export default class LiveViewServer {
      *
      * ```json
      * {
-     *     "pageUrl": "https://www.example.com,
+     *     "pageUrl": "https://www.example.com",
      *     "htmlContent": "<html><body> ....",
      *     "screenshotIndex": 3
      * }
@@ -143,8 +143,9 @@ export default class LiveViewServer {
      * Returns an absolute path to the screenshot with the given index.
      * @param {number} screenshotIndex
      * @return {string}
+     * @ignore
      */
-    getScreenshotPath(screenshotIndex) {
+    _getScreenshotPath(screenshotIndex) {
         return path.join(this.screenshotDirectoryPath, `${screenshotIndex}.png`);
     }
 
@@ -158,7 +159,7 @@ export default class LiveViewServer {
 
         const screenshotIndex = this.lastScreenshotIndex++;
 
-        await writeFile(this.getScreenshotPath(screenshotIndex), screenshot);
+        await writeFile(this._getScreenshotPath(screenshotIndex), screenshot);
         if (screenshotIndex > this.maxScreenshotFiles - 1) {
             this._deleteScreenshot(screenshotIndex - this.maxScreenshotFiles);
         }
@@ -180,7 +181,7 @@ export default class LiveViewServer {
      * @ignore
      */
     _deleteScreenshot(screenshotIndex) {
-        unlink(this.getScreenshotPath(screenshotIndex))
+        unlink(this._getScreenshotPath(screenshotIndex))
             .catch(err => log.exception(err, 'Cannot delete live view screenshot.'));
     }
 
@@ -208,7 +209,7 @@ export default class LiveViewServer {
         // Serves JPEG with the last screenshot
         app.get('/screenshot/:index', (req, res) => {
             const screenshotIndex = req.params.index;
-            const filePath = this.getScreenshotPath(screenshotIndex);
+            const filePath = this._getScreenshotPath(screenshotIndex);
             res.sendFile(filePath);
         });
 
@@ -230,3 +231,5 @@ export default class LiveViewServer {
         });
     }
 }
+
+export default LiveViewServer;
