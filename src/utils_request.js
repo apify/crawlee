@@ -41,7 +41,7 @@ let tunnelAgentExceptionListener;
  * - It support not only Gzip compression, but also Brotli and Deflate. To activate this feature,
  *   simply add `Accept-Encoding: gzip, deflate, br` to `options.headers` (or a combination).
  * - Enables abortion of the request based on the response headers, before the data is downloaded.
- *   See `options.abort` parameter.
+ *   See `options.abortFunction` parameter.
  * - SSL connections over proxy do not leak sockets in CLOSE_WAIT state (https://github.com/request/request/issues/2440)
  * - Gzip implementation doesn't fail (https://github.com/apifytech/apify-js/issues/266)
  * - There is no tunnel-agent AssertionError (https://github.com/request/tunnel-agent/issues/20)
@@ -102,10 +102,9 @@ let tunnelAgentExceptionListener;
  *  class and it should return `true` if request should be aborted, or `false` otherwise.
  * @param [options.throwOnHttpError=false]
  *  If set to true function throws and error on 4XX and 5XX response codes.
- * @return {{ response, body }}
- *  Returns an object with two properties: `response` is the instance of
- *  Node's [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) class,
- *  `body` is a `String`, `Buffer` or `Object`, depending on the `encoding` and `json` options.
+ * @return {http.IncomingMessage}
+ * @memberOf utils
+ * @name requestExtended
  */
 export const requestExtended = async (options) => {
     suppressTunnelAgentAssertError();
@@ -178,6 +177,7 @@ export const requestExtended = async (options) => {
  * @param {String} cType.type
  * @param {String} cType.encoding
  * @returns {Promise<Error>}
+ * @ignore
  */
 async function getMoreErrorInfo(response, cType) {
     const { type, encoding } = cType;
@@ -220,7 +220,7 @@ async function getMoreErrorInfo(response, cType) {
  * @param {http.IncomingMessage} response
  * @param {String} [encoding]
  * @returns {Promise<String>}
- * @private
+ * @ignore
  */
 async function readStreamIntoString(response, encoding) { // eslint-disable-line class-methods-use-this
     const stream = decompress(response);
@@ -242,6 +242,7 @@ async function readStreamIntoString(response, encoding) { // eslint-disable-line
  * If the stream data is compressed, decompresses it using the Content-Encoding header.
  * @param {http.IncomingMessage} response
  * @returns {http.IncomingMessage|Stream} - Decompressed response
+ * @ignore
  */
 function decompress(response) {
     const compression = response.headers['content-encoding'];
@@ -298,9 +299,9 @@ function decompress(response) {
  * @param [options.isMobile]
  *  If `true`, the function uses User-Agent of a mobile browser.
  *
- * @return {response}
- *  Returns an object with two properties: `response` is the instance of
- *  Node's [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage) class
+ * @return {http.IncomingMessage}
+ * @memberOf utils
+ * @name requestLikeBrowser
  */
 export const requestLikeBrowser = async (options) => {
     const opts = _.defaults({}, options, REQUEST_LIKE_BROWSER_DEFAULT_OPTIONS);

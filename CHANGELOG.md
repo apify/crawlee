@@ -1,3 +1,14 @@
+0.14.0 / 2019-04-15
+===================
+- **BREAKING CHANGE:** Live View is no longer available by passing `liveView = true` to `launchPuppeteerOptions`.
+- New version of Live View is available by passing the `useLiveView = true` option to `PuppeteerPool`.
+   - Only shows snapshots of a single page from a single browser.
+   - Only makes snapshots when a client is connected, having very low performance impact otherwise.
+- Added `Apify.utils.requestExtended` which extends the popular `request` package with fixes and improvements.
+- Added `Apify.utils.requestLikeBrowser` which uses `requestExtended` and disguises as a request made by browser.
+- Added `Apify.utils.puppeteer.addInterceptRequestHandler` and `removeInterceptRequestHandler` which
+  can be used to add multiple request interception handlers to Puppeteer's pages.
+
 0.13.7 / 2019-04-04
 ===================
 - Fix a bug where invalid response from `RequestQueue` would occasionally cause crawlers to crash.

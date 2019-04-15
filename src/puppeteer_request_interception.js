@@ -104,8 +104,8 @@ const handleRequest = (request, interceptRequestHandlers) => {
  *
  * @param {Page} page
  *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
- * @param {Function} handler Request interception handler. See @TODO for more information.
- * @return {Promise<undefined>}
+ * @param {Function} handler Request interception handler.
+ * @return {Promise}
  */
 export const addInterceptRequestHandler = async (page, handler) => {
     checkParamOrThrow(page, 'page', 'Object');
@@ -137,8 +137,8 @@ export const addInterceptRequestHandler = async (page, handler) => {
  *
  * @param {Page} page
  *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
- * @param {Function} middleware Request interception handler. See @TODO for more information.
- * @return {Promise<undefined>}
+ * @param {Function} handler Request interception handler.
+ * @return {Promise}
  */
 export const removeInterceptRequestHandler = async (page, handler) => {
     const handlersArray = pageInterceptRequestHandlersMap

@@ -22,6 +22,7 @@ import { socialUtils } from './utils_social';
 import { enqueueLinks } from './enqueue_links';
 import PseudoUrl from './pseudo_url';
 import LiveViewServer from './live_view/live_view_server';
+import { requestExtended, requestLikeBrowser } from './utils_request';
 
 /* globals module */
 
@@ -115,6 +116,8 @@ module.exports = {
         social: socialUtils,
         log,
         enqueueLinks,
+        requestExtended,
+        requestLikeBrowser,
     }),
 };
 
