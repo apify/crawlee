@@ -22,7 +22,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
         });
 
         const page = await browser.newPage();
-        await page.goto('file://test_website.html');
+        await page.goto('http://example.com');
 
         const { plugins, mimeTypes } = await getFingerPrint(page);
 
@@ -42,7 +42,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
         });
 
         const page = await browser.newPage();
-        await page.goto('file://test_website.html');
+        await page.goto('http://example.com');
         const { webDriver } = await getFingerPrint(page);
 
         expect(webDriver).to.be.eql(false);
@@ -60,7 +60,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
         });
 
         const page = await browser.newPage();
-        await page.goto('file://test_website.html');
+        await page.goto('http://example.com');
         const { permissions } = await getFingerPrint(page);
 
         expect(permissions.state).to.be.eql('denied');
@@ -78,7 +78,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
         });
 
         const page = await browser.newPage();
-        await page.goto('file://test_website.html');
+        await page.goto('http://example.com');
         const { languages } = await getFingerPrint(page);
 
         expect(languages).to.be.an('array');
@@ -98,7 +98,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
         });
 
         const page = await browser.newPage();
-        await page.goto('file://test_website.html');
+        await page.goto('http://example.com');
         const { videoCard } = await getFingerPrint(page);
 
         expect(videoCard[0]).to.be.eql('Intel Inc.');
@@ -117,7 +117,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
         });
 
         const page = await browser.newPage();
-        await page.goto('file://test_website.html');
+        await page.goto('http://example.com');
         const { screen } = await getFingerPrint(page);
 
         expect(screen.wOuterHeight).to.be.eql(screen.wInnerHeight + 85);
@@ -135,7 +135,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
         });
 
         const page = await browser.newPage();
-        await page.goto('file://test_website.html');
+        await page.goto('http://example.com');
         const returnValue = await page.evaluate(() => console.debug('TEST'));
 
         expect(returnValue).to.be.eql(null);
@@ -152,7 +152,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
         });
 
         const page = await browser.newPage();
-        await page.goto('file://test_website.html');
+        await page.goto('http://example.com');
         const { hasChrome } = await getFingerPrint(page);
         const chrome = await page.evaluate(() => window.chrome); //eslint-disable-line
         expect(chrome).to.be.an('object');
@@ -172,7 +172,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
         });
 
         const page = await browser.newPage();
-        await page.goto('file://test_website.html');
+        await page.goto('http://example.com');
         const { iframeChrome } = await getFingerPrint(page);
 
         expect(iframeChrome).to.be.eql('object');
@@ -190,7 +190,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
         });
 
         const page = await browser.newPage();
-        await page.goto('file://test_website.html');
+        await page.goto('http://example.com');
         const { deviceMemory } = await getFingerPrint(page);
 
         expect(deviceMemory).not.to.be.eql(0);
@@ -217,7 +217,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
         });
 
         const page = await browser.newPage();
-        await page.goto('file://test_website.html');
+        await page.goto('http://example.com');
         const fingerPrint = await getFingerPrint(page);
         const testedFingerprint = scanner.analyseFingerprint(fingerPrint);
         const failedChecks = Object.values(testedFingerprint).filter(val => val.consistent < 3);
