@@ -39,3 +39,9 @@ export const expectDirNonEmpty = (dirPath) => {
     const content = fs.readdirSync(dirPath);
     expect(content).to.have.lengthOf.above(0);
 };
+
+export const startExpressAppPromise = (app, port) => {
+    return new Promise((resolve) => {
+        const server = app.listen(port, () => resolve(server));
+    });
+};
