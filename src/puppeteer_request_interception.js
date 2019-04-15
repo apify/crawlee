@@ -104,7 +104,7 @@ const handleRequest = (request, interceptRequestHandlers) => {
  *
  * @param {Page} page
  *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
- * @param {Function} middleware Request interception handler. See @TODO for more information.
+ * @param {Function} handler Request interception handler. See @TODO for more information.
  * @return {Promise<undefined>}
  */
 export const addInterceptRequestHandler = async (page, handler) => {

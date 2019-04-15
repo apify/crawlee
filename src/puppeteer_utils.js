@@ -9,7 +9,7 @@ import LruCache from 'apify-shared/lru_cache';
 import { RequestQueue, RequestQueueLocal } from './request_queue';
 import Request from './request';
 import { enqueueLinks } from './enqueue_links';
-import { addInterceptRequestHandler, removeInterceptRequestHandler } from './puppeteers_request_interception';
+import { addInterceptRequestHandler, removeInterceptRequestHandler } from './puppeteer_request_interception';
 
 const jqueryPath = require.resolve('jquery/dist/jquery.min');
 const underscorePath = require.resolve('underscore/underscore-min');
