@@ -30,6 +30,7 @@ const REQUEST_LIKE_BROWSER_DEFAULT_OPTIONS = {
     method: 'GET',
     useMobileVersion: false,
 };
+const TRUNCATED_ERROR_CHARS = 100;
 
 let tunnelAgentExceptionListener;
 /**
@@ -154,7 +155,7 @@ export const requestExtended = async (options) => {
 
                 if (status >= 400 && throwOnHttpError) {
                     const error = await getMoreErrorInfo(res, cType);
-                    reject(error);
+                    return reject(error);
                 }
 
                 // Content-Type is fine. Read the body and respond.
@@ -190,18 +191,25 @@ async function getMoreErrorInfo(response, cType) {
     }
 
     if (type === 'application/json') {
-        const errorResponse = JSON.parse(body);
-        let { message } = errorResponse;
-        if (!message) {
-            message = util.inspect(errorResponse, {
-                depth: 1,
-                maxArrayLength: 10,
-            });
+        let errorResponse;
+        let message;
+        try {
+            errorResponse = JSON.parse(body);
+            message = errorResponse.message; // eslint-disable-line
+            if (!message) {
+                message = util.inspect(errorResponse, {
+                    depth: 1,
+                    maxArrayLength: 10,
+                });
+            }
+        } catch (e) {
+            message = `${body.substr(0, TRUNCATED_ERROR_CHARS)}...`;
         }
+
         return new Error(`${status} - ${message}`);
     }
     // It's not a JSON so it's probably some text. Get the first 100 chars of it.
-    return new Error(`utils.requestBetter: ${status} - Internal Server Error: ${body.substr(0, 100)}...`);
+    return new Error(`utils.requestBetter: ${status} - Internal Server Error: ${body.substr(0, TRUNCATED_ERROR_CHARS)}...`);
 }
 
 /**
