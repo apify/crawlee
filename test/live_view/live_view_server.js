@@ -29,7 +29,14 @@ after(() => {
 
 describe('LiveViewServer', () => {
     let lvs;
+    let count;
+    const fakePage = {
+        url: () => 'url',
+        content: async () => 'content',
+        screenshot: async () => `screenshot${count++}`,
+    };
     beforeEach(() => {
+        count = 0;
         lvs = new LiveViewServer({
             screenshotDirectoryPath: LOCAL_STORAGE_SUBDIR,
             maxScreenshotFiles: 2,
@@ -37,6 +44,7 @@ describe('LiveViewServer', () => {
     });
 
     afterEach(async () => {
+        count = null;
         lvs = null;
         await emptyDir(LOCAL_STORAGE_SUBDIR);
     });
@@ -61,16 +69,22 @@ describe('LiveViewServer', () => {
         await lvs.stop();
     });
 
+    it('should make one snapshot even without clients', async () => {
+        await lvs.start();
+        expect(lvs.hasClients()).to.be.eql(true);
+        await lvs.serve(fakePage);
+        let files = await readdir(LOCAL_STORAGE_SUBDIR);
+        expect(files.length).to.be.eql(1);
+        expect(lvs.hasClients()).to.be.eql(false);
+        await lvs.serve(fakePage);
+        files = await readdir(LOCAL_STORAGE_SUBDIR);
+        expect(files.length).to.be.eql(1);
+        await lvs.stop();
+    });
+
     describe('when connected', () => {
-        const fakePage = {
-            url: () => 'url',
-            content: async () => 'content',
-            screenshot: async () => `screenshot${count++}`,
-        };
-        let count;
         let socket;
         beforeEach(async () => {
-            count = 0;
             socket = io(BASE_URL);
             await lvs.start();
             await new Promise(resolve => socket.on('connect', resolve));

@@ -136,7 +136,8 @@ class LiveViewServer {
      * @return {boolean}
      */
     hasClients() {
-        return this.clientCount > 0;
+        // Treat LiveViewServer as a client, until at least one snapshot is made.
+        return this.lastSnapshot ? this.clientCount > 0 : true;
     }
 
     /**
