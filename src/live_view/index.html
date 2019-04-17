@@ -158,13 +158,18 @@
 
             $('#resumeButton').click((event) => {
                 event.preventDefault();
-                socket = connect();
+                if (!liveViewSocket) {
+                    liveViewSocket = connect();
+                }
                 $('#resumeButton').hide();
                 $('#pauseButton').show();
             });
             $('#pauseButton').click((event) => {
                 event.preventDefault();
-                if (socket) socket.close();
+                if (liveViewSocket) {
+                    liveViewSocket.close();
+                    liveViewSocket = null;
+                }
                 $('#resumeButton').show();
                 $('#pauseButton').hide();
             });
