@@ -5,29 +5,111 @@
     <style>
         body {
             font-family: sans-serif;
+            margin: 0;
         }
+
+        header {
+            padding: 5px 15px;
+            background: linear-gradient(90deg, #0f368a, #6281c5);
+            color: white;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        h1 span {
+            font-weight: 400;
+        }
+
+        h2 {
+            font-size: 1rem;
+        }
+
+        .navigation {
+            padding: 15px 15px 0;
+        }
+
+        .tab-menu {
+            margin: 20px 0 0 0;
+            padding: 0;
+        }
+
+        .tab-menu li {
+            display: inline-block;
+            position: relative;
+            padding: 5px 10px;
+            margin-right: 5px;
+            color: #9fa5a9;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            border-radius: 4px 4px 0 0;
+            cursor: pointer;
+            transition: background 0.3s ease-in;
+        }
+
+        .tab-menu li:hover {
+            background: #dddddd;
+            color: #9fa5a9;
+        }
+
+        .tab-menu li.active {
+            color: #11181c;
+        }
+
+        .tab-menu li.active:after {
+            content: "";
+            width: 100%;
+            height: 1px;
+            position: absolute;
+            left: 0;
+            bottom: -1px;
+            background: white;
+        }
+
+        .tabs {
+            border-top: 1px solid #ddd;
+        }
+
         img#screenshotImg {
             width: 100%
         }
-        .urlDiv {
-            margin-bottom: 8px;
-        }
+
         button {
-            color: white;
             border-radius: 4px;
-            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
         }
-        #enableButton {
-            background: rgb(28, 184, 65);
+
+        .btn-status {
+            color: white;
+            transition: background 0.3s ease-in;
+            width: 60px;
+            padding: 5px;
         }
-        #disableButton {
-            background: rgb(202, 60, 60);
+
+        #pauseButton {
+            background-color: #f0ad4e;
+            border-color: #eea236;
+        }
+
+        #pauseButton:hover {
+            background-color: #eea236;
+        }
+
+        #resumeButton {
+            background-color: #5cb85c;
+            border-color: #4cae4c;
+        }
+
+
+        #resumeButton:hover {
+            background-color: #4cae4c;
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.slim.js"></script>
     <script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
     <script src="./init-last-snapshot.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/themes/prism.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/themes/prism.min.css" rel="stylesheet"/>
     <script>
         function showSnapshot(snapshot) {
             if (!snapshot) return;
@@ -38,6 +120,7 @@
             $('#snapshotContainer').show();
             Prism.highlightAll();
         }
+
         function connect() {
             const socket = io();
             socket.on('snapshot', showSnapshot);
@@ -46,30 +129,34 @@
             });
             return socket;
         }
+
         $(() => {
             let socket;
+            socket = connect();
             // Show initial snapshot obtained from /init-last-snapshot.js
             showSnapshot(window.lastSnapshot);
-            $('#enableButton').click((event) => {
+
+            $('#resumeButton').click((event) => {
                 event.preventDefault();
                 socket = connect();
-                $('#waitContainer').show();
-                $('#enableButton').hide();
-                $('#disableButton').show();
+                $('#resumeButton').hide();
+                $('#pauseButton').show();
             });
-            $('#disableButton').click((event) => {
+            $('#pauseButton').click((event) => {
                 event.preventDefault();
                 if (socket) socket.close();
-                $('#enableButton').show();
-                $('#disableButton').hide();
+                $('#resumeButton').show();
+                $('#pauseButton').hide();
             });
             $('#screenshotLink').click((event) => {
                 event.preventDefault();
+                $('.tab-menu li').toggleClass('active')
                 $('#screenshotDiv').show();
                 $('#htmlDiv').hide();
             });
             $('#htmlLink').click(() => {
                 event.preventDefault();
+                $('.tab-menu li').toggleClass('active')
                 $('#screenshotDiv').hide();
                 $('#htmlDiv').show();
             });
@@ -81,33 +168,43 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/prism.js"></script>
 
 <header id="header">
-    <button id="enableButton">Enable Live View</button>
-    <button id="disableButton" style="display: none">Disable Live View</button>
+    <h1>APIFY <span>Live view</span></h1>
 </header>
 
-<p id="waitContainer" style="display: none">
-    Waiting for the snapshot...<br>
-    <img src="./loading.gif"/>
-</p>
+<main>
+    <p id="waitContainer" style="display: none">
+        Waiting for the snapshot...<br>
+        <img src="./loading.gif"/>
+    </p>
 
-<div id="snapshotContainer" style="display: none">
-    <div class="urlDiv">
-        URL: <a href="#" id="pageUrl" target="_blank" rel="noopener noreferrer"></a>
-    </div>
+    <div id="snapshotContainer" style="display: none">
+        <div class="navigation">
+            <h2>
+                Current URL: <a href="#" id="pageUrl" target="_blank" rel="noopener noreferrer"></a>
+            </h2>
 
-    <div style="width: 100%">
-        <a href="#" id="screenshotLink">Screenshot</a> | <a href="#" id="htmlLink">HTML</a>
+            <button id="pauseButton" class="btn-status">Pause</button>
+            <button id="resumeButton" class="btn-status" style="display: none">Resume</button>
 
-        <div id="screenshotDiv">
-            <img id="screenshotImg" src="./loading.gif"/>
+            <div>
+                <ul class="tab-menu">
+                    <li id="screenshotLink" class="active">Screenshot</li>
+                    <li id="htmlLink">HTML</li>
+                </ul>
+            </div>
         </div>
 
-        <div id="htmlDiv" style="display: none; font-size: 13px;">
-            <pre><code id="htmlContent" class="language-html"></code></pre>
+        <div class="tabs">
+            <div class="tab" id="screenshotDiv">
+                <img id="screenshotImg" src="./loading.gif"/>
+            </div>
+
+            <div class="tab" id="htmlDiv" style="display: none; font-size: 13px;">
+                <pre><code id="htmlContent" class="language-html"></code></pre>
+            </div>
         </div>
     </div>
-</div>
-
+</main>
 
 </body>
 </html>
