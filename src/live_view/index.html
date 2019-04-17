@@ -131,29 +131,26 @@
             socket.on('snapshot', showSnapshot);
             socket.on('connect', () => {
                 console.log('Client ID: ' + socket.id);
+                // Don't wait for the next screenshot to be made.
+                showSnapshot(window.lastSnapshot);
             });
             return socket;
         }
 
         function onMessageFromPlatform(msg) {
             if (msg.data === 'LIVE_VIEW_TAB_OPEN') {
-                console.log('Sending ACK');
                 msg.source.postMessage('ACK', msg.origin);
                 if (!liveViewSocket) liveViewSocket = connect();
             }
             if (msg.data === 'LIVE_VIEW_TAB_CLOSED' && liveViewSocket) {
-                console.log('Closing socket');
                 liveViewSocket.close();
                 liveViewSocket = null;
             }
-            console.log('MSG SOURCE:', msg.source)
-            console.log('MSG ORIGIN:', msg.origin)
-            console.log('MSG DATA:', msg.data)
         }
 
         window.addEventListener('message', onMessageFromPlatform);
         $(() => {
-            // Show initial snapshot obtained from /init-last-snapshot.js
+            // Show initial snapshot if it exists when client is fetched.
             showSnapshot(window.lastSnapshot);
 
             $('#resumeButton').click((event) => {
@@ -175,13 +172,13 @@
             });
             $('#screenshotLink').click((event) => {
                 event.preventDefault();
-                $('.tab-menu li').toggleClass('active')
+                $('.tab-menu li').toggleClass('active');
                 $('#screenshotDiv').show();
                 $('#htmlDiv').hide();
             });
             $('#htmlLink').click(() => {
                 event.preventDefault();
-                $('.tab-menu li').toggleClass('active')
+                $('.tab-menu li').toggleClass('active');
                 $('#screenshotDiv').hide();
                 $('#htmlDiv').show();
             });
@@ -197,7 +194,7 @@
 </header>
 
 <main>
-    <p id="waitContainer" style="display: none">
+    <p id="waitContainer">
         Waiting for the snapshot...<br>
         <img src="./loading.gif"/>
     </p>
