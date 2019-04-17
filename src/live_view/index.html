@@ -1,0 +1,113 @@
+<!doctype html>
+<html>
+<head>
+    <title>Live view</title>
+    <style>
+        body {
+            font-family: sans-serif;
+        }
+        img#screenshotImg {
+            width: 100%
+        }
+        .urlDiv {
+            margin-bottom: 8px;
+        }
+        button {
+            color: white;
+            border-radius: 4px;
+            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+        }
+        #enableButton {
+            background: rgb(28, 184, 65);
+        }
+        #disableButton {
+            background: rgb(202, 60, 60);
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.slim.js"></script>
+    <script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
+    <script src="./init-last-snapshot.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/themes/prism.min.css" rel="stylesheet" />
+    <script>
+        function showSnapshot(snapshot) {
+            if (!snapshot) return;
+            $('#pageUrl').text(snapshot.pageUrl).attr('href', snapshot.pageUrl);
+            $('#htmlContent').text(snapshot.htmlContent);
+            $('#screenshotImg').attr('src', `./screenshot/${snapshot.screenshotIndex}`);
+            $('#waitContainer').hide();
+            $('#snapshotContainer').show();
+            Prism.highlightAll();
+        }
+        function connect() {
+            const socket = io();
+            socket.on('snapshot', showSnapshot);
+            socket.on('connect', () => {
+                console.log('Client ID: ' + socket.id);
+            });
+            return socket;
+        }
+        $(() => {
+            let socket;
+            // Show initial snapshot obtained from /init-last-snapshot.js
+            showSnapshot(window.lastSnapshot);
+            $('#enableButton').click((event) => {
+                event.preventDefault();
+                socket = connect();
+                $('#waitContainer').show();
+                $('#enableButton').hide();
+                $('#disableButton').show();
+            });
+            $('#disableButton').click((event) => {
+                event.preventDefault();
+                if (socket) socket.close();
+                $('#enableButton').show();
+                $('#disableButton').hide();
+            });
+            $('#screenshotLink').click((event) => {
+                event.preventDefault();
+                $('#screenshotDiv').show();
+                $('#htmlDiv').hide();
+            });
+            $('#htmlLink').click(() => {
+                event.preventDefault();
+                $('#screenshotDiv').hide();
+                $('#htmlDiv').show();
+            });
+        });
+    </script>
+</head>
+<body>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/prism.js"></script>
+
+<header id="header">
+    <button id="enableButton">Enable Live View</button>
+    <button id="disableButton" style="display: none">Disable Live View</button>
+</header>
+
+<p id="waitContainer" style="display: none">
+    Waiting for the snapshot...<br>
+    <img src="./loading.gif"/>
+</p>
+
+<div id="snapshotContainer" style="display: none">
+    <div class="urlDiv">
+        URL: <a href="#" id="pageUrl" target="_blank" rel="noopener noreferrer"></a>
+    </div>
+
+    <div style="width: 100%">
+        <a href="#" id="screenshotLink">Screenshot</a> | <a href="#" id="htmlLink">HTML</a>
+
+        <div id="screenshotDiv">
+            <img id="screenshotImg" src="./loading.gif"/>
+        </div>
+
+        <div id="htmlDiv" style="display: none; font-size: 13px;">
+            <pre><code id="htmlContent" class="language-html"></code></pre>
+        </div>
+    </div>
+</div>
+
+
+</body>
+</html>

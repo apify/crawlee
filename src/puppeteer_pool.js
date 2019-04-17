@@ -9,6 +9,7 @@ import rimraf from 'rimraf';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { launchPuppeteer } from './puppeteer';
 import { addTimeoutToPromise } from './utils';
+import LiveViewServer from './live_view/live_view_server';
 
 /* global process */
 
@@ -30,6 +31,7 @@ const DEFAULT_OPTIONS = {
     launchPuppeteerFunction: launchPuppeteerOptions => launchPuppeteer(launchPuppeteerOptions),
 
     recycleDiskCache: false,
+    useLiveView: false,
 };
 
 const mkdtempAsync = util.promisify(fs.mkdtemp);
@@ -102,8 +104,13 @@ class PuppeteerInstance {
  * // Close all browsers.
  * await puppeteerPool.destroy();
  * ```
- * @param {Object} [options] All `PuppeteerPool` parameters are passed
+ * @param {Object} [options]
+ *   All `PuppeteerPool` parameters are passed
  *   via an options object with the following keys:
+ * @param {boolean} [options.useLiveView]
+ *   Enables the use of a preconfigured {@link LiveViewServer} that serves snapshots
+ *   just before a page would be recycled by `PuppeteerPool`. If there are no clients
+ *   connected, it has close to zero impact on performance.
  * @param {Number} [options.maxOpenPagesPerInstance=50]
  *   Maximum number of open pages (i.e. tabs) per browser. When this limit is reached, new pages are loaded in a new browser instance.
  * @param {Number} [options.retireInstanceAfterRequestCount=100]
@@ -163,6 +170,7 @@ class PuppeteerPool {
             launchPuppeteerOptions,
             recycleDiskCache,
             proxyUrls,
+            useLiveView,
         } = _.defaults({}, options, DEFAULT_OPTIONS);
 
         // Disabling due to memory leak.
@@ -188,6 +196,7 @@ class PuppeteerPool {
         checkParamOrThrow(proxyUrls, 'options.proxyUrls', 'Maybe Array');
         // Enforce non-empty proxyUrls array
         if (proxyUrls && !proxyUrls.length) throw new Error('Parameter "options.proxyUrls" of type Array must not be empty');
+        checkParamOrThrow(useLiveView, 'options.useLiveView', 'Maybe Boolean');
 
         // Config.
         this.reusePages = reusePages;
@@ -197,6 +206,7 @@ class PuppeteerPool {
         this.killInstanceAfterMillis = killInstanceAfterMillis || killInstanceAfterSecs * 1000;
         this.recycledDiskCacheDirs = recycleDiskCache ? new LinkedList() : null;
         this.proxyUrls = proxyUrls ? _.shuffle(proxyUrls) : null;
+        this.liveViewServer = useLiveView ? new LiveViewServer() : null;
         this.launchPuppeteerFunction = async () => {
             // Do not modify passed launchPuppeteerOptions!
             const opts = _.clone(launchPuppeteerOptions) || {};
@@ -459,6 +469,7 @@ class PuppeteerPool {
      * @return {Promise<Page>}
      */
     async newPage() {
+        if (this.liveViewServer && !this.liveViewServer.isRunning()) await this.liveViewServer.start();
         let idlePage;
         // We don't need to check whether options.reusePages is true,
         // because if it's false, the array will be empty and the loop will never start.
@@ -589,7 +600,10 @@ class PuppeteerPool {
             }
             await Promise.all(dirDeletionPromises);
         } catch (err) {
-            log.exception(err, 'PuppeteerPool: Cannot close the browsers');
+            log.exception(err, 'PuppeteerPool: Cannot close the browsers.');
+        }
+        if (this.liveViewServer) {
+            await this.liveViewServer.stop().catch(err => log.exception(err, 'PuppeteerPool: Cannot close LiveViewServer.'));
         }
     }
 
@@ -631,19 +645,21 @@ class PuppeteerPool {
     }
 
     /**
-     * Recycles the page, which means that it will be enqueued for future reuse
-     * instead of spawning a new tab. This is done automatically unless the `reusePages`
-     * option of the `PuppeteerPool` constructor is set to false. You can also use this
-     * function manually to tell the pool that you no longer need this specific page
-     * and it can be reused in the future.
+     * Closes the page, unless the `reuseTabs` option is set to true.
+     * Then it would only flag the page for a future reuse, without actually closing it.
      *
-     * Using this function without setting the `reusePages` option to false causes
-     * this function to trigger a page.close().
+     * NOTE: LiveView snapshotting is tied to this function. When `useLiveView` option
+     * is set to true, a snapshot of the page will be taken just before closing the page
+     * or flagging it for reuse.
      *
      * @param {Page} page
      * @return {Promise}
      */
     async recyclePage(page) {
+        if (this.liveViewServer && this.liveViewServer.hasClients()) {
+            await this._serveLiveView(page)
+                .catch(err => log.exception(err, 'LiveView failed to be served.'));
+        }
         if (this.reusePages) {
             page.removeAllListeners();
             this.idlePages.push(page);
@@ -658,6 +674,23 @@ class PuppeteerPool {
                 log.debug('PuppeteerPool: page.close() failed.', { reason: err && err.message });
             }
         }
+    }
+
+    async _serveLiveView(page) {
+        const browser = page.browser();
+        const pages = await browser.pages();
+
+        // We only serve the second page of the browser.
+        // First page is about:blank and the others are disregarded.
+        if (pages[1] !== page) return;
+
+        const instance = await this._findInstanceByBrowser(browser);
+        // Sometimes the browser gets killed and there's no instance.
+        if (!instance) return;
+
+        // Only take snapshots in the most recently opened browser.
+        if (instance.id !== this.browserCounter - 1) return;
+        await this.liveViewServer.serve(page);
     }
 }
 

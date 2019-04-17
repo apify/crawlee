@@ -23,6 +23,9 @@
       "api/keyvaluestore": {
         "title": "KeyValueStore"
       },
+      "api/liveviewserver": {
+        "title": "LiveViewServer"
+      },
       "api/log": {
         "title": "utils.log"
       },

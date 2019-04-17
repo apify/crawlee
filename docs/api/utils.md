@@ -20,9 +20,11 @@ await Apify.utils.sleep(1500);
 
 * [`utils`](#utils) : <code>object</code>
     * [`.enqueueLinks`](#utils.enqueueLinks) ⇒ <code>Promise&lt;Array&lt;QueueOperationInfo&gt;&gt;</code>
+    * [`.requestExtended`](#utils.requestExtended) ⇒ <code>http.IncomingMessage</code>
+    * [`.requestLikeBrowser`](#utils.requestLikeBrowser) ⇒ <code>http.IncomingMessage</code>
+    * [`.sleep`](#utils.sleep) ⇒ <code>Promise</code>
     * [`.URL_NO_COMMAS_REGEX`](#utils.URL_NO_COMMAS_REGEX)
     * [`.URL_WITH_COMMAS_REGEX`](#utils.URL_WITH_COMMAS_REGEX)
-    * [`.exports.sleep`](#utils.exports.sleep) ⇒ <code>Promise</code>
     * [`.isDocker()`](#utils.isDocker) ⇒ <code>Promise</code>
     * [`.downloadListOfUrls(options)`](#utils.downloadListOfUrls) ⇒ <code>Promise&lt;Array&lt;String&gt;&gt;</code>
     * [`.extractUrls(string, [urlRegExp])`](#utils.extractUrls) ⇒ <code>Array&lt;String&gt;</code>
@@ -141,21 +143,193 @@ await Apify.utils.enqueueLinks({
 }
 </code></pre></td></tr></tbody>
 </table>
-<a name="utils.URL_NO_COMMAS_REGEX"></a>
+<a name="utils.requestExtended"></a>
 
-## `utils.URL_NO_COMMAS_REGEX`
-Default regular expression to match URLs in a string that may be plain text, JSON, CSV or other. It supports common URL characters
-and does not support URLs containing commas or spaces. The URLs also may contain Unicode letters (not symbols).
+## `utils.requestExtended` ⇒ <code>http.IncomingMessage</code>
+Sends a HTTP request and returns the response.
+The function has similar functionality and options as the [request](https://www.npmjs.com/package/request) NPM package,
+but it brings several additional improvements and fixes:
 
-<a name="utils.URL_WITH_COMMAS_REGEX"></a>
+- It support not only Gzip compression, but also Brotli and Deflate. To activate this feature,
+  simply add `Accept-Encoding: gzip, deflate, br` to `options.headers` (or a combination).
+- Enables abortion of the request based on the response headers, before the data is downloaded.
+  See `options.abortFunction` parameter.
+- SSL connections over proxy do not leak sockets in CLOSE_WAIT state (https://github.com/request/request/issues/2440)
+- Gzip implementation doesn't fail (https://github.com/apifytech/apify-js/issues/266)
+- There is no tunnel-agent AssertionError (https://github.com/request/tunnel-agent/issues/20)
 
-## `utils.URL_WITH_COMMAS_REGEX`
-Regular expression that, in addition to the default regular expression `URL_NO_COMMAS_REGEX`, supports matching commas in URL path and query.
-Note, however, that this may prevent parsing URLs from comma delimited lists, or the URLs may become malformed.
+NOTE: Most of the options below are simply copied from NPM request. Perhaps we don't need to copy
+them here and can just pass them down. Well, we can decide later.
 
-<a name="utils.exports.sleep"></a>
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>options.url</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>URL of the target endpoint. Supports both HTTP and HTTPS schemes.</p>
+</td></tr><tr>
+<td><code>[options.method]</code></td><td><code>GET</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>HTTP method.</p>
+</td></tr><tr>
+<td><code>[options.headers=]</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>HTTP headers.
+ Note that the function generates several headers itself, unless
+ they are defined in the <code>headers</code> parameter, in which case the function leaves them untouched.
+ For example, even if you define <code>{ &#39;Content-Length&#39;: null }</code>, the function doesn&#39;t define
+ the &#39;Content-Length&#39; header and the request will not contain it (due to the <code>null</code> value).</p>
+</td></tr><tr>
+<td><code>[options.body]</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>HTTP payload for PATCH, POST and PUT requests. Must be a <code>Buffer</code> or <code>String</code>.</p>
+</td></tr><tr>
+<td><code>[options.followRedirect]</code></td><td><code>true</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Follow HTTP 3xx responses as redirects (default: true).
+ OPTIONALLY: This property can also be implemented as function which gets response object as
+ a single argument and should return <code>true</code> if redirects should continue or <code>false</code> otherwise.</p>
+</td></tr><tr>
+<td><code>[options.maxRedirects]</code></td><td><code>10</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>The maximum number of redirects to follow.</p>
+</td></tr><tr>
+<td><code>[options.removeRefererHeader]</code></td><td><code>false</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Removes the referer header when a redirect happens.
+ If <code>true</code>, referer header set in the initial request is preserved during redirect chain.</p>
+</td></tr><tr>
+<td><code>[options.encoding]</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Encoding to be used on <code>setEncoding</code> of response data.
+ If <code>null</code>, the body is returned as a <code>Buffer</code>.
+ Anything else (including the default value of undefined) will be passed as the encoding parameter to <code>toString()</code>,
+ (meaning this is effectively utf8 by default).
+ (Note: if you expect binary data, you should set encoding: null.)</p>
+</td></tr><tr>
+<td><code>[options.gzip]</code></td><td><code>true</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>If <code>true</code>, the function adds an <code>Accept-Encoding: gzip</code> header to request compressed content encodings from the server
+ (if not already present) and decode supported content encodings in the response.
+ Note that you can achieve the same effect by adding the <code>Accept-Encoding: gzip</code> header directly to <code>options.headers</code>,
+ similarly as <code>deflate</code> as <code>br</code> encodings.</p>
+</td></tr><tr>
+<td><code>[options.json]</code></td><td><code>false</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Sets body to JSON representation of value and adds <code>Content-type: application/json</code> header.
+ Additionally, parses the response body as JSON, i.e. the <code>body</code> property of the returned object
+ is the result of <code>JSON.parse()</code>. Throws an error if response cannot be parsed as JSON.</p>
+</td></tr><tr>
+<td><code>[options.timeout]</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Integer containing the number of milliseconds to wait for a server to send
+ response headers (and start the response body) before aborting the request.
+ Note that if the underlying TCP connection cannot be established, the OS-wide
+ TCP connection timeout will overrule the timeout option (the default in Linux can be anywhere from 20-120 seconds).</p>
+</td></tr><tr>
+<td><code>[options.proxy]</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>An HTTP proxy to be used. Supports proxy authentication with Basic Auth.</p>
+</td></tr><tr>
+<td><code>[options.strictSSL]</code></td><td><code>true</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>If <code>true</code>, requires SSL/TLS certificates to be valid.</p>
+</td></tr><tr>
+<td><code>[options.abortFunction]</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>A function that determines whether the request should be aborted. It is called when the server
+ responds with the HTTP headers, but before the actual data is downloaded.
+ The function receives a single argument - an instance of Node&#39;s
+ <a href="https://nodejs.org/api/http.html#http_class_http_incomingmessage"><code>http.IncomingMessage</code></a>
+ class and it should return <code>true</code> if request should be aborted, or <code>false</code> otherwise.</p>
+</td></tr><tr>
+<td><code>[options.throwOnHttpError]</code></td><td><code>false</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>If set to true function throws and error on 4XX and 5XX response codes.</p>
+</td></tr></tbody>
+</table>
+<a name="utils.requestLikeBrowser"></a>
 
-## `utils.exports.sleep` ⇒ <code>Promise</code>
+## `utils.requestLikeBrowser` ⇒ <code>http.IncomingMessage</code>
+Sends a HTTP request that looks like a request sent by a web browser,
+fully emulating browser's HTTP headers.
+
+This function is useful for web scraping of websites that send the full HTML in the first response.
+Thanks to this function, the target web server has no simple way to find out the request
+hasn't been sent by a full web browser. Using a headless browser for such requests
+is an order of magnitude more resource-intensive than this function.
+
+Currently, the function sends requests the same way as Firefox web browser does.
+In the future, it might add support for other browsers too.
+
+Internally, the function uses `requestBetter()` function to perform the request.
+All `options` not recognized by this function are passed to it,
+so see it for more details.
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>options.url</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>URL of the target endpoint. Supports both HTTP and HTTPS schemes.</p>
+</td></tr><tr>
+<td><code>[options.method]</code></td><td><code>GET</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>HTTP method.</p>
+</td></tr><tr>
+<td><code>[options.headers]</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Additional HTTP headers to add. It&#39;s only recommended to use this option,
+ with headers that are typically added by websites, such as cookies. Overriding
+ default browser headers will remove the masking this function provides.</p>
+</td></tr><tr>
+<td><code>[options.languageCode]</code></td><td><code>en</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Two-letter ISO 639 language code.</p>
+</td></tr><tr>
+<td><code>[options.countryCode]</code></td><td><code>US</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Two-letter ISO 3166 country code.</p>
+</td></tr><tr>
+<td><code>[options.isMobile]</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>If <code>true</code>, the function uses User-Agent of a mobile browser.</p>
+</td></tr></tbody>
+</table>
+<a name="utils.sleep"></a>
+
+## `utils.sleep` ⇒ <code>Promise</code>
 Returns a `Promise` that resolves after a specific period of time. This is useful to implement waiting
 in your code, e.g. to prevent overloading of target website or to avoid bot detection.
 
@@ -184,6 +358,18 @@ await Apify.utils.sleep(1500);
 <td colspan="3"><p>Period of time to sleep, in milliseconds. If not a positive number, the returned promise resolves immediately.</p>
 </td></tr></tbody>
 </table>
+<a name="utils.URL_NO_COMMAS_REGEX"></a>
+
+## `utils.URL_NO_COMMAS_REGEX`
+Default regular expression to match URLs in a string that may be plain text, JSON, CSV or other. It supports common URL characters
+and does not support URLs containing commas or spaces. The URLs also may contain Unicode letters (not symbols).
+
+<a name="utils.URL_WITH_COMMAS_REGEX"></a>
+
+## `utils.URL_WITH_COMMAS_REGEX`
+Regular expression that, in addition to the default regular expression `URL_NO_COMMAS_REGEX`, supports matching commas in URL path and query.
+Note, however, that this may prevent parsing URLs from comma delimited lists, or the URLs may become malformed.
+
 <a name="utils.isDocker"></a>
 
 ## `utils.isDocker()` ⇒ <code>Promise</code>
