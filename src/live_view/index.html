@@ -135,7 +135,7 @@
 
         function connect() {
             if (liveViewSocket && liveViewSocket.connected) return;
-            liveViewSocket = io(window.location.href, {
+            liveViewSocket = io({
                 path: getSocketIoPath(),
             });
             liveViewSocket.on('snapshot', showSnapshot);
