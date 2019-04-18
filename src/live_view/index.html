@@ -147,7 +147,6 @@
                 showSnapshot(window.lastSnapshot);
             });
             liveViewSocket.on('disconnect', () => {
-                console.log(`Client ID: ${liveViewSocket.id} disconnected.`);
                 $('#resumeButton').show();
                 $('#pauseButton').hide();
             });
@@ -222,7 +221,7 @@
 
 <main>
     <p id="waitContainer">
-        Waiting for the snapshot...<br>
+        Please wait for the actor to start and make a first snapshot.<br>
         <img src="./loading.gif"/>
     </p>
 
