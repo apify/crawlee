@@ -134,33 +134,38 @@
         }
 
         function connect() {
-            const socket = io(window.location.href, {
+            if (liveViewSocket && liveViewSocket.connected) return;
+            liveViewSocket = io(window.location.href, {
                 path: getSocketIoPath(),
             });
-            socket.on('snapshot', showSnapshot);
-            socket.on('connect', () => {
-                console.log('Client ID: ' + socket.id);
+            liveViewSocket.on('snapshot', showSnapshot);
+            liveViewSocket.on('connect', () => {
+                console.log(`Client ID: ${liveViewSocket.id} connected.`);
                 // Don't wait for the next screenshot to be made.
                 $('#resumeButton').hide();
                 $('#pauseButton').show();
                 showSnapshot(window.lastSnapshot);
             });
-            socket.on('disconnect', () => {
-                if (liveViewSocket) liveViewSocket = null;
+            liveViewSocket.on('disconnect', () => {
+                console.log(`Client ID: ${liveViewSocket.id} disconnected.`);
                 $('#resumeButton').show();
                 $('#pauseButton').hide();
             });
-            return socket;
+        }
+
+        function disconnect() {
+            if (liveViewSocket && liveViewSocket.connected) {
+                liveViewSocket.close();
+            }
         }
 
         function onMessageFromPlatform(msg) {
             if (msg.data === 'LIVE_VIEW_TAB_OPEN') {
                 msg.source.postMessage('ACK', msg.origin);
-                if (!liveViewSocket) liveViewSocket = connect();
+                connect();
             }
-            if (msg.data === 'LIVE_VIEW_TAB_CLOSED' && liveViewSocket) {
-                liveViewSocket.close();
-                liveViewSocket = null;
+            if (msg.data === 'LIVE_VIEW_TAB_CLOSED') {
+                disconnect()
             }
         }
 
@@ -182,18 +187,13 @@
 
             $('#resumeButton').click((event) => {
                 event.preventDefault();
-                if (!liveViewSocket) {
-                    liveViewSocket = connect();
-                }
+                connect();
                 $('#resumeButton').hide();
                 $('#pauseButton').show();
             });
             $('#pauseButton').click((event) => {
                 event.preventDefault();
-                if (liveViewSocket) {
-                    liveViewSocket.close();
-                    liveViewSocket = null;
-                }
+                disconnect();
                 $('#resumeButton').show();
                 $('#pauseButton').hide();
             });
