@@ -127,7 +127,9 @@
         }
 
         function connect() {
-            const socket = io();
+            const socket = io(window.location.href, {
+                path: window.location.pathname
+            });
             socket.on('snapshot', showSnapshot);
             socket.on('connect', () => {
                 console.log('Client ID: ' + socket.id);
