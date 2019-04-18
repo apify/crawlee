@@ -126,9 +126,16 @@
             Prism.highlightAll();
         }
 
+        function getSocketIoPath() {
+            const { pathname } = window.location;
+            return pathname.endsWith('/')
+                ? pathname + 'socket.io'
+                : '/socket.io';
+        }
+
         function connect() {
             const socket = io(window.location.href, {
-                path: window.location.pathname
+                path: getSocketIoPath(),
             });
             socket.on('snapshot', showSnapshot);
             socket.on('connect', () => {
