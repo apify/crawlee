@@ -1,3 +1,8 @@
+xxx
+===================
+- Removed `--enable-resource-load-scheduler=false` Chromium command line flag, it has no effect.
+  See https://bugs.chromium.org/p/chromium/issues/detail?id=723233
+
 0.14.0 / 2019-04-15
 ===================
 - **BREAKING CHANGE:** Live View is no longer available by passing `liveView = true` to `launchPuppeteerOptions`.
