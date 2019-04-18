@@ -15,7 +15,6 @@ import LiveViewServer from './live_view/live_view_server';
 
 const PROCESS_KILL_TIMEOUT_MILLIS = 5000;
 const PAGE_CLOSE_KILL_TIMEOUT_MILLIS = 1000;
-const LIVE_VIEW_SNAPSHOT_MAX_AGE_MILLIS = 2000;
 const LIVE_VIEW_SNAPSHOT_TIMEOUT_MILLIS = 5000;
 
 const DEFAULT_OPTIONS = {
@@ -657,7 +656,7 @@ class PuppeteerPool {
      * @return {Promise}
      */
     async recyclePage(page) {
-        if (this.liveViewServer && this.liveViewServer.hasClients()) {
+        if (this.liveViewServer) {
             await this._serveLiveView(page)
                 .catch(err => log.exception(err, 'Live View failed to be served.'));
         }
@@ -678,14 +677,13 @@ class PuppeteerPool {
     }
 
     async _serveLiveView(page) {
+        if (!this.liveViewServer.hasClients()) return;
         const browser = page.browser();
-        const lastSnapshot = this.liveViewServer.getLastSnapshot();
+        const pages = await browser.pages();
 
-        // Only make new snapshot after some time to prevent overloading.
-        if (lastSnapshot) {
-            const millisSinceLastSnapshot = Date.now() - lastSnapshot.createdAt;
-            if (millisSinceLastSnapshot < LIVE_VIEW_SNAPSHOT_MAX_AGE_MILLIS) return;
-        }
+        // We only serve the second page of the browser because it's in focus,
+        // which is necessary for screenshots. First page is about:blank.
+        if (pages[1] !== page) return;
 
         const instance = await this._findInstanceByBrowser(browser);
         // Sometimes the browser gets killed and there's no instance.

@@ -117,7 +117,9 @@ describe('LiveViewServer', () => {
         it('should not store more than maxScreenshotFiles screenshots', async () => {
             const snapshots = [];
             socket.on('snapshot', s => snapshots.push(s));
-            await Promise.all(Array(5).fill(null).map(() => lvs.serve(fakePage)));
+            for (let i = 0; i < 5; i++) {
+                await lvs.serve(fakePage);
+            }
             const files = await new Promise((resolve, reject) => {
                 const interval = setInterval(async () => {
                     const files = await readdir(LOCAL_STORAGE_SUBDIR); // eslint-disable-line no-shadow
@@ -131,7 +133,7 @@ describe('LiveViewServer', () => {
                     reject(new Error('Files were not deleted in 2000ms.'));
                 }, 2000);
             });
-            files.forEach((f, idx) => expect(f).to.be.eql(`${idx + 3}.png`));
+            files.forEach((f, idx) => expect(f).to.be.eql(`${idx + 3}.jpeg`));
         });
     });
 });

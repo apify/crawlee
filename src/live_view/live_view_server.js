@@ -78,6 +78,7 @@ class LiveViewServer {
         this._isRunning = false;
         this.httpServer = null;
         this.socketio = null;
+        this.servingSnapshot = false;
 
         this._setupHttpServer();
     }
@@ -120,9 +121,18 @@ class LiveViewServer {
      * @return {Promise}
      */
     async serve(page) {
+        // Only serve one snapshot at a time because Puppeteer
+        // can't make screenshots in parallel.
+        if (this.servingSnapshot) return;
         if (!this.hasClients()) return;
-        const snapshot = await this._makeSnapshot(page);
-        await this._pushSnapshot(snapshot);
+
+        try {
+            this.servingSnapshot = true;
+            const snapshot = await this._makeSnapshot(page);
+            await this._pushSnapshot(snapshot);
+        } finally {
+            this.servingSnapshot = false;
+        }
     }
 
     /**
@@ -154,7 +164,7 @@ class LiveViewServer {
      * @ignore
      */
     _getScreenshotPath(screenshotIndex) {
-        return path.join(this.screenshotDirectoryPath, `${screenshotIndex}.png`);
+        return path.join(this.screenshotDirectoryPath, `${screenshotIndex}.jpeg`);
     }
 
     async _makeSnapshot(page) {
@@ -162,7 +172,11 @@ class LiveViewServer {
         log.info('Making live view snapshot.', { pageUrl });
         const [htmlContent, screenshot] = await Promise.all([
             page.content(),
-            page.screenshot(),
+            page.screenshot({
+                type: 'jpeg',
+                quality: 75,
+                fullPage: true,
+            }),
         ]);
 
         const screenshotIndex = this.lastScreenshotIndex++;
