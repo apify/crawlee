@@ -192,7 +192,6 @@ class LiveViewServer {
             page.screenshot({
                 type: 'jpeg',
                 quality: 75,
-                fullPage: true,
             }),
         ]);
 
