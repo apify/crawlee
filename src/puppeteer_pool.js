@@ -15,7 +15,6 @@ import LiveViewServer from './live_view/live_view_server';
 
 const PROCESS_KILL_TIMEOUT_MILLIS = 5000;
 const PAGE_CLOSE_KILL_TIMEOUT_MILLIS = 1000;
-const LIVE_VIEW_SNAPSHOT_TIMEOUT_MILLIS = 5000;
 
 const DEFAULT_OPTIONS = {
     reusePages: false,
