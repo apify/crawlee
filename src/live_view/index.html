@@ -132,7 +132,14 @@
             socket.on('connect', () => {
                 console.log('Client ID: ' + socket.id);
                 // Don't wait for the next screenshot to be made.
+                $('#resumeButton').hide();
+                $('#pauseButton').show();
                 showSnapshot(window.lastSnapshot);
+            });
+            socket.on('disconnect', () => {
+                if (liveViewSocket) liveViewSocket = null;
+                $('#resumeButton').show();
+                $('#pauseButton').hide();
             });
             return socket;
         }
@@ -148,10 +155,21 @@
             }
         }
 
+        function isThisTopWindow () {
+            try {
+                return window.self === window.top;
+            } catch (e) {
+                return false;
+            }
+        }
+
         window.addEventListener('message', onMessageFromPlatform);
         $(() => {
             // Show initial snapshot if it exists when client is fetched.
             showSnapshot(window.lastSnapshot);
+
+            // When displayed in a separate window, connect immediately.
+            if (isThisTopWindow()) liveViewSocket = connect();
 
             $('#resumeButton').click((event) => {
                 event.preventDefault();
