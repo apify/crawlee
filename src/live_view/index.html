@@ -183,7 +183,7 @@
             showSnapshot(window.lastSnapshot);
 
             // When displayed in a separate window, connect immediately.
-            if (isThisTopWindow()) liveViewSocket = connect();
+            if (isThisTopWindow()) connect();
 
             $('#resumeButton').click((event) => {
                 event.preventDefault();
