@@ -658,7 +658,7 @@ class PuppeteerPool {
     async recyclePage(page) {
         if (this.liveViewServer) {
             await this._serveLiveView(page)
-                .catch(err => log.exception(err, 'Live View failed to be served.'));
+                .catch(err => log.info('Live View failed to be served.', { message: err.message }));
         }
         if (this.reusePages) {
             page.removeAllListeners();
@@ -691,11 +691,7 @@ class PuppeteerPool {
 
         // Only take snapshots in the most recently opened browser.
         if (instance.id !== this.browserCounter - 1) return;
-        await addTimeoutToPromise(
-            this.liveViewServer.serve(page),
-            LIVE_VIEW_SNAPSHOT_TIMEOUT_MILLIS,
-            'PuppeteerPool: Serving of Live View timed out.',
-        );
+        await this.liveViewServer.serve(page);
     }
 }
 

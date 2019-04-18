@@ -8,9 +8,11 @@ import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { promisifyServerListen } from 'apify-shared/utilities';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
+import { addTimeoutToPromise } from '../utils';
 
 const DEFAULT_SCREENSHOT_DIRECTORY_PATH = path.resolve('live_view');
 const DEFAULT_MAX_SCREENSHOT_FILES = 10;
+const DEFAULT_SNAPSHOT_TIMEOUT_SECS = 1;
 
 
 const writeFile = promisify(fs.writeFile);
@@ -49,25 +51,34 @@ const ensureDir = promisify(fs.ensureDir);
  * When running locally, it is often best to use a headful browser for debugging, since it provides
  * a better view into the browser, including DevTools, but `LiveViewServer` works too.
  *
- * @param {Object} [options] All `LiveViewServer` parameters are passed
+ * @param {Object} [options]
+ *   All `LiveViewServer` parameters are passed
  *   via an options object with the following keys:
- * @param {string} [options.screenshotDirectoryPath] By default, the screenshots are saved to
+ * @param {string} [options.screenshotDirectoryPath]
+ *   By default, the screenshots are saved to
  *   the `live_view` directory in the process' working directory. Provide a different
  *   absolute path to change the settings.
- * @param {number} [options.maxScreenshotFiles=10] Limits the number of screenshots stored
+ * @param {number} [options.maxScreenshotFiles=10]
+ *   Limits the number of screenshots stored
  *   by the server. This is to prevent using up too much disk space.
+ * @param {number} [options.snapshotTimeoutSecs=1]
+ *   If a snapshot is not made within the timeout,
+ *   its creation will be aborted. This is to prevent
+ *   pages from being hung up by a stalled screenshot.
  */
 class LiveViewServer {
     constructor(options = {}) {
         const {
             screenshotDirectoryPath = DEFAULT_SCREENSHOT_DIRECTORY_PATH,
             maxScreenshotFiles = DEFAULT_MAX_SCREENSHOT_FILES,
+            snapshotTimeoutSecs = DEFAULT_SNAPSHOT_TIMEOUT_SECS,
         } = options;
 
         checkParamOrThrow(screenshotDirectoryPath, 'options.screenshotDirectoryPath', 'String');
         checkParamOrThrow(maxScreenshotFiles, 'options.maxScreenshotFiles', 'Number');
         this.screenshotDirectoryPath = screenshotDirectoryPath;
         this.maxScreenshotFiles = maxScreenshotFiles;
+        this.snapshotTimeoutMillis = snapshotTimeoutSecs * 1000;
 
         // Snapshot data
         this.lastSnapshot = null;
@@ -117,6 +128,8 @@ class LiveViewServer {
      * Screenshots are not served directly, only their index number
      * which is used by client to retrieve the screenshot.
      *
+     * Will time out and throw in `options.snapshotTimeoutSecs`.
+     *
      * @param {Page} page
      * @return {Promise}
      */
@@ -128,8 +141,12 @@ class LiveViewServer {
 
         try {
             this.servingSnapshot = true;
-            const snapshot = await this._makeSnapshot(page);
-            await this._pushSnapshot(snapshot);
+            const snapshot = await addTimeoutToPromise(
+                this._makeSnapshot(page),
+                this.snapshotTimeoutMillis,
+                'LiveViewServer: Serving of Live View timed out.',
+            );
+            this._pushSnapshot(snapshot);
         } finally {
             this.servingSnapshot = false;
         }
@@ -191,7 +208,7 @@ class LiveViewServer {
         return snapshot;
     }
 
-    async _pushSnapshot(snapshot) {
+    _pushSnapshot(snapshot) {
         // Send new snapshot to clients
         log.debug('Sending live view snapshot', { snapshot });
         this.socketio.emit('snapshot', snapshot);
