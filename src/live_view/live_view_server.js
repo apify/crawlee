@@ -22,6 +22,15 @@ const ensureDir = promisify(fs.ensureDir);
  * that provides a simple frontend to viewing the captured snapshots. A snapshot consists of three
  * pieces of information, the currently opened URL, the content of the page (HTML) and its screenshot.
  *
+ * ```json
+ * {
+ *     "pageUrl": "https://www.example.com",
+ *     "htmlContent": "<html><body> ....",
+ *     "screenshotIndex": 3,
+ *     "createdAt": "2019-04-18T11:50:40.060Z"
+ * }
+ * ```
+ *
  * `LiveViewServer` is useful when you want to be able to inspect the current browser status on demand.
  * When no client is connected, the webserver consumes very low resources so it should have a close
  * to zero impact on performance. Only once a client connects the server will start serving snapshots.
@@ -103,16 +112,7 @@ class LiveViewServer {
     }
 
     /**
-     * Serves the snapshot to all connected clients.
-     *
-     * ```json
-     * {
-     *     "pageUrl": "https://www.example.com",
-     *     "htmlContent": "<html><body> ....",
-     *     "screenshotIndex": 3
-     * }
-     * ```
-     *
+     * Serves a snapshot to all connected clients.
      * Screenshots are not served directly, only their index number
      * which is used by client to retrieve the screenshot.
      *
@@ -123,6 +123,13 @@ class LiveViewServer {
         if (!this.hasClients()) return;
         const snapshot = await this._makeSnapshot(page);
         await this._pushSnapshot(snapshot);
+    }
+
+    /**
+     * @return {?Object}
+     */
+    getLastSnapshot() {
+        return this.lastSnapshot;
     }
 
     /**
@@ -165,7 +172,7 @@ class LiveViewServer {
             this._deleteScreenshot(screenshotIndex - this.maxScreenshotFiles);
         }
 
-        const snapshot = { pageUrl, htmlContent, screenshotIndex };
+        const snapshot = { pageUrl, htmlContent, screenshotIndex, createdAt: new Date() };
         this.lastSnapshot = snapshot;
         return snapshot;
     }

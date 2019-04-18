@@ -15,6 +15,8 @@ import LiveViewServer from './live_view/live_view_server';
 
 const PROCESS_KILL_TIMEOUT_MILLIS = 5000;
 const PAGE_CLOSE_KILL_TIMEOUT_MILLIS = 1000;
+const LIVE_VIEW_SNAPSHOT_MAX_AGE_MILLIS = 2000;
+const LIVE_VIEW_SNAPSHOT_TIMEOUT_MILLIS = 5000;
 
 const DEFAULT_OPTIONS = {
     reusePages: false,
@@ -657,7 +659,7 @@ class PuppeteerPool {
     async recyclePage(page) {
         if (this.liveViewServer && this.liveViewServer.hasClients()) {
             await this._serveLiveView(page)
-                .catch(err => log.exception(err, 'LiveView failed to be served.'));
+                .catch(err => log.exception(err, 'Live View failed to be served.'));
         }
         if (this.reusePages) {
             page.removeAllListeners();
@@ -677,11 +679,13 @@ class PuppeteerPool {
 
     async _serveLiveView(page) {
         const browser = page.browser();
-        const pages = await browser.pages();
+        const lastSnapshot = this.liveViewServer.getLastSnapshot();
 
-        // We only serve the second page of the browser.
-        // First page is about:blank and the others are disregarded.
-        if (pages[1] !== page) return;
+        // Only make new snapshot after some time to prevent overloading.
+        if (lastSnapshot) {
+            const millisSinceLastSnapshot = Date.now() - lastSnapshot.createdAt;
+            if (millisSinceLastSnapshot < LIVE_VIEW_SNAPSHOT_MAX_AGE_MILLIS) return;
+        }
 
         const instance = await this._findInstanceByBrowser(browser);
         // Sometimes the browser gets killed and there's no instance.
@@ -689,7 +693,11 @@ class PuppeteerPool {
 
         // Only take snapshots in the most recently opened browser.
         if (instance.id !== this.browserCounter - 1) return;
-        await this.liveViewServer.serve(page);
+        await addTimeoutToPromise(
+            this.liveViewServer.serve(page),
+            LIVE_VIEW_SNAPSHOT_TIMEOUT_MILLIS,
+            'PuppeteerPool: Serving of Live View timed out.',
+        );
     }
 }
 

@@ -99,7 +99,8 @@ describe('LiveViewServer', () => {
         it('should serve snapshot', async () => {
             await lvs.serve(fakePage);
             const snapshot = await new Promise(resolve => socket.on('snapshot', resolve));
-            expect(snapshot).to.be.eql({ pageUrl: 'url', htmlContent: 'content', screenshotIndex: 0 });
+            expect(snapshot).to.include({ pageUrl: 'url', htmlContent: 'content', screenshotIndex: 0 });
+            expect(`"${snapshot.createdAt}"`).to.be.eql(JSON.stringify(new Date(snapshot.createdAt)));
         });
 
         it('should return screenshots', async () => {
