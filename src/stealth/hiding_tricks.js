@@ -1,7 +1,7 @@
 /* eslint no-undef: 0 */
+/* istanbul ignore file */
 
 
-/* istanbul ignore next */
 const hideWebDriver = () => {
     const newProto = window.navigator.__proto__; // eslint-disable-line
     delete newProto.webdriver;
@@ -9,7 +9,6 @@ const hideWebDriver = () => {
     navigator.__proto__ = newProto
 };
 
-/* istanbul ignore next */
 const hackPermissions = () => {
     const originalQuery = window.navigator.permissions.query;
     // eslint-disable-next-line
@@ -44,14 +43,12 @@ const hackPermissions = () => {
     Function.prototype.toString = functionToString
 };
 
-/* istanbul ignore next */
 const addLanguage = () => {
     Object.defineProperty(window.navigator, 'languages', {
-        get: () => ['cs', 'en-US', 'en'],
+        get: () => ['en-US', 'en'],
     });
 };
 
-/* istanbul ignore next */
 const emulateWebGL = () => {
     try {
         /* global WebGLRenderingContext */
@@ -73,7 +70,6 @@ const emulateWebGL = () => {
     }
 };
 
-/* istanbul ignore next */
 const emulateWindowFrame = () => {
     try {
         if (window.outerWidth && window.outerHeight) {
@@ -87,7 +83,6 @@ const emulateWindowFrame = () => {
     }
 };
 
-/* istanbul ignore next */
 const addPlugins = () => {
     function mockPluginsAndMimeTypes() {
         /* global MimeType MimeTypeArray PluginArray */
@@ -281,14 +276,12 @@ const addPlugins = () => {
     mockPluginsAndMimeTypes();
 };
 
-/* istanbul ignore next */
 const emulateConsoleDebug = () => {
     window.console.debug = () => {
         return null;
     };
 };
 
-/* istanbul ignore next */
 // Should be mocked more properly - this one will bypass only some stupid tests
 const mockChrome = () => {
     Object.defineProperty(window, 'chrome', {
@@ -298,7 +291,6 @@ const mockChrome = () => {
     });
 };
 
-/* istanbul ignore next */
 // not sure if this hack does not broke iframe on websites... Should figure out how to test properly
 // Should cover that it is custom function same as the permission query
 const mocksChromeInIframe = () => {
@@ -316,7 +308,7 @@ const mocksChromeInIframe = () => {
                 Object.defineProperty(iframe.contentWindow, 'chrome', {
                     value: {},
                     configurable: true,
-                }); // TODO: ALSO MOCK BETTER
+                });
             }
             return iframe;
         }
@@ -326,9 +318,33 @@ const mocksChromeInIframe = () => {
     newCreate.toString = () => 'function createElement() { [native code] }';
 
     document.createElement = newCreate;
+
+    const oldCall = Function.prototype.call;
+    function call() {
+        return oldCall.apply(this, arguments); //eslint-disable-line
+    }
+    // eslint-disable-next-line
+    Function.prototype.call = call;
+
+    const nativeToStringFunctionString = Error.toString().replace(
+        /Error/g,
+        'toString',
+    );
+    const oldToString = Function.prototype.toString;
+
+    function functionToString() {
+        if (this === window.document.createElement) {
+            return 'function createElement() { [native code] }';
+        }
+        if (this === functionToString) {
+            return nativeToStringFunctionString;
+        }
+        return oldCall.call(oldToString, this);
+    }
+    // eslint-disable-next-line
+    Function.prototype.toString = functionToString
 };
 
-/* istanbul ignore next */
 const mockDeviceMemory = () => {
     // TODO: Count from env according to - https://developer.mozilla.org/en-US/docs/Web/API/Navigator/deviceMemory
     Object.defineProperty(navigator, 'deviceMemory', {

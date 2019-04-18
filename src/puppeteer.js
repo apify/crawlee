@@ -6,7 +6,7 @@ import { ENV_VARS } from 'apify-shared/consts';
 import { DEFAULT_USER_AGENT } from './constants';
 import { getTypicalChromeExecutablePath, isAtHome } from './utils';
 import { getApifyProxyUrl } from './actor';
-import Stealth from './stealth/stealth';
+import applyStealthFromBrowser from './stealth/stealth';
 
 /* global process, require */
 
@@ -190,6 +190,7 @@ export const launchPuppeteer = async (options = {}) => {
     checkParamOrThrow(options.proxyUrl, 'options.proxyUrl', 'Maybe String');
     checkParamOrThrow(options.useApifyProxy, 'options.useApifyProxy', 'Maybe Boolean');
     checkParamOrThrow(options.puppeteerModule, 'options.puppeteerModule', 'Maybe String');
+    checkParamOrThrow(options.stealth, 'options.stealth', 'Maybe Object');
     if (options.useApifyProxy && options.proxyUrl) throw new Error('Cannot combine "options.useApifyProxy" with "options.proxyUrl"!');
     if (options.liveView || options.liveViewOptions) {
         log.deprecated('Live view is no longer available in Apify.launchPuppeteer() and launchPuppeteerOptions. '
@@ -198,17 +199,7 @@ export const launchPuppeteer = async (options = {}) => {
     }
 
     const puppeteer = getPuppeteerOrThrow(options.puppeteerModule);
-    // Add stealth
-    if (options.stealth) {
-        const prevLaunch = puppeteer.launch;
-        const newLaunch = async function (...args) {
-            const browser = await prevLaunch.bind(puppeteer)(...args);
-            const stealth = new Stealth(options.stealth);
-            return stealth.getStealthBrowser(browser);
-        };
 
-        puppeteer.launch = newLaunch.bind(puppeteer);
-    }
     const optsCopy = Object.assign({}, options);
 
     optsCopy.args = optsCopy.args || [];
@@ -243,7 +234,17 @@ export const launchPuppeteer = async (options = {}) => {
         optsCopy.args.push(`--user-agent=${userAgent}`);
     }
 
-    if (optsCopy.proxyUrl) return launchPuppeteerWithProxy(puppeteer, optsCopy);
+    let browser;
+    if (optsCopy.proxyUrl) {
+        browser = await launchPuppeteerWithProxy(puppeteer, optsCopy);
+    } else {
+        browser = await puppeteer.launch(optsCopy);
+    }
+
+    // Add stealth
+    if (optsCopy.stealth) {
+        browser = applyStealthFromBrowser(browser, optsCopy.stealth);
+    }
     log.info('Launching Puppeteer', _.omit(optsCopy, LAUNCH_PUPPETEER_LOG_OMIT_OPTS));
-    return puppeteer.launch(optsCopy);
+    return browser;
 };

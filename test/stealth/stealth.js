@@ -82,8 +82,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
         const { languages } = await getFingerPrint(page);
 
         expect(languages).to.be.an('array');
-        expect(languages[0]).to.be.eql('cs');
-        expect(languages[1]).to.be.eql('en-US');
+        expect(languages[0]).to.be.eql('en-US');
 
         return browser.close();
     });
