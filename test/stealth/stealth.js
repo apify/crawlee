@@ -179,6 +179,33 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
         return browser.close();
     });
 
+    it('it should not break iframe ', async () => {
+        const browser = await Apify.launchPuppeteer({
+            stealth: {
+                mocksChromeInIframe: true,
+            },
+            headless: true,
+            useChrome: true,
+        });
+
+        const page = await browser.newPage();
+        const testFuncReturnValue = 'TESTSTRING';
+        await page.goto('http://example.com');
+        await page.evaluate((returnValue) => {
+            const { document } = window; //eslint-disable-line
+            const body = document.querySelector('body');
+            const iframe = document.createElement('iframe');
+            iframe.contentWindow.mySuperFunction = () => returnValue;
+            body.appendChild(iframe);
+        }, testFuncReturnValue);
+        const realReturn = await page.evaluate(
+            () => document.querySelector('iframe').contentWindow.mySuperFunction(), //eslint-disable-line
+        );
+        expect(realReturn).to.eql(testFuncReturnValue);
+
+        return browser.close();
+    });
+
     it('it should mock device memory', async () => {
         const browser = await Apify.launchPuppeteer({
             stealth: {
