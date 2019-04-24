@@ -78,5 +78,11 @@ function and in addition, all the options available below.
 <tr>
 <td colspan="3"><p>Require path to a module to be used instead of default <code>puppeteer</code>. This enables usage
   of various Puppeteer wrappers such as <code>puppeteer-extra</code>.</p>
+</td></tr><tr>
+<td><code>[stealthOptions]</code></td><td><code><a href="../typedefs/stealthoptions">StealthOptions</a></code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Using this configuration, you can make a headless chrome nearly undetectable.
+  It is recommended to use it together with the <code>useChrome</code> set to <code>true</code>.</p>
 </td></tr></tbody>
 </table>

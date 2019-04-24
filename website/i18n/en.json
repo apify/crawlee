@@ -130,6 +130,9 @@
       },
       "typedefs/queueoperationinfo": {
         "title": "QueueOperationInfo"
+      },
+      "typedefs/stealthoptions": {
+        "title": "StealthOptions"
       }
     },
     "links": {

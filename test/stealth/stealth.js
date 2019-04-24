@@ -11,10 +11,11 @@ const getFingerPrint = async (page) => {
     return page.evaluate(() => fpCollect.generateFingerprint()); // eslint-disable-line
 };
 
+// we can speed up the test to make the requests to the local static html
 describe('Stealth - testing headless chrome hiding tricks', () => {
     it('it adds plugins, mimeTypes and passes', async () => {
         const browser = await Apify.launchPuppeteer({
-            stealth: {
+            stealthOptions: {
                 addPlugins: true,
             },
             headless: true,
@@ -34,7 +35,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
 
     it('it hides webDriver', async () => {
         const browser = await Apify.launchPuppeteer({
-            stealth: {
+            stealthOptions: {
                 hideWebDriver: true,
             },
             headless: true,
@@ -52,7 +53,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
 
     it('it hacks permissions', async () => {
         const browser = await Apify.launchPuppeteer({
-            stealth: {
+            stealthOptions: {
                 hackPermissions: true,
             },
             headless: true,
@@ -70,7 +71,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
 
     it('it adds language to navigator', async () => {
         const browser = await Apify.launchPuppeteer({
-            stealth: {
+            stealthOptions: {
                 addLanguage: true,
             },
             headless: true,
@@ -89,7 +90,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
 
     it('it emulates WebGL', async () => {
         const browser = await Apify.launchPuppeteer({
-            stealth: {
+            stealthOptions: {
                 emulateWebGL: true,
             },
             headless: true,
@@ -108,7 +109,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
 
     it('it emulates windowFrame', async () => {
         const browser = await Apify.launchPuppeteer({
-            stealth: {
+            stealthOptions: {
                 emulateWindowFrame: true,
             },
             headless: true,
@@ -126,7 +127,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
 
     it('it emulates console.debug', async () => {
         const browser = await Apify.launchPuppeteer({
-            stealth: {
+            stealthOptions: {
                 emulateConsoleDebug: true,
             },
             headless: true,
@@ -143,7 +144,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
     });
     it('it should mock window.chrome to plain object', async () => {
         const browser = await Apify.launchPuppeteer({
-            stealth: {
+            stealthOptions: {
                 mockChrome: true,
             },
             headless: true,
@@ -163,7 +164,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
 
     it('it should mock chrome when iframe is created', async () => {
         const browser = await Apify.launchPuppeteer({
-            stealth: {
+            stealthOptions: {
                 mocksChromeInIframe: true,
             },
             headless: true,
@@ -181,7 +182,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
 
     it('it should not break iframe ', async () => {
         const browser = await Apify.launchPuppeteer({
-            stealth: {
+            stealthOptions: {
                 mocksChromeInIframe: true,
             },
             headless: true,
@@ -208,7 +209,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
 
     it('it should mock device memory', async () => {
         const browser = await Apify.launchPuppeteer({
-            stealth: {
+            stealthOptions: {
                 mockDeviceMemory: true,
             },
             headless: true,
@@ -226,7 +227,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
 
     it('it should bypass all of the known tests for browser fingerprinting', async () => {
         const browser = await Apify.launchPuppeteer({
-            stealth: {
+            stealthOptions: {
                 addPlugins: true,
                 emulateWindowFrame: true,
                 hideWebDriver: true,

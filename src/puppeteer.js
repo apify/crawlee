@@ -65,6 +65,9 @@ const LAUNCH_PUPPETEER_DEFAULT_VIEWPORT = {
  * @property {String} [puppeteerModule]
  *   Require path to a module to be used instead of default `puppeteer`. This enables usage
  *   of various Puppeteer wrappers such as `puppeteer-extra`.
+ * @property {StealthOptions} [stealthOptions]
+ *   Using this configuration, you can make a headless chrome nearly undetectable.
+ *   It is recommended to use it together with the `useChrome` set to `true`.
  */
 
 /**
@@ -242,8 +245,8 @@ export const launchPuppeteer = async (options = {}) => {
     }
 
     // Add stealth
-    if (optsCopy.stealth) {
-        browser = applyStealthFromBrowser(browser, optsCopy.stealth);
+    if (optsCopy.stealthOptions) {
+        browser = applyStealthFromBrowser(browser, optsCopy.stealthOptions);
     }
     log.info('Launching Puppeteer', _.omit(optsCopy, LAUNCH_PUPPETEER_LOG_OMIT_OPTS));
     return browser;
