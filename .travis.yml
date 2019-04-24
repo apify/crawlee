@@ -2,7 +2,7 @@ dist: trusty
 sudo: required
 before_install:
   - # Install Chrome canary
-  - export CHROME_URL=https://storage.googleapis.com/chromium-browser-snapshots/Linux_x64
+  - export CHROME_URL=http://commondatastorage.googleapis.com/chromium-browser-continuous/Linux_x64
   - export CHROME_REV=$(curl -s ${CHROME_URL}/LAST_CHANGE)
   - curl ${CHROME_URL}/${CHROME_REV}/chrome-linux.zip --create-dirs -o out/chrome-linux.zip
   - unzip out/chrome-linux.zip -d out
