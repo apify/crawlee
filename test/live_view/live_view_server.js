@@ -40,6 +40,7 @@ describe('LiveViewServer', () => {
         lvs = new LiveViewServer({
             screenshotDirectoryPath: LOCAL_STORAGE_SUBDIR,
             maxScreenshotFiles: 2,
+            maxSnapshotFrequencySecs: 0,
         });
     });
 

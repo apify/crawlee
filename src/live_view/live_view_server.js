@@ -10,11 +10,6 @@ import { promisifyServerListen } from 'apify-shared/utilities';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import { addTimeoutToPromise } from '../utils';
 
-const DEFAULT_SCREENSHOT_DIRECTORY_PATH = path.resolve('live_view');
-const DEFAULT_MAX_SCREENSHOT_FILES = 10;
-const DEFAULT_SNAPSHOT_TIMEOUT_SECS = 3;
-
-
 const writeFile = promisify(fs.writeFile);
 const unlink = promisify(fs.unlink);
 const ensureDir = promisify(fs.ensureDir);
@@ -61,24 +56,32 @@ const ensureDir = promisify(fs.ensureDir);
  * @param {number} [options.maxScreenshotFiles=10]
  *   Limits the number of screenshots stored
  *   by the server. This is to prevent using up too much disk space.
- * @param {number} [options.snapshotTimeoutSecs=1]
+ * @param {number} [options.snapshotTimeoutSecs=3]
  *   If a snapshot is not made within the timeout,
  *   its creation will be aborted. This is to prevent
  *   pages from being hung up by a stalled screenshot.
+ * @param {number} [options.maxSnapshotFrequencySecs=2]
+ *   Use this parameter to further decrease the resource consumption
+ *   of `LiveViewServer` by limiting the frequency at which it'll
+ *   serve snapshots.
  */
 class LiveViewServer {
     constructor(options = {}) {
         const {
-            screenshotDirectoryPath = DEFAULT_SCREENSHOT_DIRECTORY_PATH,
-            maxScreenshotFiles = DEFAULT_MAX_SCREENSHOT_FILES,
-            snapshotTimeoutSecs = DEFAULT_SNAPSHOT_TIMEOUT_SECS,
+            screenshotDirectoryPath = path.resolve('live_view'),
+            maxScreenshotFiles = 10,
+            snapshotTimeoutSecs = 3,
+            maxSnapshotFrequencySecs = 1,
         } = options;
 
         checkParamOrThrow(screenshotDirectoryPath, 'options.screenshotDirectoryPath', 'String');
         checkParamOrThrow(maxScreenshotFiles, 'options.maxScreenshotFiles', 'Number');
+        checkParamOrThrow(maxScreenshotFiles, 'options.snapshotTimeoutSecs', 'Number');
+        checkParamOrThrow(maxScreenshotFiles, 'options.maxSnapshotFrequencySecs', 'Number');
         this.screenshotDirectoryPath = screenshotDirectoryPath;
         this.maxScreenshotFiles = maxScreenshotFiles;
         this.snapshotTimeoutMillis = snapshotTimeoutSecs * 1000;
+        this.maxSnapshotFrequencyMillis = maxSnapshotFrequencySecs * 1000;
 
         // Snapshot data
         this.lastSnapshot = null;
@@ -134,10 +137,15 @@ class LiveViewServer {
      * @return {Promise}
      */
     async serve(page) {
+        if (!this.hasClients()) return;
         // Only serve one snapshot at a time because Puppeteer
         // can't make screenshots in parallel.
         if (this.servingSnapshot) return;
-        if (!this.hasClients()) return;
+
+        if (this.lastSnapshot) {
+            const lastSnapshotAgeMillis = Date.now() - this.lastSnapshot.createdAt;
+            if (lastSnapshotAgeMillis < this.maxSnapshotFrequencyMillis) return;
+        }
 
         try {
             this.servingSnapshot = true;
