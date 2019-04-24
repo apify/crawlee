@@ -6,8 +6,9 @@ import Apify from '../../build';
 const fingerPrintPath = require.resolve('fpcollect/dist/fpCollect.min.js');
 
 const getFingerPrint = async (page) => {
+    console.log('Adding fingerprinting tool', fingerPrintPath);
     await Apify.utils.puppeteer.injectFile(page, fingerPrintPath);
-
+    console.log('File successfully injected');
     return page.evaluate(() => fpCollect.generateFingerprint()); // eslint-disable-line
 };
 
@@ -24,8 +25,10 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
 
         const page = await browser.newPage();
         await page.goto('http://example.com');
+        console.log('Visited example.com');
 
         const { plugins, mimeTypes } = await getFingerPrint(page);
+        console.log('Got the fingerprint');
 
         expect(plugins.length).to.be.eql(3);
         expect(mimeTypes.length).to.be.eql(4);
