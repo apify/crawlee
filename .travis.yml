@@ -1,9 +1,12 @@
 dist: trusty
 sudo: required
-addons:
-  chrome: stable
 before_install:
-before_install:
+  - # Install Chrome canary
+  - export CHROME_URL=https://storage.googleapis.com/chromium-browser-snapshots/Linux_x64
+  - export CHROME_REV=$(curl -s ${CHROME_URL}/LAST_CHANGE)
+  - curl ${CHROME_URL}/${CHROME_REV}/chrome-linux.zip --create-dirs -o out/chrome-linux.zip
+  - unzip out/chrome-linux.zip -d out
+  - export CHROME_CANARY_BIN=$PWD/out/chrome-linux/chrome
   - # Install ChromeDriver for Selenium (IMPORTANT: this version should correspond to the version in apify-actor-docker)
   - sudo curl -sS http://chromedriver.storage.googleapis.com/2.30/chromedriver_linux64.zip > /tmp/chromedriver.zip
   - sudo unzip /tmp/chromedriver.zip -d /tmp
