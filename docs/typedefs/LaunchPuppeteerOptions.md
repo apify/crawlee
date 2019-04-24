@@ -73,10 +73,13 @@ function and in addition, all the options available below.
   The identifier can only contain the following characters: <code>0-9</code>, <code>a-z</code>, <code>A-Z</code>, <code>&quot;.&quot;</code>, <code>&quot;_&quot;</code> and <code>&quot;~&quot;</code>.
   Only applied if the <code>useApifyProxy</code> option is <code>true</code>.</p>
 </td></tr><tr>
-<td><code>[puppeteerModule]</code></td><td><code>String</code></td><td></td>
+<td><code>[puppeteerModule]</code></td><td><code>string</code> | <code>Object</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>Require path to a module to be used instead of default <code>puppeteer</code>. This enables usage
-  of various Puppeteer wrappers such as <code>puppeteer-extra</code>.</p>
+<td colspan="3"><p>Either a require path (<code>string</code>) to a package to be used instead of default <code>puppeteer</code>,
+  or an already required module (<code>Object</code>). This enables usage of various Puppeteer
+  wrappers such as <code>puppeteer-extra</code>.</p>
+<p>  Take caution, because it can cause all kinds of unexpected errors and weird behavior.
+  Apify SDK is not tested with any other library besides <code>puppeteer</code> itself.</p>
 </td></tr></tbody>
 </table>
