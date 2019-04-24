@@ -30,7 +30,6 @@ const DEFAULT_OPTIONS = {
             maxEventLoopOverloadedRatio: 0.7,
         },
     },
-    prepareRequestFunction: ({ request }) => request,
 };
 
 /**
@@ -154,7 +153,10 @@ const DEFAULT_OPTIONS = {
  * ```
  *   where the {@link Request} instance corresponds to the initialized request.
  *
- *   The function should always return {@link Request}.
+ *   The function should modify the properties of the passed {@link Request} instance
+ *   in place because there are already earlier references to it. Making a copy and returning it from
+ *   this function is therefore not supported, because it would create inconsistencies where
+ *   different parts of SDK would have access to a different {@link Request} instance.
  *
  * @param {Number} [options.handlePageTimeoutSecs=60]
  *   Timeout in which the function passed as `options.handlePageFunction` needs to finish, given in seconds.
@@ -312,9 +314,9 @@ class CheerioCrawler {
      * @ignore
      */
     async _handleRequestFunction({ request, autoscaledPool }) {
-        const modifiedRequest = await this.prepareRequestFunction({ request });
+        if (this.prepareRequestFunction) await this.prepareRequestFunction({ request });
         const response = await addTimeoutToPromise(
-            this._requestFunction({ request: modifiedRequest }),
+            this._requestFunction({ request }),
             this.requestTimeoutMillis,
             'CheerioCrawler: requestFunction timed out.',
         );
