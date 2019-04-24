@@ -61,9 +61,13 @@ const LAUNCH_PUPPETEER_DEFAULT_VIEWPORT = {
  *   will use the same target proxy server (i.e. the same IP address).
  *   The identifier can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
  *   Only applied if the `useApifyProxy` option is `true`.
- * @property {String} [puppeteerModule]
- *   Require path to a module to be used instead of default `puppeteer`. This enables usage
- *   of various Puppeteer wrappers such as `puppeteer-extra`.
+ * @property {string|Object} [puppeteerModule]
+ *   Either a require path (`string`) to a package to be used instead of default `puppeteer`,
+ *   or an already required module (`Object`). This enables usage of various Puppeteer
+ *   wrappers such as `puppeteer-extra`.
+ *
+ *   Take caution, because it can cause all kinds of unexpected errors and weird behavior.
+ *   Apify SDK is not tested with any other library besides `puppeteer` itself.
  */
 
 /**
@@ -101,13 +105,14 @@ const launchPuppeteerWithProxy = async (puppeteer, opts) => {
 };
 
 /**
- * Requires `puppeteer` package or throws meaningful error if not installed.
+ * Requires `puppeteer` package, uses a replacement or throws meaningful error if not installed.
  *
  * @param {string} puppeteerModule
  * @ignore
  */
 const getPuppeteerOrThrow = (puppeteerModule = 'puppeteer') => {
-    checkParamOrThrow(puppeteerModule, 'puppeteerModule', 'String');
+    checkParamOrThrow(puppeteerModule, 'puppeteerModule', 'String|Object');
+    if (typeof puppeteerModule === 'object') return puppeteerModule;
     try {
         // This is an optional dependency because it is quite large, only require it when used (ie. image with Chrome)
         return require(puppeteerModule); // eslint-disable-line
