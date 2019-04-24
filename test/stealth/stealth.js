@@ -17,7 +17,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
     it('it starts chrome headless chrome in CI', async () => {
         const browser = await Apify.launchPuppeteer({
             headless: true,
-            useChrome: false,
+            useChrome: true,
         });
         console.log('Chrome started');
         const page = await browser.newPage();
