@@ -120,7 +120,8 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
         await page.goto('http://example.com');
         const { screen } = await getFingerPrint(page);
 
-        expect(screen.wOuterHeight).to.be.eql(screen.wInnerHeight + 85);
+        expect(screen.wOuterHeight > 0).to.be.eql(true);
+        expect(screen.wOuterWidth > 0).to.be.eql(true);
 
         return browser.close();
     });
