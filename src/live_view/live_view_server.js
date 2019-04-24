@@ -71,7 +71,7 @@ class LiveViewServer {
             screenshotDirectoryPath = path.resolve('live_view'),
             maxScreenshotFiles = 10,
             snapshotTimeoutSecs = 3,
-            maxSnapshotFrequencySecs = 1,
+            maxSnapshotFrequencySecs = 2,
         } = options;
 
         checkParamOrThrow(screenshotDirectoryPath, 'options.screenshotDirectoryPath', 'String');
