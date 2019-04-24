@@ -65,9 +65,12 @@ const LAUNCH_PUPPETEER_DEFAULT_VIEWPORT = {
  * @property {String} [puppeteerModule]
  *   Require path to a module to be used instead of default `puppeteer`. This enables usage
  *   of various Puppeteer wrappers such as `puppeteer-extra`.
- * @property {StealthOptions} [stealthOptions]
- *   Using this configuration, you can make a headless chrome nearly undetectable.
+ * @property {boolean} [stealth]
+ *   This setting hides most of the know properties that identifies the headless Chrome and makes it nearly undetectable.
  *   It is recommended to use it together with the `useChrome` set to `true`.
+ * @property {StealthOptions} [stealthOptions]
+ *   Using this configuration, you can disable some of the hiding tricks.
+ *   For these settings to take effect `stealth` must be set to true
  */
 
 /**
@@ -193,7 +196,8 @@ export const launchPuppeteer = async (options = {}) => {
     checkParamOrThrow(options.proxyUrl, 'options.proxyUrl', 'Maybe String');
     checkParamOrThrow(options.useApifyProxy, 'options.useApifyProxy', 'Maybe Boolean');
     checkParamOrThrow(options.puppeteerModule, 'options.puppeteerModule', 'Maybe String');
-    checkParamOrThrow(options.stealth, 'options.stealth', 'Maybe Object');
+    checkParamOrThrow(options.stealth, 'options.stealth', 'Maybe Boolean');
+    checkParamOrThrow(options.stealthOptions, 'options.stealthOptions', 'Maybe Object');
     if (options.useApifyProxy && options.proxyUrl) throw new Error('Cannot combine "options.useApifyProxy" with "options.proxyUrl"!');
     if (options.liveView || options.liveViewOptions) {
         log.deprecated('Live view is no longer available in Apify.launchPuppeteer() and launchPuppeteerOptions. '
@@ -245,7 +249,7 @@ export const launchPuppeteer = async (options = {}) => {
     }
 
     // Add stealth
-    if (optsCopy.stealthOptions) {
+    if (optsCopy.stealth) {
         browser = applyStealthFromBrowser(browser, optsCopy.stealthOptions);
     }
     log.info('Launching Puppeteer', _.omit(optsCopy, LAUNCH_PUPPETEER_LOG_OMIT_OPTS));

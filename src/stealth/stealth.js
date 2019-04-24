@@ -2,31 +2,32 @@ import _ from 'underscore';
 import hidingTricks from './hiding_tricks';
 
 /**
- * Configuration of stealth tricks for a proper hiding effect all of them should be set to true
+ * Configuration of stealth tricks for a proper hiding effect all of them should be set to true.
+ * These tricks are applied only when the `stealth` option is set to `true`.
  * @typedef {Object} StealthOptions
- * @property {boolean} [addPlugins=false] - If plugins should be added to the navigator.
- * @property {boolean} [emulateWindowFrame=false] - Emulates window Iframe.
- * @property {boolean} [emulateWebGL=false] - Emulates graphic card.
- * @property {boolean} [emulateConsoleDebug=false] - Emulates console.debug to return null.
- * @property {boolean} [addLanguage=false] - Adds languages to the navigator.
- * @property {boolean} [hideWebDriver=false] - Hides the webdriver by changing the navigator proto.
- * @property {boolean} [hackPermissions=false] - Fakes interaction with permissions.
- * @property {boolean} [mockChrome=false] - Adds the chrome runtime properties.
- * @property {boolean} [mocksChromeInIframe=false] - Adds the chrome runtime properties inside the every newly created iframe.
- * @property {boolean} [mockDeviceMemory=false] - Sets device memory to other value than 0.
+ * @property {boolean} [addPlugins=true] - If plugins should be added to the navigator.
+ * @property {boolean} [emulateWindowFrame=true] - Emulates window Iframe.
+ * @property {boolean} [emulateWebGL=true] - Emulates graphic card.
+ * @property {boolean} [emulateConsoleDebug=true] - Emulates console.debug to return null.
+ * @property {boolean} [addLanguage=true] - Adds languages to the navigator.
+ * @property {boolean} [hideWebDriver=true] - Hides the webdriver by changing the navigator proto.
+ * @property {boolean} [hackPermissions=true] - Fakes interaction with permissions.
+ * @property {boolean} [mockChrome=true] - Adds the chrome runtime properties.
+ * @property {boolean} [mocksChromeInIframe=true] - Adds the chrome runtime properties inside the every newly created iframe.
+ * @property {boolean} [mockDeviceMemory=true] - Sets device memory to other value than 0.
  */
 
 const DEFAULT_STEALTH_OPTIONS = {
-    addPlugins: false,
-    emulateWindowFrame: false,
-    emulateWebGL: false,
-    emulateConsoleDebug: false,
-    addLanguage: false,
-    hideWebDriver: false,
-    hackPermissions: false,
-    mockChrome: false,
-    mocksChromeInIframe: false,
-    mockDeviceMemory: false,
+    addPlugins: true,
+    emulateWindowFrame: true,
+    emulateWebGL: true,
+    emulateConsoleDebug: true,
+    addLanguage: true,
+    hideWebDriver: true,
+    hackPermissions: true,
+    mockChrome: true,
+    mocksChromeInIframe: true,
+    mockDeviceMemory: true,
 };
 
 /**
