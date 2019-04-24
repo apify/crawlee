@@ -19,8 +19,10 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
             headless: true,
             useChrome: true,
         });
-        console.log('STARTED');
-
+        console.log('Chrome started');
+        const page = await browser.newPage();
+        await page.goto('http://example.com');
+        console.log('Visits example');
         return browser.close();
     });
     xit('it adds plugins, mimeTypes and passes', async () => {
