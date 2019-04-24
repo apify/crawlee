@@ -152,8 +152,6 @@ const getPuppeteerOrThrow = (puppeteerModule = 'puppeteer') => {
  *    <li>
  *        The function adds <code>--no-sandbox</code> to <code>args</code> to enable running
  *        headless Chrome in a Docker container on the Apify platform.
- *        Also it adds <code>--enable-resource-load-scheduler=false</code>
- *        to make crawling of pages in all tabs run equally fast.
  *    </li>
  *    <li>
  *        Sets <code>defaultViewport</code> Puppeteer option (if not already set)
@@ -201,8 +199,6 @@ export const launchPuppeteer = async (options = {}) => {
 
     optsCopy.args = optsCopy.args || [];
     optsCopy.args.push('--no-sandbox');
-    // TODO: It's not clear that this works, keep eye on https://bugs.chromium.org/p/chromium/issues/detail?id=723233
-    optsCopy.args.push('--enable-resource-load-scheduler=false');
     if (optsCopy.headless == null) {
         optsCopy.headless = process.env[ENV_VARS.HEADLESS] === '1' && process.env[ENV_VARS.XVFB] !== '1';
     }
