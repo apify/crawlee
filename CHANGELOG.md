@@ -5,6 +5,7 @@
 - Removed `--enable-resource-load-scheduler=false` Chromium command line flag, it has no effect.
   See https://bugs.chromium.org/p/chromium/issues/detail?id=723233
 - Fixed inconsistency in `prepareRequestFunction` of `CheerioCrawler`.
+- Update Puppeteer to 1.14.0
 
 0.14.0 / 2019-04-15
 ===================
