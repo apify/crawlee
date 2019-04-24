@@ -21,7 +21,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
         });
         console.log('Chrome started');
         const page = await browser.newPage();
-        await page.goto('http://example.com');
+        await page.goto('https://apify.com');
         console.log('Visits example');
         return browser.close();
     });
