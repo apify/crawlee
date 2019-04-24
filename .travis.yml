@@ -1,7 +1,7 @@
 dist: trusty
 sudo: required
 addons:
-  chrome: beta
+  chrome: stable
 before_install:
 before_install:
   - # Install ChromeDriver for Selenium (IMPORTANT: this version should correspond to the version in apify-actor-docker)
