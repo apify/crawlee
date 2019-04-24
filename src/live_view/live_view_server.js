@@ -12,7 +12,7 @@ import { addTimeoutToPromise } from '../utils';
 
 const DEFAULT_SCREENSHOT_DIRECTORY_PATH = path.resolve('live_view');
 const DEFAULT_MAX_SCREENSHOT_FILES = 10;
-const DEFAULT_SNAPSHOT_TIMEOUT_SECS = 1;
+const DEFAULT_SNAPSHOT_TIMEOUT_SECS = 3;
 
 
 const writeFile = promisify(fs.writeFile);
