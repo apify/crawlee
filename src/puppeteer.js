@@ -107,7 +107,7 @@ const launchPuppeteerWithProxy = async (puppeteer, opts) => {
 /**
  * Requires `puppeteer` package, uses a replacement or throws meaningful error if not installed.
  *
- * @param {string} puppeteerModule
+ * @param {string|Object} puppeteerModule
  * @ignore
  */
 const getPuppeteerOrThrow = (puppeteerModule = 'puppeteer') => {
@@ -191,7 +191,7 @@ export const launchPuppeteer = async (options = {}) => {
     checkParamOrThrow(options.args, 'options.args', 'Maybe [String]');
     checkParamOrThrow(options.proxyUrl, 'options.proxyUrl', 'Maybe String');
     checkParamOrThrow(options.useApifyProxy, 'options.useApifyProxy', 'Maybe Boolean');
-    checkParamOrThrow(options.puppeteerModule, 'options.puppeteerModule', 'Maybe String');
+    checkParamOrThrow(options.puppeteerModule, 'options.puppeteerModule', 'Maybe String|Object');
     if (options.useApifyProxy && options.proxyUrl) throw new Error('Cannot combine "options.useApifyProxy" with "options.proxyUrl"!');
     if (options.liveView || options.liveViewOptions) {
         log.deprecated('Live view is no longer available in Apify.launchPuppeteer() and launchPuppeteerOptions. '

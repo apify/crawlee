@@ -1,3 +1,7 @@
+0.14.2 / 2019-04-25
+===================
+- Fix invalid type check in `puppeteerModule`.
+
 0.14.1 / 2019-04-24
 ===================
 - Made UI and UX improvements to `LiveViewServer` functionality.
