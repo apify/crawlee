@@ -1,3 +1,7 @@
+xxx
+===================
+- Better logging of errors in `Apify.main()`
+
 0.14.2 / 2019-04-25
 ===================
 - Fix invalid type check in `puppeteerModule`.
