@@ -5,7 +5,7 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import LruCache from 'apify-shared/lru_cache';
 import ListDictionary from 'apify-shared/list_dictionary';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, REQUEST_QUEUE_HEAD_MAX_LIMIT } from 'apify-shared/consts';
-import { delayPromise, checkParamPrototypeOrThrow } from 'apify-shared/utilities';
+import { delayPromise, checkParamPrototypeOrThrow, cryptoRandomObjectId } from 'apify-shared/utilities';
 import log from 'apify-shared/log';
 import Promise from 'bluebird';
 import crypto from 'crypto';
@@ -193,16 +193,23 @@ const getRequestId = (uniqueKey) => {
  * @hideconstructor
  */
 export class RequestQueue {
-    constructor(queueId, queueName) {
+    constructor(queueId, queueName, clientId = cryptoRandomObjectId()) {
         checkParamOrThrow(queueId, 'queueId', 'String');
         checkParamOrThrow(queueName, 'queueName', 'Maybe String');
+        checkParamOrThrow(clientId, 'clientId', 'String');
 
+        this.clientId = clientId;
         this.queueId = queueId;
         this.queueName = queueName;
         this.queueHeadDict = new ListDictionary();
         this.requestIdsInProgress = {};
         this.inProgressCount = 0;
         this.queryQueueHeadPromise = null;
+
+        // We can trust these numbers only in a case that queue is used by a single client.
+        // This information is returned by getHead() under the hadMultipleClients property.
+        this.assumedTotalCount = 0;
+        this.assumedHandledCount = 0;
 
         // Caching requests to avoid duplicite addRequest() calls.
         // Key is computed using getRequestId() and value is { id, isHandled }.
@@ -248,14 +255,19 @@ export class RequestQueue {
                 request,
                 queueId: this.queueId,
                 forefront,
+                clientId: this.clientId,
             })
             .then((queueOperationInfo) => {
-                const { requestId, wasAlreadyHandled } = queueOperationInfo;
+                const { requestId, wasAlreadyHandled, wasAlreadyPresent } = queueOperationInfo;
 
                 this._cacheRequest(cacheKey, queueOperationInfo);
 
                 if (forefront && !this.requestIdsInProgress[requestId] && !wasAlreadyHandled) {
                     this.queueHeadDict.add(requestId, requestId, true);
+                }
+
+                if (!wasAlreadyPresent) {
+                    this.assumedTotalCount++;
                 }
 
                 // TODO: Why not set request.id to cachedInfo.id???
@@ -335,10 +347,15 @@ export class RequestQueue {
             .updateRequest({
                 request,
                 queueId: this.queueId,
+                clientId: this.clientId,
             })
             .then((queueOperationInfo) => {
                 this._removeFromInProgress(request.id);
                 this._cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
+
+                if (!queueOperationInfo.wasAlreadyHandled) {
+                    this.assumedHandledCount++;
+                }
 
                 queueOperationInfo.request = request;
 
@@ -369,6 +386,7 @@ export class RequestQueue {
                 request,
                 queueId: this.queueId,
                 forefront,
+                clientId: this.clientId,
             })
             .then((queueOperationInfo) => {
                 this._removeFromInProgress(request.id);
@@ -405,10 +423,10 @@ export class RequestQueue {
      *
      * @returns {Promise<Boolean>}
      */
-    isFinished() {
-        return this
-            ._ensureHeadIsNonEmpty(true)
-            .then(isHeadConsistent => isHeadConsistent && this.inProgressCount === 0 && this.queueHeadDict.length() === 0);
+    async isFinished() {
+        if (this.inProgressCount > 0 || this.queueHeadDict.length() > 0) return false;
+        const isHeadConsistent = await this._ensureHeadIsNonEmpty(true);
+        return isHeadConsistent && this.inProgressCount === 0 && this.queueHeadDict.length() === 0;
     }
 
     /**
@@ -460,13 +478,17 @@ export class RequestQueue {
      *
      * @ignore
      */
-    _ensureHeadIsNonEmpty(checkModifiedAt = false, limit = Math.max(this.inProgressCount * QUERY_HEAD_BUFFER, QUERY_HEAD_MIN_LENGTH), iteration = 0) {
+    async _ensureHeadIsNonEmpty(
+        checkModifiedAt = false,
+        limit = Math.max(this.inProgressCount * QUERY_HEAD_BUFFER, QUERY_HEAD_MIN_LENGTH),
+        iteration = 0,
+    ) {
         checkParamOrThrow(checkModifiedAt, 'checkModifiedAt', 'Boolean');
         checkParamOrThrow(limit, 'limit', 'Number');
         checkParamOrThrow(iteration, 'iteration', 'Number');
 
         // If is nonempty resolve immediately.
-        if (this.queueHeadDict.length()) return Promise.resolve(true);
+        if (this.queueHeadDict.length()) return true;
 
         if (!this.queryQueueHeadPromise) {
             const queryStartedAt = new Date();
@@ -475,8 +497,9 @@ export class RequestQueue {
                 .getHead({
                     limit,
                     queueId: this.queueId,
+                    clientId: this.clientId,
                 })
-                .then(({ items, queueModifiedAt }) => {
+                .then(({ items, queueModifiedAt, hadMultipleClients }) => {
                     items.forEach(({ id, uniqueKey }) => {
                         if (!this.requestIdsInProgress[id]) {
                             this.queueHeadDict.add(id, id, false);
@@ -488,48 +511,54 @@ export class RequestQueue {
                     this.queryQueueHeadPromise = null;
 
                     return {
-                        limitReached: items.length === limit,
+                        wasLimitReached: items.length === limit,
                         prevLimit: limit,
                         queueModifiedAt: new Date(queueModifiedAt),
                         queryStartedAt,
+                        hadMultipleClients,
                     };
                 });
         }
 
-        return this.queryQueueHeadPromise
-            .then(({ queueModifiedAt, limitReached, prevLimit, queryStartedAt }) => {
-                // If queue is still empty then it's likely because some of the other calls waiting
-                // for this promise already consumed all the returned requests or the limit was too
-                // low and contained only requests in progress.
-                //
-                // If limit was not reached in the call then there are no more requests to be returned.
-                const shouldRepeatWithHigherLimit = !this.queueHeadDict.length() && limitReached && prevLimit < REQUEST_QUEUE_HEAD_MAX_LIMIT;
-                if (prevLimit >= REQUEST_QUEUE_HEAD_MAX_LIMIT) {
-                    log.warning(`'RequestQueue: We've reached the maximum number of requests in progress: ${REQUEST_QUEUE_HEAD_MAX_LIMIT}.'`);
-                }
+        const { queueModifiedAt, wasLimitReached, prevLimit, queryStartedAt, hadMultipleClients } = await this.queryQueueHeadPromise;
 
-                // If checkModifiedAt=true then we must ensure that queueModifiedAt is older than
-                // queryStartedAt for at least API_PROCESSED_REQUESTS_DELAY_MILLIS.
-                const shouldRepeatForConsistency = checkModifiedAt && (queryStartedAt - queueModifiedAt < API_PROCESSED_REQUESTS_DELAY_MILLIS);
+        // If queue is still empty then one of the following holds:
+        // - the other calls waiting for this promise already consumed all the returned requests
+        // - the limit was too low and contained only requests in progress
+        // - the whole queue was processed and we are done
 
-                // If both are false then head is consistent and we may exit.
-                if (!shouldRepeatWithHigherLimit && !shouldRepeatForConsistency) return true;
+        // If limit was not reached in the call then there are no more requests to be returned.
+        const shouldRepeatWithHigherLimit = this.queueHeadDict.length() === 0 && wasLimitReached && prevLimit < REQUEST_QUEUE_HEAD_MAX_LIMIT;
+        if (prevLimit >= REQUEST_QUEUE_HEAD_MAX_LIMIT) {
+            log.warning(`RequestQueue: We've reached the maximum number of requests in progress: ${REQUEST_QUEUE_HEAD_MAX_LIMIT}.`);
+        }
 
-                // If we are querying for consistency then we limit the number of queries to MAX_QUERIES_FOR_CONSISTENCY.
-                // If this is reached then we return false so that empty() and finished() returns possibly false negative.
-                if (!shouldRepeatWithHigherLimit && iteration > MAX_QUERIES_FOR_CONSISTENCY) return false;
+        // If checkModifiedAt=true then we must ensure that either:
+        // - queueModifiedAt is older than queryStartedAt for at least API_PROCESSED_REQUESTS_DELAY_MILLIS
+        // - hadMultipleClients=false and this.assumedTotalCount=this.assumedHandledCount
+        const isDatabaseConsistent = queryStartedAt - queueModifiedAt >= API_PROCESSED_REQUESTS_DELAY_MILLIS;
+        const isLocallyConsistent = !hadMultipleClients && this.assumedTotalCount === this.assumedHandledCount;
+        const shouldRepeatForConsistency = checkModifiedAt && (!isDatabaseConsistent && !isLocallyConsistent);
 
-                const nextLimit = shouldRepeatWithHigherLimit
-                    ? prevLimit * 1.5
-                    : prevLimit;
+        // If both are false then head is consistent and we may exit.
+        if (!shouldRepeatWithHigherLimit && !shouldRepeatForConsistency) return true;
 
-                const delayMillis = shouldRepeatForConsistency
-                    ? API_PROCESSED_REQUESTS_DELAY_MILLIS
-                    : 0;
+        // If we are querying for consistency then we limit the number of queries to MAX_QUERIES_FOR_CONSISTENCY.
+        // If this is reached then we return false so that empty() and finished() returns possibly false negative.
+        if (!shouldRepeatWithHigherLimit && iteration > MAX_QUERIES_FOR_CONSISTENCY) return false;
 
-                return delayPromise(delayMillis)
-                    .then(() => this._ensureHeadIsNonEmpty(checkModifiedAt, nextLimit, iteration + 1));
-            });
+        const nextLimit = shouldRepeatWithHigherLimit
+            ? Math.round(prevLimit * 1.5)
+            : prevLimit;
+
+        // If we are repeating for consistency then wait required time.
+        if (shouldRepeatForConsistency) {
+            const delayMillis = API_PROCESSED_REQUESTS_DELAY_MILLIS - (Date.now() - queueModifiedAt);
+            log.info(`RequestQueue: Waiting for ${delayMillis}ms before marking queue as finished to ensure that the data are consistent.`);
+            await delayPromise(delayMillis);
+        }
+
+        return this._ensureHeadIsNonEmpty(checkModifiedAt, nextLimit, iteration + 1);
     }
 
     /**
