@@ -543,7 +543,8 @@ export class RequestQueue {
         // - hadMultipleClients=false and this.assumedTotalCount<=this.assumedHandledCount
         const isDatabaseConsistent = queryStartedAt - queueModifiedAt >= API_PROCESSED_REQUESTS_DELAY_MILLIS;
         const isLocallyConsistent = !hadMultipleClients && this.assumedTotalCount <= this.assumedHandledCount;
-        const shouldRepeatForConsistency = checkModifiedAt && (!isDatabaseConsistent && !isLocallyConsistent);
+        // Consistent information from one source is enough to consider request queue finished.
+        const shouldRepeatForConsistency = checkModifiedAt && !isDatabaseConsistent && !isLocallyConsistent;
 
         // If both are false then head is consistent and we may exit.
         if (!shouldRepeatWithHigherLimit && !shouldRepeatForConsistency) return true;
