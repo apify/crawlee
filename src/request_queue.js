@@ -193,12 +193,14 @@ const getRequestId = (uniqueKey) => {
  * @hideconstructor
  */
 export class RequestQueue {
-    constructor(queueId, queueName, clientId = cryptoRandomObjectId()) {
+    constructor(queueId, queueName, clientKey = cryptoRandomObjectId()) {
         checkParamOrThrow(queueId, 'queueId', 'String');
         checkParamOrThrow(queueName, 'queueName', 'Maybe String');
-        checkParamOrThrow(clientId, 'clientId', 'String');
+        checkParamOrThrow(clientKey, 'clientKey', 'String');
 
-        this.clientId = clientId;
+        if (!clientKey) throw new Error('Parameter "clientKey" must be nonempty string!');
+
+        this.clientKey = clientKey;
         this.queueId = queueId;
         this.queueName = queueName;
         this.queueHeadDict = new ListDictionary();
@@ -255,7 +257,7 @@ export class RequestQueue {
                 request,
                 queueId: this.queueId,
                 forefront,
-                clientId: this.clientId,
+                clientKey: this.clientKey,
             })
             .then((queueOperationInfo) => {
                 const { requestId, wasAlreadyHandled, wasAlreadyPresent } = queueOperationInfo;
@@ -347,7 +349,7 @@ export class RequestQueue {
             .updateRequest({
                 request,
                 queueId: this.queueId,
-                clientId: this.clientId,
+                clientKey: this.clientKey,
             })
             .then((queueOperationInfo) => {
                 this._removeFromInProgress(request.id);
@@ -386,7 +388,7 @@ export class RequestQueue {
                 request,
                 queueId: this.queueId,
                 forefront,
-                clientId: this.clientId,
+                clientKey: this.clientKey,
             })
             .then((queueOperationInfo) => {
                 this._removeFromInProgress(request.id);
@@ -472,6 +474,12 @@ export class RequestQueue {
      * We always request more items than is in progress to ensure that something
      * falls into head.
      *
+     * @param {Boolean} [checkModifiedAt=false] If true then query for queue head is retried until queueModifiedAt
+     *   is older than queryStartedAt by at least API_PROCESSED_REQUESTS_DELAY_MILLIS to ensure that queue
+     *   head is consistent.
+     * @param {Number} [limit] How many queue head items will be fetched.
+     * @param {Number} [iteration] Used when this function is called recursively to limit the recursion.
+     * @return {Boolean} indicating if queue head is consistent (true) or inconsistent (false).
      * @ignore
      */
     async _ensureHeadIsNonEmpty(
@@ -493,7 +501,7 @@ export class RequestQueue {
                 .getHead({
                     limit,
                     queueId: this.queueId,
-                    clientId: this.clientId,
+                    clientKey: this.clientKey,
                 })
                 .then(({ items, queueModifiedAt, hadMultipleClients }) => {
                     items.forEach(({ id, uniqueKey }) => {

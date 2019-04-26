@@ -278,8 +278,8 @@ describe('RequestQueue', () => {
 
             const { Request } = Apify;
 
-            const clientId = 'my-client';
-            const queue = new RequestQueue('some-id', undefined, clientId);
+            const clientKey = 'my-client';
+            const queue = new RequestQueue('some-id', undefined, clientKey);
             const mock = sinon.mock(apifyClient.requestQueues);
 
             const requestA = new Request({ url: 'http://example.com/a' });
@@ -289,7 +289,7 @@ describe('RequestQueue', () => {
                     queueId: 'some-id',
                     request: requestA,
                     forefront: false,
-                    clientId,
+                    clientKey,
                 })
                 .returns(Promise.resolve({ requestId: 'a', wasAlreadyHandled: false, wasAlreadyPresent: false, request: requestA }));
             await queue.addRequest(requestA);
@@ -301,7 +301,7 @@ describe('RequestQueue', () => {
                     queueId: 'some-id',
                     request: requestB,
                     forefront: true,
-                    clientId,
+                    clientKey,
                 })
                 .returns(Promise.resolve({ requestId: 'b', wasAlreadyHandled: false, wasAlreadyPresent: false, request: requestB }));
             await queue.addRequest(requestB, { forefront: true });
@@ -339,7 +339,7 @@ describe('RequestQueue', () => {
                     queueId: 'some-id',
                     request: requestB,
                     forefront: true,
-                    clientId,
+                    clientKey,
                 })
                 .returns(Promise.resolve({ requestId: requestB.id, wasAlreadyHandled: false, wasAlreadyPresent: true, request: requestB }));
             await queue.reclaimRequest(requestB, { forefront: true });
@@ -366,7 +366,7 @@ describe('RequestQueue', () => {
                 .withArgs({
                     queueId: 'some-id',
                     request: requestB,
-                    clientId,
+                    clientKey,
                 })
                 .returns(Promise.resolve({ requestId: requestB.id, wasAlreadyHandled: false, wasAlreadyPresent: true, request: requestB }));
             await queue.markRequestHandled(requestB);
@@ -379,7 +379,7 @@ describe('RequestQueue', () => {
                 .withArgs({
                     queueId: 'some-id',
                     limit: QUERY_HEAD_MIN_LENGTH,
-                    clientId,
+                    clientKey,
                 })
                 .returns(Promise.resolve({
                     items: [
@@ -417,8 +417,8 @@ describe('RequestQueue', () => {
 
             const { Request } = Apify;
 
-            const clientId = 'my-client';
-            const queue = new RequestQueue('some-id', undefined, clientId);
+            const clientKey = 'my-client';
+            const queue = new RequestQueue('some-id', undefined, clientKey);
             const mock = sinon.mock(apifyClient.requestQueues);
 
             const requestA = new Request({ url: 'http://example.com/a' });
@@ -431,7 +431,7 @@ describe('RequestQueue', () => {
                     queueId: 'some-id',
                     request: requestA,
                     forefront: false,
-                    clientId,
+                    clientKey,
                 })
                 .returns(Promise.resolve({
                     requestId: 'a',
@@ -459,8 +459,8 @@ describe('RequestQueue', () => {
 
             const { Request } = Apify;
 
-            const clientId = 'my-client';
-            const queue = new RequestQueue('some-id', undefined, clientId);
+            const clientKey = 'my-client';
+            const queue = new RequestQueue('some-id', undefined, clientKey);
             const mock = sinon.mock(apifyClient.requestQueues);
 
             const requestX = new Request({ url: 'http://example.com/x' });
@@ -473,7 +473,7 @@ describe('RequestQueue', () => {
                     queueId: 'some-id',
                     request: requestX,
                     forefront: false,
-                    clientId,
+                    clientKey,
                 })
                 .returns(Promise.resolve({
                     requestId: 'x',
@@ -501,8 +501,8 @@ describe('RequestQueue', () => {
 
             const { Request } = Apify;
 
-            const clientId = 'my-client';
-            const queue = new RequestQueue('some-id', 'some-name', clientId);
+            const clientKey = 'my-client';
+            const queue = new RequestQueue('some-id', 'some-name', clientKey);
             const mock = sinon.mock(apifyClient.requestQueues);
 
             // Query queue head with request A
@@ -511,7 +511,7 @@ describe('RequestQueue', () => {
                 .withArgs({
                     queueId: 'some-id',
                     limit: QUERY_HEAD_MIN_LENGTH,
-                    clientId,
+                    clientKey,
                 })
                 .returns(Promise.resolve({
                     items: [
@@ -539,8 +539,8 @@ describe('RequestQueue', () => {
 
             const { Request } = Apify;
 
-            const clientId = 'my-client';
-            const queue = new RequestQueue('some-id', 'some-name', clientId);
+            const clientKey = 'my-client';
+            const queue = new RequestQueue('some-id', 'some-name', clientKey);
             const mock = sinon.mock(apifyClient.requestQueues);
             mock.expects('getHead').never();
 
@@ -553,7 +553,7 @@ describe('RequestQueue', () => {
                     queueId: 'some-id',
                     request: requestA,
                     forefront: true,
-                    clientId,
+                    clientKey,
                 })
                 .returns(Promise.resolve({
                     requestId: 'a',
@@ -592,8 +592,8 @@ describe('RequestQueue', () => {
 
             const { Request } = Apify;
 
-            const clientId = 'my-client';
-            const queue = new RequestQueue('some-id', 'some-name', clientId);
+            const clientKey = 'my-client';
+            const queue = new RequestQueue('some-id', 'some-name', clientKey);
             const mock = sinon.mock(apifyClient.requestQueues);
 
             const requestA = new Request({ url: 'http://example.com/a' });
@@ -604,7 +604,7 @@ describe('RequestQueue', () => {
                     queueId: 'some-id',
                     request: requestA,
                     forefront: true,
-                    clientId,
+                    clientKey,
                 })
                 .returns(Promise.resolve({
                     requestId: 'a',
@@ -619,7 +619,7 @@ describe('RequestQueue', () => {
                 .withArgs({
                     queueId: 'some-id',
                     limit: QUERY_HEAD_MIN_LENGTH,
-                    clientId,
+                    clientKey,
                 })
                 .returns(Promise.resolve({ items: [] }));
 
@@ -632,8 +632,8 @@ describe('RequestQueue', () => {
 
         it('should accept plain object in addRequest()', async () => {
             expectNotUsingLocalStorage();
-            const clientId = 'my-client';
-            const queue = new RequestQueue('some-id', undefined, clientId);
+            const clientKey = 'my-client';
+            const queue = new RequestQueue('some-id', undefined, clientKey);
             const mock = sinon.mock(apifyClient.requestQueues);
             mock.expects('addRequest')
                 .once()
@@ -641,7 +641,7 @@ describe('RequestQueue', () => {
                     requestId: 'xxx',
                     wasAlreadyHandled: false,
                     wasAlreadyPresent: false,
-                    clientId,
+                    clientKey,
                 }));
             await queue.addRequest({ url: 'http://example.com/a' });
             mock.verify();
@@ -664,8 +664,8 @@ describe('RequestQueue', () => {
         it('should always wait for a queue head to become consistent before marking queue as finished (hadMultipleClients = true)', async () => {
             expectNotUsingLocalStorage();
 
-            const clientId = 'my-client';
-            const queue = new RequestQueue('some-id', 'some-name', clientId);
+            const clientKey = 'my-client';
+            const queue = new RequestQueue('some-id', 'some-name', clientKey);
             const mock = sinon.mock(apifyClient.requestQueues);
 
             // Return head with modifiedAt = now so it will retry the call.
@@ -674,7 +674,7 @@ describe('RequestQueue', () => {
                 .withArgs({
                     queueId: 'some-id',
                     limit: QUERY_HEAD_MIN_LENGTH,
-                    clientId,
+                    clientKey,
                 })
                 .returns(Promise.resolve({
                     limit: 5,
@@ -689,7 +689,7 @@ describe('RequestQueue', () => {
                 .withArgs({
                     queueId: 'some-id',
                     limit: QUERY_HEAD_MIN_LENGTH,
-                    clientId,
+                    clientKey,
                 })
                 .returns(Promise.resolve({
                     limit: 5,
@@ -707,9 +707,9 @@ describe('RequestQueue', () => {
         it('should always wait for a queue head to become consistent before marking queue as finished (hadMultipleClients = true)', async () => {
             expectNotUsingLocalStorage();
 
-            const clientId = 'my-client';
+            const clientKey = 'my-client';
             const queueId = 'some-id';
-            const queue = new RequestQueue(queueId, 'some-name', clientId);
+            const queue = new RequestQueue(queueId, 'some-name', clientKey);
             const mock = sinon.mock(apifyClient.requestQueues);
 
             expect(queue.assumedTotalCount).to.be.eql(0);
@@ -719,10 +719,10 @@ describe('RequestQueue', () => {
             const requestA = new Apify.Request({ url: 'http://example.com/a' });
             const requestB = new Apify.Request({ url: 'http://example.com/b' });
             mock.expects('addRequest').once()
-                .withArgs({ queueId, request: requestA, forefront: true, clientId })
+                .withArgs({ queueId, request: requestA, forefront: true, clientKey })
                 .returns(Promise.resolve({ requestId: 'a', wasAlreadyHandled: false, wasAlreadyPresent: false, request: requestA }));
             mock.expects('addRequest').once()
-                .withArgs({ queueId, request: requestB, forefront: true, clientId })
+                .withArgs({ queueId, request: requestB, forefront: true, clientKey })
                 .returns(Promise.resolve({ requestId: 'b', wasAlreadyHandled: false, wasAlreadyPresent: false, request: requestA }));
             await queue.addRequest(requestA, { forefront: true });
             await queue.addRequest(requestB, { forefront: true });
@@ -759,11 +759,11 @@ describe('RequestQueue', () => {
 
             // Reclaim one and mark another one handled.
             mock.expects('updateRequest').once()
-                .withArgs({ queueId, request: requestB, clientId })
+                .withArgs({ queueId, request: requestB, clientKey })
                 .returns(Promise.resolve({ requestId: requestB.id, wasAlreadyHandled: false, wasAlreadyPresent: true, request: requestB }));
             await queue.markRequestHandled(requestB);
             mock.expects('updateRequest').once()
-                .withArgs({ queueId, request: requestA, forefront: true, clientId })
+                .withArgs({ queueId, request: requestA, forefront: true, clientKey })
                 .returns(Promise.resolve({ requestId: requestA.id, wasAlreadyHandled: false, wasAlreadyPresent: true, request: requestA }));
             await queue.reclaimRequest(requestA, { forefront: true });
 
@@ -794,7 +794,7 @@ describe('RequestQueue', () => {
 
             // Mark handled.
             mock.expects('updateRequest').once()
-                .withArgs({ queueId, request: requestA, clientId })
+                .withArgs({ queueId, request: requestA, clientKey })
                 .returns(Promise.resolve({ requestId: requestA.id, wasAlreadyHandled: false, wasAlreadyPresent: true, request: requestA }));
             await queue.markRequestHandled(requestA);
 
@@ -810,7 +810,7 @@ describe('RequestQueue', () => {
                 .withArgs({
                     queueId: 'some-id',
                     limit: QUERY_HEAD_MIN_LENGTH,
-                    clientId,
+                    clientKey,
                 })
                 .returns(Promise.resolve({
                     limit: 5,
