@@ -21,7 +21,7 @@ export const QUERY_HEAD_MIN_LENGTH = 100;
 export const QUERY_HEAD_BUFFER = 3;
 
 // If queue was modified (request added/updated/deleted) before more than API_PROCESSED_REQUESTS_DELAY_MILLIS
-// then we get head query to be consistent.
+// then we assume the get head operation to be consistent.
 export const API_PROCESSED_REQUESTS_DELAY_MILLIS = 10 * 1000;
 
 // How many times we try to get queue head with queueModifiedAt older than API_PROCESSED_REQUESTS_DELAY_MILLIS.
@@ -403,17 +403,13 @@ export class RequestQueue {
     /**
      * Resolves to `true` if the next call to {@link RequestQueue#fetchNextRequest} would return `null`, otherwise it resolves to `false`.
      * Note that even if the queue is empty, there might be some pending requests currently being processed.
-     * Due to the nature of distributed storage systems, the function might occasionally return a false negative,
-     * but it will never return a false positive.
-     *
      * If you need to ensure that there is no activity in the queue, use {@link RequestQueue#isFinished}.
      *
      * @returns {Promise<Boolean>}
      */
-    isEmpty() {
-        return this
-            ._ensureHeadIsNonEmpty()
-            .then(() => this.queueHeadDict.length() === 0);
+    async isEmpty() {
+        await this._ensureHeadIsNonEmpty();
+        return this.queueHeadDict.length() === 0;
     }
 
     /**
@@ -507,7 +503,7 @@ export class RequestQueue {
                         }
                     });
 
-                    // This is needed so that the next call can request queue head again.
+                    // This is needed so that the next call can request the queue head again.
                     this.queryQueueHeadPromise = null;
 
                     return {
@@ -525,19 +521,20 @@ export class RequestQueue {
         // If queue is still empty then one of the following holds:
         // - the other calls waiting for this promise already consumed all the returned requests
         // - the limit was too low and contained only requests in progress
+        // - the writes from other clients were not propagated yet
         // - the whole queue was processed and we are done
 
         // If limit was not reached in the call then there are no more requests to be returned.
         const shouldRepeatWithHigherLimit = this.queueHeadDict.length() === 0 && wasLimitReached && prevLimit < REQUEST_QUEUE_HEAD_MAX_LIMIT;
         if (prevLimit >= REQUEST_QUEUE_HEAD_MAX_LIMIT) {
-            log.warning(`RequestQueue: We've reached the maximum number of requests in progress: ${REQUEST_QUEUE_HEAD_MAX_LIMIT}.`);
+            log.warning(`RequestQueue: Reached the maximum number of requests in progress: ${REQUEST_QUEUE_HEAD_MAX_LIMIT}.`);
         }
 
         // If checkModifiedAt=true then we must ensure that either:
-        // - queueModifiedAt is older than queryStartedAt for at least API_PROCESSED_REQUESTS_DELAY_MILLIS
-        // - hadMultipleClients=false and this.assumedTotalCount=this.assumedHandledCount
+        // - queueModifiedAt is older than queryStartedAt by at least API_PROCESSED_REQUESTS_DELAY_MILLIS
+        // - hadMultipleClients=false and this.assumedTotalCount<=this.assumedHandledCount
         const isDatabaseConsistent = queryStartedAt - queueModifiedAt >= API_PROCESSED_REQUESTS_DELAY_MILLIS;
-        const isLocallyConsistent = !hadMultipleClients && this.assumedTotalCount === this.assumedHandledCount;
+        const isLocallyConsistent = !hadMultipleClients && this.assumedTotalCount <= this.assumedHandledCount;
         const shouldRepeatForConsistency = checkModifiedAt && (!isDatabaseConsistent && !isLocallyConsistent);
 
         // If both are false then head is consistent and we may exit.
@@ -554,7 +551,7 @@ export class RequestQueue {
         // If we are repeating for consistency then wait required time.
         if (shouldRepeatForConsistency) {
             const delayMillis = API_PROCESSED_REQUESTS_DELAY_MILLIS - (Date.now() - queueModifiedAt);
-            log.info(`RequestQueue: Waiting for ${delayMillis}ms before marking queue as finished to ensure that the data are consistent.`);
+            log.info(`RequestQueue: Waiting for ${delayMillis}ms before considering the queue as finished to ensure that the data is consistent.`);
             await delayPromise(delayMillis);
         }
 
