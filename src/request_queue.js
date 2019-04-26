@@ -474,20 +474,20 @@ export class RequestQueue {
      * We always request more items than is in progress to ensure that something
      * falls into head.
      *
-     * @param {Boolean} [checkModifiedAt=false] If true then query for queue head is retried until queueModifiedAt
+     * @param {Boolean} [ensureConsistency=false] If true then query for queue head is retried until queueModifiedAt
      *   is older than queryStartedAt by at least API_PROCESSED_REQUESTS_DELAY_MILLIS to ensure that queue
      *   head is consistent.
      * @param {Number} [limit] How many queue head items will be fetched.
      * @param {Number} [iteration] Used when this function is called recursively to limit the recursion.
-     * @return {Boolean} indicating if queue head is consistent (true) or inconsistent (false).
+     * @return {Boolean} Indicates if queue head is consistent (true) or inconsistent (false).
      * @ignore
      */
     async _ensureHeadIsNonEmpty(
-        checkModifiedAt = false,
+        ensureConsistency = false,
         limit = Math.max(this.inProgressCount * QUERY_HEAD_BUFFER, QUERY_HEAD_MIN_LENGTH),
         iteration = 0,
     ) {
-        checkParamOrThrow(checkModifiedAt, 'checkModifiedAt', 'Boolean');
+        checkParamOrThrow(ensureConsistency, 'ensureConsistency', 'Boolean');
         checkParamOrThrow(limit, 'limit', 'Number');
         checkParamOrThrow(iteration, 'iteration', 'Number');
 
@@ -538,13 +538,13 @@ export class RequestQueue {
             log.warning(`RequestQueue: Reached the maximum number of requests in progress: ${REQUEST_QUEUE_HEAD_MAX_LIMIT}.`);
         }
 
-        // If checkModifiedAt=true then we must ensure that either:
+        // If ensureConsistency=true then we must ensure that either:
         // - queueModifiedAt is older than queryStartedAt by at least API_PROCESSED_REQUESTS_DELAY_MILLIS
         // - hadMultipleClients=false and this.assumedTotalCount<=this.assumedHandledCount
         const isDatabaseConsistent = queryStartedAt - queueModifiedAt >= API_PROCESSED_REQUESTS_DELAY_MILLIS;
         const isLocallyConsistent = !hadMultipleClients && this.assumedTotalCount <= this.assumedHandledCount;
         // Consistent information from one source is enough to consider request queue finished.
-        const shouldRepeatForConsistency = checkModifiedAt && !isDatabaseConsistent && !isLocallyConsistent;
+        const shouldRepeatForConsistency = ensureConsistency && !isDatabaseConsistent && !isLocallyConsistent;
 
         // If both are false then head is consistent and we may exit.
         if (!shouldRepeatWithHigherLimit && !shouldRepeatForConsistency) return true;
@@ -564,7 +564,7 @@ export class RequestQueue {
             await delayPromise(delayMillis);
         }
 
-        return this._ensureHeadIsNonEmpty(checkModifiedAt, nextLimit, iteration + 1);
+        return this._ensureHeadIsNonEmpty(ensureConsistency, nextLimit, iteration + 1);
     }
 
     /**
