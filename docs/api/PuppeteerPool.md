@@ -64,6 +64,13 @@ await puppeteerPool.destroy();
 <td colspan="3"><p>All <code>PuppeteerPool</code> parameters are passed
   via an options object with the following keys:</p>
 </td></tr><tr>
+<td><code>[options.useLiveView]</code></td><td><code>boolean</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Enables the use of a preconfigured <a href="liveviewserver"><code>LiveViewServer</code></a> that serves snapshots
+  just before a page would be recycled by <code>PuppeteerPool</code>. If there are no clients
+  connected, it has close to zero impact on performance.</p>
+</td></tr><tr>
 <td><code>[options.maxOpenPagesPerInstance]</code></td><td><code>Number</code></td><td><code>50</code></td>
 </tr>
 <tr>
@@ -172,14 +179,12 @@ This is unlike `browser.close()` which will forcibly terminate the browser and a
 <a name="PuppeteerPool+recyclePage"></a>
 
 ## `puppeteerPool.recyclePage(page)` ⇒ <code>Promise</code>
-Recycles the page, which means that it will be enqueued for future reuse
-instead of spawning a new tab. This is done automatically unless the `reusePages`
-option of the `PuppeteerPool` constructor is set to false. You can also use this
-function manually to tell the pool that you no longer need this specific page
-and it can be reused in the future.
+Closes the page, unless the `reuseTabs` option is set to true.
+Then it would only flag the page for a future reuse, without actually closing it.
 
-Using this function without setting the `reusePages` option to false causes
-this function to trigger a page.close().
+NOTE: LiveView snapshotting is tied to this function. When `useLiveView` option
+is set to true, a snapshot of the page will be taken just before closing the page
+or flagging it for reuse.
 
 <table>
 <thead>

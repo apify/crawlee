@@ -1,6 +1,37 @@
-xxxxxxxxxxxxxxxxxxx
+xxx
 ===================
 - Request queue now allows crawlers to finish quickly without waiting in a case that queue was used by a single client.
+- Better logging of errors in `Apify.main()`
+
+0.14.2 / 2019-04-25
+===================
+- Fix invalid type check in `puppeteerModule`.
+
+0.14.1 / 2019-04-24
+===================
+- Made UI and UX improvements to `LiveViewServer` functionality.
+- `launchPuppeteerOptions.puppeteerModule` now supports `Object` (pre-required modules).
+- Removed `--enable-resource-load-scheduler=false` Chromium command line flag, it has no effect.
+  See https://bugs.chromium.org/p/chromium/issues/detail?id=723233
+- Fixed inconsistency in `prepareRequestFunction` of `CheerioCrawler`.
+- Update Puppeteer to 1.14.0
+
+0.14.0 / 2019-04-15
+===================
+- **BREAKING CHANGE:** Live View is no longer available by passing `liveView = true` to `launchPuppeteerOptions`.
+- New version of Live View is available by passing the `useLiveView = true` option to `PuppeteerPool`.
+   - Only shows snapshots of a single page from a single browser.
+   - Only makes snapshots when a client is connected, having very low performance impact otherwise.
+- Added `Apify.utils.requestExtended` which extends the popular `request` package with fixes and improvements.
+- Added `Apify.utils.requestLikeBrowser` which uses `requestExtended` and disguises as a request made by browser.
+- Added `Apify.utils.puppeteer.addInterceptRequestHandler` and `removeInterceptRequestHandler` which
+  can be used to add multiple request interception handlers to Puppeteer's pages.
+- Added `puppeteerModule` to `LaunchPuppeteerOptions` which enables use of other Puppeteer modules,
+  such as `puppeteer-extra` instead of plain `puppeteer`.
+
+0.13.7 / 2019-04-04
+===================
+- Fix a bug where invalid response from `RequestQueue` would occasionally cause crawlers to crash.
 
 0.13.5 / 2019-03-27
 ===================

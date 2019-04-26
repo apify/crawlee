@@ -236,8 +236,7 @@ export const main = (userFunc) => {
     // Note that mocked process.exit() might throw, so set exited flag before calling it to avoid confusion.
     let exited = false;
     const exitWithError = (err, exitCode, message) => {
-        console.error(message);
-        console.error(err.stack || err);
+        log.exception(err, message);
         exited = true;
         // console.log(`Exiting with code: ${exitCode}`);
         process.exit(exitCode);

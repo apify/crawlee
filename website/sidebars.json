@@ -16,6 +16,7 @@
             "api/cheeriocrawler",
             "api/dataset",
             "api/keyvaluestore",
+            "api/liveviewserver",
             "api/pseudourl",
             "api/puppeteercrawler",
             "api/puppeteerpool",

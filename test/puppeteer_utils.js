@@ -151,30 +151,47 @@ describe('Apify.utils.puppeteer', () => {
 
     it('supports blockResources() with default values', async () => {
         const browser = await Apify.launchPuppeteer({ headless: true });
+        const loadedUrls = [];
 
         try {
             const page = await browser.newPage();
             await Apify.utils.puppeteer.blockResources(page);
-            await page.goto('about:blank');
-
-            // TODO: Write some proper unit test for this
+            page.on('response', response => loadedUrls.push(response.url()));
+            await page.setContent(`<html><body>
+                <link rel="stylesheet" type="text/css" href="https://example.com/style.css">
+                <img src="https://example.com/image.png" />
+                <script src="https://example.com/script.js" defer="defer">></script>
+            </body></html>`, { waitUntil: 'networkidle0' });
         } finally {
-            browser.close();
+            await browser.close();
         }
+
+        expect(loadedUrls).to.have.members([
+            'https://example.com/script.js',
+        ]);
     });
 
     it('supports blockResources() with nondefault values', async () => {
         const browser = await Apify.launchPuppeteer({ headless: true });
+        const loadedUrls = [];
 
         try {
             const page = await browser.newPage();
-            await Apify.utils.puppeteer.blockResources(page, ['font']);
-            await page.goto('about:blank');
-
-            // TODO: Write some proper unit test for this
+            await Apify.utils.puppeteer.blockResources(page, ['script']);
+            page.on('response', response => loadedUrls.push(response.url()));
+            await page.setContent(`<html><body>
+                <link rel="stylesheet" type="text/css" href="https://example.com/style.css">
+                <img src="https://example.com/image.png" />
+                <script src="https://example.com/script.js" defer="defer">></script>
+            </body></html>`, { waitUntil: 'networkidle0' });
         } finally {
-            browser.close();
+            await browser.close();
         }
+
+        expect(loadedUrls).to.have.members([
+            'https://example.com/style.css',
+            'https://example.com/image.png',
+        ]);
     });
 
     it('supports cacheResponses()', async () => {
@@ -257,6 +274,31 @@ describe('Apify.utils.puppeteer', () => {
             expect(content).to.be.eql('<html><head></head><body></body></html>');
         } finally {
             browser.close();
+        }
+    });
+
+    it('gotoExtended() works', async () => {
+        const browser = await Apify.launchPuppeteer({ headless: true });
+
+        try {
+            const page = await browser.newPage();
+            const request = new Apify.Request({
+                url: 'https://api.apify.com/v2/browser-info',
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json; charset=utf-8',
+                },
+                payload: '{ "foo": "bar" }',
+            });
+
+            const response = await Apify.utils.puppeteer.gotoExtended(page, request);
+
+            const { method, headers, bodyLength } = JSON.parse(await response.text());
+            expect(method).to.be.eql('POST');
+            expect(bodyLength).to.be.eql(16);
+            expect(headers['content-type']).to.be.eql('application/json; charset=utf-8');
+        } finally {
+            await browser.close();
         }
     });
 });

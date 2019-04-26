@@ -558,8 +558,6 @@ The `launchPuppeteer()` function alters the following Puppeteer options:
    <li>
        The function adds <code>--no-sandbox</code> to <code>args</code> to enable running
        headless Chrome in a Docker container on the Apify platform.
-       Also it adds <code>--enable-resource-load-scheduler=false</code>
-       to make crawling of pages in all tabs run equally fast.
    </li>
    <li>
        Sets <code>defaultViewport</code> Puppeteer option (if not already set)

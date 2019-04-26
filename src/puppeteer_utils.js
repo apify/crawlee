@@ -9,6 +9,7 @@ import LruCache from 'apify-shared/lru_cache';
 import { RequestQueue, RequestQueueLocal } from './request_queue';
 import Request from './request';
 import { enqueueLinks } from './enqueue_links';
+import { addInterceptRequestHandler, removeInterceptRequestHandler } from './puppeteer_request_interception';
 
 const jqueryPath = require.resolve('jquery/dist/jquery.min');
 const underscorePath = require.resolve('underscore/underscore-min');
@@ -127,8 +128,6 @@ const injectFile = async (page, filePath, options = {}) => {
  */
 const injectJQuery = (page) => {
     checkParamOrThrow(page, 'page', 'Object');
-
-    // TODO: For better performance we could use minimized version of the script
     return injectFile(page, jqueryPath, { surviveNavigations: true });
 };
 
@@ -155,8 +154,6 @@ const injectJQuery = (page) => {
  */
 const injectUnderscore = (page) => {
     checkParamOrThrow(page, 'page', 'Object');
-
-    // TODO: For better performance we could use minimized version of the script
     return injectFile(page, underscorePath, { surviveNavigations: true });
 };
 
@@ -231,11 +228,10 @@ const enqueueRequestsFromClickableElements = async (page, selector, purls, reque
  * @memberOf puppeteer
  */
 const blockResources = async (page, resourceTypes = ['stylesheet', 'font', 'image', 'media']) => {
-    await page.setRequestInterception(true);
-    page.on('request', (request) => {
+    await addInterceptRequestHandler(page, async (request) => {
         const type = request.resourceType();
-        if (resourceTypes.includes(type)) request.abort();
-        else request.continue();
+        if (resourceTypes.includes(type)) await request.abort();
+        else await request.continue();
     });
 };
 
@@ -261,10 +257,7 @@ const cacheResponses = async (page, cache, responseUrlRules) => {
     // Check that rules are either String or RegExp
     responseUrlRules.forEach((rule, index) => checkParamOrThrow(rule, `responseUrlRules[${index}]`, 'String | RegExp'));
 
-    // Required to be able to intercept requests
-    await page.setRequestInterception(true);
-
-    page.on('request', async (request) => {
+    await addInterceptRequestHandler(page, async (request) => {
         const url = request.url();
 
         if (cache[url]) {
@@ -272,7 +265,7 @@ const cacheResponses = async (page, cache, responseUrlRules) => {
             return;
         }
 
-        request.continue();
+        await request.continue();
     });
 
     page.on('response', async (response) => {
@@ -348,6 +341,65 @@ const compileScript = (scriptString, context = Object.create(null)) => {
     return func;
 };
 
+/**
+ * Extended version of Puppeteer's `page.goto()` allowing to perform requests with HTTP method other than GET,
+ * with custom headers and POST payload. URL, method, headers and payload are taken from
+ * request parameter that must be an instance of Apify.Request class.
+ *
+ * @param {Page} page
+ *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
+ * @param {Request} request
+ * @param {Object} gotoOptions Custom options for `page.goto()`.
+ * @return {Promise<Response>}
+ *
+ * @memberOf puppeteer
+ * @name gotoExtended
+ */
+export const gotoExtended = async (page, request, gotoOptions = {}) => {
+    checkParamOrThrow(page, 'page', 'Object');
+    checkParamPrototypeOrThrow(request, 'request', Request, 'Apify.Request');
+    checkParamOrThrow(gotoOptions, 'gotoOptions', 'Object');
+
+    const { method, headers, payload } = request;
+
+    if (method !== 'GET' || payload || !_.isEmpty(headers)) {
+        let wasCalled = false;
+        const interceptRequestHandler = async (interceptedRequest) => {
+            // We want to ensure that this won't get executed again in a case that there is a subsequent request
+            // for example for some asset file link from main HTML.
+            if (wasCalled) return interceptedRequest.continue();
+
+            wasCalled = true;
+            const overrides = {};
+
+            if (method !== 'GET') overrides.method = method;
+            if (payload) overrides.postData = payload;
+            if (!_.isEmpty(headers)) overrides.headers = headers;
+
+            await interceptedRequest.continue(overrides);
+            await removeInterceptRequestHandler(page, interceptRequestHandler); // We wan't this to be called only for the initial request.
+        };
+
+        await addInterceptRequestHandler(page, interceptRequestHandler);
+    }
+
+    return page.goto(request.url, gotoOptions);
+};
+
+/*
+export const enqueueClickables = async (page, purls, selector) => {
+    const interceptRequestHandler = async (interceptedRequest) => {
+        // TODO: configure everything here
+    };
+
+    await addInterceptRequestHandler(page, interceptRequestHandler);
+
+    // TODO: Click elements here
+
+    await removeInterceptRequestHandler(page, interceptRequestHandler);
+};
+*/
+
 let logEnqueueLinksDeprecationWarning = true;
 
 /**
@@ -387,4 +439,7 @@ export const puppeteerUtils = {
     blockResources,
     cacheResponses,
     compileScript,
+    gotoExtended,
+    addInterceptRequestHandler,
+    removeInterceptRequestHandler,
 };
