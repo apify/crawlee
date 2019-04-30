@@ -227,7 +227,6 @@ class PuppeteerPool {
             }
 
             const browser = await launchPuppeteerFunction(opts);
-            // Maybe apply hiding tricks
             if (!browser || typeof browser.newPage !== 'function') {
                 // eslint-disable-next-line max-len
                 throw new Error("The custom 'launchPuppeteerFunction' passed to PuppeteerPool must return a promise resolving to Puppeteer's Browser instance.");
