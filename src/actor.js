@@ -793,7 +793,7 @@ export const addWebhook = async ({ eventTypes, requestUrl }) => {
 
     const runId = process.env[ENV_VARS.ACTOR_RUN_ID];
     if (!runId) {
-        throw new Error(`Environment variable ${ENV_VARS.ACTOR_RUN_ID} must be provided!`);
+        throw new Error(`Environment variable ${ENV_VARS.ACTOR_RUN_ID} is not set!`);
     }
 
     return apifyClient.webhooks.createWebhook({
