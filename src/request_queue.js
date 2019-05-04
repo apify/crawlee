@@ -1,16 +1,15 @@
-import fs from 'fs';
-import fsExtra from 'fs-extra';
 import path from 'path';
+import crypto from 'crypto';
+import { promisify } from 'util';
+import fs from 'fs-extra';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import LruCache from 'apify-shared/lru_cache';
 import ListDictionary from 'apify-shared/list_dictionary';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, REQUEST_QUEUE_HEAD_MAX_LIMIT } from 'apify-shared/consts';
-import { delayPromise, checkParamPrototypeOrThrow } from 'apify-shared/utilities';
+import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import log from 'apify-shared/log';
-import Promise from 'bluebird';
-import crypto from 'crypto';
 import Request from './request';
-import { ensureDirExists, apifyClient, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists } from './utils';
+import { sleep, ensureDirExists, apifyClient, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists } from './utils';
 
 export const LOCAL_STORAGE_SUBDIR = LOCAL_STORAGE_SUBDIRS.requestQueues;
 const MAX_OPENED_QUEUES = 1000;
@@ -27,12 +26,12 @@ export const API_PROCESSED_REQUESTS_DELAY_MILLIS = 10 * 1000;
 // How many times we try to get queue head with queueModifiedAt older than API_PROCESSED_REQUESTS_DELAY_MILLIS.
 export const MAX_QUERIES_FOR_CONSISTENCY = 6;
 
-const writeFilePromised = Promise.promisify(fs.writeFile);
-const readdirPromised = Promise.promisify(fs.readdir);
-const readFilePromised = Promise.promisify(fs.readFile);
-const renamePromised = Promise.promisify(fs.rename);
-const statPromised = Promise.promisify(fs.stat);
-const emptyDirPromised = Promise.promisify(fsExtra.emptyDir);
+const writeFilePromised = promisify(fs.writeFile);
+const readdirPromised = promisify(fs.readdir);
+const readFilePromised = promisify(fs.readFile);
+const renamePromised = promisify(fs.rename);
+const statPromised = promisify(fs.stat);
+const emptyDirPromised = promisify(fs.emptyDir);
 
 const { requestQueues } = apifyClient;
 const queuesCache = new LruCache({ maxLength: MAX_OPENED_QUEUES }); // Open queues are stored here.
@@ -527,7 +526,7 @@ export class RequestQueue {
                     ? API_PROCESSED_REQUESTS_DELAY_MILLIS
                     : 0;
 
-                return delayPromise(delayMillis)
+                return sleep(delayMillis)
                     .then(() => this._ensureHeadIsNonEmpty(checkModifiedAt, nextLimit, iteration + 1));
             });
     }
@@ -655,7 +654,12 @@ export class RequestQueueLocal {
         this.modifiedAt = stats.mtime;
         this.accessedAt = stats.atime;
 
-        return Promise.mapSeries(filePaths, filepath => this._readFile(filepath));
+        const files = [];
+        for (const filePath of filePaths) {
+            const file = await this._readFile(filePath);
+            files.push(file);
+        }
+        return files;
     }
 
     async _readFile(filepath) {

@@ -1,10 +1,9 @@
-import fs from 'fs';
-import fsExtra from 'fs-extra';
+import fs from 'fs-extra';
 import path from 'path';
-import Promise from 'bluebird';
+import { promisify } from 'util';
 import contentTypeParser from 'content-type';
-import LruCache from 'apify-shared/lru_cache';
 import mime from 'mime';
+import LruCache from 'apify-shared/lru_cache';
 import { KEY_VALUE_STORE_KEY_REGEX } from 'apify-shared/regexs';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, KEY_VALUE_STORE_KEYS } from 'apify-shared/consts';
 import { checkParamOrThrow, parseBody } from 'apify-client/build/utils';
@@ -18,12 +17,12 @@ const MAX_OPENED_STORES = 1000;
 const DEFAULT_LOCAL_FILE_EXTENSION = 'bin';
 const COMMON_LOCAL_FILE_EXTENSIONS = ['bin', 'txt', 'json', 'html', 'xml', 'jpeg', 'png', 'pdf', 'mp3', 'js', 'css', 'csv'];
 
-const readFilePromised = Promise.promisify(fs.readFile);
-const readdirPromised = Promise.promisify(fs.readdir);
-const writeFilePromised = Promise.promisify(fs.writeFile);
-const unlinkPromised = Promise.promisify(fs.unlink);
-const statPromised = Promise.promisify(fs.stat);
-const emptyDirPromised = Promise.promisify(fsExtra.emptyDir);
+const readFilePromised = promisify(fs.readFile);
+const readdirPromised = promisify(fs.readdir);
+const writeFilePromised = promisify(fs.writeFile);
+const unlinkPromised = promisify(fs.unlink);
+const statPromised = promisify(fs.stat);
+const emptyDirPromised = promisify(fs.emptyDir);
 
 const { keyValueStores } = apifyClient;
 const storesCache = new LruCache({ maxLength: MAX_OPENED_STORES }); // Open key-value stores are stored here.
@@ -483,24 +482,19 @@ export class KeyValueStoreLocal {
      * }
      * @ignore
      */
-    _handleFile(key, handler) {
-        return Promise.map(COMMON_LOCAL_FILE_EXTENSIONS, (extension) => {
+    async _handleFile(key, handler) {
+        for (const extension of COMMON_LOCAL_FILE_EXTENSIONS) {
             const fileName = `${key}.${extension}`;
             const filePath = this._getPath(fileName);
-            return handler(filePath)
-                .then(returnValue => ({ returnValue, fileName }))
-                .catch((err) => {
-                    if (err.code === 'ENOENT') return null;
-                    throw err;
-                });
-        })
-            .then((results) => {
-                // Using filter here to distinguish between no result and undefined result. [] vs [undefined]
-                const result = results.filter(r => r && r.returnValue !== null);
-                return result.length
-                    ? result[0]
-                    : this._fullDirectoryLookup(key, handler);
-            });
+            try {
+                const returnValue = await handler(filePath);
+                return { returnValue, fileName };
+            } catch (err) {
+                if (err.code !== 'ENOENT') throw err;
+            }
+        }
+
+        return this._fullDirectoryLookup(key, handler);
     }
 
     /**
