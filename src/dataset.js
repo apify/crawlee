@@ -542,6 +542,7 @@ export class DatasetLocal {
     async reduce(iteratee, memo) {
         await this.initializationPromise;
         const indexes = this._getItemIndexes();
+        if (memo === undefined) memo = indexes.shift();
         for (const idx of indexes) {
             const item = await this._readAndParseFile(idx);
             memo = await iteratee(memo, item, idx - 1);
