@@ -435,7 +435,7 @@ export const call = async (actId, input, options = {}) => {
  * ```
  *
  * Internally, the `callTask()` function calls the
- * <a href="https://apify.com/docs/api/v2#/reference/actor-tasks/runs-collection/run-task-asynchronously" target="_blank">Run task</a>
+ * <a href="https://apify.com/docs/api/v2#/reference/actor-tasks/run-collection/run-task" target="_blank">Run task</a>
  * and several other API endpoints to obtain the output.
  *
  * @param {String} taskId
