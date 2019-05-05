@@ -324,12 +324,12 @@ class CheerioCrawler {
             'CheerioCrawler: requestFunction timed out.',
         );
 
-        const { dom, body } = response;
+        const { dom } = response;
         request.loadedUrl = response.request.uri.href;
 
         const $ = cheerio.load(dom);
         return addTimeoutToPromise(
-            this.handlePageFunction({ $, html: body, request, response, autoscaledPool }),
+            this.handlePageFunction({ $, request, response, autoscaledPool }),
             this.handlePageTimeoutMillis,
             'CheerioCrawler: handlePageFunction timed out.',
         );
@@ -366,7 +366,7 @@ class CheerioCrawler {
                     const status = res.statusCode;
                     if (status >= 500) {
                         try {
-                            await this._processResponse(res, { encoding, skipDom: true });
+                            await this._processResponse(res, { encoding, saveBody: true });
                         } catch (err) {
                             // Error in reading the body.
                             return reject(err);
@@ -402,7 +402,7 @@ class CheerioCrawler {
 
                     // Content-Type is fine. Read the body and respond.
                     try {
-                        await this._processResponse(res, { encoding });
+                        await this._processResponse(res, { encoding, saveDom: true });
                         resolve(res);
                     } catch (err) {
                         // Error in reading the body.
@@ -456,20 +456,25 @@ class CheerioCrawler {
 
     async _processResponse(response, options = {}) {
         const decompressedResponse = this._decompressResponse(response);
-        let expectedCallbacks = options.skipDom ? 1 : 2;
+        let expectedCallbacks = 0;
+        if (options.saveBody) expectedCallbacks++;
+        if (options.saveDom) expectedCallbacks++;
         return new Promise((resolve, reject) => {
-            this._saveResponseBody(decompressedResponse, options.encoding || 'utf8', (err, body) => {
-                if (err) return reject(err);
-                response.body = body;
-                if (--expectedCallbacks <= 0) resolve(response);
-            });
+            if (options.saveBody) {
+                this._saveResponseBody(decompressedResponse, options.encoding || 'utf8', (err, body) => {
+                    if (err) return reject(err);
+                    response.body = body;
+                    if (--expectedCallbacks <= 0) resolve(response);
+                });
+            }
 
-            if (options.skipDom) return;
-            this._parseHtmlToDom(decompressedResponse, (err, dom) => {
-                if (err) return reject(err);
-                response.dom = dom;
-                if (--expectedCallbacks <= 0) resolve(response);
-            });
+            if (options.saveDom) {
+                this._parseHtmlToDom(decompressedResponse, (err, dom) => {
+                    if (err) return reject(err);
+                    response.dom = dom;
+                    if (--expectedCallbacks <= 0) resolve(response);
+                });
+            }
         });
     }
 
