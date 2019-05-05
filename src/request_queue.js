@@ -654,20 +654,15 @@ export class RequestQueueLocal {
         this.modifiedAt = stats.mtime;
         this.accessedAt = stats.atime;
 
-        const files = [];
         for (const filePath of filePaths) {
-            const file = await this._readFile(filePath);
-            files.push(file);
+            await this._saveRequestIdToQueueOrderNo(filePath);
         }
-        return files;
     }
 
-    async _readFile(filepath) {
+    async _saveRequestIdToQueueOrderNo(filepath) {
         const str = await readFilePromised(filepath);
         const request = JSON.parse(str);
-        const queueOrderNo = filePathToQueueOrderNo(filepath);
-
-        this.requestIdToQueueOrderNo[request.id] = queueOrderNo;
+        this.requestIdToQueueOrderNo[request.id] = filePathToQueueOrderNo(filepath);
     }
 
     _getFilePath(queueOrderNo, isHandled = false) {
