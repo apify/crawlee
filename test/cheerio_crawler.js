@@ -17,6 +17,7 @@ const responseMock = {
             href: 'loadedUrl',
         },
     },
+    dom: {},
 };
 
 /* eslint-disable no-underscore-dangle */

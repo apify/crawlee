@@ -1,9 +1,12 @@
+/* eslint-disable class-methods-use-this */
+
 import util from 'util';
 import zlib from 'zlib';
 import rqst from 'request';
 import _ from 'underscore';
 import cheerio from 'cheerio';
 import contentType from 'content-type';
+import htmlparser from 'htmlparser2';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import BasicCrawler from './basic_crawler';
@@ -321,12 +324,12 @@ class CheerioCrawler {
             'CheerioCrawler: requestFunction timed out.',
         );
 
-        const html = response.body;
+        const { dom, body } = response;
         request.loadedUrl = response.request.uri.href;
 
-        const $ = cheerio.load(html);
+        const $ = cheerio.load(dom);
         return addTimeoutToPromise(
-            this.handlePageFunction({ $, html, request, response, autoscaledPool }),
+            this.handlePageFunction({ $, html: body, request, response, autoscaledPool }),
             this.handlePageTimeoutMillis,
             'CheerioCrawler: handlePageFunction timed out.',
         );
@@ -362,9 +365,8 @@ class CheerioCrawler {
                     // 500 codes are handled as errors, requests will be retried.
                     const status = res.statusCode;
                     if (status >= 500) {
-                        let body;
                         try {
-                            body = await this._readStreamIntoString(res, encoding);
+                            await this._processResponse(res, { encoding, skipDom: true });
                         } catch (err) {
                             // Error in reading the body.
                             return reject(err);
@@ -372,13 +374,13 @@ class CheerioCrawler {
                         // Errors are often sent as JSON, so attempt to parse them,
                         // despite Accept header being set to text/html.
                         if (type === 'application/json') {
-                            const errorResponse = JSON.parse(body);
+                            const errorResponse = JSON.parse(res.body);
                             let { message } = errorResponse;
                             if (!message) message = util.inspect(errorResponse, { depth: 1, maxArrayLength: 10 });
                             return reject(new Error(`${status} - ${message}`));
                         }
                         // It's not a JSON so it's probably some text. Get the first 100 chars of it.
-                        return reject(new Error(`CheerioCrawler: ${status} - Internal Server Error: ${body.substr(0, 100)}`));
+                        return reject(new Error(`CheerioCrawler: ${status} - Internal Server Error: ${res.body.substr(0, 100)}`));
                     }
 
                     // Handle situations where the server explicitly states that
@@ -400,7 +402,7 @@ class CheerioCrawler {
 
                     // Content-Type is fine. Read the body and respond.
                     try {
-                        res.body = await this._readStreamIntoString(res, encoding);
+                        await this._processResponse(res, { encoding });
                         resolve(res);
                     } catch (err) {
                         // Error in reading the body.
@@ -452,39 +454,68 @@ class CheerioCrawler {
         return null;
     }
 
+    async _processResponse(response, options = {}) {
+        const decompressedResponse = this._decompressResponse(response);
+        let expectedCallbacks = options.skipDom ? 1 : 2;
+        return new Promise((resolve, reject) => {
+            this._saveResponseBody(decompressedResponse, options.encoding || 'utf8', (err, body) => {
+                if (err) return reject(err);
+                response.body = body;
+                if (--expectedCallbacks <= 0) resolve(response);
+            });
+
+            if (options.skipDom) return;
+            this._parseHtmlToDom(decompressedResponse, (err, dom) => {
+                if (err) return reject(err);
+                response.dom = dom;
+                if (--expectedCallbacks <= 0) resolve(response);
+            });
+        });
+    }
+
     /**
      * Flushes the provided stream into a Buffer and transforms
      * it to a String using the provided encoding or utf-8 as default.
      *
+     * @param {http.IncomingMessage} response
+     * @param {String} encoding
+     * @param {Function} callback
+     * @private
+     */
+    _saveResponseBody(response, encoding, callback) {
+        const chunks = [];
+        response
+            .on('data', chunk => chunks.push(chunk))
+            .on('error', callback)
+            .on('end', () => {
+                const buffer = Buffer.concat(chunks);
+                callback(null, buffer.toString(encoding));
+            });
+    }
+
+
+    _parseHtmlToDom(response, callback) {
+        const domHandler = new htmlparser.DomHandler(callback);
+        const parser = new htmlparser.Parser(domHandler, { decodeEntities: true });
+        response.pipe(parser);
+    }
+
+    /**
      * If the stream data is compressed, decompresses it using
      * the Content-Encoding header.
      *
      * @param {http.IncomingMessage} response
-     * @param {String} [encoding]
-     * @returns {Promise<String>}
+     * @return {stream.Readable}
      * @private
      */
-    async _readStreamIntoString(response, encoding) { // eslint-disable-line class-methods-use-this
+    _decompressResponse(response) {
         const compression = response.headers['content-encoding'];
-        let stream = response;
-        if (compression) {
-            let decompressor;
-            if (compression === 'gzip') decompressor = zlib.createGunzip();
-            else if (compression === 'deflate') decompressor = zlib.createInflate();
-            else throw new Error(`CheerioCrawler: Invalid Content-Encoding header. Expected gzip or deflate, but received: ${compression}`);
-            stream = response.pipe(decompressor);
-        }
-
-        return new Promise((resolve, reject) => {
-            const chunks = [];
-            stream
-                .on('data', chunk => chunks.push(chunk))
-                .on('error', err => reject(err))
-                .on('end', () => {
-                    const buffer = Buffer.concat(chunks);
-                    resolve(buffer.toString(encoding));
-                });
-        });
+        if (!compression) return response;
+        let decompressor;
+        if (compression === 'gzip') decompressor = zlib.createGunzip();
+        else if (compression === 'deflate') decompressor = zlib.createInflate();
+        else throw new Error(`CheerioCrawler: Invalid Content-Encoding header. Expected gzip or deflate, but received: ${compression}`);
+        return response.pipe(decompressor);
     }
 
     /**
