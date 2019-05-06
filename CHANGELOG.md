@@ -1,7 +1,11 @@
+0.14.5 / 2019-05-06
+===================
+- Update Puppeteer to 1.15.0.
+
 0.14.4 / 2019-05-06
 ===================
 - Added the `stealth` option `launchPuppeteerOptions` which decreases headless browser detection chance.
-- DEPRECATED: `Apify.utils.puppeteer.hideWebDriver` use `launchPuppeteerOptions.stealth` instead.
+- **DEPRECATED**: `Apify.utils.puppeteer.hideWebDriver` use `launchPuppeteerOptions.stealth` instead.
 - `CheerioCrawler` now parses HTML using streams. This improves performance and memory usage in most cases.
 
 0.14.3 / 2019-05-06
