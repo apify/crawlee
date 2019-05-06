@@ -85,7 +85,7 @@ function and in addition, all the options available below.
 <td><code>[stealth]</code></td><td><code>boolean</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>This setting hides most of the know properties that identifies the headless Chrome and makes it nearly undetectable.
+<td colspan="3"><p>This setting hides most of the known properties that identify headless Chrome and makes it nearly undetectable.
   It is recommended to use it together with the <code>useChrome</code> set to <code>true</code>.</p>
 </td></tr><tr>
 <td><code>[stealthOptions]</code></td><td><code><a href="../typedefs/stealthoptions">StealthOptions</a></code></td><td></td>

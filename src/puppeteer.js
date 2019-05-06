@@ -6,7 +6,7 @@ import { ENV_VARS } from 'apify-shared/consts';
 import { DEFAULT_USER_AGENT } from './constants';
 import { getTypicalChromeExecutablePath, isAtHome } from './utils';
 import { getApifyProxyUrl } from './actor';
-import applyStealthFromBrowser from './stealth/stealth';
+import applyStealthToBrowser from './stealth/stealth';
 
 /* global process, require */
 
@@ -70,7 +70,7 @@ const LAUNCH_PUPPETEER_DEFAULT_VIEWPORT = {
  *   Take caution, because it can cause all kinds of unexpected errors and weird behavior.
  *   Apify SDK is not tested with any other library besides `puppeteer` itself.
  * @property {boolean} [stealth]
- *   This setting hides most of the know properties that identifies the headless Chrome and makes it nearly undetectable.
+ *   This setting hides most of the known properties that identify headless Chrome and makes it nearly undetectable.
  *   It is recommended to use it together with the `useChrome` set to `true`.
  * @property {StealthOptions} [stealthOptions]
  *   Using this configuration, you can disable some of the hiding tricks.
@@ -251,7 +251,7 @@ export const launchPuppeteer = async (options = {}) => {
 
     // Add stealth
     if (optsCopy.stealth) {
-        browser = applyStealthFromBrowser(browser, optsCopy.stealthOptions);
+        browser = applyStealthToBrowser(browser, optsCopy.stealthOptions);
     }
     log.info('Launching Puppeteer', _.omit(optsCopy, LAUNCH_PUPPETEER_LOG_OMIT_OPTS));
     return browser;
