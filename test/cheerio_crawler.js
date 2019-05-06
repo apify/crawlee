@@ -17,7 +17,6 @@ const responseMock = {
             href: 'loadedUrl',
         },
     },
-    dom: {},
 };
 
 /* eslint-disable no-underscore-dangle */
@@ -232,7 +231,7 @@ describe('CheerioCrawler', () => {
                 const opts = crawler._getRequestOptions(request);
                 headers.push(opts.headers);
                 // it needs to return something valid
-                return Object.assign({ body: 'html' }, responseMock);
+                return { dom: {}, response: responseMock };;
             };
 
             await crawler.run();
@@ -384,7 +383,7 @@ describe('CheerioCrawler', () => {
                 const opts = crawler._getRequestOptions(request);
                 headers.push(opts.headers);
                 // it needs to return something valid
-                return Object.assign({ body: 'html' }, responseMock);
+                return { dom: {}, response: responseMock };
             };
 
             await crawler.run();
@@ -680,7 +679,7 @@ describe('CheerioCrawler', () => {
                 const opts = crawler._getRequestOptions(request);
                 proxies.push(opts.proxy);
                 // it needs to return something valid
-                return Object.assign({ body: 'html' }, responseMock);
+                return { dom: {}, response: responseMock };
             };
 
             const shuffled = crawler.proxyUrls;
@@ -710,7 +709,7 @@ describe('CheerioCrawler', () => {
                 const opts = crawler._getRequestOptions(request);
                 proxies.push(opts.proxy);
                 // it needs to return something valid
-                return Object.assign({ body: 'html' }, responseMock);
+                return { dom: {}, response: responseMock };
             };
 
             await crawler.run();
@@ -747,7 +746,7 @@ describe('CheerioCrawler', () => {
                 const opts = crawler._getRequestOptions(request);
                 proxies.push(opts.proxy);
                 // it needs to return something valid
-                return Object.assign({ body: 'html' }, responseMock);
+                return { dom: {}, response: responseMock };
             };
 
             await crawler.run();

@@ -318,18 +318,28 @@ class CheerioCrawler {
      */
     async _handleRequestFunction({ request, autoscaledPool }) {
         if (this.prepareRequestFunction) await this.prepareRequestFunction({ request });
-        const response = await addTimeoutToPromise(
+        const { dom, response } = await addTimeoutToPromise(
             this._requestFunction({ request }),
             this.requestTimeoutMillis,
             'CheerioCrawler: requestFunction timed out.',
         );
 
-        const { dom } = response;
         request.loadedUrl = response.request.uri.href;
 
         const $ = cheerio.load(dom);
+        const context = {
+            $,
+            // Using a getter here not to break the original API
+            // and lazy load the HTML only when needed.
+            get html() {
+                return $.html({ decodeEntities: false });
+            },
+            request,
+            response,
+            autoscaledPool,
+        };
         return addTimeoutToPromise(
-            this.handlePageFunction({ $, request, response, autoscaledPool }),
+            this.handlePageFunction(context),
             this.handlePageTimeoutMillis,
             'CheerioCrawler: handlePageFunction timed out.',
         );
@@ -349,13 +359,13 @@ class CheerioCrawler {
             const method = opts.method.toLowerCase();
             rqst[method](opts)
                 .on('error', err => reject(err))
-                .on('response', async (res) => {
+                .on('response', async (response) => {
                     // First check what kind of response we received.
                     let cType;
                     try {
-                        cType = contentType.parse(res);
+                        cType = contentType.parse(response);
                     } catch (err) {
-                        res.destroy();
+                        response.destroy();
                         // No reason to parse the body if the Content-Type header is invalid.
                         return reject(new Error(`CheerioCrawler: Invalid Content-Type header for URL: ${request.url}`));
                     }
@@ -363,10 +373,11 @@ class CheerioCrawler {
                     const { type, encoding } = cType;
 
                     // 500 codes are handled as errors, requests will be retried.
-                    const status = res.statusCode;
+                    const status = response.statusCode;
                     if (status >= 500) {
+                        let body;
                         try {
-                            await this._processResponse(res, { encoding, saveBody: true });
+                            body = await this._stringifyResponseBody(this._decompressResponse(response), encoding);
                         } catch (err) {
                             // Error in reading the body.
                             return reject(err);
@@ -374,27 +385,27 @@ class CheerioCrawler {
                         // Errors are often sent as JSON, so attempt to parse them,
                         // despite Accept header being set to text/html.
                         if (type === 'application/json') {
-                            const errorResponse = JSON.parse(res.body);
+                            const errorResponse = JSON.parse(body);
                             let { message } = errorResponse;
                             if (!message) message = util.inspect(errorResponse, { depth: 1, maxArrayLength: 10 });
                             return reject(new Error(`${status} - ${message}`));
                         }
                         // It's not a JSON so it's probably some text. Get the first 100 chars of it.
-                        return reject(new Error(`CheerioCrawler: ${status} - Internal Server Error: ${res.body.substr(0, 100)}`));
+                        return reject(new Error(`CheerioCrawler: ${status} - Internal Server Error: ${body.substr(0, 100)}`));
                     }
 
                     // Handle situations where the server explicitly states that
                     // it will not serve the resource as text/html by skipping.
                     if (status === 406) {
                         request.doNotRetry();
-                        res.destroy();
+                        response.destroy();
                         return reject(new Error(`CheerioCrawler: Resource ${request.url} is not available in HTML format. Skipping resource.`));
                     }
 
                     // Other 200-499 responses are considered OK, but first check the content type.
                     if (type !== 'text/html') {
                         request.doNotRetry();
-                        res.destroy();
+                        response.destroy();
                         return reject(new Error(
                             `CheerioCrawler: Resource ${request.url} served Content-Type ${type} instead of text/html. Skipping resource.`,
                         ));
@@ -402,8 +413,8 @@ class CheerioCrawler {
 
                     // Content-Type is fine. Read the body and respond.
                     try {
-                        await this._processResponse(res, { encoding, saveDom: true });
-                        resolve(res);
+                        const dom = await this._parseHtmlToDom(this._decompressResponse(response));
+                        resolve({ dom, response });
                     } catch (err) {
                         // Error in reading the body.
                         reject(err);
@@ -454,55 +465,37 @@ class CheerioCrawler {
         return null;
     }
 
-    async _processResponse(response, options = {}) {
-        const decompressedResponse = this._decompressResponse(response);
-        let expectedCallbacks = 0;
-        if (options.saveBody) expectedCallbacks++;
-        if (options.saveDom) expectedCallbacks++;
-        return new Promise((resolve, reject) => {
-            if (options.saveBody) {
-                this._saveResponseBody(decompressedResponse, options.encoding || 'utf8', (err, body) => {
-                    if (err) return reject(err);
-                    response.body = body;
-                    if (--expectedCallbacks <= 0) resolve(response);
-                });
-            }
-
-            if (options.saveDom) {
-                this._parseHtmlToDom(decompressedResponse, (err, dom) => {
-                    if (err) return reject(err);
-                    response.dom = dom;
-                    if (--expectedCallbacks <= 0) resolve(response);
-                });
-            }
-        });
-    }
-
     /**
      * Flushes the provided stream into a Buffer and transforms
      * it to a String using the provided encoding or utf-8 as default.
      *
      * @param {http.IncomingMessage} response
-     * @param {String} encoding
-     * @param {Function} callback
+     * @param {String} [encoding]
      * @private
      */
-    _saveResponseBody(response, encoding, callback) {
-        const chunks = [];
-        response
-            .on('data', chunk => chunks.push(chunk))
-            .on('error', callback)
-            .on('end', () => {
-                const buffer = Buffer.concat(chunks);
-                callback(null, buffer.toString(encoding));
-            });
+    async _stringifyResponseBody(response, encoding) {
+        return new Promise((resolve, reject) => {
+            const chunks = [];
+            response
+                .on('data', chunk => chunks.push(chunk))
+                .on('error', reject)
+                .on('end', () => {
+                    const buffer = Buffer.concat(chunks);
+                    resolve(buffer.toString(encoding));
+                });
+        });
     }
 
 
-    _parseHtmlToDom(response, callback) {
-        const domHandler = new htmlparser.DomHandler(callback);
-        const parser = new htmlparser.Parser(domHandler, { decodeEntities: true });
-        response.pipe(parser);
+    async _parseHtmlToDom(response) {
+        return new Promise((resolve, reject) => {
+            const domHandler = new htmlparser.DomHandler((err, dom) => {
+                if (err) reject(err);
+                else resolve(dom);
+            });
+            const parser = new htmlparser.Parser(domHandler, { decodeEntities: true });
+            response.on('error', reject).pipe(parser);
+        });
     }
 
     /**
@@ -510,7 +503,7 @@ class CheerioCrawler {
      * the Content-Encoding header.
      *
      * @param {http.IncomingMessage} response
-     * @return {stream.Readable}
+     * @return {http.IncomingMessage}
      * @private
      */
     _decompressResponse(response) {
