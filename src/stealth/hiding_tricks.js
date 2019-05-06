@@ -293,7 +293,7 @@ const mockChrome = () => {
 
 // not sure if this hack does not broke iframe on websites... Should figure out how to test properly
 // Should cover that it is custom function same as the permission query
-const mocksChromeInIframe = () => {
+const mockChromeInIframe = () => {
     const oldCreate = document.createElement.bind(document);
     const newCreate = (...args) => {
         if (args[0] === 'iframe') {
@@ -361,6 +361,6 @@ export default {
     hideWebDriver,
     hackPermissions,
     mockChrome,
-    mocksChromeInIframe,
+    mockChromeInIframe,
     mockDeviceMemory,
 };

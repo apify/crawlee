@@ -56,7 +56,7 @@ These tricks are applied only when the `stealth` option is set to `true`.
 <tr>
 <td colspan="3"><p>Adds the chrome runtime properties.</p>
 </td></tr><tr>
-<td><code>[mocksChromeInIframe]</code></td><td><code>boolean</code></td><td><code>true</code></td>
+<td><code>[mockChromeInIframe]</code></td><td><code>boolean</code></td><td><code>true</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Adds the chrome runtime properties inside the every newly created iframe.</p>

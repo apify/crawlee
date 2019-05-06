@@ -13,7 +13,7 @@ import hidingTricks from './hiding_tricks';
  * @property {boolean} [hideWebDriver=true] - Hides the webdriver by changing the navigator proto.
  * @property {boolean} [hackPermissions=true] - Fakes interaction with permissions.
  * @property {boolean} [mockChrome=true] - Adds the chrome runtime properties.
- * @property {boolean} [mocksChromeInIframe=true] - Adds the chrome runtime properties inside the every newly created iframe.
+ * @property {boolean} [mockChromeInIframe=true] - Adds the chrome runtime properties inside the every newly created iframe.
  * @property {boolean} [mockDeviceMemory=true] - Sets device memory to other value than 0.
  */
 
@@ -26,7 +26,7 @@ const DEFAULT_STEALTH_OPTIONS = {
     hideWebDriver: true,
     hackPermissions: true,
     mockChrome: true,
-    mocksChromeInIframe: true,
+    mockChromeInIframe: true,
     mockDeviceMemory: true,
 };
 

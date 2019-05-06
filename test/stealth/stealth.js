@@ -24,7 +24,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
                 hideWebDriver: false,
                 hackPermissions: false,
                 mockChrome: false,
-                mocksChromeInIframe: false,
+                mockChromeInIframe: false,
                 mockDeviceMemory: false,
             },
             headless: true,
