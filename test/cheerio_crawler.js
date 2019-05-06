@@ -231,7 +231,7 @@ describe('CheerioCrawler', () => {
                 const opts = crawler._getRequestOptions(request);
                 headers.push(opts.headers);
                 // it needs to return something valid
-                return { dom: {}, response: responseMock };;
+                return { dom: {}, response: responseMock };
             };
 
             await crawler.run();
