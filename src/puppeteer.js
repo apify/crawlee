@@ -62,9 +62,13 @@ const LAUNCH_PUPPETEER_DEFAULT_VIEWPORT = {
  *   will use the same target proxy server (i.e. the same IP address).
  *   The identifier can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
  *   Only applied if the `useApifyProxy` option is `true`.
- * @property {String} [puppeteerModule]
- *   Require path to a module to be used instead of default `puppeteer`. This enables usage
- *   of various Puppeteer wrappers such as `puppeteer-extra`.
+ * @property {string|Object} [puppeteerModule]
+ *   Either a require path (`string`) to a package to be used instead of default `puppeteer`,
+ *   or an already required module (`Object`). This enables usage of various Puppeteer
+ *   wrappers such as `puppeteer-extra`.
+ *
+ *   Take caution, because it can cause all kinds of unexpected errors and weird behavior.
+ *   Apify SDK is not tested with any other library besides `puppeteer` itself.
  * @property {boolean} [stealth]
  *   This setting hides most of the know properties that identifies the headless Chrome and makes it nearly undetectable.
  *   It is recommended to use it together with the `useChrome` set to `true`.
@@ -108,13 +112,14 @@ const launchPuppeteerWithProxy = async (puppeteer, opts) => {
 };
 
 /**
- * Requires `puppeteer` package or throws meaningful error if not installed.
+ * Requires `puppeteer` package, uses a replacement or throws meaningful error if not installed.
  *
- * @param {string} puppeteerModule
+ * @param {string|Object} puppeteerModule
  * @ignore
  */
 const getPuppeteerOrThrow = (puppeteerModule = 'puppeteer') => {
-    checkParamOrThrow(puppeteerModule, 'puppeteerModule', 'String');
+    checkParamOrThrow(puppeteerModule, 'puppeteerModule', 'String|Object');
+    if (typeof puppeteerModule === 'object') return puppeteerModule;
     try {
         // This is an optional dependency because it is quite large, only require it when used (ie. image with Chrome)
         return require(puppeteerModule); // eslint-disable-line
@@ -159,8 +164,6 @@ const getPuppeteerOrThrow = (puppeteerModule = 'puppeteer') => {
  *    <li>
  *        The function adds <code>--no-sandbox</code> to <code>args</code> to enable running
  *        headless Chrome in a Docker container on the Apify platform.
- *        Also it adds <code>--enable-resource-load-scheduler=false</code>
- *        to make crawling of pages in all tabs run equally fast.
  *    </li>
  *    <li>
  *        Sets <code>defaultViewport</code> Puppeteer option (if not already set)
@@ -195,7 +198,7 @@ export const launchPuppeteer = async (options = {}) => {
     checkParamOrThrow(options.args, 'options.args', 'Maybe [String]');
     checkParamOrThrow(options.proxyUrl, 'options.proxyUrl', 'Maybe String');
     checkParamOrThrow(options.useApifyProxy, 'options.useApifyProxy', 'Maybe Boolean');
-    checkParamOrThrow(options.puppeteerModule, 'options.puppeteerModule', 'Maybe String');
+    checkParamOrThrow(options.puppeteerModule, 'options.puppeteerModule', 'Maybe String|Object');
     checkParamOrThrow(options.stealth, 'options.stealth', 'Maybe Boolean');
     checkParamOrThrow(options.stealthOptions, 'options.stealthOptions', 'Maybe Object');
     if (options.useApifyProxy && options.proxyUrl) throw new Error('Cannot combine "options.useApifyProxy" with "options.proxyUrl"!');
@@ -211,8 +214,6 @@ export const launchPuppeteer = async (options = {}) => {
 
     optsCopy.args = optsCopy.args || [];
     optsCopy.args.push('--no-sandbox');
-    // TODO: It's not clear that this works, keep eye on https://bugs.chromium.org/p/chromium/issues/detail?id=723233
-    optsCopy.args.push('--enable-resource-load-scheduler=false');
     if (optsCopy.headless == null) {
         optsCopy.headless = process.env[ENV_VARS.HEADLESS] === '1' && process.env[ENV_VARS.XVFB] !== '1';
     }

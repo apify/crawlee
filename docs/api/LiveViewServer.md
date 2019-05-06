@@ -8,6 +8,15 @@ title: LiveViewServer
 that provides a simple frontend to viewing the captured snapshots. A snapshot consists of three
 pieces of information, the currently opened URL, the content of the page (HTML) and its screenshot.
 
+```json
+{
+    "pageUrl": "https://www.example.com",
+    "htmlContent": "<html><body> ....",
+    "screenshotIndex": 3,
+    "createdAt": "2019-04-18T11:50:40.060Z"
+}
+```
+
 `LiveViewServer` is useful when you want to be able to inspect the current browser status on demand.
 When no client is connected, the webserver consumes very low resources so it should have a close
 to zero impact on performance. Only once a client connects the server will start serving snapshots.
@@ -32,6 +41,7 @@ a better view into the browser, including DevTools, but `LiveViewServer` works t
     * [`.start()`](#LiveViewServer+start) ⇒ <code>Promise</code>
     * [`.stop()`](#LiveViewServer+stop) ⇒ <code>Promise</code>
     * [`.serve(page)`](#LiveViewServer+serve) ⇒ <code>Promise</code>
+    * [`.getLastSnapshot()`](#LiveViewServer+getLastSnapshot) ⇒ <code>Object</code>
     * [`.isRunning()`](#LiveViewServer+isRunning) ⇒ <code>boolean</code>
     * [`.hasClients()`](#LiveViewServer+hasClients) ⇒ <code>boolean</code>
 
@@ -64,6 +74,20 @@ a better view into the browser, including DevTools, but `LiveViewServer` works t
 <tr>
 <td colspan="3"><p>Limits the number of screenshots stored
   by the server. This is to prevent using up too much disk space.</p>
+</td></tr><tr>
+<td><code>[options.snapshotTimeoutSecs]</code></td><td><code>number</code></td><td><code>3</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>If a snapshot is not made within the timeout,
+  its creation will be aborted. This is to prevent
+  pages from being hung up by a stalled screenshot.</p>
+</td></tr><tr>
+<td><code>[options.maxSnapshotFrequencySecs]</code></td><td><code>number</code></td><td><code>2</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Use this parameter to further decrease the resource consumption
+  of <code>LiveViewServer</code> by limiting the frequency at which it&#39;ll
+  serve snapshots.</p>
 </td></tr></tbody>
 </table>
 <a name="LiveViewServer+start"></a>
@@ -81,18 +105,11 @@ will not be terminated, but the server will not prevent a process exit.
 <a name="LiveViewServer+serve"></a>
 
 ## `liveViewServer.serve(page)` ⇒ <code>Promise</code>
-Serves the snapshot to all connected clients.
-
-```json
-{
-    "pageUrl": "https://www.example.com",
-    "htmlContent": "<html><body> ....",
-    "screenshotIndex": 3
-}
-```
-
+Serves a snapshot to all connected clients.
 Screenshots are not served directly, only their index number
 which is used by client to retrieve the screenshot.
+
+Will time out and throw in `options.snapshotTimeoutSecs`.
 
 <table>
 <thead>
@@ -107,6 +124,9 @@ which is used by client to retrieve the screenshot.
 <tr>
 </tr></tbody>
 </table>
+<a name="LiveViewServer+getLastSnapshot"></a>
+
+## `liveViewServer.getLastSnapshot()` ⇒ <code>Object</code>
 <a name="LiveViewServer+isRunning"></a>
 
 ## `liveViewServer.isRunning()` ⇒ <code>boolean</code>

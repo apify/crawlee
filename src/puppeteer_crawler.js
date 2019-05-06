@@ -224,7 +224,7 @@ class PuppeteerCrawler {
             proxyUrls,
         };
         Object.entries(deprecatedPuppeteerPoolOptions).forEach(([key, value]) => {
-            if (value) log.deprecated(`PuppeteerCrawler: options.${key} is deprecated. Use options.puppeteerPoolOptions instead.`);
+            if (value) log.deprecated(`PuppeteerCrawler: "options.${key}" is deprecated, use "options.puppeteerPoolOptions" in PuppeteerCrawler() constructor instead.`); // eslint-disable-line max-len
         });
         // puppeteerPoolOptions can be null or undefined or Object, so we merge it this way, because null is not replaced by defaults above.
         this.puppeteerPoolOptions = _.defaults(

@@ -86,8 +86,8 @@ export const computeUniqueKey = (url, keepUrlFragment) => normalizeUrl(url, keep
  *   HTTP method, e.g. `GET` or `POST`.
  * @property {String} payload
  *   HTTP request payload, e.g. for POST requests.
- * @property {Boolean} retry
- *   Indicates whether the request will be automatically retried or not.
+ * @property {Boolean} noRetry
+ *   The `true` value indicates that the request will not be automatically retried on error.
  * @property {Number} retryCount
  *   Indicates the number of times the crawling of the request has been retried on error.
  * @property {String[]} errorMessages
@@ -127,7 +127,7 @@ class Request {
         checkParamOrThrow(uniqueKey, 'uniqueKey', 'Maybe String');
         checkParamOrThrow(method, 'method', 'String');
         checkParamOrThrow(payload, 'payload', 'Maybe Buffer | String');
-        checkParamOrThrow(noRetry, 'retry', 'Boolean');
+        checkParamOrThrow(noRetry, 'noRetry', 'Boolean');
         checkParamOrThrow(retryCount, 'retryCount', 'Number');
         checkParamOrThrow(errorMessages, 'errorMessages', 'Maybe Array');
         checkParamOrThrow(headers, 'headers', 'Object');
@@ -207,7 +207,7 @@ class Request {
 
     /**
      * Flags the request with no retry which prevents {@link BasicCrawler}
-     * (and {@PuppeteerCrawler} + {@CheerioCrawler}, since they use {@BasicCrawler} internally)
+     * (as well as {@PuppeteerCrawler} and {@CheerioCrawler}, since they use {@BasicCrawler} internally)
      * from retrying the request after an error occurs.
      *
      * Optionally accepts a message that will be used to construct
@@ -217,6 +217,8 @@ class Request {
      */
     doNotRetry(message) {
         this.noRetry = true;
+        // TODO (JC 2019-05-03): Frankly, I think this function shouldn't be in the SDK, it has zero value really
+        // and only adds a confusion and legacy burden. I'd just deprecate it.
         if (message) throw new Error(message);
     }
 }

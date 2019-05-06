@@ -1,6 +1,6 @@
 {
     "name": "apify",
-    "version": "0.14.0",
+    "version": "0.14.3",
     "description": "The scalable web crawling and scraping library for JavaScript. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.",
     "engines": {
         "node": ">=8.14.0"
@@ -50,7 +50,7 @@
     },
     "dependencies": {
         "@apify/ps-tree": "^1.1.3",
-        "apify-client": "^0.5.13",
+        "apify-client": "^0.5.14",
         "apify-shared": "^0.1.41",
         "bluebird": "^3.5.3",
         "cheerio": "^1.0.0-rc.2",
@@ -90,7 +90,7 @@
         "jsdoc": "^3.5.5",
         "jsdoc-export-default-interop": "^0.3.1",
         "mocha": "^5.2.0",
-        "nyc": "^13.3.0",
+        "nyc": "^14.0.0",
         "portastic": "^1.0.1",
         "proxy": "^0.2.4",
         "sinon": "^7.1.1",
@@ -99,7 +99,7 @@
         "why-is-node-running": "^2.0.3"
     },
     "optionalDependencies": {
-        "puppeteer": "1.13.0",
+        "puppeteer": "1.14.0",
         "selenium-webdriver": "^3.6.0"
     }
 }

@@ -8,10 +8,7 @@ import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { promisifyServerListen } from 'apify-shared/utilities';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
-
-const DEFAULT_SCREENSHOT_DIRECTORY_PATH = path.resolve('live_view');
-const DEFAULT_MAX_SCREENSHOT_FILES = 10;
-
+import { addTimeoutToPromise } from '../utils';
 
 const writeFile = promisify(fs.writeFile);
 const unlink = promisify(fs.unlink);
@@ -21,6 +18,15 @@ const ensureDir = promisify(fs.ensureDir);
  * `LiveViewServer` enables serving of browser snapshots via web sockets. It includes its own client
  * that provides a simple frontend to viewing the captured snapshots. A snapshot consists of three
  * pieces of information, the currently opened URL, the content of the page (HTML) and its screenshot.
+ *
+ * ```json
+ * {
+ *     "pageUrl": "https://www.example.com",
+ *     "htmlContent": "<html><body> ....",
+ *     "screenshotIndex": 3,
+ *     "createdAt": "2019-04-18T11:50:40.060Z"
+ * }
+ * ```
  *
  * `LiveViewServer` is useful when you want to be able to inspect the current browser status on demand.
  * When no client is connected, the webserver consumes very low resources so it should have a close
@@ -40,25 +46,42 @@ const ensureDir = promisify(fs.ensureDir);
  * When running locally, it is often best to use a headful browser for debugging, since it provides
  * a better view into the browser, including DevTools, but `LiveViewServer` works too.
  *
- * @param {Object} [options] All `LiveViewServer` parameters are passed
+ * @param {Object} [options]
+ *   All `LiveViewServer` parameters are passed
  *   via an options object with the following keys:
- * @param {string} [options.screenshotDirectoryPath] By default, the screenshots are saved to
+ * @param {string} [options.screenshotDirectoryPath]
+ *   By default, the screenshots are saved to
  *   the `live_view` directory in the process' working directory. Provide a different
  *   absolute path to change the settings.
- * @param {number} [options.maxScreenshotFiles=10] Limits the number of screenshots stored
+ * @param {number} [options.maxScreenshotFiles=10]
+ *   Limits the number of screenshots stored
  *   by the server. This is to prevent using up too much disk space.
+ * @param {number} [options.snapshotTimeoutSecs=3]
+ *   If a snapshot is not made within the timeout,
+ *   its creation will be aborted. This is to prevent
+ *   pages from being hung up by a stalled screenshot.
+ * @param {number} [options.maxSnapshotFrequencySecs=2]
+ *   Use this parameter to further decrease the resource consumption
+ *   of `LiveViewServer` by limiting the frequency at which it'll
+ *   serve snapshots.
  */
 class LiveViewServer {
     constructor(options = {}) {
         const {
-            screenshotDirectoryPath = DEFAULT_SCREENSHOT_DIRECTORY_PATH,
-            maxScreenshotFiles = DEFAULT_MAX_SCREENSHOT_FILES,
+            screenshotDirectoryPath = path.resolve('live_view'),
+            maxScreenshotFiles = 10,
+            snapshotTimeoutSecs = 3,
+            maxSnapshotFrequencySecs = 2,
         } = options;
 
         checkParamOrThrow(screenshotDirectoryPath, 'options.screenshotDirectoryPath', 'String');
         checkParamOrThrow(maxScreenshotFiles, 'options.maxScreenshotFiles', 'Number');
+        checkParamOrThrow(maxScreenshotFiles, 'options.snapshotTimeoutSecs', 'Number');
+        checkParamOrThrow(maxScreenshotFiles, 'options.maxSnapshotFrequencySecs', 'Number');
         this.screenshotDirectoryPath = screenshotDirectoryPath;
         this.maxScreenshotFiles = maxScreenshotFiles;
+        this.snapshotTimeoutMillis = snapshotTimeoutSecs * 1000;
+        this.maxSnapshotFrequencyMillis = maxSnapshotFrequencySecs * 1000;
 
         // Snapshot data
         this.lastSnapshot = null;
@@ -69,6 +92,7 @@ class LiveViewServer {
         this._isRunning = false;
         this.httpServer = null;
         this.socketio = null;
+        this.servingSnapshot = false;
 
         this._setupHttpServer();
     }
@@ -103,26 +127,44 @@ class LiveViewServer {
     }
 
     /**
-     * Serves the snapshot to all connected clients.
-     *
-     * ```json
-     * {
-     *     "pageUrl": "https://www.example.com",
-     *     "htmlContent": "<html><body> ....",
-     *     "screenshotIndex": 3
-     * }
-     * ```
-     *
+     * Serves a snapshot to all connected clients.
      * Screenshots are not served directly, only their index number
      * which is used by client to retrieve the screenshot.
+     *
+     * Will time out and throw in `options.snapshotTimeoutSecs`.
      *
      * @param {Page} page
      * @return {Promise}
      */
     async serve(page) {
         if (!this.hasClients()) return;
-        const snapshot = await this._makeSnapshot(page);
-        await this._pushSnapshot(snapshot);
+        // Only serve one snapshot at a time because Puppeteer
+        // can't make screenshots in parallel.
+        if (this.servingSnapshot) return;
+
+        if (this.lastSnapshot) {
+            const lastSnapshotAgeMillis = Date.now() - this.lastSnapshot.createdAt;
+            if (lastSnapshotAgeMillis < this.maxSnapshotFrequencyMillis) return;
+        }
+
+        try {
+            this.servingSnapshot = true;
+            const snapshot = await addTimeoutToPromise(
+                this._makeSnapshot(page),
+                this.snapshotTimeoutMillis,
+                'LiveViewServer: Serving of Live View timed out.',
+            );
+            this._pushSnapshot(snapshot);
+        } finally {
+            this.servingSnapshot = false;
+        }
+    }
+
+    /**
+     * @return {?Object}
+     */
+    getLastSnapshot() {
+        return this.lastSnapshot;
     }
 
     /**
@@ -136,7 +178,8 @@ class LiveViewServer {
      * @return {boolean}
      */
     hasClients() {
-        return this.clientCount > 0;
+        // Treat LiveViewServer as a client, until at least one snapshot is made.
+        return this.lastSnapshot ? this.clientCount > 0 : true;
     }
 
     /**
@@ -146,7 +189,7 @@ class LiveViewServer {
      * @ignore
      */
     _getScreenshotPath(screenshotIndex) {
-        return path.join(this.screenshotDirectoryPath, `${screenshotIndex}.png`);
+        return path.join(this.screenshotDirectoryPath, `${screenshotIndex}.jpeg`);
     }
 
     async _makeSnapshot(page) {
@@ -154,7 +197,10 @@ class LiveViewServer {
         log.info('Making live view snapshot.', { pageUrl });
         const [htmlContent, screenshot] = await Promise.all([
             page.content(),
-            page.screenshot(),
+            page.screenshot({
+                type: 'jpeg',
+                quality: 75,
+            }),
         ]);
 
         const screenshotIndex = this.lastScreenshotIndex++;
@@ -164,12 +210,12 @@ class LiveViewServer {
             this._deleteScreenshot(screenshotIndex - this.maxScreenshotFiles);
         }
 
-        const snapshot = { pageUrl, htmlContent, screenshotIndex };
+        const snapshot = { pageUrl, htmlContent, screenshotIndex, createdAt: new Date() };
         this.lastSnapshot = snapshot;
         return snapshot;
     }
 
-    async _pushSnapshot(snapshot) {
+    _pushSnapshot(snapshot) {
         // Send new snapshot to clients
         log.debug('Sending live view snapshot', { snapshot });
         this.socketio.emit('snapshot', snapshot);

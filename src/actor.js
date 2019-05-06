@@ -236,8 +236,7 @@ export const main = (userFunc) => {
     // Note that mocked process.exit() might throw, so set exited flag before calling it to avoid confusion.
     let exited = false;
     const exitWithError = (err, exitCode, message) => {
-        console.error(message);
-        console.error(err.stack || err);
+        log.exception(err, message);
         exited = true;
         // console.log(`Exiting with code: ${exitCode}`);
         process.exit(exitCode);
@@ -436,7 +435,7 @@ export const call = async (actId, input, options = {}) => {
  * ```
  *
  * Internally, the `callTask()` function calls the
- * <a href="https://apify.com/docs/api/v2#/reference/actor-tasks/runs-collection/run-task-asynchronously" target="_blank">Run task</a>
+ * <a href="https://apify.com/docs/api/v2#/reference/actor-tasks/run-collection/run-task" target="_blank">Run task</a>
  * and several other API endpoints to obtain the output.
  *
  * @param {String} taskId
@@ -794,7 +793,7 @@ export const addWebhook = async ({ eventTypes, requestUrl }) => {
 
     const runId = process.env[ENV_VARS.ACTOR_RUN_ID];
     if (!runId) {
-        throw new Error(`Environment variable ${ENV_VARS.ACTOR_RUN_ID} must be provided!`);
+        throw new Error(`Environment variable ${ENV_VARS.ACTOR_RUN_ID} is not set!`);
     }
 
     return apifyClient.webhooks.createWebhook({
