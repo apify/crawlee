@@ -74,10 +74,10 @@ const foo = request.userData.foo;
 <tr>
 <td colspan="3"><p>HTTP request payload, e.g. for POST requests.</p>
 </td></tr><tr>
-<td><code>retry</code></td><td><code>Boolean</code></td>
+<td><code>noRetry</code></td><td><code>Boolean</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Indicates whether the request will be automatically retried or not.</p>
+<td colspan="3"><p>The <code>true</code> value indicates that the request will not be automatically retried on error.</p>
 </td></tr><tr>
 <td><code>retryCount</code></td><td><code>Number</code></td>
 </tr>
@@ -221,7 +221,7 @@ as possible, since just throwing a bad type error makes any debugging rather dif
 
 ## `request.doNotRetry([message])`
 Flags the request with no retry which prevents [`BasicCrawler`](basiccrawler)
-(and {@PuppeteerCrawler} + {@CheerioCrawler}, since they use {@BasicCrawler} internally)
+(as well as {@PuppeteerCrawler} and {@CheerioCrawler}, since they use {@BasicCrawler} internally)
 from retrying the request after an error occurs.
 
 Optionally accepts a message that will be used to construct

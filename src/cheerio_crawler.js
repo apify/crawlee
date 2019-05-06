@@ -109,7 +109,7 @@ const DEFAULT_OPTIONS = {
  * ```
  * {
  *   $: Cheerio, // the Cheerio object with parsed HTML
- *   html: String // the raw HTML of the page
+ *   html: String // the raw HTML of the page, lazy loaded only when used
  *   request: Request,
  *   response: Object // An instance of Node's http.IncomingMessage object,
  *   autoscaledPool: AutoscaledPool

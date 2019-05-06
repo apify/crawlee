@@ -97,7 +97,7 @@ await crawler.run();
 <p>  The function receives the following object as an argument:</p>
 <pre><code>{
   $: Cheerio, // the Cheerio object with parsed HTML
-  html: String // the raw HTML of the page
+  html: String // the raw HTML of the page, lazy loaded only when used
   request: Request,
   response: Object // An instance of Node&#39;s http.IncomingMessage object,
   autoscaledPool: AutoscaledPool
