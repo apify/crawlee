@@ -81,5 +81,17 @@ function and in addition, all the options available below.
   wrappers such as <code>puppeteer-extra</code>.</p>
 <p>  Take caution, because it can cause all kinds of unexpected errors and weird behavior.
   Apify SDK is not tested with any other library besides <code>puppeteer</code> itself.</p>
+</td></tr><tr>
+<td><code>[stealth]</code></td><td><code>boolean</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>This setting hides most of the know properties that identifies the headless Chrome and makes it nearly undetectable.
+  It is recommended to use it together with the <code>useChrome</code> set to <code>true</code>.</p>
+</td></tr><tr>
+<td><code>[stealthOptions]</code></td><td><code><a href="../typedefs/stealthoptions">StealthOptions</a></code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Using this configuration, you can disable some of the hiding tricks.
+  For these settings to take effect <code>stealth</code> must be set to true</p>
 </td></tr></tbody>
 </table>
