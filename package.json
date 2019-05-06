@@ -1,99 +1,103 @@
 {
-  "name": "apify",
-  "version": "0.13.7",
-  "description": "The scalable web crawling and scraping library for JavaScript. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.",
-  "engines": {
-    "node": ">=8.14.0"
-  },
-  "main": "build/index.js",
-  "keywords": [
-    "apify",
-    "headless",
-    "chrome",
-    "puppeteer",
-    "selenium",
-    "crawler",
-    "scraper"
-  ],
-  "author": {
-    "name": "Apify",
-    "email": "support@apify.com",
-    "url": "https://apify.com"
-  },
-  "contributors": [
-    "Jan Curn <jan@apify.com>",
-    "Marek Trunkat <marek@apify.com>",
-    "Ondra Urban <ondra@apify.com>"
-  ],
-  "license": "Apache-2.0",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/apifytech/apify-js"
-  },
-  "bugs": {
-    "url": "https://github.com/apifytech/apify-js/issues"
-  },
-  "homepage": "https://sdk.apify.com/",
-  "files": [
-    "build"
-  ],
-  "scripts": {
-    "build": "rm -rf ./build && babel src --out-dir build",
-    "build-docs": "npm run clean && npm run build && node ./website/tools/build_docs.js",
-    "build-readme": "node ./tools/build_readme.js",
-    "test": "npm run build &&  nyc --reporter=html --reporter=text mocha --timeout 60000 --require @babel/register --recursive --exit",
-    "prepare": "npm run build",
-    "prepublishOnly": "(test $RUNNING_FROM_SCRIPT || (echo \"You must use publish.sh instead of 'npm publish' directly!\"; exit 1)) && npm test && npm run lint",
-    "clean": "rm -rf build",
-    "lint": "npm run build && ./node_modules/.bin/eslint ./src ./test",
-    "lint:fix": "./node_modules/.bin/eslint ./src ./test --ext .js,.jsx --fix"
-  },
-  "dependencies": {
-    "@apify/ps-tree": "^1.1.3",
-    "apify-client": "^0.5.12",
-    "apify-shared": "^0.1.23",
-    "bluebird": "^3.5.3",
-    "cheerio": "^1.0.0-rc.2",
-    "content-type": "^1.0.4",
-    "fs-extra": "^7.0.1",
-    "jquery": "^3.3.1",
-    "mime": "^2.3.1",
-    "proxy-chain": "^0.2.5",
-    "request": "^2.88.0",
-    "request-promise-native": "^1.0.5",
-    "rimraf": "^2.6.2",
-    "underscore": "^1.9.1",
-    "ws": "^6.1.2",
-    "xregexp": "^4.2.4"
-  },
-  "devDependencies": {
-    "@babel/cli": "^7.0.0",
-    "@babel/core": "^7.0.0",
-    "@babel/preset-env": "^7.0.0",
-    "@babel/register": "^7.0.0",
-    "basic-auth-parser": "^0.0.2",
-    "chai": "^4.2.0",
-    "chai-as-promised": "^7.1.1",
-    "chai-subset": "^1.6.0",
-    "eslint": "^5.9.0",
-    "eslint-config-airbnb": "^17.1.0",
-    "eslint-config-airbnb-base": "^13.1.0",
-    "eslint-plugin-import": "^2.14.0",
-    "eslint-plugin-jsx-a11y": "^6.1.2",
-    "eslint-plugin-promise": "^4.0.1",
-    "eslint-plugin-react": "^7.11.1",
-    "jsdoc": "^3.5.5",
-    "jsdoc-export-default-interop": "^0.3.1",
-    "mocha": "^5.2.0",
-    "nyc": "^13.3.0",
-    "portastic": "^1.0.1",
-    "proxy": "^0.2.4",
-    "sinon": "^7.1.1",
-    "sinon-stub-promise": "^4.0.0",
-    "why-is-node-running": "^2.0.3"
-  },
-  "optionalDependencies": {
-    "puppeteer": "1.13.0",
-    "selenium-webdriver": "^3.6.0"
-  }
+    "name": "apify",
+    "version": "0.14.3",
+    "description": "The scalable web crawling and scraping library for JavaScript. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.",
+    "engines": {
+        "node": ">=8.14.0"
+    },
+    "main": "build/index.js",
+    "keywords": [
+        "apify",
+        "headless",
+        "chrome",
+        "puppeteer",
+        "selenium",
+        "crawler",
+        "scraper"
+    ],
+    "author": {
+        "name": "Apify",
+        "email": "support@apify.com",
+        "url": "https://apify.com"
+    },
+    "contributors": [
+        "Jan Curn <jan@apify.com>",
+        "Marek Trunkat <marek@apify.com>",
+        "Ondra Urban <ondra@apify.com>"
+    ],
+    "license": "Apache-2.0",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/apifytech/apify-js"
+    },
+    "bugs": {
+        "url": "https://github.com/apifytech/apify-js/issues"
+    },
+    "homepage": "https://sdk.apify.com/",
+    "files": [
+        "build"
+    ],
+    "scripts": {
+        "build": "rm -rf ./build && babel src --out-dir build --copy-files",
+        "build-docs": "npm run clean && npm run build && node ./website/tools/build_docs.js",
+        "build-readme": "node ./tools/build_readme.js",
+        "test": "npm run build &&  nyc --reporter=html --reporter=text mocha --timeout 60000 --require @babel/register --recursive --exit",
+        "prepare": "npm run build",
+        "prepublishOnly": "(test $RUNNING_FROM_SCRIPT || (echo \"You must use publish.sh instead of 'npm publish' directly!\"; exit 1)) && npm test && npm run lint",
+        "clean": "rm -rf build",
+        "lint": "npm run build && ./node_modules/.bin/eslint ./src ./test",
+        "lint:fix": "./node_modules/.bin/eslint ./src ./test --ext .js,.jsx --fix"
+    },
+    "dependencies": {
+        "@apify/ps-tree": "^1.1.3",
+        "apify-client": "^0.5.14",
+        "apify-shared": "^0.1.41",
+        "bluebird": "^3.5.3",
+        "cheerio": "^1.0.0-rc.2",
+        "content-type": "^1.0.4",
+        "express": "^4.16.4",
+        "fs-extra": "^7.0.1",
+        "iltorb": "^2.4.2",
+        "jquery": "^3.3.1",
+        "mime": "^2.3.1",
+        "proxy-chain": "^0.2.5",
+        "socket.io": "^2.2.0",
+        "request": "^2.88.0",
+        "request-promise-native": "^1.0.5",
+        "rimraf": "^2.6.2",
+        "underscore": "^1.9.1",
+        "ws": "^6.1.2",
+        "xregexp": "^4.2.4"
+    },
+    "devDependencies": {
+        "@babel/cli": "^7.0.0",
+        "@babel/core": "^7.0.0",
+        "@babel/preset-env": "^7.0.0",
+        "@babel/register": "^7.0.0",
+        "basic-auth-parser": "^0.0.2",
+        "chai": "^4.2.0",
+        "chai-as-promised": "^7.1.1",
+        "chai-subset": "^1.6.0",
+        "eslint": "^5.9.0",
+        "eslint-config-airbnb": "^17.1.0",
+        "eslint-config-airbnb-base": "^13.1.0",
+        "eslint-plugin-import": "^2.14.0",
+        "eslint-plugin-jsx-a11y": "^6.1.2",
+        "eslint-plugin-promise": "^4.0.1",
+        "eslint-plugin-react": "^7.11.1",
+        "jsdoc": "^3.5.5",
+        "jsdoc-export-default-interop": "^0.3.1",
+        "mocha": "^5.2.0",
+        "nyc": "^14.0.0",
+        "portastic": "^1.0.1",
+        "proxy": "^0.2.4",
+        "sinon": "^7.1.1",
+        "sinon-stub-promise": "^4.0.0",
+        "socket.io-client": "^2.2.0",
+        "why-is-node-running": "^2.0.3"
+    },
+    "optionalDependencies": {
+        "puppeteer": "1.14.0",
+        "selenium-webdriver": "^3.6.0"
+    }
 }

@@ -5,9 +5,10 @@ import BasicCrawler from './basic_crawler';
 import PuppeteerPool from './puppeteer_pool';
 import { addTimeoutToPromise } from './utils';
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from './constants';
+import { gotoExtended } from './puppeteer_utils';
 
 const DEFAULT_OPTIONS = {
-    gotoFunction: async ({ request, page }) => page.goto(request.url, { timeout: 60000 }),
+    gotoFunction: async ({ request, page }) => gotoExtended(page, request, { timeout: 60000 }),
     handlePageTimeoutSecs: 60,
     handleFailedRequestFunction: ({ request }) => {
         const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
@@ -223,7 +224,7 @@ class PuppeteerCrawler {
             proxyUrls,
         };
         Object.entries(deprecatedPuppeteerPoolOptions).forEach(([key, value]) => {
-            if (value) log.deprecated(`PuppeteerCrawler: options.${key} is deprecated. Use options.puppeteerPoolOptions instead.`);
+            if (value) log.deprecated(`PuppeteerCrawler: "options.${key}" is deprecated, use "options.puppeteerPoolOptions" in PuppeteerCrawler() constructor instead.`); // eslint-disable-line max-len
         });
         // puppeteerPoolOptions can be null or undefined or Object, so we merge it this way, because null is not replaced by defaults above.
         this.puppeteerPoolOptions = _.defaults(
@@ -276,6 +277,7 @@ class PuppeteerCrawler {
      */
     async _handleRequestFunction({ request, autoscaledPool }) {
         const page = await this.puppeteerPool.newPage();
+
         try {
             const response = await this.gotoFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool });
             request.loadedUrl = page.url();

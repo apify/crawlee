@@ -391,6 +391,7 @@ export const isAtHome = () => !!process.env[ENV_VARS.IS_AT_HOME];
  * ```
  * @param {Number} millis Period of time to sleep, in milliseconds. If not a positive number, the returned promise resolves immediately.
  * @memberof utils
+ * @name sleep
  * @return {Promise}
  */
 export const sleep = (millis) => {

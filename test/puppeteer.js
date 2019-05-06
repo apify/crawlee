@@ -1,4 +1,5 @@
-import { expect } from 'chai';
+import chai, { expect } from 'chai';
+import chaiAsPromised from 'chai-as-promised';
 import proxy from 'proxy';
 import http from 'http';
 import util from 'util';
@@ -10,6 +11,8 @@ import { ENV_VARS } from 'apify-shared/consts';
 import Apify from '../build/index';
 import * as actor from '../build/actor';
 import * as utils from '../build/utils';
+
+chai.use(chaiAsPromised);
 
 let prevEnvHeadless;
 let proxyServer;
@@ -65,20 +68,20 @@ after(function () {
 
 describe('Apify.launchPuppeteer()', () => {
     it('throws on invalid args', () => {
-        expect(() => Apify.launchPuppeteer('some non-object')).to.throw(Error);
-        expect(() => Apify.launchPuppeteer(1234)).to.throw(Error);
+        expect(Apify.launchPuppeteer('some non-object')).to.be.rejectedWith(Error);
+        expect(Apify.launchPuppeteer(1234)).to.be.rejectedWith(Error);
 
-        expect(() => Apify.launchPuppeteer({ proxyUrl: 234 })).to.throw(Error);
-        expect(() => Apify.launchPuppeteer({ proxyUrl: {} })).to.throw(Error);
-        expect(() => Apify.launchPuppeteer({ proxyUrl: 'invalidurl' })).to.throw(Error);
-        expect(() => Apify.launchPuppeteer({ proxyUrl: 'http://host-without-port' })).to.throw(Error);
-        expect(() => Apify.launchPuppeteer({ proxyUrl: 'invalid://somehost:1234' })).to.throw(Error);
-        expect(() => Apify.launchPuppeteer({ proxyUrl: 'https://somehost:1234' })).to.throw(Error);
-        expect(() => Apify.launchPuppeteer({ proxyUrl: ' something really bad' })).to.throw(Error);
-        expect(() => Apify.launchPuppeteer({ proxyUrl: 'xxx', useApifyProxy: true })).to.throw(Error);
+        expect(Apify.launchPuppeteer({ proxyUrl: 234 })).to.be.rejectedWith(Error);
+        expect(Apify.launchPuppeteer({ proxyUrl: {} })).to.be.rejectedWith(Error);
+        expect(Apify.launchPuppeteer({ proxyUrl: 'invalidurl' })).to.be.rejectedWith(Error);
+        expect(Apify.launchPuppeteer({ proxyUrl: 'http://host-without-port' })).to.be.rejectedWith(Error);
+        expect(Apify.launchPuppeteer({ proxyUrl: 'invalid://somehost:1234' })).to.be.rejectedWith(Error);
+        expect(Apify.launchPuppeteer({ proxyUrl: 'https://somehost:1234' })).to.be.rejectedWith(Error);
+        expect(Apify.launchPuppeteer({ proxyUrl: ' something really bad' })).to.be.rejectedWith(Error);
+        expect(Apify.launchPuppeteer({ proxyUrl: 'xxx', useApifyProxy: true })).to.be.rejectedWith(Error);
 
-        expect(() => Apify.launchPuppeteer({ args: 'wrong args' })).to.throw(Error);
-        expect(() => Apify.launchPuppeteer({ args: [12, 34] })).to.throw(Error);
+        expect(Apify.launchPuppeteer({ args: 'wrong args' })).to.be.rejectedWith(Error);
+        expect(Apify.launchPuppeteer({ args: [12, 34] })).to.be.rejectedWith(Error);
     });
 
     it('opens https://www.example.com', () => {
@@ -231,6 +234,6 @@ describe('Apify.launchPuppeteer()', () => {
             headless: true,
         };
 
-        expect(() => Apify.launchPuppeteer(opts)).to.throw(Error);
+        expect(Apify.launchPuppeteer(opts)).to.be.rejectedWith(Error);
     });
 });

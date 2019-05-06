@@ -223,7 +223,9 @@ class Snapshotter {
             });
 
             this.memorySnapshots.push(snapshot);
-            this._memoryOverloadWarning(memInfo);
+            // TODO revisit this once we add memory readings from platform.
+            // It only scares people and provides no value, because it's always wrong about memory.
+            // this._memoryOverloadWarning(memInfo);
         } catch (err) {
             log.exception(err, 'Snapshotter: Memory snapshot failed.');
         } finally {

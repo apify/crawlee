@@ -20,9 +20,9 @@ await Apify.utils.sleep(1500);
 
 * [`utils`](#utils) : <code>object</code>
     * [`.enqueueLinks`](#utils.enqueueLinks) ⇒ <code>Promise&lt;Array&lt;QueueOperationInfo&gt;&gt;</code>
+    * [`.sleep`](#utils.sleep) ⇒ <code>Promise</code>
     * [`.URL_NO_COMMAS_REGEX`](#utils.URL_NO_COMMAS_REGEX)
     * [`.URL_WITH_COMMAS_REGEX`](#utils.URL_WITH_COMMAS_REGEX)
-    * [`.exports.sleep`](#utils.exports.sleep) ⇒ <code>Promise</code>
     * [`.isDocker()`](#utils.isDocker) ⇒ <code>Promise</code>
     * [`.downloadListOfUrls(options)`](#utils.downloadListOfUrls) ⇒ <code>Promise&lt;Array&lt;String&gt;&gt;</code>
     * [`.extractUrls(string, [urlRegExp])`](#utils.extractUrls) ⇒ <code>Array&lt;String&gt;</code>
@@ -141,21 +141,9 @@ await Apify.utils.enqueueLinks({
 }
 </code></pre></td></tr></tbody>
 </table>
-<a name="utils.URL_NO_COMMAS_REGEX"></a>
+<a name="utils.sleep"></a>
 
-## `utils.URL_NO_COMMAS_REGEX`
-Default regular expression to match URLs in a string that may be plain text, JSON, CSV or other. It supports common URL characters
-and does not support URLs containing commas or spaces. The URLs also may contain Unicode letters (not symbols).
-
-<a name="utils.URL_WITH_COMMAS_REGEX"></a>
-
-## `utils.URL_WITH_COMMAS_REGEX`
-Regular expression that, in addition to the default regular expression `URL_NO_COMMAS_REGEX`, supports matching commas in URL path and query.
-Note, however, that this may prevent parsing URLs from comma delimited lists, or the URLs may become malformed.
-
-<a name="utils.exports.sleep"></a>
-
-## `utils.exports.sleep` ⇒ <code>Promise</code>
+## `utils.sleep` ⇒ <code>Promise</code>
 Returns a `Promise` that resolves after a specific period of time. This is useful to implement waiting
 in your code, e.g. to prevent overloading of target website or to avoid bot detection.
 
@@ -184,6 +172,18 @@ await Apify.utils.sleep(1500);
 <td colspan="3"><p>Period of time to sleep, in milliseconds. If not a positive number, the returned promise resolves immediately.</p>
 </td></tr></tbody>
 </table>
+<a name="utils.URL_NO_COMMAS_REGEX"></a>
+
+## `utils.URL_NO_COMMAS_REGEX`
+Default regular expression to match URLs in a string that may be plain text, JSON, CSV or other. It supports common URL characters
+and does not support URLs containing commas or spaces. The URLs also may contain Unicode letters (not symbols).
+
+<a name="utils.URL_WITH_COMMAS_REGEX"></a>
+
+## `utils.URL_WITH_COMMAS_REGEX`
+Regular expression that, in addition to the default regular expression `URL_NO_COMMAS_REGEX`, supports matching commas in URL path and query.
+Note, however, that this may prevent parsing URLs from comma delimited lists, or the URLs may become malformed.
+
 <a name="utils.isDocker"></a>
 
 ## `utils.isDocker()` ⇒ <code>Promise</code>

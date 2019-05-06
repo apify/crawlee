@@ -24,6 +24,9 @@ await puppeteer.injectJQuery(page);
 
 
 * [`puppeteer`](#puppeteer) : <code>object</code>
+    * [`.addInterceptRequestHandler`](#puppeteer.addInterceptRequestHandler) ⇒ <code>Promise</code>
+    * [`.removeInterceptRequestHandler`](#puppeteer.removeInterceptRequestHandler) ⇒ <code>Promise</code>
+    * [`.gotoExtended`](#puppeteer.gotoExtended) ⇒ <code>Promise&lt;Response&gt;</code>
     * [`.hideWebDriver(page)`](#puppeteer.hideWebDriver) ⇒ <code>Promise</code>
     * [`.injectFile(page, filePath, [options])`](#puppeteer.injectFile) ⇒ <code>Promise</code>
     * [`.injectJQuery(page)`](#puppeteer.injectJQuery) ⇒ <code>Promise</code>
@@ -32,6 +35,127 @@ await puppeteer.injectJQuery(page);
     * [`.cacheResponses(page, cache, responseUrlRules)`](#puppeteer.cacheResponses) ⇒ <code>Promise</code>
     * [`.compileScript(scriptString, context)`](#puppeteer.compileScript) ⇒ <code>function</code>
 
+<a name="puppeteer.addInterceptRequestHandler"></a>
+
+## `puppeteer.addInterceptRequestHandler` ⇒ <code>Promise</code>
+Adds request interception handler in similar to `page.on('request', handler);` but in addition to that
+supports multiple parallel handlers.
+
+All the handlers are executed sequentially in the order as they were added.
+Each of the handlers must call one of `request.continue()`, `request.abort()` and `request.respond()`.
+In addition to that any of the handlers may modify the request object (method, postData, headers)
+by passing its overrides to `request.continue()`.
+If multiple handlers modify same property then the last one wins. Headers are merged separately so you can
+override only a value of specific header.
+
+If one the handlers calls `request.abort()` or `request.respond()` then request is not propagated further
+to any of the remaining handlers.
+
+
+**Example usage:**
+
+```javascript
+// Replace images with placeholder.
+await addInterceptRequestHandler(page, (request) => {
+    if (request.resourceType() === 'image') {
+        return request.respond({
+            statusCode: 200,
+            contentType: 'image/jpeg',
+            body: placeholderImageBuffer,
+        });
+    }
+    return request.continue();
+});
+
+// Abort all the scripts.
+await addInterceptRequestHandler(page, (request) => {
+    if (request.resourceType() === 'script') return request.abort();
+    return request.continue();
+});
+
+// Change requests to post.
+await addInterceptRequestHandler(page, (request) => {
+    return request.continue({
+         method: 'POST',
+    });
+});
+
+await page.goto('http://example.com');
+```
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>page</code></td><td><code>Page</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.</p>
+</td></tr><tr>
+<td><code>handler</code></td><td><code>function</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Request interception handler.</p>
+</td></tr></tbody>
+</table>
+<a name="puppeteer.removeInterceptRequestHandler"></a>
+
+## `puppeteer.removeInterceptRequestHandler` ⇒ <code>Promise</code>
+Removes request interception handler for given page.
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>page</code></td><td><code>Page</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.</p>
+</td></tr><tr>
+<td><code>handler</code></td><td><code>function</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Request interception handler.</p>
+</td></tr></tbody>
+</table>
+<a name="puppeteer.gotoExtended"></a>
+
+## `puppeteer.gotoExtended` ⇒ <code>Promise&lt;Response&gt;</code>
+Extended version of Puppeteer's `page.goto()` allowing to perform requests with HTTP method other than GET,
+with custom headers and POST payload. URL, method, headers and payload are taken from
+request parameter that must be an instance of Apify.Request class.
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>page</code></td><td><code>Page</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.</p>
+</td></tr><tr>
+<td><code>request</code></td><td><code><a href="request">Request</a></code></td>
+</tr>
+<tr>
+<td colspan="3"></td></tr><tr>
+<td><code>gotoOptions</code></td><td><code>Object</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Custom options for <code>page.goto()</code>.</p>
+</td></tr></tbody>
+</table>
 <a name="puppeteer.hideWebDriver"></a>
 
 ## `puppeteer.hideWebDriver(page)` ⇒ <code>Promise</code>

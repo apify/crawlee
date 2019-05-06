@@ -147,7 +147,10 @@ await crawler.run();
   request: Request
 }
 </code></pre><p>  where the <a href="request"><code>Request</code></a> instance corresponds to the initialized request.</p>
-<p>  The function should always return <a href="request"><code>Request</code></a>.</p>
+<p>  The function should modify the properties of the passed <a href="request"><code>Request</code></a> instance
+  in place because there are already earlier references to it. Making a copy and returning it from
+  this function is therefore not supported, because it would create inconsistencies where
+  different parts of SDK would have access to a different <a href="request"><code>Request</code></a> instance.</p>
 </td></tr><tr>
 <td><code>[options.handlePageTimeoutSecs]</code></td><td><code>Number</code></td><td><code>60</code></td>
 </tr>
