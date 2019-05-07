@@ -1001,11 +1001,11 @@ describe('Apify.metamorph()', () => {
         actsMock.restore();
     });
 
-    it('stringifies to JSON', async () => {
+    it('stringifies to JSON including functions', async () => {
         const runId = 'some-run-id';
         const actorId = 'some-actor-id';
         const targetActorId = 'some-target-actor-id';
-        const input = { foo: 'bar' };
+        const input = { foo: 'bar', func: () => { return 123; } };
 
         process.env[ENV_VARS.ACTOR_ID] = actorId;
         process.env[ENV_VARS.ACTOR_RUN_ID] = runId;
@@ -1016,7 +1016,10 @@ describe('Apify.metamorph()', () => {
                 runId,
                 actId: actorId,
                 targetActorId,
-                body: JSON.stringify(input, null, 2),
+                body: `{
+  "foo": "bar",
+  "func": "() => {\\n        return 123;\\n      }"
+}`,
                 contentType: 'application/json; charset=utf-8',
                 build: undefined,
             })
