@@ -1,3 +1,9 @@
+xxxxxxxxxxxxxxxxxxx
+===================
+- Stringification to JSON of actor input in `Apify.call()`, `Apify.callTask()` and `Apify.metamorph()`
+  now also supports functions via `func.toString()`. The same holds for record body in `setValue()`
+  method of key-value store.
+
 0.14.5 / 2019-05-06
 ===================
 - Update Puppeteer to 1.15.0.
@@ -70,7 +76,7 @@
 - **BREAKING CHANGE:** Added `handleRequestTimeoutSecs` option to `BasicCrawler` with a 60 second default.
 - **DEPRECATED:** `PuppeteerPool` options in the `PuppeteerCrawler` constructor are now deprecated.
   Please use the new `puppeteerPoolOptions` argument of type `Object` to pass them. `launchPuppeteerFunction`
-  and `launchPuppeteerOptions` are still available as shortcuts for convenience.   
+  and `launchPuppeteerOptions` are still available as shortcuts for convenience.
 - `CheerioCrawler` and `PuppeteerCrawler` now automatically set `handleRequestTimeoutSecs` to 10 times
   their `handlePageTimeoutSecs`. This is a precaution that should keep requests from hanging forever.
 - Added `options.prepareRequestFunction()` to `CheerioCrawler` constructor to enable modification

@@ -6,6 +6,7 @@ import mime from 'mime';
 import LruCache from 'apify-shared/lru_cache';
 import { KEY_VALUE_STORE_KEY_REGEX } from 'apify-shared/regexs';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, KEY_VALUE_STORE_KEYS } from 'apify-shared/consts';
+import { jsonStringifyExtended } from 'apify-shared/utilities';
 import { checkParamOrThrow, parseBody } from 'apify-client/build/utils';
 import {
     addCharsetToContentType, apifyClient, ensureDirExists, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists,
@@ -76,7 +77,7 @@ export const maybeStringify = (value, options) => {
 
         try {
             // Format JSON to simplify debugging, the overheads with compression is negligible
-            value = JSON.stringify(value, null, 2);
+            value = jsonStringifyExtended(value, null, 2);
         } catch (e) {
             // Give more meaningful error message
             if (e.message && e.message.indexOf('Invalid string length') >= 0) {
@@ -87,7 +88,7 @@ export const maybeStringify = (value, options) => {
 
         if (value === undefined) {
             throw new Error('The "value" parameter was stringified to JSON and returned undefined. '
-                + 'Make sure you\'re not trying to stringify a Function.');
+                + 'Make sure you\'re not trying to stringify an undefined value.');
         }
     }
 
