@@ -25,8 +25,10 @@ const MAX_INJECT_FILE_CACHE_SIZE = 10;
  *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
  * @return {Promise}
  * @memberOf puppeteer
+ * @ignore
  */
 const hideWebDriver = async (page) => {
+    log.deprecated('Apify.utils.puppeteer.hideWebDriver() is deprecated. Use launchPuppeteerOptions.stealth instead.');
     checkParamOrThrow(page, 'page', 'Object');
 
     await page.evaluateOnNewDocument(() => {

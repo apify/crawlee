@@ -1,6 +1,5 @@
 import path from 'path';
 import _ from 'underscore';
-import Promise from 'bluebird';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { APIFY_PROXY_VALUE_REGEX } from 'apify-shared/regexs';
@@ -55,7 +54,7 @@ const waitForRunToFinish = async ({ actId, runId, token, waitSecs, taskId }) => 
 
         // It might take some time for database replicas to get up-to-date,
         // so getRun() might return null. Wait a little bit and try it again.
-        if (!updatedRun) await Promise.delay(250);
+        if (!updatedRun) await sleep(250);
     }
 
     if (!updatedRun) {
@@ -435,7 +434,7 @@ export const call = async (actId, input, options = {}) => {
  * ```
  *
  * Internally, the `callTask()` function calls the
- * <a href="https://apify.com/docs/api/v2#/reference/actor-tasks/runs-collection/run-task-asynchronously" target="_blank">Run task</a>
+ * <a href="https://apify.com/docs/api/v2#/reference/actor-tasks/run-collection/run-task" target="_blank">Run task</a>
  * and several other API endpoints to obtain the output.
  *
  * @param {String} taskId
@@ -793,7 +792,7 @@ export const addWebhook = async ({ eventTypes, requestUrl }) => {
 
     const runId = process.env[ENV_VARS.ACTOR_RUN_ID];
     if (!runId) {
-        throw new Error(`Environment variable ${ENV_VARS.ACTOR_RUN_ID} must be provided!`);
+        throw new Error(`Environment variable ${ENV_VARS.ACTOR_RUN_ID} is not set!`);
     }
 
     return apifyClient.webhooks.createWebhook({

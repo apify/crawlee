@@ -27,7 +27,6 @@ await puppeteer.injectJQuery(page);
     * [`.addInterceptRequestHandler`](#puppeteer.addInterceptRequestHandler) ⇒ <code>Promise</code>
     * [`.removeInterceptRequestHandler`](#puppeteer.removeInterceptRequestHandler) ⇒ <code>Promise</code>
     * [`.gotoExtended`](#puppeteer.gotoExtended) ⇒ <code>Promise&lt;Response&gt;</code>
-    * [`.hideWebDriver(page)`](#puppeteer.hideWebDriver) ⇒ <code>Promise</code>
     * [`.injectFile(page, filePath, [options])`](#puppeteer.injectFile) ⇒ <code>Promise</code>
     * [`.injectJQuery(page)`](#puppeteer.injectJQuery) ⇒ <code>Promise</code>
     * [`.injectUnderscore(page)`](#puppeteer.injectUnderscore) ⇒ <code>Promise</code>
@@ -154,26 +153,6 @@ request parameter that must be an instance of Apify.Request class.
 </tr>
 <tr>
 <td colspan="3"><p>Custom options for <code>page.goto()</code>.</p>
-</td></tr></tbody>
-</table>
-<a name="puppeteer.hideWebDriver"></a>
-
-## `puppeteer.hideWebDriver(page)` ⇒ <code>Promise</code>
-Hides certain Puppeteer fingerprints from the page, in order to help avoid detection of the crawler.
-The function should be called on a newly-created page object before navigating to the target crawled page.
-
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>page</code></td><td><code>Page</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.</p>
 </td></tr></tbody>
 </table>
 <a name="puppeteer.injectFile"></a>

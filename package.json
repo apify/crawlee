@@ -1,6 +1,6 @@
 {
     "name": "apify",
-    "version": "0.14.2",
+    "version": "0.14.5",
     "description": "The scalable web crawling and scraping library for JavaScript. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.",
     "engines": {
         "node": ">=8.14.0"
@@ -51,20 +51,20 @@
     "dependencies": {
         "@apify/ps-tree": "^1.1.3",
         "apify-client": "^0.5.14",
-        "apify-shared": "^0.1.41",
-        "bluebird": "^3.5.3",
+        "apify-shared": "^0.1.43",
         "cheerio": "^1.0.0-rc.2",
         "content-type": "^1.0.4",
         "express": "^4.16.4",
         "fs-extra": "^7.0.1",
+        "htmlparser2": "^3.10.1",
         "iltorb": "^2.4.2",
         "jquery": "^3.3.1",
         "mime": "^2.3.1",
         "proxy-chain": "^0.2.5",
-        "socket.io": "^2.2.0",
         "request": "^2.88.0",
         "request-promise-native": "^1.0.5",
         "rimraf": "^2.6.2",
+        "socket.io": "^2.2.0",
         "underscore": "^1.9.1",
         "ws": "^6.1.2",
         "xregexp": "^4.2.4"
@@ -85,6 +85,8 @@
         "eslint-plugin-jsx-a11y": "^6.1.2",
         "eslint-plugin-promise": "^4.0.1",
         "eslint-plugin-react": "^7.11.1",
+        "fpcollect": "^1.0.4",
+        "fpscanner": "^0.1.5",
         "jsdoc": "^3.5.5",
         "jsdoc-export-default-interop": "^0.3.1",
         "mocha": "^5.2.0",
@@ -97,7 +99,7 @@
         "why-is-node-running": "^2.0.3"
     },
     "optionalDependencies": {
-        "puppeteer": "1.14.0",
+        "puppeteer": "1.15.0",
         "selenium-webdriver": "^3.6.0"
     }
 }

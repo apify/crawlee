@@ -1,9 +1,12 @@
+/* eslint-disable class-methods-use-this */
+
 import util from 'util';
 import zlib from 'zlib';
 import rqst from 'request';
 import _ from 'underscore';
 import cheerio from 'cheerio';
 import contentType from 'content-type';
+import htmlparser from 'htmlparser2';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import BasicCrawler from './basic_crawler';
@@ -35,6 +38,13 @@ const DEFAULT_OPTIONS = {
 /**
  * Provides a framework for the parallel crawling of web pages using plain HTTP requests and
  * <a href="https://www.npmjs.com/package/cheerio" target="_blank">cheerio</a> HTML parser.
+ * The URLs to crawl are fed either from a static list of URLs
+ * or from a dynamic queue of URLs enabling recursive crawling of websites.
+ *
+ * Since `CheerioCrawler` uses raw HTTP requests to download web pages,
+ * it is very fast and efficient on data bandwidth. However, if the target website requires JavaScript
+ * to display the content, you might need to use {@link PuppeteerCrawler} instead,
+ * because it loads the pages using full-featured headless Chrome browser.
  *
  * `CheerioCrawler` downloads each URL using a plain HTTP request,
  * parses the HTML content using <a href="https://www.npmjs.com/package/cheerio" target="_blank">Cheerio</a>
@@ -106,7 +116,7 @@ const DEFAULT_OPTIONS = {
  * ```
  * {
  *   $: Cheerio, // the Cheerio object with parsed HTML
- *   html: String // the raw HTML of the page
+ *   html: String // the raw HTML of the page, lazy loaded only when used
  *   request: Request,
  *   response: Object // An instance of Node's http.IncomingMessage object,
  *   autoscaledPool: AutoscaledPool
@@ -315,18 +325,28 @@ class CheerioCrawler {
      */
     async _handleRequestFunction({ request, autoscaledPool }) {
         if (this.prepareRequestFunction) await this.prepareRequestFunction({ request });
-        const response = await addTimeoutToPromise(
+        const { dom, response } = await addTimeoutToPromise(
             this._requestFunction({ request }),
             this.requestTimeoutMillis,
             'CheerioCrawler: requestFunction timed out.',
         );
 
-        const html = response.body;
         request.loadedUrl = response.request.uri.href;
 
-        const $ = cheerio.load(html);
+        const $ = cheerio.load(dom);
+        const context = {
+            $,
+            // Using a getter here not to break the original API
+            // and lazy load the HTML only when needed.
+            get html() {
+                return $.html({ decodeEntities: false });
+            },
+            request,
+            response,
+            autoscaledPool,
+        };
         return addTimeoutToPromise(
-            this.handlePageFunction({ $, html, request, response, autoscaledPool }),
+            this.handlePageFunction(context),
             this.handlePageTimeoutMillis,
             'CheerioCrawler: handlePageFunction timed out.',
         );
@@ -346,13 +366,13 @@ class CheerioCrawler {
             const method = opts.method.toLowerCase();
             rqst[method](opts)
                 .on('error', err => reject(err))
-                .on('response', async (res) => {
+                .on('response', async (response) => {
                     // First check what kind of response we received.
                     let cType;
                     try {
-                        cType = contentType.parse(res);
+                        cType = contentType.parse(response);
                     } catch (err) {
-                        res.destroy();
+                        response.destroy();
                         // No reason to parse the body if the Content-Type header is invalid.
                         return reject(new Error(`CheerioCrawler: Invalid Content-Type header for URL: ${request.url}`));
                     }
@@ -360,11 +380,11 @@ class CheerioCrawler {
                     const { type, encoding } = cType;
 
                     // 500 codes are handled as errors, requests will be retried.
-                    const status = res.statusCode;
+                    const status = response.statusCode;
                     if (status >= 500) {
                         let body;
                         try {
-                            body = await this._readStreamIntoString(res, encoding);
+                            body = await this._stringifyResponseBody(this._decompressResponse(response), encoding);
                         } catch (err) {
                             // Error in reading the body.
                             return reject(err);
@@ -385,14 +405,14 @@ class CheerioCrawler {
                     // it will not serve the resource as text/html by skipping.
                     if (status === 406) {
                         request.doNotRetry();
-                        res.destroy();
+                        response.destroy();
                         return reject(new Error(`CheerioCrawler: Resource ${request.url} is not available in HTML format. Skipping resource.`));
                     }
 
                     // Other 200-499 responses are considered OK, but first check the content type.
                     if (type !== 'text/html') {
                         request.doNotRetry();
-                        res.destroy();
+                        response.destroy();
                         return reject(new Error(
                             `CheerioCrawler: Resource ${request.url} served Content-Type ${type} instead of text/html. Skipping resource.`,
                         ));
@@ -400,8 +420,8 @@ class CheerioCrawler {
 
                     // Content-Type is fine. Read the body and respond.
                     try {
-                        res.body = await this._readStreamIntoString(res, encoding);
-                        resolve(res);
+                        const dom = await this._parseHtmlToDom(this._decompressResponse(response));
+                        resolve({ dom, response });
                     } catch (err) {
                         // Error in reading the body.
                         reject(err);
@@ -456,35 +476,51 @@ class CheerioCrawler {
      * Flushes the provided stream into a Buffer and transforms
      * it to a String using the provided encoding or utf-8 as default.
      *
-     * If the stream data is compressed, decompresses it using
-     * the Content-Encoding header.
-     *
      * @param {http.IncomingMessage} response
      * @param {String} [encoding]
-     * @returns {Promise<String>}
      * @private
      */
-    async _readStreamIntoString(response, encoding) { // eslint-disable-line class-methods-use-this
-        const compression = response.headers['content-encoding'];
-        let stream = response;
-        if (compression) {
-            let decompressor;
-            if (compression === 'gzip') decompressor = zlib.createGunzip();
-            else if (compression === 'deflate') decompressor = zlib.createInflate();
-            else throw new Error(`CheerioCrawler: Invalid Content-Encoding header. Expected gzip or deflate, but received: ${compression}`);
-            stream = response.pipe(decompressor);
-        }
-
+    async _stringifyResponseBody(response, encoding) {
         return new Promise((resolve, reject) => {
             const chunks = [];
-            stream
+            response
                 .on('data', chunk => chunks.push(chunk))
-                .on('error', err => reject(err))
+                .on('error', reject)
                 .on('end', () => {
                     const buffer = Buffer.concat(chunks);
                     resolve(buffer.toString(encoding));
                 });
         });
+    }
+
+
+    async _parseHtmlToDom(response) {
+        return new Promise((resolve, reject) => {
+            const domHandler = new htmlparser.DomHandler((err, dom) => {
+                if (err) reject(err);
+                else resolve(dom);
+            });
+            const parser = new htmlparser.Parser(domHandler, { decodeEntities: true });
+            response.on('error', reject).pipe(parser);
+        });
+    }
+
+    /**
+     * If the stream data is compressed, decompresses it using
+     * the Content-Encoding header.
+     *
+     * @param {http.IncomingMessage} response
+     * @return {http.IncomingMessage}
+     * @private
+     */
+    _decompressResponse(response) {
+        const compression = response.headers['content-encoding'];
+        if (!compression) return response;
+        let decompressor;
+        if (compression === 'gzip') decompressor = zlib.createGunzip();
+        else if (compression === 'deflate') decompressor = zlib.createInflate();
+        else throw new Error(`CheerioCrawler: Invalid Content-Encoding header. Expected gzip or deflate, but received: ${compression}`);
+        return response.pipe(decompressor);
     }
 
     /**

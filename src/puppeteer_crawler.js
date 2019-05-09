@@ -19,6 +19,13 @@ const DEFAULT_OPTIONS = {
 /**
  * Provides a simple framework for parallel crawling of web pages
  * using headless Chrome with <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a>.
+ * The URLs to crawl are fed either from a static list of URLs
+ * or from a dynamic queue of URLs enabling recursive crawling of websites.
+ *
+ * Since `PuppeteerCrawler` uses headless Chrome to download web pages and extract data,
+ * it is useful for crawling of websites that require to execute JavaScript.
+ * If the target website doesn't need JavaScript, consider using {@link CheerioCrawler},
+ * which downloads the pages using raw HTTP requests and is about 10x faster.
  *
  * The source URLs are represented using {@link Request} objects that are fed from
  * {@link RequestList} or {@link RequestQueue} instances provided by the [`requestList`](#new_PuppeteerCrawler_new)

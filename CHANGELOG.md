@@ -1,4 +1,20 @@
-xxx
+xxxxxxxxxxxxxxxxxxx
+===================
+- Stringification to JSON of actor input in `Apify.call()`, `Apify.callTask()` and `Apify.metamorph()`
+  now also supports functions via `func.toString()`. The same holds for record body in `setValue()`
+  method of key-value store.
+
+0.14.5 / 2019-05-06
+===================
+- Update Puppeteer to 1.15.0.
+
+0.14.4 / 2019-05-06
+===================
+- Added the `stealth` option `launchPuppeteerOptions` which decreases headless browser detection chance.
+- **DEPRECATED**: `Apify.utils.puppeteer.hideWebDriver` use `launchPuppeteerOptions.stealth` instead.
+- `CheerioCrawler` now parses HTML using streams. This improves performance and memory usage in most cases.
+
+0.14.3 / 2019-05-06
 ===================
 - Request queue now allows crawlers to finish quickly without waiting in a case that queue was used by a single client.
 - Better logging of errors in `Apify.main()`
@@ -22,8 +38,6 @@ xxx
 - New version of Live View is available by passing the `useLiveView = true` option to `PuppeteerPool`.
    - Only shows snapshots of a single page from a single browser.
    - Only makes snapshots when a client is connected, having very low performance impact otherwise.
-- Added `Apify.utils.requestExtended` which extends the popular `request` package with fixes and improvements.
-- Added `Apify.utils.requestLikeBrowser` which uses `requestExtended` and disguises as a request made by browser.
 - Added `Apify.utils.puppeteer.addInterceptRequestHandler` and `removeInterceptRequestHandler` which
   can be used to add multiple request interception handlers to Puppeteer's pages.
 - Added `puppeteerModule` to `LaunchPuppeteerOptions` which enables use of other Puppeteer modules,
