@@ -10,7 +10,7 @@ import requestPromise from 'request-promise-native';
 import XRegExp from 'xregexp';
 import cheerio from 'cheerio';
 import log from 'apify-shared/log';
-import { delayPromise, getRandomInt } from 'apify-shared/utilities';
+import { getRandomInt } from 'apify-shared/utilities';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { version as apifyClientVersion } from 'apify-client/package.json';
@@ -353,18 +353,6 @@ export const addTimeoutToPromise = (promise, timeoutMillis, errorMessage) => {
 };
 
 /**
- * Creates a promise that after given time gets rejected with given error.
- *
- * @return {Promise<Error>}
- * @ignore
- */
-export const createTimeoutPromise = (timeoutMillis, errorMessage) => {
-    return delayPromise(timeoutMillis).then(() => {
-        throw new Error(errorMessage);
-    });
-};
-
-/**
  * Returns `true` when code is running on Apify platform and `false` otherwise (for example locally).
  *
  * @returns {Boolean}
@@ -395,7 +383,7 @@ export const isAtHome = () => !!process.env[ENV_VARS.IS_AT_HOME];
  * @return {Promise}
  */
 export const sleep = (millis) => {
-    return delayPromise(millis);
+    return new Promise(res => setTimeout(res, millis));
 };
 
 /**

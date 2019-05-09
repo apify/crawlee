@@ -33,9 +33,14 @@ const DEFAULT_OPTIONS = {
 };
 
 /**
- * Provides a simple framework for parallel crawling of web pages,
- * whose URLs are fed either from a static list
- * or from a dynamic queue of URLs.
+ * Provides a simple framework for parallel crawling of web pages.
+ * The URLs to crawl are fed either from a static list of URLs
+ * or from a dynamic queue of URLs enabling recursive crawling of websites.
+ *
+ * `BasicCrawler` is a low-level tool that requires the user to implement the page
+ * download and data extraction functionality themselves.
+ * If you want a crawler that already facilitates this functionality,
+ * please consider using {@link PuppeteerCrawler} or {@link CheerioCrawler}.
  *
  * `BasicCrawler` invokes the user-provided [`handleRequestFunction()`](#new_BasicCrawler_new)
  * for each {@link Request} object, which represents a single URL to crawl.

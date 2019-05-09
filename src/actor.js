@@ -1,6 +1,5 @@
 import path from 'path';
 import _ from 'underscore';
-import Promise from 'bluebird';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { APIFY_PROXY_VALUE_REGEX } from 'apify-shared/regexs';
@@ -55,7 +54,7 @@ const waitForRunToFinish = async ({ actId, runId, token, waitSecs, taskId }) => 
 
         // It might take some time for database replicas to get up-to-date,
         // so getRun() might return null. Wait a little bit and try it again.
-        if (!updatedRun) await Promise.delay(250);
+        if (!updatedRun) await sleep(250);
     }
 
     if (!updatedRun) {

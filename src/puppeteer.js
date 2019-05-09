@@ -6,6 +6,7 @@ import { ENV_VARS } from 'apify-shared/consts';
 import { DEFAULT_USER_AGENT } from './constants';
 import { getTypicalChromeExecutablePath, isAtHome } from './utils';
 import { getApifyProxyUrl } from './actor';
+import applyStealthToBrowser from './stealth/stealth';
 
 /* global process, require */
 
@@ -68,6 +69,12 @@ const LAUNCH_PUPPETEER_DEFAULT_VIEWPORT = {
  *
  *   Take caution, because it can cause all kinds of unexpected errors and weird behavior.
  *   Apify SDK is not tested with any other library besides `puppeteer` itself.
+ * @property {boolean} [stealth]
+ *   This setting hides most of the known properties that identify headless Chrome and makes it nearly undetectable.
+ *   It is recommended to use it together with the `useChrome` set to `true`.
+ * @property {StealthOptions} [stealthOptions]
+ *   Using this configuration, you can disable some of the hiding tricks.
+ *   For these settings to take effect `stealth` must be set to true
  */
 
 /**
@@ -192,6 +199,8 @@ export const launchPuppeteer = async (options = {}) => {
     checkParamOrThrow(options.proxyUrl, 'options.proxyUrl', 'Maybe String');
     checkParamOrThrow(options.useApifyProxy, 'options.useApifyProxy', 'Maybe Boolean');
     checkParamOrThrow(options.puppeteerModule, 'options.puppeteerModule', 'Maybe String|Object');
+    checkParamOrThrow(options.stealth, 'options.stealth', 'Maybe Boolean');
+    checkParamOrThrow(options.stealthOptions, 'options.stealthOptions', 'Maybe Object');
     if (options.useApifyProxy && options.proxyUrl) throw new Error('Cannot combine "options.useApifyProxy" with "options.proxyUrl"!');
     if (options.liveView || options.liveViewOptions) {
         log.deprecated('Live view is no longer available in Apify.launchPuppeteer() and launchPuppeteerOptions. '
@@ -200,6 +209,7 @@ export const launchPuppeteer = async (options = {}) => {
     }
 
     const puppeteer = getPuppeteerOrThrow(options.puppeteerModule);
+
     const optsCopy = Object.assign({}, options);
 
     optsCopy.args = optsCopy.args || [];
@@ -232,7 +242,17 @@ export const launchPuppeteer = async (options = {}) => {
         optsCopy.args.push(`--user-agent=${userAgent}`);
     }
 
-    if (optsCopy.proxyUrl) return launchPuppeteerWithProxy(puppeteer, optsCopy);
+    let browser;
+    if (optsCopy.proxyUrl) {
+        browser = await launchPuppeteerWithProxy(puppeteer, optsCopy);
+    } else {
+        browser = await puppeteer.launch(optsCopy);
+    }
+
+    // Add stealth
+    if (optsCopy.stealth) {
+        browser = applyStealthToBrowser(browser, optsCopy.stealthOptions);
+    }
     log.info('Launching Puppeteer', _.omit(optsCopy, LAUNCH_PUPPETEER_LOG_OMIT_OPTS));
-    return puppeteer.launch(optsCopy);
+    return browser;
 };
