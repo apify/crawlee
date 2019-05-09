@@ -6,6 +6,13 @@ title: CheerioCrawler
 
 Provides a framework for the parallel crawling of web pages using plain HTTP requests and
 <a href="https://www.npmjs.com/package/cheerio" target="_blank">cheerio</a> HTML parser.
+The URLs to crawl are fed either from a static list of URLs
+or from a dynamic queue of URLs enabling recursive crawling of websites.
+
+Since `CheerioCrawler` uses raw HTTP requests to download web pages,
+it is very fast and efficient on data bandwidth. However, if the target website requires JavaScript
+to display the content, you might need to use [`PuppeteerCrawler`](puppeteercrawler) instead,
+because it loads the pages using full-featured headless Chrome browser.
 
 `CheerioCrawler` downloads each URL using a plain HTTP request,
 parses the HTML content using <a href="https://www.npmjs.com/package/cheerio" target="_blank">Cheerio</a>

@@ -886,10 +886,14 @@ const requestList = await Apify.openRequestList('my-name', sources);
 <td><code>sources</code></td><td><code>Array&lt;Object&gt;</code> | <code>Array&lt;string&gt;</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Sources represent the URLs to crawl. It can either be a <code>string[]</code> with plain URLs or an <code>Object[]</code>.
-  The objects&#39; contents can either be just plain objects, defining at least the &#39;url&#39; property
-  or instances of the <a href="request"><code>Request</code></a> class. See the (<code>new RequestList</code>)(RequestList#new_RequestList_new)
-  options for details.</p>
+<td colspan="3"><p>An array of sources of URLs for the <code>RequestList</code>.
+ It can be either an array of plain objects that
+ define the <code>url</code> property, or an array of instances of the <a href="request"><code>Request</code></a> class.
+ Additionally, the <code>requestsFromUrl</code> property may be used instead of <code>url</code>,
+ which will instruct <code>RequestList</code> to download the source URLs from a given remote location.
+ The URLs will be parsed from the received response.</p>
+<p> For details, see the (<code>RequestList</code>)[requestlist#new-exportsrequestlistoptions]
+ constructor options.</p>
 </td></tr><tr>
 <td><code>[options]</code></td><td><code>Object</code></td>
 </tr>
