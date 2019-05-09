@@ -191,9 +191,6 @@ For example, this lets you store the number of retries for the request.
 ## `requestQueue.isEmpty()` ⇒ <code>Promise&lt;Boolean&gt;</code>
 Resolves to `true` if the next call to [`fetchNextRequest`](#RequestQueue+fetchNextRequest) would return `null`, otherwise it resolves to `false`.
 Note that even if the queue is empty, there might be some pending requests currently being processed.
-Due to the nature of distributed storage systems, the function might occasionally return a false negative,
-but it will never return a false positive.
-
 If you need to ensure that there is no activity in the queue, use [`isFinished`](#RequestQueue+isFinished).
 
 <a name="RequestQueue+isFinished"></a>
