@@ -16,6 +16,7 @@ xxxxxxxxxxxxxxxxxxx
 
 0.14.3 / 2019-05-06
 ===================
+- Request queue now allows crawlers to finish quickly without waiting in a case that queue was used by a single client.
 - Better logging of errors in `Apify.main()`
 
 0.14.2 / 2019-04-25
