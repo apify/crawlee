@@ -1150,6 +1150,7 @@ describe('Apify.addWebhook()', () => {
         const runId = 'my-run-id';
         const expectedEventTypes = ['ACTOR.RUN.SUCCEEDED'];
         const expectedRequestUrl = 'http://example.com/api';
+        const expectedPayloadTemplate = '{"hello":{{world}}';
 
         process.env[ENV_VARS.ACTOR_RUN_ID] = runId;
         process.env[ENV_VARS.IS_AT_HOME] = '1';
@@ -1163,6 +1164,7 @@ describe('Apify.addWebhook()', () => {
                 actorRunId: runId,
             },
             requestUrl: expectedRequestUrl,
+            payloadTemplate: expectedPayloadTemplate,
         };
 
         webhooksMock.expects('createWebhook')
@@ -1171,7 +1173,11 @@ describe('Apify.addWebhook()', () => {
             .returns(Promise.resolve());
 
 
-        await Apify.addWebhook({ eventTypes: expectedEventTypes, requestUrl: expectedRequestUrl });
+        await Apify.addWebhook({
+            eventTypes: expectedEventTypes,
+            requestUrl: expectedRequestUrl,
+            payloadTemplate: expectedPayloadTemplate,
+        });
 
         delete process.env[ENV_VARS.ACTOR_RUN_ID];
         delete process.env[ENV_VARS.IS_AT_HOME];
@@ -1198,7 +1204,7 @@ describe('Apify.addWebhook()', () => {
         logMock.restore();
     });
 
-    it('should failed without actor run ID', async () => {
+    it('should fail without actor run ID', async () => {
         const expectedEventTypes = ['ACTOR.RUN.SUCCEEDED'];
         const expectedRequestUrl = 'http://example.com/api';
 

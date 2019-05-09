@@ -3,6 +3,7 @@ import _ from 'underscore';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { APIFY_PROXY_VALUE_REGEX } from 'apify-shared/regexs';
+import WebhookPayloadTemplate from 'apify-shared/webhook_payload_template';
 import { ENV_VARS, INTEGER_ENV_VARS, LOCAL_ENV_VARS, ACT_JOB_TERMINAL_STATUSES, ACT_JOB_STATUSES } from 'apify-shared/consts';
 import { EXIT_CODES } from './constants';
 import { initializeEvents, stopEvents } from './events';
@@ -771,19 +772,30 @@ export const getApifyProxyUrl = (options = {}) => {
  * Note that webhooks are only supported for actors running on the Apify platform.
  * In local environment, the function will print a warning and have no effect.
  *
- * @param options.eventTypes {String[]} - Array of event types, which you can set for actor run, see
- * the <a href="https://apify.com/docs/webhooks#events-actor-run" target="_blank">actor run events</a> in the Apify doc.
- * @param options.requestUrl {String} - URL which will be requested using HTTP POST request, when actor run will be in specific event type.
+ * @param {Object} options
+ * @param {String[]} options.eventTypes
+ *   Array of event types, which you can set for actor run, see
+ *   the <a href="https://apify.com/docs/webhooks#events-actor-run" target="_blank">actor run events</a> in the Apify doc.
+ * @param {String}  options.requestUrl
+ *   URL which will be requested using HTTP POST request, when actor run will reach the set event type.
+ * @param {String} [options.payloadTemplate]
+ *   Payload template is a JSON-like string that describes the structure of the webhook POST request payload.
+ *   It uses JSON syntax, extended with a double curly braces syntax for injecting variables `{{variable}}`.
+ *   Those variables are resolved at the time of the webhook's dispatch, and a list of available variables with their descriptions
+ *   is available in the <a href="https://apify.com/docs/webhooks" target="_blank">Apify webhook documentation</a>.
  *
- * @return {Promise<Object|undefined>}
+ *   When omitted, the default payload template will be used.
+ *   <a href="https://apify.com/docs/webhooks" target="_blank">See the docs for the default payload template</a>.
+ * @return {Promise<Object>}
  *
  * @memberof module:Apify
  * @function
  * @name addWebhook
  */
-export const addWebhook = async ({ eventTypes, requestUrl }) => {
+export const addWebhook = async ({ eventTypes, requestUrl, payloadTemplate }) => {
     checkParamOrThrow(eventTypes, 'eventTypes', '[String]');
     checkParamOrThrow(requestUrl, 'requestUrl', 'String');
+    checkParamOrThrow(payloadTemplate, 'payloadTemplate', 'Maybe String');
 
     if (!isAtHome()) {
         log.warning('Apify.addWebhook() is only supported when running on the Apify platform. The webhook will not be invoked.');
@@ -803,6 +815,7 @@ export const addWebhook = async ({ eventTypes, requestUrl }) => {
                 actorRunId: runId,
             },
             requestUrl,
+            payloadTemplate,
         },
     });
 };
