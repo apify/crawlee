@@ -3,7 +3,9 @@
 - Stringification to JSON of actor input in `Apify.call()`, `Apify.callTask()` and `Apify.metamorph()`
   now also supports functions via `func.toString()`. The same holds for record body in `setValue()`
   method of key-value store.
-- Request queue now monitors number of clients that accessed the queue and therefore can finish faster without 10s of waiting if the run was not migrated during its livetime.
+- Request queue now monitors number of clients that accessed the queue which allows crawlers to finish
+  without 10s waiting if run was not migrated during its lifetime.
+
 
 0.14.5 / 2019-05-06
 ===================
