@@ -1,3 +1,7 @@
+0.14.7 / 2019-05-12
+===================
+- Bump `apify-client` to 0.5.16
+
 0.14.6 / 2019-05-09
 ===================
 - Stringification to JSON of actor input in `Apify.call()`, `Apify.callTask()` and `Apify.metamorph()`
