@@ -1,0 +1,21 @@
+{
+	"name": "pptr-clicking",
+	"version": "1.0.0",
+	"description": "Crawl a number of web pages using headless Chrome and Puppeteer",
+	"main": "main.js",
+	"dependencies": {
+		"apify": "^0.14.5"
+	},
+	"devDependencies": {},
+	"scripts": {
+		"start": "node main.js",
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"repository": {
+		"type": "git",
+		"url": ""
+	},
+	"author": "",
+	"license": "ISC",
+	"homepage": ""
+}
