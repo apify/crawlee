@@ -94,15 +94,17 @@ const addInputOptionsOrThrow = (input, contentType, options) => {
 };
 
 /**
- * Returns a new object which contains information parsed from the `APIFY_XXX` environment variables.
- * It has the following properties:
+ * Returns a new object which contains information parsed from all the `APIFY_XXX` environment variables.
+ * It has properties such as the following:
  *
  * ```javascript
  * {
- *     // ID of the actor (APIFY_ACT_ID)
- *     actId: String,
- *     // ID of the actor run (APIFY_ACT_RUN_ID)
- *     actRunId: String,
+ *     // ID of the actor (APIFY_ACTOR_ID)
+ *     actorId: String,
+ *     // ID of the actor run (APIFY_ACTOR_RUN_ID)
+ *     actorRunId: String,
+ *     // ID of the actor task (APIFY_ACTOR_TASK_ID)
+ *     actorTaskId: String,
  *     // ID of the user who started the actor - note that it might be
  *     // different than the owner of the actor (APIFY_USER_ID)
  *     userId: String,
