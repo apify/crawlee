@@ -10,7 +10,7 @@ accessible from the left sidebar.
 
 
 * [Apify](#module_Apify)
-    * [`.addWebhook()`](#module_Apify.addWebhook) ⇒ <code>Promise&lt;(Object|undefined)&gt;</code>
+    * [`.addWebhook(options)`](#module_Apify.addWebhook) ⇒ <code>Promise&lt;Object&gt;</code>
     * [`.call(actId, [input], [options])`](#module_Apify.call) ⇒ [<code>Promise&lt;ActorRun&gt;</code>](../typedefs/actorrun)
     * [`.callTask(taskId, [input], [options])`](#module_Apify.callTask) ⇒ [<code>Promise&lt;ActorRun&gt;</code>](../typedefs/actorrun)
     * [`.client`](#module_Apify.client)
@@ -34,7 +34,7 @@ accessible from the left sidebar.
 
 <a name="module_Apify.addWebhook"></a>
 
-## `Apify.addWebhook()` ⇒ <code>Promise&lt;(Object|undefined)&gt;</code>
+## `Apify.addWebhook(options)` ⇒ <code>Promise&lt;Object&gt;</code>
 Creates an ad-hoc webhook for the current actor run, which lets you receive a notification when the actor run finished or failed.
 For more information about Apify actor webhooks, please see the <a href="https://apify.com/docs/webhook" target="_blank">documentation</a>.
 
@@ -49,16 +49,30 @@ In local environment, the function will print a warning and have no effect.
 </thead>
 <tbody>
 <tr>
+<td><code>options</code></td><td><code>Object</code></td>
+</tr>
+<tr>
+<td colspan="3"></td></tr><tr>
 <td><code>options.eventTypes</code></td><td><code>Array&lt;String&gt;</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Array of event types, which you can set for actor run, see
-the <a href="https://apify.com/docs/webhooks#events-actor-run" target="_blank">actor run events</a> in the Apify doc.</p>
+  the <a href="https://apify.com/docs/webhooks#events-actor-run" target="_blank">actor run events</a> in the Apify doc.</p>
 </td></tr><tr>
 <td><code>options.requestUrl</code></td><td><code>String</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>URL which will be requested using HTTP POST request, when actor run will be in specific event type.</p>
+<td colspan="3"><p>URL which will be requested using HTTP POST request, when actor run will reach the set event type.</p>
+</td></tr><tr>
+<td><code>[options.payloadTemplate]</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Payload template is a JSON-like string that describes the structure of the webhook POST request payload.
+  It uses JSON syntax, extended with a double curly braces syntax for injecting variables <code>{{variable}}</code>.
+  Those variables are resolved at the time of the webhook&#39;s dispatch, and a list of available variables with their descriptions
+  is available in the <a href="https://apify.com/docs/webhooks" target="_blank">Apify webhook documentation</a>.</p>
+<p>  When omitted, the default payload template will be used.
+  <a href="https://apify.com/docs/webhooks" target="_blank">See the docs for the default payload template</a>.</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.call"></a>
@@ -886,10 +900,14 @@ const requestList = await Apify.openRequestList('my-name', sources);
 <td><code>sources</code></td><td><code>Array&lt;Object&gt;</code> | <code>Array&lt;string&gt;</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Sources represent the URLs to crawl. It can either be a <code>string[]</code> with plain URLs or an <code>Object[]</code>.
-  The objects&#39; contents can either be just plain objects, defining at least the &#39;url&#39; property
-  or instances of the <a href="request"><code>Request</code></a> class. See the (<code>new RequestList</code>)(RequestList#new_RequestList_new)
-  options for details.</p>
+<td colspan="3"><p>An array of sources of URLs for the <code>RequestList</code>.
+ It can be either an array of plain objects that
+ define the <code>url</code> property, or an array of instances of the <a href="request"><code>Request</code></a> class.
+ Additionally, the <code>requestsFromUrl</code> property may be used instead of <code>url</code>,
+ which will instruct <code>RequestList</code> to download the source URLs from a given remote location.
+ The URLs will be parsed from the received response.</p>
+<p> For details, see the (<code>RequestList</code>)[requestlist#new-exportsrequestlistoptions]
+ constructor options.</p>
 </td></tr><tr>
 <td><code>[options]</code></td><td><code>Object</code></td>
 </tr>

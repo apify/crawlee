@@ -100,10 +100,10 @@ await requestList.reclaimRequest(request2);
 <td><code>options.sources</code></td><td><code>Array</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>An array of sources for the <code>RequestList</code>. Its contents can either be just plain objects,
- defining at least the &#39;url&#39; property or instances of the <a href="request"><code>Request</code></a> class.
- Additionally a <code>requestsFromUrl</code> property may be used instead of <code>url</code>,
- which will instruct the <code>RequestList</code> to download the sources from the given remote location.
+<td colspan="3"><p>An array of sources of URLs for the <code>RequestList</code>. It can be either an array of plain objects that
+ define the <code>url</code> property, or an array of instances of the <a href="request"><code>Request</code></a> class.
+ Additionally, the <code>requestsFromUrl</code> property may be used instead of <code>url</code>,
+ which will instruct <code>RequestList</code> to download the source URLs from a given remote location.
  The URLs will be parsed from the received response.</p>
 <pre><code>[
     // One URL

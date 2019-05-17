@@ -230,10 +230,9 @@ describe('KeyValueStore', () => {
             circularObj.xxx = circularObj;
             const circularErrMsg = 'The "value" parameter cannot be stringified to JSON: Converting circular structure to JSON';
             const undefinedErrMsg = 'The "value" parameter was stringified to JSON and returned undefined. '
-                + 'Make sure you\'re not trying to stringify a Function.';
+                + 'Make sure you\'re not trying to stringify an undefined value.';
             await expect(Apify.setValue('key', circularObj)).to.be.rejectedWith(circularErrMsg);
             await expect(Apify.setValue('key', undefined)).to.be.rejectedWith(undefinedErrMsg);
-            await expect(Apify.setValue('key', () => {})).to.be.rejectedWith(undefinedErrMsg);
             await expect(Apify.setValue('key')).to.be.rejectedWith(undefinedErrMsg);
 
             const contTypeRedundantErrMsg = 'The "options.contentType" parameter must not be used when removing the record';

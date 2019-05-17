@@ -1,3 +1,20 @@
+0.14.8 / 2019-05-14
+===================
+- Bump `apify-client` to 0.5.17
+
+0.14.7 / 2019-05-12
+===================
+- Bump `apify-client` to 0.5.16
+
+0.14.6 / 2019-05-09
+===================
+- Stringification to JSON of actor input in `Apify.call()`, `Apify.callTask()` and `Apify.metamorph()`
+  now also supports functions via `func.toString()`. The same holds for record body in `setValue()`
+  method of key-value store.
+- Request queue now monitors number of clients that accessed the queue which allows crawlers to finish
+  without 10s waiting if run was not migrated during its lifetime.
+
+
 0.14.5 / 2019-05-06
 ===================
 - Update Puppeteer to 1.15.0.
@@ -10,6 +27,7 @@
 
 0.14.3 / 2019-05-06
 ===================
+- Request queue now allows crawlers to finish quickly without waiting in a case that queue was used by a single client.
 - Better logging of errors in `Apify.main()`
 
 0.14.2 / 2019-04-25
@@ -70,7 +88,7 @@
 - **BREAKING CHANGE:** Added `handleRequestTimeoutSecs` option to `BasicCrawler` with a 60 second default.
 - **DEPRECATED:** `PuppeteerPool` options in the `PuppeteerCrawler` constructor are now deprecated.
   Please use the new `puppeteerPoolOptions` argument of type `Object` to pass them. `launchPuppeteerFunction`
-  and `launchPuppeteerOptions` are still available as shortcuts for convenience.   
+  and `launchPuppeteerOptions` are still available as shortcuts for convenience.
 - `CheerioCrawler` and `PuppeteerCrawler` now automatically set `handleRequestTimeoutSecs` to 10 times
   their `handlePageTimeoutSecs`. This is a precaution that should keep requests from hanging forever.
 - Added `options.prepareRequestFunction()` to `CheerioCrawler` constructor to enable modification

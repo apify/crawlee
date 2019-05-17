@@ -14,6 +14,9 @@ const writeFile = promisify(fs.writeFile);
 const unlink = promisify(fs.unlink);
 const ensureDir = promisify(fs.ensureDir);
 
+const LOCAL_STORAGE_DIR = process.env[ENV_VARS.LOCAL_STORAGE_DIR] || '';
+const DEFAULT_SCREENSHOT_DIR_PATH = path.resolve(LOCAL_STORAGE_DIR, 'live_view');
+
 /**
  * `LiveViewServer` enables serving of browser snapshots via web sockets. It includes its own client
  * that provides a simple frontend to viewing the captured snapshots. A snapshot consists of three
@@ -51,8 +54,8 @@ const ensureDir = promisify(fs.ensureDir);
  *   via an options object with the following keys:
  * @param {string} [options.screenshotDirectoryPath]
  *   By default, the screenshots are saved to
- *   the `live_view` directory in the process' working directory. Provide a different
- *   absolute path to change the settings.
+ *   the `live_view` directory in the Apify local storage directory.
+ *   Provide a different absolute path to change the settings.
  * @param {number} [options.maxScreenshotFiles=10]
  *   Limits the number of screenshots stored
  *   by the server. This is to prevent using up too much disk space.
@@ -68,7 +71,7 @@ const ensureDir = promisify(fs.ensureDir);
 class LiveViewServer {
     constructor(options = {}) {
         const {
-            screenshotDirectoryPath = path.resolve('live_view'),
+            screenshotDirectoryPath = DEFAULT_SCREENSHOT_DIR_PATH,
             maxScreenshotFiles = 10,
             snapshotTimeoutSecs = 3,
             maxSnapshotFrequencySecs = 2,
