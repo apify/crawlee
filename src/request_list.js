@@ -611,10 +611,10 @@ export class RequestList {
  *  which will instruct `RequestList` to download the source URLs from a given remote location.
  *  The URLs will be parsed from the received response.
  *
- *  For details, see the (`RequestList`)[requestlist#new-exportsrequestlistoptions]
+ *  For details, see the [`RequestList`](requestlist#new_RequestList_new)
  *  constructor options.
  * @param {Object} [options]
- *   The (`new RequestList`)(RequestList#new_RequestList_new) options. Note that the listName parameter supersedes
+ *   The [`new RequestList`](requestlist#new_RequestList_new) options. Note that the listName parameter supersedes
  *   the `persistStateKey` and `persistSourcesKey` options and the sources parameter supersedes the `sources` option.
  * @returns {Promise<RequestList>}
  * @memberof module:Apify
