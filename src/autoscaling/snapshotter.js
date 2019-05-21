@@ -437,15 +437,14 @@ class Snapshotter {
      * @ignore
      */
     async _ensureCorrectMaxMemory() {
-        if (!this.maxMemoryBytes) {
-            const { totalBytes } = await getMemoryInfo();
-            if (isAtHome()) {
-                this.maxMemoryBytes = totalBytes;
-            } else {
-                this.maxMemoryBytes = Math.ceil(totalBytes / 4);
-                // NOTE: Log as AutoscaledPool, so that users are not confused what "Snapshotter" is
-                log.info(`AutoscaledPool: Setting max memory of this run to ${Math.round(this.maxMemoryBytes / 1024 / 1024)} MB. Use the ${ENV_VARS.MEMORY_MBYTES} environment variable to override it.`); // eslint-disable-line max-len
-            }
+        if (this.maxMemoryBytes) return;
+        const { totalBytes } = await getMemoryInfo();
+        if (isAtHome()) {
+            this.maxMemoryBytes = totalBytes;
+        } else {
+            this.maxMemoryBytes = Math.ceil(totalBytes / 4);
+            // NOTE: Log as AutoscaledPool, so that users are not confused what "Snapshotter" is
+            log.info(`AutoscaledPool: Setting max memory of this run to ${Math.round(this.maxMemoryBytes / 1024 / 1024)} MB. Use the ${ENV_VARS.MEMORY_MBYTES} environment variable to override it.`); // eslint-disable-line max-len
         }
     }
 }
