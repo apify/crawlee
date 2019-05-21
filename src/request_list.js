@@ -129,7 +129,6 @@ export const SOURCES_PERSISTENCE_KEY = 'REQUEST_LIST_SOURCES';
  *   URLs will be kept in the list. It does not protect the user from having duplicates in user set
  *   `uniqueKey`s however. It is the user's responsibility to ensure uniqueness of their unique keys
  *   if they wish to keep more than just a single copy in the `RequestList`.
- *   @name RequestList
  */
 export class RequestList {
     constructor(options = {}) {
