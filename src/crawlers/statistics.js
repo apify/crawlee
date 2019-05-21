@@ -10,8 +10,7 @@ class Job {
 
     run() {
         this.lastRunAt = new Date();
-        this.runs++;
-        return this.runs;
+        return ++this.runs;
     }
 
     finish() {
