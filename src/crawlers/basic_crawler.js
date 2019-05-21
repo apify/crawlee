@@ -8,6 +8,7 @@ import { RequestList } from '../request_list';
 import { RequestQueue, RequestQueueLocal } from '../request_queue';
 import events from '../events';
 import { addTimeoutToPromise } from '../utils';
+import Statistics from './statistics';
 
 /**
  * Since there's no set number of seconds before the container is terminated after
@@ -192,6 +193,7 @@ class BasicCrawler {
         this.handleFailedRequestFunction = handleFailedRequestFunction;
         this.maxRequestRetries = maxRequestRetries;
         this.handledRequestsCount = 0;
+        this.stats = new Statistics();
 
         let shouldLogMaxPagesExceeded = true;
         const isMaxPagesExceeded = () => maxRequestsPerCrawl && maxRequestsPerCrawl <= this.handledRequestsCount;
@@ -256,7 +258,12 @@ class BasicCrawler {
         await this._loadHandledRequestCount();
         this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions);
         this.isRunningPromise = this.autoscaledPool.run();
-        await this.isRunningPromise;
+        this.stats.startLogging();
+        try {
+            await this.isRunningPromise;
+        } finally {
+            this.stats.stopLogging();
+        }
     }
 
     async _pauseOnMigration() {
@@ -328,6 +335,8 @@ class BasicCrawler {
         // Reset loadedUrl so an old one is not carried over to retries.
         request.loadedUrl = null;
 
+        const statisticsId = request.id || request.url;
+        this.stats.startJob(statisticsId);
         try {
             await addTimeoutToPromise(
                 this.handleRequestFunction({ request, autoscaledPool: this.autoscaledPool }),
@@ -335,6 +344,7 @@ class BasicCrawler {
                 'BasicCrawler: handleRequestFunction timed out.',
             );
             await source.markRequestHandled(request);
+            this.stats.finishJob(statisticsId);
             this.handledRequestsCount++;
         } catch (err) {
             try {
@@ -408,6 +418,7 @@ class BasicCrawler {
         // Mark the request as failed and do not retry.
         this.handledRequestsCount++;
         await source.markRequestHandled(request);
+        this.stats.failJob(request.id || request.url);
         return this.handleFailedRequestFunction({ request, error }); // This function prints an error message.
     }
 
