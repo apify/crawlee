@@ -1,3 +1,7 @@
+xxx
+===================
+- Better logs from `AutoscaledPool` class
+
 0.14.8 / 2019-05-14
 ===================
 - Bump `apify-client` to 0.5.17
