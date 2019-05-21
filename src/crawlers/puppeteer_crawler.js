@@ -2,10 +2,10 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import log from 'apify-shared/log';
 import _ from 'underscore';
 import BasicCrawler from './basic_crawler';
-import PuppeteerPool from './puppeteer_pool';
-import { addTimeoutToPromise } from './utils';
-import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from './constants';
-import { gotoExtended } from './puppeteer_utils';
+import PuppeteerPool from '../puppeteer_pool';
+import { addTimeoutToPromise } from '../utils';
+import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
+import { gotoExtended } from '../puppeteer_utils';
 
 const DEFAULT_OPTIONS = {
     gotoFunction: async ({ request, page }) => gotoExtended(page, request, { timeout: 60000 }),

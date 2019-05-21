@@ -3,11 +3,11 @@ import _ from 'underscore';
 import log from 'apify-shared/log';
 import { ACTOR_EVENT_NAMES } from 'apify-shared/consts';
 import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
-import AutoscaledPool from './autoscaling/autoscaled_pool';
-import { RequestList } from './request_list';
-import { RequestQueue, RequestQueueLocal } from './request_queue';
-import events from './events';
-import { addTimeoutToPromise } from './utils';
+import AutoscaledPool from '../autoscaling/autoscaled_pool';
+import { RequestList } from '../request_list';
+import { RequestQueue, RequestQueueLocal } from '../request_queue';
+import events from '../events';
+import { addTimeoutToPromise } from '../utils';
 
 /**
  * Since there's no set number of seconds before the container is terminated after
