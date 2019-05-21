@@ -193,7 +193,7 @@ class BasicCrawler {
         this.handleFailedRequestFunction = handleFailedRequestFunction;
         this.maxRequestRetries = maxRequestRetries;
         this.handledRequestsCount = 0;
-        this.stats = new Statistics();
+        this.stats = new Statistics({ logMessage: 'Crawler request statistics:' });
 
         let shouldLogMaxPagesExceeded = true;
         const isMaxPagesExceeded = () => maxRequestsPerCrawl && maxRequestsPerCrawl <= this.handledRequestsCount;
