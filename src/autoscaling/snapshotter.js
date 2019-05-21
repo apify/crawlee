@@ -19,6 +19,7 @@ const DEFAULT_OPTIONS = {
     maxClientErrors: 3,
 };
 const RESERVE_MEMORY_RATIO = 0.5;
+const CLIENT_RATE_LIMIT_ERROR_RETRY_COUNT = 2;
 
 /**
  * Creates snapshots of system resources at given intervals and marks the resource
@@ -60,7 +61,7 @@ const RESERVE_MEMORY_RATIO = 0.5;
  *   the statistics are provided externally at a fixed interval.
  * @param {Number} [options.maxUsedCpuRatio=0.95]
  *   Defines the maximum usage of CPU.
- *   Exceeding this limit overloads the memory.
+ *   Exceeding this limit overloads the CPU.
  * @param {Number} [options.memorySnapshotIntervalSecs=1]
  *   Defines the interval of measuring memory consumption.
  *   This is only used when running locally. On the Apify platform,
@@ -395,7 +396,7 @@ class Snapshotter {
         this._pruneSnapshots(this.clientSnapshots, now);
 
         const allErrorCounts = apifyClient.stats.rateLimitErrors;
-        const currentErrCount = allErrorCounts[2] || 0; // 2nd retry.
+        const currentErrCount = allErrorCounts[CLIENT_RATE_LIMIT_ERROR_RETRY_COUNT] || 0;
 
         // Handle empty snapshots array
         const snapshot = {
