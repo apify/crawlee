@@ -1,3 +1,6 @@
+/* eslint-disable no-underscore-dangle */
+
+import os from 'os';
 import { expect } from 'chai';
 import sinon from 'sinon';
 import log from 'apify-shared/log';
@@ -40,18 +43,19 @@ describe('Snapshotter', () => {
         const clientSnapshots = snapshotter.getClientSample();
 
         expect(cpuSnapshots).to.be.an('array');
-        expect(cpuSnapshots).to.have.lengthOf(0);
+        expect(cpuSnapshots).to.have.lengthOf(2);
+        cpuSnapshots.forEach((ss) => {
+            expect(ss.createdAt).to.be.a('date');
+            expect(ss.isOverloaded).to.be.a('boolean');
+            expect(ss.usedRatio).to.be.a('number');
+        });
 
         expect(memorySnapshots).to.be.an('array');
         expect(memorySnapshots).to.have.lengthOf(2);
         memorySnapshots.forEach((ss) => {
             expect(ss.createdAt).to.be.a('date');
             expect(ss.isOverloaded).to.be.a('boolean');
-            expect(ss.totalBytes).to.be.a('number');
             expect(ss.usedBytes).to.be.a('number');
-            expect(ss.freeBytes).to.be.a('number');
-            expect(ss.mainProcessBytes).to.be.a('number');
-            expect(ss.childProcessesBytes).to.be.a('number');
         });
 
         expect(eventLoopSnapshots).to.be.an('array');
@@ -77,7 +81,7 @@ describe('Snapshotter', () => {
         const options = {
             eventLoopSnapshotIntervalSecs: 0.05,
             memorySnapshotIntervalSecs: 0.1,
-            snapshotHistorySecs: 0.5,
+            cpuSnapshotIntervalSecs: 0.1,
         };
         const snapshotter = new Snapshotter(options);
         await snapshotter.start();
@@ -87,18 +91,19 @@ describe('Snapshotter', () => {
         const eventLoopSnapshots = snapshotter.getEventLoopSample();
         const cpuSnapshots = snapshotter.getCpuSample();
 
-        expect(cpuSnapshots).to.have.lengthOf(0);
-        expect(memorySnapshots.length).to.be.above(1);
-        expect(eventLoopSnapshots.length).to.be.above(9);
+        expect(cpuSnapshots.length).to.be.above(2);
+        expect(memorySnapshots.length).to.be.above(2);
+        expect(eventLoopSnapshots.length).to.be.above(4);
     });
 
-    it('should collect CPU events on Platform', async () => {
+    it('correctly marks CPU overloaded using Platform event', async () => {
         process.env[ENV_VARS.IS_AT_HOME] = '1';
         let count = 0;
         const emitAndWait = async (delay) => {
-            events.emit(ACTOR_EVENT_NAMES.CPU_INFO, {
+            events.emit(ACTOR_EVENT_NAMES.SYSTEM_INFO, {
                 isCpuOverloaded: count % 2 === 0,
                 createdAt: (new Date()).toISOString(),
+                cpuCurrentUsage: 66.6,
             });
             count++;
             await Apify.utils.sleep(delay);
@@ -125,7 +130,49 @@ describe('Snapshotter', () => {
         }
     });
 
-    it('correctly marks eventLoopOverloaded', () => { /* eslint-disable no-underscore-dangle */
+    it('correctly marks CPU overloaded using OS metrics', () => {
+        const mock = sinon.mock(os);
+        const fakeCpu = [{
+            times: {
+                idle: 0,
+                other: 0,
+            },
+        }];
+        const { times } = fakeCpu[0];
+
+        mock.expects('cpus').exactly(5).returns(fakeCpu);
+
+        const noop = () => {};
+        const snapshotter = new Snapshotter({ maxUsedCpuRatio: 0.5 });
+
+        snapshotter._snapshotCpuOnLocal(noop);
+
+        times.idle++;
+        times.other++;
+        snapshotter._snapshotCpuOnLocal(noop);
+
+        times.other += 2;
+        snapshotter._snapshotCpuOnLocal(noop);
+
+        times.idle += 2;
+        snapshotter._snapshotCpuOnLocal(noop);
+
+        times.other += 4;
+        snapshotter._snapshotCpuOnLocal(noop);
+
+        const loopSnapshots = snapshotter.getCpuSample();
+
+        expect(loopSnapshots.length).to.be.eql(5);
+        expect(loopSnapshots[0].isOverloaded).to.be.eql(false);
+        expect(loopSnapshots[1].isOverloaded).to.be.eql(false);
+        expect(loopSnapshots[2].isOverloaded).to.be.eql(true);
+        expect(loopSnapshots[3].isOverloaded).to.be.eql(false);
+        expect(loopSnapshots[4].isOverloaded).to.be.eql(true);
+
+        mock.verify();
+    });
+
+    it('correctly marks eventLoopOverloaded', () => {
         const clock = sinon.useFakeTimers();
         try {
             const noop = () => {};
@@ -152,7 +199,7 @@ describe('Snapshotter', () => {
         }
     });
 
-    it('correctly marks memoryOverloaded', async () => { /* eslint-disable no-underscore-dangle */
+    it('correctly marks memoryOverloaded using OS metrics', async () => { /* eslint-disable no-underscore-dangle */
         const noop = () => {};
         const memoryData = {
             mainProcessBytes: toBytes(1000),
@@ -165,15 +212,15 @@ describe('Snapshotter', () => {
         process.env[ENV_VARS.MEMORY_MBYTES] = '10000';
 
         const snapshotter = new Snapshotter({ maxUsedMemoryRatio: 0.5 });
-        await snapshotter._snapshotMemory(noop);
+        await snapshotter._snapshotMemoryOnLocal(noop);
         memoryData.mainProcessBytes = toBytes(2000);
-        await snapshotter._snapshotMemory(noop);
+        await snapshotter._snapshotMemoryOnLocal(noop);
         memoryData.childProcessesBytes = toBytes(2000);
-        await snapshotter._snapshotMemory(noop);
+        await snapshotter._snapshotMemoryOnLocal(noop);
         memoryData.mainProcessBytes = toBytes(3001);
-        await snapshotter._snapshotMemory(noop);
+        await snapshotter._snapshotMemoryOnLocal(noop);
         memoryData.childProcessesBytes = toBytes(1999);
-        await snapshotter._snapshotMemory(noop);
+        await snapshotter._snapshotMemoryOnLocal(noop);
         const memorySnapshots = snapshotter.getMemorySample();
 
         expect(memorySnapshots.length).to.be.eql(5);
@@ -188,12 +235,10 @@ describe('Snapshotter', () => {
 
     it('correctly logs critical memory overload', () => {
         const memoryDataOverloaded = {
-            mainProcessBytes: toBytes(4600),
-            childProcessesBytes: toBytes(3000),
+            memCurrentBytes: toBytes(7600),
         };
         const memoryDataNotOverloaded = {
-            mainProcessBytes: toBytes(3750),
-            childProcessesBytes: toBytes(3750),
+            memCurrentBytes: toBytes(7500),
         };
         let logged = false;
         const warning = () => { logged = true; };
