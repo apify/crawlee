@@ -66,8 +66,8 @@ a better view into the browser, including DevTools, but `LiveViewServer` works t
 </tr>
 <tr>
 <td colspan="3"><p>By default, the screenshots are saved to
-  the <code>live_view</code> directory in the process&#39; working directory. Provide a different
-  absolute path to change the settings.</p>
+  the <code>live_view</code> directory in the Apify local storage directory.
+  Provide a different absolute path to change the settings.</p>
 </td></tr><tr>
 <td><code>[options.maxScreenshotFiles]</code></td><td><code>number</code></td><td><code>10</code></td>
 </tr>

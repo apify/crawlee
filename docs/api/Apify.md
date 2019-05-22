@@ -418,15 +418,17 @@ or the <a href="https://apify.com/docs/proxy" target="_blank">documentation</a>.
 <a name="module_Apify.getEnv"></a>
 
 ## `Apify.getEnv()` ⇒ <code>Object</code>
-Returns a new object which contains information parsed from the `APIFY_XXX` environment variables.
-It has the following properties:
+Returns a new object which contains information parsed from all the `APIFY_XXX` environment variables.
+It has properties such as the following:
 
 ```javascript
 {
-    // ID of the actor (APIFY_ACT_ID)
-    actId: String,
-    // ID of the actor run (APIFY_ACT_RUN_ID)
-    actRunId: String,
+    // ID of the actor (APIFY_ACTOR_ID)
+    actorId: String,
+    // ID of the actor run (APIFY_ACTOR_RUN_ID)
+    actorRunId: String,
+    // ID of the actor task (APIFY_ACTOR_TASK_ID)
+    actorTaskId: String,
     // ID of the user who started the actor - note that it might be
     // different than the owner of the actor (APIFY_USER_ID)
     userId: String,
@@ -906,13 +908,13 @@ const requestList = await Apify.openRequestList('my-name', sources);
  Additionally, the <code>requestsFromUrl</code> property may be used instead of <code>url</code>,
  which will instruct <code>RequestList</code> to download the source URLs from a given remote location.
  The URLs will be parsed from the received response.</p>
-<p> For details, see the (<code>RequestList</code>)[requestlist#new-exportsrequestlistoptions]
+<p> For details, see the <a href="requestlist#new_RequestList_new"><code>RequestList</code></a>
  constructor options.</p>
 </td></tr><tr>
 <td><code>[options]</code></td><td><code>Object</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>The (<code>new RequestList</code>)(RequestList#new_RequestList_new) options. Note that the listName parameter supersedes
+<td colspan="3"><p>The <a href="requestlist#new_RequestList_new"><code>new RequestList</code></a> options. Note that the listName parameter supersedes
   the <code>persistStateKey</code> and <code>persistSourcesKey</code> options and the sources parameter supersedes the <code>sources</code> option.</p>
 </td></tr></tbody>
 </table>
