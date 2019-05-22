@@ -1,4 +1,4 @@
-xxx
+0.14.9 / 2019-05-22
 ===================
 - Better logs from `AutoscaledPool` class
 - Replace `cpuInfo` Apify event with new `systemInfo` event in `Snapshotter`.
