@@ -12,7 +12,7 @@ can be invoked synchronously using a single HTTP request to directly obtain its 
 <a href="https://apify.com/docs/api/v2#/reference/actors/run-actor-synchronously/without-input" target="_blank">Run actor synchronously</a>
 Apify API endpoint. The example is also shared as the
 <a href="https://apify.com/apify/example-golden-gate-webcam" target="_blank">apify/example-golden-gate-webcam</a>
-actor in the Apify library, so you can test it directly there simply by sending a POST request to
+actor in the Apify Store, so you can test it directly there simply by sending a POST request to
 ```http
 https://api.apify.com/v2/acts/apify~example-golden-gate-webcam/run-sync?token=[YOUR_API_TOKEN]
 ```

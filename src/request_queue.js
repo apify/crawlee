@@ -6,10 +6,10 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import LruCache from 'apify-shared/lru_cache';
 import ListDictionary from 'apify-shared/list_dictionary';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, REQUEST_QUEUE_HEAD_MAX_LIMIT } from 'apify-shared/consts';
-import { delayPromise, checkParamPrototypeOrThrow, cryptoRandomObjectId } from 'apify-shared/utilities';
+import { checkParamPrototypeOrThrow, cryptoRandomObjectId } from 'apify-shared/utilities';
 import log from 'apify-shared/log';
 import Request from './request';
-import { ensureDirExists, apifyClient, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists } from './utils';
+import { ensureDirExists, apifyClient, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists, sleep } from './utils';
 
 export const LOCAL_STORAGE_SUBDIR = LOCAL_STORAGE_SUBDIRS.requestQueues;
 const MAX_OPENED_QUEUES = 1000;
@@ -560,7 +560,7 @@ export class RequestQueue {
         if (shouldRepeatForConsistency) {
             const delayMillis = API_PROCESSED_REQUESTS_DELAY_MILLIS - (Date.now() - queueModifiedAt);
             log.info(`RequestQueue: Waiting for ${delayMillis}ms before considering the queue as finished to ensure that the data is consistent.`);
-            await delayPromise(delayMillis);
+            await sleep(delayMillis);
         }
 
         return this._ensureHeadIsNonEmpty(ensureConsistency, nextLimit, iteration + 1);
