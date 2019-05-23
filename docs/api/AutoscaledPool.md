@@ -53,16 +53,16 @@ await pool.run();
 
 * [AutoscaledPool](autoscaledpool)
     * [`new AutoscaledPool(options)`](#new_AutoscaledPool_new)
-    * [`.minConcurrency`](#AutoscaledPool+minConcurrency) ⇒ <code>number</code>
+    * [`.minConcurrency`](#AutoscaledPool+minConcurrency) ⇒ `number`
     * [`.minConcurrency`](#AutoscaledPool+minConcurrency)
-    * [`.maxConcurrency`](#AutoscaledPool+maxConcurrency) ⇒ <code>number</code>
+    * [`.maxConcurrency`](#AutoscaledPool+maxConcurrency) ⇒ `number`
     * [`.maxConcurrency`](#AutoscaledPool+maxConcurrency)
-    * [`.desiredConcurrency`](#AutoscaledPool+desiredConcurrency) ⇒ <code>number</code>
+    * [`.desiredConcurrency`](#AutoscaledPool+desiredConcurrency) ⇒ `number`
     * [`.desiredConcurrency`](#AutoscaledPool+desiredConcurrency)
-    * [`.currentConcurrency`](#AutoscaledPool+currentConcurrency) ⇒ <code>number</code>
-    * [`.run()`](#AutoscaledPool+run) ⇒ <code>Promise</code>
-    * [`.abort()`](#AutoscaledPool+abort) ⇒ <code>Promise</code>
-    * [`.pause([timeoutSecs])`](#AutoscaledPool+pause) ⇒ <code>Promise</code>
+    * [`.currentConcurrency`](#AutoscaledPool+currentConcurrency) ⇒ `number`
+    * [`.run()`](#AutoscaledPool+run) ⇒ `Promise`
+    * [`.abort()`](#AutoscaledPool+abort) ⇒ `Promise`
+    * [`.pause([timeoutSecs])`](#AutoscaledPool+pause) ⇒ `Promise`
     * [`.resume()`](#AutoscaledPool+resume)
 
 <a name="new_AutoscaledPool_new"></a>
@@ -169,7 +169,7 @@ await pool.run();
 </table>
 <a name="AutoscaledPool+minConcurrency"></a>
 
-## `autoscaledPool.minConcurrency` ⇒ <code>number</code>
+## `autoscaledPool.minConcurrency` ⇒ `number`
 Gets the minimum number of tasks running in parallel.
 
 <a name="AutoscaledPool+minConcurrency"></a>
@@ -195,7 +195,7 @@ If you're not sure, just keep the default value and the concurrency will scale u
 </table>
 <a name="AutoscaledPool+maxConcurrency"></a>
 
-## `autoscaledPool.maxConcurrency` ⇒ <code>number</code>
+## `autoscaledPool.maxConcurrency` ⇒ `number`
 Gets the maximum number of tasks running in parallel.
 
 <a name="AutoscaledPool+maxConcurrency"></a>
@@ -218,7 +218,7 @@ Sets the maximum number of tasks running in parallel.
 </table>
 <a name="AutoscaledPool+desiredConcurrency"></a>
 
-## `autoscaledPool.desiredConcurrency` ⇒ <code>number</code>
+## `autoscaledPool.desiredConcurrency` ⇒ `number`
 Gets the desired concurrency for the pool,
 which is an estimated number of parallel tasks that the system can currently support.
 
@@ -243,18 +243,18 @@ in parallel if there's large enough supply of tasks.
 </table>
 <a name="AutoscaledPool+currentConcurrency"></a>
 
-## `autoscaledPool.currentConcurrency` ⇒ <code>number</code>
+## `autoscaledPool.currentConcurrency` ⇒ `number`
 Gets the the number of parallel tasks currently running in the pool.
 
 <a name="AutoscaledPool+run"></a>
 
-## `autoscaledPool.run()` ⇒ <code>Promise</code>
+## `autoscaledPool.run()` ⇒ `Promise`
 Runs the auto-scaled pool. Returns a promise that gets resolved or rejected once
 all the tasks are finished or one of them fails.
 
 <a name="AutoscaledPool+abort"></a>
 
-## `autoscaledPool.abort()` ⇒ <code>Promise</code>
+## `autoscaledPool.abort()` ⇒ `Promise`
 Aborts the run of the auto-scaled pool and destroys it. The promise returned from
 the [`run()`](#AutoscaledPool+run) function will immediately resolve, no more new tasks
 will be spawned and all running tasks will be left in their current state.
@@ -267,7 +267,7 @@ parts of their asynchronous chains of commands will not execute.
 
 <a name="AutoscaledPool+pause"></a>
 
-## `autoscaledPool.pause([timeoutSecs])` ⇒ <code>Promise</code>
+## `autoscaledPool.pause([timeoutSecs])` ⇒ `Promise`
 Prevents the auto-scaled pool from starting new tasks, but allows the running ones to finish
 (unlike abort, which terminates them). Used together with [`resume()`](#AutoscaledPool+resume)
 

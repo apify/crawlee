@@ -23,20 +23,20 @@ await puppeteer.injectJQuery(page);
 ```
 
 
-* [`puppeteer`](#puppeteer) : <code>object</code>
-    * [`.addInterceptRequestHandler`](#puppeteer.addInterceptRequestHandler) ⇒ <code>Promise</code>
-    * [`.removeInterceptRequestHandler`](#puppeteer.removeInterceptRequestHandler) ⇒ <code>Promise</code>
-    * [`.gotoExtended`](#puppeteer.gotoExtended) ⇒ <code>Promise&lt;Response&gt;</code>
-    * [`.injectFile(page, filePath, [options])`](#puppeteer.injectFile) ⇒ <code>Promise</code>
-    * [`.injectJQuery(page)`](#puppeteer.injectJQuery) ⇒ <code>Promise</code>
-    * [`.injectUnderscore(page)`](#puppeteer.injectUnderscore) ⇒ <code>Promise</code>
-    * [`.blockResources(page, [resourceTypes])`](#puppeteer.blockResources) ⇒ <code>Promise</code>
-    * [`.cacheResponses(page, cache, responseUrlRules)`](#puppeteer.cacheResponses) ⇒ <code>Promise</code>
-    * [`.compileScript(scriptString, context)`](#puppeteer.compileScript) ⇒ <code>function</code>
+* [`puppeteer`](#puppeteer) : `object`
+    * [`.addInterceptRequestHandler`](#puppeteer.addInterceptRequestHandler) ⇒ `Promise`
+    * [`.removeInterceptRequestHandler`](#puppeteer.removeInterceptRequestHandler) ⇒ `Promise`
+    * [`.gotoExtended`](#puppeteer.gotoExtended) ⇒ `Promise<Response>`
+    * [`.injectFile(page, filePath, [options])`](#puppeteer.injectFile) ⇒ `Promise`
+    * [`.injectJQuery(page)`](#puppeteer.injectJQuery) ⇒ `Promise`
+    * [`.injectUnderscore(page)`](#puppeteer.injectUnderscore) ⇒ `Promise`
+    * [`.blockResources(page, [resourceTypes])`](#puppeteer.blockResources) ⇒ `Promise`
+    * [`.cacheResponses(page, cache, responseUrlRules)`](#puppeteer.cacheResponses) ⇒ `Promise`
+    * [`.compileScript(scriptString, context)`](#puppeteer.compileScript) ⇒ `function`
 
 <a name="puppeteer.addInterceptRequestHandler"></a>
 
-## `puppeteer.addInterceptRequestHandler` ⇒ <code>Promise</code>
+## `puppeteer.addInterceptRequestHandler` ⇒ `Promise`
 Adds request interception handler in similar to `page.on('request', handler);` but in addition to that
 supports multiple parallel handlers.
 
@@ -103,7 +103,7 @@ await page.goto('http://example.com');
 </table>
 <a name="puppeteer.removeInterceptRequestHandler"></a>
 
-## `puppeteer.removeInterceptRequestHandler` ⇒ <code>Promise</code>
+## `puppeteer.removeInterceptRequestHandler` ⇒ `Promise`
 Removes request interception handler for given page.
 
 <table>
@@ -127,7 +127,7 @@ Removes request interception handler for given page.
 </table>
 <a name="puppeteer.gotoExtended"></a>
 
-## `puppeteer.gotoExtended` ⇒ <code>Promise&lt;Response&gt;</code>
+## `puppeteer.gotoExtended` ⇒ `Promise<Response>`
 Extended version of Puppeteer's `page.goto()` allowing to perform requests with HTTP method other than GET,
 with custom headers and POST payload. URL, method, headers and payload are taken from
 request parameter that must be an instance of Apify.Request class.
@@ -157,7 +157,7 @@ request parameter that must be an instance of Apify.Request class.
 </table>
 <a name="puppeteer.injectFile"></a>
 
-## `puppeteer.injectFile(page, filePath, [options])` ⇒ <code>Promise</code>
+## `puppeteer.injectFile(page, filePath, [options])` ⇒ `Promise`
 Injects a JavaScript file into a Puppeteer page.
 Unlike Puppeteer's `addScriptTag` function, this function works on pages
 with arbitrary Cross-Origin Resource Sharing (CORS) policies.
@@ -196,7 +196,7 @@ File contents are cached for up to 10 files to limit file system access.
 </table>
 <a name="puppeteer.injectJQuery"></a>
 
-## `puppeteer.injectJQuery(page)` ⇒ <code>Promise</code>
+## `puppeteer.injectJQuery(page)` ⇒ `Promise`
 Injects the <a href="https://jquery.com/" target="_blank"><code>jQuery</code></a> library into a Puppeteer page.
 jQuery is often useful for various web scraping and crawling tasks.
 For example, it can help extract text from HTML elements using CSS selectors.
@@ -235,7 +235,7 @@ function in any way.
 </table>
 <a name="puppeteer.injectUnderscore"></a>
 
-## `puppeteer.injectUnderscore(page)` ⇒ <code>Promise</code>
+## `puppeteer.injectUnderscore(page)` ⇒ `Promise`
 Injects the <a href="https://underscorejs.org/" target="_blank"><code>Underscore.js</code></a> library into a Puppeteer page.
 
 Beware that the injected Underscore object will be set to the `window._` variable and thus it might cause conflicts with
@@ -268,7 +268,7 @@ const escapedHtml = await page.evaluate(() => {
 </table>
 <a name="puppeteer.blockResources"></a>
 
-## `puppeteer.blockResources(page, [resourceTypes])` ⇒ <code>Promise</code>
+## `puppeteer.blockResources(page, [resourceTypes])` ⇒ `Promise`
 Forces the Puppeteer browser tab to block loading certain HTTP resources.
 This is useful to speed up crawling of websites, since it reduces the amount
 of data that need to be downloaded from the web.
@@ -317,7 +317,7 @@ await page.goto('https://www.example.com');
 <tr>
 <td colspan="3"><p>Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.</p>
 </td></tr><tr>
-<td><code>[resourceTypes]</code></td><td><code>Array&lt;String&gt;</code></td><td><code>[&#x27;stylesheet&#x27;, &#x27;font&#x27;, &#x27;image&#x27;, &#x27;media&#x27;]</code></td>
+<td><code>[resourceTypes]</code></td><td><code>Array<String></code></td><td><code>[&#x27;stylesheet&#x27;, &#x27;font&#x27;, &#x27;image&#x27;, &#x27;media&#x27;]</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Array of resource types to block.</p>
@@ -325,7 +325,7 @@ await page.goto('https://www.example.com');
 </table>
 <a name="puppeteer.cacheResponses"></a>
 
-## `puppeteer.cacheResponses(page, cache, responseUrlRules)` ⇒ <code>Promise</code>
+## `puppeteer.cacheResponses(page, cache, responseUrlRules)` ⇒ `Promise`
 Enables caching of intercepted responses into a provided object. Automatically enables request interception in Puppeteer.
 *IMPORTANT*: Caching responses stores them to memory, so too loose rules could cause memory leaks for longer running crawlers.
   This issue should be resolved or atleast mitigated in future iterations of this feature.
@@ -348,7 +348,7 @@ Enables caching of intercepted responses into a provided object. Automatically e
 <tr>
 <td colspan="3"><p>Object in which responses are stored</p>
 </td></tr><tr>
-<td><code>responseUrlRules</code></td><td><code>Array&lt;(String|RegExp)&gt;</code></td>
+<td><code>responseUrlRules</code></td><td><code>Array<(String|RegExp)></code></td>
 </tr>
 <tr>
 <td colspan="3"><p>List of rules that are used to check if the response should be cached.
@@ -357,7 +357,7 @@ Enables caching of intercepted responses into a provided object. Automatically e
 </table>
 <a name="puppeteer.compileScript"></a>
 
-## `puppeteer.compileScript(scriptString, context)` ⇒ <code>function</code>
+## `puppeteer.compileScript(scriptString, context)` ⇒ `function`
 Compiles a Puppeteer script into an async function that may be executed at any time
 by providing it with the following object:
 ```
@@ -383,7 +383,7 @@ Custom context may also be provided using the `context` parameter. To improve se
 make sure to only pass the really necessary objects to the context. Preferably making
 secured copies beforehand.
 
-**Returns**: <code>function</code> - `async ({ page, request }) => { scriptString }`  
+**Returns**: `function` - `async ({ page, request }) => { scriptString }`  
 <table>
 <thead>
 <tr>

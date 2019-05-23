@@ -30,12 +30,12 @@ typically received from the request queue, exceed the set limit within the set i
 
 * [Snapshotter](snapshotter)
     * [`new Snapshotter([options])`](#new_Snapshotter_new)
-    * [`.start()`](#Snapshotter+start) ⇒ <code>Promise</code>
-    * [`.stop()`](#Snapshotter+stop) ⇒ <code>Promise</code>
-    * [`.getMemorySample([sampleDurationMillis])`](#Snapshotter+getMemorySample) ⇒ <code>Array</code>
-    * [`.getEventLoopSample([sampleDurationMillis])`](#Snapshotter+getEventLoopSample) ⇒ <code>Array</code>
-    * [`.getCpuSample([sampleDurationMillis])`](#Snapshotter+getCpuSample) ⇒ <code>Array</code>
-    * [`.getClientSample(sampleDurationMillis)`](#Snapshotter+getClientSample) ⇒ <code>Array</code>
+    * [`.start()`](#Snapshotter+start) ⇒ `Promise`
+    * [`.stop()`](#Snapshotter+stop) ⇒ `Promise`
+    * [`.getMemorySample([sampleDurationMillis])`](#Snapshotter+getMemorySample) ⇒ `Array`
+    * [`.getEventLoopSample([sampleDurationMillis])`](#Snapshotter+getEventLoopSample) ⇒ `Array`
+    * [`.getCpuSample([sampleDurationMillis])`](#Snapshotter+getCpuSample) ⇒ `Array`
+    * [`.getClientSample(sampleDurationMillis)`](#Snapshotter+getClientSample) ⇒ `Array`
 
 <a name="new_Snapshotter_new"></a>
 
@@ -114,17 +114,17 @@ typically received from the request queue, exceed the set limit within the set i
 </table>
 <a name="Snapshotter+start"></a>
 
-## `snapshotter.start()` ⇒ <code>Promise</code>
+## `snapshotter.start()` ⇒ `Promise`
 Starts capturing snapshots at configured intervals.
 
 <a name="Snapshotter+stop"></a>
 
-## `snapshotter.stop()` ⇒ <code>Promise</code>
+## `snapshotter.stop()` ⇒ `Promise`
 Stops all resource capturing.
 
 <a name="Snapshotter+getMemorySample"></a>
 
-## `snapshotter.getMemorySample([sampleDurationMillis])` ⇒ <code>Array</code>
+## `snapshotter.getMemorySample([sampleDurationMillis])` ⇒ `Array`
 Returns a sample of latest memory snapshots, with the size of the sample defined
 by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
 
@@ -143,7 +143,7 @@ by the sampleDurationMillis parameter. If omitted, it returns a full snapshot hi
 </table>
 <a name="Snapshotter+getEventLoopSample"></a>
 
-## `snapshotter.getEventLoopSample([sampleDurationMillis])` ⇒ <code>Array</code>
+## `snapshotter.getEventLoopSample([sampleDurationMillis])` ⇒ `Array`
 Returns a sample of latest event loop snapshots, with the size of the sample defined
 by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
 
@@ -162,7 +162,7 @@ by the sampleDurationMillis parameter. If omitted, it returns a full snapshot hi
 </table>
 <a name="Snapshotter+getCpuSample"></a>
 
-## `snapshotter.getCpuSample([sampleDurationMillis])` ⇒ <code>Array</code>
+## `snapshotter.getCpuSample([sampleDurationMillis])` ⇒ `Array`
 Returns a sample of latest CPU snapshots, with the size of the sample defined
 by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
 
@@ -181,7 +181,7 @@ by the sampleDurationMillis parameter. If omitted, it returns a full snapshot hi
 </table>
 <a name="Snapshotter+getClientSample"></a>
 
-## `snapshotter.getClientSample(sampleDurationMillis)` ⇒ <code>Array</code>
+## `snapshotter.getClientSample(sampleDurationMillis)` ⇒ `Array`
 Returns a sample of latest Client snapshots, with the size of the sample defined
 by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
 

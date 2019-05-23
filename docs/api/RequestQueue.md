@@ -69,20 +69,20 @@ await queue.reclaimRequest(request2);
 
 
 * [RequestQueue](requestqueue)
-    * [`.addRequest(request, [options])`](#RequestQueue+addRequest) ⇒ [<code>QueueOperationInfo</code>](../typedefs/queueoperationinfo)
-    * [`.getRequest(requestId)`](#RequestQueue+getRequest) ⇒ [<code>Promise&lt;Request&gt;</code>](request)
-    * [`.fetchNextRequest()`](#RequestQueue+fetchNextRequest) ⇒ [<code>Promise&lt;Request&gt;</code>](request)
-    * [`.markRequestHandled(request)`](#RequestQueue+markRequestHandled) ⇒ [<code>Promise&lt;QueueOperationInfo&gt;</code>](../typedefs/queueoperationinfo)
-    * [`.reclaimRequest(request, [options])`](#RequestQueue+reclaimRequest) ⇒ [<code>Promise&lt;QueueOperationInfo&gt;</code>](../typedefs/queueoperationinfo)
-    * [`.isEmpty()`](#RequestQueue+isEmpty) ⇒ <code>Promise&lt;Boolean&gt;</code>
-    * [`.isFinished()`](#RequestQueue+isFinished) ⇒ <code>Promise&lt;Boolean&gt;</code>
-    * [`.delete()`](#RequestQueue+delete) ⇒ <code>Promise</code>
-    * [`.handledCount()`](#RequestQueue+handledCount) ⇒ <code>Promise&lt;number&gt;</code>
-    * [`.getInfo()`](#RequestQueue+getInfo) ⇒ <code>Promise&lt;Object&gt;</code>
+    * [`.addRequest(request, [options])`](#RequestQueue+addRequest) ⇒ [`QueueOperationInfo`](../typedefs/queueoperationinfo)
+    * [`.getRequest(requestId)`](#RequestQueue+getRequest) ⇒ [`Promise<Request>`](request)
+    * [`.fetchNextRequest()`](#RequestQueue+fetchNextRequest) ⇒ [`Promise<Request>`](request)
+    * [`.markRequestHandled(request)`](#RequestQueue+markRequestHandled) ⇒ [`Promise<QueueOperationInfo>`](../typedefs/queueoperationinfo)
+    * [`.reclaimRequest(request, [options])`](#RequestQueue+reclaimRequest) ⇒ [`Promise<QueueOperationInfo>`](../typedefs/queueoperationinfo)
+    * [`.isEmpty()`](#RequestQueue+isEmpty) ⇒ `Promise<Boolean>`
+    * [`.isFinished()`](#RequestQueue+isFinished) ⇒ `Promise<Boolean>`
+    * [`.delete()`](#RequestQueue+delete) ⇒ `Promise`
+    * [`.handledCount()`](#RequestQueue+handledCount) ⇒ `Promise<number>`
+    * [`.getInfo()`](#RequestQueue+getInfo) ⇒ `Promise<Object>`
 
 <a name="RequestQueue+addRequest"></a>
 
-## `requestQueue.addRequest(request, [options])` ⇒ [<code>QueueOperationInfo</code>](../typedefs/queueoperationinfo)
+## `requestQueue.addRequest(request, [options])` ⇒ [`QueueOperationInfo`](../typedefs/queueoperationinfo)
 Adds a request to the queue.
 
 If a request with the same `uniqueKey` property is already present in the queue,
@@ -114,10 +114,10 @@ it will not be updated. You can find out whether this happened from the resultin
 </table>
 <a name="RequestQueue+getRequest"></a>
 
-## `requestQueue.getRequest(requestId)` ⇒ [<code>Promise&lt;Request&gt;</code>](request)
+## `requestQueue.getRequest(requestId)` ⇒ [`Promise<Request>`](request)
 Gets the request from the queue specified by ID.
 
-**Returns**: [<code>Promise&lt;Request&gt;</code>](request) - Returns the request object, or `null` if it was not found.  
+**Returns**: [`Promise<Request>`](request) - Returns the request object, or `null` if it was not found.  
 <table>
 <thead>
 <tr>
@@ -134,13 +134,13 @@ Gets the request from the queue specified by ID.
 </table>
 <a name="RequestQueue+fetchNextRequest"></a>
 
-## `requestQueue.fetchNextRequest()` ⇒ [<code>Promise&lt;Request&gt;</code>](request)
+## `requestQueue.fetchNextRequest()` ⇒ [`Promise<Request>`](request)
 Returns next request in the queue to be processed.
 
-**Returns**: [<code>Promise&lt;Request&gt;</code>](request) - Returns the request object, or `null` if there are no more pending requests.  
+**Returns**: [`Promise<Request>`](request) - Returns the request object, or `null` if there are no more pending requests.  
 <a name="RequestQueue+markRequestHandled"></a>
 
-## `requestQueue.markRequestHandled(request)` ⇒ [<code>Promise&lt;QueueOperationInfo&gt;</code>](../typedefs/queueoperationinfo)
+## `requestQueue.markRequestHandled(request)` ⇒ [`Promise<QueueOperationInfo>`](../typedefs/queueoperationinfo)
 Marks request handled after successful processing.
 
 <table>
@@ -158,7 +158,7 @@ Marks request handled after successful processing.
 </table>
 <a name="RequestQueue+reclaimRequest"></a>
 
-## `requestQueue.reclaimRequest(request, [options])` ⇒ [<code>Promise&lt;QueueOperationInfo&gt;</code>](../typedefs/queueoperationinfo)
+## `requestQueue.reclaimRequest(request, [options])` ⇒ [`Promise<QueueOperationInfo>`](../typedefs/queueoperationinfo)
 Reclaims failed request back to the queue, so that it can be processed later again.
 The request record in the queue is updated using the provided `request` parameter.
 For example, this lets you store the number of retries for the request.
@@ -188,32 +188,32 @@ For example, this lets you store the number of retries for the request.
 </table>
 <a name="RequestQueue+isEmpty"></a>
 
-## `requestQueue.isEmpty()` ⇒ <code>Promise&lt;Boolean&gt;</code>
+## `requestQueue.isEmpty()` ⇒ `Promise<Boolean>`
 Resolves to `true` if the next call to [`fetchNextRequest`](#RequestQueue+fetchNextRequest) would return `null`, otherwise it resolves to `false`.
 Note that even if the queue is empty, there might be some pending requests currently being processed.
 If you need to ensure that there is no activity in the queue, use [`isFinished`](#RequestQueue+isFinished).
 
 <a name="RequestQueue+isFinished"></a>
 
-## `requestQueue.isFinished()` ⇒ <code>Promise&lt;Boolean&gt;</code>
+## `requestQueue.isFinished()` ⇒ `Promise<Boolean>`
 Resolves to `true` if all requests were already handled and there are no more left.
 Due to the nature of distributed storage systems,
 the function might occasionally return a false negative, but it will never return a false positive.
 
 <a name="RequestQueue+delete"></a>
 
-## `requestQueue.delete()` ⇒ <code>Promise</code>
+## `requestQueue.delete()` ⇒ `Promise`
 Removes the queue either from the Apify Cloud storage or from the local directory,
 depending on the mode of operation.
 
 <a name="RequestQueue+handledCount"></a>
 
-## `requestQueue.handledCount()` ⇒ <code>Promise&lt;number&gt;</code>
+## `requestQueue.handledCount()` ⇒ `Promise<number>`
 Returns the number of handled requests.
 
 <a name="RequestQueue+getInfo"></a>
 
-## `requestQueue.getInfo()` ⇒ <code>Promise&lt;Object&gt;</code>
+## `requestQueue.getInfo()` ⇒ `Promise<Object>`
 Returns an object containing general information about the request queue.
 
 The function returns the same object as the Apify API Client's

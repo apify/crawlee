@@ -10,31 +10,31 @@ accessible from the left sidebar.
 
 
 * [Apify](#module_Apify)
-    * [`.addWebhook(options)`](#module_Apify.addWebhook) ⇒ <code>Promise&lt;Object&gt;</code>
-    * [`.call(actId, [input], [options])`](#module_Apify.call) ⇒ [<code>Promise&lt;ActorRun&gt;</code>](../typedefs/actorrun)
-    * [`.callTask(taskId, [input], [options])`](#module_Apify.callTask) ⇒ [<code>Promise&lt;ActorRun&gt;</code>](../typedefs/actorrun)
+    * [`.addWebhook(options)`](#module_Apify.addWebhook) ⇒ `Promise<Object>`
+    * [`.call(actId, [input], [options])`](#module_Apify.call) ⇒ [`Promise<ActorRun>`](../typedefs/actorrun)
+    * [`.callTask(taskId, [input], [options])`](#module_Apify.callTask) ⇒ [`Promise<ActorRun>`](../typedefs/actorrun)
     * [`.client`](#module_Apify.client)
     * [`.events`](#module_Apify.events)
-    * [`.getApifyProxyUrl(options)`](#module_Apify.getApifyProxyUrl) ⇒ <code>String</code>
-    * [`.getEnv()`](#module_Apify.getEnv) ⇒ <code>Object</code>
-    * [`.getInput`](#module_Apify.getInput) ⇒ <code>Promise&lt;Object&gt;</code>
-    * [`.getMemoryInfo()`](#module_Apify.getMemoryInfo) ⇒ <code>Promise&lt;Object&gt;</code>
-    * [`.getValue(key)`](#module_Apify.getValue) ⇒ <code>Promise&lt;Object&gt;</code>
-    * [`.isAtHome()`](#module_Apify.isAtHome) ⇒ <code>Boolean</code>
-    * [`.launchPuppeteer([options])`](#module_Apify.launchPuppeteer) ⇒ <code>Promise&lt;Browser&gt;</code>
-    * [`.launchWebDriver([options])`](#module_Apify.launchWebDriver) ⇒ <code>Promise</code>
+    * [`.getApifyProxyUrl(options)`](#module_Apify.getApifyProxyUrl) ⇒ `String`
+    * [`.getEnv()`](#module_Apify.getEnv) ⇒ `Object`
+    * [`.getInput`](#module_Apify.getInput) ⇒ `Promise<Object>`
+    * [`.getMemoryInfo()`](#module_Apify.getMemoryInfo) ⇒ `Promise<Object>`
+    * [`.getValue(key)`](#module_Apify.getValue) ⇒ `Promise<Object>`
+    * [`.isAtHome()`](#module_Apify.isAtHome) ⇒ `Boolean`
+    * [`.launchPuppeteer([options])`](#module_Apify.launchPuppeteer) ⇒ `Promise<Browser>`
+    * [`.launchWebDriver([options])`](#module_Apify.launchWebDriver) ⇒ `Promise`
     * [`.main(userFunc)`](#module_Apify.main)
-    * [`.metamorph(targetActorId, [input], [options])`](#module_Apify.metamorph) ⇒ <code>Promise&lt;undefined&gt;</code>
-    * [`.openDataset([datasetIdOrName], [options])`](#module_Apify.openDataset) ⇒ [<code>Promise&lt;Dataset&gt;</code>](dataset)
-    * [`.openKeyValueStore([storeIdOrName], [options])`](#module_Apify.openKeyValueStore) ⇒ [<code>Promise&lt;KeyValueStore&gt;</code>](keyvaluestore)
-    * [`.openRequestList`](#module_Apify.openRequestList) ⇒ [<code>Promise&lt;RequestList&gt;</code>](requestlist)
-    * [`.openRequestQueue`](#module_Apify.openRequestQueue) ⇒ [<code>Promise&lt;RequestQueue&gt;</code>](requestqueue)
-    * [`.pushData(item)`](#module_Apify.pushData) ⇒ <code>Promise</code>
-    * [`.setValue(key, value, [options])`](#module_Apify.setValue) ⇒ <code>Promise</code>
+    * [`.metamorph(targetActorId, [input], [options])`](#module_Apify.metamorph) ⇒ `Promise<undefined>`
+    * [`.openDataset([datasetIdOrName], [options])`](#module_Apify.openDataset) ⇒ [`Promise<Dataset>`](dataset)
+    * [`.openKeyValueStore([storeIdOrName], [options])`](#module_Apify.openKeyValueStore) ⇒ [`Promise<KeyValueStore>`](keyvaluestore)
+    * [`.openRequestList`](#module_Apify.openRequestList) ⇒ [`Promise<RequestList>`](requestlist)
+    * [`.openRequestQueue`](#module_Apify.openRequestQueue) ⇒ [`Promise<RequestQueue>`](requestqueue)
+    * [`.pushData(item)`](#module_Apify.pushData) ⇒ `Promise`
+    * [`.setValue(key, value, [options])`](#module_Apify.setValue) ⇒ `Promise`
 
 <a name="module_Apify.addWebhook"></a>
 
-## `Apify.addWebhook(options)` ⇒ <code>Promise&lt;Object&gt;</code>
+## `Apify.addWebhook(options)` ⇒ `Promise<Object>`
 Creates an ad-hoc webhook for the current actor run, which lets you receive a notification when the actor run finished or failed.
 For more information about Apify actor webhooks, please see the <a href="https://apify.com/docs/webhook" target="_blank">documentation</a>.
 
@@ -53,7 +53,7 @@ In local environment, the function will print a warning and have no effect.
 </tr>
 <tr>
 <td colspan="3"></td></tr><tr>
-<td><code>options.eventTypes</code></td><td><code>Array&lt;String&gt;</code></td>
+<td><code>options.eventTypes</code></td><td><code>Array<String></code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Array of event types, which you can set for actor run, see
@@ -77,7 +77,7 @@ In local environment, the function will print a warning and have no effect.
 </table>
 <a name="module_Apify.call"></a>
 
-## `Apify.call(actId, [input], [options])` ⇒ [<code>Promise&lt;ActorRun&gt;</code>](../typedefs/actorrun)
+## `Apify.call(actId, [input], [options])` ⇒ [`Promise<ActorRun>`](../typedefs/actorrun)
 Runs an actor on the Apify platform using the current user account (determined by the `APIFY_TOKEN` environment variable),
 waits for the actor to finish and fetches its output.
 
@@ -107,7 +107,7 @@ and several other API endpoints to obtain the output.
 
 **Throws**:
 
-- [<code>ApifyCallError</code>](../typedefs/apifycallerror) If the run did not succeed, e.g. if it failed or timed out.
+- [`ApifyCallError`](../typedefs/apifycallerror) If the run did not succeed, e.g. if it failed or timed out.
 
 <table>
 <thead>
@@ -187,7 +187,7 @@ and several other API endpoints to obtain the output.
 </table>
 <a name="module_Apify.callTask"></a>
 
-## `Apify.callTask(taskId, [input], [options])` ⇒ [<code>Promise&lt;ActorRun&gt;</code>](../typedefs/actorrun)
+## `Apify.callTask(taskId, [input], [options])` ⇒ [`Promise<ActorRun>`](../typedefs/actorrun)
 Runs an actor task on the Apify platform using the current user account (determined by the `APIFY_TOKEN` environment variable),
 waits for the task to finish and fetches its output.
 
@@ -217,7 +217,7 @@ and several other API endpoints to obtain the output.
 
 **Throws**:
 
-- [<code>ApifyCallError</code>](../typedefs/apifycallerror) If the run did not succeed, e.g. if it failed or timed out.
+- [`ApifyCallError`](../typedefs/apifycallerror) If the run did not succeed, e.g. if it failed or timed out.
 
 <table>
 <thead>
@@ -368,7 +368,7 @@ The following table shows all currently emitted events:
 
 <a name="module_Apify.getApifyProxyUrl"></a>
 
-## `Apify.getApifyProxyUrl(options)` ⇒ <code>String</code>
+## `Apify.getApifyProxyUrl(options)` ⇒ `String`
 Constructs an Apify Proxy URL using the specified settings.
 The proxy URL can be used from Apify actors, web browsers or any other HTTP
 proxy-enabled applications.
@@ -377,7 +377,7 @@ For more information, see
 the <a href="https://my.apify.com/proxy" target="_blank">Apify Proxy</a> page in the app
 or the <a href="https://apify.com/docs/proxy" target="_blank">documentation</a>.
 
-**Returns**: <code>String</code> - Returns the proxy URL, e.g. `http://auto:my_password@proxy.apify.com:8000`.  
+**Returns**: `String` - Returns the proxy URL, e.g. `http://auto:my_password@proxy.apify.com:8000`.  
 <table>
 <thead>
 <tr>
@@ -400,7 +400,7 @@ or the <a href="https://apify.com/docs/proxy" target="_blank">documentation</a>.
   or when using the <a href="https://github.com/apifytech/apify-cli" target="_blank">Apify CLI</a>
   package and the user previously logged in (called <code>apify login</code>).</p>
 </td></tr><tr>
-<td><code>[options.groups]</code></td><td><code>Array&lt;String&gt;</code></td>
+<td><code>[options.groups]</code></td><td><code>Array<String></code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Array of Apify Proxy groups to be used.
@@ -417,7 +417,7 @@ or the <a href="https://apify.com/docs/proxy" target="_blank">documentation</a>.
 </table>
 <a name="module_Apify.getEnv"></a>
 
-## `Apify.getEnv()` ⇒ <code>Object</code>
+## `Apify.getEnv()` ⇒ `Object`
 Returns a new object which contains information parsed from all the `APIFY_XXX` environment variables.
 It has properties such as the following:
 
@@ -456,7 +456,7 @@ If some of the variables are not defined or are invalid, the corresponding value
 
 <a name="module_Apify.getInput"></a>
 
-## `Apify.getInput` ⇒ <code>Promise&lt;Object&gt;</code>
+## `Apify.getInput` ⇒ `Promise<Object>`
 Gets the actor input value from the default [`KeyValueStore`](keyvaluestore) associated with the current actor run.
 
 This is just a convenient shortcut for [`keyValueStore.getValue('INPUT')`](keyvaluestore#KeyValueStore+getValue).
@@ -474,10 +474,10 @@ await store.getValue('INPUT');
 For more information, see [`Apify.openKeyValueStore()`](#module_Apify.openKeyValueStore)
 and [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+getValue).
 
-**Returns**: <code>Promise&lt;Object&gt;</code> - Returns a promise that resolves once the record is stored.  
+**Returns**: `Promise<Object>` - Returns a promise that resolves once the record is stored.  
 <a name="module_Apify.getMemoryInfo"></a>
 
-## `Apify.getMemoryInfo()` ⇒ <code>Promise&lt;Object&gt;</code>
+## `Apify.getMemoryInfo()` ⇒ `Promise<Object>`
 Returns memory statistics of the process and the system, which is an object with the following properties:
 
 ```javascript
@@ -503,7 +503,7 @@ Therefore you shouldn't call it too often, like more than once per second.
 
 <a name="module_Apify.getValue"></a>
 
-## `Apify.getValue(key)` ⇒ <code>Promise&lt;Object&gt;</code>
+## `Apify.getValue(key)` ⇒ `Promise<Object>`
 Gets a value from the default [`KeyValueStore`](keyvaluestore) associated with the current actor run.
 
 This is just a convenient shortcut for [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+getValue).
@@ -523,7 +523,7 @@ To store the value to the default-key value store, you can use the [`Apify.setVa
 For more information, see [`Apify.openKeyValueStore()`](#module_Apify.openKeyValueStore)
 and [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+getValue).
 
-**Returns**: <code>Promise&lt;Object&gt;</code> - Returns a promise that resolves once the record is stored.  
+**Returns**: `Promise<Object>` - Returns a promise that resolves once the record is stored.  
 <table>
 <thead>
 <tr>
@@ -540,12 +540,12 @@ and [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+getValue).
 </table>
 <a name="module_Apify.isAtHome"></a>
 
-## `Apify.isAtHome()` ⇒ <code>Boolean</code>
+## `Apify.isAtHome()` ⇒ `Boolean`
 Returns `true` when code is running on Apify platform and `false` otherwise (for example locally).
 
 <a name="module_Apify.launchPuppeteer"></a>
 
-## `Apify.launchPuppeteer([options])` ⇒ <code>Promise&lt;Browser&gt;</code>
+## `Apify.launchPuppeteer([options])` ⇒ `Promise<Browser>`
 Launches headless Chrome using Puppeteer pre-configured to work within the Apify platform.
 The function has the same argument and the return value as `puppeteer.launch()`.
 See <a href="https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#puppeteerlaunchoptions" target="_blank">
@@ -593,7 +593,7 @@ for details.
 For an example of usage, see the [Synchronous run Example](../examples/synchronousrun)
 or the [Puppeteer proxy Example](../examples/puppeteerwithproxy)
 
-**Returns**: <code>Promise&lt;Browser&gt;</code> - Promise that resolves to Puppeteer's `Browser` instance.  
+**Returns**: `Promise<Browser>` - Promise that resolves to Puppeteer's `Browser` instance.  
 <table>
 <thead>
 <tr>
@@ -612,7 +612,7 @@ or the [Puppeteer proxy Example](../examples/puppeteerwithproxy)
 </table>
 <a name="module_Apify.launchWebDriver"></a>
 
-## `Apify.launchWebDriver([options])` ⇒ <code>Promise</code>
+## `Apify.launchWebDriver([options])` ⇒ `Promise`
 Opens a new instance of Chrome web browser
 controlled by <a href="http://www.seleniumhq.org/projects/webdriver/" target="_blank">Selenium WebDriver</a>.
 The result of the function is the new instance of the
@@ -738,7 +738,7 @@ the promise will be awaited. The user function is called with no arguments.</p>
 </table>
 <a name="module_Apify.metamorph"></a>
 
-## `Apify.metamorph(targetActorId, [input], [options])` ⇒ <code>Promise&lt;undefined&gt;</code>
+## `Apify.metamorph(targetActorId, [input], [options])` ⇒ `Promise<undefined>`
 Transforms this actor run to an actor run of a given actor. The system stops the current container and starts the new container
 instead. All the default storages are preserved and the new input is stored under the `INPUT-METAMORPH-1` key in the same default key-value store.
 
@@ -784,7 +784,7 @@ instead. All the default storages are preserved and the new input is stored unde
 </table>
 <a name="module_Apify.openDataset"></a>
 
-## `Apify.openDataset([datasetIdOrName], [options])` ⇒ [<code>Promise&lt;Dataset&gt;</code>](dataset)
+## `Apify.openDataset([datasetIdOrName], [options])` ⇒ [`Promise<Dataset>`](dataset)
 Opens a dataset and returns a promise resolving to an instance of the [`Dataset`](dataset) class.
 
 Datasets are used to store structured data where each object stored has the same attributes,
@@ -820,7 +820,7 @@ For more details and code examples, see the [`Dataset`](dataset) class.
 </table>
 <a name="module_Apify.openKeyValueStore"></a>
 
-## `Apify.openKeyValueStore([storeIdOrName], [options])` ⇒ [<code>Promise&lt;KeyValueStore&gt;</code>](keyvaluestore)
+## `Apify.openKeyValueStore([storeIdOrName], [options])` ⇒ [`Promise<KeyValueStore>`](keyvaluestore)
 Opens a key-value store and returns a promise resolving to an instance of the [`KeyValueStore`](keyvaluestore) class.
 
 Key-value stores are used to store records or files, along with their MIME content type.
@@ -856,7 +856,7 @@ For more details and code examples, see the [`KeyValueStore`](keyvaluestore) cla
 </table>
 <a name="module_Apify.openRequestList"></a>
 
-## `Apify.openRequestList` ⇒ [<code>Promise&lt;RequestList&gt;</code>](requestlist)
+## `Apify.openRequestList` ⇒ [`Promise<RequestList>`](requestlist)
 Opens a request list and returns a promise resolving to an instance
 of the [`RequestList`](requestlist) class that is already initialized.
 
@@ -899,7 +899,7 @@ const requestList = await Apify.openRequestList('my-name', sources);
 <p>  If <code>null</code>, the list will not be persisted and will only be stored in memory. Process restart
   will then cause the list to be crawled again from the beginning. We suggest always using a name.</p>
 </td></tr><tr>
-<td><code>sources</code></td><td><code>Array&lt;Object&gt;</code> | <code>Array&lt;string&gt;</code></td>
+<td><code>sources</code></td><td><code>Array<Object&gt;</code> | <code>Array.&lt;string></code></td>
 </tr>
 <tr>
 <td colspan="3"><p>An array of sources of URLs for the <code>RequestList</code>.
@@ -920,7 +920,7 @@ const requestList = await Apify.openRequestList('my-name', sources);
 </table>
 <a name="module_Apify.openRequestQueue"></a>
 
-## `Apify.openRequestQueue` ⇒ [<code>Promise&lt;RequestQueue&gt;</code>](requestqueue)
+## `Apify.openRequestQueue` ⇒ [`Promise<RequestQueue>`](requestqueue)
 Opens a request queue and returns a promise resolving to an instance
 of the [`RequestQueue`](requestqueue) class.
 
@@ -958,7 +958,7 @@ For more details and code examples, see the [`RequestQueue`](requestqueue) class
 </table>
 <a name="module_Apify.pushData"></a>
 
-## `Apify.pushData(item)` ⇒ <code>Promise</code>
+## `Apify.pushData(item)` ⇒ `Promise`
 Stores an object or an array of objects to the default [`Dataset`](dataset) of the current actor run.
 
 This is just a convenient shortcut for [`dataset.pushData()`](dataset#Dataset+pushData).
@@ -995,7 +995,7 @@ The objects must be serializable to JSON and the JSON representation of each obj
 </table>
 <a name="module_Apify.setValue"></a>
 
-## `Apify.setValue(key, value, [options])` ⇒ <code>Promise</code>
+## `Apify.setValue(key, value, [options])` ⇒ `Promise`
 Stores or deletes a value in the default [`KeyValueStore`](keyvaluestore) associated with the current actor run.
 
 This is just a convenient shortcut for [`keyValueStore.setValue()`](keyvaluestore#KeyValueStore+setValue).
