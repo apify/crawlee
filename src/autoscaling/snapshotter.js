@@ -330,7 +330,7 @@ class Snapshotter {
 
         this.cpuSnapshots.push({
             createdAt,
-            isOverloaded: isCpuOverloaded || cpuCurrentUsage > (this.maxUsedCpuRatio * 100),
+            isOverloaded: isCpuOverloaded,
             usedRatio: Math.ceil(cpuCurrentUsage / 100),
         });
     }
