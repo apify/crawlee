@@ -16,6 +16,7 @@ const underscorePath = require.resolve('underscore/underscore-min');
 const readFilePromised = util.promisify(fs.readFile);
 
 const MAX_INJECT_FILE_CACHE_SIZE = 10;
+const DEFAULT_BLOCK_REQUEST_URL_PATTERNS = ['.css', '.jpg', '.jpeg', '.png', '.svg', '.woff', '.pdf', '.zip'];
 
 /**
  * Hides certain Puppeteer fingerprints from the page, in order to help avoid detection of the crawler.
@@ -229,7 +230,23 @@ const enqueueRequestsFromClickableElements = async (page, selector, purls, reque
  * @return {Promise}
  * @memberOf puppeteer
  */
+const blockUrlPatterns = async (page, options = {}) => {
+    const {
+        urlPatterns = [],
+        includeDefaults = true,
+    } = options;
+
+    checkParamOrThrow(urlPatterns, 'options.urlPatterns', '[String]');
+    checkParamOrThrow(includeDefaults, 'options.includeDefaults', 'Boolean');
+    checkParamOrThrow(blockOnRedirects, 'options.blockOnRedirects', 'Boolean');
+
+
+};
+
+
 const blockResources = async (page, resourceTypes = ['stylesheet', 'font', 'image', 'media']) => {
+    log.deprecated('Apify.utils.puppeteer.blockResources() has a high impact on performance in recent versions of Puppeteer. '
+        + 'Until this resolves, please use Apify.utils.puppeteer.blockRequests()');
     await addInterceptRequestHandler(page, async (request) => {
         const type = request.resourceType();
         if (resourceTypes.includes(type)) await request.abort();
