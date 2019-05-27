@@ -89,10 +89,9 @@ describe('PuppeteerPool', () => {
         await (await browsers[2]).close();
         await (await browsers[6]).close();
 
-        // @TODO for some reason it fails here:
-        // await (await browsers[7]).close();
-        // await shortSleep();
-        // expect(_.values(pool.retiredInstances).length).to.be.eql(0);
+        await (await browsers[7]).close();
+        await shortSleep(2000);
+        expect(_.values(pool.retiredInstances).length).to.be.eql(0);
 
         // Cleanup everything.
         await pool.destroy();
@@ -475,10 +474,6 @@ describe('PuppeteerPool', () => {
             expect(matches(fifthPage)).to.be.eql(2);
 
             await pool.destroy();
-        });
-
-        xit('should work together with request interception', async () => {
-            // TODO
         });
     });
 

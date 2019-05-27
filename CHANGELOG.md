@@ -1,3 +1,8 @@
+xxx
+===================
+- Use pipes instead of web sockets in Puppeteer. 
+
+
 0.14.10 / 2019-05-24
 ===================
 - Update `Puppeteer` to 1.17.0.
