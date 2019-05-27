@@ -50,8 +50,8 @@ environment variable, such as `APIFY_LOG_LEVEL=DEBUG`. This way, no code changes
 are necessary to turn on your debug messages and start debugging right away.
 
 
-* [`log`](#log) : <code>object</code>
-    * [`.LEVELS`](#log.LEVELS) : <code>Object</code>
+* [`log`](#log) : `object`
+    * [`.LEVELS`](#log.LEVELS) : `Object`
     * [`.setLevel(level)`](#log.setLevel)
     * [`.getLevel()`](#log.getLevel)
     * [`.debug(message, [data])`](#log.debug)
@@ -62,7 +62,7 @@ are necessary to turn on your debug messages and start debugging right away.
 
 <a name="log.LEVELS"></a>
 
-## `log.LEVELS` : <code>Object</code>
+## `log.LEVELS` : `Object`
 Map of available log levels that's useful for easy setting of appropriate log levels.
 Each log level is represented internally by a number. Eg. `log.LEVELS.DEBUG === 5`.
 

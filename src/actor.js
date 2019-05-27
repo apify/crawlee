@@ -774,12 +774,12 @@ export const getApifyProxyUrl = (options = {}) => {
  * In local environment, the function will print a warning and have no effect.
  *
  * @param {Object} options
- * @param {String[]} options.eventTypes
+ * @param {string[]} options.eventTypes
  *   Array of event types, which you can set for actor run, see
  *   the <a href="https://apify.com/docs/webhooks#events-actor-run" target="_blank">actor run events</a> in the Apify doc.
- * @param {String}  options.requestUrl
+ * @param {string}  options.requestUrl
  *   URL which will be requested using HTTP POST request, when actor run will reach the set event type.
- * @param {String} [options.payloadTemplate]
+ * @param {string} [options.payloadTemplate]
  *   Payload template is a JSON-like string that describes the structure of the webhook POST request payload.
  *   It uses JSON syntax, extended with a double curly braces syntax for injecting variables `{{variable}}`.
  *   Those variables are resolved at the time of the webhook's dispatch, and a list of available variables with their descriptions
@@ -787,13 +787,18 @@ export const getApifyProxyUrl = (options = {}) => {
  *
  *   When omitted, the default payload template will be used.
  *   <a href="https://apify.com/docs/webhooks" target="_blank">See the docs for the default payload template</a>.
+ * @param {string} [options.idempotencyKey]
+ *   Idempotency key enables you to ensure that a webhook will not be added multiple times in case of
+ *   an actor restart or other situation that would cause the `addWebhook()` function to be called again.
+ *   We suggest using the actor run ID as the idempotency key. You can get the run ID by calling
+ *   [`Apify.getEnv()](apify#module_Apify.getEnv) function.
  * @return {Promise<Object>}
  *
  * @memberof module:Apify
  * @function
  * @name addWebhook
  */
-export const addWebhook = async ({ eventTypes, requestUrl, payloadTemplate }) => {
+export const addWebhook = async ({ eventTypes, requestUrl, payloadTemplate, idempotencyKey }) => {
     checkParamOrThrow(eventTypes, 'eventTypes', '[String]');
     checkParamOrThrow(requestUrl, 'requestUrl', 'String');
     checkParamOrThrow(payloadTemplate, 'payloadTemplate', 'Maybe String');
@@ -817,6 +822,7 @@ export const addWebhook = async ({ eventTypes, requestUrl, payloadTemplate }) =>
             },
             requestUrl,
             payloadTemplate,
+            idempotencyKey,
         },
     });
 };

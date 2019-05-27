@@ -10,14 +10,14 @@ An actor can perform anything from a simple action such as filling out a web for
 to complex operations such as crawling an entire website and removing duplicates from a large dataset.
 
 To run an actor, you need to have an <a href="https://my.apify.com/)" target="_blank">Apify Account</a>.
-Actors can be shared in the <a href="https://apify.com/library?&type=acts)" target="_blank">Apify Library</a>
+Actors can be shared in the <a href="https://apify.com/store?&type=acts)" target="_blank">Apify Store</a>
 so that other people can use them.
-But don't worry, if you share your actor in the library
+But don't worry, if you share your actor in the store
 and somebody uses it, it runs under their account, not yours.
 
 **Related links**
 
-* <a href="https://apify.com/library?&type=acts" target="_blank">Library of existing actors</a>
+* <a href="https://apify.com/store?&type=acts" target="_blank">Store of existing actors</a>
 * <a href="https://apify.com/docs/actor" target="_blank">Documentation</a>
 * <a href="https://my.apify.com/actors" target="_blank">View actors in Apify app</a>
 * <a href="https://apify.com/docs/api/v2#/reference/actors" target="_blank">API reference</a>

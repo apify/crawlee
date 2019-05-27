@@ -67,15 +67,15 @@ await store.delete('some-key');
 
 
 * [KeyValueStore](keyvaluestore)
-    * [`.getValue(key)`](#KeyValueStore+getValue) ⇒ <code>Promise&lt;(Object|String|Buffer)&gt;</code>
-    * [`.setValue(key, value, [options])`](#KeyValueStore+setValue) ⇒ <code>Promise</code>
-    * [`.delete()`](#KeyValueStore+delete) ⇒ <code>Promise</code>
-    * [`.getPublicUrl(key)`](#KeyValueStore+getPublicUrl) ⇒ <code>string</code>
-    * [`.forEachKey(iteratee, [options])`](#KeyValueStore+forEachKey) ⇒ <code>Promise</code>
+    * [`.getValue(key)`](#KeyValueStore+getValue) ⇒ `Promise<(Object|String|Buffer)>`
+    * [`.setValue(key, value, [options])`](#KeyValueStore+setValue) ⇒ `Promise`
+    * [`.delete()`](#KeyValueStore+delete) ⇒ `Promise`
+    * [`.getPublicUrl(key)`](#KeyValueStore+getPublicUrl) ⇒ `string`
+    * [`.forEachKey(iteratee, [options])`](#KeyValueStore+forEachKey) ⇒ `Promise`
 
 <a name="KeyValueStore+getValue"></a>
 
-## `keyValueStore.getValue(key)` ⇒ <code>Promise&lt;(Object|String|Buffer)&gt;</code>
+## `keyValueStore.getValue(key)` ⇒ `Promise<(Object|String|Buffer)>`
 Gets a value from the key-value store.
 
 The function returns a `Promise` that resolves to the record value,
@@ -98,7 +98,7 @@ const store = await Apify.openKeyValueStore('my-screenshots');
 const buffer = await store.getValue('screenshot1.png');
 ```
 
-**Returns**: <code>Promise&lt;(Object|String|Buffer)&gt;</code> - Returns a promise that resolves to an object, string
+**Returns**: `Promise<(Object|String|Buffer)>` - Returns a promise that resolves to an object, string
   or <a href="https://nodejs.org/api/buffer.html" target="_blank"><code>Buffer</code></a>, depending
   on the MIME content type of the record.  
 <table>
@@ -118,7 +118,7 @@ const buffer = await store.getValue('screenshot1.png');
 </table>
 <a name="KeyValueStore+setValue"></a>
 
-## `keyValueStore.setValue(key, value, [options])` ⇒ <code>Promise</code>
+## `keyValueStore.setValue(key, value, [options])` ⇒ `Promise`
 Saves or deletes a record in the key-value store.
 The function returns a promise that resolves once the record has been saved or deleted.
 
@@ -188,13 +188,13 @@ otherwise the actor process might finish before the value is stored!
 </table>
 <a name="KeyValueStore+delete"></a>
 
-## `keyValueStore.delete()` ⇒ <code>Promise</code>
+## `keyValueStore.delete()` ⇒ `Promise`
 Removes the key-value store either from the Apify cloud storage or from the local directory,
 depending on the mode of operation.
 
 <a name="KeyValueStore+getPublicUrl"></a>
 
-## `keyValueStore.getPublicUrl(key)` ⇒ <code>string</code>
+## `keyValueStore.getPublicUrl(key)` ⇒ `string`
 Returns a URL for the given key that may be used to publicly
 access the value in the remote key value store.
 
@@ -213,7 +213,7 @@ access the value in the remote key value store.
 </table>
 <a name="KeyValueStore+forEachKey"></a>
 
-## `keyValueStore.forEachKey(iteratee, [options])` ⇒ <code>Promise</code>
+## `keyValueStore.forEachKey(iteratee, [options])` ⇒ `Promise`
 Iterates over key value store keys, yielding each in turn to an `iteratee` function.
 Each invocation of `iteratee` is called with three arguments: `(key, index, info)`, where `key`
 is the record key, `index` is a zero-based index of the key in the current iteration

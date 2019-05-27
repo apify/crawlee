@@ -28,6 +28,7 @@ const getRenderOptions = (template, data) => ({
     partial: [
         path.join(__dirname, 'partials', 'params-table.hbs'),
         path.join(__dirname, 'partials', 'properties-table.hbs'),
+        path.join(__dirname, 'partials', 'link.hbs'),
     ],
 });
 
@@ -55,10 +56,10 @@ const generateFinalMarkdown = (title, text) => {
     text = text.replace(rx, '');
     // Remove 'Kind' annotations.
     text = text.replace(/\*\*Kind\*\*.*\n/g, '');
-    // Remove dots in type annotations
-    const dotsRx = /([A-Z][a-z]+)\.(&lt;.+&gt;)/g;
+    // Remove dots in type annotations and replace entities
+    const dotsRx = /([A-Z][a-z]+)\.&lt;(.+)&gt;/g;
     const replacer = (match, p1, p2) => {
-        return p1 + p2.replace(dotsRx, replacer);
+        return `${p1}<${p2.replace(dotsRx, replacer)}>`;
     };
     text = text.replace(dotsRx, replacer);
     // Fix class links

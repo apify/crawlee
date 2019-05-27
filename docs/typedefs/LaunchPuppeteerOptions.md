@@ -57,7 +57,7 @@ function and in addition, all the options available below.
   <a href="https://my.apify.com/proxy" target="_blank">Apify Proxy</a> for all connections.
   For more information, see the <a href="https://apify.com/docs/proxy" target="_blank">documentation</a></p>
 </td></tr><tr>
-<td><code>[apifyProxyGroups]</code></td><td><code>Array&lt;String&gt;</code></td><td></td>
+<td><code>[apifyProxyGroups]</code></td><td><code>Array<String></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>An array of proxy groups to be used

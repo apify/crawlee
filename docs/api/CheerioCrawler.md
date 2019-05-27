@@ -77,7 +77,7 @@ await crawler.run();
 
 * [CheerioCrawler](cheeriocrawler)
     * [`new CheerioCrawler(options)`](#new_CheerioCrawler_new)
-    * [`.run()`](#CheerioCrawler+run) ⇒ <code>Promise</code>
+    * [`.run()`](#CheerioCrawler+run) ⇒ `Promise`
 
 <a name="new_CheerioCrawler_new"></a>
 
@@ -108,8 +108,7 @@ await crawler.run();
   request: Request,
   response: Object // An instance of Node&#39;s http.IncomingMessage object,
   autoscaledPool: AutoscaledPool
-}
-</code></pre><p>  With the <a href="request"><code>Request</code></a> object representing the URL to crawl.</p>
+}</code></pre><p>  With the <a href="request"><code>Request</code></a> object representing the URL to crawl.</p>
 <p>  If the function returns a promise, it is awaited by the crawler.</p>
 <p>  If the function throws an exception, the crawler will try to re-crawl the
   request later, up to <code>option.maxRequestRetries</code> times.
@@ -139,11 +138,15 @@ await crawler.run();
   Provided <code>requestOptions</code> are added to internal defaults that cannot be overridden to ensure
   the operation of <code>CheerioCrawler</code> and all its options. If you need more granular control over
   your requests, use <a href="basiccrawler"><code>BasicCrawler</code></a>.</p>
-<p>  The internal defaults include:</p>
-<pre><code> - `url`, `method`, `headers`: provided by `requestList` and/or `requestQueue`
- - `strictSSL`: use `options.ignoreSslErrors`
- - `proxy`: use `options.useApifyProxy` or `options.proxyUrls`
-</code></pre></td></tr><tr>
+<p>  The mandatory internal defaults:</p>
+<pre><code>  {
+      url,
+      method,
+      headers,
+      payload,   // Are provided by RequestList and/or RequestQueue
+      strictSSL, // Use options.ignoreSslErrors
+      proxy,     // Use options.useApifyProxy or options.proxyUrls
+  }</code></pre></td></tr><tr>
 <td><code>[options.prepareRequestFunction]</code></td><td><code>function</code></td><td></td>
 </tr>
 <tr>
@@ -152,8 +155,7 @@ await crawler.run();
 <p>  The function receives the following object as an argument:</p>
 <pre><code>{
   request: Request
-}
-</code></pre><p>  where the <a href="request"><code>Request</code></a> instance corresponds to the initialized request.</p>
+}</code></pre><p>  where the <a href="request"><code>Request</code></a> instance corresponds to the initialized request.</p>
 <p>  The function should modify the properties of the passed <a href="request"><code>Request</code></a> instance
   in place because there are already earlier references to it. Making a copy and returning it from
   this function is therefore not supported, because it would create inconsistencies where
@@ -182,7 +184,7 @@ await crawler.run();
   <a href="https://my.apify.com/proxy" target="_blank">Apify Proxy</a> for all connections.
   For more information, see the <a href="https://apify.com/docs/proxy" target="_blank">documentation</a></p>
 </td></tr><tr>
-<td><code>[options.apifyProxyGroups]</code></td><td><code>Array&lt;String&gt;</code></td><td></td>
+<td><code>[options.apifyProxyGroups]</code></td><td><code>Array<String></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>An array of proxy groups to be used
@@ -198,7 +200,7 @@ await crawler.run();
   The identifier can only contain the following characters: <code>0-9</code>, <code>a-z</code>, <code>A-Z</code>, <code>&quot;.&quot;</code>, <code>&quot;_&quot;</code> and <code>&quot;~&quot;</code>.
   Only applied if the <code>useApifyProxy</code> option is <code>true</code>.</p>
 </td></tr><tr>
-<td><code>[options.proxyUrls]</code></td><td><code>Array&lt;String&gt;</code></td><td></td>
+<td><code>[options.proxyUrls]</code></td><td><code>Array<String></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>An array of custom proxy URLs to be used by the <code>CheerioCrawler</code> instance.
@@ -214,8 +216,7 @@ await crawler.run();
 <pre><code>{
   request: Request,
   error: Error,
-}
-</code></pre><p>  where the <a href="request"><code>Request</code></a> instance corresponds to the failed request, and the <code>Error</code> instance
+}</code></pre><p>  where the <a href="request"><code>Request</code></a> instance corresponds to the failed request, and the <code>Error</code> instance
   represents the last error thrown during processing of the request.</p>
 <p>  See <a href="https://github.com/apifytech/apify-js/blob/master/src/cheerio_crawler.js#L13">source code</a>
   for the default implementation of this function.</p>
@@ -256,6 +257,6 @@ await crawler.run();
 </table>
 <a name="CheerioCrawler+run"></a>
 
-## `cheerioCrawler.run()` ⇒ <code>Promise</code>
+## `cheerioCrawler.run()` ⇒ `Promise`
 Runs the crawler. Returns promise that gets resolved once all the requests got processed.
 

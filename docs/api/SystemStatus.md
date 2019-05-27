@@ -27,8 +27,8 @@ in the [`Snapshotter`](snapshotter) instance.
 
 * [SystemStatus](systemstatus)
     * [`new SystemStatus([options])`](#new_SystemStatus_new)
-    * [`.getCurrentStatus()`](#SystemStatus+getCurrentStatus) ⇒ <code>Object</code>
-    * [`.getHistoricalStatus()`](#SystemStatus+getHistoricalStatus) ⇒ <code>Object</code>
+    * [`.getCurrentStatus()`](#SystemStatus+getCurrentStatus) ⇒ `Object`
+    * [`.getHistoricalStatus()`](#SystemStatus+getHistoricalStatus) ⇒ `Object`
 
 <a name="new_SystemStatus_new"></a>
 
@@ -80,7 +80,7 @@ in the [`Snapshotter`](snapshotter) instance.
 </table>
 <a name="SystemStatus+getCurrentStatus"></a>
 
-## `systemStatus.getCurrentStatus()` ⇒ <code>Object</code>
+## `systemStatus.getCurrentStatus()` ⇒ `Object`
 Returns an object with the following structure:
 
 ```javascript
@@ -98,7 +98,7 @@ and `true` otherwise.
 
 <a name="SystemStatus+getHistoricalStatus"></a>
 
-## `systemStatus.getHistoricalStatus()` ⇒ <code>Object</code>
+## `systemStatus.getHistoricalStatus()` ⇒ `Object`
 Returns an object with the following structure:
 
 ```javascript

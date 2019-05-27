@@ -269,7 +269,7 @@ Earlier we said that we would let the crawler:
 So let's get to it!
 
 #### Finding new links
-There are numerous approaches to finding links to follow when crawling the web. For our purposes, we will be looking for `<a>` elements that contain the `href` attribute. For example `<a href="https://apify.com/library>This is a link to Apify Library</a>`. To do this, we need to update our Cheerio function.
+There are numerous approaches to finding links to follow when crawling the web. For our purposes, we will be looking for `<a>` elements that contain the `href` attribute. For example `<a href="https://apify.com/store>This is a link to Apify Store</a>`. To do this, we need to update our Cheerio function.
 
 ```js
 const links = $('a[href]').map((i, el) => $(el).attr('href')).get();
@@ -517,7 +517,7 @@ const options = {
 await enqueueLinks(options);
 ```
 
-> To break the pseudo-URL string down, we're looking for both `http` and `https` protocols and the links may only lead to `apify.com` domain. The final brackets `[.*]` allow everything, so `apify.com/contact` as well as `apify.com/library` will match. If this is complex to you, we suggest <a href="https://www.regular-expressions.info/tutorial.html" target="_blank">reading a tutorial</a> or two on regular expression syntax.
+> To break the pseudo-URL string down, we're looking for both `http` and `https` protocols and the links may only lead to `apify.com` domain. The final brackets `[.*]` allow everything, so `apify.com/contact` as well as `apify.com/store` will match. If this is complex to you, we suggest <a href="https://www.regular-expressions.info/tutorial.html" target="_blank">reading a tutorial</a> or two on regular expression syntax.
 
 #### Resolving relative URLs with `enqueueLinks()`
 
@@ -632,8 +632,8 @@ And that's it! No more parsing the links from HTML using Cheerio, filtering them
 
 We hear you young padawan! First, learn how to crawl, you must. Only then, save data, you can!
 
-### Making a library crawler
-Fortunately, we don't have to travel to a galaxy far far away to find a good candidate for learning how to scrape structured data. The <a href="https://apify.com/library" target="_blank">Apify Library</a> is a library of public actors that anyone can grab and use. You can find ready-made solutions for crawling Google Places, Amazon, Google SERPs, Booking, Kickstarter and many other websites. Feel free to check them out! It also poses a great place to practice our jedi scraping skills since it has categories, lists and details. That's almost like our imaginary `online-store.com` from the previous chapter.
+### Making a store crawler
+Fortunately, we don't have to travel to a galaxy far far away to find a good candidate for learning how to scrape structured data. The <a href="https://apify.com/store" target="_blank">Apify Store</a> is a store of public actors that anyone can grab and use. You can find ready-made solutions for crawling Google Places, Amazon, Google SERPs, Booking, Kickstarter and many other websites. Feel free to check them out! It also poses a great place to practice our jedi scraping skills since it has categories, lists and details. That's almost like our imaginary `online-store.com` from the previous chapter.
 
 ### The importance of having a plan
 Sometimes scraping is really straightforward, but most of the times, it really pays out to do a little bit of research first. How is the website structured? Can I scrape it only with HTTP requests (read "with `CheerioCrawler`") or would I need a full browser solution? Are there any anti-scraping protections in place? Do I need to parse the HTML or can I get the data otherwise, such as directly from the website's API. Jakub, one of Apify's founders wrote a <a href="https://blog.apify.com/web-scraping-in-2018-forget-html-use-xhrs-metadata-or-javascript-variables-8167f252439c" target="_blank">great article about all the different techniques</a> and tips and tricks so make sure to check that out!
@@ -659,17 +659,17 @@ We can see that some of the information is available directly on the list page, 
 Knowing that we will use plain HTTP requests, we immediately know that we won't be able to manipulate the website in any way. We will only be able to go through the HTML it gives us and parse our data from there. This might sound like a huge limitation, but you might be surprised in how effective it might be. Let's get on it!
 
 #### The start URL(s)
-This is where we start our crawl. It's convenient to start as close to our data as possible. For example, it wouldn't make much sense to start at `apify.com` and look for a `library` link there, when we already know that everything we want to extract can be found at the `apify.com/library` page.
+This is where we start our crawl. It's convenient to start as close to our data as possible. For example, it wouldn't make much sense to start at `apify.com` and look for a `store` link there, when we already know that everything we want to extract can be found at the `apify.com/store` page.
 
-Once we look at the `apify.com/library` page more carefully though, we see that the categories themselves produce URLs that we can use to access those individual categories.
+Once we look at the `apify.com/store` page more carefully though, we see that the categories themselves produce URLs that we can use to access those individual categories.
 
 ```
-https://apify.com/library?category=ENTERTAINMENT
+https://apify.com/store?category=ENTERTAINMENT
 ```
 
-Should we write down all the category URLs down and use all of them as start URLs? It's definitely possible, but what if a new category appears on the page later? We would not learn about it unless we manually visit the page and inspect it again. So scraping the category links off the library page definitely makes sense. This way we always get an up to date list of categories.
+Should we write down all the category URLs down and use all of them as start URLs? It's definitely possible, but what if a new category appears on the page later? We would not learn about it unless we manually visit the page and inspect it again. So scraping the category links off the store page definitely makes sense. This way we always get an up to date list of categories.
 
-But is it really that straightforward? By digging further into the library page's HTML we find that it does not actually contain the category links. The menu on the left uses JavaScript to display the items from a given category and, as we've learned earlier, `CheerioCrawler` cannot execute JavaScript.
+But is it really that straightforward? By digging further into the store page's HTML we find that it does not actually contain the category links. The menu on the left uses JavaScript to display the items from a given category and, as we've learned earlier, `CheerioCrawler` cannot execute JavaScript.
 
 > We've deliberately chosen this scenario to show an example of the number one weakness of `CheerioCrawler`. We will overcome this difficulty in our `PuppeteerCrawler` tutorial, but at the cost of compute resources and speed. Always remember that no tool is best for everything!
 
@@ -678,11 +678,11 @@ So we're back to the pre-selected list of URLs. Since we cannot scrape the list 
 Therefore, after careful consideration, we've determined that we should use multiple start URLs and that they should look as follows:
 
 ```
-https://apify.com/library?type=acts&category=TRAVEL
-https://apify.com/library?type=acts&category=ECOMMERCE
-https://apify.com/library?type=acts&category=ENTERTAINMENT
+https://apify.com/store?type=acts&category=TRAVEL
+https://apify.com/store?type=acts&category=ECOMMERCE
+https://apify.com/store?type=acts&category=ENTERTAINMENT
 ```
-> The `type=acts` query parameter comes from selecting `Actors only` in the `Show` dropdown. This is in line with us only wanting to scrape actors' data. If you're wondering how we've created these URLs, simply visit the `https://apify.com/library` page, select `Actors only` in the `Show` dropdown and click on one of the categories in the left hand menu. The correct URL will show up in your browser's address bar.
+> The `type=acts` query parameter comes from selecting `Actors only` in the `Show` dropdown. This is in line with us only wanting to scrape actors' data. If you're wondering how we've created these URLs, simply visit the `https://apify.com/store` page, select `Actors only` in the `Show` dropdown and click on one of the categories in the left hand menu. The correct URL will show up in your browser's address bar.
 
 ### The crawling strategy
 Now that we know where to start, we need to figure out where to go next. Since we've eliminated one level of crawling by selecting the categories manually, we only need to crawl the actor detail pages now. The algorithm therefore follows:
@@ -697,13 +697,13 @@ Now that we know where to start, we need to figure out where to go next. Since w
 `CheerioCrawler` will make sure to visit the pages for us, if we provide the correct `Requests` and we already know how to enqueue pages, so this should be fairly easy. Nevertheless, there are two more tricks that we'd like to show you.
 
 #### Using a `RequestList`
-`RequestList` is a perfect tool for scraping a pre-existing list of URLs and if you think about our start URLs, this is exactly what we have! A list of links to the different categories of the library. Let's see how we'd get them into a `RequestList`.
+`RequestList` is a perfect tool for scraping a pre-existing list of URLs and if you think about our start URLs, this is exactly what we have! A list of links to the different categories of the store. Let's see how we'd get them into a `RequestList`.
 
 ```js
 const sources = [
-    'https://apify.com/library?type=acts&category=TRAVEL',
-    'https://apify.com/library?type=acts&category=ECOMMERCE',
-    'https://apify.com/library?type=acts&category=ENTERTAINMENT'
+    'https://apify.com/store?type=acts&category=TRAVEL',
+    'https://apify.com/store?type=acts&category=ECOMMERCE',
+    'https://apify.com/store?type=acts&category=ENTERTAINMENT'
 ];
 
 const requestList = await Apify.openRequestList('categories', sources);
@@ -740,9 +740,9 @@ const Apify = require('apify');
 Apify.main(async () => {
 
     const sources = [
-        'https://apify.com/library?type=acts&category=TRAVEL',
-        'https://apify.com/library?type=acts&category=ECOMMERCE',
-        'https://apify.com/library?type=acts&category=ENTERTAINMENT'
+        'https://apify.com/store?type=acts&category=TRAVEL',
+        'https://apify.com/store?type=acts&category=ECOMMERCE',
+        'https://apify.com/store?type=acts&category=ENTERTAINMENT'
     ];
 
     const requestList = await Apify.openRequestList('categories', sources);
@@ -770,7 +770,7 @@ You might be wondering how we got that `.item` selector. After analyzing the cat
 At time of this writing, there are only 2 actors in the Travel category, so we'll use this one for our examples, since it will make everything much less cluttered. Now, go to 
 
 ```
-https://apify.com/library?type=acts&category=TRAVEL
+https://apify.com/store?type=acts&category=TRAVEL
 ```
 and open DevTools either by right clicking anywhere in the page and selecting `Inspect`, or by pressing `F12` or by any other means relevant to your system. Once you're there, you'll see a bunch of DevToolsy stuff and a view of the category page with the individual actor cards.
 
@@ -846,9 +846,9 @@ const Apify = require('apify');
 Apify.main(async () => {
 
     const sources = [
-        'https://apify.com/library?type=acts&category=TRAVEL',
-        'https://apify.com/library?type=acts&category=ECOMMERCE',
-        'https://apify.com/library?type=acts&category=ENTERTAINMENT'
+        'https://apify.com/store?type=acts&category=TRAVEL',
+        'https://apify.com/store?type=acts&category=ECOMMERCE',
+        'https://apify.com/store?type=acts&category=ENTERTAINMENT'
     ];
 
     const requestList = await Apify.openRequestList('categories', sources);
@@ -886,7 +886,7 @@ We've added the `handlePageFunction()` with the `enqueueLinks()` logic from the 
 This concludes our Crawling strategy section, because we have taught the crawler to visit all the pages we need. Let's continue with scraping the tasty data.
 
 ### Scraping data
-At the beginning of this chapter, we've created a list of information we wanted to collect about the actors in the library. Let's review that and figure out ways to access it.
+At the beginning of this chapter, we've created a list of information we wanted to collect about the actors in the store. Let's review that and figure out ways to access it.
 
 1. URL
 2. Owner
@@ -912,7 +912,7 @@ const owner = urlArr[0]; // 'apify'
 > It's always a matter of preference, whether to store this information separately in the resulting dataset, or not. Whoever uses the dataset can easily parse the `owner` from the `URL`, so should we duplicate the data unnecessarily? Our opinion is that unless the increased data consumption would be too large to bear, it's always better to make the dataset as readable as possible. Someone might want to filter by `owner` for example and keeping only the `URL` in the dataset would make this complicated without using additional tools.
 
 #### Scraping Title, Description, Last run date and Number of runs
-Now it's time to add more data to the results. Let's open one of the actor detail pages in the Library, for example the [`apify/web-scraper`](https://apify.com/apify/web-scraper) page and use our DevTools-Fu to figure out how to get the title of the actor.
+Now it's time to add more data to the results. Let's open one of the actor detail pages in the Store, for example the [`apify/web-scraper`](https://apify.com/apify/web-scraper) page and use our DevTools-Fu to figure out how to get the title of the actor.
 
 ##### Title
 ![actor title](/img/getting-started/title-01.png "Finding actor title in DevTools.")
@@ -1016,9 +1016,9 @@ const Apify = require('apify');
 Apify.main(async () => {
 
     const sources = [
-        'https://apify.com/library?type=acts&category=TRAVEL',
-        'https://apify.com/library?type=acts&category=ECOMMERCE',
-        'https://apify.com/library?type=acts&category=ENTERTAINMENT'
+        'https://apify.com/store?type=acts&category=TRAVEL',
+        'https://apify.com/store?type=acts&category=ECOMMERCE',
+        'https://apify.com/store?type=acts&category=ENTERTAINMENT'
     ];
 
     const requestList = await Apify.openRequestList('categories', sources);
@@ -1089,9 +1089,9 @@ const Apify = require('apify');
 Apify.main(async () => {
 
     const sources = [
-        'https://apify.com/library?type=acts&category=TRAVEL',
-        'https://apify.com/library?type=acts&category=ECOMMERCE',
-        'https://apify.com/library?type=acts&category=ENTERTAINMENT'
+        'https://apify.com/store?type=acts&category=TRAVEL',
+        'https://apify.com/store?type=acts&category=ECOMMERCE',
+        'https://apify.com/store?type=acts&category=ENTERTAINMENT'
     ];
 
     const requestList = await Apify.openRequestList('categories', sources);
@@ -1206,7 +1206,7 @@ Once we have that, we can load it in the actor and populate the crawler's source
 const input = await Apify.getInput();
     
 const sources = input.map(category => ({
-    url: `https://apify.com/library?type=acts&category=${category}`,
+    url: `https://apify.com/store?type=acts&category=${category}`,
     userData: {
         label: 'CATEGORY'
     }
@@ -1276,7 +1276,7 @@ exports.getSources = async () => {
     log.debug('Getting sources.');
     const input = await Apify.getInput();
     return input.map(category => ({
-        url: `https://apify.com/library?type=acts&category=${category}`,
+        url: `https://apify.com/store?type=acts&category=${category}`,
         userData: {
             label: 'CATEGORY'
         }
