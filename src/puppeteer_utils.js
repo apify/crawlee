@@ -188,24 +188,27 @@ const enqueueRequestsFromClickableElements = async (page, selector, purls, reque
 
 
 /**
- * Forces the Puppeteer browser tab to block loading certain HTTP resources.
+ * Forces the Puppeteer browser tab to block loading URLs that match a provided pattern.
  * This is useful to speed up crawling of websites, since it reduces the amount
- * of data that need to be downloaded from the web.
+ * of data that needs to be downloaded from the web, but it may break some websites
+ * or unexpectedly prevent loading of resources.
  *
- * The resource types to block can be specified using the `resourceTypes` parameter,
- * which indicates the types of resources as they are perceived by the rendering engine.
- * The following resource types are currently supported:
- * `document`, `stylesheet`, `image`, `media`, `font`, `script`, `texttrack`, `xhr`, `fetch`,
- * `eventsource`, `websocket`, `manifest`, `other`.
- * For more details, see Puppeteer's
- * <a href="https://pptr.dev/#?product=Puppeteer&show=api-requestresourcetype" target="_blank">Request.resourceType() documentation</a>.
+ * If the `options.urlPatterns` parameter is not provided,
+ * by default the function blocks URLs that include these patterns:
  *
- * If the `resourceTypes` parameter is not provided,
- * by default the function blocks these resource types: `stylesheet`, `font`, `image`, `media`.
+ * ```json
+ * [".css", ".jpg", ".jpeg", ".png", ".svg", ".woff", ".pdf", ".zip"]
+ * ```
  *
- * Note that the `blockResources` function internally uses Puppeteer's
- * [`Page.setRequestInterception()`](https://pptr.dev/#?product=Puppeteer&show=api-pagesetrequestinterceptionvalue) function,
- * which can only be used once per `Page` object.
+ * The defaults will be concatenated with the patterns you provide in `options.urlPatterns`.
+ * If you want to remove the defaults, use `options.includeDefaults: false`.
+ *
+ * This function does not use Puppeteer's request interception and therefore does not interfere
+ * with browser cache. It's also faster than blocking requests using interception,
+ * because the blocking happens directly in the browser without the round-trip to Node.js,
+ * but it does not provide the extra benefits of request interception.
+ *
+ * The function will never block main document loads and their respective redirects.
  *
  * **Example usage**
  * ```javascript
@@ -214,23 +217,27 @@ const enqueueRequestsFromClickableElements = async (page, selector, purls, reque
  * const browser = await Apify.launchPuppeteer();
  * const page = await browser.newPage();
  *
- * // Block all resources except for the main HTML document
- * await Apify.utils.puppeteer.blockResources(page,
- *   ['stylesheet', 'image', 'media', 'font', 'script', 'texttrack', 'xhr',
- *    'fetch', 'eventsource', 'websocket', 'manifest', 'other']
- * );
+ * // Block all requests to URLs that include `adsbygoogle.js` and also all defaults.
+ * await Apify.utils.puppeteer.blockRequests(page, {
+ *     urlPatterns: ['adsbygoogle.js'],
+ * });
  *
- * await page.goto('https://www.example.com');
+ * await page.goto('https://cnn.com');
  * ```
  *
  * @param {Page} page
  *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
- * @param {String[]} [resourceTypes=['stylesheet', 'font', 'image', 'media']]
- *   Array of resource types to block.
+ * @param {Object} [options]
+ * @param {string[]} [options.urlPatterns]
+ *   The patterns of URLs to block from being loaded by the browser.
+ *   Only `*` can be used as a wildcard. It is also automatically added to the beginning
+ *   and end of the pattern. This limitation is enforced by the DevTools protocol.
+ *   `.png` is the same as `*.png*`.
+ * @param {boolean} [options.includeDefaults]
  * @return {Promise}
  * @memberOf puppeteer
  */
-const blockUrlPatterns = async (page, options = {}) => {
+const blockRequests = async (page, options = {}) => {
     const {
         urlPatterns = [],
         includeDefaults = true,
@@ -238,12 +245,19 @@ const blockUrlPatterns = async (page, options = {}) => {
 
     checkParamOrThrow(urlPatterns, 'options.urlPatterns', '[String]');
     checkParamOrThrow(includeDefaults, 'options.includeDefaults', 'Boolean');
-    checkParamOrThrow(blockOnRedirects, 'options.blockOnRedirects', 'Boolean');
 
+    const patternsToBlock = includeDefaults
+        ? [...DEFAULT_BLOCK_REQUEST_URL_PATTERNS, ...urlPatterns]
+        : urlPatterns;
 
+    await page._client.send('Network.setBlockedURLs', { urls: patternsToBlock }); // eslint-disable-line no-underscore-dangle
 };
 
-
+/**
+ * `blockResources()` has a high impact on performance in recent versions of Puppeteer.
+ * 'Until this resolves, please use `Apify.utils.puppeteer.blockRequests()`.
+ * @deprecated
+ */
 const blockResources = async (page, resourceTypes = ['stylesheet', 'font', 'image', 'media']) => {
     log.deprecated('Apify.utils.puppeteer.blockResources() has a high impact on performance in recent versions of Puppeteer. '
         + 'Until this resolves, please use Apify.utils.puppeteer.blockRequests()');
@@ -255,6 +269,9 @@ const blockResources = async (page, resourceTypes = ['stylesheet', 'font', 'imag
 };
 
 /**
+ * *NOTE:* In recent versions of Puppeteer using this function entirely disables browser cache which resolves in sub-optimal
+ * performance. Until this resolves, we suggest just relying on the in-browser cache unless absolutely necessary.
+ *
  * Enables caching of intercepted responses into a provided object. Automatically enables request interception in Puppeteer.
  * *IMPORTANT*: Caching responses stores them to memory, so too loose rules could cause memory leaks for longer running crawlers.
  *   This issue should be resolved or atleast mitigated in future iterations of this feature.
@@ -267,11 +284,15 @@ const blockResources = async (page, resourceTypes = ['stylesheet', 'font', 'imag
  *   String rules are compared as page.url().includes(rule) while RegExp rules are evaluated as rule.test(page.url()).
  * @return {Promise}
  * @memberOf puppeteer
+ * @deprecated
  */
 const cacheResponses = async (page, cache, responseUrlRules) => {
     checkParamOrThrow(page, 'page', 'Object');
     checkParamOrThrow(cache, 'cache', 'Object');
     checkParamOrThrow(responseUrlRules, 'responseUrlRules', 'Array');
+
+    log.deprecated('Apify.utils.puppeteer.cacheResponses() has a high impact on performance '
+        + 'in recent versions of Puppeteer so it\'s use is discouraged until this issue resolves.');
 
     // Check that rules are either String or RegExp
     responseUrlRules.forEach((rule, index) => checkParamOrThrow(rule, `responseUrlRules[${index}]`, 'String | RegExp'));
@@ -361,6 +382,10 @@ const compileScript = (scriptString, context = Object.create(null)) => {
 };
 
 /**
+ * *NOTE:* In recent versions of Puppeteer using this function entirely disables browser cache which resolves in sub-optimal
+ * performance. Until this resolves, we suggest using this function only when needed and not to replace all `page.goto()`
+ * calls in your actors with it.
+ *
  * Extended version of Puppeteer's `page.goto()` allowing to perform requests with HTTP method other than GET,
  * with custom headers and POST payload. URL, method, headers and payload are taken from
  * request parameter that must be an instance of Apify.Request class.
@@ -378,6 +403,9 @@ export const gotoExtended = async (page, request, gotoOptions = {}) => {
     checkParamOrThrow(page, 'page', 'Object');
     checkParamPrototypeOrThrow(request, 'request', Request, 'Apify.Request');
     checkParamOrThrow(gotoOptions, 'gotoOptions', 'Object');
+
+    log.deprecated('Apify.utils.puppeteer.gotoExtended() has a high impact on performance '
+        + 'in recent versions of Puppeteer. Use only when necessary.');
 
     const { method, headers, payload } = request;
 
@@ -404,20 +432,6 @@ export const gotoExtended = async (page, request, gotoOptions = {}) => {
 
     return page.goto(request.url, gotoOptions);
 };
-
-/*
-export const enqueueClickables = async (page, purls, selector) => {
-    const interceptRequestHandler = async (interceptedRequest) => {
-        // TODO: configure everything here
-    };
-
-    await addInterceptRequestHandler(page, interceptRequestHandler);
-
-    // TODO: Click elements here
-
-    await removeInterceptRequestHandler(page, interceptRequestHandler);
-};
-*/
 
 let logEnqueueLinksDeprecationWarning = true;
 
@@ -455,6 +469,7 @@ export const puppeteerUtils = {
             return enqueueLinks(...args);
         }
     },
+    blockRequests,
     blockResources,
     cacheResponses,
     compileScript,

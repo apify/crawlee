@@ -5,10 +5,9 @@ import BasicCrawler from './basic_crawler';
 import PuppeteerPool from './puppeteer_pool';
 import { addTimeoutToPromise } from './utils';
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from './constants';
-import { gotoExtended } from './puppeteer_utils';
 
 const DEFAULT_OPTIONS = {
-    gotoFunction: async ({ request, page }) => gotoExtended(page, request, { timeout: 60000 }),
+    gotoFunction: async ({ request, page }) => page.goto(request.url, { timeout: 60000 }),
     handlePageTimeoutSecs: 60,
     handleFailedRequestFunction: ({ request }) => {
         const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
