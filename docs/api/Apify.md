@@ -53,18 +53,18 @@ In local environment, the function will print a warning and have no effect.
 </tr>
 <tr>
 <td colspan="3"></td></tr><tr>
-<td><code>options.eventTypes</code></td><td><code>Array<String></code></td>
+<td><code>options.eventTypes</code></td><td><code>Array<string></code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Array of event types, which you can set for actor run, see
   the <a href="https://apify.com/docs/webhooks#events-actor-run" target="_blank">actor run events</a> in the Apify doc.</p>
 </td></tr><tr>
-<td><code>options.requestUrl</code></td><td><code>String</code></td>
+<td><code>options.requestUrl</code></td><td><code>string</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>URL which will be requested using HTTP POST request, when actor run will reach the set event type.</p>
 </td></tr><tr>
-<td><code>[options.payloadTemplate]</code></td><td><code>String</code></td>
+<td><code>[options.payloadTemplate]</code></td><td><code>string</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Payload template is a JSON-like string that describes the structure of the webhook POST request payload.
@@ -73,6 +73,14 @@ In local environment, the function will print a warning and have no effect.
   is available in the <a href="https://apify.com/docs/webhooks" target="_blank">Apify webhook documentation</a>.</p>
 <p>  When omitted, the default payload template will be used.
   <a href="https://apify.com/docs/webhooks" target="_blank">See the docs for the default payload template</a>.</p>
+</td></tr><tr>
+<td><code>[options.idempotencyKey]</code></td><td><code>string</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Idempotency key enables you to ensure that a webhook will not be added multiple times in case of
+  an actor restart or other situation that would cause the <code>addWebhook()</code> function to be called again.
+  We suggest using the actor run ID as the idempotency key. You can get the run ID by calling
+  <a href="apify#module_Apify.getEnv">`Apify.getEnv()</a> function.</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.call"></a>

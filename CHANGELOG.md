@@ -1,3 +1,8 @@
+0.14.10 / 2019-05-24
+===================
+- Update `Puppeteer` to 1.17.0.
+- Add `idempotencyKey` parameter to `Apify.addWebhook()`.
+
 0.14.9 / 2019-05-22
 ===================
 - Better logs from `AutoscaledPool` class

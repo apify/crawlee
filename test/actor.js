@@ -1151,6 +1151,7 @@ describe('Apify.addWebhook()', () => {
         const expectedEventTypes = ['ACTOR.RUN.SUCCEEDED'];
         const expectedRequestUrl = 'http://example.com/api';
         const expectedPayloadTemplate = '{"hello":{{world}}';
+        const expectedIdempotencyKey = 'some-key';
 
         process.env[ENV_VARS.ACTOR_RUN_ID] = runId;
         process.env[ENV_VARS.IS_AT_HOME] = '1';
@@ -1165,6 +1166,7 @@ describe('Apify.addWebhook()', () => {
             },
             requestUrl: expectedRequestUrl,
             payloadTemplate: expectedPayloadTemplate,
+            idempotencyKey: expectedIdempotencyKey,
         };
 
         webhooksMock.expects('createWebhook')
@@ -1177,13 +1179,13 @@ describe('Apify.addWebhook()', () => {
             eventTypes: expectedEventTypes,
             requestUrl: expectedRequestUrl,
             payloadTemplate: expectedPayloadTemplate,
+            idempotencyKey: expectedIdempotencyKey,
         });
 
         delete process.env[ENV_VARS.ACTOR_RUN_ID];
         delete process.env[ENV_VARS.IS_AT_HOME];
 
         webhooksMock.verify();
-        webhooksMock.restore();
     });
 
     it('on local logs warning and does nothing', async () => {
@@ -1199,9 +1201,7 @@ describe('Apify.addWebhook()', () => {
         await Apify.addWebhook({ eventTypes: expectedEventTypes, requestUrl: expectedRequestUrl });
 
         webhooksMock.verify();
-        webhooksMock.restore();
         logMock.verify();
-        logMock.restore();
     });
 
     it('should fail without actor run ID', async () => {
