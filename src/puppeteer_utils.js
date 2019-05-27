@@ -404,12 +404,11 @@ export const gotoExtended = async (page, request, gotoOptions = {}) => {
     checkParamPrototypeOrThrow(request, 'request', Request, 'Apify.Request');
     checkParamOrThrow(gotoOptions, 'gotoOptions', 'Object');
 
-    log.deprecated('Apify.utils.puppeteer.gotoExtended() has a high impact on performance '
-        + 'in recent versions of Puppeteer. Use only when necessary.');
-
     const { method, headers, payload } = request;
 
     if (method !== 'GET' || payload || !_.isEmpty(headers)) {
+        log.deprecated('Using other request methods than GET, rewriting headers and adding payloads has a high impact on performance '
+            + 'in recent versions of Puppeteer. Use only when necessary.');
         let wasCalled = false;
         const interceptRequestHandler = async (interceptedRequest) => {
             // We want to ensure that this won't get executed again in a case that there is a subsequent request
