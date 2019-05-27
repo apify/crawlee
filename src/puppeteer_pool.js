@@ -336,16 +336,16 @@ class PuppeteerPool {
      * When using "pipe: true" launch option, the pipe can break for various reasons,
      * typically when the browser gets killed by PuppeteerPool. We swallow those errors,
      * because there's nothing we can do anyway and we don't want them to crash Node.
-     * @param browserProcess
+     * @param chromeProcess
      * @ignore
      */
-    _attachPipeErrorHandlers(browserProcess) { // eslint-disable-line class-methods-use-this
-        const writeSocket = browserProcess.stdio[PUPPETEER_PIPE_TRANSPORT_WRITE];
-        const readSocket = browserProcess.stdio[PUPPETEER_PIPE_TRANSPORT_READ];
+    _attachPipeErrorHandlers(chromeProcess) { // eslint-disable-line class-methods-use-this
+        const writeSocket = chromeProcess.stdio[PUPPETEER_PIPE_TRANSPORT_WRITE];
+        const readSocket = chromeProcess.stdio[PUPPETEER_PIPE_TRANSPORT_READ];
 
         const errorHandler = (err) => {
-            if (err.code === 'EPIPE') log.debug('Puppeteer Pool: Browser connection failed with an EPIPE error.');
-            else throw err;
+            log.debug('Puppeteer Pool: Browser connection failed. Browser will shut down.', { message: err.message });
+            if (chromeProcess) chromeProcess.kill('SIGKILL');
         };
 
         writeSocket.on('error', errorHandler);
