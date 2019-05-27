@@ -1,5 +1,4 @@
 import log from 'apify-shared/log';
-import { betterSetInterval, betterClearInterval } from 'apify-shared/utilities';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 
 class Job {
@@ -101,13 +100,13 @@ export default class Statistics {
     }
 
     startLogging() {
-        this.logInterval = betterSetInterval(() => {
+        this.logInterval = setInterval(() => {
             log.info(this.logMessage, this.getCurrent());
         }, this.logIntervalMillis);
     }
 
     stopLogging() {
-        betterClearInterval(this.logInterval);
+        clearInterval(this.logInterval);
     }
 
     _saveRetryCountForJob(job) {
