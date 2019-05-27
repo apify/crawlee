@@ -17,6 +17,10 @@ class Job {
         this.durationMillis = new Date() - this.lastRunAt;
         return this.durationMillis;
     }
+
+    retryCount() {
+        return Math.max(0, this.runs - 1);
+    }
 }
 
 export default class Statistics {
@@ -47,8 +51,7 @@ export default class Statistics {
         if (!this.startedAt) this.startedAt = new Date();
         let job = this.jobsInProgress.get(id);
         if (!job) job = new Job();
-        const retryCount = job.run() - 1;
-        this.jobRetryHistogram[retryCount] = this.jobRetryHistogram[retryCount]++ || 1;
+        job.run();
         this.jobsInProgress.set(id, job);
     }
 
@@ -58,6 +61,7 @@ export default class Statistics {
         const jobDurationMillis = job.finish();
         this.finishedJobs++;
         this.totalJobDurationMillis += jobDurationMillis;
+        this._saveRetryCountForJob(job);
         if (jobDurationMillis < this.minJobDurationMillis) this.minJobDurationMillis = jobDurationMillis;
         if (jobDurationMillis > this.maxJobDurationMillis) this.maxJobDurationMillis = jobDurationMillis;
         this.jobsInProgress.delete(id);
@@ -67,15 +71,16 @@ export default class Statistics {
         const job = this.jobsInProgress.get(id);
         if (!job) return;
         this.failedJobs++;
+        this._saveRetryCountForJob(job);
         this.jobsInProgress.delete(id);
     }
 
-    getStatistics() {
+    getCurrent() {
         const totalMillis = new Date() - this.startedAt;
         const totalMinutes = totalMillis / 1000 / 60;
 
         return {
-            avgDurationMillis: this.totalJobDurationMillis / this.finishedJobs,
+            avgDurationMillis: (this.totalJobDurationMillis / this.finishedJobs) || Infinity,
             perMinute: Math.round(this.finishedJobs / totalMinutes),
             finished: this.finishedJobs,
             failed: this.failedJobs,
@@ -85,11 +90,18 @@ export default class Statistics {
 
     startLogging() {
         this.logInterval = betterSetInterval(() => {
-            log.info(this.logMessage, this.getStatistics());
+            log.info(this.logMessage, this.getCurrent());
         }, this.logIntervalMillis);
     }
 
     stopLogging() {
         betterClearInterval(this.logInterval);
+    }
+
+    _saveRetryCountForJob(job) {
+        const retryCount = job.retryCount();
+        this.jobRetryHistogram[retryCount] = this.jobRetryHistogram[retryCount]
+            ? this.jobRetryHistogram[retryCount] + 1
+            : 1;
     }
 }
