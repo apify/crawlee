@@ -23,6 +23,18 @@ class Job {
     }
 }
 
+/**
+ * The statistics class provides an interface to collecting and logging run
+ * statistics of arbitrary jobs. Currently it provides the following information:
+ *
+ *  - Average run time of successful jobs
+ *  - Number of successful jobs per minute
+ *  - Total number of successful jobs
+ *  - Total number of failed jobs
+ *  - A histogram of retry counts = Number of requests that finished after N retries.
+ *
+ * @ignore
+ */
 export default class Statistics {
     constructor(options = {}) {
         const {
