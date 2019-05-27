@@ -792,7 +792,8 @@ export const getApifyProxyUrl = (options = {}) => {
  *   an actor restart or other situation that would cause the `addWebhook()` function to be called again.
  *   We suggest using the actor run ID as the idempotency key. You can get the run ID by calling
  *   [`Apify.getEnv()](apify#module_Apify.getEnv) function.
- * @return {Promise<Object>}
+ * @return {Promise<Object>} The return value is the Webhook object.
+ * For more information, see the [Get webhook](https://apify.com/docs/api/v2#/reference/webhooks/webhook-object/get-webhook) API endpoint.
  *
  * @memberof module:Apify
  * @function
