@@ -149,6 +149,52 @@ describe('Apify.utils.puppeteer', () => {
         }
     });
 
+    it('blockRequests() works with default values', async () => {
+        const browser = await Apify.launchPuppeteer({ headless: true });
+        const loadedUrls = [];
+
+        try {
+            const page = await browser.newPage();
+            await Apify.utils.puppeteer.blockRequests(page);
+            page.on('response', response => loadedUrls.push(response.url()));
+            await page.setContent(`<html><body>
+                <link rel="stylesheet" type="text/css" href="https://example.com/style.css">
+                <img src="https://example.com/image.png" />
+                <script src="https://example.com/script.js" defer="defer">></script>
+            </body></html>`, { waitUntil: 'networkidle0' });
+        } finally {
+            await browser.close();
+        }
+        expect(loadedUrls).to.have.members([
+            'https://example.com/script.js',
+        ]);
+    });
+
+    it('blockRequests() works with overridden values', async () => {
+        const browser = await Apify.launchPuppeteer({ headless: true });
+        const loadedUrls = [];
+
+        try {
+            const page = await browser.newPage();
+            await Apify.utils.puppeteer.blockRequests(page, {
+                urlPatterns: ['.css'],
+                includeDefaults: false,
+            });
+            page.on('response', response => loadedUrls.push(response.url()));
+            await page.setContent(`<html><body>
+                <link rel="stylesheet" type="text/css" href="https://example.com/style.css">
+                <img src="https://example.com/image.png" />
+                <script src="https://example.com/script.js" defer="defer">></script>
+            </body></html>`, { waitUntil: 'networkidle0' });
+        } finally {
+            await browser.close();
+        }
+        expect(loadedUrls).to.have.members([
+            'https://example.com/image.png',
+            'https://example.com/script.js',
+        ]);
+    });
+
     it('supports blockResources() with default values', async () => {
         const browser = await Apify.launchPuppeteer({ headless: true });
         const loadedUrls = [];
