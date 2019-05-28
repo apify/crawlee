@@ -30,7 +30,7 @@ class Job {
  *  - Number of successful jobs per minute
  *  - Total number of successful jobs
  *  - Total number of failed jobs
- *  - A histogram of retry counts = Number of requests that finished after N retries.
+ *  - A histogram of retry counts = Number of jobs that finished after N retries.
  *
  * @ignore
  */
