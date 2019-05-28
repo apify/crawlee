@@ -10,9 +10,9 @@ import htmlparser from 'htmlparser2';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import BasicCrawler from './basic_crawler';
-import { addTimeoutToPromise } from './utils';
-import { getApifyProxyUrl } from './actor';
-import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from './constants';
+import { addTimeoutToPromise } from '../utils';
+import { getApifyProxyUrl } from '../actor';
+import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 
 const DEFAULT_OPTIONS = {
     requestTimeoutSecs: 30,

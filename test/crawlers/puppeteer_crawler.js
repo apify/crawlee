@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import log from 'apify-shared/log';
 import { ENV_VARS } from 'apify-shared/consts';
-import * as Apify from '../build/index';
+import * as Apify from '../../build';
 
 describe('PuppeteerCrawler', () => {
     let prevEnvHeadless;
