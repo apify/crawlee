@@ -30,8 +30,8 @@ await puppeteer.injectJQuery(page);
     * [`.injectFile(page, filePath, [options])`](#puppeteer.injectFile) ⇒ `Promise`
     * [`.injectJQuery(page)`](#puppeteer.injectJQuery) ⇒ `Promise`
     * [`.injectUnderscore(page)`](#puppeteer.injectUnderscore) ⇒ `Promise`
-    * [`.blockResources(page, [resourceTypes])`](#puppeteer.blockResources) ⇒ `Promise`
-    * [`.cacheResponses(page, cache, responseUrlRules)`](#puppeteer.cacheResponses) ⇒ `Promise`
+    * [`.blockRequests(page, [options])`](#puppeteer.blockRequests) ⇒ `Promise`
+    * ~~[`.cacheResponses(page, cache, responseUrlRules)`](#puppeteer.cacheResponses) ⇒ `Promise`~~
     * [`.compileScript(scriptString, context)`](#puppeteer.compileScript) ⇒ `function`
 
 <a name="puppeteer.addInterceptRequestHandler"></a>
@@ -128,6 +128,10 @@ Removes request interception handler for given page.
 <a name="puppeteer.gotoExtended"></a>
 
 ## `puppeteer.gotoExtended` ⇒ `Promise<Response>`
+*NOTE:* In recent versions of Puppeteer using this function entirely disables browser cache which resolves in sub-optimal
+performance. Until this resolves, we suggest using this function only when needed and not to replace all `page.goto()`
+calls in your actors with it.
+
 Extended version of Puppeteer's `page.goto()` allowing to perform requests with HTTP method other than GET,
 with custom headers and POST payload. URL, method, headers and payload are taken from
 request parameter that must be an instance of Apify.Request class.
@@ -266,27 +270,30 @@ const escapedHtml = await page.evaluate(() => {
 <td colspan="3"><p>Puppeteer <a href="https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page">Page</a> object.</p>
 </td></tr></tbody>
 </table>
-<a name="puppeteer.blockResources"></a>
+<a name="puppeteer.blockRequests"></a>
 
-## `puppeteer.blockResources(page, [resourceTypes])` ⇒ `Promise`
-Forces the Puppeteer browser tab to block loading certain HTTP resources.
+## `puppeteer.blockRequests(page, [options])` ⇒ `Promise`
+Forces the Puppeteer browser tab to block loading URLs that match a provided pattern.
 This is useful to speed up crawling of websites, since it reduces the amount
-of data that need to be downloaded from the web.
+of data that needs to be downloaded from the web, but it may break some websites
+or unexpectedly prevent loading of resources.
 
-The resource types to block can be specified using the `resourceTypes` parameter,
-which indicates the types of resources as they are perceived by the rendering engine.
-The following resource types are currently supported:
-`document`, `stylesheet`, `image`, `media`, `font`, `script`, `texttrack`, `xhr`, `fetch`,
-`eventsource`, `websocket`, `manifest`, `other`.
-For more details, see Puppeteer's
-<a href="https://pptr.dev/#?product=Puppeteer&show=api-requestresourcetype" target="_blank">Request.resourceType() documentation</a>.
+If the `options.urlPatterns` parameter is not provided,
+by default the function blocks URLs that include these patterns:
 
-If the `resourceTypes` parameter is not provided,
-by default the function blocks these resource types: `stylesheet`, `font`, `image`, `media`.
+```json
+[".css", ".jpg", ".jpeg", ".png", ".svg", ".woff", ".pdf", ".zip"]
+```
 
-Note that the `blockResources` function internally uses Puppeteer's
-[`Page.setRequestInterception()`](https://pptr.dev/#?product=Puppeteer&show=api-pagesetrequestinterceptionvalue) function,
-which can only be used once per `Page` object.
+The defaults will be concatenated with the patterns you provide in `options.urlPatterns`.
+If you want to remove the defaults, use `options.includeDefaults: false`.
+
+This function does not use Puppeteer's request interception and therefore does not interfere
+with browser cache. It's also faster than blocking requests using interception,
+because the blocking happens directly in the browser without the round-trip to Node.js,
+but it does not provide the extra benefits of request interception.
+
+The function will never block main document loads and their respective redirects.
 
 **Example usage**
 ```javascript
@@ -295,37 +302,52 @@ const Apify = require('apify');
 const browser = await Apify.launchPuppeteer();
 const page = await browser.newPage();
 
-// Block all resources except for the main HTML document
-await Apify.utils.puppeteer.blockResources(page,
-  ['stylesheet', 'image', 'media', 'font', 'script', 'texttrack', 'xhr',
-   'fetch', 'eventsource', 'websocket', 'manifest', 'other']
-);
+// Block all requests to URLs that include `adsbygoogle.js` and also all defaults.
+await Apify.utils.puppeteer.blockRequests(page, {
+    urlPatterns: ['adsbygoogle.js'],
+});
 
-await page.goto('https://www.example.com');
+await page.goto('https://cnn.com');
 ```
 
 <table>
 <thead>
 <tr>
-<th>Param</th><th>Type</th><th>Default</th>
+<th>Param</th><th>Type</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>page</code></td><td><code>Page</code></td><td></td>
+<td><code>page</code></td><td><code>Page</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.</p>
 </td></tr><tr>
-<td><code>[resourceTypes]</code></td><td><code>Array<String></code></td><td><code>[&#x27;stylesheet&#x27;, &#x27;font&#x27;, &#x27;image&#x27;, &#x27;media&#x27;]</code></td>
+<td><code>[options]</code></td><td><code>Object</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Array of resource types to block.</p>
-</td></tr></tbody>
+<td colspan="3"></td></tr><tr>
+<td><code>[options.urlPatterns]</code></td><td><code>Array<string></code></td>
+</tr>
+<tr>
+<td colspan="3"><p>The patterns of URLs to block from being loaded by the browser.
+  Only <code>*</code> can be used as a wildcard. It is also automatically added to the beginning
+  and end of the pattern. This limitation is enforced by the DevTools protocol.
+  <code>.png</code> is the same as <code>*.png*</code>.</p>
+</td></tr><tr>
+<td><code>[options.includeDefaults]</code></td><td><code>boolean</code></td>
+</tr>
+<tr>
+<td colspan="3"></td></tr></tbody>
 </table>
 <a name="puppeteer.cacheResponses"></a>
 
-## `puppeteer.cacheResponses(page, cache, responseUrlRules)` ⇒ `Promise`
+## ~~`puppeteer.cacheResponses(page, cache, responseUrlRules)` ⇒ `Promise`~~
+***Deprecated***
+
+*NOTE:* In recent versions of Puppeteer using this function entirely disables browser cache which resolves in sub-optimal
+performance. Until this resolves, we suggest just relying on the in-browser cache unless absolutely necessary.
+
 Enables caching of intercepted responses into a provided object. Automatically enables request interception in Puppeteer.
 *IMPORTANT*: Caching responses stores them to memory, so too loose rules could cause memory leaks for longer running crawlers.
   This issue should be resolved or atleast mitigated in future iterations of this feature.

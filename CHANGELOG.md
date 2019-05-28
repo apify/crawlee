@@ -1,10 +1,17 @@
-xxx
-===================
-- Use pipes instead of web sockets in Puppeteer. 
+0.14.11 / 2019-05-28
+====================
+- Add `Statistics` class to track crawler run statistics.
+- Use pipes instead of web sockets in Puppeteer to improve performance and stability.
+- Add warnings to all functions using Puppeteer's request interception to inform users about
+  its performance impact caused by automatic cache disabling.
+- **DEPRECATED**: `Apify.utils.puppeteer.blockResources()` because of negative impact on performance.
+  Use `.blockRequests()` (see below).
+- Add `Apify.utils.puppeteer.blockRequests()` to enable blocking URL patterns without request interception involved.
+  This is a replacement for `.blockResources()` until performance issues with request interception resolve.
 
 
 0.14.10 / 2019-05-24
-===================
+====================
 - Update `Puppeteer` to 1.17.0.
 - Add `idempotencyKey` parameter to `Apify.addWebhook()`.
 

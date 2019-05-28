@@ -188,6 +188,16 @@ Returns items in the dataset based on the provided parameters.
 </tr>
 <tr>
 <td colspan="3"><p>If set to <code>true</code> then header row in CSV format is skipped.</p>
+</td></tr><tr>
+<td><code>[options.simplified]</code></td><td><code>Boolean</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>If set to <code>true</code> then function applies the <code>fields: [&#39;url&#39;,&#39;pageFunctionResult&#39;,&#39;errorInfo&#39;]</code> and <code>unwind: &#39;pageFunctionResult&#39;</code> options.</p>
+</td></tr><tr>
+<td><code>[options.skipFailedPages]</code></td><td><code>Boolean</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>If set to <code>true</code> then all the items with errorInfo property will be skipped from the output.</p>
 </td></tr></tbody>
 </table>
 <a name="Dataset+getInfo"></a>
