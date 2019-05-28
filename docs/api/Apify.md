@@ -41,6 +41,8 @@ For more information about Apify actor webhooks, please see the <a href="https:/
 Note that webhooks are only supported for actors running on the Apify platform.
 In local environment, the function will print a warning and have no effect.
 
+**Returns**: `Promise<Object>` - The return value is the Webhook object.
+For more information, see the [Get webhook](https://apify.com/docs/api/v2#/reference/webhooks/webhook-object/get-webhook) API endpoint.  
 <table>
 <thead>
 <tr>
