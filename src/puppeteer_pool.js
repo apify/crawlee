@@ -259,6 +259,8 @@ class PuppeteerPool {
         this.closedPages = new WeakSet();
         this.pagesToInstancesMap = new WeakMap();
 
+        this.liveViewSnapshotsInProgress = new WeakMap();
+
         // ensure termination on SIGINT
         this.sigintListener = () => this._killAllInstances();
         process.on('SIGINT', this.sigintListener);
@@ -666,10 +668,9 @@ class PuppeteerPool {
      * @return {Promise}
      */
     async recyclePage(page) {
-        if (this.liveViewServer) {
-            await this._serveLiveView(page)
-                .catch(err => log.info('Live View failed to be served.', { message: err.message }));
-        }
+        const snapshotPromise = this.liveViewSnapshotsInProgress.get(page);
+        if (snapshotPromise) await snapshotPromise;
+
         if (this.reusePages) {
             page.removeAllListeners();
             this.idlePages.push(page);
@@ -686,8 +687,16 @@ class PuppeteerPool {
         }
     }
 
-    async _serveLiveView(page) {
-        if (!this.liveViewServer.hasClients()) return;
+    /**
+     * Tells the connected LiveViewServer to serve a snapshot when available.
+     *
+     * @param page
+     * @return {Promise}
+     */
+    async serveLiveViewSnapshot(page) {
+        const isLiveViewConnected = this.liveViewServer && this.liveViewServer.hasClients();
+        if (!isLiveViewConnected) return;
+
         const browser = page.browser();
         const pages = await browser.pages();
 
@@ -701,7 +710,10 @@ class PuppeteerPool {
 
         // Only take snapshots in the most recently opened browser.
         if (instance.id !== this.browserCounter - 1) return;
-        await this.liveViewServer.serve(page);
+
+        const snapshotPromise = this.liveViewServer.serve(page)
+            .catch(err => log.debug('Live View failed to be served.', { message: err.message }));
+        this.liveViewSnapshotsInProgress.set(page, snapshotPromise);
     }
 }
 

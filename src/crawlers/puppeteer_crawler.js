@@ -287,6 +287,7 @@ class PuppeteerCrawler {
 
         try {
             const response = await this.gotoFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool });
+            await this.puppeteerPool.serveLiveViewSnapshot(page);
             request.loadedUrl = page.url();
             await addTimeoutToPromise(
                 this.handlePageFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool, response }),

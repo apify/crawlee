@@ -596,6 +596,7 @@ describe('PuppeteerPool', () => {
 
             for (let i = 0; i < 3; i++) {
                 const page = await pool.newPage();
+                await pool.serveLiveViewSnapshot(page);
                 await pool.recyclePage(page);
             }
 
