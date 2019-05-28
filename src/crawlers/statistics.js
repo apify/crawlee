@@ -91,7 +91,7 @@ export default class Statistics {
         const totalMinutes = totalMillis / 1000 / 60;
 
         return {
-            avgDurationMillis: (this.totalJobDurationMillis / this.finishedJobs) || Infinity,
+            avgDurationMillis: Math.round(this.totalJobDurationMillis / this.finishedJobs) || Infinity,
             perMinute: Math.round(this.finishedJobs / totalMinutes),
             finished: this.finishedJobs,
             failed: this.failedJobs,
