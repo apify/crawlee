@@ -1,3 +1,7 @@
+xxx
+====================
+- `Snapshotter` will now log critical memory overload warnings at most once per 10 seconds.
+
 0.14.11 / 2019-05-28
 ====================
 - Add `Statistics` class to track crawler run statistics.
