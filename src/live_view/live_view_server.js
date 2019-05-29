@@ -164,13 +164,6 @@ class LiveViewServer {
     }
 
     /**
-     * @return {?Object}
-     */
-    getLastSnapshot() {
-        return this.lastSnapshot;
-    }
-
-    /**
      * @return {boolean}
      */
     isRunning() {
