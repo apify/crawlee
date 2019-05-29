@@ -123,6 +123,10 @@ class Snapshotter {
         this.memoryInterval = null;
         this.clientInterval = null;
         this.cpuInterval = null;
+
+        // We need to pre-bind those functions to be able to successfully remove listeners.
+        this._snapshotCpuOnPlatform = this._snapshotCpuOnPlatform.bind(this);
+        this._snapshotMemoryOnPlatform = this._snapshotMemoryOnPlatform.bind(this);
     }
 
     /**
@@ -136,8 +140,8 @@ class Snapshotter {
         this.eventLoopInterval = betterSetInterval(this._snapshotEventLoop.bind(this), this.eventLoopSnapshotIntervalMillis);
         this.clientInterval = betterSetInterval(this._snapshotClient.bind(this), this.clientSnapshotIntervalMillis);
         if (isAtHome()) {
-            events.on(ACTOR_EVENT_NAMES.SYSTEM_INFO, this._snapshotCpuOnPlatform.bind(this));
-            events.on(ACTOR_EVENT_NAMES.SYSTEM_INFO, this._snapshotMemoryOnPlatform.bind(this));
+            events.on(ACTOR_EVENT_NAMES.SYSTEM_INFO, this._snapshotCpuOnPlatform);
+            events.on(ACTOR_EVENT_NAMES.SYSTEM_INFO, this._snapshotMemoryOnPlatform);
         } else {
             this.cpuInterval = betterSetInterval(this._snapshotCpuOnLocal.bind(this), this.cpuSnapshotIntervalMillis);
             this.memoryInterval = betterSetInterval(this._snapshotMemoryOnLocal.bind(this), this.memorySnapshotIntervalMillis);
