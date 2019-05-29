@@ -7,7 +7,7 @@ import * as Apify from '../build/index';
 import * as utils from '../build/utils';
 import {
     RequestQueueLocal, RequestQueue,
-    LOCAL_STORAGE_SUBDIR, QUERY_HEAD_MIN_LENGTH, API_PROCESSED_REQUESTS_DELAY_MILLIS,
+    LOCAL_STORAGE_SUBDIR, QUERY_HEAD_MIN_LENGTH, API_PROCESSED_REQUESTS_DELAY_MILLIS, STORAGE_CONSISTENCY_DELAY_MILLIS,
 } from '../build/request_queue';
 import { emptyLocalStorageSubdir, LOCAL_STORAGE_DIR, expectNotUsingLocalStorage, expectDirEmpty, expectDirNonEmpty } from './_helper';
 
@@ -293,6 +293,7 @@ describe('RequestQueue', () => {
                 })
                 .returns(Promise.resolve({ requestId: 'a', wasAlreadyHandled: false, wasAlreadyPresent: false, request: requestA }));
             await queue.addRequest(requestA);
+            expect(queue.queueHeadDict.length()).to.be.eql(1);
 
             const requestB = new Request({ url: 'http://example.com/b' });
             mock.expects('addRequest')
@@ -305,7 +306,7 @@ describe('RequestQueue', () => {
                 })
                 .returns(Promise.resolve({ requestId: 'b', wasAlreadyHandled: false, wasAlreadyPresent: false, request: requestB }));
             await queue.addRequest(requestB, { forefront: true });
-            expect(queue.queueHeadDict.length()).to.be.eql(1);
+            expect(queue.queueHeadDict.length()).to.be.eql(2);
             expect(queue.inProgressCount()).to.be.eql(0);
 
             // Forefronted request was added to the queue.
@@ -318,7 +319,7 @@ describe('RequestQueue', () => {
                 .returns(Promise.resolve(_.extend(requestB, { id: 'b' })));
             const requestBFromQueue = await queue.fetchNextRequest();
             expect(requestBFromQueue).to.be.eql(requestB);
-            expect(queue.queueHeadDict.length()).to.be.eql(0);
+            expect(queue.queueHeadDict.length()).to.be.eql(1);
             expect(queue.inProgressCount()).to.be.eql(1);
 
             // getRequest() returns null if object was not found.
@@ -345,6 +346,9 @@ describe('RequestQueue', () => {
             await queue.reclaimRequest(requestB, { forefront: true });
             expect(queue.queueHeadDict.length()).to.be.eql(1);
             expect(queue.inProgressCount()).to.be.eql(0);
+            await Apify.utils.sleep(STORAGE_CONSISTENCY_DELAY_MILLIS + 10);
+            expect(queue.queueHeadDict.length()).to.be.eql(2);
+            expect(queue.inProgressCount()).to.be.eql(0);
 
             // Fetch again.
             expect(queue.queueHeadDict.length()).to.be.eql(1);
@@ -357,7 +361,7 @@ describe('RequestQueue', () => {
                 .returns(Promise.resolve(_.extend(requestB, { id: 'b' })));
             const requestBFromQueue2 = await queue.fetchNextRequest();
             expect(requestBFromQueue2).to.be.eql(requestB);
-            expect(queue.queueHeadDict.length()).to.be.eql(0);
+            expect(queue.queueHeadDict.length()).to.be.eql(1);
             expect(queue.inProgressCount()).to.be.eql(1);
 
             // Mark handled.
@@ -370,7 +374,7 @@ describe('RequestQueue', () => {
                 })
                 .returns(Promise.resolve({ requestId: requestB.id, wasAlreadyHandled: false, wasAlreadyPresent: true, request: requestB }));
             await queue.markRequestHandled(requestB);
-            expect(queue.queueHeadDict.length()).to.be.eql(0);
+            expect(queue.queueHeadDict.length()).to.be.eql(1);
             expect(queue.inProgressCount()).to.be.eql(0);
 
             // Query queue head.
@@ -766,7 +770,11 @@ describe('RequestQueue', () => {
                 .withArgs({ queueId, request: requestA, forefront: true, clientKey })
                 .returns(Promise.resolve({ requestId: requestA.id, wasAlreadyHandled: false, wasAlreadyPresent: true, request: requestA }));
             await queue.reclaimRequest(requestA, { forefront: true });
-
+            expect(queue.queueHeadDict.length()).to.be.eql(0);
+            expect(queue.inProgressCount()).to.be.eql(0);
+            expect(queue.assumedTotalCount).to.be.eql(2);
+            expect(queue.assumedHandledCount).to.be.eql(1);
+            await Apify.utils.sleep(STORAGE_CONSISTENCY_DELAY_MILLIS + 10);
             expect(queue.queueHeadDict.length()).to.be.eql(1);
             expect(queue.inProgressCount()).to.be.eql(0);
             expect(queue.assumedTotalCount).to.be.eql(2);

@@ -32,7 +32,7 @@ const RECENTLY_HANDLED_CACHE_SIZE = 1000;
 
 // Indicates how long it usually takes for the underlying storage to propagate all writes
 // to be available to subsequent reads.
-const STORAGE_CONSISTENCY_DELAY_MILLIS = 3000;
+export const STORAGE_CONSISTENCY_DELAY_MILLIS = 3000;
 
 
 const writeFilePromised = promisify(fs.writeFile);
@@ -546,7 +546,7 @@ export class RequestQueue {
      */
     async _ensureHeadIsNonEmpty(
         ensureConsistency = false,
-        limit = Math.max(this.inProgressCount * QUERY_HEAD_BUFFER, QUERY_HEAD_MIN_LENGTH),
+        limit = Math.max(this.inProgressCount() * QUERY_HEAD_BUFFER, QUERY_HEAD_MIN_LENGTH),
         iteration = 0,
     ) {
         checkParamOrThrow(ensureConsistency, 'ensureConsistency', 'Boolean');
@@ -706,6 +706,9 @@ const filePathToQueueOrderNo = (filepath) => {
 
 /**
  * Local directory-based implementation of the `RequestQueue` class.
+ * TODO: We should implement this class using the RequestQueueRemote, just replace
+ * the underlying API calls with their emulation on filesystem. That will bring
+ * all the goodies such as caching and will enable better and more consistent testing
  *
  * @ignore
  */
