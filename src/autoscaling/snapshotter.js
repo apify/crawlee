@@ -284,7 +284,8 @@ class Snapshotter {
      * @param {Object} systemInfo
      */
     _memoryOverloadWarning({ memCurrentBytes }) {
-        if (Date.now() < this.lastLoggedCriticalMemoryOverloadAt + CRITICAL_OVERLOAD_RATE_LIMIT_MILLIS) return;
+        const now = new Date();
+        if (now < this.lastLoggedCriticalMemoryOverloadAt + CRITICAL_OVERLOAD_RATE_LIMIT_MILLIS) return;
 
         const maxDesiredMemoryBytes = this.maxUsedMemoryRatio * this.maxMemoryBytes;
         const reserveMemory = this.maxMemoryBytes * (1 - this.maxUsedMemoryRatio) * RESERVE_MEMORY_RATIO;
@@ -295,6 +296,7 @@ class Snapshotter {
             const toMb = bytes => Math.round(bytes / (1024 ** 2));
             log.warning('Memory is critically overloaded. '
                 + `Used ${toMb(memCurrentBytes)} MB of ${toMb(this.maxMemoryBytes)} MB (${usedPercentage}%)`);
+            this.lastLoggedCriticalMemoryOverloadAt = now;
         }
     }
 
