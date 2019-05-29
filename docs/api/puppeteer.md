@@ -128,13 +128,12 @@ Removes request interception handler for given page.
 <a name="puppeteer.gotoExtended"></a>
 
 ## `puppeteer.gotoExtended` ⇒ `Promise<Response>`
-*NOTE:* In recent versions of Puppeteer using this function entirely disables browser cache which resolves in sub-optimal
-performance. Until this resolves, we suggest using this function only when needed and not to replace all `page.goto()`
-calls in your actors with it.
-
 Extended version of Puppeteer's `page.goto()` allowing to perform requests with HTTP method other than GET,
 with custom headers and POST payload. URL, method, headers and payload are taken from
 request parameter that must be an instance of Apify.Request class.
+
+*NOTE:* In recent versions of Puppeteer using requests other than GET, overriding headers and adding payloads disables
+browser cache which degrades performance.
 
 <table>
 <thead>

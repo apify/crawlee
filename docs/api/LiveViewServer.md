@@ -41,7 +41,6 @@ a better view into the browser, including DevTools, but `LiveViewServer` works t
     * [`.start()`](#LiveViewServer+start) ⇒ `Promise`
     * [`.stop()`](#LiveViewServer+stop) ⇒ `Promise`
     * [`.serve(page)`](#LiveViewServer+serve) ⇒ `Promise`
-    * [`.getLastSnapshot()`](#LiveViewServer+getLastSnapshot) ⇒ `Object`
     * [`.isRunning()`](#LiveViewServer+isRunning) ⇒ `boolean`
     * [`.hasClients()`](#LiveViewServer+hasClients) ⇒ `boolean`
 
@@ -124,9 +123,6 @@ Will time out and throw in `options.snapshotTimeoutSecs`.
 <tr>
 </tr></tbody>
 </table>
-<a name="LiveViewServer+getLastSnapshot"></a>
-
-## `liveViewServer.getLastSnapshot()` ⇒ `Object`
 <a name="LiveViewServer+isRunning"></a>
 
 ## `liveViewServer.isRunning()` ⇒ `boolean`

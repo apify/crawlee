@@ -46,6 +46,7 @@ await puppeteerPool.destroy();
     * [`.destroy()`](#PuppeteerPool+destroy) ⇒ `Promise`
     * [`.retire(browser)`](#PuppeteerPool+retire) ⇒ `Promise`
     * [`.recyclePage(page)`](#PuppeteerPool+recyclePage) ⇒ `Promise`
+    * [`.serveLiveViewSnapshot(page)`](#PuppeteerPool+serveLiveViewSnapshot) ⇒ `Promise`
 
 <a name="new_PuppeteerPool_new"></a>
 
@@ -195,6 +196,24 @@ or flagging it for reuse.
 <tbody>
 <tr>
 <td><code>page</code></td><td><code>Page</code></td>
+</tr>
+<tr>
+</tr></tbody>
+</table>
+<a name="PuppeteerPool+serveLiveViewSnapshot"></a>
+
+## `puppeteerPool.serveLiveViewSnapshot(page)` ⇒ `Promise`
+Tells the connected LiveViewServer to serve a snapshot when available.
+
+<table>
+<thead>
+<tr>
+<th>Param</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>page</code></td>
 </tr>
 <tr>
 </tr></tbody>

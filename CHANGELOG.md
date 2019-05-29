@@ -1,6 +1,7 @@
 xxx
 ====================
 - `Snapshotter` will now log critical memory overload warnings at most once per 10 seconds.
+_ Live view snapshots are now made right after navigation finishes, instead of right before page close.
 
 0.14.11 / 2019-05-28
 ====================
