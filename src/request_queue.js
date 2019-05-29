@@ -26,6 +26,15 @@ export const API_PROCESSED_REQUESTS_DELAY_MILLIS = 10 * 1000;
 // How many times we try to get queue head with queueModifiedAt older than API_PROCESSED_REQUESTS_DELAY_MILLIS.
 export const MAX_QUERIES_FOR_CONSISTENCY = 6;
 
+// This number must be large enough so that processing of all the requests cannot be done in
+// time lower than maximum latency of DynamoDB, but not low enough to not cost too much memory.
+const RECENTLY_HANDLED_CACHE_SIZE = 1000;
+
+// Indicates how long it usually takes for the underlying storage to propagate all writes
+// to be available to subsequent reads.
+const STORAGE_CONSISTENCY_DELAY_MILLIS = 3000;
+
+
 const writeFilePromised = promisify(fs.writeFile);
 const readdirPromised = promisify(fs.readdir);
 const readFilePromised = promisify(fs.readFile);
@@ -197,24 +206,43 @@ export class RequestQueue {
         checkParamOrThrow(queueName, 'queueName', 'Maybe String');
         checkParamOrThrow(clientKey, 'clientKey', 'String');
 
-        if (!clientKey) throw new Error('Parameter "clientKey" must be nonempty string!');
+        if (!clientKey) throw new Error('Parameter "clientKey" must be a non-empty string!');
 
         this.clientKey = clientKey;
         this.queueId = queueId;
         this.queueName = queueName;
+
+        // Contains a cached list of request IDs from the head of the queue,
+        // as obtained in the last query. Both key and value is the request ID.
         this.queueHeadDict = new ListDictionary();
-        this.requestIdsInProgress = {};
-        this.inProgressCount = 0;
         this.queryQueueHeadPromise = null;
+
+        // Contains a list of all requests that are currently being handled.
+        // Keys are request IDs, values are true.
+        this.inProgress = {};
+
+        // Contains a list of recently handled requests. It is used to avoid inconsistencies
+        // caused by delays in the underlying DynamoDB storage.
+        // Keys are request IDs, values are true.
+        this.recentlyHandled = new LruCache({ maxLength: RECENTLY_HANDLED_CACHE_SIZE });
 
         // We can trust these numbers only in a case that queue is used by a single client.
         // This information is returned by getHead() under the hadMultipleClients property.
         this.assumedTotalCount = 0;
         this.assumedHandledCount = 0;
 
-        // Caching requests to avoid duplicite addRequest() calls.
+        // Caching requests to avoid redundant addRequest() calls.
         // Key is computed using getRequestId() and value is { id, isHandled }.
+        // TODO: We could extend the functionality of caching to improve performance
+        //       of other operations too, such as fetchNextRequest().
         this.requestsCache = new LruCache({ maxLength: MAX_CACHED_REQUESTS });
+    }
+
+    /**
+     * @ignore
+     */
+    inProgressCount() {
+        return Object.keys(this.inProgress).length;
     }
 
     /**
@@ -229,7 +257,7 @@ export class RequestQueue {
      * @param {Boolean} [options.forefront=false] If `true`, the request will be added to the foremost position in the queue.
      * @return {QueueOperationInfo}
      */
-    addRequest(request, options = {}) {
+    async addRequest(request, options = {}) {
         const { forefront, request: newRequest } = validateAddRequestParams(request, options);
 
         if (newRequest) {
@@ -240,7 +268,7 @@ export class RequestQueue {
         const cachedInfo = this.requestsCache.get(cacheKey);
 
         if (cachedInfo) {
-            return Promise.resolve({
+            return {
                 wasAlreadyPresent: true,
                 // We may assume that if request is in local cache then also the information if the
                 // request was already handled is there because just one client should be using one queue.
@@ -248,157 +276,217 @@ export class RequestQueue {
                 requestId: cachedInfo.id,
                 // TODO: Why not set request.id to cachedInfo.id???
                 request,
-            });
+            };
         }
 
-        return requestQueues
-            .addRequest({
-                request,
-                queueId: this.queueId,
-                forefront,
-                clientKey: this.clientKey,
-            })
-            .then((queueOperationInfo) => {
-                const { requestId, wasAlreadyHandled, wasAlreadyPresent } = queueOperationInfo;
+        const queueOperationInfo = await requestQueues.addRequest({
+            request,
+            queueId: this.queueId,
+            forefront,
+            clientKey: this.clientKey,
+        });
 
-                this._cacheRequest(cacheKey, queueOperationInfo);
+        const { requestId, wasAlreadyPresent } = queueOperationInfo;
 
-                if (forefront && !this.requestIdsInProgress[requestId] && !wasAlreadyHandled) {
-                    this.queueHeadDict.add(requestId, requestId, true);
-                }
+        this._cacheRequest(cacheKey, queueOperationInfo);
 
-                if (!wasAlreadyPresent) {
-                    this.assumedTotalCount++;
-                }
+        if (!wasAlreadyPresent && !this.inProgress[requestId] && !this.recentlyHandled.get(requestId)) {
+            this.assumedTotalCount++;
 
-                // TODO: Why not set request.id to cachedInfo.id???
-                queueOperationInfo.request = request;
+            // Performance optimization: add request straight to head if possible
+            if (forefront) {
+                this.queueHeadDict.add(requestId, requestId, true);
+            } else if (this.assumedTotalCount < QUERY_HEAD_MIN_LENGTH) {
+                this.queueHeadDict.add(requestId, requestId, false);
+            }
+        }
 
-                return queueOperationInfo;
-            });
+        // TODO: Why not set request.id to cachedInfo.id???
+        queueOperationInfo.request = request;
+
+        return queueOperationInfo;
     }
 
     /**
      * Gets the request from the queue specified by ID.
      *
-     * @param {String} requestId Request ID
+     * @param {String} requestId ID of the request.
      * @return {Promise<Request>} Returns the request object, or `null` if it was not found.
      */
     async getRequest(requestId) {
         validateGetRequestParams(requestId);
 
         // TODO: Could we also use requestsCache here? It would be consistent with addRequest()
+        // Downside is that it wouldn't reflect changes from outside...
         const obj = await requestQueues.getRequest({
             requestId,
             queueId: this.queueId,
         });
 
-        return obj ? new Request(obj) : obj;
+        return obj ? new Request(obj) : null;
     }
 
     /**
-     * Returns next request in the queue to be processed.
+     * Returns a next request in the queue to be processed, or `null` if there are no more pending requests.
      *
-     * @returns {Promise<Request>} Returns the request object, or `null` if there are no more pending requests.
+     * Once you successfully finish processing of the request, you need to call {@link RequestQueue#markRequestHandled}
+     * to mark the request as handled in the queue. If there was some error in processing the request,
+     * call {@link RequestQueue#reclaimRequest} instead, so that the queue will give the request to some other consumer
+     * in another call to the `fetchNextRequest` function.
+     *
+     * Note that the `null` return value doesn't mean the queue processing finished,
+     * it means there are currently no pending requests.
+     * To check whether all requests in queue were finished, use {@link RequestQueue#isFinished} instead.
+     *
+     * @returns {Promise<Request>}
+     * Returns the request object or `null` if there are no more pending requests.
      */
-    fetchNextRequest() {
-        return this
-            ._ensureHeadIsNonEmpty()
-            .then(() => {
-                const nextId = this.queueHeadDict.removeFirst();
+    async fetchNextRequest() {
+        await this._ensureHeadIsNonEmpty();
 
-                // We are likely done at this point.
-                if (!nextId) return null;
+        const nextRequestId = this.queueHeadDict.removeFirst();
 
-                this._addToInProgress(nextId);
+        // We are likely done at this point.
+        if (!nextRequestId) return null;
 
-                return this
-                    .getRequest(nextId)
-                    .then((request) => {
-                        // TODO: What happens when getRequest() fails? Shouldn't we run the code below too???
-                        // We need to handle this situation because request may not be available
-                        // immediately after adding to the queue.
-                        if (!request) {
-                            this._removeFromInProgress(nextId);
-                            this.queueHeadDict.add(nextId, nextId, false);
-                        }
-
-                        return request;
-                    });
+        // This should never happen, but...
+        if (this.inProgress[nextRequestId] || this.recentlyHandled.get(nextRequestId)) {
+            log.warning('Queue head returned a request that is already in progress?!', {
+                nextRequestId,
+                inProgress: !!this.inProgress[nextRequestId],
+                recentlyHandled: !!this.recentlyHandled.get(nextRequestId),
             });
+            return null;
+        }
+
+        this.inProgress[nextRequestId] = true;
+
+        let request;
+        try {
+            request = await this.getRequest(nextRequestId);
+        } catch (e) {
+            // On error, remove the request from in progress, otherwise it would be there forever
+            delete this.inProgress[nextRequestId];
+            throw e;
+        }
+
+        // NOTE: It can happen that the queue head index is inconsistent with the main queue table. This can happen in two situations:
+
+        // 1) Queue head index is ahead of the main table and the request is not present in the table yet.
+        //    In this case, keep the request marked as in progress for a short while,
+        //    so that isFinished() doesn't return true and _ensureHeadIsNonEmpty() doesn't not load the request
+        //    into the queueHeadDict straight again. After the interval expires, fetchNextRequest()
+        //    will try to fetch this request again, until it eventually appears in the main table.
+        if (!request) {
+            log.debug('Cannot find request from the beginning of queue, will try again later', { nextRequestId });
+            setTimeout(() => {
+                delete this.inProgress[nextRequestId];
+            }, STORAGE_CONSISTENCY_DELAY_MILLIS);
+            return null;
+        }
+
+        // 2) Queue head index is behind the main table and the underlying request was already handled
+        //    (by some other client, since we keep the track of handled requests in recentlyHandled dictionary).
+        //    We just add the request to the recentlyHandled dictionary so that next call to _ensureHeadIsNonEmpty()
+        //    will not put the request again to queueHeadDict.
+        if (request.handledAt) {
+            log.debug('Request fetched from the beginning of queue was already handled', { nextRequestId });
+            this.recentlyHandled.add(nextRequestId, true);
+            return null;
+        }
+
+        return request;
     }
 
     /**
-     * Marks request handled after successful processing.
+     * Marks request as handled after successful processing.
+     * Handled requests will never again be returned by the {@link RequestQueue#fetchNextRequest} function.
      *
      * @param {Request} request
      * @return {Promise<QueueOperationInfo>}
      */
-    markRequestHandled(request) {
+    async markRequestHandled(request) {
         // TODO: This function should also support object instead of Apify.Request()
         validateMarkRequestHandledParams(request);
 
-        if (!this.requestIdsInProgress[request.id]) {
-            throw new Error(`Cannot mark request ${request.id} as handled as it is not in progress!`);
+        if (!this.inProgress[request.id]) {
+            throw new Error(`Cannot mark request ${request.id} as handled, because it is not in progress!`);
         }
 
         if (!request.handledAt) request.handledAt = new Date();
 
-        return requestQueues
-            .updateRequest({
-                request,
-                queueId: this.queueId,
-                clientKey: this.clientKey,
-            })
-            .then((queueOperationInfo) => {
-                this._removeFromInProgress(request.id);
-                this._cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
+        const queueOperationInfo = await requestQueues.updateRequest({
+            request,
+            queueId: this.queueId,
+            clientKey: this.clientKey,
+        });
 
-                if (!queueOperationInfo.wasAlreadyHandled) {
-                    this.assumedHandledCount++;
-                }
+        delete this.inProgress[request.id];
+        this.recentlyHandled.add(request.id, true);
 
-                queueOperationInfo.request = request;
+        if (!queueOperationInfo.wasAlreadyHandled) {
+            this.assumedHandledCount++;
+        }
 
-                return queueOperationInfo;
-            });
+        this._cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
+
+        queueOperationInfo.request = request;
+
+        return queueOperationInfo;
     }
 
     /**
-     * Reclaims failed request back to the queue, so that it can be processed later again.
+     * Reclaims a failed request back to the queue, so that it can be returned for processed later again
+     * by another call to {@link RequestQueue#fetchNextRequest}.
      * The request record in the queue is updated using the provided `request` parameter.
-     * For example, this lets you store the number of retries for the request.
+     * For example, this lets you store the number of retries or error messages for the request.
      *
      * @param {Request} request
      * @param {Object} [options]
      * @param {Boolean} [options.forefront=false]
-     *   If `true` then requests get returned to the start of the queue
-     *   and to the back of the queue otherwise.
+     * If `true` then the request it placed to the beginning of the queue, so that it's returned
+     * in the next call to {@link RequestQueue#fetchNextRequest}. By default, it's put to the end of the queue.
      * @return {Promise<QueueOperationInfo>}
      */
-    reclaimRequest(request, options = {}) {
+    async reclaimRequest(request, options = {}) {
+        // TODO: This function should also support object instead of Apify.Request()
         const { forefront } = validateReclaimRequestParams(request, options);
 
-        // TODO: This function should also support object instead of Apify.Request()
+        if (!this.inProgress[request.id]) {
+            throw new Error(`Cannot reclaim request ${request.id}, because it is not in progress!`);
+        }
+
         // TODO: If request hasn't been changed since the last getRequest(),
         // we don't need to call updateRequest() and thus improve performance.
-        return requestQueues
-            .updateRequest({
-                request,
-                queueId: this.queueId,
-                forefront,
-                clientKey: this.clientKey,
-            })
-            .then((queueOperationInfo) => {
-                this._removeFromInProgress(request.id);
-                this._cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
 
-                if (forefront) this.queueHeadDict.add(request.id, request.id, true);
+        const queueOperationInfo = await requestQueues.updateRequest({
+            request,
+            queueId: this.queueId,
+            forefront,
+            clientKey: this.clientKey,
+        });
 
-                queueOperationInfo.request = request;
+        this._cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
+        queueOperationInfo.request = request;
 
-                return queueOperationInfo;
-            });
+        // Wait a little to increase a chance that the next call to fetchNextRequest() will return the request with updated data.
+        setTimeout(() => {
+            if (!this.inProgress[request.id]) {
+                log.warning('The request is no longer marked as in progress in the queue?!', { requestId: request.id });
+                return;
+            }
+
+            delete this.inProgress[request.id];
+
+            // Performance optimization: add request straight to head if possible
+            if (forefront) {
+                this.queueHeadDict.add(request.id, request.id, true);
+            } else if (this.assumedTotalCount < QUERY_HEAD_MIN_LENGTH) {
+                this.queueHeadDict.add(request.id, request.id, false);
+            }
+        }, STORAGE_CONSISTENCY_DELAY_MILLIS);
+
+        return queueOperationInfo;
     }
 
     /**
@@ -415,15 +503,17 @@ export class RequestQueue {
 
     /**
      * Resolves to `true` if all requests were already handled and there are no more left.
-     * Due to the nature of distributed storage systems,
-     * the function might occasionally return a false negative, but it will never return a false positive.
+     * Due to the nature of distributed storage used by the queue,
+     * the function might occasionally return a false negative,
+     * but it will never return a false positive.
      *
      * @returns {Promise<Boolean>}
      */
     async isFinished() {
-        if (this.inProgressCount > 0 || this.queueHeadDict.length() > 0) return false;
+        if (this.queueHeadDict.length() > 0 || this.inProgressCount() > 0) return false;
+
         const isHeadConsistent = await this._ensureHeadIsNonEmpty(true);
-        return isHeadConsistent && this.inProgressCount === 0 && this.queueHeadDict.length() === 0;
+        return isHeadConsistent && this.queueHeadDict.length() === 0 && this.inProgressCount() === 0;
     }
 
     /**
@@ -444,34 +534,7 @@ export class RequestQueue {
     }
 
     /**
-     * @ignore
-     */
-    _addToInProgress(requestId) {
-        checkParamOrThrow(requestId, 'requestId', 'String');
-
-        // Is already there.
-        if (this.requestIdsInProgress[requestId]) return;
-
-        this.requestIdsInProgress[requestId] = requestId;
-        this.inProgressCount++;
-    }
-
-    /**
-     * @ignore
-     */
-    _removeFromInProgress(requestId) {
-        checkParamOrThrow(requestId, 'requestId', 'String');
-
-        // Is already removed.
-        if (!this.requestIdsInProgress[requestId]) return;
-
-        delete this.requestIdsInProgress[requestId];
-        this.inProgressCount--;
-    }
-
-    /**
-     * We always request more items than is in progress to ensure that something
-     * falls into head.
+     * We always request more items than is in progress to ensure that something falls into head.
      *
      * @param {Boolean} [ensureConsistency=false] If true then query for queue head is retried until queueModifiedAt
      *   is older than queryStartedAt by at least API_PROCESSED_REQUESTS_DELAY_MILLIS to ensure that queue
@@ -491,7 +554,7 @@ export class RequestQueue {
         checkParamOrThrow(iteration, 'iteration', 'Number');
 
         // If is nonempty resolve immediately.
-        if (this.queueHeadDict.length()) return true;
+        if (this.queueHeadDict.length() > 0) return true;
 
         if (!this.queryQueueHeadPromise) {
             const queryStartedAt = new Date();
@@ -503,18 +566,19 @@ export class RequestQueue {
                     clientKey: this.clientKey,
                 })
                 .then(({ items, queueModifiedAt, hadMultipleClients }) => {
-                    items.forEach(({ id, uniqueKey }) => {
-                        if (!this.requestIdsInProgress[id]) {
-                            this.queueHeadDict.add(id, id, false);
-                            this._cacheRequest(getRequestId(uniqueKey), { requestId: id, wasAlreadyHandled: false });
-                        }
+                    items.forEach(({ id: requestId, uniqueKey }) => {
+                        // Queue head index might be behind the main table, so ensure we don't recycle requests
+                        if (this.inProgress[requestId] || this.recentlyHandled.get(requestId)) return;
+
+                        this.queueHeadDict.add(requestId, requestId, false);
+                        this._cacheRequest(getRequestId(uniqueKey), { requestId, wasAlreadyHandled: false });
                     });
 
-                    // This is needed so that the next call can request the queue head again.
+                    // This is needed so that the next call to _ensureHeadIsNonEmpty() will fetch the queue head again.
                     this.queryQueueHeadPromise = null;
 
                     return {
-                        wasLimitReached: items.length === limit,
+                        wasLimitReached: items.length >= limit,
                         prevLimit: limit,
                         queueModifiedAt: new Date(queueModifiedAt),
                         queryStartedAt,
@@ -525,6 +589,8 @@ export class RequestQueue {
 
         const { queueModifiedAt, wasLimitReached, prevLimit, queryStartedAt, hadMultipleClients } = await this.queryQueueHeadPromise;
 
+        // TODO: I feel this code below can be greatly simplified...
+
         // If queue is still empty then one of the following holds:
         // - the other calls waiting for this promise already consumed all the returned requests
         // - the limit was too low and contained only requests in progress
@@ -532,10 +598,12 @@ export class RequestQueue {
         // - the whole queue was processed and we are done
 
         // If limit was not reached in the call then there are no more requests to be returned.
-        const shouldRepeatWithHigherLimit = this.queueHeadDict.length() === 0 && wasLimitReached && prevLimit < REQUEST_QUEUE_HEAD_MAX_LIMIT;
         if (prevLimit >= REQUEST_QUEUE_HEAD_MAX_LIMIT) {
             log.warning(`RequestQueue: Reached the maximum number of requests in progress: ${REQUEST_QUEUE_HEAD_MAX_LIMIT}.`);
         }
+        const shouldRepeatWithHigherLimit = this.queueHeadDict.length() === 0
+            && wasLimitReached
+            && prevLimit < REQUEST_QUEUE_HEAD_MAX_LIMIT;
 
         // If ensureConsistency=true then we must ensure that either:
         // - queueModifiedAt is older than queryStartedAt by at least API_PROCESSED_REQUESTS_DELAY_MILLIS
@@ -572,15 +640,13 @@ export class RequestQueue {
      *
      * @return {Promise}
      */
-    delete() {
-        return requestQueues
-            .deleteQueue({
-                queueId: this.queueId,
-            })
-            .then(() => {
-                queuesCache.remove(this.queueId);
-                if (this.queueName) queuesCache.remove(this.queueName);
-            });
+    async delete() {
+        await requestQueues.deleteQueue({
+            queueId: this.queueId,
+        });
+
+        queuesCache.remove(this.queueId);
+        if (this.queueName) queuesCache.remove(this.queueName);
     }
 
     /**
@@ -589,7 +655,7 @@ export class RequestQueue {
      * @return {Promise<number>}
      */
     async handledCount() {
-        // TODO: We should deprectate this function in favor of getInfo()
+        // TODO: Let's deprecate this function in favor of getInfo()
         const queueInfo = await requestQueues.getQueue({ queueId: this.queueId });
         return queueInfo.handledRequestCount;
     }
