@@ -20,6 +20,7 @@ const DEFAULT_OPTIONS = {
 };
 const RESERVE_MEMORY_RATIO = 0.5;
 const CLIENT_RATE_LIMIT_ERROR_RETRY_COUNT = 2;
+const CRITICAL_OVERLOAD_RATE_LIMIT_MILLIS = 10000;
 
 /**
  * Creates snapshots of system resources at given intervals and marks the resource
@@ -123,6 +124,8 @@ class Snapshotter {
         this.memoryInterval = null;
         this.clientInterval = null;
         this.cpuInterval = null;
+
+        this.lastLoggedCriticalMemoryOverloadAt = 0;
 
         // We need to pre-bind those functions to be able to successfully remove listeners.
         this._snapshotCpuOnPlatform = this._snapshotCpuOnPlatform.bind(this);
@@ -281,6 +284,8 @@ class Snapshotter {
      * @param {Object} systemInfo
      */
     _memoryOverloadWarning({ memCurrentBytes }) {
+        if (Date.now() < this.lastLoggedCriticalMemoryOverloadAt + CRITICAL_OVERLOAD_RATE_LIMIT_MILLIS) return;
+
         const maxDesiredMemoryBytes = this.maxUsedMemoryRatio * this.maxMemoryBytes;
         const reserveMemory = this.maxMemoryBytes * (1 - this.maxUsedMemoryRatio) * RESERVE_MEMORY_RATIO;
         const criticalOverloadBytes = maxDesiredMemoryBytes + reserveMemory;
