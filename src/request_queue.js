@@ -253,16 +253,14 @@ export class RequestQueue {
      * {@link QueueOperationInfo} object.
      *
      * @param {Request|Object} request {@link Request} object, or an object to construct a `Request` instance from.
+     * Note that the passed object is not modified by the function, i.e. not even the new request ID is set it.
      * @param {Object} [options]
      * @param {Boolean} [options.forefront=false] If `true`, the request will be added to the foremost position in the queue.
      * @return {QueueOperationInfo}
      */
     async addRequest(request, options = {}) {
         const { forefront, request: newRequest } = validateAddRequestParams(request, options);
-
-        if (newRequest) {
-            request = newRequest;
-        }
+        request = newRequest;
 
         const cacheKey = getRequestId(request.uniqueKey);
         const cachedInfo = this.requestsCache.get(cacheKey);
@@ -274,7 +272,6 @@ export class RequestQueue {
                 // request was already handled is there because just one client should be using one queue.
                 wasAlreadyHandled: cachedInfo.isHandled,
                 requestId: cachedInfo.id,
-                // TODO: Why not set request.id to cachedInfo.id???
                 request,
             };
         }
@@ -294,14 +291,9 @@ export class RequestQueue {
             this.assumedTotalCount++;
 
             // Performance optimization: add request straight to head if possible
-            if (forefront) {
-                this.queueHeadDict.add(requestId, requestId, true);
-            } else if (this.assumedTotalCount < QUERY_HEAD_MIN_LENGTH) {
-                this.queueHeadDict.add(requestId, requestId, false);
-            }
+            this._maybeAddRequestToQueueHead(requestId, forefront);
         }
 
-        // TODO: Why not set request.id to cachedInfo.id???
         queueOperationInfo.request = request;
 
         return queueOperationInfo;
@@ -378,7 +370,7 @@ export class RequestQueue {
         //    into the queueHeadDict straight again. After the interval expires, fetchNextRequest()
         //    will try to fetch this request again, until it eventually appears in the main table.
         if (!request) {
-            log.debug('Cannot find request from the beginning of queue, will try again later', { nextRequestId });
+            log.debug('Cannot find request from the beginning of queue, will be retried later', { nextRequestId });
             setTimeout(() => {
                 this.inProgress.delete(nextRequestId);
             }, STORAGE_CONSISTENCY_DELAY_MILLIS);
@@ -470,6 +462,7 @@ export class RequestQueue {
         queueOperationInfo.request = request;
 
         // Wait a little to increase a chance that the next call to fetchNextRequest() will return the request with updated data.
+        // This is to compensate for the limitation of DynamoDB, where writes might not be immediately visible to subsequent reads.
         setTimeout(() => {
             if (!this.inProgress.has(request.id)) {
                 log.warning('The request is no longer marked as in progress in the queue?!', { requestId: request.id });
@@ -479,11 +472,7 @@ export class RequestQueue {
             this.inProgress.delete(request.id);
 
             // Performance optimization: add request straight to head if possible
-            if (forefront) {
-                this.queueHeadDict.add(request.id, request.id, true);
-            } else if (this.assumedTotalCount < QUERY_HEAD_MIN_LENGTH) {
-                this.queueHeadDict.add(request.id, request.id, false);
-            }
+            this._maybeAddRequestToQueueHead(request.id, forefront);
         }, STORAGE_CONSISTENCY_DELAY_MILLIS);
 
         return queueOperationInfo;
@@ -632,6 +621,18 @@ export class RequestQueue {
         }
 
         return this._ensureHeadIsNonEmpty(ensureConsistency, nextLimit, iteration + 1);
+    }
+
+    /**
+     * Adds a request straight to the queueHeadDict, to improve performance.
+     * @private
+     */
+    _maybeAddRequestToQueueHead(requestId, forefront) {
+        if (forefront) {
+            this.queueHeadDict.add(requestId, requestId, true);
+        } else if (this.assumedTotalCount < QUERY_HEAD_MIN_LENGTH) {
+            this.queueHeadDict.add(requestId, requestId, false);
+        }
     }
 
     /**
