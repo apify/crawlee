@@ -51,20 +51,17 @@ const queuesCache = new LruCache({ maxLength: MAX_OPENED_QUEUES }); // Open queu
  */
 const validateAddRequestParams = (request, opts) => {
     checkParamOrThrow(request, 'request', 'Object');
-
-    if (!(request instanceof Request)) {
-        request = new Request(request);
-    }
-
     checkParamOrThrow(opts, 'opts', 'Object');
+
+    const newRequest = request instanceof Request ? request : new Request(request);
 
     const { forefront = false } = opts;
 
     checkParamOrThrow(forefront, 'opts.forefront', 'Boolean');
 
-    if (request.id) throw new Error('Request has already "id" so it cannot be added to the queue!');
+    if (request.id) throw new Error('Request already has the "id" field set so it cannot be added to the queue!');
 
-    return { forefront, request };
+    return { forefront, newRequest };
 };
 
 /**
@@ -118,9 +115,7 @@ const getRequestId = (uniqueKey) => {
         .digest('base64')
         .replace(/(\+|\/|=)/g, '');
 
-    return str.length > 15
-        ? str.substr(0, 15)
-        : str;
+    return str.substr(0, 15);
 };
 
 /**
@@ -132,7 +127,7 @@ const getRequestId = (uniqueKey) => {
  * @property {Boolean} wasAlreadyPresent Indicates if request was already present in the queue.
  * @property {Boolean} wasAlreadyHandled Indicates if request was already marked as handled.
  * @property {String} requestId The ID of the added request
- * @property {Request} request The original `Request` object passed to the `RequestQueue` function.
+ * @property {Request|Object} request The original `Request` object passed to the `RequestQueue` function.
  */
 
 /**
@@ -217,8 +212,8 @@ export class RequestQueue {
         this.queueHeadDict = new ListDictionary();
         this.queryQueueHeadPromise = null;
 
-        // Contains a list of all requests that are currently being handled.
-        // Keys are request IDs, values are true.
+        // A set of all request IDs that are currently being handled,
+        // i.e. which were returned by fetchNextRequest() but not markRequestHandled()
         this.inProgress = new Set();
 
         // Contains a list of recently handled requests. It is used to avoid inconsistencies
@@ -233,8 +228,8 @@ export class RequestQueue {
 
         // Caching requests to avoid redundant addRequest() calls.
         // Key is computed using getRequestId() and value is { id, isHandled }.
-        // TODO: We could extend the functionality of caching to improve performance
-        //       of other operations too, such as fetchNextRequest().
+        // TODO: We could extend the caching to improve performance
+        //       of other operations such as fetchNextRequest().
         this.requestsCache = new LruCache({ maxLength: MAX_CACHED_REQUESTS });
     }
 
@@ -252,20 +247,22 @@ export class RequestQueue {
      * it will not be updated. You can find out whether this happened from the resulting
      * {@link QueueOperationInfo} object.
      *
-     * @param {Request|Object} request {@link Request} object, or an object to construct a `Request` instance from.
-     * Note that the passed object is not modified by the function, i.e. not even the new request ID is set it.
+     * @param {Request|Object} request {@link Request} object or vanilla object with request data.
+     * Note that the function sets the `uniqueKey` and `id` fields to the passed object.
      * @param {Object} [options]
      * @param {Boolean} [options.forefront=false] If `true`, the request will be added to the foremost position in the queue.
      * @return {QueueOperationInfo}
      */
     async addRequest(request, options = {}) {
-        const { forefront, request: newRequest } = validateAddRequestParams(request, options);
-        request = newRequest;
+        const { newRequest, forefront } = validateAddRequestParams(request, options);
 
-        const cacheKey = getRequestId(request.uniqueKey);
+        request.uniqueKey = newRequest.uniqueKey;
+
+        const cacheKey = getRequestId(newRequest.uniqueKey);
         const cachedInfo = this.requestsCache.get(cacheKey);
 
         if (cachedInfo) {
+            request.id = cachedInfo.id;
             return {
                 wasAlreadyPresent: true,
                 // We may assume that if request is in local cache then also the information if the
@@ -277,7 +274,7 @@ export class RequestQueue {
         }
 
         const queueOperationInfo = await requestQueues.addRequest({
-            request,
+            request: newRequest,
             queueId: this.queueId,
             forefront,
             clientKey: this.clientKey,
@@ -294,6 +291,7 @@ export class RequestQueue {
             this._maybeAddRequestToQueueHead(requestId, forefront);
         }
 
+        request.id = requestId;
         queueOperationInfo.request = request;
 
         return queueOperationInfo;
@@ -321,14 +319,14 @@ export class RequestQueue {
     /**
      * Returns a next request in the queue to be processed, or `null` if there are no more pending requests.
      *
-     * Once you successfully finish processing of the request, you need to call {@link RequestQueue#markRequestHandled}
+     * Once you successfully finish processing of the request, you need to call {@link RequestQueue.markRequestHandled}
      * to mark the request as handled in the queue. If there was some error in processing the request,
-     * call {@link RequestQueue#reclaimRequest} instead, so that the queue will give the request to some other consumer
+     * call {@link RequestQueue.reclaimRequest} instead, so that the queue will give the request to some other consumer
      * in another call to the `fetchNextRequest` function.
      *
      * Note that the `null` return value doesn't mean the queue processing finished,
      * it means there are currently no pending requests.
-     * To check whether all requests in queue were finished, use {@link RequestQueue#isFinished} instead.
+     * To check whether all requests in queue were finished, use {@link RequestQueue.isFinished} instead.
      *
      * @returns {Promise<Request>}
      * Returns the request object or `null` if there are no more pending requests.
@@ -362,15 +360,15 @@ export class RequestQueue {
             throw e;
         }
 
-        // NOTE: It can happen that the queue head index is inconsistent with the main queue table. This can happen in two situations:
+        // NOTE: It can happen that the queue head index is inconsistent with the main queue table. This can occur in two situations:
 
-        // 1) Queue head index is ahead of the main table and the request is not present in the table yet.
+        // 1) Queue head index is ahead of the main table and the request is not present in the main table yet (i.e. getRequest() returned null).
         //    In this case, keep the request marked as in progress for a short while,
         //    so that isFinished() doesn't return true and _ensureHeadIsNonEmpty() doesn't not load the request
         //    into the queueHeadDict straight again. After the interval expires, fetchNextRequest()
         //    will try to fetch this request again, until it eventually appears in the main table.
         if (!request) {
-            log.debug('Cannot find request from the beginning of queue, will be retried later', { nextRequestId });
+            log.debug('Cannot find a request from the beginning of queue, will be retried later', { nextRequestId });
             setTimeout(() => {
                 this.inProgress.delete(nextRequestId);
             }, STORAGE_CONSISTENCY_DELAY_MILLIS);
@@ -391,8 +389,9 @@ export class RequestQueue {
     }
 
     /**
-     * Marks request as handled after successful processing.
-     * Handled requests will never again be returned by the {@link RequestQueue#fetchNextRequest} function.
+     * Marks a request that was previously returned by the {@link RequestQueue.fetchNextRequest} function
+     * as handled after successful processing.
+     * Handled requests will never again be returned by the `fetchNextRequest` function.
      *
      * @param {Request} request
      * @return {Promise<QueueOperationInfo>}
@@ -429,7 +428,7 @@ export class RequestQueue {
 
     /**
      * Reclaims a failed request back to the queue, so that it can be returned for processed later again
-     * by another call to {@link RequestQueue#fetchNextRequest}.
+     * by another call to {@link RequestQueue.fetchNextRequest}.
      * The request record in the queue is updated using the provided `request` parameter.
      * For example, this lets you store the number of retries or error messages for the request.
      *
@@ -437,7 +436,7 @@ export class RequestQueue {
      * @param {Object} [options]
      * @param {Boolean} [options.forefront=false]
      * If `true` then the request it placed to the beginning of the queue, so that it's returned
-     * in the next call to {@link RequestQueue#fetchNextRequest}. By default, it's put to the end of the queue.
+     * in the next call to {@link RequestQueue.fetchNextRequest}. By default, it's put to the end of the queue.
      * @return {Promise<QueueOperationInfo>}
      */
     async reclaimRequest(request, options = {}) {
@@ -479,9 +478,9 @@ export class RequestQueue {
     }
 
     /**
-     * Resolves to `true` if the next call to {@link RequestQueue#fetchNextRequest} would return `null`, otherwise it resolves to `false`.
+     * Resolves to `true` if the next call to {@link RequestQueue.fetchNextRequest} would return `null`, otherwise it resolves to `false`.
      * Note that even if the queue is empty, there might be some pending requests currently being processed.
-     * If you need to ensure that there is no activity in the queue, use {@link RequestQueue#isFinished}.
+     * If you need to ensure that there is no activity in the queue, use {@link RequestQueue.isFinished}.
      *
      * @returns {Promise<Boolean>}
      */
@@ -654,9 +653,11 @@ export class RequestQueue {
      * Returns the number of handled requests.
      *
      * @return {Promise<number>}
+     * @deprecated
      */
     async handledCount() {
-        // TODO: Let's deprecate this function in favor of getInfo()
+        log.deprecated('RequestQueue.handledCount() is deprecated, please use RequestQueue.getInfo() instead.');
+
         const queueInfo = await requestQueues.getQueue({ queueId: this.queueId });
         return queueInfo.handledRequestCount;
     }
@@ -809,12 +810,10 @@ export class RequestQueueLocal {
             });
     }
 
-    addRequest(request, opts = {}) {
-        const { forefront, request: newRequest } = validateAddRequestParams(request, opts);
+    async addRequest(request, opts = {}) {
+        const { newRequest, forefront } = validateAddRequestParams(request, opts);
 
-        if (newRequest) {
-            request = newRequest;
-        }
+        request.uniqueKey = newRequest.uniqueKey;
 
         return this.initializationPromise
             .then(() => {
@@ -822,8 +821,9 @@ export class RequestQueueLocal {
 
                 // Add ID as server does.
                 // TODO: This way of cloning doesn't preserve Dates!
-                const requestCopy = JSON.parse(JSON.stringify(request));
+                const requestCopy = JSON.parse(JSON.stringify(newRequest));
                 requestCopy.id = getRequestId(request.uniqueKey);
+                request.id = requestCopy.id;
 
                 this._updateMetadata(true);
 
@@ -914,7 +914,7 @@ export class RequestQueueLocal {
                 const dest = this._getFilePath(queueOrderNo, true);
 
                 if (!this.queueOrderNoInProgress[queueOrderNo]) {
-                    throw new Error(`Cannot mark request ${request.id} handled request that is not in progress!`);
+                    throw new Error(`Cannot mark request ${request.id} as handled, because it is not in progress!`);
                 }
 
                 if (!request.handledAt) request.handledAt = new Date();
@@ -952,7 +952,7 @@ export class RequestQueueLocal {
                 const dest = this._getFilePath(newQueueOrderNo);
 
                 if (!this.queueOrderNoInProgress[oldQueueOrderNo]) {
-                    throw new Error(`Cannot reclaim request ${request.id} that is not in progress!`);
+                    throw new Error(`Cannot reclaim request ${request.id}, because it is not in progress!`);
                 }
 
                 this.requestIdToQueueOrderNo[request.id] = newQueueOrderNo;

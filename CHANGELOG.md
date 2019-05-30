@@ -1,3 +1,10 @@
+====================
+- Fixes in `RequestQueue` to deal with inconsistencies in the underlying data storage
+- **BREAKING CHANGE**: `RequestQueue.addRequest()` now sets the ID of the
+  newly added request to the passed `Request` object
+- **DEPRECATED**: The `RequestQueue.handledCount()` function has been deprecated,
+  please use `RequestQueue.getInfo()` instead
+
 0.14.14 / 2019-05-30
 ====================
 - Fix error where live view would crash when started with concurrency already higher than 1.
@@ -10,7 +17,6 @@
 ====================
 - `Snapshotter` will now log critical memory overload warnings at most once per 10 seconds.
 _ Live view snapshots are now made right after navigation finishes, instead of right before page close.
-- Fixes in `RequestQueue` to deal with inconsistencies in the underlying data storage
 
 0.14.11 / 2019-05-28
 ====================
