@@ -1,3 +1,7 @@
+0.14.14 / 2019-05-30
+====================
+- Fix error where live view would crash when started with concurrency already higher than 1.
+
 0.14.13 / 2019-05-30
 ====================
 - Fix `POST` requests in Puppeteer.
