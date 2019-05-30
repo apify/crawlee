@@ -26,8 +26,8 @@ export const API_PROCESSED_REQUESTS_DELAY_MILLIS = 10 * 1000;
 // How many times we try to get queue head with queueModifiedAt older than API_PROCESSED_REQUESTS_DELAY_MILLIS.
 export const MAX_QUERIES_FOR_CONSISTENCY = 6;
 
-// This number must be large enough so that processing of all the requests cannot be done in
-// time lower than maximum latency of DynamoDB, but not low enough to not cost too much memory.
+// This number must be large enough so that processing of all these requests cannot be done in
+// a time lower than expected maximum latency of DynamoDB, but low enough not to waste too much memory.
 const RECENTLY_HANDLED_CACHE_SIZE = 1000;
 
 // Indicates how long it usually takes for the underlying storage to propagate all writes
@@ -219,7 +219,7 @@ export class RequestQueue {
 
         // Contains a list of all requests that are currently being handled.
         // Keys are request IDs, values are true.
-        this.inProgress = {};
+        this.inProgress = new Set();
 
         // Contains a list of recently handled requests. It is used to avoid inconsistencies
         // caused by delays in the underlying DynamoDB storage.
@@ -242,7 +242,7 @@ export class RequestQueue {
      * @ignore
      */
     inProgressCount() {
-        return Object.keys(this.inProgress).length;
+        return this.inProgress.size;
     }
 
     /**
@@ -290,7 +290,7 @@ export class RequestQueue {
 
         this._cacheRequest(cacheKey, queueOperationInfo);
 
-        if (!wasAlreadyPresent && !this.inProgress[requestId] && !this.recentlyHandled.get(requestId)) {
+        if (!wasAlreadyPresent && !this.inProgress.has(requestId) && !this.recentlyHandled.get(requestId)) {
             this.assumedTotalCount++;
 
             // Performance optimization: add request straight to head if possible
@@ -350,23 +350,23 @@ export class RequestQueue {
         if (!nextRequestId) return null;
 
         // This should never happen, but...
-        if (this.inProgress[nextRequestId] || this.recentlyHandled.get(nextRequestId)) {
+        if (this.inProgress.has(nextRequestId) || this.recentlyHandled.get(nextRequestId)) {
             log.warning('Queue head returned a request that is already in progress?!', {
                 nextRequestId,
-                inProgress: !!this.inProgress[nextRequestId],
+                inProgress: this.inProgress.has(nextRequestId),
                 recentlyHandled: !!this.recentlyHandled.get(nextRequestId),
             });
             return null;
         }
 
-        this.inProgress[nextRequestId] = true;
+        this.inProgress.add(nextRequestId);
 
         let request;
         try {
             request = await this.getRequest(nextRequestId);
         } catch (e) {
             // On error, remove the request from in progress, otherwise it would be there forever
-            delete this.inProgress[nextRequestId];
+            this.inProgress.delete(nextRequestId);
             throw e;
         }
 
@@ -380,7 +380,7 @@ export class RequestQueue {
         if (!request) {
             log.debug('Cannot find request from the beginning of queue, will try again later', { nextRequestId });
             setTimeout(() => {
-                delete this.inProgress[nextRequestId];
+                this.inProgress.delete(nextRequestId);
             }, STORAGE_CONSISTENCY_DELAY_MILLIS);
             return null;
         }
@@ -409,7 +409,7 @@ export class RequestQueue {
         // TODO: This function should also support object instead of Apify.Request()
         validateMarkRequestHandledParams(request);
 
-        if (!this.inProgress[request.id]) {
+        if (!this.inProgress.has(request.id)) {
             throw new Error(`Cannot mark request ${request.id} as handled, because it is not in progress!`);
         }
 
@@ -421,7 +421,7 @@ export class RequestQueue {
             clientKey: this.clientKey,
         });
 
-        delete this.inProgress[request.id];
+        this.inProgress.delete(request.id);
         this.recentlyHandled.add(request.id, true);
 
         if (!queueOperationInfo.wasAlreadyHandled) {
@@ -452,7 +452,7 @@ export class RequestQueue {
         // TODO: This function should also support object instead of Apify.Request()
         const { forefront } = validateReclaimRequestParams(request, options);
 
-        if (!this.inProgress[request.id]) {
+        if (!this.inProgress.has(request.id)) {
             throw new Error(`Cannot reclaim request ${request.id}, because it is not in progress!`);
         }
 
@@ -471,12 +471,12 @@ export class RequestQueue {
 
         // Wait a little to increase a chance that the next call to fetchNextRequest() will return the request with updated data.
         setTimeout(() => {
-            if (!this.inProgress[request.id]) {
+            if (!this.inProgress.has(request.id)) {
                 log.warning('The request is no longer marked as in progress in the queue?!', { requestId: request.id });
                 return;
             }
 
-            delete this.inProgress[request.id];
+            this.inProgress.delete(request.id);
 
             // Performance optimization: add request straight to head if possible
             if (forefront) {
@@ -568,7 +568,7 @@ export class RequestQueue {
                 .then(({ items, queueModifiedAt, hadMultipleClients }) => {
                     items.forEach(({ id: requestId, uniqueKey }) => {
                         // Queue head index might be behind the main table, so ensure we don't recycle requests
-                        if (this.inProgress[requestId] || this.recentlyHandled.get(requestId)) return;
+                        if (this.inProgress.has(requestId) || this.recentlyHandled.get(requestId)) return;
 
                         this.queueHeadDict.add(requestId, requestId, false);
                         this._cacheRequest(getRequestId(uniqueKey), { requestId, wasAlreadyHandled: false });
