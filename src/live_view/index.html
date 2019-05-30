@@ -144,7 +144,7 @@
                 // Don't wait for the next screenshot to be made.
                 $('#resumeButton').hide();
                 $('#pauseButton').show();
-                showSnapshot(window.lastSnapshot);
+                liveViewSocket.emit('getLastSnapshot');
             });
             liveViewSocket.on('disconnect', () => {
                 $('#resumeButton').show();

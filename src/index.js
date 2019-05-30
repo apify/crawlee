@@ -49,7 +49,6 @@ logSystemInfo();
  * @module Apify
  */
 module.exports = {
-    // Actor
     main,
     getEnv,
     call,
@@ -61,55 +60,42 @@ module.exports = {
     client: apifyClient,
     addWebhook,
 
-    // Autoscaled pool
     AutoscaledPool,
 
-    // Basic crawler
     BasicCrawler,
 
-    // Cheerio crawler
     CheerioCrawler,
 
-    // Dataset
     pushData,
     openDataset,
 
-    // Events
     events,
     initializeEvents,
     stopEvents,
 
-    // Key-value store
     getValue,
     setValue,
     getInput,
     openKeyValueStore,
 
-    // Puppeteer
     launchPuppeteer,
     PuppeteerPool,
     PuppeteerCrawler,
 
-    // PseudoUrl
     PseudoUrl,
 
-    // Requests
     Request,
     RequestList,
     openRequestList,
     openRequestQueue,
 
-    // Settings rotator
     SettingsRotator,
 
-    // Live View
     LiveViewServer,
 
-    // Webdriver
     browse,
     launchWebDriver,
 
-    // utils
     utils: Object.assign(publicUtils, {
         puppeteer: puppeteerUtils,
         social: socialUtils,

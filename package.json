@@ -74,6 +74,8 @@
         "@babel/core": "^7.0.0",
         "@babel/preset-env": "^7.0.0",
         "@babel/register": "^7.0.0",
+        "@types/puppeteer": "^1.12.4",
+        "@types/socket.io": "^2.1.2",
         "basic-auth-parser": "^0.0.2",
         "chai": "^4.2.0",
         "chai-as-promised": "^7.1.1",
