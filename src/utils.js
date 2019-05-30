@@ -415,7 +415,7 @@ const downloadListOfUrls = async ({ url, encoding = 'utf8', urlRegExp = URL_NO_C
  * @returns {String[]}
  * @memberOf utils
  */
-const extractUrls = ({ string, urlRegExp = URL_NO_COMMAS_REGEX }) => {
+const extractUrls = (string, urlRegExp = URL_NO_COMMAS_REGEX) => {
     checkParamOrThrow(string, 'string', 'String');
     checkParamOrThrow(urlRegExp, 'urlRegExp', 'RegExp');
     return string.match(urlRegExp) || [];
