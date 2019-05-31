@@ -77,7 +77,7 @@ await queue.reclaimRequest(request2);
     * [`.isEmpty()`](#RequestQueue+isEmpty) ⇒ `Promise<Boolean>`
     * [`.isFinished()`](#RequestQueue+isFinished) ⇒ `Promise<Boolean>`
     * [`.delete()`](#RequestQueue+delete) ⇒ `Promise`
-    * [`.handledCount()`](#RequestQueue+handledCount) ⇒ `Promise<number>`
+    * ~~[`.handledCount()`](#RequestQueue+handledCount) ⇒ `Promise<number>`~~
     * [`.getInfo()`](#RequestQueue+getInfo) ⇒ `Promise<Object>`
 
 <a name="RequestQueue+addRequest"></a>
@@ -100,7 +100,8 @@ it will not be updated. You can find out whether this happened from the resultin
 <td><code>request</code></td><td><code><a href="request">Request</a></code> | <code>Object</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p><a href="request"><code>Request</code></a> object, or an object to construct a <code>Request</code> instance from.</p>
+<td colspan="3"><p><a href="request"><code>Request</code></a> object or vanilla object with request data.
+Note that the function sets the <code>uniqueKey</code> and <code>id</code> fields to the passed object.</p>
 </td></tr><tr>
 <td><code>[options]</code></td><td><code>Object</code></td><td></td>
 </tr>
@@ -129,19 +130,30 @@ Gets the request from the queue specified by ID.
 <td><code>requestId</code></td><td><code>String</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Request ID</p>
+<td colspan="3"><p>ID of the request.</p>
 </td></tr></tbody>
 </table>
 <a name="RequestQueue+fetchNextRequest"></a>
 
 ## `requestQueue.fetchNextRequest()` ⇒ [`Promise<Request>`](request)
-Returns next request in the queue to be processed.
+Returns a next request in the queue to be processed, or `null` if there are no more pending requests.
 
-**Returns**: [`Promise<Request>`](request) - Returns the request object, or `null` if there are no more pending requests.  
+Once you successfully finish processing of the request, you need to call [`RequestQueue.markRequestHandled`](requestqueue.markrequesthandled)
+to mark the request as handled in the queue. If there was some error in processing the request,
+call [`RequestQueue.reclaimRequest`](requestqueue.reclaimrequest) instead, so that the queue will give the request to some other consumer
+in another call to the `fetchNextRequest` function.
+
+Note that the `null` return value doesn't mean the queue processing finished,
+it means there are currently no pending requests.
+To check whether all requests in queue were finished, use [`RequestQueue.isFinished`](requestqueue.isfinished) instead.
+
+**Returns**: [`Promise<Request>`](request) - Returns the request object or `null` if there are no more pending requests.  
 <a name="RequestQueue+markRequestHandled"></a>
 
 ## `requestQueue.markRequestHandled(request)` ⇒ [`Promise<QueueOperationInfo>`](../typedefs/queueoperationinfo)
-Marks request handled after successful processing.
+Marks a request that was previously returned by the [`RequestQueue.fetchNextRequest`](requestqueue.fetchnextrequest) function
+as handled after successful processing.
+Handled requests will never again be returned by the `fetchNextRequest` function.
 
 <table>
 <thead>
@@ -159,9 +171,10 @@ Marks request handled after successful processing.
 <a name="RequestQueue+reclaimRequest"></a>
 
 ## `requestQueue.reclaimRequest(request, [options])` ⇒ [`Promise<QueueOperationInfo>`](../typedefs/queueoperationinfo)
-Reclaims failed request back to the queue, so that it can be processed later again.
+Reclaims a failed request back to the queue, so that it can be returned for processed later again
+by another call to [`RequestQueue.fetchNextRequest`](requestqueue.fetchnextrequest).
 The request record in the queue is updated using the provided `request` parameter.
-For example, this lets you store the number of retries for the request.
+For example, this lets you store the number of retries or error messages for the request.
 
 <table>
 <thead>
@@ -182,23 +195,24 @@ For example, this lets you store the number of retries for the request.
 <td><code>[options.forefront]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>If <code>true</code> then requests get returned to the start of the queue
-  and to the back of the queue otherwise.</p>
+<td colspan="3"><p>If <code>true</code> then the request it placed to the beginning of the queue, so that it&#39;s returned
+in the next call to <a href="requestqueue.fetchnextrequest"><code>RequestQueue.fetchNextRequest</code></a>. By default, it&#39;s put to the end of the queue.</p>
 </td></tr></tbody>
 </table>
 <a name="RequestQueue+isEmpty"></a>
 
 ## `requestQueue.isEmpty()` ⇒ `Promise<Boolean>`
-Resolves to `true` if the next call to [`fetchNextRequest`](#RequestQueue+fetchNextRequest) would return `null`, otherwise it resolves to `false`.
+Resolves to `true` if the next call to [`RequestQueue.fetchNextRequest`](requestqueue.fetchnextrequest) would return `null`, otherwise it resolves to `false`.
 Note that even if the queue is empty, there might be some pending requests currently being processed.
-If you need to ensure that there is no activity in the queue, use [`isFinished`](#RequestQueue+isFinished).
+If you need to ensure that there is no activity in the queue, use [`RequestQueue.isFinished`](requestqueue.isfinished).
 
 <a name="RequestQueue+isFinished"></a>
 
 ## `requestQueue.isFinished()` ⇒ `Promise<Boolean>`
 Resolves to `true` if all requests were already handled and there are no more left.
-Due to the nature of distributed storage systems,
-the function might occasionally return a false negative, but it will never return a false positive.
+Due to the nature of distributed storage used by the queue,
+the function might occasionally return a false negative,
+but it will never return a false positive.
 
 <a name="RequestQueue+delete"></a>
 
@@ -208,7 +222,9 @@ depending on the mode of operation.
 
 <a name="RequestQueue+handledCount"></a>
 
-## `requestQueue.handledCount()` ⇒ `Promise<number>`
+## ~~`requestQueue.handledCount()` ⇒ `Promise<number>`~~
+***Deprecated***
+
 Returns the number of handled requests.
 
 <a name="RequestQueue+getInfo"></a>

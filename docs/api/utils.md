@@ -127,16 +127,19 @@ await Apify.utils.enqueueLinks({
 {
     name: &#39;John&#39;,
     surname: &#39;Doe&#39;,
-}</code></pre><pre><code>// userData
+}
+</code></pre><pre><code>// userData
 {
     name: &#39;Albert&#39;,
     age: 31
-}</code></pre><pre><code>// Enqueued request.userData
+}
+</code></pre><pre><code>// Enqueued request.userData
 {
     name: &#39;Albert&#39;,
     surname: &#39;Doe&#39;,
     age: 31,
-}</code></pre></td></tr></tbody>
+}
+</code></pre></td></tr></tbody>
 </table>
 <a name="utils.sleep"></a>
 

@@ -99,7 +99,8 @@ await crawler.run();
   page: Page,
   puppeteerPool: PuppeteerPool,
   autoscaledPool: AutoscaledPool
-}</code></pre><p>  <code>request</code> is an instance of the <a href="request"><code>Request</code></a> object with details about the URL to open, HTTP method etc.
+}
+</code></pre><p>  <code>request</code> is an instance of the <a href="request"><code>Request</code></a> object with details about the URL to open, HTTP method etc.
   <code>response</code> is an instance of the <code>Puppeteer</code>
   <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a>
   <code>page</code> is an instance of the <code>Puppeteer</code>
@@ -153,7 +154,8 @@ await crawler.run();
 <pre><code>{
   request: Request,
   error: Error,
-}</code></pre><p>  Where the <a href="request"><code>Request</code></a> instance corresponds to the failed request, and the <code>Error</code> instance
+}
+</code></pre><p>  Where the <a href="request"><code>Request</code></a> instance corresponds to the failed request, and the <code>Error</code> instance
   represents the last error thrown during processing of the request.</p>
 <p>  See
   <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_crawler.js#L11" target="_blank">source code</a>
