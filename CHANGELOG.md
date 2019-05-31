@@ -1,3 +1,4 @@
+0.14.15 / 2019-05-31
 ====================
 - Fixes in `RequestQueue` to deal with inconsistencies in the underlying data storage
 - **BREAKING CHANGE**: `RequestQueue.addRequest()` now sets the ID of the
