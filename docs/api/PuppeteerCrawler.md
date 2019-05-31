@@ -69,7 +69,7 @@ await crawler.run();
 
 * [PuppeteerCrawler](puppeteercrawler)
     * [`new PuppeteerCrawler(options)`](#new_PuppeteerCrawler_new)
-    * [`.run()`](#PuppeteerCrawler+run) ⇒ <code>Promise</code>
+    * [`.run()`](#PuppeteerCrawler+run) ⇒ `Promise`
 
 <a name="new_PuppeteerCrawler_new"></a>
 
@@ -216,6 +216,6 @@ await crawler.run();
 </table>
 <a name="PuppeteerCrawler+run"></a>
 
-## `puppeteerCrawler.run()` ⇒ <code>Promise</code>
+## `puppeteerCrawler.run()` ⇒ `Promise`
 Runs the crawler. Returns promise that gets resolved once all the requests got processed.
 

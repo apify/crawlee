@@ -119,18 +119,18 @@ describe('Apify.events', () => {
         delete process.env[ENV_VARS.ACTOR_EVENTS_WS_URL];
     });
 
-    // TODO: This tests fails if system is overloaded, it should not depend on timing!
     it('should send persist state events in regular interval', async () => {
-        process.env.APIFY_TEST_PERSIST_INTERVAL_MILLIS = 20;
+        process.env.APIFY_TEST_PERSIST_INTERVAL_MILLIS = 1;
 
         const eventsReceived = [];
         Apify.events.on(ACTOR_EVENT_NAMES_EX.PERSIST_STATE, data => eventsReceived.push(data));
         await Apify.initializeEvents();
-        await delayPromise(115);
+        await delayPromise(10);
         await Apify.stopEvents();
-        expect(eventsReceived.length).to.be.eql(5);
-        await delayPromise(50);
-        expect(eventsReceived.length).to.be.eql(5);
+        const eventCount = eventsReceived.length;
+        expect(eventCount).to.be.above(2);
+        await delayPromise(10);
+        expect(eventsReceived.length).to.be.eql(eventCount);
 
         delete process.env.APIFY_TEST_PERSIST_INTERVAL_MILLIS;
     });

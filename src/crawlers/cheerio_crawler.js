@@ -10,9 +10,9 @@ import htmlparser from 'htmlparser2';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import BasicCrawler from './basic_crawler';
-import { addTimeoutToPromise } from './utils';
-import { getApifyProxyUrl } from './actor';
-import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from './constants';
+import { addTimeoutToPromise } from '../utils';
+import { getApifyProxyUrl } from '../actor';
+import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 
 const DEFAULT_OPTIONS = {
     requestTimeoutSecs: 30,
@@ -146,11 +146,17 @@ const DEFAULT_OPTIONS = {
  *   the operation of `CheerioCrawler` and all its options. If you need more granular control over
  *   your requests, use {@link BasicCrawler}.
  *
- *   The internal defaults include:
- *      - `url`, `method`, `headers`: provided by `requestList` and/or `requestQueue`
- *      - `strictSSL`: use `options.ignoreSslErrors`
- *      - `proxy`: use `options.useApifyProxy` or `options.proxyUrls`
- *
+ *   The mandatory internal defaults:
+ *   ```
+ *   {
+ *       url,
+ *       method,
+ *       headers,
+ *       payload,   // Are provided by RequestList and/or RequestQueue
+ *       strictSSL, // Use options.ignoreSslErrors
+ *       proxy,     // Use options.useApifyProxy or options.proxyUrls
+ *   }
+ *   ```
  * @param {Function} [options.prepareRequestFunction]
  *   A function that executes before the HTTP request is made to the target resource.
  *   This function is suitable for setting dynamic properties such as cookies to the {@link Request}.

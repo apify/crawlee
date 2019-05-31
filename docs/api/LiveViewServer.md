@@ -38,12 +38,11 @@ a better view into the browser, including DevTools, but `LiveViewServer` works t
 
 * [LiveViewServer](liveviewserver)
     * [`new LiveViewServer([options])`](#new_LiveViewServer_new)
-    * [`.start()`](#LiveViewServer+start) ⇒ <code>Promise</code>
-    * [`.stop()`](#LiveViewServer+stop) ⇒ <code>Promise</code>
-    * [`.serve(page)`](#LiveViewServer+serve) ⇒ <code>Promise</code>
-    * [`.getLastSnapshot()`](#LiveViewServer+getLastSnapshot) ⇒ <code>Object</code>
-    * [`.isRunning()`](#LiveViewServer+isRunning) ⇒ <code>boolean</code>
-    * [`.hasClients()`](#LiveViewServer+hasClients) ⇒ <code>boolean</code>
+    * [`.start()`](#LiveViewServer+start) ⇒ `Promise`
+    * [`.stop()`](#LiveViewServer+stop) ⇒ `Promise`
+    * [`.serve(page)`](#LiveViewServer+serve) ⇒ `Promise`
+    * [`.isRunning()`](#LiveViewServer+isRunning) ⇒ `boolean`
+    * [`.hasClients()`](#LiveViewServer+hasClients) ⇒ `boolean`
 
 <a name="new_LiveViewServer_new"></a>
 
@@ -66,8 +65,8 @@ a better view into the browser, including DevTools, but `LiveViewServer` works t
 </tr>
 <tr>
 <td colspan="3"><p>By default, the screenshots are saved to
-  the <code>live_view</code> directory in the process&#39; working directory. Provide a different
-  absolute path to change the settings.</p>
+  the <code>live_view</code> directory in the Apify local storage directory.
+  Provide a different absolute path to change the settings.</p>
 </td></tr><tr>
 <td><code>[options.maxScreenshotFiles]</code></td><td><code>number</code></td><td><code>10</code></td>
 </tr>
@@ -92,19 +91,19 @@ a better view into the browser, including DevTools, but `LiveViewServer` works t
 </table>
 <a name="LiveViewServer+start"></a>
 
-## `liveViewServer.start()` ⇒ <code>Promise</code>
+## `liveViewServer.start()` ⇒ `Promise`
 Starts the HTTP server with web socket connections enabled.
 Snapshots will not be created until a client has connected.
 
 <a name="LiveViewServer+stop"></a>
 
-## `liveViewServer.stop()` ⇒ <code>Promise</code>
+## `liveViewServer.stop()` ⇒ `Promise`
 Prevents the server from receiving more connections. Existing connections
 will not be terminated, but the server will not prevent a process exit.
 
 <a name="LiveViewServer+serve"></a>
 
-## `liveViewServer.serve(page)` ⇒ <code>Promise</code>
+## `liveViewServer.serve(page)` ⇒ `Promise`
 Serves a snapshot to all connected clients.
 Screenshots are not served directly, only their index number
 which is used by client to retrieve the screenshot.
@@ -124,12 +123,9 @@ Will time out and throw in `options.snapshotTimeoutSecs`.
 <tr>
 </tr></tbody>
 </table>
-<a name="LiveViewServer+getLastSnapshot"></a>
-
-## `liveViewServer.getLastSnapshot()` ⇒ <code>Object</code>
 <a name="LiveViewServer+isRunning"></a>
 
-## `liveViewServer.isRunning()` ⇒ <code>boolean</code>
+## `liveViewServer.isRunning()` ⇒ `boolean`
 <a name="LiveViewServer+hasClients"></a>
 
-## `liveViewServer.hasClients()` ⇒ <code>boolean</code>
+## `liveViewServer.hasClients()` ⇒ `boolean`

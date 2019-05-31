@@ -69,16 +69,16 @@ await requestList.reclaimRequest(request2);
 
 * [RequestList](requestlist)
     * [`new exports.RequestList(options)`](#new_RequestList_new)
-    * [`.initialize()`](#RequestList+initialize) ⇒ <code>Promise</code>
-    * [`.persistState()`](#RequestList+persistState) ⇒ <code>Promise</code>
-    * [`.getState()`](#RequestList+getState) ⇒ <code>Object</code>
-    * [`.isEmpty()`](#RequestList+isEmpty) ⇒ <code>Promise&lt;Boolean&gt;</code>
-    * [`.isFinished()`](#RequestList+isFinished) ⇒ <code>Promise&lt;Boolean&gt;</code>
-    * [`.fetchNextRequest()`](#RequestList+fetchNextRequest) ⇒ [<code>Promise&lt;Request&gt;</code>](request)
-    * [`.markRequestHandled(request)`](#RequestList+markRequestHandled) ⇒ <code>Promise</code>
-    * [`.reclaimRequest(request)`](#RequestList+reclaimRequest) ⇒ <code>Promise</code>
-    * [`.length()`](#RequestList+length) ⇒ <code>Number</code>
-    * [`.handledCount()`](#RequestList+handledCount) ⇒ <code>Number</code>
+    * [`.initialize()`](#RequestList+initialize) ⇒ `Promise`
+    * [`.persistState()`](#RequestList+persistState) ⇒ `Promise`
+    * [`.getState()`](#RequestList+getState) ⇒ `Object`
+    * [`.isEmpty()`](#RequestList+isEmpty) ⇒ `Promise<Boolean>`
+    * [`.isFinished()`](#RequestList+isFinished) ⇒ `Promise<Boolean>`
+    * [`.fetchNextRequest()`](#RequestList+fetchNextRequest) ⇒ [`Promise<Request>`](request)
+    * [`.markRequestHandled(request)`](#RequestList+markRequestHandled) ⇒ `Promise`
+    * [`.reclaimRequest(request)`](#RequestList+reclaimRequest) ⇒ `Promise`
+    * [`.length()`](#RequestList+length) ⇒ `Number`
+    * [`.handledCount()`](#RequestList+handledCount) ⇒ `Number`
 
 <a name="new_RequestList_new"></a>
 
@@ -160,13 +160,13 @@ await requestList.reclaimRequest(request2);
 </table>
 <a name="RequestList+initialize"></a>
 
-## `requestList.initialize()` ⇒ <code>Promise</code>
+## `requestList.initialize()` ⇒ `Promise`
 Loads all remote sources of URLs and potentially starts periodic state persistence.
 This function must be called before you can start using the instance in a meaningful way.
 
 <a name="RequestList+persistState"></a>
 
-## `requestList.persistState()` ⇒ <code>Promise</code>
+## `requestList.persistState()` ⇒ `Promise`
 Persists the current state of the `RequestList` into the default [`KeyValueStore`](keyvaluestore).
 The state is persisted automatically in regular intervals, but calling this method manually
 is useful in cases where you want to have the most current state available after you pause
@@ -175,25 +175,25 @@ a server migration.
 
 <a name="RequestList+getState"></a>
 
-## `requestList.getState()` ⇒ <code>Object</code>
+## `requestList.getState()` ⇒ `Object`
 Returns an object representing the internal state of the `RequestList` instance.
 Note that the object's fields can change in future releases.
 
 <a name="RequestList+isEmpty"></a>
 
-## `requestList.isEmpty()` ⇒ <code>Promise&lt;Boolean&gt;</code>
+## `requestList.isEmpty()` ⇒ `Promise<Boolean>`
 Resolves to `true` if the next call to [`fetchNextRequest`](#RequestList+fetchNextRequest) function
 would return `null`, otherwise it resolves to `false`.
 Note that even if the list is empty, there might be some pending requests currently being processed.
 
 <a name="RequestList+isFinished"></a>
 
-## `requestList.isFinished()` ⇒ <code>Promise&lt;Boolean&gt;</code>
+## `requestList.isFinished()` ⇒ `Promise<Boolean>`
 Returns `true` if all requests were already handled and there are no more left.
 
 <a name="RequestList+fetchNextRequest"></a>
 
-## `requestList.fetchNextRequest()` ⇒ [<code>Promise&lt;Request&gt;</code>](request)
+## `requestList.fetchNextRequest()` ⇒ [`Promise<Request>`](request)
 Gets the next [`Request`](request) to process. First, the function gets a request previously reclaimed
 using the [`reclaimRequest`](#RequestList+reclaimRequest) function, if there is any.
 Otherwise it gets the next request from sources.
@@ -203,7 +203,7 @@ requests to process.
 
 <a name="RequestList+markRequestHandled"></a>
 
-## `requestList.markRequestHandled(request)` ⇒ <code>Promise</code>
+## `requestList.markRequestHandled(request)` ⇒ `Promise`
 Marks request as handled after successful processing.
 
 <table>
@@ -221,7 +221,7 @@ Marks request as handled after successful processing.
 </table>
 <a name="RequestList+reclaimRequest"></a>
 
-## `requestList.reclaimRequest(request)` ⇒ <code>Promise</code>
+## `requestList.reclaimRequest(request)` ⇒ `Promise`
 Reclaims request to the list if its processing failed.
 The request will become available in the next `this.fetchNextRequest()`.
 
@@ -240,11 +240,11 @@ The request will become available in the next `this.fetchNextRequest()`.
 </table>
 <a name="RequestList+length"></a>
 
-## `requestList.length()` ⇒ <code>Number</code>
+## `requestList.length()` ⇒ `Number`
 Returns the total number of unique requests present in the `RequestList`.
 
 <a name="RequestList+handledCount"></a>
 
-## `requestList.handledCount()` ⇒ <code>Number</code>
+## `requestList.handledCount()` ⇒ `Number`
 Returns number of handled requests.
 

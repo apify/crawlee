@@ -329,9 +329,11 @@ export const getTypicalChromeExecutablePath = () => {
  * Wraps the provided Promise with another one that rejects with the given errorMessage
  * after the given timeoutMillis, unless the original promise resolves or rejects earlier.
  *
- * @param {Promise} promise
+ * @template T
+ * @param {Promise<T>} promise
  * @param {number} timeoutMillis
  * @param {string} errorMessage
+ * @return {Promise<T>}
  * @ignore
  */
 export const addTimeoutToPromise = (promise, timeoutMillis, errorMessage) => {

@@ -1,3 +1,50 @@
+0.14.15 / 2019-05-31
+====================
+- Fixes in `RequestQueue` to deal with inconsistencies in the underlying data storage
+- **BREAKING CHANGE**: `RequestQueue.addRequest()` now sets the ID of the
+  newly added request to the passed `Request` object
+- **DEPRECATED**: The `RequestQueue.handledCount()` function has been deprecated,
+  please use `RequestQueue.getInfo()` instead
+
+0.14.14 / 2019-05-30
+====================
+- Fix error where live view would crash when started with concurrency already higher than 1.
+
+0.14.13 / 2019-05-30
+====================
+- Fix `POST` requests in Puppeteer.
+
+0.14.12 / 2019-05-29
+====================
+- `Snapshotter` will now log critical memory overload warnings at most once per 10 seconds.
+_ Live view snapshots are now made right after navigation finishes, instead of right before page close.
+
+0.14.11 / 2019-05-28
+====================
+- Add `Statistics` class to track crawler run statistics.
+- Use pipes instead of web sockets in Puppeteer to improve performance and stability.
+- Add warnings to all functions using Puppeteer's request interception to inform users about
+  its performance impact caused by automatic cache disabling.
+- **DEPRECATED**: `Apify.utils.puppeteer.blockResources()` because of negative impact on performance.
+  Use `.blockRequests()` (see below).
+- Add `Apify.utils.puppeteer.blockRequests()` to enable blocking URL patterns without request interception involved.
+  This is a replacement for `.blockResources()` until performance issues with request interception resolve.
+
+
+0.14.10 / 2019-05-24
+====================
+- Update `Puppeteer` to 1.17.0.
+- Add `idempotencyKey` parameter to `Apify.addWebhook()`.
+
+0.14.9 / 2019-05-22
+===================
+- Better logs from `AutoscaledPool` class
+- Replace `cpuInfo` Apify event with new `systemInfo` event in `Snapshotter`.
+
+0.14.8 / 2019-05-14
+===================
+- Bump `apify-client` to 0.5.17
+
 0.14.7 / 2019-05-12
 ===================
 - Bump `apify-client` to 0.5.16

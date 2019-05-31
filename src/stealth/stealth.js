@@ -31,7 +31,7 @@ const DEFAULT_STEALTH_OPTIONS = {
 };
 
 /**
- *  The main purpose of this function is to override newPage function and attached selected tricks.
+ *  The main purpose of this function is to override newPage function and attach selected tricks.
  * @param {Browser} browser - puppeteer browser instance
  * @param {StealthOptions} options
  * @returns {Promise<Browser>} - Instance of Browser from puppeteer package

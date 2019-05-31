@@ -3,13 +3,13 @@ import log from 'apify-shared/log';
 import { ENV_VARS } from 'apify-shared/consts';
 import { main, getEnv, call, callTask, getApifyProxyUrl, metamorph, addWebhook } from './actor';
 import AutoscaledPool from './autoscaling/autoscaled_pool';
-import BasicCrawler from './basic_crawler';
-import CheerioCrawler from './cheerio_crawler';
+import BasicCrawler from './crawlers/basic_crawler';
+import CheerioCrawler from './crawlers/cheerio_crawler';
 import { pushData, openDataset } from './dataset';
 import events, { initializeEvents, stopEvents } from './events';
 import { getValue, setValue, getInput, openKeyValueStore } from './key_value_store';
 import { launchPuppeteer } from './puppeteer';
-import PuppeteerCrawler from './puppeteer_crawler';
+import PuppeteerCrawler from './crawlers/puppeteer_crawler';
 import PuppeteerPool from './puppeteer_pool';
 import Request from './request';
 import { RequestList, openRequestList } from './request_list';
@@ -49,7 +49,6 @@ logSystemInfo();
  * @module Apify
  */
 module.exports = {
-    // Actor
     main,
     getEnv,
     call,
@@ -61,55 +60,42 @@ module.exports = {
     client: apifyClient,
     addWebhook,
 
-    // Autoscaled pool
     AutoscaledPool,
 
-    // Basic crawler
     BasicCrawler,
 
-    // Cheerio crawler
     CheerioCrawler,
 
-    // Dataset
     pushData,
     openDataset,
 
-    // Events
     events,
     initializeEvents,
     stopEvents,
 
-    // Key-value store
     getValue,
     setValue,
     getInput,
     openKeyValueStore,
 
-    // Puppeteer
     launchPuppeteer,
     PuppeteerPool,
     PuppeteerCrawler,
 
-    // PseudoUrl
     PseudoUrl,
 
-    // Requests
     Request,
     RequestList,
     openRequestList,
     openRequestQueue,
 
-    // Settings rotator
     SettingsRotator,
 
-    // Live View
     LiveViewServer,
 
-    // Webdriver
     browse,
     launchWebDriver,
 
-    // utils
     utils: Object.assign(publicUtils, {
         puppeteer: puppeteerUtils,
         social: socialUtils,

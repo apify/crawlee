@@ -7,7 +7,7 @@ import * as Apify from '../build/index';
 import * as utils from '../build/utils';
 import {
     RequestQueueLocal, RequestQueue,
-    LOCAL_STORAGE_SUBDIR, QUERY_HEAD_MIN_LENGTH, API_PROCESSED_REQUESTS_DELAY_MILLIS,
+    LOCAL_STORAGE_SUBDIR, QUERY_HEAD_MIN_LENGTH, API_PROCESSED_REQUESTS_DELAY_MILLIS, STORAGE_CONSISTENCY_DELAY_MILLIS,
 } from '../build/request_queue';
 import { emptyLocalStorageSubdir, LOCAL_STORAGE_DIR, expectNotUsingLocalStorage, expectDirEmpty, expectDirNonEmpty } from './_helper';
 
@@ -32,6 +32,8 @@ describe('RequestQueue', () => {
             await queue.addRequest(new Apify.Request({ url: 'http://example.com/middle' }));
             await queue.addRequest(new Apify.Request({ url: 'http://example.com/last-but-first' }), { forefront: true });
 
+            expect(req1.id).to.be.a('string');
+            expect(req1.uniqueKey).to.eql('http://example.com/first');
             expect(info1).to.contain({
                 wasAlreadyPresent: false,
                 wasAlreadyHandled: false,
@@ -60,6 +62,14 @@ describe('RequestQueue', () => {
             expect(await queue.fetchNextRequest()).to.be.eql(null);
             expect(await queue.isEmpty()).to.be.eql(true);
             expect(await queue.isFinished()).to.be.eql(false);
+
+            // Test validations
+            await queue.markRequestHandled(new Apify.Request({ id: 'XXX', url: 'dummy' }))
+                .catch(err => expect(err.message).to.match(/Cannot mark request XXX as handled, because it is not in progress/));
+            await queue.reclaimRequest(new Apify.Request({ id: 'XXX', url: 'dummy' }))
+                .catch(err => expect(err.message).to.match(/Cannot reclaim request XXX, because it is not in progress/));
+            await queue.addRequest(new Apify.Request({ id: 'id-already-set', url: 'dummy' }))
+                .catch(err => expect(err.message).to.match(/Request already has the "id" field set so it cannot be added to the queue/));
 
             // Check that changes to Requests are persisted to Queue.
             request1.errorMessages = ['Hello'];
@@ -292,7 +302,34 @@ describe('RequestQueue', () => {
                     clientKey,
                 })
                 .returns(Promise.resolve({ requestId: 'a', wasAlreadyHandled: false, wasAlreadyPresent: false, request: requestA }));
-            await queue.addRequest(requestA);
+            const queueOperationInfo1 = await queue.addRequest(requestA);
+
+            expect(requestA.id).to.eql('a');
+            expect(requestA.uniqueKey).to.eql('http://example.com/a');
+            expect(queueOperationInfo1).to.include({
+                wasAlreadyPresent: false,
+                wasAlreadyHandled: false,
+                requestId: 'a',
+            });
+            expect(queueOperationInfo1.request).to.include({
+                id: 'a',
+            });
+            expect(queue.queueHeadDict.length()).to.be.eql(1);
+
+            // Try to add again the a request with the same URL
+            const copyOfRequest = { url: 'http://example.com/a' };
+            const queueOperationInfo2 = await queue.addRequest(copyOfRequest);
+            expect(copyOfRequest.id).to.eql('a');
+            expect(copyOfRequest.uniqueKey).to.eql('http://example.com/a');
+            expect(queueOperationInfo2).to.include({
+                wasAlreadyPresent: true,
+                wasAlreadyHandled: false,
+                requestId: 'a',
+            });
+            expect(queueOperationInfo2.request).to.include({
+                id: 'a',
+            });
+            expect(queue.queueHeadDict.length()).to.be.eql(1);
 
             const requestB = new Request({ url: 'http://example.com/b' });
             mock.expects('addRequest')
@@ -305,8 +342,9 @@ describe('RequestQueue', () => {
                 })
                 .returns(Promise.resolve({ requestId: 'b', wasAlreadyHandled: false, wasAlreadyPresent: false, request: requestB }));
             await queue.addRequest(requestB, { forefront: true });
-            expect(queue.queueHeadDict.length()).to.be.eql(1);
-            expect(queue.inProgressCount).to.be.eql(0);
+
+            expect(queue.queueHeadDict.length()).to.be.eql(2);
+            expect(queue.inProgressCount()).to.be.eql(0);
 
             // Forefronted request was added to the queue.
             mock.expects('getRequest')
@@ -318,8 +356,16 @@ describe('RequestQueue', () => {
                 .returns(Promise.resolve(_.extend(requestB, { id: 'b' })));
             const requestBFromQueue = await queue.fetchNextRequest();
             expect(requestBFromQueue).to.be.eql(requestB);
-            expect(queue.queueHeadDict.length()).to.be.eql(0);
-            expect(queue.inProgressCount).to.be.eql(1);
+            expect(queue.queueHeadDict.length()).to.be.eql(1);
+            expect(queue.inProgressCount()).to.be.eql(1);
+
+            // Test validations
+            await queue.markRequestHandled(new Request({ id: 'XXX', url: 'dummy' }))
+                .catch(err => expect(err.message).to.match(/Cannot mark request XXX as handled, because it is not in progress/));
+            await queue.reclaimRequest(new Request({ id: 'XXX', url: 'dummy' }))
+                .catch(err => expect(err.message).to.match(/Cannot reclaim request XXX, because it is not in progress/));
+            await queue.addRequest(new Request({ id: 'id-already-set', url: 'dummy' }))
+                .catch(err => expect(err.message).to.match(/Request already has the "id" field set so it cannot be added to the queue/));
 
             // getRequest() returns null if object was not found.
             mock.expects('getRequest')
@@ -344,10 +390,12 @@ describe('RequestQueue', () => {
                 .returns(Promise.resolve({ requestId: requestB.id, wasAlreadyHandled: false, wasAlreadyPresent: true, request: requestB }));
             await queue.reclaimRequest(requestB, { forefront: true });
             expect(queue.queueHeadDict.length()).to.be.eql(1);
-            expect(queue.inProgressCount).to.be.eql(0);
+            expect(queue.inProgressCount()).to.be.eql(1);
+            await Apify.utils.sleep(STORAGE_CONSISTENCY_DELAY_MILLIS + 10);
+            expect(queue.queueHeadDict.length()).to.be.eql(2);
+            expect(queue.inProgressCount()).to.be.eql(0);
 
             // Fetch again.
-            expect(queue.queueHeadDict.length()).to.be.eql(1);
             mock.expects('getRequest')
                 .once()
                 .withArgs({
@@ -357,8 +405,8 @@ describe('RequestQueue', () => {
                 .returns(Promise.resolve(_.extend(requestB, { id: 'b' })));
             const requestBFromQueue2 = await queue.fetchNextRequest();
             expect(requestBFromQueue2).to.be.eql(requestB);
-            expect(queue.queueHeadDict.length()).to.be.eql(0);
-            expect(queue.inProgressCount).to.be.eql(1);
+            expect(queue.queueHeadDict.length()).to.be.eql(1);
+            expect(queue.inProgressCount()).to.be.eql(1);
 
             // Mark handled.
             mock.expects('updateRequest')
@@ -370,8 +418,11 @@ describe('RequestQueue', () => {
                 })
                 .returns(Promise.resolve({ requestId: requestB.id, wasAlreadyHandled: false, wasAlreadyPresent: true, request: requestB }));
             await queue.markRequestHandled(requestB);
-            expect(queue.queueHeadDict.length()).to.be.eql(0);
-            expect(queue.inProgressCount).to.be.eql(0);
+            expect(queue.queueHeadDict.length()).to.be.eql(1);
+            expect(queue.inProgressCount()).to.be.eql(0);
+
+            // Emulate there are no cached items in queue
+            queue.queueHeadDict.clear();
 
             // Query queue head.
             mock.expects('getHead')
@@ -397,7 +448,7 @@ describe('RequestQueue', () => {
             const requestAFromQueue = await queue.fetchNextRequest();
             expect(requestAFromQueue).to.be.eql(requestA);
             expect(queue.queueHeadDict.length()).to.be.eql(1);
-            expect(queue.inProgressCount).to.be.eql(1);
+            expect(queue.inProgressCount()).to.be.eql(1);
 
             // Delete queue.
             mock.expects('deleteQueue')
@@ -562,6 +613,7 @@ describe('RequestQueue', () => {
                     request: requestA,
                 }));
             await queue.addRequest(requestA, { forefront: true });
+            expect(queue.queueHeadDict.length()).to.be.eql(1);
 
             // Try to get requestA which is not available yet.
             mock.expects('getRequest')
@@ -573,7 +625,10 @@ describe('RequestQueue', () => {
                 .returns(Promise.resolve(null));
             expect(await queue.fetchNextRequest()).to.be.eql(null);
 
-            // Should try it once again.
+            // Give queue time to mark request 'a' as not in progress
+            await Apify.utils.sleep(STORAGE_CONSISTENCY_DELAY_MILLIS + 10);
+
+            // Should try it once again (the queue head is queried again)
             mock.expects('getRequest')
                 .once()
                 .withArgs({
@@ -581,6 +636,18 @@ describe('RequestQueue', () => {
                     requestId: 'a',
                 })
                 .returns(Promise.resolve(requestA));
+            mock.expects('getHead')
+                .once()
+                .withArgs({
+                    queueId: 'some-id',
+                    limit: QUERY_HEAD_MIN_LENGTH,
+                    clientKey,
+                })
+                .returns(Promise.resolve({
+                    items: [
+                        { id: 'a', uniqueKey: 'aaa' },
+                    ],
+                }));
             expect(await queue.fetchNextRequest()).to.be.eql(requestA);
 
             mock.verify();
@@ -728,7 +795,7 @@ describe('RequestQueue', () => {
             await queue.addRequest(requestB, { forefront: true });
 
             expect(queue.queueHeadDict.length()).to.be.eql(2);
-            expect(queue.inProgressCount).to.be.eql(0);
+            expect(queue.inProgressCount()).to.be.eql(0);
             expect(queue.assumedTotalCount).to.be.eql(2);
             expect(queue.assumedHandledCount).to.be.eql(0);
 
@@ -749,7 +816,7 @@ describe('RequestQueue', () => {
             expect(requestAFromQueue).to.be.eql(requestA);
 
             expect(queue.queueHeadDict.length()).to.be.eql(0);
-            expect(queue.inProgressCount).to.be.eql(2);
+            expect(queue.inProgressCount()).to.be.eql(2);
             expect(queue.assumedTotalCount).to.be.eql(2);
             expect(queue.assumedHandledCount).to.be.eql(0);
 
@@ -766,9 +833,13 @@ describe('RequestQueue', () => {
                 .withArgs({ queueId, request: requestA, forefront: true, clientKey })
                 .returns(Promise.resolve({ requestId: requestA.id, wasAlreadyHandled: false, wasAlreadyPresent: true, request: requestA }));
             await queue.reclaimRequest(requestA, { forefront: true });
-
+            expect(queue.queueHeadDict.length()).to.be.eql(0);
+            expect(queue.inProgressCount()).to.be.eql(1);
+            expect(queue.assumedTotalCount).to.be.eql(2);
+            expect(queue.assumedHandledCount).to.be.eql(1);
+            await Apify.utils.sleep(STORAGE_CONSISTENCY_DELAY_MILLIS + 10);
             expect(queue.queueHeadDict.length()).to.be.eql(1);
-            expect(queue.inProgressCount).to.be.eql(0);
+            expect(queue.inProgressCount()).to.be.eql(0);
             expect(queue.assumedTotalCount).to.be.eql(2);
             expect(queue.assumedHandledCount).to.be.eql(1);
 
@@ -784,7 +855,7 @@ describe('RequestQueue', () => {
             expect(requestAFromQueue2).to.be.eql(requestA);
 
             expect(queue.queueHeadDict.length()).to.be.eql(0);
-            expect(queue.inProgressCount).to.be.eql(1);
+            expect(queue.inProgressCount()).to.be.eql(1);
             expect(queue.assumedTotalCount).to.be.eql(2);
             expect(queue.assumedHandledCount).to.be.eql(1);
 
@@ -799,7 +870,7 @@ describe('RequestQueue', () => {
             await queue.markRequestHandled(requestA);
 
             expect(queue.queueHeadDict.length()).to.be.eql(0);
-            expect(queue.inProgressCount).to.be.eql(0);
+            expect(queue.inProgressCount()).to.be.eql(0);
             expect(queue.assumedTotalCount).to.be.eql(2);
             expect(queue.assumedHandledCount).to.be.eql(2);
 

@@ -64,7 +64,7 @@ await crawler.run();
 
 * [BasicCrawler](basiccrawler)
     * [`new BasicCrawler(options)`](#new_BasicCrawler_new)
-    * [`.run()`](#BasicCrawler+run) ⇒ <code>Promise</code>
+    * [`.run()`](#BasicCrawler+run) ⇒ `Promise`
 
 <a name="new_BasicCrawler_new"></a>
 
@@ -168,6 +168,6 @@ await crawler.run();
 </table>
 <a name="BasicCrawler+run"></a>
 
-## `basicCrawler.run()` ⇒ <code>Promise</code>
+## `basicCrawler.run()` ⇒ `Promise`
 Runs the crawler. Returns a promise that gets resolved once all the requests are processed.
 

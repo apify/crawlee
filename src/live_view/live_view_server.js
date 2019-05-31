@@ -9,10 +9,14 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import { promisifyServerListen } from 'apify-shared/utilities';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import { addTimeoutToPromise } from '../utils';
+import Snapshot from './snapshot';
 
 const writeFile = promisify(fs.writeFile);
 const unlink = promisify(fs.unlink);
 const ensureDir = promisify(fs.ensureDir);
+
+const LOCAL_STORAGE_DIR = process.env[ENV_VARS.LOCAL_STORAGE_DIR] || '';
+const DEFAULT_SCREENSHOT_DIR_PATH = path.resolve(LOCAL_STORAGE_DIR, 'live_view');
 
 /**
  * `LiveViewServer` enables serving of browser snapshots via web sockets. It includes its own client
@@ -45,30 +49,31 @@ const ensureDir = promisify(fs.ensureDir);
  *
  * When running locally, it is often best to use a headful browser for debugging, since it provides
  * a better view into the browser, including DevTools, but `LiveViewServer` works too.
- *
- * @param {Object} [options]
- *   All `LiveViewServer` parameters are passed
- *   via an options object with the following keys:
- * @param {string} [options.screenshotDirectoryPath]
- *   By default, the screenshots are saved to
- *   the `live_view` directory in the process' working directory. Provide a different
- *   absolute path to change the settings.
- * @param {number} [options.maxScreenshotFiles=10]
- *   Limits the number of screenshots stored
- *   by the server. This is to prevent using up too much disk space.
- * @param {number} [options.snapshotTimeoutSecs=3]
- *   If a snapshot is not made within the timeout,
- *   its creation will be aborted. This is to prevent
- *   pages from being hung up by a stalled screenshot.
- * @param {number} [options.maxSnapshotFrequencySecs=2]
- *   Use this parameter to further decrease the resource consumption
- *   of `LiveViewServer` by limiting the frequency at which it'll
- *   serve snapshots.
  */
 class LiveViewServer {
+    /**
+     * @param {Object} [options]
+     *   All `LiveViewServer` parameters are passed
+     *   via an options object with the following keys:
+     * @param {string} [options.screenshotDirectoryPath]
+     *   By default, the screenshots are saved to
+     *   the `live_view` directory in the Apify local storage directory.
+     *   Provide a different absolute path to change the settings.
+     * @param {number} [options.maxScreenshotFiles=10]
+     *   Limits the number of screenshots stored
+     *   by the server. This is to prevent using up too much disk space.
+     * @param {number} [options.snapshotTimeoutSecs=3]
+     *   If a snapshot is not made within the timeout,
+     *   its creation will be aborted. This is to prevent
+     *   pages from being hung up by a stalled screenshot.
+     * @param {number} [options.maxSnapshotFrequencySecs=2]
+     *   Use this parameter to further decrease the resource consumption
+     *   of `LiveViewServer` by limiting the frequency at which it'll
+     *   serve snapshots.
+     */
     constructor(options = {}) {
         const {
-            screenshotDirectoryPath = path.resolve('live_view'),
+            screenshotDirectoryPath = DEFAULT_SCREENSHOT_DIR_PATH,
             maxScreenshotFiles = 10,
             snapshotTimeoutSecs = 3,
             maxSnapshotFrequencySecs = 2,
@@ -83,7 +88,10 @@ class LiveViewServer {
         this.snapshotTimeoutMillis = snapshotTimeoutSecs * 1000;
         this.maxSnapshotFrequencyMillis = maxSnapshotFrequencySecs * 1000;
 
-        // Snapshot data
+        /**
+         * @type {?Snapshot}
+         * @private
+         */
         this.lastSnapshot = null;
         this.lastScreenshotIndex = 0;
 
@@ -103,10 +111,15 @@ class LiveViewServer {
      * @return {Promise}
      */
     async start() {
-        await ensureDir(this.screenshotDirectoryPath);
-        await promisifyServerListen(this.httpServer)(this.port);
-        log.info('Live view web server started', { publicUrl: this.liveViewUrl });
         this._isRunning = true;
+        try {
+            await ensureDir(this.screenshotDirectoryPath);
+            await promisifyServerListen(this.httpServer)(this.port);
+            log.info('Live view web server started', { publicUrl: this.liveViewUrl });
+        } catch (err) {
+            log.exception(err, 'Live view web server failed to start.');
+            this._isRunning = false;
+        }
     }
 
     /**
@@ -143,8 +156,7 @@ class LiveViewServer {
         if (this.servingSnapshot) return;
 
         if (this.lastSnapshot) {
-            const lastSnapshotAgeMillis = Date.now() - this.lastSnapshot.createdAt;
-            if (lastSnapshotAgeMillis < this.maxSnapshotFrequencyMillis) return;
+            if (this.lastSnapshot.age() < this.maxSnapshotFrequencyMillis) return;
         }
 
         try {
@@ -158,13 +170,6 @@ class LiveViewServer {
         } finally {
             this.servingSnapshot = false;
         }
-    }
-
-    /**
-     * @return {?Object}
-     */
-    getLastSnapshot() {
-        return this.lastSnapshot;
     }
 
     /**
@@ -186,12 +191,17 @@ class LiveViewServer {
      * Returns an absolute path to the screenshot with the given index.
      * @param {number} screenshotIndex
      * @return {string}
-     * @ignore
+     * @private
      */
     _getScreenshotPath(screenshotIndex) {
         return path.join(this.screenshotDirectoryPath, `${screenshotIndex}.jpeg`);
     }
 
+    /**
+     * @param {Page} page
+     * @return {Promise<Snapshot>}
+     * @private
+     */
     async _makeSnapshot(page) {
         const pageUrl = page.url();
         log.info('Making live view snapshot.', { pageUrl });
@@ -210,21 +220,25 @@ class LiveViewServer {
             this._deleteScreenshot(screenshotIndex - this.maxScreenshotFiles);
         }
 
-        const snapshot = { pageUrl, htmlContent, screenshotIndex, createdAt: new Date() };
+        const snapshot = new Snapshot({ pageUrl, htmlContent, screenshotIndex });
         this.lastSnapshot = snapshot;
         return snapshot;
     }
 
+    /**
+     * @param {Snapshot} snapshot
+     * @private
+     */
     _pushSnapshot(snapshot) {
         // Send new snapshot to clients
-        log.debug('Sending live view snapshot', { snapshot });
+        log.debug('Sending live view snapshot', { createdAt: snapshot.createdAt, pageUrl: snapshot.pageUrl });
         this.socketio.emit('snapshot', snapshot);
     }
 
     /**
      * Initiates an async delete and does not wait for it to complete.
-     * @param screenshotIndex
-     * @ignore
+     * @param {number} screenshotIndex
+     * @private
      */
     _deleteScreenshot(screenshotIndex) {
         unlink(this._getScreenshotPath(screenshotIndex))
@@ -246,12 +260,6 @@ class LiveViewServer {
 
         app.use('/', express.static(__dirname));
 
-        // Serves a JS file with the last snapshot, so the the client can immediately show something
-        app.get('/init-last-snapshot.js', (req, res) => {
-            res.set('Content-Type', 'text/javascript');
-            res.send(`window.lastSnapshot = ${JSON.stringify(this.lastSnapshot, null, 2)};`);
-        });
-
         // Serves JPEG with the last screenshot
         app.get('/screenshot/:index', (req, res) => {
             const screenshotIndex = req.params.index;
@@ -267,13 +275,25 @@ class LiveViewServer {
 
         // Socket.io server used to send snapshots to client
         this.socketio = socketio(this.httpServer);
-        this.socketio.on('connection', (socket) => {
-            this.clientCount++;
-            log.info('Live view client connected', { clientId: socket.id });
-            socket.on('disconnect', (reason) => {
-                this.clientCount--;
-                log.info('Live view client disconnected', { clientId: socket.id, reason });
-            });
+        this.socketio.on('connection', this._socketConnectionHandler.bind(this));
+    }
+
+    /**
+     * @param {socketio.Socket} socket
+     * @private
+     */
+    _socketConnectionHandler(socket) {
+        this.clientCount++;
+        log.info('Live view client connected', { clientId: socket.id });
+        socket.on('disconnect', (reason) => {
+            this.clientCount--;
+            log.info('Live view client disconnected', { clientId: socket.id, reason });
+        });
+        socket.on('getLastSnapshot', () => {
+            if (this.lastSnapshot) {
+                log.debug('Sending live view snapshot', { createdAt: this.lastSnapshot.createdAt, pageUrl: this.lastSnapshot.pageUrl });
+                this.socketio.emit('snapshot', this.lastSnapshot);
+            }
         });
     }
 }

@@ -94,15 +94,17 @@ const addInputOptionsOrThrow = (input, contentType, options) => {
 };
 
 /**
- * Returns a new object which contains information parsed from the `APIFY_XXX` environment variables.
- * It has the following properties:
+ * Returns a new object which contains information parsed from all the `APIFY_XXX` environment variables.
+ * It has properties such as the following:
  *
  * ```javascript
  * {
- *     // ID of the actor (APIFY_ACT_ID)
- *     actId: String,
- *     // ID of the actor run (APIFY_ACT_RUN_ID)
- *     actRunId: String,
+ *     // ID of the actor (APIFY_ACTOR_ID)
+ *     actorId: String,
+ *     // ID of the actor run (APIFY_ACTOR_RUN_ID)
+ *     actorRunId: String,
+ *     // ID of the actor task (APIFY_ACTOR_TASK_ID)
+ *     actorTaskId: String,
  *     // ID of the user who started the actor - note that it might be
  *     // different than the owner of the actor (APIFY_USER_ID)
  *     userId: String,
@@ -766,18 +768,18 @@ export const getApifyProxyUrl = (options = {}) => {
 /**
  *
  * Creates an ad-hoc webhook for the current actor run, which lets you receive a notification when the actor run finished or failed.
- * For more information about Apify actor webhooks, please see the <a href="https://apify.com/docs/webhook" target="_blank">documentation</a>.
+ * For more information about Apify actor webhooks, please see the <a href="https://apify.com/docs/webhooks" target="_blank">documentation</a>.
  *
  * Note that webhooks are only supported for actors running on the Apify platform.
  * In local environment, the function will print a warning and have no effect.
  *
  * @param {Object} options
- * @param {String[]} options.eventTypes
+ * @param {string[]} options.eventTypes
  *   Array of event types, which you can set for actor run, see
  *   the <a href="https://apify.com/docs/webhooks#events-actor-run" target="_blank">actor run events</a> in the Apify doc.
- * @param {String}  options.requestUrl
+ * @param {string}  options.requestUrl
  *   URL which will be requested using HTTP POST request, when actor run will reach the set event type.
- * @param {String} [options.payloadTemplate]
+ * @param {string} [options.payloadTemplate]
  *   Payload template is a JSON-like string that describes the structure of the webhook POST request payload.
  *   It uses JSON syntax, extended with a double curly braces syntax for injecting variables `{{variable}}`.
  *   Those variables are resolved at the time of the webhook's dispatch, and a list of available variables with their descriptions
@@ -785,13 +787,19 @@ export const getApifyProxyUrl = (options = {}) => {
  *
  *   When omitted, the default payload template will be used.
  *   <a href="https://apify.com/docs/webhooks" target="_blank">See the docs for the default payload template</a>.
- * @return {Promise<Object>}
+ * @param {string} [options.idempotencyKey]
+ *   Idempotency key enables you to ensure that a webhook will not be added multiple times in case of
+ *   an actor restart or other situation that would cause the `addWebhook()` function to be called again.
+ *   We suggest using the actor run ID as the idempotency key. You can get the run ID by calling
+ *   [`Apify.getEnv()](apify#module_Apify.getEnv) function.
+ * @return {Promise<Object>} The return value is the Webhook object.
+ * For more information, see the [Get webhook](https://apify.com/docs/api/v2#/reference/webhooks/webhook-object/get-webhook) API endpoint.
  *
  * @memberof module:Apify
  * @function
  * @name addWebhook
  */
-export const addWebhook = async ({ eventTypes, requestUrl, payloadTemplate }) => {
+export const addWebhook = async ({ eventTypes, requestUrl, payloadTemplate, idempotencyKey }) => {
     checkParamOrThrow(eventTypes, 'eventTypes', '[String]');
     checkParamOrThrow(requestUrl, 'requestUrl', 'String');
     checkParamOrThrow(payloadTemplate, 'payloadTemplate', 'Maybe String');
@@ -815,6 +823,7 @@ export const addWebhook = async ({ eventTypes, requestUrl, payloadTemplate }) =>
             },
             requestUrl,
             payloadTemplate,
+            idempotencyKey,
         },
     });
 };

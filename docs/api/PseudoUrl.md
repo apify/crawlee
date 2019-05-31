@@ -56,8 +56,8 @@ if (purl.matches('http://www.example.com/pages/my-awesome-page')) console.log('M
 
 * [PseudoUrl](pseudourl)
     * [`new PseudoUrl(purl, requestTemplate)`](#new_PseudoUrl_new)
-    * [`.matches(url)`](#PseudoUrl+matches) ⇒ <code>Boolean</code>
-    * [`.createRequest(url)`](#PseudoUrl+createRequest) ⇒ [<code>Request</code>](request)
+    * [`.matches(url)`](#PseudoUrl+matches) ⇒ `Boolean`
+    * [`.createRequest(url)`](#PseudoUrl+createRequest) ⇒ [`Request`](request)
 
 <a name="new_PseudoUrl_new"></a>
 
@@ -86,10 +86,10 @@ if (purl.matches('http://www.example.com/pages/my-awesome-page')) console.log('M
 </table>
 <a name="PseudoUrl+matches"></a>
 
-## `pseudoUrl.matches(url)` ⇒ <code>Boolean</code>
+## `pseudoUrl.matches(url)` ⇒ `Boolean`
 Determines whether a URL matches this pseudo-URL pattern.
 
-**Returns**: <code>Boolean</code> - Returns `true` if given URL matches pseudo-URL.  
+**Returns**: `Boolean` - Returns `true` if given URL matches pseudo-URL.  
 <table>
 <thead>
 <tr>
@@ -106,7 +106,7 @@ Determines whether a URL matches this pseudo-URL pattern.
 </table>
 <a name="PseudoUrl+createRequest"></a>
 
-## `pseudoUrl.createRequest(url)` ⇒ [<code>Request</code>](request)
+## `pseudoUrl.createRequest(url)` ⇒ [`Request`](request)
 Creates a Request object from a provided `requestTemplate` and given URL.
 
 <table>

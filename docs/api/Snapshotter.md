@@ -9,31 +9,33 @@ as either overloaded or not during the last interval. Keeps a history of the sna
 It tracks the following resources: Memory, EventLoop, API and CPU.
 The class is used by the [`AutoscaledPool`](autoscaledpool) class.
 
-There are differences in behavior when running locally and on the Apify platform,
-but those differences are handled internally by the class and do not affect its interface.
+When running on the Apify platform, the CPU and memory statistics are provided by the platform,
+as collected from the running Docker container. When running locally, `Snapshotter`
+makes its own statistics by querying the OS.
+
+CPU becomes overloaded locally when its current use exceeds the `maxUsedCpuRatio` option or
+when Apify platform marks it as overloaded.
 
 Memory becomes overloaded if its current use exceeds the `maxUsedMemoryRatio` option.
 It's computed using the total memory available to the container when running on
 the Apify platform and a quarter of total system memory when running locally.
-Max total memory may be overridden by using the `APIFY_MEMORY_MBYTES` environment variable.
+Max total memory when running locally may be overridden by using the `APIFY_MEMORY_MBYTES`
+environment variable.
 
 Event loop becomes overloaded if it slows down by more than the `maxBlockedMillis` option.
 
 Client becomes overloaded when rate limit errors (429 - Too Many Requests),
-typically received from the request queue exceed the set limit within the set interval.
-
-CPU tracking is available only on the Apify platform and the CPU overloaded event is read
-directly off the container and is not configurable.
+typically received from the request queue, exceed the set limit within the set interval.
 
 
 * [Snapshotter](snapshotter)
     * [`new Snapshotter([options])`](#new_Snapshotter_new)
-    * [`.start()`](#Snapshotter+start) ⇒ <code>Promise</code>
-    * [`.stop()`](#Snapshotter+stop) ⇒ <code>Promise</code>
-    * [`.getMemorySample([sampleDurationMillis])`](#Snapshotter+getMemorySample) ⇒ <code>Array</code>
-    * [`.getEventLoopSample([sampleDurationMillis])`](#Snapshotter+getEventLoopSample) ⇒ <code>Array</code>
-    * [`.getCpuSample([sampleDurationMillis])`](#Snapshotter+getCpuSample) ⇒ <code>Array</code>
-    * [`.getClientSample(sampleDurationMillis)`](#Snapshotter+getClientSample) ⇒ <code>Array</code>
+    * [`.start()`](#Snapshotter+start) ⇒ `Promise`
+    * [`.stop()`](#Snapshotter+stop) ⇒ `Promise`
+    * [`.getMemorySample([sampleDurationMillis])`](#Snapshotter+getMemorySample) ⇒ `Array`
+    * [`.getEventLoopSample([sampleDurationMillis])`](#Snapshotter+getEventLoopSample) ⇒ `Array`
+    * [`.getCpuSample([sampleDurationMillis])`](#Snapshotter+getCpuSample) ⇒ `Array`
+    * [`.getClientSample(sampleDurationMillis)`](#Snapshotter+getClientSample) ⇒ `Array`
 
 <a name="new_Snapshotter_new"></a>
 
@@ -69,10 +71,25 @@ directly off the container and is not configurable.
 <td colspan="3"><p>Maximum allowed delay of the event loop in milliseconds.
   Exceeding this limit overloads the event loop.</p>
 </td></tr><tr>
+<td><code>[options.cpuSnapshotIntervalSecs]</code></td><td><code>Number</code></td><td><code>1</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Defines the interval of measuring CPU usage.
+  This is only used when running locally. On the Apify platform,
+  the statistics are provided externally at a fixed interval.</p>
+</td></tr><tr>
+<td><code>[options.maxUsedCpuRatio]</code></td><td><code>Number</code></td><td><code>0.95</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Defines the maximum usage of CPU.
+  Exceeding this limit overloads the CPU.</p>
+</td></tr><tr>
 <td><code>[options.memorySnapshotIntervalSecs]</code></td><td><code>Number</code></td><td><code>1</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Defines the interval of measuring memory consumption.
+  This is only used when running locally. On the Apify platform,
+  the statistics are provided externally at a fixed interval.
   The measurement itself is resource intensive (25 - 50ms async).
   Therefore, setting this interval below 1 second is not recommended.</p>
 </td></tr><tr>
@@ -97,17 +114,17 @@ directly off the container and is not configurable.
 </table>
 <a name="Snapshotter+start"></a>
 
-## `snapshotter.start()` ⇒ <code>Promise</code>
+## `snapshotter.start()` ⇒ `Promise`
 Starts capturing snapshots at configured intervals.
 
 <a name="Snapshotter+stop"></a>
 
-## `snapshotter.stop()` ⇒ <code>Promise</code>
+## `snapshotter.stop()` ⇒ `Promise`
 Stops all resource capturing.
 
 <a name="Snapshotter+getMemorySample"></a>
 
-## `snapshotter.getMemorySample([sampleDurationMillis])` ⇒ <code>Array</code>
+## `snapshotter.getMemorySample([sampleDurationMillis])` ⇒ `Array`
 Returns a sample of latest memory snapshots, with the size of the sample defined
 by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
 
@@ -126,7 +143,7 @@ by the sampleDurationMillis parameter. If omitted, it returns a full snapshot hi
 </table>
 <a name="Snapshotter+getEventLoopSample"></a>
 
-## `snapshotter.getEventLoopSample([sampleDurationMillis])` ⇒ <code>Array</code>
+## `snapshotter.getEventLoopSample([sampleDurationMillis])` ⇒ `Array`
 Returns a sample of latest event loop snapshots, with the size of the sample defined
 by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
 
@@ -145,7 +162,7 @@ by the sampleDurationMillis parameter. If omitted, it returns a full snapshot hi
 </table>
 <a name="Snapshotter+getCpuSample"></a>
 
-## `snapshotter.getCpuSample([sampleDurationMillis])` ⇒ <code>Array</code>
+## `snapshotter.getCpuSample([sampleDurationMillis])` ⇒ `Array`
 Returns a sample of latest CPU snapshots, with the size of the sample defined
 by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
 
@@ -164,7 +181,7 @@ by the sampleDurationMillis parameter. If omitted, it returns a full snapshot hi
 </table>
 <a name="Snapshotter+getClientSample"></a>
 
-## `snapshotter.getClientSample(sampleDurationMillis)` ⇒ <code>Array</code>
+## `snapshotter.getClientSample(sampleDurationMillis)` ⇒ `Array`
 Returns a sample of latest Client snapshots, with the size of the sample defined
 by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
 

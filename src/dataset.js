@@ -235,6 +235,10 @@ export class Dataset {
      *   By default, the element name is `page` or `result`, depending on the value of the `simplified` option.
      * @param {Boolean} [options.skipHeaderRow=false]
      *   If set to `true` then header row in CSV format is skipped.
+     * @param {Boolean} [options.simplified]
+     *   If set to `true` then function applies the `fields: ['url','pageFunctionResult','errorInfo']` and `unwind: 'pageFunctionResult'` options.
+     * @param {Boolean} [options.skipFailedPages]
+     *   If set to `true` then all the items with errorInfo property will be skipped from the output.
      * @return {Promise<Array|String|Buffer>}
      */
     getData(options = {}) {

@@ -213,8 +213,8 @@ class SystemStatus {
         const wAvg = weightedAvg(values, weights);
         return {
             isOverloaded: wAvg > ratio,
-            maxOverloadedRatio: ratio,
-            actualRatio: wAvg,
+            limitRatio: ratio,
+            actualRatio: Math.round(wAvg * 1000) / 1000,
         };
     }
 }

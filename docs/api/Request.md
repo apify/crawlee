@@ -84,7 +84,7 @@ const foo = request.userData.foo;
 <tr>
 <td colspan="3"><p>Indicates the number of times the crawling of the request has been retried on error.</p>
 </td></tr><tr>
-<td><code>errorMessages</code></td><td><code>Array&lt;String&gt;</code></td>
+<td><code>errorMessages</code></td><td><code>Array<String></code></td>
 </tr>
 <tr>
 <td colspan="3"><p>An array of error messages from request processing.</p>

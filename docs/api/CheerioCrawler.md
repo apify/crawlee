@@ -77,7 +77,7 @@ await crawler.run();
 
 * [CheerioCrawler](cheeriocrawler)
     * [`new CheerioCrawler(options)`](#new_CheerioCrawler_new)
-    * [`.run()`](#CheerioCrawler+run) ⇒ <code>Promise</code>
+    * [`.run()`](#CheerioCrawler+run) ⇒ `Promise`
 
 <a name="new_CheerioCrawler_new"></a>
 
@@ -139,10 +139,15 @@ await crawler.run();
   Provided <code>requestOptions</code> are added to internal defaults that cannot be overridden to ensure
   the operation of <code>CheerioCrawler</code> and all its options. If you need more granular control over
   your requests, use <a href="basiccrawler"><code>BasicCrawler</code></a>.</p>
-<p>  The internal defaults include:</p>
-<pre><code> - `url`, `method`, `headers`: provided by `requestList` and/or `requestQueue`
- - `strictSSL`: use `options.ignoreSslErrors`
- - `proxy`: use `options.useApifyProxy` or `options.proxyUrls`
+<p>  The mandatory internal defaults:</p>
+<pre><code>  {
+      url,
+      method,
+      headers,
+      payload,   // Are provided by RequestList and/or RequestQueue
+      strictSSL, // Use options.ignoreSslErrors
+      proxy,     // Use options.useApifyProxy or options.proxyUrls
+  }
 </code></pre></td></tr><tr>
 <td><code>[options.prepareRequestFunction]</code></td><td><code>function</code></td><td></td>
 </tr>
@@ -182,7 +187,7 @@ await crawler.run();
   <a href="https://my.apify.com/proxy" target="_blank">Apify Proxy</a> for all connections.
   For more information, see the <a href="https://apify.com/docs/proxy" target="_blank">documentation</a></p>
 </td></tr><tr>
-<td><code>[options.apifyProxyGroups]</code></td><td><code>Array&lt;String&gt;</code></td><td></td>
+<td><code>[options.apifyProxyGroups]</code></td><td><code>Array<String></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>An array of proxy groups to be used
@@ -198,7 +203,7 @@ await crawler.run();
   The identifier can only contain the following characters: <code>0-9</code>, <code>a-z</code>, <code>A-Z</code>, <code>&quot;.&quot;</code>, <code>&quot;_&quot;</code> and <code>&quot;~&quot;</code>.
   Only applied if the <code>useApifyProxy</code> option is <code>true</code>.</p>
 </td></tr><tr>
-<td><code>[options.proxyUrls]</code></td><td><code>Array&lt;String&gt;</code></td><td></td>
+<td><code>[options.proxyUrls]</code></td><td><code>Array<String></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>An array of custom proxy URLs to be used by the <code>CheerioCrawler</code> instance.
@@ -256,6 +261,6 @@ await crawler.run();
 </table>
 <a name="CheerioCrawler+run"></a>
 
-## `cheerioCrawler.run()` ⇒ <code>Promise</code>
+## `cheerioCrawler.run()` ⇒ `Promise`
 Runs the crawler. Returns promise that gets resolved once all the requests got processed.
 
