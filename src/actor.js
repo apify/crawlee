@@ -768,7 +768,7 @@ export const getApifyProxyUrl = (options = {}) => {
 /**
  *
  * Creates an ad-hoc webhook for the current actor run, which lets you receive a notification when the actor run finished or failed.
- * For more information about Apify actor webhooks, please see the <a href="https://apify.com/docs/webhook" target="_blank">documentation</a>.
+ * For more information about Apify actor webhooks, please see the <a href="https://apify.com/docs/webhooks" target="_blank">documentation</a>.
  *
  * Note that webhooks are only supported for actors running on the Apify platform.
  * In local environment, the function will print a warning and have no effect.

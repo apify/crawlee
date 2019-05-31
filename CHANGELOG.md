@@ -1,3 +1,10 @@
+====================
+- Fixes in `RequestQueue` to deal with inconsistencies in the underlying data storage
+- **BREAKING CHANGE**: `RequestQueue.addRequest()` now sets the ID of the
+  newly added request to the passed `Request` object
+- **DEPRECATED**: The `RequestQueue.handledCount()` function has been deprecated,
+  please use `RequestQueue.getInfo()` instead
+
 0.14.14 / 2019-05-30
 ====================
 - Fix error where live view would crash when started with concurrency already higher than 1.
