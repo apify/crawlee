@@ -57,8 +57,7 @@ For more details, see
     &quot;origin&quot;: &quot;API&quot;,
     &quot;clientIp&quot;: &quot;1.2.3.4&quot;,
     &quot;userAgent&quot;: &quot;ApifyClient/0.2.13 (Linux; Node/v8.11.3)&quot;
-  }
-</code></pre></td></tr><tr>
+  }</code></pre></td></tr><tr>
 <td><code>stats</code></td><td><code>Object</code></td>
 </tr>
 <tr>
@@ -67,8 +66,7 @@ For more details, see
     &quot;inputBodyLen&quot;: 22,
     &quot;restartCount&quot;: 0,
     &quot;workersUsed&quot;: 1,
-  }
-</code></pre><p>  Beware that object fields might change in future releases.</p>
+  }</code></pre><p>  Beware that object fields might change in future releases.</p>
 </td></tr><tr>
 <td><code>options</code></td><td><code>Object</code></td>
 </tr>
@@ -79,8 +77,7 @@ For more details, see
     &quot;waitSecs&quot;: 0,
     &quot;memoryMbytes&quot;: 256,
     &quot;diskMbytes&quot;: 512
-  }
-</code></pre></td></tr><tr>
+  }</code></pre></td></tr><tr>
 <td><code>buildId</code></td><td><code>String</code></td>
 </tr>
 <tr>
@@ -132,6 +129,5 @@ For more details, see
     &quot;body&quot;: {
       &quot;message&quot;: &quot;Hello world!&quot;
     }
-  }
-</code></pre></td></tr></tbody>
+  }</code></pre></td></tr></tbody>
 </table>
