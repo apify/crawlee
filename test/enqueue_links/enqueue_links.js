@@ -1,8 +1,8 @@
 import cheerio from 'cheerio';
 import { expect } from 'chai';
-import Apify from '../build/index';
-import { enqueueLinks } from '../build/enqueue_links';
-import { RequestQueue } from '../build/request_queue';
+import Apify from '../../build';
+import { enqueueLinks } from '../../build/enqueue_links/enqueue_links';
+import { RequestQueue } from '../../build/request_queue';
 
 const { utils: { log } } = Apify;
 
@@ -266,9 +266,9 @@ describe('enqueueLinks()', () => {
                 new Apify.PseudoUrl('[http|https]://cool.com/', { userData: { foo: 'bar' } }),
             ];
 
-            const originalLogWarning = log.warning;
+            const originalLogDeprecated = log.deprecated;
             const logOutput = [];
-            log.warning = (item) => { logOutput.push(item); };
+            log.deprecated = (item) => { logOutput.push(item); };
 
             try {
                 await enqueueLinks(page, '.click', purls, queue, { hello: 'world' });
@@ -287,7 +287,7 @@ describe('enqueueLinks()', () => {
                 expect(enqueued[2].method).to.be.eql('GET');
                 expect(enqueued[2].userData).to.be.eql({ hello: 'world', foo: 'bar' });
             } finally {
-                log.warning = originalLogWarning;
+                log.deprecated = originalLogDeprecated;
             }
 
             expect(logOutput.length).to.be.eql(1);

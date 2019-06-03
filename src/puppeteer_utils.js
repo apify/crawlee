@@ -8,7 +8,8 @@ import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import LruCache from 'apify-shared/lru_cache';
 import { RequestQueue, RequestQueueLocal } from './request_queue';
 import Request from './request';
-import { enqueueLinks } from './enqueue_links';
+import { enqueueLinks } from './enqueue_links/enqueue_links';
+import { enqueueLinksByClickingElements } from './enqueue_links/click_elements';
 import { addInterceptRequestHandler, removeInterceptRequestHandler } from './puppeteer_request_interception';
 
 const jqueryPath = require.resolve('jquery/dist/jquery.min');
@@ -467,6 +468,7 @@ export const puppeteerUtils = {
             return enqueueLinks(...args);
         }
     },
+    enqueueLinksByClickingElements,
     blockRequests,
     blockResources,
     cacheResponses,
