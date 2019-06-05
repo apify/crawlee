@@ -1,3 +1,4 @@
+import { URL } from 'url';
 import _ from 'underscore';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import PseudoUrl from '../pseudo_url';
@@ -51,11 +52,19 @@ export function constructPseudoUrlInstances(pseudoUrls) {
  * @ignore
  */
 export function createRequests(sources, pseudoUrls, userData) {
-    const normalizedSources = sources.map((src) => {
-        return typeof src === 'string'
-            ? { url: src, userData }
-            : { ...src, userData };
-    });
+    const normalizedSources = sources
+        .map((src) => {
+            return typeof src === 'string'
+                ? { url: src, userData }
+                : { ...src, userData };
+        })
+        .filter(({ url }) => {
+            try {
+                return new URL(url).href;
+            } catch (err) {
+                return false;
+            }
+        });
 
     if (!(pseudoUrls && pseudoUrls.length)) {
         return normalizedSources.map(src => new Request(src));

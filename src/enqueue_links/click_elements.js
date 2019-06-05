@@ -1,3 +1,4 @@
+import { URL } from 'url';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import log from 'apify-shared/log';
@@ -6,6 +7,8 @@ import { addInterceptRequestHandler, removeInterceptRequestHandler } from '../pu
 import { constructPseudoUrlInstances, createRequests, addRequestsToQueueInBatches } from './shared';
 
 const STARTING_Z_INDEX = 10000;
+const DEFAULT_NETWORK_IDLE_INTERVAL_MILLIS = 25;
+const DEFAULT_NETWORK_IDLE_TIMEOUT_MILLIS = 250;
 
 /**
  * The function finds elements matching a specific CSS selector in a Puppeteer page,
@@ -133,19 +136,27 @@ export async function enqueueLinksByClickingElements(options = {}) {
  * @return {Promise<Object[]>}
  * @ignore
  */
-async function clickElementsAndInterceptNavigationRequests(page, selector) {
+export async function clickElementsAndInterceptNavigationRequests(page, selector) {
     const uniqueRequests = new Map();
     const browser = page.browser();
 
     const onInterceptedRequest = createInterceptRequestHandler(page, uniqueRequests);
     const onTargetCreated = createTargetCreatedHandler(page, uniqueRequests);
+    const onFrameNavigated = createFrameNavigatedHandler(page, uniqueRequests);
 
     await addInterceptRequestHandler(page, onInterceptedRequest);
     browser.on('targetcreated', onTargetCreated);
+    page.on('framenavigated', onFrameNavigated);
+
+    await preventHistoryNavigation(page);
 
     await clickElements(page, selector);
+    await waitForNetworkIdle(page);
+
+    await restoreHistoryNavigationAndSaveCapturedUrls(page, uniqueRequests);
 
     browser.removeListener('targetcreated', onTargetCreated);
+    page.removeListener('framenavigated', onFrameNavigated);
     await removeInterceptRequestHandler(page, onInterceptedRequest);
 
     return Array.from(uniqueRequests.values());
@@ -155,6 +166,7 @@ async function clickElementsAndInterceptNavigationRequests(page, selector) {
  * @param {Page} page
  * @param {Map} requests
  * @return {Function}
+ * @ignore
  */
 function createInterceptRequestHandler(page, requests) {
     return function onInterceptedRequest(req) {
@@ -176,29 +188,72 @@ function createInterceptRequestHandler(page, requests) {
  * @param {Page} page
  * @param {Request} req
  * @return {boolean}
+ * @ignore
  */
 function isTopFrameNavigationRequest(page, req) {
     return req.isNavigationRequest()
-        && req.frame() === page.mainFrame()
-        && req.url() !== page.url();
+        && req.frame() === page.mainFrame();
 }
 
 /**
  * @param {Page} page
  * @param {Map} requests
  * @return {Function}
+ * @ignore
  */
 function createTargetCreatedHandler(page, requests) {
     return async function onTargetCreated(target) {
         if (target.type() !== 'page') return;
         if (page.target() !== target.opener()) return;
-        const newPage = await target.page();
-        const url = newPage.url();
+        const createdPage = await target.page();
+        const url = createdPage.url();
         requests.set(url, { url });
         page.close().catch((err) => {
-            log.debug('enqueueLinksByClickingElements: Could not close spawned page.', { stack: err.stack });
+            log.debug('enqueueLinksByClickingElements: Could not close spawned page.', { error: err.stack });
         });
     };
+}
+
+/**
+ * @param {Page} page
+ * @param {Map} requests
+ * @return {Function}
+ * @ignore
+ */
+function createFrameNavigatedHandler(page, requests) {
+    return function onFrameNavigated(frame) {
+        if (frame !== page.mainFrame()) return;
+        const url = frame.url();
+        requests.set(url, { url });
+    };
+}
+
+/**
+ * @param {Page} page
+ * @return {Promise}
+ * @ignore
+ */
+async function preventHistoryNavigation(page) {
+    /* istanbul ignore next */
+    return page.evaluate(() => {
+        /* global window */
+        window.__originalHistory__ = window.history; // eslint-disable-line no-underscore-dangle
+        delete window.history; // Simple override does not work.
+        window.history = {
+            stateHistory: [],
+            length: 0,
+            state: {},
+            go() {},
+            back() {},
+            forward() {},
+            pushState(...args) {
+                this.stateHistory.push(args);
+            },
+            replaceState(...args) {
+                this.stateHistory.push(args);
+            },
+        };
+    });
 }
 
 /**
@@ -211,20 +266,16 @@ function createTargetCreatedHandler(page, requests) {
  * @param {Page} page
  * @param {string} selector
  * @return {Promise}
+ * @ignore
  */
-async function clickElements(page, selector) {
+export async function clickElements(page, selector) {
     const elementHandles = await page.$$(selector);
     log.debug(`enqueueLinksByClickingElements: There are ${elementHandles.length} elements to click.`);
     let clickedElementsCount = 0;
     let zIndex = STARTING_Z_INDEX;
     for (const handle of elementHandles) {
         try {
-            await page.evaluate((el, zIndex) => { // eslint-disable-line no-shadow
-                el.style.visiblity = 'visible';
-                el.style.display = 'block';
-                el.style.position = 'absolute';
-                el.style.zindex = zIndex;
-            }, handle, zIndex++);
+            await page.evaluate(updateElementCssToEnableMouseClick, handle, zIndex++);
             await handle.click();
             clickedElementsCount++;
         } catch (err) {
@@ -232,4 +283,97 @@ async function clickElements(page, selector) {
         }
     }
     log.debug(`enqueueLinksByClickingElements: Successfully clicked ${clickedElementsCount} elements out of ${elementHandles.length}`);
+}
+
+/* istanbul ignore next */
+/**
+ * This is an in browser function!
+ * @param {Element} el
+ * @param {number} zIndex
+ */
+function updateElementCssToEnableMouseClick(el, zIndex) {
+    el.style.visibility = 'visible';
+    el.style.display = 'block';
+    el.style.position = 'absolute';
+    el.style.zIndex = zIndex;
+    const boundingRect = el.getBoundingClientRect();
+    if (!boundingRect.height) el.style.height = '10px';
+    if (!boundingRect.width) el.style.width = '10px';
+}
+
+/**
+ * This function tracks whether any request events or frame navigations were emitted
+ * in the past idleIntervalMillis and whenever the interval registers no activity,
+ * the function returns.
+ *
+ * It will also return when a final timeout, represented by the timeoutMillis parameter
+ * is reached, to prevent blocking on pages with constant network activity.
+ *
+ * We need this to make sure we don't finish too soon when intercepting requests triggered
+ * by clicking in the page. They often get registered by the Node.js process only some
+ * milliseconds after clicking and we would lose those requests. This is especially prevalent
+ * when there's only a single element to click.
+ *
+ * @param {Page} page
+ * @param {number} idleIntervalMillis
+ * @param {number} timeoutMillis
+ * @return {Promise}
+ * @ignore
+ */
+async function waitForNetworkIdle(
+    page,
+    idleIntervalMillis = DEFAULT_NETWORK_IDLE_INTERVAL_MILLIS,
+    timeoutMillis = DEFAULT_NETWORK_IDLE_TIMEOUT_MILLIS,
+) {
+    return new Promise((resolve) => {
+        let timeout;
+        let maxTimeout;
+
+        function activityHandler() {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                clearTimeout(maxTimeout);
+                resolve();
+                page.removeListener('request', activityHandler);
+                page.removeListener('framenavigated', activityHandler);
+            }, idleIntervalMillis);
+        }
+
+        function maxTimeoutHandler() {
+            log.debug(`enqueueLinksByClickingElements: Network still showed activity after ${timeoutMillis}ms. `
+                + 'This is probably due to the page itself dispatching requests, but some links may also have been missed.');
+            resolve();
+        }
+
+        maxTimeout = setTimeout(maxTimeoutHandler, timeoutMillis);
+        timeout = activityHandler(); // We call this once manually in case there would be no requests at all.
+        page.on('request', activityHandler);
+        page.on('framenavigated', activityHandler);
+    });
+}
+
+/**
+ * @param {Page} page
+ * @param {Map} requests
+ * @return {Promise}
+ * @ignore
+ */
+async function restoreHistoryNavigationAndSaveCapturedUrls(page, requests) {
+    /* eslint-disable no-shadow */
+    /* istanbul ignore next */
+    const stateHistory = await page.evaluate(() => {
+        /* global window */
+        const { stateHistory } = window.history;
+        window.history = window.__originalHistory__; // eslint-disable-line no-underscore-dangle
+        return stateHistory;
+    });
+    stateHistory.forEach((args) => {
+        try {
+            const stateUrl = args[args.length - 1];
+            const url = new URL(stateUrl, page.url()).href;
+            requests.set(url, { url });
+        } catch (err) {
+            log.debug('enqueueLinksByClickingElements: Failed to ', { error: err.stack });
+        }
+    });
 }
