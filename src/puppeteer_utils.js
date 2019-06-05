@@ -244,6 +244,7 @@ const blockRequests = async (page, options = {}) => {
         includeDefaults = true,
     } = options;
 
+    checkParamOrThrow(page, 'options.page', 'Object');
     checkParamOrThrow(urlPatterns, 'options.urlPatterns', '[String]');
     checkParamOrThrow(includeDefaults, 'options.includeDefaults', 'Boolean');
 
