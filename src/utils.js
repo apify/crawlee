@@ -412,8 +412,9 @@ const downloadListOfUrls = async ({ url, encoding = 'utf8', urlRegExp = URL_NO_C
 
 /**
  * Collects all URLs in an arbitrary string to an array, optionally using a custom regular expression.
- * @param {String} string
- * @param {RegExp} [urlRegExp=Apify.utils.URL_NO_COMMAS_REGEX]
+ * @param {Object} options
+ * @param {String} options.string
+ * @param {RegExp} [options.urlRegExp=Apify.utils.URL_NO_COMMAS_REGEX]
  * @returns {String[]}
  * @memberOf utils
  */
