@@ -295,7 +295,7 @@ class Snapshotter {
             const usedPercentage = Math.round((memCurrentBytes / this.maxMemoryBytes) * 100);
             const toMb = bytes => Math.round(bytes / (1024 ** 2));
             log.warning('Memory is critically overloaded. '
-                + `Used ${toMb(memCurrentBytes)} MB of ${toMb(this.maxMemoryBytes)} MB (${usedPercentage}%)`);
+                + `Using ${toMb(memCurrentBytes)} MB of ${toMb(this.maxMemoryBytes)} MB (${usedPercentage}%). Consider increasing the actor memory.`);
             this.lastLoggedCriticalMemoryOverloadAt = now;
         }
     }
