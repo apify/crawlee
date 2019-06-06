@@ -125,7 +125,6 @@ describe('enqueueLinksByClickingElements()', () => {
             expect(interceptedRequests).to.have.lengthOf(1);
             expect(interceptedRequests[0].url).to.match(/https:\/\/example\.com\/?$/);
             expect(page.url()).to.be.eql('about:blank');
-
         });
 
         it('should intercept navigation with window.location', async () => {
