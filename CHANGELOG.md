@@ -1,3 +1,7 @@
+xxx
+====================
+- Bugfix in BasicCrawler: async calls in `isFinishedFunction` were not awaited
+
 0.14.15 / 2019-05-31
 ====================
 - Fixes in `RequestQueue` to deal with inconsistencies in the underlying data storage

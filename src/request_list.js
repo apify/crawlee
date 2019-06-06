@@ -154,11 +154,12 @@ export class RequestList {
 
         // Dictionary of requests that were returned by fetchNextRequest().
         // The key is uniqueKey, value is true.
+        // TODO: Change this to Set
         this.inProgress = {};
 
         // Dictionary of requests for which reclaimRequest() was called.
-        // The key is uniqueKey, value is true.
-        // Note that reclaimedRequests is always a subset of inProgressRequests!
+        // The key is uniqueKey, value is true. TODO: Change this to Set
+        // Note that reclaimedRequests is always a subset of inProgress!
         this.reclaimed = {};
 
         this.persistStateKey = persistStateKey;
