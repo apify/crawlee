@@ -652,14 +652,19 @@ export class RequestQueue {
     /**
      * Returns the number of handled requests.
      *
+     * This function is just a convenient shortcut for:
+     *
+     * ```javascript
+     * const { handledRequestCount } = await queue.getInfo();
+     * ```
+     *
      * @return {Promise<number>}
      * @deprecated
      */
     async handledCount() {
-        log.deprecated('RequestQueue.handledCount() is deprecated, please use RequestQueue.getInfo() instead.');
-
-        const queueInfo = await requestQueues.getQueue({ queueId: this.queueId });
-        return queueInfo.handledRequestCount;
+        // NOTE: We keep this function for compatibility with RequestList.handledCount()
+        const { handledRequestCount } = await this.getInfo();
+        return handledRequestCount;
     }
 
     /**
@@ -680,9 +685,9 @@ export class RequestQueue {
      *   createdAt: new Date("2015-12-12T07:34:14.202Z"),
      *   modifiedAt: new Date("2015-12-13T08:36:13.202Z"),
      *   accessedAt: new Date("2015-12-14T08:36:13.202Z"),
-     *   totalRequestCount: 0,
-     *   handledRequestCount: 0,
-     *   pendingRequestCount: 0,
+     *   totalRequestCount: 25,
+     *   handledRequestCount: 5,
+     *   pendingRequestCount: 20,
      * }
      * ```
      *
@@ -995,9 +1000,8 @@ export class RequestQueueLocal {
     }
 
     async handledCount() {
-        await this.initializationPromise;
-        this._updateMetadata();
-        return this._handledCount;
+        const { handledRequestCount } = await this.getInfo();
+        return handledRequestCount;
     }
 
     async getInfo() {

@@ -2,14 +2,16 @@ xxx
 ====================
 - Bugfix in BasicCrawler: async calls in `isFinishedFunction` were not awaited
 - Better logging of memory overload errors
+- The `RequestQueue.handledCount()` function has been resurrected from deprecation,
+  in order to have compatible interface with `RequestList`.
 
 0.14.15 / 2019-05-31
 ====================
 - Fixes in `RequestQueue` to deal with inconsistencies in the underlying data storage
 - **BREAKING CHANGE**: `RequestQueue.addRequest()` now sets the ID of the
   newly added request to the passed `Request` object
-- **DEPRECATED**: The `RequestQueue.handledCount()` function has been deprecated,
-  please use `RequestQueue.getInfo()` instead
+- The `RequestQueue.handledCount()` function has been deprecated,
+  please use `RequestQueue.getInfo()` instead.
 
 0.14.14 / 2019-05-30
 ====================
