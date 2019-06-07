@@ -27,7 +27,7 @@ const siteConfig = {
     // This is also used as page meta description for SEO, so write it carefully.
     // TODO: Take this from package.json
     // eslint-disable-next-line max-len
-    tagline: 'The scalable web crawling and scraping library for JavaScript. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.',
+    tagline: 'The scalable web crawling and scraping library for JavaScript/Node.js. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.',
     url: 'https://sdk.apify.com', // Your website URL
     cname: 'sdk.apify.com',
     baseUrl: '/', // Base URL for your project */
