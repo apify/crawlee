@@ -16,7 +16,6 @@ import { RequestList, openRequestList } from './request_list';
 import { openRequestQueue } from './request_queue';
 import SettingsRotator from './settings_rotator';
 import { apifyClient, getMemoryInfo, isAtHome, publicUtils, logSystemInfo } from './utils';
-import { browse, launchWebDriver } from './webdriver';
 import { puppeteerUtils } from './puppeteer_utils';
 import { socialUtils } from './utils_social';
 import { enqueueLinks } from './enqueue_links';
@@ -92,9 +91,6 @@ module.exports = {
     SettingsRotator,
 
     LiveViewServer,
-
-    browse,
-    launchWebDriver,
 
     utils: Object.assign(publicUtils, {
         puppeteer: puppeteerUtils,
