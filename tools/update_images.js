@@ -68,7 +68,7 @@ execGitCommand('add', PKG_PATHS);
 execGitCommand('commit -m "Update package versions"');
 
 if (dryRun) {
-    log('Exiting process before changes are pushed to remote repository. Temp dir will be kept.');
+    log('DRY RUN: Exiting process before changes are pushed to remote repository. Temp dir will be kept.');
     log('Run "git diff origin/master HEAD" to see changes.');
     process.exit(0);
 }

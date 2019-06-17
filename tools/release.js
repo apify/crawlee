@@ -1,9 +1,9 @@
-const fs = require('fs-extra');
-const path = require('path');
 const { execSync } = require('child_process');
 const semver = require('semver'); // eslint-disable-line import/no-extraneous-dependencies
 
 const VERSION = require('../package.json').version;
+
+const dryRun = process.argv.includes('--dry-run');
 
 log('Checking if current branch is master branch.');
 const gitStatus = execSync('git status --porcelain --branch', { encoding: 'utf8' });
@@ -11,6 +11,10 @@ if (!gitStatus.startsWith('## feature/')) { // TODO for testing, dont forget to 
     log('Release can only be triggered from the master branch. Please checkout master.');
     process.exit(1);
 }
+
+log('Building documentation.');
+execSync('npm run build-docs');
+execSync('npm run build-readme');
 
 log('Checking if all changes are committed.');
 const statusLines = gitStatus.split('\n');
@@ -25,8 +29,6 @@ if (/\[ahead|behind \d+\]/.test(gitStatus)) {
     process.exit(1);
 }
 
-
-
 log('Fetching version of published beta.');
 const betaVersion = fetchPackageJsonPropertyForTag('version', 'beta');
 
@@ -35,6 +37,18 @@ if (semver.gte(betaVersion, VERSION)) {
     process.exit(0);
 }
 
+if (dryRun) log('DRY RUN: The following operations produce only log messages.');
+
+const npmTag = 'beta';
+log(`Publishing version ${VERSION} with the "${npmTag}" tag.`);
+if (!dryRun) execSync(`npm publish --tag ${npmTag}`);
+
+const versionTag = `v${VERSION}`;
+log(`Tagging last commit with "${versionTag}" and "${npmTag}".`);
+if (!dryRun) {
+    execSync(`git tag ${versionTag}`);
+    execSync(`git tag -f ${npmTag}`);
+}
 
 function log(...messages) {
     /* eslint-disable no-console */
