@@ -201,9 +201,10 @@ export class Dataset {
     /**
      * Returns items in the dataset based on the provided options.
      *
-     * **NOTE**: If using dataset with local disk storage, the following options are not supported:
-     * `unwind`, `disableBodyParser`, `attachment`, `bom` and `simplified`, and
-     * the `format` option must be `json`. If you try to use them, you will receive an error.
+     * **NOTE**: If using dataset with local disk storage, the `format` option must be `json` and
+     * the following options are not supported:
+     * `unwind`, `disableBodyParser`, `attachment`, `bom` and `simplified`.
+     * If you try to use them, you will receive an error.
      *
      * @param {Object} [options] All `getData()` parameters are passed
      *   via an options object with the following keys:
