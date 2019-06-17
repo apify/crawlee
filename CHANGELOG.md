@@ -2,6 +2,9 @@ xxx
 ====================
 - Bugfix in BasicCrawler: async calls in `isFinishedFunction` were not awaited
 - Better logging of memory overload errors
+- Better error message in `Apify.call()`
+- **BREAKING CHANGE**: `Dataset.getData()` throws an error if user provides an unsupported option
+ when using local disk storage.
 
 0.14.15 / 2019-05-31
 ====================
