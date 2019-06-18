@@ -238,12 +238,14 @@ const enqueueRequestsFromClickableElements = async (page, selector, purls, reque
  * @memberOf puppeteer
  */
 const blockRequests = async (page, options = {}) => {
+    checkParamOrThrow(page, 'page', 'Object');
+    checkParamOrThrow(options, 'options', 'Object');
+
     const {
         urlPatterns = [],
         includeDefaults = true,
     } = options;
 
-    checkParamOrThrow(page, 'page', 'Object');
     checkParamOrThrow(urlPatterns, 'options.urlPatterns', '[String]');
     checkParamOrThrow(includeDefaults, 'options.includeDefaults', 'Boolean');
 
