@@ -617,6 +617,69 @@ export const snakeCaseToCamelCase = (snakeCaseStr) => {
 };
 
 /**
+ * Scrolls to the bottom of a page, or until it times out.
+ * @param {Object} page
+ * @param {Number} [maxTimeout=0] How many seconds to scroll for. If 0, will scroll until bottom of page.
+ * @param {Number} [waitForDynamicContent=4] How many seconds to wait for no new content to load before exit.
+ * @returns {Promise}
+ * @memberOf utils
+ */
+const infiniteScroll = async function (page, maxTimeout = 0, waitForDynamicContent = 4) {
+
+    var finished;
+    const MAX_TIMEOUT = maxTimeout; 
+    const WAIT_FOR_DYNAMIC_CONTENT = waitForDynamicContent;
+    const startTime = Date.now()
+    const maybeResourceTypesInfiniteScroll = ['xhr', 'fetch', 'websocket', 'other'];
+    const resourcesStats = {
+        newRequested: 0,
+        oldRequested: 0,
+        matchNumber: 0
+    };
+
+    new Promise((resolve, reject) => {
+        try {
+            page.on('request', (msg) => {
+                if (maybeResourceTypesInfiniteScroll.includes(msg.resourceType())) {
+                    resourcesStats.newRequested++;
+                }
+            });
+            const scrollDown = setInterval(() => {
+                //console.log(resourcesStats)
+                if (resourcesStats.oldRequested === resourcesStats.newRequested) {
+                    resourcesStats.matchNumber++;
+                    if (resourcesStats.matchNumber >= WAIT_FOR_DYNAMIC_CONTENT) {
+                        clearInterval(scrollDown)
+                        resolve(finished = true);
+                    }
+                } else {
+                    resourcesStats.matchNumber = 0;
+                    resourcesStats.oldRequested = resourcesStats.newRequested;
+                }
+                // check if timeout has been reached
+                if (MAX_TIMEOUT != 0 && (Date.now() - startTime) / 1000 > MAX_TIMEOUT) {
+                    //console.log("Timeout limit reached, exiting infinite scroll.")
+                    clearInterval(scrollDown)
+                    resolve(finished = true);
+                }
+            }, 1000)
+        } catch (error) {
+            reject(error)
+        }
+    })
+
+    while (true) {
+        await page.evaluate(async () => {
+            let delta = document.body.scrollHeight === 0 ? 10000 : document.body.scrollHeight // in case scrollHeight fixed to 0
+            window.scrollBy(0, delta);
+        });
+        if (finished) {
+            break;
+        }
+    }
+}
+
+/**
  * A namespace that contains various utilities.
  *
  * **Example usage:**
@@ -641,4 +704,5 @@ export const publicUtils = {
     URL_NO_COMMAS_REGEX,
     URL_WITH_COMMAS_REGEX,
     createRequestDebugInfo,
+    infiniteScroll
 };
