@@ -16,7 +16,7 @@ const underscorePath = require.resolve('underscore/underscore-min');
 const readFilePromised = util.promisify(fs.readFile);
 
 const MAX_INJECT_FILE_CACHE_SIZE = 10;
-const DEFAULT_BLOCK_REQUEST_URL_PATTERNS = ['.css', '.jpg', '.jpeg', '.png', '.svg', '.woff', '.pdf', '.zip'];
+const DEFAULT_BLOCK_REQUEST_URL_PATTERNS = ['.css', '.jpg', '.jpeg', '.png', '.svg', '.gif', '.woff', '.pdf', '.zip'];
 
 /**
  * Hides certain Puppeteer fingerprints from the page, in order to help avoid detection of the crawler.
@@ -197,7 +197,7 @@ const enqueueRequestsFromClickableElements = async (page, selector, purls, reque
  * by default the function blocks URLs that include these patterns:
  *
  * ```json
- * [".css", ".jpg", ".jpeg", ".png", ".svg", ".woff", ".pdf", ".zip"]
+ * [".css", ".jpg", ".jpeg", ".png", ".svg", ".gif", ".woff", ".pdf", ".zip"]
  * ```
  *
  * The defaults will be concatenated with the patterns you provide in `options.urlPatterns`.
@@ -243,6 +243,7 @@ const blockRequests = async (page, options = {}) => {
         includeDefaults = true,
     } = options;
 
+    checkParamOrThrow(page, 'page', 'Object');
     checkParamOrThrow(urlPatterns, 'options.urlPatterns', '[String]');
     checkParamOrThrow(includeDefaults, 'options.includeDefaults', 'Boolean');
 

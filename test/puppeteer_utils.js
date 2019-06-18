@@ -159,7 +159,8 @@ describe('Apify.utils.puppeteer', () => {
             page.on('response', response => loadedUrls.push(response.url()));
             await page.setContent(`<html><body>
                 <link rel="stylesheet" type="text/css" href="https://example.com/style.css">
-                <img src="https://example.com/image.png" />
+                <img src="https://example.com/image.png">
+                <img src="https://example.com/image.gif">
                 <script src="https://example.com/script.js" defer="defer">></script>
             </body></html>`, { waitUntil: 'networkidle0' });
         } finally {
@@ -183,7 +184,8 @@ describe('Apify.utils.puppeteer', () => {
             page.on('response', response => loadedUrls.push(response.url()));
             await page.setContent(`<html><body>
                 <link rel="stylesheet" type="text/css" href="https://example.com/style.css">
-                <img src="https://example.com/image.png" />
+                <img src="https://example.com/image.png">
+                <img src="https://example.com/image.gif">
                 <script src="https://example.com/script.js" defer="defer">></script>
             </body></html>`, { waitUntil: 'networkidle0' });
         } finally {
@@ -192,6 +194,7 @@ describe('Apify.utils.puppeteer', () => {
         expect(loadedUrls).to.have.members([
             'https://example.com/image.png',
             'https://example.com/script.js',
+            'https://example.com/image.gif',
         ]);
     });
 
