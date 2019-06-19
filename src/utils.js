@@ -624,7 +624,7 @@ export const snakeCaseToCamelCase = (snakeCaseStr) => {
  * @returns {Promise}
  * @memberOf utils
  */
-const infiniteScroll = async function (page, maxTimeout = 0, waitForDynamicContent = 4) {
+export const infiniteScroll = async function (page, maxTimeout = 0, waitForDynamicContent = 4) {
     let finished;
     const MAX_TIMEOUT = maxTimeout;
     const WAIT_FOR_DYNAMIC_CONTENT = waitForDynamicContent;
@@ -709,5 +709,4 @@ export const publicUtils = {
     URL_NO_COMMAS_REGEX,
     URL_WITH_COMMAS_REGEX,
     createRequestDebugInfo,
-    infiniteScroll,
 };
