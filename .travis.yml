@@ -26,7 +26,7 @@ jobs:
   - stage: test
     name: 'Lint&Docs'
     script:
-      - cd website && npm install --no-package-lock
+      - (cd website && npm install --no-package-lock)
       - npm run lint && node .travis/check-docs.js
   - stage: deploy
     node_js: '10'
