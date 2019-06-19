@@ -636,51 +636,46 @@ export const infiniteScroll = async function (page, maxTimeout = 0, waitForDynam
         matchNumber: 0,
     };
 
-    const scroller = new Promise((resolve, reject) => {
-        try {
-            page.on('request', (msg) => {
-                if (maybeResourceTypesInfiniteScroll.includes(msg.resourceType())) {
-                    resourcesStats.newRequested++;
-                }
-            });
-            const scrollDown = setInterval(() => {
-                // console.log(resourcesStats)
-                if (resourcesStats.oldRequested === resourcesStats.newRequested) {
-                    resourcesStats.matchNumber++;
-                    if (resourcesStats.matchNumber >= WAIT_FOR_DYNAMIC_CONTENT) {
-                        clearInterval(scrollDown);
-                        resolve(finished = true);
-                    }
-                } else {
-                    resourcesStats.matchNumber = 0;
-                    resourcesStats.oldRequested = resourcesStats.newRequested;
-                }
-                // check if timeout has been reached
-                if (MAX_TIMEOUT !== 0 && (Date.now() - startTime) / 1000 > MAX_TIMEOUT) {
-                    // console.log("Timeout limit reached, exiting infinite scroll.")
-                    clearInterval(scrollDown);
-                    resolve(finished = true);
-                }
-            }, 1000);
-        } catch (error) {
-            reject(error);
+
+    page.on('request', (msg) => {
+        if (maybeResourceTypesInfiniteScroll.includes(msg.resourceType())) {
+            resourcesStats.newRequested++;
         }
     });
 
-    scroller();
+    const checkFinished = setInterval(() => {
+        // console.log(resourcesStats)
+        if (resourcesStats.oldRequested === resourcesStats.newRequested) {
+            resourcesStats.matchNumber++;
+            if (resourcesStats.matchNumber >= WAIT_FOR_DYNAMIC_CONTENT) {
+                clearInterval(checkFinished);
+                finished = true;
+                return;
+            }
+        } else {
+            resourcesStats.matchNumber = 0;
+            resourcesStats.oldRequested = resourcesStats.newRequested;
+        }
+        // check if timeout has been reached
+        if (MAX_TIMEOUT !== 0 && (Date.now() - startTime) / 1000 > MAX_TIMEOUT) {
+            // console.log("Timeout limit reached, exiting infinite scroll.")
+            clearInterval(checkFinished);
+            finished = true;
+        }
+    }, 1000);
+
 
     /* global window document */
 
-    const doScroll = await page.evaluate(async () => {
-        const delta = document.body.scrollHeight === 0 ? 10000 : document.body.scrollHeight; // in case scrollHeight fixed to 0
-        window.scrollBy(0, delta);
-    });
+    const doScroll = async () => {
+        await page.evaluate(async () => {
+            const delta = document.body.scrollHeight === 0 ? 10000 : document.body.scrollHeight; // in case scrollHeight fixed to 0
+            window.scrollBy(0, delta);
+        });
+    };
 
-    while (true) {
-        doScroll();
-        if (finished) {
-            break;
-        }
+    while (!finished) {
+        await doScroll();
     }
 };
 
