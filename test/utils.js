@@ -10,6 +10,7 @@ import LruCache from 'apify-shared/lru_cache';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import * as utils from '../build/utils';
 import Apify from '../build/index';
+
 const puppeteer = require('puppeteer');
 
 /* global process, describe, it */
@@ -880,47 +881,46 @@ describe('utils.addTimeoutToPromise()', () => {
     });
 });
 
-describe('utils.infiniteScroll()', () => {
-
+describe.only('utils.infiniteScroll()', () => {
     it('exits after no more to scroll', () => {
-       (async () => {
+        (async () => {
             const browser = await puppeteer.launch({
-                headless: true
+                headless: true,
             });
             const page = await browser.newPage();
-            const contentHTML = "<div>nothing</div>";
+            const contentHTML = '<div>nothing</div>';
             await page.setContent(contentHTML);
-            await infiniteScroll(page);
+            await utils.infiniteScroll(page);
             await browser.close();
         })();
-    })
+    });
 
     it('exits after reaches the bottom', () => {
         (async () => {
             const browser = await puppeteer.launch({
-                headless: true
+                headless: true,
             });
             const page = await browser.newPage();
             await page.goto('https://twitter.com/search?src=typd&q=%23fingervein&lang=sv', {
-                waitUntil: "networkidle2"
+                waitUntil: 'networkidle2',
             });
-            await infiniteScroll(page);
+            await utils.infiniteScroll(page);
             await browser.close();
         })();
-    })
+    });
 
     it('times out if limit is set', () => {
         (async () => {
             const browser = await puppeteer.launch({
-                headless: true
+                headless: true,
             });
             const page = await browser.newPage();
             await page.goto('https://medium.com/search?q=biometrics', {
-                waitUntil: "networkidle2"
+                waitUntil: 'networkidle2',
             });
             const TIMEOUT_AFTER = 10; // seconds
-            await infiniteScroll(page, TIMEOUT_AFTER);
+            await utils.infiniteScroll(page, TIMEOUT_AFTER);
             await browser.close();
         })();
-    })
-})
+    });
+});

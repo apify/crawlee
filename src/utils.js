@@ -625,19 +625,18 @@ export const snakeCaseToCamelCase = (snakeCaseStr) => {
  * @memberOf utils
  */
 const infiniteScroll = async function (page, maxTimeout = 0, waitForDynamicContent = 4) {
-
-    var finished;
-    const MAX_TIMEOUT = maxTimeout; 
+    let finished;
+    const MAX_TIMEOUT = maxTimeout;
     const WAIT_FOR_DYNAMIC_CONTENT = waitForDynamicContent;
-    const startTime = Date.now()
+    const startTime = Date.now();
     const maybeResourceTypesInfiniteScroll = ['xhr', 'fetch', 'websocket', 'other'];
     const resourcesStats = {
         newRequested: 0,
         oldRequested: 0,
-        matchNumber: 0
+        matchNumber: 0,
     };
 
-    new Promise((resolve, reject) => {
+    const scroller = new Promise((resolve, reject) => {
         try {
             page.on('request', (msg) => {
                 if (maybeResourceTypesInfiniteScroll.includes(msg.resourceType())) {
@@ -645,11 +644,11 @@ const infiniteScroll = async function (page, maxTimeout = 0, waitForDynamicConte
                 }
             });
             const scrollDown = setInterval(() => {
-                //console.log(resourcesStats)
+                // console.log(resourcesStats)
                 if (resourcesStats.oldRequested === resourcesStats.newRequested) {
                     resourcesStats.matchNumber++;
                     if (resourcesStats.matchNumber >= WAIT_FOR_DYNAMIC_CONTENT) {
-                        clearInterval(scrollDown)
+                        clearInterval(scrollDown);
                         resolve(finished = true);
                     }
                 } else {
@@ -657,27 +656,33 @@ const infiniteScroll = async function (page, maxTimeout = 0, waitForDynamicConte
                     resourcesStats.oldRequested = resourcesStats.newRequested;
                 }
                 // check if timeout has been reached
-                if (MAX_TIMEOUT != 0 && (Date.now() - startTime) / 1000 > MAX_TIMEOUT) {
-                    //console.log("Timeout limit reached, exiting infinite scroll.")
-                    clearInterval(scrollDown)
+                if (MAX_TIMEOUT !== 0 && (Date.now() - startTime) / 1000 > MAX_TIMEOUT) {
+                    // console.log("Timeout limit reached, exiting infinite scroll.")
+                    clearInterval(scrollDown);
                     resolve(finished = true);
                 }
-            }, 1000)
+            }, 1000);
         } catch (error) {
-            reject(error)
+            reject(error);
         }
-    })
+    });
+
+    scroller();
+
+    /* global window document */
+
+    const doScroll = await page.evaluate(async () => {
+        const delta = document.body.scrollHeight === 0 ? 10000 : document.body.scrollHeight; // in case scrollHeight fixed to 0
+        window.scrollBy(0, delta);
+    });
 
     while (true) {
-        await page.evaluate(async () => {
-            let delta = document.body.scrollHeight === 0 ? 10000 : document.body.scrollHeight // in case scrollHeight fixed to 0
-            window.scrollBy(0, delta);
-        });
+        doScroll();
         if (finished) {
             break;
         }
     }
-}
+};
 
 /**
  * A namespace that contains various utilities.
@@ -704,5 +709,5 @@ export const publicUtils = {
     URL_NO_COMMAS_REGEX,
     URL_WITH_COMMAS_REGEX,
     createRequestDebugInfo,
-    infiniteScroll
+    infiniteScroll,
 };
