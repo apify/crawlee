@@ -881,7 +881,7 @@ describe('utils.addTimeoutToPromise()', () => {
     });
 });
 
-describe.only('utils.infiniteScroll()', () => {
+describe ('utils.infiniteScroll()', () => {
     it('exits after no more to scroll', () => {
         (async () => {
             const browser = await puppeteer.launch({
