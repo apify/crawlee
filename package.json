@@ -47,7 +47,10 @@
         "clean": "rm -rf build",
         "lint": "npm run build && ./node_modules/.bin/eslint ./src ./test",
         "lint:fix": "./node_modules/.bin/eslint ./src ./test --ext .js,.jsx --fix",
-        "update-images": "node ./tools/update_images.js"
+        "before-deploy": "node .travis/before-deploy.js",
+        "after-deploy": "node after-deploy.js",
+        "prerelease-check": "npm run lint && node check-docs.js",
+        "release-latest": "node release-latest.js"
     },
     "dependencies": {
         "@apify/ps-tree": "^1.1.3",

@@ -20,6 +20,10 @@ log('Cloning image repository.');
 execSync(`git clone -n ${IMAGE_REPO_URL} --depth 1`, { cwd: TEMP_DIR });
 execGitCommand('reset HEAD');
 
+log('Setting up git.');
+execGitCommand('config --global user.email "travis@travis-ci.org"');
+execGitCommand('config --global user.name "Travis CI"');
+
 log('Checking out package.jsons.');
 execGitCommand('checkout HEAD', PKG_PATHS);
 
@@ -73,8 +77,11 @@ if (dryRun) {
     process.exit(0);
 }
 
+log('Adding new origin with token.');
+execGitCommand(`remote add origin-token https://${GH_TOKEN}@github.com/apifytech/apify-js > /dev/null 2>&1`);
+
 log('Pushing changes to remote.');
-execGitCommand('git push');
+execGitCommand(`git push --set-upstream origin-token master`);
 
 teardown();
 

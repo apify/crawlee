@@ -1,14 +1,51 @@
 dist: xenial
 sudo: false
 language: node_js
-
-cache: npm
-
 node_js:
-  - "12"
-  - "10"
-  - "8"
-
-script:
-  - npm run lint
-  - npm test
+- '12'
+- '10'
+- '8'
+services:
+- docker
+cache: npm
+env:
+  global:
+  - DOCKER_USERNAME=mnmkng
+  - secure: Sp706wRWmS2aM86poOhSTngkEBlpbUydvstEXKEQ8Zz/R4HlmWBsb5vX9lk9FkAC504o21qpCJAIyidHs5FXsw9kpeMf2h+zI/Zs2w1RNaitMDeotSofFYo2J76u7QV6JFUhbPzDYjUXKmgJkPAuffCPeLfj0qszjpjRMz+NdbwE4LVWJpaeyM5lOGmdec51//16juKQBbUsdJ9xPD0bXrQ6mmJs7IJEsVMcQpfOkIgqP70IMXNiDTAHBU/15Oi5yipkMW7Wmn4J6GM8wQmADFUXS8t6oLtbVWEr65YtyzfIN/PjWXT3om7KpfXSouf+lOJdRZAn2RhbXe88PwGIIpgMJKgiIil3Sxgch0UtADTMfWvInylrdBldAw7JSM5QMBFP/vOCRNJEVHurfVOvCmQnlJ2NLLe7KzjF37dDI5LHFyY9u0ysXdoMsHMzLptGy+xPgf3kKkiCbT+GfhrYuAAmdb5MJBcxNkbjsQEszSuy0zRgE+Yu9YAgWA9veQtO3JDo6EmUyOyd2vHWvhCE6aF/o2TD/Nf1CTVblG3M1QwLmzvwADBpH6utDCu8L3NOESShWHUA5pAUsdCfMpTKiJR1rnIEOeCRJFGIVv9CmWbKtdL5asN6nJbhkoq3/Lhf7MC5pxFlKH3LUR1a/nwvO824SnF4ZJEjp9f1aeJU+lU=
+  - secure: pgwE9Nxa27nwuC0zI+IrbpY/P/QNPL9oNxdwk+LMxa90Tn/5EUKl5D/LblGzjRYd39i/Z1ucNf1OJoKThX7YQxs/de4fjX00HGC0DjRzBRcLsU02HhbrNSA/6ASpWyR2WTxFGnJG/15CzHgqP1BM6EvLJixFoyhk6tnF0kqpJos/h8yfoSZV1kfdlcaz1TQU/NdoFD2Agxm5BEf3/b4SKtXGF0pGGj/IdPCMc/NwsJpHFHi2lU90Nr0WVnHD3wyZRHyasQlGG9Yu/f8Tjf27LCY5QDgcJ/JhsFbwabUwXe98JtTLssriOCajXECilwdBYFTpctIhIgfs6bmdO5Xy3rUjrvdMbOjhjNhkD0UHAQjQg5SUEAo5RKssEUgTUtL4S7P6falc1QwhehZZO/65Ui13Jh1zhlBZpYAO1RXLB7m8DHj4gRrgQswn4qBjWpjbiwfC9ocIuH0b/3QUXRGA4cPjB3G4tl+OdFMFykSYvuZGdWC4U6x+z/C6OfEEYwqJaapHKNnafp9429LMNPzd8SSS3KhDaY7N2kLnH5YaoFAVsZ0rRIk0GZpP+xYWBfFlELqCarvcuZi9su3QWverzecjOpfNu+LCHpOYdiPQtGvm8Mzr1eZun/VaJ5DZ3ZIX1y6ODSCg9b9ikGtcz6A1n2GkE4cHN/B1YI52NIbRXN0=
+stages:
+- lint
+- test
+- deploy
+- images
+install:
+- npm install --no-package-lock
+jobs:
+  include:
+  - stage: lint
+    node_js: '10'
+    script: npm run lint && node .travis/check-docs.js
+  - stage: deploy
+    node_js: '10'
+    before_deploy: node .travis/before-deploy.js
+    after_deploy: node .travis/after-deploy.js
+    deploy:
+    - provider: npm
+      email: ondra@apify.com
+      api_key:
+        secure: p3U5TFS6bhx0DGS15uMak6M09K+k4YCJ4My2jDDuvXrHMTk7KBIiC9yuCB08SGOWYi/bCTaLgDEFXntKB0rTvR+U6JgVWf/8PAYlWJm4ViqQfk8e8KVfGCZrlT3NAXb2rV2DDidf5F11dbx8iNiw/fw1pmyUKHML+l0rip1N1+SM7BThemfFW7Cp2+0VO+wmRYUVTY34TAe7hkWlA7KQEdUPBCdYmitks90nuciJXJObcDhHXrC0vH7ufTtERjCBIU+ilfjNQAFJuOmD0dD1zxF9iIQlaozNf9DCOklGJWkOEQzn+YWyYinZJdX3JvRpwWSaVQy709dOPNKw7FtVF4NuWkUDz9ajGEZRB0+LPlbN/sqeMkodFoQoV5ogSSZVqX3TzDfnbVIUX2A79yoraSjd4kKftAxKclpIaxu4356W5nnuk9Q6n0uBiFZNCDKK5oJKY3IWAyhN9rZXlu8f/W8JccAQXmwPS8W4AHVnRiFsSgFjKytwKSC8NfTcDnSJJXYMAXvLj8PCWfWq38+9iCYi6ByC3PdvS/Hr7VEf4nxnIRStCX8e7h/9IeYiBeqGx1prLw2MLBwRdBCqVNhobEa6zyx4xXoInGS8qhqseqGAdGjOQuMGWDSLVQmZdi2kjoHnf0/Yz1C4caKM6GaMKl9TvbauHAi78c+Av7XnNCI=
+      on:
+        branch: master
+      tag: beta
+      skip_cleanup: true
+    - provider: npm
+      email: ondra@apify.com
+      api_key:
+        secure: p3U5TFS6bhx0DGS15uMak6M09K+k4YCJ4My2jDDuvXrHMTk7KBIiC9yuCB08SGOWYi/bCTaLgDEFXntKB0rTvR+U6JgVWf/8PAYlWJm4ViqQfk8e8KVfGCZrlT3NAXb2rV2DDidf5F11dbx8iNiw/fw1pmyUKHML+l0rip1N1+SM7BThemfFW7Cp2+0VO+wmRYUVTY34TAe7hkWlA7KQEdUPBCdYmitks90nuciJXJObcDhHXrC0vH7ufTtERjCBIU+ilfjNQAFJuOmD0dD1zxF9iIQlaozNf9DCOklGJWkOEQzn+YWyYinZJdX3JvRpwWSaVQy709dOPNKw7FtVF4NuWkUDz9ajGEZRB0+LPlbN/sqeMkodFoQoV5ogSSZVqX3TzDfnbVIUX2A79yoraSjd4kKftAxKclpIaxu4356W5nnuk9Q6n0uBiFZNCDKK5oJKY3IWAyhN9rZXlu8f/W8JccAQXmwPS8W4AHVnRiFsSgFjKytwKSC8NfTcDnSJJXYMAXvLj8PCWfWq38+9iCYi6ByC3PdvS/Hr7VEf4nxnIRStCX8e7h/9IeYiBeqGx1prLw2MLBwRdBCqVNhobEa6zyx4xXoInGS8qhqseqGAdGjOQuMGWDSLVQmZdi2kjoHnf0/Yz1C4caKM6GaMKl9TvbauHAi78c+Av7XnNCI=
+      on:
+        tags: true
+      tag: latest
+      skip_cleanup: true
+  - stage: images
+    node_js: '10'
+    script: node .travis/release-images.js
