@@ -5,9 +5,11 @@ node_js:
 - '12'
 - '10'
 - '8'
-services:
-- docker
-cache: npm
+cache:
+  directories:
+    - $HOME/.npm
+    - node_modules
+    - website/node_modules
 env:
   global:
   - DOCKER_USERNAME=mnmkng
@@ -22,8 +24,10 @@ install:
 jobs:
   include:
   - stage: test
-    name: 'Lint'
-    script: npm run lint && node .travis/check-docs.js
+    name: 'Lint&Docs'
+    script:
+      - cd website && npm install --no-package-lock
+      - npm run lint && node .travis/check-docs.js
   - stage: deploy
     node_js: '10'
     before_deploy: node .travis/before-deploy.js
@@ -47,4 +51,6 @@ jobs:
       skip_cleanup: true
   - stage: images
     node_js: '10'
+    services:
+        - docker
     script: node .travis/release-images.js
