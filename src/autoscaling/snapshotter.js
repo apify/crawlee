@@ -125,7 +125,7 @@ class Snapshotter {
         this.clientInterval = null;
         this.cpuInterval = null;
 
-        this.lastLoggedCriticalMemoryOverloadAt = 0;
+        this.lastLoggedCriticalMemoryOverloadAt = null;
 
         // We need to pre-bind those functions to be able to successfully remove listeners.
         this._snapshotCpuOnPlatform = this._snapshotCpuOnPlatform.bind(this);
@@ -285,17 +285,17 @@ class Snapshotter {
      */
     _memoryOverloadWarning({ memCurrentBytes }) {
         const now = new Date();
-        if (now < this.lastLoggedCriticalMemoryOverloadAt + CRITICAL_OVERLOAD_RATE_LIMIT_MILLIS) return;
+        if (this.lastLoggedCriticalMemoryOverloadAt && now < this.lastLoggedCriticalMemoryOverloadAt + CRITICAL_OVERLOAD_RATE_LIMIT_MILLIS) return;
 
         const maxDesiredMemoryBytes = this.maxUsedMemoryRatio * this.maxMemoryBytes;
         const reserveMemory = this.maxMemoryBytes * (1 - this.maxUsedMemoryRatio) * RESERVE_MEMORY_RATIO;
         const criticalOverloadBytes = maxDesiredMemoryBytes + reserveMemory;
         const isCriticalOverload = memCurrentBytes > criticalOverloadBytes;
         if (isCriticalOverload) {
-            const usedPercentage = memCurrentBytes / this.maxMemoryBytes * 100;
+            const usedPercentage = Math.round((memCurrentBytes / this.maxMemoryBytes) * 100);
             const toMb = bytes => Math.round(bytes / (1024 ** 2));
             log.warning('Memory is critically overloaded. '
-                + `Used ${toMb(memCurrentBytes)} MB of ${toMb(this.maxMemoryBytes)} MB (${usedPercentage}%)`);
+                + `Using ${toMb(memCurrentBytes)} MB of ${toMb(this.maxMemoryBytes)} MB (${usedPercentage}%). Consider increasing the actor memory.`);
             this.lastLoggedCriticalMemoryOverloadAt = now;
         }
     }

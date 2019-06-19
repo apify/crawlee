@@ -146,8 +146,9 @@ const DEFAULT_OPTIONS = {
  *   Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.
  * @param {Object} [options.autoscaledPoolOptions]
  *   Custom options passed to the underlying {@link AutoscaledPool} constructor.
- *   Note that the `runTaskFunction`, `isTaskReadyFunction` and `isFinishedFunction` options
+ *   Note that the `runTaskFunction` and `isTaskReadyFunction` options
  *   are provided by `BasicCrawler` and cannot be overridden.
+ *   However, you can provide a custom implementation of `isFinishedFunction`.
  * @param {Object} [options.minConcurrency=1]
  *   Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
  *
@@ -225,8 +226,8 @@ class BasicCrawler {
                 }
 
                 const isFinished = isFinishedFunction
-                    ? isFinishedFunction()
-                    : this._defaultIsFinishedFunction();
+                    ? await isFinishedFunction()
+                    : await this._defaultIsFinishedFunction();
 
                 if (isFinished) {
                     const reason = isFinishedFunction
