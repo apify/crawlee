@@ -5,11 +5,10 @@ execSync('npm run build-docs', { stdio: 'inherit'});
 execSync('npm run build-readme', { stdio: 'inherit'});
 
 console.log('Checking if all changes are committed.');
-const gitStatus = execSync('git status', { encoding: 'utf8' });
+const gitStatus = execSync('git status --porcelain --branch', { encoding: 'utf8' });
 const statusLines = gitStatus.split('\n');
 console.log(gitStatus);
 if (statusLines.length > 1 && statusLines[1].length) {
     console.error('You have uncommitted changes in the documentation. Please build the docs, review and commit changes.');
-    console.error(gitStatus);
     process.exit(1);
 }
