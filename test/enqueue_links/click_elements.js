@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import Apify from '../../build';
-import { clickElements, clickElementsAndInterceptNavigationRequests } from '../../build/enqueue_links/click_elements';
+import { clickElements, clickElementsAndInterceptNavigationRequests, isTargetRelevant } from '../../build/enqueue_links/click_elements';
 
 /* global window */
 
@@ -110,6 +110,16 @@ describe('enqueueLinksByClickingElements()', () => {
     });
 
     describe('clickElementsAndInterceptNavigationRequests()', () => {
+        function getOpts(overrides = {}) {
+            return {
+                page,
+                selector: 'div',
+                waitForPageIdleMillis: 25,
+                maxWaitForPageIdleMillis: 250,
+                ...overrides,
+            };
+        }
+
         it('should intercept navigation by clicking a link', async () => {
             const html = `
 <html>
@@ -120,7 +130,9 @@ describe('enqueueLinksByClickingElements()', () => {
         `;
             await page.setContent(html);
             console.time('x');
-            const interceptedRequests = await clickElementsAndInterceptNavigationRequests(page, 'a');
+            const interceptedRequests = await clickElementsAndInterceptNavigationRequests(getOpts({
+                selector: 'a',
+            }));
             console.timeEnd('x');
             expect(interceptedRequests).to.have.lengthOf(1);
             expect(interceptedRequests[0].url).to.match(/https:\/\/example\.com\/?$/);
@@ -137,7 +149,7 @@ describe('enqueueLinksByClickingElements()', () => {
         `;
             await page.goto('https://example.com');
             await page.setContent(html);
-            const interceptedRequests = await clickElementsAndInterceptNavigationRequests(page, 'div');
+            const interceptedRequests = await clickElementsAndInterceptNavigationRequests(getOpts());
             expect(interceptedRequests).to.have.lengthOf(1);
             expect(interceptedRequests[0].url).to.match(/https:\/\/example\.com\/?$/);
             const pageContent = await page.content();
@@ -154,7 +166,7 @@ describe('enqueueLinksByClickingElements()', () => {
         `;
             await page.goto('https://example.com');
             await page.setContent(html);
-            const interceptedRequests = await clickElementsAndInterceptNavigationRequests(page, 'div');
+            const interceptedRequests = await clickElementsAndInterceptNavigationRequests(getOpts());
             expect(interceptedRequests).to.have.lengthOf(1);
             expect(interceptedRequests[0].url).be.eql('https://example.com/#foo');
             const pageContent = await page.content();
@@ -171,7 +183,7 @@ describe('enqueueLinksByClickingElements()', () => {
         `;
             await page.goto('https://example.com');
             await page.setContent(html);
-            const interceptedRequests = await clickElementsAndInterceptNavigationRequests(page, 'div');
+            const interceptedRequests = await clickElementsAndInterceptNavigationRequests(getOpts());
             expect(interceptedRequests).to.have.lengthOf(1);
             expect(interceptedRequests[0].url).to.match(/https:\/\/example\.com\/?$/);
             const pageContent = await page.content();
@@ -188,7 +200,7 @@ describe('enqueueLinksByClickingElements()', () => {
         `;
             await page.goto('https://example.com');
             await page.setContent(html);
-            const interceptedRequests = await clickElementsAndInterceptNavigationRequests(page, 'div');
+            const interceptedRequests = await clickElementsAndInterceptNavigationRequests(getOpts());
             expect(interceptedRequests).to.have.lengthOf(1);
             expect(interceptedRequests[0].url).to.match(/https:\/\/example\.com\/?$/);
             const pageContent = await page.content();
@@ -215,7 +227,7 @@ describe('enqueueLinksByClickingElements()', () => {
         `;
             await page.goto('https://example.com');
             await page.setContent(html);
-            const interceptedRequests = await clickElementsAndInterceptNavigationRequests(page, 'div');
+            const interceptedRequests = await clickElementsAndInterceptNavigationRequests(getOpts());
             expect(interceptedRequests).to.have.lengthOf(0);
             const pageContent = await page.content();
             expect(pageContent).to.include('onclick="return handleClick();');
@@ -231,11 +243,66 @@ describe('enqueueLinksByClickingElements()', () => {
         `;
             await page.goto('https://example.com/bar/');
             await page.setContent(html);
-            const interceptedRequests = await clickElementsAndInterceptNavigationRequests(page, 'div');
+            const interceptedRequests = await clickElementsAndInterceptNavigationRequests(getOpts());
             expect(interceptedRequests).to.have.lengthOf(1);
             expect(interceptedRequests[0].url).to.be.eql('https://example.com/bar/foo');
             const pageContent = await page.content();
             expect(pageContent).to.include('onclick="return window.history.pushState');
+        });
+
+        it('should save urls from newly opened tabs', async () => {
+            const html = `
+<html>
+    <body>
+        <div onclick="return window.open('https://example.com');">div</div>
+    </body>
+</html>
+        `;
+            await page.setContent(html);
+            const interceptedRequests = await clickElementsAndInterceptNavigationRequests(getOpts({
+                waitForPageIdleMillis: 1000,
+                maxWaitForPageIdleMillis: 5000,
+            }));
+            await new Promise(r => setTimeout(r, 1000));
+            expect(interceptedRequests).to.have.lengthOf(1);
+            expect(interceptedRequests[0].url).to.be.eql('https://example.com/');
+            const pageContent = await page.content();
+            expect(pageContent).to.include('onclick="return window.open(');
+        });
+
+        it('should close newly opened tabs', async () => {
+            const html = `
+<html>
+    <body>
+        <div onclick="return window.open('https://example.com');">div</div>
+    </body>
+</html>
+        `;
+            await page.setContent(html);
+            const callCounts = await new Promise(async (resolve) => {
+                let spawnedTarget;
+                const counts = {
+                    create: 0,
+                    destroy: 0,
+                };
+                browser.on('targetcreated', (target) => {
+                    counts.create++;
+                    if (isTargetRelevant(page, target)) spawnedTarget = target;
+                });
+                browser.on('targetdestroyed', (target) => {
+                    counts.destroy++;
+                    if (spawnedTarget === target) resolve(counts);
+                });
+                await clickElementsAndInterceptNavigationRequests(getOpts({
+                    waitForPageIdleMillis: 1000,
+                    maxWaitForPageIdleMillis: 5000,
+                }));
+            });
+
+            expect(callCounts.create).to.be.eql(1);
+            expect(callCounts.destroy).to.be.eql(1);
+            const pageContent = await page.content();
+            expect(pageContent).to.include('onclick="return window.open(');
         });
     });
 });

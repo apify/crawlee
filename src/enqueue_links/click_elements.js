@@ -7,8 +7,6 @@ import { addInterceptRequestHandler, removeInterceptRequestHandler } from '../pu
 import { constructPseudoUrlInstances, createRequests, addRequestsToQueueInBatches } from './shared';
 
 const STARTING_Z_INDEX = 10000;
-const DEFAULT_NETWORK_IDLE_INTERVAL_MILLIS = 25;
-const DEFAULT_NETWORK_IDLE_TIMEOUT_MILLIS = 250;
 
 /**
  * The function finds elements matching a specific CSS selector in a Puppeteer page,
@@ -100,6 +98,23 @@ const DEFAULT_NETWORK_IDLE_TIMEOUT_MILLIS = 250;
  *     age: 31,
  * }
  * ```
+ * @param {Function} [options.waitForPageIdleSecs=1]
+ *   Clicking in the page triggers various asynchronous operations that lead to new URLs being shown
+ *   by the browser. It could be a simple JavaScript redirect or opening of a new tab in the browser.
+ *   These events often happen only some time after the actual click. Requests typically take milliseconds
+ *   while new tabs open in hundreds of milliseconds.
+ *
+ *   To be able to capture all those events, the `enqueueLinksByClickingElements()` function repeatedly waits
+ *   for the `waitForPageIdleSecs`. By repeatedly we mean that whenever a relevant event is triggered, the timer
+ *   is restarted. As long as new events keep coming, the function will not return, unless
+ *   the below `maxWaitForPageIdleSecs` timeout is reached.
+ *
+ *   You may want to reduce this for example when you're sure that your clicks do not open new tabs,
+ *   or increase when you're not getting all the expected URLs.
+ * @param {Function} [options.maxWaitForPageIdleSecs=5]
+ *   This is the maximum period for which the function will keep tracking events, even if more events keep coming.
+ *   Its purpose is to prevent a deadlock in the page by periodic events, often unrelated to the clicking itself.
+ *   See `waitForPageIdleSecs` above for an explanation.
  * @return {Promise<QueueOperationInfo[]>}
  *   Promise that resolves to an array of {@link QueueOperationInfo} objects.
  * @memberOf puppeteer
@@ -112,6 +127,8 @@ export async function enqueueLinksByClickingElements(options = {}) {
         selector,
         pseudoUrls,
         userData = {},
+        waitForPageIdleSecs = 1,
+        maxWaitForPageIdleSecs = 5,
     } = options;
 
     checkParamOrThrow(page, 'page', 'Object');
@@ -119,9 +136,18 @@ export async function enqueueLinksByClickingElements(options = {}) {
     checkParamPrototypeOrThrow(requestQueue, 'requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue');
     checkParamOrThrow(pseudoUrls, 'pseudoUrls', 'Maybe Array');
     checkParamOrThrow(userData, 'userData', 'Object');
+    checkParamOrThrow(userData, 'clickingFunction', 'Function');
+
+    const waitForPageIdleMillis = waitForPageIdleSecs * 1000;
+    const maxWaitForPageIdleMillis = maxWaitForPageIdleSecs * 1000;
 
     const pseudoUrlInstances = constructPseudoUrlInstances(pseudoUrls || []);
-    const interceptedRequests = await clickElementsAndInterceptNavigationRequests(page, selector);
+    const interceptedRequests = await clickElementsAndInterceptNavigationRequests({
+        page,
+        selector,
+        waitForPageIdleMillis,
+        maxWaitForPageIdleMillis,
+    });
     const requests = createRequests(interceptedRequests, pseudoUrlInstances, userData);
     return addRequestsToQueueInBatches(requests, requestQueue);
 }
@@ -131,12 +157,20 @@ export async function enqueueLinksByClickingElements(options = {}) {
  * Catches and intercepts all initiated navigation requests and opened pages.
  * Returns a list of all target URLs.
  *
- * @param {Page} page
- * @param {string} selector
+ * @param {Object} options
+ * @param {Page} options.page
+ * @param {string} options.selector
  * @return {Promise<Object[]>}
  * @ignore
  */
-export async function clickElementsAndInterceptNavigationRequests(page, selector) {
+export async function clickElementsAndInterceptNavigationRequests(options) {
+    const {
+        page,
+        selector,
+        waitForPageIdleMillis,
+        maxWaitForPageIdleMillis,
+    } = options;
+
     const uniqueRequests = new Map();
     const browser = page.browser();
 
@@ -151,7 +185,7 @@ export async function clickElementsAndInterceptNavigationRequests(page, selector
     await preventHistoryNavigation(page);
 
     await clickElements(page, selector);
-    await waitForNetworkIdle(page);
+    await waitForPageIdle({ page, waitForPageIdleMillis, maxWaitForPageIdleMillis });
 
     await restoreHistoryNavigationAndSaveCapturedUrls(page, uniqueRequests);
 
@@ -203,15 +237,31 @@ function isTopFrameNavigationRequest(page, req) {
  */
 function createTargetCreatedHandler(page, requests) {
     return async function onTargetCreated(target) {
-        if (target.type() !== 'page') return;
-        if (page.target() !== target.opener()) return;
-        const createdPage = await target.page();
-        const url = createdPage.url();
+        if (!isTargetRelevant(page, target)) return;
+        const url = target.url();
         requests.set(url, { url });
-        page.close().catch((err) => {
+
+        // We want to close the page but don't care about
+        // possible errors like target closed.
+        try {
+            const createdPage = await target.page();
+            await createdPage.close();
+        } catch (err) {
             log.debug('enqueueLinksByClickingElements: Could not close spawned page.', { error: err.stack });
-        });
+        }
     };
+}
+
+/**
+ * We're only interested in pages created by the page we're currently clicking in.
+ * There will generally be a lot of other targets being created in the browser.
+ * @param {Page} page
+ * @param {Target} target
+ * @return {boolean}
+ */
+export function isTargetRelevant(page, target) {
+    return target.type() === 'page'
+        && page.target() === target.opener();
 }
 
 /**
@@ -302,7 +352,7 @@ function updateElementCssToEnableMouseClick(el, zIndex) {
 }
 
 /**
- * This function tracks whether any request events or frame navigations were emitted
+ * This function tracks whether any requests, frame navigations or targets were emitted
  * in the past idleIntervalMillis and whenever the interval registers no activity,
  * the function returns.
  *
@@ -314,41 +364,48 @@ function updateElementCssToEnableMouseClick(el, zIndex) {
  * milliseconds after clicking and we would lose those requests. This is especially prevalent
  * when there's only a single element to click.
  *
- * @param {Page} page
- * @param {number} idleIntervalMillis
- * @param {number} timeoutMillis
+ * @param {Object} options
+ * @param {Page} options.page
+ * @param {number} options.waitForPageIdleMillis
+ * @param {number} options.maxWaitForPageIdleMillis
  * @return {Promise}
  * @ignore
  */
-async function waitForNetworkIdle(
-    page,
-    idleIntervalMillis = DEFAULT_NETWORK_IDLE_INTERVAL_MILLIS,
-    timeoutMillis = DEFAULT_NETWORK_IDLE_TIMEOUT_MILLIS,
-) {
+async function waitForPageIdle({ page, waitForPageIdleMillis, maxWaitForPageIdleMillis }) {
     return new Promise((resolve) => {
         let timeout;
         let maxTimeout;
+
+        function newTabTracker(target) {
+            if (isTargetRelevant(page, target)) activityHandler();
+        }
 
         function activityHandler() {
             clearTimeout(timeout);
             timeout = setTimeout(() => {
                 clearTimeout(maxTimeout);
-                resolve();
-                page.removeListener('request', activityHandler);
-                page.removeListener('framenavigated', activityHandler);
-            }, idleIntervalMillis);
+                finish();
+            }, waitForPageIdleMillis);
         }
 
         function maxTimeoutHandler() {
-            log.debug(`enqueueLinksByClickingElements: Network still showed activity after ${timeoutMillis}ms. `
-                + 'This is probably due to the page itself dispatching requests, but some links may also have been missed.');
+            log.debug(`enqueueLinksByClickingElements: Page still showed activity after ${timeoutMillis}ms. `
+                + 'This is probably due to the website itself dispatching requests, but some links may also have been missed.');
+            finish();
+        }
+
+        function finish() {
+            page.removeListener('request', activityHandler);
+            page.removeListener('framenavigated', activityHandler);
+            page.removeListener('targetcreated', newTabTracker);
             resolve();
         }
 
-        maxTimeout = setTimeout(maxTimeoutHandler, timeoutMillis);
+        maxTimeout = setTimeout(maxTimeoutHandler, maxWaitForPageIdleMillis);
         timeout = activityHandler(); // We call this once manually in case there would be no requests at all.
         page.on('request', activityHandler);
         page.on('framenavigated', activityHandler);
+        page.on('targetcreated', newTabTracker);
     });
 }
 
