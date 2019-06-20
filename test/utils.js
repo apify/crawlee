@@ -918,8 +918,8 @@ describe('utils.infiniteScroll()', () => {
             await page.goto('https://medium.com/search?q=biometrics', {
                 waitUntil: 'networkidle2',
             });
-            const TIMEOUT_AFTER = 10; // seconds
-            await utils.infiniteScroll({page, timeoutSecs = TIMEOUT_AFTER});
+            const timeoutSecs = 10; // seconds
+            await utils.infiniteScroll({page, timeoutSecs});
             await browser.close();
         })();
     });
