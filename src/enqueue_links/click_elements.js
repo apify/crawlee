@@ -389,7 +389,7 @@ async function waitForPageIdle({ page, waitForPageIdleMillis, maxWaitForPageIdle
         }
 
         function maxTimeoutHandler() {
-            log.debug(`enqueueLinksByClickingElements: Page still showed activity after ${timeoutMillis}ms. `
+            log.debug(`enqueueLinksByClickingElements: Page still showed activity after ${maxWaitForPageIdleMillis}ms. `
                 + 'This is probably due to the website itself dispatching requests, but some links may also have been missed.');
             finish();
         }

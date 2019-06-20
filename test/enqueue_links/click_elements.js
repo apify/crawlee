@@ -250,26 +250,6 @@ describe('enqueueLinksByClickingElements()', () => {
             expect(pageContent).to.include('onclick="return window.history.pushState');
         });
 
-        it('should save urls from newly opened tabs', async () => {
-            const html = `
-<html>
-    <body>
-        <div onclick="return window.open('https://example.com');">div</div>
-    </body>
-</html>
-        `;
-            await page.setContent(html);
-            const interceptedRequests = await clickElementsAndInterceptNavigationRequests(getOpts({
-                waitForPageIdleMillis: 1000,
-                maxWaitForPageIdleMillis: 5000,
-            }));
-            await new Promise(r => setTimeout(r, 1000));
-            expect(interceptedRequests).to.have.lengthOf(1);
-            expect(interceptedRequests[0].url).to.be.eql('https://example.com/');
-            const pageContent = await page.content();
-            expect(pageContent).to.include('onclick="return window.open(');
-        });
-
         it('should close newly opened tabs', async () => {
             const html = `
 <html>
@@ -293,14 +273,34 @@ describe('enqueueLinksByClickingElements()', () => {
                     counts.destroy++;
                     if (spawnedTarget === target) resolve(counts);
                 });
-                await clickElementsAndInterceptNavigationRequests(getOpts({
+                clickElementsAndInterceptNavigationRequests(getOpts({
                     waitForPageIdleMillis: 1000,
                     maxWaitForPageIdleMillis: 5000,
-                }));
+                })).catch(() => { /* will throw because afterEach will close the page */ });
             });
 
             expect(callCounts.create).to.be.eql(1);
             expect(callCounts.destroy).to.be.eql(1);
+            const pageContent = await page.content();
+            expect(pageContent).to.include('onclick="return window.open(');
+        });
+
+        it('should save urls from newly opened tabs', async () => {
+            const html = `
+<html>
+    <body>
+        <div onclick="return window.open('https://example.com');">div</div>
+    </body>
+</html>
+        `;
+            await page.setContent(html);
+            const interceptedRequests = await clickElementsAndInterceptNavigationRequests(getOpts({
+                waitForPageIdleMillis: 1000,
+                maxWaitForPageIdleMillis: 5000,
+            }));
+            await new Promise(r => setTimeout(r, 1000));
+            expect(interceptedRequests).to.have.lengthOf(1);
+            expect(interceptedRequests[0].url).to.be.eql('https://example.com/');
             const pageContent = await page.content();
             expect(pageContent).to.include('onclick="return window.open(');
         });
