@@ -901,6 +901,7 @@ describe('utils.infiniteScroll()', () => {
                 headless: true,
             });
             const page = await browser.newPage();
+            // Note: external website
             await page.goto('https://twitter.com/search?src=typd&q=%23fingervein&lang=sv', {
                 waitUntil: 'networkidle2',
             });
@@ -915,6 +916,7 @@ describe('utils.infiniteScroll()', () => {
                 headless: true,
             });
             const page = await browser.newPage();
+            // Note: external website
             await page.goto('https://medium.com/search?q=biometrics', {
                 waitUntil: 'networkidle2',
             });

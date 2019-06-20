@@ -618,6 +618,7 @@ export const snakeCaseToCamelCase = (snakeCaseStr) => {
 
 /**
  * Scrolls to the bottom of a page, or until it times out.
+ * Loads dynamic content when it hits the bottom of a page, and then continues scrolling.
  * @param {Object} options
  * @param {Object} options.page The page object returned from browser.newPage()
  * @param {Number} [options.timeoutSecs=0] How many seconds to scroll for. If 0, will scroll until bottom of page.
