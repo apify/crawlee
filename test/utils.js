@@ -890,7 +890,7 @@ describe('utils.infiniteScroll()', () => {
             const page = await browser.newPage();
             const contentHTML = '<div>nothing</div>';
             await page.setContent(contentHTML);
-            await utils.infiniteScroll({page});
+            await utils.infiniteScroll({ page });
             await browser.close();
         })();
     });
@@ -904,7 +904,7 @@ describe('utils.infiniteScroll()', () => {
             await page.goto('https://twitter.com/search?src=typd&q=%23fingervein&lang=sv', {
                 waitUntil: 'networkidle2',
             });
-            await utils.infiniteScroll({page});
+            await utils.infiniteScroll({ page });
             await browser.close();
         })();
     });
@@ -919,7 +919,7 @@ describe('utils.infiniteScroll()', () => {
                 waitUntil: 'networkidle2',
             });
             const timeoutSecs = 10; // seconds
-            await utils.infiniteScroll({page, timeoutSecs});
+            await utils.infiniteScroll({ page, timeoutSecs });
             await browser.close();
         })();
     });
