@@ -618,16 +618,21 @@ export const snakeCaseToCamelCase = (snakeCaseStr) => {
 
 /**
  * Scrolls to the bottom of a page, or until it times out.
- * @param {Object} page
- * @param {Number} [maxTimeout=0] How many seconds to scroll for. If 0, will scroll until bottom of page.
- * @param {Number} [waitForDynamicContent=4] How many seconds to wait for no new content to load before exit.
+ * @param {Object} options
+ * @param {Object} options.page The page object returned from browser.newPage()
+ * @param {Number} [options.timeoutSecs=0] How many seconds to scroll for. If 0, will scroll until bottom of page.
+ * @param {Number} [options.waitForSecs=4] How many seconds to wait for no new content to load before exit.
  * @returns {Promise}
  * @memberOf utils
  */
-export const infiniteScroll = async function (page, maxTimeout = 0, waitForDynamicContent = 4) {
+export const infiniteScroll = async function ({ page, timeoutSecs = 0, waitForSecs = 4 }) {
+    checkParamOrThrow(page, 'page', 'Object');
+    checkParamOrThrow(timeoutSecs, 'timeoutSecs', 'Number');
+    checkParamOrThrow(waitForSecs, 'waitForSecs', 'Number');
+
     let finished;
-    const MAX_TIMEOUT = maxTimeout;
-    const WAIT_FOR_DYNAMIC_CONTENT = waitForDynamicContent;
+    const TIMEOUT_SECS = timeoutSecs;
+    const WAIT_FOR_SECS = waitForSecs;
     const startTime = Date.now();
     const maybeResourceTypesInfiniteScroll = ['xhr', 'fetch', 'websocket', 'other'];
     const resourcesStats = {
@@ -635,7 +640,6 @@ export const infiniteScroll = async function (page, maxTimeout = 0, waitForDynam
         oldRequested: 0,
         matchNumber: 0,
     };
-
 
     page.on('request', (msg) => {
         if (maybeResourceTypesInfiniteScroll.includes(msg.resourceType())) {
@@ -647,7 +651,7 @@ export const infiniteScroll = async function (page, maxTimeout = 0, waitForDynam
         // console.log(resourcesStats)
         if (resourcesStats.oldRequested === resourcesStats.newRequested) {
             resourcesStats.matchNumber++;
-            if (resourcesStats.matchNumber >= WAIT_FOR_DYNAMIC_CONTENT) {
+            if (resourcesStats.matchNumber >= WAIT_FOR_SECS) {
                 clearInterval(checkFinished);
                 finished = true;
                 return;
@@ -657,7 +661,7 @@ export const infiniteScroll = async function (page, maxTimeout = 0, waitForDynam
             resourcesStats.oldRequested = resourcesStats.newRequested;
         }
         // check if timeout has been reached
-        if (MAX_TIMEOUT !== 0 && (Date.now() - startTime) / 1000 > MAX_TIMEOUT) {
+        if (TIMEOUT_SECS !== 0 && (Date.now() - startTime) / 1000 > TIMEOUT_SECS) {
             // console.log("Timeout limit reached, exiting infinite scroll.")
             clearInterval(checkFinished);
             finished = true;
@@ -668,6 +672,7 @@ export const infiniteScroll = async function (page, maxTimeout = 0, waitForDynam
     /* global window document */
 
     const doScroll = async () => {
+        /* istanbul ignore next */
         await page.evaluate(async () => {
             const delta = document.body.scrollHeight === 0 ? 10000 : document.body.scrollHeight; // in case scrollHeight fixed to 0
             window.scrollBy(0, delta);
