@@ -24,6 +24,7 @@ await puppeteer.injectJQuery(page);
 
 
 * [`puppeteer`](#puppeteer) : `object`
+    * [`.enqueueLinksByClickingElements`](#puppeteer.enqueueLinksByClickingElements) ⇒ `Promise<Array<QueueOperationInfo>>`
     * [`.addInterceptRequestHandler`](#puppeteer.addInterceptRequestHandler) ⇒ `Promise`
     * [`.removeInterceptRequestHandler`](#puppeteer.removeInterceptRequestHandler) ⇒ `Promise`
     * [`.gotoExtended`](#puppeteer.gotoExtended) ⇒ `Promise<Response>`
@@ -34,6 +35,126 @@ await puppeteer.injectJQuery(page);
     * ~~[`.cacheResponses(page, cache, responseUrlRules)`](#puppeteer.cacheResponses) ⇒ `Promise`~~
     * [`.compileScript(scriptString, context)`](#puppeteer.compileScript) ⇒ `function`
 
+<a name="puppeteer.enqueueLinksByClickingElements"></a>
+
+## `puppeteer.enqueueLinksByClickingElements` ⇒ `Promise<Array<QueueOperationInfo>>`
+The function finds elements matching a specific CSS selector in a Puppeteer page,
+clicks all those elements using a mouse move and a left mouse button click and intercepts
+all the navigation requests that are subsequently produced by the page. The intercepted
+requests, including their methods, headers and payloads are then enqueued to a provided
+[`RequestQueue`](requestqueue). This is useful to crawl JavaScript heavy pages where links are not available
+in `href` elements, but rather navigations are triggered in click handlers.
+If you're looking to find URLs in `href` attributes of the page, see [`enqueueLinks()`](utils#utils.enqueueLinks).
+
+Optionally, the function allows you to filter the target links' URLs using an array of [`PseudoUrl`](pseudourl) objects
+and override settings of the enqueued [`Request`](request) objects.
+
+*IMPORTANT*: To be able to do this, this function uses various mutations on the page,
+such as changing the Z-index of elements being clicked and their visibility. Therefore,
+it is recommended to only use this function as the last operation in the page.
+
+*USING HEADFUL BROWSER*: When using a headful browser, this function will only be able to click elements
+in the focused tab, effectively limiting concurrency to 1. In headless mode, full concurrency can be achieved.
+
+*PERFORMANCE*: Clicking elements with a mouse and intercepting requests is not a low level operation
+that takes nanoseconds. It's not very CPU intensive, but it takes time. We strongly recommend limiting
+the scope of the clicking as much as possible by using a specific selector that targets only the elements
+that you assume or know will produce a navigation. You can certainly click everything by using
+the `*` selector, but be prepared to wait minutes to get results on a large and complex page.
+
+**Example usage**
+
+```javascript
+const Apify = require('apify');
+
+const browser = await Apify.launchPuppeteer();
+const page = await browser.goto('https://www.example.com');
+const requestQueue = await Apify.openRequestQueue();
+
+await Apify.utils.enqueueLinksByClickingElements({
+  page,
+  requestQueue,
+  selector: 'a.product-detail',
+  pseudoUrls: [
+      'https://www.example.com/handbags/[.*]'
+      'https://www.example.com/purses/[.*]'
+  ],
+});
+```
+
+**Returns**: `Promise<Array<QueueOperationInfo>>` - Promise that resolves to an array of [`QueueOperationInfo`](../typedefs/queueoperationinfo) objects.  
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th><th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>options</code></td><td><code>Object</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>All <code>enqueueLinksByClickingElements()</code> parameters are passed
+  via an options object with the following keys:</p>
+</td></tr><tr>
+<td><code>options.page</code></td><td><code>Page</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.</p>
+</td></tr><tr>
+<td><code>options.requestQueue</code></td><td><code><a href="requestqueue">RequestQueue</a></code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>A request queue to which the URLs will be enqueued.</p>
+</td></tr><tr>
+<td><code>options.selector</code></td><td><code>String</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>A CSS selector matching elements to be clicked on. Unlike in <a href="utils#utils.enqueueLinks"><code>enqueueLinks()</code></a>, there is no default
+  value. This is to prevent suboptimal use of this function by using it too broadly.</p>
+</td></tr><tr>
+<td><code>[options.pseudoUrls]</code></td><td><code>Array<Object&gt;</code> | <code>Array.&lt;String></code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>An array of <a href="pseudourl"><code>PseudoUrl</code></a>s matching the URLs to be enqueued,
+  or an array of strings or RegExps or plain Objects from which the <a href="pseudourl"><code>PseudoUrl</code></a>s can be constructed.</p>
+<p>  The plain objects must include at least the <code>purl</code> property, which holds the pseudo-URL string or RegExp.
+  All remaining keys will be used as the <code>requestTemplate</code> argument of the <a href="pseudourl"><code>PseudoUrl</code></a> constructor,
+  which lets you specify special properties for the enqueued <a href="request"><code>Request</code></a> objects.</p>
+<p>  If <code>pseudoUrls</code> is an empty array, <code>null</code> or <code>undefined</code>, then the function
+  enqueues all links found on the page.</p>
+</td></tr><tr>
+<td><code>[options.updateRequestFunction]</code></td><td><code>function</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Just before a new <a href="request"><code>Request</code></a> is enqueued to the <a href="requestqueue"><code>RequestQueue</code></a>, this function can be used to modify
+  its contents such as <code>userData</code>, <code>payload</code> or, most importantly <code>uniqueKey</code>. This is useful when necessary
+  to enqueue multiple <code>Requests</code> to the queue that share the same URL, but differ in methods or payloads.</p>
+<p>  For example: by generating your own <code>uniqueKey</code> from a combination of <code>url</code>, <code>method</code> and <code>payload</code> you enable crawling
+  of websites that navigate using form submits (POST requests).</p>
+</td></tr><tr>
+<td><code>[options.waitForPageIdleSecs]</code></td><td><code>number</code></td><td><code>1</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Clicking in the page triggers various asynchronous operations that lead to new URLs being shown
+  by the browser. It could be a simple JavaScript redirect or opening of a new tab in the browser.
+  These events often happen only some time after the actual click. Requests typically take milliseconds
+  while new tabs open in hundreds of milliseconds.</p>
+<p>  To be able to capture all those events, the <code>enqueueLinksByClickingElements()</code> function repeatedly waits
+  for the <code>waitForPageIdleSecs</code>. By repeatedly we mean that whenever a relevant event is triggered, the timer
+  is restarted. As long as new events keep coming, the function will not return, unless
+  the below <code>maxWaitForPageIdleSecs</code> timeout is reached.</p>
+<p>  You may want to reduce this for example when you&#39;re sure that your clicks do not open new tabs,
+  or increase when you&#39;re not getting all the expected URLs.</p>
+</td></tr><tr>
+<td><code>[options.maxWaitForPageIdleSecs]</code></td><td><code>number</code></td><td><code>5</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>This is the maximum period for which the function will keep tracking events, even if more events keep coming.
+  Its purpose is to prevent a deadlock in the page by periodic events, often unrelated to the clicking itself.
+  See <code>waitForPageIdleSecs</code> above for an explanation.</p>
+</td></tr></tbody>
+</table>
 <a name="puppeteer.addInterceptRequestHandler"></a>
 
 ## `puppeteer.addInterceptRequestHandler` ⇒ `Promise`

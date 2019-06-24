@@ -1,7 +1,9 @@
-xxx
+NEXT
 ====================
-- Bugfix in BasicCrawler: async calls in `isFinishedFunction` were not awaited
-- Better logging of memory overload errors
+- Improve logging of memory overload errors.
+- Fix multiple log lines appearing when a crawler was about to finish.
+- Add `Apify.utils.puppeteer.enqueueLinksByClickingElements()` function which enables you
+  to add requests to the queue from pure JavaScript navigations, form submissions etc.
 
 0.14.15 / 2019-05-31
 ====================
