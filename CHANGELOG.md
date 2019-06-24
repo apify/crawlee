@@ -1,4 +1,4 @@
-xxx
+NEXT
 ====================
 - Bugfix in BasicCrawler: async calls in `isFinishedFunction` were not awaited
 - Better logging of memory overload errors
