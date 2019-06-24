@@ -73,10 +73,11 @@ const STARTING_Z_INDEX = 2147400000;
  *
  *   If `pseudoUrls` is an empty array, `null` or `undefined`, then the function
  *   enqueues all links found on the page.
- * @param {Function} [options.updateRequestFunction]
- *   Just before a new {@link Request} is enqueued to the {@link RequestQueue}, this function can be used to modify
- *   its contents such as `userData`, `payload` or, most importantly `uniqueKey`. This is useful when necessary
- *   to enqueue multiple `Requests` to the queue that share the same URL, but differ in methods or payloads.
+ * @param {Function} [options.transformRequestFunction]
+ *   Just before a new {@link Request} is enqueued to the {@link RequestQueue}, this function can be used to remove it
+ *   or modify its contents such as `userData`, `payload` or, most importantly `uniqueKey`. This is useful when you need
+ *   to enqueue multiple `Requests` to the queue that share the same URL, but differ in methods or payloads,
+ *   or to dynamically update or create `userData`.
  *
  *   For example: by generating your own `uniqueKey` from a combination of `url`, `method` and `payload` you enable crawling
  *   of websites that navigate using form submits (POST requests).
@@ -108,7 +109,7 @@ export async function enqueueLinksByClickingElements(options = {}) {
         requestQueue,
         selector,
         pseudoUrls,
-        updateRequestFunction,
+        transformRequestFunction,
         waitForPageIdleSecs = 1,
         maxWaitForPageIdleSecs = 5,
     } = options;
@@ -117,7 +118,7 @@ export async function enqueueLinksByClickingElements(options = {}) {
     checkParamOrThrow(selector, 'selector', 'String');
     checkParamPrototypeOrThrow(requestQueue, 'requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue');
     checkParamOrThrow(pseudoUrls, 'pseudoUrls', 'Maybe Array');
-    checkParamOrThrow(updateRequestFunction, 'updateRequestFunction', 'Function');
+    checkParamOrThrow(transformRequestFunction, 'transformRequestFunction', 'Function');
     checkParamOrThrow(waitForPageIdleSecs, 'waitForPageIdleSecs', 'Number');
     checkParamOrThrow(maxWaitForPageIdleSecs, 'maxWaitForPageIdleSecs', 'Number');
 
@@ -132,8 +133,8 @@ export async function enqueueLinksByClickingElements(options = {}) {
         maxWaitForPageIdleMillis,
     });
     let requests = createRequests(interceptedRequests, pseudoUrlInstances);
-    if (updateRequestFunction) {
-        requests = requests.map(updateRequestFunction);
+    if (transformRequestFunction) {
+        requests = requests.map(transformRequestFunction).filter(r => !!r);
     }
     return addRequestsToQueueInBatches(requests, requestQueue);
 }

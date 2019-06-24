@@ -42,7 +42,7 @@ describe('enqueueLinksByClickingElements()', () => {
             page,
             requestQueue,
             selector: 'a',
-            updateRequestFunction: (request) => {
+            transformRequestFunction: (request) => {
                 request.uniqueKey = 'key';
                 return request;
             },
