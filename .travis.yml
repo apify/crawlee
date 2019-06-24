@@ -7,9 +7,9 @@ node_js:
 - '8'
 cache:
   directories:
-    - $HOME/.npm
-    - node_modules
-    - website/node_modules
+  - "$HOME/.npm"
+  - node_modules
+  - website/node_modules
 env:
   global:
   - DOCKER_USERNAME=mnmkng
@@ -24,11 +24,11 @@ install:
 jobs:
   include:
   - stage: test
-    name: 'Lint&Docs'
+    name: Lint&Docs
     node_js: '10'
     script:
-      - (cd website && npm install --no-package-lock)
-      - npm run lint && node .travis/check-docs.js
+    - "(cd website && npm install --no-package-lock)"
+    - npm run lint && node .travis/check-docs.js
   - stage: deploy
     if: branch = master
     script: skip
@@ -39,7 +39,7 @@ jobs:
     - provider: npm
       email: ondra@apify.com
       api_key:
-        secure: p3U5TFS6bhx0DGS15uMak6M09K+k4YCJ4My2jDDuvXrHMTk7KBIiC9yuCB08SGOWYi/bCTaLgDEFXntKB0rTvR+U6JgVWf/8PAYlWJm4ViqQfk8e8KVfGCZrlT3NAXb2rV2DDidf5F11dbx8iNiw/fw1pmyUKHML+l0rip1N1+SM7BThemfFW7Cp2+0VO+wmRYUVTY34TAe7hkWlA7KQEdUPBCdYmitks90nuciJXJObcDhHXrC0vH7ufTtERjCBIU+ilfjNQAFJuOmD0dD1zxF9iIQlaozNf9DCOklGJWkOEQzn+YWyYinZJdX3JvRpwWSaVQy709dOPNKw7FtVF4NuWkUDz9ajGEZRB0+LPlbN/sqeMkodFoQoV5ogSSZVqX3TzDfnbVIUX2A79yoraSjd4kKftAxKclpIaxu4356W5nnuk9Q6n0uBiFZNCDKK5oJKY3IWAyhN9rZXlu8f/W8JccAQXmwPS8W4AHVnRiFsSgFjKytwKSC8NfTcDnSJJXYMAXvLj8PCWfWq38+9iCYi6ByC3PdvS/Hr7VEf4nxnIRStCX8e7h/9IeYiBeqGx1prLw2MLBwRdBCqVNhobEa6zyx4xXoInGS8qhqseqGAdGjOQuMGWDSLVQmZdi2kjoHnf0/Yz1C4caKM6GaMKl9TvbauHAi78c+Av7XnNCI=
+          secure: Gl7OuGxi0tmCJqg5k/fKUWvPBB5xFnHouIOp3ykiqibxOywoOp2ciug18KpnMjCuVyPpKsvNJsfMeo3tPterJLiBhP7XESvcY6fITBQzxZoRk9q0luWCKeN4WOvkbT0hY26yag6taiuUhOBlCrWQwalziaA1h2heuCCvYNm03Fjhn/Ogm6W9oXAycRkNM782cvzwfM/lMbLwGpA1wi1SD7k6hHhR3zUMv2dBEuKMzcIalHYg3ILBK+YZe6q+1RxhZHo9u+YgGLLoP9DFuLRmiHLUAjb0wJe3u4YO9s+HUW/a11rgIhUpXfNw/jWu1hoXrwRA7cnTJT0rYRAIEFZhQNL/oAPouKn20IyRK3P7juISt37WXotpuGzxAlY1PZAaCGL1SyOcOlcmDPhKEqd41QC/QcSqAZgXCrR8k0lS86IXwlZihxuVFy+fHOatP/NqeXOMXYDYshbo2jJPU97UbI2SNVT4gdFTEaWJW/e3v+yFwPh0z7cvnYe5FXuCjjdEkcNnaSl0NoYn2UmVWrwr/og8rWda5D5BQqmovXuq2Ask87u5IJOC+TEIQ4zf34nVLLm+aI9HjSFPMKfsKAo/toHkpalruqRFmMQ1C6CFNPoKdH9icLXIOG/cM3HeRkHGrckN28uxjrgzatPC6wcCmHZIUc0DLl9Z/GkRKrE1kz0=
       on:
         branch: master
       tag: beta
@@ -47,7 +47,7 @@ jobs:
     - provider: npm
       email: ondra@apify.com
       api_key:
-        secure: p3U5TFS6bhx0DGS15uMak6M09K+k4YCJ4My2jDDuvXrHMTk7KBIiC9yuCB08SGOWYi/bCTaLgDEFXntKB0rTvR+U6JgVWf/8PAYlWJm4ViqQfk8e8KVfGCZrlT3NAXb2rV2DDidf5F11dbx8iNiw/fw1pmyUKHML+l0rip1N1+SM7BThemfFW7Cp2+0VO+wmRYUVTY34TAe7hkWlA7KQEdUPBCdYmitks90nuciJXJObcDhHXrC0vH7ufTtERjCBIU+ilfjNQAFJuOmD0dD1zxF9iIQlaozNf9DCOklGJWkOEQzn+YWyYinZJdX3JvRpwWSaVQy709dOPNKw7FtVF4NuWkUDz9ajGEZRB0+LPlbN/sqeMkodFoQoV5ogSSZVqX3TzDfnbVIUX2A79yoraSjd4kKftAxKclpIaxu4356W5nnuk9Q6n0uBiFZNCDKK5oJKY3IWAyhN9rZXlu8f/W8JccAQXmwPS8W4AHVnRiFsSgFjKytwKSC8NfTcDnSJJXYMAXvLj8PCWfWq38+9iCYi6ByC3PdvS/Hr7VEf4nxnIRStCX8e7h/9IeYiBeqGx1prLw2MLBwRdBCqVNhobEa6zyx4xXoInGS8qhqseqGAdGjOQuMGWDSLVQmZdi2kjoHnf0/Yz1C4caKM6GaMKl9TvbauHAi78c+Av7XnNCI=
+          secure: Gl7OuGxi0tmCJqg5k/fKUWvPBB5xFnHouIOp3ykiqibxOywoOp2ciug18KpnMjCuVyPpKsvNJsfMeo3tPterJLiBhP7XESvcY6fITBQzxZoRk9q0luWCKeN4WOvkbT0hY26yag6taiuUhOBlCrWQwalziaA1h2heuCCvYNm03Fjhn/Ogm6W9oXAycRkNM782cvzwfM/lMbLwGpA1wi1SD7k6hHhR3zUMv2dBEuKMzcIalHYg3ILBK+YZe6q+1RxhZHo9u+YgGLLoP9DFuLRmiHLUAjb0wJe3u4YO9s+HUW/a11rgIhUpXfNw/jWu1hoXrwRA7cnTJT0rYRAIEFZhQNL/oAPouKn20IyRK3P7juISt37WXotpuGzxAlY1PZAaCGL1SyOcOlcmDPhKEqd41QC/QcSqAZgXCrR8k0lS86IXwlZihxuVFy+fHOatP/NqeXOMXYDYshbo2jJPU97UbI2SNVT4gdFTEaWJW/e3v+yFwPh0z7cvnYe5FXuCjjdEkcNnaSl0NoYn2UmVWrwr/og8rWda5D5BQqmovXuq2Ask87u5IJOC+TEIQ4zf34nVLLm+aI9HjSFPMKfsKAo/toHkpalruqRFmMQ1C6CFNPoKdH9icLXIOG/cM3HeRkHGrckN28uxjrgzatPC6wcCmHZIUc0DLl9Z/GkRKrE1kz0=
       on:
         tags: true
       tag: latest
@@ -56,5 +56,5 @@ jobs:
     if: branch = master
     node_js: '10'
     services:
-        - docker
+    - docker
     script: node .travis/release-images.js
