@@ -47,11 +47,11 @@ export function constructPseudoUrlInstances(pseudoUrls) {
 /**
  * @param {string[]|Object[]} sources
  * @param {PseudoUrl[]} pseudoUrls
- * @param {Object} userData
+ * @param {Object} [userData]
  * @return {Request[]}
  * @ignore
  */
-export function createRequests(sources, pseudoUrls, userData) {
+export function createRequests(sources, pseudoUrls, userData = {}) {
     const normalizedSources = sources
         .map((src) => {
             return typeof src === 'string'

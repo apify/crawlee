@@ -6,7 +6,7 @@ import { RequestQueue, RequestQueueLocal } from '../request_queue';
 import { addInterceptRequestHandler, removeInterceptRequestHandler } from '../puppeteer_request_interception';
 import { constructPseudoUrlInstances, createRequests, addRequestsToQueueInBatches } from './shared';
 
-const STARTING_Z_INDEX = 10000;
+const STARTING_Z_INDEX = 2147400000;
 
 /**
  * The function finds elements matching a specific CSS selector in a Puppeteer page,
@@ -23,6 +23,9 @@ const STARTING_Z_INDEX = 10000;
  * *IMPORTANT*: To be able to do this, this function uses various mutations on the page,
  * such as changing the Z-index of elements being clicked and their visibility. Therefore,
  * it is recommended to only use this function as the last operation in the page.
+ *
+ * *USING HEADFUL BROWSER*: When using a headful browser, this function will only be able to click elements
+ * in the focused tab, effectively limiting concurrency to 1. In headless mode, full concurrency can be achieved.
  *
  * *PERFORMANCE*: Clicking elements with a mouse and intercepting requests is not a low level operation
  * that takes nanoseconds. It's not very CPU intensive, but it takes time. We strongly recommend limiting
@@ -70,35 +73,14 @@ const STARTING_Z_INDEX = 10000;
  *
  *   If `pseudoUrls` is an empty array, `null` or `undefined`, then the function
  *   enqueues all links found on the page.
- * @param {Object} [options.userData]
- *   An object that will be merged with the new {@link Request}'s `userData`, overriding any values that
- *   were set via templating from `pseudoUrls`. This is useful when you need to override generic
- *   `userData` set by the {@link PseudoUrl} template in specific use cases.
+ * @param {Function} [options.updateRequestFunction]
+ *   Just before a new {@link Request} is enqueued to the {@link RequestQueue}, this function can be used to modify
+ *   its contents such as `userData`, `payload` or, most importantly `uniqueKey`. This is useful when necessary
+ *   to enqueue multiple `Requests` to the queue that share the same URL, but differ in methods or payloads.
  *
- *   **Example:**
- * ```
- * // pseudoUrl.userData
- * {
- *     name: 'John',
- *     surname: 'Doe',
- * }
- * ```
- * ```
- * // userData
- * {
- *     name: 'Albert',
- *     age: 31
- * }
- * ```
- * ```
- * // Enqueued request.userData
- * {
- *     name: 'Albert',
- *     surname: 'Doe',
- *     age: 31,
- * }
- * ```
- * @param {Function} [options.waitForPageIdleSecs=1]
+ *   For example: by generating your own `uniqueKey` from a combination of `url`, `method` and `payload` you enable crawling
+ *   of websites that navigate using form submits (POST requests).
+ * @param {number} [options.waitForPageIdleSecs=1]
  *   Clicking in the page triggers various asynchronous operations that lead to new URLs being shown
  *   by the browser. It could be a simple JavaScript redirect or opening of a new tab in the browser.
  *   These events often happen only some time after the actual click. Requests typically take milliseconds
@@ -111,7 +93,7 @@ const STARTING_Z_INDEX = 10000;
  *
  *   You may want to reduce this for example when you're sure that your clicks do not open new tabs,
  *   or increase when you're not getting all the expected URLs.
- * @param {Function} [options.maxWaitForPageIdleSecs=5]
+ * @param {number} [options.maxWaitForPageIdleSecs=5]
  *   This is the maximum period for which the function will keep tracking events, even if more events keep coming.
  *   Its purpose is to prevent a deadlock in the page by periodic events, often unrelated to the clicking itself.
  *   See `waitForPageIdleSecs` above for an explanation.
@@ -126,7 +108,7 @@ export async function enqueueLinksByClickingElements(options = {}) {
         requestQueue,
         selector,
         pseudoUrls,
-        userData = {},
+        updateRequestFunction,
         waitForPageIdleSecs = 1,
         maxWaitForPageIdleSecs = 5,
     } = options;
@@ -135,8 +117,9 @@ export async function enqueueLinksByClickingElements(options = {}) {
     checkParamOrThrow(selector, 'selector', 'String');
     checkParamPrototypeOrThrow(requestQueue, 'requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue');
     checkParamOrThrow(pseudoUrls, 'pseudoUrls', 'Maybe Array');
-    checkParamOrThrow(userData, 'userData', 'Object');
-    checkParamOrThrow(userData, 'clickingFunction', 'Function');
+    checkParamOrThrow(updateRequestFunction, 'updateRequestFunction', 'Function');
+    checkParamOrThrow(waitForPageIdleSecs, 'waitForPageIdleSecs', 'Number');
+    checkParamOrThrow(maxWaitForPageIdleSecs, 'maxWaitForPageIdleSecs', 'Number');
 
     const waitForPageIdleMillis = waitForPageIdleSecs * 1000;
     const maxWaitForPageIdleMillis = maxWaitForPageIdleSecs * 1000;
@@ -148,7 +131,10 @@ export async function enqueueLinksByClickingElements(options = {}) {
         waitForPageIdleMillis,
         maxWaitForPageIdleMillis,
     });
-    const requests = createRequests(interceptedRequests, pseudoUrlInstances, userData);
+    let requests = createRequests(interceptedRequests, pseudoUrlInstances);
+    if (updateRequestFunction) {
+        requests = requests.map(updateRequestFunction);
+    }
     return addRequestsToQueueInBatches(requests, requestQueue);
 }
 
@@ -171,7 +157,7 @@ export async function clickElementsAndInterceptNavigationRequests(options) {
         maxWaitForPageIdleMillis,
     } = options;
 
-    const uniqueRequests = new Map();
+    const uniqueRequests = new Set();
     const browser = page.browser();
 
     const onInterceptedRequest = createInterceptRequestHandler(page, uniqueRequests);
@@ -193,12 +179,13 @@ export async function clickElementsAndInterceptNavigationRequests(options) {
     page.removeListener('framenavigated', onFrameNavigated);
     await removeInterceptRequestHandler(page, onInterceptedRequest);
 
-    return Array.from(uniqueRequests.values());
+    const serializedRequests = Array.from(uniqueRequests);
+    return serializedRequests.map(r => JSON.parse(r));
 }
 
 /**
  * @param {Page} page
- * @param {Map} requests
+ * @param {Set} requests
  * @return {Function}
  * @ignore
  */
@@ -206,12 +193,12 @@ function createInterceptRequestHandler(page, requests) {
     return function onInterceptedRequest(req) {
         if (!isTopFrameNavigationRequest(page, req)) return req.continue();
         const url = req.url();
-        requests.set(url, {
+        requests.add(JSON.stringify({
             url,
             headers: req.headers(),
             method: req.method(),
             payload: req.postData(),
-        });
+        }));
         req.respond(req.redirectChain().length
             ? { body: '' } // Prevents 301/302 redirect
             : { status: 204 }); // Prevents navigation by js
@@ -231,7 +218,7 @@ function isTopFrameNavigationRequest(page, req) {
 
 /**
  * @param {Page} page
- * @param {Map} requests
+ * @param {Set} requests
  * @return {Function}
  * @ignore
  */
@@ -239,7 +226,7 @@ function createTargetCreatedHandler(page, requests) {
     return async function onTargetCreated(target) {
         if (!isTargetRelevant(page, target)) return;
         const url = target.url();
-        requests.set(url, { url });
+        requests.add(JSON.stringify({ url }));
 
         // We want to close the page but don't care about
         // possible errors like target closed.
@@ -266,7 +253,7 @@ export function isTargetRelevant(page, target) {
 
 /**
  * @param {Page} page
- * @param {Map} requests
+ * @param {Set} requests
  * @return {Function}
  * @ignore
  */
@@ -274,7 +261,7 @@ function createFrameNavigatedHandler(page, requests) {
     return function onFrameNavigated(frame) {
         if (frame !== page.mainFrame()) return;
         const url = frame.url();
-        requests.set(url, { url });
+        requests.add(JSON.stringify({ url }));
     };
 }
 
@@ -344,8 +331,10 @@ export async function clickElements(page, selector) {
 function updateElementCssToEnableMouseClick(el, zIndex) {
     el.style.visibility = 'visible';
     el.style.display = 'block';
-    el.style.position = 'absolute';
+    el.style.position = 'fixed';
     el.style.zIndex = zIndex;
+    el.style.left = 0;
+    el.style.top = 0;
     const boundingRect = el.getBoundingClientRect();
     if (!boundingRect.height) el.style.height = '10px';
     if (!boundingRect.width) el.style.width = '10px';
@@ -411,7 +400,7 @@ async function waitForPageIdle({ page, waitForPageIdleMillis, maxWaitForPageIdle
 
 /**
  * @param {Page} page
- * @param {Map} requests
+ * @param {Set} requests
  * @return {Promise}
  * @ignore
  */
@@ -428,7 +417,7 @@ async function restoreHistoryNavigationAndSaveCapturedUrls(page, requests) {
         try {
             const stateUrl = args[args.length - 1];
             const url = new URL(stateUrl, page.url()).href;
-            requests.set(url, { url });
+            requests.add(JSON.stringify({ url }));
         } catch (err) {
             log.debug('enqueueLinksByClickingElements: Failed to ', { error: err.stack });
         }

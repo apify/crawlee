@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import Apify from '../../build';
+import { RequestQueue } from '../../build/request_queue';
 import { clickElements, clickElementsAndInterceptNavigationRequests, isTargetRelevant } from '../../build/enqueue_links/click_elements';
 
 /* global window */
@@ -22,6 +23,36 @@ describe('enqueueLinksByClickingElements()', () => {
 
     afterEach(async () => {
         await page.close();
+    });
+
+    it('should work', async () => {
+        const addedRequests = [];
+        const requestQueue = Object.create(RequestQueue.prototype);
+        requestQueue.addRequest = async request => addedRequests.push(request);
+        const html = `
+<html>
+    <body>
+        <a href="https://example.com">link</div>
+    </body>  
+</html>
+        `;
+
+        await page.setContent(html);
+        await Apify.utils.puppeteer.enqueueLinksByClickingElements({
+            page,
+            requestQueue,
+            selector: 'a',
+            updateRequestFunction: (request) => {
+                request.uniqueKey = 'key';
+                return request;
+            },
+            waitForPageIdleSecs: 0.025,
+            maxWaitForPageIdleSecs: 0.250,
+        });
+        expect(addedRequests).to.have.lengthOf(1);
+        expect(addedRequests[0].url).to.match(/https:\/\/example\.com\/?$/);
+        expect(addedRequests[0].uniqueKey).to.be.eql('key');
+        expect(page.url()).to.be.eql('about:blank');
     });
 
     describe('clickElements()', () => {
@@ -129,11 +160,9 @@ describe('enqueueLinksByClickingElements()', () => {
 </html>
         `;
             await page.setContent(html);
-            console.time('x');
             const interceptedRequests = await clickElementsAndInterceptNavigationRequests(getOpts({
                 selector: 'a',
             }));
-            console.timeEnd('x');
             expect(interceptedRequests).to.have.lengthOf(1);
             expect(interceptedRequests[0].url).to.match(/https:\/\/example\.com\/?$/);
             expect(page.url()).to.be.eql('about:blank');
