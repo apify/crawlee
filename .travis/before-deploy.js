@@ -1,7 +1,10 @@
 const path = require('path');
 const fs = require('fs');
 const { execSync } = require('child_process');
-const pkgJson = require('../package.json');
+
+const PKG_JSON_PATH = path.join(__dirname, '..', 'package.json');
+
+const pkgJson = require(PKG_JSON_PATH);
 
 if (process.env.TRAVIS_TAG) {
     // Only latest releases will have a tag.
@@ -16,7 +19,7 @@ const nextVersion = getNextVersion(VERSION);
 console.log(`before-deploy: Setting version to ${nextVersion}`);
 pkgJson.version = nextVersion;
 
-fs.writeFileSync(path.join(__dirname, 'package.json'), JSON.stringify(pkgJson, null, 2) + '\n');
+fs.writeFileSync(PKG_JSON_PATH, JSON.stringify(pkgJson, null, 2) + '\n');
 
 function getNextVersion(version) {
     const versionString = execSync(`npm show ${PACKAGE_NAME} versions --json`, { encoding: 'utf8'});
