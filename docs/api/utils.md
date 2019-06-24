@@ -25,7 +25,7 @@ await Apify.utils.sleep(1500);
     * [`.URL_WITH_COMMAS_REGEX`](#utils.URL_WITH_COMMAS_REGEX)
     * [`.isDocker()`](#utils.isDocker) ⇒ `Promise`
     * [`.downloadListOfUrls(options)`](#utils.downloadListOfUrls) ⇒ `Promise<Array<String>>`
-    * [`.extractUrls(string, [urlRegExp])`](#utils.extractUrls) ⇒ `Array<String>`
+    * [`.extractUrls(options)`](#utils.extractUrls) ⇒ `Array<String>`
     * [`.getRandomUserAgent()`](#utils.getRandomUserAgent) ⇒ `String`
     * [`.htmlToText(html)`](#utils.htmlToText) ⇒ `String`
 
@@ -223,7 +223,7 @@ Optionally, custom regular expression and encoding may be provided.
 </table>
 <a name="utils.extractUrls"></a>
 
-## `utils.extractUrls(string, [urlRegExp])` ⇒ `Array<String>`
+## `utils.extractUrls(options)` ⇒ `Array<String>`
 Collects all URLs in an arbitrary string to an array, optionally using a custom regular expression.
 
 <table>
@@ -234,11 +234,15 @@ Collects all URLs in an arbitrary string to an array, optionally using a custom 
 </thead>
 <tbody>
 <tr>
-<td><code>string</code></td><td><code>String</code></td><td></td>
+<td><code>options</code></td><td><code>Object</code></td><td></td>
 </tr>
 <tr>
 </tr><tr>
-<td><code>[urlRegExp]</code></td><td><code>RegExp</code></td><td><code>Apify.utils.URL_NO_COMMAS_REGEX</code></td>
+<td><code>options.string</code></td><td><code>String</code></td><td></td>
+</tr>
+<tr>
+</tr><tr>
+<td><code>[options.urlRegExp]</code></td><td><code>RegExp</code></td><td><code>Apify.utils.URL_NO_COMMAS_REGEX</code></td>
 </tr>
 <tr>
 </tr></tbody>

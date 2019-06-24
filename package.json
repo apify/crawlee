@@ -1,6 +1,6 @@
 {
     "name": "apify",
-    "version": "0.14.15",
+    "version": "0.15.0",
     "description": "The scalable web crawling and scraping library for JavaScript/Node.js. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.",
     "engines": {
         "node": ">=8.14.0"
@@ -46,7 +46,11 @@
         "prepublishOnly": "(test $RUNNING_FROM_SCRIPT || (echo \"You must use publish.sh instead of 'npm publish' directly!\"; exit 1)) && npm test && npm run lint",
         "clean": "rm -rf build",
         "lint": "npm run build && ./node_modules/.bin/eslint ./src ./test",
-        "lint:fix": "./node_modules/.bin/eslint ./src ./test --ext .js,.jsx --fix"
+        "lint:fix": "./node_modules/.bin/eslint ./src ./test --ext .js,.jsx --fix",
+        "before-deploy": "node .travis/before-deploy.js",
+        "after-deploy": "node after-deploy.js",
+        "prerelease-check": "npm run lint && node check-docs.js",
+        "release-latest": "node release-latest.js"
     },
     "dependencies": {
         "@apify/ps-tree": "^1.1.3",
@@ -74,6 +78,7 @@
         "@babel/core": "^7.0.0",
         "@babel/preset-env": "^7.0.0",
         "@babel/register": "^7.0.0",
+        "@types/fs-extra": "^7.0.0",
         "@types/puppeteer": "^1.12.4",
         "@types/socket.io": "^2.1.2",
         "basic-auth-parser": "^0.0.2",
@@ -95,6 +100,7 @@
         "nyc": "^14.0.0",
         "portastic": "^1.0.1",
         "proxy": "^0.2.4",
+        "semver": "^6.1.1",
         "sinon": "^7.1.1",
         "sinon-stub-promise": "^4.0.0",
         "socket.io-client": "^2.2.0",
