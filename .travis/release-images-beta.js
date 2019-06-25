@@ -78,7 +78,7 @@ if (dryRun) {
 }
 
 log('Adding new origin with token.');
-execGitCommand(`remote add origin-token https://${process.env.GH_TOKEN}@github.com/apifytech/apify-js > /dev/null 2>&1`);
+execGitCommand(`remote add origin-token https://${process.env.GH_TOKEN}@github.com/apifytech/apify-actor-docker > /dev/null 2>&1`);
 
 log('Pushing changes to remote.');
 execGitCommand(`push --set-upstream origin-token master`);
