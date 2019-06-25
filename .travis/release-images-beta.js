@@ -25,7 +25,7 @@ execGitCommand('config --global user.email "travis@travis-ci.org"');
 execGitCommand('config --global user.name "Travis CI"');
 
 log('Checking out package.jsons.');
-execGitCommand('checkout HEAD', PKG_PATHS);
+execGitCommand('checkout master', PKG_PATHS);
 
 log('Loading published Apify versions.');
 const betaVersion = fetchPackageJsonPropertyForTag('version', 'beta');
