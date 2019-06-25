@@ -81,7 +81,7 @@ log('Adding new origin with token.');
 execGitCommand(`remote add origin-token https://${process.env.GH_TOKEN}@github.com/apifytech/apify-js > /dev/null 2>&1`);
 
 log('Pushing changes to remote.');
-execGitCommand(`git push --set-upstream origin-token master`);
+execGitCommand(`push --set-upstream origin-token master`);
 
 teardown();
 
