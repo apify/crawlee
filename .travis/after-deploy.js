@@ -1,5 +1,7 @@
 const { execSync } = require('child_process');
-const GIT_TAG = require('../package.json').version;
+const VERSION = require('../package.json').version;
+
+const GIT_TAG = `v${VERSION}`;
 
 const { GH_TOKEN } = process.env;
 
@@ -16,7 +18,7 @@ execSync('git config --global user.name "Travis CI"');
 console.log('after-deploy: Adding new origin with token.');
 execSync(`git remote add origin-token https://${GH_TOKEN}@github.com/apifytech/apify-js > /dev/null 2>&1`);
 
-console.log(`after-deploy: Tagging commit with tag:  ${GIT_TAG}.`);
+console.log(`after-deploy: Tagging commit with tag: ${GIT_TAG}.`);
 execSync(`git tag ${GIT_TAG}`);
 
 console.log('after-deploy: Pushing changes to remote.');

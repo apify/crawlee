@@ -1,6 +1,7 @@
 dist: xenial
 sudo: false
 language: node_js
+if: (tag IS blank) OR tag =~ /^v\d+\.\d+\.\d+$/
 node_js:
 - '12'
 - '10'

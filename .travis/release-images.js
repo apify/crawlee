@@ -11,7 +11,7 @@ if (TAG && /^v\d+\.\d+\.\d+$/.test(TAG)) {
 } else if (BRANCH && /^master$/.test(BRANCH)) {
     // Beta release
     console.log('release-images: Triggering release of beta images.');
-    execSync(`node ${path.join(__dirname, 'release-images-beta.js')} --dry-run`, { stdio: 'inherit'});
+    execSync(`node ${path.join(__dirname, 'release-images-beta.js')}`, { stdio: 'inherit'});
 } else {
     console.log('release-images: Build is not a release build. Skipping.');
     process.exit(0);
