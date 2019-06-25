@@ -1,5 +1,7 @@
 NEXT
 ====================
+- **BREAKING CHANGE** Removed support for Web Driver (Selenium) since no further updates are planned.
+  If you wish to continue using Web Driver, please stay on Apify SDK version ^0.14.15
 - Improve logging of memory overload errors.
 - Fix multiple log lines appearing when a crawler was about to finish.
 - Add `Apify.utils.puppeteer.enqueueLinksByClickingElements()` function which enables you
