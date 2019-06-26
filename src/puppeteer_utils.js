@@ -17,7 +17,7 @@ const underscorePath = require.resolve('underscore/underscore-min');
 const readFilePromised = util.promisify(fs.readFile);
 
 const MAX_INJECT_FILE_CACHE_SIZE = 10;
-const DEFAULT_BLOCK_REQUEST_URL_PATTERNS = ['.css', '.jpg', '.jpeg', '.png', '.svg', '.woff', '.pdf', '.zip'];
+const DEFAULT_BLOCK_REQUEST_URL_PATTERNS = ['.css', '.jpg', '.jpeg', '.png', '.svg', '.gif', '.woff', '.pdf', '.zip'];
 
 /**
  * Hides certain Puppeteer fingerprints from the page, in order to help avoid detection of the crawler.
@@ -198,7 +198,7 @@ const enqueueRequestsFromClickableElements = async (page, selector, purls, reque
  * by default the function blocks URLs that include these patterns:
  *
  * ```json
- * [".css", ".jpg", ".jpeg", ".png", ".svg", ".woff", ".pdf", ".zip"]
+ * [".css", ".jpg", ".jpeg", ".png", ".svg", ".gif", ".woff", ".pdf", ".zip"]
  * ```
  *
  * The defaults will be concatenated with the patterns you provide in `options.urlPatterns`.
@@ -220,7 +220,7 @@ const enqueueRequestsFromClickableElements = async (page, selector, purls, reque
  *
  * // Block all requests to URLs that include `adsbygoogle.js` and also all defaults.
  * await Apify.utils.puppeteer.blockRequests(page, {
- *     urlPatterns: ['adsbygoogle.js'],
+ *     extraUrlPatterns: ['adsbygoogle.js'],
  * });
  *
  * await page.goto('https://cnn.com');
@@ -234,23 +234,32 @@ const enqueueRequestsFromClickableElements = async (page, selector, purls, reque
  *   Only `*` can be used as a wildcard. It is also automatically added to the beginning
  *   and end of the pattern. This limitation is enforced by the DevTools protocol.
  *   `.png` is the same as `*.png*`.
- * @param {boolean} [options.includeDefaults]
+ * @param {boolean} [options.extraUrlPatterns]
+ *   If you just want to append to the default blocked patterns, use this property.
  * @return {Promise}
  * @memberOf puppeteer
  */
 const blockRequests = async (page, options = {}) => {
+    checkParamOrThrow(page, 'page', 'Object');
+    checkParamOrThrow(options, 'options', 'Object');
+
+    if (options.includeDefaults === false) {
+        log.deprecated('Apify.utils.puppeteer.blockRequests() includeDefaults option '
+            + 'has been replaced by a more clear extraUrlPatterns option. See docs.');
+    }
+
     const {
-        urlPatterns = [],
+        urlPatterns = DEFAULT_BLOCK_REQUEST_URL_PATTERNS,
+        extraUrlPatterns = [],
         includeDefaults = true,
     } = options;
 
-    checkParamOrThrow(page, 'options.page', 'Object');
     checkParamOrThrow(urlPatterns, 'options.urlPatterns', '[String]');
-    checkParamOrThrow(includeDefaults, 'options.includeDefaults', 'Boolean');
+    checkParamOrThrow(extraUrlPatterns, 'options.extraUrlPatterns', '[String]');
 
     const patternsToBlock = includeDefaults
-        ? [...DEFAULT_BLOCK_REQUEST_URL_PATTERNS, ...urlPatterns]
-        : urlPatterns;
+        ? [...DEFAULT_BLOCK_REQUEST_URL_PATTERNS, ...urlPatterns, ...extraUrlPatterns]
+        : [...urlPatterns, ...extraUrlPatterns];
 
     await page._client.send('Network.setBlockedURLs', { urls: patternsToBlock }); // eslint-disable-line no-underscore-dangle
 };

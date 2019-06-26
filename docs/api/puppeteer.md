@@ -403,7 +403,7 @@ If the `options.urlPatterns` parameter is not provided,
 by default the function blocks URLs that include these patterns:
 
 ```json
-[".css", ".jpg", ".jpeg", ".png", ".svg", ".woff", ".pdf", ".zip"]
+[".css", ".jpg", ".jpeg", ".png", ".svg", ".gif", ".woff", ".pdf", ".zip"]
 ```
 
 The defaults will be concatenated with the patterns you provide in `options.urlPatterns`.
@@ -425,7 +425,7 @@ const page = await browser.newPage();
 
 // Block all requests to URLs that include `adsbygoogle.js` and also all defaults.
 await Apify.utils.puppeteer.blockRequests(page, {
-    urlPatterns: ['adsbygoogle.js'],
+    extraUrlPatterns: ['adsbygoogle.js'],
 });
 
 await page.goto('https://cnn.com');
@@ -456,10 +456,11 @@ await page.goto('https://cnn.com');
   and end of the pattern. This limitation is enforced by the DevTools protocol.
   <code>.png</code> is the same as <code>*.png*</code>.</p>
 </td></tr><tr>
-<td><code>[options.includeDefaults]</code></td><td><code>boolean</code></td>
+<td><code>[options.extraUrlPatterns]</code></td><td><code>boolean</code></td>
 </tr>
 <tr>
-<td colspan="3"></td></tr></tbody>
+<td colspan="3"><p>If you just want to append to the default blocked patterns, use this property.</p>
+</td></tr></tbody>
 </table>
 <a name="puppeteer.cacheResponses"></a>
 
