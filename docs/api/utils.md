@@ -23,6 +23,7 @@ await Apify.utils.sleep(1500);
     * [`.sleep`](#utils.sleep) ⇒ `Promise`
     * [`.URL_NO_COMMAS_REGEX`](#utils.URL_NO_COMMAS_REGEX)
     * [`.URL_WITH_COMMAS_REGEX`](#utils.URL_WITH_COMMAS_REGEX)
+    * [`.exports.infiniteScroll`](#utils.exports.infiniteScroll) ⇒ `Promise`
     * [`.isDocker()`](#utils.isDocker) ⇒ `Promise`
     * [`.downloadListOfUrls(options)`](#utils.downloadListOfUrls) ⇒ `Promise<Array<String>>`
     * [`.extractUrls(options)`](#utils.extractUrls) ⇒ `Array<String>`
@@ -181,6 +182,40 @@ and does not support URLs containing commas or spaces. The URLs also may contain
 Regular expression that, in addition to the default regular expression `URL_NO_COMMAS_REGEX`, supports matching commas in URL path and query.
 Note, however, that this may prevent parsing URLs from comma delimited lists, or the URLs may become malformed.
 
+<a name="utils.exports.infiniteScroll"></a>
+
+## `utils.exports.infiniteScroll` ⇒ `Promise`
+Scrolls to the bottom of a page, or until it times out.
+Loads dynamic content when it hits the bottom of a page, and then continues scrolling.
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th><th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>options</code></td><td><code>Object</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"></td></tr><tr>
+<td><code>options.page</code></td><td><code>Object</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>The page object returned from browser.newPage()</p>
+</td></tr><tr>
+<td><code>[options.timeoutSecs]</code></td><td><code>Number</code></td><td><code>0</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>How many seconds to scroll for. If 0, will scroll until bottom of page.</p>
+</td></tr><tr>
+<td><code>[options.waitForSecs]</code></td><td><code>Number</code></td><td><code>4</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>How many seconds to wait for no new content to load before exit.</p>
+</td></tr></tbody>
+</table>
 <a name="utils.isDocker"></a>
 
 ## `utils.isDocker()` ⇒ `Promise`

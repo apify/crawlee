@@ -618,6 +618,75 @@ export const snakeCaseToCamelCase = (snakeCaseStr) => {
 };
 
 /**
+ * Scrolls to the bottom of a page, or until it times out.
+ * Loads dynamic content when it hits the bottom of a page, and then continues scrolling.
+ * @param {Object} options
+ * @param {Object} options.page The page object returned from browser.newPage()
+ * @param {Number} [options.timeoutSecs=0] How many seconds to scroll for. If 0, will scroll until bottom of page.
+ * @param {Number} [options.waitForSecs=4] How many seconds to wait for no new content to load before exit.
+ * @returns {Promise}
+ * @memberOf utils
+ */
+export const infiniteScroll = async function ({ page, timeoutSecs = 0, waitForSecs = 4 }) {
+    checkParamOrThrow(page, 'page', 'Object');
+    checkParamOrThrow(timeoutSecs, 'timeoutSecs', 'Number');
+    checkParamOrThrow(waitForSecs, 'waitForSecs', 'Number');
+
+    let finished;
+    const startTime = Date.now();
+    const CHECK_INTERVAL_MILLIS = 1000;
+    const SCROLL_HEIGHT_IF_ZERO = 10000;
+    const maybeResourceTypesInfiniteScroll = ['xhr', 'fetch', 'websocket', 'other'];
+    const resourcesStats = {
+        newRequested: 0,
+        oldRequested: 0,
+        matchNumber: 0,
+    };
+
+    page.on('request', (msg) => {
+        if (maybeResourceTypesInfiniteScroll.includes(msg.resourceType())) {
+            resourcesStats.newRequested++;
+        }
+    });
+
+    const checkFinished = setInterval(() => {
+        // console.log(resourcesStats)
+        if (resourcesStats.oldRequested === resourcesStats.newRequested) {
+            resourcesStats.matchNumber++;
+            if (resourcesStats.matchNumber >= waitForSecs) {
+                clearInterval(checkFinished);
+                finished = true;
+                return;
+            }
+        } else {
+            resourcesStats.matchNumber = 0;
+            resourcesStats.oldRequested = resourcesStats.newRequested;
+        }
+        // check if timeout has been reached
+        if (timeoutSecs !== 0 && (Date.now() - startTime) / 1000 > timeoutSecs) {
+            // console.log("Timeout limit reached, exiting infinite scroll.")
+            clearInterval(checkFinished);
+            finished = true;
+        }
+    }, CHECK_INTERVAL_MILLIS);
+
+
+    /* global window document */
+
+    const doScroll = async () => {
+        /* istanbul ignore next */
+        await page.evaluate(async () => {
+            const delta = document.body.scrollHeight === 0 ? SCROLL_HEIGHT_IF_ZERO : document.body.scrollHeight; // in case scrollHeight fixed to 0
+            window.scrollBy(0, delta);
+        });
+    };
+
+    while (!finished) {
+        await doScroll();
+    }
+};
+
+/**
  * A namespace that contains various utilities.
  *
  * **Example usage:**
