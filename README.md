@@ -1,4 +1,4 @@
-# Apify SDK: The scalable web crawling and scraping library for JavaScript/Node.js
+# Apify SDK: The scalable web crawling and scraping library for JavaScript
 <!-- Mirror this part to src/index.js -->
 
 [![npm version](https://badge.fury.io/js/apify.svg)](https://www.npmjs.com/package/apify)

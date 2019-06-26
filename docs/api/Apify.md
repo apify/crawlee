@@ -22,7 +22,6 @@ accessible from the left sidebar.
     * [`.getValue(key)`](#module_Apify.getValue) ⇒ `Promise<Object>`
     * [`.isAtHome()`](#module_Apify.isAtHome) ⇒ `Boolean`
     * [`.launchPuppeteer([options])`](#module_Apify.launchPuppeteer) ⇒ `Promise<Browser>`
-    * [`.launchWebDriver([options])`](#module_Apify.launchWebDriver) ⇒ `Promise`
     * [`.main(userFunc)`](#module_Apify.main)
     * [`.metamorph(targetActorId, [input], [options])`](#module_Apify.metamorph) ⇒ `Promise<undefined>`
     * [`.openDataset([datasetIdOrName], [options])`](#module_Apify.openDataset) ⇒ [`Promise<Dataset>`](dataset)
@@ -618,57 +617,6 @@ or the [Puppeteer proxy Example](../examples/puppeteerwithproxy)
 <td colspan="3"><p>Optional settings passed to <code>puppeteer.launch()</code>. In addition to
   <a href="https://pptr.dev/#?product=Puppeteer&show=api-puppeteerlaunchoptions" target="_blank">Puppeteer&#39;s options</a>
   the object may contain our own <a href="../typedefs/launchpuppeteeroptions"><code>LaunchPuppeteerOptions</code></a> that enable additional features.</p>
-</td></tr></tbody>
-</table>
-<a name="module_Apify.launchWebDriver"></a>
-
-## `Apify.launchWebDriver([options])` ⇒ `Promise`
-Opens a new instance of Chrome web browser
-controlled by <a href="http://www.seleniumhq.org/projects/webdriver/" target="_blank">Selenium WebDriver</a>.
-The result of the function is the new instance of the
-<a href="http://seleniumhq.github.io/selenium/docs/api/javascript/module/selenium-webdriver/index_exports_WebDriver.html" target="_blank">
-WebDriver</a>
-class.
-
-To use this function, you need to have Google Chrome and
-<a href="https://sites.google.com/a/chromium.org/chromedriver/" target="_blank">ChromeDriver</a> installed in your environment.
-For example, you can use the `apify/actor-node-chrome` base Docker image for your actor - see
-<a href="https://apify.com/docs/actor#base-images" target="_blank">documentation</a>
-for more details.
-
-For an example of usage, see the <a href="https://apify.com/apify/example-selenium" target="_blank">apify/example-selenium</a> actor.
-
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>[options]</code></td><td><code>Object</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Optional settings passed to WebDriver. Additionally the object can contain the following fields:</p>
-</td></tr><tr>
-<td><code>[options.proxyUrl]</code></td><td><code>String</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>URL to a proxy server. Currently only <code>http://</code> scheme is supported.
-Port number must be specified. For example, <code>http://example.com:1234</code>.</p>
-</td></tr><tr>
-<td><code>[options.headless]</code></td><td><code>String</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Indicates that the browser will be started in headless mode.
-If the option is not defined, and the <code>APIFY_HEADLESS</code> environment variable has value <code>1</code>
-and <code>APIFY_XVFB</code> is NOT <code>1</code>, the value defaults to <code>true</code>, otherwise it will be <code>false</code>.</p>
-</td></tr><tr>
-<td><code>[options.userAgent]</code></td><td><code>String</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>User-Agent for the browser.
-If not provided, the function sets it to a reasonable default.</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.main"></a>

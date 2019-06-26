@@ -1,10 +1,14 @@
-xxx
+NEXT
 ====================
-- Bugfix in BasicCrawler: async calls in `isFinishedFunction` were not awaited
-- Better logging of memory overload errors
-- Better error message in `Apify.call()`
+- **BREAKING CHANGE** Removed support for Web Driver (Selenium) since no further updates are planned.
+  If you wish to continue using Web Driver, please stay on Apify SDK version ^0.14.15
 - **BREAKING CHANGE**: `Dataset.getData()` throws an error if user provides an unsupported option
  when using local disk storage.
+- Improve logging of memory overload errors.
+- Improve error message in `Apify.call()`.
+- Fix multiple log lines appearing when a crawler was about to finish.
+- Add `Apify.utils.puppeteer.enqueueLinksByClickingElements()` function which enables you
+  to add requests to the queue from pure JavaScript navigations, form submissions etc.
 
 0.14.15 / 2019-05-31
 ====================
