@@ -1,7 +1,11 @@
-xxx
+NEXT
 ====================
-- Bugfix in BasicCrawler: async calls in `isFinishedFunction` were not awaited
-- Better logging of memory overload errors
+- **BREAKING CHANGE** Removed support for Web Driver (Selenium) since no further updates are planned.
+  If you wish to continue using Web Driver, please stay on Apify SDK version ^0.14.15
+- Improve logging of memory overload errors.
+- Fix multiple log lines appearing when a crawler was about to finish.
+- Add `Apify.utils.puppeteer.enqueueLinksByClickingElements()` function which enables you
+  to add requests to the queue from pure JavaScript navigations, form submissions etc.
 - The `RequestQueue.handledCount()` function has been resurrected from deprecation,
   in order to have compatible interface with `RequestList`.
 

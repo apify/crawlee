@@ -148,8 +148,9 @@ await crawler.run();
 </tr>
 <tr>
 <td colspan="3"><p>Custom options passed to the underlying <a href="autoscaledpool"><code>AutoscaledPool</code></a> constructor.
-  Note that the <code>runTaskFunction</code>, <code>isTaskReadyFunction</code> and <code>isFinishedFunction</code> options
-  are provided by <code>BasicCrawler</code> and cannot be overridden.</p>
+  Note that the <code>runTaskFunction</code> and <code>isTaskReadyFunction</code> options
+  are provided by <code>BasicCrawler</code> and cannot be overridden.
+  However, you can provide a custom implementation of <code>isFinishedFunction</code>.</p>
 </td></tr><tr>
 <td><code>[options.minConcurrency]</code></td><td><code>Object</code></td><td><code>1</code></td>
 </tr>

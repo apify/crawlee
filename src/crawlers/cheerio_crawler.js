@@ -143,16 +143,18 @@ const DEFAULT_OPTIONS = {
  *   Represents the options passed to
  *   <a href="https://www.npmjs.com/package/request" target="_blank">request</a> to make the HTTP call.
  *   Provided `requestOptions` are added to internal defaults that cannot be overridden to ensure
- *   the operation of `CheerioCrawler` and all its options. If you need more granular control over
- *   your requests, use {@link BasicCrawler}.
+ *   the operation of `CheerioCrawler` and all its options. Headers will not be merged,
+ *   use {@link RequestList} and/or {@link RequestQueue} to initialize your {@link Request} with the
+ *   correct headers or use `options.prepareRequestFunction` to modify your {@link Request} dynamically.
+ *   If you need more granular control over your requests, use {@link BasicCrawler}.
  *
- *   The mandatory internal defaults:
+ *   The mandatory internal defaults that **CANNOT BE OVERRIDDEN** by `requestOptions`:
  *   ```
  *   {
- *       url,
- *       method,
- *       headers,
- *       payload,   // Are provided by RequestList and/or RequestQueue
+ *       url,       // Provided by RequestList and/or RequestQueue
+ *       method,    // Provided by RequestList and/or RequestQueue
+ *       headers,   // Provided by RequestList and/or RequestQueue
+ *       payload,   // Provided by RequestList and/or RequestQueue
  *       strictSSL, // Use options.ignoreSslErrors
  *       proxy,     // Use options.useApifyProxy or options.proxyUrls
  *   }

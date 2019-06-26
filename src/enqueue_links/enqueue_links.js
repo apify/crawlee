@@ -1,109 +1,20 @@
 import { URL } from 'url';
-import _ from 'underscore';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
-import { RequestQueue, RequestQueueLocal } from './request_queue';
-import Request from './request';
-import PseudoUrl from './pseudo_url';
-
-/**
- * To enable direct use of the Actor UI `pseudoUrls` output while keeping high performance,
- * all the pseudoUrls from the output are only constructed once and kept in a cache
- * by the `enqueueLinks()` function.
- * @ignore
- */
-const enqueueLinksCache = new Map();
-export const MAX_ENQUEUE_LINKS_CACHE_SIZE = 1000;
-
-/**
- * Helper factory used in the `enqueueLinks()` function.
- * @param {string[]|Object[]} pseudoUrls
- * @returns {Array}
- * @ignore
- */
-export const constructPseudoUrlInstances = (pseudoUrls) => {
-    return pseudoUrls.map((item, idx) => {
-        // Get pseudoUrl instance from cache.
-        let pUrl = enqueueLinksCache.get(item);
-        if (pUrl) return pUrl;
-        // Nothing in cache, make a new instance.
-        checkParamOrThrow(item, `pseudoUrls[${idx}]`, 'RegExp|Object|String');
-
-        // If it's already a PseudoURL, just save it.
-        if (item instanceof PseudoUrl) pUrl = item;
-        // If it's a string or RegExp, construct a PURL from it directly.
-        else if (typeof item === 'string' || item instanceof RegExp) pUrl = new PseudoUrl(item);
-        // If it's an object, look for a purl property and use it and the rest to construct a PURL with a Request template.
-        else pUrl = new PseudoUrl(item.purl, _.omit(item, 'purl'));
-
-        // Manage cache
-        enqueueLinksCache.set(item, pUrl);
-        if (enqueueLinksCache.size > MAX_ENQUEUE_LINKS_CACHE_SIZE) {
-            const key = enqueueLinksCache.keys().next().value;
-            enqueueLinksCache.delete(key);
-        }
-        return pUrl;
-    });
-};
-
-/**
- * Extracts URLs from a given Puppeteer Page.
- *
- * @param {Page} page
- * @param {string} selector
- * @returns {string[]}
- * @ignore
- */
-export const extractUrlsFromPage = async (page, selector) => {
-    /* istanbul ignore next */
-    return page.$$eval(selector, linkEls => linkEls.map(link => link.href).filter(href => !!href));
-};
-
-/**
- * Extracts URLs from a given Cheerio object.
- *
- * @param {Function} $
- * @param {string} selector
- * @param {string} baseUrl
- * @returns {string[]}
- * @ignore
- */
-export const extractUrlsFromCheerio = ($, selector, baseUrl) => {
-    return $(selector)
-        .map((i, el) => $(el).attr('href'))
-        .get()
-        .filter(href => !!href)
-        .map((href) => {
-            // Throw a meaningful error when only a relative URL would be extracted instead of waiting for the Request to fail later.
-            const isHrefAbsolute = /^[a-z][a-z0-9+.-]*:/.test(href); // Grabbed this in 'is-absolute-url' package.
-            if (!isHrefAbsolute && !baseUrl) {
-                throw new Error(`An extracted URL: ${href} is relative and options.baseUrl is not set. `
-                    + 'Use options.baseUrl in utils.enqueueLinks() to automatically resolve relative URLs.');
-            }
-            return baseUrl
-                ? (new URL(href, baseUrl)).href
-                : href;
-        });
-};
-
-/**
- * Remove with 1.0.0
- * @ignore
- * @todo deprecate
- */
-let logDeprecationWarning = true;
+import { RequestQueue, RequestQueueLocal } from '../request_queue';
+import { constructPseudoUrlInstances, createRequests, addRequestsToQueueInBatches } from './shared';
 
 /**
  * The function finds elements matching a specific CSS selector (HTML anchor (`<a>`) by default)
  * either in a Puppeteer page, or in a Cheerio object (parsed HTML),
- * and enqueues the corresponding links to the provided {@link RequestQueue}.
+ * and enqueues the URLs in their `href` attributes to the provided {@link RequestQueue}.
+ * If you're looking to find URLs in JavaScript heavy pages where links are not available
+ * in `href` elements, but rather navigations are triggered in click handlers
+ * see [`enqueueLinksByClickingElements()`](puppeteer#puppeteer.enqueueLinksByClickingElements).
+ *
  * Optionally, the function allows you to filter the target links' URLs using an array of {@link PseudoUrl} objects
  * and override settings of the enqueued {@link Request} objects.
- *
- * *IMPORTANT*: This is a work in progress. Currently the function only supports elements with
- * `href` attribute pointing to a URL. However, in the future the function will also support
- * JavaScript links, buttons and form submissions when used with a Puppeteer Page.
  *
  * **Example usage**
  *
@@ -146,7 +57,7 @@ let logDeprecationWarning = true;
  *   or an array of strings or RegExps or plain Objects from which the {@link PseudoUrl}s can be constructed.
  *
  *   The plain objects must include at least the `purl` property, which holds the pseudo-URL string or RegExp.
- *   All remaining keys will be used as the `requestTemplate` argument of the {@link PseudoUrl} constructor.
+ *   All remaining keys will be used as the `requestTemplate` argument of the {@link PseudoUrl} constructor,
  *   which lets you specify special properties for the enqueued {@link Request} objects.
  *
  *   If `pseudoUrls` is an empty array, `null` or `undefined`, then the function
@@ -184,7 +95,7 @@ let logDeprecationWarning = true;
  * @memberOf utils
  * @name enqueueLinks
  */
-export const enqueueLinks = async (...args) => {
+export async function enqueueLinks(...args) {
     // TODO: Remove after v1.0.0 gets released.
     // Refactor enqueueLinks to use an options object and keep backwards compatibility
     let page, $, selector, requestQueue, baseUrl, pseudoUrls, userData; // eslint-disable-line
@@ -192,11 +103,8 @@ export const enqueueLinks = async (...args) => {
         [{ page, $, selector = 'a', requestQueue, baseUrl, pseudoUrls, userData = {} }] = args;
     } else {
         [page, selector = 'a', requestQueue, pseudoUrls, userData = {}] = args;
-        if (logDeprecationWarning) {
-            log.warning('Passing individual arguments to enqueueLinks() is deprecated. '
+        log.deprecated('Passing individual arguments to enqueueLinks() is deprecated. '
                 + 'Use an options object: enqueueLinks({ page, selector, requestQueue, pseudoUrls, userData }) instead.');
-            logDeprecationWarning = false;
-        }
     }
 
     // Check for pseudoUrls as a third parameter.
@@ -219,29 +127,52 @@ export const enqueueLinks = async (...args) => {
     checkParamOrThrow(baseUrl, 'baseUrl', 'Maybe String');
     if (baseUrl && page) log.warning('The parameter options.baseUrl can only be used when parsing a Cheerio object. It will be ignored.');
     checkParamOrThrow(pseudoUrls, 'pseudoUrls', 'Maybe Array');
-    checkParamOrThrow(userData, 'userData', 'Maybe Object');
+    checkParamOrThrow(userData, 'userData', 'Object');
 
     // Construct pseudoUrls from input where necessary.
     const pseudoUrlInstances = constructPseudoUrlInstances(pseudoUrls || []);
 
     const urls = page ? await extractUrlsFromPage(page, selector) : extractUrlsFromCheerio($, selector, baseUrl);
-    let requests = [];
+    const requests = createRequests(urls, pseudoUrlInstances, userData);
+    return addRequestsToQueueInBatches(requests, requestQueue);
+}
 
-    if (pseudoUrlInstances.length) {
-        urls.forEach((url) => {
-            pseudoUrlInstances
-                .filter(purl => purl.matches(url))
-                .forEach(purl => requests.push(purl.createRequest(url)));
+/**
+ * Extracts URLs from a given Puppeteer Page.
+ *
+ * @param {Page} page
+ * @param {string} selector
+ * @return {string[]}
+ * @ignore
+ */
+export async function extractUrlsFromPage(page, selector) {
+    /* istanbul ignore next */
+    return page.$$eval(selector, linkEls => linkEls.map(link => link.href).filter(href => !!href));
+}
+
+/**
+ * Extracts URLs from a given Cheerio object.
+ *
+ * @param {Function} $
+ * @param {string} selector
+ * @param {string} baseUrl
+ * @return {string[]}
+ * @ignore
+ */
+export function extractUrlsFromCheerio($, selector, baseUrl) {
+    return $(selector)
+        .map((i, el) => $(el).attr('href'))
+        .get()
+        .filter(href => !!href)
+        .map((href) => {
+            // Throw a meaningful error when only a relative URL would be extracted instead of waiting for the Request to fail later.
+            const isHrefAbsolute = /^[a-z][a-z0-9+.-]*:/.test(href); // Grabbed this in 'is-absolute-url' package.
+            if (!isHrefAbsolute && !baseUrl) {
+                throw new Error(`An extracted URL: ${href} is relative and options.baseUrl is not set. `
+                    + 'Use options.baseUrl in utils.enqueueLinks() to automatically resolve relative URLs.');
+            }
+            return baseUrl
+                ? (new URL(href, baseUrl)).href
+                : href;
         });
-    } else {
-        requests = urls.map(url => new Request({ url }));
-    }
-
-    const queueOperationInfos = [];
-    for (const request of requests) {
-        // Inject custom userData
-        Object.assign(request.userData, userData);
-        queueOperationInfos.push(await requestQueue.addRequest(request));
-    }
-    return queueOperationInfos;
-};
+}
