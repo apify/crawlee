@@ -199,12 +199,22 @@ export class Dataset {
     }
 
     /**
-     * Returns items in the dataset based on the provided parameters.
+     * Returns items in the dataset based on the provided parameters. The returned object
+     * has the following structure:
+     *
+     * ```javascript
+     * {
+     *     items, // Array|String|Buffer based on chosen format parameter.
+     *     total, // Number
+     *     limit, // Number
+     *     offset, // Number
+     * }
+     * ```
      *
      * @param {Object} [options] All `getData()` parameters are passed
      *   via an options object with the following keys:
      * @param {String} [options.format='json']
-     *   Format of the items, possible values are: `json`, `csv`, `xlsx`, `html`, `xml` and `rss`.
+     *   Format of the `items` property, possible values are: `json`, `csv`, `xlsx`, `html`, `xml` and `rss`.
      * @param {Number} [options.offset=0]
      *   Number of array elements that should be skipped at the start.
      * @param {Number} [options.limit=250000]
@@ -239,7 +249,7 @@ export class Dataset {
      *   If set to `true` then function applies the `fields: ['url','pageFunctionResult','errorInfo']` and `unwind: 'pageFunctionResult'` options.
      * @param {Boolean} [options.skipFailedPages]
      *   If set to `true` then all the items with errorInfo property will be skipped from the output.
-     * @return {Promise<Array|String|Buffer>}
+     * @return {Promise<Object>}
      */
     getData(options = {}) {
         const { datasetId } = this;

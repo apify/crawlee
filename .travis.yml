@@ -1,21 +1,61 @@
-dist: trusty
-sudo: required
-addons:
-  chrome: stable
-before_install:
-  - # Install ChromeDriver for Selenium (IMPORTANT: this version should correspond to the version in apify-actor-docker)
-  - sudo curl -sS http://chromedriver.storage.googleapis.com/2.30/chromedriver_linux64.zip > /tmp/chromedriver.zip
-  - sudo unzip /tmp/chromedriver.zip -d /tmp
-  - sudo rm /tmp/chromedriver.zip
-  - sudo mv /tmp/chromedriver /usr/bin/
-  - # Print versions to help debugging
-  - google-chrome --version
-  - chromedriver --version
+dist: xenial
+sudo: false
 language: node_js
+if: (tag IS blank) OR tag =~ /^v\d+\.\d+\.\d+$/
 node_js:
-  - "10"
-  - "9"
-  - "8"
-script:
-  - npm run lint
-  - npm test
+- '12'
+- '10'
+- '8'
+cache:
+  directories:
+  - "$HOME/.npm"
+  - node_modules
+  - website/node_modules
+env:
+  global:
+  - DOCKER_USERNAME=mnmkng
+  - secure: pgwE9Nxa27nwuC0zI+IrbpY/P/QNPL9oNxdwk+LMxa90Tn/5EUKl5D/LblGzjRYd39i/Z1ucNf1OJoKThX7YQxs/de4fjX00HGC0DjRzBRcLsU02HhbrNSA/6ASpWyR2WTxFGnJG/15CzHgqP1BM6EvLJixFoyhk6tnF0kqpJos/h8yfoSZV1kfdlcaz1TQU/NdoFD2Agxm5BEf3/b4SKtXGF0pGGj/IdPCMc/NwsJpHFHi2lU90Nr0WVnHD3wyZRHyasQlGG9Yu/f8Tjf27LCY5QDgcJ/JhsFbwabUwXe98JtTLssriOCajXECilwdBYFTpctIhIgfs6bmdO5Xy3rUjrvdMbOjhjNhkD0UHAQjQg5SUEAo5RKssEUgTUtL4S7P6falc1QwhehZZO/65Ui13Jh1zhlBZpYAO1RXLB7m8DHj4gRrgQswn4qBjWpjbiwfC9ocIuH0b/3QUXRGA4cPjB3G4tl+OdFMFykSYvuZGdWC4U6x+z/C6OfEEYwqJaapHKNnafp9429LMNPzd8SSS3KhDaY7N2kLnH5YaoFAVsZ0rRIk0GZpP+xYWBfFlELqCarvcuZi9su3QWverzecjOpfNu+LCHpOYdiPQtGvm8Mzr1eZun/VaJ5DZ3ZIX1y6ODSCg9b9ikGtcz6A1n2GkE4cHN/B1YI52NIbRXN0=
+  - secure: q5jH62AWy4FpOEPmRMWeA3zVcoeGobBzQ1yJ9YrbTOjGAFa6Kd86lS0VUJWtgOwAMycEROCTpEZX+oalVhRaQyR8kikZg7h80wpOziPfWAJe0y3wBfoP1eLaotLF4PhDhSw2X/wo88DGufzYIFOnH4icITYQIaVPe+8an/Nj/I+Hl3UAONEhIIzMTwWAXNz1haNrPGEDN0keva3bPEaMcrK/f1BgkaOTvVFoZRNpsBGaIuQnM9B9eXzoJeXwB0WmWmX/7Pr2DXE4DOWmSA0hfzJUuCmZsudR1+DL5S2gG97ppjBJ/hKIvNusn5/O7tj00lf/LF6hOKgOnWTWFFhrLbMC9pbqt5TbG4D1kCybiZqZmq1P27n5HX2RmjFiUEG2LJ39nnt+UIo+Y01IuL9YtjghvKpCelauBGflhrdZPae2nA6rvikEzLPHuk7qyHiV03hYgom6feR6yv8S1A6PACvBrX1onPvoI4ihv6IOvrQ9l3rzEGxuRyD3QDDL+CT3wvdr0G7NbMRorkgZDCsMBN77mjivcg7H0cqp8b/n7DRo/Ua1lWTHSs95Y2xr8C0DjpISMLcEHzNeZxs46NmZbPzbjuqac3VJW90g3RhMlIJ06MOHp0zAZHdLdJIUTkTjN0d45DHGoETtFinXaRe7tqGqkPt54sQ8c2ZRTU4QZD0=
+stages:
+- test
+- deploy
+- images
+install:
+- npm install --no-package-lock
+jobs:
+  include:
+  - stage: test
+    name: Lint&Docs
+    node_js: '10'
+    script:
+    - "(cd website && npm install --no-package-lock)"
+    - npm run lint && node .travis/check-docs.js
+  - stage: deploy
+    if: branch = master AND type != pull_request
+    script: skip
+    node_js: '10'
+    before_deploy: node .travis/before-deploy.js
+    after_deploy: node .travis/after-deploy.js
+    deploy:
+    - provider: npm
+      email: ondra@apify.com
+      api_key:
+          secure: Gl7OuGxi0tmCJqg5k/fKUWvPBB5xFnHouIOp3ykiqibxOywoOp2ciug18KpnMjCuVyPpKsvNJsfMeo3tPterJLiBhP7XESvcY6fITBQzxZoRk9q0luWCKeN4WOvkbT0hY26yag6taiuUhOBlCrWQwalziaA1h2heuCCvYNm03Fjhn/Ogm6W9oXAycRkNM782cvzwfM/lMbLwGpA1wi1SD7k6hHhR3zUMv2dBEuKMzcIalHYg3ILBK+YZe6q+1RxhZHo9u+YgGLLoP9DFuLRmiHLUAjb0wJe3u4YO9s+HUW/a11rgIhUpXfNw/jWu1hoXrwRA7cnTJT0rYRAIEFZhQNL/oAPouKn20IyRK3P7juISt37WXotpuGzxAlY1PZAaCGL1SyOcOlcmDPhKEqd41QC/QcSqAZgXCrR8k0lS86IXwlZihxuVFy+fHOatP/NqeXOMXYDYshbo2jJPU97UbI2SNVT4gdFTEaWJW/e3v+yFwPh0z7cvnYe5FXuCjjdEkcNnaSl0NoYn2UmVWrwr/og8rWda5D5BQqmovXuq2Ask87u5IJOC+TEIQ4zf34nVLLm+aI9HjSFPMKfsKAo/toHkpalruqRFmMQ1C6CFNPoKdH9icLXIOG/cM3HeRkHGrckN28uxjrgzatPC6wcCmHZIUc0DLl9Z/GkRKrE1kz0=
+      on:
+        branch: master
+      tag: beta
+      skip_cleanup: true
+    - provider: npm
+      email: ondra@apify.com
+      api_key:
+          secure: Gl7OuGxi0tmCJqg5k/fKUWvPBB5xFnHouIOp3ykiqibxOywoOp2ciug18KpnMjCuVyPpKsvNJsfMeo3tPterJLiBhP7XESvcY6fITBQzxZoRk9q0luWCKeN4WOvkbT0hY26yag6taiuUhOBlCrWQwalziaA1h2heuCCvYNm03Fjhn/Ogm6W9oXAycRkNM782cvzwfM/lMbLwGpA1wi1SD7k6hHhR3zUMv2dBEuKMzcIalHYg3ILBK+YZe6q+1RxhZHo9u+YgGLLoP9DFuLRmiHLUAjb0wJe3u4YO9s+HUW/a11rgIhUpXfNw/jWu1hoXrwRA7cnTJT0rYRAIEFZhQNL/oAPouKn20IyRK3P7juISt37WXotpuGzxAlY1PZAaCGL1SyOcOlcmDPhKEqd41QC/QcSqAZgXCrR8k0lS86IXwlZihxuVFy+fHOatP/NqeXOMXYDYshbo2jJPU97UbI2SNVT4gdFTEaWJW/e3v+yFwPh0z7cvnYe5FXuCjjdEkcNnaSl0NoYn2UmVWrwr/og8rWda5D5BQqmovXuq2Ask87u5IJOC+TEIQ4zf34nVLLm+aI9HjSFPMKfsKAo/toHkpalruqRFmMQ1C6CFNPoKdH9icLXIOG/cM3HeRkHGrckN28uxjrgzatPC6wcCmHZIUc0DLl9Z/GkRKrE1kz0=
+      on:
+        tags: true
+      tag: latest
+      skip_cleanup: true
+  - stage: images
+    if: branch = master AND type != pull_request
+    node_js: '10'
+    services:
+    - docker
+    script: node .travis/release-images.js

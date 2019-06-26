@@ -136,14 +136,16 @@ await crawler.run();
 <td colspan="3"><p>Represents the options passed to
   <a href="https://www.npmjs.com/package/request" target="_blank">request</a> to make the HTTP call.
   Provided <code>requestOptions</code> are added to internal defaults that cannot be overridden to ensure
-  the operation of <code>CheerioCrawler</code> and all its options. If you need more granular control over
-  your requests, use <a href="basiccrawler"><code>BasicCrawler</code></a>.</p>
-<p>  The mandatory internal defaults:</p>
+  the operation of <code>CheerioCrawler</code> and all its options. Headers will not be merged,
+  use <a href="requestlist"><code>RequestList</code></a> and/or <a href="requestqueue"><code>RequestQueue</code></a> to initialize your <a href="request"><code>Request</code></a> with the
+  correct headers or use <code>options.prepareRequestFunction</code> to modify your <a href="request"><code>Request</code></a> dynamically.
+  If you need more granular control over your requests, use <a href="basiccrawler"><code>BasicCrawler</code></a>.</p>
+<p>  The mandatory internal defaults that <strong>CANNOT BE OVERRIDDEN</strong> by <code>requestOptions</code>:</p>
 <pre><code>  {
-      url,
-      method,
-      headers,
-      payload,   // Are provided by RequestList and/or RequestQueue
+      url,       // Provided by RequestList and/or RequestQueue
+      method,    // Provided by RequestList and/or RequestQueue
+      headers,   // Provided by RequestList and/or RequestQueue
+      payload,   // Provided by RequestList and/or RequestQueue
       strictSSL, // Use options.ignoreSslErrors
       proxy,     // Use options.useApifyProxy or options.proxyUrls
   }</code></pre></td></tr><tr>

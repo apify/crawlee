@@ -57,7 +57,7 @@ if (purl.matches('http://www.example.com/pages/my-awesome-page')) console.log('M
 * [PseudoUrl](pseudourl)
     * [`new PseudoUrl(purl, requestTemplate)`](#new_PseudoUrl_new)
     * [`.matches(url)`](#PseudoUrl+matches) ⇒ `Boolean`
-    * [`.createRequest(url)`](#PseudoUrl+createRequest) ⇒ [`Request`](request)
+    * [`.createRequest(urlOrProps)`](#PseudoUrl+createRequest) ⇒ [`Request`](request)
 
 <a name="new_PseudoUrl_new"></a>
 
@@ -106,8 +106,12 @@ Determines whether a URL matches this pseudo-URL pattern.
 </table>
 <a name="PseudoUrl+createRequest"></a>
 
-## `pseudoUrl.createRequest(url)` ⇒ [`Request`](request)
-Creates a Request object from a provided `requestTemplate` and given URL.
+## `pseudoUrl.createRequest(urlOrProps)` ⇒ [`Request`](request)
+Creates a Request object from a provided `requestTemplate` and a given URL
+or an object that specifies $[`Request`](request) properties. In case of a collision
+the properties will override the template, except for `userData`, which will
+be merged together, with the `userData` property having preference over the template.
+This enables dynamic overriding of the template.
 
 <table>
 <thead>
@@ -117,7 +121,7 @@ Creates a Request object from a provided `requestTemplate` and given URL.
 </thead>
 <tbody>
 <tr>
-<td><code>url</code></td><td><code>String</code></td>
+<td><code>urlOrProps</code></td><td><code>string</code> | <code>Object</code></td>
 </tr>
 <tr>
 </tr></tbody>

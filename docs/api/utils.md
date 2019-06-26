@@ -25,7 +25,7 @@ await Apify.utils.sleep(1500);
     * [`.URL_WITH_COMMAS_REGEX`](#utils.URL_WITH_COMMAS_REGEX)
     * [`.isDocker()`](#utils.isDocker) ⇒ `Promise`
     * [`.downloadListOfUrls(options)`](#utils.downloadListOfUrls) ⇒ `Promise<Array<String>>`
-    * [`.extractUrls(string, [urlRegExp])`](#utils.extractUrls) ⇒ `Array<String>`
+    * [`.extractUrls(options)`](#utils.extractUrls) ⇒ `Array<String>`
     * [`.getRandomUserAgent()`](#utils.getRandomUserAgent) ⇒ `String`
     * [`.htmlToText(html)`](#utils.htmlToText) ⇒ `String`
 
@@ -34,13 +34,13 @@ await Apify.utils.sleep(1500);
 ## `utils.enqueueLinks` ⇒ `Promise<Array<QueueOperationInfo>>`
 The function finds elements matching a specific CSS selector (HTML anchor (`<a>`) by default)
 either in a Puppeteer page, or in a Cheerio object (parsed HTML),
-and enqueues the corresponding links to the provided [`RequestQueue`](requestqueue).
+and enqueues the URLs in their `href` attributes to the provided [`RequestQueue`](requestqueue).
+If you're looking to find URLs in JavaScript heavy pages where links are not available
+in `href` elements, but rather navigations are triggered in click handlers
+see [`enqueueLinksByClickingElements()`](puppeteer#puppeteer.enqueueLinksByClickingElements).
+
 Optionally, the function allows you to filter the target links' URLs using an array of [`PseudoUrl`](pseudourl) objects
 and override settings of the enqueued [`Request`](request) objects.
-
-*IMPORTANT*: This is a work in progress. Currently the function only supports elements with
-`href` attribute pointing to a URL. However, in the future the function will also support
-JavaScript links, buttons and form submissions when used with a Puppeteer Page.
 
 **Example usage**
 
@@ -111,7 +111,7 @@ await Apify.utils.enqueueLinks({
 <td colspan="3"><p>An array of <a href="pseudourl"><code>PseudoUrl</code></a>s matching the URLs to be enqueued,
   or an array of strings or RegExps or plain Objects from which the <a href="pseudourl"><code>PseudoUrl</code></a>s can be constructed.</p>
 <p>  The plain objects must include at least the <code>purl</code> property, which holds the pseudo-URL string or RegExp.
-  All remaining keys will be used as the <code>requestTemplate</code> argument of the <a href="pseudourl"><code>PseudoUrl</code></a> constructor.
+  All remaining keys will be used as the <code>requestTemplate</code> argument of the <a href="pseudourl"><code>PseudoUrl</code></a> constructor,
   which lets you specify special properties for the enqueued <a href="request"><code>Request</code></a> objects.</p>
 <p>  If <code>pseudoUrls</code> is an empty array, <code>null</code> or <code>undefined</code>, then the function
   enqueues all links found on the page.</p>
@@ -223,7 +223,7 @@ Optionally, custom regular expression and encoding may be provided.
 </table>
 <a name="utils.extractUrls"></a>
 
-## `utils.extractUrls(string, [urlRegExp])` ⇒ `Array<String>`
+## `utils.extractUrls(options)` ⇒ `Array<String>`
 Collects all URLs in an arbitrary string to an array, optionally using a custom regular expression.
 
 <table>
@@ -234,11 +234,15 @@ Collects all URLs in an arbitrary string to an array, optionally using a custom 
 </thead>
 <tbody>
 <tr>
-<td><code>string</code></td><td><code>String</code></td><td></td>
+<td><code>options</code></td><td><code>Object</code></td><td></td>
 </tr>
 <tr>
 </tr><tr>
-<td><code>[urlRegExp]</code></td><td><code>RegExp</code></td><td><code>Apify.utils.URL_NO_COMMAS_REGEX</code></td>
+<td><code>options.string</code></td><td><code>String</code></td><td></td>
+</tr>
+<tr>
+</tr><tr>
+<td><code>[options.urlRegExp]</code></td><td><code>RegExp</code></td><td><code>Apify.utils.URL_NO_COMMAS_REGEX</code></td>
 </tr>
 <tr>
 </tr></tbody>
