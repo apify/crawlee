@@ -632,9 +632,9 @@ export const infiniteScroll = async function ({ page, timeoutSecs = 0, waitForSe
     checkParamOrThrow(waitForSecs, 'waitForSecs', 'Number');
 
     let finished;
-    const TIMEOUT_SECS = timeoutSecs;
-    const WAIT_FOR_SECS = waitForSecs;
     const startTime = Date.now();
+    const CHECK_INTERVAL_MILLIS = 1000;
+    const SCROLL_HEIGHT_IF_ZERO = 10000;
     const maybeResourceTypesInfiniteScroll = ['xhr', 'fetch', 'websocket', 'other'];
     const resourcesStats = {
         newRequested: 0,
@@ -652,7 +652,7 @@ export const infiniteScroll = async function ({ page, timeoutSecs = 0, waitForSe
         // console.log(resourcesStats)
         if (resourcesStats.oldRequested === resourcesStats.newRequested) {
             resourcesStats.matchNumber++;
-            if (resourcesStats.matchNumber >= WAIT_FOR_SECS) {
+            if (resourcesStats.matchNumber >= waitForSecs) {
                 clearInterval(checkFinished);
                 finished = true;
                 return;
@@ -662,12 +662,12 @@ export const infiniteScroll = async function ({ page, timeoutSecs = 0, waitForSe
             resourcesStats.oldRequested = resourcesStats.newRequested;
         }
         // check if timeout has been reached
-        if (TIMEOUT_SECS !== 0 && (Date.now() - startTime) / 1000 > TIMEOUT_SECS) {
+        if (timeoutSecs !== 0 && (Date.now() - startTime) / 1000 > timeoutSecs) {
             // console.log("Timeout limit reached, exiting infinite scroll.")
             clearInterval(checkFinished);
             finished = true;
         }
-    }, 1000);
+    }, CHECK_INTERVAL_MILLIS);
 
 
     /* global window document */
@@ -675,7 +675,7 @@ export const infiniteScroll = async function ({ page, timeoutSecs = 0, waitForSe
     const doScroll = async () => {
         /* istanbul ignore next */
         await page.evaluate(async () => {
-            const delta = document.body.scrollHeight === 0 ? 10000 : document.body.scrollHeight; // in case scrollHeight fixed to 0
+            const delta = document.body.scrollHeight === 0 ? SCROLL_HEIGHT_IF_ZERO : document.body.scrollHeight; // in case scrollHeight fixed to 0
             window.scrollBy(0, delta);
         });
     };
