@@ -114,6 +114,11 @@ has the following structure:
 }
 ```
 
+**NOTE**: If using dataset with local disk storage, the `format` option must be `json` and
+the following options are not supported:
+`unwind`, `disableBodyParser`, `attachment`, `bom` and `simplified`.
+If you try to use them, you will receive an error.
+
 <table>
 <thead>
 <tr>
