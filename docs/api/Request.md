@@ -110,7 +110,7 @@ const foo = request.userData.foo;
 * [Request](request)
     * [`new Request(options)`](#new_Request_new)
     * [`.pushErrorMessage(errorOrMessage, [options])`](#Request+pushErrorMessage)
-    * [`.doNotRetry([message])`](#Request+doNotRetry)
+    * ~~[`.doNotRetry([message])`](#Request+doNotRetry)~~
 
 <a name="new_Request_new"></a>
 
@@ -218,7 +218,9 @@ as possible, since just throwing a bad type error makes any debugging rather dif
 </table>
 <a name="Request+doNotRetry"></a>
 
-## `request.doNotRetry([message])`
+## ~~`request.doNotRetry([message])`~~
+***Deprecated***
+
 Flags the request with no retry which prevents [`BasicCrawler`](basiccrawler)
 (as well as {@PuppeteerCrawler} and {@CheerioCrawler}, since they use {@BasicCrawler} internally)
 from retrying the request after an error occurs.

@@ -1,9 +1,26 @@
 import _ from 'underscore';
 import util from 'util';
+import crypto from 'crypto';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { normalizeUrl } from 'apify-shared/utilities';
+import log from 'apify-shared/log';
 
-export const computeUniqueKey = (url, keepUrlFragment) => normalizeUrl(url, keepUrlFragment);
+export function computeUniqueKey({ url, method, payload, keepUrlFragment }) {
+    const normalizedMethod = method.toUpperCase();
+    const normalizedUrl = normalizeUrl(url, keepUrlFragment);
+    if (normalizedMethod === 'GET') return normalizedUrl;
+    const payloadHash = hashPayload(payload);
+    return `${normalizedMethod}(${payloadHash}):${normalizedUrl}`;
+}
+
+export function hashPayload(payload) {
+    return crypto
+        .createHash('sha256')
+        .update(payload)
+        .digest('base64')
+        .replace(/(\+|\/|=)/g, '')
+        .substr(0, 8);
+}
 
 /**
  * Represents a URL to be crawled, optionally including HTTP method, headers, payload and other metadata.
@@ -142,7 +159,7 @@ class Request {
         this.url = url;
         this.loadedUrl = loadedUrl;
         // NOTE: If URL is invalid, computeUniqueKey() returns null which was causing weird errors
-        this.uniqueKey = uniqueKey || computeUniqueKey(url, keepUrlFragment) || url;
+        this.uniqueKey = uniqueKey || computeUniqueKey({ url, method, payload, keepUrlFragment }) || url;
         this.method = method;
         this.payload = payload;
         this.noRetry = noRetry;
@@ -151,7 +168,8 @@ class Request {
         this.headers = headers;
         this.userData = userData;
 
-        // TODO: What is this text parsing good for? There's no unit test for it...
+        // Requests received from API will have ISOString dates,
+        // but we want to have a Date instance.
         // eslint-disable-next-line no-nested-ternary
         this.handledAt = _.isDate(handledAt)
             ? handledAt
@@ -214,11 +232,11 @@ class Request {
      * and throw an Error.
      *
      * @param {String} [message]
+     * @deprecated 2019/06/26
      */
     doNotRetry(message) {
+        log.deprecated('request.doNotRetry is deprecated. Use request.noRetry = true; instead.');
         this.noRetry = true;
-        // TODO (JC 2019-05-03): Frankly, I think this function shouldn't be in the SDK, it has zero value really
-        // and only adds a confusion and legacy burden. I'd just deprecate it.
         if (message) throw new Error(message);
     }
 }
