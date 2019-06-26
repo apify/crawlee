@@ -3,7 +3,9 @@ NEXT
 - **BREAKING CHANGE** Removed support for Web Driver (Selenium) since no further updates are planned.
   If you wish to continue using Web Driver, please stay on Apify SDK version ^0.14.15
 - **BREAKING CHANGE**: `Dataset.getData()` throws an error if user provides an unsupported option
- when using local disk storage.
+  when using local disk storage.
+- **BREAKING CHANGE**: `Requests` with `method` other than `GET` will now have their `uniqueKey` computed
+  from a combination of `url`, `method` and `payload`.
 - Improve logging of memory overload errors.
 - Improve error message in `Apify.call()`.
 - Fix multiple log lines appearing when a crawler was about to finish.
