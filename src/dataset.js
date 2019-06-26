@@ -211,6 +211,11 @@ export class Dataset {
      * }
      * ```
      *
+     * **NOTE**: If using dataset with local disk storage, the `format` option must be `json` and
+     * the following options are not supported:
+     * `unwind`, `disableBodyParser`, `attachment`, `bom` and `simplified`.
+     * If you try to use them, you will receive an error.
+     *
      * @param {Object} [options] All `getData()` parameters are passed
      *   via an options object with the following keys:
      * @param {String} [options.format='json']
@@ -489,6 +494,14 @@ export class DatasetLocal {
         checkParamOrThrow(opts, 'opts', 'Object');
         checkParamOrThrow(opts.limit, 'opts.limit', 'Maybe Number');
         checkParamOrThrow(opts.offset, 'opts.offset', 'Maybe Number');
+
+        if (opts.format && opts.format !== 'json') {
+            throw new Error(`Datasets with local disk storage only support the "json" format (was "${opts.format}")`);
+        }
+        if (opts.unwind || opts.disableBodyParser || opts.attachment || opts.bom || opts.simplified) {
+            // eslint-disable-next-line max-len
+            throw new Error('Datasets with local disk storage do not support the following options: unwind, disableBodyParser, attachment, bom, simplified');
+        }
 
         if (!opts.limit) opts.limit = LOCAL_GET_ITEMS_DEFAULT_LIMIT;
         if (!opts.offset) opts.offset = 0;

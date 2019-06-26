@@ -67,8 +67,8 @@ const waitForRunToFinish = async ({ actId, runId, token, waitSecs, taskId }) => 
         && status !== ACT_JOB_STATUSES.READY
     ) {
         const message = taskId
-            ? `The actor task ${taskId} invoked by Apify.call() did not succeed`
-            : `The actor ${actId} invoked by Apify.call() did not succeed`;
+            ? `The actor task ${taskId} invoked by Apify.call() did not succeed. For details, see https://my.apify.com/view/runs/${runId}`
+            : `The actor ${actId} invoked by Apify.call() did not succeed. For details, see https://my.apify.com/view/runs/${runId}`;
         throw new ApifyCallError(updatedRun, message);
     }
 
