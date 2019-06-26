@@ -60,6 +60,7 @@
         "htmlparser2": "^3.10.1",
         "iltorb": "^2.4.2",
         "jquery": "^3.3.1",
+        "jsdoc-to-markdown": "^5.0.0",
         "mime": "^2.3.1",
         "proxy-chain": "^0.2.5",
         "request": "^2.88.0",
