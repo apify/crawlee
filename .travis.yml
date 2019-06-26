@@ -31,7 +31,7 @@ jobs:
     - "(cd website && npm install --no-package-lock)"
     - npm run lint && node .travis/check-docs.js
   - stage: deploy
-    if: branch = master
+    if: branch = master AND type != pull_request
     script: skip
     node_js: '10'
     before_deploy: node .travis/before-deploy.js
@@ -54,7 +54,7 @@ jobs:
       tag: latest
       skip_cleanup: true
   - stage: images
-    if: branch = master
+    if: branch = master AND type != pull_request
     node_js: '10'
     services:
     - docker
