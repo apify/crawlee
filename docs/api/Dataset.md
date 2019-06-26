@@ -53,7 +53,7 @@ await dataset.pushData([
 
 * [Dataset](dataset)
     * [`.pushData(data)`](#Dataset+pushData) ⇒ `Promise`
-    * [`.getData([options])`](#Dataset+getData) ⇒ `Promise<(Array|String|Buffer)>`
+    * [`.getData([options])`](#Dataset+getData) ⇒ `Promise<Object>`
     * [`.getInfo()`](#Dataset+getInfo) ⇒ `Promise<Object>`
     * [`.forEach(iteratee, [options], [index])`](#Dataset+forEach) ⇒ `Promise`
     * [`.map(iteratee, options)`](#Dataset+map) ⇒ `Promise<Array>`
@@ -101,8 +101,18 @@ The objects must be serializable to JSON and the JSON representation of each obj
 </table>
 <a name="Dataset+getData"></a>
 
-## `dataset.getData([options])` ⇒ `Promise<(Array|String|Buffer)>`
-Returns items in the dataset based on the provided parameters.
+## `dataset.getData([options])` ⇒ `Promise<Object>`
+Returns items in the dataset based on the provided parameters. The returned object
+has the following structure:
+
+```javascript
+{
+    items, // Array|String|Buffer based on chosen format parameter.
+    total, // Number
+    limit, // Number
+    offset, // Number
+}
+```
 
 <table>
 <thead>
@@ -121,7 +131,7 @@ Returns items in the dataset based on the provided parameters.
 <td><code>[options.format]</code></td><td><code>String</code></td><td><code>&#x27;json&#x27;</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Format of the items, possible values are: <code>json</code>, <code>csv</code>, <code>xlsx</code>, <code>html</code>, <code>xml</code> and <code>rss</code>.</p>
+<td colspan="3"><p>Format of the <code>items</code> property, possible values are: <code>json</code>, <code>csv</code>, <code>xlsx</code>, <code>html</code>, <code>xml</code> and <code>rss</code>.</p>
 </td></tr><tr>
 <td><code>[options.offset]</code></td><td><code>Number</code></td><td><code>0</code></td>
 </tr>
