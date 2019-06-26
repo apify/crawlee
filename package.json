@@ -59,7 +59,7 @@
         "cheerio": "^1.0.0-rc.2",
         "content-type": "^1.0.4",
         "express": "^4.16.4",
-        "fs-extra": "^7.0.1",
+        "fs-extra": "^8.0.1",
         "htmlparser2": "^3.10.1",
         "iltorb": "^2.4.2",
         "jquery": "^3.3.1",
@@ -107,7 +107,6 @@
         "why-is-node-running": "^2.0.3"
     },
     "optionalDependencies": {
-        "puppeteer": "1.17.0",
-        "selenium-webdriver": "^3.6.0"
+        "puppeteer": "1.18.0"
     }
 }
