@@ -3,7 +3,9 @@ NEXT
 - **BREAKING CHANGE** Removed support for Web Driver (Selenium) since no further updates are planned.
   If you wish to continue using Web Driver, please stay on Apify SDK version ^0.14.15
 - **BREAKING CHANGE**: `Dataset.getData()` throws an error if user provides an unsupported option
- when using local disk storage.
+  when using local disk storage.
+- **BREAKING CHANGE**: `Requests` with `method` other than `GET` will now have their `uniqueKey` computed
+  from a combination of `url`, `method` and `payload`.
 - Improve logging of memory overload errors.
 - Improve error message in `Apify.call()`.
 - Fix multiple log lines appearing when a crawler was about to finish.
@@ -11,6 +13,10 @@ NEXT
   to add requests to the queue from pure JavaScript navigations, form submissions etc.
 - The `RequestQueue.handledCount()` function has been resurrected from deprecation,
   in order to have compatible interface with `RequestList`.
+- Add `useExtendedUniqueKey` option to `Request` constructor to include `method` and `payload`
+  in the `Request`'s computed `uniqueKey`.
+- Updated Puppeteer to 1.18.0
+  
 
 0.14.15 / 2019-05-31
 ====================
