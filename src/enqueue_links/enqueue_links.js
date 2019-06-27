@@ -3,7 +3,7 @@ import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import { RequestQueue, RequestQueueLocal } from '../request_queue';
-import { constructPseudoUrlInstances, createRequests, addRequestsToQueueInBatches } from './shared';
+import { constructPseudoUrlInstances, createRequests, addRequestsToQueueInBatches, createRequestOptions } from './shared';
 
 /**
  * The function finds elements matching a specific CSS selector (HTML anchor (`<a>`) by default)
@@ -62,56 +62,33 @@ import { constructPseudoUrlInstances, createRequests, addRequestsToQueueInBatche
  *
  *   If `pseudoUrls` is an empty array, `null` or `undefined`, then the function
  *   enqueues all links found on the page.
- * @param {Object} [options.userData]
- *   An object that will be merged with the new {@link Request}'s `userData`, overriding any values that
- *   were set via templating from `pseudoUrls`. This is useful when you need to override generic
- *   `userData` set by the {@link PseudoUrl} template in specific use cases.
+ * @param {Function} [options.transformRequestFunction]
+ *   Just before a new {@link Request} is constructed and enqueued to the {@link RequestQueue}, this function can be used
+ *   to remove it or modify its contents such as `userData`, `payload` or, most importantly `uniqueKey`. This is useful
+ *   when you need to enqueue multiple `Requests` to the queue that share the same URL, but differ in methods or payloads,
+ *   or to dynamically update or create `userData`.
  *
- *   **Example:**
- * ```
- * // pseudoUrl.userData
- * {
- *     name: 'John',
- *     surname: 'Doe',
- * }
- * ```
- * ```
- * // userData
- * {
- *     name: 'Albert',
- *     age: 31
- * }
- * ```
- * ```
- * // Enqueued request.userData
- * {
- *     name: 'Albert',
- *     surname: 'Doe',
- *     age: 31,
- * }
- * ```
+ *   For example: by adding `keepUrlFragment: true` to the `request` object, URL fragments will not be removed
+ *   when `uniqueKey` is computed.
  * @return {Promise<QueueOperationInfo[]>}
  *   Promise that resolves to an array of {@link QueueOperationInfo} objects.
  * @memberOf utils
  * @name enqueueLinks
  */
-export async function enqueueLinks(...args) {
-    // TODO: Remove after v1.0.0 gets released.
-    // Refactor enqueueLinks to use an options object and keep backwards compatibility
-    let page, $, selector, requestQueue, baseUrl, pseudoUrls, userData; // eslint-disable-line
-    if (args.length === 1) {
-        [{ page, $, selector = 'a', requestQueue, baseUrl, pseudoUrls, userData = {} }] = args;
-    } else {
-        [page, selector = 'a', requestQueue, pseudoUrls, userData = {}] = args;
-        log.deprecated('Passing individual arguments to enqueueLinks() is deprecated. '
-                + 'Use an options object: enqueueLinks({ page, selector, requestQueue, pseudoUrls, userData }) instead.');
-    }
+export async function enqueueLinks(options = {}) {
+    const {
+        page,
+        $,
+        selector = 'a',
+        requestQueue,
+        baseUrl,
+        pseudoUrls,
+        userData, // TODO DEPRECATED 2019/06/27
+        transformRequestFunction,
+    } = options;
 
-    // Check for pseudoUrls as a third parameter.
-    if (Array.isArray(requestQueue)) {
-        const tmp = requestQueue;
-        requestQueue = pseudoUrls;
-        pseudoUrls = tmp;
+    if (userData) {
+        log.deprecated('options.userData of Apify.utils.enqueueLinks() is deprecated. Use options.transformRequestFunction instead.');
     }
 
     checkParamOrThrow(page, 'page', 'Maybe Object');
@@ -127,13 +104,18 @@ export async function enqueueLinks(...args) {
     checkParamOrThrow(baseUrl, 'baseUrl', 'Maybe String');
     if (baseUrl && page) log.warning('The parameter options.baseUrl can only be used when parsing a Cheerio object. It will be ignored.');
     checkParamOrThrow(pseudoUrls, 'pseudoUrls', 'Maybe Array');
-    checkParamOrThrow(userData, 'userData', 'Object');
+    checkParamOrThrow(userData, 'userData', 'Maybe Object');
+    checkParamOrThrow(transformRequestFunction, 'transformRequestFunction', 'Maybe Function');
 
     // Construct pseudoUrls from input where necessary.
     const pseudoUrlInstances = constructPseudoUrlInstances(pseudoUrls || []);
 
     const urls = page ? await extractUrlsFromPage(page, selector) : extractUrlsFromCheerio($, selector, baseUrl);
-    const requests = createRequests(urls, pseudoUrlInstances, userData);
+    let requestOptions = createRequestOptions(urls, userData);
+    if (transformRequestFunction) {
+        requestOptions = requestOptions.map(transformRequestFunction).filter(r => !!r);
+    }
+    const requests = createRequests(requestOptions, pseudoUrlInstances);
     return addRequestsToQueueInBatches(requests, requestQueue);
 }
 

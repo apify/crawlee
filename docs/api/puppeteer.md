@@ -127,12 +127,13 @@ await Apify.utils.enqueueLinksByClickingElements({
 <td><code>[options.transformRequestFunction]</code></td><td><code>function</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>Just before a new <a href="request"><code>Request</code></a> is enqueued to the <a href="requestqueue"><code>RequestQueue</code></a>, this function can be used to remove it
-  or modify its contents such as <code>userData</code>, <code>payload</code> or, most importantly <code>uniqueKey</code>. This is useful when you need
-  to enqueue multiple <code>Requests</code> to the queue that share the same URL, but differ in methods or payloads,
+<td colspan="3"><p>Just before a new <a href="request"><code>Request</code></a> is constructed and enqueued to the <a href="requestqueue"><code>RequestQueue</code></a>, this function can be used
+  to remove it or modify its contents such as <code>userData</code>, <code>payload</code> or, most importantly <code>uniqueKey</code>. This is useful
+  when you need to enqueue multiple <code>Requests</code> to the queue that share the same URL, but differ in methods or payloads,
   or to dynamically update or create <code>userData</code>.</p>
-<p>  For example: by generating your own <code>uniqueKey</code> from a combination of <code>url</code>, <code>method</code> and <code>payload</code> you enable crawling
-  of websites that navigate using form submits (POST requests).</p>
+<p>  For example: by adding <code>useExtendedUniqueKey: true</code> to the <code>request</code> object, <code>uniqueKey</code> will be computed from
+  a combination of <code>url</code>, <code>method</code> and <code>payload</code> which enables crawling of websites that navigate using form submits
+  (POST requests).</p>
 </td></tr><tr>
 <td><code>[options.waitForPageIdleSecs]</code></td><td><code>number</code></td><td><code>1</code></td>
 </tr>

@@ -4,8 +4,8 @@ NEXT
   If you wish to continue using Web Driver, please stay on Apify SDK version ^0.14.15
 - **BREAKING CHANGE**: `Dataset.getData()` throws an error if user provides an unsupported option
   when using local disk storage.
-- **BREAKING CHANGE**: `Requests` with `method` other than `GET` will now have their `uniqueKey` computed
-  from a combination of `url`, `method` and `payload`.
+- **DEPRECATED**: `options.userData` of `Apify.utils.enqueueLinks()` is deprecated.
+  Use `options.transformRequestFunction` instead.
 - Improve logging of memory overload errors.
 - Improve error message in `Apify.call()`.
 - Fix multiple log lines appearing when a crawler was about to finish.

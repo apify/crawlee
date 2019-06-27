@@ -4,7 +4,7 @@ import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import log from 'apify-shared/log';
 import { RequestQueue, RequestQueueLocal } from '../request_queue';
 import { addInterceptRequestHandler, removeInterceptRequestHandler } from '../puppeteer_request_interception';
-import { constructPseudoUrlInstances, createRequests, addRequestsToQueueInBatches } from './shared';
+import { constructPseudoUrlInstances, createRequests, addRequestsToQueueInBatches, createRequestOptions } from './shared';
 
 const STARTING_Z_INDEX = 2147400000;
 
@@ -74,13 +74,14 @@ const STARTING_Z_INDEX = 2147400000;
  *   If `pseudoUrls` is an empty array, `null` or `undefined`, then the function
  *   enqueues all links found on the page.
  * @param {Function} [options.transformRequestFunction]
- *   Just before a new {@link Request} is enqueued to the {@link RequestQueue}, this function can be used to remove it
- *   or modify its contents such as `userData`, `payload` or, most importantly `uniqueKey`. This is useful when you need
- *   to enqueue multiple `Requests` to the queue that share the same URL, but differ in methods or payloads,
+ *   Just before a new {@link Request} is constructed and enqueued to the {@link RequestQueue}, this function can be used
+ *   to remove it or modify its contents such as `userData`, `payload` or, most importantly `uniqueKey`. This is useful
+ *   when you need to enqueue multiple `Requests` to the queue that share the same URL, but differ in methods or payloads,
  *   or to dynamically update or create `userData`.
  *
- *   For example: by generating your own `uniqueKey` from a combination of `url`, `method` and `payload` you enable crawling
- *   of websites that navigate using form submits (POST requests).
+ *   For example: by adding `useExtendedUniqueKey: true` to the `request` object, `uniqueKey` will be computed from
+ *   a combination of `url`, `method` and `payload` which enables crawling of websites that navigate using form submits
+ *   (POST requests).
  * @param {number} [options.waitForPageIdleSecs=1]
  *   Clicking in the page triggers various asynchronous operations that lead to new URLs being shown
  *   by the browser. It could be a simple JavaScript redirect or opening of a new tab in the browser.
@@ -132,10 +133,11 @@ export async function enqueueLinksByClickingElements(options = {}) {
         waitForPageIdleMillis,
         maxWaitForPageIdleMillis,
     });
-    let requests = createRequests(interceptedRequests, pseudoUrlInstances);
+    let requestOptions = createRequestOptions(interceptedRequests);
     if (transformRequestFunction) {
-        requests = requests.map(transformRequestFunction).filter(r => !!r);
+        requestOptions = requestOptions.map(transformRequestFunction).filter(r => !!r);
     }
+    const requests = createRequests(requestOptions, pseudoUrlInstances);
     return addRequestsToQueueInBatches(requests, requestQueue);
 }
 

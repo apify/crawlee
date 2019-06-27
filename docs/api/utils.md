@@ -117,27 +117,16 @@ await Apify.utils.enqueueLinks({
 <p>  If <code>pseudoUrls</code> is an empty array, <code>null</code> or <code>undefined</code>, then the function
   enqueues all links found on the page.</p>
 </td></tr><tr>
-<td><code>[options.userData]</code></td><td><code>Object</code></td><td></td>
+<td><code>[options.transformRequestFunction]</code></td><td><code>function</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>An object that will be merged with the new <a href="request"><code>Request</code></a>&#39;s <code>userData</code>, overriding any values that
-  were set via templating from <code>pseudoUrls</code>. This is useful when you need to override generic
-  <code>userData</code> set by the <a href="pseudourl"><code>PseudoUrl</code></a> template in specific use cases.</p>
-<p>  <strong>Example:</strong></p>
-<pre><code>// pseudoUrl.userData
-{
-    name: &#39;John&#39;,
-    surname: &#39;Doe&#39;,
-}</code></pre><pre><code>// userData
-{
-    name: &#39;Albert&#39;,
-    age: 31
-}</code></pre><pre><code>// Enqueued request.userData
-{
-    name: &#39;Albert&#39;,
-    surname: &#39;Doe&#39;,
-    age: 31,
-}</code></pre></td></tr></tbody>
+<td colspan="3"><p>Just before a new <a href="request"><code>Request</code></a> is constructed and enqueued to the <a href="requestqueue"><code>RequestQueue</code></a>, this function can be used
+  to remove it or modify its contents such as <code>userData</code>, <code>payload</code> or, most importantly <code>uniqueKey</code>. This is useful
+  when you need to enqueue multiple <code>Requests</code> to the queue that share the same URL, but differ in methods or payloads,
+  or to dynamically update or create <code>userData</code>.</p>
+<p>  For example: by adding <code>keepUrlFragment: true</code> to the <code>request</code> object, URL fragments will not be removed
+  when <code>uniqueKey</code> is computed.</p>
+</td></tr></tbody>
 </table>
 <a name="utils.sleep"></a>
 

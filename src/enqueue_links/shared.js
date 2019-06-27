@@ -45,41 +45,47 @@ export function constructPseudoUrlInstances(pseudoUrls) {
     });
 }
 /**
- * @param {string[]|Object[]} sources
+ * @param {string[]|Object[]} requestOptions
  * @param {PseudoUrl[]} pseudoUrls
- * @param {Object} [userData]
  * @return {Request[]}
  * @ignore
  */
-export function createRequests(sources, pseudoUrls, userData = {}) {
-    const normalizedSources = sources
-        .map((src) => {
-            return typeof src === 'string'
-                ? { url: src, userData }
-                : { ...src, userData };
-        })
+export function createRequests(requestOptions, pseudoUrls) {
+    if (!(pseudoUrls && pseudoUrls.length)) {
+        return requestOptions.map(opts => new Request(opts));
+    }
+
+    const requests = [];
+    requestOptions.forEach((opts) => {
+        pseudoUrls
+            .filter(purl => purl.matches(opts.url))
+            .forEach((purl) => {
+                const request = purl.createRequest(opts);
+                requests.push(request);
+            });
+    });
+    return requests;
+}
+
+/**
+ * @param {string[]|Object[]} sources
+ * @param {Object} [userData]
+ * @ignore
+ */
+export function createRequestOptions(sources, userData = {}) {
+    return sources
+        .map(src => (typeof src === 'string' ? { url: src } : src))
         .filter(({ url }) => {
             try {
                 return new URL(url).href;
             } catch (err) {
                 return false;
             }
+        })
+        .map((rqOpts) => {
+            rqOpts.userData = { ...rqOpts.userData, ...userData };
+            return rqOpts;
         });
-
-    if (!(pseudoUrls && pseudoUrls.length)) {
-        return normalizedSources.map(src => new Request(src));
-    }
-
-    const requests = [];
-    normalizedSources.forEach((src) => {
-        pseudoUrls
-            .filter(purl => purl.matches(src.url))
-            .forEach((purl) => {
-                const request = purl.createRequest(src);
-                requests.push(request);
-            });
-    });
-    return requests;
 }
 
 /**

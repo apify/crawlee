@@ -41,7 +41,8 @@ describe('Enqueue links shared functions', () => {
             ];
 
             const userData = { bar: 'foo' };
-            const requests = shared.createRequests(sources, pseudoUrls, userData);
+            const requestOptions = shared.createRequestOptions(sources, userData);
+            const requests = shared.createRequests(requestOptions, pseudoUrls);
 
             expect(requests).to.have.lengthOf(2);
             requests.forEach((r) => {
