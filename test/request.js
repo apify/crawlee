@@ -24,7 +24,7 @@ describe('Apify.Request', () => {
         const payload = JSON.stringify({ foo: 'bar' });
         const payloadHash = hashPayload(payload);
         const normalizedUrl = normalizeUrl(url);
-        const request = new Apify.Request({ url, method: 'post', payload });
+        const request = new Apify.Request({ url, method: 'post', payload, useExtendedUniqueKey: true });
 
         const uniqueKey = `POST(${payloadHash}):${normalizedUrl}`;
 
