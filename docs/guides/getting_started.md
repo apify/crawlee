@@ -1150,7 +1150,7 @@ Apify.main(async () => {
 It might not be perfectly obvious where the data we saved using the previous command went, so let's break it down by environment:
 
 ##### Dataset on the Apify Platform
-Open any Run of your actor on the Platform and you will see a Dataset as one of the available tabs. Clicking on it will reveal basic information about the Dataset and a list of options that you can use to download your data. There are various formats such as JSON, XLSX or CSV available and there'ß also the possibility of downloading only Clean items, i.e. a filtered dataset with empty rows and hidden fields removed.
+Open any Run of your actor on the Platform and you will see a Dataset as one of the available tabs. Clicking on it will reveal basic information about the Dataset and a list of options that you can use to download your data. There are various formats such as JSON, XLSX or CSV available and there's also the possibility of downloading only Clean items, i.e. a filtered dataset with empty rows and hidden fields removed.
 
 ##### Local Dataset
 Unless you changed the environment variables that Apify SDK uses locally, which would suggest that you knew what you were doing and you didn't need this tutorial anyway, you'll find your data in your local Apify Storage.
