@@ -188,6 +188,7 @@ const phonesFromUrls = (urls) => {
 // eslint-disable-next-line max-len
 const LINKEDIN_REGEX_STRING = '(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:(?:[a-z]+\\.)?linkedin\\.com\\/in\\/)([a-z0-9\\-_%]{2,60})(?![a-z0-9\\-_%])(?:/)?';
 
+// TODO: Skip https://www.instagram.com/explore/ !!!
 // eslint-disable-next-line max-len
 const INSTAGRAM_REGEX_STRING = '(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:(?:www\\.)?(?:instagram\\.com|instagr\\.am)\\/)([a-z0-9_.]{2,30})(?![a-z0-9_.])(?:/)?';
 
