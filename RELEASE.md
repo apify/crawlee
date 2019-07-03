@@ -4,14 +4,16 @@ are automatically produced. Latest releases are triggered manually through the G
 After creating a release there, Travis will automatically produce a latest version of the package.
 
 ## TLDR;
+- To **NOT** release anything on a push to `master`, add `[skip ci]` to your commit message.
 - To release `beta`, just push to `master`. If it breaks with a `Version already exists error` increment version
   in `package.json` and push again.
 - To release `latest`, go to releases on GitHub, draft and publish a release. If you don't know how, read below.
 
 ## Prerelease (beta) versions
 On each push to the `master` branch, a new prerelease version is automatically built and published
-by Travis CI. The process is as follows:
+by Travis CI. To skip the process, add `[skip ci]` to your commit message.
 
+### Release process
 1. Travis build is triggered by a push to `master` (typically a merge of a PR).
 2. Travis lints the source code, checks that documentation is built and runs tests in Node.js 8, 10 and 12.
 3. If all is well, a new prerelease version is published to NPM (`${VERSION}-beta.${COUNTER}`), 
@@ -45,7 +47,7 @@ pick up this action and release a latest version of the package.
 - The title should be the same as the version tag.
 - Typically just adding changelog to the release would be fine, but feel free to add extra information.
 
-## Release process
+### Release process
 Similarly to the prerelease, the latest release process:
 1. Triggers build, lints, checks docs, runs tests.
 2. Publishes new package to NPM with the `latest` tag and the version from package.json. Such as `0.15.1`.
