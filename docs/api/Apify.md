@@ -23,7 +23,7 @@ accessible from the left sidebar.
     * [`.isAtHome()`](#module_Apify.isAtHome) ⇒ `Boolean`
     * [`.launchPuppeteer([options])`](#module_Apify.launchPuppeteer) ⇒ `Promise<Browser>`
     * [`.main(userFunc)`](#module_Apify.main)
-    * [`.metamorph(targetActorId, [input], [options])`](#module_Apify.metamorph) ⇒ `Promise<undefined>`
+    * [`.metamorph(targetActorId, [input], [options])`](#module_Apify.metamorph) ⇒ `Promise`
     * [`.openDataset([datasetIdOrName], [options])`](#module_Apify.openDataset) ⇒ [`Promise<Dataset>`](dataset)
     * [`.openKeyValueStore([storeIdOrName], [options])`](#module_Apify.openKeyValueStore) ⇒ [`Promise<KeyValueStore>`](keyvaluestore)
     * [`.openRequestList`](#module_Apify.openRequestList) ⇒ [`Promise<RequestList>`](requestlist)
@@ -696,7 +696,7 @@ the promise will be awaited. The user function is called with no arguments.</p>
 </table>
 <a name="module_Apify.metamorph"></a>
 
-## `Apify.metamorph(targetActorId, [input], [options])` ⇒ `Promise<undefined>`
+## `Apify.metamorph(targetActorId, [input], [options])` ⇒ `Promise`
 Transforms this actor run to an actor run of a given actor. The system stops the current container and starts the new container
 instead. All the default storages are preserved and the new input is stored under the `INPUT-METAMORPH-1` key in the same default key-value store.
 

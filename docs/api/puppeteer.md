@@ -49,14 +49,14 @@ If you're looking to find URLs in `href` attributes of the page, see [`enqueueLi
 Optionally, the function allows you to filter the target links' URLs using an array of [`PseudoUrl`](pseudourl) objects
 and override settings of the enqueued [`Request`](request) objects.
 
-*IMPORTANT*: To be able to do this, this function uses various mutations on the page,
+**IMPORTANT**: To be able to do this, this function uses various mutations on the page,
 such as changing the Z-index of elements being clicked and their visibility. Therefore,
 it is recommended to only use this function as the last operation in the page.
 
-*USING HEADFUL BROWSER*: When using a headful browser, this function will only be able to click elements
+**USING HEADFUL BROWSER**: When using a headful browser, this function will only be able to click elements
 in the focused tab, effectively limiting concurrency to 1. In headless mode, full concurrency can be achieved.
 
-*PERFORMANCE*: Clicking elements with a mouse and intercepting requests is not a low level operation
+**PERFORMANCE**: Clicking elements with a mouse and intercepting requests is not a low level operation
 that takes nanoseconds. It's not very CPU intensive, but it takes time. We strongly recommend limiting
 the scope of the clicking as much as possible by using a specific selector that targets only the elements
 that you assume or know will produce a navigation. You can certainly click everything by using

@@ -57,7 +57,7 @@ await Apify.utils.enqueueLinks({
   requestQueue,
   selector: 'a.product-detail',
   pseudoUrls: [
-      'https://www.example.com/handbags/[.*]'
+      'https://www.example.com/handbags/[.*]',
       'https://www.example.com/purses/[.*]'
   ],
 });

@@ -550,7 +550,7 @@ export const callTask = async (taskId, input, options = {}) => {
  * @param {String} [options.build]
  *  Tag or number of the target actor build to metamorph into (e.g. `beta` or `1.2.345`).
  *  If not provided, the run uses build tag or number from the default actor run configuration (typically `latest`).
- * @returns {Promise<undefined>}
+ * @returns {Promise}
  *
  * @memberof module:Apify
  * @function
