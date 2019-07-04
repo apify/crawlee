@@ -2,6 +2,7 @@ xxx
 ====================
 - Bugfix in BasicCrawler: async calls in `isFinishedFunction` were not awaited
 - Better logging of memory overload errors
+- Upgraded `apify-client` to 0.5.22
 
 0.14.15 / 2019-05-31
 ====================
