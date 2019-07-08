@@ -28,6 +28,7 @@ await puppeteer.injectJQuery(page);
     * [`.addInterceptRequestHandler`](#puppeteer.addInterceptRequestHandler) ⇒ `Promise`
     * [`.removeInterceptRequestHandler`](#puppeteer.removeInterceptRequestHandler) ⇒ `Promise`
     * [`.gotoExtended`](#puppeteer.gotoExtended) ⇒ `Promise<Response>`
+    * [`.infiniteScroll`](#puppeteer.infiniteScroll) ⇒ `Promise`
     * [`.injectFile(page, filePath, [options])`](#puppeteer.injectFile) ⇒ `Promise`
     * [`.injectJQuery(page)`](#puppeteer.injectJQuery) ⇒ `Promise`
     * [`.injectUnderscore(page)`](#puppeteer.injectUnderscore) ⇒ `Promise`
@@ -279,6 +280,40 @@ browser cache which degrades performance.
 </tr>
 <tr>
 <td colspan="3"><p>Custom options for <code>page.goto()</code>.</p>
+</td></tr></tbody>
+</table>
+<a name="puppeteer.infiniteScroll"></a>
+
+## `puppeteer.infiniteScroll` ⇒ `Promise`
+Scrolls to the bottom of a page, or until it times out.
+Loads dynamic content when it hits the bottom of a page, and then continues scrolling.
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th><th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>page</code></td><td><code>Object</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.</p>
+</td></tr><tr>
+<td><code>[options]</code></td><td><code>Object</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"></td></tr><tr>
+<td><code>[options.timeoutSecs]</code></td><td><code>Number</code></td><td><code>0</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>How many seconds to scroll for. If 0, will scroll until bottom of page.</p>
+</td></tr><tr>
+<td><code>[options.waitForSecs]</code></td><td><code>Number</code></td><td><code>4</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>How many seconds to wait for no new content to load before exit.</p>
 </td></tr></tbody>
 </table>
 <a name="puppeteer.injectFile"></a>

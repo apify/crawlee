@@ -1,41 +1,25 @@
+// import { expect } from 'chai';
 import * as utils from '../../build/utils';
-
-const puppeteer = require('puppeteer');
+import Apify from '../../build/index';
 
 describe('utils.infiniteScroll()', () => {
-    it('exits after no more to scroll', () => {
-        (async () => {
-            const browser = await puppeteer.launch({
-                headless: true,
-            });
-            const page = await browser.newPage();
-            const contentHTML = '<div>nothing</div>';
-            await page.setContent(contentHTML);
-            await utils.infiniteScroll({ page });
-            await browser.close();
-        })();
-    });
-
-    it('exits after reaches the bottom', () => {
-        (async () => {
-            const browser = await puppeteer.launch({
-                headless: true,
-            });
+    xit('exits after it reaches the bottom', async () => {
+        const browser = await Apify.launchPuppeteer({ headless: true });
+        try {
             const page = await browser.newPage();
             // Note: external website
             await page.goto('https://twitter.com/search?src=typd&q=%23fingervein&lang=sv', {
                 waitUntil: 'networkidle2',
             });
             await utils.infiniteScroll({ page });
+        } finally {
             await browser.close();
-        })();
+        }
     });
 
-    it('times out if limit is set', () => {
-        (async () => {
-            const browser = await puppeteer.launch({
-                headless: true,
-            });
+    xit('times out if limit is set', async () => {
+        const browser = await Apify.launchPuppeteer({ headless: true });
+        try {
             const page = await browser.newPage();
             // Note: external website
             await page.goto('https://medium.com/search?q=biometrics', {
@@ -43,7 +27,8 @@ describe('utils.infiniteScroll()', () => {
             });
             const timeoutSecs = 10; // seconds
             await utils.infiniteScroll({ page, timeoutSecs });
+        } finally {
             await browser.close();
-        })();
+        }
     });
 });

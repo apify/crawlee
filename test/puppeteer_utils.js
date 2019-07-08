@@ -4,7 +4,7 @@ import Apify from '../build/index';
 
 const { utils: { log } } = Apify;
 
-/* global window */
+/* global window, document */
 
 describe('Apify.utils.puppeteer', () => {
     let ll;
@@ -346,6 +346,32 @@ describe('Apify.utils.puppeteer', () => {
             expect(method).to.be.eql('POST');
             expect(bodyLength).to.be.eql(16);
             expect(headers['content-type']).to.be.eql('application/json; charset=utf-8');
+        } finally {
+            await browser.close();
+        }
+    });
+
+    it('infiniteScroll() works', async () => {
+        function isAtBottom() {
+            return (window.innerHeight + window.pageYOffset) >= document.body.offsetHeight;
+        }
+        const browser = await Apify.launchPuppeteer({ headless: true });
+        try {
+            const page = await browser.newPage();
+            let count = 0;
+            const content = Array(1000).fill(null).map(() => {
+                return `<div style="border: 1px solid black">Div number: ${count++}</div>`;
+            });
+            const contentHTML = `<html><body>${content}</body></html>`;
+            await page.setContent(contentHTML);
+
+            const before = await page.evaluate(isAtBottom);
+            expect(before).to.be.eql(false);
+
+            await Apify.utils.puppeteer.infiniteScroll(page, { waitForSecs: 0 });
+
+            const after = await page.evaluate(isAtBottom);
+            expect(after).to.be.eql(true);
         } finally {
             await browser.close();
         }

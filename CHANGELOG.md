@@ -16,7 +16,7 @@ NEXT
 - Add `useExtendedUniqueKey` option to `Request` constructor to include `method` and `payload`
   in the `Request`'s computed `uniqueKey`.
 - Updated Puppeteer to 1.18.0
-  
+- Updated `apify-client` to 0.5.22
 
 0.14.15 / 2019-05-31
 ====================
