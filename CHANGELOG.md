@@ -11,11 +11,13 @@ NEXT
 - Fix multiple log lines appearing when a crawler was about to finish.
 - Add `Apify.utils.puppeteer.enqueueLinksByClickingElements()` function which enables you
   to add requests to the queue from pure JavaScript navigations, form submissions etc.
+- Add `Apify.utils.puppeteer.infiniteScroll()` function which helps you with scrolling to the bottom
+  of websites that auto-load new content.
 - The `RequestQueue.handledCount()` function has been resurrected from deprecation,
   in order to have compatible interface with `RequestList`.
 - Add `useExtendedUniqueKey` option to `Request` constructor to include `method` and `payload`
   in the `Request`'s computed `uniqueKey`.
-- Updated Puppeteer to 1.18.0
+- Updated Puppeteer to 1.18.1
 - Updated `apify-client` to 0.5.22
 
 0.14.15 / 2019-05-31
