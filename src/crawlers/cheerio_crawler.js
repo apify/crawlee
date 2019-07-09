@@ -547,7 +547,7 @@ class CheerioCrawler {
                 const name = err.name === 'AssertionError [ERR_ASSERTION]';
                 const operator = err.operator === '==';
                 const value = err.expected === 0;
-                const stack = err.stack.includes('/tunnel-agent/index.js');
+                const stack = err.stack.includes('/tunnel-agent/index.js') || err.stack.includes('\tunnel-agent\index.js');
                 // If this passes, we can be reasonably sure that it's
                 // the right error from tunnel-agent.
                 if (code && name && operator && value && stack) {
