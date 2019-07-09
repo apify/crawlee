@@ -1,4 +1,4 @@
-NEXT
+0.15.1 / 2019-07-09
 ====================
 - **BREAKING CHANGE** Removed support for Web Driver (Selenium) since no further updates are planned.
   If you wish to continue using Web Driver, please stay on Apify SDK version ^0.14.15
