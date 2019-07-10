@@ -63,7 +63,7 @@ const STARTING_Z_INDEX = 2147400000;
  * @param {String} options.selector
  *   A CSS selector matching elements to be clicked on. Unlike in [`enqueueLinks()`](utils#utils.enqueueLinks), there is no default
  *   value. This is to prevent suboptimal use of this function by using it too broadly.
- * @param {Object[]|String[]} [options.pseudoUrls]
+ * @param {Array<String|RegExp|Object>} [options.pseudoUrls]
  *   An array of {@link PseudoUrl}s matching the URLs to be enqueued,
  *   or an array of strings or RegExps or plain Objects from which the {@link PseudoUrl}s can be constructed.
  *
@@ -74,6 +74,8 @@ const STARTING_Z_INDEX = 2147400000;
  *   If `pseudoUrls` is an empty array, `null` or `undefined`, then the function
  *   enqueues all links found on the page.
  * @param {Function} [options.transformRequestFunction]
+ *   **Signature:** ({@link Request}): {@link Request}
+ *
  *   Just before a new {@link Request} is constructed and enqueued to the {@link RequestQueue}, this function can be used
  *   to remove it or modify its contents such as `userData`, `payload` or, most importantly `uniqueKey`. This is useful
  *   when you need to enqueue multiple `Requests` to the queue that share the same URL, but differ in methods or payloads,
@@ -82,6 +84,15 @@ const STARTING_Z_INDEX = 2147400000;
  *   For example: by adding `useExtendedUniqueKey: true` to the `request` object, `uniqueKey` will be computed from
  *   a combination of `url`, `method` and `payload` which enables crawling of websites that navigate using form submits
  *   (POST requests).
+ *
+ *   **Example:**
+ *   ```javascript
+ *   function transformRequestFunction(request) {
+ *       request.userData.foo = 'bar';
+ *       request.useExtendedUniqueKey = true;
+ *       return request;
+ *   }
+ *   ```
  * @param {number} [options.waitForPageIdleSecs=1]
  *   Clicking in the page triggers various asynchronous operations that lead to new URLs being shown
  *   by the browser. It could be a simple JavaScript redirect or opening of a new tab in the browser.

@@ -114,7 +114,7 @@ await Apify.utils.enqueueLinksByClickingElements({
 <td colspan="3"><p>A CSS selector matching elements to be clicked on. Unlike in <a href="utils#utils.enqueueLinks"><code>enqueueLinks()</code></a>, there is no default
   value. This is to prevent suboptimal use of this function by using it too broadly.</p>
 </td></tr><tr>
-<td><code>[options.pseudoUrls]</code></td><td><code>Array<Object&gt;</code> | <code>Array.&lt;String></code></td><td></td>
+<td><code>[options.pseudoUrls]</code></td><td><code>Array<(String|RegExp|Object)></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>An array of <a href="pseudourl"><code>PseudoUrl</code></a>s matching the URLs to be enqueued,
@@ -128,13 +128,20 @@ await Apify.utils.enqueueLinksByClickingElements({
 <td><code>[options.transformRequestFunction]</code></td><td><code>function</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>Just before a new <a href="request"><code>Request</code></a> is constructed and enqueued to the <a href="requestqueue"><code>RequestQueue</code></a>, this function can be used
+<td colspan="3"><p><strong>Signature:</strong> (<a href="request"><code>Request</code></a>): <a href="request"><code>Request</code></a></p>
+<p>  Just before a new <a href="request"><code>Request</code></a> is constructed and enqueued to the <a href="requestqueue"><code>RequestQueue</code></a>, this function can be used
   to remove it or modify its contents such as <code>userData</code>, <code>payload</code> or, most importantly <code>uniqueKey</code>. This is useful
   when you need to enqueue multiple <code>Requests</code> to the queue that share the same URL, but differ in methods or payloads,
   or to dynamically update or create <code>userData</code>.</p>
 <p>  For example: by adding <code>useExtendedUniqueKey: true</code> to the <code>request</code> object, <code>uniqueKey</code> will be computed from
   a combination of <code>url</code>, <code>method</code> and <code>payload</code> which enables crawling of websites that navigate using form submits
   (POST requests).</p>
+<p>  <strong>Example:</strong></p>
+<pre><code class="language-javascript">  function transformRequestFunction(request) {
+      request.userData.foo = &#39;bar&#39;;
+      request.useExtendedUniqueKey = true;
+      return request;
+  }</code></pre>
 </td></tr><tr>
 <td><code>[options.waitForPageIdleSecs]</code></td><td><code>number</code></td><td><code>1</code></td>
 </tr>
