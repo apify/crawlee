@@ -1,3 +1,7 @@
+NEXT
+====================
+- Fix error where Puppeteer would fail to launch when pipes are turned off.
+
 0.15.1 / 2019-07-09
 ====================
 - **BREAKING CHANGE** Removed support for Web Driver (Selenium) since no further updates are planned.
