@@ -113,7 +113,7 @@ try {
 IMAGES_TO_BUILD.forEach(imageName => {
     log(`Building image: ${imageName}`);
     const dockerImage = `apify/actor-${imageName}:latest`;
-    execSync(`docker build --pull --tag ${dockerImage} --no-cache ./${imageName}/`);
+    execSync(`docker build --pull --tag ${dockerImage} --no-cache ./${imageName}/`, { cwd: IMAGE_REPO_DIR });
     log(`${imageName}: built. Running a test.`);
     execSync(`docker run ${dockerImage}`);
     log(`${imageName}: test successful. Pushing image to repository.`);
