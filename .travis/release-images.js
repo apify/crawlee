@@ -14,8 +14,8 @@ const TEMP_DIR = path.join(__dirname, '..', 'tmp');
 const IMAGE_REPO_NAME = 'apify-actor-docker';
 const IMAGE_REPO_URL = `https://github.com/apifytech/${IMAGE_REPO_NAME}.git`;
 const IMAGE_REPO_DIR = path.join(TEMP_DIR, IMAGE_REPO_NAME);
-const IMAGES_TO_UPDATE = ['node-chrome', 'node-basic', 'node-chrome-xvfb'];
-const IMAGES_TO_BUILD = [...IMAGES_TO_UPDATE, 'node-phantomjs'];
+const IMAGES_TO_UPDATE = ['node-chrome', 'node-basic'];
+const IMAGES_TO_BUILD = [...IMAGES_TO_UPDATE, 'node-chrome-xvfb', 'node-phantomjs'];
 const PKG_PATHS = IMAGES_TO_UPDATE.map(getPackageJsonPath);
 
 let RELEASE_TAG;
