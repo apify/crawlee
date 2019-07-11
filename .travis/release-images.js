@@ -139,7 +139,8 @@ function getPackageJsonPath(image) {
 }
 
 function fetchPackageJsonPropertyForTag(property, tag) {
-    return execSync(`npm show apify@${tag} ${property}`, { encoding: 'utf8' }).trim();
+    const prop = execSync(`npm show apify@${tag} ${property}`, { encoding: 'utf8', stdio: 'pipe' });
+    return prop.trim();
 }
 
 function logSkipMessage(imageName, pkg, repoVersion, newVersion) {
