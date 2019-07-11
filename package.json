@@ -47,7 +47,7 @@
         "prepublishOnly": "(test $TRAVIS || (echo \"Publishing is reserved to the Travis CI!\"; exit 1))",
         "clean": "rm -rf build",
         "lint": "npm run build && ./node_modules/.bin/eslint ./src ./test",
-        "lint:fix": "./node_modules/.bin/eslint ./src ./test --ext .js,.jsx --fix",
+        "lint:fix": "./node_modules/.bin/eslint ./src ./test --ext .js,.jsx --fix"
     },
     "dependencies": {
         "@apify/ps-tree": "^1.1.3",
