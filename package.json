@@ -1,6 +1,6 @@
 {
     "name": "apify",
-    "version": "0.15.2",
+    "version": "0.15.3",
     "description": "The scalable web crawling and scraping library for JavaScript/Node.js. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.",
     "engines": {
         "node": ">=8.14.0"
@@ -48,10 +48,6 @@
         "clean": "rm -rf build",
         "lint": "npm run build && ./node_modules/.bin/eslint ./src ./test",
         "lint:fix": "./node_modules/.bin/eslint ./src ./test --ext .js,.jsx --fix",
-        "before-deploy": "node .travis/before-deploy.js",
-        "after-deploy": "node after-deploy.js",
-        "prerelease-check": "npm run lint && node check-docs.js",
-        "release-latest": "node release-latest.js"
     },
     "dependencies": {
         "@apify/ps-tree": "^1.1.3",
