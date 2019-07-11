@@ -10,8 +10,9 @@ and extract some data from it: the page title and all H1 tags.
 
 To run this example on the Apify Platform, select the `Node.js 8 on Alpine Linux (apify/actor-node-basic)` base image
 on the source tab of your actor configuration.
+
 ```javascript
-const Apify = require('apify');
+const Apify = require("apify");
 
 // Apify.utils contains various utilities, e.g. for logging.
 // Here we turn off the logging of unimportant messages.
@@ -19,14 +20,15 @@ const { log } = Apify.utils;
 log.setLevel(log.LEVELS.WARNING);
 
 // A link to a list of Fortune 500 companies' websites available on GitHub.
-const CSV_LINK = 'https://gist.githubusercontent.com/hrbrmstr/ae574201af3de035c684/raw/f1000.csv';
+const CSV_LINK =
+    "https://gist.githubusercontent.com/hrbrmstr/ae574201af3de035c684/raw/f1000.csv";
 
 // Apify.main() function wraps the crawler logic (it is optional).
 Apify.main(async () => {
     // Create an instance of the RequestList class that contains a list of URLs to crawl.
     // Here we download and parse the list of URLs from an external file.
     const requestList = new Apify.RequestList({
-        sources: [{ requestsFromUrl: CSV_LINK }],
+        sources: [{ requestsFromUrl: CSV_LINK }]
     });
     await requestList.initialize();
 
@@ -57,11 +59,11 @@ Apify.main(async () => {
             console.log(`Processing ${request.url}...`);
 
             // Extract data from the page using cheerio.
-            const title = $('title').text();
+            const title = $("title").text();
             const h1texts = [];
-            $('h1').each((index, el) => {
+            $("h1").each((index, el) => {
                 h1texts.push({
-                    text: $(el).text(),
+                    text: $(el).text()
                 });
             });
 
@@ -71,19 +73,19 @@ Apify.main(async () => {
                 url: request.url,
                 title,
                 h1texts,
-                html,
+                html
             });
         },
 
         // This function is called if the page processing failed more than maxRequestRetries+1 times.
         handleFailedRequestFunction: async ({ request }) => {
             console.log(`Request ${request.url} failed twice.`);
-        },
+        }
     });
 
     // Run the crawler and wait for it to finish.
     await crawler.run();
 
-    console.log('Crawler finished.');
+    console.log("Crawler finished.");
 });
 ```

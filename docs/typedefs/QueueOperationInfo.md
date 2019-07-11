@@ -2,6 +2,7 @@
 id: queueoperationinfo
 title: QueueOperationInfo
 ---
+
 <a name="QueueOperationInfo"></a>
 
 A helper class that is used to report results from various
@@ -9,6 +10,7 @@ A helper class that is used to report results from various
 [`Apify.utils.enqueueLinks()`](../api/utils#utils.enqueueLinks).
 
 **Properties**
+
 <table>
 <thead>
 <tr>

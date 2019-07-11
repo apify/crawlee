@@ -2,6 +2,7 @@
 id: requestqueue
 title: RequestQueue
 ---
+
 <a name="RequestQueue"></a>
 
 Represents a queue of URLs to crawl, which is used for deep crawling of websites
@@ -27,9 +28,11 @@ depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment 
 
 If the `APIFY_LOCAL_STORAGE_DIR` environment variable is set, the queue data is stored in
 that local directory as follows:
+
 ```
 {APIFY_LOCAL_STORAGE_DIR}/request_queues/{QUEUE_ID}/{STATE}/{NUMBER}.json
 ```
+
 Note that `{QUEUE_ID}` is the name or ID of the request queue. The default queue has ID: `default`,
 unless you override it by setting the `APIFY_DEFAULT_REQUEST_QUEUE_ID` environment variable.
 Each request in the queue is stored as a separate JSON file, where `{STATE}` is either `handled` or `pending`,
@@ -48,12 +51,15 @@ even if the `APIFY_LOCAL_STORAGE_DIR` variable is set.
 const queue = await Apify.openRequestQueue();
 
 // Open a named request queue
-const queueWithName = await Apify.openRequestQueue('some-name');
+const queueWithName = await Apify.openRequestQueue("some-name");
 
 // Enqueue few requests
-await queue.addRequest({ url: 'http://example.com/aaa' });
-await queue.addRequest({ url: 'http://example.com/bbb' });
-await queue.addRequest({ url: 'http://example.com/foo/bar' }, { forefront: true });
+await queue.addRequest({ url: "http://example.com/aaa" });
+await queue.addRequest({ url: "http://example.com/bbb" });
+await queue.addRequest(
+    { url: "http://example.com/foo/bar" },
+    { forefront: true }
+);
 
 // Get requests from queue
 const request1 = await queue.fetchNextRequest();
@@ -67,22 +73,22 @@ await queue.markRequestHandled(request1);
 await queue.reclaimRequest(request2);
 ```
 
-
-* [RequestQueue](requestqueue)
-    * [`.addRequest(request, [options])`](#RequestQueue+addRequest) ⇒ [`QueueOperationInfo`](../typedefs/queueoperationinfo)
-    * [`.getRequest(requestId)`](#RequestQueue+getRequest) ⇒ [`Promise<Request>`](request)
-    * [`.fetchNextRequest()`](#RequestQueue+fetchNextRequest) ⇒ [`Promise<Request>`](request)
-    * [`.markRequestHandled(request)`](#RequestQueue+markRequestHandled) ⇒ [`Promise<QueueOperationInfo>`](../typedefs/queueoperationinfo)
-    * [`.reclaimRequest(request, [options])`](#RequestQueue+reclaimRequest) ⇒ [`Promise<QueueOperationInfo>`](../typedefs/queueoperationinfo)
-    * [`.isEmpty()`](#RequestQueue+isEmpty) ⇒ `Promise<Boolean>`
-    * [`.isFinished()`](#RequestQueue+isFinished) ⇒ `Promise<Boolean>`
-    * [`.delete()`](#RequestQueue+delete) ⇒ `Promise`
-    * ~~[`.handledCount()`](#RequestQueue+handledCount) ⇒ `Promise<number>`~~
-    * [`.getInfo()`](#RequestQueue+getInfo) ⇒ `Promise<Object>`
+-   [RequestQueue](requestqueue)
+    -   [`.addRequest(request, [options])`](#RequestQueue+addRequest) ⇒ [`QueueOperationInfo`](../typedefs/queueoperationinfo)
+    -   [`.getRequest(requestId)`](#RequestQueue+getRequest) ⇒ [`Promise<Request>`](request)
+    -   [`.fetchNextRequest()`](#RequestQueue+fetchNextRequest) ⇒ [`Promise<Request>`](request)
+    -   [`.markRequestHandled(request)`](#RequestQueue+markRequestHandled) ⇒ [`Promise<QueueOperationInfo>`](../typedefs/queueoperationinfo)
+    -   [`.reclaimRequest(request, [options])`](#RequestQueue+reclaimRequest) ⇒ [`Promise<QueueOperationInfo>`](../typedefs/queueoperationinfo)
+    -   [`.isEmpty()`](#RequestQueue+isEmpty) ⇒ `Promise<Boolean>`
+    -   [`.isFinished()`](#RequestQueue+isFinished) ⇒ `Promise<Boolean>`
+    -   [`.delete()`](#RequestQueue+delete) ⇒ `Promise`
+    -   ~~[`.handledCount()`](#RequestQueue+handledCount) ⇒ `Promise<number>`~~
+    -   [`.getInfo()`](#RequestQueue+getInfo) ⇒ `Promise<Object>`
 
 <a name="RequestQueue+addRequest"></a>
 
 ## `requestQueue.addRequest(request, [options])` ⇒ [`QueueOperationInfo`](../typedefs/queueoperationinfo)
+
 Adds a request to the queue.
 
 If a request with the same `uniqueKey` property is already present in the queue,
@@ -116,9 +122,11 @@ Note that the function sets the <code>uniqueKey</code> and <code>id</code> field
 <a name="RequestQueue+getRequest"></a>
 
 ## `requestQueue.getRequest(requestId)` ⇒ [`Promise<Request>`](request)
+
 Gets the request from the queue specified by ID.
 
-**Returns**: [`Promise<Request>`](request) - Returns the request object, or `null` if it was not found.  
+**Returns**: [`Promise<Request>`](request) - Returns the request object, or `null` if it was not found.
+
 <table>
 <thead>
 <tr>
@@ -136,6 +144,7 @@ Gets the request from the queue specified by ID.
 <a name="RequestQueue+fetchNextRequest"></a>
 
 ## `requestQueue.fetchNextRequest()` ⇒ [`Promise<Request>`](request)
+
 Returns a next request in the queue to be processed, or `null` if there are no more pending requests.
 
 Once you successfully finish processing of the request, you need to call [`RequestQueue.markRequestHandled`](requestqueue.markrequesthandled)
@@ -151,6 +160,7 @@ To check whether all requests in queue were finished, use [`RequestQueue.isFinis
 <a name="RequestQueue+markRequestHandled"></a>
 
 ## `requestQueue.markRequestHandled(request)` ⇒ [`Promise<QueueOperationInfo>`](../typedefs/queueoperationinfo)
+
 Marks a request that was previously returned by the [`RequestQueue.fetchNextRequest`](requestqueue.fetchnextrequest) function
 as handled after successful processing.
 Handled requests will never again be returned by the `fetchNextRequest` function.
@@ -171,6 +181,7 @@ Handled requests will never again be returned by the `fetchNextRequest` function
 <a name="RequestQueue+reclaimRequest"></a>
 
 ## `requestQueue.reclaimRequest(request, [options])` ⇒ [`Promise<QueueOperationInfo>`](../typedefs/queueoperationinfo)
+
 Reclaims a failed request back to the queue, so that it can be returned for processed later again
 by another call to [`RequestQueue.fetchNextRequest`](requestqueue.fetchnextrequest).
 The request record in the queue is updated using the provided `request` parameter.
@@ -202,6 +213,7 @@ in the next call to <a href="requestqueue.fetchnextrequest"><code>RequestQueue.f
 <a name="RequestQueue+isEmpty"></a>
 
 ## `requestQueue.isEmpty()` ⇒ `Promise<Boolean>`
+
 Resolves to `true` if the next call to [`RequestQueue.fetchNextRequest`](requestqueue.fetchnextrequest) would return `null`, otherwise it resolves to `false`.
 Note that even if the queue is empty, there might be some pending requests currently being processed.
 If you need to ensure that there is no activity in the queue, use [`RequestQueue.isFinished`](requestqueue.isfinished).
@@ -209,6 +221,7 @@ If you need to ensure that there is no activity in the queue, use [`RequestQueue
 <a name="RequestQueue+isFinished"></a>
 
 ## `requestQueue.isFinished()` ⇒ `Promise<Boolean>`
+
 Resolves to `true` if all requests were already handled and there are no more left.
 Due to the nature of distributed storage used by the queue,
 the function might occasionally return a false negative,
@@ -217,13 +230,15 @@ but it will never return a false positive.
 <a name="RequestQueue+delete"></a>
 
 ## `requestQueue.delete()` ⇒ `Promise`
+
 Removes the queue either from the Apify Cloud storage or from the local directory,
 depending on the mode of operation.
 
 <a name="RequestQueue+handledCount"></a>
 
 ## ~~`requestQueue.handledCount()` ⇒ `Promise<number>`~~
-***Deprecated***
+
+**_Deprecated_**
 
 Returns the number of handled requests.
 
@@ -236,6 +251,7 @@ const { handledRequestCount } = await queue.getInfo();
 <a name="RequestQueue+getInfo"></a>
 
 ## `requestQueue.getInfo()` ⇒ `Promise<Object>`
+
 Returns an object containing general information about the request queue.
 
 The function returns the same object as the Apify API Client's
@@ -245,6 +261,7 @@ function, which in turn calls the
 API endpoint.
 
 **Example:**
+
 ```
 {
   id: "WkzbQMuFYuamGv3YF",
@@ -258,4 +275,3 @@ API endpoint.
   pendingRequestCount: 20,
 }
 ```
-

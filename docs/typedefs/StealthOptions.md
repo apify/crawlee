@@ -2,12 +2,14 @@
 id: stealthoptions
 title: StealthOptions
 ---
+
 <a name="StealthOptions"></a>
 
 Configuration of stealth tricks for a proper hiding effect all of them should be set to true.
 These tricks are applied only when the `stealth` option is set to `true`.
 
 **Properties**
+
 <table>
 <thead>
 <tr>

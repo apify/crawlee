@@ -2,6 +2,7 @@
 id: launchpuppeteeroptions
 title: LaunchPuppeteerOptions
 ---
+
 <a name="LaunchPuppeteerOptions"></a>
 
 Apify extends the launch options of Puppeteer.
@@ -11,6 +12,7 @@ options in the [`Apify.launchPuppeteer()`](../api/apify#module_Apify.launchPuppe
 function and in addition, all the options available below.
 
 **Properties**
+
 <table>
 <thead>
 <tr>

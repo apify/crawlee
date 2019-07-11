@@ -14,9 +14,10 @@ In local configuration, the data will be stored as JSON files in `./apify_storag
 
 To run this example on the Apify Platform, select the `Node.js 8 on Alpine Linux (apify/actor-node-basic)` base image
 on the source tab of your actor configuration.
+
 ```javascript
-const Apify = require('apify');
-const requestPromise = require('request-promise');
+const Apify = require("apify");
+const requestPromise = require("request-promise");
 
 // Apify.main() function wraps the crawler logic (it is optional).
 Apify.main(async () => {
@@ -24,18 +25,17 @@ Apify.main(async () => {
     // a list of URLs to crawl. Here we use just a few hard-coded URLs.
     const requestList = new Apify.RequestList({
         sources: [
-            { url: 'http://www.google.com/' },
-            { url: 'http://www.example.com/' },
-            { url: 'http://www.bing.com/' },
-            { url: 'http://www.wikipedia.com/' },
-        ],
+            { url: "http://www.google.com/" },
+            { url: "http://www.example.com/" },
+            { url: "http://www.bing.com/" },
+            { url: "http://www.wikipedia.com/" }
+        ]
     });
     await requestList.initialize();
 
     // Create a BasicCrawler - the simplest crawler that enables
     // users to implement the crawling logic themselves.
     const crawler = new Apify.BasicCrawler({
-
         // Let the crawler fetch URLs from our list.
         requestList,
 
@@ -51,14 +51,14 @@ Apify.main(async () => {
             // Store the HTML and URL to the default dataset.
             await Apify.pushData({
                 url: request.url,
-                html,
+                html
             });
-        },
+        }
     });
 
     // Run the crawler and wait for it to finish.
     await crawler.run();
 
-    console.log('Crawler finished.');
+    console.log("Crawler finished.");
 });
 ```

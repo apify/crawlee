@@ -2,6 +2,7 @@
 id: request
 title: Request
 ---
+
 <a name="Request"></a>
 
 Represents a URL to be crawled, optionally including HTTP method, headers, payload and other metadata.
@@ -31,6 +32,7 @@ const foo = request.userData.foo;
 ```
 
 **Properties**
+
 <table>
 <thead>
 <tr>
@@ -107,14 +109,15 @@ const foo = request.userData.foo;
 </td></tr></tbody>
 </table>
 
-* [Request](request)
-    * [`new Request(options)`](#new_Request_new)
-    * [`.pushErrorMessage(errorOrMessage, [options])`](#Request+pushErrorMessage)
-    * ~~[`.doNotRetry([message])`](#Request+doNotRetry)~~
+-   [Request](request)
+    -   [`new Request(options)`](#new_Request_new)
+    -   [`.pushErrorMessage(errorOrMessage, [options])`](#Request+pushErrorMessage)
+    -   ~~[`.doNotRetry([message])`](#Request+doNotRetry)~~
 
 <a name="new_Request_new"></a>
 
 ## `new Request(options)`
+
 <table>
 <thead>
 <tr>
@@ -191,6 +194,7 @@ to override the default behavior and specify which URLs shall be considered equa
 <a name="Request+pushErrorMessage"></a>
 
 ## `request.pushErrorMessage(errorOrMessage, [options])`
+
 Stores information about an error that occurred during processing of this request.
 
 You should always use Error instances when throwing errors in JavaScript.
@@ -226,7 +230,8 @@ as possible, since just throwing a bad type error makes any debugging rather dif
 <a name="Request+doNotRetry"></a>
 
 ## ~~`request.doNotRetry([message])`~~
-***Deprecated***
+
+**_Deprecated_**
 
 Flags the request with no retry which prevents [`BasicCrawler`](basiccrawler)
 (as well as {@PuppeteerCrawler} and {@CheerioCrawler}, since they use {@BasicCrawler} internally)

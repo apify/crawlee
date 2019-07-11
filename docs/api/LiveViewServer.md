@@ -2,6 +2,7 @@
 id: liveviewserver
 title: LiveViewServer
 ---
+
 <a name="LiveViewServer"></a>
 
 `LiveViewServer` enables serving of browser snapshots via web sockets. It includes its own client
@@ -35,18 +36,18 @@ single page improves performance and stability dramatically in high concurrency 
 When running locally, it is often best to use a headful browser for debugging, since it provides
 a better view into the browser, including DevTools, but `LiveViewServer` works too.
 
-
-* [LiveViewServer](liveviewserver)
-    * [`new LiveViewServer([options])`](#new_LiveViewServer_new)
-    * [`.start()`](#LiveViewServer+start) ⇒ `Promise`
-    * [`.stop()`](#LiveViewServer+stop) ⇒ `Promise`
-    * [`.serve(page)`](#LiveViewServer+serve) ⇒ `Promise`
-    * [`.isRunning()`](#LiveViewServer+isRunning) ⇒ `boolean`
-    * [`.hasClients()`](#LiveViewServer+hasClients) ⇒ `boolean`
+-   [LiveViewServer](liveviewserver)
+    -   [`new LiveViewServer([options])`](#new_LiveViewServer_new)
+    -   [`.start()`](#LiveViewServer+start) ⇒ `Promise`
+    -   [`.stop()`](#LiveViewServer+stop) ⇒ `Promise`
+    -   [`.serve(page)`](#LiveViewServer+serve) ⇒ `Promise`
+    -   [`.isRunning()`](#LiveViewServer+isRunning) ⇒ `boolean`
+    -   [`.hasClients()`](#LiveViewServer+hasClients) ⇒ `boolean`
 
 <a name="new_LiveViewServer_new"></a>
 
 ## `new LiveViewServer([options])`
+
 <table>
 <thead>
 <tr>
@@ -92,18 +93,21 @@ a better view into the browser, including DevTools, but `LiveViewServer` works t
 <a name="LiveViewServer+start"></a>
 
 ## `liveViewServer.start()` ⇒ `Promise`
+
 Starts the HTTP server with web socket connections enabled.
 Snapshots will not be created until a client has connected.
 
 <a name="LiveViewServer+stop"></a>
 
 ## `liveViewServer.stop()` ⇒ `Promise`
+
 Prevents the server from receiving more connections. Existing connections
 will not be terminated, but the server will not prevent a process exit.
 
 <a name="LiveViewServer+serve"></a>
 
 ## `liveViewServer.serve(page)` ⇒ `Promise`
+
 Serves a snapshot to all connected clients.
 Screenshots are not served directly, only their index number
 which is used by client to retrieve the screenshot.
@@ -126,6 +130,7 @@ Will time out and throw in `options.snapshotTimeoutSecs`.
 <a name="LiveViewServer+isRunning"></a>
 
 ## `liveViewServer.isRunning()` ⇒ `boolean`
+
 <a name="LiveViewServer+hasClients"></a>
 
 ## `liveViewServer.hasClients()` ⇒ `boolean`

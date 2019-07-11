@@ -2,6 +2,7 @@
 id: cheeriocrawler
 title: CheerioCrawler
 ---
+
 <a name="CheerioCrawler"></a>
 
 Provides a framework for the parallel crawling of web pages using plain HTTP requests and
@@ -44,10 +45,10 @@ parameter of the `CheerioCrawler` constructor. For user convenience, the `minCon
 ```javascript
 // Prepare a list of URLs to crawl
 const requestList = new Apify.RequestList({
-  sources: [
-      { url: 'http://www.example.com/page-1' },
-      { url: 'http://www.example.com/page-2' },
-  ],
+    sources: [
+        { url: "http://www.example.com/page-1" },
+        { url: "http://www.example.com/page-2" }
+    ]
 });
 await requestList.initialize();
 
@@ -58,30 +59,34 @@ const crawler = new Apify.CheerioCrawler({
         const data = [];
 
         // Do some data extraction from the page with Cheerio.
-        $('.some-collection').each((index, el) => {
-            data.push({ title: $(el).find('.some-title').text() });
+        $(".some-collection").each((index, el) => {
+            data.push({
+                title: $(el)
+                    .find(".some-title")
+                    .text()
+            });
         });
 
         // Save the data to dataset.
         await Apify.pushData({
             url: request.url,
             html,
-            data,
-        })
-    },
+            data
+        });
+    }
 });
 
 await crawler.run();
 ```
 
-
-* [CheerioCrawler](cheeriocrawler)
-    * [`new CheerioCrawler(options)`](#new_CheerioCrawler_new)
-    * [`.run()`](#CheerioCrawler+run) ⇒ `Promise`
+-   [CheerioCrawler](cheeriocrawler)
+    -   [`new CheerioCrawler(options)`](#new_CheerioCrawler_new)
+    -   [`.run()`](#CheerioCrawler+run) ⇒ `Promise`
 
 <a name="new_CheerioCrawler_new"></a>
 
 ## `new CheerioCrawler(options)`
+
 <table>
 <thead>
 <tr>
@@ -260,5 +265,5 @@ await crawler.run();
 <a name="CheerioCrawler+run"></a>
 
 ## `cheerioCrawler.run()` ⇒ `Promise`
-Runs the crawler. Returns promise that gets resolved once all the requests got processed.
 
+Runs the crawler. Returns promise that gets resolved once all the requests got processed.

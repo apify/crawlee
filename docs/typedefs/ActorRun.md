@@ -2,6 +2,7 @@
 id: actorrun
 title: ActorRun
 ---
+
 <a name="ActorRun"></a>
 
 Represents information about an actor run, as returned by the
@@ -14,6 +15,7 @@ For more details, see
 <a href="https://apify.com/docs/actor#run" target="_blank">Runs.</a>
 
 **Properties**
+
 <table>
 <thead>
 <tr>
