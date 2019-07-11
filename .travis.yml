@@ -55,7 +55,7 @@ jobs:
       tag: latest
       skip_cleanup: true
   - stage: images
-    if: branch = master AND type != pull_request
+    if: (branch = master AND type != pull_request) OR tag =~ /^v\d+\.\d+\.\d+$/
     node_js: '10'
     services:
     - docker
