@@ -550,7 +550,6 @@ describe('PuppeteerPool', () => {
         beforeEach(() => {
             log.setLevel(log.LEVELS.OFF);
             pool = new Apify.PuppeteerPool({
-                puppeteerOperationTimeoutSecs: 0.005,
                 launchPuppeteerOptions: {
                     headless: true,
                 },
@@ -562,11 +561,14 @@ describe('PuppeteerPool', () => {
         });
 
         it('should work', async () => {
+            // Start browser;
+            await pool._openNewTab(); // eslint-disable-line no-underscore-dangle
+            pool.puppeteerOperationTimeoutMillis = 0.005;
             try {
                 await pool._openNewTab(); // eslint-disable-line no-underscore-dangle
                 throw new Error('invalid error');
             } catch (err) {
-                expect(err.stack).to.include('timed out');
+                expect(err.stack).to.include('PuppeteerPool: browser.newPage() timed out.');
             }
         });
     });

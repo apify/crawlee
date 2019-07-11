@@ -1,6 +1,7 @@
 0.15.2 / 2019-07-11
 ====================
 - Fix error where Puppeteer would fail to launch when pipes are turned off.
+- Switch back to default Web Socket transport for Puppeteer due to upstream issues.
 
 0.15.1 / 2019-07-09
 ====================
