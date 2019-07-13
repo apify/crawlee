@@ -95,7 +95,10 @@ execGitCommand(`remote add origin-token https://${process.env.GH_TOKEN}@github.c
 log('Pushing changes to remote.');
 execGitCommand('push --set-upstream origin-token master');
 
-if (!isLatest()) teardown();
+if (!isLatest()) {
+    teardown();
+    process.exit(0);
+}
 
 log('Initiating build of latest images.');
 log('Checking that docker is running.');
