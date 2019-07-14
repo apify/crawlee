@@ -23,18 +23,18 @@ await page.goto("https://www.example.com");
 await puppeteer.injectJQuery(page);
 ```
 
--   [`puppeteer`](#puppeteer) : `object`
-    -   [`.enqueueLinksByClickingElements`](#puppeteer.enqueueLinksByClickingElements) ⇒ `Promise<Array<QueueOperationInfo>>`
-    -   [`.addInterceptRequestHandler`](#puppeteer.addInterceptRequestHandler) ⇒ `Promise`
-    -   [`.removeInterceptRequestHandler`](#puppeteer.removeInterceptRequestHandler) ⇒ `Promise`
-    -   [`.gotoExtended`](#puppeteer.gotoExtended) ⇒ `Promise<Response>`
-    -   [`.infiniteScroll`](#puppeteer.infiniteScroll) ⇒ `Promise`
-    -   [`.injectFile(page, filePath, [options])`](#puppeteer.injectFile) ⇒ `Promise`
-    -   [`.injectJQuery(page)`](#puppeteer.injectJQuery) ⇒ `Promise`
-    -   [`.injectUnderscore(page)`](#puppeteer.injectUnderscore) ⇒ `Promise`
-    -   [`.blockRequests(page, [options])`](#puppeteer.blockRequests) ⇒ `Promise`
-    -   ~~[`.cacheResponses(page, cache, responseUrlRules)`](#puppeteer.cacheResponses) ⇒ `Promise`~~
-    -   [`.compileScript(scriptString, context)`](#puppeteer.compileScript) ⇒ `function`
+- [`puppeteer`](#puppeteer) : `object`
+  - [`.enqueueLinksByClickingElements`](#puppeteer.enqueueLinksByClickingElements) ⇒ `Promise<Array<QueueOperationInfo>>`
+  - [`.addInterceptRequestHandler`](#puppeteer.addInterceptRequestHandler) ⇒ `Promise`
+  - [`.removeInterceptRequestHandler`](#puppeteer.removeInterceptRequestHandler) ⇒ `Promise`
+  - [`.gotoExtended`](#puppeteer.gotoExtended) ⇒ `Promise<Response>`
+  - [`.infiniteScroll`](#puppeteer.infiniteScroll) ⇒ `Promise`
+  - [`.injectFile(page, filePath, [options])`](#puppeteer.injectFile) ⇒ `Promise`
+  - [`.injectJQuery(page)`](#puppeteer.injectJQuery) ⇒ `Promise`
+  - [`.injectUnderscore(page)`](#puppeteer.injectUnderscore) ⇒ `Promise`
+  - [`.blockRequests(page, [options])`](#puppeteer.blockRequests) ⇒ `Promise`
+  - ~~[`.cacheResponses(page, cache, responseUrlRules)`](#puppeteer.cacheResponses) ⇒ `Promise`~~
+  - [`.compileScript(scriptString, context)`](#puppeteer.compileScript) ⇒ `function`
 
 <a name="puppeteer.enqueueLinksByClickingElements"></a>
 
@@ -189,27 +189,27 @@ to any of the remaining handlers.
 ```javascript
 // Replace images with placeholder.
 await addInterceptRequestHandler(page, request => {
-    if (request.resourceType() === "image") {
-        return request.respond({
-            statusCode: 200,
-            contentType: "image/jpeg",
-            body: placeholderImageBuffer
-        });
-    }
-    return request.continue();
+  if (request.resourceType() === "image") {
+    return request.respond({
+      statusCode: 200,
+      contentType: "image/jpeg",
+      body: placeholderImageBuffer
+    });
+  }
+  return request.continue();
 });
 
 // Abort all the scripts.
 await addInterceptRequestHandler(page, request => {
-    if (request.resourceType() === "script") return request.abort();
-    return request.continue();
+  if (request.resourceType() === "script") return request.abort();
+  return request.continue();
 });
 
 // Change requests to post.
 await addInterceptRequestHandler(page, request => {
-    return request.continue({
-        method: "POST"
-    });
+  return request.continue({
+    method: "POST"
+  });
 });
 
 await page.goto("http://example.com");
@@ -387,7 +387,7 @@ The injected jQuery will survive page navigations and reloads.
 ```javascript
 await Apify.utils.puppeteer.injectJQuery(page);
 const title = await page.evaluate(() => {
-    return $("head title").text();
+  return $("head title").text();
 });
 ```
 
@@ -426,7 +426,7 @@ The injected Underscore will survive page navigations and reloads.
 ```javascript
 await Apify.utils.puppeteer.injectUnderscore(page);
 const escapedHtml = await page.evaluate(() => {
-    return _.escape("<h1>Hello</h1>");
+  return _.escape("<h1>Hello</h1>");
 });
 ```
 
@@ -480,7 +480,7 @@ const page = await browser.newPage();
 
 // Block all requests to URLs that include `adsbygoogle.js` and also all defaults.
 await Apify.utils.puppeteer.blockRequests(page, {
-    extraUrlPatterns: ["adsbygoogle.js"]
+  extraUrlPatterns: ["adsbygoogle.js"]
 });
 
 await page.goto("https://cnn.com");

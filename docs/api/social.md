@@ -14,26 +14,26 @@ from text, URLs and and HTML documents.
 const Apify = require("apify");
 
 const emails = Apify.utils.social.emailsFromText(
-    "alice@example.com bob@example.com"
+  "alice@example.com bob@example.com"
 );
 ```
 
--   [`social`](#social) : `object`
-    -   [`.LINKEDIN_REGEX`](#social.LINKEDIN_REGEX) : `RegExp`
-    -   [`.LINKEDIN_REGEX_GLOBAL`](#social.LINKEDIN_REGEX_GLOBAL) : `RegExp`
-    -   [`.INSTAGRAM_REGEX`](#social.INSTAGRAM_REGEX) : `RegExp`
-    -   [`.INSTAGRAM_REGEX_GLOBAL`](#social.INSTAGRAM_REGEX_GLOBAL) : `RegExp`
-    -   [`.TWITTER_REGEX`](#social.TWITTER_REGEX) : `RegExp`
-    -   [`.TWITTER_REGEX_GLOBAL`](#social.TWITTER_REGEX_GLOBAL) : `RegExp`
-    -   [`.FACEBOOK_REGEX`](#social.FACEBOOK_REGEX) : `RegExp`
-    -   [`.FACEBOOK_REGEX_GLOBAL`](#social.FACEBOOK_REGEX_GLOBAL) : `RegExp`
-    -   [`.EMAIL_REGEX`](#social.EMAIL_REGEX) : `RegExp`
-    -   [`.EMAIL_REGEX_GLOBAL`](#social.EMAIL_REGEX_GLOBAL) : `RegExp`
-    -   [`.emailsFromText(text)`](#social.emailsFromText) ⇒ `Array<String>`
-    -   [`.emailsFromUrls(urls)`](#social.emailsFromUrls) ⇒ `Array<String>`
-    -   [`.phonesFromText(text)`](#social.phonesFromText) ⇒ `Array<String>`
-    -   [`.phonesFromUrls(urls)`](#social.phonesFromUrls) ⇒ `Array<String>`
-    -   [`.parseHandlesFromHtml(html, data)`](#social.parseHandlesFromHtml) ⇒ `*`
+- [`social`](#social) : `object`
+  - [`.LINKEDIN_REGEX`](#social.LINKEDIN_REGEX) : `RegExp`
+  - [`.LINKEDIN_REGEX_GLOBAL`](#social.LINKEDIN_REGEX_GLOBAL) : `RegExp`
+  - [`.INSTAGRAM_REGEX`](#social.INSTAGRAM_REGEX) : `RegExp`
+  - [`.INSTAGRAM_REGEX_GLOBAL`](#social.INSTAGRAM_REGEX_GLOBAL) : `RegExp`
+  - [`.TWITTER_REGEX`](#social.TWITTER_REGEX) : `RegExp`
+  - [`.TWITTER_REGEX_GLOBAL`](#social.TWITTER_REGEX_GLOBAL) : `RegExp`
+  - [`.FACEBOOK_REGEX`](#social.FACEBOOK_REGEX) : `RegExp`
+  - [`.FACEBOOK_REGEX_GLOBAL`](#social.FACEBOOK_REGEX_GLOBAL) : `RegExp`
+  - [`.EMAIL_REGEX`](#social.EMAIL_REGEX) : `RegExp`
+  - [`.EMAIL_REGEX_GLOBAL`](#social.EMAIL_REGEX_GLOBAL) : `RegExp`
+  - [`.emailsFromText(text)`](#social.emailsFromText) ⇒ `Array<String>`
+  - [`.emailsFromUrls(urls)`](#social.emailsFromUrls) ⇒ `Array<String>`
+  - [`.phonesFromText(text)`](#social.phonesFromText) ⇒ `Array<String>`
+  - [`.phonesFromUrls(urls)`](#social.phonesFromUrls) ⇒ `Array<String>`
+  - [`.parseHandlesFromHtml(html, data)`](#social.parseHandlesFromHtml) ⇒ `*`
 
 <a name="social.LINKEDIN_REGEX"></a>
 

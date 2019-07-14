@@ -18,16 +18,16 @@ const Apify = require('apify');
 await Apify.utils.sleep(1500);
 ```
 
--   [`utils`](#utils) : `object`
-    -   [`.enqueueLinks`](#utils.enqueueLinks) ⇒ `Promise<Array<QueueOperationInfo>>`
-    -   [`.sleep`](#utils.sleep) ⇒ `Promise`
-    -   [`.URL_NO_COMMAS_REGEX`](#utils.URL_NO_COMMAS_REGEX)
-    -   [`.URL_WITH_COMMAS_REGEX`](#utils.URL_WITH_COMMAS_REGEX)
-    -   [`.isDocker()`](#utils.isDocker) ⇒ `Promise`
-    -   [`.downloadListOfUrls(options)`](#utils.downloadListOfUrls) ⇒ `Promise<Array<String>>`
-    -   [`.extractUrls(options)`](#utils.extractUrls) ⇒ `Array<String>`
-    -   [`.getRandomUserAgent()`](#utils.getRandomUserAgent) ⇒ `String`
-    -   [`.htmlToText(html)`](#utils.htmlToText) ⇒ `String`
+- [`utils`](#utils) : `object`
+  - [`.enqueueLinks`](#utils.enqueueLinks) ⇒ `Promise<Array<QueueOperationInfo>>`
+  - [`.sleep`](#utils.sleep) ⇒ `Promise`
+  - [`.URL_NO_COMMAS_REGEX`](#utils.URL_NO_COMMAS_REGEX)
+  - [`.URL_WITH_COMMAS_REGEX`](#utils.URL_WITH_COMMAS_REGEX)
+  - [`.isDocker()`](#utils.isDocker) ⇒ `Promise`
+  - [`.downloadListOfUrls(options)`](#utils.downloadListOfUrls) ⇒ `Promise<Array<String>>`
+  - [`.extractUrls(options)`](#utils.extractUrls) ⇒ `Array<String>`
+  - [`.getRandomUserAgent()`](#utils.getRandomUserAgent) ⇒ `String`
+  - [`.htmlToText(html)`](#utils.htmlToText) ⇒ `String`
 
 <a name="utils.enqueueLinks"></a>
 
@@ -53,13 +53,13 @@ const page = await browser.goto("https://www.example.com");
 const requestQueue = await Apify.openRequestQueue();
 
 await Apify.utils.enqueueLinks({
-    page,
-    requestQueue,
-    selector: "a.product-detail",
-    pseudoUrls: [
-        "https://www.example.com/handbags/[.*]",
-        "https://www.example.com/purses/[.*]"
-    ]
+  page,
+  requestQueue,
+  selector: "a.product-detail",
+  pseudoUrls: [
+    "https://www.example.com/handbags/[.*]",
+    "https://www.example.com/purses/[.*]"
+  ]
 });
 ```
 

@@ -28,14 +28,14 @@ Event loop becomes overloaded if it slows down by more than the `maxBlockedMilli
 Client becomes overloaded when rate limit errors (429 - Too Many Requests),
 typically received from the request queue, exceed the set limit within the set interval.
 
--   [Snapshotter](snapshotter)
-    -   [`new Snapshotter([options])`](#new_Snapshotter_new)
-    -   [`.start()`](#Snapshotter+start) ⇒ `Promise`
-    -   [`.stop()`](#Snapshotter+stop) ⇒ `Promise`
-    -   [`.getMemorySample([sampleDurationMillis])`](#Snapshotter+getMemorySample) ⇒ `Array`
-    -   [`.getEventLoopSample([sampleDurationMillis])`](#Snapshotter+getEventLoopSample) ⇒ `Array`
-    -   [`.getCpuSample([sampleDurationMillis])`](#Snapshotter+getCpuSample) ⇒ `Array`
-    -   [`.getClientSample(sampleDurationMillis)`](#Snapshotter+getClientSample) ⇒ `Array`
+- [Snapshotter](snapshotter)
+  - [`new Snapshotter([options])`](#new_Snapshotter_new)
+  - [`.start()`](#Snapshotter+start) ⇒ `Promise`
+  - [`.stop()`](#Snapshotter+stop) ⇒ `Promise`
+  - [`.getMemorySample([sampleDurationMillis])`](#Snapshotter+getMemorySample) ⇒ `Array`
+  - [`.getEventLoopSample([sampleDurationMillis])`](#Snapshotter+getEventLoopSample) ⇒ `Array`
+  - [`.getCpuSample([sampleDurationMillis])`](#Snapshotter+getCpuSample) ⇒ `Array`
+  - [`.getClientSample(sampleDurationMillis)`](#Snapshotter+getClientSample) ⇒ `Array`
 
 <a name="new_Snapshotter_new"></a>
 

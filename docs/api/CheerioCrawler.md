@@ -45,43 +45,43 @@ parameter of the `CheerioCrawler` constructor. For user convenience, the `minCon
 ```javascript
 // Prepare a list of URLs to crawl
 const requestList = new Apify.RequestList({
-    sources: [
-        { url: "http://www.example.com/page-1" },
-        { url: "http://www.example.com/page-2" }
-    ]
+  sources: [
+    { url: "http://www.example.com/page-1" },
+    { url: "http://www.example.com/page-2" }
+  ]
 });
 await requestList.initialize();
 
 // Crawl the URLs
 const crawler = new Apify.CheerioCrawler({
-    requestList,
-    handlePageFunction: async ({ request, response, html, $ }) => {
-        const data = [];
+  requestList,
+  handlePageFunction: async ({ request, response, html, $ }) => {
+    const data = [];
 
-        // Do some data extraction from the page with Cheerio.
-        $(".some-collection").each((index, el) => {
-            data.push({
-                title: $(el)
-                    .find(".some-title")
-                    .text()
-            });
-        });
+    // Do some data extraction from the page with Cheerio.
+    $(".some-collection").each((index, el) => {
+      data.push({
+        title: $(el)
+          .find(".some-title")
+          .text()
+      });
+    });
 
-        // Save the data to dataset.
-        await Apify.pushData({
-            url: request.url,
-            html,
-            data
-        });
-    }
+    // Save the data to dataset.
+    await Apify.pushData({
+      url: request.url,
+      html,
+      data
+    });
+  }
 });
 
 await crawler.run();
 ```
 
--   [CheerioCrawler](cheeriocrawler)
-    -   [`new CheerioCrawler(options)`](#new_CheerioCrawler_new)
-    -   [`.run()`](#CheerioCrawler+run) ⇒ `Promise`
+- [CheerioCrawler](cheeriocrawler)
+  - [`new CheerioCrawler(options)`](#new_CheerioCrawler_new)
+  - [`.run()`](#CheerioCrawler+run) ⇒ `Promise`
 
 <a name="new_CheerioCrawler_new"></a>
 

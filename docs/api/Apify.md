@@ -9,27 +9,27 @@ The following section describes all functions and properties provided by the `ap
 except individual classes and namespaces that have their separate, detailed, documentation pages
 accessible from the left sidebar.
 
--   [Apify](#module_Apify)
-    -   [`.addWebhook(options)`](#module_Apify.addWebhook) ⇒ `Promise<Object>`
-    -   [`.call(actId, [input], [options])`](#module_Apify.call) ⇒ [`Promise<ActorRun>`](../typedefs/actorrun)
-    -   [`.callTask(taskId, [input], [options])`](#module_Apify.callTask) ⇒ [`Promise<ActorRun>`](../typedefs/actorrun)
-    -   [`.client`](#module_Apify.client)
-    -   [`.events`](#module_Apify.events)
-    -   [`.getApifyProxyUrl(options)`](#module_Apify.getApifyProxyUrl) ⇒ `String`
-    -   [`.getEnv()`](#module_Apify.getEnv) ⇒ `Object`
-    -   [`.getInput`](#module_Apify.getInput) ⇒ `Promise<Object>`
-    -   [`.getMemoryInfo()`](#module_Apify.getMemoryInfo) ⇒ `Promise<Object>`
-    -   [`.getValue(key)`](#module_Apify.getValue) ⇒ `Promise<Object>`
-    -   [`.isAtHome()`](#module_Apify.isAtHome) ⇒ `Boolean`
-    -   [`.launchPuppeteer([options])`](#module_Apify.launchPuppeteer) ⇒ `Promise<Browser>`
-    -   [`.main(userFunc)`](#module_Apify.main)
-    -   [`.metamorph(targetActorId, [input], [options])`](#module_Apify.metamorph) ⇒ `Promise`
-    -   [`.openDataset([datasetIdOrName], [options])`](#module_Apify.openDataset) ⇒ [`Promise<Dataset>`](dataset)
-    -   [`.openKeyValueStore([storeIdOrName], [options])`](#module_Apify.openKeyValueStore) ⇒ [`Promise<KeyValueStore>`](keyvaluestore)
-    -   [`.openRequestList`](#module_Apify.openRequestList) ⇒ [`Promise<RequestList>`](requestlist)
-    -   [`.openRequestQueue`](#module_Apify.openRequestQueue) ⇒ [`Promise<RequestQueue>`](requestqueue)
-    -   [`.pushData(item)`](#module_Apify.pushData) ⇒ `Promise`
-    -   [`.setValue(key, value, [options])`](#module_Apify.setValue) ⇒ `Promise`
+- [Apify](#module_Apify)
+  - [`.addWebhook(options)`](#module_Apify.addWebhook) ⇒ `Promise<Object>`
+  - [`.call(actId, [input], [options])`](#module_Apify.call) ⇒ [`Promise<ActorRun>`](../typedefs/actorrun)
+  - [`.callTask(taskId, [input], [options])`](#module_Apify.callTask) ⇒ [`Promise<ActorRun>`](../typedefs/actorrun)
+  - [`.client`](#module_Apify.client)
+  - [`.events`](#module_Apify.events)
+  - [`.getApifyProxyUrl(options)`](#module_Apify.getApifyProxyUrl) ⇒ `String`
+  - [`.getEnv()`](#module_Apify.getEnv) ⇒ `Object`
+  - [`.getInput`](#module_Apify.getInput) ⇒ `Promise<Object>`
+  - [`.getMemoryInfo()`](#module_Apify.getMemoryInfo) ⇒ `Promise<Object>`
+  - [`.getValue(key)`](#module_Apify.getValue) ⇒ `Promise<Object>`
+  - [`.isAtHome()`](#module_Apify.isAtHome) ⇒ `Boolean`
+  - [`.launchPuppeteer([options])`](#module_Apify.launchPuppeteer) ⇒ `Promise<Browser>`
+  - [`.main(userFunc)`](#module_Apify.main)
+  - [`.metamorph(targetActorId, [input], [options])`](#module_Apify.metamorph) ⇒ `Promise`
+  - [`.openDataset([datasetIdOrName], [options])`](#module_Apify.openDataset) ⇒ [`Promise<Dataset>`](dataset)
+  - [`.openKeyValueStore([storeIdOrName], [options])`](#module_Apify.openKeyValueStore) ⇒ [`Promise<KeyValueStore>`](keyvaluestore)
+  - [`.openRequestList`](#module_Apify.openRequestList) ⇒ [`Promise<RequestList>`](requestlist)
+  - [`.openRequestQueue`](#module_Apify.openRequestQueue) ⇒ [`Promise<RequestQueue>`](requestqueue)
+  - [`.pushData(item)`](#module_Apify.pushData) ⇒ `Promise`
+  - [`.setValue(key, value, [options])`](#module_Apify.setValue) ⇒ `Promise`
 
 <a name="module_Apify.addWebhook"></a>
 
@@ -119,7 +119,7 @@ and several other API endpoints to obtain the output.
 
 **Throws**:
 
--   [`ApifyCallError`](../typedefs/apifycallerror) If the run did not succeed, e.g. if it failed or timed out.
+- [`ApifyCallError`](../typedefs/apifycallerror) If the run did not succeed, e.g. if it failed or timed out.
 
 <table>
 <thead>
@@ -230,7 +230,7 @@ and several other API endpoints to obtain the output.
 
 **Throws**:
 
--   [`ApifyCallError`](../typedefs/apifycallerror) If the run did not succeed, e.g. if it failed or timed out.
+- [`ApifyCallError`](../typedefs/apifycallerror) If the run did not succeed, e.g. if it failed or timed out.
 
 <table>
 <thead>
@@ -328,7 +328,7 @@ The event emitter is initialized by calling the [`Apify.main()`](#module_Apify.m
 
 ```javascript
 Apify.events.on("cpuInfo", data => {
-    if (data.isCpuOverloaded) console.log("Oh no, the CPU is overloaded!");
+  if (data.isCpuOverloaded) console.log("Oh no, the CPU is overloaded!");
 });
 ```
 
@@ -673,8 +673,8 @@ The user function can be synchronous:
 
 ```javascript
 Apify.main(() => {
-    // My synchronous function that returns immediately
-    console.log("Hello world from actor!");
+  // My synchronous function that returns immediately
+  console.log("Hello world from actor!");
 });
 ```
 
@@ -684,10 +684,10 @@ If the user function returns a promise, it is considered asynchronous:
 const request = require("request-promise-native");
 
 Apify.main(() => {
-    // My asynchronous function that returns a promise
-    return request("http://www.example.com").then(html => {
-        console.log(html);
-    });
+  // My asynchronous function that returns a promise
+  return request("http://www.example.com").then(html => {
+    console.log(html);
+  });
 });
 ```
 
@@ -697,9 +697,9 @@ To simplify your code, you can take advantage of the `async`/`await` keywords:
 const request = require("request-promise-native");
 
 Apify.main(async () => {
-    // My asynchronous function
-    const html = await request("http://www.example.com");
-    console.log(html);
+  // My asynchronous function
+  const html = await request("http://www.example.com");
+  console.log(html);
 });
 ```
 
@@ -857,9 +857,9 @@ For more details and code examples, see the [`RequestList`](requestlist) class.
 
 ```javascript
 const sources = [
-    "https://www.example.com",
-    "https://www.google.com",
-    "https://www.bing.com"
+  "https://www.example.com",
+  "https://www.google.com",
+  "https://www.bing.com"
 ];
 
 const requestList = await Apify.openRequestList("my-name", sources);

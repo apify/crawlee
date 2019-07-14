@@ -68,12 +68,12 @@ const value = await store.getValue("some-key");
 await store.delete("some-key");
 ```
 
--   [KeyValueStore](keyvaluestore)
-    -   [`.getValue(key)`](#KeyValueStore+getValue) ⇒ `Promise<(Object|String|Buffer)>`
-    -   [`.setValue(key, value, [options])`](#KeyValueStore+setValue) ⇒ `Promise`
-    -   [`.delete()`](#KeyValueStore+delete) ⇒ `Promise`
-    -   [`.getPublicUrl(key)`](#KeyValueStore+getPublicUrl) ⇒ `string`
-    -   [`.forEachKey(iteratee, [options])`](#KeyValueStore+forEachKey) ⇒ `Promise`
+- [KeyValueStore](keyvaluestore)
+  - [`.getValue(key)`](#KeyValueStore+getValue) ⇒ `Promise<(Object|String|Buffer)>`
+  - [`.setValue(key, value, [options])`](#KeyValueStore+setValue) ⇒ `Promise`
+  - [`.delete()`](#KeyValueStore+delete) ⇒ `Promise`
+  - [`.getPublicUrl(key)`](#KeyValueStore+getPublicUrl) ⇒ `string`
+  - [`.forEachKey(iteratee, [options])`](#KeyValueStore+forEachKey) ⇒ `Promise`
 
 <a name="KeyValueStore+getValue"></a>
 
@@ -238,7 +238,7 @@ If it throws an error, the iteration is aborted and the `forEachKey` function th
 ```javascript
 const keyValueStore = await Apify.openKeyValueStore();
 await keyValueStore.forEachKey(async (key, index, info) => {
-    console.log(`Key at ${index}: ${key} has size ${info.size}`);
+  console.log(`Key at ${index}: ${key} has size ${info.size}`);
 });
 ```
 

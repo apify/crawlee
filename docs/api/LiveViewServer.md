@@ -11,10 +11,10 @@ pieces of information, the currently opened URL, the content of the page (HTML) 
 
 ```json
 {
-    "pageUrl": "https://www.example.com",
-    "htmlContent": "<html><body> ....",
-    "screenshotIndex": 3,
-    "createdAt": "2019-04-18T11:50:40.060Z"
+  "pageUrl": "https://www.example.com",
+  "htmlContent": "<html><body> ....",
+  "screenshotIndex": 3,
+  "createdAt": "2019-04-18T11:50:40.060Z"
 }
 ```
 
@@ -36,13 +36,13 @@ single page improves performance and stability dramatically in high concurrency 
 When running locally, it is often best to use a headful browser for debugging, since it provides
 a better view into the browser, including DevTools, but `LiveViewServer` works too.
 
--   [LiveViewServer](liveviewserver)
-    -   [`new LiveViewServer([options])`](#new_LiveViewServer_new)
-    -   [`.start()`](#LiveViewServer+start) ⇒ `Promise`
-    -   [`.stop()`](#LiveViewServer+stop) ⇒ `Promise`
-    -   [`.serve(page)`](#LiveViewServer+serve) ⇒ `Promise`
-    -   [`.isRunning()`](#LiveViewServer+isRunning) ⇒ `boolean`
-    -   [`.hasClients()`](#LiveViewServer+hasClients) ⇒ `boolean`
+- [LiveViewServer](liveviewserver)
+  - [`new LiveViewServer([options])`](#new_LiveViewServer_new)
+  - [`.start()`](#LiveViewServer+start) ⇒ `Promise`
+  - [`.stop()`](#LiveViewServer+stop) ⇒ `Promise`
+  - [`.serve(page)`](#LiveViewServer+serve) ⇒ `Promise`
+  - [`.isRunning()`](#LiveViewServer+isRunning) ⇒ `boolean`
+  - [`.hasClients()`](#LiveViewServer+hasClients) ⇒ `boolean`
 
 <a name="new_LiveViewServer_new"></a>
 

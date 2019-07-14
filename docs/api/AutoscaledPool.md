@@ -33,37 +33,37 @@ and also in the interval set by the `options.maybeRunIntervalSecs` parameter.
 
 ```javascript
 const pool = new Apify.AutoscaledPool({
-    maxConcurrency: 50,
-    runTaskFunction: async () => {
-        // Run some resource-intensive asynchronous operation here.
-    },
-    isTaskReadyFunction: async () => {
-        // Tell the pool whether more tasks are ready to be processed.
-        // Return true or false
-    },
-    isFinishedFunction: async () => {
-        // Tell the pool whether it should finish
-        // or wait for more tasks to become available.
-        // Return true or false
-    }
+  maxConcurrency: 50,
+  runTaskFunction: async () => {
+    // Run some resource-intensive asynchronous operation here.
+  },
+  isTaskReadyFunction: async () => {
+    // Tell the pool whether more tasks are ready to be processed.
+    // Return true or false
+  },
+  isFinishedFunction: async () => {
+    // Tell the pool whether it should finish
+    // or wait for more tasks to become available.
+    // Return true or false
+  }
 });
 
 await pool.run();
 ```
 
--   [AutoscaledPool](autoscaledpool)
-    -   [`new AutoscaledPool(options)`](#new_AutoscaledPool_new)
-    -   [`.minConcurrency`](#AutoscaledPool+minConcurrency) ⇒ `number`
-    -   [`.minConcurrency`](#AutoscaledPool+minConcurrency)
-    -   [`.maxConcurrency`](#AutoscaledPool+maxConcurrency) ⇒ `number`
-    -   [`.maxConcurrency`](#AutoscaledPool+maxConcurrency)
-    -   [`.desiredConcurrency`](#AutoscaledPool+desiredConcurrency) ⇒ `number`
-    -   [`.desiredConcurrency`](#AutoscaledPool+desiredConcurrency)
-    -   [`.currentConcurrency`](#AutoscaledPool+currentConcurrency) ⇒ `number`
-    -   [`.run()`](#AutoscaledPool+run) ⇒ `Promise`
-    -   [`.abort()`](#AutoscaledPool+abort) ⇒ `Promise`
-    -   [`.pause([timeoutSecs])`](#AutoscaledPool+pause) ⇒ `Promise`
-    -   [`.resume()`](#AutoscaledPool+resume)
+- [AutoscaledPool](autoscaledpool)
+  - [`new AutoscaledPool(options)`](#new_AutoscaledPool_new)
+  - [`.minConcurrency`](#AutoscaledPool+minConcurrency) ⇒ `number`
+  - [`.minConcurrency`](#AutoscaledPool+minConcurrency)
+  - [`.maxConcurrency`](#AutoscaledPool+maxConcurrency) ⇒ `number`
+  - [`.maxConcurrency`](#AutoscaledPool+maxConcurrency)
+  - [`.desiredConcurrency`](#AutoscaledPool+desiredConcurrency) ⇒ `number`
+  - [`.desiredConcurrency`](#AutoscaledPool+desiredConcurrency)
+  - [`.currentConcurrency`](#AutoscaledPool+currentConcurrency) ⇒ `number`
+  - [`.run()`](#AutoscaledPool+run) ⇒ `Promise`
+  - [`.abort()`](#AutoscaledPool+abort) ⇒ `Promise`
+  - [`.pause([timeoutSecs])`](#AutoscaledPool+pause) ⇒ `Promise`
+  - [`.resume()`](#AutoscaledPool+resume)
 
 <a name="new_AutoscaledPool_new"></a>
 
