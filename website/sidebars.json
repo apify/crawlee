@@ -30,15 +30,14 @@
         ]
     },
     "examples": {
-        "Examples": [
-            "examples/basiccrawler",
-            "examples/cheeriocrawler",
-            "examples/puppeteercrawler",
-            "examples/puppeteerwithproxy",
-            "examples/puppeteersitemap",
-            "examples/screenshots",
-            "examples/callactor",
-            "examples/synchronousrun"
+        "Recipes": [
+            "examples/crawl-single-url",
+            "examples/crawl-multiple-urls",
+            "examples/crawl-sitemap",
+            "examples/crawl-all-links",
+            "examples/crawl-some-links",
+            "examples/crawl-relative-links",
+            "examples/capture-screenshot"
         ]
     },
     "autoscaling": {
