@@ -94,7 +94,7 @@ const main = async () => {
 
         const title = filename.split('.')[0].split('_').map(word => `${word[0].toUpperCase()}${word.substr(1)}`).join(' ');
         const header = getHeader(title);
-        const markdown = `${header}\n${description}\n${codeblock}`;
+        const markdown = prettier.format(`${header}\n${description}\n${codeblock}`, { parser: "markdown" });;
         await writeFile(path.join(exampleFilesOutputDir, `${title.replace(/\s/g, '')}.md`), markdown);
     });
 
