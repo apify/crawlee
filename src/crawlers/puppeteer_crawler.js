@@ -220,7 +220,7 @@ class PuppeteerCrawler {
         this.handlePageFunction = handlePageFunction;
         this.gotoFunction = gotoFunction;
 
-        this.handlePageTimeoutMillis = handlePageTimeoutSecs * 1000;
+        this.handlePageTimeoutSecs = handlePageTimeoutSecs;
 
         // TODO Deprecated in 3/2019
         const deprecatedPuppeteerPoolOptions = {
@@ -291,8 +291,8 @@ class PuppeteerCrawler {
             request.loadedUrl = page.url();
             await addTimeoutToPromise(
                 this.handlePageFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool, response }),
-                this.handlePageTimeoutMillis,
-                'PuppeteerCrawler: handlePageFunction timed out.',
+                this.handlePageTimeoutSecs * 1000,
+                `PuppeteerCrawler: handlePageFunction timed out after ${this.handlePageTimeoutSecs} seconds.`,
             );
         } finally {
             await this.puppeteerPool.recyclePage(page);

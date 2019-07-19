@@ -278,8 +278,8 @@ class CheerioCrawler {
 
         this.requestOptions = requestOptions;
         this.handlePageFunction = handlePageFunction;
-        this.handlePageTimeoutMillis = handlePageTimeoutSecs * 1000;
-        this.requestTimeoutMillis = requestTimeoutSecs * 1000;
+        this.handlePageTimeoutSecs = handlePageTimeoutSecs;
+        this.requestTimeoutSecs = requestTimeoutSecs;
         this.ignoreSslErrors = ignoreSslErrors;
         this.useApifyProxy = useApifyProxy;
         this.apifyProxyGroups = apifyProxyGroups;
@@ -333,7 +333,7 @@ class CheerioCrawler {
         if (this.prepareRequestFunction) await this.prepareRequestFunction({ request });
         const { dom, response } = await addTimeoutToPromise(
             this._requestFunction({ request }),
-            this.requestTimeoutMillis,
+            this.requestTimeoutSecs * 1000,
             'CheerioCrawler: requestFunction timed out.',
         );
 
@@ -353,8 +353,8 @@ class CheerioCrawler {
         };
         return addTimeoutToPromise(
             this.handlePageFunction(context),
-            this.handlePageTimeoutMillis,
-            'CheerioCrawler: handlePageFunction timed out.',
+            this.handlePageTimeoutSecs * 1000,
+            `CheerioCrawler: handlePageFunction timed out after ${this.handlePageTimeoutSecs} seconds.`,
         );
     }
 

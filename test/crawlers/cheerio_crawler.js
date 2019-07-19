@@ -184,7 +184,7 @@ describe('CheerioCrawler', () => {
             });
 
             // Override low value to prevent seeing timeouts from BasicCrawler
-            cheerioCrawler.basicCrawler.handleRequestTimeoutMillis = 10000;
+            cheerioCrawler.basicCrawler.handleRequestTimeoutSecs = 10;
 
             await requestList.initialize();
             await cheerioCrawler.run();

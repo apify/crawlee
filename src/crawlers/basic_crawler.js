@@ -190,7 +190,7 @@ class BasicCrawler {
         this.requestList = requestList;
         this.requestQueue = requestQueue;
         this.handleRequestFunction = handleRequestFunction;
-        this.handleRequestTimeoutMillis = handleRequestTimeoutSecs * 1000;
+        this.handleRequestTimeoutSecs = handleRequestTimeoutSecs;
         this.handleFailedRequestFunction = handleFailedRequestFunction;
         this.maxRequestRetries = maxRequestRetries;
         this.handledRequestsCount = 0;
@@ -343,8 +343,8 @@ class BasicCrawler {
         try {
             await addTimeoutToPromise(
                 this.handleRequestFunction({ request, autoscaledPool: this.autoscaledPool }),
-                this.handleRequestTimeoutMillis,
-                'BasicCrawler: handleRequestFunction timed out.',
+                this.handleRequestTimeoutSecs * 1000,
+                `BasicCrawler: handleRequestFunction timed out after ${this.handleRequestTimeoutSecs} seconds.`,
             );
             await source.markRequestHandled(request);
             this.stats.finishJob(statisticsId);

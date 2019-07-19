@@ -3,6 +3,8 @@ xxx
 - Bugfix in BasicCrawler: async calls in `isFinishedFunction` were not awaited
 - Better logging of memory overload errors
 - Upgraded `apify-client` to 0.5.22
+- Renamed the following internal properties in `BasicCrawler`, `CheerioCrawler` and `PuppeteerCrawler`
+  to improve logging: `handleRequestTimeoutMillis`, `handlePageTimeoutMillis` and `requestTimeoutSecs`.
 
 0.14.15 / 2019-05-31
 ====================
