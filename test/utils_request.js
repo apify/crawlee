@@ -6,7 +6,6 @@ import { startExpressAppPromise } from './_helper';
 
 const CONTENT = 'CONTENT';
 const HOST = '127.0.0.1';
-const ERROR_BODY = 'CUSTOM_ERROR';
 
 describe('Apify.utils_request', () => {
     let mochaListener;
@@ -159,16 +158,6 @@ describe('Apify.utils_request', () => {
 
             expect(response.statusCode).to.eql(200);
             expect(JSON.parse(response.body)['user-agent']).to.be.eql(options.headers['User-Agent']);
-        });
-
-        it('overrides defaults', async () => {
-            const options = {
-                url: 'https://www.ebay.com/sch/sis.html?_nkw=Beechcraft',
-            };
-
-            const response = await requestAsBrowser(options);
-
-            console.log(response);
         });
     });
 });

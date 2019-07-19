@@ -1,7 +1,7 @@
 import contentType from 'content-type';
 import * as url from 'url';
 import _ from 'underscore';
-import httpRequest from 'http-request';
+import httpRequest from '@apify/http-request';
 
 const FIREFOX_MOBILE_USER_AGENT = 'Mozilla/5.0 (Android 9.0; Mobile; rv:66.0) Gecko/66.0 Firefox/66.0';
 const FIREFOX_DESKTOP_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_3) AppleWebKit/605.1.15 (KHTML, like Gecko)'
