@@ -3,6 +3,8 @@ id: capture-screenshot
 title: Capture a screenshot
 ---
 
+This example captures of a screenshot of a web page using Puppeteer:
+
 ```javascript
 const Apify = require("apify");
 
@@ -31,6 +33,8 @@ Apify.main(async () => {
     await browser.close();
 });
 ```
+
+This example captures a screenshot of multiple web pages when using `PuppeteerCrawler`:
 
 ```javascript
 const Apify = require("apify");
@@ -74,3 +78,5 @@ Apify.main(async () => {
 
 });
 ```
+
+In both examples, a `key` variable is created based on the URL of the web page. This variable is used as the key when saving each screenshot into a key-value store.
