@@ -20,24 +20,25 @@
 //     },
 // ];
 
-const repoUrl = 'https://github.com/apifytech/apify-js';
+const repoUrl = "https://github.com/apifytech/apify-js";
 
 const siteConfig = {
-    title: 'Apify SDK', // Title for your website.
+    title: "Apify SDK", // Title for your website.
     // This is also used as page meta description for SEO, so write it carefully.
     // TODO: Take this from package.json
     // eslint-disable-next-line max-len
-    tagline: 'The scalable web crawling and scraping library for JavaScript/Node.js. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.',
-    url: 'https://sdk.apify.com', // Your website URL
-    cname: 'sdk.apify.com',
-    baseUrl: '/', // Base URL for your project */
+    tagline:
+        "The scalable web crawling and scraping library for JavaScript/Node.js. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.",
+    url: "https://sdk.apify.com", // Your website URL
+    cname: "sdk.apify.com",
+    baseUrl: "/", // Base URL for your project */
     // For github.io type URLs, you would set the url and baseUrl like:
     //   url: 'https://facebook.github.io',
     //   baseUrl: '/test-site/',
 
     // Used for publishing and more
-    projectName: 'apify-js',
-    organizationName: 'apifytech',
+    projectName: "apify-js",
+    organizationName: "apifytech",
     // For top-level user or org sites, the organization is still the same.
     // e.g., for the https://JoelMarcey.github.io site, it would be set like...
     //   organizationName: 'JoelMarcey'
@@ -45,10 +46,10 @@ const siteConfig = {
     // For no header links in the top nav bar -> headerLinks: [],
     headerLinks: [
         { search: true },
-        { doc: 'guides/motivation', label: 'Guide' },
-        { doc: 'examples/basiccrawler', label: 'Examples' },
-        { doc: 'api/apify', label: 'Reference' },
-        { href: repoUrl, label: 'GitHub' },
+        { doc: "guides/motivation", label: "Guide" },
+        { doc: "examples/crawl-single-url", label: "Examples" },
+        { doc: "api/apify", label: "Reference" },
+        { href: repoUrl, label: "GitHub" }
         // { page: 'help', label: 'Help' },
         // { blog: true, label: 'Blog' },
     ],
@@ -57,20 +58,20 @@ const siteConfig = {
     // users,
 
     /* path to images for header/footer */
-    headerIcon: 'img/apify_logo.svg',
-    footerIcon: 'img/apify_logo.svg',
-    favicon: 'img/favicon.ico',
+    headerIcon: "img/apify_logo.svg",
+    footerIcon: "img/apify_logo.svg",
+    favicon: "img/favicon.ico",
 
     /* Colors for website */
     colors: {
-        primaryColor: '#001F5B',
-        secondaryColor: '#FF9012',
+        primaryColor: "#001F5B",
+        secondaryColor: "#FF9012"
     },
 
     algolia: {
         apiKey: process.env.ALGOLIA_API_KEY,
-        indexName: 'apify_sdk',
-        algoliaOptions: {}, // Optional, if provided by Algolia
+        indexName: "apify_sdk",
+        algoliaOptions: {} // Optional, if provided by Algolia
     },
 
     /* Custom fonts for website */
@@ -91,9 +92,9 @@ const siteConfig = {
     copyright: `Copyright © ${new Date().getFullYear()} Apify Technologies s.r.o.`,
 
     highlight: {
-    // Highlight.js theme to use for syntax highlighting in code blocks.
-        theme: 'monokai-sublime',
-        defaultLang: 'javascript',
+        // Highlight.js theme to use for syntax highlighting in code blocks.
+        theme: "monokai-sublime",
+        defaultLang: "javascript"
     },
 
     // Using Prism for syntax highlighting
@@ -101,7 +102,7 @@ const siteConfig = {
 
     // Add custom scripts here that would be placed in <script> tags.
     scripts: [
-        'https://buttons.github.io/buttons.js',
+        "https://buttons.github.io/buttons.js"
         // {
         //     src: 'https://static.hotjar.com/c/hotjar-1021435.js?sv=6',
         //     async: true,
@@ -109,18 +110,18 @@ const siteConfig = {
     ],
 
     // On page navigation for the current documentation page.
-    onPageNav: 'separate',
+    onPageNav: "separate",
     // No .html extensions for paths.
     cleanUrl: true,
 
     // Open Graph and Twitter card images.
-    ogImage: 'img/apify_logo.png',
-    twitterImage: 'img/apify_logo.png',
+    ogImage: "img/apify_logo.png",
+    twitterImage: "img/apify_logo.png",
 
     // You may provide arbitrary config keys to be used as needed by your
     // template. For example, if you need your repo's URL...
     //   repoUrl: 'https://github.com/facebook/test-site',
-    repoUrl,
+    repoUrl
 };
 
 module.exports = siteConfig;

@@ -15,7 +15,7 @@ npm install apify --save
 
 Run the following example to perform a recursive crawl of a website using Puppeteer.
 For more examples showcasing various features of the Apify SDK,
-[see the Examples section of the documentation](../examples/basiccrawler).
+[see the Examples section of the documentation](../examples/crawl-single-url).
 
 ```javascript
 const Apify = require("apify");
