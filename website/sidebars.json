@@ -30,21 +30,22 @@
         ]
     },
     "examples": {
-        "Recipes": [
+        "Examples": [
             "examples/crawl-single-url",
             "examples/crawl-multiple-urls",
             "examples/crawl-sitemap",
             "examples/crawl-all-links",
             "examples/crawl-some-links",
             "examples/crawl-relative-links",
-            "examples/capture-screenshot"
+            "examples/handle-broken-links",
+            "examples/capture-screenshot",
+            "examples/accept-user-input",
+            "examples/add-data-dataset",
+            "examples/call-actor"
         ]
     },
     "autoscaling": {
-        "Autoscaling Tools": [
-            "api/snapshotter",
-            "api/systemstatus"
-        ]
+        "Autoscaling Tools": ["api/snapshotter", "api/systemstatus"]
     },
     "typedefs": {
         "Type Definitions": [

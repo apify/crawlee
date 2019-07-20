@@ -62,11 +62,20 @@
       "api/utils": {
         "title": "utils"
       },
+      "examples/accept-user-input": {
+        "title": "Accept user input"
+      },
+      "examples/add-data-dataset": {
+        "title": "Add data to dataset"
+      },
       "examples/basiccrawler": {
         "title": "Basic Crawler"
       },
       "examples/callactor": {
         "title": "Call Actor"
+      },
+      "examples/call-actor": {
+        "title": "Call an actor"
       },
       "examples/capture-screenshot": {
         "title": "Capture a screenshot"
@@ -91,6 +100,9 @@
       },
       "examples/crawl-some-links": {
         "title": "Crawl some links on a website"
+      },
+      "examples/handle-broken-links": {
+        "title": "Handle broken links"
       },
       "examples/helloworld": {
         "title": "Hello World"
@@ -165,7 +177,7 @@
     "categories": {
       "Guide": "Guide",
       "Reference": "Reference",
-      "Recipes": "Recipes",
+      "Examples": "Examples",
       "Autoscaling Tools": "Autoscaling Tools",
       "Type Definitions": "Type Definitions"
     }
