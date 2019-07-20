@@ -76,29 +76,29 @@ const generateFinalMarkdown = (title, text) => {
 const main = async () => {
     /* input and output paths */
     const sourceFiles = path.join(__dirname, '..', '..', 'src', '**', '*.js');
-    const exampleFiles = path.join(__dirname, '..', '..', 'examples', '**', '*.js');
+    // const exampleFiles = path.join(__dirname, '..', '..', 'examples', '**', '*.js');
     const sourceFilesOutputDir = path.join(__dirname, '..', '..', 'docs', 'api');
     const typeFilesOutputDir = path.join(__dirname, '..', '..', 'docs', 'typedefs');
     const exampleFilesOutputDir = path.join(__dirname, '..', '..', 'docs', 'examples');
 
     /* get template data */
     const templateData = jsdoc2md.getTemplateDataSync({ files: sourceFiles });
-    const exampleData = jsdoc2md.getTemplateDataSync({ files: exampleFiles });
+    // const exampleData = jsdoc2md.getTemplateDataSync({ files: exampleFiles });
 
     // handle examples
-    const examplePromises = exampleData.map(async (example) => {
-        const { description, meta: { filename, path: filepath, lineno } } = example;
-        const code = await readFileFromLine(path.join(filepath, filename), lineno);
-        const sep = '```';
-        const codeblock = `${sep}javascript\n${code}\n${sep}`;
+    // const examplePromises = exampleData.map(async (example) => {
+    //     const { description, meta: { filename, path: filepath, lineno } } = example;
+    //     const code = await readFileFromLine(path.join(filepath, filename), lineno);
+    //     const sep = '```';
+    //     const codeblock = `${sep}javascript\n${code}\n${sep}`;
 
-        const title = filename.split('.')[0].split('_').map(word => `${word[0].toUpperCase()}${word.substr(1)}`).join(' ');
-        const header = getHeader(title);
-        const markdown = prettier.format(`${header}\n${description}\n${codeblock}`, { parser: "markdown" });;
-        await writeFile(path.join(exampleFilesOutputDir, `${title.replace(/\s/g, '')}.md`), markdown);
-    });
+    //     const title = filename.split('.')[0].split('_').map(word => `${word[0].toUpperCase()}${word.substr(1)}`).join(' ');
+    //     const header = getHeader(title);
+    //     const markdown = prettier.format(`${header}\n${description}\n${codeblock}`, { parser: "markdown" });;
+    //     await writeFile(path.join(exampleFilesOutputDir, `${title.replace(/\s/g, '')}.md`), markdown);
+    // });
 
-    await Promise.all(examplePromises);
+    // await Promise.all(examplePromises);
 
     /* reduce templateData to an array of class names */
     templateData.forEach((identifier) => {
