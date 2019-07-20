@@ -68,7 +68,7 @@
       "examples/add-data-dataset": {
         "title": "Add data to dataset"
       },
-      "examples/basiccrawler": {
+      "examples/crawl-multiple-urls": {
         "title": "Basic Crawler"
       },
       "examples/callactor": {

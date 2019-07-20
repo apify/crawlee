@@ -83,7 +83,7 @@ class HomeSplash extends React.Component {
                     <ProjectTitle/>
                     <PromoSection>
                         <Button href={docUrl('api/apify', language)}>Read the Docs</Button>
-                        <Button href={docUrl('examples/basiccrawler', language)}>See Examples</Button>
+                        <Button href={docUrl('examples/crawl-single-url', language)}>See Examples</Button>
                         <Button href="#try">Try It Out</Button>
                     </PromoSection>
                 </div>
@@ -151,7 +151,7 @@ const Features = () => (
 //             For complex websites that use **React, Vue** and other front-end javascript libraries and require real-time manipulation,
 //             spawn a headless browser with our [`PuppeteerCrawler`](examples/puppeteercrawler).
 //
-//             And if you need **control of all aspects** of your crawling, just use the bare bones [`BasicCrawler`](examples/basiccrawler)
+//             And if you need **control of all aspects** of your crawling, just use the bare bones [`BasicCrawler`](examples/crawl-multiple-urls)
 //
 //             All of your crawlers will be automatically **scaled** based on available system resources with our [`AutoscaledPool`](api/AutoscaledPool).
 //             And if you use the [Apify Cloud](https://my.apify.com/actors), we will also provide you with a pool of **Proxies** to avoid detection.
@@ -169,7 +169,7 @@ const EasyCrawling = () => (
                     'Need to crawl plain HTML? Use the **blazing fast** [`CheerioCrawler`](docs/examples/cheeriocrawler).\n' +
                     'For complex websites that use **React**, **Vue** or other front-end javascript libraries and require JavaScript execution, ' +
                     'spawn a headless browser with [`PuppeteerCrawler`](docs/examples/puppeteercrawler).\n' +
-                    'To **control all aspects** of your crawling, just use the bare bones [`BasicCrawler`](docs/examples/basiccrawler)',
+                    'To **control all aspects** of your crawling, just use the bare bones [`BasicCrawler`](docs/examples/crawl-multiple-urls)',
                 image: imgUrl('chrome_scrape.gif'),
                 imageAlign: 'right',
                 title: 'Easy crawling',
