@@ -13,6 +13,7 @@ This example crawls the specified list of URLs.
 const Apify = require("apify");
 
 Apify.main(async () => {
+    // Create a RequestList
     const requestList = new Apify.RequestList({
         sources: [
             { url: "http://www.example.com/page-1" },
@@ -21,6 +22,7 @@ Apify.main(async () => {
         ]
     });
 
+    // Initialize the RequestList
     await requestList.initialize();
 
     // Function called for each URL
@@ -28,6 +30,7 @@ Apify.main(async () => {
         console.log(request.url);
     };
 
+    // Create a BasicCrawler
     const crawler = new Apify.BasicCrawler({
         requestList,
         handleRequestFunction
@@ -44,6 +47,7 @@ Apify.main(async () => {
 const Apify = require("apify");
 
 Apify.main(async () => {
+    // Create a RequestList
     const requestList = new Apify.RequestList({
         sources: [
             { url: "http://www.example.com/page-1" },
@@ -52,6 +56,7 @@ Apify.main(async () => {
         ]
     });
 
+    // Initialize the RequestList
     await requestList.initialize();
 
     // Function called for each URL
@@ -59,6 +64,7 @@ Apify.main(async () => {
         console.log(request.url);
     };
 
+    // Create a CheerioCrawler
     const crawler = new Apify.CheerioCrawler({
         requestList,
         handlePageFunction
@@ -75,6 +81,7 @@ Apify.main(async () => {
 const Apify = require("apify");
 
 Apify.main(async () => {
+    // Create a RequestList
     const requestList = new Apify.RequestList({
         sources: [
             { url: "http://www.example.com/page-1" },
@@ -83,6 +90,7 @@ Apify.main(async () => {
         ]
     });
 
+    // Initialize the RequestList
     await requestList.initialize();
 
     // Function called for each URL
@@ -90,6 +98,7 @@ Apify.main(async () => {
         console.log(request.url);
     };
 
+    // Create a PuppeteerCrawler
     const crawler = new Apify.PuppeteerCrawler({
         requestList,
         handlePageFunction

@@ -3,7 +3,7 @@ id: handle-broken-links
 title: Handle broken links
 ---
 
-This example uses the `handleFailedRequestFunction` function log failed requests. In a real-world project, you might choose to keep track of these failed requests by saving them to a dataset.
+This example uses the `handleFailedRequestFunction` function to log failed requests. In a real-world project, you might choose to keep track of these failed requests by [saving them to a dataset](add-data-dataset).
 
 ```javascript {1,3-5}
 const Apify = require("apify");

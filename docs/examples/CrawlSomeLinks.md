@@ -23,11 +23,11 @@ Apify.main(async () => {
     const handlePageFunction = async ({ request, $ }) => {
         console.log(request.url);
 
-        // Add all links from page to RequestQueue
+        // Add some links from page to RequestQueue
         await Apify.enqueueLinks({
             $,
             requestQueue,
-            pseudoUrls: ["http[s?]://apify.com[.*]"]
+            pseudoUrls: ["http[s?]://apify.com/store[.*]"]
         });
     };
 
@@ -58,11 +58,11 @@ Apify.main(async () => {
     const handlePageFunction = async ({ request, page }) => {
         console.log(request.url);
 
-        // Add all links from page to RequestQueue
+        // Add some links from page to RequestQueue
         await Apify.enqueueLinks({
             $,
             requestQueue,
-            pseudoUrls: ["http[s?]://apify.com[.*]"]
+            pseudoUrls: ["http[s?]://apify.com/store[.*]"]
         });
     };
 

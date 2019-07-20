@@ -13,7 +13,7 @@ await Apify.enqueueLinks({
 });
 ```
 
-This is the complete example:
+This is a complete example:
 
 ```javascript
 const Apify = require("apify");

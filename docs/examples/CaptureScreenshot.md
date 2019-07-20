@@ -3,6 +3,8 @@ id: capture-screenshot
 title: Capture a screenshot
 ---
 
+> To run Puppeteer examples on the Apify Platform, select the `Node.js 8 + Chrome on Debian (apify/actor-node-chrome)` base image on the **Source** tab when configuring the actor.
+
 This example captures of a screenshot of a web page using Puppeteer:
 
 ```javascript
