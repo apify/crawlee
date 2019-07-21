@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import express from 'express';
 import { compress } from 'iltorb';
-import { requestAsBrowser, REQUEST_AS_BROWSER_DEFAULT_OPTIONS } from '../build/utils_request';
+import { requestAsBrowser, REQUEST_AS_BROWSER_DEFAULT_OPTIONS, FIREFOX_MOBILE_USER_AGENT, FIREFOX_DESKTOP_USER_AGENT } from '../build/utils_request';
 import { startExpressAppPromise } from './_helper';
 
 const CONTENT = 'CONTENT';
@@ -61,7 +61,7 @@ describe('Apify.utils_request', () => {
             };
             const response = await requestAsBrowser(data);
             expect(response.statusCode).to.eql(200);
-            expect(JSON.parse(response.body)['user-agent']).to.be.eql('Mozilla/5.0 (Android 9.0; Mobile; rv:66.0) Gecko/66.0 Firefox/66.0');
+            expect(JSON.parse(response.body)['user-agent']).to.be.eql(FIREFOX_MOBILE_USER_AGENT);
         });
 
         it('uses desktop user-agent by default ', async () => {
@@ -73,7 +73,7 @@ describe('Apify.utils_request', () => {
             expect(JSON.parse(response.body)['user-agent'])
                 .to
                 .be
-                .eql('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/11.1.1 Safari/605.1.15');
+                .eql(FIREFOX_DESKTOP_USER_AGENT);
         });
 
         it('sets correct hosts', async () => {

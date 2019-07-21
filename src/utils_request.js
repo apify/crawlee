@@ -3,8 +3,8 @@ import * as url from 'url';
 import _ from 'underscore';
 import httpRequest from '@apify/http-request';
 
-const FIREFOX_MOBILE_USER_AGENT = 'Mozilla/5.0 (Android; Mobile; rv:14.0) Gecko/14.0 Firefox/14.0';
-const FIREFOX_DESKTOP_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.14; rv:68.0) Gecko/20100101 Firefox/68.0';
+export const FIREFOX_MOBILE_USER_AGENT = 'Mozilla/5.0 (Android; Mobile; rv:14.0) Gecko/14.0 Firefox/14.0';
+export const FIREFOX_DESKTOP_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.14; rv:68.0) Gecko/20100101 Firefox/68.0';
 
 export const REQUEST_AS_BROWSER_DEFAULT_OPTIONS = {
     countryCode: 'US',
@@ -27,7 +27,8 @@ export const REQUEST_AS_BROWSER_DEFAULT_OPTIONS = {
  * Currently, the function sends requests the same way as Firefox web browser does.
  * In the future, it might add support for other browsers too.
  *
- * Internally, the function uses `@apify/httpRequest` function to perform the request.
+ * Internally, the function uses `httpRequest` function from the
+ * [`@apify/httpRequest`](https://github.com/apifytech/http-request) to perform the request.
  * All `options` not recognized by this function are passed to it,
  * so see it for more details.
  *
@@ -65,9 +66,7 @@ export const requestAsBrowser = async (options) => {
         Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': `${opts.languageCode}-${opts.countryCode},${opts.languageCode};q=0.5`,
         'Accept-Encoding': 'gzip, deflate, br',
-        DNT: '1',
         Connection: 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
     };
     opts.headers = _.defaults({}, opts.headers, browserHeaders);
     opts.abortFunction = abortFunction;
