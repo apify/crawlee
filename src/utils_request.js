@@ -3,9 +3,8 @@ import * as url from 'url';
 import _ from 'underscore';
 import httpRequest from '@apify/http-request';
 
-const FIREFOX_MOBILE_USER_AGENT = 'Mozilla/5.0 (Android 9.0; Mobile; rv:66.0) Gecko/66.0 Firefox/66.0';
-const FIREFOX_DESKTOP_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_3) AppleWebKit/605.1.15 (KHTML, like Gecko)'
-    + ' Version/11.1.1 Safari/605.1.15';
+const FIREFOX_MOBILE_USER_AGENT = 'Mozilla/5.0 (Android; Mobile; rv:14.0) Gecko/14.0 Firefox/14.0';
+const FIREFOX_DESKTOP_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.14; rv:68.0) Gecko/20100101 Firefox/68.0';
 
 export const REQUEST_AS_BROWSER_DEFAULT_OPTIONS = {
     countryCode: 'US',
