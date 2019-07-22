@@ -2,6 +2,8 @@ xxx
 ====================
 - Bugfix in BasicCrawler: async calls in `isFinishedFunction` were not awaited
 - Better logging of memory overload errors
+- Added `desiredConcurrency` option to `AutoscaledPool` constructor, removed
+ unnecessary bound check from the setter property
 - Upgraded `apify-client` to 0.5.22
 
 0.14.15 / 2019-05-31

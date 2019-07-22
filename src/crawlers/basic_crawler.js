@@ -256,8 +256,13 @@ class BasicCrawler {
     async run() {
         if (this.isRunningPromise) return this.isRunningPromise;
 
-        await this._loadHandledRequestCount();
+        // Initialize AutoscaledPool before awaiting _loadHandledRequestCount(),
+        // so that the caller can get a reference to it before awaiting the promise returned from run()
+        // (otherwise there would be no way)
         this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions);
+
+        await this._loadHandledRequestCount();
+
         this.isRunningPromise = this.autoscaledPool.run();
         this.stats.startLogging();
         try {
