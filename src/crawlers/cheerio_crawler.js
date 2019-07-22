@@ -354,7 +354,7 @@ class CheerioCrawler {
         return addTimeoutToPromise(
             this.handlePageFunction(context),
             this.handlePageTimeoutMillis,
-            'CheerioCrawler: handlePageFunction timed out.',
+            `CheerioCrawler: handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`,
         );
     }
 

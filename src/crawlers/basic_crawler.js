@@ -349,7 +349,7 @@ class BasicCrawler {
             await addTimeoutToPromise(
                 this.handleRequestFunction({ request, autoscaledPool: this.autoscaledPool }),
                 this.handleRequestTimeoutMillis,
-                'BasicCrawler: handleRequestFunction timed out.',
+                `BasicCrawler: handleRequestFunction timed out after ${this.handleRequestTimeoutMillis / 1000} seconds.`,
             );
             await source.markRequestHandled(request);
             this.stats.finishJob(statisticsId);

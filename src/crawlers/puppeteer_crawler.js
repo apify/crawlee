@@ -292,7 +292,7 @@ class PuppeteerCrawler {
             await addTimeoutToPromise(
                 this.handlePageFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool, response }),
                 this.handlePageTimeoutMillis,
-                'PuppeteerCrawler: handlePageFunction timed out.',
+                `PuppeteerCrawler: handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`,
             );
         } finally {
             await this.puppeteerPool.recyclePage(page);
