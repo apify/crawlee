@@ -1,6 +1,6 @@
 import _ from 'underscore';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { anonymizeProxy, closeAnonymizedProxy, redactUrl } from 'proxy-chain';
+import { anonymizeProxy, closeAnonymizedProxy, redactUrl, parseUrl } from 'proxy-chain';
 import log from 'apify-shared/log';
 import { ENV_VARS } from 'apify-shared/consts';
 import { DEFAULT_USER_AGENT } from './constants';
@@ -83,9 +83,25 @@ const LAUNCH_PUPPETEER_DEFAULT_VIEWPORT = {
  * @ignore
  */
 const launchPuppeteerWithProxy = async (puppeteer, opts) => {
-    // Parse and validate proxy URL and anonymize it
-    const anonymizedProxyUrl = await anonymizeProxy(opts.proxyUrl);
-    opts.args.push(`--proxy-server=${anonymizedProxyUrl}`);
+    // Parse and validate proxy URL
+    const parsedProxyUrl = parseUrl(opts.proxyUrl);
+    if (!parsedProxyUrl.host || !parsedProxyUrl.port) {
+        throw new Error('Invalid "proxyUrl" option: both hostname and port must be provided.');
+    }
+    if (!/^(http|https|socks4|socks5)$/.test(parsedProxyUrl.scheme)) {
+        throw new Error(`Invalid "proxyUrl" option: Unsupported scheme (${parsedProxyUrl.scheme}).`);
+    }
+
+    // Anonymize proxy URL if it has username or password
+    let anonymizedProxyUrl = null;
+    if (parsedProxyUrl.username || parsedProxyUrl.password) {
+        if (parsedProxyUrl.scheme !== 'http') {
+            throw new Error('Invalid "proxyUrl" option: authentication is only supported for HTTP proxy type.');
+        }
+        anonymizedProxyUrl = await anonymizeProxy(opts.proxyUrl);
+    }
+
+    opts.args.push(`--proxy-server=${anonymizedProxyUrl || opts.proxyUrl}`);
     const optsForLog = _.omit(opts, LAUNCH_PUPPETEER_LOG_OMIT_OPTS);
     optsForLog.proxyUrl = redactUrl(opts.proxyUrl);
     optsForLog.args = opts.args.slice(0, opts.args.length - 1);
@@ -94,19 +110,21 @@ const launchPuppeteerWithProxy = async (puppeteer, opts) => {
     const browser = await puppeteer.launch(opts);
 
     // Close anonymization proxy server when Puppeteer finishes
-    const cleanUp = () => {
-        // Don't wait for finish, only log errors
-        closeAnonymizedProxy(anonymizedProxyUrl, true)
-            .catch(err => log.exception(err, 'closeAnonymizedProxy() failed.'));
-    };
+    if (anonymizedProxyUrl) {
+        const cleanUp = () => {
+            // Don't wait for finish, only log errors
+            closeAnonymizedProxy(anonymizedProxyUrl, true)
+                .catch(err => log.exception(err, 'closeAnonymizedProxy() failed.'));
+        };
 
-    browser.on('disconnected', cleanUp);
+        browser.on('disconnected', cleanUp);
 
-    const prevClose = browser.close.bind(browser);
-    browser.close = () => {
-        cleanUp();
-        return prevClose();
-    };
+        const prevClose = browser.close.bind(browser);
+        browser.close = () => {
+            cleanUp();
+            return prevClose();
+        };
+    }
 
     return browser;
 };
@@ -150,8 +168,11 @@ const getPuppeteerOrThrow = (puppeteerModule = 'puppeteer') => {
  *        Note that Apify Actor cloud platform automatically sets <code>APIFY_HEADLESS=1</code> to all running actors.
  *    </li>
  *    <li>
- *        Takes the <code>proxyUrl</code> option, checks it and adds it to <code>args</code> as <code>--proxy-server=XXX</code>.
- *        If the proxy uses authentication, the function sets up an anonymous proxy HTTP
+ *        Takes the <code>proxyUrl</code> option, validates it and adds it to <code>args</code> as <code>--proxy-server=XXX</code>.
+ *        The proxy URL must define a port number and have one of the following schemes: <code>http://</code>,
+ *        <code>https://</code>, <code>socks4://</code> or <code>socks5://</code>.
+ *        If the proxy is HTTP (i.e. has the <code>http://</code> scheme) and contains username or password,
+ *        the <code>launchPuppeteer</code> functions sets up an anonymous proxy HTTP
  *        to make the proxy work with headless Chrome. For more information, read the
  *        <a href="https://blog.apify.com/how-to-make-headless-chrome-and-puppeteer-use-a-proxy-server-with-authentication-249a21a79212"
  *        target="_blank">blog post about proxy-chain library</a>.

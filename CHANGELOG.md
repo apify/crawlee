@@ -1,5 +1,8 @@
 NEXT
 ====================
+- `Apify.launchPuppeteer()` now accepts `proxyUrl` with the `https`, `socks4`
+  and `socks5` schemes, as long as it doesn't contain username or password.
+  This is to fix [Issue #420](https://github.com/apifytech/apify-js/issues/420).
 
 0.15.2 / 2019-07-11
 ====================
