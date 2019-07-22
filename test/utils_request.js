@@ -26,6 +26,10 @@ describe('Apify.utils_request', () => {
             res.send(JSON.stringify(req.headers));
         });
 
+        app.get('/rawHeaders', (req, res) => {
+            res.send(JSON.stringify(req.rawHeaders));
+        });
+
         app.get('/invalidContentType', (req, res) => {
             res.setHeader('content-type', 'application/json');
             res.send(CONTENT);
@@ -158,6 +162,30 @@ describe('Apify.utils_request', () => {
 
             expect(response.statusCode).to.eql(200);
             expect(JSON.parse(response.body)['user-agent']).to.be.eql(options.headers['User-Agent']);
+        });
+
+        it('headers has same order as in Firefox', async () => {
+            const host = `${HOST}:${port}`;
+            const options = {
+                url: `http://${host}/rawHeaders`,
+            };
+
+            const response = await requestAsBrowser(options);
+            const headersArray = JSON.parse(response.body);
+
+            expect(response.statusCode).to.eql(200);
+            expect(headersArray[0]).to.be.eql('user-agent');
+            expect(headersArray[1]).to.be.eql(FIREFOX_DESKTOP_USER_AGENT);
+            expect(headersArray[2]).to.be.eql('host');
+            expect(headersArray[3]).to.be.eql(host);
+            expect(headersArray[4]).to.be.eql('accept');
+            expect(headersArray[5]).to.be.eql('text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8');
+            expect(headersArray[6]).to.be.eql('accept-language');
+            expect(headersArray[7]).to.be.eql('en-US,en;q=0.5');
+            expect(headersArray[8]).to.be.eql('accept-encoding');
+            expect(headersArray[9]).to.be.eql('gzip, deflate, br');
+            expect(headersArray[10]).to.be.eql('connection');
+            expect(headersArray[11]).to.be.eql('keep-alive');
         });
     });
 });
