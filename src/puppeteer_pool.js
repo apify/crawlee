@@ -345,6 +345,8 @@ class PuppeteerPool {
         const writeSocket = chromeProcess.stdio[PUPPETEER_PIPE_TRANSPORT_WRITE];
         const readSocket = chromeProcess.stdio[PUPPETEER_PIPE_TRANSPORT_READ];
 
+        if (!(writeSocket && readSocket)) return; // We're not using pipes.
+
         const errorHandler = (err) => {
             log.debug('Puppeteer Pool: Browser connection failed. Browser will shut down.', { message: err.message });
             if (chromeProcess) chromeProcess.kill('SIGKILL');

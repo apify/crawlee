@@ -2,6 +2,7 @@
 id: pseudourl
 title: PseudoUrl
 ---
+
 <a name="PseudoUrl"></a>
 
 Represents a pseudo-URL (PURL) - an URL pattern used by web crawlers
@@ -28,10 +29,13 @@ For example, a PURL `http://www.example.com/pages/[(\w|-)*]` will match all of t
 Be careful to correctly escape special characters in the pseudo-URL string.
 If either `[` or `]` is part of the normal query string, it must be encoded as `[\x5B]` or `[\x5D]`,
 respectively. For example, the following PURL:
+
 ```http
 http://www.example.com/search?do[\x5B]load[\x5D]=1
 ```
+
 will match the URL:
+
 ```http
 http://www.example.com/search?do[load]=1
 ```
@@ -43,25 +47,26 @@ you need to escape it with another back backslash, as shown in the example below
 
 ```javascript
 // Using a pseudo-URL string
-const purl = new Apify.PseudoUrl('http://www.example.com/pages/[(\\w|-)+]', {
-  userData: { foo: 'bar' },
+const purl = new Apify.PseudoUrl("http://www.example.com/pages/[(\\w|-)+]", {
+  userData: { foo: "bar" }
 });
 
 // Using a regular expression
 const purl2 = new Apify.PseudoUrl(/http:\/\/www\.example\.com\/pages\/(\w|-)+/);
 
-if (purl.matches('http://www.example.com/pages/my-awesome-page')) console.log('Match!');
+if (purl.matches("http://www.example.com/pages/my-awesome-page"))
+  console.log("Match!");
 ```
 
-
-* [PseudoUrl](pseudourl)
-    * [`new PseudoUrl(purl, requestTemplate)`](#new_PseudoUrl_new)
-    * [`.matches(url)`](#PseudoUrl+matches) ⇒ `Boolean`
-    * [`.createRequest(url)`](#PseudoUrl+createRequest) ⇒ [`Request`](request)
+- [PseudoUrl](pseudourl)
+  - [`new PseudoUrl(purl, requestTemplate)`](#new_PseudoUrl_new)
+  - [`.matches(url)`](#PseudoUrl+matches) ⇒ `Boolean`
+  - [`.createRequest(urlOrProps)`](#PseudoUrl+createRequest) ⇒ [`Request`](request)
 
 <a name="new_PseudoUrl_new"></a>
 
 ## `new PseudoUrl(purl, requestTemplate)`
+
 <table>
 <thead>
 <tr>
@@ -87,9 +92,11 @@ if (purl.matches('http://www.example.com/pages/my-awesome-page')) console.log('M
 <a name="PseudoUrl+matches"></a>
 
 ## `pseudoUrl.matches(url)` ⇒ `Boolean`
+
 Determines whether a URL matches this pseudo-URL pattern.
 
-**Returns**: `Boolean` - Returns `true` if given URL matches pseudo-URL.  
+**Returns**: `Boolean` - Returns `true` if given URL matches pseudo-URL.
+
 <table>
 <thead>
 <tr>
@@ -106,8 +113,13 @@ Determines whether a URL matches this pseudo-URL pattern.
 </table>
 <a name="PseudoUrl+createRequest"></a>
 
-## `pseudoUrl.createRequest(url)` ⇒ [`Request`](request)
-Creates a Request object from a provided `requestTemplate` and given URL.
+## `pseudoUrl.createRequest(urlOrProps)` ⇒ [`Request`](request)
+
+Creates a Request object from a provided `requestTemplate` and a given URL
+or an object that specifies \$[`Request`](request) properties. In case of a collision
+the properties will override the template, except for `userData`, which will
+be merged together, with the `userData` property having preference over the template.
+This enables dynamic overriding of the template.
 
 <table>
 <thead>
@@ -117,7 +129,7 @@ Creates a Request object from a provided `requestTemplate` and given URL.
 </thead>
 <tbody>
 <tr>
-<td><code>url</code></td><td><code>String</code></td>
+<td><code>urlOrProps</code></td><td><code>string</code> | <code>Object</code></td>
 </tr>
 <tr>
 </tr></tbody>

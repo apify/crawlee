@@ -8,7 +8,8 @@ import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import LruCache from 'apify-shared/lru_cache';
 import { RequestQueue, RequestQueueLocal } from './request_queue';
 import Request from './request';
-import { enqueueLinks } from './enqueue_links';
+import { enqueueLinks } from './enqueue_links/enqueue_links';
+import { enqueueLinksByClickingElements } from './enqueue_links/click_elements';
 import { addInterceptRequestHandler, removeInterceptRequestHandler } from './puppeteer_request_interception';
 
 const jqueryPath = require.resolve('jquery/dist/jquery.min');
@@ -16,7 +17,7 @@ const underscorePath = require.resolve('underscore/underscore-min');
 const readFilePromised = util.promisify(fs.readFile);
 
 const MAX_INJECT_FILE_CACHE_SIZE = 10;
-const DEFAULT_BLOCK_REQUEST_URL_PATTERNS = ['.css', '.jpg', '.jpeg', '.png', '.svg', '.woff', '.pdf', '.zip'];
+const DEFAULT_BLOCK_REQUEST_URL_PATTERNS = ['.css', '.jpg', '.jpeg', '.png', '.svg', '.gif', '.woff', '.pdf', '.zip'];
 
 /**
  * Hides certain Puppeteer fingerprints from the page, in order to help avoid detection of the crawler.
@@ -197,7 +198,7 @@ const enqueueRequestsFromClickableElements = async (page, selector, purls, reque
  * by default the function blocks URLs that include these patterns:
  *
  * ```json
- * [".css", ".jpg", ".jpeg", ".png", ".svg", ".woff", ".pdf", ".zip"]
+ * [".css", ".jpg", ".jpeg", ".png", ".svg", ".gif", ".woff", ".pdf", ".zip"]
  * ```
  *
  * The defaults will be concatenated with the patterns you provide in `options.urlPatterns`.
@@ -219,7 +220,7 @@ const enqueueRequestsFromClickableElements = async (page, selector, purls, reque
  *
  * // Block all requests to URLs that include `adsbygoogle.js` and also all defaults.
  * await Apify.utils.puppeteer.blockRequests(page, {
- *     urlPatterns: ['adsbygoogle.js'],
+ *     extraUrlPatterns: ['adsbygoogle.js'],
  * });
  *
  * await page.goto('https://cnn.com');
@@ -233,22 +234,32 @@ const enqueueRequestsFromClickableElements = async (page, selector, purls, reque
  *   Only `*` can be used as a wildcard. It is also automatically added to the beginning
  *   and end of the pattern. This limitation is enforced by the DevTools protocol.
  *   `.png` is the same as `*.png*`.
- * @param {boolean} [options.includeDefaults]
+ * @param {boolean} [options.extraUrlPatterns]
+ *   If you just want to append to the default blocked patterns, use this property.
  * @return {Promise}
  * @memberOf puppeteer
  */
 const blockRequests = async (page, options = {}) => {
+    checkParamOrThrow(page, 'page', 'Object');
+    checkParamOrThrow(options, 'options', 'Object');
+
+    if (options.includeDefaults === false) {
+        log.deprecated('Apify.utils.puppeteer.blockRequests() includeDefaults option '
+            + 'has been replaced by a more clear extraUrlPatterns option. See docs.');
+    }
+
     const {
-        urlPatterns = [],
+        urlPatterns = DEFAULT_BLOCK_REQUEST_URL_PATTERNS,
+        extraUrlPatterns = [],
         includeDefaults = true,
     } = options;
 
     checkParamOrThrow(urlPatterns, 'options.urlPatterns', '[String]');
-    checkParamOrThrow(includeDefaults, 'options.includeDefaults', 'Boolean');
+    checkParamOrThrow(extraUrlPatterns, 'options.extraUrlPatterns', '[String]');
 
     const patternsToBlock = includeDefaults
-        ? [...DEFAULT_BLOCK_REQUEST_URL_PATTERNS, ...urlPatterns]
-        : urlPatterns;
+        ? [...DEFAULT_BLOCK_REQUEST_URL_PATTERNS, ...urlPatterns, ...extraUrlPatterns]
+        : [...urlPatterns, ...extraUrlPatterns];
 
     await page._client.send('Network.setBlockedURLs', { urls: patternsToBlock }); // eslint-disable-line no-underscore-dangle
 };
@@ -431,6 +442,81 @@ export const gotoExtended = async (page, request, gotoOptions = {}) => {
     return page.goto(request.url, gotoOptions);
 };
 
+/**
+ * Scrolls to the bottom of a page, or until it times out.
+ * Loads dynamic content when it hits the bottom of a page, and then continues scrolling.
+ * @param {Object} page
+ *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
+ * @param {Object} [options]
+ * @param {Number} [options.timeoutSecs=0]
+ *   How many seconds to scroll for. If 0, will scroll until bottom of page.
+ * @param {Number} [options.waitForSecs=4]
+ *   How many seconds to wait for no new content to load before exit.
+ * @returns {Promise}
+ * @memberOf puppeteer
+ * @name infiniteScroll
+ */
+export const infiniteScroll = async (page, options = {}) => {
+    const { timeoutSecs = 0, waitForSecs = 4 } = options;
+
+    checkParamOrThrow(page, 'page', 'Object');
+    checkParamOrThrow(timeoutSecs, 'timeoutSecs', 'Number');
+    checkParamOrThrow(waitForSecs, 'waitForSecs', 'Number');
+
+    let finished;
+    const startTime = Date.now();
+    const CHECK_INTERVAL_MILLIS = 1000;
+    const SCROLL_HEIGHT_IF_ZERO = 10000;
+    const maybeResourceTypesInfiniteScroll = ['xhr', 'fetch', 'websocket', 'other'];
+    const resourcesStats = {
+        newRequested: 0,
+        oldRequested: 0,
+        matchNumber: 0,
+    };
+
+    page.on('request', (msg) => {
+        if (maybeResourceTypesInfiniteScroll.includes(msg.resourceType())) {
+            resourcesStats.newRequested++;
+        }
+    });
+
+    const checkFinished = setInterval(() => {
+        // console.log(resourcesStats)
+        if (resourcesStats.oldRequested === resourcesStats.newRequested) {
+            resourcesStats.matchNumber++;
+            if (resourcesStats.matchNumber >= waitForSecs) {
+                clearInterval(checkFinished);
+                finished = true;
+                return;
+            }
+        } else {
+            resourcesStats.matchNumber = 0;
+            resourcesStats.oldRequested = resourcesStats.newRequested;
+        }
+        // check if timeout has been reached
+        if (timeoutSecs !== 0 && (Date.now() - startTime) / 1000 > timeoutSecs) {
+            // console.log("Timeout limit reached, exiting infinite scroll.")
+            clearInterval(checkFinished);
+            finished = true;
+        }
+    }, CHECK_INTERVAL_MILLIS);
+
+
+    /* global window document */
+
+    const doScroll = async () => {
+        /* istanbul ignore next */
+        await page.evaluate(async () => {
+            const delta = document.body.scrollHeight === 0 ? SCROLL_HEIGHT_IF_ZERO : document.body.scrollHeight;
+            window.scrollBy(0, delta);
+        });
+    };
+
+    while (!finished) {
+        await doScroll();
+    }
+};
+
 let logEnqueueLinksDeprecationWarning = true;
 
 /**
@@ -467,6 +553,7 @@ export const puppeteerUtils = {
             return enqueueLinks(...args);
         }
     },
+    enqueueLinksByClickingElements,
     blockRequests,
     blockResources,
     cacheResponses,
@@ -474,4 +561,5 @@ export const puppeteerUtils = {
     gotoExtended,
     addInterceptRequestHandler,
     removeInterceptRequestHandler,
+    infiniteScroll,
 };

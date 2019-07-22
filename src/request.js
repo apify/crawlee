@@ -1,9 +1,34 @@
 import _ from 'underscore';
 import util from 'util';
+import crypto from 'crypto';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { normalizeUrl } from 'apify-shared/utilities';
+import log from 'apify-shared/log';
 
-export const computeUniqueKey = (url, keepUrlFragment) => normalizeUrl(url, keepUrlFragment);
+export function computeUniqueKey({ url, method, payload, keepUrlFragment, useExtendedUniqueKey }) {
+    const normalizedMethod = method.toUpperCase();
+    const normalizedUrl = normalizeUrl(url, keepUrlFragment) || url; // It returns null when url is invalid, causing weird errors.
+    if (!useExtendedUniqueKey) {
+        if (normalizedMethod !== 'GET' && payload) {
+            // Using log.deprecated to log only once. We should add log.once or some such.
+            log.deprecated(`We've encountered a ${normalizedMethod} Request with a payload. `
+                + 'This is fine. Just letting you know that if your requests point to the same URL '
+                + 'and differ only in method and payload, you should see the "useExtendedUniqueKey" option of Request constructor.');
+        }
+        return normalizedUrl;
+    }
+    const payloadHash = payload ? hashPayload(payload) : '';
+    return `${normalizedMethod}(${payloadHash}):${normalizedUrl}`;
+}
+
+export function hashPayload(payload) {
+    return crypto
+        .createHash('sha256')
+        .update(payload)
+        .digest('base64')
+        .replace(/(\+|\/|=)/g, '')
+        .substr(0, 8);
+}
 
 /**
  * Represents a URL to be crawled, optionally including HTTP method, headers, payload and other metadata.
@@ -42,9 +67,10 @@ export const computeUniqueKey = (url, keepUrlFragment) => normalizeUrl(url, keep
  * of `http://www.example.com/something`.
  *
  * The `keepUrlFragment` option determines whether URL hash fragment is included in the `uniqueKey` or not.
- * Beware that the HTTP method and payload are not included in the `uniqueKey`,
- * so requests to the same URL but with different HTTP methods or different POST payloads
- * are all considered equal and will be deduplicated by {@link RequestList} and {@link RequestQueue}.
+ *
+ * The `useExtendedUniqueKey` options determines whether method and payload are included in the `uniqueKey`,
+ * producing a `uniqueKey` in the following format: `METHOD(payloadHash):normalizedUrl`. This is useful
+ * when requests point to the same URL, but with different methods and payloads. For example: form submits.
  *
  * Pass an arbitrary non-empty text value to the `uniqueKey` property
  * to override the default behavior and specify which URLs shall be considered equal.
@@ -67,6 +93,10 @@ export const computeUniqueKey = (url, keepUrlFragment) => normalizeUrl(url, keep
  *   For example, this causes the `http://www.example.com#foo` and `http://www.example.com#bar` URLs
  *   to have the same `uniqueKey` of `http://www.example.com` and thus the URLs are considered equal.
  *   Note that this option only has an effect if `uniqueKey` is not set.
+ * @param {Boolean} [options.useExtendedUniqueKey=false]
+ *   If `true` then the `uniqueKey` is computed not only from the URL, but also from the method and payload
+ *   properties. This is useful when making requests to the same URL that are differentiated by method
+ *   or payload, such as form submit navigations in browsers.
  *
  * @property {String} id
  *   Request ID
@@ -84,7 +114,7 @@ export const computeUniqueKey = (url, keepUrlFragment) => normalizeUrl(url, keep
  *   Two requests with the same `uniqueKey` are considered as pointing to the same URL.
  * @property {String} method
  *   HTTP method, e.g. `GET` or `POST`.
- * @property {String} payload
+ * @property {String|Buffer} payload
  *   HTTP request payload, e.g. for POST requests.
  * @property {Boolean} noRetry
  *   The `true` value indicates that the request will not be automatically retried on error.
@@ -116,8 +146,9 @@ class Request {
             errorMessages = null,
             headers = {},
             userData = {},
-            keepUrlFragment = false,
             handledAt = null,
+            keepUrlFragment = false,
+            useExtendedUniqueKey = false,
         } = options;
 
 
@@ -133,6 +164,8 @@ class Request {
         checkParamOrThrow(headers, 'headers', 'Object');
         checkParamOrThrow(userData, 'userData', 'Object');
         checkParamOrThrow(handledAt, 'handledAt', 'Maybe String | Date');
+        checkParamOrThrow(keepUrlFragment, 'keepUrlFragment', 'Boolean');
+        checkParamOrThrow(useExtendedUniqueKey, 'useExtendedUniqueKey', 'Boolean');
 
         if (method === 'GET' && payload) throw new Error('Request with GET method cannot have a payload.');
 
@@ -141,8 +174,7 @@ class Request {
         this.id = id;
         this.url = url;
         this.loadedUrl = loadedUrl;
-        // NOTE: If URL is invalid, computeUniqueKey() returns null which was causing weird errors
-        this.uniqueKey = uniqueKey || computeUniqueKey(url, keepUrlFragment) || url;
+        this.uniqueKey = uniqueKey || computeUniqueKey({ url, method, payload, keepUrlFragment, useExtendedUniqueKey });
         this.method = method;
         this.payload = payload;
         this.noRetry = noRetry;
@@ -151,7 +183,8 @@ class Request {
         this.headers = headers;
         this.userData = userData;
 
-        // TODO: What is this text parsing good for? There's no unit test for it...
+        // Requests received from API will have ISOString dates,
+        // but we want to have a Date instance.
         // eslint-disable-next-line no-nested-ternary
         this.handledAt = _.isDate(handledAt)
             ? handledAt
@@ -214,11 +247,11 @@ class Request {
      * and throw an Error.
      *
      * @param {String} [message]
+     * @deprecated 2019/06/26
      */
     doNotRetry(message) {
+        log.deprecated('request.doNotRetry is deprecated. Use request.noRetry = true; instead.');
         this.noRetry = true;
-        // TODO (JC 2019-05-03): Frankly, I think this function shouldn't be in the SDK, it has zero value really
-        // and only adds a confusion and legacy burden. I'd just deprecate it.
         if (message) throw new Error(message);
     }
 }

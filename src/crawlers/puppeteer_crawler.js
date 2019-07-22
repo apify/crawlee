@@ -67,7 +67,7 @@ const DEFAULT_OPTIONS = {
  *         })
  *     },
  *     handleFailedRequestFunction: async ({ request }) => {
- *         // This function is called when crawling of a request failed too many time
+ *         // This function is called when the crawling of a request failed too many times
  *         await Apify.pushData({
  *             url: request.url,
  *             succeeded: false,

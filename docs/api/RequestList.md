@@ -2,6 +2,7 @@
 id: requestlist
 title: RequestList
 ---
+
 <a name="RequestList"></a>
 
 Represents a static list of URLs to crawl.
@@ -38,17 +39,20 @@ which will prevent any issues that a live list of URLs might cause.
 
 ```javascript
 const requestList = new Apify.RequestList({
-    sources: [
-        // Separate requests
-        { url: 'http://www.example.com/page-1', method: 'GET', headers: {} },
-        { url: 'http://www.example.com/page-2', userData: { foo: 'bar' }},
+  sources: [
+    // Separate requests
+    { url: "http://www.example.com/page-1", method: "GET", headers: {} },
+    { url: "http://www.example.com/page-2", userData: { foo: "bar" } },
 
-        // Bulk load of URLs from file `http://www.example.com/my-url-list.txt`
-        // Note that all URLs must start with http:// or https://
-        { requestsFromUrl: 'http://www.example.com/my-url-list.txt', userData: { isFromUrl: true } },
-    ],
-    persistStateKey: 'my-state',
-    persistSourcesKey: 'my-sources'
+    // Bulk load of URLs from file `http://www.example.com/my-url-list.txt`
+    // Note that all URLs must start with http:// or https://
+    {
+      requestsFromUrl: "http://www.example.com/my-url-list.txt",
+      userData: { isFromUrl: true }
+    }
+  ],
+  persistStateKey: "my-state",
+  persistSourcesKey: "my-sources"
 });
 
 // This call loads and parses the URLs from the remote file.
@@ -66,23 +70,23 @@ await requestList.markRequestHandled(request1);
 await requestList.reclaimRequest(request2);
 ```
 
-
-* [RequestList](requestlist)
-    * [`new exports.RequestList(options)`](#new_RequestList_new)
-    * [`.initialize()`](#RequestList+initialize) ⇒ `Promise`
-    * [`.persistState()`](#RequestList+persistState) ⇒ `Promise`
-    * [`.getState()`](#RequestList+getState) ⇒ `Object`
-    * [`.isEmpty()`](#RequestList+isEmpty) ⇒ `Promise<Boolean>`
-    * [`.isFinished()`](#RequestList+isFinished) ⇒ `Promise<Boolean>`
-    * [`.fetchNextRequest()`](#RequestList+fetchNextRequest) ⇒ [`Promise<Request>`](request)
-    * [`.markRequestHandled(request)`](#RequestList+markRequestHandled) ⇒ `Promise`
-    * [`.reclaimRequest(request)`](#RequestList+reclaimRequest) ⇒ `Promise`
-    * [`.length()`](#RequestList+length) ⇒ `Number`
-    * [`.handledCount()`](#RequestList+handledCount) ⇒ `Number`
+- [RequestList](requestlist)
+  - [`new exports.RequestList(options)`](#new_RequestList_new)
+  - [`.initialize()`](#RequestList+initialize) ⇒ `Promise`
+  - [`.persistState()`](#RequestList+persistState) ⇒ `Promise`
+  - [`.getState()`](#RequestList+getState) ⇒ `Object`
+  - [`.isEmpty()`](#RequestList+isEmpty) ⇒ `Promise<Boolean>`
+  - [`.isFinished()`](#RequestList+isFinished) ⇒ `Promise<Boolean>`
+  - [`.fetchNextRequest()`](#RequestList+fetchNextRequest) ⇒ [`Promise<Request>`](request)
+  - [`.markRequestHandled(request)`](#RequestList+markRequestHandled) ⇒ `Promise`
+  - [`.reclaimRequest(request)`](#RequestList+reclaimRequest) ⇒ `Promise`
+  - [`.length()`](#RequestList+length) ⇒ `Number`
+  - [`.handledCount()`](#RequestList+handledCount) ⇒ `Number`
 
 <a name="new_RequestList_new"></a>
 
 ## `new exports.RequestList(options)`
+
 <table>
 <thead>
 <tr>
@@ -159,12 +163,14 @@ await requestList.reclaimRequest(request2);
 <a name="RequestList+initialize"></a>
 
 ## `requestList.initialize()` ⇒ `Promise`
+
 Loads all remote sources of URLs and potentially starts periodic state persistence.
 This function must be called before you can start using the instance in a meaningful way.
 
 <a name="RequestList+persistState"></a>
 
 ## `requestList.persistState()` ⇒ `Promise`
+
 Persists the current state of the `RequestList` into the default [`KeyValueStore`](keyvaluestore).
 The state is persisted automatically in regular intervals, but calling this method manually
 is useful in cases where you want to have the most current state available after you pause
@@ -174,12 +180,14 @@ a server migration.
 <a name="RequestList+getState"></a>
 
 ## `requestList.getState()` ⇒ `Object`
+
 Returns an object representing the internal state of the `RequestList` instance.
 Note that the object's fields can change in future releases.
 
 <a name="RequestList+isEmpty"></a>
 
 ## `requestList.isEmpty()` ⇒ `Promise<Boolean>`
+
 Resolves to `true` if the next call to [`fetchNextRequest`](#RequestList+fetchNextRequest) function
 would return `null`, otherwise it resolves to `false`.
 Note that even if the list is empty, there might be some pending requests currently being processed.
@@ -187,11 +195,13 @@ Note that even if the list is empty, there might be some pending requests curren
 <a name="RequestList+isFinished"></a>
 
 ## `requestList.isFinished()` ⇒ `Promise<Boolean>`
+
 Returns `true` if all requests were already handled and there are no more left.
 
 <a name="RequestList+fetchNextRequest"></a>
 
 ## `requestList.fetchNextRequest()` ⇒ [`Promise<Request>`](request)
+
 Gets the next [`Request`](request) to process. First, the function gets a request previously reclaimed
 using the [`reclaimRequest`](#RequestList+reclaimRequest) function, if there is any.
 Otherwise it gets the next request from sources.
@@ -202,6 +212,7 @@ requests to process.
 <a name="RequestList+markRequestHandled"></a>
 
 ## `requestList.markRequestHandled(request)` ⇒ `Promise`
+
 Marks request as handled after successful processing.
 
 <table>
@@ -220,6 +231,7 @@ Marks request as handled after successful processing.
 <a name="RequestList+reclaimRequest"></a>
 
 ## `requestList.reclaimRequest(request)` ⇒ `Promise`
+
 Reclaims request to the list if its processing failed.
 The request will become available in the next `this.fetchNextRequest()`.
 
@@ -239,10 +251,11 @@ The request will become available in the next `this.fetchNextRequest()`.
 <a name="RequestList+length"></a>
 
 ## `requestList.length()` ⇒ `Number`
+
 Returns the total number of unique requests present in the `RequestList`.
 
 <a name="RequestList+handledCount"></a>
 
 ## `requestList.handledCount()` ⇒ `Number`
-Returns number of handled requests.
 
+Returns number of handled requests.

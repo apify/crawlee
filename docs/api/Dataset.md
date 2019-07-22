@@ -2,6 +2,7 @@
 id: dataset
 title: Dataset
 ---
+
 <a name="Dataset"></a>
 
 The `Dataset` class represents a store for structured data where each object stored has the same attributes,
@@ -18,9 +19,11 @@ depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment 
 
 If the `APIFY_LOCAL_STORAGE_DIR` environment variable is set, the data is stored in
 the local directory in the following files:
+
 ```
 {APIFY_LOCAL_STORAGE_DIR}/datasets/{DATASET_ID}/{INDEX}.json
 ```
+
 Note that `{DATASET_ID}` is the name or ID of the dataset. The default dataset has ID: `default`,
 unless you override it by setting the `APIFY_DEFAULT_DATASET_ID` environment variable.
 Each dataset item is stored as a separate JSON file, where `{INDEX}` is a zero-based index of the item in the dataset.
@@ -35,34 +38,31 @@ even if the `APIFY_LOCAL_STORAGE_DIR` variable is set.
 
 ```javascript
 // Write a single row to the default dataset
-await Apify.pushData({ col1: 123, col2: 'val2' });
+await Apify.pushData({ col1: 123, col2: "val2" });
 
 // Open a named dataset
-const dataset = await Apify.openDataset('some-name');
+const dataset = await Apify.openDataset("some-name");
 
 // Write a single row
-await dataset.pushData({ foo: 'bar' });
+await dataset.pushData({ foo: "bar" });
 
 // Write multiple rows
-await dataset.pushData([
-  { foo: 'bar2', col2: 'val2' },
-  { col3: 123 },
-]);
+await dataset.pushData([{ foo: "bar2", col2: "val2" }, { col3: 123 }]);
 ```
 
-
-* [Dataset](dataset)
-    * [`.pushData(data)`](#Dataset+pushData) ⇒ `Promise`
-    * [`.getData([options])`](#Dataset+getData) ⇒ `Promise<(Array|String|Buffer)>`
-    * [`.getInfo()`](#Dataset+getInfo) ⇒ `Promise<Object>`
-    * [`.forEach(iteratee, [options], [index])`](#Dataset+forEach) ⇒ `Promise`
-    * [`.map(iteratee, options)`](#Dataset+map) ⇒ `Promise<Array>`
-    * [`.reduce(iteratee, memo, options)`](#Dataset+reduce) ⇒ `Promise<*>`
-    * [`.delete()`](#Dataset+delete) ⇒ `Promise`
+- [Dataset](dataset)
+  - [`.pushData(data)`](#Dataset+pushData) ⇒ `Promise`
+  - [`.getData([options])`](#Dataset+getData) ⇒ `Promise<Object>`
+  - [`.getInfo()`](#Dataset+getInfo) ⇒ `Promise<Object>`
+  - [`.forEach(iteratee, [options], [index])`](#Dataset+forEach) ⇒ `Promise`
+  - [`.map(iteratee, options)`](#Dataset+map) ⇒ `Promise<Array>`
+  - [`.reduce(iteratee, memo, options)`](#Dataset+reduce) ⇒ `Promise<*>`
+  - [`.delete()`](#Dataset+delete) ⇒ `Promise`
 
 <a name="Dataset+pushData"></a>
 
 ## `dataset.pushData(data)` ⇒ `Promise`
+
 Stores an object or an array of objects to the dataset.
 The function returns a promise that resolves when the operation finishes.
 It has no result, but throws on invalid args or other errors.
@@ -101,8 +101,24 @@ The objects must be serializable to JSON and the JSON representation of each obj
 </table>
 <a name="Dataset+getData"></a>
 
-## `dataset.getData([options])` ⇒ `Promise<(Array|String|Buffer)>`
-Returns items in the dataset based on the provided parameters.
+## `dataset.getData([options])` ⇒ `Promise<Object>`
+
+Returns items in the dataset based on the provided parameters. The returned object
+has the following structure:
+
+```javascript
+{
+    items, // Array|String|Buffer based on chosen format parameter.
+    total, // Number
+    limit, // Number
+    offset, // Number
+}
+```
+
+**NOTE**: If using dataset with local disk storage, the `format` option must be `json` and
+the following options are not supported:
+`unwind`, `disableBodyParser`, `attachment`, `bom` and `simplified`.
+If you try to use them, you will receive an error.
 
 <table>
 <thead>
@@ -121,7 +137,7 @@ Returns items in the dataset based on the provided parameters.
 <td><code>[options.format]</code></td><td><code>String</code></td><td><code>&#x27;json&#x27;</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Format of the items, possible values are: <code>json</code>, <code>csv</code>, <code>xlsx</code>, <code>html</code>, <code>xml</code> and <code>rss</code>.</p>
+<td colspan="3"><p>Format of the <code>items</code> property, possible values are: <code>json</code>, <code>csv</code>, <code>xlsx</code>, <code>html</code>, <code>xml</code> and <code>rss</code>.</p>
 </td></tr><tr>
 <td><code>[options.offset]</code></td><td><code>Number</code></td><td><code>0</code></td>
 </tr>
@@ -203,6 +219,7 @@ Returns items in the dataset based on the provided parameters.
 <a name="Dataset+getInfo"></a>
 
 ## `dataset.getInfo()` ⇒ `Promise<Object>`
+
 Returns an object containing general information about the dataset.
 
 The function returns the same object as the Apify API Client's
@@ -212,6 +229,7 @@ function, which in turn calls the
 API endpoint.
 
 **Example:**
+
 ```
 {
   id: "WkzbQMuFYuamGv3YF",
@@ -228,6 +246,7 @@ API endpoint.
 <a name="Dataset+forEach"></a>
 
 ## `dataset.forEach(iteratee, [options], [index])` ⇒ `Promise`
+
 Iterates over dataset items, yielding each in turn to an `iteratee` function.
 Each invocation of `iteratee` is called with two arguments: `(item, index)`.
 
@@ -235,8 +254,9 @@ If the `iteratee` function returns a Promise then it is awaited before the next 
 If it throws an error, the iteration is aborted and the `forEach` function throws the error.
 
 **Example usage**
+
 ```javascript
-const dataset = await Apify.openDataset('my-results');
+const dataset = await Apify.openDataset("my-results");
 await dataset.forEach(async (item, index) => {
   console.log(`Item at ${index}: ${JSON.stringify(item)}`);
 });
@@ -295,6 +315,7 @@ await dataset.forEach(async (item, index) => {
 <a name="Dataset+map"></a>
 
 ## `dataset.map(iteratee, options)` ⇒ `Promise<Array>`
+
 Produces a new array of values by mapping each value in list through a transformation function `iteratee()`.
 Each invocation of `iteratee()` is called with two arguments: `(element, index)`.
 
@@ -347,6 +368,7 @@ If `iteratee` returns a `Promise` then it's awaited before a next call.
 <a name="Dataset+reduce"></a>
 
 ## `dataset.reduce(iteratee, memo, options)` ⇒ `Promise<*>`
+
 Reduces a list of values down to a single value.
 
 Memo is the initial state of the reduction, and each successive step of it should be returned by `iteratee()`.
@@ -409,6 +431,6 @@ If `iteratee()` returns a `Promise` then it's awaited before a next call.
 <a name="Dataset+delete"></a>
 
 ## `dataset.delete()` ⇒ `Promise`
+
 Removes the dataset either from the Apify cloud storage or from the local directory,
 depending on the mode of operation.
-

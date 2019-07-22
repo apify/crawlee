@@ -2,6 +2,7 @@
 id: cheeriocrawler
 title: CheerioCrawler
 ---
+
 <a name="CheerioCrawler"></a>
 
 Provides a framework for the parallel crawling of web pages using plain HTTP requests and
@@ -45,43 +46,47 @@ parameter of the `CheerioCrawler` constructor. For user convenience, the `minCon
 // Prepare a list of URLs to crawl
 const requestList = new Apify.RequestList({
   sources: [
-      { url: 'http://www.example.com/page-1' },
-      { url: 'http://www.example.com/page-2' },
-  ],
+    { url: "http://www.example.com/page-1" },
+    { url: "http://www.example.com/page-2" }
+  ]
 });
 await requestList.initialize();
 
 // Crawl the URLs
 const crawler = new Apify.CheerioCrawler({
-    requestList,
-    handlePageFunction: async ({ request, response, html, $ }) => {
-        const data = [];
+  requestList,
+  handlePageFunction: async ({ request, response, html, $ }) => {
+    const data = [];
 
-        // Do some data extraction from the page with Cheerio.
-        $('.some-collection').each((index, el) => {
-            data.push({ title: $(el).find('.some-title').text() });
-        });
+    // Do some data extraction from the page with Cheerio.
+    $(".some-collection").each((index, el) => {
+      data.push({
+        title: $(el)
+          .find(".some-title")
+          .text()
+      });
+    });
 
-        // Save the data to dataset.
-        await Apify.pushData({
-            url: request.url,
-            html,
-            data,
-        })
-    },
+    // Save the data to dataset.
+    await Apify.pushData({
+      url: request.url,
+      html,
+      data
+    });
+  }
 });
 
 await crawler.run();
 ```
 
-
-* [CheerioCrawler](cheeriocrawler)
-    * [`new CheerioCrawler(options)`](#new_CheerioCrawler_new)
-    * [`.run()`](#CheerioCrawler+run) ⇒ `Promise`
+- [CheerioCrawler](cheeriocrawler)
+  - [`new CheerioCrawler(options)`](#new_CheerioCrawler_new)
+  - [`.run()`](#CheerioCrawler+run) ⇒ `Promise`
 
 <a name="new_CheerioCrawler_new"></a>
 
 ## `new CheerioCrawler(options)`
+
 <table>
 <thead>
 <tr>
@@ -136,14 +141,16 @@ await crawler.run();
 <td colspan="3"><p>Represents the options passed to
   <a href="https://www.npmjs.com/package/request" target="_blank">request</a> to make the HTTP call.
   Provided <code>requestOptions</code> are added to internal defaults that cannot be overridden to ensure
-  the operation of <code>CheerioCrawler</code> and all its options. If you need more granular control over
-  your requests, use <a href="basiccrawler"><code>BasicCrawler</code></a>.</p>
-<p>  The mandatory internal defaults:</p>
+  the operation of <code>CheerioCrawler</code> and all its options. Headers will not be merged,
+  use <a href="requestlist"><code>RequestList</code></a> and/or <a href="requestqueue"><code>RequestQueue</code></a> to initialize your <a href="request"><code>Request</code></a> with the
+  correct headers or use <code>options.prepareRequestFunction</code> to modify your <a href="request"><code>Request</code></a> dynamically.
+  If you need more granular control over your requests, use <a href="basiccrawler"><code>BasicCrawler</code></a>.</p>
+<p>  The mandatory internal defaults that <strong>CANNOT BE OVERRIDDEN</strong> by <code>requestOptions</code>:</p>
 <pre><code>  {
-      url,
-      method,
-      headers,
-      payload,   // Are provided by RequestList and/or RequestQueue
+      url,       // Provided by RequestList and/or RequestQueue
+      method,    // Provided by RequestList and/or RequestQueue
+      headers,   // Provided by RequestList and/or RequestQueue
+      payload,   // Provided by RequestList and/or RequestQueue
       strictSSL, // Use options.ignoreSslErrors
       proxy,     // Use options.useApifyProxy or options.proxyUrls
   }</code></pre></td></tr><tr>
@@ -258,5 +265,5 @@ await crawler.run();
 <a name="CheerioCrawler+run"></a>
 
 ## `cheerioCrawler.run()` ⇒ `Promise`
-Runs the crawler. Returns promise that gets resolved once all the requests got processed.
 
+Runs the crawler. Returns promise that gets resolved once all the requests got processed.

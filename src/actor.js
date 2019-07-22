@@ -67,8 +67,8 @@ const waitForRunToFinish = async ({ actId, runId, token, waitSecs, taskId }) => 
         && status !== ACT_JOB_STATUSES.READY
     ) {
         const message = taskId
-            ? `The actor task ${taskId} invoked by Apify.call() did not succeed`
-            : `The actor ${actId} invoked by Apify.call() did not succeed`;
+            ? `The actor task ${taskId} invoked by Apify.call() did not succeed. For details, see https://my.apify.com/view/runs/${runId}`
+            : `The actor ${actId} invoked by Apify.call() did not succeed. For details, see https://my.apify.com/view/runs/${runId}`;
         throw new ApifyCallError(updatedRun, message);
     }
 
@@ -550,7 +550,7 @@ export const callTask = async (taskId, input, options = {}) => {
  * @param {String} [options.build]
  *  Tag or number of the target actor build to metamorph into (e.g. `beta` or `1.2.345`).
  *  If not provided, the run uses build tag or number from the default actor run configuration (typically `latest`).
- * @returns {Promise<undefined>}
+ * @returns {Promise}
  *
  * @memberof module:Apify
  * @function

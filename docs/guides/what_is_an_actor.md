@@ -2,6 +2,7 @@
 id: whatisanactor
 title: What is an Actor
 ---
+
 When you deploy your script to the <a href="https://apify.com/" target="_blank">Apify Cloud</a>,
 it becomes an actor.
 An actor is a serverless microservice that accepts an input and produces an output.
@@ -17,7 +18,7 @@ and somebody uses it, it runs under their account, not yours.
 
 **Related links**
 
-* <a href="https://apify.com/store?&type=acts" target="_blank">Store of existing actors</a>
-* <a href="https://apify.com/docs/actor" target="_blank">Documentation</a>
-* <a href="https://my.apify.com/actors" target="_blank">View actors in Apify app</a>
-* <a href="https://apify.com/docs/api/v2#/reference/actors" target="_blank">API reference</a>
+-   <a href="https://apify.com/store?&type=acts" target="_blank">Store of existing actors</a>
+-   <a href="https://apify.com/docs/actor" target="_blank">Documentation</a>
+-   <a href="https://my.apify.com/actors" target="_blank">View actors in Apify app</a>
+-   <a href="https://apify.com/docs/api/v2#/reference/actors" target="_blank">API reference</a>
