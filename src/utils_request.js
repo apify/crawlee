@@ -27,8 +27,8 @@ export const REQUEST_AS_BROWSER_DEFAULT_OPTIONS = {
  * Currently, the function sends requests the same way as Firefox web browser does.
  * In the future, it might add support for other browsers too.
  *
- * Internally, the function uses `httpRequest` function from the
- * [`@apify/httpRequest`](https://github.com/apifytech/http-request) to perform the request.
+ * Internally, the function uses httpRequest function from the [@apify/httpRequest](https://github.com/apifytech/http-request)
+ * NPM package to perform the request.
  * All `options` not recognized by this function are passed to it,
  * so see it for more details.
  *
