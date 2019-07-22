@@ -16,9 +16,9 @@ No code changes are needed.
 
 **Related links**
 
-* <a href="https://apify.com/docs/storage" target="_blank">Apify cloud storage documentation</a>
-* <a href="https://my.apify.com/storage" target="_blank">View storage in Apify app</a>
-* <a href="https://apify.com/docs/api/v2#/reference/key-value-stores" target="_blank">API reference</a>
+-   <a href="https://apify.com/docs/storage" target="_blank">Apify cloud storage documentation</a>
+-   <a href="https://my.apify.com/storage" target="_blank">View storage in Apify app</a>
+-   <a href="https://apify.com/docs/api/v2#/reference/key-value-stores" target="_blank">API reference</a>
 
 ## Key-value store
 
@@ -57,26 +57,25 @@ The following code demonstrates basic operations of key-value stores:
 const input = await Apify.getInput();
 
 // Write actor output to the default key-value store.
-await Apify.setValue('OUTPUT', { myResult: 123 });
+await Apify.setValue("OUTPUT", { myResult: 123 });
 
 // Open a named key-value store
-const store = await Apify.openKeyValueStore('some-name');
+const store = await Apify.openKeyValueStore("some-name");
 
 // Write record. JavaScript object is automatically converted to JSON,
 // strings and binary buffers are stored as they are
-await store.setValue('some-key', { foo: 'bar' });
+await store.setValue("some-key", { foo: "bar" });
 
 // Read record. Note that JSON is automatically parsed to a JavaScript object,
 // text data returned as a string and other data is returned as binary buffer
-const value = await store.getValue('some-key');
+const value = await store.getValue("some-key");
 
 // Delete record
-await store.setValue('some-key', null);
+await store.setValue("some-key", null);
 ```
 
 To see a real-world example of how to get the input from the key-value store, see the
 [Screenshots](../examples/screenshots) example.
-
 
 ## Dataset
 
@@ -116,24 +115,20 @@ The following code demonstrates basic operations of the dataset:
 
 ```javascript
 // Write a single row to the default dataset
-await Apify.pushData({ col1: 123, col2: 'val2' });
+await Apify.pushData({ col1: 123, col2: "val2" });
 
 // Open a named dataset
-const dataset = await Apify.openDataset('some-name');
+const dataset = await Apify.openDataset("some-name");
 
 // Write a single row
-await dataset.pushData({ foo: 'bar' });
+await dataset.pushData({ foo: "bar" });
 
 // Write multiple rows
-await dataset.pushData([
-  { foo: 'bar2', col2: 'val2' },
-  { col3: 123 },
-]);
+await dataset.pushData([{ foo: "bar2", col2: "val2" }, { col3: 123 }]);
 ```
 
 To see how to use the dataset to store crawler results, see the
 [Cheerio Crawler](../examples/cheeriocrawler) example.
-
 
 ## Request queue
 
@@ -167,12 +162,15 @@ The following code demonstrates basic operations of the request queue:
 const queue = await Apify.openRequestQueue();
 
 // Open a named request queue
-const queueWithName = await Apify.openRequestQueue('some-name');
+const queueWithName = await Apify.openRequestQueue("some-name");
 
 // Enqueue few requests
-await queue.addRequest({ url: 'http://example.com/aaa'});
-await queue.addRequest({ url: 'http://example.com/bbb'});
-await queue.addRequest({ url: 'http://example.com/foo/bar'}, { forefront: true });
+await queue.addRequest({ url: "http://example.com/aaa" });
+await queue.addRequest({ url: "http://example.com/bbb" });
+await queue.addRequest(
+    { url: "http://example.com/foo/bar" },
+    { forefront: true }
+);
 
 // Get requests from queue
 const request1 = await queue.fetchNextRequest();

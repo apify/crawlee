@@ -1,4 +1,5 @@
 # Apify SDK: The scalable web crawling and scraping library for JavaScript
+
 <!-- Mirror this part to src/index.js -->
 
 [![npm version](https://badge.fury.io/js/apify.svg)](https://www.npmjs.com/package/apify)
@@ -22,12 +23,12 @@ Thanks to tools like <a href="https://github.com/GoogleChrome/puppeteer" target=
 it is easy to write Node.js code to extract data from web pages.
 But eventually things will get complicated. For example, when you try to:
 
-* Perform a deep crawl of an entire website using a persistent queue of URLs.
-* Run your scraping code on a list of 100k URLs in a CSV file,
-  without losing any data when your code crashes.
-* Rotate proxies to hide your browser origin.
-* Schedule the code to run periodically and send notification on errors.
-* Disable browser fingerprinting protections used by websites.
+-   Perform a deep crawl of an entire website using a persistent queue of URLs.
+-   Run your scraping code on a list of 100k URLs in a CSV file,
+    without losing any data when your code crashes.
+-   Rotate proxies to hide your browser origin.
+-   Schedule the code to run periodically and send notification on errors.
+-   Disable browser fingerprinting protections used by websites.
 
 Python has <a href="https://scrapy.org/" target="_blank">Scrapy</a> for these tasks, but there was no
 such library for **JavaScript, the language of the web**.
@@ -117,6 +118,7 @@ The Apify SDK is available as the <a href="https://www.npmjs.com/package/apify">
 </ul>
 
 ## Quick Start
+
 The Apify SDK requires <a href="https://nodejs.org/en/" target="_blank">Node.js</a> 8 or later.
 
 ### Local stand-alone usage
@@ -128,26 +130,31 @@ npm install apify --save
 ```
 
 Run the following example to perform a recursive crawl of a website using Puppeteer.
-For more examples showcasing various features of the Apify SDK, 
+For more examples showcasing various features of the Apify SDK,
 [see the Examples section of the documentation](https://sdk.apify.com/docs/examples/basiccrawler).
 
 ```javascript
-const Apify = require('apify');
+const Apify = require("apify");
 
 Apify.main(async () => {
     const requestQueue = await Apify.openRequestQueue();
-    await requestQueue.addRequest({ url: 'https://www.iana.org/' });
-    const pseudoUrls = [new Apify.PseudoUrl('https://www.iana.org/[.*]')];
+    await requestQueue.addRequest({ url: "https://www.iana.org/" });
+    const pseudoUrls = [new Apify.PseudoUrl("https://www.iana.org/[.*]")];
 
     const crawler = new Apify.PuppeteerCrawler({
         requestQueue,
         handlePageFunction: async ({ request, page }) => {
             const title = await page.title();
             console.log(`Title of ${request.url}: ${title}`);
-            await Apify.utils.puppeteer.enqueueLinks({ page, selector: 'a', pseudoUrls, requestQueue });
+            await Apify.utils.puppeteer.enqueueLinks({
+                page,
+                selector: "a",
+                pseudoUrls,
+                requestQueue
+            });
         },
         maxRequestsPerCrawl: 100,
-        maxConcurrency: 10,
+        maxConcurrency: 10
     });
 
     await crawler.run();
@@ -207,6 +214,7 @@ Now you can easily deploy your code to the Apify Cloud by running:
 ```bash
 apify login
 ```
+
 ```bash
 apify push
 ```

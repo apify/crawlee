@@ -2,6 +2,7 @@
 id: utils
 title: utils
 ---
+
 <a name="utils"></a>
 
 A namespace that contains various utilities.
@@ -17,21 +18,21 @@ const Apify = require('apify');
 await Apify.utils.sleep(1500);
 ```
 
-
-* [`utils`](#utils) : `object`
-    * [`.enqueueLinks`](#utils.enqueueLinks) ⇒ `Promise<Array<QueueOperationInfo>>`
-    * [`.sleep`](#utils.sleep) ⇒ `Promise`
-    * [`.URL_NO_COMMAS_REGEX`](#utils.URL_NO_COMMAS_REGEX)
-    * [`.URL_WITH_COMMAS_REGEX`](#utils.URL_WITH_COMMAS_REGEX)
-    * [`.isDocker()`](#utils.isDocker) ⇒ `Promise`
-    * [`.downloadListOfUrls(options)`](#utils.downloadListOfUrls) ⇒ `Promise<Array<String>>`
-    * [`.extractUrls(options)`](#utils.extractUrls) ⇒ `Array<String>`
-    * [`.getRandomUserAgent()`](#utils.getRandomUserAgent) ⇒ `String`
-    * [`.htmlToText(html)`](#utils.htmlToText) ⇒ `String`
+- [`utils`](#utils) : `object`
+  - [`.enqueueLinks`](#utils.enqueueLinks) ⇒ `Promise<Array<QueueOperationInfo>>`
+  - [`.sleep`](#utils.sleep) ⇒ `Promise`
+  - [`.URL_NO_COMMAS_REGEX`](#utils.URL_NO_COMMAS_REGEX)
+  - [`.URL_WITH_COMMAS_REGEX`](#utils.URL_WITH_COMMAS_REGEX)
+  - [`.isDocker()`](#utils.isDocker) ⇒ `Promise`
+  - [`.downloadListOfUrls(options)`](#utils.downloadListOfUrls) ⇒ `Promise<Array<String>>`
+  - [`.extractUrls(options)`](#utils.extractUrls) ⇒ `Array<String>`
+  - [`.getRandomUserAgent()`](#utils.getRandomUserAgent) ⇒ `String`
+  - [`.htmlToText(html)`](#utils.htmlToText) ⇒ `String`
 
 <a name="utils.enqueueLinks"></a>
 
 ## `utils.enqueueLinks` ⇒ `Promise<Array<QueueOperationInfo>>`
+
 The function finds elements matching a specific CSS selector (HTML anchor (`<a>`) by default)
 either in a Puppeteer page, or in a Cheerio object (parsed HTML),
 and enqueues the URLs in their `href` attributes to the provided [`RequestQueue`](requestqueue).
@@ -45,24 +46,25 @@ and override settings of the enqueued [`Request`](request) objects.
 **Example usage**
 
 ```javascript
-const Apify = require('apify');
+const Apify = require("apify");
 
 const browser = await Apify.launchPuppeteer();
-const page = await browser.goto('https://www.example.com');
+const page = await browser.goto("https://www.example.com");
 const requestQueue = await Apify.openRequestQueue();
 
 await Apify.utils.enqueueLinks({
   page,
   requestQueue,
-  selector: 'a.product-detail',
+  selector: "a.product-detail",
   pseudoUrls: [
-      'https://www.example.com/handbags/[.*]',
-      'https://www.example.com/purses/[.*]'
-  ],
+    "https://www.example.com/handbags/[.*]",
+    "https://www.example.com/purses/[.*]"
+  ]
 });
 ```
 
-**Returns**: `Promise<Array<QueueOperationInfo>>` - Promise that resolves to an array of [`QueueOperationInfo`](../typedefs/queueoperationinfo) objects.  
+**Returns**: `Promise<Array<QueueOperationInfo>>` - Promise that resolves to an array of [`QueueOperationInfo`](../typedefs/queueoperationinfo) objects.
+
 <table>
 <thead>
 <tr>
@@ -130,6 +132,7 @@ await Apify.utils.enqueueLinks({
 <a name="utils.sleep"></a>
 
 ## `utils.sleep` ⇒ `Promise`
+
 Returns a `Promise` that resolves after a specific period of time. This is useful to implement waiting
 in your code, e.g. to prevent overloading of target website or to avoid bot detection.
 
@@ -161,23 +164,27 @@ await Apify.utils.sleep(1500);
 <a name="utils.URL_NO_COMMAS_REGEX"></a>
 
 ## `utils.URL_NO_COMMAS_REGEX`
+
 Default regular expression to match URLs in a string that may be plain text, JSON, CSV or other. It supports common URL characters
 and does not support URLs containing commas or spaces. The URLs also may contain Unicode letters (not symbols).
 
 <a name="utils.URL_WITH_COMMAS_REGEX"></a>
 
 ## `utils.URL_WITH_COMMAS_REGEX`
+
 Regular expression that, in addition to the default regular expression `URL_NO_COMMAS_REGEX`, supports matching commas in URL path and query.
 Note, however, that this may prevent parsing URLs from comma delimited lists, or the URLs may become malformed.
 
 <a name="utils.isDocker"></a>
 
 ## `utils.isDocker()` ⇒ `Promise`
+
 Returns a `Promise` that resolves to true if the code is running in a Docker container.
 
 <a name="utils.downloadListOfUrls"></a>
 
 ## `utils.downloadListOfUrls(options)` ⇒ `Promise<Array<String>>`
+
 Returns a promise that resolves to an array of urls parsed from the resource available at the provided url.
 Optionally, custom regular expression and encoding may be provided.
 
@@ -213,6 +220,7 @@ Optionally, custom regular expression and encoding may be provided.
 <a name="utils.extractUrls"></a>
 
 ## `utils.extractUrls(options)` ⇒ `Array<String>`
+
 Collects all URLs in an arbitrary string to an array, optionally using a custom regular expression.
 
 <table>
@@ -239,11 +247,13 @@ Collects all URLs in an arbitrary string to an array, optionally using a custom 
 <a name="utils.getRandomUserAgent"></a>
 
 ## `utils.getRandomUserAgent()` ⇒ `String`
+
 Returns a randomly selected User-Agent header out of a list of the most common headers.
 
 <a name="utils.htmlToText"></a>
 
 ## `utils.htmlToText(html)` ⇒ `String`
+
 The function converts a HTML document to a plain text.
 
 The plain text generated by the function is similar to a text captured
@@ -253,8 +263,9 @@ However, it attempts to generate newlines and whitespaces in and around HTML ele
 to avoid merging distinct parts of text and thus enable extraction of data from the text (e.g. phone numbers).
 
 **Example usage**
+
 ```javascript
-const text = htmlToText('<html><body>Some text</body></html>');
+const text = htmlToText("<html><body>Some text</body></html>");
 console.log(text);
 ```
 
@@ -264,12 +275,13 @@ an existing Cheerio object to the function instead of the HTML text. The HTML sh
 with the `decodeEntities` option set to `true`. For example:
 
 ```javascript
-const cheerio = require('cheerio');
-const html = '<html><body>Some text</body></html>';
+const cheerio = require("cheerio");
+const html = "<html><body>Some text</body></html>";
 const text = htmlToText(cheerio.load(html, { decodeEntities: true }));
 ```
 
-**Returns**: `String` - Plain text  
+**Returns**: `String` - Plain text
+
 <table>
 <thead>
 <tr>

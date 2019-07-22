@@ -15,7 +15,7 @@ the `puppeteerPoolOptions` of [`PuppeteerCrawler`](../api/puppeteercrawler#new_P
 ```js
 const crawler = new Apify.PuppeteerCrawler({
     puppeteerPoolOptions: {
-        useLiveView: true,
+        useLiveView: true
     }
     // other options
 });
@@ -25,9 +25,9 @@ or directly to the [`PuppeteerPool`](../api/puppeteerpool) constructor, when usi
 
 ```js
 const pool = new Apify.PuppeteerPool({
-    useLiveView: true,
+    useLiveView: true
     // other options
-})
+});
 ```
 
 To simplify debugging, you may also want to add the
