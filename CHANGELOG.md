@@ -1,4 +1,4 @@
-xxx
+NEXT
 ====================
 - Bugfix in BasicCrawler: async calls in `isFinishedFunction` were not awaited
 - Better logging of memory overload errors
@@ -6,13 +6,40 @@ xxx
  unnecessary bound check from the setter property
 - Upgraded `apify-client` to 0.5.22
 
+0.15.2 / 2019-07-11
+====================
+- Fix error where Puppeteer would fail to launch when pipes are turned off.
+- Switch back to default Web Socket transport for Puppeteer due to upstream issues.
+
+0.15.1 / 2019-07-09
+====================
+- **BREAKING CHANGE** Removed support for Web Driver (Selenium) since no further updates are planned.
+  If you wish to continue using Web Driver, please stay on Apify SDK version ^0.14.15
+- **BREAKING CHANGE**: `Dataset.getData()` throws an error if user provides an unsupported option
+  when using local disk storage.
+- **DEPRECATED**: `options.userData` of `Apify.utils.enqueueLinks()` is deprecated.
+  Use `options.transformRequestFunction` instead.
+- Improve logging of memory overload errors.
+- Improve error message in `Apify.call()`.
+- Fix multiple log lines appearing when a crawler was about to finish.
+- Add `Apify.utils.puppeteer.enqueueLinksByClickingElements()` function which enables you
+  to add requests to the queue from pure JavaScript navigations, form submissions etc.
+- Add `Apify.utils.puppeteer.infiniteScroll()` function which helps you with scrolling to the bottom
+  of websites that auto-load new content.
+- The `RequestQueue.handledCount()` function has been resurrected from deprecation,
+  in order to have compatible interface with `RequestList`.
+- Add `useExtendedUniqueKey` option to `Request` constructor to include `method` and `payload`
+  in the `Request`'s computed `uniqueKey`.
+- Updated Puppeteer to 1.18.1
+- Updated `apify-client` to 0.5.22
+
 0.14.15 / 2019-05-31
 ====================
 - Fixes in `RequestQueue` to deal with inconsistencies in the underlying data storage
 - **BREAKING CHANGE**: `RequestQueue.addRequest()` now sets the ID of the
   newly added request to the passed `Request` object
-- **DEPRECATED**: The `RequestQueue.handledCount()` function has been deprecated,
-  please use `RequestQueue.getInfo()` instead
+- The `RequestQueue.handledCount()` function has been deprecated,
+  please use `RequestQueue.getInfo()` instead.
 
 0.14.14 / 2019-05-30
 ====================

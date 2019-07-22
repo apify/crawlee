@@ -1,8 +1,8 @@
 import cheerio from 'cheerio';
 import { expect } from 'chai';
-import Apify from '../build/index';
-import { enqueueLinks } from '../build/enqueue_links';
-import { RequestQueue } from '../build/request_queue';
+import Apify from '../../build';
+import { enqueueLinks } from '../../build/enqueue_links/enqueue_links';
+import { RequestQueue } from '../../build/request_queue';
 
 const { utils: { log } } = Apify;
 
@@ -254,45 +254,6 @@ describe('enqueueLinks()', () => {
             expect(enqueued[3].userData).to.be.eql({});
         });
 
-        // TODO Remove with 1.0.0
-        it('works with individual args instead of options object', async () => {
-            const enqueued = [];
-            const queue = new RequestQueue('xxx');
-            queue.addRequest = async (request) => {
-                enqueued.push(request);
-            };
-            const purls = [
-                new Apify.PseudoUrl('https://example.com/[(\\w|-|/)*]', { method: 'POST' }),
-                new Apify.PseudoUrl('[http|https]://cool.com/', { userData: { foo: 'bar' } }),
-            ];
-
-            const originalLogWarning = log.warning;
-            const logOutput = [];
-            log.warning = (item) => { logOutput.push(item); };
-
-            try {
-                await enqueueLinks(page, '.click', purls, queue, { hello: 'world' });
-
-                expect(enqueued).to.have.lengthOf(3);
-
-                expect(enqueued[0].url).to.be.eql('https://example.com/a/b/first');
-                expect(enqueued[0].method).to.be.eql('POST');
-                expect(enqueued[0].userData).to.be.eql({ hello: 'world' });
-
-                expect(enqueued[1].url).to.be.eql('https://example.com/a/b/third');
-                expect(enqueued[1].method).to.be.eql('POST');
-                expect(enqueued[1].userData).to.be.eql({ hello: 'world' });
-
-                expect(enqueued[2].url).to.be.eql('http://cool.com/');
-                expect(enqueued[2].method).to.be.eql('GET');
-                expect(enqueued[2].userData).to.be.eql({ hello: 'world', foo: 'bar' });
-            } finally {
-                log.warning = originalLogWarning;
-            }
-
-            expect(logOutput.length).to.be.eql(1);
-            expect(logOutput[0]).to.include('options object');
-        });
         it('throws with sparse pseudoUrls[]', async () => {
             const enqueued = [];
             const requestQueue = new RequestQueue('xxx');

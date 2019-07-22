@@ -2,6 +2,7 @@
 id: autoscaledpool
 title: AutoscaledPool
 ---
+
 <a name="AutoscaledPool"></a>
 
 Manages a pool of asynchronous resource-intensive tasks that are executed in parallel.
@@ -32,42 +33,42 @@ and also in the interval set by the `options.maybeRunIntervalSecs` parameter.
 
 ```javascript
 const pool = new Apify.AutoscaledPool({
-    maxConcurrency: 50,
-    runTaskFunction: async () => {
-        // Run some resource-intensive asynchronous operation here.
-    },
-    isTaskReadyFunction: async () => {
-        // Tell the pool whether more tasks are ready to be processed.
-        // Return true or false
-    },
-    isFinishedFunction: async () => {
-        // Tell the pool whether it should finish
-        // or wait for more tasks to become available.
-        // Return true or false
-    }
+  maxConcurrency: 50,
+  runTaskFunction: async () => {
+    // Run some resource-intensive asynchronous operation here.
+  },
+  isTaskReadyFunction: async () => {
+    // Tell the pool whether more tasks are ready to be processed.
+    // Return true or false
+  },
+  isFinishedFunction: async () => {
+    // Tell the pool whether it should finish
+    // or wait for more tasks to become available.
+    // Return true or false
+  }
 });
 
 await pool.run();
 ```
 
-
-* [AutoscaledPool](autoscaledpool)
-    * [`new AutoscaledPool(options)`](#new_AutoscaledPool_new)
-    * [`.minConcurrency`](#AutoscaledPool+minConcurrency) ⇒ `number`
-    * [`.minConcurrency`](#AutoscaledPool+minConcurrency)
-    * [`.maxConcurrency`](#AutoscaledPool+maxConcurrency) ⇒ `number`
-    * [`.maxConcurrency`](#AutoscaledPool+maxConcurrency)
-    * [`.desiredConcurrency`](#AutoscaledPool+desiredConcurrency) ⇒ `number`
-    * [`.desiredConcurrency`](#AutoscaledPool+desiredConcurrency)
-    * [`.currentConcurrency`](#AutoscaledPool+currentConcurrency) ⇒ `number`
-    * [`.run()`](#AutoscaledPool+run) ⇒ `Promise`
-    * [`.abort()`](#AutoscaledPool+abort) ⇒ `Promise`
-    * [`.pause([timeoutSecs])`](#AutoscaledPool+pause) ⇒ `Promise`
-    * [`.resume()`](#AutoscaledPool+resume)
+- [AutoscaledPool](autoscaledpool)
+  - [`new AutoscaledPool(options)`](#new_AutoscaledPool_new)
+  - [`.minConcurrency`](#AutoscaledPool+minConcurrency) ⇒ `number`
+  - [`.minConcurrency`](#AutoscaledPool+minConcurrency)
+  - [`.maxConcurrency`](#AutoscaledPool+maxConcurrency) ⇒ `number`
+  - [`.maxConcurrency`](#AutoscaledPool+maxConcurrency)
+  - [`.desiredConcurrency`](#AutoscaledPool+desiredConcurrency) ⇒ `number`
+  - [`.desiredConcurrency`](#AutoscaledPool+desiredConcurrency)
+  - [`.currentConcurrency`](#AutoscaledPool+currentConcurrency) ⇒ `number`
+  - [`.run()`](#AutoscaledPool+run) ⇒ `Promise`
+  - [`.abort()`](#AutoscaledPool+abort) ⇒ `Promise`
+  - [`.pause([timeoutSecs])`](#AutoscaledPool+pause) ⇒ `Promise`
+  - [`.resume()`](#AutoscaledPool+resume)
 
 <a name="new_AutoscaledPool_new"></a>
 
 ## `new AutoscaledPool(options)`
+
 <table>
 <thead>
 <tr>
@@ -170,14 +171,16 @@ await pool.run();
 <a name="AutoscaledPool+minConcurrency"></a>
 
 ## `autoscaledPool.minConcurrency` ⇒ `number`
+
 Gets the minimum number of tasks running in parallel.
 
 <a name="AutoscaledPool+minConcurrency"></a>
 
 ## `autoscaledPool.minConcurrency`
+
 Sets the minimum number of tasks running in parallel.
 
-*WARNING:* If you set this value too high with respect to the available system memory and CPU, your code might run extremely slow or crash.
+_WARNING:_ If you set this value too high with respect to the available system memory and CPU, your code might run extremely slow or crash.
 If you're not sure, just keep the default value and the concurrency will scale up automatically.
 
 <table>
@@ -196,11 +199,13 @@ If you're not sure, just keep the default value and the concurrency will scale u
 <a name="AutoscaledPool+maxConcurrency"></a>
 
 ## `autoscaledPool.maxConcurrency` ⇒ `number`
+
 Gets the maximum number of tasks running in parallel.
 
 <a name="AutoscaledPool+maxConcurrency"></a>
 
 ## `autoscaledPool.maxConcurrency`
+
 Sets the maximum number of tasks running in parallel.
 
 <table>
@@ -219,12 +224,14 @@ Sets the maximum number of tasks running in parallel.
 <a name="AutoscaledPool+desiredConcurrency"></a>
 
 ## `autoscaledPool.desiredConcurrency` ⇒ `number`
+
 Gets the desired concurrency for the pool,
 which is an estimated number of parallel tasks that the system can currently support.
 
 <a name="AutoscaledPool+desiredConcurrency"></a>
 
 ## `autoscaledPool.desiredConcurrency`
+
 Sets the desired concurrency for the pool, i.e. the number of tasks that should be running
 in parallel if there's large enough supply of tasks.
 
@@ -244,17 +251,20 @@ in parallel if there's large enough supply of tasks.
 <a name="AutoscaledPool+currentConcurrency"></a>
 
 ## `autoscaledPool.currentConcurrency` ⇒ `number`
+
 Gets the the number of parallel tasks currently running in the pool.
 
 <a name="AutoscaledPool+run"></a>
 
 ## `autoscaledPool.run()` ⇒ `Promise`
+
 Runs the auto-scaled pool. Returns a promise that gets resolved or rejected once
 all the tasks are finished or one of them fails.
 
 <a name="AutoscaledPool+abort"></a>
 
 ## `autoscaledPool.abort()` ⇒ `Promise`
+
 Aborts the run of the auto-scaled pool and destroys it. The promise returned from
 the [`run()`](#AutoscaledPool+run) function will immediately resolve, no more new tasks
 will be spawned and all running tasks will be left in their current state.
@@ -268,6 +278,7 @@ parts of their asynchronous chains of commands will not execute.
 <a name="AutoscaledPool+pause"></a>
 
 ## `autoscaledPool.pause([timeoutSecs])` ⇒ `Promise`
+
 Prevents the auto-scaled pool from starting new tasks, but allows the running ones to finish
 (unlike abort, which terminates them). Used together with [`resume()`](#AutoscaledPool+resume)
 
@@ -294,8 +305,8 @@ when `.pause()` is invoked (unlike abort, which resolves it).
 <a name="AutoscaledPool+resume"></a>
 
 ## `autoscaledPool.resume()`
+
 Resumes the operation of the autoscaled-pool by allowing more tasks to be run.
 Used together with [`pause()`](#AutoscaledPool+pause)
 
 Tasks will automatically start running again in `options.maybeRunIntervalSecs`.
-

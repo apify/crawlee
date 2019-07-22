@@ -2,6 +2,7 @@
 id: basiccrawler
 title: BasicCrawler
 ---
+
 <a name="BasicCrawler"></a>
 
 Provides a simple framework for parallel crawling of web pages.
@@ -34,41 +35,41 @@ parameter of the `BasicCrawler` constructor. For user convenience, the `minConcu
 **Example usage:**
 
 ```javascript
-const rp = require('request-promise-native');
+const rp = require("request-promise-native");
 
 // Prepare a list of URLs to crawl
 const requestList = new Apify.RequestList({
   sources: [
-      { url: 'http://www.example.com/page-1' },
-      { url: 'http://www.example.com/page-2' },
-  ],
+    { url: "http://www.example.com/page-1" },
+    { url: "http://www.example.com/page-2" }
+  ]
 });
 await requestList.initialize();
 
 // Crawl the URLs
 const crawler = new Apify.BasicCrawler({
-    requestList,
-    handleRequestFunction: async ({ request }) => {
-        // 'request' contains an instance of the Request class
-        // Here we simply fetch the HTML of the page and store it to a dataset
-        await Apify.pushData({
-            url: request.url,
-            html: await rp(request.url),
-        })
-    },
+  requestList,
+  handleRequestFunction: async ({ request }) => {
+    // 'request' contains an instance of the Request class
+    // Here we simply fetch the HTML of the page and store it to a dataset
+    await Apify.pushData({
+      url: request.url,
+      html: await rp(request.url)
+    });
+  }
 });
 
 await crawler.run();
 ```
 
-
-* [BasicCrawler](basiccrawler)
-    * [`new BasicCrawler(options)`](#new_BasicCrawler_new)
-    * [`.run()`](#BasicCrawler+run) ⇒ `Promise`
+- [BasicCrawler](basiccrawler)
+  - [`new BasicCrawler(options)`](#new_BasicCrawler_new)
+  - [`.run()`](#BasicCrawler+run) ⇒ `Promise`
 
 <a name="new_BasicCrawler_new"></a>
 
 ## `new BasicCrawler(options)`
+
 <table>
 <thead>
 <tr>
@@ -148,8 +149,9 @@ await crawler.run();
 </tr>
 <tr>
 <td colspan="3"><p>Custom options passed to the underlying <a href="autoscaledpool"><code>AutoscaledPool</code></a> constructor.
-  Note that the <code>runTaskFunction</code>, <code>isTaskReadyFunction</code> and <code>isFinishedFunction</code> options
-  are provided by <code>BasicCrawler</code> and cannot be overridden.</p>
+  Note that the <code>runTaskFunction</code> and <code>isTaskReadyFunction</code> options
+  are provided by <code>BasicCrawler</code> and cannot be overridden.
+  However, you can provide a custom implementation of <code>isFinishedFunction</code>.</p>
 </td></tr><tr>
 <td><code>[options.minConcurrency]</code></td><td><code>Object</code></td><td><code>1</code></td>
 </tr>
@@ -167,5 +169,5 @@ await crawler.run();
 <a name="BasicCrawler+run"></a>
 
 ## `basicCrawler.run()` ⇒ `Promise`
-Runs the crawler. Returns a promise that gets resolved once all the requests are processed.
 
+Runs the crawler. Returns a promise that gets resolved once all the requests are processed.

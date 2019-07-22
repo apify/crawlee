@@ -199,12 +199,27 @@ export class Dataset {
     }
 
     /**
-     * Returns items in the dataset based on the provided parameters.
+     * Returns items in the dataset based on the provided parameters. The returned object
+     * has the following structure:
+     *
+     * ```javascript
+     * {
+     *     items, // Array|String|Buffer based on chosen format parameter.
+     *     total, // Number
+     *     limit, // Number
+     *     offset, // Number
+     * }
+     * ```
+     *
+     * **NOTE**: If using dataset with local disk storage, the `format` option must be `json` and
+     * the following options are not supported:
+     * `unwind`, `disableBodyParser`, `attachment`, `bom` and `simplified`.
+     * If you try to use them, you will receive an error.
      *
      * @param {Object} [options] All `getData()` parameters are passed
      *   via an options object with the following keys:
      * @param {String} [options.format='json']
-     *   Format of the items, possible values are: `json`, `csv`, `xlsx`, `html`, `xml` and `rss`.
+     *   Format of the `items` property, possible values are: `json`, `csv`, `xlsx`, `html`, `xml` and `rss`.
      * @param {Number} [options.offset=0]
      *   Number of array elements that should be skipped at the start.
      * @param {Number} [options.limit=250000]
@@ -239,7 +254,7 @@ export class Dataset {
      *   If set to `true` then function applies the `fields: ['url','pageFunctionResult','errorInfo']` and `unwind: 'pageFunctionResult'` options.
      * @param {Boolean} [options.skipFailedPages]
      *   If set to `true` then all the items with errorInfo property will be skipped from the output.
-     * @return {Promise<Array|String|Buffer>}
+     * @return {Promise<Object>}
      */
     getData(options = {}) {
         const { datasetId } = this;
@@ -479,6 +494,14 @@ export class DatasetLocal {
         checkParamOrThrow(opts, 'opts', 'Object');
         checkParamOrThrow(opts.limit, 'opts.limit', 'Maybe Number');
         checkParamOrThrow(opts.offset, 'opts.offset', 'Maybe Number');
+
+        if (opts.format && opts.format !== 'json') {
+            throw new Error(`Datasets with local disk storage only support the "json" format (was "${opts.format}")`);
+        }
+        if (opts.unwind || opts.disableBodyParser || opts.attachment || opts.bom || opts.simplified) {
+            // eslint-disable-next-line max-len
+            throw new Error('Datasets with local disk storage do not support the following options: unwind, disableBodyParser, attachment, bom, simplified');
+        }
 
         if (!opts.limit) opts.limit = LOCAL_GET_ITEMS_DEFAULT_LIMIT;
         if (!opts.offset) opts.offset = 0;

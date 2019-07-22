@@ -164,31 +164,31 @@ describe('Apify.launchPuppeteer()', () => {
     });
 
     it('supports useChrome option', async () => {
-        const mock = sinon.mock(utils);
-        mock.expects('getTypicalChromeExecutablePath').once();
+        const spy = sinon.spy(utils, 'getTypicalChromeExecutablePath');
 
         let browser;
         const opts = {
             useChrome: true,
             headless: true,
         };
+
         try {
-            await Apify.launchPuppeteer(opts)
-                .then((result) => {
-                    browser = result;
-                })
-                .then(() => {
-                    return browser.newPage();
-                })
-                .then((page) => {
-                    return page.content();
-                })
-                .then(() => {
-                    return browser.close();
-                });
+            browser = await Apify.launchPuppeteer(opts);
+            const page = await browser.newPage();
+
+            // Add a test to go to an actual domain because we've seen issues
+            // where pages would not load at all with Chrome.
+            await page.goto('https://example.com');
+            const title = await page.title();
+            const version = await browser.version();
+
+            expect(title).to.be.eql('Example Domain');
+            expect(version).to.include('Chrome');
+            expect(version).not.to.include('Chromium');
+            expect(spy.calledOnce).to.be.eql(true);
         } finally {
-            mock.verify();
-            mock.restore();
+            spy.restore();
+            if (browser) await browser.close();
         }
     });
 

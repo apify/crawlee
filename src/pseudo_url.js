@@ -134,13 +134,20 @@ class PseudoUrl {
     }
 
     /**
-     * Creates a Request object from a provided `requestTemplate` and given URL.
+     * Creates a Request object from a provided `requestTemplate` and a given URL
+     * or an object that specifies ${@link Request} properties. In case of a collision
+     * the properties will override the template, except for `userData`, which will
+     * be merged together, with the `userData` property having preference over the template.
+     * This enables dynamic overriding of the template.
      *
-     * @param {String} url
+     * @param {string|Object} urlOrProps
      * @return {Request}
      */
-    createRequest(url) {
-        return new Request(Object.assign({ url }, this.requestTemplate));
+    createRequest(urlOrProps) {
+        const props = typeof urlOrProps === 'string' ? { url: urlOrProps } : urlOrProps;
+        props.userData = { ...this.requestTemplate.userData, ...props.userData };
+        const options = { ...this.requestTemplate, ...props }; // props.userData will override template with merged data.
+        return new Request(options);
     }
 }
 

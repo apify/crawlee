@@ -2,6 +2,7 @@
 id: systemstatus
 title: SystemStatus
 ---
+
 <a name="SystemStatus"></a>
 
 Provides a simple interface to reading system status from a [`Snapshotter`](snapshotter) instance.
@@ -24,15 +25,15 @@ returns a boolean that represents the long-term status
 of the system. It considers the full snapshot history available
 in the [`Snapshotter`](snapshotter) instance.
 
-
-* [SystemStatus](systemstatus)
-    * [`new SystemStatus([options])`](#new_SystemStatus_new)
-    * [`.getCurrentStatus()`](#SystemStatus+getCurrentStatus) ⇒ `Object`
-    * [`.getHistoricalStatus()`](#SystemStatus+getHistoricalStatus) ⇒ `Object`
+- [SystemStatus](systemstatus)
+  - [`new SystemStatus([options])`](#new_SystemStatus_new)
+  - [`.getCurrentStatus()`](#SystemStatus+getCurrentStatus) ⇒ `Object`
+  - [`.getHistoricalStatus()`](#SystemStatus+getHistoricalStatus) ⇒ `Object`
 
 <a name="new_SystemStatus_new"></a>
 
 ## `new SystemStatus([options])`
+
 <table>
 <thead>
 <tr>
@@ -81,6 +82,7 @@ in the [`Snapshotter`](snapshotter) instance.
 <a name="SystemStatus+getCurrentStatus"></a>
 
 ## `systemStatus.getCurrentStatus()` ⇒ `Object`
+
 Returns an object with the following structure:
 
 ```javascript
@@ -99,6 +101,7 @@ and `true` otherwise.
 <a name="SystemStatus+getHistoricalStatus"></a>
 
 ## `systemStatus.getHistoricalStatus()` ⇒ `Object`
+
 Returns an object with the following structure:
 
 ```javascript
@@ -113,4 +116,3 @@ Returns an object with the following structure:
 Where the `isSystemIdle` property is set to `false` if the system
 has been overloaded in the full history of the [`Snapshotter`](snapshotter)
 (which is configurable in the [`Snapshotter`](snapshotter)) and `true` otherwise.
-
