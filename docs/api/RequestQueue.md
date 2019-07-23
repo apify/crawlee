@@ -51,15 +51,12 @@ even if the `APIFY_LOCAL_STORAGE_DIR` variable is set.
 const queue = await Apify.openRequestQueue();
 
 // Open a named request queue
-const queueWithName = await Apify.openRequestQueue("some-name");
+const queueWithName = await Apify.openRequestQueue('some-name');
 
 // Enqueue few requests
-await queue.addRequest({ url: "http://example.com/aaa" });
-await queue.addRequest({ url: "http://example.com/bbb" });
-await queue.addRequest(
-  { url: "http://example.com/foo/bar" },
-  { forefront: true }
-);
+await queue.addRequest({ url: 'http://example.com/aaa' });
+await queue.addRequest({ url: 'http://example.com/bbb' });
+await queue.addRequest({ url: 'http://example.com/foo/bar' }, { forefront: true });
 
 // Get requests from queue
 const request1 = await queue.fetchNextRequest();
@@ -73,17 +70,17 @@ await queue.markRequestHandled(request1);
 await queue.reclaimRequest(request2);
 ```
 
-- [RequestQueue](requestqueue)
-  - [`.addRequest(request, [options])`](#RequestQueue+addRequest) ⇒ [`QueueOperationInfo`](../typedefs/queueoperationinfo)
-  - [`.getRequest(requestId)`](#RequestQueue+getRequest) ⇒ [`Promise<Request>`](request)
-  - [`.fetchNextRequest()`](#RequestQueue+fetchNextRequest) ⇒ [`Promise<Request>`](request)
-  - [`.markRequestHandled(request)`](#RequestQueue+markRequestHandled) ⇒ [`Promise<QueueOperationInfo>`](../typedefs/queueoperationinfo)
-  - [`.reclaimRequest(request, [options])`](#RequestQueue+reclaimRequest) ⇒ [`Promise<QueueOperationInfo>`](../typedefs/queueoperationinfo)
-  - [`.isEmpty()`](#RequestQueue+isEmpty) ⇒ `Promise<Boolean>`
-  - [`.isFinished()`](#RequestQueue+isFinished) ⇒ `Promise<Boolean>`
-  - [`.delete()`](#RequestQueue+delete) ⇒ `Promise`
-  - ~~[`.handledCount()`](#RequestQueue+handledCount) ⇒ `Promise<number>`~~
-  - [`.getInfo()`](#RequestQueue+getInfo) ⇒ `Promise<Object>`
+-   [RequestQueue](requestqueue)
+    -   [`.addRequest(request, [options])`](#RequestQueue+addRequest) ⇒ [`QueueOperationInfo`](../typedefs/queueoperationinfo)
+    -   [`.getRequest(requestId)`](#RequestQueue+getRequest) ⇒ [`Promise<Request>`](request)
+    -   [`.fetchNextRequest()`](#RequestQueue+fetchNextRequest) ⇒ [`Promise<Request>`](request)
+    -   [`.markRequestHandled(request)`](#RequestQueue+markRequestHandled) ⇒ [`Promise<QueueOperationInfo>`](../typedefs/queueoperationinfo)
+    -   [`.reclaimRequest(request, [options])`](#RequestQueue+reclaimRequest) ⇒ [`Promise<QueueOperationInfo>`](../typedefs/queueoperationinfo)
+    -   [`.isEmpty()`](#RequestQueue+isEmpty) ⇒ `Promise<Boolean>`
+    -   [`.isFinished()`](#RequestQueue+isFinished) ⇒ `Promise<Boolean>`
+    -   [`.delete()`](#RequestQueue+delete) ⇒ `Promise`
+    -   ~~[`.handledCount()`](#RequestQueue+handledCount) ⇒ `Promise<number>`~~
+    -   [`.getInfo()`](#RequestQueue+getInfo) ⇒ `Promise<Object>`
 
 <a name="RequestQueue+addRequest"></a>
 

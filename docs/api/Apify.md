@@ -9,27 +9,27 @@ The following section describes all functions and properties provided by the `ap
 except individual classes and namespaces that have their separate, detailed, documentation pages
 accessible from the left sidebar.
 
-- [Apify](#module_Apify)
-  - [`.addWebhook(options)`](#module_Apify.addWebhook) ⇒ `Promise<Object>`
-  - [`.call(actId, [input], [options])`](#module_Apify.call) ⇒ [`Promise<ActorRun>`](../typedefs/actorrun)
-  - [`.callTask(taskId, [input], [options])`](#module_Apify.callTask) ⇒ [`Promise<ActorRun>`](../typedefs/actorrun)
-  - [`.client`](#module_Apify.client)
-  - [`.events`](#module_Apify.events)
-  - [`.getApifyProxyUrl(options)`](#module_Apify.getApifyProxyUrl) ⇒ `String`
-  - [`.getEnv()`](#module_Apify.getEnv) ⇒ `Object`
-  - [`.getInput`](#module_Apify.getInput) ⇒ `Promise<Object>`
-  - [`.getMemoryInfo()`](#module_Apify.getMemoryInfo) ⇒ `Promise<Object>`
-  - [`.getValue(key)`](#module_Apify.getValue) ⇒ `Promise<Object>`
-  - [`.isAtHome()`](#module_Apify.isAtHome) ⇒ `Boolean`
-  - [`.launchPuppeteer([options])`](#module_Apify.launchPuppeteer) ⇒ `Promise<Browser>`
-  - [`.main(userFunc)`](#module_Apify.main)
-  - [`.metamorph(targetActorId, [input], [options])`](#module_Apify.metamorph) ⇒ `Promise`
-  - [`.openDataset([datasetIdOrName], [options])`](#module_Apify.openDataset) ⇒ [`Promise<Dataset>`](dataset)
-  - [`.openKeyValueStore([storeIdOrName], [options])`](#module_Apify.openKeyValueStore) ⇒ [`Promise<KeyValueStore>`](keyvaluestore)
-  - [`.openRequestList`](#module_Apify.openRequestList) ⇒ [`Promise<RequestList>`](requestlist)
-  - [`.openRequestQueue`](#module_Apify.openRequestQueue) ⇒ [`Promise<RequestQueue>`](requestqueue)
-  - [`.pushData(item)`](#module_Apify.pushData) ⇒ `Promise`
-  - [`.setValue(key, value, [options])`](#module_Apify.setValue) ⇒ `Promise`
+-   [Apify](#module_Apify)
+    -   [`.addWebhook(options)`](#module_Apify.addWebhook) ⇒ `Promise<Object>`
+    -   [`.call(actId, [input], [options])`](#module_Apify.call) ⇒ [`Promise<ActorRun>`](../typedefs/actorrun)
+    -   [`.callTask(taskId, [input], [options])`](#module_Apify.callTask) ⇒ [`Promise<ActorRun>`](../typedefs/actorrun)
+    -   [`.client`](#module_Apify.client)
+    -   [`.events`](#module_Apify.events)
+    -   [`.getApifyProxyUrl(options)`](#module_Apify.getApifyProxyUrl) ⇒ `String`
+    -   [`.getEnv()`](#module_Apify.getEnv) ⇒ `Object`
+    -   [`.getInput`](#module_Apify.getInput) ⇒ `Promise<Object>`
+    -   [`.getMemoryInfo()`](#module_Apify.getMemoryInfo) ⇒ `Promise<Object>`
+    -   [`.getValue(key)`](#module_Apify.getValue) ⇒ `Promise<Object>`
+    -   [`.isAtHome()`](#module_Apify.isAtHome) ⇒ `Boolean`
+    -   [`.launchPuppeteer([options])`](#module_Apify.launchPuppeteer) ⇒ `Promise<Browser>`
+    -   [`.main(userFunc)`](#module_Apify.main)
+    -   [`.metamorph(targetActorId, [input], [options])`](#module_Apify.metamorph) ⇒ `Promise`
+    -   [`.openDataset([datasetIdOrName], [options])`](#module_Apify.openDataset) ⇒ [`Promise<Dataset>`](dataset)
+    -   [`.openKeyValueStore([storeIdOrName], [options])`](#module_Apify.openKeyValueStore) ⇒ [`Promise<KeyValueStore>`](keyvaluestore)
+    -   [`.openRequestList`](#module_Apify.openRequestList) ⇒ [`Promise<RequestList>`](requestlist)
+    -   [`.openRequestQueue`](#module_Apify.openRequestQueue) ⇒ [`Promise<RequestQueue>`](requestqueue)
+    -   [`.pushData(item)`](#module_Apify.pushData) ⇒ `Promise`
+    -   [`.setValue(key, value, [options])`](#module_Apify.setValue) ⇒ `Promise`
 
 <a name="module_Apify.addWebhook"></a>
 
@@ -109,7 +109,7 @@ For more information about actors, read the
 **Example usage:**
 
 ```javascript
-const run = await Apify.call("apify/hello-world", { myInput: 123 });
+const run = await Apify.call('apify/hello-world', { myInput: 123 });
 console.log(`Received message: ${run.output.body.message}`);
 ```
 
@@ -119,7 +119,7 @@ and several other API endpoints to obtain the output.
 
 **Throws**:
 
-- [`ApifyCallError`](../typedefs/apifycallerror) If the run did not succeed, e.g. if it failed or timed out.
+-   [`ApifyCallError`](../typedefs/apifycallerror) If the run did not succeed, e.g. if it failed or timed out.
 
 <table>
 <thead>
@@ -220,7 +220,7 @@ For more information about actor tasks, read the [`documentation`](https://apify
 **Example usage:**
 
 ```javascript
-const run = await Apify.callTask("bob/some-task");
+const run = await Apify.callTask('bob/some-task');
 console.log(`Received message: ${run.output.body.message}`);
 ```
 
@@ -230,7 +230,7 @@ and several other API endpoints to obtain the output.
 
 **Throws**:
 
-- [`ApifyCallError`](../typedefs/apifycallerror) If the run did not succeed, e.g. if it failed or timed out.
+-   [`ApifyCallError`](../typedefs/apifycallerror) If the run did not succeed, e.g. if it failed or timed out.
 
 <table>
 <thead>
@@ -327,8 +327,8 @@ The event emitter is initialized by calling the [`Apify.main()`](#module_Apify.m
 **Example usage:**
 
 ```javascript
-Apify.events.on("cpuInfo", data => {
-  if (data.isCpuOverloaded) console.log("Oh no, the CPU is overloaded!");
+Apify.events.on('cpuInfo', data => {
+    if (data.isCpuOverloaded) console.log('Oh no, the CPU is overloaded!');
 });
 ```
 
@@ -491,7 +491,7 @@ is equivalent to:
 
 ```javascript
 const store = await Apify.openKeyValueStore();
-await store.getValue("INPUT");
+await store.getValue('INPUT');
 ```
 
 For more information, see [`Apify.openKeyValueStore()`](#module_Apify.openKeyValueStore)
@@ -535,14 +535,14 @@ This is just a convenient shortcut for [`keyValueStore.getValue()`](keyvaluestor
 For example, calling the following code:
 
 ```javascript
-const input = await Apify.getValue("my-key");
+const input = await Apify.getValue('my-key');
 ```
 
 is equivalent to:
 
 ```javascript
 const store = await Apify.openKeyValueStore();
-await store.getValue("my-key");
+await store.getValue('my-key');
 ```
 
 To store the value to the default-key value store, you can use the [`Apify.setValue()`](#module_Apify.setValue) function.
@@ -673,33 +673,33 @@ The user function can be synchronous:
 
 ```javascript
 Apify.main(() => {
-  // My synchronous function that returns immediately
-  console.log("Hello world from actor!");
+    // My synchronous function that returns immediately
+    console.log('Hello world from actor!');
 });
 ```
 
 If the user function returns a promise, it is considered asynchronous:
 
 ```javascript
-const request = require("request-promise-native");
+const request = require('request-promise-native');
 
 Apify.main(() => {
-  // My asynchronous function that returns a promise
-  return request("http://www.example.com").then(html => {
-    console.log(html);
-  });
+    // My asynchronous function that returns a promise
+    return request('http://www.example.com').then(html => {
+        console.log(html);
+    });
 });
 ```
 
 To simplify your code, you can take advantage of the `async`/`await` keywords:
 
 ```javascript
-const request = require("request-promise-native");
+const request = require('request-promise-native');
 
 Apify.main(async () => {
-  // My asynchronous function
-  const html = await request("http://www.example.com");
-  console.log(html);
+    // My asynchronous function
+    const html = await request('http://www.example.com');
+    console.log(html);
 });
 ```
 
@@ -856,13 +856,9 @@ For more details and code examples, see the [`RequestList`](requestlist) class.
 **Example usage:**
 
 ```javascript
-const sources = [
-  "https://www.example.com",
-  "https://www.google.com",
-  "https://www.bing.com"
-];
+const sources = ['https://www.example.com', 'https://www.google.com', 'https://www.bing.com'];
 
-const requestList = await Apify.openRequestList("my-name", sources);
+const requestList = await Apify.openRequestList('my-name', sources);
 ```
 
 <table>
@@ -993,14 +989,14 @@ This is just a convenient shortcut for [`keyValueStore.setValue()`](keyvaluestor
 For example, calling the following code:
 
 ```javascript
-await Apify.setValue("OUTPUT", { foo: "bar" });
+await Apify.setValue('OUTPUT', { foo: 'bar' });
 ```
 
 is equivalent to:
 
 ```javascript
 const store = await Apify.openKeyValueStore();
-await store.setValue("OUTPUT", { foo: "bar" });
+await store.setValue('OUTPUT', { foo: 'bar' });
 ```
 
 To get a value from the default-key value store, you can use the [`Apify.getValue()`](#module_Apify.getValue) function.

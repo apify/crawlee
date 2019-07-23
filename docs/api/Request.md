@@ -109,10 +109,10 @@ const foo = request.userData.foo;
 </td></tr></tbody>
 </table>
 
-- [Request](request)
-  - [`new Request(options)`](#new_Request_new)
-  - [`.pushErrorMessage(errorOrMessage, [options])`](#Request+pushErrorMessage)
-  - ~~[`.doNotRetry([message])`](#Request+doNotRetry)~~
+-   [Request](request)
+    -   [`new Request(options)`](#new_Request_new)
+    -   [`.pushErrorMessage(errorOrMessage, [options])`](#Request+pushErrorMessage)
+    -   ~~[`.doNotRetry([message])`](#Request+doNotRetry)~~
 
 <a name="new_Request_new"></a>
 

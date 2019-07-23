@@ -22,12 +22,12 @@ and the retirement of instances helps mitigate effects of memory leaks in Chrome
 
 ```javascript
 const puppeteerPool = new PuppeteerPool({
-  launchPuppeteerFunction: () => {
-    // Use a new proxy with a new IP address for each new Chrome instance
-    return Apify.launchPuppeteer({
-      apifyProxySession: Math.random()
-    });
-  }
+    launchPuppeteerFunction: () => {
+        // Use a new proxy with a new IP address for each new Chrome instance
+        return Apify.launchPuppeteer({
+            apifyProxySession: Math.random(),
+        });
+    },
 });
 
 const page1 = await puppeteerPool.newPage();
@@ -40,13 +40,13 @@ const page3 = await puppeteerPool.newPage();
 await puppeteerPool.destroy();
 ```
 
-- [PuppeteerPool](puppeteerpool)
-  - [`new PuppeteerPool([options])`](#new_PuppeteerPool_new)
-  - [`.newPage()`](#PuppeteerPool+newPage) ⇒ `Promise<Page>`
-  - [`.destroy()`](#PuppeteerPool+destroy) ⇒ `Promise`
-  - [`.retire(browser)`](#PuppeteerPool+retire) ⇒ `Promise`
-  - [`.recyclePage(page)`](#PuppeteerPool+recyclePage) ⇒ `Promise`
-  - [`.serveLiveViewSnapshot(page)`](#PuppeteerPool+serveLiveViewSnapshot) ⇒ `Promise`
+-   [PuppeteerPool](puppeteerpool)
+    -   [`new PuppeteerPool([options])`](#new_PuppeteerPool_new)
+    -   [`.newPage()`](#PuppeteerPool+newPage) ⇒ `Promise<Page>`
+    -   [`.destroy()`](#PuppeteerPool+destroy) ⇒ `Promise`
+    -   [`.retire(browser)`](#PuppeteerPool+retire) ⇒ `Promise`
+    -   [`.recyclePage(page)`](#PuppeteerPool+recyclePage) ⇒ `Promise`
+    -   [`.serveLiveViewSnapshot(page)`](#PuppeteerPool+serveLiveViewSnapshot) ⇒ `Promise`
 
 <a name="new_PuppeteerPool_new"></a>
 

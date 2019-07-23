@@ -48,32 +48,32 @@ even if the `APIFY_LOCAL_STORAGE_DIR` variable is set.
 ```javascript
 // Get actor input from the default key-value store
 const input = await Apify.getInput();
-const otherValue = Apify.getValue("my-key");
+const otherValue = Apify.getValue('my-key');
 
 // Write actor output to the default key-value store.
-await Apify.setValue("OUTPUT", { myResult: 123 });
+await Apify.setValue('OUTPUT', { myResult: 123 });
 
 // Open a named key-value store
-const store = await Apify.openKeyValueStore("some-name");
+const store = await Apify.openKeyValueStore('some-name');
 
 // Write a record. JavaScript object is automatically converted to JSON,
 // strings and binary buffers are stored as they are
-await store.setValue("some-key", { foo: "bar" });
+await store.setValue('some-key', { foo: 'bar' });
 
 // Read a record. Note that JSON is automatically parsed to a JavaScript object,
 // text data returned as a string and other data is returned as binary buffer
-const value = await store.getValue("some-key");
+const value = await store.getValue('some-key');
 
 // Delete record
-await store.delete("some-key");
+await store.delete('some-key');
 ```
 
-- [KeyValueStore](keyvaluestore)
-  - [`.getValue(key)`](#KeyValueStore+getValue) ⇒ `Promise<(Object|String|Buffer)>`
-  - [`.setValue(key, value, [options])`](#KeyValueStore+setValue) ⇒ `Promise`
-  - [`.delete()`](#KeyValueStore+delete) ⇒ `Promise`
-  - [`.getPublicUrl(key)`](#KeyValueStore+getPublicUrl) ⇒ `string`
-  - [`.forEachKey(iteratee, [options])`](#KeyValueStore+forEachKey) ⇒ `Promise`
+-   [KeyValueStore](keyvaluestore)
+    -   [`.getValue(key)`](#KeyValueStore+getValue) ⇒ `Promise<(Object|String|Buffer)>`
+    -   [`.setValue(key, value, [options])`](#KeyValueStore+setValue) ⇒ `Promise`
+    -   [`.delete()`](#KeyValueStore+delete) ⇒ `Promise`
+    -   [`.getPublicUrl(key)`](#KeyValueStore+getPublicUrl) ⇒ `string`
+    -   [`.forEachKey(iteratee, [options])`](#KeyValueStore+forEachKey) ⇒ `Promise`
 
 <a name="KeyValueStore+getValue"></a>
 
@@ -97,8 +97,8 @@ To save or delete a value in the key-value store, use the
 **Example usage:**
 
 ```javascript
-const store = await Apify.openKeyValueStore("my-screenshots");
-const buffer = await store.getValue("screenshot1.png");
+const store = await Apify.openKeyValueStore('my-screenshots');
+const buffer = await store.getValue('screenshot1.png');
 ```
 
 **Returns**: `Promise<(Object|String|Buffer)>` - Returns a promise that resolves to an object, string
@@ -130,8 +130,8 @@ The function returns a promise that resolves once the record has been saved or d
 **Example usage:**
 
 ```javascript
-const store = await Apify.openKeyValueStore("my-store");
-await store.setValue("RESULTS", "my text data", { contentType: "text/plain" });
+const store = await Apify.openKeyValueStore('my-store');
+await store.setValue('RESULTS', 'my text data', { contentType: 'text/plain' });
 ```
 
 Beware that the key can be at most 256 characters long and only contain the following characters: `a-zA-Z0-9!-_.'()`
@@ -141,8 +141,8 @@ By default, `value` is converted to JSON and stored with the
 To store the value with another content type, pass it in the options as follows:
 
 ```javascript
-const store = await Apify.openKeyValueStore("my-store");
-await store.setValue("RESULTS", "my text data", { contentType: "text/plain" });
+const store = await Apify.openKeyValueStore('my-store');
+await store.setValue('RESULTS', 'my text data', { contentType: 'text/plain' });
 ```
 
 If you set custom content type, `value` must be either a string or
@@ -238,7 +238,7 @@ If it throws an error, the iteration is aborted and the `forEachKey` function th
 ```javascript
 const keyValueStore = await Apify.openKeyValueStore();
 await keyValueStore.forEachKey(async (key, index, info) => {
-  console.log(`Key at ${index}: ${key} has size ${info.size}`);
+    console.log(`Key at ${index}: ${key} has size ${info.size}`);
 });
 ```
 

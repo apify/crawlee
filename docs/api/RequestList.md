@@ -39,20 +39,17 @@ which will prevent any issues that a live list of URLs might cause.
 
 ```javascript
 const requestList = new Apify.RequestList({
-  sources: [
-    // Separate requests
-    { url: "http://www.example.com/page-1", method: "GET", headers: {} },
-    { url: "http://www.example.com/page-2", userData: { foo: "bar" } },
+    sources: [
+        // Separate requests
+        { url: 'http://www.example.com/page-1', method: 'GET', headers: {} },
+        { url: 'http://www.example.com/page-2', userData: { foo: 'bar' } },
 
-    // Bulk load of URLs from file `http://www.example.com/my-url-list.txt`
-    // Note that all URLs must start with http:// or https://
-    {
-      requestsFromUrl: "http://www.example.com/my-url-list.txt",
-      userData: { isFromUrl: true }
-    }
-  ],
-  persistStateKey: "my-state",
-  persistSourcesKey: "my-sources"
+        // Bulk load of URLs from file `http://www.example.com/my-url-list.txt`
+        // Note that all URLs must start with http:// or https://
+        { requestsFromUrl: 'http://www.example.com/my-url-list.txt', userData: { isFromUrl: true } },
+    ],
+    persistStateKey: 'my-state',
+    persistSourcesKey: 'my-sources',
 });
 
 // This call loads and parses the URLs from the remote file.
@@ -70,18 +67,18 @@ await requestList.markRequestHandled(request1);
 await requestList.reclaimRequest(request2);
 ```
 
-- [RequestList](requestlist)
-  - [`new exports.RequestList(options)`](#new_RequestList_new)
-  - [`.initialize()`](#RequestList+initialize) ⇒ `Promise`
-  - [`.persistState()`](#RequestList+persistState) ⇒ `Promise`
-  - [`.getState()`](#RequestList+getState) ⇒ `Object`
-  - [`.isEmpty()`](#RequestList+isEmpty) ⇒ `Promise<Boolean>`
-  - [`.isFinished()`](#RequestList+isFinished) ⇒ `Promise<Boolean>`
-  - [`.fetchNextRequest()`](#RequestList+fetchNextRequest) ⇒ [`Promise<Request>`](request)
-  - [`.markRequestHandled(request)`](#RequestList+markRequestHandled) ⇒ `Promise`
-  - [`.reclaimRequest(request)`](#RequestList+reclaimRequest) ⇒ `Promise`
-  - [`.length()`](#RequestList+length) ⇒ `Number`
-  - [`.handledCount()`](#RequestList+handledCount) ⇒ `Number`
+-   [RequestList](requestlist)
+    -   [`new exports.RequestList(options)`](#new_RequestList_new)
+    -   [`.initialize()`](#RequestList+initialize) ⇒ `Promise`
+    -   [`.persistState()`](#RequestList+persistState) ⇒ `Promise`
+    -   [`.getState()`](#RequestList+getState) ⇒ `Object`
+    -   [`.isEmpty()`](#RequestList+isEmpty) ⇒ `Promise<Boolean>`
+    -   [`.isFinished()`](#RequestList+isFinished) ⇒ `Promise<Boolean>`
+    -   [`.fetchNextRequest()`](#RequestList+fetchNextRequest) ⇒ [`Promise<Request>`](request)
+    -   [`.markRequestHandled(request)`](#RequestList+markRequestHandled) ⇒ `Promise`
+    -   [`.reclaimRequest(request)`](#RequestList+reclaimRequest) ⇒ `Promise`
+    -   [`.length()`](#RequestList+length) ⇒ `Number`
+    -   [`.handledCount()`](#RequestList+handledCount) ⇒ `Number`
 
 <a name="new_RequestList_new"></a>
 

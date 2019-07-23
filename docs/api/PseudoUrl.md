@@ -47,21 +47,20 @@ you need to escape it with another back backslash, as shown in the example below
 
 ```javascript
 // Using a pseudo-URL string
-const purl = new Apify.PseudoUrl("http://www.example.com/pages/[(\\w|-)+]", {
-  userData: { foo: "bar" }
+const purl = new Apify.PseudoUrl('http://www.example.com/pages/[(\\w|-)+]', {
+    userData: { foo: 'bar' },
 });
 
 // Using a regular expression
 const purl2 = new Apify.PseudoUrl(/http:\/\/www\.example\.com\/pages\/(\w|-)+/);
 
-if (purl.matches("http://www.example.com/pages/my-awesome-page"))
-  console.log("Match!");
+if (purl.matches('http://www.example.com/pages/my-awesome-page')) console.log('Match!');
 ```
 
-- [PseudoUrl](pseudourl)
-  - [`new PseudoUrl(purl, requestTemplate)`](#new_PseudoUrl_new)
-  - [`.matches(url)`](#PseudoUrl+matches) ⇒ `Boolean`
-  - [`.createRequest(urlOrProps)`](#PseudoUrl+createRequest) ⇒ [`Request`](request)
+-   [PseudoUrl](pseudourl)
+    -   [`new PseudoUrl(purl, requestTemplate)`](#new_PseudoUrl_new)
+    -   [`.matches(url)`](#PseudoUrl+matches) ⇒ `Boolean`
+    -   [`.createRequest(urlOrProps)`](#PseudoUrl+createRequest) ⇒ [`Request`](request)
 
 <a name="new_PseudoUrl_new"></a>
 

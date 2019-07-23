@@ -18,16 +18,16 @@ const Apify = require('apify');
 await Apify.utils.sleep(1500);
 ```
 
-- [`utils`](#utils) : `object`
-  - [`.enqueueLinks`](#utils.enqueueLinks) ⇒ `Promise<Array<QueueOperationInfo>>`
-  - [`.sleep`](#utils.sleep) ⇒ `Promise`
-  - [`.URL_NO_COMMAS_REGEX`](#utils.URL_NO_COMMAS_REGEX)
-  - [`.URL_WITH_COMMAS_REGEX`](#utils.URL_WITH_COMMAS_REGEX)
-  - [`.isDocker()`](#utils.isDocker) ⇒ `Promise`
-  - [`.downloadListOfUrls(options)`](#utils.downloadListOfUrls) ⇒ `Promise<Array<String>>`
-  - [`.extractUrls(options)`](#utils.extractUrls) ⇒ `Array<String>`
-  - [`.getRandomUserAgent()`](#utils.getRandomUserAgent) ⇒ `String`
-  - [`.htmlToText(html)`](#utils.htmlToText) ⇒ `String`
+-   [`utils`](#utils) : `object`
+    -   [`.enqueueLinks`](#utils.enqueueLinks) ⇒ `Promise<Array<QueueOperationInfo>>`
+    -   [`.sleep`](#utils.sleep) ⇒ `Promise`
+    -   [`.URL_NO_COMMAS_REGEX`](#utils.URL_NO_COMMAS_REGEX)
+    -   [`.URL_WITH_COMMAS_REGEX`](#utils.URL_WITH_COMMAS_REGEX)
+    -   [`.isDocker()`](#utils.isDocker) ⇒ `Promise`
+    -   [`.downloadListOfUrls(options)`](#utils.downloadListOfUrls) ⇒ `Promise<Array<String>>`
+    -   [`.extractUrls(options)`](#utils.extractUrls) ⇒ `Array<String>`
+    -   [`.getRandomUserAgent()`](#utils.getRandomUserAgent) ⇒ `String`
+    -   [`.htmlToText(html)`](#utils.htmlToText) ⇒ `String`
 
 <a name="utils.enqueueLinks"></a>
 
@@ -46,20 +46,17 @@ and override settings of the enqueued [`Request`](request) objects.
 **Example usage**
 
 ```javascript
-const Apify = require("apify");
+const Apify = require('apify');
 
 const browser = await Apify.launchPuppeteer();
-const page = await browser.goto("https://www.example.com");
+const page = await browser.goto('https://www.example.com');
 const requestQueue = await Apify.openRequestQueue();
 
 await Apify.utils.enqueueLinks({
-  page,
-  requestQueue,
-  selector: "a.product-detail",
-  pseudoUrls: [
-    "https://www.example.com/handbags/[.*]",
-    "https://www.example.com/purses/[.*]"
-  ]
+    page,
+    requestQueue,
+    selector: 'a.product-detail',
+    pseudoUrls: ['https://www.example.com/handbags/[.*]', 'https://www.example.com/purses/[.*]'],
 });
 ```
 
@@ -265,7 +262,7 @@ to avoid merging distinct parts of text and thus enable extraction of data from 
 **Example usage**
 
 ```javascript
-const text = htmlToText("<html><body>Some text</body></html>");
+const text = htmlToText('<html><body>Some text</body></html>');
 console.log(text);
 ```
 
@@ -275,8 +272,8 @@ an existing Cheerio object to the function instead of the HTML text. The HTML sh
 with the `decodeEntities` option set to `true`. For example:
 
 ```javascript
-const cheerio = require("cheerio");
-const html = "<html><body>Some text</body></html>";
+const cheerio = require('cheerio');
+const html = '<html><body>Some text</body></html>';
 const text = htmlToText(cheerio.load(html, { decodeEntities: true }));
 ```
 

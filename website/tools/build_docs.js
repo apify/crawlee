@@ -3,16 +3,8 @@ const readline = require('readline');
 const fs = require('fs');
 const path = require('path');
 const { promisify } = require('util');
-const prettier = require('prettier');
-
-const prettierConfig = {
-    parser: 'markdown',
-    arrowParens: 'avoid',
-    trailingComma: 'all',
-    singleQuote: true,
-    tabWidth: 4,
-    printWidth: 150,
-};
+const prettier = require('prettier'); // eslint-disable-line
+const prettierConfig = require('./prettier.config');
 
 const writeFile = promisify(fs.writeFile);
 

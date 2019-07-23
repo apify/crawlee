@@ -11,29 +11,27 @@ from text, URLs and and HTML documents.
 **Example usage:**
 
 ```javascript
-const Apify = require("apify");
+const Apify = require('apify');
 
-const emails = Apify.utils.social.emailsFromText(
-  "alice@example.com bob@example.com"
-);
+const emails = Apify.utils.social.emailsFromText('alice@example.com bob@example.com');
 ```
 
-- [`social`](#social) : `object`
-  - [`.LINKEDIN_REGEX`](#social.LINKEDIN_REGEX) : `RegExp`
-  - [`.LINKEDIN_REGEX_GLOBAL`](#social.LINKEDIN_REGEX_GLOBAL) : `RegExp`
-  - [`.INSTAGRAM_REGEX`](#social.INSTAGRAM_REGEX) : `RegExp`
-  - [`.INSTAGRAM_REGEX_GLOBAL`](#social.INSTAGRAM_REGEX_GLOBAL) : `RegExp`
-  - [`.TWITTER_REGEX`](#social.TWITTER_REGEX) : `RegExp`
-  - [`.TWITTER_REGEX_GLOBAL`](#social.TWITTER_REGEX_GLOBAL) : `RegExp`
-  - [`.FACEBOOK_REGEX`](#social.FACEBOOK_REGEX) : `RegExp`
-  - [`.FACEBOOK_REGEX_GLOBAL`](#social.FACEBOOK_REGEX_GLOBAL) : `RegExp`
-  - [`.EMAIL_REGEX`](#social.EMAIL_REGEX) : `RegExp`
-  - [`.EMAIL_REGEX_GLOBAL`](#social.EMAIL_REGEX_GLOBAL) : `RegExp`
-  - [`.emailsFromText(text)`](#social.emailsFromText) ⇒ `Array<String>`
-  - [`.emailsFromUrls(urls)`](#social.emailsFromUrls) ⇒ `Array<String>`
-  - [`.phonesFromText(text)`](#social.phonesFromText) ⇒ `Array<String>`
-  - [`.phonesFromUrls(urls)`](#social.phonesFromUrls) ⇒ `Array<String>`
-  - [`.parseHandlesFromHtml(html, data)`](#social.parseHandlesFromHtml) ⇒ `*`
+-   [`social`](#social) : `object`
+    -   [`.LINKEDIN_REGEX`](#social.LINKEDIN_REGEX) : `RegExp`
+    -   [`.LINKEDIN_REGEX_GLOBAL`](#social.LINKEDIN_REGEX_GLOBAL) : `RegExp`
+    -   [`.INSTAGRAM_REGEX`](#social.INSTAGRAM_REGEX) : `RegExp`
+    -   [`.INSTAGRAM_REGEX_GLOBAL`](#social.INSTAGRAM_REGEX_GLOBAL) : `RegExp`
+    -   [`.TWITTER_REGEX`](#social.TWITTER_REGEX) : `RegExp`
+    -   [`.TWITTER_REGEX_GLOBAL`](#social.TWITTER_REGEX_GLOBAL) : `RegExp`
+    -   [`.FACEBOOK_REGEX`](#social.FACEBOOK_REGEX) : `RegExp`
+    -   [`.FACEBOOK_REGEX_GLOBAL`](#social.FACEBOOK_REGEX_GLOBAL) : `RegExp`
+    -   [`.EMAIL_REGEX`](#social.EMAIL_REGEX) : `RegExp`
+    -   [`.EMAIL_REGEX_GLOBAL`](#social.EMAIL_REGEX_GLOBAL) : `RegExp`
+    -   [`.emailsFromText(text)`](#social.emailsFromText) ⇒ `Array<String>`
+    -   [`.emailsFromUrls(urls)`](#social.emailsFromUrls) ⇒ `Array<String>`
+    -   [`.phonesFromText(text)`](#social.phonesFromText) ⇒ `Array<String>`
+    -   [`.phonesFromUrls(urls)`](#social.phonesFromUrls) ⇒ `Array<String>`
+    -   [`.parseHandlesFromHtml(html, data)`](#social.parseHandlesFromHtml) ⇒ `*`
 
 <a name="social.LINKEDIN_REGEX"></a>
 
@@ -420,15 +418,15 @@ extracted from the plain text, which might be very inaccurate.
 **Example usage:**
 
 ```javascript
-const Apify = require("apify");
+const Apify = require('apify');
 
 const browser = await Apify.launchPuppeteer();
 const page = await browser.newPage();
-await page.goto("http://www.example.com");
+await page.goto('http://www.example.com');
 const html = await page.content();
 
 const result = Apify.utils.social.parseHandlesFromHtml(html);
-console.log("Social handles:");
+console.log('Social handles:');
 console.dir(result);
 ```
 

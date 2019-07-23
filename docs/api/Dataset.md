@@ -38,26 +38,26 @@ even if the `APIFY_LOCAL_STORAGE_DIR` variable is set.
 
 ```javascript
 // Write a single row to the default dataset
-await Apify.pushData({ col1: 123, col2: "val2" });
+await Apify.pushData({ col1: 123, col2: 'val2' });
 
 // Open a named dataset
-const dataset = await Apify.openDataset("some-name");
+const dataset = await Apify.openDataset('some-name');
 
 // Write a single row
-await dataset.pushData({ foo: "bar" });
+await dataset.pushData({ foo: 'bar' });
 
 // Write multiple rows
-await dataset.pushData([{ foo: "bar2", col2: "val2" }, { col3: 123 }]);
+await dataset.pushData([{ foo: 'bar2', col2: 'val2' }, { col3: 123 }]);
 ```
 
-- [Dataset](dataset)
-  - [`.pushData(data)`](#Dataset+pushData) ⇒ `Promise`
-  - [`.getData([options])`](#Dataset+getData) ⇒ `Promise<Object>`
-  - [`.getInfo()`](#Dataset+getInfo) ⇒ `Promise<Object>`
-  - [`.forEach(iteratee, [options], [index])`](#Dataset+forEach) ⇒ `Promise`
-  - [`.map(iteratee, options)`](#Dataset+map) ⇒ `Promise<Array>`
-  - [`.reduce(iteratee, memo, options)`](#Dataset+reduce) ⇒ `Promise<*>`
-  - [`.delete()`](#Dataset+delete) ⇒ `Promise`
+-   [Dataset](dataset)
+    -   [`.pushData(data)`](#Dataset+pushData) ⇒ `Promise`
+    -   [`.getData([options])`](#Dataset+getData) ⇒ `Promise<Object>`
+    -   [`.getInfo()`](#Dataset+getInfo) ⇒ `Promise<Object>`
+    -   [`.forEach(iteratee, [options], [index])`](#Dataset+forEach) ⇒ `Promise`
+    -   [`.map(iteratee, options)`](#Dataset+map) ⇒ `Promise<Array>`
+    -   [`.reduce(iteratee, memo, options)`](#Dataset+reduce) ⇒ `Promise<*>`
+    -   [`.delete()`](#Dataset+delete) ⇒ `Promise`
 
 <a name="Dataset+pushData"></a>
 
@@ -256,9 +256,9 @@ If it throws an error, the iteration is aborted and the `forEach` function throw
 **Example usage**
 
 ```javascript
-const dataset = await Apify.openDataset("my-results");
+const dataset = await Apify.openDataset('my-results');
 await dataset.forEach(async (item, index) => {
-  console.log(`Item at ${index}: ${JSON.stringify(item)}`);
+    console.log(`Item at ${index}: ${JSON.stringify(item)}`);
 });
 ```
 

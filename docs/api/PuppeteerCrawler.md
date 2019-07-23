@@ -43,33 +43,33 @@ to [`PuppeteerPool`](puppeteerpool) constructor.
 
 ```javascript
 const crawler = new Apify.PuppeteerCrawler({
-  requestList,
-  handlePageFunction: async ({ page, request }) => {
-    // This function is called to extract data from a single web page
-    // 'page' is an instance of Puppeteer.Page with page.goto(request.url) already called
-    // 'request' is an instance of Request class with information about the page to load
-    await Apify.pushData({
-      title: await page.title(),
-      url: request.url,
-      succeeded: true
-    });
-  },
-  handleFailedRequestFunction: async ({ request }) => {
-    // This function is called when the crawling of a request failed too many times
-    await Apify.pushData({
-      url: request.url,
-      succeeded: false,
-      errors: request.errorMessages
-    });
-  }
+    requestList,
+    handlePageFunction: async ({ page, request }) => {
+        // This function is called to extract data from a single web page
+        // 'page' is an instance of Puppeteer.Page with page.goto(request.url) already called
+        // 'request' is an instance of Request class with information about the page to load
+        await Apify.pushData({
+            title: await page.title(),
+            url: request.url,
+            succeeded: true,
+        });
+    },
+    handleFailedRequestFunction: async ({ request }) => {
+        // This function is called when the crawling of a request failed too many times
+        await Apify.pushData({
+            url: request.url,
+            succeeded: false,
+            errors: request.errorMessages,
+        });
+    },
 });
 
 await crawler.run();
 ```
 
-- [PuppeteerCrawler](puppeteercrawler)
-  - [`new PuppeteerCrawler(options)`](#new_PuppeteerCrawler_new)
-  - [`.run()`](#PuppeteerCrawler+run) ⇒ `Promise`
+-   [PuppeteerCrawler](puppeteercrawler)
+    -   [`new PuppeteerCrawler(options)`](#new_PuppeteerCrawler_new)
+    -   [`.run()`](#PuppeteerCrawler+run) ⇒ `Promise`
 
 <a name="new_PuppeteerCrawler_new"></a>
 

@@ -25,10 +25,10 @@ returns a boolean that represents the long-term status
 of the system. It considers the full snapshot history available
 in the [`Snapshotter`](snapshotter) instance.
 
-- [SystemStatus](systemstatus)
-  - [`new SystemStatus([options])`](#new_SystemStatus_new)
-  - [`.getCurrentStatus()`](#SystemStatus+getCurrentStatus) ⇒ `Object`
-  - [`.getHistoricalStatus()`](#SystemStatus+getHistoricalStatus) ⇒ `Object`
+-   [SystemStatus](systemstatus)
+    -   [`new SystemStatus([options])`](#new_SystemStatus_new)
+    -   [`.getCurrentStatus()`](#SystemStatus+getCurrentStatus) ⇒ `Object`
+    -   [`.getHistoricalStatus()`](#SystemStatus+getHistoricalStatus) ⇒ `Object`
 
 <a name="new_SystemStatus_new"></a>
 

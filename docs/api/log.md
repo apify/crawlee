@@ -51,15 +51,15 @@ Another very useful way of setting the log level is by setting the `APIFY_LOG_LE
 environment variable, such as `APIFY_LOG_LEVEL=DEBUG`. This way, no code changes
 are necessary to turn on your debug messages and start debugging right away.
 
-- [`log`](#log) : `object`
-  - [`.LEVELS`](#log.LEVELS) : `Object`
-  - [`.setLevel(level)`](#log.setLevel)
-  - [`.getLevel()`](#log.getLevel)
-  - [`.debug(message, [data])`](#log.debug)
-  - [`.info(message, [data])`](#log.info)
-  - [`.warning(message, [data])`](#log.warning)
-  - [`.error(message, [data])`](#log.error)
-  - [`.exception(exception, [message], [data])`](#log.exception)
+-   [`log`](#log) : `object`
+    -   [`.LEVELS`](#log.LEVELS) : `Object`
+    -   [`.setLevel(level)`](#log.setLevel)
+    -   [`.getLevel()`](#log.getLevel)
+    -   [`.debug(message, [data])`](#log.debug)
+    -   [`.info(message, [data])`](#log.info)
+    -   [`.warning(message, [data])`](#log.warning)
+    -   [`.error(message, [data])`](#log.error)
+    -   [`.exception(exception, [message], [data])`](#log.exception)
 
 <a name="log.LEVELS"></a>
 
