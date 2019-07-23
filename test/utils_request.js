@@ -1,6 +1,5 @@
 import { expect } from 'chai';
 import express from 'express';
-import { compress } from 'iltorb';
 import { requestAsBrowser, REQUEST_AS_BROWSER_DEFAULT_OPTIONS, FIREFOX_MOBILE_USER_AGENT, FIREFOX_DESKTOP_USER_AGENT } from '../build/utils_request';
 import { startExpressAppPromise } from './_helper';
 
@@ -41,11 +40,9 @@ describe('Apify.utils_request', () => {
         });
 
         app.get('/invalidBody', async (req, res) => {
-            const compressed = await compress(Buffer.from(CONTENT, 'utf8'));
-
             res.setHeader('content-encoding', 'deflate');
             res.status(500);
-            res.send(compressed);
+            res.send(Buffer.from(CONTENT, 'utf8'));
         });
 
         app.get('/empty', async (req, res) => {
