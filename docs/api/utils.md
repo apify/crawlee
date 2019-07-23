@@ -20,6 +20,7 @@ await Apify.utils.sleep(1500);
 
 - [`utils`](#utils) : `object`
   - [`.enqueueLinks`](#utils.enqueueLinks) ⇒ `Promise<Array<QueueOperationInfo>>`
+  - [`.requestAsBrowser`](#utils.requestAsBrowser) ⇒ `http.IncomingMessage`
   - [`.sleep`](#utils.sleep) ⇒ `Promise`
   - [`.URL_NO_COMMAS_REGEX`](#utils.URL_NO_COMMAS_REGEX)
   - [`.URL_WITH_COMMAS_REGEX`](#utils.URL_WITH_COMMAS_REGEX)
@@ -127,6 +128,67 @@ await Apify.utils.enqueueLinks({
   or to dynamically update or create <code>userData</code>.</p>
 <p>  For example: by adding <code>keepUrlFragment: true</code> to the <code>request</code> object, URL fragments will not be removed
   when <code>uniqueKey</code> is computed.</p>
+</td></tr></tbody>
+</table>
+<a name="utils.requestAsBrowser"></a>
+
+## `utils.requestAsBrowser` ⇒ `http.IncomingMessage`
+
+Sends a HTTP request that looks like a request sent by a web browser,
+fully emulating browser's HTTP headers.
+
+This function is useful for web scraping of websites that send the full HTML in the first response.
+Thanks to this function, the target web server has no simple way to find out the request
+hasn't been sent by a full web browser. Using a headless browser for such requests
+is an order of magnitude more resource-intensive than this function.
+
+Currently, the function sends requests the same way as Firefox web browser does.
+In the future, it might add support for other browsers too.
+
+Internally, the function uses httpRequest function from the [@apify/httpRequest](https://github.com/apifytech/http-request)
+NPM package to perform the request.
+All `options` not recognized by this function are passed to it,
+so see it for more details.
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>options.url</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>URL of the target endpoint. Supports both HTTP and HTTPS schemes.</p>
+</td></tr><tr>
+<td><code>[options.method]</code></td><td><code>GET</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>HTTP method.</p>
+</td></tr><tr>
+<td><code>[options.headers]</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Additional HTTP headers to add. It&#39;s only recommended to use this option,
+ with headers that are typically added by websites, such as cookies. Overriding
+ default browser headers will remove the masking this function provides.</p>
+</td></tr><tr>
+<td><code>[options.languageCode]</code></td><td><code>en</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Two-letter ISO 639 language code.</p>
+</td></tr><tr>
+<td><code>[options.countryCode]</code></td><td><code>US</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Two-letter ISO 3166 country code.</p>
+</td></tr><tr>
+<td><code>[options.isMobile]</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>If <code>true</code>, the function uses User-Agent of a mobile browser.</p>
 </td></tr></tbody>
 </table>
 <a name="utils.sleep"></a>

@@ -92,7 +92,8 @@ await crawler.run();
 <pre><code>{
   request: Request,
   autoscaledPool: AutoscaledPool
-}</code></pre><p>  where the <a href="request"><code>Request</code></a> instance represents the URL to crawl.</p>
+}
+</code></pre><p>  where the <a href="request"><code>Request</code></a> instance represents the URL to crawl.</p>
 <p>  The function must return a promise, which is then awaited by the crawler.</p>
 <p>  If the function throws an exception, the crawler will try to re-crawl the
   request later, up to <code>option.maxRequestRetries</code> times.
@@ -127,7 +128,8 @@ await crawler.run();
 <pre><code>{
   request: Request,
   error: Error,
-}</code></pre><p>  where the <a href="request"><code>Request</code></a> instance corresponds to the failed request, and the <code>Error</code> instance
+}
+</code></pre><p>  where the <a href="request"><code>Request</code></a> instance corresponds to the failed request, and the <code>Error</code> instance
   represents the last error thrown during processing of the request.</p>
 <p>  See
   <a href="https://github.com/apifytech/apify-js/blob/master/src/basic_crawler.js#L11" target="_blank">source code</a>

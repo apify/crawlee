@@ -168,7 +168,8 @@ to override the default behavior and specify which URLs shall be considered equa
 <pre><code>  {
       Accept: &#39;text/html&#39;,
       &#39;Content-Type&#39;: &#39;application/json&#39;
-  }</code></pre></td></tr><tr>
+  }
+</code></pre></td></tr><tr>
 <td><code>[options.userData]</code></td><td><code>Object</code></td><td><code>{}</code></td>
 </tr>
 <tr>
