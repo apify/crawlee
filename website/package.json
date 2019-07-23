@@ -10,7 +10,7 @@
     "generate": "node ./tools/build_docs.js"
   },
   "devDependencies": {
-    "docusaurus": "^1.5.1",
-    "jsdoc-to-markdown": "^4.0.1"
+    "docusaurus": "^1.10.0",
+    "jsdoc-to-markdown": "^5.0.0"
   }
 }

@@ -3,11 +3,12 @@ import _ from 'underscore';
 import log from 'apify-shared/log';
 import { ACTOR_EVENT_NAMES } from 'apify-shared/consts';
 import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
-import AutoscaledPool from './autoscaling/autoscaled_pool';
-import { RequestList } from './request_list';
-import { RequestQueue, RequestQueueLocal } from './request_queue';
-import events from './events';
-import { addTimeoutToPromise } from './utils';
+import AutoscaledPool from '../autoscaling/autoscaled_pool';
+import { RequestList } from '../request_list';
+import { RequestQueue, RequestQueueLocal } from '../request_queue';
+import events from '../events';
+import { addTimeoutToPromise } from '../utils';
+import Statistics from './statistics';
 
 /**
  * Since there's no set number of seconds before the container is terminated after
@@ -33,9 +34,14 @@ const DEFAULT_OPTIONS = {
 };
 
 /**
- * Provides a simple framework for parallel crawling of web pages,
- * whose URLs are fed either from a static list
- * or from a dynamic queue of URLs.
+ * Provides a simple framework for parallel crawling of web pages.
+ * The URLs to crawl are fed either from a static list of URLs
+ * or from a dynamic queue of URLs enabling recursive crawling of websites.
+ *
+ * `BasicCrawler` is a low-level tool that requires the user to implement the page
+ * download and data extraction functionality themselves.
+ * If you want a crawler that already facilitates this functionality,
+ * please consider using {@link PuppeteerCrawler} or {@link CheerioCrawler}.
  *
  * `BasicCrawler` invokes the user-provided [`handleRequestFunction()`](#new_BasicCrawler_new)
  * for each {@link Request} object, which represents a single URL to crawl.
@@ -140,8 +146,9 @@ const DEFAULT_OPTIONS = {
  *   Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.
  * @param {Object} [options.autoscaledPoolOptions]
  *   Custom options passed to the underlying {@link AutoscaledPool} constructor.
- *   Note that the `runTaskFunction`, `isTaskReadyFunction` and `isFinishedFunction` options
+ *   Note that the `runTaskFunction` and `isTaskReadyFunction` options
  *   are provided by `BasicCrawler` and cannot be overridden.
+ *   However, you can provide a custom implementation of `isFinishedFunction`.
  * @param {Object} [options.minConcurrency=1]
  *   Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
  *
@@ -187,6 +194,7 @@ class BasicCrawler {
         this.handleFailedRequestFunction = handleFailedRequestFunction;
         this.maxRequestRetries = maxRequestRetries;
         this.handledRequestsCount = 0;
+        this.stats = new Statistics({ logMessage: 'Crawler request statistics:' });
 
         let shouldLogMaxPagesExceeded = true;
         const isMaxPagesExceeded = () => maxRequestsPerCrawl && maxRequestsPerCrawl <= this.handledRequestsCount;
@@ -218,8 +226,8 @@ class BasicCrawler {
                 }
 
                 const isFinished = isFinishedFunction
-                    ? isFinishedFunction()
-                    : this._defaultIsFinishedFunction();
+                    ? await isFinishedFunction()
+                    : await this._defaultIsFinishedFunction();
 
                 if (isFinished) {
                     const reason = isFinishedFunction
@@ -251,7 +259,14 @@ class BasicCrawler {
         await this._loadHandledRequestCount();
         this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions);
         this.isRunningPromise = this.autoscaledPool.run();
-        await this.isRunningPromise;
+        this.stats.startLogging();
+        try {
+            await this.isRunningPromise;
+        } finally {
+            this.stats.stopLogging();
+            const finalStats = this.stats.getCurrent();
+            log.info('Crawler final request statistics:', finalStats);
+        }
     }
 
     async _pauseOnMigration() {
@@ -323,6 +338,8 @@ class BasicCrawler {
         // Reset loadedUrl so an old one is not carried over to retries.
         request.loadedUrl = null;
 
+        const statisticsId = request.id || request.url;
+        this.stats.startJob(statisticsId);
         try {
             await addTimeoutToPromise(
                 this.handleRequestFunction({ request, autoscaledPool: this.autoscaledPool }),
@@ -330,6 +347,7 @@ class BasicCrawler {
                 'BasicCrawler: handleRequestFunction timed out.',
             );
             await source.markRequestHandled(request);
+            this.stats.finishJob(statisticsId);
             this.handledRequestsCount++;
         } catch (err) {
             try {
@@ -403,6 +421,7 @@ class BasicCrawler {
         // Mark the request as failed and do not retry.
         this.handledRequestsCount++;
         await source.markRequestHandled(request);
+        this.stats.failJob(request.id || request.url);
         return this.handleFailedRequestFunction({ request, error }); // This function prints an error message.
     }
 

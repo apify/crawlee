@@ -3,6 +3,7 @@ const readline = require('readline');
 const fs = require('fs');
 const path = require('path');
 const { promisify } = require('util');
+const prettier = require('prettier');
 
 const writeFile = promisify(fs.writeFile);
 
@@ -28,6 +29,7 @@ const getRenderOptions = (template, data) => ({
     partial: [
         path.join(__dirname, 'partials', 'params-table.hbs'),
         path.join(__dirname, 'partials', 'properties-table.hbs'),
+        path.join(__dirname, 'partials', 'link.hbs'),
     ],
 });
 
@@ -55,10 +57,10 @@ const generateFinalMarkdown = (title, text) => {
     text = text.replace(rx, '');
     // Remove 'Kind' annotations.
     text = text.replace(/\*\*Kind\*\*.*\n/g, '');
-    // Remove dots in type annotations
-    const dotsRx = /([A-Z][a-z]+)\.(&lt;.+&gt;)/g;
+    // Remove dots in type annotations and replace entities
+    const dotsRx = /([A-Z][a-z]+)\.&lt;(.+)&gt;/g;
     const replacer = (match, p1, p2) => {
-        return p1 + p2.replace(dotsRx, replacer);
+        return `${p1}<${p2.replace(dotsRx, replacer)}>`;
     };
     text = text.replace(dotsRx, replacer);
     // Fix class links
@@ -67,8 +69,8 @@ const generateFinalMarkdown = (title, text) => {
     // Fix typedef links
     const typeLinkRx = new RegExp(`([("])#(module_)?(${typedefs.join('|')})([)"])`, 'gi');
     text = text.replace(typeLinkRx, (match, p1, p2, p3, p4) => `${p1}../typedefs/${p3.toLowerCase()}${p4}`);
-
-    return header + text;
+    // Format Markdown with Prettier
+    return prettier.format(header + text, { parser: "markdown" });
 };
 
 const main = async () => {
@@ -92,7 +94,7 @@ const main = async () => {
 
         const title = filename.split('.')[0].split('_').map(word => `${word[0].toUpperCase()}${word.substr(1)}`).join(' ');
         const header = getHeader(title);
-        const markdown = `${header}\n${description}\n${codeblock}`;
+        const markdown = prettier.format(`${header}\n${description}\n${codeblock}`, { parser: "markdown" });;
         await writeFile(path.join(exampleFilesOutputDir, `${title.replace(/\s/g, '')}.md`), markdown);
     });
 

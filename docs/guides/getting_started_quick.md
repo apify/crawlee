@@ -2,6 +2,7 @@
 id: quickstart
 title: Quick Start
 ---
+
 The Apify SDK requires <a href="https://nodejs.org/en/" target="_blank">Node.js</a> 8 or later.
 
 ## Local stand-alone usage
@@ -13,26 +14,31 @@ npm install apify --save
 ```
 
 Run the following example to perform a recursive crawl of a website using Puppeteer.
-For more examples showcasing various features of the Apify SDK, 
+For more examples showcasing various features of the Apify SDK,
 [see the Examples section of the documentation](../examples/basiccrawler).
 
 ```javascript
-const Apify = require('apify');
+const Apify = require("apify");
 
 Apify.main(async () => {
     const requestQueue = await Apify.openRequestQueue();
-    await requestQueue.addRequest({ url: 'https://www.iana.org/' });
-    const pseudoUrls = [new Apify.PseudoUrl('https://www.iana.org/[.*]')];
+    await requestQueue.addRequest({ url: "https://www.iana.org/" });
+    const pseudoUrls = [new Apify.PseudoUrl("https://www.iana.org/[.*]")];
 
     const crawler = new Apify.PuppeteerCrawler({
         requestQueue,
         handlePageFunction: async ({ request, page }) => {
             const title = await page.title();
             console.log(`Title of ${request.url}: ${title}`);
-            await Apify.utils.puppeteer.enqueueLinks({ page, selector: 'a', pseudoUrls, requestQueue });
+            await Apify.utils.puppeteer.enqueueLinks({
+                page,
+                selector: "a",
+                pseudoUrls,
+                requestQueue
+            });
         },
         maxRequestsPerCrawl: 100,
-        maxConcurrency: 10,
+        maxConcurrency: 10
     });
 
     await crawler.run();
@@ -92,6 +98,7 @@ Now you can easily deploy your code to the Apify Cloud by running:
 ```bash
 apify login
 ```
+
 ```bash
 apify push
 ```

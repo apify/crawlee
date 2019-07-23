@@ -16,6 +16,10 @@ import LiveViewServer from './live_view/live_view_server';
 const PROCESS_KILL_TIMEOUT_MILLIS = 5000;
 const PAGE_CLOSE_KILL_TIMEOUT_MILLIS = 1000;
 
+// See https://github.com/GoogleChrome/puppeteer/blob/2b68c104aaf309488fe710a0dd7127369373d5fb/lib/Launcher.js#L174
+const PUPPETEER_PIPE_TRANSPORT_WRITE = 3;
+const PUPPETEER_PIPE_TRANSPORT_READ = 4;
+
 const DEFAULT_OPTIONS = {
     reusePages: false,
     // Don't make these too large, otherwise Puppeteer might start crashing weirdly,
@@ -226,6 +230,9 @@ class PuppeteerPool {
                 opts.proxyUrl = this.proxyUrls[this.lastUsedProxyUrlIndex++ % this.proxyUrls.length];
             }
 
+            // Set timeout for browser launch.
+            if (opts.timeout == null) opts.timeout = this.puppeteerOperationTimeoutMillis;
+
             const browser = await launchPuppeteerFunction(opts);
             if (!browser || typeof browser.newPage !== 'function') {
                 // eslint-disable-next-line max-len
@@ -252,6 +259,8 @@ class PuppeteerPool {
         this.closedPages = new WeakSet();
         this.pagesToInstancesMap = new WeakMap();
 
+        this.liveViewSnapshotsInProgress = new WeakMap();
+
         // ensure termination on SIGINT
         this.sigintListener = () => this._killAllInstances();
         process.on('SIGINT', this.sigintListener);
@@ -266,25 +275,7 @@ class PuppeteerPool {
         const id = this.browserCounter++;
         log.debug('PuppeteerPool: Launching new browser', { id });
 
-        const errorMessageChunk = 'launchPuppeteerFunction timed out.';
-        const launchPromise = this.launchPuppeteerFunction();
-        const browserPromise = addTimeoutToPromise(
-            launchPromise,
-            this.puppeteerOperationTimeoutMillis,
-            `PuppeteerPool: ${errorMessageChunk}`,
-        );
-
-        // If the browserPromise times out, the browser may still be started
-        // later and will not be managed by pool, so we need to get rid of it.
-        browserPromise.catch(async (err) => {
-            if (err.stack.includes(errorMessageChunk)) {
-                try {
-                    const browser = await launchPromise;
-                    browser.disconnect();
-                    browser.process().kill('SIGKILL');
-                } catch (e) { /* do nothing, will be handled elsewhere */ }
-            }
-        });
+        const browserPromise = this.launchPuppeteerFunction();
 
         const instance = new PuppeteerInstance(id, browserPromise);
         this.activeInstances[id] = instance;
@@ -316,6 +307,8 @@ class PuppeteerPool {
         instance.childProcess = browser.process();
         instance.recycleDiskCacheDir = browser.recycleDiskCacheDir;
 
+        this._attachPipeErrorHandlers(instance.childProcess);
+
         browser.on('disconnected', () => {
             // If instance.killed === true then we killed the instance so don't log it.
             if (!instance.killed) log.error('PuppeteerPool: Puppeteer sent "disconnect" event. Maybe it crashed???', { id });
@@ -339,6 +332,28 @@ class PuppeteerPool {
                 }, PAGE_CLOSE_KILL_TIMEOUT_MILLIS);
             }
         });
+    }
+
+    /**
+     * When using "pipe: true" launch option, the pipe can break for various reasons,
+     * typically when the browser gets killed by PuppeteerPool. We swallow those errors,
+     * because there's nothing we can do anyway and we don't want them to crash Node.
+     * @param chromeProcess
+     * @ignore
+     */
+    _attachPipeErrorHandlers(chromeProcess) { // eslint-disable-line class-methods-use-this
+        const writeSocket = chromeProcess.stdio[PUPPETEER_PIPE_TRANSPORT_WRITE];
+        const readSocket = chromeProcess.stdio[PUPPETEER_PIPE_TRANSPORT_READ];
+
+        if (!(writeSocket && readSocket)) return; // We're not using pipes.
+
+        const errorHandler = (err) => {
+            log.debug('Puppeteer Pool: Browser connection failed. Browser will shut down.', { message: err.message });
+            if (chromeProcess) chromeProcess.kill('SIGKILL');
+        };
+
+        writeSocket.on('error', errorHandler);
+        readSocket.on('error', errorHandler);
     }
 
     /**
@@ -655,10 +670,9 @@ class PuppeteerPool {
      * @return {Promise}
      */
     async recyclePage(page) {
-        if (this.liveViewServer && this.liveViewServer.hasClients()) {
-            await this._serveLiveView(page)
-                .catch(err => log.exception(err, 'LiveView failed to be served.'));
-        }
+        const snapshotPromise = this.liveViewSnapshotsInProgress.get(page);
+        if (snapshotPromise) await snapshotPromise;
+
         if (this.reusePages) {
             page.removeAllListeners();
             this.idlePages.push(page);
@@ -675,12 +689,21 @@ class PuppeteerPool {
         }
     }
 
-    async _serveLiveView(page) {
+    /**
+     * Tells the connected LiveViewServer to serve a snapshot when available.
+     *
+     * @param page
+     * @return {Promise}
+     */
+    async serveLiveViewSnapshot(page) {
+        const isLiveViewConnected = this.liveViewServer && this.liveViewServer.hasClients();
+        if (!isLiveViewConnected) return;
+
         const browser = page.browser();
         const pages = await browser.pages();
 
-        // We only serve the second page of the browser.
-        // First page is about:blank and the others are disregarded.
+        // We only serve the second page of the browser because it's in focus,
+        // which is necessary for screenshots. First page is about:blank.
         if (pages[1] !== page) return;
 
         const instance = await this._findInstanceByBrowser(browser);
@@ -689,7 +712,10 @@ class PuppeteerPool {
 
         // Only take snapshots in the most recently opened browser.
         if (instance.id !== this.browserCounter - 1) return;
-        await this.liveViewServer.serve(page);
+
+        const snapshotPromise = this.liveViewServer.serve(page)
+            .catch(err => log.debug('Live View failed to be served.', { message: err.message }));
+        this.liveViewSnapshotsInProgress.set(page, snapshotPromise);
     }
 }
 

@@ -1001,11 +1001,11 @@ describe('Apify.metamorph()', () => {
         actsMock.restore();
     });
 
-    it('stringifies to JSON', async () => {
+    it('stringifies to JSON including functions', async () => {
         const runId = 'some-run-id';
         const actorId = 'some-actor-id';
         const targetActorId = 'some-target-actor-id';
-        const input = { foo: 'bar' };
+        const input = { foo: 'bar', func: () => { return 123; } };
 
         process.env[ENV_VARS.ACTOR_ID] = actorId;
         process.env[ENV_VARS.ACTOR_RUN_ID] = runId;
@@ -1016,7 +1016,10 @@ describe('Apify.metamorph()', () => {
                 runId,
                 actId: actorId,
                 targetActorId,
-                body: JSON.stringify(input, null, 2),
+                body: `{
+  "foo": "bar",
+  "func": "() => {\\n        return 123;\\n      }"
+}`,
                 contentType: 'application/json; charset=utf-8',
                 build: undefined,
             })
@@ -1147,6 +1150,8 @@ describe('Apify.addWebhook()', () => {
         const runId = 'my-run-id';
         const expectedEventTypes = ['ACTOR.RUN.SUCCEEDED'];
         const expectedRequestUrl = 'http://example.com/api';
+        const expectedPayloadTemplate = '{"hello":{{world}}';
+        const expectedIdempotencyKey = 'some-key';
 
         process.env[ENV_VARS.ACTOR_RUN_ID] = runId;
         process.env[ENV_VARS.IS_AT_HOME] = '1';
@@ -1160,6 +1165,8 @@ describe('Apify.addWebhook()', () => {
                 actorRunId: runId,
             },
             requestUrl: expectedRequestUrl,
+            payloadTemplate: expectedPayloadTemplate,
+            idempotencyKey: expectedIdempotencyKey,
         };
 
         webhooksMock.expects('createWebhook')
@@ -1168,13 +1175,17 @@ describe('Apify.addWebhook()', () => {
             .returns(Promise.resolve());
 
 
-        await Apify.addWebhook({ eventTypes: expectedEventTypes, requestUrl: expectedRequestUrl });
+        await Apify.addWebhook({
+            eventTypes: expectedEventTypes,
+            requestUrl: expectedRequestUrl,
+            payloadTemplate: expectedPayloadTemplate,
+            idempotencyKey: expectedIdempotencyKey,
+        });
 
         delete process.env[ENV_VARS.ACTOR_RUN_ID];
         delete process.env[ENV_VARS.IS_AT_HOME];
 
         webhooksMock.verify();
-        webhooksMock.restore();
     });
 
     it('on local logs warning and does nothing', async () => {
@@ -1190,12 +1201,10 @@ describe('Apify.addWebhook()', () => {
         await Apify.addWebhook({ eventTypes: expectedEventTypes, requestUrl: expectedRequestUrl });
 
         webhooksMock.verify();
-        webhooksMock.restore();
         logMock.verify();
-        logMock.restore();
     });
 
-    it('should failed without actor run ID', async () => {
+    it('should fail without actor run ID', async () => {
         const expectedEventTypes = ['ACTOR.RUN.SUCCEEDED'];
         const expectedRequestUrl = 'http://example.com/api';
 

@@ -2,10 +2,18 @@
 id: cheeriocrawler
 title: CheerioCrawler
 ---
+
 <a name="CheerioCrawler"></a>
 
 Provides a framework for the parallel crawling of web pages using plain HTTP requests and
 <a href="https://www.npmjs.com/package/cheerio" target="_blank">cheerio</a> HTML parser.
+The URLs to crawl are fed either from a static list of URLs
+or from a dynamic queue of URLs enabling recursive crawling of websites.
+
+Since `CheerioCrawler` uses raw HTTP requests to download web pages,
+it is very fast and efficient on data bandwidth. However, if the target website requires JavaScript
+to display the content, you might need to use [`PuppeteerCrawler`](puppeteercrawler) instead,
+because it loads the pages using full-featured headless Chrome browser.
 
 `CheerioCrawler` downloads each URL using a plain HTTP request,
 parses the HTML content using <a href="https://www.npmjs.com/package/cheerio" target="_blank">Cheerio</a>
@@ -38,43 +46,47 @@ parameter of the `CheerioCrawler` constructor. For user convenience, the `minCon
 // Prepare a list of URLs to crawl
 const requestList = new Apify.RequestList({
   sources: [
-      { url: 'http://www.example.com/page-1' },
-      { url: 'http://www.example.com/page-2' },
-  ],
+    { url: "http://www.example.com/page-1" },
+    { url: "http://www.example.com/page-2" }
+  ]
 });
 await requestList.initialize();
 
 // Crawl the URLs
 const crawler = new Apify.CheerioCrawler({
-    requestList,
-    handlePageFunction: async ({ request, response, html, $ }) => {
-        const data = [];
+  requestList,
+  handlePageFunction: async ({ request, response, html, $ }) => {
+    const data = [];
 
-        // Do some data extraction from the page with Cheerio.
-        $('.some-collection').each((index, el) => {
-            data.push({ title: $(el).find('.some-title').text() });
-        });
+    // Do some data extraction from the page with Cheerio.
+    $(".some-collection").each((index, el) => {
+      data.push({
+        title: $(el)
+          .find(".some-title")
+          .text()
+      });
+    });
 
-        // Save the data to dataset.
-        await Apify.pushData({
-            url: request.url,
-            html,
-            data,
-        })
-    },
+    // Save the data to dataset.
+    await Apify.pushData({
+      url: request.url,
+      html,
+      data
+    });
+  }
 });
 
 await crawler.run();
 ```
 
-
-* [CheerioCrawler](cheeriocrawler)
-    * [`new CheerioCrawler(options)`](#new_CheerioCrawler_new)
-    * [`.run()`](#CheerioCrawler+run) ⇒ <code>Promise</code>
+- [CheerioCrawler](cheeriocrawler)
+  - [`new CheerioCrawler(options)`](#new_CheerioCrawler_new)
+  - [`.run()`](#CheerioCrawler+run) ⇒ `Promise`
 
 <a name="new_CheerioCrawler_new"></a>
 
 ## `new CheerioCrawler(options)`
+
 <table>
 <thead>
 <tr>
@@ -97,12 +109,11 @@ await crawler.run();
 <p>  The function receives the following object as an argument:</p>
 <pre><code>{
   $: Cheerio, // the Cheerio object with parsed HTML
-  html: String // the raw HTML of the page
+  html: String // the raw HTML of the page, lazy loaded only when used
   request: Request,
   response: Object // An instance of Node&#39;s http.IncomingMessage object,
   autoscaledPool: AutoscaledPool
-}
-</code></pre><p>  With the <a href="request"><code>Request</code></a> object representing the URL to crawl.</p>
+}</code></pre><p>  With the <a href="request"><code>Request</code></a> object representing the URL to crawl.</p>
 <p>  If the function returns a promise, it is awaited by the crawler.</p>
 <p>  If the function throws an exception, the crawler will try to re-crawl the
   request later, up to <code>option.maxRequestRetries</code> times.
@@ -130,13 +141,19 @@ await crawler.run();
 <td colspan="3"><p>Represents the options passed to
   <a href="https://www.npmjs.com/package/request" target="_blank">request</a> to make the HTTP call.
   Provided <code>requestOptions</code> are added to internal defaults that cannot be overridden to ensure
-  the operation of <code>CheerioCrawler</code> and all its options. If you need more granular control over
-  your requests, use <a href="basiccrawler"><code>BasicCrawler</code></a>.</p>
-<p>  The internal defaults include:</p>
-<pre><code> - `url`, `method`, `headers`: provided by `requestList` and/or `requestQueue`
- - `strictSSL`: use `options.ignoreSslErrors`
- - `proxy`: use `options.useApifyProxy` or `options.proxyUrls`
-</code></pre></td></tr><tr>
+  the operation of <code>CheerioCrawler</code> and all its options. Headers will not be merged,
+  use <a href="requestlist"><code>RequestList</code></a> and/or <a href="requestqueue"><code>RequestQueue</code></a> to initialize your <a href="request"><code>Request</code></a> with the
+  correct headers or use <code>options.prepareRequestFunction</code> to modify your <a href="request"><code>Request</code></a> dynamically.
+  If you need more granular control over your requests, use <a href="basiccrawler"><code>BasicCrawler</code></a>.</p>
+<p>  The mandatory internal defaults that <strong>CANNOT BE OVERRIDDEN</strong> by <code>requestOptions</code>:</p>
+<pre><code>  {
+      url,       // Provided by RequestList and/or RequestQueue
+      method,    // Provided by RequestList and/or RequestQueue
+      headers,   // Provided by RequestList and/or RequestQueue
+      payload,   // Provided by RequestList and/or RequestQueue
+      strictSSL, // Use options.ignoreSslErrors
+      proxy,     // Use options.useApifyProxy or options.proxyUrls
+  }</code></pre></td></tr><tr>
 <td><code>[options.prepareRequestFunction]</code></td><td><code>function</code></td><td></td>
 </tr>
 <tr>
@@ -145,9 +162,11 @@ await crawler.run();
 <p>  The function receives the following object as an argument:</p>
 <pre><code>{
   request: Request
-}
-</code></pre><p>  where the <a href="request"><code>Request</code></a> instance corresponds to the initialized request.</p>
-<p>  The function should always return <a href="request"><code>Request</code></a>.</p>
+}</code></pre><p>  where the <a href="request"><code>Request</code></a> instance corresponds to the initialized request.</p>
+<p>  The function should modify the properties of the passed <a href="request"><code>Request</code></a> instance
+  in place because there are already earlier references to it. Making a copy and returning it from
+  this function is therefore not supported, because it would create inconsistencies where
+  different parts of SDK would have access to a different <a href="request"><code>Request</code></a> instance.</p>
 </td></tr><tr>
 <td><code>[options.handlePageTimeoutSecs]</code></td><td><code>Number</code></td><td><code>60</code></td>
 </tr>
@@ -172,7 +191,7 @@ await crawler.run();
   <a href="https://my.apify.com/proxy" target="_blank">Apify Proxy</a> for all connections.
   For more information, see the <a href="https://apify.com/docs/proxy" target="_blank">documentation</a></p>
 </td></tr><tr>
-<td><code>[options.apifyProxyGroups]</code></td><td><code>Array&lt;String&gt;</code></td><td></td>
+<td><code>[options.apifyProxyGroups]</code></td><td><code>Array<String></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>An array of proxy groups to be used
@@ -188,7 +207,7 @@ await crawler.run();
   The identifier can only contain the following characters: <code>0-9</code>, <code>a-z</code>, <code>A-Z</code>, <code>&quot;.&quot;</code>, <code>&quot;_&quot;</code> and <code>&quot;~&quot;</code>.
   Only applied if the <code>useApifyProxy</code> option is <code>true</code>.</p>
 </td></tr><tr>
-<td><code>[options.proxyUrls]</code></td><td><code>Array&lt;String&gt;</code></td><td></td>
+<td><code>[options.proxyUrls]</code></td><td><code>Array<String></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>An array of custom proxy URLs to be used by the <code>CheerioCrawler</code> instance.
@@ -204,8 +223,7 @@ await crawler.run();
 <pre><code>{
   request: Request,
   error: Error,
-}
-</code></pre><p>  where the <a href="request"><code>Request</code></a> instance corresponds to the failed request, and the <code>Error</code> instance
+}</code></pre><p>  where the <a href="request"><code>Request</code></a> instance corresponds to the failed request, and the <code>Error</code> instance
   represents the last error thrown during processing of the request.</p>
 <p>  See <a href="https://github.com/apifytech/apify-js/blob/master/src/cheerio_crawler.js#L13">source code</a>
   for the default implementation of this function.</p>
@@ -246,6 +264,6 @@ await crawler.run();
 </table>
 <a name="CheerioCrawler+run"></a>
 
-## `cheerioCrawler.run()` ⇒ <code>Promise</code>
-Runs the crawler. Returns promise that gets resolved once all the requests got processed.
+## `cheerioCrawler.run()` ⇒ `Promise`
 
+Runs the crawler. Returns promise that gets resolved once all the requests got processed.

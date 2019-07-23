@@ -1,6 +1,5 @@
 import path from 'path';
 import _ from 'underscore';
-import Promise from 'bluebird';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { APIFY_PROXY_VALUE_REGEX } from 'apify-shared/regexs';
@@ -55,7 +54,7 @@ const waitForRunToFinish = async ({ actId, runId, token, waitSecs, taskId }) => 
 
         // It might take some time for database replicas to get up-to-date,
         // so getRun() might return null. Wait a little bit and try it again.
-        if (!updatedRun) await Promise.delay(250);
+        if (!updatedRun) await sleep(250);
     }
 
     if (!updatedRun) {
@@ -68,8 +67,8 @@ const waitForRunToFinish = async ({ actId, runId, token, waitSecs, taskId }) => 
         && status !== ACT_JOB_STATUSES.READY
     ) {
         const message = taskId
-            ? `The actor task ${taskId} invoked by Apify.call() did not succeed`
-            : `The actor ${actId} invoked by Apify.call() did not succeed`;
+            ? `The actor task ${taskId} invoked by Apify.call() did not succeed. For details, see https://my.apify.com/view/runs/${runId}`
+            : `The actor ${actId} invoked by Apify.call() did not succeed. For details, see https://my.apify.com/view/runs/${runId}`;
         throw new ApifyCallError(updatedRun, message);
     }
 
@@ -95,15 +94,17 @@ const addInputOptionsOrThrow = (input, contentType, options) => {
 };
 
 /**
- * Returns a new object which contains information parsed from the `APIFY_XXX` environment variables.
- * It has the following properties:
+ * Returns a new object which contains information parsed from all the `APIFY_XXX` environment variables.
+ * It has properties such as the following:
  *
  * ```javascript
  * {
- *     // ID of the actor (APIFY_ACT_ID)
- *     actId: String,
- *     // ID of the actor run (APIFY_ACT_RUN_ID)
- *     actRunId: String,
+ *     // ID of the actor (APIFY_ACTOR_ID)
+ *     actorId: String,
+ *     // ID of the actor run (APIFY_ACTOR_RUN_ID)
+ *     actorRunId: String,
+ *     // ID of the actor task (APIFY_ACTOR_TASK_ID)
+ *     actorTaskId: String,
  *     // ID of the user who started the actor - note that it might be
  *     // different than the owner of the actor (APIFY_USER_ID)
  *     userId: String,
@@ -236,8 +237,7 @@ export const main = (userFunc) => {
     // Note that mocked process.exit() might throw, so set exited flag before calling it to avoid confusion.
     let exited = false;
     const exitWithError = (err, exitCode, message) => {
-        console.error(message);
-        console.error(err.stack || err);
+        log.exception(err, message);
         exited = true;
         // console.log(`Exiting with code: ${exitCode}`);
         process.exit(exitCode);
@@ -436,7 +436,7 @@ export const call = async (actId, input, options = {}) => {
  * ```
  *
  * Internally, the `callTask()` function calls the
- * <a href="https://apify.com/docs/api/v2#/reference/actor-tasks/runs-collection/run-task-asynchronously" target="_blank">Run task</a>
+ * <a href="https://apify.com/docs/api/v2#/reference/actor-tasks/run-collection/run-task" target="_blank">Run task</a>
  * and several other API endpoints to obtain the output.
  *
  * @param {String} taskId
@@ -550,7 +550,7 @@ export const callTask = async (taskId, input, options = {}) => {
  * @param {String} [options.build]
  *  Tag or number of the target actor build to metamorph into (e.g. `beta` or `1.2.345`).
  *  If not provided, the run uses build tag or number from the default actor run configuration (typically `latest`).
- * @returns {Promise<undefined>}
+ * @returns {Promise}
  *
  * @memberof module:Apify
  * @function
@@ -768,24 +768,41 @@ export const getApifyProxyUrl = (options = {}) => {
 /**
  *
  * Creates an ad-hoc webhook for the current actor run, which lets you receive a notification when the actor run finished or failed.
- * For more information about Apify actor webhooks, please see the <a href="https://apify.com/docs/webhook" target="_blank">documentation</a>.
+ * For more information about Apify actor webhooks, please see the <a href="https://apify.com/docs/webhooks" target="_blank">documentation</a>.
  *
  * Note that webhooks are only supported for actors running on the Apify platform.
  * In local environment, the function will print a warning and have no effect.
  *
- * @param options.eventTypes {String[]} - Array of event types, which you can set for actor run, see
- * the <a href="https://apify.com/docs/webhooks#events-actor-run" target="_blank">actor run events</a> in the Apify doc.
- * @param options.requestUrl {String} - URL which will be requested using HTTP POST request, when actor run will be in specific event type.
+ * @param {Object} options
+ * @param {string[]} options.eventTypes
+ *   Array of event types, which you can set for actor run, see
+ *   the <a href="https://apify.com/docs/webhooks#events-actor-run" target="_blank">actor run events</a> in the Apify doc.
+ * @param {string}  options.requestUrl
+ *   URL which will be requested using HTTP POST request, when actor run will reach the set event type.
+ * @param {string} [options.payloadTemplate]
+ *   Payload template is a JSON-like string that describes the structure of the webhook POST request payload.
+ *   It uses JSON syntax, extended with a double curly braces syntax for injecting variables `{{variable}}`.
+ *   Those variables are resolved at the time of the webhook's dispatch, and a list of available variables with their descriptions
+ *   is available in the <a href="https://apify.com/docs/webhooks" target="_blank">Apify webhook documentation</a>.
  *
- * @return {Promise<Object|undefined>}
+ *   When omitted, the default payload template will be used.
+ *   <a href="https://apify.com/docs/webhooks" target="_blank">See the docs for the default payload template</a>.
+ * @param {string} [options.idempotencyKey]
+ *   Idempotency key enables you to ensure that a webhook will not be added multiple times in case of
+ *   an actor restart or other situation that would cause the `addWebhook()` function to be called again.
+ *   We suggest using the actor run ID as the idempotency key. You can get the run ID by calling
+ *   [`Apify.getEnv()](apify#module_Apify.getEnv) function.
+ * @return {Promise<Object>} The return value is the Webhook object.
+ * For more information, see the [Get webhook](https://apify.com/docs/api/v2#/reference/webhooks/webhook-object/get-webhook) API endpoint.
  *
  * @memberof module:Apify
  * @function
  * @name addWebhook
  */
-export const addWebhook = async ({ eventTypes, requestUrl }) => {
+export const addWebhook = async ({ eventTypes, requestUrl, payloadTemplate, idempotencyKey }) => {
     checkParamOrThrow(eventTypes, 'eventTypes', '[String]');
     checkParamOrThrow(requestUrl, 'requestUrl', 'String');
+    checkParamOrThrow(payloadTemplate, 'payloadTemplate', 'Maybe String');
 
     if (!isAtHome()) {
         log.warning('Apify.addWebhook() is only supported when running on the Apify platform. The webhook will not be invoked.');
@@ -794,7 +811,7 @@ export const addWebhook = async ({ eventTypes, requestUrl }) => {
 
     const runId = process.env[ENV_VARS.ACTOR_RUN_ID];
     if (!runId) {
-        throw new Error(`Environment variable ${ENV_VARS.ACTOR_RUN_ID} must be provided!`);
+        throw new Error(`Environment variable ${ENV_VARS.ACTOR_RUN_ID} is not set!`);
     }
 
     return apifyClient.webhooks.createWebhook({
@@ -805,6 +822,8 @@ export const addWebhook = async ({ eventTypes, requestUrl }) => {
                 actorRunId: runId,
             },
             requestUrl,
+            payloadTemplate,
+            idempotencyKey,
         },
     });
 };

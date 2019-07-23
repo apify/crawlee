@@ -2,10 +2,10 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import log from 'apify-shared/log';
 import _ from 'underscore';
 import BasicCrawler from './basic_crawler';
-import PuppeteerPool from './puppeteer_pool';
-import { addTimeoutToPromise } from './utils';
-import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from './constants';
-import { gotoExtended } from './puppeteer_utils';
+import PuppeteerPool from '../puppeteer_pool';
+import { addTimeoutToPromise } from '../utils';
+import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
+import { gotoExtended } from '../puppeteer_utils';
 
 const DEFAULT_OPTIONS = {
     gotoFunction: async ({ request, page }) => gotoExtended(page, request, { timeout: 60000 }),
@@ -19,6 +19,13 @@ const DEFAULT_OPTIONS = {
 /**
  * Provides a simple framework for parallel crawling of web pages
  * using headless Chrome with <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a>.
+ * The URLs to crawl are fed either from a static list of URLs
+ * or from a dynamic queue of URLs enabling recursive crawling of websites.
+ *
+ * Since `PuppeteerCrawler` uses headless Chrome to download web pages and extract data,
+ * it is useful for crawling of websites that require to execute JavaScript.
+ * If the target website doesn't need JavaScript, consider using {@link CheerioCrawler},
+ * which downloads the pages using raw HTTP requests and is about 10x faster.
  *
  * The source URLs are represented using {@link Request} objects that are fed from
  * {@link RequestList} or {@link RequestQueue} instances provided by the [`requestList`](#new_PuppeteerCrawler_new)
@@ -60,7 +67,7 @@ const DEFAULT_OPTIONS = {
  *         })
  *     },
  *     handleFailedRequestFunction: async ({ request }) => {
- *         // This function is called when crawling of a request failed too many time
+ *         // This function is called when the crawling of a request failed too many times
  *         await Apify.pushData({
  *             url: request.url,
  *             succeeded: false,
@@ -224,7 +231,7 @@ class PuppeteerCrawler {
             proxyUrls,
         };
         Object.entries(deprecatedPuppeteerPoolOptions).forEach(([key, value]) => {
-            if (value) log.deprecated(`PuppeteerCrawler: options.${key} is deprecated. Use options.puppeteerPoolOptions instead.`);
+            if (value) log.deprecated(`PuppeteerCrawler: "options.${key}" is deprecated, use "options.puppeteerPoolOptions" in PuppeteerCrawler() constructor instead.`); // eslint-disable-line max-len
         });
         // puppeteerPoolOptions can be null or undefined or Object, so we merge it this way, because null is not replaced by defaults above.
         this.puppeteerPoolOptions = _.defaults(
@@ -280,6 +287,7 @@ class PuppeteerCrawler {
 
         try {
             const response = await this.gotoFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool });
+            await this.puppeteerPool.serveLiveViewSnapshot(page);
             request.loadedUrl = page.url();
             await addTimeoutToPromise(
                 this.handlePageFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool, response }),

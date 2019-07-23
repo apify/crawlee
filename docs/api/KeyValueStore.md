@@ -2,6 +2,7 @@
 id: keyvaluestore
 title: KeyValueStore
 ---
+
 <a name="KeyValueStore"></a>
 
 The `KeyValueStore` class represents a key-value store, a simple data storage that is used
@@ -27,9 +28,11 @@ depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment 
 
 If the `APIFY_LOCAL_STORAGE_DIR` environment variable is set, the data is stored in
 the local directory in the following files:
+
 ```
 {APIFY_LOCAL_STORAGE_DIR}/key_value_stores/{STORE_ID}/{INDEX}.{EXT}
 ```
+
 Note that `{STORE_ID}` is the name or ID of the key-value store. The default key value store has ID: `default`,
 unless you override it by setting the `APIFY_DEFAULT_KEY_VALUE_STORE_ID` environment variable.
 The `{KEY}` is the key of the record and `{EXT}` corresponds to the MIME content type of the data value.
@@ -45,37 +48,37 @@ even if the `APIFY_LOCAL_STORAGE_DIR` variable is set.
 ```javascript
 // Get actor input from the default key-value store
 const input = await Apify.getInput();
-const otherValue = Apify.getValue('my-key');
+const otherValue = Apify.getValue("my-key");
 
 // Write actor output to the default key-value store.
-await Apify.setValue('OUTPUT', { myResult: 123 });
+await Apify.setValue("OUTPUT", { myResult: 123 });
 
 // Open a named key-value store
-const store = await Apify.openKeyValueStore('some-name');
+const store = await Apify.openKeyValueStore("some-name");
 
 // Write a record. JavaScript object is automatically converted to JSON,
 // strings and binary buffers are stored as they are
-await store.setValue('some-key', { foo: 'bar' });
+await store.setValue("some-key", { foo: "bar" });
 
 // Read a record. Note that JSON is automatically parsed to a JavaScript object,
 // text data returned as a string and other data is returned as binary buffer
-const value = await store.getValue('some-key');
+const value = await store.getValue("some-key");
 
- // Delete record
-await store.delete('some-key');
+// Delete record
+await store.delete("some-key");
 ```
 
-
-* [KeyValueStore](keyvaluestore)
-    * [`.getValue(key)`](#KeyValueStore+getValue) ⇒ <code>Promise&lt;(Object|String|Buffer)&gt;</code>
-    * [`.setValue(key, value, [options])`](#KeyValueStore+setValue) ⇒ <code>Promise</code>
-    * [`.delete()`](#KeyValueStore+delete) ⇒ <code>Promise</code>
-    * [`.getPublicUrl(key)`](#KeyValueStore+getPublicUrl) ⇒ <code>string</code>
-    * [`.forEachKey(iteratee, [options])`](#KeyValueStore+forEachKey) ⇒ <code>Promise</code>
+- [KeyValueStore](keyvaluestore)
+  - [`.getValue(key)`](#KeyValueStore+getValue) ⇒ `Promise<(Object|String|Buffer)>`
+  - [`.setValue(key, value, [options])`](#KeyValueStore+setValue) ⇒ `Promise`
+  - [`.delete()`](#KeyValueStore+delete) ⇒ `Promise`
+  - [`.getPublicUrl(key)`](#KeyValueStore+getPublicUrl) ⇒ `string`
+  - [`.forEachKey(iteratee, [options])`](#KeyValueStore+forEachKey) ⇒ `Promise`
 
 <a name="KeyValueStore+getValue"></a>
 
-## `keyValueStore.getValue(key)` ⇒ <code>Promise&lt;(Object|String|Buffer)&gt;</code>
+## `keyValueStore.getValue(key)` ⇒ `Promise<(Object|String|Buffer)>`
+
 Gets a value from the key-value store.
 
 The function returns a `Promise` that resolves to the record value,
@@ -94,13 +97,14 @@ To save or delete a value in the key-value store, use the
 **Example usage:**
 
 ```javascript
-const store = await Apify.openKeyValueStore('my-screenshots');
-const buffer = await store.getValue('screenshot1.png');
+const store = await Apify.openKeyValueStore("my-screenshots");
+const buffer = await store.getValue("screenshot1.png");
 ```
 
-**Returns**: <code>Promise&lt;(Object|String|Buffer)&gt;</code> - Returns a promise that resolves to an object, string
-  or <a href="https://nodejs.org/api/buffer.html" target="_blank"><code>Buffer</code></a>, depending
-  on the MIME content type of the record.  
+**Returns**: `Promise<(Object|String|Buffer)>` - Returns a promise that resolves to an object, string
+or <a href="https://nodejs.org/api/buffer.html" target="_blank"><code>Buffer</code></a>, depending
+on the MIME content type of the record.
+
 <table>
 <thead>
 <tr>
@@ -118,15 +122,16 @@ const buffer = await store.getValue('screenshot1.png');
 </table>
 <a name="KeyValueStore+setValue"></a>
 
-## `keyValueStore.setValue(key, value, [options])` ⇒ <code>Promise</code>
+## `keyValueStore.setValue(key, value, [options])` ⇒ `Promise`
+
 Saves or deletes a record in the key-value store.
 The function returns a promise that resolves once the record has been saved or deleted.
 
 **Example usage:**
 
 ```javascript
-const store = await Apify.openKeyValueStore('my-store');
-await store.setValue('RESULTS', 'my text data', { contentType: 'text/plain' });
+const store = await Apify.openKeyValueStore("my-store");
+await store.setValue("RESULTS", "my text data", { contentType: "text/plain" });
 ```
 
 Beware that the key can be at most 256 characters long and only contain the following characters: `a-zA-Z0-9!-_.'()`
@@ -134,10 +139,12 @@ Beware that the key can be at most 256 characters long and only contain the foll
 By default, `value` is converted to JSON and stored with the
 `application/json; charset=utf-8` MIME content type.
 To store the value with another content type, pass it in the options as follows:
+
 ```javascript
-const store = await Apify.openKeyValueStore('my-store');
-await store.setValue('RESULTS', 'my text data', { contentType: 'text/plain' });
+const store = await Apify.openKeyValueStore("my-store");
+await store.setValue("RESULTS", "my text data", { contentType: "text/plain" });
 ```
+
 If you set custom content type, `value` must be either a string or
 <a href="https://nodejs.org/api/buffer.html" target="_blank"><code>Buffer</code></a>, otherwise an error will be thrown.
 
@@ -188,13 +195,15 @@ otherwise the actor process might finish before the value is stored!
 </table>
 <a name="KeyValueStore+delete"></a>
 
-## `keyValueStore.delete()` ⇒ <code>Promise</code>
+## `keyValueStore.delete()` ⇒ `Promise`
+
 Removes the key-value store either from the Apify cloud storage or from the local directory,
 depending on the mode of operation.
 
 <a name="KeyValueStore+getPublicUrl"></a>
 
-## `keyValueStore.getPublicUrl(key)` ⇒ <code>string</code>
+## `keyValueStore.getPublicUrl(key)` ⇒ `string`
+
 Returns a URL for the given key that may be used to publicly
 access the value in the remote key value store.
 
@@ -213,7 +222,8 @@ access the value in the remote key value store.
 </table>
 <a name="KeyValueStore+forEachKey"></a>
 
-## `keyValueStore.forEachKey(iteratee, [options])` ⇒ <code>Promise</code>
+## `keyValueStore.forEachKey(iteratee, [options])` ⇒ `Promise`
+
 Iterates over key value store keys, yielding each in turn to an `iteratee` function.
 Each invocation of `iteratee` is called with three arguments: `(key, index, info)`, where `key`
 is the record key, `index` is a zero-based index of the key in the current iteration
@@ -224,6 +234,7 @@ If the `iteratee` function returns a Promise then it is awaited before the next 
 If it throws an error, the iteration is aborted and the `forEachKey` function throws the error.
 
 **Example usage**
+
 ```javascript
 const keyValueStore = await Apify.openKeyValueStore();
 await keyValueStore.forEachKey(async (key, index, info) => {

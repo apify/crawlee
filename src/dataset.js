@@ -1,8 +1,7 @@
-import fs from 'fs';
-import fsExtra from 'fs-extra';
 import path from 'path';
+import { promisify } from 'util';
+import fs from 'fs-extra';
 import _ from 'underscore';
-import Promise from 'bluebird';
 import { leftpad } from 'apify-shared/utilities';
 import LruCache from 'apify-shared/lru_cache';
 import { checkParamOrThrow } from 'apify-client/build/utils';
@@ -15,11 +14,11 @@ export const LOCAL_GET_ITEMS_DEFAULT_LIMIT = 250000;
 const MAX_OPENED_STORES = 1000;
 const SAFETY_BUFFER_PERCENT = 0.01 / 100; // 0.01%
 
-const writeFilePromised = Promise.promisify(fs.writeFile);
-const readFilePromised = Promise.promisify(fs.readFile);
-const readdirPromised = Promise.promisify(fs.readdir);
-const statPromised = Promise.promisify(fs.stat);
-const emptyDirPromised = Promise.promisify(fsExtra.emptyDir);
+const writeFilePromised = promisify(fs.writeFile);
+const readFilePromised = promisify(fs.readFile);
+const readdirPromised = promisify(fs.readdir);
+const statPromised = promisify(fs.stat);
+const emptyDirPromised = promisify(fs.emptyDir);
 
 const getLocaleFilename = index => `${leftpad(index, LOCAL_FILENAME_DIGITS, 0)}.json`;
 
@@ -178,41 +177,49 @@ export class Dataset {
      * The objects must be serializable to JSON and the JSON representation of each object must be smaller than 9MB.
      * @return {Promise}
      */
-    pushData(data) {
+    async pushData(data) {
         checkParamOrThrow(data, 'data', 'Array | Object');
-        const dispatch = payload => datasets.putItems({ datasetId: this.datasetId, data: payload });
+        const dispatch = async payload => datasets.putItems({ datasetId: this.datasetId, data: payload });
         const limit = MAX_PAYLOAD_SIZE_BYTES - Math.ceil(MAX_PAYLOAD_SIZE_BYTES * SAFETY_BUFFER_PERCENT);
 
         // Handle singular Objects
         if (!Array.isArray(data)) {
-            try {
-                const payload = checkAndSerialize(data, limit);
-                return dispatch(payload);
-            } catch (err) {
-                return Promise.reject(err);
-            }
+            const payload = checkAndSerialize(data, limit);
+            return dispatch(payload);
         }
 
         // Handle Arrays
-        let payloads;
-        try {
-            payloads = data.map((item, index) => checkAndSerialize(item, limit, index));
-        } catch (err) {
-            return Promise.reject(err);
-        }
+        const payloads = data.map((item, index) => checkAndSerialize(item, limit, index));
         const chunks = chunkBySize(payloads, limit);
 
         // Invoke client in series to preserve order of data
-        return Promise.mapSeries(chunks, chunk => dispatch(chunk));
+        for (const chunk of chunks) {
+            await dispatch(chunk);
+        }
     }
 
     /**
-     * Returns items in the dataset based on the provided parameters.
+     * Returns items in the dataset based on the provided parameters. The returned object
+     * has the following structure:
+     *
+     * ```javascript
+     * {
+     *     items, // Array|String|Buffer based on chosen format parameter.
+     *     total, // Number
+     *     limit, // Number
+     *     offset, // Number
+     * }
+     * ```
+     *
+     * **NOTE**: If using dataset with local disk storage, the `format` option must be `json` and
+     * the following options are not supported:
+     * `unwind`, `disableBodyParser`, `attachment`, `bom` and `simplified`.
+     * If you try to use them, you will receive an error.
      *
      * @param {Object} [options] All `getData()` parameters are passed
      *   via an options object with the following keys:
      * @param {String} [options.format='json']
-     *   Format of the items, possible values are: `json`, `csv`, `xlsx`, `html`, `xml` and `rss`.
+     *   Format of the `items` property, possible values are: `json`, `csv`, `xlsx`, `html`, `xml` and `rss`.
      * @param {Number} [options.offset=0]
      *   Number of array elements that should be skipped at the start.
      * @param {Number} [options.limit=250000]
@@ -243,7 +250,11 @@ export class Dataset {
      *   By default, the element name is `page` or `result`, depending on the value of the `simplified` option.
      * @param {Boolean} [options.skipHeaderRow=false]
      *   If set to `true` then header row in CSV format is skipped.
-     * @return {Promise<Array|String|Buffer>}
+     * @param {Boolean} [options.simplified]
+     *   If set to `true` then function applies the `fields: ['url','pageFunctionResult','errorInfo']` and `unwind: 'pageFunctionResult'` options.
+     * @param {Boolean} [options.skipFailedPages]
+     *   If set to `true` then all the items with errorInfo property will be skipped from the output.
+     * @return {Promise<Object>}
      */
     getData(options = {}) {
         const { datasetId } = this;
@@ -307,27 +318,23 @@ export class Dataset {
      * @param {Number} [index=0] Specifies the initial index number passed to the `iteratee` function.
      * @return {Promise}
      */
-    forEach(iteratee, options = {}, index = 0) {
+    async forEach(iteratee, options = {}, index = 0) {
         if (!options.offset) options.offset = 0;
         if (options.format && options.format !== 'json') throw new Error('Dataset.forEach/map/reduce() support only a "json" format.');
 
-        return this
-            .getData(options)
-            .then(({ items, total, limit, offset }) => {
-                return Promise
-                    .mapSeries(items, item => iteratee(item, index++))
-                    .then(() => {
-                        const newOffset = offset + limit;
+        const { items, total, limit, offset } = await this.getData(options);
 
-                        if (newOffset >= total) return undefined;
+        for (const item of items) {
+            await iteratee(item, index++);
+        }
 
-                        const newOpts = Object.assign({}, options, {
-                            offset: newOffset,
-                        });
+        const newOffset = offset + limit;
+        if (newOffset >= total) return;
 
-                        return this.forEach(iteratee, newOpts, index);
-                    });
-            });
+        const newOpts = Object.assign({}, options, {
+            offset: newOffset,
+        });
+        return this.forEach(iteratee, newOpts, index);
     }
 
     /**
@@ -483,30 +490,38 @@ export class DatasetLocal {
             });
     }
 
-    getData(opts = {}) {
+    async getData(opts = {}) {
         checkParamOrThrow(opts, 'opts', 'Object');
         checkParamOrThrow(opts.limit, 'opts.limit', 'Maybe Number');
         checkParamOrThrow(opts.offset, 'opts.offset', 'Maybe Number');
 
+        if (opts.format && opts.format !== 'json') {
+            throw new Error(`Datasets with local disk storage only support the "json" format (was "${opts.format}")`);
+        }
+        if (opts.unwind || opts.disableBodyParser || opts.attachment || opts.bom || opts.simplified) {
+            // eslint-disable-next-line max-len
+            throw new Error('Datasets with local disk storage do not support the following options: unwind, disableBodyParser, attachment, bom, simplified');
+        }
+
         if (!opts.limit) opts.limit = LOCAL_GET_ITEMS_DEFAULT_LIMIT;
         if (!opts.offset) opts.offset = 0;
 
-        return this.initializationPromise
-            .then(() => {
-                const indexes = this._getItemIndexes(opts.offset, opts.limit);
+        await this.initializationPromise;
+        const indexes = this._getItemIndexes(opts.offset, opts.limit);
+        const items = [];
+        for (const idx of indexes) {
+            const item = await this._readAndParseFile(idx);
+            items.push(item);
+        }
 
-                return Promise.mapSeries(indexes, index => this._readAndParseFile(index));
-            })
-            .then((items) => {
-                this._updateMetadata();
-                return {
-                    items,
-                    total: this.counter,
-                    offset: opts.offset,
-                    count: items.length,
-                    limit: opts.limit,
-                };
-            });
+        this._updateMetadata();
+        return {
+            items,
+            total: this.counter,
+            offset: opts.offset,
+            count: items.length,
+            limit: opts.limit,
+        };
     }
 
     async getInfo() {
@@ -530,46 +545,36 @@ export class DatasetLocal {
         return result;
     }
 
-    forEach(iteratee) {
-        return this.initializationPromise
-            .then(() => {
-                const indexes = this._getItemIndexes();
-
-                return Promise.each(indexes, (index) => {
-                    return this
-                        ._readAndParseFile(index)
-                        .then(item => iteratee(item, index - 1));
-                });
-            })
-            .then(() => undefined);
+    async forEach(iteratee) {
+        await this.initializationPromise;
+        const indexes = this._getItemIndexes();
+        for (const idx of indexes) {
+            const item = await this._readAndParseFile(idx);
+            await iteratee(item, idx - 1);
+        }
     }
 
-    map(iteratee) {
-        return this.initializationPromise
-            .then(() => {
-                const indexes = this._getItemIndexes();
-
-                return Promise
-                    .map(indexes, (index) => {
-                        return this
-                            ._readAndParseFile(index)
-                            .then(item => iteratee(item, index - 1));
-                    });
-            });
+    async map(iteratee) {
+        await this.initializationPromise;
+        const indexes = this._getItemIndexes();
+        const results = [];
+        for (const idx of indexes) {
+            const item = await this._readAndParseFile(idx);
+            const result = await iteratee(item, idx - 1);
+            results.push(result);
+        }
+        return results;
     }
 
-    reduce(iteratee, memo) {
-        return this.initializationPromise
-            .then(() => {
-                const indexes = this._getItemIndexes();
-
-                return Promise
-                    .reduce(indexes, (currentMemo, index) => {
-                        return this
-                            ._readAndParseFile(index)
-                            .then(item => iteratee(currentMemo, item, index - 1));
-                    }, memo);
-            });
+    async reduce(iteratee, memo) {
+        await this.initializationPromise;
+        const indexes = this._getItemIndexes();
+        if (memo === undefined) memo = indexes.shift();
+        for (const idx of indexes) {
+            const item = await this._readAndParseFile(idx);
+            memo = await iteratee(memo, item, idx - 1);
+        }
+        return memo;
     }
 
     delete() {
@@ -585,7 +590,7 @@ export class DatasetLocal {
      * Returns an array of item indexes for given offset and limit.
      */
     _getItemIndexes(offset = 0, limit = this.counter) {
-        if (limit === null) throw new Error('DatasetLocal must be initialize before calling this._getItemIndexes()!');
+        if (limit === null) throw new Error('DatasetLocal must be initialized before calling this._getItemIndexes()!');
         const start = offset + 1;
         const end = Math.min(offset + limit, this.counter) + 1;
         if (start > end) return [];

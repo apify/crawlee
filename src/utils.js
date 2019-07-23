@@ -10,7 +10,7 @@ import requestPromise from 'request-promise-native';
 import XRegExp from 'xregexp';
 import cheerio from 'cheerio';
 import log from 'apify-shared/log';
-import { delayPromise, getRandomInt } from 'apify-shared/utilities';
+import { getRandomInt } from 'apify-shared/utilities';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { version as apifyClientVersion } from 'apify-client/package.json';
@@ -329,9 +329,11 @@ export const getTypicalChromeExecutablePath = () => {
  * Wraps the provided Promise with another one that rejects with the given errorMessage
  * after the given timeoutMillis, unless the original promise resolves or rejects earlier.
  *
- * @param {Promise} promise
+ * @template T
+ * @param {Promise<T>} promise
  * @param {number} timeoutMillis
  * @param {string} errorMessage
+ * @return {Promise<T>}
  * @ignore
  */
 export const addTimeoutToPromise = (promise, timeoutMillis, errorMessage) => {
@@ -349,18 +351,6 @@ export const addTimeoutToPromise = (promise, timeoutMillis, errorMessage) => {
         } finally {
             clearTimeout(timeout);
         }
-    });
-};
-
-/**
- * Creates a promise that after given time gets rejected with given error.
- *
- * @return {Promise<Error>}
- * @ignore
- */
-export const createTimeoutPromise = (timeoutMillis, errorMessage) => {
-    return delayPromise(timeoutMillis).then(() => {
-        throw new Error(errorMessage);
     });
 };
 
@@ -395,7 +385,7 @@ export const isAtHome = () => !!process.env[ENV_VARS.IS_AT_HOME];
  * @return {Promise}
  */
 export const sleep = (millis) => {
-    return delayPromise(millis);
+    return new Promise(res => setTimeout(res, millis));
 };
 
 /**
@@ -422,8 +412,9 @@ const downloadListOfUrls = async ({ url, encoding = 'utf8', urlRegExp = URL_NO_C
 
 /**
  * Collects all URLs in an arbitrary string to an array, optionally using a custom regular expression.
- * @param {String} string
- * @param {RegExp} [urlRegExp=Apify.utils.URL_NO_COMMAS_REGEX]
+ * @param {Object} options
+ * @param {String} options.string
+ * @param {RegExp} [options.urlRegExp=Apify.utils.URL_NO_COMMAS_REGEX]
  * @returns {String[]}
  * @memberOf utils
  */

@@ -2,6 +2,7 @@
 id: puppeteerpool
 title: PuppeteerPool
 ---
+
 <a name="PuppeteerPool"></a>
 
 Manages a pool of Chrome browser instances controlled using
@@ -24,9 +25,9 @@ const puppeteerPool = new PuppeteerPool({
   launchPuppeteerFunction: () => {
     // Use a new proxy with a new IP address for each new Chrome instance
     return Apify.launchPuppeteer({
-       apifyProxySession: Math.random(),
+      apifyProxySession: Math.random()
     });
-  },
+  }
 });
 
 const page1 = await puppeteerPool.newPage();
@@ -39,17 +40,18 @@ const page3 = await puppeteerPool.newPage();
 await puppeteerPool.destroy();
 ```
 
-
-* [PuppeteerPool](puppeteerpool)
-    * [`new PuppeteerPool([options])`](#new_PuppeteerPool_new)
-    * [`.newPage()`](#PuppeteerPool+newPage) ⇒ <code>Promise&lt;Page&gt;</code>
-    * [`.destroy()`](#PuppeteerPool+destroy) ⇒ <code>Promise</code>
-    * [`.retire(browser)`](#PuppeteerPool+retire) ⇒ <code>Promise</code>
-    * [`.recyclePage(page)`](#PuppeteerPool+recyclePage) ⇒ <code>Promise</code>
+- [PuppeteerPool](puppeteerpool)
+  - [`new PuppeteerPool([options])`](#new_PuppeteerPool_new)
+  - [`.newPage()`](#PuppeteerPool+newPage) ⇒ `Promise<Page>`
+  - [`.destroy()`](#PuppeteerPool+destroy) ⇒ `Promise`
+  - [`.retire(browser)`](#PuppeteerPool+retire) ⇒ `Promise`
+  - [`.recyclePage(page)`](#PuppeteerPool+recyclePage) ⇒ `Promise`
+  - [`.serveLiveViewSnapshot(page)`](#PuppeteerPool+serveLiveViewSnapshot) ⇒ `Promise`
 
 <a name="new_PuppeteerPool_new"></a>
 
 ## `new PuppeteerPool([options])`
+
 <table>
 <thead>
 <tr>
@@ -132,7 +134,7 @@ await puppeteerPool.destroy();
 <p>  Do not use the <code>options.recycleDiskCache</code> setting together with <code>--disk-cache-dir</code>
   argument in <code>options.launchPuppeteerOptions.args</code>, the behavior is undefined.</p>
 </td></tr><tr>
-<td><code>[options.proxyUrls]</code></td><td><code>Array&lt;String&gt;</code></td><td></td>
+<td><code>[options.proxyUrls]</code></td><td><code>Array<String></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>An array of custom proxy URLs to be used by the <code>PuppeteerPool</code> instance.
@@ -143,7 +145,8 @@ await puppeteerPool.destroy();
 </table>
 <a name="PuppeteerPool+newPage"></a>
 
-## `puppeteerPool.newPage()` ⇒ <code>Promise&lt;Page&gt;</code>
+## `puppeteerPool.newPage()` ⇒ `Promise<Page>`
+
 Produces a new page instance either by reusing an idle page that currently isn't processing
 any request or by spawning a new page (new browser tab) in one of the available
 browsers when no idle pages are available.
@@ -152,12 +155,14 @@ To spawn a new browser tab for each page, set the `reusePages` constructor optio
 
 <a name="PuppeteerPool+destroy"></a>
 
-## `puppeteerPool.destroy()` ⇒ <code>Promise</code>
+## `puppeteerPool.destroy()` ⇒ `Promise`
+
 Closes all open browsers.
 
 <a name="PuppeteerPool+retire"></a>
 
-## `puppeteerPool.retire(browser)` ⇒ <code>Promise</code>
+## `puppeteerPool.retire(browser)` ⇒ `Promise`
+
 Manually retires a Puppeteer
 <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-browser" target="_blank"><code>Browser</code></a>
 instance from the pool. The browser will continue to process open pages so that they may gracefully finish.
@@ -178,7 +183,8 @@ This is unlike `browser.close()` which will forcibly terminate the browser and a
 </table>
 <a name="PuppeteerPool+recyclePage"></a>
 
-## `puppeteerPool.recyclePage(page)` ⇒ <code>Promise</code>
+## `puppeteerPool.recyclePage(page)` ⇒ `Promise`
+
 Closes the page, unless the `reuseTabs` option is set to true.
 Then it would only flag the page for a future reuse, without actually closing it.
 
@@ -195,6 +201,25 @@ or flagging it for reuse.
 <tbody>
 <tr>
 <td><code>page</code></td><td><code>Page</code></td>
+</tr>
+<tr>
+</tr></tbody>
+</table>
+<a name="PuppeteerPool+serveLiveViewSnapshot"></a>
+
+## `puppeteerPool.serveLiveViewSnapshot(page)` ⇒ `Promise`
+
+Tells the connected LiveViewServer to serve a snapshot when available.
+
+<table>
+<thead>
+<tr>
+<th>Param</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>page</code></td>
 </tr>
 <tr>
 </tr></tbody>

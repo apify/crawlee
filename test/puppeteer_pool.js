@@ -89,10 +89,9 @@ describe('PuppeteerPool', () => {
         await (await browsers[2]).close();
         await (await browsers[6]).close();
 
-        // @TODO for some reason it fails here:
-        // await (await browsers[7]).close();
-        // await shortSleep();
-        // expect(_.values(pool.retiredInstances).length).to.be.eql(0);
+        await (await browsers[7]).close();
+        await shortSleep(2000);
+        expect(_.values(pool.retiredInstances).length).to.be.eql(0);
 
         // Cleanup everything.
         await pool.destroy();
@@ -476,10 +475,6 @@ describe('PuppeteerPool', () => {
 
             await pool.destroy();
         });
-
-        xit('should work together with request interception', async () => {
-            // TODO
-        });
     });
 
     describe('the proxyUrls parameter', () => {
@@ -555,7 +550,6 @@ describe('PuppeteerPool', () => {
         beforeEach(() => {
             log.setLevel(log.LEVELS.OFF);
             pool = new Apify.PuppeteerPool({
-                puppeteerOperationTimeoutSecs: 0.05,
                 launchPuppeteerOptions: {
                     headless: true,
                 },
@@ -567,11 +561,14 @@ describe('PuppeteerPool', () => {
         });
 
         it('should work', async () => {
+            // Start browser;
+            await pool._openNewTab(); // eslint-disable-line no-underscore-dangle
+            pool.puppeteerOperationTimeoutMillis = 0.005;
             try {
-                await pool._openNewTab(0); // eslint-disable-line no-underscore-dangle
+                await pool._openNewTab(); // eslint-disable-line no-underscore-dangle
                 throw new Error('invalid error');
             } catch (err) {
-                expect(err.stack).to.include('timed out');
+                expect(err.stack).to.include('PuppeteerPool: browser.newPage() timed out.');
             }
         });
     });
@@ -601,6 +598,7 @@ describe('PuppeteerPool', () => {
 
             for (let i = 0; i < 3; i++) {
                 const page = await pool.newPage();
+                await pool.serveLiveViewSnapshot(page);
                 await pool.recyclePage(page);
             }
 

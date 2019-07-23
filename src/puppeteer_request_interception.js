@@ -13,6 +13,10 @@ const pageInterceptRequestMasterHandlerMap = new WeakMap(); // Maps page to mast
  * @ignore
  */
 const handleRequest = (request, interceptRequestHandlers) => {
+    // If there are no intercept handlers, it means that request interception is not enabled (anymore)
+    // and therefore .abort() .respond() and .continue() would throw and crash the process.
+    if (!interceptRequestHandlers.length) return;
+
     let wasAborted = false;
     let wasResponded = false;
     let wasContinued = false;

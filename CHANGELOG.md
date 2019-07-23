@@ -1,11 +1,127 @@
+NEXT
+====================
+
+0.15.2 / 2019-07-11
+====================
+- Fix error where Puppeteer would fail to launch when pipes are turned off.
+- Switch back to default Web Socket transport for Puppeteer due to upstream issues.
+
+0.15.1 / 2019-07-09
+====================
+- **BREAKING CHANGE** Removed support for Web Driver (Selenium) since no further updates are planned.
+  If you wish to continue using Web Driver, please stay on Apify SDK version ^0.14.15
+- **BREAKING CHANGE**: `Dataset.getData()` throws an error if user provides an unsupported option
+  when using local disk storage.
+- **DEPRECATED**: `options.userData` of `Apify.utils.enqueueLinks()` is deprecated.
+  Use `options.transformRequestFunction` instead.
+- Improve logging of memory overload errors.
+- Improve error message in `Apify.call()`.
+- Fix multiple log lines appearing when a crawler was about to finish.
+- Add `Apify.utils.puppeteer.enqueueLinksByClickingElements()` function which enables you
+  to add requests to the queue from pure JavaScript navigations, form submissions etc.
+- Add `Apify.utils.puppeteer.infiniteScroll()` function which helps you with scrolling to the bottom
+  of websites that auto-load new content.
+- The `RequestQueue.handledCount()` function has been resurrected from deprecation,
+  in order to have compatible interface with `RequestList`.
+- Add `useExtendedUniqueKey` option to `Request` constructor to include `method` and `payload`
+  in the `Request`'s computed `uniqueKey`.
+- Updated Puppeteer to 1.18.1
+- Updated `apify-client` to 0.5.22
+
+0.14.15 / 2019-05-31
+====================
+- Fixes in `RequestQueue` to deal with inconsistencies in the underlying data storage
+- **BREAKING CHANGE**: `RequestQueue.addRequest()` now sets the ID of the
+  newly added request to the passed `Request` object
+- The `RequestQueue.handledCount()` function has been deprecated,
+  please use `RequestQueue.getInfo()` instead.
+
+0.14.14 / 2019-05-30
+====================
+- Fix error where live view would crash when started with concurrency already higher than 1.
+
+0.14.13 / 2019-05-30
+====================
+- Fix `POST` requests in Puppeteer.
+
+0.14.12 / 2019-05-29
+====================
+- `Snapshotter` will now log critical memory overload warnings at most once per 10 seconds.
+_ Live view snapshots are now made right after navigation finishes, instead of right before page close.
+
+0.14.11 / 2019-05-28
+====================
+- Add `Statistics` class to track crawler run statistics.
+- Use pipes instead of web sockets in Puppeteer to improve performance and stability.
+- Add warnings to all functions using Puppeteer's request interception to inform users about
+  its performance impact caused by automatic cache disabling.
+- **DEPRECATED**: `Apify.utils.puppeteer.blockResources()` because of negative impact on performance.
+  Use `.blockRequests()` (see below).
+- Add `Apify.utils.puppeteer.blockRequests()` to enable blocking URL patterns without request interception involved.
+  This is a replacement for `.blockResources()` until performance issues with request interception resolve.
+
+
+0.14.10 / 2019-05-24
+====================
+- Update `Puppeteer` to 1.17.0.
+- Add `idempotencyKey` parameter to `Apify.addWebhook()`.
+
+0.14.9 / 2019-05-22
+===================
+- Better logs from `AutoscaledPool` class
+- Replace `cpuInfo` Apify event with new `systemInfo` event in `Snapshotter`.
+
+0.14.8 / 2019-05-14
+===================
+- Bump `apify-client` to 0.5.17
+
+0.14.7 / 2019-05-12
+===================
+- Bump `apify-client` to 0.5.16
+
+0.14.6 / 2019-05-09
+===================
+- Stringification to JSON of actor input in `Apify.call()`, `Apify.callTask()` and `Apify.metamorph()`
+  now also supports functions via `func.toString()`. The same holds for record body in `setValue()`
+  method of key-value store.
+- Request queue now monitors number of clients that accessed the queue which allows crawlers to finish
+  without 10s waiting if run was not migrated during its lifetime.
+
+
+0.14.5 / 2019-05-06
+===================
+- Update Puppeteer to 1.15.0.
+
+0.14.4 / 2019-05-06
+===================
+- Added the `stealth` option `launchPuppeteerOptions` which decreases headless browser detection chance.
+- **DEPRECATED**: `Apify.utils.puppeteer.hideWebDriver` use `launchPuppeteerOptions.stealth` instead.
+- `CheerioCrawler` now parses HTML using streams. This improves performance and memory usage in most cases.
+
+0.14.3 / 2019-05-06
+===================
+- Request queue now allows crawlers to finish quickly without waiting in a case that queue was used by a single client.
+- Better logging of errors in `Apify.main()`
+
+0.14.2 / 2019-04-25
+===================
+- Fix invalid type check in `puppeteerModule`.
+
+0.14.1 / 2019-04-24
+===================
+- Made UI and UX improvements to `LiveViewServer` functionality.
+- `launchPuppeteerOptions.puppeteerModule` now supports `Object` (pre-required modules).
+- Removed `--enable-resource-load-scheduler=false` Chromium command line flag, it has no effect.
+  See https://bugs.chromium.org/p/chromium/issues/detail?id=723233
+- Fixed inconsistency in `prepareRequestFunction` of `CheerioCrawler`.
+- Update Puppeteer to 1.14.0
+
 0.14.0 / 2019-04-15
 ===================
 - **BREAKING CHANGE:** Live View is no longer available by passing `liveView = true` to `launchPuppeteerOptions`.
 - New version of Live View is available by passing the `useLiveView = true` option to `PuppeteerPool`.
    - Only shows snapshots of a single page from a single browser.
    - Only makes snapshots when a client is connected, having very low performance impact otherwise.
-- Added `Apify.utils.requestExtended` which extends the popular `request` package with fixes and improvements.
-- Added `Apify.utils.requestLikeBrowser` which uses `requestExtended` and disguises as a request made by browser.
 - Added `Apify.utils.puppeteer.addInterceptRequestHandler` and `removeInterceptRequestHandler` which
   can be used to add multiple request interception handlers to Puppeteer's pages.
 - Added `puppeteerModule` to `LaunchPuppeteerOptions` which enables use of other Puppeteer modules,
@@ -45,7 +161,7 @@
 - **BREAKING CHANGE:** Added `handleRequestTimeoutSecs` option to `BasicCrawler` with a 60 second default.
 - **DEPRECATED:** `PuppeteerPool` options in the `PuppeteerCrawler` constructor are now deprecated.
   Please use the new `puppeteerPoolOptions` argument of type `Object` to pass them. `launchPuppeteerFunction`
-  and `launchPuppeteerOptions` are still available as shortcuts for convenience.   
+  and `launchPuppeteerOptions` are still available as shortcuts for convenience.
 - `CheerioCrawler` and `PuppeteerCrawler` now automatically set `handleRequestTimeoutSecs` to 10 times
   their `handlePageTimeoutSecs`. This is a precaution that should keep requests from hanging forever.
 - Added `options.prepareRequestFunction()` to `CheerioCrawler` constructor to enable modification

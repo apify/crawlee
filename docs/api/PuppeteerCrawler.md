@@ -2,10 +2,18 @@
 id: puppeteercrawler
 title: PuppeteerCrawler
 ---
+
 <a name="PuppeteerCrawler"></a>
 
 Provides a simple framework for parallel crawling of web pages
 using headless Chrome with <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a>.
+The URLs to crawl are fed either from a static list of URLs
+or from a dynamic queue of URLs enabling recursive crawling of websites.
+
+Since `PuppeteerCrawler` uses headless Chrome to download web pages and extract data,
+it is useful for crawling of websites that require to execute JavaScript.
+If the target website doesn't need JavaScript, consider using [`CheerioCrawler`](cheeriocrawler),
+which downloads the pages using raw HTTP requests and is about 10x faster.
 
 The source URLs are represented using [`Request`](request) objects that are fed from
 [`RequestList`](requestlist) or [`RequestQueue`](requestqueue) instances provided by the [`requestList`](#new_PuppeteerCrawler_new)
@@ -35,38 +43,38 @@ to [`PuppeteerPool`](puppeteerpool) constructor.
 
 ```javascript
 const crawler = new Apify.PuppeteerCrawler({
-    requestList,
-    handlePageFunction: async ({ page, request }) => {
-        // This function is called to extract data from a single web page
-        // 'page' is an instance of Puppeteer.Page with page.goto(request.url) already called
-        // 'request' is an instance of Request class with information about the page to load
-        await Apify.pushData({
-            title: await page.title(),
-            url: request.url,
-            succeeded: true,
-        })
-    },
-    handleFailedRequestFunction: async ({ request }) => {
-        // This function is called when crawling of a request failed too many time
-        await Apify.pushData({
-            url: request.url,
-            succeeded: false,
-            errors: request.errorMessages,
-        })
-    },
+  requestList,
+  handlePageFunction: async ({ page, request }) => {
+    // This function is called to extract data from a single web page
+    // 'page' is an instance of Puppeteer.Page with page.goto(request.url) already called
+    // 'request' is an instance of Request class with information about the page to load
+    await Apify.pushData({
+      title: await page.title(),
+      url: request.url,
+      succeeded: true
+    });
+  },
+  handleFailedRequestFunction: async ({ request }) => {
+    // This function is called when the crawling of a request failed too many times
+    await Apify.pushData({
+      url: request.url,
+      succeeded: false,
+      errors: request.errorMessages
+    });
+  }
 });
 
 await crawler.run();
 ```
 
-
-* [PuppeteerCrawler](puppeteercrawler)
-    * [`new PuppeteerCrawler(options)`](#new_PuppeteerCrawler_new)
-    * [`.run()`](#PuppeteerCrawler+run) ⇒ <code>Promise</code>
+- [PuppeteerCrawler](puppeteercrawler)
+  - [`new PuppeteerCrawler(options)`](#new_PuppeteerCrawler_new)
+  - [`.run()`](#PuppeteerCrawler+run) ⇒ `Promise`
 
 <a name="new_PuppeteerCrawler_new"></a>
 
 ## `new PuppeteerCrawler(options)`
+
 <table>
 <thead>
 <tr>
@@ -92,8 +100,7 @@ await crawler.run();
   page: Page,
   puppeteerPool: PuppeteerPool,
   autoscaledPool: AutoscaledPool
-}
-</code></pre><p>  <code>request</code> is an instance of the <a href="request"><code>Request</code></a> object with details about the URL to open, HTTP method etc.
+}</code></pre><p>  <code>request</code> is an instance of the <a href="request"><code>Request</code></a> object with details about the URL to open, HTTP method etc.
   <code>response</code> is an instance of the <code>Puppeteer</code>
   <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a>
   <code>page</code> is an instance of the <code>Puppeteer</code>
@@ -147,8 +154,7 @@ await crawler.run();
 <pre><code>{
   request: Request,
   error: Error,
-}
-</code></pre><p>  Where the <a href="request"><code>Request</code></a> instance corresponds to the failed request, and the <code>Error</code> instance
+}</code></pre><p>  Where the <a href="request"><code>Request</code></a> instance corresponds to the failed request, and the <code>Error</code> instance
   represents the last error thrown during processing of the request.</p>
 <p>  See
   <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_crawler.js#L11" target="_blank">source code</a>
@@ -209,6 +215,6 @@ await crawler.run();
 </table>
 <a name="PuppeteerCrawler+run"></a>
 
-## `puppeteerCrawler.run()` ⇒ <code>Promise</code>
-Runs the crawler. Returns promise that gets resolved once all the requests got processed.
+## `puppeteerCrawler.run()` ⇒ `Promise`
 
+Runs the crawler. Returns promise that gets resolved once all the requests got processed.

@@ -76,10 +76,10 @@ export const SOURCES_PERSISTENCE_KEY = 'REQUEST_LIST_SOURCES';
  * @param {Object} options All `RequestList` parameters are passed
  *   via an options object with the following keys:
  * @param {Array} options.sources
- *  An array of sources for the `RequestList`. Its contents can either be just plain objects,
- *  defining at least the 'url' property or instances of the {@link Request} class.
- *  Additionally a `requestsFromUrl` property may be used instead of `url`,
- *  which will instruct the `RequestList` to download the sources from the given remote location.
+ *  An array of sources of URLs for the `RequestList`. It can be either an array of plain objects that
+ *  define the `url` property, or an array of instances of the {@link Request} class.
+ *  Additionally, the `requestsFromUrl` property may be used instead of `url`,
+ *  which will instruct `RequestList` to download the source URLs from a given remote location.
  *  The URLs will be parsed from the received response.
  *
  * ```
@@ -154,11 +154,12 @@ export class RequestList {
 
         // Dictionary of requests that were returned by fetchNextRequest().
         // The key is uniqueKey, value is true.
+        // TODO: Change this to Set
         this.inProgress = {};
 
         // Dictionary of requests for which reclaimRequest() was called.
-        // The key is uniqueKey, value is true.
-        // Note that reclaimedRequests is always a subset of inProgressRequests!
+        // The key is uniqueKey, value is true. TODO: Change this to Set
+        // Note that reclaimedRequests is always a subset of inProgress!
         this.reclaimed = {};
 
         this.persistStateKey = persistStateKey;
@@ -604,12 +605,17 @@ export class RequestList {
  *   If `null`, the list will not be persisted and will only be stored in memory. Process restart
  *   will then cause the list to be crawled again from the beginning. We suggest always using a name.
  * @param {Object[]|string[]} sources
- *   Sources represent the URLs to crawl. It can either be a `string[]` with plain URLs or an `Object[]`.
- *   The objects' contents can either be just plain objects, defining at least the 'url' property
- *   or instances of the {@link Request} class. See the (`new RequestList`)(RequestList#new_RequestList_new)
- *   options for details.
+ *  An array of sources of URLs for the `RequestList`.
+ *  It can be either an array of plain objects that
+ *  define the `url` property, or an array of instances of the {@link Request} class.
+ *  Additionally, the `requestsFromUrl` property may be used instead of `url`,
+ *  which will instruct `RequestList` to download the source URLs from a given remote location.
+ *  The URLs will be parsed from the received response.
+ *
+ *  For details, see the [`RequestList`](requestlist#new_RequestList_new)
+ *  constructor options.
  * @param {Object} [options]
- *   The (`new RequestList`)(RequestList#new_RequestList_new) options. Note that the listName parameter supersedes
+ *   The [`new RequestList`](requestlist#new_RequestList_new) options. Note that the listName parameter supersedes
  *   the `persistStateKey` and `persistSourcesKey` options and the sources parameter supersedes the `sources` option.
  * @returns {Promise<RequestList>}
  * @memberof module:Apify

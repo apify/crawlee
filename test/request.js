@@ -1,6 +1,7 @@
 import util from 'util';
 import { expect } from 'chai';
-import { computeUniqueKey } from '../build/request';
+import { normalizeUrl } from 'apify-shared/utilities';
+import { hashPayload } from '../build/request';
 import Apify from '../build/index';
 
 describe('Apify.Request', () => {
@@ -9,13 +10,25 @@ describe('Apify.Request', () => {
         expect(() => new Apify.Request({ url: 'xxx' })).to.not.throw();
     });
 
-    it('should create unique based on url', () => {
+    it('should create unique key based on url for GET requests', () => {
         const url = 'https://user:pass@website.com/a/vb/c /d?q=1&q=kjnjkn$lkn#lkmlkml';
-        const normalizedUrl = computeUniqueKey(url);
+        const normalizedUrl = normalizeUrl(url);
         const request = new Apify.Request({ url });
 
         expect(request.uniqueKey).to.be.eql(normalizedUrl);
-        expect(normalizedUrl).to.not.eql(url);
+        expect(request.uniqueKey).to.not.eql(request.url);
+    });
+
+    it('should create unique key based on url, method and payload for POST requests', () => {
+        const url = 'https://user:pass@website.com/a/vb/c /d?q=1&q=kjnjkn$lkn#lkmlkml';
+        const payload = JSON.stringify({ foo: 'bar' });
+        const payloadHash = hashPayload(payload);
+        const normalizedUrl = normalizeUrl(url);
+        const request = new Apify.Request({ url, method: 'post', payload, useExtendedUniqueKey: true });
+
+        const uniqueKey = `POST(${payloadHash}):${normalizedUrl}`;
+
+        expect(request.uniqueKey).to.be.eql(uniqueKey);
     });
 
     it('works', () => {
@@ -39,6 +52,9 @@ describe('Apify.Request', () => {
             handledAt: new Date(),
         };
         expect(new Apify.Request(data)).to.include(data);
+
+        data.handledAt = (new Date()).toISOString();
+        expect((new Apify.Request(data)).handledAt).to.be.a('date');
     });
 
     it('should allow to push error messages', () => {
@@ -97,7 +113,7 @@ describe('Apify.Request', () => {
         expect(last).to.include(__filename.split(/[\\/]/g).pop());
     });
 
-    it('should should allow to have a GET request with payload', () => {
+    it('should not allow to have a GET request with payload', () => {
         expect(() => new Apify.Request({ url: 'http://example.com', payload: 'foo' })).to.throw();
         expect(() => new Apify.Request({ url: 'http://example.com', payload: 'foo', method: 'POST' })).to.not.throw();
     });
