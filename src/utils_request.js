@@ -60,7 +60,7 @@ export const requestAsBrowser = async (options) => {
 
     const parsedUrl = url.parse(opts.url);
 
-    const browserHeaders = {
+    const defaultHeaders = {
         Host: parsedUrl.host,
         'User-Agent': opts.useMobileVersion ? FIREFOX_MOBILE_USER_AGENT : FIREFOX_DESKTOP_USER_AGENT,
         Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -68,7 +68,7 @@ export const requestAsBrowser = async (options) => {
         'Accept-Encoding': 'gzip, deflate, br',
         Connection: 'keep-alive',
     };
-    opts.headers = _.defaults({}, opts.headers, browserHeaders);
+    opts.headers = _.defaults({}, opts.headers, defaultHeaders);
 
     return httpRequest(opts);
 };
