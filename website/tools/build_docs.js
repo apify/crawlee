@@ -5,6 +5,15 @@ const path = require('path');
 const { promisify } = require('util');
 const prettier = require('prettier');
 
+const prettierConfig = {
+    parser: 'markdown',
+    arrowParens: 'avoid',
+    trailingComma: 'all',
+    singleQuote: true,
+    tabWidth: 4,
+    printWidth: 150,
+};
+
 const writeFile = promisify(fs.writeFile);
 
 /* eslint-disable no-shadow */
@@ -70,7 +79,7 @@ const generateFinalMarkdown = (title, text) => {
     const typeLinkRx = new RegExp(`([("])#(module_)?(${typedefs.join('|')})([)"])`, 'gi');
     text = text.replace(typeLinkRx, (match, p1, p2, p3, p4) => `${p1}../typedefs/${p3.toLowerCase()}${p4}`);
     // Format Markdown with Prettier
-    return prettier.format(header + text, { parser: "markdown" });
+    return prettier.format(header + text, prettierConfig);
 };
 
 const main = async () => {
@@ -94,7 +103,7 @@ const main = async () => {
 
         const title = filename.split('.')[0].split('_').map(word => `${word[0].toUpperCase()}${word.substr(1)}`).join(' ');
         const header = getHeader(title);
-        const markdown = prettier.format(`${header}\n${description}\n${codeblock}`, { parser: "markdown" });;
+        const markdown = prettier.format(`${header}\n${description}\n${codeblock}`, prettierConfig);
         await writeFile(path.join(exampleFilesOutputDir, `${title.replace(/\s/g, '')}.md`), markdown);
     });
 

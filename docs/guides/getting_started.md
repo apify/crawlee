@@ -592,7 +592,7 @@ https://apify.com/john-doe/my-actor
 or relative:
 
 ```
-/john-doe/my-actor
+./john-doe/my-actor
 ```
 
 Browsers handle this automatically, but since we're only using plain HTTP requests, we need to tell the `enqueueLinks()` function how to resolve the relative links to the absolute ones, so we can use them for scraping. This is where the `response.loadedUrl` comes into play, because it returns the correct URL to use as `baseUrl`.
@@ -751,12 +751,10 @@ So we're back to the pre-selected list of URLs. Since we cannot scrape the list 
 Therefore, after careful consideration, we've determined that we should use multiple start URLs and that they should look as follows:
 
 ```
-https://apify.com/store?type=acts&category=TRAVEL
-https://apify.com/store?type=acts&category=ECOMMERCE
-https://apify.com/store?type=acts&category=ENTERTAINMENT
+https://apify.com/store?category=TRAVEL
+https://apify.com/store?category=ECOMMERCE
+https://apify.com/store?category=ENTERTAINMENT
 ```
-
-> The `type=acts` query parameter comes from selecting `Actors only` in the `Show` dropdown. This is in line with us only wanting to scrape actors' data. If you're wondering how we've created these URLs, simply visit the `https://apify.com/store` page, select `Actors only` in the `Show` dropdown and click on one of the categories in the left hand menu. The correct URL will show up in your browser's address bar.
 
 ### The crawling strategy
 
@@ -777,9 +775,9 @@ Now that we know where to start, we need to figure out where to go next. Since w
 
 ```js
 const sources = [
-    "https://apify.com/store?type=acts&category=TRAVEL",
-    "https://apify.com/store?type=acts&category=ECOMMERCE",
-    "https://apify.com/store?type=acts&category=ENTERTAINMENT"
+    "https://apify.com/store?category=TRAVEL",
+    "https://apify.com/store?category=ECOMMERCE",
+    "https://apify.com/store?category=ENTERTAINMENT"
 ];
 
 const requestList = await Apify.openRequestList("categories", sources);
@@ -816,9 +814,9 @@ const Apify = require("apify");
 
 Apify.main(async () => {
     const sources = [
-        "https://apify.com/store?type=acts&category=TRAVEL",
-        "https://apify.com/store?type=acts&category=ECOMMERCE",
-        "https://apify.com/store?type=acts&category=ENTERTAINMENT"
+        "https://apify.com/store?category=TRAVEL",
+        "https://apify.com/store?category=ECOMMERCE",
+        "https://apify.com/store?category=ENTERTAINMENT"
     ];
 
     const requestList = await Apify.openRequestList("categories", sources);
@@ -826,8 +824,8 @@ Apify.main(async () => {
     const crawler = new Apify.CheerioCrawler({
         requestList,
         handlePageFunction: async ({ $, request }) => {
+            // Select all the actor cards.
             $(".item").each((i, el) => {
-                // <---- Select all the actor cards.
                 const text = $(el).text();
                 console.log(`ITEM: ${text}\n`);
             });
@@ -846,10 +844,10 @@ You might be wondering how we got that `.item` selector. After analyzing the cat
 
 > We'll use Chrome DevTools here, since it's the most common browser, but feel free to use any other, it's all very similar.
 
-At time of this writing, there are only 2 actors in the Travel category, so we'll use this one for our examples, since it will make everything much less cluttered. Now, go to
+We could pick any category, but let's just go with Travel because it includes some interesting actors. Go to
 
 ```
-https://apify.com/store?type=acts&category=TRAVEL
+https://apify.com/store?category=TRAVEL
 ```
 
 and open DevTools either by right clicking anywhere in the page and selecting `Inspect`, or by pressing `F12` or by any other means relevant to your system. Once you're there, you'll see a bunch of DevToolsy stuff and a view of the category page with the individual actor cards.
@@ -858,7 +856,7 @@ Now, find the `Select an element` tool and use it to select one of the actor car
 
 In the resulting HTML display, it will put your cursor somewhere. Inspect the HTML around it. You'll see that there are CSS classes attached to the different HTML elements.
 
-By hovering over the individual elements, you will see their placement in the page's view. It's easy to see the page's structure around the actor cards now. All the cards are displayed in a `<div>` with a class of `itemsWrapper`. This one holds another `<div>` with the class of `items-grid` and finally, the individual cards are represented by an `<a>` element with the class of `item`.
+By hovering over the individual elements, you will see their placement in the page's view. It's easy to see the page's structure around the actor cards now. All the cards are displayed in a `<div>` with a classname that starts with `ItemsGrid__StyledDiv`, which holds another `<div>` with some computer generated class names and finally, inside this `<div>`, the individual cards are represented by other `<div>` elements with the class of `item`.
 
 > Yes, there are other HTML elements and other classes too. We can safely ignore them.
 
@@ -896,7 +894,7 @@ const handlePageFunction = async ({ $, request }) => {
         await Apify.utils.enqueueLinks({
             $,
             requestQueue,
-            selector: "a.item",
+            selector: "div.item > a",
             baseUrl: request.loadedUrl,
             userData: {
                 detailPage: true
@@ -910,7 +908,7 @@ The code should look pretty familiar to you. It's a very simple `handlePageFunct
 
 ##### The `selector` parameter of `enqueueLinks()`
 
-When we previously used `enqueueLinks()`, we were not providing any `selector` parameter and it was fine, because we wanted to use the default setting, which is `a` - finds all `<a>` elements. But now, we need to be more specific. There are multiple `<a>` links on the given category page, but we're only interested in those that will take us to item (actor) details. Using the DevTools, we found out that we can select the links we wanted using the `a.item` selector, which selects all the `<a class="item ...">` elements. And those are exactly the ones we're interested in.
+When we previously used `enqueueLinks()`, we were not providing any `selector` parameter and it was fine, because we wanted to use the default setting, which is `a` - finds all `<a>` elements. But now, we need to be more specific. There are multiple `<a>` links on the given category page, but we're only interested in those that will take us to item (actor) details. Using the DevTools, we found out that we can select the links we wanted using the `div.item > a` selector, which selects all the `<a>` elements that have a `<div class="item ...">` parent. And those are exactly the ones we're interested in.
 
 ##### The missing `pseudoUrls`
 
@@ -920,7 +918,7 @@ Earlier we've learned that `pseudoUrls` are not required and if omitted, all lin
 
 You will see `userData` used often throughout Apify SDK and it's nothing more than a place to store your own data on a `Request` instance. You can access it by `request.userData` and it's a plain `Object` that can be used to store anything that needs to survive the full life-cycle of the `Request`.
 
-Using the `userData` parameter of `enqueueLinks()` will populate all the `Request` instances it creates and enqueues with the provided data. In our case, we use it to mark the enqueued `Requests` as a `detailPage` so that we can easily differentiate between the category pages and the detail pages.
+We can use the `transformRequestFunction` option of `enqueueLinks()` to modify all the `Request` instances it creates and enqueues. In our case, we use it to set a `detailPage` property to the enqueued `Requests` to be able to easily differentiate between the category pages and the detail pages.
 
 #### Another sanity check
 
@@ -931,9 +929,9 @@ const Apify = require("apify");
 
 Apify.main(async () => {
     const sources = [
-        "https://apify.com/store?type=acts&category=TRAVEL",
-        "https://apify.com/store?type=acts&category=ECOMMERCE",
-        "https://apify.com/store?type=acts&category=ENTERTAINMENT"
+        "https://apify.com/store?category=TRAVEL",
+        "https://apify.com/store?category=ECOMMERCE",
+        "https://apify.com/store?category=ENTERTAINMENT"
     ];
 
     const requestList = await Apify.openRequestList("categories", sources);
@@ -951,10 +949,11 @@ Apify.main(async () => {
                 await Apify.utils.enqueueLinks({
                     $,
                     requestQueue,
-                    selector: "a.item",
+                    selector: "div.item > a",
                     baseUrl: request.loadedUrl,
-                    userData: {
-                        detailPage: true
+                    transformRequestFunction: (req) => {
+                        req.userData.detailPage = true;
+                        return req;
                     }
                 });
             }
@@ -1005,69 +1004,50 @@ Now it's time to add more data to the results. Let's open one of the actor detai
 
 ![actor title](/img/getting-started/title-01.png "Finding actor title in DevTools.")
 
-By using the element selector tool, we find out that the title is there under an `<h1>` tag, as titles should be. Maybe surprisingly, we find that there are actually two `<h1>` tags on the detail page. This should get us thinking. Is there any parent element that perhaps wraps all the information that we want to scrape? Yes, there is! The `<div class="wrap ...">` is a common ancestor to everything. So let's start by getting that element first.
+Let's start really easy. By using the element selector tool, we find out that the title is there under an `<h1>` tag, as titles should be.
 
 > Remember that you can press CTRL+F (CMD+F) in the Elements tab of DevTools to open the search bar where you can quickly search for elements using their selectors.
+And always make sure to use the DevTools to verify your scraping process and assumptions. It's faster than changing the crawler code all the time.
 
-Using the search bar to find `div.wrap` in the DevTools reveals that it's not the only `div.wrap` in the page, so we need to make the selector a little bit more specific by adding its parent element: `header div.wrap`.
-
-![actor title selector](/img/getting-started/title-02.png "Finding actor title in DevTools.")
-
-```js
-// Using jQuery.
-const $wrapper = $("header div.wrap");
-```
-
-> Always make sure to use the DevTools to verify your scraping process and assumptions. It's faster than changing the crawler code all the time.
-
-Getting the title should now be pretty easy. We know that it's in the `$wrapper` so we just need to find it there using `jQuery`:
+To get the title we just need to find it using `Cheerio`:
 
 ```js
-const $wrapper = $("header div.wrap");
 return {
-    title: $wrapper.find("h1").text()
+    title: $('h1').text(),
 };
 ```
 
 ##### Description
 
-Getting the actor's description is a piece of cake. We already have the boilerplate ready, so all we need to do is add a new selection.
+Getting the actor's description is a little more involved, but still pretty straightforward. We can't just simply search for a `<p>` tag,
+because there's a lot of them in the page. We need to narrow our search down a little. Using the DevTools we find that the actor description
+is nested within the `<header>` element, which is nested itself in the `<main>` element. Sadly, we're still left with two `<p>` tags.
+To finally select only the description, we choose the `<p>` tag that has a `class` that starts with `Text__Paragraph`.
 
 ![actor description selector](/img/getting-started/description.png "Finding actor description in DevTools.")
 
 ```js
-const $wrapper = $("header div.wrap");
 return {
-    title: $wrapper.find("h1").text(),
-    description: $wrapper.find("p").text()
+    title: $('h1').text(),
+    description: $('main header p[class^=Text__Paragraph]').text(),
 };
 ```
 
-Getting the `lastRunDate` and `runCount` is not as straightforward as the previous items, but not to worry, it's still pretty simple.
-
 ##### Last run date
 
-The DevTools tell us that the `lastRunDate` can be found in the second of the two `<time>` elements in the `$wrapper`.
+The DevTools tell us that the `lastRunDate` can be found in the second of the two `<time>` elements in the page.
 
 ![actor last run date selector](/img/getting-started/last-run-date.png "Finding actor last run date in DevTools.")
 
 ```js
-const $wrapper = $("header div.wrap");
 return {
-    title: $wrapper.find("h1").text(),
-    description: $wrapper.find("p").text(),
-    lastRunDate: new Date(
-        Number(
-            $wrapper
-                .find("time")
-                .eq(1)
-                .attr("datetime")
-        )
-    )
+    title: $('h1').text(),
+    description: $('main header p[class^=Text__Paragraph]').text(),
+    lastRunDate: new Date(Number($('time').eq(1).attr('datetime'))),
 };
 ```
 
-It might look a little too complex at first glance, but let me walk you through it. We take our `$wrapper` and find the `<time>` elements it contains. There are two, so we grab the second one using the `.eq(1)` call (it's zero indexed) and then we read its `datetime` attribute, because that's where a unix timestamp is stored as a `string`.
+It might look a little too complex at first glance, but let me walk you through it. We find all the `<time>` elements. There are two, so we grab the second one using the `.eq(1)` call (it's zero indexed) and then we read its `datetime` attribute, because that's where a unix timestamp is stored as a `string`.
 
 But we would much rather see a readable date in our results, not a unix timestamp, so we need to convert it. Unfortunately the `new Date()` constructor will not accept a `string`, so we cast the `string` to a `number` using the `Number()` function before actually calling `new Date()`. Phew!
 
@@ -1076,55 +1056,29 @@ But we would much rather see a readable date in our results, not a unix timestam
 And so we're finishing up with the `runCount`. There's no specific element like `<time>`, so we need to create a complex selector and then do a transformation on the result.
 
 ```js
-const $wrapper = $("header div.wrap");
 return {
-    title: $wrapper.find("h1").text(),
-    description: $wrapper.find("p").text(),
-    lastRunDate: new Date(
-        Number(
-            $wrapper
-                .find("time")
-                .eq(1)
-                .attr("datetime")
-        )
-    ),
-    runCount: Number(
-        $wrapper
-            .find("div.stats > span:nth-of-type(3)")
-            .text()
-            .match(/\d+/)[0]
-    )
+    title: $('h1').text(),
+    description: $('main header p[class^=Text__Paragraph]').text(),
+    lastRunDate: new Date(Number($('time').eq(1).attr('datetime'))),
+    runCount: Number($('ul.stats li:nth-of-type(3)').text().match(/\d+/)[0]),
 };
 ```
 
-The `div.stats > span:nth-of-type(3)` looks complicated, but it only reads that we're looking for a `<div class="stats ...">` element and within that element we're looking for the third `<span>` element. We grab its text, but we're only interested in the number of runs. So we parse the number out using a regular expression, but its type is still a `string`, so we finally convert the result to a `number` by wrapping it with a `Number()` call.
+The `ul.stats > li:nth-of-type(3)` looks complicated, but it only reads that we're looking for a `<ul class="stats ...">` element and within that element we're looking for the third `<li>` element. We grab its text, but we're only interested in the number of runs. So we parse the number out using a regular expression, but its type is still a `string`, so we finally convert the result to a `number` by wrapping it with a `Number()` call.
 
 And there we have it! All the data we needed in a single object. For the sake of completeness, let's add the properties we parsed from the URL earlier and we're good to go.
 
 ```js
 const urlArr = request.url.split("/").slice(-2);
-const $wrapper = $("header div.wrap");
 
 const results = {
     url: request.url,
     uniqueIdentifier: urlArr.join("/"),
     owner: urlArr[0],
-    title: $wrapper.find("h1").text(),
-    description: $wrapper.find("p").text(),
-    lastRunDate: new Date(
-        Number(
-            $wrapper
-                .find("time")
-                .eq(1)
-                .attr("datetime")
-        )
-    ),
-    runCount: Number(
-        $wrapper
-            .find("div.stats > span:nth-of-type(3)")
-            .text()
-            .match(/\d+/)[0]
-    )
+    title: $('h1').text(),
+    description: $('main header p[class^=Text__Paragraph]').text(),
+    lastRunDate: new Date(Number($('time').eq(1).attr('datetime'))),
+    runCount: Number($('ul.stats li:nth-of-type(3)').text().match(/\d+/)[0]),
 };
 
 console.log("RESULTS: ", results);
@@ -1139,9 +1093,9 @@ const Apify = require("apify");
 
 Apify.main(async () => {
     const sources = [
-        "https://apify.com/store?type=acts&category=TRAVEL",
-        "https://apify.com/store?type=acts&category=ECOMMERCE",
-        "https://apify.com/store?type=acts&category=ENTERTAINMENT"
+        "https://apify.com/store?category=TRAVEL",
+        "https://apify.com/store?category=ECOMMERCE",
+        "https://apify.com/store?category=ENTERTAINMENT"
     ];
 
     const requestList = await Apify.openRequestList("categories", sources);
@@ -1157,28 +1111,15 @@ Apify.main(async () => {
             // This is our new scraping logic.
             if (request.userData.detailPage) {
                 const urlArr = request.url.split("/").slice(-2);
-                const $wrapper = $("header div.wrap");
 
                 const results = {
                     url: request.url,
                     uniqueIdentifier: urlArr.join("/"),
                     owner: urlArr[0],
-                    title: $wrapper.find("h1").text(),
-                    description: $wrapper.find("p").text(),
-                    lastRunDate: new Date(
-                        Number(
-                            $wrapper
-                                .find("time")
-                                .eq(1)
-                                .attr("datetime")
-                        )
-                    ),
-                    runCount: Number(
-                        $wrapper
-                            .find("div.stats > span:nth-of-type(3)")
-                            .text()
-                            .match(/\d+/)[0]
-                    )
+                    title: $('h1').text(),
+                    description: $('main header p[class^=Text__Paragraph]').text(),
+                    lastRunDate: new Date(Number($('time').eq(1).attr('datetime'))),
+                    runCount: Number($('ul.stats li:nth-of-type(3)').text().match(/\d+/)[0]),
                 };
                 console.log("RESULTS", results);
             }
@@ -1188,10 +1129,11 @@ Apify.main(async () => {
                 await Apify.utils.enqueueLinks({
                     $,
                     requestQueue,
-                    selector: "a.item",
+                    selector: "div.item > a",
                     baseUrl: request.loadedUrl,
-                    userData: {
-                        detailPage: true
+                    transformRequestFunction: (req) => {
+                        req.userData.detailPage = true;
+                        return req;
                     }
                 });
             }
@@ -1210,7 +1152,7 @@ When running the actor in an environment of your choice, you should see the craw
 
 A data extraction job would not be complete without saving the data for later use and processing. We've come to the final and most difficult part of this chapter so make sure to pay attention very carefully!
 
-First, replace the `console.log` call on line `35` with
+First, replace the `console.log('RESULTS', results)` call with
 
 ```js
 await Apify.pushData(results);
@@ -1223,9 +1165,9 @@ const Apify = require("apify");
 
 Apify.main(async () => {
     const sources = [
-        "https://apify.com/store?type=acts&category=TRAVEL",
-        "https://apify.com/store?type=acts&category=ECOMMERCE",
-        "https://apify.com/store?type=acts&category=ENTERTAINMENT"
+        "https://apify.com/store?category=TRAVEL",
+        "https://apify.com/store?category=ECOMMERCE",
+        "https://apify.com/store?category=ENTERTAINMENT"
     ];
 
     const requestList = await Apify.openRequestList("categories", sources);
@@ -1241,28 +1183,15 @@ Apify.main(async () => {
             // This is our new scraping logic.
             if (request.userData.detailPage) {
                 const urlArr = request.url.split("/").slice(-2);
-                const $wrapper = $("header div.wrap");
 
                 const results = {
                     url: request.url,
                     uniqueIdentifier: urlArr.join("/"),
                     owner: urlArr[0],
-                    title: $wrapper.find("h1").text(),
-                    description: $wrapper.find("p").text(),
-                    lastRunDate: new Date(
-                        Number(
-                            $wrapper
-                                .find("time")
-                                .eq(1)
-                                .attr("datetime")
-                        )
-                    ),
-                    runCount: Number(
-                        $wrapper
-                            .find("div.stats > span:nth-of-type(3)")
-                            .text()
-                            .match(/\d+/)[0]
-                    )
+                    title: $('h1').text(),
+                    description: $('main header p[class^=Text__Paragraph]').text(),
+                    lastRunDate: new Date(Number($('time').eq(1).attr('datetime'))),
+                    runCount: Number($('ul.stats li:nth-of-type(3)').text().match(/\d+/)[0]),
                 };
                 await Apify.pushData(results);
             }
@@ -1272,10 +1201,11 @@ Apify.main(async () => {
                 await Apify.utils.enqueueLinks({
                     $,
                     requestQueue,
-                    selector: "a.item",
+                    selector: "div.item > a",
                     baseUrl: request.loadedUrl,
-                    userData: {
-                        detailPage: true
+                    transformRequestFunction: (req) => {
+                        req.userData.detailPage = true;
+                        return req;
                     }
                 });
             }
@@ -1353,7 +1283,7 @@ Once we have that, we can load it in the actor and populate the crawler's source
 const input = await Apify.getInput();
 
 const sources = input.map(category => ({
-    url: `https://apify.com/store?type=acts&category=${category}`,
+    url: `https://apify.com/store?category=${category}`,
     userData: {
         label: "CATEGORY"
     }
@@ -1431,7 +1361,7 @@ exports.getSources = async () => {
     log.debug("Getting sources.");
     const input = await Apify.getInput();
     return input.map(category => ({
-        url: `https://apify.com/store?type=acts&category=${category}`,
+        url: `https://apify.com/store?category=${category}`,
         userData: {
             label: "CATEGORY"
         }
@@ -1461,39 +1391,27 @@ exports.CATEGORY = async ({ $, request }, { requestQueue }) => {
     return Apify.utils.enqueueLinks({
         $,
         requestQueue,
-        selector: "a.item",
+        selector: "div.item > a",
         baseUrl: request.loadedUrl,
-        userData: {
-            label: "DETAIL"
+        transformRequestFunction: (req) => {
+            req.userData.label = 'DETAIL';
+            return req;
         }
     });
 };
 
 exports.DETAIL = async ({ $, request }) => {
     const urlArr = request.url.split("/").slice(-2);
-    const $wrapper = $("header div.wrap");
 
     log.debug("Scraping results.");
     const results = {
         url: request.url,
         uniqueIdentifier: urlArr.join("/"),
         owner: urlArr[0],
-        title: $wrapper.find("h1").text(),
-        description: $wrapper.find("p").text(),
-        lastRunDate: new Date(
-            Number(
-                $wrapper
-                    .find("time")
-                    .eq(1)
-                    .attr("datetime")
-            )
-        ),
-        runCount: Number(
-            $wrapper
-                .find("div.stats > span:nth-of-type(3)")
-                .text()
-                .match(/\d+/)[0]
-        )
+        title: $('h1').text(),
+        description: $('main header p[class^=Text__Paragraph]').text(),
+        lastRunDate: new Date(Number($('time').eq(1).attr('datetime'))),
+        runCount: Number($('ul.stats li:nth-of-type(3)').text().match(/\d+/)[0]),
     };
 
     log.debug("Pushing data to dataset.");
