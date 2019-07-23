@@ -860,7 +860,7 @@ scrape all actors (see the `Show` dropdown) in all categories (which can be foun
 We can see that some of the information is available directly on the list page, but for details such as "Last run date" or "Number of runs" we'll need
 to open the actor detail pages too.
 
-![data to scrape](/img/getting-started/scraping-practice.png 'Overview of data to be scraped.')
+![data to scrape](/img/getting-started/scraping-practice.jpg 'Overview of data to be scraped.')
 
 #### Analyzing the target
 
@@ -1169,7 +1169,7 @@ out ways to access it.
 6. Last run date
 7. Number of runs
 
-![data to scrape](/img/getting-started/scraping-practice.png 'Overview of data to be scraped.')
+![data to scrape](/img/getting-started/scraping-practice.jpg 'Overview of data to be scraped.')
 
 #### Scraping the URL, Owner and Unique identifier
 
@@ -1197,7 +1197,7 @@ Now it's time to add more data to the results. Let's open one of the actor detai
 
 ##### Title
 
-![actor title](/img/getting-started/title-01.png 'Finding actor title in DevTools.')
+![actor title](/img/getting-started/title-01.jpg 'Finding actor title in DevTools.')
 
 Let's start really easy. By using the element selector tool, we find out that the title is there under an `<h1>` tag, as titles should be.
 
@@ -1220,7 +1220,7 @@ there's a lot of them in the page. We need to narrow our search down a little. U
 the `<header>` element, which is nested itself in the `<main>` element. Sadly, we're still left with two `<p>` tags. To finally select only the
 description, we choose the `<p>` tag that has a `class` that starts with `Text__Paragraph`.
 
-![actor description selector](/img/getting-started/description.png 'Finding actor description in DevTools.')
+![actor description selector](/img/getting-started/description.jpg 'Finding actor description in DevTools.')
 
 ```js
 return {
@@ -1233,7 +1233,7 @@ return {
 
 The DevTools tell us that the `lastRunDate` can be found in the second of the two `<time>` elements in the page.
 
-![actor last run date selector](/img/getting-started/last-run-date.png 'Finding actor last run date in DevTools.')
+![actor last run date selector](/img/getting-started/last-run-date.jpg 'Finding actor last run date in DevTools.')
 
 ```js
 return {
