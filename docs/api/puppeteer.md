@@ -139,12 +139,11 @@ await Apify.utils.enqueueLinksByClickingElements({
   a combination of <code>url</code>, <code>method</code> and <code>payload</code> which enables crawling of websites that navigate using form submits
   (POST requests).</p>
 <p>  <strong>Example:</strong></p>
-<pre><code class="lang-javascript">  function transformRequestFunction(request) {
+<pre><code class="language-javascript">  function transformRequestFunction(request) {
       request.userData.foo = &#39;bar&#39;;
       request.useExtendedUniqueKey = true;
       return request;
-  }
-</code></pre>
+  }</code></pre>
 </td></tr><tr>
 <td><code>[options.waitForPageIdleSecs]</code></td><td><code>number</code></td><td><code>1</code></td>
 </tr>
