@@ -5,16 +5,13 @@ title: PuppeteerPool
 
 <a name="PuppeteerPool"></a>
 
-Manages a pool of Chrome browser instances controlled using
-<a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a>.
+Manages a pool of Chrome browser instances controlled using <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a>.
 
-`PuppeteerPool` reuses Chrome instances and tabs using specific browser rotation and retirement policies.
-This is useful in order to facilitate rotation of proxies, cookies
-or other settings in order to prevent detection of your web scraping bot,
-access web pages from various countries etc.
+`PuppeteerPool` reuses Chrome instances and tabs using specific browser rotation and retirement policies. This is useful in order to facilitate
+rotation of proxies, cookies or other settings in order to prevent detection of your web scraping bot, access web pages from various countries etc.
 
-Additionally, the reuse of browser instances instances speeds up crawling,
-and the retirement of instances helps mitigate effects of memory leaks in Chrome.
+Additionally, the reuse of browser instances instances speeds up crawling, and the retirement of instances helps mitigate effects of memory leaks in
+Chrome.
 
 `PuppeteerPool` is internally used by the [`PuppeteerCrawler`](puppeteercrawler) class.
 
@@ -147,9 +144,8 @@ await puppeteerPool.destroy();
 
 ## `puppeteerPool.newPage()` ⇒ `Promise<Page>`
 
-Produces a new page instance either by reusing an idle page that currently isn't processing
-any request or by spawning a new page (new browser tab) in one of the available
-browsers when no idle pages are available.
+Produces a new page instance either by reusing an idle page that currently isn't processing any request or by spawning a new page (new browser tab) in
+one of the available browsers when no idle pages are available.
 
 To spawn a new browser tab for each page, set the `reusePages` constructor option to false.
 
@@ -163,10 +159,9 @@ Closes all open browsers.
 
 ## `puppeteerPool.retire(browser)` ⇒ `Promise`
 
-Manually retires a Puppeteer
-<a href="https://pptr.dev/#?product=Puppeteer&show=api-class-browser" target="_blank"><code>Browser</code></a>
-instance from the pool. The browser will continue to process open pages so that they may gracefully finish.
-This is unlike `browser.close()` which will forcibly terminate the browser and all open pages will be closed.
+Manually retires a Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-browser" target="_blank"><code>Browser</code></a> instance
+from the pool. The browser will continue to process open pages so that they may gracefully finish. This is unlike `browser.close()` which will
+forcibly terminate the browser and all open pages will be closed.
 
 <table>
 <thead>
@@ -185,12 +180,10 @@ This is unlike `browser.close()` which will forcibly terminate the browser and a
 
 ## `puppeteerPool.recyclePage(page)` ⇒ `Promise`
 
-Closes the page, unless the `reuseTabs` option is set to true.
-Then it would only flag the page for a future reuse, without actually closing it.
+Closes the page, unless the `reuseTabs` option is set to true. Then it would only flag the page for a future reuse, without actually closing it.
 
-NOTE: LiveView snapshotting is tied to this function. When `useLiveView` option
-is set to true, a snapshot of the page will be taken just before closing the page
-or flagging it for reuse.
+NOTE: LiveView snapshotting is tied to this function. When `useLiveView` option is set to true, a snapshot of the page will be taken just before
+closing the page or flagging it for reuse.
 
 <table>
 <thead>

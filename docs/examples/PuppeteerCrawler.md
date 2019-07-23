@@ -3,15 +3,13 @@ id: puppeteercrawler
 title: Puppeteer Crawler
 ---
 
-This example demonstrates how to use [`PuppeteerCrawler`](../api/puppeteercrawler)
-in combination with [`RequestQueue`](../api/requestqueue) to recursively scrape the
-<a href="https://news.ycombinator.com" target="_blank">Hacker News website</a> using headless Chrome / Puppeteer.
-The crawler starts with a single URL, finds links to next pages,
-enqueues them and continues until no more desired links are available.
-The results are stored to the default dataset. In local configuration, the results are stored as JSON files in `./apify_storage/datasets/default`
+This example demonstrates how to use [`PuppeteerCrawler`](../api/puppeteercrawler) in combination with [`RequestQueue`](../api/requestqueue) to
+recursively scrape the <a href="https://news.ycombinator.com" target="_blank">Hacker News website</a> using headless Chrome / Puppeteer. The crawler
+starts with a single URL, finds links to next pages, enqueues them and continues until no more desired links are available. The results are stored to
+the default dataset. In local configuration, the results are stored as JSON files in `./apify_storage/datasets/default`
 
-To run this example on the Apify Platform, select the `Node.js 8 + Chrome on Debian (apify/actor-node-chrome)` base image
-on the source tab of your actor configuration.
+To run this example on the Apify Platform, select the `Node.js 8 + Chrome on Debian (apify/actor-node-chrome)` base image on the source tab of your
+actor configuration.
 
 ```javascript
 const Apify = require('apify');

@@ -5,39 +5,33 @@ title: PuppeteerCrawler
 
 <a name="PuppeteerCrawler"></a>
 
-Provides a simple framework for parallel crawling of web pages
-using headless Chrome with <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a>.
-The URLs to crawl are fed either from a static list of URLs
-or from a dynamic queue of URLs enabling recursive crawling of websites.
+Provides a simple framework for parallel crawling of web pages using headless Chrome with
+<a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a>. The URLs to crawl are fed either from a static list of URLs or from
+a dynamic queue of URLs enabling recursive crawling of websites.
 
-Since `PuppeteerCrawler` uses headless Chrome to download web pages and extract data,
-it is useful for crawling of websites that require to execute JavaScript.
-If the target website doesn't need JavaScript, consider using [`CheerioCrawler`](cheeriocrawler),
-which downloads the pages using raw HTTP requests and is about 10x faster.
+Since `PuppeteerCrawler` uses headless Chrome to download web pages and extract data, it is useful for crawling of websites that require to execute
+JavaScript. If the target website doesn't need JavaScript, consider using [`CheerioCrawler`](cheeriocrawler), which downloads the pages using raw HTTP
+requests and is about 10x faster.
 
-The source URLs are represented using [`Request`](request) objects that are fed from
-[`RequestList`](requestlist) or [`RequestQueue`](requestqueue) instances provided by the [`requestList`](#new_PuppeteerCrawler_new)
-or [`requestQueue`](#new_PuppeteerCrawler_new) constructor options, respectively.
+The source URLs are represented using [`Request`](request) objects that are fed from [`RequestList`](requestlist) or [`RequestQueue`](requestqueue)
+instances provided by the [`requestList`](#new_PuppeteerCrawler_new) or [`requestQueue`](#new_PuppeteerCrawler_new) constructor options, respectively.
 
-If both [`requestList`](#new_PuppeteerCrawler_new) and [`requestQueue`](#new_PuppeteerCrawler_new) are used,
-the instance first processes URLs from the [`RequestList`](requestlist) and automatically enqueues all of them
-to [`RequestQueue`](requestqueue) before it starts their processing. This ensures that a single URL is not crawled multiple times.
+If both [`requestList`](#new_PuppeteerCrawler_new) and [`requestQueue`](#new_PuppeteerCrawler_new) are used, the instance first processes URLs from
+the [`RequestList`](requestlist) and automatically enqueues all of them to [`RequestQueue`](requestqueue) before it starts their processing. This
+ensures that a single URL is not crawled multiple times.
 
 The crawler finishes when there are no more [`Request`](request) objects to crawl.
 
-`PuppeteerCrawler` opens a new Chrome page (i.e. tab) for each [`Request`](request) object to crawl
-and then calls the function provided by user as the [`handlePageFunction()`](#new_PuppeteerCrawler_new) option.
+`PuppeteerCrawler` opens a new Chrome page (i.e. tab) for each [`Request`](request) object to crawl and then calls the function provided by user as
+the [`handlePageFunction()`](#new_PuppeteerCrawler_new) option.
 
-New pages are only opened when there is enough free CPU and memory available,
-using the functionality provided by the [`AutoscaledPool`](autoscaledpool) class.
-All [`AutoscaledPool`](autoscaledpool) configuration options can be passed to the `autoscaledPoolOptions`
-parameter of the `PuppeteerCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency`
-[`AutoscaledPool`](autoscaledpool) options are available directly in the `PuppeteerCrawler` constructor.
+New pages are only opened when there is enough free CPU and memory available, using the functionality provided by the
+[`AutoscaledPool`](autoscaledpool) class. All [`AutoscaledPool`](autoscaledpool) configuration options can be passed to the `autoscaledPoolOptions`
+parameter of the `PuppeteerCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency` [`AutoscaledPool`](autoscaledpool)
+options are available directly in the `PuppeteerCrawler` constructor.
 
-Note that the pool of Puppeteer instances is internally managed by
-the [`PuppeteerPool`](puppeteerpool) class. Many constructor options
-such as `maxOpenPagesPerInstance` or `launchPuppeteerFunction` are passed directly
-to [`PuppeteerPool`](puppeteerpool) constructor.
+Note that the pool of Puppeteer instances is internally managed by the [`PuppeteerPool`](puppeteerpool) class. Many constructor options such as
+`maxOpenPagesPerInstance` or `launchPuppeteerFunction` are passed directly to [`PuppeteerPool`](puppeteerpool) constructor.
 
 **Example usage:**
 

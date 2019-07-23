@@ -5,13 +5,12 @@ title: Request
 
 <a name="Request"></a>
 
-Represents a URL to be crawled, optionally including HTTP method, headers, payload and other metadata.
-The `Request` object also stores information about errors that occurred during processing of the request.
+Represents a URL to be crawled, optionally including HTTP method, headers, payload and other metadata. The `Request` object also stores information
+about errors that occurred during processing of the request.
 
-Each `Request` instance has the `uniqueKey` property, which can be either specified
-manually in the constructor or generated automatically from the URL. Two requests with the same `uniqueKey`
-are considered as pointing to the same web resource. This behavior applies to all Apify SDK classes,
-such as [`RequestList`](requestlist), [`RequestQueue`](requestqueue) or [`PuppeteerCrawler`](puppeteercrawler).
+Each `Request` instance has the `uniqueKey` property, which can be either specified manually in the constructor or generated automatically from the
+URL. Two requests with the same `uniqueKey` are considered as pointing to the same web resource. This behavior applies to all Apify SDK classes, such
+as [`RequestList`](requestlist), [`RequestQueue`](requestqueue) or [`PuppeteerCrawler`](puppeteercrawler).
 
 Example use:
 
@@ -199,10 +198,9 @@ Stores information about an error that occurred during processing of this reques
 
 You should always use Error instances when throwing errors in JavaScript.
 
-Nevertheless, to improve the debugging experience when using third party libraries
-that may not always throw an Error instance, the function performs a type
-inspection of the passed argument and attempts to extract as much information
-as possible, since just throwing a bad type error makes any debugging rather difficult.
+Nevertheless, to improve the debugging experience when using third party libraries that may not always throw an Error instance, the function performs
+a type inspection of the passed argument and attempts to extract as much information as possible, since just throwing a bad type error makes any
+debugging rather difficult.
 
 <table>
 <thead>
@@ -233,12 +231,10 @@ as possible, since just throwing a bad type error makes any debugging rather dif
 
 **_Deprecated_**
 
-Flags the request with no retry which prevents [`BasicCrawler`](basiccrawler)
-(as well as {@PuppeteerCrawler} and {@CheerioCrawler}, since they use {@BasicCrawler} internally)
-from retrying the request after an error occurs.
+Flags the request with no retry which prevents [`BasicCrawler`](basiccrawler) (as well as {@PuppeteerCrawler} and {@CheerioCrawler}, since they use
+{@BasicCrawler} internally) from retrying the request after an error occurs.
 
-Optionally accepts a message that will be used to construct
-and throw an Error.
+Optionally accepts a message that will be used to construct and throw an Error.
 
 <table>
 <thead>

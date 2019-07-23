@@ -3,23 +3,22 @@ id: synchronousrun
 title: Synchronous Run
 ---
 
-This example shows a quick actor that has a run time of just a few seconds.
-It opens a <a href="http://goldengatebridge75.org/news/webcam.html" target="_blank">web page</a>
-that contains a webcam stream from the Golden Gate Bridge, takes a screenshot of the page and saves it as output.
+This example shows a quick actor that has a run time of just a few seconds. It opens a
+<a href="http://goldengatebridge75.org/news/webcam.html" target="_blank">web page</a> that contains a webcam stream from the Golden Gate Bridge, takes
+a screenshot of the page and saves it as output.
 
-This actor
-can be invoked synchronously using a single HTTP request to directly obtain its output as a reponse, using the
-<a href="https://apify.com/docs/api/v2#/reference/actors/run-actor-synchronously/without-input" target="_blank">Run actor synchronously</a>
-Apify API endpoint. The example is also shared as the
-<a href="https://apify.com/apify/example-golden-gate-webcam" target="_blank">apify/example-golden-gate-webcam</a>
-actor in the Apify library, so you can test it directly there simply by sending a POST request to
+This actor can be invoked synchronously using a single HTTP request to directly obtain its output as a reponse, using the
+<a href="https://apify.com/docs/api/v2#/reference/actors/run-actor-synchronously/without-input" target="_blank">Run actor synchronously</a> Apify API
+endpoint. The example is also shared as the
+<a href="https://apify.com/apify/example-golden-gate-webcam" target="_blank">apify/example-golden-gate-webcam</a> actor in the Apify library, so you
+can test it directly there simply by sending a POST request to
 
 ```http
 https://api.apify.com/v2/acts/apify~example-golden-gate-webcam/run-sync?token=[YOUR_API_TOKEN]
 ```
 
-To run this example on the Apify Platform, select the `Node.js 8 + Chrome on Debian (apify/actor-node-chrome)` base image
-on the source tab of your actor configuration.
+To run this example on the Apify Platform, select the `Node.js 8 + Chrome on Debian (apify/actor-node-chrome)` base image on the source tab of your
+actor configuration.
 
 ```javascript
 const Apify = require('apify');

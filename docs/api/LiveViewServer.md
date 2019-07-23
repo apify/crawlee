@@ -5,9 +5,8 @@ title: LiveViewServer
 
 <a name="LiveViewServer"></a>
 
-`LiveViewServer` enables serving of browser snapshots via web sockets. It includes its own client
-that provides a simple frontend to viewing the captured snapshots. A snapshot consists of three
-pieces of information, the currently opened URL, the content of the page (HTML) and its screenshot.
+`LiveViewServer` enables serving of browser snapshots via web sockets. It includes its own client that provides a simple frontend to viewing the
+captured snapshots. A snapshot consists of three pieces of information, the currently opened URL, the content of the page (HTML) and its screenshot.
 
 ```json
 {
@@ -18,23 +17,21 @@ pieces of information, the currently opened URL, the content of the page (HTML) 
 }
 ```
 
-`LiveViewServer` is useful when you want to be able to inspect the current browser status on demand.
-When no client is connected, the webserver consumes very low resources so it should have a close
-to zero impact on performance. Only once a client connects the server will start serving snapshots.
-Once no longer needed, it can be disabled again in the client to remove any performance impact.
+`LiveViewServer` is useful when you want to be able to inspect the current browser status on demand. When no client is connected, the webserver
+consumes very low resources so it should have a close to zero impact on performance. Only once a client connects the server will start serving
+snapshots. Once no longer needed, it can be disabled again in the client to remove any performance impact.
 
-NOTE: Screenshot taking in browser typically takes around 300ms. So having the `LiveViewServer`
-always serve snapshots will have a significant impact on performance.
+NOTE: Screenshot taking in browser typically takes around 300ms. So having the `LiveViewServer` always serve snapshots will have a significant impact
+on performance.
 
-When using [`PuppeteerPool`](puppeteerpool), the `LiveViewServer` can be
-easily used just by providing the `useLiveView = true` option to the [`PuppeteerPool`](puppeteerpool).
-It can also be initiated via [`PuppeteerCrawler`](puppeteercrawler) `puppeteerPoolOptions`.
+When using [`PuppeteerPool`](puppeteerpool), the `LiveViewServer` can be easily used just by providing the `useLiveView = true` option to the
+[`PuppeteerPool`](puppeteerpool). It can also be initiated via [`PuppeteerCrawler`](puppeteercrawler) `puppeteerPoolOptions`.
 
-It will take snapshots of the first page of the latest browser. Taking snapshots of only a
-single page improves performance and stability dramatically in high concurrency situations.
+It will take snapshots of the first page of the latest browser. Taking snapshots of only a single page improves performance and stability dramatically
+in high concurrency situations.
 
-When running locally, it is often best to use a headful browser for debugging, since it provides
-a better view into the browser, including DevTools, but `LiveViewServer` works too.
+When running locally, it is often best to use a headful browser for debugging, since it provides a better view into the browser, including DevTools,
+but `LiveViewServer` works too.
 
 -   [LiveViewServer](liveviewserver)
     -   [`new LiveViewServer([options])`](#new_LiveViewServer_new)
@@ -94,23 +91,20 @@ a better view into the browser, including DevTools, but `LiveViewServer` works t
 
 ## `liveViewServer.start()` ⇒ `Promise`
 
-Starts the HTTP server with web socket connections enabled.
-Snapshots will not be created until a client has connected.
+Starts the HTTP server with web socket connections enabled. Snapshots will not be created until a client has connected.
 
 <a name="LiveViewServer+stop"></a>
 
 ## `liveViewServer.stop()` ⇒ `Promise`
 
-Prevents the server from receiving more connections. Existing connections
-will not be terminated, but the server will not prevent a process exit.
+Prevents the server from receiving more connections. Existing connections will not be terminated, but the server will not prevent a process exit.
 
 <a name="LiveViewServer+serve"></a>
 
 ## `liveViewServer.serve(page)` ⇒ `Promise`
 
-Serves a snapshot to all connected clients.
-Screenshots are not served directly, only their index number
-which is used by client to retrieve the screenshot.
+Serves a snapshot to all connected clients. Screenshots are not served directly, only their index number which is used by client to retrieve the
+screenshot.
 
 Will time out and throw in `options.snapshotTimeoutSecs`.
 

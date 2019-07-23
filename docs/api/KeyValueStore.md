@@ -5,43 +5,36 @@ title: KeyValueStore
 
 <a name="KeyValueStore"></a>
 
-The `KeyValueStore` class represents a key-value store, a simple data storage that is used
-for saving and reading data records or files. Each data record is
-represented by a unique key and associated with a MIME content type. Key-value stores are ideal
-for saving screenshots, actor inputs and outputs, web pages, PDFs or to persist the state of crawlers.
+The `KeyValueStore` class represents a key-value store, a simple data storage that is used for saving and reading data records or files. Each data
+record is represented by a unique key and associated with a MIME content type. Key-value stores are ideal for saving screenshots, actor inputs and
+outputs, web pages, PDFs or to persist the state of crawlers.
 
-Do not instantiate this class directly, use the
-[`Apify.openKeyValueStore()`](apify#module_Apify.openKeyValueStore) function instead.
+Do not instantiate this class directly, use the [`Apify.openKeyValueStore()`](apify#module_Apify.openKeyValueStore) function instead.
 
-Each actor run is associated with a default key-value store, which is created exclusively
-for the run. By convention, the actor input and output are stored into the
-default key-value store under the `INPUT` and `OUTPUT` key, respectively.
-Typically, input and output are JSON files, although it can be any other format.
-To access the default key-value store directly, you can use the
-[`Apify.getValue()`](apify#module_Apify.getValue)
-and [`Apify.setValue()`](apify#module_Apify.setValue) convenience functions.
+Each actor run is associated with a default key-value store, which is created exclusively for the run. By convention, the actor input and output are
+stored into the default key-value store under the `INPUT` and `OUTPUT` key, respectively. Typically, input and output are JSON files, although it can
+be any other format. To access the default key-value store directly, you can use the [`Apify.getValue()`](apify#module_Apify.getValue) and
+[`Apify.setValue()`](apify#module_Apify.setValue) convenience functions.
 
 To access the input, you can also use the [`Apify.getInput()`](apify#module_Apify.getInput) convenience function.
 
-`KeyValueStore` stores its data either on local disk or in the Apify cloud,
-depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variables are set.
+`KeyValueStore` stores its data either on local disk or in the Apify cloud, depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN`
+environment variables are set.
 
-If the `APIFY_LOCAL_STORAGE_DIR` environment variable is set, the data is stored in
-the local directory in the following files:
+If the `APIFY_LOCAL_STORAGE_DIR` environment variable is set, the data is stored in the local directory in the following files:
 
 ```
 {APIFY_LOCAL_STORAGE_DIR}/key_value_stores/{STORE_ID}/{INDEX}.{EXT}
 ```
 
-Note that `{STORE_ID}` is the name or ID of the key-value store. The default key value store has ID: `default`,
-unless you override it by setting the `APIFY_DEFAULT_KEY_VALUE_STORE_ID` environment variable.
-The `{KEY}` is the key of the record and `{EXT}` corresponds to the MIME content type of the data value.
+Note that `{STORE_ID}` is the name or ID of the key-value store. The default key value store has ID: `default`, unless you override it by setting the
+`APIFY_DEFAULT_KEY_VALUE_STORE_ID` environment variable. The `{KEY}` is the key of the record and `{EXT}` corresponds to the MIME content type of the
+data value.
 
 If the `APIFY_TOKEN` environment variable is set but `APIFY_LOCAL_STORAGE_DIR` not, the data is stored in the
-<a href="https://apify.com/docs/storage#key-value-store" target="_blank">Apify Key-value store</a>
-cloud storage. Note that you can force usage of the cloud storage also by passing the `forceCloud`
-option to [`Apify.openKeyValueStore()`](apify#module_Apify.openKeyValueStore) function,
-even if the `APIFY_LOCAL_STORAGE_DIR` variable is set.
+<a href="https://apify.com/docs/storage#key-value-store" target="_blank">Apify Key-value store</a> cloud storage. Note that you can force usage of the
+cloud storage also by passing the `forceCloud` option to [`Apify.openKeyValueStore()`](apify#module_Apify.openKeyValueStore) function, even if the
+`APIFY_LOCAL_STORAGE_DIR` variable is set.
 
 **Example usage:**
 
@@ -81,18 +74,14 @@ await store.delete('some-key');
 
 Gets a value from the key-value store.
 
-The function returns a `Promise` that resolves to the record value,
-whose JavaScript type depends on the MIME content type of the record.
-Records with the `application/json`
-content type are automatically parsed and returned as a JavaScript object.
-Similarly, records with `text/plain` content types are returned as a string.
-For all other content types, the value is returned as a raw
+The function returns a `Promise` that resolves to the record value, whose JavaScript type depends on the MIME content type of the record. Records with
+the `application/json` content type are automatically parsed and returned as a JavaScript object. Similarly, records with `text/plain` content types
+are returned as a string. For all other content types, the value is returned as a raw
 <a href="https://nodejs.org/api/buffer.html" target="_blank"><code>Buffer</code></a> instance.
 
 If the record does not exist, the function resolves to `null`.
 
-To save or delete a value in the key-value store, use the
-[`setValue`](#KeyValueStore+setValue) function.
+To save or delete a value in the key-value store, use the [`setValue`](#KeyValueStore+setValue) function.
 
 **Example usage:**
 
@@ -101,9 +90,8 @@ const store = await Apify.openKeyValueStore('my-screenshots');
 const buffer = await store.getValue('screenshot1.png');
 ```
 
-**Returns**: `Promise<(Object|String|Buffer)>` - Returns a promise that resolves to an object, string
-or <a href="https://nodejs.org/api/buffer.html" target="_blank"><code>Buffer</code></a>, depending
-on the MIME content type of the record.
+**Returns**: `Promise<(Object|String|Buffer)>` - Returns a promise that resolves to an object, string or
+<a href="https://nodejs.org/api/buffer.html" target="_blank"><code>Buffer</code></a>, depending on the MIME content type of the record.
 
 <table>
 <thead>
@@ -124,8 +112,7 @@ on the MIME content type of the record.
 
 ## `keyValueStore.setValue(key, value, [options])` ⇒ `Promise`
 
-Saves or deletes a record in the key-value store.
-The function returns a promise that resolves once the record has been saved or deleted.
+Saves or deletes a record in the key-value store. The function returns a promise that resolves once the record has been saved or deleted.
 
 **Example usage:**
 
@@ -136,9 +123,8 @@ await store.setValue('RESULTS', 'my text data', { contentType: 'text/plain' });
 
 Beware that the key can be at most 256 characters long and only contain the following characters: `a-zA-Z0-9!-_.'()`
 
-By default, `value` is converted to JSON and stored with the
-`application/json; charset=utf-8` MIME content type.
-To store the value with another content type, pass it in the options as follows:
+By default, `value` is converted to JSON and stored with the `application/json; charset=utf-8` MIME content type. To store the value with another
+content type, pass it in the options as follows:
 
 ```javascript
 const store = await Apify.openKeyValueStore('my-store');
@@ -148,14 +134,12 @@ await store.setValue('RESULTS', 'my text data', { contentType: 'text/plain' });
 If you set custom content type, `value` must be either a string or
 <a href="https://nodejs.org/api/buffer.html" target="_blank"><code>Buffer</code></a>, otherwise an error will be thrown.
 
-If `value` is `null`, the record is deleted instead. Note that the `setValue()` function succeeds
-regardless whether the record existed or not.
+If `value` is `null`, the record is deleted instead. Note that the `setValue()` function succeeds regardless whether the record existed or not.
 
-To retrieve a value from the key-value store, use the
-[`getValue`](#KeyValueStore+getValue) function.
+To retrieve a value from the key-value store, use the [`getValue`](#KeyValueStore+getValue) function.
 
-**IMPORTANT:** Always make sure to use the `await` keyword when calling `setValue()`,
-otherwise the actor process might finish before the value is stored!
+**IMPORTANT:** Always make sure to use the `await` keyword when calling `setValue()`, otherwise the actor process might finish before the value is
+stored!
 
 <table>
 <thead>
@@ -197,15 +181,13 @@ otherwise the actor process might finish before the value is stored!
 
 ## `keyValueStore.delete()` ⇒ `Promise`
 
-Removes the key-value store either from the Apify cloud storage or from the local directory,
-depending on the mode of operation.
+Removes the key-value store either from the Apify cloud storage or from the local directory, depending on the mode of operation.
 
 <a name="KeyValueStore+getPublicUrl"></a>
 
 ## `keyValueStore.getPublicUrl(key)` ⇒ `string`
 
-Returns a URL for the given key that may be used to publicly
-access the value in the remote key value store.
+Returns a URL for the given key that may be used to publicly access the value in the remote key value store.
 
 <table>
 <thead>
@@ -224,14 +206,12 @@ access the value in the remote key value store.
 
 ## `keyValueStore.forEachKey(iteratee, [options])` ⇒ `Promise`
 
-Iterates over key value store keys, yielding each in turn to an `iteratee` function.
-Each invocation of `iteratee` is called with three arguments: `(key, index, info)`, where `key`
-is the record key, `index` is a zero-based index of the key in the current iteration
-(regardless of `options.exclusiveStartKey`) and `info` is an object that contains a single property `size`
-indicating size of the record in bytes.
+Iterates over key value store keys, yielding each in turn to an `iteratee` function. Each invocation of `iteratee` is called with three arguments:
+`(key, index, info)`, where `key` is the record key, `index` is a zero-based index of the key in the current iteration (regardless of
+`options.exclusiveStartKey`) and `info` is an object that contains a single property `size` indicating size of the record in bytes.
 
-If the `iteratee` function returns a Promise then it is awaited before the next call.
-If it throws an error, the iteration is aborted and the `forEachKey` function throws the error.
+If the `iteratee` function returns a Promise then it is awaited before the next call. If it throws an error, the iteration is aborted and the
+`forEachKey` function throws the error.
 
 **Example usage**
 
