@@ -14,6 +14,10 @@ export const REQUEST_AS_BROWSER_DEFAULT_OPTIONS = {
     useMobileVersion: false,
     useBrotli: true,
     json: false,
+    abortFunction: (res) => {
+        const { type } = contentType.parse(res.headers['content-type']);
+        return res.statusCode === 406 || type.toLowerCase() !== 'text/html';
+    },
 };
 /**
  * Sends a HTTP request that looks like a request sent by a web browser,
@@ -55,10 +59,6 @@ export const requestAsBrowser = async (options) => {
     const opts = _.defaults({}, options, REQUEST_AS_BROWSER_DEFAULT_OPTIONS);
 
     const parsedUrl = url.parse(opts.url);
-    const abortFunction = (res) => {
-        const { type } = contentType.parse(res.headers['content-type']);
-        return res.statusCode === 406 || type.toLowerCase() !== 'text/html';
-    };
 
     const browserHeaders = {
         Host: parsedUrl.host,
@@ -69,7 +69,6 @@ export const requestAsBrowser = async (options) => {
         Connection: 'keep-alive',
     };
     opts.headers = _.defaults({}, opts.headers, browserHeaders);
-    opts.abortFunction = abortFunction;
 
     return httpRequest(opts);
 };
