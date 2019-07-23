@@ -27,6 +27,8 @@ export const REQUEST_AS_BROWSER_DEFAULT_OPTIONS = {
  * Thanks to this function, the target web server has no simple way to find out the request
  * hasn't been sent by a full web browser. Using a headless browser for such requests
  * is an order of magnitude more resource-intensive than this function.
+ * By default tt aborts all requests that returns 406 status codes or non-HTML content-types.
+ * You can override this behavior by passing custom `abortFunction`.
  *
  * Currently, the function sends requests the same way as Firefox web browser does.
  * In the future, it might add support for other browsers too.
@@ -50,6 +52,10 @@ export const REQUEST_AS_BROWSER_DEFAULT_OPTIONS = {
  *  Two-letter ISO 3166 country code.
  * @param [options.isMobile]
  *  If `true`, the function uses User-Agent of a mobile browser.
+ * @param [options.abortFunction]
+ *  Function accepts `response` object as a single parameter and should return true or false.
+ *  If function returns true request gets aborted. This function is passed to the
+ *  (@apify/http-request)[https://www.npmjs.com/package/@apify/http-request] NPM package.
  *
  * @return {http.IncomingMessage}
  * @memberOf utils
