@@ -5,8 +5,7 @@ title: QueueOperationInfo
 
 <a name="QueueOperationInfo"></a>
 
-A helper class that is used to report results from various
-[`RequestQueue`](../api/requestqueue) functions as well as
+A helper class that is used to report results from various [`RequestQueue`](../api/requestqueue) functions as well as
 [`Apify.utils.enqueueLinks()`](../api/utils#utils.enqueueLinks).
 
 **Properties**

@@ -3,16 +3,14 @@ id: datastorage
 title: Data Storage
 ---
 
-The Apify SDK has several data storage types that are useful for specific tasks.
-The data is stored either on local disk to a directory defined by the `APIFY_LOCAL_STORAGE_DIR` environment variable,
-or on the <a href="https://apify.com" target="_blank">Apify Cloud</a> under the user account identified by the API token defined by the `APIFY_TOKEN` environment variable.
-If neither of these variables is defined, by default Apify SDK sets `APIFY_LOCAL_STORAGE_DIR`
-to `./apify_storage` in the current working directory and prints a warning.
+The Apify SDK has several data storage types that are useful for specific tasks. The data is stored either on local disk to a directory defined by the
+`APIFY_LOCAL_STORAGE_DIR` environment variable, or on the <a href="https://apify.com" target="_blank">Apify Cloud</a> under the user account
+identified by the API token defined by the `APIFY_TOKEN` environment variable. If neither of these variables is defined, by default Apify SDK sets
+`APIFY_LOCAL_STORAGE_DIR` to `./apify_storage` in the current working directory and prints a warning.
 
-Typically, you will be developing the code on your local computer and thus set the `APIFY_LOCAL_STORAGE_DIR` environment variable.
-Once the code is ready, you will deploy it to the Apify Cloud, where it will automatically
-set the `APIFY_TOKEN` environment variable and thus use cloud storage.
-No code changes are needed.
+Typically, you will be developing the code on your local computer and thus set the `APIFY_LOCAL_STORAGE_DIR` environment variable. Once the code is
+ready, you will deploy it to the Apify Cloud, where it will automatically set the `APIFY_TOKEN` environment variable and thus use cloud storage. No
+code changes are needed.
 
 **Related links**
 
@@ -22,21 +20,16 @@ No code changes are needed.
 
 ## Key-value store
 
-The key-value store is used for saving and reading data records or files.
-Each data record is represented by a unique key and associated with a MIME content type.
-Key-value stores are ideal for saving screenshots of web pages, PDFs or to persist the state of crawlers.
+The key-value store is used for saving and reading data records or files. Each data record is represented by a unique key and associated with a MIME
+content type. Key-value stores are ideal for saving screenshots of web pages, PDFs or to persist the state of crawlers.
 
-Each actor run is associated with a **default key-value store**, which is created exclusively for the actor run.
-By convention, the actor run input and output is stored in the default key-value store
-under the `INPUT` and `OUTPUT` key, respectively. Typically the input and output is a JSON file,
+Each actor run is associated with a **default key-value store**, which is created exclusively for the actor run. By convention, the actor run input
+and output is stored in the default key-value store under the `INPUT` and `OUTPUT` key, respectively. Typically the input and output is a JSON file,
 although it can be any other format.
 
-In the Apify SDK, the key-value store is represented by the
-[`KeyValueStore`](../api/keyvaluestore)
-class.
-In order to simplify access to the default key-value store, the SDK also provides
-[`Apify.getValue()`](../api/apify#module_Apify.getValue)
-and [`Apify.setValue()`](../api/apify#module_Apify.setValue) functions.
+In the Apify SDK, the key-value store is represented by the [`KeyValueStore`](../api/keyvaluestore) class. In order to simplify access to the default
+key-value store, the SDK also provides [`Apify.getValue()`](../api/apify#module_Apify.getValue) and
+[`Apify.setValue()`](../api/apify#module_Apify.setValue) functions.
 
 In local configuration, the data is stored in the directory specified by the `APIFY_LOCAL_STORAGE_DIR` environment variable as follows:
 
@@ -44,10 +37,8 @@ In local configuration, the data is stored in the directory specified by the `AP
 {APIFY_LOCAL_STORAGE_DIR}/key_value_stores/{STORE_ID}/{KEY}.{EXT}
 ```
 
-Note that `{STORE_ID}` is the name or ID of the key-value store.
-The default key value store has ID `default`, unless you override it by setting the `APIFY_DEFAULT_KEY_VALUE_STORE_ID`
-environment variable.
-The `{KEY}` is the key of the record and `{EXT}` corresponds to the MIME content type of the
+Note that `{STORE_ID}` is the name or ID of the key-value store. The default key value store has ID `default`, unless you override it by setting the
+`APIFY_DEFAULT_KEY_VALUE_STORE_ID` environment variable. The `{KEY}` is the key of the record and `{EXT}` corresponds to the MIME content type of the
 data value.
 
 The following code demonstrates basic operations of key-value stores:
@@ -57,47 +48,42 @@ The following code demonstrates basic operations of key-value stores:
 const input = await Apify.getInput();
 
 // Write actor output to the default key-value store.
-await Apify.setValue("OUTPUT", { myResult: 123 });
+await Apify.setValue('OUTPUT', { myResult: 123 });
 
 // Open a named key-value store
-const store = await Apify.openKeyValueStore("some-name");
+const store = await Apify.openKeyValueStore('some-name');
 
 // Write record. JavaScript object is automatically converted to JSON,
 // strings and binary buffers are stored as they are
-await store.setValue("some-key", { foo: "bar" });
+await store.setValue('some-key', { foo: 'bar' });
 
 // Read record. Note that JSON is automatically parsed to a JavaScript object,
 // text data returned as a string and other data is returned as binary buffer
-const value = await store.getValue("some-key");
+const value = await store.getValue('some-key');
 
 // Delete record
-await store.setValue("some-key", null);
+await store.setValue('some-key', null);
 ```
 
-To see a real-world example of how to get the input from the key-value store, see the
-[Screenshots](../examples/screenshots) example.
+To see a real-world example of how to get the input from the key-value store, see the [Screenshots](../examples/screenshots) example.
 
 ## Dataset
 
-Datasets are used to store structured data
-where each object stored has the same attributes, such as online store products or real estate offers.
-You can imagine a dataset as a table, where each object is a row and its attributes are columns.
-Dataset is an append-only storage - you can only add new records to it but you cannot modify or remove
-existing records.
+Datasets are used to store structured data where each object stored has the same attributes, such as online store products or real estate offers. You
+can imagine a dataset as a table, where each object is a row and its attributes are columns. Dataset is an append-only storage - you can only add new
+records to it but you cannot modify or remove existing records.
 
-When the dataset is stored in the <a href="https://apify.com" target="_blank">Apify Cloud</a>,
-you can export its data to the following formats: HTML, JSON, CSV, Excel, XML and RSS.
-The datasets are displayed on the actor run details page and in the <a href="https://my.apify.com/storage" target="_blank">Storage</a>
-section in the Apify app. The actual data is exported using the
-<a href="https://apify.com/docs/api/v2#/reference/datasets/item-collection/get-items" target="_blank">Get dataset items</a> Apify API endpoint.
-This way you can easily share crawling results.
+When the dataset is stored in the <a href="https://apify.com" target="_blank">Apify Cloud</a>, you can export its data to the following formats: HTML,
+JSON, CSV, Excel, XML and RSS. The datasets are displayed on the actor run details page and in the
+<a href="https://my.apify.com/storage" target="_blank">Storage</a> section in the Apify app. The actual data is exported using the
+<a href="https://apify.com/docs/api/v2#/reference/datasets/item-collection/get-items" target="_blank">Get dataset items</a> Apify API endpoint. This
+way you can easily share crawling results.
 
-Each actor run is associated with a **default dataset**, which is created exclusively for the actor run.
-Typically, it is used to store crawling results specific for the actor run. Its usage is optional.
+Each actor run is associated with a **default dataset**, which is created exclusively for the actor run. Typically, it is used to store crawling
+results specific for the actor run. Its usage is optional.
 
-In the Apify SDK, the dataset is represented by the [`Dataset`](../api/dataset) class.
-In order to simplify writes to the default dataset, the SDK also provides the
-[`Apify.pushData()`](../api/apify#module_Apify.pushData) function.
+In the Apify SDK, the dataset is represented by the [`Dataset`](../api/dataset) class. In order to simplify writes to the default dataset, the SDK
+also provides the [`Apify.pushData()`](../api/apify#module_Apify.pushData) function.
 
 In local configuration, the data is stored in the directory specified by the `APIFY_LOCAL_STORAGE_DIR` environment variable as follows:
 
@@ -105,40 +91,35 @@ In local configuration, the data is stored in the directory specified by the `AP
 {APIFY_LOCAL_STORAGE_DIR}/datasets/{DATASET_ID}/{INDEX}.json
 ```
 
-Note that `{DATASET_ID}` is the name or ID of the dataset.
-The default dataset has ID `default`, unless you override it by setting the `APIFY_DEFAULT_DATASET_ID`
-environment variable.
-Each dataset item is stored as a separate JSON file,
-where `{INDEX}` is a zero-based index of the item in the dataset.
+Note that `{DATASET_ID}` is the name or ID of the dataset. The default dataset has ID `default`, unless you override it by setting the
+`APIFY_DEFAULT_DATASET_ID` environment variable. Each dataset item is stored as a separate JSON file, where `{INDEX}` is a zero-based index of the
+item in the dataset.
 
 The following code demonstrates basic operations of the dataset:
 
 ```javascript
 // Write a single row to the default dataset
-await Apify.pushData({ col1: 123, col2: "val2" });
+await Apify.pushData({ col1: 123, col2: 'val2' });
 
 // Open a named dataset
-const dataset = await Apify.openDataset("some-name");
+const dataset = await Apify.openDataset('some-name');
 
 // Write a single row
-await dataset.pushData({ foo: "bar" });
+await dataset.pushData({ foo: 'bar' });
 
 // Write multiple rows
-await dataset.pushData([{ foo: "bar2", col2: "val2" }, { col3: 123 }]);
+await dataset.pushData([{ foo: 'bar2', col2: 'val2' }, { col3: 123 }]);
 ```
 
-To see how to use the dataset to store crawler results, see the
-[Cheerio Crawler](../examples/cheeriocrawler) example.
+To see how to use the dataset to store crawler results, see the [Cheerio Crawler](../examples/cheeriocrawler) example.
 
 ## Request queue
 
-The request queue is a storage of URLs to crawl.
-The queue is used for the deep crawling of websites, where you start with
-several URLs and then recursively follow links to other pages.
-The data structure supports both breadth-first and depth-first crawling orders.
+The request queue is a storage of URLs to crawl. The queue is used for the deep crawling of websites, where you start with several URLs and then
+recursively follow links to other pages. The data structure supports both breadth-first and depth-first crawling orders.
 
-Each actor run is associated with a **default request queue**, which is created exclusively for the actor run.
-Typically, it is used to store URLs to crawl in the specific actor run. Its usage is optional.
+Each actor run is associated with a **default request queue**, which is created exclusively for the actor run. Typically, it is used to store URLs to
+crawl in the specific actor run. Its usage is optional.
 
 In Apify SDK, the request queue is represented by the [`RequestQueue`](../api/requestqueue) class.
 
@@ -148,12 +129,9 @@ In local configuration, the request queue data is stored in the directory specif
 {APIFY_LOCAL_STORAGE_DIR}/request_queues/{QUEUE_ID}/{STATE}/{NUMBER}.json
 ```
 
-Note that `{QUEUE_ID}` is the name or ID of the request queue.
-The default queue has ID `default`, unless you override it by setting the `APIFY_DEFAULT_REQUEST_QUEUE_ID`
-environment variable.
-Each request in the queue is stored as a separate JSON file,
-where `{STATE}` is either `handled` or `pending`,
-and `{NUMBER}` is an integer indicating the position of the request in the queue.
+Note that `{QUEUE_ID}` is the name or ID of the request queue. The default queue has ID `default`, unless you override it by setting the
+`APIFY_DEFAULT_REQUEST_QUEUE_ID` environment variable. Each request in the queue is stored as a separate JSON file, where `{STATE}` is either
+`handled` or `pending`, and `{NUMBER}` is an integer indicating the position of the request in the queue.
 
 The following code demonstrates basic operations of the request queue:
 
@@ -162,15 +140,12 @@ The following code demonstrates basic operations of the request queue:
 const queue = await Apify.openRequestQueue();
 
 // Open a named request queue
-const queueWithName = await Apify.openRequestQueue("some-name");
+const queueWithName = await Apify.openRequestQueue('some-name');
 
 // Enqueue few requests
-await queue.addRequest({ url: "http://example.com/aaa" });
-await queue.addRequest({ url: "http://example.com/bbb" });
-await queue.addRequest(
-    { url: "http://example.com/foo/bar" },
-    { forefront: true }
-);
+await queue.addRequest({ url: 'http://example.com/aaa' });
+await queue.addRequest({ url: 'http://example.com/bbb' });
+await queue.addRequest({ url: 'http://example.com/foo/bar' }, { forefront: true });
 
 // Get requests from queue
 const request1 = await queue.fetchNextRequest();
@@ -184,5 +159,4 @@ await queue.markRequestHandled(request1);
 await queue.reclaimRequest(request2);
 ```
 
-To see how to use the request queue with a crawler, see the
-[Puppeteer Crawler](../examples/puppeteercrawler) example.
+To see how to use the request queue with a crawler, see the [Puppeteer Crawler](../examples/puppeteercrawler) example.

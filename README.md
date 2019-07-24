@@ -19,26 +19,22 @@ running on the <a href="https://apify.com/" target="_blank">Apify Cloud</a>.
 ## Motivation
 
 Thanks to tools like <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a> or
-<a href="https://www.npmjs.com/package/cheerio" target="_blank">Cheerio</a>,
-it is easy to write Node.js code to extract data from web pages.
-But eventually things will get complicated. For example, when you try to:
+<a href="https://www.npmjs.com/package/cheerio" target="_blank">Cheerio</a>, it is easy to write Node.js code to extract data from web pages. But
+eventually things will get complicated. For example, when you try to:
 
 -   Perform a deep crawl of an entire website using a persistent queue of URLs.
--   Run your scraping code on a list of 100k URLs in a CSV file,
-    without losing any data when your code crashes.
+-   Run your scraping code on a list of 100k URLs in a CSV file, without losing any data when your code crashes.
 -   Rotate proxies to hide your browser origin.
 -   Schedule the code to run periodically and send notification on errors.
 -   Disable browser fingerprinting protections used by websites.
 
-Python has <a href="https://scrapy.org/" target="_blank">Scrapy</a> for these tasks, but there was no
-such library for **JavaScript, the language of the web**.
-The use of JavaScript is natural,
-since the same language is used to write the scripts as well as the data extraction code running in a browser.
+Python has <a href="https://scrapy.org/" target="_blank">Scrapy</a> for these tasks, but there was no such library for **JavaScript, the language of
+the web**. The use of JavaScript is natural, since the same language is used to write the scripts as well as the data extraction code running in a
+browser.
 
-The goal of the Apify SDK is to fill this gap and provide a toolbox
-for generic web scraping, crawling and automation tasks in JavaScript.
-So don't reinvent the wheel every time you need data from the web,
-and focus on writing code specific to the target website, rather than developing commonalities.
+The goal of the Apify SDK is to fill this gap and provide a toolbox for generic web scraping, crawling and automation tasks in JavaScript. So don't
+reinvent the wheel every time you need data from the web, and focus on writing code specific to the target website, rather than developing
+commonalities.
 
 ## Overview
 
@@ -129,17 +125,16 @@ Add Apify SDK to any Node.js project by running:
 npm install apify --save
 ```
 
-Run the following example to perform a recursive crawl of a website using Puppeteer.
-For more examples showcasing various features of the Apify SDK,
+Run the following example to perform a recursive crawl of a website using Puppeteer. For more examples showcasing various features of the Apify SDK,
 [see the Examples section of the documentation](https://sdk.apify.com/docs/examples/basiccrawler).
 
 ```javascript
-const Apify = require("apify");
+const Apify = require('apify');
 
 Apify.main(async () => {
     const requestQueue = await Apify.openRequestQueue();
-    await requestQueue.addRequest({ url: "https://www.iana.org/" });
-    const pseudoUrls = [new Apify.PseudoUrl("https://www.iana.org/[.*]")];
+    await requestQueue.addRequest({ url: 'https://www.iana.org/' });
+    const pseudoUrls = [new Apify.PseudoUrl('https://www.iana.org/[.*]')];
 
     const crawler = new Apify.PuppeteerCrawler({
         requestQueue,
@@ -148,13 +143,13 @@ Apify.main(async () => {
             console.log(`Title of ${request.url}: ${title}`);
             await Apify.utils.puppeteer.enqueueLinks({
                 page,
-                selector: "a",
+                selector: 'a',
                 pseudoUrls,
-                requestQueue
+                requestQueue,
             });
         },
         maxRequestsPerCrawl: 100,
-        maxConcurrency: 10
+        maxConcurrency: 10,
     });
 
     await crawler.run();
@@ -165,22 +160,15 @@ When you run the example, you should see Apify SDK automating a Chrome browser.
 
 ![Chrome Scrape](https://sdk.apify.com/img/chrome_scrape.gif)
 
-By default, Apify SDK stores data to
-`./apify_storage` in the current working directory.
-You can override this behavior by setting either the
-`APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variable.
-For details, see [Environment variables](https://sdk.apify.com/docs/guides/environmentvariables)
-and [Data storage](https://sdk.apify.com/docs/guides/datastorage).
+By default, Apify SDK stores data to `./apify_storage` in the current working directory. You can override this behavior by setting either the
+`APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variable. For details, see [Environment variables](https://sdk.apify.com/docs/guides/environmentvariables) and
+[Data storage](https://sdk.apify.com/docs/guides/datastorage).
 
 ### Local usage with Apify command-line interface (CLI)
 
-To avoid the need to set the environment variables manually,
-to create a boilerplate of your project,
-and to enable pushing and running your code on the
-<a href="https://apify.com" target="_blank">Apify Cloud</a>,
-you can use the
-<a href="https://github.com/apifytech/apify-cli" target="_blank">Apify command-line interface</a>
-(CLI) tool.
+To avoid the need to set the environment variables manually, to create a boilerplate of your project, and to enable pushing and running your code on
+the <a href="https://apify.com" target="_blank">Apify Cloud</a>, you can use the
+<a href="https://github.com/apifytech/apify-cli" target="_blank">Apify command-line interface</a> (CLI) tool.
 
 Install the CLI by running:
 
@@ -196,18 +184,16 @@ Now create a boilerplate of your new web crawling project by running:
 apify create my-hello-world
 ```
 
-The CLI will prompt you to select a project boilerplate template - just pick "Hello world".
-The tool will create a directory called `my-hello-world` with a Node.js project files.
-You can run the project as follows:
+The CLI will prompt you to select a project boilerplate template - just pick "Hello world". The tool will create a directory called `my-hello-world`
+with a Node.js project files. You can run the project as follows:
 
 ```bash
 cd my-hello-world
 apify run
 ```
 
-By default, the crawling data will be stored in a local directory at `./apify_storage`.
-For example, the input JSON file for the actor is expected to be in the default key-value store
-in `./apify_storage/key_value_stores/default/INPUT.json`.
+By default, the crawling data will be stored in a local directory at `./apify_storage`. For example, the input JSON file for the actor is expected to
+be in the default key-value store in `./apify_storage/key_value_stores/default/INPUT.json`.
 
 Now you can easily deploy your code to the Apify Cloud by running:
 
@@ -219,25 +205,17 @@ apify login
 apify push
 ```
 
-Your script will be uploaded to the Apify Cloud and built there so that it can be run.
-For more information, view the
-<a href="https://apify.com/docs/cli" target="_blank">Apify CLI</a>
-and
-<a href="https://apify.com/docs/actor" target="_blank">Apify Actor</a>
+Your script will be uploaded to the Apify Cloud and built there so that it can be run. For more information, view the
+<a href="https://apify.com/docs/cli" target="_blank">Apify CLI</a> and <a href="https://apify.com/docs/actor" target="_blank">Apify Actor</a>
 documentation.
 
 ### Usage on the Apify Cloud
 
-You can also develop your web scraping project
-in an online code editor directly on the
-<a href="https://apify.com" target="_blank">Apify Cloud</a>.
-You'll need to have an Apify Account.
-Go to <a href="https://my.apify.com/actors" target="_blank">Actors</a>,
-page in the app, click <i>Create new</i> and then go to the
-<i>Source</i> tab and start writing your code or paste one of the examples from the Examples section.
+You can also develop your web scraping project in an online code editor directly on the <a href="https://apify.com" target="_blank">Apify Cloud</a>.
+You'll need to have an Apify Account. Go to <a href="https://my.apify.com/actors" target="_blank">Actors</a>, page in the app, click <i>Create new</i>
+and then go to the <i>Source</i> tab and start writing your code or paste one of the examples from the Examples section.
 
-For more information, view the
-<a href="https://apify.com/docs/actor#quick-start" target="_blank">Apify actors quick start guide</a>.
+For more information, view the <a href="https://apify.com/docs/actor#quick-start" target="_blank">Apify actors quick start guide</a>.
 
 ## Support
 
