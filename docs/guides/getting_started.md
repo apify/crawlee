@@ -1208,7 +1208,7 @@ element that we can use to select only the heading we're interested in.
 > their selectors. And always make sure to use the DevTools to verify your scraping process and assumptions. It's faster than changing the crawler
 > code all the time.
 
-To get the title we just need to find it using `Cheerio` and a `header h1` selector, which selects all `<h1>` elements that have a `<header>` parent.
+To get the title we just need to find it using `Cheerio` and a `header h1` selector, which selects all `<h1>` elements that have a `<header>` ancestor.
 And as we already know, there's only one.
 
 ```js
