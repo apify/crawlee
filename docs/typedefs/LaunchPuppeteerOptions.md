@@ -5,11 +5,9 @@ title: LaunchPuppeteerOptions
 
 <a name="LaunchPuppeteerOptions"></a>
 
-Apify extends the launch options of Puppeteer.
-You can use any of the
-<a href="https://pptr.dev/#?product=Puppeteer&show=api-puppeteerlaunchoptions" target="_blank"><code>puppeteer.launch()</code></a>
-options in the [`Apify.launchPuppeteer()`](../api/apify#module_Apify.launchPuppeteer)
-function and in addition, all the options available below.
+Apify extends the launch options of Puppeteer. You can use any of the
+<a href="https://pptr.dev/#?product=Puppeteer&show=api-puppeteerlaunchoptions" target="_blank"><code>puppeteer.launch()</code></a> options in the
+[`Apify.launchPuppeteer()`](../api/apify#module_Apify.launchPuppeteer) function and in addition, all the options available below.
 
 **Properties**
 

@@ -5,64 +5,59 @@ title: utils.puppeteer
 
 <a name="puppeteer"></a>
 
-A namespace that contains various utilities for
-[Puppeteer](https://github.com/GoogleChrome/puppeteer) - the headless Chrome Node API.
+A namespace that contains various utilities for [Puppeteer](https://github.com/GoogleChrome/puppeteer) - the headless Chrome Node API.
 
 **Example usage:**
 
 ```javascript
-const Apify = require("apify");
+const Apify = require('apify');
 const { puppeteer } = Apify.utils;
 
 // Open https://www.example.com in Puppeteer
 const browser = await Apify.launchPuppeteer();
 const page = await browser.newPage();
-await page.goto("https://www.example.com");
+await page.goto('https://www.example.com');
 
 // Inject jQuery into a page
 await puppeteer.injectJQuery(page);
 ```
 
-- [`puppeteer`](#puppeteer) : `object`
-  - [`.enqueueLinksByClickingElements`](#puppeteer.enqueueLinksByClickingElements) ⇒ `Promise<Array<QueueOperationInfo>>`
-  - [`.addInterceptRequestHandler`](#puppeteer.addInterceptRequestHandler) ⇒ `Promise`
-  - [`.removeInterceptRequestHandler`](#puppeteer.removeInterceptRequestHandler) ⇒ `Promise`
-  - [`.gotoExtended`](#puppeteer.gotoExtended) ⇒ `Promise<Response>`
-  - [`.infiniteScroll`](#puppeteer.infiniteScroll) ⇒ `Promise`
-  - [`.injectFile(page, filePath, [options])`](#puppeteer.injectFile) ⇒ `Promise`
-  - [`.injectJQuery(page)`](#puppeteer.injectJQuery) ⇒ `Promise`
-  - [`.injectUnderscore(page)`](#puppeteer.injectUnderscore) ⇒ `Promise`
-  - [`.blockRequests(page, [options])`](#puppeteer.blockRequests) ⇒ `Promise`
-  - ~~[`.cacheResponses(page, cache, responseUrlRules)`](#puppeteer.cacheResponses) ⇒ `Promise`~~
-  - [`.compileScript(scriptString, context)`](#puppeteer.compileScript) ⇒ `function`
+-   [`puppeteer`](#puppeteer) : `object`
+    -   [`.enqueueLinksByClickingElements`](#puppeteer.enqueueLinksByClickingElements) ⇒ `Promise<Array<QueueOperationInfo>>`
+    -   [`.addInterceptRequestHandler`](#puppeteer.addInterceptRequestHandler) ⇒ `Promise`
+    -   [`.removeInterceptRequestHandler`](#puppeteer.removeInterceptRequestHandler) ⇒ `Promise`
+    -   [`.gotoExtended`](#puppeteer.gotoExtended) ⇒ `Promise<Response>`
+    -   [`.infiniteScroll`](#puppeteer.infiniteScroll) ⇒ `Promise`
+    -   [`.injectFile(page, filePath, [options])`](#puppeteer.injectFile) ⇒ `Promise`
+    -   [`.injectJQuery(page)`](#puppeteer.injectJQuery) ⇒ `Promise`
+    -   [`.injectUnderscore(page)`](#puppeteer.injectUnderscore) ⇒ `Promise`
+    -   [`.blockRequests(page, [options])`](#puppeteer.blockRequests) ⇒ `Promise`
+    -   ~~[`.cacheResponses(page, cache, responseUrlRules)`](#puppeteer.cacheResponses) ⇒ `Promise`~~
+    -   [`.compileScript(scriptString, context)`](#puppeteer.compileScript) ⇒ `function`
 
 <a name="puppeteer.enqueueLinksByClickingElements"></a>
 
 ## `puppeteer.enqueueLinksByClickingElements` ⇒ `Promise<Array<QueueOperationInfo>>`
 
-The function finds elements matching a specific CSS selector in a Puppeteer page,
-clicks all those elements using a mouse move and a left mouse button click and intercepts
-all the navigation requests that are subsequently produced by the page. The intercepted
-requests, including their methods, headers and payloads are then enqueued to a provided
-[`RequestQueue`](requestqueue). This is useful to crawl JavaScript heavy pages where links are not available
-in `href` elements, but rather navigations are triggered in click handlers.
-If you're looking to find URLs in `href` attributes of the page, see [`enqueueLinks()`](utils#utils.enqueueLinks).
+The function finds elements matching a specific CSS selector in a Puppeteer page, clicks all those elements using a mouse move and a left mouse button
+click and intercepts all the navigation requests that are subsequently produced by the page. The intercepted requests, including their methods,
+headers and payloads are then enqueued to a provided [`RequestQueue`](requestqueue). This is useful to crawl JavaScript heavy pages where links are
+not available in `href` elements, but rather navigations are triggered in click handlers. If you're looking to find URLs in `href` attributes of the
+page, see [`enqueueLinks()`](utils#utils.enqueueLinks).
 
-Optionally, the function allows you to filter the target links' URLs using an array of [`PseudoUrl`](pseudourl) objects
-and override settings of the enqueued [`Request`](request) objects.
+Optionally, the function allows you to filter the target links' URLs using an array of [`PseudoUrl`](pseudourl) objects and override settings of the
+enqueued [`Request`](request) objects.
 
-**IMPORTANT**: To be able to do this, this function uses various mutations on the page,
-such as changing the Z-index of elements being clicked and their visibility. Therefore,
-it is recommended to only use this function as the last operation in the page.
+**IMPORTANT**: To be able to do this, this function uses various mutations on the page, such as changing the Z-index of elements being clicked and
+their visibility. Therefore, it is recommended to only use this function as the last operation in the page.
 
-**USING HEADFUL BROWSER**: When using a headful browser, this function will only be able to click elements
-in the focused tab, effectively limiting concurrency to 1. In headless mode, full concurrency can be achieved.
+**USING HEADFUL BROWSER**: When using a headful browser, this function will only be able to click elements in the focused tab, effectively limiting
+concurrency to 1. In headless mode, full concurrency can be achieved.
 
-**PERFORMANCE**: Clicking elements with a mouse and intercepting requests is not a low level operation
-that takes nanoseconds. It's not very CPU intensive, but it takes time. We strongly recommend limiting
-the scope of the clicking as much as possible by using a specific selector that targets only the elements
-that you assume or know will produce a navigation. You can certainly click everything by using
-the `*` selector, but be prepared to wait minutes to get results on a large and complex page.
+**PERFORMANCE**: Clicking elements with a mouse and intercepting requests is not a low level operation that takes nanoseconds. It's not very CPU
+intensive, but it takes time. We strongly recommend limiting the scope of the clicking as much as possible by using a specific selector that targets
+only the elements that you assume or know will produce a navigation. You can certainly click everything by using the `*` selector, but be prepared to
+wait minutes to get results on a large and complex page.
 
 **Example usage**
 
@@ -84,7 +79,8 @@ await Apify.utils.enqueueLinksByClickingElements({
 });
 ```
 
-**Returns**: `Promise<Array<QueueOperationInfo>>` - Promise that resolves to an array of [`QueueOperationInfo`](../typedefs/queueoperationinfo) objects.
+**Returns**: `Promise<Array<QueueOperationInfo>>` - Promise that resolves to an array of [`QueueOperationInfo`](../typedefs/queueoperationinfo)
+objects.
 
 <table>
 <thead>
@@ -171,48 +167,44 @@ await Apify.utils.enqueueLinksByClickingElements({
 
 ## `puppeteer.addInterceptRequestHandler` ⇒ `Promise`
 
-Adds request interception handler in similar to `page.on('request', handler);` but in addition to that
-supports multiple parallel handlers.
+Adds request interception handler in similar to `page.on('request', handler);` but in addition to that supports multiple parallel handlers.
 
-All the handlers are executed sequentially in the order as they were added.
-Each of the handlers must call one of `request.continue()`, `request.abort()` and `request.respond()`.
-In addition to that any of the handlers may modify the request object (method, postData, headers)
-by passing its overrides to `request.continue()`.
-If multiple handlers modify same property then the last one wins. Headers are merged separately so you can
-override only a value of specific header.
+All the handlers are executed sequentially in the order as they were added. Each of the handlers must call one of `request.continue()`,
+`request.abort()` and `request.respond()`. In addition to that any of the handlers may modify the request object (method, postData, headers) by
+passing its overrides to `request.continue()`. If multiple handlers modify same property then the last one wins. Headers are merged separately so you
+can override only a value of specific header.
 
-If one the handlers calls `request.abort()` or `request.respond()` then request is not propagated further
-to any of the remaining handlers.
+If one the handlers calls `request.abort()` or `request.respond()` then request is not propagated further to any of the remaining handlers.
 
 **Example usage:**
 
 ```javascript
 // Replace images with placeholder.
 await addInterceptRequestHandler(page, request => {
-  if (request.resourceType() === "image") {
-    return request.respond({
-      statusCode: 200,
-      contentType: "image/jpeg",
-      body: placeholderImageBuffer
-    });
-  }
-  return request.continue();
+    if (request.resourceType() === 'image') {
+        return request.respond({
+            statusCode: 200,
+            contentType: 'image/jpeg',
+            body: placeholderImageBuffer,
+        });
+    }
+    return request.continue();
 });
 
 // Abort all the scripts.
 await addInterceptRequestHandler(page, request => {
-  if (request.resourceType() === "script") return request.abort();
-  return request.continue();
+    if (request.resourceType() === 'script') return request.abort();
+    return request.continue();
 });
 
 // Change requests to post.
 await addInterceptRequestHandler(page, request => {
-  return request.continue({
-    method: "POST"
-  });
+    return request.continue({
+        method: 'POST',
+    });
 });
 
-await page.goto("http://example.com");
+await page.goto('http://example.com');
 ```
 
 <table>
@@ -263,12 +255,11 @@ Removes request interception handler for given page.
 
 ## `puppeteer.gotoExtended` ⇒ `Promise<Response>`
 
-Extended version of Puppeteer's `page.goto()` allowing to perform requests with HTTP method other than GET,
-with custom headers and POST payload. URL, method, headers and payload are taken from
-request parameter that must be an instance of Apify.Request class.
+Extended version of Puppeteer's `page.goto()` allowing to perform requests with HTTP method other than GET, with custom headers and POST payload. URL,
+method, headers and payload are taken from request parameter that must be an instance of Apify.Request class.
 
-_NOTE:_ In recent versions of Puppeteer using requests other than GET, overriding headers and adding payloads disables
-browser cache which degrades performance.
+_NOTE:_ In recent versions of Puppeteer using requests other than GET, overriding headers and adding payloads disables browser cache which degrades
+performance.
 
 <table>
 <thead>
@@ -297,8 +288,7 @@ browser cache which degrades performance.
 
 ## `puppeteer.infiniteScroll` ⇒ `Promise`
 
-Scrolls to the bottom of a page, or until it times out.
-Loads dynamic content when it hits the bottom of a page, and then continues scrolling.
+Scrolls to the bottom of a page, or until it times out. Loads dynamic content when it hits the bottom of a page, and then continues scrolling.
 
 <table>
 <thead>
@@ -332,9 +322,8 @@ Loads dynamic content when it hits the bottom of a page, and then continues scro
 
 ## `puppeteer.injectFile(page, filePath, [options])` ⇒ `Promise`
 
-Injects a JavaScript file into a Puppeteer page.
-Unlike Puppeteer's `addScriptTag` function, this function works on pages
-with arbitrary Cross-Origin Resource Sharing (CORS) policies.
+Injects a JavaScript file into a Puppeteer page. Unlike Puppeteer's `addScriptTag` function, this function works on pages with arbitrary Cross-Origin
+Resource Sharing (CORS) policies.
 
 File contents are cached for up to 10 files to limit file system access.
 
@@ -372,13 +361,11 @@ File contents are cached for up to 10 files to limit file system access.
 
 ## `puppeteer.injectJQuery(page)` ⇒ `Promise`
 
-Injects the <a href="https://jquery.com/" target="_blank"><code>jQuery</code></a> library into a Puppeteer page.
-jQuery is often useful for various web scraping and crawling tasks.
-For example, it can help extract text from HTML elements using CSS selectors.
+Injects the <a href="https://jquery.com/" target="_blank"><code>jQuery</code></a> library into a Puppeteer page. jQuery is often useful for various
+web scraping and crawling tasks. For example, it can help extract text from HTML elements using CSS selectors.
 
-Beware that the injected jQuery object will be set to the `window.$` variable and thus it might cause conflicts with
-other libraries included by the page that use the same variable name (e.g. another version of jQuery).
-This can affect functionality of page's scripts.
+Beware that the injected jQuery object will be set to the `window.$` variable and thus it might cause conflicts with other libraries included by the
+page that use the same variable name (e.g. another version of jQuery). This can affect functionality of page's scripts.
 
 The injected jQuery will survive page navigations and reloads.
 
@@ -387,13 +374,12 @@ The injected jQuery will survive page navigations and reloads.
 ```javascript
 await Apify.utils.puppeteer.injectJQuery(page);
 const title = await page.evaluate(() => {
-  return $("head title").text();
+    return $('head title').text();
 });
 ```
 
 Note that `injectJQuery()` does not affect the Puppeteer's
-<a href="https://pptr.dev/#?product=Puppeteer&show=api-pageselector" target="_blank"><code>Page.\$()</code></a>
-function in any way.
+<a href="https://pptr.dev/#?product=Puppeteer&show=api-pageselector" target="_blank"><code>Page.\$()</code></a> function in any way.
 
 <table>
 <thead>
@@ -415,9 +401,8 @@ function in any way.
 
 Injects the <a href="https://underscorejs.org/" target="_blank"><code>Underscore.js</code></a> library into a Puppeteer page.
 
-Beware that the injected Underscore object will be set to the `window._` variable and thus it might cause conflicts with
-libraries included by the page that use the same variable name.
-This can affect functionality of page's scripts.
+Beware that the injected Underscore object will be set to the `window._` variable and thus it might cause conflicts with libraries included by the
+page that use the same variable name. This can affect functionality of page's scripts.
 
 The injected Underscore will survive page navigations and reloads.
 
@@ -426,7 +411,7 @@ The injected Underscore will survive page navigations and reloads.
 ```javascript
 await Apify.utils.puppeteer.injectUnderscore(page);
 const escapedHtml = await page.evaluate(() => {
-  return _.escape("<h1>Hello</h1>");
+    return _.escape('<h1>Hello</h1>');
 });
 ```
 
@@ -448,42 +433,38 @@ const escapedHtml = await page.evaluate(() => {
 
 ## `puppeteer.blockRequests(page, [options])` ⇒ `Promise`
 
-Forces the Puppeteer browser tab to block loading URLs that match a provided pattern.
-This is useful to speed up crawling of websites, since it reduces the amount
-of data that needs to be downloaded from the web, but it may break some websites
-or unexpectedly prevent loading of resources.
+Forces the Puppeteer browser tab to block loading URLs that match a provided pattern. This is useful to speed up crawling of websites, since it
+reduces the amount of data that needs to be downloaded from the web, but it may break some websites or unexpectedly prevent loading of resources.
 
-If the `options.urlPatterns` parameter is not provided,
-by default the function blocks URLs that include these patterns:
+If the `options.urlPatterns` parameter is not provided, by default the function blocks URLs that include these patterns:
 
 ```json
 [".css", ".jpg", ".jpeg", ".png", ".svg", ".gif", ".woff", ".pdf", ".zip"]
 ```
 
-The defaults will be concatenated with the patterns you provide in `options.urlPatterns`.
-If you want to remove the defaults, use `options.includeDefaults: false`.
+The defaults will be concatenated with the patterns you provide in `options.urlPatterns`. If you want to remove the defaults, use
+`options.includeDefaults: false`.
 
-This function does not use Puppeteer's request interception and therefore does not interfere
-with browser cache. It's also faster than blocking requests using interception,
-because the blocking happens directly in the browser without the round-trip to Node.js,
-but it does not provide the extra benefits of request interception.
+This function does not use Puppeteer's request interception and therefore does not interfere with browser cache. It's also faster than blocking
+requests using interception, because the blocking happens directly in the browser without the round-trip to Node.js, but it does not provide the extra
+benefits of request interception.
 
 The function will never block main document loads and their respective redirects.
 
 **Example usage**
 
 ```javascript
-const Apify = require("apify");
+const Apify = require('apify');
 
 const browser = await Apify.launchPuppeteer();
 const page = await browser.newPage();
 
 // Block all requests to URLs that include `adsbygoogle.js` and also all defaults.
 await Apify.utils.puppeteer.blockRequests(page, {
-  extraUrlPatterns: ["adsbygoogle.js"]
+    extraUrlPatterns: ['adsbygoogle.js'],
 });
 
-await page.goto("https://cnn.com");
+await page.goto('https://cnn.com');
 ```
 
 <table>
@@ -523,12 +504,12 @@ await page.goto("https://cnn.com");
 
 **_Deprecated_**
 
-_NOTE:_ In recent versions of Puppeteer using this function entirely disables browser cache which resolves in sub-optimal
-performance. Until this resolves, we suggest just relying on the in-browser cache unless absolutely necessary.
+_NOTE:_ In recent versions of Puppeteer using this function entirely disables browser cache which resolves in sub-optimal performance. Until this
+resolves, we suggest just relying on the in-browser cache unless absolutely necessary.
 
-Enables caching of intercepted responses into a provided object. Automatically enables request interception in Puppeteer.
-_IMPORTANT_: Caching responses stores them to memory, so too loose rules could cause memory leaks for longer running crawlers.
-This issue should be resolved or atleast mitigated in future iterations of this feature.
+Enables caching of intercepted responses into a provided object. Automatically enables request interception in Puppeteer. _IMPORTANT_: Caching
+responses stores them to memory, so too loose rules could cause memory leaks for longer running crawlers. This issue should be resolved or atleast
+mitigated in future iterations of this feature.
 
 <table>
 <thead>
@@ -559,8 +540,7 @@ This issue should be resolved or atleast mitigated in future iterations of this 
 
 ## `puppeteer.compileScript(scriptString, context)` ⇒ `function`
 
-Compiles a Puppeteer script into an async function that may be executed at any time
-by providing it with the following object:
+Compiles a Puppeteer script into an async function that may be executed at any time by providing it with the following object:
 
 ```
 {
@@ -569,22 +549,18 @@ by providing it with the following object:
 }
 ```
 
-Where `page` is a Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a>
-and `request` is a [`Request`](request).
+Where `page` is a Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> and `request` is
+a [`Request`](request).
 
-The function is compiled by using the `scriptString` parameter as the function's body,
-so any limitations to function bodies apply. Return value of the compiled function
-is the return value of the function body = the `scriptString` parameter.
+The function is compiled by using the `scriptString` parameter as the function's body, so any limitations to function bodies apply. Return value of
+the compiled function is the return value of the function body = the `scriptString` parameter.
 
-As a security measure, no globals such as `process` or `require` are accessible
-from within the function body. Note that the function does not provide a safe
-sandbox and even though globals are not easily accessible, malicious code may
-still execute in the main process via prototype manipulation. Therefore you
-should only use this function to execute sanitized or safe code.
+As a security measure, no globals such as `process` or `require` are accessible from within the function body. Note that the function does not provide
+a safe sandbox and even though globals are not easily accessible, malicious code may still execute in the main process via prototype manipulation.
+Therefore you should only use this function to execute sanitized or safe code.
 
-Custom context may also be provided using the `context` parameter. To improve security,
-make sure to only pass the really necessary objects to the context. Preferably making
-secured copies beforehand.
+Custom context may also be provided using the `context` parameter. To improve security, make sure to only pass the really necessary objects to the
+context. Preferably making secured copies beforehand.
 
 **Returns**: `function` - `async ({ page, request }) => { scriptString }`
 

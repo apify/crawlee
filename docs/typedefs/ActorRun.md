@@ -5,14 +5,10 @@ title: ActorRun
 
 <a name="ActorRun"></a>
 
-Represents information about an actor run, as returned by the
-[`Apify.call()`](../api/apify#module_Apify.call) or [`Apify.callTask()`](../api/apify#module_Apify.callTask) function.
-The object is almost equivalent to the JSON response
-of the
-<a href="https://apify.com/docs/api/v2#/reference/actors/run-collection/run-actor" target="_blank">Actor run</a>
-Apify API endpoint and extended with certain fields.
-For more details, see
-<a href="https://apify.com/docs/actor#run" target="_blank">Runs.</a>
+Represents information about an actor run, as returned by the [`Apify.call()`](../api/apify#module_Apify.call) or
+[`Apify.callTask()`](../api/apify#module_Apify.callTask) function. The object is almost equivalent to the JSON response of the
+<a href="https://apify.com/docs/api/v2#/reference/actors/run-collection/run-actor" target="_blank">Actor run</a> Apify API endpoint and extended with
+certain fields. For more details, see <a href="https://apify.com/docs/actor#run" target="_blank">Runs.</a>
 
 **Properties**
 

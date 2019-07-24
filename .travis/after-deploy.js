@@ -3,7 +3,10 @@ const VERSION = require('../package.json').version;
 
 const GIT_TAG = `v${VERSION}`;
 
-const { GH_TOKEN } = process.env;
+const { GH_TOKEN, TRAVIS } = process.env;
+
+if (!TRAVIS) throw new Error('This script is supposed to run on Travis only. ' +
+    'If you want to run it locally, you\'ll need to set some env vars and it will overwrite your Git credentials so tread carefully.');
 
 if (process.env.TRAVIS_TAG) {
     // Only latest releases will have a tag.
