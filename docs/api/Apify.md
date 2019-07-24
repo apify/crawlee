@@ -572,8 +572,11 @@ The `launchPuppeteer()` function alters the following Puppeteer options:
        Note that Apify Actor cloud platform automatically sets <code>APIFY_HEADLESS=1</code> to all running actors.
    </li>
    <li>
-       Takes the <code>proxyUrl</code> option, checks it and adds it to <code>args</code> as <code>--proxy-server=XXX</code>.
-       If the proxy uses authentication, the function sets up an anonymous proxy HTTP
+       Takes the <code>proxyUrl</code> option, validates it and adds it to <code>args</code> as <code>--proxy-server=XXX</code>.
+       The proxy URL must define a port number and have one of the following schemes: <code>http://</code>,
+       <code>https://</code>, <code>socks4://</code> or <code>socks5://</code>.
+       If the proxy is HTTP (i.e. has the <code>http://</code> scheme) and contains username or password,
+       the <code>launchPuppeteer</code> functions sets up an anonymous proxy HTTP
        to make the proxy work with headless Chrome. For more information, read the
        <a href="https://blog.apify.com/how-to-make-headless-chrome-and-puppeteer-use-a-proxy-server-with-authentication-249a21a79212"
        target="_blank">blog post about proxy-chain library</a>.
