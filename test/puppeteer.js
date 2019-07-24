@@ -76,13 +76,30 @@ describe('Apify.launchPuppeteer()', () => {
         expect(Apify.launchPuppeteer({ proxyUrl: 'invalidurl' })).to.be.rejectedWith(Error);
         expect(Apify.launchPuppeteer({ proxyUrl: 'http://host-without-port' })).to.be.rejectedWith(Error);
         expect(Apify.launchPuppeteer({ proxyUrl: 'invalid://somehost:1234' })).to.be.rejectedWith(Error);
-        expect(Apify.launchPuppeteer({ proxyUrl: 'https://somehost:1234' })).to.be.rejectedWith(Error);
+        expect(Apify.launchPuppeteer({ proxyUrl: 'https://user:pass@example.com:1234' })).to.be.rejectedWith(Error);
+        expect(Apify.launchPuppeteer({ proxyUrl: 'socks4://user:pass@example.com:1234' })).to.be.rejectedWith(Error);
+        expect(Apify.launchPuppeteer({ proxyUrl: 'socks5://user:pass@example.com:1234' })).to.be.rejectedWith(Error);
         expect(Apify.launchPuppeteer({ proxyUrl: ' something really bad' })).to.be.rejectedWith(Error);
         expect(Apify.launchPuppeteer({ proxyUrl: 'xxx', useApifyProxy: true })).to.be.rejectedWith(Error);
 
         expect(Apify.launchPuppeteer({ args: 'wrong args' })).to.be.rejectedWith(Error);
         expect(Apify.launchPuppeteer({ args: [12, 34] })).to.be.rejectedWith(Error);
     });
+
+    it('opens supports non-HTTP proxies without authentication', async () => {
+        const browser1 = await Apify.launchPuppeteer({ proxyUrl: 'socks4://example.com:1234' });
+        browser1.close();
+
+        const browser2 = await Apify.launchPuppeteer({ proxyUrl: 'socks5://example.com:1234' });
+        browser2.close();
+
+        const browser3 = await Apify.launchPuppeteer({ proxyUrl: 'https://example.com:1234' });
+        browser3.close();
+
+        const browser4 = await Apify.launchPuppeteer({ proxyUrl: 'HTTP://example.com:1234' });
+        browser4.close();
+    });
+
 
     it('opens https://www.example.com', () => {
         let browser;
