@@ -1,5 +1,7 @@
 NEXT
 ====================
+- Added `desiredConcurrency` option to `AutoscaledPool` constructor, removed
+  unnecessary bound check from the setter property
 
 0.15.2 / 2019-07-11
 ====================
@@ -47,7 +49,7 @@ NEXT
 0.14.12 / 2019-05-29
 ====================
 - `Snapshotter` will now log critical memory overload warnings at most once per 10 seconds.
-_ Live view snapshots are now made right after navigation finishes, instead of right before page close.
+- Live view snapshots are now made right after navigation finishes, instead of right before page close.
 
 0.14.11 / 2019-05-28
 ====================

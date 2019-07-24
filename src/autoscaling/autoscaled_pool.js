@@ -89,6 +89,10 @@ const DEFAULT_OPTIONS = {
  *   If you're not sure, just keep the default value and the concurrency will scale up automatically.
  * @param {Number} [options.maxConcurrency=1000]
  *   The maximum number of tasks running in parallel.
+ * @param {Number} [options.desiredConcurrency]
+ *   The desired number of tasks that should be running parallel on the start of the pool,
+ *   if there is a large enough supply of them.
+ *   By default, it is `options.minConcurrency`.
  * @param {Number} [options.desiredConcurrencyRatio=0.95]
  *   Minimum level of desired concurrency to reach before more scaling up is allowed.
  * @param {Number} [options.scaleUpStepRatio=0.05]
@@ -120,6 +124,7 @@ class AutoscaledPool {
         const {
             maxConcurrency,
             minConcurrency,
+            desiredConcurrency,
             desiredConcurrencyRatio,
             scaleUpStepRatio,
             scaleDownStepRatio,
@@ -135,6 +140,7 @@ class AutoscaledPool {
 
         checkParamOrThrow(maxConcurrency, 'options.maxConcurrency', 'Number');
         checkParamOrThrow(minConcurrency, 'options.minConcurrency', 'Number');
+        checkParamOrThrow(desiredConcurrency, 'options.desiredConcurrency', 'Maybe Number');
         checkParamOrThrow(desiredConcurrencyRatio, 'options.desiredConcurrencyRatio', 'Number');
         checkParamOrThrow(scaleUpStepRatio, 'options.scaleUpStepRatio', 'Number');
         checkParamOrThrow(scaleDownStepRatio, 'options.scaleDownStepRatio', 'Number');
@@ -159,9 +165,9 @@ class AutoscaledPool {
         this.isTaskReadyFunction = isTaskReadyFunction;
 
         // Internal properties.
-        this._maxConcurrency = maxConcurrency;
         this._minConcurrency = minConcurrency;
-        this._desiredConcurrency = this._minConcurrency;
+        this._maxConcurrency = maxConcurrency;
+        this._desiredConcurrency = typeof desiredConcurrency === 'number' ? desiredConcurrency : minConcurrency;
         this._currentConcurrency = 0;
         this.isStopped = false;
         this.lastLoggingTime = 0;
@@ -213,6 +219,7 @@ class AutoscaledPool {
      * @param {number} value
      */
     set minConcurrency(value) {
+        checkParamOrThrow(value, 'value', 'Number');
         this._minConcurrency = value;
     }
 
@@ -231,6 +238,7 @@ class AutoscaledPool {
      * @param {number} value
      */
     set maxConcurrency(value) {
+        checkParamOrThrow(value, 'value', 'Number');
         this._maxConcurrency = value;
     }
 
@@ -251,9 +259,7 @@ class AutoscaledPool {
      * @param {number} value
      */
     set desiredConcurrency(value) {
-        if (!(this._minConcurrency <= value && value <= this._maxConcurrency)) {
-            throw new Error(`The desired concurrency must be an integer from ${this._minConcurrency} to ${this._maxConcurrency}`);
-        }
+        checkParamOrThrow(value, 'value', 'Number');
         this._desiredConcurrency = value;
     }
 

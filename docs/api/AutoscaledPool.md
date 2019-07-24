@@ -113,6 +113,13 @@ await pool.run();
 <tr>
 <td colspan="3"><p>The maximum number of tasks running in parallel.</p>
 </td></tr><tr>
+<td><code>[options.desiredConcurrency]</code></td><td><code>Number</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>The desired number of tasks that should be running parallel on the start of the pool,
+  if there is a large enough supply of them.
+  By default, it is <code>options.minConcurrency</code>.</p>
+</td></tr><tr>
 <td><code>[options.desiredConcurrencyRatio]</code></td><td><code>Number</code></td><td><code>0.95</code></td>
 </tr>
 <tr>
