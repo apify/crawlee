@@ -5,84 +5,72 @@ title: Dataset
 
 <a name="Dataset"></a>
 
-The `Dataset` class represents a store for structured data where each object stored has the same attributes,
-such as online store products or real estate offers. You can imagine it as a table,
-where each object is a row and its attributes are columns.
-Dataset is an append-only storage - you can only add new records to it but you cannot modify or remove existing records.
-Typically it is used to store crawling results.
+The `Dataset` class represents a store for structured data where each object stored has the same attributes, such as online store products or real
+estate offers. You can imagine it as a table, where each object is a row and its attributes are columns. Dataset is an append-only storage - you can
+only add new records to it but you cannot modify or remove existing records. Typically it is used to store crawling results.
 
-Do not instantiate this class directly, use the
-[`Apify.openDataset()`](apify#module_Apify.openDataset) function instead.
+Do not instantiate this class directly, use the [`Apify.openDataset()`](apify#module_Apify.openDataset) function instead.
 
-`Dataset` stores its data either on local disk or in the Apify cloud,
-depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variables are set.
+`Dataset` stores its data either on local disk or in the Apify cloud, depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment
+variables are set.
 
-If the `APIFY_LOCAL_STORAGE_DIR` environment variable is set, the data is stored in
-the local directory in the following files:
+If the `APIFY_LOCAL_STORAGE_DIR` environment variable is set, the data is stored in the local directory in the following files:
 
 ```
 {APIFY_LOCAL_STORAGE_DIR}/datasets/{DATASET_ID}/{INDEX}.json
 ```
 
-Note that `{DATASET_ID}` is the name or ID of the dataset. The default dataset has ID: `default`,
-unless you override it by setting the `APIFY_DEFAULT_DATASET_ID` environment variable.
-Each dataset item is stored as a separate JSON file, where `{INDEX}` is a zero-based index of the item in the dataset.
+Note that `{DATASET_ID}` is the name or ID of the dataset. The default dataset has ID: `default`, unless you override it by setting the
+`APIFY_DEFAULT_DATASET_ID` environment variable. Each dataset item is stored as a separate JSON file, where `{INDEX}` is a zero-based index of the
+item in the dataset.
 
 If the `APIFY_TOKEN` environment variable is set but `APIFY_LOCAL_STORAGE_DIR` not, the data is stored in the
-<a href="https://apify.com/docs/storage#dataset" target="_blank">Apify Dataset</a>
-cloud storage. Note that you can force usage of the cloud storage also by passing the `forceCloud`
-option to [`Apify.openDataset()`](apify#module_Apify.openDataset) function,
-even if the `APIFY_LOCAL_STORAGE_DIR` variable is set.
+<a href="https://apify.com/docs/storage#dataset" target="_blank">Apify Dataset</a> cloud storage. Note that you can force usage of the cloud storage
+also by passing the `forceCloud` option to [`Apify.openDataset()`](apify#module_Apify.openDataset) function, even if the `APIFY_LOCAL_STORAGE_DIR`
+variable is set.
 
 **Example usage:**
 
 ```javascript
 // Write a single row to the default dataset
-await Apify.pushData({ col1: 123, col2: "val2" });
+await Apify.pushData({ col1: 123, col2: 'val2' });
 
 // Open a named dataset
-const dataset = await Apify.openDataset("some-name");
+const dataset = await Apify.openDataset('some-name');
 
 // Write a single row
-await dataset.pushData({ foo: "bar" });
+await dataset.pushData({ foo: 'bar' });
 
 // Write multiple rows
-await dataset.pushData([{ foo: "bar2", col2: "val2" }, { col3: 123 }]);
+await dataset.pushData([{ foo: 'bar2', col2: 'val2' }, { col3: 123 }]);
 ```
 
-- [Dataset](dataset)
-  - [`.pushData(data)`](#Dataset+pushData) ⇒ `Promise`
-  - [`.getData([options])`](#Dataset+getData) ⇒ `Promise<Object>`
-  - [`.getInfo()`](#Dataset+getInfo) ⇒ `Promise<Object>`
-  - [`.forEach(iteratee, [options], [index])`](#Dataset+forEach) ⇒ `Promise`
-  - [`.map(iteratee, options)`](#Dataset+map) ⇒ `Promise<Array>`
-  - [`.reduce(iteratee, memo, options)`](#Dataset+reduce) ⇒ `Promise<*>`
-  - [`.delete()`](#Dataset+delete) ⇒ `Promise`
+-   [Dataset](dataset)
+    -   [`.pushData(data)`](#Dataset+pushData) ⇒ `Promise`
+    -   [`.getData([options])`](#Dataset+getData) ⇒ `Promise<Object>`
+    -   [`.getInfo()`](#Dataset+getInfo) ⇒ `Promise<Object>`
+    -   [`.forEach(iteratee, [options], [index])`](#Dataset+forEach) ⇒ `Promise`
+    -   [`.map(iteratee, options)`](#Dataset+map) ⇒ `Promise<Array>`
+    -   [`.reduce(iteratee, memo, options)`](#Dataset+reduce) ⇒ `Promise<*>`
+    -   [`.delete()`](#Dataset+delete) ⇒ `Promise`
 
 <a name="Dataset+pushData"></a>
 
 ## `dataset.pushData(data)` ⇒ `Promise`
 
-Stores an object or an array of objects to the dataset.
-The function returns a promise that resolves when the operation finishes.
-It has no result, but throws on invalid args or other errors.
+Stores an object or an array of objects to the dataset. The function returns a promise that resolves when the operation finishes. It has no result,
+but throws on invalid args or other errors.
 
-**IMPORTANT**: Make sure to use the `await` keyword when calling `pushData()`,
-otherwise the actor process might finish before the data is stored!
+**IMPORTANT**: Make sure to use the `await` keyword when calling `pushData()`, otherwise the actor process might finish before the data is stored!
 
-The size of the data is limited by the receiving API and therefore `pushData()` will only
-allow objects whose JSON representation is smaller than 9MB. When an array is passed,
-none of the included objects
-may be larger than 9MB, but the array itself may be of any size.
+The size of the data is limited by the receiving API and therefore `pushData()` will only allow objects whose JSON representation is smaller than 9MB.
+When an array is passed, none of the included objects may be larger than 9MB, but the array itself may be of any size.
 
-The function internally
-chunks the array into separate items and pushes them sequentially.
-The chunking process is stable (keeps order of data), but it does not provide a transaction
-safety mechanism. Therefore, in the event of an uploading error (after several automatic retries),
-the function's Promise will reject and the dataset will be left in a state where some of
-the items have already been saved to the dataset while other items from the source array were not.
-To overcome this limitation, the developer may, for example, read the last item saved in the dataset
-and re-attempt the save of the data from this item onwards to prevent duplicates.
+The function internally chunks the array into separate items and pushes them sequentially. The chunking process is stable (keeps order of data), but
+it does not provide a transaction safety mechanism. Therefore, in the event of an uploading error (after several automatic retries), the function's
+Promise will reject and the dataset will be left in a state where some of the items have already been saved to the dataset while other items from the
+source array were not. To overcome this limitation, the developer may, for example, read the last item saved in the dataset and re-attempt the save of
+the data from this item onwards to prevent duplicates.
 
 <table>
 <thead>
@@ -103,8 +91,7 @@ The objects must be serializable to JSON and the JSON representation of each obj
 
 ## `dataset.getData([options])` ⇒ `Promise<Object>`
 
-Returns items in the dataset based on the provided parameters. The returned object
-has the following structure:
+Returns items in the dataset based on the provided parameters. The returned object has the following structure:
 
 ```javascript
 {
@@ -115,10 +102,8 @@ has the following structure:
 }
 ```
 
-**NOTE**: If using dataset with local disk storage, the `format` option must be `json` and
-the following options are not supported:
-`unwind`, `disableBodyParser`, `attachment`, `bom` and `simplified`.
-If you try to use them, you will receive an error.
+**NOTE**: If using dataset with local disk storage, the `format` option must be `json` and the following options are not supported: `unwind`,
+`disableBodyParser`, `attachment`, `bom` and `simplified`. If you try to use them, you will receive an error.
 
 <table>
 <thead>
@@ -223,10 +208,8 @@ If you try to use them, you will receive an error.
 Returns an object containing general information about the dataset.
 
 The function returns the same object as the Apify API Client's
-[getDataset](https://apify.com/docs/api/apify-client-js/latest#ApifyClient-datasets-getDataset)
-function, which in turn calls the
-[Get dataset](https://apify.com/docs/api/v2#/reference/datasets/dataset/get-dataset)
-API endpoint.
+[getDataset](https://apify.com/docs/api/apify-client-js/latest#ApifyClient-datasets-getDataset) function, which in turn calls the
+[Get dataset](https://apify.com/docs/api/v2#/reference/datasets/dataset/get-dataset) API endpoint.
 
 **Example:**
 
@@ -247,18 +230,18 @@ API endpoint.
 
 ## `dataset.forEach(iteratee, [options], [index])` ⇒ `Promise`
 
-Iterates over dataset items, yielding each in turn to an `iteratee` function.
-Each invocation of `iteratee` is called with two arguments: `(item, index)`.
+Iterates over dataset items, yielding each in turn to an `iteratee` function. Each invocation of `iteratee` is called with two arguments:
+`(item, index)`.
 
-If the `iteratee` function returns a Promise then it is awaited before the next call.
-If it throws an error, the iteration is aborted and the `forEach` function throws the error.
+If the `iteratee` function returns a Promise then it is awaited before the next call. If it throws an error, the iteration is aborted and the
+`forEach` function throws the error.
 
 **Example usage**
 
 ```javascript
-const dataset = await Apify.openDataset("my-results");
+const dataset = await Apify.openDataset('my-results');
 await dataset.forEach(async (item, index) => {
-  console.log(`Item at ${index}: ${JSON.stringify(item)}`);
+    console.log(`Item at ${index}: ${JSON.stringify(item)}`);
 });
 ```
 
@@ -316,8 +299,8 @@ await dataset.forEach(async (item, index) => {
 
 ## `dataset.map(iteratee, options)` ⇒ `Promise<Array>`
 
-Produces a new array of values by mapping each value in list through a transformation function `iteratee()`.
-Each invocation of `iteratee()` is called with two arguments: `(element, index)`.
+Produces a new array of values by mapping each value in list through a transformation function `iteratee()`. Each invocation of `iteratee()` is called
+with two arguments: `(element, index)`.
 
 If `iteratee` returns a `Promise` then it's awaited before a next call.
 
@@ -371,11 +354,11 @@ If `iteratee` returns a `Promise` then it's awaited before a next call.
 
 Reduces a list of values down to a single value.
 
-Memo is the initial state of the reduction, and each successive step of it should be returned by `iteratee()`.
-The `iteratee()` is passed three arguments: the `memo`, then the `value` and `index` of the iteration.
+Memo is the initial state of the reduction, and each successive step of it should be returned by `iteratee()`. The `iteratee()` is passed three
+arguments: the `memo`, then the `value` and `index` of the iteration.
 
-If no `memo` is passed to the initial invocation of reduce, the `iteratee()` is not invoked on the first element of the list.
-The first element is instead passed as the memo in the invocation of the `iteratee()` on the next element in the list.
+If no `memo` is passed to the initial invocation of reduce, the `iteratee()` is not invoked on the first element of the list. The first element is
+instead passed as the memo in the invocation of the `iteratee()` on the next element in the list.
 
 If `iteratee()` returns a `Promise` then it's awaited before a next call.
 
@@ -432,5 +415,4 @@ If `iteratee()` returns a `Promise` then it's awaited before a next call.
 
 ## `dataset.delete()` ⇒ `Promise`
 
-Removes the dataset either from the Apify cloud storage or from the local directory,
-depending on the mode of operation.
+Removes the dataset either from the Apify cloud storage or from the local directory, depending on the mode of operation.
