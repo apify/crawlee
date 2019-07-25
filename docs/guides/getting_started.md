@@ -896,7 +896,7 @@ const handlePageFunction = async ({ $, request }) => {
         await Apify.utils.enqueueLinks({
             $,
             requestQueue,
-            selector: "a.item",
+            selector: ".item a",
             baseUrl: request.loadedUrl,
             userData: {
                 detailPage: true
@@ -910,7 +910,7 @@ The code should look pretty familiar to you. It's a very simple `handlePageFunct
 
 ##### The `selector` parameter of `enqueueLinks()`
 
-When we previously used `enqueueLinks()`, we were not providing any `selector` parameter and it was fine, because we wanted to use the default setting, which is `a` - finds all `<a>` elements. But now, we need to be more specific. There are multiple `<a>` links on the given category page, but we're only interested in those that will take us to item (actor) details. Using the DevTools, we found out that we can select the links we wanted using the `a.item` selector, which selects all the `<a class="item ...">` elements. And those are exactly the ones we're interested in.
+When we previously used `enqueueLinks()`, we were not providing any `selector` parameter and it was fine, because we wanted to use the default setting, which is `a` - finds all `<a>` elements. But now, we need to be more specific. There are multiple `<a>` links on the given category page, but we're only interested in those that will take us to item (actor) details. Using the DevTools, we found out that we can select the links we wanted using the `.item a` selector, which selects all the `<a class="item ...">` elements. And those are exactly the ones we're interested in.
 
 ##### The missing `pseudoUrls`
 
@@ -951,7 +951,7 @@ Apify.main(async () => {
                 await Apify.utils.enqueueLinks({
                     $,
                     requestQueue,
-                    selector: "a.item",
+                    selector: ".item a",
                     baseUrl: request.loadedUrl,
                     userData: {
                         detailPage: true
@@ -1013,19 +1013,13 @@ Using the search bar to find `div.wrap` in the DevTools reveals that it's not th
 
 ![actor title selector](/img/getting-started/title-02.png "Finding actor title in DevTools.")
 
-```js
-// Using jQuery.
-const $wrapper = $("header div.wrap");
-```
-
 > Always make sure to use the DevTools to verify your scraping process and assumptions. It's faster than changing the crawler code all the time.
 
 Getting the title should now be pretty easy. We know that it's in the `$wrapper` so we just need to find it there using `jQuery`:
 
 ```js
-const $wrapper = $("header div.wrap");
 return {
-    title: $wrapper.find("h1").text()
+    title: $("header h1").text()
 };
 ```
 
@@ -1036,10 +1030,9 @@ Getting the actor's description is a piece of cake. We already have the boilerpl
 ![actor description selector](/img/getting-started/description.png "Finding actor description in DevTools.")
 
 ```js
-const $wrapper = $("header div.wrap");
 return {
-    title: $wrapper.find("h1").text(),
-    description: $wrapper.find("p").text()
+    title: $("header h1").text(),
+    description: $("header p:last-of-type").text()
 };
 ```
 
@@ -1052,17 +1045,11 @@ The DevTools tell us that the `lastRunDate` can be found in the second of the tw
 ![actor last run date selector](/img/getting-started/last-run-date.png "Finding actor last run date in DevTools.")
 
 ```js
-const $wrapper = $("header div.wrap");
 return {
-    title: $wrapper.find("h1").text(),
-    description: $wrapper.find("p").text(),
+    title: $("header h1").text(),
+    description: $("header p:last-of-type").text(),
     lastRunDate: new Date(
-        Number(
-            $wrapper
-                .find("time")
-                .eq(1)
-                .attr("datetime")
-        )
+        Number($(".stats time:last-of-type").attr("datetime"))
     )
 };
 ```
@@ -1076,21 +1063,14 @@ But we would much rather see a readable date in our results, not a unix timestam
 And so we're finishing up with the `runCount`. There's no specific element like `<time>`, so we need to create a complex selector and then do a transformation on the result.
 
 ```js
-const $wrapper = $("header div.wrap");
 return {
-    title: $wrapper.find("h1").text(),
-    description: $wrapper.find("p").text(),
+    title: $("header h1").text(),
+    description: $("header p:last-of-type").text(),
     lastRunDate: new Date(
-        Number(
-            $wrapper
-                .find("time")
-                .eq(1)
-                .attr("datetime")
-        )
+        Number($(".stats time:last-of-type").attr("datetime"))
     ),
     runCount: Number(
-        $wrapper
-            .find("div.stats > span:nth-of-type(3)")
+        $(".stats li:nth-of-type(3)")
             .text()
             .match(/\d+/)[0]
     )
@@ -1103,25 +1083,18 @@ And there we have it! All the data we needed in a single object. For the sake of
 
 ```js
 const urlArr = request.url.split("/").slice(-2);
-const $wrapper = $("header div.wrap");
 
 const results = {
     url: request.url,
     uniqueIdentifier: urlArr.join("/"),
     owner: urlArr[0],
-    title: $wrapper.find("h1").text(),
-    description: $wrapper.find("p").text(),
+    title: $("header h1").text(),
+    description: $("header p:last-of-type").text(),
     lastRunDate: new Date(
-        Number(
-            $wrapper
-                .find("time")
-                .eq(1)
-                .attr("datetime")
-        )
+        Number($(".stats time:last-of-type").attr("datetime"))
     ),
     runCount: Number(
-        $wrapper
-            .find("div.stats > span:nth-of-type(3)")
+        $(".stats li:nth-of-type(3)")
             .text()
             .match(/\d+/)[0]
     )
@@ -1157,29 +1130,23 @@ Apify.main(async () => {
             // This is our new scraping logic.
             if (request.userData.detailPage) {
                 const urlArr = request.url.split("/").slice(-2);
-                const $wrapper = $("header div.wrap");
 
                 const results = {
                     url: request.url,
                     uniqueIdentifier: urlArr.join("/"),
                     owner: urlArr[0],
-                    title: $wrapper.find("h1").text(),
-                    description: $wrapper.find("p").text(),
+                    title: $("header h1").text(),
+                    description: $("header p:last-of-type").text(),
                     lastRunDate: new Date(
-                        Number(
-                            $wrapper
-                                .find("time")
-                                .eq(1)
-                                .attr("datetime")
-                        )
+                        Number($(".stats time:last-of-type").attr("datetime"))
                     ),
                     runCount: Number(
-                        $wrapper
-                            .find("div.stats > span:nth-of-type(3)")
+                        $(".stats li:nth-of-type(3)")
                             .text()
                             .match(/\d+/)[0]
                     )
                 };
+
                 console.log("RESULTS", results);
             }
 
@@ -1188,7 +1155,7 @@ Apify.main(async () => {
                 await Apify.utils.enqueueLinks({
                     $,
                     requestQueue,
-                    selector: "a.item",
+                    selector: ".item a",
                     baseUrl: request.loadedUrl,
                     userData: {
                         detailPage: true
@@ -1241,29 +1208,22 @@ Apify.main(async () => {
             // This is our new scraping logic.
             if (request.userData.detailPage) {
                 const urlArr = request.url.split("/").slice(-2);
-                const $wrapper = $("header div.wrap");
 
                 const results = {
-                    url: request.url,
-                    uniqueIdentifier: urlArr.join("/"),
-                    owner: urlArr[0],
-                    title: $wrapper.find("h1").text(),
-                    description: $wrapper.find("p").text(),
-                    lastRunDate: new Date(
-                        Number(
-                            $wrapper
-                                .find("time")
-                                .eq(1)
-                                .attr("datetime")
-                        )
-                    ),
-                    runCount: Number(
-                        $wrapper
-                            .find("div.stats > span:nth-of-type(3)")
-                            .text()
-                            .match(/\d+/)[0]
-                    )
-                };
+    url: request.url,
+    uniqueIdentifier: urlArr.join("/"),
+    owner: urlArr[0],
+    title: $("header h1").text(),
+    description: $("header p:last-of-type").text(),
+    lastRunDate: new Date(
+        Number($(".stats time:last-of-type").attr("datetime"))
+    ),
+    runCount: Number(
+        $(".stats li:nth-of-type(3)")
+            .text()
+            .match(/\d+/)[0]
+    )
+};
                 await Apify.pushData(results);
             }
 
@@ -1272,7 +1232,7 @@ Apify.main(async () => {
                 await Apify.utils.enqueueLinks({
                     $,
                     requestQueue,
-                    selector: "a.item",
+                    selector: ".item a",
                     baseUrl: request.loadedUrl,
                     userData: {
                         detailPage: true
@@ -1461,7 +1421,7 @@ exports.CATEGORY = async ({ $, request }, { requestQueue }) => {
     return Apify.utils.enqueueLinks({
         $,
         requestQueue,
-        selector: "a.item",
+        selector: ".item a",
         baseUrl: request.loadedUrl,
         userData: {
             label: "DETAIL"
@@ -1471,30 +1431,24 @@ exports.CATEGORY = async ({ $, request }, { requestQueue }) => {
 
 exports.DETAIL = async ({ $, request }) => {
     const urlArr = request.url.split("/").slice(-2);
-    const $wrapper = $("header div.wrap");
 
     log.debug("Scraping results.");
+
     const results = {
-        url: request.url,
-        uniqueIdentifier: urlArr.join("/"),
-        owner: urlArr[0],
-        title: $wrapper.find("h1").text(),
-        description: $wrapper.find("p").text(),
-        lastRunDate: new Date(
-            Number(
-                $wrapper
-                    .find("time")
-                    .eq(1)
-                    .attr("datetime")
-            )
-        ),
-        runCount: Number(
-            $wrapper
-                .find("div.stats > span:nth-of-type(3)")
-                .text()
-                .match(/\d+/)[0]
-        )
-    };
+    url: request.url,
+    uniqueIdentifier: urlArr.join("/"),
+    owner: urlArr[0],
+    title: $("header h1").text(),
+    description: $("header p:last-of-type").text(),
+    lastRunDate: new Date(
+        Number($(".stats time:last-of-type").attr("datetime"))
+    ),
+    runCount: Number(
+        $(".stats li:nth-of-type(3)")
+            .text()
+            .match(/\d+/)[0]
+    )
+};
 
     log.debug("Pushing data to dataset.");
     await Apify.pushData(results);
