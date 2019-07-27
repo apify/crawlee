@@ -858,13 +858,7 @@ Now, find the `Select an element` tool and use it to select one of the actor car
 
 In the resulting HTML display, it will put your cursor somewhere. Inspect the HTML around it. You'll see that there are CSS classes attached to the different HTML elements.
 
-By hovering over the individual elements, you will see their placement in the page's view. It's easy to see the page's structure around the actor cards now. All the cards are displayed in a `<div>` with a class of `itemsWrapper`. This one holds another `<div>` with the class of `items-grid` and finally, the individual cards are represented by an `<a>` element with the class of `item`.
-
-> Yes, there are other HTML elements and other classes too. We can safely ignore them.
-
-It should now make sense how we got that `.item` selector. It's just a selector that finds all elements that are annotated with the `item` class and those just happen to be the actor cards only.
-
-It's always a good idea to double check that though, so go into the DevTools Console and run
+By hovering over the individual elements, you will see that each individual card is a `div` element with a class of `item`. To verify this, go into the DevTools Console and run
 
 ```js
 document.querySelectorAll(".item");
@@ -1034,7 +1028,7 @@ return {
 
 The one problem with this approach is that the `p` element also contains a `div` element for the "Try Actor" and "Report an Issue" buttons.
 
-<!-- IMAGE -->
+![Unwanted div element in the description](/img/getting-started/try-actor-button.png "Unwanted div element in the description")
 
 To remove these buttons, use cheerio's `remove` function above the `return` statement:
 
@@ -1091,7 +1085,7 @@ return {
 };
 ```
 
-The `.stats > span:nth-of-type(3)` looks complicated, but it only reads that we're looking for a `<ul class="stats ...">` element and within that element we're looking for the third `<li>` element. We grab its text, but we're only interested in the number of runs. So we parse the number out using a regular expression, but its type is still a `string`, so we finally convert the result to a `number` by wrapping it with a `Number()` call.
+The `.stats > li:nth-of-type(3)` selector looks complicated, but it only reads that we're looking for a `<ul class="stats ...">` element and within that element we're looking for the third `<li>` element. We grab its text, but we're only interested in the number of runs. So we parse the number out using a regular expression, but its type is still a `string`, so we finally convert the result to a `number` by wrapping it with a `Number()` call.
 
 And there we have it! All the data we needed in a single object. For the sake of completeness, let's add the properties we parsed from the URL earlier and we're good to go.
 
