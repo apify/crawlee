@@ -910,7 +910,7 @@ The code should look pretty familiar to you. It's a very simple `handlePageFunct
 
 ##### The `selector` parameter of `enqueueLinks()`
 
-When we previously used `enqueueLinks()`, we were not providing any `selector` parameter and it was fine, because we wanted to use the default setting, which is `a` - finds all `<a>` elements. But now, we need to be more specific. There are multiple `<a>` links on the given category page, but we're only interested in those that will take us to item (actor) details. Using the DevTools, we found out that we can select the links we wanted using the `.item a` selector, which selects all the `<a class="item ...">` elements. And those are exactly the ones we're interested in.
+When we previously used `enqueueLinks()`, we were not providing any `selector` parameter and it was fine, because we wanted to use the default setting, which is `a` - finds all `<a>` elements. But now, we need to be more specific. There are multiple `<a>` links on the given category page, but we're only interested in those that will take us to item (actor) details. Using the DevTools, we found out that we can select the links we wanted using the `.item a` selector, which selects all the `a` elements within the `.item` elements. And those are exactly the ones we're interested in.
 
 ##### The missing `pseudoUrls`
 
@@ -1005,17 +1005,7 @@ Now it's time to add more data to the results. Let's open one of the actor detai
 
 ![actor title](/img/getting-started/title-01.png "Finding actor title in DevTools.")
 
-By using the element selector tool, we find out that the title is there under an `<h1>` tag, as titles should be. Maybe surprisingly, we find that there are actually two `<h1>` tags on the detail page. This should get us thinking. Is there any parent element that perhaps wraps all the information that we want to scrape? Yes, there is! The `<div class="wrap ...">` is a common ancestor to everything. So let's start by getting that element first.
-
-> Remember that you can press CTRL+F (CMD+F) in the Elements tab of DevTools to open the search bar where you can quickly search for elements using their selectors.
-
-Using the search bar to find `div.wrap` in the DevTools reveals that it's not the only `div.wrap` in the page, so we need to make the selector a little bit more specific by adding its parent element: `header div.wrap`.
-
-![actor title selector](/img/getting-started/title-02.png "Finding actor title in DevTools.")
-
-> Always make sure to use the DevTools to verify your scraping process and assumptions. It's faster than changing the crawler code all the time.
-
-Getting the title should now be pretty easy. We know that it's in the `$wrapper` so we just need to find it there using `jQuery`:
+By using the element selector tool, we find out that the title is there within an `<h1>` tag, within the `header` element. This is easy to extract with a simple CSS selector:
 
 ```js
 return {
@@ -1023,11 +1013,17 @@ return {
 };
 ```
 
+> Remember that you can press CTRL+F (CMD+F) in the Elements tab of DevTools to open the search bar where you can quickly search for elements using their selectors.
+
+> Always make sure to use the DevTools to verify your scraping process and assumptions. It's faster than changing the crawler code all the time.
+
 ##### Description
 
-Getting the actor's description is a piece of cake. We already have the boilerplate ready, so all we need to do is add a new selection.
+The actor's description is also within the `header` element, inside a `p` element. It's not the only `p` element though, meaning we can't just use the `header p` selector.
 
 ![actor description selector](/img/getting-started/description.png "Finding actor description in DevTools.")
+
+But since the `p` element for the description is the last `p` element in the `header` element, we can use the `last-of-type` pseudo-selector:
 
 ```js
 return {
@@ -1036,13 +1032,35 @@ return {
 };
 ```
 
-Getting the `lastRunDate` and `runCount` is not as straightforward as the previous items, but not to worry, it's still pretty simple.
+The one problem with this approach is that the `p` element also contains a `div` element for the "Try Actor" and "Report an Issue" buttons.
+
+<!-- IMAGE -->
+
+To remove these buttons, use cheerio's `remove` function above the `return` statement:
+
+```javascript
+$("header p:last-of-type div").remove();`
+```
+
+This ensures that, when the description is extracted, the `div` element doesn't exist within the `p` tag.
 
 ##### Last run date
 
-The DevTools tell us that the `lastRunDate` can be found in the second of the two `<time>` elements in the `$wrapper`.
+The DevTools tell us that the `lastRunDate` can be found in the second of the two `<time>` elements in the `ul.stats` element.
 
 ![actor last run date selector](/img/getting-started/last-run-date.png "Finding actor last run date in DevTools.")
+
+To grab the time, we can use the `last-of-type` pseudo-selector again and extract the `datetime` attribute from the element:
+
+```js
+return {
+    title: $("header h1").text(),
+    description: $("header p:last-of-type").text(),
+    lastRunDate: $(".stats time:last-of-type").attr("datetime")
+};
+```
+
+But this will only extract the UNIX timestamp from the `datetime` attribute. To convert this into a `Date` object, typecast the timestamp into a number with the `Number` function and convert it into a Date option with the `new Date()` constructor:
 
 ```js
 return {
@@ -1053,10 +1071,6 @@ return {
     )
 };
 ```
-
-It might look a little too complex at first glance, but let me walk you through it. We take our `$wrapper` and find the `<time>` elements it contains. There are two, so we grab the second one using the `.eq(1)` call (it's zero indexed) and then we read its `datetime` attribute, because that's where a unix timestamp is stored as a `string`.
-
-But we would much rather see a readable date in our results, not a unix timestamp, so we need to convert it. Unfortunately the `new Date()` constructor will not accept a `string`, so we cast the `string` to a `number` using the `Number()` function before actually calling `new Date()`. Phew!
 
 ##### Run count
 
@@ -1077,12 +1091,14 @@ return {
 };
 ```
 
-The `div.stats > span:nth-of-type(3)` looks complicated, but it only reads that we're looking for a `<div class="stats ...">` element and within that element we're looking for the third `<span>` element. We grab its text, but we're only interested in the number of runs. So we parse the number out using a regular expression, but its type is still a `string`, so we finally convert the result to a `number` by wrapping it with a `Number()` call.
+The `.stats > span:nth-of-type(3)` looks complicated, but it only reads that we're looking for a `<ul class="stats ...">` element and within that element we're looking for the third `<li>` element. We grab its text, but we're only interested in the number of runs. So we parse the number out using a regular expression, but its type is still a `string`, so we finally convert the result to a `number` by wrapping it with a `Number()` call.
 
 And there we have it! All the data we needed in a single object. For the sake of completeness, let's add the properties we parsed from the URL earlier and we're good to go.
 
 ```js
 const urlArr = request.url.split("/").slice(-2);
+
+$("header p:last-of-type div").remove();
 
 const results = {
     url: request.url,
@@ -1130,6 +1146,8 @@ Apify.main(async () => {
             // This is our new scraping logic.
             if (request.userData.detailPage) {
                 const urlArr = request.url.split("/").slice(-2);
+
+                $("header p:last-of-type div").remove();
 
                 const results = {
                     url: request.url,
@@ -1209,21 +1227,23 @@ Apify.main(async () => {
             if (request.userData.detailPage) {
                 const urlArr = request.url.split("/").slice(-2);
 
+                $("header p:last-of-type div").remove();
+
                 const results = {
-    url: request.url,
-    uniqueIdentifier: urlArr.join("/"),
-    owner: urlArr[0],
-    title: $("header h1").text(),
-    description: $("header p:last-of-type").text(),
-    lastRunDate: new Date(
-        Number($(".stats time:last-of-type").attr("datetime"))
-    ),
-    runCount: Number(
-        $(".stats li:nth-of-type(3)")
-            .text()
-            .match(/\d+/)[0]
-    )
-};
+                    url: request.url,
+                    uniqueIdentifier: urlArr.join("/"),
+                    owner: urlArr[0],
+                    title: $("header h1").text(),
+                    description: $("header p:last-of-type").text(),
+                    lastRunDate: new Date(
+                        Number($(".stats time:last-of-type").attr("datetime"))
+                    ),
+                    runCount: Number(
+                        $(".stats li:nth-of-type(3)")
+                            .text()
+                            .match(/\d+/)[0]
+                    )
+                };
                 await Apify.pushData(results);
             }
 
@@ -1434,21 +1454,23 @@ exports.DETAIL = async ({ $, request }) => {
 
     log.debug("Scraping results.");
 
+    $("header p:last-of-type div").remove();
+
     const results = {
-    url: request.url,
-    uniqueIdentifier: urlArr.join("/"),
-    owner: urlArr[0],
-    title: $("header h1").text(),
-    description: $("header p:last-of-type").text(),
-    lastRunDate: new Date(
-        Number($(".stats time:last-of-type").attr("datetime"))
-    ),
-    runCount: Number(
-        $(".stats li:nth-of-type(3)")
-            .text()
-            .match(/\d+/)[0]
-    )
-};
+        url: request.url,
+        uniqueIdentifier: urlArr.join("/"),
+        owner: urlArr[0],
+        title: $("header h1").text(),
+        description: $("header p:last-of-type").text(),
+        lastRunDate: new Date(
+            Number($(".stats time:last-of-type").attr("datetime"))
+        ),
+        runCount: Number(
+            $(".stats li:nth-of-type(3)")
+                .text()
+                .match(/\d+/)[0]
+        )
+    };
 
     log.debug("Pushing data to dataset.");
     await Apify.pushData(results);
