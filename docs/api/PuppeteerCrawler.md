@@ -138,7 +138,13 @@ await crawler.run();
 <p>  Note that a single page object is only used to process a single request and it is closed afterwards.</p>
 <p>  By default, the function invokes <a href="puppeteer#puppeteer.gotoExtended"><code>Apify.utils.puppeteer.gotoExtended()</code></a> with a timeout of 60 seconds.
   For details, see source code on
-  <a href="https://github.com/apifytech/apify-js/blob/master/src/crawlers/puppeteer_crawler.js#L9" target="_blank">GitHub</a>.</p>
+  <a href="https://github.com/apifytech/apify-js/blob/master/src/crawlers/puppeteer_crawler.js#L292" target="_blank">GitHub</a>.</p>
+</td></tr><tr>
+<td><code>[options.gotoTimeoutSecs]</code></td><td><code>Number</code></td><td><code>60</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Timeout in which page navigation needs to finish, in seconds. When <code>options.gotoFunction()</code> is used and thus the default
+  function is overridden, this timeout will not be used and needs to be configured in the new <code>gotoFunction()</code>.</p>
 </td></tr><tr>
 <td><code>[options.handleFailedRequestFunction]</code></td><td><code>function</code></td><td></td>
 </tr>
@@ -151,7 +157,7 @@ await crawler.run();
 }</code></pre><p>  Where the <a href="request"><code>Request</code></a> instance corresponds to the failed request, and the <code>Error</code> instance
   represents the last error thrown during processing of the request.</p>
 <p>  See
-  <a href="https://github.com/apifytech/apify-js/blob/master/src/crawlers/puppeteer_crawler.js#L11" target="_blank">source code</a>
+  <a href="https://github.com/apifytech/apify-js/blob/master/src/crawlers/puppeteer_crawler.js#L301" target="_blank">source code</a>
   for the default implementation of this function.</p>
 </td></tr><tr>
 <td><code>[options.maxRequestRetries]</code></td><td><code>Number</code></td><td><code>3</code></td>

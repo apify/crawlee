@@ -1,3 +1,7 @@
+NEXT
+====================
+- Added `options.gotoTimeoutSecs` to `PuppeteerCrawler` to enable easier setting of navigation timeouts.
+
 0.15.3 / 2019-07-29
 ====================
 - `Apify.launchPuppeteer()` now accepts `proxyUrl` with the `https`, `socks4`
