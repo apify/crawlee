@@ -1,4 +1,4 @@
-NEXT
+0.15.3 / 2019-07-29
 ====================
 - `Apify.launchPuppeteer()` now accepts `proxyUrl` with the `https`, `socks4`
   and `socks5` schemes, as long as it doesn't contain username or password.
