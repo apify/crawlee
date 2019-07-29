@@ -1,3 +1,7 @@
+xxxxxxxxxxxxxxxxxxxx
+====================
+- Apify SDK package now prints warning when it's outdated.
+
 0.15.3 / 2019-07-29
 ====================
 - `Apify.launchPuppeteer()` now accepts `proxyUrl` with the `https`, `socks4`
@@ -32,6 +36,7 @@
   in the `Request`'s computed `uniqueKey`.
 - Updated Puppeteer to 1.18.1
 - Updated `apify-client` to 0.5.22
+
 
 0.14.15 / 2019-05-31
 ====================

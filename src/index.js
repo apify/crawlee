@@ -15,7 +15,7 @@ import Request from './request';
 import { RequestList, openRequestList } from './request_list';
 import { openRequestQueue } from './request_queue';
 import SettingsRotator from './settings_rotator';
-import { apifyClient, getMemoryInfo, isAtHome, publicUtils, logSystemInfo } from './utils';
+import { apifyClient, getMemoryInfo, isAtHome, publicUtils, logSystemInfo, printOudatedSdkWarning } from './utils';
 import { puppeteerUtils } from './puppeteer_utils';
 import { socialUtils } from './utils_social';
 import { enqueueLinks } from './enqueue_links/enqueue_links';
@@ -39,6 +39,9 @@ if (process.env[EMULATION_ENV_VAR]) {
 
 // Logging some basic system info (apify and apify-client version, NodeJS version, ...).
 logSystemInfo();
+
+// Log warning if SDK is outdated.
+printOudatedSdkWarning();
 
 /**
  * The following section describes all functions and properties provided by the `apify` package,
