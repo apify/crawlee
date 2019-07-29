@@ -141,6 +141,8 @@ This function is useful for web scraping of websites that send the full HTML in 
 Thanks to this function, the target web server has no simple way to find out the request
 hasn't been sent by a full web browser. Using a headless browser for such requests
 is an order of magnitude more resource-intensive than this function.
+By default tt aborts all requests that returns 406 status codes or non-HTML content-types.
+You can override this behavior by passing custom `abortFunction`.
 
 Currently, the function sends requests the same way as Firefox web browser does.
 In the future, it might add support for other browsers too.
@@ -189,6 +191,13 @@ so see it for more details.
 </tr>
 <tr>
 <td colspan="3"><p>If <code>true</code>, the function uses User-Agent of a mobile browser.</p>
+</td></tr><tr>
+<td><code>[options.abortFunction]</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Function accepts <code>response</code> object as a single parameter and should return true or false.
+ If function returns true request gets aborted. This function is passed to the
+ (@apify/http-request)[<a href="https://www.npmjs.com/package/@apify/http-request%5D">https://www.npmjs.com/package/@apify/http-request]</a> NPM package.</p>
 </td></tr></tbody>
 </table>
 <a name="utils.sleep"></a>
