@@ -136,7 +136,7 @@ const DEFAULT_OPTIONS = {
  *   represents the last error thrown during processing of the request.
  *
  *   See
- *   <a href="https://github.com/apifytech/apify-js/blob/master/src/basic_crawler.js#L11" target="_blank">source code</a>
+ *   <a href="https://github.com/apifytech/apify-js/blob/master/src/crawlers/basic_crawler.js#L11" target="_blank">source code</a>
  *   for the default implementation of this function.
  * @param {Number} [options.maxRequestRetries=3]
  *   Indicates how many times the request is retried if [`handleRequestFunction()`](#new_BasicCrawler_new) fails.
