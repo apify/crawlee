@@ -16,10 +16,12 @@ async function main() {
     const latestStableVersion = getMajor(latestStabel.current_version);
     if (defaultUserAgentVersion === latestStableVersion) {
         console.log(`Default User-Agent has a correct Chrome version - ${defaultUserAgentVersion}.`)
+        process.exit(0)
     } else {
         console.warn("Default User-Agent has incorrect version of Chrome!");
         console.warn("This can cause more blocking in head-full mode.");
         console.warn(`Default User-Agent: ${defaultUserAgentVersion} X Latest Chrome: ${latestStableVersion} `);
+        process.exit(1)
     }
 
 }
