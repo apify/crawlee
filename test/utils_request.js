@@ -1,6 +1,11 @@
 import { expect } from 'chai';
 import express from 'express';
-import { requestAsBrowser, REQUEST_AS_BROWSER_DEFAULT_OPTIONS, FIREFOX_MOBILE_USER_AGENT, FIREFOX_DESKTOP_USER_AGENT } from '../build/utils_request';
+import {
+    requestAsBrowser,
+    REQUEST_AS_BROWSER_DEFAULT_OPTIONS,
+    FIREFOX_MOBILE_USER_AGENT,
+    FIREFOX_DESKTOP_USER_AGENT,
+} from '../build/utils_request';
 import { startExpressAppPromise } from './_helper';
 
 const CONTENT = 'CONTENT';
@@ -161,7 +166,7 @@ describe('Apify.utils_request', () => {
             expect(JSON.parse(response.body)['user-agent']).to.be.eql(options.headers['User-Agent']);
         });
 
-        it('headers has same order as in Firefox', async () => {
+        it('headers has same format as in firefox', async () => {
             const host = `${HOST}:${port}`;
             const options = {
                 url: `http://${host}/rawHeaders`,
@@ -169,19 +174,20 @@ describe('Apify.utils_request', () => {
 
             const response = await requestAsBrowser(options);
             const headersArray = JSON.parse(response.body);
-
             expect(response.statusCode).to.eql(200);
-            expect(headersArray[0]).to.be.eql('user-agent');
+
+
+            expect(headersArray[0]).to.be.eql('User-Agent');
             expect(headersArray[1]).to.be.eql(FIREFOX_DESKTOP_USER_AGENT);
-            expect(headersArray[2]).to.be.eql('host');
+            expect(headersArray[2]).to.be.eql('Host');
             expect(headersArray[3]).to.be.eql(host);
-            expect(headersArray[4]).to.be.eql('accept');
+            expect(headersArray[4]).to.be.eql('Accept');
             expect(headersArray[5]).to.be.eql('text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8');
-            expect(headersArray[6]).to.be.eql('accept-language');
+            expect(headersArray[6]).to.be.eql('Accept-Language');
             expect(headersArray[7]).to.be.eql('en-US,en;q=0.5');
-            expect(headersArray[8]).to.be.eql('accept-encoding');
+            expect(headersArray[8]).to.be.eql('Accept-Encoding');
             expect(headersArray[9]).to.be.eql('gzip, deflate, br');
-            expect(headersArray[10]).to.be.eql('connection');
+            expect(headersArray[10]).to.be.eql('Connection');
             expect(headersArray[11]).to.be.eql('keep-alive');
         });
     });

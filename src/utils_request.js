@@ -18,6 +18,7 @@ export const REQUEST_AS_BROWSER_DEFAULT_OPTIONS = {
         const { type } = contentType.parse(res.headers['content-type']);
         return res.statusCode === 406 || type.toLowerCase() !== 'text/html';
     },
+    useCaseSensitiveHeaders: true,
 };
 /**
  * Sends a HTTP request that looks like a request sent by a web browser,
