@@ -10,6 +10,7 @@ import requestPromise from 'request-promise-native';
 import XRegExp from 'xregexp';
 import cheerio from 'cheerio';
 import log from 'apify-shared/log';
+import semver from 'semver';
 import { getRandomInt } from 'apify-shared/utilities';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import { checkParamOrThrow } from 'apify-client/build/utils';
@@ -615,6 +616,20 @@ export const snakeCaseToCamelCase = (snakeCaseStr) => {
                 : part;
         })
         .join('');
+};
+
+/**
+ * Prints a warning if this version of Apify SDK is outdated.
+ *
+ * @ignore
+ */
+export const printOutdatedSdkWarning = () => {
+    const latestApifyVersion = process.env[ENV_VARS.SDK_LATEST_VERSION];
+    if (!latestApifyVersion || !semver.lt(apifyVersion, latestApifyVersion)) return;
+
+    // eslint-disable-next-line
+    log.warning(`You are using an outdated version (${apifyVersion}) of Apify SDK. We recommend you to update to the latest version (${latestApifyVersion}).
+         Read more about Apify SDK versioning at: https://kb.apify.com/en/articles/3184510-updates-and-versioning-of-apify-sdk`);
 };
 
 /**

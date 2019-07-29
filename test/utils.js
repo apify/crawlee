@@ -5,8 +5,10 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import cheerio from 'cheerio';
+import semver from 'semver';
 import requestPromise from 'request-promise-native';
 import LruCache from 'apify-shared/lru_cache';
+import log from 'apify-shared/log';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import * as utils from '../build/utils';
 import Apify from '../build/index';
@@ -861,6 +863,7 @@ describe('utils.addTimeoutToPromise()', () => {
             clock.restore();
         }
     });
+
     it('should not timeout too soon', async () => {
         const clock = sinon.useFakeTimers();
         try {
@@ -876,5 +879,41 @@ describe('utils.addTimeoutToPromise()', () => {
         } finally {
             clock.restore();
         }
+    });
+});
+
+describe('utils.printOutdatedSdkWarning()', () => {
+    let logMock;
+
+    const currentVersion = require('../package.json').version; // eslint-disable-line
+
+    beforeEach(() => {
+        logMock = sinon.mock(log);
+    });
+
+    afterEach(() => {
+        logMock.verify();
+        logMock.restore();
+    });
+
+    it('should do nothing when ENV_VARS.SDK_LATEST_VERSION is not set', () => {
+        delete process.env[ENV_VARS.SDK_LATEST_VERSION];
+        logMock.expects('warning').never();
+        utils.printOutdatedSdkWarning();
+    });
+
+    it('should correctly work when outdated', () => {
+        process.env[ENV_VARS.SDK_LATEST_VERSION] = semver.inc(currentVersion, 'minor');
+        console.log(process.env[ENV_VARS.SDK_LATEST_VERSION]);
+        logMock.expects('warning').once();
+        utils.printOutdatedSdkWarning();
+        delete process.env[ENV_VARS.SDK_LATEST_VERSION];
+    });
+
+    it('should correctly work when up to date', () => {
+        process.env[ENV_VARS.SDK_LATEST_VERSION] = '0.13.0';
+        logMock.expects('warning').never();
+        utils.printOutdatedSdkWarning();
+        delete process.env[ENV_VARS.SDK_LATEST_VERSION];
     });
 });
