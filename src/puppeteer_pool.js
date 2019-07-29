@@ -16,10 +16,6 @@ import LiveViewServer from './live_view/live_view_server';
 const PROCESS_KILL_TIMEOUT_MILLIS = 5000;
 const PAGE_CLOSE_KILL_TIMEOUT_MILLIS = 1000;
 
-// See https://github.com/GoogleChrome/puppeteer/blob/2b68c104aaf309488fe710a0dd7127369373d5fb/lib/Launcher.js#L174
-const PUPPETEER_PIPE_TRANSPORT_WRITE = 3;
-const PUPPETEER_PIPE_TRANSPORT_READ = 4;
-
 const DEFAULT_OPTIONS = {
     reusePages: false,
     // Don't make these too large, otherwise Puppeteer might start crashing weirdly,
@@ -307,8 +303,6 @@ class PuppeteerPool {
         instance.childProcess = browser.process();
         instance.recycleDiskCacheDir = browser.recycleDiskCacheDir;
 
-        this._attachPipeErrorHandlers(instance.childProcess);
-
         browser.on('disconnected', () => {
             // If instance.killed === true then we killed the instance so don't log it.
             if (!instance.killed) log.error('PuppeteerPool: Puppeteer sent "disconnect" event. Maybe it crashed???', { id });
@@ -332,28 +326,6 @@ class PuppeteerPool {
                 }, PAGE_CLOSE_KILL_TIMEOUT_MILLIS);
             }
         });
-    }
-
-    /**
-     * When using "pipe: true" launch option, the pipe can break for various reasons,
-     * typically when the browser gets killed by PuppeteerPool. We swallow those errors,
-     * because there's nothing we can do anyway and we don't want them to crash Node.
-     * @param chromeProcess
-     * @ignore
-     */
-    _attachPipeErrorHandlers(chromeProcess) { // eslint-disable-line class-methods-use-this
-        const writeSocket = chromeProcess.stdio[PUPPETEER_PIPE_TRANSPORT_WRITE];
-        const readSocket = chromeProcess.stdio[PUPPETEER_PIPE_TRANSPORT_READ];
-
-        if (!(writeSocket && readSocket)) return; // We're not using pipes.
-
-        const errorHandler = (err) => {
-            log.debug('Puppeteer Pool: Browser connection failed. Browser will shut down.', { message: err.message });
-            if (chromeProcess) chromeProcess.kill('SIGKILL');
-        };
-
-        writeSocket.on('error', errorHandler);
-        readSocket.on('error', errorHandler);
     }
 
     /**
