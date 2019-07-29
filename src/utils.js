@@ -623,13 +623,13 @@ export const snakeCaseToCamelCase = (snakeCaseStr) => {
  *
  * @ignore
  */
-export const printOudatedSdkWarning = () => {
+export const printOutdatedSdkWarning = () => {
     const latestApifyVersion = process.env[ENV_VARS.SDK_LATEST_VERSION];
     if (!latestApifyVersion || !semver.lt(apifyVersion, latestApifyVersion)) return;
 
     // eslint-disable-next-line
     log.warning(`You are using an outdated version (${apifyVersion}) of Apify SDK. We recommend you to update to the latest version (${latestApifyVersion}).
-         Read more about Apify SDK versioning at: https://kb.apify.com/en/articles/3184510-apify-sdk-versioning`);
+         Read more about Apify SDK versioning at: https://kb.apify.com/en/articles/3184510-updates-and-versioning-of-apify-sdk`);
 };
 
 /**

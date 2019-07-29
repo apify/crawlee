@@ -882,7 +882,7 @@ describe('utils.addTimeoutToPromise()', () => {
     });
 });
 
-describe('utils.printOudatedSdkWarning()', () => {
+describe('utils.printOutdatedSdkWarning()', () => {
     let logMock;
 
     const currentVersion = require('../package.json').version; // eslint-disable-line
@@ -899,21 +899,21 @@ describe('utils.printOudatedSdkWarning()', () => {
     it('should do nothing when ENV_VARS.SDK_LATEST_VERSION is not set', () => {
         delete process.env[ENV_VARS.SDK_LATEST_VERSION];
         logMock.expects('warning').never();
-        utils.printOudatedSdkWarning();
+        utils.printOutdatedSdkWarning();
     });
 
     it('should correctly work when outdated', () => {
         process.env[ENV_VARS.SDK_LATEST_VERSION] = semver.inc(currentVersion, 'minor');
         console.log(process.env[ENV_VARS.SDK_LATEST_VERSION]);
         logMock.expects('warning').once();
-        utils.printOudatedSdkWarning();
+        utils.printOutdatedSdkWarning();
         delete process.env[ENV_VARS.SDK_LATEST_VERSION];
     });
 
     it('should correctly work when up to date', () => {
         process.env[ENV_VARS.SDK_LATEST_VERSION] = '0.13.0';
         logMock.expects('warning').never();
-        utils.printOudatedSdkWarning();
+        utils.printOutdatedSdkWarning();
         delete process.env[ENV_VARS.SDK_LATEST_VERSION];
     });
 });
