@@ -1,6 +1,6 @@
-xxxxxxxxxxxxxxxxxxxx
+NEXT
 ====================
-- Apify SDK package now prints warning when it's outdated.
+- Bump Puppeteer to 1.19.0 and use `{ pipe: true }` again because upstream bug has been fixed.
 
 0.15.3 / 2019-07-29
 ====================
