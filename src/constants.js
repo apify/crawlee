@@ -4,7 +4,7 @@ import { ACTOR_EVENT_NAMES } from 'apify-shared/consts';
  * The default user agent used by `Apify.launchPuppeteer`.
  * Last updated on 2018-12-30.
  */
-export const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36'; // eslint-disable-line max-len
+export const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.142 Safari/537.36'; // eslint-disable-line max-len
 
 /**
  * Exit codes for the actor process.
