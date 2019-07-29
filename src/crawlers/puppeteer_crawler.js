@@ -129,9 +129,9 @@ const DEFAULT_OPTIONS = {
  *
  *   Note that a single page object is only used to process a single request and it is closed afterwards.
  *
- *   By default, the function invokes Puppeteer's `Page.goto()` with a timeout of 60 seconds.
+ *   By default, the function invokes [`Apify.utils.puppeteer.gotoExtended()`](puppeteer#puppeteer.gotoExtended) with a timeout of 60 seconds.
  *   For details, see source code on
- *   <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_crawler.js#L9" target="_blank">GitHub</a>.
+ *   <a href="https://github.com/apifytech/apify-js/blob/master/src/crawlers/puppeteer_crawler.js#L9" target="_blank">GitHub</a>.
  * @param {Function} [options.handleFailedRequestFunction]
  *   A function to handle requests that failed more than `option.maxRequestRetries` times.
  *
@@ -292,7 +292,7 @@ class PuppeteerCrawler {
             await addTimeoutToPromise(
                 this.handlePageFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool, response }),
                 this.handlePageTimeoutMillis,
-                'PuppeteerCrawler: handlePageFunction timed out.',
+                `PuppeteerCrawler: handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`,
             );
         } finally {
             await this.puppeteerPool.recyclePage(page);

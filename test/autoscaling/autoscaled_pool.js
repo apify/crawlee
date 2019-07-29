@@ -81,15 +81,55 @@ describe('AutoscaledPool', () => {
         const startedAt = Date.now();
         await pool.run();
 
-        // Test setDesiredConcurrency()
-        pool.desiredConcurrency = 10;
-        expect(pool.desiredConcurrency).to.be.eql(10);
-        expect(() => {
-            pool.desiredConcurrency = 100;
-        }).to.throw(Error);
-        expect(() => {
-            pool.desiredConcurrency = -100;
-        }).to.throw(Error);
+        expect(result).to.be.eql(_.range(0, 100));
+        expect(Date.now() - startedAt).to.be.within(50, 200);
+    });
+
+    it('enables setting concurrency', async () => {
+        const range = _.range(0, 100);
+        const result = [];
+
+        let isFinished = false;
+
+        const runTaskFunction = () => {
+            if (range.length === 1) {
+                isFinished = true;
+            }
+
+            return new Promise((resolve) => {
+                const item = range.shift();
+                result.push(item);
+                setTimeout(resolve, 5);
+            });
+        };
+
+        const pool = new AutoscaledPool({
+            // Test initial concurrency setting
+            minConcurrency: 3,
+            maxConcurrency: 13,
+            desiredConcurrency: 9,
+            runTaskFunction,
+            isFinishedFunction: () => Promise.resolve(isFinished),
+            isTaskReadyFunction: () => Promise.resolve(!isFinished),
+        });
+
+        expect(pool.minConcurrency).to.be.eql(3);
+        expect(pool.maxConcurrency).to.be.eql(13);
+        expect(pool.desiredConcurrency).to.be.eql(9);
+
+        const startedAt = Date.now();
+        const promise = await pool.run();
+
+        // Test setting concurrency
+        pool.minConcurrency = 4;
+        pool.maxConcurrency = 14;
+        pool.desiredConcurrency = 7;
+
+        expect(pool.minConcurrency).to.be.eql(4);
+        expect(pool.maxConcurrency).to.be.eql(14);
+        expect(pool.desiredConcurrency).to.be.eql(7);
+
+        await promise;
 
         expect(result).to.be.eql(_.range(0, 100));
         expect(Date.now() - startedAt).to.be.within(50, 200);

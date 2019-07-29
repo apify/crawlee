@@ -51,7 +51,7 @@ jobs:
           secure: Gl7OuGxi0tmCJqg5k/fKUWvPBB5xFnHouIOp3ykiqibxOywoOp2ciug18KpnMjCuVyPpKsvNJsfMeo3tPterJLiBhP7XESvcY6fITBQzxZoRk9q0luWCKeN4WOvkbT0hY26yag6taiuUhOBlCrWQwalziaA1h2heuCCvYNm03Fjhn/Ogm6W9oXAycRkNM782cvzwfM/lMbLwGpA1wi1SD7k6hHhR3zUMv2dBEuKMzcIalHYg3ILBK+YZe6q+1RxhZHo9u+YgGLLoP9DFuLRmiHLUAjb0wJe3u4YO9s+HUW/a11rgIhUpXfNw/jWu1hoXrwRA7cnTJT0rYRAIEFZhQNL/oAPouKn20IyRK3P7juISt37WXotpuGzxAlY1PZAaCGL1SyOcOlcmDPhKEqd41QC/QcSqAZgXCrR8k0lS86IXwlZihxuVFy+fHOatP/NqeXOMXYDYshbo2jJPU97UbI2SNVT4gdFTEaWJW/e3v+yFwPh0z7cvnYe5FXuCjjdEkcNnaSl0NoYn2UmVWrwr/og8rWda5D5BQqmovXuq2Ask87u5IJOC+TEIQ4zf34nVLLm+aI9HjSFPMKfsKAo/toHkpalruqRFmMQ1C6CFNPoKdH9icLXIOG/cM3HeRkHGrckN28uxjrgzatPC6wcCmHZIUc0DLl9Z/GkRKrE1kz0=
       on:
           all_branches: true
-          condition: $TRAVIS_TAG =~ /^v\d+\.\d+\.\d+$/
+          condition: tag =~ /^v\d+\.\d+\.\d+$/
       tag: latest
       skip_cleanup: true
   - stage: images

@@ -36,3 +36,7 @@ input#search_input_react::placeholder {
 .navSearchWrapper::before {
     border-color: rgb(129, 129, 129);
 }
+
+.projectTitle {
+    color: #000;
+}

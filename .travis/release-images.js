@@ -6,9 +6,13 @@ const semver = require('semver'); // eslint-disable-line import/no-extraneous-de
 const {
     DOCKER_USERNAME,
     DOCKER_PASSWORD,
+    TRAVIS,
     TRAVIS_TAG: TAG,
     TRAVIS_BRANCH: BRANCH,
 } = process.env;
+
+if (!TRAVIS) throw new Error('This script is supposed to run on Travis only. ' +
+    'If you want to run it locally, you\'ll need to set some env vars and it will overwrite your Git credentials so tread carefully.');
 
 const TEMP_DIR = path.join(__dirname, '..', 'tmp');
 const IMAGE_REPO_NAME = 'apify-actor-docker';

@@ -18,53 +18,49 @@ const Apify = require('apify');
 await Apify.utils.sleep(1500);
 ```
 
-- [`utils`](#utils) : `object`
-  - [`.enqueueLinks`](#utils.enqueueLinks) ⇒ `Promise<Array<QueueOperationInfo>>`
-  - [`.requestAsBrowser`](#utils.requestAsBrowser) ⇒ `http.IncomingMessage`
-  - [`.sleep`](#utils.sleep) ⇒ `Promise`
-  - [`.URL_NO_COMMAS_REGEX`](#utils.URL_NO_COMMAS_REGEX)
-  - [`.URL_WITH_COMMAS_REGEX`](#utils.URL_WITH_COMMAS_REGEX)
-  - [`.isDocker()`](#utils.isDocker) ⇒ `Promise`
-  - [`.downloadListOfUrls(options)`](#utils.downloadListOfUrls) ⇒ `Promise<Array<String>>`
-  - [`.extractUrls(options)`](#utils.extractUrls) ⇒ `Array<String>`
-  - [`.getRandomUserAgent()`](#utils.getRandomUserAgent) ⇒ `String`
-  - [`.htmlToText(html)`](#utils.htmlToText) ⇒ `String`
+-   [`utils`](#utils) : `object`
+    -   [`.enqueueLinks`](#utils.enqueueLinks) ⇒ `Promise<Array<QueueOperationInfo>>`
+    -   [`.requestAsBrowser`](#utils.requestAsBrowser) ⇒ `http.IncomingMessage`
+    -   [`.sleep`](#utils.sleep) ⇒ `Promise`
+    -   [`.URL_NO_COMMAS_REGEX`](#utils.URL_NO_COMMAS_REGEX)
+    -   [`.URL_WITH_COMMAS_REGEX`](#utils.URL_WITH_COMMAS_REGEX)
+    -   [`.isDocker()`](#utils.isDocker) ⇒ `Promise`
+    -   [`.downloadListOfUrls(options)`](#utils.downloadListOfUrls) ⇒ `Promise<Array<String>>`
+    -   [`.extractUrls(options)`](#utils.extractUrls) ⇒ `Array<String>`
+    -   [`.getRandomUserAgent()`](#utils.getRandomUserAgent) ⇒ `String`
+    -   [`.htmlToText(html)`](#utils.htmlToText) ⇒ `String`
 
 <a name="utils.enqueueLinks"></a>
 
 ## `utils.enqueueLinks` ⇒ `Promise<Array<QueueOperationInfo>>`
 
-The function finds elements matching a specific CSS selector (HTML anchor (`<a>`) by default)
-either in a Puppeteer page, or in a Cheerio object (parsed HTML),
-and enqueues the URLs in their `href` attributes to the provided [`RequestQueue`](requestqueue).
-If you're looking to find URLs in JavaScript heavy pages where links are not available
-in `href` elements, but rather navigations are triggered in click handlers
-see [`enqueueLinksByClickingElements()`](puppeteer#puppeteer.enqueueLinksByClickingElements).
+The function finds elements matching a specific CSS selector (HTML anchor (`<a>`) by default) either in a Puppeteer page, or in a Cheerio object
+(parsed HTML), and enqueues the URLs in their `href` attributes to the provided [`RequestQueue`](requestqueue). If you're looking to find URLs in
+JavaScript heavy pages where links are not available in `href` elements, but rather navigations are triggered in click handlers see
+[`enqueueLinksByClickingElements()`](puppeteer#puppeteer.enqueueLinksByClickingElements).
 
-Optionally, the function allows you to filter the target links' URLs using an array of [`PseudoUrl`](pseudourl) objects
-and override settings of the enqueued [`Request`](request) objects.
+Optionally, the function allows you to filter the target links' URLs using an array of [`PseudoUrl`](pseudourl) objects and override settings of the
+enqueued [`Request`](request) objects.
 
 **Example usage**
 
 ```javascript
-const Apify = require("apify");
+const Apify = require('apify');
 
 const browser = await Apify.launchPuppeteer();
-const page = await browser.goto("https://www.example.com");
+const page = await browser.goto('https://www.example.com');
 const requestQueue = await Apify.openRequestQueue();
 
 await Apify.utils.enqueueLinks({
-  page,
-  requestQueue,
-  selector: "a.product-detail",
-  pseudoUrls: [
-    "https://www.example.com/handbags/[.*]",
-    "https://www.example.com/purses/[.*]"
-  ]
+    page,
+    requestQueue,
+    selector: 'a.product-detail',
+    pseudoUrls: ['https://www.example.com/handbags/[.*]', 'https://www.example.com/purses/[.*]'],
 });
 ```
 
-**Returns**: `Promise<Array<QueueOperationInfo>>` - Promise that resolves to an array of [`QueueOperationInfo`](../typedefs/queueoperationinfo) objects.
+**Returns**: `Promise<Array<QueueOperationInfo>>` - Promise that resolves to an array of [`QueueOperationInfo`](../typedefs/queueoperationinfo)
+objects.
 
 <table>
 <thead>
@@ -204,8 +200,8 @@ so see it for more details.
 
 ## `utils.sleep` ⇒ `Promise`
 
-Returns a `Promise` that resolves after a specific period of time. This is useful to implement waiting
-in your code, e.g. to prevent overloading of target website or to avoid bot detection.
+Returns a `Promise` that resolves after a specific period of time. This is useful to implement waiting in your code, e.g. to prevent overloading of
+target website or to avoid bot detection.
 
 **Example usage:**
 
@@ -236,15 +232,15 @@ await Apify.utils.sleep(1500);
 
 ## `utils.URL_NO_COMMAS_REGEX`
 
-Default regular expression to match URLs in a string that may be plain text, JSON, CSV or other. It supports common URL characters
-and does not support URLs containing commas or spaces. The URLs also may contain Unicode letters (not symbols).
+Default regular expression to match URLs in a string that may be plain text, JSON, CSV or other. It supports common URL characters and does not
+support URLs containing commas or spaces. The URLs also may contain Unicode letters (not symbols).
 
 <a name="utils.URL_WITH_COMMAS_REGEX"></a>
 
 ## `utils.URL_WITH_COMMAS_REGEX`
 
-Regular expression that, in addition to the default regular expression `URL_NO_COMMAS_REGEX`, supports matching commas in URL path and query.
-Note, however, that this may prevent parsing URLs from comma delimited lists, or the URLs may become malformed.
+Regular expression that, in addition to the default regular expression `URL_NO_COMMAS_REGEX`, supports matching commas in URL path and query. Note,
+however, that this may prevent parsing URLs from comma delimited lists, or the URLs may become malformed.
 
 <a name="utils.isDocker"></a>
 
@@ -256,8 +252,8 @@ Returns a `Promise` that resolves to true if the code is running in a Docker con
 
 ## `utils.downloadListOfUrls(options)` ⇒ `Promise<Array<String>>`
 
-Returns a promise that resolves to an array of urls parsed from the resource available at the provided url.
-Optionally, custom regular expression and encoding may be provided.
+Returns a promise that resolves to an array of urls parsed from the resource available at the provided url. Optionally, custom regular expression and
+encoding may be provided.
 
 <table>
 <thead>
@@ -327,27 +323,25 @@ Returns a randomly selected User-Agent header out of a list of the most common h
 
 The function converts a HTML document to a plain text.
 
-The plain text generated by the function is similar to a text captured
-by pressing Ctrl+A and Ctrl+C on a page when loaded in a web browser.
-The function doesn't aspire to preserve the formatting or to be perfectly correct with respect to HTML specifications.
-However, it attempts to generate newlines and whitespaces in and around HTML elements
-to avoid merging distinct parts of text and thus enable extraction of data from the text (e.g. phone numbers).
+The plain text generated by the function is similar to a text captured by pressing Ctrl+A and Ctrl+C on a page when loaded in a web browser. The
+function doesn't aspire to preserve the formatting or to be perfectly correct with respect to HTML specifications. However, it attempts to generate
+newlines and whitespaces in and around HTML elements to avoid merging distinct parts of text and thus enable extraction of data from the text (e.g.
+phone numbers).
 
 **Example usage**
 
 ```javascript
-const text = htmlToText("<html><body>Some text</body></html>");
+const text = htmlToText('<html><body>Some text</body></html>');
 console.log(text);
 ```
 
-Note that the function uses [cheerio](https://www.npmjs.com/package/cheerio) to parse the HTML.
-Optionally, to avoid duplicate parsing of HTML and thus improve performance, you can pass
-an existing Cheerio object to the function instead of the HTML text. The HTML should be parsed
-with the `decodeEntities` option set to `true`. For example:
+Note that the function uses [cheerio](https://www.npmjs.com/package/cheerio) to parse the HTML. Optionally, to avoid duplicate parsing of HTML and
+thus improve performance, you can pass an existing Cheerio object to the function instead of the HTML text. The HTML should be parsed with the
+`decodeEntities` option set to `true`. For example:
 
 ```javascript
-const cheerio = require("cheerio");
-const html = "<html><body>Some text</body></html>";
+const cheerio = require('cheerio');
+const html = '<html><body>Some text</body></html>';
 const text = htmlToText(cheerio.load(html, { decodeEntities: true }));
 ```
 

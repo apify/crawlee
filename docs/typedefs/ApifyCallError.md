@@ -5,8 +5,7 @@ title: ApifyCallError
 
 <a name="ApifyCallError"></a>
 
-The class represents exceptions thrown
-by the [`Apify.call()`](../api/apify#module_Apify.call) function.
+The class represents exceptions thrown by the [`Apify.call()`](../api/apify#module_Apify.call) function.
 
 **Properties**
 
