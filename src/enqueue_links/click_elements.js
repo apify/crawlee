@@ -287,7 +287,6 @@ function createFrameNavigatedHandler(page, requests) {
 async function preventHistoryNavigation(page) {
     /* istanbul ignore next */
     return page.evaluate(() => {
-        /* global window */
         window.__originalHistory__ = window.history; // eslint-disable-line no-underscore-dangle
         delete window.history; // Simple override does not work.
         window.history = {
@@ -422,7 +421,6 @@ async function restoreHistoryNavigationAndSaveCapturedUrls(page, requests) {
     /* eslint-disable no-shadow */
     /* istanbul ignore next */
     const stateHistory = await page.evaluate(() => {
-        /* global window */
         const { stateHistory } = window.history;
         window.history = window.__originalHistory__; // eslint-disable-line no-underscore-dangle
         return stateHistory;

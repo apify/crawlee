@@ -1,6 +1,4 @@
-/* eslint no-undef: 0 */
 /* istanbul ignore file */
-
 
 const hideWebDriver = () => {
     const newProto = window.navigator.__proto__; // eslint-disable-line
@@ -51,7 +49,6 @@ const addLanguage = () => {
 
 const emulateWebGL = () => {
     try {
-        /* global WebGLRenderingContext */
         const getParameterOld = WebGLRenderingContext.getParameter;
         WebGLRenderingContext.prototype.getParameter = function (parameter) {
             // UNMASKED_VENDOR_WEBGL
@@ -85,8 +82,6 @@ const emulateWindowFrame = () => {
 
 const addPlugins = () => {
     function mockPluginsAndMimeTypes() {
-        /* global MimeType MimeTypeArray PluginArray */
-
         // Disguise custom functions as being native
         const makeFnsNative = (fns = []) => {
             const oldCall = Function.prototype.call;

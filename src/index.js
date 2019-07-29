@@ -23,8 +23,6 @@ import PseudoUrl from './pseudo_url';
 import LiveViewServer from './live_view/live_view_server';
 import { requestAsBrowser } from './utils_request';
 
-/* globals module */
-
 // Increase the global limit for event emitter memory leak warnings.
 EventEmitter.defaultMaxListeners = 50;
 

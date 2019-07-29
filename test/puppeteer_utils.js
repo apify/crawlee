@@ -4,8 +4,6 @@ import Apify from '../build/index';
 
 const { utils: { log } } = Apify;
 
-/* global window, document */
-
 describe('Apify.utils.puppeteer', () => {
     let ll;
     before(() => {

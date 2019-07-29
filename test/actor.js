@@ -11,8 +11,6 @@ const Apify = require('../build/index');
 
 const { utils: { log } } = Apify;
 
-/* global process, describe, it */
-
 // TODO: override console.log() to test the error messages (now they are printed to console)
 
 /*

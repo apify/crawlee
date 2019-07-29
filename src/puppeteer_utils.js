@@ -34,7 +34,6 @@ const hideWebDriver = async (page) => {
     checkParamOrThrow(page, 'page', 'Object');
 
     await page.evaluateOnNewDocument(() => {
-        /* global Navigator, window */
         var modifiedNavigator; // eslint-disable-line no-var
         try {
             if (Navigator.prototype.hasOwnProperty('webdriver')) { // eslint-disable-line no-prototype-builtins
@@ -481,7 +480,6 @@ export const infiniteScroll = async (page, options = {}) => {
     });
 
     const checkFinished = setInterval(() => {
-        // console.log(resourcesStats)
         if (resourcesStats.oldRequested === resourcesStats.newRequested) {
             resourcesStats.matchNumber++;
             if (resourcesStats.matchNumber >= waitForSecs) {
@@ -495,14 +493,10 @@ export const infiniteScroll = async (page, options = {}) => {
         }
         // check if timeout has been reached
         if (timeoutSecs !== 0 && (Date.now() - startTime) / 1000 > timeoutSecs) {
-            // console.log("Timeout limit reached, exiting infinite scroll.")
             clearInterval(checkFinished);
             finished = true;
         }
     }, CHECK_INTERVAL_MILLIS);
-
-
-    /* global window document */
 
     const doScroll = async () => {
         /* istanbul ignore next */
