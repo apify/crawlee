@@ -136,9 +136,9 @@ await crawler.run();
 <p>  This is useful if you need to extend the page load timeout or select different criteria
   to determine that the navigation succeeded.</p>
 <p>  Note that a single page object is only used to process a single request and it is closed afterwards.</p>
-<p>  By default, the function invokes Puppeteer&#39;s <code>Page.goto()</code> with a timeout of 60 seconds.
+<p>  By default, the function invokes <a href="puppeteer#puppeteer.gotoExtended"><code>Apify.utils.puppeteer.gotoExtended()</code></a> with a timeout of 60 seconds.
   For details, see source code on
-  <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_crawler.js#L9" target="_blank">GitHub</a>.</p>
+  <a href="https://github.com/apifytech/apify-js/blob/master/src/crawlers/puppeteer_crawler.js#L9" target="_blank">GitHub</a>.</p>
 </td></tr><tr>
 <td><code>[options.handleFailedRequestFunction]</code></td><td><code>function</code></td><td></td>
 </tr>
