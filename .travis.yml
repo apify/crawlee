@@ -24,6 +24,8 @@ stages:
 install:
 - npm install --no-package-lock
 jobs:
+    allow_failures:
+        - script: node .travis/check-user-agent.js
   include:
   - stage: test
     name: Lint&Docs
