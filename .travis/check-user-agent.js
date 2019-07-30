@@ -30,4 +30,5 @@ try {
 } catch (e) {
     console.log('Could not check User-Agent');
     console.error(e);
+    process.exit(1)
 }
