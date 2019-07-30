@@ -10,8 +10,6 @@ import { apifyClient, addCharsetToContentType, sleep, snakeCaseToCamelCase, isAt
 import { maybeStringify } from './key_value_store';
 import { ApifyCallError } from './errors';
 
-/* globals process */
-
 const METAMORPH_AFTER_SLEEP_MILLIS = 300000;
 
 /**

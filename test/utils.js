@@ -13,8 +13,6 @@ import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import * as utils from '../build/utils';
 import Apify from '../build/index';
 
-/* global process, describe, it */
-
 describe('utils.newClient()', () => {
     it('reads environment variables correctly', () => {
         process.env[ENV_VARS.API_BASE_URL] = 'http://www.example.com:1234/path/';

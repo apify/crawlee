@@ -11,8 +11,6 @@ import { launchPuppeteer } from './puppeteer';
 import { addTimeoutToPromise } from './utils';
 import LiveViewServer from './live_view/live_view_server';
 
-/* global process */
-
 const PROCESS_KILL_TIMEOUT_MILLIS = 5000;
 const PAGE_CLOSE_KILL_TIMEOUT_MILLIS = 1000;
 
@@ -635,12 +633,12 @@ class PuppeteerPool {
         });
         const results = (await Promise.all(resultPromises)).filter(i => i);
         switch (results.length) {
-        case 0:
-            return null;
-        case 1:
-            return results[0];
-        default:
-            throw new Error('PuppeteerPool: Multiple instances of PuppeteerPool found using a single browser instance.');
+            case 0:
+                return null;
+            case 1:
+                return results[0];
+            default:
+                throw new Error('PuppeteerPool: Multiple instances of PuppeteerPool found using a single browser instance.');
         }
     }
 

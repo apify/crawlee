@@ -3,8 +3,6 @@ import Apify from '../../build';
 import { RequestQueue } from '../../build/request_queue';
 import { clickElements, clickElementsAndInterceptNavigationRequests, isTargetRelevant } from '../../build/enqueue_links/click_elements';
 
-/* global window */
-
 describe('enqueueLinksByClickingElements()', () => {
     let browser;
     let page;
