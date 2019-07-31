@@ -58,7 +58,7 @@ await store.setValue('some-key', { foo: 'bar' });
 const value = await store.getValue('some-key');
 
 // Delete record
-await store.delete('some-key');
+await store.drop('some-key');
 ```
 
 -   [KeyValueStore](keyvaluestore)

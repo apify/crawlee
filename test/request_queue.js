@@ -111,7 +111,7 @@ describe('RequestQueue', () => {
             // Delete it.
             const queueDir = path.join(LOCAL_STORAGE_DIR, LOCAL_STORAGE_SUBDIR, 'my-queue-0');
             expectDirNonEmpty(queueDir);
-            await queue.delete();
+            await queue.drop();
             expectDirEmpty(queueDir);
         });
 
@@ -457,7 +457,7 @@ describe('RequestQueue', () => {
                     queueId: 'some-id',
                 })
                 .returns(Promise.resolve());
-            await queue.delete();
+            await queue.drop();
 
             mock.verify();
             mock.restore();

@@ -7,6 +7,7 @@ import LruCache from 'apify-shared/lru_cache';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, MAX_PAYLOAD_SIZE_BYTES } from 'apify-shared/consts';
 import { apifyClient, ensureDirExists, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists } from './utils';
+import log from 'apify-shared/log';
 
 export const LOCAL_STORAGE_SUBDIR = LOCAL_STORAGE_SUBDIRS.datasets;
 export const LOCAL_FILENAME_DIGITS = 9;
@@ -417,15 +418,17 @@ export class Dataset {
      *
      * @return {Promise}
      */
-    delete() {
-        return datasets
-            .deleteDataset({
-                datasetId: this.datasetId,
-            })
-            .then(() => {
-                datasetsCache.remove(this.datasetId);
-                if (this.datasetName) datasetsCache.remove(this.datasetName);
-            });
+    async drop() {
+        await datasets.deleteDataset({ datasetId: this.datasetId });
+        datasetsCache.remove(this.datasetId);
+        if (this.datasetName) datasetsCache.remove(this.datasetName);
+    }
+
+    /** @ignore */
+    async delete() {
+        log.deprecated('dataset.delete() is deprecated. Please use dataset.drop() instead. '
+            + 'This is to make it more obvious to users that the function deletes the dataset and not individual records in the dataset.');
+        await this.drop();
     }
 }
 
@@ -577,13 +580,17 @@ export class DatasetLocal {
         return memo;
     }
 
-    delete() {
-        return this.initializationPromise
-            .then(() => emptyDirPromised(this.localStoragePath))
-            .then(() => {
-                this._updateMetadata(true);
-                datasetsCache.remove(this.datasetId);
-            });
+    async drop() {
+        await this.initializationPromise;
+        await emptyDirPromised(this.localStoragePath);
+        this._updateMetadata(true);
+        datasetsCache.remove(this.datasetId);
+    }
+
+    async delete() {
+        log.deprecated('dataset.delete() is deprecated. Please use dataset.drop() instead. '
+            + 'This is to make it more obvious to users that the function deletes the dataset and not individual records in the dataset.');
+        await this.drop();
     }
 
     /**

@@ -50,7 +50,7 @@ describe('dataset', () => {
             // Delete works.
             const datasetDir = path.join(LOCAL_STORAGE_DIR, LOCAL_STORAGE_SUBDIR, 'my-dataset');
             expectDirNonEmpty(datasetDir);
-            await newDataset.delete();
+            await newDataset.drop();
             expectDirEmpty(datasetDir);
         });
 
@@ -344,7 +344,7 @@ describe('dataset', () => {
                 .once()
                 .withArgs({ datasetId: 'some-id' })
                 .returns(Promise.resolve());
-            await dataset.delete();
+            await dataset.drop();
 
             mock.verify();
             mock.restore();
@@ -375,7 +375,7 @@ describe('dataset', () => {
                 .once()
                 .withArgs({ datasetId: 'some-id' })
                 .returns(Promise.resolve());
-            await dataset.delete();
+            await dataset.drop();
 
             mock.verify();
             mock.restore();
@@ -408,7 +408,7 @@ describe('dataset', () => {
                 .once()
                 .withArgs({ datasetId: 'some-id' })
                 .returns(Promise.resolve());
-            await dataset.delete();
+            await dataset.drop();
 
             mock.verify();
             mock.restore();
@@ -429,7 +429,7 @@ describe('dataset', () => {
                 .once()
                 .withArgs({ datasetId: 'some-id' })
                 .returns(Promise.resolve());
-            await dataset.delete();
+            await dataset.drop();
             mock.verify();
             mock.restore();
         });
@@ -454,7 +454,7 @@ describe('dataset', () => {
                 .once()
                 .withArgs({ datasetId: 'some-id' })
                 .returns(Promise.resolve());
-            await dataset.delete();
+            await dataset.drop();
             mock.verify();
             mock.restore();
         });

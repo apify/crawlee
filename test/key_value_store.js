@@ -96,7 +96,7 @@ describe('KeyValueStore', () => {
             // Delete works.
             const storeDir = path.join(LOCAL_STORAGE_DIR, LOCAL_STORAGE_SUBDIR, 'my-store-id');
             expectDirNonEmpty(storeDir);
-            await store.delete();
+            await store.drop();
             expectDirEmpty(storeDir);
         });
     });
@@ -148,7 +148,7 @@ describe('KeyValueStore', () => {
                     storeId: 'some-id-1',
                 })
                 .returns(Promise.resolve());
-            await store.delete();
+            await store.drop();
 
             mock.verify();
             mock.restore();
@@ -467,7 +467,7 @@ describe('KeyValueStore', () => {
             // Delete works.
             const storeDir = path.join(LOCAL_STORAGE_DIR, LOCAL_STORAGE_SUBDIR, storeId);
             expectDirNonEmpty(storeDir);
-            await store.delete();
+            await store.drop();
             expectDirEmpty(storeDir);
         });
     });
