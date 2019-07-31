@@ -57,14 +57,14 @@ await store.setValue('some-key', { foo: 'bar' });
 // text data returned as a string and other data is returned as binary buffer
 const value = await store.getValue('some-key');
 
-// Delete record
-await store.drop('some-key');
+// Drop (delete) the store
+await store.drop();
 ```
 
 -   [KeyValueStore](keyvaluestore)
     -   [`.getValue(key)`](#KeyValueStore+getValue) ⇒ `Promise<(Object|String|Buffer)>`
     -   [`.setValue(key, value, [options])`](#KeyValueStore+setValue) ⇒ `Promise`
-    -   [`.delete()`](#KeyValueStore+delete) ⇒ `Promise`
+    -   [`.drop()`](#KeyValueStore+drop) ⇒ `Promise`
     -   [`.getPublicUrl(key)`](#KeyValueStore+getPublicUrl) ⇒ `string`
     -   [`.forEachKey(iteratee, [options])`](#KeyValueStore+forEachKey) ⇒ `Promise`
 
@@ -177,9 +177,9 @@ stored!
 <td colspan="3"><p>Specifies a custom MIME content type of the record.</p>
 </td></tr></tbody>
 </table>
-<a name="KeyValueStore+delete"></a>
+<a name="KeyValueStore+drop"></a>
 
-## `keyValueStore.delete()` ⇒ `Promise`
+## `keyValueStore.drop()` ⇒ `Promise`
 
 Removes the key-value store either from the Apify cloud storage or from the local directory, depending on the mode of operation.
 

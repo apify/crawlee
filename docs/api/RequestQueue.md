@@ -71,7 +71,7 @@ await queue.reclaimRequest(request2);
     -   [`.reclaimRequest(request, [options])`](#RequestQueue+reclaimRequest) ⇒ [`Promise<QueueOperationInfo>`](../typedefs/queueoperationinfo)
     -   [`.isEmpty()`](#RequestQueue+isEmpty) ⇒ `Promise<Boolean>`
     -   [`.isFinished()`](#RequestQueue+isFinished) ⇒ `Promise<Boolean>`
-    -   [`.delete()`](#RequestQueue+delete) ⇒ `Promise`
+    -   [`.drop()`](#RequestQueue+drop) ⇒ `Promise`
     -   ~~[`.handledCount()`](#RequestQueue+handledCount) ⇒ `Promise<number>`~~
     -   [`.getInfo()`](#RequestQueue+getInfo) ⇒ `Promise<Object>`
 
@@ -211,9 +211,9 @@ activity in the queue, use [`RequestQueue.isFinished`](requestqueue.isfinished).
 Resolves to `true` if all requests were already handled and there are no more left. Due to the nature of distributed storage used by the queue, the
 function might occasionally return a false negative, but it will never return a false positive.
 
-<a name="RequestQueue+delete"></a>
+<a name="RequestQueue+drop"></a>
 
-## `requestQueue.delete()` ⇒ `Promise`
+## `requestQueue.drop()` ⇒ `Promise`
 
 Removes the queue either from the Apify Cloud storage or from the local directory, depending on the mode of operation.
 
