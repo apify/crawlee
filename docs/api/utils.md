@@ -20,7 +20,7 @@ await Apify.utils.sleep(1500);
 
 -   [`utils`](#utils) : `object`
     -   [`.enqueueLinks`](#utils.enqueueLinks) ⇒ `Promise<Array<QueueOperationInfo>>`
-    -   [`.requestAsBrowser`](#utils.requestAsBrowser) ⇒ `http.IncomingMessage`
+    -   [`.requestAsBrowser`](#utils.requestAsBrowser) ⇒ `Promise`
     -   [`.sleep`](#utils.sleep) ⇒ `Promise`
     -   [`.URL_NO_COMMAS_REGEX`](#utils.URL_NO_COMMAS_REGEX)
     -   [`.URL_WITH_COMMAS_REGEX`](#utils.URL_WITH_COMMAS_REGEX)
@@ -128,7 +128,7 @@ objects.
 </table>
 <a name="utils.requestAsBrowser"></a>
 
-## `utils.requestAsBrowser` ⇒ `http.IncomingMessage`
+## `utils.requestAsBrowser` ⇒ `Promise`
 
 Sends a HTTP request that looks like a request sent by a web browser, fully emulating browser's HTTP headers.
 
