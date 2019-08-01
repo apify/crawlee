@@ -10,12 +10,12 @@ const getMajor = (version) => {
 async function main() {
     const { body } = await httpRequest({ url: 'https://omahaproxy.appspot.com/all?csv=1' });
     const csv = await parse(body, { columns: true });
-    const latestStabel = csv.find(line => line.channel === 'stable' && line.os === 'linux');
+    const latestStable = csv.find(line => line.channel === 'stable' && line.os === 'linux');
     const UA = new UAParser(DEFAULT_USER_AGENT);
     const defaultUserAgentVersion = getMajor(UA.getBrowser().version);
-    const latestStableVersion = getMajor(latestStabel.current_version);
+    const latestStableVersion = getMajor(latestStable.current_version);
     if (defaultUserAgentVersion !== latestStableVersion) {
-        console.log(`Default User-Agent has a correct Chrome version - ${defaultUserAgentVersion}.`);
+        console.log(`Default User-Agent has the correct Chrome version - ${defaultUserAgentVersion}.`);
         process.exit(0);
     } else {
         console.warn('Default User-Agent has incorrect version of Chrome!');
