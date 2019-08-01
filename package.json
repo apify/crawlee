@@ -84,7 +84,14 @@
         "chai": "^4.2.0",
         "chai-as-promised": "^7.1.1",
         "chai-subset": "^1.6.0",
+        "csv-parse": "^4.4.3",
         "eslint": "^6.1.0",
+        "eslint-config-airbnb": "^17.1.0",
+        "eslint-config-airbnb-base": "^13.1.0",
+        "eslint-plugin-import": "^2.14.0",
+        "eslint-plugin-jsx-a11y": "^6.1.2",
+        "eslint-plugin-promise": "^4.0.1",
+        "eslint-plugin-react": "^7.11.1",
         "fpcollect": "^1.0.4",
         "fpscanner": "^0.1.5",
         "jsdoc": "^3.5.5",
@@ -96,6 +103,7 @@
         "sinon": "^7.1.1",
         "sinon-stub-promise": "^4.0.0",
         "socket.io-client": "^2.2.0",
+        "ua-parser-js": "^0.7.20",
         "why-is-node-running": "^2.0.3"
     },
     "optionalDependencies": {
