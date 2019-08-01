@@ -19,7 +19,7 @@ async function main() {
         process.exit(0);
     } else {
         console.warn('Default User-Agent has incorrect version of Chrome!');
-        console.warn('This can cause more blocking in head-full mode.');
+        console.warn('This can cause more blocking in headful mode.');
         console.warn(`Default User-Agent: ${defaultUserAgentVersion} X Latest Chrome: ${latestStableVersion} `);
         process.exit(1);
     }
