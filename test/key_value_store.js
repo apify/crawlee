@@ -93,11 +93,21 @@ describe('KeyValueStore', () => {
             expect(await store2.getValue('key-ctype')).to.be.eql(buffer);
             expect(await store2.getValue('key-badctype')).to.be.eql(buffer);
 
-            // Delete works.
+            // Drop works.
             const storeDir = path.join(LOCAL_STORAGE_DIR, LOCAL_STORAGE_SUBDIR, 'my-store-id');
             expectDirNonEmpty(storeDir);
             await store.drop();
             expectDirEmpty(storeDir);
+        });
+
+        it('deprecated delete() still works', async () => {
+            const kvs = new KeyValueStoreLocal('to-delete', LOCAL_STORAGE_DIR);
+            await kvs.setValue('dummy', { foo: 'bar' });
+
+            const kvsDir = path.join(LOCAL_STORAGE_DIR, LOCAL_STORAGE_SUBDIR, 'to-delete');
+            expectDirNonEmpty(kvsDir);
+            await kvs.delete();
+            expectDirEmpty(kvsDir);
         });
     });
 
@@ -141,7 +151,7 @@ describe('KeyValueStore', () => {
                 .returns(Promise.resolve(null));
             await store.setValue('key-1', null);
 
-            // Delete.
+            // Drop.
             mock.expects('deleteStore')
                 .once()
                 .withArgs({
@@ -152,6 +162,19 @@ describe('KeyValueStore', () => {
 
             mock.verify();
             mock.restore();
+        });
+
+        it('deprecated delete() still works', async () => {
+            const mock = sinon.mock(apifyClient.keyValueStores);
+            const kvs = new KeyValueStore('some-id', 'some-name');
+            mock.expects('deleteStore')
+                .once()
+                .withArgs({ storeId: 'some-id' })
+                .resolves();
+
+            await kvs.drop();
+
+            mock.verify();
         });
     });
 
@@ -464,7 +487,7 @@ describe('KeyValueStore', () => {
                 expect(r[0]).to.be.eql(`key${i + 4}`);
             });
 
-            // Delete works.
+            // Drop works.
             const storeDir = path.join(LOCAL_STORAGE_DIR, LOCAL_STORAGE_SUBDIR, storeId);
             expectDirNonEmpty(storeDir);
             await store.drop();

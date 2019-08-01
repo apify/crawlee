@@ -47,7 +47,7 @@ describe('dataset', () => {
             await newDataset.pushData({ foo2: 'bar2' });
             expect(read('my-dataset', 5)).to.be.eql({ foo2: 'bar2' });
 
-            // Delete works.
+            // Drop works.
             const datasetDir = path.join(LOCAL_STORAGE_DIR, LOCAL_STORAGE_SUBDIR, 'my-dataset');
             expectDirNonEmpty(datasetDir);
             await newDataset.drop();
@@ -314,6 +314,16 @@ describe('dataset', () => {
 
             expect(result.foo).to.be.eql(5);
             expect(calledForIndexes).to.be.eql([1, 2, 3]);
+        });
+
+        it('deprecated delete() still works', async () => {
+            const dataset = new DatasetLocal('to-delete', LOCAL_STORAGE_DIR);
+            await dataset.pushData({ foo: 'bar' });
+
+            const datasetDir = path.join(LOCAL_STORAGE_DIR, LOCAL_STORAGE_SUBDIR, 'to-delete');
+            expectDirNonEmpty(datasetDir);
+            await dataset.delete();
+            expectDirEmpty(datasetDir);
         });
     });
 
@@ -721,6 +731,19 @@ describe('dataset', () => {
 
             expect(result.foo).to.be.eql(5);
             expect(calledForIndexes).to.be.eql([1, 2, 3]);
+        });
+
+        it('deprecated delete() still works', async () => {
+            const mock = sinon.mock(apifyClient.datasets);
+            const dataset = new Dataset('some-id', 'some-name');
+            mock.expects('deleteDataset')
+                .once()
+                .withArgs({ datasetId: 'some-id' })
+                .resolves();
+
+            await dataset.drop();
+
+            mock.verify();
         });
     });
 
