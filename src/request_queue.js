@@ -640,13 +640,20 @@ export class RequestQueue {
      *
      * @return {Promise}
      */
-    async delete() {
+    async drop() {
         await requestQueues.deleteQueue({
             queueId: this.queueId,
         });
 
         queuesCache.remove(this.queueId);
         if (this.queueName) queuesCache.remove(this.queueName);
+    }
+
+    /** @ignore */
+    async delete() {
+        log.deprecated('requestQueue.delete() is deprecated. Please use requestQueue.drop() instead. '
+            + 'This is to make it more obvious to users that the function deletes the request queue and not individual records in the queue.');
+        await this.drop();
     }
 
     /**
@@ -994,9 +1001,15 @@ export class RequestQueueLocal {
         return this.pendingCount === 0;
     }
 
-    async delete() {
+    async drop() {
         await emptyDirPromised(this.localStoragePath);
         queuesCache.remove(this.queueId);
+    }
+
+    async delete() {
+        log.deprecated('requestQueue.delete() is deprecated. Please use requestQueue.drop() instead. '
+            + 'This is to make it more obvious to users that the function deletes the request queue and not individual records in the queue.');
+        await this.drop();
     }
 
     async handledCount() {
