@@ -287,7 +287,6 @@ function createFrameNavigatedHandler(page, requests) {
 async function preventHistoryNavigation(page) {
     /* istanbul ignore next */
     return page.evaluate(() => {
-        /* global window */
         window.__originalHistory__ = window.history; // eslint-disable-line no-underscore-dangle
         delete window.history; // Simple override does not work.
         window.history = {
@@ -324,12 +323,19 @@ export async function clickElements(page, selector) {
     log.debug(`enqueueLinksByClickingElements: There are ${elementHandles.length} elements to click.`);
     let clickedElementsCount = 0;
     let zIndex = STARTING_Z_INDEX;
+    let shouldLogWarning = true;
     for (const handle of elementHandles) {
         try {
             await page.evaluate(updateElementCssToEnableMouseClick, handle, zIndex++);
             await handle.click();
             clickedElementsCount++;
         } catch (err) {
+            if (shouldLogWarning && err.stack.includes('is detached from document')) {
+                log.warning(`An element with selector ${selector} that you're trying to click has been removed from the page. `
+                    + 'This was probably caused by an earlier click which triggered some JavaScript on the page that caused it to change. '
+                    + 'If you\'re trying to enqueue pagination links, we suggest using the "next" button, if available and going one by one.');
+                shouldLogWarning = false;
+            }
             log.debug('enqueueLinksByClickingElements: Click failed.', { stack: err.stack });
         }
     }
@@ -422,7 +428,6 @@ async function restoreHistoryNavigationAndSaveCapturedUrls(page, requests) {
     /* eslint-disable no-shadow */
     /* istanbul ignore next */
     const stateHistory = await page.evaluate(() => {
-        /* global window */
         const { stateHistory } = window.history;
         window.history = window.__originalHistory__; // eslint-disable-line no-underscore-dangle
         return stateHistory;

@@ -7,15 +7,6 @@ import { addTimeoutToPromise } from '../utils';
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { gotoExtended } from '../puppeteer_utils';
 
-const DEFAULT_OPTIONS = {
-    gotoFunction: async ({ request, page }) => gotoExtended(page, request, { timeout: 60000 }),
-    handlePageTimeoutSecs: 60,
-    handleFailedRequestFunction: ({ request }) => {
-        const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
-        log.error('PuppeteerCrawler: Request failed and reached maximum retries', details);
-    },
-};
-
 /**
  * Provides a simple framework for parallel crawling of web pages
  * using headless Chrome with <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a>.
@@ -131,7 +122,10 @@ const DEFAULT_OPTIONS = {
  *
  *   By default, the function invokes [`Apify.utils.puppeteer.gotoExtended()`](puppeteer#puppeteer.gotoExtended) with a timeout of 60 seconds.
  *   For details, see source code on
- *   <a href="https://github.com/apifytech/apify-js/blob/master/src/crawlers/puppeteer_crawler.js#L9" target="_blank">GitHub</a>.
+ *   <a href="https://github.com/apifytech/apify-js/blob/master/src/crawlers/puppeteer_crawler.js#L292" target="_blank">GitHub</a>.
+ * @param {Number} [options.gotoTimeoutSecs=60]
+ *   Timeout in which page navigation needs to finish, in seconds. When `options.gotoFunction()` is used and thus the default
+ *   function is overridden, this timeout will not be used and needs to be configured in the new `gotoFunction()`.
  * @param {Function} [options.handleFailedRequestFunction]
  *   A function to handle requests that failed more than `option.maxRequestRetries` times.
  *
@@ -146,7 +140,7 @@ const DEFAULT_OPTIONS = {
  *   represents the last error thrown during processing of the request.
  *
  *   See
- *   <a href="https://github.com/apifytech/apify-js/blob/master/src/crawlers/puppeteer_crawler.js#L11" target="_blank">source code</a>
+ *   <a href="https://github.com/apifytech/apify-js/blob/master/src/crawlers/puppeteer_crawler.js#L301" target="_blank">source code</a>
  *   for the default implementation of this function.
  * @param {Number} [options.maxRequestRetries=3]
  *    Indicates how many times the request is retried if either `handlePageFunction()` or `gotoFunction()` fails.
@@ -182,8 +176,9 @@ class PuppeteerCrawler {
     constructor(options) {
         const {
             handlePageFunction,
-            gotoFunction,
-            handlePageTimeoutSecs,
+            gotoFunction = this._defaultGotoFunction,
+            handlePageTimeoutSecs = 60,
+            gotoTimeoutSecs = 60,
 
             // AutoscaledPool shorthands
             maxConcurrency,
@@ -194,52 +189,38 @@ class PuppeteerCrawler {
             requestQueue,
             maxRequestRetries,
             maxRequestsPerCrawl,
-            handleFailedRequestFunction,
+            handleFailedRequestFunction = this._defaultHandleFailedRequestFunction,
             autoscaledPoolOptions,
 
             // PuppeteerPool options and shorthands
             puppeteerPoolOptions,
             launchPuppeteerFunction,
             launchPuppeteerOptions,
-
-            // TODO Deprecated PuppeteerPool options
-            maxOpenPagesPerInstance,
-            retireInstanceAfterRequestCount,
-            instanceKillerIntervalMillis,
-            killInstanceAfterMillis,
-            proxyUrls,
-
-        } = _.defaults({}, options, DEFAULT_OPTIONS);
+        } = options;
 
         checkParamOrThrow(handlePageFunction, 'options.handlePageFunction', 'Function');
         checkParamOrThrow(handlePageTimeoutSecs, 'options.handlePageTimeoutSecs', 'Number');
-        checkParamOrThrow(handleFailedRequestFunction, 'options.handleFailedRequestFunction', 'Maybe Function');
+        checkParamOrThrow(handleFailedRequestFunction, 'options.handleFailedRequestFunction', 'Function');
         checkParamOrThrow(gotoFunction, 'options.gotoFunction', 'Function');
+        checkParamOrThrow(gotoTimeoutSecs, 'options.gotoTimeoutSecs', 'Number');
         checkParamOrThrow(puppeteerPoolOptions, 'options.puppeteerPoolOptions', 'Maybe Object');
+
+        if (options.gotoTimeoutSecs && options.gotoFunction) {
+            log.warning('PuppeteerCrawler: You are using gotoTimeoutSecs with a custom gotoFunction. '
+                + 'The timeout value will not be used. With a custom gotoFunction, you need to set the timeout in the function itself.');
+        }
 
         this.handlePageFunction = handlePageFunction;
         this.gotoFunction = gotoFunction;
 
         this.handlePageTimeoutMillis = handlePageTimeoutSecs * 1000;
+        this.gotoTimeoutMillis = gotoTimeoutSecs * 1000;
 
-        // TODO Deprecated in 3/2019
-        const deprecatedPuppeteerPoolOptions = {
-            maxOpenPagesPerInstance,
-            retireInstanceAfterRequestCount,
-            instanceKillerIntervalMillis,
-            killInstanceAfterMillis,
-            proxyUrls,
+        this.puppeteerPoolOptions = {
+            ...puppeteerPoolOptions,
+            launchPuppeteerFunction,
+            launchPuppeteerOptions,
         };
-        Object.entries(deprecatedPuppeteerPoolOptions).forEach(([key, value]) => {
-            if (value) log.deprecated(`PuppeteerCrawler: "options.${key}" is deprecated, use "options.puppeteerPoolOptions" in PuppeteerCrawler() constructor instead.`); // eslint-disable-line max-len
-        });
-        // puppeteerPoolOptions can be null or undefined or Object, so we merge it this way, because null is not replaced by defaults above.
-        this.puppeteerPoolOptions = _.defaults(
-            {},
-            { launchPuppeteerFunction, launchPuppeteerOptions },
-            deprecatedPuppeteerPoolOptions,
-            puppeteerPoolOptions,
-        );
 
         this.puppeteerPool = null; // Constructed when .run()
 
@@ -297,6 +278,26 @@ class PuppeteerCrawler {
         } finally {
             await this.puppeteerPool.recyclePage(page);
         }
+    }
+
+    /**
+     * @param {Page} page
+     * @param {Request} request
+     * @return {Promise<Response>}
+     * @ignore
+     */
+    async _defaultGotoFunction({ page, request }) {
+        return gotoExtended(page, request, { timeout: this.gotoTimeoutMillis });
+    }
+
+    /**
+     * @param {Request} request
+     * @return {Promise}
+     * @ignore
+     */
+    async _defaultHandleFailedRequestFunction({ request }) { // eslint-disable-line class-methods-use-this
+        const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
+        log.error('PuppeteerCrawler: Request failed and reached maximum retries', details);
     }
 }
 

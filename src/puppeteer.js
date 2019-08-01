@@ -8,9 +8,6 @@ import { getTypicalChromeExecutablePath, isAtHome } from './utils';
 import { getApifyProxyUrl } from './actor';
 import applyStealthToBrowser from './stealth/stealth';
 
-/* global process, require */
-
-
 const LAUNCH_PUPPETEER_LOG_OMIT_OPTS = [
     'proxyUrl', 'userAgent', 'useApifyProxy', 'apifyProxySession', 'apifyProxyGroups',
 ];

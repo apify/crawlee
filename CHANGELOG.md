@@ -1,3 +1,11 @@
+NEXT
+====================
+- Added `options.gotoTimeoutSecs` to `PuppeteerCrawler` to enable easier setting of navigation timeouts.
+- `PuppeteerPool` options that were deprecated from the `PuppeteerCrawler` constructor were finally removed.
+  Please use `maxOpenPagesPerInstance`, `retireInstanceAfterRequestCount`, `instanceKillerIntervalSecs`,
+  `killInstanceAfterSecs` and `proxyUrls` via the `puppeteerPoolOptions` object.
+- On the Apify Platform a warning will now be printed when using an outdated `apify` package version.
+
 0.15.3 / 2019-07-29
 ====================
 - `Apify.launchPuppeteer()` now accepts `proxyUrl` with the `https`, `socks4`
@@ -32,6 +40,7 @@
   in the `Request`'s computed `uniqueKey`.
 - Updated Puppeteer to 1.18.1
 - Updated `apify-client` to 0.5.22
+
 
 0.14.15 / 2019-05-31
 ====================

@@ -10,14 +10,13 @@ import requestPromise from 'request-promise-native';
 import XRegExp from 'xregexp';
 import cheerio from 'cheerio';
 import log from 'apify-shared/log';
+import semver from 'semver';
 import { getRandomInt } from 'apify-shared/utilities';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { version as apifyClientVersion } from 'apify-client/package.json';
 import { version as apifyVersion } from '../package.json';
 import { USER_AGENT_LIST } from './constants';
-
-/* globals process */
 
 /**
  * Default regular expression to match URLs in a string that may be plain text, JSON, CSV or other. It supports common URL characters
@@ -319,9 +318,9 @@ export const getFirstKey = (dict) => {
  */
 export const getTypicalChromeExecutablePath = () => {
     switch (os.platform()) {
-    case 'darwin': return '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-    case 'win32': return 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe';
-    default: return 'google-chrome';
+        case 'darwin': return '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+        case 'win32': return 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe';
+        default: return 'google-chrome';
     }
 };
 
@@ -615,6 +614,20 @@ export const snakeCaseToCamelCase = (snakeCaseStr) => {
                 : part;
         })
         .join('');
+};
+
+/**
+ * Prints a warning if this version of Apify SDK is outdated.
+ *
+ * @ignore
+ */
+export const printOutdatedSdkWarning = () => {
+    const latestApifyVersion = process.env[ENV_VARS.SDK_LATEST_VERSION];
+    if (!latestApifyVersion || !semver.lt(apifyVersion, latestApifyVersion)) return;
+
+    // eslint-disable-next-line
+    log.warning(`You are using an outdated version (${apifyVersion}) of Apify SDK. We recommend you to update to the latest version (${latestApifyVersion}).
+         Read more about Apify SDK versioning at: https://kb.apify.com/en/articles/3184510-updates-and-versioning-of-apify-sdk`);
 };
 
 /**
