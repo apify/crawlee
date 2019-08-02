@@ -226,8 +226,6 @@ describe('PuppeteerPool', () => {
         await pool.destroy();
     });
 
-    // Test started failing on 6.10.2018. Probably some change upstream.
-    // Disabling the feature until resolved.
     it('supports recycleDiskCache option', async () => {
         const pool = new Apify.PuppeteerPool({
             maxOpenPagesPerInstance: 1,

@@ -108,10 +108,10 @@ describe('RequestQueue', () => {
             expect(await queue.isEmpty()).to.be.eql(true);
             expect(await queue.isFinished()).to.be.eql(true);
 
-            // Delete it.
+            // Drop it.
             const queueDir = path.join(LOCAL_STORAGE_DIR, LOCAL_STORAGE_SUBDIR, 'my-queue-0');
             expectDirNonEmpty(queueDir);
-            await queue.delete();
+            await queue.drop();
             expectDirEmpty(queueDir);
         });
 
@@ -279,6 +279,16 @@ describe('RequestQueue', () => {
             expect(info.totalRequestCount).to.be.eql(3);
             expect(info.pendingRequestCount).to.be.eql(0);
             expect(info.handledRequestCount).to.be.eql(3);
+        });
+
+        it('deprecated delete() still works', async () => {
+            const rq = new RequestQueueLocal('to-delete', LOCAL_STORAGE_DIR);
+            await rq.addRequest({ url: 'https://example.com' });
+
+            const rqDir = path.join(LOCAL_STORAGE_DIR, LOCAL_STORAGE_SUBDIR, 'to-delete');
+            expectDirNonEmpty(rqDir);
+            await rq.delete();
+            expectDirEmpty(rqDir);
         });
     });
 
@@ -450,14 +460,14 @@ describe('RequestQueue', () => {
             expect(queue.queueHeadDict.length()).to.be.eql(1);
             expect(queue.inProgressCount()).to.be.eql(1);
 
-            // Delete queue.
+            // Drop queue.
             mock.expects('deleteQueue')
                 .once()
                 .withArgs({
                     queueId: 'some-id',
                 })
                 .returns(Promise.resolve());
-            await queue.delete();
+            await queue.drop();
 
             mock.verify();
             mock.restore();
@@ -922,6 +932,19 @@ describe('RequestQueue', () => {
 
             mock.verify();
             mock.restore();
+        });
+
+        it('deprecated delete() still works', async () => {
+            const mock = sinon.mock(apifyClient.requestQueues);
+            const rq = new RequestQueue('some-id', 'some-name');
+            mock.expects('deleteQueue')
+                .once()
+                .withArgs({ queueId: 'some-id' })
+                .resolves();
+
+            await rq.drop();
+
+            mock.verify();
         });
     });
 

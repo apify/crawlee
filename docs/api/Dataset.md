@@ -52,7 +52,7 @@ await dataset.pushData([{ foo: 'bar2', col2: 'val2' }, { col3: 123 }]);
     -   [`.forEach(iteratee, [options], [index])`](#Dataset+forEach) ⇒ `Promise`
     -   [`.map(iteratee, options)`](#Dataset+map) ⇒ `Promise<Array>`
     -   [`.reduce(iteratee, memo, options)`](#Dataset+reduce) ⇒ `Promise<*>`
-    -   [`.delete()`](#Dataset+delete) ⇒ `Promise`
+    -   [`.drop()`](#Dataset+drop) ⇒ `Promise`
 
 <a name="Dataset+pushData"></a>
 
@@ -411,8 +411,8 @@ If `iteratee()` returns a `Promise` then it's awaited before a next call.
 <td colspan="3"><p>How many items to load in one request.</p>
 </td></tr></tbody>
 </table>
-<a name="Dataset+delete"></a>
+<a name="Dataset+drop"></a>
 
-## `dataset.delete()` ⇒ `Promise`
+## `dataset.drop()` ⇒ `Promise`
 
 Removes the dataset either from the Apify cloud storage or from the local directory, depending on the mode of operation.

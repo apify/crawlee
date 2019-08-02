@@ -7,6 +7,7 @@ import LruCache from 'apify-shared/lru_cache';
 import { KEY_VALUE_STORE_KEY_REGEX } from 'apify-shared/regexs';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, KEY_VALUE_STORE_KEYS } from 'apify-shared/consts';
 import { jsonStringifyExtended } from 'apify-shared/utilities';
+import log from 'apify-shared/log';
 import { checkParamOrThrow, parseBody } from 'apify-client/build/utils';
 import {
     addCharsetToContentType, apifyClient, ensureDirExists, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists,
@@ -153,8 +154,8 @@ export const maybeStringify = (value, options) => {
  * // text data returned as a string and other data is returned as binary buffer
  * const value = await store.getValue('some-key');
  *
- *  // Delete record
- * await store.delete('some-key');
+ *  // Drop (delete) the store
+ * await store.drop();
  * ```
  * @hideconstructor
  */
@@ -285,15 +286,17 @@ export class KeyValueStore {
      *
      * @return {Promise}
      */
-    delete() {
-        return keyValueStores
-            .deleteStore({
-                storeId: this.storeId,
-            })
-            .then(() => {
-                storesCache.remove(this.storeId);
-                if (this.storeName) storesCache.remove(this.storeName);
-            });
+    async drop() {
+        await keyValueStores.deleteStore({ storeId: this.storeId });
+        storesCache.remove(this.storeId);
+        if (this.storeName) storesCache.remove(this.storeName);
+    }
+
+    /** @ignore */
+    async delete() {
+        log.deprecated('keyValueStore.delete() is deprecated. Please use keyValueStore.drop() instead. '
+            + 'This is to make it more obvious to users that the function deletes the key-value store and not individual records in the store.');
+        await this.drop();
     }
 
     /**
@@ -421,6 +424,12 @@ export class KeyValueStoreLocal {
     }
 
     async delete() {
+        log.deprecated('keyValueStore.delete() is deprecated. Please use keyValueStore.drop() instead. '
+            + 'This is to make it more obvious to users that the function deletes the key-value store and not individual records in the store.');
+        await this.drop();
+    }
+
+    async drop() {
         await this.initializationPromise;
         await emptyDirPromised(this.localStoragePath);
 
