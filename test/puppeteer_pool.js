@@ -286,9 +286,6 @@ describe('PuppeteerPool', () => {
 
         await page2.goto(url);
 
-        const cookies2after = await page2.cookies(url);
-        expect(cookies2after.length).to.be.at.least(1);
-
         expect(fromDiskCache2).to.be.at.least(1);
 
         // Open third browser while second is still open, it should use a new cache directory
