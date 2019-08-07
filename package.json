@@ -51,7 +51,7 @@
     "dependencies": {
         "@apify/http-request": "^1.0.5",
         "@apify/ps-tree": "^1.1.3",
-        "apify-client": "^0.5.22",
+        "apify-client": "^0.5.24",
         "apify-shared": "^0.1.55",
         "cheerio": "^1.0.0-rc.2",
         "content-type": "^1.0.4",
