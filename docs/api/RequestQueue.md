@@ -136,20 +136,20 @@ Gets the request from the queue specified by ID.
 
 Returns a next request in the queue to be processed, or `null` if there are no more pending requests.
 
-Once you successfully finish processing of the request, you need to call [`RequestQueue.markRequestHandled`](requestqueue.markrequesthandled) to mark
-the request as handled in the queue. If there was some error in processing the request, call
-[`RequestQueue.reclaimRequest`](requestqueue.reclaimrequest) instead, so that the queue will give the request to some other consumer in another call
-to the `fetchNextRequest` function.
+Once you successfully finish processing of the request, you need to call [`requestQueue.markRequestHandled()`](#RequestQueue+markRequestHandled) to
+mark the request as handled in the queue. If there was some error in processing the request, call
+[`requestQueue.reclaimRequest()`](#RequestQueue+reclaimRequest) instead, so that the queue will give the request to some other consumer in another
+call to the `fetchNextRequest` function.
 
 Note that the `null` return value doesn't mean the queue processing finished, it means there are currently no pending requests. To check whether all
-requests in queue were finished, use [`RequestQueue.isFinished`](requestqueue.isfinished) instead.
+requests in queue were finished, use [`requestQueue.isFinished()`](#RequestQueue+isFinished) instead.
 
 **Returns**: [`Promise<Request>`](request) - Returns the request object or `null` if there are no more pending requests.  
 <a name="RequestQueue+markRequestHandled"></a>
 
 ## `requestQueue.markRequestHandled(request)` ⇒ [`Promise<QueueOperationInfo>`](../typedefs/queueoperationinfo)
 
-Marks a request that was previously returned by the [`RequestQueue.fetchNextRequest`](requestqueue.fetchnextrequest) function as handled after
+Marks a request that was previously returned by the [`requestQueue.fetchNextRequest()`](#RequestQueue+fetchNextRequest) function as handled after
 successful processing. Handled requests will never again be returned by the `fetchNextRequest` function.
 
 <table>
@@ -170,8 +170,8 @@ successful processing. Handled requests will never again be returned by the `fet
 ## `requestQueue.reclaimRequest(request, [options])` ⇒ [`Promise<QueueOperationInfo>`](../typedefs/queueoperationinfo)
 
 Reclaims a failed request back to the queue, so that it can be returned for processed later again by another call to
-[`RequestQueue.fetchNextRequest`](requestqueue.fetchnextrequest). The request record in the queue is updated using the provided `request` parameter.
-For example, this lets you store the number of retries or error messages for the request.
+[`requestQueue.fetchNextRequest()`](#RequestQueue+fetchNextRequest). The request record in the queue is updated using the provided `request`
+parameter. For example, this lets you store the number of retries or error messages for the request.
 
 <table>
 <thead>
@@ -193,16 +193,17 @@ For example, this lets you store the number of retries or error messages for the
 </tr>
 <tr>
 <td colspan="3"><p>If <code>true</code> then the request it placed to the beginning of the queue, so that it&#39;s returned
-in the next call to <a href="requestqueue.fetchnextrequest"><code>RequestQueue.fetchNextRequest</code></a>. By default, it&#39;s put to the end of the queue.</p>
+in the next call to <a href="#RequestQueue+fetchNextRequest"><code>requestQueue.fetchNextRequest()</code></a>.
+By default, it&#39;s put to the end of the queue.</p>
 </td></tr></tbody>
 </table>
 <a name="RequestQueue+isEmpty"></a>
 
 ## `requestQueue.isEmpty()` ⇒ `Promise<Boolean>`
 
-Resolves to `true` if the next call to [`RequestQueue.fetchNextRequest`](requestqueue.fetchnextrequest) would return `null`, otherwise it resolves to
-`false`. Note that even if the queue is empty, there might be some pending requests currently being processed. If you need to ensure that there is no
-activity in the queue, use [`RequestQueue.isFinished`](requestqueue.isfinished).
+Resolves to `true` if the next call to [`requestQueue.fetchNextRequest()`](#RequestQueue+fetchNextRequest) would return `null`, otherwise it resolves
+to `false`. Note that even if the queue is empty, there might be some pending requests currently being processed. If you need to ensure that there is
+no activity in the queue, use [`requestQueue.isFinished()`](#RequestQueue+isFinished).
 
 <a name="RequestQueue+isFinished"></a>
 

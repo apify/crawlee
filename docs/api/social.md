@@ -388,8 +388,8 @@ The result of the function is an object with the following structure:
 ```
 
 Note that the `phones` field contains phone numbers extracted from the special phone links such as `<a href="tel:+1234556789">call us</a>` (see
-[`phonesFromUrls`](phonesfromurls)) and potentially other sources with high certainty, while `phonesUncertain` contains phone numbers extracted from
-the plain text, which might be very inaccurate.
+[`social.phonesFromUrls()`](#social.phonesFromUrls)]) and potentially other sources with high certainty, while `phonesUncertain` contains phone
+numbers extracted from the plain text, which might be very inaccurate.
 
 **Example usage:**
 
