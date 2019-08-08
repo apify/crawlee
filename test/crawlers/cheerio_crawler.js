@@ -8,16 +8,23 @@ import { expect } from 'chai';
 import log from 'apify-shared/log';
 import { delayPromise } from 'apify-shared/utilities';
 import { ENV_VARS } from 'apify-shared/consts';
+import express from 'express'
+import bodyParser from 'body-parser';
 import Apify from '../../build';
 
 // Add common props to mocked request responses.
 const responseMock = {
     request: {
-        uri: {
-            href: 'loadedUrl',
-        },
+        url: 'loadedUrl',
     },
 };
+
+const startExpressAppPromise = (app, port) => {
+    return new Promise((resolve) => {
+        const server = app.listen(port, () => resolve(server));
+    });
+};
+
 
 /* eslint-disable no-underscore-dangle */
 describe('CheerioCrawler', () => {
@@ -32,6 +39,14 @@ describe('CheerioCrawler', () => {
     before(() => {
         logLevel = log.getLevel();
         log.setLevel(log.LEVELS.ERROR);
+        const app = express();
+        app.use(bodyParser.urlencoded({
+            extended: true,
+        }));
+        app.use(bodyParser.json());
+        app.get('/mock', (req, res) => {
+
+        });
     });
 
     after(() => {
@@ -794,73 +809,6 @@ describe('CheerioCrawler', () => {
                     expect(err.message).to.include('must not be empty');
                 }
             });
-        });
-    });
-
-    // It would make sense to also test that the listener does not prevent other
-    // uncaught exceptions from exiting the process, but since the exceptions
-    // thrown from within the listener cannot be caught anymore, there's no way
-    // to do this, because the re-thrown error will always crash the test process.
-    describe('tunnel-agent error handler', () => {
-        const throwNextTick = (err) => {
-            process.nextTick(() => {
-                throw err;
-            });
-        };
-
-        let mochaListener;
-
-        before(() => {
-            log.setLevel(log.LEVELS.OFF);
-            mochaListener = process.listeners('uncaughtException').shift();
-            process.removeListener('uncaughtException', mochaListener);
-        });
-        after(() => {
-            log.setLevel(log.LEVELS.ERROR);
-            process.on('uncaughtException', mochaListener);
-        });
-
-        it('should suppress tunnel-agent errors', async () => {
-            let handlePageCalled = false;
-            let handleFailedRequestCallCount = 0;
-
-            const requestList = new Apify.RequestList({
-                sources: [
-                    { url: 'http://example.com/?q=0' },
-                    { url: 'http://example.com/?q=1' },
-                    { url: 'http://example.com/?q=2' },
-                    { url: 'http://example.com/?q=3' },
-                ],
-            });
-
-            const crawler = new Apify.CheerioCrawler({
-                requestList,
-                requestTimeoutSecs: 1 / 1000,
-                handlePageFunction: () => {
-                    handlePageCalled = true;
-                },
-                handleFailedRequestFunction: () => {
-                    handleFailedRequestCallCount++;
-                },
-            });
-
-            crawler._requestFunction = async () => {
-                const err = new Error();
-                err.code = 'ERR_ASSERTION';
-                err.name = 'AssertionError [ERR_ASSERTION]';
-                err.operator = '==';
-                err.expected = 0;
-                err.stack = ('xxx/tunnel-agent/index.js/yyyy');
-                throwNextTick(err);
-                // will never resolve
-                await new Promise(() => {});
-            };
-
-            await requestList.initialize();
-            await crawler.run();
-
-            expect(handlePageCalled).to.be.eql(false);
-            expect(handleFailedRequestCallCount).to.be.eql(4);
         });
     });
 });
