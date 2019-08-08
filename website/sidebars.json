@@ -52,7 +52,6 @@
             "typedefs/actorrun",
             "typedefs/apifycallerror",
             "typedefs/launchpuppeteeroptions",
-            "typedefs/paginationlist",
             "typedefs/queueoperationinfo"
         ]
     }
