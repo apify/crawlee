@@ -671,7 +671,6 @@ export class RequestQueue {
      * ```
      *
      * @return {Promise<number>}
-     * @deprecated
      */
     async handledCount() {
         // NOTE: We keep this function for compatibility with RequestList.handledCount()
