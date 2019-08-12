@@ -1,17 +1,17 @@
 /**
  * Represents a live view snapshot to be served by {@link LiveViewServer}.
- * @property {string} pageUrl
- * @property {string} htmlContent
- * @property {number} screenshotIndex
+ * @property {String} pageUrl
+ * @property {String} htmlContent
+ * @property {Number} screenshotIndex
  * @property {Date} createdAt
  * @ignore
  */
 export default class Snapshot {
     /**
      * @param {Object} props
-     * @param {string} props.pageUrl
-     * @param {string} props.htmlContent
-     * @param {number} props.screenshotIndex
+     * @param {String} props.pageUrl
+     * @param {String} props.htmlContent
+     * @param {Number} props.screenshotIndex
      */
     constructor(props) {
         this.pageUrl = props.pageUrl;
@@ -21,7 +21,7 @@ export default class Snapshot {
     }
 
     /**
-     * @return {number}
+     * @return {Number}
      */
     age() {
         return Date.now() - this.createdAt;

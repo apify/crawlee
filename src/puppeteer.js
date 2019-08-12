@@ -66,7 +66,7 @@ const LAUNCH_PUPPETEER_DEFAULT_VIEWPORT = {
  *
  *   Take caution, because it can cause all kinds of unexpected errors and weird behavior.
  *   Apify SDK is not tested with any other library besides `puppeteer` itself.
- * @property {boolean} [stealth]
+ * @property {Boolean} [stealth]
  *   This setting hides most of the known properties that identify headless Chrome and makes it nearly undetectable.
  *   It is recommended to use it together with the `useChrome` set to `true`.
  * @property {StealthOptions} [stealthOptions]

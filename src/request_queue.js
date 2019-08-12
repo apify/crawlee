@@ -534,7 +534,7 @@ export class RequestQueue {
      *   head is consistent.
      * @param {Number} [limit] How many queue head items will be fetched.
      * @param {Number} [iteration] Used when this function is called recursively to limit the recursion.
-     * @return {Boolean} Indicates if queue head is consistent (true) or inconsistent (false).
+     * @return {Promise<Boolean>} Indicates if queue head is consistent (true) or inconsistent (false).
      * @ignore
      */
     async _ensureHeadIsNonEmpty(
@@ -670,7 +670,7 @@ export class RequestQueue {
      * const { handledRequestCount } = await queue.getInfo();
      * ```
      *
-     * @return {Promise<number>}
+     * @return {Promise<Number>}
      */
     async handledCount() {
         // NOTE: We keep this function for compatibility with RequestList.handledCount()
@@ -1074,11 +1074,11 @@ const getOrCreateQueue = (queueIdOrName) => {
  *
  * For more details and code examples, see the {@link RequestQueue} class.
  *
- * @param {string} [queueIdOrName]
+ * @param {String} [queueIdOrName]
  *   ID or name of the request queue to be opened. If `null` or `undefined`,
  *   the function returns the default request queue associated with the actor run.
  * @param {object} [options]
- * @param {boolean} [options.forceCloud=false]
+ * @param {Boolean} [options.forceCloud=false]
  *   If set to `true` then the function uses cloud storage usage even if the `APIFY_LOCAL_STORAGE_DIR`
  *   environment variable is set. This way it is possible to combine local and cloud storage.
  * @returns {Promise<RequestQueue>}

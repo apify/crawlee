@@ -78,7 +78,7 @@ const injectedFilesCache = new LruCache({ maxLength: MAX_INJECT_FILE_CACHE_SIZE 
  *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
  * @param {String} filePath File path
  * @param {Object} [options]
- * @param {boolean} [options.surviveNavigations]
+ * @param {Boolean} [options.surviveNavigations]
  *   Enables the injected script to survive page navigations and reloads without need to be re-injected manually.
  *   This does not mean, however, that internal state will be preserved. Just that it will be automatically
  *   re-injected on each navigation before any other scripts get the chance to execute.
@@ -233,7 +233,7 @@ const enqueueRequestsFromClickableElements = async (page, selector, purls, reque
  *   Only `*` can be used as a wildcard. It is also automatically added to the beginning
  *   and end of the pattern. This limitation is enforced by the DevTools protocol.
  *   `.png` is the same as `*.png*`.
- * @param {boolean} [options.extraUrlPatterns]
+ * @param {Boolean} [options.extraUrlPatterns]
  *   If you just want to append to the default blocked patterns, use this property.
  * @return {Promise}
  * @memberOf puppeteer

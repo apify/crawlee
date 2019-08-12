@@ -110,7 +110,7 @@ export const USER_AGENT_LIST = [
 
 /**
  * Base URL of Apify's API endpoints.
- * @type {string}
+ * @type {String}
  */
 export const APIFY_API_BASE_URL = 'https://api.apify.com/v2';
 
@@ -118,6 +118,6 @@ export const APIFY_API_BASE_URL = 'https://api.apify.com/v2';
  * Multiplier used in CheerioCrawler and PuppeteerCrawler to set a reasonable
  * handleRequestTimeoutSecs in BasicCrawler that would not impare functionality.
  *
- * @type {number}
+ * @type {Number}
  */
 export const BASIC_CRAWLER_TIMEOUT_MULTIPLIER = 10;

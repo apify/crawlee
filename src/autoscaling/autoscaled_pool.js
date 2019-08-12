@@ -204,7 +204,7 @@ class AutoscaledPool {
     /**
      * Gets the minimum number of tasks running in parallel.
      *
-     * @return {number}
+     * @return {Number}
      */
     get minConcurrency() {
         return this._minConcurrency;
@@ -216,7 +216,7 @@ class AutoscaledPool {
      * *WARNING:* If you set this value too high with respect to the available system memory and CPU, your code might run extremely slow or crash.
      * If you're not sure, just keep the default value and the concurrency will scale up automatically.
      *
-     * @param {number} value
+     * @param {Number} value
      */
     set minConcurrency(value) {
         checkParamOrThrow(value, 'value', 'Number');
@@ -226,7 +226,7 @@ class AutoscaledPool {
     /**
      * Gets the maximum number of tasks running in parallel.
      *
-     * @return {number}
+     * @return {Number}
      */
     get maxConcurrency() {
         return this._maxConcurrency;
@@ -235,7 +235,7 @@ class AutoscaledPool {
     /**
      * Sets the maximum number of tasks running in parallel.
      *
-     * @param {number} value
+     * @param {Number} value
      */
     set maxConcurrency(value) {
         checkParamOrThrow(value, 'value', 'Number');
@@ -246,7 +246,7 @@ class AutoscaledPool {
      * Gets the desired concurrency for the pool,
      * which is an estimated number of parallel tasks that the system can currently support.
      *
-     * @return {number}
+     * @return {Number}
      */
     get desiredConcurrency() {
         return this._desiredConcurrency;
@@ -256,7 +256,7 @@ class AutoscaledPool {
      * Sets the desired concurrency for the pool, i.e. the number of tasks that should be running
      * in parallel if there's large enough supply of tasks.
      *
-     * @param {number} value
+     * @param {Number} value
      */
     set desiredConcurrency(value) {
         checkParamOrThrow(value, 'value', 'Number');
@@ -266,7 +266,7 @@ class AutoscaledPool {
     /**
      * Gets the the number of parallel tasks currently running in the pool.
      *
-     * @return {number}
+     * @return {Number}
      */
     get currentConcurrency() {
         return this._currentConcurrency;
@@ -334,7 +334,7 @@ class AutoscaledPool {
      * The promise returned from the [`run()`](#AutoscaledPool+run) function will not resolve
      * when `.pause()` is invoked (unlike abort, which resolves it).
      *
-     * @param {number} [timeoutSecs]
+     * @param {Number} [timeoutSecs]
      * @return {Promise}
      */
     async pause(timeoutSecs) {

@@ -18,7 +18,7 @@ import Statistics from './statistics';
  * requests to finish and be marked as handled, thus lowering the amount of duplicate
  * results after migration.
  *
- * @type {number}
+ * @type {Number}
  * @ignore
  */
 const SAFE_MIGRATION_WAIT_MILLIS = 20000;
@@ -121,7 +121,7 @@ const DEFAULT_OPTIONS = {
  * @param {RequestQueue} options.requestQueue
  *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
  *   Either `requestList` or `requestQueue` option must be provided (or both).
- * @param {number} [options.handleRequestTimeoutSecs=60]
+ * @param {Number} [options.handleRequestTimeoutSecs=60]
  *   Timeout in which the function passed as `options.handleRequestFunction` needs to finish, in seconds.
  * @param {Function} [options.handleFailedRequestFunction]
  *   A function to handle requests that failed more than `option.maxRequestRetries` times.

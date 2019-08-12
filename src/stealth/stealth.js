@@ -5,16 +5,16 @@ import hidingTricks from './hiding_tricks';
  * Configuration of stealth tricks for a proper hiding effect all of them should be set to true.
  * These tricks are applied only when the `stealth` option is set to `true`.
  * @typedef {Object} StealthOptions
- * @property {boolean} [addPlugins=true] - If plugins should be added to the navigator.
- * @property {boolean} [emulateWindowFrame=true] - Emulates window Iframe.
- * @property {boolean} [emulateWebGL=true] - Emulates graphic card.
- * @property {boolean} [emulateConsoleDebug=true] - Emulates console.debug to return null.
- * @property {boolean} [addLanguage=true] - Adds languages to the navigator.
- * @property {boolean} [hideWebDriver=true] - Hides the webdriver by changing the navigator proto.
- * @property {boolean} [hackPermissions=true] - Fakes interaction with permissions.
- * @property {boolean} [mockChrome=true] - Adds the chrome runtime properties.
- * @property {boolean} [mockChromeInIframe=true] - Adds the chrome runtime properties inside the every newly created iframe.
- * @property {boolean} [mockDeviceMemory=true] - Sets device memory to other value than 0.
+ * @property {Boolean} [addPlugins=true] - If plugins should be added to the navigator.
+ * @property {Boolean} [emulateWindowFrame=true] - Emulates window Iframe.
+ * @property {Boolean} [emulateWebGL=true] - Emulates graphic card.
+ * @property {Boolean} [emulateConsoleDebug=true] - Emulates console.debug to return null.
+ * @property {Boolean} [addLanguage=true] - Adds languages to the navigator.
+ * @property {Boolean} [hideWebDriver=true] - Hides the webdriver by changing the navigator proto.
+ * @property {Boolean} [hackPermissions=true] - Fakes interaction with permissions.
+ * @property {Boolean} [mockChrome=true] - Adds the chrome runtime properties.
+ * @property {Boolean} [mockChromeInIframe=true] - Adds the chrome runtime properties inside the every newly created iframe.
+ * @property {Boolean} [mockDeviceMemory=true] - Sets device memory to other value than 0.
  */
 
 const DEFAULT_STEALTH_OPTIONS = {

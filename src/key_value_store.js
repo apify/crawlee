@@ -303,8 +303,8 @@ export class KeyValueStore {
      * Returns a URL for the given key that may be used to publicly
      * access the value in the remote key value store.
      *
-     * @param {string} key
-     * @return {string}
+     * @param {String} key
+     * @return {String}
      */
     getPublicUrl(key) {
         return `${APIFY_API_BASE_URL}/key-value-stores/${this.storeId}/records/${key}`;
@@ -331,7 +331,7 @@ export class KeyValueStore {
      * @param {Function} iteratee A function that is called for every key in the key value store.
      * @param {Object} [options] All `forEachKey()` parameters are passed
      *   via an options object with the following keys:
-     * @param {string} [options.exclusiveStartKey] All keys up to this one (including) are skipped from the result.
+     * @param {String} [options.exclusiveStartKey] All keys up to this one (including) are skipped from the result.
      * @return {Promise}
      */
     async forEachKey(iteratee, options = {}, index = 0) {
@@ -542,8 +542,8 @@ export class KeyValueStoreLocal {
      * Unlike in the remote store where key is sufficient, a full fileName
      * must be provided here including the extension for the URL to be valid.
      *
-     * @param {string} fileName
-     * @return {string}
+     * @param {String} fileName
+     * @return {String}
      * @ignore
      */
     getPublicUrl(fileName) {
@@ -579,11 +579,11 @@ const getOrCreateKeyValueStore = (storeIdOrName) => {
  *
  * For more details and code examples, see the {@link KeyValueStore} class.
  *
- * @param {string} [storeIdOrName]
+ * @param {String} [storeIdOrName]
  *   ID or name of the key-value store to be opened. If `null` or `undefined`,
  *   the function returns the default key-value store associated with the actor run.
  * @param {object} [options]
- * @param {boolean} [options.forceCloud=false]
+ * @param {Boolean} [options.forceCloud=false]
  *   If set to `true` then the function uses cloud storage usage even if the `APIFY_LOCAL_STORAGE_DIR`
  *   environment variable is set. This way it is possible to combine local and cloud storage.
  * @returns {Promise<KeyValueStore>}

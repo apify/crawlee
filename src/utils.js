@@ -313,7 +313,7 @@ export const getFirstKey = (dict) => {
 /**
  * Gets a typical path to Chrome executable, depending on the current operating system.
  *
- * @return {string}
+ * @return {String}
  * @ignore
  */
 export const getTypicalChromeExecutablePath = () => {
@@ -330,8 +330,8 @@ export const getTypicalChromeExecutablePath = () => {
  *
  * @template T
  * @param {Promise<T>} promise
- * @param {number} timeoutMillis
- * @param {string} errorMessage
+ * @param {Number} timeoutMillis
+ * @param {String} errorMessage
  * @return {Promise<T>}
  * @ignore
  */

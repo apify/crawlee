@@ -93,7 +93,7 @@ const STARTING_Z_INDEX = 2147400000;
  *       return request;
  *   }
  *   ```
- * @param {number} [options.waitForPageIdleSecs=1]
+ * @param {Number} [options.waitForPageIdleSecs=1]
  *   Clicking in the page triggers various asynchronous operations that lead to new URLs being shown
  *   by the browser. It could be a simple JavaScript redirect or opening of a new tab in the browser.
  *   These events often happen only some time after the actual click. Requests typically take milliseconds
@@ -106,7 +106,7 @@ const STARTING_Z_INDEX = 2147400000;
  *
  *   You may want to reduce this for example when you're sure that your clicks do not open new tabs,
  *   or increase when you're not getting all the expected URLs.
- * @param {number} [options.maxWaitForPageIdleSecs=5]
+ * @param {Number} [options.maxWaitForPageIdleSecs=5]
  *   This is the maximum period for which the function will keep tracking events, even if more events keep coming.
  *   Its purpose is to prevent a deadlock in the page by periodic events, often unrelated to the clicking itself.
  *   See `waitForPageIdleSecs` above for an explanation.
@@ -159,7 +159,7 @@ export async function enqueueLinksByClickingElements(options = {}) {
  *
  * @param {Object} options
  * @param {Page} options.page
- * @param {string} options.selector
+ * @param {String} options.selector
  * @return {Promise<Object[]>}
  * @ignore
  */
@@ -222,7 +222,7 @@ function createInterceptRequestHandler(page, requests) {
 /**
  * @param {Page} page
  * @param {Request} req
- * @return {boolean}
+ * @return {Boolean}
  * @ignore
  */
 function isTopFrameNavigationRequest(page, req) {
@@ -258,7 +258,7 @@ function createTargetCreatedHandler(page, requests) {
  * There will generally be a lot of other targets being created in the browser.
  * @param {Page} page
  * @param {Target} target
- * @return {boolean}
+ * @return {Boolean}
  */
 export function isTargetRelevant(page, target) {
     return target.type() === 'page'
@@ -314,7 +314,7 @@ async function preventHistoryNavigation(page) {
  * for large element sets, this will take considerable amount of time.
  *
  * @param {Page} page
- * @param {string} selector
+ * @param {String} selector
  * @return {Promise}
  * @ignore
  */
@@ -346,7 +346,7 @@ export async function clickElements(page, selector) {
 /**
  * This is an in browser function!
  * @param {Element} el
- * @param {number} zIndex
+ * @param {Number} zIndex
  */
 function updateElementCssToEnableMouseClick(el, zIndex) {
     el.style.visibility = 'visible';
@@ -375,8 +375,8 @@ function updateElementCssToEnableMouseClick(el, zIndex) {
  *
  * @param {Object} options
  * @param {Page} options.page
- * @param {number} options.waitForPageIdleMillis
- * @param {number} options.maxWaitForPageIdleMillis
+ * @param {Number} options.waitForPageIdleMillis
+ * @param {Number} options.maxWaitForPageIdleMillis
  * @return {Promise}
  * @ignore
  */

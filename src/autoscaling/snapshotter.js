@@ -399,7 +399,7 @@ class Snapshotter {
      * overloading.
      *
      * @param intervalCallback
-     * @return {number}
+     * @return {Number}
      * @private
      */
     _snapshotClient(intervalCallback) {

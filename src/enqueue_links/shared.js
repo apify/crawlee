@@ -91,7 +91,7 @@ export function createRequestOptions(sources, userData = {}) {
 /**
  * @param {Request[]} requests
  * @param {RequestQueue} requestQueue
- * @param {number} batchSize
+ * @param {Number} batchSize
  * @return {Promise<QueueOperationInfo[]>}
  * @ignore
  */

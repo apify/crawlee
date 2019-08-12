@@ -34,7 +34,7 @@ const datasetsCache = new LruCache({ maxLength: MAX_OPENED_STORES }); // Open Da
  * @param {Object} item
  * @param {Number} limitBytes
  * @param {Number} [index]
- * @returns {string}
+ * @returns {String}
  * @ignore
  */
 export const checkAndSerialize = (item, limitBytes, index) => {
@@ -649,11 +649,11 @@ const getOrCreateDataset = (datasetIdOrName) => {
  *
  * For more details and code examples, see the {@link Dataset} class.
  *
- * @param {string} [datasetIdOrName]
+ * @param {String} [datasetIdOrName]
  *   ID or name of the dataset to be opened. If `null` or `undefined`,
  *   the function returns the default dataset associated with the actor run.
  * @param {object} [options]
- * @param {boolean} [options.forceCloud=false]
+ * @param {Boolean} [options.forceCloud=false]
  *   If set to `true` then the function uses cloud storage usage even if the `APIFY_LOCAL_STORAGE_DIR`
  *   environment variable is set. This way it is possible to combine local and cloud storage.
  * @returns {Promise<Dataset>}

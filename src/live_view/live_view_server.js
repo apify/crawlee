@@ -55,18 +55,18 @@ class LiveViewServer {
      * @param {Object} [options]
      *   All `LiveViewServer` parameters are passed
      *   via an options object with the following keys:
-     * @param {string} [options.screenshotDirectoryPath]
+     * @param {String} [options.screenshotDirectoryPath]
      *   By default, the screenshots are saved to
      *   the `live_view` directory in the Apify local storage directory.
      *   Provide a different absolute path to change the settings.
-     * @param {number} [options.maxScreenshotFiles=10]
+     * @param {Number} [options.maxScreenshotFiles=10]
      *   Limits the number of screenshots stored
      *   by the server. This is to prevent using up too much disk space.
-     * @param {number} [options.snapshotTimeoutSecs=3]
+     * @param {Number} [options.snapshotTimeoutSecs=3]
      *   If a snapshot is not made within the timeout,
      *   its creation will be aborted. This is to prevent
      *   pages from being hung up by a stalled screenshot.
-     * @param {number} [options.maxSnapshotFrequencySecs=2]
+     * @param {Number} [options.maxSnapshotFrequencySecs=2]
      *   Use this parameter to further decrease the resource consumption
      *   of `LiveViewServer` by limiting the frequency at which it'll
      *   serve snapshots.
@@ -173,14 +173,14 @@ class LiveViewServer {
     }
 
     /**
-     * @return {boolean}
+     * @return {Boolean}
      */
     isRunning() {
         return this._isRunning;
     }
 
     /**
-     * @return {boolean}
+     * @return {Boolean}
      */
     hasClients() {
         // Treat LiveViewServer as a client, until at least one snapshot is made.
@@ -189,8 +189,8 @@ class LiveViewServer {
 
     /**
      * Returns an absolute path to the screenshot with the given index.
-     * @param {number} screenshotIndex
-     * @return {string}
+     * @param {Number} screenshotIndex
+     * @return {String}
      * @private
      */
     _getScreenshotPath(screenshotIndex) {
@@ -237,7 +237,7 @@ class LiveViewServer {
 
     /**
      * Initiates an async delete and does not wait for it to complete.
-     * @param {number} screenshotIndex
+     * @param {Number} screenshotIndex
      * @private
      */
     _deleteScreenshot(screenshotIndex) {

@@ -172,7 +172,7 @@ module.exports = {
  *
  * Default log level is INFO.
  * @name setLevel
- * @param {number} level
+ * @param {Number} level
  * @method
  * @memberOf log
  */
@@ -193,7 +193,7 @@ module.exports = {
  * method or using the environment variable `APIFY_LOG_LEVEL=DEBUG`. Data are stringified and appended
  * to the message.
  * @name debug
- * @param {string} message
+ * @param {String} message
  * @param {Object} [data]
  * @method
  * @memberOf log
@@ -203,7 +203,7 @@ module.exports = {
  * Logs an `INFO` message. `INFO` is the default log level so info messages will be always logged,
  * unless the log level is changed. Data are stringified and appended to the message.
  * @name info
- * @param {string} message
+ * @param {String} message
  * @param {Object} [data]
  * @method
  * @memberOf log
@@ -212,7 +212,7 @@ module.exports = {
 /**
  * Logs a `WARNING` level message. Data are stringified and appended to the message.
  * @name warning
- * @param {string} message
+ * @param {String} message
  * @param {Object} [data]
  * @method
  * @memberOf log
@@ -222,7 +222,7 @@ module.exports = {
  * Logs an `ERROR` message. Use this method to log error messages that are not directly connected
  * to an exception. For logging exceptions, use the `log.exception` method.
  * @name error
- * @param {string} message
+ * @param {String} message
  * @param {Object} [data]
  * @method
  * @memberOf log
@@ -233,7 +233,7 @@ module.exports = {
  * here and an additional message is only optional.
  * @name exception
  * @param {Error} exception
- * @param {string} [message]
+ * @param {String} [message]
  * @param {Object} [data]
  * @method
  * @memberOf log
