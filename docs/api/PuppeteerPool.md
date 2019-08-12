@@ -22,6 +22,7 @@ const puppeteerPool = new PuppeteerPool({
     launchPuppeteerFunction: () => {
         // Use a new proxy with a new IP address for each new Chrome instance
         return Apify.launchPuppeteer({
+            useApifyProxy: true,
             apifyProxySession: Math.random(),
         });
     },
