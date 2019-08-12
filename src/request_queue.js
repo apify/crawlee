@@ -251,7 +251,7 @@ export class RequestQueue {
      * Note that the function sets the `uniqueKey` and `id` fields to the passed object.
      * @param {Object} [options]
      * @param {Boolean} [options.forefront=false] If `true`, the request will be added to the foremost position in the queue.
-     * @return {QueueOperationInfo}
+     * @return {Promise<QueueOperationInfo>}
      */
     async addRequest(request, options = {}) {
         const { newRequest, forefront } = validateAddRequestParams(request, options);
