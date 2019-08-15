@@ -64,7 +64,7 @@ await queue.reclaimRequest(request2);
 ```
 
 -   [RequestQueue](requestqueue)
-    -   [`.addRequest(request, [options])`](#RequestQueue+addRequest) ⇒ [`QueueOperationInfo`](../typedefs/queueoperationinfo)
+    -   [`.addRequest(request, [options])`](#RequestQueue+addRequest) ⇒ [`Promise<QueueOperationInfo>`](../typedefs/queueoperationinfo)
     -   [`.getRequest(requestId)`](#RequestQueue+getRequest) ⇒ [`Promise<Request>`](request)
     -   [`.fetchNextRequest()`](#RequestQueue+fetchNextRequest) ⇒ [`Promise<Request>`](request)
     -   [`.markRequestHandled(request)`](#RequestQueue+markRequestHandled) ⇒ [`Promise<QueueOperationInfo>`](../typedefs/queueoperationinfo)
@@ -72,12 +72,12 @@ await queue.reclaimRequest(request2);
     -   [`.isEmpty()`](#RequestQueue+isEmpty) ⇒ `Promise<Boolean>`
     -   [`.isFinished()`](#RequestQueue+isFinished) ⇒ `Promise<Boolean>`
     -   [`.drop()`](#RequestQueue+drop) ⇒ `Promise`
-    -   ~~[`.handledCount()`](#RequestQueue+handledCount) ⇒ `Promise<number>`~~
+    -   [`.handledCount()`](#RequestQueue+handledCount) ⇒ `Promise<number>`
     -   [`.getInfo()`](#RequestQueue+getInfo) ⇒ `Promise<Object>`
 
 <a name="RequestQueue+addRequest"></a>
 
-## `requestQueue.addRequest(request, [options])` ⇒ [`QueueOperationInfo`](../typedefs/queueoperationinfo)
+## `requestQueue.addRequest(request, [options])` ⇒ [`Promise<QueueOperationInfo>`](../typedefs/queueoperationinfo)
 
 Adds a request to the queue.
 
@@ -220,9 +220,7 @@ Removes the queue either from the Apify Cloud storage or from the local director
 
 <a name="RequestQueue+handledCount"></a>
 
-## ~~`requestQueue.handledCount()` ⇒ `Promise<number>`~~
-
-**_Deprecated_**
+## `requestQueue.handledCount()` ⇒ `Promise<number>`
 
 Returns the number of handled requests.
 
