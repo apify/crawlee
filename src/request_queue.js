@@ -247,6 +247,9 @@ export class RequestQueue {
      * it will not be updated. You can find out whether this happened from the resulting
      * {@link QueueOperationInfo} object.
      *
+     * To add multiple requests to the queue by extracting links from a webpage,
+     * see the [`Apify.utils.enqueueLinks()`](utils#utils.enqueueLinks) helper function.
+     *
      * @param {Request|Object} request {@link Request} object or vanilla object with request data.
      * Note that the function sets the `uniqueKey` and `id` fields to the passed object.
      * @param {Object} [options]

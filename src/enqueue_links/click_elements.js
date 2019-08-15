@@ -87,10 +87,12 @@ const STARTING_Z_INDEX = 2147400000;
  *
  *   **Example:**
  *   ```javascript
- *   function transformRequestFunction(request) {
- *       request.userData.foo = 'bar';
- *       request.useExtendedUniqueKey = true;
- *       return request;
+ *   {
+ *       transformRequestFunction: (request) => {
+ *           request.userData.foo = 'bar';
+ *           request.useExtendedUniqueKey = true;
+ *           return request;
+ *       }
  *   }
  *   ```
  * @param {number} [options.waitForPageIdleSecs=1]

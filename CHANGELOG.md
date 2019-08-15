@@ -1,3 +1,7 @@
+0.15.5 / 2019-08-15
+====================
+- This release just updates some dependencies (not Puppeteer).
+
 0.15.4 / 2019-08-02
 ====================
 - **DEPRECATED**: `dataset.delete()`, `keyValueStore.delete()` and `requestQueue.delete()` methods have been

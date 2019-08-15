@@ -84,6 +84,9 @@ Adds a request to the queue.
 If a request with the same `uniqueKey` property is already present in the queue, it will not be updated. You can find out whether this happened from
 the resulting [`QueueOperationInfo`](../typedefs/queueoperationinfo) object.
 
+To add multiple requests to the queue by extracting links from a webpage, see the [`Apify.utils.enqueueLinks()`](utils#utils.enqueueLinks) helper
+function.
+
 <table>
 <thead>
 <tr>
