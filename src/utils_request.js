@@ -16,10 +16,11 @@ export const REQUEST_AS_BROWSER_DEFAULT_OPTIONS = {
     json: false,
     abortFunction: (res) => {
         const { type } = contentType.parse(res.headers['content-type']);
-        return res.statusCode === 406 || type.toLowerCase() !== 'text/html';
+        return res.statusCode === 406 || type.toLowerCase() !== 'text/html' || res.statusCode >= 500;
     },
     useCaseSensitiveHeaders: true,
     useStream: false,
+    payload: '',
 };
 /**
  * Sends a HTTP request that looks like a request sent by a web browser,
@@ -77,6 +78,5 @@ export const requestAsBrowser = async (options) => {
         Connection: 'keep-alive',
     };
     opts.headers = _.defaults({}, opts.headers, defaultHeaders);
-
     return httpRequest(opts);
 };

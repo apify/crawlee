@@ -361,7 +361,15 @@ class CheerioCrawler {
         // Using the streaming API of Request to be able to
         // handle the response based on headers receieved.
         const opts = this._getRequestOptions(request);
-        const responseStream = await requestAsBrowser(opts);
+        let responseStream;
+        try {
+            responseStream = await requestAsBrowser(opts);
+        } catch (e) {
+            if (e.message === `Request for ${request.url} aborted due to abortFunction`) {
+                request.noRetry = true;
+            }
+            throw new Error(e.message);
+        }
 
         const dom = await this._parseHtmlToDom(responseStream);
         return ({ dom, responseStream });
