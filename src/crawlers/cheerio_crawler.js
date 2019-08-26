@@ -2,13 +2,17 @@
 import _ from 'underscore';
 import cheerio from 'cheerio';
 import htmlparser from 'htmlparser2';
+import util from 'util';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
+import contentType from 'content-type';
+import readStreamToString from '@apify/http-request/src/read_stream_to_string';
 import BasicCrawler from './basic_crawler';
 import { addTimeoutToPromise } from '../utils';
 import { getApifyProxyUrl } from '../actor';
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { requestAsBrowser } from '../utils_request';
+
 
 const DEFAULT_OPTIONS = {
     requestTimeoutSecs: 30,
@@ -330,7 +334,7 @@ class CheerioCrawler {
             'CheerioCrawler: requestFunction timed out.',
         );
 
-        request.loadedUrl = response.url;
+        request.loadedUrl = response.url; // @TODO:  add test for redirects
 
         const $ = cheerio.load(dom);
         const context = {
@@ -361,18 +365,28 @@ class CheerioCrawler {
         // Using the streaming API of Request to be able to
         // handle the response based on headers receieved.
         const opts = this._getRequestOptions(request);
-        let responseStream;
-        try {
-            responseStream = await requestAsBrowser(opts);
-        } catch (e) {
-            if (e.message === `Request for ${request.url} aborted due to abortFunction`) {
-                request.noRetry = true;
-            }
-            throw new Error(e.message);
-        }
 
-        const dom = await this._parseHtmlToDom(responseStream);
-        return ({ dom, responseStream });
+        const responseStream = await requestAsBrowser(opts);
+        const { statusCode, headers } = responseStream;
+        if (statusCode >= 500) {
+            const { type, encoding } = contentType.parse(headers['content-type']);
+            const body = await readStreamToString(responseStream, encoding);
+
+            // Errors are often sent as JSON, so attempt to parse them,
+            // despite Accept header being set to text/html.
+            if (type === 'application/json') {
+                const errorResponse = JSON.parse(body);
+                let { message } = errorResponse;
+                if (!message) message = util.inspect(errorResponse, { depth: 1, maxArrayLength: 10 });
+                throw new Error(`${statusCode} - ${message}`);
+            }
+
+            // It's not a JSON so it's probably some text. Get the first 100 chars of it.
+            throw new Error(`CheerioCrawler: ${statusCode} - Internal Server Error: ${body.substr(0, 100)}`);
+        } else {
+            const dom = await this._parseHtmlToDom(responseStream);
+            return ({ dom, responseStream });
+        }
     }
 
     /**
@@ -388,6 +402,24 @@ class CheerioCrawler {
             ignoreSslErrors: this.ignoreSslErrors,
             proxyUrl: this._getProxyUrl(),
             stream: true,
+            useCaseSensitiveHeaders: true,
+            abortFunction: (res) => {
+                const { statusCode, headers } = res;
+
+                const { type } = contentType.parse(headers['content-type']);
+
+                if (statusCode === 406) {
+                    request.noRetry = true;
+                    throw new Error(`CheerioCrawler: Resource ${request.url} is not available in HTML format. Skipping resource.`);
+                }
+
+                if (type.toLowerCase() !== 'text/html' && statusCode < 500) {
+                    request.noRetry = true;
+                    throw new Error(`CheerioCrawler: Resource ${request.url} served Content-Type ${type} instead of text/html. Skipping resource.`);
+                }
+
+                return false;
+            },
         };
 
         if (/PATCH|POST|PUT/.test(request.method)) mandatoryRequestOptions.payload = request.payload;

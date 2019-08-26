@@ -7,7 +7,11 @@ import { delayPromise } from 'apify-shared/utilities';
 import { ENV_VARS } from 'apify-shared/consts';
 import express from 'express';
 import bodyParser from 'body-parser';
+import sinon from 'sinon';
+import * as utilsRequest from '../../build/utils_request';
 import Apify from '../../build';
+
+const Stream = require('stream');
 
 // Add common props to mocked request responses.
 const responseMock = {
@@ -35,28 +39,28 @@ describe('CheerioCrawler', () => {
     let server;
     let port;
 
-    async function getRequestListForMock(mockData) {
+    async function getRequestListForMock(mockData, path = 'mock') {
         const sources = [
             {
-                url: `http://${HOST}:${port}/mock?a=1`,
+                url: `http://${HOST}:${port}/${path}?a=1`,
                 payload: JSON.stringify(mockData),
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
             }, {
-                url: `http://${HOST}:${port}/mock?a=2`,
+                url: `http://${HOST}:${port}/${path}?a=2`,
                 payload: JSON.stringify(mockData),
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
             }, {
-                url: `http://${HOST}:${port}/mock?a=3`,
+                url: `http://${HOST}:${port}/${path}?a=3`,
                 payload: JSON.stringify(mockData),
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
             }, {
-                url: `http://${HOST}:${port}/mock?a=4`,
+                url: `http://${HOST}:${port}/${path}?a=4`,
                 payload: JSON.stringify(mockData),
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
             },
         ];
         const requestList = new Apify.RequestList({ sources });
@@ -84,21 +88,25 @@ describe('CheerioCrawler', () => {
         }));
         app.use(bodyParser.json());
         app.post('/mock', (req, res) => {
-            const { headers, body, statusCode, error = false } = req.body;
+            const { headers, statusCode, error = false, body } = req.body;
+
             if (error) {
                 throw new Error(error);
             }
+
             Object.entries(headers).forEach(([key, value]) => res.setHeader(key, value));
-            if (headers.contentType) {
-                res.set({
-                    'Content-Type': headers.contentType,
-                });
-            }
+
             res.status(statusCode).send(body);
         });
 
         app.get('/invalidContentType', (req, res) => {
             res.send({ some: 'json' });
+        });
+
+        app.get('/jsonError', (req, res) => {
+            res
+                .status(500)
+                .json({ message: 'json' });
         });
 
 
@@ -338,7 +346,7 @@ describe('CheerioCrawler', () => {
 
                 expect(handlePageInvocationCount).to.be.eql(0);
                 expect(errorMessages).to.have.lengthOf(4);
-                errorMessages.forEach(msg => expect(msg).to.include('aborted due to abortFunction'));
+                errorMessages.forEach(msg => expect(msg).to.include('served Content-Type application/json instead of text/html. Skipping resource.'));
                 expect(chunkReadCount).to.be.eql(0);
             });
 
@@ -400,10 +408,11 @@ describe('CheerioCrawler', () => {
                 // sometimes if you get blocked you can get 500+ with some html inside
                 crawler = new Apify.CheerioCrawler({
                     requestList: await getRequestListForMock({
-                        statusCode: 500,
+                        statusCode: 508,
                         headers: {
                             'content-type': 'text/html',
                         },
+                        body: 'DATABASE ERRROR',
                     }),
                     maxRequestRetries: 1,
                     handlePageFunction: async () => {
@@ -416,18 +425,31 @@ describe('CheerioCrawler', () => {
                 await crawler.run();
 
                 expect(handlePageInvocationCount).to.be.eql(0);
-                expect(errorMessages).to.have.lengthOf(4);
-                errorMessages.forEach(msg => expect(msg).to.include('aborted due to abortFunction'));
+                expect(errorMessages).to.have.lengthOf(8);
+                errorMessages.forEach(msg => expect(msg).to.include('Internal Server Error'));
             });
 
             it('when statusCode >= 500 and application/json is received', async () => {
+                const save = sinon.stub(utilsRequest, 'requestAsBrowser');
+                const errorMessage = 'TEST_ERROR';
+                save.callsFake(() => new Promise((resolve) => {
+                    const readableStream = new Stream.Readable();
+                    readableStream._read = function () {
+                        this.push(Buffer.from(JSON.stringify({ message: errorMessage })));
+                        this.push(null);
+                    };
+
+                    const finalStream = new Stream.PassThrough();
+                    finalStream.statusCode = 500;
+                    finalStream.headers = {
+                        'content-type': 'application/json',
+                    };
+                    resolve(readableStream.pipe(finalStream));
+                }));
+
+
                 crawler = new Apify.CheerioCrawler({
-                    requestList: await getRequestListForMock({
-                        statusCode: 500,
-                        headers: {
-                            'content-type': 'application/json',
-                        },
-                    }),
+                    requestList: await getRequestListForMock({}, 'jsonError'),
                     maxRequestRetries: 1,
                     handlePageFunction: async () => {
                         handlePageInvocationCount++;
@@ -437,10 +459,11 @@ describe('CheerioCrawler', () => {
                     },
                 });
                 await crawler.run();
+                save.restore();
 
                 expect(handlePageInvocationCount).to.be.eql(0);
-                expect(errorMessages).to.have.lengthOf(4);
-                errorMessages.forEach(msg => expect(msg).to.include('aborted due to abortFunction'));
+                expect(errorMessages).to.have.lengthOf(8);
+                errorMessages.forEach(msg => expect(msg).to.include(errorMessage));
             });
 
             it('when 406 is received', async () => {
@@ -464,7 +487,7 @@ describe('CheerioCrawler', () => {
 
                 expect(handlePageInvocationCount).to.be.eql(0);
                 expect(errorMessages).to.have.lengthOf(4);
-                errorMessages.forEach(msg => expect(msg).to.include('aborted due to abortFunction'));
+                errorMessages.forEach(msg => expect(msg).to.include('is not available in HTML format. Skipping resource.'));
             });
 
             xit('when status is ok, but a wrong content type is received', async () => {
@@ -506,7 +529,7 @@ describe('CheerioCrawler', () => {
         beforeEach(async () => {
             requestList = new Apify.RequestList({
                 sources: [
-                    { url: 'http://example.com/?q=0' },
+                    { url: 'https://unicorn.com/cz/career' },
                     { url: 'http://example.com/?q=1' },
                     { url: 'http://example.com/?q=2' },
                     { url: 'http://example.com/?q=3' },
