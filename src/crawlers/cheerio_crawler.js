@@ -335,7 +335,7 @@ class CheerioCrawler {
             'CheerioCrawler: requestFunction timed out.',
         );
 
-        request.loadedUrl = response.url; // @TODO:  add test for redirects
+        request.loadedUrl = response.url;
 
         const $ = cheerio.load(dom);
         const context = {
