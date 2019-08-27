@@ -111,7 +111,6 @@ const foo = request.userData.foo;
 -   [Request](request)
     -   [`new Request(options)`](#new_Request_new)
     -   [`.pushErrorMessage(errorOrMessage, [options])`](#Request+pushErrorMessage)
-    -   ~~[`.doNotRetry([message])`](#Request+doNotRetry)~~
 
 <a name="new_Request_new"></a>
 
@@ -224,28 +223,4 @@ debugging rather difficult.
 <tr>
 <td colspan="3"><p>Only push the error message without stack trace when true.</p>
 </td></tr></tbody>
-</table>
-<a name="Request+doNotRetry"></a>
-
-## ~~`request.doNotRetry([message])`~~
-
-**_Deprecated_**
-
-Flags the request with no retry which prevents [`BasicCrawler`](basiccrawler) (as well as {@PuppeteerCrawler} and {@CheerioCrawler}, since they use
-{@BasicCrawler} internally) from retrying the request after an error occurs.
-
-Optionally accepts a message that will be used to construct and throw an Error.
-
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>[message]</code></td><td><code>String</code></td>
-</tr>
-<tr>
-</tr></tbody>
 </table>

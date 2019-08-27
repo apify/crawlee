@@ -127,7 +127,7 @@ const getRequestId = (uniqueKey) => {
  * @property {Boolean} wasAlreadyPresent Indicates if request was already present in the queue.
  * @property {Boolean} wasAlreadyHandled Indicates if request was already marked as handled.
  * @property {String} requestId The ID of the added request
- * @property {Request|Object} request The original `Request` object passed to the `RequestQueue` function.
+ * @property {Object} request The original [`Request`](../api/request) object passed to the `RequestQueue` function.
  */
 
 /**
@@ -247,11 +247,14 @@ export class RequestQueue {
      * it will not be updated. You can find out whether this happened from the resulting
      * {@link QueueOperationInfo} object.
      *
+     * To add multiple requests to the queue by extracting links from a webpage,
+     * see the [`Apify.utils.enqueueLinks()`](utils#utils.enqueueLinks) helper function.
+     *
      * @param {Request|Object} request {@link Request} object or vanilla object with request data.
      * Note that the function sets the `uniqueKey` and `id` fields to the passed object.
      * @param {Object} [options]
      * @param {Boolean} [options.forefront=false] If `true`, the request will be added to the foremost position in the queue.
-     * @return {QueueOperationInfo}
+     * @return {Promise<QueueOperationInfo>}
      */
     async addRequest(request, options = {}) {
         const { newRequest, forefront } = validateAddRequestParams(request, options);
@@ -319,14 +322,16 @@ export class RequestQueue {
     /**
      * Returns a next request in the queue to be processed, or `null` if there are no more pending requests.
      *
-     * Once you successfully finish processing of the request, you need to call {@link RequestQueue.markRequestHandled}
+     * Once you successfully finish processing of the request, you need to call
+     * [`requestQueue.markRequestHandled()`](#RequestQueue+markRequestHandled)
      * to mark the request as handled in the queue. If there was some error in processing the request,
-     * call {@link RequestQueue.reclaimRequest} instead, so that the queue will give the request to some other consumer
-     * in another call to the `fetchNextRequest` function.
+     * call [`requestQueue.reclaimRequest()`](#RequestQueue+reclaimRequest) instead,
+     * so that the queue will give the request to some other consumer in another call to the `fetchNextRequest` function.
      *
      * Note that the `null` return value doesn't mean the queue processing finished,
      * it means there are currently no pending requests.
-     * To check whether all requests in queue were finished, use {@link RequestQueue.isFinished} instead.
+     * To check whether all requests in queue were finished,
+     * use [`requestQueue.isFinished()`](#RequestQueue+isFinished) instead.
      *
      * @returns {Promise<Request>}
      * Returns the request object or `null` if there are no more pending requests.
@@ -389,8 +394,9 @@ export class RequestQueue {
     }
 
     /**
-     * Marks a request that was previously returned by the {@link RequestQueue.fetchNextRequest} function
-     * as handled after successful processing.
+     * Marks a request that was previously returned by the
+     * [`requestQueue.fetchNextRequest()`](#RequestQueue+fetchNextRequest)
+     * function as handled after successful processing.
      * Handled requests will never again be returned by the `fetchNextRequest` function.
      *
      * @param {Request} request
@@ -428,7 +434,7 @@ export class RequestQueue {
 
     /**
      * Reclaims a failed request back to the queue, so that it can be returned for processed later again
-     * by another call to {@link RequestQueue.fetchNextRequest}.
+     * by another call to [`requestQueue.fetchNextRequest()`](#RequestQueue+fetchNextRequest).
      * The request record in the queue is updated using the provided `request` parameter.
      * For example, this lets you store the number of retries or error messages for the request.
      *
@@ -436,7 +442,8 @@ export class RequestQueue {
      * @param {Object} [options]
      * @param {Boolean} [options.forefront=false]
      * If `true` then the request it placed to the beginning of the queue, so that it's returned
-     * in the next call to {@link RequestQueue.fetchNextRequest}. By default, it's put to the end of the queue.
+     * in the next call to [`requestQueue.fetchNextRequest()`](#RequestQueue+fetchNextRequest).
+     * By default, it's put to the end of the queue.
      * @return {Promise<QueueOperationInfo>}
      */
     async reclaimRequest(request, options = {}) {
@@ -478,9 +485,10 @@ export class RequestQueue {
     }
 
     /**
-     * Resolves to `true` if the next call to {@link RequestQueue.fetchNextRequest} would return `null`, otherwise it resolves to `false`.
+     * Resolves to `true` if the next call to [`requestQueue.fetchNextRequest()`](#RequestQueue+fetchNextRequest)
+     * would return `null`, otherwise it resolves to `false`.
      * Note that even if the queue is empty, there might be some pending requests currently being processed.
-     * If you need to ensure that there is no activity in the queue, use {@link RequestQueue.isFinished}.
+     * If you need to ensure that there is no activity in the queue, use [`requestQueue.isFinished()`](#RequestQueue+isFinished).
      *
      * @returns {Promise<Boolean>}
      */
@@ -640,13 +648,20 @@ export class RequestQueue {
      *
      * @return {Promise}
      */
-    async delete() {
+    async drop() {
         await requestQueues.deleteQueue({
             queueId: this.queueId,
         });
 
         queuesCache.remove(this.queueId);
         if (this.queueName) queuesCache.remove(this.queueName);
+    }
+
+    /** @ignore */
+    async delete() {
+        log.deprecated('requestQueue.delete() is deprecated. Please use requestQueue.drop() instead. '
+            + 'This is to make it more obvious to users that the function deletes the request queue and not individual records in the queue.');
+        await this.drop();
     }
 
     /**
@@ -659,7 +674,6 @@ export class RequestQueue {
      * ```
      *
      * @return {Promise<number>}
-     * @deprecated
      */
     async handledCount() {
         // NOTE: We keep this function for compatibility with RequestList.handledCount()
@@ -994,9 +1008,15 @@ export class RequestQueueLocal {
         return this.pendingCount === 0;
     }
 
-    async delete() {
+    async drop() {
         await emptyDirPromised(this.localStoragePath);
         queuesCache.remove(this.queueId);
+    }
+
+    async delete() {
+        log.deprecated('requestQueue.delete() is deprecated. Please use requestQueue.drop() instead. '
+            + 'This is to make it more obvious to users that the function deletes the request queue and not individual records in the queue.');
+        await this.drop();
     }
 
     async handledCount() {

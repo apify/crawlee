@@ -226,8 +226,6 @@ describe('PuppeteerPool', () => {
         await pool.destroy();
     });
 
-    // Test started failing on 6.10.2018. Probably some change upstream.
-    // Disabling the feature until resolved.
     it('supports recycleDiskCache option', async () => {
         const pool = new Apify.PuppeteerPool({
             maxOpenPagesPerInstance: 1,
@@ -287,9 +285,6 @@ describe('PuppeteerPool', () => {
         expect(cookies2before.length).to.be.eql(0);
 
         await page2.goto(url);
-
-        const cookies2after = await page2.cookies(url);
-        expect(cookies2after.length).to.be.at.least(1);
 
         expect(fromDiskCache2).to.be.at.least(1);
 

@@ -627,7 +627,7 @@ export const printOutdatedSdkWarning = () => {
 
     // eslint-disable-next-line
     log.warning(`You are using an outdated version (${apifyVersion}) of Apify SDK. We recommend you to update to the latest version (${latestApifyVersion}).
-         Read more about Apify SDK versioning at: https://kb.apify.com/en/articles/3184510-updates-and-versioning-of-apify-sdk`);
+         Read more about Apify SDK versioning at: https://help.apify.com/en/articles/3184510-updates-and-versioning-of-apify-sdk`);
 };
 
 /**

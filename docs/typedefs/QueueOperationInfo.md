@@ -33,9 +33,9 @@ A helper class that is used to report results from various [`RequestQueue`](../a
 <tr>
 <td colspan="3"><p>The ID of the added request</p>
 </td></tr><tr>
-<td><code>request</code></td><td><code><a href="request">Request</a></code> | <code>Object</code></td>
+<td><code>request</code></td><td><code>Object</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>The original <code>Request</code> object passed to the <code>RequestQueue</code> function.</p>
+<td colspan="3"><p>The original <a href="../api/request"><code>Request</code></a> object passed to the <code>RequestQueue</code> function.</p>
 </td></tr></tbody>
 </table>

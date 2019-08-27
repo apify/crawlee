@@ -63,6 +63,8 @@ import { constructPseudoUrlInstances, createRequests, addRequestsToQueueInBatche
  *   If `pseudoUrls` is an empty array, `null` or `undefined`, then the function
  *   enqueues all links found on the page.
  * @param {Function} [options.transformRequestFunction]
+ *   **Signature:** ({@link Request}): {@link Request}
+ *
  *   Just before a new {@link Request} is constructed and enqueued to the {@link RequestQueue}, this function can be used
  *   to remove it or modify its contents such as `userData`, `payload` or, most importantly `uniqueKey`. This is useful
  *   when you need to enqueue multiple `Requests` to the queue that share the same URL, but differ in methods or payloads,
@@ -70,6 +72,17 @@ import { constructPseudoUrlInstances, createRequests, addRequestsToQueueInBatche
  *
  *   For example: by adding `keepUrlFragment: true` to the `request` object, URL fragments will not be removed
  *   when `uniqueKey` is computed.
+ *
+ *   **Example:**
+ *   ```javascript
+ *   {
+ *       transformRequestFunction: (request) => {
+ *           request.userData.foo = 'bar';
+ *           request.keepUrlFragment = true;
+ *           return request;
+ *       }
+ *   }
+ *   ```
  * @return {Promise<QueueOperationInfo[]>}
  *   Promise that resolves to an array of {@link QueueOperationInfo} objects.
  * @memberOf utils

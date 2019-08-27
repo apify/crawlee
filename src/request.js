@@ -248,6 +248,7 @@ class Request {
      *
      * @param {String} [message]
      * @deprecated 2019/06/26
+     * @ignore
      */
     doNotRetry(message) {
         log.deprecated('request.doNotRetry is deprecated. Use request.noRetry = true; instead.');

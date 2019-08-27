@@ -92,7 +92,8 @@ await crawler.run();
   provided to the <code>options.handleFailedRequestFunction</code> parameter.
   To make this work, you should <strong>always</strong>
   let your function throw exceptions rather than catch them.
-  The exceptions are logged to the request using the <a href="request.pusherrormessage"><code>Request.pushErrorMessage</code></a> function.</p>
+  The exceptions are logged to the request using the
+  <a href="request#Request+pushErrorMessage"><code>request.pushErrorMessage</code></a> function.</p>
 </td></tr><tr>
 <td><code>options.requestList</code></td><td><code><a href="requestlist">RequestList</a></code></td><td></td>
 </tr>
