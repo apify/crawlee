@@ -529,7 +529,7 @@ describe('CheerioCrawler', () => {
         beforeEach(async () => {
             requestList = new Apify.RequestList({
                 sources: [
-                    { url: 'https://unicorn.com/cz/career' },
+                    { url: 'http://example.com/' },
                     { url: 'http://example.com/?q=1' },
                     { url: 'http://example.com/?q=2' },
                     { url: 'http://example.com/?q=3' },
