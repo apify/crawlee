@@ -294,7 +294,7 @@ describe('CheerioCrawler', () => {
             });
 
             await crawler.run();
-            headers.forEach(h => expect(h.accept).to.be.eql('text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'));
+            headers.forEach(h => expect(h.Accept).to.be.eql('text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'));
         });
 
         describe('by throwing', () => {
