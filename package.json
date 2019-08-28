@@ -49,7 +49,7 @@
         "lint:fix": "./node_modules/.bin/eslint ./src ./test --ext .js,.jsx --fix"
     },
     "dependencies": {
-        "@apify/http-request": "^1.1.0",
+        "@apify/http-request": "^1.1.1",
         "@apify/ps-tree": "^1.1.3",
         "apify-client": "^0.5.25",
         "apify-shared": "^0.1.56",

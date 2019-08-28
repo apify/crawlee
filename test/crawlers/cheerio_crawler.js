@@ -7,11 +7,7 @@ import { delayPromise } from 'apify-shared/utilities';
 import { ENV_VARS } from 'apify-shared/consts';
 import express from 'express';
 import bodyParser from 'body-parser';
-import sinon from 'sinon';
-import * as utilsRequest from '../../build/utils_request';
 import Apify from '../../build';
-
-const Stream = require('stream');
 
 // Add common props to mocked request responses.
 const responseMock = {
@@ -103,10 +99,10 @@ describe('CheerioCrawler', () => {
             res.send({ some: 'json' });
         });
 
-        app.get('/jsonError', (req, res) => {
+        app.post('/jsonError', (req, res) => {
             res
                 .status(500)
-                .json({ message: 'json' });
+                .json({ message: 'CUSTOM_ERROR' });
         });
 
 
@@ -430,24 +426,6 @@ describe('CheerioCrawler', () => {
             });
 
             it('when statusCode >= 500 and application/json is received', async () => {
-                const save = sinon.stub(utilsRequest, 'requestAsBrowser');
-                const errorMessage = 'TEST_ERROR';
-                save.callsFake(() => new Promise((resolve) => {
-                    const readableStream = new Stream.Readable();
-                    readableStream._read = function () {
-                        this.push(Buffer.from(JSON.stringify({ message: errorMessage })));
-                        this.push(null);
-                    };
-
-                    const finalStream = new Stream.PassThrough();
-                    finalStream.statusCode = 500;
-                    finalStream.headers = {
-                        'content-type': 'application/json',
-                    };
-                    resolve(readableStream.pipe(finalStream));
-                }));
-
-
                 crawler = new Apify.CheerioCrawler({
                     requestList: await getRequestListForMock({}, 'jsonError'),
                     maxRequestRetries: 1,
@@ -459,11 +437,10 @@ describe('CheerioCrawler', () => {
                     },
                 });
                 await crawler.run();
-                save.restore();
 
                 expect(handlePageInvocationCount).to.be.eql(0);
                 expect(errorMessages).to.have.lengthOf(8);
-                errorMessages.forEach(msg => expect(msg).to.include(errorMessage));
+                errorMessages.forEach(msg => expect(msg).to.include('CUSTOM_ERROR'));
             });
 
             it('when 406 is received', async () => {
