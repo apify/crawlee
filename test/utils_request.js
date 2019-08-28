@@ -163,7 +163,7 @@ describe('Apify.utils_request', () => {
             const response = await requestAsBrowser(options);
 
             expect(response.statusCode).to.eql(200);
-            expect(JSON.parse(response.body)['User-Agent']).to.be.eql(options.headers['User-Agent']);
+            expect(JSON.parse(response.body)['user-agent']).to.be.eql(options.headers['User-Agent']);
         });
 
         it('headers has same format as in firefox', async () => {
