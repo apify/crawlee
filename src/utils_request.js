@@ -19,6 +19,8 @@ export const REQUEST_AS_BROWSER_DEFAULT_OPTIONS = {
         return res.statusCode === 406 || type.toLowerCase() !== 'text/html';
     },
     useCaseSensitiveHeaders: true,
+    useStream: false,
+    proxyUrl: null,
 };
 /**
  * Sends a HTTP request that looks like a request sent by a web browser,
@@ -58,7 +60,7 @@ export const REQUEST_AS_BROWSER_DEFAULT_OPTIONS = {
  *  If function returns true request gets aborted. This function is passed to the
  *  (@apify/http-request)[https://www.npmjs.com/package/@apify/http-request] NPM package.
  *
- * @return {http.IncomingMessage}
+ * @return {Promise<http.IncomingMesage|stream.Readable>}
  * @memberOf utils
  * @name requestAsBrowser
  */
@@ -76,6 +78,5 @@ export const requestAsBrowser = async (options) => {
         Connection: 'keep-alive',
     };
     opts.headers = _.defaults({}, opts.headers, defaultHeaders);
-
     return httpRequest(opts);
 };

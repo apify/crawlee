@@ -1,6 +1,6 @@
 {
     "name": "apify",
-    "version": "0.15.5",
+    "version": "0.15.6",
     "description": "The scalable web crawling and scraping library for JavaScript/Node.js. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.",
     "engines": {
         "node": ">=8.14.0"
@@ -49,7 +49,7 @@
         "lint:fix": "./node_modules/.bin/eslint ./src ./test --ext .js,.jsx --fix"
     },
     "dependencies": {
-        "@apify/http-request": "^1.0.6",
+        "@apify/http-request": "^1.1.1",
         "@apify/ps-tree": "^1.1.3",
         "apify-client": "^0.5.25",
         "apify-shared": "^0.1.56",
@@ -63,7 +63,7 @@
         "proxy-chain": "^0.2.7",
         "request": "^2.88.0",
         "request-promise-native": "^1.0.5",
-        "rimraf": "^2.6.2",
+        "rimraf": "^2.7.1",
         "semver": "^6.3.0",
         "socket.io": "^2.2.0",
         "underscore": "^1.9.1",
@@ -79,10 +79,11 @@
         "@types/chai": "^4.1.7",
         "@types/fs-extra": "^7.0.0",
         "@types/mocha": "^5.2.7",
-        "@types/puppeteer": "^1.19.0",
+        "@types/puppeteer": "^1.19.1",
         "@types/sinon": "^7.0.13",
         "@types/socket.io": "^2.1.2",
         "basic-auth-parser": "^0.0.2",
+        "body-parser": "^1.19.0",
         "chai": "^4.2.0",
         "chai-as-promised": "^7.1.1",
         "chai-subset": "^1.6.0",
@@ -96,7 +97,7 @@
         "nyc": "^14.0.0",
         "portastic": "^1.0.1",
         "proxy": "^0.2.4",
-        "sinon": "^7.1.1",
+        "sinon": "^7.4.1",
         "sinon-stub-promise": "^4.0.0",
         "socket.io-client": "^2.2.0",
         "ua-parser-js": "^0.7.20",

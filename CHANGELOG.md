@@ -1,3 +1,7 @@
+NEXT
+====================
+- Update `CheerioCrawler` to use `requestAsBrowser()` to better disguise as a real browser.
+
 0.15.5 / 2019-08-15
 ====================
 - This release just updates some dependencies (not Puppeteer).

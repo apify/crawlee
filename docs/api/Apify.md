@@ -627,12 +627,13 @@ For an example of usage, see the [Synchronous run Example](../examples/synchrono
 
 ## `Apify.main(userFunc)`
 
-Runs the main user function that performs the job of the actor.
+Runs the main user function that performs the job of the actor and terminates the process when the user function finishes.
 
-`Apify.main()` is especially useful when you're running your code in an actor on the Apify platform. Note that its use is optional - the function is
-provided merely for your convenience.
+_The `Apify.main()` function is optional_ and is provided merely for your convenience. It is especially useful when you're running your code as an
+actor on the [Apify platform](https://apify.com/actors). However, if you want to use Apify SDK tools directly inside your existing projects or outside
+of Apify platform, it's probably better to avoid it since it terminates the main process.
 
-The function performs the following actions:
+The `Apify.main()` function performs the following actions:
 
 <ol>
   <li>When running on the Apify platform (i.e. <code>APIFY_IS_AT_HOME</code> environment variable is set),
