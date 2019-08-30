@@ -67,10 +67,7 @@ export const REQUEST_AS_BROWSER_DEFAULT_OPTIONS = {
 export const requestAsBrowser = async (options) => {
     const opts = _.defaults({}, options, REQUEST_AS_BROWSER_DEFAULT_OPTIONS);
 
-    const parsedUrl = url.parse(opts.url);
-
     const defaultHeaders = {
-        Host: parsedUrl.host,
         'User-Agent': opts.useMobileVersion ? FIREFOX_MOBILE_USER_AGENT : FIREFOX_DESKTOP_USER_AGENT,
         Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': `${opts.languageCode}-${opts.countryCode},${opts.languageCode};q=0.5`,
