@@ -709,7 +709,7 @@ or relative:
 ```
 
 Browsers handle this automatically, but since we're only using plain HTTP requests, we need to tell the `enqueueLinks()` function how to resolve the
-relative links to the absolute ones, so we can use them for scraping. This is where the `response.loadedUrl` comes into play, because it returns the
+relative links to the absolute ones, so we can use them for scraping. This is where the `request.loadedUrl` comes into play, because it returns the
 correct URL to use as `baseUrl`.
 
 ```js
