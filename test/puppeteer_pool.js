@@ -472,6 +472,23 @@ describe('PuppeteerPool', () => {
         });
     });
 
+    describe('useIncognitoPages', () => {
+        it('opens a page in incognito browser context', async () => {
+            const pool = new Apify.PuppeteerPool({
+                useIncognitoPages: true,
+            });
+            const page = await pool.newPage();
+            const browser = page.browser();
+            const context = page.browserContext();
+            expect(context.isIncognito()).to.be.eql(true);
+            await page.close();
+            const contexts = browser.browserContexts();
+            expect(contexts).to.have.lengthOf(1);
+            expect(contexts[0].isIncognito()).to.be.eql(false);
+            await pool.destroy();
+        });
+    });
+
     describe('the proxyUrls parameter', () => {
         it('supports rotation of custom proxies', async () => {
             const optionsLog = [];

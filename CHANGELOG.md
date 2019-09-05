@@ -1,6 +1,8 @@
 NEXT
 ====================
 - Update `CheerioCrawler` to use `requestAsBrowser()` to better disguise as a real browser.
+- Add `useIncognitoPages` option to `PuppeteerPool` to enable opening new pages in incognito
+  browser contexts. This is useful to keep cookies and cache unique for each page.
 
 0.15.5 / 2019-08-15
 ====================
