@@ -33,6 +33,7 @@ const DEFAULT_OPTIONS = {
     launchPuppeteerFunction: launchPuppeteerOptions => launchPuppeteer(launchPuppeteerOptions),
 
     recycleDiskCache: false,
+    useIncognitoPages: false,
     useLiveView: false,
 };
 
@@ -114,19 +115,19 @@ class PuppeteerInstance {
  *   Enables the use of a preconfigured {@link LiveViewServer} that serves snapshots
  *   just before a page would be recycled by `PuppeteerPool`. If there are no clients
  *   connected, it has close to zero impact on performance.
- * @param {Number} [options.maxOpenPagesPerInstance=50]
+ * @param {number} [options.maxOpenPagesPerInstance=50]
  *   Maximum number of open pages (i.e. tabs) per browser. When this limit is reached, new pages are loaded in a new browser instance.
- * @param {Number} [options.retireInstanceAfterRequestCount=100]
+ * @param {number} [options.retireInstanceAfterRequestCount=100]
  *   Maximum number of requests that can be processed by a single browser instance.
  *   After the limit is reached, the browser is retired and new requests are
  *   handled by a new browser instance.
- * @param {Number} [options.puppeteerOperationTimeoutSecs=15]
+ * @param {number} [options.puppeteerOperationTimeoutSecs=15]
  *   All browser management operations such as launching a new browser, opening a new page
  *   or closing a page will timeout after the set number of seconds and the connected
  *   browser will be retired.
- * @param {Number} [options.instanceKillerIntervalSecs=60]
+ * @param {number} [options.instanceKillerIntervalSecs=60]
  *   Indicates how often are the open Puppeteer instances checked whether they can be closed.
- * @param {Number} [options.killInstanceAfterSecs=300]
+ * @param {number} [options.killInstanceAfterSecs=300]
  *   When Puppeteer instance reaches the `options.retireInstanceAfterRequestCount` limit then
  *   it is considered retired and no more tabs will be opened. After the last tab is closed the
  *   whole browser is closed too. This parameter defines a time limit between the last tab was opened and
@@ -141,7 +142,7 @@ class PuppeteerInstance {
  * @param {LaunchPuppeteerOptions} [options.launchPuppeteerOptions]
  *   Options used by `Apify.launchPuppeteer()` to start new Puppeteer instances.
  *   See [`LaunchPuppeteerOptions`](../typedefs/launchpuppeteeroptions).
- * @param {Boolean} [options.recycleDiskCache=false]
+ * @param {boolean} [options.recycleDiskCache=false]
  *   Enables recycling of disk cache directories by Chrome instances.
  *   When a browser instance is closed, its disk cache directory is not deleted but it's used by a newly opened browser instance.
  *   This is useful to reduce amount of data that needs to be downloaded to speed up crawling and reduce proxy usage.
@@ -153,7 +154,10 @@ class PuppeteerInstance {
  *
  *   Do not use the `options.recycleDiskCache` setting together with `--disk-cache-dir`
  *   argument in `options.launchPuppeteerOptions.args`, the behavior is undefined.
- * @param {String[]} [options.proxyUrls]
+ * @param {boolean} [options.useIncognitoPages]
+ *   With this option selected, all pages will be opened in a new incognito browser context, which means
+ *   that they will not share cookies or cache and their resources will not be throttled by one another.
+ * @param {string[]} [options.proxyUrls]
  *   An array of custom proxy URLs to be used by the `PuppeteerPool` instance.
  *   The provided custom proxies' order will be randomized and the resulting list rotated.
  *   Custom proxies are not compatible with Apify Proxy and an attempt to use both
@@ -172,6 +176,7 @@ class PuppeteerPool {
             killInstanceAfterSecs,
             launchPuppeteerOptions,
             recycleDiskCache,
+            useIncognitoPages,
             proxyUrls,
             useLiveView,
         } = _.defaults({}, options, DEFAULT_OPTIONS);
@@ -196,6 +201,7 @@ class PuppeteerPool {
         checkParamOrThrow(killInstanceAfterSecs, 'options.killInstanceAfterSecs', 'Number');
         checkParamOrThrow(launchPuppeteerOptions, 'options.launchPuppeteerOptions', 'Maybe Object');
         checkParamOrThrow(recycleDiskCache, 'options.recycleDiskCache', 'Maybe Boolean');
+        checkParamOrThrow(useIncognitoPages, 'options.useIncognitoPages', 'Maybe Boolean');
         checkParamOrThrow(proxyUrls, 'options.proxyUrls', 'Maybe Array');
         // Enforce non-empty proxyUrls array
         if (proxyUrls && !proxyUrls.length) throw new Error('Parameter "options.proxyUrls" of type Array must not be empty');
@@ -208,6 +214,7 @@ class PuppeteerPool {
         this.puppeteerOperationTimeoutMillis = puppeteerOperationTimeoutSecs * 1000;
         this.killInstanceAfterMillis = killInstanceAfterMillis || killInstanceAfterSecs * 1000;
         this.recycledDiskCacheDirs = recycleDiskCache ? new LinkedList() : null;
+        this.useIncognitoPages = useIncognitoPages;
         this.proxyUrls = proxyUrls ? _.shuffle(proxyUrls) : null;
         this.liveViewServer = useLiveView ? new LiveViewServer() : null;
         this.launchPuppeteerFunction = async () => {
@@ -526,8 +533,11 @@ class PuppeteerPool {
 
         try {
             const browser = await instance.browserPromise;
+            const context = this.useIncognitoPages
+                ? await browser.createIncognitoBrowserContext()
+                : browser.defaultBrowserContext();
             const page = await addTimeoutToPromise(
-                browser.newPage(),
+                context.newPage(),
                 this.puppeteerOperationTimeoutMillis,
                 'PuppeteerPool: browser.newPage() timed out.',
             );
@@ -545,18 +555,25 @@ class PuppeteerPool {
     /**
      * Adds the necessary boilerplate to allow page reuse and also
      * captures page.close() errors to prevent meaningless log clutter.
-     * @param page
+     * @param {Page} page
      * @ignore
      */
     _decoratePage(page) {
         const originalPageClose = page.close;
         page.close = async (...args) => {
             this.closedPages.add(page);
-            return originalPageClose.apply(page, args)
+            await originalPageClose.apply(page, args)
                 .catch((err) => {
                     const instance = this.pagesToInstancesMap.get(page);
                     log.debug('PuppeteerPool: Page.close() failed', { errorMessage: err.message, id: instance.id });
                 });
+            const context = page.browserContext();
+            if (context.isIncognito()) {
+                await context.close().catch((err) => {
+                    const instance = this.pagesToInstancesMap.get(page);
+                    log.debug('PuppeteerPool: Context.close() failed', { errorMessage: err.message, id: instance.id });
+                });
+            }
         };
 
         page.once('error', (error) => {

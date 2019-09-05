@@ -71,31 +71,31 @@ await puppeteerPool.destroy();
   just before a page would be recycled by <code>PuppeteerPool</code>. If there are no clients
   connected, it has close to zero impact on performance.</p>
 </td></tr><tr>
-<td><code>[options.maxOpenPagesPerInstance]</code></td><td><code>Number</code></td><td><code>50</code></td>
+<td><code>[options.maxOpenPagesPerInstance]</code></td><td><code>number</code></td><td><code>50</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Maximum number of open pages (i.e. tabs) per browser. When this limit is reached, new pages are loaded in a new browser instance.</p>
 </td></tr><tr>
-<td><code>[options.retireInstanceAfterRequestCount]</code></td><td><code>Number</code></td><td><code>100</code></td>
+<td><code>[options.retireInstanceAfterRequestCount]</code></td><td><code>number</code></td><td><code>100</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Maximum number of requests that can be processed by a single browser instance.
   After the limit is reached, the browser is retired and new requests are
   handled by a new browser instance.</p>
 </td></tr><tr>
-<td><code>[options.puppeteerOperationTimeoutSecs]</code></td><td><code>Number</code></td><td><code>15</code></td>
+<td><code>[options.puppeteerOperationTimeoutSecs]</code></td><td><code>number</code></td><td><code>15</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>All browser management operations such as launching a new browser, opening a new page
   or closing a page will timeout after the set number of seconds and the connected
   browser will be retired.</p>
 </td></tr><tr>
-<td><code>[options.instanceKillerIntervalSecs]</code></td><td><code>Number</code></td><td><code>60</code></td>
+<td><code>[options.instanceKillerIntervalSecs]</code></td><td><code>number</code></td><td><code>60</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Indicates how often are the open Puppeteer instances checked whether they can be closed.</p>
 </td></tr><tr>
-<td><code>[options.killInstanceAfterSecs]</code></td><td><code>Number</code></td><td><code>300</code></td>
+<td><code>[options.killInstanceAfterSecs]</code></td><td><code>number</code></td><td><code>300</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>When Puppeteer instance reaches the <code>options.retireInstanceAfterRequestCount</code> limit then
@@ -119,7 +119,7 @@ await puppeteerPool.destroy();
 <td colspan="3"><p>Options used by <code>Apify.launchPuppeteer()</code> to start new Puppeteer instances.
   See <a href="../typedefs/launchpuppeteeroptions"><code>LaunchPuppeteerOptions</code></a>.</p>
 </td></tr><tr>
-<td><code>[options.recycleDiskCache]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
+<td><code>[options.recycleDiskCache]</code></td><td><code>boolean</code></td><td><code>false</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Enables recycling of disk cache directories by Chrome instances.
@@ -132,7 +132,13 @@ await puppeteerPool.destroy();
 <p>  Do not use the <code>options.recycleDiskCache</code> setting together with <code>--disk-cache-dir</code>
   argument in <code>options.launchPuppeteerOptions.args</code>, the behavior is undefined.</p>
 </td></tr><tr>
-<td><code>[options.proxyUrls]</code></td><td><code>Array<String></code></td><td></td>
+<td><code>[options.useIncognitoPages]</code></td><td><code>boolean</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>With this option selected, all pages will be opened in a new incognito browser context, which means
+  that they will not share cookies or cache and their resources will not be throttled by one another.</p>
+</td></tr><tr>
+<td><code>[options.proxyUrls]</code></td><td><code>Array<string></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>An array of custom proxy URLs to be used by the <code>PuppeteerPool</code> instance.
