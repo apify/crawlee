@@ -126,13 +126,14 @@ objects.
 <p>  For example: by adding <code>keepUrlFragment: true</code> to the <code>request</code> object, URL fragments will not be removed
   when <code>uniqueKey</code> is computed.</p>
 <p>  <strong>Example:</strong></p>
-<pre><code class="language-javascript">  {
+<pre><code class="lang-javascript">  {
       transformRequestFunction: (request) =&gt; {
           request.userData.foo = &#39;bar&#39;;
           request.keepUrlFragment = true;
           return request;
       }
-  }</code></pre>
+  }
+</code></pre>
 </td></tr></tbody>
 </table>
 <a name="utils.requestAsBrowser"></a>
@@ -196,7 +197,7 @@ request. All `options` not recognized by this function are passed to it, so see 
 <tr>
 <td colspan="3"><p>Function accepts <code>response</code> object as a single parameter and should return true or false.
  If function returns true request gets aborted. This function is passed to the
- (@apify/http-request)[<a href="https://www.npmjs.com/package/@apify/http-request%5D">https://www.npmjs.com/package/@apify/http-request]</a> NPM package.</p>
+ (@apify/http-request)[<a href="https://www.npmjs.com/package/@apify/http-request]">https://www.npmjs.com/package/@apify/http-request]</a> NPM package.</p>
 </td></tr></tbody>
 </table>
 <a name="utils.sleep"></a>
