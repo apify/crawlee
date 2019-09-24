@@ -196,7 +196,7 @@ request. All `options` not recognized by this function are passed to it, so see 
 <tr>
 <td colspan="3"><p>Function accepts <code>response</code> object as a single parameter and should return true or false.
  If function returns true request gets aborted. This function is passed to the
- (@apify/http-request)[<a href="https://www.npmjs.com/package/@apify/http-request%5D">https://www.npmjs.com/package/@apify/http-request]</a> NPM package.</p>
+ (@apify/http-request)[<a href="https://www.npmjs.com/package/@apify/http-request">https://www.npmjs.com/package/@apify/http-request]</a> NPM package.</p>
 </td></tr></tbody>
 </table>
 <a name="utils.sleep"></a>
