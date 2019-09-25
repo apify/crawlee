@@ -274,6 +274,6 @@ export const launchPuppeteer = async (options = {}) => {
     if (optsCopy.stealth) {
         browser = applyStealthToBrowser(browser, optsCopy.stealthOptions);
     }
-    log.info('Launching Puppeteer', _.omit(optsCopy, LAUNCH_PUPPETEER_LOG_OMIT_OPTS));
+    
     return browser;
 };
