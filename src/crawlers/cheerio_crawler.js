@@ -182,8 +182,7 @@ const DEFAULT_OPTIONS = {
  * @param {Number} [options.requestTimeoutSecs=30]
  *   Timeout in which the HTTP request to the resource needs to finish, given in seconds.
  * @param {Boolean} [options.ignoreSslErrors=false]
- *   If set to true, SSL certificate errors will be ignored. This is dependent on using the default
- *   request function. If using a custom `options.requestFunction`, user needs to implement this functionality.
+ *   If set to true, SSL certificate errors will be ignored.
  * @param {Boolean} [options.useApifyProxy=false]
  *   If set to `true`, `CheerioCrawler` will be configured to use
  *   <a href="https://my.apify.com/proxy" target="_blank">Apify Proxy</a> for all connections.
