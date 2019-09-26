@@ -105,7 +105,8 @@ await crawler.run();
   request: Request,
   response: Object // An instance of Node&#39;s http.IncomingMessage object,
   autoscaledPool: AutoscaledPool
-}</code></pre><p>  With the <a href="request"><code>Request</code></a> object representing the URL to crawl.</p>
+}
+</code></pre><p>  With the <a href="request"><code>Request</code></a> object representing the URL to crawl.</p>
 <p>  If the function returns a promise, it is awaited by the crawler.</p>
 <p>  If the function throws an exception, the crawler will try to re-crawl the
   request later, up to <code>option.maxRequestRetries</code> times.
@@ -146,7 +147,8 @@ await crawler.run();
       payload,   // Provided by RequestList and/or RequestQueue
       strictSSL, // Use options.ignoreSslErrors
       proxy,     // Use options.useApifyProxy or options.proxyUrls
-  }</code></pre></td></tr><tr>
+  }
+</code></pre></td></tr><tr>
 <td><code>[options.prepareRequestFunction]</code></td><td><code>function</code></td><td></td>
 </tr>
 <tr>
@@ -155,7 +157,8 @@ await crawler.run();
 <p>  The function receives the following object as an argument:</p>
 <pre><code>{
   request: Request
-}</code></pre><p>  where the <a href="request"><code>Request</code></a> instance corresponds to the initialized request.</p>
+}
+</code></pre><p>  where the <a href="request"><code>Request</code></a> instance corresponds to the initialized request.</p>
 <p>  The function should modify the properties of the passed <a href="request"><code>Request</code></a> instance
   in place because there are already earlier references to it. Making a copy and returning it from
   this function is therefore not supported, because it would create inconsistencies where
@@ -216,7 +219,8 @@ await crawler.run();
 <pre><code>{
   request: Request,
   error: Error,
-}</code></pre><p>  where the <a href="request"><code>Request</code></a> instance corresponds to the failed request, and the <code>Error</code> instance
+}
+</code></pre><p>  where the <a href="request"><code>Request</code></a> instance corresponds to the failed request, and the <code>Error</code> instance
   represents the last error thrown during processing of the request.</p>
 <p>  See <a href="https://github.com/apifytech/apify-js/blob/master/src/crawlers/cheerio_crawler.js#L13">source code</a>
   for the default implementation of this function.</p>
