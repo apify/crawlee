@@ -104,8 +104,7 @@ await requestList.reclaimRequest(request2);
     { method: &#39;GET&#39;, url: &#39;http://example.com/a/b&#39; },
     // Batch import of URLs from a file hosted on the web
     { method: &#39;POST&#39;, requestsFromUrl: &#39;http://example.com/urls.txt&#39; },
-]
-</code></pre></td></tr><tr>
+]</code></pre></td></tr><tr>
 <td><code>[options.persistStateKey]</code></td><td><code>String</code></td><td></td>
 </tr>
 <tr>
@@ -133,8 +132,7 @@ await requestList.reclaimRequest(request2);
         &#39;unique-key-1&#39;: true,
         &#39;unique-key-4&#39;: true,
     },
-}
-</code></pre><p>  Note that the preferred (and simpler) way to persist the state of crawling of the <code>RequestList</code>
+}</code></pre><p>  Note that the preferred (and simpler) way to persist the state of crawling of the <code>RequestList</code>
   is to use the <code>stateKeyPrefix</code> parameter instead.</p>
 </td></tr><tr>
 <td><code>[options.keepDuplicateUrls]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
