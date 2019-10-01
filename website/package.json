@@ -11,8 +11,8 @@
     "prettify": "prettier --write --config ./tools/prettier.config.js ../docs/guides/*.md"
   },
   "devDependencies": {
-    "docusaurus": "^1.10.0",
-    "jsdoc-to-markdown": "^5.0.0",
+    "docusaurus": "^1.13.0",
+    "jsdoc-to-markdown": "^5.0.1",
     "prettier": "^1.18.2"
   }
 }

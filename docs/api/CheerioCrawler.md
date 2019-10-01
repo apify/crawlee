@@ -174,8 +174,7 @@ await crawler.run();
 <td><code>[options.ignoreSslErrors]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>If set to true, SSL certificate errors will be ignored. This is dependent on using the default
-  request function. If using a custom <code>options.requestFunction</code>, user needs to implement this functionality.</p>
+<td colspan="3"><p>If set to true, SSL certificate errors will be ignored.</p>
 </td></tr><tr>
 <td><code>[options.useApifyProxy]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
 </tr>
