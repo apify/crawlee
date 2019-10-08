@@ -552,18 +552,15 @@ describe('CheerioCrawler', () => {
         it('when response is application/json', async () => {
             const jsonRequestParams = handlePageInvocationParams[0];
             expect(jsonRequestParams.body).to.be.an('object');
-            expect(jsonRequestParams.$).to.be.an('null');
         });
         it('when response is application/xml', async () => {
             const xmlRequestParams = handlePageInvocationParams[1];
             expect(xmlRequestParams.body).to.be.an('string');
-            expect(xmlRequestParams.html).to.be.an('null');
             expect(xmlRequestParams.$).to.be.an('function');
         });
         it('when response is image/png', async () => {
             const imageRequestParams = handlePageInvocationParams[2];
             expect(imageRequestParams.body).to.be.instanceof(Buffer);
-            expect(imageRequestParams.html).to.be.an('null');
         });
     });
 

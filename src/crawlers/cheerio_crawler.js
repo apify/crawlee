@@ -128,11 +128,12 @@ const DEFAULT_OPTIONS = {
  *   autoscaledPool: AutoscaledPool
  * }
  * ```
+ *   Type of `body` depends on web page `Content-Type` header.
+ *   - String for `text/html`, `application/xhtml+xml`, `application/xml`
+ *   - Object for `application/json`
+ *   - Buffer for the others
+ *
  *   Cheerio is available only for HTML and XML content types.
- *   Type of `body` depends of content type of crawling URL.
- *   - String: In case of HTML of XML content types
- *   - Object: In case of JSON content type
- *   - Buffer: For the rest content types
  *
  *   With the {@link Request} object representing the URL to crawl.
  *
@@ -367,7 +368,7 @@ class CheerioCrawler {
             },
             get body() {
                 if (dom) {
-                    return (xmlMode) ? $.xml() : $.html({ decodeEntities: false });
+                    return xmlMode ? $.xml() : $.html({ decodeEntities: false });
                 }
                 return body;
             },
@@ -495,9 +496,8 @@ class CheerioCrawler {
     }
 
     /**
-     *
+     * Reads whole stream and concat buffer from it
      * @param readStream
-     * @return {Promise<unknown>}
      * @ignore
      */
     async _concatStreamToBuffer(readStream) {
@@ -508,20 +508,19 @@ class CheerioCrawler {
     }
 
     /**
-     *
+     * Checks and extends included content types to crawler
      * @param contentTypes
-     * @return {*}
      * @ignore
      */
     _extendsDefaultContentTypes(contentTypes) {
-        const normalizedTypes = contentTypes.map((type) => {
+        contentTypes.forEach((type) => {
             try {
-                return contentType.parse(type).type;
+                const parsedType = contentType.parse(type);
+                this.includedContentTypes.push(parsedType.type);
             } catch (err) {
-                throw new Error(`CheerioCrawler: Content type ${type} in not correct content type.`);
+                throw new Error(`CheerioCrawler: Can not parse content type ${type} from "options.additionalContentTypes".`);
             }
         });
-        this.includedContentTypes.push(...normalizedTypes);
     }
 }
 
