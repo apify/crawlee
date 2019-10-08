@@ -420,6 +420,7 @@ class CheerioCrawler {
 
                 return false;
             },
+            timeoutSecs: this.requestTimeoutMillis / 1000 + 1,
         };
 
         if (/PATCH|POST|PUT/.test(request.method)) mandatoryRequestOptions.payload = request.payload;
