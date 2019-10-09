@@ -27,8 +27,8 @@ that a single URL is not crawled multiple times.
 
 The crawler finishes when there are no more [`Request`](request) objects to crawl.
 
-By default, `CheerioCrawler` downloads HTML using the <a href="https://www.npmjs.com/package/request" target="_blank">request</a> NPM package. You can
-use the `requestOptions` parameter to pass additional options to `request`.
+By default, `CheerioCrawler` downloads HTML or XML using the <a href="https://www.npmjs.com/package/request" target="_blank">request</a> NPM package.
+You can use the `requestOptions` parameter to pass additional options to `request`.
 
 New requests are only dispatched when there is enough free CPU and memory available, using the functionality provided by the
 [`AutoscaledPool`](autoscaledpool) class. All [`AutoscaledPool`](autoscaledpool) configuration options can be passed to the `autoscaledPoolOptions`
@@ -47,7 +47,7 @@ await requestList.initialize();
 // Crawl the URLs
 const crawler = new Apify.CheerioCrawler({
     requestList,
-    handlePageFunction: async ({ request, response, html, $ }) => {
+    handlePageFunction: async ({ request, response, body, html, $ }) => {
         const data = [];
 
         // Do some data extraction from the page with Cheerio.
@@ -100,21 +100,32 @@ await crawler.run();
   loaded and parsed by the crawler.</p>
 <p>  The function receives the following object as an argument:</p>
 <pre><code>{
-  $: Cheerio, // the Cheerio object with parsed HTML
+  $: Cheerio, // the Cheerio object with parsed HTML or XML
   html: String // the raw HTML of the page, lazy loaded only when used
+  body: String|Object|Buffer // the request body of the web page
   request: Request,
   response: Object // An instance of Node&#39;s http.IncomingMessage object,
   autoscaledPool: AutoscaledPool
-}</code></pre><p>  With the <a href="request"><code>Request</code></a> object representing the URL to crawl.</p>
-<p>  If the function returns a promise, it is awaited by the crawler.</p>
-<p>  If the function throws an exception, the crawler will try to re-crawl the
-  request later, up to <code>option.maxRequestRetries</code> times.
-  If all the retries fail, the crawler calls the function
-  provided to the <code>options.handleFailedRequestFunction</code> parameter.
-  To make this work, you should <strong>always</strong>
-  let your function throw exceptions rather than catch them.
-  The exceptions are logged to the request using the
-  <a href="request#Request+pushErrorMessage"><code>request.pushErrorMessage</code></a> function.</p>
+}</code></pre><p>  Type of <code>body</code> depends on web page <code>Content-Type</code> header.</p>
+<ul>
+<li><p>String for <code>text/html</code>, <code>application/xhtml+xml</code>, <code>application/xml</code></p>
+</li>
+<li><p>Object for <code>application/json</code></p>
+</li>
+<li><p>Buffer for the others</p>
+<p>Cheerio is available only for HTML and XML content types.</p>
+<p>With the <a href="request"><code>Request</code></a> object representing the URL to crawl.</p>
+<p>If the function returns a promise, it is awaited by the crawler.</p>
+<p>If the function throws an exception, the crawler will try to re-crawl the
+request later, up to <code>option.maxRequestRetries</code> times.
+If all the retries fail, the crawler calls the function
+provided to the <code>options.handleFailedRequestFunction</code> parameter.
+To make this work, you should <strong>always</strong>
+let your function throw exceptions rather than catch them.
+The exceptions are logged to the request using the
+<a href="request#Request+pushErrorMessage"><code>request.pushErrorMessage</code></a> function.</p>
+</li>
+</ul>
 </td></tr><tr>
 <td><code>options.requestList</code></td><td><code><a href="requestlist">RequestList</a></code></td><td></td>
 </tr>
@@ -219,6 +230,12 @@ await crawler.run();
   represents the last error thrown during processing of the request.</p>
 <p>  See <a href="https://github.com/apifytech/apify-js/blob/master/src/crawlers/cheerio_crawler.js#L13">source code</a>
   for the default implementation of this function.</p>
+</td></tr><tr>
+<td><code>[options.additionalContentTypes]</code></td><td><code>Array<String></code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>An array of content types you want to process.
+  By default <code>text/html</code>, <code>application/xml</code>, <code>application/xhtml+xml</code> content types are supported.</p>
 </td></tr><tr>
 <td><code>[options.maxRequestRetries]</code></td><td><code>Number</code></td><td><code>3</code></td>
 </tr>
