@@ -15,9 +15,9 @@ import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { requestAsBrowser } from '../utils_request';
 
 /**
- * Default content types, which CheerioScraper accepts.
+ * Default content types, which CheerioScraper supports.
  */
-const DEFAULT_CONTENT_TYPES = ['text/html'];
+const DEFAULT_CONTENT_TYPES = ['text/html', 'application/xml', 'application/xhtml+xml'];
 
 const DEFAULT_OPTIONS = {
     requestTimeoutSecs: 30,
@@ -66,7 +66,7 @@ const DEFAULT_OPTIONS = {
  *
  * The crawler finishes when there are no more {@link Request} objects to crawl.
  *
- * By default, `CheerioCrawler` downloads HTML using the
+ * By default, `CheerioCrawler` downloads HTML or XML using the
  * <a href="https://www.npmjs.com/package/request" target="_blank">request</a> NPM package.
  * You can use the `requestOptions` parameter to pass additional options to `request`.
  *
@@ -232,7 +232,7 @@ const DEFAULT_OPTIONS = {
  *   for the default implementation of this function.
  * @param {String[]} [options.additionalContentTypes]
  *   An array of content types you want to process.
- *   By default only text/html content type is included in scraping.
+ *   By default `text/html`, `application/xml`, `application/xhtml+xml` content types are supported.
  * @param {Number} [options.maxRequestRetries=3]
  *   Indicates how many times the request is retried if either `requestFunction` or `handlePageFunction` fails.
  * @param {Number} [options.maxRequestsPerCrawl]
@@ -297,8 +297,8 @@ class CheerioCrawler {
         if (useApifyProxy && proxyUrls) throw new Error('Cannot combine "options.useApifyProxy" with "options.proxyUrls"!');
 
         // Check content types
-        this.includedContentTypes = DEFAULT_CONTENT_TYPES;
-        if (additionalContentTypes) this._extendsDefaultContentTypes(additionalContentTypes);
+        this.supportedContentTypes = DEFAULT_CONTENT_TYPES;
+        if (additionalContentTypes) this._extendSupportedContentTypes(additionalContentTypes);
 
         this.requestOptions = requestOptions;
         this.handlePageFunction = handlePageFunction;
@@ -386,7 +386,7 @@ class CheerioCrawler {
     /**
      * Function to make the HTTP request. It performs optimizations
      * on the request such as only downloading the request body if the
-     * received content type matches text/html.
+     * received content type matches text/html, application/xml, application/xhtml+xml.
      * @ignore
      */
     async _requestFunction({ request }) {
@@ -448,10 +448,10 @@ class CheerioCrawler {
                     throw new Error(`CheerioCrawler: Resource ${request.url} is not available in HTML format. Skipping resource.`);
                 }
 
-                if (!this.includedContentTypes.includes(type) && statusCode < 500) {
+                if (!this.supportedContentTypes.includes(type) && statusCode < 500) {
                     request.noRetry = true;
                     throw new Error(`CheerioCrawler: Resource ${request.url} served Content-Type ${type}, `
-                        + `but only ${this.includedContentTypes.join(', ')} are allowed. Skipping resource.`);
+                        + `but only ${this.supportedContentTypes.join(', ')} are allowed. Skipping resource.`);
                 }
 
                 return false;
@@ -508,15 +508,15 @@ class CheerioCrawler {
     }
 
     /**
-     * Checks and extends included content types to crawler
+     * Checks and extends supported content types
      * @param contentTypes
      * @ignore
      */
-    _extendsDefaultContentTypes(contentTypes) {
+    _extendSupportedContentTypes(contentTypes) {
         contentTypes.forEach((type) => {
             try {
                 const parsedType = contentType.parse(type);
-                this.includedContentTypes.push(parsedType.type);
+                this.supportedContentTypes.push(parsedType.type);
             } catch (err) {
                 throw new Error(`CheerioCrawler: Can not parse content type ${type} from "options.additionalContentTypes".`);
             }

@@ -77,6 +77,19 @@ describe('CheerioCrawler', () => {
         return requestList;
     }
 
+    const responseSamples = {
+        json: { foo: 'bar' },
+        xml: '<?xml version="1.0" encoding="UTF-8"?>\n'
+            + '<items>\n'
+            + '<item>\n'
+            + '    <url>https://apify.com</url>\n'
+            + '    <title>Web Scraping, Data Extraction and Automation &#xB7; Apify</title>\n'
+            + '</item>\n'
+            + '</items>',
+        image: fs.readFileSync(path.join(__dirname, 'data/apify.png')),
+    };
+
+
     before(async () => {
         logLevel = log.getLevel();
         log.setLevel(log.LEVELS.ERROR);
@@ -113,21 +126,15 @@ describe('CheerioCrawler', () => {
         });
 
         app.get('/json-type', (req, res) => {
-            res.json({ foo: 'bar' });
+            res.json(responseSamples.json);
         });
         app.get('/xml-type', (req, res) => {
             res.type('application/xml');
-            res.send('<?xml version="1.0" encoding="UTF-8"?>\n'
-                + '<items>\n'
-                + '<item>\n'
-                + '    <url>https://apify.com</url>\n'
-                + '    <title>Web Scraping, Data Extraction and Automation · Apify</title>\n'
-                + '</item>\n'
-                + '</items>');
+            res.send(responseSamples.xml);
         });
         app.get('/image-type', (req, res) => {
             res.type('image/png');
-            res.send(fs.readFileSync(path.join(__dirname, 'data/apify.png')));
+            res.send(responseSamples.image);
         });
 
         server = await startExpressAppPromise(app, 0);
@@ -363,7 +370,8 @@ describe('CheerioCrawler', () => {
                 expect(handlePageInvocationCount).to.be.eql(0);
                 expect(errorMessages).to.have.lengthOf(4);
                 errorMessages.forEach(msg => expect(msg)
-                    .to.include('Content-Type application/json, but only text/html are allowed. Skipping resource.'));
+                    .to.include('Content-Type application/json, but only text/html, application/xml, '
+                    + 'application/xhtml+xml are allowed. Skipping resource.'));
                 expect(chunkReadCount).to.be.eql(0);
             });
 
@@ -522,7 +530,30 @@ describe('CheerioCrawler', () => {
         });
     });
 
-    describe('should works with all content types from option.additionalContentTypes', () => {
+    it('should work with all defaults content types', async () => {
+        let handledRequests = 0;
+        const contentTypes = ['text/html', 'application/xml', 'application/xhtml+xml'];
+        const sources = contentTypes.map(contentType => ({
+            url: `http://${HOST}:${port}/mock?ct=${contentType}`,
+            payload: JSON.stringify({ headers: { 'Content-Type': contentType }, statusCode: 200 }),
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+        }));
+        const requestList = new Apify.RequestList({
+            sources,
+        });
+        await requestList.initialize();
+        const crawler = new Apify.CheerioCrawler({
+            requestList,
+            handlePageFunction: async () => {
+                handledRequests++;
+            },
+        });
+        await crawler.run();
+        expect(handledRequests).to.be.eql(contentTypes.length);
+    });
+
+    describe('should works with all content types from options.additionalContentTypes', () => {
         const handlePageInvocationParams = [];
         let handleFailedInvocationCount = 0;
         before(async () => {
@@ -535,7 +566,7 @@ describe('CheerioCrawler', () => {
             await requestList.initialize();
             const crawler = new Apify.CheerioCrawler({
                 requestList,
-                additionalContentTypes: ['application/json', 'application/xml', 'image/png'],
+                additionalContentTypes: ['application/json', 'image/png'],
                 maxRequestRetries: 1,
                 handlePageFunction: async (params) => {
                     handlePageInvocationParams.push(params);
@@ -552,15 +583,18 @@ describe('CheerioCrawler', () => {
         it('when response is application/json', async () => {
             const jsonRequestParams = handlePageInvocationParams[0];
             expect(jsonRequestParams.body).to.be.an('object');
+            expect(jsonRequestParams.body).to.be.eql(responseSamples.json);
         });
         it('when response is application/xml', async () => {
             const xmlRequestParams = handlePageInvocationParams[1];
             expect(xmlRequestParams.body).to.be.an('string');
+            expect(xmlRequestParams.body).to.be.eql(responseSamples.xml);
             expect(xmlRequestParams.$).to.be.an('function');
         });
         it('when response is image/png', async () => {
             const imageRequestParams = handlePageInvocationParams[2];
             expect(imageRequestParams.body).to.be.instanceof(Buffer);
+            expect(imageRequestParams.body).to.be.eql(responseSamples.image);
         });
     });
 
