@@ -370,7 +370,7 @@ describe('CheerioCrawler', () => {
                 expect(handlePageInvocationCount).to.be.eql(0);
                 expect(errorMessages).to.have.lengthOf(4);
                 errorMessages.forEach(msg => expect(msg)
-                    .to.include('Content-Type application/json, but only text/html, application/xml, '
+                    .to.include('Content-Type application/json, but only text/html, '
                     + 'application/xhtml+xml are allowed. Skipping resource.'));
                 expect(chunkReadCount).to.be.eql(0);
             });
@@ -532,7 +532,7 @@ describe('CheerioCrawler', () => {
 
     it('should work with all defaults content types', async () => {
         let handledRequests = 0;
-        const contentTypes = ['text/html', 'application/xml', 'application/xhtml+xml'];
+        const contentTypes = ['text/html', 'application/xhtml+xml'];
         const sources = contentTypes.map(contentType => ({
             url: `http://${HOST}:${port}/mock?ct=${contentType}`,
             payload: JSON.stringify({ headers: { 'Content-Type': contentType }, statusCode: 200 }),
@@ -566,7 +566,7 @@ describe('CheerioCrawler', () => {
             await requestList.initialize();
             const crawler = new Apify.CheerioCrawler({
                 requestList,
-                additionalMineTypes: ['application/json', 'image/png'],
+                additionalMineTypes: ['application/json', 'image/png', 'application/xml'],
                 maxRequestRetries: 1,
                 handlePageFunction: async (params) => {
                     handlePageInvocationParams.push(params);

@@ -17,7 +17,7 @@ import { requestAsBrowser } from '../utils_request';
 /**
  * Default mine types, which CheerioScraper supports.
  */
-const DEFAULT_MINE_TYPES = ['text/html', 'application/xml', 'application/xhtml+xml'];
+const DEFAULT_MINE_TYPES = ['text/html', 'application/xhtml+xml'];
 
 const DEFAULT_OPTIONS = {
     requestTimeoutSecs: 30,
@@ -233,7 +233,7 @@ const DEFAULT_OPTIONS = {
  * @param {String[]} [options.additionalMineTypes]
  *   An array of <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types"
  *   target="_blank">mine types</a> you want to process.
- *   By default `text/html`, `application/xml`, `application/xhtml+xml` mine types are supported.
+ *   By default `text/html`, `application/xhtml+xml` mine types are supported.
  * @param {Number} [options.maxRequestRetries=3]
  *   Indicates how many times the request is retried if either `requestFunction` or `handlePageFunction` fails.
  * @param {Number} [options.maxRequestsPerCrawl]
