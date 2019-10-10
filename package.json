@@ -90,7 +90,6 @@
         "chai-subset": "^1.6.0",
         "csv-parse": "^4.4.3",
         "eslint": "^5.16.0",
-        "eslint-plugin-import": "^2.18.2",
         "fpcollect": "^1.0.4",
         "fpscanner": "^0.1.5",
         "jsdoc": "^3.5.5",

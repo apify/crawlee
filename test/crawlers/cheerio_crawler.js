@@ -553,7 +553,7 @@ describe('CheerioCrawler', () => {
         expect(handledRequests).to.be.eql(contentTypes.length);
     });
 
-    describe('should works with all content types from options.additionalContentTypes', () => {
+    describe('should works with all content types from options.additionalMineTypes', () => {
         const handlePageInvocationParams = [];
         let handleFailedInvocationCount = 0;
         before(async () => {
@@ -566,7 +566,7 @@ describe('CheerioCrawler', () => {
             await requestList.initialize();
             const crawler = new Apify.CheerioCrawler({
                 requestList,
-                additionalContentTypes: ['application/json', 'image/png'],
+                additionalMineTypes: ['application/json', 'image/png'],
                 maxRequestRetries: 1,
                 handlePageFunction: async (params) => {
                     handlePageInvocationParams.push(params);

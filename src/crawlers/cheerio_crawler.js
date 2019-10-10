@@ -15,9 +15,9 @@ import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { requestAsBrowser } from '../utils_request';
 
 /**
- * Default content types, which CheerioScraper supports.
+ * Default mine types, which CheerioScraper supports.
  */
-const DEFAULT_CONTENT_TYPES = ['text/html', 'application/xml', 'application/xhtml+xml'];
+const DEFAULT_MINE_TYPES = ['text/html', 'application/xml', 'application/xhtml+xml'];
 
 const DEFAULT_OPTIONS = {
     requestTimeoutSecs: 30,
@@ -38,6 +38,7 @@ const DEFAULT_OPTIONS = {
             maxEventLoopOverloadedRatio: 0.7,
         },
     },
+    additionalMineTypes: [],
 };
 
 /**
@@ -91,7 +92,7 @@ const DEFAULT_OPTIONS = {
  * // Crawl the URLs
  * const crawler = new Apify.CheerioCrawler({
  *     requestList,
- *     handlePageFunction: async ({ request, response, body, html, $ }) => {
+ *     handlePageFunction: async ({ request, response, body, $ }) => {
  *         const data = [];
  *
  *         // Do some data extraction from the page with Cheerio.
@@ -102,7 +103,7 @@ const DEFAULT_OPTIONS = {
  *         // Save the data to dataset.
  *         await Apify.pushData({
  *             url: request.url,
- *             html,
+ *             html: body,
  *             data,
  *         })
  *     },
@@ -121,7 +122,6 @@ const DEFAULT_OPTIONS = {
  * ```
  * {
  *   $: Cheerio, // the Cheerio object with parsed HTML or XML
- *   html: String // the raw HTML of the page, lazy loaded only when used
  *   body: String|Object|Buffer // the request body of the web page
  *   request: Request,
  *   response: Object // An instance of Node's http.IncomingMessage object,
@@ -129,9 +129,9 @@ const DEFAULT_OPTIONS = {
  * }
  * ```
  *   Type of `body` depends on web page `Content-Type` header.
- *   - String for `text/html`, `application/xhtml+xml`, `application/xml`
- *   - Object for `application/json`
- *   - Buffer for the others
+ *   - String for `text/html`, `application/xhtml+xml`, `application/xml` mine types
+ *   - Object for `application/json` mine type
+ *   - Buffer for others mine types
  *
  *   Cheerio is available only for HTML and XML content types.
  *
@@ -230,9 +230,10 @@ const DEFAULT_OPTIONS = {
  *
  *   See <a href="https://github.com/apifytech/apify-js/blob/master/src/crawlers/cheerio_crawler.js#L13">source code</a>
  *   for the default implementation of this function.
- * @param {String[]} [options.additionalContentTypes]
- *   An array of content types you want to process.
- *   By default `text/html`, `application/xml`, `application/xhtml+xml` content types are supported.
+ * @param {String[]} [options.additionalMineTypes]
+ *   An array of <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types"
+ *   target="_blank">mine types</a> you want to process.
+ *   By default `text/html`, `application/xml`, `application/xhtml+xml` mine types are supported.
  * @param {Number} [options.maxRequestRetries=3]
  *   Indicates how many times the request is retried if either `requestFunction` or `handlePageFunction` fails.
  * @param {Number} [options.maxRequestsPerCrawl]
@@ -265,7 +266,7 @@ class CheerioCrawler {
             apifyProxyGroups,
             apifyProxySession,
             proxyUrls,
-            additionalContentTypes,
+            additionalMineTypes,
 
             // Autoscaled pool shorthands
             minConcurrency,
@@ -291,14 +292,13 @@ class CheerioCrawler {
         checkParamOrThrow(apifyProxySession, 'options.apifyProxySession', 'Maybe String');
         checkParamOrThrow(proxyUrls, 'options.proxyUrls', 'Maybe [String]');
         checkParamOrThrow(prepareRequestFunction, 'options.prepareRequestFunction', 'Maybe Function');
-        checkParamOrThrow(apifyProxyGroups, 'options.additionalContentTypes', 'Maybe [String]');
+        checkParamOrThrow(additionalMineTypes, 'options.additionalMineTypes', '[String]');
         // Enforce valid proxy configuration
         if (proxyUrls && !proxyUrls.length) throw new Error('Parameter "options.proxyUrls" of type Array must not be empty');
         if (useApifyProxy && proxyUrls) throw new Error('Cannot combine "options.useApifyProxy" with "options.proxyUrls"!');
 
-        // Check content types
-        this.supportedContentTypes = DEFAULT_CONTENT_TYPES;
-        if (additionalContentTypes) this._extendSupportedContentTypes(additionalContentTypes);
+        this.supportedMineTypes = new Set(DEFAULT_MINE_TYPES);
+        if (additionalMineTypes.length) this._extendSupportedMineTypes(additionalMineTypes);
 
         this.requestOptions = requestOptions;
         this.handlePageFunction = handlePageFunction;
@@ -350,7 +350,7 @@ class CheerioCrawler {
      */
     async _handleRequestFunction({ request, autoscaledPool }) {
         if (this.prepareRequestFunction) await this.prepareRequestFunction({ request });
-        const { dom, xmlMode, body, responseStream: response } = await addTimeoutToPromise(
+        const { dom, isXmlOrHtml, body, responseStream: response } = await addTimeoutToPromise(
             this._requestFunction({ request }),
             this.requestTimeoutMillis,
             'CheerioCrawler: requestFunction timed out.',
@@ -358,17 +358,18 @@ class CheerioCrawler {
 
         request.loadedUrl = response.url;
 
-        const $ = dom ? cheerio.load(dom, { xmlMode }) : undefined;
+        const $ = dom ? cheerio.load(dom, { xmlMode: isXmlOrHtml }) : null;
         const context = {
             $,
             // Using a getter here not to break the original API
             // and lazy load the HTML only when needed.
             get html() {
-                return dom && !xmlMode ? $.html({ decodeEntities: false }) : undefined;
+                log.deprecated('CheerioCrawler: Parameter html for handlePageFunction is deprecated use body instead.');
+                return dom && !isXmlOrHtml ? $.html({ decodeEntities: false }) : undefined;
             },
             get body() {
                 if (dom) {
-                    return xmlMode ? $.xml() : $.html({ decodeEntities: false });
+                    return isXmlOrHtml ? $.xml() : $.html({ decodeEntities: false });
                 }
                 return body;
             },
@@ -413,7 +414,7 @@ class CheerioCrawler {
             throw new Error(`CheerioCrawler: ${statusCode} - Internal Server Error: ${body.substr(0, 100)}`);
         } else if (type === 'text/html' || type === 'application/xhtml+xml' || type === 'application/xml') {
             const dom = await this._parseHtmlToDom(responseStream);
-            return ({ dom, xmlMode: type.includes('xml'), responseStream });
+            return ({ dom, isXmlOrHtml: type.includes('xml'), responseStream });
         } else if (type === 'application/json') {
             const jsonString = await readStreamToString(responseStream, encoding);
             const body = JSON.parse(jsonString);
@@ -448,10 +449,10 @@ class CheerioCrawler {
                     throw new Error(`CheerioCrawler: Resource ${request.url} is not available in HTML format. Skipping resource.`);
                 }
 
-                if (!this.supportedContentTypes.includes(type) && statusCode < 500) {
+                if (!this.supportedMineTypes.has(type) && statusCode < 500) {
                     request.noRetry = true;
                     throw new Error(`CheerioCrawler: Resource ${request.url} served Content-Type ${type}, `
-                        + `but only ${this.supportedContentTypes.join(', ')} are allowed. Skipping resource.`);
+                        + `but only ${Array.from(this.supportedMineTypes).join(', ')} are allowed. Skipping resource.`);
                 }
 
                 return false;
@@ -508,17 +509,17 @@ class CheerioCrawler {
     }
 
     /**
-     * Checks and extends supported content types
-     * @param contentTypes
+     * Checks and extends supported mine types
+     * @param additionalMineTypes
      * @ignore
      */
-    _extendSupportedContentTypes(contentTypes) {
-        contentTypes.forEach((type) => {
+    _extendSupportedMineTypes(additionalMineTypes) {
+        additionalMineTypes.forEach((mineType) => {
             try {
-                const parsedType = contentType.parse(type);
-                this.supportedContentTypes.push(parsedType.type);
+                const parsedType = contentType.parse(mineType);
+                this.supportedMineTypes.add(parsedType.type);
             } catch (err) {
-                throw new Error(`CheerioCrawler: Can not parse content type ${type} from "options.additionalContentTypes".`);
+                throw new Error(`CheerioCrawler: Can not parse mine type ${mineType} from "options.additionalMineTypes".`);
             }
         });
     }

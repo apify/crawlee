@@ -47,7 +47,7 @@ await requestList.initialize();
 // Crawl the URLs
 const crawler = new Apify.CheerioCrawler({
     requestList,
-    handlePageFunction: async ({ request, response, body, html, $ }) => {
+    handlePageFunction: async ({ request, response, body, $ }) => {
         const data = [];
 
         // Do some data extraction from the page with Cheerio.
@@ -62,7 +62,7 @@ const crawler = new Apify.CheerioCrawler({
         // Save the data to dataset.
         await Apify.pushData({
             url: request.url,
-            html,
+            html: body,
             data,
         });
     },
@@ -101,18 +101,17 @@ await crawler.run();
 <p>  The function receives the following object as an argument:</p>
 <pre><code>{
   $: Cheerio, // the Cheerio object with parsed HTML or XML
-  html: String // the raw HTML of the page, lazy loaded only when used
   body: String|Object|Buffer // the request body of the web page
   request: Request,
   response: Object // An instance of Node&#39;s http.IncomingMessage object,
   autoscaledPool: AutoscaledPool
 }</code></pre><p>  Type of <code>body</code> depends on web page <code>Content-Type</code> header.</p>
 <ul>
-<li><p>String for <code>text/html</code>, <code>application/xhtml+xml</code>, <code>application/xml</code></p>
+<li><p>String for <code>text/html</code>, <code>application/xhtml+xml</code>, <code>application/xml</code> mine types</p>
 </li>
-<li><p>Object for <code>application/json</code></p>
+<li><p>Object for <code>application/json</code> mine type</p>
 </li>
-<li><p>Buffer for the others</p>
+<li><p>Buffer for others mine types</p>
 <p>Cheerio is available only for HTML and XML content types.</p>
 <p>With the <a href="request"><code>Request</code></a> object representing the URL to crawl.</p>
 <p>If the function returns a promise, it is awaited by the crawler.</p>
@@ -231,11 +230,12 @@ The exceptions are logged to the request using the
 <p>  See <a href="https://github.com/apifytech/apify-js/blob/master/src/crawlers/cheerio_crawler.js#L13">source code</a>
   for the default implementation of this function.</p>
 </td></tr><tr>
-<td><code>[options.additionalContentTypes]</code></td><td><code>Array<String></code></td><td></td>
+<td><code>[options.additionalMineTypes]</code></td><td><code>Array<String></code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>An array of content types you want to process.
-  By default <code>text/html</code>, <code>application/xml</code>, <code>application/xhtml+xml</code> content types are supported.</p>
+<td colspan="3"><p>An array of <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types"
+  target="_blank">mine types</a> you want to process.
+  By default <code>text/html</code>, <code>application/xml</code>, <code>application/xhtml+xml</code> mine types are supported.</p>
 </td></tr><tr>
 <td><code>[options.maxRequestRetries]</code></td><td><code>Number</code></td><td><code>3</code></td>
 </tr>
