@@ -1,19 +1,9 @@
 import EventEmitter from 'events';
-import _ from 'underscore';
 import { openKeyValueStore } from '../key_value_store';
 import Session from './session';
+import events from '../events';
+import { ACTOR_EVENT_NAMES_EX } from '../constants';
 
-export const SESSION_POOL_DEFAULTS = {
-    maxPoolSize: 1000,
-    maxSessionAgeSecs: 3000,
-    maxSessionReuseCount: 50,
-
-    persistStateKeyValueStoreId: null,
-    persistStateKey: 'SESSION_POOL_STATE',
-
-    createSessionFunction: null,
-
-};
 
 /**
  * Handles the session rotation, creation and persistence.
@@ -32,23 +22,31 @@ export default class SessionPool extends EventEmitter {
      * @param options.maxSessionReuseCount {Number}
      * @param options.persistStateKeyValueStoreId {String}
      */
-    constructor(options) {
+    constructor({
+        maxPoolSize = 1000,
+        maxSessionAgeSecs = 3000,
+        maxSessionReuseCount = 50,
+
+        persistStateKeyValueStoreId = null,
+        persistStateKey = 'SESSION_POOL_STATE',
+
+        createSessionFunction = null,
+
+    }) {
         super();
 
-        const opts = _.defaults({}, options, SESSION_POOL_DEFAULTS);
-
         // Pool Configuration
-        this.maxPoolSize = opts.maxPoolSize;
-        this.createSessionFunction = opts.createSessionFunction || this._createSessionFunction;
+        this.maxPoolSize = maxPoolSize;
+        this.createSessionFunction = createSessionFunction || this._defaultCreateSessionFunction;
 
         // Session configuration
         // @TODO: Maybe options.sessionOptions / this.sessionOptions?
-        this.maxSessionAgeSecs = opts.maxSessionAgeSecs;
-        this.maxSessionReuseCount = opts.maxSessionReuseCount;
+        this.maxSessionAgeSecs = maxSessionAgeSecs;
+        this.maxSessionReuseCount = maxSessionReuseCount;
 
         // Session storage
-        this.persistStateKeyValueStoreId = opts.persistStateKeyValueStoreId;
-        this.persistStateKey = opts.persistStateKey;
+        this.persistStateKeyValueStoreId = persistStateKeyValueStoreId;
+        this.persistStateKey = persistStateKey;
 
         // Statistics
         this.activeSessions = 0;
@@ -70,27 +68,25 @@ export default class SessionPool extends EventEmitter {
 
         // Invalidate old sessions and load active sessions only
         for (const [sessionName, sessionObject] of Object.entries(loadedSessions)) {
-            const session = Session.recreateSession(sessionObject);
-            const isValid = !session.isExpired() || !session.isBlocked() || session.usedCount >= session.maxReuseCount;
+            const session = new Session(sessionObject);
 
-            if (isValid) {
+            if (session.isUsable()) {
                 this.sessions[sessionName] = session;
             }
         }
+
+        events.on(ACTOR_EVENT_NAMES_EX.PERSIST_STATE, this.persistState.bind(this));
     }
 
     async retrieveSession() {
         // If we have enough space for session. Return newly created session.
-        if (this.sessions.length < this.maxPoolSize) {
-            const newSession = await this.createSessionFunction(this);
-            this._addSession(newSession);
-            return newSession;
+        if (this._isSpaceForSession()) {
+            return this._makeSession();
         }
-
 
         // For example that developer can plug different picking algorithms such as the Lukášův
         // Maybe a should have pickSession function to be customizable.
-        const pickedSession = this.sessions[this._getRandomIndex()];
+        const pickedSession = this._pickSession();
 
         // If session can be used return the session
         if (pickedSession.isUsable()) {
@@ -99,10 +95,7 @@ export default class SessionPool extends EventEmitter {
 
         //  otherwise remove old session and return newly created session
         this._removeSession(pickedSession);
-
-        const newSession = this.createSessionFunction(this);
-        this._addSession(newSession);
-        return newSession;
+        this._makeSession();
     }
 
     getStats() {
@@ -124,7 +117,7 @@ export default class SessionPool extends EventEmitter {
     }
 
     _removeSession(session) {
-        const sessionIndex = this.sessions.findIndex(storedSession => storedSession.name === session.name);
+        const sessionIndex = this.sessions.findIndex(storedSession => storedSession.id === session.id);
 
         this.sessions.splice(sessionIndex, 1);
     }
@@ -137,12 +130,24 @@ export default class SessionPool extends EventEmitter {
         return Math.floor(Math.random() * this.sessions.length);
     }
 
-    _createSessionFunction(sessionPool) {
+    _defaultCreateSessionFunction(sessionPool) {
         return new Session({
             maxSessionAgeSecs: this.maxSessionAgeSecs,
             maxSessionReuseCount: this.maxSessionReuseCount,
             sessionPool,
-
         });
+    }
+
+    async _makeSession() {
+        const newSession = await this.createSessionFunction();
+        this._addSession(newSession);
+    }
+
+    _isSpaceForSession() {
+        return this.sessions.length < this.maxPoolSize;
+    }
+
+    _pickSession() {
+        return this.sessions[this._getRandomIndex()]; // Or maybe we should let the developer to customize the picking algorithm
     }
 }

@@ -1,49 +1,45 @@
 import { checkParamPrototypeOrThrow, cryptoRandomObjectId } from 'apify-shared/utilities';
-import _ from 'underscore';
 import moment from 'moment';
 
 import EVENTS from './events';
 
-export const SESSION_DEFAULT_OPTIONS = {
-    name: cryptoRandomObjectId(),
-    cookies: [],
-    fingerPrintSeed: cryptoRandomObjectId(),
-    maxAgeSecs: 3000,
-    maxReuseCount: 50,
-    userData: {},
-    maxErrorScore: 3,
-    errorScoreDecrement: 0.5,
-    expiresAt: moment().add(3000, 'seconds').toISOString(),
-    createdAt: moment().toISOString(),
-    usedCount: 0,
-    errorScore: 0,
-
-};
 
 // TODO: Validation
 export default class Session {
-    constructor(options) {
-        const opts = _.defaults({}, options, SESSION_DEFAULT_OPTIONS);
+    constructor(
+        {
+            id = cryptoRandomObjectId(),
+            cookies = [],
+            fingerprintSeed = cryptoRandomObjectId(),
+            maxAgeSecs = 3000,
+            userData = {},
+            maxErrorScore = 3,
+            errorScoreDecrement = 0.5,
+            expiresAt = moment().add(3000, 'seconds').toISOString(),
+            createdAt = moment().toISOString(),
+            usageCount = 0,
+            errorScore = 0,
+            maxSessionUsageCount = 50,
+            sessionPool,
 
+        },
+    ) {
         // Configurable
-        this.name = opts.name;
-        this.cookies = opts.cookies;
-        this.fingerPrintSeed = opts.fingerPrintSeed;
-        this.maxAgeSecs = opts.maxAgeSecs;
-        this.userData = opts.userData;
-        this.maxErrorScore = opts.maxErrorScore;
-        this.errorScoreDecrement = opts.errorScoreDecrement; // TODO: Better Naming
+        this.id = id;
+        this.cookies = cookies;
+        this.fingerprintSeed = fingerprintSeed;
+        this.maxAgeSecs = maxAgeSecs;
+        this.userData = userData;
+        this.maxErrorScore = maxErrorScore;
+        this.errorScoreDecrement = errorScoreDecrement; // TODO: Better Naming
 
         // Internal
-        this.expiresAt = opts.expiresAt;
-        this.createdAt = opts.createdAt;
-        this.usedCount = opts.usedCount;
-        this.errorScore = opts.errorScoreDecrement;
-        this.sessionPool = opts.sessionPool;
-    }
-
-    static recreateSession(sessionObject) {
-        return new Session(sessionObject);
+        this.expiresAt = expiresAt;
+        this.createdAt = createdAt;
+        this.usageCount = usageCount;
+        this.errorScore = errorScore;
+        this.maxSessionUsageCount = maxSessionUsageCount;
+        this.sessionPool = sessionPool;
     }
 
     isBlocked() {
@@ -57,11 +53,15 @@ export default class Session {
     }
 
     isUsable() {
-        return !(this.isBlocked() && this.isExpired());
+        return !(this.isBlocked() && this.isExpired() && this.isMaxUseCountReached());
+    }
+
+    isMaxUseCountReached() {
+        return this.usageCount >= this.maxSessionUsageCount;
     }
 
     reclaim() {
-        this.usedCount += 1;
+        this.usageCount += 1;
 
         // I should probably lower the errorScore
         this.errorScore -= this.errorScoreDecrement;
@@ -69,30 +69,36 @@ export default class Session {
 
     getState() {
         return {
-            name: this.name,
+            id: this.id,
             cookies: this.cookies,
             userData: this.userData,
             maxErrorScore: this.maxErrorScore,
             errorScoreDecrement: this.errorScoreDecrement,
             expiresAt: this.expiresAt,
             createdAt: this.createdAt,
-            usedCount: this.usedCount,
+            usageCount: this.usageCount,
             errorScore: this.errorScore,
         };
     }
 
+    /**
+     * Marks session as blocked
+     */
+    retire() {
+        // mark it as an invalid by increasing the error score count.
+        this.errorScore += this.maxErrorScore;
+        this.usageCount += 1;
 
-    retire(discard = false) {
-        if (discard) {
-            // mark it as an invalid by increasing the error score count.
-            this.errorScore += this.maxErrorScore;
+        // emit event so we can retire browser in puppeteer pool
+        this.sessionPool.emit(EVENTS.DISCARDED, this);
+    }
 
-            // emit event so we can retire browser in puppeteer pool
-            this.sessionPool.emit(EVENTS.DISCARD, this);
-        } else {
-            this.errorScore += 1;
-        }
-
-        this.usedCount += 1;
+    /**
+     * Increases  and usage error count
+     * Should be used unsuccessful request/use with the session
+     */
+    fail() {
+        this.errorScore += 1;
+        this.usageCount += 1;
     }
 }

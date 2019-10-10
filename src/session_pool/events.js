@@ -1,3 +1,3 @@
 export default {
-    DISCARD: 'DISCARD',
+    DISCARDED: 'discarded',
 };
