@@ -235,7 +235,7 @@ The exceptions are logged to the request using the
 <tr>
 <td colspan="3"><p>An array of <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types"
   target="_blank">mine types</a> you want to process.
-  By default <code>text/html</code>, <code>application/xml</code>, <code>application/xhtml+xml</code> mine types are supported.</p>
+  By default <code>text/html</code>, <code>application/xhtml+xml</code> mine types are supported.</p>
 </td></tr><tr>
 <td><code>[options.maxRequestRetries]</code></td><td><code>Number</code></td><td><code>3</code></td>
 </tr>
