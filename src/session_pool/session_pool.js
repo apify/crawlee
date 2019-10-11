@@ -64,7 +64,7 @@ export default class SessionPool extends EventEmitter {
         this.storage = await openKeyValueStore(this.persistStateKeyValueStoreId);
 
         // Load sessions from storage
-        const loadedSessions = this.storage.getValue(this.persistStateKey) || [];
+        const loadedSessions = this.storage.getValue(this.persistStateKey) || {};
 
         // Invalidate old sessions and load active sessions only
         for (const [sessionName, sessionObject] of Object.entries(loadedSessions)) {
@@ -80,8 +80,8 @@ export default class SessionPool extends EventEmitter {
 
     async retrieveSession() {
         // If we have enough space for session. Return newly created session.
-        if (this._isSpaceForSession()) {
-            return this._makeSession();
+        if (this._hasSpaceForSession()) {
+            return this._createSession();
         }
 
         // For example that developer can plug different picking algorithms such as the Lukášův
@@ -95,7 +95,7 @@ export default class SessionPool extends EventEmitter {
 
         //  otherwise remove old session and return newly created session
         this._removeSession(pickedSession);
-        this._makeSession();
+        this._createSession();
     }
 
     getStats() {
@@ -138,12 +138,12 @@ export default class SessionPool extends EventEmitter {
         });
     }
 
-    async _makeSession() {
+    async _createSession() {
         const newSession = await this.createSessionFunction();
         this._addSession(newSession);
     }
 
-    _isSpaceForSession() {
+    _hasSpaceForSession() {
         return this.sessions.length < this.maxPoolSize;
     }
 
