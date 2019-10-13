@@ -1,27 +1,32 @@
 import { expect } from 'chai';
+import { LOCAL_STORAGE_DIR, emptyLocalStorageSubdir } from '../_helper';
+import SessionPool from '../../build/session_pool/session_pool';
+import Apify from '../../build';
 
-import SessionPool, { SESSION_POOL_DEFAULTS } from '../../src/session_pool/session_pool';
-
+// TODO: Add more tests
 describe('SessionPool - testing session pool', async () => {
     let sessionPool;
 
     before(() => {
-        process.env.APIFY_LOCAL_STORAGE_DIR = '../../';
+        process.env.APIFY_LOCAL_STORAGE_DIR = LOCAL_STORAGE_DIR;
     });
 
     beforeEach(async () => {
-        sessionPool = new SessionPool({ persistStateKeyValueStoreId: 'default' });
+        sessionPool = new SessionPool();
         await sessionPool.initialize();
     });
 
+    afterEach(async () => {
+        await emptyLocalStorageSubdir('key_value_stores/default');
+    });
+
     it('should initialize with default values for first time', async () => {
-        expect(sessionPool.sessions.length).to.be.eql(0);
-        expect(sessionPool.maxPoolSize).to.be.eql(SESSION_POOL_DEFAULTS.maxPoolSize);
-        expect(sessionPool.maxSessionAgeSecs).to.be.eql(SESSION_POOL_DEFAULTS.maxSessionAgeSecs);
-        expect(sessionPool.maxSessionReuseCount).to.be.eql(SESSION_POOL_DEFAULTS.maxSessionReuseCount);
-        expect(sessionPool.persistStateKeyValueStoreId).to.be.eql(SESSION_POOL_DEFAULTS.persistStateKeyValueStoreId);
-        expect(sessionPool.persistStateKey).to.be.eql(SESSION_POOL_DEFAULTS.persistStateKey);
-        expect(sessionPool.createSessionFunction).to.be.eql(sessionPool._createSessionFunction); // eslint-disable-line
+        expect(sessionPool.sessions.length).to.exist; // eslint-disable-line
+        expect(sessionPool.maxPoolSize).to.exist; // eslint-disable-line
+        expect(sessionPool.maxSessionAgeSecs).to.exist; // eslint-disable-line
+        expect(sessionPool.maxSessionReuseCount).to.exist; // eslint-disable-line
+        expect(sessionPool.persistStateKey).to.exist; // eslint-disable-line
+        expect(sessionPool.createSessionFunction).to.be.eql(sessionPool._defaultCreateSessionFunction); // eslint-disable-line
     });
 
     it('should override default values', async () => {
@@ -47,31 +52,38 @@ describe('SessionPool - testing session pool', async () => {
     it('should retrieve session', async () => {
         const session = await sessionPool.retrieveSession();
         expect(sessionPool.sessions.length).to.be.eql(1);
-        expect(session.name).to.exist;
+        expect(session.id).to.exist; // eslint-disable-line
         expect(session.cookies.length).to.be.eql(0);
-        expect(session.fingerPrintSeed).to.exist;
+        expect(session.fingerprintSeed).to.exist; // eslint-disable-line
         expect(session.maxAgeSecs).to.eql(sessionPool.maxSessionAgeSecs);
         expect(session.maxAgeSecs).to.eql(sessionPool.maxSessionAgeSecs);
         expect(session.sessionPool).to.eql(sessionPool);
     });
 
-    xit('should persist state and recreate it from storage', async () => {
-        const session = await sessionPool.retrieveSession();
-        let key;
-        let value;
-
-        const mySetValue = (k, v) => {
-            key = k;
-            value = v;
-        };
-        sessionPool.storage.setValue = mySetValue;
+    it('should persist state and recreate it from storage', async () => {
+        await sessionPool.retrieveSession();
         await sessionPool.persistState();
-        expect(key).to.be.eql(SESSION_POOL_DEFAULTS.persistStateKey);
-        expect(value).to.be.eql(sessionPool.getState());
 
-        const loadedSessionPool = new SessionPool({ persistStateKeyValueStoreId: 'default' });
+        const kvStore = await Apify.openKeyValueStore();
+        const sessionPoolSaved = await kvStore.getValue(sessionPool.persistStateKey);
+
+        Object.entries(sessionPoolSaved).forEach(([key, value]) => {
+            if (key !== 'sessions') {
+                expect(value).to.be.eql(sessionPool[key]);
+            }
+        });
+        expect(sessionPoolSaved.sessions.length).to.be.eql(sessionPool.sessions.length);
+        sessionPoolSaved.sessions.forEach((session, index) => {
+            Object.entries(session).forEach(([key, value]) => {
+                expect(value).to.be.eql(sessionPool.sessions[index][key]);
+            });
+        });
+
+
+        const loadedSessionPool = new SessionPool();
+
         await loadedSessionPool.initialize();
-        console.log('SESSION');
+        expect(loadedSessionPool).to.have.all.keys(Object.keys(sessionPool));
     });
 
     it('should create only maxPoolSize number of sessions', async () => {
