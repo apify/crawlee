@@ -63,15 +63,27 @@ export default class SessionPool extends EventEmitter {
         this.persistStateKeyValueStoreId = persistStateKeyValueStoreId;
         this.persistStateKey = persistStateKey;
 
-        // Statistics
-        this.activeSessions = 0;
-        this.blockedSessions = 0;
-
         // Operative states
         this.keyValueStore = null;
         this.sessions = [];
 
         // Maybe we can add onSessionRetired function to configuration ?
+    }
+
+    /**
+     * Gets number of active sessions in the pool.
+     * @return {number}
+     */
+    get activeSessionsCount() {
+        return this.sessions.filter(session => session.isUsable()).length;
+    }
+
+    /**
+     * Gets number of blocked sessions in the pool.
+     * @return {number}
+     */
+    get blockedSessionsCount() {
+        return this.sessions.filter(session => !session.isUsable()).length;
     }
 
     /**
@@ -84,7 +96,7 @@ export default class SessionPool extends EventEmitter {
         this.keyValueStore = await openKeyValueStore(this.persistStateKeyValueStoreId);
 
         // in case of migration happened and SessionPool state should be restored from the keyValueStore.
-        this._maybeRecreateSessionPool();
+        await this._maybeRecreateSessionPool();
 
         events.on(ACTOR_EVENT_NAMES_EX.PERSIST_STATE, this.persistState.bind(this));
     }
@@ -121,12 +133,12 @@ export default class SessionPool extends EventEmitter {
      * Gets SessionPool statistics.
      * These function could be use in the statistics logging in actor run to know how much is the website blocking
      *
-     * @return {{blockedSessions: number, activeSessions: number}}
+     * @return {{blockedSessionsCount: number, activeSessionsCount: number}}
      */
     getStats() {
         return {
-            activeSessions: this.activeSessions,
-            blockedSessions: this.blockedSessions,
+            activeSessionsCount: this.activeSessionsCount,
+            blockedSessionsCount: this.blockedSessionsCount,
         };
     }
 
@@ -254,7 +266,6 @@ export default class SessionPool extends EventEmitter {
         }
 
         log.debug(`SessionPool: Loaded ${this.sessions.length} Sessions from KeyValueStore`);
-        this.activeSessions = loadedSessionPool.activeSessions;
-        this.blockedSessions = loadedSessionPool.blockedSessions;
+        log.debug(`SessionPool: Active sessions ${this.activeSessionsCount} Sessions from KeyValueStore`);
     }
 }
