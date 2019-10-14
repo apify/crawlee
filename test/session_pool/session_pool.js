@@ -1,5 +1,4 @@
 import { expect } from 'chai';
-import * as moment from 'moment';
 import { LOCAL_STORAGE_DIR, emptyLocalStorageSubdir } from '../_helper';
 import { SessionPool } from '../../build/session_pool/session_pool';
 import Apify from '../../build';

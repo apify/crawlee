@@ -1,6 +1,5 @@
 import { expect } from 'chai';
 
-import * as moment from 'moment';
 import { Session } from '../../build/session_pool/session';
 import { SessionPool } from '../../build/session_pool/session_pool';
 import EVENTS from '../../build/session_pool/events';
