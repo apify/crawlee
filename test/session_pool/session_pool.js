@@ -1,7 +1,7 @@
 import { expect } from 'chai';
-import log from 'apify-shared/log';
+import * as moment from 'moment';
 import { LOCAL_STORAGE_DIR, emptyLocalStorageSubdir } from '../_helper';
-import SessionPool from '../../build/session_pool/session_pool';
+import { SessionPool } from '../../build/session_pool/session_pool';
 import Apify from '../../build';
 import events from '../../build/events';
 
@@ -27,7 +27,7 @@ describe('SessionPool - testing session pool', async () => {
         expect(sessionPool.sessions.length).to.exist; // eslint-disable-line
         expect(sessionPool.maxPoolSize).to.exist; // eslint-disable-line
         expect(sessionPool.maxSessionAgeSecs).to.exist; // eslint-disable-line
-        expect(sessionPool.maxSessionReuseCount).to.exist; // eslint-disable-line
+        expect(sessionPool.maxSessionUsageCount).to.exist; // eslint-disable-line
         expect(sessionPool.persistStateKey).to.exist; // eslint-disable-line
         expect(sessionPool.createSessionFunction).to.be.eql(sessionPool._defaultCreateSessionFunction); // eslint-disable-line
     });
@@ -36,7 +36,7 @@ describe('SessionPool - testing session pool', async () => {
         const opts = {
             maxPoolSize: 3000,
             maxSessionAgeSecs: 100,
-            maxSessionReuseCount: 1,
+            maxSessionUsageCount: 1,
 
             persistStateKeyValueStoreId: 'TEST',
             persistStateKey: 'SESSION_POOL_STATE2',
@@ -58,7 +58,6 @@ describe('SessionPool - testing session pool', async () => {
             expect(sessionPool.sessions.length).to.be.eql(1);
             expect(session.id).to.exist; // eslint-disable-line
             expect(session.cookies.length).to.be.eql(0);
-            expect(session.fingerprintSeed).to.exist; // eslint-disable-line
             expect(session.maxAgeSecs).to.eql(sessionPool.maxSessionAgeSecs);
             expect(session.maxAgeSecs).to.eql(sessionPool.maxSessionAgeSecs);
             expect(session.sessionPool).to.eql(sessionPool);
@@ -119,7 +118,11 @@ describe('SessionPool - testing session pool', async () => {
         expect(sessionPoolSaved.sessions.length).to.be.eql(sessionPool.sessions.length);
         sessionPoolSaved.sessions.forEach((session, index) => {
             Object.entries(session).forEach(([key, value]) => {
-                expect(value).to.be.eql(sessionPool.sessions[index][key]);
+                if (moment.isMoment(sessionPool.sessions[index][key])) {
+                    expect(value).to.be.eql(sessionPool.sessions[index][key].toISOString());
+                } else {
+                    expect(sessionPool.sessions[index][key]).to.be.eql(value);
+                }
             });
         });
 
@@ -198,7 +201,7 @@ describe('SessionPool - testing session pool', async () => {
                 invalidSessionsCount += 1;
             }
         }
-        expect(sessionPool.blockedSessionsCount).to.be.eql(invalidSessionsCount);
+        expect(sessionPool.retiredSessionsCount).to.be.eql(invalidSessionsCount);
 
         await sessionPool.persistState();
 

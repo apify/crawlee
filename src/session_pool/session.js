@@ -8,20 +8,40 @@ import EVENTS from './events';
 
 
 /**
- *  Class aggregating data for `Session`.
- *  Session internal state can be enriched with custom user data for example some authorization tokens.
+ *  Class aggregating data for session.
+ *  Sessions are used to store information such as cookies and can be used for generating fingerprints and proxy sessions.
+ *  You can think of a session as one specific user.
+ *  Session internal state can be enriched with custom user data for example some authorization tokens and specific headers in general.
  */
-export default class Session {
+export class Session {
+    /**
+     * Session configuration.
+     * @param options
+     * @param options.id {String} - Id of session used for generating fingerprints. It is used as proxy session name.
+     * @param options.cookies {Array} - Cookies storage per session.
+     * @param options.maxAgeSecs {Number} - Number of seconds after which the session is considered as expired.
+     * @param options.userData {Object} - Object where custom user data can be stored. For example custom headers.
+     * @param options.maxErrorScore {number} - Maximum number of failed session usage.
+     * If the `errorScore` reaches the `maxErrorScore` session is marked as block and it is thrown away.
+     * @param options.errorScoreDecrement {number} - It is used for healing the session.
+     * For example: if your session fails two times, but it is successful on the third attempt it's errorScore is decremented by this number.
+     * @param options.createdAt {Date} - Date of creation.
+     * @param options.expiredAt {Date} - Date of expiration.
+     * @param options.usageCount {Number} - Indicates how many times the session has been used.
+     * @param options.errorCount {Number} - Indicates how many times the session failed.
+     * @param options.maxSessionUsageCount {Number} - Session should be used only a limited amount of times.
+     * This number indicates how many times the session is going to be used, before it is thrown away.
+     * @param options.sessionPool {EventEmitter} - SessionPool instance. Session will emit the `sessionRetired` event on this instance.
+     */
     constructor(options = {}) {
         const {
-            id = cryptoRandomObjectId(),
+            id = `session-${cryptoRandomObjectId(10)}`,
             cookies = [],
-            fingerprintSeed = cryptoRandomObjectId(),
             maxAgeSecs = 3000,
             userData = {},
             maxErrorScore = 3,
             errorScoreDecrement = 0.5,
-            createdAt = moment().toISOString(),
+            createdAt = moment(),
             usageCount = 0,
             errorScore = 0,
             maxSessionUsageCount = 50,
@@ -33,12 +53,11 @@ export default class Session {
         // Validation
         checkParamOrThrow(id, 'options.id', 'Maybe String');
         checkParamOrThrow(cookies, 'options.cookies', 'Maybe Array');
-        checkParamOrThrow(fingerprintSeed, 'options.fingerprintSeed', 'Maybe String');
         checkParamOrThrow(maxAgeSecs, 'options.maxAgeSecs', 'Maybe Number');
         checkParamOrThrow(userData, 'options.userData', 'Maybe Object');
         checkParamOrThrow(maxErrorScore, 'options.maxErrorScore', 'Maybe Number');
-        checkParamOrThrow(expiresAt, 'options.expiresAt', 'Maybe String');
-        checkParamOrThrow(createdAt, 'options.createdAt', 'Maybe String');
+        checkParamOrThrow(expiresAt, 'options.expiresAt', 'Maybe Object');
+        checkParamOrThrow(createdAt, 'options.createdAt', 'Maybe Object');
         checkParamOrThrow(usageCount, 'options.usageCount', 'Maybe Number');
         checkParamOrThrow(errorScore, 'options.errorScore', 'Maybe Number');
         checkParamOrThrow(maxSessionUsageCount, 'options.maxSessionUsageCount', 'Maybe Number');
@@ -51,30 +70,29 @@ export default class Session {
         }
 
         if (!expiresAt) {
-            expiresAt = moment().add(maxAgeSecs, 'seconds').toISOString();
+            expiresAt = moment().add(maxAgeSecs, 'seconds');
         }
 
         // Configurable
         this.id = id;
         this.cookies = cookies;
-        this.fingerprintSeed = fingerprintSeed;
         this.maxAgeSecs = maxAgeSecs;
         this.userData = userData;
         this.maxErrorScore = maxErrorScore;
-        this.errorScoreDecrement = errorScoreDecrement; // TODO: Better Naming
+        this.errorScoreDecrement = errorScoreDecrement;
 
         // Internal
         this.expiresAt = expiresAt;
         this.createdAt = createdAt;
-        this.usageCount = usageCount;
-        this.errorScore = errorScore;
+        this.usageCount = usageCount; // indicates how many times the session has been used
+        this.errorScore = errorScore; // indicates number of failed request with the session
         this.maxSessionUsageCount = maxSessionUsageCount;
         this.sessionPool = sessionPool;
     }
 
     /**
-     * Decides whether the `Session` is blocked.
-     * `Session` is blocked once it reached the maximum error count.
+     * indicates whether the session is blocked.
+     * Session is blocked once it reaches the `maxErrorScore`.
      * @return {boolean}
      */
     isBlocked() {
@@ -82,7 +100,9 @@ export default class Session {
     }
 
     /**
-     * Decides whether the `Session` is expired.
+     * Indicates whether the session is expired.
+     * Session expiration is determined by the `maxAgeSecs`.
+     * Once the session is older than `createdAt + maxAgeSecs` the session is considered expired.
      * @return {boolean}
      */
     isExpired() {
@@ -92,24 +112,26 @@ export default class Session {
     }
 
     /**
-     * Decides whether the `Session` is used maximum number of times.
+     * Indicates whether the session is used maximum number of times.
+     * Session maximum usage count can be changed by `maxSessionUsageCount` parameter.
      * @return {boolean}
      */
-    isMaxUseCountReached() {
+    isMaxUsageCountReached() {
         return this.usageCount >= this.maxSessionUsageCount;
     }
 
     /**
-     * Decides whether the `Session` can be used for next requests.
+     * Indicates whether the session can be used for next requests.
+     * Session is usable when it is not expired, not blocked and the maximum usage count has not be reached.
      * @return {boolean}
      */
     isUsable() {
-        return !this.isBlocked() && !this.isExpired() && !this.isMaxUseCountReached();
+        return !this.isBlocked() && !this.isExpired() && !this.isMaxUsageCountReached();
     }
 
     /**
-     * Marks the `Session` after successful request.
-     * Increases usage count and if the `Session` had failed in the previous requests it lowers the errorScore to 'heel' itself.
+     * This method should be called after a successful session usage.
+     * It increases `usageCount` and potentially lowers the `errorScore` by the `errorScoreDecrement`.
      */
     reclaim() {
         this.usageCount += 1;
@@ -121,18 +143,8 @@ export default class Session {
     }
 
     /**
-     * Gets `Session` state for persistence in KeyValueStore.
-     * @return {{
-     * createdAt: string | *,
-     * userData: {},
-     * errorScoreDecrement: number,
-     * maxErrorScore: number,
-     * id: String,
-     * cookies: ([]|Array),
-     * expiresAt: string | *,
-     * usageCount: number,
-     * errorScore: number
-     * }}
+     * Gets session state for persistence in KeyValueStore.
+     * @return {Object} represents session internal state.
      */
     getState() {
         return {
@@ -141,8 +153,8 @@ export default class Session {
             userData: this.userData,
             maxErrorScore: this.maxErrorScore,
             errorScoreDecrement: this.errorScoreDecrement,
-            expiresAt: this.expiresAt,
-            createdAt: this.createdAt,
+            expiresAt: this.expiresAt.toISOString(),
+            createdAt: this.createdAt.toISOString(),
             usageCount: this.usageCount,
             errorScore: this.errorScore,
         };
@@ -150,6 +162,10 @@ export default class Session {
 
     /**
      * Marks session as blocked and emits event on the `SessionPool`
+     * This method should be used if the session usage was unsuccessful
+     * and you are sure that it is because of the session configuration and not any external matters.
+     * For example when server returns 403 status code.
+     * If the session does not work due to some external factors as server error such as 5XX you probably want to use `fail` method.
      */
     retire() {
         // mark it as an invalid by increasing the error score count.
@@ -157,12 +173,12 @@ export default class Session {
         this.usageCount += 1;
 
         // emit event so we can retire browser in puppeteer pool
-        this.sessionPool.emit(EVENTS.DISCARDED, this);
+        this.sessionPool.emit(EVENTS.SESSION_RETIRED, this);
     }
 
     /**
-     * Increases usage and error count
-     * Should be used unsuccessful request/use with the session
+     * Increases usage and error count.
+     * Should be used when the session has been used unsuccessfully. For example because of timeouts.
      */
     fail() {
         this.errorScore += 1;

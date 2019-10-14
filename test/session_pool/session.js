@@ -1,7 +1,8 @@
 import { expect } from 'chai';
 
-import Session from '../../build/session_pool/session';
-import SessionPool from '../../build/session_pool/session_pool';
+import * as moment from 'moment';
+import { Session } from '../../build/session_pool/session';
+import { SessionPool } from '../../build/session_pool/session_pool';
 import EVENTS from '../../build/session_pool/events';
 
 import Apify from '../../build';
@@ -54,7 +55,7 @@ describe('Session - testing session behaviour ', async () => {
     it('should max out session usage', () => {
         session.maxSessionUsageCount = 1;
         session.reclaim();
-        expect(session.isMaxUseCountReached()).to.be.eql(true);
+        expect(session.isMaxUsageCountReached()).to.be.eql(true);
         expect(session.isUsable()).to.be.eql(false);
     });
 
@@ -72,7 +73,7 @@ describe('Session - testing session behaviour ', async () => {
 
     it('should retire session', () => {
         let discarded = false;
-        sessionPool.on(EVENTS.DISCARDED, (ses) => {
+        sessionPool.on(EVENTS.SESSION_RETIRED, (ses) => {
             expect(ses instanceof Session).to.be.eql(true);
             discarded = true;
         });
@@ -96,7 +97,11 @@ describe('Session - testing session behaviour ', async () => {
 
 
         Object.entries(state).forEach(([key, value]) => {
-            expect(session[key]).to.be.eql(value);
+            if (moment.isMoment(session[key])) {
+                expect(session[key].toISOString()).to.be.eql(value);
+            } else {
+                expect(session[key]).to.be.eql(value);
+            }
         });
     });
 });

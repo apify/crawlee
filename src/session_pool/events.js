@@ -1,3 +1,3 @@
 export default {
-    DISCARDED: 'sessionRetired',
+    SESSION_RETIRED: 'sessionRetired',
 };
