@@ -14,7 +14,7 @@ async function main() {
     const UA = new UAParser(DEFAULT_USER_AGENT);
     const defaultUserAgentVersion = getMajor(UA.getBrowser().version);
     const latestStableVersion = getMajor(latestStable.current_version);
-    if (defaultUserAgentVersion !== latestStableVersion) {
+    if (defaultUserAgentVersion === latestStableVersion) {
         console.log(`Default User-Agent has the correct Chrome version - ${defaultUserAgentVersion}.`);
         process.exit(0);
     } else {
