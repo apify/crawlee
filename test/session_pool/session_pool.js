@@ -15,12 +15,9 @@ describe('SessionPool - testing session pool', async () => {
     });
 
     beforeEach(async () => {
+        await emptyLocalStorageSubdir('key_value_stores/default');
         sessionPool = new SessionPool();
         await sessionPool.initialize();
-    });
-
-    afterEach(async () => {
-        await emptyLocalStorageSubdir('key_value_stores/default');
     });
 
     it('should initialize with default values for first time', async () => {
@@ -118,7 +115,7 @@ describe('SessionPool - testing session pool', async () => {
         expect(sessionPoolSaved.sessions.length).to.be.eql(sessionPool.sessions.length);
         sessionPoolSaved.sessions.forEach((session, index) => {
             Object.entries(session).forEach(([key, value]) => {
-                if (moment.isMoment(sessionPool.sessions[index][key])) {
+                if (sessionPool.sessions[index][key] instanceof Date) {
                     expect(value).to.be.eql(sessionPool.sessions[index][key].toISOString());
                 } else {
                     expect(sessionPool.sessions[index][key]).to.be.eql(value);

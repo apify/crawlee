@@ -1,7 +1,6 @@
 import EventEmitter from 'events';
 
 import { cryptoRandomObjectId } from 'apify-shared/utilities';
-import moment from 'moment';
 
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import EVENTS from './events';
@@ -18,7 +17,6 @@ export class Session {
      * Session configuration.
      * @param options
      * @param options.id {String} - Id of session used for generating fingerprints. It is used as proxy session name.
-     * @param options.cookies {Array} - Cookies storage per session.
      * @param options.maxAgeSecs {Number} - Number of seconds after which the session is considered as expired.
      * @param options.userData {Object} - Object where custom user data can be stored. For example custom headers.
      * @param options.maxErrorScore {number} - Maximum number of failed session usage.
@@ -41,7 +39,7 @@ export class Session {
             userData = {},
             maxErrorScore = 3,
             errorScoreDecrement = 0.5,
-            createdAt = moment(),
+            createdAt = new Date(),
             usageCount = 0,
             errorScore = 0,
             maxSessionUsageCount = 50,
@@ -51,16 +49,15 @@ export class Session {
         let { expiresAt } = options;
 
         // Validation
-        checkParamOrThrow(id, 'options.id', 'Maybe String');
-        checkParamOrThrow(cookies, 'options.cookies', 'Maybe Array');
-        checkParamOrThrow(maxAgeSecs, 'options.maxAgeSecs', 'Maybe Number');
-        checkParamOrThrow(userData, 'options.userData', 'Maybe Object');
-        checkParamOrThrow(maxErrorScore, 'options.maxErrorScore', 'Maybe Number');
-        checkParamOrThrow(expiresAt, 'options.expiresAt', 'Maybe Object');
-        checkParamOrThrow(createdAt, 'options.createdAt', 'Maybe Object');
-        checkParamOrThrow(usageCount, 'options.usageCount', 'Maybe Number');
-        checkParamOrThrow(errorScore, 'options.errorScore', 'Maybe Number');
-        checkParamOrThrow(maxSessionUsageCount, 'options.maxSessionUsageCount', 'Maybe Number');
+        checkParamOrThrow(id, 'options.id', 'String');
+        checkParamOrThrow(maxAgeSecs, 'options.maxAgeSecs', 'Number');
+        checkParamOrThrow(userData, 'options.userData', 'Object');
+        checkParamOrThrow(maxErrorScore, 'options.maxErrorScore', 'Number');
+        checkParamOrThrow(expiresAt, 'options.expiresAt', 'Maybe Date');
+        checkParamOrThrow(createdAt, 'options.createdAt', 'Date');
+        checkParamOrThrow(usageCount, 'options.usageCount', 'Number');
+        checkParamOrThrow(errorScore, 'options.errorScore', 'Number');
+        checkParamOrThrow(maxSessionUsageCount, 'options.maxSessionUsageCount', 'Number');
         checkParamOrThrow(sessionPool, 'options.sessionPool', 'Object');
 
         // sessionPool must be at least instance of EvenEmitter.
@@ -70,7 +67,7 @@ export class Session {
         }
 
         if (!expiresAt) {
-            expiresAt = moment().add(maxAgeSecs, 'seconds');
+            expiresAt = new Date((new Date()).getTime() + (maxAgeSecs * 1000));
         }
 
         // Configurable
@@ -106,9 +103,7 @@ export class Session {
      * @return {boolean}
      */
     isExpired() {
-        const now = moment();
-
-        return moment(this.expiresAt).isSameOrBefore(now);
+        return this.expiresAt <= new Date();
     }
 
     /**

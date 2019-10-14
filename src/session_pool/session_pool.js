@@ -2,7 +2,6 @@ import EventEmitter from 'events';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 
-import moment from 'moment';
 import { openKeyValueStore } from '../key_value_store';
 import { Session } from './session';
 import events from '../events';
@@ -82,11 +81,11 @@ export class SessionPool extends EventEmitter {
         super();
 
         // Validation
-        checkParamOrThrow(maxPoolSize, 'options.maxPoolSize', 'Maybe Number');
-        checkParamOrThrow(maxSessionAgeSecs, 'options.maxSessionAgeSecs', 'Maybe Number');
-        checkParamOrThrow(maxSessionUsageCount, 'options.maxSessionUsageCount', 'Maybe Number');
+        checkParamOrThrow(maxPoolSize, 'options.maxPoolSize', 'Number');
+        checkParamOrThrow(maxSessionAgeSecs, 'options.maxSessionAgeSecs', 'Number');
+        checkParamOrThrow(maxSessionUsageCount, 'options.maxSessionUsageCount', 'Number');
         checkParamOrThrow(persistStateKeyValueStoreId, 'options.persistStateKeyValueStoreId', 'Maybe String');
-        checkParamOrThrow(persistStateKey, 'options.persistStateKey', 'Maybe String');
+        checkParamOrThrow(persistStateKey, 'options.persistStateKey', 'String');
         checkParamOrThrow(createSessionFunction, 'options.createSessionFunction', 'Maybe Function');
 
         // Pool Configuration
@@ -283,8 +282,8 @@ export class SessionPool extends EventEmitter {
 
         for (const sessionObject of loadedSessionPool.sessions) {
             sessionObject.sessionPool = this;
-            sessionObject.createdAt = moment(sessionObject.createdAt);
-            sessionObject.expiresAt = moment(sessionObject.expiresAt);
+            sessionObject.createdAt = new Date(sessionObject.createdAt);
+            sessionObject.expiresAt = new Date(sessionObject.expiresAt);
             const recreatedSession = new Session(sessionObject);
 
             if (recreatedSession.isUsable()) {

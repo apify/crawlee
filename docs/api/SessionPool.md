@@ -82,7 +82,7 @@ Indicates how many sessions are rotated.</p>
 <td><code>options.maxSessionAgeSecs</code></td><td><code>Number</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Number of seconds after which the session is marked as expired.</p>
+<td colspan="3"><p>Number of seconds after which the session is considered as expired.</p>
 </td></tr><tr>
 <td><code>options.maxSessionUsageCount</code></td><td><code>Number</code></td>
 </tr>
@@ -103,7 +103,7 @@ It useful, when you know the site rate-limits, so you can retire the session bef
 <td><code>options.createSessionFunction</code></td><td><code>function</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Custom function that should return Session instance.</p>
+<td colspan="3"><p>Custom function that should return <code>Session</code> instance.</p>
 </td></tr></tbody>
 </table>
 <a name="SessionPool+usableSessionsCount"></a>
@@ -143,4 +143,4 @@ Returns an object representing the internal state of the `SessionPool` instance.
 ## `sessionPool.persistState()` ⇒ `Promise`
 
 Persists the current state of the `SessionPool` into the default [`KeyValueStore`](keyvaluestore). The state is persisted automatically in regular
-intervals, but calling this method manually
+intervals.

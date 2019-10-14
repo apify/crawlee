@@ -97,7 +97,7 @@ describe('Session - testing session behaviour ', async () => {
 
 
         Object.entries(state).forEach(([key, value]) => {
-            if (moment.isMoment(session[key])) {
+            if (session[key] instanceof Date) {
                 expect(session[key].toISOString()).to.be.eql(value);
             } else {
                 expect(session[key]).to.be.eql(value);
