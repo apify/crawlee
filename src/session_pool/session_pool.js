@@ -59,12 +59,12 @@ export class SessionPool extends EventEmitter {
      * @param options
      * @param options.maxPoolSize {Number} - Maximum size of the pool.
      * Indicates how many sessions are rotated.
-     * @param options.maxSessionAgeSecs {Number} - Number of seconds after which the session is marked as expired.
+     * @param options.maxSessionAgeSecs {Number} - Number of seconds after which the session is considered as expired.
      * @param options.maxSessionUsageCount {Number} - Maximum number of uses per session.
      * It useful, when you know the site rate-limits, so you can retire the session before it gets blocked and let it cool down.
      * @param options.persistStateKeyValueStoreId {String} - Name or Id of `KeyValueStore` where is the `SessionPool` state stored.
      * @param options.persistStateKey {String} - Session pool persists it's state under this key in Key value store.
-     * @param options.createSessionFunction {function} - Custom function that should return Session instance.
+     * @param options.createSessionFunction {function} - Custom function that should return `Session` instance.
      */
     constructor(options = {}) {
         const {
@@ -182,7 +182,7 @@ export class SessionPool extends EventEmitter {
 
     /**
      * Persists the current state of the `SessionPool` into the default {@link KeyValueStore}.
-     * The state is persisted automatically in regular intervals, but calling this method manually
+     * The state is persisted automatically in regular intervals.
      *
      * @return {Promise}
      */
