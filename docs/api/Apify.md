@@ -27,6 +27,7 @@ separate, detailed, documentation pages accessible from the left sidebar.
     -   [`.openKeyValueStore([storeIdOrName], [options])`](#module_Apify.openKeyValueStore) ⇒ [`Promise<KeyValueStore>`](keyvaluestore)
     -   [`.openRequestList`](#module_Apify.openRequestList) ⇒ [`Promise<RequestList>`](requestlist)
     -   [`.openRequestQueue`](#module_Apify.openRequestQueue) ⇒ [`Promise<RequestQueue>`](requestqueue)
+    -   [`.openSessionPool`](#module_Apify.openSessionPool) ⇒ [`Promise<SessionPool>`](sessionpool)
     -   [`.pushData(item)`](#module_Apify.pushData) ⇒ `Promise`
     -   [`.setValue(key, value, [options])`](#module_Apify.setValue) ⇒ `Promise`
 
@@ -914,6 +915,28 @@ For more details and code examples, see the [`RequestQueue`](requestqueue) class
 <tr>
 <td colspan="3"><p>If set to <code>true</code> then the function uses cloud storage usage even if the <code>APIFY_LOCAL_STORAGE_DIR</code>
   environment variable is set. This way it is possible to combine local and cloud storage.</p>
+</td></tr></tbody>
+</table>
+<a name="module_Apify.openSessionPool"></a>
+
+## `Apify.openSessionPool` ⇒ [`Promise<SessionPool>`](sessionpool)
+
+Opens a SessionPool and returns a promise resolving to an instance of the [`SessionPool`](sessionpool) class that is already initialized.
+
+For more details and code examples, see the [`SessionPool`](sessionpool) class.
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sessionPoolOptions</code></td><td><code>Object</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>The <a href="sessionpool#new_SessionPool_new"><code>new SessionPool</code></a> options</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.pushData"></a>

@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { LOCAL_STORAGE_DIR, emptyLocalStorageSubdir } from '../_helper';
-import { SessionPool } from '../../build/session_pool/session_pool';
+import { SessionPool, openSessionPool } from '../../build/session_pool/session_pool';
 import Apify from '../../build';
 import events from '../../build/events';
 
@@ -42,6 +42,25 @@ describe('SessionPool - testing session pool', async () => {
         };
         sessionPool = new SessionPool(opts);
         await sessionPool.initialize();
+
+        Object.entries(opts).forEach(([key, value]) => {
+            expect(sessionPool[key]).to.be.eql(value);
+        });
+    });
+
+    it('should work using openSessionPool', async () => {
+        const opts = {
+            maxPoolSize: 3000,
+            maxSessionAgeSecs: 100,
+            maxSessionUsageCount: 1,
+
+            persistStateKeyValueStoreId: 'TEST',
+            persistStateKey: 'SESSION_POOL_STATE2',
+
+            createSessionFunction: () => ({}),
+
+        };
+        sessionPool = await openSessionPool(opts);
 
         Object.entries(opts).forEach(([key, value]) => {
             expect(sessionPool[key]).to.be.eql(value);

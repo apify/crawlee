@@ -295,3 +295,20 @@ export class SessionPool extends EventEmitter {
         log.debug(`SessionPool: Active sessions ${this.activeSessionsCount} Sessions from KeyValueStore`);
     }
 }
+
+/**
+ * Opens a SessionPool and returns a promise resolving to an instance
+ * of the {@link SessionPool} class that is already initialized.
+ *
+ * For more details and code examples, see the {@link SessionPool} class.
+ *
+ * @param sessionPoolOptions {Object} The [`new SessionPool`](sessionpool#new_SessionPool_new) options
+ * @return {Promise<SessionPool>}
+ * @memberof module:Apify
+ * @name openSessionPool
+ */
+export const openSessionPool = async (sessionPoolOptions) => {
+    const sessionPool = new SessionPool(sessionPoolOptions);
+    await sessionPool.initialize();
+    return sessionPool;
+};
