@@ -553,7 +553,7 @@ describe('CheerioCrawler', () => {
         expect(handledRequests).to.be.eql(contentTypes.length);
     });
 
-    describe('should works with all content types from options.additionalMineTypes', () => {
+    describe('should works with all content types from options.additionalMimeTypes', () => {
         const handlePageInvocationParams = [];
         let handleFailedInvocationCount = 0;
         before(async () => {
@@ -566,7 +566,7 @@ describe('CheerioCrawler', () => {
             await requestList.initialize();
             const crawler = new Apify.CheerioCrawler({
                 requestList,
-                additionalMineTypes: ['application/json', 'image/png', 'application/xml'],
+                additionalMimeTypes: ['application/json', 'image/png', 'application/xml'],
                 maxRequestRetries: 1,
                 handlePageFunction: async (params) => {
                     handlePageInvocationParams.push(params);
@@ -582,19 +582,22 @@ describe('CheerioCrawler', () => {
         });
         it('when response is application/json', async () => {
             const jsonRequestParams = handlePageInvocationParams[0];
-            expect(jsonRequestParams.body).to.be.an('object');
-            expect(jsonRequestParams.body).to.be.eql(responseSamples.json);
+            expect(jsonRequestParams.json).to.be.an('object');
+            expect(jsonRequestParams.body).to.be.eql(Buffer.from(JSON.stringify(responseSamples.json)));
+            expect(jsonRequestParams.contentType.type).to.be.eql('application/json');
         });
         it('when response is application/xml', async () => {
             const xmlRequestParams = handlePageInvocationParams[1];
             expect(xmlRequestParams.body).to.be.an('string');
             expect(xmlRequestParams.body).to.be.eql(responseSamples.xml);
             expect(xmlRequestParams.$).to.be.an('function');
+            expect(xmlRequestParams.contentType.type).to.be.eql('application/xml');
         });
         it('when response is image/png', async () => {
             const imageRequestParams = handlePageInvocationParams[2];
             expect(imageRequestParams.body).to.be.instanceof(Buffer);
             expect(imageRequestParams.body).to.be.eql(responseSamples.image);
+            expect(imageRequestParams.contentType.type).to.be.eql('image/png');
         });
     });
 
