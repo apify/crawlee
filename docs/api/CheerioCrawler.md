@@ -103,7 +103,7 @@ await crawler.run();
   $: Cheerio, // the Cheerio object with parsed HTML
   body: String|Buffer // the request body of the web page
   request: Request,
-  contentType: Object, // Parsed content type
+  contentType: Object, // Parsed `Content-Type` header
   response: Object // An instance of Node&#39;s http.IncomingMessage object,
   autoscaledPool: AutoscaledPool
 }</code></pre><p>  Type of <code>body</code> depends on web page <code>Content-Type</code> header.</p>
