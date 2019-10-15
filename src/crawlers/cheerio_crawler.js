@@ -123,7 +123,7 @@ const DEFAULT_OPTIONS = {
  *   $: Cheerio, // the Cheerio object with parsed HTML
  *   body: String|Buffer // the request body of the web page
  *   request: Request,
- *   contentType: Object, // Parsed content type
+ *   contentType: Object, // Parsed `Content-Type` header
  *   response: Object // An instance of Node's http.IncomingMessage object,
  *   autoscaledPool: AutoscaledPool
  * }
