@@ -2,7 +2,6 @@ import { cryptoRandomObjectId } from 'apify-shared/utilities';
 
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import EVENTS from './events';
-import { SessionPool } from './session_pool';
 
 
 /**

@@ -234,7 +234,7 @@ describe('SessionPool - testing session pool', async () => {
             console.log(sessionPool2 instanceof SessionPool);
             return new Session({ sessionPool: sessionPool2 });
         };
-       const newSessionPool = await Apify.openSessionPool({ createSessionFunction });
+        const newSessionPool = await Apify.openSessionPool({ createSessionFunction });
         const session = await newSessionPool.retrieveSession();
         expect(isCalled).to.be.true; // eslint-disable-line
         expect(session.constructor.name).to.be.eql("Session") // eslint-disable-line
