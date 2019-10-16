@@ -512,7 +512,7 @@ describe('KeyValueStore', () => {
             delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
             delete process.env[ENV_VARS.INPUT_KEY];
 
-            defaultStore.getValue = oldGet.bind(defaultStore);
+            defaultStore.getValue = oldGet;
         });
     });
 });

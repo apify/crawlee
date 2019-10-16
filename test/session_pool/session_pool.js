@@ -5,6 +5,7 @@ import Apify from '../../build';
 import events from '../../build/events';
 
 import { ACTOR_EVENT_NAMES_EX } from '../../build/constants';
+import { Session } from '../../src/session_pool/session';
 
 describe('SessionPool - testing session pool', async () => {
     let sessionPool;
@@ -15,8 +16,7 @@ describe('SessionPool - testing session pool', async () => {
 
     beforeEach(async () => {
         await emptyLocalStorageSubdir('key_value_stores/default');
-        sessionPool = new SessionPool();
-        await sessionPool.initialize();
+        sessionPool = await Apify.openSessionPool();
     });
 
     it('should initialize with default values for first time', async () => {
@@ -224,5 +224,19 @@ describe('SessionPool - testing session pool', async () => {
         await newSessionPool.initialize();
 
         expect(newSessionPool.sessions).to.be.length(10 - invalidSessionsCount);
+    });
+
+    it('should createSessionFunction work', async () => {
+        let isCalled;
+        const createSessionFunction = (sessionPool2) => {
+            isCalled = true;
+            expect(sessionPool2 instanceof SessionPool).to.be.true; // eslint-disable-line
+            console.log(sessionPool2 instanceof SessionPool);
+            return new Session({ sessionPool: sessionPool2 });
+        };
+       const newSessionPool = await Apify.openSessionPool({ createSessionFunction });
+        const session = await newSessionPool.retrieveSession();
+        expect(isCalled).to.be.true; // eslint-disable-line
+        expect(session.constructor.name).to.be.eql("Session") // eslint-disable-line
     });
 });

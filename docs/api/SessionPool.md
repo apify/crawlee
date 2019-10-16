@@ -103,7 +103,8 @@ It useful, when you know the site rate-limits, so you can retire the session bef
 <td><code>options.createSessionFunction</code></td><td><code>function</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Custom function that should return <code>Session</code> instance.</p>
+<td colspan="3"><p>Custom function that should return <code>Session</code> instance.
+Function receives <code>SessionPool</code> instance as a parameter</p>
 </td></tr></tbody>
 </table>
 <a name="SessionPool+usableSessionsCount"></a>
@@ -116,7 +117,7 @@ Gets count of usable sessions in the pool.
 
 ## `sessionPool.retiredSessionsCount` ⇒ `number`
 
-Gets count of blocked sessions in the pool.
+Gets count of retired sessions in the pool.
 
 <a name="SessionPool+initialize"></a>
 

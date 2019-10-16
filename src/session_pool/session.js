@@ -1,9 +1,8 @@
-import EventEmitter from 'events';
-
 import { cryptoRandomObjectId } from 'apify-shared/utilities';
 
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import EVENTS from './events';
+import { SessionPool } from './session_pool';
 
 
 /**
@@ -46,7 +45,7 @@ export class Session {
             sessionPool,
         } = options;
 
-        let { expiresAt } = options;
+        const { expiresAt = new Date(Date.now() + (maxAgeSecs * 1000)) } = options;
 
         // Validation
         checkParamOrThrow(id, 'options.id', 'String');
@@ -60,14 +59,9 @@ export class Session {
         checkParamOrThrow(maxSessionUsageCount, 'options.maxSessionUsageCount', 'Number');
         checkParamOrThrow(sessionPool, 'options.sessionPool', 'Object');
 
-        // sessionPool must be at least instance of EvenEmitter.
-        // That way we can allow custom implementation of SessionPool in the future (It should not be needed).
-        if (!(sessionPool instanceof EventEmitter)) {
+        // sessionPool must be instance of SessionPool.
+        if (sessionPool.constructor.name !== 'SessionPool') {
             throw new Error('Session: sessionPool must be instance of SessionPool');
-        }
-
-        if (!expiresAt) {
-            expiresAt = new Date((new Date()).getTime() + (maxAgeSecs * 1000));
         }
 
         // Configurable

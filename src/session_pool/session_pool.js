@@ -51,6 +51,7 @@ import { ACTOR_EVENT_NAMES_EX } from '../constants';
  * session3.retire()
  *
  * ```
+ * @hideconstructor
  */
 export class SessionPool extends EventEmitter {
     /**
@@ -64,6 +65,7 @@ export class SessionPool extends EventEmitter {
      * @param options.persistStateKeyValueStoreId {String} - Name or Id of `KeyValueStore` where is the `SessionPool` state stored.
      * @param options.persistStateKey {String} - Session pool persists it's state under this key in Key value store.
      * @param options.createSessionFunction {function} - Custom function that should return `Session` instance.
+     * Function receives `SessionPool` instance as a parameter
      */
     constructor(options = {}) {
         const {
@@ -115,7 +117,7 @@ export class SessionPool extends EventEmitter {
     }
 
     /**
-     * Gets count of blocked sessions in the pool.
+     * Gets count of retired sessions in the pool.
      * @return {number}
      */
     get retiredSessionsCount() {
@@ -146,21 +148,16 @@ export class SessionPool extends EventEmitter {
      * @return {Promise<Session>}
      */
     async retrieveSession() {
-        // If we have enough space for session. Return newly created session.
         if (this._hasSpaceForSession()) {
             return this._createSession();
         }
 
-        // For example that developer can plug different picking algorithms such as the Lukášův
-        // Maybe a should have pickSession function to be customizable.
         const pickedSession = this._pickSession();
 
-        // If session can be used return the session
         if (pickedSession.isUsable()) {
             return pickedSession;
         }
 
-        //  otherwise remove old session and return newly created session
         this._removeSession(pickedSession);
         return this._createSession();
     }
@@ -188,7 +185,7 @@ export class SessionPool extends EventEmitter {
     async persistState() {
         log.debug('SessionPool: Persisting state');
         log.debug(`SessionPool: persistStateKeyValueStoreId: ${this.persistStateKeyValueStoreId}, persistStateKey: ${this.persistStateKey} `);
-        return this.keyValueStore.setValue(this.persistStateKey, this.getState());
+        await this.keyValueStore.setValue(this.persistStateKey, this.getState());
     }
 
     /**
@@ -223,14 +220,15 @@ export class SessionPool extends EventEmitter {
 
     /**
      * Creates new session without any extra behavior.
+     * @param sessionPool
      * @return {Session} - New session.
      * @private
      */
-    _defaultCreateSessionFunction() {
+    _defaultCreateSessionFunction(sessionPool) {
         return new Session({
             maxSessionAgeSecs: this.maxSessionAgeSecs,
             maxSessionUsageCount: this.maxSessionUsageCount,
-            sessionPool: this,
+            sessionPool,
         });
     }
 
@@ -240,7 +238,7 @@ export class SessionPool extends EventEmitter {
      * @private
      */
     async _createSession() {
-        const newSession = await this.createSessionFunction();
+        const newSession = await this.createSessionFunction(this);
         this._addSession(newSession);
 
         log.debug(`SessionPool: Created new Session - ${newSession.id}`);
