@@ -499,7 +499,7 @@ describe('KeyValueStore', () => {
         it('should work', async () => {
             process.env[ENV_VARS.LOCAL_STORAGE_DIR] = LOCAL_STORAGE_DIR;
             const defaultStore = await Apify.openKeyValueStore();
-
+            const oldGet = defaultStore.getValue;
             // Uses default value.
             defaultStore.getValue = async key => expect(key).to.be.eql(KEY_VALUE_STORE_KEYS.INPUT);
             await Apify.getInput();
@@ -511,6 +511,8 @@ describe('KeyValueStore', () => {
 
             delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
             delete process.env[ENV_VARS.INPUT_KEY];
+
+            defaultStore.getValue = oldGet;
         });
     });
 });
