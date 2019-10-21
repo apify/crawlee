@@ -83,7 +83,7 @@ effect.
 <td colspan="3"><p>Idempotency key enables you to ensure that a webhook will not be added multiple times in case of
   an actor restart or other situation that would cause the <code>addWebhook()</code> function to be called again.
   We suggest using the actor run ID as the idempotency key. You can get the run ID by calling
-  <a href="apify#module_Apify.getEnv">`Apify.getEnv()</a> function.</p>
+  [`Apify.getEnv()](apify#module_Apify.getEnv) function.</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.call"></a>

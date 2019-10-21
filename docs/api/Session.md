@@ -15,10 +15,10 @@ internal state can be enriched with custom user data for example some authorizat
     -   [`.isExpired()`](#Session+isExpired) ⇒ `boolean`
     -   [`.isMaxUsageCountReached()`](#Session+isMaxUsageCountReached) ⇒ `boolean`
     -   [`.isUsable()`](#Session+isUsable) ⇒ `boolean`
-    -   [`.reclaim()`](#Session+reclaim)
+    -   [`.markGood()`](#Session+markGood)
     -   [`.getState()`](#Session+getState) ⇒ `Object`
     -   [`.retire()`](#Session+retire)
-    -   [`.fail()`](#Session+fail)
+    -   [`.markBad()`](#Session+markBad)
 
 <a name="new_Session_new"></a>
 
@@ -56,14 +56,14 @@ Session configuration.
 <td><code>options.maxErrorScore</code></td><td><code>number</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Maximum number of failed session usage.
+<td colspan="3"><p>Maximum number of marking session as blocked usage.
 If the <code>errorScore</code> reaches the <code>maxErrorScore</code> session is marked as block and it is thrown away.</p>
 </td></tr><tr>
 <td><code>options.errorScoreDecrement</code></td><td><code>number</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>It is used for healing the session.
-For example: if your session fails two times, but it is successful on the third attempt it&#39;s errorScore is decremented by this number.</p>
+For example: if your session is marked bad two times, but it is successful on the third attempt it&#39;s errorScore is decremented by this number.</p>
 </td></tr><tr>
 <td><code>options.createdAt</code></td><td><code>Date</code></td>
 </tr>
@@ -83,7 +83,7 @@ For example: if your session fails two times, but it is successful on the third 
 <td><code>options.errorCount</code></td><td><code>Number</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Indicates how many times the session failed.</p>
+<td colspan="3"><p>Indicates how many times the session is marked bad.</p>
 </td></tr><tr>
 <td><code>options.maxSessionUsageCount</code></td><td><code>Number</code></td>
 </tr>
@@ -123,9 +123,9 @@ Indicates whether the session is used maximum number of times. Session maximum u
 Indicates whether the session can be used for next requests. Session is usable when it is not expired, not blocked and the maximum usage count has not
 be reached.
 
-<a name="Session+reclaim"></a>
+<a name="Session+markGood"></a>
 
-## `session.reclaim()`
+## `session.markGood()`
 
 This method should be called after a successful session usage. It increases `usageCount` and potentially lowers the `errorScore` by the
 `errorScoreDecrement`.
@@ -143,10 +143,10 @@ Gets session state for persistence in KeyValueStore.
 
 Marks session as blocked and emits event on the `SessionPool` This method should be used if the session usage was unsuccessful and you are sure that
 it is because of the session configuration and not any external matters. For example when server returns 403 status code. If the session does not work
-due to some external factors as server error such as 5XX you probably want to use `fail` method.
+due to some external factors as server error such as 5XX you probably want to use `markBad` method.
 
-<a name="Session+fail"></a>
+<a name="Session+markBad"></a>
 
-## `session.fail()`
+## `session.markBad()`
 
 Increases usage and error count. Should be used when the session has been used unsuccessfully. For example because of timeouts.
