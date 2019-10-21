@@ -598,4 +598,20 @@ describe('BasicCrawler', () => {
         expect(results[0].url).to.be.eql(url);
         results[0].errorMessages.forEach(msg => expect(msg).to.include('handleRequestFunction timed out'));
     });
+
+    it('should pass session to handleRequestFunction ', async () => {
+        const url = 'https://example.com';
+        const requestList = new Apify.RequestList({ sources: [{ url }] });
+        await requestList.initialize();
+
+        const crawler = new Apify.BasicCrawler({
+            requestList,
+            handleRequestTimeoutSecs: 0.01,
+            maxRequestRetries: 1,
+            handleRequestFunction: ({ session }) => expect(session.constructor.name).to.be.eql('Session'),
+            handleFailedRequestFunction: ({ request }) => results.push(request),
+        });
+
+        await crawler.run();
+    });
 });

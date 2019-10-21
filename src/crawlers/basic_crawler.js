@@ -9,6 +9,7 @@ import { RequestQueue, RequestQueueLocal } from '../request_queue';
 import events from '../events';
 import { addTimeoutToPromise } from '../utils';
 import Statistics from './statistics';
+import { openSessionPool } from '../session_pool/session_pool';
 
 /**
  * Since there's no set number of seconds before the container is terminated after
@@ -31,6 +32,7 @@ const DEFAULT_OPTIONS = {
         log.error('BasicCrawler: Request failed and reached maximum retries', details);
     },
     autoscaledPoolOptions: {},
+    sessionPoolOptions: {},
 };
 
 /**
@@ -169,6 +171,7 @@ class BasicCrawler {
             maxRequestRetries,
             maxRequestsPerCrawl,
             autoscaledPoolOptions,
+            sessionPoolOptions,
 
             // AutoscaledPool shorthands
             minConcurrency,
@@ -183,6 +186,7 @@ class BasicCrawler {
         checkParamOrThrow(maxRequestRetries, 'options.maxRequestRetries', 'Number');
         checkParamOrThrow(maxRequestsPerCrawl, 'options.maxRequestsPerCrawl', 'Maybe Number');
         checkParamOrThrow(autoscaledPoolOptions, 'options.autoscaledPoolOptions', 'Object');
+        checkParamOrThrow(sessionPoolOptions, 'options.sessionPoolOptions', 'Object');
 
         if (!requestList && !requestQueue) {
             throw new Error('At least one of the parameters "options.requestList" and "options.requestQueue" must be provided!');
@@ -196,6 +200,7 @@ class BasicCrawler {
         this.maxRequestRetries = maxRequestRetries;
         this.handledRequestsCount = 0;
         this.stats = new Statistics({ logMessage: 'Crawler request statistics:' });
+        this.sessionPoolOptions = sessionPoolOptions;
 
         let shouldLogMaxPagesExceeded = true;
         const isMaxPagesExceeded = () => maxRequestsPerCrawl && maxRequestsPerCrawl <= this.handledRequestsCount;
@@ -261,7 +266,7 @@ class BasicCrawler {
         // so that the caller can get a reference to it before awaiting the promise returned from run()
         // (otherwise there would be no way)
         this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions);
-
+        this.sessionPool = await openSessionPool(this.sessionPoolOptions);
         await this._loadHandledRequestCount();
 
         this.isRunningPromise = this.autoscaledPool.run();
@@ -338,7 +343,9 @@ class BasicCrawler {
     async _runTaskFunction() {
         const source = this.requestQueue || this.requestList;
 
+        // Maybe we can use Promise.all()
         const request = await this._fetchNextRequest();
+        const session = await this.sessionPool.retrieveSession();
         if (!request) return;
 
         // Reset loadedUrl so an old one is not carried over to retries.
@@ -348,14 +355,19 @@ class BasicCrawler {
         this.stats.startJob(statisticsId);
         try {
             await addTimeoutToPromise(
-                this.handleRequestFunction({ request, autoscaledPool: this.autoscaledPool }),
+                this.handleRequestFunction({ request, autoscaledPool: this.autoscaledPool, session }),
                 this.handleRequestTimeoutMillis,
                 `BasicCrawler: handleRequestFunction timed out after ${this.handleRequestTimeoutMillis / 1000} seconds.`,
             );
             await source.markRequestHandled(request);
             this.stats.finishJob(statisticsId);
             this.handledRequestsCount++;
+
+            // reclaim session if request finishes successfully
+            session.reclaim();
         } catch (err) {
+            // fail session if request produces an error... Failing maybe should be only manually by the developer in case of the basic crawler
+            session.fail();
             try {
                 await this._requestFunctionErrorHandler(err, request, source);
             } catch (secondaryError) {
