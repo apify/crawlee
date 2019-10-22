@@ -41,11 +41,15 @@ export default function applyStealthToBrowser(browser, options) {
     const modifiedBrowser = browser;
     const opts = _.defaults(options, DEFAULT_STEALTH_OPTIONS);
 
-    const prevNewPage = browser.newPage;
-    modifiedBrowser.newPage = async (...args) => {
-        const page = await prevNewPage.bind(browser)(...args);
+    const defaultContext = browser.defaultBrowserContext();
+    const contextPrototype = Object.getPrototypeOf(defaultContext);
+
+    const prevNewPage = contextPrototype.newPage;
+
+    contextPrototype.newPage = async function (...args) {
+        const page = await prevNewPage.bind(this)(...args);
         await applyStealthTricks(page, opts);
-        return Promise.resolve(page);
+        return page;
     };
 
 

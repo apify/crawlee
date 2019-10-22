@@ -30,8 +30,9 @@ export const SOURCES_PERSISTENCE_KEY = 'REQUEST_LIST_SOURCES';
  *
  * `RequestList` has an internal state where it stores information about which requests were already handled,
  * which are in progress and which were reclaimed. The state may be automatically persisted to the default
- * key-value store by setting the `persistStateKey` option so that if the Node.js process is restarted,
- * the crawling can continue where it left off. For more details, see {@link KeyValueStore}.
+ * {@link KeyValueStore} by setting the `persistStateKey` option so that if the Node.js process is restarted,
+ * the crawling can continue where it left off. The automated persisting is launched upon receiving the `persistState`
+ * event that is periodically emitted by {@link events|Apify.events}.
  *
  * The internal state is closely tied to the provided sources (URLs) to validate it's position in the list
  * after a migration or restart. Therefore, if the sources change, the state will become corrupted and
