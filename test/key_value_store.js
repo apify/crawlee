@@ -501,6 +501,7 @@ describe('KeyValueStore', () => {
             const defaultStore = await Apify.openKeyValueStore();
 
             // Uses default value.
+            const oldGet = defaultStore.getValue;
             defaultStore.getValue = async key => expect(key).to.be.eql(KEY_VALUE_STORE_KEYS.INPUT);
             await Apify.getInput();
 
@@ -511,6 +512,8 @@ describe('KeyValueStore', () => {
 
             delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
             delete process.env[ENV_VARS.INPUT_KEY];
+
+            defaultStore.getValue = oldGet;
         });
     });
 });
