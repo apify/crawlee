@@ -2,9 +2,11 @@ import contentType from 'content-type';
 import * as url from 'url';
 import _ from 'underscore';
 import httpRequest from '@apify/http-request';
+import errors from '@apify/http-request/src/errors';
 
 export const FIREFOX_MOBILE_USER_AGENT = 'Mozilla/5.0 (Android; Mobile; rv:14.0) Gecko/14.0 Firefox/14.0';
 export const FIREFOX_DESKTOP_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.14; rv:68.0) Gecko/20100101 Firefox/68.0';
+
 
 export const REQUEST_AS_BROWSER_DEFAULT_OPTIONS = {
     countryCode: 'US',
@@ -78,5 +80,17 @@ export const requestAsBrowser = async (options) => {
         Connection: 'keep-alive',
     };
     opts.headers = _.defaults({}, opts.headers, defaultHeaders);
-    return httpRequest(opts);
+
+    try {
+        return await httpRequest(opts);
+    } catch (e) {
+        if (e instanceof errors.TimeoutError) {
+            throw new TimeoutError('Request Timed-out');
+        }
+    }
 };
+
+/**
+ * TimeoutError helper class
+ */
+export class TimeoutError extends Error {}

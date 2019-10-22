@@ -11,7 +11,7 @@ import BasicCrawler from './basic_crawler';
 import { addTimeoutToPromise } from '../utils';
 import { getApifyProxyUrl } from '../actor';
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
-import { requestAsBrowser } from '../utils_request';
+import { requestAsBrowser, TimeoutError } from '../utils_request';
 
 /**
  * Default mime types, which CheerioScraper supports.
@@ -39,6 +39,8 @@ const DEFAULT_OPTIONS = {
     },
     additionalMimeTypes: [],
 };
+
+const TIMEOUT_ERROR_MESSAGE = 'CheerioCrawler: requestFunction timed out.';
 
 /**
  * Provides a framework for the parallel crawling of web pages using plain HTTP requests and
@@ -356,7 +358,7 @@ class CheerioCrawler {
         const { dom, isXmlOrHtml, body, contentType, responseStream: response } = await addTimeoutToPromise(
             this._requestFunction({ request }),
             this.requestTimeoutMillis,
-            'CheerioCrawler: requestFunction timed out.',
+            TIMEOUT_ERROR_MESSAGE,
         );
 
         request.loadedUrl = response.url;
@@ -403,8 +405,17 @@ class CheerioCrawler {
         // Using the streaming API of Request to be able to
         // handle the response based on headers receieved.
         const opts = this._getRequestOptions(request);
+        let responseStream;
 
-        const responseStream = await requestAsBrowser(opts);
+        try {
+            responseStream = await requestAsBrowser(opts);
+        } catch (e) {
+            if (e instanceof TimeoutError) {
+                throw new Error(TIMEOUT_ERROR_MESSAGE);
+            } else {
+                throw e;
+            }
+        }
         const { statusCode, headers } = responseStream;
         const contentType = contentTypeParser.parse(headers['content-type']);
         const { type, encoding } = contentType;
@@ -463,7 +474,7 @@ class CheerioCrawler {
 
                 return false;
             },
-            timeoutSecs: this.requestTimeoutMillis / 1000 + 1,
+            timeoutSecs: this.requestTimeoutMillis / 1000,
         };
 
         if (/PATCH|POST|PUT/.test(request.method)) mandatoryRequestOptions.payload = request.payload;
