@@ -265,8 +265,10 @@ export const launchPuppeteer = async (options = {}) => {
 
     let browser;
     if (optsCopy.proxyUrl) {
+        // The log for launching with proxyUrl is inside launchPuppeteerWithProxy
         browser = await launchPuppeteerWithProxy(puppeteer, optsCopy);
     } else {
+        log.info('Launching Puppeteer', _.omit(optsCopy, LAUNCH_PUPPETEER_LOG_OMIT_OPTS));
         browser = await puppeteer.launch(optsCopy);
     }
 
@@ -274,6 +276,6 @@ export const launchPuppeteer = async (options = {}) => {
     if (optsCopy.stealth) {
         browser = applyStealthToBrowser(browser, optsCopy.stealthOptions);
     }
-    log.info('Launching Puppeteer', _.omit(optsCopy, LAUNCH_PUPPETEER_LOG_OMIT_OPTS));
+
     return browser;
 };

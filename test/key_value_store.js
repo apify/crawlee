@@ -501,6 +501,7 @@ describe('KeyValueStore', () => {
             const defaultStore = await Apify.openKeyValueStore();
             const oldGet = defaultStore.getValue;
             // Uses default value.
+            const oldGet = defaultStore.getValue;
             defaultStore.getValue = async key => expect(key).to.be.eql(KEY_VALUE_STORE_KEYS.INPUT);
             await Apify.getInput();
 

@@ -47,7 +47,7 @@ await requestList.initialize();
 // Crawl the URLs
 const crawler = new Apify.CheerioCrawler({
     requestList,
-    handlePageFunction: async ({ request, response, html, $ }) => {
+    handlePageFunction: async ({ request, response, body, contentType, $ }) => {
         const data = [];
 
         // Do some data extraction from the page with Cheerio.
@@ -62,7 +62,7 @@ const crawler = new Apify.CheerioCrawler({
         // Save the data to dataset.
         await Apify.pushData({
             url: request.url,
-            html,
+            html: body,
             data,
         });
     },
@@ -101,20 +101,32 @@ await crawler.run();
 <p>  The function receives the following object as an argument:</p>
 <pre><code>{
   $: Cheerio, // the Cheerio object with parsed HTML
-  html: String // the raw HTML of the page, lazy loaded only when used
+  body: String|Buffer // the request body of the web page
   request: Request,
+  contentType: Object, // Parsed `Content-Type` header
   response: Object // An instance of Node&#39;s http.IncomingMessage object,
   autoscaledPool: AutoscaledPool
-}</code></pre><p>  With the <a href="request"><code>Request</code></a> object representing the URL to crawl.</p>
-<p>  If the function returns a promise, it is awaited by the crawler.</p>
-<p>  If the function throws an exception, the crawler will try to re-crawl the
-  request later, up to <code>option.maxRequestRetries</code> times.
-  If all the retries fail, the crawler calls the function
-  provided to the <code>options.handleFailedRequestFunction</code> parameter.
-  To make this work, you should <strong>always</strong>
-  let your function throw exceptions rather than catch them.
-  The exceptions are logged to the request using the
-  <a href="request#Request+pushErrorMessage"><code>request.pushErrorMessage</code></a> function.</p>
+}</code></pre><p>  Type of <code>body</code> depends on web page <code>Content-Type</code> header.</p>
+<ul>
+<li><p>String for <code>text/html</code>, <code>application/xhtml+xml</code>, <code>application/xml</code> mime types</p>
+</li>
+<li><p>Buffer for others mime types</p>
+<p>Parsed <code>Content-Type</code> header using
+<a href="https://www.npmjs.com/package/content-type" target="_blank">content-type package</a>
+is stored in <code>contentType</code>.</p>
+<p>Cheerio is available only for HTML and XML content types.</p>
+<p>With the <a href="request"><code>Request</code></a> object representing the URL to crawl.</p>
+<p>If the function returns a promise, it is awaited by the crawler.</p>
+<p>If the function throws an exception, the crawler will try to re-crawl the
+request later, up to <code>option.maxRequestRetries</code> times.
+If all the retries fail, the crawler calls the function
+provided to the <code>options.handleFailedRequestFunction</code> parameter.
+To make this work, you should <strong>always</strong>
+let your function throw exceptions rather than catch them.
+The exceptions are logged to the request using the
+<a href="request#Request+pushErrorMessage"><code>request.pushErrorMessage</code></a> function.</p>
+</li>
+</ul>
 </td></tr><tr>
 <td><code>options.requestList</code></td><td><code><a href="requestlist">RequestList</a></code></td><td></td>
 </tr>
@@ -174,8 +186,7 @@ await crawler.run();
 <td><code>[options.ignoreSslErrors]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>If set to true, SSL certificate errors will be ignored. This is dependent on using the default
-  request function. If using a custom <code>options.requestFunction</code>, user needs to implement this functionality.</p>
+<td colspan="3"><p>If set to true, SSL certificate errors will be ignored.</p>
 </td></tr><tr>
 <td><code>[options.useApifyProxy]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
 </tr>
@@ -220,6 +231,13 @@ await crawler.run();
   represents the last error thrown during processing of the request.</p>
 <p>  See <a href="https://github.com/apifytech/apify-js/blob/master/src/crawlers/cheerio_crawler.js#L13">source code</a>
   for the default implementation of this function.</p>
+</td></tr><tr>
+<td><code>[options.additionalMimeTypes]</code></td><td><code>Array<String></code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>An array of <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types"
+  target="_blank">mime types</a> you want to process.
+  By default <code>text/html</code>, <code>application/xhtml+xml</code> mime types are supported.</p>
 </td></tr><tr>
 <td><code>[options.maxRequestRetries]</code></td><td><code>Number</code></td><td><code>3</code></td>
 </tr>

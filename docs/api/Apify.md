@@ -360,7 +360,7 @@ The following table shows all currently emitted events:
         </tr>
         <tr>
             <td colspan="2">
-                Emitted in regular intervals to notify all components of Apify SDK that it is time to persist
+                Emitted in regular intervals (by default 60 seconds) to notify all components of Apify SDK that it is time to persist
                 their state, in order to avoid repeating all work when the actor restarts.
                 This event is automatically emitted together with the <code>migrating</code> event,
                 in which case the <code>isMigrating</code> flag is set to <code>true</code>. Otherwise the flag is <code>false</code>.
