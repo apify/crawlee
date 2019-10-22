@@ -30,17 +30,17 @@ const sessionPool = new SessionPool({
 await sessionPool.initialize();
 
 // Get random session from the pool
-const session1 = await sessionPool.retrieveSession();
-const session2 = await sessionPool.retrieveSession();
-const session3 = await sessionPool.retrieveSession();
+const session1 = await sessionPool.getSession();
+const session2 = await sessionPool.getSession();
+const session3 = await sessionPool.getSession();
 
 // Now you can mark the session either failed of successful
 
-// Fails session -> it increases error count (soft retire)
-session1.fail();
+// Marks session as bad after unsuccessful usage -> it increases error count (soft retire)
+session1.markBad();
 
 // Marks as successful.
-session2.reclaim();
+session2.markGood();
 
 // Retires session -> session is removed from the pool
 session3.retire();
@@ -51,7 +51,7 @@ session3.retire();
     -   [`.usableSessionsCount`](#SessionPool+usableSessionsCount) ⇒ `number`
     -   [`.retiredSessionsCount`](#SessionPool+retiredSessionsCount) ⇒ `number`
     -   [`.initialize()`](#SessionPool+initialize) ⇒ `Promise<void>`
-    -   [`.retrieveSession()`](#SessionPool+retrieveSession) ⇒ [`Promise<Session>`](session)
+    -   [`.getSession()`](#SessionPool+getSession) ⇒ [`Promise<Session>`](session)
     -   [`.getState()`](#SessionPool+getState) ⇒ `Object`
     -   [`.persistState()`](#SessionPool+persistState) ⇒ `Promise`
 
@@ -126,9 +126,9 @@ Gets count of retired sessions in the pool.
 Starts periodic state persistence and potentially loads SessionPool state from [`KeyValueStore`](keyvaluestore). This function must be called before
 you can start using the instance in a meaningful way.
 
-<a name="SessionPool+retrieveSession"></a>
+<a name="SessionPool+getSession"></a>
 
-## `sessionPool.retrieveSession()` ⇒ [`Promise<Session>`](session)
+## `sessionPool.getSession()` ⇒ [`Promise<Session>`](session)
 
 Gets session. If there is space for new session, it creates and return new session. If the session pool is full, it picks a session from the pool, If
 the picked session is usable it is returned, otherwise it creates and returns a new one.

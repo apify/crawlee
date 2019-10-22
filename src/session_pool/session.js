@@ -17,14 +17,14 @@ export class Session {
      * @param options.id {String} - Id of session used for generating fingerprints. It is used as proxy session name.
      * @param options.maxAgeSecs {Number} - Number of seconds after which the session is considered as expired.
      * @param options.userData {Object} - Object where custom user data can be stored. For example custom headers.
-     * @param options.maxErrorScore {number} - Maximum number of failed session usage.
+     * @param options.maxErrorScore {number} - Maximum number of marking session as blocked usage.
      * If the `errorScore` reaches the `maxErrorScore` session is marked as block and it is thrown away.
      * @param options.errorScoreDecrement {number} - It is used for healing the session.
-     * For example: if your session fails two times, but it is successful on the third attempt it's errorScore is decremented by this number.
+     * For example: if your session is marked bad two times, but it is successful on the third attempt it's errorScore is decremented by this number.
      * @param options.createdAt {Date} - Date of creation.
      * @param options.expiredAt {Date} - Date of expiration.
      * @param options.usageCount {Number} - Indicates how many times the session has been used.
-     * @param options.errorCount {Number} - Indicates how many times the session failed.
+     * @param options.errorCount {Number} - Indicates how many times the session is marked bad.
      * @param options.maxSessionUsageCount {Number} - Session should be used only a limited amount of times.
      * This number indicates how many times the session is going to be used, before it is thrown away.
      * @param options.sessionPool {EventEmitter} - SessionPool instance. Session will emit the `sessionRetired` event on this instance.
@@ -75,7 +75,7 @@ export class Session {
         this.expiresAt = expiresAt;
         this.createdAt = createdAt;
         this.usageCount = usageCount; // indicates how many times the session has been used
-        this.errorScore = errorScore; // indicates number of failed request with the session
+        this.errorScore = errorScore; // indicates number of markBaded request with the session
         this.maxSessionUsageCount = maxSessionUsageCount;
         this.sessionPool = sessionPool;
     }
@@ -121,7 +121,7 @@ export class Session {
      * This method should be called after a successful session usage.
      * It increases `usageCount` and potentially lowers the `errorScore` by the `errorScoreDecrement`.
      */
-    reclaim() {
+    markGood() {
         this.usageCount += 1;
 
         // We should probably lower the errorScore.
@@ -153,7 +153,7 @@ export class Session {
      * This method should be used if the session usage was unsuccessful
      * and you are sure that it is because of the session configuration and not any external matters.
      * For example when server returns 403 status code.
-     * If the session does not work due to some external factors as server error such as 5XX you probably want to use `fail` method.
+     * If the session does not work due to some external factors as server error such as 5XX you probably want to use `markBad` method.
      */
     retire() {
         // mark it as an invalid by increasing the error score count.
@@ -168,7 +168,7 @@ export class Session {
      * Increases usage and error count.
      * Should be used when the session has been used unsuccessfully. For example because of timeouts.
      */
-    fail() {
+    markBad() {
         this.errorScore += 1;
         this.usageCount += 1;
     }

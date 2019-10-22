@@ -16,14 +16,14 @@ describe('Session - testing session behaviour ', async () => {
         session = new Session({ sessionPool });
     });
 
-    it('should reclaim session and lower the errorScore', () => {
+    it('should markGood session and lower the errorScore', () => {
         expect(session.usageCount).to.be.eql(0);
         expect(session.errorScore).to.be.eql(0);
-        session.reclaim();
+        session.markGood();
         expect(session.usageCount).to.be.eql(1);
         expect(session.errorScore).to.be.eql(0);
         session.errorScore = 1;
-        session.reclaim();
+        session.markGood();
         expect(session.errorScore).to.be.eql(0.5);
     });
 
@@ -38,8 +38,8 @@ describe('Session - testing session behaviour ', async () => {
         expect(err.message.includes('Session: sessionPool must be instance of SessionPool')).to.be.true; // eslint-disable-line
     });
 
-    it('should mark session failed', () => {
-        session.fail();
+    it('should mark session markBaded', () => {
+        session.markBad();
         expect(session.errorScore).to.be.eql(1);
         expect(session.usageCount).to.be.eql(1);
     });
@@ -53,7 +53,7 @@ describe('Session - testing session behaviour ', async () => {
 
     it('should max out session usage', () => {
         session.maxSessionUsageCount = 1;
-        session.reclaim();
+        session.markGood();
         expect(session.isMaxUsageCountReached()).to.be.eql(true);
         expect(session.isUsable()).to.be.eql(false);
     });
@@ -64,8 +64,8 @@ describe('Session - testing session behaviour ', async () => {
         expect(session.isUsable()).to.be.eql(false);
     });
 
-    it('should reclaim session', () => {
-        session.reclaim();
+    it('should markGood session', () => {
+        session.markGood();
         expect(session.usageCount).to.be.eql(1);
         expect(session.isUsable()).to.be.eql(true);
     });

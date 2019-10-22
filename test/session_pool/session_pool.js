@@ -69,7 +69,7 @@ describe('SessionPool - testing session pool', async () => {
 
     describe('should retrieve session', () => {
         it('should retrieve session with correct shape', async () => {
-            const session = await sessionPool.retrieveSession();
+            const session = await sessionPool.getSession();
             expect(sessionPool.sessions.length).to.be.eql(1);
             expect(session.id).to.exist; // eslint-disable-line
             expect(session.cookies.length).to.be.eql(0);
@@ -80,8 +80,8 @@ describe('SessionPool - testing session pool', async () => {
 
         it('should pick session when pool is full', async () => {
             sessionPool.maxPoolSize = 2;
-            await sessionPool.retrieveSession();
-            await sessionPool.retrieveSession();
+            await sessionPool.getSession();
+            await sessionPool.getSession();
             let isCalled = false;
             const oldPick = sessionPool._pickSession; //eslint-disable-line
 
@@ -90,14 +90,14 @@ describe('SessionPool - testing session pool', async () => {
                 return oldPick.bind(sessionPool)();
             };
 
-            await sessionPool.retrieveSession();
+            await sessionPool.getSession();
 
             expect(isCalled).to.be.true; //eslint-disable-line
         });
 
         it('should delete picked session when it is usable a create a new one', async () => {
             sessionPool.maxPoolSize = 1;
-            await sessionPool.retrieveSession();
+            await sessionPool.getSession();
             const session = sessionPool.sessions[0];
 
             session.errorScore += session.maxErrorScore;
@@ -109,7 +109,7 @@ describe('SessionPool - testing session pool', async () => {
                 return oldRemove.bind(sessionPool)(session);
             };
 
-            await sessionPool.retrieveSession();
+            await sessionPool.getSession();
 
             expect(isCalled).to.be.true; //eslint-disable-line
             expect(sessionPool.sessions[0].id === session.id).to.be.false; //eslint-disable-line
@@ -119,7 +119,7 @@ describe('SessionPool - testing session pool', async () => {
 
 
     it('should persist state and recreate it from storage', async () => {
-        await sessionPool.retrieveSession();
+        await sessionPool.getSession();
         await sessionPool.persistState();
 
         const kvStore = await Apify.openKeyValueStore();
@@ -151,7 +151,7 @@ describe('SessionPool - testing session pool', async () => {
     it('should create only maxPoolSize number of sessions', async () => {
         const max = sessionPool.maxPoolSize;
         for (let i = 0; i < max + 100; i++) {
-            await sessionPool.retrieveSession();
+            await sessionPool.getSession();
         }
         expect(sessionPool.sessions.length).to.be.eql(sessionPool.maxPoolSize);
     });
@@ -175,7 +175,7 @@ describe('SessionPool - testing session pool', async () => {
         });
 
         it('on persist event', async () => {
-            await sessionPool.retrieveSession();
+            await sessionPool.getSession();
 
             expect(sessionPool.sessions.length).to.be.eql(1);
 
@@ -199,9 +199,9 @@ describe('SessionPool - testing session pool', async () => {
 
     it('should remove session', async () => {
         for (let i = 0; i < 10; i++) {
-            await sessionPool.retrieveSession();
+            await sessionPool.getSession();
         }
-        const picked = sessionPool.retrieveSession();
+        const picked = sessionPool.getSession();
         sessionPool._removeSession(picked); // eslint-disable-line
         expect(sessionPool.sessions.find(s => s.id === picked.id)).to.be.eql(undefined);
     });
@@ -209,7 +209,7 @@ describe('SessionPool - testing session pool', async () => {
     it('should recreate only usable sessions', async () => {
         let invalidSessionsCount = 0;
         for (let i = 0; i < 10; i++) {
-            const session = await sessionPool.retrieveSession();
+            const session = await sessionPool.getSession();
 
             if (i % 2 === 0) {
                 session.errorScore += session.maxErrorScore;
@@ -235,7 +235,7 @@ describe('SessionPool - testing session pool', async () => {
             return new Session({ sessionPool: sessionPool2 });
         };
         const newSessionPool = await Apify.openSessionPool({ createSessionFunction });
-        const session = await newSessionPool.retrieveSession();
+        const session = await newSessionPool.getSession();
         expect(isCalled).to.be.true; // eslint-disable-line
         expect(session.constructor.name).to.be.eql("Session") // eslint-disable-line
     });
