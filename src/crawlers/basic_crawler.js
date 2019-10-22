@@ -32,7 +32,7 @@ const DEFAULT_OPTIONS = {
         log.error('BasicCrawler: Request failed and reached maximum retries', details);
     },
     autoscaledPoolOptions: {},
-    sessionPoolOptions: {},
+    sessionPoolOptions: {}, // We could add sessionPool true/false config to use/not use SessionPool.
 };
 
 /**
@@ -266,6 +266,7 @@ class BasicCrawler {
         // so that the caller can get a reference to it before awaiting the promise returned from run()
         // (otherwise there would be no way)
         this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions);
+
         this.sessionPool = await openSessionPool(this.sessionPoolOptions);
         await this._loadHandledRequestCount();
 
@@ -343,9 +344,9 @@ class BasicCrawler {
     async _runTaskFunction() {
         const source = this.requestQueue || this.requestList;
 
-        // Maybe we can use Promise.all()
+        // Maybe we can use Promise.all() to speed it up.
         const request = await this._fetchNextRequest();
-        const session = await this.sessionPool.retrieveSession();
+        const session = await this.sessionPool.getSession();
         if (!request) return;
 
         // Reset loadedUrl so an old one is not carried over to retries.
@@ -364,10 +365,8 @@ class BasicCrawler {
             this.handledRequestsCount++;
 
             // reclaim session if request finishes successfully
-            session.reclaim();
+            session.markGood();
         } catch (err) {
-            // fail session if request produces an error... Failing maybe should be only manually by the developer in case of the basic crawler
-            session.fail();
             try {
                 await this._requestFunctionErrorHandler(err, request, source);
             } catch (secondaryError) {
