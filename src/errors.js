@@ -21,3 +21,8 @@ export class ApifyCallError extends Error {
         Error.captureStackTrace(this, ApifyCallError);
     }
 }
+/**
+ * TimeoutError class.
+ * This error should be thrown after request timeout from `requestAsBrowser`.
+ */
+export class TimeoutError extends Error {}
