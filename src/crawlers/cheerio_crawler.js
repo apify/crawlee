@@ -11,7 +11,8 @@ import BasicCrawler from './basic_crawler';
 import { addTimeoutToPromise } from '../utils';
 import { getApifyProxyUrl } from '../actor';
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
-import { requestAsBrowser, TimeoutError } from '../utils_request';
+import { requestAsBrowser } from '../utils_request';
+import { TimeoutError } from '../errors';
 
 /**
  * Default mime types, which CheerioScraper supports.
