@@ -81,13 +81,17 @@ export const requestAsBrowser = async (options) => {
     };
     opts.headers = _.defaults({}, opts.headers, defaultHeaders);
 
+
     try {
         return await httpRequest(opts);
     } catch (e) {
         if (e instanceof errors.TimeoutError) {
             throw new TimeoutError('Request Timed-out');
         }
+
+        throw e;
     }
+
 };
 
 /**
