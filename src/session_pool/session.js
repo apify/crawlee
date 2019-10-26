@@ -124,7 +124,6 @@ export class Session {
     markGood() {
         this.usageCount += 1;
 
-        // We should probably lower the errorScore.
         if (this.errorScore > 0) {
             this.errorScore -= this.errorScoreDecrement;
         }

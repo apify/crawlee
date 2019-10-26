@@ -9,6 +9,7 @@ import { ACTOR_EVENT_NAMES_EX } from '../constants';
 
 
 /**
+ * Experimental feature and might change in the future releases.
  * Handles the sessions rotation, creation and persistence.
  * Creates a pool of {@link Session} instances, that are randomly rotated.
  * When some session is marked as blocked. It is removed and new one is created instead.
@@ -183,8 +184,11 @@ export class SessionPool extends EventEmitter {
      * @return {Promise}
      */
     async persistState() {
-        log.debug('SessionPool: Persisting state');
-        log.debug(`SessionPool: persistStateKeyValueStoreId: ${this.persistStateKeyValueStoreId}, persistStateKey: ${this.persistStateKey} `);
+        log.debug('SessionPool: Persisting state',
+            {
+                persistStateKeyValueStoreId: this.persistStateKeyValueStoreId,
+                persistStateKey: this.persistStateKey,
+            });
         await this.keyValueStore.setValue(this.persistStateKey, this.getState());
     }
 
@@ -275,9 +279,11 @@ export class SessionPool extends EventEmitter {
 
         if (!loadedSessionPool) return;
         // Invalidate old sessions and load active sessions only
-        log.debug('SessionPool: Recreating state from KeyValueStore');
-        log.debug(`SessionPool: persistStateKeyValueStoreId: ${this.persistStateKeyValueStoreId}, persistStateKey: ${this.persistStateKey} `);
-
+        log.debug('SessionPool: Recreating state from KeyValueStore',
+            {
+                persistStateKeyValueStoreId: this.persistStateKeyValueStoreId,
+                persistStateKey: this.persistStateKey,
+            });
         for (const sessionObject of loadedSessionPool.sessions) {
             sessionObject.sessionPool = this;
             sessionObject.createdAt = new Date(sessionObject.createdAt);
