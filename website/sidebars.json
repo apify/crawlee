@@ -23,6 +23,8 @@
             "api/request",
             "api/requestlist",
             "api/requestqueue",
+            "api/sessionpool",
+            "api/session",
             "api/utils",
             "api/log",
             "api/puppeteer",
