@@ -199,20 +199,10 @@ export class RequestList {
         const actualSources = sources || this.sources;
 
         // We'll load all sources in sequence to ensure that they get loaded in the right order.
-        const sourcesWithRequestsFromUrl = [];
         for (const source of actualSources) {
-            if (source.requestsFromUrl) {
-                const fetchedRequests = await this._fetchRequestsFromUrl(source);
-                sourcesWithRequestsFromUrl.push(...fetchedRequests);
-                await this._addFetchedRequests(source, fetchedRequests);
-            } else {
-                sourcesWithRequestsFromUrl.push(source);
-                this._addRequest(source);
-            }
+            if (source.requestsFromUrl) await this._addRequestsFromUrl(source);
+            else this._addRequest(source);
         }
-
-        // Replace source with source with request from remote URLs
-        this.sources = sourcesWithRequestsFromUrl;
 
         this._restoreState(state);
         this.isInitialized = true;
@@ -451,36 +441,11 @@ export class RequestList {
     }
 
     /**
-     * Adds all fetched requests from a URL from a remote resource.
+     * Adds all requests from a URL fetched from a remote resource.
      *
      * @ignore
      */
-    async _addFetchedRequests(source, fetchedRequests) {
-        const { requestsFromUrl, regex } = source;
-        const originalLength = this.requests.length;
-
-        fetchedRequests.forEach(request => this._addRequest(request));
-
-        const fetchedCount = fetchedRequests.length;
-        const importedCount = this.requests.length - originalLength;
-
-        log.info('RequestList: list fetched.', {
-            requestsFromUrl,
-            regex,
-            fetchedCount,
-            importedCount,
-            duplicateCount: fetchedCount - importedCount,
-            sample: JSON.stringify(fetchedRequests.slice(0, 5)),
-        });
-    }
-
-    /**
-     * Fetches URLs from requestsFromUrl and returns them in format of list of requests
-     * @param source
-     * @return {Promise<Object[]|Array>}
-     * @ignore
-     */
-    async _fetchRequestsFromUrl(source) {
+    async _addRequestsFromUrl(source) {
         const sharedOpts = _.omit(source, 'requestsFromUrl', 'regex');
         const { requestsFromUrl, regex } = source;
         const { downloadListOfUrls } = publicUtils;
@@ -495,11 +460,24 @@ export class RequestList {
 
         // Skip if resource contained no URLs.
         if (!urlsArr.length) {
-            log.warning('RequestList: list fetched, but it is empty.', { requestsFromUrl, regex });
-            return [];
+            return log.warning('RequestList: list fetched, but it is empty.', { requestsFromUrl, regex });
         }
 
-        return urlsArr.map(url => _.extend({ url }, sharedOpts));
+        // Process downloaded URLs.
+        const originalLength = this.requests.length;
+        urlsArr.forEach(url => this._addRequest(_.extend({ url }, sharedOpts)));
+
+        const fetchedCount = urlsArr.length;
+        const importedCount = this.requests.length - originalLength;
+
+        log.info('RequestList: list fetched.', {
+            requestsFromUrl,
+            regex,
+            fetchedCount,
+            importedCount,
+            duplicateCount: fetchedCount - importedCount,
+            sample: JSON.stringify(urlsArr.slice(0, 5)),
+        });
     }
 
     /**

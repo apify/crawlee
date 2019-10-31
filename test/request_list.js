@@ -521,51 +521,6 @@ describe('Apify.RequestList', () => {
         mock.verify();
     });
 
-    it('should correctly persist sources from requestsFromUrl if persistSourcesKey is set', async () => {
-        const PERSIST_SOURCES_KEY = 'some-key';
-        const kvsMock = sinon.mock(keyValueStore);
-        const publicUtilsMock = sinon.mock(utils.publicUtils);
-
-        const opts = {
-            sources: [
-                { url: 'https://example.com/1' },
-                { url: 'https://example.com/2' },
-                { requestsFromUrl: 'http://example.com/list-urls.txt', userData: { isFromUrl: true } },
-                { url: 'https://example.com/5' },
-            ],
-            persistSourcesKey: PERSIST_SOURCES_KEY,
-        };
-
-        const urlsFromTxt = ['http://example.com/3', 'http://example.com/4'];
-
-        const requestList = new Apify.RequestList(opts);
-        expect(requestList.areSourcesPersisted).to.be.eql(false);
-
-        // Expect an attempt to load sources.
-        kvsMock.expects('getValue')
-            .once()
-            .withArgs(PERSIST_SOURCES_KEY)
-            .returns(null);
-
-        // Expect persist sources.
-        const sourcesFromTxt = urlsFromTxt.map(url => ({ url, userData: { isFromUrl: true } }));
-        kvsMock.expects('setValue')
-            .once()
-            .withArgs(PERSIST_SOURCES_KEY, [opts.sources[0], opts.sources[1], ...sourcesFromTxt, opts.sources[3]])
-            .returns(Promise.resolve());
-        // Expect downloadListOfUrls returns list of URLs
-        publicUtilsMock.expects('downloadListOfUrls')
-            .once()
-            .withArgs({ url: 'http://example.com/list-urls.txt', urlRegExp: undefined })
-            .returns(Promise.resolve(urlsFromTxt));
-
-        await requestList.initialize();
-        expect(requestList.areSourcesPersisted).to.be.eql(true);
-
-        kvsMock.verify();
-        publicUtilsMock.verify();
-    });
-
     it('handles correctly inconsistent inProgress fields in state', async () => {
         // NOTE: This is a test for the deleteFromInProgress hotfix - see RequestList.initialize()
 
