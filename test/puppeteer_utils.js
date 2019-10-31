@@ -1,6 +1,8 @@
 import { expect } from 'chai';
+import sinon from 'sinon';
 import path from 'path';
 import Apify from '../build/index';
+import * as keyValueStore from '../build/key_value_store';
 
 const { utils: { log } } = Apify;
 
@@ -370,6 +372,46 @@ describe('Apify.utils.puppeteer', () => {
 
             const after = await page.evaluate(isAtBottom);
             expect(after).to.be.eql(true);
+        } finally {
+            await browser.close();
+        }
+    });
+
+
+    it('saveSnapshot() works', async () => {
+        const mock = sinon.mock(keyValueStore);
+        const browser = await Apify.launchPuppeteer({ headless: true });
+        try {
+            const page = await browser.newPage();
+            let count = 0;
+            const content = Array(10).fill(null).map(() => {
+                return `<div style="border: 1px solid black">Div number: ${count++}</div>`;
+            });
+            const contentHTML = `<html><head></head><body>${content}</body></html>`;
+            await page.setContent(contentHTML);
+
+            const screenshot = await page.screenshot({ fullPage: true });
+
+            mock.expects('setValue')
+                .once()
+                .withArgs('TEST.png', screenshot, { contentType: 'image/png' })
+                .returns(Promise.resolve());
+
+            mock.expects('setValue')
+                .once()
+                .withArgs('TEST.html', contentHTML, { contentType: 'text/html' })
+                .returns(Promise.resolve());
+
+            await Apify.utils.puppeteer.saveSnapshot(page, 'TEST');
+
+            mock.expects('setValue')
+                .once()
+                .withArgs('TEST.png', screenshot, { contentType: 'image/png' })
+                .returns(Promise.resolve());
+
+            await Apify.utils.puppeteer.saveSnapshot(page, 'TEST', { saveHtml: false });
+
+            mock.verify();
         } finally {
             await browser.close();
         }
