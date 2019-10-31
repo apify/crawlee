@@ -12,6 +12,7 @@ import { addTimeoutToPromise } from '../utils';
 import { getApifyProxyUrl } from '../actor';
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { requestAsBrowser } from '../utils_request';
+import { TimeoutError } from '../errors';
 
 /**
  * Default mime types, which CheerioScraper supports.
@@ -356,7 +357,7 @@ class CheerioCrawler {
         const { dom, isXmlOrHtml, body, contentType, responseStream: response } = await addTimeoutToPromise(
             this._requestFunction({ request }),
             this.requestTimeoutMillis,
-            'CheerioCrawler: requestFunction timed out.',
+            `CheerioCrawler: request timed out after ${this.requestTimeoutMillis / 1000} seconds.`,
         );
 
         request.loadedUrl = response.url;
@@ -403,8 +404,17 @@ class CheerioCrawler {
         // Using the streaming API of Request to be able to
         // handle the response based on headers receieved.
         const opts = this._getRequestOptions(request);
+        let responseStream;
 
-        const responseStream = await requestAsBrowser(opts);
+        try {
+            responseStream = await requestAsBrowser(opts);
+        } catch (e) {
+            if (e instanceof TimeoutError) {
+                throw new Error(`CheerioCrawler: request timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`);
+            } else {
+                throw e;
+            }
+        }
         const { statusCode, headers } = responseStream;
         const contentType = contentTypeParser.parse(headers['content-type']);
         const { type, encoding } = contentType;
@@ -463,6 +473,7 @@ class CheerioCrawler {
 
                 return false;
             },
+            timeoutSecs: this.requestTimeoutMillis / 1000,
         };
 
         if (/PATCH|POST|PUT/.test(request.method)) mandatoryRequestOptions.payload = request.payload;
