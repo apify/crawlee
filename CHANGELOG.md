@@ -1,5 +1,6 @@
 0.16.1 / 2019-10-31
 ====================
+- Bump Puppeteer to 2.0.0 and use `{ pipe: true }` again because upstream bug has been fixed.
 - Add `useIncognitoPages` option to `PuppeteerPool` to enable opening new pages in incognito
   browser contexts. This is useful to keep cookies and cache unique for each page.
 - Added options to load every content type in CheerioCrawler.
