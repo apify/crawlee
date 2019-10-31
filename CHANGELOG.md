@@ -1,6 +1,7 @@
 NEXT
 ====================
 - Fix a race condition in `RequestQueueLocal`.
+- Fix RequestList persist downloaded sources in key-value store
 
 0.16.1 / 2019-10-31
 ====================
