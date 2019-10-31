@@ -268,8 +268,8 @@ describe('CheerioCrawler', () => {
 
             failed.forEach((request) => {
                 expect(request.errorMessages).to.have.lengthOf(2);
-                expect(request.errorMessages[0]).to.include('requestFunction timed out');
-                expect(request.errorMessages[1]).to.include('requestFunction timed out');
+                expect(request.errorMessages[0]).to.include('request timed out');
+                expect(request.errorMessages[1]).to.include('request timed out');
             });
         });
 
