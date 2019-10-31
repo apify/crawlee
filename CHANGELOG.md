@@ -1,3 +1,7 @@
+NEXT
+====================
+- Fix a race condition in `RequestQueueLocal`.
+
 0.16.1 / 2019-10-31
 ====================
 - Bump Puppeteer to 2.0.0 and use `{ pipe: true }` again because upstream bug has been fixed.
