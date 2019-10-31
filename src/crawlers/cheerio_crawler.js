@@ -21,10 +21,9 @@ const DEFAULT_MIME_TYPES = ['text/html', 'application/xhtml+xml'];
 const DEFAULT_OPTIONS = {
     requestTimeoutSecs: 30,
     handlePageTimeoutSecs: 60,
-    handleFailedRequestFunction: ({ request }) => {
+    handleFailedRequestFunction: ({ request, error }) => {
         const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
-
-        log.error('CheerioCrawler: Request failed and reached maximum retries', details);
+        log.exception(error, 'CheerioCrawler: Request failed and reached maximum retries', details);
     },
     ignoreSslErrors: false,
     useApifyProxy: false,

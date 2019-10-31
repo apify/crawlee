@@ -26,9 +26,9 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
 const DEFAULT_OPTIONS = {
     maxRequestRetries: 3,
     handleRequestTimeoutSecs: 60,
-    handleFailedRequestFunction: ({ request }) => {
+    handleFailedRequestFunction: ({ request, error }) => {
         const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
-        log.error('BasicCrawler: Request failed and reached maximum retries', details);
+        log.exception(error, 'BasicCrawler: Request failed and reached maximum retries', details);
     },
     autoscaledPoolOptions: {},
 };
@@ -414,10 +414,10 @@ class BasicCrawler {
         // Reclaim and retry request if flagged as retriable and retryCount is not exceeded.
         if (!request.noRetry && request.retryCount < this.maxRequestRetries) {
             request.retryCount++;
-            log.exception(
-                error,
+            const logData = { ..._.pick(request, 'url', 'retryCount', 'id'), errorMessage: error.message };
+            log.error(
                 'BasicCrawler: handleRequestFunction failed, reclaiming failed request back to the list or queue',
-                _.pick(request, 'url', 'retryCount', 'id'),
+                logData,
             );
             return source.reclaimRequest(request);
         }
