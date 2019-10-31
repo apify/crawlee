@@ -357,7 +357,7 @@ class CheerioCrawler {
         const { dom, isXmlOrHtml, body, contentType, responseStream: response } = await addTimeoutToPromise(
             this._requestFunction({ request }),
             this.requestTimeoutMillis,
-            `CheerioCrawler: request timed out after ${this.requestTimeoutMillis / 1000} seconds.\``,
+            `CheerioCrawler: request timed out after ${this.requestTimeoutMillis / 1000} seconds.`,
         );
 
         request.loadedUrl = response.url;
