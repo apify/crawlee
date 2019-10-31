@@ -41,8 +41,6 @@ const DEFAULT_OPTIONS = {
     additionalMimeTypes: [],
 };
 
-const TIMEOUT_ERROR_MESSAGE = 'CheerioCrawler: requestFunction timed out.';
-
 /**
  * Provides a framework for the parallel crawling of web pages using plain HTTP requests and
  * <a href="https://www.npmjs.com/package/cheerio" target="_blank">cheerio</a> HTML parser.
@@ -359,7 +357,7 @@ class CheerioCrawler {
         const { dom, isXmlOrHtml, body, contentType, responseStream: response } = await addTimeoutToPromise(
             this._requestFunction({ request }),
             this.requestTimeoutMillis,
-            TIMEOUT_ERROR_MESSAGE,
+            `CheerioCrawler: requestFunction timed out after ${this.requestTimeoutMillis}.`,
         );
 
         request.loadedUrl = response.url;
@@ -412,7 +410,7 @@ class CheerioCrawler {
             responseStream = await requestAsBrowser(opts);
         } catch (e) {
             if (e instanceof TimeoutError) {
-                throw new Error(TIMEOUT_ERROR_MESSAGE);
+                throw new Error(`CheerioCrawler: requestFunction timed out after ${this.requestTimeoutMillis}.`);
             } else {
                 throw e;
             }

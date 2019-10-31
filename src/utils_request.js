@@ -24,6 +24,7 @@ export const REQUEST_AS_BROWSER_DEFAULT_OPTIONS = {
     useCaseSensitiveHeaders: true,
     useStream: false,
     proxyUrl: null,
+    timeoutSecs: 30,
 };
 /**
  * Sends a HTTP request that looks like a request sent by a web browser,
@@ -87,7 +88,7 @@ export const requestAsBrowser = async (options) => {
         return await httpRequest(opts);
     } catch (e) {
         if (e instanceof errors.TimeoutError) {
-            throw new TimeoutError('Request Timed-out');
+            throw new TimeoutError(`Request Timed-out after ${opts.timeoutSecs} seconds.`);
         }
 
         throw e;
