@@ -506,6 +506,7 @@ export const callTask = async (taskId, input, options = {}) => {
     if (build) runTaskOpts.build = build;
     if (memoryMbytes) runTaskOpts.memory = memoryMbytes;
     if (timeoutSecs >= 0) runTaskOpts.timeout = timeoutSecs; // Zero is valid value!
+    if (input) runTaskOpts.input = input;
     if (webhooks) runTaskOpts.webhooks = webhooks;
     if (input) addInputOptionsOrThrow(input, options.contentType, runTaskOpts);
 

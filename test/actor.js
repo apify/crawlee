@@ -720,8 +720,7 @@ describe('Apify.callTask()', () => {
             .withExactArgs({
                 token,
                 taskId,
-                body: JSON.stringify(input, null, 2),
-                contentType: 'application/json; charset=utf-8',
+                input,
                 memory: memoryMbytes,
                 timeout: timeoutSecs,
                 build,
