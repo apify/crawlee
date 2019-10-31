@@ -193,15 +193,16 @@ const enqueueRequestsFromClickableElements = async (page, selector, purls, reque
  * of data that needs to be downloaded from the web, but it may break some websites
  * or unexpectedly prevent loading of resources.
  *
- * If the `options.urlPatterns` parameter is not provided,
- * by default the function blocks URLs that include these patterns:
+ * By default, the function will block all URLs including the following patterns:
  *
  * ```json
  * [".css", ".jpg", ".jpeg", ".png", ".svg", ".gif", ".woff", ".pdf", ".zip"]
  * ```
  *
- * The defaults will be concatenated with the patterns you provide in `options.urlPatterns`.
- * If you want to remove the defaults, use `options.includeDefaults: false`.
+ * If you want to extend this list further, use the `extraUrlPatterns` option,
+ * which will keep blocking the default patterns, as well as add your custom ones.
+ * If you would like to block only specific patterns, use the `urlPatterns` option,
+ * which will override the defaults and block only URLs with your custom patterns.
  *
  * This function does not use Puppeteer's request interception and therefore does not interfere
  * with browser cache. It's also faster than blocking requests using interception,
