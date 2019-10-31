@@ -89,6 +89,8 @@ export const SOURCES_PERSISTENCE_KEY = 'REQUEST_LIST_SOURCES';
  *     { method: 'GET', url: 'http://example.com/a/b' },
  *     // Batch import of URLs from a file hosted on the web
  *     { method: 'POST', requestsFromUrl: 'http://example.com/urls.txt' },
+ *     // Batch import combined with regex.
+ *     { method: 'POST', requestsFromUrl: 'http://example.com/urls.txt', regex: /https:\/\/example.com\/.+/ },
  * ]
  * ```
  * @param {String} [options.persistStateKey]
@@ -631,9 +633,11 @@ export class RequestList {
  *  An array of sources of URLs for the `RequestList`.
  *  It can be either an array of plain objects that
  *  define the `url` property, or an array of instances of the {@link Request} class.
+ *
  *  Additionally, the `requestsFromUrl` property may be used instead of `url`,
  *  which will instruct `RequestList` to download the source URLs from a given remote location.
- *  The URLs will be parsed from the received response.
+ *  The URLs will be parsed from the received response. In this case you can limit the URLs
+ * using `regex` parameter containing regular expression pattern for URLs to be included.
  *
  *  For details, see the [`RequestList`](requestlist#new_RequestList_new)
  *  constructor options.
