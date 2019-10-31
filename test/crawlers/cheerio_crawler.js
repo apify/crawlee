@@ -137,6 +137,11 @@ describe('CheerioCrawler', () => {
             res.send(responseSamples.image);
         });
 
+        app.get('/timeout', async (req, res) => {
+            await delayPromise(32000);
+            res.type('html').send('<div>TEST</div>');
+        });
+
         server = await startExpressAppPromise(app, 0);
         port = server.address().port; //eslint-disable-line
     });
@@ -263,8 +268,8 @@ describe('CheerioCrawler', () => {
 
             failed.forEach((request) => {
                 expect(request.errorMessages).to.have.lengthOf(2);
-                expect(request.errorMessages[0]).to.include('requestFunction timed out');
-                expect(request.errorMessages[1]).to.include('requestFunction timed out');
+                expect(request.errorMessages[0]).to.include('request timed out');
+                expect(request.errorMessages[1]).to.include('request timed out');
             });
         });
 
@@ -306,6 +311,38 @@ describe('CheerioCrawler', () => {
                 expect(request.errorMessages[0]).to.include('handlePageFunction timed out');
                 expect(request.errorMessages[1]).to.include('handlePageFunction timed out');
             });
+        });
+    });
+
+    describe('should not timeout by the default httpRequest timeoutSecs', () => {
+        it('when requestTimeoutSecs is grater than 30', async function () {
+            this.timeout(5 * 60 * 1000);
+            const sources = [
+                { url: `http://${HOST}:${port}/timeout?a=12` },
+                { url: `http://${HOST}:${port}/timeout?a=23` },
+            ];
+            const processed = [];
+            const failed = [];
+            const requestList = new Apify.RequestList({ sources });
+            const handlePageFunction = async ({ request }) => {
+                processed.push(request);
+            };
+
+            const cheerioCrawler = new Apify.CheerioCrawler({
+                requestList,
+                maxRequestRetries: 1,
+                requestTimeoutSecs: 35,
+                minConcurrency: 2,
+                maxConcurrency: 2,
+                handlePageFunction,
+                handleFailedRequestFunction: ({ request }) => failed.push(request),
+            });
+
+            await requestList.initialize();
+            await cheerioCrawler.run();
+
+            expect(processed).to.have.lengthOf(2);
+            expect(failed).to.have.lengthOf(0);
         });
     });
 
