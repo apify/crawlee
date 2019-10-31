@@ -7,7 +7,7 @@ import { delayPromise } from 'apify-shared/utilities';
 import * as Apify from '../../build';
 import * as keyValueStore from '../../build/key_value_store';
 import { RequestQueue, RequestQueueLocal } from '../../build/request_queue';
-import { LOCAL_STORAGE_DIR } from '../_helper';
+import { LOCAL_STORAGE_DIR, emptyLocalStorageSubdir } from '../_helper';
 
 describe('BasicCrawler', () => {
     let logLevel;
@@ -598,69 +598,75 @@ describe('BasicCrawler', () => {
         expect(results[0].url).to.be.eql(url);
         results[0].errorMessages.forEach(msg => expect(msg).to.include('handleRequestFunction timed out'));
     });
-    describe('Uses SessionPool', () => {
-        before(() => {
-            process.env.APIFY_LOCAL_STORAGE_DIR = LOCAL_STORAGE_DIR;
-        });
 
-        it('should use SessionPool when useSessionPool is true ', async () => {
-            const url = 'https://example.com';
-            const requestList = new Apify.RequestList({ sources: [{ url }] });
-            await requestList.initialize();
-            const results = [];
-
-            const crawler = new Apify.BasicCrawler({
-                requestList,
-                handleRequestTimeoutSecs: 0.01,
-                maxRequestRetries: 1,
-                useSessionPool: true,
-                handleRequestFunction: async ({ session }) => {
-                    expect(session.constructor.name).to.be.eql('Session');
-                    expect(session.id).to.exist // eslint-disable-line
-                },
-                handleFailedRequestFunction: ({ request }) => results.push(request),
-            });
-
-            await crawler.run();
-            expect(crawler.sessionPool).to.exist; //eslint-disable-line
-            expect(results).length(0);
-        });
-
-        it('should use pass options to sessionPool', async () => {
-            const url = 'https://example.com';
-            const requestList = new Apify.RequestList({ sources: [{ url }] });
-            await requestList.initialize();
-
-            const crawler = new Apify.BasicCrawler({
-                requestList,
-                handleRequestTimeoutSecs: 0.01,
-                maxRequestRetries: 1,
-                useSessionPool: true,
-                sessionPoolOptions: {
-                    maxPoolSize: 10,
-                },
-                handleRequestFunction: async () => {},
-                handleFailedRequestFunction: () => {},
-            });
-            await crawler.run();
-
-            expect(crawler.sessionPool.maxPoolSize).to.be.eql(10);
-        });
-
-        it('should not use SessionPool by default', async () => {
-            const url = 'https://example.com?a=1';
-            const requestList = await Apify.openRequestList('my', [url]);
-
-            const crawler = new Apify.BasicCrawler({
-                requestList,
-                handleRequestTimeoutSecs: 0.01,
-                maxRequestRetries: 1,
-                handleRequestFunction: async () => {},
-                handleFailedRequestFunction: () => {},
-            });
-            await crawler.run();
-
-            expect(crawler.sessionPool).to.be.undefined; // eslint-disable-line
-        });
-    });
+    // describe('Uses SessionPool', () => {
+    //     before(() => {
+    //         process.env.APIFY_LOCAL_STORAGE_DIR = LOCAL_STORAGE_DIR;
+    //     });
+    //
+    //     after(() => {
+    //         // emptyLocalStorageSubdir('key_value_stores/default');
+    //     });
+    //
+    //     xit('should use SessionPool when useSessionPool is true ', async () => {
+    //         const url = 'https://example.com';
+    //         const requestList = new Apify.RequestList({ sources: [{ url }] });
+    //         await requestList.initialize();
+    //         const results = [];
+    //
+    //         const crawler = new Apify.BasicCrawler({
+    //             requestList,
+    //             handleRequestTimeoutSecs: 0.01,
+    //             maxRequestRetries: 1,
+    //             useSessionPool: true,
+    //             handleRequestFunction: async ({ session }) => {
+    //                 expect(session.constructor.name).to.be.eql('Session');
+    //                 expect(session.id).to.exist // eslint-disable-line
+    //             },
+    //             handleFailedRequestFunction: ({ request }) => results.push(request),
+    //         });
+    //
+    //         await crawler.run();
+    //         expect(crawler.sessionPool).to.exist; //eslint-disable-line
+    //         expect(results).length(0);
+    //     });
+    //
+    //     xit('should use pass options to sessionPool', async () => {
+    //         const url = 'https://example.com';
+    //         const requestList = new Apify.RequestList({ sources: [{ url }] });
+    //         await requestList.initialize();
+    //
+    //         const crawler = new Apify.BasicCrawler({
+    //             requestList,
+    //             handleRequestTimeoutSecs: 0.01,
+    //             maxRequestRetries: 1,
+    //             useSessionPool: true,
+    //             sessionPoolOptions: {
+    //                 maxPoolSize: 10,
+    //             },
+    //             handleRequestFunction: async () => {},
+    //             handleFailedRequestFunction: () => {},
+    //         });
+    //         await crawler.run();
+    //
+    //         expect(crawler.sessionPool.maxPoolSize).to.be.eql(10);
+    //     });
+    //
+    //     xit('should not use SessionPool by default', async () => {
+    //         const url = 'https://example.com';
+    //         const requestList = new Apify.RequestList({ sources: [{ url }] });
+    //         await requestList.initialize();
+    //
+    //         const crawler = new Apify.BasicCrawler({
+    //             requestList,
+    //             handleRequestTimeoutSecs: 0.01,
+    //             maxRequestRetries: 1,
+    //             handleRequestFunction: async () => {},
+    //             handleFailedRequestFunction: () => {},
+    //         });
+    //         await crawler.run();
+    //
+    //         expect(crawler.sessionPool).to.be.undefined; // eslint-disable-line
+    //     });
+    // });
 });

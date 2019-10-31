@@ -7,7 +7,7 @@ import events from '../../build/events';
 import { ACTOR_EVENT_NAMES_EX } from '../../build/constants';
 import { Session } from '../../src/session_pool/session';
 
-describe('SessionPool - testing session pool', async () => {
+describe('SessionPool - testing session pool', () => {
     let sessionPool;
 
     before(() => {
@@ -157,7 +157,7 @@ describe('SessionPool - testing session pool', async () => {
     });
 
     it('should create session', async () => {
-       await sessionPool._createSession(); // eslint-disable-line
+        await sessionPool._createSession(); // eslint-disable-line
         expect(sessionPool.sessions.length).to.be.eql(1);
         expect(sessionPool.sessions[0].id).to.exist; // eslint-disable-line
     });
@@ -231,6 +231,7 @@ describe('SessionPool - testing session pool', async () => {
         const createSessionFunction = (sessionPool2) => {
             isCalled = true;
             expect(sessionPool2 instanceof SessionPool).to.be.true; // eslint-disable-line
+            console.log(sessionPool2 instanceof SessionPool);
             return new Session({ sessionPool: sessionPool2 });
         };
         const newSessionPool = await Apify.openSessionPool({ createSessionFunction });
