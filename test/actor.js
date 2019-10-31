@@ -246,6 +246,7 @@ describe('Apify.call()', () => {
         const build = 'xxx';
         const memoryMbytes = 1024;
         const timeoutSecs = 60;
+        const webhooks = ['a', 'b'];
 
         const actsMock = sinon.mock(Apify.client.acts);
         actsMock.expects('runAct')
@@ -257,6 +258,7 @@ describe('Apify.call()', () => {
                 build,
                 memory: memoryMbytes,
                 timeout: timeoutSecs,
+                webhooks,
             })
             .once()
             .returns(Promise.resolve(runningRun));
@@ -276,7 +278,7 @@ describe('Apify.call()', () => {
             .returns(Promise.resolve(output));
 
         return Apify
-            .call(actId, input, { contentType, token, disableBodyParser: true, build, memoryMbytes, timeoutSecs })
+            .call(actId, input, { contentType, token, disableBodyParser: true, build, memoryMbytes, timeoutSecs, webhooks })
             .then((callOutput) => {
                 expect(callOutput).to.be.eql(expected);
                 keyValueStoresMock.restore();
@@ -711,6 +713,7 @@ describe('Apify.callTask()', () => {
         const memoryMbytes = 256;
         const timeoutSecs = 60;
         const build = 'beta';
+        const webhooks = ['a', 'b'];
 
         const tasksMock = sinon.mock(Apify.client.tasks);
         tasksMock.expects('runTask')
@@ -722,6 +725,7 @@ describe('Apify.callTask()', () => {
                 memory: memoryMbytes,
                 timeout: timeoutSecs,
                 build,
+                webhooks,
             })
             .once()
             .returns(Promise.resolve(runningRun));
@@ -743,7 +747,7 @@ describe('Apify.callTask()', () => {
             .returns(Promise.resolve(output));
 
         return Apify
-            .callTask(taskId, input, { token, disableBodyParser: true, memoryMbytes, timeoutSecs, build })
+            .callTask(taskId, input, { token, disableBodyParser: true, memoryMbytes, timeoutSecs, build, webhooks })
             .then((callOutput) => {
                 expect(callOutput).to.be.eql(expected);
                 keyValueStoresMock.restore();
