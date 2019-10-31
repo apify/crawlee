@@ -21,7 +21,7 @@ Apify.main(async () => {
     const browser = await Apify.launchPuppeteer();
 
     // Create and navigate new page
-    console.log('Fill in search form');
+    console.log('Open target page');
     const page = await browser.newPage();
     await page.goto('https://github.com/search/advanced');
 
