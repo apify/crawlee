@@ -357,7 +357,7 @@ class CheerioCrawler {
         const { dom, isXmlOrHtml, body, contentType, responseStream: response } = await addTimeoutToPromise(
             this._requestFunction({ request }),
             this.requestTimeoutMillis,
-            `CheerioCrawler: requestFunction timed out after ${this.requestTimeoutMillis}.`,
+            `CheerioCrawler: request timed out after ${this.requestTimeoutMillis / 1000} seconds.\``,
         );
 
         request.loadedUrl = response.url;
@@ -410,7 +410,7 @@ class CheerioCrawler {
             responseStream = await requestAsBrowser(opts);
         } catch (e) {
             if (e instanceof TimeoutError) {
-                throw new Error(`CheerioCrawler: requestFunction timed out after ${this.requestTimeoutMillis}.`);
+                throw new Error(`CheerioCrawler: request timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`);
             } else {
                 throw e;
             }
