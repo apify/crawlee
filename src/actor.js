@@ -339,6 +339,9 @@ let callMemoryWarningIssued = false;
  * @param {Boolean} [options.disableBodyParser=false]
  *  If `true` then the function will not attempt to parse the
  *  actor's output and will return it in a raw `Buffer`.
+ * @param {Array} [options.webhooks] Specifies optional webhooks associated with the actor run, which can be used
+ *  to receive a notification e.g. when the actor finished or failed, see
+ *  [ad hook webhooks documentation](https://apify.com/docs/webhooks#adhoc) for detailed description.
  * @returns {Promise<ActorRun>}
  * @throws {ApifyCallError} If the run did not succeed, e.g. if it failed or timed out.
  *
@@ -357,7 +360,7 @@ export const call = async (actId, input, options = {}) => {
     checkParamOrThrow(token, 'token', 'Maybe String');
 
     // RunAct() options.
-    const { build, memory, timeoutSecs } = options;
+    const { build, memory, timeoutSecs, webhooks } = options;
     let { memoryMbytes } = options;
     const runActOpts = {
         actId,
@@ -376,10 +379,12 @@ export const call = async (actId, input, options = {}) => {
     checkParamOrThrow(build, 'build', 'Maybe String');
     checkParamOrThrow(memoryMbytes, 'memoryMbytes', 'Maybe Number');
     checkParamOrThrow(timeoutSecs, 'timeoutSecs', 'Maybe Number');
+    checkParamOrThrow(webhooks, 'webhooks', 'Maybe Array');
     if (token) runActOpts.token = token;
     if (build) runActOpts.build = build;
     if (memoryMbytes) runActOpts.memory = memoryMbytes;
     if (timeoutSecs >= 0) runActOpts.timeout = timeoutSecs; // Zero is valid value!
+    if (webhooks) runActOpts.webhooks = webhooks;
     if (input) addInputOptionsOrThrow(input, options.contentType, runActOpts);
 
     // Run actor.
@@ -470,6 +475,9 @@ export const call = async (actId, input, options = {}) => {
  *  If the limit is reached, the returned promise is resolved to a run object that will have
  *  status `READY` or `RUNNING` and it will not contain the actor run output.
  *  If `waitSecs` is null or undefined, the function waits for the actor task to finish (default behavior).
+ * @param {Array} [options.webhooks] Specifies optional webhooks associated with the actor run, which can be used
+ *  to receive a notification e.g. when the actor finished or failed, see
+ *  [ad hook webhooks documentation](https://apify.com/docs/webhooks#adhoc) for detailed description.
  * @returns {Promise<ActorRun>}
  * @throws {ApifyCallError} If the run did not succeed, e.g. if it failed or timed out.
  *
@@ -488,15 +496,17 @@ export const callTask = async (taskId, input, options = {}) => {
     checkParamOrThrow(token, 'token', 'Maybe String');
 
     // Run task options.
-    const { build, memoryMbytes, timeoutSecs } = options;
+    const { build, memoryMbytes, timeoutSecs, webhooks } = options;
     const runTaskOpts = { taskId };
     checkParamOrThrow(build, 'build', 'Maybe String');
     checkParamOrThrow(memoryMbytes, 'memoryMbytes', 'Maybe Number');
     checkParamOrThrow(timeoutSecs, 'timeoutSecs', 'Maybe Number');
+    checkParamOrThrow(webhooks, 'webhooks', 'Maybe Array');
     if (token) runTaskOpts.token = token;
     if (build) runTaskOpts.build = build;
     if (memoryMbytes) runTaskOpts.memory = memoryMbytes;
     if (timeoutSecs >= 0) runTaskOpts.timeout = timeoutSecs; // Zero is valid value!
+    if (webhooks) runTaskOpts.webhooks = webhooks;
     if (input) addInputOptionsOrThrow(input, options.contentType, runTaskOpts);
 
     // Start task.
