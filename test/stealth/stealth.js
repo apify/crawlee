@@ -260,7 +260,5 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
         const fingerprint = values[0];
         expect(fingerprint.webDriver).to.be.false; // eslint-disable-line
         expect(fingerprint.webDriverValue).to.be.undefined; // eslint-disable-line
-
-        console.log(values);
     });
 });
