@@ -215,9 +215,12 @@ function createInterceptRequestHandler(page, requests) {
             method: req.method(),
             payload: req.postData(),
         }));
-        req.respond(req.redirectChain().length
-            ? { body: '' } // Prevents 301/302 redirect
-            : { status: 204 }); // Prevents navigation by js
+
+        if (req.redirectChain().length) {
+            req.respond({ body: '' }); // Prevents 301/302 redirect
+        } else {
+            req.abort('aborted'); // Prevents navigation by js
+        }
     };
 }
 
