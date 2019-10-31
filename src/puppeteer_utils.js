@@ -11,6 +11,8 @@ import Request from './request';
 import { enqueueLinks } from './enqueue_links/enqueue_links';
 import { enqueueLinksByClickingElements } from './enqueue_links/click_elements';
 import { addInterceptRequestHandler, removeInterceptRequestHandler } from './puppeteer_request_interception';
+import { apifyClient } from './utils';
+import { setValue } from './key_value_store';
 
 const jqueryPath = require.resolve('jquery/dist/jquery.min');
 const underscorePath = require.resolve('underscore/underscore-min');
@@ -511,6 +513,31 @@ export const infiniteScroll = async (page, options = {}) => {
     }
 };
 
+const saveSnapshot = async (page, key, options = {}) => {
+    try {
+        checkParamOrThrow(page, 'page', 'Object');
+        checkParamOrThrow(options, 'options', 'Object');
+
+        const { saveScreenshot = true, saveHtml = true } = options;
+
+        checkParamOrThrow(saveScreenshot, 'timeoutSecs', 'Boolean');
+        checkParamOrThrow(saveHtml, 'waitForSecs', 'Boolean');
+
+        if (saveScreenshot) {
+            const screenshotBuffer = await page.screenshot({ fullPage: true });
+            await setValue(`${key}.png`, screenshotBuffer, { contentType: 'image/png' });
+        }
+        if (saveHtml) {
+            const html = await page.content();
+            await setValue(`${key}.html`, html, { contentType: 'text/html' });
+        }
+    } catch (e) {
+        // I like this more than having to investigate stack trace
+        log.error(`saveSnapshot with key ${key} failed with error:`);
+        throw e;
+    }
+};
+
 let logEnqueueLinksDeprecationWarning = true;
 
 /**
@@ -556,4 +583,5 @@ export const puppeteerUtils = {
     addInterceptRequestHandler,
     removeInterceptRequestHandler,
     infiniteScroll,
+    saveSnapshot,
 };
