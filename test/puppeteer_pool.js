@@ -226,8 +226,6 @@ describe('PuppeteerPool', () => {
         await pool.destroy();
     });
 
-    // Test started failing on 6.10.2018. Probably some change upstream.
-    // Disabling the feature until resolved.
     it('supports recycleDiskCache option', async () => {
         const pool = new Apify.PuppeteerPool({
             maxOpenPagesPerInstance: 1,
@@ -287,9 +285,6 @@ describe('PuppeteerPool', () => {
         expect(cookies2before.length).to.be.eql(0);
 
         await page2.goto(url);
-
-        const cookies2after = await page2.cookies(url);
-        expect(cookies2after.length).to.be.at.least(1);
 
         expect(fromDiskCache2).to.be.at.least(1);
 
@@ -473,6 +468,23 @@ describe('PuppeteerPool', () => {
             expect(matches(fourthPage)).to.be.eql(1);
             expect(matches(fifthPage)).to.be.eql(2);
 
+            await pool.destroy();
+        });
+    });
+
+    describe('useIncognitoPages', () => {
+        it('opens a page in incognito browser context', async () => {
+            const pool = new Apify.PuppeteerPool({
+                useIncognitoPages: true,
+            });
+            const page = await pool.newPage();
+            const browser = page.browser();
+            const context = page.browserContext();
+            expect(context.isIncognito()).to.be.eql(true);
+            await page.close();
+            const contexts = browser.browserContexts();
+            expect(contexts).to.have.lengthOf(1);
+            expect(contexts[0].isIncognito()).to.be.eql(false);
             await pool.destroy();
         });
     });

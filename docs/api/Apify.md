@@ -27,6 +27,7 @@ separate, detailed, documentation pages accessible from the left sidebar.
     -   [`.openKeyValueStore([storeIdOrName], [options])`](#module_Apify.openKeyValueStore) ⇒ [`Promise<KeyValueStore>`](keyvaluestore)
     -   [`.openRequestList`](#module_Apify.openRequestList) ⇒ [`Promise<RequestList>`](requestlist)
     -   [`.openRequestQueue`](#module_Apify.openRequestQueue) ⇒ [`Promise<RequestQueue>`](requestqueue)
+    -   [`.openSessionPool`](#module_Apify.openSessionPool) ⇒ [`Promise<SessionPool>`](sessionpool)
     -   [`.pushData(item)`](#module_Apify.pushData) ⇒ `Promise`
     -   [`.setValue(key, value, [options])`](#module_Apify.setValue) ⇒ `Promise`
 
@@ -82,7 +83,7 @@ effect.
 <td colspan="3"><p>Idempotency key enables you to ensure that a webhook will not be added multiple times in case of
   an actor restart or other situation that would cause the <code>addWebhook()</code> function to be called again.
   We suggest using the actor run ID as the idempotency key. You can get the run ID by calling
-  <a href="apify#module_Apify.getEnv">`Apify.getEnv()</a> function.</p>
+  [`Apify.getEnv()](apify#module_Apify.getEnv) function.</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.call"></a>
@@ -359,7 +360,7 @@ The following table shows all currently emitted events:
         </tr>
         <tr>
             <td colspan="2">
-                Emitted in regular intervals to notify all components of Apify SDK that it is time to persist
+                Emitted in regular intervals (by default 60 seconds) to notify all components of Apify SDK that it is time to persist
                 their state, in order to avoid repeating all work when the actor restarts.
                 This event is automatically emitted together with the <code>migrating</code> event,
                 in which case the <code>isMigrating</code> flag is set to <code>true</code>. Otherwise the flag is <code>false</code>.
@@ -627,12 +628,13 @@ For an example of usage, see the [Synchronous run Example](../examples/synchrono
 
 ## `Apify.main(userFunc)`
 
-Runs the main user function that performs the job of the actor.
+Runs the main user function that performs the job of the actor and terminates the process when the user function finishes.
 
-`Apify.main()` is especially useful when you're running your code in an actor on the Apify platform. Note that its use is optional - the function is
-provided merely for your convenience.
+_The `Apify.main()` function is optional_ and is provided merely for your convenience. It is especially useful when you're running your code as an
+actor on the [Apify platform](https://apify.com/actors). However, if you want to use Apify SDK tools directly inside your existing projects or outside
+of Apify platform, it's probably better to avoid it since it terminates the main process.
 
-The function performs the following actions:
+The `Apify.main()` function performs the following actions:
 
 <ol>
   <li>When running on the Apify platform (i.e. <code>APIFY_IS_AT_HOME</code> environment variable is set),
@@ -913,6 +915,28 @@ For more details and code examples, see the [`RequestQueue`](requestqueue) class
 <tr>
 <td colspan="3"><p>If set to <code>true</code> then the function uses cloud storage usage even if the <code>APIFY_LOCAL_STORAGE_DIR</code>
   environment variable is set. This way it is possible to combine local and cloud storage.</p>
+</td></tr></tbody>
+</table>
+<a name="module_Apify.openSessionPool"></a>
+
+## `Apify.openSessionPool` ⇒ [`Promise<SessionPool>`](sessionpool)
+
+Opens a SessionPool and returns a promise resolving to an instance of the [`SessionPool`](sessionpool) class that is already initialized.
+
+For more details and code examples, see the [`SessionPool`](sessionpool) class.
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sessionPoolOptions</code></td><td><code>Object</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>The <a href="sessionpool#new_SessionPool_new"><code>new SessionPool</code></a> options</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.pushData"></a>

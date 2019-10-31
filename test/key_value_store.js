@@ -93,11 +93,21 @@ describe('KeyValueStore', () => {
             expect(await store2.getValue('key-ctype')).to.be.eql(buffer);
             expect(await store2.getValue('key-badctype')).to.be.eql(buffer);
 
-            // Delete works.
+            // Drop works.
             const storeDir = path.join(LOCAL_STORAGE_DIR, LOCAL_STORAGE_SUBDIR, 'my-store-id');
             expectDirNonEmpty(storeDir);
-            await store.delete();
+            await store.drop();
             expectDirEmpty(storeDir);
+        });
+
+        it('deprecated delete() still works', async () => {
+            const kvs = new KeyValueStoreLocal('to-delete', LOCAL_STORAGE_DIR);
+            await kvs.setValue('dummy', { foo: 'bar' });
+
+            const kvsDir = path.join(LOCAL_STORAGE_DIR, LOCAL_STORAGE_SUBDIR, 'to-delete');
+            expectDirNonEmpty(kvsDir);
+            await kvs.delete();
+            expectDirEmpty(kvsDir);
         });
     });
 
@@ -141,17 +151,30 @@ describe('KeyValueStore', () => {
                 .returns(Promise.resolve(null));
             await store.setValue('key-1', null);
 
-            // Delete.
+            // Drop.
             mock.expects('deleteStore')
                 .once()
                 .withArgs({
                     storeId: 'some-id-1',
                 })
                 .returns(Promise.resolve());
-            await store.delete();
+            await store.drop();
 
             mock.verify();
             mock.restore();
+        });
+
+        it('deprecated delete() still works', async () => {
+            const mock = sinon.mock(apifyClient.keyValueStores);
+            const kvs = new KeyValueStore('some-id', 'some-name');
+            mock.expects('deleteStore')
+                .once()
+                .withArgs({ storeId: 'some-id' })
+                .resolves();
+
+            await kvs.drop();
+
+            mock.verify();
         });
     });
 
@@ -464,10 +487,10 @@ describe('KeyValueStore', () => {
                 expect(r[0]).to.be.eql(`key${i + 4}`);
             });
 
-            // Delete works.
+            // Drop works.
             const storeDir = path.join(LOCAL_STORAGE_DIR, LOCAL_STORAGE_SUBDIR, storeId);
             expectDirNonEmpty(storeDir);
-            await store.delete();
+            await store.drop();
             expectDirEmpty(storeDir);
         });
     });
@@ -476,8 +499,8 @@ describe('KeyValueStore', () => {
         it('should work', async () => {
             process.env[ENV_VARS.LOCAL_STORAGE_DIR] = LOCAL_STORAGE_DIR;
             const defaultStore = await Apify.openKeyValueStore();
-
             // Uses default value.
+            const oldGet = defaultStore.getValue;
             defaultStore.getValue = async key => expect(key).to.be.eql(KEY_VALUE_STORE_KEYS.INPUT);
             await Apify.getInput();
 
@@ -488,6 +511,8 @@ describe('KeyValueStore', () => {
 
             delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
             delete process.env[ENV_VARS.INPUT_KEY];
+
+            defaultStore.getValue = oldGet;
         });
     });
 });

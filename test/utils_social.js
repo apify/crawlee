@@ -8,8 +8,6 @@ chai.use(chaiAsPromised);
 
 const { social } = Apify.utils;
 
-/* global describe, it */
-
 describe('utils.social', () => {
     describe('emailsFromText()', () => {
         const testEmailsFromText = (text, phones) => {

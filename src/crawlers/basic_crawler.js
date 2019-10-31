@@ -113,7 +113,8 @@ const DEFAULT_OPTIONS = {
  *   provided to the `options.handleFailedRequestFunction` parameter.
  *   To make this work, you should **always**
  *   let your function throw exceptions rather than catch them.
- *   The exceptions are logged to the request using the {@link Request.pushErrorMessage} function.
+ *   The exceptions are logged to the request using the
+ *   [`request.pushErrorMessage`](request#Request+pushErrorMessage) function.
  * @param {RequestList} options.requestList
  *   Static list of URLs to be processed.
  *   Either `requestList` or `requestQueue` option must be provided (or both).

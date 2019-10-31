@@ -1,11 +1,33 @@
 NEXT
 ====================
 - Bump Puppeteer to 1.19.0 and use `{ pipe: true }` again because upstream bug has been fixed.
+- Add `useIncognitoPages` option to `PuppeteerPool` to enable opening new pages in incognito
+  browser contexts. This is useful to keep cookies and cache unique for each page.
+
+0.16.0 / 2019-08-15
+====================
+- This release updates `@apify/http-request` to version 1.1.2.
+- Update `CheerioCrawler` to use `requestAsBrowser()` to better disguise as a real browser.
+
+
+0.15.5 / 2019-08-15
+====================
+- This release just updates some dependencies (not Puppeteer).
+
+0.15.4 / 2019-08-02
+====================
+- **DEPRECATED**: `dataset.delete()`, `keyValueStore.delete()` and `requestQueue.delete()` methods have been
+  deprecated in favor of `*.drop()` methods, because the `drop` name more clearly communicates the fact
+  that those methods drop / delete the storage itself, not individual elements in the storage.
+- Added `Apify.utils.requestAsBrowser()` helper function that enables you to make HTTP(S) requests disguising
+  as a browser (Firefox). This may help in overcoming certain anti-scraping and anti-bot protections.
 - Added `options.gotoTimeoutSecs` to `PuppeteerCrawler` to enable easier setting of navigation timeouts.
 - `PuppeteerPool` options that were deprecated from the `PuppeteerCrawler` constructor were finally removed.
   Please use `maxOpenPagesPerInstance`, `retireInstanceAfterRequestCount`, `instanceKillerIntervalSecs`,
   `killInstanceAfterSecs` and `proxyUrls` via the `puppeteerPoolOptions` object.
 - On the Apify Platform a warning will now be printed when using an outdated `apify` package version.
+- `Apify.utils.puppeteer.enqueueLinksByClickingElements()` will now print a warning when the nodes it
+  tries to click become modified (detached from DOM). This is useful to debug unexpected behavior.
 
 0.15.3 / 2019-07-29
 ====================

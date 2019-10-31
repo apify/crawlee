@@ -4,6 +4,7 @@ import fs from 'fs-extra';
 import _ from 'underscore';
 import { leftpad } from 'apify-shared/utilities';
 import LruCache from 'apify-shared/lru_cache';
+import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, MAX_PAYLOAD_SIZE_BYTES } from 'apify-shared/consts';
 import { apifyClient, ensureDirExists, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists } from './utils';
@@ -250,13 +251,28 @@ export class Dataset {
      *   By default, the element name is `page` or `result`, depending on the value of the `simplified` option.
      * @param {Boolean} [options.skipHeaderRow=false]
      *   If set to `true` then header row in CSV format is skipped.
+     * @param {Boolean} [options.clean=false]
+     *   If `true` then the function returns only non-empty items and skips hidden fields (i.e. fields starting with `#` character).
+     *   Note that the `clean` parameter is a shortcut for `skipHidden: true` and `skipEmpty: true` options.
+     * @param {Boolean} [options.skipHidden=false]
+     *   If `true` then the function doesn't return hidden fields (fields starting with "#" character).
+     * @param {Boolean} [options.skipEmpty=false]
+     *   If `true` then the function doesn't return empty items.
+     *   Note that in this case the returned number of items might be lower than limit parameter and pagination must be done using the `limit` value.
      * @param {Boolean} [options.simplified]
-     *   If set to `true` then function applies the `fields: ['url','pageFunctionResult','errorInfo']` and `unwind: 'pageFunctionResult'` options.
+     *   If `true` then function applies the `fields: ['url','pageFunctionResult','errorInfo']` and `unwind: 'pageFunctionResult'` options.
+     *   This feature is used to emulate simplified results provided by Apify API version 1 used for
+     *   the legacy Apify Crawler and it's not recommended to use it in new integrations.
      * @param {Boolean} [options.skipFailedPages]
-     *   If set to `true` then all the items with errorInfo property will be skipped from the output.
+     *   If `true` then, the all the items with errorInfo property will be skipped from the output.
+     *   This feature is here to emulate functionality of Apify API version 1 used for
+     *   the legacy Apify Crawler product and it's not recommended to use it in new integrations.
      * @return {Promise<Object>}
      */
     getData(options = {}) {
+        // TODO (JC): Do we really need this function? It only works with API but not locally,
+        // and it's just 1:1 copy of what apify-client provides, and returns { items } which can
+        // be a Buffer ... it doesn't really make much sense
         const { datasetId } = this;
         const params = Object.assign({ datasetId }, options);
 
@@ -417,15 +433,17 @@ export class Dataset {
      *
      * @return {Promise}
      */
-    delete() {
-        return datasets
-            .deleteDataset({
-                datasetId: this.datasetId,
-            })
-            .then(() => {
-                datasetsCache.remove(this.datasetId);
-                if (this.datasetName) datasetsCache.remove(this.datasetName);
-            });
+    async drop() {
+        await datasets.deleteDataset({ datasetId: this.datasetId });
+        datasetsCache.remove(this.datasetId);
+        if (this.datasetName) datasetsCache.remove(this.datasetName);
+    }
+
+    /** @ignore */
+    async delete() {
+        log.deprecated('dataset.delete() is deprecated. Please use dataset.drop() instead. '
+            + 'This is to make it more obvious to users that the function deletes the dataset and not individual records in the dataset.');
+        await this.drop();
     }
 }
 
@@ -577,13 +595,17 @@ export class DatasetLocal {
         return memo;
     }
 
-    delete() {
-        return this.initializationPromise
-            .then(() => emptyDirPromised(this.localStoragePath))
-            .then(() => {
-                this._updateMetadata(true);
-                datasetsCache.remove(this.datasetId);
-            });
+    async drop() {
+        await this.initializationPromise;
+        await emptyDirPromised(this.localStoragePath);
+        this._updateMetadata(true);
+        datasetsCache.remove(this.datasetId);
+    }
+
+    async delete() {
+        log.deprecated('dataset.delete() is deprecated. Please use dataset.drop() instead. '
+            + 'This is to make it more obvious to users that the function deletes the dataset and not individual records in the dataset.');
+        await this.drop();
     }
 
     /**

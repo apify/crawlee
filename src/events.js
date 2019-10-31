@@ -4,6 +4,7 @@ import log from 'apify-shared/log';
 import { ENV_VARS, ACTOR_EVENT_NAMES } from 'apify-shared/consts';
 import { ACTOR_EVENT_NAMES_EX } from './constants';
 
+// NOTE: This value is mentioned below in docs, if you update it here, update it there too.
 const PERSIST_STATE_INTERVAL_MILLIS = 60 * 1000;
 
 /**
@@ -75,7 +76,7 @@ let persistStateInterval = null;
  *         </tr>
  *         <tr>
  *             <td colspan="2">
- *                 Emitted in regular intervals to notify all components of Apify SDK that it is time to persist
+ *                 Emitted in regular intervals (by default 60 seconds) to notify all components of Apify SDK that it is time to persist
  *                 their state, in order to avoid repeating all work when the actor restarts.
  *                 This event is automatically emitted together with the <code>migrating</code> event,
  *                 in which case the <code>isMigrating</code> flag is set to <code>true</code>. Otherwise the flag is <code>false</code>.

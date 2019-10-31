@@ -52,7 +52,7 @@ await dataset.pushData([{ foo: 'bar2', col2: 'val2' }, { col3: 123 }]);
     -   [`.forEach(iteratee, [options], [index])`](#Dataset+forEach) ⇒ `Promise`
     -   [`.map(iteratee, options)`](#Dataset+map) ⇒ `Promise<Array>`
     -   [`.reduce(iteratee, memo, options)`](#Dataset+reduce) ⇒ `Promise<*>`
-    -   [`.delete()`](#Dataset+delete) ⇒ `Promise`
+    -   [`.drop()`](#Dataset+drop) ⇒ `Promise`
 
 <a name="Dataset+pushData"></a>
 
@@ -190,15 +190,36 @@ Returns items in the dataset based on the provided parameters. The returned obje
 <tr>
 <td colspan="3"><p>If set to <code>true</code> then header row in CSV format is skipped.</p>
 </td></tr><tr>
+<td><code>[options.clean]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>If <code>true</code> then the function returns only non-empty items and skips hidden fields (i.e. fields starting with <code>#</code> character).
+  Note that the <code>clean</code> parameter is a shortcut for <code>skipHidden: true</code> and <code>skipEmpty: true</code> options.</p>
+</td></tr><tr>
+<td><code>[options.skipHidden]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>If <code>true</code> then the function doesn&#39;t return hidden fields (fields starting with &quot;#&quot; character).</p>
+</td></tr><tr>
+<td><code>[options.skipEmpty]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>If <code>true</code> then the function doesn&#39;t return empty items.
+  Note that in this case the returned number of items might be lower than limit parameter and pagination must be done using the <code>limit</code> value.</p>
+</td></tr><tr>
 <td><code>[options.simplified]</code></td><td><code>Boolean</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>If set to <code>true</code> then function applies the <code>fields: [&#39;url&#39;,&#39;pageFunctionResult&#39;,&#39;errorInfo&#39;]</code> and <code>unwind: &#39;pageFunctionResult&#39;</code> options.</p>
+<td colspan="3"><p>If <code>true</code> then function applies the <code>fields: [&#39;url&#39;,&#39;pageFunctionResult&#39;,&#39;errorInfo&#39;]</code> and <code>unwind: &#39;pageFunctionResult&#39;</code> options.
+  This feature is used to emulate simplified results provided by Apify API version 1 used for
+  the legacy Apify Crawler and it&#39;s not recommended to use it in new integrations.</p>
 </td></tr><tr>
 <td><code>[options.skipFailedPages]</code></td><td><code>Boolean</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>If set to <code>true</code> then all the items with errorInfo property will be skipped from the output.</p>
+<td colspan="3"><p>If <code>true</code> then, the all the items with errorInfo property will be skipped from the output.
+  This feature is here to emulate functionality of Apify API version 1 used for
+  the legacy Apify Crawler product and it&#39;s not recommended to use it in new integrations.</p>
 </td></tr></tbody>
 </table>
 <a name="Dataset+getInfo"></a>
@@ -411,8 +432,8 @@ If `iteratee()` returns a `Promise` then it's awaited before a next call.
 <td colspan="3"><p>How many items to load in one request.</p>
 </td></tr></tbody>
 </table>
-<a name="Dataset+delete"></a>
+<a name="Dataset+drop"></a>
 
-## `dataset.delete()` ⇒ `Promise`
+## `dataset.drop()` ⇒ `Promise`
 
 Removes the dataset either from the Apify cloud storage or from the local directory, depending on the mode of operation.

@@ -1,18 +1,22 @@
 /* eslint-disable class-methods-use-this */
-
-import util from 'util';
-import zlib from 'zlib';
-import rqst from 'request';
 import _ from 'underscore';
 import cheerio from 'cheerio';
-import contentType from 'content-type';
 import htmlparser from 'htmlparser2';
+import util from 'util';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
+import contentTypeParser from 'content-type';
+import { readStreamToString, concatStreamToBuffer } from 'apify-shared/streams_utilities';
 import BasicCrawler from './basic_crawler';
 import { addTimeoutToPromise } from '../utils';
 import { getApifyProxyUrl } from '../actor';
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
+import { requestAsBrowser } from '../utils_request';
+
+/**
+ * Default mime types, which CheerioScraper supports.
+ */
+const DEFAULT_MIME_TYPES = ['text/html', 'application/xhtml+xml'];
 
 const DEFAULT_OPTIONS = {
     requestTimeoutSecs: 30,
@@ -33,6 +37,7 @@ const DEFAULT_OPTIONS = {
             maxEventLoopOverloadedRatio: 0.7,
         },
     },
+    additionalMimeTypes: [],
 };
 
 /**
@@ -86,7 +91,7 @@ const DEFAULT_OPTIONS = {
  * // Crawl the URLs
  * const crawler = new Apify.CheerioCrawler({
  *     requestList,
- *     handlePageFunction: async ({ request, response, html, $ }) => {
+ *     handlePageFunction: async ({ request, response, body, contentType, $ }) => {
  *         const data = [];
  *
  *         // Do some data extraction from the page with Cheerio.
@@ -97,7 +102,7 @@ const DEFAULT_OPTIONS = {
  *         // Save the data to dataset.
  *         await Apify.pushData({
  *             url: request.url,
- *             html,
+ *             html: body,
  *             data,
  *         })
  *     },
@@ -116,12 +121,23 @@ const DEFAULT_OPTIONS = {
  * ```
  * {
  *   $: Cheerio, // the Cheerio object with parsed HTML
- *   html: String // the raw HTML of the page, lazy loaded only when used
+ *   body: String|Buffer // the request body of the web page
  *   request: Request,
+ *   contentType: Object, // Parsed `Content-Type` header
  *   response: Object // An instance of Node's http.IncomingMessage object,
  *   autoscaledPool: AutoscaledPool
  * }
  * ```
+ *   Type of `body` depends on web page `Content-Type` header.
+ *   - String for `text/html`, `application/xhtml+xml`, `application/xml` mime types
+ *   - Buffer for others mime types
+ *
+ *   Parsed `Content-Type` header using
+ *   <a href="https://www.npmjs.com/package/content-type" target="_blank">content-type package</a>
+ *   is stored in `contentType`.
+ *
+ *   Cheerio is available only for HTML and XML content types.
+ *
  *   With the {@link Request} object representing the URL to crawl.
  *
  *   If the function returns a promise, it is awaited by the crawler.
@@ -132,7 +148,8 @@ const DEFAULT_OPTIONS = {
  *   provided to the `options.handleFailedRequestFunction` parameter.
  *   To make this work, you should **always**
  *   let your function throw exceptions rather than catch them.
- *   The exceptions are logged to the request using the {@link Request.pushErrorMessage} function.
+ *   The exceptions are logged to the request using the
+ *   [`request.pushErrorMessage`](request#Request+pushErrorMessage) function.
  * @param {RequestList} options.requestList
  *   Static list of URLs to be processed.
  *   Either `requestList` or `requestQueue` option must be provided (or both).
@@ -181,8 +198,7 @@ const DEFAULT_OPTIONS = {
  * @param {Number} [options.requestTimeoutSecs=30]
  *   Timeout in which the HTTP request to the resource needs to finish, given in seconds.
  * @param {Boolean} [options.ignoreSslErrors=false]
- *   If set to true, SSL certificate errors will be ignored. This is dependent on using the default
- *   request function. If using a custom `options.requestFunction`, user needs to implement this functionality.
+ *   If set to true, SSL certificate errors will be ignored.
  * @param {Boolean} [options.useApifyProxy=false]
  *   If set to `true`, `CheerioCrawler` will be configured to use
  *   <a href="https://my.apify.com/proxy" target="_blank">Apify Proxy</a> for all connections.
@@ -217,6 +233,10 @@ const DEFAULT_OPTIONS = {
  *
  *   See <a href="https://github.com/apifytech/apify-js/blob/master/src/crawlers/cheerio_crawler.js#L13">source code</a>
  *   for the default implementation of this function.
+ * @param {String[]} [options.additionalMimeTypes]
+ *   An array of <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types"
+ *   target="_blank">mime types</a> you want to process.
+ *   By default `text/html`, `application/xhtml+xml` mime types are supported.
  * @param {Number} [options.maxRequestRetries=3]
  *   Indicates how many times the request is retried if either `requestFunction` or `handlePageFunction` fails.
  * @param {Number} [options.maxRequestsPerCrawl]
@@ -249,6 +269,7 @@ class CheerioCrawler {
             apifyProxyGroups,
             apifyProxySession,
             proxyUrls,
+            additionalMimeTypes,
 
             // Autoscaled pool shorthands
             minConcurrency,
@@ -274,9 +295,13 @@ class CheerioCrawler {
         checkParamOrThrow(apifyProxySession, 'options.apifyProxySession', 'Maybe String');
         checkParamOrThrow(proxyUrls, 'options.proxyUrls', 'Maybe [String]');
         checkParamOrThrow(prepareRequestFunction, 'options.prepareRequestFunction', 'Maybe Function');
+        checkParamOrThrow(additionalMimeTypes, 'options.additionalMimeTypes', '[String]');
         // Enforce valid proxy configuration
         if (proxyUrls && !proxyUrls.length) throw new Error('Parameter "options.proxyUrls" of type Array must not be empty');
         if (useApifyProxy && proxyUrls) throw new Error('Cannot combine "options.useApifyProxy" with "options.proxyUrls"!');
+
+        this.supportedMimeTypes = new Set(DEFAULT_MIME_TYPES);
+        if (additionalMimeTypes.length) this._extendSupportedMimeTypes(additionalMimeTypes);
 
         this.requestOptions = requestOptions;
         this.handlePageFunction = handlePageFunction;
@@ -306,8 +331,6 @@ class CheerioCrawler {
             autoscaledPoolOptions,
         });
 
-        // See the _suppressTunnelAgentAssertError function.
-        this.tunnelAgentExceptionListener = null;
         this.isRunningPromise = null;
     }
 
@@ -319,11 +342,8 @@ class CheerioCrawler {
     async run() {
         if (this.isRunningPromise) return this.isRunningPromise;
 
-        this._suppressTunnelAgentAssertError();
         this.isRunningPromise = this.basicCrawler.run();
         await this.isRunningPromise;
-        process.removeListener('uncaughtException', this.tunnelAgentExceptionListener);
-        this.tunnelAgentExceptionListener = null;
     }
 
     /**
@@ -333,22 +353,35 @@ class CheerioCrawler {
      */
     async _handleRequestFunction({ request, autoscaledPool }) {
         if (this.prepareRequestFunction) await this.prepareRequestFunction({ request });
-        const { dom, response } = await addTimeoutToPromise(
+        const { dom, isXmlOrHtml, body, contentType, responseStream: response } = await addTimeoutToPromise(
             this._requestFunction({ request }),
             this.requestTimeoutMillis,
             'CheerioCrawler: requestFunction timed out.',
         );
 
-        request.loadedUrl = response.request.uri.href;
+        request.loadedUrl = response.url;
 
-        const $ = cheerio.load(dom);
+        const $ = dom ? cheerio.load(dom, { xmlMode: isXmlOrHtml }) : null;
         const context = {
             $,
             // Using a getter here not to break the original API
             // and lazy load the HTML only when needed.
             get html() {
-                return $.html({ decodeEntities: false });
+                log.deprecated('CheerioCrawler: The "html" parameter of handlePageFunction is deprecated, use "body" instead.');
+                return dom && !isXmlOrHtml ? $.html({ decodeEntities: false }) : undefined;
             },
+            get json() {
+                if (contentType.type !== 'application/json') return null;
+                const jsonString = body.toString(contentType.encoding);
+                return JSON.parse(jsonString);
+            },
+            get body() {
+                if (dom) {
+                    return isXmlOrHtml ? $.xml() : $.html({ decodeEntities: false });
+                }
+                return body;
+            },
+            contentType,
             request,
             response,
             autoscaledPool,
@@ -363,79 +396,39 @@ class CheerioCrawler {
     /**
      * Function to make the HTTP request. It performs optimizations
      * on the request such as only downloading the request body if the
-     * received content type matches text/html.
+     * received content type matches text/html, application/xml, application/xhtml+xml.
      * @ignore
      */
     async _requestFunction({ request }) {
-        return new Promise((resolve, reject) => {
-            // Using the streaming API of Request to be able to
-            // handle the response based on headers receieved.
-            const opts = this._getRequestOptions(request);
-            const method = opts.method.toLowerCase();
-            rqst[method](opts)
-                .on('error', err => reject(err))
-                .on('response', async (response) => {
-                    // First check what kind of response we received.
-                    let cType;
-                    try {
-                        cType = contentType.parse(response);
-                    } catch (err) {
-                        response.destroy();
-                        // No reason to parse the body if the Content-Type header is invalid.
-                        return reject(new Error(`CheerioCrawler: Invalid Content-Type header for URL: ${request.url}`));
-                    }
+        // Using the streaming API of Request to be able to
+        // handle the response based on headers receieved.
+        const opts = this._getRequestOptions(request);
 
-                    const { type, encoding } = cType;
+        const responseStream = await requestAsBrowser(opts);
+        const { statusCode, headers } = responseStream;
+        const contentType = contentTypeParser.parse(headers['content-type']);
+        const { type, encoding } = contentType;
+        if (statusCode >= 500) {
+            const body = await readStreamToString(responseStream, encoding);
 
-                    // 500 codes are handled as errors, requests will be retried.
-                    const status = response.statusCode;
-                    if (status >= 500) {
-                        let body;
-                        try {
-                            body = await this._stringifyResponseBody(this._decompressResponse(response), encoding);
-                        } catch (err) {
-                            // Error in reading the body.
-                            return reject(err);
-                        }
-                        // Errors are often sent as JSON, so attempt to parse them,
-                        // despite Accept header being set to text/html.
-                        if (type === 'application/json') {
-                            const errorResponse = JSON.parse(body);
-                            let { message } = errorResponse;
-                            if (!message) message = util.inspect(errorResponse, { depth: 1, maxArrayLength: 10 });
-                            return reject(new Error(`${status} - ${message}`));
-                        }
-                        // It's not a JSON so it's probably some text. Get the first 100 chars of it.
-                        return reject(new Error(`CheerioCrawler: ${status} - Internal Server Error: ${body.substr(0, 100)}`));
-                    }
+            // Errors are often sent as JSON, so attempt to parse them,
+            // despite Accept header being set to text/html.
+            if (type === 'application/json') {
+                const errorResponse = JSON.parse(body);
+                let { message } = errorResponse;
+                if (!message) message = util.inspect(errorResponse, { depth: 1, maxArrayLength: 10 });
+                throw new Error(`${statusCode} - ${message}`);
+            }
 
-                    // Handle situations where the server explicitly states that
-                    // it will not serve the resource as text/html by skipping.
-                    if (status === 406) {
-                        request.noRetry = true;
-                        response.destroy();
-                        return reject(new Error(`CheerioCrawler: Resource ${request.url} is not available in HTML format. Skipping resource.`));
-                    }
-
-                    // Other 200-499 responses are considered OK, but first check the content type.
-                    if (type !== 'text/html') {
-                        request.noRetry = true;
-                        response.destroy();
-                        return reject(new Error(
-                            `CheerioCrawler: Resource ${request.url} served Content-Type ${type} instead of text/html. Skipping resource.`,
-                        ));
-                    }
-
-                    // Content-Type is fine. Read the body and respond.
-                    try {
-                        const dom = await this._parseHtmlToDom(this._decompressResponse(response));
-                        resolve({ dom, response });
-                    } catch (err) {
-                        // Error in reading the body.
-                        reject(err);
-                    }
-                });
-        });
+            // It's not a JSON so it's probably some text. Get the first 100 chars of it.
+            throw new Error(`CheerioCrawler: ${statusCode} - Internal Server Error: ${body.substr(0, 100)}`);
+        } else if (type === 'text/html' || type === 'application/xhtml+xml' || type === 'application/xml') {
+            const dom = await this._parseHtmlToDom(responseStream);
+            return ({ dom, isXmlOrHtml: type.includes('xml'), responseStream, contentType });
+        } else {
+            const body = await concatStreamToBuffer(responseStream);
+            return { body, responseStream, contentType };
+        }
     }
 
     /**
@@ -447,15 +440,32 @@ class CheerioCrawler {
         const mandatoryRequestOptions = {
             url: request.url,
             method: request.method,
-            headers: Object.assign({}, request.headers, {
-                Accept: 'text/html',
-                'Accept-Encoding': 'gzip, deflate',
-            }),
-            strictSSL: !this.ignoreSslErrors,
-            proxy: this._getProxyUrl(),
+            headers: Object.assign({}, request.headers),
+            ignoreSslErrors: this.ignoreSslErrors,
+            proxyUrl: this._getProxyUrl(),
+            stream: true,
+            useCaseSensitiveHeaders: true,
+            abortFunction: (res) => {
+                const { statusCode, headers } = res;
+
+                const { type } = contentTypeParser.parse(headers['content-type']);
+
+                if (statusCode === 406) {
+                    request.noRetry = true;
+                    throw new Error(`CheerioCrawler: Resource ${request.url} is not available in HTML format. Skipping resource.`);
+                }
+
+                if (!this.supportedMimeTypes.has(type) && statusCode < 500) {
+                    request.noRetry = true;
+                    throw new Error(`CheerioCrawler: Resource ${request.url} served Content-Type ${type}, `
+                        + `but only ${Array.from(this.supportedMimeTypes).join(', ')} are allowed. Skipping resource.`);
+                }
+
+                return false;
+            },
         };
 
-        if (/PATCH|POST|PUT/.test(request.method)) mandatoryRequestOptions.body = request.payload;
+        if (/PATCH|POST|PUT/.test(request.method)) mandatoryRequestOptions.payload = request.payload;
 
         return Object.assign({}, this.requestOptions, mandatoryRequestOptions);
     }
@@ -480,27 +490,6 @@ class CheerioCrawler {
         return null;
     }
 
-    /**
-     * Flushes the provided stream into a Buffer and transforms
-     * it to a String using the provided encoding or utf-8 as default.
-     *
-     * @param {http.IncomingMessage} response
-     * @param {String} [encoding]
-     * @private
-     */
-    async _stringifyResponseBody(response, encoding) {
-        return new Promise((resolve, reject) => {
-            const chunks = [];
-            response
-                .on('data', chunk => chunks.push(chunk))
-                .on('error', reject)
-                .on('end', () => {
-                    const buffer = Buffer.concat(chunks);
-                    resolve(buffer.toString(encoding));
-                });
-        });
-    }
-
 
     async _parseHtmlToDom(response) {
         return new Promise((resolve, reject) => {
@@ -514,56 +503,21 @@ class CheerioCrawler {
     }
 
     /**
-     * If the stream data is compressed, decompresses it using
-     * the Content-Encoding header.
-     *
-     * @param {http.IncomingMessage} response
-     * @return {http.IncomingMessage}
-     * @private
-     */
-    _decompressResponse(response) {
-        const compression = response.headers['content-encoding'];
-        if (!compression) return response;
-        let decompressor;
-        if (compression === 'gzip') decompressor = zlib.createGunzip();
-        else if (compression === 'deflate') decompressor = zlib.createInflate();
-        else throw new Error(`CheerioCrawler: Invalid Content-Encoding header. Expected gzip or deflate, but received: ${compression}`);
-        return response.pipe(decompressor);
-    }
-
-    /**
-     * The handler this function attaches overcomes a long standing bug in
-     * the tunnel-agent NPM package that is used by the Request package internally.
-     * The package throws an assertion error in a callback scope that cannot be
-     * caught by conventional means and shuts down the running process.
+     * Checks and extends supported mime types
+     * @param additionalMimeTypes
      * @ignore
      */
-    _suppressTunnelAgentAssertError() {
-        // Only set the handler if it's not already set.
-        if (this.tunnelAgentExceptionListener) return;
-        this.tunnelAgentExceptionListener = (err) => {
+    _extendSupportedMimeTypes(additionalMimeTypes) {
+        additionalMimeTypes.forEach((mimeType) => {
             try {
-                const code = err.code === 'ERR_ASSERTION';
-                const name = err.name === 'AssertionError [ERR_ASSERTION]';
-                const operator = err.operator === '==';
-                const value = err.expected === 0;
-                const stack = err.stack.includes('/tunnel-agent/index.js');
-                // If this passes, we can be reasonably sure that it's
-                // the right error from tunnel-agent.
-                if (code && name && operator && value && stack) {
-                    log.error('CheerioCrawler: Tunnel-Agent assertion error intercepted. The affected request will timeout.');
-                    return;
-                }
-            } catch (caughtError) {
-                // Catch any exception resulting from the duck-typing
-                // check. It only means that the error is not the one
-                // we're looking for.
+                const parsedType = contentTypeParser.parse(mimeType);
+                this.supportedMimeTypes.add(parsedType.type);
+            } catch (err) {
+                throw new Error(`CheerioCrawler: Can not parse mime type ${mimeType} from "options.additionalMimeTypes".`);
             }
-            // Rethrow the original error if it's not a match.
-            throw err;
-        };
-        process.on('uncaughtException', this.tunnelAgentExceptionListener);
+        });
     }
 }
+
 
 export default CheerioCrawler;

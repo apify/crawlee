@@ -20,7 +20,7 @@ await Apify.utils.sleep(1500);
 
 -   [`utils`](#utils) : `object`
     -   [`.enqueueLinks`](#utils.enqueueLinks) ⇒ `Promise<Array<QueueOperationInfo>>`
-    -   [`.requestAsBrowser`](#utils.requestAsBrowser) ⇒ `http.IncomingMessage`
+    -   [`.requestAsBrowser`](#utils.requestAsBrowser) ⇒ `Promise<(http.IncomingMesage|stream.Readable)>`
     -   [`.sleep`](#utils.sleep) ⇒ `Promise`
     -   [`.URL_NO_COMMAS_REGEX`](#utils.URL_NO_COMMAS_REGEX)
     -   [`.URL_WITH_COMMAS_REGEX`](#utils.URL_WITH_COMMAS_REGEX)
@@ -118,17 +118,26 @@ objects.
 <td><code>[options.transformRequestFunction]</code></td><td><code>function</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>Just before a new <a href="request"><code>Request</code></a> is constructed and enqueued to the <a href="requestqueue"><code>RequestQueue</code></a>, this function can be used
+<td colspan="3"><p><strong>Signature:</strong> (<a href="request"><code>Request</code></a>): <a href="request"><code>Request</code></a></p>
+<p>  Just before a new <a href="request"><code>Request</code></a> is constructed and enqueued to the <a href="requestqueue"><code>RequestQueue</code></a>, this function can be used
   to remove it or modify its contents such as <code>userData</code>, <code>payload</code> or, most importantly <code>uniqueKey</code>. This is useful
   when you need to enqueue multiple <code>Requests</code> to the queue that share the same URL, but differ in methods or payloads,
   or to dynamically update or create <code>userData</code>.</p>
 <p>  For example: by adding <code>keepUrlFragment: true</code> to the <code>request</code> object, URL fragments will not be removed
   when <code>uniqueKey</code> is computed.</p>
+<p>  <strong>Example:</strong></p>
+<pre><code class="language-javascript">  {
+      transformRequestFunction: (request) =&gt; {
+          request.userData.foo = &#39;bar&#39;;
+          request.keepUrlFragment = true;
+          return request;
+      }
+  }</code></pre>
 </td></tr></tbody>
 </table>
 <a name="utils.requestAsBrowser"></a>
 
-## `utils.requestAsBrowser` ⇒ `http.IncomingMessage`
+## `utils.requestAsBrowser` ⇒ `Promise<(http.IncomingMesage|stream.Readable)>`
 
 Sends a HTTP request that looks like a request sent by a web browser, fully emulating browser's HTTP headers.
 

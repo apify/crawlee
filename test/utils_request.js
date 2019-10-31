@@ -177,10 +177,10 @@ describe('Apify.utils_request', () => {
             expect(response.statusCode).to.eql(200);
 
 
-            expect(headersArray[0]).to.be.eql('User-Agent');
-            expect(headersArray[1]).to.be.eql(FIREFOX_DESKTOP_USER_AGENT);
-            expect(headersArray[2]).to.be.eql('Host');
-            expect(headersArray[3]).to.be.eql(host);
+            expect(headersArray[0]).to.be.eql('Host');
+            expect(headersArray[1]).to.be.eql(host);
+            expect(headersArray[2]).to.be.eql('User-Agent');
+            expect(headersArray[3]).to.be.eql(FIREFOX_DESKTOP_USER_AGENT);
             expect(headersArray[4]).to.be.eql('Accept');
             expect(headersArray[5]).to.be.eql('text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8');
             expect(headersArray[6]).to.be.eql('Accept-Language');
