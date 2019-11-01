@@ -96,7 +96,6 @@ export class SessionPool extends EventEmitter {
         this.createSessionFunction = createSessionFunction || this._defaultCreateSessionFunction;
 
         // Session configuration
-        // @TODO: Maybe options.sessionOptions / this.sessionOptions?
         this.maxSessionAgeSecs = maxSessionAgeSecs;
         this.maxSessionUsageCount = maxSessionUsageCount;
 
@@ -137,7 +136,9 @@ export class SessionPool extends EventEmitter {
         // in case of migration happened and SessionPool state should be restored from the keyValueStore.
         await this._maybeLoadSessionPool();
 
-        events.on(ACTOR_EVENT_NAMES_EX.PERSIST_STATE, this.persistState.bind(this));
+        this._listener = this.persistState.bind(this);
+
+        events.on(ACTOR_EVENT_NAMES_EX.PERSIST_STATE, this._listener);
     }
 
     /**
@@ -190,6 +191,14 @@ export class SessionPool extends EventEmitter {
                 persistStateKey: this.persistStateKey,
             });
         await this.keyValueStore.setValue(this.persistStateKey, this.getState());
+    }
+
+    /**
+     * Removes listener from `persistState` event.
+     * This function should be called after you are done with using the `SessionPool` instance.
+     */
+    teardown() {
+        events.removeListener(ACTOR_EVENT_NAMES_EX.PERSIST_STATE, this._listener);
     }
 
     /**
@@ -296,7 +305,7 @@ export class SessionPool extends EventEmitter {
         }
 
         log.debug(`SessionPool: Loaded ${this.sessions.length} Sessions from KeyValueStore`);
-        log.debug(`SessionPool: Active sessions ${this.activeSessionsCount} Sessions from KeyValueStore`);
+        log.debug(`SessionPool: Active sessions ${this.usableSessionsCount} Sessions from KeyValueStore`);
     }
 }
 

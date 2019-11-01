@@ -8,6 +8,7 @@ import * as Apify from '../../build';
 import * as keyValueStore from '../../build/key_value_store';
 import { RequestQueue, RequestQueueLocal } from '../../build/request_queue';
 import { LOCAL_STORAGE_DIR, emptyLocalStorageSubdir } from '../_helper';
+import events from '../../build/events';
 
 describe('BasicCrawler', () => {
     let logLevel;
@@ -15,8 +16,8 @@ describe('BasicCrawler', () => {
     before(() => {
         logLevel = log.getLevel();
         log.setLevel(log.LEVELS.OFF);
+        process.env.APIFY_LOCAL_STORAGE_DIR = LOCAL_STORAGE_DIR;
         emptyLocalStorageSubdir('key_value_stores/default');
-
     });
 
     after(() => {
@@ -631,7 +632,7 @@ describe('BasicCrawler', () => {
             expect(results).length(0);
         });
 
-        xit('should use pass options to sessionPool', async () => {
+        it('should use pass options to sessionPool', async () => {
             const url = 'https://example.com';
             const requestList = new Apify.RequestList({ sources: [{ url }] });
             await requestList.initialize();
@@ -650,6 +651,34 @@ describe('BasicCrawler', () => {
             });
             await crawler.run();
 
+            expect(crawler.sessionPool.maxPoolSize).to.be.eql(10);
+        });
+
+        it('should teardown Session pool after it is finished', async () => {
+            const url = 'https://example.com';
+            const requestList = new Apify.RequestList({ sources: [{ url }] });
+            await requestList.initialize();
+            events.removeAllListeners(ACTOR_EVENT_NAMES.PERSIST_STATE);
+
+            const crawler = new Apify.BasicCrawler({
+                requestList,
+                handleRequestTimeoutSecs: 0.01,
+                maxRequestRetries: 1,
+                useSessionPool: true,
+                sessionPoolOptions: {
+                    maxPoolSize: 10,
+                },
+                handleRequestFunction: async () => {},
+                handleFailedRequestFunction: () => {},
+            });
+
+            crawler._loadHandledRequestCount = () => { // eslint-disable-line
+                expect(crawler.sessionPool).to.exist; // eslint-disable-line
+                expect(events.listenerCount(ACTOR_EVENT_NAMES.PERSIST_STATE)).to.be.eql(1);
+            };
+
+            await crawler.run();
+            expect(events.listenerCount(ACTOR_EVENT_NAMES.PERSIST_STATE)).to.be.eql(0);
             expect(crawler.sessionPool.maxPoolSize).to.be.eql(10);
         });
 

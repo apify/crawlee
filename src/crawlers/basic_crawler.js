@@ -286,6 +286,10 @@ class BasicCrawler {
         try {
             await this.isRunningPromise;
         } finally {
+            if (this.useSessionPool) {
+                this.sessionPool.teardown();
+            }
+
             this.stats.stopLogging();
             const finalStats = this.stats.getCurrent();
             log.info('Crawler final request statistics:', finalStats);
