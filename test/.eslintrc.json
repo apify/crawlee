@@ -9,6 +9,7 @@
         "afterAll": false,
         "beforeEach": false,
         "afterEach": false,
-        "expect": false
+        "expect": false,
+        "test": false
     }
 }

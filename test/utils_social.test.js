@@ -1,9 +1,6 @@
 import _ from 'underscore';
-import chaiAsPromised from 'chai-as-promised';
 // import * as utils from '../build/utils';
 import Apify from '../build/index';
-
-chai.use(chaiAsPromised);
 
 const { social } = Apify.utils;
 

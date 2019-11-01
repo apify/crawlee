@@ -1,12 +1,9 @@
-import chaiAsPromised from 'chai-as-promised';
 import _ from 'underscore';
 import { delayPromise } from 'apify-shared/utilities';
 import log from 'apify-shared/log';
 import AutoscaledPool from '../../build/autoscaling/autoscaled_pool';
 
 /* eslint-disable no-underscore-dangle */
-
-chai.use(chaiAsPromised);
 
 describe('AutoscaledPool', () => {
     let logLevel;

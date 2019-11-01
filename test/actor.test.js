@@ -1,6 +1,5 @@
 import path from 'path';
 import _ from 'underscore';
-import chaiSubset from 'chai-subset';
 import sinon from 'sinon';
 import { delayPromise } from 'apify-shared/utilities';
 import { ENV_VARS, ACT_JOB_STATUSES, LOCAL_ENV_VARS } from 'apify-shared/consts';
@@ -8,8 +7,6 @@ import { ApifyCallError } from '../build/errors';
 
 // NOTE: test use of require() here because this is how its done in acts
 const Apify = require('../build/index');
-
-chai.use(chaiSubset);
 
 const { utils: { log } } = Apify;
 

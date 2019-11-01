@@ -1,4 +1,3 @@
-import chaiAsPromised from 'chai-as-promised';
 import proxy from 'proxy';
 import http from 'http';
 import util from 'util';
@@ -10,8 +9,6 @@ import { ENV_VARS } from 'apify-shared/consts';
 import Apify from '../build/index';
 import * as actor from '../build/actor';
 import * as utils from '../build/utils';
-
-chai.use(chaiAsPromised);
 
 let prevEnvHeadless;
 let proxyServer;

@@ -1,11 +1,6 @@
 import fs from 'fs-extra';
 import path from 'path';
-import chaiSubset from 'chai-subset';
-import chaiAsPromised from 'chai-as-promised';
 import { ENV_VARS } from 'apify-shared/consts';
-
-chai.use(chaiSubset);
-chai.use(chaiAsPromised);
 
 export const LOCAL_STORAGE_DIR = path.join(__dirname, '..', 'tmp', 'local-emulation-dir');
 
