@@ -1,0 +1,115 @@
+import { main } from "./actor";
+import { getEnv } from "./actor";
+import { call } from "./actor";
+import { callTask } from "./actor";
+import { metamorph } from "./actor";
+import { getMemoryInfo } from "./utils";
+import { getApifyProxyUrl } from "./actor";
+import { isAtHome } from "./utils";
+import { apifyClient } from "./utils";
+import { addWebhook } from "./actor";
+import AutoscaledPool from "./autoscaling/autoscaled_pool";
+import BasicCrawler from "./crawlers/basic_crawler";
+import CheerioCrawler from "./crawlers/cheerio_crawler";
+import { pushData } from "./dataset";
+import { openDataset } from "./dataset";
+import events from "./events";
+import { initializeEvents } from "./events";
+import { stopEvents } from "./events";
+import { getValue } from "./key_value_store";
+import { setValue } from "./key_value_store";
+import { getInput } from "./key_value_store";
+import { openKeyValueStore } from "./key_value_store";
+import { launchPuppeteer } from "./puppeteer";
+import PuppeteerPool from "./puppeteer_pool";
+import PuppeteerCrawler from "./crawlers/puppeteer_crawler";
+import PseudoUrl from "./pseudo_url";
+import Request from "./request";
+import { RequestList } from "./request_list";
+import { openRequestList } from "./request_list";
+import { openRequestQueue } from "./request_queue";
+import { openSessionPool } from "./session_pool/session_pool";
+import LiveViewServer from "./live_view/live_view_server";
+import { Session } from "./session_pool/session";
+declare const exportedUtils: {
+    isDocker: (forceReset: any) => Promise<any>;
+    sleep: (millis: number) => Promise<any>;
+    downloadListOfUrls: ({ url, encoding, urlRegExp }: {
+        url: string;
+        encoding?: string;
+        urlRegExp?: RegExp;
+    }) => Promise<string[]>;
+    extractUrls: ({ string, urlRegExp }: {
+        string: string;
+        urlRegExp?: RegExp;
+    }) => string[];
+    getRandomUserAgent: () => string;
+    htmlToText: (html: TimerHandler) => string;
+    URL_NO_COMMAS_REGEX: RegExp;
+    URL_WITH_COMMAS_REGEX: RegExp;
+    createRequestDebugInfo: (request: any, response?: any, additionalFields?: any) => any;
+    parseContentTypeFromResponse: (response: any) => {
+        type: string;
+        charset: string;
+    };
+} & {
+    puppeteer: {
+        hideWebDriver: (page: any) => Promise<any>;
+        injectFile: (page: any, filePath: string, options?: {
+            surviveNavigations?: boolean;
+        }) => Promise<any>;
+        injectJQuery: (page: any) => Promise<any>;
+        injectUnderscore: (page: any) => Promise<any>;
+        enqueueRequestsFromClickableElements: (page: any, selector: any, purls: any, requestQueue: any, requestOpts?: {}) => Promise<any[]>;
+        enqueueLinks: (...args: any[]) => Promise<any[]>;
+        enqueueLinksByClickingElements: typeof import("./enqueue_links/click_elements").enqueueLinksByClickingElements;
+        blockRequests: (page: any, options?: {
+            urlPatterns?: string[];
+            extraUrlPatterns?: boolean;
+        }) => Promise<any>;
+        blockResources: (page: any, resourceTypes?: string[]) => Promise<void>;
+        cacheResponses: (page: any, cache: any, responseUrlRules: (string | RegExp)[]) => Promise<any>;
+        compileScript: (scriptString: string, context?: any) => Function;
+        gotoExtended: (page: any, request: Request, gotoOptions?: any) => Promise<Response>;
+        addInterceptRequestHandler: (page: any, handler: Function) => Promise<any>;
+        removeInterceptRequestHandler: (page: any, handler: Function) => Promise<any>;
+        infiniteScroll: (page: any, options?: {
+            timeoutSecs?: number;
+            waitForSecs?: number;
+        }) => Promise<any>;
+        saveSnapshot: (page: any, options?: {
+            key?: string;
+            screenshotQuality?: number;
+            saveScreenshot?: boolean;
+            saveHtml?: boolean;
+            keyValueStoreName?: string;
+        }) => Promise<any>;
+    };
+    social: {
+        emailsFromText: (text: string) => string[];
+        emailsFromUrls: (urls: string[]) => string[];
+        phonesFromText: (text: string) => string[];
+        phonesFromUrls: (urls: string[]) => string[];
+        parseHandlesFromHtml: (html: string, data?: any) => any;
+        EMAIL_REGEX: RegExp;
+        EMAIL_REGEX_GLOBAL: RegExp;
+        LINKEDIN_REGEX: RegExp;
+        LINKEDIN_REGEX_GLOBAL: RegExp;
+        INSTAGRAM_REGEX: RegExp;
+        INSTAGRAM_REGEX_GLOBAL: RegExp;
+        TWITTER_REGEX: RegExp;
+        TWITTER_REGEX_GLOBAL: RegExp;
+        FACEBOOK_REGEX: RegExp;
+        FACEBOOK_REGEX_GLOBAL: RegExp;
+        YOUTUBE_REGEX: RegExp;
+        YOUTUBE_REGEX_GLOBAL: RegExp;
+    };
+    log: typeof log;
+    enqueueLinks: typeof enqueueLinks;
+    requestAsBrowser: (options: any) => Promise<any>;
+};
+declare namespace log {
+    export const logJson: boolean;
+}
+import { enqueueLinks } from "./enqueue_links/enqueue_links";
+export { main, getEnv, call, callTask, metamorph, getMemoryInfo, getApifyProxyUrl, isAtHome, apifyClient as client, addWebhook, AutoscaledPool, BasicCrawler, CheerioCrawler, pushData, openDataset, events, initializeEvents, stopEvents, getValue, setValue, getInput, openKeyValueStore, launchPuppeteer, PuppeteerPool, PuppeteerCrawler, PseudoUrl, Request, RequestList, openRequestList, openRequestQueue, openSessionPool, LiveViewServer, Session, exportedUtils as utils };
