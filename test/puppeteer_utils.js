@@ -396,7 +396,7 @@ describe('Apify.utils.puppeteer', () => {
                 .withExactArgs('TEST-STORE')
                 .resolves(object);
 
-            await Apify.utils.puppeteer.saveSnapshot(page, { key: 'TEST', storeName: 'TEST-STORE' });
+            await Apify.utils.puppeteer.saveSnapshot(page, { key: 'TEST', keyValueStoreName: 'TEST-STORE' });
 
             expect(stub.calledWithExactly('TEST.png', screenshot, { contentType: 'image/png' })).to.be.eql(true);
             expect(stub.calledWithExactly('TEST.html', contentHTML, { contentType: 'text/html' })).to.be.eql(true);

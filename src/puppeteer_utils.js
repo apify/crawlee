@@ -537,15 +537,15 @@ const saveSnapshot = async (page, options = {}) => {
         checkParamOrThrow(page, 'page', 'Object');
         checkParamOrThrow(options, 'options', 'Object');
 
-        const { saveScreenshot = true, saveHtml = true, storeName = null } = options;
+        const { saveScreenshot = true, saveHtml = true, keyValueStoreName = null } = options;
         key = options.key || DEFAULT_KEY;
 
         checkParamOrThrow(saveScreenshot, 'saveScreenshot', 'Boolean');
         checkParamOrThrow(saveHtml, 'saveHtml', 'Boolean');
         checkParamOrThrow(key, 'key', 'String');
-        checkParamOrThrow(storeName, 'storeName', 'Maybe String');
+        checkParamOrThrow(keyValueStoreName, 'keyValueStoreName', 'Maybe String');
 
-        const store = await openKeyValueStore(storeName);
+        const store = await openKeyValueStore(keyValueStoreName);
 
         if (saveScreenshot) {
             const screenshotBuffer = await page.screenshot({ fullPage: true });
