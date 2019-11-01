@@ -1,7 +1,12 @@
 NEXT
 ====================
+- **DEPRECATED**: `Apify.callTask()` `body` and `contentType` options are now deprecated.
+  Use `input` instead. It must be of `content-type: application/json`.
+- Add the ability to create ad-hoc webhooks via `Apify.call()` and `Apify.callTask()`.
+- Add an example of form filling with `Puppeteer`.  
 - Fix a race condition in `RequestQueueLocal`.
-- Fix RequestList persist downloaded sources in key-value store
+- Fix `RequestList` persistence of downloaded sources in key-value store.
+- Fix `Apify.utils.puppeteer.blockRequests()` always including default patterns.
 
 0.16.1 / 2019-10-31
 ====================
