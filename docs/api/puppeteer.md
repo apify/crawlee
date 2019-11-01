@@ -28,6 +28,7 @@ await puppeteer.injectJQuery(page);
     -   [`.removeInterceptRequestHandler`](#puppeteer.removeInterceptRequestHandler) ⇒ `Promise`
     -   [`.gotoExtended`](#puppeteer.gotoExtended) ⇒ `Promise<Response>`
     -   [`.infiniteScroll`](#puppeteer.infiniteScroll) ⇒ `Promise`
+    -   [`.saveSnapshot`](#puppeteer.saveSnapshot) ⇒ `Promise`
     -   [`.injectFile(page, filePath, [options])`](#puppeteer.injectFile) ⇒ `Promise`
     -   [`.injectJQuery(page)`](#puppeteer.injectJQuery) ⇒ `Promise`
     -   [`.injectUnderscore(page)`](#puppeteer.injectUnderscore) ⇒ `Promise`
@@ -318,6 +319,51 @@ Scrolls to the bottom of a page, or until it times out. Loads dynamic content wh
 </tr>
 <tr>
 <td colspan="3"><p>How many seconds to wait for no new content to load before exit.</p>
+</td></tr></tbody>
+</table>
+<a name="puppeteer.saveSnapshot"></a>
+
+## `puppeteer.saveSnapshot` ⇒ `Promise`
+
+Saves a full screenshot and HTML of the current page into a Key-Value store.
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th><th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>page</code></td><td><code>Object</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.</p>
+</td></tr><tr>
+<td><code>[options]</code></td><td><code>Object</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"></td></tr><tr>
+<td><code>[options.key]</code></td><td><code>String</code></td><td><code>SNAPSHOT</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Key under which the screenshot and HTML will be saved. <code>.png</code> will be appended for screenshot and <code>.html</code> for HTML.
+  Must contain only letters, numbers, dashes, dots and underscores.</p>
+</td></tr><tr>
+<td><code>[options.saveScreenshot]</code></td><td><code>Boolean</code></td><td><code>true</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>If true, it will save a full screenshot of the current page with as a record with key appended by <code>.png</code>.</p>
+</td></tr><tr>
+<td><code>[options.saveHtml]</code></td><td><code>Boolean</code></td><td><code>true</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>If true, it will save a full HTML of the current page with as a record with key appended by <code>.html</code>.</p>
+</td></tr><tr>
+<td><code>[options.storeName]</code></td><td><code>String</code></td><td><code></code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Name or id of the Key-Value store where snapshot is saved. By default it is saved to default Key-Value store.</p>
 </td></tr></tbody>
 </table>
 <a name="puppeteer.injectFile"></a>

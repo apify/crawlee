@@ -377,39 +377,40 @@ describe('Apify.utils.puppeteer', () => {
         }
     });
 
-
     it('saveSnapshot() works', async () => {
         const mock = sinon.mock(keyValueStore);
         const browser = await Apify.launchPuppeteer({ headless: true });
         try {
             const page = await browser.newPage();
-            let count = 0;
-            const content = Array(10).fill(null).map(() => {
-                return `<div style="border: 1px solid black">Div number: ${count++}</div>`;
-            });
-            const contentHTML = `<html><head></head><body>${content}</body></html>`;
+            const contentHTML = '<html><head></head><body><div style="border: 1px solid black">Div number: 1</div></body></html>';
             await page.setContent(contentHTML);
 
             const screenshot = await page.screenshot({ fullPage: true });
 
-            mock.expects('setValue')
+            // Test saving both image and html
+            const object = { setValue: async () => {} };
+            const stub = sinon.stub(object, 'setValue');
+
+            mock.expects('openKeyValueStore')
                 .once()
-                .withArgs('TEST.png', screenshot, { contentType: 'image/png' })
-                .returns(Promise.resolve());
+                .withExactArgs('TEST-STORE')
+                .resolves(object);
 
-            mock.expects('setValue')
-                .once()
-                .withArgs('TEST.html', contentHTML, { contentType: 'text/html' })
-                .returns(Promise.resolve());
+            await Apify.utils.puppeteer.saveSnapshot(page, { key: 'TEST', storeName: 'TEST-STORE' });
 
-            await Apify.utils.puppeteer.saveSnapshot(page, 'TEST');
+            expect(stub.calledWithExactly('TEST.png', screenshot, { contentType: 'image/png' })).to.be.eql(true);
+            expect(stub.calledWithExactly('TEST.html', contentHTML, { contentType: 'text/html' })).to.be.eql(true);
 
-            mock.expects('setValue')
-                .once()
-                .withArgs('TEST.png', screenshot, { contentType: 'image/png' })
-                .returns(Promise.resolve());
+            // Test saving only image
+            const object2 = { setValue: async () => {} };
+            const stub2 = sinon.stub(object2, 'setValue');
+            mock.expects('openKeyValueStore')
+                .withExactArgs(null)
+                .resolves(object2);
 
-            await Apify.utils.puppeteer.saveSnapshot(page, 'TEST', { saveHtml: false });
+            await Apify.utils.puppeteer.saveSnapshot(page, { saveHtml: false });
+
+            expect(stub2.calledOnceWithExactly('SNAPSHOT.png', screenshot, { contentType: 'image/png' })).to.be.eql(true);
 
             mock.verify();
         } finally {
