@@ -508,7 +508,6 @@ export const callTask = async (taskId, input, options = {}) => {
     if (timeoutSecs >= 0) runTaskOpts.timeout = timeoutSecs; // Zero is valid value!
     if (input) runTaskOpts.input = input;
     if (webhooks) runTaskOpts.webhooks = webhooks;
-    if (input) addInputOptionsOrThrow(input, options.contentType, runTaskOpts);
 
     // Start task.
     const { waitSecs } = options;

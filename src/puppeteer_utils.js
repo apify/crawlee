@@ -243,23 +243,15 @@ const blockRequests = async (page, options = {}) => {
     checkParamOrThrow(page, 'page', 'Object');
     checkParamOrThrow(options, 'options', 'Object');
 
-    if (options.includeDefaults === false) {
-        log.deprecated('Apify.utils.puppeteer.blockRequests() includeDefaults option '
-            + 'has been replaced by a more clear extraUrlPatterns option. See docs.');
-    }
-
     const {
         urlPatterns = DEFAULT_BLOCK_REQUEST_URL_PATTERNS,
         extraUrlPatterns = [],
-        includeDefaults = true,
     } = options;
 
     checkParamOrThrow(urlPatterns, 'options.urlPatterns', '[String]');
     checkParamOrThrow(extraUrlPatterns, 'options.extraUrlPatterns', '[String]');
 
-    const patternsToBlock = includeDefaults
-        ? [...DEFAULT_BLOCK_REQUEST_URL_PATTERNS, ...urlPatterns, ...extraUrlPatterns]
-        : [...urlPatterns, ...extraUrlPatterns];
+    const patternsToBlock = [...urlPatterns, ...extraUrlPatterns];
 
     await page._client.send('Network.setBlockedURLs', { urls: patternsToBlock }); // eslint-disable-line no-underscore-dangle
 };

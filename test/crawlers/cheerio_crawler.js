@@ -315,7 +315,7 @@ describe('CheerioCrawler', () => {
     });
 
     describe('should not timeout by the default httpRequest timeoutSecs', () => {
-        it('when requestTimeoutSecs is grater than 30', async function () {
+        xit('when requestTimeoutSecs is grater than 30', async function () {
             this.timeout(5 * 60 * 1000);
             const sources = [
                 { url: `http://${HOST}:${port}/timeout?a=12` },

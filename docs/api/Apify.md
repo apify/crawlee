@@ -191,6 +191,13 @@ actor</a> and several other API endpoints to obtain the output.
 <tr>
 <td colspan="3"><p>If <code>true</code> then the function will not attempt to parse the
  actor&#39;s output and will return it in a raw <code>Buffer</code>.</p>
+</td></tr><tr>
+<td><code>[options.webhooks]</code></td><td><code>Array</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Specifies optional webhooks associated with the actor run, which can be used
+ to receive a notification e.g. when the actor finished or failed, see
+ <a href="https://apify.com/docs/webhooks#adhoc">ad hook webhooks documentation</a> for detailed description.</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.callTask"></a>
@@ -290,6 +297,13 @@ obtain the output.
  If the limit is reached, the returned promise is resolved to a run object that will have
  status <code>READY</code> or <code>RUNNING</code> and it will not contain the actor run output.
  If <code>waitSecs</code> is null or undefined, the function waits for the actor task to finish (default behavior).</p>
+</td></tr><tr>
+<td><code>[options.webhooks]</code></td><td><code>Array</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Specifies optional webhooks associated with the actor run, which can be used
+ to receive a notification e.g. when the actor finished or failed, see
+ <a href="https://apify.com/docs/webhooks#adhoc">ad hook webhooks documentation</a> for detailed description.</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.client"></a>
@@ -866,10 +880,11 @@ const requestList = await Apify.openRequestList('my-name', sources);
 <tr>
 <td colspan="3"><p>An array of sources of URLs for the <code>RequestList</code>.
  It can be either an array of plain objects that
- define the <code>url</code> property, or an array of instances of the <a href="request"><code>Request</code></a> class.
- Additionally, the <code>requestsFromUrl</code> property may be used instead of <code>url</code>,
+ define the <code>url</code> property, or an array of instances of the <a href="request"><code>Request</code></a> class.</p>
+<p> Additionally, the <code>requestsFromUrl</code> property may be used instead of <code>url</code>,
  which will instruct <code>RequestList</code> to download the source URLs from a given remote location.
- The URLs will be parsed from the received response.</p>
+ The URLs will be parsed from the received response. In this case you can limit the URLs
+using <code>regex</code> parameter containing regular expression pattern for URLs to be included.</p>
 <p> For details, see the <a href="requestlist#new_RequestList_new"><code>RequestList</code></a>
  constructor options.</p>
 </td></tr><tr>
