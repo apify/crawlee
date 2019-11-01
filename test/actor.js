@@ -1049,6 +1049,12 @@ describe('Apify.getApifyProxyUrl()', () => {
         expect(Apify.getApifyProxyUrl({
             session: 'XYZ',
             groups: ['g1', 'g2', 'g3'],
+            country: 'US',
+        })).to.be.eql('http://groups-g1+g2+g3,session-XYZ,country-US:abc123@my.host.com:123');
+
+        expect(Apify.getApifyProxyUrl({
+            session: 'XYZ',
+            groups: ['g1', 'g2', 'g3'],
         })).to.be.eql('http://groups-g1+g2+g3,session-XYZ:abc123@my.host.com:123');
 
         expect(Apify.getApifyProxyUrl({
@@ -1059,7 +1065,10 @@ describe('Apify.getApifyProxyUrl()', () => {
             session: 'XYZ',
         })).to.be.eql('http://session-XYZ:abc123@my.host.com:123');
 
+        expect(Apify.getApifyProxyUrl({ country: 'US' })).to.be.eql('http://country-US:abc123@my.host.com:123');
+
         expect(Apify.getApifyProxyUrl()).to.be.eql('http://auto:abc123@my.host.com:123');
+
 
         delete process.env[ENV_VARS.PROXY_PASSWORD];
         delete process.env[ENV_VARS.PROXY_HOSTNAME];
@@ -1141,6 +1150,16 @@ describe('Apify.getApifyProxyUrl()', () => {
         expect(() => Apify.getApifyProxyUrl({ groups: ['ffff', 'ff-hf', 'ccc'] })).to.throw();
         expect(() => Apify.getApifyProxyUrl({ groups: ['ffff', 'fff', 'cc$c'] })).to.throw();
         expect(() => Apify.getApifyProxyUrl({ apifyProxyGroups: [new Date()] })).to.throw();
+
+
+        expect(() => Apify.getApifyProxyUrl({ country: new Date() })).to.throw();
+        expect(() => Apify.getApifyProxyUrl({ country: 'aa' })).to.throw();
+        expect(() => Apify.getApifyProxyUrl({ country: 'aB' })).to.throw();
+        expect(() => Apify.getApifyProxyUrl({ country: 'Ba' })).to.throw();
+        expect(() => Apify.getApifyProxyUrl({ country: '11' })).to.throw();
+        expect(() => Apify.getApifyProxyUrl({ country: 'DDDD' })).to.throw();
+        expect(() => Apify.getApifyProxyUrl({ country: 'dddd' })).to.throw();
+        expect(() => Apify.getApifyProxyUrl({ country: 1111 })).to.throw();
 
         delete process.env[ENV_VARS.PROXY_PASSWORD];
         delete process.env[ENV_VARS.PROXY_HOSTNAME];

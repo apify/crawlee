@@ -121,3 +121,5 @@ export const APIFY_API_BASE_URL = 'https://api.apify.com/v2';
  * @type {number}
  */
 export const BASIC_CRAWLER_TIMEOUT_MULTIPLIER = 10;
+
+export const COUNTRY_CODE_REGEX = /^[A-Z]{2}$/;
