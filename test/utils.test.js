@@ -122,7 +122,7 @@ describe('utils.isDocker()', () => {
 });
 
 describe('utils.getMemoryInfo()', () => {
-    test('works WITHOUT child process outside the container', () => {
+    test('works WITHOUT child process outside the container', async () => {
         const osMock = sinon.mock(os);
         const utilsMock = sinon.mock(utils);
 
@@ -141,23 +141,22 @@ describe('utils.getMemoryInfo()', () => {
             .once()
             .returns(333);
 
-        return Apify
-            .getMemoryInfo()
-            .then((data) => {
-                expect(data).toMatchObject({
-                    totalBytes: 333,
-                    freeBytes: 222,
-                    usedBytes: 111,
-                    childProcessesBytes: 0,
-                });
-                expect(data.mainProcessBytes).toBeGreaterThanOrEqual(20000000);
-
-                utilsMock.restore();
-                osMock.restore();
+        try {
+            const data = await Apify.getMemoryInfo();
+            expect(data).toMatchObject({
+                totalBytes: 333,
+                freeBytes: 222,
+                usedBytes: 111,
+                childProcessesBytes: 0,
             });
+            expect(data.mainProcessBytes).toBeGreaterThanOrEqual(20000000);
+        } finally {
+            utilsMock.verify();
+            osMock.verify();
+        }
     });
 
-    test('works WITHOUT child process inside the container', () => {
+    test('works WITHOUT child process inside the container', async () => {
         const utilsMock = sinon.mock(utils);
 
         utilsMock
@@ -173,23 +172,22 @@ describe('utils.getMemoryInfo()', () => {
                 else throw new Error('Invalid path');
             });
 
-        return Apify
-            .getMemoryInfo()
-            .then((data) => {
-                expect(data).toMatchObject({
-                    totalBytes: 333,
-                    freeBytes: 222,
-                    usedBytes: 111,
-                    childProcessesBytes: 0,
-                });
-                expect(data.mainProcessBytes).toBeGreaterThanOrEqual(20000000);
-
-                utilsMock.restore();
-                fs.readFile.restore();
+        try {
+            const data = await Apify.getMemoryInfo();
+            expect(data).toMatchObject({
+                totalBytes: 333,
+                freeBytes: 222,
+                usedBytes: 111,
+                childProcessesBytes: 0,
             });
+            expect(data.mainProcessBytes).toBeGreaterThanOrEqual(20000000);
+        } finally {
+            utilsMock.verify();
+            fs.readFile.restore();
+        }
     });
 
-    test('works WITH child process outside the container', () => {
+    test('works WITH child process outside the container', async () => {
         const osMock = sinon.mock(os);
         const utilsMock = sinon.mock(utils);
         process.env[ENV_VARS.HEADLESS] = '1';
@@ -209,27 +207,26 @@ describe('utils.getMemoryInfo()', () => {
             .once()
             .returns(333);
 
-        return Apify.launchPuppeteer()
-            .then((browser) => {
-                return Apify
-                    .getMemoryInfo()
-                    .then((data) => {
-                        expect(data).toMatchObject({
-                            totalBytes: 333,
-                            freeBytes: 222,
-                            usedBytes: 111,
-                        });
-                        expect(data.mainProcessBytes).toBeGreaterThanOrEqual(20000000);
-                        expect(data.childProcessesBytes).toBeGreaterThanOrEqual(20000000);
-                        utilsMock.restore();
-                        osMock.restore();
-                        delete process.env[ENV_VARS.HEADLESS];
-                    })
-                    .then(() => browser.close());
+        let browser;
+        try {
+            browser = await Apify.launchPuppeteer();
+            const data = await Apify.getMemoryInfo();
+            expect(data).toMatchObject({
+                totalBytes: 333,
+                freeBytes: 222,
+                usedBytes: 111,
             });
+            expect(data.mainProcessBytes).toBeGreaterThanOrEqual(20000000);
+            expect(data.childProcessesBytes).toBeGreaterThanOrEqual(20000000);
+        } finally {
+            utilsMock.verify();
+            osMock.verify();
+            delete process.env[ENV_VARS.HEADLESS];
+            if (browser) await browser.close();
+        }
     });
 
-    test('works WITH child process inside the container', () => {
+    test('works WITH child process inside the container', async () => {
         const utilsMock = sinon.mock(utils);
         process.env[ENV_VARS.HEADLESS] = '1';
 
@@ -246,24 +243,23 @@ describe('utils.getMemoryInfo()', () => {
                 else throw new Error('Invalid path');
             });
 
-        return Apify.launchPuppeteer()
-            .then((browser) => {
-                return Apify
-                    .getMemoryInfo()
-                    .then((data) => {
-                        expect(data).toMatchObject({
-                            totalBytes: 333,
-                            freeBytes: 222,
-                            usedBytes: 111,
-                        });
-                        expect(data.mainProcessBytes).toBeGreaterThanOrEqual(20000000);
-                        expect(data.childProcessesBytes).toBeGreaterThanOrEqual(20000000);
-                        utilsMock.restore();
-                        fs.readFile.restore();
-                        delete process.env[ENV_VARS.HEADLESS];
-                    })
-                    .then(() => browser.close());
+        let browser;
+        try {
+            browser = await Apify.launchPuppeteer();
+            const data = await Apify.getMemoryInfo();
+            expect(data).toMatchObject({
+                totalBytes: 333,
+                freeBytes: 222,
+                usedBytes: 111,
             });
+            expect(data.mainProcessBytes).toBeGreaterThanOrEqual(20000000);
+            expect(data.childProcessesBytes).toBeGreaterThanOrEqual(20000000);
+        } finally {
+            utilsMock.verify();
+            fs.readFile.restore();
+            delete process.env[ENV_VARS.HEADLESS];
+            if (browser) browser.close();
+        }
     });
 });
 
@@ -536,7 +532,7 @@ describe('Apify.utils.getRandomUserAgent()', () => {
     });
 });
 
-describe('utils.openLocalStorage()',  () => {
+describe('utils.openLocalStorage()', () => {
     test(
         'should return item from cache if available and create new one otherwise',
         async () => {
@@ -556,7 +552,7 @@ describe('utils.openLocalStorage()',  () => {
             const store3 = await utils.openLocalStorage('some-other-id', 'some-env', MyStore, cache);
             expect(store3).not.toBe(store);
             expect(cache.length()).toBe(2);
-        }
+        },
     );
 
     test(
@@ -575,7 +571,7 @@ describe('utils.openLocalStorage()',  () => {
             expect(store.id).toBe('id-from-env');
 
             delete process.env['some-env'];
-        }
+        },
     );
 
     test(
@@ -598,11 +594,11 @@ describe('utils.openLocalStorage()',  () => {
 
             const store = await utils.openLocalStorage(null, ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID, MyStore, cache);
             expect(store.id).toEqual(defaultLocalValue);
-        }
+        },
     );
 });
 
-describe('utils.openRemoteStorage()',  () => {
+describe('utils.openRemoteStorage()', () => {
     test(
         'should return item from cache if available and create new one otherwise',
         async () => {
@@ -630,7 +626,7 @@ describe('utils.openRemoteStorage()',  () => {
             expect(store3).not.toBe(store);
             expect(store3.id).toBe('some-other-id');
             expect(cache.length()).toBe(2);
-        }
+        },
     );
 
     test(
@@ -649,7 +645,7 @@ describe('utils.openRemoteStorage()',  () => {
             expect(store.id).toBe('id-from-env');
 
             delete process.env['some-env'];
-        }
+        },
     );
 
     test(
@@ -668,7 +664,7 @@ describe('utils.openRemoteStorage()',  () => {
             expect(store.id).toBe('id-from-env');
 
             delete process.env['some-env'];
-        }
+        },
     );
 });
 

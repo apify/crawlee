@@ -36,7 +36,7 @@ describe('Session - testing session behaviour ', () => {
             }
             expect(err).toBeDefined(); // eslint-disable-line
             expect(err.message.includes('Session: sessionPool must be instance of SessionPool')).toBe(true); // eslint-disable-line
-        }
+        },
     );
 
     test('should mark session markBaded', () => {

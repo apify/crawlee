@@ -232,7 +232,7 @@ describe('Snapshotter', () => {
             expect(memorySnapshots[4].isOverloaded).toBe(false);
 
             delete process.env[ENV_VARS.MEMORY_MBYTES];
-        }
+        },
     );
 
     test('correctly logs critical memory overload', () => {
@@ -287,7 +287,7 @@ describe('Snapshotter', () => {
             expect(clientSnapshots[3].isOverloaded).toBe(true);
 
             utils.apifyClient.stats = oldStats;
-        }
+        },
     );
 
     test('.get[.*]Sample limits amount of samples', async () => {

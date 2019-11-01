@@ -516,10 +516,10 @@ describe('utils.social', () => {
                 https://www.linkedin.com/in/someverylongnamesomeverylongnamesomeverylongnamesomeverylongnamesomeverylongnamesomeverylongname
                 linkedin.com/in/carlnewman
                 `.match(social.LINKEDIN_REGEX_GLOBAL)).toEqual([
-                    'https://www.linkedin.com/in/bobnewman',
-                    'http://ie.linkedin.com/in/alicenewman',
-                    'linkedin.com/in/carlnewman',
-                ]);
+                'https://www.linkedin.com/in/bobnewman',
+                'http://ie.linkedin.com/in/alicenewman',
+                'linkedin.com/in/carlnewman',
+            ]);
             expect(`
                 -https://www.linkedin.com/in/bobnewman/sub-dir
                 :http://ie.linkedin.com/in/alicenewman?param=1
@@ -527,9 +527,9 @@ describe('utils.social', () => {
                 alinkedin.com/in/carlnewman
                 _linkedin.com/in/carlnewman
                 `.match(social.LINKEDIN_REGEX_GLOBAL)).toEqual([
-                    'https://www.linkedin.com/in/bobnewman/',
-                    'http://ie.linkedin.com/in/alicenewman',
-                ]);
+                'https://www.linkedin.com/in/bobnewman/',
+                'http://ie.linkedin.com/in/alicenewman',
+            ]);
             expect(''.match(social.LINKEDIN_REGEX_GLOBAL)).toBe(null);
         });
     });
@@ -582,10 +582,10 @@ describe('utils.social', () => {
                     "instagram.com/old_brno"
                     http://instagr.am/old_plzen
                     `.match(social.INSTAGRAM_REGEX_GLOBAL)).toEqual([
-                    'https://www.instagram.com/old_prague',
-                    'instagram.com/old_brno',
-                    'http://instagr.am/old_plzen',
-                ]);
+                'https://www.instagram.com/old_prague',
+                'instagram.com/old_brno',
+                'http://instagr.am/old_plzen',
+            ]);
             expect(`
                     -https://www.instagram.com/old_prague/sub-dir
                     instagr.am/old_plzen?param=1
@@ -593,9 +593,9 @@ describe('utils.social', () => {
                     ainstagram.com/old_brno
                     _instagram.com/old_brno
                     `.match(social.INSTAGRAM_REGEX_GLOBAL)).toEqual([
-                    'https://www.instagram.com/old_prague/',
-                    'instagr.am/old_plzen',
-                ]);
+                'https://www.instagram.com/old_prague/',
+                'instagr.am/old_plzen',
+            ]);
             expect(''.match(social.INSTAGRAM_REGEX_GLOBAL)).toBe(null);
         });
     });
@@ -647,10 +647,10 @@ describe('utils.social', () => {
                     www.twitter.com/invalidverylongtwitterhandlenotgood
                     twitter.com/bob123?param=1
                     `.match(social.TWITTER_REGEX_GLOBAL)).toEqual([
-                    'https://www.twitter.com/apify',
-                    'www.twitter.com/jack/',
-                    'twitter.com/bob123',
-                ]);
+                'https://www.twitter.com/apify',
+                'www.twitter.com/jack/',
+                'twitter.com/bob123',
+            ]);
             expect(`
                     -https://www.twitter.com/apify
                     twitter.com/jack
@@ -659,10 +659,10 @@ describe('utils.social', () => {
                     atwitter.com/bob
                     _twitter.com/bob
                     `.match(social.TWITTER_REGEX_GLOBAL)).toEqual([
-                    'https://www.twitter.com/apify',
-                    'twitter.com/jack',
-                    'twitter.com/carl123',
-                ]);
+                'https://www.twitter.com/apify',
+                'twitter.com/jack',
+                'twitter.com/carl123',
+            ]);
             expect(''.match(social.TWITTER_REGEX_GLOBAL)).toBe(null);
         });
     });
@@ -725,10 +725,10 @@ describe('utils.social', () => {
                     https://www.facebook.com/waytoolongusernamewaytoolongusernamewaytoolongusernamewaytoolongusernamewaytoolongusername
                     fb.com/bob123
                     `.match(social.FACEBOOK_REGEX_GLOBAL)).toEqual([
-                    'https://www.facebook.com/someusername',
-                    'www.facebook.com/another123/',
-                    'fb.com/bob123',
-                ]);
+                'https://www.facebook.com/someusername',
+                'www.facebook.com/another123/',
+                'fb.com/bob123',
+            ]);
             expect(`
                     -https://www.facebook.com/someusername/
                     facebook.com/jack4567
@@ -737,10 +737,10 @@ describe('utils.social', () => {
                     afacebook.com/bob
                     _facebook.com/bob
                     `.match(social.FACEBOOK_REGEX_GLOBAL)).toEqual([
-                    'https://www.facebook.com/someusername/',
-                    'facebook.com/jack4567',
-                    'fb.com/carl123',
-                ]);
+                'https://www.facebook.com/someusername/',
+                'facebook.com/jack4567',
+                'fb.com/carl123',
+            ]);
             expect(''.match(social.FACEBOOK_REGEX_GLOBAL)).toBe(null);
         });
     });

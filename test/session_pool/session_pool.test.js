@@ -115,7 +115,7 @@ describe('SessionPool - testing session pool', () => {
                 expect(isCalled).toBe(true); //eslint-disable-line
                 expect(sessionPool.sessions[0].id === session.id).toBe(false); //eslint-disable-line
                 expect(sessionPool.sessions).toHaveLength(1);
-            }
+            },
         );
     });
 

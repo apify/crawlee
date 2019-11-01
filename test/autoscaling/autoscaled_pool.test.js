@@ -349,7 +349,7 @@ describe('AutoscaledPool', () => {
             expect(count).toBeGreaterThanOrEqual(11);
             // Check finished tasks.
             expect(count).toBeLessThanOrEqual(13);
-        }
+        },
     );
 
     test(
@@ -378,7 +378,7 @@ describe('AutoscaledPool', () => {
             // Check finished tasks.
             expect(finished).toHaveLength(20);
             expect(finished[11] - finished[10]).toBeGreaterThan(9);
-        }
+        },
     );
 
     test('should work with loggingIntervalMillis = null', async () => {

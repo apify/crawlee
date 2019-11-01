@@ -199,7 +199,7 @@ describe('enqueueLinksByClickingElements()', () => {
                 expect(interceptedRequests[0].url).toBe('https://example.com/#foo');
                 const pageContent = await page.content();
                 expect(pageContent).toMatch('onclick="return window.location = ');
-            }
+            },
         );
 
         test('should prevent reload from cache with window.reload()', async () => {

@@ -94,7 +94,7 @@ describe('Apify.utils.puppeteer.addInterceptRequestHandler|removeInterceptReques
             expect(propagatedUrls).toEqual(expect.arrayContaining([
                 'https://example.com/style.css',
             ]));
-        }
+        },
     );
 
     test('should allow to modify request', async () => {

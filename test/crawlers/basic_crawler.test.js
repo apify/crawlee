@@ -92,7 +92,7 @@ describe('BasicCrawler', () => {
 
             // clean up
             await basicCrawler.autoscaledPool._destroy(); // eslint-disable-line no-underscore-dangle
-        }
+        },
     );
 
     test('should retry failed requests', async () => {
@@ -400,7 +400,7 @@ describe('BasicCrawler', () => {
             });
 
             expect(await crawler._isTaskReadyFunction()).toBe(false); // eslint-disable-line no-underscore-dangle
-        }
+        },
     );
 
     test(
@@ -450,7 +450,7 @@ describe('BasicCrawler', () => {
 
             mock.verify();
             sinon.restore();
-        }
+        },
     );
 
     test('should support maxRequestsPerCrawl parameter', async () => {

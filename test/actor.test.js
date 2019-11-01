@@ -219,7 +219,7 @@ describe('Apify.main()', () => {
                 },
                 exitCode: 91,
             });
-        }
+        },
     );
 
     test(
@@ -232,7 +232,7 @@ describe('Apify.main()', () => {
                 },
                 exitCode: 91,
             });
-        }
+        },
     );
 });
 
@@ -1068,7 +1068,7 @@ describe('Apify.getApifyProxyUrl()', () => {
         delete process.env[ENV_VARS.PROXY_PORT];
 
         expect(Apify.getApifyProxyUrl({ password: 'xyz' })).toEqual(
-            `http://auto:xyz@${LOCAL_ENV_VARS[ENV_VARS.PROXY_HOSTNAME]}:${LOCAL_ENV_VARS[ENV_VARS.PROXY_PORT]}`
+            `http://auto:xyz@${LOCAL_ENV_VARS[ENV_VARS.PROXY_HOSTNAME]}:${LOCAL_ENV_VARS[ENV_VARS.PROXY_PORT]}`,
         );
 
         expect(() => Apify.getApifyProxyUrl()).toThrowError();
@@ -1108,7 +1108,7 @@ describe('Apify.getApifyProxyUrl()', () => {
         delete process.env[ENV_VARS.PROXY_PORT];
 
         expect(Apify.getApifyProxyUrl({ password: 'xyz' })).toEqual(
-            `http://auto:xyz@${LOCAL_ENV_VARS[ENV_VARS.PROXY_HOSTNAME]}:${LOCAL_ENV_VARS[ENV_VARS.PROXY_PORT]}`
+            `http://auto:xyz@${LOCAL_ENV_VARS[ENV_VARS.PROXY_HOSTNAME]}:${LOCAL_ENV_VARS[ENV_VARS.PROXY_PORT]}`,
         );
 
         expect(() => Apify.getApifyProxyUrl()).toThrowError();

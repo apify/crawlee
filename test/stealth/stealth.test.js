@@ -240,7 +240,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
             expect(failedChecks.length).toBe(0);
 
             return browser.close();
-        }
+        },
     );
 
     test('should work in crawler', async () => {
