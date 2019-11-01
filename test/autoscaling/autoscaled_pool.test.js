@@ -44,8 +44,9 @@ describe('AutoscaledPool', () => {
         const startedAt = Date.now();
         await pool.run();
 
-        expect(result).to.be.eql(_.range(0, 10));
-        expect(Date.now() - startedAt).to.be.within(50, 200);
+        expect(result).toEqual(_.range(0, 10));
+        expect(Date.now() - startedAt).toBeGreaterThanOrEqual(50);
+        expect(Date.now() - startedAt).toBeLessThanOrEqual(200);
     });
 
     test('should work with concurrency 10', async () => {
@@ -77,8 +78,9 @@ describe('AutoscaledPool', () => {
         const startedAt = Date.now();
         await pool.run();
 
-        expect(result).to.be.eql(_.range(0, 100));
-        expect(Date.now() - startedAt).to.be.within(50, 200);
+        expect(result).toEqual(_.range(0, 100));
+        expect(Date.now() - startedAt).toBeGreaterThanOrEqual(50);
+        expect(Date.now() - startedAt).toBeLessThanOrEqual(200);
     });
 
     test('enables setting concurrency', async () => {
@@ -109,9 +111,9 @@ describe('AutoscaledPool', () => {
             isTaskReadyFunction: () => Promise.resolve(!isFinished),
         });
 
-        expect(pool.minConcurrency).to.be.eql(3);
-        expect(pool.maxConcurrency).to.be.eql(13);
-        expect(pool.desiredConcurrency).to.be.eql(9);
+        expect(pool.minConcurrency).toBe(3);
+        expect(pool.maxConcurrency).toBe(13);
+        expect(pool.desiredConcurrency).toBe(9);
 
         const startedAt = Date.now();
         const promise = await pool.run();
@@ -121,14 +123,15 @@ describe('AutoscaledPool', () => {
         pool.maxConcurrency = 14;
         pool.desiredConcurrency = 7;
 
-        expect(pool.minConcurrency).to.be.eql(4);
-        expect(pool.maxConcurrency).to.be.eql(14);
-        expect(pool.desiredConcurrency).to.be.eql(7);
+        expect(pool.minConcurrency).toBe(4);
+        expect(pool.maxConcurrency).toBe(14);
+        expect(pool.desiredConcurrency).toBe(7);
 
         await promise;
 
-        expect(result).to.be.eql(_.range(0, 100));
-        expect(Date.now() - startedAt).to.be.within(50, 200);
+        expect(result).toEqual(_.range(0, 100));
+        expect(Date.now() - startedAt).toBeGreaterThanOrEqual(50);
+        expect(Date.now() - startedAt).toBeLessThanOrEqual(200);
     });
 
     describe('should scale correctly', () => {
@@ -158,23 +161,23 @@ describe('AutoscaledPool', () => {
 
         test('works with low values', () => {
             pool._autoscale(cb);
-            expect(pool.desiredConcurrency).to.be.eql(2);
+            expect(pool.desiredConcurrency).toBe(2);
 
             pool._autoscale(cb);
-            expect(pool.desiredConcurrency).to.be.eql(2); // because currentConcurrency is not high enough;
+            expect(pool.desiredConcurrency).toBe(2); // because currentConcurrency is not high enough;
 
             pool._currentConcurrency = 2;
             pool._autoscale(cb);
-            expect(pool.desiredConcurrency).to.be.eql(3);
+            expect(pool.desiredConcurrency).toBe(3);
 
             systemStatus.okNow = false; // this should have no effect
             pool._currentConcurrency = 3;
             pool._autoscale(cb);
-            expect(pool.desiredConcurrency).to.be.eql(4);
+            expect(pool.desiredConcurrency).toBe(4);
 
             systemStatus.okLately = false;
             pool._autoscale(cb);
-            expect(pool.desiredConcurrency).to.be.eql(3);
+            expect(pool.desiredConcurrency).toBe(3);
         });
 
         test('works with high values', () => {
@@ -183,19 +186,19 @@ describe('AutoscaledPool', () => {
             pool._currentConcurrency = Math.floor(pool.desiredConcurrency * pool.desiredConcurrencyRatio) - 1;
             systemStatus.okLately = true;
             pool._autoscale(cb);
-            expect(pool.desiredConcurrency).to.be.eql(50);
+            expect(pool.desiredConcurrency).toBe(50);
 
             // Should scale because we bumped up current concurrency.
             pool._currentConcurrency = Math.floor(pool.desiredConcurrency * pool.desiredConcurrencyRatio);
             let newConcurrency = pool.desiredConcurrency + Math.ceil(pool.desiredConcurrency * pool.scaleUpStepRatio);
             pool._autoscale(cb);
-            expect(pool.desiredConcurrency).to.be.eql(newConcurrency);
+            expect(pool.desiredConcurrency).toEqual(newConcurrency);
 
             // Should scale down.
             systemStatus.okLately = false;
             newConcurrency = pool.desiredConcurrency - Math.ceil(pool.desiredConcurrency * pool.scaleDownStepRatio);
             pool._autoscale(cb);
-            expect(pool.desiredConcurrency).to.be.eql(newConcurrency);
+            expect(pool.desiredConcurrency).toEqual(newConcurrency);
         });
 
         test('works at minConcurrency when currently overloaded', async () => {
@@ -222,10 +225,10 @@ describe('AutoscaledPool', () => {
                 },
             });
 
-            expect(pool.currentConcurrency).to.be.eql(0);
+            expect(pool.currentConcurrency).toBe(0);
 
             await pool.run();
-            expect(concurrencyLog.some(n => n > 1)).to.be.eql(false);
+            expect(concurrencyLog.some(n => n > 1)).toBe(false);
 
             limit = 50;
             concurrencyLog = [];
@@ -233,7 +236,7 @@ describe('AutoscaledPool', () => {
             pool.minConcurrency = 5;
 
             await pool.run();
-            expect(concurrencyLog.some(n => n > 5)).to.be.eql(false);
+            expect(concurrencyLog.some(n => n > 5)).toBe(false);
         });
     });
 
@@ -273,7 +276,7 @@ describe('AutoscaledPool', () => {
                 isTaskReadyFunction: () => Promise.resolve(true),
             });
 
-            await expect(pool.run()).to.be.rejectedWith('some-promise-error');
+            await expect(pool.run()).rejects.toThrow('some-promise-error');
         });
 
         test('when runTaskFunction throws', async () => {
@@ -290,7 +293,7 @@ describe('AutoscaledPool', () => {
             });
 
 
-            await expect(pool.run()).to.be.rejectedWith('some-runtask-error');
+            await expect(pool.run()).rejects.toThrow('some-runtask-error');
         });
 
         test('when isFinishedFunction throws', async () => {
@@ -304,7 +307,7 @@ describe('AutoscaledPool', () => {
             });
 
 
-            await expect(pool.run()).to.be.rejectedWith('some-finished-error');
+            await expect(pool.run()).rejects.toThrow('some-finished-error');
         });
 
         test('when isTaskReadyFunction throws', async () => {
@@ -321,7 +324,7 @@ describe('AutoscaledPool', () => {
             });
 
 
-            await expect(pool.run()).to.be.rejectedWith('some-ready-error');
+            await expect(pool.run()).rejects.toThrow('some-ready-error');
         });
     });
 
@@ -343,8 +346,9 @@ describe('AutoscaledPool', () => {
 
             await pool.run();
             await delayPromise(10);
+            expect(count).toBeGreaterThanOrEqual(11);
             // Check finished tasks.
-            expect(count).to.be.within(11, 13);
+            expect(count).toBeLessThanOrEqual(13);
         }
     );
 
@@ -372,8 +376,8 @@ describe('AutoscaledPool', () => {
             await pool.run();
 
             // Check finished tasks.
-            expect(finished).to.have.lengthOf(20);
-            expect(finished[11] - finished[10]).to.be.above(9);
+            expect(finished).toHaveLength(20);
+            expect(finished[11] - finished[10]).toBeGreaterThan(9);
         }
     );
 
@@ -387,7 +391,7 @@ describe('AutoscaledPool', () => {
             loggingIntervalMillis: null,
         });
         pool._autoscale(() => {});
-        expect(pool.desiredConcurrency).to.be.eql(2);
+        expect(pool.desiredConcurrency).toBe(2);
     });
 
     test('should abort', async () => {
@@ -406,7 +410,7 @@ describe('AutoscaledPool', () => {
             isTaskReadyFunction: () => !aborted,
         });
         await pool.run();
-        expect(finished).to.be.eql(false);
+        expect(finished).toBe(false);
     });
 
     test('should only finish after tasks complete', async () => {
@@ -430,8 +434,8 @@ describe('AutoscaledPool', () => {
         });
 
         await pool.run();
-        expect(started).to.be.eql(true);
-        expect(completed).to.be.eql(true);
+        expect(started).toBe(true);
+        expect(completed).toBe(true);
     });
 
     test('should pause and resume', async () => {
@@ -457,17 +461,17 @@ describe('AutoscaledPool', () => {
         const runPromise = pool.run();
         runPromise.then(() => { finished = true; });
         await pausePromise;
-        expect(count).to.be.eql(20);
-        expect(finished).to.be.eql(false);
-        expect(results).to.have.lengthOf(count);
-        results.forEach((r, i) => expect(r).to.be.eql(i));
+        expect(count).toBe(20);
+        expect(finished).toBe(false);
+        expect(results).toHaveLength(count);
+        results.forEach((r, i) => expect(r).toEqual(i));
 
         pool.resume();
         await runPromise;
-        expect(count).to.be.eql(50);
-        expect(finished).to.be.eql(true);
-        expect(results).to.have.lengthOf(count);
-        results.forEach((r, i) => expect(r).to.be.eql(i));
+        expect(count).toBe(50);
+        expect(finished).toBe(true);
+        expect(results).toHaveLength(count);
+        results.forEach((r, i) => expect(r).toEqual(i));
     });
 });
 

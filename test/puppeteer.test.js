@@ -57,29 +57,28 @@ beforeAll(() => {
 afterAll(() => {
     process.env[ENV_VARS.HEADLESS] = prevEnvHeadless;
 
-    this.timeout(5 * 1000);
     if (proxyServer) return util.promisify(proxyServer.close).bind(proxyServer)();
-});
+}, 5000);
 
 
 describe('Apify.launchPuppeteer()', () => {
     test('throws on invalid args', () => {
-        expect(Apify.launchPuppeteer('some non-object')).to.be.rejectedWith(Error);
-        expect(Apify.launchPuppeteer(1234)).to.be.rejectedWith(Error);
+        expect(Apify.launchPuppeteer('some non-object')).rejects.toThrow(Error);
+        expect(Apify.launchPuppeteer(1234)).rejects.toThrow(Error);
 
-        expect(Apify.launchPuppeteer({ proxyUrl: 234 })).to.be.rejectedWith(Error);
-        expect(Apify.launchPuppeteer({ proxyUrl: {} })).to.be.rejectedWith(Error);
-        expect(Apify.launchPuppeteer({ proxyUrl: 'invalidurl' })).to.be.rejectedWith(Error);
-        expect(Apify.launchPuppeteer({ proxyUrl: 'http://host-without-port' })).to.be.rejectedWith(Error);
-        expect(Apify.launchPuppeteer({ proxyUrl: 'invalid://somehost:1234' })).to.be.rejectedWith(Error);
-        expect(Apify.launchPuppeteer({ proxyUrl: 'https://user:pass@example.com:1234' })).to.be.rejectedWith(Error);
-        expect(Apify.launchPuppeteer({ proxyUrl: 'socks4://user:pass@example.com:1234' })).to.be.rejectedWith(Error);
-        expect(Apify.launchPuppeteer({ proxyUrl: 'socks5://user:pass@example.com:1234' })).to.be.rejectedWith(Error);
-        expect(Apify.launchPuppeteer({ proxyUrl: ' something really bad' })).to.be.rejectedWith(Error);
-        expect(Apify.launchPuppeteer({ proxyUrl: 'xxx', useApifyProxy: true })).to.be.rejectedWith(Error);
+        expect(Apify.launchPuppeteer({ proxyUrl: 234 })).rejects.toThrow(Error);
+        expect(Apify.launchPuppeteer({ proxyUrl: {} })).rejects.toThrow(Error);
+        expect(Apify.launchPuppeteer({ proxyUrl: 'invalidurl' })).rejects.toThrow(Error);
+        expect(Apify.launchPuppeteer({ proxyUrl: 'http://host-without-port' })).rejects.toThrow(Error);
+        expect(Apify.launchPuppeteer({ proxyUrl: 'invalid://somehost:1234' })).rejects.toThrow(Error);
+        expect(Apify.launchPuppeteer({ proxyUrl: 'https://user:pass@example.com:1234' })).rejects.toThrow(Error);
+        expect(Apify.launchPuppeteer({ proxyUrl: 'socks4://user:pass@example.com:1234' })).rejects.toThrow(Error);
+        expect(Apify.launchPuppeteer({ proxyUrl: 'socks5://user:pass@example.com:1234' })).rejects.toThrow(Error);
+        expect(Apify.launchPuppeteer({ proxyUrl: ' something really bad' })).rejects.toThrow(Error);
+        expect(Apify.launchPuppeteer({ proxyUrl: 'xxx', useApifyProxy: true })).rejects.toThrow(Error);
 
-        expect(Apify.launchPuppeteer({ args: 'wrong args' })).to.be.rejectedWith(Error);
-        expect(Apify.launchPuppeteer({ args: [12, 34] })).to.be.rejectedWith(Error);
+        expect(Apify.launchPuppeteer({ args: 'wrong args' })).rejects.toThrow(Error);
+        expect(Apify.launchPuppeteer({ args: [12, 34] })).rejects.toThrow(Error);
     });
 
     test('opens supports non-HTTP proxies without authentication', async () => {
@@ -114,7 +113,7 @@ describe('Apify.launchPuppeteer()', () => {
                 return page.goto('https://www.example.com');
             })
             .then(() => page.content())
-            .then(html => expect(html).to.include('<h1>Example Domain</h1>'))
+            .then(html => expect(html).toMatch('<h1>Example Domain</h1>'))
             .then(() => browser.close());
     });
 
@@ -140,11 +139,11 @@ describe('Apify.launchPuppeteer()', () => {
                 return page.goto('https://example.com');
             })
             .then(() => {
-                expect(wasProxyCalled).to.eql(true);
+                expect(wasProxyCalled).toBe(true);
 
                 return page.content();
             })
-            .then(html => expect(html).to.include('<h1>Example Domain</h1>'))
+            .then(html => expect(html).toMatch('<h1>Example Domain</h1>'))
             .then(() => browser.close());
     });
 
@@ -171,7 +170,7 @@ describe('Apify.launchPuppeteer()', () => {
                 return page.content();
             })
             .then((html) => {
-                expect(html).to.contain(`"user-agent": "${opts.userAgent}"`);
+                expect(html).toMatch(`"user-agent": "${opts.userAgent}"`);
                 return browser.close();
             });
     });
@@ -195,10 +194,10 @@ describe('Apify.launchPuppeteer()', () => {
             const title = await page.title();
             const version = await browser.version();
 
-            expect(title).to.be.eql('Example Domain');
-            expect(version).to.include('Chrome');
-            expect(version).not.to.include('Chromium');
-            expect(spy.calledOnce).to.be.eql(true);
+            expect(title).toBe('Example Domain');
+            expect(version).toMatch('Chrome');
+            expect(version).not.toMatch('Chromium');
+            expect(spy.calledOnce).toBe(true);
         } finally {
             spy.restore();
             if (browser) await browser.close();
@@ -249,7 +248,7 @@ describe('Apify.launchPuppeteer()', () => {
                 headless: true,
             };
 
-            expect(Apify.launchPuppeteer(opts)).to.be.rejectedWith(Error);
-        }
+            expect(Apify.launchPuppeteer(opts)).rejects.toThrow(Error);
+        },
     );
 });

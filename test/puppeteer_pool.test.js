@@ -538,7 +538,7 @@ describe('PuppeteerPool', () => {
                     await pool.newPage();
                     throw new Error('Invalid error.');
                 } catch (err) {
-                    expect(err.stack).toEqual(expect.arrayContaining(['useApifyProxy']));
+                    expect(err.stack).toMatch('useApifyProxy');
                 }
             });
 
@@ -550,7 +550,7 @@ describe('PuppeteerPool', () => {
                     });
                     throw new Error('Invalid error.');
                 } catch (err) {
-                    expect(err.message).toEqual(expect.arrayContaining(['must not be empty']));
+                    expect(err.message).toMatch('must not be empty');
                 }
             });
         });
@@ -579,7 +579,7 @@ describe('PuppeteerPool', () => {
                 await pool._openNewTab(); // eslint-disable-line no-underscore-dangle
                 throw new Error('invalid error');
             } catch (err) {
-                expect(err.stack).toEqual(expect.arrayContaining(['PuppeteerPool: browser.newPage() timed out.']));
+                expect(err.stack).toMatch('PuppeteerPool: browser.newPage() timed out.');
             }
         });
     });

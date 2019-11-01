@@ -6,7 +6,7 @@ import events from '../../build/events';
 import { ACTOR_EVENT_NAMES_EX } from '../../build/constants';
 import { Session } from '../../src/session_pool/session';
 
-describe('SessionPool - testing session pool', async () => {
+describe('SessionPool - testing session pool', () => {
     let sessionPool;
 
     beforeAll(() => {
@@ -147,7 +147,7 @@ describe('SessionPool - testing session pool', async () => {
         const loadedSessionPool = new SessionPool();
 
         await loadedSessionPool.initialize();
-        expect(loadedSessionPool).toEqual(expect.arrayContaining(Object.keys(sessionPool)));
+        expect(loadedSessionPool).toEqual(expect.objectContaining(sessionPool));
     });
 
     test('should create only maxPoolSize number of sessions', async () => {

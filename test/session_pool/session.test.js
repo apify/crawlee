@@ -5,7 +5,7 @@ import EVENTS from '../../build/session_pool/events';
 import Apify from '../../build';
 
 
-describe('Session - testing session behaviour ', async () => {
+describe('Session - testing session behaviour ', () => {
     let sessionPool;
     let session;
 

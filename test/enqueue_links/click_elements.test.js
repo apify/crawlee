@@ -179,7 +179,7 @@ describe('enqueueLinksByClickingElements()', () => {
             expect(interceptedRequests).toHaveLength(1);
             expect(interceptedRequests[0].url).toMatch(/https:\/\/example\.com\/?$/);
             const pageContent = await page.content();
-            expect(pageContent).toEqual(expect.arrayContaining(['onclick="return window.location = ']));
+            expect(pageContent).toMatch('onclick="return window.location = ');
         });
 
         test(
@@ -198,7 +198,7 @@ describe('enqueueLinksByClickingElements()', () => {
                 expect(interceptedRequests).toHaveLength(1);
                 expect(interceptedRequests[0].url).toBe('https://example.com/#foo');
                 const pageContent = await page.content();
-                expect(pageContent).toEqual(expect.arrayContaining(['onclick="return window.location = ']));
+                expect(pageContent).toMatch('onclick="return window.location = ');
             }
         );
 
@@ -216,7 +216,7 @@ describe('enqueueLinksByClickingElements()', () => {
             expect(interceptedRequests).toHaveLength(1);
             expect(interceptedRequests[0].url).toMatch(/https:\/\/example\.com\/?$/);
             const pageContent = await page.content();
-            expect(pageContent).toEqual(expect.arrayContaining(['onclick="return window.location.reload()']));
+            expect(pageContent).toMatch('onclick="return window.location.reload()');
         });
 
         test('should prevent forced reload with window.reload(true)', async () => {
@@ -233,7 +233,7 @@ describe('enqueueLinksByClickingElements()', () => {
             expect(interceptedRequests).toHaveLength(1);
             expect(interceptedRequests[0].url).toMatch(/https:\/\/example\.com\/?$/);
             const pageContent = await page.content();
-            expect(pageContent).toEqual(expect.arrayContaining(['onclick="return window.location.reload(true)']));
+            expect(pageContent).toMatch('onclick="return window.location.reload(true)');
         });
 
         test('should prevent manipulation with window.history', async () => {
@@ -259,7 +259,7 @@ describe('enqueueLinksByClickingElements()', () => {
             const interceptedRequests = await clickElementsAndInterceptNavigationRequests(getOpts());
             expect(interceptedRequests).toHaveLength(0);
             const pageContent = await page.content();
-            expect(pageContent).toEqual(expect.arrayContaining(['onclick="return handleClick();']));
+            expect(pageContent).toMatch('onclick="return handleClick();');
         });
 
         test('should save urls pushed to window.history', async () => {
@@ -276,7 +276,7 @@ describe('enqueueLinksByClickingElements()', () => {
             expect(interceptedRequests).toHaveLength(1);
             expect(interceptedRequests[0].url).toBe('https://example.com/bar/foo');
             const pageContent = await page.content();
-            expect(pageContent).toEqual(expect.arrayContaining(['onclick="return window.history.pushState']));
+            expect(pageContent).toMatch('onclick="return window.history.pushState');
         });
 
         test('should close newly opened tabs', async () => {
@@ -311,7 +311,7 @@ describe('enqueueLinksByClickingElements()', () => {
             expect(callCounts.create).toBe(1);
             expect(callCounts.destroy).toBe(1);
             const pageContent = await page.content();
-            expect(pageContent).toEqual(expect.arrayContaining(['onclick="return window.open(']));
+            expect(pageContent).toMatch('onclick="return window.open(');
         });
 
         test('should save urls from newly opened tabs', async () => {
@@ -331,7 +331,7 @@ describe('enqueueLinksByClickingElements()', () => {
             expect(interceptedRequests).toHaveLength(1);
             expect(interceptedRequests[0].url).toBe('https://example.com/');
             const pageContent = await page.content();
-            expect(pageContent).toEqual(expect.arrayContaining(['onclick="return window.open(']));
+            expect(pageContent).toMatch('onclick="return window.open(');
         });
     });
 });

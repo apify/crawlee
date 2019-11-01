@@ -140,7 +140,7 @@ describe('Apify.getEnv()', () => {
         setEnv(expectedEnv);
 
         const env = Apify.getEnv();
-        expect(env).to.containSubset(expectedEnv);
+        expect(env).toMatchObject(expectedEnv);
     });
 
     test('works with with non-null values', () => {
@@ -159,7 +159,7 @@ describe('Apify.getEnv()', () => {
         setEnv(expectedEnv);
 
         const env = Apify.getEnv();
-        expect(env).to.containSubset(expectedEnv);
+        expect(env).toMatchObject(expectedEnv);
     });
 });
 
@@ -167,7 +167,7 @@ describe('Apify.main()', () => {
     test('throws on invalid args', () => {
         expect(() => {
             Apify.main();
-        }).to.throw(Error);
+        }).toThrowError(Error);
     });
 
     test('works with simple user function', () => {
@@ -183,7 +183,7 @@ describe('Apify.main()', () => {
 
         await testMain({
             userFunc: () => {
-                expect(process.env[ENV_VARS.LOCAL_STORAGE_DIR]).to.eql(path.join(process.cwd(), './apify_storage'));
+                expect(process.env[ENV_VARS.LOCAL_STORAGE_DIR]).toEqual(path.join(process.cwd(), './apify_storage'));
             },
             exitCode: 0,
         });
@@ -206,7 +206,7 @@ describe('Apify.main()', () => {
             exitCode: 0,
         })
             .then(() => {
-                expect(called).to.eql(true);
+                expect(called).toBe(true);
             });
     });
 
@@ -285,7 +285,7 @@ describe('Apify.call()', () => {
         return Apify
             .call(actId, input, { contentType, token, disableBodyParser: true, build, memoryMbytes, timeoutSecs, webhooks })
             .then((callOutput) => {
-                expect(callOutput).to.be.eql(expected);
+                expect(callOutput).toEqual(expected);
                 keyValueStoresMock.restore();
                 actsMock.restore();
             });
@@ -337,7 +337,7 @@ describe('Apify.call()', () => {
         return Apify
             .call(actId, input, { contentType, token, disableBodyParser: true, build, memory, timeoutSecs })
             .then((callOutput) => {
-                expect(callOutput).to.be.eql(expected);
+                expect(callOutput).toEqual(expected);
                 keyValueStoresMock.restore();
                 actsMock.restore();
             });
@@ -378,7 +378,7 @@ describe('Apify.call()', () => {
         return Apify
             .call(actId)
             .then((callOutput) => {
-                expect(callOutput).to.be.eql(expected);
+                expect(callOutput).toEqual(expected);
                 keyValueStoresMock.restore();
                 actsMock.restore();
             });
@@ -409,7 +409,7 @@ describe('Apify.call()', () => {
         return Apify
             .call(actId, undefined, { waitSecs: 1 })
             .then((callOutput) => {
-                expect(callOutput).to.be.eql(readyRun);
+                expect(callOutput).toEqual(readyRun);
                 keyValueStoresMock.restore();
                 actsMock.restore();
             });
@@ -450,7 +450,7 @@ describe('Apify.call()', () => {
         return Apify
             .call(actId, null)
             .then((callOutput) => {
-                expect(callOutput).to.be.eql(expected);
+                expect(callOutput).toEqual(expected);
                 keyValueStoresMock.restore();
                 actsMock.restore();
             });
@@ -493,7 +493,7 @@ describe('Apify.call()', () => {
         return Apify
             .call(actId, input)
             .then((callOutput) => {
-                expect(callOutput).to.be.eql(expected);
+                expect(callOutput).toEqual(expected);
                 keyValueStoresMock.restore();
                 actsMock.restore();
             });
@@ -534,7 +534,7 @@ describe('Apify.call()', () => {
         return Apify
             .call(actId, input, { token, disableBodyParser: true, build })
             .then((callOutput) => {
-                expect(callOutput).to.be.eql(expected);
+                expect(callOutput).toEqual(expected);
                 keyValueStoresMock.restore();
                 actsMock.restore();
             });
@@ -568,7 +568,7 @@ describe('Apify.call()', () => {
         return Apify
             .call(actId, null, { token, fetchOutput: false })
             .then((callOutput) => {
-                expect(callOutput).to.be.eql(finishedRun);
+                expect(callOutput).toEqual(finishedRun);
                 keyValueStoresMock.restore();
                 actsMock.restore();
             });
@@ -600,7 +600,7 @@ describe('Apify.call()', () => {
         return Apify
             .call(actId, null, { token, waitSecs })
             .then((callOutput) => {
-                expect(callOutput).to.be.eql(runningRun);
+                expect(callOutput).toEqual(runningRun);
                 keyValueStoresMock.restore();
                 actsMock.restore();
             });
@@ -642,7 +642,7 @@ describe('Apify.call()', () => {
         return Apify
             .call(actId, input, { contentType, token, disableBodyParser: true, build })
             .then((callOutput) => {
-                expect(callOutput).to.be.eql(expected);
+                expect(callOutput).toEqual(expected);
                 keyValueStoresMock.restore();
                 actsMock.restore();
             });
@@ -669,7 +669,7 @@ describe('Apify.call()', () => {
         return Apify
             .call(actId, null, { token, waitSecs })
             .then((callOutput) => {
-                expect(callOutput).to.be.eql(readyRun);
+                expect(callOutput).toEqual(readyRun);
                 keyValueStoresMock.restore();
                 actsMock.restore();
             });
@@ -695,9 +695,9 @@ describe('Apify.call()', () => {
         return Apify
             .call(actId, null, { token })
             .then(() => { throw new Error('This was suppose to fail!'); }, (err) => {
-                expect(err).to.be.instanceOf(ApifyCallError);
-                expect(err.run.status).to.be.eql(ACT_JOB_STATUSES.ABORTED);
-                expect(err.run).to.be.eql(failedRun);
+                expect(err).toBeInstanceOf(ApifyCallError);
+                expect(err.run.status).toEqual(ACT_JOB_STATUSES.ABORTED);
+                expect(err.run).toEqual(failedRun);
                 actsMock.restore();
             });
     });
@@ -753,7 +753,7 @@ describe('Apify.callTask()', () => {
         return Apify
             .callTask(taskId, input, { token, disableBodyParser: true, memoryMbytes, timeoutSecs, build, webhooks })
             .then((callOutput) => {
-                expect(callOutput).to.be.eql(expected);
+                expect(callOutput).toEqual(expected);
                 keyValueStoresMock.restore();
                 actsMock.restore();
                 tasksMock.restore();
@@ -791,7 +791,7 @@ describe('Apify.callTask()', () => {
         return Apify
             .callTask(taskId, undefined, { token, disableBodyParser: true, fetchOutput: false })
             .then((callOutput) => {
-                expect(callOutput).to.be.eql(finishedRun);
+                expect(callOutput).toEqual(finishedRun);
                 keyValueStoresMock.restore();
                 actsMock.restore();
                 tasksMock.restore();
@@ -827,7 +827,7 @@ describe('Apify.callTask()', () => {
         return Apify
             .callTask(taskId, undefined, { token, disableBodyParser: true, fetchOutput: false, waitSecs })
             .then((callOutput) => {
-                expect(callOutput).to.be.eql(runningRun);
+                expect(callOutput).toEqual(runningRun);
                 keyValueStoresMock.restore();
                 actsMock.restore();
                 tasksMock.restore();
@@ -871,7 +871,7 @@ describe('Apify.callTask()', () => {
         return Apify
             .callTask(taskId, undefined, { token, disableBodyParser: true })
             .then((callOutput) => {
-                expect(callOutput).to.be.eql(expected);
+                expect(callOutput).toEqual(expected);
                 keyValueStoresMock.restore();
                 actsMock.restore();
                 tasksMock.restore();
@@ -902,7 +902,7 @@ describe('Apify.callTask()', () => {
         return Apify
             .callTask(taskId, undefined, { token, waitSecs })
             .then((callOutput) => {
-                expect(callOutput).to.be.eql(readyRun);
+                expect(callOutput).toEqual(readyRun);
                 keyValueStoresMock.restore();
                 actsMock.restore();
                 tasksMock.restore();
@@ -932,9 +932,9 @@ describe('Apify.callTask()', () => {
         return Apify
             .callTask(taskId)
             .catch((err) => {
-                expect(err).to.be.instanceOf(ApifyCallError);
-                expect(err.run.status).to.be.eql(ACT_JOB_STATUSES.ABORTED);
-                expect(err.run).to.be.eql(failedRun);
+                expect(err).toBeInstanceOf(ApifyCallError);
+                expect(err.run.status).toEqual(ACT_JOB_STATUSES.ABORTED);
+                expect(err.run).toEqual(failedRun);
                 actsMock.restore();
                 tasksMock.restore();
             });
@@ -1051,32 +1051,33 @@ describe('Apify.getApifyProxyUrl()', () => {
         expect(Apify.getApifyProxyUrl({
             session: 'XYZ',
             groups: ['g1', 'g2', 'g3'],
-        })).to.be.eql('http://groups-g1+g2+g3,session-XYZ:abc123@my.host.com:123');
+        })).toBe('http://groups-g1+g2+g3,session-XYZ:abc123@my.host.com:123');
 
         expect(Apify.getApifyProxyUrl({
             groups: ['g1', 'g2', 'g3'],
-        })).to.be.eql('http://groups-g1+g2+g3:abc123@my.host.com:123');
+        })).toBe('http://groups-g1+g2+g3:abc123@my.host.com:123');
 
         expect(Apify.getApifyProxyUrl({
             session: 'XYZ',
-        })).to.be.eql('http://session-XYZ:abc123@my.host.com:123');
+        })).toBe('http://session-XYZ:abc123@my.host.com:123');
 
-        expect(Apify.getApifyProxyUrl()).to.be.eql('http://auto:abc123@my.host.com:123');
+        expect(Apify.getApifyProxyUrl()).toBe('http://auto:abc123@my.host.com:123');
 
         delete process.env[ENV_VARS.PROXY_PASSWORD];
         delete process.env[ENV_VARS.PROXY_HOSTNAME];
         delete process.env[ENV_VARS.PROXY_PORT];
 
-        expect(Apify.getApifyProxyUrl({ password: 'xyz' }))
-            .to.be.eql(`http://auto:xyz@${LOCAL_ENV_VARS[ENV_VARS.PROXY_HOSTNAME]}:${LOCAL_ENV_VARS[ENV_VARS.PROXY_PORT]}`);
+        expect(Apify.getApifyProxyUrl({ password: 'xyz' })).toEqual(
+            `http://auto:xyz@${LOCAL_ENV_VARS[ENV_VARS.PROXY_HOSTNAME]}:${LOCAL_ENV_VARS[ENV_VARS.PROXY_PORT]}`
+        );
 
-        expect(() => Apify.getApifyProxyUrl()).to.throw();
+        expect(() => Apify.getApifyProxyUrl()).toThrowError();
 
         expect(Apify.getApifyProxyUrl({
             password: 'xyz',
             hostname: 'your.host.com',
             port: 345,
-        })).to.be.eql('http://auto:xyz@your.host.com:345');
+        })).toBe('http://auto:xyz@your.host.com:345');
     });
 
     // Test old params - session, groups
@@ -1090,32 +1091,33 @@ describe('Apify.getApifyProxyUrl()', () => {
         expect(Apify.getApifyProxyUrl({
             apifyProxySession: 'XYZ',
             apifyProxyGroups: ['g1', 'g2', 'g3'],
-        })).to.be.eql('http://groups-g1+g2+g3,session-XYZ:abc123@my.host.com:123');
+        })).toBe('http://groups-g1+g2+g3,session-XYZ:abc123@my.host.com:123');
 
         expect(Apify.getApifyProxyUrl({
             apifyProxyGroups: ['g1', 'g2', 'g3'],
-        })).to.be.eql('http://groups-g1+g2+g3:abc123@my.host.com:123');
+        })).toBe('http://groups-g1+g2+g3:abc123@my.host.com:123');
 
         expect(Apify.getApifyProxyUrl({
             apifyProxySession: 'XYZ',
-        })).to.be.eql('http://session-XYZ:abc123@my.host.com:123');
+        })).toBe('http://session-XYZ:abc123@my.host.com:123');
 
-        expect(Apify.getApifyProxyUrl()).to.be.eql('http://auto:abc123@my.host.com:123');
+        expect(Apify.getApifyProxyUrl()).toBe('http://auto:abc123@my.host.com:123');
 
         delete process.env[ENV_VARS.PROXY_PASSWORD];
         delete process.env[ENV_VARS.PROXY_HOSTNAME];
         delete process.env[ENV_VARS.PROXY_PORT];
 
-        expect(Apify.getApifyProxyUrl({ password: 'xyz' }))
-            .to.be.eql(`http://auto:xyz@${LOCAL_ENV_VARS[ENV_VARS.PROXY_HOSTNAME]}:${LOCAL_ENV_VARS[ENV_VARS.PROXY_PORT]}`);
+        expect(Apify.getApifyProxyUrl({ password: 'xyz' })).toEqual(
+            `http://auto:xyz@${LOCAL_ENV_VARS[ENV_VARS.PROXY_HOSTNAME]}:${LOCAL_ENV_VARS[ENV_VARS.PROXY_PORT]}`
+        );
 
-        expect(() => Apify.getApifyProxyUrl()).to.throw();
+        expect(() => Apify.getApifyProxyUrl()).toThrowError();
 
         expect(Apify.getApifyProxyUrl({
             password: 'xyz',
             hostname: 'your.host.com',
             port: 345,
-        })).to.be.eql('http://auto:xyz@your.host.com:345');
+        })).toBe('http://auto:xyz@your.host.com:345');
         log.setLevel(ll);
     });
 
@@ -1124,25 +1126,25 @@ describe('Apify.getApifyProxyUrl()', () => {
         process.env[ENV_VARS.PROXY_HOSTNAME] = 'my.host.com';
         process.env[ENV_VARS.PROXY_PORT] = 123;
 
-        expect(() => Apify.getApifyProxyUrl({ session: 'a-b' })).to.throw();
-        expect(() => Apify.getApifyProxyUrl({ session: 'a$b' })).to.throw();
-        expect(() => Apify.getApifyProxyUrl({ session: {} })).to.throw();
-        expect(() => Apify.getApifyProxyUrl({ session: new Date() })).to.throw();
-        expect(() => Apify.getApifyProxyUrl({ apifyProxySession: new Date() })).to.throw();
+        expect(() => Apify.getApifyProxyUrl({ session: 'a-b' })).toThrowError();
+        expect(() => Apify.getApifyProxyUrl({ session: 'a$b' })).toThrowError();
+        expect(() => Apify.getApifyProxyUrl({ session: {} })).toThrowError();
+        expect(() => Apify.getApifyProxyUrl({ session: new Date() })).toThrowError();
+        expect(() => Apify.getApifyProxyUrl({ apifyProxySession: new Date() })).toThrowError();
 
-        expect(() => Apify.getApifyProxyUrl({ session: 'a_b' })).to.not.throw();
-        expect(() => Apify.getApifyProxyUrl({ session: '0.34252352' })).to.not.throw();
-        expect(() => Apify.getApifyProxyUrl({ session: 'aaa~BBB' })).to.not.throw();
-        expect(() => Apify.getApifyProxyUrl({ session: 'a_1_b' })).to.not.throw();
-        expect(() => Apify.getApifyProxyUrl({ session: 'a_2' })).to.not.throw();
-        expect(() => Apify.getApifyProxyUrl({ session: 'a' })).to.not.throw();
-        expect(() => Apify.getApifyProxyUrl({ session: '1' })).to.not.throw();
+        expect(() => Apify.getApifyProxyUrl({ session: 'a_b' })).not.toThrowError();
+        expect(() => Apify.getApifyProxyUrl({ session: '0.34252352' })).not.toThrowError();
+        expect(() => Apify.getApifyProxyUrl({ session: 'aaa~BBB' })).not.toThrowError();
+        expect(() => Apify.getApifyProxyUrl({ session: 'a_1_b' })).not.toThrowError();
+        expect(() => Apify.getApifyProxyUrl({ session: 'a_2' })).not.toThrowError();
+        expect(() => Apify.getApifyProxyUrl({ session: 'a' })).not.toThrowError();
+        expect(() => Apify.getApifyProxyUrl({ session: '1' })).not.toThrowError();
 
-        expect(() => Apify.getApifyProxyUrl({ groups: [new Date()] })).to.throw();
-        expect(() => Apify.getApifyProxyUrl({ groups: [{}, 'fff', 'ccc'] })).to.throw();
-        expect(() => Apify.getApifyProxyUrl({ groups: ['ffff', 'ff-hf', 'ccc'] })).to.throw();
-        expect(() => Apify.getApifyProxyUrl({ groups: ['ffff', 'fff', 'cc$c'] })).to.throw();
-        expect(() => Apify.getApifyProxyUrl({ apifyProxyGroups: [new Date()] })).to.throw();
+        expect(() => Apify.getApifyProxyUrl({ groups: [new Date()] })).toThrowError();
+        expect(() => Apify.getApifyProxyUrl({ groups: [{}, 'fff', 'ccc'] })).toThrowError();
+        expect(() => Apify.getApifyProxyUrl({ groups: ['ffff', 'ff-hf', 'ccc'] })).toThrowError();
+        expect(() => Apify.getApifyProxyUrl({ groups: ['ffff', 'fff', 'cc$c'] })).toThrowError();
+        expect(() => Apify.getApifyProxyUrl({ apifyProxyGroups: [new Date()] })).toThrowError();
 
         delete process.env[ENV_VARS.PROXY_PASSWORD];
         delete process.env[ENV_VARS.PROXY_HOSTNAME];
@@ -1222,7 +1224,7 @@ describe('Apify.addWebhook()', () => {
         } catch (err) {
             isThrow = true;
         }
-        expect(isThrow).to.be.eql(true);
+        expect(isThrow).toBe(true);
 
         delete process.env[ENV_VARS.IS_AT_HOME];
     });

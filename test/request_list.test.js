@@ -48,22 +48,22 @@ describe('Apify.RequestList', () => {
         const requestList = new Apify.RequestList({ sources: [{ url: 'https://example.com' }] });
         const requestObj = new Apify.Request({ url: 'https://example.com' });
 
-        await expect(requestList.isEmpty()).to.be.rejectedWith();
-        await expect(requestList.isFinished()).to.be.rejectedWith();
+        await expect(requestList.isEmpty()).rejects.toThrow();
+        await expect(requestList.isFinished()).rejects.toThrow();
         expect(() => requestList.getState()).toThrowError();
-        await expect(requestList.markRequestHandled(requestObj)).to.be.rejectedWith();
-        await expect(requestList.reclaimRequest(requestObj)).to.be.rejectedWith();
-        await expect(requestList.fetchNextRequest()).to.be.rejectedWith();
+        await expect(requestList.markRequestHandled(requestObj)).rejects.toThrow();
+        await expect(requestList.reclaimRequest(requestObj)).rejects.toThrow();
+        await expect(requestList.fetchNextRequest()).rejects.toThrow();
 
         await requestList.initialize();
 
-        await expect(requestList.isEmpty()).to.not.be.rejectedWith();
-        await expect(requestList.isFinished()).to.not.be.rejectedWith();
+        await expect(requestList.isEmpty()).resolves.not.toThrow();
+        await expect(requestList.isFinished()).resolves.not.toThrow();
         expect(() => requestList.getState()).not.toThrowError();
-        await expect(requestList.fetchNextRequest()).to.not.be.rejectedWith();
-        await expect(requestList.reclaimRequest(requestObj)).to.not.be.rejectedWith();
-        await expect(requestList.fetchNextRequest()).to.not.be.rejectedWith();
-        await expect(requestList.markRequestHandled(requestObj)).to.not.be.rejectedWith();
+        await expect(requestList.fetchNextRequest()).resolves.not.toThrow();
+        await expect(requestList.reclaimRequest(requestObj)).resolves.not.toThrow();
+        await expect(requestList.fetchNextRequest()).resolves.not.toThrow();
+        await expect(requestList.markRequestHandled(requestObj)).resolves.not.toThrow();
     });
 
     test('should correctly initialize itself', async () => {
@@ -149,7 +149,7 @@ describe('Apify.RequestList', () => {
 
             mock.verify();
             mock.restore();
-        }
+        },
     );
 
     test('should use regex parameter to parse urls', async () => {
@@ -248,7 +248,7 @@ describe('Apify.RequestList', () => {
         });
         expect(await requestList.isEmpty()).toBe(false);
         expect(await requestList.isFinished()).toBe(false);
-        expect(requestList.inProgress).toEqual(expect.arrayContaining([requestList.reclaimed]));
+        expect(requestList.inProgress).toMatchObject(requestList.reclaimed);
 
         //
         // Mark 1st, 2nd handled
@@ -271,7 +271,7 @@ describe('Apify.RequestList', () => {
         });
         expect(await requestList.isEmpty()).toBe(false);
         expect(await requestList.isFinished()).toBe(false);
-        expect(requestList.inProgress).toEqual(expect.arrayContaining([requestList.reclaimed]));
+        expect(requestList.inProgress).toEqual(expect.objectContaining(requestList.reclaimed));
 
         //
         // Mark 5th handled
@@ -289,7 +289,7 @@ describe('Apify.RequestList', () => {
         });
         expect(await requestList.isEmpty()).toBe(false);
         expect(await requestList.isFinished()).toBe(false);
-        expect(requestList.inProgress).toEqual(expect.arrayContaining([requestList.reclaimed]));
+        expect(requestList.inProgress).toEqual(expect.objectContaining(requestList.reclaimed));
 
         //
         // Fetch 3rd and 4th
@@ -311,7 +311,7 @@ describe('Apify.RequestList', () => {
         });
         expect(await requestList.isEmpty()).toBe(false);
         expect(await requestList.isFinished()).toBe(false);
-        expect(requestList.inProgress).toEqual(expect.arrayContaining([requestList.reclaimed]));
+        expect(requestList.inProgress).toEqual(expect.objectContaining(requestList.reclaimed));
 
         //
         // Mark 3rd handled
@@ -326,7 +326,7 @@ describe('Apify.RequestList', () => {
         });
         expect(await requestList.isEmpty()).toBe(false);
         expect(await requestList.isFinished()).toBe(false);
-        expect(requestList.inProgress).toEqual(expect.arrayContaining([requestList.reclaimed]));
+        expect(requestList.inProgress).toEqual(expect.objectContaining(requestList.reclaimed));
 
         //
         // Fetch 6th
@@ -345,7 +345,7 @@ describe('Apify.RequestList', () => {
         });
         expect(await requestList.isEmpty()).toBe(true);
         expect(await requestList.isFinished()).toBe(false);
-        expect(requestList.inProgress).toEqual(expect.arrayContaining([requestList.reclaimed]));
+        expect(requestList.inProgress).toEqual(expect.objectContaining(requestList.reclaimed));
 
         //
         // Reclaim 6th
@@ -362,7 +362,7 @@ describe('Apify.RequestList', () => {
         });
         expect(await requestList.isEmpty()).toBe(false);
         expect(await requestList.isFinished()).toBe(false);
-        expect(requestList.inProgress).toEqual(expect.arrayContaining([requestList.reclaimed]));
+        expect(requestList.inProgress).toEqual(expect.objectContaining(requestList.reclaimed));
 
         //
         // Fetch 6th
@@ -380,7 +380,7 @@ describe('Apify.RequestList', () => {
         });
         expect(await requestList.isEmpty()).toBe(true);
         expect(await requestList.isFinished()).toBe(false);
-        expect(requestList.inProgress).toEqual(expect.arrayContaining([requestList.reclaimed]));
+        expect(requestList.inProgress).toEqual(expect.objectContaining(requestList.reclaimed));
 
         //
         // Mark 6th handled
@@ -395,7 +395,7 @@ describe('Apify.RequestList', () => {
         });
         expect(await requestList.isEmpty()).toBe(true);
         expect(await requestList.isFinished()).toBe(true);
-        expect(requestList.inProgress).toEqual(expect.arrayContaining([requestList.reclaimed]));
+        expect(requestList.inProgress).toEqual(expect.objectContaining(requestList.reclaimed));
     });
 
     test(
@@ -463,7 +463,7 @@ describe('Apify.RequestList', () => {
             expect(requestList2.getState()).toEqual(requestList.getState());
 
             mock.verify();
-        }
+        },
     );
 
     test(
@@ -526,7 +526,7 @@ describe('Apify.RequestList', () => {
             expect(requestList2.requests).toEqual(requestList.requests);
 
             mock.verify();
-        }
+        },
     );
 
     test(
@@ -574,7 +574,7 @@ describe('Apify.RequestList', () => {
 
             kvsMock.verify();
             publicUtilsMock.verify();
-        }
+        },
     );
 
     test('handles correctly inconsistent inProgress fields in state', async () => {
@@ -701,11 +701,11 @@ describe('Apify.RequestList', () => {
             await requestList.initialize();
             expect(requestList.length()).toBe(6);
             expect(logStub.called).toBe(true);
-            expect(logStub.getCall(0).args[0]).toEqual(expect.arrayContaining(['Check your sources\' unique keys.']));
+            expect(logStub.getCall(0).args[0]).toMatch('Check your sources\' unique keys.');
 
             logStub.restore();
             log.setLevel(log.LEVELS.ERROR);
-        }
+        },
     );
 
     describe('Apify.openRequestList()', () => {
@@ -796,8 +796,8 @@ describe('Apify.RequestList', () => {
                     throw new Error('wrong error');
                 } catch (err) {
                     expect(err.message).not.toBe('wrong error');
-                    expect(err.message).toEqual(expect.arrayContaining(['Parameter']));
-                    expect(err.message).not.toBe('must');
+                    expect(err.message).toMatch('Parameter');
+                    expect(err.message).toMatch('must');
                 }
             }
         });

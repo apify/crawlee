@@ -267,8 +267,8 @@ describe('CheerioCrawler', () => {
 
             failed.forEach((request) => {
                 expect(request.errorMessages).toHaveLength(2);
-                expect(request.errorMessages[0]).toEqual(expect.arrayContaining(['request timed out']));
-                expect(request.errorMessages[1]).toEqual(expect.arrayContaining(['request timed out']));
+                expect(request.errorMessages[0]).toMatch('request timed out');
+                expect(request.errorMessages[1]).toMatch('request timed out');
             });
         });
 
@@ -307,8 +307,8 @@ describe('CheerioCrawler', () => {
 
             failed.forEach((request) => {
                 expect(request.errorMessages).toHaveLength(2);
-                expect(request.errorMessages[0]).toEqual(expect.arrayContaining(['handlePageFunction timed out']));
-                expect(request.errorMessages[1]).toEqual(expect.arrayContaining(['handlePageFunction timed out']));
+                expect(request.errorMessages[0]).toMatch('handlePageFunction timed out');
+                expect(request.errorMessages[1]).toMatch('handlePageFunction timed out');
             });
         });
     });
@@ -405,9 +405,9 @@ describe('CheerioCrawler', () => {
 
                 expect(handlePageInvocationCount).toBe(0);
                 expect(errorMessages).toHaveLength(4);
-                errorMessages.forEach(msg => expect(msg).toEqual(
-                    expect.arrayContaining(['Content-Type application/json, but only text/html, '
-                        + 'application/xhtml+xml are allowed. Skipping resource.'])
+                errorMessages.forEach(msg => expect(msg).toMatch(
+                    'Content-Type application/json, but only text/html, '
+                        + 'application/xhtml+xml are allowed. Skipping resource.',
                 ));
                 expect(chunkReadCount).toBe(0);
             });
@@ -488,7 +488,7 @@ describe('CheerioCrawler', () => {
 
                 expect(handlePageInvocationCount).toBe(0);
                 expect(errorMessages).toHaveLength(8);
-                errorMessages.forEach(msg => expect(msg).toEqual(expect.arrayContaining(['Internal Server Error'])));
+                errorMessages.forEach(msg => expect(msg).toMatch('Internal Server Error'));
             });
 
             test('when statusCode >= 500 and application/json is received', async () => {
@@ -506,7 +506,7 @@ describe('CheerioCrawler', () => {
 
                 expect(handlePageInvocationCount).toBe(0);
                 expect(errorMessages).toHaveLength(8);
-                errorMessages.forEach(msg => expect(msg).toEqual(expect.arrayContaining(['CUSTOM_ERROR'])));
+                errorMessages.forEach(msg => expect(msg).toMatch('CUSTOM_ERROR'));
             });
 
             test('when 406 is received', async () => {
@@ -530,9 +530,7 @@ describe('CheerioCrawler', () => {
 
                 expect(handlePageInvocationCount).toBe(0);
                 expect(errorMessages).toHaveLength(4);
-                errorMessages.forEach(msg => expect(msg).toEqual(
-                    expect.arrayContaining(['is not available in HTML format. Skipping resource.'])
-                ));
+                errorMessages.forEach(msg => expect(msg).toMatch('is not available in HTML format. Skipping resource.'));
             });
 
             xit('when status is ok, but a wrong content type is received', async () => {
@@ -564,7 +562,7 @@ describe('CheerioCrawler', () => {
                 expect(handlePageInvocationCount).toBe(0);
                 expect(errorMessages).toHaveLength(4);
                 errorMessages.forEach(msg => expect(msg).toEqual(
-                    expect.arrayContaining(['served Content-Type application/json instead of text/html'])
+                    expect.arrayContaining(['served Content-Type application/json instead of text/html']),
                 ));
                 expect(chunkReadCount).toBe(0);
             });
@@ -775,7 +773,7 @@ describe('CheerioCrawler', () => {
                     });
                     throw new Error('Invalid error.');
                 } catch (err) {
-                    expect(err.message).toEqual(expect.arrayContaining(['useApifyProxy']));
+                    expect(err.message).toMatch('useApifyProxy');
                 }
             });
 
@@ -789,7 +787,7 @@ describe('CheerioCrawler', () => {
                     });
                     throw new Error('Invalid error.');
                 } catch (err) {
-                    expect(err.message).toEqual(expect.arrayContaining(['must not be empty']));
+                    expect(err.message).toMatch('must not be empty');
                 }
             });
         });

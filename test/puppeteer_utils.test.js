@@ -111,30 +111,6 @@ describe('Apify.utils.puppeteer', () => {
         }
     });
 
-    test('hideWebDriver()', async () => {
-        const browser = await Apify.launchPuppeteer({ headless: true });
-
-        try {
-            const page = await browser.newPage();
-            await page.goto('about:blank');
-
-            // TODO: Jarda, please can you add unit test for this?
-            /*
-            const result1 = await page.evaluate(() => {
-                return { isDefined: window._ !== undefined };
-            });
-            expect(result1).to.eql({ isDefined: false });
-
-            await Apify.utils.puppeteer.hideWebDriver(page);
-            const result2 = await page.evaluate(() => {
-                return { isDefined: _.isEmpty({}) };
-            });
-            expect(result2).to.eql({ isDefined: true }); */
-        } finally {
-            browser.close();
-        }
-    });
-
     // TODO Remove with 1.0.0. This is here as a backwards comp for moving
     // the function from utils.puppeteer to utils.
     test('enqueueLinks() exists in this namespace', async () => {
@@ -142,9 +118,7 @@ describe('Apify.utils.puppeteer', () => {
         try {
             await Apify.utils.puppeteer.enqueueLinks({ page: {}, $: () => {} });
         } catch (err) {
-            expect(err.message).toBe(
-                'Only one of the parameters "options.page" or "options.$" must be provided!'
-            );
+            expect(err.message).toBe('Only one of the parameters "options.page" or "options.$" must be provided!');
         }
     });
 
@@ -165,9 +139,7 @@ describe('Apify.utils.puppeteer', () => {
         } finally {
             await browser.close();
         }
-        expect(loadedUrls).toEqual(expect.arrayContaining([
-            'https://example.com/script.js',
-        ]));
+        expect(loadedUrls).toEqual(['https://example.com/script.js']);
     });
 
     test('blockRequests() works with overridden values', async () => {
@@ -297,7 +269,7 @@ describe('Apify.utils.puppeteer', () => {
             await testRuleType([]);
             await testRuleType(['']);
             await testRuleType(() => {});
-        }
+        },
     );
 
     test('compileScript() works', async () => {
@@ -306,7 +278,7 @@ describe('Apify.utils.puppeteer', () => {
         const scriptStringBad = 'for const while';
         const script = compileScript(scriptStringGood);
 
-        expect(script).toBeInstanceOf(Function);
+        expect(typeof script).toBe('function');
         expect(script.toString()).toEqual(`async ({ page, request }) => {${scriptStringGood}}`);
 
         try {
@@ -314,7 +286,7 @@ describe('Apify.utils.puppeteer', () => {
             throw new Error('Should fail.');
         } catch (err) {
             // TODO figure out why the err.message comes out empty in the logs.
-            expect(err.message).toEqual(expect.arrayContaining(['Unexpected token const']));
+            expect(err.message).toMatch('Unexpected token const');
         }
         const browser = await Apify.launchPuppeteer({ headless: true });
         try {

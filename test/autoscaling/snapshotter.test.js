@@ -45,32 +45,32 @@ describe('Snapshotter', () => {
         expect(cpuSnapshots).toHaveLength(2);
         cpuSnapshots.forEach((ss) => {
             expect(ss.createdAt).toBeInstanceOf(Date);
-            expect(ss.isOverloaded).toBeInstanceOf(Boolean);
-            expect(ss.usedRatio).toBeInstanceOf(Number);
+            expect(typeof ss.isOverloaded).toBe('boolean');
+            expect(typeof ss.usedRatio).toBe('number');
         });
 
         expect(Array.isArray(memorySnapshots)).toBe(true);
         expect(memorySnapshots).toHaveLength(2);
         memorySnapshots.forEach((ss) => {
             expect(ss.createdAt).toBeInstanceOf(Date);
-            expect(ss.isOverloaded).toBeInstanceOf(Boolean);
-            expect(ss.usedBytes).toBeInstanceOf(Number);
+            expect(typeof ss.isOverloaded).toBe('boolean');
+            expect(typeof ss.usedBytes).toBe('number');
         });
 
         expect(Array.isArray(eventLoopSnapshots)).toBe(true);
         expect(eventLoopSnapshots).toHaveLength(3);
         eventLoopSnapshots.forEach((ss) => {
             expect(ss.createdAt).toBeInstanceOf(Date);
-            expect(ss.isOverloaded).toBeInstanceOf(Boolean);
-            expect(ss.exceededMillis).toBeInstanceOf(Number);
+            expect(typeof ss.isOverloaded).toBe('boolean');
+            expect(typeof ss.exceededMillis).toBe('number');
         });
 
         expect(Array.isArray(clientSnapshots)).toBe(true);
         expect(clientSnapshots).toHaveLength(2);
         clientSnapshots.forEach((ss) => {
             expect(ss.createdAt).toBeInstanceOf(Date);
-            expect(ss.isOverloaded).toBeInstanceOf(Boolean);
-            expect(ss.rateLimitErrorCount).toBeInstanceOf(Number);
+            expect(typeof ss.isOverloaded).toBe('boolean');
+            expect(typeof ss.rateLimitErrorCount).toBe('number');
         });
 
         utils.apifyClient.stats = oldStats;
@@ -121,7 +121,7 @@ describe('Snapshotter', () => {
             expect(cpuSnapshots).toHaveLength(4);
             cpuSnapshots.forEach((ss, i) => {
                 expect(ss.createdAt).toBeInstanceOf(Date);
-                expect(ss.isOverloaded).toBeInstanceOf(Boolean);
+                expect(typeof ss.isOverloaded).toBe('boolean');
                 expect(ss.isOverloaded).toEqual(i % 2 === 0);
             });
         } finally {

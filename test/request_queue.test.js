@@ -22,7 +22,7 @@ describe('RequestQueue', () => {
     beforeEach(() => emptyLocalStorageSubdir(LOCAL_STORAGE_SUBDIR));
     afterEach(() => emptyLocalStorageSubdir(LOCAL_STORAGE_SUBDIR));
 
-    describe('local', async () => {
+    describe('local', () => {
         test('should work', async () => {
             const queue = new RequestQueueLocal('my-queue-0', LOCAL_STORAGE_DIR);
 
@@ -69,8 +69,8 @@ describe('RequestQueue', () => {
                 .catch(err => expect(err.message).toMatch(/Cannot reclaim request XXX, because it is not in progress/));
             await queue.addRequest(new Apify.Request({ id: 'id-already-set', url: 'dummy' }))
                 .catch(err => expect(err.message).toMatch(
-                /Request already has the "id" field set so it cannot be added to the queue/
-            ));
+                    /Request already has the "id" field set so it cannot be added to the queue/,
+                ));
 
             // Check that changes to Requests are persisted to Queue.
             request1.errorMessages = ['Hello'];
@@ -123,7 +123,7 @@ describe('RequestQueue', () => {
                 await queue.addRequest({ url: '' });
                 expect(false).toBe(true);
             } catch (e) {
-                expect(e.message).toEqual(expect.arrayContaining(['The "url" option cannot be empty string']));
+                expect(e.message).toMatch('The "url" option cannot be empty string');
             }
             await queue.addRequest(new Apify.Request({ url: 'something' }));
             await Apify.utils.sleep(20);
@@ -293,7 +293,7 @@ describe('RequestQueue', () => {
         });
     });
 
-    describe('remote', async () => {
+    describe('remote', () => {
         test('should work', async () => {
             expectNotUsingLocalStorage();
 
@@ -377,8 +377,8 @@ describe('RequestQueue', () => {
                 .catch(err => expect(err.message).toMatch(/Cannot reclaim request XXX, because it is not in progress/));
             await queue.addRequest(new Request({ id: 'id-already-set', url: 'dummy' }))
                 .catch(err => expect(err.message).toMatch(
-                /Request already has the "id" field set so it cannot be added to the queue/
-            ));
+                    /Request already has the "id" field set so it cannot be added to the queue/,
+                ));
 
             // getRequest() returns null if object was not found.
             mock.expects('getRequest')
@@ -560,7 +560,7 @@ describe('RequestQueue', () => {
 
                 mock.verify();
                 mock.restore();
-            }
+            },
         );
 
         test('should cache requests from queue head', async () => {
@@ -670,7 +670,7 @@ describe('RequestQueue', () => {
 
                 mock.verify();
                 mock.restore();
-            }
+            },
         );
 
         test('should not add handled request to queue head dict', async () => {
@@ -790,7 +790,7 @@ describe('RequestQueue', () => {
 
                 mock.verify();
                 mock.restore();
-            }
+            },
         );
 
         test(
@@ -918,7 +918,7 @@ describe('RequestQueue', () => {
 
                 mock.verify();
                 mock.restore();
-            }
+            },
         );
 
         test('getInfo() should work', async () => {
@@ -963,7 +963,7 @@ describe('RequestQueue', () => {
         });
     });
 
-    describe('Apify.openRequestQueue', async () => {
+    describe('Apify.openRequestQueue', () => {
         test('should work', () => {
             const mock = sinon.mock(utils);
 

@@ -269,7 +269,7 @@ describe('enqueueLinks()', () => {
                 await enqueueLinks({ page, selector: '.click', requestQueue, pseudoUrls });
                 throw new Error('Wrong error.');
             } catch (err) {
-                expect(err.message).toEqual(expect.arrayContaining(['pseudoUrls[1]']));
+                expect(err.message).toMatch('pseudoUrls[1]');
                 expect(enqueued).toHaveLength(0);
             }
         });
@@ -549,7 +549,7 @@ describe('enqueueLinks()', () => {
                 await enqueueLinks({ $, selector: '.click', requestQueue, pseudoUrls });
                 throw new Error('Wrong error.');
             } catch (err) {
-                expect(err.message).toEqual(expect.arrayContaining(['pseudoUrls[1]']));
+                expect(err.message).toMatch('pseudoUrls[1]');
                 expect(enqueued).toHaveLength(0);
             }
         });
@@ -604,7 +604,7 @@ describe('enqueueLinks()', () => {
                 await enqueueLinks({ $, requestQueue });
                 throw new Error('wrong error');
             } catch (err) {
-                expect(err.message).toEqual(expect.arrayContaining(['/x/absolutepath']));
+                expect(err.message).toMatch('/x/absolutepath');
             }
             expect(enqueued).toHaveLength(0);
         });

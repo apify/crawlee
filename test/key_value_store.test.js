@@ -25,7 +25,7 @@ describe('KeyValueStore', () => {
             const obj = {};
             obj.self = obj;
             expect(() => maybeStringify(obj, { contentType: null })).toThrowError(
-                'The "value" parameter cannot be stringified to JSON: Converting circular structure to JSON'
+                'The "value" parameter cannot be stringified to JSON: Converting circular structure to JSON',
             );
         });
     });
@@ -50,7 +50,7 @@ describe('KeyValueStore', () => {
         });
     });
 
-    describe('local', async () => {
+    describe('local', () => {
         test('should work', async () => {
             const store = new KeyValueStoreLocal('my-store-id', LOCAL_STORAGE_DIR);
             const store2 = new KeyValueStoreLocal('another-store-id', LOCAL_STORAGE_DIR);
@@ -73,7 +73,7 @@ describe('KeyValueStore', () => {
                 throw new Error('This should throw!!!');
             } catch (err) {
                 expect(err).toBeInstanceOf(Error);
-                expect(err.message).toEqual(expect.arrayContaining(['This should throw!!!']));
+                expect(err.message).not.toMatch('This should throw!!!');
             }
 
             // Check that it still exists.
@@ -111,7 +111,7 @@ describe('KeyValueStore', () => {
         });
     });
 
-    describe('remote', async () => {
+    describe('remote', () => {
         test('works', async () => {
             const store = new KeyValueStore('some-id-1');
             const mock = sinon.mock(apifyClient.keyValueStores);
@@ -178,7 +178,7 @@ describe('KeyValueStore', () => {
         });
     });
 
-    describe('Apify.openKeyValueStore', async () => {
+    describe('Apify.openKeyValueStore', () => {
         test('should work', async () => {
             const mock = sinon.mock(utils);
 
@@ -205,14 +205,14 @@ describe('KeyValueStore', () => {
         });
     });
 
-    describe('getValue', async () => {
+    describe('getValue', () => {
         test('throws on invalid args', async () => {
             process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID] = '1234';
             process.env[ENV_VARS.LOCAL_STORAGE_DIR] = LOCAL_STORAGE_DIR;
-            await expect(Apify.getValue()).to.be.rejectedWith('Parameter "key" of type String must be provided');
-            await expect(Apify.getValue({})).to.be.rejectedWith('Parameter "key" of type String must be provided');
-            await expect(Apify.getValue('')).to.be.rejectedWith('The "key" parameter cannot be empty');
-            await expect(Apify.getValue(null)).to.be.rejectedWith('Parameter "key" of type String must be provided');
+            await expect(Apify.getValue()).rejects.toThrow('Parameter "key" of type String must be provided');
+            await expect(Apify.getValue({})).rejects.toThrow('Parameter "key" of type String must be provided');
+            await expect(Apify.getValue('')).rejects.toThrow('The "key" parameter cannot be empty');
+            await expect(Apify.getValue(null)).rejects.toThrow('Parameter "key" of type String must be provided');
             delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
         });
 
@@ -224,55 +224,55 @@ describe('KeyValueStore', () => {
                 process.env[ENV_VARS.TOKEN] = 'xxx';
 
                 const errMsg = 'The \'APIFY_DEFAULT_KEY_VALUE_STORE_ID\' environment variable is not defined';
-                await expect(Apify.getValue('KEY')).to.be.rejectedWith(errMsg);
+                await expect(Apify.getValue('KEY')).rejects.toThrow(errMsg);
 
                 delete process.env[ENV_VARS.TOKEN];
-            }
+            },
         );
     });
 
-    describe('setValue', async () => {
+    describe('setValue', () => {
         test('throws on invalid args', async () => {
             process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID] = '12345';
             process.env[ENV_VARS.LOCAL_STORAGE_DIR] = LOCAL_STORAGE_DIR;
 
-            await expect(Apify.setValue()).to.be.rejectedWith('Parameter "key" of type String must be provided');
-            await expect(Apify.setValue('', null)).to.be.rejectedWith('The "key" parameter cannot be empty');
-            await expect(Apify.setValue('', 'some value')).to.be.rejectedWith('The "key" parameter cannot be empty');
-            await expect(Apify.setValue({}, 'some value')).to.be.rejectedWith('Parameter "key" of type String must be provided');
-            await expect(Apify.setValue(123, 'some value')).to.be.rejectedWith('Parameter "key" of type String must be provided');
+            await expect(Apify.setValue()).rejects.toThrow('Parameter "key" of type String must be provided');
+            await expect(Apify.setValue('', null)).rejects.toThrow('The "key" parameter cannot be empty');
+            await expect(Apify.setValue('', 'some value')).rejects.toThrow('The "key" parameter cannot be empty');
+            await expect(Apify.setValue({}, 'some value')).rejects.toThrow('Parameter "key" of type String must be provided');
+            await expect(Apify.setValue(123, 'some value')).rejects.toThrow('Parameter "key" of type String must be provided');
 
             const valueErrMsg = 'The "value" parameter must be a String or Buffer when "options.contentType" is specified';
-            await expect(Apify.setValue('key', {}, { contentType: 'image/png' })).to.be.rejectedWith(valueErrMsg);
-            await expect(Apify.setValue('key', 12345, { contentType: 'image/png' })).to.be.rejectedWith(valueErrMsg);
-            await expect(Apify.setValue('key', () => {}, { contentType: 'image/png' })).to.be.rejectedWith(valueErrMsg);
+            await expect(Apify.setValue('key', {}, { contentType: 'image/png' })).rejects.toThrow(valueErrMsg);
+            await expect(Apify.setValue('key', 12345, { contentType: 'image/png' })).rejects.toThrow(valueErrMsg);
+            await expect(Apify.setValue('key', () => {}, { contentType: 'image/png' })).rejects.toThrow(valueErrMsg);
 
             const optsErrMsg = 'Parameter "options" of type Object must be provided';
-            await expect(Apify.setValue('key', {}, 123)).to.be.rejectedWith(optsErrMsg);
-            await expect(Apify.setValue('key', {}, 'bla/bla')).to.be.rejectedWith(optsErrMsg);
-            await expect(Apify.setValue('key', {}, true)).to.be.rejectedWith(optsErrMsg);
+            await expect(Apify.setValue('key', {}, 123)).rejects.toThrow(optsErrMsg);
+            await expect(Apify.setValue('key', {}, 'bla/bla')).rejects.toThrow(optsErrMsg);
+            await expect(Apify.setValue('key', {}, true)).rejects.toThrow(optsErrMsg);
 
             const circularObj = {};
             circularObj.xxx = circularObj;
             const circularErrMsg = 'The "value" parameter cannot be stringified to JSON: Converting circular structure to JSON';
             const undefinedErrMsg = 'The "value" parameter was stringified to JSON and returned undefined. '
                 + 'Make sure you\'re not trying to stringify an undefined value.';
-            await expect(Apify.setValue('key', circularObj)).to.be.rejectedWith(circularErrMsg);
-            await expect(Apify.setValue('key', undefined)).to.be.rejectedWith(undefinedErrMsg);
-            await expect(Apify.setValue('key')).to.be.rejectedWith(undefinedErrMsg);
+            await expect(Apify.setValue('key', circularObj)).rejects.toThrow(circularErrMsg);
+            await expect(Apify.setValue('key', undefined)).rejects.toThrow(undefinedErrMsg);
+            await expect(Apify.setValue('key')).rejects.toThrow(undefinedErrMsg);
 
             const contTypeRedundantErrMsg = 'The "options.contentType" parameter must not be used when removing the record';
-            await expect(Apify.setValue('key', null, { contentType: 'image/png' })).to.be.rejectedWith(contTypeRedundantErrMsg);
-            await expect(Apify.setValue('key', null, { contentType: '' })).to.be.rejectedWith(contTypeRedundantErrMsg);
+            await expect(Apify.setValue('key', null, { contentType: 'image/png' })).rejects.toThrow(contTypeRedundantErrMsg);
+            await expect(Apify.setValue('key', null, { contentType: '' })).rejects.toThrow(contTypeRedundantErrMsg);
             await expect(Apify.setValue('key', null, { contentType: {} }))
-                .to.be.rejectedWith('Parameter "options.contentType" of type String | Null | Undefined must be provided');
+                .rejects.toThrow('Parameter "options.contentType" of type String | Null | Undefined must be provided');
 
             const contTypeStringErrMsg = 'Parameter "options.contentType" of type String | Null | Undefined must be provided';
-            await expect(Apify.setValue('key', 'value', { contentType: 123 })).to.be.rejectedWith(contTypeStringErrMsg);
-            await expect(Apify.setValue('key', 'value', { contentType: {} })).to.be.rejectedWith(contTypeStringErrMsg);
-            await expect(Apify.setValue('key', 'value', { contentType: new Date() })).to.be.rejectedWith(contTypeStringErrMsg);
+            await expect(Apify.setValue('key', 'value', { contentType: 123 })).rejects.toThrow(contTypeStringErrMsg);
+            await expect(Apify.setValue('key', 'value', { contentType: {} })).rejects.toThrow(contTypeStringErrMsg);
+            await expect(Apify.setValue('key', 'value', { contentType: new Date() })).rejects.toThrow(contTypeStringErrMsg);
             await expect(Apify.setValue('key', 'value', { contentType: '' }))
-                .to.be.rejectedWith('Parameter options.contentType cannot be empty string.');
+                .rejects.toThrow('Parameter options.contentType cannot be empty string.');
 
             delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
         });
@@ -311,10 +311,10 @@ describe('KeyValueStore', () => {
                 process.env[ENV_VARS.TOKEN] = 'xxx';
 
                 const errMsg = 'The \'APIFY_DEFAULT_KEY_VALUE_STORE_ID\' environment variable is not defined';
-                await expect(Apify.setValue('KEY', {})).to.be.rejectedWith(errMsg);
+                await expect(Apify.setValue('KEY', {})).rejects.toThrow(errMsg);
 
                 delete process.env[ENV_VARS.TOKEN];
-            }
+            },
         );
 
         test('correctly adds charset to content type', async () => {
@@ -501,7 +501,7 @@ describe('KeyValueStore', () => {
         });
     });
 
-    describe('getInput', async () => {
+    describe('getInput', () => {
         test('should work', async () => {
             process.env[ENV_VARS.LOCAL_STORAGE_DIR] = LOCAL_STORAGE_DIR;
             const defaultStore = await Apify.openKeyValueStore();

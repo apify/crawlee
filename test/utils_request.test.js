@@ -11,12 +11,9 @@ const CONTENT = 'CONTENT';
 const HOST = '127.0.0.1';
 
 describe('Apify.utils_request', () => {
-    let mochaListener;
     let port;
     let server;
     beforeAll(async () => {
-        mochaListener = process.listeners('uncaughtException').shift();
-        process.removeListener('uncaughtException', mochaListener);
         const app = express();
 
         app.get('/406', (req, res) => {
@@ -58,7 +55,7 @@ describe('Apify.utils_request', () => {
         port = server.address().port; //eslint-disable-line
     });
 
-    describe('Apify.requestAsBrowser', async () => {
+    describe('Apify.requestAsBrowser', () => {
         test(
             'it uses mobile user-agent whe mobile property is set to true ',
             async () => {
@@ -69,7 +66,7 @@ describe('Apify.utils_request', () => {
                 const response = await requestAsBrowser(data);
                 expect(response.statusCode).toBe(200);
                 expect(JSON.parse(response.body)['user-agent']).toEqual(FIREFOX_MOBILE_USER_AGENT);
-            }
+            },
         );
 
         test('uses desktop user-agent by default ', async () => {

@@ -25,7 +25,7 @@ describe('dataset', () => {
     beforeEach(() => emptyLocalStorageSubdir(LOCAL_STORAGE_SUBDIR));
     afterEach(() => emptyLocalStorageSubdir(LOCAL_STORAGE_SUBDIR));
 
-    describe('local', async () => {
+    describe('local', () => {
         test('should successfully save data', async () => {
             const dataset = new DatasetLocal('my-dataset', LOCAL_STORAGE_DIR);
 
@@ -326,7 +326,7 @@ describe('dataset', () => {
         });
     });
 
-    describe('remote', async () => {
+    describe('remote', () => {
         const mockData = bytes => 'x'.repeat(bytes);
 
         test('should succesfully save simple data', async () => {
@@ -432,7 +432,7 @@ describe('dataset', () => {
                 throw new Error('Should fail!');
             } catch (err) {
                 expect(err).toBeInstanceOf(Error);
-                expect(err.message).toEqual(expect.arrayContaining(['Data item is too large']));
+                expect(err.message).toMatch('Data item is too large');
             }
             mock.expects('deleteDataset')
                 .once()
@@ -457,7 +457,7 @@ describe('dataset', () => {
                 throw new Error('Should fail!');
             } catch (err) {
                 expect(err).toBeInstanceOf(Error);
-                expect(err.message).toEqual(expect.arrayContaining(['Data item at index 3 is too large']));
+                expect(err.message).toMatch('Data item at index 3 is too large');
             }
             mock.expects('deleteDataset')
                 .once()
@@ -746,7 +746,7 @@ describe('dataset', () => {
         });
     });
 
-    describe('Apify.openDataset', async () => {
+    describe('Apify.openDataset', () => {
         test('should work', () => {
             const mock = sinon.mock(utils);
 
@@ -773,23 +773,23 @@ describe('dataset', () => {
         });
     });
 
-    describe('pushData', async () => {
+    describe('pushData', () => {
         test('throws on invalid args', async () => {
             process.env[ENV_VARS.DEFAULT_DATASET_ID] = 'some-id-8';
             process.env[ENV_VARS.LOCAL_STORAGE_DIR] = LOCAL_STORAGE_DIR;
 
             const dataErrMsg = 'Parameter "data" of type Array | Object must be provided';
-            await expect(Apify.pushData()).to.be.rejectedWith(dataErrMsg);
-            await expect(Apify.pushData('')).to.be.rejectedWith(dataErrMsg);
-            await expect(Apify.pushData(123)).to.be.rejectedWith(dataErrMsg);
-            await expect(Apify.pushData(true)).to.be.rejectedWith(dataErrMsg);
-            await expect(Apify.pushData(false)).to.be.rejectedWith(dataErrMsg);
-            await expect(Apify.pushData(() => {})).to.be.rejectedWith(dataErrMsg);
+            await expect(Apify.pushData()).rejects.toThrow(dataErrMsg);
+            await expect(Apify.pushData('')).rejects.toThrow(dataErrMsg);
+            await expect(Apify.pushData(123)).rejects.toThrow(dataErrMsg);
+            await expect(Apify.pushData(true)).rejects.toThrow(dataErrMsg);
+            await expect(Apify.pushData(false)).rejects.toThrow(dataErrMsg);
+            await expect(Apify.pushData(() => {})).rejects.toThrow(dataErrMsg);
 
             const circularObj = {};
             circularObj.xxx = circularObj;
             const jsonErrMsg = 'Converting circular structure to JSON';
-            await expect(Apify.pushData(circularObj)).to.be.rejectedWith(jsonErrMsg);
+            await expect(Apify.pushData(circularObj)).rejects.toThrow(jsonErrMsg);
 
             delete process.env[ENV_VARS.DEFAULT_DATASET_ID];
             delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
@@ -802,13 +802,13 @@ describe('dataset', () => {
                 process.env[ENV_VARS.TOKEN] = 'xxx';
 
                 process.env[ENV_VARS.DEFAULT_DATASET_ID] = '';
-                await expect(Apify.pushData({ something: 123 })).to.be.rejectedWith(Error);
+                await expect(Apify.pushData({ something: 123 })).rejects.toThrow(Error);
 
                 delete process.env[ENV_VARS.DEFAULT_DATASET_ID];
-                await expect(Apify.pushData({ something: 123 })).to.be.rejectedWith(Error);
+                await expect(Apify.pushData({ something: 123 })).rejects.toThrow(Error);
 
                 delete process.env[ENV_VARS.TOKEN];
-            }
+            },
         );
 
         test('correctly stores records', async () => {
@@ -826,7 +826,7 @@ describe('dataset', () => {
         });
     });
 
-    describe('utils', async () => {
+    describe('utils', () => {
         test('checkAndSerialize() works', () => {
             // Basic
             const obj = { foo: 'bar' };

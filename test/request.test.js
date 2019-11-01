@@ -30,7 +30,7 @@ describe('Apify.Request', () => {
             const uniqueKey = `POST(${payloadHash}):${normalizedUrl}`;
 
             expect(request.uniqueKey).toEqual(uniqueKey);
-        }
+        },
     );
 
     test('works', () => {
@@ -53,7 +53,7 @@ describe('Apify.Request', () => {
             },
             handledAt: new Date(),
         };
-        expect(new Apify.Request(data)).toEqual(expect.arrayContaining([data]));
+        expect(new Apify.Request(data)).toMatchObject(data);
 
         data.handledAt = (new Date()).toISOString();
         expect((new Apify.Request(data)).handledAt).toBeInstanceOf(Date);
@@ -110,9 +110,9 @@ describe('Apify.Request', () => {
 
         request.pushErrorMessage(new Error('error message.'));
         const last = request.errorMessages.pop();
-        expect(last).toEqual(expect.arrayContaining(['error message.']));
-        expect(last).toEqual(expect.arrayContaining([' at ']));
-        expect(last).toEqual(expect.arrayContaining([__filename.split(/[\\/]/g).pop()]));
+        expect(last).toMatch('error message.');
+        expect(last).toMatch(' at ');
+        expect(last).toMatch(__filename.split(/[\\/]/g).pop());
     });
 
     test('should not allow to have a GET request with payload', () => {

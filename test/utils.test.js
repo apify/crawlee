@@ -524,7 +524,7 @@ describe('Apify.utils.downloadListOfUrls()', () => {
 
         return expect(downloadListOfUrls({
             url: 'nowhere',
-        })).toEqual(arr);
+        })).resolves.toEqual(arr);
     });
 });
 
@@ -536,7 +536,7 @@ describe('Apify.utils.getRandomUserAgent()', () => {
     });
 });
 
-describe('utils.openLocalStorage()', async () => {
+describe('utils.openLocalStorage()',  () => {
     test(
         'should return item from cache if available and create new one otherwise',
         async () => {
@@ -602,7 +602,7 @@ describe('utils.openLocalStorage()', async () => {
     );
 });
 
-describe('utils.openRemoteStorage()', async () => {
+describe('utils.openRemoteStorage()',  () => {
     test(
         'should return item from cache if available and create new one otherwise',
         async () => {

@@ -235,8 +235,8 @@ describe('BasicCrawler', () => {
         expect(failed['http://example.com/2'].retryCount).toBe(3);
         expect(failed['http://example.com/3'].errorMessages).toHaveLength(4);
         expect(failed['http://example.com/3'].retryCount).toBe(3);
-        expect(_.values(failed)).to.have.length.of(3);
-        expect(_.values(processed)).to.have.length.of(0);
+        expect(_.values(failed)).toHaveLength(3);
+        expect(_.values(processed)).toHaveLength(0);
         expect(await requestList.isFinished()).toBe(true);
         expect(await requestList.isEmpty()).toBe(true);
         errors.forEach(error => expect(error).toBeInstanceOf(Error));
@@ -605,6 +605,6 @@ describe('BasicCrawler', () => {
         await crawler.run();
         expect(results).toHaveLength(1);
         expect(results[0].url).toEqual(url);
-        results[0].errorMessages.forEach(msg => expect(msg).toEqual(expect.arrayContaining(['handleRequestFunction timed out'])));
+        results[0].errorMessages.forEach(msg => expect(msg).toMatch('handleRequestFunction timed out'));
     });
 });
