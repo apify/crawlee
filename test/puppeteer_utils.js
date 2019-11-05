@@ -385,7 +385,7 @@ describe('Apify.utils.puppeteer', () => {
             const contentHTML = '<html><head></head><body><div style="border: 1px solid black">Div number: 1</div></body></html>';
             await page.setContent(contentHTML);
 
-            const screenshot = await page.screenshot({ fullPage: true, type: 'jpeg', quality: 60 });
+            const screenshot = await page.screenshot({ fullPage: true, type: 'jpeg', screenshotQuality: 60 });
 
             // Test saving both image and html
             const object = { setValue: async () => {} };
@@ -396,7 +396,7 @@ describe('Apify.utils.puppeteer', () => {
                 .withExactArgs('TEST-STORE')
                 .resolves(object);
 
-            await Apify.utils.puppeteer.saveSnapshot(page, { key: 'TEST', keyValueStoreName: 'TEST-STORE', quality: 60 });
+            await Apify.utils.puppeteer.saveSnapshot(page, { key: 'TEST', keyValueStoreName: 'TEST-STORE', screenshotQuality: 60 });
 
             expect(stub.calledWithExactly('TEST.jpg', screenshot, { contentType: 'image/jpeg' })).to.be.eql(true);
             expect(stub.calledWithExactly('TEST.html', contentHTML, { contentType: 'text/html' })).to.be.eql(true);
@@ -411,7 +411,7 @@ describe('Apify.utils.puppeteer', () => {
             await Apify.utils.puppeteer.saveSnapshot(page, { saveHtml: false });
 
             // Default quality is 50
-            const screenshot2 = await page.screenshot({ fullPage: true, type: 'jpeg', quality: 50 });
+            const screenshot2 = await page.screenshot({ fullPage: true, type: 'jpeg', screenshotQuality: 50 });
             expect(stub2.calledOnceWithExactly('SNAPSHOT.jpg', screenshot2, { contentType: 'image/jpeg' })).to.be.eql(true);
 
             mock.verify();

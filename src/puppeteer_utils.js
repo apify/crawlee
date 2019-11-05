@@ -519,13 +519,13 @@ export const infiniteScroll = async (page, options = {}) => {
  * @param {Object} [options]
  * @param {String} [options.key=SNAPSHOT]
  *   Key under which the screenshot and HTML will be saved. `.jpg` will be appended for screenshot and `.html` for HTML.
- * @param {Number} [options.quality=50]
+ * @param {Number} [options.screenshotQuality=50]
  *   The quality of the image, between 0-100. Higher quality images have bigger size and require more storage.
  * @param {Boolean} [options.saveScreenshot=true]
  *   If true, it will save a full screenshot of the current page as a record with `key` appended by `.jpg`.
  * @param {Boolean} [options.saveHtml=true]
  *   If true, it will save a full HTML of the current page as a record with `key` appended by `.html`.
- * @param {String} [options.storeName=null]
+ * @param {String} [options.keyValueStoreName=null]
  *   Name or id of the Key-Value store where snapshot is saved. By default it is saved to default Key-Value store.
  * @returns {Promise}
  * @memberOf puppeteer
@@ -538,19 +538,19 @@ const saveSnapshot = async (page, options = {}) => {
         checkParamOrThrow(page, 'page', 'Object');
         checkParamOrThrow(options, 'options', 'Object');
 
-        const { saveScreenshot = true, saveHtml = true, keyValueStoreName = null, quality = 50 } = options;
+        const { saveScreenshot = true, saveHtml = true, keyValueStoreName = null, screenshotQuality = 50 } = options;
         key = options.key || DEFAULT_KEY;
 
         checkParamOrThrow(saveScreenshot, 'saveScreenshot', 'Boolean');
         checkParamOrThrow(saveHtml, 'saveHtml', 'Boolean');
         checkParamOrThrow(key, 'key', 'String');
         checkParamOrThrow(keyValueStoreName, 'keyValueStoreName', 'Maybe String');
-        checkParamOrThrow(quality, 'quality', 'Number');
+        checkParamOrThrow(screenshotQuality, 'screenshotQuality', 'Number');
 
         const store = await openKeyValueStore(keyValueStoreName);
 
         if (saveScreenshot) {
-            const screenshotBuffer = await page.screenshot({ fullPage: true, quality, type: 'jpeg' });
+            const screenshotBuffer = await page.screenshot({ fullPage: true, screenshotQuality, type: 'jpeg' });
             await store.setValue(`${key}.jpg`, screenshotBuffer, { contentType: 'image/jpeg' });
         }
         if (saveHtml) {
