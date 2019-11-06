@@ -50,6 +50,12 @@
       "api/requestqueue": {
         "title": "RequestQueue"
       },
+      "api/session": {
+        "title": "Session"
+      },
+      "api/sessionpool": {
+        "title": "SessionPool"
+      },
       "api/snapshotter": {
         "title": "Snapshotter"
       },
@@ -70,6 +76,9 @@
       },
       "examples/cheeriocrawler": {
         "title": "Cheerio Crawler"
+      },
+      "examples/forms": {
+        "title": "Forms"
       },
       "examples/helloworld": {
         "title": "Hello World"

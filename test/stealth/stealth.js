@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import scanner from 'fpscanner';
 
 import Apify from '../../build';
+import { LOCAL_STORAGE_DIR, emptyLocalStorageSubdir } from '../_helper';
 
 const fingerPrintPath = require.resolve('fpcollect/dist/fpCollect.min.js');
 
@@ -13,6 +14,10 @@ const getFingerPrint = async (page) => {
 
 // we can speed up the test to make the requests to the local static html
 describe('Stealth - testing headless chrome hiding tricks', () => {
+    before(async () => {
+        process.env.APIFY_LOCAL_STORAGE_DIR = LOCAL_STORAGE_DIR;
+        await emptyLocalStorageSubdir('key_value_stores/default');
+    });
     it('it adds plugins, mimeTypes and passes', async () => {
         const browser = await Apify.launchPuppeteer({
             stealth: true,
@@ -234,5 +239,26 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
         expect(failedChecks.length).to.eql(0);
 
         return browser.close();
+    });
+
+    it('should work in crawler', async () => {
+        const requestList = await Apify.openRequestList('test', ['file://test_html.html']);
+        const values = [];
+        const puppeteerCrawler = new Apify.PuppeteerCrawler({
+            requestList,
+            launchPuppeteerOptions: {
+                stealth: true,
+                useChrome: true,
+                headless: true,
+            },
+            handlePageFunction: async ({ page }) => {
+                const fingerprint = await getFingerPrint(page);
+                values.push(fingerprint);
+            },
+        });
+        await puppeteerCrawler.run();
+        const fingerprint = values[0];
+        expect(fingerprint.webDriver).to.be.false; // eslint-disable-line
+        expect(fingerprint.webDriverValue).to.be.undefined; // eslint-disable-line
     });
 });

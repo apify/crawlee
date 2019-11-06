@@ -177,7 +177,6 @@ describe('Apify.utils.puppeteer', () => {
             const page = await browser.newPage();
             await Apify.utils.puppeteer.blockRequests(page, {
                 urlPatterns: ['.css'],
-                includeDefaults: false,
             });
             page.on('response', response => loadedUrls.push(response.url()));
             await page.setContent(`<html><body>

@@ -19,8 +19,9 @@ After that, no more URLs can be added to the list.
 URLs to crawl. Unlike [`RequestQueue`](requestqueue), `RequestList` is static but it can contain even millions of URLs.
 
 `RequestList` has an internal state where it stores information about which requests were already handled, which are in progress and which were
-reclaimed. The state may be automatically persisted to the default key-value store by setting the `persistStateKey` option so that if the Node.js
-process is restarted, the crawling can continue where it left off. For more details, see [`KeyValueStore`](keyvaluestore).
+reclaimed. The state may be automatically persisted to the default [`KeyValueStore`](keyvaluestore) by setting the `persistStateKey` option so that if
+the Node.js process is restarted, the crawling can continue where it left off. The automated persisting is launched upon receiving the `persistState`
+event that is periodically emitted by [`Apify.events`](events).
 
 The internal state is closely tied to the provided sources (URLs) to validate it's position in the list after a migration or restart. Therefore, if
 the sources change, the state will become corrupted and `RequestList` will raise an exception. This typically happens when using a live list of URLs
@@ -104,7 +105,10 @@ await requestList.reclaimRequest(request2);
     { method: &#39;GET&#39;, url: &#39;http://example.com/a/b&#39; },
     // Batch import of URLs from a file hosted on the web
     { method: &#39;POST&#39;, requestsFromUrl: &#39;http://example.com/urls.txt&#39; },
-]</code></pre></td></tr><tr>
+    // Batch import combined with regex.
+    { method: &#39;POST&#39;, requestsFromUrl: &#39;http://example.com/urls.txt&#39;, regex: /https:\/\/example.com\/.+/ },
+]
+</code></pre></td></tr><tr>
 <td><code>[options.persistStateKey]</code></td><td><code>String</code></td><td></td>
 </tr>
 <tr>
@@ -132,7 +136,8 @@ await requestList.reclaimRequest(request2);
         &#39;unique-key-1&#39;: true,
         &#39;unique-key-4&#39;: true,
     },
-}</code></pre><p>  Note that the preferred (and simpler) way to persist the state of crawling of the <code>RequestList</code>
+}
+</code></pre><p>  Note that the preferred (and simpler) way to persist the state of crawling of the <code>RequestList</code>
   is to use the <code>stateKeyPrefix</code> parameter instead.</p>
 </td></tr><tr>
 <td><code>[options.keepDuplicateUrls]</code></td><td><code>Boolean</code></td><td><code>false</code></td>

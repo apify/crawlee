@@ -1,7 +1,21 @@
 NEXT
 ====================
+- **DEPRECATED**: `Apify.callTask()` `body` and `contentType` options are now deprecated.
+  Use `input` instead. It must be of `content-type: application/json`.
+- Add the ability to create ad-hoc webhooks via `Apify.call()` and `Apify.callTask()`.
+- Add an example of form filling with `Puppeteer`.  
+- Fix a race condition in `RequestQueueLocal`.
+- Fix `RequestList` persistence of downloaded sources in key-value store.
+- Fix `Apify.utils.puppeteer.blockRequests()` always including default patterns.
+
+0.16.1 / 2019-10-31
+====================
+- Bump Puppeteer to 2.0.0 and use `{ pipe: true }` again because upstream bug has been fixed.
 - Add `useIncognitoPages` option to `PuppeteerPool` to enable opening new pages in incognito
   browser contexts. This is useful to keep cookies and cache unique for each page.
+- Added options to load every content type in CheerioCrawler.
+There are new options `body` and `contentType` in `handlePageFunction` for this purposes.
+- **DEPRECATED**: CheerioCrawler `html` option in `handlePageFunction` was replaced with `body` options.
 
 0.16.0 / 2019-08-15
 ====================

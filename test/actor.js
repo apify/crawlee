@@ -1,6 +1,7 @@
 import path from 'path';
 import _ from 'underscore';
-import { expect } from 'chai';
+import chai, { expect } from 'chai';
+import chaiSubset from 'chai-subset';
 import sinon from 'sinon';
 import { delayPromise } from 'apify-shared/utilities';
 import { ENV_VARS, ACT_JOB_STATUSES, LOCAL_ENV_VARS } from 'apify-shared/consts';
@@ -8,6 +9,8 @@ import { ApifyCallError } from '../build/errors';
 
 // NOTE: test use of require() here because this is how its done in acts
 const Apify = require('../build/index');
+
+chai.use(chaiSubset);
 
 const { utils: { log } } = Apify;
 
@@ -246,6 +249,7 @@ describe('Apify.call()', () => {
         const build = 'xxx';
         const memoryMbytes = 1024;
         const timeoutSecs = 60;
+        const webhooks = ['a', 'b'];
 
         const actsMock = sinon.mock(Apify.client.acts);
         actsMock.expects('runAct')
@@ -257,6 +261,7 @@ describe('Apify.call()', () => {
                 build,
                 memory: memoryMbytes,
                 timeout: timeoutSecs,
+                webhooks,
             })
             .once()
             .returns(Promise.resolve(runningRun));
@@ -276,7 +281,7 @@ describe('Apify.call()', () => {
             .returns(Promise.resolve(output));
 
         return Apify
-            .call(actId, input, { contentType, token, disableBodyParser: true, build, memoryMbytes, timeoutSecs })
+            .call(actId, input, { contentType, token, disableBodyParser: true, build, memoryMbytes, timeoutSecs, webhooks })
             .then((callOutput) => {
                 expect(callOutput).to.be.eql(expected);
                 keyValueStoresMock.restore();
@@ -711,17 +716,18 @@ describe('Apify.callTask()', () => {
         const memoryMbytes = 256;
         const timeoutSecs = 60;
         const build = 'beta';
+        const webhooks = ['a', 'b'];
 
         const tasksMock = sinon.mock(Apify.client.tasks);
         tasksMock.expects('runTask')
             .withExactArgs({
                 token,
                 taskId,
-                body: JSON.stringify(input, null, 2),
-                contentType: 'application/json; charset=utf-8',
+                input,
                 memory: memoryMbytes,
                 timeout: timeoutSecs,
                 build,
+                webhooks,
             })
             .once()
             .returns(Promise.resolve(runningRun));
@@ -743,7 +749,7 @@ describe('Apify.callTask()', () => {
             .returns(Promise.resolve(output));
 
         return Apify
-            .callTask(taskId, input, { token, disableBodyParser: true, memoryMbytes, timeoutSecs, build })
+            .callTask(taskId, input, { token, disableBodyParser: true, memoryMbytes, timeoutSecs, build, webhooks })
             .then((callOutput) => {
                 expect(callOutput).to.be.eql(expected);
                 keyValueStoresMock.restore();

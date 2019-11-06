@@ -27,6 +27,7 @@ separate, detailed, documentation pages accessible from the left sidebar.
     -   [`.openKeyValueStore([storeIdOrName], [options])`](#module_Apify.openKeyValueStore) ⇒ [`Promise<KeyValueStore>`](keyvaluestore)
     -   [`.openRequestList`](#module_Apify.openRequestList) ⇒ [`Promise<RequestList>`](requestlist)
     -   [`.openRequestQueue`](#module_Apify.openRequestQueue) ⇒ [`Promise<RequestQueue>`](requestqueue)
+    -   [`.openSessionPool`](#module_Apify.openSessionPool) ⇒ [`Promise<SessionPool>`](sessionpool)
     -   [`.pushData(item)`](#module_Apify.pushData) ⇒ `Promise`
     -   [`.setValue(key, value, [options])`](#module_Apify.setValue) ⇒ `Promise`
 
@@ -82,7 +83,7 @@ effect.
 <td colspan="3"><p>Idempotency key enables you to ensure that a webhook will not be added multiple times in case of
   an actor restart or other situation that would cause the <code>addWebhook()</code> function to be called again.
   We suggest using the actor run ID as the idempotency key. You can get the run ID by calling
-  [`Apify.getEnv()](apify#module_Apify.getEnv) function.</p>
+  <a href="apify#module_Apify.getEnv">`Apify.getEnv()</a> function.</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.call"></a>
@@ -190,6 +191,13 @@ actor</a> and several other API endpoints to obtain the output.
 <tr>
 <td colspan="3"><p>If <code>true</code> then the function will not attempt to parse the
  actor&#39;s output and will return it in a raw <code>Buffer</code>.</p>
+</td></tr><tr>
+<td><code>[options.webhooks]</code></td><td><code>Array</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Specifies optional webhooks associated with the actor run, which can be used
+ to receive a notification e.g. when the actor finished or failed, see
+ <a href="https://apify.com/docs/webhooks#adhoc">ad hook webhooks documentation</a> for detailed description.</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.callTask"></a>
@@ -289,6 +297,13 @@ obtain the output.
  If the limit is reached, the returned promise is resolved to a run object that will have
  status <code>READY</code> or <code>RUNNING</code> and it will not contain the actor run output.
  If <code>waitSecs</code> is null or undefined, the function waits for the actor task to finish (default behavior).</p>
+</td></tr><tr>
+<td><code>[options.webhooks]</code></td><td><code>Array</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Specifies optional webhooks associated with the actor run, which can be used
+ to receive a notification e.g. when the actor finished or failed, see
+ <a href="https://apify.com/docs/webhooks#adhoc">ad hook webhooks documentation</a> for detailed description.</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.client"></a>
@@ -865,10 +880,11 @@ const requestList = await Apify.openRequestList('my-name', sources);
 <tr>
 <td colspan="3"><p>An array of sources of URLs for the <code>RequestList</code>.
  It can be either an array of plain objects that
- define the <code>url</code> property, or an array of instances of the <a href="request"><code>Request</code></a> class.
- Additionally, the <code>requestsFromUrl</code> property may be used instead of <code>url</code>,
+ define the <code>url</code> property, or an array of instances of the <a href="request"><code>Request</code></a> class.</p>
+<p> Additionally, the <code>requestsFromUrl</code> property may be used instead of <code>url</code>,
  which will instruct <code>RequestList</code> to download the source URLs from a given remote location.
- The URLs will be parsed from the received response.</p>
+ The URLs will be parsed from the received response. In this case you can limit the URLs
+using <code>regex</code> parameter containing regular expression pattern for URLs to be included.</p>
 <p> For details, see the <a href="requestlist#new_RequestList_new"><code>RequestList</code></a>
  constructor options.</p>
 </td></tr><tr>
@@ -914,6 +930,28 @@ For more details and code examples, see the [`RequestQueue`](requestqueue) class
 <tr>
 <td colspan="3"><p>If set to <code>true</code> then the function uses cloud storage usage even if the <code>APIFY_LOCAL_STORAGE_DIR</code>
   environment variable is set. This way it is possible to combine local and cloud storage.</p>
+</td></tr></tbody>
+</table>
+<a name="module_Apify.openSessionPool"></a>
+
+## `Apify.openSessionPool` ⇒ [`Promise<SessionPool>`](sessionpool)
+
+Opens a SessionPool and returns a promise resolving to an instance of the [`SessionPool`](sessionpool) class that is already initialized.
+
+For more details and code examples, see the [`SessionPool`](sessionpool) class.
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sessionPoolOptions</code></td><td><code>Object</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>The <a href="sessionpool#new_SessionPool_new"><code>new SessionPool</code></a> options</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.pushData"></a>
