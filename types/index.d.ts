@@ -1,4 +1,4 @@
-declare module 'apify' {
+declare module Apify {
     import { IncomingMessage } from 'http'
     import { EventEmitter } from 'events'
     import {

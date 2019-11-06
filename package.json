@@ -35,7 +35,8 @@
     },
     "homepage": "https://sdk.apify.com/",
     "files": [
-        "build"
+        "build",
+        "types"
     ],
     "scripts": {
         "build": "rm -rf ./build && babel src --out-dir build --copy-files",
