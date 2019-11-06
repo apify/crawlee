@@ -2,7 +2,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import { promisify } from 'util';
 import contentTypeParser from 'content-type';
-import mime from 'mime';
+import mime from 'mime-types';
 import LruCache from 'apify-shared/lru_cache';
 import { KEY_VALUE_STORE_KEY_REGEX } from 'apify-shared/regexs';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, KEY_VALUE_STORE_KEYS } from 'apify-shared/consts';
@@ -385,7 +385,7 @@ export class KeyValueStoreLocal {
         try {
             const result = await this._handleFile(key, readFilePromised);
             return result
-                ? parseBody(result.returnValue, mime.getType(result.fileName))
+                ? parseBody(result.returnValue, mime.contentType(result.fileName))
                 : null;
         } catch (err) {
             throw new Error(`Error reading file '${key}' in directory '${this.localStoragePath}' referred by ${ENV_VARS.LOCAL_STORAGE_DIR} environment variable: ${err.message}`); // eslint-disable-line
@@ -413,7 +413,7 @@ export class KeyValueStoreLocal {
         value = maybeStringify(value, optionsCopy);
 
         const contentType = contentTypeParser.parse(optionsCopy.contentType).type;
-        const extension = mime.getExtension(contentType) || DEFAULT_LOCAL_FILE_EXTENSION;
+        const extension = mime.extension(contentType) || DEFAULT_LOCAL_FILE_EXTENSION;
         const filePath = this._getPath(`${key}.${extension}`);
 
         try {
