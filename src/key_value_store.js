@@ -610,13 +610,13 @@ export const openKeyValueStore = (storeIdOrName, options = {}) => {
  * This is just a convenient shortcut for [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+getValue).
  * For example, calling the following code:
  * ```javascript
- * const input = await Apify.getValue('my-key');
+ * const value = await Apify.getValue('my-key');
  * ```
  *
  * is equivalent to:
  * ```javascript
  * const store = await Apify.openKeyValueStore();
- * await store.getValue('my-key');
+ * const value = await store.getValue('my-key');
  * ```
  *
  * To store the value to the default-key value store, you can use the [`Apify.setValue()`](#module_Apify.setValue) function.
