@@ -631,6 +631,314 @@ export const printOutdatedSdkWarning = () => {
 };
 
 /**
+ * Login
+ *
+ */
+const login = async (page, username = 'username', password = 'password') => {
+    log.setLevel(log.LEVELS.DEBUG);
+    checkParamOrThrow(page, 'page', 'Object');
+    checkParamOrThrow(username, 'username', 'String');
+    checkParamOrThrow(password, 'password', 'String');
+
+    const polyfill = (prototype) => {
+        Object.defineProperty(prototype, 'flat', {
+            value: function (depth = 1) {
+                return this.reduce(function (flat, toFlatten) {
+                    return flat.concat((Array.isArray(toFlatten) && (depth - 1)) ? toFlatten.flat(depth - 1) : toFlatten);
+                }, []);
+            }
+        });
+    };
+
+    polyfill(Array.prototype);
+
+    const getLoginFields = async (page) => {
+
+        const identifyFields = loginFields => loginFields.reduce((pool, next) => {
+            if (next.type === 'password') {
+                pool.password = next.node;
+            } else {
+                pool.username = next.node;
+                // pool.username.push(next.node);
+            }
+
+            return pool;
+        }, {
+            username: [],
+            password: null
+        });
+
+        const patterns = {
+            attribute: [
+                'type',
+                'name',
+                'id',
+                'class'
+            ],
+            username: [
+                'username',
+                'email',
+                'user'
+            ],
+            password: [
+                'password',
+                'pwd',
+                'pass'
+            ]
+        };
+
+        const usernamePatternTuples = patterns.attribute
+            .map(attribute => patterns.username
+                .map(pattern => ({
+                    attribute,
+                    pattern
+                }))).flat(2);
+
+        console.log(usernamePatternTuples);
+
+        // const $$forms = await page.$$('form');
+        //
+        // if ($$forms.length) {
+        //     const clusters = await Promise.all($$forms.map(async ($form, clusterIndex) => {
+        //         const $$inputs = await $form.$$('input[type="password"], input[type="email"], input[type="text"]');
+        //
+        //         const extendedInputs = await Promise.all($$inputs.map(async ($input) => {
+        //             const inputCount = $$inputs.length;
+        //             const attributes = await $input.evaluate((node, clusterIndex, inputCount) => ({
+        //                 clusterIndex,
+        //                 inputCount,
+        //                 type: node.getAttribute('type'),
+        //                 name: node.getAttribute('name'),
+        //                 id: node.getAttribute('id'),
+        //                 class: node.getAttribute('class'),
+        //                 // debugger
+        //             }), clusterIndex, inputCount);
+        //             attributes.node = $input;
+        //
+        //             return attributes
+        //         }));
+        //
+        //         return extendedInputs
+        //     }));
+        //
+        //     console.log('clusters', clusters);
+        //
+        //     if (clusters.some(cluster => cluster.length)) {
+        //
+        //         const singlePasswordClusters = clusters.filter(cluster => {
+        //             const passwordInputs = cluster.filter(input => input.type === 'password');
+        //             return cluster.length > 1 && passwordInputs.length === 1;
+        //         });
+        //
+        //         // 1 cluster, 2 inputs / 1 password
+        //         // const singleCluster2Inputs1Pass = singlePasswordClusters.length === 1 && singlePasswordClusters[0].length === 2;
+        //         // if (singleCluster2Inputs1Pass) {
+        //         //     log.debug('singleForm2Inputs1Pass');
+        //         //     return identifyFields(singlePasswordClusters[0]);
+        //         // }
+        //
+        //         // clusters with username pattern ordered by attribute priority
+        //         // ? clusters, ? username inputs / 1 password
+        //         const clustersWithUsernamePattern = patterns.attribute.map(attribute => {
+        //             return patterns.username.map(pattern => {
+        //                 return singlePasswordClusters.filter(cluster => {
+        //                     const inputPatternMatch = cluster.some(input => {
+        //                         return input[attribute] === pattern
+        //                     });
+        //                     return inputPatternMatch && cluster
+        //                 });
+        //             });
+        //         }).flat(2);
+        //
+        //         console.log('clustersWithUsernamePattern', clustersWithUsernamePattern);
+        //
+        //         // first cluster with 2 inputs / 1 username + 1 password
+        //         const cluster2Inputs1User1Pass = clustersWithUsernamePattern.find(cluster => cluster.length === 2);
+        //
+        //         if (cluster2Inputs1User1Pass) {
+        //             console.log('form2Inputs1User1Pass');
+        //             log.debug('form2Inputs1User1Pass');
+        //             return identifyFields(cluster2Inputs1User1Pass);
+        //         }
+        //
+        //         // first cluster with 2 inputs / 1 anonymous + 1 password
+        //         const cluster2Inputs1Anon1Pass = singlePasswordClusters.find(cluster => cluster.length === 2);
+        //
+        //         if (cluster2Inputs1Anon1Pass) {
+        //             console.log('form2Inputs1Anon1Pass');
+        //             log.debug('form2Inputs1Anon1Pass');
+        //             return identifyFields(cluster2Inputs1Anon1Pass);
+        //         }
+        //     }
+        // }
+
+
+        const generateInputFilters = () => {
+            let condition;
+            const inputFilters = [];
+
+            // 1 username patterns by priority
+            // 2 password
+            // 3 non-password
+            condition = ({tuple, input, inputPrior, inputAfter}) =>
+                input.type === 'password' &&
+                inputPrior &&
+                inputPrior[tuple.attribute] === tuple.pattern &&
+                (!inputAfter || inputAfter.type !== 'password');
+
+            inputFilters.push(...usernamePatternTuples.map(tuple =>
+                (tuple =>
+                    inputCluster =>
+                        inputCluster.reduce((cache, input, index, array) => {
+                            const inputPrior = array[index - 1];
+                            const inputAfter = array[index + 1];
+
+                            if (condition({tuple, input, inputPrior, inputAfter})) {
+                                cache.unshift([
+                                    inputPrior,
+                                    input
+                                ]);
+                            }
+
+                            return cache;
+
+                        }, []))(tuple)
+            ));
+
+            // 1 non-password
+            // 2 password
+            // 3 non-password
+            condition = ({input, inputPrior, inputAfter}) =>
+                input.type === 'password' &&
+                inputPrior &&
+                inputPrior.type !== 'password' &&
+                (!inputAfter || inputAfter.type !== 'password');
+
+            inputFilters.push(inputCluster =>
+                inputCluster.reduce((cache, input, index, array) => {
+                    const inputPrior = array[index - 1];
+                    const inputAfter = array[index + 1];
+
+                    if (condition({input, inputPrior, inputAfter})) {
+                        cache.unshift([
+                            inputPrior,
+                            input
+                        ]);
+                    }
+
+                    return cache;
+
+                }, []));
+
+
+            return inputFilters;
+        };
+
+        const inputFilters = generateInputFilters();
+        console.log('inputFilters', inputFilters);
+
+
+        const getInputClusters = async page => {
+            const $$forms = await page.$$('form');
+
+            if ($$forms.length) {
+                const allClusters = await Promise.all($$forms.map(async ($form, clusterIndex) => {
+                    const $$inputs = await $form.$$('input[type="password"], input[type="email"], input[type="text"]');
+
+                    const extendedInputs = await Promise.all($$inputs.map(async ($input) => {
+                        const inputCount = $$inputs.length;
+                        const attributes = await $input.evaluate((node, clusterIndex, inputCount) => ({
+                            clusterIndex,
+                            inputCount,
+                            type: node.getAttribute('type'),
+                            name: node.getAttribute('name'),
+                            id: node.getAttribute('id'),
+                            class: node.getAttribute('class'),
+                            // debugger
+                        }), clusterIndex, inputCount);
+                        attributes.node = $input;
+
+                        return attributes
+                    }));
+
+                    return extendedInputs
+                }));
+
+                return allClusters
+                    .filter(cluster => cluster.length && cluster.find(input => input.type === 'password'))
+                    .sort((clusterA, clusterB) => clusterA.length - clusterB.length);
+            } else {
+                const $$inputs = await page.$$('input[type="password"], input[type="email"], input[type="text"]');
+
+                const extendedInputs = await Promise.all($$inputs.map(async ($input) => {
+                    const extendedInput = await $input.evaluate((node) => ({
+                        type: node.getAttribute('type'),
+                        name: node.getAttribute('name'),
+                        id: node.getAttribute('id'),
+                        class: node.getAttribute('class'),
+                    }));
+
+                    extendedInput.node = $input;
+
+                    return extendedInput;
+                }));
+
+                return [
+                    extendedInputs
+                ];
+            }
+        };
+
+        const filterClusters = (inputFilters, inputClusters) => {
+            const inputFilter = inputFilters.shift();
+            // forms - maybe also cluster non-forms by password fields in reverse direction?
+            const resultClusters = inputClusters.map(inputCluster => inputFilter(inputCluster));
+            console.log('resultClusters', resultClusters);
+
+            // sorted matches of input pairs per form or cluster
+            const resultCluster = resultClusters[0];
+            console.log('resultCluster', resultCluster);
+
+            // first match of found input pairs = best candidate
+            const resultFields = resultCluster[0];
+            console.log('resultFields', resultFields);
+
+            const loginFields = resultCluster[0] || [];
+
+            if (loginFields.length)
+                return loginFields;
+
+            if (inputFilters.length)
+                return filterClusters(inputFilters, inputClusters)
+
+            return [];
+        };
+
+        const inputClusters = await getInputClusters(page);
+        console.log('inputClusters', inputClusters);
+
+        const loginFields = identifyFields(filterClusters(inputFilters, inputClusters));
+        console.log('loginFields', loginFields);
+
+        return loginFields
+    };
+
+    const loginFields = await getLoginFields(page);
+    console.log(loginFields);
+
+    if (!loginFields.username || !loginFields.password)
+        throw Error('Could not find login inputs');
+
+    // try all username candidates at once to increase chances?
+    // await Promise.all(loginFields.username.map(field => field.type(username)));
+
+    await loginFields.username.type(username);
+    await loginFields.password.type(password);
+    await loginFields.password.focus();
+    await page.keyboard.press('Enter');
+};
+
+/**
  * A namespace that contains various utilities.
  *
  * **Example usage:**
@@ -648,6 +956,7 @@ export const printOutdatedSdkWarning = () => {
 export const publicUtils = {
     isDocker,
     sleep,
+    login,
     downloadListOfUrls,
     extractUrls,
     getRandomUserAgent,
