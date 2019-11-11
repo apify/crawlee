@@ -41,12 +41,9 @@ describe('AutoscaledPool', () => {
             isFinishedFunction: () => Promise.resolve(isFinished),
             isTaskReadyFunction: () => Promise.resolve(!isFinished),
         });
-        const startedAt = Date.now();
         await pool.run();
 
         expect(result).toEqual(_.range(0, 10));
-        expect(Date.now() - startedAt).toBeGreaterThanOrEqual(50);
-        expect(Date.now() - startedAt).toBeLessThanOrEqual(200);
     });
 
     test('should work with concurrency 10', async () => {
@@ -75,12 +72,9 @@ describe('AutoscaledPool', () => {
             isTaskReadyFunction: () => Promise.resolve(!isFinished),
         });
 
-        const startedAt = Date.now();
         await pool.run();
 
         expect(result).toEqual(_.range(0, 100));
-        expect(Date.now() - startedAt).toBeGreaterThanOrEqual(50);
-        expect(Date.now() - startedAt).toBeLessThanOrEqual(200);
     });
 
     test('enables setting concurrency', async () => {
@@ -115,7 +109,6 @@ describe('AutoscaledPool', () => {
         expect(pool.maxConcurrency).toBe(13);
         expect(pool.desiredConcurrency).toBe(9);
 
-        const startedAt = Date.now();
         const promise = await pool.run();
 
         // Test setting concurrency
@@ -130,8 +123,6 @@ describe('AutoscaledPool', () => {
         await promise;
 
         expect(result).toEqual(_.range(0, 100));
-        expect(Date.now() - startedAt).toBeGreaterThanOrEqual(50);
-        expect(Date.now() - startedAt).toBeLessThanOrEqual(200);
     });
 
     describe('should scale correctly', () => {

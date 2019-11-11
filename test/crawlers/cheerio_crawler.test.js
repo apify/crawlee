@@ -314,8 +314,7 @@ describe('CheerioCrawler', () => {
     });
 
     describe('should not timeout by the default httpRequest timeoutSecs', () => {
-        xit('when requestTimeoutSecs is grater than 30', async function () {
-            this.timeout(5 * 60 * 1000);
+        it('when requestTimeoutSecs is greater than 30', async () => {
             const sources = [
                 { url: `http://${HOST}:${port}/timeout?a=12` },
                 { url: `http://${HOST}:${port}/timeout?a=23` },
@@ -342,7 +341,7 @@ describe('CheerioCrawler', () => {
 
             expect(processed).toHaveLength(2);
             expect(failed).toHaveLength(0);
-        });
+        }, 40000);
     });
 
     describe('should ensure text/html Content-Type', () => {
