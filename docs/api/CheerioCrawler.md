@@ -106,10 +106,10 @@ await crawler.run();
   contentType: Object, // Parsed `Content-Type` header
   response: Object // An instance of Node&#39;s http.IncomingMessage object,
   autoscaledPool: AutoscaledPool
-}
-</code></pre><p>  Type of <code>body</code> depends on web page <code>Content-Type</code> header.</p>
+}</code></pre><p>  Type of <code>body</code> depends on web page <code>Content-Type</code> header.</p>
 <ul>
-<li>String for <code>text/html</code>, <code>application/xhtml+xml</code>, <code>application/xml</code> mime types</li>
+<li><p>String for <code>text/html</code>, <code>application/xhtml+xml</code>, <code>application/xml</code> mime types</p>
+</li>
 <li><p>Buffer for others mime types</p>
 <p>Parsed <code>Content-Type</code> header using
 <a href="https://www.npmjs.com/package/content-type" target="_blank">content-type package</a>
@@ -158,8 +158,7 @@ The exceptions are logged to the request using the
       payload,   // Provided by RequestList and/or RequestQueue
       strictSSL, // Use options.ignoreSslErrors
       proxy,     // Use options.useApifyProxy or options.proxyUrls
-  }
-</code></pre></td></tr><tr>
+  }</code></pre></td></tr><tr>
 <td><code>[options.prepareRequestFunction]</code></td><td><code>function</code></td><td></td>
 </tr>
 <tr>
@@ -168,8 +167,7 @@ The exceptions are logged to the request using the
 <p>  The function receives the following object as an argument:</p>
 <pre><code>{
   request: Request
-}
-</code></pre><p>  where the <a href="request"><code>Request</code></a> instance corresponds to the initialized request.</p>
+}</code></pre><p>  where the <a href="request"><code>Request</code></a> instance corresponds to the initialized request.</p>
 <p>  The function should modify the properties of the passed <a href="request"><code>Request</code></a> instance
   in place because there are already earlier references to it. Making a copy and returning it from
   this function is therefore not supported, because it would create inconsistencies where
@@ -229,8 +227,7 @@ The exceptions are logged to the request using the
 <pre><code>{
   request: Request,
   error: Error,
-}
-</code></pre><p>  where the <a href="request"><code>Request</code></a> instance corresponds to the failed request, and the <code>Error</code> instance
+}</code></pre><p>  where the <a href="request"><code>Request</code></a> instance corresponds to the failed request, and the <code>Error</code> instance
   represents the last error thrown during processing of the request.</p>
 <p>  See <a href="https://github.com/apifytech/apify-js/blob/master/src/crawlers/cheerio_crawler.js#L13">source code</a>
   for the default implementation of this function.</p>

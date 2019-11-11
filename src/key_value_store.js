@@ -193,7 +193,7 @@ export class KeyValueStore {
      *
      * @param {String} key
      *   Unique key of the record. It can be at most 256 characters long and only consist
-     *   of the following characters: `[a-zA-Z0-9!-_.'()`
+     *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
      * @returns {Promise<Object|String|Buffer>}
      *   Returns a promise that resolves to an object, string
      *   or <a href="https://nodejs.org/api/buffer.html" target="_blank"><code>Buffer</code></a>, depending
@@ -244,7 +244,7 @@ export class KeyValueStore {
      *
      * @param {String} key
      *   Unique key of the record. It can be at most 256 characters long and only consist
-     *   of the following characters: `[a-zA-Z0-9!-_.'()`
+     *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
      * @param {Object|String|Buffer} value
      *   Record data, which can be one of the following values:
      *   <ul>
@@ -610,13 +610,13 @@ export const openKeyValueStore = (storeIdOrName, options = {}) => {
  * This is just a convenient shortcut for [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+getValue).
  * For example, calling the following code:
  * ```javascript
- * const input = await Apify.getValue('my-key');
+ * const value = await Apify.getValue('my-key');
  * ```
  *
  * is equivalent to:
  * ```javascript
  * const store = await Apify.openKeyValueStore();
- * await store.getValue('my-key');
+ * const value = await store.getValue('my-key');
  * ```
  *
  * To store the value to the default-key value store, you can use the [`Apify.setValue()`](#module_Apify.setValue) function.
