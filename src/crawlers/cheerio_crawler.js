@@ -8,7 +8,7 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import contentTypeParser from 'content-type';
 import { readStreamToString, concatStreamToBuffer } from 'apify-shared/streams_utilities';
 import BasicCrawler from './basic_crawler';
-import { addTimeoutToPromise } from '../utils';
+import { addTimeoutToPromise, parseContentTypeFromResponse } from '../utils';
 import { getApifyProxyUrl } from '../actor';
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { requestAsBrowser } from '../utils_request';
@@ -415,9 +415,9 @@ class CheerioCrawler {
                 throw e;
             }
         }
-        const { statusCode, headers } = responseStream;
-        const contentType = contentTypeParser.parse(headers['content-type']);
-        const { type, encoding } = contentType;
+        const { statusCode } = responseStream;
+        const contentType = parseContentTypeFromResponse(responseStream);
+        const { type, parameters: { encoding } } = contentType;
         if (statusCode >= 500) {
             const body = await readStreamToString(responseStream, encoding);
 
@@ -456,9 +456,8 @@ class CheerioCrawler {
             stream: true,
             useCaseSensitiveHeaders: true,
             abortFunction: (res) => {
-                const { statusCode, headers } = res;
-
-                const { type } = contentTypeParser.parse(headers['content-type']);
+                const { statusCode } = res;
+                const { type } = parseContentTypeFromResponse(res);
 
                 if (statusCode === 406) {
                     request.noRetry = true;
