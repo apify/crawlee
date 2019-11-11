@@ -1,4 +1,4 @@
-dist: xenial
+dist: bionic
 sudo: false
 language: node_js
 if: (tag IS blank) OR tag =~ /^v\d+\.\d+\.\d+$/
