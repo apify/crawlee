@@ -105,7 +105,7 @@ const buffer = await store.getValue('screenshot1.png');
 </tr>
 <tr>
 <td colspan="3"><p>Unique key of the record. It can be at most 256 characters long and only consist
-  of the following characters: <code>[a-zA-Z0-9!-_.&#39;()</code></p>
+  of the following characters: <code>a</code>-<code>z</code>, <code>A</code>-<code>Z</code>, <code>0</code>-<code>9</code> and <code>!-_.&#39;()</code></p>
 </td></tr></tbody>
 </table>
 <a name="KeyValueStore+setValue"></a>
@@ -153,7 +153,7 @@ stored!
 </tr>
 <tr>
 <td colspan="3"><p>Unique key of the record. It can be at most 256 characters long and only consist
-  of the following characters: <code>[a-zA-Z0-9!-_.&#39;()</code></p>
+  of the following characters: <code>a</code>-<code>z</code>, <code>A</code>-<code>Z</code>, <code>0</code>-<code>9</code> and <code>!-_.&#39;()</code></p>
 </td></tr><tr>
 <td><code>value</code></td><td><code>Object</code> | <code>String</code> | <code>Buffer</code></td>
 </tr>
