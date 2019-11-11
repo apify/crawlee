@@ -40,7 +40,7 @@
         "build": "rm -rf ./build && babel src --out-dir build --copy-files",
         "build-docs": "npm run clean && npm run build && node ./website/tools/build_docs.js",
         "build-readme": "node ./tools/build_readme.js",
-        "test": "npm run build && jest --testTimeout=60000 --coverage --detectOpenHandles",
+        "test": "npm run build && jest --testTimeout=60000 --coverage --maxWorkers=2",
         "prepare": "npm run build",
         "prepublishOnly": "(test $TRAVIS || (echo \"Publishing is reserved to the Travis CI!\"; exit 1))",
         "clean": "rm -rf build",
