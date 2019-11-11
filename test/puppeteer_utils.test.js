@@ -122,11 +122,18 @@ describe('Apify.utils.puppeteer', () => {
         }
     });
 
-    test('blockRequests() works with default values', async () => {
-        const browser = await Apify.launchPuppeteer({ headless: true });
-        const loadedUrls = [];
+    describe('blockRequests()', () => {
+        let browser = null;
+        beforeAll(async () => {
+            browser = await Apify.launchPuppeteer({ headless: true });
+        });
+        afterAll(async () => {
+            await browser.close();
+        });
 
-        try {
+        test('works with default values', async () => {
+            const loadedUrls = [];
+
             const page = await browser.newPage();
             await Apify.utils.puppeteer.blockRequests(page);
             page.on('response', response => loadedUrls.push(response.url()));
@@ -135,18 +142,13 @@ describe('Apify.utils.puppeteer', () => {
                 <img src="https://example.com/image.png">
                 <img src="https://example.com/image.gif">
                 <script src="https://example.com/script.js" defer="defer">></script>
-            </body></html>`, { waitUntil: 'networkidle0' });
-        } finally {
-            await browser.close();
-        }
-        expect(loadedUrls).toEqual(['https://example.com/script.js']);
-    });
+            </body></html>`, { waitUntil: 'load' });
+            expect(loadedUrls).toEqual(['https://example.com/script.js']);
+        });
 
-    test('blockRequests() works with overridden values', async () => {
-        const browser = await Apify.launchPuppeteer({ headless: true });
-        const loadedUrls = [];
+        test('works with overridden values', async () => {
+            const loadedUrls = [];
 
-        try {
             const page = await browser.newPage();
             await Apify.utils.puppeteer.blockRequests(page, {
                 urlPatterns: ['.css'],
@@ -157,22 +159,17 @@ describe('Apify.utils.puppeteer', () => {
                 <img src="https://example.com/image.png">
                 <img src="https://example.com/image.gif">
                 <script src="https://example.com/script.js" defer="defer">></script>
-            </body></html>`, { waitUntil: 'networkidle0' });
-        } finally {
-            await browser.close();
-        }
-        expect(loadedUrls).toEqual(expect.arrayContaining([
-            'https://example.com/image.png',
-            'https://example.com/script.js',
-            'https://example.com/image.gif',
-        ]));
-    });
+            </body></html>`, { waitUntil: 'load' });
+            expect(loadedUrls).toEqual(expect.arrayContaining([
+                'https://example.com/image.png',
+                'https://example.com/script.js',
+                'https://example.com/image.gif',
+            ]));
+        });
 
-    test('supports blockResources() with default values', async () => {
-        const browser = await Apify.launchPuppeteer({ headless: true });
-        const loadedUrls = [];
+        test('blockResources() supports default values', async () => {
+            const loadedUrls = [];
 
-        try {
             const page = await browser.newPage();
             await Apify.utils.puppeteer.blockResources(page);
             page.on('response', response => loadedUrls.push(response.url()));
@@ -180,21 +177,16 @@ describe('Apify.utils.puppeteer', () => {
                 <link rel="stylesheet" type="text/css" href="https://example.com/style.css">
                 <img src="https://example.com/image.png" />
                 <script src="https://example.com/script.js" defer="defer">></script>
-            </body></html>`, { waitUntil: 'networkidle0' });
-        } finally {
-            await browser.close();
-        }
+            </body></html>`, { waitUntil: 'load' });
 
-        expect(loadedUrls).toEqual(expect.arrayContaining([
-            'https://example.com/script.js',
-        ]));
-    });
+            expect(loadedUrls).toEqual(expect.arrayContaining([
+                'https://example.com/script.js',
+            ]));
+        });
 
-    test('supports blockResources() with nondefault values', async () => {
-        const browser = await Apify.launchPuppeteer({ headless: true });
-        const loadedUrls = [];
+        test('blockResources() supports nondefault values', async () => {
+            const loadedUrls = [];
 
-        try {
             const page = await browser.newPage();
             await Apify.utils.puppeteer.blockResources(page, ['script']);
             page.on('response', response => loadedUrls.push(response.url()));
@@ -202,16 +194,15 @@ describe('Apify.utils.puppeteer', () => {
                 <link rel="stylesheet" type="text/css" href="https://example.com/style.css">
                 <img src="https://example.com/image.png" />
                 <script src="https://example.com/script.js" defer="defer">></script>
-            </body></html>`, { waitUntil: 'networkidle0' });
-        } finally {
-            await browser.close();
-        }
+            </body></html>`, { waitUntil: 'load' });
 
-        expect(loadedUrls).toEqual(expect.arrayContaining([
-            'https://example.com/style.css',
-            'https://example.com/image.png',
-        ]));
+            expect(loadedUrls).toEqual(expect.arrayContaining([
+                'https://example.com/style.css',
+                'https://example.com/image.png',
+            ]));
+        });
     });
+
 
     test('supports cacheResponses()', async () => {
         const browser = await Apify.launchPuppeteer({ headless: true });
