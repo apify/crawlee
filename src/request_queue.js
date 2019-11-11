@@ -742,6 +742,7 @@ export class RequestQueueLocal {
         this.inProgressCount = 0;
         this.requestIdToQueueOrderNo = {};
         this.queueOrderNoInProgress = {};
+        this.requestsBeingWrittenToFile = new Map();
 
         this.createdAt = null;
         this.modifiedAt = null;
@@ -795,7 +796,7 @@ export class RequestQueueLocal {
     _getQueueOrderNo(forefront = false) {
         const sgn = (forefront ? 1 : 2) * (10 ** 15);
         const base = (10 ** (13)); // Date.now() returns int with 13 numbers.
-        // We always add pending count for a case that two pages are insterted at the same millisecond.
+        // We always add pending count for a case that two pages are inserted at the same millisecond.
         const now = Date.now() + this.queueOrderNoCounter++;
         return forefront
             ? sgn + (base - now)
@@ -805,20 +806,21 @@ export class RequestQueueLocal {
     async _getRequestByQueueOrderNo(queueOrderNo) {
         checkParamOrThrow(queueOrderNo, 'queueOrderNo', 'Number');
         let buffer;
+        let filePath;
         try {
-            const pendingPath = this._getFilePath(queueOrderNo);
-            buffer = await fs.readFile(pendingPath);
+            filePath = this._getFilePath(queueOrderNo);
+            buffer = await fs.readFile(filePath);
         } catch (err) {
             if (err.code !== ENOENT) throw err;
-            const handledPath = this._getFilePath(queueOrderNo, true);
-            buffer = await fs.readFile(handledPath);
+            filePath = this._getFilePath(queueOrderNo, true);
+            buffer = await fs.readFile(filePath);
         }
         const json = buffer.toString();
         if (!json) {
             // This happens when the file is still being written.
             // The descriptor exists, but the contents are not there yet.
             // So let's handle it as if it didn't exist at all.
-            const error = new Error(ENOENT);
+            const error = new Error(`${ENOENT}: the file is still being written. ${filePath}`);
             error.code = ENOENT;
             throw error;
         }
@@ -853,17 +855,21 @@ export class RequestQueueLocal {
             };
         }
 
+        // We need to set this before the write begins because otherwise we'd get
+        // duplicate requests written to queue when a URL gets enqueued multiple times.
+        this.requestIdToQueueOrderNo[requestCopy.id] = queueOrderNo;
         if (!requestCopy.handledAt) this.pendingCount++;
 
         const filePath = this._getFilePath(queueOrderNo, !!requestCopy.handledAt);
 
         // Lock the file until we fully dump data!
-        // This is to avoid a race condition where readdir would return a path
-        // to the file, but the file would still be empty and subsequent read would fail.
-
+        // This is needed for getRequest() which accesses files directly by name,
+        // so it can encounter an existing, yet empty file. fetchNextRequest() does
+        // it too, but it jumps to the next file on failure, so it's not a concern.
+        this.requestsBeingWrittenToFile.set(requestCopy.id, requestCopy);
         await fs.writeFile(filePath, JSON.stringify(requestCopy, null, 4));
+        this.requestsBeingWrittenToFile.delete(requestCopy.id);
 
-        this.requestIdToQueueOrderNo[requestCopy.id] = queueOrderNo;
         return {
             requestId: requestCopy.id,
             wasAlreadyHandled: false,
@@ -883,7 +889,8 @@ export class RequestQueueLocal {
         // TODO: We should update the last access time to files...
         if (!queueOrderNo) return null;
 
-        return this._getRequestByQueueOrderNo(queueOrderNo);
+        const requestBeingWritten = this.requestsBeingWrittenToFile.get(requestId);
+        return requestBeingWritten || this._getRequestByQueueOrderNo(queueOrderNo);
     }
 
     async fetchNextRequest() {
