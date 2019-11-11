@@ -7,6 +7,17 @@ import { sleep } from '../build/utils';
 import Apify from '../build';
 
 describe('Apify.events', () => {
+    let wss = null;
+    beforeEach(() => {
+        wss = new WebSocket.Server({ port: 9099 });
+        process.env[ENV_VARS.ACTOR_EVENTS_WS_URL] = 'ws://localhost:9099/someRunId';
+        process.env[ENV_VARS.TOKEN] = 'dummy';
+    });
+    afterEach((done) => {
+        wss.close(done);
+        delete process.env[ENV_VARS.ACTOR_EVENTS_WS_URL];
+        delete process.env[ENV_VARS.TOKEN];
+    });
     test('is there and works as EventEmitter', () => {
         return new Promise((resolve, reject) => {
             try {
@@ -22,36 +33,30 @@ describe('Apify.events', () => {
     });
 
     test('should work in Apify.main()', (done) => {
-        const wss = new WebSocket.Server({ port: 9099 });
-        const eventsReceived = [];
-        let isWsConnected = false;
+        let wsClosed = false;
+        const isWsConnected = new Promise((resolve) => {
+            wss.on('connection', (ws, req) => {
+                ws.on('close', () => {
+                    wsClosed = true;
+                });
+                resolve(ws);
 
-        // Create server that sends events
-        wss.on('connection', (ws, req) => {
-            isWsConnected = true;
+                expect(req.url).toBe('/someRunId');
 
-            ws.on('close', () => {
-                isWsConnected = false;
+                const send = obj => ws.send(JSON.stringify(obj));
+
+                setTimeout(() => send({ name: 'name-1', data: [1, 2, 3] }), 50);
+                setTimeout(() => send({ name: 'name-1', data: { foo: 'bar' } }), 100);
+                setTimeout(() => send({ name: 'name-2', data: [1] }), 50);
+                setTimeout(() => send({ name: 'name-2', data: [2] }), 50);
             });
-
-            expect(req.url).toBe('/someRunId');
-
-            const send = obj => ws.send(JSON.stringify(obj));
-
-            setTimeout(() => send({ name: 'name-1', data: [1, 2, 3] }), 50);
-            setTimeout(() => send({ name: 'name-1', data: { foo: 'bar' } }), 100);
-            setTimeout(() => send({ name: 'name-2', data: [1] }), 50);
-            setTimeout(() => send({ name: 'name-2', data: [2] }), 50);
         });
 
-        process.env[ENV_VARS.ACTOR_EVENTS_WS_URL] = 'ws://localhost:9099/someRunId';
-        process.env[ENV_VARS.TOKEN] = 'dummy';
-
+        const eventsReceived = [];
         // Run main and store received events
-        expect(isWsConnected).toBe(false);
+        expect(wsClosed).toBe(false);
         Apify.main(async () => {
-            await sleep(10); // Here must be short sleep to get following line to later tick
-            expect(isWsConnected).toBe(true);
+            await isWsConnected;
             Apify.events.on('name-1', data => eventsReceived.push(data));
             await sleep(1000);
         });
@@ -65,57 +70,48 @@ describe('Apify.events', () => {
 
                 // Cleanup.
                 stubbedExit.restore();
-                wss.close();
-                delete process.env[ENV_VARS.ACTOR_EVENTS_WS_URL];
-                delete process.env[ENV_VARS.TOKEN];
-                await sleep(10); // Here must be short sleep to get following line to later tick
-                expect(isWsConnected).toBe(false);
-                done();
+                wss.close(async () => {
+                    await sleep(10); // Here must be short sleep to get following line to later tick
+                    expect(wsClosed).toBe(true);
+                    done();
+                });
             });
     });
 
     test('should work without Apify.main()', async () => {
-        const wss = new WebSocket.Server({ port: 9099 });
-        const eventsReceived = [];
-        let isWsConnected = false;
+        let wsClosed = false;
+        const isWsConnected = new Promise((resolve) => {
+            wss.on('connection', (ws, req) => {
+                ws.on('close', () => {
+                    wsClosed = true;
+                });
+                resolve(ws);
 
-        wss.on('connection', (ws, req) => {
-            isWsConnected = true;
+                expect(req.url).toBe('/someRunId');
 
-            ws.on('close', () => {
-                isWsConnected = false;
+                const send = obj => ws.send(JSON.stringify(obj));
+
+                setTimeout(() => send({ name: 'name-1', data: [1, 2, 3] }), 50);
+                setTimeout(() => send({ name: 'name-1', data: { foo: 'bar' } }), 100);
+                setTimeout(() => send({ name: 'name-2', data: [1] }), 50);
+                setTimeout(() => send({ name: 'name-2', data: [2] }), 50);
             });
-
-            expect(req.url).toBe('/someRunId');
-
-            const send = obj => ws.send(JSON.stringify(obj));
-
-            setTimeout(() => send({ name: 'name-1', data: [1, 2, 3] }), 50);
-            setTimeout(() => send({ name: 'name-1', data: { foo: 'bar' } }), 100);
-            setTimeout(() => send({ name: 'name-2', data: [1] }), 50);
-            setTimeout(() => send({ name: 'name-2', data: [2] }), 50);
         });
 
-        process.env[ENV_VARS.ACTOR_EVENTS_WS_URL] = 'ws://localhost:9099/someRunId';
-
+        const eventsReceived = [];
         // Connect to websocket and receive events.
-        expect(isWsConnected).toBe(false);
+        expect(wsClosed).toBe(false);
         await Apify.initializeEvents();
-        await sleep(10); // Here must be short sleep to get following line to later tick
-        expect(isWsConnected).toBe(true);
+        await isWsConnected;
         Apify.events.on('name-1', data => eventsReceived.push(data));
         await sleep(1000);
 
         expect(eventsReceived).toEqual([[1, 2, 3], { foo: 'bar' }]);
 
-        expect(isWsConnected).toBe(true);
+        expect(wsClosed).toBe(false);
         Apify.stopEvents();
         await sleep(10); // Here must be short sleep to get following line to later tick
-        expect(isWsConnected).toBe(false);
-
-        // Cleanup.
-        wss.close();
-        delete process.env[ENV_VARS.ACTOR_EVENTS_WS_URL];
+        expect(wsClosed).toBe(true);
     });
 
     test('should send persist state events in regular interval', async () => {
