@@ -286,7 +286,7 @@ describe('Apify.utils.puppeteer', () => {
             throw new Error('Should fail.');
         } catch (err) {
             // TODO figure out why the err.message comes out empty in the logs.
-            expect(err.message).toMatch('Unexpected token const');
+            expect(err.message).toMatch(/Unexpected token '?const'?/);
         }
         const browser = await Apify.launchPuppeteer({ headless: true });
         try {

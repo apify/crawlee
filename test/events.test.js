@@ -1,8 +1,8 @@
 import WebSocket from 'ws';
 import sinon from 'sinon';
-import { delayPromise } from 'apify-shared/utilities';
 import { ENV_VARS } from 'apify-shared/consts';
 import { ACTOR_EVENT_NAMES_EX } from '../build/constants';
+import { sleep } from '../build/utils';
 
 import Apify from '../build';
 
@@ -50,10 +50,10 @@ describe('Apify.events', () => {
         // Run main and store received events
         expect(isWsConnected).toBe(false);
         Apify.main(async () => {
-            await delayPromise(10); // Here must be short sleep to get following line to later tick
+            await sleep(10); // Here must be short sleep to get following line to later tick
             expect(isWsConnected).toBe(true);
             Apify.events.on('name-1', data => eventsReceived.push(data));
-            await delayPromise(1000);
+            await sleep(1000);
         });
 
         // Main will call process.exit() so we must stub it.
@@ -68,7 +68,7 @@ describe('Apify.events', () => {
                 wss.close();
                 delete process.env[ENV_VARS.ACTOR_EVENTS_WS_URL];
                 delete process.env[ENV_VARS.TOKEN];
-                await delayPromise(10); // Here must be short sleep to get following line to later tick
+                await sleep(10); // Here must be short sleep to get following line to later tick
                 expect(isWsConnected).toBe(false);
                 done();
             });
@@ -101,16 +101,16 @@ describe('Apify.events', () => {
         // Connect to websocket and receive events.
         expect(isWsConnected).toBe(false);
         await Apify.initializeEvents();
-        await delayPromise(10); // Here must be short sleep to get following line to later tick
+        await sleep(10); // Here must be short sleep to get following line to later tick
         expect(isWsConnected).toBe(true);
         Apify.events.on('name-1', data => eventsReceived.push(data));
-        await delayPromise(1000);
+        await sleep(1000);
 
         expect(eventsReceived).toEqual([[1, 2, 3], { foo: 'bar' }]);
 
         expect(isWsConnected).toBe(true);
         Apify.stopEvents();
-        await delayPromise(10); // Here must be short sleep to get following line to later tick
+        await sleep(10); // Here must be short sleep to get following line to later tick
         expect(isWsConnected).toBe(false);
 
         // Cleanup.
@@ -124,11 +124,11 @@ describe('Apify.events', () => {
         const eventsReceived = [];
         Apify.events.on(ACTOR_EVENT_NAMES_EX.PERSIST_STATE, data => eventsReceived.push(data));
         await Apify.initializeEvents();
-        await delayPromise(10);
+        await sleep(10);
         await Apify.stopEvents();
         const eventCount = eventsReceived.length;
         expect(eventCount).toBeGreaterThan(2);
-        await delayPromise(10);
+        await sleep(10);
         expect(eventsReceived.length).toEqual(eventCount);
 
         delete process.env.APIFY_TEST_PERSIST_INTERVAL_MILLIS;

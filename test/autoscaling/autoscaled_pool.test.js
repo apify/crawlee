@@ -1,6 +1,6 @@
 import _ from 'underscore';
-import { delayPromise } from 'apify-shared/utilities';
 import log from 'apify-shared/log';
+import { sleep } from '../../build/utils';
 import AutoscaledPool from '../../build/autoscaling/autoscaled_pool';
 
 /* eslint-disable no-underscore-dangle */
@@ -207,7 +207,7 @@ describe('AutoscaledPool', () => {
             let count = 0;
             pool.systemStatus.okNow = false;
             pool.runTaskFunction = async () => {
-                await delayPromise(10);
+                await sleep(10);
                 count++;
             };
             pool.isFinishedFunction = async () => count >= limit;
@@ -254,42 +254,35 @@ describe('AutoscaledPool', () => {
 
         test('when some of the promises throws', async () => {
             let counter = 0;
-            const runTaskFunction = () => {
+            const runTaskFunction = async () => {
                 counter++;
-
-                if (counter > 100) return;
-
-                if (counter === 100) {
-                    const err = new Error('some-promise-error');
-
-                    return new Promise((resolve, reject) => setTimeout(reject(err), 3));
-                }
-
-                return delayPromise(3);
+                await sleep(1);
+                // console.log('AFTER SLEEP');
+                if (counter > 20) throw new Error('some-promise-error');
             };
 
             const pool = new AutoscaledPool({
-                minConcurrency: 10,
-                maxConcurrency: 10,
+                maxConcurrency: 5,
+                minConcurrency: 5,
                 runTaskFunction,
-                isFinishedFunction: () => Promise.resolve(false),
-                isTaskReadyFunction: () => Promise.resolve(true),
+                isFinishedFunction: async () => counter > 200,
+                isTaskReadyFunction: async () => true,
             });
 
             await expect(pool.run()).rejects.toThrow('some-promise-error');
         });
 
         test('when runTaskFunction throws', async () => {
-            const runTaskFunction = () => {
+            const runTaskFunction = async () => {
+                await sleep(3);
                 throw new Error('some-runtask-error');
             };
 
             const pool = new AutoscaledPool({
-                minConcurrency: 10,
-                maxConcurrency: 10,
+                maxConcurrency: 1,
                 runTaskFunction,
-                isFinishedFunction: () => Promise.resolve(false),
-                isTaskReadyFunction: () => Promise.resolve(true),
+                isFinishedFunction: async () => false,
+                isTaskReadyFunction: async () => true,
             });
 
 
@@ -299,13 +292,17 @@ describe('AutoscaledPool', () => {
         test('when isFinishedFunction throws', async () => {
             let count = 0;
             const pool = new AutoscaledPool({
-                minConcurrency: 10,
-                maxConcurrency: 10,
-                runTaskFunction: async () => { count++; },
-                isFinishedFunction: async () => { throw new Error('some-finished-error'); },
-                isTaskReadyFunction: async () => count < 1,
+                maxConcurrency: 1,
+                runTaskFunction: async () => {
+                    count++;
+                },
+                isFinishedFunction: async () => {
+                    throw new Error('some-finished-error');
+                },
+                isTaskReadyFunction: async () => {
+                    return count < 1;
+                },
             });
-
 
             await expect(pool.run()).rejects.toThrow('some-finished-error');
         });
@@ -313,8 +310,7 @@ describe('AutoscaledPool', () => {
         test('when isTaskReadyFunction throws', async () => {
             let count = 0;
             const pool = new AutoscaledPool({
-                minConcurrency: 10,
-                maxConcurrency: 10,
+                maxConcurrency: 1,
                 runTaskFunction: async () => { count++; },
                 isFinishedFunction: async () => false,
                 isTaskReadyFunction: async () => {
@@ -329,57 +325,51 @@ describe('AutoscaledPool', () => {
     });
 
 
-    test(
-        'should not handle tasks added after isFinishedFunction returned true',
-        async () => {
-            const isFinished = async () => count > 10;
-            let count = 0;
+    test('should not handle tasks added after isFinishedFunction returned true', async () => {
+        const isFinished = async () => count > 10;
+        let count = 0;
 
-            // Run the pool and close it after 3s.
-            const pool = new AutoscaledPool({
-                minConcurrency: 3,
-                runTaskFunction: async () => delayPromise(1).then(() => { count++; }),
-                isFinishedFunction: async () => isFinished(),
-                isTaskReadyFunction: async () => !await isFinished(),
-            });
-            pool.maybeRunIntervalMillis = 5;
+        // Run the pool and close it after 3s.
+        const pool = new AutoscaledPool({
+            minConcurrency: 3,
+            runTaskFunction: async () => sleep(1).then(() => { count++; }),
+            isFinishedFunction: isFinished,
+            isTaskReadyFunction: async () => !await isFinished(),
+        });
+        pool.maybeRunIntervalMillis = 5;
 
-            await pool.run();
-            await delayPromise(10);
-            expect(count).toBeGreaterThanOrEqual(11);
-            // Check finished tasks.
-            expect(count).toBeLessThanOrEqual(13);
-        },
-    );
+        await pool.run();
+        await sleep(10);
+        expect(count).toBeGreaterThanOrEqual(11);
+        // Check finished tasks.
+        expect(count).toBeLessThanOrEqual(13);
+    });
 
-    test(
-        'should break and resume when the task queue is empty for a while',
-        async () => {
-            const finished = [];
-            let isFinished = false;
-            let isTaskReady = true;
+    test('should break and resume when the task queue is empty for a while', async () => {
+        const finished = [];
+        let isFinished = false;
+        let isTaskReady = true;
 
-            let counter = 0;
-            const pool = new AutoscaledPool({
-                maxConcurrency: 1,
-                runTaskFunction: async () => {
-                    await delayPromise(1);
-                    if (counter === 10) { isTaskReady = false; setTimeout(() => { isTaskReady = true; }, 10); }
-                    if (counter === 19) { isTaskReady = false; isFinished = true; }
-                    counter++;
-                    finished.push(Date.now());
-                },
-                isFinishedFunction: async () => isFinished,
-                isTaskReadyFunction: async () => !isFinished && isTaskReady,
-            });
-            pool.maybeRunIntervalMillis = 1;
-            await pool.run();
+        let counter = 0;
+        const pool = new AutoscaledPool({
+            maxConcurrency: 1,
+            runTaskFunction: async () => {
+                await sleep(1);
+                if (counter === 10) { isTaskReady = false; setTimeout(() => { isTaskReady = true; }, 10); }
+                if (counter === 19) { isTaskReady = false; isFinished = true; }
+                counter++;
+                finished.push(Date.now());
+            },
+            isFinishedFunction: async () => isFinished,
+            isTaskReadyFunction: async () => !isFinished && isTaskReady,
+        });
+        pool.maybeRunIntervalMillis = 1;
+        await pool.run();
 
-            // Check finished tasks.
-            expect(finished).toHaveLength(20);
-            expect(finished[11] - finished[10]).toBeGreaterThan(9);
-        },
-    );
+        // Check finished tasks.
+        expect(finished).toHaveLength(20);
+        expect(finished[11] - finished[10]).toBeGreaterThan(9);
+    });
 
     test('should work with loggingIntervalMillis = null', async () => {
         const pool = new AutoscaledPool({
@@ -420,7 +410,7 @@ describe('AutoscaledPool', () => {
         const pool = new AutoscaledPool({
             runTaskFunction: async () => {
                 started = true;
-                await delayPromise(100);
+                await sleep(100);
                 completed = true;
             },
 

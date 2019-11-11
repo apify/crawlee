@@ -2,7 +2,6 @@ import _ from 'underscore';
 import request from 'request-promise-native';
 import sinon from 'sinon';
 import log from 'apify-shared/log';
-import { delayPromise } from 'apify-shared/utilities';
 import { ACTOR_EVENT_NAMES_EX } from '../build/constants';
 import Apify from '../build/index';
 import * as keyValueStore from '../build/key_value_store';
@@ -432,7 +431,7 @@ describe('Apify.RequestList', () => {
                 .withArgs(PERSIST_STATE_KEY, requestList.getState())
                 .returns(Promise.resolve());
             Apify.events.emit(ACTOR_EVENT_NAMES_EX.PERSIST_STATE);
-            await delayPromise(1);
+            await utils.sleep(1);
             expect(requestList.isStatePersisted).toBe(true);
 
             // Do some other changes and persist it again.
@@ -445,7 +444,7 @@ describe('Apify.RequestList', () => {
                 .withArgs(PERSIST_STATE_KEY, requestList.getState())
                 .returns(Promise.resolve());
             Apify.events.emit(ACTOR_EVENT_NAMES_EX.PERSIST_STATE);
-            await delayPromise(1);
+            await utils.sleep(1);
             expect(requestList.isStatePersisted).toBe(true);
 
             // Reclaim event doesn't change the state.

@@ -1,9 +1,9 @@
 import path from 'path';
 import _ from 'underscore';
 import sinon from 'sinon';
-import { delayPromise } from 'apify-shared/utilities';
 import { ENV_VARS, ACT_JOB_STATUSES, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import { ApifyCallError } from '../build/errors';
+import { sleep } from '../build/utils';
 
 // NOTE: test use of require() here because this is how its done in acts
 const Apify = require('../build/index');
@@ -227,7 +227,7 @@ describe('Apify.main()', () => {
         () => {
             return testMain({
                 userFunc: async () => {
-                    await delayPromise(20);
+                    await sleep(20);
                     throw new Error('Test exception II');
                 },
                 exitCode: 91,

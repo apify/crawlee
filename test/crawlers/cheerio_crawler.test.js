@@ -4,11 +4,11 @@ import rqst from 'request';
 import fs from 'fs';
 import path from 'path';
 import log from 'apify-shared/log';
-import { delayPromise } from 'apify-shared/utilities';
 import { ENV_VARS } from 'apify-shared/consts';
 import express from 'express';
 import bodyParser from 'body-parser';
 import Apify from '../../build';
+import { sleep } from '../../build/utils';
 
 // Add common props to mocked request responses.
 const responseMock = {
@@ -137,7 +137,7 @@ describe('CheerioCrawler', () => {
         });
 
         app.get('/timeout', async (req, res) => {
-            await delayPromise(32000);
+            await sleep(32000);
             res.type('html').send('<div>TEST</div>');
         });
 
@@ -255,7 +255,7 @@ describe('CheerioCrawler', () => {
             });
 
             cheerioCrawler._requestFunction = async () => {
-                await delayPromise(300);
+                await sleep(300);
                 return '<html><head></head><body>Body</body></html>';
             };
 
@@ -282,7 +282,7 @@ describe('CheerioCrawler', () => {
             const failed = [];
             const requestList = new Apify.RequestList({ sources });
             const handlePageFunction = async ({ request }) => {
-                await delayPromise(3000);
+                await sleep(3000);
                 processed.push(request);
             };
 

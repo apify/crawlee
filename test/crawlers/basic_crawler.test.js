@@ -2,10 +2,10 @@ import _ from 'underscore';
 import sinon from 'sinon';
 import log from 'apify-shared/log';
 import { ACTOR_EVENT_NAMES } from 'apify-shared/consts';
-import { delayPromise } from 'apify-shared/utilities';
 import * as Apify from '../../build';
 import * as keyValueStore from '../../build/key_value_store';
 import { RequestQueue, RequestQueueLocal } from '../../build/request_queue';
+import { sleep } from '../../build/utils';
 import { LOCAL_STORAGE_DIR } from '../_helper';
 
 describe('BasicCrawler', () => {
@@ -27,7 +27,7 @@ describe('BasicCrawler', () => {
         const processed = [];
         const requestList = new Apify.RequestList({ sources });
         const handleRequestFunction = async ({ request }) => {
-            await delayPromise(10);
+            await sleep(10);
             processed.push(_.pick(request, 'url'));
         };
 
@@ -105,7 +105,7 @@ describe('BasicCrawler', () => {
         const requestList = new Apify.RequestList({ sources });
 
         const handleRequestFunction = async ({ request }) => {
-            await delayPromise(10);
+            await sleep(10);
             processed[request.url] = request;
 
             if (request.url === 'http://example.com/2') {
@@ -159,7 +159,7 @@ describe('BasicCrawler', () => {
         const requestList = new Apify.RequestList({ sources });
 
         const handleRequestFunction = async ({ request }) => {
-            await delayPromise(10);
+            await sleep(10);
             processed[request.url] = request;
             request.userData.foo = 'bar';
             throw Error(`This is ${request.retryCount}th error!`);
@@ -273,7 +273,7 @@ describe('BasicCrawler', () => {
         const requestQueue = new RequestQueue('xxx');
 
         const handleRequestFunction = async ({ request }) => {
-            await delayPromise(10);
+            await sleep(10);
             processed[request.url] = request;
 
             if (request.url === 'http://example.com/1') {
@@ -421,7 +421,7 @@ describe('BasicCrawler', () => {
                     },
                 },
                 handleRequestFunction: async ({ request }) => {
-                    await delayPromise(10);
+                    await sleep(10);
                     processed.push(request);
                 },
             });
@@ -465,7 +465,7 @@ describe('BasicCrawler', () => {
         const requestList = new Apify.RequestList({ sources });
 
         const handleRequestFunction = async ({ request }) => {
-            await delayPromise(10);
+            await sleep(10);
             processed[request.url] = request;
             if (request.url === 'http://example.com/2') throw Error();
             request.userData.foo = 'bar';
@@ -520,7 +520,7 @@ describe('BasicCrawler', () => {
             requestQueue,
             maxConcurrency: 1,
             handleRequestFunction: async () => {
-                await delayPromise(1);
+                await sleep(1);
                 count++;
             },
             maxRequestsPerCrawl: 40,
@@ -543,7 +543,7 @@ describe('BasicCrawler', () => {
             requestList,
             maxConcurrency: 1,
             handleRequestFunction: async () => {
-                await delayPromise(1);
+                await sleep(1);
                 count++;
             },
             maxRequestsPerCrawl: 40,
@@ -574,7 +574,7 @@ describe('BasicCrawler', () => {
             requestQueue,
             maxConcurrency: 1,
             handleRequestFunction: async () => {
-                await delayPromise(1);
+                await sleep(1);
                 count++;
             },
             maxRequestsPerCrawl: 40,
@@ -598,7 +598,7 @@ describe('BasicCrawler', () => {
             requestList,
             handleRequestTimeoutSecs: 0.01,
             maxRequestRetries: 1,
-            handleRequestFunction: () => delayPromise(1000),
+            handleRequestFunction: () => sleep(1000),
             handleFailedRequestFunction: ({ request }) => results.push(request),
         });
 
