@@ -915,3 +915,38 @@ describe('utils.printOutdatedSdkWarning()', () => {
         delete process.env[ENV_VARS.SDK_LATEST_VERSION];
     });
 });
+
+describe('utils.parseContentTypeFromResponse', () => {
+    it('should parse content type from header', () => {
+        const parsed = utils.parseContentTypeFromResponse({ url: 'http://example.com', headers: { 'content-type': 'text/html; charset=utf-8' } });
+        expect(parsed.type).to.be.eql('text/html');
+        expect(parsed.parameters.charset).to.be.eql('utf-8');
+    });
+
+    it('should parse content type from file extension', () => {
+        const parsedHtml = utils.parseContentTypeFromResponse({ url: 'http://www.example.com/foo/file.html?someparam=foo', headers: {} });
+        expect(parsedHtml.type).to.be.eql('text/html');
+        expect(parsedHtml.parameters.charset).to.be.eql('utf-8');
+
+        const parsedTxt = utils.parseContentTypeFromResponse({ url: 'http://www.example.com/foo/file.txt', headers: {} });
+        expect(parsedTxt.type).to.be.eql('text/plain');
+        expect(parsedTxt.parameters.charset).to.be.eql('utf-8');
+    });
+
+    it('should return default content type for bad content type headers', () => {
+        const parsedWithoutCt = utils.parseContentTypeFromResponse({ url: 'http://www.example.com/foo/file', headers: {} });
+        expect(parsedWithoutCt.type).to.be.eql('application/octet-stream');
+        expect(parsedWithoutCt.parameters.charset).to.be.eql('utf-8');
+
+        const parsedBadHeader = utils.parseContentTypeFromResponse({
+            url: 'http://www.example.com/foo/file.html',
+            headers: { 'content-type': 'text/html,text/html' },
+        });
+        expect(parsedBadHeader.type).to.be.eql('text/html');
+        expect(parsedBadHeader.parameters.charset).to.be.eql('utf-8');
+
+        const parsedReallyBad = utils.parseContentTypeFromResponse({ url: 'http://www.example.com/foo', headers: { 'content-type': 'crazy-stuff' } });
+        expect(parsedReallyBad.type).to.be.eql('application/octet-stream');
+        expect(parsedReallyBad.parameters.charset).to.be.eql('utf-8');
+    });
+});
