@@ -1,12 +1,6 @@
 import fs from 'fs-extra';
 import path from 'path';
-import chai, { expect } from 'chai';
-import chaiSubset from 'chai-subset';
-import chaiAsPromised from 'chai-as-promised';
 import { ENV_VARS } from 'apify-shared/consts';
-
-chai.use(chaiSubset);
-chai.use(chaiAsPromised);
 
 export const LOCAL_STORAGE_DIR = path.join(__dirname, '..', 'tmp', 'local-emulation-dir');
 
@@ -28,16 +22,16 @@ export const emptyLocalStorageSubdir = (subdir) => {
     fs.emptyDirSync(fullPath);
 };
 
-export const expectNotUsingLocalStorage = () => expect(process.env[ENV_VARS.LOCAL_STORAGE_DIR]).to.be.a('undefined');
+export const expectNotUsingLocalStorage = () => expect(process.env[ENV_VARS.LOCAL_STORAGE_DIR]).toBeUndefined();
 
 export const expectDirEmpty = (dirPath) => {
     const content = fs.readdirSync(dirPath);
-    expect(content).to.have.lengthOf(0);
+    expect(content).toHaveLength(0);
 };
 
 export const expectDirNonEmpty = (dirPath) => {
     const content = fs.readdirSync(dirPath);
-    expect(content).to.have.lengthOf.above(0);
+    expect(content).not.toHaveLength(0);
 };
 
 export const startExpressAppPromise = (app, port) => {
