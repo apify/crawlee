@@ -9,6 +9,7 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, MAX_PAYLOAD_SIZE_BYTES } from 'apify-shared/consts';
 import { apifyClient, ensureDirExists, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists } from './utils';
 
+export const DATASET_ITERATORS_DEFAULT_LIMIT = 250000;
 export const LOCAL_STORAGE_SUBDIR = LOCAL_STORAGE_SUBDIRS.datasets;
 export const LOCAL_FILENAME_DIGITS = 9;
 export const LOCAL_GET_ITEMS_DEFAULT_LIMIT = 250000;
@@ -276,7 +277,16 @@ export class Dataset {
         const { datasetId } = this;
         const params = Object.assign({ datasetId }, options);
 
-        return datasets.getItems(params);
+        try {
+            return await datasets.getItems(params);
+        } catch (e) {
+            if (e.message.includes('Cannot create a string longer than')) {
+                throw new Error(
+                    'getData: The response is too large for parsing. You can fix this by lowering the "limit" option.',
+                );
+            }
+            throw e;
+        }
     }
 
     /**
@@ -337,6 +347,7 @@ export class Dataset {
     async forEach(iteratee, options = {}, index = 0) {
         if (!options.offset) options.offset = 0;
         if (options.format && options.format !== 'json') throw new Error('Dataset.forEach/map/reduce() support only a "json" format.');
+        if (!options.limit) options.limit = DATASET_ITERATORS_DEFAULT_LIMIT;
 
         const { items, total, limit, offset } = await this.getData(options);
 
