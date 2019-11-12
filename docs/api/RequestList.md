@@ -105,6 +105,8 @@ await requestList.reclaimRequest(request2);
     { method: &#39;GET&#39;, url: &#39;http://example.com/a/b&#39; },
     // Batch import of URLs from a file hosted on the web
     { method: &#39;POST&#39;, requestsFromUrl: &#39;http://example.com/urls.txt&#39; },
+    // Batch import combined with regex.
+    { method: &#39;POST&#39;, requestsFromUrl: &#39;http://example.com/urls.txt&#39;, regex: /https:\/\/example.com\/.+/ },
 ]</code></pre></td></tr><tr>
 <td><code>[options.persistStateKey]</code></td><td><code>String</code></td><td></td>
 </tr>

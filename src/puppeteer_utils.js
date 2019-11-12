@@ -193,15 +193,16 @@ const enqueueRequestsFromClickableElements = async (page, selector, purls, reque
  * of data that needs to be downloaded from the web, but it may break some websites
  * or unexpectedly prevent loading of resources.
  *
- * If the `options.urlPatterns` parameter is not provided,
- * by default the function blocks URLs that include these patterns:
+ * By default, the function will block all URLs including the following patterns:
  *
  * ```json
  * [".css", ".jpg", ".jpeg", ".png", ".svg", ".gif", ".woff", ".pdf", ".zip"]
  * ```
  *
- * The defaults will be concatenated with the patterns you provide in `options.urlPatterns`.
- * If you want to remove the defaults, use `options.includeDefaults: false`.
+ * If you want to extend this list further, use the `extraUrlPatterns` option,
+ * which will keep blocking the default patterns, as well as add your custom ones.
+ * If you would like to block only specific patterns, use the `urlPatterns` option,
+ * which will override the defaults and block only URLs with your custom patterns.
  *
  * This function does not use Puppeteer's request interception and therefore does not interfere
  * with browser cache. It's also faster than blocking requests using interception,
@@ -242,23 +243,15 @@ const blockRequests = async (page, options = {}) => {
     checkParamOrThrow(page, 'page', 'Object');
     checkParamOrThrow(options, 'options', 'Object');
 
-    if (options.includeDefaults === false) {
-        log.deprecated('Apify.utils.puppeteer.blockRequests() includeDefaults option '
-            + 'has been replaced by a more clear extraUrlPatterns option. See docs.');
-    }
-
     const {
         urlPatterns = DEFAULT_BLOCK_REQUEST_URL_PATTERNS,
         extraUrlPatterns = [],
-        includeDefaults = true,
     } = options;
 
     checkParamOrThrow(urlPatterns, 'options.urlPatterns', '[String]');
     checkParamOrThrow(extraUrlPatterns, 'options.extraUrlPatterns', '[String]');
 
-    const patternsToBlock = includeDefaults
-        ? [...DEFAULT_BLOCK_REQUEST_URL_PATTERNS, ...urlPatterns, ...extraUrlPatterns]
-        : [...urlPatterns, ...extraUrlPatterns];
+    const patternsToBlock = [...urlPatterns, ...extraUrlPatterns];
 
     await page._client.send('Network.setBlockedURLs', { urls: patternsToBlock }); // eslint-disable-line no-underscore-dangle
 };

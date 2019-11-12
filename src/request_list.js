@@ -89,6 +89,8 @@ export const SOURCES_PERSISTENCE_KEY = 'REQUEST_LIST_SOURCES';
  *     { method: 'GET', url: 'http://example.com/a/b' },
  *     // Batch import of URLs from a file hosted on the web
  *     { method: 'POST', requestsFromUrl: 'http://example.com/urls.txt' },
+ *     // Batch import combined with regex.
+ *     { method: 'POST', requestsFromUrl: 'http://example.com/urls.txt', regex: /https:\/\/example.com\/.+/ },
  * ]
  * ```
  * @param {String} [options.persistStateKey]
@@ -199,10 +201,20 @@ export class RequestList {
         const actualSources = sources || this.sources;
 
         // We'll load all sources in sequence to ensure that they get loaded in the right order.
+        const sourcesWithRequestsFromUrl = [];
         for (const source of actualSources) {
-            if (source.requestsFromUrl) await this._addRequestsFromUrl(source);
-            else this._addRequest(source);
+            if (source.requestsFromUrl) {
+                const fetchedRequests = await this._fetchRequestsFromUrl(source);
+                sourcesWithRequestsFromUrl.push(...fetchedRequests);
+                await this._addFetchedRequests(source, fetchedRequests);
+            } else {
+                sourcesWithRequestsFromUrl.push(source);
+                this._addRequest(source);
+            }
         }
+
+        // Replace source with source with request from remote URLs
+        this.sources = sourcesWithRequestsFromUrl;
 
         this._restoreState(state);
         this.isInitialized = true;
@@ -441,11 +453,36 @@ export class RequestList {
     }
 
     /**
-     * Adds all requests from a URL fetched from a remote resource.
+     * Adds all fetched requests from a URL from a remote resource.
      *
      * @ignore
      */
-    async _addRequestsFromUrl(source) {
+    async _addFetchedRequests(source, fetchedRequests) {
+        const { requestsFromUrl, regex } = source;
+        const originalLength = this.requests.length;
+
+        fetchedRequests.forEach(request => this._addRequest(request));
+
+        const fetchedCount = fetchedRequests.length;
+        const importedCount = this.requests.length - originalLength;
+
+        log.info('RequestList: list fetched.', {
+            requestsFromUrl,
+            regex,
+            fetchedCount,
+            importedCount,
+            duplicateCount: fetchedCount - importedCount,
+            sample: JSON.stringify(fetchedRequests.slice(0, 5)),
+        });
+    }
+
+    /**
+     * Fetches URLs from requestsFromUrl and returns them in format of list of requests
+     * @param source
+     * @return {Promise<Object[]|Array>}
+     * @ignore
+     */
+    async _fetchRequestsFromUrl(source) {
         const sharedOpts = _.omit(source, 'requestsFromUrl', 'regex');
         const { requestsFromUrl, regex } = source;
         const { downloadListOfUrls } = publicUtils;
@@ -460,24 +497,11 @@ export class RequestList {
 
         // Skip if resource contained no URLs.
         if (!urlsArr.length) {
-            return log.warning('RequestList: list fetched, but it is empty.', { requestsFromUrl, regex });
+            log.warning('RequestList: list fetched, but it is empty.', { requestsFromUrl, regex });
+            return [];
         }
 
-        // Process downloaded URLs.
-        const originalLength = this.requests.length;
-        urlsArr.forEach(url => this._addRequest(_.extend({ url }, sharedOpts)));
-
-        const fetchedCount = urlsArr.length;
-        const importedCount = this.requests.length - originalLength;
-
-        log.info('RequestList: list fetched.', {
-            requestsFromUrl,
-            regex,
-            fetchedCount,
-            importedCount,
-            duplicateCount: fetchedCount - importedCount,
-            sample: JSON.stringify(urlsArr.slice(0, 5)),
-        });
+        return urlsArr.map(url => _.extend({ url }, sharedOpts));
     }
 
     /**
@@ -609,9 +633,11 @@ export class RequestList {
  *  An array of sources of URLs for the `RequestList`.
  *  It can be either an array of plain objects that
  *  define the `url` property, or an array of instances of the {@link Request} class.
+ *
  *  Additionally, the `requestsFromUrl` property may be used instead of `url`,
  *  which will instruct `RequestList` to download the source URLs from a given remote location.
- *  The URLs will be parsed from the received response.
+ *  The URLs will be parsed from the received response. In this case you can limit the URLs
+ * using `regex` parameter containing regular expression pattern for URLs to be included.
  *
  *  For details, see the [`RequestList`](requestlist#new_RequestList_new)
  *  constructor options.
