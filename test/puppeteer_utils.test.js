@@ -1,4 +1,3 @@
-import { expect } from 'chai';
 import sinon from 'sinon';
 import path from 'path';
 import Apify from '../build/index';
@@ -365,8 +364,8 @@ describe('Apify.utils.puppeteer', () => {
 
             await Apify.utils.puppeteer.saveSnapshot(page, { key: 'TEST', keyValueStoreName: 'TEST-STORE', screenshotQuality: 60 });
 
-            expect(stub.calledWithExactly('TEST.jpg', screenshot, { contentType: 'image/jpeg' })).to.be.eql(true);
-            expect(stub.calledWithExactly('TEST.html', contentHTML, { contentType: 'text/html' })).to.be.eql(true);
+            expect(stub.calledWithExactly('TEST.jpg', screenshot, { contentType: 'image/jpeg' })).toBe(true);
+            expect(stub.calledWithExactly('TEST.html', contentHTML, { contentType: 'text/html' })).toBe(true);
 
             // Test saving only image
             const object2 = { setValue: async () => {} };
@@ -379,7 +378,7 @@ describe('Apify.utils.puppeteer', () => {
 
             // Default quality is 50
             const screenshot2 = await page.screenshot({ fullPage: true, type: 'jpeg', screenshotQuality: 50 });
-            expect(stub2.calledOnceWithExactly('SNAPSHOT.jpg', screenshot2, { contentType: 'image/jpeg' })).to.be.eql(true);
+            expect(stub2.calledOnceWithExactly('SNAPSHOT.jpg', screenshot2, { contentType: 'image/jpeg' })).toBe(true);
 
             mock.verify();
         } finally {
