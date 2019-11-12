@@ -347,20 +347,24 @@ Saves a full screenshot and HTML of the current page into a Key-Value store.
 <td><code>[options.key]</code></td><td><code>String</code></td><td><code>SNAPSHOT</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>Key under which the screenshot and HTML will be saved. <code>.png</code> will be appended for screenshot and <code>.html</code> for HTML.
-  Must contain only letters, numbers, dashes, dots and underscores.</p>
+<td colspan="3"><p>Key under which the screenshot and HTML will be saved. <code>.jpg</code> will be appended for screenshot and <code>.html</code> for HTML.</p>
+</td></tr><tr>
+<td><code>[options.screenshotQuality]</code></td><td><code>Number</code></td><td><code>50</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>The quality of the image, between 0-100. Higher quality images have bigger size and require more storage.</p>
 </td></tr><tr>
 <td><code>[options.saveScreenshot]</code></td><td><code>Boolean</code></td><td><code>true</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>If true, it will save a full screenshot of the current page with as a record with key appended by <code>.png</code>.</p>
+<td colspan="3"><p>If true, it will save a full screenshot of the current page as a record with <code>key</code> appended by <code>.jpg</code>.</p>
 </td></tr><tr>
 <td><code>[options.saveHtml]</code></td><td><code>Boolean</code></td><td><code>true</code></td>
 </tr>
 <tr>
-<td colspan="3"><p>If true, it will save a full HTML of the current page with as a record with key appended by <code>.html</code>.</p>
+<td colspan="3"><p>If true, it will save a full HTML of the current page as a record with <code>key</code> appended by <code>.html</code>.</p>
 </td></tr><tr>
-<td><code>[options.storeName]</code></td><td><code>String</code></td><td><code></code></td>
+<td><code>[options.keyValueStoreName]</code></td><td><code>String</code></td><td><code></code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Name or id of the Key-Value store where snapshot is saved. By default it is saved to default Key-Value store.</p>
