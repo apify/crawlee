@@ -751,14 +751,14 @@ describe('utils.social', () => {
     });
     describe('YOUTUBE_REGEX', () => {
         it('works', () => {
-            expect(_.isRegExp(social.YOUTUBE_REGEX)).to.eql(true);
-            expect(_.isRegExp(social.YOUTUBE_REGEX_GLOBAL)).to.eql(true);
+            expect(_.isRegExp(social.YOUTUBE_REGEX)).toBe(true);
+            expect(_.isRegExp(social.YOUTUBE_REGEX_GLOBAL)).toBe(true);
 
-            expect(social.YOUTUBE_REGEX.flags).to.eql('i');
-            expect(social.YOUTUBE_REGEX_GLOBAL.flags).to.eql('gi');
+            expect(social.YOUTUBE_REGEX.flags).toBe('i');
+            expect(social.YOUTUBE_REGEX_GLOBAL.flags).toBe('gi');
 
-            expect(social.YOUTUBE_REGEX.test('https://www.youtube.com/watch?v=kM7YfhfkiEE')).to.eql(true);
-            expect(social.YOUTUBE_REGEX.test('https://youtu.be/kM7YfhfkiEE')).to.eql(true);
+            expect(social.YOUTUBE_REGEX.test('https://www.youtube.com/watch?v=kM7YfhfkiEE')).toBe(true);
+            expect(social.YOUTUBE_REGEX.test('https://youtu.be/kM7YfhfkiEE')).toBe(true);
             expect(`
                     -https://www.youtube.com/someusername/
                     youtube.com/jack4567
@@ -767,7 +767,7 @@ describe('utils.social', () => {
                     ayoutube.com/bob
                     _youtube.com/bob
                     `.match(social.YOUTUBE_REGEX_GLOBAL))
-                .to.eql([
+                .toEqual([
                     'https://www.youtube.com/watch?v=kM7YfhfkiEE',
                 ]);
         });

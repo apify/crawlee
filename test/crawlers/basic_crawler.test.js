@@ -21,7 +21,6 @@ describe('BasicCrawler', () => {
     });
 
     test('should run in parallel thru all the requests', async () => {
-        const startedAt = Date.now();
         const sources = _.range(0, 500).map(index => ({ url: `https://example.com/${index}` }));
 
         const processed = [];
@@ -42,8 +41,6 @@ describe('BasicCrawler', () => {
         await basicCrawler.run();
 
         expect(processed).toEqual(sources);
-        expect(Date.now() - startedAt).toBeGreaterThanOrEqual(200);
-        expect(Date.now() - startedAt).toBeLessThanOrEqual(1000);
         expect(await requestList.isFinished()).toBe(true);
         expect(await requestList.isEmpty()).toBe(true);
     });
