@@ -54,6 +54,7 @@ session3.retire();
     -   [`.getSession()`](#SessionPool+getSession) ⇒ [`Promise<Session>`](session)
     -   [`.getState()`](#SessionPool+getState) ⇒ `Object`
     -   [`.persistState()`](#SessionPool+persistState) ⇒ `Promise`
+    -   [`.teardown()`](#SessionPool+teardown)
 
 <a name="new_SessionPool_new"></a>
 
@@ -145,3 +146,9 @@ Returns an object representing the internal state of the `SessionPool` instance.
 
 Persists the current state of the `SessionPool` into the default [`KeyValueStore`](keyvaluestore). The state is persisted automatically in regular
 intervals.
+
+<a name="SessionPool+teardown"></a>
+
+## `sessionPool.teardown()`
+
+Removes listener from `persistState` event. This function should be called after you are done with using the `SessionPool` instance.

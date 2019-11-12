@@ -57,7 +57,9 @@ Session configuration.
 </tr>
 <tr>
 <td colspan="3"><p>Maximum number of marking session as blocked usage.
-If the <code>errorScore</code> reaches the <code>maxErrorScore</code> session is marked as block and it is thrown away.</p>
+If the <code>errorScore</code> reaches the <code>maxErrorScore</code> session is marked as block and it is thrown away.
+It starts at 0. Calling the <code>markBad</code> function increases the <code>errorScore</code> by 1.
+Calling the <code>markGood</code> will decrease the <code>errorScore</code> by <code>errorScoreDecrement</code></p>
 </td></tr><tr>
 <td><code>options.errorScoreDecrement</code></td><td><code>number</code></td>
 </tr>
