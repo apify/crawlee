@@ -7,6 +7,7 @@ NEXT
 - Fix a race condition in `RequestQueueLocal`.
 - Fix `RequestList` persistence of downloaded sources in key-value store.
 - Fix `Apify.utils.puppeteer.blockRequests()` always including default patterns.
+- Fix parsing bad Content-Type headers for `CheerioCrawler`.
 
 0.16.1 / 2019-10-31
 ====================

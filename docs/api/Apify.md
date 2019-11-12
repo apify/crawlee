@@ -83,7 +83,7 @@ effect.
 <td colspan="3"><p>Idempotency key enables you to ensure that a webhook will not be added multiple times in case of
   an actor restart or other situation that would cause the <code>addWebhook()</code> function to be called again.
   We suggest using the actor run ID as the idempotency key. You can get the run ID by calling
-  [`Apify.getEnv()](apify#module_Apify.getEnv) function.</p>
+  <a href="apify#module_Apify.getEnv"><code>Apify.getEnv()</code></a> function.</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.call"></a>
@@ -533,14 +533,14 @@ Gets a value from the default [`KeyValueStore`](keyvaluestore) associated with t
 This is just a convenient shortcut for [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+getValue). For example, calling the following code:
 
 ```javascript
-const input = await Apify.getValue('my-key');
+const value = await Apify.getValue('my-key');
 ```
 
 is equivalent to:
 
 ```javascript
 const store = await Apify.openKeyValueStore();
-await store.getValue('my-key');
+const value = await store.getValue('my-key');
 ```
 
 To store the value to the default-key value store, you can use the [`Apify.setValue()`](#module_Apify.setValue) function.
