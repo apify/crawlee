@@ -344,7 +344,7 @@ class BasicCrawler {
         // Reset loadedUrl so an old one is not carried over to retries.
         request.loadedUrl = null;
 
-        const statisticsId = request.id || request.url;
+        const statisticsId = request.id || request.uniqueKey;
         this.stats.startJob(statisticsId);
         try {
             await addTimeoutToPromise(
