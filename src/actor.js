@@ -4,7 +4,7 @@ import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { APIFY_PROXY_VALUE_REGEX } from 'apify-shared/regexs';
 import { ENV_VARS, INTEGER_ENV_VARS, LOCAL_ENV_VARS, ACT_JOB_TERMINAL_STATUSES, ACT_JOB_STATUSES } from 'apify-shared/consts';
-import { EXIT_CODES } from './constants';
+import { EXIT_CODES, COUNTRY_CODE_REGEX } from './constants';
 import { initializeEvents, stopEvents } from './events';
 import { apifyClient, addCharsetToContentType, sleep, snakeCaseToCamelCase, isAtHome } from './utils';
 import { maybeStringify } from './key_value_store';
@@ -339,6 +339,9 @@ let callMemoryWarningIssued = false;
  * @param {Boolean} [options.disableBodyParser=false]
  *  If `true` then the function will not attempt to parse the
  *  actor's output and will return it in a raw `Buffer`.
+ * @param {Array} [options.webhooks] Specifies optional webhooks associated with the actor run, which can be used
+ *  to receive a notification e.g. when the actor finished or failed, see
+ *  [ad hook webhooks documentation](https://apify.com/docs/webhooks#adhoc) for detailed description.
  * @returns {Promise<ActorRun>}
  * @throws {ApifyCallError} If the run did not succeed, e.g. if it failed or timed out.
  *
@@ -357,7 +360,7 @@ export const call = async (actId, input, options = {}) => {
     checkParamOrThrow(token, 'token', 'Maybe String');
 
     // RunAct() options.
-    const { build, memory, timeoutSecs } = options;
+    const { build, memory, timeoutSecs, webhooks } = options;
     let { memoryMbytes } = options;
     const runActOpts = {
         actId,
@@ -376,10 +379,12 @@ export const call = async (actId, input, options = {}) => {
     checkParamOrThrow(build, 'build', 'Maybe String');
     checkParamOrThrow(memoryMbytes, 'memoryMbytes', 'Maybe Number');
     checkParamOrThrow(timeoutSecs, 'timeoutSecs', 'Maybe Number');
+    checkParamOrThrow(webhooks, 'webhooks', 'Maybe Array');
     if (token) runActOpts.token = token;
     if (build) runActOpts.build = build;
     if (memoryMbytes) runActOpts.memory = memoryMbytes;
     if (timeoutSecs >= 0) runActOpts.timeout = timeoutSecs; // Zero is valid value!
+    if (webhooks) runActOpts.webhooks = webhooks;
     if (input) addInputOptionsOrThrow(input, options.contentType, runActOpts);
 
     // Run actor.
@@ -470,6 +475,9 @@ export const call = async (actId, input, options = {}) => {
  *  If the limit is reached, the returned promise is resolved to a run object that will have
  *  status `READY` or `RUNNING` and it will not contain the actor run output.
  *  If `waitSecs` is null or undefined, the function waits for the actor task to finish (default behavior).
+ * @param {Array} [options.webhooks] Specifies optional webhooks associated with the actor run, which can be used
+ *  to receive a notification e.g. when the actor finished or failed, see
+ *  [ad hook webhooks documentation](https://apify.com/docs/webhooks#adhoc) for detailed description.
  * @returns {Promise<ActorRun>}
  * @throws {ApifyCallError} If the run did not succeed, e.g. if it failed or timed out.
  *
@@ -488,16 +496,18 @@ export const callTask = async (taskId, input, options = {}) => {
     checkParamOrThrow(token, 'token', 'Maybe String');
 
     // Run task options.
-    const { build, memoryMbytes, timeoutSecs } = options;
+    const { build, memoryMbytes, timeoutSecs, webhooks } = options;
     const runTaskOpts = { taskId };
     checkParamOrThrow(build, 'build', 'Maybe String');
     checkParamOrThrow(memoryMbytes, 'memoryMbytes', 'Maybe Number');
     checkParamOrThrow(timeoutSecs, 'timeoutSecs', 'Maybe Number');
+    checkParamOrThrow(webhooks, 'webhooks', 'Maybe Array');
     if (token) runTaskOpts.token = token;
     if (build) runTaskOpts.build = build;
     if (memoryMbytes) runTaskOpts.memory = memoryMbytes;
     if (timeoutSecs >= 0) runTaskOpts.timeout = timeoutSecs; // Zero is valid value!
-    if (input) addInputOptionsOrThrow(input, options.contentType, runTaskOpts);
+    if (input) runTaskOpts.input = input;
+    if (webhooks) runTaskOpts.webhooks = webhooks;
 
     // Start task.
     const { waitSecs } = options;
@@ -701,6 +711,15 @@ export const metamorph = async (targetActorId, input, options = {}) => {
  *   All HTTP requests going through the proxy with the same session identifier
  *   will use the same target proxy server (i.e. the same IP address), unless using Residential proxies.
  *   The identifier can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
+ * @param {String} [options.country] If specified, all proxied requests will use IP addresses that geolocated to the specified country.
+ * For example country-GB for IP's from Great Britain.
+ * This parameter is optional, by default, each proxied request is assigned an IP address from a random country.
+ * The country code needs to be a two letter ISO country code
+ * \- see the <a href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements" target="_blank">
+ *full list of available country codes
+ *</a>
+ *
+ * This parameter is optional, by default, the proxy uses all available proxy servers from all countries.
  *
  * @returns {String} Returns the proxy URL, e.g. `http://auto:my_password@proxy.apify.com:8000`.
  *
@@ -723,6 +742,7 @@ export const getApifyProxyUrl = (options = {}) => {
     const {
         groups,
         session,
+        country,
         password = process.env[ENV_VARS.PROXY_PASSWORD],
         hostname = process.env[ENV_VARS.PROXY_HOSTNAME] || LOCAL_ENV_VARS[ENV_VARS.PROXY_HOSTNAME],
         port = parseInt(process.env[ENV_VARS.PROXY_PORT] || LOCAL_ENV_VARS[ENV_VARS.PROXY_PORT], 10),
@@ -731,22 +751,27 @@ export const getApifyProxyUrl = (options = {}) => {
         // parameters so we need to override this in error messages.
         groupsParamName = 'opts.groups',
         sessionParamName = 'opts.session',
+        countryParamName = 'opts.country',
     } = options;
 
     const getMissingParamErrorMgs = (param, env) => `Apify Proxy ${param} must be provided as parameter or "${env}" environment variable!`;
     const throwInvalidProxyValueError = (param) => {
         throw new Error(`The "${param}" option can only contain the following characters: 0-9, a-z, A-Z, ".", "_" and "~"`);
     };
+    const throwInvalidCountryCode = (code) => {
+        throw new Error(`The "${code}" option must be a valid two letter country code according to ISO 3166-1 alpha-2`);
+    };
 
     checkParamOrThrow(groups, groupsParamName, 'Maybe [String]');
     checkParamOrThrow(session, sessionParamName, 'Maybe Number | String');
+    checkParamOrThrow(country, countryParamName, 'Maybe String');
     checkParamOrThrow(password, 'opts.password', 'String', getMissingParamErrorMgs('password', ENV_VARS.PROXY_PASSWORD));
     checkParamOrThrow(hostname, 'opts.hostname', 'String', getMissingParamErrorMgs('hostname', ENV_VARS.PROXY_HOSTNAME));
     checkParamOrThrow(port, 'opts.port', 'Number', getMissingParamErrorMgs('port', ENV_VARS.PROXY_PORT));
 
     let username;
 
-    if (groups || session) {
+    if (groups || session || country) {
         const parts = [];
 
         if (groups && groups.length) {
@@ -756,6 +781,10 @@ export const getApifyProxyUrl = (options = {}) => {
         if (session) {
             if (!APIFY_PROXY_VALUE_REGEX.test(session)) throwInvalidProxyValueError('session');
             parts.push(`session-${session}`);
+        }
+        if (country) {
+            if (!COUNTRY_CODE_REGEX.test(country)) throwInvalidCountryCode(country);
+            parts.push(`country-${country}`);
         }
 
         username = parts.join(',');
@@ -792,7 +821,7 @@ export const getApifyProxyUrl = (options = {}) => {
  *   Idempotency key enables you to ensure that a webhook will not be added multiple times in case of
  *   an actor restart or other situation that would cause the `addWebhook()` function to be called again.
  *   We suggest using the actor run ID as the idempotency key. You can get the run ID by calling
- *   [`Apify.getEnv()](apify#module_Apify.getEnv) function.
+ *   [`Apify.getEnv()`](apify#module_Apify.getEnv) function.
  * @return {Promise<Object>} The return value is the Webhook object.
  * For more information, see the [Get webhook](https://apify.com/docs/api/v2#/reference/webhooks/webhook-object/get-webhook) API endpoint.
  *

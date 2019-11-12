@@ -2,7 +2,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import { promisify } from 'util';
 import contentTypeParser from 'content-type';
-import mime from 'mime';
+import mime from 'mime-types';
 import LruCache from 'apify-shared/lru_cache';
 import { KEY_VALUE_STORE_KEY_REGEX } from 'apify-shared/regexs';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, KEY_VALUE_STORE_KEYS } from 'apify-shared/consts';
@@ -193,7 +193,7 @@ export class KeyValueStore {
      *
      * @param {String} key
      *   Unique key of the record. It can be at most 256 characters long and only consist
-     *   of the following characters: `[a-zA-Z0-9!-_.'()`
+     *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
      * @returns {Promise<Object|String|Buffer>}
      *   Returns a promise that resolves to an object, string
      *   or <a href="https://nodejs.org/api/buffer.html" target="_blank"><code>Buffer</code></a>, depending
@@ -244,7 +244,7 @@ export class KeyValueStore {
      *
      * @param {String} key
      *   Unique key of the record. It can be at most 256 characters long and only consist
-     *   of the following characters: `[a-zA-Z0-9!-_.'()`
+     *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
      * @param {Object|String|Buffer} value
      *   Record data, which can be one of the following values:
      *   <ul>
@@ -385,7 +385,7 @@ export class KeyValueStoreLocal {
         try {
             const result = await this._handleFile(key, readFilePromised);
             return result
-                ? parseBody(result.returnValue, mime.getType(result.fileName))
+                ? parseBody(result.returnValue, mime.contentType(result.fileName))
                 : null;
         } catch (err) {
             throw new Error(`Error reading file '${key}' in directory '${this.localStoragePath}' referred by ${ENV_VARS.LOCAL_STORAGE_DIR} environment variable: ${err.message}`); // eslint-disable-line
@@ -413,7 +413,7 @@ export class KeyValueStoreLocal {
         value = maybeStringify(value, optionsCopy);
 
         const contentType = contentTypeParser.parse(optionsCopy.contentType).type;
-        const extension = mime.getExtension(contentType) || DEFAULT_LOCAL_FILE_EXTENSION;
+        const extension = mime.extension(contentType) || DEFAULT_LOCAL_FILE_EXTENSION;
         const filePath = this._getPath(`${key}.${extension}`);
 
         try {
@@ -610,13 +610,13 @@ export const openKeyValueStore = (storeIdOrName, options = {}) => {
  * This is just a convenient shortcut for [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+getValue).
  * For example, calling the following code:
  * ```javascript
- * const input = await Apify.getValue('my-key');
+ * const value = await Apify.getValue('my-key');
  * ```
  *
  * is equivalent to:
  * ```javascript
  * const store = await Apify.openKeyValueStore();
- * await store.getValue('my-key');
+ * const value = await store.getValue('my-key');
  * ```
  *
  * To store the value to the default-key value store, you can use the [`Apify.setValue()`](#module_Apify.setValue) function.

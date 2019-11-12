@@ -11,6 +11,7 @@ import Request from './request';
 import { enqueueLinks } from './enqueue_links/enqueue_links';
 import { enqueueLinksByClickingElements } from './enqueue_links/click_elements';
 import { addInterceptRequestHandler, removeInterceptRequestHandler } from './puppeteer_request_interception';
+import { openKeyValueStore } from './key_value_store';
 
 const jqueryPath = require.resolve('jquery/dist/jquery.min');
 const underscorePath = require.resolve('underscore/underscore-min');
@@ -193,15 +194,16 @@ const enqueueRequestsFromClickableElements = async (page, selector, purls, reque
  * of data that needs to be downloaded from the web, but it may break some websites
  * or unexpectedly prevent loading of resources.
  *
- * If the `options.urlPatterns` parameter is not provided,
- * by default the function blocks URLs that include these patterns:
+ * By default, the function will block all URLs including the following patterns:
  *
  * ```json
  * [".css", ".jpg", ".jpeg", ".png", ".svg", ".gif", ".woff", ".pdf", ".zip"]
  * ```
  *
- * The defaults will be concatenated with the patterns you provide in `options.urlPatterns`.
- * If you want to remove the defaults, use `options.includeDefaults: false`.
+ * If you want to extend this list further, use the `extraUrlPatterns` option,
+ * which will keep blocking the default patterns, as well as add your custom ones.
+ * If you would like to block only specific patterns, use the `urlPatterns` option,
+ * which will override the defaults and block only URLs with your custom patterns.
  *
  * This function does not use Puppeteer's request interception and therefore does not interfere
  * with browser cache. It's also faster than blocking requests using interception,
@@ -242,23 +244,15 @@ const blockRequests = async (page, options = {}) => {
     checkParamOrThrow(page, 'page', 'Object');
     checkParamOrThrow(options, 'options', 'Object');
 
-    if (options.includeDefaults === false) {
-        log.deprecated('Apify.utils.puppeteer.blockRequests() includeDefaults option '
-            + 'has been replaced by a more clear extraUrlPatterns option. See docs.');
-    }
-
     const {
         urlPatterns = DEFAULT_BLOCK_REQUEST_URL_PATTERNS,
         extraUrlPatterns = [],
-        includeDefaults = true,
     } = options;
 
     checkParamOrThrow(urlPatterns, 'options.urlPatterns', '[String]');
     checkParamOrThrow(extraUrlPatterns, 'options.extraUrlPatterns', '[String]');
 
-    const patternsToBlock = includeDefaults
-        ? [...DEFAULT_BLOCK_REQUEST_URL_PATTERNS, ...urlPatterns, ...extraUrlPatterns]
-        : [...urlPatterns, ...extraUrlPatterns];
+    const patternsToBlock = [...urlPatterns, ...extraUrlPatterns];
 
     await page._client.send('Network.setBlockedURLs', { urls: patternsToBlock }); // eslint-disable-line no-underscore-dangle
 };
@@ -511,6 +505,58 @@ export const infiniteScroll = async (page, options = {}) => {
     }
 };
 
+/**
+ * Saves a full screenshot and HTML of the current page into a Key-Value store.
+ * @param {Object} page
+ *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
+ * @param {Object} [options]
+ * @param {String} [options.key=SNAPSHOT]
+ *   Key under which the screenshot and HTML will be saved. `.jpg` will be appended for screenshot and `.html` for HTML.
+ * @param {Number} [options.screenshotQuality=50]
+ *   The quality of the image, between 0-100. Higher quality images have bigger size and require more storage.
+ * @param {Boolean} [options.saveScreenshot=true]
+ *   If true, it will save a full screenshot of the current page as a record with `key` appended by `.jpg`.
+ * @param {Boolean} [options.saveHtml=true]
+ *   If true, it will save a full HTML of the current page as a record with `key` appended by `.html`.
+ * @param {String} [options.keyValueStoreName=null]
+ *   Name or id of the Key-Value store where snapshot is saved. By default it is saved to default Key-Value store.
+ * @returns {Promise}
+ * @memberOf puppeteer
+ * @name saveSnapshot
+ */
+const saveSnapshot = async (page, options = {}) => {
+    const DEFAULT_KEY = 'SNAPSHOT';
+    let key;
+    try {
+        checkParamOrThrow(page, 'page', 'Object');
+        checkParamOrThrow(options, 'options', 'Object');
+
+        const { saveScreenshot = true, saveHtml = true, keyValueStoreName = null, screenshotQuality = 50 } = options;
+        key = options.key || DEFAULT_KEY;
+
+        checkParamOrThrow(saveScreenshot, 'saveScreenshot', 'Boolean');
+        checkParamOrThrow(saveHtml, 'saveHtml', 'Boolean');
+        checkParamOrThrow(key, 'key', 'String');
+        checkParamOrThrow(keyValueStoreName, 'keyValueStoreName', 'Maybe String');
+        checkParamOrThrow(screenshotQuality, 'screenshotQuality', 'Number');
+
+        const store = await openKeyValueStore(keyValueStoreName);
+
+        if (saveScreenshot) {
+            const screenshotBuffer = await page.screenshot({ fullPage: true, screenshotQuality, type: 'jpeg' });
+            await store.setValue(`${key}.jpg`, screenshotBuffer, { contentType: 'image/jpeg' });
+        }
+        if (saveHtml) {
+            const html = await page.content();
+            await store.setValue(`${key}.html`, html, { contentType: 'text/html' });
+        }
+    } catch (e) {
+        // I like this more than having to investigate stack trace
+        log.error(`saveSnapshot with key ${key || ''} failed with error:`);
+        throw e;
+    }
+};
+
 let logEnqueueLinksDeprecationWarning = true;
 
 /**
@@ -556,4 +602,5 @@ export const puppeteerUtils = {
     addInterceptRequestHandler,
     removeInterceptRequestHandler,
     infiniteScroll,
+    saveSnapshot,
 };

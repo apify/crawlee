@@ -1,4 +1,4 @@
-dist: xenial
+dist: bionic
 sudo: false
 language: node_js
 if: (tag IS blank) OR tag =~ /^v\d+\.\d+\.\d+$/
@@ -18,7 +18,6 @@ env:
   - secure: q5jH62AWy4FpOEPmRMWeA3zVcoeGobBzQ1yJ9YrbTOjGAFa6Kd86lS0VUJWtgOwAMycEROCTpEZX+oalVhRaQyR8kikZg7h80wpOziPfWAJe0y3wBfoP1eLaotLF4PhDhSw2X/wo88DGufzYIFOnH4icITYQIaVPe+8an/Nj/I+Hl3UAONEhIIzMTwWAXNz1haNrPGEDN0keva3bPEaMcrK/f1BgkaOTvVFoZRNpsBGaIuQnM9B9eXzoJeXwB0WmWmX/7Pr2DXE4DOWmSA0hfzJUuCmZsudR1+DL5S2gG97ppjBJ/hKIvNusn5/O7tj00lf/LF6hOKgOnWTWFFhrLbMC9pbqt5TbG4D1kCybiZqZmq1P27n5HX2RmjFiUEG2LJ39nnt+UIo+Y01IuL9YtjghvKpCelauBGflhrdZPae2nA6rvikEzLPHuk7qyHiV03hYgom6feR6yv8S1A6PACvBrX1onPvoI4ihv6IOvrQ9l3rzEGxuRyD3QDDL+CT3wvdr0G7NbMRorkgZDCsMBN77mjivcg7H0cqp8b/n7DRo/Ua1lWTHSs95Y2xr8C0DjpISMLcEHzNeZxs46NmZbPzbjuqac3VJW90g3RhMlIJ06MOHp0zAZHdLdJIUTkTjN0d45DHGoETtFinXaRe7tqGqkPt54sQ8c2ZRTU4QZD0=
 stages:
 - test
-- check
 - deploy
 - images
 install:
@@ -33,7 +32,7 @@ jobs:
     script:
     - "(cd website && npm install --no-package-lock)"
     - npm run lint && node .travis/check-docs.js
-  - stage: check
+  - stage: test
     name: Check User-Agent
     node_js: '10'
     script:

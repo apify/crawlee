@@ -83,7 +83,7 @@ effect.
 <td colspan="3"><p>Idempotency key enables you to ensure that a webhook will not be added multiple times in case of
   an actor restart or other situation that would cause the <code>addWebhook()</code> function to be called again.
   We suggest using the actor run ID as the idempotency key. You can get the run ID by calling
-  [`Apify.getEnv()](apify#module_Apify.getEnv) function.</p>
+  <a href="apify#module_Apify.getEnv"><code>Apify.getEnv()</code></a> function.</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.call"></a>
@@ -191,6 +191,13 @@ actor</a> and several other API endpoints to obtain the output.
 <tr>
 <td colspan="3"><p>If <code>true</code> then the function will not attempt to parse the
  actor&#39;s output and will return it in a raw <code>Buffer</code>.</p>
+</td></tr><tr>
+<td><code>[options.webhooks]</code></td><td><code>Array</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Specifies optional webhooks associated with the actor run, which can be used
+ to receive a notification e.g. when the actor finished or failed, see
+ <a href="https://apify.com/docs/webhooks#adhoc">ad hook webhooks documentation</a> for detailed description.</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.callTask"></a>
@@ -290,6 +297,13 @@ obtain the output.
  If the limit is reached, the returned promise is resolved to a run object that will have
  status <code>READY</code> or <code>RUNNING</code> and it will not contain the actor run output.
  If <code>waitSecs</code> is null or undefined, the function waits for the actor task to finish (default behavior).</p>
+</td></tr><tr>
+<td><code>[options.webhooks]</code></td><td><code>Array</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Specifies optional webhooks associated with the actor run, which can be used
+ to receive a notification e.g. when the actor finished or failed, see
+ <a href="https://apify.com/docs/webhooks#adhoc">ad hook webhooks documentation</a> for detailed description.</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.client"></a>
@@ -419,6 +433,18 @@ For more information, see the <a href="https://my.apify.com/proxy" target="_blan
   All HTTP requests going through the proxy with the same session identifier
   will use the same target proxy server (i.e. the same IP address), unless using Residential proxies.
   The identifier can only contain the following characters: <code>0-9</code>, <code>a-z</code>, <code>A-Z</code>, <code>&quot;.&quot;</code>, <code>&quot;_&quot;</code> and <code>&quot;~&quot;</code>.</p>
+</td></tr><tr>
+<td><code>[options.country]</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>If specified, all proxied requests will use IP addresses that geolocated to the specified country.
+For example country-GB for IP&#39;s from Great Britain.
+This parameter is optional, by default, each proxied request is assigned an IP address from a random country.
+The country code needs to be a two letter ISO country code
+- see the <a href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements" target="_blank">
+full list of available country codes
+</a></p>
+<p>This parameter is optional, by default, the proxy uses all available proxy servers from all countries.</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.getEnv"></a>
@@ -519,14 +545,14 @@ Gets a value from the default [`KeyValueStore`](keyvaluestore) associated with t
 This is just a convenient shortcut for [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+getValue). For example, calling the following code:
 
 ```javascript
-const input = await Apify.getValue('my-key');
+const value = await Apify.getValue('my-key');
 ```
 
 is equivalent to:
 
 ```javascript
 const store = await Apify.openKeyValueStore();
-await store.getValue('my-key');
+const value = await store.getValue('my-key');
 ```
 
 To store the value to the default-key value store, you can use the [`Apify.setValue()`](#module_Apify.setValue) function.
@@ -866,10 +892,11 @@ const requestList = await Apify.openRequestList('my-name', sources);
 <tr>
 <td colspan="3"><p>An array of sources of URLs for the <code>RequestList</code>.
  It can be either an array of plain objects that
- define the <code>url</code> property, or an array of instances of the <a href="request"><code>Request</code></a> class.
- Additionally, the <code>requestsFromUrl</code> property may be used instead of <code>url</code>,
+ define the <code>url</code> property, or an array of instances of the <a href="request"><code>Request</code></a> class.</p>
+<p> Additionally, the <code>requestsFromUrl</code> property may be used instead of <code>url</code>,
  which will instruct <code>RequestList</code> to download the source URLs from a given remote location.
- The URLs will be parsed from the received response.</p>
+ The URLs will be parsed from the received response. In this case you can limit the URLs
+using <code>regex</code> parameter containing regular expression pattern for URLs to be included.</p>
 <p> For details, see the <a href="requestlist#new_RequestList_new"><code>RequestList</code></a>
  constructor options.</p>
 </td></tr><tr>
