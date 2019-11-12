@@ -6,7 +6,7 @@ import * as Apify from '../../build';
 import * as keyValueStore from '../../build/key_value_store';
 import { RequestQueue, RequestQueueLocal } from '../../build/request_queue';
 import { sleep } from '../../build/utils';
-import { LOCAL_STORAGE_DIR } from '../_helper';
+import { LOCAL_STORAGE_DIR, emptyLocalStorageSubdir } from '../_helper';
 import events from '../../build/events';
 
 describe('BasicCrawler', () => {
@@ -626,15 +626,15 @@ describe('BasicCrawler', () => {
                     persistStateKey: 'POOL',
                 },
                 handleRequestFunction: async ({ session }) => {
-                    expect(session.constructor.name).to.be.eql('Session');
-                    expect(session.id).to.exist // eslint-disable-line
+                    expect(session.constructor.name).toEqual('Session');
+                    expect(session.id).toBeDefined();
                 },
                 handleFailedRequestFunction: ({ request }) => results.push(request),
             });
 
             await crawler.run();
-            expect(crawler.sessionPool).to.exist; //eslint-disable-line
-            expect(results).length(0);
+            expect(crawler.sessionPool).toBeDefined();
+            expect(results).toHaveLength(0);
         });
 
         it('should use pass options to sessionPool', async () => {
@@ -656,7 +656,7 @@ describe('BasicCrawler', () => {
             });
             await crawler.run();
 
-            expect(crawler.sessionPool.maxPoolSize).to.be.eql(10);
+            expect(crawler.sessionPool.maxPoolSize).toEqual(10);
         });
 
         it('should teardown Session pool after it is finished', async () => {
@@ -678,13 +678,13 @@ describe('BasicCrawler', () => {
             });
 
             crawler._loadHandledRequestCount = () => { // eslint-disable-line
-                expect(crawler.sessionPool).to.exist; // eslint-disable-line
-                expect(events.listenerCount(ACTOR_EVENT_NAMES.PERSIST_STATE)).to.be.eql(1);
+                expect(crawler.sessionPool).toBeDefined();
+                expect(events.listenerCount(ACTOR_EVENT_NAMES.PERSIST_STATE)).toEqual(1);
             };
 
             await crawler.run();
-            expect(events.listenerCount(ACTOR_EVENT_NAMES.PERSIST_STATE)).to.be.eql(0);
-            expect(crawler.sessionPool.maxPoolSize).to.be.eql(10);
+            expect(events.listenerCount(ACTOR_EVENT_NAMES.PERSIST_STATE)).toEqual(0);
+            expect(crawler.sessionPool.maxPoolSize).toEqual(10);
         });
 
         it('should not use SessionPool by default', async () => {
@@ -701,7 +701,7 @@ describe('BasicCrawler', () => {
             });
             await crawler.run();
 
-            expect(crawler.sessionPool).to.be.undefined; // eslint-disable-line
+            expect(crawler.sessionPool).toBeUndefined();
         });
     });
 });

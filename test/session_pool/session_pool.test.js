@@ -155,7 +155,11 @@ describe('SessionPool - testing session pool', () => {
         const loadedSessionPool = new SessionPool();
 
         await loadedSessionPool.initialize();
-        expect(loadedSessionPool).toEqual(expect.objectContaining(sessionPool));
+        expect(sessionPool.sessions).toHaveLength(loadedSessionPool.sessions.length);
+        expect(sessionPool.maxPoolSize).toEqual(loadedSessionPool.maxPoolSize);
+        expect(sessionPool.maxSessionAgeSecs).toEqual(loadedSessionPool.maxSessionAgeSecs);
+        expect(sessionPool.maxSessionUsageCount).toEqual(loadedSessionPool.maxSessionUsageCount);
+        expect(sessionPool.persistStateKey).toEqual(loadedSessionPool.persistStateKey);
         sessionPool.teardown();
     });
 
@@ -253,8 +257,8 @@ describe('SessionPool - testing session pool', () => {
     });
 
     it('should remove persist state event listener', () => {
-        expect(events.listenerCount(ACTOR_EVENT_NAMES_EX.PERSIST_STATE)).to.be.eq(1);
+        expect(events.listenerCount(ACTOR_EVENT_NAMES_EX.PERSIST_STATE)).toEqual(1);
         sessionPool.teardown();
-        expect(events.listenerCount(ACTOR_EVENT_NAMES_EX.PERSIST_STATE)).to.be.eq(0);
+        expect(events.listenerCount(ACTOR_EVENT_NAMES_EX.PERSIST_STATE)).toEqual(0);
     });
 });
