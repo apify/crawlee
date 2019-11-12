@@ -4,7 +4,7 @@ import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { APIFY_PROXY_VALUE_REGEX } from 'apify-shared/regexs';
 import { ENV_VARS, INTEGER_ENV_VARS, LOCAL_ENV_VARS, ACT_JOB_TERMINAL_STATUSES, ACT_JOB_STATUSES } from 'apify-shared/consts';
-import { EXIT_CODES } from './constants';
+import { EXIT_CODES, COUNTRY_CODE_REGEX } from './constants';
 import { initializeEvents, stopEvents } from './events';
 import { apifyClient, addCharsetToContentType, sleep, snakeCaseToCamelCase, isAtHome } from './utils';
 import { maybeStringify } from './key_value_store';
@@ -711,6 +711,15 @@ export const metamorph = async (targetActorId, input, options = {}) => {
  *   All HTTP requests going through the proxy with the same session identifier
  *   will use the same target proxy server (i.e. the same IP address), unless using Residential proxies.
  *   The identifier can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
+ * @param {String} [options.country] If specified, all proxied requests will use IP addresses that geolocated to the specified country.
+ * For example country-GB for IP's from Great Britain.
+ * This parameter is optional, by default, each proxied request is assigned an IP address from a random country.
+ * The country code needs to be a two letter ISO country code
+ * \- see the <a href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements" target="_blank">
+ *full list of available country codes
+ *</a>
+ *
+ * This parameter is optional, by default, the proxy uses all available proxy servers from all countries.
  *
  * @returns {String} Returns the proxy URL, e.g. `http://auto:my_password@proxy.apify.com:8000`.
  *
@@ -733,6 +742,7 @@ export const getApifyProxyUrl = (options = {}) => {
     const {
         groups,
         session,
+        country,
         password = process.env[ENV_VARS.PROXY_PASSWORD],
         hostname = process.env[ENV_VARS.PROXY_HOSTNAME] || LOCAL_ENV_VARS[ENV_VARS.PROXY_HOSTNAME],
         port = parseInt(process.env[ENV_VARS.PROXY_PORT] || LOCAL_ENV_VARS[ENV_VARS.PROXY_PORT], 10),
@@ -741,22 +751,27 @@ export const getApifyProxyUrl = (options = {}) => {
         // parameters so we need to override this in error messages.
         groupsParamName = 'opts.groups',
         sessionParamName = 'opts.session',
+        countryParamName = 'opts.country',
     } = options;
 
     const getMissingParamErrorMgs = (param, env) => `Apify Proxy ${param} must be provided as parameter or "${env}" environment variable!`;
     const throwInvalidProxyValueError = (param) => {
         throw new Error(`The "${param}" option can only contain the following characters: 0-9, a-z, A-Z, ".", "_" and "~"`);
     };
+    const throwInvalidCountryCode = (code) => {
+        throw new Error(`The "${code}" option must be a valid two letter country code according to ISO 3166-1 alpha-2`);
+    };
 
     checkParamOrThrow(groups, groupsParamName, 'Maybe [String]');
     checkParamOrThrow(session, sessionParamName, 'Maybe Number | String');
+    checkParamOrThrow(country, countryParamName, 'Maybe String');
     checkParamOrThrow(password, 'opts.password', 'String', getMissingParamErrorMgs('password', ENV_VARS.PROXY_PASSWORD));
     checkParamOrThrow(hostname, 'opts.hostname', 'String', getMissingParamErrorMgs('hostname', ENV_VARS.PROXY_HOSTNAME));
     checkParamOrThrow(port, 'opts.port', 'Number', getMissingParamErrorMgs('port', ENV_VARS.PROXY_PORT));
 
     let username;
 
-    if (groups || session) {
+    if (groups || session || country) {
         const parts = [];
 
         if (groups && groups.length) {
@@ -766,6 +781,10 @@ export const getApifyProxyUrl = (options = {}) => {
         if (session) {
             if (!APIFY_PROXY_VALUE_REGEX.test(session)) throwInvalidProxyValueError('session');
             parts.push(`session-${session}`);
+        }
+        if (country) {
+            if (!COUNTRY_CODE_REGEX.test(country)) throwInvalidCountryCode(country);
+            parts.push(`country-${country}`);
         }
 
         username = parts.join(',');

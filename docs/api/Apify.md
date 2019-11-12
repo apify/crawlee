@@ -433,6 +433,18 @@ For more information, see the <a href="https://my.apify.com/proxy" target="_blan
   All HTTP requests going through the proxy with the same session identifier
   will use the same target proxy server (i.e. the same IP address), unless using Residential proxies.
   The identifier can only contain the following characters: <code>0-9</code>, <code>a-z</code>, <code>A-Z</code>, <code>&quot;.&quot;</code>, <code>&quot;_&quot;</code> and <code>&quot;~&quot;</code>.</p>
+</td></tr><tr>
+<td><code>[options.country]</code></td><td><code>String</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>If specified, all proxied requests will use IP addresses that geolocated to the specified country.
+For example country-GB for IP&#39;s from Great Britain.
+This parameter is optional, by default, each proxied request is assigned an IP address from a random country.
+The country code needs to be a two letter ISO country code
+- see the <a href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements" target="_blank">
+full list of available country codes
+</a></p>
+<p>This parameter is optional, by default, the proxy uses all available proxy servers from all countries.</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.getEnv"></a>
