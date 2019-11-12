@@ -200,7 +200,8 @@ const TWITTER_REGEX_STRING = `(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:www.)?(?:twitter.
 const FACEBOOK_RESERVED_PATHS = 'rsrc\\.php|apps|groups|events|l\\.php|friends|images|photo.php|chat|ajax|dyi|common|policies|login|recover|reg|help|security|messages|marketplace|pages|live|bookmarks|games|fundraisers|saved|gaming|salesgroups|jobs|people|ads|ad_campaign|weather|offers|recommendations|crisisresponse|onthisday|developers|settings|connect|business|plugins|intern|sharer';
 // eslint-disable-next-line max-len, quotes
 const FACEBOOK_REGEX_STRING = `(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:www.)?(?:facebook.com|fb.com)\\/(?!(?:${FACEBOOK_RESERVED_PATHS})(?:[\\'\\"\\?\\.\\/]|$))(profile\\.php\\?id\\=[0-9]{3,20}|(?!profile\\.php)[a-z0-9\\.]{5,51})(?![a-z0-9\\.])(?:/)?`;
-
+// eslint-disable-next-line max-len, quotes
+const YOUTUBE_REGEX_STRING = '(?:https?:\\/\\/)?(?:youtu\\.be\\/|(?:www\\.|m\\.)?youtube\\.com\\/(?:watch|v|embed)(?:\\.php)?(?:\\?.*v=|\\/))([a-zA-Z0-9\\-_]+)';
 
 let LINKEDIN_REGEX;
 let LINKEDIN_REGEX_GLOBAL;
@@ -210,6 +211,8 @@ let TWITTER_REGEX;
 let TWITTER_REGEX_GLOBAL;
 let FACEBOOK_REGEX;
 let FACEBOOK_REGEX_GLOBAL;
+let YOUTUBE_REGEX;
+let YOUTUBE_REGEX_GLOBAL;
 
 try {
     /**
@@ -284,7 +287,7 @@ try {
      *
      * Example usage:
      * ```
-     * if (Apify.utils.social.INSTAGRAM_REGEX_STRING.test('https://www.instagram.com/old_prague')) {
+     * if (Apify.utils.social.INSTAGRAM_REGEX.test('https://www.instagram.com/old_prague')) {
      *     console.log('Match!');
      * }
      * ```
@@ -338,7 +341,7 @@ try {
      *
      * Example usage:
      * ```
-     * if (Apify.utils.social.TWITTER_REGEX_STRING.test('https://www.twitter.com/apify')) {
+     * if (Apify.utils.social.TWITTER_REGEX.test('https://www.twitter.com/apify')) {
      *     console.log('Match!');
      * }
      * ```
@@ -393,7 +396,7 @@ try {
      *
      * Example usage:
      * ```
-     * if (Apify.utils.social.FACEBOOK_REGEX_STRING.test('https://www.facebook.com/apifytech')) {
+     * if (Apify.utils.social.FACEBOOK_REGEX.test('https://www.facebook.com/apifytech')) {
      *     console.log('Match!');
      * }
      * ```
@@ -430,6 +433,43 @@ try {
      * @memberOf social
      */
     FACEBOOK_REGEX_GLOBAL = new RegExp(FACEBOOK_REGEX_STRING, 'ig');
+
+    /**
+     * Regular expression to exactly match a single Youtube video URL.
+     * It has the following form: `/^...$/i` and matches URLs such as:
+     * ```
+     * https://www.youtube.com/watch?v=kM7YfhfkiEE
+     * https://youtu.be/kM7YfhfkiEE
+     * ```
+     *
+     * Example usage:
+     * ```
+     * if (Apify.utils.social.YOUTUBE_REGEX.test('https://www.youtube.com/watch?v=kM7YfhfkiEE')) {
+     *     console.log('Match!');
+     * }
+     * ```
+     * @type {RegExp}
+     * @memberOf social
+     */
+    YOUTUBE_REGEX = new RegExp(`^${YOUTUBE_REGEX_STRING}$`, 'i');
+
+    /**
+     * Regular expression to find multiple Youtube video URLs in a text or HTML.
+     * It has the following form: `/.../ig` and matches URLs such as:
+     * ```
+     * https://www.youtube.com/watch?v=kM7YfhfkiEE
+     * https://youtu.be/kM7YfhfkiEE
+     * ```
+     *
+     * Example usage:
+     * ```
+     * const matches = text.match(Apify.utils.social.YOUTUBE_REGEX_GLOBAL);
+     * if (matches) console.log(`${matches.length} Youtube videos found!`);
+     * ```
+     * @type {RegExp}
+     * @memberOf social
+     */
+    YOUTUBE_REGEX_GLOBAL = new RegExp(YOUTUBE_REGEX_STRING, 'ig');
 } catch (e) {
     // Older versions of Node don't support negative lookbehind and lookahead expressions.
     // Show warning instead of failing.
@@ -457,6 +497,7 @@ try {
  *   twitters: String[],
  *   instagrams: String[],
  *   facebooks: String[],
+ *   youtubes: String[],
  * }
  * ```
  *
@@ -496,6 +537,7 @@ const parseHandlesFromHtml = (html, data = null) => {
         twitters: [],
         instagrams: [],
         facebooks: [],
+        youtubes: [],
     };
 
     // TODO: maybe extract phone numbers from JSON+LD
@@ -526,6 +568,7 @@ const parseHandlesFromHtml = (html, data = null) => {
     result.twitters = html.match(TWITTER_REGEX_GLOBAL) || [];
     result.instagrams = html.match(INSTAGRAM_REGEX_GLOBAL) || [];
     result.facebooks = html.match(FACEBOOK_REGEX_GLOBAL) || [];
+    result.youtubes = html.match(YOUTUBE_REGEX_GLOBAL) || [];
 
     // Sort and deduplicate handles
     // eslint-disable-next-line guard-for-in, no-restricted-syntax
@@ -572,4 +615,7 @@ export const socialUtils = {
 
     FACEBOOK_REGEX,
     FACEBOOK_REGEX_GLOBAL,
+
+    YOUTUBE_REGEX,
+    YOUTUBE_REGEX_GLOBAL,
 };

@@ -24,6 +24,8 @@ const emails = Apify.utils.social.emailsFromText('alice@example.com bob@example.
     -   [`.TWITTER_REGEX_GLOBAL`](#social.TWITTER_REGEX_GLOBAL) : `RegExp`
     -   [`.FACEBOOK_REGEX`](#social.FACEBOOK_REGEX) : `RegExp`
     -   [`.FACEBOOK_REGEX_GLOBAL`](#social.FACEBOOK_REGEX_GLOBAL) : `RegExp`
+    -   [`.YOUTUBE_REGEX`](#social.YOUTUBE_REGEX) : `RegExp`
+    -   [`.YOUTUBE_REGEX_GLOBAL`](#social.YOUTUBE_REGEX_GLOBAL) : `RegExp`
     -   [`.EMAIL_REGEX`](#social.EMAIL_REGEX) : `RegExp`
     -   [`.EMAIL_REGEX_GLOBAL`](#social.EMAIL_REGEX_GLOBAL) : `RegExp`
     -   [`.emailsFromText(text)`](#social.emailsFromText) ⇒ `Array<String>`
@@ -111,7 +113,7 @@ https://www.instagram.com/cristiano/followers
 Example usage:
 
 ```
-if (Apify.utils.social.INSTAGRAM_REGEX_STRING.test('https://www.instagram.com/old_prague')) {
+if (Apify.utils.social.INSTAGRAM_REGEX.test('https://www.instagram.com/old_prague')) {
     console.log('Match!');
 }
 ```
@@ -168,7 +170,7 @@ https://www.twitter.com/realdonaldtrump/following
 Example usage:
 
 ```
-if (Apify.utils.social.TWITTER_REGEX_STRING.test('https://www.twitter.com/apify')) {
+if (Apify.utils.social.TWITTER_REGEX.test('https://www.twitter.com/apify')) {
     console.log('Match!');
 }
 ```
@@ -226,7 +228,7 @@ https://www.facebook.com/apifytech/photos
 Example usage:
 
 ```
-if (Apify.utils.social.FACEBOOK_REGEX_STRING.test('https://www.facebook.com/apifytech')) {
+if (Apify.utils.social.FACEBOOK_REGEX.test('https://www.facebook.com/apifytech')) {
     console.log('Match!');
 }
 ```
@@ -261,6 +263,43 @@ Example usage:
 ```
 const matches = text.match(Apify.utils.social.FACEBOOK_REGEX_GLOBAL);
 if (matches) console.log(`${matches.length} Facebook profiles found!`);
+```
+
+<a name="social.YOUTUBE_REGEX"></a>
+
+## `social.YOUTUBE_REGEX` : `RegExp`
+
+Regular expression to exactly match a single Youtube video URL. It has the following form: `/^...$/i` and matches URLs such as:
+
+```
+https://www.youtube.com/watch?v=kM7YfhfkiEE
+https://youtu.be/kM7YfhfkiEE
+```
+
+Example usage:
+
+```
+if (Apify.utils.social.YOUTUBE_REGEX.test('https://www.youtube.com/watch?v=kM7YfhfkiEE')) {
+    console.log('Match!');
+}
+```
+
+<a name="social.YOUTUBE_REGEX_GLOBAL"></a>
+
+## `social.YOUTUBE_REGEX_GLOBAL` : `RegExp`
+
+Regular expression to find multiple Youtube video URLs in a text or HTML. It has the following form: `/.../ig` and matches URLs such as:
+
+```
+https://www.youtube.com/watch?v=kM7YfhfkiEE
+https://youtu.be/kM7YfhfkiEE
+```
+
+Example usage:
+
+```
+const matches = text.match(Apify.utils.social.YOUTUBE_REGEX_GLOBAL);
+if (matches) console.log(`${matches.length} Youtube videos found!`);
 ```
 
 <a name="social.EMAIL_REGEX"></a>
@@ -384,6 +423,7 @@ The result of the function is an object with the following structure:
   twitters: String[],
   instagrams: String[],
   facebooks: String[],
+  youtubes: String[],
 }
 ```
 

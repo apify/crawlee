@@ -8,6 +8,7 @@ NEXT
 - Fix `RequestList` persistence of downloaded sources in key-value store.
 - Fix `Apify.utils.puppeteer.blockRequests()` always including default patterns.
 - Fix parsing bad Content-Type headers for `CheerioCrawler`.
+- Added regexps for Youtube videos (`YOUTUBE_REGEX`, `YOUTUBE_REGEX_GLOBAL`) to `utils.social`
 
 0.16.1 / 2019-10-31
 ====================

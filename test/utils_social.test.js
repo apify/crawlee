@@ -314,6 +314,7 @@ describe('utils.social', () => {
             twitters: [],
             instagrams: [],
             facebooks: [],
+            youtubes: [],
         };
 
         test('handles invalid arg', () => {
@@ -378,6 +379,7 @@ describe('utils.social', () => {
                         https://www.facebook.com/bob.username123/ duplicate
                         http://www.facebook.com/alice.username123
                         <a href="https://www.facebook.com/profile.php?id=1155802082&xxx=5">link x</a>
+                        <a href="https://youtu.be/kM7YfhfkiEE">Youtube</a>
                         <a href="fb.com/dada5678?query=1">link</a>
                         
                     </body>
@@ -414,6 +416,9 @@ describe('utils.social', () => {
                     'http://www.facebook.com/alice.username123',
                     'https://www.facebook.com/bob.username123/',
                     'https://www.facebook.com/profile.php?id=1155802082',
+                ],
+                youtubes: [
+                    'https://youtu.be/kM7YfhfkiEE',
                 ],
             });
         });
@@ -742,6 +747,29 @@ describe('utils.social', () => {
                 'fb.com/carl123',
             ]);
             expect(''.match(social.FACEBOOK_REGEX_GLOBAL)).toBe(null);
+        });
+    });
+    describe('YOUTUBE_REGEX', () => {
+        it('works', () => {
+            expect(_.isRegExp(social.YOUTUBE_REGEX)).toBe(true);
+            expect(_.isRegExp(social.YOUTUBE_REGEX_GLOBAL)).toBe(true);
+
+            expect(social.YOUTUBE_REGEX.flags).toBe('i');
+            expect(social.YOUTUBE_REGEX_GLOBAL.flags).toBe('gi');
+
+            expect(social.YOUTUBE_REGEX.test('https://www.youtube.com/watch?v=kM7YfhfkiEE')).toBe(true);
+            expect(social.YOUTUBE_REGEX.test('https://youtu.be/kM7YfhfkiEE')).toBe(true);
+            expect(`
+                    -https://www.youtube.com/someusername/
+                    youtube.com/jack4567
+                    https://www.youtube.com/watch?v=kM7YfhfkiEE
+                    byoutube.com/bob
+                    ayoutube.com/bob
+                    _youtube.com/bob
+                    `.match(social.YOUTUBE_REGEX_GLOBAL))
+                .toEqual([
+                    'https://www.youtube.com/watch?v=kM7YfhfkiEE',
+                ]);
         });
     });
 });
