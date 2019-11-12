@@ -5,7 +5,11 @@
         "xit": false,
         "before": false,
         "after": false,
+        "beforeAll": false,
+        "afterAll": false,
         "beforeEach": false,
-        "afterEach": false
+        "afterEach": false,
+        "expect": false,
+        "test": false
     }
 }
