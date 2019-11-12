@@ -5,8 +5,8 @@ title: SessionPool
 
 <a name="SessionPool"></a>
 
-Handles the sessions rotation, creation and persistence. Creates a pool of [`Session`](session) instances, that are randomly rotated. When some
-session is marked as blocked. It is removed and new one is created instead.
+Experimental feature and might change in the future releases. Handles the sessions rotation, creation and persistence. Creates a pool of
+[`Session`](session) instances, that are randomly rotated. When some session is marked as blocked. It is removed and new one is created instead.
 
 Session pool is by default persisted in default [`KeyValueStore`](keyvaluestore). If you want to have one pool for all runs you have to specify
 `persistStateKeyValueStoreId`.
@@ -54,6 +54,7 @@ session3.retire();
     -   [`.getSession()`](#SessionPool+getSession) ⇒ [`Promise<Session>`](session)
     -   [`.getState()`](#SessionPool+getState) ⇒ `Object`
     -   [`.persistState()`](#SessionPool+persistState) ⇒ `Promise`
+    -   [`.teardown()`](#SessionPool+teardown)
 
 <a name="new_SessionPool_new"></a>
 
@@ -145,3 +146,9 @@ Returns an object representing the internal state of the `SessionPool` instance.
 
 Persists the current state of the `SessionPool` into the default [`KeyValueStore`](keyvaluestore). The state is persisted automatically in regular
 intervals.
+
+<a name="SessionPool+teardown"></a>
+
+## `sessionPool.teardown()`
+
+Removes listener from `persistState` event. This function should be called after you are done with using the `SessionPool` instance.

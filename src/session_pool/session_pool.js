@@ -9,6 +9,7 @@ import { ACTOR_EVENT_NAMES_EX } from '../constants';
 
 
 /**
+ * Experimental feature and might change in the future releases.
  * Handles the sessions rotation, creation and persistence.
  * Creates a pool of {@link Session} instances, that are randomly rotated.
  * When some session is marked as blocked. It is removed and new one is created instead.
@@ -95,7 +96,6 @@ export class SessionPool extends EventEmitter {
         this.createSessionFunction = createSessionFunction || this._defaultCreateSessionFunction;
 
         // Session configuration
-        // @TODO: Maybe options.sessionOptions / this.sessionOptions?
         this.maxSessionAgeSecs = maxSessionAgeSecs;
         this.maxSessionUsageCount = maxSessionUsageCount;
 
@@ -136,7 +136,9 @@ export class SessionPool extends EventEmitter {
         // in case of migration happened and SessionPool state should be restored from the keyValueStore.
         await this._maybeLoadSessionPool();
 
-        events.on(ACTOR_EVENT_NAMES_EX.PERSIST_STATE, this.persistState.bind(this));
+        this._listener = this.persistState.bind(this);
+
+        events.on(ACTOR_EVENT_NAMES_EX.PERSIST_STATE, this._listener);
     }
 
     /**
@@ -183,9 +185,20 @@ export class SessionPool extends EventEmitter {
      * @return {Promise}
      */
     async persistState() {
-        log.debug('SessionPool: Persisting state');
-        log.debug(`SessionPool: persistStateKeyValueStoreId: ${this.persistStateKeyValueStoreId}, persistStateKey: ${this.persistStateKey} `);
+        log.debug('SessionPool: Persisting state',
+            {
+                persistStateKeyValueStoreId: this.persistStateKeyValueStoreId,
+                persistStateKey: this.persistStateKey,
+            });
         await this.keyValueStore.setValue(this.persistStateKey, this.getState());
+    }
+
+    /**
+     * Removes listener from `persistState` event.
+     * This function should be called after you are done with using the `SessionPool` instance.
+     */
+    teardown() {
+        events.removeListener(ACTOR_EVENT_NAMES_EX.PERSIST_STATE, this._listener);
     }
 
     /**
@@ -275,9 +288,11 @@ export class SessionPool extends EventEmitter {
 
         if (!loadedSessionPool) return;
         // Invalidate old sessions and load active sessions only
-        log.debug('SessionPool: Recreating state from KeyValueStore');
-        log.debug(`SessionPool: persistStateKeyValueStoreId: ${this.persistStateKeyValueStoreId}, persistStateKey: ${this.persistStateKey} `);
-
+        log.debug('SessionPool: Recreating state from KeyValueStore',
+            {
+                persistStateKeyValueStoreId: this.persistStateKeyValueStoreId,
+                persistStateKey: this.persistStateKey,
+            });
         for (const sessionObject of loadedSessionPool.sessions) {
             sessionObject.sessionPool = this;
             sessionObject.createdAt = new Date(sessionObject.createdAt);
@@ -289,8 +304,7 @@ export class SessionPool extends EventEmitter {
             }
         }
 
-        log.debug(`SessionPool: Loaded ${this.sessions.length} Sessions from KeyValueStore`);
-        log.debug(`SessionPool: Active sessions ${this.activeSessionsCount} Sessions from KeyValueStore`);
+        log.debug(`SessionPool: ${this.usableSessionsCount} active sessions loaded from KeyValueStore`);
     }
 }
 

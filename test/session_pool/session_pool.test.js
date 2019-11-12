@@ -14,10 +14,15 @@ describe('SessionPool - testing session pool', () => {
     });
 
     beforeEach(async () => {
-        await emptyLocalStorageSubdir('key_value_stores/default');
+        emptyLocalStorageSubdir('key_value_stores/default');
         sessionPool = await Apify.openSessionPool();
     });
 
+    afterEach(() => {
+        events.removeAllListeners(ACTOR_EVENT_NAMES_EX.PERSIST_STATE);
+    });
+
+   // eslint-disable-line
     test('should initialize with default values for first time', async () => {
         expect(sessionPool.sessions.length).toBeDefined(); // eslint-disable-line
         expect(sessionPool.maxPoolSize).toBeDefined(); // eslint-disable-line
@@ -41,6 +46,7 @@ describe('SessionPool - testing session pool', () => {
         };
         sessionPool = new SessionPool(opts);
         await sessionPool.initialize();
+        sessionPool.teardown();
 
         Object.entries(opts).forEach(([key, value]) => {
             expect(sessionPool[key]).toEqual(value);
@@ -60,6 +66,8 @@ describe('SessionPool - testing session pool', () => {
 
         };
         sessionPool = await openSessionPool(opts);
+        sessionPool.teardown();
+
 
         Object.entries(opts).forEach(([key, value]) => {
             expect(sessionPool[key]).toEqual(value);
@@ -147,7 +155,12 @@ describe('SessionPool - testing session pool', () => {
         const loadedSessionPool = new SessionPool();
 
         await loadedSessionPool.initialize();
-        expect(loadedSessionPool).toEqual(expect.objectContaining(sessionPool));
+        expect(sessionPool.sessions).toHaveLength(loadedSessionPool.sessions.length);
+        expect(sessionPool.maxPoolSize).toEqual(loadedSessionPool.maxPoolSize);
+        expect(sessionPool.maxSessionAgeSecs).toEqual(loadedSessionPool.maxSessionAgeSecs);
+        expect(sessionPool.maxSessionUsageCount).toEqual(loadedSessionPool.maxSessionUsageCount);
+        expect(sessionPool.persistStateKey).toEqual(loadedSessionPool.persistStateKey);
+        sessionPool.teardown();
     });
 
     test('should create only maxPoolSize number of sessions', async () => {
@@ -174,6 +187,7 @@ describe('SessionPool - testing session pool', () => {
 
         afterEach(async () => {
             await emptyLocalStorageSubdir(`key_value_stores/${KV_STORE}`);
+            sessionPool.teardown();
         });
 
         test('on persist event', async () => {
@@ -224,8 +238,9 @@ describe('SessionPool - testing session pool', () => {
 
         const newSessionPool = new SessionPool();
         await newSessionPool.initialize();
-
         expect(newSessionPool.sessions).toHaveLength(10 - invalidSessionsCount);
+
+        newSessionPool.teardown();
     });
 
     test('should createSessionFunction work', async () => {
@@ -239,5 +254,11 @@ describe('SessionPool - testing session pool', () => {
         const session = await newSessionPool.getSession();
         expect(isCalled).toBe(true); // eslint-disable-line
         expect(session.constructor.name).toBe("Session") // eslint-disable-line
+    });
+
+    it('should remove persist state event listener', () => {
+        expect(events.listenerCount(ACTOR_EVENT_NAMES_EX.PERSIST_STATE)).toEqual(1);
+        sessionPool.teardown();
+        expect(events.listenerCount(ACTOR_EVENT_NAMES_EX.PERSIST_STATE)).toEqual(0);
     });
 });

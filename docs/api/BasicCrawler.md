@@ -55,12 +55,12 @@ await crawler.run();
 ```
 
 -   [BasicCrawler](basiccrawler)
-    -   [`new BasicCrawler(options)`](#new_BasicCrawler_new)
+    -   [`new BasicCrawler(options, sessionPoolOptions)`](#new_BasicCrawler_new)
     -   [`.run()`](#BasicCrawler+run) ⇒ `Promise`
 
 <a name="new_BasicCrawler_new"></a>
 
-## `new BasicCrawler(options)`
+## `new BasicCrawler(options, sessionPoolOptions)`
 
 <table>
 <thead>
@@ -157,6 +157,17 @@ await crawler.run();
 </tr>
 <tr>
 <td colspan="3"><p>Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding <a href="autoscaledpool"><code>AutoscaledPool</code></a> option.</p>
+</td></tr><tr>
+<td><code>[options.useSessionPool]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>If set to true. Basic crawler will initialize the  <a href="sessionpool"><code>SessionPool</code></a> with the corresponding <code>sessionPoolOptions</code>.
+  The session instance will be than available in the <code>handleRequestFunction</code>.</p>
+</td></tr><tr>
+<td><code>sessionPoolOptions</code></td><td><code>Object</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>The <a href="sessionpool#new_SessionPool_new"><code>new SessionPool</code></a> options</p>
 </td></tr></tbody>
 </table>
 <a name="BasicCrawler+run"></a>
