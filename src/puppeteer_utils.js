@@ -11,6 +11,7 @@ import Request from './request';
 import { enqueueLinks } from './enqueue_links/enqueue_links';
 import { enqueueLinksByClickingElements } from './enqueue_links/click_elements';
 import { addInterceptRequestHandler, removeInterceptRequestHandler } from './puppeteer_request_interception';
+import { openKeyValueStore } from './key_value_store';
 
 const jqueryPath = require.resolve('jquery/dist/jquery.min');
 const underscorePath = require.resolve('underscore/underscore-min');
@@ -504,6 +505,58 @@ export const infiniteScroll = async (page, options = {}) => {
     }
 };
 
+/**
+ * Saves a full screenshot and HTML of the current page into a Key-Value store.
+ * @param {Object} page
+ *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
+ * @param {Object} [options]
+ * @param {String} [options.key=SNAPSHOT]
+ *   Key under which the screenshot and HTML will be saved. `.jpg` will be appended for screenshot and `.html` for HTML.
+ * @param {Number} [options.screenshotQuality=50]
+ *   The quality of the image, between 0-100. Higher quality images have bigger size and require more storage.
+ * @param {Boolean} [options.saveScreenshot=true]
+ *   If true, it will save a full screenshot of the current page as a record with `key` appended by `.jpg`.
+ * @param {Boolean} [options.saveHtml=true]
+ *   If true, it will save a full HTML of the current page as a record with `key` appended by `.html`.
+ * @param {String} [options.keyValueStoreName=null]
+ *   Name or id of the Key-Value store where snapshot is saved. By default it is saved to default Key-Value store.
+ * @returns {Promise}
+ * @memberOf puppeteer
+ * @name saveSnapshot
+ */
+const saveSnapshot = async (page, options = {}) => {
+    const DEFAULT_KEY = 'SNAPSHOT';
+    let key;
+    try {
+        checkParamOrThrow(page, 'page', 'Object');
+        checkParamOrThrow(options, 'options', 'Object');
+
+        const { saveScreenshot = true, saveHtml = true, keyValueStoreName = null, screenshotQuality = 50 } = options;
+        key = options.key || DEFAULT_KEY;
+
+        checkParamOrThrow(saveScreenshot, 'saveScreenshot', 'Boolean');
+        checkParamOrThrow(saveHtml, 'saveHtml', 'Boolean');
+        checkParamOrThrow(key, 'key', 'String');
+        checkParamOrThrow(keyValueStoreName, 'keyValueStoreName', 'Maybe String');
+        checkParamOrThrow(screenshotQuality, 'screenshotQuality', 'Number');
+
+        const store = await openKeyValueStore(keyValueStoreName);
+
+        if (saveScreenshot) {
+            const screenshotBuffer = await page.screenshot({ fullPage: true, screenshotQuality, type: 'jpeg' });
+            await store.setValue(`${key}.jpg`, screenshotBuffer, { contentType: 'image/jpeg' });
+        }
+        if (saveHtml) {
+            const html = await page.content();
+            await store.setValue(`${key}.html`, html, { contentType: 'text/html' });
+        }
+    } catch (e) {
+        // I like this more than having to investigate stack trace
+        log.error(`saveSnapshot with key ${key || ''} failed with error:`);
+        throw e;
+    }
+};
+
 let logEnqueueLinksDeprecationWarning = true;
 
 /**
@@ -549,4 +602,5 @@ export const puppeteerUtils = {
     addInterceptRequestHandler,
     removeInterceptRequestHandler,
     infiniteScroll,
+    saveSnapshot,
 };

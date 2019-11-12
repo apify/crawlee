@@ -1,5 +1,7 @@
+import sinon from 'sinon';
 import path from 'path';
 import Apify from '../build/index';
+import * as keyValueStore from '../build/key_value_store';
 
 const { utils: { log } } = Apify;
 
@@ -336,6 +338,49 @@ describe('Apify.utils.puppeteer', () => {
 
             const after = await page.evaluate(isAtBottom);
             expect(after).toBe(true);
+        } finally {
+            await browser.close();
+        }
+    });
+
+    it('saveSnapshot() works', async () => {
+        const mock = sinon.mock(keyValueStore);
+        const browser = await Apify.launchPuppeteer({ headless: true });
+        try {
+            const page = await browser.newPage();
+            const contentHTML = '<html><head></head><body><div style="border: 1px solid black">Div number: 1</div></body></html>';
+            await page.setContent(contentHTML);
+
+            const screenshot = await page.screenshot({ fullPage: true, type: 'jpeg', screenshotQuality: 60 });
+
+            // Test saving both image and html
+            const object = { setValue: async () => {} };
+            const stub = sinon.stub(object, 'setValue');
+
+            mock.expects('openKeyValueStore')
+                .once()
+                .withExactArgs('TEST-STORE')
+                .resolves(object);
+
+            await Apify.utils.puppeteer.saveSnapshot(page, { key: 'TEST', keyValueStoreName: 'TEST-STORE', screenshotQuality: 60 });
+
+            expect(stub.calledWithExactly('TEST.jpg', screenshot, { contentType: 'image/jpeg' })).toBe(true);
+            expect(stub.calledWithExactly('TEST.html', contentHTML, { contentType: 'text/html' })).toBe(true);
+
+            // Test saving only image
+            const object2 = { setValue: async () => {} };
+            const stub2 = sinon.stub(object2, 'setValue');
+            mock.expects('openKeyValueStore')
+                .withExactArgs(null)
+                .resolves(object2);
+
+            await Apify.utils.puppeteer.saveSnapshot(page, { saveHtml: false });
+
+            // Default quality is 50
+            const screenshot2 = await page.screenshot({ fullPage: true, type: 'jpeg', screenshotQuality: 50 });
+            expect(stub2.calledOnceWithExactly('SNAPSHOT.jpg', screenshot2, { contentType: 'image/jpeg' })).toBe(true);
+
+            mock.verify();
         } finally {
             await browser.close();
         }
