@@ -506,7 +506,7 @@ describe('dataset', () => {
             } catch (err) {
                 e = err;
             }
-            expect(e.message).toEqual('getData: The response is too large for parsing. You can fix this by lowering the "limit" option.');
+            expect(e.message).toEqual('dataset.getData(): The response is too large for parsing. You can fix this by lowering the "limit" option.');
             stub.restore();
         });
 
