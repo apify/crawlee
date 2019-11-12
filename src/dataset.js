@@ -282,7 +282,7 @@ export class Dataset {
         } catch (e) {
             if (e.message.includes('Cannot create a string longer than')) {
                 throw new Error(
-                    'getData: The response is too large for parsing. You can fix this by lowering the "limit" option.',
+                    'dataset.getData(): The response is too large for parsing. You can fix this by lowering the "limit" option.',
                 );
             }
             throw e;
