@@ -498,6 +498,16 @@ describe('dataset', () => {
 
             mock.verify();
             mock.restore();
+            const stub = sinon.stub(apifyClient.datasets, 'getItems')
+                .callsFake(() => { throw new Error('Cannot create a string longer than 0x3fffffe7 characters'); });
+            let e;
+            try {
+                await dataset.getData();
+            } catch (err) {
+                e = err;
+            }
+            expect(e.message).toEqual('dataset.getData(): The response is too large for parsing. You can fix this by lowering the "limit" option.');
+            stub.restore();
         });
 
         test('getInfo() should work', async () => {
