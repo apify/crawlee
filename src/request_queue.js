@@ -1,6 +1,5 @@
 import path from 'path';
 import crypto from 'crypto';
-import { promisify } from 'util';
 import fs from 'fs-extra';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import LruCache from 'apify-shared/lru_cache';
@@ -33,14 +32,6 @@ const RECENTLY_HANDLED_CACHE_SIZE = 1000;
 // Indicates how long it usually takes for the underlying storage to propagate all writes
 // to be available to subsequent reads.
 export const STORAGE_CONSISTENCY_DELAY_MILLIS = 3000;
-
-
-const writeFilePromised = promisify(fs.writeFile);
-const readdirPromised = promisify(fs.readdir);
-const readFilePromised = promisify(fs.readFile);
-const renamePromised = promisify(fs.rename);
-const statPromised = promisify(fs.stat);
-const emptyDirPromised = promisify(fs.emptyDir);
 
 const { requestQueues } = apifyClient;
 const queuesCache = new LruCache({ maxLength: MAX_OPENED_QUEUES }); // Open queues are stored here.
@@ -712,6 +703,8 @@ export class RequestQueue {
     }
 }
 
+const ENOENT = 'ENOENT';
+
 /**
  * Helper function that extracts queue order number from filename.
  *
@@ -749,6 +742,7 @@ export class RequestQueueLocal {
         this.inProgressCount = 0;
         this.requestIdToQueueOrderNo = {};
         this.queueOrderNoInProgress = {};
+        this.requestsBeingWrittenToFile = new Map();
 
         this.createdAt = null;
         this.modifiedAt = null;
@@ -763,8 +757,8 @@ export class RequestQueueLocal {
         await ensureDirExists(this.localPendingEmulationPath);
 
         const [handled, pending] = await Promise.all([
-            readdirPromised(this.localHandledEmulationPath),
-            readdirPromised(this.localPendingEmulationPath),
+            fs.readdir(this.localHandledEmulationPath),
+            fs.readdir(this.localPendingEmulationPath),
         ]);
 
         this.pendingCount = pending.length;
@@ -774,7 +768,7 @@ export class RequestQueueLocal {
         const pendingPaths = pending.map(filename => path.join(this.localPendingEmulationPath, filename));
         const filePaths = handledPaths.concat(pendingPaths);
 
-        const stats = await statPromised(this.localPendingEmulationPath);
+        const stats = await fs.stat(this.localPendingEmulationPath);
         this.createdAt = stats.birthtime;
         this.modifiedAt = stats.mtime;
         this.accessedAt = stats.atime;
@@ -785,7 +779,7 @@ export class RequestQueueLocal {
     }
 
     async _saveRequestIdToQueueOrderNo(filepath) {
-        const str = await readFilePromised(filepath);
+        const str = await fs.readFile(filepath);
         const request = JSON.parse(str);
         this.requestIdToQueueOrderNo[request.id] = filePathToQueueOrderNo(filepath);
     }
@@ -802,31 +796,36 @@ export class RequestQueueLocal {
     _getQueueOrderNo(forefront = false) {
         const sgn = (forefront ? 1 : 2) * (10 ** 15);
         const base = (10 ** (13)); // Date.now() returns int with 13 numbers.
-        // We always add pending count for a case that two pages are insterted at the same millisecond.
+        // We always add pending count for a case that two pages are inserted at the same millisecond.
         const now = Date.now() + this.queueOrderNoCounter++;
-        const queueOrderNo = forefront
+        return forefront
             ? sgn + (base - now)
             : sgn + (base + now);
-
-        return queueOrderNo;
     }
 
-    _getRequestByQueueOrderNo(queueOrderNo) {
+    async _getRequestByQueueOrderNo(queueOrderNo) {
         checkParamOrThrow(queueOrderNo, 'queueOrderNo', 'Number');
-
-        return readFilePromised(this._getFilePath(queueOrderNo, false))
-            .catch((err) => {
-                if (err.code !== 'ENOENT') throw err;
-
-                return readFilePromised(this._getFilePath(queueOrderNo, true));
-            })
-            .then((str) => {
-                if (!str) throw new Error('Request was not found in none of handled and pending directories!');
-
-                const obj = JSON.parse(str);
-
-                return new Request(obj);
-            });
+        let buffer;
+        let filePath;
+        try {
+            filePath = this._getFilePath(queueOrderNo);
+            buffer = await fs.readFile(filePath);
+        } catch (err) {
+            if (err.code !== ENOENT) throw err;
+            filePath = this._getFilePath(queueOrderNo, true);
+            buffer = await fs.readFile(filePath);
+        }
+        const json = buffer.toString();
+        if (!json) {
+            // This happens when the file is still being written.
+            // The descriptor exists, but the contents are not there yet.
+            // So let's handle it as if it didn't exist at all.
+            const error = new Error(`${ENOENT}: the file is still being written. ${filePath}`);
+            error.code = ENOENT;
+            throw error;
+        }
+        const requestOptions = JSON.parse(json);
+        return new Request(requestOptions);
     }
 
     async addRequest(request, opts = {}) {
@@ -834,65 +833,70 @@ export class RequestQueueLocal {
 
         request.uniqueKey = newRequest.uniqueKey;
 
-        return this.initializationPromise
-            .then(() => {
-                const queueOrderNo = this._getQueueOrderNo(forefront);
+        await this.initializationPromise;
+        const queueOrderNo = this._getQueueOrderNo(forefront);
 
-                // Add ID as server does.
-                // TODO: This way of cloning doesn't preserve Dates!
-                const requestCopy = JSON.parse(JSON.stringify(newRequest));
-                requestCopy.id = getRequestId(request.uniqueKey);
-                request.id = requestCopy.id;
+        // Add ID as server does.
+        // TODO: This way of cloning doesn't preserve Dates!
+        const requestCopy = JSON.parse(JSON.stringify(newRequest));
+        requestCopy.id = getRequestId(request.uniqueKey);
+        request.id = requestCopy.id;
 
-                this._updateMetadata(true);
+        this._updateMetadata(true);
 
-                // If request already exists then don't override it!
-                if (this.requestIdToQueueOrderNo[requestCopy.id]) {
-                    return this
-                        .getRequest(requestCopy.id)
-                        .then(existingRequest => ({
-                            requestId: existingRequest.id,
-                            wasAlreadyHandled: existingRequest && existingRequest.handledAt,
-                            wasAlreadyPresent: true,
-                            request,
-                        }));
-                }
+        // If request already exists then don't override it!
+        if (this.requestIdToQueueOrderNo[requestCopy.id]) {
+            const existingRequest = await this.getRequest(requestCopy.id);
+            return {
+                requestId: existingRequest.id,
+                wasAlreadyHandled: existingRequest && existingRequest.handledAt,
+                wasAlreadyPresent: true,
+                request,
+            };
+        }
 
-                this.requestIdToQueueOrderNo[requestCopy.id] = queueOrderNo;
-                if (!requestCopy.handledAt) this.pendingCount++;
+        // We need to set this before the write begins because otherwise we'd get
+        // duplicate requests written to queue when a URL gets enqueued multiple times.
+        this.requestIdToQueueOrderNo[requestCopy.id] = queueOrderNo;
+        if (!requestCopy.handledAt) this.pendingCount++;
 
-                const filePath = this._getFilePath(queueOrderNo, !!requestCopy.handledAt);
+        const filePath = this._getFilePath(queueOrderNo, !!requestCopy.handledAt);
 
-                return writeFilePromised(filePath, JSON.stringify(requestCopy, null, 4))
-                    .then(() => ({
-                        requestId: requestCopy.id,
-                        wasAlreadyHandled: false,
-                        wasAlreadyPresent: false,
-                        request,
-                    }));
-            });
+        // Lock the file until we fully dump data!
+        // This is needed for getRequest() which accesses files directly by name,
+        // so it can encounter an existing, yet empty file. fetchNextRequest() does
+        // it too, but it jumps to the next file on failure, so it's not a concern.
+        this.requestsBeingWrittenToFile.set(requestCopy.id, requestCopy);
+        await fs.writeFile(filePath, JSON.stringify(requestCopy, null, 4));
+        this.requestsBeingWrittenToFile.delete(requestCopy.id);
+
+        return {
+            requestId: requestCopy.id,
+            wasAlreadyHandled: false,
+            wasAlreadyPresent: false,
+            request,
+        };
     }
 
-    getRequest(requestId) {
+    async getRequest(requestId) {
         validateGetRequestParams(requestId);
 
-        return this.initializationPromise
-            .then(() => {
-                const queueOrderNo = this.requestIdToQueueOrderNo[requestId];
+        await this.initializationPromise;
+        const queueOrderNo = this.requestIdToQueueOrderNo[requestId];
 
-                this._updateMetadata();
+        this._updateMetadata();
 
-                // TODO: We should update the last access time to files...
-                if (!queueOrderNo) return null;
+        // TODO: We should update the last access time to files...
+        if (!queueOrderNo) return null;
 
-                return this._getRequestByQueueOrderNo(queueOrderNo);
-            });
+        const requestBeingWritten = this.requestsBeingWrittenToFile.get(requestId);
+        return requestBeingWritten || this._getRequestByQueueOrderNo(queueOrderNo);
     }
 
     async fetchNextRequest() {
         await this.initializationPromise;
 
-        const files = await readdirPromised(this.localPendingEmulationPath);
+        const files = await fs.readdir(this.localPendingEmulationPath);
 
         this._updateMetadata();
 
@@ -908,92 +912,84 @@ export class RequestQueueLocal {
 
             // TODO: There must be a better way. This try/catch is here because there is a race condition between
             //       between this and call to reclaimRequest() or markRequestHandled() that may move/rename/deleted
-            //       the file between readdirPromised() and this function.
-            //       Ie. the file gets listed in readdirPromised() but removed from this.queueOrderNoInProgres
+            //       the file between fs.readdir() and this function.
+            //       Ie. the file gets listed in fs.readdir() but removed from this.queueOrderNoInProgress
             //       meanwhile causing this to fail.
             try {
                 request = await this._getRequestByQueueOrderNo(queueOrderNo);
             } catch (err) {
                 delete this.queueOrderNoInProgress[queueOrderNo];
                 this.inProgressCount--;
-                if (err.code !== 'ENOENT') throw err;
+                if (err.code !== ENOENT) throw err;
             }
         }
 
         return request;
     }
 
-    markRequestHandled(request) {
+    async markRequestHandled(request) {
         validateMarkRequestHandledParams(request);
 
-        return this.initializationPromise
-            .then(() => {
-                const queueOrderNo = this.requestIdToQueueOrderNo[request.id];
-                const source = this._getFilePath(queueOrderNo, false);
-                const dest = this._getFilePath(queueOrderNo, true);
+        await this.initializationPromise;
+        const queueOrderNo = this.requestIdToQueueOrderNo[request.id];
+        const source = this._getFilePath(queueOrderNo, false);
+        const dest = this._getFilePath(queueOrderNo, true);
 
-                if (!this.queueOrderNoInProgress[queueOrderNo]) {
-                    throw new Error(`Cannot mark request ${request.id} as handled, because it is not in progress!`);
-                }
+        if (!this.queueOrderNoInProgress[queueOrderNo]) {
+            throw new Error(`Cannot mark request ${request.id} as handled, because it is not in progress!`);
+        }
 
-                if (!request.handledAt) request.handledAt = new Date();
+        if (!request.handledAt) request.handledAt = new Date();
 
-                this._updateMetadata(true);
+        this._updateMetadata(true);
 
-                // NOTE: First write to old file and then rename to new one to do the operation atomically.
-                //       Situation where two files exists at the same time may cause race condition bugs.
-                return writeFilePromised(source, JSON.stringify(request, null, 4))
-                    .then(() => renamePromised(source, dest))
-                    .then(() => {
-                        this.pendingCount--;
-                        this._handledCount++;
-                        this.inProgressCount--;
-                        delete this.queueOrderNoInProgress[queueOrderNo];
+        // NOTE: First write to old file and then rename to new one to do the operation atomically.
+        //       Situation where two files exists at the same time may cause race condition bugs.
+        await fs.writeFile(source, JSON.stringify(request, null, 4));
+        await fs.rename(source, dest);
+        this.pendingCount--;
+        this._handledCount++;
+        this.inProgressCount--;
+        delete this.queueOrderNoInProgress[queueOrderNo];
 
-                        return {
-                            requestId: request.id,
-                            wasAlreadyHandled: false,
-                            wasAlreadyPresent: true,
-                            request,
-                        };
-                    });
-            });
+        return {
+            requestId: request.id,
+            wasAlreadyHandled: false,
+            wasAlreadyPresent: true,
+            request,
+        };
     }
 
-    reclaimRequest(request, opts = {}) {
+    async reclaimRequest(request, opts = {}) {
         const { forefront } = validateReclaimRequestParams(request, opts);
 
-        return this.initializationPromise
-            .then(() => {
-                const oldQueueOrderNo = this.requestIdToQueueOrderNo[request.id];
-                const newQueueOrderNo = this._getQueueOrderNo(forefront);
-                const source = this._getFilePath(oldQueueOrderNo);
-                const dest = this._getFilePath(newQueueOrderNo);
+        await this.initializationPromise;
+        const oldQueueOrderNo = this.requestIdToQueueOrderNo[request.id];
+        const newQueueOrderNo = this._getQueueOrderNo(forefront);
+        const source = this._getFilePath(oldQueueOrderNo);
+        const dest = this._getFilePath(newQueueOrderNo);
 
-                if (!this.queueOrderNoInProgress[oldQueueOrderNo]) {
-                    throw new Error(`Cannot reclaim request ${request.id}, because it is not in progress!`);
-                }
+        if (!this.queueOrderNoInProgress[oldQueueOrderNo]) {
+            throw new Error(`Cannot reclaim request ${request.id}, because it is not in progress!`);
+        }
 
-                this.requestIdToQueueOrderNo[request.id] = newQueueOrderNo;
+        this.requestIdToQueueOrderNo[request.id] = newQueueOrderNo;
 
-                this._updateMetadata(true);
+        this._updateMetadata(true);
 
-                // NOTE: First write to old file and then rename to new one to do the operation atomically.
-                //       Situation where two files exists at the same time may cause race condition bugs.
-                return writeFilePromised(source, JSON.stringify(request, null, 4))
-                    .then(() => renamePromised(source, dest))
-                    .then(() => {
-                        this.inProgressCount--;
-                        delete this.queueOrderNoInProgress[oldQueueOrderNo];
+        // NOTE: First write to old file and then rename to new one to do the operation atomically.
+        //       Situation where two files exists at the same time may cause race condition bugs.
+        await fs.writeFile(source, JSON.stringify(request, null, 4));
+        await fs.rename(source, dest);
+        this.inProgressCount--;
+        delete this.queueOrderNoInProgress[oldQueueOrderNo];
 
-                        return {
-                            requestId: request.id,
-                            wasAlreadyHandled: false,
-                            wasAlreadyPresent: true,
-                            request,
-                        };
-                    });
-            });
+        return {
+            requestId: request.id,
+            wasAlreadyHandled: false,
+            wasAlreadyPresent: true,
+            request,
+        };
     }
 
     async isEmpty() {
@@ -1009,7 +1005,7 @@ export class RequestQueueLocal {
     }
 
     async drop() {
-        await emptyDirPromised(this.localStoragePath);
+        await fs.emptyDir(this.localStoragePath);
         queuesCache.remove(this.queueId);
     }
 
@@ -1057,13 +1053,10 @@ export class RequestQueueLocal {
  *
  * @ignore
  */
-const getOrCreateQueue = (queueIdOrName) => {
-    return requestQueues.getQueue({ queueId: queueIdOrName })
-        .then((existingQueue) => {
-            if (existingQueue) return existingQueue;
-
-            return requestQueues.getOrCreateQueue({ queueName: queueIdOrName });
-        });
+const getOrCreateQueue = async (queueIdOrName) => {
+    const existingQueue = await requestQueues.getQueue({ queueId: queueIdOrName });
+    if (existingQueue) return existingQueue;
+    return requestQueues.getOrCreateQueue({ queueName: queueIdOrName });
 };
 
 /**

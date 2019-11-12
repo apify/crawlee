@@ -15,6 +15,9 @@ import { getRandomInt } from 'apify-shared/utilities';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { version as apifyClientVersion } from 'apify-client/package.json';
+import mime from 'mime-types';
+import path from 'path';
+import { URL } from 'url';
 import { version as apifyVersion } from '../package.json';
 import { USER_AGENT_LIST } from './constants';
 
@@ -297,7 +300,7 @@ export const isProduction = () => process.env.NODE_ENV === 'production';
  *
  * @ignore
  */
-export const ensureDirExists = path => ensureDirPromised(path);
+export const ensureDirExists = dirPath => ensureDirPromised(dirPath);
 
 /**
  * Helper function that returns the first key from plan object.
@@ -631,6 +634,39 @@ export const printOutdatedSdkWarning = () => {
 };
 
 /**
+ * Gets parsed content type from response object
+ * @param {Object} response - HTTP response object
+ * @return {Object} parsedContentType
+ * @ignore
+ */
+export const parseContentTypeFromResponse = (response) => {
+    checkParamOrThrow(response, 'response', 'Object');
+    checkParamOrThrow(response.url, 'response.url', 'String');
+    checkParamOrThrow(response.headers, 'response.headers', 'Object');
+
+    const { url, headers } = response;
+    let parsedContentType;
+
+    if (headers['content-type']) {
+        try {
+            parsedContentType = contentTypeParser.parse(headers['content-type']);
+        } catch (err) {
+            // Can not parse content type from Content-Type header. Try to parse it from file extension.
+        }
+    }
+
+    // Parse content type from file extension as fallback
+    if (!parsedContentType) {
+        const parsedUrl = new URL(url);
+        const contentTypeFromExtname = mime.contentType(path.extname(parsedUrl.pathname))
+            || 'application/octet-stream; charset=utf-8'; // Fallback content type, specified in https://tools.ietf.org/html/rfc7231#section-3.1.1.5
+        parsedContentType = contentTypeParser.parse(contentTypeFromExtname);
+    }
+
+    return parsedContentType;
+};
+
+/**
  * A namespace that contains various utilities.
  *
  * **Example usage:**
@@ -655,4 +691,5 @@ export const publicUtils = {
     URL_NO_COMMAS_REGEX,
     URL_WITH_COMMAS_REGEX,
     createRequestDebugInfo,
+    parseContentTypeFromResponse,
 };
