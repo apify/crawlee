@@ -270,7 +270,7 @@ export class Dataset {
      *   the legacy Apify Crawler product and it's not recommended to use it in new integrations.
      * @return {Promise<Object>}
      */
-    getData(options = {}) {
+    async getData(options = {}) {
         // TODO (JC): Do we really need this function? It only works with API but not locally,
         // and it's just 1:1 copy of what apify-client provides, and returns { items } which can
         // be a Buffer ... it doesn't really make much sense
