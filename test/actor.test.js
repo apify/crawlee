@@ -1052,7 +1052,7 @@ describe('Apify.getApifyProxyUrl()', () => {
             session: 'XYZ',
             groups: ['g1', 'g2', 'g3'],
             country: 'US',
-        })).to.be.eql('http://groups-g1+g2+g3,session-XYZ,country-US:abc123@my.host.com:123');
+        })).toBe('http://groups-g1+g2+g3,session-XYZ,country-US:abc123@my.host.com:123');
 
         expect(Apify.getApifyProxyUrl({
             session: 'XYZ',
@@ -1156,14 +1156,14 @@ describe('Apify.getApifyProxyUrl()', () => {
         expect(() => Apify.getApifyProxyUrl({ apifyProxyGroups: [new Date()] })).toThrowError();
 
 
-        expect(() => Apify.getApifyProxyUrl({ country: new Date() })).to.throw();
-        expect(() => Apify.getApifyProxyUrl({ country: 'aa' })).to.throw();
-        expect(() => Apify.getApifyProxyUrl({ country: 'aB' })).to.throw();
-        expect(() => Apify.getApifyProxyUrl({ country: 'Ba' })).to.throw();
-        expect(() => Apify.getApifyProxyUrl({ country: '11' })).to.throw();
-        expect(() => Apify.getApifyProxyUrl({ country: 'DDDD' })).to.throw();
-        expect(() => Apify.getApifyProxyUrl({ country: 'dddd' })).to.throw();
-        expect(() => Apify.getApifyProxyUrl({ country: 1111 })).to.throw();
+        expect(() => Apify.getApifyProxyUrl({ country: new Date() })).toThrow();
+        expect(() => Apify.getApifyProxyUrl({ country: 'aa' })).toThrow();
+        expect(() => Apify.getApifyProxyUrl({ country: 'aB' })).toThrow();
+        expect(() => Apify.getApifyProxyUrl({ country: 'Ba' })).toThrow();
+        expect(() => Apify.getApifyProxyUrl({ country: '11' })).toThrow();
+        expect(() => Apify.getApifyProxyUrl({ country: 'DDDD' })).toThrow();
+        expect(() => Apify.getApifyProxyUrl({ country: 'dddd' })).toThrow();
+        expect(() => Apify.getApifyProxyUrl({ country: 1111 })).toThrow();
 
         delete process.env[ENV_VARS.PROXY_PASSWORD];
         delete process.env[ENV_VARS.PROXY_HOSTNAME];
