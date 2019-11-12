@@ -19,6 +19,8 @@ export class Session {
      * @param options.userData {Object} - Object where custom user data can be stored. For example custom headers.
      * @param options.maxErrorScore {number} - Maximum number of marking session as blocked usage.
      * If the `errorScore` reaches the `maxErrorScore` session is marked as block and it is thrown away.
+     * It starts at 0. Calling the `markBad` function increases the `errorScore` by 1.
+     * Calling the `markGood` will decrease the `errorScore` by `errorScoreDecrement`
      * @param options.errorScoreDecrement {number} - It is used for healing the session.
      * For example: if your session is marked bad two times, but it is successful on the third attempt it's errorScore is decremented by this number.
      * @param options.createdAt {Date} - Date of creation.

@@ -304,8 +304,7 @@ export class SessionPool extends EventEmitter {
             }
         }
 
-        log.debug(`SessionPool: Loaded ${this.sessions.length} Sessions from KeyValueStore`);
-        log.debug(`SessionPool: Active sessions ${this.usableSessionsCount} Sessions from KeyValueStore`);
+        log.debug(`SessionPool: ${this.usableSessionsCount} active sessions loaded from KeyValueStore`);
     }
 }
 
