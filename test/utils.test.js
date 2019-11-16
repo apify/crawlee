@@ -138,7 +138,6 @@ describe('utils.getMemoryInfo()', () => {
 
         osMock
             .expects('totalmem')
-            .once()
             .returns(333);
 
         try {
