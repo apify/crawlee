@@ -186,5 +186,24 @@ describe('Apify.utils_request', () => {
             expect(headersArray[10]).toBe('Connection');
             expect(headersArray[11]).toBe('keep-alive');
         });
+
+        test('custom headers in lowercase override uppercase defaults', async () => {
+            const host = `${HOST}:${port}`;
+            const options = {
+                url: `http://${host}/rawHeaders`,
+                headers: {
+                    accept: 'foo',
+                    bar: 'BAZ',
+                },
+            };
+
+            const response = await requestAsBrowser(options);
+            const headersArray = JSON.parse(response.body);
+            expect(response.statusCode).toBe(200);
+            expect(headersArray[4]).toBe('Accept');
+            expect(headersArray[5]).toBe('foo');
+            expect(headersArray[12]).toBe('bar');
+            expect(headersArray[13]).toBe('BAZ');
+        });
     });
 });

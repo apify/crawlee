@@ -64,7 +64,7 @@ export const REQUEST_AS_BROWSER_DEFAULT_OPTIONS = {
  *  If function returns true request gets aborted. This function is passed to the
  *  (@apify/http-request)[https://www.npmjs.com/package/@apify/http-request] NPM package.
  *
- * @return {Promise<http.IncomingMesage|stream.Readable>}
+ * @return {Promise<http.IncomingMessage|stream.Readable>}
  * @memberOf utils
  * @name requestAsBrowser
  */
@@ -81,8 +81,9 @@ export const requestAsBrowser = async (options) => {
         'Accept-Encoding': 'gzip, deflate, br',
         Connection: 'keep-alive',
     };
-    opts.headers = _.defaults({}, opts.headers, defaultHeaders);
-
+    // Users can provide headers in lowercase so we need to make sure
+    // that their values are applied, but names are kept upper-case.
+    opts.headers = mergeHeaders(opts.headers, defaultHeaders);
 
     try {
         return await httpRequest(opts);
@@ -94,3 +95,17 @@ export const requestAsBrowser = async (options) => {
         throw e;
     }
 };
+
+function mergeHeaders(userHeaders, defaultHeaders) {
+    const headers = { ...defaultHeaders, ...userHeaders };
+    Object.keys(headers).forEach((key) => {
+        const lowerCaseKey = key.toLowerCase();
+        const keyIsNotLowerCase = key !== lowerCaseKey;
+        // eslint-disable-next-line
+        if (keyIsNotLowerCase && headers.hasOwnProperty(lowerCaseKey)) {
+            headers[key] = headers[lowerCaseKey];
+            delete headers[lowerCaseKey];
+        }
+    });
+    return headers;
+}
