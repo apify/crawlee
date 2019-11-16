@@ -2,6 +2,7 @@
 import _ from 'underscore';
 import cheerio from 'cheerio';
 import htmlparser from 'htmlparser2';
+import * as iconv from 'iconv-lite';
 import util from 'util';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
@@ -355,7 +356,7 @@ class CheerioCrawler {
      */
     async _handleRequestFunction({ request, autoscaledPool }) {
         if (this.prepareRequestFunction) await this.prepareRequestFunction({ request });
-        const { dom, isXmlOrHtml, body, contentType, responseStream: response } = await addTimeoutToPromise(
+        const { dom, isXml, body, contentType, response } = await addTimeoutToPromise(
             this._requestFunction({ request }),
             this.requestTimeoutMillis,
             `CheerioCrawler: request timed out after ${this.requestTimeoutMillis / 1000} seconds.`,
@@ -363,14 +364,14 @@ class CheerioCrawler {
 
         request.loadedUrl = response.url;
 
-        const $ = dom ? cheerio.load(dom, { xmlMode: isXmlOrHtml }) : null;
+        const $ = dom ? cheerio.load(dom, { xmlMode: isXml }) : null;
         const context = {
             $,
             // Using a getter here not to break the original API
             // and lazy load the HTML only when needed.
             get html() {
                 log.deprecated('CheerioCrawler: The "html" parameter of handlePageFunction is deprecated, use "body" instead.');
-                return dom && !isXmlOrHtml ? $.html({ decodeEntities: false }) : undefined;
+                return dom && !isXml && $.html({ decodeEntities: false });
             },
             get json() {
                 if (contentType.type !== 'application/json') return null;
@@ -379,7 +380,7 @@ class CheerioCrawler {
             },
             get body() {
                 if (dom) {
-                    return isXmlOrHtml ? $.xml() : $.html({ decodeEntities: false });
+                    return isXml ? $.xml() : $.html({ decodeEntities: false });
                 }
                 return body;
             },
@@ -416,11 +417,14 @@ class CheerioCrawler {
                 throw e;
             }
         }
+
         const { statusCode } = responseStream;
-        const contentType = parseContentTypeFromResponse(responseStream);
-        const { type, parameters: { encoding } } = contentType;
+        const { type, charset } = parseContentTypeFromResponse(responseStream);
+        const { response, encoding } = this._encodeResponse(request, responseStream, charset);
+        const contentType = { type, encoding };
+
         if (statusCode >= 500) {
-            const body = await readStreamToString(responseStream, encoding);
+            const body = await readStreamToString(response, encoding);
 
             // Errors are often sent as JSON, so attempt to parse them,
             // despite Accept header being set to text/html.
@@ -434,11 +438,11 @@ class CheerioCrawler {
             // It's not a JSON so it's probably some text. Get the first 100 chars of it.
             throw new Error(`CheerioCrawler: ${statusCode} - Internal Server Error: ${body.substr(0, 100)}`);
         } else if (type === 'text/html' || type === 'application/xhtml+xml' || type === 'application/xml') {
-            const dom = await this._parseHtmlToDom(responseStream);
-            return ({ dom, isXmlOrHtml: type.includes('xml'), responseStream, contentType });
+            const dom = await this._parseHtmlToDom(response);
+            return ({ dom, isXml: type.includes('xml'), response, contentType });
         } else {
-            const body = await concatStreamToBuffer(responseStream);
-            return { body, responseStream, contentType };
+            const body = await concatStreamToBuffer(response);
+            return { body, response, contentType };
         }
     }
 
@@ -501,6 +505,26 @@ class CheerioCrawler {
         return null;
     }
 
+    _encodeResponse(request, response, encoding) {
+        if (!encoding || Buffer.isEncoding(encoding)) return { response, encoding };
+
+        if (iconv.encodingExists(encoding)) {
+            const finalEncoding = 'utf8';
+            const encodeStream = iconv.encodeStream(finalEncoding);
+            const decodeStream = iconv.decodeStream(encoding).on('error', err => encodeStream.emit('error', err));
+            response.on('error', err => decodeStream.emit('error', err));
+            const encodedResponse = response.pipe(decodeStream).pipe(encodeStream);
+            encodedResponse.statusCode = response.statusCode;
+            encodedResponse.headers = response.headers;
+            encodedResponse.url = response.url;
+            return {
+                response: encodedResponse,
+                encoding: finalEncoding,
+            };
+        }
+
+        throw new Error(`CheerioCrawler: Resource ${request.url} served with unsupported charset/encoding: ${encoding}`);
+    }
 
     async _parseHtmlToDom(response) {
         return new Promise((resolve, reject) => {

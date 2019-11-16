@@ -636,7 +636,7 @@ export const printOutdatedSdkWarning = () => {
 /**
  * Gets parsed content type from response object
  * @param {Object} response - HTTP response object
- * @return {Object} parsedContentType
+ * @return {{ type: string, charset: string }}
  * @ignore
  */
 export const parseContentTypeFromResponse = (response) => {
@@ -663,7 +663,10 @@ export const parseContentTypeFromResponse = (response) => {
         parsedContentType = contentTypeParser.parse(contentTypeFromExtname);
     }
 
-    return parsedContentType;
+    return {
+        type: parsedContentType.type,
+        charset: parsedContentType.parameters.charset,
+    };
 };
 
 /**

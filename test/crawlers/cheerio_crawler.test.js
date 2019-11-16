@@ -670,7 +670,7 @@ describe('CheerioCrawler', () => {
                 const opts = crawler._getRequestOptions(request);
                 proxies.push(opts.proxyUrl);
                 // it needs to return something valid
-                return { dom: {}, responseStream: responseMock };
+                return { dom: {}, response: responseMock };
             };
 
             const shuffled = crawler.proxyUrls;
