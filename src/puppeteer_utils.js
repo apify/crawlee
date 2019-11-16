@@ -494,10 +494,10 @@ export const infiniteScroll = async (page, options = {}) => {
 
     const doScroll = async () => {
         /* istanbul ignore next */
-        await page.evaluate(async () => {
-            const delta = document.body.scrollHeight === 0 ? SCROLL_HEIGHT_IF_ZERO : document.body.scrollHeight;
+        await page.evaluate(async (scrollHeightIfZero) => {
+            const delta = document.body.scrollHeight === 0 ? scrollHeightIfZero : document.body.scrollHeight;
             window.scrollBy(0, delta);
-        });
+        }, SCROLL_HEIGHT_IF_ZERO);
     };
 
     while (!finished) {
