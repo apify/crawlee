@@ -5,7 +5,7 @@ NEXT
 - Add default `SessionPool` implementation to `BasicCrawler`.
 - Add the ability to create ad-hoc webhooks via `Apify.call()` and `Apify.callTask()`.
 - Add an example of form filling with `Puppeteer`.
-- Add `country` option to `Apify.getProxyUrl()`.
+- Add `country` option to `Apify.getApifyProxyUrl()`.
 - Add `Apify.utils.puppeteer.saveSnapshot()` helper to quickly save HTML and screenshot of a page.
 - Add the ability to pass `got` supported options to `requestOptions` in `CheerioCrawler`
   thus supporting things such as `cookieJar` again.
