@@ -8,9 +8,9 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import contentTypeParser from 'content-type';
 import { readStreamToString, concatStreamToBuffer } from 'apify-shared/streams_utilities';
 import BasicCrawler from './basic_crawler';
-import { addTimeoutToPromise, parseContentTypeFromResponse } from '../utils';
+import { addTimeoutToPromise, parseContentTypeFromResponse, getCookiesFromResponse, getCookieHeader } from '../utils';
 import { getApifyProxyUrl } from '../actor';
-import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
+import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER, STATUS_CODES_BLOCKED } from '../constants';
 import { requestAsBrowser } from '../utils_request';
 import { TimeoutError } from '../errors';
 
@@ -39,6 +39,9 @@ const DEFAULT_OPTIONS = {
         },
     },
     additionalMimeTypes: [],
+    useSessionPool: false,
+    sessionPoolOptions: {},
+    persistCookiesPerSession: false,
 };
 
 /**
@@ -284,6 +287,9 @@ class CheerioCrawler {
             handleFailedRequestFunction,
             autoscaledPoolOptions,
             prepareRequestFunction,
+            useSessionPool,
+            sessionPoolOptions,
+            persistCookiesPerSession, // @TODO: Better naming
         } = _.defaults({}, options, DEFAULT_OPTIONS);
 
         checkParamOrThrow(handlePageFunction, 'options.handlePageFunction', 'Function');
@@ -297,9 +303,15 @@ class CheerioCrawler {
         checkParamOrThrow(proxyUrls, 'options.proxyUrls', 'Maybe [String]');
         checkParamOrThrow(prepareRequestFunction, 'options.prepareRequestFunction', 'Maybe Function');
         checkParamOrThrow(additionalMimeTypes, 'options.additionalMimeTypes', '[String]');
+        checkParamOrThrow(useSessionPool, 'options.useSessionPool', 'Boolean');
+        checkParamOrThrow(sessionPoolOptions, 'options.sessionPoolOptions', 'Object');
+        checkParamOrThrow(persistCookiesPerSession, 'options.persistCookiesPerSession', 'Boolean');
         // Enforce valid proxy configuration
         if (proxyUrls && !proxyUrls.length) throw new Error('Parameter "options.proxyUrls" of type Array must not be empty');
         if (useApifyProxy && proxyUrls) throw new Error('Cannot combine "options.useApifyProxy" with "options.proxyUrls"!');
+        if (persistCookiesPerSession && !useSessionPool) {
+            throw new Error('Cannot use "options.persistCookiesPerSession" without "options.useSessionPool"');
+        }
 
         this.supportedMimeTypes = new Set(DEFAULT_MIME_TYPES);
         if (additionalMimeTypes.length) this._extendSupportedMimeTypes(additionalMimeTypes);
@@ -315,6 +327,7 @@ class CheerioCrawler {
         this.proxyUrls = _.shuffle(proxyUrls);
         this.lastUsedProxyUrlIndex = 0;
         this.prepareRequestFunction = prepareRequestFunction;
+        this.persistCookiesPerSession = persistCookiesPerSession;
 
         this.basicCrawler = new BasicCrawler({
             // Basic crawler options.
@@ -330,6 +343,10 @@ class CheerioCrawler {
             minConcurrency,
             maxConcurrency,
             autoscaledPoolOptions,
+
+            // Session pool options
+            sessionPoolOptions,
+            useSessionPool,
         });
 
         this.isRunningPromise = null;
@@ -352,13 +369,17 @@ class CheerioCrawler {
      *
      * @ignore
      */
-    async _handleRequestFunction({ request, autoscaledPool }) {
-        if (this.prepareRequestFunction) await this.prepareRequestFunction({ request });
+    async _handleRequestFunction({ request, autoscaledPool, session }) {
+        if (this.prepareRequestFunction) await this.prepareRequestFunction({ request, session });
         const { dom, isXmlOrHtml, body, contentType, responseStream: response } = await addTimeoutToPromise(
-            this._requestFunction({ request }),
+            this._requestFunction({ request, session }),
             this.requestTimeoutMillis,
             `CheerioCrawler: request timed out after ${this.requestTimeoutMillis / 1000} seconds.`,
         );
+
+        if (this.persistCookiesPerSession) {
+            session = this._updateSessionCookies(session, response);
+        }
 
         request.loadedUrl = response.url;
 
@@ -386,6 +407,7 @@ class CheerioCrawler {
             request,
             response,
             autoscaledPool,
+            session,
         };
         return addTimeoutToPromise(
             this.handlePageFunction(context),
@@ -400,9 +422,15 @@ class CheerioCrawler {
      * received content type matches text/html, application/xml, application/xhtml+xml.
      * @ignore
      */
-    async _requestFunction({ request }) {
+    async _requestFunction({ request, session }) {
         // Using the streaming API of Request to be able to
         // handle the response based on headers receieved.
+
+        if (this.persistCookiesPerSession) {
+            const { headers = {} } = request;
+            headers.Cookie = getCookieHeader(session.cookies);
+        }
+
         const opts = this._getRequestOptions(request);
         let responseStream;
 
@@ -432,6 +460,8 @@ class CheerioCrawler {
 
             // It's not a JSON so it's probably some text. Get the first 100 chars of it.
             throw new Error(`CheerioCrawler: ${statusCode} - Internal Server Error: ${body.substr(0, 100)}`);
+        } else if (STATUS_CODES_BLOCKED.includes(statusCode)) {
+            this._handleBlockedRequest(session, statusCode);
         } else if (type === 'text/html' || type === 'application/xhtml+xml' || type === 'application/xml') {
             const dom = await this._parseHtmlToDom(responseStream);
             return ({ dom, isXmlOrHtml: type.includes('xml'), responseStream, contentType });
@@ -526,6 +556,41 @@ class CheerioCrawler {
                 throw new Error(`CheerioCrawler: Can not parse mime type ${mimeType} from "options.additionalMimeTypes".`);
             }
         });
+    }
+
+    /**
+     * @param session {Session} - `Session` instance to be updated.
+     * @param response
+     * @return {Session}
+     * @private
+     */
+    _updateSessionCookies(session, response) {
+        // update cookies for session
+        const newCookies = getCookiesFromResponse(response);
+        const { cookies: oldCookies } = session;
+
+        for (const cookie of newCookies) {
+            const cookieIndex = oldCookies.find(c => c.name === cookie.name);
+            if (cookieIndex) {
+                oldCookies[cookieIndex] = cookie;
+            } else {
+                oldCookies.push(cookie);
+            }
+        }
+        session.cookies = oldCookies;
+
+        return session;
+    }
+
+    /**
+     * Handles blocked request
+     * @param session {Session}
+     * @param statusCode {Number}
+     * @private
+     */
+    _handleBlockedRequest(session, statusCode) {
+        if (session) session.retire();
+        throw new Error(`CheerioCrawler: Request blocked - received ${statusCode} status code`);
     }
 }
 

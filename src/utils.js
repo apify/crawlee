@@ -17,6 +17,7 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import { version as apifyClientVersion } from 'apify-client/package.json';
 import mime from 'mime-types';
 import path from 'path';
+import { Cookie } from 'tough-cookie';
 import { URL } from 'url';
 import { version as apifyVersion } from '../package.json';
 import { USER_AGENT_LIST } from './constants';
@@ -666,6 +667,25 @@ export const parseContentTypeFromResponse = (response) => {
     return parsedContentType;
 };
 
+export const getCookiesFromResponse = (response) => {
+    const { headers } = response;
+    let cookies;
+
+    if (Array.isArray(headers['set-cookie'])) {
+        cookies = headers['set-cookie'].map(Cookie.parse);
+    } else {
+        cookies = [Cookie.parse(headers['set-cookie'])];
+    }
+
+    return cookies;
+};
+
+export const getCookieHeader = (cookies) => {
+    if (cookies.length < 1) {
+        return;
+    }
+    return cookies.map(cookie => cookie && cookie.cookieString()).join(';');
+};
 /**
  * A namespace that contains various utilities.
  *

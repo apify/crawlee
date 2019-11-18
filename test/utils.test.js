@@ -9,6 +9,7 @@ import requestPromise from 'request-promise-native';
 import LruCache from 'apify-shared/lru_cache';
 import log from 'apify-shared/log';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
+import { Cookie } from 'tough-cookie';
 import * as utils from '../build/utils';
 import Apify from '../build/index';
 
@@ -961,5 +962,50 @@ describe('utils.parseContentTypeFromResponse', () => {
         const parsedReallyBad = utils.parseContentTypeFromResponse({ url: 'http://www.example.com/foo', headers: { 'content-type': 'crazy-stuff' } });
         expect(parsedReallyBad.type).toBe('application/octet-stream');
         expect(parsedReallyBad.parameters.charset).toBe('utf-8');
+    });
+});
+
+describe('utils.getCookiesFromResponse & utils.getCookieHeader', () => {
+    test('should parse cookies if set-cookie is array', () => {
+        const headers = {};
+        const dummyCookies = ['CSRF=e8b667; Domain=example.com; Secure', 'id=a3fWa; Expires=Wed, 21 Oct 2015 07:28:00 GMT'];
+        headers['set-cookie'] = dummyCookies;
+        const cookies = utils.getCookiesFromResponse({ headers });
+
+        cookies.forEach((cookie) => {
+            expect(cookie).toBeInstanceOf(Cookie);
+        });
+
+        expect(dummyCookies[0]).toEqual(cookies[0].toString());
+        expect(dummyCookies[1]).toEqual(cookies[1].toString());
+
+        const parsed = utils.getCookieHeader(cookies);
+        expect(parsed).toEqual('CSRF=e8b667;id=a3fWa');
+    });
+
+    test('should parse cookies if set-cookie is string', () => {
+        const headers = {};
+        const dummyCookie = 'CSRF=e8b667; Domain=example.com; Secure';
+        headers['set-cookie'] = dummyCookie;
+        const cookies = utils.getCookiesFromResponse({ headers });
+
+        expect(cookies).toHaveLength(1);
+        expect(dummyCookie).toEqual(cookies[0].toString());
+        expect(cookies[0]).toBeInstanceOf(Cookie);
+        const parsed = utils.getCookieHeader(cookies);
+        expect(parsed).toEqual('CSRF=e8b667');
+    });
+
+    test('should not throw error on parsing invalid cookie', () => {
+        const headers = {};
+        const dummyCookie = 'totally Invalid Cookie $@$@#$**';
+        headers['set-cookie'] = dummyCookie;
+        const cookies = utils.getCookiesFromResponse({ headers });
+
+        expect(cookies).toHaveLength(1);
+        expect(cookies[0]).toBeUndefined();
+
+        const parsed = utils.getCookieHeader(cookies);
+        expect(parsed).toBeFalsy();
     });
 });

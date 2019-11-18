@@ -123,3 +123,5 @@ export const APIFY_API_BASE_URL = 'https://api.apify.com/v2';
 export const BASIC_CRAWLER_TIMEOUT_MULTIPLIER = 10;
 
 export const COUNTRY_CODE_REGEX = /^[A-Z]{2}$/;
+
+export const STATUS_CODES_BLOCKED = [403, 429, 401];

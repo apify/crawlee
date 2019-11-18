@@ -9,6 +9,9 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import Apify from '../../build';
 import { sleep } from '../../build/utils';
+import { Session } from '../../build/session_pool/session';
+import { STATUS_CODES_BLOCKED } from '../../build/constants';
+import { emptyLocalStorageSubdir, LOCAL_STORAGE_DIR } from '../_helper';
 
 // Add common props to mocked request responses.
 const responseMock = {
@@ -790,5 +793,86 @@ describe('CheerioCrawler', () => {
                 }
             });
         });
+    });
+
+    describe('SessionPool', () => {
+        const sources = ['http://example.com/'];
+        let requestList;
+
+        beforeEach(async () => {
+            process.env.APIFY_LOCAL_STORAGE_DIR = LOCAL_STORAGE_DIR;
+            requestList = await Apify.openRequestList('test', sources);
+        });
+
+        afterEach(() => {
+            emptyLocalStorageSubdir('key_value_stores/default');
+        });
+
+        test('should work', async () => {
+            const crawler = new Apify.CheerioCrawler({
+                requestList,
+                useSessionPool: true,
+                persistCookiesPerSession: false,
+                handlePageFunction: async ({ session }) => {
+                    expect(session).toBeInstanceOf(Session);
+                },
+            });
+            await crawler.run();
+        });
+
+        test('should retire session on "blocked" status codes', async () => {
+            for (const code of STATUS_CODES_BLOCKED) {
+                const failed = [];
+                const sessions = [];
+                const crawler = new Apify.CheerioCrawler({
+                    requestList: await getRequestListForMock({
+                        statusCode: code,
+                        error: false,
+                        headers: { 'Content-type': 'text/html' },
+                    }),
+                    useSessionPool: true,
+                    persistCookiesPerSession: false,
+                    maxRequestRetries: 0,
+                    handlePageFunction: ({ session }) => {
+                        sessions.push(session);
+                    },
+                    handleFailedRequestFunction: async ({ request }) => {
+                        failed.push(request);
+                    },
+                });
+                const oldCall = crawler._handleBlockedRequest;
+                crawler._handleBlockedRequest = (session, statusCode) => {
+                    sessions.push(session);
+                    return oldCall(session, statusCode);
+                };
+                await crawler.run();
+
+                sessions.forEach((session) => {
+                    expect(session.errorScore).toBeGreaterThanOrEqual(session.maxErrorScore);
+                });
+
+                failed.forEach((request) => {
+                    expect(request.errorMessages[0].includes(`Request blocked - received ${code} status code`)).toBeTruthy();
+                });
+            }
+        });
+
+        test('should throw when "options.useSessionPool" false and "options.persistCookiesPerSession" is true', async () => {
+            try {
+                new Apify.CheerioCrawler({
+                    requestList: await getRequestListForMock({
+
+                    }),
+                    useSessionPool: false,
+                    persistCookiesPerSession: true,
+                    maxRequestRetries: 0,
+                    handlePageFunction: () => {
+                    },
+                });
+            } catch (e) {
+                expect(e.message).toEqual('Cannot use "options.persistCookiesPerSession" without "options.useSessionPool"');
+            }
+        });
+        // @TODO: TEST COKIE PERSISTANCE.
     });
 });
