@@ -2,12 +2,22 @@ NEXT
 ====================
 - **DEPRECATED**: `Apify.callTask()` `body` and `contentType` options are now deprecated.
   Use `input` instead. It must be of `content-type: application/json`.
+- Add default `SessionPool` implementation to `BasicCrawler`.
 - Add the ability to create ad-hoc webhooks via `Apify.call()` and `Apify.callTask()`.
-- Add an example of form filling with `Puppeteer`.  
+- Add an example of form filling with `Puppeteer`.
+- Add `country` option to `Apify.getProxyUrl()`.
+- Add `Apify.utils.puppeteer.saveSnapshot()` helper to quickly save HTML and screenshot of a page.
+- Add the ability to pass `got` supported options to `requestOptions` in `CheerioCrawler`
+  thus supporting things such as `cookieJar` again.
+- Fix an issue where some encodings were not correctly parsed in `CheerioCrawler`.
+- Fix parsing bad Content-Type headers for `CheerioCrawler`.
+- Fix custom headers not being correctly applied in `Apify.utils.requestAsBrowser()`.
+- Fix dataset limits not being correctly applied.
 - Fix a race condition in `RequestQueueLocal`.
 - Fix `RequestList` persistence of downloaded sources in key-value store.
 - Fix `Apify.utils.puppeteer.blockRequests()` always including default patterns.
-- Fix parsing bad Content-Type headers for `CheerioCrawler`.
+- Fix inconsistent behavior of `Apify.utils.puppeteer.infiniteScroll()` on some websites.
+- Fix retry histogram statistics sometimes showing invalid counts.
 - Added regexps for Youtube videos (`YOUTUBE_REGEX`, `YOUTUBE_REGEX_GLOBAL`) to `utils.social`
 - Added documentation for option `json` in handlePageFunction of `CheerioCrawler`
 
