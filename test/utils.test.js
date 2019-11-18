@@ -139,7 +139,6 @@ describe('utils.getMemoryInfo()', () => {
 
         osMock
             .expects('totalmem')
-            .once()
             .returns(333);
 
         try {
@@ -934,34 +933,34 @@ describe('utils.parseContentTypeFromResponse', () => {
     test('should parse content type from header', () => {
         const parsed = utils.parseContentTypeFromResponse({ url: 'http://example.com', headers: { 'content-type': 'text/html; charset=utf-8' } });
         expect(parsed.type).toBe('text/html');
-        expect(parsed.parameters.charset).toBe('utf-8');
+        expect(parsed.charset).toBe('utf-8');
     });
 
     test('should parse content type from file extension', () => {
         const parsedHtml = utils.parseContentTypeFromResponse({ url: 'http://www.example.com/foo/file.html?someparam=foo', headers: {} });
         expect(parsedHtml.type).toBe('text/html');
-        expect(parsedHtml.parameters.charset).toBe('utf-8');
+        expect(parsedHtml.charset).toBe('utf-8');
 
         const parsedTxt = utils.parseContentTypeFromResponse({ url: 'http://www.example.com/foo/file.txt', headers: {} });
         expect(parsedTxt.type).toBe('text/plain');
-        expect(parsedTxt.parameters.charset).toBe('utf-8');
+        expect(parsedTxt.charset).toBe('utf-8');
     });
 
     test('should return default content type for bad content type headers', () => {
         const parsedWithoutCt = utils.parseContentTypeFromResponse({ url: 'http://www.example.com/foo/file', headers: {} });
         expect(parsedWithoutCt.type).toBe('application/octet-stream');
-        expect(parsedWithoutCt.parameters.charset).toBe('utf-8');
+        expect(parsedWithoutCt.charset).toBe('utf-8');
 
         const parsedBadHeader = utils.parseContentTypeFromResponse({
             url: 'http://www.example.com/foo/file.html',
             headers: { 'content-type': 'text/html,text/html' },
         });
         expect(parsedBadHeader.type).toBe('text/html');
-        expect(parsedBadHeader.parameters.charset).toBe('utf-8');
+        expect(parsedBadHeader.charset).toBe('utf-8');
 
         const parsedReallyBad = utils.parseContentTypeFromResponse({ url: 'http://www.example.com/foo', headers: { 'content-type': 'crazy-stuff' } });
         expect(parsedReallyBad.type).toBe('application/octet-stream');
-        expect(parsedReallyBad.parameters.charset).toBe('utf-8');
+        expect(parsedReallyBad.charset).toBe('utf-8');
     });
 });
 

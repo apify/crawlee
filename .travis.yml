@@ -5,7 +5,6 @@ if: (tag IS blank) OR tag =~ /^v\d+\.\d+\.\d+$/
 node_js:
 - '12'
 - '10'
-- '8'
 cache:
   directories:
   - "$HOME/.npm"
