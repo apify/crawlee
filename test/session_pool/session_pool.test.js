@@ -28,7 +28,7 @@ describe('SessionPool - testing session pool', () => {
         expect(sessionPool.maxPoolSize).toBeDefined();
         expect(sessionPool.sessionOptions).toBeDefined();
         expect(sessionPool.persistStateKey).toBeDefined();
-        expect(sessionPool.createSessionFunction).toEqual(sessionPool._defaultCreateSessionFunction);
+        expect(sessionPool.createSessionFunction).toEqual(sessionPool._defaultCreateSessionFunction); // eslint-disable-line
     });
 
     test('should override default values', async () => {
