@@ -9,7 +9,7 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import contentTypeParser from 'content-type';
 import { readStreamToString, concatStreamToBuffer } from 'apify-shared/streams_utilities';
 import BasicCrawler from './basic_crawler';
-import { addTimeoutToPromise, parseContentTypeFromResponse, getCookiesFromResponse, getCookieHeader } from '../utils';
+import { addTimeoutToPromise, parseContentTypeFromResponse, updateSessionCookies, getCookieHeader } from '../utils';
 import { getApifyProxyUrl } from '../actor';
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER, STATUS_CODES_BLOCKED } from '../constants';
 import { requestAsBrowser } from '../utils_request';
@@ -380,7 +380,7 @@ class CheerioCrawler {
         );
 
         if (this.persistCookiesPerSession) {
-            session = this._updateSessionCookies(session, response);
+            session = updateSessionCookies(session, response);
         }
 
         request.loadedUrl = response.url;
@@ -581,30 +581,6 @@ class CheerioCrawler {
                 throw new Error(`CheerioCrawler: Can not parse mime type ${mimeType} from "options.additionalMimeTypes".`);
             }
         });
-    }
-
-    /**
-     * @param session {Session} - `Session` instance to be updated.
-     * @param response
-     * @return {Session}
-     * @private
-     */
-    _updateSessionCookies(session, response) {
-        // update cookies for session
-        const newCookies = getCookiesFromResponse(response);
-        const { cookies: oldCookies } = session;
-
-        for (const cookie of newCookies) {
-            const cookieIndex = oldCookies.find(c => c.name === cookie.name);
-            if (cookieIndex) {
-                oldCookies[cookieIndex] = cookie;
-            } else {
-                oldCookies.push(cookie);
-            }
-        }
-        session.cookies = oldCookies;
-
-        return session;
     }
 
     /**

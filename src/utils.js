@@ -670,6 +670,11 @@ export const parseContentTypeFromResponse = (response) => {
     };
 };
 
+/**
+ *
+ * @param response
+ * @return {undefined|Cookie[]}
+ */
 export const getCookiesFromResponse = (response) => {
     const { headers } = response;
     let cookies;
@@ -683,11 +688,41 @@ export const getCookiesFromResponse = (response) => {
     return cookies;
 };
 
+/**
+ * Gets cookie string for the "Cookie" header
+ * @param cookies {[Cookie]}
+ * @return {String|undefined}
+ */
 export const getCookieHeader = (cookies) => {
     if (cookies.length < 1) {
         return;
     }
     return cookies.map(cookie => cookie && cookie.cookieString()).join(';');
+};
+
+/**
+ * Updates cookies from response to the `Session` instance.
+ * @param session {Session} - `Session` instance to be updated.
+ * @param response
+ * @return {Session}
+ *
+ */
+export const updateSessionCookies = (session, response) => {
+    const newCookies = getCookiesFromResponse(response);
+    const { cookies: oldCookies } = session;
+
+    for (const cookie of newCookies) {
+        const cookieIndex = oldCookies.findIndex(c => c.key === cookie.key);
+
+        if (cookieIndex >= 0) {
+            oldCookies[cookieIndex] = cookie;
+        } else {
+            oldCookies.push(cookie);
+        }
+    }
+    session.cookies = oldCookies;
+
+    return session;
 };
 /**
  * A namespace that contains various utilities.

@@ -873,6 +873,62 @@ describe('CheerioCrawler', () => {
                 expect(e.message).toEqual('Cannot use "options.persistCookiesPerSession" without "options.useSessionPool"');
             }
         });
-        // @TODO: TEST COKIE PERSISTANCE.
+
+        test('should save cookies to session', async () => {
+            const cookie = 'SESSID=abcd123';
+            const sessions = [];
+            const requests = [];
+            const crawler = new Apify.CheerioCrawler({
+                requestList: await getRequestListForMock({
+                    headers: { 'set-cookie': cookie, 'content-type': 'text/html' },
+                    statusCode: 200,
+                }),
+                useSessionPool: true,
+                persistCookiesPerSession: true,
+                maxRequestRetries: 1,
+                handlePageFunction: async ({ session, request }) => {
+                    sessions.push(session);
+                    requests.push(request);
+                },
+
+            });
+
+            await crawler.run();
+            console.log(requests);
+            expect(sessions.length).toBeGreaterThan(1);
+            sessions.forEach((session) => {
+                expect(session.cookies).toHaveLength(1);
+                expect(session.cookies[0].toString()).toEqual(cookie);
+            });
+        });
+
+        test('should send cookies', async () => {
+            const cookie = 'SESSID=abcd123';
+            const requests = [];
+            const crawler = new Apify.CheerioCrawler({
+                requestList: await getRequestListForMock({
+                    headers: { 'set-cookie': cookie, 'content-type': 'text/html' },
+                    statusCode: 200,
+                }),
+                useSessionPool: true,
+                persistCookiesPerSession: true,
+                sessionPoolOptions: {
+                    maxPoolSize: 1,
+                },
+                maxRequestRetries: 1,
+                maxConcurrency: 1,
+                handlePageFunction: async ({ request }) => {
+                    requests.push(request);
+                },
+
+            });
+
+            await crawler.run();
+            requests.forEach((req, i) => {
+                if (i >= 1) {
+                    expect(req.headers.Cookie).toEqual(cookie);
+                }
+            });
+        });
     });
 });

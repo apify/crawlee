@@ -12,6 +12,9 @@ import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import { Cookie } from 'tough-cookie';
 import * as utils from '../build/utils';
 import Apify from '../build/index';
+import { Session } from '../build/session_pool/session';
+import { updateSessionCookies } from '../src/utils';
+import { SessionPool } from '../src/session_pool/session_pool';
 
 describe('utils.newClient()', () => {
     test('reads environment variables correctly', () => {
@@ -1006,5 +1009,32 @@ describe('utils.getCookiesFromResponse & utils.getCookieHeader', () => {
 
         const parsed = utils.getCookieHeader(cookies);
         expect(parsed).toBeFalsy();
+    });
+});
+
+describe('utils.updateSessionCookies', () => {
+    test('should set and update cookies from "set-cookie" header', () => {
+        const headers = {};
+        const dummyCookies = ['CSRF=e8b667; Domain=example.com; Secure', 'id=a3fWa; Expires=Wed, 21 Oct 2015 07:28:00 GMT'];
+        headers['set-cookie'] = dummyCookies;
+        let session = new Session({ sessionPool: new SessionPool() });
+        session = updateSessionCookies(session, { headers });
+
+        expect(session.cookies).toHaveLength(2);
+        expect(session.cookies[0].toString()).toEqual(dummyCookies[0]);
+        expect(session.cookies[1].toString()).toEqual(dummyCookies[1]);
+
+        const newDummyCookies = ['CSRF=123121; Domain=example.cz; Secure', 'id=abcdef; Expires=Wed, 21 Oct 2015 07:28:00 GMT'];
+        headers['set-cookie'] = newDummyCookies;
+        session = updateSessionCookies(session, { headers });
+
+        expect(session.cookies).toHaveLength(2);
+        expect(session.cookies[0].toString()).toEqual(newDummyCookies[0]);
+        expect(session.cookies[1].toString()).toEqual(newDummyCookies[1]);
+
+        const newCookie = 'ABCD=1231231213; Domain=example-site.cz; Secure';
+
+        session = updateSessionCookies(session, { headers: { 'set-cookie': newCookie } });
+        expect(session.cookies).toHaveLength(3);
     });
 });
