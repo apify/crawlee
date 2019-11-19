@@ -13,27 +13,26 @@ import EVENTS from './events';
 export class Session {
     /**
      * Session configuration.
-     * @param options
-     * @param options.id {String} - Id of session used for generating fingerprints. It is used as proxy session name.
-     * @param options.maxAgeSecs {Number} - Number of seconds after which the session is considered as expired.
+     * @param [options.id] {String} - Id of session used for generating fingerprints. It is used as proxy session name.
+     * @param [options.maxAgeSecs=3000] {Number} - Number of seconds after which the session is considered as expired.
      * @param options.userData {Object} - Object where custom user data can be stored. For example custom headers.
-     * @param options.maxErrorScore {number} - Maximum number of marking session as blocked usage.
+     * @param [options.maxErrorScore=3] {number} - Maximum number of marking session as blocked usage.
      * If the `errorScore` reaches the `maxErrorScore` session is marked as block and it is thrown away.
      * It starts at 0. Calling the `markBad` function increases the `errorScore` by 1.
      * Calling the `markGood` will decrease the `errorScore` by `errorScoreDecrement`
-     * @param options.errorScoreDecrement {number} - It is used for healing the session.
+     * @param [options.errorScoreDecrement=0.5] {number} - It is used for healing the session.
      * For example: if your session is marked bad two times, but it is successful on the third attempt it's errorScore is decremented by this number.
      * @param options.createdAt {Date} - Date of creation.
      * @param options.expiredAt {Date} - Date of expiration.
-     * @param options.usageCount {Number} - Indicates how many times the session has been used.
-     * @param options.errorCount {Number} - Indicates how many times the session is marked bad.
-     * @param options.maxSessionUsageCount {Number} - Session should be used only a limited amount of times.
+     * @param [options.usageCount=0] {Number} - Indicates how many times the session has been used.
+     * @param [options.errorCount=0] {Number} - Indicates how many times the session is marked bad.
+     * @param [options.maxUsageCount=50] {Number} - Session should be used only a limited amount of times.
      * This number indicates how many times the session is going to be used, before it is thrown away.
      * @param options.sessionPool {EventEmitter} - SessionPool instance. Session will emit the `sessionRetired` event on this instance.
      */
     constructor(options = {}) {
         const {
-            id = `session-${cryptoRandomObjectId(10)}`,
+            id = `session_${cryptoRandomObjectId(10)}`,
             cookies = [],
             maxAgeSecs = 3000,
             userData = {},
@@ -42,7 +41,7 @@ export class Session {
             createdAt = new Date(),
             usageCount = 0,
             errorScore = 0,
-            maxSessionUsageCount = 50,
+            maxUsageCount = 50,
             sessionPool,
         } = options;
 
@@ -57,7 +56,7 @@ export class Session {
         checkParamOrThrow(createdAt, 'options.createdAt', 'Date');
         checkParamOrThrow(usageCount, 'options.usageCount', 'Number');
         checkParamOrThrow(errorScore, 'options.errorScore', 'Number');
-        checkParamOrThrow(maxSessionUsageCount, 'options.maxSessionUsageCount', 'Number');
+        checkParamOrThrow(maxUsageCount, 'options.maxUsageCount', 'Number');
         checkParamOrThrow(sessionPool, 'options.sessionPool', 'Object');
 
         // sessionPool must be instance of SessionPool.
@@ -78,7 +77,7 @@ export class Session {
         this.createdAt = createdAt;
         this.usageCount = usageCount; // indicates how many times the session has been used
         this.errorScore = errorScore; // indicates number of markBaded request with the session
-        this.maxSessionUsageCount = maxSessionUsageCount;
+        this.maxUsageCount = maxUsageCount;
         this.sessionPool = sessionPool;
     }
 
@@ -103,11 +102,11 @@ export class Session {
 
     /**
      * Indicates whether the session is used maximum number of times.
-     * Session maximum usage count can be changed by `maxSessionUsageCount` parameter.
+     * Session maximum usage count can be changed by `maxUsageCount` parameter.
      * @return {boolean}
      */
     isMaxUsageCountReached() {
-        return this.usageCount >= this.maxSessionUsageCount;
+        return this.usageCount >= this.maxUsageCount;
     }
 
     /**

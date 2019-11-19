@@ -23,6 +23,7 @@ import PseudoUrl from './pseudo_url';
 import LiveViewServer from './live_view/live_view_server';
 import { requestAsBrowser } from './utils_request';
 import { openSessionPool } from './session_pool/session_pool';
+import { Session } from './session_pool/session';
 
 // Increase the global limit for event emitter memory leak warnings.
 EventEmitter.defaultMaxListeners = 50;
@@ -95,6 +96,7 @@ module.exports = {
     openSessionPool,
 
     LiveViewServer,
+    Session,
 
     utils: Object.assign(publicUtils, {
         puppeteer: puppeteerUtils,

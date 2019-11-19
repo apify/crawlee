@@ -24,19 +24,21 @@ describe('SessionPool - testing session pool', () => {
 
    // eslint-disable-line
     test('should initialize with default values for first time', async () => {
-        expect(sessionPool.sessions.length).toBeDefined(); // eslint-disable-line
-        expect(sessionPool.maxPoolSize).toBeDefined(); // eslint-disable-line
-        expect(sessionPool.maxSessionAgeSecs).toBeDefined(); // eslint-disable-line
-        expect(sessionPool.maxSessionUsageCount).toBeDefined(); // eslint-disable-line
-        expect(sessionPool.persistStateKey).toBeDefined(); // eslint-disable-line
-        expect(sessionPool.createSessionFunction).toEqual(sessionPool._defaultCreateSessionFunction); // eslint-disable-line
+        expect(sessionPool.sessions.length).toBeDefined();
+        expect(sessionPool.maxPoolSize).toBeDefined();
+        expect(sessionPool.sessionOptions).toBeDefined();
+        expect(sessionPool.persistStateKey).toBeDefined();
+        expect(sessionPool.createSessionFunction).toEqual(sessionPool._defaultCreateSessionFunction);
     });
 
     test('should override default values', async () => {
         const opts = {
             maxPoolSize: 3000,
-            maxSessionAgeSecs: 100,
-            maxSessionUsageCount: 1,
+            sessionOptions: {
+                maxAgeSecs: 100,
+                maxUsageCount: 1,
+            },
+
 
             persistStateKeyValueStoreId: 'TEST',
             persistStateKey: 'SESSION_POOL_STATE2',
@@ -56,8 +58,11 @@ describe('SessionPool - testing session pool', () => {
     test('should work using openSessionPool', async () => {
         const opts = {
             maxPoolSize: 3000,
-            maxSessionAgeSecs: 100,
-            maxSessionUsageCount: 1,
+
+            sessionOptions: {
+                maxAgeSecs: 100,
+                maxUsageCount: 1,
+            },
 
             persistStateKeyValueStoreId: 'TEST',
             persistStateKey: 'SESSION_POOL_STATE2',
@@ -76,12 +81,13 @@ describe('SessionPool - testing session pool', () => {
 
     describe('should retrieve session', () => {
         test('should retrieve session with correct shape', async () => {
+            sessionPool = await Apify.openSessionPool({ sessionOptions: { maxAgeSecs: 100, maxUsageCount: 10 } });
             const session = await sessionPool.getSession();
             expect(sessionPool.sessions.length).toBe(1);
             expect(session.id).toBeDefined(); // eslint-disable-line
             expect(session.cookies.length).toBe(0);
-            expect(session.maxAgeSecs).toEqual(sessionPool.maxSessionAgeSecs);
-            expect(session.maxAgeSecs).toEqual(sessionPool.maxSessionAgeSecs);
+            expect(session.maxAgeSecs).toEqual(sessionPool.sessionOptions.maxAgeSecs);
+            expect(session.maxAgeSecs).toEqual(sessionPool.sessionOptions.maxAgeSecs);
             expect(session.sessionPool).toEqual(sessionPool);
         });
 
@@ -157,8 +163,6 @@ describe('SessionPool - testing session pool', () => {
         await loadedSessionPool.initialize();
         expect(sessionPool.sessions).toHaveLength(loadedSessionPool.sessions.length);
         expect(sessionPool.maxPoolSize).toEqual(loadedSessionPool.maxPoolSize);
-        expect(sessionPool.maxSessionAgeSecs).toEqual(loadedSessionPool.maxSessionAgeSecs);
-        expect(sessionPool.maxSessionUsageCount).toEqual(loadedSessionPool.maxSessionUsageCount);
         expect(sessionPool.persistStateKey).toEqual(loadedSessionPool.persistStateKey);
         sessionPool.teardown();
     });

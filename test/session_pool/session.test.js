@@ -3,6 +3,7 @@ import { SessionPool } from '../../build/session_pool/session_pool';
 import EVENTS from '../../build/session_pool/events';
 
 import Apify from '../../build';
+import { getApifyProxyUrl } from '../../build/actor';
 
 
 describe('Session - testing session behaviour ', () => {
@@ -53,7 +54,7 @@ describe('Session - testing session behaviour ', () => {
     });
 
     test('should max out session usage', () => {
-        session.maxSessionUsageCount = 1;
+        session.maxUsageCount = 1;
         session.markGood();
         expect(session.isMaxUsageCountReached()).toBe(true);
         expect(session.isUsable()).toBe(false);
@@ -103,5 +104,17 @@ describe('Session - testing session behaviour ', () => {
                 expect(session[key]).toEqual(value);
             }
         });
+    });
+
+    test('should be valid proxy session', () => {
+        session = new Session({ sessionPool });
+        let error;
+        try {
+            getApifyProxyUrl({ session: session.id, password: '12312' });
+        } catch (e) {
+            error = e;
+        }
+
+        expect(error).toBeUndefined();
     });
 });
