@@ -920,7 +920,6 @@ describe('CheerioCrawler', () => {
             });
 
             await crawler.run();
-            console.log(requests);
             expect(sessions.length).toBeGreaterThan(1);
             sessions.forEach((session) => {
                 expect(session.cookies).toHaveLength(1);

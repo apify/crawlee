@@ -673,7 +673,7 @@ export const parseContentTypeFromResponse = (response) => {
 /**
  *
  * @param response
- * @return {undefined|Cookie[]}
+ * @return {undefined|Array}
  */
 export const getCookiesFromResponse = (response) => {
     const { headers } = response;
@@ -690,7 +690,7 @@ export const getCookiesFromResponse = (response) => {
 
 /**
  * Gets cookie string for the "Cookie" header
- * @param cookies {[Cookie]}
+ * @param cookies {Array}
  * @return {String|undefined}
  */
 export const getCookieHeader = (cookies) => {

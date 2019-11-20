@@ -255,13 +255,23 @@ const DEFAULT_OPTIONS = {
  *   are provided by `CheerioCrawler` and cannot be overridden. Reasonable {@link Snapshotter}
  *   and {@link SystemStatus} defaults are provided to account for the fact that `cheerio`
  *   parses HTML synchronously and therefore blocks the event loop.
- * @param {Object} [options.minConcurrency=1]
+ * @param {Number} [options.minConcurrency=1]
  *   Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
  *
  *   *WARNING:* If you set this value too high with respect to the available system memory and CPU, your crawler will run extremely slow or crash.
  *   If you're not sure, just keep the default value and the concurrency will scale up automatically.
- * @param {Object} [options.maxConcurrency=1000]
+ * @param {Number} [options.maxConcurrency=1000]
  *   Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
+ * @param {Boolean} [options.useSessionPool=false]
+ *   If set to true Crawler will automatically use Session Pool. It will automatically retire sessions on 403, 401 and 429 status codes.
+ *   It also marks Session as bad after a request timeout.
+ * @param {Object} [options.sessionPoolOptions]
+ *   Custom options passed to the underlying {@link SessionPool} constructor.
+ * @param {Boolean} [options.persistCookiesPerSession]
+ *   Automatically saves cookies to Session. Works only if Session Pool is used.
+ *
+ *   It parses cookie from response "set-cookie" header saves or updates cookies for session and once the session is used for next request.
+ *   It passes the "Cookie" header to the request with the session cookies.
  */
 class CheerioCrawler {
     constructor(options = {}) {
