@@ -820,6 +820,32 @@ describe('CheerioCrawler', () => {
             await crawler.run();
         });
 
+        test('should markBad sessions after request timeout', async () => {
+            const sessions = [];
+            const failed = [];
+            const cheerioCrawler = new Apify.CheerioCrawler({
+                requestList: await Apify.openRequestList('timeoutTest', [`http://${HOST}:${port}/timeout?a=12`,
+                    `http://${HOST}:${port}/timeout?a=23`,
+                ]),
+                maxRequestRetries: 1,
+                requestTimeoutSecs: 1,
+                maxConcurrency: 1,
+                useSessionPool: true,
+                handlePageFunction: async () => {},
+                handleFailedRequestFunction: ({ request }) => failed.push(request),
+            });
+            const oldCall = cheerioCrawler._handleRequestTimeout;
+            cheerioCrawler._handleRequestTimeout = (session) => {
+                sessions.push(session);
+                return oldCall(session).bind(cheerioCrawler);
+            };
+
+            await cheerioCrawler.run();
+            sessions.forEach((session) => {
+                expect(session.errorScore).toEqual(1);
+            });
+        });
+
         test('should retire session on "blocked" status codes', async () => {
             for (const code of STATUS_CODES_BLOCKED) {
                 const failed = [];

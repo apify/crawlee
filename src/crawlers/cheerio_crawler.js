@@ -440,7 +440,7 @@ class CheerioCrawler {
             responseStream = await requestAsBrowser(opts);
         } catch (e) {
             if (e instanceof TimeoutError) {
-                throw new Error(`CheerioCrawler: request timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`);
+                this._handleRequestTimeout(session);
             } else {
                 throw e;
             }
@@ -592,6 +592,16 @@ class CheerioCrawler {
     _handleBlockedRequest(session, statusCode) {
         if (session) session.retire();
         throw new Error(`CheerioCrawler: Request blocked - received ${statusCode} status code`);
+    }
+
+    /**
+     * Handles timeout request
+     * @param session {Session}
+     * @private
+     */
+    _handleRequestTimeout(session) {
+        if (session) session.markBad();
+        throw new Error(`CheerioCrawler: request timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`);
     }
 }
 
