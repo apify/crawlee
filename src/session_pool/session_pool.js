@@ -22,9 +22,10 @@ import { ACTOR_EVENT_NAMES_EX } from '../constants';
  * ```javascript
  * const sessionPool = new SessionPool({
  *     maxPoolSize: 25,
- *     maxSessionAgeSecs: 10,
- *     maxSessionAgeSecs: 10,
- *     maxSessionUsageCount: 150, // for example when you know that the site blocks after 150 requests.
+ *     sessionOptions:{
+ *          maxAgeSecs: 10,
+ *          maxUsageCount: 150, // for example when you know that the site blocks after 150 requests.
+ *     }
  *     persistStateKeyValueStoreId: 'my-key-value-store-for-sessions',
  *     persistStateKey: 'my-session-pool',
  * });
@@ -57,27 +58,24 @@ import { ACTOR_EVENT_NAMES_EX } from '../constants';
 export class SessionPool extends EventEmitter {
     /**
      * Session pool configuration.
-     * @param options
-     * @param options.maxPoolSize {Number} - Maximum size of the pool.
+     * @param [options]
+     * @param [options.maxPoolSize=1000] {Number} - Maximum size of the pool.
      * Indicates how many sessions are rotated.
-     * @param options.maxSessionAgeSecs {Number} - Number of seconds after which the session is considered as expired.
-     * @param options.maxSessionUsageCount {Number} - Maximum number of uses per session.
-     * It useful, when you know the site rate-limits, so you can retire the session before it gets blocked and let it cool down.
-     * @param options.persistStateKeyValueStoreId {String} - Name or Id of `KeyValueStore` where is the `SessionPool` state stored.
-     * @param options.persistStateKey {String} - Session pool persists it's state under this key in Key value store.
-     * @param options.createSessionFunction {function} - Custom function that should return `Session` instance.
+     * @param [options.sessionOptions] {Object} The [`new Session`](session#new_SessionPool_new) options
+     * @param [options.persistStateKeyValueStoreId] {String} - Name or Id of `KeyValueStore` where is the `SessionPool` state stored.
+     * @param [options.persistStateKey="SESSION_POOL_STATE"] {String} - Session pool persists it's state under this key in Key value store.
+     * @param [options.createSessionFunction] {function} - Custom function that should return `Session` instance.
      * Function receives `SessionPool` instance as a parameter
      */
     constructor(options = {}) {
         const {
             maxPoolSize = 1000,
-            maxSessionAgeSecs = 3000,
-            maxSessionUsageCount = 50,
 
             persistStateKeyValueStoreId = null,
             persistStateKey = 'SESSION_POOL_STATE',
 
             createSessionFunction = null,
+            sessionOptions = {},
 
         } = options;
 
@@ -85,8 +83,7 @@ export class SessionPool extends EventEmitter {
 
         // Validation
         checkParamOrThrow(maxPoolSize, 'options.maxPoolSize', 'Number');
-        checkParamOrThrow(maxSessionAgeSecs, 'options.maxSessionAgeSecs', 'Number');
-        checkParamOrThrow(maxSessionUsageCount, 'options.maxSessionUsageCount', 'Number');
+        checkParamOrThrow(sessionOptions, 'options.maxAgeSecs', 'Object');
         checkParamOrThrow(persistStateKeyValueStoreId, 'options.persistStateKeyValueStoreId', 'Maybe String');
         checkParamOrThrow(persistStateKey, 'options.persistStateKey', 'String');
         checkParamOrThrow(createSessionFunction, 'options.createSessionFunction', 'Maybe Function');
@@ -96,8 +93,7 @@ export class SessionPool extends EventEmitter {
         this.createSessionFunction = createSessionFunction || this._defaultCreateSessionFunction;
 
         // Session configuration
-        this.maxSessionAgeSecs = maxSessionAgeSecs;
-        this.maxSessionUsageCount = maxSessionUsageCount;
+        this.sessionOptions = sessionOptions;
 
         // Session keyValueStore
         this.persistStateKeyValueStoreId = persistStateKeyValueStoreId;
@@ -239,8 +235,7 @@ export class SessionPool extends EventEmitter {
      */
     _defaultCreateSessionFunction(sessionPool) {
         return new Session({
-            maxSessionAgeSecs: this.maxSessionAgeSecs,
-            maxSessionUsageCount: this.maxSessionUsageCount,
+            ...this.sessionOptions,
             sessionPool,
         });
     }

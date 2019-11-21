@@ -16,9 +16,10 @@ Session pool is by default persisted in default [`KeyValueStore`](keyvaluestore)
 ```javascript
 const sessionPool = new SessionPool({
     maxPoolSize: 25,
-    maxSessionAgeSecs: 10,
-    maxSessionAgeSecs: 10,
-    maxSessionUsageCount: 150, // for example when you know that the site blocks after 150 requests.
+    sessionOptions:{
+         maxAgeSecs: 10,
+         maxUsageCount: 150, // for example when you know that the site blocks after 150 requests.
+    }
     persistStateKeyValueStoreId: 'my-key-value-store-for-sessions',
     persistStateKey: 'my-session-pool',
 });
@@ -37,17 +38,18 @@ const session3 = await sessionPool.getSession();
 // Now you can mark the session either failed of successful
 
 // Marks session as bad after unsuccessful usage -> it increases error count (soft retire)
-session1.markBad();
+session1.markBad()
 
 // Marks as successful.
-session2.markGood();
+session2.markGood()
 
 // Retires session -> session is removed from the pool
-session3.retire();
+session3.retire()
+
 ```
 
 -   [SessionPool](sessionpool)
-    -   [`new exports.SessionPool(options)`](#new_SessionPool_new)
+    -   [`new exports.SessionPool([options])`](#new_SessionPool_new)
     -   [`.usableSessionsCount`](#SessionPool+usableSessionsCount) ⇒ `number`
     -   [`.retiredSessionsCount`](#SessionPool+retiredSessionsCount) ⇒ `number`
     -   [`.initialize()`](#SessionPool+initialize) ⇒ `Promise<void>`
@@ -58,50 +60,44 @@ session3.retire();
 
 <a name="new_SessionPool_new"></a>
 
-## `new exports.SessionPool(options)`
+## `new exports.SessionPool([options])`
 
 Session pool configuration.
 
 <table>
 <thead>
 <tr>
-<th>Param</th><th>Type</th>
+<th>Param</th><th>Type</th><th>Default</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>options</code></td><td></td>
+<td><code>[options]</code></td><td></td><td></td>
 </tr>
 <tr>
 <td colspan="3"></td></tr><tr>
-<td><code>options.maxPoolSize</code></td><td><code>Number</code></td>
+<td><code>[options.maxPoolSize]</code></td><td><code>Number</code></td><td><code>1000</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Maximum size of the pool.
 Indicates how many sessions are rotated.</p>
 </td></tr><tr>
-<td><code>options.maxSessionAgeSecs</code></td><td><code>Number</code></td>
+<td><code>[options.sessionOptions]</code></td><td><code>Object</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>Number of seconds after which the session is considered as expired.</p>
+<td colspan="3"><p>The <a href="session#new_SessionPool_new"><code>new Session</code></a> options</p>
 </td></tr><tr>
-<td><code>options.maxSessionUsageCount</code></td><td><code>Number</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Maximum number of uses per session.
-It useful, when you know the site rate-limits, so you can retire the session before it gets blocked and let it cool down.</p>
-</td></tr><tr>
-<td><code>options.persistStateKeyValueStoreId</code></td><td><code>String</code></td>
+<td><code>[options.persistStateKeyValueStoreId]</code></td><td><code>String</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Name or Id of <code>KeyValueStore</code> where is the <code>SessionPool</code> state stored.</p>
 </td></tr><tr>
-<td><code>options.persistStateKey</code></td><td><code>String</code></td>
+<td><code>[options.persistStateKey]</code></td><td><code>String</code></td><td><code>&quot;SESSION_POOL_STATE&quot;</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Session pool persists it&#39;s state under this key in Key value store.</p>
 </td></tr><tr>
-<td><code>options.createSessionFunction</code></td><td><code>function</code></td>
+<td><code>[options.createSessionFunction]</code></td><td><code>function</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Custom function that should return <code>Session</code> instance.
