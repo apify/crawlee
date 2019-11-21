@@ -10,7 +10,7 @@ sessions. You can imagine each session as a specific user, with its own cookies,
 internal state can be enriched with custom user data for example some authorization tokens and specific headers in general.
 
 -   [Session](session)
-    -   [`new exports.Session(options)`](#new_Session_new)
+    -   [`new exports.Session()`](#new_Session_new)
     -   [`.isBlocked()`](#Session+isBlocked) ⇒ `boolean`
     -   [`.isExpired()`](#Session+isExpired) ⇒ `boolean`
     -   [`.isMaxUsageCountReached()`](#Session+isMaxUsageCountReached) ⇒ `boolean`
@@ -22,38 +22,34 @@ internal state can be enriched with custom user data for example some authorizat
 
 <a name="new_Session_new"></a>
 
-## `new exports.Session(options)`
+## `new exports.Session()`
 
 Session configuration.
 
 <table>
 <thead>
 <tr>
-<th>Param</th><th>Type</th>
+<th>Param</th><th>Type</th><th>Default</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>options</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"></td></tr><tr>
-<td><code>options.id</code></td><td><code>String</code></td>
+<td><code>[options.id]</code></td><td><code>String</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Id of session used for generating fingerprints. It is used as proxy session name.</p>
 </td></tr><tr>
-<td><code>options.maxAgeSecs</code></td><td><code>Number</code></td>
+<td><code>[options.maxAgeSecs]</code></td><td><code>Number</code></td><td><code>3000</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Number of seconds after which the session is considered as expired.</p>
 </td></tr><tr>
-<td><code>options.userData</code></td><td><code>Object</code></td>
+<td><code>options.userData</code></td><td><code>Object</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Object where custom user data can be stored. For example custom headers.</p>
 </td></tr><tr>
-<td><code>options.maxErrorScore</code></td><td><code>number</code></td>
+<td><code>[options.maxErrorScore]</code></td><td><code>number</code></td><td><code>3</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Maximum number of marking session as blocked usage.
@@ -61,39 +57,39 @@ If the <code>errorScore</code> reaches the <code>maxErrorScore</code> session is
 It starts at 0. Calling the <code>markBad</code> function increases the <code>errorScore</code> by 1.
 Calling the <code>markGood</code> will decrease the <code>errorScore</code> by <code>errorScoreDecrement</code></p>
 </td></tr><tr>
-<td><code>options.errorScoreDecrement</code></td><td><code>number</code></td>
+<td><code>[options.errorScoreDecrement]</code></td><td><code>number</code></td><td><code>0.5</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>It is used for healing the session.
 For example: if your session is marked bad two times, but it is successful on the third attempt it&#39;s errorScore is decremented by this number.</p>
 </td></tr><tr>
-<td><code>options.createdAt</code></td><td><code>Date</code></td>
+<td><code>options.createdAt</code></td><td><code>Date</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Date of creation.</p>
 </td></tr><tr>
-<td><code>options.expiredAt</code></td><td><code>Date</code></td>
+<td><code>options.expiredAt</code></td><td><code>Date</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Date of expiration.</p>
 </td></tr><tr>
-<td><code>options.usageCount</code></td><td><code>Number</code></td>
+<td><code>[options.usageCount]</code></td><td><code>Number</code></td><td><code>0</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Indicates how many times the session has been used.</p>
 </td></tr><tr>
-<td><code>options.errorCount</code></td><td><code>Number</code></td>
+<td><code>[options.errorCount]</code></td><td><code>Number</code></td><td><code>0</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Indicates how many times the session is marked bad.</p>
 </td></tr><tr>
-<td><code>options.maxSessionUsageCount</code></td><td><code>Number</code></td>
+<td><code>[options.maxUsageCount]</code></td><td><code>Number</code></td><td><code>50</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Session should be used only a limited amount of times.
 This number indicates how many times the session is going to be used, before it is thrown away.</p>
 </td></tr><tr>
-<td><code>options.sessionPool</code></td><td><code>EventEmitter</code></td>
+<td><code>options.sessionPool</code></td><td><code>EventEmitter</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>SessionPool instance. Session will emit the <code>sessionRetired</code> event on this instance.</p>
@@ -116,7 +112,7 @@ Indicates whether the session is expired. Session expiration is determined by th
 
 ## `session.isMaxUsageCountReached()` ⇒ `boolean`
 
-Indicates whether the session is used maximum number of times. Session maximum usage count can be changed by `maxSessionUsageCount` parameter.
+Indicates whether the session is used maximum number of times. Session maximum usage count can be changed by `maxUsageCount` parameter.
 
 <a name="Session+isUsable"></a>
 
