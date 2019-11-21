@@ -10,6 +10,7 @@ NEXT
 - Add `Apify.utils.puppeteer.saveSnapshot()` helper to quickly save HTML and screenshot of a page.
 - Add the ability to pass `got` supported options to `requestOptions` in `CheerioCrawler`
   thus supporting things such as `cookieJar` again.
+- Switch Puppeteer to web socket again due to suspected `pipe` errors.
 - Fix an issue where some encodings were not correctly parsed in `CheerioCrawler`.
 - Fix parsing bad Content-Type headers for `CheerioCrawler`.
 - Fix custom headers not being correctly applied in `Apify.utils.requestAsBrowser()`.

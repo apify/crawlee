@@ -260,8 +260,6 @@ export const launchPuppeteer = async (options = {}) => {
         optsCopy.args.push(`--user-agent=${userAgent}`);
     }
 
-    if (optsCopy.pipe !== false) optsCopy.pipe = true;
-
     let browser;
     if (optsCopy.proxyUrl) {
         // The log for launching with proxyUrl is inside launchPuppeteerWithProxy
