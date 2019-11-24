@@ -640,19 +640,52 @@ const login = async (page, username = 'username', password = 'password') => {
     checkParamOrThrow(username, 'username', 'String');
     checkParamOrThrow(password, 'password', 'String');
 
-    const polyfill = (prototype) => {
-        Object.defineProperty(prototype, 'flat', {
-            value: function (depth = 1) {
-                return this.reduce(function (flat, toFlatten) {
-                    return flat.concat((Array.isArray(toFlatten) && (depth - 1)) ? toFlatten.flat(depth - 1) : toFlatten);
-                }, []);
-            }
-        });
-    };
-
-    polyfill(Array.prototype);
+    const flatten = (array, depth = 1) => depth > 0 ?
+        array.reduce((pool, next) => pool.concat(Array.isArray(next) ? flatten(next, depth - 1) : next), []) :
+        array.slice();
 
     const getLoginFields = async (page) => {
+
+        const staticUsernamePatterns = [
+            {
+                attribute: 'type',
+                pattern: 'email'
+            }
+        ];
+
+        const patterns = {
+            attributes: [
+                'id',
+                'name',
+                'class'
+            ],
+            values: {
+                username: [
+                    'username',
+                    'email',
+                    'user'
+                ],
+                // password: [
+                //     'password',
+                //     'pwd',
+                //     'pass'
+                // ]
+            },
+        };
+
+        const generatedUsernamePatterns = _.flatten(patterns.attributes
+            .map(attribute => patterns.values.username
+                .map(value => ({
+                    attribute,
+                    value
+                }))));
+
+        const usernamePatterns = [
+            ...staticUsernamePatterns,
+            ...generatedUsernamePatterns
+        ];
+
+        console.log(usernamePatterns);
 
         const identifyFields = loginFields => loginFields.reduce((pool, next) => {
             if (next.type === 'password') {
@@ -668,158 +701,28 @@ const login = async (page, username = 'username', password = 'password') => {
             password: null
         });
 
-        const patterns = {
-            attribute: [
-                'type',
-                'name',
-                'id',
-                'class'
-            ],
-            username: [
-                'username',
-                'email',
-                'user'
-            ],
-            password: [
-                'password',
-                'pwd',
-                'pass'
-            ]
-        };
-
-        const usernamePatternTuples = patterns.attribute
-            .map(attribute => patterns.username
-                .map(pattern => ({
-                    attribute,
-                    pattern
-                }))).flat(2);
-
-        console.log(usernamePatternTuples);
-
-        // const $$forms = await page.$$('form');
-        //
-        // if ($$forms.length) {
-        //     const clusters = await Promise.all($$forms.map(async ($form, clusterIndex) => {
-        //         const $$inputs = await $form.$$('input[type="password"], input[type="email"], input[type="text"]');
-        //
-        //         const extendedInputs = await Promise.all($$inputs.map(async ($input) => {
-        //             const inputCount = $$inputs.length;
-        //             const attributes = await $input.evaluate((node, clusterIndex, inputCount) => ({
-        //                 clusterIndex,
-        //                 inputCount,
-        //                 type: node.getAttribute('type'),
-        //                 name: node.getAttribute('name'),
-        //                 id: node.getAttribute('id'),
-        //                 class: node.getAttribute('class'),
-        //                 // debugger
-        //             }), clusterIndex, inputCount);
-        //             attributes.node = $input;
-        //
-        //             return attributes
-        //         }));
-        //
-        //         return extendedInputs
-        //     }));
-        //
-        //     console.log('clusters', clusters);
-        //
-        //     if (clusters.some(cluster => cluster.length)) {
-        //
-        //         const singlePasswordClusters = clusters.filter(cluster => {
-        //             const passwordInputs = cluster.filter(input => input.type === 'password');
-        //             return cluster.length > 1 && passwordInputs.length === 1;
-        //         });
-        //
-        //         // 1 cluster, 2 inputs / 1 password
-        //         // const singleCluster2Inputs1Pass = singlePasswordClusters.length === 1 && singlePasswordClusters[0].length === 2;
-        //         // if (singleCluster2Inputs1Pass) {
-        //         //     log.debug('singleForm2Inputs1Pass');
-        //         //     return identifyFields(singlePasswordClusters[0]);
-        //         // }
-        //
-        //         // clusters with username pattern ordered by attribute priority
-        //         // ? clusters, ? username inputs / 1 password
-        //         const clustersWithUsernamePattern = patterns.attribute.map(attribute => {
-        //             return patterns.username.map(pattern => {
-        //                 return singlePasswordClusters.filter(cluster => {
-        //                     const inputPatternMatch = cluster.some(input => {
-        //                         return input[attribute] === pattern
-        //                     });
-        //                     return inputPatternMatch && cluster
-        //                 });
-        //             });
-        //         }).flat(2);
-        //
-        //         console.log('clustersWithUsernamePattern', clustersWithUsernamePattern);
-        //
-        //         // first cluster with 2 inputs / 1 username + 1 password
-        //         const cluster2Inputs1User1Pass = clustersWithUsernamePattern.find(cluster => cluster.length === 2);
-        //
-        //         if (cluster2Inputs1User1Pass) {
-        //             console.log('form2Inputs1User1Pass');
-        //             log.debug('form2Inputs1User1Pass');
-        //             return identifyFields(cluster2Inputs1User1Pass);
-        //         }
-        //
-        //         // first cluster with 2 inputs / 1 anonymous + 1 password
-        //         const cluster2Inputs1Anon1Pass = singlePasswordClusters.find(cluster => cluster.length === 2);
-        //
-        //         if (cluster2Inputs1Anon1Pass) {
-        //             console.log('form2Inputs1Anon1Pass');
-        //             log.debug('form2Inputs1Anon1Pass');
-        //             return identifyFields(cluster2Inputs1Anon1Pass);
-        //         }
-        //     }
-        // }
-
-
         const generateInputFilters = () => {
-            let condition;
             const inputFilters = [];
 
-            // 1 username patterns by priority
-            // 2 password
-            // 3 non-password
-            condition = ({tuple, input, inputPrior, inputAfter}) =>
-                input.type === 'password' &&
-                inputPrior &&
-                inputPrior[tuple.attribute] === tuple.pattern &&
-                (!inputAfter || inputAfter.type !== 'password');
-
-            inputFilters.push(...usernamePatternTuples.map(tuple =>
-                (tuple =>
-                    inputCluster =>
-                        inputCluster.reduce((cache, input, index, array) => {
-                            const inputPrior = array[index - 1];
-                            const inputAfter = array[index + 1];
-
-                            if (condition({tuple, input, inputPrior, inputAfter})) {
-                                cache.unshift([
-                                    inputPrior,
-                                    input
-                                ]);
-                            }
-
-                            return cache;
-
-                        }, []))(tuple)
-            ));
-
-            // 1 non-password
-            // 2 password
-            // 3 non-password
-            condition = ({input, inputPrior, inputAfter}) =>
-                input.type === 'password' &&
-                inputPrior &&
-                inputPrior.type !== 'password' &&
-                (!inputAfter || inputAfter.type !== 'password');
-
-            inputFilters.push(inputCluster =>
+            const reduceInputs = ({inputCluster, condition}, extras = {}) =>
                 inputCluster.reduce((cache, input, index, array) => {
+
+                    if (index === 0) {
+                        if (input.clusterIndex) {
+                            console.log('clusterIndex', input.clusterIndex);
+                        }
+                        if (extras.pattern) {
+                            console.log('pattern', extras.pattern);
+                        }
+                        console.log('condition', condition.toString().replace(/\s+/g, ' '));
+                    }
+
+                    console.log('attributes:', _.pick(input, value => typeof value === 'string'));
+
                     const inputPrior = array[index - 1];
                     const inputAfter = array[index + 1];
 
-                    if (condition({input, inputPrior, inputAfter})) {
+                    if (condition({input, inputPrior, inputAfter}, extras)) {
                         cache.unshift([
                             inputPrior,
                             input
@@ -828,8 +731,34 @@ const login = async (page, username = 'username', password = 'password') => {
 
                     return cache;
 
-                }, []));
+                }, []);
 
+            const createFilter = (condition, pattern = null) =>
+                inputCluster => reduceInputs({inputCluster, condition}, {pattern});
+
+            const conditions = [
+                // // 1 username patterns by priority
+                // // 2 password
+                // // 3 non-password
+
+                ({input, inputPrior, inputAfter}, {pattern}) =>
+                    input.type === 'password' &&
+                    inputPrior &&
+                    inputPrior[pattern.attribute] === pattern.value &&
+                    (!inputAfter || inputAfter.type !== 'password'),
+
+                // // 1 non-password
+                // // 2 password
+                // // 3 non-password
+                ({input, inputPrior, inputAfter}) =>
+                    input.type === 'password' &&
+                    inputPrior &&
+                    inputPrior.type !== 'password' &&
+                    (!inputAfter || inputAfter.type !== 'password')
+            ];
+
+            inputFilters.push(...usernamePatterns.map(pattern => createFilter(conditions[0], pattern)));
+            inputFilters.push(createFilter(conditions[1]));
 
             return inputFilters;
         };
@@ -842,45 +771,48 @@ const login = async (page, username = 'username', password = 'password') => {
             const $$forms = await page.$$('form');
 
             if ($$forms.length) {
-                const allClusters = await Promise.all($$forms.map(async ($form, clusterIndex) => {
+                const inputsByForm = await Promise.all($$forms.map(async ($form, clusterIndex) => {
                     const $$inputs = await $form.$$('input[type="password"], input[type="email"], input[type="text"]');
 
                     const extendedInputs = await Promise.all($$inputs.map(async ($input) => {
                         const inputCount = $$inputs.length;
-                        const attributes = await $input.evaluate((node, clusterIndex, inputCount) => ({
-                            clusterIndex,
-                            inputCount,
+                        const attributes = await $input.evaluate(node => ({
                             type: node.getAttribute('type'),
                             name: node.getAttribute('name'),
                             id: node.getAttribute('id'),
                             class: node.getAttribute('class'),
                             // debugger
-                        }), clusterIndex, inputCount);
-                        attributes.node = $input;
+                        }));
 
-                        return attributes
+                        return {
+                            inputCount,
+                            clusterIndex,
+                            node: $input,
+                            ...attributes
+                        }
                     }));
 
                     return extendedInputs
                 }));
 
-                return allClusters
+                return inputsByForm
                     .filter(cluster => cluster.length && cluster.find(input => input.type === 'password'))
                     .sort((clusterA, clusterB) => clusterA.length - clusterB.length);
             } else {
                 const $$inputs = await page.$$('input[type="password"], input[type="email"], input[type="text"]');
 
                 const extendedInputs = await Promise.all($$inputs.map(async ($input) => {
-                    const extendedInput = await $input.evaluate((node) => ({
+                    const attributes = await $input.evaluate((node) => ({
                         type: node.getAttribute('type'),
                         name: node.getAttribute('name'),
                         id: node.getAttribute('id'),
                         class: node.getAttribute('class'),
                     }));
 
-                    extendedInput.node = $input;
-
-                    return extendedInput;
+                    return {
+                        node: $input,
+                        ...attributes
+                    }
                 }));
 
                 return [
@@ -903,6 +835,8 @@ const login = async (page, username = 'username', password = 'password') => {
             const resultFields = resultCluster[0];
             console.log('resultFields', resultFields);
 
+            console.log('Filters remaining:', inputFilters.length);
+
             const loginFields = resultCluster[0] || [];
 
             if (loginFields.length)
@@ -924,7 +858,6 @@ const login = async (page, username = 'username', password = 'password') => {
     };
 
     const loginFields = await getLoginFields(page);
-    console.log(loginFields);
 
     if (!loginFields.username || !loginFields.password)
         throw Error('Could not find login inputs');

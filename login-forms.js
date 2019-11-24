@@ -54,8 +54,8 @@ const html = `
 
 <form name="login" method="get" action="test.html">
     login
-    <input type="text" name="u" id="username" class="" placeholder="username">
-    <input type="password" name="p" id="" class="" placeholder="password">
+    <input type="text" name="u" id="u" class="" placeholder="username">
+    <input type="password" name="p" id="p" class="" placeholder="password">
     <button type="submit">OK</button>
 </form>
 </body>
