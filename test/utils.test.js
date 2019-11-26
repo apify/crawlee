@@ -9,12 +9,8 @@ import requestPromise from 'request-promise-native';
 import LruCache from 'apify-shared/lru_cache';
 import log from 'apify-shared/log';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
-import { Cookie } from 'tough-cookie';
 import * as utils from '../build/utils';
 import Apify from '../build/index';
-import { Session } from '../build/session_pool/session';
-import { updateSessionCookies } from '../src/utils';
-import { SessionPool } from '../src/session_pool/session_pool';
 
 describe('utils.newClient()', () => {
     test('reads environment variables correctly', () => {
