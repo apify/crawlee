@@ -158,7 +158,7 @@ Increases usage and error count. Should be used when the session has been used u
 
 Retires session based on status code.
 
-**Returns**: `boolean` - - whether the session was retired
+**Returns**: `boolean` - whether the session was retired.
 
 <table>
 <thead>
@@ -178,7 +178,7 @@ Retires session based on status code.
 
 ## `session.setCookiesToJar(response)`
 
-Sets cookies from response to the cookieJar. Parses cookies from "set-cookie" header and sets them to "Session.cookieJar".
+Sets cookies from response to the cookieJar. Parses cookies from `set-cookie` header and sets them to `Session.cookieJar`.
 
 <table>
 <thead>
@@ -197,9 +197,9 @@ Sets cookies from response to the cookieJar. Parses cookies from "set-cookie" he
 
 ## `session.getCookieString(url)` ⇒ `String`
 
-Wrapper around "tough" cookie jar `getCookieString` method.
+Wrapper around `tough-cookie` Cookie jar `getCookieString` method.
 
-**Returns**: `String` - ;
+**Returns**: `String` - String representing `Cookie` header.
 
 <table>
 <thead>

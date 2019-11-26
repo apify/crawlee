@@ -182,7 +182,7 @@ export class Session {
     /**
      * Retires session based on status code.
      * @param statusCode {Number} - HTTP status code
-     * @return {boolean} - whether the session was retired
+     * @return {boolean} whether the session was retired.
      */
     checkStatus(statusCode) {
         const isBlocked = STATUS_CODES_BLOCKED.includes(statusCode);
@@ -194,7 +194,7 @@ export class Session {
 
     /**
      * Sets cookies from response to the cookieJar.
-     * Parses cookies from "set-cookie" header and sets them to "Session.cookieJar".
+     * Parses cookies from `set-cookie` header and sets them to `Session.cookieJar`.
      * @param response
      */
     setCookiesToJar(response) {
@@ -206,9 +206,9 @@ export class Session {
     }
 
     /**
-     * Wrapper around "tough" cookie jar `getCookieString` method.
+     * Wrapper around `tough-cookie` Cookie jar `getCookieString` method.
      * @param url
-     * @return {String};
+     * @return {String} String representing `Cookie` header.
      */
     getCookieString(url) {
         console.log(this.cookieJar);
