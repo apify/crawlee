@@ -19,6 +19,9 @@ internal state can be enriched with custom user data for example some authorizat
     -   [`.getState()`](#Session+getState) ⇒ `Object`
     -   [`.retire()`](#Session+retire)
     -   [`.markBad()`](#Session+markBad)
+    -   [`.checkStatus(statusCode)`](#Session+checkStatus) ⇒ `boolean`
+    -   [`.setCookiesToJar(response)`](#Session+setCookiesToJar)
+    -   [`.getCookieString(url)`](#Session+getCookieString) ⇒ `String`
 
 <a name="new_Session_new"></a>
 
@@ -148,3 +151,66 @@ due to some external factors as server error such as 5XX you probably want to us
 ## `session.markBad()`
 
 Increases usage and error count. Should be used when the session has been used unsuccessfully. For example because of timeouts.
+
+<a name="Session+checkStatus"></a>
+
+## `session.checkStatus(statusCode)` ⇒ `boolean`
+
+Retires session based on status code.
+
+**Returns**: `boolean` - - whether the session was retired
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>statusCode</code></td><td><code>Number</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>HTTP status code</p>
+</td></tr></tbody>
+</table>
+<a name="Session+setCookiesToJar"></a>
+
+## `session.setCookiesToJar(response)`
+
+Sets cookies from response to the cookieJar. Parses cookies from "set-cookie" header and sets them to "Session.cookieJar".
+
+<table>
+<thead>
+<tr>
+<th>Param</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>response</code></td>
+</tr>
+<tr>
+</tr></tbody>
+</table>
+<a name="Session+getCookieString"></a>
+
+## `session.getCookieString(url)` ⇒ `String`
+
+Wrapper around "tough" cookie jar `getCookieString` method.
+
+**Returns**: `String` - ;
+
+<table>
+<thead>
+<tr>
+<th>Param</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>url</code></td>
+</tr>
+<tr>
+</tr></tbody>
+</table>
