@@ -859,7 +859,7 @@ describe('CheerioCrawler', () => {
                     useSessionPool: true,
                     persistCookiesPerSession: false,
                     maxRequestRetries: 0,
-                    handlePageFunction: ({ session }) => {
+                    handlePageFunction: async ({ session }) => {
                         sessions.push(session);
                     },
                     handleFailedRequestFunction: async ({ request }) => {
@@ -898,33 +898,6 @@ describe('CheerioCrawler', () => {
             } catch (e) {
                 expect(e.message).toEqual('Cannot use "options.persistCookiesPerSession" without "options.useSessionPool"');
             }
-        });
-
-        test('should save cookies to session', async () => {
-            const cookie = 'SESSID=abcd123';
-            const sessions = [];
-            const requests = [];
-            const crawler = new Apify.CheerioCrawler({
-                requestList: await getRequestListForMock({
-                    headers: { 'set-cookie': cookie, 'content-type': 'text/html' },
-                    statusCode: 200,
-                }),
-                useSessionPool: true,
-                persistCookiesPerSession: true,
-                maxRequestRetries: 1,
-                handlePageFunction: async ({ session, request }) => {
-                    sessions.push(session);
-                    requests.push(request);
-                },
-
-            });
-
-            await crawler.run();
-            expect(sessions.length).toBeGreaterThan(1);
-            sessions.forEach((session) => {
-                expect(session.cookies).toHaveLength(1);
-                expect(session.cookies[0].toString()).toEqual(cookie);
-            });
         });
 
         test('should send cookies', async () => {

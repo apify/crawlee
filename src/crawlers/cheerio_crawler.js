@@ -9,9 +9,9 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import contentTypeParser from 'content-type';
 import { readStreamToString, concatStreamToBuffer } from 'apify-shared/streams_utilities';
 import BasicCrawler from './basic_crawler';
-import { addTimeoutToPromise, parseContentTypeFromResponse, updateSessionCookies, getCookieHeader } from '../utils';
+import { addTimeoutToPromise, parseContentTypeFromResponse } from '../utils';
 import { getApifyProxyUrl } from '../actor';
-import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER, STATUS_CODES_BLOCKED } from '../constants';
+import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { requestAsBrowser } from '../utils_request';
 import { TimeoutError } from '../errors';
 
@@ -342,6 +342,7 @@ class CheerioCrawler {
         this.lastUsedProxyUrlIndex = 0;
         this.prepareRequestFunction = prepareRequestFunction;
         this.persistCookiesPerSession = persistCookiesPerSession;
+        this.useSessionPool = useSessionPool;
 
         this.basicCrawler = new BasicCrawler({
             // Basic crawler options.
@@ -391,8 +392,12 @@ class CheerioCrawler {
             `CheerioCrawler: request timed out after ${this.requestTimeoutMillis / 1000} seconds.`,
         );
 
+        if (this.useSessionPool) {
+            this._handleBlockedRequest(session, response.statusCode);
+        }
+
         if (this.persistCookiesPerSession) {
-            session = updateSessionCookies(session, response);
+            session.setCookiesToJar(response);
         }
 
         request.loadedUrl = response.url;
@@ -442,7 +447,7 @@ class CheerioCrawler {
 
         if (this.persistCookiesPerSession) {
             const { headers = {} } = request;
-            headers.Cookie = getCookieHeader(session.cookies);
+            headers.Cookie = session.getCookieString(request.url);
         }
 
         const opts = this._getRequestOptions(request);
@@ -477,8 +482,6 @@ class CheerioCrawler {
 
             // It's not a JSON so it's probably some text. Get the first 100 chars of it.
             throw new Error(`CheerioCrawler: ${statusCode} - Internal Server Error: ${body.substr(0, 100)}`);
-        } else if (STATUS_CODES_BLOCKED.includes(statusCode)) {
-            this._handleBlockedRequest(session, statusCode);
         } else if (type === 'text/html' || type === 'application/xhtml+xml' || type === 'application/xml') {
             const dom = await this._parseHtmlToDom(response);
             return ({ dom, isXml: type.includes('xml'), response, contentType });
@@ -602,8 +605,11 @@ class CheerioCrawler {
      * @private
      */
     _handleBlockedRequest(session, statusCode) {
-        if (session) session.retire();
-        throw new Error(`CheerioCrawler: Request blocked - received ${statusCode} status code`);
+        const isBlocked = session.checkStatus(statusCode);
+
+        if (isBlocked) {
+            throw new Error(`CheerioCrawler: Request blocked - received ${statusCode} status code`);
+        }
     }
 
     /**

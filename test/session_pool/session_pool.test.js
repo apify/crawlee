@@ -151,6 +151,8 @@ describe('SessionPool - testing session pool', () => {
             Object.entries(session).forEach(([key, value]) => {
                 if (sessionPool.sessions[index][key] instanceof Date) {
                     expect(value).toEqual(sessionPool.sessions[index][key].toISOString());
+                } else if (key === 'cookieJar') {
+                    expect(value).toEqual(sessionPool.sessions[index][key].toJSON());
                 } else {
                     expect(sessionPool.sessions[index][key]).toEqual(value);
                 }
