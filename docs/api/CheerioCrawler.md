@@ -106,7 +106,7 @@ await crawler.run();
   // if the response contains the content type application/json
   json: Object,
   request: Request,
-  contentType: Object, // Parsed `Content-Type` header
+  contentType: Object, // Parsed Content-Type header: { type, encoding }
   response: Object // An instance of Node&#39;s http.IncomingMessage object,
   autoscaledPool: AutoscaledPool
 }</code></pre><p>  Type of <code>body</code> depends on web page <code>Content-Type</code> header.</p>
