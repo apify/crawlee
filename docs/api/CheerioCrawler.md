@@ -184,7 +184,7 @@ The exceptions are logged to the request using the
 <tr>
 <td colspan="3"><p>Timeout in which the HTTP request to the resource needs to finish, given in seconds.</p>
 </td></tr><tr>
-<td><code>[options.ignoreSslErrors]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
+<td><code>[options.ignoreSslErrors]</code></td><td><code>Boolean</code></td><td><code>true</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>If set to true, SSL certificate errors will be ignored.</p>

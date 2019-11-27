@@ -28,7 +28,7 @@ const DEFAULT_OPTIONS = {
 
         log.error('CheerioCrawler: Request failed and reached maximum retries', details);
     },
-    ignoreSslErrors: false,
+    ignoreSslErrors: true,
     useApifyProxy: false,
     autoscaledPoolOptions: {
         snapshotterOptions: {
@@ -200,7 +200,7 @@ const DEFAULT_OPTIONS = {
  *   Timeout in which the function passed as `options.handlePageFunction` needs to finish, given in seconds.
  * @param {Number} [options.requestTimeoutSecs=30]
  *   Timeout in which the HTTP request to the resource needs to finish, given in seconds.
- * @param {Boolean} [options.ignoreSslErrors=false]
+ * @param {Boolean} [options.ignoreSslErrors=true]
  *   If set to true, SSL certificate errors will be ignored.
  * @param {Boolean} [options.useApifyProxy=false]
  *   If set to `true`, `CheerioCrawler` will be configured to use
