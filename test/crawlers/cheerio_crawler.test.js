@@ -152,6 +152,10 @@ describe('CheerioCrawler', () => {
         log.setLevel(logLevel);
     });
 
+    beforeEach(async () => {
+        process.env.APIFY_LOCAL_STORAGE_DIR = LOCAL_STORAGE_DIR;
+    });
+
     test('should work', async () => {
         const sources = [
             { url: 'http://example.com/?q=1' },
@@ -276,22 +280,15 @@ describe('CheerioCrawler', () => {
         });
 
         test('after handlePageTimeoutSecs', async () => {
-            const sources = [
-                { url: 'http://example.com/?q=0' },
-                { url: 'http://example.com/?q=1' },
-                { url: 'http://example.com/?q=2' },
-            ];
-            const processed = [];
             const failed = [];
-            const requestList = new Apify.RequestList({ sources });
-            const handlePageFunction = async ({ request }) => {
-                await sleep(3000);
-                processed.push(request);
+            const requestList = await getRequestListForMirror();
+            const handlePageFunction = async () => {
+                await sleep(2000);
             };
 
             const cheerioCrawler = new Apify.CheerioCrawler({
                 requestList,
-                handlePageTimeoutSecs: 0.05,
+                handlePageTimeoutSecs: 1,
                 maxRequestRetries: 1,
                 minConcurrency: 2,
                 maxConcurrency: 2,
@@ -302,10 +299,8 @@ describe('CheerioCrawler', () => {
             // Override low value to prevent seeing timeouts from BasicCrawler
             cheerioCrawler.basicCrawler.handleRequestTimeoutMillis = 10000;
 
-            await requestList.initialize();
             await cheerioCrawler.run();
 
-            expect(processed).toHaveLength(0);
             expect(failed).toHaveLength(3);
 
             failed.forEach((request) => {
