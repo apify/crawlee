@@ -213,7 +213,7 @@ describe('CheerioCrawler', () => {
             handleFailedRequestFunction: ({ request }) => {
                 failed = request;
             },
-            prepareRequestFunction: async ({ request }) => {
+            prepareRequestFunction: async ({ request, session }) => {
                 request.url = MODIFIED_URL;
                 return request;
             },
@@ -866,8 +866,8 @@ describe('CheerioCrawler', () => {
                         failed.push(request);
                     },
                 });
-                const oldCall = crawler._handleBlockedRequest;
-                crawler._handleBlockedRequest = (session, statusCode) => {
+                const oldCall = crawler._throwOnBlockedRequest;
+                crawler._throwOnBlockedRequest = (session, statusCode) => {
                     sessions.push(session);
                     return oldCall(session, statusCode);
                 };
@@ -927,6 +927,20 @@ describe('CheerioCrawler', () => {
                     expect(req.headers.Cookie).toEqual(cookie);
                 }
             });
+        });
+
+        test('should pass session to prepareRequestFunction when Session pool is used', async () => {
+            const handlePageFunction = async () => {};
+
+            const cheerioCrawler = new Apify.CheerioCrawler({
+                requestList,
+                handlePageFunction,
+                useSessionPool: true,
+                prepareRequestFunction: async ({ session }) => {
+                    expect(session.constructor.name).toEqual('Session');
+                },
+            });
+            await cheerioCrawler.run();
         });
     });
 });

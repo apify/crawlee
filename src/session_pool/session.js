@@ -197,7 +197,7 @@ export class Session {
      * Parses cookies from `set-cookie` header and sets them to `Session.cookieJar`.
      * @param response
      */
-    setCookiesToJar(response) {
+    putResponse(response) {
         const cookies = getCookiesFromResponse(response).filter(c => c);
 
         for (const cookie of cookies) {
@@ -211,7 +211,6 @@ export class Session {
      * @return {String} String representing `Cookie` header.
      */
     getCookieString(url) {
-        console.log(this.cookieJar);
         return this.cookieJar.getCookieStringSync(url, {});
     }
 }

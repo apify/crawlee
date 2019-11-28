@@ -20,7 +20,7 @@ internal state can be enriched with custom user data for example some authorizat
     -   [`.retire()`](#Session+retire)
     -   [`.markBad()`](#Session+markBad)
     -   [`.checkStatus(statusCode)`](#Session+checkStatus) ⇒ `boolean`
-    -   [`.setCookiesToJar(response)`](#Session+setCookiesToJar)
+    -   [`.putResponse(response)`](#Session+putResponse)
     -   [`.getCookieString(url)`](#Session+getCookieString) ⇒ `String`
 
 <a name="new_Session_new"></a>
@@ -174,9 +174,9 @@ Retires session based on status code.
 <td colspan="3"><p>HTTP status code</p>
 </td></tr></tbody>
 </table>
-<a name="Session+setCookiesToJar"></a>
+<a name="Session+putResponse"></a>
 
-## `session.setCookiesToJar(response)`
+## `session.putResponse(response)`
 
 Sets cookies from response to the cookieJar. Parses cookies from `set-cookie` header and sets them to `Session.cookieJar`.
 

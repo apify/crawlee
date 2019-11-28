@@ -385,7 +385,7 @@ class CheerioCrawler {
      * @ignore
      */
     async _handleRequestFunction({ request, autoscaledPool, session }) {
-        if (this.prepareRequestFunction) await this.prepareRequestFunction({ request });
+        if (this.prepareRequestFunction) await this.prepareRequestFunction({ request, session });
         const { dom, isXml, body, contentType, response } = await addTimeoutToPromise(
             this._requestFunction({ request, session }),
             this.requestTimeoutMillis,
@@ -393,11 +393,11 @@ class CheerioCrawler {
         );
 
         if (this.useSessionPool) {
-            this._handleBlockedRequest(session, response.statusCode);
+            this._throwOnBlockedRequest(session, response.statusCode);
         }
 
         if (this.persistCookiesPerSession) {
-            session.setCookiesToJar(response);
+            session.putResponse(response);
         }
 
         request.loadedUrl = response.url;
@@ -446,7 +446,7 @@ class CheerioCrawler {
         // handle the response based on headers receieved.
 
         if (this.persistCookiesPerSession) {
-            const { headers = {} } = request;
+            const { headers } = request;
             headers.Cookie = session.getCookieString(request.url);
         }
 
@@ -604,7 +604,7 @@ class CheerioCrawler {
      * @param statusCode {Number}
      * @private
      */
-    _handleBlockedRequest(session, statusCode) {
+    _throwOnBlockedRequest(session, statusCode) {
         const isBlocked = session.checkStatus(statusCode);
 
         if (isBlocked) {
