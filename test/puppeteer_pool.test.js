@@ -574,7 +574,7 @@ describe('PuppeteerPool', () => {
         test('should work', async () => {
             // Start browser;
             await pool._openNewTab(); // eslint-disable-line no-underscore-dangle
-            pool.puppeteerOperationTimeoutMillis = 0.005;
+            pool.puppeteerOperationTimeoutMillis = 1;
             try {
                 await pool._openNewTab(); // eslint-disable-line no-underscore-dangle
                 throw new Error('invalid error');
