@@ -213,7 +213,7 @@ describe('CheerioCrawler', () => {
             handleFailedRequestFunction: ({ request }) => {
                 failed = request;
             },
-            prepareRequestFunction: async ({ request, session }) => {
+            prepareRequestFunction: async ({ request }) => {
                 request.url = MODIFIED_URL;
                 return request;
             },
