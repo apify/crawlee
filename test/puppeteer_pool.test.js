@@ -4,6 +4,7 @@ import log from 'apify-shared/log';
 import { ENV_VARS } from 'apify-shared/consts';
 import * as Apify from '../build/index';
 import { launchPuppeteer } from '../build/puppeteer';
+import {sleep} from "../build/utils";
 
 const shortSleep = (millis = 25) => new Promise(resolve => setTimeout(resolve, millis));
 
@@ -569,12 +570,13 @@ describe('PuppeteerPool', () => {
         afterEach(async () => {
             log.setLevel(log.LEVELS.ERROR);
             await pool.destroy();
+            await sleep(2000);
         });
 
         test('should work', async () => {
             // Start browser;
             await pool._openNewTab(); // eslint-disable-line no-underscore-dangle
-            pool.puppeteerOperationTimeoutMillis = 1;
+            pool.puppeteerOperationTimeoutMillis = 0.00000001;
             try {
                 await pool._openNewTab(); // eslint-disable-line no-underscore-dangle
                 throw new Error('invalid error');
