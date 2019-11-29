@@ -17,7 +17,7 @@ can test it directly there simply by sending a POST request to
 https://api.apify.com/v2/acts/apify~example-golden-gate-webcam/run-sync?token=[YOUR_API_TOKEN]
 ```
 
-To run this example on the Apify Platform, select the `Node.js 8 + Chrome on Debian (apify/actor-node-chrome)` base image on the source tab of your
+To run this example on the Apify Platform, select the `Node.js 10 + Chrome on Debian (apify/actor-node-chrome)` base image on the source tab of your
 actor configuration.
 
 ```javascript

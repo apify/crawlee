@@ -9,7 +9,7 @@ search term, repository owner, start date and language of the repository, then s
 saved either on the Apify platform to the default <a href="https://sdk.apify.com/docs/api/dataset" target="_blank">dataset</a> or on the local machine
 as JSON files in ./apify_storage/datasets/default.
 
-To run this example on the Apify Platform, select the `Node.js 8 + Chrome on Debian (apify/actor-node-chrome)` base image on the source tab of your
+To run this example on the Apify Platform, select the `Node.js 10 + Chrome on Debian (apify/actor-node-chrome)` base image on the source tab of your
 actor configuration.
 
 ```javascript
