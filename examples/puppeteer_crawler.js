@@ -6,7 +6,7 @@
  * enqueues them and continues until no more desired links are available.
  * The results are stored to the default dataset. In local configuration, the results are stored as JSON files in `./apify_storage/datasets/default`
  *
- * To run this example on the Apify Platform, select the `Node.js 8 + Chrome on Debian (apify/actor-node-chrome)` base image
+ * To run this example on the Apify Platform, select the `Node.js 10 + Chrome on Debian (apify/actor-node-chrome)` base image
  * on the source tab of your actor configuration.
  */
 

@@ -25,7 +25,7 @@ environment and let's get into it.
 
 To run Apify SDK on your own computer, you need to meet the following pre-requisites first:
 
-1. Have Node.js version 8.14 or higher installed.
+1. Have Node.js version 10.17 or higher installed.
     - Visit <a href="https://nodejs.org/en/download/" target="_blank">Node.js website</a> to download or use
       <a href="https://github.com/creationix/nvm" target="_blank">nvm</a>
 2. Have NPM installed.

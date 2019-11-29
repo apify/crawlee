@@ -12,7 +12,7 @@
  * If you deploy this actor to the Apify Cloud then you can set up a scheduler for early
  * morning.
  *
- * To run this example on the Apify Platform, select the `Node.js 8 + Chrome on Debian (apify/actor-node-chrome)` base image
+ * To run this example on the Apify Platform, select the `Node.js 10 + Chrome on Debian (apify/actor-node-chrome)` base image
  * on the source tab of your actor configuration.
  */
 
