@@ -66,6 +66,7 @@
         "rimraf": "^2.7.1",
         "semver": "^6.3.0",
         "socket.io": "^2.2.0",
+        "tough-cookie": "^3.0.1",
         "underscore": "^1.9.1",
         "ws": "^6.2.1",
         "xregexp": "^4.2.4"

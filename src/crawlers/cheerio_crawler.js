@@ -40,6 +40,9 @@ const DEFAULT_OPTIONS = {
         },
     },
     additionalMimeTypes: [],
+    useSessionPool: false,
+    sessionPoolOptions: {},
+    persistCookiesPerSession: false,
 };
 
 /**
@@ -124,7 +127,9 @@ const DEFAULT_OPTIONS = {
  * {
  *   $: Cheerio, // the Cheerio object with parsed HTML
  *   body: String|Buffer // the request body of the web page
- *   json: Object, // parsed JSON when Content-Type: application/json
+ *   // the parsed object from JSON string
+ *   // if the response contains the content type application/json
+ *   json: Object,
  *   request: Request,
  *   contentType: Object, // Parsed Content-Type header: { type, encoding }
  *   response: Object // An instance of Node's http.IncomingMessage object,
@@ -252,13 +257,23 @@ const DEFAULT_OPTIONS = {
  *   are provided by `CheerioCrawler` and cannot be overridden. Reasonable {@link Snapshotter}
  *   and {@link SystemStatus} defaults are provided to account for the fact that `cheerio`
  *   parses HTML synchronously and therefore blocks the event loop.
- * @param {Object} [options.minConcurrency=1]
+ * @param {Number} [options.minConcurrency=1]
  *   Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
  *
  *   *WARNING:* If you set this value too high with respect to the available system memory and CPU, your crawler will run extremely slow or crash.
  *   If you're not sure, just keep the default value and the concurrency will scale up automatically.
- * @param {Object} [options.maxConcurrency=1000]
+ * @param {Number} [options.maxConcurrency=1000]
  *   Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
+ * @param {Boolean} [options.useSessionPool=false]
+ *   If set to true Crawler will automatically use Session Pool. It will automatically retire sessions on 403, 401 and 429 status codes.
+ *   It also marks Session as bad after a request timeout.
+ * @param {Object} [options.sessionPoolOptions]
+ *   Custom options passed to the underlying {@link SessionPool} constructor.
+ * @param {Boolean} [options.persistCookiesPerSession]
+ *   Automatically saves cookies to Session. Works only if Session Pool is used.
+ *
+ *   It parses cookie from response "set-cookie" header saves or updates cookies for session and once the session is used for next request.
+ *   It passes the "Cookie" header to the request with the session cookies.
  */
 class CheerioCrawler {
     constructor(options = {}) {
@@ -286,6 +301,9 @@ class CheerioCrawler {
             handleFailedRequestFunction,
             autoscaledPoolOptions,
             prepareRequestFunction,
+            useSessionPool,
+            sessionPoolOptions,
+            persistCookiesPerSession, // @TODO: Better naming
         } = _.defaults({}, options, DEFAULT_OPTIONS);
 
         checkParamOrThrow(handlePageFunction, 'options.handlePageFunction', 'Function');
@@ -299,9 +317,15 @@ class CheerioCrawler {
         checkParamOrThrow(proxyUrls, 'options.proxyUrls', 'Maybe [String]');
         checkParamOrThrow(prepareRequestFunction, 'options.prepareRequestFunction', 'Maybe Function');
         checkParamOrThrow(additionalMimeTypes, 'options.additionalMimeTypes', '[String]');
+        checkParamOrThrow(useSessionPool, 'options.useSessionPool', 'Boolean');
+        checkParamOrThrow(sessionPoolOptions, 'options.sessionPoolOptions', 'Object');
+        checkParamOrThrow(persistCookiesPerSession, 'options.persistCookiesPerSession', 'Boolean');
         // Enforce valid proxy configuration
         if (proxyUrls && !proxyUrls.length) throw new Error('Parameter "options.proxyUrls" of type Array must not be empty');
         if (useApifyProxy && proxyUrls) throw new Error('Cannot combine "options.useApifyProxy" with "options.proxyUrls"!');
+        if (persistCookiesPerSession && !useSessionPool) {
+            throw new Error('Cannot use "options.persistCookiesPerSession" without "options.useSessionPool"');
+        }
 
         this.supportedMimeTypes = new Set(DEFAULT_MIME_TYPES);
         if (additionalMimeTypes.length) this._extendSupportedMimeTypes(additionalMimeTypes);
@@ -317,6 +341,8 @@ class CheerioCrawler {
         this.proxyUrls = _.shuffle(proxyUrls);
         this.lastUsedProxyUrlIndex = 0;
         this.prepareRequestFunction = prepareRequestFunction;
+        this.persistCookiesPerSession = persistCookiesPerSession;
+        this.useSessionPool = useSessionPool;
 
         this.basicCrawler = new BasicCrawler({
             // Basic crawler options.
@@ -332,6 +358,10 @@ class CheerioCrawler {
             minConcurrency,
             maxConcurrency,
             autoscaledPoolOptions,
+
+            // Session pool options
+            sessionPoolOptions,
+            useSessionPool,
         });
 
         this.isRunningPromise = null;
@@ -354,13 +384,21 @@ class CheerioCrawler {
      *
      * @ignore
      */
-    async _handleRequestFunction({ request, autoscaledPool }) {
-        if (this.prepareRequestFunction) await this.prepareRequestFunction({ request });
+    async _handleRequestFunction({ request, autoscaledPool, session }) {
+        if (this.prepareRequestFunction) await this.prepareRequestFunction({ request, session });
         const { dom, isXml, body, contentType, response } = await addTimeoutToPromise(
-            this._requestFunction({ request }),
+            this._requestFunction({ request, session }),
             this.requestTimeoutMillis,
             `CheerioCrawler: request timed out after ${this.requestTimeoutMillis / 1000} seconds.`,
         );
+
+        if (this.useSessionPool) {
+            this._throwOnBlockedRequest(session, response.statusCode);
+        }
+
+        if (this.persistCookiesPerSession) {
+            session.putResponse(response);
+        }
 
         request.loadedUrl = response.url;
 
@@ -388,6 +426,7 @@ class CheerioCrawler {
             request,
             response,
             autoscaledPool,
+            session,
         };
         return addTimeoutToPromise(
             this.handlePageFunction(context),
@@ -402,9 +441,15 @@ class CheerioCrawler {
      * received content type matches text/html, application/xml, application/xhtml+xml.
      * @ignore
      */
-    async _requestFunction({ request }) {
+    async _requestFunction({ request, session }) {
         // Using the streaming API of Request to be able to
         // handle the response based on headers receieved.
+
+        if (this.persistCookiesPerSession) {
+            const { headers } = request;
+            headers.Cookie = session.getCookieString(request.url);
+        }
+
         const opts = this._getRequestOptions(request);
         let responseStream;
 
@@ -412,7 +457,7 @@ class CheerioCrawler {
             responseStream = await requestAsBrowser(opts);
         } catch (e) {
             if (e instanceof TimeoutError) {
-                throw new Error(`CheerioCrawler: request timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`);
+                this._handleRequestTimeout(session);
             } else {
                 throw e;
             }
@@ -551,6 +596,30 @@ class CheerioCrawler {
                 throw new Error(`CheerioCrawler: Can not parse mime type ${mimeType} from "options.additionalMimeTypes".`);
             }
         });
+    }
+
+    /**
+     * Handles blocked request
+     * @param session {Session}
+     * @param statusCode {Number}
+     * @private
+     */
+    _throwOnBlockedRequest(session, statusCode) {
+        const isBlocked = session.checkStatus(statusCode);
+
+        if (isBlocked) {
+            throw new Error(`CheerioCrawler: Request blocked - received ${statusCode} status code`);
+        }
+    }
+
+    /**
+     * Handles timeout request
+     * @param session {Session}
+     * @private
+     */
+    _handleRequestTimeout(session) {
+        if (session) session.markBad();
+        throw new Error(`CheerioCrawler: request timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`);
     }
 }
 
