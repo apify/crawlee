@@ -25,7 +25,7 @@ import { ACTOR_EVENT_NAMES_EX } from '../constants';
  *     sessionOptions:{
  *          maxAgeSecs: 10,
  *          maxUsageCount: 150, // for example when you know that the site blocks after 150 requests.
- *     }
+ *     },
  *     persistStateKeyValueStoreId: 'my-key-value-store-for-sessions',
  *     persistStateKey: 'my-session-pool',
  * });
@@ -83,7 +83,7 @@ export class SessionPool extends EventEmitter {
 
         // Validation
         checkParamOrThrow(maxPoolSize, 'options.maxPoolSize', 'Number');
-        checkParamOrThrow(sessionOptions, 'options.maxAgeSecs', 'Object');
+        checkParamOrThrow(sessionOptions, 'options.sessionOptions', 'Object');
         checkParamOrThrow(persistStateKeyValueStoreId, 'options.persistStateKeyValueStoreId', 'Maybe String');
         checkParamOrThrow(persistStateKey, 'options.persistStateKey', 'String');
         checkParamOrThrow(createSessionFunction, 'options.createSessionFunction', 'Maybe Function');

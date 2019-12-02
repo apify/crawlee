@@ -4,6 +4,11 @@ import log from 'apify-shared/log';
 import { ENV_VARS } from 'apify-shared/consts';
 import * as Apify from '../build/index';
 import { launchPuppeteer } from '../build/puppeteer';
+import { SessionPool } from '../build/session_pool/session_pool';
+import { LOCAL_STORAGE_DIR, emptyLocalStorageSubdir } from './_helper';
+import { BROWSER_SESSION_ID_KEY_NAME } from '../src/constants';
+import { sleep } from '../src/utils';
+
 
 const shortSleep = (millis = 25) => new Promise(resolve => setTimeout(resolve, millis));
 
@@ -619,6 +624,38 @@ describe('PuppeteerPool', () => {
 
             await pool.destroy();
             expect(stopped).toBe(1);
+        });
+    });
+
+    describe('uses sessionPool', () => {
+        beforeAll(() => {
+            process.env.APIFY_LOCAL_STORAGE_DIR = LOCAL_STORAGE_DIR;
+        });
+
+        afterEach(() => {
+            emptyLocalStorageSubdir('key_value_stores/default');
+        });
+
+        test('should work', async () => {
+            const sessionPool = new SessionPool();
+            await sessionPool.initialize();
+            const pool = new Apify.PuppeteerPool({
+                launchPuppeteerOptions: { headless: true },
+                useLiveView: true,
+                sessionPool,
+            });
+            expect(pool.sessionPool.constructor.name).toEqual('SessionPool');
+            const page = await pool.newPage();
+            const browser = page.browser();
+            expect(browser[BROWSER_SESSION_ID_KEY_NAME]).toEqual(sessionPool.sessions[0].id);
+            expect(
+                Object.values(pool.activeInstances).filter(instance => instance.sessionId === browser[BROWSER_SESSION_ID_KEY_NAME]),
+            ).toHaveLength(1);
+
+            sessionPool.sessions[0].retire();
+
+            await sleep(2000);
+            expect(Object.values(pool.activeInstances)).toHaveLength(0);
         });
     });
 });

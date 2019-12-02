@@ -4,8 +4,9 @@ import _ from 'underscore';
 import BasicCrawler from './basic_crawler';
 import PuppeteerPool from '../puppeteer_pool';
 import { addTimeoutToPromise } from '../utils';
-import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
+import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER, BROWSER_SESSION_ID_KEY_NAME } from '../constants';
 import { gotoExtended } from '../puppeteer_utils';
+import { openSessionPool } from '../session_pool/session_pool';
 
 /**
  * Provides a simple framework for parallel crawling of web pages
@@ -197,6 +198,10 @@ class PuppeteerCrawler {
             puppeteerPoolOptions,
             launchPuppeteerFunction,
             launchPuppeteerOptions,
+
+            sessionPoolOptions,
+            persistCookiesPerSession,
+            useSessionPool,
         } = options;
 
         checkParamOrThrow(handlePageFunction, 'options.handlePageFunction', 'Function');
@@ -205,6 +210,9 @@ class PuppeteerCrawler {
         checkParamOrThrow(gotoFunction, 'options.gotoFunction', 'Function');
         checkParamOrThrow(gotoTimeoutSecs, 'options.gotoTimeoutSecs', 'Number');
         checkParamOrThrow(puppeteerPoolOptions, 'options.puppeteerPoolOptions', 'Maybe Object');
+        checkParamOrThrow(useSessionPool, 'options.useSessionPool', 'Boolean');
+        checkParamOrThrow(sessionPoolOptions, 'options.sessionPoolOptions', 'Object');
+        checkParamOrThrow(persistCookiesPerSession, 'options.persistCookiesPerSession', 'Boolean');
 
         if (options.gotoTimeoutSecs && options.gotoFunction) {
             log.warning('PuppeteerCrawler: You are using gotoTimeoutSecs with a custom gotoFunction. '
@@ -224,6 +232,8 @@ class PuppeteerCrawler {
         };
 
         this.puppeteerPool = null; // Constructed when .run()
+        this.useSessionPool = useSessionPool;
+        this.sessionPoolOptions = sessionPoolOptions;
 
         this.basicCrawler = new BasicCrawler({
             // Basic crawler options.
@@ -250,11 +260,18 @@ class PuppeteerCrawler {
     async run() {
         if (this.isRunningPromise) return this.isRunningPromise;
 
+        if (this.useSessionPool) {
+            this.sessionPool = await openSessionPool(this.sessionPoolOptions);
+            this.puppeteerPoolOptions.sessionPool = this.sessionPool;
+        }
         this.puppeteerPool = new PuppeteerPool(this.puppeteerPoolOptions);
         try {
             this.isRunningPromise = this.basicCrawler.run();
             await this.isRunningPromise;
         } finally {
+            if (this.useSessionPool) {
+                this.sessionPool.teardown();
+            }
             this.puppeteerPool.destroy();
         }
     }
@@ -265,17 +282,27 @@ class PuppeteerCrawler {
      * @ignore
      */
     async _handleRequestFunction({ request, autoscaledPool }) {
+        let session;
         const page = await this.puppeteerPool.newPage();
 
+        if (this.sessionPool) {
+            // @TODO: Handle cookies load here.
+            const browser = page.browser();
+            session = this.sessionPool.sessions.find(ses => ses.id === browser[BROWSER_SESSION_ID_KEY_NAME]);
+        }
+
         try {
-            const response = await this.gotoFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool });
+            const response = await this.gotoFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool, session });
             await this.puppeteerPool.serveLiveViewSnapshot(page);
+            // @TODO: Handle cookies save here.
             request.loadedUrl = page.url();
             await addTimeoutToPromise(
-                this.handlePageFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool, response }),
+                this.handlePageFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool, response, session }),
                 this.handlePageTimeoutMillis,
                 `PuppeteerCrawler: handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`,
             );
+
+            if (session) session.markGood();
         } finally {
             await this.puppeteerPool.recyclePage(page);
         }
