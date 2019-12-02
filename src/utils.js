@@ -717,7 +717,7 @@ const login = async (page, username = 'username', password = 'password') => {
                         console.log('condition', condition.toString().replace(/\s+/g, ' '));
                     }
 
-                    console.log('attributes:', _.pick(input, value => typeof value === 'string'));
+                    console.log('testing:', _.pick(input, value => typeof value === 'string'));
 
                     const inputPrior = array[index - 1];
                     const inputAfter = array[index + 1];
@@ -737,7 +737,7 @@ const login = async (page, username = 'username', password = 'password') => {
                 inputCluster => reduceInputs({inputCluster, condition}, {pattern});
 
             const conditions = [
-                // // 1 username patterns by priority
+                // // 1 username patterns by priority - exact match
                 // // 2 password
                 // // 3 non-password
 
@@ -745,6 +745,16 @@ const login = async (page, username = 'username', password = 'password') => {
                     input.type === 'password' &&
                     inputPrior &&
                     inputPrior[pattern.attribute] === pattern.value &&
+                    (!inputAfter || inputAfter.type !== 'password'),
+
+                // // 1 username patterns by priority included in classname
+                // // 2 password
+                // // 3 non-password
+
+                ({input, inputPrior, inputAfter}, {pattern}) =>
+                    input.type === 'password' &&
+                    inputPrior &&
+                    inputPrior[pattern.attribute].includes(pattern.value) &&
                     (!inputAfter || inputAfter.type !== 'password'),
 
                 // // 1 non-password
@@ -758,7 +768,10 @@ const login = async (page, username = 'username', password = 'password') => {
             ];
 
             inputFilters.push(...usernamePatterns.map(pattern => createFilter(conditions[0], pattern)));
-            inputFilters.push(createFilter(conditions[1]));
+            inputFilters.push(...usernamePatterns
+                .filter(pattern => pattern.attribute === 'class')
+                .map(pattern => createFilter(conditions[1], pattern)));
+            inputFilters.push(createFilter(conditions[2]));
 
             return inputFilters;
         };
@@ -824,26 +837,25 @@ const login = async (page, username = 'username', password = 'password') => {
         const filterClusters = (inputFilters, inputClusters) => {
             const inputFilter = inputFilters.shift();
             // forms - maybe also cluster non-forms by password fields in reverse direction?
-            const resultClusters = inputClusters.map(inputCluster => inputFilter(inputCluster));
+            const resultClusters = inputClusters.map(cluster => inputFilter(cluster));
             console.log('resultClusters', resultClusters);
 
             // sorted matches of input pairs per form or cluster
-            const resultCluster = resultClusters[0];
+            const resultCluster = resultClusters.find(cluster => cluster.length);
             console.log('resultCluster', resultCluster);
 
             // first match of found input pairs = best candidate
-            const resultFields = resultCluster[0];
-            console.log('resultFields', resultFields);
+            const resultFields = resultCluster && resultCluster[0] || [];
 
-            console.log('Filters remaining:', inputFilters.length);
+            console.log('\nFilters remaining:', inputFilters.length);
 
-            const loginFields = resultCluster[0] || [];
-
-            if (loginFields.length)
-                return loginFields;
+            if (resultFields.length) {
+                console.log('resultFields', resultFields);
+                return resultFields;
+            }
 
             if (inputFilters.length)
-                return filterClusters(inputFilters, inputClusters)
+                return filterClusters(inputFilters, inputClusters);
 
             return [];
         };
