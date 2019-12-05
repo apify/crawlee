@@ -285,11 +285,6 @@ await dataset.forEach(async (item, index) => {
 <td colspan="3"><p>All <code>forEach()</code> parameters are passed
   via an options object with the following keys:</p>
 </td></tr><tr>
-<td><code>[options.offset]</code></td><td><code>Number</code></td><td><code>0</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Number of array elements that should be skipped at the start.</p>
-</td></tr><tr>
 <td><code>[options.desc]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
 </tr>
 <tr>
@@ -304,11 +299,6 @@ await dataset.forEach(async (item, index) => {
 </tr>
 <tr>
 <td colspan="3"><p>If provided then objects will be unwound based on provided field.</p>
-</td></tr><tr>
-<td><code>[options.limit]</code></td><td><code>Number</code></td><td><code>250000</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>How many items to load in one request.</p>
 </td></tr><tr>
 <td><code>[index]</code></td><td><code>Number</code></td><td><code>0</code></td>
 </tr>
@@ -343,11 +333,6 @@ If `iteratee` returns a `Promise` then it's awaited before a next call.
 <td colspan="3"><p>All <code>map()</code> parameters are passed
   via an options object with the following keys:</p>
 </td></tr><tr>
-<td><code>[options.offset]</code></td><td><code>Number</code></td><td><code>0</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Number of array elements that should be skipped at the start.</p>
-</td></tr><tr>
 <td><code>[options.desc]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
 </tr>
 <tr>
@@ -362,11 +347,6 @@ If `iteratee` returns a `Promise` then it's awaited before a next call.
 </tr>
 <tr>
 <td colspan="3"><p>If provided then objects will be unwound based on provided field.</p>
-</td></tr><tr>
-<td><code>[options.limit]</code></td><td><code>Number</code></td><td><code>250000</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>How many items to load in one request.</p>
 </td></tr></tbody>
 </table>
 <a name="Dataset+reduce"></a>
@@ -406,11 +386,6 @@ If `iteratee()` returns a `Promise` then it's awaited before a next call.
 <td colspan="3"><p>All <code>reduce()</code> parameters are passed
   via an options object with the following keys:</p>
 </td></tr><tr>
-<td><code>[options.offset]</code></td><td><code>Number</code></td><td><code>0</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Number of array elements that should be skipped at the start.</p>
-</td></tr><tr>
 <td><code>[options.desc]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
 </tr>
 <tr>
@@ -425,11 +400,6 @@ If `iteratee()` returns a `Promise` then it's awaited before a next call.
 </tr>
 <tr>
 <td colspan="3"><p>If provided then objects will be unwound based on provided field.</p>
-</td></tr><tr>
-<td><code>[options.limit]</code></td><td><code>Number</code></td><td><code>250000</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>How many items to load in one request.</p>
 </td></tr></tbody>
 </table>
 <a name="Dataset+drop"></a>
