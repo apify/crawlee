@@ -647,9 +647,9 @@ describe('PuppeteerPool', () => {
             expect(pool.sessionPool.constructor.name).toEqual('SessionPool');
             const page = await pool.newPage();
             const browser = page.browser();
-            expect(browser[BROWSER_SESSION_ID_KEY_NAME]).toEqual(sessionPool.sessions[0].id);
+            expect(browser[BROWSER_SESSION_ID_KEY_NAME].id).toEqual(sessionPool.sessions[0].id);
             expect(
-                Object.values(pool.activeInstances).filter(instance => instance.sessionId === browser[BROWSER_SESSION_ID_KEY_NAME]),
+                Object.values(pool.activeInstances).filter(instance => instance.session.id === browser[BROWSER_SESSION_ID_KEY_NAME].id),
             ).toHaveLength(1);
 
             sessionPool.sessions[0].retire();

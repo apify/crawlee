@@ -254,7 +254,7 @@ class PuppeteerPool {
             }
             browser.recycleDiskCacheDir = diskCacheDir;
 
-            if (session) browser[BROWSER_SESSION_ID_KEY_NAME] = session.id;
+            if (session) browser[BROWSER_SESSION_ID_KEY_NAME] = session;
 
             return browser;
         };
@@ -322,7 +322,7 @@ class PuppeteerPool {
             browser = await browserPromise;
 
             if (this.sessionPool) {
-                instance.sessionId = browser[BROWSER_SESSION_ID_KEY_NAME];
+                instance.session = browser[BROWSER_SESSION_ID_KEY_NAME];
             }
         } catch (err) {
             log.exception(err, 'PuppeteerPool: Browser launch failed', { id });
@@ -732,7 +732,7 @@ class PuppeteerPool {
 
     _findInstancesBySession(session) {
         const instances = Object.values(this.activeInstances);
-        return instances.filter(instance => instance.sessionId === session.id);
+        return instances.filter(instance => instance.session.id === session.id);
     }
 
     async _retireBrowserWithSession(session) {

@@ -289,7 +289,7 @@ class PuppeteerCrawler {
             // @TODO: Handle cookies load here.
             const browser = page.browser();
             // @TODO: Session pool method find my id;
-            session = this.sessionPool.sessions.find(ses => ses.id === browser[BROWSER_SESSION_ID_KEY_NAME]);
+            session = browser.session;
         }
 
         try {
