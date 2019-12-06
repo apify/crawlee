@@ -517,6 +517,7 @@ export class DatasetLocal {
         checkParamOrThrow(opts, 'opts', 'Object');
         checkParamOrThrow(opts.limit, 'opts.limit', 'Maybe Number');
         checkParamOrThrow(opts.offset, 'opts.offset', 'Maybe Number');
+        checkParamOrThrow(opts.desc, 'opts.desc', 'Maybe Boolean');
 
         if (opts.format && opts.format !== 'json') {
             throw new Error(`Datasets with local disk storage only support the "json" format (was "${opts.format}")`);
@@ -539,7 +540,7 @@ export class DatasetLocal {
 
         this._updateMetadata();
         return {
-            items,
+            items: opts.desc ? items.reverse() : items,
             total: this.counter,
             offset: opts.offset,
             count: items.length,
