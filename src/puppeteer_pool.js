@@ -11,7 +11,7 @@ import { launchPuppeteer } from './puppeteer';
 import { addTimeoutToPromise } from './utils';
 import LiveViewServer from './live_view/live_view_server';
 import EVENTS from './session_pool/events';
-import { BROWSER_SESSION_ID_KEY_NAME } from './constants';
+import { BROWSER_SESSION_KEY_NAME } from './constants';
 
 
 const PROCESS_KILL_TIMEOUT_MILLIS = 5000;
@@ -254,7 +254,7 @@ class PuppeteerPool {
             }
             browser.recycleDiskCacheDir = diskCacheDir;
 
-            if (session) browser[BROWSER_SESSION_ID_KEY_NAME] = session;
+            if (session) browser[BROWSER_SESSION_KEY_NAME] = session;
 
             return browser;
         };
@@ -322,7 +322,7 @@ class PuppeteerPool {
             browser = await browserPromise;
 
             if (this.sessionPool) {
-                instance.session = browser[BROWSER_SESSION_ID_KEY_NAME];
+                instance.session = browser[BROWSER_SESSION_KEY_NAME];
             }
         } catch (err) {
             log.exception(err, 'PuppeteerPool: Browser launch failed', { id });

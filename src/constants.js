@@ -126,4 +126,4 @@ export const COUNTRY_CODE_REGEX = /^[A-Z]{2}$/;
 
 export const STATUS_CODES_BLOCKED = [401, 403, 429];
 
-export const BROWSER_SESSION_ID_KEY_NAME = 'APIFY_SESSION_ID';
+export const BROWSER_SESSION_KEY_NAME = 'APIFY_SESSION';

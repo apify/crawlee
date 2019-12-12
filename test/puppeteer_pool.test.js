@@ -6,7 +6,7 @@ import * as Apify from '../build/index';
 import { launchPuppeteer } from '../build/puppeteer';
 import { SessionPool } from '../build/session_pool/session_pool';
 import { LOCAL_STORAGE_DIR, emptyLocalStorageSubdir } from './_helper';
-import { BROWSER_SESSION_ID_KEY_NAME } from '../src/constants';
+import { BROWSER_SESSION_KEY_NAME } from '../src/constants';
 import { sleep } from '../src/utils';
 
 
@@ -647,9 +647,9 @@ describe('PuppeteerPool', () => {
             expect(pool.sessionPool.constructor.name).toEqual('SessionPool');
             const page = await pool.newPage();
             const browser = page.browser();
-            expect(browser[BROWSER_SESSION_ID_KEY_NAME].id).toEqual(sessionPool.sessions[0].id);
+            expect(browser[BROWSER_SESSION_KEY_NAME].id).toEqual(sessionPool.sessions[0].id);
             expect(
-                Object.values(pool.activeInstances).filter(instance => instance.session.id === browser[BROWSER_SESSION_ID_KEY_NAME].id),
+                Object.values(pool.activeInstances).filter(instance => instance.session.id === browser[BROWSER_SESSION_KEY_NAME].id),
             ).toHaveLength(1);
 
             sessionPool.sessions[0].retire();
