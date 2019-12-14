@@ -1,6 +1,7 @@
 import log from 'apify-shared/log';
 import { ENV_VARS } from 'apify-shared/consts';
 import * as Apify from '../../build';
+import { emptyLocalStorageSubdir, LOCAL_STORAGE_DIR } from '../_helper';
 
 describe('PuppeteerCrawler', () => {
     let prevEnvHeadless;
@@ -11,6 +12,11 @@ describe('PuppeteerCrawler', () => {
         process.env[ENV_VARS.HEADLESS] = '1';
         logLevel = log.getLevel();
         log.setLevel(log.LEVELS.ERROR);
+        process.env.APIFY_LOCAL_STORAGE_DIR = LOCAL_STORAGE_DIR;
+    });
+
+    afterEach(() => {
+        emptyLocalStorageSubdir('key_value_stores/default');
     });
 
     afterAll(() => {
@@ -89,5 +95,68 @@ describe('PuppeteerCrawler', () => {
 
             expect(failedCalled).toBe(false);
         }
+    });
+
+    test('should use SessionPool', async () => {
+        const requestList = new Apify.RequestList({
+            sources: [
+                { url: 'http://example.com/?q=1' },
+            ],
+        });
+        const handlePageSessions = [];
+        const goToPageSessions = [];
+        const puppeteerCrawler = new Apify.PuppeteerCrawler({
+            requestList,
+            useSessionPool: true,
+            handlePageFunction: ({ session }) => {
+                handlePageSessions.push(session);
+                return Promise.resolve();
+            },
+            gotoFunction: ({ session }) => {
+                goToPageSessions.push(session);
+                return Apify.launchPuppeteer();
+            },
+        });
+
+        await requestList.initialize();
+        await puppeteerCrawler.run();
+
+        expect(puppeteerCrawler.sessionPool.constructor.name).toEqual('SessionPool');
+        expect(handlePageSessions).toHaveLength(1);
+        expect(goToPageSessions).toHaveLength(1);
+        handlePageSessions.forEach(session => expect(session.constructor.name).toEqual('Session'));
+        goToPageSessions.forEach(session => expect(session.constructor.name).toEqual('Session'));
+    });
+
+    test('should persist cookies per session', async () => {
+        const requestList = new Apify.RequestList({
+            sources: [
+                { url: 'http://example.com/?q=1' },
+                { url: 'http://example.com/?q=2' },
+                { url: 'http://example.com/?q=3' },
+                { url: 'http://example.com/?q=4' },
+            ],
+        });
+        const goToPageSessions = [];
+        const loadedCookies = [];
+        const puppeteerCrawler = new Apify.PuppeteerCrawler({
+            requestList,
+            useSessionPool: true,
+            persistCookiesPerSession: true,
+            handlePageFunction: async ({ session, request }) => {
+                loadedCookies.push(session.getCookieString(request.url));
+                return Promise.resolve();
+            },
+            gotoFunction: async ({ session, page, request }) => {
+                await page.setCookie({ name: 'TEST', value: '12321312312', domain: 'example.com', expires: Date.now() + 100000 });
+                goToPageSessions.push(session);
+                return page.goto(request.url);
+            },
+        });
+
+        await requestList.initialize();
+        await puppeteerCrawler.run();
+        expect(loadedCookies).toHaveLength(4);
+        loadedCookies.forEach(cookie => expect(cookie).toEqual('TEST=12321312312'));
     });
 });

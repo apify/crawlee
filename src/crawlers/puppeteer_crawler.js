@@ -4,7 +4,7 @@ import _ from 'underscore';
 import BasicCrawler from './basic_crawler';
 import PuppeteerPool from '../puppeteer_pool';
 import { addTimeoutToPromise } from '../utils';
-import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
+import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER, BROWSER_SESSION_KEY_NAME } from '../constants';
 import { gotoExtended } from '../puppeteer_utils';
 import { openSessionPool } from '../session_pool/session_pool';
 
@@ -234,6 +234,7 @@ class PuppeteerCrawler {
         this.puppeteerPool = null; // Constructed when .run()
         this.useSessionPool = useSessionPool;
         this.sessionPoolOptions = sessionPoolOptions;
+        this.persistCookiesPerSession = persistCookiesPerSession;
 
         this.basicCrawler = new BasicCrawler({
             // Basic crawler options.
@@ -286,17 +287,26 @@ class PuppeteerCrawler {
         const page = await this.puppeteerPool.newPage();
 
         if (this.sessionPool) {
-            // @TODO: Handle cookies load here.
             const browser = page.browser();
-            // @TODO: Session pool method find my id;
-            session = browser.session;
+            session = browser[BROWSER_SESSION_KEY_NAME];
+
+            // setting cookies for page
+            if (this.persistCookiesPerSession) {
+                await page.setCookie(...session.getPuppeteerCookies(request.url));
+            }
         }
 
         try {
             const response = await this.gotoFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool, session });
             await this.puppeteerPool.serveLiveViewSnapshot(page);
-            // @TODO: Handle cookies save here.
             request.loadedUrl = page.url();
+
+            // save cookies
+            if (this.persistCookiesPerSession) {
+                const cookies = await page.cookies(request.loadedUrl);
+                session.putPuppeteerCookies(cookies, request.loadedUrl);
+            }
+
             await addTimeoutToPromise(
                 this.handlePageFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool, response, session }),
                 this.handlePageTimeoutMillis,
