@@ -5,21 +5,28 @@ import events from '../../build/events';
 
 import { ACTOR_EVENT_NAMES_EX } from '../../build/constants';
 import { Session } from '../../src/session_pool/session';
+import LocalStorageEmulator from '../local-storage-emulator';
 
 describe('SessionPool - testing session pool', () => {
     let sessionPool;
+    let localStorageEmulator;
 
-    beforeAll(() => {
-        process.env.APIFY_LOCAL_STORAGE_DIR = LOCAL_STORAGE_DIR;
+    beforeAll(async () => {
+        localStorageEmulator = new LocalStorageEmulator();
+        await localStorageEmulator.init();
     });
 
     beforeEach(async () => {
-        emptyLocalStorageSubdir('key_value_stores/default');
+        await localStorageEmulator.clean();
         sessionPool = await Apify.openSessionPool();
     });
 
     afterEach(() => {
         events.removeAllListeners(ACTOR_EVENT_NAMES_EX.PERSIST_STATE);
+    });
+
+    afterAll(async () => {
+        await localStorageEmulator.teardown();
     });
 
    // eslint-disable-line
