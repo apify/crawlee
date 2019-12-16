@@ -306,7 +306,7 @@ describe('PuppeteerPool', () => {
         // Check cache dirs were deleted
         expect(fs.existsSync(dir1)).toBe(false);
         expect(fs.existsSync(dir3)).toBe(false);
-    });
+    }, 10000);
 
     describe('reuse of browser tabs', () => {
         xit('should work', async () => {
@@ -633,7 +633,7 @@ describe('PuppeteerPool', () => {
         });
 
         afterEach(() => {
-            emptyLocalStorageSubdir('key_value_stores/default');
+            emptyLocalStorageSubdir('key_value_stores');
         });
 
         test('should work', async () => {
@@ -641,7 +641,6 @@ describe('PuppeteerPool', () => {
             await sessionPool.initialize();
             const pool = new Apify.PuppeteerPool({
                 launchPuppeteerOptions: { headless: true },
-                useLiveView: true,
                 sessionPool,
             });
             expect(pool.sessionPool.constructor.name).toEqual('SessionPool');

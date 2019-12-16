@@ -2,9 +2,9 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import log from 'apify-shared/log';
 import _ from 'underscore';
 import BasicCrawler from './basic_crawler';
-import PuppeteerPool from '../puppeteer_pool';
+import PuppeteerPool, { BROWSER_SESSION_KEY_NAME } from '../puppeteer_pool';
 import { addTimeoutToPromise } from '../utils';
-import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER, BROWSER_SESSION_KEY_NAME } from '../constants';
+import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { gotoExtended } from '../puppeteer_utils';
 import { openSessionPool } from '../session_pool/session_pool';
 

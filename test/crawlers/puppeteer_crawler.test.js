@@ -108,11 +108,11 @@ describe('PuppeteerCrawler', () => {
         const puppeteerCrawler = new Apify.PuppeteerCrawler({
             requestList,
             useSessionPool: true,
-            handlePageFunction: ({ session }) => {
+            handlePageFunction: async ({ session }) => {
                 handlePageSessions.push(session);
                 return Promise.resolve();
             },
-            gotoFunction: ({ session }) => {
+            gotoFunction: async ({ session }) => {
                 goToPageSessions.push(session);
                 return Apify.launchPuppeteer();
             },
