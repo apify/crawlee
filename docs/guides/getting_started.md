@@ -819,7 +819,7 @@ instances it creates with `userData` of your choice is extremely useful!
 > Hey, guys, you know, it's cool that we can scrape the `<title>` elements of web pages, but that's not very useful. Can we finally scrape some real
 > data and save it somewhere in a machine readable format? Because that's why started reading this tutorial in the first place!
 
-We hear you young padawan! First, learn how to crawl, you must. Only then, save data, you can!
+We hear you young padawan! First, learn how to crawl, you must. Only then, walk through data, you can!
 
 ### Making a store crawler 
 
