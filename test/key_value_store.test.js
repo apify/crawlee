@@ -4,15 +4,27 @@ import { ENV_VARS, KEY_VALUE_STORE_KEYS } from 'apify-shared/consts';
 import { KeyValueStoreLocal, KeyValueStore, maybeStringify, getFileNameRegexp, LOCAL_STORAGE_SUBDIR } from '../build/key_value_store';
 import * as utils from '../build/utils';
 import * as Apify from '../build/index';
-import { LOCAL_STORAGE_DIR, emptyLocalStorageSubdir, expectDirEmpty, expectDirNonEmpty } from './_helper';
+import { expectDirEmpty, expectDirNonEmpty } from './_helper';
+import LocalStorageEmulator from './local-storage-emulator';
 
 const { apifyClient } = utils;
 
 describe('KeyValueStore', () => {
-    beforeAll(() => apifyClient.setOptions({ token: 'xxx' }));
-    afterAll(() => apifyClient.setOptions({ token: undefined }));
-    beforeEach(() => emptyLocalStorageSubdir(LOCAL_STORAGE_SUBDIR));
-    afterEach(() => emptyLocalStorageSubdir(LOCAL_STORAGE_SUBDIR));
+    let localStorageEmulator;
+    let LOCAL_STORAGE_DIR;
+    beforeAll(async () => {
+        apifyClient.setOptions({ token: 'xxx' });
+        localStorageEmulator = new LocalStorageEmulator();
+        await localStorageEmulator.init();
+        LOCAL_STORAGE_DIR = localStorageEmulator.localStorageDir;
+    });
+    afterAll(async () => {
+        apifyClient.setOptions({ token: undefined });
+        await localStorageEmulator.teardown();
+    });
+    beforeEach(async () => {
+        await localStorageEmulator.clean();
+    });
 
     describe('maybeStringify()', () => {
         test('should work', () => {
