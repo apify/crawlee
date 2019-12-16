@@ -6,7 +6,7 @@ import * as Apify from '../build/index';
 import { launchPuppeteer } from '../build/puppeteer';
 import { SessionPool } from '../build/session_pool/session_pool';
 import { LOCAL_STORAGE_DIR, emptyLocalStorageSubdir } from './_helper';
-import { BROWSER_SESSION_KEY_NAME } from '../src/constants';
+import { BROWSER_SESSION_KEY_NAME } from '../build/puppeteer_pool';
 import { sleep } from '../src/utils';
 
 

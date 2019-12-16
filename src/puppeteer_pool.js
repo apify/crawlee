@@ -11,8 +11,8 @@ import { launchPuppeteer } from './puppeteer';
 import { addTimeoutToPromise } from './utils';
 import LiveViewServer from './live_view/live_view_server';
 import EVENTS from './session_pool/events';
-import { BROWSER_SESSION_KEY_NAME } from './constants';
 
+export const BROWSER_SESSION_KEY_NAME = 'APIFY_SESSION';
 
 const PROCESS_KILL_TIMEOUT_MILLIS = 5000;
 const PAGE_CLOSE_KILL_TIMEOUT_MILLIS = 1000;

@@ -125,5 +125,3 @@ export const BASIC_CRAWLER_TIMEOUT_MULTIPLIER = 10;
 export const COUNTRY_CODE_REGEX = /^[A-Z]{2}$/;
 
 export const STATUS_CODES_BLOCKED = [401, 403, 429];
-
-export const BROWSER_SESSION_KEY_NAME = 'APIFY_SESSION';
