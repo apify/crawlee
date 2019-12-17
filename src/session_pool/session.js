@@ -231,7 +231,7 @@ export class Session {
     /**
      * Get cookies.
      * Gets a array of `tough-cookie` Cookie instances.
-     * @param url
+     * @param url {String}
      * @return {Array<Object>}
      */
     getCookies(url) {
@@ -241,7 +241,7 @@ export class Session {
     /**
      * Wrapper around `tough-cookie` Cookie jar `getCookieString` method.
      * @param url
-     * @return {String} String representing `Cookie` header.
+     * @return {String} - represents `Cookie` header.
      */
     getCookieString(url) {
         return this.cookieJar.getCookieStringSync(url, {});
@@ -249,7 +249,7 @@ export class Session {
 
     /**
      * Gets cookies in format ready for puppeteer.
-     * @param url
+     * @param url {String}
      * @return {*}
      */
     getPuppeteerCookies(url) {
@@ -260,7 +260,7 @@ export class Session {
 
     /**
      *  Transforms puppeteer cookie to tough-cookie.
-     * @param puppeteerCookie - Cookie from puppeteer `page.cookies` method.
+     * @param puppeteerCookie {Object} - Cookie from puppeteer `page.cookies method.
      * @return {Cookie}
      * @private
      */
