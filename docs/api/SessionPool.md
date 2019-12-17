@@ -16,10 +16,10 @@ Session pool is by default persisted in default [`KeyValueStore`](keyvaluestore)
 ```javascript
 const sessionPool = new SessionPool({
     maxPoolSize: 25,
-    sessionOptions:{
-         maxAgeSecs: 10,
-         maxUsageCount: 150, // for example when you know that the site blocks after 150 requests.
-    }
+    sessionOptions: {
+        maxAgeSecs: 10,
+        maxUsageCount: 150, // for example when you know that the site blocks after 150 requests.
+    },
     persistStateKeyValueStoreId: 'my-key-value-store-for-sessions',
     persistStateKey: 'my-session-pool',
 });
@@ -38,14 +38,13 @@ const session3 = await sessionPool.getSession();
 // Now you can mark the session either failed of successful
 
 // Marks session as bad after unsuccessful usage -> it increases error count (soft retire)
-session1.markBad()
+session1.markBad();
 
 // Marks as successful.
-session2.markGood()
+session2.markGood();
 
 // Retires session -> session is removed from the pool
-session3.retire()
-
+session3.retire();
 ```
 
 -   [SessionPool](sessionpool)

@@ -21,7 +21,11 @@ internal state can be enriched with custom user data for example some authorizat
     -   [`.markBad()`](#Session+markBad)
     -   [`.checkStatus(statusCode)`](#Session+checkStatus) ⇒ `boolean`
     -   [`.putResponse(response)`](#Session+putResponse)
+    -   [`.putPuppeteerCookies(puppeteerCookies, url)`](#Session+putPuppeteerCookies)
+    -   [`.setCookies(cookies, url)`](#Session+setCookies)
+    -   [`.getCookies(url)`](#Session+getCookies) ⇒ `Array<Object>`
     -   [`.getCookieString(url)`](#Session+getCookieString) ⇒ `String`
+    -   [`.getPuppeteerCookies(url)`](#Session+getPuppeteerCookies) ⇒ `*`
 
 <a name="new_Session_new"></a>
 
@@ -193,13 +197,80 @@ Sets cookies from response to the cookieJar. Parses cookies from `set-cookie` he
 <tr>
 </tr></tbody>
 </table>
+<a name="Session+putPuppeteerCookies"></a>
+
+## `session.putPuppeteerCookies(puppeteerCookies, url)`
+
+Persists puppeteer cookies to session for reuse.
+
+<table>
+<thead>
+<tr>
+<th>Param</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>puppeteerCookies</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>cookie from puppeteer <code>page.cookies</code> method.</p>
+</td></tr><tr>
+<td><code>url</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Loaded url from page function.</p>
+</td></tr></tbody>
+</table>
+<a name="Session+setCookies"></a>
+
+## `session.setCookies(cookies, url)`
+
+Set cookies to session cookieJar. Cookies array should be compatible with tough-cookie.
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cookies</code></td><td><code>Array<Cookie></code></td>
+</tr>
+<tr>
+</tr><tr>
+<td><code>url</code></td><td><code>String</code></td>
+</tr>
+<tr>
+</tr></tbody>
+</table>
+<a name="Session+getCookies"></a>
+
+## `session.getCookies(url)` ⇒ `Array<Object>`
+
+Get cookies. Gets a array of `tough-cookie` Cookie instances.
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>url</code></td><td><code>String</code></td>
+</tr>
+<tr>
+</tr></tbody>
+</table>
 <a name="Session+getCookieString"></a>
 
 ## `session.getCookieString(url)` ⇒ `String`
 
 Wrapper around `tough-cookie` Cookie jar `getCookieString` method.
 
-**Returns**: `String` - String representing `Cookie` header.
+**Returns**: `String` - - represents `Cookie` header.
 
 <table>
 <thead>
@@ -210,6 +281,25 @@ Wrapper around `tough-cookie` Cookie jar `getCookieString` method.
 <tbody>
 <tr>
 <td><code>url</code></td>
+</tr>
+<tr>
+</tr></tbody>
+</table>
+<a name="Session+getPuppeteerCookies"></a>
+
+## `session.getPuppeteerCookies(url)` ⇒ `*`
+
+Gets cookies in format ready for puppeteer.
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>url</code></td><td><code>String</code></td>
 </tr>
 <tr>
 </tr></tbody>
