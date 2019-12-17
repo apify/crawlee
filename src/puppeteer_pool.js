@@ -28,7 +28,6 @@ const DEFAULT_OPTIONS = {
     instanceKillerIntervalSecs: 60,
     killInstanceAfterSecs: 300,
 
-    // TODO: use settingsRotator()
     launchPuppeteerFunction: launchPuppeteerOptions => launchPuppeteer(launchPuppeteerOptions),
 
     recycleDiskCache: false,

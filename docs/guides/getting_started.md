@@ -819,9 +819,11 @@ instances it creates with `userData` of your choice is extremely useful!
 > Hey, guys, you know, it's cool that we can scrape the `<title>` elements of web pages, but that's not very useful. Can we finally scrape some real
 > data and save it somewhere in a machine readable format? Because that's why started reading this tutorial in the first place!
 
-We hear you young padawan! First, learn how to crawl, you must. Only then, save data, you can!
+We hear you young padawan! First, learn how to crawl, you must. Only then, walk through data, you can!
 
-### Making a store crawler Fortunately, we don't have to travel to a galaxy far far away to find a good candidate for learning how to scrape
+### Making a store crawler 
+
+Fortunately, we don't have to travel to a galaxy far far away to find a good candidate for learning how to scrape
 structured data. The <a href="https://apify.com/store" target="_blank">Apify Store</a> is a store of public actors that anyone can grab and use. You
 can find ready-made solutions for crawling <a href="https://apify.com/drobnikj/crawler-google-places" target="_blank">Google Places</a>,
 <a href="https://apify.com/vaclavrut/amazon-crawler" target="_blank">Amazon</a>,
@@ -962,7 +964,9 @@ const crawler = new Apify.CheerioCrawler({
 > code and perhaps quite a long time, if we were talking about tens of thousands or more `Requests`. The crawlers do it while running, so the time to
 > enqueue is spread out and you won't even notice it.
 
-#### Sanity check It's always useful to create some simple boilerplate code to see that we've got everything set up correctly before we start to write
+#### Sanity check 
+
+It's always useful to create some simple boilerplate code to see that we've got everything set up correctly before we start to write
 the scraping logic itself. We might realize that something in our previous analysis doesn't quite add up, or the website might not behave exactly the
 same as we expected.
 
@@ -1069,8 +1073,9 @@ const handlePageFunction = async ({ $, request }) => {
             requestQueue,
             selector: 'div.item > a',
             baseUrl: request.loadedUrl,
-            userData: {
-                detailPage: true,
+            transformRequestFunction: req => {
+                req.userData.detailPage = true;
+                return req;
             },
         });
     }

@@ -711,13 +711,14 @@ export const metamorph = async (targetActorId, input, options = {}) => {
  *   All HTTP requests going through the proxy with the same session identifier
  *   will use the same target proxy server (i.e. the same IP address), unless using Residential proxies.
  *   The identifier can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
- * @param {String} [options.country] If specified, all proxied requests will use IP addresses that geolocated to the specified country.
- * For example country-GB for IP's from Great Britain.
+ * @param {String} [options.country] If specified, all proxied requests will use IP addresses that are geolocated to the specified country.
+ * For example `GB` for IPs from Great Britain. Note that online services often have their own rules for handling geolocation and thus
+ * the country selection is a best attempt at geolocation, rather than a guaranteed hit.
  * This parameter is optional, by default, each proxied request is assigned an IP address from a random country.
  * The country code needs to be a two letter ISO country code
  * \- see the <a href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements" target="_blank">
- *full list of available country codes
- *</a>
+ * full list of available country codes
+ * </a>.
  *
  * This parameter is optional, by default, the proxy uses all available proxy servers from all countries.
  *

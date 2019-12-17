@@ -1,7 +1,7 @@
 import scanner from 'fpscanner';
 
 import Apify from '../../build';
-import { LOCAL_STORAGE_DIR, emptyLocalStorageSubdir } from '../_helper';
+import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 
 const fingerPrintPath = require.resolve('fpcollect/dist/fpCollect.min.js');
 
@@ -13,10 +13,21 @@ const getFingerPrint = async (page) => {
 
 // we can speed up the test to make the requests to the local static html
 describe('Stealth - testing headless chrome hiding tricks', () => {
+    let localStorageEmulator;
+
     beforeAll(async () => {
-        process.env.APIFY_LOCAL_STORAGE_DIR = LOCAL_STORAGE_DIR;
-        await emptyLocalStorageSubdir('key_value_stores/default');
+        localStorageEmulator = new LocalStorageDirEmulator();
+        await localStorageEmulator.init();
     });
+
+    beforeEach(async () => {
+        await localStorageEmulator.clean();
+    });
+
+    afterAll(async () => {
+        await localStorageEmulator.destroy();
+    });
+
     test('it adds plugins, mimeTypes and passes', async () => {
         const browser = await Apify.launchPuppeteer({
             stealth: true,

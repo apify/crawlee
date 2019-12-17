@@ -11,7 +11,7 @@ import Apify from '../../build';
 import { sleep } from '../../build/utils';
 import { Session } from '../../build/session_pool/session';
 import { STATUS_CODES_BLOCKED } from '../../build/constants';
-import { emptyLocalStorageSubdir, LOCAL_STORAGE_DIR } from '../_helper';
+import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 
 // Add common props to mocked request responses.
 const responseMock = {
@@ -148,12 +148,20 @@ describe('CheerioCrawler', () => {
         port = server.address().port; //eslint-disable-line
     });
 
-    afterAll(() => {
-        log.setLevel(logLevel);
+    let localStorageEmulator;
+
+    beforeAll(async () => {
+        localStorageEmulator = new LocalStorageDirEmulator();
+        await localStorageEmulator.init();
     });
 
     beforeEach(async () => {
-        process.env.APIFY_LOCAL_STORAGE_DIR = LOCAL_STORAGE_DIR;
+        await localStorageEmulator.clean();
+    });
+
+    afterAll(async () => {
+        log.setLevel(logLevel);
+        await localStorageEmulator.destroy();
     });
 
     test('should work', async () => {
@@ -795,12 +803,8 @@ describe('CheerioCrawler', () => {
         let requestList;
 
         beforeEach(async () => {
-            process.env.APIFY_LOCAL_STORAGE_DIR = LOCAL_STORAGE_DIR;
+            await localStorageEmulator.clean();
             requestList = await Apify.openRequestList('test', sources);
-        });
-
-        afterEach(() => {
-            emptyLocalStorageSubdir('key_value_stores/default');
         });
 
         test('should work', async () => {

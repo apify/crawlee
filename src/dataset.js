@@ -9,7 +9,7 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, MAX_PAYLOAD_SIZE_BYTES } from 'apify-shared/consts';
 import { apifyClient, ensureDirExists, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists } from './utils';
 
-export const DATASET_ITERATORS_DEFAULT_LIMIT = 250000;
+export const DATASET_ITERATORS_DEFAULT_LIMIT = 10000;
 export const LOCAL_STORAGE_SUBDIR = LOCAL_STORAGE_SUBDIRS.datasets;
 export const LOCAL_FILENAME_DIGITS = 9;
 export const LOCAL_GET_ITEMS_DEFAULT_LIMIT = 250000;
@@ -336,11 +336,9 @@ export class Dataset {
      * @param {Function} iteratee A function that is called for every item in the dataset.
      * @param {Object} [options] All `forEach()` parameters are passed
      *   via an options object with the following keys:
-     * @param {Number} [options.offset=0] Number of array elements that should be skipped at the start.
      * @param {Boolean} [options.desc=false] If `true` then the objects are sorted by `createdAt` in descending order.
      * @param {Array} [options.fields] If provided then returned objects will only contain specified keys.
      * @param {String} [options.unwind] If provided then objects will be unwound based on provided field.
-     * @param {Number} [options.limit=250000] How many items to load in one request.
      * @param {Number} [index=0] Specifies the initial index number passed to the `iteratee` function.
      * @return {Promise}
      */
@@ -373,11 +371,9 @@ export class Dataset {
      * @param {Function} iteratee
      * @param {Object} options All `map()` parameters are passed
      *   via an options object with the following keys:
-     * @param {Number} [options.offset=0] Number of array elements that should be skipped at the start.
      * @param {Boolean} [options.desc=false] If `true` then the objects are sorted by createdAt in descending order.
      * @param {Array} [options.fields] If provided then returned objects will only contain specified keys
      * @param {String} [options.unwind] If provided then objects will be unwound based on provided field.
-     * @param {Number} [options.limit=250000] How many items to load in one request.
      * @return {Promise<Array>}
      */
     map(iteratee, options) {
@@ -410,11 +406,9 @@ export class Dataset {
      * @param {*} memo Initial state of the reduction.
      * @param {Object} options All `reduce()` parameters are passed
      *   via an options object with the following keys:
-     * @param {Number} [options.offset=0] Number of array elements that should be skipped at the start.
      * @param {Boolean} [options.desc=false] If `true` then the objects are sorted by createdAt in descending order.
      * @param {Array} [options.fields] If provided then returned objects will only contain specified keys
      * @param {String} [options.unwind] If provided then objects will be unwound based on provided field.
-     * @param {Number} [options.limit=250000] How many items to load in one request.
      * @return {Promise<*>}
      */
     reduce(iteratee, memo, options) {
@@ -523,6 +517,7 @@ export class DatasetLocal {
         checkParamOrThrow(opts, 'opts', 'Object');
         checkParamOrThrow(opts.limit, 'opts.limit', 'Maybe Number');
         checkParamOrThrow(opts.offset, 'opts.offset', 'Maybe Number');
+        checkParamOrThrow(opts.desc, 'opts.desc', 'Maybe Boolean');
 
         if (opts.format && opts.format !== 'json') {
             throw new Error(`Datasets with local disk storage only support the "json" format (was "${opts.format}")`);
@@ -545,7 +540,7 @@ export class DatasetLocal {
 
         this._updateMetadata();
         return {
-            items,
+            items: opts.desc ? items.reverse() : items,
             total: this.counter,
             offset: opts.offset,
             count: items.length,

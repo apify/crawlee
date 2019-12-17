@@ -2,6 +2,7 @@ NEXT
 ====================
 - Add `SessionPool` implemenation to `CheerioCrawler`.
 - Fix `Request` constructor not making a copy of objects such as `userData` and `headers`.
+- Fix `desc` option not being applied in local `dataset.getData()`.
 
 0.17.0 / 2019-11-25
 ====================

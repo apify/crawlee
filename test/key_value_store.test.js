@@ -4,15 +4,30 @@ import { ENV_VARS, KEY_VALUE_STORE_KEYS } from 'apify-shared/consts';
 import { KeyValueStoreLocal, KeyValueStore, maybeStringify, getFileNameRegexp, LOCAL_STORAGE_SUBDIR } from '../build/key_value_store';
 import * as utils from '../build/utils';
 import * as Apify from '../build/index';
-import { LOCAL_STORAGE_DIR, emptyLocalStorageSubdir, expectDirEmpty, expectDirNonEmpty } from './_helper';
+import { expectDirEmpty, expectDirNonEmpty } from './_helper';
+import LocalStorageDirEmulator from './local_storage_dir_emulator';
 
 const { apifyClient } = utils;
 
 describe('KeyValueStore', () => {
-    beforeAll(() => apifyClient.setOptions({ token: 'xxx' }));
-    afterAll(() => apifyClient.setOptions({ token: undefined }));
-    beforeEach(() => emptyLocalStorageSubdir(LOCAL_STORAGE_SUBDIR));
-    afterEach(() => emptyLocalStorageSubdir(LOCAL_STORAGE_SUBDIR));
+    let localStorageEmulator;
+    let localStorageDir;
+
+    beforeAll(async () => {
+        apifyClient.setOptions({ token: 'xxx' });
+        localStorageEmulator = new LocalStorageDirEmulator();
+        await localStorageEmulator.init();
+        localStorageDir = localStorageEmulator.localStorageDir; // eslint-disable-line
+    });
+
+    afterAll(async () => {
+        apifyClient.setOptions({ token: undefined });
+        await localStorageEmulator.destroy();
+    });
+
+    beforeEach(async () => {
+        await localStorageEmulator.clean();
+    });
 
     describe('maybeStringify()', () => {
         test('should work', () => {
@@ -52,8 +67,8 @@ describe('KeyValueStore', () => {
 
     describe('local', () => {
         test('should work', async () => {
-            const store = new KeyValueStoreLocal('my-store-id', LOCAL_STORAGE_DIR);
-            const store2 = new KeyValueStoreLocal('another-store-id', LOCAL_STORAGE_DIR);
+            const store = new KeyValueStoreLocal('my-store-id', localStorageDir);
+            const store2 = new KeyValueStoreLocal('another-store-id', localStorageDir);
             const buffer = Buffer.from('some text value');
 
             await store.setValue('key-obj', { foo: 'bar' });
@@ -94,17 +109,17 @@ describe('KeyValueStore', () => {
             expect(await store2.getValue('key-badctype')).toEqual(buffer);
 
             // Drop works.
-            const storeDir = path.join(LOCAL_STORAGE_DIR, LOCAL_STORAGE_SUBDIR, 'my-store-id');
+            const storeDir = path.join(localStorageDir, LOCAL_STORAGE_SUBDIR, 'my-store-id');
             expectDirNonEmpty(storeDir);
             await store.drop();
             expectDirEmpty(storeDir);
         });
 
         test('deprecated delete() still works', async () => {
-            const kvs = new KeyValueStoreLocal('to-delete', LOCAL_STORAGE_DIR);
+            const kvs = new KeyValueStoreLocal('to-delete', localStorageDir);
             await kvs.setValue('dummy', { foo: 'bar' });
 
-            const kvsDir = path.join(LOCAL_STORAGE_DIR, LOCAL_STORAGE_SUBDIR, 'to-delete');
+            const kvsDir = path.join(localStorageDir, LOCAL_STORAGE_SUBDIR, 'to-delete');
             expectDirNonEmpty(kvsDir);
             await kvs.delete();
             expectDirEmpty(kvsDir);
@@ -182,7 +197,7 @@ describe('KeyValueStore', () => {
         test('should work', async () => {
             const mock = sinon.mock(utils);
 
-            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = LOCAL_STORAGE_DIR;
+            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = localStorageDir;
 
             mock.expects('openLocalStorage').once();
             await Apify.openKeyValueStore();
@@ -208,7 +223,7 @@ describe('KeyValueStore', () => {
     describe('getValue', () => {
         test('throws on invalid args', async () => {
             process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID] = '1234';
-            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = LOCAL_STORAGE_DIR;
+            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = localStorageDir;
             await expect(Apify.getValue()).rejects.toThrow('Parameter "key" of type String must be provided');
             await expect(Apify.getValue({})).rejects.toThrow('Parameter "key" of type String must be provided');
             await expect(Apify.getValue('')).rejects.toThrow('The "key" parameter cannot be empty');
@@ -234,7 +249,7 @@ describe('KeyValueStore', () => {
     describe('setValue', () => {
         test('throws on invalid args', async () => {
             process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID] = '12345';
-            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = LOCAL_STORAGE_DIR;
+            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = localStorageDir;
 
             await expect(Apify.setValue()).rejects.toThrow('Parameter "key" of type String must be provided');
             await expect(Apify.setValue('', null)).rejects.toThrow('The "key" parameter cannot be empty');
@@ -278,7 +293,7 @@ describe('KeyValueStore', () => {
         });
 
         test('throws on invalid key', async () => {
-            const store = new KeyValueStoreLocal('my-store-id', LOCAL_STORAGE_DIR);
+            const store = new KeyValueStoreLocal('my-store-id', localStorageDir);
             const INVALID_CHARACTERS = '?|\\/"*<>%:';
             let counter = 0;
 
@@ -396,8 +411,8 @@ describe('KeyValueStore', () => {
 
     describe('getPublicUrl', () => {
         test('should return the local url of a file', () => {
-            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = LOCAL_STORAGE_DIR;
-            const store = new KeyValueStoreLocal('my-store-id', LOCAL_STORAGE_DIR);
+            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = localStorageDir;
+            const store = new KeyValueStoreLocal('my-store-id', localStorageDir);
             expect(store.getPublicUrl('file.txt')).toBe(`file://${store.localStoragePath}/file.txt`);
             delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
         });
@@ -475,7 +490,7 @@ describe('KeyValueStore', () => {
 
         test('should work locally', async () => {
             const storeId = 'some-id-1';
-            const store = new KeyValueStoreLocal(storeId, LOCAL_STORAGE_DIR);
+            const store = new KeyValueStoreLocal(storeId, localStorageDir);
 
             for (let i = 0; i < 10; i++) {
                 await store.setValue(`key${i}`, {});
@@ -494,7 +509,7 @@ describe('KeyValueStore', () => {
             });
 
             // Drop works.
-            const storeDir = path.join(LOCAL_STORAGE_DIR, LOCAL_STORAGE_SUBDIR, storeId);
+            const storeDir = path.join(localStorageDir, LOCAL_STORAGE_SUBDIR, storeId);
             expectDirNonEmpty(storeDir);
             await store.drop();
             expectDirEmpty(storeDir);
@@ -503,7 +518,7 @@ describe('KeyValueStore', () => {
 
     describe('getInput', () => {
         test('should work', async () => {
-            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = LOCAL_STORAGE_DIR;
+            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = localStorageDir;
             const defaultStore = await Apify.openKeyValueStore();
             // Uses default value.
             const oldGet = defaultStore.getValue;
