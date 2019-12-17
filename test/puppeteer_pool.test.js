@@ -553,6 +553,7 @@ describe('PuppeteerPool', () => {
                 } catch (err) {
                     expect(err.message).toMatch('must not be empty');
                 }
+
                 await pool.destroy();
             });
         });
