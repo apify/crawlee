@@ -1,27 +1,28 @@
 import log from 'apify-shared/log';
 import { ENV_VARS } from 'apify-shared/consts';
 import * as Apify from '../../build';
-import { emptyLocalStorageSubdir, LOCAL_STORAGE_DIR } from '../_helper';
+import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 
 describe('PuppeteerCrawler', () => {
     let prevEnvHeadless;
     let logLevel;
+    let localStorageEmulator;
 
-    beforeAll(() => {
+    beforeAll(async () => {
         prevEnvHeadless = process.env[ENV_VARS.HEADLESS];
         process.env[ENV_VARS.HEADLESS] = '1';
         logLevel = log.getLevel();
         log.setLevel(log.LEVELS.ERROR);
-        process.env.APIFY_LOCAL_STORAGE_DIR = LOCAL_STORAGE_DIR;
+        localStorageEmulator = new LocalStorageDirEmulator();
+        await localStorageEmulator.init();
     });
-
-    afterEach(() => {
-        emptyLocalStorageSubdir('key_value_stores/default');
+    afterEach(async () => {
+        await localStorageEmulator.clean();
     });
-
-    afterAll(() => {
+    afterAll(async () => {
         log.setLevel(logLevel);
         process.env[ENV_VARS.HEADLESS] = prevEnvHeadless;
+        await localStorageEmulator.destroy();
     });
 
     test('should work', async () => {

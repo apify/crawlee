@@ -5,9 +5,9 @@ import { ENV_VARS } from 'apify-shared/consts';
 import * as Apify from '../build/index';
 import { launchPuppeteer } from '../build/puppeteer';
 import { SessionPool } from '../build/session_pool/session_pool';
-import { LOCAL_STORAGE_DIR, emptyLocalStorageSubdir } from './_helper';
 import { BROWSER_SESSION_KEY_NAME } from '../build/puppeteer_pool';
 import { sleep } from '../src/utils';
+import LocalStorageDirEmulator from './local_storage_dir_emulator';
 
 
 const shortSleep = (millis = 25) => new Promise(resolve => setTimeout(resolve, millis));
@@ -628,12 +628,19 @@ describe('PuppeteerPool', () => {
     });
 
     describe('uses sessionPool', () => {
-        beforeAll(() => {
-            process.env.APIFY_LOCAL_STORAGE_DIR = LOCAL_STORAGE_DIR;
+        let localStorageEmulator;
+
+        beforeAll(async () => {
+            localStorageEmulator = new LocalStorageDirEmulator();
+            await localStorageEmulator.init();
         });
 
-        afterEach(() => {
-            emptyLocalStorageSubdir('key_value_stores');
+        afterEach(async () => {
+            await localStorageEmulator.clean();
+        });
+
+        afterAll(async () => {
+            await localStorageEmulator.destroy();
         });
 
         test('should work', async () => {
