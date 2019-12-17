@@ -512,6 +512,7 @@ describe('PuppeteerPool', () => {
             expect(optionsLog[1].proxyUrl).toEqual(proxies[1]);
             expect(optionsLog[2].proxyUrl).toEqual(proxies[2]);
             expect(optionsLog[3].proxyUrl).toEqual(proxies[0]);
+            await pool.destroy();
         });
 
         describe('throws', () => {
@@ -521,7 +522,6 @@ describe('PuppeteerPool', () => {
             });
             afterEach(async () => {
                 log.setLevel(log.LEVELS.ERROR);
-                if (pool) await pool.destroy();
             });
 
             test('when used with useApifyProxy', async () => {
@@ -540,6 +540,7 @@ describe('PuppeteerPool', () => {
                 } catch (err) {
                     expect(err.stack).toMatch('useApifyProxy');
                 }
+                await pool.destroy();
             });
 
             test('when empty', async () => {
@@ -552,27 +553,26 @@ describe('PuppeteerPool', () => {
                 } catch (err) {
                     expect(err.message).toMatch('must not be empty');
                 }
+                await pool.destroy();
             });
         });
     });
 
     describe('prevents hanging of puppeteer operations', () => {
-        let pool;
         beforeEach(() => {
             log.setLevel(log.LEVELS.OFF);
-            pool = new Apify.PuppeteerPool({
-                launchPuppeteerOptions: {
-                    headless: true,
-                },
-            });
         });
         afterEach(async () => {
             log.setLevel(log.LEVELS.ERROR);
-            await pool.destroy();
         });
 
         test('should work', async () => {
             // Start browser;
+            const pool = new Apify.PuppeteerPool({
+                launchPuppeteerOptions: {
+                    headless: true,
+                },
+            });
             await pool._openNewTab(); // eslint-disable-line no-underscore-dangle
             pool.puppeteerOperationTimeoutMillis = 0.005;
             try {
@@ -581,6 +581,7 @@ describe('PuppeteerPool', () => {
             } catch (err) {
                 expect(err.stack).toMatch('PuppeteerPool: browser.newPage() timed out.');
             }
+            await pool.destroy();
         });
     });
 
