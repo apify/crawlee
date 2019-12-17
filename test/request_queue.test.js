@@ -6,9 +6,10 @@ import * as Apify from '../build/index';
 import * as utils from '../build/utils';
 import {
     RequestQueueLocal, RequestQueue,
-    LOCAL_STORAGE_SUBDIR, QUERY_HEAD_MIN_LENGTH, API_PROCESSED_REQUESTS_DELAY_MILLIS, STORAGE_CONSISTENCY_DELAY_MILLIS,
+    LOCAL_STORAGE_SUBDIR, LOCAL_STORAGE_DIR, QUERY_HEAD_MIN_LENGTH, API_PROCESSED_REQUESTS_DELAY_MILLIS, STORAGE_CONSISTENCY_DELAY_MILLIS,
 } from '../build/request_queue';
-import { emptyLocalStorageSubdir, LOCAL_STORAGE_DIR, expectNotUsingLocalStorage, expectDirEmpty, expectDirNonEmpty } from './_helper';
+import { expectNotUsingLocalStorage, expectDirEmpty, expectDirNonEmpty } from './_helper';
+import LocalStorageDirEmulator from './local_storage_dir_emulator';
 
 const { apifyClient } = utils;
 
@@ -19,12 +20,29 @@ const expectRequestsSame = (req1, req2) => {
 describe('RequestQueue', () => {
     beforeAll(() => apifyClient.setOptions({ token: 'xxx' }));
     afterAll(() => apifyClient.setOptions({ token: undefined }));
-    beforeEach(() => emptyLocalStorageSubdir(LOCAL_STORAGE_SUBDIR));
-    afterEach(() => emptyLocalStorageSubdir(LOCAL_STORAGE_SUBDIR));
 
     describe('local', () => {
+        let localStorageEmulator;
+        let localStorageDir;
+
+        beforeAll(async () => {
+            apifyClient.setOptions({ token: 'xxx' });
+            localStorageEmulator = new LocalStorageDirEmulator();
+            await localStorageEmulator.init();
+            localStorageDir = localStorageEmulator.localStorageDir; // eslint-disable-line
+        });
+
+        afterAll(async () => {
+            apifyClient.setOptions({ token: undefined });
+            await localStorageEmulator.destroy();
+        });
+
+        beforeEach(async () => {
+            await localStorageEmulator.clean();
+        });
+
         test('should work', async () => {
-            const queue = new RequestQueueLocal('my-queue-0', LOCAL_STORAGE_DIR);
+            const queue = new RequestQueueLocal('my-queue-0', localStorageDir);
 
             const req1 = new Apify.Request({ url: 'http://example.com/first' });
             const info1 = await queue.addRequest(req1);
@@ -110,14 +128,14 @@ describe('RequestQueue', () => {
             expect(await queue.isFinished()).toBe(true);
 
             // Drop it.
-            const queueDir = path.join(LOCAL_STORAGE_DIR, LOCAL_STORAGE_SUBDIR, 'my-queue-0');
+            const queueDir = path.join(localStorageDir, LOCAL_STORAGE_SUBDIR, 'my-queue-0');
             expectDirNonEmpty(queueDir);
             await queue.drop();
             expectDirEmpty(queueDir);
         });
 
         test('handles invalid URLs gracefully', async () => {
-            const queue = new RequestQueueLocal('my-queue-x', LOCAL_STORAGE_DIR);
+            const queue = new RequestQueueLocal('my-queue-x', localStorageDir);
 
             try {
                 await queue.addRequest({ url: '' });
@@ -143,7 +161,7 @@ describe('RequestQueue', () => {
         });
 
         test('supports forefront param in reclaimRequest()', async () => {
-            const queue = new RequestQueueLocal('my-queue-1', LOCAL_STORAGE_DIR);
+            const queue = new RequestQueueLocal('my-queue-1', localStorageDir);
 
             await queue.addRequest(new Apify.Request({ url: 'http://example.com/first' }));
             await queue.addRequest(new Apify.Request({ url: 'http://example.com/middle' }));
@@ -176,7 +194,7 @@ describe('RequestQueue', () => {
             const request3 = new Apify.Request({ url: 'http://example.com/last-but-first' });
 
             // Do something with 3 requests in one queue.
-            const queue = new RequestQueueLocal('my-queue-2', LOCAL_STORAGE_DIR);
+            const queue = new RequestQueueLocal('my-queue-2', localStorageDir);
             await queue.addRequest(request1);
             await queue.addRequest(request2);
             await queue.addRequest(request3, { forefront: true });
@@ -187,7 +205,7 @@ describe('RequestQueue', () => {
             await queue.markRequestHandled(freshRequest1);
 
             // Now do the same with another queue.
-            const anotherQueue = new RequestQueueLocal('my-queue-2', LOCAL_STORAGE_DIR);
+            const anotherQueue = new RequestQueueLocal('my-queue-2', localStorageDir);
             expect(await anotherQueue.isEmpty()).toBe(false);
             expect(await anotherQueue.isFinished()).toBe(false);
             const request3FromAnotherQueue = await anotherQueue.fetchNextRequest();
@@ -203,7 +221,7 @@ describe('RequestQueue', () => {
         });
 
         test('should accept plain object in addRequest()', async () => {
-            const queue = new RequestQueueLocal('some-id', LOCAL_STORAGE_DIR);
+            const queue = new RequestQueueLocal('some-id', localStorageDir);
             await queue.addRequest({ url: 'http://example.com/a' });
             expect(
                 (await queue.fetchNextRequest()).url,
@@ -212,7 +230,7 @@ describe('RequestQueue', () => {
 
         test('getInfo() and handledCount() should work', async () => {
             const queueName = 'stats-queue';
-            const queue = new RequestQueueLocal(queueName, LOCAL_STORAGE_DIR);
+            const queue = new RequestQueueLocal(queueName, localStorageDir);
             let count = await queue.handledCount();
             let info;
             expect(count).toBe(0);
@@ -273,7 +291,7 @@ describe('RequestQueue', () => {
             expect(mTime).toBeLessThan(now);
             expect(aTime).toBeLessThan(now);
 
-            const newQueue = new RequestQueueLocal(queueName, LOCAL_STORAGE_DIR);
+            const newQueue = new RequestQueueLocal(queueName, localStorageDir);
             count = await newQueue.handledCount();
             info = await queue.getInfo();
             expect(count).toBe(3);
@@ -283,10 +301,10 @@ describe('RequestQueue', () => {
         });
 
         test('deprecated delete() still works', async () => {
-            const rq = new RequestQueueLocal('to-delete', LOCAL_STORAGE_DIR);
+            const rq = new RequestQueueLocal('to-delete', localStorageDir);
             await rq.addRequest({ url: 'https://example.com' });
 
-            const rqDir = path.join(LOCAL_STORAGE_DIR, LOCAL_STORAGE_SUBDIR, 'to-delete');
+            const rqDir = path.join(localStorageDir, LOCAL_STORAGE_SUBDIR, 'to-delete');
             expectDirNonEmpty(rqDir);
             await rq.delete();
             expectDirEmpty(rqDir);

@@ -6,22 +6,29 @@ import * as Apify from '../../build';
 import * as keyValueStore from '../../build/key_value_store';
 import { RequestQueue, RequestQueueLocal } from '../../build/request_queue';
 import { sleep } from '../../build/utils';
-import { LOCAL_STORAGE_DIR, emptyLocalStorageSubdir } from '../_helper';
 import events from '../../build/events';
+import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 
 describe('BasicCrawler', () => {
     let logLevel;
+    let localStorageEmulator;
+    let LOCAL_STORAGE_DIR;
 
-    beforeAll(() => {
+    beforeAll(async () => {
         logLevel = log.getLevel();
         log.setLevel(log.LEVELS.OFF);
-        process.env.APIFY_LOCAL_STORAGE_DIR = LOCAL_STORAGE_DIR;
-        emptyLocalStorageSubdir('key_value_stores/default');
+        localStorageEmulator = new LocalStorageDirEmulator();
+        await localStorageEmulator.init();
+        LOCAL_STORAGE_DIR = localStorageEmulator.localStorageDir;
     });
 
-    afterAll(() => {
+    beforeEach(async () => {
+        await localStorageEmulator.clean();
+    });
+
+    afterAll(async () => {
+        await localStorageEmulator.destroy();
         log.setLevel(logLevel);
-        emptyLocalStorageSubdir('key_value_stores/default');
     });
 
     test('should run in parallel thru all the requests', async () => {
@@ -659,7 +666,7 @@ describe('BasicCrawler', () => {
             expect(crawler.sessionPool.maxPoolSize).toEqual(10);
         });
 
-        it('should teardown Session pool after it is finished', async () => {
+        it('should destroy Session pool after it is finished', async () => {
             const url = 'https://example.com';
             const requestList = new Apify.RequestList({ sources: [{ url }] });
             await requestList.initialize();

@@ -1,18 +1,17 @@
-import { LOCAL_STORAGE_DIR, emptyLocalStorageSubdir } from '../_helper';
 import { SessionPool, openSessionPool } from '../../build/session_pool/session_pool';
 import Apify from '../../build';
 import events from '../../build/events';
 
 import { ACTOR_EVENT_NAMES_EX } from '../../build/constants';
 import { Session } from '../../src/session_pool/session';
-import LocalStorageEmulator from '../local-storage-emulator';
+import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 
 describe('SessionPool - testing session pool', () => {
     let sessionPool;
     let localStorageEmulator;
 
     beforeAll(async () => {
-        localStorageEmulator = new LocalStorageEmulator();
+        localStorageEmulator = new LocalStorageDirEmulator();
         await localStorageEmulator.init();
     });
 
@@ -21,12 +20,13 @@ describe('SessionPool - testing session pool', () => {
         sessionPool = await Apify.openSessionPool();
     });
 
-    afterEach(() => {
+    afterEach(async () => {
         events.removeAllListeners(ACTOR_EVENT_NAMES_EX.PERSIST_STATE);
+        await localStorageEmulator.clean();
     });
 
     afterAll(async () => {
-        await localStorageEmulator.teardown();
+        await localStorageEmulator.destroy();
     });
 
    // eslint-disable-line
@@ -60,6 +60,8 @@ describe('SessionPool - testing session pool', () => {
         Object.entries(opts).forEach(([key, value]) => {
             expect(sessionPool[key]).toEqual(value);
         });
+        const store = await Apify.openKeyValueStore('TEST');
+        await store.drop();
     });
 
     test('should work using openSessionPool', async () => {
@@ -84,6 +86,8 @@ describe('SessionPool - testing session pool', () => {
         Object.entries(opts).forEach(([key, value]) => {
             expect(sessionPool[key]).toEqual(value);
         });
+        const store = await Apify.openKeyValueStore('TEST');
+        await store.drop();
     });
 
     describe('should retrieve session', () => {
@@ -199,7 +203,6 @@ describe('SessionPool - testing session pool', () => {
         });
 
         afterEach(async () => {
-            await emptyLocalStorageSubdir(`key_value_stores/${KV_STORE}`);
             sessionPool.teardown();
         });
 

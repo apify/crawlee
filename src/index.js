@@ -14,7 +14,6 @@ import PuppeteerPool from './puppeteer_pool';
 import Request from './request';
 import { RequestList, openRequestList } from './request_list';
 import { openRequestQueue } from './request_queue';
-import SettingsRotator from './settings_rotator';
 import { apifyClient, getMemoryInfo, isAtHome, publicUtils, logSystemInfo, printOutdatedSdkWarning } from './utils';
 import { puppeteerUtils } from './puppeteer_utils';
 import { socialUtils } from './utils_social';
@@ -92,7 +91,6 @@ module.exports = {
     openRequestList,
     openRequestQueue,
 
-    SettingsRotator,
     openSessionPool,
 
     LiveViewServer,
