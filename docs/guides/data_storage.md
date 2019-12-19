@@ -14,7 +14,7 @@ code changes are needed.
 
 **Related links**
 
--   <a href="https://apify.com/docs/storage" target="_blank">Apify cloud storage documentation</a>
+-   <a href="https://docs.apify.com/storage" target="_blank">Apify cloud storage documentation</a>
 -   <a href="https://my.apify.com/storage" target="_blank">View storage in Apify app</a>
 -   <a href="https://apify.com/docs/api/v2#/reference/key-value-stores" target="_blank">API reference</a>
 

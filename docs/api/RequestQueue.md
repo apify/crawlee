@@ -33,7 +33,7 @@ Note that `{QUEUE_ID}` is the name or ID of the request queue. The default queue
 `handled` or `pending`, and `{NUMBER}` is an integer indicating the position of the request in the queue.
 
 If the `APIFY_TOKEN` environment variable is set but `APIFY_LOCAL_STORAGE_DIR` not, the data is stored in the
-<a href="https://apify.com/docs/storage#queue" target="_blank">Apify Request Queue</a> cloud storage. Note that you can force usage of the cloud
+<a href="https://docs.apify.com/storage#queue" target="_blank">Apify Request Queue</a> cloud storage. Note that you can force usage of the cloud
 storage also by passing the `forceCloud` option to [`Apify.openRequestQueue()`](apify#module_Apify.openRequestQueue) function, even if the
 `APIFY_LOCAL_STORAGE_DIR` variable is set.
 

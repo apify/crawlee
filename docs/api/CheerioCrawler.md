@@ -196,13 +196,13 @@ The exceptions are logged to the request using the
 <tr>
 <td colspan="3"><p>If set to <code>true</code>, <code>CheerioCrawler</code> will be configured to use
   <a href="https://my.apify.com/proxy" target="_blank">Apify Proxy</a> for all connections.
-  For more information, see the <a href="https://apify.com/docs/proxy" target="_blank">documentation</a></p>
+  For more information, see the <a href="https://docs.apify.com/proxy" target="_blank">documentation</a></p>
 </td></tr><tr>
 <td><code>[options.apifyProxyGroups]</code></td><td><code>Array<String></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>An array of proxy groups to be used
-  by the <a href="https://apify.com/docs/proxy" target="_blank">Apify Proxy</a>.
+  by the <a href="https://docs.apify.com/proxy" target="_blank">Apify Proxy</a>.
   Only applied if the <code>useApifyProxy</code> option is <code>true</code>.</p>
 </td></tr><tr>
 <td><code>[options.apifyProxySession]</code></td><td><code>String</code></td><td></td>
