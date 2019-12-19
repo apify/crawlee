@@ -13,7 +13,7 @@ describe('PuppeteerPool', () => {
 
     beforeAll(() => {
         logLevel = log.getLevel();
-        log.setLevel(log.LEVELS.ERROR);
+        log.setLevel(log.LEVELS.DEBUG);
         prevEnvHeadless = process.env[ENV_VARS.HEADLESS];
         process.env[ENV_VARS.HEADLESS] = '1';
     });

@@ -34,7 +34,7 @@ const DEFAULT_OPTIONS = {
 
 const mkdtempAsync = util.promisify(fs.mkdtemp);
 const rimrafAsync = util.promisify(rimraf);
-const DISK_CACHE_DIR = path.join(os.tmpdir(), `puppeteer_disk_cache-${Math.floor(Math.random() * 10000)}`);
+const DISK_CACHE_DIR = path.join(os.tmpdir(), `puppeteer_disk_cache-`);
 
 /**
  * Deletes Chrome's user data directory
