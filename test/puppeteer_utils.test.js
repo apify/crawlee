@@ -2,17 +2,28 @@ import sinon from 'sinon';
 import path from 'path';
 import Apify from '../build/index';
 import * as keyValueStore from '../build/key_value_store';
+import LocalStorageDirEmulator from './local_storage_dir_emulator';
 
 const { utils: { log } } = Apify;
 
 describe('Apify.utils.puppeteer', () => {
     let ll;
-    beforeAll(() => {
+    let localStorageEmulator;
+
+    beforeAll(async () => {
         ll = log.getLevel();
         log.setLevel(log.LEVELS.ERROR);
+        localStorageEmulator = new LocalStorageDirEmulator();
+        await localStorageEmulator.init();
     });
-    afterAll(() => {
+
+    beforeEach(async () => {
+        await localStorageEmulator.clean();
+    });
+
+    afterAll(async () => {
         log.setLevel(ll);
+        await localStorageEmulator.destroy();
     });
 
     test('injectFile()', async () => {
