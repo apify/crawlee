@@ -9,6 +9,9 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import Apify from '../../build';
 import { sleep } from '../../build/utils';
+import { Session } from '../../build/session_pool/session';
+import { STATUS_CODES_BLOCKED } from '../../build/constants';
+import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 
 // Add common props to mocked request responses.
 const responseMock = {
@@ -145,8 +148,20 @@ describe('CheerioCrawler', () => {
         port = server.address().port; //eslint-disable-line
     });
 
-    afterAll(() => {
+    let localStorageEmulator;
+
+    beforeAll(async () => {
+        localStorageEmulator = new LocalStorageDirEmulator();
+        await localStorageEmulator.init();
+    });
+
+    beforeEach(async () => {
+        await localStorageEmulator.clean();
+    });
+
+    afterAll(async () => {
         log.setLevel(logLevel);
+        await localStorageEmulator.destroy();
     });
 
     test('should work', async () => {
@@ -292,22 +307,15 @@ describe('CheerioCrawler', () => {
         });
 
         test('after handlePageTimeoutSecs', async () => {
-            const sources = [
-                { url: 'http://example.com/?q=0' },
-                { url: 'http://example.com/?q=1' },
-                { url: 'http://example.com/?q=2' },
-            ];
-            const processed = [];
             const failed = [];
-            const requestList = new Apify.RequestList({ sources });
-            const handlePageFunction = async ({ request }) => {
-                await sleep(3000);
-                processed.push(request);
+            const requestList = await getRequestListForMirror();
+            const handlePageFunction = async () => {
+                await sleep(2000);
             };
 
             const cheerioCrawler = new Apify.CheerioCrawler({
                 requestList,
-                handlePageTimeoutSecs: 0.05,
+                handlePageTimeoutSecs: 1,
                 maxRequestRetries: 1,
                 minConcurrency: 2,
                 maxConcurrency: 2,
@@ -318,10 +326,8 @@ describe('CheerioCrawler', () => {
             // Override low value to prevent seeing timeouts from BasicCrawler
             cheerioCrawler.basicCrawler.handleRequestTimeoutMillis = 10000;
 
-            await requestList.initialize();
             await cheerioCrawler.run();
 
-            expect(processed).toHaveLength(0);
             expect(failed).toHaveLength(3);
 
             failed.forEach((request) => {
@@ -808,6 +814,151 @@ describe('CheerioCrawler', () => {
                     expect(err.message).toMatch('must not be empty');
                 }
             });
+        });
+    });
+
+    describe('SessionPool', () => {
+        const sources = ['http://example.com/'];
+        let requestList;
+
+        beforeEach(async () => {
+            await localStorageEmulator.clean();
+            requestList = await Apify.openRequestList('test', sources);
+        });
+
+        test('should work', async () => {
+            const crawler = new Apify.CheerioCrawler({
+                requestList,
+                useSessionPool: true,
+                persistCookiesPerSession: false,
+                handlePageFunction: async ({ session }) => {
+                    expect(session).toBeInstanceOf(Session);
+                },
+            });
+            await crawler.run();
+        });
+
+        test('should markBad sessions after request timeout', async () => {
+            const sessions = [];
+            const failed = [];
+            const cheerioCrawler = new Apify.CheerioCrawler({
+                requestList: await Apify.openRequestList('timeoutTest', [`http://${HOST}:${port}/timeout?a=12`,
+                    `http://${HOST}:${port}/timeout?a=23`,
+                ]),
+                maxRequestRetries: 1,
+                requestTimeoutSecs: 1,
+                maxConcurrency: 1,
+                useSessionPool: true,
+                handlePageFunction: async () => {},
+                handleFailedRequestFunction: ({ request }) => failed.push(request),
+            });
+            const oldCall = cheerioCrawler._handleRequestTimeout;
+            cheerioCrawler._handleRequestTimeout = (session) => {
+                sessions.push(session);
+                return oldCall(session).bind(cheerioCrawler);
+            };
+
+            await cheerioCrawler.run();
+            sessions.forEach((session) => {
+                expect(session.errorScore).toEqual(1);
+            });
+        });
+
+        test('should retire session on "blocked" status codes', async () => {
+            for (const code of STATUS_CODES_BLOCKED) {
+                const failed = [];
+                const sessions = [];
+                const crawler = new Apify.CheerioCrawler({
+                    requestList: await getRequestListForMock({
+                        statusCode: code,
+                        error: false,
+                        headers: { 'Content-type': 'text/html' },
+                    }),
+                    useSessionPool: true,
+                    persistCookiesPerSession: false,
+                    maxRequestRetries: 0,
+                    handlePageFunction: async ({ session }) => {
+                        sessions.push(session);
+                    },
+                    handleFailedRequestFunction: async ({ request }) => {
+                        failed.push(request);
+                    },
+                });
+                const oldCall = crawler._throwOnBlockedRequest;
+                crawler._throwOnBlockedRequest = (session, statusCode) => {
+                    sessions.push(session);
+                    return oldCall(session, statusCode);
+                };
+                await crawler.run();
+
+                sessions.forEach((session) => {
+                    expect(session.errorScore).toBeGreaterThanOrEqual(session.maxErrorScore);
+                });
+
+                failed.forEach((request) => {
+                    expect(request.errorMessages[0].includes(`Request blocked - received ${code} status code`)).toBeTruthy();
+                });
+            }
+        });
+
+        test('should throw when "options.useSessionPool" false and "options.persistCookiesPerSession" is true', async () => {
+            try {
+                new Apify.CheerioCrawler({
+                    requestList: await getRequestListForMock({
+
+                    }),
+                    useSessionPool: false,
+                    persistCookiesPerSession: true,
+                    maxRequestRetries: 0,
+                    handlePageFunction: () => {
+                    },
+                });
+            } catch (e) {
+                expect(e.message).toEqual('Cannot use "options.persistCookiesPerSession" without "options.useSessionPool"');
+            }
+        });
+
+        test('should send cookies', async () => {
+            const cookie = 'SESSID=abcd123';
+            const requests = [];
+            const crawler = new Apify.CheerioCrawler({
+                requestList: await getRequestListForMock({
+                    headers: { 'set-cookie': cookie, 'content-type': 'text/html' },
+                    statusCode: 200,
+                }),
+                useSessionPool: true,
+                persistCookiesPerSession: true,
+                sessionPoolOptions: {
+                    maxPoolSize: 1,
+                },
+                maxRequestRetries: 1,
+                maxConcurrency: 1,
+                handlePageFunction: async ({ request }) => {
+                    requests.push(request);
+                },
+
+            });
+
+            await crawler.run();
+            requests.forEach((req, i) => {
+                if (i >= 1) {
+                    expect(req.headers.Cookie).toEqual(cookie);
+                }
+            });
+        });
+
+        test('should pass session to prepareRequestFunction when Session pool is used', async () => {
+            const handlePageFunction = async () => {};
+
+            const cheerioCrawler = new Apify.CheerioCrawler({
+                requestList,
+                handlePageFunction,
+                useSessionPool: true,
+                prepareRequestFunction: async ({ session }) => {
+                    expect(session.constructor.name).toEqual('Session');
+                },
+            });
+            await cheerioCrawler.run();
         });
     });
 });

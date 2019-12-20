@@ -1,6 +1,7 @@
 import { Session } from '../../build/session_pool/session';
 import { SessionPool } from '../../build/session_pool/session_pool';
 import EVENTS from '../../build/session_pool/events';
+import { STATUS_CODES_BLOCKED } from '../../build/constants';
 
 import Apify from '../../build';
 import { getApifyProxyUrl } from '../../build/actor';
@@ -86,20 +87,23 @@ describe('Session - testing session behaviour ', () => {
     test('should get state', () => {
         const state = session.getState();
 
-        expect(state.id).toBeDefined(); // eslint-disable-line
-        expect(state.cookies).toBeDefined();  // eslint-disable-line
-        expect(state.userData).toBeDefined();  // eslint-disable-line
-        expect(state.maxErrorScore).toBeDefined();  // eslint-disable-line
-        expect(state.errorScoreDecrement).toBeDefined();  // eslint-disable-line
-        expect(state.expiresAt).toBeDefined();  // eslint-disable-line
-        expect(state.createdAt).toBeDefined();  // eslint-disable-line
-        expect(state.usageCount).toBeDefined();  // eslint-disable-line
-        expect(state.errorScore).toBeDefined();  // eslint-disable-line
+        expect(state.id).toBeDefined();
+        expect(state.cookies).toBeDefined();
+        expect(state.cookieJar).toBeDefined();
+        expect(state.userData).toBeDefined();
+        expect(state.maxErrorScore).toBeDefined();
+        expect(state.errorScoreDecrement).toBeDefined();
+        expect(state.expiresAt).toBeDefined();
+        expect(state.createdAt).toBeDefined();
+        expect(state.usageCount).toBeDefined();
+        expect(state.errorScore).toBeDefined();
 
 
         Object.entries(state).forEach(([key, value]) => {
             if (session[key] instanceof Date) {
                 expect(session[key].toISOString()).toEqual(value);
+            } else if (key === 'cookieJar') {
+                expect(value).toEqual(session[key].toJSON());
             } else {
                 expect(session[key]).toEqual(value);
             }
@@ -116,5 +120,67 @@ describe('Session - testing session behaviour ', () => {
         }
 
         expect(error).toBeUndefined();
+    });
+
+    test('should use cookieJar', () => {
+        session = new Session({ sessionPool });
+        expect(session.cookieJar.setCookie).toBeDefined();
+    });
+
+    test('should checkStatus work', () => {
+        session = new Session({ sessionPool });
+        expect(session.checkStatus(100)).toBeFalsy();
+        expect(session.checkStatus(200)).toBeFalsy();
+        expect(session.checkStatus(400)).toBeFalsy();
+        expect(session.checkStatus(500)).toBeFalsy();
+        STATUS_CODES_BLOCKED.forEach((status) => {
+            const sess = new Session({ sessionPool });
+            let isCalled;
+            const call = () => { isCalled = true; };
+            sess.retire = call;
+            expect(sess.checkStatus(status)).toBeTruthy();
+            expect(isCalled).toBeTruthy();
+        });
+    });
+
+    describe('.putResponse & .getCookieString', () => {
+        test('should set and update cookies from "set-cookie" header', () => {
+            const headers = {};
+
+            headers['set-cookie'] = [
+                'CSRF=e8b667; Domain=example.com; Secure ',
+                'id=a3fWa; Expires=Wed, Domain=example.com; 21 Oct 2015 07:28:00 GMT',
+            ];
+            const newSession = new Session({ sessionPool: new SessionPool() });
+            const url = 'https://example.com';
+            newSession.putResponse({ headers, url });
+            let cookies = newSession.getCookieString(url);
+            expect(cookies).toEqual('CSRF=e8b667; id=a3fWa');
+
+            const newCookie = 'ABCD=1231231213; Domain=example.com; Secure';
+
+            newSession.putResponse({ headers: { 'set-cookie': newCookie }, url });
+            cookies = newSession.getCookieString(url);
+            expect(cookies).toEqual('CSRF=e8b667; id=a3fWa; ABCD=1231231213');
+        });
+    });
+
+    test('should correctly persist and init cookieJar', () => {
+        const headers = {};
+
+        headers['set-cookie'] = [
+            'CSRF=e8b667; Domain=example.com; Secure ',
+            'id=a3fWa; Expires=Wed, Domain=example.com; 21 Oct 2015 07:28:00 GMT',
+        ];
+        const newSession = new Session({ sessionPool: new SessionPool() });
+        const url = 'https://example.com';
+        newSession.putResponse({ headers, url });
+
+        const old = newSession.getState();
+
+        old.createdAt = new Date(old.createdAt);
+        old.expiresAt = new Date(old.expiresAt);
+        const reinitializedSession = new Session({ sessionPool, ...old });
+        expect(reinitializedSession.getCookieString(url)).toEqual('CSRF=e8b667; id=a3fWa');
     });
 });

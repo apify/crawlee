@@ -179,9 +179,9 @@ class Request {
         this.payload = payload;
         this.noRetry = noRetry;
         this.retryCount = retryCount;
-        this.errorMessages = errorMessages;
-        this.headers = headers;
-        this.userData = userData;
+        this.errorMessages = JSON.parse(JSON.stringify(errorMessages));
+        this.headers = JSON.parse(JSON.stringify(headers));
+        this.userData = JSON.parse(JSON.stringify(userData));
 
         // Requests received from API will have ISOString dates,
         // but we want to have a Date instance.

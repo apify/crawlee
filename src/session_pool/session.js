@@ -1,7 +1,10 @@
 import { cryptoRandomObjectId } from 'apify-shared/utilities';
 
 import { checkParamOrThrow } from 'apify-client/build/utils';
+import tough from 'tough-cookie';
 import EVENTS from './events';
+import { STATUS_CODES_BLOCKED } from '../constants';
+import { getCookiesFromResponse } from './session_utils';
 
 
 /**
@@ -33,7 +36,8 @@ export class Session {
     constructor(options = {}) {
         const {
             id = `session_${cryptoRandomObjectId(10)}`,
-            cookies = [],
+            cookies = [], // @TODO: Delete, deprecate or leave it as custom cookie persistance?
+            cookieJar = new tough.CookieJar(),
             maxAgeSecs = 3000,
             userData = {},
             maxErrorScore = 3,
@@ -67,6 +71,7 @@ export class Session {
         // Configurable
         this.id = id;
         this.cookies = cookies;
+        this.cookieJar = cookieJar.setCookie ? cookieJar : tough.CookieJar.fromJSON(JSON.stringify(cookieJar));
         this.maxAgeSecs = maxAgeSecs;
         this.userData = userData;
         this.maxErrorScore = maxErrorScore;
@@ -138,6 +143,7 @@ export class Session {
         return {
             id: this.id,
             cookies: this.cookies,
+            cookieJar: this.cookieJar.toJSON(),
             userData: this.userData,
             maxErrorScore: this.maxErrorScore,
             errorScoreDecrement: this.errorScoreDecrement,
@@ -171,5 +177,40 @@ export class Session {
     markBad() {
         this.errorScore += 1;
         this.usageCount += 1;
+    }
+
+    /**
+     * Retires session based on status code.
+     * @param statusCode {Number} - HTTP status code
+     * @return {boolean} whether the session was retired.
+     */
+    checkStatus(statusCode) {
+        const isBlocked = STATUS_CODES_BLOCKED.includes(statusCode);
+        if (isBlocked) {
+            this.retire();
+        }
+        return isBlocked;
+    }
+
+    /**
+     * Sets cookies from response to the cookieJar.
+     * Parses cookies from `set-cookie` header and sets them to `Session.cookieJar`.
+     * @param response
+     */
+    putResponse(response) {
+        const cookies = getCookiesFromResponse(response).filter(c => c);
+
+        for (const cookie of cookies) {
+            this.cookieJar.setCookieSync(cookie, response.url, { ignoreError: true });
+        }
+    }
+
+    /**
+     * Wrapper around `tough-cookie` Cookie jar `getCookieString` method.
+     * @param url
+     * @return {String} String representing `Cookie` header.
+     */
+    getCookieString(url) {
+        return this.cookieJar.getCookieStringSync(url, {});
     }
 }

@@ -102,7 +102,9 @@ await crawler.run();
 <pre><code>{
   $: Cheerio, // the Cheerio object with parsed HTML
   body: String|Buffer // the request body of the web page
-  json: Object, // parsed JSON when Content-Type: application/json
+  // the parsed object from JSON string
+  // if the response contains the content type application/json
+  json: Object,
   request: Request,
   contentType: Object, // Parsed Content-Type header: { type, encoding }
   response: Object // An instance of Node&#39;s http.IncomingMessage object,
@@ -261,17 +263,35 @@ The exceptions are logged to the request using the
   and <a href="systemstatus"><code>SystemStatus</code></a> defaults are provided to account for the fact that <code>cheerio</code>
   parses HTML synchronously and therefore blocks the event loop.</p>
 </td></tr><tr>
-<td><code>[options.minConcurrency]</code></td><td><code>Object</code></td><td><code>1</code></td>
+<td><code>[options.minConcurrency]</code></td><td><code>Number</code></td><td><code>1</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding <a href="autoscaledpool"><code>AutoscaledPool</code></a> option.</p>
 <p>  <em>WARNING:</em> If you set this value too high with respect to the available system memory and CPU, your crawler will run extremely slow or crash.
   If you&#39;re not sure, just keep the default value and the concurrency will scale up automatically.</p>
 </td></tr><tr>
-<td><code>[options.maxConcurrency]</code></td><td><code>Object</code></td><td><code>1000</code></td>
+<td><code>[options.maxConcurrency]</code></td><td><code>Number</code></td><td><code>1000</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding <a href="autoscaledpool"><code>AutoscaledPool</code></a> option.</p>
+</td></tr><tr>
+<td><code>[options.useSessionPool]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>If set to true Crawler will automatically use Session Pool. It will automatically retire sessions on 403, 401 and 429 status codes.
+  It also marks Session as bad after a request timeout.</p>
+</td></tr><tr>
+<td><code>[options.sessionPoolOptions]</code></td><td><code>Object</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Custom options passed to the underlying <a href="sessionpool"><code>SessionPool</code></a> constructor.</p>
+</td></tr><tr>
+<td><code>[options.persistCookiesPerSession]</code></td><td><code>Boolean</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Automatically saves cookies to Session. Works only if Session Pool is used.</p>
+<p>  It parses cookie from response &quot;set-cookie&quot; header saves or updates cookies for session and once the session is used for next request.
+  It passes the &quot;Cookie&quot; header to the request with the session cookies.</p>
 </td></tr></tbody>
 </table>
 <a name="CheerioCrawler+run"></a>

@@ -7,27 +7,42 @@ import { LOCAL_FILENAME_DIGITS, Dataset, DatasetLocal, LOCAL_STORAGE_SUBDIR,
     LOCAL_GET_ITEMS_DEFAULT_LIMIT, checkAndSerialize, chunkBySize } from '../build/dataset';
 import * as utils from '../build/utils';
 import * as Apify from '../build/index';
-import { LOCAL_STORAGE_DIR, emptyLocalStorageSubdir, expectDirEmpty, expectDirNonEmpty } from './_helper';
+import { expectDirEmpty, expectDirNonEmpty } from './_helper';
+import LocalStorageDirEmulator from './local_storage_dir_emulator';
 
 const { apifyClient } = utils;
-
-const read = (datasetName, index) => {
-    const fileName = `${leftpad(index, LOCAL_FILENAME_DIGITS, 0)}.json`;
-    const filePath = path.join(LOCAL_STORAGE_DIR, LOCAL_STORAGE_SUBDIR, datasetName, fileName);
-    const str = fs.readFileSync(path.resolve(filePath));
-
-    return JSON.parse(str);
-};
-
 describe('dataset', () => {
-    beforeAll(() => apifyClient.setOptions({ token: 'xxx' }));
-    afterAll(() => apifyClient.setOptions({ token: undefined }));
-    beforeEach(() => emptyLocalStorageSubdir(LOCAL_STORAGE_SUBDIR));
-    afterEach(() => emptyLocalStorageSubdir(LOCAL_STORAGE_SUBDIR));
+    let localStorageEmulator;
+    let localStorageDir;
+
+    beforeAll(async () => {
+        apifyClient.setOptions({ token: 'xxx' });
+        localStorageEmulator = new LocalStorageDirEmulator();
+        await localStorageEmulator.init();
+        localStorageDir = localStorageEmulator.localStorageDir; // eslint-disable-line
+    });
+
+    afterAll(async () => {
+        apifyClient.setOptions({ token: undefined });
+        await localStorageEmulator.destroy();
+    });
+
+    beforeEach(async () => {
+        await localStorageEmulator.clean();
+    });
+
+    const read = (datasetName, index) => {
+        const fileName = `${leftpad(index, LOCAL_FILENAME_DIGITS, 0)}.json`;
+        const filePath = path.join(localStorageDir, LOCAL_STORAGE_SUBDIR, datasetName, fileName);
+        const str = fs.readFileSync(path.resolve(filePath));
+
+        return JSON.parse(str);
+    };
+
 
     describe('local', () => {
         test('should successfully save data', async () => {
-            const dataset = new DatasetLocal('my-dataset', LOCAL_STORAGE_DIR);
+            const dataset = new DatasetLocal('my-dataset', localStorageDir);
 
             await dataset.pushData({ foo: 'bar' });
             await dataset.pushData({ foo: 'hotel' });
@@ -42,19 +57,19 @@ describe('dataset', () => {
             expect(read('my-dataset', 4)).toEqual({ foo: 'from-array-1', arr: [1, 2, 3] });
 
             // Correctly initializes the state.
-            const newDataset = new DatasetLocal('my-dataset', LOCAL_STORAGE_DIR);
+            const newDataset = new DatasetLocal('my-dataset', localStorageDir);
             await newDataset.pushData({ foo2: 'bar2' });
             expect(read('my-dataset', 5)).toEqual({ foo2: 'bar2' });
 
             // Drop works.
-            const datasetDir = path.join(LOCAL_STORAGE_DIR, LOCAL_STORAGE_SUBDIR, 'my-dataset');
+            const datasetDir = path.join(localStorageDir, LOCAL_STORAGE_SUBDIR, 'my-dataset');
             expectDirNonEmpty(datasetDir);
             await newDataset.drop();
             expectDirEmpty(datasetDir);
         });
 
         const getLocalDataset = async (data) => {
-            const dataset = new DatasetLocal('my-dataset', LOCAL_STORAGE_DIR);
+            const dataset = new DatasetLocal('my-dataset', localStorageDir);
             await dataset.pushData(data);
 
             return dataset;
@@ -114,7 +129,7 @@ describe('dataset', () => {
 
         test('getInfo() should work', async () => {
             const datasetName = 'stats-dataset';
-            const dataset = new DatasetLocal(datasetName, LOCAL_STORAGE_DIR);
+            const dataset = new DatasetLocal(datasetName, localStorageDir);
             await Apify.utils.sleep(2);
 
             // Save orig env var since it persists over tests.
@@ -316,10 +331,10 @@ describe('dataset', () => {
         });
 
         test('deprecated delete() still works', async () => {
-            const dataset = new DatasetLocal('to-delete', LOCAL_STORAGE_DIR);
+            const dataset = new DatasetLocal('to-delete', localStorageDir);
             await dataset.pushData({ foo: 'bar' });
 
-            const datasetDir = path.join(LOCAL_STORAGE_DIR, LOCAL_STORAGE_SUBDIR, 'to-delete');
+            const datasetDir = path.join(localStorageDir, LOCAL_STORAGE_SUBDIR, 'to-delete');
             expectDirNonEmpty(datasetDir);
             await dataset.delete();
             expectDirEmpty(datasetDir);
@@ -760,7 +775,7 @@ describe('dataset', () => {
         test('should work', () => {
             const mock = sinon.mock(utils);
 
-            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = LOCAL_STORAGE_DIR;
+            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = localStorageDir;
 
             mock.expects('openLocalStorage').once();
             Apify.openDataset();
@@ -786,7 +801,7 @@ describe('dataset', () => {
     describe('pushData', () => {
         test('throws on invalid args', async () => {
             process.env[ENV_VARS.DEFAULT_DATASET_ID] = 'some-id-8';
-            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = LOCAL_STORAGE_DIR;
+            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = localStorageDir;
 
             const dataErrMsg = 'Parameter "data" of type Array | Object must be provided';
             await expect(Apify.pushData()).rejects.toThrow(dataErrMsg);
@@ -822,7 +837,7 @@ describe('dataset', () => {
         );
 
         test('correctly stores records', async () => {
-            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = LOCAL_STORAGE_DIR;
+            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = localStorageDir;
             process.env[ENV_VARS.DEFAULT_DATASET_ID] = 'some-id-9';
 
             await Apify.pushData({ foo: 'bar' });

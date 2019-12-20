@@ -3,7 +3,7 @@ id: quickstart
 title: Quick Start
 ---
 
-The Apify SDK requires <a href="https://nodejs.org/en/" target="_blank">Node.js</a> 8 or later.
+The Apify SDK requires <a href="https://nodejs.org/en/" target="_blank">Node.js</a> 10 or later.
 
 ## Local stand-alone usage
 

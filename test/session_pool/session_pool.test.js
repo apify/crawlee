@@ -1,25 +1,32 @@
-import { LOCAL_STORAGE_DIR, emptyLocalStorageSubdir } from '../_helper';
 import { SessionPool, openSessionPool } from '../../build/session_pool/session_pool';
 import Apify from '../../build';
 import events from '../../build/events';
 
 import { ACTOR_EVENT_NAMES_EX } from '../../build/constants';
 import { Session } from '../../src/session_pool/session';
+import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 
 describe('SessionPool - testing session pool', () => {
     let sessionPool;
+    let localStorageEmulator;
 
-    beforeAll(() => {
-        process.env.APIFY_LOCAL_STORAGE_DIR = LOCAL_STORAGE_DIR;
+    beforeAll(async () => {
+        localStorageEmulator = new LocalStorageDirEmulator();
+        await localStorageEmulator.init();
     });
 
     beforeEach(async () => {
-        emptyLocalStorageSubdir('key_value_stores/default');
+        await localStorageEmulator.clean();
         sessionPool = await Apify.openSessionPool();
     });
 
-    afterEach(() => {
+    afterEach(async () => {
         events.removeAllListeners(ACTOR_EVENT_NAMES_EX.PERSIST_STATE);
+        await localStorageEmulator.clean();
+    });
+
+    afterAll(async () => {
+        await localStorageEmulator.destroy();
     });
 
    // eslint-disable-line
@@ -53,6 +60,8 @@ describe('SessionPool - testing session pool', () => {
         Object.entries(opts).forEach(([key, value]) => {
             expect(sessionPool[key]).toEqual(value);
         });
+        const store = await Apify.openKeyValueStore('TEST');
+        await store.drop();
     });
 
     test('should work using openSessionPool', async () => {
@@ -77,6 +86,8 @@ describe('SessionPool - testing session pool', () => {
         Object.entries(opts).forEach(([key, value]) => {
             expect(sessionPool[key]).toEqual(value);
         });
+        const store = await Apify.openKeyValueStore('TEST');
+        await store.drop();
     });
 
     describe('should retrieve session', () => {
@@ -151,6 +162,8 @@ describe('SessionPool - testing session pool', () => {
             Object.entries(session).forEach(([key, value]) => {
                 if (sessionPool.sessions[index][key] instanceof Date) {
                     expect(value).toEqual(sessionPool.sessions[index][key].toISOString());
+                } else if (key === 'cookieJar') {
+                    expect(value).toEqual(sessionPool.sessions[index][key].toJSON());
                 } else {
                     expect(sessionPool.sessions[index][key]).toEqual(value);
                 }
@@ -190,7 +203,6 @@ describe('SessionPool - testing session pool', () => {
         });
 
         afterEach(async () => {
-            await emptyLocalStorageSubdir(`key_value_stores/${KV_STORE}`);
             sessionPool.teardown();
         });
 
