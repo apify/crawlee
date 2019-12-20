@@ -489,12 +489,6 @@ describe('PuppeteerPool', () => {
     });
 
     describe('the proxyUrls parameter', () => {
-        beforeEach(() => {
-            log.setLevel(log.LEVELS.DEBUG);
-        });
-        afterEach(async () => {
-            log.setLevel(log.LEVELS.DEBUG);
-        });
         test('supports rotation of custom proxies', async () => {
             const optionsLog = [];
             const pool = new Apify.PuppeteerPool({
@@ -524,10 +518,10 @@ describe('PuppeteerPool', () => {
         describe('throws', () => {
             let pool;
             beforeEach(() => {
-                log.setLevel(log.LEVELS.DEBUG);
+                log.setLevel(log.LEVELS.OFF);
             });
             afterEach(async () => {
-                log.setLevel(log.LEVELS.DEBUG);
+                log.setLevel(log.LEVELS.ERROR);
             });
 
             test('when used with useApifyProxy', async () => {
@@ -568,10 +562,10 @@ describe('PuppeteerPool', () => {
 
     describe('prevents hanging of puppeteer operations', () => {
         beforeEach(() => {
-            log.setLevel(log.LEVELS.DEBUG);
+            log.setLevel(log.LEVELS.OFF);
         });
         afterEach(async () => {
-            log.setLevel(log.LEVELS.DEBUG);
+            log.setLevel(log.LEVELS.ERROR);
         });
 
         test('should work', async () => {
