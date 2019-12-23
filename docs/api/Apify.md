@@ -36,7 +36,7 @@ separate, detailed, documentation pages accessible from the left sidebar.
 ## `Apify.addWebhook(options)` ⇒ `Promise<Object>`
 
 Creates an ad-hoc webhook for the current actor run, which lets you receive a notification when the actor run finished or failed. For more information
-about Apify actor webhooks, please see the <a href="https://apify.com/docs/webhooks" target="_blank">documentation</a>.
+about Apify actor webhooks, please see the <a href="https://docs.apify.com/webhooks" target="_blank">documentation</a>.
 
 Note that webhooks are only supported for actors running on the Apify platform. In local environment, the function will print a warning and have no
 effect.
@@ -60,7 +60,7 @@ effect.
 </tr>
 <tr>
 <td colspan="3"><p>Array of event types, which you can set for actor run, see
-  the <a href="https://apify.com/docs/webhooks#events-actor-run" target="_blank">actor run events</a> in the Apify doc.</p>
+  the <a href="https://docs.apify.com/webhooks/events#actor-run" target="_blank">actor run events</a> in the Apify doc.</p>
 </td></tr><tr>
 <td><code>options.requestUrl</code></td><td><code>string</code></td>
 </tr>
@@ -73,9 +73,9 @@ effect.
 <td colspan="3"><p>Payload template is a JSON-like string that describes the structure of the webhook POST request payload.
   It uses JSON syntax, extended with a double curly braces syntax for injecting variables <code>{{variable}}</code>.
   Those variables are resolved at the time of the webhook&#39;s dispatch, and a list of available variables with their descriptions
-  is available in the <a href="https://apify.com/docs/webhooks" target="_blank">Apify webhook documentation</a>.</p>
+  is available in the <a href="https://docs.apify.com/webhooks" target="_blank">Apify webhook documentation</a>.</p>
 <p>  When omitted, the default payload template will be used.
-  <a href="https://apify.com/docs/webhooks" target="_blank">See the docs for the default payload template</a>.</p>
+  <a href="https://docs.apify.com/webhooks" target="_blank">See the docs for the default payload template</a>.</p>
 </td></tr><tr>
 <td><code>[options.idempotencyKey]</code></td><td><code>string</code></td>
 </tr>
@@ -101,7 +101,7 @@ actor run fails, the function throws the [`ApifyCallError`](../typedefs/apifycal
 
 If you want to run an actor task rather than an actor, please use the [`Apify.callTask()`](../api/apify#module_Apify.callTask) function instead.
 
-For more information about actors, read the <a href="https://apify.com/docs/actor" target="_blank">documentation</a>.
+For more information about actors, read the <a href="https://docs.apify.com/actor" target="_blank">documentation</a>.
 
 **Example usage:**
 
@@ -197,7 +197,7 @@ actor</a> and several other API endpoints to obtain the output.
 <tr>
 <td colspan="3"><p>Specifies optional webhooks associated with the actor run, which can be used
  to receive a notification e.g. when the actor finished or failed, see
- <a href="https://apify.com/docs/webhooks#adhoc">ad hook webhooks documentation</a> for detailed description.</p>
+ <a href="https://docs.apify.com/webhooks/ad-hoc-webhooks">ad hook webhooks documentation</a> for detailed description.</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.callTask"></a>
@@ -216,7 +216,7 @@ actor run failed, the function fails with [`ApifyCallError`](../typedefs/apifyca
 Note that an actor task is a saved input configuration and options for an actor. If you want to run an actor directly rather than an actor task,
 please use the [`Apify.call()`](../api/apify#module_Apify.call) function instead.
 
-For more information about actor tasks, read the [`documentation`](https://apify.com/docs/tasks).
+For more information about actor tasks, read the [`documentation`](https://docs.apify.com/tasks).
 
 **Example usage:**
 
@@ -303,20 +303,20 @@ obtain the output.
 <tr>
 <td colspan="3"><p>Specifies optional webhooks associated with the actor run, which can be used
  to receive a notification e.g. when the actor finished or failed, see
- <a href="https://apify.com/docs/webhooks#adhoc">ad hook webhooks documentation</a> for detailed description.</p>
+ <a href="https://docs.apify.com/webhooks/ad-hoc-webhooks">ad hook webhooks documentation</a> for detailed description.</p>
 </td></tr></tbody>
 </table>
 <a name="module_Apify.client"></a>
 
 ## `Apify.client`
 
-Gets the default instance of the `ApifyClient` class provided <a href="https://apify.com/docs/sdk/apify-client-js/latest"
+Gets the default instance of the `ApifyClient` class provided <a href="https://docs.apify.com/api/apify-client-js/latest"
 target="_blank">apify-client</a> by the NPM package. The instance is created automatically by the Apify SDK and it is configured using the
 `APIFY_API_BASE_URL`, `APIFY_USER_ID` and `APIFY_TOKEN` environment variables.
 
 The instance is used for all underlying calls to the Apify API in functions such as [`Apify.getValue()`](#module_Apify.getValue) or
 [`Apify.call()`](#module_Apify.call). The settings of the client can be globally altered by calling the
-<a href="https://apify.com/docs/sdk/apify-client-js/latest#ApifyClient-setOptions"
+<a href="https://docs.apify.com/api/apify-client-js/latest#ApifyClient-setOptions"
 target="_blank">`Apify.client.setOptions()`</a> function. Beware that altering these settings might have unintended effects on the entire Apify SDK
 package.
 
@@ -394,7 +394,7 @@ Constructs an Apify Proxy URL using the specified settings. The proxy URL can be
 applications.
 
 For more information, see the <a href="https://my.apify.com/proxy" target="_blank">Apify Proxy</a> page in the app or the
-<a href="https://apify.com/docs/proxy" target="_blank">documentation</a>.
+<a href="https://docs.apify.com/proxy" target="_blank">documentation</a>.
 
 **Returns**: `String` - Returns the proxy URL, e.g. `http://auto:my_password@proxy.apify.com:8000`.
 
@@ -484,7 +484,7 @@ Returns a new object which contains information parsed from all the `APIFY_XXX` 
 }
 ```
 
-For the list of the `APIFY_XXX` environment variables, see <a href="https://apify.com/docs/actor#run-env-vars" target="_blank">Actor
+For the list of the `APIFY_XXX` environment variables, see <a href="https://docs.apify.com/actor/run#environment-variables" target="_blank">Actor
 documentation</a>. If some of the variables are not defined or are invalid, the corresponding value in the resulting object will be null.
 
 <a name="module_Apify.getInput"></a>
@@ -611,7 +611,7 @@ The `launchPuppeteer()` function alters the following Puppeteer options:
    </li>
    <li>
        If <code>options.useApifyProxy</code> is <code>true</code> then the function generates a URL of
-       <a href="https://apify.com/docs/proxy" target="_blank">Apify Proxy</a>
+       <a href="https://docs.apify.com/proxy" target="_blank">Apify Proxy</a>
        based on <code>options.apifyProxyGroups</code> and <code>options.apifyProxySession</code> and passes it as <code>options.proxyUrl</code>.
    </li>
    <li>
@@ -628,7 +628,7 @@ The `launchPuppeteer()` function alters the following Puppeteer options:
 
 To use this function, you need to have the <a href="https://www.npmjs.com/package/puppeteer" target="_blank">puppeteer</a> NPM package installed in
 your project. When running on the Apify cloud, you can achieve that simply by using the `apify/actor-node-chrome` base Docker image for your actor -
-see <a href="https://apify.com/docs/actor#base-images" target="_blank">Apify Actor documentation</a> for details.
+see <a href="https://docs.apify.com/actor/build#base-images" target="_blank">Apify Actor documentation</a> for details.
 
 For an example of usage, see the [Synchronous run Example](../examples/synchronousrun) or the
 [Puppeteer proxy Example](../examples/puppeteerwithproxy)

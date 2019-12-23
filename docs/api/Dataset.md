@@ -25,7 +25,7 @@ Note that `{DATASET_ID}` is the name or ID of the dataset. The default dataset h
 item in the dataset.
 
 If the `APIFY_TOKEN` environment variable is set but `APIFY_LOCAL_STORAGE_DIR` not, the data is stored in the
-<a href="https://apify.com/docs/storage#dataset" target="_blank">Apify Dataset</a> cloud storage. Note that you can force usage of the cloud storage
+<a href="https://docs.apify.com/storage/dataset" target="_blank">Apify Dataset</a> cloud storage. Note that you can force usage of the cloud storage
 also by passing the `forceCloud` option to [`Apify.openDataset()`](apify#module_Apify.openDataset) function, even if the `APIFY_LOCAL_STORAGE_DIR`
 variable is set.
 
@@ -229,7 +229,7 @@ Returns items in the dataset based on the provided parameters. The returned obje
 Returns an object containing general information about the dataset.
 
 The function returns the same object as the Apify API Client's
-[getDataset](https://apify.com/docs/api/apify-client-js/latest#ApifyClient-datasets-getDataset) function, which in turn calls the
+[getDataset](https://docs.apify.com/api/apify-client-js/latest#ApifyClient-datasets-getDataset) function, which in turn calls the
 [Get dataset](https://apify.com/docs/api/v2#/reference/datasets/dataset/get-dataset) API endpoint.
 
 **Example:**

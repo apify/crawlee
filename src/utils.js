@@ -72,7 +72,7 @@ export const logSystemInfo = () => {
 
 /**
  * Gets the default instance of the `ApifyClient` class provided
- * <a href="https://apify.com/docs/sdk/apify-client-js/latest"
+ * <a href="https://docs.apify.com/api/apify-client-js/latest"
  * target="_blank">apify-client</a> by the NPM package.
  * The instance is created automatically by the Apify SDK and it is configured using the
  * `APIFY_API_BASE_URL`, `APIFY_USER_ID` and `APIFY_TOKEN` environment variables.
@@ -80,7 +80,7 @@ export const logSystemInfo = () => {
  * The instance is used for all underlying calls to the Apify API in functions such as
  * [`Apify.getValue()`](#module_Apify.getValue) or [`Apify.call()`](#module_Apify.call).
  * The settings of the client can be globally altered by calling the
- * <a href="https://apify.com/docs/sdk/apify-client-js/latest#ApifyClient-setOptions"
+ * <a href="https://docs.apify.com/api/apify-client-js/latest#ApifyClient-setOptions"
  * target="_blank">`Apify.client.setOptions()`</a> function.
  * Beware that altering these settings might have unintended effects on the entire Apify SDK package.
  *
