@@ -1,12 +1,9 @@
 NEXT
 ====================
+- **BREAKING** `CheerioCrawler` ignores ssl errors by default - `options.ignoreSslErrors: true`.
 - Add `SessionPool` implemenation to `CheerioCrawler`.
 - Fix `Request` constructor not making a copy of objects such as `userData` and `headers`.
 - Fix `desc` option not being applied in local `dataset.getData()`.
-
-0.18.0 / 2019-12-20
-====================
-- **BREAKING** `CheerioCrawler` ignores ssl errors by default - `options.ignoreSslErrors: true`.
 
 0.17.0 / 2019-11-25
 ====================
