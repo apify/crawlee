@@ -537,7 +537,6 @@ describe('PuppeteerPool', () => {
                 try {
                     await pool.newPage();
                     throw new Error('Invalid error.');
-
                 } catch (err) {
                     expect(err.stack).toMatch('useApifyProxy');
                 }
