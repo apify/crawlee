@@ -512,7 +512,8 @@ class PuppeteerPool {
                 this.puppeteerOperationTimeoutMillis,
                 'PuppeteerPool: browser.newPage() timed out.',
             );
-            this._focusOldestTab(browser).catch(() => log.debug('Could not focus oldest tab.'));
+            // awaiting resolves target close.
+            await this._focusOldestTab(browser);
             this.pagesToInstancesMap.set(page, instance);
             return this._decoratePage(page);
         } catch (err) {
@@ -562,8 +563,15 @@ class PuppeteerPool {
      * @ignore
      */
     async _focusOldestTab(browser) { // eslint-disable-line class-methods-use-this
-        const pages = await browser.pages();
-        if (pages.length > 1) return pages[1].bringToFront();
+        let pages = [];
+        try {
+            pages = await browser.pages();
+        } catch (e) {
+            log.debug(`PuppeteerPool: ${e.message}`);
+            log.exception(e);
+            throw e;
+        }
+        if (pages.length > 1) return pages[1].bringToFront().catch(() => log.debug('Could not focus oldest tab.'));
     }
 
     /**
