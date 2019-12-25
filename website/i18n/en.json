@@ -143,6 +143,9 @@
       "typedefs/queueoperationinfo": {
         "title": "QueueOperationInfo"
       },
+      "typedefs/requestoptions": {
+        "title": "RequestOptions"
+      },
       "typedefs/stealthoptions": {
         "title": "StealthOptions"
       }

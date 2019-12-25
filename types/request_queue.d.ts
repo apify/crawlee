@@ -106,13 +106,13 @@ export class RequestQueue {
      * To add multiple requests to the queue by extracting links from a webpage,
      * see the [`Apify.utils.enqueueLinks()`](utils#utils.enqueueLinks) helper function.
      *
-     * @param {Request|Object} request {@link Request} object or vanilla object with request data.
+     * @param {Request|RequestOptions} request {@link Request} object or vanilla object with request data.
      * Note that the function sets the `uniqueKey` and `id` fields to the passed object.
      * @param {Object} [options]
      * @param {Boolean} [options.forefront=false] If `true`, the request will be added to the foremost position in the queue.
      * @return {Promise<QueueOperationInfo>}
      */
-    addRequest(request: any, options?: {
+    addRequest(request: RequestOptions | Request, options?: {
         forefront?: boolean;
     }): Promise<QueueOperationInfo>;
     /**
@@ -351,4 +351,5 @@ export type QueueOperationInfo = {
      */
     request: any;
 };
+import { RequestOptions } from "./request";
 import Request from "./request";

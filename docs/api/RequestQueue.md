@@ -95,7 +95,7 @@ function.
 </thead>
 <tbody>
 <tr>
-<td><code>request</code></td><td><code><a href="request">Request</a></code> | <code>Object</code></td><td></td>
+<td><code>request</code></td><td><code><a href="request">Request</a></code> | <code><a href="../typedefs/requestoptions">RequestOptions</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p><a href="request"><code>Request</code></a> object or vanilla object with request data.
