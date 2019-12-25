@@ -40,7 +40,7 @@ const psTreePromised = util.promisify(psTree);
  * Creates an instance of ApifyClient using options as defined in the environment variables.
  * This function is exported to enable unit testing.
  *
- * @returns {*}
+ * @returns {ApifyClient}
  * @ignore
  */
 export const newClient = () => {
