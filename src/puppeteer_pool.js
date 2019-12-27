@@ -512,7 +512,7 @@ class PuppeteerPool {
                 this.puppeteerOperationTimeoutMillis,
                 'PuppeteerPool: browser.newPage() timed out.',
             );
-            this._focusOldestTab(browser).catch(() => log.debug('Could not focus oldest tab.'));
+            await this._focusOldestTab(browser).catch(() => log.debug('Could not focus oldest tab.'));
             this.pagesToInstancesMap.set(page, instance);
             return this._decoratePage(page);
         } catch (err) {
