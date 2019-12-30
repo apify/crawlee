@@ -205,6 +205,25 @@ describe('CheerioCrawler', () => {
         });
     });
 
+    test('should ignore ssl by default', async () => {
+        const sources = [
+            { url: 'http://example.com/?q=1' },
+        ];
+        const requestList = new Apify.RequestList({ sources });
+        const handlePageFunction = async () => {};
+
+        const cheerioCrawler = new Apify.CheerioCrawler({
+            requestList,
+            maxConcurrency: 1,
+            handlePageFunction,
+        });
+
+        await requestList.initialize();
+        await cheerioCrawler.run();
+
+        expect(cheerioCrawler.ignoreSslErrors).toBeTruthy();
+    });
+
     test('should trigger prepareRequestFunction', async () => {
         const MODIFIED_URL = 'http://example.com/?q=2';
         const sources = [
