@@ -54,6 +54,7 @@
         "Type Definitions": [
             "typedefs/actorrun",
             "typedefs/apifycallerror",
+            "typedefs/apifyenv",
             "typedefs/launchpuppeteeroptions",
             "typedefs/queueoperationinfo",
             "typedefs/requestoptions"

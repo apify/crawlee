@@ -15,7 +15,7 @@ separate, detailed, documentation pages accessible from the left sidebar.
     -   [`.client`](#module_Apify.client)
     -   [`.events`](#module_Apify.events)
     -   [`.getApifyProxyUrl(options)`](#module_Apify.getApifyProxyUrl) ⇒ `String`
-    -   [`.getEnv()`](#module_Apify.getEnv) ⇒ `Object`
+    -   [`.getEnv()`](#module_Apify.getEnv) ⇒ [`ApifyEnv`](../typedefs/apifyenv)
     -   [`.getInput`](#module_Apify.getInput) ⇒ `Promise<Object>`
     -   [`.getMemoryInfo()`](#module_Apify.getMemoryInfo) ⇒ `Promise<Object>`
     -   [`.getValue(key)`](#module_Apify.getValue) ⇒ `Promise<Object>`
@@ -450,39 +450,9 @@ full list of available country codes
 </table>
 <a name="module_Apify.getEnv"></a>
 
-## `Apify.getEnv()` ⇒ `Object`
+## `Apify.getEnv()` ⇒ [`ApifyEnv`](../typedefs/apifyenv)
 
-Returns a new object which contains information parsed from all the `APIFY_XXX` environment variables. It has properties such as the following:
-
-```javascript
-{
-    // ID of the actor (APIFY_ACTOR_ID)
-    actorId: String,
-    // ID of the actor run (APIFY_ACTOR_RUN_ID)
-    actorRunId: String,
-    // ID of the actor task (APIFY_ACTOR_TASK_ID)
-    actorTaskId: String,
-    // ID of the user who started the actor - note that it might be
-    // different than the owner of the actor (APIFY_USER_ID)
-    userId: String,
-    // Authentication token representing privileges given to the actor run,
-    // it can be passed to various Apify APIs (APIFY_TOKEN).
-    token: String,
-    // Date when the actor was started (APIFY_STARTED_AT)
-    startedAt: Date,
-    // Date when the actor will time out (APIFY_TIMEOUT_AT)
-    timeoutAt: Date,
-    // ID of the key-value store where input and output data of this
-    // actor is stored (APIFY_DEFAULT_KEY_VALUE_STORE_ID)
-    defaultKeyValueStoreId: String,
-    // ID of the dataset where input and output data of this
-    // actor is stored (APIFY_DEFAULT_DATASET_ID)
-    defaultDatasetId: String,
-    // Amount of memory allocated for the actor,
-    // in megabytes (APIFY_MEMORY_MBYTES)
-    memoryMbytes: Number,
-}
-```
+Returns a new [`ApifyEnv`](../typedefs/apifyenv) object which contains information parsed from all the `APIFY_XXX` environment variables.
 
 For the list of the `APIFY_XXX` environment variables, see <a href="https://docs.apify.com/actor/run#environment-variables" target="_blank">Actor
 documentation</a>. If some of the variables are not defined or are invalid, the corresponding value in the resulting object will be null.

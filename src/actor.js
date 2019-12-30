@@ -92,47 +92,37 @@ const addInputOptionsOrThrow = (input, contentType, options) => {
 };
 
 /**
- * Returns a new object which contains information parsed from all the `APIFY_XXX` environment variables.
- * It has properties such as the following:
+ * Parsed representation of the `APIFY_XXX` environmental variables.
  *
- * ```javascript
- * {
- *     // ID of the actor (APIFY_ACTOR_ID)
- *     actorId: String,
- *     // ID of the actor run (APIFY_ACTOR_RUN_ID)
- *     actorRunId: String,
- *     // ID of the actor task (APIFY_ACTOR_TASK_ID)
- *     actorTaskId: String,
- *     // ID of the user who started the actor - note that it might be
- *     // different than the owner of the actor (APIFY_USER_ID)
- *     userId: String,
- *     // Authentication token representing privileges given to the actor run,
- *     // it can be passed to various Apify APIs (APIFY_TOKEN).
- *     token: String,
- *     // Date when the actor was started (APIFY_STARTED_AT)
- *     startedAt: Date,
- *     // Date when the actor will time out (APIFY_TIMEOUT_AT)
- *     timeoutAt: Date,
- *     // ID of the key-value store where input and output data of this
- *     // actor is stored (APIFY_DEFAULT_KEY_VALUE_STORE_ID)
- *     defaultKeyValueStoreId: String,
- *     // ID of the dataset where input and output data of this
- *     // actor is stored (APIFY_DEFAULT_DATASET_ID)
- *     defaultDatasetId: String,
- *     // Amount of memory allocated for the actor,
- *     // in megabytes (APIFY_MEMORY_MBYTES)
- *     memoryMbytes: Number,
- * }
- * ```
+ * @typedef {Object} ApifyEnv
+ * @property {String|null} actorId ID of the actor (APIFY_ACTOR_ID)
+ * @property {String|null} actorRunId ID of the actor run (APIFY_ACTOR_RUN_ID)
+ * @property {String|null} actorTaskId ID of the actor task (APIFY_ACTOR_TASK_ID)
+ * @property {String|null} userId ID of the user who started the actor - note that it might be
+ *   different than the owner ofthe actor (APIFY_USER_ID)
+ * @property {String|null} token Authentication token representing privileges given to the actor run,
+ *   it can be passed to various Apify APIs (APIFY_TOKEN)
+ * @property {Date|null} startedAt Date when the actor was started (APIFY_STARTED_AT)
+ * @property {Date|null} timeoutAt Date when the actor will time out (APIFY_TIMEOUT_AT)
+ * @property {String|null} defaultKeyValueStoreId ID of the key-value store where input and output data of this
+ *   actor is stored (APIFY_DEFAULT_KEY_VALUE_STORE_ID)
+ * @property {String|null} defaultDatasetId ID of the dataset where input and output data of this
+ *   actor is stored (APIFY_DEFAULT_DATASET_ID)
+ * @property {Number|null} memoryMbytes Amount of memory allocated for the actor,
+ *   in megabytes (APIFY_MEMORY_MBYTES)
+ */
+
+/**
+ * Returns a new {@link ApifyEnv} object which contains information parsed from all the `APIFY_XXX` environment variables.
+ *
  * For the list of the `APIFY_XXX` environment variables, see
  * <a href="https://docs.apify.com/actor/run#environment-variables" target="_blank">Actor documentation</a>.
  * If some of the variables are not defined or are invalid, the corresponding value in the resulting object will be null.
  *
- * @returns {Object}
- *
  * @memberof module:Apify
  * @function
  * @name getEnv
+ * @returns {ApifyEnv}
  */
 export const getEnv = () => {
     // NOTE: Don't throw if env vars are invalid to simplify local development and debugging of actors

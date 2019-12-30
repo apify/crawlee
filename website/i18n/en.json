@@ -137,6 +137,9 @@
       "typedefs/apifycallerror": {
         "title": "ApifyCallError"
       },
+      "typedefs/apifyenv": {
+        "title": "ApifyEnv"
+      },
       "typedefs/launchpuppeteeroptions": {
         "title": "LaunchPuppeteerOptions"
       },
