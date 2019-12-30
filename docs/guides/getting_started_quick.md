@@ -94,7 +94,7 @@ apify push
 ```
 
 Your script will be uploaded to the Apify Cloud and built there so that it can be run. For more information, view the
-<a href="https://apify.com/docs/cli" target="_blank">Apify CLI</a> and <a href="https://apify.com/docs/actor" target="_blank">Apify Actor</a>
+<a href="https://docs.apify.com/cli" target="_blank">Apify CLI</a> and <a href="https://docs.apify.com/actor" target="_blank">Apify Actor</a>
 documentation.
 
 ## Usage on the Apify Cloud
@@ -103,4 +103,4 @@ You can also develop your web scraping project in an online code editor directly
 You'll need to have an Apify Account. Go to <a href="https://my.apify.com/actors" target="_blank">Actors</a>, page in the app, click <i>Create new</i>
 and then go to the <i>Source</i> tab and start writing your code or paste one of the examples from the Examples section.
 
-For more information, view the <a href="https://apify.com/docs/actor#quick-start" target="_blank">Apify actors quick start guide</a>.
+For more information, view the <a href="https://docs.apify.com/actor/quick-start" target="_blank">Apify actors quick start guide</a>.
