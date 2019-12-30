@@ -125,7 +125,7 @@ const addInputOptionsOrThrow = (input, contentType, options) => {
  * }
  * ```
  * For the list of the `APIFY_XXX` environment variables, see
- * <a href="https://apify.com/docs/actor#run-env-vars" target="_blank">Actor documentation</a>.
+ * <a href="https://docs.apify.com/actor/run#environment-variables" target="_blank">Actor documentation</a>.
  * If some of the variables are not defined or are invalid, the corresponding value in the resulting object will be null.
  *
  * @returns {Object}
@@ -292,7 +292,7 @@ let callMemoryWarningIssued = false;
  * [`Apify.callTask()`](../api/apify#module_Apify.callTask) function instead.
  *
  * For more information about actors, read the
- * <a href="https://apify.com/docs/actor" target="_blank">documentation</a>.
+ * <a href="https://docs.apify.com/actor" target="_blank">documentation</a>.
  *
  * **Example usage:**
  *
@@ -341,7 +341,7 @@ let callMemoryWarningIssued = false;
  *  actor's output and will return it in a raw `Buffer`.
  * @param {Array} [options.webhooks] Specifies optional webhooks associated with the actor run, which can be used
  *  to receive a notification e.g. when the actor finished or failed, see
- *  [ad hook webhooks documentation](https://apify.com/docs/webhooks#adhoc) for detailed description.
+ *  [ad hook webhooks documentation](https://docs.apify.com/webhooks/ad-hoc-webhooks) for detailed description.
  * @returns {Promise<ActorRun>}
  * @throws {ApifyCallError} If the run did not succeed, e.g. if it failed or timed out.
  *
@@ -432,7 +432,7 @@ export const call = async (actId, input, options = {}) => {
  * If you want to run an actor directly rather than an actor task, please use the
  * [`Apify.call()`](../api/apify#module_Apify.call) function instead.
  *
- * For more information about actor tasks, read the [`documentation`](https://apify.com/docs/tasks).
+ * For more information about actor tasks, read the [`documentation`](https://docs.apify.com/tasks).
  *
  * **Example usage:**
  *
@@ -477,7 +477,7 @@ export const call = async (actId, input, options = {}) => {
  *  If `waitSecs` is null or undefined, the function waits for the actor task to finish (default behavior).
  * @param {Array} [options.webhooks] Specifies optional webhooks associated with the actor run, which can be used
  *  to receive a notification e.g. when the actor finished or failed, see
- *  [ad hook webhooks documentation](https://apify.com/docs/webhooks#adhoc) for detailed description.
+ *  [ad hook webhooks documentation](https://docs.apify.com/webhooks/ad-hoc-webhooks) for detailed description.
  * @returns {Promise<ActorRun>}
  * @throws {ApifyCallError} If the run did not succeed, e.g. if it failed or timed out.
  *
@@ -610,7 +610,7 @@ export const metamorph = async (targetActorId, input, options = {}) => {
  * <a href="https://apify.com/docs/api/v2#/reference/actors/run-collection/run-actor" target="_blank">Actor run</a>
  * Apify API endpoint and extended with certain fields.
  * For more details, see
- * <a href="https://apify.com/docs/actor#run" target="_blank">Runs.</a>
+ * <a href="https://docs.apify.com/actor/run" target="_blank">Runs.</a>
  *
  * @typedef {Object} ActorRun
  * @property {String} id
@@ -623,7 +623,7 @@ export const metamorph = async (targetActorId, input, options = {}) => {
  *   Time when the actor run finished. Contains `null` for running actors.
  * @property {String} status
  *   Status of the run. For possible values, see
- *   <a href="https://apify.com/docs/actor#run-lifecycle" target="_blank">Run lifecycle</a>
+ *   <a href="https://docs.apify.com/actor/run#lifecycle" target="_blank">Run lifecycle</a>
  *   in Apify actor documentation.
  * @property {Object} meta
  *   Actor run meta-data. For example:
@@ -656,7 +656,7 @@ export const metamorph = async (targetActorId, input, options = {}) => {
  *   ```
  * @property {String} buildId
  *   ID of the actor build used for the run. For details, see
- *   <a href="https://apify.com/docs/actor#build" target="_blank">Builds</a>
+ *   <a href="https://docs.apify.com/actor/build" target="_blank">Builds</a>
  *   in Apify actor documentation.
  * @property {String} buildNumber
  *   Number of the actor build used for the run. For example, `0.0.10`.
@@ -671,7 +671,7 @@ export const metamorph = async (targetActorId, input, options = {}) => {
  * @property {String} containerUrl
  *   URL on which the web server running inside actor run's Docker container can be accessed.
  *   For more details, see
- *   <a href="https://apify.com/docs/actor#container-web-server" target="_blank">Container web server</a>
+ *   <a href="https://docs.apify.com/actor/run#container-web-server" target="_blank">Container web server</a>
  *   in Apify actor documentation.
  * @property {Object} output
  *   Contains output of the actor run. The value is `null` or `undefined` in case the actor is still running,
@@ -696,7 +696,7 @@ export const metamorph = async (targetActorId, input, options = {}) => {
  *
  * For more information, see
  * the <a href="https://my.apify.com/proxy" target="_blank">Apify Proxy</a> page in the app
- * or the <a href="https://apify.com/docs/proxy" target="_blank">documentation</a>.
+ * or the <a href="https://docs.apify.com/proxy" target="_blank">documentation</a>.
  *
  * @param {Object} options
  *   Object with the settings below:
@@ -799,7 +799,7 @@ export const getApifyProxyUrl = (options = {}) => {
 /**
  *
  * Creates an ad-hoc webhook for the current actor run, which lets you receive a notification when the actor run finished or failed.
- * For more information about Apify actor webhooks, please see the <a href="https://apify.com/docs/webhooks" target="_blank">documentation</a>.
+ * For more information about Apify actor webhooks, please see the <a href="https://docs.apify.com/webhooks" target="_blank">documentation</a>.
  *
  * Note that webhooks are only supported for actors running on the Apify platform.
  * In local environment, the function will print a warning and have no effect.
@@ -807,17 +807,17 @@ export const getApifyProxyUrl = (options = {}) => {
  * @param {Object} options
  * @param {string[]} options.eventTypes
  *   Array of event types, which you can set for actor run, see
- *   the <a href="https://apify.com/docs/webhooks#events-actor-run" target="_blank">actor run events</a> in the Apify doc.
+ *   the <a href="https://docs.apify.com/webhooks/events#actor-run" target="_blank">actor run events</a> in the Apify doc.
  * @param {string}  options.requestUrl
  *   URL which will be requested using HTTP POST request, when actor run will reach the set event type.
  * @param {string} [options.payloadTemplate]
  *   Payload template is a JSON-like string that describes the structure of the webhook POST request payload.
  *   It uses JSON syntax, extended with a double curly braces syntax for injecting variables `{{variable}}`.
  *   Those variables are resolved at the time of the webhook's dispatch, and a list of available variables with their descriptions
- *   is available in the <a href="https://apify.com/docs/webhooks" target="_blank">Apify webhook documentation</a>.
+ *   is available in the <a href="https://docs.apify.com/webhooks" target="_blank">Apify webhook documentation</a>.
  *
  *   When omitted, the default payload template will be used.
- *   <a href="https://apify.com/docs/webhooks" target="_blank">See the docs for the default payload template</a>.
+ *   <a href="https://docs.apify.com/webhooks" target="_blank">See the docs for the default payload template</a>.
  * @param {string} [options.idempotencyKey]
  *   Idempotency key enables you to ensure that a webhook will not be added multiple times in case of
  *   an actor restart or other situation that would cause the `addWebhook()` function to be called again.

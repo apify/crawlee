@@ -119,7 +119,7 @@ the running actor. Feel free to check out the other **Run** tabs, such as **Info
 **Key-value-store**, where the actor's **INPUT** and **OUTPUT** are stored.
 
 Good job. You're now ready to run your own source code on the Apify Platform. For more information visit the
-<a href="https://apify.com/docs/actor" target="_blank">Actor documentation page</a>, where you'll find everything about the platform's various
+<a href="https://docs.apify.com/actor" target="_blank">Actor documentation page</a>, where you'll find everything about the platform's various
 options.
 
 ## First crawler

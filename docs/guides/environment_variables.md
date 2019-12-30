@@ -36,7 +36,7 @@ The following table shows the basic environment variables used by Apify SDK:
           <tr>
             <td><code>APIFY_PROXY_PASSWORD</code></td>
             <td>
-              Optional password to <a href="https://apify.com/docs/proxy" target="_blank">Apify Proxy</a> for IP address rotation.
+              Optional password to <a href="https://docs.apify.com/proxy" target="_blank">Apify Proxy</a> for IP address rotation.
               If you have have an Apify Account, you can find the password on the
               <a href="https://my.apify.com/proxy" target="_blank">Proxy page</a> in the Apify app.
               This feature is optional. You can use your own proxies or no proxies at all.

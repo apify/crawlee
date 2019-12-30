@@ -15,6 +15,6 @@ store and somebody uses it, it runs under their account, not yours.
 **Related links**
 
 -   <a href="https://apify.com/store" target="_blank">Store of existing actors</a>
--   <a href="https://apify.com/docs/actor" target="_blank">Documentation</a>
+-   <a href="https://docs.apify.com/actor" target="_blank">Documentation</a>
 -   <a href="https://my.apify.com/actors" target="_blank">View actors in Apify app</a>
 -   <a href="https://apify.com/docs/api/v2#/reference/actors" target="_blank">API reference</a>
