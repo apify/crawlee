@@ -2,10 +2,11 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import log from 'apify-shared/log';
 import _ from 'underscore';
 import BasicCrawler from './basic_crawler';
-import PuppeteerPool from '../puppeteer_pool';
+import PuppeteerPool, { BROWSER_SESSION_KEY_NAME } from '../puppeteer_pool';
 import { addTimeoutToPromise } from '../utils';
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { gotoExtended } from '../puppeteer_utils';
+import { openSessionPool } from '../session_pool/session_pool';
 
 /**
  * Provides a simple framework for parallel crawling of web pages
@@ -197,6 +198,10 @@ class PuppeteerCrawler {
             puppeteerPoolOptions,
             launchPuppeteerFunction,
             launchPuppeteerOptions,
+
+            sessionPoolOptions = {},
+            persistCookiesPerSession = false,
+            useSessionPool = false,
         } = options;
 
         checkParamOrThrow(handlePageFunction, 'options.handlePageFunction', 'Function');
@@ -205,6 +210,9 @@ class PuppeteerCrawler {
         checkParamOrThrow(gotoFunction, 'options.gotoFunction', 'Function');
         checkParamOrThrow(gotoTimeoutSecs, 'options.gotoTimeoutSecs', 'Number');
         checkParamOrThrow(puppeteerPoolOptions, 'options.puppeteerPoolOptions', 'Maybe Object');
+        checkParamOrThrow(useSessionPool, 'options.useSessionPool', 'Boolean');
+        checkParamOrThrow(sessionPoolOptions, 'options.sessionPoolOptions', 'Object');
+        checkParamOrThrow(persistCookiesPerSession, 'options.persistCookiesPerSession', 'Boolean');
 
         if (options.gotoTimeoutSecs && options.gotoFunction) {
             log.warning('PuppeteerCrawler: You are using gotoTimeoutSecs with a custom gotoFunction. '
@@ -224,6 +232,9 @@ class PuppeteerCrawler {
         };
 
         this.puppeteerPool = null; // Constructed when .run()
+        this.useSessionPool = useSessionPool;
+        this.sessionPoolOptions = sessionPoolOptions;
+        this.persistCookiesPerSession = persistCookiesPerSession;
 
         this.basicCrawler = new BasicCrawler({
             // Basic crawler options.
@@ -250,11 +261,18 @@ class PuppeteerCrawler {
     async run() {
         if (this.isRunningPromise) return this.isRunningPromise;
 
+        if (this.useSessionPool) {
+            this.sessionPool = await openSessionPool(this.sessionPoolOptions);
+            this.puppeteerPoolOptions.sessionPool = this.sessionPool;
+        }
         this.puppeteerPool = new PuppeteerPool(this.puppeteerPoolOptions);
         try {
             this.isRunningPromise = this.basicCrawler.run();
             await this.isRunningPromise;
         } finally {
+            if (this.useSessionPool) {
+                this.sessionPool.teardown();
+            }
             this.puppeteerPool.destroy();
         }
     }
@@ -265,17 +283,37 @@ class PuppeteerCrawler {
      * @ignore
      */
     async _handleRequestFunction({ request, autoscaledPool }) {
+        let session;
         const page = await this.puppeteerPool.newPage();
 
+        if (this.sessionPool) {
+            const browser = page.browser();
+            session = browser[BROWSER_SESSION_KEY_NAME];
+
+            // setting cookies for page
+            if (this.persistCookiesPerSession) {
+                await page.setCookie(...session.getPuppeteerCookies(request.url));
+            }
+        }
+
         try {
-            const response = await this.gotoFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool });
+            const response = await this.gotoFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool, session });
             await this.puppeteerPool.serveLiveViewSnapshot(page);
             request.loadedUrl = page.url();
+
+            // save cookies
+            if (this.persistCookiesPerSession) {
+                const cookies = await page.cookies(request.loadedUrl);
+                session.putPuppeteerCookies(cookies, request.loadedUrl);
+            }
+
             await addTimeoutToPromise(
-                this.handlePageFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool, response }),
+                this.handlePageFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool, response, session }),
                 this.handlePageTimeoutMillis,
                 `PuppeteerCrawler: handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`,
             );
+
+            if (session) session.markGood();
         } finally {
             await this.puppeteerPool.recyclePage(page);
         }

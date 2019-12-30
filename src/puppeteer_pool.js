@@ -10,6 +10,9 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import { launchPuppeteer } from './puppeteer';
 import { addTimeoutToPromise } from './utils';
 import LiveViewServer from './live_view/live_view_server';
+import EVENTS from './session_pool/events';
+
+export const BROWSER_SESSION_KEY_NAME = 'APIFY_SESSION';
 
 const PROCESS_KILL_TIMEOUT_MILLIS = 5000;
 const PAGE_CLOSE_KILL_TIMEOUT_MILLIS = 1000;
@@ -174,6 +177,7 @@ class PuppeteerPool {
             useIncognitoPages,
             proxyUrls,
             useLiveView,
+            sessionPool,
         } = _.defaults({}, options, DEFAULT_OPTIONS);
 
         // Disabling due to memory leak.
@@ -201,8 +205,10 @@ class PuppeteerPool {
         // Enforce non-empty proxyUrls array
         if (proxyUrls && !proxyUrls.length) throw new Error('Parameter "options.proxyUrls" of type Array must not be empty');
         checkParamOrThrow(useLiveView, 'options.useLiveView', 'Maybe Boolean');
+        checkParamOrThrow(sessionPool, 'options.sessionPool', 'Maybe Object');
 
         // Config.
+        this.sessionPool = sessionPool;
         this.reusePages = reusePages;
         this.maxOpenPagesPerInstance = maxOpenPagesPerInstance;
         this.retireInstanceAfterRequestCount = retireInstanceAfterRequestCount;
@@ -234,12 +240,21 @@ class PuppeteerPool {
             // Set timeout for browser launch.
             if (opts.timeout == null) opts.timeout = this.puppeteerOperationTimeoutMillis;
 
+            let session;
+            if (sessionPool) {
+                session = await sessionPool.getSession();
+                opts.apifyProxySession = session.id;
+            }
+
             const browser = await launchPuppeteerFunction(opts);
             if (!browser || typeof browser.newPage !== 'function') {
                 // eslint-disable-next-line max-len
                 throw new Error("The custom 'launchPuppeteerFunction' passed to PuppeteerPool must return a promise resolving to Puppeteer's Browser instance.");
             }
             browser.recycleDiskCacheDir = diskCacheDir;
+
+            if (session) browser[BROWSER_SESSION_KEY_NAME] = session;
+
             return browser;
         };
 
@@ -265,6 +280,11 @@ class PuppeteerPool {
         // ensure termination on SIGINT
         this.sigintListener = () => this._killAllInstances();
         process.on('SIGINT', this.sigintListener);
+
+        if (sessionPool) {
+            this._retireBrowserWithSession = this._retireBrowserWithSession.bind(this);
+            sessionPool.on(EVENTS.SESSION_RETIRED, this._retireBrowserWithSession);
+        }
     }
 
     /**
@@ -299,6 +319,10 @@ class PuppeteerPool {
         let browser;
         try {
             browser = await browserPromise;
+
+            if (this.sessionPool) {
+                instance.session = browser[BROWSER_SESSION_KEY_NAME];
+            }
         } catch (err) {
             log.exception(err, 'PuppeteerPool: Browser launch failed', { id });
             delete this.activeInstances[id];
@@ -703,6 +727,28 @@ class PuppeteerPool {
         const snapshotPromise = this.liveViewServer.serve(page)
             .catch(err => log.debug('Live View failed to be served.', { message: err.message }));
         this.liveViewSnapshotsInProgress.set(page, snapshotPromise);
+    }
+
+    _findInstancesBySession(session) {
+        const instances = Object.values(this.activeInstances);
+        return instances.filter(instance => instance.session.id === session.id);
+    }
+
+    async _retireBrowserWithSession(session) {
+        const instances = this._findInstancesBySession(session);
+
+        const isInstanceRunning = instances.length >= 1;
+
+        if (isInstanceRunning) {
+            const retireInstances = instances.map(instance => this._retireInstance(instance));
+            try {
+                await Promise.all(retireInstances);
+            } catch (e) {
+                // ignore the error, since the instance is either retired already, being retired or cannot be retired
+                // ( we cant do nothing about this at this point)
+                log.debug('Could not retire instances ', e);
+            }
+        }
     }
 }
 

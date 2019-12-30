@@ -6,6 +6,8 @@ import EVENTS from './events';
 import { STATUS_CODES_BLOCKED } from '../constants';
 import { getCookiesFromResponse } from './session_utils';
 
+const { Cookie } = tough;
+
 
 /**
  *  Class aggregating data for session.
@@ -200,17 +202,95 @@ export class Session {
     putResponse(response) {
         const cookies = getCookiesFromResponse(response).filter(c => c);
 
+        this.setCookies(cookies, response.url);
+    }
+
+    /**
+     * Persists puppeteer cookies to session for reuse.
+     * @param puppeteerCookies - cookie from puppeteer `page.cookies` method.
+     * @param url - Loaded url from page function.
+     */
+    putPuppeteerCookies(puppeteerCookies, url) {
+        const cookies = puppeteerCookies.map(puppeteerCookie => this._transformPuppeteerCookie(puppeteerCookie));
+
+        this.setCookies(cookies, url);
+    }
+
+    /**
+     * Set cookies to session cookieJar.
+     * Cookies array should be compatible with tough-cookie.
+     * @param cookies {Array<Cookie>}
+     * @param url {String}
+     */
+    setCookies(cookies, url) {
         for (const cookie of cookies) {
-            this.cookieJar.setCookieSync(cookie, response.url, { ignoreError: true });
+            this.cookieJar.setCookieSync(cookie, url, { ignoreError: false });
         }
+    }
+
+    /**
+     * Get cookies.
+     * Gets a array of `tough-cookie` Cookie instances.
+     * @param url {String}
+     * @return {Array<Object>}
+     */
+    getCookies(url) {
+        return this.cookieJar.getCookiesSync(url);
     }
 
     /**
      * Wrapper around `tough-cookie` Cookie jar `getCookieString` method.
      * @param url
-     * @return {String} String representing `Cookie` header.
+     * @return {String} - represents `Cookie` header.
      */
     getCookieString(url) {
         return this.cookieJar.getCookieStringSync(url, {});
+    }
+
+    /**
+     * Gets cookies in format ready for puppeteer.
+     * @param url {String}
+     * @return {*}
+     */
+    getPuppeteerCookies(url) {
+        const cookies = this.getCookies(url);
+        return cookies.map(cookie => this._transformToughCookie(cookie));
+    }
+
+
+    /**
+     *  Transforms puppeteer cookie to tough-cookie.
+     * @param puppeteerCookie {Object} - Cookie from puppeteer `page.cookies method.
+     * @return {Cookie}
+     * @private
+     */
+    _transformPuppeteerCookie(puppeteerCookie) {
+        return new Cookie({
+            key: puppeteerCookie.name,
+            value: puppeteerCookie.value,
+            expires: new Date(puppeteerCookie.expires),
+            domain: puppeteerCookie.domain,
+            path: puppeteerCookie.path,
+            secure: puppeteerCookie.secure,
+            httpOnly: puppeteerCookie.httpOnly,
+        });
+    }
+
+    /**
+     *  Transforms tough-cookie cookie to puppeteer Cookie .
+     * @param toughCookie - Cookie from CookieJar.
+     * @return {Object} - puppeteer cookie
+     * @private
+     */
+    _transformToughCookie(toughCookie) {
+        return {
+            name: toughCookie.key,
+            value: toughCookie.value,
+            expires: new Date(toughCookie.expires).getTime(),
+            domain: toughCookie.domain,
+            path: toughCookie.path,
+            secure: toughCookie.secure,
+            httpOnly: toughCookie.httpOnly,
+        };
     }
 }

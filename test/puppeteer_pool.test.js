@@ -4,6 +4,11 @@ import log from 'apify-shared/log';
 import { ENV_VARS } from 'apify-shared/consts';
 import * as Apify from '../build/index';
 import { launchPuppeteer } from '../build/puppeteer';
+import { SessionPool } from '../build/session_pool/session_pool';
+import { BROWSER_SESSION_KEY_NAME } from '../build/puppeteer_pool';
+import { sleep } from '../src/utils';
+import LocalStorageDirEmulator from './local_storage_dir_emulator';
+
 
 const shortSleep = (millis = 25) => new Promise(resolve => setTimeout(resolve, millis));
 
@@ -301,7 +306,7 @@ describe('PuppeteerPool', () => {
         // Check cache dirs were deleted
         expect(fs.existsSync(dir1)).toBe(false);
         expect(fs.existsSync(dir3)).toBe(false);
-    });
+    }, 10000);
 
     describe('reuse of browser tabs', () => {
         xit('should work', async () => {
@@ -619,6 +624,44 @@ describe('PuppeteerPool', () => {
 
             await pool.destroy();
             expect(stopped).toBe(1);
+        });
+    });
+
+    describe('uses sessionPool', () => {
+        let localStorageEmulator;
+
+        beforeAll(async () => {
+            localStorageEmulator = new LocalStorageDirEmulator();
+            await localStorageEmulator.init();
+        });
+
+        afterEach(async () => {
+            await localStorageEmulator.clean();
+        });
+
+        afterAll(async () => {
+            await localStorageEmulator.destroy();
+        });
+
+        test('should work', async () => {
+            const sessionPool = new SessionPool();
+            await sessionPool.initialize();
+            const pool = new Apify.PuppeteerPool({
+                launchPuppeteerOptions: { headless: true },
+                sessionPool,
+            });
+            expect(pool.sessionPool.constructor.name).toEqual('SessionPool');
+            const page = await pool.newPage();
+            const browser = page.browser();
+            expect(browser[BROWSER_SESSION_KEY_NAME].id).toEqual(sessionPool.sessions[0].id);
+            expect(
+                Object.values(pool.activeInstances).filter(instance => instance.session.id === browser[BROWSER_SESSION_KEY_NAME].id),
+            ).toHaveLength(1);
+
+            sessionPool.sessions[0].retire();
+
+            await sleep(2000);
+            expect(Object.values(pool.activeInstances)).toHaveLength(0);
         });
     });
 });

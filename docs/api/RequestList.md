@@ -23,11 +23,10 @@ reclaimed. The state may be automatically persisted to the default [`KeyValueSto
 the Node.js process is restarted, the crawling can continue where it left off. The automated persisting is launched upon receiving the `persistState`
 event that is periodically emitted by [`Apify.events`](events).
 
-The internal state is closely tied to the provided sources (URLs) to validate it's position in the list after a migration or restart. Therefore, if
-the sources change, the state will become corrupted and `RequestList` will raise an exception. This typically happens when using a live list of URLs
-downloaded from the internet as sources. Either from some service's API, or using the `requestsFromUrl` option. If that's your case, please use the
-`persistSourcesKey` option in conjunction with `persistStateKey`, it will persist the initial sources to the default key-value store and load them
-after restart, which will prevent any issues that a live list of URLs might cause.
+The internal state is closely tied to the provided sources (URLs). If the sources change on actor restart, the state will become corrupted and
+`RequestList` will raise an exception. This typically happens when the sources is a list of URLs downloaded from the web. In such case, use the
+`persistSourcesKey` option in conjunction with `persistStateKey`, to make the `RequestList` store the initial sources to the default key-value store
+and load them after restart, which will prevent any issues that a live list of URLs might cause.
 
 **Example usage:**
 
@@ -42,6 +41,9 @@ const requestList = new Apify.RequestList({
         // Note that all URLs must start with http:// or https://
         { requestsFromUrl: 'http://www.example.com/my-url-list.txt', userData: { isFromUrl: true } },
     ],
+
+    // Ensure both the sources and crawling state of the request list is persisted,
+    // so that on actor restart, the crawling will continue where it left off
     persistStateKey: 'my-state',
     persistSourcesKey: 'my-sources',
 });
@@ -111,17 +113,23 @@ await requestList.reclaimRequest(request2);
 <td><code>[options.persistStateKey]</code></td><td><code>String</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>Identifies the key in the default key-value store under which the <code>RequestList</code> persists its
-  current state. State represents a position of the last scraped request in the list.
-  If this is set then <code>RequestList</code>persists the state in regular intervals
-  to key value store and loads the state from there in case it is restarted due to an error or system reboot.</p>
+<td colspan="3"><p>Identifies the key in the default key-value store under which <code>RequestList</code> periodically stores its
+  state (i.e. which URLs were crawled and which not).
+  If the actor is restarted, <code>RequestList</code> will read the state
+  and continue where it left off.</p>
+<p>  If <code>persistStateKey</code> is not set, <code>RequestList</code> will always start from the beginning,
+  and all the source URLs will be crawled again.</p>
 </td></tr><tr>
 <td><code>[options.persistSourcesKey]</code></td><td><code>String</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Identifies the key in the default key-value store under which the <code>RequestList</code> persists its
-  initial sources. If this is set then <code>RequestList</code>persists all of its sources
-  to key value store at initialization and loads them from there in case it is restarted due to an error or system reboot.</p>
+  sources (i.e. the lists of URLs) during the <a href="#RequestList+initialize"><code>initialize</code></a> call.
+  This is necessary if <code>persistStateKey</code> is set and the source URLs might potentially change,
+  to ensure consistency of the source URLs and state object. However, it comes with some storage and performance overheads.</p>
+<p>  If <code>persistSourcesKey</code> is not set, <a href="#RequestList+initialize"><code>initialize</code></a> will always fetch the sources
+  from their origin, check that they are consistent with the restored state (if any)
+  and throw an error if they are not.</p>
 </td></tr><tr>
 <td><code>[options.state]</code></td><td><code>Object</code></td><td></td>
 </tr>
