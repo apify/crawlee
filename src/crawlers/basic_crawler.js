@@ -10,6 +10,7 @@ import events from '../events';
 import { addTimeoutToPromise } from '../utils';
 import Statistics from './statistics';
 import { openSessionPool } from '../session_pool/session_pool';
+import Request from '../request'; // eslint-disable-line no-unused-vars
 
 /**
  * Since there's no set number of seconds before the container is terminated after
@@ -437,7 +438,7 @@ class BasicCrawler {
      * @param {Error} error
      * @param {Request} request
      * @param {RequestList|RequestQueue} source
-     * @return {Boolean} willBeRetried
+     * @return {Promise<Boolean>} willBeRetried
      * @ignore
      */
     async _requestFunctionErrorHandler(error, request, source) {

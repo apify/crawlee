@@ -1,0 +1,25 @@
+{
+    "compilerOptions": {
+        "target": "es2015",
+        "module": "es2015",
+        "moduleResolution": "node",
+        "lib": [
+            "es2017",
+            "dom"
+        ],
+        "types": [
+            "mocha"
+        ],
+        "allowJs": true,
+        "checkJs": false,
+        "noEmit": true,
+        "declaration": false,
+        "strict": false,
+        "noImplicitThis": true,
+        "alwaysStrict": true,
+        "esModuleInterop": true
+    },
+    "include": [
+        "src/"
+    ]
+}
