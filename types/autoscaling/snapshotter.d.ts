@@ -177,10 +177,9 @@ declare class Snapshotter {
      * overloading.
      *
      * @param intervalCallback
-     * @return {number}
      * @private
      */
-    _snapshotClient(intervalCallback: any): number;
+    _snapshotClient(intervalCallback: any): void;
     /**
      * Removes snapshots that are older than the snapshotHistorySecs option
      * from the array (destructively - in place).
