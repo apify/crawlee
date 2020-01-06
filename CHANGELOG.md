@@ -1,4 +1,4 @@
-NEXT
+0.18.0 / 2020-01-06
 ====================
 - **BREAKING** `CheerioCrawler` ignores ssl errors by default - `options.ignoreSslErrors: true`.
 - Add `SessionPool` implemenation to `CheerioCrawler`.
