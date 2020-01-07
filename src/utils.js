@@ -83,6 +83,8 @@ export const logSystemInfo = () => {
  * target="_blank">`Apify.client.setOptions()`</a> function.
  * Beware that altering these settings might have unintended effects on the entire Apify SDK package.
  *
+ * @type {ApifyClient}
+ *
  * @memberof module:Apify
  * @name client
  */
@@ -91,7 +93,7 @@ export const apifyClient = newClient();
 /**
  * Returns a result of `Promise.resolve()`.
  *
- * @returns {*}
+ * @returns {Promise<void>}
  *
  * @ignore
  */
@@ -139,7 +141,8 @@ const createIsDockerPromise = () => {
 /**
  * Returns a `Promise` that resolves to true if the code is running in a Docker container.
  *
- * @return {Promise}
+ * @param {boolean} forceReset
+ * @return {Promise<boolean>}
  *
  * @memberof utils
  * @name isDocker
@@ -155,7 +158,7 @@ export const isDocker = (forceReset) => {
 /**
  * Sums an array of numbers.
  *
- * @param {Array} arr An array of numbers.
+ * @param {Array<Number>} arr An array of numbers.
  * @return {Number} Sum of the numbers.
  *
  * @ignore
@@ -165,7 +168,7 @@ export const sum = arr => arr.reduce((total, c) => total + c, 0);
 /**
  * Computes an average of an array of numbers.
  *
- * @param {Array} arr An array of numbers.
+ * @param {Array<Number>} arr An array of numbers.
  * @return {Number} Average value.
  *
  * @ignore
@@ -175,8 +178,8 @@ export const avg = arr => sum(arr) / arr.length;
 /**
  * Computes a weighted average of an array of numbers, complemented by an array of weights.
  *
- * @param {Array} arrValues
- * @param {Array} arrWeights
+ * @param {Array<Number>} arrValues
+ * @param {Array<Number>} arrWeights
  * @return {Number}
  *
  * @ignore
@@ -379,7 +382,7 @@ export const isAtHome = () => !!process.env[ENV_VARS.IS_AT_HOME];
  * @param {Number} millis Period of time to sleep, in milliseconds. If not a positive number, the returned promise resolves immediately.
  * @memberof utils
  * @name sleep
- * @return {Promise}
+ * @return {Promise<void>}
  */
 export const sleep = (millis) => {
     return new Promise(res => setTimeout(res, millis));
@@ -492,6 +495,7 @@ export const ensureTokenOrLocalStorageEnvExists = (storageName) => {
 const SKIP_TAGS_REGEX = /^(script|style|canvas|svg|noscript)$/i;
 const BLOCK_TAGS_REGEX = /^(p|h1|h2|h3|h4|h5|h6|ol|ul|li|pre|address|blockquote|dl|div|fieldset|form|table|tr|select|option)$/i;
 
+// TODO yin: Depends on @types/cheerio to be done properly.
 /**
  * The function converts a HTML document to a plain text.
  *
@@ -564,6 +568,7 @@ const htmlToText = (html) => {
     return text.trim();
 };
 
+// TODO yin: Specify parameter types in JSDoc. This depends on crawlers being annotated at the same time.
 /**
  * Creates a standardized debug info from request and response. This info is usually added to dataset under the hidden `#debug` field.
  *

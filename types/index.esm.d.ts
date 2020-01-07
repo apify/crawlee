@@ -32,8 +32,8 @@ import { openSessionPool } from "./session_pool/session_pool";
 import LiveViewServer from "./live_view/live_view_server";
 import { Session } from "./session_pool/session";
 declare const exportedUtils: {
-    isDocker: (forceReset: any) => Promise<any>;
-    sleep: (millis: number) => Promise<any>;
+    isDocker: (forceReset: boolean) => Promise<boolean>;
+    sleep: (millis: number) => Promise<void>;
     downloadListOfUrls: ({ url, encoding, urlRegExp }: {
         url: string;
         encoding?: string;

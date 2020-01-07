@@ -12,7 +12,7 @@ separate, detailed, documentation pages accessible from the left sidebar.
     -   [`.addWebhook(options)`](#module_Apify.addWebhook) ⇒ `Promise<Object>`
     -   [`.call(actId, [input], [options])`](#module_Apify.call) ⇒ [`Promise<ActorRun>`](../typedefs/actorrun)
     -   [`.callTask(taskId, [input], [options])`](#module_Apify.callTask) ⇒ [`Promise<ActorRun>`](../typedefs/actorrun)
-    -   [`.client`](#module_Apify.client)
+    -   [`.client`](#module_Apify.client) : `ApifyClient`
     -   [`.events`](#module_Apify.events)
     -   [`.getApifyProxyUrl(options)`](#module_Apify.getApifyProxyUrl) ⇒ `String`
     -   [`.getEnv()`](#module_Apify.getEnv) ⇒ [`ApifyEnv`](../typedefs/apifyenv)
@@ -308,7 +308,7 @@ obtain the output.
 </table>
 <a name="module_Apify.client"></a>
 
-## `Apify.client`
+## `Apify.client` : `ApifyClient`
 
 Gets the default instance of the `ApifyClient` class provided <a href="https://docs.apify.com/api/apify-client-js/latest"
 target="_blank">apify-client</a> by the NPM package. The instance is created automatically by the Apify SDK and it is configured using the

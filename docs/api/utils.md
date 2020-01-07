@@ -21,10 +21,10 @@ await Apify.utils.sleep(1500);
 -   [`utils`](#utils) : `object`
     -   [`.enqueueLinks`](#utils.enqueueLinks) ⇒ `Promise<Array<QueueOperationInfo>>`
     -   [`.requestAsBrowser`](#utils.requestAsBrowser) ⇒ `Promise<(http.IncomingMessage|stream.Readable)>`
-    -   [`.sleep`](#utils.sleep) ⇒ `Promise`
+    -   [`.sleep`](#utils.sleep) ⇒ `Promise<void>`
     -   [`.URL_NO_COMMAS_REGEX`](#utils.URL_NO_COMMAS_REGEX)
     -   [`.URL_WITH_COMMAS_REGEX`](#utils.URL_WITH_COMMAS_REGEX)
-    -   [`.isDocker()`](#utils.isDocker) ⇒ `Promise`
+    -   [`.isDocker(forceReset)`](#utils.isDocker) ⇒ `Promise<boolean>`
     -   [`.downloadListOfUrls(options)`](#utils.downloadListOfUrls) ⇒ `Promise<Array<String>>`
     -   [`.extractUrls(options)`](#utils.extractUrls) ⇒ `Array<String>`
     -   [`.getRandomUserAgent()`](#utils.getRandomUserAgent) ⇒ `String`
@@ -201,7 +201,7 @@ request. All `options` not recognized by this function are passed to it, so see 
 </table>
 <a name="utils.sleep"></a>
 
-## `utils.sleep` ⇒ `Promise`
+## `utils.sleep` ⇒ `Promise<void>`
 
 Returns a `Promise` that resolves after a specific period of time. This is useful to implement waiting in your code, e.g. to prevent overloading of
 target website or to avoid bot detection.
@@ -247,10 +247,23 @@ however, that this may prevent parsing URLs from comma delimited lists, or the U
 
 <a name="utils.isDocker"></a>
 
-## `utils.isDocker()` ⇒ `Promise`
+## `utils.isDocker(forceReset)` ⇒ `Promise<boolean>`
 
 Returns a `Promise` that resolves to true if the code is running in a Docker container.
 
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>forceReset</code></td><td><code>boolean</code></td>
+</tr>
+<tr>
+</tr></tbody>
+</table>
 <a name="utils.downloadListOfUrls"></a>
 
 ## `utils.downloadListOfUrls(options)` ⇒ `Promise<Array<String>>`

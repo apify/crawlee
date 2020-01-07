@@ -26,6 +26,8 @@ export const REQUEST_AS_BROWSER_DEFAULT_OPTIONS = {
     proxyUrl: null,
     timeoutSecs: 30,
 };
+
+// TODO yin: Requires @types/got to properly annotate
 /**
  * Sends a HTTP request that looks like a request sent by a web browser,
  * fully emulating browser's HTTP headers.

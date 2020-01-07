@@ -14,16 +14,18 @@ export function logSystemInfo(): void;
  * target="_blank">`Apify.client.setOptions()`</a> function.
  * Beware that altering these settings might have unintended effects on the entire Apify SDK package.
  *
+ * @type {ApifyClient}
+ *
  * @memberof module:Apify
  * @name client
  */
-export const apifyClient: any;
-export function newPromise(): any;
+export const apifyClient: ApifyClient;
+export function newPromise(): Promise<void>;
 export function addCharsetToContentType(contentType: string): string;
-export function isDocker(forceReset: any): Promise<any>;
-export function sum(arr: any[]): number;
-export function avg(arr: any[]): number;
-export function weightedAvg(arrValues: any[], arrWeights: any[]): number;
+export function isDocker(forceReset: boolean): Promise<boolean>;
+export function sum(arr: number[]): number;
+export function avg(arr: number[]): number;
+export function weightedAvg(arrValues: number[], arrWeights: number[]): number;
 export function getMemoryInfo(): Promise<MemoryInfo>;
 export function isPromise(maybePromise: any): boolean;
 export function isProduction(): boolean;
@@ -32,7 +34,7 @@ export function getFirstKey(dict: any): string;
 export function getTypicalChromeExecutablePath(): string;
 export function addTimeoutToPromise<T>(promise: Promise<T>, timeoutMillis: number, errorMessage: string): Promise<T>;
 export function isAtHome(): boolean;
-export function sleep(millis: number): Promise<any>;
+export function sleep(millis: number): Promise<void>;
 export function openLocalStorage(idOrName: any, defaultIdEnvVar: any, LocalClass: any, cache: any): Promise<any>;
 export function openRemoteStorage(idOrName: any, defaultIdEnvVar: any, RemoteClass: any, cache: any, getOrCreateFunction: any): Promise<any>;
 export function ensureTokenOrLocalStorageEnvExists(storageName: any): void;
