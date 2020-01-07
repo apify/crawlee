@@ -7,11 +7,13 @@ import log from 'apify-shared/log';
 import { ENV_VARS } from 'apify-shared/consts';
 import express from 'express';
 import bodyParser from 'body-parser';
+import sinon from 'sinon';
 import Apify from '../../build';
 import { sleep } from '../../build/utils';
 import { Session } from '../../build/session_pool/session';
 import { STATUS_CODES_BLOCKED } from '../../build/constants';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
+import * as utilsRequest from '../../build/utils_request';
 
 // Add common props to mocked request responses.
 const responseMock = {
@@ -959,6 +961,39 @@ describe('CheerioCrawler', () => {
                 },
             });
             await cheerioCrawler.run();
+        });
+
+        test('should use sessionId in proxyUrl when the session pool is enabled', async () => {
+            const sourcesNew = [
+                { url: 'http://example.com/?q=1' },
+            ];
+            process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
+
+            const requestListNew = new Apify.RequestList({ sources: sourcesNew });
+            let sessionUsed;
+            let requestUsed;
+            const handlePageFunction = async ({ session }) => {
+                sessionUsed = session;
+            };
+            const oldCall = utilsRequest.requestAsBrowser;
+            const fakeCall = async (opt) => {
+                requestUsed = opt;
+                return oldCall(opt);
+            };
+            const stub = sinon.stub(utilsRequest, 'requestAsBrowser').callsFake(fakeCall);
+            const cheerioCrawler = new Apify.CheerioCrawler({
+                requestList: requestListNew,
+                maxConcurrency: 1,
+                handlePageFunction,
+                useSessionPool: true,
+                useApifyProxy: true,
+            });
+
+            await requestListNew.initialize();
+            await cheerioCrawler.run();
+
+            expect(requestUsed.proxyUrl.includes(sessionUsed.id)).toBeTruthy();
+            stub.restore();
         });
     });
 });

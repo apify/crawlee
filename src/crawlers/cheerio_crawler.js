@@ -12,7 +12,7 @@ import BasicCrawler from './basic_crawler';
 import { addTimeoutToPromise, parseContentTypeFromResponse } from '../utils';
 import { getApifyProxyUrl } from '../actor';
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
-import { requestAsBrowser } from '../utils_request';
+import * as utilsRequest from '../utils_request';
 import { TimeoutError } from '../errors';
 
 /**
@@ -133,7 +133,8 @@ const DEFAULT_OPTIONS = {
  *   request: Request,
  *   contentType: Object, // Parsed Content-Type header: { type, encoding }
  *   response: Object // An instance of Node's http.IncomingMessage object,
- *   autoscaledPool: AutoscaledPool
+ *   autoscaledPool: AutoscaledPool,
+ *   session: Session
  * }
  * ```
  *   Type of `body` depends on web page `Content-Type` header.
@@ -191,10 +192,11 @@ const DEFAULT_OPTIONS = {
  *   The function receives the following object as an argument:
  * ```
  * {
- *   request: Request
+ *   request: Request,
+ *   session: Session
  * }
  * ```
- *   where the {@link Request} instance corresponds to the initialized request.
+ *   where the {@link Request} instance corresponds to the initialized request and the {@link Session} instance corresponds to used session.
  *
  *   The function should modify the properties of the passed {@link Request} instance
  *   in place because there are already earlier references to it. Making a copy and returning it from
@@ -327,6 +329,10 @@ class CheerioCrawler {
             throw new Error('Cannot use "options.persistCookiesPerSession" without "options.useSessionPool"');
         }
 
+        if (apifyProxySession && useSessionPool) {
+            throw new Error('Cannot use "options.apifyProxySession" with "options.useSessionPool"');
+        }
+
         this.supportedMimeTypes = new Set(DEFAULT_MIME_TYPES);
         if (additionalMimeTypes.length) this._extendSupportedMimeTypes(additionalMimeTypes);
 
@@ -450,11 +456,11 @@ class CheerioCrawler {
             headers.Cookie = session.getCookieString(request.url);
         }
 
-        const opts = this._getRequestOptions(request);
+        const opts = this._getRequestOptions(request, session);
         let responseStream;
 
         try {
-            responseStream = await requestAsBrowser(opts);
+            responseStream = await utilsRequest.requestAsBrowser(opts);
         } catch (e) {
             if (e instanceof TimeoutError) {
                 this._handleRequestTimeout(session);
@@ -494,15 +500,16 @@ class CheerioCrawler {
     /**
      * Combines the provided `requestOptions` with mandatory (non-overridable) values.
      * @param {Request} request
+     * @param {Session?} session
      * @ignore
      */
-    _getRequestOptions(request) {
+    _getRequestOptions(request, session) {
         const mandatoryRequestOptions = {
             url: request.url,
             method: request.method,
             headers: Object.assign({}, request.headers),
             ignoreSslErrors: this.ignoreSslErrors,
-            proxyUrl: this._getProxyUrl(),
+            proxyUrl: this._getProxyUrl(session),
             stream: true,
             useCaseSensitiveHeaders: true,
             abortFunction: (res) => {
@@ -533,13 +540,14 @@ class CheerioCrawler {
     /**
      * Enables the use of a proxy by returning a proxy URL
      * based on configured options or null if no proxy is used.
+     * @param {Session?} session
      * @ignore
      */
-    _getProxyUrl() {
+    _getProxyUrl(session = {}) {
         if (this.useApifyProxy) {
             return getApifyProxyUrl({
                 groups: this.apifyProxyGroups,
-                session: this.apifyProxySession,
+                session: session.id || this.apifyProxySession,
                 groupsParamName: 'options.apifyProxyGroups',
                 sessionParamName: 'options.apifyProxySession',
             });
