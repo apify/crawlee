@@ -339,16 +339,6 @@ class PuppeteerPool {
         });
         // This one is done manually in Puppeteerpool.newPage() so that it happens immediately.
         // browser.on('targetcreated', () => instance.activePages++);
-        browser.on('targetdestroyed', () => {
-            if (instance.activePages === 0 && this.retiredInstances[id]) {
-                // Run this with a delay, otherwise page.close() that initiated this 'targetdestroyed' event
-                // might fail with "Protocol error (Target.closeTarget): Target closed."
-                setTimeout(() => {
-                    log.debug('PuppeteerPool: Killing retired browser because it has no active pages', { id });
-                    this._killInstance(instance);
-                }, PAGE_CLOSE_KILL_TIMEOUT_MILLIS);
-            }
-        });
     }
 
     /**
@@ -572,6 +562,7 @@ class PuppeteerPool {
 
         page.once('close', () => {
             instance.activePages--;
+            this._killInstanceWithNoPages(instance);
         });
 
         return page;
@@ -747,6 +738,18 @@ class PuppeteerPool {
                 // ( we cant do nothing about this at this point)
                 log.debug('Could not retire instances ', e);
             }
+        }
+    }
+
+    _killInstanceWithNoPages(instance) {
+        const { id } = instance;
+        if (instance.activePages === 0 && this.retiredInstances[id]) {
+            // Run this with a delay, otherwise page.close() that initiated this 'targetdestroyed' event
+            // might fail with "Protocol error (Target.closeTarget): Target closed."
+            setTimeout(() => {
+                log.debug('PuppeteerPool: Killing retired browser because it has no active pages', { id });
+                this._killInstance(instance);
+            }, PAGE_CLOSE_KILL_TIMEOUT_MILLIS);
         }
     }
 }
