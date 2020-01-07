@@ -23,7 +23,7 @@ export function callTask(taskId: string, input?: any, options?: {
 export function metamorph(targetActorId: string, input?: any, options?: {
     contentType?: string;
     build?: string;
-}): Promise<any>;
+}): Promise<void>;
 export function getApifyProxyUrl(options?: {
     password?: string;
     groups?: string[];
