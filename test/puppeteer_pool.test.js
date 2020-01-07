@@ -242,11 +242,11 @@ describe('PuppeteerPool', () => {
         }
         await Promise.all(opennedPages);
 
-        const instances = Object.entries(pool.activeInstances);
+        const instances = Object.values(pool.activeInstances);
 
         expect(instances.length).toEqual(6);
 
-        instances.forEach(([index, instance]) => {
+        instances.forEach((instance) => {
             expect(instance.activePages).toEqual(2);
         });
 
