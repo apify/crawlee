@@ -108,7 +108,8 @@ await crawler.run();
   request: Request,
   contentType: Object, // Parsed Content-Type header: { type, encoding }
   response: Object // An instance of Node&#39;s http.IncomingMessage object,
-  autoscaledPool: AutoscaledPool
+  autoscaledPool: AutoscaledPool,
+  session: Session
 }</code></pre><p>  Type of <code>body</code> depends on web page <code>Content-Type</code> header.</p>
 <ul>
 <li><p>String for <code>text/html</code>, <code>application/xhtml+xml</code>, <code>application/xml</code> mime types</p>
@@ -169,8 +170,9 @@ The exceptions are logged to the request using the
   This function is suitable for setting dynamic properties such as cookies to the <a href="request"><code>Request</code></a>.</p>
 <p>  The function receives the following object as an argument:</p>
 <pre><code>{
-  request: Request
-}</code></pre><p>  where the <a href="request"><code>Request</code></a> instance corresponds to the initialized request.</p>
+  request: Request,
+  session: Session
+}</code></pre><p>  where the <a href="request"><code>Request</code></a> instance corresponds to the initialized request and the <a href="session"><code>Session</code></a> instance corresponds to used session.</p>
 <p>  The function should modify the properties of the passed <a href="request"><code>Request</code></a> instance
   in place because there are already earlier references to it. Making a copy and returning it from
   this function is therefore not supported, because it would create inconsistencies where
