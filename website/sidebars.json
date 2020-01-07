@@ -56,6 +56,7 @@
             "typedefs/apifycallerror",
             "typedefs/apifyenv",
             "typedefs/launchpuppeteeroptions",
+            "typedefs/memoryinfo",
             "typedefs/queueoperationinfo",
             "typedefs/requestoptions"
         ]

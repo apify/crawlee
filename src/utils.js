@@ -193,22 +193,18 @@ export const weightedAvg = (arrValues, arrWeights) => {
 };
 
 /**
- * Returns memory statistics of the process and the system, which is an object with the following properties:
+ * Describes memory usage of an Actor.
  *
- * ```javascript
- * {
- *   // Total memory available in the system or container
- *   totalBytes: Number,
- *   // Amount of free memory in the system or container
- *   freeBytes: Number,
- *   // Amount of memory used (= totalBytes - freeBytes)
- *   usedBytes: Number,
- *   // Amount of memory used the current Node.js process
- *   mainProcessBytes: Number,
- *   // Amount of memory used by child processes of the current Node.js process
- *   childProcessesBytes: Number,
- * }
- * ```
+ * @typedef {Object} MemoryInfo
+ * @property {Number} totalBytes Total memory available in the system or container
+ * @property {Number} freeBytes Amount of free memory in the system or container
+ * @property {Number} usedBytes Amount of memory used (= totalBytes - freeBytes)
+ * @property {Number} mainProcessBytes Amount of memory used the current Node.js process
+ * @property {Number} childProcessesBytes Amount of memory used by child processes of the current Node.js process
+ */
+
+/**
+ * Returns memory statistics of the process and the system, see {@link MemoryInfo}.
  *
  * If the process runs inside of Docker, the `getMemoryInfo` gets container memory limits,
  * otherwise it gets system memory limits.
@@ -216,7 +212,7 @@ export const weightedAvg = (arrValues, arrWeights) => {
  * Beware that the function is quite inefficient because it spawns a new process.
  * Therefore you shouldn't call it too often, like more than once per second.
  *
- * @returns {Promise<Object>}
+ * @returns {Promise<MemoryInfo>}
  *
  * @memberof module:Apify
  * @name getMemoryInfo

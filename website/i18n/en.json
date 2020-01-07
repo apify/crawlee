@@ -143,6 +143,9 @@
       "typedefs/launchpuppeteeroptions": {
         "title": "LaunchPuppeteerOptions"
       },
+      "typedefs/memoryinfo": {
+        "title": "MemoryInfo"
+      },
       "typedefs/queueoperationinfo": {
         "title": "QueueOperationInfo"
       },

@@ -17,7 +17,7 @@ separate, detailed, documentation pages accessible from the left sidebar.
     -   [`.getApifyProxyUrl(options)`](#module_Apify.getApifyProxyUrl) ⇒ `String`
     -   [`.getEnv()`](#module_Apify.getEnv) ⇒ [`ApifyEnv`](../typedefs/apifyenv)
     -   [`.getInput`](#module_Apify.getInput) ⇒ `Promise<Object>`
-    -   [`.getMemoryInfo()`](#module_Apify.getMemoryInfo) ⇒ `Promise<Object>`
+    -   [`.getMemoryInfo()`](#module_Apify.getMemoryInfo) ⇒ [`Promise<MemoryInfo>`](../typedefs/memoryinfo)
     -   [`.getValue(key)`](#module_Apify.getValue) ⇒ `Promise<Object>`
     -   [`.isAtHome()`](#module_Apify.isAtHome) ⇒ `Boolean`
     -   [`.launchPuppeteer([options])`](#module_Apify.launchPuppeteer) ⇒ `Promise<Browser>`
@@ -483,24 +483,9 @@ For more information, see [`Apify.openKeyValueStore()`](#module_Apify.openKeyVal
 **Returns**: `Promise<Object>` - Returns a promise that resolves once the record is stored.  
 <a name="module_Apify.getMemoryInfo"></a>
 
-## `Apify.getMemoryInfo()` ⇒ `Promise<Object>`
+## `Apify.getMemoryInfo()` ⇒ [`Promise<MemoryInfo>`](../typedefs/memoryinfo)
 
-Returns memory statistics of the process and the system, which is an object with the following properties:
-
-```javascript
-{
-  // Total memory available in the system or container
-  totalBytes: Number,
-  // Amount of free memory in the system or container
-  freeBytes: Number,
-  // Amount of memory used (= totalBytes - freeBytes)
-  usedBytes: Number,
-  // Amount of memory used the current Node.js process
-  mainProcessBytes: Number,
-  // Amount of memory used by child processes of the current Node.js process
-  childProcessesBytes: Number,
-}
-```
+Returns memory statistics of the process and the system, see [`MemoryInfo`](../typedefs/memoryinfo).
 
 If the process runs inside of Docker, the `getMemoryInfo` gets container memory limits, otherwise it gets system memory limits.
 

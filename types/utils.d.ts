@@ -24,7 +24,7 @@ export function isDocker(forceReset: any): Promise<any>;
 export function sum(arr: any[]): number;
 export function avg(arr: any[]): number;
 export function weightedAvg(arrValues: any[], arrWeights: any[]): number;
-export function getMemoryInfo(): Promise<any>;
+export function getMemoryInfo(): Promise<MemoryInfo>;
 export function isPromise(maybePromise: any): boolean;
 export function isProduction(): boolean;
 export function ensureDirExists(dirPath: any): any;
@@ -54,6 +54,31 @@ export namespace publicUtils {
     export { createRequestDebugInfo };
     export { parseContentTypeFromResponse };
 }
+/**
+ * Describes memory usage of an Actor.
+ */
+export type MemoryInfo = {
+    /**
+     * Total memory available in the system or container
+     */
+    totalBytes: number;
+    /**
+     * Amount of free memory in the system or container
+     */
+    freeBytes: number;
+    /**
+     * Amount of memory used (= totalBytes - freeBytes)
+     */
+    usedBytes: number;
+    /**
+     * Amount of memory used the current Node.js process
+     */
+    mainProcessBytes: number;
+    /**
+     * Amount of memory used by child processes of the current Node.js process
+     */
+    childProcessesBytes: number;
+};
 declare function downloadListOfUrls({ url, encoding, urlRegExp }: {
     url: string;
     encoding?: string;
