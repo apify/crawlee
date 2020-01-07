@@ -230,6 +230,30 @@ describe('PuppeteerPool', () => {
         await pool.destroy();
     });
 
+    test('does not create more than maxOpenPagesPerInstance', async () => {
+        const pool = new Apify.PuppeteerPool({
+            maxOpenPagesPerInstance: 2,
+            retireInstanceAfterRequestCount: 100,
+        });
+        const opennedPages = [];
+
+        for (let i = 0; i < 12; i++) {
+            opennedPages.push(pool.newPage());
+        }
+        await Promise.all(opennedPages);
+
+        const instances = Object.entries(pool.activeInstances);
+
+        expect(instances.length).toEqual(6);
+
+        instances.forEach(([index, instance]) => {
+            expect(instance.activePages).toEqual(2);
+        });
+
+        // Cleanup everything.
+        await pool.destroy();
+    });
+
     test('supports recycleDiskCache option', async () => {
         const pool = new Apify.PuppeteerPool({
             maxOpenPagesPerInstance: 1,
