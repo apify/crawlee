@@ -1,3 +1,13 @@
+NEXT
+====================
+- **BREAKING**: `APIFY_LOCAL_EMULATION_DIR` env var is no longer supported (deprecated on 2018-09-11).
+  Use `APIFY_LOCAL_STORAGE_DIR` instead.
+
+0.18.1 / 2020-01-06
+====================
+- Fix `SessionPool` not automatically working in `CheerioCrawler`.
+- Fix incorrect management of page count in `PuppeteerPool`.
+
 0.18.0 / 2020-01-06
 ====================
 - **BREAKING** `CheerioCrawler` ignores ssl errors by default - `options.ignoreSslErrors: true`.
