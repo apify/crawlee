@@ -337,24 +337,6 @@ class PuppeteerPool {
             if (!instance.killed) log.error('PuppeteerPool: Puppeteer sent "disconnect" event. Maybe it crashed???', { id });
             this._retireInstance(instance);
         });
-        // This one is done manually in Puppeteerpool.newPage() so that it happens immediately.
-        // browser.on('targetcreated', () => instance.activePages++);
-        browser.on('targetdestroyed', (target) => {
-            // The event is also called for service workers and Chromium extensions, which must be ignored!
-            const type = target.type();
-            if (type !== 'page' && type !== 'other') return;
-
-            instance.activePages--;
-
-            if (instance.activePages === 0 && this.retiredInstances[id]) {
-                // Run this with a delay, otherwise page.close() that initiated this 'targetdestroyed' event
-                // might fail with "Protocol error (Target.closeTarget): Target closed."
-                setTimeout(() => {
-                    log.debug('PuppeteerPool: Killing retired browser because it has no active pages', { id });
-                    this._killInstance(instance);
-                }, PAGE_CLOSE_KILL_TIMEOUT_MILLIS);
-            }
-        });
     }
 
     /**
@@ -554,18 +536,18 @@ class PuppeteerPool {
      * @ignore
      */
     _decoratePage(page) {
+        const instance = this.pagesToInstancesMap.get(page);
+
         const originalPageClose = page.close;
         page.close = async (...args) => {
             this.closedPages.add(page);
             await originalPageClose.apply(page, args)
                 .catch((err) => {
-                    const instance = this.pagesToInstancesMap.get(page);
                     log.debug('PuppeteerPool: Page.close() failed', { errorMessage: err.message, id: instance.id });
                 });
             const context = page.browserContext();
             if (context.isIncognito()) {
                 await context.close().catch((err) => {
-                    const instance = this.pagesToInstancesMap.get(page);
                     log.debug('PuppeteerPool: Context.close() failed', { errorMessage: err.message, id: instance.id });
                 });
             }
@@ -575,6 +557,12 @@ class PuppeteerPool {
             log.exception(error, 'PuppeteerPool: Page crashed.');
             page.close();
         });
+
+        page.once('close', () => {
+            instance.activePages--;
+            this._killInstanceWithNoPages(instance);
+        });
+
         return page;
     }
 
@@ -748,6 +736,18 @@ class PuppeteerPool {
                 // ( we cant do nothing about this at this point)
                 log.debug('Could not retire instances ', e);
             }
+        }
+    }
+
+    _killInstanceWithNoPages(instance) {
+        const { id } = instance;
+        if (instance.activePages === 0 && this.retiredInstances[id]) {
+            // Run this with a delay, otherwise page.close()
+            // might fail with "Protocol error (Target.closeTarget): Target closed."
+            setTimeout(() => {
+                log.debug('PuppeteerPool: Killing retired browser because it has no active pages', { id });
+                this._killInstance(instance);
+            }, PAGE_CLOSE_KILL_TIMEOUT_MILLIS);
         }
     }
 }
