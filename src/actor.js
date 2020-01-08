@@ -6,7 +6,7 @@ import { APIFY_PROXY_VALUE_REGEX } from 'apify-shared/regexs';
 import { ENV_VARS, INTEGER_ENV_VARS, LOCAL_ENV_VARS, ACT_JOB_TERMINAL_STATUSES, ACT_JOB_STATUSES } from 'apify-shared/consts';
 import { EXIT_CODES, COUNTRY_CODE_REGEX } from './constants';
 import { initializeEvents, stopEvents } from './events';
-import { apifyClient, addCharsetToContentType, sleep, snakeCaseToCamelCase, isAtHome } from './utils';
+import { apifyClient, addCharsetToContentType, sleep, snakeCaseToCamelCase, isAtHome, logSystemInfo, printOutdatedSdkWarning } from './utils';
 import { maybeStringify } from './key_value_store';
 import { ApifyCallError } from './errors';
 
@@ -227,6 +227,12 @@ export const main = (userFunc) => {
     if (!userFunc || typeof (userFunc) !== 'function') {
         throw new Error(`Apify.main() accepts a single parameter that must be a function (was '${userFunc === null ? 'null' : typeof (userFunc)}').`);
     }
+
+    // Logging some basic system info (apify and apify-client version, NodeJS version, ...).
+    logSystemInfo();
+
+    // Log warning if SDK is outdated.
+    printOutdatedSdkWarning();
 
     if (!process.env[ENV_VARS.LOCAL_STORAGE_DIR] && !process.env[ENV_VARS.TOKEN]) {
         const dir = path.join(process.cwd(), './apify_storage');

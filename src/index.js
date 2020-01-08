@@ -1,6 +1,5 @@
 import EventEmitter from 'events';
 import log from 'apify-shared/log';
-import { ENV_VARS } from 'apify-shared/consts';
 import { main, getEnv, call, callTask, getApifyProxyUrl, metamorph, addWebhook } from './actor';
 import AutoscaledPool from './autoscaling/autoscaled_pool';
 import BasicCrawler from './crawlers/basic_crawler';
@@ -14,7 +13,7 @@ import PuppeteerPool from './puppeteer_pool';
 import Request from './request';
 import { RequestList, openRequestList } from './request_list';
 import { openRequestQueue } from './request_queue';
-import { apifyClient, getMemoryInfo, isAtHome, publicUtils, logSystemInfo, printOutdatedSdkWarning } from './utils';
+import { apifyClient, getMemoryInfo, isAtHome, publicUtils } from './utils';
 import { puppeteerUtils } from './puppeteer_utils';
 import { socialUtils } from './utils_social';
 import { enqueueLinks } from './enqueue_links/enqueue_links';
@@ -29,19 +28,6 @@ EventEmitter.defaultMaxListeners = 50;
 
 // Log as plain text not JSON
 log.logJson = false;
-
-// TODO: remove this when we release v1.0.0
-const EMULATION_ENV_VAR = 'APIFY_LOCAL_EMULATION_DIR';
-if (process.env[EMULATION_ENV_VAR]) {
-    log.warning(`Environment variable "${EMULATION_ENV_VAR}" is deprecated!!! Use "${ENV_VARS.LOCAL_STORAGE_DIR}" instead!`);
-    if (!process.env[ENV_VARS.LOCAL_STORAGE_DIR]) process.env[ENV_VARS.LOCAL_STORAGE_DIR] = process.env[EMULATION_ENV_VAR];
-}
-
-// Logging some basic system info (apify and apify-client version, NodeJS version, ...).
-logSystemInfo();
-
-// Log warning if SDK is outdated.
-printOutdatedSdkWarning();
 
 /**
  * The following section describes all functions and properties provided by the `apify` package,
