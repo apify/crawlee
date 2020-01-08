@@ -1,14 +1,14 @@
 {
     "compilerOptions": {
         "target": "es2015",
-        "module": "es2015",
+        "module": "commonjs",
         "moduleResolution": "node",
         "lib": [
             "es2017",
             "dom"
         ],
         "types": [
-            "mocha"
+            "node"
         ],
         "allowJs": true,
         "checkJs": false,
@@ -20,6 +20,6 @@
         "esModuleInterop": true
     },
     "include": [
-        "src/"
+        "src/index.js"
     ]
 }
