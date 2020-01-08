@@ -16,6 +16,8 @@ const DEFAULT_OPTIONS = {
     autoscaleIntervalSecs: 10,
 };
 
+// TODO yin: crawlers/basic_brawler.js#BasicCrawlerOtions.autoscaledPoolOptions
+
 /**
  * Manages a pool of asynchronous resource-intensive tasks that are executed in parallel.
  * The pool only starts new tasks if there is enough free CPU and memory available

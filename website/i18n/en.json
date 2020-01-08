@@ -140,11 +140,41 @@
       "typedefs/apifyenv": {
         "title": "ApifyEnv"
       },
+      "typedefs/cheeriohandlepage": {
+        "title": "CheerioHandlePage"
+      },
+      "typedefs/cheeriohandlepageinputs": {
+        "title": "CheerioHandlePageInputs"
+      },
+      "typedefs/handlefailedrequest": {
+        "title": "HandleFailedRequest"
+      },
+      "typedefs/handlefailedrequestinput": {
+        "title": "HandleFailedRequestInput"
+      },
+      "typedefs/handlerequest": {
+        "title": "HandleRequest"
+      },
+      "typedefs/handlerequestinputs": {
+        "title": "HandleRequestInputs"
+      },
       "typedefs/launchpuppeteeroptions": {
         "title": "LaunchPuppeteerOptions"
       },
       "typedefs/memoryinfo": {
         "title": "MemoryInfo"
+      },
+      "typedefs/preparerequest": {
+        "title": "PrepareRequest"
+      },
+      "typedefs/preparerequestinputs": {
+        "title": "PrepareRequestInputs"
+      },
+      "typedefs/puppeteerhandlepage": {
+        "title": "PuppeteerHandlePage"
+      },
+      "typedefs/puppeteerhandlepageinputs": {
+        "title": "PuppeteerHandlePageInputs"
       },
       "typedefs/queueoperationinfo": {
         "title": "QueueOperationInfo"
@@ -167,7 +197,8 @@
       "Reference": "Reference",
       "Examples": "Examples",
       "Autoscaling Tools": "Autoscaling Tools",
-      "Type Definitions": "Type Definitions"
+      "Type Definitions": "Type Definitions",
+      "Callbacks": "Callbacks"
     }
   },
   "pages-strings": {

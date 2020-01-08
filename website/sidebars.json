@@ -59,6 +59,18 @@
             "typedefs/memoryinfo",
             "typedefs/queueoperationinfo",
             "typedefs/requestoptions"
+        ],
+        "User-Defined Functions": [
+            "typedefs/cheeriohandlepage",
+            "typedefs/cheeriohandlepageinputs",
+            "typedefs/handlefailedrequest",
+            "typedefs/handlefailedrequestinput",
+            "typedefs/handlerequest",
+            "typedefs/handlerequestinputs",
+            "typedefs/preparerequest",
+            "typedefs/preparerequestinputs",
+            "typedefs/puppeteerhandlepage",
+            "typedefs/puppeteerhandlepageinputs"
         ]
     }
 }

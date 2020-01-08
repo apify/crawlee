@@ -93,7 +93,7 @@ await crawler.run();
 <td colspan="3"><p>All <code>CheerioCrawler</code> parameters are passed
   via an options object with the following keys:</p>
 </td></tr><tr>
-<td><code>options.handlePageFunction</code></td><td><code>function</code></td><td></td>
+<td><code>options.handlePageFunction</code></td><td><code><a href="../typedefs/cheeriohandlepage">CheerioHandlePage</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>User-provided function that performs the logic of the crawler. It is called for each page
@@ -163,7 +163,7 @@ The exceptions are logged to the request using the
       strictSSL, // Use options.ignoreSslErrors
       proxy,     // Use options.useApifyProxy or options.proxyUrls
   }</code></pre></td></tr><tr>
-<td><code>[options.prepareRequestFunction]</code></td><td><code>function</code></td><td></td>
+<td><code>[options.prepareRequestFunction]</code></td><td><code><a href="../typedefs/preparerequest">PrepareRequest</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>A function that executes before the HTTP request is made to the target resource.
@@ -172,7 +172,7 @@ The exceptions are logged to the request using the
 <pre><code>{
   request: Request,
   session: Session
-}</code></pre><p>  where the <a href="request"><code>Request</code></a> instance corresponds to the initialized request and the <a href="session"><code>Session</code></a> instance corresponds to used session.</p>
+}</code></pre><p>  where the <a href="request"><code>Request</code></a> instance corresponds to the initialized request.</p>
 <p>  The function should modify the properties of the passed <a href="request"><code>Request</code></a> instance
   in place because there are already earlier references to it. Making a copy and returning it from
   this function is therefore not supported, because it would create inconsistencies where
@@ -224,7 +224,7 @@ The exceptions are logged to the request using the
   Custom proxies are not compatible with Apify Proxy and an attempt to use both
   configuration options will cause an error to be thrown on startup.</p>
 </td></tr><tr>
-<td><code>[options.handleFailedRequestFunction]</code></td><td><code>function</code></td><td></td>
+<td><code>[options.handleFailedRequestFunction]</code></td><td><code><a href="../typedefs/handlefailedrequest">HandleFailedRequest</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>A function to handle requests that failed more than <code>option.maxRequestRetries</code> times.</p>

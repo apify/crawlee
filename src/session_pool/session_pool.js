@@ -7,6 +7,7 @@ import { Session } from './session';
 import events from '../events';
 import { ACTOR_EVENT_NAMES_EX } from '../constants';
 
+// TODO yin: crawlers/basic_crawler.js#BasicCrawlerOptions.sessionPoolOptions
 
 /**
  * Handles the sessions rotation, creation and persistence.

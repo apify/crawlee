@@ -63,7 +63,7 @@ await crawler.run();
 
 -   [PuppeteerCrawler](puppeteercrawler)
     -   [`new PuppeteerCrawler(options)`](#new_PuppeteerCrawler_new)
-    -   [`.run()`](#PuppeteerCrawler+run) ⇒ `Promise`
+    -   [`.run()`](#PuppeteerCrawler+run) ⇒ `Promise<void>`
 
 <a name="new_PuppeteerCrawler_new"></a>
 
@@ -83,7 +83,7 @@ await crawler.run();
 <td colspan="3"><p>All <code>PuppeteerCrawler</code> parameters are passed
   via an options object with the following keys:</p>
 </td></tr><tr>
-<td><code>options.handlePageFunction</code></td><td><code>function</code></td><td></td>
+<td><code>options.handlePageFunction</code></td><td><code><a href="../typedefs/puppeteerhandlepage">PuppeteerHandlePage</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Function that is called to process each request.
@@ -97,7 +97,7 @@ await crawler.run();
   session: Session,
 }</code></pre><p>  <code>request</code> is an instance of the <a href="request"><code>Request</code></a> object with details about the URL to open, HTTP method etc.
   <code>page</code> is an instance of the <code>Puppeteer</code>
-  <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a>.
+  <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a>
   <code>response</code> is an instance of the <code>Puppeteer</code>
   <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-response" target="_blank"><code>Response</code></a>,
   which is the main resource response as returned by <code>page.goto(request.url)</code>.
@@ -148,7 +148,7 @@ await crawler.run();
 <td colspan="3"><p>Timeout in which page navigation needs to finish, in seconds. When <code>options.gotoFunction()</code> is used and thus the default
   function is overridden, this timeout will not be used and needs to be configured in the new <code>gotoFunction()</code>.</p>
 </td></tr><tr>
-<td><code>[options.handleFailedRequestFunction]</code></td><td><code>function</code></td><td></td>
+<td><code>[options.handleFailedRequestFunction]</code></td><td><code><a href="../typedefs/handlefailedrequest">HandleFailedRequest</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>A function to handle requests that failed more than <code>option.maxRequestRetries</code> times.</p>
@@ -233,6 +233,6 @@ await crawler.run();
 </table>
 <a name="PuppeteerCrawler+run"></a>
 
-## `puppeteerCrawler.run()` ⇒ `Promise`
+## `puppeteerCrawler.run()` ⇒ `Promise<void>`
 
 Runs the crawler. Returns promise that gets resolved once all the requests got processed.

@@ -55,12 +55,12 @@ await crawler.run();
 ```
 
 -   [BasicCrawler](basiccrawler)
-    -   [`new BasicCrawler(options, sessionPoolOptions)`](#new_BasicCrawler_new)
-    -   [`.run()`](#BasicCrawler+run) ⇒ `Promise`
+    -   [`new BasicCrawler(options)`](#new_BasicCrawler_new)
+    -   [`.run()`](#BasicCrawler+run) ⇒ `Promise<void>`
 
 <a name="new_BasicCrawler_new"></a>
 
-## `new BasicCrawler(options, sessionPoolOptions)`
+## `new BasicCrawler(options)`
 
 <table>
 <thead>
@@ -73,10 +73,8 @@ await crawler.run();
 <td><code>options</code></td><td><code>Object</code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>All <code>BasicCrawler</code> parameters are passed
-  via an options object with the following keys:</p>
-</td></tr><tr>
-<td><code>options.handleRequestFunction</code></td><td><code>function</code></td><td></td>
+<td colspan="3"></td></tr><tr>
+<td><code>options.handleRequestFunction</code></td><td><code><a href="../typedefs/handlerequest">HandleRequest</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>User-provided function that performs the logic of the crawler. It is called for each URL to crawl.</p>
@@ -112,7 +110,7 @@ await crawler.run();
 <tr>
 <td colspan="3"><p>Timeout in which the function passed as <code>options.handleRequestFunction</code> needs to finish, in seconds.</p>
 </td></tr><tr>
-<td><code>[options.handleFailedRequestFunction]</code></td><td><code>function</code></td><td></td>
+<td><code>[options.handleFailedRequestFunction]</code></td><td><code><a href="../typedefs/handlefailedrequest">HandleFailedRequest</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>A function to handle requests that failed more than <code>option.maxRequestRetries</code> times.</p>
@@ -146,14 +144,14 @@ await crawler.run();
   are provided by <code>BasicCrawler</code> and cannot be overridden.
   However, you can provide a custom implementation of <code>isFinishedFunction</code>.</p>
 </td></tr><tr>
-<td><code>[options.minConcurrency]</code></td><td><code>Object</code></td><td><code>1</code></td>
+<td><code>[options.minConcurrency]</code></td><td><code>Number</code></td><td><code>1</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding <a href="autoscaledpool"><code>AutoscaledPool</code></a> option.</p>
 <p>  <em>WARNING:</em> If you set this value too high with respect to the available system memory and CPU, your crawler will run extremely slow or crash.
   If you&#39;re not sure, just keep the default value and the concurrency will scale up automatically.</p>
 </td></tr><tr>
-<td><code>[options.maxConcurrency]</code></td><td><code>Object</code></td><td><code>1000</code></td>
+<td><code>[options.maxConcurrency]</code></td><td><code>Number</code></td><td><code>1000</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding <a href="autoscaledpool"><code>AutoscaledPool</code></a> option.</p>
@@ -164,7 +162,7 @@ await crawler.run();
 <td colspan="3"><p>If set to true. Basic crawler will initialize the  <a href="sessionpool"><code>SessionPool</code></a> with the corresponding <code>sessionPoolOptions</code>.
   The session instance will be than available in the <code>handleRequestFunction</code>.</p>
 </td></tr><tr>
-<td><code>sessionPoolOptions</code></td><td><code>Object</code></td><td></td>
+<td><code>[options.sessionPoolOptions]</code></td><td><code>Object</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>The <a href="sessionpool#new_SessionPool_new"><code>new SessionPool</code></a> options</p>
@@ -172,6 +170,6 @@ await crawler.run();
 </table>
 <a name="BasicCrawler+run"></a>
 
-## `basicCrawler.run()` ⇒ `Promise`
+## `basicCrawler.run()` ⇒ `Promise<void>`
 
 Runs the crawler. Returns a promise that gets resolved once all the requests are processed.
