@@ -337,8 +337,6 @@ class PuppeteerPool {
             if (!instance.killed) log.error('PuppeteerPool: Puppeteer sent "disconnect" event. Maybe it crashed???', { id });
             this._retireInstance(instance);
         });
-        // This one is done manually in Puppeteerpool.newPage() so that it happens immediately.
-        // browser.on('targetcreated', () => instance.activePages++);
     }
 
     /**
@@ -744,7 +742,7 @@ class PuppeteerPool {
     _killInstanceWithNoPages(instance) {
         const { id } = instance;
         if (instance.activePages === 0 && this.retiredInstances[id]) {
-            // Run this with a delay, otherwise page.close() that initiated this 'targetdestroyed' event
+            // Run this with a delay, otherwise page.close()
             // might fail with "Protocol error (Target.closeTarget): Target closed."
             setTimeout(() => {
                 log.debug('PuppeteerPool: Killing retired browser because it has no active pages', { id });
