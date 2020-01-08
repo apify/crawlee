@@ -135,5 +135,6 @@ import { Page as PuppeteerPage, Response as PuppeteerResponse } from 'puppeteer'
 import Request from './request'; // eslint-disable-line no-unused-vars
 import AutoscaledPool from './autoscaling/autoscaled_pool'; // eslint-disable-line no-unused-vars
 import PuppeteerPool from './puppeteer_pool'; // eslint-disable-line no-unused-vars
+import 'cheerio'; // eslint-disable-line no-unused-vars
 
 export {};
