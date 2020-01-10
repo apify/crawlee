@@ -1,5 +1,5 @@
 import { cryptoRandomObjectId } from 'apify-shared/utilities';
-
+import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import tough from 'tough-cookie';
 import EVENTS from './events';
@@ -200,9 +200,14 @@ export class Session {
      * @param response
      */
     putResponse(response) {
-        const cookies = getCookiesFromResponse(response).filter(c => c);
+        try {
+            const cookies = getCookiesFromResponse(response).filter(c => c);
 
-        this.setCookies(cookies, response.url);
+            this.setCookies(cookies, response.url);
+        } catch (e) {
+            // if invalid Cookie header is provided just log the exception.
+            log.exception(e, 'Session: Could not get cookies from response');
+        }
     }
 
     /**
