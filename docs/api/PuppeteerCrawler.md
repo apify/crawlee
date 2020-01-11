@@ -94,11 +94,10 @@ await crawler.run();
   page: Page,
   puppeteerPool: PuppeteerPool,
   autoscaledPool: AutoscaledPool
-}</code></pre><p>
-  <code>request</code> is an instance of the <a href="request"><code>Request</code></a> object with details about the URL to open, HTTP method etc.
-  <code>page</code> is an instance of the <code>Puppeteer</code>
-  <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a>.
+}</code></pre><p>  <code>request</code> is an instance of the <a href="request"><code>Request</code></a> object with details about the URL to open, HTTP method etc.
   <code>response</code> is an instance of the <code>Puppeteer</code>
+  <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a>
+  <code>page</code> is an instance of the <code>Puppeteer</code>
   <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-response" target="_blank"><code>Response</code></a>,
   which is the main resource response as returned by <code>page.goto(request.url)</code>.
   <code>puppeteerPool</code> is an instance of the <a href="puppeteerpool"><code>PuppeteerPool</code></a> used by this <code>PuppeteerCrawler</code>.</p>
