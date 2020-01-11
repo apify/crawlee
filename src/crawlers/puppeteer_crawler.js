@@ -87,9 +87,9 @@ import { openSessionPool } from '../session_pool/session_pool';
  * ```
  *
  *   `request` is an instance of the {@link Request} object with details about the URL to open, HTTP method etc.
- *   `response` is an instance of the `Puppeteer`
- *   <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a>
  *   `page` is an instance of the `Puppeteer`
+ *   <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a>.
+ *   `response` is an instance of the `Puppeteer`
  *   <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-response" target="_blank"><code>Response</code></a>,
  *   which is the main resource response as returned by `page.goto(request.url)`.
  *   `puppeteerPool` is an instance of the {@link PuppeteerPool} used by this `PuppeteerCrawler`.
