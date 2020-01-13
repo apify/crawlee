@@ -144,7 +144,18 @@ module.exports = {
 
 /**
  * Map of available log levels that's useful for easy setting of appropriate log levels.
- * Each log level is represented internally by a number. Eg. `log.LEVELS.DEBUG === 5`.
+ * Each log level is represented internally by a number. Available levels are:
+ *
+ * | Level     | Value | Comments |
+ * |-----------|------:|----------|
+ * | OFF       | 0     |          |
+ * | ERROR     | 1     | For unexpected errors in Apify system |
+ * | SOFT_FAIL | 2     | For situations where error is caused by user (e.g. Meteor.Error), i.e. when the error is not caused by Apify system, avoid the word "ERROR" to simplify searching in log |
+ * | WARNING   | 3     |          |
+ * | INFO      | 4     | This is the default log level |
+ * | DEBUG     | 5     |          |
+ * | PERF      | 6     | For performance stats |
+ *
  * @name LEVELS
  * @type Object
  * @memberOf log
