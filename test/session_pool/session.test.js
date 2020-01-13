@@ -70,7 +70,7 @@ describe('Session - testing session behaviour ', () => {
         let error;
 
         try {
-            session.putResponse({ headers: { Cookie: 'invaldi*{*{*{*-----***@s' } });
+            session.setCookiesFromResponse({ headers: { Cookie: 'invaldi*{*{*{*-----***@s' } });
         } catch (e) {
             error = e;
         }

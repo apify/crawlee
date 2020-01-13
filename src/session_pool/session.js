@@ -226,7 +226,7 @@ export class Session {
      * @param url {String}
      */
     setCookies(cookies, url) {
-        const isPuppeteerCookies = !!cookies[0].name;
+        const isPuppeteerCookies = !!cookies[0] && !!cookies[0].name;
 
         for (const cookie of cookies) {
             let cookieToSave;
