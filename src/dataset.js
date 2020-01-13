@@ -208,8 +208,9 @@ export class Dataset {
      * {
      *     items, // Array|String|Buffer based on chosen format parameter.
      *     total, // Number
-     *     limit, // Number
      *     offset, // Number
+     *     count, // Number
+     *     limit, // Number
      * }
      * ```
      *
