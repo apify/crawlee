@@ -290,9 +290,9 @@ class PuppeteerCrawler {
             const browser = page.browser();
             session = browser[BROWSER_SESSION_KEY_NAME];
 
-            // setting cookies for page
+            // setting cookies to page
             if (this.persistCookiesPerSession) {
-                await page.setCookie(...session.getPuppeteerCookies(request.url));
+                await page.setCookie(...session.getCookies(request.url));
             }
         }
 
@@ -304,7 +304,7 @@ class PuppeteerCrawler {
             // save cookies
             if (this.persistCookiesPerSession) {
                 const cookies = await page.cookies(request.loadedUrl);
-                session.putPuppeteerCookies(cookies, request.loadedUrl);
+                session.setCookies(cookies, request.loadedUrl);
             }
 
             await addTimeoutToPromise(

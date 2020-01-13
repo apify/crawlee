@@ -6,7 +6,7 @@ import { Cookie } from 'tough-cookie';
  * @return {undefined|Array}
  */
 export const getCookiesFromResponse = (response) => {
-    const { headers } = response;
+    const headers = typeof response.headers === 'function' ? response.headers() : response.headers;
     let cookies;
 
     if (Array.isArray(headers['set-cookie'])) {
