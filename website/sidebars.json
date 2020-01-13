@@ -55,12 +55,13 @@
             "typedefs/actorrun",
             "typedefs/apifycallerror",
             "typedefs/apifyenv",
+            "typedefs/datasetcontent",
             "typedefs/launchpuppeteeroptions",
             "typedefs/memoryinfo",
             "typedefs/queueoperationinfo",
             "typedefs/requestoptions"
         ],
-        "User-Defined Functions": [
+        "Crawler User-Functions": [
             "typedefs/cheeriohandlepage",
             "typedefs/cheeriohandlepageinputs",
             "typedefs/handlefailedrequest",
@@ -71,6 +72,11 @@
             "typedefs/preparerequestinputs",
             "typedefs/puppeteerhandlepage",
             "typedefs/puppeteerhandlepageinputs"
+        ],
+        "Dataset User-Functions": [
+            "typedefs/datasetconsumer",
+            "typedefs/datasetmapper",
+            "typedefs/datasetreducer"
         ]
     }
 }

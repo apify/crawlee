@@ -53,9 +53,9 @@ export function chunkBySize(items: any[], limitBytes: number): any[];
  * @hideconstructor
  */
 export class Dataset {
-    constructor(datasetId: any, datasetName: any);
-    datasetId: any;
-    datasetName: any;
+    constructor(datasetId: string, datasetName: string);
+    datasetId: string;
+    datasetName: string;
     /**
      * Stores an object or an array of objects to the dataset.
      * The function returns a promise that resolves when the operation finishes.
@@ -80,22 +80,19 @@ export class Dataset {
      *
      * @param {Object|Array} data Object or array of objects containing data to be stored in the default dataset.
      * The objects must be serializable to JSON and the JSON representation of each object must be smaller than 9MB.
-     * @return {Promise}
+     * @return {Promise<void>}
      */
-    pushData(data: any): Promise<any>;
+    pushData(data: any): Promise<void>;
     /**
-     * Returns items in the dataset based on the provided parameters. The returned object
-     * has the following structure:
-     *
-     * ```javascript
-     * {
-     *     items, // Array|String|Buffer based on chosen format parameter.
-     *     total, // Number
-     *     offset, // Number
-     *     count, // Number
-     *     limit, // Number
-     * }
-     * ```
+     * @typedef DatasetContent
+     * @property {Array.<Object>|String|Buffer} items Dataset entries based on chosen format parameter.
+     * @property {Number} total Total count of entries in the dataset.
+     * @property {Number} offset Position of the first returned entry in the dataset.
+     * @property {Number} count Count of dataset entries returned in this set.
+     * @property {Number} limit Maximum number of dataset entries requested.
+     */
+    /**
+     * Returns {DatasetContent} object holding the items in the dataset based on the provided parameters.
      *
      * **NOTE**: If using dataset with local disk storage, the `format` option must be `json` and
      * the following options are not supported:
@@ -152,7 +149,7 @@ export class Dataset {
      *   If `true` then, the all the items with errorInfo property will be skipped from the output.
      *   This feature is here to emulate functionality of Apify API version 1 used for
      *   the legacy Apify Crawler product and it's not recommended to use it in new integrations.
-     * @return {Promise<Object>}
+     * @return {Promise<DatasetContent>}
      */
     getData(options?: {
         format?: string;
@@ -173,7 +170,28 @@ export class Dataset {
         skipEmpty?: boolean;
         simplified?: boolean;
         skipFailedPages?: boolean;
-    }): Promise<any>;
+    }): Promise<{
+        /**
+         * Dataset entries based on chosen format parameter.
+         */
+        items: string | any[] | Buffer;
+        /**
+         * Total count of entries in the dataset.
+         */
+        total: number;
+        /**
+         * Position of the first returned entry in the dataset.
+         */
+        offset: number;
+        /**
+         * Count of dataset entries returned in this set.
+         */
+        count: number;
+        /**
+         * Maximum number of dataset entries requested.
+         */
+        limit: number;
+    }>;
     /**
      * Returns an object containing general information about the dataset.
      *
@@ -201,6 +219,13 @@ export class Dataset {
      */
     getInfo(): Promise<any>;
     /**
+     * @callback DatasetConsumer
+     * @template T
+     * @param {Object} item Currect {Dataset} entry being processed.
+     * @param {Number} index Position of current {Dataset} entry.
+     * @returns T
+     */
+    /**
      * Iterates over dataset items, yielding each in turn to an `iteratee` function.
      * Each invocation of `iteratee` is called with two arguments: `(item, index)`.
      *
@@ -215,39 +240,55 @@ export class Dataset {
      * });
      * ```
      *
-     * @param {Function} iteratee A function that is called for every item in the dataset.
+     * @param {DatasetConsumer<T>} iteratee A function that is called for every item in the dataset.
      * @param {Object} [options] All `forEach()` parameters are passed
      *   via an options object with the following keys:
      * @param {Boolean} [options.desc=false] If `true` then the objects are sorted by `createdAt` in descending order.
      * @param {Array} [options.fields] If provided then returned objects will only contain specified keys.
      * @param {String} [options.unwind] If provided then objects will be unwound based on provided field.
      * @param {Number} [index=0] Specifies the initial index number passed to the `iteratee` function.
-     * @return {Promise}
+     * @return {Promise<void>}
      */
-    forEach(iteratee: Function, options?: {
+    forEach(iteratee: () => any, options?: {
         desc?: boolean;
         fields?: any[];
         unwind?: string;
-    }, index?: number): Promise<any>;
+    }, index?: number): Promise<void>;
+    /**
+     * @callback DatasetMapper
+     * @template T
+     * @param {Object} item Currect {Dataset} entry being processed.
+     * @param {Number} index Position of current {Dataset} entry.
+     * @returns T
+     */
     /**
      * Produces a new array of values by mapping each value in list through a transformation function `iteratee()`.
      * Each invocation of `iteratee()` is called with two arguments: `(element, index)`.
      *
      * If `iteratee` returns a `Promise` then it's awaited before a next call.
      *
-     * @param {Function} iteratee
+     * @template T
+     * @param {DatasetMapper<T>} iteratee
      * @param {Object} options All `map()` parameters are passed
      *   via an options object with the following keys:
      * @param {Boolean} [options.desc=false] If `true` then the objects are sorted by createdAt in descending order.
      * @param {Array} [options.fields] If provided then returned objects will only contain specified keys
      * @param {String} [options.unwind] If provided then objects will be unwound based on provided field.
-     * @return {Promise<Array>}
+     * @return {Promise<Array.<T>>}
      */
-    map(iteratee: Function, options: {
+    map<T>(iteratee: () => any, options: {
         desc?: boolean;
         fields?: any[];
         unwind?: string;
-    }): Promise<any[]>;
+    }): Promise<T[]>;
+    /**
+     * @callback DatasetReducer
+     * @template T
+     * @param {T} memo Previous state of the reduction.
+     * @param {Object} item Currect {Dataset} entry being processed.
+     * @param {Number} index Position of current {Dataset} entry.
+     * @returns T
+     */
     /**
      * Reduces a list of values down to a single value.
      *
@@ -259,27 +300,28 @@ export class Dataset {
      *
      * If `iteratee()` returns a `Promise` then it's awaited before a next call.
      *
-     * @param {Function} iteratee
-     * @param {*} memo Initial state of the reduction.
+     * @template T
+     * @param {DatasetReducer<T>} iteratee
+     * @param {T} memo Initial state of the reduction.
      * @param {Object} options All `reduce()` parameters are passed
      *   via an options object with the following keys:
      * @param {Boolean} [options.desc=false] If `true` then the objects are sorted by createdAt in descending order.
      * @param {Array} [options.fields] If provided then returned objects will only contain specified keys
      * @param {String} [options.unwind] If provided then objects will be unwound based on provided field.
-     * @return {Promise<*>}
+     * @return {Promise<T>}
      */
-    reduce(iteratee: Function, memo: any, options: {
+    reduce<T_1>(iteratee: () => any, memo: T_1, options: {
         desc?: boolean;
         fields?: any[];
         unwind?: string;
-    }): Promise<any>;
+    }): Promise<T_1>;
     /**
      * Removes the dataset either from the Apify cloud storage or from the local directory,
      * depending on the mode of operation.
      *
-     * @return {Promise}
+     * @return {Promise<void>}
      */
-    drop(): Promise<any>;
+    drop(): Promise<void>;
     /** @ignore */
     delete(): Promise<void>;
 }
