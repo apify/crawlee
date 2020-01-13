@@ -1,4 +1,5 @@
 import { Cookie } from 'tough-cookie';
+import { CookieParseError } from './errors';
 
 /**
  *
@@ -7,13 +8,11 @@ import { Cookie } from 'tough-cookie';
  */
 export const getCookiesFromResponse = (response) => {
     const { headers } = response;
-    let cookies;
+    const cookieHeader = headers['set-cookie'] || '';
 
-    if (Array.isArray(headers['set-cookie'])) {
-        cookies = headers['set-cookie'].map(Cookie.parse);
-    } else {
-        cookies = [Cookie.parse(headers['set-cookie'])];
+    try {
+        return Array.isArray(cookieHeader) ? cookieHeader.map(Cookie.parse) : [Cookie.parse(cookieHeader)];
+    } catch (e) {
+        throw new CookieParseError(cookieHeader);
     }
-
-    return cookies;
 };

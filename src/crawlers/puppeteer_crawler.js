@@ -82,7 +82,8 @@ import { openSessionPool } from '../session_pool/session_pool';
  *   response: Response,
  *   page: Page,
  *   puppeteerPool: PuppeteerPool,
- *   autoscaledPool: AutoscaledPool
+ *   autoscaledPool: AutoscaledPool,
+ *   session: Session,
  * }
  * ```
  *
@@ -173,6 +174,13 @@ import { openSessionPool } from '../session_pool/session_pool';
  *   If you're not sure, just keep the default value and the concurrency will scale up automatically.
  * @param {Object} [options.maxConcurrency=1000]
  *   Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
+ * @param {Boolean} [options.useSessionPool=false]
+ *   If set to true Crawler will automatically use Session Pool. It will automatically retire sessions on 403, 401 and 429 status codes.
+ *   It also marks Session as bad after a request timeout.
+ * @param {Object} [options.sessionPoolOptions]
+ *   Custom options passed to the underlying {@link SessionPool} constructor.
+ * @param {Boolean} [options.persistCookiesPerSession]
+ *   Automatically saves cookies to Session. Works only if Session Pool is used.
  */
 class PuppeteerCrawler {
     constructor(options) {

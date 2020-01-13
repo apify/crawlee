@@ -66,6 +66,17 @@ describe('Session - testing session behaviour ', () => {
         expect(session.isBlocked()).toBe(true);
         expect(session.isUsable()).toBe(false);
     });
+    test('should not throw on invalid Cookie header', () => {
+        let error;
+
+        try {
+            session.putResponse({ headers: { Cookie: 'invaldi*{*{*{*-----***@s' } });
+        } catch (e) {
+            error = e;
+        }
+
+        expect(error).toBeUndefined();
+    });
 
     test('should markGood session', () => {
         session.markGood();
