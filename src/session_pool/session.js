@@ -1,12 +1,12 @@
-import {cryptoRandomObjectId} from 'apify-shared/utilities';
+import { cryptoRandomObjectId } from 'apify-shared/utilities';
 import log from 'apify-shared/log';
-import {checkParamOrThrow} from 'apify-client/build/utils';
+import { checkParamOrThrow } from 'apify-client/build/utils';
 import tough from 'tough-cookie';
 import EVENTS from './events';
-import {STATUS_CODES_BLOCKED} from '../constants';
-import {getCookiesFromResponse} from './session_utils';
+import { STATUS_CODES_BLOCKED } from '../constants';
+import { getCookiesFromResponse } from './session_utils';
 
-const {Cookie} = tough;
+const { Cookie } = tough;
 
 const PUPPETEER_COOKIE_TYPE = 1;
 const TOUGH_COOKIE_TYPE = 2;
@@ -54,7 +54,7 @@ export class Session {
             sessionPool,
         } = options;
 
-        const {expiresAt = new Date(Date.now() + (maxAgeSecs * 1000))} = options;
+        const { expiresAt = new Date(Date.now() + (maxAgeSecs * 1000)) } = options;
         const type = options.type ? parseInt(options.type, 10) : TOUGH_COOKIE_TYPE;
 
         // Validation
@@ -239,7 +239,7 @@ export class Session {
                 this.type = TOUGH_COOKIE_TYPE;
             }
 
-            this.cookieJar.setCookieSync(cookieToSave, url, {ignoreError: false});
+            this.cookieJar.setCookieSync(cookieToSave, url, { ignoreError: false });
         }
     }
 
