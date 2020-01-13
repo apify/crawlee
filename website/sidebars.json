@@ -7,7 +7,8 @@
             "guides/whatisanactor",
             "guides/environmentvariables",
             "guides/datastorage",
-            "guides/puppeteerliveview"
+            "guides/puppeteerliveview",
+            "guides/sessionmanagement"
         ],
         "Reference": [
             "api/apify",
