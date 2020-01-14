@@ -1,5 +1,20 @@
 export default SystemStatus;
 /**
+ * Represents the current status of the system.
+ */
+export type SystemInfo = {
+    /**
+     * If true, system is being overloaded.
+     */
+    isSystemIdle: boolean;
+    /**
+     * Memory
+     */
+    memInfo: any;
+    eventLoopInfo: any;
+    cpuInfo: any;
+};
+/**
  * Provides a simple interface to reading system status from a {@link Snapshotter} instance.
  * It only exposes two functions [`getCurrentStatus()`](#SystemStatus+getCurrentStatus)
  * and [`getHistoricalStatus()`](#SystemStatus+getHistoricalStatus).
@@ -19,35 +34,43 @@ export default SystemStatus;
  * returns a boolean that represents the long-term status
  * of the system. It considers the full snapshot history available
  * in the {@link Snapshotter} instance.
- *
- * @param {Object} [options] All `SystemStatus` parameters are passed
- *   via an options object with the following keys:
- * @param {Number} [options.currentHistorySecs=5]
- *   Defines max age of snapshots used in the
- *   [`getCurrentStatus()`](#SystemStatus+getCurrentStatus) measurement.
- * @param {Number} [options.maxMemoryOverloadedRatio=0.2]
- *   Sets the maximum ratio of overloaded snapshots in a memory sample.
- *   If the sample exceeds this ratio, the system will be overloaded.
- * @param {Number} [options.maxEventLoopOverloadedRatio=0.2]
- *   Sets the maximum ratio of overloaded snapshots in an event loop sample.
- *   If the sample exceeds this ratio, the system will be overloaded.
- * @param {Number} [options.maxCpuOverloadedRatio=0.4]
- *   Sets the maximum ratio of overloaded snapshots in a CPU sample.
- *   If the sample exceeds this ratio, the system will be overloaded.
- * @param {Number} [options.maxClientOverloadedRatio=0.2]
- *   Sets the maximum ratio of overloaded snapshots in a Client sample.
- *   If the sample exceeds this ratio, the system will be overloaded.
  */
 declare class SystemStatus {
-    constructor(options?: {});
+    /**
+     * @param {Object} [options] All `SystemStatus` parameters are passed
+     *   via an options object with the following keys:
+     * @param {Number} [options.currentHistorySecs=5]
+     *   Defines max age of snapshots used in the
+     *   [`getCurrentStatus()`](#SystemStatus+getCurrentStatus) measurement.
+     * @param {Number} [options.maxMemoryOverloadedRatio=0.2]
+     *   Sets the maximum ratio of overloaded snapshots in a memory sample.
+     *   If the sample exceeds this ratio, the system will be overloaded.
+     * @param {Number} [options.maxEventLoopOverloadedRatio=0.2]
+     *   Sets the maximum ratio of overloaded snapshots in an event loop sample.
+     *   If the sample exceeds this ratio, the system will be overloaded.
+     * @param {Number} [options.maxCpuOverloadedRatio=0.4]
+     *   Sets the maximum ratio of overloaded snapshots in a CPU sample.
+     *   If the sample exceeds this ratio, the system will be overloaded.
+     * @param {Number} [options.maxClientOverloadedRatio=0.2]
+     *   Sets the maximum ratio of overloaded snapshots in a Client sample.
+     *   If the sample exceeds this ratio, the system will be overloaded.
+     */
+    constructor(options?: {
+        currentHistorySecs?: number;
+        maxMemoryOverloadedRatio?: number;
+        maxEventLoopOverloadedRatio?: number;
+        maxCpuOverloadedRatio?: number;
+        maxClientOverloadedRatio?: number;
+    });
     currentHistorySecs: number;
     maxMemoryOverloadedRatio: any;
     maxEventLoopOverloadedRatio: any;
     maxCpuOverloadedRatio: any;
     maxClientOverloadedRatio: any;
-    snapshotter: any;
+    /** @type {Snapshotter} */
+    snapshotter: Snapshotter;
     /**
-     * Returns an object with the following structure:
+     * Returns an {SystemInfo} object with the following structure:
      *
      * ```javascript
      * {
@@ -65,7 +88,7 @@ declare class SystemStatus {
      */
     getCurrentStatus(): any;
     /**
-     * Returns an object with the following structure:
+     * Returns an {SystemInfo} object with the following structure:
      *
      * ```javascript
      * {
@@ -140,3 +163,4 @@ declare class SystemStatus {
      */
     _isSampleOverloaded(sample: any[], ratio: number): any;
 }
+import Snapshotter from "./snapshotter";

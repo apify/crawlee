@@ -19,6 +19,7 @@ full snapshot history available in the [`Snapshotter`](snapshotter) instance.
 
 -   [SystemStatus](systemstatus)
     -   [`new SystemStatus([options])`](#new_SystemStatus_new)
+    -   [`.snapshotter`](#SystemStatus+snapshotter) : [`Snapshotter`](snapshotter)
     -   [`.getCurrentStatus()`](#SystemStatus+getCurrentStatus) ⇒ `Object`
     -   [`.getHistoricalStatus()`](#SystemStatus+getHistoricalStatus) ⇒ `Object`
 
@@ -71,11 +72,15 @@ full snapshot history available in the [`Snapshotter`](snapshotter) instance.
   If the sample exceeds this ratio, the system will be overloaded.</p>
 </td></tr></tbody>
 </table>
+<a name="SystemStatus+snapshotter"></a>
+
+## `systemStatus.snapshotter` : [`Snapshotter`](snapshotter)
+
 <a name="SystemStatus+getCurrentStatus"></a>
 
 ## `systemStatus.getCurrentStatus()` ⇒ `Object`
 
-Returns an object with the following structure:
+Returns an {SystemInfo} object with the following structure:
 
 ```javascript
 {
@@ -93,7 +98,7 @@ otherwise.
 
 ## `systemStatus.getHistoricalStatus()` ⇒ `Object`
 
-Returns an object with the following structure:
+Returns an {SystemInfo} object with the following structure:
 
 ```javascript
 {

@@ -31,26 +31,27 @@ const DEFAULT_OPTIONS = {
  * returns a boolean that represents the long-term status
  * of the system. It considers the full snapshot history available
  * in the {@link Snapshotter} instance.
- *
- * @param {Object} [options] All `SystemStatus` parameters are passed
- *   via an options object with the following keys:
- * @param {Number} [options.currentHistorySecs=5]
- *   Defines max age of snapshots used in the
- *   [`getCurrentStatus()`](#SystemStatus+getCurrentStatus) measurement.
- * @param {Number} [options.maxMemoryOverloadedRatio=0.2]
- *   Sets the maximum ratio of overloaded snapshots in a memory sample.
- *   If the sample exceeds this ratio, the system will be overloaded.
- * @param {Number} [options.maxEventLoopOverloadedRatio=0.2]
- *   Sets the maximum ratio of overloaded snapshots in an event loop sample.
- *   If the sample exceeds this ratio, the system will be overloaded.
- * @param {Number} [options.maxCpuOverloadedRatio=0.4]
- *   Sets the maximum ratio of overloaded snapshots in a CPU sample.
- *   If the sample exceeds this ratio, the system will be overloaded.
- * @param {Number} [options.maxClientOverloadedRatio=0.2]
- *   Sets the maximum ratio of overloaded snapshots in a Client sample.
- *   If the sample exceeds this ratio, the system will be overloaded.
  */
 class SystemStatus {
+    /**
+     * @param {Object} [options] All `SystemStatus` parameters are passed
+     *   via an options object with the following keys:
+     * @param {Number} [options.currentHistorySecs=5]
+     *   Defines max age of snapshots used in the
+     *   [`getCurrentStatus()`](#SystemStatus+getCurrentStatus) measurement.
+     * @param {Number} [options.maxMemoryOverloadedRatio=0.2]
+     *   Sets the maximum ratio of overloaded snapshots in a memory sample.
+     *   If the sample exceeds this ratio, the system will be overloaded.
+     * @param {Number} [options.maxEventLoopOverloadedRatio=0.2]
+     *   Sets the maximum ratio of overloaded snapshots in an event loop sample.
+     *   If the sample exceeds this ratio, the system will be overloaded.
+     * @param {Number} [options.maxCpuOverloadedRatio=0.4]
+     *   Sets the maximum ratio of overloaded snapshots in a CPU sample.
+     *   If the sample exceeds this ratio, the system will be overloaded.
+     * @param {Number} [options.maxClientOverloadedRatio=0.2]
+     *   Sets the maximum ratio of overloaded snapshots in a Client sample.
+     *   If the sample exceeds this ratio, the system will be overloaded.
+     */
     constructor(options = {}) {
         const {
             currentHistorySecs,
@@ -73,12 +74,12 @@ class SystemStatus {
         this.maxEventLoopOverloadedRatio = maxEventLoopOverloadedRatio;
         this.maxCpuOverloadedRatio = maxCpuOverloadedRatio;
         this.maxClientOverloadedRatio = maxClientOverloadedRatio;
-
+        /** @type {Snapshotter} */
         this.snapshotter = snapshotter || new Snapshotter();
     }
 
     /**
-     * Returns an object with the following structure:
+     * Returns an {SystemInfo} object with the following structure:
      *
      * ```javascript
      * {
@@ -99,7 +100,7 @@ class SystemStatus {
     }
 
     /**
-     * Returns an object with the following structure:
+     * Returns an {SystemInfo} object with the following structure:
      *
      * ```javascript
      * {
@@ -220,3 +221,15 @@ class SystemStatus {
 }
 
 export default SystemStatus;
+
+/**
+ * Represents the current status of the system.
+ *
+ * @typedef {Object} SystemInfo
+ * @property {Boolean} isSystemIdle
+ *   If true, system is being overloaded.
+ * @property {Object} memInfo
+ *   Memory
+ * @property {Object} eventLoopInfo
+ * @property {Object} cpuInfo
+ */
