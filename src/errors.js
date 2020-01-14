@@ -1,3 +1,5 @@
+// TODO yin: For ApifyCallError.run: ActorRun, we need to import 'actor' of move it to typedefs and inport 'typedefs. Both cause cyclic dependency.
+
 export const APIFY_CALL_ERROR_NAME = 'ApifyCallError';
 
 /**
