@@ -64,9 +64,9 @@ export function maybeStringify(value: any, options: any): any;
  * @hideconstructor
  */
 export class KeyValueStore {
-    constructor(storeId: any, storeName: any);
-    storeId: any;
-    storeName: any;
+    constructor(storeId: string, storeName: string);
+    storeId: string;
+    storeName: string;
     /**
      * Gets a value from the key-value store.
      *
@@ -146,19 +146,19 @@ export class KeyValueStore {
      * @param {Object} [options]
      * @param {String} [options.contentType]
      *   Specifies a custom MIME content type of the record.
-     * @returns {Promise}
+     * @returns {Promise<void>}
      *
      */
     setValue(key: string, value: any, options?: {
         contentType?: string;
-    }): Promise<any>;
+    }): Promise<void>;
     /**
      * Removes the key-value store either from the Apify cloud storage or from the local directory,
      * depending on the mode of operation.
      *
-     * @return {Promise}
+     * @return {Promise<void>}
      */
-    drop(): Promise<any>;
+    drop(): Promise<void>;
     /** @ignore */
     delete(): Promise<void>;
     /**
@@ -169,6 +169,18 @@ export class KeyValueStore {
      * @return {string}
      */
     getPublicUrl(key: string): string;
+    /**
+     * User-function used in the [`KeyValueStore.forEachKey()`](../api/keyvaluestore#forEachKey) method.
+     * @callback KeyConsumer
+     * @param {String} key
+     *   Current {KeyValue} key being processed.
+     * @param {Number} index
+     *   Position of the current key in {KeyValuestore}.
+     * @param {Object} info
+     *   Information about the current {KeyValueStore} entry.
+     * @param {Object} info.size
+     *   Size of the value associated with the current key in bytes.
+     */
     /**
      * Iterates over key value store keys, yielding each in turn to an `iteratee` function.
      * Each invocation of `iteratee` is called with three arguments: `(key, index, info)`, where `key`
@@ -187,15 +199,15 @@ export class KeyValueStore {
      * });
      * ```
      *
-     * @param {Function} iteratee A function that is called for every key in the key value store.
+     * @param {KeyConsumer} iteratee A function that is called for every key in the key value store.
      * @param {Object} [options] All `forEachKey()` parameters are passed
      *   via an options object with the following keys:
      * @param {string} [options.exclusiveStartKey] All keys up to this one (including) are skipped from the result.
-     * @return {Promise}
+     * @return {Promise<void>}
      */
-    forEachKey(iteratee: Function, options?: {
+    forEachKey(iteratee: (key: string, index: number, info: any, size: any) => any, options?: {
         exclusiveStartKey?: string;
-    }, index?: number): Promise<any>;
+    }, index?: number): Promise<void>;
 }
 export function getFileNameRegexp(key: string): RegExp;
 /**

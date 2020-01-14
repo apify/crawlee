@@ -146,6 +146,18 @@
       "typedefs/cheeriohandlepageinputs": {
         "title": "CheerioHandlePageInputs"
       },
+      "typedefs/datasetconsumer": {
+        "title": "DatasetConsumer"
+      },
+      "typedefs/datasetcontent": {
+        "title": "DatasetContent"
+      },
+      "typedefs/datasetmapper": {
+        "title": "DatasetMapper"
+      },
+      "typedefs/datasetreducer": {
+        "title": "DatasetReducer"
+      },
       "typedefs/handlefailedrequest": {
         "title": "HandleFailedRequest"
       },
@@ -157,6 +169,9 @@
       },
       "typedefs/handlerequestinputs": {
         "title": "HandleRequestInputs"
+      },
+      "typedefs/keyconsumer": {
+        "title": "KeyConsumer"
       },
       "typedefs/launchpuppeteeroptions": {
         "title": "LaunchPuppeteerOptions"
@@ -198,7 +213,8 @@
       "Examples": "Examples",
       "Autoscaling Tools": "Autoscaling Tools",
       "Type Definitions": "Type Definitions",
-      "Callbacks": "Callbacks"
+      "Crawler User-Functions": "Crawler User-Functions",
+      "Dataset User-Functions": "Dataset User-Functions"
     }
   },
   "pages-strings": {

@@ -77,6 +77,9 @@
             "typedefs/datasetconsumer",
             "typedefs/datasetmapper",
             "typedefs/datasetreducer"
+        ],
+        "KeyValueStore User-Functions": [
+            "typedefs/keyconsumer"
         ]
     }
 }
