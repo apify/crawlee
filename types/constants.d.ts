@@ -10,8 +10,16 @@ export namespace EXIT_CODES {
 }
 /**
  * These events are just internal for Apify package, so we don't need them in apify-shared package.
+ *
+ * @type {{CPU_INFO: String, SYSTEM_INFO: String, MIGRATING: String, PERSIST_STATE: String}}
+ *
  */
-export const ACTOR_EVENT_NAMES_EX: any;
+export const ACTOR_EVENT_NAMES_EX: {
+    CPU_INFO: String;
+    SYSTEM_INFO: String;
+    MIGRATING: String;
+    PERSIST_STATE: String;
+};
 /**
  * Most common user agents from https://techblog.willshouse.com/2012/01/03/most-common-user-agents/
  *
