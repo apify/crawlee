@@ -60,7 +60,8 @@
             "typedefs/memoryinfo",
             "typedefs/queueoperationinfo",
             "typedefs/requestliststate",
-            "typedefs/requestoptions"
+            "typedefs/requestoptions",
+            "typedefs/socialhandles"
         ],
         "Crawler User-Functions": [
             "typedefs/cheeriohandlepage",

@@ -17,11 +17,39 @@ export namespace socialUtils {
     export { YOUTUBE_REGEX };
     export { YOUTUBE_REGEX_GLOBAL };
 }
+/**
+ * Representaiton of social handles parsed from a HTML page.
+ *
+ * The object has the following structure:
+ *
+ * ```
+ * {
+ *    emails: String[],
+ *    phones: String[],
+ *    phonesUncertain: String[],
+ *    linkedIns: String[],
+ *    twitters: String[],
+ *    instagrams: String[],
+ *    facebooks: String[],
+ *    youtubes: String[],
+ * }
+ * ```
+ */
+export type SocialHandles = {
+    emails: string[];
+    phones: string[];
+    phonesUncertain: string[];
+    linkedIns: string[];
+    twitters: string[];
+    instagrams: string[];
+    facebooks: string[];
+    youtubes: string[];
+};
 declare function emailsFromText(text: string): string[];
 declare function emailsFromUrls(urls: string[]): string[];
 declare function phonesFromText(text: string): string[];
 declare function phonesFromUrls(urls: string[]): string[];
-declare function parseHandlesFromHtml(html: string, data?: any): any;
+declare function parseHandlesFromHtml(html: string, data?: any): SocialHandles;
 /**
  * Regular expression to exactly match a single email address.
  * It has the following form: `/^...$/i`.
@@ -36,14 +64,24 @@ declare const EMAIL_REGEX: RegExp;
  * @memberOf social
  */
 declare const EMAIL_REGEX_GLOBAL: RegExp;
-declare let LINKEDIN_REGEX: any;
-declare let LINKEDIN_REGEX_GLOBAL: any;
-declare let INSTAGRAM_REGEX: any;
-declare let INSTAGRAM_REGEX_GLOBAL: any;
-declare let TWITTER_REGEX: any;
-declare let TWITTER_REGEX_GLOBAL: any;
-declare let FACEBOOK_REGEX: any;
-declare let FACEBOOK_REGEX_GLOBAL: any;
-declare let YOUTUBE_REGEX: any;
-declare let YOUTUBE_REGEX_GLOBAL: any;
+/** @type RegExp */
+declare let LINKEDIN_REGEX: RegExp;
+/** @type RegExp */
+declare let LINKEDIN_REGEX_GLOBAL: RegExp;
+/** @type RegExp */
+declare let INSTAGRAM_REGEX: RegExp;
+/** @type RegExp */
+declare let INSTAGRAM_REGEX_GLOBAL: RegExp;
+/** @type RegExp */
+declare let TWITTER_REGEX: RegExp;
+/** @type RegExp */
+declare let TWITTER_REGEX_GLOBAL: RegExp;
+/** @type RegExp */
+declare let FACEBOOK_REGEX: RegExp;
+/** @type RegExp */
+declare let FACEBOOK_REGEX_GLOBAL: RegExp;
+/** @type RegExp */
+declare let YOUTUBE_REGEX: RegExp;
+/** @type RegExp */
+declare let YOUTUBE_REGEX_GLOBAL: RegExp;
 export {};

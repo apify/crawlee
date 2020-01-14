@@ -90,7 +90,7 @@ declare const exportedUtils: {
         emailsFromUrls: (urls: string[]) => string[];
         phonesFromText: (text: string) => string[];
         phonesFromUrls: (urls: string[]) => string[];
-        parseHandlesFromHtml: (html: string, data?: any) => any;
+        parseHandlesFromHtml: (html: string, data?: any) => import("./utils_social").SocialHandles;
         EMAIL_REGEX: RegExp;
         EMAIL_REGEX_GLOBAL: RegExp;
         LINKEDIN_REGEX: RegExp;
