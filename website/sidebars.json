@@ -59,6 +59,7 @@
             "typedefs/launchpuppeteeroptions",
             "typedefs/memoryinfo",
             "typedefs/queueoperationinfo",
+            "typedefs/requestliststate",
             "typedefs/requestoptions"
         ],
         "Crawler User-Functions": [

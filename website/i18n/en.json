@@ -194,6 +194,9 @@
       "typedefs/queueoperationinfo": {
         "title": "QueueOperationInfo"
       },
+      "typedefs/requestliststate": {
+        "title": "RequestListState"
+      },
       "typedefs/requestoptions": {
         "title": "RequestOptions"
       },
@@ -214,7 +217,8 @@
       "Autoscaling Tools": "Autoscaling Tools",
       "Type Definitions": "Type Definitions",
       "Crawler User-Functions": "Crawler User-Functions",
-      "Dataset User-Functions": "Dataset User-Functions"
+      "Dataset User-Functions": "Dataset User-Functions",
+      "KeyValueStore User-Functions": "KeyValueStore User-Functions"
     }
   },
   "pages-strings": {

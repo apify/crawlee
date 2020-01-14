@@ -65,14 +65,14 @@ await requestList.reclaimRequest(request2);
 
 -   [RequestList](requestlist)
     -   [`new exports.RequestList(options)`](#new_RequestList_new)
-    -   [`.initialize()`](#RequestList+initialize) ⇒ `Promise`
-    -   [`.persistState()`](#RequestList+persistState) ⇒ `Promise`
-    -   [`.getState()`](#RequestList+getState) ⇒ `Object`
+    -   [`.initialize()`](#RequestList+initialize) ⇒ `Promise<void>`
+    -   [`.persistState()`](#RequestList+persistState) ⇒ `Promise<void>`
+    -   [`.getState()`](#RequestList+getState) ⇒ [`RequestListState`](../typedefs/requestliststate)
     -   [`.isEmpty()`](#RequestList+isEmpty) ⇒ `Promise<Boolean>`
     -   [`.isFinished()`](#RequestList+isFinished) ⇒ `Promise<Boolean>`
     -   [`.fetchNextRequest()`](#RequestList+fetchNextRequest) ⇒ [`Promise<Request>`](request)
-    -   [`.markRequestHandled(request)`](#RequestList+markRequestHandled) ⇒ `Promise`
-    -   [`.reclaimRequest(request)`](#RequestList+reclaimRequest) ⇒ `Promise`
+    -   [`.markRequestHandled(request)`](#RequestList+markRequestHandled) ⇒ `Promise<void>`
+    -   [`.reclaimRequest(request)`](#RequestList+reclaimRequest) ⇒ `Promise<void>`
     -   [`.length()`](#RequestList+length) ⇒ `Number`
     -   [`.handledCount()`](#RequestList+handledCount) ⇒ `Number`
 
@@ -94,7 +94,7 @@ await requestList.reclaimRequest(request2);
 <td colspan="3"><p>All <code>RequestList</code> parameters are passed
   via an options object with the following keys:</p>
 </td></tr><tr>
-<td><code>options.sources</code></td><td><code>Array</code></td><td></td>
+<td><code>options.sources</code></td><td><code>Array<(RequestOptions|Request)></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>An array of sources of URLs for the <code>RequestList</code>. It can be either an array of plain objects that
@@ -131,7 +131,7 @@ await requestList.reclaimRequest(request2);
   from their origin, check that they are consistent with the restored state (if any)
   and throw an error if they are not.</p>
 </td></tr><tr>
-<td><code>[options.state]</code></td><td><code>Object</code></td><td></td>
+<td><code>[options.state]</code></td><td><code><a href="../typedefs/requestliststate">RequestListState</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>The state object that the <code>RequestList</code> will be initialized from.
@@ -163,14 +163,14 @@ await requestList.reclaimRequest(request2);
 </table>
 <a name="RequestList+initialize"></a>
 
-## `requestList.initialize()` ⇒ `Promise`
+## `requestList.initialize()` ⇒ `Promise<void>`
 
 Loads all remote sources of URLs and potentially starts periodic state persistence. This function must be called before you can start using the
 instance in a meaningful way.
 
 <a name="RequestList+persistState"></a>
 
-## `requestList.persistState()` ⇒ `Promise`
+## `requestList.persistState()` ⇒ `Promise<void>`
 
 Persists the current state of the `RequestList` into the default [`KeyValueStore`](keyvaluestore). The state is persisted automatically in regular
 intervals, but calling this method manually is useful in cases where you want to have the most current state available after you pause or stop
@@ -178,7 +178,7 @@ fetching its requests. For example after you pause or abort a crawl. Or just bef
 
 <a name="RequestList+getState"></a>
 
-## `requestList.getState()` ⇒ `Object`
+## `requestList.getState()` ⇒ [`RequestListState`](../typedefs/requestliststate)
 
 Returns an object representing the internal state of the `RequestList` instance. Note that the object's fields can change in future releases.
 
@@ -206,7 +206,7 @@ The function's `Promise` resolves to `null` if there are no more requests to pro
 
 <a name="RequestList+markRequestHandled"></a>
 
-## `requestList.markRequestHandled(request)` ⇒ `Promise`
+## `requestList.markRequestHandled(request)` ⇒ `Promise<void>`
 
 Marks request as handled after successful processing.
 
@@ -225,7 +225,7 @@ Marks request as handled after successful processing.
 </table>
 <a name="RequestList+reclaimRequest"></a>
 
-## `requestList.reclaimRequest(request)` ⇒ `Promise`
+## `requestList.reclaimRequest(request)` ⇒ `Promise<void>`
 
 Reclaims request to the list if its processing failed. The request will become available in the next `this.fetchNextRequest()`.
 

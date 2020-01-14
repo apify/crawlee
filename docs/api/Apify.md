@@ -843,7 +843,7 @@ const requestList = await Apify.openRequestList('my-name', sources);
 <p>  If <code>null</code>, the list will not be persisted and will only be stored in memory. Process restart
   will then cause the list to be crawled again from the beginning. We suggest always using a name.</p>
 </td></tr><tr>
-<td><code>sources</code></td><td><code>Array<Object&gt;</code> | <code>Array.&lt;string></code></td>
+<td><code>sources</code></td><td><code>Array<(Request|RequestOptions|string)></code></td>
 </tr>
 <tr>
 <td colspan="3"><p>An array of sources of URLs for the <code>RequestList</code>.
