@@ -48,19 +48,20 @@ export default PseudoUrl;
  *
  * if (purl.matches('http://www.example.com/pages/my-awesome-page')) console.log('Match!');
  * ```
- *
- * @param {String|RegExp} purl
- *   A pseudo-URL string or a regular expression object.
- *   Using a `RegExp` instance enables more granular control,
- *   such as making the matching case sensitive.
- * @param {Object} requestTemplate
- *   Options for the new {@link Request} instances created for matching URLs
- *   by the [`utils.enqueueLinks()`](utils#utils.enqueueLinks) function.
  */
 declare class PseudoUrl {
-    constructor(purl: any, requestTemplate?: {});
+    /**
+     * @param {String|RegExp} purl
+     *   A pseudo-URL string or a regular expression object.
+     *   Using a `RegExp` instance enables more granular control,
+     *   such as making the matching case sensitive.
+     * @param {RequestOptions} requestTemplate
+     *   Options for the new {@link Request} instances created for matching URLs
+     *   by the [`utils.enqueueLinks()`](utils#utils.enqueueLinks) function.
+     */
+    constructor(purl: string | RegExp, requestTemplate?: any);
     regex: RegExp;
-    requestTemplate: {};
+    requestTemplate: any;
     /**
      * Determines whether a URL matches this pseudo-URL pattern.
      *
