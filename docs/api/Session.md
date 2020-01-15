@@ -21,8 +21,8 @@ internal state can be enriched with custom user data for example some authorizat
     -   [`.markBad()`](#Session+markBad)
     -   [`.checkStatus(statusCode)`](#Session+checkStatus) ⇒ `boolean`
     -   [`.setCookiesFromResponse(response)`](#Session+setCookiesFromResponse)
-    -   [`.setCookies(cookies, url)`](#Session+setCookies)
-    -   [`.getCookies(url)`](#Session+getCookies) ⇒ `Array<Object>`
+    -   [`.setPuppeteerCookies(cookies, url)`](#Session+setPuppeteerCookies)
+    -   [`.getPuppeteerCookies(url)`](#Session+getPuppeteerCookies) ⇒ `Array<Object>`
     -   [`.getCookieString(url)`](#Session+getCookieString) ⇒ `String`
 
 <a name="new_Session_new"></a>
@@ -180,8 +180,7 @@ Retires session based on status code.
 
 ## `session.setCookiesFromResponse(response)`
 
-Sets cookies from response to the cookieJar. Accepts responses with headers accessible by `response.headers` or `response.headers()`. Parses cookies
-from `set-cookie` header and sets them to `Session.cookieJar`.
+Sets cookies from response to the cookieJar. Parses cookies from `set-cookie` header and sets them to `Session.cookieJar`.
 
 <table>
 <thead>
@@ -196,12 +195,12 @@ from `set-cookie` header and sets them to `Session.cookieJar`.
 <tr>
 </tr></tbody>
 </table>
-<a name="Session+setCookies"></a>
+<a name="Session+setPuppeteerCookies"></a>
 
-## `session.setCookies(cookies, url)`
+## `session.setPuppeteerCookies(cookies, url)`
 
-Set cookies to session cookieJar. Cookies array should be [tough-cookie](https://github.com/salesforce/tough-cookie) or
-[puppeteer](https://pptr.dev/#?product=Puppeteer&version=v2.0.0&show=api-pagecookiesurls) cookie compatible.
+Set cookies to session cookieJar. Cookies array should be [puppeteer](https://pptr.dev/#?product=Puppeteer&version=v2.0.0&show=api-pagecookiesurls)
+cookie compatible.
 
 <table>
 <thead>
@@ -211,7 +210,7 @@ Set cookies to session cookieJar. Cookies array should be [tough-cookie](https:/
 </thead>
 <tbody>
 <tr>
-<td><code>cookies</code></td><td><code>Array<Cookie></code></td>
+<td><code>cookies</code></td><td><code>Array<Object></code></td>
 </tr>
 <tr>
 </tr><tr>
@@ -220,11 +219,11 @@ Set cookies to session cookieJar. Cookies array should be [tough-cookie](https:/
 <tr>
 </tr></tbody>
 </table>
-<a name="Session+getCookies"></a>
+<a name="Session+getPuppeteerCookies"></a>
 
-## `session.getCookies(url)` ⇒ `Array<Object>`
+## `session.getPuppeteerCookies(url)` ⇒ `Array<Object>`
 
-Get cookies. Gets a array of cookies in the format corresponding to the type property.
+Gets cookies in puppeteer ready to be used with `page.setCookie`.
 
 <table>
 <thead>
@@ -237,7 +236,8 @@ Get cookies. Gets a array of cookies in the format corresponding to the type pro
 <td><code>url</code></td><td><code>String</code></td>
 </tr>
 <tr>
-</tr></tbody>
+<td colspan="3"><p>website url. Only cookies stored for this url will be returned</p>
+</td></tr></tbody>
 </table>
 <a name="Session+getCookieString"></a>
 
