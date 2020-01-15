@@ -4,7 +4,7 @@
  * @param {StealthOptions} options
  * @returns {Promise<Browser>} - Instance of Browser from puppeteer package
  */
-export default function applyStealthToBrowser(browser: any, options: StealthOptions): Promise<any>;
+export default function applyStealthToBrowser(browser: Browser, options: StealthOptions): Promise<Browser>;
 /**
  * Configuration of stealth tricks for a proper hiding effect all of them should be set to true.
  * These tricks are applied only when the `stealth` option is set to `true`.
@@ -51,3 +51,4 @@ export type StealthOptions = {
      */
     mockDeviceMemory?: boolean;
 };
+import { Browser } from "puppeteer";
