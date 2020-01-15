@@ -41,10 +41,10 @@ await puppeteerPool.destroy();
 -   [PuppeteerPool](puppeteerpool)
     -   [`new PuppeteerPool([options])`](#new_PuppeteerPool_new)
     -   [`.newPage()`](#PuppeteerPool+newPage) ⇒ `Promise<Page>`
-    -   [`.destroy()`](#PuppeteerPool+destroy) ⇒ `Promise`
-    -   [`.retire(browser)`](#PuppeteerPool+retire) ⇒ `Promise`
-    -   [`.recyclePage(page)`](#PuppeteerPool+recyclePage) ⇒ `Promise`
-    -   [`.serveLiveViewSnapshot(page)`](#PuppeteerPool+serveLiveViewSnapshot) ⇒ `Promise`
+    -   [`.destroy()`](#PuppeteerPool+destroy) ⇒ `Promise<void>`
+    -   [`.retire(browser)`](#PuppeteerPool+retire) ⇒ `Promise<void>`
+    -   [`.recyclePage(page)`](#PuppeteerPool+recyclePage) ⇒ `Promise<void>`
+    -   [`.serveLiveViewSnapshot(page)`](#PuppeteerPool+serveLiveViewSnapshot) ⇒ `Promise<void>`
 
 <a name="new_PuppeteerPool_new"></a>
 
@@ -158,13 +158,13 @@ To spawn a new browser tab for each page, set the `reusePages` constructor optio
 
 <a name="PuppeteerPool+destroy"></a>
 
-## `puppeteerPool.destroy()` ⇒ `Promise`
+## `puppeteerPool.destroy()` ⇒ `Promise<void>`
 
 Closes all open browsers.
 
 <a name="PuppeteerPool+retire"></a>
 
-## `puppeteerPool.retire(browser)` ⇒ `Promise`
+## `puppeteerPool.retire(browser)` ⇒ `Promise<void>`
 
 Manually retires a Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-browser" target="_blank"><code>Browser</code></a> instance
 from the pool. The browser will continue to process open pages so that they may gracefully finish. This is unlike `browser.close()` which will
@@ -185,7 +185,7 @@ forcibly terminate the browser and all open pages will be closed.
 </table>
 <a name="PuppeteerPool+recyclePage"></a>
 
-## `puppeteerPool.recyclePage(page)` ⇒ `Promise`
+## `puppeteerPool.recyclePage(page)` ⇒ `Promise<void>`
 
 Closes the page, unless the `reuseTabs` option is set to true. Then it would only flag the page for a future reuse, without actually closing it.
 
@@ -207,7 +207,7 @@ closing the page or flagging it for reuse.
 </table>
 <a name="PuppeteerPool+serveLiveViewSnapshot"></a>
 
-## `puppeteerPool.serveLiveViewSnapshot(page)` ⇒ `Promise`
+## `puppeteerPool.serveLiveViewSnapshot(page)` ⇒ `Promise<void>`
 
 Tells the connected LiveViewServer to serve a snapshot when available.
 
