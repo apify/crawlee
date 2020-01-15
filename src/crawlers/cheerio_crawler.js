@@ -613,7 +613,7 @@ class CheerioCrawler {
      * @private
      */
     _throwOnBlockedRequest(session, statusCode) {
-        const isBlocked = session.checkStatus(statusCode);
+        const isBlocked = session.retireOnBlockedStatusCodes(statusCode);
 
         if (isBlocked) {
             throw new Error(`CheerioCrawler: Request blocked - received ${statusCode} status code`);
