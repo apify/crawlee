@@ -7,7 +7,9 @@ import fsExtra from 'fs-extra';
 import ApifyClient from 'apify-client';
 import psTree from '@apify/ps-tree';
 import requestPromise from 'request-promise-native';
-import cheerio from 'cheerio';
+import cheerio, { CheerioStatic } from 'cheerio'; // eslint-disable-line no-unused-vars
+import { ServerResponse } from 'http'; // eslint-disable-line no-unused-vars
+import { Response as PuppeteerResponse } from 'puppeteer'; // eslint-disable-line no-unused-vars
 import log from 'apify-shared/log';
 import semver from 'semver';
 import { getRandomInt } from 'apify-shared/utilities';
@@ -495,7 +497,6 @@ export const ensureTokenOrLocalStorageEnvExists = (storageName) => {
 const SKIP_TAGS_REGEX = /^(script|style|canvas|svg|noscript)$/i;
 const BLOCK_TAGS_REGEX = /^(p|h1|h2|h3|h4|h5|h6|ol|ul|li|pre|address|blockquote|dl|div|fieldset|form|table|tr|select|option)$/i;
 
-// TODO yin: Depends on @types/cheerio to be done properly.
 /**
  * The function converts a HTML document to a plain text.
  *
@@ -521,7 +522,7 @@ const BLOCK_TAGS_REGEX = /^(p|h1|h2|h3|h4|h5|h6|ol|ul|li|pre|address|blockquote|
  * const html = '<html><body>Some text</body></html>';
  * const text = htmlToText(cheerio.load(html, { decodeEntities: true }));
  * ```
- * @param {String|Function} html HTML text or parsed HTML represented using a
+ * @param {String|CheerioStatic} html HTML text or parsed HTML represented using a
  * [cheerio](https://www.npmjs.com/package/cheerio) function.
  * @return {String} Plain text
  * @memberOf utils
@@ -529,6 +530,7 @@ const BLOCK_TAGS_REGEX = /^(p|h1|h2|h3|h4|h5|h6|ol|ul|li|pre|address|blockquote|
 const htmlToText = (html) => {
     if (!html) return '';
 
+    /** @type {CheerioStatic} */
     const $ = typeof html === 'function' ? html : cheerio.load(html, { decodeEntities: true });
     let text = '';
 
@@ -568,12 +570,11 @@ const htmlToText = (html) => {
     return text.trim();
 };
 
-// TODO yin: Specify parameter types in JSDoc. This depends on crawlers being annotated at the same time.
 /**
  * Creates a standardized debug info from request and response. This info is usually added to dataset under the hidden `#debug` field.
  *
- * @param {Object} request [Apify.Request](https://sdk.apify.com/docs/api/request) object.
- * @param {Object} [response]
+ * @param {Request|RequestOptions} request [Apify.Request](https://sdk.apify.com/docs/api/request) object.
+ * @param {PuppeteerResponse|ServerResponse} [response]
  *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&version=v1.11.0&show=api-class-response" target="_blank"><code>Response</code></a>
  *   or NodeJS <a href="https://nodejs.org/api/http.html#http_class_http_serverresponse" target="_blank"><code>http.ServerResponse</code></a>.
  * @param {Object} [additionalFields] Object containing additional fields to be added.

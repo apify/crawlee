@@ -29,6 +29,7 @@ await Apify.utils.sleep(1500);
     -   [`.extractUrls(options)`](#utils.extractUrls) ⇒ `Array<String>`
     -   [`.getRandomUserAgent()`](#utils.getRandomUserAgent) ⇒ `String`
     -   [`.htmlToText(html)`](#utils.htmlToText) ⇒ `String`
+        -   [`~$`](#utils.htmlToText..$) : `CheerioStatic`
 
 <a name="utils.enqueueLinks"></a>
 
@@ -370,10 +371,13 @@ const text = htmlToText(cheerio.load(html, { decodeEntities: true }));
 </thead>
 <tbody>
 <tr>
-<td><code>html</code></td><td><code>String</code> | <code>function</code></td>
+<td><code>html</code></td><td><code>String</code> | <code>CheerioStatic</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>HTML text or parsed HTML represented using a
 <a href="https://www.npmjs.com/package/cheerio">cheerio</a> function.</p>
 </td></tr></tbody>
 </table>
+<a name="utils.htmlToText..$"></a>
+
+### `htmlToText~$` : `CheerioStatic`

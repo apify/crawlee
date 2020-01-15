@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { main } from "./actor";
 import { getEnv } from "./actor";
 import { call } from "./actor";
@@ -44,10 +45,10 @@ declare const exportedUtils: {
         urlRegExp?: RegExp;
     }) => string[];
     getRandomUserAgent: () => string;
-    htmlToText: (html: TimerHandler) => string;
+    htmlToText: (html: any) => string;
     URL_NO_COMMAS_REGEX: RegExp;
     URL_WITH_COMMAS_REGEX: RegExp;
-    createRequestDebugInfo: (request: any, response?: any, additionalFields?: any) => any;
+    createRequestDebugInfo: (request: any, response?: import("http").ServerResponse | import("puppeteer").Response, additionalFields?: any) => any;
     parseContentTypeFromResponse: (response: any) => {
         type: string;
         charset: string;
