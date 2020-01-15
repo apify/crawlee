@@ -8,9 +8,6 @@ import { getCookiesFromResponse } from './session_utils';
 
 const { Cookie } = tough;
 
-const PUPPETEER_COOKIE_TYPE = 1;
-const TOUGH_COOKIE_TYPE = 2;
-
 
 /**
  *  Class aggregating data for session.
@@ -55,7 +52,6 @@ export class Session {
         } = options;
 
         const { expiresAt = new Date(Date.now() + (maxAgeSecs * 1000)) } = options;
-        const type = options.type ? parseInt(options.type, 10) : TOUGH_COOKIE_TYPE;
 
         // Validation
         checkParamOrThrow(id, 'options.id', 'String');
@@ -68,7 +64,6 @@ export class Session {
         checkParamOrThrow(errorScore, 'options.errorScore', 'Number');
         checkParamOrThrow(maxUsageCount, 'options.maxUsageCount', 'Number');
         checkParamOrThrow(sessionPool, 'options.sessionPool', 'Object');
-        checkParamOrThrow(type, 'options.type', 'Number');
 
         // sessionPool must be instance of SessionPool.
         if (sessionPool.constructor.name !== 'SessionPool') {
@@ -91,7 +86,6 @@ export class Session {
         this.errorScore = errorScore; // indicates number of markBaded request with the session
         this.maxUsageCount = maxUsageCount;
         this.sessionPool = sessionPool;
-        this.type = type;
     }
 
     /**
@@ -159,7 +153,6 @@ export class Session {
             createdAt: this.createdAt.toISOString(),
             usageCount: this.usageCount,
             errorScore: this.errorScore,
-            type: this.type,
         };
     }
 
@@ -203,7 +196,6 @@ export class Session {
 
     /**
      * Sets cookies from response to the cookieJar.
-     * Accepts responses with headers accessible by `response.headers` or `response.headers()`.
      * Parses cookies from `set-cookie` header and sets them to `Session.cookieJar`.
      * @param response
      */
@@ -211,7 +203,7 @@ export class Session {
         try {
             const cookies = getCookiesFromResponse(response).filter(c => c);
 
-            this.setCookies(cookies, response.url);
+            this._setCookies(cookies, response.url);
         } catch (e) {
             // if invalid Cookie header is provided just log the exception.
             log.exception(e, 'Session: Could not get cookies from response');
@@ -220,42 +212,26 @@ export class Session {
 
     /**
      * Set cookies to session cookieJar.
-     * Cookies array should be [tough-cookie](https://github.com/salesforce/tough-cookie)
-     * or [puppeteer](https://pptr.dev/#?product=Puppeteer&version=v2.0.0&show=api-pagecookiesurls) cookie compatible.
-     * @param cookies {Array<Cookie>}
+     * Cookies array should be [puppeteer](https://pptr.dev/#?product=Puppeteer&version=v2.0.0&show=api-pagecookiesurls) cookie compatible.
+     * @param cookies {Array<Object>}
      * @param url {String}
      */
-    setCookies(cookies, url) {
-        const isPuppeteerCookies = !!cookies[0] && !!cookies[0].name;
-
-        for (const cookie of cookies) {
-            let cookieToSave;
-
-            if (isPuppeteerCookies) {
-                cookieToSave = this._puppeteerCookieToTough(cookie);
-                this.type = PUPPETEER_COOKIE_TYPE;
-            } else {
-                cookieToSave = cookie;
-                this.type = TOUGH_COOKIE_TYPE;
-            }
-
-            this.cookieJar.setCookieSync(cookieToSave, url, { ignoreError: false });
+    setPuppeteerCookies(cookies, url) {
+        try {
+            this._setCookies(cookies.map(this._puppeteerCookieToTough), url);
+        } catch (e) {
+            // if invalid cookies are provided just log the exception. No need to retry the request automatically.
+            log.exception(e, 'Session: Could not set cookies in puppeteer format.');
         }
     }
 
     /**
-     * Get cookies.
-     * Gets a array of cookies in the format corresponding to the type property.
-     * @param url {String}
+     * Gets cookies in puppeteer ready to be used with `page.setCookie`.
+     * @param url {String} - website url. Only cookies stored for this url will be returned
      * @return {Array<Object>}
      */
-    getCookies(url) {
-        const shouldTransformToPuppeteerCookie = this.type === PUPPETEER_COOKIE_TYPE;
+    getPuppeteerCookies(url) {
         const cookies = this.cookieJar.getCookiesSync(url);
-
-        if (!shouldTransformToPuppeteerCookie) {
-            return cookies;
-        }
 
         return cookies.map(this._toughCookieToPuppeteer);
     }
@@ -304,5 +280,17 @@ export class Session {
             secure: toughCookie.secure,
             httpOnly: toughCookie.httpOnly,
         };
+    }
+
+    /**
+     * Sets cookies.
+     * @param cookies
+     * @param url
+     * @private
+     */
+    _setCookies(cookies, url) {
+        for (const cookie of cookies) {
+            this.cookieJar.setCookieSync(cookie, url, { ignoreError: false });
+        }
     }
 }
