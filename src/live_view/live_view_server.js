@@ -8,6 +8,7 @@ import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { promisifyServerListen } from 'apify-shared/utilities';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
+import { Page } from 'puppeteer'; // eslint-disable-line no-unused-vars
 import { addTimeoutToPromise } from '../utils';
 import Snapshot from './snapshot';
 

@@ -96,7 +96,7 @@ declare class LiveViewServer {
      * @param {Page} page
      * @return {Promise}
      */
-    serve(page: any): Promise<any>;
+    serve(page: Page): Promise<any>;
     /**
      * @return {boolean}
      */
@@ -117,7 +117,7 @@ declare class LiveViewServer {
      * @return {Promise<Snapshot>}
      * @private
      */
-    _makeSnapshot(page: any): Promise<Snapshot>;
+    _makeSnapshot(page: Page): Promise<Snapshot>;
     /**
      * @param {Snapshot} snapshot
      * @private
@@ -141,3 +141,4 @@ declare class LiveViewServer {
 import Snapshot from "./snapshot";
 import http from "http";
 import socketio from "socket.io";
+import { Page } from "puppeteer";
