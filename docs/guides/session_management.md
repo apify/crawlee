@@ -55,12 +55,12 @@ const crawler = new Apify.PuppeteerCrawler({
         useApifyProxy: true,
         // Activates the Session pool.
         useSessionPool: true,
-        // Overrides default Session pool configuration
+        // Overrides default Session pool configuration.
         sessionPoolOptions: {
             maxPoolSize: 100
         },
         // Set to true if you want the crawler to save cookies per session,
-        // and set the cookie header to request automatically..
+        // and set the cookie header to request automatically...
         persistCookiesPerSession: true,
         handlePageFunction: async ({request, $, session}) => {
             const title = $("title");
@@ -80,15 +80,82 @@ const crawler = new Apify.PuppeteerCrawler({
 **Example usage in [`BasicCrawler`](../api/basiccrawler)**
 
 ```javascript
-Finish API first
+ const crawler = new Apify.BasicCrawler({
+        requestQueue,
+        useSessionPool: true,
+        sessionPoolOptions: {
+            maxPoolSize: 100
+        },
+        handleRequestFunction: async ({request, session}) => {
+            // To use the proxy IP session rotation logic you must turn the proxy usage on.
+            const proxyUrl = Apify.getApifyProxyUrl({session});
+            const requestOptions = {
+                url: request.url,
+                proxyUrl,
+                throwHttpErrors: false,
+                headers: {
+                    // If you want to use the cookieJar.
+                    // This way you get the Cookie headers string from session.
+                    Cookie: session.getCookieString(),
+                }
+            };
+            let response;
+
+            try {
+                response = await Apify.utils.requestAsBrowser(requestOptions);
+            } catch (e) {
+                if (e === "SomeNetworkError") {
+                    // If network error happens like timeout, socket hangup etc...
+                    // There is usually a chance that it was just bad luck and the proxy works.
+                    // No need to throw it away.
+                    session.markBad();
+                }
+                throw e;
+            }
+
+            // Automatically retires the session based on response HTTP status code.
+            session.retireOnBlockedStatusCodes(response.statusCode);
+
+            if (response.body.blocked) {
+                // You are sure it is blocking.
+                // This will trow away the session.
+                session.retire();
+
+            }
+
+            // Everything is ok you can get the data.
+            // No need to call session.markGood -> BasicCrawler calls it for you.
+
+            // If you want to use the CookieJar in session you need.
+            session.setCookiesFromResponse(response);
+
+        }
+    });
 ```
 
 **Example solo usage**
 
 ```javascript
-Finish API first
-```
+Apify.main(async () => {
 
+    const sessionPoolOptions = {
+            maxPoolSize: 100
+    };
+    const sessionPool = await Apify.openSessionPool(sessionPoolOptions);
+
+    // Get session
+    const session = sessionPool.getSession();
+
+    // Increase the errorScore.
+    session.markBad();
+
+    // Throw away the session
+    session.retire();
+
+    // Lower the errorScore and marks the session good.
+    session.markGood();
+});
+```
 These are the basics of configuring the SessionPool.
 Please, bear in mind that the Session pool needs some time to find the working IPs and build up the pool,
 so you will be probably seeing a lot of errors until it gets stabilized.

@@ -19,7 +19,7 @@ internal state can be enriched with custom user data for example some authorizat
     -   [`.getState()`](#Session+getState) ⇒ `Object`
     -   [`.retire()`](#Session+retire)
     -   [`.markBad()`](#Session+markBad)
-    -   [`.checkStatus(statusCode)`](#Session+checkStatus) ⇒ `boolean`
+    -   [`.retireOnBlockedStatusCodes(statusCode, blockedStatusCodes)`](#Session+retireOnBlockedStatusCodes) ⇒ `boolean`
     -   [`.putResponse(response)`](#Session+putResponse)
     -   [`.putPuppeteerCookies(puppeteerCookies, url)`](#Session+putPuppeteerCookies)
     -   [`.setCookies(cookies, url)`](#Session+setCookies)
@@ -156,9 +156,9 @@ due to some external factors as server error such as 5XX you probably want to us
 
 Increases usage and error count. Should be used when the session has been used unsuccessfully. For example because of timeouts.
 
-<a name="Session+checkStatus"></a>
+<a name="Session+retireOnBlockedStatusCodes"></a>
 
-## `session.checkStatus(statusCode)` ⇒ `boolean`
+## `session.retireOnBlockedStatusCodes(statusCode, blockedStatusCodes)` ⇒ `boolean`
 
 Retires session based on status code.
 
@@ -176,6 +176,11 @@ Retires session based on status code.
 </tr>
 <tr>
 <td colspan="3"><p>HTTP status code</p>
+</td></tr><tr>
+<td><code>blockedStatusCodes</code></td><td><code>Array<Number></code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Custom HTTP status codes that means blocking on particular website.</p>
 </td></tr></tbody>
 </table>
 <a name="Session+putResponse"></a>
