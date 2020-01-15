@@ -61,6 +61,7 @@
             "typedefs/queueoperationinfo",
             "typedefs/requestliststate",
             "typedefs/requestoptions",
+            "typedefs/sessionstate",
             "typedefs/socialhandles",
             "typedefs/systeminfo"
         ],

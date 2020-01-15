@@ -200,8 +200,17 @@
       "typedefs/requestoptions": {
         "title": "RequestOptions"
       },
+      "typedefs/sessionstate": {
+        "title": "SessionState"
+      },
+      "typedefs/socialhandles": {
+        "title": "SocialHandles"
+      },
       "typedefs/stealthoptions": {
         "title": "StealthOptions"
+      },
+      "typedefs/systeminfo": {
+        "title": "SystemInfo"
       }
     },
     "links": {
