@@ -84,6 +84,9 @@
         ],
         "KeyValueStore User-Functions": [
             "typedefs/keyconsumer"
+        ],
+        "Utility User-Functions": [
+            "typedefs/requesttransform"
         ]
     }
 }

@@ -2,8 +2,12 @@ import { URL } from 'url';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
-import { RequestQueue, RequestQueueLocal } from '../request_queue';
-import { constructPseudoUrlInstances, createRequests, addRequestsToQueueInBatches, createRequestOptions } from './shared';
+import { CheerioStatic } from 'cheerio'; // eslint-disable-line no-unused-vars
+import { Page } from 'puppeteer'; // eslint-disable-line no-unused-vars
+import { RequestOptions } from '../request'; // eslint-disable-line import/named,no-unused-vars
+import { RequestQueue, RequestQueueLocal, QueueOperationInfo } from '../request_queue'; // eslint-disable-line import/named,no-unused-vars
+// eslint-disable-next-line import/named,no-unused-vars
+import { constructPseudoUrlInstances, createRequests, addRequestsToQueueInBatches, createRequestOptions, RequestTransform } from './shared';
 
 /**
  * The function finds elements matching a specific CSS selector (HTML anchor (`<a>`) by default)
@@ -62,9 +66,7 @@ import { constructPseudoUrlInstances, createRequests, addRequestsToQueueInBatche
  *
  *   If `pseudoUrls` is an empty array, `null` or `undefined`, then the function
  *   enqueues all links found on the page.
- * @param {Function} [options.transformRequestFunction]
- *   **Signature:** ({@link Request}): {@link Request}
- *
+ * @param {RequestTransform} [options.transformRequestFunction]
  *   Just before a new {@link Request} is constructed and enqueued to the {@link RequestQueue}, this function can be used
  *   to remove it or modify its contents such as `userData`, `payload` or, most importantly `uniqueKey`. This is useful
  *   when you need to enqueue multiple `Requests` to the queue that share the same URL, but differ in methods or payloads,
@@ -148,7 +150,7 @@ export async function extractUrlsFromPage(page, selector) {
 /**
  * Extracts URLs from a given Cheerio object.
  *
- * @param {Function} $
+ * @param {CheerioStatic} $
  * @param {string} selector
  * @param {string} baseUrl
  * @return {string[]}

@@ -9,7 +9,7 @@ export namespace puppeteerUtils {
     export { injectJQuery };
     export { injectUnderscore };
     export { enqueueRequestsFromClickableElements };
-    export function enqueueLinks(...args: any[]): Promise<any[]>;
+    export function enqueueLinks(...args: any[]): Promise<import("./request_queue").QueueOperationInfo[]>;
     export { enqueueLinksByClickingElements };
     export { blockRequests };
     export { blockResources };

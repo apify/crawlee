@@ -200,6 +200,9 @@
       "typedefs/requestoptions": {
         "title": "RequestOptions"
       },
+      "typedefs/requesttransform": {
+        "title": "RequestTransform"
+      },
       "typedefs/sessionstate": {
         "title": "SessionState"
       },
@@ -227,7 +230,8 @@
       "Type Definitions": "Type Definitions",
       "Crawler User-Functions": "Crawler User-Functions",
       "Dataset User-Functions": "Dataset User-Functions",
-      "KeyValueStore User-Functions": "KeyValueStore User-Functions"
+      "KeyValueStore User-Functions": "KeyValueStore User-Functions",
+      "Utility User-Functions": "Utility User-Functions"
     }
   },
   "pages-strings": {

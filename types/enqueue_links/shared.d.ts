@@ -26,5 +26,10 @@ export function createRequestOptions(sources: any[] | string[], userData?: any):
  * @ignore
  */
 export function addRequestsToQueueInBatches(requests: Request[], requestQueue: any, batchSize?: number): Promise<any[]>;
+/**
+ * Takes an Apify {RequestOptions} object and changes it's attributes in a desired way. This user-function is used
+ * [`Apify.utils.enqueueLinks`](../api/utils#utils.enqueueLinks) to modify requests before enqueuing them.
+ */
+export type RequestTransform = (original: any) => any;
 import PseudoUrl from "../pseudo_url";
 import Request from "../request";

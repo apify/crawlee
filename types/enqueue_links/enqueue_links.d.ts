@@ -55,9 +55,7 @@
  *
  *   If `pseudoUrls` is an empty array, `null` or `undefined`, then the function
  *   enqueues all links found on the page.
- * @param {Function} [options.transformRequestFunction]
- *   **Signature:** ({@link Request}): {@link Request}
- *
+ * @param {RequestTransform} [options.transformRequestFunction]
  *   Just before a new {@link Request} is constructed and enqueued to the {@link RequestQueue}, this function can be used
  *   to remove it or modify its contents such as `userData`, `payload` or, most importantly `uniqueKey`. This is useful
  *   when you need to enqueue multiple `Requests` to the queue that share the same URL, but differ in methods or payloads,
@@ -82,14 +80,14 @@
  * @name enqueueLinks
  */
 export function enqueueLinks(options?: {
-    page: any;
+    page: Page;
     $: Cheerio;
     requestQueue: RequestQueue;
     selector?: string;
     baseUrl?: string;
     pseudoUrls?: any[] | string[];
-    transformRequestFunction?: Function;
-}): Promise<any[]>;
+    transformRequestFunction?: RequestTransform;
+}): Promise<QueueOperationInfo[]>;
 /**
  * Extracts URLs from a given Puppeteer Page.
  *
@@ -98,15 +96,18 @@ export function enqueueLinks(options?: {
  * @return {string[]}
  * @ignore
  */
-export function extractUrlsFromPage(page: any, selector: string): string[];
+export function extractUrlsFromPage(page: Page, selector: string): string[];
 /**
  * Extracts URLs from a given Cheerio object.
  *
- * @param {Function} $
+ * @param {CheerioStatic} $
  * @param {string} selector
  * @param {string} baseUrl
  * @return {string[]}
  * @ignore
  */
-export function extractUrlsFromCheerio($: Function, selector: string, baseUrl: string): string[];
+export function extractUrlsFromCheerio($: any, selector: string, baseUrl: string): string[];
+import { Page } from "puppeteer";
 import { RequestQueue } from "../request_queue";
+import { RequestTransform } from "./shared";
+import { QueueOperationInfo } from "../request_queue";

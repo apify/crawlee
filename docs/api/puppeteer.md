@@ -124,11 +124,10 @@ objects.
 <p>  If <code>pseudoUrls</code> is an empty array, <code>null</code> or <code>undefined</code>, then the function
   enqueues all links found on the page.</p>
 </td></tr><tr>
-<td><code>[options.transformRequestFunction]</code></td><td><code>function</code></td><td></td>
+<td><code>[options.transformRequestFunction]</code></td><td><code><a href="../typedefs/requesttransform">RequestTransform</a></code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p><strong>Signature:</strong> (<a href="request"><code>Request</code></a>): <a href="request"><code>Request</code></a></p>
-<p>  Just before a new <a href="request"><code>Request</code></a> is constructed and enqueued to the <a href="requestqueue"><code>RequestQueue</code></a>, this function can be used
+<td colspan="3"><p>Just before a new <a href="request"><code>Request</code></a> is constructed and enqueued to the <a href="requestqueue"><code>RequestQueue</code></a>, this function can be used
   to remove it or modify its contents such as <code>userData</code>, <code>payload</code> or, most importantly <code>uniqueKey</code>. This is useful
   when you need to enqueue multiple <code>Requests</code> to the queue that share the same URL, but differ in methods or payloads,
   or to dynamically update or create <code>userData</code>.</p>

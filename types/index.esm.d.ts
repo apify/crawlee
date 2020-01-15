@@ -61,7 +61,7 @@ declare const exportedUtils: {
         injectJQuery: (page: any) => Promise<any>;
         injectUnderscore: (page: any) => Promise<any>;
         enqueueRequestsFromClickableElements: (page: any, selector: any, purls: any, requestQueue: any, requestOpts?: {}) => Promise<any[]>;
-        enqueueLinks: (...args: any[]) => Promise<any[]>;
+        enqueueLinks: (...args: any[]) => Promise<import("./request_queue").QueueOperationInfo[]>;
         enqueueLinksByClickingElements: typeof import("./enqueue_links/click_elements").enqueueLinksByClickingElements;
         blockRequests: (page: any, options?: {
             urlPatterns?: string[];

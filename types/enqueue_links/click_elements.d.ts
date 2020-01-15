@@ -63,9 +63,7 @@
  *
  *   If `pseudoUrls` is an empty array, `null` or `undefined`, then the function
  *   enqueues all links found on the page.
- * @param {Function} [options.transformRequestFunction]
- *   **Signature:** ({@link Request}): {@link Request}
- *
+ * @param {RequestTransform} [options.transformRequestFunction]
  *   Just before a new {@link Request} is constructed and enqueued to the {@link RequestQueue}, this function can be used
  *   to remove it or modify its contents such as `userData`, `payload` or, most importantly `uniqueKey`. This is useful
  *   when you need to enqueue multiple `Requests` to the queue that share the same URL, but differ in methods or payloads,
@@ -112,10 +110,10 @@ export function enqueueLinksByClickingElements(options?: {
     requestQueue: RequestQueue;
     selector: string;
     pseudoUrls?: any[];
-    transformRequestFunction?: Function;
+    transformRequestFunction?: RequestTransform;
     waitForPageIdleSecs?: number;
     maxWaitForPageIdleSecs?: number;
-}): Promise<any[]>;
+}): Promise<QueueOperationInfo[]>;
 /**
  * Clicks all elements of given page matching given selector.
  * Catches and intercepts all initiated navigation requests and opened pages.
@@ -153,3 +151,5 @@ export function isTargetRelevant(page: any, target: any): boolean;
  */
 export function clickElements(page: any, selector: string): Promise<any>;
 import { RequestQueue } from "../request_queue";
+import { RequestTransform } from "./shared";
+import { QueueOperationInfo } from "../request_queue";
