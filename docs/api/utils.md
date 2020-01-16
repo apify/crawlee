@@ -151,47 +151,51 @@ Currently, the function sends requests the same way as Firefox web browser does.
 Internally, the function uses httpRequest function from the [@apify/httpRequest](https://github.com/apifytech/http-request) NPM package to perform the
 request. All `options` not recognized by this function are passed to it, so see it for more details.
 
+**Returns**: `Promise<(http.IncomingMessage|stream.Readable)>` - This will typically be a
+[Node.js HTTP response stream](https://nodejs.org/api/http.html#http_class_http_incomingmessage), however, if returned from the cache it will be a
+[response-like object](https://github.com/lukechilds/responselike) which behaves in the same way.
+
 <table>
 <thead>
 <tr>
-<th>Param</th><th>Default</th>
+<th>Param</th><th>Type</th><th>Default</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>options.url</code></td><td></td>
+<td><code>options.url</code></td><td></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>URL of the target endpoint. Supports both HTTP and HTTPS schemes.</p>
 </td></tr><tr>
-<td><code>[options.method]</code></td><td><code>GET</code></td>
+<td><code>[options.method]</code></td><td><code>String</code></td><td><code>GET</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>HTTP method.</p>
 </td></tr><tr>
-<td><code>[options.headers]</code></td><td></td>
+<td><code>[options.headers]</code></td><td><code>Object</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Additional HTTP headers to add. It&#39;s only recommended to use this option,
  with headers that are typically added by websites, such as cookies. Overriding
  default browser headers will remove the masking this function provides.</p>
 </td></tr><tr>
-<td><code>[options.languageCode]</code></td><td><code>en</code></td>
+<td><code>[options.languageCode]</code></td><td><code>String</code></td><td><code>en</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Two-letter ISO 639 language code.</p>
 </td></tr><tr>
-<td><code>[options.countryCode]</code></td><td><code>US</code></td>
+<td><code>[options.countryCode]</code></td><td><code>String</code></td><td><code>US</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Two-letter ISO 3166 country code.</p>
 </td></tr><tr>
-<td><code>[options.isMobile]</code></td><td></td>
+<td><code>[options.isMobile]</code></td><td><code>Boolean</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>If <code>true</code>, the function uses User-Agent of a mobile browser.</p>
 </td></tr><tr>
-<td><code>[options.abortFunction]</code></td><td></td>
+<td><code>[options.abortFunction]</code></td><td><code>function</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Function accepts <code>response</code> object as a single parameter and should return true or false.

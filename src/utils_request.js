@@ -27,7 +27,6 @@ export const REQUEST_AS_BROWSER_DEFAULT_OPTIONS = {
     timeoutSecs: 30,
 };
 
-// TODO yin: Requires @types/got to properly annotate
 /**
  * Sends a HTTP request that looks like a request sent by a web browser,
  * fully emulating browser's HTTP headers.
@@ -49,24 +48,26 @@ export const REQUEST_AS_BROWSER_DEFAULT_OPTIONS = {
  *
  * @param options.url
  *  URL of the target endpoint. Supports both HTTP and HTTPS schemes.
- * @param [options.method=GET]
+ * @param {String} [options.method=GET]
  *  HTTP method.
- * @param [options.headers]
+ * @param {Object} [options.headers]
  *  Additional HTTP headers to add. It's only recommended to use this option,
  *  with headers that are typically added by websites, such as cookies. Overriding
  *  default browser headers will remove the masking this function provides.
- * @param [options.languageCode=en]
+ * @param {String} [options.languageCode=en]
  *  Two-letter ISO 639 language code.
- * @param [options.countryCode=US]
+ * @param {String} [options.countryCode=US]
  *  Two-letter ISO 3166 country code.
- * @param [options.isMobile]
+ * @param {Boolean} [options.isMobile]
  *  If `true`, the function uses User-Agent of a mobile browser.
- * @param [options.abortFunction]
+ * @param {Function} [options.abortFunction]
  *  Function accepts `response` object as a single parameter and should return true or false.
  *  If function returns true request gets aborted. This function is passed to the
  *  (@apify/http-request)[https://www.npmjs.com/package/@apify/http-request] NPM package.
  *
- * @return {Promise<http.IncomingMessage|stream.Readable>}
+ * @return {Promise<http.IncomingMessage|stream.Readable>} This will typically be a
+ * [Node.js HTTP response stream](https://nodejs.org/api/http.html#http_class_http_incomingmessage),
+ * however, if returned from the cache it will be a [response-like object](https://github.com/lukechilds/responselike) which behaves in the same way.
  * @memberOf utils
  * @name requestAsBrowser
  */
