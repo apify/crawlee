@@ -7,7 +7,7 @@ import { CookieParseError } from './errors';
  * @return {undefined|Array}
  */
 export const getCookiesFromResponse = (response) => {
-    const { headers } = response;
+    const headers = typeof response.headers === 'function' ? response.headers() : response.headers;
     const cookieHeader = headers['set-cookie'] || '';
 
     try {
