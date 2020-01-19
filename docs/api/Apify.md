@@ -856,7 +856,7 @@ using <code>regex</code> parameter containing regular expression pattern for URL
 <p> For details, see the <a href="requestlist#new_RequestList_new"><code>RequestList</code></a>
  constructor options.</p>
 </td></tr><tr>
-<td><code>[options]</code></td><td><code>Object</code></td>
+<td><code>[options]</code></td><td><code><a href="../typedefs/requestlistoptions">RequestListOptions</a></code></td>
 </tr>
 <tr>
 <td colspan="3"><p>The <a href="requestlist#new_RequestList_new"><code>new RequestList</code></a> options. Note that the listName parameter supersedes

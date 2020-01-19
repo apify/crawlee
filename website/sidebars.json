@@ -71,6 +71,7 @@
             "typedefs/puppeteerpooloptions",
             "typedefs/launchpuppeteeroptions",
             "typedefs/requestoptions",
+            "typedefs/requestlistoptions",
             "typedefs/requestasbrowseroptions",
             "typedefs/sessionoptions",
             "typedefs/sessionpooloptions",
