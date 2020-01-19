@@ -182,6 +182,9 @@
       "typedefs/keyconsumer": {
         "title": "KeyConsumer"
       },
+      "typedefs/launchpuppeteer": {
+        "title": "LaunchPuppeteer"
+      },
       "typedefs/launchpuppeteeroptions": {
         "title": "LaunchPuppeteerOptions"
       },
@@ -196,6 +199,12 @@
       },
       "typedefs/puppeteercrawleroptions": {
         "title": "PuppeteerCrawlerOptions"
+      },
+      "typedefs/puppeteergoto": {
+        "title": "PuppeteerGoTo"
+      },
+      "typedefs/puppeteergotoinputs": {
+        "title": "PuppeteerGoToInputs"
       },
       "typedefs/puppeteerhandlepage": {
         "title": "PuppeteerHandlePage"
@@ -260,6 +269,7 @@
       "Type Definitions": "Type Definitions",
       "Constructor Options": "Constructor Options",
       "Crawler User-Functions": "Crawler User-Functions",
+      "Puppeteer User-Functions": "Puppeteer User-Functions",
       "Dataset User-Functions": "Dataset User-Functions",
       "KeyValueStore User-Functions": "KeyValueStore User-Functions",
       "Utility User-Functions": "Utility User-Functions"

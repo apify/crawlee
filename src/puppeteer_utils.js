@@ -6,7 +6,7 @@ import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import LruCache from 'apify-shared/lru_cache';
-import { Page } from 'puppeteer'; // eslint-disable-line no-unused-vars
+import { Page, Response } from 'puppeteer'; // eslint-disable-line no-unused-vars
 
 import { RequestQueue, RequestQueueLocal } from './request_queue';
 import Request from './request';

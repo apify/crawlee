@@ -88,9 +88,14 @@
             "typedefs/handlerequest",
             "typedefs/handlerequestinputs",
             "typedefs/preparerequest",
-            "typedefs/preparerequestinputs",
+            "typedefs/preparerequestinputs"
+            ],
+        "Puppeteer User-Functions": [
             "typedefs/puppeteerhandlepage",
-            "typedefs/puppeteerhandlepageinputs"
+            "typedefs/puppeteerhandlepageinputs",
+            "typedefs/launchpuppeteer",
+            "typedefs/puppeteergoto",
+            "typedefs/puppeteergotoinputs"
         ],
         "Dataset User-Functions": [
             "typedefs/datasetconsumer",

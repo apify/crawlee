@@ -169,6 +169,31 @@ export type PuppeteerHandlePageInputs = {
     autoscaledPool: AutoscaledPool;
 };
 export type PuppeteerHandlePage = (inputs: PuppeteerHandlePageInputs) => Promise<void>;
+export type PuppeteerGotoInputs = {
+    /**
+     * is an instance of the `Puppeteer`
+     * <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a>
+     */
+    page: PuppeteerPage;
+    /**
+     * An instance of the {@link Request} object with details about the URL to open, HTTP method etc.
+     */
+    request: Request;
+    /**
+     * An instance of the `AutoscaledPool`.
+     */
+    autoscaledPool: AutoscaledPool;
+    /**
+     * An instance of the {@link PuppeteerPool} used by this `PuppeteerCrawler`.
+     */
+    puppeteerPool: PuppeteerPool;
+    /**
+     * `Session` object for this request.
+     */
+    session: Session;
+};
+export type PuppeteerGoto = (inputs: PuppeteerGotoInputs) => Promise<PuppeteerResponse>;
+export type LaunchPuppeteer = (inputs: LaunchPuppeteerOptions) => Promise<Browser>;
 /**
  * @typedef {Object} PuppeteerCrawlerOptions
  * @property {PuppeteerHandlePage} handlePageFunction
@@ -446,13 +471,13 @@ declare class PuppeteerCrawler {
      * @param {Object} options
      * @param {PuppeteerPage} options.page
      * @param {Request} options.request
-     * @return {Promise<Response>}
+     * @return {Promise<PuppeteerResponse>}
      * @ignore
      */
     _defaultGotoFunction({ page, request }: {
         page: PuppeteerPage;
         request: Request;
-    }): Promise<Response>;
+    }): Promise<PuppeteerResponse>;
     /**
      * @param {Object} options
      * @param {Request} options.request
@@ -475,4 +500,6 @@ import { Response as PuppeteerResponse } from "puppeteer";
 import { Page as PuppeteerPage } from "puppeteer";
 import PuppeteerPool from "../puppeteer_pool";
 import AutoscaledPool from "../autoscaling/autoscaled_pool";
+import { Session } from "../session_pool/session";
+import { Browser } from "puppeteer";
 import BasicCrawler from "./basic_crawler";

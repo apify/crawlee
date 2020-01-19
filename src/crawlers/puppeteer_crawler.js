@@ -1,7 +1,7 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import log from 'apify-shared/log';
 import _ from 'underscore';
-import { Page as PuppeteerPage, Response as PuppeteerResponse } from 'puppeteer'; // eslint-disable-line no-unused-vars
+import { Browser, Page as PuppeteerPage, Response as PuppeteerResponse } from 'puppeteer'; // eslint-disable-line no-unused-vars
 import BasicCrawler, { HandleFailedRequest } from './basic_crawler'; // eslint-disable-line no-unused-vars,import/named
 import PuppeteerPool, { PuppeteerPoolOptions, BROWSER_SESSION_KEY_NAME } from '../puppeteer_pool'; // eslint-disable-line no-unused-vars,import/named
 import { addTimeoutToPromise } from '../utils';
@@ -15,6 +15,7 @@ import { RequestList } from '../request_list'; // eslint-disable-line no-unused-
 import { RequestQueue } from '../request_queue'; // eslint-disable-line no-unused-vars
 import AutoscaledPool, { AutoscaledPoolOptions } from '../autoscaling/autoscaled_pool'; // eslint-disable-line no-unused-vars,import/named
 import { LaunchPuppeteerOptions } from '../puppeteer'; // eslint-disable-line no-unused-vars,import/named
+import { Session } from '../session_pool/session'; // eslint-disable-line no-unused-vars
 
 /**
  * @typedef {Object} PuppeteerCrawlerOptions
@@ -193,8 +194,6 @@ import { LaunchPuppeteerOptions } from '../puppeteer'; // eslint-disable-line no
  * ```
  */
 class PuppeteerCrawler {
-    // TODO yin: Specify @param options.gotoFunction type after puppeteer_util.js@gotoExtended()
-    // TODO yin: Specify @param options.launchPuppeteerFunction type after puppeteer.js@launchPuppeteerWithProxy()
     /**
      * @param {PuppeteerCrawlerOptions} options All `PuppeteerCrawler` parameters are passed
      *   via an options object with the following keys:
@@ -350,7 +349,7 @@ class PuppeteerCrawler {
      * @param {Object} options
      * @param {PuppeteerPage} options.page
      * @param {Request} options.request
-     * @return {Promise<Response>}
+     * @return {Promise<PuppeteerResponse>}
      * @ignore
      */
     async _defaultGotoFunction({ page, request }) {
@@ -381,10 +380,37 @@ export default PuppeteerCrawler;
  *   <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a>
  * @property {PuppeteerPool} puppeteerPool An instance of the {@link PuppeteerPool} used by this `PuppeteerCrawler`.
  * @property {AutoscaledPool} autoscaledPool
- * @return {Promise<void>}
  */
 /**
  * @callback PuppeteerHandlePage
  * @param {PuppeteerHandlePageInputs} inputs Arguments passed to this callback.
  * @return {Promise<void>}
+ */
+
+/**
+ * @typedef PuppeteerGotoInputs
+ * @property {PuppeteerPage} page is an instance of the `Puppeteer`
+ *   <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a>
+ * @property {Request} request An instance of the {@link Request} object with details about the URL to open, HTTP method etc.
+ * @property {AutoscaledPool} autoscaledPool An instance of the `AutoscaledPool`.
+ * @property {PuppeteerPool} puppeteerPool An instance of the {@link PuppeteerPool} used by this `PuppeteerCrawler`.
+ * @property {Session} session `Session` object for this request.
+ * @return {Promise<void>}
+ */
+/**
+ * @callback PuppeteerGoto
+ * @param {PuppeteerGotoInputs} inputs Arguments passed to this callback.
+ * @return {Promise<PuppeteerResponse>} An instance of the `Puppeteer`
+ *   <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-response" target="_blank"><code>Response</code></a>,
+ *   which is the main resource response as returned by `page.goto(request.url)`.
+ */
+
+/**
+ * @callback LaunchPuppeteer
+ * @param {LaunchPuppeteerOptions} inputs Arguments passed to this callback.
+ * @return {Promise<Browser>} Promise that resolves to Puppeteer's `Browser` instance.
+ *   This might be obtained by calling
+ *   <a href="https://pptr.dev/#?product=Puppeteer&version=v2.0.0&show=api-puppeteerlaunchoptions">puppeteer.launch()</a>
+ *   directly, or by delegating to
+ *   [`Apify.launchPuppeteer()`](http://localhost:3000/docs/api/apify#apifylaunchpuppeteeroptions-%E2%87%92-promisebrowser).
  */

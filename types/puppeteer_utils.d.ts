@@ -23,6 +23,7 @@ export namespace puppeteerUtils {
 }
 import { Page } from "puppeteer";
 import Request from "./request";
+import { Response } from "puppeteer";
 declare function hideWebDriver(page: Page): Promise<any>;
 declare function injectFile(page: Page, filePath: string, options?: {
     surviveNavigations?: boolean;

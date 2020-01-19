@@ -71,7 +71,7 @@ declare const exportedUtils: {
         blockResources: (page: any, resourceTypes?: string[]) => Promise<void>;
         cacheResponses: (page: import("puppeteer").Page, cache: any, responseUrlRules: (string | RegExp)[]) => Promise<any>;
         compileScript: (scriptString: string, context?: any) => Function;
-        gotoExtended: (page: import("puppeteer").Page, request: Request, gotoOptions?: any) => Promise<Response>;
+        gotoExtended: (page: import("puppeteer").Page, request: Request, gotoOptions?: any) => Promise<import("puppeteer").Response>;
         addInterceptRequestHandler: (page: any, handler: Function) => Promise<any>;
         removeInterceptRequestHandler: (page: any, handler: Function) => Promise<any>;
         infiniteScroll: (page: any, options?: {
