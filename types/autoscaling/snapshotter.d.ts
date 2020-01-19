@@ -1,4 +1,87 @@
 export default Snapshotter;
+export type SnapshotterOptions = {
+    /**
+     * Defines the interval of measuring the event loop response time.
+     */
+    eventLoopSnapshotIntervalSecs?: number;
+    /**
+     * Defines the interval of checking the current state
+     * of the remote API client.
+     */
+    clientSnapshotIntervalSecs?: number;
+    /**
+     * Maximum allowed delay of the event loop in milliseconds.
+     * Exceeding this limit overloads the event loop.
+     */
+    maxBlockedMillis?: number;
+    /**
+     * Defines the interval of measuring CPU usage.
+     * This is only used when running locally. On the Apify platform,
+     * the statistics are provided externally at a fixed interval.
+     */
+    cpuSnapshotIntervalSecs?: number;
+    /**
+     * Defines the maximum usage of CPU.
+     * Exceeding this limit overloads the CPU.
+     */
+    maxUsedCpuRatio?: number;
+    /**
+     * Defines the interval of measuring memory consumption.
+     * This is only used when running locally. On the Apify platform,
+     * the statistics are provided externally at a fixed interval.
+     * The measurement itself is resource intensive (25 - 50ms async).
+     * Therefore, setting this interval below 1 second is not recommended.
+     */
+    memorySnapshotIntervalSecs?: number;
+    /**
+     * Defines the maximum ratio of total memory that can be used.
+     * Exceeding this limit overloads the memory.
+     */
+    maxUsedMemoryRatio?: number;
+    /**
+     * Defines the maximum number of new rate limit errors within
+     * the given interval.
+     */
+    maxClientErrors?: number;
+    /**
+     * Sets the interval in seconds for which a history of resource snapshots
+     * will be kept. Increasing this to very high numbers will affect performance.
+     */
+    snapshotHistorySecs?: number;
+};
+/**
+ * @typedef SnapshotterOptions
+ * @property {Number} [eventLoopSnapshotIntervalSecs=0.5]
+ *   Defines the interval of measuring the event loop response time.
+ * @property {Number} [clientSnapshotIntervalSecs=1]
+ *   Defines the interval of checking the current state
+ *   of the remote API client.
+ * @property {Number} [maxBlockedMillis=50]
+ *   Maximum allowed delay of the event loop in milliseconds.
+ *   Exceeding this limit overloads the event loop.
+ * @property {Number} [cpuSnapshotIntervalSecs=1]
+ *   Defines the interval of measuring CPU usage.
+ *   This is only used when running locally. On the Apify platform,
+ *   the statistics are provided externally at a fixed interval.
+ * @property {Number} [maxUsedCpuRatio=0.95]
+ *   Defines the maximum usage of CPU.
+ *   Exceeding this limit overloads the CPU.
+ * @property {Number} [memorySnapshotIntervalSecs=1]
+ *   Defines the interval of measuring memory consumption.
+ *   This is only used when running locally. On the Apify platform,
+ *   the statistics are provided externally at a fixed interval.
+ *   The measurement itself is resource intensive (25 - 50ms async).
+ *   Therefore, setting this interval below 1 second is not recommended.
+ * @property {Number} [maxUsedMemoryRatio=0.7]
+ *   Defines the maximum ratio of total memory that can be used.
+ *   Exceeding this limit overloads the memory.
+ * @property {Number} [maxClientErrors=1]
+ *   Defines the maximum number of new rate limit errors within
+ *   the given interval.
+ * @property {Number} [snapshotHistorySecs=60]
+ *   Sets the interval in seconds for which a history of resource snapshots
+ *   will be kept. Increasing this to very high numbers will affect performance.
+ */
 /**
  * Creates snapshots of system resources at given intervals and marks the resource
  * as either overloaded or not during the last interval. Keeps a history of the snapshots.
@@ -22,42 +105,12 @@ export default Snapshotter;
  *
  * Client becomes overloaded when rate limit errors (429 - Too Many Requests),
  * typically received from the request queue, exceed the set limit within the set interval.
- *
- * @param {Object} [options] All `Snapshotter` parameters are passed
- *   via an options object with the following keys:
- * @param {Number} [options.eventLoopSnapshotIntervalSecs=0.5]
- *   Defines the interval of measuring the event loop response time.
- * @param {Number} [options.clientSnapshotIntervalSecs=1]
- *   Defines the interval of checking the current state
- *   of the remote API client.
- * @param {Number} [options.maxBlockedMillis=50]
- *   Maximum allowed delay of the event loop in milliseconds.
- *   Exceeding this limit overloads the event loop.
- * @param {Number} [options.cpuSnapshotIntervalSecs=1]
- *   Defines the interval of measuring CPU usage.
- *   This is only used when running locally. On the Apify platform,
- *   the statistics are provided externally at a fixed interval.
- * @param {Number} [options.maxUsedCpuRatio=0.95]
- *   Defines the maximum usage of CPU.
- *   Exceeding this limit overloads the CPU.
- * @param {Number} [options.memorySnapshotIntervalSecs=1]
- *   Defines the interval of measuring memory consumption.
- *   This is only used when running locally. On the Apify platform,
- *   the statistics are provided externally at a fixed interval.
- *   The measurement itself is resource intensive (25 - 50ms async).
- *   Therefore, setting this interval below 1 second is not recommended.
- * @param {Number} [options.maxUsedMemoryRatio=0.7]
- *   Defines the maximum ratio of total memory that can be used.
- *   Exceeding this limit overloads the memory.
- * @param {Number} [options.maxClientErrors=1]
- *   Defines the maximum number of new rate limit errors within
- *   the given interval.
- * @param {Number} [options.snapshotHistorySecs=60]
- *   Sets the interval in seconds for which a history of resource snapshots
- *   will be kept. Increasing this to very high numbers will affect performance.
  */
 declare class Snapshotter {
-    constructor(options?: {});
+    /**
+     * @param {SnapshotterOptions} [options] All `Snapshotter` configuration options.
+     */
+    constructor(options?: SnapshotterOptions);
     eventLoopSnapshotIntervalMillis: number;
     memorySnapshotIntervalMillis: number;
     clientSnapshotIntervalMillis: number;

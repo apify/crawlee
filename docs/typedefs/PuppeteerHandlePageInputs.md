@@ -24,14 +24,14 @@ title: PuppeteerHandlePageInputs
 </tr>
 <tr>
 <td colspan="3"><p>An instance of the <code>Puppeteer</code>
-  <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a></p>
+  <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-response" target="_blank"><code>Response</code></a>,
+  which is the main resource response as returned by <code>page.goto(request.url)</code>.</p>
 </td></tr><tr>
 <td><code>page</code></td><td><code>PuppeteerPage</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>is an instance of the <code>Puppeteer</code>
-  <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-response" target="_blank"><code>Response</code></a>,
-  which is the main resource response as returned by <code>page.goto(request.url)</code>.</p>
+  <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a></p>
 </td></tr><tr>
 <td><code>puppeteerPool</code></td><td><code><a href="puppeteerpool">PuppeteerPool</a></code></td>
 </tr>

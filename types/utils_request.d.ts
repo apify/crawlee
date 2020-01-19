@@ -14,4 +14,41 @@ export namespace REQUEST_AS_BROWSER_DEFAULT_OPTIONS {
     export const proxyUrl: any;
     export const timeoutSecs: number;
 }
-export function requestAsBrowser(options: any): Promise<any>;
+export function requestAsBrowser(options: RequestAsBrowserOptions): Promise<any>;
+/**
+ * (@apify/http-request)[https://www.npmjs.com/package/@apify/http-request] NPM package.
+ */
+export type RequestAsBrowserOptions = {
+    /**
+     * URL of the target endpoint. Supports both HTTP and HTTPS schemes.
+     */
+    url: string;
+    /**
+     * HTTP method.
+     */
+    method?: string;
+    /**
+     * Additional HTTP headers to add. It's only recommended to use this option,
+     * with headers that are typically added by websites, such as cookies. Overriding
+     * default browser headers will remove the masking this function provides.
+     */
+    headers?: any;
+    /**
+     * Two-letter ISO 639 language code.
+     */
+    languageCode?: string;
+    /**
+     * Two-letter ISO 3166 country code.
+     */
+    countryCode?: string;
+    /**
+     * If `true`, the function uses User-Agent of a mobile browser.
+     */
+    isMobile?: boolean;
+    /**
+     * Function accepts `response` object as a single parameter and should return true or false.
+     * If function returns true request gets aborted. This function is passed to the
+     * (
+     */
+    abortFunction?: Function;
+};

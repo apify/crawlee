@@ -1,4 +1,140 @@
 export default AutoscaledPool;
+export type AutoscaledPoolOptions = {
+    /**
+     * A function that performs an asynchronous resource-intensive task.
+     * The function must either be labeled `async` or return a promise.
+     */
+    runTaskFunction: Function;
+    /**
+     * A function that indicates whether `runTaskFunction` should be called.
+     * This function is called every time there is free capacity for a new task and it should
+     * indicate whether it should start a new task or not by resolving to either `true` or `false.
+     * Besides its obvious use, it is also useful for task throttling to save resources.
+     */
+    isTaskReadyFunction: Function;
+    /**
+     * A function that is called only when there are no tasks to be processed.
+     * If it resolves to `true` then the pool's run finishes. Being called only
+     * when there are no tasks being processed means that as long as `isTaskReadyFunction()`
+     * keeps resolving to `true`, `isFinishedFunction()` will never be called.
+     * To abort a run, use the [`abort()`](#AutoscaledPool+abort) method.
+     */
+    isFinishedFunction: Function;
+    /**
+     * The minimum number of tasks running in parallel.
+     *
+     * *WARNING:* If you set this value too high with respect to the available system memory and CPU, your code might run extremely slow or crash.
+     * If you're not sure, just keep the default value and the concurrency will scale up automatically.
+     */
+    minConcurrency?: number;
+    /**
+     * The maximum number of tasks running in parallel.
+     */
+    maxConcurrency?: number;
+    /**
+     * The desired number of tasks that should be running parallel on the start of the pool,
+     * if there is a large enough supply of them.
+     * By default, it is `minConcurrency`.
+     */
+    desiredConcurrency?: number;
+    /**
+     * Minimum level of desired concurrency to reach before more scaling up is allowed.
+     */
+    desiredConcurrencyRatio?: number;
+    /**
+     * Defines the fractional amount of desired concurrency to be added with each scaling up.
+     * The minimum scaling step is one.
+     */
+    scaleUpStepRatio?: number;
+    /**
+     * Defines the amount of desired concurrency to be subtracted with each scaling down.
+     * The minimum scaling step is one.
+     */
+    scaleDownStepRatio?: number;
+    /**
+     * Indicates how often the pool should call the `runTaskFunction()` to start a new task, in seconds.
+     * This has no effect on starting new tasks immediately after a task completes.
+     */
+    maybeRunIntervalSecs?: number;
+    /**
+     * Specifies a period in which the instance logs its state, in seconds.
+     * Set to `null` to disable periodic logging.
+     */
+    loggingIntervalSecs?: number;
+    /**
+     * Defines in seconds how often the pool should attempt to adjust the desired concurrency
+     * based on the latest system status. Setting it lower than 1 might have a severe impact on performance.
+     * We suggest using a value from 5 to 20.
+     */
+    autoscaleIntervalSecs?: number;
+    /**
+     * Options to be passed down to the {@link Snapshotter} constructor. This is useful for fine-tuning
+     * the snapshot intervals and history.
+     */
+    snapshotterOptions?: any;
+    /**
+     * Options to be passed down to the {@link SystemStatus} constructor. This is useful for fine-tuning
+     * the system status reports. If a custom snapshotter is set in the options, it will be used
+     * by the pool.
+     */
+    systemStatusOptions?: SystemStatusOptions;
+};
+/**
+ * @typedef {Object} AutoscaledPoolOptions
+ * @property {Function} runTaskFunction
+ *   A function that performs an asynchronous resource-intensive task.
+ *   The function must either be labeled `async` or return a promise.
+ *
+ * @property {Function} isTaskReadyFunction
+ *   A function that indicates whether `runTaskFunction` should be called.
+ *   This function is called every time there is free capacity for a new task and it should
+ *   indicate whether it should start a new task or not by resolving to either `true` or `false.
+ *   Besides its obvious use, it is also useful for task throttling to save resources.
+ *
+ * @property {Function} isFinishedFunction
+ *   A function that is called only when there are no tasks to be processed.
+ *   If it resolves to `true` then the pool's run finishes. Being called only
+ *   when there are no tasks being processed means that as long as `isTaskReadyFunction()`
+ *   keeps resolving to `true`, `isFinishedFunction()` will never be called.
+ *   To abort a run, use the [`abort()`](#AutoscaledPool+abort) method.
+ *
+ * @property {Number} [minConcurrency=1]
+ *   The minimum number of tasks running in parallel.
+ *
+ *   *WARNING:* If you set this value too high with respect to the available system memory and CPU, your code might run extremely slow or crash.
+ *   If you're not sure, just keep the default value and the concurrency will scale up automatically.
+ * @property {Number} [maxConcurrency=1000]
+ *   The maximum number of tasks running in parallel.
+ * @property {Number} [desiredConcurrency]
+ *   The desired number of tasks that should be running parallel on the start of the pool,
+ *   if there is a large enough supply of them.
+ *   By default, it is `minConcurrency`.
+ * @property {Number} [desiredConcurrencyRatio=0.95]
+ *   Minimum level of desired concurrency to reach before more scaling up is allowed.
+ * @property {Number} [scaleUpStepRatio=0.05]
+ *   Defines the fractional amount of desired concurrency to be added with each scaling up.
+ *   The minimum scaling step is one.
+ * @property {Number} [scaleDownStepRatio=0.05]
+ *   Defines the amount of desired concurrency to be subtracted with each scaling down.
+ *   The minimum scaling step is one.
+ * @property {Number} [maybeRunIntervalSecs=0.5]
+ *   Indicates how often the pool should call the `runTaskFunction()` to start a new task, in seconds.
+ *   This has no effect on starting new tasks immediately after a task completes.
+ * @property {Number} [loggingIntervalSecs=60]
+ *   Specifies a period in which the instance logs its state, in seconds.
+ *   Set to `null` to disable periodic logging.
+ * @property {Number} [autoscaleIntervalSecs=10]
+ *   Defines in seconds how often the pool should attempt to adjust the desired concurrency
+ *   based on the latest system status. Setting it lower than 1 might have a severe impact on performance.
+ *   We suggest using a value from 5 to 20.
+ * @property {SnapshooterOptions} [snapshotterOptions]
+ *   Options to be passed down to the {@link Snapshotter} constructor. This is useful for fine-tuning
+ *   the snapshot intervals and history.
+ * @property {SystemStatusOptions} [systemStatusOptions]
+ *   Options to be passed down to the {@link SystemStatus} constructor. This is useful for fine-tuning
+ *   the system status reports. If a custom snapshotter is set in the options, it will be used
+ *   by the pool.
+ */
 /**
  * Manages a pool of asynchronous resource-intensive tasks that are executed in parallel.
  * The pool only starts new tasks if there is enough free CPU and memory available
@@ -45,65 +181,12 @@ export default AutoscaledPool;
  *
  * await pool.run();
  * ```
- *
- * @param {Object} options All `AutoscaledPool` parameters are passed
- *   via an options object with the following keys.
- * @param {Function} options.runTaskFunction
- *   A function that performs an asynchronous resource-intensive task.
- *   The function must either be labeled `async` or return a promise.
- *
- * @param {Function} options.isTaskReadyFunction
- *   A function that indicates whether `runTaskFunction` should be called.
- *   This function is called every time there is free capacity for a new task and it should
- *   indicate whether it should start a new task or not by resolving to either `true` or `false.
- *   Besides its obvious use, it is also useful for task throttling to save resources.
- *
- * @param {Function} options.isFinishedFunction
- *   A function that is called only when there are no tasks to be processed.
- *   If it resolves to `true` then the pool's run finishes. Being called only
- *   when there are no tasks being processed means that as long as `isTaskReadyFunction()`
- *   keeps resolving to `true`, `isFinishedFunction()` will never be called.
- *   To abort a run, use the [`abort()`](#AutoscaledPool+abort) method.
- *
- * @param {Number} [options.minConcurrency=1]
- *   The minimum number of tasks running in parallel.
- *
- *   *WARNING:* If you set this value too high with respect to the available system memory and CPU, your code might run extremely slow or crash.
- *   If you're not sure, just keep the default value and the concurrency will scale up automatically.
- * @param {Number} [options.maxConcurrency=1000]
- *   The maximum number of tasks running in parallel.
- * @param {Number} [options.desiredConcurrency]
- *   The desired number of tasks that should be running parallel on the start of the pool,
- *   if there is a large enough supply of them.
- *   By default, it is `options.minConcurrency`.
- * @param {Number} [options.desiredConcurrencyRatio=0.95]
- *   Minimum level of desired concurrency to reach before more scaling up is allowed.
- * @param {Number} [options.scaleUpStepRatio=0.05]
- *   Defines the fractional amount of desired concurrency to be added with each scaling up.
- *   The minimum scaling step is one.
- * @param {Number} [options.scaleDownStepRatio=0.05]
- *   Defines the amount of desired concurrency to be subtracted with each scaling down.
- *   The minimum scaling step is one.
- * @param {Number} [options.maybeRunIntervalSecs=0.5]
- *   Indicates how often the pool should call the `runTaskFunction()` to start a new task, in seconds.
- *   This has no effect on starting new tasks immediately after a task completes.
- * @param {Number} [options.loggingIntervalSecs=60]
- *   Specifies a period in which the instance logs its state, in seconds.
- *   Set to `null` to disable periodic logging.
- * @param {Number} [options.autoscaleIntervalSecs=10]
- *   Defines in seconds how often the pool should attempt to adjust the desired concurrency
- *   based on the latest system status. Setting it lower than 1 might have a severe impact on performance.
- *   We suggest using a value from 5 to 20.
- * @param {Number} [options.snapshotterOptions]
- *   Options to be passed down to the {@link Snapshotter} constructor. This is useful for fine-tuning
- *   the snapshot intervals and history.
- * @param {Number} [options.systemStatusOptions]
- *   Options to be passed down to the {@link SystemStatus} constructor. This is useful for fine-tuning
- *   the system status reports. If a custom snapshotter is set in the options, it will be used
- *   by the pool.
  */
 declare class AutoscaledPool {
-    constructor(options?: {});
+    /**
+     * @param {AutoscaledPoolOptions} options All `AutoscaledPool` configuration options.
+     */
+    constructor(options?: AutoscaledPoolOptions);
     desiredConcurrencyRatio: any;
     scaleUpStepRatio: any;
     scaleDownStepRatio: any;
@@ -277,4 +360,5 @@ declare class AutoscaledPool {
      */
     _destroy(): Promise<void>;
 }
+import { SystemStatusOptions } from "./system_status";
 import SystemStatus from "./system_status";

@@ -3,19 +3,16 @@ import _ from 'underscore';
 import log from 'apify-shared/log';
 import { ACTOR_EVENT_NAMES } from 'apify-shared/consts';
 import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
-import AutoscaledPool from '../autoscaling/autoscaled_pool';
+import AutoscaledPool, { AutoscaledPoolOptions } from '../autoscaling/autoscaled_pool'; // eslint-disable-line import/named,no-unused-vars
 import { RequestList } from '../request_list';
 import { RequestQueue, RequestQueueLocal } from '../request_queue';
 import events from '../events';
 import { addTimeoutToPromise } from '../utils';
 import Statistics from './statistics';
-import { openSessionPool } from '../session_pool/session_pool';
-import Request from '../request'; // eslint-disable-line no-unused-vars
+import { openSessionPool, SessionPoolOptions } from '../session_pool/session_pool'; // eslint-disable-line import/named,no-unused-vars
 
 // JSDoc imports, see https://github.com/babel/minify/pull/953
 import Request from '../request'; // eslint-disable-line no-unused-vars
-// JSDoc pure typedefs import - support for {import('module').Type} is going slow, see https://github.com/jsdoc/jsdoc/issues/1645
-import * as typedefs from '../typedefs'; // eslint-disable-line no-unused-vars
 
 /**
  * Since there's no set number of seconds before the container is terminated after
@@ -41,6 +38,78 @@ const DEFAULT_OPTIONS = {
     sessionPoolOptions: {}, // We could add sessionPool true/false config to use/not use SessionPool.
     useSessionPool: false,
 };
+
+/**
+ * @typedef {Object} BasicCrawlerOptions
+ * @property {HandleRequest} handleRequestFunction
+ *   User-provided function that performs the logic of the crawler. It is called for each URL to crawl.
+ *
+ *   The function receives the following object as an argument:
+ * ```
+ * {
+ *   request: Request,
+ *   autoscaledPool: AutoscaledPool
+ * }
+ * ```
+ *   where the {@link Request} instance represents the URL to crawl.
+ *
+ *   The function must return a promise, which is then awaited by the crawler.
+ *
+ *   If the function throws an exception, the crawler will try to re-crawl the
+ *   request later, up to `option.maxRequestRetries` times.
+ *   If all the retries fail, the crawler calls the function
+ *   provided to the `handleFailedRequestFunction` parameter.
+ *   To make this work, you should **always**
+ *   let your function throw exceptions rather than catch them.
+ *   The exceptions are logged to the request using the
+ *   [`request.pushErrorMessage`](request#Request+pushErrorMessage) function.
+ * @property {RequestList} requestList
+ *   Static list of URLs to be processed.
+ *   Either `requestList` or `requestQueue` option must be provided (or both).
+ * @property {RequestQueue} requestQueue
+ *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
+ *   Either `requestList` or `requestQueue` option must be provided (or both).
+ * @property {number} [handleRequestTimeoutSecs=60]
+ *   Timeout in which the function passed as `handleRequestFunction` needs to finish, in seconds.
+ * @property {HandleFailedRequest} [handleFailedRequestFunction]
+ *   A function to handle requests that failed more than `option.maxRequestRetries` times.
+ *
+ *   The function receives the following object as an argument:
+ * ```
+ * {
+ *   request: Request,
+ *   error: Error,
+ * }
+ * ```
+ *   where the {@link Request} instance corresponds to the failed request, and the `Error` instance
+ *   represents the last error thrown during processing of the request.
+ *
+ *   See
+ *   <a href="https://github.com/apifytech/apify-js/blob/master/src/crawlers/basic_crawler.js#L11" target="_blank">source code</a>
+ *   for the default implementation of this function.
+ * @property {Number} [maxRequestRetries=3]
+ *   Indicates how many times the request is retried if [`handleRequestFunction()`](#new_BasicCrawler_new) fails.
+ * @property {Number} [maxRequestsPerCrawl]
+ *   Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached.
+ *   Always set this value in order to prevent infinite loops in misconfigured crawlers.
+ *   Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.
+ * @property {AutoscaledPoolOptions} [autoscaledPoolOptions]
+ *   Custom options passed to the underlying {@link AutoscaledPool} constructor.
+ *   Note that the `runTaskFunction` and `isTaskReadyFunction` options
+ *   are provided by `BasicCrawler` and cannot be overridden.
+ *   However, you can provide a custom implementation of `isFinishedFunction`.
+ * @property {Number} [minConcurrency=1]
+ *   Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
+ *
+ *   *WARNING:* If you set this value too high with respect to the available system memory and CPU, your crawler will run extremely slow or crash.
+ *   If you're not sure, just keep the default value and the concurrency will scale up automatically.
+ * @property {Number} [maxConcurrency=1000]
+ *   Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
+ * @property {Boolean} [useSessionPool=false]
+ *   If set to true. Basic crawler will initialize the  {@link SessionPool} with the corresponding `sessionPoolOptions`.
+ *   The session instance will be than available in the `handleRequestFunction`.
+ * @property {SessionPoolOptions} [sessionPoolOptions] The configuration options for {SessionPool} to use.
+ */
 
 /**
  * Provides a simple framework for parallel crawling of web pages.
@@ -101,79 +170,8 @@ const DEFAULT_OPTIONS = {
  * ```
  */
 class BasicCrawler {
-    // TODO yin: Specify @param options.autosclaedPool type after autoscaling/autoscaled_pool.js
-    // TODO yin: Specify @param options.sessionPoolOptions type after session_pool/session_pool.js
-    // TODO yin: Check link in description of `options.sessionPoolOptions` bellow
     /**
-     * @param {Object} options
-     * @param {HandleRequest} options.handleRequestFunction
-     *   User-provided function that performs the logic of the crawler. It is called for each URL to crawl.
-     *
-     *   The function receives the following object as an argument:
-     * ```
-     * {
-     *   request: Request,
-     *   autoscaledPool: AutoscaledPool
-     * }
-     * ```
-     *   where the {@link Request} instance represents the URL to crawl.
-     *
-     *   The function must return a promise, which is then awaited by the crawler.
-     *
-     *   If the function throws an exception, the crawler will try to re-crawl the
-     *   request later, up to `option.maxRequestRetries` times.
-     *   If all the retries fail, the crawler calls the function
-     *   provided to the `options.handleFailedRequestFunction` parameter.
-     *   To make this work, you should **always**
-     *   let your function throw exceptions rather than catch them.
-     *   The exceptions are logged to the request using the
-     *   [`request.pushErrorMessage`](request#Request+pushErrorMessage) function.
-     * @param {RequestList} options.requestList
-     *   Static list of URLs to be processed.
-     *   Either `requestList` or `requestQueue` option must be provided (or both).
-     * @param {RequestQueue} options.requestQueue
-     *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
-     *   Either `requestList` or `requestQueue` option must be provided (or both).
-     * @param {number} [options.handleRequestTimeoutSecs=60]
-     *   Timeout in which the function passed as `options.handleRequestFunction` needs to finish, in seconds.
-     * @param {HandleFailedRequest} [options.handleFailedRequestFunction]
-     *   A function to handle requests that failed more than `option.maxRequestRetries` times.
-     *
-     *   The function receives the following object as an argument:
-     * ```
-     * {
-     *   request: Request,
-     *   error: Error,
-     * }
-     * ```
-     *   where the {@link Request} instance corresponds to the failed request, and the `Error` instance
-     *   represents the last error thrown during processing of the request.
-     *
-     *   See
-     *   <a href="https://github.com/apifytech/apify-js/blob/master/src/crawlers/basic_crawler.js#L11" target="_blank">source code</a>
-     *   for the default implementation of this function.
-     * @param {Number} [options.maxRequestRetries=3]
-     *   Indicates how many times the request is retried if [`handleRequestFunction()`](#new_BasicCrawler_new) fails.
-     * @param {Number} [options.maxRequestsPerCrawl]
-     *   Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached.
-     *   Always set this value in order to prevent infinite loops in misconfigured crawlers.
-     *   Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.
-     * @param {Object} [options.autoscaledPoolOptions]
-     *   Custom options passed to the underlying {@link AutoscaledPool} constructor.
-     *   Note that the `runTaskFunction` and `isTaskReadyFunction` options
-     *   are provided by `BasicCrawler` and cannot be overridden.
-     *   However, you can provide a custom implementation of `isFinishedFunction`.
-     * @param {Number} [options.minConcurrency=1]
-     *   Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
-     *
-     *   *WARNING:* If you set this value too high with respect to the available system memory and CPU, your crawler will run extremely slow or crash.
-     *   If you're not sure, just keep the default value and the concurrency will scale up automatically.
-     * @param {Number} [options.maxConcurrency=1000]
-     *   Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
-     * @param {Boolean} [options.useSessionPool=false]
-     *   If set to true. Basic crawler will initialize the  {@link SessionPool} with the corresponding `sessionPoolOptions`.
-     *   The session instance will be than available in the `handleRequestFunction`.
-     * @param {Object} [options.sessionPoolOptions] The [`new SessionPool`](sessionpool#new_SessionPool_new) options
+     * @param {BasicCrawlerOptions} options
      */
     constructor(options) {
         const {
@@ -480,7 +478,7 @@ class BasicCrawler {
      * list will first be dumped into the queue and then left
      * empty.
      *
-     * @return {Promise}
+     * @return {Promise<void>}
      * @ignore
      */
     async _loadHandledRequestCount() {
@@ -493,3 +491,25 @@ class BasicCrawler {
 }
 
 export default BasicCrawler;
+
+/**
+ * @callback HandleRequest
+ * @param {HandleRequestInputs} inputs Arguments passed to this callback.
+ * @returns {void}
+ */
+/**
+ * @typedef HandleRequestInputs
+ * @property {Request} request The original {Request} object.
+ * @property {AutoscaledPool} [autoscaledPool]
+ */
+
+/**
+ * @callback HandleFailedRequest
+ * @param {HandleFailedRequestInput} inputs Arguments passed to this callback.
+ * @returns {void}
+ */
+/**
+ * @typedef HandleFailedRequestInput
+ * @property {Request} request The original {Request} object.
+ * @property {Error} error The Error thrown by `handleRequestFunction`.
+ */

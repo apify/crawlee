@@ -916,7 +916,7 @@ For more details and code examples, see the [`SessionPool`](sessionpool) class.
 </thead>
 <tbody>
 <tr>
-<td><code>sessionPoolOptions</code></td><td><code>Object</code></td>
+<td><code>sessionPoolOptions</code></td><td><code><a href="../typedefs/sessionpooloptions">SessionPoolOptions</a></code></td>
 </tr>
 <tr>
 <td colspan="3"><p>The <a href="sessionpool#new_SessionPool_new"><code>new SessionPool</code></a> options</p>

@@ -1,4 +1,4 @@
-export function gotoExtended(page: any, request: Request, gotoOptions?: any): Promise<Response>;
+export function gotoExtended(page: Page, request: Request, gotoOptions?: any): Promise<Response>;
 export function infiniteScroll(page: any, options?: {
     timeoutSecs?: number;
     waitForSecs?: number;
@@ -21,21 +21,22 @@ export namespace puppeteerUtils {
     export { infiniteScroll };
     export { saveSnapshot };
 }
+import { Page } from "puppeteer";
 import Request from "./request";
-declare function hideWebDriver(page: any): Promise<any>;
-declare function injectFile(page: any, filePath: string, options?: {
+declare function hideWebDriver(page: Page): Promise<any>;
+declare function injectFile(page: Page, filePath: string, options?: {
     surviveNavigations?: boolean;
 }): Promise<any>;
-declare function injectJQuery(page: any): Promise<any>;
-declare function injectUnderscore(page: any): Promise<any>;
+declare function injectJQuery(page: Page): Promise<any>;
+declare function injectUnderscore(page: Page): Promise<any>;
 declare function enqueueRequestsFromClickableElements(page: any, selector: any, purls: any, requestQueue: any, requestOpts?: {}): Promise<any[]>;
 import { enqueueLinksByClickingElements } from "./enqueue_links/click_elements";
-declare function blockRequests(page: any, options?: {
+declare function blockRequests(page: Page, options?: {
     urlPatterns?: string[];
     extraUrlPatterns?: boolean;
 }): Promise<any>;
 declare function blockResources(page: any, resourceTypes?: string[]): Promise<void>;
-declare function cacheResponses(page: any, cache: any, responseUrlRules: (string | RegExp)[]): Promise<any>;
+declare function cacheResponses(page: Page, cache: any, responseUrlRules: (string | RegExp)[]): Promise<any>;
 declare function compileScript(scriptString: string, context?: any): Function;
 import { addInterceptRequestHandler } from "./puppeteer_request_interception";
 import { removeInterceptRequestHandler } from "./puppeteer_request_interception";

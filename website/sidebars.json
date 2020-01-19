@@ -56,15 +56,30 @@
             "typedefs/apifycallerror",
             "typedefs/apifyenv",
             "typedefs/datasetcontent",
-            "typedefs/launchpuppeteeroptions",
             "typedefs/memoryinfo",
             "typedefs/queueoperationinfo",
             "typedefs/requestliststate",
-            "typedefs/requestoptions",
             "typedefs/sessionstate",
             "typedefs/socialhandles",
             "typedefs/systeminfo"
         ],
+        "Constructor Options": [
+            "typedefs/autoscaledpooloptions",
+            "typedefs/basiccrawleroptions",
+            "typedefs/cheeriocrawleroptions",
+            "typedefs/puppeteercrawleroptions",
+            "typedefs/puppeteerpooloptions",
+            "typedefs/launchpuppeteeroptions",
+            "typedefs/requestoptions",
+            "typedefs/requestasbrowseroptions",
+            "typedefs/sessionoptions",
+            "typedefs/sessionpooloptions",
+            "typedefs/snapshotteroptions",
+            "typedefs/stealhtoptions",
+            "typedefs/systemstatusoptions"
+        ]
+    },
+    "User-Functions": {
         "Crawler User-Functions": [
             "typedefs/cheeriohandlepage",
             "typedefs/cheeriohandlepageinputs",

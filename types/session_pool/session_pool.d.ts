@@ -1,5 +1,15 @@
 /// <reference types="node" />
 /**
+ * @typedef {Object} SessionPoolOptions
+ * @property {Number} [maxPoolSize=1000] - Maximum size of the pool.
+ * Indicates how many sessions are rotated.
+ * @property {SessionOptions} [sessionOptions] The configuration options for {Session} instances.
+ * @property {String} [persistStateKeyValueStoreId] - Name or Id of `KeyValueStore` where is the `SessionPool` state stored.
+ * @property {String} [persistStateKey="SESSION_POOL_STATE"] - Session pool persists it's state under this key in Key value store.
+ * @property {Function} [createSessionFunction] - Custom function that should return `Session` instance.
+ * Function receives `SessionPool` instance as a parameter
+ */
+/**
  * Handles the sessions rotation, creation and persistence.
  * Creates a pool of {@link Session} instances, that are randomly rotated.
  * When some session is marked as blocked. It is removed and new one is created instead.
@@ -48,21 +58,14 @@
 export class SessionPool extends EventEmitter {
     /**
      * Session pool configuration.
-     * @param [options]
-     * @param [options.maxPoolSize=1000] {Number} - Maximum size of the pool.
-     * Indicates how many sessions are rotated.
-     * @param [options.sessionOptions] {Object} The [`new Session`](session#new_SessionPool_new) options
-     * @param [options.persistStateKeyValueStoreId] {String} - Name or Id of `KeyValueStore` where is the `SessionPool` state stored.
-     * @param [options.persistStateKey="SESSION_POOL_STATE"] {String} - Session pool persists it's state under this key in Key value store.
-     * @param [options.createSessionFunction] {function} - Custom function that should return `Session` instance.
-     * Function receives `SessionPool` instance as a parameter
+     * @param {SessionPoolOptions} [options] All `SessionPool` configuration options.
      */
-    constructor(options?: {});
-    maxPoolSize: any;
+    constructor(options?: SessionPoolOptions);
+    maxPoolSize: number;
     createSessionFunction: any;
-    sessionOptions: any;
+    sessionOptions: {};
     persistStateKeyValueStoreId: any;
-    persistStateKey: any;
+    persistStateKey: string;
     keyValueStore: import("../key_value_store").KeyValueStore;
     sessions: any[];
     /**
@@ -171,6 +174,31 @@ export class SessionPool extends EventEmitter {
     prependListener(event: string | symbol, listener: (...args: any[]) => void): SessionPool;
     prependOnceListener(event: string | symbol, listener: (...args: any[]) => void): SessionPool;
 }
-export function openSessionPool(sessionPoolOptions: any): Promise<SessionPool>;
+export function openSessionPool(sessionPoolOptions: SessionPoolOptions): Promise<SessionPool>;
+export type SessionPoolOptions = {
+    /**
+     * - Maximum size of the pool.
+     * Indicates how many sessions are rotated.
+     */
+    maxPoolSize?: number;
+    /**
+     * The configuration options for {Session} instances.
+     */
+    sessionOptions?: SessionOptions;
+    /**
+     * - Name or Id of `KeyValueStore` where is the `SessionPool` state stored.
+     */
+    persistStateKeyValueStoreId?: string;
+    /**
+     * - Session pool persists it's state under this key in Key value store.
+     */
+    persistStateKey?: string;
+    /**
+     * - Custom function that should return `Session` instance.
+     * Function receives `SessionPool` instance as a parameter
+     */
+    createSessionFunction?: Function;
+};
 import EventEmitter from "events";
 import { Session } from "./session";
+import { SessionOptions } from "./session";

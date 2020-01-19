@@ -3,7 +3,8 @@ import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { Cookie, CookieJar } from 'tough-cookie';
 import { Cookie as PuppeteerCookie, SameSiteSetting } from 'puppeteer'; // eslint-disable-line import/named,no-unused-vars
-import EVENTS, { EventEmitter } from './events'; // eslint-disable-line import/named,no-unused-vars
+import { EventEmitter } from 'events'; // eslint-disable-line no-unused-vars
+import EVENTS from './events'; // eslint-disable-line import/named,no-unused-vars
 import { STATUS_CODES_BLOCKED } from '../constants';
 import { getCookiesFromResponse } from './session_utils';
 
@@ -23,6 +24,26 @@ import { getCookiesFromResponse } from './session_utils';
  */
 
 /**
+ * @typedef {Object} SessionOptions
+ * @property [id] {String} - Id of session used for generating fingerprints. It is used as proxy session name.
+ * @property [maxAgeSecs=3000] {Number} - Number of seconds after which the session is considered as expired.
+ * @property userData {Object} - Object where custom user data can be stored. For example custom headers.
+ * @property [maxErrorScore=3] {number} - Maximum number of marking session as blocked usage.
+ *   If the `errorScore` reaches the `maxErrorScore` session is marked as block and it is thrown away.
+ *   It starts at 0. Calling the `markBad` function increases the `errorScore` by 1.
+ *   Calling the `markGood` will decrease the `errorScore` by `errorScoreDecrement`
+ * @property [errorScoreDecrement=0.5] {number} - It is used for healing the session.
+ *   For example: if your session is marked bad two times, but it is successful on the third attempt it's errorScore is decremented by this
+ *   number.
+ * @property createdAt {Date} - Date of creation.
+ * @property expiredAt {Date} - Date of expiration.
+ * @property [usageCount=0] {Number} - Indicates how many times the session has been used.
+ * @property [errorCount=0] {Number} - Indicates how many times the session is marked bad.
+ * @property [maxUsageCount=50] {Number} - Session should be used only a limited amount of times.
+ *   This number indicates how many times the session is going to be used, before it is thrown away.
+ * @property sessionPool {EventEmitter} - SessionPool instance. Session will emit the `sessionRetired` event on this instance.
+ */
+/**
  *  Sessions are used to store information such as cookies and can be used for generating fingerprints and proxy sessions.
  *  You can imagine each session as a specific user, with its own cookies, IP (via proxy) and potentially a unique browser fingerprint.
  *  Session internal state can be enriched with custom user data for example some authorization tokens and specific headers in general.
@@ -30,24 +51,7 @@ import { getCookiesFromResponse } from './session_utils';
 export class Session {
     /**
      * Session configuration.
-     * @param {Object} options
-     * @param [options.id] {String} - Id of session used for generating fingerprints. It is used as proxy session name.
-     * @param [options.maxAgeSecs=3000] {Number} - Number of seconds after which the session is considered as expired.
-     * @param options.userData {Object} - Object where custom user data can be stored. For example custom headers.
-     * @param [options.maxErrorScore=3] {number} - Maximum number of marking session as blocked usage.
-     *   If the `errorScore` reaches the `maxErrorScore` session is marked as block and it is thrown away.
-     *   It starts at 0. Calling the `markBad` function increases the `errorScore` by 1.
-     *   Calling the `markGood` will decrease the `errorScore` by `errorScoreDecrement`
-     * @param [options.errorScoreDecrement=0.5] {number} - It is used for healing the session.
-     *   For example: if your session is marked bad two times, but it is successful on the third attempt it's errorScore is decremented by this
-     *   number.
-     * @param options.createdAt {Date} - Date of creation.
-     * @param options.expiredAt {Date} - Date of expiration.
-     * @param [options.usageCount=0] {Number} - Indicates how many times the session has been used.
-     * @param [options.errorCount=0] {Number} - Indicates how many times the session is marked bad.
-     * @param [options.maxUsageCount=50] {Number} - Session should be used only a limited amount of times.
-     *   This number indicates how many times the session is going to be used, before it is thrown away.
-     * @param options.sessionPool {EventEmitter} - SessionPool instance. Session will emit the `sessionRetired` event on this instance.
+     * @param {SessionOptions} options
      */
     constructor(options = {}) {
         const {

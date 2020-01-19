@@ -40,7 +40,7 @@ title: CheerioHandlePageInputs
 <tr>
 <td colspan="3"><p>Parsed <code>Content-Type header: { type, encoding }</code>.</p>
 </td></tr><tr>
-<td><code>response</code></td><td><code>Object</code></td>
+<td><code>response</code></td><td><code>IncomingMessage</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>An instance of Node&#39;s http.IncomingMessage object,</p>

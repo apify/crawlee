@@ -28,6 +28,28 @@ export const REQUEST_AS_BROWSER_DEFAULT_OPTIONS = {
 };
 
 /**
+ * @typedef {Object} RequestAsBrowserOptions
+ * @property {String} url
+ *  URL of the target endpoint. Supports both HTTP and HTTPS schemes.
+ * @property {String} [method=GET]
+ *  HTTP method.
+ * @property {Object} [headers]
+ *  Additional HTTP headers to add. It's only recommended to use this option,
+ *  with headers that are typically added by websites, such as cookies. Overriding
+ *  default browser headers will remove the masking this function provides.
+ * @property {String} [languageCode=en]
+ *  Two-letter ISO 639 language code.
+ * @property {String} [countryCode=US]
+ *  Two-letter ISO 3166 country code.
+ * @property {Boolean} [isMobile]
+ *  If `true`, the function uses User-Agent of a mobile browser.
+ * @property {Function} [abortFunction]
+ *  Function accepts `response` object as a single parameter and should return true or false.
+ *  If function returns true request gets aborted. This function is passed to the
+ *  (@apify/http-request)[https://www.npmjs.com/package/@apify/http-request] NPM package.
+ */
+
+/**
  * Sends a HTTP request that looks like a request sent by a web browser,
  * fully emulating browser's HTTP headers.
  *
@@ -46,24 +68,7 @@ export const REQUEST_AS_BROWSER_DEFAULT_OPTIONS = {
  * All `options` not recognized by this function are passed to it,
  * so see it for more details.
  *
- * @param options.url
- *  URL of the target endpoint. Supports both HTTP and HTTPS schemes.
- * @param {String} [options.method=GET]
- *  HTTP method.
- * @param {Object} [options.headers]
- *  Additional HTTP headers to add. It's only recommended to use this option,
- *  with headers that are typically added by websites, such as cookies. Overriding
- *  default browser headers will remove the masking this function provides.
- * @param {String} [options.languageCode=en]
- *  Two-letter ISO 639 language code.
- * @param {String} [options.countryCode=US]
- *  Two-letter ISO 3166 country code.
- * @param {Boolean} [options.isMobile]
- *  If `true`, the function uses User-Agent of a mobile browser.
- * @param {Function} [options.abortFunction]
- *  Function accepts `response` object as a single parameter and should return true or false.
- *  If function returns true request gets aborted. This function is passed to the
- *  (@apify/http-request)[https://www.npmjs.com/package/@apify/http-request] NPM package.
+ * @param {RequestAsBrowserOptions} options All `requestAsBrowser` configuration options.
  *
  * @return {Promise<http.IncomingMessage|stream.Readable>} This will typically be a
  * [Node.js HTTP response stream](https://nodejs.org/api/http.html#http_class_http_incomingmessage),

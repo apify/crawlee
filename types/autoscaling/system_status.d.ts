@@ -14,6 +14,62 @@ export type SystemInfo = {
     eventLoopInfo: any;
     cpuInfo: any;
 };
+export type SystemStatusOptions = {
+    /**
+     * Defines max age of snapshots used in the
+     * [`getCurrentStatus()`](#SystemStatus+getCurrentStatus) measurement.
+     */
+    currentHistorySecs?: number;
+    /**
+     * Sets the maximum ratio of overloaded snapshots in a memory sample.
+     * If the sample exceeds this ratio, the system will be overloaded.
+     */
+    maxMemoryOverloadedRatio?: number;
+    /**
+     * Sets the maximum ratio of overloaded snapshots in an event loop sample.
+     * If the sample exceeds this ratio, the system will be overloaded.
+     */
+    maxEventLoopOverloadedRatio?: number;
+    /**
+     * Sets the maximum ratio of overloaded snapshots in a CPU sample.
+     * If the sample exceeds this ratio, the system will be overloaded.
+     */
+    maxCpuOverloadedRatio?: number;
+    /**
+     * Sets the maximum ratio of overloaded snapshots in a Client sample.
+     * If the sample exceeds this ratio, the system will be overloaded.
+     */
+    maxClientOverloadedRatio?: number;
+};
+/**
+ * Represents the current status of the system.
+ *
+ * @typedef {Object} SystemInfo
+ * @property {Boolean} isSystemIdle
+ *   If true, system is being overloaded.
+ * @property {Object} memInfo
+ *   Memory
+ * @property {Object} eventLoopInfo
+ * @property {Object} cpuInfo
+ */
+/**
+ * @typedef {Object} SystemStatusOptions
+ * @property {Number} [currentHistorySecs=5]
+ *   Defines max age of snapshots used in the
+ *   [`getCurrentStatus()`](#SystemStatus+getCurrentStatus) measurement.
+ * @property {Number} [maxMemoryOverloadedRatio=0.2]
+ *   Sets the maximum ratio of overloaded snapshots in a memory sample.
+ *   If the sample exceeds this ratio, the system will be overloaded.
+ * @property {Number} [maxEventLoopOverloadedRatio=0.2]
+ *   Sets the maximum ratio of overloaded snapshots in an event loop sample.
+ *   If the sample exceeds this ratio, the system will be overloaded.
+ * @property {Number} [maxCpuOverloadedRatio=0.4]
+ *   Sets the maximum ratio of overloaded snapshots in a CPU sample.
+ *   If the sample exceeds this ratio, the system will be overloaded.
+ * @property {Number} [maxClientOverloadedRatio=0.2]
+ *   Sets the maximum ratio of overloaded snapshots in a Client sample.
+ *   If the sample exceeds this ratio, the system will be overloaded.
+ */
 /**
  * Provides a simple interface to reading system status from a {@link Snapshotter} instance.
  * It only exposes two functions [`getCurrentStatus()`](#SystemStatus+getCurrentStatus)
@@ -37,31 +93,9 @@ export type SystemInfo = {
  */
 declare class SystemStatus {
     /**
-     * @param {Object} [options] All `SystemStatus` parameters are passed
-     *   via an options object with the following keys:
-     * @param {Number} [options.currentHistorySecs=5]
-     *   Defines max age of snapshots used in the
-     *   [`getCurrentStatus()`](#SystemStatus+getCurrentStatus) measurement.
-     * @param {Number} [options.maxMemoryOverloadedRatio=0.2]
-     *   Sets the maximum ratio of overloaded snapshots in a memory sample.
-     *   If the sample exceeds this ratio, the system will be overloaded.
-     * @param {Number} [options.maxEventLoopOverloadedRatio=0.2]
-     *   Sets the maximum ratio of overloaded snapshots in an event loop sample.
-     *   If the sample exceeds this ratio, the system will be overloaded.
-     * @param {Number} [options.maxCpuOverloadedRatio=0.4]
-     *   Sets the maximum ratio of overloaded snapshots in a CPU sample.
-     *   If the sample exceeds this ratio, the system will be overloaded.
-     * @param {Number} [options.maxClientOverloadedRatio=0.2]
-     *   Sets the maximum ratio of overloaded snapshots in a Client sample.
-     *   If the sample exceeds this ratio, the system will be overloaded.
+     * @param {SystemStatusOptions} [options] All `SystemStatus` configuration options.
      */
-    constructor(options?: {
-        currentHistorySecs?: number;
-        maxMemoryOverloadedRatio?: number;
-        maxEventLoopOverloadedRatio?: number;
-        maxCpuOverloadedRatio?: number;
-        maxClientOverloadedRatio?: number;
-    });
+    constructor(options?: SystemStatusOptions);
     currentHistorySecs: number;
     maxMemoryOverloadedRatio: any;
     maxEventLoopOverloadedRatio: any;

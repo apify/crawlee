@@ -140,6 +140,15 @@
       "typedefs/apifyenv": {
         "title": "ApifyEnv"
       },
+      "typedefs/autoscaledpooloptions": {
+        "title": "AutoscaledPoolOptions"
+      },
+      "typedefs/basiccrawleroptions": {
+        "title": "BasicCrawlerOptions"
+      },
+      "typedefs/cheeriocrawleroptions": {
+        "title": "CheerioCrawlerOptions"
+      },
       "typedefs/cheeriohandlepage": {
         "title": "CheerioHandlePage"
       },
@@ -185,14 +194,23 @@
       "typedefs/preparerequestinputs": {
         "title": "PrepareRequestInputs"
       },
+      "typedefs/puppeteercrawleroptions": {
+        "title": "PuppeteerCrawlerOptions"
+      },
       "typedefs/puppeteerhandlepage": {
         "title": "PuppeteerHandlePage"
       },
       "typedefs/puppeteerhandlepageinputs": {
         "title": "PuppeteerHandlePageInputs"
       },
+      "typedefs/puppeteerpooloptions": {
+        "title": "PuppeteerPoolOptions"
+      },
       "typedefs/queueoperationinfo": {
         "title": "QueueOperationInfo"
+      },
+      "typedefs/requestasbrowseroptions": {
+        "title": "RequestAsBrowserOptions"
       },
       "typedefs/requestliststate": {
         "title": "RequestListState"
@@ -203,8 +221,17 @@
       "typedefs/requesttransform": {
         "title": "RequestTransform"
       },
+      "typedefs/sessionoptions": {
+        "title": "SessionOptions"
+      },
+      "typedefs/sessionpooloptions": {
+        "title": "SessionPoolOptions"
+      },
       "typedefs/sessionstate": {
         "title": "SessionState"
+      },
+      "typedefs/snapshotteroptions": {
+        "title": "SnapshotterOptions"
       },
       "typedefs/socialhandles": {
         "title": "SocialHandles"
@@ -214,6 +241,9 @@
       },
       "typedefs/systeminfo": {
         "title": "SystemInfo"
+      },
+      "typedefs/systemstatusoptions": {
+        "title": "SystemStatusOptions"
       }
     },
     "links": {
@@ -228,6 +258,7 @@
       "Examples": "Examples",
       "Autoscaling Tools": "Autoscaling Tools",
       "Type Definitions": "Type Definitions",
+      "Constructor Options": "Constructor Options",
       "Crawler User-Functions": "Crawler User-Functions",
       "Dataset User-Functions": "Dataset User-Functions",
       "KeyValueStore User-Functions": "KeyValueStore User-Functions",

@@ -55,23 +55,23 @@ declare const exportedUtils: {
     };
 } & {
     puppeteer: {
-        hideWebDriver: (page: any) => Promise<any>;
-        injectFile: (page: any, filePath: string, options?: {
+        hideWebDriver: (page: import("puppeteer").Page) => Promise<any>;
+        injectFile: (page: import("puppeteer").Page, filePath: string, options?: {
             surviveNavigations?: boolean;
         }) => Promise<any>;
-        injectJQuery: (page: any) => Promise<any>;
-        injectUnderscore: (page: any) => Promise<any>;
+        injectJQuery: (page: import("puppeteer").Page) => Promise<any>;
+        injectUnderscore: (page: import("puppeteer").Page) => Promise<any>;
         enqueueRequestsFromClickableElements: (page: any, selector: any, purls: any, requestQueue: any, requestOpts?: {}) => Promise<any[]>;
         enqueueLinks: (...args: any[]) => Promise<import("./request_queue").QueueOperationInfo[]>;
         enqueueLinksByClickingElements: typeof import("./enqueue_links/click_elements").enqueueLinksByClickingElements;
-        blockRequests: (page: any, options?: {
+        blockRequests: (page: import("puppeteer").Page, options?: {
             urlPatterns?: string[];
             extraUrlPatterns?: boolean;
         }) => Promise<any>;
         blockResources: (page: any, resourceTypes?: string[]) => Promise<void>;
-        cacheResponses: (page: any, cache: any, responseUrlRules: (string | RegExp)[]) => Promise<any>;
+        cacheResponses: (page: import("puppeteer").Page, cache: any, responseUrlRules: (string | RegExp)[]) => Promise<any>;
         compileScript: (scriptString: string, context?: any) => Function;
-        gotoExtended: (page: any, request: Request, gotoOptions?: any) => Promise<Response>;
+        gotoExtended: (page: import("puppeteer").Page, request: Request, gotoOptions?: any) => Promise<Response>;
         addInterceptRequestHandler: (page: any, handler: Function) => Promise<any>;
         removeInterceptRequestHandler: (page: any, handler: Function) => Promise<any>;
         infiniteScroll: (page: any, options?: {
@@ -107,7 +107,7 @@ declare const exportedUtils: {
     };
     log: typeof log;
     enqueueLinks: typeof enqueueLinks;
-    requestAsBrowser: (options: any) => Promise<any>;
+    requestAsBrowser: (options: import("./utils_request").RequestAsBrowserOptions) => Promise<any>;
 };
 declare namespace log {
     export const logJson: boolean;

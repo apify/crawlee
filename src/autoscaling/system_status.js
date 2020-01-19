@@ -1,6 +1,6 @@
 import _ from 'underscore';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import Snapshotter from './snapshotter';
+import Snapshotter, { SnapshotterOptions } from './snapshotter'; // eslint-disable-line import/named,no-unused-vars
 import { weightedAvg } from '../utils';
 
 const DEFAULT_OPTIONS = {
@@ -10,6 +10,37 @@ const DEFAULT_OPTIONS = {
     maxCpuOverloadedRatio: 0.4,
     maxClientOverloadedRatio: 0.3,
 };
+
+/**
+ * Represents the current status of the system.
+ *
+ * @typedef {Object} SystemInfo
+ * @property {Boolean} isSystemIdle
+ *   If true, system is being overloaded.
+ * @property {Object} memInfo
+ *   Memory
+ * @property {Object} eventLoopInfo
+ * @property {Object} cpuInfo
+ */
+
+/**
+ * @typedef {Object} SystemStatusOptions
+ * @property {Number} [currentHistorySecs=5]
+ *   Defines max age of snapshots used in the
+ *   [`getCurrentStatus()`](#SystemStatus+getCurrentStatus) measurement.
+ * @property {Number} [maxMemoryOverloadedRatio=0.2]
+ *   Sets the maximum ratio of overloaded snapshots in a memory sample.
+ *   If the sample exceeds this ratio, the system will be overloaded.
+ * @property {Number} [maxEventLoopOverloadedRatio=0.2]
+ *   Sets the maximum ratio of overloaded snapshots in an event loop sample.
+ *   If the sample exceeds this ratio, the system will be overloaded.
+ * @property {Number} [maxCpuOverloadedRatio=0.4]
+ *   Sets the maximum ratio of overloaded snapshots in a CPU sample.
+ *   If the sample exceeds this ratio, the system will be overloaded.
+ * @property {Number} [maxClientOverloadedRatio=0.2]
+ *   Sets the maximum ratio of overloaded snapshots in a Client sample.
+ *   If the sample exceeds this ratio, the system will be overloaded.
+ */
 
 /**
  * Provides a simple interface to reading system status from a {@link Snapshotter} instance.
@@ -34,23 +65,7 @@ const DEFAULT_OPTIONS = {
  */
 class SystemStatus {
     /**
-     * @param {Object} [options] All `SystemStatus` parameters are passed
-     *   via an options object with the following keys:
-     * @param {Number} [options.currentHistorySecs=5]
-     *   Defines max age of snapshots used in the
-     *   [`getCurrentStatus()`](#SystemStatus+getCurrentStatus) measurement.
-     * @param {Number} [options.maxMemoryOverloadedRatio=0.2]
-     *   Sets the maximum ratio of overloaded snapshots in a memory sample.
-     *   If the sample exceeds this ratio, the system will be overloaded.
-     * @param {Number} [options.maxEventLoopOverloadedRatio=0.2]
-     *   Sets the maximum ratio of overloaded snapshots in an event loop sample.
-     *   If the sample exceeds this ratio, the system will be overloaded.
-     * @param {Number} [options.maxCpuOverloadedRatio=0.4]
-     *   Sets the maximum ratio of overloaded snapshots in a CPU sample.
-     *   If the sample exceeds this ratio, the system will be overloaded.
-     * @param {Number} [options.maxClientOverloadedRatio=0.2]
-     *   Sets the maximum ratio of overloaded snapshots in a Client sample.
-     *   If the sample exceeds this ratio, the system will be overloaded.
+     * @param {SystemStatusOptions} [options] All `SystemStatus` configuration options.
      */
     constructor(options = {}) {
         const {
@@ -221,15 +236,3 @@ class SystemStatus {
 }
 
 export default SystemStatus;
-
-/**
- * Represents the current status of the system.
- *
- * @typedef {Object} SystemInfo
- * @property {Boolean} isSystemIdle
- *   If true, system is being overloaded.
- * @property {Object} memInfo
- *   Memory
- * @property {Object} eventLoopInfo
- * @property {Object} cpuInfo
- */
