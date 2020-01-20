@@ -1,5 +1,5 @@
 import { cryptoRandomObjectId } from 'apify-shared/utilities';
-
+import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import tough from 'tough-cookie';
 import EVENTS from './events';
@@ -10,7 +10,6 @@ const { Cookie } = tough;
 
 
 /**
- *  Class aggregating data for session.
  *  Sessions are used to store information such as cookies and can be used for generating fingerprints and proxy sessions.
  *  You can imagine each session as a specific user, with its own cookies, IP (via proxy) and potentially a unique browser fingerprint.
  *  Session internal state can be enriched with custom user data for example some authorization tokens and specific headers in general.
@@ -200,43 +199,41 @@ export class Session {
      * Parses cookies from `set-cookie` header and sets them to `Session.cookieJar`.
      * @param response
      */
-    putResponse(response) {
-        const cookies = getCookiesFromResponse(response).filter(c => c);
+    setCookiesFromResponse(response) {
+        try {
+            const cookies = getCookiesFromResponse(response).filter(c => c);
 
-        this.setCookies(cookies, response.url);
-    }
-
-    /**
-     * Persists puppeteer cookies to session for reuse.
-     * @param puppeteerCookies - cookie from puppeteer `page.cookies` method.
-     * @param url - Loaded url from page function.
-     */
-    putPuppeteerCookies(puppeteerCookies, url) {
-        const cookies = puppeteerCookies.map(puppeteerCookie => this._transformPuppeteerCookie(puppeteerCookie));
-
-        this.setCookies(cookies, url);
-    }
-
-    /**
-     * Set cookies to session cookieJar.
-     * Cookies array should be compatible with tough-cookie.
-     * @param cookies {Array<Cookie>}
-     * @param url {String}
-     */
-    setCookies(cookies, url) {
-        for (const cookie of cookies) {
-            this.cookieJar.setCookieSync(cookie, url, { ignoreError: false });
+            this._setCookies(cookies, response.url);
+        } catch (e) {
+            // if invalid Cookie header is provided just log the exception.
+            log.exception(e, 'Session: Could not get cookies from response');
         }
     }
 
     /**
-     * Get cookies.
-     * Gets a array of `tough-cookie` Cookie instances.
+     * Set cookies to session cookieJar.
+     * Cookies array should be [puppeteer](https://pptr.dev/#?product=Puppeteer&version=v2.0.0&show=api-pagecookiesurls) cookie compatible.
+     * @param cookies {Array<Object>}
      * @param url {String}
+     */
+    setPuppeteerCookies(cookies, url) {
+        try {
+            this._setCookies(cookies.map(this._puppeteerCookieToTough), url);
+        } catch (e) {
+            // if invalid cookies are provided just log the exception. No need to retry the request automatically.
+            log.exception(e, 'Session: Could not set cookies in puppeteer format.');
+        }
+    }
+
+    /**
+     * Gets cookies in puppeteer ready to be used with `page.setCookie`.
+     * @param url {String} - website url. Only cookies stored for this url will be returned
      * @return {Array<Object>}
      */
-    getCookies(url) {
-        return this.cookieJar.getCookiesSync(url);
+    getPuppeteerCookies(url) {
+        const cookies = this.cookieJar.getCookiesSync(url);
+
+        return cookies.map(this._toughCookieToPuppeteer);
     }
 
     /**
@@ -248,16 +245,6 @@ export class Session {
         return this.cookieJar.getCookieStringSync(url, {});
     }
 
-    /**
-     * Gets cookies in format ready for puppeteer.
-     * @param url {String}
-     * @return {*}
-     */
-    getPuppeteerCookies(url) {
-        const cookies = this.getCookies(url);
-        return cookies.map(cookie => this._transformToughCookie(cookie));
-    }
-
 
     /**
      *  Transforms puppeteer cookie to tough-cookie.
@@ -265,7 +252,7 @@ export class Session {
      * @return {Cookie}
      * @private
      */
-    _transformPuppeteerCookie(puppeteerCookie) {
+    _puppeteerCookieToTough(puppeteerCookie) {
         return new Cookie({
             key: puppeteerCookie.name,
             value: puppeteerCookie.value,
@@ -283,7 +270,7 @@ export class Session {
      * @return {Object} - puppeteer cookie
      * @private
      */
-    _transformToughCookie(toughCookie) {
+    _toughCookieToPuppeteer(toughCookie) {
         return {
             name: toughCookie.key,
             value: toughCookie.value,
@@ -293,5 +280,17 @@ export class Session {
             secure: toughCookie.secure,
             httpOnly: toughCookie.httpOnly,
         };
+    }
+
+    /**
+     * Sets cookies.
+     * @param cookies
+     * @param url
+     * @private
+     */
+    _setCookies(cookies, url) {
+        for (const cookie of cookies) {
+            this.cookieJar.setCookieSync(cookie, url, { ignoreError: false });
+        }
     }
 }

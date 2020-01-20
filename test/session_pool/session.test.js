@@ -66,6 +66,17 @@ describe('Session - testing session behaviour ', () => {
         expect(session.isBlocked()).toBe(true);
         expect(session.isUsable()).toBe(false);
     });
+    test('should not throw on invalid Cookie header', () => {
+        let error;
+
+        try {
+            session.setCookiesFromResponse({ headers: { Cookie: 'invaldi*{*{*{*-----***@s' } });
+        } catch (e) {
+            error = e;
+        }
+
+        expect(error).toBeUndefined();
+    });
 
     test('should markGood session', () => {
         session.markGood();
@@ -164,13 +175,13 @@ describe('Session - testing session behaviour ', () => {
             ];
             const newSession = new Session({ sessionPool: new SessionPool() });
             const url = 'https://example.com';
-            newSession.putResponse({ headers, url });
+            newSession.setCookiesFromResponse({ headers, url });
             let cookies = newSession.getCookieString(url);
             expect(cookies).toEqual('CSRF=e8b667; id=a3fWa');
 
             const newCookie = 'ABCD=1231231213; Domain=example.com; Secure';
 
-            newSession.putResponse({ headers: { 'set-cookie': newCookie }, url });
+            newSession.setCookiesFromResponse({ headers: { 'set-cookie': newCookie }, url });
             cookies = newSession.getCookieString(url);
             expect(cookies).toEqual('CSRF=e8b667; id=a3fWa; ABCD=1231231213');
         });
@@ -185,7 +196,7 @@ describe('Session - testing session behaviour ', () => {
         ];
         const newSession = new Session({ sessionPool: new SessionPool() });
         const url = 'https://example.com';
-        newSession.putResponse({ headers, url });
+        newSession.setCookiesFromResponse({ headers, url });
 
         const old = newSession.getState();
 

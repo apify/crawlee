@@ -97,8 +97,9 @@ Returns items in the dataset based on the provided parameters. The returned obje
 {
     items, // Array|String|Buffer based on chosen format parameter.
     total, // Number
-    limit, // Number
     offset, // Number
+    count, // Number
+    limit, // Number
 }
 ```
 

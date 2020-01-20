@@ -1,7 +1,14 @@
 NEXT
 ====================
+
+
+0.19.0 / 2020-01-20
+====================
 - **BREAKING**: `APIFY_LOCAL_EMULATION_DIR` env var is no longer supported (deprecated on 2018-09-11).
   Use `APIFY_LOCAL_STORAGE_DIR` instead.
+- `SessionPool` API updates and fixes. The API is no longer considered experimental.
+- Logging of system info moved from `require` time to `Apify.main()` invocation.
+- Use native `RegExp` instead of `xregexp` for unicode property escapes.
 
 0.18.1 / 2020-01-06
 ====================

@@ -93,7 +93,8 @@ await crawler.run();
   response: Response,
   page: Page,
   puppeteerPool: PuppeteerPool,
-  autoscaledPool: AutoscaledPool
+  autoscaledPool: AutoscaledPool,
+  session: Session,
 }</code></pre><p>  <code>request</code> is an instance of the <a href="request"><code>Request</code></a> object with details about the URL to open, HTTP method etc.
   <code>page</code> is an instance of the <code>Puppeteer</code>
   <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a>.
@@ -212,6 +213,22 @@ await crawler.run();
 </tr>
 <tr>
 <td colspan="3"><p>Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding <a href="autoscaledpool"><code>AutoscaledPool</code></a> option.</p>
+</td></tr><tr>
+<td><code>[options.useSessionPool]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>If set to true Crawler will automatically use Session Pool. It will automatically retire sessions on 403, 401 and 429 status codes.
+  It also marks Session as bad after a request timeout.</p>
+</td></tr><tr>
+<td><code>[options.sessionPoolOptions]</code></td><td><code>Object</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Custom options passed to the underlying <a href="sessionpool"><code>SessionPool</code></a> constructor.</p>
+</td></tr><tr>
+<td><code>[options.persistCookiesPerSession]</code></td><td><code>Boolean</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>Automatically saves cookies to Session. Works only if Session Pool is used.</p>
 </td></tr></tbody>
 </table>
 <a name="PuppeteerCrawler+run"></a>

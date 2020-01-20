@@ -403,7 +403,7 @@ class CheerioCrawler {
         }
 
         if (this.persistCookiesPerSession) {
-            session.putResponse(response);
+            session.setCookiesFromResponse(response);
         }
 
         request.loadedUrl = response.url;
