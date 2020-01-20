@@ -85,7 +85,6 @@
         "@babel/register": "^7.0.0",
         "@types/fs-extra": "^7.0.0",
         "@types/jest": "^24.0.21",
-        "@types/puppeteer": "^1.19.1",
         "@types/sinon": "^7.0.13",
         "@types/socket.io": "^2.1.2",
         "basic-auth-parser": "^0.0.2",
