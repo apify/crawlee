@@ -139,7 +139,7 @@ This method should be called after a successful session usage. It increases `usa
 
 Gets session state for persistence in KeyValueStore.
 
-**Returns**: `Object` - represents session internal state.
+**Returns**: `Object` - represents session internal state.  
 <a name="Session+retire"></a>
 
 ## `session.retire()`
@@ -265,5 +265,3 @@ Wrapper around `tough-cookie` Cookie jar `getCookieString` method.
 <tr>
 </tr></tbody>
 </table>
-<a name="Session+getPuppeteerCookies"></a>
-
