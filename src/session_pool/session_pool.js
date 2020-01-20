@@ -9,7 +9,6 @@ import { ACTOR_EVENT_NAMES_EX } from '../constants';
 
 
 /**
- * Experimental feature and might change in the future releases.
  * Handles the sessions rotation, creation and persistence.
  * Creates a pool of {@link Session} instances, that are randomly rotated.
  * When some session is marked as blocked. It is removed and new one is created instead.
