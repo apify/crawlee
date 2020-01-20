@@ -2,16 +2,16 @@
 id: sessionmanagement
 title: Session Management
 ---
-[`SessionPool`](../api/sessionpool) is a class that allows you to handle the rotation of proxy IP addresses together with cookies and other custom settings in Apify SDK.
+[`SessionPool`](../api/sessionpool) is a class that allows you to handle the rotation of proxy IP addresses along with cookies and other custom settings in Apify SDK.
 
-The main benefit of the Session pool is that you can filter out blocked or not working proxies,
-so your actor does not retry requests over a known blocked/not working proxies.
-Another benefit of using SessionPool is storing information tight tightly with the IP address,
-such as cookies, auth tokens, and particular headers. Having your cookies and other identificators used only with specific IP will reduce the chance of the blocking.
-Last but not least, another benefit is even rotation of the IP addresses - SessionPool  picks the session randomly,
- which should prevent burning out only a small pool of the available IPs.
+The main benefit of a Session pool is that you can filter out blocked or non-working proxies,
+so your actor does not retry requests over known blocked/non-working proxies.
+Another benefit of using SessionPool is that you can store information tied tightly to an IP address,
+such as cookies, auth tokens, and particular headers. Having your cookies and other identificators used only with a specific IP will reduce the chance of being blocked.
+Last but not least, another benefit is the even rotation of IP addresses - SessionPool  picks the session randomly,
+which should prevent burning out a small pool of available IPs.
 
-Now let's take a look at how to use the Session pool.
+Now let's take a look at how to use a Session pool.
 
 **Example usage in [`PuppeteerCrawler`](../api/puppeteercrawler)**
 
@@ -19,7 +19,7 @@ Now let's take a look at how to use the Session pool.
 const crawler = new Apify.PuppeteerCrawler({
     requestQueue,
     launchPuppeteerOptions: {
-        // To use the proxy IP session rotation logic you must turn the proxy usage on.
+        // To use the proxy IP session rotation logic, you must turn the proxy usage on.
         useApifyProxy: true,
     },
     // Activates the Session pool.
@@ -36,7 +36,7 @@ const crawler = new Apify.PuppeteerCrawler({
 
         if (title === "Blocked") {
             session.retire()
-        } else if (title === "Not sure if blocked, might be also connection error") {
+        } else if (title === "Not sure if blocked, might also be a connection error") {
             session.markBad();
         } else {
             // session.markGood() - this step is done automatically in puppeteer pool.
@@ -51,7 +51,7 @@ const crawler = new Apify.PuppeteerCrawler({
 ```javascript
   const crawler = new Apify.CheerioCrawler({
         requestQueue,
-        // To use the proxy IP session rotation logic you must turn the proxy usage on.
+        // To use the proxy IP session rotation logic, you must turn the proxy usage on.
         useApifyProxy: true,
         // Activates the Session pool.
         useSessionPool: true,
@@ -67,7 +67,7 @@ const crawler = new Apify.PuppeteerCrawler({
 
             if (title === "Blocked") {
                 session.retire()
-            } else if (title === "Not sure if blocked, might be also connection error") {
+            } else if (title === "Not sure if blocked, might also be a connection error") {
                 session.markBad();
             } else {
                 // session.markGood() - this step is done automatically in BasicCrawler.
@@ -87,7 +87,7 @@ const crawler = new Apify.PuppeteerCrawler({
             maxPoolSize: 100
         },
         handleRequestFunction: async ({request, session}) => {
-            // To use the proxy IP session rotation logic you must turn the proxy usage on.
+            // To use the proxy IP session rotation logic, you must turn the proxy usage on.
             const proxyUrl = Apify.getApifyProxyUrl({session});
             const requestOptions = {
                 url: request.url,
@@ -105,7 +105,7 @@ const crawler = new Apify.PuppeteerCrawler({
                 response = await Apify.utils.requestAsBrowser(requestOptions);
             } catch (e) {
                 if (e === "SomeNetworkError") {
-                    // If network error happens like timeout, socket hangup etc...
+                    // If a network error happens, such as timeout, socket hangup etc...
                     // There is usually a chance that it was just bad luck and the proxy works.
                     // No need to throw it away.
                     session.markBad();
@@ -117,13 +117,13 @@ const crawler = new Apify.PuppeteerCrawler({
             session.retireOnBlockedStatusCodes(response.statusCode);
 
             if (response.body.blocked) {
-                // You are sure it is blocking.
-                // This will trow away the session.
+                // You are sure it is blocked.
+                // This will throw away the session.
                 session.retire();
 
             }
 
-            // Everything is ok you can get the data.
+            // Everything is ok, you can get the data.
             // No need to call session.markGood -> BasicCrawler calls it for you.
 
             // If you want to use the CookieJar in session you need.
@@ -156,6 +156,6 @@ Apify.main(async () => {
     session.markGood();
 });
 ```
-These are the basics of configuring the SessionPool.
-Please, bear in mind that the Session pool needs some time to find the working IPs and build up the pool,
-so you will be probably seeing a lot of errors until it gets stabilized.
+These are the basics of configuring SessionPool.
+Please, bear in mind that a Session pool needs time to find working IPs and build up the pool,
+so you will probably see a lot of errors until it becomes stabilized.
