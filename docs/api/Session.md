@@ -5,9 +5,9 @@ title: Session
 
 <a name="Session"></a>
 
-Class aggregating data for session. Sessions are used to store information such as cookies and can be used for generating fingerprints and proxy
-sessions. You can imagine each session as a specific user, with its own cookies, IP (via proxy) and potentially a unique browser fingerprint. Session
-internal state can be enriched with custom user data for example some authorization tokens and specific headers in general.
+Sessions are used to store information such as cookies and can be used for generating fingerprints and proxy sessions. You can imagine each session as
+a specific user, with its own cookies, IP (via proxy) and potentially a unique browser fingerprint. Session internal state can be enriched with custom
+user data for example some authorization tokens and specific headers in general.
 
 -   [Session](session)
     -   [`new exports.Session()`](#new_Session_new)
