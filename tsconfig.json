@@ -1,0 +1,25 @@
+{
+    "compilerOptions": {
+        "target": "es2015",
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "lib": [
+            "es2017",
+            "dom"
+        ],
+        "types": [
+            "node"
+        ],
+        "allowJs": true,
+        "checkJs": false,
+        "noEmit": true,
+        "declaration": false,
+        "strict": false,
+        "noImplicitThis": true,
+        "alwaysStrict": true,
+        "esModuleInterop": true
+    },
+    "include": [
+        "src/index.js"
+    ]
+}
