@@ -285,7 +285,7 @@ class Snapshotter {
      */
     _memoryOverloadWarning({ memCurrentBytes }) {
         const now = new Date();
-        if (this.lastLoggedCriticalMemoryOverloadAt && now.valueOf() < this.lastLoggedCriticalMemoryOverloadAt.valueOf()
+        if (this.lastLoggedCriticalMemoryOverloadAt && now.getTime() < this.lastLoggedCriticalMemoryOverloadAt.getTime()
             + CRITICAL_OVERLOAD_RATE_LIMIT_MILLIS) return;
 
         const maxDesiredMemoryBytes = this.maxUsedMemoryRatio * this.maxMemoryBytes;
@@ -319,7 +319,7 @@ class Snapshotter {
         const previousSnapshot = this.eventLoopSnapshots[this.eventLoopSnapshots.length - 1];
         if (previousSnapshot) {
             const { createdAt } = previousSnapshot;
-            const delta = now.valueOf() - createdAt - this.eventLoopSnapshotIntervalMillis;
+            const delta = now.getTime() - createdAt - this.eventLoopSnapshotIntervalMillis;
 
             if (delta > this.maxBlockedMillis) snapshot.isOverloaded = true;
             snapshot.exceededMillis = Math.max(delta - this.maxBlockedMillis, 0);
@@ -438,7 +438,7 @@ class Snapshotter {
         let oldCount = 0;
         for (let i = 0; i < snapshots.length; i++) {
             const { createdAt } = snapshots[i];
-            if (now.valueOf() - createdAt > this.snapshotHistoryMillis) oldCount++;
+            if (now.getTime() - createdAt > this.snapshotHistoryMillis) oldCount++;
             else break;
         }
         snapshots.splice(0, oldCount);
