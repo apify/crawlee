@@ -54,13 +54,13 @@ The exceptions are logged to the request using the
 </li>
 </ul>
 </td></tr><tr>
-<td><code>requestList</code></td><td><code><a href="requestlist">RequestList</a></code></td><td></td>
+<td><code>[requestList]</code></td><td><code><a href="requestlist">RequestList</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Static list of URLs to be processed.
   Either <code>requestList</code> or <code>requestQueue</code> option must be provided (or both).</p>
 </td></tr><tr>
-<td><code>requestQueue</code></td><td><code><a href="requestqueue">RequestQueue</a></code></td><td></td>
+<td><code>[requestQueue]</code></td><td><code><a href="requestqueue">RequestQueue</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.

@@ -63,10 +63,10 @@ const DEFAULT_OPTIONS = {
  *   let your function throw exceptions rather than catch them.
  *   The exceptions are logged to the request using the
  *   [`request.pushErrorMessage`](request#Request+pushErrorMessage) function.
- * @property {RequestList} requestList
+ * @property {RequestList} [requestList]
  *   Static list of URLs to be processed.
  *   Either `requestList` or `requestQueue` option must be provided (or both).
- * @property {RequestQueue} requestQueue
+ * @property {RequestQueue} [requestQueue]
  *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
  *   Either `requestList` or `requestQueue` option must be provided (or both).
  * @property {number} [handleRequestTimeoutSecs=60]

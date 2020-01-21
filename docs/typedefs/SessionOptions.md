@@ -45,12 +45,12 @@ title: SessionOptions
   For example: if your session is marked bad two times, but it is successful on the third attempt it&#39;s errorScore is decremented by this
   number.</p>
 </td></tr><tr>
-<td><code>createdAt</code></td><td><code>Date</code></td><td></td>
+<td><code>[createdAt]</code></td><td><code>Date</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Date of creation.</p>
 </td></tr><tr>
-<td><code>expiredAt</code></td><td><code>Date</code></td><td></td>
+<td><code>[expiredAt]</code></td><td><code>Date</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Date of expiration.</p>

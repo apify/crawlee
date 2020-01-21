@@ -24,8 +24,8 @@
  * @property [errorScoreDecrement=0.5] {number} - It is used for healing the session.
  *   For example: if your session is marked bad two times, but it is successful on the third attempt it's errorScore is decremented by this
  *   number.
- * @property createdAt {Date} - Date of creation.
- * @property expiredAt {Date} - Date of expiration.
+ * @property [createdAt] {Date} - Date of creation.
+ * @property [expiredAt] {Date} - Date of expiration.
  * @property [usageCount=0] {Number} - Indicates how many times the session has been used.
  * @property [errorCount=0] {Number} - Indicates how many times the session is marked bad.
  * @property [maxUsageCount=50] {Number} - Session should be used only a limited amount of times.
@@ -210,11 +210,11 @@ export type SessionOptions = {
     /**
      * - Date of creation.
      */
-    createdAt: Date;
+    createdAt?: Date;
     /**
      * - Date of expiration.
      */
-    expiredAt: Date;
+    expiredAt?: Date;
     /**
      * - Indicates how many times the session has been used.
      */
