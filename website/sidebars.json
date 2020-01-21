@@ -5,6 +5,7 @@
             "guides/gettingstarted",
             "guides/quickstart",
             "guides/whatisanactor",
+            "guides/typescriptactor",
             "guides/environmentvariables",
             "guides/datastorage",
             "guides/puppeteerliveview",

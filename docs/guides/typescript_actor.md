@@ -3,14 +3,15 @@ id: typescriptactor
 title: Typescript Actors
 ---
 
-Apify SDK supports Typescript by covering the public APIs with type declarations. This allows writing code with
-auto-completion even for Javascript code. Besides that, Actors written in Typescript can take advantage of
-compile-time type-checking and avoid many bugs.
+Apify SDK supports Typescript by covering public APIs with type declarations. This
+allows writing code with auto-completion even for Javascript code. Besides that,
+actors written in Typescript can take advantage of compile-time type-checking and
+avoid many bugs.
 
 Setting up Typescript project
 =============================
 
-To use Typescript in your actors, you'll need:
+To use Typescript in your actors, you'll need the following prerequisities.
 
 1. Typescript compiler `tsc` installed somewhere:
 
@@ -18,10 +19,12 @@ To use Typescript in your actors, you'll need:
     npm install --dev typescript
     ```
 
-    Type can be development dependency in your project, as shown above. There's no need to pollute your production
-    environment or your system's package repository with Typescript.
+    Type can be a development dependency in your project, as shown above. There's no
+    need to pollute your production environment or your system's package repository
+    with Typescript.
 
-2. A build script invoking `tsc` and a correctly specified `main` entry point defined in your `package.json`:
+2. A build script invoking `tsc` and a correctly specified `main` entry point defined
+   in your `package.json`:
 
    ```json
    {
@@ -32,8 +35,8 @@ To use Typescript in your actors, you'll need:
    }
    ```
 
-3. Type declarations for NodeJS, and optionally Cheerio, or Puppeteer (or both), so you can take advantage of
-   type-checking in all the features you'll use:
+3. Type declarations for NodeJS, and optionally Cheerio, or Puppeteer (or both), so
+   you can take advantage of type-checking in all the features you'll use:
 
    ```shell script
    npm install --dev @types/node
@@ -41,11 +44,11 @@ To use Typescript in your actors, you'll need:
    npm install --dev @types/puppeteer
    ```
 
-   If you're using other Javascript packages in your actor, you'll want to include their type declarations too
-   (if they are available).
+   If you're using other Javascript packages in your actor, you'll want to include their
+   type declarations too (if they are available).
 
-4. Typescript configuration file allowing `tsc` to understand your project layout and features used
-   in your project and targeted language level:
+4. Typescript configuration file allowing `tsc` to understand your project layout and
+   the features used in your project and a targeted language level:
 
    ```json
    {
@@ -72,30 +75,38 @@ To use Typescript in your actors, you'll need:
    }
    ```
 
-   NOTE: You'll need to mention `cheerio` in `tsconfig.json` explicitly, but you don't need to do so for `puppeteer`.
-   The reason is that the `cheerio` module exports only one function. Puppeteer's type declarations explicitly export all
-   the types required.
+   NOTE: You'll need to mention `cheerio` in `tsconfig.json` explicitly, but you don't
+   need to do so for `puppeteer`. The reason is that the `cheerio` module exports only
+   one function. Puppeteer's type declarations explicitly export all the types required.
 
-Caveats
-=======
+Conditions
+==========
 
-IDE auto-completion should work in most places. For time constraints, we left out the amendment of some internal API for
-the time being, and these need to be added as SDK developers write new and enhance old code. Rules for doing so should be
-added to the Apify SDK coding style guide as soon as we settle on a particular ruleset.
+IDE auto-completion should work in most places. For time constraints, we left out
+the amendment of an internal API for the time being, and these need to be added as
+SDK developers write new and enhance old code. Rules for doing so should be
+added to the Apify SDK coding style guide as soon as we settle on a particular
+ruleset.
 
-SDK documentation has grown a lot. There are a new API Reference section and one sub-section:
+SDK documentation has grown a lot. There is a new API Reference section and one
+sub-section:
 
-- **Compiler options** in the **Type definitions** sidebar - Holds documentation for all constructible types in the SDK.
-- **User-Functions** sidebar - Holds documentation for user-provided functions like `CheerioHandlePage`,
-  `PuppeteerHandlePage`, `DatasetConsumer`, `DatasetMapper`, etc.
+- **Compiler options** in the **Type definitions** sidebar - Holds documentation for
+  all constructible types in SDK.
+- **User-Functions** sidebar - Holds documentation for user-provided functions like
+  `CheerioHandlePage`, `PuppeteerHandlePage`, `DatasetConsumer`, `DatasetMapper`, etc.
   and their associated value-types `CheerioHandlePageInput`, etc.
 
-Expanding and enhancing documentation in those new places and adding more details may be a potential priority.
+Expanding and enhancing documentation in those new places and adding more
+details may be a potential priority.
 
-Because Typescript is what it is, it sometimes generates invalid or incorrect declarations from JSDoc comments until
-Typescript developers fix these problems. This needs to be handled in the future, though all critical errors have been
-avoided or fixed already. Examples:
+
+Because Typescript is what it is, it sometimes generates invalid or incorrect
+declarations from JSDoc comments until Typescript developers fix these problems.
+This needs to be handled in the future, though all critical errors have been avoided
+or fixed already. Examples:
 
 - ~~Typescript does not understand @extends and @typedef {BaseType}~~
-- In types/session_pool/session_pool.d.ts it adds methods from the base-class EventEmitter and changes their return
-types, so they are not compatible with the EventEmitter (i.e., addListener(): SessionPool, instead of addListener(): this).
+- In `types/session_pool/session_pool.d.ts`, it adds methods from the base-class
+  `EventEmitter` and changes their return types, so they are not compatible with the
+  `EventEmitter` (i.e., `addListener(): SessionPool`, instead of `addListener(): this`).
