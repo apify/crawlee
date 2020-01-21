@@ -122,6 +122,9 @@
       "guides/whatisanactor": {
         "title": "What is an Actor"
       },
+      "guides/typescriptactor": {
+        "title": "Typescript Actors"
+      },
       "readme/introduction": {
         "title": "readme/introduction"
       },
@@ -201,10 +204,10 @@
         "title": "PuppeteerCrawlerOptions"
       },
       "typedefs/puppeteergoto": {
-        "title": "PuppeteerGoTo"
+        "title": "PuppeteerGoto"
       },
       "typedefs/puppeteergotoinputs": {
-        "title": "PuppeteerGoToInputs"
+        "title": "PuppeteerGotoInputs"
       },
       "typedefs/puppeteerhandlepage": {
         "title": "PuppeteerHandlePage"
@@ -220,6 +223,9 @@
       },
       "typedefs/requestasbrowseroptions": {
         "title": "RequestAsBrowserOptions"
+      },
+      "typedefs/requestlistoptions": {
+        "title": "RequestListOptions"
       },
       "typedefs/requestliststate": {
         "title": "RequestListState"
