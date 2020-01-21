@@ -217,8 +217,7 @@ class Request {
                     ? errorOrMessage.message
                     // .stack includes the message
                     : errorOrMessage.stack;
-            } else if (errorOrMessage.hasOwnProperty('message')) { // eslint-disable-line no-prototype-builtins
-                // @ts-ignore
+            } else if (errorOrMessage.message) {
                 message = errorOrMessage.message; // eslint-disable-line prefer-destructuring
             } else if (errorOrMessage.toString() !== '[object Object]') {
                 message = errorOrMessage.toString();
