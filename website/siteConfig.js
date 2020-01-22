@@ -102,11 +102,14 @@ const siteConfig = {
     // Add custom scripts here that would be placed in <script> tags.
     scripts: [
         'https://buttons.github.io/buttons.js',
+        'https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js',
+        '/js/code-block-buttons.js',
         // {
         //     src: 'https://static.hotjar.com/c/hotjar-1021435.js?sv=6',
         //     async: true,
         // },
     ],
+    stylesheets: ['/css/code-block-buttons.css'],
 
     // On page navigation for the current documentation page.
     onPageNav: 'separate',
