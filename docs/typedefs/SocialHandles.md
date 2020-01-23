@@ -5,7 +5,7 @@ title: SocialHandles
 
 <a name="SocialHandles"></a>
 
-Representaiton of social handles parsed from a HTML page.
+Representation of social handles parsed from a HTML page.
 
 The object has the following structure:
 

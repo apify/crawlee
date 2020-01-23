@@ -92,7 +92,7 @@ declare function extractUrls({ string, urlRegExp }: {
     urlRegExp?: RegExp;
 }): string[];
 declare function getRandomUserAgent(): string;
-declare function htmlToText(html: any): string;
+declare function htmlToText(html: string | CheerioStatic): string;
 /**
  * Default regular expression to match URLs in a string that may be plain text, JSON, CSV or other. It supports common URL characters
  * and does not support URLs containing commas or spaces. The URLs also may contain Unicode letters (not symbols).
@@ -105,7 +105,7 @@ declare const URL_NO_COMMAS_REGEX: RegExp;
  * @memberOf utils
  */
 declare const URL_WITH_COMMAS_REGEX: RegExp;
-declare function createRequestDebugInfo(request: any, response?: ServerResponse | PuppeteerResponse, additionalFields?: any): any;
-import { ServerResponse } from "http";
+declare function createRequestDebugInfo(request: any, response?: IncomingMessage | PuppeteerResponse, additionalFields?: any): any;
+import { IncomingMessage } from "http";
 import { Response as PuppeteerResponse } from "puppeteer";
 export {};

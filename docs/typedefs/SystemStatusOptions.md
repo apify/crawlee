@@ -44,5 +44,10 @@ title: SystemStatusOptions
 <tr>
 <td colspan="3"><p>Sets the maximum ratio of overloaded snapshots in a Client sample.
   If the sample exceeds this ratio, the system will be overloaded.</p>
+</td></tr><tr>
+<td><code>[snapshotter]</code></td><td><code><a href="snapshotter">Snapshotter</a></code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>The <code>Snapshotter</code> instance to be queried for <code>SystemStatus</code>.</p>
 </td></tr></tbody>
 </table>

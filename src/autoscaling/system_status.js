@@ -1,7 +1,13 @@
-import _ from 'underscore';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import Snapshotter, { SnapshotterOptions } from './snapshotter'; // eslint-disable-line import/named,no-unused-vars
+import _ from 'underscore';
+import Snapshotter from './snapshotter'; // eslint-disable-line import/no-duplicates
 import { weightedAvg } from '../utils';
+
+// TYPE IMPORTS
+/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
+import { SnapshotterOptions } from './snapshotter';
+/* eslint-anable no-unused-vars,import/named,import/no-duplicates,import/order */
+
 
 const DEFAULT_OPTIONS = {
     currentHistorySecs: 5,
@@ -11,6 +17,7 @@ const DEFAULT_OPTIONS = {
     maxClientOverloadedRatio: 0.3,
 };
 
+// TODO yin: Add `@property clientInfo` as in `SystemStatus._isSystemIdle()`
 /**
  * Represents the current status of the system.
  *
@@ -40,6 +47,8 @@ const DEFAULT_OPTIONS = {
  * @property {Number} [maxClientOverloadedRatio=0.2]
  *   Sets the maximum ratio of overloaded snapshots in a Client sample.
  *   If the sample exceeds this ratio, the system will be overloaded.
+ * @property {Snapshotter} [snapshotter]
+ *   The `Snapshotter` instance to be queried for `SystemStatus`.
  */
 
 /**
@@ -89,12 +98,11 @@ class SystemStatus {
         this.maxEventLoopOverloadedRatio = maxEventLoopOverloadedRatio;
         this.maxCpuOverloadedRatio = maxCpuOverloadedRatio;
         this.maxClientOverloadedRatio = maxClientOverloadedRatio;
-        /** @type {Snapshotter} */
         this.snapshotter = snapshotter || new Snapshotter();
     }
 
     /**
-     * Returns an {SystemInfo} object with the following structure:
+     * Returns an {@link SystemInfo} object with the following structure:
      *
      * ```javascript
      * {
@@ -108,14 +116,14 @@ class SystemStatus {
      * Where the `isSystemIdle` property is set to `false` if the system
      * has been overloaded in the last `options.currentHistorySecs` seconds,
      * and `true` otherwise.
-     * @return {Object}
+     * @return {SystemInfo}
      */
     getCurrentStatus() {
         return this._isSystemIdle(this.currentHistorySecs);
     }
 
     /**
-     * Returns an {SystemInfo} object with the following structure:
+     * Returns an {@link SystemInfo} object with the following structure:
      *
      * ```javascript
      * {
@@ -139,7 +147,7 @@ class SystemStatus {
      * Returns a system status object.
      *
      * @param {Number} [sampleDurationMillis]
-     * @return {Boolean}
+     * @return {SystemInfo}
      * @ignore
      */
     _isSystemIdle(sampleDurationMillis) {

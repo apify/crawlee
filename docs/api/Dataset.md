@@ -46,6 +46,7 @@ await dataset.pushData([{ foo: 'bar2', col2: 'val2' }, { col3: 123 }]);
 ```
 
 -   [Dataset](dataset)
+    -   [`new exports.Dataset(datasetId, datasetName)`](#new_Dataset_new)
     -   [`.pushData(data)`](#Dataset+pushData) ⇒ `Promise<void>`
     -   [`.getData([options])`](#Dataset+getData) ⇒ [`Promise<DatasetContent>`](../typedefs/datasetcontent)
     -   [`.getInfo()`](#Dataset+getInfo) ⇒ `Promise<Object>`
@@ -54,6 +55,27 @@ await dataset.pushData([{ foo: 'bar2', col2: 'val2' }, { col3: 123 }]);
     -   [`.reduce(iteratee, memo, options)`](#Dataset+reduce) ⇒ `Promise<T>`
     -   [`.drop()`](#Dataset+drop) ⇒ `Promise<void>`
 
+<a name="new_Dataset_new"></a>
+
+## `new exports.Dataset(datasetId, datasetName)`
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>datasetId</code></td><td><code>string</code></td>
+</tr>
+<tr>
+</tr><tr>
+<td><code>datasetName</code></td><td><code>string</code></td>
+</tr>
+<tr>
+</tr></tbody>
+</table>
 <a name="Dataset+pushData"></a>
 
 ## `dataset.pushData(data)` ⇒ `Promise<void>`
@@ -265,7 +287,7 @@ await dataset.forEach(async (item, index) => {
 </thead>
 <tbody>
 <tr>
-<td><code>iteratee</code></td><td><code>DatasetConsumer<T></code></td><td></td>
+<td><code>iteratee</code></td><td><code><a href="../typedefs/datasetconsumer">DatasetConsumer</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>A function that is called for every item in the dataset.</p>
@@ -314,7 +336,7 @@ If `iteratee` returns a `Promise` then it's awaited before a next call.
 </thead>
 <tbody>
 <tr>
-<td><code>iteratee</code></td><td><code>DatasetMapper<T></code></td><td></td>
+<td><code>iteratee</code></td><td><code><a href="../typedefs/datasetmapper">DatasetMapper</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"></td></tr><tr>
@@ -362,7 +384,7 @@ If `iteratee()` returns a `Promise` then it's awaited before a next call.
 </thead>
 <tbody>
 <tr>
-<td><code>iteratee</code></td><td><code>DatasetReducer<T></code></td><td></td>
+<td><code>iteratee</code></td><td><code><a href="../typedefs/datasetreducer">DatasetReducer</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"></td></tr><tr>

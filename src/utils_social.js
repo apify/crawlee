@@ -492,7 +492,7 @@ try {
 }
 
 /**
- * Representaiton of social handles parsed from a HTML page.
+ * Representation of social handles parsed from a HTML page.
  *
  * The object has the following structure:
  *
@@ -519,7 +519,6 @@ try {
  * @property {String[]} youtubes
  */
 
-// TODO yin: Typescript MAY NOT take the `data` param of parseSocialHandles kindly. Find a proper solution for that.
 /**
  * The function attempts to extract emails, phone numbers and social profile URLs from a HTML document,
  * specifically LinkedIn, Twitter, Instagram and Facebook profile URLs.

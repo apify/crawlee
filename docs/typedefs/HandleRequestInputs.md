@@ -20,7 +20,11 @@ title: HandleRequestInputs
 <tr>
 <td colspan="3"><p>The original {Request} object.</p>
 </td></tr><tr>
-<td><code>[autoscaledPool]</code></td><td><code><a href="autoscaledpool">AutoscaledPool</a></code></td>
+<td><code>autoscaledPool</code></td><td><code><a href="autoscaledpool">AutoscaledPool</a></code></td>
+</tr>
+<tr>
+<td colspan="3"></td></tr><tr>
+<td><code>[session]</code></td><td><code><a href="session">Session</a></code></td>
 </tr>
 <tr>
 <td colspan="3"></td></tr></tbody>

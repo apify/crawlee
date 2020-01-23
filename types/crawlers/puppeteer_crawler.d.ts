@@ -167,6 +167,7 @@ export type PuppeteerHandlePageInputs = {
      */
     puppeteerPool: PuppeteerPool;
     autoscaledPool: AutoscaledPool;
+    session?: Session;
 };
 export type PuppeteerHandlePage = (inputs: PuppeteerHandlePageInputs) => Promise<void>;
 export type PuppeteerGotoInputs = {

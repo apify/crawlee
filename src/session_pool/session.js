@@ -2,46 +2,50 @@ import { cryptoRandomObjectId } from 'apify-shared/utilities';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { Cookie, CookieJar } from 'tough-cookie';
-import { Cookie as PuppeteerCookie, SameSiteSetting } from 'puppeteer'; // eslint-disable-line import/named,no-unused-vars
-import { EventEmitter } from 'events'; // eslint-disable-line no-unused-vars
 import EVENTS from './events'; // eslint-disable-line import/named,no-unused-vars
 import { STATUS_CODES_BLOCKED } from '../constants';
 import { getCookiesFromResponse } from './session_utils';
 
+// TYPE IMPORTS
+/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
+import { EventEmitter } from 'events';
+import { Cookie as PuppeteerCookie } from 'puppeteer';
+/* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
+
 /**
- * Peristable {Session} state.
+ * Persistable {Session} state.
  * @typedef {Object} SessionState
  * @property {String} id
  * @property {Object} cookies
- * @property {CookieJar} cookieJar
+ * @property {Object} cookieJar
  * @property {Object} userData
  * @property {Number} maxErrorScore
  * @property {Number} errorScoreDecrement
- * @property {Date} expiresAt
- * @property {Date} createdAt
+ * @property {String} expiresAt
+ * @property {String} createdAt
  * @property {Number} usageCount
  * @property {Number} errorScore
  */
 
 /**
  * @typedef {Object} SessionOptions
- * @property [id] {String} - Id of session used for generating fingerprints. It is used as proxy session name.
- * @property [maxAgeSecs=3000] {Number} - Number of seconds after which the session is considered as expired.
- * @property userData {Object} - Object where custom user data can be stored. For example custom headers.
- * @property [maxErrorScore=3] {number} - Maximum number of marking session as blocked usage.
+ * @property {String} [id] - Id of session used for generating fingerprints. It is used as proxy session name.
+ * @property {Number} [maxAgeSecs=3000] - Number of seconds after which the session is considered as expired.
+ * @property {Object} userData - Object where custom user data can be stored. For example custom headers.
+ * @property {number} [maxErrorScore=3] - Maximum number of marking session as blocked usage.
  *   If the `errorScore` reaches the `maxErrorScore` session is marked as block and it is thrown away.
  *   It starts at 0. Calling the `markBad` function increases the `errorScore` by 1.
  *   Calling the `markGood` will decrease the `errorScore` by `errorScoreDecrement`
- * @property [errorScoreDecrement=0.5] {number} - It is used for healing the session.
+ * @property {number} [errorScoreDecrement=0.5] - It is used for healing the session.
  *   For example: if your session is marked bad two times, but it is successful on the third attempt it's errorScore is decremented by this
  *   number.
- * @property [createdAt] {Date} - Date of creation.
- * @property [expiredAt] {Date} - Date of expiration.
- * @property [usageCount=0] {Number} - Indicates how many times the session has been used.
- * @property [errorCount=0] {Number} - Indicates how many times the session is marked bad.
- * @property [maxUsageCount=50] {Number} - Session should be used only a limited amount of times.
+ * @property {Date} [createdAt] - Date of creation.
+ * @property {Date} [expiredAt] - Date of expiration.
+ * @property {Number} [usageCount=0] - Indicates how many times the session has been used.
+ * @property {Number} [errorCount=0] - Indicates how many times the session is marked bad.
+ * @property {Number} [maxUsageCount=50] - Session should be used only a limited amount of times.
  *   This number indicates how many times the session is going to be used, before it is thrown away.
- * @property sessionPool {EventEmitter} - SessionPool instance. Session will emit the `sessionRetired` event on this instance.
+ * @property {EventEmitter} sessionPool - SessionPool instance. Session will emit the `sessionRetired` event on this instance.
  */
 /**
  *  Sessions are used to store information such as cookies and can be used for generating fingerprints and proxy sessions.
@@ -244,7 +248,7 @@ export class Session {
     /**
      * Set cookies to session cookieJar.
      * Cookies array should be [puppeteer](https://pptr.dev/#?product=Puppeteer&version=v2.0.0&show=api-pagecookiesurls) cookie compatible.
-     * @param cookies {Array<PuppeteerCookie>}
+     * @param cookies {PuppeteerCookie[]}
      * @param url {String}
      */
     setPuppeteerCookies(cookies, url) {
@@ -259,7 +263,7 @@ export class Session {
     /**
      * Gets cookies in puppeteer ready to be used with `page.setCookie`.
      * @param url {String} - website url. Only cookies stored for this url will be returned
-     * @return {Array<PuppeteerCookie>}
+     * @return {PuppeteerCookie[]}
      */
     getPuppeteerCookies(url) {
         const cookies = this.cookieJar.getCookiesSync(url);

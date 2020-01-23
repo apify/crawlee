@@ -1,21 +1,26 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import log from 'apify-shared/log';
 import _ from 'underscore';
-import { Browser, Page as PuppeteerPage, Response as PuppeteerResponse } from 'puppeteer'; // eslint-disable-line no-unused-vars
-import BasicCrawler, { HandleFailedRequest } from './basic_crawler'; // eslint-disable-line no-unused-vars,import/named
-import PuppeteerPool, { PuppeteerPoolOptions, BROWSER_SESSION_KEY_NAME } from '../puppeteer_pool'; // eslint-disable-line no-unused-vars,import/named
-import { addTimeoutToPromise } from '../utils';
+import PuppeteerPool, { BROWSER_SESSION_KEY_NAME } from '../puppeteer_pool'; // eslint-disable-line import/no-duplicates
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { gotoExtended } from '../puppeteer_utils';
-import { openSessionPool, SessionPoolOptions } from '../session_pool/session_pool'; // eslint-disable-line no-unused-vars,import/named
+import { openSessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
+import { addTimeoutToPromise } from '../utils';
+import BasicCrawler from './basic_crawler'; // eslint-disable-line import/no-duplicates
 
-// JSDoc imports, see https://github.com/babel/minify/pull/953
+// TYPE IMPORTS
+/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
+import { Browser, Page as PuppeteerPage, Response as PuppeteerResponse } from 'puppeteer';
+import { HandleFailedRequest } from './basic_crawler';
+import { PuppeteerPoolOptions } from '../puppeteer_pool';
 import Request from '../request'; // eslint-disable-line no-unused-vars
 import { RequestList } from '../request_list'; // eslint-disable-line no-unused-vars
 import { RequestQueue } from '../request_queue'; // eslint-disable-line no-unused-vars
 import AutoscaledPool, { AutoscaledPoolOptions } from '../autoscaling/autoscaled_pool'; // eslint-disable-line no-unused-vars,import/named
 import { LaunchPuppeteerOptions } from '../puppeteer'; // eslint-disable-line no-unused-vars,import/named
 import { Session } from '../session_pool/session'; // eslint-disable-line no-unused-vars
+import { SessionPoolOptions } from '../session_pool/session_pool';
+// eslint-enable-line import/no-duplicates
 
 /**
  * @typedef {Object} PuppeteerCrawlerOptions
@@ -380,6 +385,7 @@ export default PuppeteerCrawler;
  *   <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a>
  * @property {PuppeteerPool} puppeteerPool An instance of the {@link PuppeteerPool} used by this `PuppeteerCrawler`.
  * @property {AutoscaledPool} autoscaledPool
+ * @property {Session} [session]
  */
 /**
  * @callback PuppeteerHandlePage
@@ -395,7 +401,6 @@ export default PuppeteerCrawler;
  * @property {AutoscaledPool} autoscaledPool An instance of the `AutoscaledPool`.
  * @property {PuppeteerPool} puppeteerPool An instance of the {@link PuppeteerPool} used by this `PuppeteerCrawler`.
  * @property {Session} session `Session` object for this request.
- * @return {Promise<void>}
  */
 /**
  * @callback PuppeteerGoto

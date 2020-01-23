@@ -15,7 +15,7 @@ title: CheerioHandlePageInputs
 </thead>
 <tbody>
 <tr>
-<td><code>$</code></td><td><code>CheerioStatic</code></td>
+<td><code>[$]</code></td><td><code>Cheerio</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>The <a href="https://cheerio.js.org/">Cheerio</a> object with parsed HTML.</p>
@@ -46,6 +46,10 @@ title: CheerioHandlePageInputs
 <td colspan="3"><p>An instance of Node&#39;s http.IncomingMessage object,</p>
 </td></tr><tr>
 <td><code>autoscaledPool</code></td><td><code><a href="autoscaledpool">AutoscaledPool</a></code></td>
+</tr>
+<tr>
+<td colspan="3"></td></tr><tr>
+<td><code>[session]</code></td><td><code>session</code></td>
 </tr>
 <tr>
 <td colspan="3"></td></tr></tbody>

@@ -2,12 +2,18 @@ import { URL } from 'url';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
-import { CheerioStatic } from 'cheerio'; // eslint-disable-line no-unused-vars
-import { Page } from 'puppeteer'; // eslint-disable-line no-unused-vars
-import { RequestOptions } from '../request'; // eslint-disable-line import/named,no-unused-vars
-import { RequestQueue, RequestQueueLocal, QueueOperationInfo } from '../request_queue'; // eslint-disable-line import/named,no-unused-vars
-// eslint-disable-next-line import/named,no-unused-vars
-import { constructPseudoUrlInstances, createRequests, addRequestsToQueueInBatches, createRequestOptions, RequestTransform } from './shared';
+import { RequestQueue, RequestQueueLocal } from '../request_queue';
+import { constructPseudoUrlInstances, createRequests, addRequestsToQueueInBatches, createRequestOptions } from './shared';
+
+// TYPE IMPORTS
+/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
+import { Page } from 'puppeteer';
+import { RequestOptions } from '../request';
+import { QueueOperationInfo } from '../request_queue';
+import { RequestTransform } from './shared';
+import { Cheerio } from '../typedefs';
+/* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
+
 
 /**
  * The function finds elements matching a specific CSS selector (HTML anchor (`<a>`) by default)
@@ -150,7 +156,7 @@ export async function extractUrlsFromPage(page, selector) {
 /**
  * Extracts URLs from a given Cheerio object.
  *
- * @param {CheerioStatic} $
+ * @param {Cheerio} $
  * @param {string} selector
  * @param {string} baseUrl
  * @return {string[]}

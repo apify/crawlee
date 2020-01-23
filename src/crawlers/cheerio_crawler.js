@@ -1,29 +1,33 @@
 /* eslint-disable class-methods-use-this */
-import _ from 'underscore';
-import cheerio from 'cheerio';
-import htmlparser from 'htmlparser2';
-import * as iconv from 'iconv-lite';
-import util from 'util';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import contentTypeParser from 'content-type';
 import { readStreamToString, concatStreamToBuffer } from 'apify-shared/streams_utilities';
-import { IncomingMessage } from 'http'; // eslint-disable-line no-unused-vars
-
-import BasicCrawler, { HandleFailedRequest } from './basic_crawler'; // eslint-disable-line no-unused-vars,import/named
-import { addTimeoutToPromise, parseContentTypeFromResponse } from '../utils';
+import cheerio from 'cheerio';
+import contentTypeParser from 'content-type';
+import htmlparser from 'htmlparser2';
+import * as iconv from 'iconv-lite';
+import _ from 'underscore';
+import util from 'util';
 import { getApifyProxyUrl } from '../actor';
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
-import { requestAsBrowser, RequestAsBrowserOptions } from '../utils_request'; // eslint-disable-line no-unused-vars,import/named
 import { TimeoutError } from '../errors';
+import { addTimeoutToPromise, parseContentTypeFromResponse } from '../utils';
+import * as utilsRequest from '../utils_request'; // eslint-disable-line import/no-duplicates
+import BasicCrawler from './basic_crawler'; // eslint-disable-line import/no-duplicates
 
-// JSDoc imports, see https://github.com/babel/minify/pull/953
-import Request, { RequestOptions } from '../request'; // eslint-disable-line no-unused-vars,import/named
-import { RequestList } from '../request_list'; // eslint-disable-line no-unused-vars
-import { RequestQueue } from '../request_queue'; // eslint-disable-line no-unused-vars
-import AutoscaledPool, { AutoscaledPoolOptions } from '../autoscaling/autoscaled_pool'; // eslint-disable-line no-unused-vars,import/named
-import { Session } from '../session_pool/session'; // eslint-disable-line no-unused-vars,import/named
-import { SessionPoolOptions } from '../session_pool/session_pool'; // eslint-disable-line no-unused-vars,import/named
+// TYPE IMPORTS
+/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
+import { IncomingMessage } from 'http';
+import AutoscaledPool, { AutoscaledPoolOptions } from '../autoscaling/autoscaled_pool';
+import { HandleFailedRequest } from './basic_crawler';
+import Request, { RequestOptions } from '../request';
+import { RequestList } from '../request_list';
+import { RequestQueue } from '../request_queue';
+import { Session } from '../session_pool/session';
+import { SessionPoolOptions } from '../session_pool/session_pool';
+import { Cheerio } from '../typedefs';
+import { RequestAsBrowserOptions } from '../utils_request';
+/* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
  * Default mime types, which CheerioScraper supports.
@@ -88,7 +92,7 @@ const DEFAULT_OPTIONS = {
  *
  *   With the {@link Request} object representing the URL to crawl.
  *
- *   If the function returns a promise, it is awaited by the crawler.
+ *   If the function returns, the returned promise is awaited by the crawler.
  *
  *   If the function throws an exception, the crawler will try to re-crawl the
  *   request later, up to `option.maxRequestRetries` times.
@@ -108,7 +112,7 @@ const DEFAULT_OPTIONS = {
  *   Represents the options passed to
  *   <a href="https://www.npmjs.com/package/request" target="_blank">request</a> to make the HTTP call.
  *   Provided `requestOptions` are added to internal defaults that cannot be overridden to ensure
- *   the operation of `CheerioCrawler` and all its  Headers will not be merged,
+ *   the operation of `CheerioCrawler` and all its options. Headers will not be merged,
  *   use {@link RequestList} and/or {@link RequestQueue} to initialize your {@link Request} with the
  *   correct headers or use `prepareRequestFunction` to modify your {@link Request} dynamically.
  *   If you need more granular control over your requests, use {@link BasicCrawler}.
@@ -135,7 +139,8 @@ const DEFAULT_OPTIONS = {
  *   session: Session
  * }
  * ```
- *   where the {@link Request} instance corresponds to the initialized request.
+ *   where the {@link Request} instance corresponds to the initialized request
+ *   and the {@link Session} instance corresponds to used session.
  *
  *   The function should modify the properties of the passed {@link Request} instance
  *   in place because there are already earlier references to it. Making a copy and returning it from
@@ -482,7 +487,7 @@ class CheerioCrawler {
         let responseStream;
 
         try {
-            responseStream = await requestAsBrowser(opts);
+            responseStream = await utilsRequest.requestAsBrowser(opts);
         } catch (e) {
             if (e instanceof TimeoutError) {
                 this._handleRequestTimeout(session);
@@ -663,21 +668,22 @@ export default CheerioCrawler;
 /**
  * @callback PrepareRequest
  * @param {PrepareRequestInputs} inputs Arguments passed to this callback.
- * @returns {void}
+ * @returns {void|Promise<void>}
  */
 
 /**
  * @typedef CheerioHandlePageInputs
- * @property {CheerioStatic} $ The <a href="https://cheerio.js.org/">Cheerio</a> object with parsed HTML.
+ * @property {Cheerio} [$] The <a href="https://cheerio.js.org/">Cheerio</a> object with parsed HTML.
  * @property {String|Buffer} body The request body of the web page.
  * @property {Object} [json] The parsed object from JSON string if the response contains the content type application/json.
  * @property {Request} request The original {Request} object.
- * @property {{ type: string, charset: string }} contentType Parsed `Content-Type header: { type, encoding }`.
+ * @property {{ type: string, encoding: string }} contentType Parsed `Content-Type header: { type, encoding }`.
  * @property {IncomingMessage} response An instance of Node's http.IncomingMessage object,
  * @property {AutoscaledPool} autoscaledPool
+ * @property {session} [session]
  */
 /**
  * @callback CheerioHandlePage
  * @param {CheerioHandlePageInputs} inputs Arguments passed to this callback.
- * @returns {void|Promise<void>}
+ * @returns {Promise<void>}
  */

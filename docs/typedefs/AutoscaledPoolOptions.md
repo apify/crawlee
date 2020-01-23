@@ -93,7 +93,7 @@ title: AutoscaledPoolOptions
   based on the latest system status. Setting it lower than 1 might have a severe impact on performance.
   We suggest using a value from 5 to 20.</p>
 </td></tr><tr>
-<td><code>[snapshotterOptions]</code></td><td><code>SnapshooterOptions</code></td><td></td>
+<td><code>[snapshotterOptions]</code></td><td><code><a href="../typedefs/snapshotteroptions">SnapshotterOptions</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Options to be passed down to the <a href="snapshotter"><code>Snapshotter</code></a> constructor. This is useful for fine-tuning

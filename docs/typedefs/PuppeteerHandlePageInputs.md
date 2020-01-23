@@ -41,5 +41,9 @@ title: PuppeteerHandlePageInputs
 <td><code>autoscaledPool</code></td><td><code><a href="autoscaledpool">AutoscaledPool</a></code></td>
 </tr>
 <tr>
+<td colspan="3"></td></tr><tr>
+<td><code>[session]</code></td><td><code><a href="session">Session</a></code></td>
+</tr>
+<tr>
 <td colspan="3"></td></tr></tbody>
 </table>

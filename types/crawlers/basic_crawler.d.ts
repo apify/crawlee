@@ -94,15 +94,16 @@ export type BasicCrawlerOptions = {
      */
     sessionPoolOptions?: SessionPoolOptions;
 };
-export type HandleRequest = (inputs: HandleRequestInputs) => void;
+export type HandleRequest = (inputs: HandleRequestInputs) => Promise<void>;
 export type HandleRequestInputs = {
     /**
      * The original {Request} object.
      */
     request: Request;
-    autoscaledPool?: AutoscaledPool;
+    autoscaledPool: AutoscaledPool;
+    session?: Session;
 };
-export type HandleFailedRequest = (inputs: HandleFailedRequestInput) => void;
+export type HandleFailedRequest = (inputs: HandleFailedRequestInput) => void | Promise<void>;
 export type HandleFailedRequestInput = {
     /**
      * The original {Request} object.
@@ -322,4 +323,5 @@ import { AutoscaledPoolOptions } from "../autoscaling/autoscaled_pool";
 import { SessionPoolOptions } from "../session_pool/session_pool";
 import Request from "../request";
 import AutoscaledPool from "../autoscaling/autoscaled_pool";
+import { Session } from "../session_pool/session";
 import Statistics from "./statistics";

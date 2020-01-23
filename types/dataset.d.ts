@@ -53,6 +53,10 @@ export function chunkBySize(items: any[], limitBytes: number): any[];
  * @hideconstructor
  */
 export class Dataset {
+    /**
+     * @param {string} datasetId
+     * @param {string} datasetName
+     */
     constructor(datasetId: string, datasetName: string);
     datasetId: string;
     datasetName: string;
@@ -83,14 +87,6 @@ export class Dataset {
      * @return {Promise<void>}
      */
     pushData(data: any): Promise<void>;
-    /**
-     * @typedef DatasetContent
-     * @property {Array.<Object>|String|Buffer} items Dataset entries based on chosen format parameter.
-     * @property {Number} total Total count of entries in the dataset.
-     * @property {Number} offset Position of the first returned entry in the dataset.
-     * @property {Number} count Count of dataset entries returned in this set.
-     * @property {Number} limit Maximum number of dataset entries requested.
-     */
     /**
      * Returns {DatasetContent} object holding the items in the dataset based on the provided parameters.
      *
@@ -170,28 +166,7 @@ export class Dataset {
         skipEmpty?: boolean;
         simplified?: boolean;
         skipFailedPages?: boolean;
-    }): Promise<{
-        /**
-         * Dataset entries based on chosen format parameter.
-         */
-        items: string | any[] | Buffer;
-        /**
-         * Total count of entries in the dataset.
-         */
-        total: number;
-        /**
-         * Position of the first returned entry in the dataset.
-         */
-        offset: number;
-        /**
-         * Count of dataset entries returned in this set.
-         */
-        count: number;
-        /**
-         * Maximum number of dataset entries requested.
-         */
-        limit: number;
-    }>;
+    }): Promise<DatasetContent>;
     /**
      * Returns an object containing general information about the dataset.
      *
@@ -219,13 +194,6 @@ export class Dataset {
      */
     getInfo(): Promise<any>;
     /**
-     * @callback DatasetConsumer
-     * @template T
-     * @param {Object} item Currect {Dataset} entry being processed.
-     * @param {Number} index Position of current {Dataset} entry.
-     * @returns T
-     */
-    /**
      * Iterates over dataset items, yielding each in turn to an `iteratee` function.
      * Each invocation of `iteratee` is called with two arguments: `(item, index)`.
      *
@@ -240,7 +208,7 @@ export class Dataset {
      * });
      * ```
      *
-     * @param {DatasetConsumer<T>} iteratee A function that is called for every item in the dataset.
+     * @param {DatasetConsumer} iteratee A function that is called for every item in the dataset.
      * @param {Object} [options] All `forEach()` parameters are passed
      *   via an options object with the following keys:
      * @param {Boolean} [options.desc=false] If `true` then the objects are sorted by `createdAt` in descending order.
@@ -249,18 +217,11 @@ export class Dataset {
      * @param {Number} [index=0] Specifies the initial index number passed to the `iteratee` function.
      * @return {Promise<void>}
      */
-    forEach(iteratee: () => any, options?: {
+    forEach(iteratee: DatasetConsumer, options?: {
         desc?: boolean;
         fields?: any[];
         unwind?: string;
     }, index?: number): Promise<void>;
-    /**
-     * @callback DatasetMapper
-     * @template T
-     * @param {Object} item Currect {Dataset} entry being processed.
-     * @param {Number} index Position of current {Dataset} entry.
-     * @returns T
-     */
     /**
      * Produces a new array of values by mapping each value in list through a transformation function `iteratee()`.
      * Each invocation of `iteratee()` is called with two arguments: `(element, index)`.
@@ -268,27 +229,19 @@ export class Dataset {
      * If `iteratee` returns a `Promise` then it's awaited before a next call.
      *
      * @template T
-     * @param {DatasetMapper<T>} iteratee
+     * @param {DatasetMapper} iteratee
      * @param {Object} options All `map()` parameters are passed
      *   via an options object with the following keys:
      * @param {Boolean} [options.desc=false] If `true` then the objects are sorted by createdAt in descending order.
      * @param {Array} [options.fields] If provided then returned objects will only contain specified keys
      * @param {String} [options.unwind] If provided then objects will be unwound based on provided field.
-     * @return {Promise<Array.<T>>}
+     * @return {Promise<T[]>}
      */
-    map<T>(iteratee: () => any, options: {
+    map<T>(iteratee: DatasetMapper, options: {
         desc?: boolean;
         fields?: any[];
         unwind?: string;
     }): Promise<T[]>;
-    /**
-     * @callback DatasetReducer
-     * @template T
-     * @param {T} memo Previous state of the reduction.
-     * @param {Object} item Currect {Dataset} entry being processed.
-     * @param {Number} index Position of current {Dataset} entry.
-     * @returns T
-     */
     /**
      * Reduces a list of values down to a single value.
      *
@@ -301,7 +254,7 @@ export class Dataset {
      * If `iteratee()` returns a `Promise` then it's awaited before a next call.
      *
      * @template T
-     * @param {DatasetReducer<T>} iteratee
+     * @param {DatasetReducer} iteratee
      * @param {T} memo Initial state of the reduction.
      * @param {Object} options All `reduce()` parameters are passed
      *   via an options object with the following keys:
@@ -310,7 +263,7 @@ export class Dataset {
      * @param {String} [options.unwind] If provided then objects will be unwound based on provided field.
      * @return {Promise<T>}
      */
-    reduce<T_1>(iteratee: () => any, memo: T_1, options: {
+    reduce<T_1>(iteratee: DatasetReducer, memo: T_1, options: {
         desc?: boolean;
         fields?: any[];
         unwind?: string;
@@ -377,3 +330,37 @@ export function openDataset(datasetIdOrName?: string, options?: {
     forceCloud?: boolean;
 }): Promise<Dataset>;
 export function pushData(item: any): Promise<any>;
+export type DatasetContent = {
+    /**
+     * Dataset entries based on chosen format parameter.
+     */
+    items: any[] | string[] | Buffer[];
+    /**
+     * Total count of entries in the dataset.
+     */
+    total: number;
+    /**
+     * Position of the first returned entry in the dataset.
+     */
+    offset: number;
+    /**
+     * Count of dataset entries returned in this set.
+     */
+    count: number;
+    /**
+     * Maximum number of dataset entries requested.
+     */
+    limit: number;
+};
+/**
+ * User-function used in the `Dataset.forEach()` API.
+ */
+export type DatasetConsumer = (item: any, index: number) => any;
+/**
+ * User-function used in the `Dataset.map()` API.
+ */
+export type DatasetMapper = (item: any, index: number) => any;
+/**
+ * User-function used in the `Dataset.reduce()` API.
+ */
+export type DatasetReducer = (memo: any, item: any, index: number) => any;

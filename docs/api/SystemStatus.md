@@ -19,8 +19,7 @@ full snapshot history available in the [`Snapshotter`](snapshotter) instance.
 
 -   [SystemStatus](systemstatus)
     -   [`new SystemStatus([options])`](#new_SystemStatus_new)
-    -   [`.snapshotter`](#SystemStatus+snapshotter) : [`Snapshotter`](snapshotter)
-    -   [`.getCurrentStatus()`](#SystemStatus+getCurrentStatus) ⇒ `Object`
+    -   [`.getCurrentStatus()`](#SystemStatus+getCurrentStatus) ⇒ [`SystemInfo`](../typedefs/systeminfo)
     -   [`.getHistoricalStatus()`](#SystemStatus+getHistoricalStatus) ⇒ `Object`
 
 <a name="new_SystemStatus_new"></a>
@@ -41,15 +40,11 @@ full snapshot history available in the [`Snapshotter`](snapshotter) instance.
 <td colspan="3"><p>All <code>SystemStatus</code> configuration options.</p>
 </td></tr></tbody>
 </table>
-<a name="SystemStatus+snapshotter"></a>
-
-## `systemStatus.snapshotter` : [`Snapshotter`](snapshotter)
-
 <a name="SystemStatus+getCurrentStatus"></a>
 
-## `systemStatus.getCurrentStatus()` ⇒ `Object`
+## `systemStatus.getCurrentStatus()` ⇒ [`SystemInfo`](../typedefs/systeminfo)
 
-Returns an {SystemInfo} object with the following structure:
+Returns an [`SystemInfo`](../typedefs/systeminfo) object with the following structure:
 
 ```javascript
 {
@@ -67,7 +62,7 @@ otherwise.
 
 ## `systemStatus.getHistoricalStatus()` ⇒ `Object`
 
-Returns an {SystemInfo} object with the following structure:
+Returns an [`SystemInfo`](../typedefs/systeminfo) object with the following structure:
 
 ```javascript
 {

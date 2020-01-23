@@ -2,7 +2,7 @@ import _ from 'underscore';
 import { betterSetInterval, betterClearInterval } from 'apify-shared/utilities';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import Snapshotter, { SnapshooterOptions } from './snapshotter'; // eslint-disable-line import/named,no-unused-vars
+import Snapshotter, { SnapshotterOptions } from './snapshotter'; // eslint-disable-line import/named,no-unused-vars
 import SystemStatus, { SystemStatusOptions } from './system_status'; // eslint-disable-line import/named,no-unused-vars
 
 const DEFAULT_OPTIONS = {
@@ -65,7 +65,7 @@ const DEFAULT_OPTIONS = {
  *   Defines in seconds how often the pool should attempt to adjust the desired concurrency
  *   based on the latest system status. Setting it lower than 1 might have a severe impact on performance.
  *   We suggest using a value from 5 to 20.
- * @property {SnapshooterOptions} [snapshotterOptions]
+ * @property {SnapshotterOptions} [snapshotterOptions]
  *   Options to be passed down to the {@link Snapshotter} constructor. This is useful for fine-tuning
  *   the snapshot intervals and history.
  * @property {SystemStatusOptions} [systemStatusOptions]

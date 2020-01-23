@@ -15,7 +15,7 @@ title: DatasetContent
 </thead>
 <tbody>
 <tr>
-<td><code>items</code></td><td><code>Array<Object></code> | <code>String</code> | <code>Buffer</code></td>
+<td><code>items</code></td><td><code>Array<Object&gt;</code> | <code>Array<String></code> | <code>Array.&lt;Buffer></code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Dataset entries based on chosen format parameter.</p>

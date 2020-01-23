@@ -145,7 +145,11 @@ export const chunkBySize = (items, limitBytes) => {
  * @hideconstructor
  */
 export class Dataset {
-    constructor(/** @type {String} */ datasetId, /** @type {String} */ datasetName) {
+    /**
+     * @param {string} datasetId
+     * @param {string} datasetName
+     */
+    constructor(datasetId, datasetName) {
         checkParamOrThrow(datasetId, 'datasetId', 'String');
         checkParamOrThrow(datasetName, 'datasetName', 'Maybe String');
 
@@ -199,15 +203,6 @@ export class Dataset {
             await dispatch(chunk);
         }
     }
-
-    /**
-     * @typedef DatasetContent
-     * @property {Array.<Object>|String|Buffer} items Dataset entries based on chosen format parameter.
-     * @property {Number} total Total count of entries in the dataset.
-     * @property {Number} offset Position of the first returned entry in the dataset.
-     * @property {Number} count Count of dataset entries returned in this set.
-     * @property {Number} limit Maximum number of dataset entries requested.
-     */
 
     /**
      * Returns {DatasetContent} object holding the items in the dataset based on the provided parameters.
@@ -319,14 +314,6 @@ export class Dataset {
     }
 
     /**
-     * @callback DatasetConsumer
-     * @template T
-     * @param {Object} item Currect {Dataset} entry being processed.
-     * @param {Number} index Position of current {Dataset} entry.
-     * @returns T
-     */
-
-    /**
      * Iterates over dataset items, yielding each in turn to an `iteratee` function.
      * Each invocation of `iteratee` is called with two arguments: `(item, index)`.
      *
@@ -341,7 +328,7 @@ export class Dataset {
      * });
      * ```
      *
-     * @param {DatasetConsumer<T>} iteratee A function that is called for every item in the dataset.
+     * @param {DatasetConsumer} iteratee A function that is called for every item in the dataset.
      * @param {Object} [options] All `forEach()` parameters are passed
      *   via an options object with the following keys:
      * @param {Boolean} [options.desc=false] If `true` then the objects are sorted by `createdAt` in descending order.
@@ -371,27 +358,19 @@ export class Dataset {
     }
 
     /**
-     * @callback DatasetMapper
-     * @template T
-     * @param {Object} item Currect {Dataset} entry being processed.
-     * @param {Number} index Position of current {Dataset} entry.
-     * @returns T
-     */
-
-    /**
      * Produces a new array of values by mapping each value in list through a transformation function `iteratee()`.
      * Each invocation of `iteratee()` is called with two arguments: `(element, index)`.
      *
      * If `iteratee` returns a `Promise` then it's awaited before a next call.
      *
      * @template T
-     * @param {DatasetMapper<T>} iteratee
+     * @param {DatasetMapper} iteratee
      * @param {Object} options All `map()` parameters are passed
      *   via an options object with the following keys:
      * @param {Boolean} [options.desc=false] If `true` then the objects are sorted by createdAt in descending order.
      * @param {Array} [options.fields] If provided then returned objects will only contain specified keys
      * @param {String} [options.unwind] If provided then objects will be unwound based on provided field.
-     * @return {Promise<Array.<T>>}
+     * @return {Promise<T[]>}
      */
     map(iteratee, options) {
         const result = [];
@@ -409,15 +388,6 @@ export class Dataset {
     }
 
     /**
-     * @callback DatasetReducer
-     * @template T
-     * @param {T} memo Previous state of the reduction.
-     * @param {Object} item Currect {Dataset} entry being processed.
-     * @param {Number} index Position of current {Dataset} entry.
-     * @returns T
-     */
-
-    /**
      * Reduces a list of values down to a single value.
      *
      * Memo is the initial state of the reduction, and each successive step of it should be returned by `iteratee()`.
@@ -429,7 +399,7 @@ export class Dataset {
      * If `iteratee()` returns a `Promise` then it's awaited before a next call.
      *
      * @template T
-     * @param {DatasetReducer<T>} iteratee
+     * @param {DatasetReducer} iteratee
      * @param {T} memo Initial state of the reduction.
      * @param {Object} options All `reduce()` parameters are passed
      *   via an options object with the following keys:
@@ -751,3 +721,40 @@ export const openDataset = (datasetIdOrName, options = {}) => {
  * @function
  */
 export const pushData = item => openDataset().then(dataset => dataset.pushData(item));
+
+/**
+ * @typedef DatasetContent
+ * @property {Object[]|String[]|Buffer[]} items Dataset entries based on chosen format parameter.
+ * @property {Number} total Total count of entries in the dataset.
+ * @property {Number} offset Position of the first returned entry in the dataset.
+ * @property {Number} count Count of dataset entries returned in this set.
+ * @property {Number} limit Maximum number of dataset entries requested.
+ */
+
+// TODO yin: Typescript candoes not understand `@callback` with generic `@template T`. Change after this is fixed
+/**
+ * User-function used in the `Dataset.forEach()` API.
+ * @callback DatasetConsumer
+ * @param {Object} item Current {@link Dataset} entry being processed.
+ * @param {Number} index Position of current {Dataset} entry.
+ * @returns T
+ */
+
+// TODO yin: Typescript candoes not understand `@callback` with generic `@template T`. Change after this is fixed
+/**
+ * User-function used in the `Dataset.map()` API.
+ * @callback DatasetMapper
+ * @param {Object} item Currect {@link Dataset} entry being processed.
+ * @param {Number} index Position of current {Dataset} entry.
+ * @returns T
+ */
+
+// TODO yin: Typescript candoes not understand `@callback` with generic `@template T`. Change after this is fixed
+/**
+ * User-function used in the `Dataset.reduce()` API.
+ * @callback DatasetReducer
+ * @param {T} memo Previous state of the reduction.
+ * @param {Object} item Currect {@link Dataset} entry being processed.
+ * @param {Number} index Position of current {Dataset} entry.
+ * @returns T
+ */

@@ -40,6 +40,10 @@ export type SystemStatusOptions = {
      * If the sample exceeds this ratio, the system will be overloaded.
      */
     maxClientOverloadedRatio?: number;
+    /**
+     * The `Snapshotter` instance to be queried for `SystemStatus`.
+     */
+    snapshotter?: Snapshotter;
 };
 /**
  * Represents the current status of the system.
@@ -69,6 +73,8 @@ export type SystemStatusOptions = {
  * @property {Number} [maxClientOverloadedRatio=0.2]
  *   Sets the maximum ratio of overloaded snapshots in a Client sample.
  *   If the sample exceeds this ratio, the system will be overloaded.
+ * @property {Snapshotter} [snapshotter]
+ *   The `Snapshotter` instance to be queried for `SystemStatus`.
  */
 /**
  * Provides a simple interface to reading system status from a {@link Snapshotter} instance.
@@ -101,10 +107,9 @@ declare class SystemStatus {
     maxEventLoopOverloadedRatio: any;
     maxCpuOverloadedRatio: any;
     maxClientOverloadedRatio: any;
-    /** @type {Snapshotter} */
-    snapshotter: Snapshotter;
+    snapshotter: any;
     /**
-     * Returns an {SystemInfo} object with the following structure:
+     * Returns an {@link SystemInfo} object with the following structure:
      *
      * ```javascript
      * {
@@ -118,11 +123,11 @@ declare class SystemStatus {
      * Where the `isSystemIdle` property is set to `false` if the system
      * has been overloaded in the last `options.currentHistorySecs` seconds,
      * and `true` otherwise.
-     * @return {Object}
+     * @return {SystemInfo}
      */
-    getCurrentStatus(): any;
+    getCurrentStatus(): SystemInfo;
     /**
-     * Returns an {SystemInfo} object with the following structure:
+     * Returns an {@link SystemInfo} object with the following structure:
      *
      * ```javascript
      * {
@@ -143,10 +148,10 @@ declare class SystemStatus {
      * Returns a system status object.
      *
      * @param {Number} [sampleDurationMillis]
-     * @return {Boolean}
+     * @return {SystemInfo}
      * @ignore
      */
-    _isSystemIdle(sampleDurationMillis?: number): boolean;
+    _isSystemIdle(sampleDurationMillis?: number): SystemInfo;
     /**
      * Returns an object with an isOverloaded property set to true
      * if the memory has been overloaded in the last sampleDurationMillis.

@@ -30,7 +30,7 @@ User-function used in the [`KeyValueStore.forEachKey()`](../api/keyvaluestore#fo
 <tr>
 <td colspan="3"><p>Information about the current {KeyValueStore} entry.</p>
 </td></tr><tr>
-<td><code>info.size</code></td><td><code>Object</code></td>
+<td><code>info.size</code></td><td><code>Number</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Size of the value associated with the current key in bytes.</p>

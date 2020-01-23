@@ -160,7 +160,11 @@ export const maybeStringify = (value, options) => {
  * @hideconstructor
  */
 export class KeyValueStore {
-    constructor(/** @type string */ storeId, /** @type string */ storeName) {
+    /**
+     * @param {string} storeId
+     * @param {string} storeName
+     */
+    constructor(storeId, storeName) {
         checkParamOrThrow(storeId, 'storeId', 'String');
         checkParamOrThrow(storeName, 'storeName', 'Maybe String');
 
@@ -309,19 +313,6 @@ export class KeyValueStore {
     getPublicUrl(key) {
         return `${APIFY_API_BASE_URL}/key-value-stores/${this.storeId}/records/${key}`;
     }
-
-    /**
-     * User-function used in the [`KeyValueStore.forEachKey()`](../api/keyvaluestore#forEachKey) method.
-     * @callback KeyConsumer
-     * @param {String} key
-     *   Current {KeyValue} key being processed.
-     * @param {Number} index
-     *   Position of the current key in {KeyValuestore}.
-     * @param {Object} info
-     *   Information about the current {KeyValueStore} entry.
-     * @param {Object} info.size
-     *   Size of the value associated with the current key in bytes.
-     */
 
     /**
      * Iterates over key value store keys, yielding each in turn to an `iteratee` function.
@@ -721,3 +712,17 @@ export const setValue = async (key, value, options) => {
  * @name getInput
  */
 export const getInput = async () => getValue(process.env[ENV_VARS.INPUT_KEY] || KEY_VALUE_STORE_KEYS.INPUT);
+
+
+/**
+ * User-function used in the [`KeyValueStore.forEachKey()`](../api/keyvaluestore#forEachKey) method.
+ * @callback KeyConsumer
+ * @param {String} key
+ *   Current {KeyValue} key being processed.
+ * @param {Number} index
+ *   Position of the current key in {KeyValuestore}.
+ * @param {Object} info
+ *   Information about the current {KeyValueStore} entry.
+ * @param {Number} info.size
+ *   Size of the value associated with the current key in bytes.
+ */

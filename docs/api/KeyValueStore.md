@@ -62,12 +62,34 @@ await store.drop();
 ```
 
 -   [KeyValueStore](keyvaluestore)
+    -   [`new exports.KeyValueStore(storeId, storeName)`](#new_KeyValueStore_new)
     -   [`.getValue(key)`](#KeyValueStore+getValue) ⇒ `Promise<(Object|String|Buffer)>`
     -   [`.setValue(key, value, [options])`](#KeyValueStore+setValue) ⇒ `Promise<void>`
     -   [`.drop()`](#KeyValueStore+drop) ⇒ `Promise<void>`
     -   [`.getPublicUrl(key)`](#KeyValueStore+getPublicUrl) ⇒ `string`
     -   [`.forEachKey(iteratee, [options])`](#KeyValueStore+forEachKey) ⇒ `Promise<void>`
 
+<a name="new_KeyValueStore_new"></a>
+
+## `new exports.KeyValueStore(storeId, storeName)`
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>storeId</code></td><td><code>string</code></td>
+</tr>
+<tr>
+</tr><tr>
+<td><code>storeName</code></td><td><code>string</code></td>
+</tr>
+<tr>
+</tr></tbody>
+</table>
 <a name="KeyValueStore+getValue"></a>
 
 ## `keyValueStore.getValue(key)` ⇒ `Promise<(Object|String|Buffer)>`

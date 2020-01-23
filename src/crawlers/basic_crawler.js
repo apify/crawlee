@@ -1,18 +1,23 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import _ from 'underscore';
-import log from 'apify-shared/log';
 import { ACTOR_EVENT_NAMES } from 'apify-shared/consts';
+import log from 'apify-shared/log';
 import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
-import AutoscaledPool, { AutoscaledPoolOptions } from '../autoscaling/autoscaled_pool'; // eslint-disable-line import/named,no-unused-vars
+import _ from 'underscore';
+import AutoscaledPool from '../autoscaling/autoscaled_pool'; // eslint-disable-line import/no-duplicates
 import { RequestList } from '../request_list';
 import { RequestQueue, RequestQueueLocal } from '../request_queue';
 import events from '../events';
-import { addTimeoutToPromise } from '../utils';
+import { openSessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
 import Statistics from './statistics';
-import { openSessionPool, SessionPoolOptions } from '../session_pool/session_pool'; // eslint-disable-line import/named,no-unused-vars
+import { addTimeoutToPromise } from '../utils';
 
-// JSDoc imports, see https://github.com/babel/minify/pull/953
-import Request from '../request'; // eslint-disable-line no-unused-vars
+// TYPE IMPORTS
+/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
+import { AutoscaledPoolOptions } from '../autoscaling/autoscaled_pool';
+import Request from '../request';
+import { Session } from '../session_pool/session';
+import { SessionPoolOptions } from '../session_pool/session_pool';
+/* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
  * Since there's no set number of seconds before the container is terminated after
@@ -495,18 +500,19 @@ export default BasicCrawler;
 /**
  * @callback HandleRequest
  * @param {HandleRequestInputs} inputs Arguments passed to this callback.
- * @returns {void}
+ * @returns {Promise<void>}
  */
 /**
  * @typedef HandleRequestInputs
  * @property {Request} request The original {Request} object.
- * @property {AutoscaledPool} [autoscaledPool]
+ * @property {AutoscaledPool} autoscaledPool
+ * @property {Session} [session]
  */
 
 /**
  * @callback HandleFailedRequest
  * @param {HandleFailedRequestInput} inputs Arguments passed to this callback.
- * @returns {void}
+ * @returns {void|Promise<void>}
  */
 /**
  * @typedef HandleFailedRequestInput

@@ -81,7 +81,7 @@
  */
 export function enqueueLinks(options?: {
     page: Page;
-    $: Cheerio;
+    $: CheerioStatic;
     requestQueue: RequestQueue;
     selector?: string;
     baseUrl?: string;
@@ -100,13 +100,13 @@ export function extractUrlsFromPage(page: Page, selector: string): string[];
 /**
  * Extracts URLs from a given Cheerio object.
  *
- * @param {CheerioStatic} $
+ * @param {Cheerio} $
  * @param {string} selector
  * @param {string} baseUrl
  * @return {string[]}
  * @ignore
  */
-export function extractUrlsFromCheerio($: any, selector: string, baseUrl: string): string[];
+export function extractUrlsFromCheerio($: CheerioStatic, selector: string, baseUrl: string): string[];
 import { Page } from "puppeteer";
 import { RequestQueue } from "../request_queue";
 import { RequestTransform } from "./shared";

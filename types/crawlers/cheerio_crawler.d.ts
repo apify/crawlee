@@ -32,7 +32,7 @@ export type CheerioCrawlerOptions = {
      *
      * With the {@link Request} object representing the URL to crawl.
      *
-     * If the function returns a promise, it is awaited by the crawler.
+     * If the function returns, the returned promise is awaited by the crawler.
      *
      * If the function throws an exception, the crawler will try to re-crawl the
      * request later, up to `option.maxRequestRetries` times.
@@ -58,7 +58,7 @@ export type CheerioCrawlerOptions = {
      * Represents the options passed to
      * <a href="https://www.npmjs.com/package/request" target="_blank">request</a> to make the HTTP call.
      * Provided `requestOptions` are added to internal defaults that cannot be overridden to ensure
-     * the operation of `CheerioCrawler` and all its  Headers will not be merged,
+     * the operation of `CheerioCrawler` and all its options. Headers will not be merged,
      * use {@link RequestList} and/or {@link RequestQueue} to initialize your {@link Request} with the
      * correct headers or use `prepareRequestFunction` to modify your {@link Request} dynamically.
      * If you need more granular control over your requests, use {@link BasicCrawler}.
@@ -75,7 +75,7 @@ export type CheerioCrawlerOptions = {
      * }
      * ```
      */
-    requestOptions?: RequestAsBrowserOptions;
+    requestOptions?: utilsRequest.RequestAsBrowserOptions;
     /**
      * A function that executes before the HTTP request is made to the target resource.
      * This function is suitable for setting dynamic properties such as cookies to the {@link Request}.
@@ -87,7 +87,8 @@ export type CheerioCrawlerOptions = {
      * session: Session
      * }
      * ```
-     * where the {@link Request} instance corresponds to the initialized request.
+     * where the {@link Request} instance corresponds to the initialized request
+     * and the {@link Session} instance corresponds to used session.
      *
      * The function should modify the properties of the passed {@link Request} instance
      * in place because there are already earlier references to it. Making a copy and returning it from
@@ -209,12 +210,12 @@ export type PrepareRequestInputs = {
      */
     request?: Request;
 };
-export type PrepareRequest = (inputs: PrepareRequestInputs) => void;
+export type PrepareRequest = (inputs: PrepareRequestInputs) => void | Promise<void>;
 export type CheerioHandlePageInputs = {
     /**
      * The <a href="https://cheerio.js.org/">Cheerio</a> object with parsed HTML.
      */
-    $: CheerioStatic;
+    $?: CheerioStatic;
     /**
      * The request body of the web page.
      */
@@ -232,15 +233,16 @@ export type CheerioHandlePageInputs = {
      */
     contentType: {
         type: string;
-        charset: string;
+        encoding: string;
     };
     /**
      * An instance of Node's http.IncomingMessage object,
      */
     response: IncomingMessage;
     autoscaledPool: AutoscaledPool;
+    session?: any;
 };
-export type CheerioHandlePage = (inputs: CheerioHandlePageInputs) => void | Promise<void>;
+export type CheerioHandlePage = (inputs: CheerioHandlePageInputs) => Promise<void>;
 /**
  * @typedef {Object} CheerioCrawlerOptions
  * @property {CheerioHandlePage} handlePageFunction
@@ -274,7 +276,7 @@ export type CheerioHandlePage = (inputs: CheerioHandlePageInputs) => void | Prom
  *
  *   With the {@link Request} object representing the URL to crawl.
  *
- *   If the function returns a promise, it is awaited by the crawler.
+ *   If the function returns, the returned promise is awaited by the crawler.
  *
  *   If the function throws an exception, the crawler will try to re-crawl the
  *   request later, up to `option.maxRequestRetries` times.
@@ -294,7 +296,7 @@ export type CheerioHandlePage = (inputs: CheerioHandlePageInputs) => void | Prom
  *   Represents the options passed to
  *   <a href="https://www.npmjs.com/package/request" target="_blank">request</a> to make the HTTP call.
  *   Provided `requestOptions` are added to internal defaults that cannot be overridden to ensure
- *   the operation of `CheerioCrawler` and all its  Headers will not be merged,
+ *   the operation of `CheerioCrawler` and all its options. Headers will not be merged,
  *   use {@link RequestList} and/or {@link RequestQueue} to initialize your {@link Request} with the
  *   correct headers or use `prepareRequestFunction` to modify your {@link Request} dynamically.
  *   If you need more granular control over your requests, use {@link BasicCrawler}.
@@ -321,7 +323,8 @@ export type CheerioHandlePage = (inputs: CheerioHandlePageInputs) => void | Prom
  *   session: Session
  * }
  * ```
- *   where the {@link Request} instance corresponds to the initialized request.
+ *   where the {@link Request} instance corresponds to the initialized request
+ *   and the {@link Session} instance corresponds to used session.
  *
  *   The function should modify the properties of the passed {@link Request} instance
  *   in place because there are already earlier references to it. Making a copy and returning it from
@@ -588,7 +591,7 @@ declare class CheerioCrawler {
 }
 import { RequestList } from "../request_list";
 import { RequestQueue } from "../request_queue";
-import { RequestAsBrowserOptions } from "../utils_request";
+import * as utilsRequest from "../utils_request";
 import { HandleFailedRequest } from "./basic_crawler";
 import { AutoscaledPoolOptions } from "../autoscaling/autoscaled_pool";
 import { SessionPoolOptions } from "../session_pool/session_pool";

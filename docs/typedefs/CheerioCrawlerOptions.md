@@ -42,7 +42,7 @@ title: CheerioCrawlerOptions
 is stored in <code>contentType</code>.</p>
 <p>Cheerio is available only for HTML and XML content types.</p>
 <p>With the <a href="request"><code>Request</code></a> object representing the URL to crawl.</p>
-<p>If the function returns a promise, it is awaited by the crawler.</p>
+<p>If the function returns, the returned promise is awaited by the crawler.</p>
 <p>If the function throws an exception, the crawler will try to re-crawl the
 request later, up to <code>option.maxRequestRetries</code> times.
 If all the retries fail, the crawler calls the function
@@ -72,7 +72,7 @@ The exceptions are logged to the request using the
 <td colspan="3"><p>Represents the options passed to
   <a href="https://www.npmjs.com/package/request" target="_blank">request</a> to make the HTTP call.
   Provided <code>requestOptions</code> are added to internal defaults that cannot be overridden to ensure
-  the operation of <code>CheerioCrawler</code> and all its  Headers will not be merged,
+  the operation of <code>CheerioCrawler</code> and all its options. Headers will not be merged,
   use <a href="requestlist"><code>RequestList</code></a> and/or <a href="requestqueue"><code>RequestQueue</code></a> to initialize your <a href="request"><code>Request</code></a> with the
   correct headers or use <code>prepareRequestFunction</code> to modify your <a href="request"><code>Request</code></a> dynamically.
   If you need more granular control over your requests, use <a href="basiccrawler"><code>BasicCrawler</code></a>.</p>
@@ -94,7 +94,8 @@ The exceptions are logged to the request using the
 <pre><code>{
   request: Request,
   session: Session
-}</code></pre><p>  where the <a href="request"><code>Request</code></a> instance corresponds to the initialized request.</p>
+}</code></pre><p>  where the <a href="request"><code>Request</code></a> instance corresponds to the initialized request
+  and the <a href="session"><code>Session</code></a> instance corresponds to used session.</p>
 <p>  The function should modify the properties of the passed <a href="request"><code>Request</code></a> instance
   in place because there are already earlier references to it. Making a copy and returning it from
   this function is therefore not supported, because it would create inconsistencies where

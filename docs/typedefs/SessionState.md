@@ -5,7 +5,7 @@ title: SessionState
 
 <a name="SessionState"></a>
 
-Peristable {Session} state.
+Persistable {Session} state.
 
 **Properties**
 
@@ -25,7 +25,7 @@ Peristable {Session} state.
 </tr>
 <tr>
 </tr><tr>
-<td><code>cookieJar</code></td><td><code>CookieJar</code></td>
+<td><code>cookieJar</code></td><td><code>Object</code></td>
 </tr>
 <tr>
 </tr><tr>
@@ -41,11 +41,11 @@ Peristable {Session} state.
 </tr>
 <tr>
 </tr><tr>
-<td><code>expiresAt</code></td><td><code>Date</code></td>
+<td><code>expiresAt</code></td><td><code>String</code></td>
 </tr>
 <tr>
 </tr><tr>
-<td><code>createdAt</code></td><td><code>Date</code></td>
+<td><code>createdAt</code></td><td><code>String</code></td>
 </tr>
 <tr>
 </tr><tr>

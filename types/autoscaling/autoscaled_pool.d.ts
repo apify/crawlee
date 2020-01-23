@@ -71,7 +71,7 @@ export type AutoscaledPoolOptions = {
      * Options to be passed down to the {@link Snapshotter} constructor. This is useful for fine-tuning
      * the snapshot intervals and history.
      */
-    snapshotterOptions?: any;
+    snapshotterOptions?: SnapshotterOptions;
     /**
      * Options to be passed down to the {@link SystemStatus} constructor. This is useful for fine-tuning
      * the system status reports. If a custom snapshotter is set in the options, it will be used
@@ -127,7 +127,7 @@ export type AutoscaledPoolOptions = {
  *   Defines in seconds how often the pool should attempt to adjust the desired concurrency
  *   based on the latest system status. Setting it lower than 1 might have a severe impact on performance.
  *   We suggest using a value from 5 to 20.
- * @property {SnapshooterOptions} [snapshotterOptions]
+ * @property {SnapshotterOptions} [snapshotterOptions]
  *   Options to be passed down to the {@link Snapshotter} constructor. This is useful for fine-tuning
  *   the snapshot intervals and history.
  * @property {SystemStatusOptions} [systemStatusOptions]
@@ -360,5 +360,6 @@ declare class AutoscaledPool {
      */
     _destroy(): Promise<void>;
 }
+import { SnapshotterOptions } from "./snapshotter";
 import { SystemStatusOptions } from "./system_status";
 import SystemStatus from "./system_status";

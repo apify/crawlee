@@ -64,6 +64,10 @@ export function maybeStringify(value: any, options: any): any;
  * @hideconstructor
  */
 export class KeyValueStore {
+    /**
+     * @param {string} storeId
+     * @param {string} storeName
+     */
     constructor(storeId: string, storeName: string);
     storeId: string;
     storeName: string;
@@ -170,18 +174,6 @@ export class KeyValueStore {
      */
     getPublicUrl(key: string): string;
     /**
-     * User-function used in the [`KeyValueStore.forEachKey()`](../api/keyvaluestore#forEachKey) method.
-     * @callback KeyConsumer
-     * @param {String} key
-     *   Current {KeyValue} key being processed.
-     * @param {Number} index
-     *   Position of the current key in {KeyValuestore}.
-     * @param {Object} info
-     *   Information about the current {KeyValueStore} entry.
-     * @param {Object} info.size
-     *   Size of the value associated with the current key in bytes.
-     */
-    /**
      * Iterates over key value store keys, yielding each in turn to an `iteratee` function.
      * Each invocation of `iteratee` is called with three arguments: `(key, index, info)`, where `key`
      * is the record key, `index` is a zero-based index of the key in the current iteration
@@ -205,7 +197,7 @@ export class KeyValueStore {
      * @param {string} [options.exclusiveStartKey] All keys up to this one (including) are skipped from the result.
      * @return {Promise<void>}
      */
-    forEachKey(iteratee: (key: string, index: number, info: any, size: any) => any, options?: {
+    forEachKey(iteratee: KeyConsumer, options?: {
         exclusiveStartKey?: string;
     }, index?: number): Promise<void>;
 }
@@ -279,3 +271,7 @@ export function setValue(key: string, value: any, options?: {
     contentType?: string;
 }): Promise<any>;
 export function getInput(): Promise<any>;
+/**
+ * User-function used in the [`KeyValueStore.forEachKey()`](../api/keyvaluestore#forEachKey) method.
+ */
+export type KeyConsumer = (key: string, index: number, info: any, size: number) => any;

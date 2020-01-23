@@ -1,26 +1,31 @@
-import contentTypeParser from 'content-type';
-import os from 'os';
-import _ from 'underscore';
-import fs from 'fs';
-import util from 'util';
-import fsExtra from 'fs-extra';
-import ApifyClient from 'apify-client';
 import psTree from '@apify/ps-tree';
-import requestPromise from 'request-promise-native';
-import cheerio, { CheerioStatic } from 'cheerio'; // eslint-disable-line no-unused-vars
-import { ServerResponse } from 'http'; // eslint-disable-line no-unused-vars
-import { Response as PuppeteerResponse } from 'puppeteer'; // eslint-disable-line no-unused-vars
-import log from 'apify-shared/log';
-import semver from 'semver';
-import { getRandomInt } from 'apify-shared/utilities';
-import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
+import ApifyClient from 'apify-client';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { version as apifyClientVersion } from 'apify-client/package.json';
+import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
+import log from 'apify-shared/log';
+import { getRandomInt } from 'apify-shared/utilities';
+import cheerio from 'cheerio';
+import contentTypeParser from 'content-type';
+import fs from 'fs';
+import fsExtra from 'fs-extra';
 import mime from 'mime-types';
+import os from 'os';
 import path from 'path';
+import requestPromise from 'request-promise-native';
+import semver from 'semver';
+import _ from 'underscore';
 import { URL } from 'url';
-import { version as apifyVersion } from '../package.json';
+import util from 'util';
 import { USER_AGENT_LIST } from './constants';
+import { version as apifyVersion } from '../package.json';
+
+// TYPE IMPORTS
+/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
+import { IncomingMessage } from 'http';
+import { Response as PuppeteerResponse } from 'puppeteer';
+import { Cheerio } from './typedefs';
+/* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
  * Default regular expression to match URLs in a string that may be plain text, JSON, CSV or other. It supports common URL characters
@@ -160,7 +165,7 @@ export const isDocker = (forceReset) => {
 /**
  * Sums an array of numbers.
  *
- * @param {Array<Number>} arr An array of numbers.
+ * @param {Number[]} arr An array of numbers.
  * @return {Number} Sum of the numbers.
  *
  * @ignore
@@ -170,7 +175,7 @@ export const sum = arr => arr.reduce((total, c) => total + c, 0);
 /**
  * Computes an average of an array of numbers.
  *
- * @param {Array<Number>} arr An array of numbers.
+ * @param {Number[]} arr An array of numbers.
  * @return {Number} Average value.
  *
  * @ignore
@@ -180,8 +185,8 @@ export const avg = arr => sum(arr) / arr.length;
 /**
  * Computes a weighted average of an array of numbers, complemented by an array of weights.
  *
- * @param {Array<Number>} arrValues
- * @param {Array<Number>} arrWeights
+ * @param {Number[]} arrValues
+ * @param {Number[]} arrWeights
  * @return {Number}
  *
  * @ignore
@@ -522,7 +527,7 @@ const BLOCK_TAGS_REGEX = /^(p|h1|h2|h3|h4|h5|h6|ol|ul|li|pre|address|blockquote|
  * const html = '<html><body>Some text</body></html>';
  * const text = htmlToText(cheerio.load(html, { decodeEntities: true }));
  * ```
- * @param {String|CheerioStatic} html HTML text or parsed HTML represented using a
+ * @param {String|Cheerio} html HTML text or parsed HTML represented using a
  * [cheerio](https://www.npmjs.com/package/cheerio) function.
  * @return {String} Plain text
  * @memberOf utils
@@ -530,7 +535,7 @@ const BLOCK_TAGS_REGEX = /^(p|h1|h2|h3|h4|h5|h6|ol|ul|li|pre|address|blockquote|
 const htmlToText = (html) => {
     if (!html) return '';
 
-    /** @type {CheerioStatic} */
+    /** @type {Cheerio} */
     const $ = typeof html === 'function' ? html : cheerio.load(html, { decodeEntities: true });
     let text = '';
 
@@ -574,7 +579,7 @@ const htmlToText = (html) => {
  * Creates a standardized debug info from request and response. This info is usually added to dataset under the hidden `#debug` field.
  *
  * @param {Request|RequestOptions} request [Apify.Request](https://sdk.apify.com/docs/api/request) object.
- * @param {PuppeteerResponse|ServerResponse} [response]
+ * @param {IncomingMessage|PuppeteerResponse} [response]
  *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&version=v1.11.0&show=api-class-response" target="_blank"><code>Response</code></a>
  *   or NodeJS <a href="https://nodejs.org/api/http.html#http_class_http_serverresponse" target="_blank"><code>http.ServerResponse</code></a>.
  * @param {Object} [additionalFields] Object containing additional fields to be added.

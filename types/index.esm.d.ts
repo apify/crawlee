@@ -45,10 +45,10 @@ declare const exportedUtils: {
         urlRegExp?: RegExp;
     }) => string[];
     getRandomUserAgent: () => string;
-    htmlToText: (html: any) => string;
+    htmlToText: (html: string | CheerioStatic) => string;
     URL_NO_COMMAS_REGEX: RegExp;
     URL_WITH_COMMAS_REGEX: RegExp;
-    createRequestDebugInfo: (request: any, response?: import("http").ServerResponse | import("puppeteer").Response, additionalFields?: any) => any;
+    createRequestDebugInfo: (request: any, response?: import("http").IncomingMessage | import("puppeteer").Response, additionalFields?: any) => any;
     parseContentTypeFromResponse: (response: any) => {
         type: string;
         charset: string;
