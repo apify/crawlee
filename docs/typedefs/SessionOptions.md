@@ -50,7 +50,7 @@ title: SessionOptions
 <tr>
 <td colspan="3"><p>Date of creation.</p>
 </td></tr><tr>
-<td><code>[expiredAt]</code></td><td><code>Date</code></td><td></td>
+<td><code>[expiresAt]</code></td><td><code>Date</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Date of expiration.</p>

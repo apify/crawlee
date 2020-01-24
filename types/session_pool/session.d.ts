@@ -25,7 +25,7 @@
  *   For example: if your session is marked bad two times, but it is successful on the third attempt it's errorScore is decremented by this
  *   number.
  * @property {Date} [createdAt] - Date of creation.
- * @property {Date} [expiredAt] - Date of expiration.
+ * @property {Date} [expiresAt] - Date of expiration.
  * @property {Number} [usageCount=0] - Indicates how many times the session has been used.
  * @property {Number} [errorCount=0] - Indicates how many times the session is marked bad.
  * @property {Number} [maxUsageCount=50] - Session should be used only a limited amount of times.
@@ -51,7 +51,7 @@ export class Session {
     userData: any;
     maxErrorScore: number;
     errorScoreDecrement: number;
-    expiresAt: any;
+    expiresAt: Date;
     createdAt: Date;
     usageCount: number;
     errorScore: any;
@@ -214,7 +214,7 @@ export type SessionOptions = {
     /**
      * - Date of expiration.
      */
-    expiredAt?: Date;
+    expiresAt?: Date;
     /**
      * - Indicates how many times the session has been used.
      */
