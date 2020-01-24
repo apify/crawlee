@@ -23,7 +23,8 @@
         "outDir": "types/"
     },
     "include": [
-        "src/index.esm.js"
+        "src/index.esm.js",
+        "src/utils_log.d.ts"
     ],
     "exclude": [
         "src/index.js"

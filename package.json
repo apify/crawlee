@@ -42,7 +42,7 @@
         "build": "rm -rf ./build && babel src --out-dir build --copy-files",
         "build-docs": "npm run clean && npm run build && node ./website/tools/build_docs.js && npm run build-types",
         "build-readme": "node ./tools/build_readme.js",
-        "build-types": "./node_modules/.bin/tsc -p tsconfig.json",
+        "build-types": "./node_modules/.bin/tsc -p tsconfig.json && node ./tools/typescript_fixes.js",
         "test": "npm run build && jest --testTimeout=20000 --maxWorkers=3",
         "prepare": "npm run build",
         "prepublishOnly": "(test $TRAVIS || (echo \"Publishing is reserved to the Travis CI!\"; exit 1))",

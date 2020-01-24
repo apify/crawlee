@@ -1,3 +1,4 @@
+/// <reference path="../src/utils_log.d.ts" />
 /// <reference types="node" />
 import { main } from "./actor";
 import { getEnv } from "./actor";
@@ -109,8 +110,6 @@ declare const exportedUtils: {
     enqueueLinks: typeof enqueueLinks;
     requestAsBrowser: (options: import("./utils_request").RequestAsBrowserOptions) => Promise<any>;
 };
-declare namespace log {
-    export const logJson: boolean;
-}
+import * as log from 'apify-shared/log';
 import { enqueueLinks } from "./enqueue_links/enqueue_links";
 export { main, getEnv, call, callTask, metamorph, getMemoryInfo, getApifyProxyUrl, isAtHome, apifyClient as client, addWebhook, AutoscaledPool, BasicCrawler, CheerioCrawler, pushData, openDataset, events, initializeEvents, stopEvents, getValue, setValue, getInput, openKeyValueStore, launchPuppeteer, PuppeteerPool, PuppeteerCrawler, PseudoUrl, Request, RequestList, openRequestList, openRequestQueue, openSessionPool, LiveViewServer, Session, exportedUtils as utils };
