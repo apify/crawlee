@@ -43,7 +43,7 @@
         "build-docs": "npm run clean && npm run build && node ./website/tools/build_docs.js && npm run build-types",
         "build-readme": "node ./tools/build_readme.js",
         "build-types": "./node_modules/.bin/tsc -p tsconfig.json && node ./tools/typescript_fixes.js",
-        "test": "npm run build && jest --testTimeout=20000 --maxWorkers=3",
+        "test": "npm run build && npm run build-types && jest --testTimeout=20000 --maxWorkers=3",
         "prepare": "npm run build",
         "prepublishOnly": "(test $TRAVIS || (echo \"Publishing is reserved to the Travis CI!\"; exit 1))",
         "clean": "rm -rf build",
@@ -74,6 +74,7 @@
         "semver": "^6.3.0",
         "socket.io": "^2.2.0",
         "tough-cookie": "^3.0.1",
+        "ts-jest": "^24.3.0",
         "underscore": "^1.9.1",
         "ws": "^6.2.1"
     },

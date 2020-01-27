@@ -2,8 +2,10 @@ import { URL } from 'url';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
+/* eslint-disable import/no-duplicates */
 import { RequestQueue, RequestQueueLocal } from '../request_queue';
 import { constructPseudoUrlInstances, createRequests, addRequestsToQueueInBatches, createRequestOptions } from './shared';
+/* eslint-enable import/no-duplicates */
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
