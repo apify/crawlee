@@ -44,7 +44,6 @@ const fixLog = (input) => {
                 }
             } else if (mode === modes['log-ns-replace']) {
                 if (line.match(/^\}/)) {
-                    output.push("import * as log from 'apify-shared/log';");
                     mode = modes.base;
                     console.debugFixLog('switch to', mode, line);
                 } else {
@@ -73,11 +72,11 @@ const fixLog = (input) => {
 
 /**
  * Traverses directory recursively, applies `filter()` on it's relative path path and if `true` is returned,
- * applies `handleFile()` on it's content overwriting the file with the returned value.
+ * applies `handleFile()` on the file collecting the return values into a dictionary object.
  * @param {String} dir Starting directory.
  * @param {FilenameFilter} filter Pathname filter function.
- * @param {FileHandler} handleFile File content transformation function.
- * @returns {Promise<string[]>} List of paths to processed files.
+ * @param {FileHandler} handleFile File processing function.
+ * @returns {object<string,object|array>} Hierarchical collection of `handleFile`'s return values.
  */
 const traverseDirs = async (dir, filter, handleFile) => {
     console.log('Reading directory', dir);
@@ -99,6 +98,11 @@ const traverseDirs = async (dir, filter, handleFile) => {
     return types;
 };
 
+/**
+ * Blindly extracts exported typenames from a `*.d.ts` file.
+ * @param {string} filepath
+ * @return {string[]}
+ */
 const readTypes = (filepath) => {
     const input = readFileSync(filepath).toString();
     const inputByLine = input.split('\n');
@@ -113,6 +117,13 @@ const readTypes = (filepath) => {
     return types;
 };
 
+/**
+ * Flattens hierarchy of type exports into a mapping from relative paths to exported types.
+ * @param {object<string,object|array>} types
+ * @param {string} prefix
+ * @param {object<string,string[]>} output
+ * @return {object<string,string[]>} Dictionary mapping module declaration paths to exported types.
+ */
 const typeHierarchyToExports = (types, prefix = null, output = {}) => {
     for (const key of Object.keys(types)) {
         const entry = types[key];
