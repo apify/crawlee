@@ -36,7 +36,7 @@ title: PuppeteerGotoInputs
 <tr>
 <td colspan="3"><p>An instance of the <a href="puppeteerpool"><code>PuppeteerPool</code></a> used by this <code>PuppeteerCrawler</code>.</p>
 </td></tr><tr>
-<td><code>session</code></td><td><code><a href="session">Session</a></code></td>
+<td><code>[session]</code></td><td><code><a href="session">Session</a></code></td>
 </tr>
 <tr>
 <td colspan="3"><p><code>Session</code> object for this request.</p>

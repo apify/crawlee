@@ -191,7 +191,7 @@ export type PuppeteerGotoInputs = {
     /**
      * `Session` object for this request.
      */
-    session: Session;
+    session?: Session;
 };
 export type PuppeteerGoto = (inputs: PuppeteerGotoInputs) => Promise<PuppeteerResponse>;
 export type LaunchPuppeteer = (inputs: LaunchPuppeteerOptions) => Promise<Browser>;

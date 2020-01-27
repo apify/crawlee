@@ -26,7 +26,7 @@ title: AutoscaledPoolOptions
 <tr>
 <td colspan="3"><p>A function that indicates whether <code>runTaskFunction</code> should be called.
   This function is called every time there is free capacity for a new task and it should
-  indicate whether it should start a new task or not by resolving to either <code>true</code> or `false.
+  indicate whether it should start a new task or not by resolving to either <code>true</code> or <code>false</code>.
   Besides its obvious use, it is also useful for task throttling to save resources.</p>
 </td></tr><tr>
 <td><code>isFinishedFunction</code></td><td><code>function</code></td><td></td>

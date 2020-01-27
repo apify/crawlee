@@ -7,7 +7,7 @@ title: LaunchPuppeteer
 
 **Returns**: `Promise<Browser>` - Promise that resolves to Puppeteer's `Browser` instance. This might be obtained by calling
 <a href="https://pptr.dev/#?product=Puppeteer&version=v2.0.0&show=api-puppeteerlaunchoptions">puppeteer.launch()</a> directly, or by delegating to
-[`Apify.launchPuppeteer()`](http://localhost:3000/docs/api/apify#apifylaunchpuppeteeroptions-%E2%87%92-promisebrowser).
+[`Apify.launchPuppeteer()`](../api/apify#apifylaunchpuppeteeroptions-%E2%87%92-promisebrowser).
 
 <table>
 <thead>

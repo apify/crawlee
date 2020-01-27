@@ -8,7 +8,7 @@ export type AutoscaledPoolOptions = {
     /**
      * A function that indicates whether `runTaskFunction` should be called.
      * This function is called every time there is free capacity for a new task and it should
-     * indicate whether it should start a new task or not by resolving to either `true` or `false.
+     * indicate whether it should start a new task or not by resolving to either `true` or `false`.
      * Besides its obvious use, it is also useful for task throttling to save resources.
      */
     isTaskReadyFunction: Function;
@@ -88,7 +88,7 @@ export type AutoscaledPoolOptions = {
  * @property {Function} isTaskReadyFunction
  *   A function that indicates whether `runTaskFunction` should be called.
  *   This function is called every time there is free capacity for a new task and it should
- *   indicate whether it should start a new task or not by resolving to either `true` or `false.
+ *   indicate whether it should start a new task or not by resolving to either `true` or `false`.
  *   Besides its obvious use, it is also useful for task throttling to save resources.
  *
  * @property {Function} isFinishedFunction

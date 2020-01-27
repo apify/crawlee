@@ -208,7 +208,7 @@ export type PrepareRequestInputs = {
     /**
      * Original instance fo the {Request} object. Must be modified in-place.
      */
-    request?: Request;
+    request: Request;
 };
 export type PrepareRequest = (inputs: PrepareRequestInputs) => void | Promise<void>;
 export type CheerioHandlePageInputs = {

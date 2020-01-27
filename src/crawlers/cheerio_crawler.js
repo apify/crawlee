@@ -663,7 +663,7 @@ export default CheerioCrawler;
 
 /**
  * @typedef PrepareRequestInputs
- * @property {Request} [request] Original instance fo the {Request} object. Must be modified in-place.
+ * @property {Request} request Original instance fo the {Request} object. Must be modified in-place.
  */
 /**
  * @callback PrepareRequest

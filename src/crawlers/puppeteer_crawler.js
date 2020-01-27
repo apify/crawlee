@@ -400,7 +400,7 @@ export default PuppeteerCrawler;
  * @property {Request} request An instance of the {@link Request} object with details about the URL to open, HTTP method etc.
  * @property {AutoscaledPool} autoscaledPool An instance of the `AutoscaledPool`.
  * @property {PuppeteerPool} puppeteerPool An instance of the {@link PuppeteerPool} used by this `PuppeteerCrawler`.
- * @property {Session} session `Session` object for this request.
+ * @property {Session} [session] `Session` object for this request.
  */
 /**
  * @callback PuppeteerGoto
@@ -417,5 +417,5 @@ export default PuppeteerCrawler;
  *   This might be obtained by calling
  *   <a href="https://pptr.dev/#?product=Puppeteer&version=v2.0.0&show=api-puppeteerlaunchoptions">puppeteer.launch()</a>
  *   directly, or by delegating to
- *   [`Apify.launchPuppeteer()`](http://localhost:3000/docs/api/apify#apifylaunchpuppeteeroptions-%E2%87%92-promisebrowser).
+ *   [`Apify.launchPuppeteer()`](../api/apify#apifylaunchpuppeteeroptions-%E2%87%92-promisebrowser).
  */
