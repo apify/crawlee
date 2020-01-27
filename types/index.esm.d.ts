@@ -113,3 +113,26 @@ declare const exportedUtils: {
 import * as log from 'apify-shared/log';
 import { enqueueLinks } from "./enqueue_links/enqueue_links";
 export { main, getEnv, call, callTask, metamorph, getMemoryInfo, getApifyProxyUrl, isAtHome, apifyClient as client, addWebhook, AutoscaledPool, BasicCrawler, CheerioCrawler, pushData, openDataset, events, initializeEvents, stopEvents, getValue, setValue, getInput, openKeyValueStore, launchPuppeteer, PuppeteerPool, PuppeteerCrawler, PseudoUrl, Request, RequestList, openRequestList, openRequestQueue, openSessionPool, LiveViewServer, Session, exportedUtils as utils };
+
+export { ApifyEnv } from './actor'
+export { DatasetContent, DatasetConsumer, DatasetMapper, DatasetReducer } from './dataset'
+export { KeyConsumer } from './key_value_store'
+export { LaunchPuppeteerOptions } from './puppeteer'
+export { PuppeteerPoolOptions } from './puppeteer_pool'
+export { RequestOptions } from './request'
+export { RequestListOptions, RequestListState } from './request_list'
+export { QueueOperationInfo } from './request_queue'
+export { Cheerio, ActorRun } from './typedefs'
+export { MemoryInfo } from './utils'
+export { RequestAsBrowserOptions } from './utils_request'
+export { SocialHandles } from './utils_social'
+export { AutoscaledPoolOptions } from './autoscaling/autoscaled_pool'
+export { SnapshotterOptions } from './autoscaling/snapshotter'
+export { SystemInfo, SystemStatusOptions } from './autoscaling/system_status'
+export { BasicCrawlerOptions, HandleRequest, HandleRequestInputs, HandleFailedRequest, HandleFailedRequestInput } from './crawlers/basic_crawler'
+export { CheerioCrawlerOptions, PrepareRequestInputs, PrepareRequest, CheerioHandlePageInputs, CheerioHandlePage } from './crawlers/cheerio_crawler'
+export { PuppeteerCrawlerOptions, PuppeteerHandlePageInputs, PuppeteerHandlePage, PuppeteerGotoInputs, PuppeteerGoto, LaunchPuppeteer } from './crawlers/puppeteer_crawler'
+export { RequestTransform } from './enqueue_links/shared'
+export { SessionState, SessionOptions } from './session_pool/session'
+export { SessionPoolOptions } from './session_pool/session_pool'
+export { StealthOptions } from './stealth/stealth'
