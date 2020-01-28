@@ -571,7 +571,7 @@ declare class CheerioCrawler {
     _parseHtmlToDom(response: any): Promise<any>;
     /**
      * Checks and extends supported mime types
-     * @param {Array.<String|Object>} additionalMimeTypes
+     * @param {Array<String|Object>} additionalMimeTypes
      * @ignore
      */
     _extendSupportedMimeTypes(additionalMimeTypes: any[]): void;

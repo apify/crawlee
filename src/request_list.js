@@ -12,7 +12,7 @@ export const SOURCES_PERSISTENCE_KEY = 'REQUEST_LIST_SOURCES';
 
 /**
  * @typedef {Object} RequestListOptions
- * @property {Array.<RequestOptions|Request>} sources
+ * @property {Array<RequestOptions|Request>} sources
  *  An array of sources of URLs for the `RequestList`. It can be either an array of plain objects that
  *  define the `url` property, or an array of instances of the {@link Request} class.
  *  Additionally, the `requestsFromUrl` property may be used instead of `url`,
@@ -641,7 +641,7 @@ export class RequestList {
  *
  *   If `null`, the list will not be persisted and will only be stored in memory. Process restart
  *   will then cause the list to be crawled again from the beginning. We suggest always using a name.
- * @param {Array.<Request|RequestOptions|string>} sources
+ * @param {Array<Request|RequestOptions|string>} sources
  *  An array of sources of URLs for the `RequestList`.
  *  It can be either an array of plain objects that
  *  define the `url` property, or an array of instances of the {@link Request} class.

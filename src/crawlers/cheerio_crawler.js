@@ -620,7 +620,7 @@ class CheerioCrawler {
 
     /**
      * Checks and extends supported mime types
-     * @param {Array.<String|Object>} additionalMimeTypes
+     * @param {Array<String|Object>} additionalMimeTypes
      * @ignore
      */
     _extendSupportedMimeTypes(additionalMimeTypes) {
