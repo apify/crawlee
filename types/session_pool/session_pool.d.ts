@@ -1,12 +1,17 @@
 /// <reference types="node" />
 /**
+ * Factory user-function which creates customized {@link Session} instances.
+ * @callback CreateSession
+ * @param {SessionPool} sessionPool Pool requesting the new session.
+ */
+/**
  * @typedef {Object} SessionPoolOptions
  * @property {Number} [maxPoolSize=1000] - Maximum size of the pool.
  * Indicates how many sessions are rotated.
  * @property {SessionOptions} [sessionOptions] The configuration options for {Session} instances.
  * @property {String} [persistStateKeyValueStoreId] - Name or Id of `KeyValueStore` where is the `SessionPool` state stored.
  * @property {String} [persistStateKey="SESSION_POOL_STATE"] - Session pool persists it's state under this key in Key value store.
- * @property {Function} [createSessionFunction] - Custom function that should return `Session` instance.
+ * @property {CreateSession} [createSessionFunction] - Custom function that should return `Session` instance.
  * Function receives `SessionPool` instance as a parameter
  */
 /**
@@ -175,6 +180,10 @@ export class SessionPool extends EventEmitter {
     prependOnceListener(event: string | symbol, listener: (...args: any[]) => void): SessionPool;
 }
 export function openSessionPool(sessionPoolOptions: SessionPoolOptions): Promise<SessionPool>;
+/**
+ * Factory user-function which creates customized {@link Session} instances.
+ */
+export type CreateSession = (sessionPool: SessionPool) => any;
 export type SessionPoolOptions = {
     /**
      * - Maximum size of the pool.
@@ -197,7 +206,7 @@ export type SessionPoolOptions = {
      * - Custom function that should return `Session` instance.
      * Function receives `SessionPool` instance as a parameter
      */
-    createSessionFunction?: Function;
+    createSessionFunction?: CreateSession;
 };
 import EventEmitter from "events";
 import { Session } from "./session";

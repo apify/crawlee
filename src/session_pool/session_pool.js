@@ -8,17 +8,23 @@ import events from '../events';
 import { ACTOR_EVENT_NAMES_EX } from '../constants';
 
 /**
+ * Factory user-function which creates customized {@link Session} instances.
+ * @callback CreateSession
+ * @param {SessionPool} sessionPool Pool requesting the new session.
+ */
+
+/**
  * @typedef {Object} SessionPoolOptions
  * @property {Number} [maxPoolSize=1000] - Maximum size of the pool.
  * Indicates how many sessions are rotated.
  * @property {SessionOptions} [sessionOptions] The configuration options for {Session} instances.
  * @property {String} [persistStateKeyValueStoreId] - Name or Id of `KeyValueStore` where is the `SessionPool` state stored.
  * @property {String} [persistStateKey="SESSION_POOL_STATE"] - Session pool persists it's state under this key in Key value store.
- * @property {Function} [createSessionFunction] - Custom function that should return `Session` instance.
+ * @property {CreateSession} [createSessionFunction] - Custom function that should return `Session` instance.
  * Function receives `SessionPool` instance as a parameter
  */
 
-// TODO yin: `tsc` generates a class declaration containing EventEmitter methods with wront return type (`:SessionPool instead of `:this`).
+// TODO yin: `tsc` generates a class declaration containing EventEmitter methods with wrong return type (`:SessionPool instead of `:this`).
 /**
  * Handles the sessions rotation, creation and persistence.
  * Creates a pool of {@link Session} instances, that are randomly rotated.

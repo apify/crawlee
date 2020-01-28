@@ -133,5 +133,5 @@ export { CheerioCrawlerOptions, PrepareRequestInputs, PrepareRequest, CheerioHan
 export { PuppeteerCrawlerOptions, PuppeteerHandlePageInputs, PuppeteerHandlePage, PuppeteerGotoInputs, PuppeteerGoto, LaunchPuppeteer } from './crawlers/puppeteer_crawler'
 export { RequestTransform } from './enqueue_links/shared'
 export { SessionState, SessionOptions } from './session_pool/session'
-export { SessionPoolOptions } from './session_pool/session_pool'
+export { CreateSession, SessionPoolOptions } from './session_pool/session_pool'
 export { StealthOptions } from './stealth/stealth'

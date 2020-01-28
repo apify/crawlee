@@ -107,6 +107,9 @@
         "KeyValueStore User-Functions": [
             "typedefs/keyconsumer"
         ],
+        "SessionPool User-Functions": [
+            "typedefs/createsession"
+        ],
         "Utility User-Functions": [
             "typedefs/requesttransform"
         ]

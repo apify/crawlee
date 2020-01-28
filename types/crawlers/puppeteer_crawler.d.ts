@@ -63,7 +63,7 @@ export type PuppeteerCrawlerOptions = {
      * For details, see source code on
      * <a href="https://github.com/apifytech/apify-js/blob/master/src/crawlers/puppeteer_crawler.js#L292" target="_blank">GitHub</a>.
      */
-    gotoFunction?: Function;
+    gotoFunction?: PuppeteerGoto;
     /**
      * Timeout in which page navigation needs to finish, in seconds. When `gotoFunction()` is used and thus the default
      * function is overridden, this timeout will not be used and needs to be configured in the new `gotoFunction()`.
@@ -238,7 +238,7 @@ export type LaunchPuppeteer = (inputs: LaunchPuppeteerOptions) => Promise<Browse
  *   Either `requestList` or `requestQueue` option must be provided (or both).
  * @property {Number} [handlePageTimeoutSecs=60]
  *   Timeout in which the function passed as `handlePageFunction` needs to finish, in seconds.
- * @property {Function} [gotoFunction]
+ * @property {PuppeteerGoto} [gotoFunction]
  *   Overrides the function that opens the page in Puppeteer. The function should return the result of Puppeteer's
  *   <a href="https://pptr.dev/#?product=Puppeteer&show=api-pagegotourl-options" target="_blank">page.goto()</a> function,
  *   i.e. a `Promise` resolving to the <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-response" target="_blank">Response</a> object.
@@ -377,7 +377,7 @@ declare class PuppeteerCrawler {
      */
     constructor(options: PuppeteerCrawlerOptions);
     handlePageFunction: PuppeteerHandlePage;
-    gotoFunction: Function;
+    gotoFunction: PuppeteerGoto;
     handlePageTimeoutMillis: number;
     gotoTimeoutMillis: number;
     puppeteerPoolOptions: {

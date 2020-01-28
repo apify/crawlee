@@ -36,7 +36,7 @@ Indicates how many sessions are rotated.</p>
 <tr>
 <td colspan="3"><p>Session pool persists it&#39;s state under this key in Key value store.</p>
 </td></tr><tr>
-<td><code>[createSessionFunction]</code></td><td><code>function</code></td><td></td>
+<td><code>[createSessionFunction]</code></td><td><code><a href="../typedefs/createsession">CreateSession</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Custom function that should return <code>Session</code> instance.

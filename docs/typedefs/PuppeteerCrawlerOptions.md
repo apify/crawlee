@@ -61,7 +61,7 @@ title: PuppeteerCrawlerOptions
 <tr>
 <td colspan="3"><p>Timeout in which the function passed as <code>handlePageFunction</code> needs to finish, in seconds.</p>
 </td></tr><tr>
-<td><code>[gotoFunction]</code></td><td><code>function</code></td><td></td>
+<td><code>[gotoFunction]</code></td><td><code><a href="../typedefs/puppeteergoto">PuppeteerGoto</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Overrides the function that opens the page in Puppeteer. The function should return the result of Puppeteer&#39;s
