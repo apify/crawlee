@@ -34,6 +34,10 @@ export type RequestAsBrowserOptions = {
      */
     headers?: any;
     /**
+     * An HTTP proxy to be passed down to the HTTP request. Supports proxy authentication with Basic Auth.
+     */
+    proxyUrl?: string;
+    /**
      * Two-letter ISO 639 language code.
      */
     languageCode?: string;

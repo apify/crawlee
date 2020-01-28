@@ -32,6 +32,11 @@ title: RequestAsBrowserOptions
  with headers that are typically added by websites, such as cookies. Overriding
  default browser headers will remove the masking this function provides.</p>
 </td></tr><tr>
+<td><code>[proxyUrl]</code></td><td><code>String</code></td><td></td>
+</tr>
+<tr>
+<td colspan="3"><p>An HTTP proxy to be passed down to the HTTP request. Supports proxy authentication with Basic Auth.</p>
+</td></tr><tr>
 <td><code>[languageCode]</code></td><td><code>String</code></td><td><code>en</code></td>
 </tr>
 <tr>

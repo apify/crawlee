@@ -37,6 +37,8 @@ export const REQUEST_AS_BROWSER_DEFAULT_OPTIONS = {
  *  Additional HTTP headers to add. It's only recommended to use this option,
  *  with headers that are typically added by websites, such as cookies. Overriding
  *  default browser headers will remove the masking this function provides.
+ * @property {String} [proxyUrl]
+ *  An HTTP proxy to be passed down to the HTTP request. Supports proxy authentication with Basic Auth.
  * @property {String} [languageCode=en]
  *  Two-letter ISO 639 language code.
  * @property {String} [countryCode=US]
