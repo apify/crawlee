@@ -116,6 +116,9 @@
       "guides/puppeteerliveview": {
         "title": "Puppeteer Live View"
       },
+      "guides/sessionmanagement": {
+        "title": "Session Management"
+      },
       "guides/whatisanactor": {
         "title": "What is an Actor"
       },

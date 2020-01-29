@@ -41,7 +41,7 @@ describe('Session - testing session behaviour ', () => {
         },
     );
 
-    test('should mark session markBaded', () => {
+    test('should mark session markBad', () => {
         session.markBad();
         expect(session.errorScore).toBe(1);
         expect(session.usageCount).toBe(1);
@@ -140,18 +140,29 @@ describe('Session - testing session behaviour ', () => {
 
     test('should checkStatus work', () => {
         session = new Session({ sessionPool });
-        expect(session.checkStatus(100)).toBeFalsy();
-        expect(session.checkStatus(200)).toBeFalsy();
-        expect(session.checkStatus(400)).toBeFalsy();
-        expect(session.checkStatus(500)).toBeFalsy();
+        expect(session.retireOnBlockedStatusCodes(100)).toBeFalsy();
+        expect(session.retireOnBlockedStatusCodes(200)).toBeFalsy();
+        expect(session.retireOnBlockedStatusCodes(400)).toBeFalsy();
+        expect(session.retireOnBlockedStatusCodes(500)).toBeFalsy();
         STATUS_CODES_BLOCKED.forEach((status) => {
             const sess = new Session({ sessionPool });
             let isCalled;
             const call = () => { isCalled = true; };
             sess.retire = call;
-            expect(sess.checkStatus(status)).toBeTruthy();
+            expect(sess.retireOnBlockedStatusCodes(status)).toBeTruthy();
             expect(isCalled).toBeTruthy();
         });
+    });
+
+    test('should checkStatus work with custom codes', () => {
+        session = new Session({ sessionPool });
+        const customStatusCodes = [100, 202, 300];
+        expect(session.retireOnBlockedStatusCodes(100, customStatusCodes)).toBeTruthy();
+        expect(session.retireOnBlockedStatusCodes(101, customStatusCodes)).toBeFalsy();
+        expect(session.retireOnBlockedStatusCodes(200, customStatusCodes)).toBeFalsy();
+        expect(session.retireOnBlockedStatusCodes(202, customStatusCodes)).toBeTruthy();
+        expect(session.retireOnBlockedStatusCodes(300, customStatusCodes)).toBeTruthy();
+        expect(session.retireOnBlockedStatusCodes(400, customStatusCodes)).toBeFalsy();
     });
 
     describe('.putResponse & .getCookieString', () => {

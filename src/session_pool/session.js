@@ -183,10 +183,11 @@ export class Session {
     /**
      * Retires session based on status code.
      * @param statusCode {Number} - HTTP status code
+     * @param blockedStatusCodes {Array<Number>} - Custom HTTP status codes that means blocking on particular website.
      * @return {boolean} whether the session was retired.
      */
-    checkStatus(statusCode) {
-        const isBlocked = STATUS_CODES_BLOCKED.includes(statusCode);
+    retireOnBlockedStatusCodes(statusCode, blockedStatusCodes = []) {
+        const isBlocked = STATUS_CODES_BLOCKED.concat(blockedStatusCodes).includes(statusCode);
         if (isBlocked) {
             this.retire();
         }
