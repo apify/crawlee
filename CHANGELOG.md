@@ -1,6 +1,11 @@
 NEXT
 ====================
 
+0.19.1 / 2020-01-30
+====================
+- **BREAKING (EXPERIMENTAL)**: `session.checkStatus() -> session.retireOnBlockedStatusCodes()`.
+- `Session` API is no longer considered experimental.
+- Updates documentation and introduces a few internal changes.
 
 0.19.0 / 2020-01-20
 ====================
