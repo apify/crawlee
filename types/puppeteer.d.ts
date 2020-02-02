@@ -8,12 +8,6 @@ export function launchPuppeteer(options?: LaunchPuppeteerOptions): Promise<any>;
  */
 export type LaunchPuppeteerOptions = {
     /**
-     * You can use any of the
-     * <a href="https://pptr.dev/#?product=Puppeteer&show=api-puppeteerlaunchoptions" target="_blank"><code>puppeteer.launch()</code></a>
-     * options.
-     */
-    (Missing): any;
-    /**
      * URL to a HTTP proxy server. It must define the port number,
      * and it may also contain proxy username and password.
      *

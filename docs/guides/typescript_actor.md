@@ -4,9 +4,9 @@ title: Typescript Actors
 ---
 
 Apify SDK supports Typescript by covering public APIs with type declarations. This
-allows writing code with auto-completion even for Javascript code. Besides that,
-actors written in Typescript can take advantage of compile-time type-checking and
-avoid many bugs.
+allows writing code with auto-completion for Typedcript and Javascript code alike.
+Besides that, actors written in Typescript can take advantage of compile-time
+type-checking and avoid many mistakes.
 
 Setting up Typescript project
 =============================
@@ -79,14 +79,16 @@ To use Typescript in your actors, you'll need the following prerequisities.
    need to do so for `puppeteer`. The reason is that the `cheerio` module exports only
    one function. Puppeteer's type declarations explicitly export all the types required.
 
-Conditions
-==========
+Auto-completion
+==============
 
-IDE auto-completion should work in most places. For time constraints, we left out
-the amendment of an internal API for the time being, and these need to be added as
-SDK developers write new and enhance old code. Rules for doing so should be
-added to the Apify SDK coding style guide as soon as we settle on a particular
-ruleset.
+IDE auto-completion should work in most places. That's true even if you are writting
+actors in pure Javascript. For time constraints, we left out the amendment of an
+internal API for the time being, and these need to be added as SDK developers write
+new and enhance old code.
+
+SDK Documentation
+=================
 
 SDK documentation has grown a lot. There is a new API Reference section and one
 sub-section:
@@ -100,13 +102,35 @@ sub-section:
 Expanding and enhancing documentation in those new places and adding more
 details may be a potential priority.
 
+Problems
+========
 
-Because Typescript is what it is, it sometimes generates invalid or incorrect
-declarations from JSDoc comments until Typescript developers fix these problems.
-This needs to be handled in the future, though all critical errors have been avoided
-or fixed already. Examples:
+Typescript sometimes generates invalid or incorrect declarations from JSDoc comments
+until Typescript developers fix these problems. This needs to be handled in the future,
+though all critical errors have been avoided or fixed already. Examples:
 
-- ~~Typescript does not understand @extends and @typedef {BaseType}~~
+- Typescript does not handle `@extends` and `@typedef {BaseType}` as expected
 - In `types/session_pool/session_pool.d.ts`, it adds methods from the base-class
   `EventEmitter` and changes their return types, so they are not compatible with the
   `EventEmitter` (i.e., `addListener(): SessionPool`, instead of `addListener(): this`).
+
+How to `launchPuppeteer()`
+==========================
+
+We are not able to `@extend` puppeteer's `LaunchOptions` as mentioned above and
+JSDoc considers intersection types a syntactic error.
+For this reason we left out the original launch options from our declarations and
+let users to handle types in his code.
+
+You can just cast a as PuppeteerOptions after the object, as such:
+
+```typescript
+// manually import the types from puppeteer
+import { PuppeteerOptions } from 'puppeteer'
+import { LaunchPuppeteerOptions } from 'apify'
+
+Apify.launchPuppeteer({ } as PuppeteerOptions & LaunchPuppeteerOptions)
+// should show all available options intersected
+```
+
+or slap an `as any` for limited time

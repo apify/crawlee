@@ -101,8 +101,7 @@ const getPuppeteerOrThrow = (puppeteerModule = 'puppeteer') => {
     }
 };
 
-// TODO yin: `@property ...` wont work. It's may cause undefined property error in Typescript.
-//  It would be great if we can extend `LaunchOptions` from `puppeteer`. There is a GitHub issue for that:
+// TODO yin: `@property ...` didn't work. Extend Puppeteer's `LaunchOptions` didn't work. There is a GitHub issue for that:
 //  https://github.com/Microsoft/TypeScript/issues/20077
 /**
  * Apify extends the launch options of Puppeteer.
@@ -112,10 +111,6 @@ const getPuppeteerOrThrow = (puppeteerModule = 'puppeteer') => {
  * function and in addition, all the options available below.
  *
  * @typedef {Object} LaunchPuppeteerOptions
- * @property ...
- *   You can use any of the
- *   <a href="https://pptr.dev/#?product=Puppeteer&show=api-puppeteerlaunchoptions" target="_blank"><code>puppeteer.launch()</code></a>
- *   options.
  * @property {String} [proxyUrl]
  *   URL to a HTTP proxy server. It must define the port number,
  *   and it may also contain proxy username and password.
