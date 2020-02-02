@@ -3,7 +3,7 @@ import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 
 import { openKeyValueStore } from '../key_value_store';
-import { Session, SessionOptions } from './session'; // eslint-disable-line no-unused-vars,import/named
+import { Session, SessionOptions } from './session'; // eslint-disable-line no-unused-vars,import/named,import/no-cycle
 import events from '../events';
 import { ACTOR_EVENT_NAMES_EX } from '../constants';
 

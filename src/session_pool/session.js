@@ -7,10 +7,10 @@ import { STATUS_CODES_BLOCKED } from '../constants';
 import { getCookiesFromResponse } from './session_utils';
 
 // TYPE IMPORTS
-/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
-import { EventEmitter } from 'events';
+/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order,import/no-cycle */
+import { SessionPool } from './session_pool';
 import { Cookie as PuppeteerCookie } from 'puppeteer';
-/* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
+/* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order,import/no-cycle */
 
 /**
  * Persistable {Session} state.
@@ -45,7 +45,7 @@ import { Cookie as PuppeteerCookie } from 'puppeteer';
  * @property {Number} [errorCount=0] - Indicates how many times the session is marked bad.
  * @property {Number} [maxUsageCount=50] - Session should be used only a limited amount of times.
  *   This number indicates how many times the session is going to be used, before it is thrown away.
- * @property {EventEmitter} sessionPool - SessionPool instance. Session will emit the `sessionRetired` event on this instance.
+ * @property {SessionPool} sessionPool - SessionPool instance. Session will emit the `sessionRetired` event on this instance.
  */
 /**
  *  Sessions are used to store information such as cookies and can be used for generating fingerprints and proxy sessions.

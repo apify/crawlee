@@ -71,7 +71,7 @@ title: SessionOptions
 <td colspan="3"><p>Session should be used only a limited amount of times.
   This number indicates how many times the session is going to be used, before it is thrown away.</p>
 </td></tr><tr>
-<td><code>sessionPool</code></td><td><code>EventEmitter</code></td><td></td>
+<td><code>sessionPool</code></td><td><code><a href="sessionpool">SessionPool</a></code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>SessionPool instance. Session will emit the <code>sessionRetired</code> event on this instance.</p>

@@ -30,7 +30,7 @@
  * @property {Number} [errorCount=0] - Indicates how many times the session is marked bad.
  * @property {Number} [maxUsageCount=50] - Session should be used only a limited amount of times.
  *   This number indicates how many times the session is going to be used, before it is thrown away.
- * @property {EventEmitter} sessionPool - SessionPool instance. Session will emit the `sessionRetired` event on this instance.
+ * @property {SessionPool} sessionPool - SessionPool instance. Session will emit the `sessionRetired` event on this instance.
  */
 /**
  *  Sessions are used to store information such as cookies and can be used for generating fingerprints and proxy sessions.
@@ -56,7 +56,7 @@ export class Session {
     usageCount: number;
     errorScore: any;
     maxUsageCount: number;
-    sessionPool: EventEmitter;
+    sessionPool: SessionPool;
     /**
      * indicates whether the session is blocked.
      * Session is blocked once it reaches the `maxErrorScore`.
@@ -108,9 +108,10 @@ export class Session {
     /**
      * Retires session based on status code.
      * @param statusCode {Number} - HTTP status code
+     * @param blockedStatusCodes {Array<Number>} - Custom HTTP status codes that means blocking on particular website.
      * @return {boolean} whether the session was retired.
      */
-    checkStatus(statusCode: number): boolean;
+    retireOnBlockedStatusCodes(statusCode: number, blockedStatusCodes?: number[]): boolean;
     /**
      * Sets cookies from response to the cookieJar.
      * Parses cookies from `set-cookie` header and sets them to `Session.cookieJar`.
@@ -231,9 +232,9 @@ export type SessionOptions = {
     /**
      * - SessionPool instance. Session will emit the `sessionRetired` event on this instance.
      */
-    sessionPool: EventEmitter;
+    sessionPool: SessionPool;
 };
 import { CookieJar } from "tough-cookie";
-import { EventEmitter } from "node/events";
+import { SessionPool } from "./session_pool";
 import { Cookie as PuppeteerCookie } from "puppeteer";
 import { Cookie } from "tough-cookie";
