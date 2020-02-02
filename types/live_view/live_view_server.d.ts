@@ -1,4 +1,3 @@
-/// <reference types="node" />
 export default LiveViewServer;
 /**
  * `LiveViewServer` enables serving of browser snapshots via web sockets. It includes its own client

@@ -1,4 +1,3 @@
-/// <reference types="node" />
 export default events;
 export function initializeEvents(): void;
 export function stopEvents(): void;

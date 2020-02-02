@@ -1,4 +1,3 @@
-/// <reference types="node" />
 export function newClient(): any;
 export function logSystemInfo(): void;
 /**

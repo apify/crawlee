@@ -1,5 +1,4 @@
 /// <reference path="../src/utils_log.d.ts" />
-/// <reference types="node" />
 import { main } from "./actor";
 import { getEnv } from "./actor";
 import { call } from "./actor";

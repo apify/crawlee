@@ -1,11 +1,15 @@
 const { readdirSync, readFileSync, writeFileSync, realpathSync, statSync } = require('fs');
 const path = require('path');
 
-console.debugFixLog = false ? console.debug : () => {};
-console.debugReadTypes = false ? console.debug : () => {};
+console.debugFixLog = false ? console.debug : () => {
+};
+console.debugReadTypes = false ? console.debug : () => {
+};
+console.debugRemoveReferences = false ? console.debug : () => {
+};
 
-console.log('Currect directory:', realpathSync('./'))
-const typesPath = './types'
+console.log('Currect directory:', realpathSync('./'));
+const typesPath = './types';
 const paths = {
     'index.esm': path.join(typesPath, 'index.esm.d.ts'),
 };
@@ -26,7 +30,7 @@ const fixLog = (input) => {
         'log-ns-replace': 1, // Erasing log namespace declaration and adding proper import
     };
 
-    let index = 0
+    let index = 0;
     let mode = modes.base;
     for (const line of input) {
         try {
@@ -66,7 +70,7 @@ const fixLog = (input) => {
 
 /**
  * @callback FileHandler
- * @param {String} content File original content.
+ * @param {String} content Relative path to file.
  * @returns {String} Content after transformation.
  */
 
@@ -104,7 +108,8 @@ const traverseDirs = async (dir, filter, handleFile) => {
  * @return {string[]}
  */
 const readTypes = (filepath) => {
-    const input = readFileSync(filepath).toString();
+    const input = readFileSync(filepath)
+        .toString();
     const inputByLine = input.split('\n');
     const types = [];
     for (const line of inputByLine) {
@@ -138,7 +143,7 @@ const typeHierarchyToExports = (types, prefix = null, output = {}) => {
 
 const fixTypes = (input, types = {}) => {
     const output = [...input];
-    const outputCache = { };
+    const outputCache = {};
 
     for (const line of output) {
         outputCache[line] = true;
@@ -156,11 +161,12 @@ const fixTypes = (input, types = {}) => {
     return output;
 };
 
-
 const processIndexEsm = async () => {
     const types = await traverseDirs(
         typesPath,
-        (filename) => { return filename.endsWith('.d.ts'); },
+        (filename) => {
+            return filename.endsWith('.d.ts');
+        },
         readTypes,
     );
     const input = readFileSync(paths['index.esm'])
@@ -174,4 +180,36 @@ const processIndexEsm = async () => {
     writeFileSync(paths['index.esm'], fixedTypes.join('\n'));
 };
 
-processIndexEsm().then();
+const removeAllNodeReferences = async () => {
+    await traverseDirs(
+        typesPath,
+        (filename) => {
+            return filename.endsWith('.d.ts');
+        },
+        (filepath) => {
+            const input = readFileSync(filepath)
+                .toString()
+                .split('\n');
+            const output = [];
+            let changed = false;
+            for (const line of input) {
+                if (line.match(/^\/\/\/\s*<reference\s*types="node"\s*\/>/)) {
+                    console.debugRemoveReferences('removing node types reference from file', filepath);
+                    changed = true;
+                } else {
+                    output.push(line);
+                }
+            }
+
+            if (changed === true) {
+                console.log('Writing', filepath);
+                writeFileSync(filepath, output.join('\n'));
+            }
+        },
+    );
+};
+
+(async () => {
+    await processIndexEsm();
+    await removeAllNodeReferences();
+})().then();

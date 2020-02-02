@@ -1,4 +1,3 @@
-/// <reference types="node" />
 /**
  * Factory user-function which creates customized {@link Session} instances.
  * @callback CreateSession
