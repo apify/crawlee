@@ -1,4 +1,4 @@
-import EventEmitter from 'events';
+import { EventEmitter } from 'events';
 import WebSocket from 'ws';
 import log from 'apify-shared/log';
 import { ENV_VARS, ACTOR_EVENT_NAMES } from 'apify-shared/consts';
