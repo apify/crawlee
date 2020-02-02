@@ -14,12 +14,12 @@ export function logSystemInfo(): void;
  * target="_blank">`Apify.client.setOptions()`</a> function.
  * Beware that altering these settings might have unintended effects on the entire Apify SDK package.
  *
- * @type {ApifyClient}
+ * @type {*}
  *
  * @memberof module:Apify
  * @name client
  */
-export const apifyClient: ApifyClient;
+export const apifyClient: any;
 export function newPromise(): Promise<void>;
 export function addCharsetToContentType(contentType: string): string;
 export function isDocker(forceReset: boolean): Promise<boolean>;

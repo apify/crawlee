@@ -47,7 +47,7 @@ const psTreePromised = util.promisify(psTree);
  * Creates an instance of ApifyClient using options as defined in the environment variables.
  * This function is exported to enable unit testing.
  *
- * @returns {ApifyClient}
+ * @returns {*}
  * @ignore
  */
 export const newClient = () => {
@@ -90,7 +90,7 @@ export const logSystemInfo = () => {
  * target="_blank">`Apify.client.setOptions()`</a> function.
  * Beware that altering these settings might have unintended effects on the entire Apify SDK package.
  *
- * @type {ApifyClient}
+ * @type {*}
  *
  * @memberof module:Apify
  * @name client
