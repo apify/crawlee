@@ -9,7 +9,8 @@ import { getApifyProxyUrl } from './actor';
 import applyStealthToBrowser from './stealth/stealth';
 
 const LAUNCH_PUPPETEER_LOG_OMIT_OPTS = [
-    'proxyUrl', 'userAgent', 'useApifyProxy', 'apifyProxySession', 'apifyProxyGroups',
+    'proxyUrl', 'userAgent', 'useApifyProxy', 'apifyProxyGroups',
+    'apifyProxySession', 'puppeteerModule', 'stealthOptions',
 ];
 
 const LAUNCH_PUPPETEER_DEFAULT_VIEWPORT = {
@@ -18,8 +19,8 @@ const LAUNCH_PUPPETEER_DEFAULT_VIEWPORT = {
 };
 
 const LAUNCH_PUPPETEER_APIFY_OPTIONS = [
-    'proxyUrl', 'userAgent', 'useChrome', 'useApifyProxy', 'apifyProxyGroups',
-    'apifyProxySession', 'puppeteerModule', 'stealth', 'stealthOptions',
+    ...LAUNCH_PUPPETEER_LOG_OMIT_OPTS,
+    'useChrome', 'stealth',
 ];
 
 /**

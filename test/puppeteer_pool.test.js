@@ -330,7 +330,7 @@ describe('PuppeteerPool', () => {
         // Check cache dirs were deleted
         expect(fs.existsSync(dir1)).toBe(false);
         expect(fs.existsSync(dir3)).toBe(false);
-    }, 10000);
+    }, 20000);
 
     describe('reuse of browser tabs', () => {
         xit('should work', async () => {
