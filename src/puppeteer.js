@@ -17,6 +17,11 @@ const LAUNCH_PUPPETEER_DEFAULT_VIEWPORT = {
     height: 768,
 };
 
+const LAUNCH_PUPPETEER_APIFY_OPTIONS = [
+    'proxyUrl', 'userAgent', 'useChrome', 'useApifyProxy', 'apifyProxyGroups',
+    'apifyProxySession', 'puppeteerModule', 'stealth', 'stealthOptions',
+];
+
 /**
  * Apify extends the launch options of Puppeteer.
  * You can use any of the
@@ -104,7 +109,8 @@ const launchPuppeteerWithProxy = async (puppeteer, opts) => {
     optsForLog.args = opts.args.slice(0, opts.args.length - 1);
 
     log.info('Launching Puppeteer', optsForLog);
-    const browser = await puppeteer.launch(opts);
+    const onlyPuppeteerOptions = _.omit(opts, LAUNCH_PUPPETEER_APIFY_OPTIONS);
+    const browser = await puppeteer.launch(onlyPuppeteerOptions);
 
     // Close anonymization proxy server when Puppeteer finishes
     if (anonymizedProxyUrl) {
@@ -266,7 +272,8 @@ export const launchPuppeteer = async (options = {}) => {
         browser = await launchPuppeteerWithProxy(puppeteer, optsCopy);
     } else {
         log.info('Launching Puppeteer', _.omit(optsCopy, LAUNCH_PUPPETEER_LOG_OMIT_OPTS));
-        browser = await puppeteer.launch(optsCopy);
+        const onlyPuppeteerOptions = _.omit(optsCopy, LAUNCH_PUPPETEER_APIFY_OPTIONS);
+        browser = await puppeteer.launch(onlyPuppeteerOptions);
     }
 
     // Add stealth
