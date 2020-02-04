@@ -238,17 +238,42 @@ describe('Apify.launchPuppeteer()', () => {
         }
     });
 
-    test(
-        'should throw when useApifyProxy=true and proxy password is not set',
-        () => {
-            const opts = {
-                useApifyProxy: true,
-                apifyProxySession: 'xxx',
-                apifyProxyGroups: ['yyy'],
-                headless: true,
-            };
+    test('should throw when useApifyProxy=true and proxy password is not set', () => {
+        const opts = {
+            useApifyProxy: true,
+            apifyProxySession: 'xxx',
+            apifyProxyGroups: ['yyy'],
+            headless: true,
+        };
 
-            expect(Apify.launchPuppeteer(opts)).rejects.toThrow(Error);
-        },
-    );
+        expect(Apify.launchPuppeteer(opts)).rejects.toThrow(Error);
+    });
+
+    test('puppeteerModule option works with type string', async () => {
+        let browser;
+        try {
+            browser = await Apify.launchPuppeteer({
+                puppeteerModule: 'puppeteer',
+            });
+        } finally {
+            if (browser) await browser.close();
+        }
+    });
+
+    test('puppeteerModule option works with type object', async () => {
+        const someProps = { foo: 'bar' };
+        // Make it circular for extra security.
+        someProps.props = someProps;
+        let browser;
+        try {
+            browser = await Apify.launchPuppeteer({
+                puppeteerModule: {
+                    launch: async () => {},
+                    someProps,
+                },
+            });
+        } finally {
+            if (browser) await browser.close();
+        }
+    });
 });
