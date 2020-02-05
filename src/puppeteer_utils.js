@@ -235,7 +235,7 @@ const enqueueRequestsFromClickableElements = async (page, selector, purls, reque
  *   Only `*` can be used as a wildcard. It is also automatically added to the beginning
  *   and end of the pattern. This limitation is enforced by the DevTools protocol.
  *   `.png` is the same as `*.png*`.
- * @param {boolean} [options.extraUrlPatterns]
+ * @param {string[]} [options.extraUrlPatterns]
  *   If you just want to append to the default blocked patterns, use this property.
  * @return {Promise}
  * @memberOf puppeteer
