@@ -1,9 +1,12 @@
 import scanner from 'fpscanner';
+import path from 'path';
 
 import Apify from '../../build';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 
 const fingerPrintPath = require.resolve('fpcollect/dist/fpCollect.min.js');
+const pathToHTML = path.join(__dirname, 'test_html.html');
+const testUrl = `file://${pathToHTML}`;
 
 const getFingerPrint = async (page) => {
     await Apify.utils.puppeteer.injectFile(page, fingerPrintPath);
@@ -47,7 +50,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
         });
 
         const page = await browser.newPage();
-        await page.goto('file://test_html.html');
+        await page.goto(testUrl);
         const { webDriver } = await getFingerPrint(page);
 
         // check if disabling works
@@ -68,7 +71,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
         });
 
         const page = await browser.newPage();
-        await page.goto('file://test_html.html');
+        await page.goto(testUrl);
         const { webDriver } = await getFingerPrint(page);
 
         expect(webDriver).toBe(false);
@@ -84,7 +87,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
         });
 
         const page = await browser.newPage();
-        await page.goto('file://test_html.html');
+        await page.goto(testUrl);
         const { permissions } = await getFingerPrint(page);
 
         expect(permissions.state).toBe('denied');
@@ -100,7 +103,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
         });
 
         const page = await browser.newPage();
-        await page.goto('file://test_html.html');
+        await page.goto(testUrl);
         const { languages } = await getFingerPrint(page);
 
         expect(Array.isArray(languages)).toBe(true);
@@ -117,7 +120,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
         });
 
         const page = await browser.newPage();
-        await page.goto('file://test_html.html');
+        await page.goto(testUrl);
         const { videoCard } = await getFingerPrint(page);
 
         expect(videoCard[0]).toBe('Intel Inc.');
@@ -134,7 +137,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
         });
 
         const page = await browser.newPage();
-        await page.goto('file://test_html.html');
+        await page.goto(testUrl);
         const { screen } = await getFingerPrint(page);
 
         expect(screen.wOuterHeight > 0).toBe(true);
@@ -151,7 +154,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
         });
 
         const page = await browser.newPage();
-        await page.goto('file://test_html.html');
+        await page.goto(testUrl);
         const returnValue = await page.evaluate(() => console.debug('TEST'));
 
         expect(returnValue).toBe(null);
@@ -166,7 +169,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
         });
 
         const page = await browser.newPage();
-        await page.goto('file://test_html.html');
+        await page.goto(testUrl);
         const { hasChrome } = await getFingerPrint(page);
         const chrome = await page.evaluate(() => window.chrome); //eslint-disable-line
         expect(chrome).toBeInstanceOf(Object);
@@ -184,7 +187,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
         });
 
         const page = await browser.newPage();
-        await page.goto('file://test_html.html');
+        await page.goto(testUrl);
         const { iframeChrome } = await getFingerPrint(page);
 
         expect(iframeChrome).toBe('object');
@@ -201,7 +204,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
 
         const page = await browser.newPage();
         const testFuncReturnValue = 'TESTSTRING';
-        await page.goto('file://test_html.html');
+        await page.goto(testUrl);
         await page.evaluate((returnValue) => {
             const { document } = window; //eslint-disable-line
             const body = document.querySelector('body');
@@ -225,7 +228,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
         });
 
         const page = await browser.newPage();
-        await page.goto('file://test_html.html');
+        await page.goto(testUrl);
         const { deviceMemory } = await getFingerPrint(page);
 
         expect(deviceMemory).not.toBe(0);
@@ -243,7 +246,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
             });
 
             const page = await browser.newPage();
-            await page.goto('file://test_html.html');
+            await page.goto(testUrl);
             const fingerPrint = await getFingerPrint(page);
             const testedFingerprint = scanner.analyseFingerprint(fingerPrint);
             const failedChecks = Object.values(testedFingerprint).filter(val => val.consistent < 3);
@@ -255,7 +258,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
     );
 
     test('should work in crawler', async () => {
-        const requestList = await Apify.openRequestList('test', ['file://test_html.html']);
+        const requestList = await Apify.openRequestList('test', [testUrl]);
         const values = [];
         const puppeteerCrawler = new Apify.PuppeteerCrawler({
             requestList,

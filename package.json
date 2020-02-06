@@ -92,7 +92,7 @@
         "jsdoc-export-default-interop": "^0.3.1",
         "portastic": "^1.0.1",
         "prettier": "^1.18.2",
-        "proxy": "^0.2.4",
+        "proxy": "^1.0.1",
         "sinon": "^7.4.1",
         "sinon-stub-promise": "^4.0.0",
         "socket.io-client": "^2.2.0",
@@ -100,6 +100,6 @@
         "why-is-node-running": "^2.0.3"
     },
     "optionalDependencies": {
-        "puppeteer": "2.1.0"
+        "puppeteer": "2.1.1"
     }
 }
