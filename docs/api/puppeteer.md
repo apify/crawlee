@@ -545,7 +545,7 @@ await page.goto('https://cnn.com');
   and end of the pattern. This limitation is enforced by the DevTools protocol.
   <code>.png</code> is the same as <code>*.png*</code>.</p>
 </td></tr><tr>
-<td><code>[options.extraUrlPatterns]</code></td><td><code>boolean</code></td>
+<td><code>[options.extraUrlPatterns]</code></td><td><code>Array<string></code></td>
 </tr>
 <tr>
 <td colspan="3"><p>If you just want to append to the default blocked patterns, use this property.</p>
