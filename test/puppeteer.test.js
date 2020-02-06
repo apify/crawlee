@@ -254,6 +254,7 @@ describe('Apify.launchPuppeteer()', () => {
         try {
             browser = await Apify.launchPuppeteer({
                 puppeteerModule: 'puppeteer',
+                headless: true,
             });
         } finally {
             if (browser) await browser.close();
@@ -271,6 +272,7 @@ describe('Apify.launchPuppeteer()', () => {
                     launch: async () => {},
                     someProps,
                 },
+                headless: true,
             });
         } finally {
             if (browser) await browser.close();
