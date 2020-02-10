@@ -182,15 +182,15 @@ module.exports = {
  * Configures logger.
  * @name setOptions
  * @param {object} options
- * @param {number} object.level=4 Sets the log level to the given value, preventing messages from less important log levels
+ * @param {number} [object.level=4] Sets the log level to the given value, preventing messages from less important log levels
  * from being printed to the console. Use in conjunction with the `log.LEVELS` constants.
- * @param {number} object.maxDepth=4 Max depth of data object that will be logged. Anything deeper than the limit will be stripped off.
- * @param {number} object.maxStringLength=2000 Max length of the string to be logged. Longer strings will be truncated.
- * @param {string} object.prefix Prefix to be prepended the each logged line.
- * @param {string} object.suffix Suffix that will be appended the each logged line.
- * @param {object} object.logger Logger implementation to be used. Default one is log.LoggerText to log messages as easily readable
+ * @param {number} [object.maxDepth=4] Max depth of data object that will be logged. Anything deeper than the limit will be stripped off.
+ * @param {number} [object.maxStringLength=2000] Max length of the string to be logged. Longer strings will be truncated.
+ * @param {string} [object.prefix] Prefix to be prepended the each logged line.
+ * @param {string} [object.suffix] Suffix that will be appended the each logged line.
+ * @param {object} [object.logger] Logger implementation to be used. Default one is log.LoggerText to log messages as easily readable
  * strings. Optinally you can use log.LoggerJson that formats each log line as a JSON.
- * @param {object} object.data Additinal data to be added to each log line.
+ * @param {object} [object.data] Additinal data to be added to each log line.
  * @method
  * @memberOf log
  */
@@ -198,7 +198,7 @@ module.exports = {
 /**
  * Creates a new instance of logger that inherits settings from a parent logger.
  * @name child
- * @param {object} options Supports the same options as the `setOptions()` method.
+ * @param {object} [options] Supports the same options as the `setOptions()` method.
  * @method
  * @memberOf log
  */
