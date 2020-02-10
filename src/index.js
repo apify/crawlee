@@ -26,9 +26,6 @@ import { Session } from './session_pool/session';
 // Increase the global limit for event emitter memory leak warnings.
 EventEmitter.defaultMaxListeners = 50;
 
-// Log as plain text not JSON
-log.logJson = false;
-
 /**
  * The following section describes all functions and properties provided by the `apify` package,
  * except individual classes and namespaces that have their separate, detailed, documentation pages
@@ -134,6 +131,12 @@ module.exports = {
  * } catch (e) {
  *   log.exception(e, 'Exception occurred', { errorDetails: 'This is really bad!' }); // prints message
  * }
+ *
+ * log.setOptions({ prefix: 'My actor' });
+ * log.info('I am running!'); // prints "My actor: I am running"
+ *
+ * const childLog = log.child({ prefix: 'Crawler' });
+ * log.info('I am crawling!'); // prints "My actor:Crawler: I am crawling"
  * ```
  *
  * Another very useful way of setting the log level is by setting the `APIFY_LOG_LEVEL`
@@ -171,6 +174,38 @@ module.exports = {
  * to construct the message, such as querying a DB for some metadata that need to be added. If the log
  * level is not high enough at the moment, it doesn't make sense to execute the query.
  * @name getLevel
+ * @method
+ * @memberOf log
+ */
+
+/**
+ * Configures logger.
+ * @name setOptions
+ * @param {object} options
+ * @param {number} object.level=4 Sets the log level to the given value, preventing messages from less important log levels
+ * from being printed to the console. Use in conjunction with the `log.LEVELS` constants.
+ * @param {number} object.maxDepth=4 Max depth of data object that will be logged. Anything deeper than the limit will be stripped off.
+ * @param {number} object.maxStringLength=2000 Max length of the string to be logged. Longer strings will be truncated.
+ * @param {string} object.prefix Prefix to be prepended the each logged line.
+ * @param {string} object.suffix Suffix that will be appended the each logged line.
+ * @param {object} object.logger Logger implementation to be used. Default one is log.LoggerText to log messages as easily readable
+ * strings. Optinally you can use log.LoggerJson that formats each log line as a JSON.
+ * @param {object} object.data Additinal data to be added to each log line.
+ * @method
+ * @memberOf log
+ */
+
+/**
+ * Creates a new instance of logger that inherits settings from a parent logger.
+ * @name child
+ * @param {object} options Supports the same options as the `setOptions()` method.
+ * @method
+ * @memberOf log
+ */
+
+/**
+ * Returns the logger configuration.
+ * @name getOptions
  * @method
  * @memberOf log
  */
