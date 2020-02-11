@@ -11,12 +11,19 @@ export const SOURCES_PERSISTENCE_KEY: "REQUEST_LIST_SOURCES";
  *
  * ```
  * [
- *     // One URL
+ *     // A single URL
  *     { method: 'GET', url: 'http://example.com/a/b' },
- *     // Batch import of URLs from a file hosted on the web
+ *
+ *     // Batch import of URLs from a file hosted on the web,
+ *     // where the URLs should be requested using the HTTP POST request
  *     { method: 'POST', requestsFromUrl: 'http://example.com/urls.txt' },
- *     // Batch import combined with regex.
- *     { method: 'POST', requestsFromUrl: 'http://example.com/urls.txt', regex: /https:\/\/example.com\/.+/ },
+ *
+ *     // Batch import from remote file, using a specific regular expression to extract the URLs.
+ *     { requestsFromUrl: 'http://example.com/urls.txt', regex: /https:\/\/example.com\/.+/ },
+ *
+ *     // Get list of URLs from a Google Sheets document. Just add "/gviz/tq?tqx=out:csv" to the Google Sheet URL.
+ *     // For details, see https://help.apify.com/en/articles/2906022-scraping-a-list-of-urls-from-a-google-sheets-document
+ *     { requestsFromUrl: 'https://docs.google.com/spreadsheets/d/1GA5sSQhQjB_REes8I5IKg31S-TuRcznWOPjcpNqtxmU/gviz/tq?tqx=out:csv' }
  * ]
  * ```
  * @property {String} [persistStateKey]
@@ -305,12 +312,19 @@ export type RequestListOptions = {
      *
      * ```
      * [
-     * // One URL
+     * // A single URL
      * { method: 'GET', url: 'http://example.com/a/b' },
-     * // Batch import of URLs from a file hosted on the web
+     *
+     * // Batch import of URLs from a file hosted on the web,
+     * // where the URLs should be requested using the HTTP POST request
      * { method: 'POST', requestsFromUrl: 'http://example.com/urls.txt' },
-     * // Batch import combined with regex.
-     * { method: 'POST', requestsFromUrl: 'http://example.com/urls.txt', regex: /https:\/\/example.com\/.+/ },
+     *
+     * // Batch import from remote file, using a specific regular expression to extract the URLs.
+     * { requestsFromUrl: 'http://example.com/urls.txt', regex: /https:\/\/example.com\/.+/ },
+     *
+     * // Get list of URLs from a Google Sheets document. Just add "/gviz/tq?tqx=out:csv" to the Google Sheet URL.
+     * // For details, see https://help.apify.com/en/articles/2906022-scraping-a-list-of-urls-from-a-google-sheets-document
+     * { requestsFromUrl: 'https://docs.google.com/spreadsheets/d/1GA5sSQhQjB_REes8I5IKg31S-TuRcznWOPjcpNqtxmU/gviz/tq?tqx=out:csv' }
      * ]
      * ```
      */
