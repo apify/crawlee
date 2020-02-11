@@ -66,41 +66,15 @@ Session pool configuration.
 <table>
 <thead>
 <tr>
-<th>Param</th><th>Type</th><th>Default</th>
+<th>Param</th><th>Type</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>[options]</code></td><td></td><td></td>
+<td><code>[options]</code></td><td><code><a href="../typedefs/sessionpooloptions">SessionPoolOptions</a></code></td>
 </tr>
 <tr>
-<td colspan="3"></td></tr><tr>
-<td><code>[options.maxPoolSize]</code></td><td><code>Number</code></td><td><code>1000</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Maximum size of the pool.
-Indicates how many sessions are rotated.</p>
-</td></tr><tr>
-<td><code>[options.sessionOptions]</code></td><td><code>Object</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>The <a href="session#new_SessionPool_new"><code>new Session</code></a> options</p>
-</td></tr><tr>
-<td><code>[options.persistStateKeyValueStoreId]</code></td><td><code>String</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>Name or Id of <code>KeyValueStore</code> where is the <code>SessionPool</code> state stored.</p>
-</td></tr><tr>
-<td><code>[options.persistStateKey]</code></td><td><code>String</code></td><td><code>&quot;SESSION_POOL_STATE&quot;</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Session pool persists it&#39;s state under this key in Key value store.</p>
-</td></tr><tr>
-<td><code>[options.createSessionFunction]</code></td><td><code>function</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>Custom function that should return <code>Session</code> instance.
-Function receives <code>SessionPool</code> instance as a parameter</p>
+<td colspan="3"><p>All <code>SessionPool</code> configuration options.</p>
 </td></tr></tbody>
 </table>
 <a name="SessionPool+usableSessionsCount"></a>

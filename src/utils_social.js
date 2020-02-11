@@ -203,15 +203,25 @@ const FACEBOOK_REGEX_STRING = `(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:www.)?(?:faceboo
 // eslint-disable-next-line max-len, quotes
 const YOUTUBE_REGEX_STRING = '(?:https?:\\/\\/)?(?:youtu\\.be\\/|(?:www\\.|m\\.)?youtube\\.com\\/(?:watch|v|embed)(?:\\.php)?(?:\\?.*v=|\\/))([a-zA-Z0-9\\-_]+)';
 
+/** @type RegExp */
 let LINKEDIN_REGEX;
+/** @type RegExp */
 let LINKEDIN_REGEX_GLOBAL;
+/** @type RegExp */
 let INSTAGRAM_REGEX;
+/** @type RegExp */
 let INSTAGRAM_REGEX_GLOBAL;
+/** @type RegExp */
 let TWITTER_REGEX;
+/** @type RegExp */
 let TWITTER_REGEX_GLOBAL;
+/** @type RegExp */
 let FACEBOOK_REGEX;
+/** @type RegExp */
 let FACEBOOK_REGEX_GLOBAL;
+/** @type RegExp */
 let YOUTUBE_REGEX;
+/** @type RegExp */
 let YOUTUBE_REGEX_GLOBAL;
 
 try {
@@ -481,13 +491,11 @@ try {
     }
 }
 
-
 /**
- * The function attempts to extract emails, phone numbers and social profile URLs from a HTML document,
- * specifically LinkedIn, Twitter, Instagram and Facebook profile URLs.
- * The function removes duplicates from the resulting arrays and sorts the items alphabetically.
+ * Representation of social handles parsed from a HTML page.
  *
- * The result of the function is an object with the following structure:
+ * The object has the following structure:
+ *
  * ```
  * {
  *   emails: String[],
@@ -500,6 +508,21 @@ try {
  *   youtubes: String[],
  * }
  * ```
+ * @typedef SocialHandles
+ * @property {String[]} emails
+ * @property {String[]} phones
+ * @property {String[]} phonesUncertain
+ * @property {String[]} linkedIns
+ * @property {String[]} twitters
+ * @property {String[]} instagrams
+ * @property {String[]} facebooks
+ * @property {String[]} youtubes
+ */
+
+/**
+ * The function attempts to extract emails, phone numbers and social profile URLs from a HTML document,
+ * specifically LinkedIn, Twitter, Instagram and Facebook profile URLs.
+ * The function removes duplicates from the resulting arrays and sorts the items alphabetically.
  *
  * Note that the `phones` field contains phone numbers extracted from the special phone links
  * such as `<a href="tel:+1234556789">call us</a>` (see [`social.phonesFromUrls()`](#social.phonesFromUrls)])
@@ -524,7 +547,7 @@ try {
  * @param {Object} data Optional object which will receive the `text` and `$` properties
  *   that contain text content of the HTML and `cheerio` object, respectively. This is an optimization
  *   so that the caller doesn't need to parse the HTML document again, if needed.
- * @return {*} An object with the social handles.
+ * @return {SocialHandles} An object with the social handles.
  *
  * @memberOf social
  */

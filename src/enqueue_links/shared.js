@@ -4,6 +4,7 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import PseudoUrl from '../pseudo_url';
 import Request from '../request';
 
+
 const MAX_ENQUEUE_LINKS_CACHE_SIZE = 1000;
 
 /**
@@ -103,3 +104,11 @@ export async function addRequestsToQueueInBatches(requests, requestQueue, batchS
     }
     return Promise.all(queueOperationInfos);
 }
+
+/**
+ * Takes an Apify {RequestOptions} object and changes it's attributes in a desired way. This user-function is used
+ * [`Apify.utils.enqueueLinks`](../api/utils#utils.enqueueLinks) to modify requests before enqueuing them.
+ * @callback RequestTransform
+ * @param {RequestOptions} original Request options to be modified.
+ * @return {RequestOptions} The modified request options to enqueue.
+ */

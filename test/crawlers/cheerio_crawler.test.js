@@ -1,5 +1,5 @@
 import { Readable } from 'stream';
-import EventEmitter from 'events';
+import { EventEmitter } from 'events';
 import rqst from 'request';
 import fs from 'fs';
 import path from 'path';

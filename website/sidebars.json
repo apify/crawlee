@@ -5,6 +5,7 @@
             "guides/gettingstarted",
             "guides/quickstart",
             "guides/whatisanactor",
+            "guides/typescriptactor",
             "guides/environmentvariables",
             "guides/datastorage",
             "guides/puppeteerliveview",
@@ -54,8 +55,63 @@
         "Type Definitions": [
             "typedefs/actorrun",
             "typedefs/apifycallerror",
+            "typedefs/apifyenv",
+            "typedefs/datasetcontent",
+            "typedefs/memoryinfo",
+            "typedefs/queueoperationinfo",
+            "typedefs/requestliststate",
+            "typedefs/sessionstate",
+            "typedefs/socialhandles",
+            "typedefs/systeminfo"
+        ],
+        "Constructor Options": [
+            "typedefs/autoscaledpooloptions",
+            "typedefs/basiccrawleroptions",
+            "typedefs/cheeriocrawleroptions",
+            "typedefs/puppeteercrawleroptions",
+            "typedefs/puppeteerpooloptions",
             "typedefs/launchpuppeteeroptions",
-            "typedefs/queueoperationinfo"
+            "typedefs/requestoptions",
+            "typedefs/requestlistoptions",
+            "typedefs/requestasbrowseroptions",
+            "typedefs/sessionoptions",
+            "typedefs/sessionpooloptions",
+            "typedefs/snapshotteroptions",
+            "typedefs/stealhtoptions",
+            "typedefs/systemstatusoptions"
+        ]
+    },
+    "User-Functions": {
+        "Crawler User-Functions": [
+            "typedefs/cheeriohandlepage",
+            "typedefs/cheeriohandlepageinputs",
+            "typedefs/handlefailedrequest",
+            "typedefs/handlefailedrequestinput",
+            "typedefs/handlerequest",
+            "typedefs/handlerequestinputs",
+            "typedefs/preparerequest",
+            "typedefs/preparerequestinputs"
+            ],
+        "Puppeteer User-Functions": [
+            "typedefs/puppeteerhandlepage",
+            "typedefs/puppeteerhandlepageinputs",
+            "typedefs/launchpuppeteer",
+            "typedefs/puppeteergoto",
+            "typedefs/puppeteergotoinputs"
+        ],
+        "Dataset User-Functions": [
+            "typedefs/datasetconsumer",
+            "typedefs/datasetmapper",
+            "typedefs/datasetreducer"
+        ],
+        "KeyValueStore User-Functions": [
+            "typedefs/keyconsumer"
+        ],
+        "SessionPool User-Functions": [
+            "typedefs/createsession"
+        ],
+        "Utility User-Functions": [
+            "typedefs/requesttransform"
         ]
     }
 }

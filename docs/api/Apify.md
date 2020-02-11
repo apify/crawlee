@@ -12,17 +12,17 @@ separate, detailed, documentation pages accessible from the left sidebar.
     -   [`.addWebhook(options)`](#module_Apify.addWebhook) ⇒ `Promise<Object>`
     -   [`.call(actId, [input], [options])`](#module_Apify.call) ⇒ [`Promise<ActorRun>`](../typedefs/actorrun)
     -   [`.callTask(taskId, [input], [options])`](#module_Apify.callTask) ⇒ [`Promise<ActorRun>`](../typedefs/actorrun)
-    -   [`.client`](#module_Apify.client)
+    -   [`.client`](#module_Apify.client) : `*`
     -   [`.events`](#module_Apify.events)
     -   [`.getApifyProxyUrl(options)`](#module_Apify.getApifyProxyUrl) ⇒ `String`
-    -   [`.getEnv()`](#module_Apify.getEnv) ⇒ `Object`
+    -   [`.getEnv()`](#module_Apify.getEnv) ⇒ [`ApifyEnv`](../typedefs/apifyenv)
     -   [`.getInput`](#module_Apify.getInput) ⇒ `Promise<Object>`
-    -   [`.getMemoryInfo()`](#module_Apify.getMemoryInfo) ⇒ `Promise<Object>`
+    -   [`.getMemoryInfo()`](#module_Apify.getMemoryInfo) ⇒ [`Promise<MemoryInfo>`](../typedefs/memoryinfo)
     -   [`.getValue(key)`](#module_Apify.getValue) ⇒ `Promise<Object>`
     -   [`.isAtHome()`](#module_Apify.isAtHome) ⇒ `Boolean`
     -   [`.launchPuppeteer([options])`](#module_Apify.launchPuppeteer) ⇒ `Promise<Browser>`
     -   [`.main(userFunc)`](#module_Apify.main)
-    -   [`.metamorph(targetActorId, [input], [options])`](#module_Apify.metamorph) ⇒ `Promise`
+    -   [`.metamorph(targetActorId, [input], [options])`](#module_Apify.metamorph) ⇒ `Promise<void>`
     -   [`.openDataset([datasetIdOrName], [options])`](#module_Apify.openDataset) ⇒ [`Promise<Dataset>`](dataset)
     -   [`.openKeyValueStore([storeIdOrName], [options])`](#module_Apify.openKeyValueStore) ⇒ [`Promise<KeyValueStore>`](keyvaluestore)
     -   [`.openRequestList`](#module_Apify.openRequestList) ⇒ [`Promise<RequestList>`](requestlist)
@@ -308,7 +308,7 @@ obtain the output.
 </table>
 <a name="module_Apify.client"></a>
 
-## `Apify.client`
+## `Apify.client` : `*`
 
 Gets the default instance of the `ApifyClient` class provided <a href="https://docs.apify.com/api/apify-client-js/latest"
 target="_blank">apify-client</a> by the NPM package. The instance is created automatically by the Apify SDK and it is configured using the
@@ -450,39 +450,9 @@ full list of available country codes
 </table>
 <a name="module_Apify.getEnv"></a>
 
-## `Apify.getEnv()` ⇒ `Object`
+## `Apify.getEnv()` ⇒ [`ApifyEnv`](../typedefs/apifyenv)
 
-Returns a new object which contains information parsed from all the `APIFY_XXX` environment variables. It has properties such as the following:
-
-```javascript
-{
-    // ID of the actor (APIFY_ACTOR_ID)
-    actorId: String,
-    // ID of the actor run (APIFY_ACTOR_RUN_ID)
-    actorRunId: String,
-    // ID of the actor task (APIFY_ACTOR_TASK_ID)
-    actorTaskId: String,
-    // ID of the user who started the actor - note that it might be
-    // different than the owner of the actor (APIFY_USER_ID)
-    userId: String,
-    // Authentication token representing privileges given to the actor run,
-    // it can be passed to various Apify APIs (APIFY_TOKEN).
-    token: String,
-    // Date when the actor was started (APIFY_STARTED_AT)
-    startedAt: Date,
-    // Date when the actor will time out (APIFY_TIMEOUT_AT)
-    timeoutAt: Date,
-    // ID of the key-value store where input and output data of this
-    // actor is stored (APIFY_DEFAULT_KEY_VALUE_STORE_ID)
-    defaultKeyValueStoreId: String,
-    // ID of the dataset where input and output data of this
-    // actor is stored (APIFY_DEFAULT_DATASET_ID)
-    defaultDatasetId: String,
-    // Amount of memory allocated for the actor,
-    // in megabytes (APIFY_MEMORY_MBYTES)
-    memoryMbytes: Number,
-}
-```
+Returns a new [`ApifyEnv`](../typedefs/apifyenv) object which contains information parsed from all the `APIFY_XXX` environment variables.
 
 For the list of the `APIFY_XXX` environment variables, see <a href="https://docs.apify.com/actor/run#environment-variables" target="_blank">Actor
 documentation</a>. If some of the variables are not defined or are invalid, the corresponding value in the resulting object will be null.
@@ -513,24 +483,9 @@ For more information, see [`Apify.openKeyValueStore()`](#module_Apify.openKeyVal
 **Returns**: `Promise<Object>` - Returns a promise that resolves once the record is stored.  
 <a name="module_Apify.getMemoryInfo"></a>
 
-## `Apify.getMemoryInfo()` ⇒ `Promise<Object>`
+## `Apify.getMemoryInfo()` ⇒ [`Promise<MemoryInfo>`](../typedefs/memoryinfo)
 
-Returns memory statistics of the process and the system, which is an object with the following properties:
-
-```javascript
-{
-  // Total memory available in the system or container
-  totalBytes: Number,
-  // Amount of free memory in the system or container
-  freeBytes: Number,
-  // Amount of memory used (= totalBytes - freeBytes)
-  usedBytes: Number,
-  // Amount of memory used the current Node.js process
-  mainProcessBytes: Number,
-  // Amount of memory used by child processes of the current Node.js process
-  childProcessesBytes: Number,
-}
-```
+Returns memory statistics of the process and the system, see [`MemoryInfo`](../typedefs/memoryinfo).
 
 If the process runs inside of Docker, the `getMemoryInfo` gets container memory limits, otherwise it gets system memory limits.
 
@@ -731,7 +686,7 @@ the promise will be awaited. The user function is called with no arguments.</p>
 </table>
 <a name="module_Apify.metamorph"></a>
 
-## `Apify.metamorph(targetActorId, [input], [options])` ⇒ `Promise`
+## `Apify.metamorph(targetActorId, [input], [options])` ⇒ `Promise<void>`
 
 Transforms this actor run to an actor run of a given actor. The system stops the current container and starts the new container instead. All the
 default storages are preserved and the new input is stored under the `INPUT-METAMORPH-1` key in the same default key-value store.
@@ -888,7 +843,7 @@ const requestList = await Apify.openRequestList('my-name', sources);
 <p>  If <code>null</code>, the list will not be persisted and will only be stored in memory. Process restart
   will then cause the list to be crawled again from the beginning. We suggest always using a name.</p>
 </td></tr><tr>
-<td><code>sources</code></td><td><code>Array<Object&gt;</code> | <code>Array.&lt;string></code></td>
+<td><code>sources</code></td><td><code>Array<(Request|RequestOptions|string)></code></td>
 </tr>
 <tr>
 <td colspan="3"><p>An array of sources of URLs for the <code>RequestList</code>.
@@ -901,7 +856,7 @@ using <code>regex</code> parameter containing regular expression pattern for URL
 <p> For details, see the <a href="requestlist#new_RequestList_new"><code>RequestList</code></a>
  constructor options.</p>
 </td></tr><tr>
-<td><code>[options]</code></td><td><code>Object</code></td>
+<td><code>[options]</code></td><td><code><a href="../typedefs/requestlistoptions">RequestListOptions</a></code></td>
 </tr>
 <tr>
 <td colspan="3"><p>The <a href="requestlist#new_RequestList_new"><code>new RequestList</code></a> options. Note that the listName parameter supersedes
@@ -961,7 +916,7 @@ For more details and code examples, see the [`SessionPool`](sessionpool) class.
 </thead>
 <tbody>
 <tr>
-<td><code>sessionPoolOptions</code></td><td><code>Object</code></td>
+<td><code>sessionPoolOptions</code></td><td><code><a href="../typedefs/sessionpooloptions">SessionPoolOptions</a></code></td>
 </tr>
 <tr>
 <td colspan="3"><p>The <a href="sessionpool#new_SessionPool_new"><code>new SessionPool</code></a> options</p>

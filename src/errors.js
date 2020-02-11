@@ -1,3 +1,8 @@
+// TYPE IMPORTS
+/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
+import { ActorRun } from './typedefs';
+/* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
+
 export const APIFY_CALL_ERROR_NAME = 'ApifyCallError';
 
 /**

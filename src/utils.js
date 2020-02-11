@@ -1,24 +1,31 @@
-import contentTypeParser from 'content-type';
-import os from 'os';
-import _ from 'underscore';
-import fs from 'fs';
-import util from 'util';
-import fsExtra from 'fs-extra';
-import ApifyClient from 'apify-client';
 import psTree from '@apify/ps-tree';
-import requestPromise from 'request-promise-native';
-import cheerio from 'cheerio';
-import log from 'apify-shared/log';
-import semver from 'semver';
-import { getRandomInt } from 'apify-shared/utilities';
-import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
+import ApifyClient from 'apify-client';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { version as apifyClientVersion } from 'apify-client/package.json';
+import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
+import log from 'apify-shared/log';
+import { getRandomInt } from 'apify-shared/utilities';
+import cheerio from 'cheerio';
+import contentTypeParser from 'content-type';
+import fs from 'fs';
+import fsExtra from 'fs-extra';
 import mime from 'mime-types';
+import os from 'os';
 import path from 'path';
+import requestPromise from 'request-promise-native';
+import semver from 'semver';
+import _ from 'underscore';
 import { URL } from 'url';
-import { version as apifyVersion } from '../package.json';
+import util from 'util';
 import { USER_AGENT_LIST } from './constants';
+import { version as apifyVersion } from '../package.json';
+
+// TYPE IMPORTS
+/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
+import { IncomingMessage } from 'http';
+import { Response as PuppeteerResponse } from 'puppeteer';
+import { Cheerio } from './typedefs';
+/* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
  * Default regular expression to match URLs in a string that may be plain text, JSON, CSV or other. It supports common URL characters
@@ -83,6 +90,8 @@ export const logSystemInfo = () => {
  * target="_blank">`Apify.client.setOptions()`</a> function.
  * Beware that altering these settings might have unintended effects on the entire Apify SDK package.
  *
+ * @type {*}
+ *
  * @memberof module:Apify
  * @name client
  */
@@ -91,7 +100,7 @@ export const apifyClient = newClient();
 /**
  * Returns a result of `Promise.resolve()`.
  *
- * @returns {*}
+ * @returns {Promise<void>}
  *
  * @ignore
  */
@@ -139,7 +148,8 @@ const createIsDockerPromise = () => {
 /**
  * Returns a `Promise` that resolves to true if the code is running in a Docker container.
  *
- * @return {Promise}
+ * @param {boolean} forceReset
+ * @return {Promise<boolean>}
  *
  * @memberof utils
  * @name isDocker
@@ -155,7 +165,7 @@ export const isDocker = (forceReset) => {
 /**
  * Sums an array of numbers.
  *
- * @param {Array} arr An array of numbers.
+ * @param {Number[]} arr An array of numbers.
  * @return {Number} Sum of the numbers.
  *
  * @ignore
@@ -165,7 +175,7 @@ export const sum = arr => arr.reduce((total, c) => total + c, 0);
 /**
  * Computes an average of an array of numbers.
  *
- * @param {Array} arr An array of numbers.
+ * @param {Number[]} arr An array of numbers.
  * @return {Number} Average value.
  *
  * @ignore
@@ -175,8 +185,8 @@ export const avg = arr => sum(arr) / arr.length;
 /**
  * Computes a weighted average of an array of numbers, complemented by an array of weights.
  *
- * @param {Array} arrValues
- * @param {Array} arrWeights
+ * @param {Number[]} arrValues
+ * @param {Number[]} arrWeights
  * @return {Number}
  *
  * @ignore
@@ -193,22 +203,18 @@ export const weightedAvg = (arrValues, arrWeights) => {
 };
 
 /**
- * Returns memory statistics of the process and the system, which is an object with the following properties:
+ * Describes memory usage of an Actor.
  *
- * ```javascript
- * {
- *   // Total memory available in the system or container
- *   totalBytes: Number,
- *   // Amount of free memory in the system or container
- *   freeBytes: Number,
- *   // Amount of memory used (= totalBytes - freeBytes)
- *   usedBytes: Number,
- *   // Amount of memory used the current Node.js process
- *   mainProcessBytes: Number,
- *   // Amount of memory used by child processes of the current Node.js process
- *   childProcessesBytes: Number,
- * }
- * ```
+ * @typedef {Object} MemoryInfo
+ * @property {Number} totalBytes Total memory available in the system or container
+ * @property {Number} freeBytes Amount of free memory in the system or container
+ * @property {Number} usedBytes Amount of memory used (= totalBytes - freeBytes)
+ * @property {Number} mainProcessBytes Amount of memory used the current Node.js process
+ * @property {Number} childProcessesBytes Amount of memory used by child processes of the current Node.js process
+ */
+
+/**
+ * Returns memory statistics of the process and the system, see {@link MemoryInfo}.
  *
  * If the process runs inside of Docker, the `getMemoryInfo` gets container memory limits,
  * otherwise it gets system memory limits.
@@ -216,7 +222,7 @@ export const weightedAvg = (arrValues, arrWeights) => {
  * Beware that the function is quite inefficient because it spawns a new process.
  * Therefore you shouldn't call it too often, like more than once per second.
  *
- * @returns {Promise<Object>}
+ * @returns {Promise<MemoryInfo>}
  *
  * @memberof module:Apify
  * @name getMemoryInfo
@@ -383,7 +389,7 @@ export const isAtHome = () => !!process.env[ENV_VARS.IS_AT_HOME];
  * @param {Number} millis Period of time to sleep, in milliseconds. If not a positive number, the returned promise resolves immediately.
  * @memberof utils
  * @name sleep
- * @return {Promise}
+ * @return {Promise<void>}
  */
 export const sleep = (millis) => {
     return new Promise(res => setTimeout(res, millis));
@@ -521,7 +527,7 @@ const BLOCK_TAGS_REGEX = /^(p|h1|h2|h3|h4|h5|h6|ol|ul|li|pre|address|blockquote|
  * const html = '<html><body>Some text</body></html>';
  * const text = htmlToText(cheerio.load(html, { decodeEntities: true }));
  * ```
- * @param {String|Function} html HTML text or parsed HTML represented using a
+ * @param {String|Cheerio} html HTML text or parsed HTML represented using a
  * [cheerio](https://www.npmjs.com/package/cheerio) function.
  * @return {String} Plain text
  * @memberOf utils
@@ -529,6 +535,7 @@ const BLOCK_TAGS_REGEX = /^(p|h1|h2|h3|h4|h5|h6|ol|ul|li|pre|address|blockquote|
 const htmlToText = (html) => {
     if (!html) return '';
 
+    /** @type {Cheerio} */
     const $ = typeof html === 'function' ? html : cheerio.load(html, { decodeEntities: true });
     let text = '';
 
@@ -571,8 +578,8 @@ const htmlToText = (html) => {
 /**
  * Creates a standardized debug info from request and response. This info is usually added to dataset under the hidden `#debug` field.
  *
- * @param {Object} request [Apify.Request](https://sdk.apify.com/docs/api/request) object.
- * @param {Object} [response]
+ * @param {Request|RequestOptions} request [Apify.Request](https://sdk.apify.com/docs/api/request) object.
+ * @param {IncomingMessage|PuppeteerResponse} [response]
  *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&version=v1.11.0&show=api-class-response" target="_blank"><code>Response</code></a>
  *   or NodeJS <a href="https://nodejs.org/api/http.html#http_class_http_serverresponse" target="_blank"><code>http.ServerResponse</code></a>.
  * @param {Object} [additionalFields] Object containing additional fields to be added.
