@@ -2,7 +2,7 @@
  * The default user agent used by `Apify.launchPuppeteer`.
  * Last updated on 2018-12-30.
  */
-export const DEFAULT_USER_AGENT: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.79 Safari/537.36";
+export const DEFAULT_USER_AGENT: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.87 Safari/537.36";
 export namespace EXIT_CODES {
     export const SUCCESS: number;
     export const ERROR_USER_FUNCTION_THREW: number;

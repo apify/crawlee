@@ -34,7 +34,7 @@ declare function enqueueRequestsFromClickableElements(page: any, selector: any, 
 import { enqueueLinksByClickingElements } from "./enqueue_links/click_elements";
 declare function blockRequests(page: Page, options?: {
     urlPatterns?: string[];
-    extraUrlPatterns?: boolean;
+    extraUrlPatterns?: string[];
 }): Promise<any>;
 declare function blockResources(page: any, resourceTypes?: string[]): Promise<void>;
 declare function cacheResponses(page: Page, cache: any, responseUrlRules: (string | RegExp)[]): Promise<any>;

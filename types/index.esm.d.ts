@@ -66,7 +66,7 @@ declare const exportedUtils: {
         enqueueLinksByClickingElements: typeof import("./enqueue_links/click_elements").enqueueLinksByClickingElements;
         blockRequests: (page: import("puppeteer").Page, options?: {
             urlPatterns?: string[];
-            extraUrlPatterns?: boolean;
+            extraUrlPatterns?: string[];
         }) => Promise<any>;
         blockResources: (page: any, resourceTypes?: string[]) => Promise<void>;
         cacheResponses: (page: import("puppeteer").Page, cache: any, responseUrlRules: (string | RegExp)[]) => Promise<any>;
