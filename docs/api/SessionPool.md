@@ -6,7 +6,8 @@ title: SessionPool
 <a name="SessionPool"></a>
 
 Handles the sessions rotation, creation and persistence. Creates a pool of [`Session`](session) instances, that are randomly rotated. When some
-session is marked as blocked. It is removed and new one is created instead.
+session is marked as blocked. It is removed and new one is created instead. You can read more about session management
+[`here`](../guides/sessionmanagement).
 
 Session pool is by default persisted in default [`KeyValueStore`](keyvaluestore). If you want to have one pool for all runs you have to specify
 `persistStateKeyValueStoreId`.

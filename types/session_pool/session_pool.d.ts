@@ -17,6 +17,7 @@
  * Handles the sessions rotation, creation and persistence.
  * Creates a pool of {@link Session} instances, that are randomly rotated.
  * When some session is marked as blocked. It is removed and new one is created instead.
+ * You can read more about session management [`here`](../guides/sessionmanagement).
  *
  * Session pool is by default persisted in default {@link KeyValueStore}.
  * If you want to have one pool for all runs you have to specify `persistStateKeyValueStoreId`.
@@ -171,12 +172,12 @@ export class SessionPool extends EventEmitter {
     addListener(event: string | symbol, listener: (...args: any[]) => void): SessionPool;
     on(event: string | symbol, listener: (...args: any[]) => void): SessionPool;
     once(event: string | symbol, listener: (...args: any[]) => void): SessionPool;
-    prependListener(event: string | symbol, listener: (...args: any[]) => void): SessionPool;
-    prependOnceListener(event: string | symbol, listener: (...args: any[]) => void): SessionPool;
     removeListener(event: string | symbol, listener: (...args: any[]) => void): SessionPool;
     off(event: string | symbol, listener: (...args: any[]) => void): SessionPool;
     removeAllListeners(event?: string | symbol): SessionPool;
     setMaxListeners(n: number): SessionPool;
+    prependListener(event: string | symbol, listener: (...args: any[]) => void): SessionPool;
+    prependOnceListener(event: string | symbol, listener: (...args: any[]) => void): SessionPool;
 }
 export function openSessionPool(sessionPoolOptions: SessionPoolOptions): Promise<SessionPool>;
 /**
