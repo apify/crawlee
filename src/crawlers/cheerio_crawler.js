@@ -468,10 +468,9 @@ class CheerioCrawler {
                 return JSON.parse(jsonString);
             },
             get body() {
-                // TODO (JC): What's the point of generating body dynamically here from DOM?
-                //  If somebody changes the DOM using Cheerio, the body will change too... this is quite weird and unexpected.
-                //  Also, the body will loose formatting of the original HTML or XML document.
-                //  Why don't we just return the original string as we got it??? I don't see any reason why we shouldn't.
+                // NOTE: For XML/HTML documents, we don't store the original body and only reconstruct it from Cheerio's DOM.
+                // This is to save memory for high-concurrency crawls. The downside is that changes
+                // made to DOM are reflected in the HTML, but we can live with that...
                 if (dom) {
                     return isXml ? $.xml() : $.html({ decodeEntities: false });
                 }
