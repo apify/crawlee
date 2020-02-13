@@ -171,12 +171,12 @@ export class SessionPool extends EventEmitter {
     addListener(event: string | symbol, listener: (...args: any[]) => void): SessionPool;
     on(event: string | symbol, listener: (...args: any[]) => void): SessionPool;
     once(event: string | symbol, listener: (...args: any[]) => void): SessionPool;
-    prependListener(event: string | symbol, listener: (...args: any[]) => void): SessionPool;
-    prependOnceListener(event: string | symbol, listener: (...args: any[]) => void): SessionPool;
     removeListener(event: string | symbol, listener: (...args: any[]) => void): SessionPool;
     off(event: string | symbol, listener: (...args: any[]) => void): SessionPool;
     removeAllListeners(event?: string | symbol): SessionPool;
     setMaxListeners(n: number): SessionPool;
+    prependListener(event: string | symbol, listener: (...args: any[]) => void): SessionPool;
+    prependOnceListener(event: string | symbol, listener: (...args: any[]) => void): SessionPool;
 }
 export function openSessionPool(sessionPoolOptions: SessionPoolOptions): Promise<SessionPool>;
 /**

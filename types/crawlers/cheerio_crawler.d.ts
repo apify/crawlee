@@ -153,8 +153,8 @@ export type CheerioCrawlerOptions = {
     handleFailedRequestFunction?: HandleFailedRequest;
     /**
      * An array of <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types"
-     * target="_blank">mime types</a> you want to process.
-     * By default `text/html`, `application/xhtml+xml` mime types are supported.
+     * target="_blank">MIME types</a> you want the crawler to load and process.
+     * By default, only `text/html` and `application/xhtml+xml` MIME types are supported.
      */
     additionalMimeTypes?: string[];
     /**
@@ -372,8 +372,8 @@ export type CheerioHandlePage = (inputs: CheerioHandlePageInputs) => Promise<voi
  *   for the default implementation of this function.
  * @property {String[]} [additionalMimeTypes]
  *   An array of <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types"
- *   target="_blank">mime types</a> you want to process.
- *   By default `text/html`, `application/xhtml+xml` mime types are supported.
+ *   target="_blank">MIME types</a> you want the crawler to load and process.
+ *   By default, only `text/html` and `application/xhtml+xml` MIME types are supported.
  * @property {Number} [maxRequestRetries=3]
  *   Indicates how many times the request is retried if either `requestFunction` or `handlePageFunction` fails.
  * @property {Number} [maxRequestsPerCrawl]
