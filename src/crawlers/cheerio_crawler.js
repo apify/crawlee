@@ -465,6 +465,9 @@ class CheerioCrawler {
                 return JSON.parse(jsonString);
             },
             get body() {
+                // TODO (JC): What's the point of generating body dynamically here from DOM?
+                //  If somebody changes the DOM using Cheerio, the body will change too... this is quite weird and unexpected.
+                //  Why don't we just return the original string as we got it???
                 if (dom) {
                     return isXml ? $.xml() : $.html({ decodeEntities: false });
                 }
