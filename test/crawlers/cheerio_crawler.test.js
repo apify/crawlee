@@ -195,6 +195,7 @@ describe('CheerioCrawler', () => {
         await requestList.initialize();
         await cheerioCrawler.run();
 
+        expect(cheerioCrawler.autoscaledPool.minConcurrency).toBe(2);
         expect(processed).toHaveLength(6);
         expect(failed).toHaveLength(0);
 
