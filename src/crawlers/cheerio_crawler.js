@@ -460,6 +460,9 @@ class CheerioCrawler {
                 return dom && !isXml && $.html({ decodeEntities: false });
             },
             get json() {
+                // TODO (JC): The naming here is quite unfortunate. The returned thing here is not a JSON,
+                //  but an object parsed from a JSON... It would make more sense to return the object from
+                //  `body` property instead. We could have a separate property for original buffer (e.g. called `content`)
                 if (contentType.type !== 'application/json') return null;
                 const jsonString = body.toString(contentType.encoding);
                 return JSON.parse(jsonString);
