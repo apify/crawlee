@@ -66,23 +66,37 @@ const DEFAULT_OPTIONS = {
  *   loaded and parsed by the crawler.
  *
  *   The function receives the following object as an argument:
- * ```
+ * ```javascript
  * {
- *   $: Cheerio, // the Cheerio object with parsed HTML
- *   body: String|Buffer // the request body of the web page
- *   // the parsed object from JSON string
- *   // if the response contains the content type application/json
+ *   // The Cheerio object's function with the parsed HTML.
+ *   $: Cheerio,
+ *
+ *   // The request body of the web page, whose type depends on the content type.
+ *   body: String|Buffer,
+ *
+ *   // The parsed object from JSON for responses with the "application/json" content types.
+ *   // For other content types it's null.
  *   json: Object,
+ *
+ *   // Apify.Request object with details of the requested web page
  *   request: Request,
- *   contentType: Object, // Parsed Content-Type header: { type, encoding }
- *   response: Object // An instance of Node's http.IncomingMessage object,
+ *
+ *   // Parsed Content-Type HTTP header: { type, encoding }
+ *   contentType: Object,
+ *
+ *   // An instance of Node's http.IncomingMessage object,
+ *   response: Object,
+ *
+ *   // Underlying AutoscaledPool instance used to manage the concurrency of crawler
  *   autoscaledPool: AutoscaledPool,
+ *
+ *   // Session object, useful to work around anti-scraping protections
  *   session: Session
  * }
  * ```
- *   Type of `body` depends on web page `Content-Type` header.
- *   - String for `text/html`, `application/xhtml+xml`, `application/xml` mime types
- *   - Buffer for others mime types
+ *   Type of `body` depends on the `Content-Type` header of the web page:
+ *   - String for `text/html`, `application/xhtml+xml`, `application/xml` MIME content types
+ *   - Buffer for others MIME content types
  *
  *   Parsed `Content-Type` header using
  *   <a href="https://www.npmjs.com/package/content-type" target="_blank">content-type package</a>
@@ -109,8 +123,7 @@ const DEFAULT_OPTIONS = {
  *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
  *   Either `requestList` or `requestQueue` option must be provided (or both).
  * @property {RequestAsBrowserOptions} [requestOptions]
- *   Represents the options passed to
- *   <a href="https://www.npmjs.com/package/request" target="_blank">request</a> to make the HTTP call.
+ *   Represents the options passed to the {@link requestAsBrowser} function that makes the HTTP requests to fetch the web pages.
  *   Provided `requestOptions` are added to internal defaults that cannot be overridden to ensure
  *   the operation of `CheerioCrawler` and all its options. Headers will not be merged,
  *   use {@link RequestList} and/or {@link RequestQueue} to initialize your {@link Request} with the
@@ -248,9 +261,15 @@ const DEFAULT_OPTIONS = {
  *
  * The crawler finishes when there are no more {@link Request} objects to crawl.
  *
- * By default, `CheerioCrawler` downloads HTML using the
- * <a href="https://www.npmjs.com/package/request" target="_blank">request</a> NPM package.
- * You can use the `requestOptions` parameter to pass additional options to `request`.
+ * `CheerioCrawler` downloads the web pages using the {@link requestAsBrowser} utility function.
+ * You can use the `requestOptions` parameter to pass additional options to this function.
+ *
+ * By default, `CheerioCrawler` only processes web pages with the `text/html`
+ * and `application/xhtml+xml` MIME content types (as reported by the `Content-Type` HTTP header),
+ * and skips pages with other content types. If you want the crawler to process other content types,
+ * use the [`additionalMimeTypes`](#new_CheerioCrawler_new) constructor option.
+ * Beware that the parsing behavior differs for HTML, XML, JSON and other types of content.
+ * For details, see {@link CheerioCrawlerOptions#handlePageFunction}.
  *
  * New requests are only dispatched when there is enough free CPU and memory available,
  * using the functionality provided by the {@link AutoscaledPool} class.
@@ -441,11 +460,17 @@ class CheerioCrawler {
                 return dom && !isXml && $.html({ decodeEntities: false });
             },
             get json() {
+                // TODO (JC): The naming here is quite unfortunate. The returned thing here is not a JSON,
+                //  but an object parsed from a JSON... It would make more sense to return the object from
+                //  `body` property instead. We could have a separate property for original buffer (e.g. called `content`)
                 if (contentType.type !== 'application/json') return null;
                 const jsonString = body.toString(contentType.encoding);
                 return JSON.parse(jsonString);
             },
             get body() {
+                // NOTE: For XML/HTML documents, we don't store the original body and only reconstruct it from Cheerio's DOM.
+                // This is to save memory for high-concurrency crawls. The downside is that changes
+                // made to DOM are reflected in the HTML, but we can live with that...
                 if (dom) {
                     return isXml ? $.xml() : $.html({ decodeEntities: false });
                 }
