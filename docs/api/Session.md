@@ -20,9 +20,8 @@ user data for example some authorization tokens and specific headers in general.
     -   [`.getState()`](#Session+getState) ⇒ [`SessionState`](../typedefs/sessionstate)
     -   [`.retire()`](#Session+retire)
     -   [`.markBad()`](#Session+markBad)
-    -   [`.retireOnBlockedStatusCodes(statusCode, blockedStatusCodes)`](#Session+retireOnBlockedStatusCodes) ⇒ `boolean`
+    -   [`.retireOnBlockedStatusCodes(statusCode, [blockedStatusCodes])`](#Session+retireOnBlockedStatusCodes) ⇒ `boolean`
     -   [`.setCookiesFromResponse(response)`](#Session+setCookiesFromResponse)
-    -   [`.putPuppeteerCookies(puppeteerCookies, url)`](#Session+putPuppeteerCookies)
     -   [`.setPuppeteerCookies(cookies, url)`](#Session+setPuppeteerCookies)
     -   [`.getPuppeteerCookies(url)`](#Session+getPuppeteerCookies) ⇒ `Array<PuppeteerCookie>`
     -   [`.getCookieString(url)`](#Session+getCookieString) ⇒ `String`
@@ -106,9 +105,10 @@ Increases usage and error count. Should be used when the session has been used u
 
 <a name="Session+retireOnBlockedStatusCodes"></a>
 
-## `session.retireOnBlockedStatusCodes(statusCode, blockedStatusCodes)` ⇒ `boolean`
+## `session.retireOnBlockedStatusCodes(statusCode, [blockedStatusCodes])` ⇒ `boolean`
 
-Retires session based on status code.
+With certain status codes: `401`, `403` or `429` we can be certain that the target website is blocking us. This function helps to do this conveniently
+by retiring the session when such code is received. Optionally the default status codes can be extended in the second parameter.
 
 **Returns**: `boolean` - whether the session was retired.
 
@@ -125,7 +125,7 @@ Retires session based on status code.
 <tr>
 <td colspan="3"><p>HTTP status code</p>
 </td></tr><tr>
-<td><code>blockedStatusCodes</code></td><td><code>Array<Number></code></td>
+<td><code>[blockedStatusCodes]</code></td><td><code>Array<Number></code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Custom HTTP status codes that means blocking on particular website.</p>
@@ -135,7 +135,10 @@ Retires session based on status code.
 
 ## `session.setCookiesFromResponse(response)`
 
-Sets cookies from response to the cookieJar. Parses cookies from `set-cookie` header and sets them to `Session.cookieJar`.
+Saves cookies from an HTTP response to be used with the session. It expects an object with a `headers` property that's either an `Object` (typical
+Node.js responses) or a `Function` (Puppeteer Response).
+
+It then parses and saves the cookies from the `set-cookie` header, if available.
 
 <table>
 <thead>
@@ -150,37 +153,20 @@ Sets cookies from response to the cookieJar. Parses cookies from `set-cookie` he
 <tr>
 </tr></tbody>
 </table>
-<a name="Session+putPuppeteerCookies"></a>
-
-## `session.putPuppeteerCookies(puppeteerCookies, url)`
-
-Persists puppeteer cookies to session for reuse.
-
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>puppeteerCookies</code></td><td><code>PuppeteerCookie</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>cookie from puppeteer <code>page.cookies</code> method.</p>
-</td></tr><tr>
-<td><code>url</code></td><td><code>String</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Loaded url from page function.</p>
-</td></tr></tbody>
-</table>
 <a name="Session+setPuppeteerCookies"></a>
 
 ## `session.setPuppeteerCookies(cookies, url)`
 
-Set cookies to session cookieJar. Cookies array should be [puppeteer](https://pptr.dev/#?product=Puppeteer&version=v2.0.0&show=api-pagecookiesurls)
-cookie compatible.
+Saves an array with cookie objects to be used with the session. The objects should be in the format that
+[Puppeteer uses](https://pptr.dev/#?product=Puppeteer&version=v2.0.0&show=api-pagecookiesurls), but you can also use this function to set cookies
+manually:
+
+```
+[
+  { name: 'cookie1', value: 'my-cookie' },
+  { name: 'cookie2', value: 'your-cookie' }
+]
+```
 
 <table>
 <thead>
@@ -203,7 +189,7 @@ cookie compatible.
 
 ## `session.getPuppeteerCookies(url)` ⇒ `Array<PuppeteerCookie>`
 
-Gets cookies in puppeteer ready to be used with `page.setCookie`.
+Returns cookies in a format compatible with puppeteer and ready to be used with `page.setCookie`.
 
 <table>
 <thead>
@@ -223,7 +209,7 @@ Gets cookies in puppeteer ready to be used with `page.setCookie`.
 
 ## `session.getCookieString(url)` ⇒ `String`
 
-Wrapper around `tough-cookie` Cookie jar `getCookieString` method.
+Returns cookies saved with the session in the typical key1=value1; key2=value2 format, ready to be used in a cookie header or elsewhere.
 
 **Returns**: `String` - - represents `Cookie` header.
 
