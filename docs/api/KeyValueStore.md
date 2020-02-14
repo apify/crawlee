@@ -62,12 +62,34 @@ await store.drop();
 ```
 
 -   [KeyValueStore](keyvaluestore)
+    -   [`new exports.KeyValueStore(storeId, storeName)`](#new_KeyValueStore_new)
     -   [`.getValue(key)`](#KeyValueStore+getValue) ⇒ `Promise<(Object|String|Buffer)>`
-    -   [`.setValue(key, value, [options])`](#KeyValueStore+setValue) ⇒ `Promise`
-    -   [`.drop()`](#KeyValueStore+drop) ⇒ `Promise`
+    -   [`.setValue(key, value, [options])`](#KeyValueStore+setValue) ⇒ `Promise<void>`
+    -   [`.drop()`](#KeyValueStore+drop) ⇒ `Promise<void>`
     -   [`.getPublicUrl(key)`](#KeyValueStore+getPublicUrl) ⇒ `string`
-    -   [`.forEachKey(iteratee, [options])`](#KeyValueStore+forEachKey) ⇒ `Promise`
+    -   [`.forEachKey(iteratee, [options])`](#KeyValueStore+forEachKey) ⇒ `Promise<void>`
 
+<a name="new_KeyValueStore_new"></a>
+
+## `new exports.KeyValueStore(storeId, storeName)`
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>storeId</code></td><td><code>string</code></td>
+</tr>
+<tr>
+</tr><tr>
+<td><code>storeName</code></td><td><code>string</code></td>
+</tr>
+<tr>
+</tr></tbody>
+</table>
 <a name="KeyValueStore+getValue"></a>
 
 ## `keyValueStore.getValue(key)` ⇒ `Promise<(Object|String|Buffer)>`
@@ -110,7 +132,7 @@ const buffer = await store.getValue('screenshot1.png');
 </table>
 <a name="KeyValueStore+setValue"></a>
 
-## `keyValueStore.setValue(key, value, [options])` ⇒ `Promise`
+## `keyValueStore.setValue(key, value, [options])` ⇒ `Promise<void>`
 
 Saves or deletes a record in the key-value store. The function returns a promise that resolves once the record has been saved or deleted.
 
@@ -179,7 +201,7 @@ stored!
 </table>
 <a name="KeyValueStore+drop"></a>
 
-## `keyValueStore.drop()` ⇒ `Promise`
+## `keyValueStore.drop()` ⇒ `Promise<void>`
 
 Removes the key-value store either from the Apify cloud storage or from the local directory, depending on the mode of operation.
 
@@ -204,7 +226,7 @@ Returns a URL for the given key that may be used to publicly access the value in
 </table>
 <a name="KeyValueStore+forEachKey"></a>
 
-## `keyValueStore.forEachKey(iteratee, [options])` ⇒ `Promise`
+## `keyValueStore.forEachKey(iteratee, [options])` ⇒ `Promise<void>`
 
 Iterates over key value store keys, yielding each in turn to an `iteratee` function. Each invocation of `iteratee` is called with three arguments:
 `(key, index, info)`, where `key` is the record key, `index` is a zero-based index of the key in the current iteration (regardless of
@@ -230,7 +252,7 @@ await keyValueStore.forEachKey(async (key, index, info) => {
 </thead>
 <tbody>
 <tr>
-<td><code>iteratee</code></td><td><code>function</code></td>
+<td><code>iteratee</code></td><td><code><a href="../typedefs/keyconsumer">KeyConsumer</a></code></td>
 </tr>
 <tr>
 <td colspan="3"><p>A function that is called for every key in the key value store.</p>

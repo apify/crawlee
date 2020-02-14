@@ -119,6 +119,9 @@
       "guides/sessionmanagement": {
         "title": "Session Management"
       },
+      "guides/typescriptactor": {
+        "title": "Typescript Actors"
+      },
       "guides/whatisanactor": {
         "title": "What is an Actor"
       },
@@ -137,14 +140,128 @@
       "typedefs/apifycallerror": {
         "title": "ApifyCallError"
       },
+      "typedefs/apifyenv": {
+        "title": "ApifyEnv"
+      },
+      "typedefs/autoscaledpooloptions": {
+        "title": "AutoscaledPoolOptions"
+      },
+      "typedefs/basiccrawleroptions": {
+        "title": "BasicCrawlerOptions"
+      },
+      "typedefs/cheeriocrawleroptions": {
+        "title": "CheerioCrawlerOptions"
+      },
+      "typedefs/cheeriohandlepage": {
+        "title": "CheerioHandlePage"
+      },
+      "typedefs/cheeriohandlepageinputs": {
+        "title": "CheerioHandlePageInputs"
+      },
+      "typedefs/createsession": {
+        "title": "CreateSession"
+      },
+      "typedefs/datasetconsumer": {
+        "title": "DatasetConsumer"
+      },
+      "typedefs/datasetcontent": {
+        "title": "DatasetContent"
+      },
+      "typedefs/datasetmapper": {
+        "title": "DatasetMapper"
+      },
+      "typedefs/datasetreducer": {
+        "title": "DatasetReducer"
+      },
+      "typedefs/handlefailedrequest": {
+        "title": "HandleFailedRequest"
+      },
+      "typedefs/handlefailedrequestinput": {
+        "title": "HandleFailedRequestInput"
+      },
+      "typedefs/handlerequest": {
+        "title": "HandleRequest"
+      },
+      "typedefs/handlerequestinputs": {
+        "title": "HandleRequestInputs"
+      },
+      "typedefs/keyconsumer": {
+        "title": "KeyConsumer"
+      },
+      "typedefs/launchpuppeteer": {
+        "title": "LaunchPuppeteer"
+      },
       "typedefs/launchpuppeteeroptions": {
         "title": "LaunchPuppeteerOptions"
+      },
+      "typedefs/memoryinfo": {
+        "title": "MemoryInfo"
+      },
+      "typedefs/preparerequest": {
+        "title": "PrepareRequest"
+      },
+      "typedefs/preparerequestinputs": {
+        "title": "PrepareRequestInputs"
+      },
+      "typedefs/puppeteercrawleroptions": {
+        "title": "PuppeteerCrawlerOptions"
+      },
+      "typedefs/puppeteergoto": {
+        "title": "PuppeteerGoto"
+      },
+      "typedefs/puppeteergotoinputs": {
+        "title": "PuppeteerGotoInputs"
+      },
+      "typedefs/puppeteerhandlepage": {
+        "title": "PuppeteerHandlePage"
+      },
+      "typedefs/puppeteerhandlepageinputs": {
+        "title": "PuppeteerHandlePageInputs"
+      },
+      "typedefs/puppeteerpooloptions": {
+        "title": "PuppeteerPoolOptions"
       },
       "typedefs/queueoperationinfo": {
         "title": "QueueOperationInfo"
       },
+      "typedefs/requestasbrowseroptions": {
+        "title": "RequestAsBrowserOptions"
+      },
+      "typedefs/requestlistoptions": {
+        "title": "RequestListOptions"
+      },
+      "typedefs/requestliststate": {
+        "title": "RequestListState"
+      },
+      "typedefs/requestoptions": {
+        "title": "RequestOptions"
+      },
+      "typedefs/requesttransform": {
+        "title": "RequestTransform"
+      },
+      "typedefs/sessionoptions": {
+        "title": "SessionOptions"
+      },
+      "typedefs/sessionpooloptions": {
+        "title": "SessionPoolOptions"
+      },
+      "typedefs/sessionstate": {
+        "title": "SessionState"
+      },
+      "typedefs/snapshotteroptions": {
+        "title": "SnapshotterOptions"
+      },
+      "typedefs/socialhandles": {
+        "title": "SocialHandles"
+      },
       "typedefs/stealthoptions": {
         "title": "StealthOptions"
+      },
+      "typedefs/systeminfo": {
+        "title": "SystemInfo"
+      },
+      "typedefs/systemstatusoptions": {
+        "title": "SystemStatusOptions"
       }
     },
     "links": {
@@ -158,7 +275,14 @@
       "Reference": "Reference",
       "Examples": "Examples",
       "Autoscaling Tools": "Autoscaling Tools",
-      "Type Definitions": "Type Definitions"
+      "Type Definitions": "Type Definitions",
+      "Constructor Options": "Constructor Options",
+      "Crawler User-Functions": "Crawler User-Functions",
+      "Puppeteer User-Functions": "Puppeteer User-Functions",
+      "Dataset User-Functions": "Dataset User-Functions",
+      "KeyValueStore User-Functions": "KeyValueStore User-Functions",
+      "SessionPool User-Functions": "SessionPool User-Functions",
+      "Utility User-Functions": "Utility User-Functions"
     }
   },
   "pages-strings": {

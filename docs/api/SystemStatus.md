@@ -19,7 +19,7 @@ full snapshot history available in the [`Snapshotter`](snapshotter) instance.
 
 -   [SystemStatus](systemstatus)
     -   [`new SystemStatus([options])`](#new_SystemStatus_new)
-    -   [`.getCurrentStatus()`](#SystemStatus+getCurrentStatus) ⇒ `Object`
+    -   [`.getCurrentStatus()`](#SystemStatus+getCurrentStatus) ⇒ [`SystemInfo`](../typedefs/systeminfo)
     -   [`.getHistoricalStatus()`](#SystemStatus+getHistoricalStatus) ⇒ `Object`
 
 <a name="new_SystemStatus_new"></a>
@@ -29,53 +29,22 @@ full snapshot history available in the [`Snapshotter`](snapshotter) instance.
 <table>
 <thead>
 <tr>
-<th>Param</th><th>Type</th><th>Default</th>
+<th>Param</th><th>Type</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>[options]</code></td><td><code>Object</code></td><td></td>
+<td><code>[options]</code></td><td><code><a href="../typedefs/systemstatusoptions">SystemStatusOptions</a></code></td>
 </tr>
 <tr>
-<td colspan="3"><p>All <code>SystemStatus</code> parameters are passed
-  via an options object with the following keys:</p>
-</td></tr><tr>
-<td><code>[options.currentHistorySecs]</code></td><td><code>Number</code></td><td><code>5</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Defines max age of snapshots used in the
-  <a href="#SystemStatus+getCurrentStatus"><code>getCurrentStatus()</code></a> measurement.</p>
-</td></tr><tr>
-<td><code>[options.maxMemoryOverloadedRatio]</code></td><td><code>Number</code></td><td><code>0.2</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Sets the maximum ratio of overloaded snapshots in a memory sample.
-  If the sample exceeds this ratio, the system will be overloaded.</p>
-</td></tr><tr>
-<td><code>[options.maxEventLoopOverloadedRatio]</code></td><td><code>Number</code></td><td><code>0.2</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Sets the maximum ratio of overloaded snapshots in an event loop sample.
-  If the sample exceeds this ratio, the system will be overloaded.</p>
-</td></tr><tr>
-<td><code>[options.maxCpuOverloadedRatio]</code></td><td><code>Number</code></td><td><code>0.4</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Sets the maximum ratio of overloaded snapshots in a CPU sample.
-  If the sample exceeds this ratio, the system will be overloaded.</p>
-</td></tr><tr>
-<td><code>[options.maxClientOverloadedRatio]</code></td><td><code>Number</code></td><td><code>0.2</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Sets the maximum ratio of overloaded snapshots in a Client sample.
-  If the sample exceeds this ratio, the system will be overloaded.</p>
+<td colspan="3"><p>All <code>SystemStatus</code> configuration options.</p>
 </td></tr></tbody>
 </table>
 <a name="SystemStatus+getCurrentStatus"></a>
 
-## `systemStatus.getCurrentStatus()` ⇒ `Object`
+## `systemStatus.getCurrentStatus()` ⇒ [`SystemInfo`](../typedefs/systeminfo)
 
-Returns an object with the following structure:
+Returns an [`SystemInfo`](../typedefs/systeminfo) object with the following structure:
 
 ```javascript
 {
@@ -93,7 +62,7 @@ otherwise.
 
 ## `systemStatus.getHistoricalStatus()` ⇒ `Object`
 
-Returns an object with the following structure:
+Returns an [`SystemInfo`](../typedefs/systeminfo) object with the following structure:
 
 ```javascript
 {

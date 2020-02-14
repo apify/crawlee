@@ -32,7 +32,7 @@ const emails = Apify.utils.social.emailsFromText('alice@example.com bob@example.
     -   [`.emailsFromUrls(urls)`](#social.emailsFromUrls) ⇒ `Array<String>`
     -   [`.phonesFromText(text)`](#social.phonesFromText) ⇒ `Array<String>`
     -   [`.phonesFromUrls(urls)`](#social.phonesFromUrls) ⇒ `Array<String>`
-    -   [`.parseHandlesFromHtml(html, data)`](#social.parseHandlesFromHtml) ⇒ `*`
+    -   [`.parseHandlesFromHtml(html, data)`](#social.parseHandlesFromHtml) ⇒ [`SocialHandles`](../typedefs/socialhandles)
 
 <a name="social.LINKEDIN_REGEX"></a>
 
@@ -407,25 +407,10 @@ Finds phone number links in an array of URLs and extracts the phone numbers from
 </table>
 <a name="social.parseHandlesFromHtml"></a>
 
-## `social.parseHandlesFromHtml(html, data)` ⇒ `*`
+## `social.parseHandlesFromHtml(html, data)` ⇒ [`SocialHandles`](../typedefs/socialhandles)
 
 The function attempts to extract emails, phone numbers and social profile URLs from a HTML document, specifically LinkedIn, Twitter, Instagram and
 Facebook profile URLs. The function removes duplicates from the resulting arrays and sorts the items alphabetically.
-
-The result of the function is an object with the following structure:
-
-```
-{
-  emails: String[],
-  phones: String[],
-  phonesUncertain: String[],
-  linkedIns: String[],
-  twitters: String[],
-  instagrams: String[],
-  facebooks: String[],
-  youtubes: String[],
-}
-```
 
 Note that the `phones` field contains phone numbers extracted from the special phone links such as `<a href="tel:+1234556789">call us</a>` (see
 [`social.phonesFromUrls()`](#social.phonesFromUrls)]) and potentially other sources with high certainty, while `phonesUncertain` contains phone
@@ -446,7 +431,7 @@ console.log('Social handles:');
 console.dir(result);
 ```
 
-**Returns**: `*` - An object with the social handles.
+**Returns**: [`SocialHandles`](../typedefs/socialhandles) - An object with the social handles.
 
 <table>
 <thead>

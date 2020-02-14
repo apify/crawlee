@@ -76,7 +76,7 @@ if (purl.matches('http://www.example.com/pages/my-awesome-page')) console.log('M
   Using a <code>RegExp</code> instance enables more granular control,
   such as making the matching case sensitive.</p>
 </td></tr><tr>
-<td><code>requestTemplate</code></td><td><code>Object</code></td>
+<td><code>requestTemplate</code></td><td><code><a href="../typedefs/requestoptions">RequestOptions</a></code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Options for the new <a href="request"><code>Request</code></a> instances created for matching URLs

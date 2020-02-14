@@ -10,6 +10,11 @@ import { apifyClient, addCharsetToContentType, sleep, snakeCaseToCamelCase, isAt
 import { maybeStringify } from './key_value_store';
 import { ApifyCallError } from './errors';
 
+// TYPE IMPORTS
+/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
+import { ActorRun } from './typedefs';
+/* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
+
 const METAMORPH_AFTER_SLEEP_MILLIS = 300000;
 
 /**
@@ -92,47 +97,37 @@ const addInputOptionsOrThrow = (input, contentType, options) => {
 };
 
 /**
- * Returns a new object which contains information parsed from all the `APIFY_XXX` environment variables.
- * It has properties such as the following:
+ * Parsed representation of the `APIFY_XXX` environmental variables.
  *
- * ```javascript
- * {
- *     // ID of the actor (APIFY_ACTOR_ID)
- *     actorId: String,
- *     // ID of the actor run (APIFY_ACTOR_RUN_ID)
- *     actorRunId: String,
- *     // ID of the actor task (APIFY_ACTOR_TASK_ID)
- *     actorTaskId: String,
- *     // ID of the user who started the actor - note that it might be
- *     // different than the owner of the actor (APIFY_USER_ID)
- *     userId: String,
- *     // Authentication token representing privileges given to the actor run,
- *     // it can be passed to various Apify APIs (APIFY_TOKEN).
- *     token: String,
- *     // Date when the actor was started (APIFY_STARTED_AT)
- *     startedAt: Date,
- *     // Date when the actor will time out (APIFY_TIMEOUT_AT)
- *     timeoutAt: Date,
- *     // ID of the key-value store where input and output data of this
- *     // actor is stored (APIFY_DEFAULT_KEY_VALUE_STORE_ID)
- *     defaultKeyValueStoreId: String,
- *     // ID of the dataset where input and output data of this
- *     // actor is stored (APIFY_DEFAULT_DATASET_ID)
- *     defaultDatasetId: String,
- *     // Amount of memory allocated for the actor,
- *     // in megabytes (APIFY_MEMORY_MBYTES)
- *     memoryMbytes: Number,
- * }
- * ```
+ * @typedef {Object} ApifyEnv
+ * @property {String|null} actorId ID of the actor (APIFY_ACTOR_ID)
+ * @property {String|null} actorRunId ID of the actor run (APIFY_ACTOR_RUN_ID)
+ * @property {String|null} actorTaskId ID of the actor task (APIFY_ACTOR_TASK_ID)
+ * @property {String|null} userId ID of the user who started the actor - note that it might be
+ *   different than the owner ofthe actor (APIFY_USER_ID)
+ * @property {String|null} token Authentication token representing privileges given to the actor run,
+ *   it can be passed to various Apify APIs (APIFY_TOKEN)
+ * @property {Date|null} startedAt Date when the actor was started (APIFY_STARTED_AT)
+ * @property {Date|null} timeoutAt Date when the actor will time out (APIFY_TIMEOUT_AT)
+ * @property {String|null} defaultKeyValueStoreId ID of the key-value store where input and output data of this
+ *   actor is stored (APIFY_DEFAULT_KEY_VALUE_STORE_ID)
+ * @property {String|null} defaultDatasetId ID of the dataset where input and output data of this
+ *   actor is stored (APIFY_DEFAULT_DATASET_ID)
+ * @property {Number|null} memoryMbytes Amount of memory allocated for the actor,
+ *   in megabytes (APIFY_MEMORY_MBYTES)
+ */
+
+/**
+ * Returns a new {@link ApifyEnv} object which contains information parsed from all the `APIFY_XXX` environment variables.
+ *
  * For the list of the `APIFY_XXX` environment variables, see
  * <a href="https://docs.apify.com/actor/run#environment-variables" target="_blank">Actor documentation</a>.
  * If some of the variables are not defined or are invalid, the corresponding value in the resulting object will be null.
  *
- * @returns {Object}
- *
  * @memberof module:Apify
  * @function
  * @name getEnv
+ * @returns {ApifyEnv}
  */
 export const getEnv = () => {
     // NOTE: Don't throw if env vars are invalid to simplify local development and debugging of actors
@@ -567,7 +562,7 @@ export const callTask = async (taskId, input, options = {}) => {
  * @param {String} [options.build]
  *  Tag or number of the target actor build to metamorph into (e.g. `beta` or `1.2.345`).
  *  If not provided, the run uses build tag or number from the default actor run configuration (typically `latest`).
- * @returns {Promise}
+ * @returns {Promise<void>}
  *
  * @memberof module:Apify
  * @function
@@ -607,93 +602,6 @@ export const metamorph = async (targetActorId, input, options = {}) => {
     // NOTE: option.customAfterSleepMillis is used in tests
     await sleep(optionsCopy.customAfterSleepMillis || METAMORPH_AFTER_SLEEP_MILLIS);
 };
-
-/**
- * Represents information about an actor run, as returned by the
- * [`Apify.call()`](../api/apify#module_Apify.call) or [`Apify.callTask()`](../api/apify#module_Apify.callTask) function.
- * The object is almost equivalent to the JSON response
- * of the
- * <a href="https://apify.com/docs/api/v2#/reference/actors/run-collection/run-actor" target="_blank">Actor run</a>
- * Apify API endpoint and extended with certain fields.
- * For more details, see
- * <a href="https://docs.apify.com/actor/run" target="_blank">Runs.</a>
- *
- * @typedef {Object} ActorRun
- * @property {String} id
- *   Actor run ID
- * @property {String} actId
- *   Actor ID
- * @property {Date} startedAt
- *   Time when the actor run started
- * @property {Date} finishedAt
- *   Time when the actor run finished. Contains `null` for running actors.
- * @property {String} status
- *   Status of the run. For possible values, see
- *   <a href="https://docs.apify.com/actor/run#lifecycle" target="_blank">Run lifecycle</a>
- *   in Apify actor documentation.
- * @property {Object} meta
- *   Actor run meta-data. For example:
- *   ```
- *   {
- *     "origin": "API",
- *     "clientIp": "1.2.3.4",
- *     "userAgent": "ApifyClient/0.2.13 (Linux; Node/v8.11.3)"
- *   }
- *   ```
- * @property {Object} stats
- *   An object containing various actor run statistics. For example:
- *   ```
- *   {
- *     "inputBodyLen": 22,
- *     "restartCount": 0,
- *     "workersUsed": 1,
- *   }
- *   ```
- *   Beware that object fields might change in future releases.
- * @property {Object} options
- *   Actor run options. For example:
- *   ```
- *   {
- *     "build": "latest",
- *     "waitSecs": 0,
- *     "memoryMbytes": 256,
- *     "diskMbytes": 512
- *   }
- *   ```
- * @property {String} buildId
- *   ID of the actor build used for the run. For details, see
- *   <a href="https://docs.apify.com/actor/build" target="_blank">Builds</a>
- *   in Apify actor documentation.
- * @property {String} buildNumber
- *   Number of the actor build used for the run. For example, `0.0.10`.
- * @property {Number} exitCode
- *   Exit code of the actor run process. It's `null` if actor is still running.
- * @property {String} defaultKeyValueStoreId
- *   ID of the default key-value store associated with the actor run. See [`KeyValueStore`](../api/keyvaluestore) for details.
- * @property {String} defaultDatasetId
- *   ID of the default dataset associated with the actor run. See [`Dataset`](../api/dataset) for details.
- * @property {String} defaultRequestQueueId
- *   ID of the default request queue associated with the actor run. See [`RequestQueue`](../api/requestqueue) for details.
- * @property {String} containerUrl
- *   URL on which the web server running inside actor run's Docker container can be accessed.
- *   For more details, see
- *   <a href="https://docs.apify.com/actor/run#container-web-server" target="_blank">Container web server</a>
- *   in Apify actor documentation.
- * @property {Object} output
- *   Contains output of the actor run. The value is `null` or `undefined` in case the actor is still running,
- *   or if you pass `false` to the `fetchOutput` option of [`Apify.call()`](../api/apify#module_Apify.call).
- *
- *   For example:
- *   ```
- *   {
- *     "contentType": "application/json; charset=utf-8",
- *     "body": {
- *       "message": "Hello world!"
- *     }
- *   }
- *   ```
- */
-
 
 /**
  * Constructs an Apify Proxy URL using the specified settings.

@@ -2,9 +2,10 @@ import { URL } from 'url';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import log from 'apify-shared/log';
-import { RequestQueue, RequestQueueLocal } from '../request_queue';
+import { RequestQueue, RequestQueueLocal, QueueOperationInfo } from '../request_queue'; // eslint-disable-line import/named,no-unused-vars
 import { addInterceptRequestHandler, removeInterceptRequestHandler } from '../puppeteer_request_interception';
-import { constructPseudoUrlInstances, createRequests, addRequestsToQueueInBatches, createRequestOptions } from './shared';
+// eslint-disable-next-line import/named,no-unused-vars
+import { constructPseudoUrlInstances, createRequests, addRequestsToQueueInBatches, createRequestOptions, RequestTransform } from './shared';
 
 const STARTING_Z_INDEX = 2147400000;
 
@@ -73,9 +74,7 @@ const STARTING_Z_INDEX = 2147400000;
  *
  *   If `pseudoUrls` is an empty array, `null` or `undefined`, then the function
  *   enqueues all links found on the page.
- * @param {Function} [options.transformRequestFunction]
- *   **Signature:** ({@link Request}): {@link Request}
- *
+ * @param {RequestTransform} [options.transformRequestFunction]
  *   Just before a new {@link Request} is constructed and enqueued to the {@link RequestQueue}, this function can be used
  *   to remove it or modify its contents such as `userData`, `payload` or, most importantly `uniqueKey`. This is useful
  *   when you need to enqueue multiple `Requests` to the queue that share the same URL, but differ in methods or payloads,

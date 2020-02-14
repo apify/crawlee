@@ -7,7 +7,7 @@ import ListDictionary from 'apify-shared/list_dictionary';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, REQUEST_QUEUE_HEAD_MAX_LIMIT } from 'apify-shared/consts';
 import { checkParamPrototypeOrThrow, cryptoRandomObjectId } from 'apify-shared/utilities';
 import log from 'apify-shared/log';
-import Request from './request';
+import Request, { RequestOptions } from './request'; // eslint-disable-line import/named,no-unused-vars
 import { ensureDirExists, apifyClient, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists, sleep } from './utils';
 
 export const LOCAL_STORAGE_SUBDIR = LOCAL_STORAGE_SUBDIRS.requestQueues;
@@ -241,7 +241,7 @@ export class RequestQueue {
      * To add multiple requests to the queue by extracting links from a webpage,
      * see the [`Apify.utils.enqueueLinks()`](utils#utils.enqueueLinks) helper function.
      *
-     * @param {Request|Object} request {@link Request} object or vanilla object with request data.
+     * @param {Request|RequestOptions} request {@link Request} object or vanilla object with request data.
      * Note that the function sets the `uniqueKey` and `id` fields to the passed object.
      * @param {Object} [options]
      * @param {Boolean} [options.forefront=false] If `true`, the request will be added to the foremost position in the queue.

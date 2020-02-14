@@ -1,25 +1,32 @@
 {
     "compilerOptions": {
-        "target": "es2015",
+        "target": "es2018",
         "module": "commonjs",
         "moduleResolution": "node",
         "lib": [
-            "es2017",
+            "es2018",
             "dom"
         ],
         "types": [
-            "node"
+            "node",
+            "cheerio"
         ],
         "allowJs": true,
         "checkJs": false,
-        "noEmit": true,
-        "declaration": false,
+        "noEmit": false,
+        "declaration": true,
+        "emitDeclarationOnly": true,
         "strict": false,
         "noImplicitThis": true,
         "alwaysStrict": true,
-        "esModuleInterop": true
+        "esModuleInterop": true,
+        "outDir": "types/"
     },
     "include": [
+        "src/index.esm.js",
+        "src/utils_log.d.ts"
+    ],
+    "exclude": [
         "src/index.js"
     ]
 }
