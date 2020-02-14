@@ -13,24 +13,23 @@ import { Cookie as PuppeteerCookie } from 'puppeteer';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order,import/no-cycle */
 
 /**
- * Persistable {Session} state.
+ * Persistable {@link Session} state.
  * @typedef {Object} SessionState
- * @property {String} id
- * @property {Object} cookies
+ * @property {string} id
  * @property {Object} cookieJar
  * @property {Object} userData
- * @property {Number} maxErrorScore
- * @property {Number} errorScoreDecrement
- * @property {String} expiresAt
- * @property {String} createdAt
- * @property {Number} usageCount
- * @property {Number} errorScore
+ * @property {number} errorScore
+ * @property {number} maxErrorScore
+ * @property {number} errorScoreDecrement
+ * @property {number} usageCount
+ * @property {string} expiresAt
+ * @property {string} createdAt
  */
 
 /**
  * @typedef {Object} SessionOptions
- * @property {String} [id] - Id of session used for generating fingerprints. It is used as proxy session name.
- * @property {Number} [maxAgeSecs=3000] - Number of seconds after which the session is considered as expired.
+ * @property {string} [id] - Id of session used for generating fingerprints. It is used as proxy session name.
+ * @property {number} [maxAgeSecs=3000] - Number of seconds after which the session is considered as expired.
  * @property {Object} userData - Object where custom user data can be stored. For example custom headers.
  * @property {number} [maxErrorScore=3] - Maximum number of marking session as blocked usage.
  *   If the `errorScore` reaches the `maxErrorScore` session is marked as block and it is thrown away.
@@ -41,9 +40,9 @@ import { Cookie as PuppeteerCookie } from 'puppeteer';
  *   number.
  * @property {Date} [createdAt] - Date of creation.
  * @property {Date} [expiresAt] - Date of expiration.
- * @property {Number} [usageCount=0] - Indicates how many times the session has been used.
- * @property {Number} [errorCount=0] - Indicates how many times the session is marked bad.
- * @property {Number} [maxUsageCount=50] - Session should be used only a limited amount of times.
+ * @property {number} [usageCount=0] - Indicates how many times the session has been used.
+ * @property {number} [errorCount=0] - Indicates how many times the session is marked bad.
+ * @property {number} [maxUsageCount=50] - Session should be used only a limited amount of times.
  *   This number indicates how many times the session is going to be used, before it is thrown away.
  * @property {SessionPool} sessionPool - SessionPool instance. Session will emit the `sessionRetired` event on this instance.
  */
@@ -60,7 +59,6 @@ export class Session {
     constructor(options = {}) {
         const {
             id = `session_${cryptoRandomObjectId(10)}`,
-            cookies = [], // @TODO: Delete, deprecate or leave it as custom cookie persistance?
             cookieJar = new CookieJar(),
             maxAgeSecs = 3000,
             userData = {},
@@ -93,10 +91,12 @@ export class Session {
         }
 
         // Configurable
-        this.id = id;
-        this.cookies = cookies;
-        /** @type CookieJar */
+        /**
+         * @type CookieJar
+         * @private
+         * */
         this.cookieJar = cookieJar.setCookie ? cookieJar : CookieJar.fromJSON(JSON.stringify(cookieJar));
+        this.id = id;
         this.maxAgeSecs = maxAgeSecs;
         this.userData = userData;
         this.maxErrorScore = maxErrorScore;
@@ -209,8 +209,8 @@ export class Session {
      * that the target website is blocking us. This function helps to do this conveniently
      * by retiring the session when such code is received. Optionally the default status
      * codes can be extended in the second parameter.
-     * @param statusCode {Number} - HTTP status code
-     * @param [blockedStatusCodes] {Array<Number>} - Custom HTTP status codes that means blocking on particular website.
+     * @param statusCode {number} - HTTP status code
+     * @param [blockedStatusCodes] {number[]} - Custom HTTP status codes that means blocking on particular website.
      * @return {boolean} whether the session was retired.
      */
     retireOnBlockedStatusCodes(statusCode, blockedStatusCodes = []) {
@@ -254,7 +254,7 @@ export class Session {
      * ```
      *
      * @param cookies {PuppeteerCookie[]}
-     * @param url {String}
+     * @param url {string}
      */
     setPuppeteerCookies(cookies, url) {
         try {
@@ -280,8 +280,8 @@ export class Session {
      * Returns cookies saved with the session in the typical
      * key1=value1; key2=value2 format, ready to be used in
      * a cookie header or elsewhere.
-     * @param {String} url
-     * @return {String} - represents `Cookie` header.
+     * @param {string} url
+     * @return {string} - represents `Cookie` header.
      */
     getCookieString(url) {
         return this.cookieJar.getCookieStringSync(url, {});
@@ -327,7 +327,7 @@ export class Session {
     /**
      * Sets cookies.
      * @param {Cookie[]} cookies
-     * @param {String} url
+     * @param {string} url
      * @private
      */
     _setCookies(cookies, url) {

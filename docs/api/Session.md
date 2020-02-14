@@ -11,7 +11,6 @@ user data for example some authorization tokens and specific headers in general.
 
 -   [Session](session)
     -   [`new exports.Session(options)`](#new_Session_new)
-    -   [`.cookieJar`](#Session+cookieJar) : `CookieJar`
     -   [`.isBlocked()`](#Session+isBlocked) ⇒ `boolean`
     -   [`.isExpired()`](#Session+isExpired) ⇒ `boolean`
     -   [`.isMaxUsageCountReached()`](#Session+isMaxUsageCountReached) ⇒ `boolean`
@@ -24,7 +23,7 @@ user data for example some authorization tokens and specific headers in general.
     -   [`.setCookiesFromResponse(response)`](#Session+setCookiesFromResponse)
     -   [`.setPuppeteerCookies(cookies, url)`](#Session+setPuppeteerCookies)
     -   [`.getPuppeteerCookies(url)`](#Session+getPuppeteerCookies) ⇒ `Array<PuppeteerCookie>`
-    -   [`.getCookieString(url)`](#Session+getCookieString) ⇒ `String`
+    -   [`.getCookieString(url)`](#Session+getCookieString) ⇒ `string`
 
 <a name="new_Session_new"></a>
 
@@ -45,10 +44,6 @@ Session configuration.
 <tr>
 </tr></tbody>
 </table>
-<a name="Session+cookieJar"></a>
-
-## `session.cookieJar` : `CookieJar`
-
 <a name="Session+isBlocked"></a>
 
 ## `session.isBlocked()` ⇒ `boolean`
@@ -120,12 +115,12 @@ by retiring the session when such code is received. Optionally the default statu
 </thead>
 <tbody>
 <tr>
-<td><code>statusCode</code></td><td><code>Number</code></td>
+<td><code>statusCode</code></td><td><code>number</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>HTTP status code</p>
 </td></tr><tr>
-<td><code>[blockedStatusCodes]</code></td><td><code>Array<Number></code></td>
+<td><code>[blockedStatusCodes]</code></td><td><code>Array<number></code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Custom HTTP status codes that means blocking on particular website.</p>
@@ -180,7 +175,7 @@ manually:
 </tr>
 <tr>
 </tr><tr>
-<td><code>url</code></td><td><code>String</code></td>
+<td><code>url</code></td><td><code>string</code></td>
 </tr>
 <tr>
 </tr></tbody>
@@ -207,11 +202,11 @@ Returns cookies in a format compatible with puppeteer and ready to be used with 
 </table>
 <a name="Session+getCookieString"></a>
 
-## `session.getCookieString(url)` ⇒ `String`
+## `session.getCookieString(url)` ⇒ `string`
 
 Returns cookies saved with the session in the typical key1=value1; key2=value2 format, ready to be used in a cookie header or elsewhere.
 
-**Returns**: `String` - - represents `Cookie` header.
+**Returns**: `string` - - represents `Cookie` header.
 
 <table>
 <thead>
@@ -221,7 +216,7 @@ Returns cookies saved with the session in the typical key1=value1; key2=value2 f
 </thead>
 <tbody>
 <tr>
-<td><code>url</code></td><td><code>String</code></td>
+<td><code>url</code></td><td><code>string</code></td>
 </tr>
 <tr>
 </tr></tbody>
