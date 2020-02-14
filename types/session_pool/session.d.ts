@@ -106,66 +106,78 @@ export class Session {
      */
     markBad(): void;
     /**
-     * Retires session based on status code.
+     * With certain status codes: `401`, `403` or `429` we can be certain
+     * that the target website is blocking us. This function helps to do this conveniently
+     * by retiring the session when such code is received. Optionally the default status
+     * codes can be extended in the second parameter.
      * @param statusCode {Number} - HTTP status code
-     * @param blockedStatusCodes {Array<Number>} - Custom HTTP status codes that means blocking on particular website.
+     * @param [blockedStatusCodes] {Array<Number>} - Custom HTTP status codes that means blocking on particular website.
      * @return {boolean} whether the session was retired.
      */
     retireOnBlockedStatusCodes(statusCode: number, blockedStatusCodes?: number[]): boolean;
     /**
-     * Sets cookies from response to the cookieJar.
-     * Parses cookies from `set-cookie` header and sets them to `Session.cookieJar`.
+     * Saves cookies from an HTTP response to be used with the session.
+     * It expects an object with a `headers` property that's either an `Object`
+     * (typical Node.js responses) or a `Function` (Puppeteer Response).
+     *
+     * It then parses and saves the cookies from the `set-cookie` header, if available.
      * @param {{ headers }} response
      */
     setCookiesFromResponse(response: {
         headers: any;
     }): void;
     /**
-     * Persists puppeteer cookies to session for reuse.
-     * @param {PuppeteerCookie} puppeteerCookies - cookie from puppeteer `page.cookies` method.
-     * @param {String} url - Loaded url from page function.
-     */
-    putPuppeteerCookies(puppeteerCookies: PuppeteerCookie, url: string): void;
-    /**
-     * Set cookies to session cookieJar.
-     * Cookies array should be [puppeteer](https://pptr.dev/#?product=Puppeteer&version=v2.0.0&show=api-pagecookiesurls) cookie compatible.
+     * Saves an array with cookie objects to be used with the session.
+     * The objects should be in the format that
+     * [Puppeteer uses](https://pptr.dev/#?product=Puppeteer&version=v2.0.0&show=api-pagecookiesurls),
+     * but you can also use this function to set cookies manually:
+     *
+     * ```
+     * [
+     *   { name: 'cookie1', value: 'my-cookie' },
+     *   { name: 'cookie2', value: 'your-cookie' }
+     * ]
+     * ```
+     *
      * @param cookies {PuppeteerCookie[]}
      * @param url {String}
      */
     setPuppeteerCookies(cookies: PuppeteerCookie[], url: string): void;
     /**
-     * Gets cookies in puppeteer ready to be used with `page.setCookie`.
+     * Returns cookies in a format compatible with puppeteer and ready to be used with `page.setCookie`.
      * @param url {String} - website url. Only cookies stored for this url will be returned
      * @return {PuppeteerCookie[]}
      */
     getPuppeteerCookies(url: string): PuppeteerCookie[];
     /**
-     * Wrapper around `tough-cookie` Cookie jar `getCookieString` method.
+     * Returns cookies saved with the session in the typical
+     * key1=value1; key2=value2 format, ready to be used in
+     * a cookie header or elsewhere.
      * @param {String} url
      * @return {String} - represents `Cookie` header.
      */
     getCookieString(url: string): string;
     /**
-     *  Transforms puppeteer cookie to tough-cookie.
+     * Transforms puppeteer cookie to tough-cookie.
      * @param puppeteerCookie {PuppeteerCookie} - Cookie from puppeteer `page.cookies method.
      * @return {Cookie}
      * @private
      */
     _puppeteerCookieToTough(puppeteerCookie: PuppeteerCookie): Cookie;
     /**
-     *  Transforms tough-cookie cookie to puppeteer Cookie .
-     * @param {Cookie} toughCookie - Cookie from CookieJar.
-     * @return {PuppeteerCookie} - puppeteer cookie
+     * Transforms tough-cookie to puppeteer cookie .
+     * @param {Cookie} toughCookie - Cookie from CookieJar
+     * @return {PuppeteerCookie} - Cookie from Puppeteer
      * @private
      */
     _toughCookieToPuppeteer(toughCookie: Cookie): PuppeteerCookie;
     /**
      * Sets cookies.
-     * @param {Cookie} cookies
+     * @param {Cookie[]} cookies
      * @param {String} url
      * @private
      */
-    _setCookies(cookies: Cookie, url: string): void;
+    _setCookies(cookies: Cookie[], url: string): void;
 }
 /**
  * Persistable {Session} state.
