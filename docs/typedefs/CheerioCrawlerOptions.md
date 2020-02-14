@@ -164,8 +164,8 @@ The exceptions are logged to the request using the
 </tr>
 <tr>
 <td colspan="3"><p>An array of <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types"
-  target="_blank">mime types</a> you want to process.
-  By default <code>text/html</code>, <code>application/xhtml+xml</code> mime types are supported.</p>
+  target="_blank">MIME types</a> you want the crawler to load and process.
+  By default, only <code>text/html</code> and <code>application/xhtml+xml</code> MIME types are supported.</p>
 </td></tr><tr>
 <td><code>[maxRequestRetries]</code></td><td><code>Number</code></td><td><code>3</code></td>
 </tr>

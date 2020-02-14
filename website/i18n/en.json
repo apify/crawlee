@@ -119,11 +119,11 @@
       "guides/sessionmanagement": {
         "title": "Session Management"
       },
-      "guides/whatisanactor": {
-        "title": "What is an Actor"
-      },
       "guides/typescriptactor": {
         "title": "Typescript Actors"
+      },
+      "guides/whatisanactor": {
+        "title": "What is an Actor"
       },
       "readme/introduction": {
         "title": "readme/introduction"
@@ -157,6 +157,9 @@
       },
       "typedefs/cheeriohandlepageinputs": {
         "title": "CheerioHandlePageInputs"
+      },
+      "typedefs/createsession": {
+        "title": "CreateSession"
       },
       "typedefs/datasetconsumer": {
         "title": "DatasetConsumer"
@@ -278,6 +281,7 @@
       "Puppeteer User-Functions": "Puppeteer User-Functions",
       "Dataset User-Functions": "Dataset User-Functions",
       "KeyValueStore User-Functions": "KeyValueStore User-Functions",
+      "SessionPool User-Functions": "SessionPool User-Functions",
       "Utility User-Functions": "Utility User-Functions"
     }
   },

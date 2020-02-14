@@ -15,12 +15,12 @@ title: SessionOptions
 </thead>
 <tbody>
 <tr>
-<td><code>[id]</code></td><td><code>String</code></td><td></td>
+<td><code>[id]</code></td><td><code>string</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>Id of session used for generating fingerprints. It is used as proxy session name.</p>
 </td></tr><tr>
-<td><code>[maxAgeSecs]</code></td><td><code>Number</code></td><td><code>3000</code></td>
+<td><code>[maxAgeSecs]</code></td><td><code>number</code></td><td><code>3000</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Number of seconds after which the session is considered as expired.</p>
@@ -55,17 +55,17 @@ title: SessionOptions
 <tr>
 <td colspan="3"><p>Date of expiration.</p>
 </td></tr><tr>
-<td><code>[usageCount]</code></td><td><code>Number</code></td><td><code>0</code></td>
+<td><code>[usageCount]</code></td><td><code>number</code></td><td><code>0</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Indicates how many times the session has been used.</p>
 </td></tr><tr>
-<td><code>[errorCount]</code></td><td><code>Number</code></td><td><code>0</code></td>
+<td><code>[errorCount]</code></td><td><code>number</code></td><td><code>0</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Indicates how many times the session is marked bad.</p>
 </td></tr><tr>
-<td><code>[maxUsageCount]</code></td><td><code>Number</code></td><td><code>50</code></td>
+<td><code>[maxUsageCount]</code></td><td><code>number</code></td><td><code>50</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Session should be used only a limited amount of times.
