@@ -54,6 +54,27 @@ const crawler = new Apify.BasicCrawler({
 await crawler.run();
 ```
 
+**Properties**
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>autoscaledPool</code></td><td><code><a href="autoscaledpool">AutoscaledPool</a></code></td>
+</tr>
+<tr>
+<td colspan="3"><p>A reference to the underlying <a href="autoscaledpool"><code>AutoscaledPool</code></a> class that manages the concurrency of the crawler.
+ Note that this property is only initialized after calling the <a href="#BasicCrawler+run"><code>run</code></a> function.
+ You can use it to change the concurrency settings on the fly,
+ to pause the crawler by calling <a href="#AutoscaledPool+pause"><code>pause</code></a>
+ or to abort it by calling <a href="#AutoscaledPool+abort"><code>abort</code></a>.</p>
+</td></tr></tbody>
+</table>
+
 -   [BasicCrawler](basiccrawler)
     -   [`new BasicCrawler(options)`](#new_BasicCrawler_new)
     -   [`.run()`](#BasicCrawler+run) ⇒ `Promise<void>`

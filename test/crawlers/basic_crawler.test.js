@@ -51,6 +51,7 @@ describe('BasicCrawler', () => {
         await requestList.initialize();
         await basicCrawler.run();
 
+        expect(basicCrawler.autoscaledPool.minConcurrency).toBe(25);
         expect(processed).toEqual(sources);
         expect(await requestList.isFinished()).toBe(true);
         expect(await requestList.isEmpty()).toBe(true);
