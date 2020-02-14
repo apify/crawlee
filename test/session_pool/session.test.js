@@ -99,7 +99,6 @@ describe('Session - testing session behaviour ', () => {
         const state = session.getState();
 
         expect(state.id).toBeDefined();
-        expect(state.cookies).toBeDefined();
         expect(state.cookieJar).toBeDefined();
         expect(state.userData).toBeDefined();
         expect(state.maxErrorScore).toBeDefined();
