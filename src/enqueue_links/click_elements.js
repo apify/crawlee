@@ -5,7 +5,7 @@ import log from 'apify-shared/log';
 import { RequestQueue, RequestQueueLocal, QueueOperationInfo } from '../request_queue'; // eslint-disable-line import/named,no-unused-vars
 import { addInterceptRequestHandler, removeInterceptRequestHandler } from '../puppeteer_request_interception';
 /* eslint-disable import/named,no-unused-vars,import/order */
-import { Page, Request as PuppeteerRequest } from 'puppeteer';
+import { Page, Request as PuppeteerRequest, Target } from 'puppeteer';
 import {
     constructPseudoUrlInstances,
     createRequests,
@@ -61,13 +61,13 @@ const STARTING_Z_INDEX = 2147400000;
  *   ],
  * });
  * ```
- *
+ * @template {Object} UserData
  * @param {Object} options
  *   All `enqueueLinksByClickingElements()` parameters are passed
  *   via an options object with the following keys:
  * @param {Page} options.page
  *   Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
- * @param {RequestQueue} options.requestQueue
+ * @param {RequestQueue<UserData>} options.requestQueue
  *   A request queue to which the URLs will be enqueued.
  * @param {string} options.selector
  *   A CSS selector matching elements to be clicked on. Unlike in {@link utils#enqueueLinks}, there is no default
@@ -119,7 +119,7 @@ const STARTING_Z_INDEX = 2147400000;
  *   This is the maximum period for which the function will keep tracking events, even if more events keep coming.
  *   Its purpose is to prevent a deadlock in the page by periodic events, often unrelated to the clicking itself.
  *   See `waitForPageIdleSecs` above for an explanation.
- * @return {Promise<QueueOperationInfo[]>}
+ * @return {Promise<QueueOperationInfo<UserData>[]>}
  *   Promise that resolves to an array of {@link QueueOperationInfo} objects.
  * @memberOf puppeteer
  * @name enqueueLinksByClickingElements
@@ -209,7 +209,7 @@ export async function clickElementsAndInterceptNavigationRequests(options) {
 
 /**
  * @param {Page} page
- * @param {Set} requests
+ * @param {Set<*>} requests
  * @return {Function}
  * @ignore
  */
@@ -245,7 +245,7 @@ function isTopFrameNavigationRequest(page, req) {
 
 /**
  * @param {Page} page
- * @param {Set} requests
+ * @param {Set<*>} requests
  * @return {Function}
  * @ignore
  */
@@ -280,7 +280,7 @@ export function isTargetRelevant(page, target) {
 
 /**
  * @param {Page} page
- * @param {Set} requests
+ * @param {Set<*>} requests
  * @return {Function}
  * @ignore
  */
@@ -294,7 +294,7 @@ function createFrameNavigatedHandler(page, requests) {
 
 /**
  * @param {Page} page
- * @return {Promise}
+ * @return {Promise<*>}
  * @ignore
  */
 async function preventHistoryNavigation(page) {
@@ -328,7 +328,7 @@ async function preventHistoryNavigation(page) {
  *
  * @param {Page} page
  * @param {string} selector
- * @return {Promise}
+ * @return {Promise<void>}
  * @ignore
  */
 export async function clickElements(page, selector) {
@@ -390,7 +390,7 @@ function updateElementCssToEnableMouseClick(el, zIndex) {
  * @param {Page} options.page
  * @param {number} options.waitForPageIdleMillis
  * @param {number} options.maxWaitForPageIdleMillis
- * @return {Promise}
+ * @return {Promise<void>}
  * @ignore
  */
 async function waitForPageIdle({ page, waitForPageIdleMillis, maxWaitForPageIdleMillis }) {
@@ -433,8 +433,8 @@ async function waitForPageIdle({ page, waitForPageIdleMillis, maxWaitForPageIdle
 
 /**
  * @param {Page} page
- * @param {Set} requests
- * @return {Promise}
+ * @param {Set<*>} requests
+ * @return {Promise<void>}
  * @ignore
  */
 async function restoreHistoryNavigationAndSaveCapturedUrls(page, requests) {

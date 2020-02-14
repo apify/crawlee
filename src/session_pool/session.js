@@ -232,7 +232,8 @@ export class Session {
      * (typical Node.js responses) or a `Function` (Puppeteer Response).
      *
      * It then parses and saves the cookies from the `set-cookie` header, if available.
-     * @param {{ headers }} response
+
+     * @param {{ headers: Object, url: string }} response
      */
     setCookiesFromResponse(response) {
         try {
@@ -258,8 +259,8 @@ export class Session {
      * ]
      * ```
      *
-     * @param cookies {PuppeteerCookie[]}
-     * @param url {string}
+     * @param {PuppeteerCookie[]} cookies
+     * @param {string} url
      */
     setPuppeteerCookies(cookies, url) {
         try {
@@ -272,7 +273,7 @@ export class Session {
 
     /**
      * Returns cookies in a format compatible with puppeteer and ready to be used with `page.setCookie`.
-     * @param url {String} - website url. Only cookies stored for this url will be returned
+     * @param {string} url website url. Only cookies stored for this url will be returned
      * @return {PuppeteerCookie[]}
      */
     getPuppeteerCookies(url) {
@@ -292,10 +293,9 @@ export class Session {
         return this.cookieJar.getCookieStringSync(url, {});
     }
 
-
     /**
      * Transforms puppeteer cookie to tough-cookie.
-     * @param puppeteerCookie {PuppeteerCookie} - Cookie from puppeteer `page.cookies method.
+     * @param {PuppeteerCookie} puppeteerCookie Cookie from puppeteer `page.cookies method.
      * @return {Cookie}
      * @private
      */

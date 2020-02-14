@@ -8,7 +8,7 @@ import { CookieParseError } from './errors';
 
 /**
  * @param {(IncomingMessage|PuppeteerResponse)} response
- * @return {undefined|Array}
+ * @return {undefined|Array<*>}
  */
 export const getCookiesFromResponse = (response) => {
     const headers = typeof response.headers === 'function' ? response.headers() : response.headers;

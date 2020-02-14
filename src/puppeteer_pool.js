@@ -1,11 +1,11 @@
 import * as _ from 'underscore';
-import fs from 'fs';
-import os from 'os';
-import path from 'path';
-import util from 'util';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import * as util from 'util';
 import log from 'apify-shared/log';
 import LinkedList from 'apify-shared/linked_list';
-import rimraf from 'rimraf';
+import * as rimraf from 'rimraf';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 /* eslint-disable no-unused-vars,import/named */
 import { Page, Browser } from 'puppeteer';
@@ -641,7 +641,7 @@ class PuppeteerPool {
     /**
      * Finds a PuppeteerInstance given a Puppeteer Browser running in the instance.
      * @param {Browser} browser
-     * @return {Promise}
+     * @return {Promise<*>}
      * @ignore
      */
     async _findInstanceByBrowser(browser) {
@@ -709,7 +709,7 @@ class PuppeteerPool {
     /**
      * Tells the connected LiveViewServer to serve a snapshot when available.
      *
-     * @param page
+     * @param {Page} page
      * @return {Promise<void>}
      */
     async serveLiveViewSnapshot(page) {

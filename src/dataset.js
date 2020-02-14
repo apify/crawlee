@@ -1,6 +1,6 @@
-import path from 'path';
+import * as path from 'path';
 import { promisify } from 'util';
-import fs from 'fs-extra';
+import * as fs from 'fs-extra';
 import * as _ from 'underscore';
 import { leftpad } from 'apify-shared/utilities';
 import LruCache from 'apify-shared/lru_cache';

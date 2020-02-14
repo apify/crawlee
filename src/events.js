@@ -1,5 +1,5 @@
-import EventEmitter from 'events';
-import WebSocket from 'ws';
+import * as EventEmitter from 'events';
+import * as WebSocket from 'ws';
 import log from 'apify-shared/log';
 import { ENV_VARS, ACTOR_EVENT_NAMES } from 'apify-shared/consts';
 import { ACTOR_EVENT_NAMES_EX } from './constants';

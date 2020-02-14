@@ -4,6 +4,10 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import PseudoUrl from '../pseudo_url';
 import Request from '../request';
 
+// TYPES IMPORT
+/* eslint-disable import/order,no-unused-vars */
+import { RequestQueue, QueueOperationInfo } from 'src/request_queue';
+/* eslint-enable */
 
 const MAX_ENQUEUE_LINKS_CACHE_SIZE = 1000;
 
@@ -17,8 +21,8 @@ const enqueueLinksPseudoUrlCache = new Map();
 
 /**
  * Helper factory used in the `enqueueLinks()` and enqueueLinksByClickingElements() function.
- * @param {string[]|Object[]} pseudoUrls
- * @return {PseudoUrl[]}
+ * @param {(string|Object)[]} pseudoUrls
+ * @return {PseudoUrl<*>[]}
  * @ignore
  */
 export function constructPseudoUrlInstances(pseudoUrls) {
@@ -46,9 +50,9 @@ export function constructPseudoUrlInstances(pseudoUrls) {
     });
 }
 /**
- * @param {string[]|Object[]} requestOptions
- * @param {PseudoUrl[]} pseudoUrls
- * @return {Request[]}
+ * @param {(string|Object)[]} requestOptions
+ * @param {PseudoUrl<*>[]} pseudoUrls
+ * @return {Request<*>[]}
  * @ignore
  */
 export function createRequests(requestOptions, pseudoUrls) {
@@ -69,7 +73,7 @@ export function createRequests(requestOptions, pseudoUrls) {
 }
 
 /**
- * @param {string[]|Object[]} sources
+ * @param {(string|Object)[]} sources
  * @param {Object} [userData]
  * @ignore
  */
@@ -90,10 +94,10 @@ export function createRequestOptions(sources, userData = {}) {
 }
 
 /**
- * @param {Request[]} requests
- * @param {RequestQueue} requestQueue
+ * @param {Request<*>[]} requests
+ * @param {RequestQueue<*>} requestQueue
  * @param {number} batchSize
- * @return {Promise<QueueOperationInfo[]>}
+ * @return {Promise<QueueOperationInfo<*>[]>}
  * @ignore
  */
 export async function addRequestsToQueueInBatches(requests, requestQueue, batchSize = 5) {

@@ -5,7 +5,7 @@ import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import * as _ from 'underscore';
 import AutoscaledPool from '../autoscaling/autoscaled_pool'; // eslint-disable-line import/no-duplicates
 import { RequestList } from '../request_list';
-import { RequestQueue, RequestQueueLocal } from '../request_queue';
+import { RequestQueue, RequestQueueLocal } from '../request_queue'; // eslint-disable-line import/no-duplicates
 import events from '../events';
 import { openSessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
 import Statistics from './statistics';
@@ -15,6 +15,7 @@ import { addTimeoutToPromise } from '../utils';
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
 import { AutoscaledPoolOptions } from '../autoscaling/autoscaled_pool';
 import Request from '../request';
+import { QueueOperationInfo } from '../request_queue';
 import { Session } from '../session_pool/session';
 import { SessionPoolOptions } from '../session_pool/session_pool';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
@@ -459,9 +460,9 @@ class BasicCrawler {
     /**
      * Handles errors thrown by user provided handleRequestFunction()
      * @param {Error} error
-     * @param {Request} request
-     * @param {RequestList|RequestQueue} source
-     * @return {Promise<boolean>} willBeRetried
+     * @param {Request<*>} request
+     * @param {(RequestList|RequestQueue<*>)} source
+     * @return {Promise<boolean|void|QueueOperationInfo<*>>} willBeRetried
      * @ignore
      */
     async _requestFunctionErrorHandler(error, request, source) {

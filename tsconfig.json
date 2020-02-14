@@ -10,24 +10,25 @@
             "ES2018.AsyncIterable"
         ],
         "allowJs": true,
-        "checkJs": false,
+        "checkJs": true,
         "noEmit": false,
         "newLine": "lf",
         "declaration": true,
-        "emitDeclarationOnly": true,
+        "emitDeclarationOnly": false,
         "strict": true,
         "noImplicitAny": true,
+        "noImplicitReturns": true,
         "noImplicitThis": true,
         "alwaysStrict": true,
         "noStrictGenericChecks": true,
         "strictNullChecks": true,
         "allowSyntheticDefaultImports": false,
         "esModuleInterop": false,
-        "outDir": "types/",
-        "baseUrl": "./"
+        "declarationDir": "types/",
+        "outDir": "build/"
     },
     "include": [
-        "./types-apify/apify-shared/log.d.ts",
+        "./types-apify/**/*.d.ts",
         "./src/index.esm.js",
     ],
     "exclude": [

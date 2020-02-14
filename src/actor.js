@@ -1,4 +1,4 @@
-import path from 'path';
+import * as path from 'path';
 import * as _ from 'underscore';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';

@@ -5,18 +5,18 @@ import { version as apifyClientVersion } from 'apify-client/package.json';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import log from 'apify-shared/log';
 import { getRandomInt } from 'apify-shared/utilities';
-import cheerio from 'cheerio';
-import contentTypeParser from 'content-type';
-import fs from 'fs';
-import fsExtra from 'fs-extra';
-import mime from 'mime-types';
-import os from 'os';
-import path from 'path';
-import requestPromise from 'request-promise-native';
-import semver from 'semver';
+import * as cheerio from 'cheerio';
+import * as contentTypeParser from 'content-type';
+import * as fs from 'fs';
+import * as fsExtra from 'fs-extra';
+import * as mime from 'mime-types';
+import * as os from 'os';
+import * as path from 'path';
+import * as requestPromise from 'request-promise-native';
+import * as semver from 'semver';
 import * as _ from 'underscore';
 import { URL } from 'url';
-import util from 'util';
+import * as util from 'util';
 import { USER_AGENT_LIST } from './constants';
 import { version as apifyVersion } from '../package.json';
 
@@ -24,6 +24,7 @@ import { version as apifyVersion } from '../package.json';
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
 import { IncomingMessage } from 'http';
 import { Response as PuppeteerResponse } from 'puppeteer';
+import { RequestOptions } from './request';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
@@ -89,7 +90,7 @@ export const logSystemInfo = () => {
  * target="_blank">`Apify.client.setOptions()`</a> function.
  * Beware that altering these settings might have unintended effects on the entire Apify SDK package.
  *
- * @type {object}
+ * @type {*}
  *
  * @memberof module:Apify
  * @name client
@@ -527,7 +528,7 @@ const BLOCK_TAGS_REGEX = /^(p|h1|h2|h3|h4|h5|h6|ol|ul|li|pre|address|blockquote|
  * const html = '<html><body>Some text</body></html>';
  * const text = htmlToText(cheerio.load(html, { decodeEntities: true }));
  * ```
- * @param {string|CheerioSelector} html HTML text or parsed HTML represented using a
+ * @param {(string|CheerioSelector)} html HTML text or parsed HTML represented using a
  * [cheerio](https://www.npmjs.com/package/cheerio) function.
  * @return {string} Plain text
  * @memberOf utils
@@ -587,8 +588,8 @@ const htmlToText = (html) => {
 /**
  * Creates a standardized debug info from request and response. This info is usually added to dataset under the hidden `#debug` field.
  *
- * @param {Request|RequestOptions} request [Apify.Request](https://sdk.apify.com/docs/api/request) object.
- * @param {IncomingMessage|PuppeteerResponse} [response]
+ * @param {(Request|RequestOptions<*>)} request [Apify.Request](https://sdk.apify.com/docs/api/request) object.
+ * @param {(IncomingMessage|PuppeteerResponse)} [response]
  *   Puppeteer [`Response`](https://pptr.dev/#?product=Puppeteer&version=v1.11.0&show=api-class-response)
  *   or NodeJS [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_serverresponse).
  * @param {Object} [additionalFields] Object containing additional fields to be added.
@@ -650,7 +651,7 @@ export const printOutdatedSdkWarning = () => {
 
 /**
  * Gets parsed content type from response object
- * @param {Object} response - HTTP response object
+ * @param {IncomingMessage} response - HTTP response object
  * @return {{ type: string, charset: string }}
  * @ignore
  */

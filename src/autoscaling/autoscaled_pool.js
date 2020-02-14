@@ -281,7 +281,7 @@ class AutoscaledPool {
      * Runs the auto-scaled pool. Returns a promise that gets resolved or rejected once
      * all the tasks are finished or one of them fails.
      *
-     * @return {Promise}
+     * @return {Promise<void>}
      */
     async run() {
         this.poolPromise = new Promise((resolve, reject) => {
@@ -318,7 +318,7 @@ class AutoscaledPool {
      * their state after the invocation of `.abort()`, but that does not mean that some
      * parts of their asynchronous chains of commands will not execute.
      *
-     * @return {Promise}
+     * @return {Promise<void>}
      */
     async abort() {
         this.isStopped = true;
@@ -340,7 +340,7 @@ class AutoscaledPool {
      * when `.pause()` is invoked (unlike abort, which resolves it).
      *
      * @param {number} [timeoutSecs]
-     * @return {Promise}
+     * @return {Promise<void>}
      */
     async pause(timeoutSecs) {
         if (this.isStopped) return;

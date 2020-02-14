@@ -2,12 +2,12 @@
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { readStreamToString, concatStreamToBuffer } from 'apify-shared/streams_utilities';
-import cheerio from 'cheerio';
-import contentTypeParser from 'content-type';
-import htmlparser from 'htmlparser2';
+import * as cheerio from 'cheerio';
+import * as contentTypeParser from 'content-type';
+import * as htmlparser from 'htmlparser2';
 import * as iconv from 'iconv-lite';
 import * as _ from 'underscore';
-import util from 'util';
+import * as util from 'util';
 import { getApifyProxyUrl } from '../actor';
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { TimeoutError } from '../errors';
@@ -20,7 +20,7 @@ import BasicCrawler from './basic_crawler'; // eslint-disable-line import/no-dup
 import { IncomingMessage } from 'http';
 import AutoscaledPool, { AutoscaledPoolOptions } from '../autoscaling/autoscaled_pool';
 import { HandleFailedRequest } from './basic_crawler';
-import Request, { RequestOptions } from '../request';
+import Request from '../request';
 import { RequestList } from '../request_list';
 import { RequestQueue } from '../request_queue';
 import { Session } from '../session_pool/session';
@@ -46,7 +46,7 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  * @template RequestUserData
  * @template SessionUserData
  * @typedef CheerioCrawlerOptions
- * @property {CheerioHandlePage} handlePageFunction
+ * @property {CheerioHandlePage<RequestUserData, SessionUserData>} handlePageFunction
  *   User-provided function that performs the logic of the crawler. It is called for each page
  *   loaded and parsed by the crawler.
  *
@@ -127,7 +127,7 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *       proxy,     // Use useApifyProxy or proxyUrls
  *   }
  *   ```
- * @property {PrepareRequest} [prepareRequestFunction]
+ * @property {PrepareRequest<RequestUserData>} [prepareRequestFunction]
  *   A function that executes before the HTTP request is made to the target resource.
  *   This function is suitable for setting dynamic properties such as cookies to the {@link Request}.
  *
@@ -425,9 +425,9 @@ class CheerioCrawler {
      * Wrapper around handlePageFunction that opens and closes pages etc.
      *
      * @param {Object} options
-     * @param {Request} options.request
+     * @param {Request<*>} options.request
      * @param {AutoscaledPool} options.autoscaledPool
-     * @param {Session} options.session
+     * @param {Session<*>} options.session
      * @ignore
      */
     async _handleRequestFunction({ request, autoscaledPool, session }) {
@@ -490,8 +490,8 @@ class CheerioCrawler {
      * received content type matches text/html, application/xml, application/xhtml+xml.
      *
      * @param {Object} options
-     * @param {Request} options.request
-     * @param {Session} options.session
+     * @param {Request<*>} options.request
+     * @param {Session<*>} options.session
      * @ignore
      */
     async _requestFunction({ request, session }) {
@@ -546,8 +546,8 @@ class CheerioCrawler {
 
     /**
      * Combines the provided `requestOptions` with mandatory (non-overridable) values.
-     * @param {Request} request
-     * @param {Session} [session]
+     * @param {Request<*>} request
+     * @param {Session<*>} [session]
      * @ignore
      */
     _getRequestOptions(request, session) {
@@ -587,7 +587,7 @@ class CheerioCrawler {
     /**
      * Enables the use of a proxy by returning a proxy URL
      * based on configured options or null if no proxy is used.
-     * @param {Session} [session]
+     * @param {Session<*>} [session]
      * @returns {string|null}
      * @ignore
      */
@@ -656,7 +656,7 @@ class CheerioCrawler {
 
     /**
      * Handles blocked request
-     * @param {Session} session
+     * @param {Session<*>} session
      * @param {number} statusCode
      * @private
      */
@@ -670,7 +670,7 @@ class CheerioCrawler {
 
     /**
      * Handles timeout request
-     * @param {Session} session
+     * @param {Session<*>} session
      * @private
      */
     _handleRequestTimeout(session) {

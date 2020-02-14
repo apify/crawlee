@@ -3,12 +3,6 @@ import * as _ from 'underscore';
 import Snapshotter from './snapshotter'; // eslint-disable-line import/no-duplicates
 import { weightedAvg } from '../utils';
 
-// TYPE IMPORTS
-/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
-import { SnapshotterOptions } from './snapshotter';
-/* eslint-anable no-unused-vars,import/named,import/no-duplicates,import/order */
-
-
 const DEFAULT_OPTIONS = {
     currentHistorySecs: 5,
     maxMemoryOverloadedRatio: 0.2,
@@ -206,8 +200,8 @@ class SystemStatus {
     /**
      * Returns an object with an isOverloaded property set to true
      * if the client has been overloaded in the last sampleDurationMillis.
-     * @param sampleDurationMillis
-     * @return {{isOverloaded, maxOverloadedRatio, actualRatio}}
+     * @param {number} sampleDurationMillis
+     * @return {{isOverloaded: boolean, maxOverloadedRatio: number, actualRatio: number}}
      * @private
      */
     _isClientOverloaded(sampleDurationMillis) {
@@ -219,7 +213,7 @@ class SystemStatus {
      * Returns an object with sample information and an isOverloaded property
      * set to true if at least the ratio of snapshots in the sample are overloaded.
      *
-     * @param {Array} sample
+     * @param {Array<*>} sample
      * @param {number} ratio
      * @return {object}
      * @ignore

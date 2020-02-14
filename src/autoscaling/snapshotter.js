@@ -1,4 +1,4 @@
-import os from 'os';
+import * as os from 'os';
 import * as _ from 'underscore';
 import { betterSetInterval, betterClearInterval } from 'apify-shared/utilities';
 import log from 'apify-shared/log';
@@ -138,7 +138,7 @@ class Snapshotter {
 
     /**
      * Starts capturing snapshots at configured intervals.
-     * @return {Promise}
+     * @return {Promise<void>}
      */
     async start() {
         await this._ensureCorrectMaxMemory();
@@ -174,7 +174,7 @@ class Snapshotter {
      * Returns a sample of latest memory snapshots, with the size of the sample defined
      * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
      * @param {number} [sampleDurationMillis]
-     * @return {Array}
+     * @return {Array<*>}
      */
     getMemorySample(sampleDurationMillis) {
         return this._getSample(this.memorySnapshots, sampleDurationMillis);
@@ -184,7 +184,7 @@ class Snapshotter {
      * Returns a sample of latest event loop snapshots, with the size of the sample defined
      * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
      * @param {number} [sampleDurationMillis]
-     * @return {Array}
+     * @return {Array<*>}
      */
     getEventLoopSample(sampleDurationMillis) {
         return this._getSample(this.eventLoopSnapshots, sampleDurationMillis);
@@ -194,7 +194,7 @@ class Snapshotter {
      * Returns a sample of latest CPU snapshots, with the size of the sample defined
      * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
      * @param {number} [sampleDurationMillis]
-     * @return {Array}
+     * @return {Array<*>}
      */
     getCpuSample(sampleDurationMillis) {
         return this._getSample(this.cpuSnapshots, sampleDurationMillis);
@@ -204,7 +204,7 @@ class Snapshotter {
      * Returns a sample of latest Client snapshots, with the size of the sample defined
      * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
      * @param {number} sampleDurationMillis
-     * @return {Array}
+     * @return {Array<*>}
      */
     getClientSample(sampleDurationMillis) {
         return this._getSample(this.clientSnapshots, sampleDurationMillis);
@@ -212,9 +212,9 @@ class Snapshotter {
 
     /**
      * Finds the latest snapshots by sampleDurationMillis in the provided array.
-     * @param {Array} snapshots
+     * @param {Array<*>} snapshots
      * @param {number} [sampleDurationMillis]
-     * @return {Array}
+     * @return {Array<*>}
      * @ignore
      */
     _getSample(snapshots, sampleDurationMillis) { // eslint-disable-line class-methods-use-this
@@ -257,7 +257,7 @@ class Snapshotter {
      * Creates a snapshot of current memory usage
      * using the Apify platform `systemInfo` event.
      * @param {Function} intervalCallback
-     * @return {Promise}
+     * @return {Promise<void>}
      * @ignore
      */
     async _snapshotMemoryOnLocal(intervalCallback) {
@@ -285,7 +285,7 @@ class Snapshotter {
     /**
      * Checks for critical memory overload and logs it to the console.
      * @ignore
-     * @param {object} systemInfo
+     * @param {Object} systemInfo
      */
     _memoryOverloadWarning({ memCurrentBytes }) {
         const now = new Date();
@@ -433,7 +433,7 @@ class Snapshotter {
     /**
      * Removes snapshots that are older than the snapshotHistorySecs option
      * from the array (destructively - in place).
-     * @param {Array} snapshots
+     * @param {Array<*>} snapshots
      * @param {Date} now
      * @ignore
      */

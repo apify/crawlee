@@ -25,7 +25,7 @@ declare namespace ApifyLog {
         warning(message: string, data?: any): void;
         info(message: string, data?: any): void;
         debug(message: string, data?: any): void;
-        perf(message: string, data: any): void;
+        perf(message: string, data?: any): void;
         /**
          * Logs given message only once as WARNING. It's used to warn user that some feature he is using
          * has been deprecated.

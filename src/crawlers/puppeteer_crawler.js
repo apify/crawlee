@@ -325,7 +325,7 @@ class PuppeteerCrawler {
      * Wrapper around handlePageFunction that opens and closes pages etc.
      *
      * @param {Object} options
-     * @param {Request} options.request
+     * @param {Request<*>} options.request
      * @param {AutoscaledPool} options.autoscaledPool
      * @ignore
      */
@@ -369,7 +369,7 @@ class PuppeteerCrawler {
     /**
      * @param {Object} options
      * @param {PuppeteerPage} options.page
-     * @param {Request} options.request
+     * @param {Request<*>} options.request
      * @return {Promise<PuppeteerResponse>}
      * @ignore
      */
@@ -380,7 +380,7 @@ class PuppeteerCrawler {
     /**
      * @param {Object} options
      * @param {Error} options.error
-     * @param {Request} options.request
+     * @param {Request<*>} options.request
      * @return {Promise<void>}
      * @ignore
      */

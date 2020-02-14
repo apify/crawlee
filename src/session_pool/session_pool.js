@@ -1,4 +1,4 @@
-import EventEmitter from 'events';
+import * as EventEmitter from 'events';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 
@@ -212,7 +212,7 @@ export class SessionPool extends EventEmitter {
 
     /**
      * Removes `Session` instance from `SessionPool`.
-     * @param session {Session} - Session to be removed
+     * @param {Session<*>} session  - Session to be removed
      * @private
      */
     _removeSession(session) {
@@ -224,7 +224,7 @@ export class SessionPool extends EventEmitter {
 
     /**
      * Adds `Session` instance to `SessionPool`.
-     * @param {Session} newSession `Session` instance to be added.
+     * @param {Session<*>} newSession `Session` instance to be added.
      * @private
      */
     _addSession(newSession) {
@@ -242,8 +242,8 @@ export class SessionPool extends EventEmitter {
 
     /**
      * Creates new session without any extra behavior.
-     * @param sessionPool
-     * @return {Session} - New session.
+     * @param {SessionPool<*>} sessionPool
+     * @return {Session<*>} - New session.
      * @private
      */
     _defaultCreateSessionFunction(sessionPool) {
@@ -255,7 +255,7 @@ export class SessionPool extends EventEmitter {
 
     /**
      * Creates new session and adds it to the pool.
-     * @return {Promise<Session>} - Newly created `Session` instance.
+     * @return {Promise<Session<*>>} - Newly created `Session` instance.
      * @private
      */
     async _createSession() {

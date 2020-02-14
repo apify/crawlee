@@ -102,7 +102,7 @@ const parsePurl = (purl) => {
  */
 class PseudoUrl {
     /**
-     * @param {string|RegExp} purl
+     * @param {(string|RegExp)} purl
      *   A pseudo-URL string or a regular expression object.
      *   Using a `RegExp` instance enables more granular control,
      *   such as making the matching case sensitive.
