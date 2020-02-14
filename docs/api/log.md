@@ -41,6 +41,12 @@ try {
 } catch (e) {
   log.exception(e, 'Exception occurred', { errorDetails: 'This is really bad!' }); // prints message
 }
+
+log.setOptions({ prefix: 'My actor' });
+log.info('I am running!'); // prints "My actor: I am running"
+
+const childLog = log.child({ prefix: 'Crawler' });
+log.info('I am crawling!'); // prints "My actor:Crawler: I am crawling"
 ```
 
 Another very useful way of setting the log level is by setting the `APIFY_LOG_LEVEL` environment variable, such as `APIFY_LOG_LEVEL=DEBUG`. This way,
@@ -50,6 +56,9 @@ no code changes are necessary to turn on your debug messages and start debugging
     -   [`.LEVELS`](#log.LEVELS) : `Object`
     -   [`.setLevel(level)`](#log.setLevel)
     -   [`.getLevel()`](#log.getLevel)
+    -   [`.setOptions(options)`](#log.setOptions)
+    -   [`.child([options])`](#log.child)
+    -   [`.getOptions()`](#log.getOptions) ⇒ [`LoggerOptions`](../typedefs/loggeroptions)
     -   [`.debug(message, [data])`](#log.debug)
     -   [`.info(message, [data])`](#log.info)
     -   [`.warning(message, [data])`](#log.warning)
@@ -96,6 +105,51 @@ Default log level is INFO.
 Returns the currently selected logging level. This is useful for checking whether a message will actually be printed to the console before one
 actually performs a resource intensive operation to construct the message, such as querying a DB for some metadata that need to be added. If the log
 level is not high enough at the moment, it doesn't make sense to execute the query.
+
+<a name="log.setOptions"></a>
+
+## `log.setOptions(options)`
+
+Configures logger.
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>options</code></td><td><code><a href="../typedefs/loggeroptions">LoggerOptions</a></code></td>
+</tr>
+<tr>
+</tr></tbody>
+</table>
+<a name="log.child"></a>
+
+## `log.child([options])`
+
+Creates a new instance of logger that inherits settings from a parent logger.
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>[options]</code></td><td><code>object</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Supports the same options as the <code>setOptions()</code> method.</p>
+</td></tr></tbody>
+</table>
+<a name="log.getOptions"></a>
+
+## `log.getOptions()` ⇒ [`LoggerOptions`](../typedefs/loggeroptions)
+
+Returns the logger configuration.
 
 <a name="log.debug"></a>
 
