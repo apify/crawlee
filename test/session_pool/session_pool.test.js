@@ -96,7 +96,6 @@ describe('SessionPool - testing session pool', () => {
             const session = await sessionPool.getSession();
             expect(sessionPool.sessions.length).toBe(1);
             expect(session.id).toBeDefined(); // eslint-disable-line
-            expect(session.cookies.length).toBe(0);
             expect(session.maxAgeSecs).toEqual(sessionPool.sessionOptions.maxAgeSecs);
             expect(session.maxAgeSecs).toEqual(sessionPool.sessionOptions.maxAgeSecs);
             expect(session.sessionPool).toEqual(sessionPool);

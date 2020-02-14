@@ -5,7 +5,7 @@ title: SessionState
 
 <a name="SessionState"></a>
 
-Persistable {Session} state.
+Persistable [`Session`](session) state.
 
 **Properties**
 
@@ -17,11 +17,7 @@ Persistable {Session} state.
 </thead>
 <tbody>
 <tr>
-<td><code>id</code></td><td><code>String</code></td>
-</tr>
-<tr>
-</tr><tr>
-<td><code>cookies</code></td><td><code>Object</code></td>
+<td><code>id</code></td><td><code>string</code></td>
 </tr>
 <tr>
 </tr><tr>
@@ -33,27 +29,27 @@ Persistable {Session} state.
 </tr>
 <tr>
 </tr><tr>
-<td><code>maxErrorScore</code></td><td><code>Number</code></td>
+<td><code>errorScore</code></td><td><code>number</code></td>
 </tr>
 <tr>
 </tr><tr>
-<td><code>errorScoreDecrement</code></td><td><code>Number</code></td>
+<td><code>maxErrorScore</code></td><td><code>number</code></td>
 </tr>
 <tr>
 </tr><tr>
-<td><code>expiresAt</code></td><td><code>String</code></td>
+<td><code>errorScoreDecrement</code></td><td><code>number</code></td>
 </tr>
 <tr>
 </tr><tr>
-<td><code>createdAt</code></td><td><code>String</code></td>
+<td><code>usageCount</code></td><td><code>number</code></td>
 </tr>
 <tr>
 </tr><tr>
-<td><code>usageCount</code></td><td><code>Number</code></td>
+<td><code>expiresAt</code></td><td><code>string</code></td>
 </tr>
 <tr>
 </tr><tr>
-<td><code>errorScore</code></td><td><code>Number</code></td>
+<td><code>createdAt</code></td><td><code>string</code></td>
 </tr>
 <tr>
 </tr></tbody>
