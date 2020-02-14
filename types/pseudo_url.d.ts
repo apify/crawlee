@@ -48,25 +48,26 @@ export default PseudoUrl;
  *
  * if (purl.matches('http://www.example.com/pages/my-awesome-page')) console.log('Match!');
  * ```
+ * @template UserData
  */
-declare class PseudoUrl {
+declare class PseudoUrl<UserData> {
     /**
-     * @param {String|RegExp} purl
+     * @param {string|RegExp} purl
      *   A pseudo-URL string or a regular expression object.
      *   Using a `RegExp` instance enables more granular control,
      *   such as making the matching case sensitive.
-     * @param {RequestOptions} requestTemplate
+     * @param {RequestOptions<UserData>} requestTemplate
      *   Options for the new {@link Request} instances created for matching URLs
      *   by the {@link utils#enqueueLinks} function.
      */
-    constructor(purl: string | RegExp, requestTemplate?: any);
+    constructor(purl: string | RegExp, requestTemplate?: RequestOptions<UserData>);
     regex: RegExp;
-    requestTemplate: any;
+    requestTemplate: RequestOptions<UserData>;
     /**
      * Determines whether a URL matches this pseudo-URL pattern.
      *
-     * @param {String} url URL to be matched.
-     * @return {Boolean} Returns `true` if given URL matches pseudo-URL.
+     * @param {string} url URL to be matched.
+     * @return {boolean} Returns `true` if given URL matches pseudo-URL.
      */
     matches(url: string): boolean;
     /**
@@ -76,9 +77,10 @@ declare class PseudoUrl {
      * be merged together, with the `userData` property having preference over the template.
      * This enables dynamic overriding of the template.
      *
-     * @param {string|Object} urlOrProps
-     * @return {Request}
+     * @param {(string|Object)} urlOrProps
+     * @return {Request<UserData>}
      */
-    createRequest(urlOrProps: any): Request;
+    createRequest(urlOrProps: string | Object): Request<UserData>;
 }
+import { RequestOptions } from "./request";
 import Request from "./request";

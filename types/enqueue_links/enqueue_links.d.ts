@@ -82,13 +82,13 @@
  */
 export function enqueueLinks(options?: {
     page: Page;
-    $: CheerioStatic;
-    requestQueue: RequestQueue;
+    $: any;
+    requestQueue: RequestQueue<any>;
     selector?: string;
     baseUrl?: string;
-    pseudoUrls?: any[] | string[];
+    pseudoUrls?: string[] | Object[];
     transformRequestFunction?: RequestTransform;
-}): Promise<QueueOperationInfo[]>;
+}): Promise<any[]>;
 /**
  * Extracts URLs from a given Puppeteer Page.
  *
@@ -107,8 +107,7 @@ export function extractUrlsFromPage(page: Page, selector: string): string[];
  * @return {string[]}
  * @ignore
  */
-export function extractUrlsFromCheerio($: CheerioStatic, selector: string, baseUrl: string): string[];
+export function extractUrlsFromCheerio($: any, selector: string, baseUrl: string): string[];
 import { Page } from "puppeteer";
 import { RequestQueue } from "../request_queue";
 import { RequestTransform } from "./shared";
-import { QueueOperationInfo } from "../request_queue";

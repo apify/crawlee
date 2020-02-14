@@ -1,4 +1,7 @@
 export class CookieParseError extends Error {
-    constructor(cookieHeaderString: any);
-    cookieHeaderString: any;
+    /**
+     * @param {string} cookieHeaderString
+     */
+    constructor(cookieHeaderString: string);
+    cookieHeaderString: string;
 }

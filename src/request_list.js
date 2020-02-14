@@ -1,8 +1,8 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import log from 'apify-shared/log';
-import _ from 'underscore';
+import * as _ from 'underscore';
 import { ACTOR_EVENT_NAMES_EX } from './constants';
-import Request from './request';
+import Request, { RequestOptions } from './request'; // eslint-disable-line no-unused-vars,import/named
 import events from './events';
 import { getFirstKey, publicUtils } from './utils';
 import { getValue, setValue } from './key_value_store';
@@ -11,7 +11,7 @@ export const STATE_PERSISTENCE_KEY = 'REQUEST_LIST_STATE';
 export const SOURCES_PERSISTENCE_KEY = 'REQUEST_LIST_SOURCES';
 
 /**
- * @typedef {Object} RequestListOptions
+ * @typedef RequestListOptions
  * @property {Array<RequestOptions|Request>} sources
  *  An array of sources of URLs for the `RequestList`. It can be either an array of plain objects that
  *  define the `url` property, or an array of instances of the {@link Request} class.
@@ -36,7 +36,7 @@ export const SOURCES_PERSISTENCE_KEY = 'REQUEST_LIST_SOURCES';
  *     { requestsFromUrl: 'https://docs.google.com/spreadsheets/d/1GA5sSQhQjB_REes8I5IKg31S-TuRcznWOPjcpNqtxmU/gviz/tq?tqx=out:csv' }
  * ]
  * ```
- * @property {String} [persistStateKey]
+ * @property {string} [persistStateKey]
  *   Identifies the key in the default key-value store under which `RequestList` periodically stores its
  *   state (i.e. which URLs were crawled and which not).
  *   If the actor is restarted, `RequestList` will read the state
@@ -44,7 +44,7 @@ export const SOURCES_PERSISTENCE_KEY = 'REQUEST_LIST_SOURCES';
  *
  *   If `persistStateKey` is not set, `RequestList` will always start from the beginning,
  *   and all the source URLs will be crawled again.
- * @property {String} [persistSourcesKey]
+ * @property {string} [persistSourcesKey]
  *   Identifies the key in the default key-value store under which the `RequestList` persists its
  *   sources (i.e. the lists of URLs) during the {@link RequestList#initialize} call.
  *   This is necessary if `persistStateKey` is set and the source URLs might potentially change,
@@ -70,7 +70,7 @@ export const SOURCES_PERSISTENCE_KEY = 'REQUEST_LIST_SOURCES';
  *
  *   Note that the preferred (and simpler) way to persist the state of crawling of the `RequestList`
  *   is to use the `stateKeyPrefix` parameter instead.
- * @property {Boolean} [keepDuplicateUrls=false]
+ * @property {boolean} [keepDuplicateUrls=false]
  *   By default, `RequestList` will deduplicate the provided URLs. Default deduplication is based
  *   on the `uniqueKey` property of passed source {@link Request} objects.
  *
@@ -341,7 +341,7 @@ export class RequestList {
      * Attempts to load state and sources using the `RequestList` configuration
      * and returns a tuple of [state, sources] where each may be null if not loaded.
      *
-     * @return {Promise<Array>}
+     * @return {Promise<[RequestListState, object|null]>}
      * @ignore
      */
     async _loadStateAndSources() {
@@ -594,7 +594,7 @@ export class RequestList {
     /**
      * Returns the total number of unique requests present in the `RequestList`.
      *
-     * @returns {Number}
+     * @returns {number}
      */
     length() {
         this._ensureIsInitialized();
@@ -605,7 +605,7 @@ export class RequestList {
     /**
      * Returns number of handled requests.
      *
-     * @returns {Number}
+     * @returns {number}
      */
     handledCount() {
         this._ensureIsInitialized();
@@ -702,11 +702,11 @@ export const openRequestList = async (listName, sources, options = {}) => {
  * }
  * ```
  *
- * @typedef {Object} RequestListState
- * @property {Number} nextIndex
+ * @typedef RequestListState
+ * @property {number} nextIndex
  *   Position of the next request to be processed.
- * @property {String} nextUniqueKey
+ * @property {string} nextUniqueKey
  *   Key of the next request to be processed.
- * @property {Object<String,Boolean>} inProgress
+ * @property {Object<string,boolean>} inProgress
  *   An object mapping request keys to a boolean value respresenting whether they are being processed at the moment.
  */

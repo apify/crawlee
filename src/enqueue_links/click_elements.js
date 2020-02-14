@@ -4,8 +4,16 @@ import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import log from 'apify-shared/log';
 import { RequestQueue, RequestQueueLocal, QueueOperationInfo } from '../request_queue'; // eslint-disable-line import/named,no-unused-vars
 import { addInterceptRequestHandler, removeInterceptRequestHandler } from '../puppeteer_request_interception';
-// eslint-disable-next-line import/named,no-unused-vars
-import { constructPseudoUrlInstances, createRequests, addRequestsToQueueInBatches, createRequestOptions, RequestTransform } from './shared';
+/* eslint-disable import/named,no-unused-vars,import/order */
+import { Page, Request as PuppeteerRequest } from 'puppeteer';
+import {
+    constructPseudoUrlInstances,
+    createRequests,
+    addRequestsToQueueInBatches,
+    createRequestOptions,
+    RequestTransform,
+} from './shared';
+/* eslint-enable import/named,no-unused-vars,import/order */
 
 const STARTING_Z_INDEX = 2147400000;
 
@@ -61,10 +69,10 @@ const STARTING_Z_INDEX = 2147400000;
  *   Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
  * @param {RequestQueue} options.requestQueue
  *   A request queue to which the URLs will be enqueued.
- * @param {String} options.selector
+ * @param {string} options.selector
  *   A CSS selector matching elements to be clicked on. Unlike in {@link utils#enqueueLinks}, there is no default
  *   value. This is to prevent suboptimal use of this function by using it too broadly.
- * @param {Array<String|RegExp|Object>} [options.pseudoUrls]
+ * @param {Array<string|RegExp|Object>} [options.pseudoUrls]
  *   An array of {@link PseudoUrl}s matching the URLs to be enqueued,
  *   or an array of strings or RegExps or plain Objects from which the {@link PseudoUrl}s can be constructed.
  *
@@ -162,7 +170,7 @@ export async function enqueueLinksByClickingElements(options = {}) {
  * @param {Object} options
  * @param {Page} options.page
  * @param {string} options.selector
- * @return {Promise<Object[]>}
+ * @return {Promise<object[]>}
  * @ignore
  */
 export async function clickElementsAndInterceptNavigationRequests(options) {
@@ -226,7 +234,7 @@ function createInterceptRequestHandler(page, requests) {
 
 /**
  * @param {Page} page
- * @param {Request} req
+ * @param {PuppeteerRequest} req
  * @return {boolean}
  * @ignore
  */

@@ -1,5 +1,5 @@
 import { URL } from 'url';
-import _ from 'underscore';
+import * as _ from 'underscore';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import PseudoUrl from '../pseudo_url';
 import Request from '../request';

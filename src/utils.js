@@ -14,7 +14,7 @@ import os from 'os';
 import path from 'path';
 import requestPromise from 'request-promise-native';
 import semver from 'semver';
-import _ from 'underscore';
+import * as _ from 'underscore';
 import { URL } from 'url';
 import util from 'util';
 import { USER_AGENT_LIST } from './constants';
@@ -24,7 +24,6 @@ import { version as apifyVersion } from '../package.json';
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
 import { IncomingMessage } from 'http';
 import { Response as PuppeteerResponse } from 'puppeteer';
-import { Cheerio } from './typedefs';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
@@ -90,7 +89,7 @@ export const logSystemInfo = () => {
  * target="_blank">`Apify.client.setOptions()`</a> function.
  * Beware that altering these settings might have unintended effects on the entire Apify SDK package.
  *
- * @type {*}
+ * @type {object}
  *
  * @memberof module:Apify
  * @name client
@@ -111,8 +110,8 @@ export const newPromise = () => {
 /**
  * Adds charset=utf-8 to given content type if this parameter is missing.
  *
- * @param {String} contentType
- * @returns {String}
+ * @param {string} contentType
+ * @returns {string}
  *
  * @ignore
  */
@@ -165,8 +164,8 @@ export const isDocker = (forceReset) => {
 /**
  * Sums an array of numbers.
  *
- * @param {Number[]} arr An array of numbers.
- * @return {Number} Sum of the numbers.
+ * @param {number[]} arr An array of numbers.
+ * @return {number} Sum of the numbers.
  *
  * @ignore
  */
@@ -175,8 +174,8 @@ export const sum = arr => arr.reduce((total, c) => total + c, 0);
 /**
  * Computes an average of an array of numbers.
  *
- * @param {Number[]} arr An array of numbers.
- * @return {Number} Average value.
+ * @param {number[]} arr An array of numbers.
+ * @return {number} Average value.
  *
  * @ignore
  */
@@ -185,9 +184,9 @@ export const avg = arr => sum(arr) / arr.length;
 /**
  * Computes a weighted average of an array of numbers, complemented by an array of weights.
  *
- * @param {Number[]} arrValues
- * @param {Number[]} arrWeights
- * @return {Number}
+ * @param {number[]} arrValues
+ * @param {number[]} arrWeights
+ * @return {number}
  *
  * @ignore
  */
@@ -205,12 +204,12 @@ export const weightedAvg = (arrValues, arrWeights) => {
 /**
  * Describes memory usage of an Actor.
  *
- * @typedef {Object} MemoryInfo
- * @property {Number} totalBytes Total memory available in the system or container
- * @property {Number} freeBytes Amount of free memory in the system or container
- * @property {Number} usedBytes Amount of memory used (= totalBytes - freeBytes)
- * @property {Number} mainProcessBytes Amount of memory used the current Node.js process
- * @property {Number} childProcessesBytes Amount of memory used by child processes of the current Node.js process
+ * @typedef MemoryInfo
+ * @property {number} totalBytes Total memory available in the system or container
+ * @property {number} freeBytes Amount of free memory in the system or container
+ * @property {number} usedBytes Amount of memory used (= totalBytes - freeBytes)
+ * @property {number} mainProcessBytes Amount of memory used the current Node.js process
+ * @property {number} childProcessesBytes Amount of memory used by child processes of the current Node.js process
  */
 
 /**
@@ -364,7 +363,7 @@ export const addTimeoutToPromise = (promise, timeoutMillis, errorMessage) => {
 /**
  * Returns `true` when code is running on Apify platform and `false` otherwise (for example locally).
  *
- * @returns {Boolean}
+ * @returns {boolean}
  *
  * @memberof module:Apify
  * @name isAtHome
@@ -386,7 +385,7 @@ export const isAtHome = () => !!process.env[ENV_VARS.IS_AT_HOME];
  * // Sleep 1.5 seconds
  * await Apify.utils.sleep(1500);
  * ```
- * @param {Number} millis Period of time to sleep, in milliseconds. If not a positive number, the returned promise resolves immediately.
+ * @param {number} millis Period of time to sleep, in milliseconds. If not a positive number, the returned promise resolves immediately.
  * @memberof utils
  * @name sleep
  * @function
@@ -401,12 +400,12 @@ export const sleep = (millis) => {
  * Optionally, custom regular expression and encoding may be provided.
  *
  * @param {Object} options
- * @param {String} options.url URL to the file
- * @param {String} [options.encoding='utf8'] The encoding of the file.
+ * @param {string} options.url URL to the file
+ * @param {string} [options.encoding='utf8'] The encoding of the file.
  * @param {RegExp} [options.urlRegExp=URL_NO_COMMAS_REGEX]
  *   Custom regular expression to identify the URLs in the file to extract.
  *   The regular expression should be case-insensitive and have global flag set (i.e. `/something/gi`).
- * @returns {Promise<String[]>}
+ * @returns {Promise<string[]>}
  * @memberOf utils
  */
 const downloadListOfUrls = async ({ url, encoding = 'utf8', urlRegExp = URL_NO_COMMAS_REGEX }) => {
@@ -421,9 +420,9 @@ const downloadListOfUrls = async ({ url, encoding = 'utf8', urlRegExp = URL_NO_C
 /**
  * Collects all URLs in an arbitrary string to an array, optionally using a custom regular expression.
  * @param {Object} options
- * @param {String} options.string
+ * @param {string} options.string
  * @param {RegExp} [options.urlRegExp=Apify.utils.URL_NO_COMMAS_REGEX]
- * @returns {String[]}
+ * @returns {string[]}
  * @memberOf utils
  */
 const extractUrls = ({ string, urlRegExp = URL_NO_COMMAS_REGEX }) => {
@@ -434,7 +433,7 @@ const extractUrls = ({ string, urlRegExp = URL_NO_COMMAS_REGEX }) => {
 
 /**
  * Returns a randomly selected User-Agent header out of a list of the most common headers.
- * @returns {String}
+ * @returns {string}
  * @memberOf utils
  */
 const getRandomUserAgent = () => {
@@ -528,9 +527,9 @@ const BLOCK_TAGS_REGEX = /^(p|h1|h2|h3|h4|h5|h6|ol|ul|li|pre|address|blockquote|
  * const html = '<html><body>Some text</body></html>';
  * const text = htmlToText(cheerio.load(html, { decodeEntities: true }));
  * ```
- * @param {String|Cheerio} html HTML text or parsed HTML represented using a
+ * @param {string|CheerioSelector} html HTML text or parsed HTML represented using a
  * [cheerio](https://www.npmjs.com/package/cheerio) function.
- * @return {String} Plain text
+ * @return {string} Plain text
  * @memberOf utils
  * @function
  */
@@ -543,7 +542,7 @@ const htmlToText = (html) => {
     //  produces really text with a lot of HTML elements in it. Let's just deprecate this sort of usage,
     //  and make the parameter "htmlOrCheerioElement"
     /**
-     * @type {Cheerio}
+     * @type {CheerioSelector}
      * @ignore
      */
     const $ = typeof html === 'function' ? html : cheerio.load(html, { decodeEntities: true });
@@ -594,7 +593,7 @@ const htmlToText = (html) => {
  *   or NodeJS [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_serverresponse).
  * @param {Object} [additionalFields] Object containing additional fields to be added.
 
- * @return {Object}
+ * @return {object}
  */
 const createRequestDebugInfo = (request, response = {}, additionalFields = {}) => {
     checkParamOrThrow(request, 'request', 'Object');
@@ -619,8 +618,8 @@ const createRequestDebugInfo = (request, response = {}, additionalFields = {}) =
 /**
  * Converts SNAKE_CASE to camelCase.
  *
- * @param {String} snakeCaseStr
- * @return {String}
+ * @param {string} snakeCaseStr
+ * @return {string}
  * @ignore
  */
 export const snakeCaseToCamelCase = (snakeCaseStr) => {

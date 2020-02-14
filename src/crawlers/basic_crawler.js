@@ -2,7 +2,7 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import { ACTOR_EVENT_NAMES } from 'apify-shared/consts';
 import log from 'apify-shared/log';
 import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
-import _ from 'underscore';
+import * as _ from 'underscore';
 import AutoscaledPool from '../autoscaling/autoscaled_pool'; // eslint-disable-line import/no-duplicates
 import { RequestList } from '../request_list';
 import { RequestQueue, RequestQueueLocal } from '../request_queue';
@@ -45,8 +45,10 @@ const DEFAULT_OPTIONS = {
 };
 
 /**
- * @typedef {Object} BasicCrawlerOptions
- * @property {HandleRequest} handleRequestFunction
+ * @template RequestUserData
+ * @template SessionUserData
+ * @typedef BasicCrawlerOptions
+ * @property {HandleRequest<RequestUserData,SessionUserData>} handleRequestFunction
  *   User-provided function that performs the logic of the crawler. It is called for each URL to crawl.
  *
  *   The function receives the following object as an argument:
@@ -71,7 +73,7 @@ const DEFAULT_OPTIONS = {
  * @property {RequestList} [requestList]
  *   Static list of URLs to be processed.
  *   Either `requestList` or `requestQueue` option must be provided (or both).
- * @property {RequestQueue} [requestQueue]
+ * @property {RequestQueue<RequestUserData>} [requestQueue]
  *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
  *   Either `requestList` or `requestQueue` option must be provided (or both).
  * @property {number} [handleRequestTimeoutSecs=60]
@@ -92,9 +94,9 @@ const DEFAULT_OPTIONS = {
  *   See
  *   [source code](https://github.com/apifytech/apify-js/blob/master/src/crawlers/basic_crawler.js#L11)
  *   for the default implementation of this function.
- * @property {Number} [maxRequestRetries=3]
+ * @property {number} [maxRequestRetries=3]
  *   Indicates how many times the request is retried if {@link BasicCrawlerOptions.handleRequestFunction} fails.
- * @property {Number} [maxRequestsPerCrawl]
+ * @property {number} [maxRequestsPerCrawl]
  *   Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached.
  *   Always set this value in order to prevent infinite loops in misconfigured crawlers.
  *   Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.
@@ -103,17 +105,17 @@ const DEFAULT_OPTIONS = {
  *   Note that the `runTaskFunction` and `isTaskReadyFunction` options
  *   are provided by `BasicCrawler` and cannot be overridden.
  *   However, you can provide a custom implementation of `isFinishedFunction`.
- * @property {Number} [minConcurrency=1]
+ * @property {number} [minConcurrency=1]
  *   Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
  *
  *   *WARNING:* If you set this value too high with respect to the available system memory and CPU, your crawler will run extremely slow or crash.
  *   If you're not sure, just keep the default value and the concurrency will scale up automatically.
- * @property {Number} [maxConcurrency=1000]
+ * @property {number} [maxConcurrency=1000]
  *   Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
- * @property {Boolean} [useSessionPool=false]
+ * @property {boolean} [useSessionPool=false]
  *   If set to true. Basic crawler will initialize the  {@link SessionPool} with the corresponding `sessionPoolOptions`.
  *   The session instance will be than available in the `handleRequestFunction`.
- * @property {SessionPoolOptions} [sessionPoolOptions] The configuration options for {SessionPool} to use.
+ * @property {SessionPoolOptions<SessionUserData>} [sessionPoolOptions] The configuration options for {SessionPool} to use.
  */
 
 /**
@@ -173,10 +175,19 @@ const DEFAULT_OPTIONS = {
  *
  * await crawler.run();
  * ```
+ *
+ * @property {AutoscaledPool} autoscaledPool
+ *  A reference to the underlying {@link AutoscaledPool} class that manages the concurrency of the crawler.
+ *  Note that this property is only initialized after calling the {@link BasicCrawler#run} function.
+ *  You can use it to change the concurrency settings on the fly,
+ *  to pause the crawler by calling {@link AutoscaledPool#pause}
+ *  or to abort it by calling {@link AutoscaledPool#abort}.
+ * @template {Object} RequestUserData
+ * @template {Object} SessionUserData
  */
 class BasicCrawler {
     /**
-     * @param {BasicCrawlerOptions} options
+     * @param {BasicCrawlerOptions<RequestUserData, SessionUserData>} options
      * All `BasicCrawler` parameters are passed via an options object.
      */
     constructor(options) {
@@ -450,7 +461,7 @@ class BasicCrawler {
      * @param {Error} error
      * @param {Request} request
      * @param {RequestList|RequestQueue} source
-     * @return {Promise<Boolean>} willBeRetried
+     * @return {Promise<boolean>} willBeRetried
      * @ignore
      */
     async _requestFunctionErrorHandler(error, request, source) {
@@ -499,20 +510,24 @@ class BasicCrawler {
 export default BasicCrawler;
 
 /**
+ * @template RequestUserData
+ * @template SessionUserData
  * @callback HandleRequest
- * @param {HandleRequestInputs} inputs Arguments passed to this callback.
+ * @param {HandleRequestInputs<RequestUserData,SessionUserData>} inputs Arguments passed to this callback.
  * @returns {Promise<void>}
  */
 /**
+ * @template RequestUserData
+ * @template SessionUserData
  * @typedef HandleRequestInputs
- * @property {Request} request The original {Request} object.
+ * @property {Request<RequestUserData>} request The original {Request} object.
  * @property {AutoscaledPool} autoscaledPool
  *  A reference to the underlying {@link AutoscaledPool} class that manages the concurrency of the crawler.
  *  Note that this property is only initialized after calling the {@link BasicCrawler#run} function.
  *  You can use it to change the concurrency settings on the fly,
  *  to pause the crawler by calling {@link AutoscaledPool#pause}
  *  or to abort it by calling {@link AutoscaledPool#abort}.
- * @property {Session} [session]
+ * @property {Session<SessionUserData>} [session]
  */
 
 /**

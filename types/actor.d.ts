@@ -1,6 +1,6 @@
 export function getEnv(): ApifyEnv;
 export function main(userFunc: Function): void;
-export function call(actId: string, input?: any, options?: {
+export function call<T extends string | Object | Buffer, R>(actId: string, input?: T | undefined, options?: {
     contentType?: string;
     token?: string;
     memoryMbytes?: number;
@@ -10,8 +10,8 @@ export function call(actId: string, input?: any, options?: {
     fetchOutput?: boolean;
     disableBodyParser?: boolean;
     webhooks?: any[];
-}): Promise<ActorRun>;
-export function callTask(taskId: string, input?: any, options?: {
+} | undefined): Promise<ActorRun<R>>;
+export function callTask<R, T extends string | Object | Buffer>(taskId: string, input?: T | undefined, options?: {
     contentType?: string;
     token?: string;
     memoryMbytes?: number;
@@ -19,23 +19,23 @@ export function callTask(taskId: string, input?: any, options?: {
     build?: string;
     waitSecs?: string;
     webhooks?: any[];
-}): Promise<ActorRun>;
-export function metamorph(targetActorId: string, input?: any, options?: {
+} | undefined): Promise<ActorRun<R>>;
+export function metamorph<T extends string | Object | Buffer>(targetActorId: string, input?: T | undefined, options?: {
     contentType?: string;
     build?: string;
-}): Promise<void>;
+} | undefined): Promise<void>;
 export function getApifyProxyUrl(options?: {
     password?: string;
     groups?: string[];
     session?: string;
     country?: string;
-}): string;
-export function addWebhook({ eventTypes, requestUrl, payloadTemplate, idempotencyKey }: {
+} | undefined): string;
+export function addWebhook<R>({ eventTypes, requestUrl, payloadTemplate, idempotencyKey }: {
     eventTypes: string[];
     requestUrl: string;
     payloadTemplate?: string;
     idempotencyKey?: string;
-}): Promise<any>;
+}): Promise<R>;
 /**
  * Parsed representation of the `APIFY_XXX` environmental variables.
  */
@@ -43,47 +43,47 @@ export type ApifyEnv = {
     /**
      * ID of the actor (APIFY_ACTOR_ID)
      */
-    actorId: string;
+    actorId: string | null;
     /**
      * ID of the actor run (APIFY_ACTOR_RUN_ID)
      */
-    actorRunId: string;
+    actorRunId: string | null;
     /**
      * ID of the actor task (APIFY_ACTOR_TASK_ID)
      */
-    actorTaskId: string;
+    actorTaskId: string | null;
     /**
      * ID of the user who started the actor - note that it might be
      * different than the owner ofthe actor (APIFY_USER_ID)
      */
-    userId: string;
+    userId: string | null;
     /**
      * Authentication token representing privileges given to the actor run,
      * it can be passed to various Apify APIs (APIFY_TOKEN)
      */
-    token: string;
+    token: string | null;
     /**
      * Date when the actor was started (APIFY_STARTED_AT)
      */
-    startedAt: Date;
+    startedAt: Date | null;
     /**
      * Date when the actor will time out (APIFY_TIMEOUT_AT)
      */
-    timeoutAt: Date;
+    timeoutAt: Date | null;
     /**
      * ID of the key-value store where input and output data of this
      * actor is stored (APIFY_DEFAULT_KEY_VALUE_STORE_ID)
      */
-    defaultKeyValueStoreId: string;
+    defaultKeyValueStoreId: string | null;
     /**
      * ID of the dataset where input and output data of this
      * actor is stored (APIFY_DEFAULT_DATASET_ID)
      */
-    defaultDatasetId: string;
+    defaultDatasetId: string | null;
     /**
      * Amount of memory allocated for the actor,
      * in megabytes (APIFY_MEMORY_MBYTES)
      */
-    memoryMbytes: number;
+    memoryMbytes: number | null;
 };
 import { ActorRun } from "./typedefs";

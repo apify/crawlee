@@ -50,10 +50,10 @@
  *   Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
  * @param {RequestQueue} options.requestQueue
  *   A request queue to which the URLs will be enqueued.
- * @param {String} options.selector
- *   A CSS selector matching elements to be clicked on. Unlike in {@link utils#enqueueLinks}, there is no default
+ * @param {string} options.selector
+ *   A CSS selector matching elements to be clicked on. Unlike in [`enqueueLinks()`](utils#utils.enqueueLinks), there is no default
  *   value. This is to prevent suboptimal use of this function by using it too broadly.
- * @param {Array<String|RegExp|Object>} [options.pseudoUrls]
+ * @param {Array<string|RegExp|Object>} [options.pseudoUrls]
  *   An array of {@link PseudoUrl}s matching the URLs to be enqueued,
  *   or an array of strings or RegExps or plain Objects from which the {@link PseudoUrl}s can be constructed.
  *
@@ -107,14 +107,14 @@
  * @function
  */
 export function enqueueLinksByClickingElements(options?: {
-    page: any;
-    requestQueue: RequestQueue;
+    page: Page;
+    requestQueue: RequestQueue<any>;
     selector: string;
-    pseudoUrls?: any[];
+    pseudoUrls?: (string | Object | RegExp)[];
     transformRequestFunction?: RequestTransform;
     waitForPageIdleSecs?: number;
     maxWaitForPageIdleSecs?: number;
-}): Promise<QueueOperationInfo[]>;
+}): Promise<any[]>;
 /**
  * Clicks all elements of given page matching given selector.
  * Catches and intercepts all initiated navigation requests and opened pages.
@@ -123,11 +123,11 @@ export function enqueueLinksByClickingElements(options?: {
  * @param {Object} options
  * @param {Page} options.page
  * @param {string} options.selector
- * @return {Promise<Object[]>}
+ * @return {Promise<object[]>}
  * @ignore
  */
 export function clickElementsAndInterceptNavigationRequests(options: {
-    page: any;
+    page: Page;
     selector: string;
 }): Promise<any[]>;
 /**
@@ -137,7 +137,7 @@ export function clickElementsAndInterceptNavigationRequests(options: {
  * @param {Target} target
  * @return {boolean}
  */
-export function isTargetRelevant(page: any, target: any): boolean;
+export function isTargetRelevant(page: Page, target: any): boolean;
 /**
  * Click all elements matching the given selector. To be able to do this using
  * Puppeteer's `.click()` we need to make sure the elements are reachable by mouse,
@@ -150,7 +150,7 @@ export function isTargetRelevant(page: any, target: any): boolean;
  * @return {Promise}
  * @ignore
  */
-export function clickElements(page: any, selector: string): Promise<any>;
+export function clickElements(page: Page, selector: string): Promise<any>;
+import { Page } from "puppeteer";
 import { RequestQueue } from "../request_queue";
 import { RequestTransform } from "./shared";
-import { QueueOperationInfo } from "../request_queue";

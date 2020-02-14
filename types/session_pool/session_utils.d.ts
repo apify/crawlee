@@ -1,1 +1,3 @@
-export function getCookiesFromResponse(response: any): any[];
+export function getCookiesFromResponse(response: IncomingMessage | PuppeteerResponse): any[] | undefined;
+import { IncomingMessage } from "http";
+import { Response as PuppeteerResponse } from "puppeteer";

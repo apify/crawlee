@@ -57,8 +57,8 @@ declare class LiveViewServer {
         maxScreenshotFiles?: number;
         snapshotTimeoutSecs?: number;
         maxSnapshotFrequencySecs?: number;
-    });
-    screenshotDirectoryPath: string;
+    } | undefined);
+    screenshotDirectoryPath: any;
     maxScreenshotFiles: number;
     snapshotTimeoutMillis: number;
     maxSnapshotFrequencyMillis: number;
@@ -70,8 +70,8 @@ declare class LiveViewServer {
     lastScreenshotIndex: number;
     clientCount: number;
     _isRunning: boolean;
-    httpServer: http.Server;
-    socketio: socketio.Server;
+    httpServer: any;
+    socketio: any;
     servingSnapshot: boolean;
     /**
      * Starts the HTTP server with web socket connections enabled.
@@ -129,14 +129,13 @@ declare class LiveViewServer {
      */
     private _deleteScreenshot;
     _setupHttpServer(): void;
-    port: number;
+    port: number | undefined;
     liveViewUrl: any;
     /**
      * @param {socketio.Socket} socket
      * @private
      */
-    private _socketConnectionHandler;
+    _socketConnectionHandler(socket: any): void;
 }
-import http from "http";
-import socketio from "socket.io";
+import Snapshot from "./snapshot";
 import { Page } from "puppeteer";

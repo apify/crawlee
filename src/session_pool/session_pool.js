@@ -1,4 +1,4 @@
-import { EventEmitter } from 'events';
+import EventEmitter from 'events';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 
@@ -9,22 +9,23 @@ import { ACTOR_EVENT_NAMES_EX } from '../constants';
 
 /**
  * Factory user-function which creates customized {@link Session} instances.
+ * @template UserData
  * @callback CreateSession
- * @param {SessionPool} sessionPool Pool requesting the new session.
+ * @param {SessionPool<UserData>} sessionPool Pool requesting the new session.
  */
 
 /**
- * @typedef {Object} SessionPoolOptions
- * @property {Number} [maxPoolSize=1000] - Maximum size of the pool.
+ * @template UserData
+ * @typedef SessionPoolOptions
+ * @property {number} [maxPoolSize=1000] - Maximum size of the pool.
  * Indicates how many sessions are rotated.
- * @property {SessionOptions} [sessionOptions] The configuration options for {Session} instances.
- * @property {String} [persistStateKeyValueStoreId] - Name or Id of `KeyValueStore` where is the `SessionPool` state stored.
- * @property {String} [persistStateKey="SESSION_POOL_STATE"] - Session pool persists it's state under this key in Key value store.
- * @property {CreateSession} [createSessionFunction] - Custom function that should return `Session` instance.
+ * @property {SessionOptions<UserData>} [sessionOptions] The configuration options for {Session} instances.
+ * @property {string} [persistStateKeyValueStoreId] - Name or Id of `KeyValueStore` where is the `SessionPool` state stored.
+ * @property {string} [persistStateKey="SESSION_POOL_STATE"] - Session pool persists it's state under this key in Key value store.
+ * @property {CreateSession<UserData>} [createSessionFunction] - Custom function that should return `Session` instance.
  * Function receives `SessionPool` instance as a parameter
  */
 
-// TODO yin: `tsc` generates a class declaration containing EventEmitter methods with wrong return type (`:SessionPool instead of `:this`).
 /**
  * Handles the sessions rotation, creation and persistence.
  * Creates a pool of {@link Session} instances, that are randomly rotated.
@@ -72,11 +73,12 @@ import { ACTOR_EVENT_NAMES_EX } from '../constants';
  *
  * ```
  * @hideconstructor
+ * @template UserData
  */
 export class SessionPool extends EventEmitter {
     /**
      * Session pool configuration.
-     * @param {SessionPoolOptions} [options] All `SessionPool` configuration options.
+     * @param {SessionPoolOptions<UserData>} [options] All `SessionPool` configuration options.
      */
     constructor(options = {}) {
         const {
@@ -104,6 +106,7 @@ export class SessionPool extends EventEmitter {
         this.createSessionFunction = createSessionFunction || this._defaultCreateSessionFunction;
 
         // Session configuration
+        /** @type {SessionPoolOptions<UserData>} */
         this.sessionOptions = sessionOptions;
 
         // Session keyValueStore
@@ -112,6 +115,7 @@ export class SessionPool extends EventEmitter {
 
         // Operative states
         this.keyValueStore = null;
+        /** @type {Array<Session<UserData>>} */
         this.sessions = [];
     }
 
@@ -154,7 +158,7 @@ export class SessionPool extends EventEmitter {
      * If the session pool is full, it picks a session from the pool,
      * If the picked session is usable it is returned, otherwise it creates and returns a new one.
      *
-     * @return {Promise<Session>}
+     * @return {Promise<Session<UserData>>}
      */
     async getSession() {
         if (this._hasSpaceForSession()) {
@@ -174,8 +178,6 @@ export class SessionPool extends EventEmitter {
     /**
      * Returns an object representing the internal state of the `SessionPool` instance.
      * Note that the object's fields can change in future releases.
-     *
-     * @returns {Object}
      */
     getState() {
         return {
@@ -189,7 +191,7 @@ export class SessionPool extends EventEmitter {
      * Persists the current state of the `SessionPool` into the default {@link KeyValueStore}.
      * The state is persisted automatically in regular intervals.
      *
-     * @return {Promise}
+     * @return {Promise<void>}
      */
     async persistState() {
         log.debug('SessionPool: Persisting state',
@@ -222,7 +224,7 @@ export class SessionPool extends EventEmitter {
 
     /**
      * Adds `Session` instance to `SessionPool`.
-     * @param newSession {Session} - `Session` instance to be added.
+     * @param {Session} newSession `Session` instance to be added.
      * @private
      */
     _addSession(newSession) {
@@ -276,7 +278,7 @@ export class SessionPool extends EventEmitter {
 
     /**
      * Picks random session from the `SessionPool`.
-     * @return {Session} - Picked `Session`
+     * @return {Session<UserData>} - Picked `Session`
      * @private
      */
     _pickSession() {
@@ -320,8 +322,9 @@ export class SessionPool extends EventEmitter {
  *
  * For more details and code examples, see the {@link SessionPool} class.
  *
- * @param {SessionPoolOptions} sessionPoolOptions
- * @return {Promise<SessionPool>}
+ * @template UserData
+ * @param {SessionPoolOptions<UserData>} sessionPoolOptions
+ * @return {Promise<SessionPool<UserData>>}
  * @memberof module:Apify
  * @name openSessionPool
  * @function

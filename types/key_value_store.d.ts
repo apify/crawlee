@@ -94,16 +94,16 @@ export class KeyValueStore {
      * const store = await Apify.openKeyValueStore();
      * const buffer = await store.getValue('screenshot1.png');
      * ```
-     *
-     * @param {String} key
+     * @template T
+     * @param {string} key
      *   Unique key of the record. It can be at most 256 characters long and only consist
      *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
-     * @returns {Promise<Object|String|Buffer>}
+     * @returns {Promise<T|null|string|Buffer>}
      *   Returns a promise that resolves to an object, string
      *   or [](https://nodejs.org/api/buffer.html), depending
      *   on the MIME content type of the record.
      */
-    getValue(key: string): Promise<any>;
+    getValue<T>(key: string): Promise<string | Buffer | T | null>;
     /**
      * Saves or deletes a record in the key-value store.
      * The function returns a promise that resolves once the record has been saved or deleted.
@@ -136,10 +136,10 @@ export class KeyValueStore {
      * **IMPORTANT:** Always make sure to use the `await` keyword when calling `setValue()`,
      * otherwise the actor process might finish before the value is stored!
      *
-     * @param {String} key
+     * @param {string} key
      *   Unique key of the record. It can be at most 256 characters long and only consist
      *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
-     * @param {Object|String|Buffer} value
+     * @param {(Object|string|Buffer)} value
      *   Record data, which can be one of the following values:
      *   <ul>
      *     <li>If `null`, the record in the key-value store is deleted.</li>
@@ -149,14 +149,14 @@ export class KeyValueStore {
      *   </ul>
      *   For any other value an error will be thrown.
      * @param {Object} [options]
-     * @param {String} [options.contentType]
+     * @param {string} [options.contentType]
      *   Specifies a custom MIME content type of the record.
      * @returns {Promise<void>}
      *
      */
-    setValue(key: string, value: any, options?: {
+    setValue(key: string, value: string | Object | Buffer, options?: {
         contentType?: string;
-    }): Promise<void>;
+    } | undefined): Promise<void>;
     /**
      * Removes the key-value store either from the Apify cloud storage or from the local directory,
      * depending on the mode of operation.
@@ -200,7 +200,7 @@ export class KeyValueStore {
      */
     async forEachKey(iteratee: KeyConsumer, options?: {
         exclusiveStartKey?: string;
-    }, index?: number): Promise<void>;
+    } | undefined, index?: number): Promise<void>;
 }
 export function getFileNameRegexp(key: string): RegExp;
 /**
@@ -210,7 +210,7 @@ export function getFileNameRegexp(key: string): RegExp;
  */
 export class KeyValueStoreLocal {
     constructor(storeId: any, localStorageDir: any);
-    localStoragePath: string;
+    localStoragePath: any;
     storeId: any;
     initializationPromise: any;
     async getValue(key: any): Promise<any>;
@@ -226,7 +226,7 @@ export class KeyValueStoreLocal {
      *
      * Returns an object when a file is found and handler executes successfully, null otherwise.
      *
-     * @param {String} key
+     * @param {string} key
      * @param {Function} handler
      * @returns {Promise} null or object in the following format:
      * {
@@ -238,7 +238,7 @@ export class KeyValueStoreLocal {
     async _handleFile(key: string, handler: Function): Promise<any>;
     /**
      * Performs a lookup for a file in the local emulation directory's file list.
-     * @param {String} key
+     * @param {string} key
      * @param {Function} handler
      * @returns {Promise}
      * @ignore
@@ -246,8 +246,8 @@ export class KeyValueStoreLocal {
     _fullDirectoryLookup(key: string, handler: Function): Promise<any>;
     /**
      * Helper function to resolve file paths.
-     * @param {String} fileName
-     * @returns {String}
+     * @param {string} fileName
+     * @returns {string}
      * @ignore
      */
     _getPath(fileName: string): string;
@@ -264,14 +264,14 @@ export class KeyValueStoreLocal {
      */
     getPublicUrl(fileName: string): string;
 }
-export function openKeyValueStore(storeIdOrName?: string, options?: {
+export function openKeyValueStore(storeIdOrName?: string | undefined, options?: {
     forceCloud?: boolean;
-}): Promise<KeyValueStore>;
-export function getValue(key: string): Promise<any>;
-export function setValue(key: string, value: any, options?: {
+} | undefined): Promise<KeyValueStore>;
+export function getValue<T>(key: string): Promise<T>;
+export function setValue<T extends string | Object | Buffer>(key: string, value: T, options?: {
     contentType?: string;
-}): Promise<any>;
-export function getInput(): Promise<any>;
+} | undefined): Promise<any>;
+export function getInput<T>(): Promise<T>;
 /**
  * User-function used in the  {@link KeyValueStore#forEachKey} method.
  */

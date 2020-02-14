@@ -5,28 +5,32 @@
         "moduleResolution": "node",
         "lib": [
             "es2018",
-            "dom"
-        ],
-        "types": [
-            "node",
-            "cheerio"
+            "DOM",
+            "DOM.Iterable",
+            "ES2018.AsyncIterable"
         ],
         "allowJs": true,
         "checkJs": false,
         "noEmit": false,
+        "newLine": "lf",
         "declaration": true,
         "emitDeclarationOnly": true,
-        "strict": false,
+        "strict": true,
+        "noImplicitAny": true,
         "noImplicitThis": true,
         "alwaysStrict": true,
-        "esModuleInterop": true,
-        "outDir": "types/"
+        "noStrictGenericChecks": true,
+        "strictNullChecks": true,
+        "allowSyntheticDefaultImports": false,
+        "esModuleInterop": false,
+        "outDir": "types/",
+        "baseUrl": "./"
     },
     "include": [
-        "src/index.esm.js",
-        "src/utils_log.d.ts"
+        "./types-apify/apify-shared/log.d.ts",
+        "./src/index.esm.js",
     ],
     "exclude": [
-        "src/index.js"
+        "./src/index.js"
     ]
 }

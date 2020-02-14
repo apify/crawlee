@@ -1,9 +1,13 @@
+/* eslint-disable no-unused-vars */
+import { IncomingMessage } from 'http';
+import { Response as PuppeteerResponse } from 'puppeteer';
+/* eslint-enable no-unused-vars */
+
 import { Cookie } from 'tough-cookie';
 import { CookieParseError } from './errors';
 
 /**
- *
- * @param response
+ * @param {(IncomingMessage|PuppeteerResponse)} response
  * @return {undefined|Array}
  */
 export const getCookiesFromResponse = (response) => {

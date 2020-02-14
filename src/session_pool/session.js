@@ -2,7 +2,7 @@ import { cryptoRandomObjectId } from 'apify-shared/utilities';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { Cookie, CookieJar } from 'tough-cookie';
-import EVENTS from './events'; // eslint-disable-line import/named,no-unused-vars
+import EVENTS from './events';
 import { STATUS_CODES_BLOCKED } from '../constants';
 import { getCookiesFromResponse } from './session_utils';
 
@@ -14,10 +14,11 @@ import { Cookie as PuppeteerCookie } from 'puppeteer';
 
 /**
  * Persistable {@link Session} state.
- * @typedef {Object} SessionState
+ * @template {Object} UserData
+ * @typedef SessionState
  * @property {string} id
- * @property {Object} cookieJar
- * @property {Object} userData
+ * @property {CookieJar} cookieJar
+ * @property {UserData} userData
  * @property {number} errorScore
  * @property {number} maxErrorScore
  * @property {number} errorScoreDecrement
@@ -27,10 +28,11 @@ import { Cookie as PuppeteerCookie } from 'puppeteer';
  */
 
 /**
- * @typedef {Object} SessionOptions
+ * @template {Object} UserData
+ * @typedef SessionOptions
  * @property {string} [id] - Id of session used for generating fingerprints. It is used as proxy session name.
  * @property {number} [maxAgeSecs=3000] - Number of seconds after which the session is considered as expired.
- * @property {Object} userData - Object where custom user data can be stored. For example custom headers.
+ * @property {UserData} [userData] - Object where custom user data can be stored. For example custom headers.
  * @property {number} [maxErrorScore=3] - Maximum number of marking session as blocked usage.
  *   If the `errorScore` reaches the `maxErrorScore` session is marked as block and it is thrown away.
  *   It starts at 0. Calling the `markBad` function increases the `errorScore` by 1.
@@ -44,17 +46,21 @@ import { Cookie as PuppeteerCookie } from 'puppeteer';
  * @property {number} [errorCount=0] - Indicates how many times the session is marked bad.
  * @property {number} [maxUsageCount=50] - Session should be used only a limited amount of times.
  *   This number indicates how many times the session is going to be used, before it is thrown away.
- * @property {SessionPool} sessionPool - SessionPool instance. Session will emit the `sessionRetired` event on this instance.
+ * @property {SessionPool<UserData>} sessionPool - SessionPool instance. Session will emit the `sessionRetired` event on this instance.
  */
+
 /**
  *  Sessions are used to store information such as cookies and can be used for generating fingerprints and proxy sessions.
  *  You can imagine each session as a specific user, with its own cookies, IP (via proxy) and potentially a unique browser fingerprint.
  *  Session internal state can be enriched with custom user data for example some authorization tokens and specific headers in general.
+ *
+ * @template {Object} UserData
  */
 export class Session {
     /**
      * Session configuration.
-     * @param {SessionOptions} options
+     *
+     * @param {SessionOptions<UserData>} options
      */
     constructor(options = {}) {
         const {
@@ -90,14 +96,14 @@ export class Session {
             throw new Error('Session: sessionPool must be instance of SessionPool');
         }
 
-        // Configurable
         /**
-         * @type CookieJar
+         * @type {CookieJar}
          * @private
-         * */
+         */
         this.cookieJar = cookieJar.setCookie ? cookieJar : CookieJar.fromJSON(JSON.stringify(cookieJar));
         this.id = id;
         this.maxAgeSecs = maxAgeSecs;
+        /** @type {UserData} */
         this.userData = userData;
         this.maxErrorScore = maxErrorScore;
         this.errorScoreDecrement = errorScoreDecrement;
@@ -162,12 +168,11 @@ export class Session {
 
     /**
      * Gets session state for persistence in KeyValueStore.
-     * @return {SessionState} represents session internal state.
+     * @return {SessionState<UserData>} represents session internal state.
      */
     getState() {
         return {
             id: this.id,
-            cookies: this.cookies,
             cookieJar: this.cookieJar.toJSON(),
             userData: this.userData,
             maxErrorScore: this.maxErrorScore,

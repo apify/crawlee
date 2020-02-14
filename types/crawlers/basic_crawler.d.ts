@@ -1,5 +1,5 @@
 export default BasicCrawler;
-export type BasicCrawlerOptions = {
+export type BasicCrawlerOptions<RequestUserData, SessionUserData> = {
     /**
      * User-provided function that performs the logic of the crawler. It is called for each URL to crawl.
      *
@@ -23,7 +23,7 @@ export type BasicCrawlerOptions = {
      * The exceptions are logged to the request using the
      * {@link Request#pushErrorMessage} function.
      */
-    handleRequestFunction: HandleRequest;
+    handleRequestFunction: HandleRequest<RequestUserData, SessionUserData>;
     /**
      * Static list of URLs to be processed.
      * Either `requestList` or `requestQueue` option must be provided (or both).
@@ -33,7 +33,7 @@ export type BasicCrawlerOptions = {
      * Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
      * Either `requestList` or `requestQueue` option must be provided (or both).
      */
-    requestQueue?: RequestQueue;
+    requestQueue?: RequestQueue<RequestUserData>;
     /**
      * Timeout in which the function passed as `handleRequestFunction` needs to finish, in seconds.
      */
@@ -92,38 +92,33 @@ export type BasicCrawlerOptions = {
     /**
      * The configuration options for {SessionPool} to use.
      */
-    sessionPoolOptions?: SessionPoolOptions;
+    sessionPoolOptions?: SessionPoolOptions<SessionUserData>;
 };
-export type HandleRequest = (inputs: HandleRequestInputs) => Promise<void>;
-export type HandleRequestInputs = {
+export type HandleRequest<RequestUserData, SessionUserData> = (inputs: HandleRequestInputs<RequestUserData, SessionUserData>) => Promise<void>;
+export type HandleRequestInputs<RequestUserData, SessionUserData> = {
     /**
      * The original {Request} object.
      */
-    request: Request;
-    /**
-     * A reference to the underlying {@link AutoscaledPool} class that manages the concurrency of the crawler.
-     * Note that this property is only initialized after calling the {@link BasicCrawler#run} function.
-     * You can use it to change the concurrency settings on the fly,
-     * to pause the crawler by calling {@link AutoscaledPool#pause}
-     * or to abort it by calling {@link AutoscaledPool#abort}.
-     */
+    request: Request<RequestUserData>;
     autoscaledPool: AutoscaledPool;
-    session?: Session;
+    session?: Session<SessionUserData>;
 };
 export type HandleFailedRequest = (inputs: HandleFailedRequestInput) => void | Promise<void>;
 export type HandleFailedRequestInput = {
     /**
      * The original {Request} object.
      */
-    request: Request;
+    request: Request<any>;
     /**
      * The Error thrown by `handleRequestFunction`.
      */
     error: Error;
 };
 /**
- * @typedef {Object} BasicCrawlerOptions
- * @property {HandleRequest} handleRequestFunction
+ * @template RequestUserData
+ * @template SessionUserData
+ * @typedef BasicCrawlerOptions
+ * @property {HandleRequest<RequestUserData,SessionUserData>} handleRequestFunction
  *   User-provided function that performs the logic of the crawler. It is called for each URL to crawl.
  *
  *   The function receives the following object as an argument:
@@ -148,7 +143,7 @@ export type HandleFailedRequestInput = {
  * @property {RequestList} [requestList]
  *   Static list of URLs to be processed.
  *   Either `requestList` or `requestQueue` option must be provided (or both).
- * @property {RequestQueue} [requestQueue]
+ * @property {RequestQueue<RequestUserData>} [requestQueue]
  *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
  *   Either `requestList` or `requestQueue` option must be provided (or both).
  * @property {number} [handleRequestTimeoutSecs=60]
@@ -169,9 +164,9 @@ export type HandleFailedRequestInput = {
  *   See
  *   [source code](https://github.com/apifytech/apify-js/blob/master/src/crawlers/basic_crawler.js#L11)
  *   for the default implementation of this function.
- * @property {Number} [maxRequestRetries=3]
- *   Indicates how many times the request is retried if {@link BasicCrawlerOptions.handleRequestFunction} fails.
- * @property {Number} [maxRequestsPerCrawl]
+ * @property {number} [maxRequestRetries=3]
+ *   Indicates how many times the request is retried if [`handleRequestFunction()`](#new_BasicCrawler_new) fails.
+ * @property {number} [maxRequestsPerCrawl]
  *   Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached.
  *   Always set this value in order to prevent infinite loops in misconfigured crawlers.
  *   Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.
@@ -180,17 +175,17 @@ export type HandleFailedRequestInput = {
  *   Note that the `runTaskFunction` and `isTaskReadyFunction` options
  *   are provided by `BasicCrawler` and cannot be overridden.
  *   However, you can provide a custom implementation of `isFinishedFunction`.
- * @property {Number} [minConcurrency=1]
+ * @property {number} [minConcurrency=1]
  *   Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
  *
  *   *WARNING:* If you set this value too high with respect to the available system memory and CPU, your crawler will run extremely slow or crash.
  *   If you're not sure, just keep the default value and the concurrency will scale up automatically.
- * @property {Number} [maxConcurrency=1000]
+ * @property {number} [maxConcurrency=1000]
  *   Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
- * @property {Boolean} [useSessionPool=false]
+ * @property {boolean} [useSessionPool=false]
  *   If set to true. Basic crawler will initialize the  {@link SessionPool} with the corresponding `sessionPoolOptions`.
  *   The session instance will be than available in the `handleRequestFunction`.
- * @property {SessionPoolOptions} [sessionPoolOptions] The configuration options for {SessionPool} to use.
+ * @property {SessionPoolOptions<SessionUserData>} [sessionPoolOptions] The configuration options for {SessionPool} to use.
  */
 /**
  * Provides a simple framework for parallel crawling of web pages.
@@ -249,13 +244,15 @@ export type HandleFailedRequestInput = {
  *
  * await crawler.run();
  * ```
+ *
+ * @template {Object} RequestUserData
+ * @template {Object} SessionUserData
  */
-declare class BasicCrawler {
+declare class BasicCrawler<RequestUserData extends Object, SessionUserData extends Object> {
     /**
-     * @param {BasicCrawlerOptions} options
-     * All `BasicCrawler` parameters are passed via an options object.
+     * @param {BasicCrawlerOptions<RequestUserData, SessionUserData>} options
      */
-    constructor(options: BasicCrawlerOptions);
+    constructor(options: BasicCrawlerOptions<RequestUserData, SessionUserData>);
     requestList: any;
     requestQueue: any;
     handleRequestFunction: any;
@@ -267,16 +264,16 @@ declare class BasicCrawler {
     sessionPoolOptions: any;
     useSessionPool: any;
     autoscaledPoolOptions: any;
-    isRunningPromise: Promise<any>;
+    isRunningPromise: Promise<any> | null;
     /**
      * Runs the crawler. Returns a promise that gets resolved once all the requests are processed.
      *
      * @return {Promise<void>}
      */
-    async run(): Promise<void>;
-    autoscaledPool: AutoscaledPool;
-    sessionPool: import("../session_pool/session_pool").SessionPool;
-    async _pauseOnMigration(): Promise<void>;
+    run(): Promise<void>;
+    autoscaledPool: AutoscaledPool | undefined;
+    sessionPool: import("../session_pool/session_pool").SessionPool<any> | undefined;
+    _pauseOnMigration(): Promise<void>;
     /**
      * Fetches request from either RequestList or RequestQueue. If request comes from a RequestList
      * and RequestQueue is present then enqueues it to the queue first.
@@ -308,10 +305,10 @@ declare class BasicCrawler {
      * @param {Error} error
      * @param {Request} request
      * @param {RequestList|RequestQueue} source
-     * @return {Promise<Boolean>} willBeRetried
+     * @return {Promise<boolean>} willBeRetried
      * @ignore
      */
-    async _requestFunctionErrorHandler(error: Error, request: Request, source: RequestList | RequestQueue): Promise<boolean>;
+    _requestFunctionErrorHandler(error: Error, request: Request<any>, source: RequestList | RequestQueue<any>): Promise<boolean>;
     /**
      * Updates handledRequestsCount from possibly stored counts,
      * usually after worker migration. Since one of the stores

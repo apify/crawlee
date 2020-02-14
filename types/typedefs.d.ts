@@ -1,9 +1,4 @@
 /**
- * `CherioStatic`, the return type of `cheerio.load()`, is not exported from `@types/cheerio`, so it can not be imported and aliased, it is a global
- * type. We reference the type and redefine it with a bettter name here.
- */
-export type Cheerio = CheerioStatic;
-/**
  * Represents information about an actor run, as returned by the
  * {@link Apify#call} or {@link Apify#callTask} function.
  * The object is almost equivalent to the JSON response
@@ -13,7 +8,7 @@ export type Cheerio = CheerioStatic;
  * For more details, see
  * [Runs.](https://docs.apify.com/actor/run)
  */
-export type ActorRun = {
+export type ActorRun<T> = {
     /**
      * Actor run ID
      */
@@ -118,5 +113,5 @@ export type ActorRun = {
      * }
      * ```
      */
-    output: any;
+    output: T | null | undefined;
 };

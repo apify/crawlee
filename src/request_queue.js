@@ -114,11 +114,12 @@ const getRequestId = (uniqueKey) => {
  * {@link RequestQueue} functions as well as
  * {@link utils#enqueueLinks}.
  *
- * @typedef {Object} QueueOperationInfo
- * @property {Boolean} wasAlreadyPresent Indicates if request was already present in the queue.
- * @property {Boolean} wasAlreadyHandled Indicates if request was already marked as handled.
- * @property {String} requestId The ID of the added request
- * @property {Object} request The original {@link Request} object passed to the `RequestQueue` function.
+ * @template UserData
+ * @typedef QueueOperationInfo
+ * @property {boolean} wasAlreadyPresent Indicates if request was already present in the queue.
+ * @property {boolean} wasAlreadyHandled Indicates if request was already marked as handled.
+ * @property {string} requestId The ID of the added request
+ * @property {Request<UserData>} request The original {@link Request} object passed to the `RequestQueue` function.
  */
 
 /**
@@ -185,6 +186,7 @@ const getRequestId = (uniqueKey) => {
  * await queue.reclaimRequest(request2);
  * ```
  * @hideconstructor
+ * @template UserData
  */
 export class RequestQueue {
     constructor(queueId, queueName, clientKey = cryptoRandomObjectId()) {
@@ -241,11 +243,11 @@ export class RequestQueue {
      * To add multiple requests to the queue by extracting links from a webpage,
      * see the {@link utils#enqueueLinks} helper function.
      *
-     * @param {Request|RequestOptions} request {@link Request} object or vanilla object with request data.
+     * @param {(Request<UserData>|RequestOptions<UserData>)} request {@link Request} object or vanilla object with request data.
      * Note that the function sets the `uniqueKey` and `id` fields to the passed object.
      * @param {Object} [options]
-     * @param {Boolean} [options.forefront=false] If `true`, the request will be added to the foremost position in the queue.
-     * @return {Promise<QueueOperationInfo>}
+     * @param {boolean} [options.forefront=false] If `true`, the request will be added to the foremost position in the queue.
+     * @return {Promise<QueueOperationInfo<UserData>>}
      */
     async addRequest(request, options = {}) {
         const { newRequest, forefront } = validateAddRequestParams(request, options);
@@ -294,8 +296,8 @@ export class RequestQueue {
     /**
      * Gets the request from the queue specified by ID.
      *
-     * @param {String} requestId ID of the request.
-     * @return {Promise<Request>} Returns the request object, or `null` if it was not found.
+     * @param {string} requestId ID of the request.
+     * @return {Promise<Request<UserData> | null>} Returns the request object, or `null` if it was not found.
      */
     async getRequest(requestId) {
         validateGetRequestParams(requestId);
@@ -324,7 +326,7 @@ export class RequestQueue {
      * To check whether all requests in queue were finished,
      * use {@link RequestQueue#isFinished} instead.
      *
-     * @returns {Promise<Request>}
+     * @returns {Promise<Request<UserData>>}
      * Returns the request object or `null` if there are no more pending requests.
      */
     async fetchNextRequest() {
@@ -390,8 +392,8 @@ export class RequestQueue {
      * function as handled after successful processing.
      * Handled requests will never again be returned by the `fetchNextRequest` function.
      *
-     * @param {Request} request
-     * @return {Promise<QueueOperationInfo>}
+     * @param {Request<UserData>} request
+     * @return {Promise<QueueOperationInfo<UserData>>}
      */
     async markRequestHandled(request) {
         // TODO: This function should also support object instead of Apify.Request()
@@ -429,13 +431,13 @@ export class RequestQueue {
      * The request record in the queue is updated using the provided `request` parameter.
      * For example, this lets you store the number of retries or error messages for the request.
      *
-     * @param {Request} request
+     * @param {Request<UserData>} request
      * @param {Object} [options]
-     * @param {Boolean} [options.forefront=false]
+     * @param {boolean} [options.forefront=false]
      * If `true` then the request it placed to the beginning of the queue, so that it's returned
      * in the next call to {@link RequestQueue#fetchNextRequest}.
      * By default, it's put to the end of the queue.
-     * @return {Promise<QueueOperationInfo>}
+     * @return {Promise<QueueOperationInfo<UserData>>}
      */
     async reclaimRequest(request, options = {}) {
         // TODO: This function should also support object instead of Apify.Request()
@@ -481,7 +483,7 @@ export class RequestQueue {
      * Note that even if the queue is empty, there might be some pending requests currently being processed.
      * If you need to ensure that there is no activity in the queue, use {@link RequestQueue#isFinished}.
      *
-     * @returns {Promise<Boolean>}
+     * @returns {Promise<boolean>}
      */
     async isEmpty() {
         await this._ensureHeadIsNonEmpty();
@@ -494,7 +496,7 @@ export class RequestQueue {
      * the function might occasionally return a false negative,
      * but it will never return a false positive.
      *
-     * @returns {Promise<Boolean>}
+     * @returns {Promise<boolean>}
      */
     async isFinished() {
         if (this.queueHeadDict.length() > 0 || this.inProgressCount() > 0) return false;
@@ -523,12 +525,12 @@ export class RequestQueue {
     /**
      * We always request more items than is in progress to ensure that something falls into head.
      *
-     * @param {Boolean} [ensureConsistency=false] If true then query for queue head is retried until queueModifiedAt
+     * @param {boolean} [ensureConsistency=false] If true then query for queue head is retried until queueModifiedAt
      *   is older than queryStartedAt by at least API_PROCESSED_REQUESTS_DELAY_MILLIS to ensure that queue
      *   head is consistent.
-     * @param {Number} [limit] How many queue head items will be fetched.
-     * @param {Number} [iteration] Used when this function is called recursively to limit the recursion.
-     * @return {Boolean} Indicates if queue head is consistent (true) or inconsistent (false).
+     * @param {number} [limit] How many queue head items will be fetched.
+     * @param {number} [iteration] Used when this function is called recursively to limit the recursion.
+     * @return {boolean} Indicates if queue head is consistent (true) or inconsistent (false).
      * @ignore
      */
     async _ensureHeadIsNonEmpty(
@@ -637,7 +639,7 @@ export class RequestQueue {
      * Removes the queue either from the Apify Cloud storage or from the local directory,
      * depending on the mode of operation.
      *
-     * @return {Promise}
+     * @return {Promise<void>}
      */
     async drop() {
         await requestQueues.deleteQueue({
@@ -696,7 +698,7 @@ export class RequestQueue {
      * }
      * ```
      *
-     * @returns {Promise<Object>}
+     * @returns {Promise<object>}
      */
     async getInfo() {
         return requestQueues.getQueue({ queueId: this.queueId });

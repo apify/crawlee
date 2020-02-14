@@ -4,20 +4,20 @@
  * @return {PseudoUrl[]}
  * @ignore
  */
-export function constructPseudoUrlInstances(pseudoUrls: any[] | string[]): PseudoUrl[];
+export function constructPseudoUrlInstances(pseudoUrls: string[] | Object[]): PseudoUrl<any>[];
 /**
  * @param {string[]|Object[]} requestOptions
  * @param {PseudoUrl[]} pseudoUrls
  * @return {Request[]}
  * @ignore
  */
-export function createRequests(requestOptions: any[] | string[], pseudoUrls: PseudoUrl[]): Request[];
+export function createRequests(requestOptions: string[] | Object[], pseudoUrls: PseudoUrl<any>[]): Request<any>[];
 /**
  * @param {string[]|Object[]} sources
  * @param {Object} [userData]
  * @ignore
  */
-export function createRequestOptions(sources: any[] | string[], userData?: any): any;
+export function createRequestOptions(sources: string[] | Object[], userData?: Object | undefined): any;
 /**
  * @param {Request[]} requests
  * @param {RequestQueue} requestQueue
@@ -25,7 +25,7 @@ export function createRequestOptions(sources: any[] | string[], userData?: any):
  * @return {Promise<QueueOperationInfo[]>}
  * @ignore
  */
-export function addRequestsToQueueInBatches(requests: Request[], requestQueue: any, batchSize?: number): Promise<any[]>;
+export function addRequestsToQueueInBatches(requests: Request<any>[], requestQueue: any, batchSize?: number): Promise<any[]>;
 /**
  * Takes an Apify {RequestOptions} object and changes it's attributes in a desired way. This user-function is used
  * {@link utils#enqueueLinks} to modify requests before enqueuing them.

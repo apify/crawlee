@@ -1,6 +1,6 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import log from 'apify-shared/log';
-import _ from 'underscore';
+import * as _ from 'underscore';
 import PuppeteerPool, { BROWSER_SESSION_KEY_NAME } from '../puppeteer_pool'; // eslint-disable-line import/no-duplicates
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { gotoExtended } from '../puppeteer_utils';
@@ -12,7 +12,7 @@ import BasicCrawler from './basic_crawler'; // eslint-disable-line import/no-dup
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
 import { Browser, Page as PuppeteerPage, Response as PuppeteerResponse } from 'puppeteer';
 import { HandleFailedRequest } from './basic_crawler';
-import { PuppeteerPoolOptions } from '../puppeteer_pool';
+import { PuppeteerPoolOptions, LaunchPuppeteerFunction } from '../puppeteer_pool';
 import Request from '../request'; // eslint-disable-line no-unused-vars
 import { RequestList } from '../request_list'; // eslint-disable-line no-unused-vars
 import { RequestQueue } from '../request_queue'; // eslint-disable-line no-unused-vars
@@ -23,8 +23,10 @@ import { SessionPoolOptions } from '../session_pool/session_pool';
 // eslint-enable-line import/no-duplicates
 
 /**
- * @typedef {Object} PuppeteerCrawlerOptions
- * @property {PuppeteerHandlePage} handlePageFunction
+ * @template RequestUserData
+ * @template SessionUserData
+ * @typedef PuppeteerCrawlerOptions
+ * @property {PuppeteerHandlePage<RequestUserData,SessionUserData>} handlePageFunction
  *   Function that is called to process each request.
  *   It is passed an object with the following fields:
  *
@@ -60,12 +62,12 @@ import { SessionPoolOptions } from '../session_pool/session_pool';
  * @property {RequestList} [requestList]
  *   Static list of URLs to be processed.
  *   Either `requestList` or `requestQueue` option must be provided (or both).
- * @property {RequestQueue} [requestQueue]
+ * @property {RequestQueue<RequestUserData>} [requestQueue]
  *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
  *   Either `requestList` or `requestQueue` option must be provided (or both).
- * @property {Number} [handlePageTimeoutSecs=60]
+ * @property {number} [handlePageTimeoutSecs=60]
  *   Timeout in which the function passed as `handlePageFunction` needs to finish, in seconds.
- * @property {PuppeteerGoto} [gotoFunction]
+ * @property {PuppeteerGoto<RequestUserData, SessionUserData>} [gotoFunction]
  *   Overrides the function that opens the page in Puppeteer. The function should return the result of Puppeteer's
  *   [page.goto()](https://pptr.dev/#?product=Puppeteer&show=api-pagegotourl-options) function,
  *   i.e. a `Promise` resolving to the [Response](https://pptr.dev/#?product=Puppeteer&show=api-class-response) object.
@@ -78,7 +80,7 @@ import { SessionPoolOptions } from '../session_pool/session_pool';
  *   By default, the function invokes {@link puppeteer#gotoExtended} with a timeout of 60 seconds.
  *   For details, see source code on
  *   [GitHub](https://github.com/apifytech/apify-js/blob/master/src/crawlers/puppeteer_crawler.js#L292).
- * @property {Number} [gotoTimeoutSecs=60]
+ * @property {number} [gotoTimeoutSecs=60]
  *   Timeout in which page navigation needs to finish, in seconds. When `gotoFunction()` is used and thus the default
  *   function is overridden, this timeout will not be used and needs to be configured in the new `gotoFunction()`.
  * @property {HandleFailedRequest} [handleFailedRequestFunction]
@@ -97,16 +99,16 @@ import { SessionPoolOptions } from '../session_pool/session_pool';
  *   See
  *   [source code](https://github.com/apifytech/apify-js/blob/master/src/crawlers/puppeteer_crawler.js#L301)
  *   for the default implementation of this function.
- * @property {Number} [maxRequestRetries=3]
+ * @property {number} [maxRequestRetries=3]
  *    Indicates how many times the request is retried if either `handlePageFunction()` or `gotoFunction()` fails.
- * @property {Number} [maxRequestsPerCrawl]
+ * @property {number} [maxRequestsPerCrawl]
  *   Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached.
  *   Always set this value in order to prevent infinite loops in misconfigured crawlers.
  *   Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.
  * @property {PuppeteerPoolOptions} [puppeteerPoolOptions]
  *   Custom options passed to the underlying {@link PuppeteerPool} constructor.
  *   You can tweak those to fine-tune browser management.
- * @property {Function} [launchPuppeteerFunction]
+ * @property {LaunchPuppeteerFunction} [launchPuppeteerFunction]
  *   Overrides the default function to launch a new Puppeteer instance.
  *   Shortcut to the corresponding {@link PuppeteerPool} option.
  *   See source code on
@@ -119,22 +121,22 @@ import { SessionPoolOptions } from '../session_pool/session_pool';
  *   Custom options passed to the underlying {@link AutoscaledPool} instance constructor.
  *   Note that the `runTaskFunction`, `isTaskReadyFunction` and `isFinishedFunction` options
  *   are provided by `PuppeteerCrawler` and should not be overridden.
- * @property {Number} [minConcurrency=1]
+ * @property {number} [minConcurrency=1]
  *   Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the
  *   corresponding {@link AutoscaledPoolOptions.minConcurrency} option.
  *
  *   *WARNING:* If you set this value too high with respect to the available system memory and CPU,
  *   your crawler will run extremely slow or crash. If you're not sure, just keep the default value
  *   and the concurrency will scale up automatically.
- * @property {Number} [maxConcurrency=1000]
+ * @property {number} [maxConcurrency=1000]
  *   Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the
  *   corresponding {@link AutoscaledPoolOptions.maxConcurrency} option.
- * @property {Boolean} [useSessionPool=false]
+ * @property {boolean} [useSessionPool=false]
  *   If set to true Crawler will automatically use Session Pool. It will automatically retire
  *   sessions on 403, 401 and 429 status codes. It also marks Session as bad after a request timeout.
- * @property {SessionPoolOptions} [sessionPoolOptions]
+ * @property {SessionPoolOptions<SessionUserData>} [sessionPoolOptions]
  *   Custom options passed to the underlying {@link SessionPool} constructor.
- * @property {Boolean} [persistCookiesPerSession=false]
+ * @property {boolean} [persistCookiesPerSession=false]
  *   Automatically saves cookies to Session. Works only if Session Pool is used.
  */
 
@@ -199,10 +201,19 @@ import { SessionPoolOptions } from '../session_pool/session_pool';
  *
  * await crawler.run();
  * ```
+ * @property {AutoscaledPool} autoscaledPool
+ *  A reference to the underlying {@link AutoscaledPool} class that manages the concurrency of the crawler.
+ *  Note that this property is only initialized after calling the {@link PuppeteerCrawler#run} function.
+ *  You can use it to change the concurrency settings on the fly,
+ *  to pause the crawler by calling {@link AutoscaledPool#pause}
+ *  or to abort it by calling {@link AutoscaledPool#abort}.
+ *
+ * @template {Object} RequestUserData
+ * @template {Object} SessionUserData
  */
 class PuppeteerCrawler {
     /**
-     * @param {PuppeteerCrawlerOptions} options
+     * @param {PuppeteerCrawlerOptions<RequestUserData,SessionUserData>} options
      * All `PuppeteerCrawler` parameters are passed via an options object.
      */
     constructor(options) {
@@ -266,6 +277,7 @@ class PuppeteerCrawler {
         this.sessionPoolOptions = sessionPoolOptions;
         this.persistCookiesPerSession = persistCookiesPerSession;
 
+        /** @type {BasicCrawler<RequestUserData, SessionUserData>} */
         this.basicCrawler = new BasicCrawler({
             // Basic crawler options.
             requestList,
@@ -381,8 +393,10 @@ class PuppeteerCrawler {
 export default PuppeteerCrawler;
 
 /**
+ * @template RequestUserData
+ * @template SessionUserData
  * @typedef PuppeteerHandlePageInputs
- * @property {Request} request
+ * @property {Request<RequestUserData>} request
  *   An instance of the {@link Request} object with details about the URL to open, HTTP method etc.
  * @property {PuppeteerResponse} response An instance of the Puppeteer
  *   [`Response`](https://pptr.dev/#?product=Puppeteer&show=api-class-response),
@@ -397,27 +411,36 @@ export default PuppeteerCrawler;
  *   You can use it to change the concurrency settings on the fly,
  *   to pause the crawler by calling {@link AutoscaledPool#pause}
  *   or to abort it by calling {@link AutoscaledPool#abort}.
- * @property {Session} [session]
+ * @property {Session<SessionUserData>} [session]
  */
+
 /**
+ * @template RequestUserData
+ * @template SessionUserData
  * @callback PuppeteerHandlePage
- * @param {PuppeteerHandlePageInputs} inputs Arguments passed to this callback.
+ * @param {PuppeteerHandlePageInputs<RequestUserData,SessionUserData>} inputs Arguments passed to this callback.
  * @return {Promise<void>}
  */
 
 /**
+ * @template RequestUserData
+ * @template SessionUserData
  * @typedef PuppeteerGotoInputs
  * @property {PuppeteerPage} page is an instance of the Puppeteer
  *   [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page)
- * @property {Request} request An instance of the {@link Request} object with details about the URL to open, HTTP method etc.
+ * @property {Request<RequestUserData>} request
+ *   An instance of the {@link Request} object with details about the URL to open, HTTP method etc.
  * @property {AutoscaledPool} autoscaledPool An instance of the `AutoscaledPool`.
  * @property {PuppeteerPool} puppeteerPool An instance of the {@link PuppeteerPool} used by this `PuppeteerCrawler`.
- * @property {Session} [session] `Session` object for this request.
+ * @property {Session<SessionUserData>} [session] `Session` object for this request.
  */
+
 /**
+ * @template RequestUserData
+ * @template SessionUserData
  * @callback PuppeteerGoto
- * @param {PuppeteerGotoInputs} inputs Arguments passed to this callback.
- * @return {Promise<PuppeteerResponse>} An instance of the Puppeteer
+ * @param {PuppeteerGotoInputs<RequestUserData,SessionUserData>} inputs Arguments passed to this callback.
+ * @return {Promise<PuppeteerResponse | null>} An instance of the Puppeteer
  *   [`Response`](https://pptr.dev/#?product=Puppeteer&show=api-class-response),
  *   which is the main resource response as returned by `page.goto(request.url)`.
  */

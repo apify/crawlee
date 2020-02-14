@@ -9,11 +9,12 @@ export const STORAGE_CONSISTENCY_DELAY_MILLIS: 3000;
  * {@link RequestQueue} functions as well as
  * {@link utils#enqueueLinks}.
  *
- * @typedef {Object} QueueOperationInfo
- * @property {Boolean} wasAlreadyPresent Indicates if request was already present in the queue.
- * @property {Boolean} wasAlreadyHandled Indicates if request was already marked as handled.
- * @property {String} requestId The ID of the added request
- * @property {Object} request The original {@link Request} object passed to the `RequestQueue` function.
+ * @template UserData
+ * @typedef QueueOperationInfo
+ * @property {boolean} wasAlreadyPresent Indicates if request was already present in the queue.
+ * @property {boolean} wasAlreadyHandled Indicates if request was already marked as handled.
+ * @property {string} requestId The ID of the added request
+ * @property {Request<UserData>} request The original [`Request`](../api/request) object passed to the `RequestQueue` function.
  */
 /**
  * Represents a queue of URLs to crawl, which is used for deep crawling of websites
@@ -79,8 +80,9 @@ export const STORAGE_CONSISTENCY_DELAY_MILLIS: 3000;
  * await queue.reclaimRequest(request2);
  * ```
  * @hideconstructor
+ * @template UserData
  */
-export class RequestQueue {
+export class RequestQueue<UserData> {
     constructor(queueId: any, queueName: any, clientKey?: any);
     clientKey: any;
     queueId: any;
@@ -106,22 +108,22 @@ export class RequestQueue {
      * To add multiple requests to the queue by extracting links from a webpage,
      * see the {@link utils#enqueueLinks} helper function.
      *
-     * @param {Request|RequestOptions} request {@link Request} object or vanilla object with request data.
+     * @param {(Request<UserData>|RequestOptions<UserData>)} request {@link Request} object or vanilla object with request data.
      * Note that the function sets the `uniqueKey` and `id` fields to the passed object.
      * @param {Object} [options]
-     * @param {Boolean} [options.forefront=false] If `true`, the request will be added to the foremost position in the queue.
-     * @return {Promise<QueueOperationInfo>}
+     * @param {boolean} [options.forefront=false] If `true`, the request will be added to the foremost position in the queue.
+     * @return {Promise<QueueOperationInfo<UserData>>}
      */
-    async addRequest(request: RequestOptions | Request, options?: {
+    addRequest(request: Request<UserData> | RequestOptions<UserData>, options?: {
         forefront?: boolean;
-    }): Promise<QueueOperationInfo>;
+    } | undefined): Promise<QueueOperationInfo<UserData>>;
     /**
      * Gets the request from the queue specified by ID.
      *
-     * @param {String} requestId ID of the request.
-     * @return {Promise<Request>} Returns the request object, or `null` if it was not found.
+     * @param {string} requestId ID of the request.
+     * @return {Promise<Request<UserData> | null>} Returns the request object, or `null` if it was not found.
      */
-    async getRequest(requestId: string): Promise<Request>;
+    getRequest(requestId: string): Promise<Request<UserData> | null>;
     /**
      * Returns a next request in the queue to be processed, or `null` if there are no more pending requests.
      *
@@ -136,44 +138,44 @@ export class RequestQueue {
      * To check whether all requests in queue were finished,
      * use {@link RequestQueue#isFinished} instead.
      *
-     * @returns {Promise<Request>}
+     * @returns {Promise<Request<UserData>>}
      * Returns the request object or `null` if there are no more pending requests.
      */
-    async fetchNextRequest(): Promise<Request>;
+    fetchNextRequest(): Promise<Request<UserData>>;
     /**
      * Marks a request that was previously returned by the
      * {@link RequestQueue#fetchNextRequest}
      * function as handled after successful processing.
      * Handled requests will never again be returned by the `fetchNextRequest` function.
      *
-     * @param {Request} request
-     * @return {Promise<QueueOperationInfo>}
+     * @param {Request<UserData>} request
+     * @return {Promise<QueueOperationInfo<UserData>>}
      */
-    async markRequestHandled(request: Request): Promise<QueueOperationInfo>;
+    markRequestHandled(request: Request<UserData>): Promise<QueueOperationInfo<UserData>>;
     /**
      * Reclaims a failed request back to the queue, so that it can be returned for processed later again
      * by another call to {@link RequestQueue#fetchNextRequest}.
      * The request record in the queue is updated using the provided `request` parameter.
      * For example, this lets you store the number of retries or error messages for the request.
      *
-     * @param {Request} request
+     * @param {Request<UserData>} request
      * @param {Object} [options]
-     * @param {Boolean} [options.forefront=false]
+     * @param {boolean} [options.forefront=false]
      * If `true` then the request it placed to the beginning of the queue, so that it's returned
      * in the next call to {@link RequestQueue#fetchNextRequest}.
      * By default, it's put to the end of the queue.
-     * @return {Promise<QueueOperationInfo>}
+     * @return {Promise<QueueOperationInfo<UserData>>}
      */
-    async reclaimRequest(request: Request, options?: {
+    reclaimRequest(request: Request<UserData>, options?: {
         forefront?: boolean;
-    }): Promise<QueueOperationInfo>;
+    } | undefined): Promise<QueueOperationInfo<UserData>>;
     /**
      * Resolves to `true` if the next call to {@link RequestQueue#fetchNextRequest}
      * would return `null`, otherwise it resolves to `false`.
      * Note that even if the queue is empty, there might be some pending requests currently being processed.
      * If you need to ensure that there is no activity in the queue, use {@link RequestQueue#isFinished}.
      *
-     * @returns {Promise<Boolean>}
+     * @returns {Promise<boolean>}
      */
     async isEmpty(): Promise<boolean>;
     /**
@@ -182,7 +184,7 @@ export class RequestQueue {
      * the function might occasionally return a false negative,
      * but it will never return a false positive.
      *
-     * @returns {Promise<Boolean>}
+     * @returns {Promise<boolean>}
      */
     async isFinished(): Promise<boolean>;
     /**
@@ -194,15 +196,15 @@ export class RequestQueue {
     /**
      * We always request more items than is in progress to ensure that something falls into head.
      *
-     * @param {Boolean} [ensureConsistency=false] If true then query for queue head is retried until queueModifiedAt
+     * @param {boolean} [ensureConsistency=false] If true then query for queue head is retried until queueModifiedAt
      *   is older than queryStartedAt by at least API_PROCESSED_REQUESTS_DELAY_MILLIS to ensure that queue
      *   head is consistent.
-     * @param {Number} [limit] How many queue head items will be fetched.
-     * @param {Number} [iteration] Used when this function is called recursively to limit the recursion.
-     * @return {Boolean} Indicates if queue head is consistent (true) or inconsistent (false).
+     * @param {number} [limit] How many queue head items will be fetched.
+     * @param {number} [iteration] Used when this function is called recursively to limit the recursion.
+     * @return {boolean} Indicates if queue head is consistent (true) or inconsistent (false).
      * @ignore
      */
-    async _ensureHeadIsNonEmpty(ensureConsistency?: boolean, limit?: number, iteration?: number): boolean;
+    _ensureHeadIsNonEmpty(ensureConsistency?: boolean | undefined, limit?: number | undefined, iteration?: number | undefined): boolean;
     /**
      * Adds a request straight to the queueHeadDict, to improve performance.
      * @private
@@ -212,9 +214,9 @@ export class RequestQueue {
      * Removes the queue either from the Apify Cloud storage or from the local directory,
      * depending on the mode of operation.
      *
-     * @return {Promise}
+     * @return {Promise<void>}
      */
-    async drop(): Promise<any>;
+    drop(): Promise<void>;
     /** @ignore */
     async delete(): Promise<void>;
     /**
@@ -253,7 +255,7 @@ export class RequestQueue {
      * }
      * ```
      *
-     * @returns {Promise<Object>}
+     * @returns {Promise<object>}
      */
     async getInfo(): Promise<any>;
 }
@@ -268,9 +270,9 @@ export class RequestQueue {
 export class RequestQueueLocal {
     constructor(queueId: any, localStorageDir: any);
     queueId: any;
-    localStoragePath: string;
-    localHandledEmulationPath: string;
-    localPendingEmulationPath: string;
+    localStoragePath: any;
+    localHandledEmulationPath: any;
+    localPendingEmulationPath: any;
     queueOrderNoCounter: number;
     pendingCount: number;
     _handledCount: number;
@@ -278,24 +280,24 @@ export class RequestQueueLocal {
     requestIdToQueueOrderNo: {};
     queueOrderNoInProgress: {};
     requestsBeingWrittenToFile: Map<any, any>;
-    createdAt: Date;
-    modifiedAt: Date;
-    accessedAt: Date;
+    createdAt: any;
+    modifiedAt: any;
+    accessedAt: any;
     initializationPromise: Promise<void>;
-    async _initialize(): Promise<void>;
-    async _saveRequestIdToQueueOrderNo(filepath: any): Promise<void>;
-    _getFilePath(queueOrderNo: any, isHandled?: boolean): string;
+    _initialize(): Promise<void>;
+    _saveRequestIdToQueueOrderNo(filepath: any): Promise<void>;
+    _getFilePath(queueOrderNo: any, isHandled?: boolean): any;
     _getQueueOrderNo(forefront?: boolean): number;
-    async _getRequestByQueueOrderNo(queueOrderNo: any): Promise<Request>;
-    async addRequest(request: any, opts?: {}): Promise<{
+    _getRequestByQueueOrderNo(queueOrderNo: any): Promise<Request<any>>;
+    addRequest(request: any, opts?: {}): Promise<{
         requestId: any;
         wasAlreadyHandled: any;
         wasAlreadyPresent: boolean;
         request: any;
     }>;
-    async getRequest(requestId: any): Promise<any>;
-    async fetchNextRequest(): Promise<Request>;
-    async markRequestHandled(request: any): Promise<{
+    getRequest(requestId: any): Promise<any>;
+    fetchNextRequest(): Promise<Request<any> | null>;
+    markRequestHandled(request: any): Promise<{
         requestId: any;
         wasAlreadyHandled: boolean;
         wasAlreadyPresent: boolean;
@@ -315,25 +317,25 @@ export class RequestQueueLocal {
     async getInfo(): Promise<{
         id: any;
         name: any;
-        userId: string;
-        createdAt: Date;
-        modifiedAt: Date;
-        accessedAt: Date;
+        userId: string | null;
+        createdAt: any;
+        modifiedAt: any;
+        accessedAt: any;
         totalRequestCount: number;
         handledRequestCount: number;
         pendingRequestCount: number;
     }>;
     _updateMetadata(isModified: any): void;
 }
-export function openRequestQueue(queueIdOrName?: string, options?: {
+export function openRequestQueue(queueIdOrName?: string | undefined, options?: {
     forceCloud?: boolean;
-}): Promise<RequestQueue>;
+} | undefined): Promise<RequestQueue<any>>;
 /**
  * A helper class that is used to report results from various
  * {@link RequestQueue} functions as well as
  * {@link utils#enqueueLinks}.
  */
-export type QueueOperationInfo = {
+export type QueueOperationInfo<UserData> = {
     /**
      * Indicates if request was already present in the queue.
      */
@@ -349,7 +351,7 @@ export type QueueOperationInfo = {
     /**
      * The original {@link Request} object passed to the `RequestQueue` function.
      */
-    request: any;
+    request: Request<UserData>;
 };
-import { RequestOptions } from "./request";
 import Request from "./request";
+import { RequestOptions } from "./request";

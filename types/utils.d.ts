@@ -14,12 +14,12 @@ export function logSystemInfo(): void;
  * target="_blank">`Apify.client.setOptions()`</a> function.
  * Beware that altering these settings might have unintended effects on the entire Apify SDK package.
  *
- * @type {*}
+ * @type {object}
  *
  * @memberof module:Apify
  * @name client
  */
-export const apifyClient: any;
+export const apifyClient: object;
 export function newPromise(): Promise<void>;
 export function addCharsetToContentType(contentType: string): string;
 export function isDocker(forceReset: boolean): Promise<boolean>;
@@ -30,7 +30,7 @@ export function getMemoryInfo(): Promise<MemoryInfo>;
 export function isPromise(maybePromise: any): boolean;
 export function isProduction(): boolean;
 export function ensureDirExists(dirPath: any): any;
-export function getFirstKey(dict: any): string;
+export function getFirstKey(dict: any): string | undefined;
 export function getTypicalChromeExecutablePath(): string;
 export function addTimeoutToPromise<T>(promise: Promise<T>, timeoutMillis: number, errorMessage: string): Promise<T>;
 export function isAtHome(): boolean;
@@ -40,7 +40,7 @@ export function openRemoteStorage(idOrName: any, defaultIdEnvVar: any, RemoteCla
 export function ensureTokenOrLocalStorageEnvExists(storageName: any): void;
 export function snakeCaseToCamelCase(snakeCaseStr: string): string;
 export function printOutdatedSdkWarning(): void;
-export function parseContentTypeFromResponse(response: any): {
+export function parseContentTypeFromResponse(response: Object): {
     type: string;
     charset: string;
 };
@@ -91,7 +91,7 @@ declare function extractUrls({ string, urlRegExp }: {
     urlRegExp?: RegExp;
 }): string[];
 declare function getRandomUserAgent(): string;
-declare function htmlToText(html: string | CheerioStatic): string;
+declare function htmlToText(html: string | CheerioSelector): string;
 /**
  * Default regular expression to match URLs in a string that may be plain text, JSON, CSV or other. It supports common URL characters
  * and does not support URLs containing commas or spaces. The URLs also may contain Unicode letters (not symbols).
@@ -104,7 +104,7 @@ declare const URL_NO_COMMAS_REGEX: RegExp;
  * @memberOf utils
  */
 declare const URL_WITH_COMMAS_REGEX: RegExp;
-declare function createRequestDebugInfo(request: any, response?: IncomingMessage | PuppeteerResponse, additionalFields?: any): any;
+declare function createRequestDebugInfo(request: any, response?: IncomingMessage | PuppeteerResponse | undefined, additionalFields?: Object | undefined): any;
 import { IncomingMessage } from "http";
 import { Response as PuppeteerResponse } from "puppeteer";
 export {};

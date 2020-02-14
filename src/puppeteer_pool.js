@@ -1,4 +1,4 @@
-import _ from 'underscore';
+import * as _ from 'underscore';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -7,9 +7,12 @@ import log from 'apify-shared/log';
 import LinkedList from 'apify-shared/linked_list';
 import rimraf from 'rimraf';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { Page, Browser } from 'puppeteer'; // eslint-disable-line no-unused-vars
+/* eslint-disable no-unused-vars,import/named */
+import { Page, Browser } from 'puppeteer';
+import { launchPuppeteer, LaunchPuppeteerOptions } from './puppeteer';
+import { SessionPool } from './session_pool/session_pool';
+/* eslint-enable no-unused-vars */
 
-import { launchPuppeteer, LaunchPuppeteerOptions } from './puppeteer'; // eslint-disable-line no-unused-vars,import/named
 import { addTimeoutToPromise } from './utils';
 import LiveViewServer from './live_view/live_view_server';
 import EVENTS from './session_pool/events';
@@ -43,7 +46,7 @@ const DISK_CACHE_DIR = path.join(os.tmpdir(), 'puppeteer_disk_cache-');
 
 /**
  * Deletes Chrome's user data directory
- * @param {String} diskCacheDir
+ * @param {string} diskCacheDir
  * @ignore
  */
 const deleteDiskCacheDir = (diskCacheDir) => {
@@ -73,7 +76,13 @@ class PuppeteerInstance {
 }
 
 /**
- * @typedef {Object} PuppeteerPoolOptions
+ * @callback LaunchPuppeteerFunction
+ * @param {LaunchPuppeteerOptions} options
+ * @returns {Promise<Browser>}
+ */
+
+/**
+ * @typedef PuppeteerPoolOptions
  * @property {boolean} [useLiveView]
  *   Enables the use of a preconfigured {@link LiveViewServer} that serves snapshots
  *   just before a page would be recycled by `PuppeteerPool`. If there are no clients
@@ -95,7 +104,7 @@ class PuppeteerInstance {
  *   it is considered retired and no more tabs will be opened. After the last tab is closed the
  *   whole browser is closed too. This parameter defines a time limit between the last tab was opened and
  *   before the browser is closed even if there are pending open tabs.
- * @property {Function} [launchPuppeteerFunction]
+ * @property {LaunchPuppeteerFunction} [launchPuppeteerFunction]
  *   Overrides the default function to launch a new Puppeteer instance.
  *   The function must return a promise resolving to
  *   [`Browser`](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-browser) instance.
@@ -216,6 +225,7 @@ class PuppeteerPool {
 
         // Config.
 
+        /** @type {SessionPool<any>} */
         this.sessionPool = sessionPool;
         this.reusePages = reusePages;
         this.maxOpenPagesPerInstance = maxOpenPagesPerInstance;
