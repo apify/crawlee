@@ -27,8 +27,13 @@ that a single URL is not crawled multiple times.
 
 The crawler finishes when there are no more [`Request`](request) objects to crawl.
 
-By default, `CheerioCrawler` downloads HTML using the <a href="https://www.npmjs.com/package/request" target="_blank">request</a> NPM package. You can
-use the `requestOptions` parameter to pass additional options to `request`.
+`CheerioCrawler` downloads the web pages using the [`requestAsBrowser`](requestasbrowser) utility function. You can use the `requestOptions` parameter
+to pass additional options to this function.
+
+By default, `CheerioCrawler` only processes web pages with the `text/html` and `application/xhtml+xml` MIME content types (as reported by the
+`Content-Type` HTTP header), and skips pages with other content types. If you want the crawler to process other content types, use the
+[`additionalMimeTypes`](#new_CheerioCrawler_new) constructor option. Beware that the parsing behavior differs for HTML, XML, JSON and other types of
+content. For details, see [`CheerioCrawlerOptions#handlePageFunction`](cheeriocrawleroptions#handlepagefunction).
 
 New requests are only dispatched when there is enough free CPU and memory available, using the functionality provided by the
 [`AutoscaledPool`](autoscaledpool) class. All [`AutoscaledPool`](autoscaledpool) configuration options can be passed to the `autoscaledPoolOptions`
@@ -70,6 +75,27 @@ const crawler = new Apify.CheerioCrawler({
 
 await crawler.run();
 ```
+
+**Properties**
+
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>autoscaledPool</code></td><td><code><a href="autoscaledpool">AutoscaledPool</a></code></td>
+</tr>
+<tr>
+<td colspan="3"><p>A reference to the underlying <a href="autoscaledpool"><code>AutoscaledPool</code></a> class that manages the concurrency of the crawler.
+ Note that this property is only initialized after calling the <a href="#CheerioCrawler+run"><code>run</code></a> function.
+ You can use it to change the concurrency settings on the fly,
+ to pause the crawler by calling <a href="#AutoscaledPool+pause"><code>pause</code></a>
+ or to abort it by calling <a href="#AutoscaledPool+abort"><code>abort</code></a>.</p>
+</td></tr></tbody>
+</table>
 
 -   [CheerioCrawler](cheeriocrawler)
     -   [`new CheerioCrawler(options)`](#new_CheerioCrawler_new)

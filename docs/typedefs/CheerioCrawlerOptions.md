@@ -21,22 +21,30 @@ title: CheerioCrawlerOptions
 <td colspan="3"><p>User-provided function that performs the logic of the crawler. It is called for each page
   loaded and parsed by the crawler.</p>
 <p>  The function receives the following object as an argument:</p>
-<pre><code>{
-  $: Cheerio, // the Cheerio object with parsed HTML
-  body: String|Buffer // the request body of the web page
-  // the parsed object from JSON string
-  // if the response contains the content type application/json
-  json: Object,
-  request: Request,
-  contentType: Object, // Parsed Content-Type header: { type, encoding }
-  response: Object // An instance of Node&#39;s http.IncomingMessage object,
-  autoscaledPool: AutoscaledPool,
-  session: Session
-}</code></pre><p>  Type of <code>body</code> depends on web page <code>Content-Type</code> header.</p>
+<pre><code class="language-javascript">{
+  // The Cheerio object&#39;s function with the parsed HTML.
+  $: Cheerio,
+
+// The request body of the web page, whose type depends on the content type. body: String|Buffer,
+
+// The parsed object from JSON for responses with the &quot;application/json&quot; content types. // For other content types it&#39;s null. json:
+Object,
+
+// Apify.Request object with details of the requested web page request: Request,
+
+// Parsed Content-Type HTTP header: { type, encoding } contentType: Object,
+
+// An instance of Node&#39;s http.IncomingMessage object, response: Object,
+
+// Underlying AutoscaledPool instance used to manage the concurrency of crawler autoscaledPool: AutoscaledPool,
+
+// Session object, useful to work around anti-scraping protections session: Session }</code></pre>
+
+<p>  Type of <code>body</code> depends on the <code>Content-Type</code> header of the web page:</p>
 <ul>
-<li><p>String for <code>text/html</code>, <code>application/xhtml+xml</code>, <code>application/xml</code> mime types</p>
+<li><p>String for <code>text/html</code>, <code>application/xhtml+xml</code>, <code>application/xml</code> MIME content types</p>
 </li>
-<li><p>Buffer for others mime types</p>
+<li><p>Buffer for others MIME content types</p>
 <p>Parsed <code>Content-Type</code> header using
 <a href="https://www.npmjs.com/package/content-type" target="_blank">content-type package</a>
 is stored in <code>contentType</code>.</p>
@@ -69,8 +77,7 @@ The exceptions are logged to the request using the
 <td><code>[requestOptions]</code></td><td><code><a href="../typedefs/requestasbrowseroptions">RequestAsBrowserOptions</a></code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p>Represents the options passed to
-  <a href="https://www.npmjs.com/package/request" target="_blank">request</a> to make the HTTP call.
+<td colspan="3"><p>Represents the options passed to the <a href="requestasbrowser"><code>requestAsBrowser</code></a> function that makes the HTTP requests to fetch the web pages.
   Provided <code>requestOptions</code> are added to internal defaults that cannot be overridden to ensure
   the operation of <code>CheerioCrawler</code> and all its options. Headers will not be merged,
   use <a href="requestlist"><code>RequestList</code></a> and/or <a href="requestqueue"><code>RequestQueue</code></a> to initialize your <a href="request"><code>Request</code></a> with the

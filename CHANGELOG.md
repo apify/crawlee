@@ -2,6 +2,8 @@ NEXT
 ====================
 - Improved `Apify.launchPuppeteer()` code to prevent triggering bugs in Puppeteer by passing
   more than required options to `puppeteer.launch()`.
+- Documented `BasicCrawler.autoscaledPool` property,
+  and added `CheerioCrawler.autoscaledPool` and `PuppeteerCrawler.autoscaledPool` properties
 
 0.19.1 / 2020-01-30
 ====================
