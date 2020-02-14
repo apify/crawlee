@@ -65,14 +65,14 @@ await requestList.reclaimRequest(request2);
 
 -   [RequestList](requestlist)
     -   [`new exports.RequestList(options)`](#new_RequestList_new)
-    -   [`.initialize()`](#RequestList+initialize) ⇒ `Promise`
-    -   [`.persistState()`](#RequestList+persistState) ⇒ `Promise`
-    -   [`.getState()`](#RequestList+getState) ⇒ `Object`
+    -   [`.initialize()`](#RequestList+initialize) ⇒ `Promise<void>`
+    -   [`.persistState()`](#RequestList+persistState) ⇒ `Promise<void>`
+    -   [`.getState()`](#RequestList+getState) ⇒ [`RequestListState`](../typedefs/requestliststate)
     -   [`.isEmpty()`](#RequestList+isEmpty) ⇒ `Promise<Boolean>`
     -   [`.isFinished()`](#RequestList+isFinished) ⇒ `Promise<Boolean>`
     -   [`.fetchNextRequest()`](#RequestList+fetchNextRequest) ⇒ [`Promise<Request>`](request)
-    -   [`.markRequestHandled(request)`](#RequestList+markRequestHandled) ⇒ `Promise`
-    -   [`.reclaimRequest(request)`](#RequestList+reclaimRequest) ⇒ `Promise`
+    -   [`.markRequestHandled(request)`](#RequestList+markRequestHandled) ⇒ `Promise<void>`
+    -   [`.reclaimRequest(request)`](#RequestList+reclaimRequest) ⇒ `Promise<void>`
     -   [`.length()`](#RequestList+length) ⇒ `Number`
     -   [`.handledCount()`](#RequestList+handledCount) ⇒ `Number`
 
@@ -83,94 +83,27 @@ await requestList.reclaimRequest(request2);
 <table>
 <thead>
 <tr>
-<th>Param</th><th>Type</th><th>Default</th>
+<th>Param</th><th>Type</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>options</code></td><td><code>Object</code></td><td></td>
+<td><code>options</code></td><td><code><a href="../typedefs/requestlistoptions">RequestListOptions</a></code></td>
 </tr>
 <tr>
-<td colspan="3"><p>All <code>RequestList</code> parameters are passed
-  via an options object with the following keys:</p>
-</td></tr><tr>
-<td><code>options.sources</code></td><td><code>Array</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>An array of sources of URLs for the <code>RequestList</code>. It can be either an array of plain objects that
- define the <code>url</code> property, or an array of instances of the <a href="request"><code>Request</code></a> class.
- Additionally, the <code>requestsFromUrl</code> property may be used instead of <code>url</code>,
- which will instruct <code>RequestList</code> to download the source URLs from a given remote location.
- The URLs will be parsed from the received response.</p>
-<pre><code>[
-    // One URL
-    { method: &#39;GET&#39;, url: &#39;http://example.com/a/b&#39; },
-    // Batch import of URLs from a file hosted on the web
-    { method: &#39;POST&#39;, requestsFromUrl: &#39;http://example.com/urls.txt&#39; },
-    // Batch import combined with regex.
-    { method: &#39;POST&#39;, requestsFromUrl: &#39;http://example.com/urls.txt&#39;, regex: /https:\/\/example.com\/.+/ },
-]</code></pre></td></tr><tr>
-<td><code>[options.persistStateKey]</code></td><td><code>String</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>Identifies the key in the default key-value store under which <code>RequestList</code> periodically stores its
-  state (i.e. which URLs were crawled and which not).
-  If the actor is restarted, <code>RequestList</code> will read the state
-  and continue where it left off.</p>
-<p>  If <code>persistStateKey</code> is not set, <code>RequestList</code> will always start from the beginning,
-  and all the source URLs will be crawled again.</p>
-</td></tr><tr>
-<td><code>[options.persistSourcesKey]</code></td><td><code>String</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>Identifies the key in the default key-value store under which the <code>RequestList</code> persists its
-  sources (i.e. the lists of URLs) during the <a href="#RequestList+initialize"><code>initialize</code></a> call.
-  This is necessary if <code>persistStateKey</code> is set and the source URLs might potentially change,
-  to ensure consistency of the source URLs and state object. However, it comes with some storage and performance overheads.</p>
-<p>  If <code>persistSourcesKey</code> is not set, <a href="#RequestList+initialize"><code>initialize</code></a> will always fetch the sources
-  from their origin, check that they are consistent with the restored state (if any)
-  and throw an error if they are not.</p>
-</td></tr><tr>
-<td><code>[options.state]</code></td><td><code>Object</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>The state object that the <code>RequestList</code> will be initialized from.
-  It is in the form as returned by <code>RequestList.getState()</code>, such as follows:</p>
-<pre><code>{
-    nextIndex: 5,
-    nextUniqueKey: &#39;unique-key-5&#39;
-    inProgress: {
-        &#39;unique-key-1&#39;: true,
-        &#39;unique-key-4&#39;: true,
-    },
-}</code></pre><p>  Note that the preferred (and simpler) way to persist the state of crawling of the <code>RequestList</code>
-  is to use the <code>stateKeyPrefix</code> parameter instead.</p>
-</td></tr><tr>
-<td><code>[options.keepDuplicateUrls]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>By default, <code>RequestList</code> will deduplicate the provided URLs. Default deduplication is based
-  on the <code>uniqueKey</code> property of passed source <a href="request"><code>Request</code></a> objects.</p>
-<p>  If the property is not present, it is generated by normalizing the URL. If present, it is kept intact.
-  In any case, only one request per <code>uniqueKey</code> is added to the <code>RequestList</code> resulting in removal
-  of duplicate URLs / unique keys.</p>
-<p>  Setting <code>keepDuplicateUrls</code> to <code>true</code> will append an additional identifier to the <code>uniqueKey</code>
-  of each request that does not already include a <code>uniqueKey</code>. Therefore, duplicate
-  URLs will be kept in the list. It does not protect the user from having duplicates in user set
-  <code>uniqueKey</code>s however. It is the user&#39;s responsibility to ensure uniqueness of their unique keys
-  if they wish to keep more than just a single copy in the <code>RequestList</code>.</p>
+<td colspan="3"><p>All <code>RequestList</code> configuration options</p>
 </td></tr></tbody>
 </table>
 <a name="RequestList+initialize"></a>
 
-## `requestList.initialize()` ⇒ `Promise`
+## `requestList.initialize()` ⇒ `Promise<void>`
 
 Loads all remote sources of URLs and potentially starts periodic state persistence. This function must be called before you can start using the
 instance in a meaningful way.
 
 <a name="RequestList+persistState"></a>
 
-## `requestList.persistState()` ⇒ `Promise`
+## `requestList.persistState()` ⇒ `Promise<void>`
 
 Persists the current state of the `RequestList` into the default [`KeyValueStore`](keyvaluestore). The state is persisted automatically in regular
 intervals, but calling this method manually is useful in cases where you want to have the most current state available after you pause or stop
@@ -178,7 +111,7 @@ fetching its requests. For example after you pause or abort a crawl. Or just bef
 
 <a name="RequestList+getState"></a>
 
-## `requestList.getState()` ⇒ `Object`
+## `requestList.getState()` ⇒ [`RequestListState`](../typedefs/requestliststate)
 
 Returns an object representing the internal state of the `RequestList` instance. Note that the object's fields can change in future releases.
 
@@ -206,7 +139,7 @@ The function's `Promise` resolves to `null` if there are no more requests to pro
 
 <a name="RequestList+markRequestHandled"></a>
 
-## `requestList.markRequestHandled(request)` ⇒ `Promise`
+## `requestList.markRequestHandled(request)` ⇒ `Promise<void>`
 
 Marks request as handled after successful processing.
 
@@ -225,7 +158,7 @@ Marks request as handled after successful processing.
 </table>
 <a name="RequestList+reclaimRequest"></a>
 
-## `requestList.reclaimRequest(request)` ⇒ `Promise`
+## `requestList.reclaimRequest(request)` ⇒ `Promise<void>`
 
 Reclaims request to the list if its processing failed. The request will become available in the next `this.fetchNextRequest()`.
 

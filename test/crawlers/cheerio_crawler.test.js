@@ -1,5 +1,5 @@
 import { Readable } from 'stream';
-import EventEmitter from 'events';
+import { EventEmitter } from 'events';
 import rqst from 'request';
 import fs from 'fs';
 import path from 'path';
@@ -195,6 +195,7 @@ describe('CheerioCrawler', () => {
         await requestList.initialize();
         await cheerioCrawler.run();
 
+        expect(cheerioCrawler.autoscaledPool.minConcurrency).toBe(2);
         expect(processed).toHaveLength(6);
         expect(failed).toHaveLength(0);
 

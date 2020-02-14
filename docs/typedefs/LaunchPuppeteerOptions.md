@@ -19,13 +19,6 @@ Apify extends the launch options of Puppeteer. You can use any of the
 </thead>
 <tbody>
 <tr>
-<td><code>...</code></td><td></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>You can use any of the
-  <a href="https://pptr.dev/#?product=Puppeteer&show=api-puppeteerlaunchoptions" target="_blank"><code>puppeteer.launch()</code></a>
-  options.</p>
-</td></tr><tr>
 <td><code>[proxyUrl]</code></td><td><code>String</code></td><td></td>
 </tr>
 <tr>

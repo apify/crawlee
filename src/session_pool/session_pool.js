@@ -1,17 +1,35 @@
-import EventEmitter from 'events';
+import { EventEmitter } from 'events';
 import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 
 import { openKeyValueStore } from '../key_value_store';
-import { Session } from './session';
+import { Session, SessionOptions } from './session'; // eslint-disable-line no-unused-vars,import/named,import/no-cycle
 import events from '../events';
 import { ACTOR_EVENT_NAMES_EX } from '../constants';
 
+/**
+ * Factory user-function which creates customized {@link Session} instances.
+ * @callback CreateSession
+ * @param {SessionPool} sessionPool Pool requesting the new session.
+ */
 
+/**
+ * @typedef {Object} SessionPoolOptions
+ * @property {Number} [maxPoolSize=1000] - Maximum size of the pool.
+ * Indicates how many sessions are rotated.
+ * @property {SessionOptions} [sessionOptions] The configuration options for {Session} instances.
+ * @property {String} [persistStateKeyValueStoreId] - Name or Id of `KeyValueStore` where is the `SessionPool` state stored.
+ * @property {String} [persistStateKey="SESSION_POOL_STATE"] - Session pool persists it's state under this key in Key value store.
+ * @property {CreateSession} [createSessionFunction] - Custom function that should return `Session` instance.
+ * Function receives `SessionPool` instance as a parameter
+ */
+
+// TODO yin: `tsc` generates a class declaration containing EventEmitter methods with wrong return type (`:SessionPool instead of `:this`).
 /**
  * Handles the sessions rotation, creation and persistence.
  * Creates a pool of {@link Session} instances, that are randomly rotated.
  * When some session is marked as blocked. It is removed and new one is created instead.
+ * Learn more in the [`Session management guide`](../guides/sessionmanagement).
  *
  * Session pool is by default persisted in default {@link KeyValueStore}.
  * If you want to have one pool for all runs you have to specify `persistStateKeyValueStoreId`.
@@ -57,14 +75,7 @@ import { ACTOR_EVENT_NAMES_EX } from '../constants';
 export class SessionPool extends EventEmitter {
     /**
      * Session pool configuration.
-     * @param [options]
-     * @param [options.maxPoolSize=1000] {Number} - Maximum size of the pool.
-     * Indicates how many sessions are rotated.
-     * @param [options.sessionOptions] {Object} The [`new Session`](session#new_SessionPool_new) options
-     * @param [options.persistStateKeyValueStoreId] {String} - Name or Id of `KeyValueStore` where is the `SessionPool` state stored.
-     * @param [options.persistStateKey="SESSION_POOL_STATE"] {String} - Session pool persists it's state under this key in Key value store.
-     * @param [options.createSessionFunction] {function} - Custom function that should return `Session` instance.
-     * Function receives `SessionPool` instance as a parameter
+     * @param {SessionPoolOptions} [options] All `SessionPool` configuration options.
      */
     constructor(options = {}) {
         const {
@@ -308,7 +319,7 @@ export class SessionPool extends EventEmitter {
  *
  * For more details and code examples, see the {@link SessionPool} class.
  *
- * @param sessionPoolOptions {Object} The [`new SessionPool`](sessionpool#new_SessionPool_new) options
+ * @param {SessionPoolOptions} sessionPoolOptions The [`new SessionPool`](sessionpool#new_SessionPool_new) options
  * @return {Promise<SessionPool>}
  * @memberof module:Apify
  * @name openSessionPool

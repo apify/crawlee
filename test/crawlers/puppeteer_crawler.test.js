@@ -56,6 +56,7 @@ describe('PuppeteerCrawler', () => {
         await requestList.initialize();
         await puppeteerCrawler.run();
 
+        expect(puppeteerCrawler.autoscaledPool.minConcurrency).toBe(1);
         expect(processed).toHaveLength(6);
         expect(failed).toHaveLength(0);
 

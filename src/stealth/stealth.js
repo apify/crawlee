@@ -1,4 +1,5 @@
 import _ from 'underscore';
+import { Browser } from 'puppeteer'; // eslint-disable-line no-unused-vars
 import hidingTricks from './hiding_tricks';
 
 /**

@@ -7,7 +7,9 @@ import log from 'apify-shared/log';
 import LinkedList from 'apify-shared/linked_list';
 import rimraf from 'rimraf';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { launchPuppeteer } from './puppeteer';
+import { Page, Browser } from 'puppeteer'; // eslint-disable-line no-unused-vars
+
+import { launchPuppeteer, LaunchPuppeteerOptions } from './puppeteer'; // eslint-disable-line no-unused-vars,import/named
 import { addTimeoutToPromise } from './utils';
 import LiveViewServer from './live_view/live_view_server';
 import EVENTS from './session_pool/events';
@@ -71,6 +73,61 @@ class PuppeteerInstance {
 }
 
 /**
+ * @typedef {Object} PuppeteerPoolOptions
+ * @property {boolean} [useLiveView]
+ *   Enables the use of a preconfigured {@link LiveViewServer} that serves snapshots
+ *   just before a page would be recycled by `PuppeteerPool`. If there are no clients
+ *   connected, it has close to zero impact on performance.
+ * @property {number} [maxOpenPagesPerInstance=50]
+ *   Maximum number of open pages (i.e. tabs) per browser. When this limit is reached, new pages are loaded in a new browser instance.
+ * @property {number} [retireInstanceAfterRequestCount=100]
+ *   Maximum number of requests that can be processed by a single browser instance.
+ *   After the limit is reached, the browser is retired and new requests are
+ *   handled by a new browser instance.
+ * @property {number} [puppeteerOperationTimeoutSecs=15]
+ *   All browser management operations such as launching a new browser, opening a new page
+ *   or closing a page will timeout after the set number of seconds and the connected
+ *   browser will be retired.
+ * @property {number} [instanceKillerIntervalSecs=60]
+ *   Indicates how often are the open Puppeteer instances checked whether they can be closed.
+ * @property {number} [killInstanceAfterSecs=300]
+ *   When Puppeteer instance reaches the `retireInstanceAfterRequestCount` limit then
+ *   it is considered retired and no more tabs will be opened. After the last tab is closed the
+ *   whole browser is closed too. This parameter defines a time limit between the last tab was opened and
+ *   before the browser is closed even if there are pending open tabs.
+ * @property {Function} [launchPuppeteerFunction]
+ *   Overrides the default function to launch a new Puppeteer instance.
+ *   The function must return a promise resolving to
+ *   [`Browser`](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-browser) instance.
+ *   See the source code on
+ *   <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_pool.js#L28" target="_blank">GitHub</a>
+ *   for the default implementation.
+ * @property {LaunchPuppeteerOptions} [launchPuppeteerOptions]
+ *   Options used by `Apify.launchPuppeteer()` to start new Puppeteer instances.
+ *   See [`LaunchPuppeteerOptions`](../typedefs/launchpuppeteeroptions).
+ * @property {boolean} [recycleDiskCache=false]
+ *   Enables recycling of disk cache directories by Chrome instances.
+ *   When a browser instance is closed, its disk cache directory is not deleted but it's used by a newly opened browser instance.
+ *   This is useful to reduce amount of data that needs to be downloaded to speed up crawling and reduce proxy usage.
+ *   Note that the new browser starts with empty cookies, local storage etc. so this setting doesn't affect anonymity of your crawler.
+ *
+ *   Beware that the disk cache directories can consume a lot of disk space.
+ *   To limit the space consumed, you can pass the `--disk-cache-size=X` argument to `launchPuppeteerargs`,
+ *   where `X` is the approximate maximum number of bytes for disk cache.
+ *
+ *   Do not use the `recycleDiskCache` setting together with `--disk-cache-dir`
+ *   argument in `launchPuppeteerargs`, the behavior is undefined.
+ * @property {boolean} [useIncognitoPages]
+ *   With this option selected, all pages will be opened in a new incognito browser context, which means
+ *   that they will not share cookies or cache and their resources will not be throttled by one another.
+ * @property {string[]} [proxyUrls]
+ *   An array of custom proxy URLs to be used by the `PuppeteerPool` instance.
+ *   The provided custom proxies' order will be randomized and the resulting list rotated.
+ *   Custom proxies are not compatible with Apify Proxy and an attempt to use both
+ *   configuration options will cause an error to be thrown on startup.
+ */
+
+/**
  * Manages a pool of Chrome browser instances controlled using
  * <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a>.
  *
@@ -106,62 +163,13 @@ class PuppeteerInstance {
  * // Close all browsers.
  * await puppeteerPool.destroy();
  * ```
- * @param {Object} [options]
- *   All `PuppeteerPool` parameters are passed
- *   via an options object with the following keys:
- * @param {boolean} [options.useLiveView]
- *   Enables the use of a preconfigured {@link LiveViewServer} that serves snapshots
- *   just before a page would be recycled by `PuppeteerPool`. If there are no clients
- *   connected, it has close to zero impact on performance.
- * @param {number} [options.maxOpenPagesPerInstance=50]
- *   Maximum number of open pages (i.e. tabs) per browser. When this limit is reached, new pages are loaded in a new browser instance.
- * @param {number} [options.retireInstanceAfterRequestCount=100]
- *   Maximum number of requests that can be processed by a single browser instance.
- *   After the limit is reached, the browser is retired and new requests are
- *   handled by a new browser instance.
- * @param {number} [options.puppeteerOperationTimeoutSecs=15]
- *   All browser management operations such as launching a new browser, opening a new page
- *   or closing a page will timeout after the set number of seconds and the connected
- *   browser will be retired.
- * @param {number} [options.instanceKillerIntervalSecs=60]
- *   Indicates how often are the open Puppeteer instances checked whether they can be closed.
- * @param {number} [options.killInstanceAfterSecs=300]
- *   When Puppeteer instance reaches the `options.retireInstanceAfterRequestCount` limit then
- *   it is considered retired and no more tabs will be opened. After the last tab is closed the
- *   whole browser is closed too. This parameter defines a time limit between the last tab was opened and
- *   before the browser is closed even if there are pending open tabs.
- * @param {Function} [options.launchPuppeteerFunction]
- *   Overrides the default function to launch a new Puppeteer instance.
- *   The function must return a promise resolving to
- *   [`Browser`](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-browser) instance.
- *   See the source code on
- *   <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_pool.js#L28" target="_blank">GitHub</a>
- *   for the default implementation.
- * @param {LaunchPuppeteerOptions} [options.launchPuppeteerOptions]
- *   Options used by `Apify.launchPuppeteer()` to start new Puppeteer instances.
- *   See [`LaunchPuppeteerOptions`](../typedefs/launchpuppeteeroptions).
- * @param {boolean} [options.recycleDiskCache=false]
- *   Enables recycling of disk cache directories by Chrome instances.
- *   When a browser instance is closed, its disk cache directory is not deleted but it's used by a newly opened browser instance.
- *   This is useful to reduce amount of data that needs to be downloaded to speed up crawling and reduce proxy usage.
- *   Note that the new browser starts with empty cookies, local storage etc. so this setting doesn't affect anonymity of your crawler.
- *
- *   Beware that the disk cache directories can consume a lot of disk space.
- *   To limit the space consumed, you can pass the `--disk-cache-size=X` argument to `options.launchPuppeteerOptions.args`,
- *   where `X` is the approximate maximum number of bytes for disk cache.
- *
- *   Do not use the `options.recycleDiskCache` setting together with `--disk-cache-dir`
- *   argument in `options.launchPuppeteerOptions.args`, the behavior is undefined.
- * @param {boolean} [options.useIncognitoPages]
- *   With this option selected, all pages will be opened in a new incognito browser context, which means
- *   that they will not share cookies or cache and their resources will not be throttled by one another.
- * @param {string[]} [options.proxyUrls]
- *   An array of custom proxy URLs to be used by the `PuppeteerPool` instance.
- *   The provided custom proxies' order will be randomized and the resulting list rotated.
- *   Custom proxies are not compatible with Apify Proxy and an attempt to use both
- *   configuration options will cause an error to be thrown on startup.
  */
 class PuppeteerPool {
+    /**
+     * @param {PuppeteerPoolOptions} [options]
+     *   All `PuppeteerPool` parameters are passed
+     *   via an options object with the following keys:
+     */
     constructor(options = {}) {
         const {
             maxOpenPagesPerInstance,
@@ -208,6 +216,7 @@ class PuppeteerPool {
         checkParamOrThrow(sessionPool, 'options.sessionPool', 'Maybe Object');
 
         // Config.
+
         this.sessionPool = sessionPool;
         this.reusePages = reusePages;
         this.maxOpenPagesPerInstance = maxOpenPagesPerInstance;
@@ -311,7 +320,7 @@ class PuppeteerPool {
      * Takes care of async processes in PuppeteerInstance construction with a Browser.
      * @param {Promise<Browser>} browserPromise
      * @param {PuppeteerInstance} instance
-     * @returns {Promise}
+     * @returns {Promise<void>}
      * @ignore
      */
     async _initBrowser(browserPromise, instance) {
@@ -580,7 +589,7 @@ class PuppeteerPool {
 
     /**
      * Closes all open browsers.
-     * @return {Promise}
+     * @return {Promise<void>}
      */
     async destroy() {
         clearInterval(this.instanceKillerInterval);
@@ -649,7 +658,7 @@ class PuppeteerPool {
      * instance from the pool. The browser will continue to process open pages so that they may gracefully finish.
      * This is unlike `browser.close()` which will forcibly terminate the browser and all open pages will be closed.
      * @param {Browser} browser
-     * @return {Promise}
+     * @return {Promise<void>}
      */
     async retire(browser) {
         const instance = await this._findInstanceByBrowser(browser);
@@ -666,7 +675,7 @@ class PuppeteerPool {
      * or flagging it for reuse.
      *
      * @param {Page} page
-     * @return {Promise}
+     * @return {Promise<void>}
      */
     async recyclePage(page) {
         const snapshotPromise = this.liveViewSnapshotsInProgress.get(page);
@@ -692,7 +701,7 @@ class PuppeteerPool {
      * Tells the connected LiveViewServer to serve a snapshot when available.
      *
      * @param page
-     * @return {Promise}
+     * @return {Promise<void>}
      */
     async serveLiveViewSnapshot(page) {
         const isLiveViewConnected = this.liveViewServer && this.liveViewServer.hasClients();

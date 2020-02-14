@@ -21,14 +21,15 @@ await Apify.utils.sleep(1500);
 -   [`utils`](#utils) : `object`
     -   [`.enqueueLinks`](#utils.enqueueLinks) ⇒ `Promise<Array<QueueOperationInfo>>`
     -   [`.requestAsBrowser`](#utils.requestAsBrowser) ⇒ `Promise<(http.IncomingMessage|stream.Readable)>`
-    -   [`.sleep`](#utils.sleep) ⇒ `Promise`
+    -   [`.sleep`](#utils.sleep) ⇒ `Promise<void>`
     -   [`.URL_NO_COMMAS_REGEX`](#utils.URL_NO_COMMAS_REGEX)
     -   [`.URL_WITH_COMMAS_REGEX`](#utils.URL_WITH_COMMAS_REGEX)
-    -   [`.isDocker()`](#utils.isDocker) ⇒ `Promise`
+    -   [`.isDocker(forceReset)`](#utils.isDocker) ⇒ `Promise<boolean>`
     -   [`.downloadListOfUrls(options)`](#utils.downloadListOfUrls) ⇒ `Promise<Array<String>>`
     -   [`.extractUrls(options)`](#utils.extractUrls) ⇒ `Array<String>`
     -   [`.getRandomUserAgent()`](#utils.getRandomUserAgent) ⇒ `String`
     -   [`.htmlToText(html)`](#utils.htmlToText) ⇒ `String`
+        -   [`~$`](#utils.htmlToText..$) : `Cheerio`
 
 <a name="utils.enqueueLinks"></a>
 
@@ -115,11 +116,10 @@ objects.
 <p>  If <code>pseudoUrls</code> is an empty array, <code>null</code> or <code>undefined</code>, then the function
   enqueues all links found on the page.</p>
 </td></tr><tr>
-<td><code>[options.transformRequestFunction]</code></td><td><code>function</code></td><td></td>
+<td><code>[options.transformRequestFunction]</code></td><td><code><a href="../typedefs/requesttransform">RequestTransform</a></code></td><td></td>
 </tr>
 <tr>
-<td colspan="3"><p><strong>Signature:</strong> (<a href="request"><code>Request</code></a>): <a href="request"><code>Request</code></a></p>
-<p>  Just before a new <a href="request"><code>Request</code></a> is constructed and enqueued to the <a href="requestqueue"><code>RequestQueue</code></a>, this function can be used
+<td colspan="3"><p>Just before a new <a href="request"><code>Request</code></a> is constructed and enqueued to the <a href="requestqueue"><code>RequestQueue</code></a>, this function can be used
   to remove it or modify its contents such as <code>userData</code>, <code>payload</code> or, most importantly <code>uniqueKey</code>. This is useful
   when you need to enqueue multiple <code>Requests</code> to the queue that share the same URL, but differ in methods or payloads,
   or to dynamically update or create <code>userData</code>.</p>
@@ -151,57 +151,27 @@ Currently, the function sends requests the same way as Firefox web browser does.
 Internally, the function uses httpRequest function from the [@apify/httpRequest](https://github.com/apifytech/http-request) NPM package to perform the
 request. All `options` not recognized by this function are passed to it, so see it for more details.
 
+**Returns**: `Promise<(http.IncomingMessage|stream.Readable)>` - This will typically be a
+[Node.js HTTP response stream](https://nodejs.org/api/http.html#http_class_http_incomingmessage), however, if returned from the cache it will be a
+[response-like object](https://github.com/lukechilds/responselike) which behaves in the same way.
+
 <table>
 <thead>
 <tr>
-<th>Param</th><th>Default</th>
+<th>Param</th><th>Type</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>options.url</code></td><td></td>
+<td><code>options</code></td><td><code><a href="../typedefs/requestasbrowseroptions">RequestAsBrowserOptions</a></code></td>
 </tr>
 <tr>
-<td colspan="3"><p>URL of the target endpoint. Supports both HTTP and HTTPS schemes.</p>
-</td></tr><tr>
-<td><code>[options.method]</code></td><td><code>GET</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>HTTP method.</p>
-</td></tr><tr>
-<td><code>[options.headers]</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>Additional HTTP headers to add. It&#39;s only recommended to use this option,
- with headers that are typically added by websites, such as cookies. Overriding
- default browser headers will remove the masking this function provides.</p>
-</td></tr><tr>
-<td><code>[options.languageCode]</code></td><td><code>en</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Two-letter ISO 639 language code.</p>
-</td></tr><tr>
-<td><code>[options.countryCode]</code></td><td><code>US</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Two-letter ISO 3166 country code.</p>
-</td></tr><tr>
-<td><code>[options.isMobile]</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>If <code>true</code>, the function uses User-Agent of a mobile browser.</p>
-</td></tr><tr>
-<td><code>[options.abortFunction]</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>Function accepts <code>response</code> object as a single parameter and should return true or false.
- If function returns true request gets aborted. This function is passed to the
- (@apify/http-request)[<a href="https://www.npmjs.com/package/@apify/http-request%5D">https://www.npmjs.com/package/@apify/http-request]</a> NPM package.</p>
+<td colspan="3"><p>All <code>requestAsBrowser</code> configuration options.</p>
 </td></tr></tbody>
 </table>
 <a name="utils.sleep"></a>
 
-## `utils.sleep` ⇒ `Promise`
+## `utils.sleep` ⇒ `Promise<void>`
 
 Returns a `Promise` that resolves after a specific period of time. This is useful to implement waiting in your code, e.g. to prevent overloading of
 target website or to avoid bot detection.
@@ -247,10 +217,23 @@ however, that this may prevent parsing URLs from comma delimited lists, or the U
 
 <a name="utils.isDocker"></a>
 
-## `utils.isDocker()` ⇒ `Promise`
+## `utils.isDocker(forceReset)` ⇒ `Promise<boolean>`
 
 Returns a `Promise` that resolves to true if the code is running in a Docker container.
 
+<table>
+<thead>
+<tr>
+<th>Param</th><th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>forceReset</code></td><td><code>boolean</code></td>
+</tr>
+<tr>
+</tr></tbody>
+</table>
 <a name="utils.downloadListOfUrls"></a>
 
 ## `utils.downloadListOfUrls(options)` ⇒ `Promise<Array<String>>`
@@ -358,10 +341,13 @@ const text = htmlToText(cheerio.load(html, { decodeEntities: true }));
 </thead>
 <tbody>
 <tr>
-<td><code>html</code></td><td><code>String</code> | <code>function</code></td>
+<td><code>html</code></td><td><code>String</code> | <code>Cheerio</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>HTML text or parsed HTML represented using a
 <a href="https://www.npmjs.com/package/cheerio">cheerio</a> function.</p>
 </td></tr></tbody>
 </table>
+<a name="utils.htmlToText..$"></a>
+
+### `htmlToText~$` : `Cheerio`

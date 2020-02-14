@@ -145,6 +145,10 @@ export const chunkBySize = (items, limitBytes) => {
  * @hideconstructor
  */
 export class Dataset {
+    /**
+     * @param {string} datasetId
+     * @param {string} datasetName
+     */
     constructor(datasetId, datasetName) {
         checkParamOrThrow(datasetId, 'datasetId', 'String');
         checkParamOrThrow(datasetName, 'datasetName', 'Maybe String');
@@ -177,7 +181,7 @@ export class Dataset {
      *
      * @param {Object|Array} data Object or array of objects containing data to be stored in the default dataset.
      * The objects must be serializable to JSON and the JSON representation of each object must be smaller than 9MB.
-     * @return {Promise}
+     * @return {Promise<void>}
      */
     async pushData(data) {
         checkParamOrThrow(data, 'data', 'Array | Object');
@@ -201,18 +205,7 @@ export class Dataset {
     }
 
     /**
-     * Returns items in the dataset based on the provided parameters. The returned object
-     * has the following structure:
-     *
-     * ```javascript
-     * {
-     *     items, // Array|String|Buffer based on chosen format parameter.
-     *     total, // Number
-     *     offset, // Number
-     *     count, // Number
-     *     limit, // Number
-     * }
-     * ```
+     * Returns {DatasetContent} object holding the items in the dataset based on the provided parameters.
      *
      * **NOTE**: If using dataset with local disk storage, the `format` option must be `json` and
      * the following options are not supported:
@@ -269,7 +262,7 @@ export class Dataset {
      *   If `true` then, the all the items with errorInfo property will be skipped from the output.
      *   This feature is here to emulate functionality of Apify API version 1 used for
      *   the legacy Apify Crawler product and it's not recommended to use it in new integrations.
-     * @return {Promise<Object>}
+     * @return {Promise<DatasetContent>}
      */
     async getData(options = {}) {
         // TODO (JC): Do we really need this function? It only works with API but not locally,
@@ -290,6 +283,7 @@ export class Dataset {
         }
     }
 
+    // TODO yin: After ApifyClient declarations, re-export this typedef for {DatasetInfo}.
     /**
      * Returns an object containing general information about the dataset.
      *
@@ -334,14 +328,14 @@ export class Dataset {
      * });
      * ```
      *
-     * @param {Function} iteratee A function that is called for every item in the dataset.
+     * @param {DatasetConsumer} iteratee A function that is called for every item in the dataset.
      * @param {Object} [options] All `forEach()` parameters are passed
      *   via an options object with the following keys:
      * @param {Boolean} [options.desc=false] If `true` then the objects are sorted by `createdAt` in descending order.
      * @param {Array} [options.fields] If provided then returned objects will only contain specified keys.
      * @param {String} [options.unwind] If provided then objects will be unwound based on provided field.
      * @param {Number} [index=0] Specifies the initial index number passed to the `iteratee` function.
-     * @return {Promise}
+     * @return {Promise<void>}
      */
     async forEach(iteratee, options = {}, index = 0) {
         if (!options.offset) options.offset = 0;
@@ -369,13 +363,14 @@ export class Dataset {
      *
      * If `iteratee` returns a `Promise` then it's awaited before a next call.
      *
-     * @param {Function} iteratee
+     * @template T
+     * @param {DatasetMapper} iteratee
      * @param {Object} options All `map()` parameters are passed
      *   via an options object with the following keys:
      * @param {Boolean} [options.desc=false] If `true` then the objects are sorted by createdAt in descending order.
      * @param {Array} [options.fields] If provided then returned objects will only contain specified keys
      * @param {String} [options.unwind] If provided then objects will be unwound based on provided field.
-     * @return {Promise<Array>}
+     * @return {Promise<T[]>}
      */
     map(iteratee, options) {
         const result = [];
@@ -403,14 +398,15 @@ export class Dataset {
      *
      * If `iteratee()` returns a `Promise` then it's awaited before a next call.
      *
-     * @param {Function} iteratee
-     * @param {*} memo Initial state of the reduction.
+     * @template T
+     * @param {DatasetReducer} iteratee
+     * @param {T} memo Initial state of the reduction.
      * @param {Object} options All `reduce()` parameters are passed
      *   via an options object with the following keys:
      * @param {Boolean} [options.desc=false] If `true` then the objects are sorted by createdAt in descending order.
      * @param {Array} [options.fields] If provided then returned objects will only contain specified keys
      * @param {String} [options.unwind] If provided then objects will be unwound based on provided field.
-     * @return {Promise<*>}
+     * @return {Promise<T>}
      */
     reduce(iteratee, memo, options) {
         let currentMemo = memo;
@@ -437,7 +433,7 @@ export class Dataset {
      * Removes the dataset either from the Apify cloud storage or from the local directory,
      * depending on the mode of operation.
      *
-     * @return {Promise}
+     * @return {Promise<void>}
      */
     async drop() {
         await datasets.deleteDataset({ datasetId: this.datasetId });
@@ -725,3 +721,40 @@ export const openDataset = (datasetIdOrName, options = {}) => {
  * @function
  */
 export const pushData = item => openDataset().then(dataset => dataset.pushData(item));
+
+/**
+ * @typedef DatasetContent
+ * @property {Object[]|String[]|Buffer[]} items Dataset entries based on chosen format parameter.
+ * @property {Number} total Total count of entries in the dataset.
+ * @property {Number} offset Position of the first returned entry in the dataset.
+ * @property {Number} count Count of dataset entries returned in this set.
+ * @property {Number} limit Maximum number of dataset entries requested.
+ */
+
+// TODO yin: Typescript candoes not understand `@callback` with generic `@template T`. Change after this is fixed
+/**
+ * User-function used in the `Dataset.forEach()` API.
+ * @callback DatasetConsumer
+ * @param {Object} item Current {@link Dataset} entry being processed.
+ * @param {Number} index Position of current {Dataset} entry.
+ * @returns T
+ */
+
+// TODO yin: Typescript candoes not understand `@callback` with generic `@template T`. Change after this is fixed
+/**
+ * User-function used in the `Dataset.map()` API.
+ * @callback DatasetMapper
+ * @param {Object} item Currect {@link Dataset} entry being processed.
+ * @param {Number} index Position of current {Dataset} entry.
+ * @returns T
+ */
+
+// TODO yin: Typescript candoes not understand `@callback` with generic `@template T`. Change after this is fixed
+/**
+ * User-function used in the `Dataset.reduce()` API.
+ * @callback DatasetReducer
+ * @param {T} memo Previous state of the reduction.
+ * @param {Object} item Currect {@link Dataset} entry being processed.
+ * @param {Number} index Position of current {Dataset} entry.
+ * @returns T
+ */

@@ -160,6 +160,10 @@ export const maybeStringify = (value, options) => {
  * @hideconstructor
  */
 export class KeyValueStore {
+    /**
+     * @param {string} storeId
+     * @param {string} storeName
+     */
     constructor(storeId, storeName) {
         checkParamOrThrow(storeId, 'storeId', 'String');
         checkParamOrThrow(storeName, 'storeName', 'Maybe String');
@@ -257,7 +261,7 @@ export class KeyValueStore {
      * @param {Object} [options]
      * @param {String} [options.contentType]
      *   Specifies a custom MIME content type of the record.
-     * @returns {Promise}
+     * @returns {Promise<void>}
      *
      */
     setValue(key, value, options = {}) {
@@ -284,7 +288,7 @@ export class KeyValueStore {
      * Removes the key-value store either from the Apify cloud storage or from the local directory,
      * depending on the mode of operation.
      *
-     * @return {Promise}
+     * @return {Promise<void>}
      */
     async drop() {
         await keyValueStores.deleteStore({ storeId: this.storeId });
@@ -328,11 +332,11 @@ export class KeyValueStore {
      * });
      * ```
      *
-     * @param {Function} iteratee A function that is called for every key in the key value store.
+     * @param {KeyConsumer} iteratee A function that is called for every key in the key value store.
      * @param {Object} [options] All `forEachKey()` parameters are passed
      *   via an options object with the following keys:
      * @param {string} [options.exclusiveStartKey] All keys up to this one (including) are skipped from the result.
-     * @return {Promise}
+     * @return {Promise<void>}
      */
     async forEachKey(iteratee, options = {}, index = 0) {
         const { exclusiveStartKey } = options;
@@ -708,3 +712,17 @@ export const setValue = async (key, value, options) => {
  * @name getInput
  */
 export const getInput = async () => getValue(process.env[ENV_VARS.INPUT_KEY] || KEY_VALUE_STORE_KEYS.INPUT);
+
+
+/**
+ * User-function used in the [`KeyValueStore.forEachKey()`](../api/keyvaluestore#forEachKey) method.
+ * @callback KeyConsumer
+ * @param {String} key
+ *   Current {KeyValue} key being processed.
+ * @param {Number} index
+ *   Position of the current key in {KeyValuestore}.
+ * @param {Object} info
+ *   Information about the current {KeyValueStore} entry.
+ * @param {Number} info.size
+ *   Size of the value associated with the current key in bytes.
+ */
