@@ -99,7 +99,6 @@ describe('Session - testing session behaviour ', () => {
         const state = session.getState();
 
         expect(state.id).toBeDefined();
-        expect(state.cookies).toBeDefined();
         expect(state.cookieJar).toBeDefined();
         expect(state.userData).toBeDefined();
         expect(state.maxErrorScore).toBeDefined();
@@ -163,6 +162,18 @@ describe('Session - testing session behaviour ', () => {
         expect(session.retireOnBlockedStatusCodes(202, customStatusCodes)).toBeTruthy();
         expect(session.retireOnBlockedStatusCodes(300, customStatusCodes)).toBeTruthy();
         expect(session.retireOnBlockedStatusCodes(400, customStatusCodes)).toBeFalsy();
+    });
+
+    test('setPuppeteerCookies should work', () => {
+        const url = 'https://example.com';
+        const cookies = [
+            { name: 'cookie1', value: 'my-cookie' },
+            { name: 'cookie2', value: 'your-cookie' },
+        ];
+
+        session = new Session({ sessionPool });
+        session.setPuppeteerCookies(cookies, url);
+        expect(session.getCookieString(url)).toBe('cookie1=my-cookie; cookie2=your-cookie');
     });
 
     describe('.putResponse & .getCookieString', () => {
