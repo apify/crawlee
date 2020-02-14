@@ -24,13 +24,22 @@ title: RequestListOptions
  which will instruct <code>RequestList</code> to download the source URLs from a given remote location.
  The URLs will be parsed from the received response.</p>
 <pre><code>[
-    // One URL
+    // A single URL
     { method: &#39;GET&#39;, url: &#39;http://example.com/a/b&#39; },
-    // Batch import of URLs from a file hosted on the web
+
+    // Batch import of URLs from a file hosted on the web,
+    // where the URLs should be requested using the HTTP POST request
     { method: &#39;POST&#39;, requestsFromUrl: &#39;http://example.com/urls.txt&#39; },
-    // Batch import combined with regex.
-    { method: &#39;POST&#39;, requestsFromUrl: &#39;http://example.com/urls.txt&#39;, regex: /https:\/\/example.com\/.+/ },
+
+    // Batch import from remote file, using a specific regular expression to extract the URLs.
+    { requestsFromUrl: &#39;http://example.com/urls.txt&#39;, regex: /https:\/\/example.com\/.+/ },
+
+    // Get list of URLs from a Google Sheets document. Just add &quot;/gviz/tq?tqx=out:csv&quot; to the Google Sheet URL.
+    // For details, see https://help.apify.com/en/articles/2906022-scraping-a-list-of-urls-from-a-google-sheets-document
+    { requestsFromUrl: &#39;https://docs.google.com/spreadsheets/d/1GA5sSQhQjB_REes8I5IKg31S-TuRcznWOPjcpNqtxmU/gviz/tq?tqx=out:csv&#39; }
+
 ]</code></pre></td></tr><tr>
+
 <td><code>[persistStateKey]</code></td><td><code>String</code></td><td></td>
 </tr>
 <tr>
