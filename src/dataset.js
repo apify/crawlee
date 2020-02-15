@@ -3,10 +3,10 @@ import { promisify } from 'util';
 import * as fs from 'fs-extra';
 import * as _ from 'underscore';
 import { leftpad } from 'apify-shared/utilities';
-import LruCache from 'apify-shared/lru_cache';
-import log from 'apify-shared/log';
+import * as LruCache from 'apify-shared/lru_cache';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, MAX_PAYLOAD_SIZE_BYTES } from 'apify-shared/consts';
+import log from './utils_log';
 import { apifyClient, ensureDirExists, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists } from './utils';
 
 export const DATASET_ITERATORS_DEFAULT_LIMIT = 10000;

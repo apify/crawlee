@@ -1,7 +1,7 @@
 /* eslint-disable no-continue */
 import * as _ from 'underscore';
-import cheerio from 'cheerio';
-import log from 'apify-shared/log';
+import * as cheerio from 'cheerio';
+import log from './utils_log';
 import { publicUtils } from './utils';
 
 // TODO: We could support URLs like https://www.linkedin.com/company/some-company-inc

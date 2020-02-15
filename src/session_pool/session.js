@@ -1,7 +1,7 @@
 import { cryptoRandomObjectId } from 'apify-shared/utilities';
-import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { Cookie, CookieJar } from 'tough-cookie';
+import log from '../utils_log';
 import EVENTS from './events';
 import { STATUS_CODES_BLOCKED } from '../constants';
 import { getCookiesFromResponse } from './session_utils';
@@ -10,6 +10,8 @@ import { getCookiesFromResponse } from './session_utils';
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order,import/no-cycle */
 import { SessionPool } from './session_pool';
 import { Cookie as PuppeteerCookie } from 'puppeteer';
+import { IncomingMessage } from 'http';
+import { Response as PuppeteerResponse } from 'puppeteer';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order,import/no-cycle */
 
 /**
@@ -233,7 +235,7 @@ export class Session {
      *
      * It then parses and saves the cookies from the `set-cookie` header, if available.
 
-     * @param {{ headers: Object, url: string }} response
+     * @param {(PuppeteerResponse|IncomingMessage)} response
      */
     setCookiesFromResponse(response) {
         try {

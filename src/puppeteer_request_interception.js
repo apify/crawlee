@@ -1,6 +1,6 @@
 import * as _ from 'underscore';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { Request } from 'puppeteer'; // eslint-disable-line no-unused-vars
+import { Request as PuppeteerRequest, Page } from 'puppeteer'; // eslint-disable-line no-unused-vars
 
 // We use weak maps here so that the content gets discarted after page gets closed.
 const pageInterceptRequestHandlersMap = new WeakMap(); // Maps page to an array of request interception handlers.
@@ -8,13 +8,13 @@ const pageInterceptRequestMasterHandlerMap = new WeakMap(); // Maps page to mast
 
 /**
  * @callback InterceptHandler
- * @param {Request} request
+ * @param {PuppeteerRequest} request
  */
 
 /**
  * Executes an array for given intercept request handlers for a given request object.
  *
- * @param {Request} request Puppeteer's Request object.
+ * @param {PuppeteerRequest} request Puppeteer's Request object.
  * @param {Array<InterceptHandler>} interceptRequestHandlers An array of intercept request handlers.
  * @ignore
  */

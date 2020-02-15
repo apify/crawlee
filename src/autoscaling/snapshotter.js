@@ -1,10 +1,10 @@
 import * as os from 'os';
 import * as _ from 'underscore';
 import { betterSetInterval, betterClearInterval } from 'apify-shared/utilities';
-import log from 'apify-shared/log';
 import { ACTOR_EVENT_NAMES, ENV_VARS } from 'apify-shared/consts';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { getMemoryInfo, isAtHome, apifyClient } from '../utils';
+import log from '../utils_log';
 import events from '../events';
 
 const DEFAULT_OPTIONS = {
@@ -236,7 +236,7 @@ class Snapshotter {
     /**
      * Creates a snapshot of current memory usage
      * using the Apify platform `systemInfo` event.
-     * @param {Object} systemInfo
+     * @param {*} systemInfo
      * @ignore
      */
     _snapshotMemoryOnPlatform(systemInfo) {
@@ -284,8 +284,8 @@ class Snapshotter {
 
     /**
      * Checks for critical memory overload and logs it to the console.
+     * @param {*} systemInfo
      * @ignore
-     * @param {Object} systemInfo
      */
     _memoryOverloadWarning({ memCurrentBytes }) {
         const now = new Date();

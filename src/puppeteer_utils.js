@@ -1,12 +1,12 @@
-import fs from 'fs';
-import vm from 'vm';
-import util from 'util';
+import * as fs from 'fs';
+import * as vm from 'vm';
+import * as util from 'util';
 import * as _ from 'underscore';
-import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
-import LruCache from 'apify-shared/lru_cache';
+import * as LruCache from 'apify-shared/lru_cache';
 import { Page, Response } from 'puppeteer'; // eslint-disable-line no-unused-vars
+import log from './utils_log';
 
 import { RequestQueue, RequestQueueLocal } from './request_queue';
 import Request from './request';
@@ -85,7 +85,7 @@ const injectedFilesCache = new LruCache({ maxLength: MAX_INJECT_FILE_CACHE_SIZE 
  *   Enables the injected script to survive page navigations and reloads without need to be re-injected manually.
  *   This does not mean, however, that internal state will be preserved. Just that it will be automatically
  *   re-injected on each navigation before any other scripts get the chance to execute.
- * @return {Promise}
+ * @return {Promise<*>}
  * @memberOf puppeteer
  */
 const injectFile = async (page, filePath, options = {}) => {
@@ -129,7 +129,7 @@ const injectFile = async (page, filePath, options = {}) => {
  *
  * @param {Page} page
  *   Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
- * @return {Promise}
+ * @return {Promise<*>}
  * @memberOf puppeteer
  */
 const injectJQuery = (page) => {
@@ -155,7 +155,7 @@ const injectJQuery = (page) => {
  * ```
  *
  * @param {Page} page Puppeteer [Page](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page) object.
- * @return {Promise}
+ * @return {Promise<*>}
  * @memberOf puppeteer
  */
 const injectUnderscore = (page) => {

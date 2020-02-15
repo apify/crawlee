@@ -1,6 +1,6 @@
-import * as EventEmitter from 'events';
-import log from 'apify-shared/log';
+import { EventEmitter } from 'events';
 import { checkParamOrThrow } from 'apify-client/build/utils';
+import log from '../utils_log';
 
 import { openKeyValueStore } from '../key_value_store';
 import { Session, SessionOptions } from './session'; // eslint-disable-line no-unused-vars,import/named,import/no-cycle

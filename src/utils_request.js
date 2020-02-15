@@ -85,7 +85,7 @@ const DEFAULT_HTTP_REQUEST_OPTIONS = {
  *
  * @param {RequestAsBrowserOptions} options All `requestAsBrowser` configuration options.
  *
- * @return {Promise<IncomingMessage|Readable>} This will typically be a
+ * @return {Promise<(IncomingMessage|Readable)>} This will typically be a
  * [Node.js HTTP response stream](https://nodejs.org/api/http.html#http_class_http_incomingmessage),
  * however, if returned from the cache it will be a [response-like object](https://github.com/lukechilds/responselike) which behaves in the same way.
  * @memberOf utils

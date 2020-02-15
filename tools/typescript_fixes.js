@@ -13,14 +13,14 @@ const debug = (namespace, ...args) => {
 console.log('Currect directory:', realpathSync('./'));
 const typesPath = './types';
 const paths = {
-    'index.esm': path.join(typesPath, 'index.esm.d.ts'),
+    main: path.join(typesPath, 'main.d.ts'),
     session_pool: path.join(typesPath, 'session_pool', 'session_pool.d.ts'),
 };
 
-console.log('Processing', paths['index.esm']);
+console.log('Processing', paths['main']);
 
 /**
- * Removes `namespace log` and adds appropriate import and reference to index.esm.d.ts.
+ * Removes `namespace log` and adds appropriate import and reference to main.d.ts.
  *
  * @param {string[]} input
  * @return {string[]}
@@ -65,9 +65,38 @@ const fixLog = (input) => {
     return output;
 };
 
-const fixEventEmitter = () => {
+const fixSessionPool = async () => {
+    const input = readFileSync(paths.session_pool, { encoding: 'utf8' })
+        .split('\n');
 
-}
+    const matchLines = [
+        /addListener\(event/,
+        /on\(event/,
+        /once\(event/,
+        /prependListener\(event/,
+        /prependOnceListener\(event/,
+        /removeListener\(event/,
+        /off\(event/,
+        /removeAllListeners\(event/,
+        /setMaxListeners\(n/,
+    ];
+    const output = [];
+    let changed = false;
+
+    for (const line of input) {
+        if (!matchLines.some(s => s.test(line))) {
+            output.push(line);
+        } else {
+            changed = true;
+            debug('fixSessionPool', 'removing line', line);
+        }
+    }
+
+    if (changed) {
+        console.log('Writing file', paths.session_pool);
+        writeFileSync(paths.session_pool, output.join('\n'), { encoding: 'utf8' });
+    }
+};
 
 /**
  * @callback FilenameFilter
@@ -175,15 +204,14 @@ const processIndexEsm = async () => {
         },
         readTypes,
     );
-    const input = readFileSync(paths['index.esm'], { encoding: 'utf8' })
+    const input = readFileSync(paths['main'], { encoding: 'utf8' })
         .split('\n');
-    console.log('Fixing log module', paths['index.esm']);
-    const fixedLog = fixLog(input);
-    const fixedEventEmitter = fixEventEmitter(fixedLog);
-    console.log('Fixing type exports', paths['index.esm']);
-    const fixedTypes = fixTypes(fixedLog, types);
-    console.log('Writing', paths['index.esm']);
-    writeFileSync(paths['index.esm'], fixedTypes.join('\n'));
+    console.log('Fixing log module', paths['main']);
+    // const fixedLog = fixLog(input);
+    console.log('Fixing type exports', paths['main']);
+    const fixedTypes = fixTypes(input, types);
+    console.log('Writing', paths['main']);
+    writeFileSync(paths['main'], fixedTypes.join('\n'));
 };
 
 const fixTypesReferences = async () => {
@@ -199,20 +227,19 @@ const fixTypesReferences = async () => {
             let changed = false;
             let match;
             for (const line of input) {
-                if (line.match(/^\/\/\/\s*<reference\s*types="node"\s*\/>/)) {
-                    debug('fixTypesReferences', 'removing node types reference from file', filepath);
-                    changed = true;
-                } else if (line.match(/\/\/\/\s*<reference\s*types="types-apify\/apify-shared\/log"\s*\/>/)) {
+                /* eslint-disable no-cond-assign */
+                if (match = line.match(/\/\/\/\s*<reference\s*types="types-apify\/([^"]+)"\s*\/>/)) {
                     debug('fixTypesReferences', 'fixing types-apify from file', filepath);
-                    output.push('/// <reference path="../types-apify/apify-shared/log.d.ts" />');
+                    output.push(`/// <reference path="../types-apify/${match[1]}.d.ts" />`);
                     changed = true;
-                } else if (match = line.match(/^([^"]+)"node\/([^$]+)/)) { // eslint-disable-line no-cond-assign
+                } else if (match = line.match(/^([^"]+)"node\/([^$]+)/)) {
                     debug('fixTypesReferences', 'fixing "node/" from file', filepath);
                     output.push(`${match[1]} "${match[2]}`);
                     changed = true;
                 } else {
                     output.push(line);
                 }
+                /* eslint-enable no-cond-assign */
             }
 
             if (changed === true) {
@@ -226,4 +253,5 @@ const fixTypesReferences = async () => {
 (async () => {
     await processIndexEsm();
     await fixTypesReferences();
+    await fixSessionPool();
 })();

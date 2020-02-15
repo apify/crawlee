@@ -1,5 +1,4 @@
 /* eslint-disable class-methods-use-this */
-import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { readStreamToString, concatStreamToBuffer } from 'apify-shared/streams_utilities';
 import * as cheerio from 'cheerio';
@@ -14,6 +13,7 @@ import { TimeoutError } from '../errors';
 import { addTimeoutToPromise, parseContentTypeFromResponse } from '../utils';
 import * as utilsRequest from '../utils_request'; // eslint-disable-line import/no-duplicates
 import BasicCrawler from './basic_crawler'; // eslint-disable-line import/no-duplicates
+import log from '../utils_log';
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */

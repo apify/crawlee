@@ -4,13 +4,13 @@
         "module": "commonjs",
         "moduleResolution": "node",
         "lib": [
-            "es2018",
-            "DOM",
-            "DOM.Iterable",
+            "ES2018",
+            "ES2019.Object",
             "ES2018.AsyncIterable"
         ],
+        "baseUrl": "./",
         "allowJs": true,
-        "checkJs": true,
+        "checkJs": false,
         "noEmit": false,
         "newLine": "lf",
         "declaration": true,
@@ -22,16 +22,13 @@
         "alwaysStrict": true,
         "noStrictGenericChecks": true,
         "strictNullChecks": true,
-        "allowSyntheticDefaultImports": false,
+        "allowSyntheticDefaultImports": true,
         "esModuleInterop": false,
         "declarationDir": "types/",
         "outDir": "build/"
     },
     "include": [
         "./types-apify/**/*.d.ts",
-        "./src/index.esm.js",
-    ],
-    "exclude": [
-        "./src/index.js"
+        "./src/**/*.js"
     ]
 }

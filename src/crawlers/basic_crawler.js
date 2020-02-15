@@ -1,12 +1,12 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { ACTOR_EVENT_NAMES } from 'apify-shared/consts';
-import log from 'apify-shared/log';
 import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import * as _ from 'underscore';
 import AutoscaledPool from '../autoscaling/autoscaled_pool'; // eslint-disable-line import/no-duplicates
 import { RequestList } from '../request_list';
 import { RequestQueue, RequestQueueLocal } from '../request_queue'; // eslint-disable-line import/no-duplicates
 import events from '../events';
+import log from '../utils_log';
 import { openSessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
 import Statistics from './statistics';
 import { addTimeoutToPromise } from '../utils';

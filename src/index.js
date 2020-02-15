@@ -1,4 +1,4 @@
-import * as Apify from './index.esm';
+import * as Apify from './main';
 
 export default Apify;
-export * from './index.esm';
+export * from './main';

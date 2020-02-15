@@ -1,8 +1,8 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import log from 'apify-shared/log';
 import * as _ from 'underscore';
 import { ACTOR_EVENT_NAMES_EX } from './constants';
 import Request, { RequestOptions } from './request'; // eslint-disable-line no-unused-vars,import/named
+import log from './utils_log';
 import events from './events';
 import { getFirstKey, publicUtils } from './utils';
 import { getValue, setValue } from './key_value_store';
@@ -11,8 +11,19 @@ export const STATE_PERSISTENCE_KEY = 'REQUEST_LIST_STATE';
 export const SOURCES_PERSISTENCE_KEY = 'REQUEST_LIST_SOURCES';
 
 /**
+ * @typedef RequestListInput
+ * @property {string} [method]
+ * @property {string} [requestsFromUrl]
+ * @property {RegExp} [regex]
+ */
+
+/**
+ * @typedef {(RequestListInput|RequestOptions<*>|Request<*>)[]} SourceInput
+ */
+
+/**
  * @typedef RequestListOptions
- * @property {Array<RequestOptions|Request>} sources
+ * @property {SourceInput} sources
  *  An array of sources of URLs for the `RequestList`. It can be either an array of plain objects that
  *  define the `url` property, or an array of instances of the {@link Request} class.
  *  Additionally, the `requestsFromUrl` property may be used instead of `url`,
@@ -410,7 +421,7 @@ export class RequestList {
      * The function's `Promise` resolves to `null` if there are no more
      * requests to process.
      *
-     * @returns {Promise<Request>}
+     * @returns {Promise<(Request<*>|null)>}
      */
     async fetchNextRequest() {
         this._ensureIsInitialized();
@@ -438,8 +449,7 @@ export class RequestList {
     /**
      * Marks request as handled after successful processing.
      *
-     * @param {Request} request
-     *
+     * @param {Request<*>} request
      * @returns {Promise<void>}
      */
     async markRequestHandled(request) {
@@ -457,8 +467,7 @@ export class RequestList {
      * Reclaims request to the list if its processing failed.
      * The request will become available in the next `this.fetchNextRequest()`.
      *
-     * @param {Request} request
-     *
+     * @param {Request<*>} request
      * @returns {Promise<void>}
      */
     async reclaimRequest(request) {
@@ -498,7 +507,7 @@ export class RequestList {
     /**
      * Fetches URLs from requestsFromUrl and returns them in format of list of requests
      * @param source
-     * @return {Promise<RequestOptions[]>}
+     * @return {Promise<RequestOptions<*>[]>}
      * @ignore
      */
     async _fetchRequestsFromUrl(source) {
@@ -648,7 +657,7 @@ export class RequestList {
  *
  *   If `null`, the list will not be persisted and will only be stored in memory. Process restart
  *   will then cause the list to be crawled again from the beginning. We suggest always using a name.
- * @param {Array<Request|RequestOptions|string>} sources
+ * @param {(SourceInput|string[])} sources
  *  An array of sources of URLs for the {@link RequestList}. It can be either an array of plain objects
  *  that define at least the `url` property, or an array of instances of the {@link Request} class.
  *

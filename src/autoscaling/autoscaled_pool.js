@@ -1,7 +1,7 @@
 import * as _ from 'underscore';
 import { betterSetInterval, betterClearInterval } from 'apify-shared/utilities';
-import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
+import log from '../utils_log';
 import Snapshotter, { SnapshotterOptions } from './snapshotter'; // eslint-disable-line import/named,no-unused-vars
 import SystemStatus, { SystemStatusOptions } from './system_status'; // eslint-disable-line import/named,no-unused-vars
 

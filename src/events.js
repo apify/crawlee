@@ -1,7 +1,7 @@
-import * as EventEmitter from 'events';
+import { EventEmitter } from 'events';
 import * as WebSocket from 'ws';
-import log from 'apify-shared/log';
 import { ENV_VARS, ACTOR_EVENT_NAMES } from 'apify-shared/consts';
+import log from './utils_log';
 import { ACTOR_EVENT_NAMES_EX } from './constants';
 
 // NOTE: This value is mentioned below in docs, if you update it here, update it there too.

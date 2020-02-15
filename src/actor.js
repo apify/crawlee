@@ -1,9 +1,9 @@
 import * as path from 'path';
 import * as _ from 'underscore';
-import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { APIFY_PROXY_VALUE_REGEX } from 'apify-shared/regexs';
 import { ENV_VARS, INTEGER_ENV_VARS, LOCAL_ENV_VARS, ACT_JOB_TERMINAL_STATUSES, ACT_JOB_STATUSES } from 'apify-shared/consts';
+import log from './utils_log';
 import { EXIT_CODES, COUNTRY_CODE_REGEX } from './constants';
 import { initializeEvents, stopEvents } from './events';
 import { apifyClient, addCharsetToContentType, sleep, snakeCaseToCamelCase, isAtHome, logSystemInfo, printOutdatedSdkWarning } from './utils';
@@ -149,6 +149,11 @@ export const getEnv = () => {
 };
 
 /**
+ * @callback UserFunc
+ * @return {Promise<void>}
+ */
+
+/**
  * Runs the main user function that performs the job of the actor
  * and terminates the process when the user function finishes.
  *
@@ -212,7 +217,7 @@ export const getEnv = () => {
  * });
  * ```
  *
- * @param {Function} userFunc User function to be executed. If it returns a promise,
+ * @param {UserFunc} userFunc User function to be executed. If it returns a promise,
  * the promise will be awaited. The user function is called with no arguments.
  *
  * @memberof module:Apify

@@ -1,14 +1,14 @@
-import fs from 'fs-extra';
-import path from 'path';
+import * as fs from 'fs-extra';
+import * as path from 'path';
 import { promisify } from 'util';
-import contentTypeParser from 'content-type';
-import mime from 'mime-types';
-import LruCache from 'apify-shared/lru_cache';
+import * as contentTypeParser from 'content-type';
+import * as mime from 'mime-types';
+import * as LruCache from 'apify-shared/lru_cache';
 import { KEY_VALUE_STORE_KEY_REGEX } from 'apify-shared/regexs';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, KEY_VALUE_STORE_KEYS } from 'apify-shared/consts';
 import { jsonStringifyExtended } from 'apify-shared/utilities';
-import log from 'apify-shared/log';
 import { checkParamOrThrow, parseBody } from 'apify-client/build/utils';
+import log from './utils_log';
 import {
     addCharsetToContentType, apifyClient, ensureDirExists, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists,
 } from './utils';
@@ -199,7 +199,7 @@ export class KeyValueStore {
      * @param {string} key
      *   Unique key of the record. It can be at most 256 characters long and only consist
      *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
-     * @returns {Promise<T|null|string|Buffer>}
+     * @returns {Promise<(T|Buffer|string|null)>}
      *   Returns a promise that resolves to an object, string
      *   or [](https://nodejs.org/api/buffer.html), depending
      *   on the MIME content type of the record.
@@ -250,7 +250,7 @@ export class KeyValueStore {
      * @param {string} key
      *   Unique key of the record. It can be at most 256 characters long and only consist
      *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
-     * @param {(Object|string|Buffer)} value
+     * @param {(Object|string|Buffer|null)} value
      *   Record data, which can be one of the following values:
      *   <ul>
      *     <li>If `null`, the record in the key-value store is deleted.</li>
@@ -490,7 +490,7 @@ export class KeyValueStoreLocal {
      *
      * @param {string} key
      * @param {Function} handler
-     * @returns {Promise} null or object in the following format:
+     * @returns {Promise<*>} null or object in the following format:
      * {
      *     returnValue: return value of the handler function,
      *     fileName: name of the file including found extension
@@ -516,7 +516,7 @@ export class KeyValueStoreLocal {
      * Performs a lookup for a file in the local emulation directory's file list.
      * @param {string} key
      * @param {Function} handler
-     * @returns {Promise}
+     * @returns {Promise<*>}
      * @ignore
      */
     _fullDirectoryLookup(key, handler) {
@@ -632,7 +632,7 @@ export const openKeyValueStore = (storeIdOrName, options = {}) => {
  * @template T
  * @param {string} key
  *   Unique record key.
- * @returns {Promise<T>}
+ * @returns {Promise<(T|null)>}
  *   Returns a promise that resolves once the record is stored.
  *
  * @memberof module:Apify
@@ -665,7 +665,7 @@ export const getValue = async (key) => {
  * For more information, see  {@link Apify#openKeyValueStore}
  * and  {@link KeyValueStore#getValue}.
  *
- * @template {(Object|string|Buffer)} T
+ * @template {(Object|string|Buffer|null)} T
  * @param {string} key
  *   Unique record key.
  * @param {T} value
@@ -680,7 +680,7 @@ export const getValue = async (key) => {
  * @param {Object} [options]
  * @param {string} [options.contentType]
  *   Specifies a custom MIME content type of the record.
- * @return {Promise}
+ * @return {Promise<void>}
  * @memberof module:Apify
  * @name setValue
  * @function
@@ -710,7 +710,7 @@ export const setValue = async (key, value, options) => {
  * and {@link KeyValueStore#getValue}.
  *
  * @template T
- * @returns {Promise<T>}
+ * @returns {Promise<(T|null)>}
  *   Returns a promise that resolves once the record is stored.
  * @memberof module:Apify
  * @name getInput

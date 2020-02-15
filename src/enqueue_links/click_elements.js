@@ -1,7 +1,7 @@
 import { URL } from 'url';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
-import log from 'apify-shared/log';
+import log from '../utils_log';
 import { RequestQueue, RequestQueueLocal, QueueOperationInfo } from '../request_queue'; // eslint-disable-line import/named,no-unused-vars
 import { addInterceptRequestHandler, removeInterceptRequestHandler } from '../puppeteer_request_interception';
 /* eslint-disable import/named,no-unused-vars,import/order */

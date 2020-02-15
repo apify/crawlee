@@ -1,12 +1,12 @@
-import path from 'path';
-import crypto from 'crypto';
-import fs from 'fs-extra';
+import * as path from 'path';
+import * as crypto from 'crypto';
+import * as fs from 'fs-extra';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import LruCache from 'apify-shared/lru_cache';
+import * as LruCache from 'apify-shared/lru_cache';
 import ListDictionary from 'apify-shared/list_dictionary';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, REQUEST_QUEUE_HEAD_MAX_LIMIT } from 'apify-shared/consts';
 import { checkParamPrototypeOrThrow, cryptoRandomObjectId } from 'apify-shared/utilities';
-import log from 'apify-shared/log';
+import log from './utils_log';
 import Request, { RequestOptions } from './request'; // eslint-disable-line import/named,no-unused-vars
 import { ensureDirExists, apifyClient, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists, sleep } from './utils';
 
@@ -189,6 +189,11 @@ const getRequestId = (uniqueKey) => {
  * @template UserData
  */
 export class RequestQueue {
+    /**
+     * @param {string} queueId
+     * @param {string} [queueName]
+     * @param {string} [clientKey]
+     */
     constructor(queueId, queueName, clientKey = cryptoRandomObjectId()) {
         checkParamOrThrow(queueId, 'queueId', 'String');
         checkParamOrThrow(queueName, 'queueName', 'Maybe String');
@@ -326,7 +331,7 @@ export class RequestQueue {
      * To check whether all requests in queue were finished,
      * use {@link RequestQueue#isFinished} instead.
      *
-     * @returns {Promise<Request<UserData>>}
+     * @returns {Promise<(Request<UserData>|null)>}
      * Returns the request object or `null` if there are no more pending requests.
      */
     async fetchNextRequest() {
@@ -530,7 +535,7 @@ export class RequestQueue {
      *   head is consistent.
      * @param {number} [limit] How many queue head items will be fetched.
      * @param {number} [iteration] Used when this function is called recursively to limit the recursion.
-     * @return {boolean} Indicates if queue head is consistent (true) or inconsistent (false).
+     * @return {Promise<boolean>} Indicates if queue head is consistent (true) or inconsistent (false).
      * @ignore
      */
     async _ensureHeadIsNonEmpty(

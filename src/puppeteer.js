@@ -1,10 +1,10 @@
 import * as _ from 'underscore';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { anonymizeProxy, closeAnonymizedProxy, redactUrl, parseUrl } from 'proxy-chain';
-import log from 'apify-shared/log';
 import { ENV_VARS } from 'apify-shared/consts';
-import { LaunchOptions, Browser } from 'puppeteer'; // eslint-disable-line no-unused-vars
+import { Browser } from 'puppeteer'; // eslint-disable-line no-unused-vars
 import { DEFAULT_USER_AGENT } from './constants';
+import log from './utils_log';
 import { getTypicalChromeExecutablePath, isAtHome } from './utils';
 import { getApifyProxyUrl } from './actor';
 import applyStealthToBrowser, { StealthOptions } from './stealth/stealth'; // eslint-disable-line no-unused-vars,import/named

@@ -3,19 +3,21 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import * as util from 'util';
-import log from 'apify-shared/log';
 import LinkedList from 'apify-shared/linked_list';
 import * as rimraf from 'rimraf';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-/* eslint-disable no-unused-vars,import/named */
-import { Page, Browser } from 'puppeteer';
-import { launchPuppeteer, LaunchPuppeteerOptions } from './puppeteer';
-import { SessionPool } from './session_pool/session_pool';
-/* eslint-enable no-unused-vars */
+import log from './utils_log';
 
 import { addTimeoutToPromise } from './utils';
 import LiveViewServer from './live_view/live_view_server';
 import EVENTS from './session_pool/events';
+
+// TYPE IMPORTS
+/* eslint-disable no-unused-vars,import/named,import/order */
+import { Page, Browser } from 'puppeteer';
+import { launchPuppeteer, LaunchPuppeteerOptions } from './puppeteer';
+import { SessionPool } from './session_pool/session_pool';
+/* eslint-enable no-unused-vars */
 
 export const BROWSER_SESSION_KEY_NAME = 'APIFY_SESSION';
 

@@ -1,7 +1,7 @@
 import { URL } from 'url';
-import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
+import log from '../utils_log';
 /* eslint-disable import/no-duplicates */
 import { RequestQueue, RequestQueueLocal } from '../request_queue';
 import { constructPseudoUrlInstances, createRequests, addRequestsToQueueInBatches, createRequestOptions } from './shared';

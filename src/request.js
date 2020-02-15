@@ -1,9 +1,9 @@
 import * as _ from 'underscore';
-import util from 'util';
-import crypto from 'crypto';
+import * as util from 'util';
+import * as crypto from 'crypto';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { normalizeUrl } from 'apify-shared/utilities';
-import log from 'apify-shared/log';
+import log from './utils_log';
 
 export function computeUniqueKey({ url, method, payload, keepUrlFragment, useExtendedUniqueKey }) {
     const normalizedMethod = method.toUpperCase();
@@ -134,13 +134,17 @@ class Request {
 
         if (!url) throw new Error('The "url" option cannot be empty string.');
 
+        /** @type {string} */
         this.id = id;
+        /** @type {string} */
         this.url = url;
+        /** @type {string} */
         this.loadedUrl = loadedUrl;
         this.uniqueKey = uniqueKey || computeUniqueKey({ url, method, payload, keepUrlFragment, useExtendedUniqueKey });
         this.method = method;
         this.payload = payload;
         this.noRetry = noRetry;
+        /** @type {number} */
         this.retryCount = retryCount;
         this.errorMessages = JSON.parse(JSON.stringify(errorMessages));
         this.headers = JSON.parse(JSON.stringify(headers));

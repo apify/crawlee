@@ -1,7 +1,22 @@
-import log from 'apify-shared/log';
+import * as ApifyLog from 'apify-shared/log';
 
-// Add docs for log separately, as it's imported from apify-shared.
-// Adding them directly to the log object in utils in `index.js` breaks JSDoc.
+// Changes to the JsDoc here need to be replicated to types-apify/apify-shared/log.d.ts
+// This file is mainly for building the docs, not to provide typings
+// For the output of "main" typings to be correct, this file should be references
+// instead of 'apify-shared/log'
+
+/**
+ * @typedef {Object} LoggerOptions
+ * @property {number} [object.level=4] Sets the log level to the given value, preventing messages from less important log levels
+ * from being printed to the console. Use in conjunction with the `log.LEVELS` constants.
+ * @property {number} [object.maxDepth=4] Max depth of data object that will be logged. Anything deeper than the limit will be stripped off.
+ * @property {number} [object.maxStringLength=2000] Max length of the string to be logged. Longer strings will be truncated.
+ * @property {string} [object.prefix] Prefix to be prepended the each logged line.
+ * @property {string} [object.suffix] Suffix that will be appended the each logged line.
+ * @property {Object} [object.logger] Logger implementation to be used. Default one is log.LoggerText to log messages as easily readable
+ * strings. Optionally you can use `log.LoggerJson` that formats each log line as a JSON.
+ * @property {Object} [object.data] Additional data to be added to each log line.
+ */
 
 /**
  * @typedef {Object} LoggerOptions
@@ -179,4 +194,4 @@ import log from 'apify-shared/log';
  * @memberOf log
  */
 
-export default log;
+export default ApifyLog;

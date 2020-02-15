@@ -1,9 +1,8 @@
-import psTree from '@apify/ps-tree';
-import ApifyClient from 'apify-client';
+import * as psTree from '@apify/ps-tree';
+import * as ApifyClient from 'apify-client';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { version as apifyClientVersion } from 'apify-client/package.json';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
-import log from 'apify-shared/log';
 import { getRandomInt } from 'apify-shared/utilities';
 import * as cheerio from 'cheerio';
 import * as contentTypeParser from 'content-type';
@@ -18,13 +17,14 @@ import * as _ from 'underscore';
 import { URL } from 'url';
 import * as util from 'util';
 import { USER_AGENT_LIST } from './constants';
+import log from './utils_log';
 import { version as apifyVersion } from '../package.json';
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
 import { IncomingMessage } from 'http';
 import { Response as PuppeteerResponse } from 'puppeteer';
-import { RequestOptions } from './request';
+import Request, { RequestOptions } from './request';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
@@ -588,7 +588,7 @@ const htmlToText = (html) => {
 /**
  * Creates a standardized debug info from request and response. This info is usually added to dataset under the hidden `#debug` field.
  *
- * @param {(Request|RequestOptions<*>)} request [Apify.Request](https://sdk.apify.com/docs/api/request) object.
+ * @param {(Request<*>|RequestOptions<*>)} request [Apify.Request](https://sdk.apify.com/docs/api/request) object.
  * @param {(IncomingMessage|PuppeteerResponse)} [response]
  *   Puppeteer [`Response`](https://pptr.dev/#?product=Puppeteer&version=v1.11.0&show=api-class-response)
  *   or NodeJS [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_serverresponse).
