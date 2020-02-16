@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import * as util from 'util';
-import LinkedList from 'apify-shared/linked_list';
+import * as LinkedList from 'apify-shared/linked_list';
 import * as rimraf from 'rimraf';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import log from './utils_log';
@@ -234,6 +234,8 @@ class PuppeteerPool {
         this.retireInstanceAfterRequestCount = retireInstanceAfterRequestCount;
         this.puppeteerOperationTimeoutMillis = puppeteerOperationTimeoutSecs * 1000;
         this.killInstanceAfterMillis = killInstanceAfterMillis || killInstanceAfterSecs * 1000;
+        // this is needed to avoid TS typings trying to link to the .d.ts
+        /** @type {*} */
         this.recycledDiskCacheDirs = recycleDiskCache ? new LinkedList() : null;
         this.useIncognitoPages = useIncognitoPages;
         this.proxyUrls = proxyUrls ? _.shuffle(proxyUrls) : null;

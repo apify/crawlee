@@ -74,12 +74,15 @@
         "semver": "^6.3.0",
         "socket.io": "^2.2.0",
         "tough-cookie": "^3.0.1",
-        "ts-jest": "^24.3.0",
         "underscore": "^1.9.1",
         "ws": "^6.2.1"
     },
     "devDependencies": {
         "@apify/eslint-config": "^0.0.3",
+        "@babel/cli": "^7.0.0",
+        "@babel/core": "^7.0.0",
+        "@babel/preset-env": "^7.0.0",
+        "@babel/register": "^7.0.0",
         "@types/content-type": "^1.1.3",
         "@types/fs-extra": "^7.0.0",
         "@types/htmlparser2": "^3.10.1",
@@ -97,6 +100,7 @@
         "fpcollect": "^1.0.4",
         "fpscanner": "^0.1.5",
         "jest": "^24.9.0",
+        "ts-jest": "^24.3.0",
         "jsdoc": "^3.5.5",
         "jsdoc-export-default-interop": "^0.3.1",
         "portastic": "^1.0.1",
@@ -110,6 +114,6 @@
         "why-is-node-running": "^2.0.3"
     },
     "optionalDependencies": {
-        "puppeteer": "2.1.1"
+        "puppeteer": "^2.1.1"
     }
 }

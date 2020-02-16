@@ -93,7 +93,7 @@ declare function extractUrls({ string, urlRegExp }: {
     urlRegExp?: RegExp;
 }): string[];
 declare function getRandomUserAgent(): string;
-declare function htmlToText(html: string | CheerioSelector): string;
+declare function htmlToText(html: string | CheerioStatic): string;
 /**
  * Default regular expression to match URLs in a string that may be plain text, JSON, CSV or other. It supports common URL characters
  * and does not support URLs containing commas or spaces. The URLs also may contain Unicode letters (not symbols).

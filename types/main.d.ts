@@ -45,7 +45,7 @@ declare const exportedUtils: {
         urlRegExp?: RegExp;
     }) => string[];
     getRandomUserAgent: () => string;
-    htmlToText: (html: string | CheerioSelector) => string;
+    htmlToText: (html: string | CheerioStatic) => string;
     URL_NO_COMMAS_REGEX: RegExp;
     URL_WITH_COMMAS_REGEX: RegExp;
     createRequestDebugInfo: (request: Request<any> | import("./request").RequestOptions<any>, response?: import("http").IncomingMessage | import("puppeteer").Response | undefined, additionalFields?: Object | undefined) => any;

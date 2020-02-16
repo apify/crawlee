@@ -1,4 +1,3 @@
-/// <reference path="../types-apify/apify-shared/list_dictionary.d.ts" />
 export const LOCAL_STORAGE_SUBDIR: string;
 export const QUERY_HEAD_MIN_LENGTH: 100;
 export const QUERY_HEAD_BUFFER: 3;
@@ -93,7 +92,8 @@ export class RequestQueue<UserData> {
     clientKey: string;
     queueId: string;
     queueName: string | undefined;
-    queueHeadDict: ListDictionary;
+    /** @type {*} */
+    queueHeadDict: any;
     queryQueueHeadPromise: any;
     inProgress: Set<any>;
     recentlyHandled: any;
@@ -359,6 +359,5 @@ export type QueueOperationInfo<UserData> = {
      */
     request: Request<UserData>;
 };
-import ListDictionary from "apify-shared/list_dictionary";
 import Request from "./request";
 import { RequestOptions } from "./request";

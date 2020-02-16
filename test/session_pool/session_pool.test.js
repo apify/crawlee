@@ -3,7 +3,7 @@ import Apify from '../../build';
 import events from '../../build/events';
 
 import { ACTOR_EVENT_NAMES_EX } from '../../build/constants';
-import { Session } from '../../src/session_pool/session';
+import { Session } from '../../build/session_pool/session';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 
 describe('SessionPool - testing session pool', () => {

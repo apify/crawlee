@@ -215,7 +215,7 @@ export type CheerioHandlePageInputs<RequestUserData, SessionUserData> = {
     /**
      * The <a href="https://cheerio.js.org/">Cheerio</a> object with parsed HTML.
      */
-    $?: CheerioSelector;
+    $?: CheerioStatic;
     /**
      * The request body of the web page.
      */

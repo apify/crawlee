@@ -3,7 +3,7 @@ import * as crypto from 'crypto';
 import * as fs from 'fs-extra';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import * as LruCache from 'apify-shared/lru_cache';
-import ListDictionary from 'apify-shared/list_dictionary';
+import * as ListDictionary from 'apify-shared/list_dictionary';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, REQUEST_QUEUE_HEAD_MAX_LIMIT } from 'apify-shared/consts';
 import { checkParamPrototypeOrThrow, cryptoRandomObjectId } from 'apify-shared/utilities';
 import log from './utils_log';
@@ -207,6 +207,8 @@ export class RequestQueue {
 
         // Contains a cached list of request IDs from the head of the queue,
         // as obtained in the last query. Both key and value is the request ID.
+        // Need to apply a type here to the generated TS types don't try to use types-apify
+        /** @type {*} */
         this.queueHeadDict = new ListDictionary();
         this.queryQueueHeadPromise = null;
 

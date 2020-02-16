@@ -1,4 +1,3 @@
-/// <reference path="../types-apify/apify-shared/linked_list.d.ts" />
 export const BROWSER_SESSION_KEY_NAME: "APIFY_SESSION";
 export default PuppeteerPool;
 export type LaunchPuppeteerFunction = (options: LaunchPuppeteerOptions) => Promise<Browser>;
@@ -187,7 +186,8 @@ declare class PuppeteerPool {
     retireInstanceAfterRequestCount: any;
     puppeteerOperationTimeoutMillis: number;
     killInstanceAfterMillis: any;
-    recycledDiskCacheDirs: LinkedList | null;
+    /** @type {*} */
+    recycledDiskCacheDirs: any;
     useIncognitoPages: any;
     proxyUrls: any[] | null;
     liveViewServer: LiveViewServer | null;
@@ -222,7 +222,7 @@ declare class PuppeteerPool {
      *
      * @ignore
      */
-    _retireInstance(instance: any): any;
+    _retireInstance(instance: any): void;
     /**
      * Kills all the retired instances that:
      * - have all tabs closed
@@ -329,7 +329,6 @@ declare class PuppeteerPool {
 import { LaunchPuppeteerOptions } from "./puppeteer";
 import { Browser } from "puppeteer";
 import { SessionPool } from "./session_pool/session_pool";
-import LinkedList from "apify-shared/linked_list";
 import LiveViewServer from "./live_view/live_view_server";
 /**
  * Internal representation of Puppeteer instance.

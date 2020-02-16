@@ -1,5 +1,5 @@
 /// <reference path="../types-apify/apify-shared/log.d.ts" />
-export default ApifyLog;
+export default Log;
 export type LoggerOptions = {
     /**
      * Sets the log level to the given value, preventing messages from less important log levels
@@ -32,4 +32,4 @@ export type LoggerOptions = {
      */
     data?: Object;
 };
-import * as ApifyLog from "apify-shared/log";
+import * as Log from "apify-shared/log";

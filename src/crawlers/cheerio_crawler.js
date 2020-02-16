@@ -710,7 +710,6 @@ export default CheerioCrawler;
  * @template RequestUserData
  * @template SessionUserData
  * @typedef CheerioHandlePageInputs
- * @property {IncomingMessage} response
  * @property {CheerioSelector} [$]
  *  The [Cheerio](https://cheerio.js.org/) object with parsed HTML.
  * @property {string|Buffer} body
@@ -718,7 +717,7 @@ export default CheerioCrawler;
  * @property {T} [json]
  *  The parsed object from JSON string if the response contains the content type application/json.
  * @property {Request<RequestUserData>} request
- *   The original {Request} object.
+ *   The original {@link Request} object.
  * @property {{ type: string, encoding: string }} contentType
  *  Parsed `Content-Type header: { type, encoding }`.
  * @property {IncomingMessage} response

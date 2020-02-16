@@ -1,5 +1,3 @@
-import * as ApifyLog from 'apify-shared/log';
-
 // Changes to the JsDoc here need to be replicated to types-apify/apify-shared/log.d.ts
 // This file is mainly for building the docs, not to provide typings
 // For the output of "main" typings to be correct, this file should be references
@@ -194,4 +192,7 @@ import * as ApifyLog from 'apify-shared/log';
  * @memberOf log
  */
 
-export default ApifyLog;
+// variable can't be the same from the namespace above
+import * as Log from 'apify-shared/log';
+
+export default Log;

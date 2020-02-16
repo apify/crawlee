@@ -30,7 +30,7 @@ describe('enqueueLinksByClickingElements()', () => {
 <html>
     <body>
         <a href="https://example.com">link</div>
-    </body>  
+    </body>
 </html>
         `;
 
@@ -58,7 +58,7 @@ describe('enqueueLinksByClickingElements()', () => {
 <html>
     <body>
         <div onclick="window.clicked = true;">div</div>
-    </body>  
+    </body>
 </html>
         `;
             await page.setContent(html);
@@ -72,7 +72,7 @@ describe('enqueueLinksByClickingElements()', () => {
 <html>
     <body>
         <div onclick="window.clicked = true;"></div>
-    </body>  
+    </body>
 </html>
         `;
             await page.setContent(html);
@@ -92,7 +92,7 @@ describe('enqueueLinksByClickingElements()', () => {
         <div onclick="return window.handleClick(event)"></div>
         <p onclick="return window.handleClick(event)"></p>
         <footer onclick="return window.handleClick(event)"></footer>
-    </body>  
+    </body>
 </html>
         `;
             await page.setContent(html);
@@ -106,7 +106,7 @@ describe('enqueueLinksByClickingElements()', () => {
 <html>
     <body>
         <div onclick="window.clicked = true;" style="visibility: hidden; display: none"></div>
-    </body>  
+    </body>
 </html>
         `;
             await page.setContent(html);
@@ -127,7 +127,7 @@ describe('enqueueLinksByClickingElements()', () => {
         <div onclick="return window.handleClick(event)" style="position: absolute; z-index: 1">div</div>
         <main onclick="return window.handleClick(event)" style="position: absolute; z-index: 2">main</main>
         <footer onclick="return window.handleClick(event)" style="position: absolute; z-index: 3">footer</footer>
-    </body>  
+    </body>
 </html>
         `;
             await page.setContent(html);
@@ -153,7 +153,7 @@ describe('enqueueLinksByClickingElements()', () => {
 <html>
     <body>
         <a href="https://example.com">link</div>
-    </body>  
+    </body>
 </html>
         `;
             await page.setContent(html);
@@ -170,7 +170,7 @@ describe('enqueueLinksByClickingElements()', () => {
 <html>
     <body>
         <div onclick="return window.location = 'https://example.com'">div</div>
-    </body>  
+    </body>
 </html>
         `;
             await page.goto('https://example.com');
@@ -189,7 +189,7 @@ describe('enqueueLinksByClickingElements()', () => {
     <html>
         <body>
             <div onclick="return window.location = '#foo'">div</div>
-        </body>  
+        </body>
     </html>
             `;
                 await page.goto('https://example.com');
@@ -207,7 +207,7 @@ describe('enqueueLinksByClickingElements()', () => {
 <html>
     <body>
         <div onclick="return window.location.reload()">div</div>
-    </body>  
+    </body>
 </html>
         `;
             await page.goto('https://example.com');
@@ -224,7 +224,7 @@ describe('enqueueLinksByClickingElements()', () => {
 <html>
     <body>
         <div onclick="return window.location.reload(true)">div</div>
-    </body>  
+    </body>
 </html>
         `;
             await page.goto('https://example.com');

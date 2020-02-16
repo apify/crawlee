@@ -22,7 +22,7 @@
         "alwaysStrict": true,
         "noStrictGenericChecks": true,
         "strictNullChecks": true,
-        "allowSyntheticDefaultImports": true,
+        "allowSyntheticDefaultImports": false,
         "esModuleInterop": false,
         "declarationDir": "types/",
         "outDir": "build/"
