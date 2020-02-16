@@ -1,4 +1,4 @@
-import log from 'apify-shared/log';
+import log from '../../build/utils_log';
 import SystemStatus from '../../build/autoscaling/system_status';
 import Snapshotter from '../../build/autoscaling/snapshotter';
 

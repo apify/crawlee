@@ -1,10 +1,10 @@
 import fs from 'fs';
 import path from 'path';
-import log from 'apify-shared/log';
 import { ENV_VARS } from 'apify-shared/consts';
 import express from 'express';
 import bodyParser from 'body-parser';
 import sinon from 'sinon';
+import log from '../../build/utils_log';
 import Apify from '../../build';
 import { sleep } from '../../build/utils';
 import { Session } from '../../build/session_pool/session';

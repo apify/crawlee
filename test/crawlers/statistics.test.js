@@ -1,5 +1,5 @@
 import sinon from 'sinon';
-import log from 'apify-shared/log';
+import log from '../../build/utils_log';
 import Statistics from '../../build/crawlers/statistics';
 
 describe('Statistics', () => {

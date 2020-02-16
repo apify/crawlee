@@ -1,5 +1,5 @@
 import _ from 'underscore';
-import log from 'apify-shared/log';
+import log from '../../build/utils_log';
 import { sleep } from '../../build/utils';
 import AutoscaledPool from '../../build/autoscaling/autoscaled_pool';
 

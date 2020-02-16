@@ -1,5 +1,5 @@
-import log from 'apify-shared/log';
 import { ENV_VARS } from 'apify-shared/consts';
+import log from '../../build/utils_log';
 import * as Apify from '../../build';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 
