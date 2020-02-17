@@ -4,15 +4,14 @@
  * @template {Object} UserData
  * @typedef SessionState
  * @property {string} id
- * @property {object} cookies
  * @property {CookieJar} cookieJar
  * @property {UserData} userData
+ * @property {number} errorScore
  * @property {number} maxErrorScore
  * @property {number} errorScoreDecrement
+ * @property {number} usageCount
  * @property {string} expiresAt
  * @property {string} createdAt
- * @property {number} usageCount
- * @property {number} errorScore
  */
 /**
  * @template {Object} UserData
@@ -49,11 +48,12 @@ export class Session<UserData extends Object> {
      * @param {SessionOptions<UserData>} options
      */
     constructor(options?: SessionOptions<UserData>);
-    /** @type {string} */
-    id: string;
-    cookies: any;
-    /** @type {CookieJar} */
+    /**
+     * @type {CookieJar}
+     * @private
+     */
     cookieJar: CookieJar;
+    id: string;
     maxAgeSecs: number;
     /** @type {UserData} */
     userData: UserData;
@@ -114,54 +114,67 @@ export class Session<UserData extends Object> {
      */
     markBad(): void;
     /**
-     * Retires session based on status code.
-     * @param statusCode {Number} - HTTP status code
-     * @param blockedStatusCodes {Array<Number>} - Custom HTTP status codes that means blocking on particular website.
+     * With certain status codes: `401`, `403` or `429` we can be certain
+     * that the target website is blocking us. This function helps to do this conveniently
+     * by retiring the session when such code is received. Optionally the default status
+     * codes can be extended in the second parameter.
+     * @param statusCode {number} - HTTP status code
+     * @param [blockedStatusCodes] {number[]} - Custom HTTP status codes that means blocking on particular website.
      * @return {boolean} whether the session was retired.
      */
-    retireOnBlockedStatusCodes(statusCode: number, blockedStatusCodes?: number[]): boolean;
+    retireOnBlockedStatusCodes(statusCode: number, blockedStatusCodes?: number[] | undefined): boolean;
     /**
-     * Sets cookies from response to the cookieJar.
-     * Parses cookies from `set-cookie` header and sets them to `Session.cookieJar`.
+     * Saves cookies from an HTTP response to be used with the session.
+     * It expects an object with a `headers` property that's either an `Object`
+     * (typical Node.js responses) or a `Function` (Puppeteer Response).
+     *
+     * It then parses and saves the cookies from the `set-cookie` header, if available.
+
      * @param {(PuppeteerResponse|IncomingMessage)} response
      */
     setCookiesFromResponse(response: IncomingMessage | PuppeteerResponse): void;
     /**
-     * Persists puppeteer cookies to session for reuse.
-     * @param {PuppeteerCookie[]} puppeteerCookies - cookie from puppeteer `page.cookies` method.
-     * @param {string} url - Loaded url from page function.
-     */
-    putPuppeteerCookies(puppeteerCookies: PuppeteerCookie[], url: string): void;
-    /**
-     * Set cookies to session cookieJar.
-     * Cookies array should be [puppeteer](https://pptr.dev/#?product=Puppeteer&version=v2.0.0&show=api-pagecookiesurls) cookie compatible.
+     * Saves an array with cookie objects to be used with the session.
+     * The objects should be in the format that
+     * [Puppeteer uses](https://pptr.dev/#?product=Puppeteer&version=v2.0.0&show=api-pagecookiesurls),
+     * but you can also use this function to set cookies manually:
+     *
+     * ```
+     * [
+     *   { name: 'cookie1', value: 'my-cookie' },
+     *   { name: 'cookie2', value: 'your-cookie' }
+     * ]
+     * ```
+     *
      * @param {PuppeteerCookie[]} cookies
      * @param {string} url
      */
     setPuppeteerCookies(cookies: PuppeteerCookie[], url: string): void;
     /**
-     * Gets cookies in puppeteer ready to be used with `page.setCookie`.
+     * Returns cookies in a format compatible with puppeteer and ready to be used with `page.setCookie`.
      * @param {string} url website url. Only cookies stored for this url will be returned
      * @return {PuppeteerCookie[]}
      */
     getPuppeteerCookies(url: string): PuppeteerCookie[];
     /**
-     * Wrapper around `tough-cookie` Cookie jar `getCookieString` method.
+     * Returns cookies saved with the session in the typical
+     * key1=value1; key2=value2 format, ready to be used in
+     * a cookie header or elsewhere.
      * @param {string} url
-     * @return {string} represents `Cookie` header.
+     * @return {string} - represents `Cookie` header.
      */
     getCookieString(url: string): string;
     /**
-     *  Transforms puppeteer cookie to tough-cookie.
-     * @param {PuppeteerCookie} puppeteerCookie - Cookie from puppeteer `page.cookies method.
+     * Transforms puppeteer cookie to tough-cookie.
+     * @param {PuppeteerCookie} puppeteerCookie Cookie from puppeteer `page.cookies method.
      * @return {Cookie}
      * @private
      */
     _puppeteerCookieToTough(puppeteerCookie: PuppeteerCookie): Cookie;
     /**
-     *  Transforms tough-cookie cookie to puppeteer Cookie .
-     * @param {Cookie} toughCookie - Cookie from CookieJar.
-     * @return {PuppeteerCookie} - puppeteer cookie
+     * Transforms tough-cookie to puppeteer cookie .
+     * @param {Cookie} toughCookie - Cookie from CookieJar
+     * @return {PuppeteerCookie} - Cookie from Puppeteer
      * @private
      */
     _toughCookieToPuppeteer(toughCookie: Cookie): PuppeteerCookie;
@@ -178,15 +191,14 @@ export class Session<UserData extends Object> {
  */
 export type SessionState<UserData extends Object> = {
     id: string;
-    cookies: any;
     cookieJar: CookieJar;
     userData: UserData;
+    errorScore: number;
     maxErrorScore: number;
     errorScoreDecrement: number;
+    usageCount: number;
     expiresAt: string;
     createdAt: string;
-    usageCount: number;
-    errorScore: number;
 };
 export type SessionOptions<UserData extends Object> = {
     /**
