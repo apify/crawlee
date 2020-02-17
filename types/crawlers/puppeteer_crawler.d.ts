@@ -488,11 +488,13 @@ declare class PuppeteerCrawler {
     }): Promise<PuppeteerResponse>;
     /**
      * @param {Object} options
+     * @param {Error} options.error
      * @param {Request} options.request
      * @return {Promise<void>}
      * @ignore
      */
-    _defaultHandleFailedRequestFunction({ request }: {
+    _defaultHandleFailedRequestFunction({ error, request }: {
+        error: Error;
         request: Request;
     }): Promise<void>;
 }

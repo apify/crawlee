@@ -1,9 +1,17 @@
-NEXT
+0.20.0 /
 ====================
+- **BREAKING:** `Apify.utils.requestAsBrowser()` no longer aborts request on status code 406
+  or when other than `text/html` type is received. Use `options.abortFunction` if you want to
+  retain this functionality.
+- **BREAKING:** Added `useLenientHttpParser` option to `Apify.utils.requestAsBrowser()` which
+  is `true` by default and forces the function to use a HTTP parser that is less strict than
+  default Node 12 parser, but also less secure. It is needed to be able to bypass certain
+  anti-scraping walls and fetch websites that do not comply with HTTP spec.
 - Improved `Apify.launchPuppeteer()` code to prevent triggering bugs in Puppeteer by passing
   more than required options to `puppeteer.launch()`.
 - Documented `BasicCrawler.autoscaledPool` property,
-  and added `CheerioCrawler.autoscaledPool` and `PuppeteerCrawler.autoscaledPool` properties
+  and added `CheerioCrawler.autoscaledPool` and `PuppeteerCrawler.autoscaledPool` properties.
+- Added TypeScript typings and typedef documentation for all entities used throughout SDK.
 
 0.19.1 / 2020-01-30
 ====================
