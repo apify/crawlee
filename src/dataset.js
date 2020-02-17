@@ -370,7 +370,7 @@ export class Dataset {
      * @param {boolean} [options.desc=false] If `true` then the objects are sorted by createdAt in descending order.
      * @param {string[]} [options.fields] If provided then returned objects will only contain specified keys
      * @param {string} [options.unwind] If provided then objects will be unwound based on provided field.
-     * @return {Promise<R[]>}
+     * @return {Promise<Array<R>>}
      */
     map(iteratee, options) {
         const result = [];

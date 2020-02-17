@@ -406,7 +406,7 @@ export const sleep = (millis) => {
  * @param {RegExp} [options.urlRegExp=URL_NO_COMMAS_REGEX]
  *   Custom regular expression to identify the URLs in the file to extract.
  *   The regular expression should be case-insensitive and have global flag set (i.e. `/something/gi`).
- * @returns {Promise<string[]>}
+ * @returns {Promise<Array<string>>}
  * @memberOf utils
  */
 const downloadListOfUrls = async ({ url, encoding = 'utf8', urlRegExp = URL_NO_COMMAS_REGEX }) => {

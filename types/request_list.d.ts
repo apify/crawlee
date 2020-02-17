@@ -264,7 +264,7 @@ export class RequestList {
     /**
      * Fetches URLs from requestsFromUrl and returns them in format of list of requests
      * @param source
-     * @return {Promise<RequestOptions<*>[]>}
+     * @return {Promise<Array<RequestOptions<*>>>}
      * @ignore
      */
     _fetchRequestsFromUrl(source: any): Promise<RequestOptions<any>[]>;

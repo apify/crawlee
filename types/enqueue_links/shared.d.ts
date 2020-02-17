@@ -24,7 +24,7 @@ export function createRequestOptions(sources: (string | Object)[], userData?: Ob
  * @param {Request<*>[]} requests
  * @param {RequestQueue<*>} requestQueue
  * @param {number} batchSize
- * @return {Promise<QueueOperationInfo<*>[]>}
+ * @return {Promise<Array<QueueOperationInfo<*>>>}
  * @ignore
  */
 export function addRequestsToQueueInBatches(requests: Request<any>[], requestQueue: RequestQueue<any>, batchSize?: number): Promise<QueueOperationInfo<any>[]>;

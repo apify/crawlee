@@ -100,7 +100,7 @@
  *   This is the maximum period for which the function will keep tracking events, even if more events keep coming.
  *   Its purpose is to prevent a deadlock in the page by periodic events, often unrelated to the clicking itself.
  *   See `waitForPageIdleSecs` above for an explanation.
- * @return {Promise<QueueOperationInfo<UserData>[]>}
+ * @return {Promise<Array<QueueOperationInfo<UserData>>>}
  *   Promise that resolves to an array of {@link QueueOperationInfo} objects.
  * @memberOf puppeteer
  * @name enqueueLinksByClickingElements
@@ -122,7 +122,7 @@ export function enqueueLinksByClickingElements<UserData extends Object>(options?
  * @param {Object} options
  * @param {Page} options.page
  * @param {string} options.selector
- * @return {Promise<object[]>}
+ * @return {Promise<Array<object>>}
  * @ignore
  */
 export function clickElementsAndInterceptNavigationRequests(options: {

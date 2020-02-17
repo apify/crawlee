@@ -40,12 +40,12 @@
  *   Either `page` or `$` option must be provided.
  * @param {RequestQueue<*>} options.requestQueue
  *   A request queue to which the URLs will be enqueued.
- * @param {String} [options.selector='a']
+ * @param {string} [options.selector='a']
  *   A CSS selector matching links to be enqueued.
  * @param {string} [options.baseUrl]
  *   A base URL that will be used to resolve relative URLs when using Cheerio. Ignored when using Puppeteer,
  *   since the relative URL resolution is done inside the browser automatically.
- * @param {Object[]|String[]} [options.pseudoUrls]
+ * @param {Array<Object>|Array<string>} [options.pseudoUrls]
  *   An array of {@link PseudoUrl}s matching the URLs to be enqueued,
  *   or an array of strings or RegExps or plain Objects from which the {@link PseudoUrl}s can be constructed.
  *
@@ -74,7 +74,7 @@
  *       }
  *   }
  *   ```
- * @return {Promise<QueueOperationInfo<*>[]>}
+ * @return {Promise<Array<QueueOperationInfo<*>>>}
  *   Promise that resolves to an array of {@link QueueOperationInfo} objects.
  * @memberOf utils
  * @name enqueueLinks
@@ -93,7 +93,7 @@ export function enqueueLinks(options?: {
  *
  * @param {Page} page
  * @param {string} selector
- * @return {Promise<string[]>}
+ * @return {Promise<Array<string>>}
  * @ignore
  */
 export function extractUrlsFromPage(page: Page, selector: string): Promise<string[]>;
