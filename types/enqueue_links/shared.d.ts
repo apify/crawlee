@@ -1,19 +1,19 @@
 /**
  * Helper factory used in the `enqueueLinks()` and enqueueLinksByClickingElements() function.
- * @param {(string|Object)[]} pseudoUrls
- * @return {PseudoUrl<*>[]}
+ * @param {Array<(string|Object)>} pseudoUrls
+ * @return {Array<PseudoUrl<*>>}
  * @ignore
  */
 export function constructPseudoUrlInstances(pseudoUrls: (string | Object)[]): PseudoUrl<any>[];
 /**
- * @param {(string|Object)[]} requestOptions
- * @param {PseudoUrl<*>[]} pseudoUrls
- * @return {Request<*>[]}
+ * @param {Array<(string|Object)>} requestOptions
+ * @param {Array<PseudoUrl<*>>} pseudoUrls
+ * @return {Array<Request<*>>}
  * @ignore
  */
 export function createRequests(requestOptions: (string | Object)[], pseudoUrls: PseudoUrl<any>[]): Request<any>[];
 /**
- * @param {(string|Object)[]} sources
+ * @param {Array<(string|Object)>} sources
  * @param {Object} [userData]
  * @ignore
  */
@@ -21,7 +21,7 @@ export function createRequestOptions(sources: (string | Object)[], userData?: Ob
     url: string;
 })[];
 /**
- * @param {Request<*>[]} requests
+ * @param {Array<Request<*>>} requests
  * @param {RequestQueue<*>} requestQueue
  * @param {number} batchSize
  * @return {Promise<Array<QueueOperationInfo<*>>>}

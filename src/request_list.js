@@ -18,7 +18,7 @@ export const SOURCES_PERSISTENCE_KEY = 'REQUEST_LIST_SOURCES';
  */
 
 /**
- * @typedef {(RequestListInput|RequestOptions<*>|Request<*>)[]} SourceInput
+ * @typedef {Array<(RequestListInput|RequestOptions<*>|Request<*>)>} SourceInput
  */
 
 /**
@@ -352,7 +352,7 @@ export class RequestList {
      * Attempts to load state and sources using the `RequestList` configuration
      * and returns a tuple of [state, sources] where each may be null if not loaded.
      *
-     * @return {Promise<[RequestListState, object|null]>}
+     * @return {Promise<Array<(RequestListState|null)>>}
      * @ignore
      */
     async _loadStateAndSources() {

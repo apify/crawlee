@@ -7,7 +7,7 @@ export const SOURCES_PERSISTENCE_KEY: "REQUEST_LIST_SOURCES";
  * @property {RegExp} [regex]
  */
 /**
- * @typedef {(RequestListInput|RequestOptions<*>|Request<*>)[]} SourceInput
+ * @typedef {Array<(RequestListInput|RequestOptions<*>|Request<*>)>} SourceInput
  */
 /**
  * @typedef RequestListOptions
@@ -204,10 +204,10 @@ export class RequestList {
      * Attempts to load state and sources using the `RequestList` configuration
      * and returns a tuple of [state, sources] where each may be null if not loaded.
      *
-     * @return {Promise<[RequestListState, object|null]>}
+     * @return {Promise<Array<(RequestListState|null)>>}
      * @ignore
      */
-    _loadStateAndSources(): Promise<[RequestListState, any]>;
+    _loadStateAndSources(): Promise<(RequestListState | null)[]>;
     /**
      * Returns an object representing the internal state of the `RequestList` instance.
      * Note that the object's fields can change in future releases.
