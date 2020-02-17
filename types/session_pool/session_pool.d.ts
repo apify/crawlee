@@ -1,18 +1,19 @@
 /**
  * Factory user-function which creates customized {@link Session} instances.
- * @template UserData
+ * @template SessionUserData
  * @callback CreateSession
- * @param {SessionPool<UserData>} sessionPool Pool requesting the new session.
+ * @param {SessionPool<SessionUserData>} sessionPool Pool requesting the new session.
+ * @returns {Session<SessionUserData>}
  */
 /**
- * @template UserData
+ * @template SessionUserData
  * @typedef SessionPoolOptions
  * @property {number} [maxPoolSize=1000] - Maximum size of the pool.
  * Indicates how many sessions are rotated.
- * @property {SessionOptions<UserData>} [sessionOptions] The configuration options for {Session} instances.
+ * @property {SessionOptions<SessionUserData>} [sessionOptions] The configuration options for {Session} instances.
  * @property {string} [persistStateKeyValueStoreId] - Name or Id of `KeyValueStore` where is the `SessionPool` state stored.
  * @property {string} [persistStateKey="SESSION_POOL_STATE"] - Session pool persists it's state under this key in Key value store.
- * @property {CreateSession<UserData>} [createSessionFunction] - Custom function that should return `Session` instance.
+ * @property {CreateSession<SessionUserData>} [createSessionFunction] - Custom function that should return `Session` instance.
  * Function receives `SessionPool` instance as a parameter
  */
 /**
@@ -61,23 +62,23 @@
  *
  * ```
  * @hideconstructor
- * @template UserData
+ * @template SessionUserData
  */
-export class SessionPool<UserData> extends EventEmitter {
+export class SessionPool<SessionUserData> extends EventEmitter {
     /**
      * Session pool configuration.
-     * @param {SessionPoolOptions<UserData>} [options] All `SessionPool` configuration options.
+     * @param {SessionPoolOptions<SessionUserData>} [options] All `SessionPool` configuration options.
      */
-    constructor(options?: SessionPoolOptions<UserData> | undefined);
+    constructor(options?: SessionPoolOptions<SessionUserData> | undefined);
     maxPoolSize: number;
     createSessionFunction: any;
-    /** @type {SessionPoolOptions<UserData>} */
-    sessionOptions: SessionPoolOptions<UserData>;
+    /** @type {SessionPoolOptions<SessionUserData>} */
+    sessionOptions: SessionPoolOptions<SessionUserData>;
     persistStateKeyValueStoreId: any;
     persistStateKey: string;
     keyValueStore: import("../key_value_store").KeyValueStore | null;
-    /** @type {Array<Session<UserData>>} */
-    sessions: Array<Session<UserData>>;
+    /** @type {Array<Session<SessionUserData>>} */
+    sessions: Array<Session<SessionUserData>>;
     /**
      * Gets count of usable sessions in the pool.
      * @return {number}
@@ -102,9 +103,9 @@ export class SessionPool<UserData> extends EventEmitter {
      * If the session pool is full, it picks a session from the pool,
      * If the picked session is usable it is returned, otherwise it creates and returns a new one.
      *
-     * @return {Promise<Session<UserData>>}
+     * @return {Promise<Session<SessionUserData>>}
      */
-    getSession(): Promise<Session<UserData>>;
+    getSession(): Promise<Session<SessionUserData>>;
     /**
      * Returns an object representing the internal state of the `SessionPool` instance.
      * Note that the object's fields can change in future releases.
@@ -112,7 +113,7 @@ export class SessionPool<UserData> extends EventEmitter {
     getState(): {
         usableSessionsCount: number;
         retiredSessionsCount: number;
-        sessions: import("./session").SessionState<UserData>[];
+        sessions: import("./session").SessionState<SessionUserData>[];
     };
     /**
      * Persists the current state of the `SessionPool` into the default {@link KeyValueStore}.
@@ -165,10 +166,10 @@ export class SessionPool<UserData> extends EventEmitter {
     _hasSpaceForSession(): boolean;
     /**
      * Picks random session from the `SessionPool`.
-     * @return {Session<UserData>} - Picked `Session`
+     * @return {Session<SessionUserData>} - Picked `Session`
      * @private
      */
-    _pickSession(): Session<UserData>;
+    _pickSession(): Session<SessionUserData>;
     /**
      * Potentially loads `SessionPool`.
      * If the state was persisted it loads the `SessionPool` from the persisted state.
@@ -177,12 +178,12 @@ export class SessionPool<UserData> extends EventEmitter {
      */
     _maybeLoadSessionPool(): Promise<void>;
 }
-export function openSessionPool<UserData>(sessionPoolOptions: SessionPoolOptions<UserData>): Promise<SessionPool<UserData>>;
+export function openSessionPool<SessionUserData>(sessionPoolOptions: SessionPoolOptions<SessionUserData>): Promise<SessionPool<SessionUserData>>;
 /**
  * Factory user-function which creates customized {@link Session} instances.
  */
-export type CreateSession<UserData> = (sessionPool: SessionPool<UserData>) => any;
-export type SessionPoolOptions<UserData> = {
+export type CreateSession<SessionUserData> = (sessionPool: SessionPool<SessionUserData>) => Session<SessionUserData>;
+export type SessionPoolOptions<SessionUserData> = {
     /**
      * - Maximum size of the pool.
      * Indicates how many sessions are rotated.
@@ -191,7 +192,7 @@ export type SessionPoolOptions<UserData> = {
     /**
      * The configuration options for {Session} instances.
      */
-    sessionOptions?: SessionOptions<UserData>;
+    sessionOptions?: SessionOptions<SessionUserData>;
     /**
      * - Name or Id of `KeyValueStore` where is the `SessionPool` state stored.
      */
@@ -204,7 +205,7 @@ export type SessionPoolOptions<UserData> = {
      * - Custom function that should return `Session` instance.
      * Function receives `SessionPool` instance as a parameter
      */
-    createSessionFunction?: CreateSession<UserData>;
+    createSessionFunction?: CreateSession<SessionUserData>;
 };
 import { EventEmitter } from  "events";
 import { Session } from "./session";
