@@ -218,7 +218,11 @@ describe('Apify.utils_request', () => {
                     url,
                 });
             } catch (err) {
-                expect(err.message).toBe('Parse Error: Invalid header value char');
+                if (process.version.startsWith('v10')) {
+                    expect(err.message).toMatch('Parse Error');
+                } else {
+                    expect(err.message).toMatch('Parse Error: Invalid header value char');
+                }
             }
         });
     });
