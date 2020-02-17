@@ -39,20 +39,19 @@ const DEFAULT_HTTP_REQUEST_OPTIONS = {
  *  (@apify/http-request)[https://www.npmjs.com/package/@apify/http-request] NPM package.
  * @property {boolean} [ignoreSslErrors=true]
  *  If set to true, SSL/TLS certificate errors will be ignored.
- * @property {boolean} [useLenientHttpParser=true]
+ * @property {boolean} [useInsecureHttpParser=true]
  *  Node.js HTTP parser is stricter than Browser parsers. This prevents fetching of some websites
  *  whose servers do not comply with HTTP specs or employ anti-scraping protections due to
  *  various parse errors, typically `invalid header value char` error. This option forces
- *  the parser to ignore certain errors and allow those websites to be scraped.
+ *  the parser to ignore certain errors which allows those websites to be scraped.
  *  However, it will also open your application to various security vulnerabilities.
  */
 
 /**
- * **IMPORTANT WARNING:** This function uses an insecure version of HTTP parser by default
+ * **IMPORTANT:** This function uses an insecure version of HTTP parser by default
  * and also ignores SSL/TLS errors. This is very useful in scraping, because it allows bypassing
- * certain anti-scraping walls, but it also makes it vulnerable to attacks. Do not use this
- * function in other than scraping scenarios, unless you set `useLenientHttpParser: false`
- * and `ignoreSslErrors: false`.
+ * certain anti-scraping walls, but it also exposes some vulnerability. For other than scraping
+ * scenarios, please set `useInsecureHttpParser: false` and `ignoreSslErrors: false`.
  *
  * Sends an HTTP request that looks like a request sent by a web browser,
  * fully emulating browser's HTTP headers.
@@ -91,7 +90,7 @@ export const requestAsBrowser = async (options) => {
         useMobileVersion = false,
         abortFunction,
         ignoreSslErrors = true,
-        useLenientHttpParser = true,
+        useInsecureHttpParser = true,
         ...otherParams
     } = options;
 
@@ -117,7 +116,7 @@ export const requestAsBrowser = async (options) => {
         proxyUrl,
         abortFunction,
         ignoreSslErrors,
-        insecureHTTPParser: useLenientHttpParser,
+        insecureHTTPParser: useInsecureHttpParser,
     };
 
     try {

@@ -214,7 +214,7 @@ describe('Apify.utils_request', () => {
             });
             try {
                 await requestAsBrowser({
-                    useLenientHttpParser: false,
+                    useInsecureHttpParser: false,
                     url,
                 });
             } catch (err) {

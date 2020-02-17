@@ -139,9 +139,9 @@ objects.
 
 ## `utils.requestAsBrowser` ⇒ `Promise<(http.IncomingMessage|stream.Readable)>`
 
-**IMPORTANT WARNING:** This function uses an insecure version of HTTP parser by default and also ignores SSL/TLS errors. This is very useful in
-scraping, because it allows bypassing certain anti-scraping walls, but it also makes it vulnerable to attacks. Do not use this function in other than
-scraping scenarios, unless you set `useLenientHttpParser: false` and `ignoreSslErrors: false`.
+**IMPORTANT:** This function uses an insecure version of HTTP parser by default and also ignores SSL/TLS errors. This is very useful in scraping,
+because it allows bypassing certain anti-scraping walls, but it also exposes some vulnerability. For other than scraping scenarios, please set
+`useInsecureHttpParser: false` and `ignoreSslErrors: false`.
 
 Sends an HTTP request that looks like a request sent by a web browser, fully emulating browser's HTTP headers.
 

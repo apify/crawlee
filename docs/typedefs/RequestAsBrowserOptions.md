@@ -64,13 +64,13 @@ title: RequestAsBrowserOptions
 <tr>
 <td colspan="3"><p>If set to true, SSL/TLS certificate errors will be ignored.</p>
 </td></tr><tr>
-<td><code>[useLenientHttpParser]</code></td><td><code>boolean</code></td><td><code>true</code></td>
+<td><code>[useInsecureHttpParser]</code></td><td><code>boolean</code></td><td><code>true</code></td>
 </tr>
 <tr>
 <td colspan="3"><p>Node.js HTTP parser is stricter than Browser parsers. This prevents fetching of some websites
  whose servers do not comply with HTTP specs or employ anti-scraping protections due to
  various parse errors, typically <code>invalid header value char</code> error. This option forces
- the parser to ignore certain errors and allow those websites to be scraped.
+ the parser to ignore certain errors which allows those websites to be scraped.
  However, it will also open your application to various security vulnerabilities.</p>
 </td></tr></tbody>
 </table>
