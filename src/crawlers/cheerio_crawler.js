@@ -171,7 +171,7 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *   The provided custom proxies' order will be randomized and the resulting list rotated.
  *   Custom proxies are not compatible with Apify Proxy and an attempt to use both
  *   configuration options will cause an error to be thrown on startup.
- * @property {HandleFailedRequest} [handleFailedRequestFunction]
+ * @property {HandleFailedRequest<RequestUserData>} [handleFailedRequestFunction]
  *   A function to handle requests that failed more than `option.maxRequestRetries` times.
  *
  *   The function receives the following object as an argument:
@@ -303,8 +303,8 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *  You can use it to change the concurrency settings on the fly,
  *  to pause the crawler by calling {@link AutoscaledPool#pause}
  *  or to abort it by calling {@link AutoscaledPool#abort}.
- * @template {Object} RequestUserData
- * @template {Object} SessionUserData
+ * @template RequestUserData
+ * @template SessionUserData
  */
 class CheerioCrawler {
     /**
@@ -588,7 +588,7 @@ class CheerioCrawler {
      * Enables the use of a proxy by returning a proxy URL
      * based on configured options or null if no proxy is used.
      * @param {Session<*>} [session]
-     * @returns {string|null}
+     * @returns {(string|null)}
      * @ignore
      */
     _getProxyUrl(session = {}) {
@@ -640,7 +640,7 @@ class CheerioCrawler {
 
     /**
      * Checks and extends supported mime types
-     * @param {Array<string|Object>} additionalMimeTypes
+     * @param {Array<(string|Object)>} additionalMimeTypes
      * @ignore
      */
     _extendSupportedMimeTypes(additionalMimeTypes) {
@@ -703,7 +703,7 @@ export default CheerioCrawler;
  * @template RequestUserData
  * @callback PrepareRequest
  * @param {PrepareRequestInputs<RequestUserData>} inputs Arguments passed to this callback.
- * @returns {void|Promise<void>}
+ * @returns {(void|Promise<void>)}
  */
 
 /**
@@ -712,9 +712,9 @@ export default CheerioCrawler;
  * @typedef CheerioHandlePageInputs
  * @property {CheerioSelector} [$]
  *  The [Cheerio](https://cheerio.js.org/) object with parsed HTML.
- * @property {string|Buffer} body
+ * @property {(string|Buffer)} body
  *  The request body of the web page.
- * @property {T} [json]
+ * @property {*} [json]
  *  The parsed object from JSON string if the response contains the content type application/json.
  * @property {Request<RequestUserData>} request
  *   The original {@link Request} object.

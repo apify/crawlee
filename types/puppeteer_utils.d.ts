@@ -1,4 +1,4 @@
-export function gotoExtended<UserData>(page: Page, request: Request<UserData>, gotoOptions?: Object): Promise<Response>;
+export function gotoExtended(page: Page, request: Request<any>, gotoOptions?: DirectNavigationOptions): Promise<Response | null>;
 export function infiniteScroll(page: Page, options?: {
     timeoutSecs?: number;
     waitForSecs?: number;
@@ -23,6 +23,7 @@ export namespace puppeteerUtils {
 }
 import { Page } from "puppeteer";
 import Request from "./request";
+import { DirectNavigationOptions } from "puppeteer";
 import { Response } from "puppeteer";
 declare function hideWebDriver(page: Page): Promise<void>;
 declare function injectFile(page: Page, filePath: string, options?: {

@@ -333,9 +333,9 @@ export class RequestQueueLocal {
     }>;
     _updateMetadata(isModified: any): void;
 }
-export function openRequestQueue(queueIdOrName?: string | undefined, options?: {
+export function openRequestQueue<RequestUserData>(queueIdOrName?: string | undefined, options?: {
     forceCloud?: boolean;
-} | undefined): Promise<RequestQueue<any>>;
+} | undefined): Promise<RequestQueue<RequestUserData>>;
 /**
  * A helper class that is used to report results from various
  * [`RequestQueue`](../api/requestqueue) functions as well as

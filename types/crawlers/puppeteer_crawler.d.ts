@@ -86,7 +86,7 @@ export type PuppeteerCrawlerOptions<RequestUserData, SessionUserData> = {
      * <a href="https://github.com/apifytech/apify-js/blob/master/src/crawlers/puppeteer_crawler.js#L301" target="_blank">source code</a>
      * for the default implementation of this function.
      */
-    handleFailedRequestFunction?: HandleFailedRequest;
+    handleFailedRequestFunction?: HandleFailedRequest<RequestUserData>;
     /**
      * Indicates how many times the request is retried if either `handlePageFunction()` or `gotoFunction()` fails.
      */
@@ -256,7 +256,7 @@ export type LaunchPuppeteer = (inputs: LaunchPuppeteerOptions) => Promise<Browse
  * @property {number} [gotoTimeoutSecs=60]
  *   Timeout in which page navigation needs to finish, in seconds. When `gotoFunction()` is used and thus the default
  *   function is overridden, this timeout will not be used and needs to be configured in the new `gotoFunction()`.
- * @property {HandleFailedRequest} [handleFailedRequestFunction]
+ * @property {HandleFailedRequest<RequestUserData>} [handleFailedRequestFunction]
  *   A function to handle requests that failed more than `option.maxRequestRetries` times.
  *
  *   The function receives the following object as an argument:
@@ -378,10 +378,10 @@ export type LaunchPuppeteer = (inputs: LaunchPuppeteerOptions) => Promise<Browse
  *  to pause the crawler by calling {@link AutoscaledPool#pause}
  *  or to abort it by calling {@link AutoscaledPool#abort}.
  *
- * @template {Object} RequestUserData
- * @template {Object} SessionUserData
+ * @template RequestUserData
+ * @template SessionUserData
  */
-declare class PuppeteerCrawler<RequestUserData extends Object, SessionUserData extends Object> {
+declare class PuppeteerCrawler<RequestUserData, SessionUserData> {
     /**
      * @param {PuppeteerCrawlerOptions<RequestUserData,SessionUserData>} options
      */

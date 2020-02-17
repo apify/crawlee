@@ -79,7 +79,7 @@ const DEFAULT_OPTIONS = {
  *   Either `requestList` or `requestQueue` option must be provided (or both).
  * @property {number} [handleRequestTimeoutSecs=60]
  *   Timeout in which the function passed as `handleRequestFunction` needs to finish, in seconds.
- * @property {HandleFailedRequest} [handleFailedRequestFunction]
+ * @property {HandleFailedRequest<RequestUserData>} [handleFailedRequestFunction]
  *   A function to handle requests that failed more than `option.maxRequestRetries` times.
  *
  *   The function receives the following object as an argument:
@@ -183,8 +183,8 @@ const DEFAULT_OPTIONS = {
  *  You can use it to change the concurrency settings on the fly,
  *  to pause the crawler by calling {@link AutoscaledPool#pause}
  *  or to abort it by calling {@link AutoscaledPool#abort}.
- * @template {Object} RequestUserData
- * @template {Object} SessionUserData
+ * @template RequestUserData
+ * @template SessionUserData
  */
 class BasicCrawler {
     /**
@@ -532,12 +532,15 @@ export default BasicCrawler;
  */
 
 /**
+ * @template RequestUserData
  * @callback HandleFailedRequest
- * @param {HandleFailedRequestInput} inputs Arguments passed to this callback.
- * @returns {void|Promise<void>}
+ * @param {HandleFailedRequestInput<RequestUserData>} inputs Arguments passed to this callback.
+ * @returns {(void|Promise<void>)}
  */
+
 /**
+ * @template RequestUserData
  * @typedef HandleFailedRequestInput
- * @property {Request} request The original {Request} object.
+ * @property {Request<RequestUserData>} request The original {Request} object.
  * @property {Error} error The Error thrown by `handleRequestFunction`.
  */

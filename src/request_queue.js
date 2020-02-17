@@ -1079,6 +1079,7 @@ const getOrCreateQueue = async (queueIdOrName) => {
  *
  * For more details and code examples, see the {@link RequestQueue} class.
  *
+ * @template RequestUserData
  * @param {string} [queueIdOrName]
  *   ID or name of the request queue to be opened. If `null` or `undefined`,
  *   the function returns the default request queue associated with the actor run.
@@ -1086,7 +1087,7 @@ const getOrCreateQueue = async (queueIdOrName) => {
  * @param {boolean} [options.forceCloud=false]
  *   If set to `true` then the function uses cloud storage usage even if the `APIFY_LOCAL_STORAGE_DIR`
  *   environment variable is set. This way it is possible to combine local and cloud storage.
- * @returns {Promise<RequestQueue>}
+ * @returns {Promise<RequestQueue<RequestUserData>>}
  * @memberof module:Apify
  * @name openRequestQueue
  * @function

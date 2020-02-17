@@ -5,7 +5,7 @@ import * as _ from 'underscore';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import * as LruCache from 'apify-shared/lru_cache';
-import { Page, Response } from 'puppeteer'; // eslint-disable-line no-unused-vars
+import { Page, Response, DirectNavigationOptions } from 'puppeteer'; // eslint-disable-line no-unused-vars
 import log from './utils_log';
 
 import { RequestQueue, RequestQueueLocal } from './request_queue';
@@ -285,7 +285,7 @@ const blockResources = async (page, resourceTypes = ['stylesheet', 'font', 'imag
  *   Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
  * @param {Object} cache
  *   Object in which responses are stored
- * @param {Array<string|RegExp>} responseUrlRules
+ * @param {Array<(string|RegExp)>} responseUrlRules
  *   List of rules that are used to check if the response should be cached.
  *   String rules are compared as page.url().includes(rule) while RegExp rules are evaluated as rule.test(page.url()).
  * @return {Promise<void>}
@@ -395,12 +395,11 @@ const compileScript = (scriptString, context = Object.create(null)) => {
  * *NOTE:* In recent versions of Puppeteer using requests other than GET, overriding headers and adding payloads disables
  * browser cache which degrades performance.
  *
- * @template UserData
  * @param {Page} page
  *   Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
- * @param {Request<UserData>} request
- * @param {Object} gotoOptions Custom options for `page.goto()`.
- * @return {Promise<Response>}
+ * @param {Request<*>} request
+ * @param {DirectNavigationOptions} gotoOptions Custom options for `page.goto()`.
+ * @return {Promise<(Response | null)>}
  *
  * @memberOf puppeteer
  * @name gotoExtended

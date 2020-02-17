@@ -16,7 +16,7 @@ import { Response as PuppeteerResponse } from 'puppeteer';
 
 /**
  * Persistable {@link Session} state.
- * @template {Object} UserData
+ * @template UserData
  * @typedef SessionState
  * @property {string} id
  * @property {CookieJar} cookieJar
@@ -30,7 +30,7 @@ import { Response as PuppeteerResponse } from 'puppeteer';
  */
 
 /**
- * @template {Object} UserData
+ * @template UserData
  * @typedef SessionOptions
  * @property {string} [id] - Id of session used for generating fingerprints. It is used as proxy session name.
  * @property {number} [maxAgeSecs=3000] - Number of seconds after which the session is considered as expired.
@@ -56,13 +56,13 @@ import { Response as PuppeteerResponse } from 'puppeteer';
  *  You can imagine each session as a specific user, with its own cookies, IP (via proxy) and potentially a unique browser fingerprint.
  *  Session internal state can be enriched with custom user data for example some authorization tokens and specific headers in general.
  *
- * @template {Object} UserData
+ * @template SessionUserData
  */
 export class Session {
     /**
      * Session configuration.
      *
-     * @param {SessionOptions<UserData>} options
+     * @param {SessionOptions<SessionUserData>} options
      */
     constructor(options = {}) {
         const {
@@ -105,7 +105,7 @@ export class Session {
         this.cookieJar = cookieJar.setCookie ? cookieJar : CookieJar.fromJSON(JSON.stringify(cookieJar));
         this.id = id;
         this.maxAgeSecs = maxAgeSecs;
-        /** @type {UserData} */
+        /** @type {SessionUserData} */
         this.userData = userData;
         this.maxErrorScore = maxErrorScore;
         this.errorScoreDecrement = errorScoreDecrement;
@@ -170,7 +170,7 @@ export class Session {
 
     /**
      * Gets session state for persistence in KeyValueStore.
-     * @return {SessionState<UserData>} represents session internal state.
+     * @return {SessionState<SessionUserData>} represents session internal state.
      */
     getState() {
         return {

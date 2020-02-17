@@ -51,9 +51,9 @@ export function chunkBySize(items: any[], limitBytes: number): any[];
  * ]);
  * ```
  * @hideconstructor
- * @template {Object} T
+ * @template T
  */
-export class Dataset<T extends Object> {
+export class Dataset<T> {
     /**
      * @param {string} datasetId
      * @param {string} datasetName
@@ -327,7 +327,7 @@ export class DatasetLocal {
     _readAndParseFile(index: any): Promise<any>;
     _updateMetadata(isModified: any): void;
 }
-export function openDataset<T extends Object>(datasetIdOrName?: string | undefined, options?: {
+export function openDataset<T>(datasetIdOrName?: string | undefined, options?: {
     forceCloud?: boolean;
 } | undefined): Promise<Dataset<T>>;
 export function pushData<T extends Object | Object[]>(item: T): Promise<void>;

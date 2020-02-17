@@ -55,7 +55,7 @@ export type BasicCrawlerOptions<RequestUserData, SessionUserData> = {
      * <a href="https://github.com/apifytech/apify-js/blob/master/src/crawlers/basic_crawler.js#L11" target="_blank">source code</a>
      * for the default implementation of this function.
      */
-    handleFailedRequestFunction?: HandleFailedRequest;
+    handleFailedRequestFunction?: HandleFailedRequest<RequestUserData>;
     /**
      * Indicates how many times the request is retried if [`handleRequestFunction()`](#new_BasicCrawler_new) fails.
      */
@@ -103,12 +103,12 @@ export type HandleRequestInputs<RequestUserData, SessionUserData> = {
     autoscaledPool: AutoscaledPool;
     session?: Session<SessionUserData>;
 };
-export type HandleFailedRequest = (inputs: HandleFailedRequestInput) => void | Promise<void>;
-export type HandleFailedRequestInput = {
+export type HandleFailedRequest<RequestUserData> = (inputs: HandleFailedRequestInput<RequestUserData>) => void | Promise<void>;
+export type HandleFailedRequestInput<RequestUserData> = {
     /**
      * The original {Request} object.
      */
-    request: Request<any>;
+    request: Request<RequestUserData>;
     /**
      * The Error thrown by `handleRequestFunction`.
      */
@@ -148,7 +148,7 @@ export type HandleFailedRequestInput = {
  *   Either `requestList` or `requestQueue` option must be provided (or both).
  * @property {number} [handleRequestTimeoutSecs=60]
  *   Timeout in which the function passed as `handleRequestFunction` needs to finish, in seconds.
- * @property {HandleFailedRequest} [handleFailedRequestFunction]
+ * @property {HandleFailedRequest<RequestUserData>} [handleFailedRequestFunction]
  *   A function to handle requests that failed more than `option.maxRequestRetries` times.
  *
  *   The function receives the following object as an argument:
@@ -251,10 +251,10 @@ export type HandleFailedRequestInput = {
  *  You can use it to change the concurrency settings on the fly,
  *  to pause the crawler by calling {@link AutoscaledPool#pause}
  *  or to abort it by calling {@link AutoscaledPool#abort}.
- * @template {Object} RequestUserData
- * @template {Object} SessionUserData
+ * @template RequestUserData
+ * @template SessionUserData
  */
-declare class BasicCrawler<RequestUserData extends Object, SessionUserData extends Object> {
+declare class BasicCrawler<RequestUserData, SessionUserData> {
     /**
      * @param {BasicCrawlerOptions<RequestUserData, SessionUserData>} options
      */

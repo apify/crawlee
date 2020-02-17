@@ -164,7 +164,7 @@ export type CheerioCrawlerOptions<RequestUserData, SessionUserData> = {
      * See <a href="https://github.com/apifytech/apify-js/blob/master/src/crawlers/cheerio_crawler.js#L13">source code</a>
      * for the default implementation of this function.
      */
-    handleFailedRequestFunction?: HandleFailedRequest;
+    handleFailedRequestFunction?: HandleFailedRequest<RequestUserData>;
     /**
      * An array of <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types"
      * target="_blank">MIME types</a> you want the crawler to load and process.
@@ -384,7 +384,7 @@ export type CheerioHandlePage<RequestUserData, SessionUserData> = (inputs: Cheer
  *   The provided custom proxies' order will be randomized and the resulting list rotated.
  *   Custom proxies are not compatible with Apify Proxy and an attempt to use both
  *   configuration options will cause an error to be thrown on startup.
- * @property {HandleFailedRequest} [handleFailedRequestFunction]
+ * @property {HandleFailedRequest<RequestUserData>} [handleFailedRequestFunction]
  *   A function to handle requests that failed more than `option.maxRequestRetries` times.
  *
  *   The function receives the following object as an argument:
@@ -515,10 +515,10 @@ export type CheerioHandlePage<RequestUserData, SessionUserData> = (inputs: Cheer
  *  You can use it to change the concurrency settings on the fly,
  *  to pause the crawler by calling {@link AutoscaledPool#pause}
  *  or to abort it by calling {@link AutoscaledPool#abort}.
- * @template {Object} RequestUserData
- * @template {Object} SessionUserData
+ * @template RequestUserData
+ * @template SessionUserData
  */
-declare class CheerioCrawler<RequestUserData extends Object, SessionUserData extends Object> {
+declare class CheerioCrawler<RequestUserData, SessionUserData> {
     /**
      * @param {CheerioCrawlerOptions<RequestUserData, SessionUserData>} options
      */
@@ -604,7 +604,7 @@ declare class CheerioCrawler<RequestUserData extends Object, SessionUserData ext
      * Enables the use of a proxy by returning a proxy URL
      * based on configured options or null if no proxy is used.
      * @param {Session<*>} [session]
-     * @returns {string|null}
+     * @returns {(string|null)}
      * @ignore
      */
     _getProxyUrl(session?: Session<any> | undefined): string | null;
@@ -615,7 +615,7 @@ declare class CheerioCrawler<RequestUserData extends Object, SessionUserData ext
     _parseHtmlToDom(response: any): Promise<any>;
     /**
      * Checks and extends supported mime types
-     * @param {Array<string|Object>} additionalMimeTypes
+     * @param {Array<(string|Object)>} additionalMimeTypes
      * @ignore
      */
     _extendSupportedMimeTypes(additionalMimeTypes: (string | Object)[]): void;

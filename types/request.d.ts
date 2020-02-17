@@ -10,7 +10,7 @@ export default Request;
 /**
  * Specifies required and optional fields for constructing a [`Request`](../api/request).
  */
-export type RequestOptions<RequestUserData extends Object> = {
+export type RequestOptions<RequestUserData> = {
     /**
      * URL of the web page to crawl. It must be a non-empty string.
      */

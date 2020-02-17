@@ -230,7 +230,7 @@ export default Request;
 /**
  * Specifies required and optional fields for constructing a [`Request`](../api/request).
  *
- * @template {Object} RequestUserData
+ * @template RequestUserData
  * @typedef RequestOptions
  * @property {string} url URL of the web page to crawl. It must be a non-empty string.
  * @property {string} [uniqueKey] A unique key identifying the request.

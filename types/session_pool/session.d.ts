@@ -1,7 +1,7 @@
 /// <reference types="node" />
 /**
  * Persistable {@link Session} state.
- * @template {Object} UserData
+ * @template UserData
  * @typedef SessionState
  * @property {string} id
  * @property {CookieJar} cookieJar
@@ -14,7 +14,7 @@
  * @property {string} createdAt
  */
 /**
- * @template {Object} UserData
+ * @template UserData
  * @typedef SessionOptions
  * @property {string} [id] - Id of session used for generating fingerprints. It is used as proxy session name.
  * @property {number} [maxAgeSecs=3000] - Number of seconds after which the session is considered as expired.
@@ -39,15 +39,15 @@
  *  You can imagine each session as a specific user, with its own cookies, IP (via proxy) and potentially a unique browser fingerprint.
  *  Session internal state can be enriched with custom user data for example some authorization tokens and specific headers in general.
  *
- * @template {Object} UserData
+ * @template SessionUserData
  */
-export class Session<UserData extends Object> {
+export class Session<SessionUserData> {
     /**
      * Session configuration.
      *
-     * @param {SessionOptions<UserData>} options
+     * @param {SessionOptions<SessionUserData>} options
      */
-    constructor(options?: SessionOptions<UserData>);
+    constructor(options?: SessionOptions<SessionUserData>);
     /**
      * @type {CookieJar}
      * @private
@@ -55,8 +55,8 @@ export class Session<UserData extends Object> {
     cookieJar: CookieJar;
     id: string;
     maxAgeSecs: number;
-    /** @type {UserData} */
-    userData: UserData;
+    /** @type {SessionUserData} */
+    userData: SessionUserData;
     maxErrorScore: number;
     errorScoreDecrement: number;
     expiresAt: Date;
@@ -64,7 +64,7 @@ export class Session<UserData extends Object> {
     usageCount: number;
     errorScore: any;
     maxUsageCount: number;
-    sessionPool: SessionPool<UserData>;
+    sessionPool: SessionPool<SessionUserData>;
     /**
      * indicates whether the session is blocked.
      * Session is blocked once it reaches the `maxErrorScore`.
@@ -97,9 +97,9 @@ export class Session<UserData extends Object> {
     markGood(): void;
     /**
      * Gets session state for persistence in KeyValueStore.
-     * @return {SessionState<UserData>} represents session internal state.
+     * @return {SessionState<SessionUserData>} represents session internal state.
      */
-    getState(): SessionState<UserData>;
+    getState(): SessionState<SessionUserData>;
     /**
      * Marks session as blocked and emits event on the `SessionPool`
      * This method should be used if the session usage was unsuccessful
@@ -189,7 +189,7 @@ export class Session<UserData extends Object> {
 /**
  * Persistable {@link Session} state.
  */
-export type SessionState<UserData extends Object> = {
+export type SessionState<UserData> = {
     id: string;
     cookieJar: CookieJar;
     userData: UserData;
@@ -200,7 +200,7 @@ export type SessionState<UserData extends Object> = {
     expiresAt: string;
     createdAt: string;
 };
-export type SessionOptions<UserData extends Object> = {
+export type SessionOptions<UserData> = {
     /**
      * - Id of session used for generating fingerprints. It is used as proxy session name.
      */

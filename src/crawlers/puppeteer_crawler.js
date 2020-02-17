@@ -83,7 +83,7 @@ import { SessionPoolOptions } from '../session_pool/session_pool';
  * @property {number} [gotoTimeoutSecs=60]
  *   Timeout in which page navigation needs to finish, in seconds. When `gotoFunction()` is used and thus the default
  *   function is overridden, this timeout will not be used and needs to be configured in the new `gotoFunction()`.
- * @property {HandleFailedRequest} [handleFailedRequestFunction]
+ * @property {HandleFailedRequest<RequestUserData>} [handleFailedRequestFunction]
  *   A function to handle requests that failed more than `option.maxRequestRetries` times.
  *
  *   The function receives the following object as an argument:
@@ -208,8 +208,8 @@ import { SessionPoolOptions } from '../session_pool/session_pool';
  *  to pause the crawler by calling {@link AutoscaledPool#pause}
  *  or to abort it by calling {@link AutoscaledPool#abort}.
  *
- * @template {Object} RequestUserData
- * @template {Object} SessionUserData
+ * @template RequestUserData
+ * @template SessionUserData
  */
 class PuppeteerCrawler {
     /**
@@ -440,7 +440,7 @@ export default PuppeteerCrawler;
  * @template SessionUserData
  * @callback PuppeteerGoto
  * @param {PuppeteerGotoInputs<RequestUserData,SessionUserData>} inputs Arguments passed to this callback.
- * @return {Promise<PuppeteerResponse | null>} An instance of the Puppeteer
+ * @return {Promise<(PuppeteerResponse | null)>} An instance of the Puppeteer
  *   [`Response`](https://pptr.dev/#?product=Puppeteer&show=api-class-response),
  *   which is the main resource response as returned by `page.goto(request.url)`.
  */

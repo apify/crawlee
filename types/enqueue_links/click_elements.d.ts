@@ -42,7 +42,7 @@
  *   ],
  * });
  * ```
- * @template {Object} UserData
+ * @template UserData
  * @param {Object} options
  *   All `enqueueLinksByClickingElements()` parameters are passed
  *   via an options object with the following keys:
@@ -53,7 +53,7 @@
  * @param {string} options.selector
  *   A CSS selector matching elements to be clicked on. Unlike in [`enqueueLinks()`](utils#utils.enqueueLinks), there is no default
  *   value. This is to prevent suboptimal use of this function by using it too broadly.
- * @param {Array<string|RegExp|Object>} [options.pseudoUrls]
+ * @param {Array<(string|RegExp|Object)>} [options.pseudoUrls]
  *   An array of {@link PseudoUrl}s matching the URLs to be enqueued,
  *   or an array of strings or RegExps or plain Objects from which the {@link PseudoUrl}s can be constructed.
  *
@@ -105,7 +105,7 @@
  * @memberOf puppeteer
  * @name enqueueLinksByClickingElements
  */
-export function enqueueLinksByClickingElements<UserData extends Object>(options?: {
+export function enqueueLinksByClickingElements<UserData>(options?: {
     page: Page;
     requestQueue: RequestQueue<UserData>;
     selector: string;

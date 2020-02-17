@@ -143,7 +143,7 @@ export const chunkBySize = (items, limitBytes) => {
  * ]);
  * ```
  * @hideconstructor
- * @template {Object} T
+ * @template T
  */
 export class Dataset {
     /**
@@ -668,7 +668,7 @@ const getOrCreateDataset = (datasetIdOrName) => {
  *
  * For more details and code examples, see the {@link Dataset} class.
  *
- * @template {Object} T
+ * @template T
  * @param {string} [datasetIdOrName]
  *   ID or name of the dataset to be opened. If `null` or `undefined`,
  *   the function returns the default dataset associated with the actor run.
