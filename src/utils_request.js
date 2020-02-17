@@ -1,6 +1,4 @@
-import contentType from 'content-type';
-import * as url from 'url';
-import _ from 'underscore';
+import { URL } from 'url';
 import httpRequest from '@apify/http-request';
 import errors from '@apify/http-request/src/errors';
 import { TimeoutError } from './errors';
@@ -9,21 +7,11 @@ export const FIREFOX_MOBILE_USER_AGENT = 'Mozilla/5.0 (Android; Mobile; rv:14.0)
 export const FIREFOX_DESKTOP_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.14; rv:68.0) Gecko/20100101 Firefox/68.0';
 
 
-export const REQUEST_AS_BROWSER_DEFAULT_OPTIONS = {
-    countryCode: 'US',
-    languageCode: 'en',
-    headers: {},
-    method: 'GET',
-    useMobileVersion: false,
+const DEFAULT_HTTP_REQUEST_OPTIONS = {
     useBrotli: true,
     json: false,
-    abortFunction: (res) => {
-        const { type } = contentType.parse(res.headers['content-type']);
-        return res.statusCode === 406 || type.toLowerCase() !== 'text/html';
-    },
     useCaseSensitiveHeaders: true,
-    useStream: false,
-    proxyUrl: null,
+    stream: false,
     timeoutSecs: 30,
 };
 
@@ -43,16 +31,30 @@ export const REQUEST_AS_BROWSER_DEFAULT_OPTIONS = {
  *  Two-letter ISO 639 language code.
  * @property {String} [countryCode=US]
  *  Two-letter ISO 3166 country code.
- * @property {Boolean} [isMobile]
+ * @property {Boolean} [useMobileVersion]
  *  If `true`, the function uses User-Agent of a mobile browser.
  * @property {Function} [abortFunction]
  *  Function accepts `response` object as a single parameter and should return true or false.
  *  If function returns true request gets aborted. This function is passed to the
  *  (@apify/http-request)[https://www.npmjs.com/package/@apify/http-request] NPM package.
+ * @property {boolean} [ignoreSslErrors=true]
+ *  If set to true, SSL/TLS certificate errors will be ignored.
+ * @property {boolean} [useLenientHttpParser=true]
+ *  Node.js HTTP parser is stricter than Browser parsers. This prevents fetching of some websites
+ *  whose servers do not comply with HTTP specs or employ anti-scraping protections due to
+ *  various parse errors, typically `invalid header value char` error. This option forces
+ *  the parser to ignore certain errors and allow those websites to be scraped.
+ *  However, it will also open your application to various security vulnerabilities.
  */
 
 /**
- * Sends a HTTP request that looks like a request sent by a web browser,
+ * **IMPORTANT WARNING:** This function uses an insecure version of HTTP parser by default
+ * and also ignores SSL/TLS errors. This is very useful in scraping, because it allows bypassing
+ * certain anti-scraping walls, but it also makes it vulnerable to attacks. Do not use this
+ * function in other than scraping scenarios, unless you set `useLenientHttpParser: false`
+ * and `ignoreSslErrors: false`.
+ *
+ * Sends an HTTP request that looks like a request sent by a web browser,
  * fully emulating browser's HTTP headers.
  *
  * This function is useful for web scraping of websites that send the full HTML in the first response.
@@ -79,27 +81,50 @@ export const REQUEST_AS_BROWSER_DEFAULT_OPTIONS = {
  * @name requestAsBrowser
  */
 export const requestAsBrowser = async (options) => {
-    const opts = _.defaults({}, options, REQUEST_AS_BROWSER_DEFAULT_OPTIONS);
+    const {
+        url,
+        method = 'GET',
+        headers = {},
+        proxyUrl,
+        languageCode = 'en',
+        countryCode = 'US',
+        useMobileVersion = false,
+        abortFunction,
+        ignoreSslErrors = true,
+        useLenientHttpParser = true,
+        ...otherParams
+    } = options;
 
-    const parsedUrl = url.parse(opts.url);
+    const parsedUrl = new URL(url);
 
     const defaultHeaders = {
         Host: parsedUrl.host,
-        'User-Agent': opts.useMobileVersion ? FIREFOX_MOBILE_USER_AGENT : FIREFOX_DESKTOP_USER_AGENT,
+        'User-Agent': useMobileVersion ? FIREFOX_MOBILE_USER_AGENT : FIREFOX_DESKTOP_USER_AGENT,
         Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': `${opts.languageCode}-${opts.countryCode},${opts.languageCode};q=0.5`,
+        'Accept-Language': `${languageCode}-${countryCode},${languageCode};q=0.5`,
         'Accept-Encoding': 'gzip, deflate, br',
         Connection: 'keep-alive',
     };
-    // Users can provide headers in lowercase so we need to make sure
-    // that their values are applied, but names are kept upper-case.
-    opts.headers = mergeHeaders(opts.headers, defaultHeaders);
+
+    const requestOpts = {
+        ...DEFAULT_HTTP_REQUEST_OPTIONS,
+        ...otherParams,
+        url,
+        method,
+        // Users can provide headers in lowercase so we need to make sure
+        // that their values are applied, but names are kept upper-case.
+        headers: mergeHeaders(headers, defaultHeaders),
+        proxyUrl,
+        abortFunction,
+        ignoreSslErrors,
+        insecureHTTPParser: useLenientHttpParser,
+    };
 
     try {
-        return await httpRequest(opts);
+        return await httpRequest(requestOpts);
     } catch (e) {
         if (e instanceof errors.TimeoutError) {
-            throw new TimeoutError(`Request Timed-out after ${opts.timeoutSecs} seconds.`);
+            throw new TimeoutError(`Request Timed-out after ${requestOpts.timeoutSecs} seconds.`);
         }
 
         throw e;
