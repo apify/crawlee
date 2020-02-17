@@ -146,7 +146,6 @@ describe('utils.getMemoryInfo()', () => {
                 totalBytes: 333,
                 freeBytes: 222,
                 usedBytes: 111,
-                childProcessesBytes: 0,
             });
             expect(data.mainProcessBytes).toBeGreaterThanOrEqual(20000000);
         } finally {
@@ -177,7 +176,6 @@ describe('utils.getMemoryInfo()', () => {
                 totalBytes: 333,
                 freeBytes: 222,
                 usedBytes: 111,
-                childProcessesBytes: 0,
             });
             expect(data.mainProcessBytes).toBeGreaterThanOrEqual(20000000);
         } finally {
