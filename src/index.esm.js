@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events';
 import log from 'apify-shared/log';
+import {login} from './login/login';
 import { main, getEnv, call, callTask, getApifyProxyUrl, metamorph, addWebhook } from './actor';
 import AutoscaledPool from './autoscaling/autoscaled_pool';
 import BasicCrawler from './crawlers/basic_crawler';
@@ -33,6 +34,7 @@ const exportedUtils = Object.assign(publicUtils, {
     puppeteer: puppeteerUtils,
     social: socialUtils,
     log,
+    login,
     enqueueLinks,
     requestAsBrowser,
 });
