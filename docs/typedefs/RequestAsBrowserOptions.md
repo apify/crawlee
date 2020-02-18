@@ -47,7 +47,7 @@ title: RequestAsBrowserOptions
 <tr>
 <td colspan="3"><p>Two-letter ISO 3166 country code.</p>
 </td></tr><tr>
-<td><code>[isMobile]</code></td><td><code>Boolean</code></td><td></td>
+<td><code>[useMobileVersion]</code></td><td><code>Boolean</code></td><td></td>
 </tr>
 <tr>
 <td colspan="3"><p>If <code>true</code>, the function uses User-Agent of a mobile browser.</p>
@@ -58,5 +58,19 @@ title: RequestAsBrowserOptions
 <td colspan="3"><p>Function accepts <code>response</code> object as a single parameter and should return true or false.
  If function returns true request gets aborted. This function is passed to the
  (@apify/http-request)[<a href="https://www.npmjs.com/package/@apify/http-request%5D">https://www.npmjs.com/package/@apify/http-request]</a> NPM package.</p>
+</td></tr><tr>
+<td><code>[ignoreSslErrors]</code></td><td><code>boolean</code></td><td><code>true</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>If set to true, SSL/TLS certificate errors will be ignored.</p>
+</td></tr><tr>
+<td><code>[useInsecureHttpParser]</code></td><td><code>boolean</code></td><td><code>true</code></td>
+</tr>
+<tr>
+<td colspan="3"><p>Node.js HTTP parser is stricter than Browser parsers. This prevents fetching of some websites
+ whose servers do not comply with HTTP specs or employ anti-scraping protections due to
+ various parse errors, typically <code>invalid header value char</code> error. This option forces
+ the parser to ignore certain errors which allows those websites to be scraped.
+ However, it will also open your application to various security vulnerabilities.</p>
 </td></tr></tbody>
 </table>

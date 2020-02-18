@@ -139,7 +139,11 @@ objects.
 
 ## `utils.requestAsBrowser` ⇒ `Promise<(http.IncomingMessage|stream.Readable)>`
 
-Sends a HTTP request that looks like a request sent by a web browser, fully emulating browser's HTTP headers.
+**IMPORTANT:** This function uses an insecure version of HTTP parser by default and also ignores SSL/TLS errors. This is very useful in scraping,
+because it allows bypassing certain anti-scraping walls, but it also exposes some vulnerability. For other than scraping scenarios, please set
+`useInsecureHttpParser: false` and `ignoreSslErrors: false`.
+
+Sends an HTTP request that looks like a request sent by a web browser, fully emulating browser's HTTP headers.
 
 This function is useful for web scraping of websites that send the full HTML in the first response. Thanks to this function, the target web server has
 no simple way to find out the request hasn't been sent by a full web browser. Using a headless browser for such requests is an order of magnitude more

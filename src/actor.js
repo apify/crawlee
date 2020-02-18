@@ -154,10 +154,13 @@ export const getEnv = () => {
  * Runs the main user function that performs the job of the actor
  * and terminates the process when the user function finishes.
  *
- * *The `Apify.main()` function is optional* and is provided merely for your convenience.
- * It is especially useful when you're running your code as an actor on the [Apify platform](https://apify.com/actors).
- * However, if you want to use Apify SDK tools directly inside your existing projects or outside of Apify platform,
- * it's probably better to avoid it since it terminates the main process.
+ * **The `Apify.main()` function is optional** and is provided merely for your convenience.
+ * It is mainly useful when you're running your code as an actor on the [Apify platform](https://apify.com/actors).
+ * However, if you want to use Apify SDK tools directly inside your existing projects, e.g.
+ * running in an [Express](https://expressjs.com/) server, on
+ * [Google Cloud functions](https://cloud.google.com/functions)
+ * or [AWS Lambda](https://aws.amazon.com/lambda/), it's better to avoid
+ * it since the function terminates the main process when it finishes!
  *
  * The `Apify.main()` function performs the following actions:
  *
