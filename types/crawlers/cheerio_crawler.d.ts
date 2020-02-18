@@ -519,28 +519,28 @@ declare class CheerioCrawler {
      */
     constructor(options?: CheerioCrawlerOptions);
     supportedMimeTypes: Set<string>;
-    requestOptions: any;
-    handlePageFunction: any;
+    requestOptions: utilsRequest.RequestAsBrowserOptions;
+    handlePageFunction: CheerioHandlePage;
     handlePageTimeoutMillis: number;
     requestTimeoutMillis: number;
-    ignoreSslErrors: any;
-    useApifyProxy: any;
-    apifyProxyGroups: any;
-    apifyProxySession: any;
+    ignoreSslErrors: boolean;
+    useApifyProxy: boolean;
+    apifyProxyGroups: string[];
+    apifyProxySession: string;
     proxyUrls: any;
     lastUsedProxyUrlIndex: number;
-    prepareRequestFunction: any;
-    persistCookiesPerSession: any;
-    useSessionPool: any;
-    basicCrawler: BasicCrawler;
-    isRunningPromise: Promise<void>;
+    prepareRequestFunction: PrepareRequest;
+    persistCookiesPerSession: boolean;
+    useSessionPool: boolean;
+    basicCrawler: any;
+    isRunningPromise: any;
     /**
      * Runs the crawler. Returns promise that gets resolved once all the requests got processed.
      *
      * @return {Promise}
      */
     run(): Promise<any>;
-    autoscaledPool: AutoscaledPool;
+    autoscaledPool: any;
     /**
      * Wrapper around handlePageFunction that opens and closes pages etc.
      *
@@ -554,7 +554,7 @@ declare class CheerioCrawler {
         request: Request;
         autoscaledPool: AutoscaledPool;
         session: Session;
-    }): Promise<any>;
+    }): Promise<void>;
     /**
      * Function to make the HTTP request. It performs optimizations
      * on the request such as only downloading the request body if the
@@ -593,7 +593,17 @@ declare class CheerioCrawler {
      * @param {Session?} session
      * @ignore
      */
-    _getRequestOptions(request: Request, session: Session): any;
+    _getRequestOptions(request: Request, session: Session): utilsRequest.RequestAsBrowserOptions & {
+        url: any;
+        method: any;
+        headers: any;
+        ignoreSslErrors: boolean;
+        proxyUrl: string;
+        stream: boolean;
+        useCaseSensitiveHeaders: boolean;
+        abortFunction: (res: any) => boolean;
+        timeoutSecs: number;
+    };
     /**
      * Enables the use of a proxy by returning a proxy URL
      * based on configured options or null if no proxy is used.
@@ -626,6 +636,17 @@ declare class CheerioCrawler {
      * @private
      */
     _handleRequestTimeout(session: Session): void;
+    /**
+     * @param {Object} options
+     * @param {Error} options.error
+     * @param {Request} options.request
+     * @return {Promise<void>}
+     * @ignore
+     */
+    _defaultHandleFailedRequestFunction({ error, request }: {
+        error: Error;
+        request: Request;
+    }): Promise<void>;
 }
 import { RequestList } from "../request_list";
 import { RequestQueue } from "../request_queue";
@@ -636,5 +657,4 @@ import { SessionPoolOptions } from "../session_pool/session_pool";
 import Request from "../request";
 import { IncomingMessage } from "http";
 import AutoscaledPool from "../autoscaling/autoscaled_pool";
-import BasicCrawler from "./basic_crawler";
 import { Session } from "../session_pool/session";

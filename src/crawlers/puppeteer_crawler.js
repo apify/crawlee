@@ -371,13 +371,14 @@ class PuppeteerCrawler {
 
     /**
      * @param {Object} options
+     * @param {Error} options.error
      * @param {Request} options.request
      * @return {Promise<void>}
      * @ignore
      */
-    async _defaultHandleFailedRequestFunction({ request }) { // eslint-disable-line class-methods-use-this
+    async _defaultHandleFailedRequestFunction({ error, request }) { // eslint-disable-line class-methods-use-this
         const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
-        log.error('PuppeteerCrawler: Request failed and reached maximum retries', details);
+        log.exception(error, 'PuppeteerCrawler: Request failed and reached maximum retries', details);
     }
 }
 

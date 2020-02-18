@@ -1,6 +1,3 @@
-import { Readable } from 'stream';
-import { EventEmitter } from 'events';
-import rqst from 'request';
 import fs from 'fs';
 import path from 'path';
 import log from 'apify-shared/log';
@@ -42,29 +39,14 @@ describe('CheerioCrawler', () => {
     let port;
 
     async function getRequestListForMock(mockData, pathName = 'mock') {
-        const sources = [
-            {
-                url: `http://${HOST}:${port}/${pathName}?a=1`,
+        const sources = [1, 2, 3, 4].map((num) => {
+            return {
+                url: `http://${HOST}:${port}/${pathName}?a=${num}`,
                 payload: JSON.stringify(mockData),
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-            }, {
-                url: `http://${HOST}:${port}/${pathName}?a=2`,
-                payload: JSON.stringify(mockData),
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-            }, {
-                url: `http://${HOST}:${port}/${pathName}?a=3`,
-                payload: JSON.stringify(mockData),
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-            }, {
-                url: `http://${HOST}:${port}/${pathName}?a=4`,
-                payload: JSON.stringify(mockData),
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-            },
-        ];
+            };
+        });
         const requestList = new Apify.RequestList({ sources });
         await requestList.initialize();
         return requestList;
@@ -391,11 +373,6 @@ describe('CheerioCrawler', () => {
             let crawler;
             let handlePageInvocationCount = 0;
             let errorMessages = [];
-            let chunkReadCount = 0;
-            const getChunk = (chunk = 'x') => {
-                chunkReadCount++;
-                return chunk;
-            };
 
             beforeEach(() => {
                 log.setLevel(log.LEVELS.OFF);
@@ -404,7 +381,6 @@ describe('CheerioCrawler', () => {
                 log.setLevel(log.LEVELS.ERROR);
                 crawler = null;
                 handlePageInvocationCount = 0;
-                chunkReadCount = 0;
                 errorMessages = [];
             });
 
@@ -436,61 +412,6 @@ describe('CheerioCrawler', () => {
                     'Content-Type application/json, but only text/html, '
                         + 'application/xhtml+xml are allowed. Skipping resource.',
                 ));
-                expect(chunkReadCount).toBe(0);
-            });
-
-            xit('when response stream emits an error event', async () => {
-                // Mock Request to emit an error after a while.
-                // I think that this is an external factor that could be resolved by trying again.
-                crawler = new Apify.CheerioCrawler({
-                    requestList: await getRequestListForMock({
-                        statusCode: 200,
-                    }),
-                    maxRequestRetries: 1,
-                    handlePageFunction: async () => {
-                        handlePageInvocationCount++;
-                    },
-                    handleFailedRequestFunction: async ({ request }) => {
-                        errorMessages = [...errorMessages, ...request.errorMessages];
-                    },
-                });
-
-                await crawler.run();
-                expect(handlePageInvocationCount).toBe(0);
-                expect(errorMessages).toHaveLength(4);
-                errorMessages.forEach(msg => expect(msg).toEqual(expect.arrayContaining(['Error in stream.'])));
-            });
-
-            xit('when request stream emits an error event', async () => {
-                // Mock Request to emit an error after a while.
-                // Why is this necessary?
-                rqst.get = () => {
-                    const response = new Readable({
-                        // Just do nothing
-                        read() {
-                        },
-                    });
-                    response.headers = {
-                        'content-type': 'text/html',
-                    };
-
-                    const ee = new EventEmitter();
-
-                    setTimeout(() => {
-                        ee.emit('response', response);
-                        setTimeout(() => {
-                            ee.emit('error', new Error('Request Error.'));
-                        }, 0);
-                    }, 0);
-
-                    return ee;
-                };
-
-                await crawler.run();
-
-                expect(handlePageInvocationCount).toBe(0);
-                expect(errorMessages).toHaveLength(8);
-                errorMessages.forEach(msg => expect(msg).toEqual(expect.arrayContaining(['Request Error.'])));
             });
 
             test('when statusCode >= 500 and text/html is received', async () => {
@@ -558,40 +479,6 @@ describe('CheerioCrawler', () => {
                 expect(handlePageInvocationCount).toBe(0);
                 expect(errorMessages).toHaveLength(4);
                 errorMessages.forEach(msg => expect(msg).toMatch('is not available in HTML format. Skipping resource.'));
-            });
-
-            xit('when status is ok, but a wrong content type is received', async () => {
-                // Mock Request to respond with a 406.
-                // IMHO Duplicated
-                rqst.get = () => {
-                    const response = new Readable({
-                        read() {
-                            this.push(getChunk());
-                            this.push(null);
-                        },
-                    });
-                    response.headers = {
-                        'content-type': 'application/json',
-                    };
-                    response.statusCode = 200;
-
-                    const ee = new EventEmitter();
-
-                    setTimeout(() => {
-                        ee.emit('response', response);
-                    }, 0);
-
-                    return ee;
-                };
-
-                await crawler.run();
-
-                expect(handlePageInvocationCount).toBe(0);
-                expect(errorMessages).toHaveLength(4);
-                errorMessages.forEach(msg => expect(msg).toEqual(
-                    expect.arrayContaining(['served Content-Type application/json instead of text/html']),
-                ));
-                expect(chunkReadCount).toBe(0);
             });
         });
     });

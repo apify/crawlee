@@ -1,7 +1,6 @@
 import express from 'express';
 import {
     requestAsBrowser,
-    REQUEST_AS_BROWSER_DEFAULT_OPTIONS,
     FIREFOX_MOBILE_USER_AGENT,
     FIREFOX_DESKTOP_USER_AGENT,
 } from '../build/utils_request';
@@ -51,13 +50,40 @@ describe('Apify.utils_request', () => {
             res.send();
         });
 
+        app.get('/invalidHeaderChar', (req) => {
+            const headers = {
+                'Invalid Header With Space': 'some\value',
+                'X-Normal-Header': 'HeaderValue2',
+            };
+
+            let msg = 'HTTP/1.1 200 OK\r\n';
+            Object.entries(headers).forEach(([key, value]) => {
+                msg += `${key}: ${value}\r\n`;
+            });
+            msg += `\r\n${CONTENT}`;
+
+            req.socket.write(msg, () => {
+                req.socket.end();
+
+                // Unfortunately calling end() will not close the socket
+                // if client refuses to close it. Hence calling destroy after a short while.
+                setTimeout(() => {
+                    req.socket.destroy();
+                }, 100);
+            });
+        });
+
         server = await startExpressAppPromise(app, 0);
         port = server.address().port; //eslint-disable-line
     });
 
+    afterAll(() => {
+        server.close();
+    });
+
     describe('Apify.requestAsBrowser', () => {
         test(
-            'it uses mobile user-agent whe mobile property is set to true ',
+            'it uses mobile user-agent when mobile property is set to true ',
             async () => {
                 const data = {
                     url: `http://${HOST}:${port}/echo`,
@@ -91,7 +117,8 @@ describe('Apify.utils_request', () => {
         });
 
         test('uses correct default language', async () => {
-            const { languageCode, countryCode } = REQUEST_AS_BROWSER_DEFAULT_OPTIONS;
+            const languageCode = 'en';
+            const countryCode = 'US';
             const host = `${HOST}:${port}`;
             const options = {
                 url: `http://${host}/echo`,
@@ -101,21 +128,6 @@ describe('Apify.utils_request', () => {
 
             expect(response.statusCode).toBe(200);
             expect(JSON.parse(response.body)['accept-language']).toEqual(`${languageCode}-${countryCode},${languageCode};q=0.5`);
-        });
-
-        test('throws error for 406', async () => {
-            const options = {
-                url: `http://${HOST}:${port}/406`,
-            };
-            let error;
-            try {
-                await requestAsBrowser(options);
-            } catch (e) {
-                error = e;
-            }
-
-            expect(error).toBeDefined(); //eslint-disable-line
-            expect(error.message).toEqual(`Request for ${options.url} aborted due to abortFunction`);
         });
 
         test('does not throw for empty response body', async () => {
@@ -130,21 +142,6 @@ describe('Apify.utils_request', () => {
             }
 
             expect(error).toBeFalsy(); //eslint-disable-line
-        });
-
-        test('throws for other contentType then - text/html', async () => {
-            const options = {
-                url: `http://${HOST}:${port}/invalidContentType`,
-            };
-            let error;
-            try {
-                await requestAsBrowser(options);
-            } catch (e) {
-                error = e;
-            }
-
-            expect(error).toBeDefined(); //eslint-disable-line
-            expect(error.message).toEqual(`Request for ${options.url} aborted due to abortFunction`);
         });
 
         test('overrides defaults', async () => {
@@ -204,6 +201,29 @@ describe('Apify.utils_request', () => {
             expect(headersArray[5]).toBe('foo');
             expect(headersArray[12]).toBe('bar');
             expect(headersArray[13]).toBe('BAZ');
+        });
+
+        test('correctly handles invalid header characters', async () => {
+            const url = `http://${HOST}:${port}/invalidHeaderChar`;
+
+            const response = await requestAsBrowser({ url });
+            expect(response.body).toBe(CONTENT);
+            expect(response.headers).toEqual({
+                'invalid header with space': 'some\value',
+                'x-normal-header': 'HeaderValue2',
+            });
+            try {
+                await requestAsBrowser({
+                    useInsecureHttpParser: false,
+                    url,
+                });
+            } catch (err) {
+                if (process.version.startsWith('v10')) {
+                    expect(err.message).toMatch('Parse Error');
+                } else {
+                    expect(err.message).toMatch('Parse Error: Invalid header value char');
+                }
+            }
         });
     });
 });

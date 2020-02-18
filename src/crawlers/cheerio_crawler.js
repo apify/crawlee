@@ -33,30 +33,14 @@ import { RequestAsBrowserOptions } from '../utils_request';
  * Default mime types, which CheerioScraper supports.
  */
 const DEFAULT_MIME_TYPES = ['text/html', 'application/xhtml+xml'];
-
-const DEFAULT_OPTIONS = {
-    requestTimeoutSecs: 30,
-    handlePageTimeoutSecs: 60,
-    handleFailedRequestFunction: ({ request }) => {
-        const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
-
-        log.error('CheerioCrawler: Request failed and reached maximum retries', details);
+const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
+    snapshotterOptions: {
+        eventLoopSnapshotIntervalSecs: 2,
+        maxBlockedMillis: 100,
     },
-    ignoreSslErrors: true,
-    useApifyProxy: false,
-    autoscaledPoolOptions: {
-        snapshotterOptions: {
-            eventLoopSnapshotIntervalSecs: 2,
-            maxBlockedMillis: 100,
-        },
-        systemStatusOptions: {
-            maxEventLoopOverloadedRatio: 0.7,
-        },
+    systemStatusOptions: {
+        maxEventLoopOverloadedRatio: 0.7,
     },
-    additionalMimeTypes: [],
-    useSessionPool: false,
-    sessionPoolOptions: {},
-    persistCookiesPerSession: false,
 };
 
 /**
@@ -326,14 +310,14 @@ class CheerioCrawler {
         const {
             requestOptions,
             handlePageFunction,
-            requestTimeoutSecs,
-            handlePageTimeoutSecs,
-            ignoreSslErrors,
-            useApifyProxy,
+            requestTimeoutSecs = 30,
+            handlePageTimeoutSecs = 60,
+            ignoreSslErrors = true,
+            useApifyProxy = false,
             apifyProxyGroups,
             apifyProxySession,
             proxyUrls,
-            additionalMimeTypes,
+            additionalMimeTypes = [],
 
             // Autoscaled pool shorthands
             minConcurrency,
@@ -344,13 +328,13 @@ class CheerioCrawler {
             requestQueue,
             maxRequestRetries,
             maxRequestsPerCrawl,
-            handleFailedRequestFunction,
-            autoscaledPoolOptions,
+            handleFailedRequestFunction = this._defaultHandleFailedRequestFunction,
+            autoscaledPoolOptions = DEFAULT_AUTOSCALED_POOL_OPTIONS,
             prepareRequestFunction,
-            useSessionPool,
-            sessionPoolOptions,
-            persistCookiesPerSession, // @TODO: Better naming
-        } = _.defaults({}, options, DEFAULT_OPTIONS);
+            useSessionPool = false,
+            sessionPoolOptions = {},
+            persistCookiesPerSession = false,
+        } = options;
 
         checkParamOrThrow(handlePageFunction, 'options.handlePageFunction', 'Function');
         checkParamOrThrow(requestOptions, 'options.requestOptions', 'Maybe Object');
@@ -468,9 +452,6 @@ class CheerioCrawler {
                 return dom && !isXml && $.html({ decodeEntities: false });
             },
             get json() {
-                // TODO (JC): The naming here is quite unfortunate. The returned thing here is not a JSON,
-                //  but an object parsed from a JSON... It would make more sense to return the object from
-                //  `body` property instead. We could have a separate property for original buffer (e.g. called `content`)
                 if (contentType.type !== 'application/json') return null;
                 const jsonString = body.toString(contentType.encoding);
                 return JSON.parse(jsonString);
@@ -689,6 +670,18 @@ class CheerioCrawler {
     _handleRequestTimeout(session) {
         if (session) session.markBad();
         throw new Error(`CheerioCrawler: request timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`);
+    }
+
+    /**
+     * @param {Object} options
+     * @param {Error} options.error
+     * @param {Request} options.request
+     * @return {Promise<void>}
+     * @ignore
+     */
+    async _defaultHandleFailedRequestFunction({ error, request }) { // eslint-disable-line class-methods-use-this
+        const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
+        log.exception(error, 'CheerioCrawler: Request failed and reached maximum retries', details);
     }
 }
 

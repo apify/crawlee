@@ -83,8 +83,8 @@ const main = async () => {
     const exampleFilesOutputDir = path.join(__dirname, '..', '..', 'docs', 'examples');
 
     /* get template data */
-    const templateData = jsdoc2md.getTemplateDataSync({ files: sourceFiles });
-    const exampleData = jsdoc2md.getTemplateDataSync({ files: exampleFiles });
+    const templateData = await jsdoc2md.getTemplateData({ files: sourceFiles });
+    const exampleData = await jsdoc2md.getTemplateData({ files: exampleFiles });
 
     // handle examples
     const examplePromises = exampleData.map(async (example) => {
