@@ -73,6 +73,7 @@
         "rimraf": "^2.7.1",
         "semver": "^6.3.0",
         "socket.io": "^2.2.0",
+        "top-user-agents": "^1.0.0",
         "tough-cookie": "^3.0.1",
         "ts-jest": "^24.3.0",
         "underscore": "^1.9.1",
