@@ -5,7 +5,7 @@ title: SessionState
 
 <a name="SessionState"></a>
 
-Persistable [`Session`](session) state.
+Persistable [`Session`](../api/session) state.
 
 **Properties**
 
