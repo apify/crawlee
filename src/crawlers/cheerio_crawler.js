@@ -50,7 +50,7 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *   loaded and parsed by the crawler.
  *
  *   The function receives the following object as an argument:
- * ```javascript
+ * ```
  * {
  *   // The Cheerio object's function with the parsed HTML.
  *   $: Cheerio,
@@ -78,6 +78,7 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *   session: Session
  * }
  * ```
+ *
  *   Type of `body` depends on the `Content-Type` header of the web page:
  *   - String for `text/html`, `application/xhtml+xml`, `application/xml` MIME content types
  *   - Buffer for others MIME content types
