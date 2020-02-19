@@ -535,6 +535,9 @@ const BLOCK_TAGS_REGEX = /^(p|h1|h2|h3|h4|h5|h6|ol|ul|li|pre|address|blockquote|
 const htmlToText = (html) => {
     if (!html) return '';
 
+    // TODO: Add support for "html" being a Cheerio element, otherwise the only way
+    //  to use it is e.g. htmlToText($('p').html())) which is inefficient
+
     /** @type {Cheerio} */
     const $ = typeof html === 'function' ? html : cheerio.load(html, { decodeEntities: true });
     let text = '';
