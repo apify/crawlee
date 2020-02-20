@@ -537,6 +537,9 @@ const htmlToText = (html) => {
 
     // TODO: Add support for "html" being a Cheerio element, otherwise the only way
     //  to use it is e.g. htmlToText($('p').html())) which is inefficient
+    //  Also, it seems this doesn't work well in CheerioScraper, e.g. htmlToText($)
+    //  produces really text with a lot of HTML elements in it. Let's just deprecate this sort of usage,
+    //  and make the parameter "htmlOrCheerioElement"
 
     /** @type {Cheerio} */
     const $ = typeof html === 'function' ? html : cheerio.load(html, { decodeEntities: true });
