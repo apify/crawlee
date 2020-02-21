@@ -384,11 +384,11 @@ export default PuppeteerCrawler;
  * @typedef PuppeteerHandlePageInputs
  * @property {Request} request
  *   An instance of the {@link Request} object with details about the URL to open, HTTP method etc.
- * @property {PuppeteerResponse} response An instance of the `Puppeteer`
- *   [](https://pptr.dev/#?product=Puppeteer&show=api-class-response),
+ * @property {PuppeteerResponse} response An instance of the Puppeteer
+ *   [`Response`](https://pptr.dev/#?product=Puppeteer&show=api-class-response),
  *   which is the main resource response as returned by `page.goto(request.url)`.
- * @property {PuppeteerPage} page is an instance of the `Puppeteer`
- *   [](https://pptr.dev/#?product=Puppeteer&show=api-class-page)
+ * @property {PuppeteerPage} page is an instance of the Puppeteer
+ *   [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page)
  * @property {PuppeteerPool} puppeteerPool
  *   An instance of the {@link PuppeteerPool} used by this `PuppeteerCrawler`.
  * @property {AutoscaledPool} autoscaledPool
@@ -407,8 +407,8 @@ export default PuppeteerCrawler;
 
 /**
  * @typedef PuppeteerGotoInputs
- * @property {PuppeteerPage} page is an instance of the `Puppeteer`
- *   [](https://pptr.dev/#?product=Puppeteer&show=api-class-page)
+ * @property {PuppeteerPage} page is an instance of the Puppeteer
+ *   [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page)
  * @property {Request} request An instance of the {@link Request} object with details about the URL to open, HTTP method etc.
  * @property {AutoscaledPool} autoscaledPool An instance of the `AutoscaledPool`.
  * @property {PuppeteerPool} puppeteerPool An instance of the {@link PuppeteerPool} used by this `PuppeteerCrawler`.
@@ -417,8 +417,8 @@ export default PuppeteerCrawler;
 /**
  * @callback PuppeteerGoto
  * @param {PuppeteerGotoInputs} inputs Arguments passed to this callback.
- * @return {Promise<PuppeteerResponse>} An instance of the `Puppeteer`
- *   [](https://pptr.dev/#?product=Puppeteer&show=api-class-response),
+ * @return {Promise<PuppeteerResponse>} An instance of the Puppeteer
+ *   [`Response`](https://pptr.dev/#?product=Puppeteer&show=api-class-response),
  *   which is the main resource response as returned by `page.goto(request.url)`.
  */
 

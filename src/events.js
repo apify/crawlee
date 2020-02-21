@@ -56,7 +56,7 @@ let persistStateInterval = null;
  *                 The event is emitted approximately every second
  *                 and it indicates whether the actor is using the maximum of available CPU resources.
  *                 If that's the case, the actor should not add more workload.
- *                 For example, this event is used by the [](autoscaledpool) class.
+ *                 For example, this event is used by the {@link AutoscaledPool} class.
  *             </td>
  *         </tr>
  *         <tr>
@@ -67,7 +67,7 @@ let persistStateInterval = null;
  *             <td colspan="2">
  *                 Emitted when the actor running on the Apify platform is going to be migrated to another worker server soon.
  *                 You can use it to persist the state of the actor and abort the run, to speed up migration.
- *                 For example, this is used by the [](requestlist) class.
+ *                 For example, this is used by the {@link RequestList} class.
  *             </td>
  *         </tr>
  *         <tr>

@@ -52,10 +52,10 @@ import { Cheerio } from '../typedefs';
  *   All `enqueueLinks()` parameters are passed
  *   via an options object with the following keys:
  * @param {Page} options.page
- *   Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+ *   Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
  *   Either `page` or `$` option must be provided.
  * @param {Cheerio} options.$
- *   [](https://github.com/cheeriojs/cheerio) object with loaded HTML.
+ *   [`Cheerio`](https://github.com/cheeriojs/cheerio) function with loaded HTML.
  *   Either `page` or `$` option must be provided.
  * @param {RequestQueue} options.requestQueue
  *   A request queue to which the URLs will be enqueued.
