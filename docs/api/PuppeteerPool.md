@@ -80,9 +80,9 @@ Closes all open browsers.
 
 **Returns**: `Promise<void>`
 
-Manually retires a Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-browser) instance from the pool. The browser will continue to
-process open pages so that they may gracefully finish. This is unlike `browser.close()` which will forcibly terminate the browser and all open pages
-will be closed.
+Manually retires a Puppeteer [`Browser`](https://pptr.dev/#?product=Puppeteer&show=api-class-browser) instance from the pool. The browser will
+continue to process open pages so that they may gracefully finish. This is unlike `browser.close()` which will forcibly terminate the browser and all
+open pages will be closed.
 
 **Params**
 

@@ -155,14 +155,14 @@ export type PuppeteerHandlePageInputs = {
      */
     request: Request;
     /**
-     * An instance of the `Puppeteer`
-     * [](https://pptr.dev/#?product=Puppeteer&show=api-class-response),
+     * An instance of the Puppeteer
+     * [`Response`](https://pptr.dev/#?product=Puppeteer&show=api-class-response),
      * which is the main resource response as returned by `page.goto(request.url)`.
      */
     response: PuppeteerResponse;
     /**
-     * is an instance of the `Puppeteer`
-     * [](https://pptr.dev/#?product=Puppeteer&show=api-class-page)
+     * is an instance of the Puppeteer
+     * [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page)
      */
     page: PuppeteerPage;
     /**
@@ -182,8 +182,8 @@ export type PuppeteerHandlePageInputs = {
 export type PuppeteerHandlePage = (inputs: PuppeteerHandlePageInputs) => Promise<void>;
 export type PuppeteerGotoInputs = {
     /**
-     * is an instance of the `Puppeteer`
-     * [](https://pptr.dev/#?product=Puppeteer&show=api-class-page)
+     * is an instance of the Puppeteer
+     * [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page)
      */
     page: PuppeteerPage;
     /**

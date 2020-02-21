@@ -1,8 +1,8 @@
 export function launchPuppeteer(options?: LaunchPuppeteerOptions): Promise<any>;
 /**
  * Apify extends the launch options of Puppeteer.
- * You can use any of the
- * [](https://pptr.dev/#?product=Puppeteer&show=api-puppeteerlaunchoptions)
+ * You can use any of the Puppeteer compatible
+ * [`LaunchOptions`](https://pptr.dev/#?product=Puppeteer&show=api-puppeteerlaunchoptions)
  * options in the  {@link Apify#launchPuppeteer}
  * function and in addition, all the options available below.
  */

@@ -47,7 +47,7 @@
  *   All `enqueueLinksByClickingElements()` parameters are passed
  *   via an options object with the following keys:
  * @param {Page} options.page
- *   Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+ *   Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
  * @param {RequestQueue} options.requestQueue
  *   A request queue to which the URLs will be enqueued.
  * @param {String} options.selector

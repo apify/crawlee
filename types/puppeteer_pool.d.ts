@@ -252,7 +252,7 @@ declare class PuppeteerPool {
     /**
      * Opens new tab in one of the browsers in the pool and returns a `Promise`
      * that resolves to an instance of a Puppeteer
-     * [](https://pptr.dev/#?product=Puppeteer&show=api-class-page).
+     * [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page).
      *
      * @return {Promise<Page>}
      * @ignore
@@ -287,7 +287,7 @@ declare class PuppeteerPool {
     _findInstanceByBrowser(browser: Browser): Promise<any>;
     /**
      * Manually retires a Puppeteer
-     * [](https://pptr.dev/#?product=Puppeteer&show=api-class-browser)
+     * [`Browser`](https://pptr.dev/#?product=Puppeteer&show=api-class-browser)
      * instance from the pool. The browser will continue to process open pages so that they may gracefully finish.
      * This is unlike `browser.close()` which will forcibly terminate the browser and all open pages will be closed.
      * @param {Browser} browser

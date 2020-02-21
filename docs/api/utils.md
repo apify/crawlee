@@ -74,9 +74,10 @@ await Apify.utils.enqueueLinks({
 
 -   **`options`**: `Object` - All `enqueueLinks()` parameters are passed via an options object with the following keys:
 
-    -   **`.page`**: `Page` - Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object. Either `page` or `$` option must be
+    -   **`.page`**: `Page` - Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object. Either `page` or `$` option must be
         provided.
-    -   **`.$`**: `Cheerio` - [](https://github.com/cheeriojs/cheerio) object with loaded HTML. Either `page` or `$` option must be provided.
+    -   **`.$`**: `Cheerio` - [`Cheerio`](https://github.com/cheeriojs/cheerio) function with loaded HTML. Either `page` or `$` option must be
+        provided.
     -   **`.requestQueue`**: [`RequestQueue`](/docs/api/request-queue) - A request queue to which the URLs will be enqueued.
     -   **`[.selector]`**: `String` <code> = &#x27;a&#x27;</code> - A CSS selector matching links to be enqueued.
     -   **`[.baseUrl]`**: `string` - A base URL that will be used to resolve relative URLs when using Cheerio. Ignored when using Puppeteer, since the

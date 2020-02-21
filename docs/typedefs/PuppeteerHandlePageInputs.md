@@ -19,8 +19,8 @@ An instance of the [`Request`](/docs/api/request) object with details about the 
 
 **Type**: `PuppeteerResponse`
 
-An instance of the `Puppeteer` [](https://pptr.dev/#?product=Puppeteer&show=api-class-response), which is the main resource response as returned by
-`page.goto(request.url)`.
+An instance of the Puppeteer [`Response`](https://pptr.dev/#?product=Puppeteer&show=api-class-response), which is the main resource response as
+returned by `page.goto(request.url)`.
 
 ---
 
@@ -28,7 +28,7 @@ An instance of the `Puppeteer` [](https://pptr.dev/#?product=Puppeteer&show=api-
 
 **Type**: `PuppeteerPage`
 
-is an instance of the `Puppeteer` [](https://pptr.dev/#?product=Puppeteer&show=api-class-page)
+is an instance of the Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page)
 
 ---
 

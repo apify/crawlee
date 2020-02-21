@@ -205,7 +205,7 @@ await Apify.utils.enqueueLinksByClickingElements({
 
 -   **`options`**: `Object` - All `enqueueLinksByClickingElements()` parameters are passed via an options object with the following keys:
 
-    -   **`.page`**: `Page` - Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+    -   **`.page`**: `Page` - Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
     -   **`.requestQueue`**: [`RequestQueue`](/docs/api/request-queue) - A request queue to which the URLs will be enqueued.
     -   **`.selector`**: `String` - A CSS selector matching elements to be clicked on. Unlike in
         [`utils.enqueueLinks()`](/docs/api/utils#enqueuelinks), there is no default value. This is to prevent suboptimal use of this function by using

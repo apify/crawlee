@@ -15,7 +15,7 @@ User-provided function that performs the logic of the crawler. It is called for 
 
 The function receives the following object as an argument:
 
-```javascript
+```
 {
   // The Cheerio object's function with the parsed HTML.
   $: Cheerio,
