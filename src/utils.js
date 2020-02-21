@@ -537,6 +537,11 @@ const BLOCK_TAGS_REGEX = /^(p|h1|h2|h3|h4|h5|h6|ol|ul|li|pre|address|blockquote|
 const htmlToText = (html) => {
     if (!html) return '';
 
+    // TODO: Add support for "html" being a Cheerio element, otherwise the only way
+    //  to use it is e.g. htmlToText($('p').html())) which is inefficient
+    //  Also, it seems this doesn't work well in CheerioScraper, e.g. htmlToText($)
+    //  produces really text with a lot of HTML elements in it. Let's just deprecate this sort of usage,
+    //  and make the parameter "htmlOrCheerioElement"
     /**
      * @type {Cheerio}
      * @ignore
@@ -585,8 +590,8 @@ const htmlToText = (html) => {
  *
  * @param {Request|RequestOptions} request [Apify.Request](https://sdk.apify.com/docs/api/request) object.
  * @param {IncomingMessage|PuppeteerResponse} [response]
- *   Puppeteer [](https://pptr.dev/#?product=Puppeteer&version=v1.11.0&show=api-class-response)
- *   or NodeJS [](https://nodejs.org/api/http.html#http_class_http_serverresponse).
+ *   Puppeteer [`Response`](https://pptr.dev/#?product=Puppeteer&version=v1.11.0&show=api-class-response)
+ *   or NodeJS [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_serverresponse).
  * @param {Object} [additionalFields] Object containing additional fields to be added.
 
  * @return {Object}

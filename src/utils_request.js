@@ -36,15 +36,17 @@ const DEFAULT_HTTP_REQUEST_OPTIONS = {
  * @property {Function} [abortFunction]
  *  Function accepts `response` object as a single parameter and should return true or false.
  *  If function returns true request gets aborted. This function is passed to the
- *  (@apify/http-request)[https://www.npmjs.com/package/@apify/http-request] NPM package.
+ *  [@apify/http-request](https://www.npmjs.com/package/@apify/http-request) NPM package.
  * @property {boolean} [ignoreSslErrors=true]
  *  If set to true, SSL/TLS certificate errors will be ignored.
  * @property {boolean} [useInsecureHttpParser=true]
- *  Node.js HTTP parser is stricter than Browser parsers. This prevents fetching of some websites
- *  whose servers do not comply with HTTP specs or employ anti-scraping protections due to
- *  various parse errors, typically `invalid header value char` error. This option forces
- *  the parser to ignore certain errors which allows those websites to be scraped.
- *  However, it will also open your application to various security vulnerabilities.
+ *  Node.js' HTTP parser is stricter than parsers used by web browsers, which prevents scraping of websites
+ *  whose servers do not comply with HTTP specs, either by accident or due to some anti-scraping protections,
+ *  causing e.g. the `invalid header value char` error. The `useInsecureHttpParser` option forces
+ *  the HTTP parser to ignore certain errors which lets you scrape such websites.
+ *  However, it will also open your application to some security vulnerabilities,
+ *  although the risk should be negligible as these vulnerabilities mainly relate to server applications, not clients.
+ *  Learn more in this [blog post](https://snyk.io/blog/node-js-release-fixes-a-critical-http-security-vulnerability/).
  */
 
 /**
