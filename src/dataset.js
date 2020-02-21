@@ -104,7 +104,7 @@ export const chunkBySize = (items, limitBytes) => {
  * Typically it is used to store crawling results.
  *
  * Do not instantiate this class directly, use the
- * [`Apify.openDataset()`](apify#module_Apify.openDataset) function instead.
+ * {@link Apify#openDataset} function instead.
  *
  * `Dataset` stores its data either on local disk or in the Apify cloud,
  * depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variables are set.
@@ -119,9 +119,9 @@ export const chunkBySize = (items, limitBytes) => {
  * Each dataset item is stored as a separate JSON file, where `{INDEX}` is a zero-based index of the item in the dataset.
  *
  * If the `APIFY_TOKEN` environment variable is set but `APIFY_LOCAL_STORAGE_DIR` not, the data is stored in the
- * <a href="https://docs.apify.com/storage/dataset" target="_blank">Apify Dataset</a>
+ * [Apify Dataset](https://docs.apify.com/storage/dataset)
  * cloud storage. Note that you can force usage of the cloud storage also by passing the `forceCloud`
- * option to [`Apify.openDataset()`](apify#module_Apify.openDataset) function,
+ * option to {@link Apify#openDataset} function,
  * even if the `APIFY_LOCAL_STORAGE_DIR` variable is set.
  *
  * **Example usage:**
@@ -695,7 +695,7 @@ export const openDataset = (datasetIdOrName, options = {}) => {
 /**
  * Stores an object or an array of objects to the default {@link Dataset} of the current actor run.
  *
- * This is just a convenient shortcut for [`dataset.pushData()`](dataset#Dataset+pushData).
+ * This is just a convenient shortcut for {@link Dataset#pushData}.
  * For example, calling the following code:
  * ```javascript
  * await Apify.pushData({ myValue: 123 });
@@ -707,7 +707,7 @@ export const openDataset = (datasetIdOrName, options = {}) => {
  * await dataset.pushData({ myValue: 123 });
  * ```
  *
- * For more information, see [`Apify.openDataset()`](apify#module_Apify.openDataset) and [`dataset.pushData()`](dataset#Dataset+pushData)
+ * For more information, see {@link Apify#openDataset} and {@link Dataset#pushData}
  *
  * **IMPORTANT**: Make sure to use the `await` keyword when calling `pushData()`,
  * otherwise the actor process might finish before the data are stored!

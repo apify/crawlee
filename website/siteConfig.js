@@ -19,6 +19,7 @@
 //         pinned: true,
 //     },
 // ];
+const extlink = require('remarkable-extlink');
 
 const repoUrl = 'https://github.com/apifytech/apify-js';
 
@@ -46,8 +47,8 @@ const siteConfig = {
     headerLinks: [
         { search: true },
         { doc: 'guides/motivation', label: 'Guide' },
-        { doc: 'examples/basiccrawler', label: 'Examples' },
-        { doc: 'api/apify', label: 'Reference' },
+        { doc: 'examples/basic-crawler', label: 'Examples' },
+        { doc: 'api/apify', label: 'API Reference' },
         { href: repoUrl, label: 'GitHub' },
         // { page: 'help', label: 'Help' },
         // { blog: true, label: 'Blog' },
@@ -98,6 +99,18 @@ const siteConfig = {
 
     // Using Prism for syntax highlighting
     usePrism: true,
+
+    docsSideNavCollapsible: true,
+    markdownOptions: {
+        html: true,
+    },
+    markdownPlugins: [
+        (md) => {
+            extlink(md, {
+                host: 'sdk.apify.com', // The hrefs that you DON'T want to be external
+            });
+        },
+    ],
 
     // Add custom scripts here that would be placed in <script> tags.
     scripts: [

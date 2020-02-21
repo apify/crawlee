@@ -649,23 +649,23 @@ export class RequestList {
  *   If `null`, the list will not be persisted and will only be stored in memory. Process restart
  *   will then cause the list to be crawled again from the beginning. We suggest always using a name.
  * @param {Array<Request|RequestOptions|string>} sources
- *  An array of sources of URLs for the `RequestList`.
- *  It can be either an array of plain objects that
- *  define the `url` property, or an array of instances of the {@link Request} class.
+ *  An array of sources of URLs for the {@link RequestList}. It can be either an array of plain objects
+ *  that define at least the `url` property, or an array of instances of the {@link Request} class.
  *
  *  Additionally, the `requestsFromUrl` property may be used instead of `url`,
- *  which will instruct `RequestList` to download the source URLs from a given remote location.
+ *  which will instruct {@link RequestList} to download the source URLs from a given remote location.
  *  The URLs will be parsed from the received response. In this case you can limit the URLs
- * using `regex` parameter containing regular expression pattern for URLs to be included.
+ *  using `regex` parameter containing regular expression pattern for URLs to be included.
  *
- *  For details, see the [`RequestList`](requestlist#new_RequestList_new)
- *  constructor options.
+ *  For details, see the {@link RequestListOptions.sources}
  * @param {RequestListOptions} [options]
- *   The [`new RequestList`](requestlist#new_RequestList_new) options. Note that the listName parameter supersedes
- *   the `persistStateKey` and `persistSourcesKey` options and the sources parameter supersedes the `sources` option.
+ *   The {@link RequestList} options. Note that the `listName` parameter supersedes
+ *   the {@link RequestListOptions.persistStateKey} and {@link RequestListOptions.persistSourcesKey}
+ *   options and the `sources` parameter supersedes the {@link RequestListOptions.sources} option.
  * @returns {Promise<RequestList>}
  * @memberof module:Apify
  * @name openRequestList
+ * @function
  */
 export const openRequestList = async (listName, sources, options = {}) => {
     checkParamOrThrow(listName, 'listName', 'String | Null');
@@ -688,7 +688,7 @@ export const openRequestList = async (listName, sources, options = {}) => {
 
 /**
  * Represents state of a {RequestList}. It can be used to resume a {RequestList} which has been previously processed.
- * You can obtain the state by calling [`RequestList.getState()`](../api/requestlist#getState()) and receive an object with
+ * You can obtain the state by calling {@link RequestList#getState} and receive an object with
  * the following structure:
  *
  * ```

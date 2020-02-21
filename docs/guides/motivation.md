@@ -3,8 +3,8 @@ id: motivation
 title: Motivation
 ---
 
-Thanks to tools like <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a> or
-<a href="https://www.npmjs.com/package/cheerio" target="_blank">Cheerio</a>, it is easy to write Node.js code to extract data from web pages. But
+Thanks to tools like [Puppeteer](https://github.com/GoogleChrome/puppeteer) or
+[Cheerio](https://www.npmjs.com/package/cheerio), it is easy to write Node.js code to extract data from web pages. But
 eventually things will get complicated. For example, when you try to:
 
 -   Perform a deep crawl of an entire website using a persistent queue of URLs.
@@ -13,7 +13,7 @@ eventually things will get complicated. For example, when you try to:
 -   Schedule the code to run periodically and send notification on errors.
 -   Disable browser fingerprinting protections used by websites.
 
-Python has <a href="https://scrapy.org/" target="_blank">Scrapy</a> for these tasks, but there was no such library for **JavaScript, the language of
+Python has [Scrapy](https://scrapy.org/) for these tasks, but there was no such library for **JavaScript, the language of
 the web**. The use of JavaScript is natural, since the same language is used to write the scripts as well as the data extraction code running in a
 browser.
 

@@ -103,20 +103,20 @@ export const maybeStringify = (value, options) => {
  * for saving screenshots, actor inputs and outputs, web pages, PDFs or to persist the state of crawlers.
  *
  * Do not instantiate this class directly, use the
- * [`Apify.openKeyValueStore()`](apify#module_Apify.openKeyValueStore) function instead.
+ * {@link Apify#openKeyValueStore} function instead.
  *
  * Each actor run is associated with a default key-value store, which is created exclusively
  * for the run. By convention, the actor input and output are stored into the
  * default key-value store under the `INPUT` and `OUTPUT` key, respectively.
  * Typically, input and output are JSON files, although it can be any other format.
  * To access the default key-value store directly, you can use the
- * [`Apify.getValue()`](apify#module_Apify.getValue)
- * and [`Apify.setValue()`](apify#module_Apify.setValue) convenience functions.
+ * {@link Apify#getValue} and {@link Apify#setValue} convenience functions.
  *
- * To access the input, you can also use the [`Apify.getInput()`](apify#module_Apify.getInput) convenience function.
+ * To access the input, you can also use the {@link Apify#getInput} convenience function.
  *
  * `KeyValueStore` stores its data either on local disk or in the Apify cloud,
- * depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variables are set.
+ * depending on whether the [`APIFY_LOCAL_STORAGE_DIR`](/docs/guides/environment-variables#APIFY_LOCAL_STORAGE_DIR)
+ * or [`APIFY_TOKEN`](/docs/guides/environment-variables#APIFY_TOKEN) environment variables are set.
  *
  * If the `APIFY_LOCAL_STORAGE_DIR` environment variable is set, the data is stored in
  * the local directory in the following files:
@@ -127,11 +127,12 @@ export const maybeStringify = (value, options) => {
  * unless you override it by setting the `APIFY_DEFAULT_KEY_VALUE_STORE_ID` environment variable.
  * The `{KEY}` is the key of the record and `{EXT}` corresponds to the MIME content type of the data value.
  *
- * If the `APIFY_TOKEN` environment variable is set but `APIFY_LOCAL_STORAGE_DIR` not, the data is stored in the
- * <a href="https://docs.apify.com/storage/key-value-store" target="_blank">Apify Key-value store</a>
+ * If the [`APIFY_TOKEN`](/docs/guides/environment-variables#APIFY_TOKEN) environment variable is set but
+ * [`APIFY_LOCAL_STORAGE_DIR`](/docs/guides/environment-variables#APIFY_LOCAL_STORAGE_DIR) not,
+ * the data is stored in the [Apify Key-value store](https://docs.apify.com/storage/key-value-store)
  * cloud storage. Note that you can force usage of the cloud storage also by passing the `forceCloud`
- * option to [`Apify.openKeyValueStore()`](apify#module_Apify.openKeyValueStore) function,
- * even if the `APIFY_LOCAL_STORAGE_DIR` variable is set.
+ * option to {@link Apify#openKeyValueStore} function, even if the
+ * [`APIFY_LOCAL_STORAGE_DIR`](/docs/guides/environment-variables#APIFY_LOCAL_STORAGE_DIR) variable is set.
  *
  * **Example usage:**
  *
@@ -181,7 +182,7 @@ export class KeyValueStore {
      * content type are automatically parsed and returned as a JavaScript object.
      * Similarly, records with `text/plain` content types are returned as a string.
      * For all other content types, the value is returned as a raw
-     * <a href="https://nodejs.org/api/buffer.html" target="_blank"><code>Buffer</code></a> instance.
+     * [](https://nodejs.org/api/buffer.html) instance.
      *
      * If the record does not exist, the function resolves to `null`.
      *
@@ -191,7 +192,7 @@ export class KeyValueStore {
      * **Example usage:**
      *
      * ```javascript
-     * const store = await Apify.openKeyValueStore('my-screenshots');
+     * const store = await Apify.openKeyValueStore();
      * const buffer = await store.getValue('screenshot1.png');
      * ```
      *
@@ -200,7 +201,7 @@ export class KeyValueStore {
      *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
      * @returns {Promise<Object|String|Buffer>}
      *   Returns a promise that resolves to an object, string
-     *   or <a href="https://nodejs.org/api/buffer.html" target="_blank"><code>Buffer</code></a>, depending
+     *   or [](https://nodejs.org/api/buffer.html), depending
      *   on the MIME content type of the record.
      */
     getValue(key) {
@@ -221,8 +222,8 @@ export class KeyValueStore {
      * **Example usage:**
      *
      * ```javascript
-     * const store = await Apify.openKeyValueStore('my-store');
-     * await store.setValue('RESULTS', 'my text data', { contentType: 'text/plain' });
+     * const store = await Apify.openKeyValueStore();
+     * await store.setValue('OUTPUT', { foo: 'bar' });
      * ```
      *
      * Beware that the key can be at most 256 characters long and only contain the following characters: `a-zA-Z0-9!-_.'()`
@@ -231,11 +232,11 @@ export class KeyValueStore {
      * `application/json; charset=utf-8` MIME content type.
      * To store the value with another content type, pass it in the options as follows:
      * ```javascript
-     * const store = await Apify.openKeyValueStore('my-store');
+     * const store = await Apify.openKeyValueStore('my-text-store');
      * await store.setValue('RESULTS', 'my text data', { contentType: 'text/plain' });
      * ```
      * If you set custom content type, `value` must be either a string or
-     * <a href="https://nodejs.org/api/buffer.html" target="_blank"><code>Buffer</code></a>, otherwise an error will be thrown.
+     * [](https://nodejs.org/api/buffer.html), otherwise an error will be thrown.
      *
      * If `value` is `null`, the record is deleted instead. Note that the `setValue()` function succeeds
      * regardless whether the record existed or not.
@@ -255,7 +256,7 @@ export class KeyValueStore {
      *     <li>If `null`, the record in the key-value store is deleted.</li>
      *     <li>If no `options.contentType` is specified, `value` can be any JavaScript object and it will be stringified to JSON.</li>
      *     <li>If `options.contentType` is specified, `value` is considered raw data and it must be either a `String`
-     *     or <a href="https://nodejs.org/api/buffer.html" target="_blank"><code>Buffer</code></a>.</li>
+     *     or [](https://nodejs.org/api/buffer.html).</li>
      *   </ul>
      *   For any other value an error will be thrown.
      * @param {Object} [options]
@@ -611,7 +612,7 @@ export const openKeyValueStore = (storeIdOrName, options = {}) => {
 /**
  * Gets a value from the default {@link KeyValueStore} associated with the current actor run.
  *
- * This is just a convenient shortcut for [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+getValue).
+ * This is just a convenient shortcut for {@link KeyValueStore#getValue}.
  * For example, calling the following code:
  * ```javascript
  * const value = await Apify.getValue('my-key');
@@ -623,10 +624,10 @@ export const openKeyValueStore = (storeIdOrName, options = {}) => {
  * const value = await store.getValue('my-key');
  * ```
  *
- * To store the value to the default-key value store, you can use the [`Apify.setValue()`](#module_Apify.setValue) function.
+ * To store the value to the default-key value store, you can use the {@link Apify#setValue} function.
  *
- * For more information, see [`Apify.openKeyValueStore()`](#module_Apify.openKeyValueStore)
- * and [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+getValue).
+ * For more information, see  {@link Apify#openKeyValueStore}
+ * and  {@link KeyValueStore#getValue}.
  *
  * @param {String} key
  *   Unique record key.
@@ -646,7 +647,7 @@ export const getValue = async (key) => {
 /**
  * Stores or deletes a value in the default {@link KeyValueStore} associated with the current actor run.
  *
- * This is just a convenient shortcut for [`keyValueStore.setValue()`](keyvaluestore#KeyValueStore+setValue).
+ * This is just a convenient shortcut for  {@link KeyValueStore#setValue}.
  * For example, calling the following code:
  * ```javascript
  * await Apify.setValue('OUTPUT', { foo: "bar" });
@@ -658,10 +659,10 @@ export const getValue = async (key) => {
  * await store.setValue('OUTPUT', { foo: "bar" });
  * ```
  *
- * To get a value from the default-key value store, you can use the [`Apify.getValue()`](#module_Apify.getValue) function.
+ * To get a value from the default-key value store, you can use the  {@link Apify#getValue} function.
  *
- * For more information, see [`Apify.openKeyValueStore()`](#module_Apify.openKeyValueStore)
- * and [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+getValue).
+ * For more information, see  {@link Apify#openKeyValueStore}
+ * and  {@link KeyValueStore#getValue}.
  *
  * @param {String} key
  *   Unique record key.
@@ -671,7 +672,7 @@ export const getValue = async (key) => {
  *     <li>If `null`, the record in the key-value store is deleted.</li>
  *     <li>If no `options.contentType` is specified, `value` can be any JavaScript object and it will be stringified to JSON.</li>
  *     <li>If `options.contentType` is specified, `value` is considered raw data and it must be a `String`
- *     or <a href="https://nodejs.org/api/buffer.html" target="_blank"><code>Buffer</code></a>.</li>
+ *     or [](https://nodejs.org/api/buffer.html).</li>
  *   </ul>
  *   For any other value an error will be thrown.
  * @param {Object} [options]
@@ -691,7 +692,7 @@ export const setValue = async (key, value, options) => {
 /**
  * Gets the actor input value from the default {@link KeyValueStore} associated with the current actor run.
  *
- * This is just a convenient shortcut for [`keyValueStore.getValue('INPUT')`](keyvaluestore#KeyValueStore+getValue).
+ * This is just a convenient shortcut for [`keyValueStore.getValue('INPUT')`](keyvaluestore#getvalue).
  * For example, calling the following code:
  * ```javascript
  * const input = await Apify.getInput();
@@ -703,19 +704,20 @@ export const setValue = async (key, value, options) => {
  * await store.getValue('INPUT');
  * ```
  *
- * For more information, see [`Apify.openKeyValueStore()`](#module_Apify.openKeyValueStore)
- * and [`keyValueStore.getValue()`](keyvaluestore#KeyValueStore+getValue).
+ * For more information, see  {@link Apify#openKeyValueStore}
+ * and {@link KeyValueStore#getValue}.
  *
  * @returns {Promise<Object>}
  *   Returns a promise that resolves once the record is stored.
  * @memberof module:Apify
  * @name getInput
+ * @function
  */
 export const getInput = async () => getValue(process.env[ENV_VARS.INPUT_KEY] || KEY_VALUE_STORE_KEYS.INPUT);
 
 
 /**
- * User-function used in the [`KeyValueStore.forEachKey()`](../api/keyvaluestore#forEachKey) method.
+ * User-function used in the  {@link KeyValueStore#forEachKey} method.
  * @callback KeyConsumer
  * @param {String} key
  *   Current {KeyValue} key being processed.

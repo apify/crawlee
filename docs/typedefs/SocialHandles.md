@@ -1,9 +1,9 @@
 ---
-id: socialhandles
+id: social-handles
 title: SocialHandles
 ---
 
-<a name="SocialHandles"></a>
+<a name="socialhandles"></a>
 
 Representation of social handles parsed from a HTML page.
 
@@ -22,46 +22,52 @@ The object has the following structure:
 }
 ```
 
-**Properties**
+## Properties
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>emails</code></td><td><code>Array<String></code></td>
-</tr>
-<tr>
-</tr><tr>
-<td><code>phones</code></td><td><code>Array<String></code></td>
-</tr>
-<tr>
-</tr><tr>
-<td><code>phonesUncertain</code></td><td><code>Array<String></code></td>
-</tr>
-<tr>
-</tr><tr>
-<td><code>linkedIns</code></td><td><code>Array<String></code></td>
-</tr>
-<tr>
-</tr><tr>
-<td><code>twitters</code></td><td><code>Array<String></code></td>
-</tr>
-<tr>
-</tr><tr>
-<td><code>instagrams</code></td><td><code>Array<String></code></td>
-</tr>
-<tr>
-</tr><tr>
-<td><code>facebooks</code></td><td><code>Array<String></code></td>
-</tr>
-<tr>
-</tr><tr>
-<td><code>youtubes</code></td><td><code>Array<String></code></td>
-</tr>
-<tr>
-</tr></tbody>
-</table>
+### `emails`
+
+**Type**: `Array<String>`
+
+---
+
+### `phones`
+
+**Type**: `Array<String>`
+
+---
+
+### `phonesUncertain`
+
+**Type**: `Array<String>`
+
+---
+
+### `linkedIns`
+
+**Type**: `Array<String>`
+
+---
+
+### `twitters`
+
+**Type**: `Array<String>`
+
+---
+
+### `instagrams`
+
+**Type**: `Array<String>`
+
+---
+
+### `facebooks`
+
+**Type**: `Array<String>`
+
+---
+
+### `youtubes`
+
+**Type**: `Array<String>`
+
+---

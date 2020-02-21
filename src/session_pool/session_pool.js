@@ -29,10 +29,11 @@ import { ACTOR_EVENT_NAMES_EX } from '../constants';
  * Handles the sessions rotation, creation and persistence.
  * Creates a pool of {@link Session} instances, that are randomly rotated.
  * When some session is marked as blocked. It is removed and new one is created instead.
- * Learn more in the [`Session management guide`](../guides/sessionmanagement).
+ * Learn more in the [`Session management guide`](/docs/guides/session-management).
  *
  * Session pool is by default persisted in default {@link KeyValueStore}.
- * If you want to have one pool for all runs you have to specify `persistStateKeyValueStoreId`.
+ * If you want to have one pool for all runs you have to specify
+ * {@link SessionPoolOptions.persistStateKeyValueStoreId}.
  *
  * **Example usage:**
  *
@@ -319,10 +320,11 @@ export class SessionPool extends EventEmitter {
  *
  * For more details and code examples, see the {@link SessionPool} class.
  *
- * @param {SessionPoolOptions} sessionPoolOptions The [`new SessionPool`](sessionpool#new_SessionPool_new) options
+ * @param {SessionPoolOptions} sessionPoolOptions
  * @return {Promise<SessionPool>}
  * @memberof module:Apify
  * @name openSessionPool
+ * @function
  */
 export const openSessionPool = async (sessionPoolOptions) => {
     const sessionPool = new SessionPool(sessionPoolOptions);

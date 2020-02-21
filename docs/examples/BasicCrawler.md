@@ -1,14 +1,14 @@
 ---
-id: basiccrawler
+id: basic-crawler
 title: Basic Crawler
 ---
 
-This is the most basic example of the Apify SDK, which demonstrates some of its elementary tools, such as the [`BasicCrawler`](../api/basiccrawler)
-and [`RequestList`](../api/requestlist) classes. The script just downloads several web pages with plain HTTP requests (using the
-<a href="https://www.npmjs.com/package/request-promise" target="_blank">request-promise</a> library) and stores their raw HTML and URL to the default
+This is the most basic example of the Apify SDK, which demonstrates some of its elementary tools, such as the
+[`BasicCrawler`](/docs/api/basic-crawler) and [`RequestList`](/docs/api/request-list) classes. The script just downloads several web pages with plain
+HTTP requests (using the [`request-promise`](https://www.npmjs.com/package/request-promise) library) and stores their raw HTML and URL to the default
 dataset. In local configuration, the data will be stored as JSON files in `./apify_storage/datasets/default`.
 
-To run this example on the Apify Platform, select the `Node.js 10 on Alpine Linux (apify/actor-node-basic)` base image on the source tab of your actor
+To run this example on the Apify Platform, select the `Node.js 12 on Alpine Linux (apify/actor-node-basic)` base image on the source tab of your actor
 configuration.
 
 ```javascript

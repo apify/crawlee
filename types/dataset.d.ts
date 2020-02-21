@@ -12,7 +12,7 @@ export function chunkBySize(items: any[], limitBytes: number): any[];
  * Typically it is used to store crawling results.
  *
  * Do not instantiate this class directly, use the
- * [`Apify.openDataset()`](apify#module_Apify.openDataset) function instead.
+ * {@link Apify#openDataset} function instead.
  *
  * `Dataset` stores its data either on local disk or in the Apify cloud,
  * depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variables are set.
@@ -27,9 +27,9 @@ export function chunkBySize(items: any[], limitBytes: number): any[];
  * Each dataset item is stored as a separate JSON file, where `{INDEX}` is a zero-based index of the item in the dataset.
  *
  * If the `APIFY_TOKEN` environment variable is set but `APIFY_LOCAL_STORAGE_DIR` not, the data is stored in the
- * <a href="https://docs.apify.com/storage/dataset" target="_blank">Apify Dataset</a>
+ * [Apify Dataset](https://docs.apify.com/storage/dataset)
  * cloud storage. Note that you can force usage of the cloud storage also by passing the `forceCloud`
- * option to [`Apify.openDataset()`](apify#module_Apify.openDataset) function,
+ * option to {@link Apify#openDataset} function,
  * even if the `APIFY_LOCAL_STORAGE_DIR` variable is set.
  *
  * **Example usage:**

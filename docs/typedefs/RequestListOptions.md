@@ -1,93 +1,97 @@
 ---
-id: requestlistoptions
+id: request-list-options
 title: RequestListOptions
 ---
 
-<a name="RequestListOptions"></a>
+<a name="requestlistoptions"></a>
 
-**Properties**
+## Properties
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th><th>Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>sources</code></td><td><code>Array<(RequestOptions|Request)></code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>An array of sources of URLs for the <code>RequestList</code>. It can be either an array of plain objects that
- define the <code>url</code> property, or an array of instances of the <a href="request"><code>Request</code></a> class.
- Additionally, the <code>requestsFromUrl</code> property may be used instead of <code>url</code>,
- which will instruct <code>RequestList</code> to download the source URLs from a given remote location.
- The URLs will be parsed from the received response.</p>
-<pre><code>[
+### `sources`
+
+**Type**: [`Array<(RequestOptions|Request)>`](/docs/typedefs/request-options)
+
+An array of sources of URLs for the `RequestList`. It can be either an array of plain objects that define the `url` property, or an array of instances
+of the [`Request`](/docs/api/request) class. Additionally, the `requestsFromUrl` property may be used instead of `url`, which will instruct
+`RequestList` to download the source URLs from a given remote location. The URLs will be parsed from the received response.
+
+```
+[
     // A single URL
-    { method: &#39;GET&#39;, url: &#39;http://example.com/a/b&#39; },
+    { method: 'GET', url: 'http://example.com/a/b' },
 
     // Batch import of URLs from a file hosted on the web,
     // where the URLs should be requested using the HTTP POST request
-    { method: &#39;POST&#39;, requestsFromUrl: &#39;http://example.com/urls.txt&#39; },
+    { method: 'POST', requestsFromUrl: 'http://example.com/urls.txt' },
 
     // Batch import from remote file, using a specific regular expression to extract the URLs.
-    { requestsFromUrl: &#39;http://example.com/urls.txt&#39;, regex: /https:\/\/example.com\/.+/ },
+    { requestsFromUrl: 'http://example.com/urls.txt', regex: /https:\/\/example.com\/.+/ },
 
-    // Get list of URLs from a Google Sheets document. Just add &quot;/gviz/tq?tqx=out:csv&quot; to the Google Sheet URL.
+    // Get list of URLs from a Google Sheets document. Just add "/gviz/tq?tqx=out:csv" to the Google Sheet URL.
     // For details, see https://help.apify.com/en/articles/2906022-scraping-a-list-of-urls-from-a-google-sheets-document
-    { requestsFromUrl: &#39;https://docs.google.com/spreadsheets/d/1GA5sSQhQjB_REes8I5IKg31S-TuRcznWOPjcpNqtxmU/gviz/tq?tqx=out:csv&#39; }
+    { requestsFromUrl: 'https://docs.google.com/spreadsheets/d/1GA5sSQhQjB_REes8I5IKg31S-TuRcznWOPjcpNqtxmU/gviz/tq?tqx=out:csv' }
+]
+```
 
-]</code></pre></td></tr><tr>
+---
 
-<td><code>[persistStateKey]</code></td><td><code>String</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>Identifies the key in the default key-value store under which <code>RequestList</code> periodically stores its
-  state (i.e. which URLs were crawled and which not).
-  If the actor is restarted, <code>RequestList</code> will read the state
-  and continue where it left off.</p>
-<p>  If <code>persistStateKey</code> is not set, <code>RequestList</code> will always start from the beginning,
-  and all the source URLs will be crawled again.</p>
-</td></tr><tr>
-<td><code>[persistSourcesKey]</code></td><td><code>String</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>Identifies the key in the default key-value store under which the <code>RequestList</code> persists its
-  sources (i.e. the lists of URLs) during the <a href="#RequestList+initialize"><code>initialize</code></a> call.
-  This is necessary if <code>persistStateKey</code> is set and the source URLs might potentially change,
-  to ensure consistency of the source URLs and state object. However, it comes with some storage and performance overheads.</p>
-<p>  If <code>persistSourcesKey</code> is not set, <a href="#RequestList+initialize"><code>initialize</code></a> will always fetch the sources
-  from their origin, check that they are consistent with the restored state (if any)
-  and throw an error if they are not.</p>
-</td></tr><tr>
-<td><code>[state]</code></td><td><code><a href="../typedefs/requestliststate">RequestListState</a></code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>The state object that the <code>RequestList</code> will be initialized from.
-  It is in the form as returned by <code>RequestList.getState()</code>, such as follows:</p>
-<pre><code>{
+### `persistStateKey`
+
+**Type**: `String`
+
+Identifies the key in the default key-value store under which `RequestList` periodically stores its state (i.e. which URLs were crawled and which
+not). If the actor is restarted, `RequestList` will read the state and continue where it left off.
+
+If `persistStateKey` is not set, `RequestList` will always start from the beginning, and all the source URLs will be crawled again.
+
+---
+
+### `persistSourcesKey`
+
+**Type**: `String`
+
+Identifies the key in the default key-value store under which the `RequestList` persists its sources (i.e. the lists of URLs) during the
+[`RequestList.initialize()`](/docs/api/request-list#initialize) call. This is necessary if `persistStateKey` is set and the source URLs might
+potentially change, to ensure consistency of the source URLs and state object. However, it comes with some storage and performance overheads.
+
+If `persistSourcesKey` is not set, [`RequestList.initialize()`](/docs/api/request-list#initialize) will always fetch the sources from their origin,
+check that they are consistent with the restored state (if any) and throw an error if they are not.
+
+---
+
+### `state`
+
+**Type**: [`RequestListState`](/docs/typedefs/request-list-state)
+
+The state object that the `RequestList` will be initialized from. It is in the form as returned by `RequestList.getState()`, such as follows:
+
+```
+{
     nextIndex: 5,
-    nextUniqueKey: &#39;unique-key-5&#39;
+    nextUniqueKey: 'unique-key-5'
     inProgress: {
-        &#39;unique-key-1&#39;: true,
-        &#39;unique-key-4&#39;: true,
+        'unique-key-1': true,
+        'unique-key-4': true,
     },
-}</code></pre><p>  Note that the preferred (and simpler) way to persist the state of crawling of the <code>RequestList</code>
-  is to use the <code>stateKeyPrefix</code> parameter instead.</p>
-</td></tr><tr>
-<td><code>[keepDuplicateUrls]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>By default, <code>RequestList</code> will deduplicate the provided URLs. Default deduplication is based
-  on the <code>uniqueKey</code> property of passed source <a href="request"><code>Request</code></a> objects.</p>
-<p>  If the property is not present, it is generated by normalizing the URL. If present, it is kept intact.
-  In any case, only one request per <code>uniqueKey</code> is added to the <code>RequestList</code> resulting in removal
-  of duplicate URLs / unique keys.</p>
-<p>  Setting <code>keepDuplicateUrls</code> to <code>true</code> will append an additional identifier to the <code>uniqueKey</code>
-  of each request that does not already include a <code>uniqueKey</code>. Therefore, duplicate
-  URLs will be kept in the list. It does not protect the user from having duplicates in user set
-  <code>uniqueKey</code>s however. It is the user&#39;s responsibility to ensure uniqueness of their unique keys
-  if they wish to keep more than just a single copy in the <code>RequestList</code>.</p>
-</td></tr></tbody>
-</table>
+}
+```
+
+Note that the preferred (and simpler) way to persist the state of crawling of the `RequestList` is to use the `stateKeyPrefix` parameter instead.
+
+---
+
+### `keepDuplicateUrls`
+
+**Type**: `Boolean` <code> = false</code>
+
+By default, `RequestList` will deduplicate the provided URLs. Default deduplication is based on the `uniqueKey` property of passed source
+[`Request`](/docs/api/request) objects.
+
+If the property is not present, it is generated by normalizing the URL. If present, it is kept intact. In any case, only one request per `uniqueKey`
+is added to the `RequestList` resulting in removal of duplicate URLs / unique keys.
+
+Setting `keepDuplicateUrls` to `true` will append an additional identifier to the `uniqueKey` of each request that does not already include a
+`uniqueKey`. Therefore, duplicate URLs will be kept in the list. It does not protect the user from having duplicates in user set `uniqueKey`s however.
+It is the user's responsibility to ensure uniqueness of their unique keys if they wish to keep more than just a single copy in the `RequestList`.
+
+---

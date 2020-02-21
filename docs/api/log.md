@@ -46,24 +46,18 @@ try {
 Another very useful way of setting the log level is by setting the `APIFY_LOG_LEVEL` environment variable, such as `APIFY_LOG_LEVEL=DEBUG`. This way,
 no code changes are necessary to turn on your debug messages and start debugging right away.
 
--   [`log`](#log) : `object`
-    -   [`.LEVELS`](#log.LEVELS) : `Object`
-    -   [`.setLevel(level)`](#log.setLevel)
-    -   [`.getLevel()`](#log.getLevel)
-    -   [`.debug(message, [data])`](#log.debug)
-    -   [`.info(message, [data])`](#log.info)
-    -   [`.warning(message, [data])`](#log.warning)
-    -   [`.error(message, [data])`](#log.error)
-    -   [`.exception(exception, [message], [data])`](#log.exception)
+---
 
-<a name="log.LEVELS"></a>
+<a name="levels"></a>
 
-## `log.LEVELS` : `Object`
+## `log.LEVELS`
 
 Map of available log levels that's useful for easy setting of appropriate log levels. Each log level is represented internally by a number. Eg.
 `log.LEVELS.DEBUG === 5`.
 
-<a name="log.setLevel"></a>
+---
+
+<a name="setlevel"></a>
 
 ## `log.setLevel(level)`
 
@@ -76,20 +70,13 @@ log.setLevel(log.LEVELS.DEBUG);
 
 Default log level is INFO.
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>level</code></td><td><code>number</code></td>
-</tr>
-<tr>
-</tr></tbody>
-</table>
-<a name="log.getLevel"></a>
+**Params**
+
+-   **`level`**: `number`
+
+---
+
+<a name="getlevel"></a>
 
 ## `log.getLevel()`
 
@@ -97,7 +84,9 @@ Returns the currently selected logging level. This is useful for checking whethe
 actually performs a resource intensive operation to construct the message, such as querying a DB for some metadata that need to be added. If the log
 level is not high enough at the moment, it doesn't make sense to execute the query.
 
-<a name="log.debug"></a>
+---
+
+<a name="debug"></a>
 
 ## `log.debug(message, [data])`
 
@@ -105,119 +94,65 @@ Logs a `DEBUG` message. By default, it will not be written to the console. To se
 using the `log.setLevel(log.LEVELS.DEBUG)` method or using the environment variable `APIFY_LOG_LEVEL=DEBUG`. Data are stringified and appended to the
 message.
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>message</code></td><td><code>string</code></td>
-</tr>
-<tr>
-</tr><tr>
-<td><code>[data]</code></td><td><code>Object</code></td>
-</tr>
-<tr>
-</tr></tbody>
-</table>
-<a name="log.info"></a>
+**Params**
+
+-   **`message`**: `string`
+-   **`[data]`**: `Object`
+
+---
+
+<a name="info"></a>
 
 ## `log.info(message, [data])`
 
 Logs an `INFO` message. `INFO` is the default log level so info messages will be always logged, unless the log level is changed. Data are stringified
 and appended to the message.
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>message</code></td><td><code>string</code></td>
-</tr>
-<tr>
-</tr><tr>
-<td><code>[data]</code></td><td><code>Object</code></td>
-</tr>
-<tr>
-</tr></tbody>
-</table>
-<a name="log.warning"></a>
+**Params**
+
+-   **`message`**: `string`
+-   **`[data]`**: `Object`
+
+---
+
+<a name="warning"></a>
 
 ## `log.warning(message, [data])`
 
 Logs a `WARNING` level message. Data are stringified and appended to the message.
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>message</code></td><td><code>string</code></td>
-</tr>
-<tr>
-</tr><tr>
-<td><code>[data]</code></td><td><code>Object</code></td>
-</tr>
-<tr>
-</tr></tbody>
-</table>
-<a name="log.error"></a>
+**Params**
+
+-   **`message`**: `string`
+-   **`[data]`**: `Object`
+
+---
+
+<a name="error"></a>
 
 ## `log.error(message, [data])`
 
 Logs an `ERROR` message. Use this method to log error messages that are not directly connected to an exception. For logging exceptions, use the
 `log.exception` method.
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>message</code></td><td><code>string</code></td>
-</tr>
-<tr>
-</tr><tr>
-<td><code>[data]</code></td><td><code>Object</code></td>
-</tr>
-<tr>
-</tr></tbody>
-</table>
-<a name="log.exception"></a>
+**Params**
+
+-   **`message`**: `string`
+-   **`[data]`**: `Object`
+
+---
+
+<a name="exception"></a>
 
 ## `log.exception(exception, [message], [data])`
 
 Logs an `ERROR` level message with a nicely formatted exception. Note that the exception is the first parameter here and an additional message is only
 optional.
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>exception</code></td><td><code>Error</code></td>
-</tr>
-<tr>
-</tr><tr>
-<td><code>[message]</code></td><td><code>string</code></td>
-</tr>
-<tr>
-</tr><tr>
-<td><code>[data]</code></td><td><code>Object</code></td>
-</tr>
-<tr>
-</tr></tbody>
-</table>
+**Params**
+
+-   **`exception`**: `Error`
+-   **`[message]`**: `string`
+-   **`[data]`**: `Object`
+
+---
