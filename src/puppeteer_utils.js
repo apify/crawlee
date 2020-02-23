@@ -1,3 +1,4 @@
+import path from 'path';
 import fs from 'fs';
 import vm from 'vm';
 import util from 'util';
@@ -7,6 +8,8 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import LruCache from 'apify-shared/lru_cache';
 import { Page, Response } from 'puppeteer'; // eslint-disable-line no-unused-vars
+import { PuppeteerBlocker, adsList, adsAndTrackingLists, fullLists } from '@cliqz/adblocker-puppeteer';
+import fetch from 'cross-fetch';
 
 import { RequestQueue, RequestQueueLocal } from './request_queue';
 import Request from './request';
@@ -18,6 +21,7 @@ import { openKeyValueStore } from './key_value_store';
 const jqueryPath = require.resolve('jquery/dist/jquery.min');
 const underscorePath = require.resolve('underscore/underscore-min');
 const readFilePromised = util.promisify(fs.readFile);
+const writeFilePromised = util.promisify(fs.writeFile);
 
 const MAX_INJECT_FILE_CACHE_SIZE = 10;
 const DEFAULT_BLOCK_REQUEST_URL_PATTERNS = ['.css', '.jpg', '.jpeg', '.png', '.svg', '.gif', '.woff', '.pdf', '.zip'];
@@ -271,6 +275,105 @@ const blockResources = async (page, resourceTypes = ['stylesheet', 'font', 'imag
         const type = request.resourceType();
         if (resourceTypes.includes(type)) await request.abort();
         else await request.continue();
+    });
+};
+
+/**
+ * Lazily initialized the first time `blockAdsAndTrackers()` is called, then
+ * can be re-used for any number of pages.
+ */
+let ADBLOCK_ENGINE;
+
+/**
+ * Forces the Puppeteer browser tab to block all advertising requests. This is
+ * useful to speed up crawling of websites, since it reduces the amount of data
+ * that needs to be downloaded from the web, as well as the amount of
+ * JavaScript which needs to run in a given page.
+ *
+ * By default, the function will block all ads as defined by rules from the
+ * following widely-used subscriptions: Easylist, uBlock Origin filters, and
+ * Peter Lowe serverlist.
+ *
+ * Additionally, blocking of trackers can be enabled using the `blockTrackers`
+ * option and blocking extra annoyances (e.g. cookie notice banners, etc.) with
+ * the `blockAnnoyances` option. This will load extra rules from subscriptions:
+ * EasyPrivacy, uBlock Origin privacy list, Easylist Cookies, etc..
+ *
+ * The function will never block main document loads and their respective redirects.
+ *
+ * **Example usage**
+ * ```javascript
+ * const Apify = require('apify');
+ *
+ * const browser = await Apify.launchPuppeteer();
+ * const page = await browser.newPage();
+ *
+ * await Apify.utils.puppeteer.blockAdsAndTrackers(page, {
+ *     blockTrackers: true,
+ *     // blockAnnoyances: true,
+ * });
+ *
+ * await page.goto('https://cnn.com');
+ * ```
+ *
+ * @param {Page} page
+ *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
+ * @param {Object} [options]
+ * @param {Boolean} [options.blockTrackers=false] Enable blocking of trackers.
+ * @param {Boolean} [options.blockAnnoyances=false] Enable blocking of annoyances.
+ * @return {Promise}
+ * @memberOf puppeteer
+ */
+const blockAdsAndTrackers = async (page, {
+    blockTrackers = false,
+    blockAnnoyances = false,
+} = {}) => {
+    // Initialize adblocker engine on the first call to `blockAdsAndTrackers()`,
+    // it can then be re-used for other pages. This means that the amount of
+    // memory required to operate is constant, as only one instance needs to
+    // exist in memory at a given point.
+    if (ADBLOCK_ENGINE === undefined) {
+        let lists = adsList;
+        let name = 'ads';
+
+        if (blockTrackers) {
+            lists = adsAndTrackingLists;
+            name = 'trackers';
+        }
+
+        // This takes priority over `blockTrackers` option, so this test should
+        // be done last; this is because `fullLists` already includes everything
+        // from `adsAndTrackingLists`.
+        if (blockAnnoyances) {
+            lists = fullLists;
+            name = 'annoyances';
+        }
+
+        // This allows the adblocker engine to be serialized on disk to allow
+        // very fast initialization for sub-sequent runs (this also means that
+        // no network request has to be performed and the adblocker can be
+        // ready in <100ms).
+        const caching = {
+            path: path.join(__dirname, `engine-${name}.bin`),
+            read: readFilePromised,
+            write: writeFilePromised,
+        };
+
+        // Initialize engine, either from cache (if already available on disk),
+        // by fetching rules from `lists` and parsing them to initialize the
+        // engine.
+        ADBLOCK_ENGINE = await PuppeteerBlocker.fromLists(
+            fetch,
+            lists,
+            { enableCompression: true },
+            caching,
+        );
+    }
+
+    page.on('framenavigated', frame => ADBLOCK_ENGINE.onFrameNavigated(frame));
+
+    await addInterceptRequestHandler(page, (request) => {
+        ADBLOCK_ENGINE.onRequest(request);
     });
 };
 
@@ -598,6 +701,7 @@ export const puppeteerUtils = {
     enqueueLinksByClickingElements,
     blockRequests,
     blockResources,
+    blockAdsAndTrackers,
     cacheResponses,
     compileScript,
     gotoExtended,
