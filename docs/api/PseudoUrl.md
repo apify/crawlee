@@ -62,8 +62,8 @@ if (purl.matches('http://www.example.com/pages/my-awesome-page')) console.log('M
 
 -   **`purl`**: `string` | `RegExp` - A pseudo-URL string or a regular expression object. Using a `RegExp` instance enables more granular control,
     such as making the matching case sensitive.
--   **`requestTemplate`**: [`RequestOptions<UserData>`](/docs/typedefs/request-options) - Options for the new [`Request`](/docs/api/request) instances
-    created for matching URLs by the [`utils.enqueueLinks()`](/docs/api/utils#enqueuelinks) function.
+-   **`requestTemplate`**: [`RequestOptions`](/docs/typedefs/request-options) - Options for the new [`Request`](/docs/api/request) instances created
+    for matching URLs by the [`utils.enqueueLinks()`](/docs/api/utils#enqueuelinks) function.
 
 ---
 
@@ -85,7 +85,7 @@ Determines whether a URL matches this pseudo-URL pattern.
 
 ## `pseudoUrl.createRequest(urlOrProps)`
 
-**Returns**: [`Request<UserData>`](/docs/api/request)
+**Returns**: [`Request`](/docs/api/request)
 
 Creates a Request object from a provided `requestTemplate` and a given URL or an object that specifies \$[`Request`](/docs/api/request) properties. In
 case of a collision the properties will override the template, except for `userData`, which will be merged together, with the `userData` property

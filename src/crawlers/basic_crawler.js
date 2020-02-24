@@ -46,10 +46,8 @@ const DEFAULT_OPTIONS = {
 };
 
 /**
- * @template RequestUserData
- * @template SessionUserData
  * @typedef BasicCrawlerOptions
- * @property {HandleRequest<RequestUserData,SessionUserData>} handleRequestFunction
+ * @property {HandleRequest} handleRequestFunction
  *   User-provided function that performs the logic of the crawler. It is called for each URL to crawl.
  *
  *   The function receives the following object as an argument:
@@ -74,12 +72,12 @@ const DEFAULT_OPTIONS = {
  * @property {RequestList} [requestList]
  *   Static list of URLs to be processed.
  *   Either `requestList` or `requestQueue` option must be provided (or both).
- * @property {RequestQueue<RequestUserData>} [requestQueue]
+ * @property {RequestQueue} [requestQueue]
  *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
  *   Either `requestList` or `requestQueue` option must be provided (or both).
  * @property {number} [handleRequestTimeoutSecs=60]
  *   Timeout in which the function passed as `handleRequestFunction` needs to finish, in seconds.
- * @property {HandleFailedRequest<RequestUserData>} [handleFailedRequestFunction]
+ * @property {HandleFailedRequest} [handleFailedRequestFunction]
  *   A function to handle requests that failed more than `option.maxRequestRetries` times.
  *
  *   The function receives the following object as an argument:
@@ -116,7 +114,7 @@ const DEFAULT_OPTIONS = {
  * @property {boolean} [useSessionPool=false]
  *   If set to true. Basic crawler will initialize the  {@link SessionPool} with the corresponding `sessionPoolOptions`.
  *   The session instance will be than available in the `handleRequestFunction`.
- * @property {SessionPoolOptions<SessionUserData>} [sessionPoolOptions] The configuration options for {SessionPool} to use.
+ * @property {SessionPoolOptions} [sessionPoolOptions] The configuration options for {SessionPool} to use.
  */
 
 /**
@@ -183,12 +181,10 @@ const DEFAULT_OPTIONS = {
  *  You can use it to change the concurrency settings on the fly,
  *  to pause the crawler by calling {@link AutoscaledPool#pause}
  *  or to abort it by calling {@link AutoscaledPool#abort}.
- * @template RequestUserData
- * @template SessionUserData
  */
 class BasicCrawler {
     /**
-     * @param {BasicCrawlerOptions<RequestUserData, SessionUserData>} options
+     * @param {BasicCrawlerOptions} options
      * All `BasicCrawler` parameters are passed via an options object.
      */
     constructor(options) {
@@ -460,9 +456,9 @@ class BasicCrawler {
     /**
      * Handles errors thrown by user provided handleRequestFunction()
      * @param {Error} error
-     * @param {Request<*>} request
-     * @param {(RequestList|RequestQueue<*>)} source
-     * @return {Promise<boolean|void|QueueOperationInfo<*>>} willBeRetried
+     * @param {Request} request
+     * @param {(RequestList|RequestQueue)} source
+     * @return {Promise<boolean|void|QueueOperationInfo>} willBeRetried
      * @ignore
      */
     async _requestFunctionErrorHandler(error, request, source) {
@@ -511,36 +507,30 @@ class BasicCrawler {
 export default BasicCrawler;
 
 /**
- * @template RequestUserData
- * @template SessionUserData
  * @callback HandleRequest
- * @param {HandleRequestInputs<RequestUserData,SessionUserData>} inputs Arguments passed to this callback.
+ * @param {HandleRequestInputs} inputs Arguments passed to this callback.
  * @returns {Promise<void>}
  */
 /**
- * @template RequestUserData
- * @template SessionUserData
  * @typedef HandleRequestInputs
- * @property {Request<RequestUserData>} request The original {Request} object.
+ * @property {Request} request The original {Request} object.
  * @property {AutoscaledPool} autoscaledPool
  *  A reference to the underlying {@link AutoscaledPool} class that manages the concurrency of the crawler.
  *  Note that this property is only initialized after calling the {@link BasicCrawler#run} function.
  *  You can use it to change the concurrency settings on the fly,
  *  to pause the crawler by calling {@link AutoscaledPool#pause}
  *  or to abort it by calling {@link AutoscaledPool#abort}.
- * @property {Session<SessionUserData>} [session]
+ * @property {Session} [session]
  */
 
 /**
- * @template RequestUserData
  * @callback HandleFailedRequest
- * @param {HandleFailedRequestInput<RequestUserData>} inputs Arguments passed to this callback.
+ * @param {HandleFailedRequestInput} inputs Arguments passed to this callback.
  * @returns {(void|Promise<void>)}
  */
 
 /**
- * @template RequestUserData
  * @typedef HandleFailedRequestInput
- * @property {Request<RequestUserData>} request The original {Request} object.
+ * @property {Request} request The original {Request} object.
  * @property {Error} error The Error thrown by `handleRequestFunction`.
  */

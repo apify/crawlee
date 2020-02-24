@@ -16,11 +16,10 @@ import { Response as PuppeteerResponse } from 'puppeteer';
 
 /**
  * Persistable {@link Session} state.
- * @template SessionUserData
  * @typedef SessionState
  * @property {string} id
  * @property {CookieJar} cookieJar
- * @property {SessionUserData} userData
+ * @property {object} userData
  * @property {number} errorScore
  * @property {number} maxErrorScore
  * @property {number} errorScoreDecrement
@@ -30,11 +29,10 @@ import { Response as PuppeteerResponse } from 'puppeteer';
  */
 
 /**
- * @template SessionUserData
  * @typedef SessionOptions
  * @property {string} [id] - Id of session used for generating fingerprints. It is used as proxy session name.
  * @property {number} [maxAgeSecs=3000] - Number of seconds after which the session is considered as expired.
- * @property {SessionUserData} [userData] - Object where custom user data can be stored. For example custom headers.
+ * @property {object} [userData] - Object where custom user data can be stored. For example custom headers.
  * @property {number} [maxErrorScore=3] - Maximum number of marking session as blocked usage.
  *   If the `errorScore` reaches the `maxErrorScore` session is marked as block and it is thrown away.
  *   It starts at 0. Calling the `markBad` function increases the `errorScore` by 1.
@@ -48,7 +46,7 @@ import { Response as PuppeteerResponse } from 'puppeteer';
  * @property {number} [errorCount=0] - Indicates how many times the session is marked bad.
  * @property {number} [maxUsageCount=50] - Session should be used only a limited amount of times.
  *   This number indicates how many times the session is going to be used, before it is thrown away.
- * @property {SessionPool<SessionUserData>} sessionPool - SessionPool instance. Session will emit the `sessionRetired` event on this instance.
+ * @property {SessionPool} sessionPool - SessionPool instance. Session will emit the `sessionRetired` event on this instance.
  */
 
 /**
@@ -56,13 +54,12 @@ import { Response as PuppeteerResponse } from 'puppeteer';
  *  You can imagine each session as a specific user, with its own cookies, IP (via proxy) and potentially a unique browser fingerprint.
  *  Session internal state can be enriched with custom user data for example some authorization tokens and specific headers in general.
  *
- * @template SessionUserData
  */
 export class Session {
     /**
      * Session configuration.
      *
-     * @param {SessionOptions<SessionUserData>} options
+     * @param {SessionOptions} options
      */
     constructor(options = {}) {
         const {
@@ -105,7 +102,7 @@ export class Session {
         this.cookieJar = cookieJar.setCookie ? cookieJar : CookieJar.fromJSON(JSON.stringify(cookieJar));
         this.id = id;
         this.maxAgeSecs = maxAgeSecs;
-        /** @type {SessionUserData} */
+        /** @type {*} */
         this.userData = userData;
         this.maxErrorScore = maxErrorScore;
         this.errorScoreDecrement = errorScoreDecrement;
@@ -170,7 +167,7 @@ export class Session {
 
     /**
      * Gets session state for persistence in KeyValueStore.
-     * @return {SessionState<SessionUserData>} represents session internal state.
+     * @return {SessionState} represents session internal state.
      */
     getState() {
         return {

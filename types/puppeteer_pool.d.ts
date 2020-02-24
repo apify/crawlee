@@ -177,8 +177,8 @@ declare class PuppeteerPool {
      *   via an options object.
      */
     constructor(options?: PuppeteerPoolOptions | undefined);
-    /** @type {SessionPool<any>} */
-    sessionPool: SessionPool<any>;
+    /** @type {SessionPool} */
+    sessionPool: SessionPool;
     reusePages: boolean;
     maxOpenPagesPerInstance: any;
     retireInstanceAfterRequestCount: any;

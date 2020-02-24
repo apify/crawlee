@@ -33,7 +33,7 @@ The parsed object from JSON string if the response contains the content type app
 
 ### `request`
 
-**Type**: [`Request<RequestUserData>`](/docs/api/request)
+**Type**: [`Request`](/docs/api/request)
 
 The original [`Request`](/docs/api/request) object.
 
@@ -68,6 +68,6 @@ settings on the fly, to pause the crawler by calling [`AutoscaledPool.pause()`](
 
 ### `session`
 
-**Type**: [`Session<SessionUserData>`](/docs/api/session)
+**Type**: [`Session`](/docs/api/session)
 
 ---

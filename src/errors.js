@@ -9,14 +9,14 @@ import { ActorRun } from './typedefs';
  *
  * @property {string} message
  *   Error message
- * @property {ActorRun<null>} run
+ * @property {ActorRun} run
  *   Object representing the failed actor run.
  * @property {string} name
  *   Contains `"ApifyCallError"`
  */
 export class ApifyCallError extends Error {
     /**
-     * @param {ActorRun<null>} run
+     * @param {ActorRun} run
      * @param {string} [message]
      */
     constructor(run, message = 'The actor invoked by Apify.call() did not succeed') {

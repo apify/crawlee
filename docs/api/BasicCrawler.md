@@ -76,8 +76,7 @@ on the fly, to pause the crawler by calling [`AutoscaledPool.pause()`](/docs/api
 
 **Params**
 
--   **`options`**: [`BasicCrawlerOptions<RequestUserData, SessionUserData>`](/docs/typedefs/basic-crawler-options) - All `BasicCrawler` parameters are
-    passed via an options object.
+-   **`options`**: [`BasicCrawlerOptions`](/docs/typedefs/basic-crawler-options) - All `BasicCrawler` parameters are passed via an options object.
 
 ---
 

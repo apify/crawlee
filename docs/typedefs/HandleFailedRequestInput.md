@@ -9,7 +9,7 @@ title: HandleFailedRequestInput
 
 ### `request`
 
-**Type**: [`Request<RequestUserData>`](/docs/api/request)
+**Type**: [`Request`](/docs/api/request)
 
 The original {Request} object.
 

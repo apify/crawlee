@@ -80,7 +80,7 @@ await store.drop();
 
 ## `keyValueStore.getValue(key)`
 
-**Returns**: `Promise<(T|Buffer|string|null)>` - Returns a promise that resolves to an object, string or [](https://nodejs.org/api/buffer.html),
+**Returns**: `Promise<(object|Buffer|string|null)>` - Returns a promise that resolves to an object, string or [](https://nodejs.org/api/buffer.html),
 depending on the MIME content type of the record.
 
 Gets a value from the key-value store.

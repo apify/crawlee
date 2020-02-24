@@ -1,6 +1,6 @@
 /// <reference types="node" />
 export default CheerioCrawler;
-export type CheerioCrawlerOptions<RequestUserData, SessionUserData> = {
+export type CheerioCrawlerOptions = {
     /**
      * User-provided function that performs the logic of the crawler. It is called for each page
      * loaded and parsed by the crawler.
@@ -58,7 +58,7 @@ export type CheerioCrawlerOptions<RequestUserData, SessionUserData> = {
      * The exceptions are logged to the request using the
      * {@link Request#pushErrorMessage} function.
      */
-    handlePageFunction: CheerioHandlePage<RequestUserData, SessionUserData>;
+    handlePageFunction: CheerioHandlePage;
     /**
      * Static list of URLs to be processed.
      * Either `requestList` or `requestQueue` option must be provided (or both).
@@ -68,7 +68,7 @@ export type CheerioCrawlerOptions<RequestUserData, SessionUserData> = {
      * Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
      * Either `requestList` or `requestQueue` option must be provided (or both).
      */
-    requestQueue?: RequestQueue<RequestUserData>;
+    requestQueue?: RequestQueue;
     /**
      * Represents the options passed to the {@link requestAsBrowser} function that makes the HTTP requests to fetch the web pages.
      * Provided `requestOptions` are added to internal defaults that cannot be overridden to ensure
@@ -109,7 +109,7 @@ export type CheerioCrawlerOptions<RequestUserData, SessionUserData> = {
      * this function is therefore not supported, because it would create inconsistencies where
      * different parts of SDK would have access to a different {@link Request} instance.
      */
-    prepareRequestFunction?: PrepareRequest<RequestUserData>;
+    prepareRequestFunction?: PrepareRequest;
     /**
      * Timeout in which the function passed as `handlePageFunction` needs to finish, given in seconds.
      */
@@ -165,7 +165,7 @@ export type CheerioCrawlerOptions<RequestUserData, SessionUserData> = {
      * See [source code](https://github.com/apifytech/apify-js/blob/master/src/crawlers/cheerio_crawler.js#L13)
      * for the default implementation of this function.
      */
-    handleFailedRequestFunction?: HandleFailedRequest<RequestUserData>;
+    handleFailedRequestFunction?: HandleFailedRequest;
     /**
      * An array of <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types"
      * target="_blank">MIME types</a> you want the crawler to load and process.
@@ -209,7 +209,7 @@ export type CheerioCrawlerOptions<RequestUserData, SessionUserData> = {
     /**
      * Custom options passed to the underlying {@link SessionPool} constructor.
      */
-    sessionPoolOptions?: SessionPoolOptions<SessionUserData>;
+    sessionPoolOptions?: SessionPoolOptions;
     /**
      * Automatically saves cookies to Session. Works only if Session Pool is used.
      *
@@ -218,14 +218,14 @@ export type CheerioCrawlerOptions<RequestUserData, SessionUserData> = {
      */
     persistCookiesPerSession?: boolean;
 };
-export type PrepareRequestInputs<RequestUserData> = {
+export type PrepareRequestInputs = {
     /**
      * Original instance fo the {Request} object. Must be modified in-place.
      */
-    request: Request<RequestUserData>;
+    request: Request;
 };
-export type PrepareRequest<RequestUserData> = (inputs: PrepareRequestInputs<RequestUserData>) => void | Promise<void>;
-export type CheerioHandlePageInputs<RequestUserData, SessionUserData> = {
+export type PrepareRequest = (inputs: PrepareRequestInputs) => void | Promise<void>;
+export type CheerioHandlePageInputs = {
     /**
      * The [Cheerio](https://cheerio.js.org/) object with parsed HTML.
      */
@@ -241,7 +241,7 @@ export type CheerioHandlePageInputs<RequestUserData, SessionUserData> = {
     /**
      * The original {@link Request} object.
      */
-    request: Request<RequestUserData>;
+    request: Request;
     /**
      * Parsed `Content-Type header: { type, encoding }`.
      */
@@ -261,14 +261,12 @@ export type CheerioHandlePageInputs<RequestUserData, SessionUserData> = {
      * or to abort it by calling {@link AutoscaledPool#abort}.
      */
     autoscaledPool: AutoscaledPool;
-    session?: Session<SessionUserData>;
+    session?: Session;
 };
-export type CheerioHandlePage<RequestUserData, SessionUserData> = (inputs: CheerioHandlePageInputs<RequestUserData, SessionUserData>) => Promise<void>;
+export type CheerioHandlePage = (inputs: CheerioHandlePageInputs) => Promise<void>;
 /**
- * @template RequestUserData
- * @template SessionUserData
  * @typedef CheerioCrawlerOptions
- * @property {CheerioHandlePage<RequestUserData, SessionUserData>} handlePageFunction
+ * @property {CheerioHandlePage} handlePageFunction
  *   User-provided function that performs the logic of the crawler. It is called for each page
  *   loaded and parsed by the crawler.
  *
@@ -327,7 +325,7 @@ export type CheerioHandlePage<RequestUserData, SessionUserData> = (inputs: Cheer
  * @property {RequestList} [requestList]
  *   Static list of URLs to be processed.
  *   Either `requestList` or `requestQueue` option must be provided (or both).
- * @property {RequestQueue<RequestUserData>} [requestQueue]
+ * @property {RequestQueue} [requestQueue]
  *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
  *   Either `requestList` or `requestQueue` option must be provided (or both).
  * @property {RequestAsBrowserOptions} [requestOptions]
@@ -349,7 +347,7 @@ export type CheerioHandlePage<RequestUserData, SessionUserData> = (inputs: Cheer
  *       proxy,     // Use useApifyProxy or proxyUrls
  *   }
  *   ```
- * @property {PrepareRequest<RequestUserData>} [prepareRequestFunction]
+ * @property {PrepareRequest} [prepareRequestFunction]
  *   A function that executes before the HTTP request is made to the target resource.
  *   This function is suitable for setting dynamic properties such as cookies to the {@link Request}.
  *
@@ -393,7 +391,7 @@ export type CheerioHandlePage<RequestUserData, SessionUserData> = (inputs: Cheer
  *   The provided custom proxies' order will be randomized and the resulting list rotated.
  *   Custom proxies are not compatible with Apify Proxy and an attempt to use both
  *   configuration options will cause an error to be thrown on startup.
- * @property {HandleFailedRequest<RequestUserData>} [handleFailedRequestFunction]
+ * @property {HandleFailedRequest} [handleFailedRequestFunction]
  *   A function to handle requests that failed more than `option.maxRequestRetries` times.
  *
  *   The function receives the following object as an argument:
@@ -434,7 +432,7 @@ export type CheerioHandlePage<RequestUserData, SessionUserData> = (inputs: Cheer
  * @property {boolean} [useSessionPool=false]
  *   If set to true Crawler will automatically use Session Pool. It will automatically retire sessions on 403, 401 and 429 status codes.
  *   It also marks Session as bad after a request timeout.
- * @property {SessionPoolOptions<SessionUserData>} [sessionPoolOptions]
+ * @property {SessionPoolOptions} [sessionPoolOptions]
  *   Custom options passed to the underlying {@link SessionPool} constructor.
  * @property {boolean} [persistCookiesPerSession]
  *   Automatically saves cookies to Session. Works only if Session Pool is used.
@@ -524,18 +522,16 @@ export type CheerioHandlePage<RequestUserData, SessionUserData> = (inputs: Cheer
  *  You can use it to change the concurrency settings on the fly,
  *  to pause the crawler by calling {@link AutoscaledPool#pause}
  *  or to abort it by calling {@link AutoscaledPool#abort}.
- * @template RequestUserData
- * @template SessionUserData
  */
-declare class CheerioCrawler<RequestUserData, SessionUserData> {
+declare class CheerioCrawler {
     /**
-     * @param {CheerioCrawlerOptions<RequestUserData, SessionUserData>} options
+     * @param {CheerioCrawlerOptions} options
      * All `CheerioCrawler` parameters are passed via an options object.
      */
-    constructor(options?: CheerioCrawlerOptions<RequestUserData, SessionUserData>);
+    constructor(options?: CheerioCrawlerOptions);
     supportedMimeTypes: Set<string>;
     requestOptions: utilsRequest.RequestAsBrowserOptions;
-    handlePageFunction: CheerioHandlePage<RequestUserData, SessionUserData>;
+    handlePageFunction: CheerioHandlePage;
     handlePageTimeoutMillis: number;
     requestTimeoutMillis: number;
     ignoreSslErrors: boolean;
@@ -544,32 +540,32 @@ declare class CheerioCrawler<RequestUserData, SessionUserData> {
     apifyProxySession: string;
     proxyUrls: any[];
     lastUsedProxyUrlIndex: number;
-    prepareRequestFunction: PrepareRequest<RequestUserData>;
+    prepareRequestFunction: PrepareRequest;
     persistCookiesPerSession: boolean;
     useSessionPool: boolean;
-    /** @type {BasicCrawler<RequestUserData, SessionUserData>} */
-    basicCrawler: BasicCrawler<RequestUserData, SessionUserData>;
-    isRunningPromise: Promise<void> | null;
+    /** @ignore */
+    basicCrawler: any;
+    isRunningPromise: any;
     /**
      * Runs the crawler. Returns promise that gets resolved once all the requests got processed.
      *
      * @return {Promise<void>}
      */
     run(): Promise<void>;
-    autoscaledPool: AutoscaledPool | undefined;
+    autoscaledPool: any;
     /**
      * Wrapper around handlePageFunction that opens and closes pages etc.
      *
      * @param {Object} options
-     * @param {Request<*>} options.request
+     * @param {Request} options.request
      * @param {AutoscaledPool} options.autoscaledPool
-     * @param {Session<*>} options.session
+     * @param {Session} options.session
      * @ignore
      */
     _handleRequestFunction({ request, autoscaledPool, session }: {
-        request: Request<any>;
+        request: Request;
         autoscaledPool: AutoscaledPool;
-        session: Session<any>;
+        session: Session;
     }): Promise<any>;
     /**
      * Function to make the HTTP request. It performs optimizations
@@ -577,13 +573,13 @@ declare class CheerioCrawler<RequestUserData, SessionUserData> {
      * received content type matches text/html, application/xml, application/xhtml+xml.
      *
      * @param {Object} options
-     * @param {Request<*>} options.request
-     * @param {Session<*>} options.session
+     * @param {Request} options.request
+     * @param {Session} options.session
      * @ignore
      */
     _requestFunction({ request, session }: {
-        request: Request<any>;
-        session: Session<any>;
+        request: Request;
+        session: Session;
     }): Promise<{
         dom: any;
         isXml: boolean;
@@ -605,11 +601,11 @@ declare class CheerioCrawler<RequestUserData, SessionUserData> {
     }>;
     /**
      * Combines the provided `requestOptions` with mandatory (non-overridable) values.
-     * @param {Request<*>} request
-     * @param {Session<*>} [session]
+     * @param {Request} request
+     * @param {Session} [session]
      * @ignore
      */
-    _getRequestOptions(request: Request<any>, session?: Session<any> | undefined): utilsRequest.RequestAsBrowserOptions & {
+    _getRequestOptions(request: Request, session?: Session | undefined): utilsRequest.RequestAsBrowserOptions & {
         url: string;
         method: string;
         headers: any;
@@ -623,11 +619,11 @@ declare class CheerioCrawler<RequestUserData, SessionUserData> {
     /**
      * Enables the use of a proxy by returning a proxy URL
      * based on configured options or null if no proxy is used.
-     * @param {Session<*>} [session]
+     * @param {Session} [session]
      * @returns {(string|null)}
      * @ignore
      */
-    _getProxyUrl(session?: Session<any> | undefined): string | null;
+    _getProxyUrl(session?: Session | undefined): string | null;
     _encodeResponse(request: any, response: any, encoding: any): {
         response: any;
         encoding: any;
@@ -641,17 +637,17 @@ declare class CheerioCrawler<RequestUserData, SessionUserData> {
     _extendSupportedMimeTypes(additionalMimeTypes: (string | Object)[]): void;
     /**
      * Handles blocked request
-     * @param {Session<*>} session
+     * @param {Session} session
      * @param {number} statusCode
      * @private
      */
-    _throwOnBlockedRequest(session: Session<any>, statusCode: number): void;
+    _throwOnBlockedRequest(session: Session, statusCode: number): void;
     /**
      * Handles timeout request
-     * @param {Session<*>} session
+     * @param {Session} session
      * @private
      */
-    _handleRequestTimeout(session: Session<any>): void;
+    _handleRequestTimeout(session: Session): void;
     /**
      * @param {Object} options
      * @param {Error} options.error
@@ -661,7 +657,7 @@ declare class CheerioCrawler<RequestUserData, SessionUserData> {
      */
     _defaultHandleFailedRequestFunction({ error, request }: {
         error: Error;
-        request: Request<any>;
+        request: Request;
     }): Promise<void>;
 }
 import { RequestList } from "../request_list";
@@ -674,4 +670,3 @@ import Request from "../request";
 import { IncomingMessage } from "http";
 import AutoscaledPool from "../autoscaling/autoscaled_pool";
 import { Session } from "../session_pool/session";
-import BasicCrawler from "./basic_crawler";

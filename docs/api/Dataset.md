@@ -79,8 +79,8 @@ the data from this item onwards to prevent duplicates.
 
 **Params**
 
--   **`data`**: `T` | `Array<T>` - Object or array of objects containing data to be stored in the default dataset. The objects must be serializable to
-    JSON and the JSON representation of each object must be smaller than 9MB.
+-   **`data`**: `object` | `Array<object>` - Object or array of objects containing data to be stored in the default dataset. The objects must be
+    serializable to JSON and the JSON representation of each object must be smaller than 9MB.
 
 ---
 
@@ -88,7 +88,7 @@ the data from this item onwards to prevent duplicates.
 
 ## `dataset.getData([options])`
 
-**Returns**: [`Promise<DatasetContent<T>>`](/docs/typedefs/dataset-content)
+**Returns**: [`Promise<DatasetContent>`](/docs/typedefs/dataset-content)
 
 Returns {DatasetContent} object holding the items in the dataset based on the provided parameters.
 
@@ -187,7 +187,7 @@ await dataset.forEach(async (item, index) => {
 
 **Params**
 
--   **`iteratee`**: [`DatasetConsumer<T, *>`](/docs/typedefs/dataset-consumer) - A function that is called for every item in the dataset.
+-   **`iteratee`**: [`DatasetConsumer`](/docs/typedefs/dataset-consumer) - A function that is called for every item in the dataset.
 -   **`[options]`**: `Object` - All `forEach()` parameters are passed via an options object with the following keys:
     -   **`[.desc]`**: `boolean` <code> = false</code> - If `true` then the objects are sorted by `createdAt` in descending order.
     -   **`[.fields]`**: `Array<string>` - If provided then returned objects will only contain specified keys.
@@ -200,7 +200,7 @@ await dataset.forEach(async (item, index) => {
 
 ## `dataset.map(iteratee, [options])`
 
-**Returns**: `Promise<Array<R>>`
+**Returns**: `Promise<Array<object>>`
 
 Produces a new array of values by mapping each value in list through a transformation function `iteratee()`. Each invocation of `iteratee()` is called
 with two arguments: `(element, index)`.
@@ -209,7 +209,7 @@ If `iteratee` returns a `Promise` then it's awaited before a next call.
 
 **Params**
 
--   **`iteratee`**: [`DatasetMapper<T, R>`](/docs/typedefs/dataset-mapper)
+-   **`iteratee`**: [`DatasetMapper`](/docs/typedefs/dataset-mapper)
 -   **`[options]`**: `Object` - All `map()` parameters are passed via an options object with the following keys:
     -   **`[.desc]`**: `boolean` <code> = false</code> - If `true` then the objects are sorted by createdAt in descending order.
     -   **`[.fields]`**: `Array<string>` - If provided then returned objects will only contain specified keys
@@ -221,7 +221,7 @@ If `iteratee` returns a `Promise` then it's awaited before a next call.
 
 ## `dataset.reduce(iteratee, memo, [options])`
 
-**Returns**: `Promise<A>`
+**Returns**: `Promise<object>`
 
 Reduces a list of values down to a single value.
 
@@ -235,8 +235,8 @@ If `iteratee()` returns a `Promise` then it's awaited before a next call.
 
 **Params**
 
--   **`iteratee`**: [`DatasetReducer<T, A, R>`](/docs/typedefs/dataset-reducer)
--   **`memo`**: `A` - Initial state of the reduction.
+-   **`iteratee`**: [`DatasetReducer`](/docs/typedefs/dataset-reducer)
+-   **`memo`**: `object` - Initial state of the reduction.
 -   **`[options]`**: `Object` - All `reduce()` parameters are passed via an options object with the following keys:
     -   **`[.desc]`**: `boolean` <code> = false</code> - If `true` then the objects are sorted by createdAt in descending order.
     -   **`[.fields]`**: `Array<string>` - If provided then returned objects will only contain specified keys

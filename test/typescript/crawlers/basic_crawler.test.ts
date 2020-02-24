@@ -16,7 +16,7 @@ describe('BasicCrawler TS', () => {
                 addRequest: () => {}
             };
 
-            const options: BasicCrawlerOptions<RequestData, SessionData> = {
+            const options: BasicCrawlerOptions = {
                 handleRequestFunction: null as any,
                 requestQueue,
                 sessionPoolOptions: {

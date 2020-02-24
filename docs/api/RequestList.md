@@ -134,7 +134,7 @@ Returns `true` if all requests were already handled and there are no more left.
 
 ## `requestList.fetchNextRequest()`
 
-**Returns**: [`Promise<(Request<*>|null)>`](/docs/api/request)
+**Returns**: [`Promise<(Request|null)>`](/docs/api/request)
 
 Gets the next [`Request`](/docs/api/request) to process. First, the function gets a request previously reclaimed using the
 [`RequestList.reclaimRequest()`](/docs/api/request-list#reclaimrequest) function, if there is any. Otherwise it gets the next request from sources.

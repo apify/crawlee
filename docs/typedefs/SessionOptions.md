@@ -25,7 +25,7 @@ Number of seconds after which the session is considered as expired.
 
 ### `userData`
 
-**Type**: [`SessionUserData`](/docs/api/session)
+**Type**: `object`
 
 Object where custom user data can be stored. For example custom headers.
 
@@ -92,7 +92,7 @@ Session should be used only a limited amount of times. This number indicates how
 
 ### `sessionPool`
 
-**Type**: [`SessionPool<SessionUserData>`](/docs/api/session-pool)
+**Type**: [`SessionPool`](/docs/api/session-pool)
 
 SessionPool instance. Session will emit the `sessionRetired` event on this instance.
 

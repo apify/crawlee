@@ -55,7 +55,7 @@ import { RequestTransform } from './shared';
  * @param {CheerioStatic} [options.$]
  *   [`Cheerio`](https://github.com/cheeriojs/cheerio) function with loaded HTML.
  *   Either `page` or `$` option must be provided.
- * @param {RequestQueue<*>} options.requestQueue
+ * @param {RequestQueue} options.requestQueue
  *   A request queue to which the URLs will be enqueued.
  * @param {string} [options.selector='a']
  *   A CSS selector matching links to be enqueued.
@@ -91,7 +91,7 @@ import { RequestTransform } from './shared';
  *       }
  *   }
  *   ```
- * @return {Promise<Array<QueueOperationInfo<*>>>}
+ * @return {Promise<Array<QueueOperationInfo>>}
  *   Promise that resolves to an array of {@link QueueOperationInfo} objects.
  * @memberOf utils
  * @name enqueueLinks

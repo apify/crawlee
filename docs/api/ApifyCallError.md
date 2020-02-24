@@ -19,7 +19,7 @@ Error message
 
 ### `run`
 
-**Type**: [`ActorRun<null>`](/docs/typedefs/actor-run)
+**Type**: [`ActorRun`](/docs/typedefs/actor-run)
 
 Object representing the failed actor run.
 
@@ -39,7 +39,7 @@ Contains `"ApifyCallError"`
 
 **Params**
 
--   **`run`**: [`ActorRun<null>`](/docs/typedefs/actor-run)
+-   **`run`**: [`ActorRun`](/docs/typedefs/actor-run)
 -   **`[message]`**: `string` <code> = &quot;The actor invoked by Apify.call() did not succeed&quot;</code>
 
 ---

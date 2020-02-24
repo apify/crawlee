@@ -227,7 +227,7 @@ class PuppeteerPool {
 
         // Config.
 
-        /** @type {SessionPool<any>} */
+        /** @type {SessionPool} */
         this.sessionPool = sessionPool;
         this.reusePages = reusePages;
         this.maxOpenPagesPerInstance = maxOpenPagesPerInstance;

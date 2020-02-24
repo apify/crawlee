@@ -162,7 +162,7 @@ URL on which the web server running inside actor run's Docker container can be a
 
 ### `output`
 
-**Type**: `T` | `null` | `undefined`
+**Type**: `object` | `null` | `undefined`
 
 Contains output of the actor run. The value is `null` or `undefined` in case the actor is still running, or if you pass `false` to the `fetchOutput`
 option of [`Apify.call()`](/docs/api/apify#call).

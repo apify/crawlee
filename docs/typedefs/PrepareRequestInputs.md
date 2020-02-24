@@ -9,7 +9,7 @@ title: PrepareRequestInputs
 
 ### `request`
 
-**Type**: [`Request<RequestUserData>`](/docs/api/request)
+**Type**: [`Request`](/docs/api/request)
 
 Original instance fo the {Request} object. Must be modified in-place.
 

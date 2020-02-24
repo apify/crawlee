@@ -23,7 +23,7 @@ Persistable [`Session`](/docs/api/session) state.
 
 ### `userData`
 
-**Type**: [`SessionUserData`](/docs/api/session)
+**Type**: `object`
 
 ---
 

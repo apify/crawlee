@@ -38,7 +38,7 @@
  * @param {CheerioStatic} [options.$]
  *   [`Cheerio`](https://github.com/cheeriojs/cheerio) function with loaded HTML.
  *   Either `page` or `$` option must be provided.
- * @param {RequestQueue<*>} options.requestQueue
+ * @param {RequestQueue} options.requestQueue
  *   A request queue to which the URLs will be enqueued.
  * @param {string} [options.selector='a']
  *   A CSS selector matching links to be enqueued.
@@ -74,7 +74,7 @@
  *       }
  *   }
  *   ```
- * @return {Promise<Array<QueueOperationInfo<*>>>}
+ * @return {Promise<Array<QueueOperationInfo>>}
  *   Promise that resolves to an array of {@link QueueOperationInfo} objects.
  * @memberOf utils
  * @name enqueueLinks
@@ -83,12 +83,12 @@
 export function enqueueLinks(options?: {
     page?: Page;
     $?: CheerioStatic;
-    requestQueue: RequestQueue<any>;
+    requestQueue: RequestQueue;
     selector?: string;
     baseUrl?: string;
     pseudoUrls?: string[] | Object[];
     transformRequestFunction?: RequestTransform;
-}): Promise<QueueOperationInfo<any>[]>;
+}): Promise<QueueOperationInfo[]>;
 /**
  * Extracts URLs from a given Puppeteer Page.
  *

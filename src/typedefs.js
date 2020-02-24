@@ -8,7 +8,6 @@
  * For more details, see
  * [Runs.](https://docs.apify.com/actor/run)
  *
- * @template T
  * @typedef ActorRun
  * @property {string} id
  *   Actor run ID
@@ -70,7 +69,7 @@
  *   For more details, see
  *   [Container web server](https://docs.apify.com/actor/run#container-web-server)
  *   in Apify actor documentation.
- * @property {(T|null|undefined)} output
+ * @property {(object|null|undefined)} output
  *   Contains output of the actor run. The value is `null` or `undefined` in case the actor is still running,
  *   or if you pass `false` to the `fetchOutput` option of {@link Apify#call}.
  *

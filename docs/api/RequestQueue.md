@@ -88,7 +88,7 @@ await queue.reclaimRequest(request2);
 
 ## `requestQueue.addRequest(request, [options])`
 
-**Returns**: [`Promise<QueueOperationInfo<UserData>>`](/docs/typedefs/queue-operation-info)
+**Returns**: [`Promise<QueueOperationInfo>`](/docs/typedefs/queue-operation-info)
 
 Adds a request to the queue.
 
@@ -100,9 +100,8 @@ function.
 
 **Params**
 
--   **`request`**: [`Request<UserData&gt;`](/docs/api/request) | [`RequestOptions.&lt;UserData>`](/docs/typedefs/request-options#<userdata>) -
-    [`Request`](/docs/api/request) object or vanilla object with request data. Note that the function sets the `uniqueKey` and `id` fields to the
-    passed object.
+-   **`request`**: [`Request`](/docs/api/request) | [`RequestOptions`](/docs/typedefs/request-options) - [`Request`](/docs/api/request) object or
+    vanilla object with request data. Note that the function sets the `uniqueKey` and `id` fields to the passed object.
 -   **`[options]`**: `Object`
     -   **`[.forefront]`**: `boolean` <code> = false</code> - If `true`, the request will be added to the foremost position in the queue.
 
@@ -112,7 +111,7 @@ function.
 
 ## `requestQueue.getRequest(requestId)`
 
-**Returns**: [`Promise<(Request<UserData>|null)>`](/docs/api/request) - Returns the request object, or `null` if it was not found.
+**Returns**: [`Promise<(Request|null)>`](/docs/api/request) - Returns the request object, or `null` if it was not found.
 
 Gets the request from the queue specified by ID.
 
@@ -126,7 +125,7 @@ Gets the request from the queue specified by ID.
 
 ## `requestQueue.fetchNextRequest()`
 
-**Returns**: [`Promise<(Request<UserData>|null)>`](/docs/api/request) - Returns the request object or `null` if there are no more pending requests.
+**Returns**: [`Promise<(Request|null)>`](/docs/api/request) - Returns the request object or `null` if there are no more pending requests.
 
 Returns a next request in the queue to be processed, or `null` if there are no more pending requests.
 
@@ -144,14 +143,14 @@ requests in queue were finished, use [`RequestQueue.isFinished()`](/docs/api/req
 
 ## `requestQueue.markRequestHandled(request)`
 
-**Returns**: [`Promise<QueueOperationInfo<UserData>>`](/docs/typedefs/queue-operation-info)
+**Returns**: [`Promise<QueueOperationInfo>`](/docs/typedefs/queue-operation-info)
 
 Marks a request that was previously returned by the [`RequestQueue.fetchNextRequest()`](/docs/api/request-queue#fetchnextrequest) function as handled
 after successful processing. Handled requests will never again be returned by the `fetchNextRequest` function.
 
 **Params**
 
--   **`request`**: [`Request<UserData>`](/docs/api/request)
+-   **`request`**: [`Request`](/docs/api/request)
 
 ---
 
@@ -159,7 +158,7 @@ after successful processing. Handled requests will never again be returned by th
 
 ## `requestQueue.reclaimRequest(request, [options])`
 
-**Returns**: [`Promise<QueueOperationInfo<UserData>>`](/docs/typedefs/queue-operation-info)
+**Returns**: [`Promise<QueueOperationInfo>`](/docs/typedefs/queue-operation-info)
 
 Reclaims a failed request back to the queue, so that it can be returned for processed later again by another call to
 [`RequestQueue.fetchNextRequest()`](/docs/api/request-queue#fetchnextrequest). The request record in the queue is updated using the provided `request`
@@ -167,7 +166,7 @@ parameter. For example, this lets you store the number of retries or error messa
 
 **Params**
 
--   **`request`**: [`Request<UserData>`](/docs/api/request)
+-   **`request`**: [`Request`](/docs/api/request)
 -   **`[options]`**: `Object` - **`[.forefront]`**: `boolean` <code> = false</code> - If `true` then the request it placed to the beginning of the
     queue, so that it's returned in the next call to [`RequestQueue.fetchNextRequest()`](/docs/api/request-queue#fetchnextrequest). By default, it's
     put to the end of the queue.

@@ -397,7 +397,7 @@ const compileScript = (scriptString, context = Object.create(null)) => {
  *
  * @param {Page} page
  *   Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
- * @param {Request<*>} request
+ * @param {Request} request
  * @param {DirectNavigationOptions} gotoOptions Custom options for `page.goto()`.
  * @return {Promise<(Response | null)>}
  *

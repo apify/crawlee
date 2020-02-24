@@ -9,7 +9,7 @@ title: PuppeteerCrawlerOptions
 
 ### `handlePageFunction`
 
-**Type**: [`PuppeteerHandlePage<RequestUserData, SessionUserData>`](/docs/typedefs/puppeteer-handle-page)
+**Type**: [`PuppeteerHandlePage`](/docs/typedefs/puppeteer-handle-page)
 
 Function that is called to process each request. It is passed an object with the following fields:
 
@@ -48,7 +48,7 @@ Static list of URLs to be processed. Either `requestList` or `requestQueue` opti
 
 ### `requestQueue`
 
-**Type**: [`RequestQueue<RequestUserData>`](/docs/api/request-queue)
+**Type**: [`RequestQueue`](/docs/api/request-queue)
 
 Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites. Either `requestList` or `requestQueue` option must be
 provided (or both).
@@ -65,7 +65,7 @@ Timeout in which the function passed as `handlePageFunction` needs to finish, in
 
 ### `gotoFunction`
 
-**Type**: [`PuppeteerGoto<RequestUserData, SessionUserData>`](/docs/typedefs/puppeteer-goto)
+**Type**: [`PuppeteerGoto`](/docs/typedefs/puppeteer-goto)
 
 Overrides the function that opens the page in Puppeteer. The function should return the result of Puppeteer's
 [page.goto()](https://pptr.dev/#?product=Puppeteer&show=api-pagegotourl-options) function, i.e. a `Promise` resolving to the
@@ -91,7 +91,7 @@ will not be used and needs to be configured in the new `gotoFunction()`.
 
 ### `handleFailedRequestFunction`
 
-**Type**: [`HandleFailedRequest<RequestUserData>`](/docs/typedefs/handle-failed-request)
+**Type**: [`HandleFailedRequest`](/docs/typedefs/handle-failed-request)
 
 A function to handle requests that failed more than `option.maxRequestRetries` times.
 
@@ -196,7 +196,7 @@ Session as bad after a request timeout.
 
 ### `sessionPoolOptions`
 
-**Type**: [`SessionPoolOptions<SessionUserData>`](/docs/typedefs/session-pool-options)
+**Type**: [`SessionPoolOptions`](/docs/typedefs/session-pool-options)
 
 Custom options passed to the underlying [`SessionPool`](/docs/api/session-pool) constructor.
 

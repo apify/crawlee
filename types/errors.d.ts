@@ -5,18 +5,18 @@ export const APIFY_CALL_ERROR_NAME: "ApifyCallError";
  *
  * @property {string} message
  *   Error message
- * @property {ActorRun<null>} run
+ * @property {ActorRun} run
  *   Object representing the failed actor run.
  * @property {string} name
  *   Contains `"ApifyCallError"`
  */
 export class ApifyCallError extends Error {
     /**
-     * @param {ActorRun<null>} run
+     * @param {ActorRun} run
      * @param {string} [message]
      */
-    constructor(run: ActorRun<null>, message?: string | undefined);
-    run: ActorRun<null>;
+    constructor(run: ActorRun, message?: string | undefined);
+    run: ActorRun;
 }
 /**
  * TimeoutError class.

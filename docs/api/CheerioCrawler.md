@@ -97,14 +97,8 @@ settings on the fly, to pause the crawler by calling [`AutoscaledPool.pause()`](
 
 **Params**
 
--   **`options`**: [`CheerioCrawlerOptions<RequestUserData, SessionUserData>`](/docs/typedefs/cheerio-crawler-options) - All `CheerioCrawler`
-    parameters are passed via an options object.
-
----
-
-<a name="basiccrawler"></a>
-
-## `cheerioCrawler.basicCrawler`
+-   **`options`**: [`CheerioCrawlerOptions`](/docs/typedefs/cheerio-crawler-options) - All `CheerioCrawler` parameters are passed via an options
+    object.
 
 ---
 

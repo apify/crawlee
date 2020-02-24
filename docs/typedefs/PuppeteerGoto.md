@@ -11,6 +11,6 @@ title: PuppeteerGoto
 
 **Params**
 
--   **`inputs`**: [`PuppeteerGotoInputs<RequestUserData, SessionUserData>`](/docs/typedefs/puppeteer-goto-inputs) - Arguments passed to this callback.
+-   **`inputs`**: [`PuppeteerGotoInputs`](/docs/typedefs/puppeteer-goto-inputs) - Arguments passed to this callback.
 
 ---

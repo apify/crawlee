@@ -9,12 +9,11 @@ export const STORAGE_CONSISTENCY_DELAY_MILLIS: 3000;
  * {@link RequestQueue} functions as well as
  * {@link utils#enqueueLinks}.
  *
- * @template UserData
  * @typedef QueueOperationInfo
  * @property {boolean} wasAlreadyPresent Indicates if request was already present in the queue.
  * @property {boolean} wasAlreadyHandled Indicates if request was already marked as handled.
  * @property {string} requestId The ID of the added request
- * @property {Request<UserData>} request The original {@link Request} object passed to the `RequestQueue` function.
+ * @property {Request} request The original {@link Request} object passed to the `RequestQueue` function.
  */
 /**
  * Represents a queue of URLs to crawl, which is used for deep crawling of websites
@@ -80,9 +79,8 @@ export const STORAGE_CONSISTENCY_DELAY_MILLIS: 3000;
  * await queue.reclaimRequest(request2);
  * ```
  * @hideconstructor
- * @template UserData
  */
-export class RequestQueue<UserData> {
+export class RequestQueue {
     /**
      * @param {string} queueId
      * @param {string} [queueName]
@@ -114,22 +112,22 @@ export class RequestQueue<UserData> {
      * To add multiple requests to the queue by extracting links from a webpage,
      * see the {@link utils#enqueueLinks} helper function.
      *
-     * @param {(Request<UserData>|RequestOptions<UserData>)} request {@link Request} object or vanilla object with request data.
+     * @param {(Request|RequestOptions)} request {@link Request} object or vanilla object with request data.
      * Note that the function sets the `uniqueKey` and `id` fields to the passed object.
      * @param {Object} [options]
      * @param {boolean} [options.forefront=false] If `true`, the request will be added to the foremost position in the queue.
-     * @return {Promise<QueueOperationInfo<UserData>>}
+     * @return {Promise<QueueOperationInfo>}
      */
-    addRequest(request: Request<UserData> | RequestOptions<UserData>, options?: {
+    addRequest(request: Request | RequestOptions, options?: {
         forefront?: boolean;
-    } | undefined): Promise<QueueOperationInfo<UserData>>;
+    } | undefined): Promise<QueueOperationInfo>;
     /**
      * Gets the request from the queue specified by ID.
      *
      * @param {string} requestId ID of the request.
-     * @return {Promise<Request<UserData> | null>} Returns the request object, or `null` if it was not found.
+     * @return {Promise<(Request | null)>} Returns the request object, or `null` if it was not found.
      */
-    getRequest(requestId: string): Promise<Request<UserData> | null>;
+    getRequest(requestId: string): Promise<Request | null>;
     /**
      * Returns a next request in the queue to be processed, or `null` if there are no more pending requests.
      *
@@ -144,37 +142,37 @@ export class RequestQueue<UserData> {
      * To check whether all requests in queue were finished,
      * use {@link RequestQueue#isFinished} instead.
      *
-     * @returns {Promise<(Request<UserData>|null)>}
+     * @returns {Promise<(Request|null)>}
      * Returns the request object or `null` if there are no more pending requests.
      */
-    fetchNextRequest(): Promise<Request<UserData> | null>;
+    fetchNextRequest(): Promise<Request | null>;
     /**
      * Marks a request that was previously returned by the
      * {@link RequestQueue#fetchNextRequest}
      * function as handled after successful processing.
      * Handled requests will never again be returned by the `fetchNextRequest` function.
      *
-     * @param {Request<UserData>} request
-     * @return {Promise<QueueOperationInfo<UserData>>}
+     * @param {Request} request
+     * @return {Promise<QueueOperationInfo>}
      */
-    markRequestHandled(request: Request<UserData>): Promise<QueueOperationInfo<UserData>>;
+    markRequestHandled(request: Request): Promise<QueueOperationInfo>;
     /**
      * Reclaims a failed request back to the queue, so that it can be returned for processed later again
      * by another call to {@link RequestQueue#fetchNextRequest}.
      * The request record in the queue is updated using the provided `request` parameter.
      * For example, this lets you store the number of retries or error messages for the request.
      *
-     * @param {Request<UserData>} request
+     * @param {Request} request
      * @param {Object} [options]
      * @param {boolean} [options.forefront=false]
      * If `true` then the request it placed to the beginning of the queue, so that it's returned
      * in the next call to {@link RequestQueue#fetchNextRequest}.
      * By default, it's put to the end of the queue.
-     * @return {Promise<QueueOperationInfo<UserData>>}
+     * @return {Promise<QueueOperationInfo>}
      */
-    reclaimRequest(request: Request<UserData>, options?: {
+    reclaimRequest(request: Request, options?: {
         forefront?: boolean;
-    } | undefined): Promise<QueueOperationInfo<UserData>>;
+    } | undefined): Promise<QueueOperationInfo>;
     /**
      * Resolves to `true` if the next call to {@link RequestQueue#fetchNextRequest}
      * would return `null`, otherwise it resolves to `false`.
@@ -294,7 +292,7 @@ export class RequestQueueLocal {
     _saveRequestIdToQueueOrderNo(filepath: any): Promise<void>;
     _getFilePath(queueOrderNo: any, isHandled?: boolean): string;
     _getQueueOrderNo(forefront?: boolean): number;
-    _getRequestByQueueOrderNo(queueOrderNo: any): Promise<Request<any>>;
+    _getRequestByQueueOrderNo(queueOrderNo: any): Promise<Request>;
     addRequest(request: any, opts?: {}): Promise<{
         requestId: any;
         wasAlreadyHandled: any;
@@ -302,7 +300,7 @@ export class RequestQueueLocal {
         request: any;
     }>;
     getRequest(requestId: any): Promise<any>;
-    fetchNextRequest(): Promise<Request<any> | null>;
+    fetchNextRequest(): Promise<Request | null>;
     markRequestHandled(request: any): Promise<{
         requestId: any;
         wasAlreadyHandled: boolean;
@@ -333,15 +331,15 @@ export class RequestQueueLocal {
     }>;
     _updateMetadata(isModified: any): void;
 }
-export function openRequestQueue<RequestUserData>(queueIdOrName?: string | undefined, options?: {
+export function openRequestQueue(queueIdOrName?: string | undefined, options?: {
     forceCloud?: boolean;
-} | undefined): Promise<RequestQueue<RequestUserData>>;
+} | undefined): Promise<RequestQueue>;
 /**
  * A helper class that is used to report results from various
  * {@link RequestQueue} functions as well as
  * {@link utils#enqueueLinks}.
  */
-export type QueueOperationInfo<UserData> = {
+export type QueueOperationInfo = {
     /**
      * Indicates if request was already present in the queue.
      */
@@ -357,7 +355,7 @@ export type QueueOperationInfo<UserData> = {
     /**
      * The original {@link Request} object passed to the `RequestQueue` function.
      */
-    request: Request<UserData>;
+    request: Request;
 };
 import Request from "./request";
 import { RequestOptions } from "./request";

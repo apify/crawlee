@@ -9,6 +9,6 @@ title: HandleRequest
 
 **Params**
 
--   **`inputs`**: [`HandleRequestInputs<RequestUserData, SessionUserData>`](/docs/typedefs/handle-request-inputs) - Arguments passed to this callback.
+-   **`inputs`**: [`HandleRequestInputs`](/docs/typedefs/handle-request-inputs) - Arguments passed to this callback.
 
 ---

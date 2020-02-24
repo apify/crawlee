@@ -137,8 +137,7 @@ Indicates the time when the request has been processed. Is `null` if the request
 
 **Params**
 
--   **`options`**: [`RequestOptions<UserData>`](/docs/typedefs/request-options) - `Request` parameters including the URL, HTTP method and headers, and
-    others.
+-   **`options`**: [`RequestOptions`](/docs/typedefs/request-options) - `Request` parameters including the URL, HTTP method and headers, and others.
 
 ---
 

@@ -17,7 +17,7 @@ is an instance of the Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&sh
 
 ### `request`
 
-**Type**: [`Request<RequestUserData>`](/docs/api/request)
+**Type**: [`Request`](/docs/api/request)
 
 An instance of the [`Request`](/docs/api/request) object with details about the URL to open, HTTP method etc.
 
@@ -41,7 +41,7 @@ An instance of the [`PuppeteerPool`](/docs/api/puppeteer-pool) used by this `Pup
 
 ### `session`
 
-**Type**: [`Session<SessionUserData>`](/docs/api/session)
+**Type**: [`Session`](/docs/api/session)
 
 `Session` object for this request.
 

@@ -5,13 +5,13 @@ title: DatasetMapper
 
 <a name="datasetmapper"></a>
 
-**Returns**: `R`
+**Returns**: `object`
 
 User-function used in the `Dataset.map()` API.
 
 **Params**
 
--   **`item`**: `T` - Currect [`Dataset`](/docs/api/dataset) entry being processed.
+-   **`item`**: `object` - Currect [`Dataset`](/docs/api/dataset) entry being processed.
 -   **`index`**: `number` - Position of current {Dataset} entry.
 
 ---

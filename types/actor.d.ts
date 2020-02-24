@@ -1,6 +1,6 @@
 export function getEnv(): ApifyEnv;
 export function main(userFunc: UserFunc): void;
-export function call<T extends string | Object | Buffer, R>(actId: string, input?: T | undefined, options?: {
+export function call(actId: string, input?: any, options?: {
     contentType?: string;
     token?: string;
     memoryMbytes?: number;
@@ -10,8 +10,8 @@ export function call<T extends string | Object | Buffer, R>(actId: string, input
     fetchOutput?: boolean;
     disableBodyParser?: boolean;
     webhooks?: any[];
-} | undefined): Promise<ActorRun<R>>;
-export function callTask<R, T extends string | Object | Buffer>(taskId: string, input?: T | undefined, options?: {
+} | undefined): Promise<ActorRun>;
+export function callTask(taskId: string, input?: any, options?: {
     contentType?: string;
     token?: string;
     memoryMbytes?: number;
@@ -19,8 +19,8 @@ export function callTask<R, T extends string | Object | Buffer>(taskId: string, 
     build?: string;
     waitSecs?: string;
     webhooks?: any[];
-} | undefined): Promise<ActorRun<R>>;
-export function metamorph<T extends string | Object | Buffer>(targetActorId: string, input?: T | undefined, options?: {
+} | undefined): Promise<ActorRun>;
+export function metamorph(targetActorId: string, input?: any, options?: {
     contentType?: string;
     build?: string;
 } | undefined): Promise<void>;
@@ -30,12 +30,12 @@ export function getApifyProxyUrl(options?: {
     session?: string;
     country?: string;
 } | undefined): string;
-export function addWebhook<R>({ eventTypes, requestUrl, payloadTemplate, idempotencyKey }: {
+export function addWebhook({ eventTypes, requestUrl, payloadTemplate, idempotencyKey }: {
     eventTypes: string[];
     requestUrl: string;
     payloadTemplate?: string;
     idempotencyKey?: string;
-}): Promise<R>;
+}): Promise<any>;
 /**
  * Parsed representation of the `APIFY_XXX` environmental variables.
  */

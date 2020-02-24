@@ -143,7 +143,6 @@ export const chunkBySize = (items, limitBytes) => {
  * ]);
  * ```
  * @hideconstructor
- * @template T
  */
 export class Dataset {
     /**
@@ -179,7 +178,7 @@ export class Dataset {
      * the items have already been saved to the dataset while other items from the source array were not.
      * To overcome this limitation, the developer may, for example, read the last item saved in the dataset
      * and re-attempt the save of the data from this item onwards to prevent duplicates.
-     * @param {T|Array<T>} data Object or array of objects containing data to be stored in the default dataset.
+     * @param {object|Array<object>} data Object or array of objects containing data to be stored in the default dataset.
      * The objects must be serializable to JSON and the JSON representation of each object must be smaller than 9MB.
      * @return {Promise<void>}
      */
@@ -262,7 +261,7 @@ export class Dataset {
      *   If `true` then, the all the items with errorInfo property will be skipped from the output.
      *   This feature is here to emulate functionality of Apify API version 1 used for
      *   the legacy Apify Crawler product and it's not recommended to use it in new integrations.
-     * @return {Promise<DatasetContent<T>>}
+     * @return {Promise<DatasetContent>}
      */
     async getData(options = {}) {
         // TODO (JC): Do we really need this function? It only works with API but not locally,
@@ -328,7 +327,7 @@ export class Dataset {
      * });
      * ```
      *
-     * @param {DatasetConsumer<T,*>} iteratee A function that is called for every item in the dataset.
+     * @param {DatasetConsumer} iteratee A function that is called for every item in the dataset.
      * @param {Object} [options] All `forEach()` parameters are passed
      *   via an options object with the following keys:
      * @param {boolean} [options.desc=false] If `true` then the objects are sorted by `createdAt` in descending order.
@@ -363,14 +362,13 @@ export class Dataset {
      *
      * If `iteratee` returns a `Promise` then it's awaited before a next call.
      *
-     * @template R
-     * @param {DatasetMapper<T, R>} iteratee
+     * @param {DatasetMapper} iteratee
      * @param {Object} [options] All `map()` parameters are passed
      *   via an options object with the following keys:
      * @param {boolean} [options.desc=false] If `true` then the objects are sorted by createdAt in descending order.
      * @param {string[]} [options.fields] If provided then returned objects will only contain specified keys
      * @param {string} [options.unwind] If provided then objects will be unwound based on provided field.
-     * @return {Promise<Array<R>>}
+     * @return {Promise<Array<object>>}
      */
     map(iteratee, options) {
         const result = [];
@@ -398,16 +396,14 @@ export class Dataset {
      *
      * If `iteratee()` returns a `Promise` then it's awaited before a next call.
      *
-     * @template A
-     * @template R
-     * @param {DatasetReducer<T, A, R>} iteratee
-     * @param {A} memo Initial state of the reduction.
+     * @param {DatasetReducer} iteratee
+     * @param {object} memo Initial state of the reduction.
      * @param {Object} [options] All `reduce()` parameters are passed
      *   via an options object with the following keys:
      * @param {boolean} [options.desc=false] If `true` then the objects are sorted by createdAt in descending order.
      * @param {string[]} [options.fields] If provided then returned objects will only contain specified keys
      * @param {string} [options.unwind] If provided then objects will be unwound based on provided field.
-     * @return {Promise<A>}
+     * @return {Promise<object>}
      */
     reduce(iteratee, memo, options) {
         let currentMemo = memo;
@@ -668,7 +664,6 @@ const getOrCreateDataset = (datasetIdOrName) => {
  *
  * For more details and code examples, see the {@link Dataset} class.
  *
- * @template T
  * @param {string} [datasetIdOrName]
  *   ID or name of the dataset to be opened. If `null` or `undefined`,
  *   the function returns the default dataset associated with the actor run.
@@ -676,7 +671,7 @@ const getOrCreateDataset = (datasetIdOrName) => {
  * @param {boolean} [options.forceCloud=false]
  *   If set to `true` then the function uses cloud storage usage even if the `APIFY_LOCAL_STORAGE_DIR`
  *   environment variable is set. This way it is possible to combine local and cloud storage.
- * @returns {Promise<Dataset<T>>}
+ * @returns {Promise<Dataset>}
  * @memberof module:Apify
  * @name openDataset
  * @function
@@ -714,8 +709,7 @@ export const openDataset = (datasetIdOrName, options = {}) => {
  * **IMPORTANT**: Make sure to use the `await` keyword when calling `pushData()`,
  * otherwise the actor process might finish before the data are stored!
  *
- * @template {(Object|Array<Object>)} T
- * @param {T} item Object or array of objects containing data to be stored in the default dataset.
+ * @param {object} item Object or array of objects containing data to be stored in the default dataset.
  * The objects must be serializable to JSON and the JSON representation of each object must be smaller than 9MB.
  * @returns {Promise<void>}
  *
@@ -726,9 +720,8 @@ export const openDataset = (datasetIdOrName, options = {}) => {
 export const pushData = item => openDataset().then(dataset => dataset.pushData(item));
 
 /**
- * @template {(Object|string|Buffer)} T
  * @typedef DatasetContent
- * @property {Array<T>} items Dataset entries based on chosen format parameter.
+ * @property {Array<object>} items Dataset entries based on chosen format parameter.
  * @property {number} total Total count of entries in the dataset.
  * @property {number} offset Position of the first returned entry in the dataset.
  * @property {number} count Count of dataset entries returned in this set.
@@ -738,33 +731,26 @@ export const pushData = item => openDataset().then(dataset => dataset.pushData(i
 /**
  * User-function used in the `Dataset.forEach()` API.
  *
- * @template {(Object|string|Buffer)} T
- * @template R
  * @callback DatasetConsumer
- * @param {T} item Current {@link Dataset} entry being processed.
+ * @param {object} item Current {@link Dataset} entry being processed.
  * @param {number} index Position of current {Dataset} entry.
- * @returns {R}
+ * @returns {object}
  */
 
 /**
  * User-function used in the `Dataset.map()` API.
  *
- * @template {(Object|string|Buffer)} T
- * @template R
  * @callback DatasetMapper
- * @param {T} item Currect {@link Dataset} entry being processed.
+ * @param {object} item Currect {@link Dataset} entry being processed.
  * @param {number} index Position of current {Dataset} entry.
- * @returns {R}
+ * @returns {object}
  */
 
 /**
  * User-function used in the `Dataset.reduce()` API.
- * @template {(Object|string|Buffer)} T
- * @template A
- * @template R
  * @callback DatasetReducer
- * @param {A} memo Previous state of the reduction.
- * @param {T} item Currect {@link Dataset} entry being processed.
+ * @param {object} memo Previous state of the reduction.
+ * @param {object} item Currect {@link Dataset} entry being processed.
  * @param {number} index Position of current {Dataset} entry.
- * @returns {R}
+ * @returns {object}
  */

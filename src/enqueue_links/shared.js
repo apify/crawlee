@@ -22,7 +22,7 @@ const enqueueLinksPseudoUrlCache = new Map();
 /**
  * Helper factory used in the `enqueueLinks()` and enqueueLinksByClickingElements() function.
  * @param {Array<(string|Object)>} pseudoUrls
- * @return {Array<PseudoUrl<*>>}
+ * @return {Array<PseudoUrl>}
  * @ignore
  */
 export function constructPseudoUrlInstances(pseudoUrls) {
@@ -51,8 +51,8 @@ export function constructPseudoUrlInstances(pseudoUrls) {
 }
 /**
  * @param {Array<(string|Object)>} requestOptions
- * @param {Array<PseudoUrl<*>>} pseudoUrls
- * @return {Array<Request<*>>}
+ * @param {Array<PseudoUrl>} pseudoUrls
+ * @return {Array<Request>}
  * @ignore
  */
 export function createRequests(requestOptions, pseudoUrls) {
@@ -94,10 +94,10 @@ export function createRequestOptions(sources, userData = {}) {
 }
 
 /**
- * @param {Array<Request<*>>} requests
- * @param {RequestQueue<*>} requestQueue
+ * @param {Array<Request>} requests
+ * @param {RequestQueue} requestQueue
  * @param {number} batchSize
- * @return {Promise<Array<QueueOperationInfo<*>>>}
+ * @return {Promise<Array<QueueOperationInfo>>}
  * @ignore
  */
 export async function addRequestsToQueueInBatches(requests, requestQueue, batchSize = 5) {

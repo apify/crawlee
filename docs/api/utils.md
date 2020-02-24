@@ -42,7 +42,7 @@ however, that this may prevent parsing URLs from comma delimited lists, or the U
 
 ## `utils.enqueueLinks(options)`
 
-**Returns**: [`Promise<Array<QueueOperationInfo<*>>>`](/docs/typedefs/queue-operation-info) - Promise that resolves to an array of
+**Returns**: [`Promise<Array<QueueOperationInfo>>`](/docs/typedefs/queue-operation-info) - Promise that resolves to an array of
 [`QueueOperationInfo`](/docs/typedefs/queue-operation-info) objects.
 
 The function finds elements matching a specific CSS selector (HTML anchor (`<a>`) by default) either in a Puppeteer page, or in a Cheerio object
@@ -78,7 +78,7 @@ await Apify.utils.enqueueLinks({
         be provided.
     -   **`[.$]`**: `CheerioStatic` - [`Cheerio`](https://github.com/cheeriojs/cheerio) function with loaded HTML. Either `page` or `$` option must be
         provided.
-    -   **`.requestQueue`**: [`RequestQueue<*>`](/docs/api/request-queue) - A request queue to which the URLs will be enqueued.
+    -   **`.requestQueue`**: [`RequestQueue`](/docs/api/request-queue) - A request queue to which the URLs will be enqueued.
     -   **`[.selector]`**: `string` <code> = &quot;&#x27;a&#x27;&quot;</code> - A CSS selector matching links to be enqueued.
     -   **`[.baseUrl]`**: `string` - A base URL that will be used to resolve relative URLs when using Cheerio. Ignored when using Puppeteer, since the
         relative URL resolution is done inside the browser automatically.

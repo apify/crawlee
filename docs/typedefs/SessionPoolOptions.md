@@ -17,7 +17,7 @@ Maximum size of the pool. Indicates how many sessions are rotated.
 
 ### `sessionOptions`
 
-**Type**: [`SessionOptions<SessionUserData>`](/docs/typedefs/session-options)
+**Type**: [`SessionOptions`](/docs/typedefs/session-options)
 
 The configuration options for {Session} instances.
 
@@ -41,7 +41,7 @@ Session pool persists it's state under this key in Key value store.
 
 ### `createSessionFunction`
 
-**Type**: [`CreateSession<SessionUserData>`](/docs/typedefs/create-session)
+**Type**: [`CreateSession`](/docs/typedefs/create-session)
 
 Custom function that should return `Session` instance. Function receives `SessionPool` instance as a parameter
 

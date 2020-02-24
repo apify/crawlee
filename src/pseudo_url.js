@@ -98,7 +98,6 @@ const parsePurl = (purl) => {
  *
  * if (purl.matches('http://www.example.com/pages/my-awesome-page')) console.log('Match!');
  * ```
- * @template UserData
  */
 class PseudoUrl {
     /**
@@ -106,7 +105,7 @@ class PseudoUrl {
      *   A pseudo-URL string or a regular expression object.
      *   Using a `RegExp` instance enables more granular control,
      *   such as making the matching case sensitive.
-     * @param {RequestOptions<UserData>} requestTemplate
+     * @param {RequestOptions} requestTemplate
      *   Options for the new {@link Request} instances created for matching URLs
      *   by the {@link utils#enqueueLinks} function.
      */
@@ -143,7 +142,7 @@ class PseudoUrl {
      * This enables dynamic overriding of the template.
      *
      * @param {(string|Object)} urlOrProps
-     * @return {Request<UserData>}
+     * @return {Request}
      */
     createRequest(urlOrProps) {
         const props = typeof urlOrProps === 'string' ? { url: urlOrProps } : urlOrProps;

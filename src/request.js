@@ -57,7 +57,6 @@ export function hashPayload(payload) {
  * const foo = request.userData.foo;
  * ```
  *
- * @template UserData
  * @property {string} id
  *   Request ID
  * @property {string} url
@@ -92,7 +91,8 @@ export function hashPayload(payload) {
  */
 class Request {
     /**
-     * @param {RequestOptions<UserData>} options `Request` parameters including the URL, HTTP method and headers, and others.
+     * @param {RequestOptions} options
+     * `Request` parameters including the URL, HTTP method and headers, and others.
      */
     constructor(options = {}) {
         checkParamOrThrow(options, 'options', 'Object');
@@ -148,7 +148,7 @@ class Request {
         this.retryCount = retryCount;
         this.errorMessages = JSON.parse(JSON.stringify(errorMessages));
         this.headers = JSON.parse(JSON.stringify(headers));
-        /** @type {UserData} */
+        /** @type {*} */
         this.userData = JSON.parse(JSON.stringify(userData));
 
         // Requests received from API will have ISOString dates,
@@ -230,7 +230,6 @@ export default Request;
 /**
  * Specifies required and optional fields for constructing a [`Request`](../api/request).
  *
- * @template RequestUserData
  * @typedef RequestOptions
  * @property {string} url URL of the web page to crawl. It must be a non-empty string.
  * @property {string} [uniqueKey] A unique key identifying the request.
@@ -259,7 +258,7 @@ export default Request;
  *       'Content-Type': 'application/json'
  *   }
  *   ```
- * @property {RequestUserData} [userData={}]
+ * @property {object} [userData={}]
  *   Custom user data assigned to the request. Use this to save any request related data to the
  *   request's scope, keeping them accessible on retries, failures etc.
  * @property {boolean} [keepUrlFragment=false]

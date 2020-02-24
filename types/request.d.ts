@@ -10,7 +10,7 @@ export default Request;
 /**
  * Specifies required and optional fields for constructing a [`Request`](../api/request).
  */
-export type RequestOptions<RequestUserData> = {
+export type RequestOptions = {
     /**
      * URL of the web page to crawl. It must be a non-empty string.
      */
@@ -52,7 +52,7 @@ export type RequestOptions<RequestUserData> = {
      * Custom user data assigned to the request. Use this to save any request related data to the
      * request's scope, keeping them accessible on retries, failures etc.
      */
-    userData?: RequestUserData;
+    userData?: any;
     /**
      * If `false` then the hash part of a URL is removed when computing the `uniqueKey` property.
      * For example, this causes the `http://www.example.com#foo` and `http://www.example.com#bar` URLs
@@ -94,7 +94,6 @@ export type RequestOptions<RequestUserData> = {
  * const foo = request.userData.foo;
  * ```
  *
- * @template UserData
  * @property {string} id
  *   Request ID
  * @property {string} url
@@ -127,11 +126,12 @@ export type RequestOptions<RequestUserData> = {
  *   Indicates the time when the request has been processed.
  *   Is `null` if the request has not been crawled yet.
  */
-declare class Request<UserData> {
+declare class Request {
     /**
-     * @param {RequestOptions<UserData>} options `Request` parameters including the URL, HTTP method and headers, and others.
+     * @param {RequestOptions} options
+     * `Request` parameters including the URL, HTTP method and headers, and others.
      */
-    constructor(options?: RequestOptions<UserData>);
+    constructor(options?: RequestOptions);
     /** @type {string} */
     id: string;
     /** @type {string} */
@@ -146,8 +146,8 @@ declare class Request<UserData> {
     retryCount: number;
     errorMessages: any;
     headers: any;
-    /** @type {UserData} */
-    userData: UserData;
+    /** @type {*} */
+    userData: any;
     handledAt: Date | null;
     /**
      * Stores information about an error that occurred during processing of this request.

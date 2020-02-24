@@ -85,14 +85,8 @@ settings on the fly, to pause the crawler by calling [`AutoscaledPool.pause()`](
 
 **Params**
 
--   **`options`**: [`PuppeteerCrawlerOptions<RequestUserData, SessionUserData>`](/docs/typedefs/puppeteer-crawler-options) - All `PuppeteerCrawler`
-    parameters are passed via an options object.
-
----
-
-<a name="basiccrawler"></a>
-
-## `puppeteerCrawler.basicCrawler`
+-   **`options`**: [`PuppeteerCrawlerOptions`](/docs/typedefs/puppeteer-crawler-options) - All `PuppeteerCrawler` parameters are passed via an options
+    object.
 
 ---
 

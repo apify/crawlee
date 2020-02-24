@@ -336,11 +336,10 @@ export const getTypicalChromeExecutablePath = () => {
  * Wraps the provided Promise with another one that rejects with the given errorMessage
  * after the given timeoutMillis, unless the original promise resolves or rejects earlier.
  *
- * @template T
- * @param {Promise<T>} promise
+ * @param {Promise<object>} promise
  * @param {number} timeoutMillis
  * @param {string} errorMessage
- * @return {Promise<T>}
+ * @return {Promise<object>}
  * @ignore
  */
 export const addTimeoutToPromise = (promise, timeoutMillis, errorMessage) => {
@@ -588,7 +587,7 @@ const htmlToText = (html) => {
 /**
  * Creates a standardized debug info from request and response. This info is usually added to dataset under the hidden `#debug` field.
  *
- * @param {(Request<*>|RequestOptions<*>)} request [Apify.Request](https://sdk.apify.com/docs/api/request) object.
+ * @param {(Request|RequestOptions)} request [Apify.Request](https://sdk.apify.com/docs/api/request) object.
  * @param {(IncomingMessage|PuppeteerResponse)} [response]
  *   Puppeteer [`Response`](https://pptr.dev/#?product=Puppeteer&version=v1.11.0&show=api-class-response)
  *   or NodeJS [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_serverresponse).

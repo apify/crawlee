@@ -67,7 +67,7 @@ HTTP headers in the following format:
 
 ### `userData`
 
-**Type**: [`RequestUserData`](/docs/api/request) <code> = {}</code>
+**Type**: `object` <code> = {}</code>
 
 Custom user data assigned to the request. Use this to save any request related data to the request's scope, keeping them accessible on retries,
 failures etc.

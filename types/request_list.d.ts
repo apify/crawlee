@@ -7,7 +7,7 @@ export const SOURCES_PERSISTENCE_KEY: "REQUEST_LIST_SOURCES";
  * @property {RegExp} [regex]
  */
 /**
- * @typedef {Array<(RequestListInput|RequestOptions<*>|Request<*>)>} SourceInput
+ * @typedef {Array<(RequestListInput|RequestOptions|Request)>} SourceInput
  */
 /**
  * @typedef RequestListOptions
@@ -237,16 +237,16 @@ export class RequestList {
      * The function's `Promise` resolves to `null` if there are no more
      * requests to process.
      *
-     * @returns {Promise<(Request<*>|null)>}
+     * @returns {Promise<(Request|null)>}
      */
-    fetchNextRequest(): Promise<Request<any> | null>;
+    fetchNextRequest(): Promise<Request | null>;
     /**
      * Marks request as handled after successful processing.
      *
      * @param {Request<*>} request
      * @returns {Promise<void>}
      */
-    markRequestHandled(request: Request<any>): Promise<void>;
+    markRequestHandled(request: any): Promise<void>;
     /**
      * Reclaims request to the list if its processing failed.
      * The request will become available in the next `this.fetchNextRequest()`.
@@ -254,7 +254,7 @@ export class RequestList {
      * @param {Request<*>} request
      * @returns {Promise<void>}
      */
-    reclaimRequest(request: Request<any>): Promise<void>;
+    reclaimRequest(request: any): Promise<void>;
     /**
      * Adds all fetched requests from a URL from a remote resource.
      *
@@ -264,10 +264,10 @@ export class RequestList {
     /**
      * Fetches URLs from requestsFromUrl and returns them in format of list of requests
      * @param source
-     * @return {Promise<Array<RequestOptions<*>>>}
+     * @return {Promise<Array<RequestOptions>>}
      * @ignore
      */
-    _fetchRequestsFromUrl(source: any): Promise<RequestOptions<any>[]>;
+    _fetchRequestsFromUrl(source: any): Promise<RequestOptions[]>;
     /**
      * Adds given request.
      * If the `opts` parameter is a plain object and not an instance of a `Request`, then the function
@@ -308,13 +308,13 @@ export class RequestList {
      */
     handledCount(): number;
 }
-export function openRequestList(listName: string | null, sources: string[] | (Request<any> | RequestOptions<any> | RequestListInput)[], options?: RequestListOptions | undefined): Promise<RequestList>;
+export function openRequestList(listName: string | null, sources: string[] | (Request | RequestOptions | RequestListInput)[], options?: RequestListOptions | undefined): Promise<RequestList>;
 export type RequestListInput = {
     method?: string;
     requestsFromUrl?: string;
     regex?: RegExp;
 };
-export type SourceInput = (Request<any> | RequestOptions<any> | RequestListInput)[];
+export type SourceInput = (Request | RequestOptions | RequestListInput)[];
 export type RequestListOptions = {
     /**
      * An array of sources of URLs for the `RequestList`. It can be either an array of plain objects that
@@ -341,7 +341,7 @@ export type RequestListOptions = {
      * ]
      * ```
      */
-    sources: (Request<any> | RequestOptions<any> | RequestListInput)[];
+    sources: (Request | RequestOptions | RequestListInput)[];
     /**
      * Identifies the key in the default key-value store under which `RequestList` periodically stores its
      * state (i.e. which URLs were crawled and which not).

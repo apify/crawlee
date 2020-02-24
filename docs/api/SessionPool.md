@@ -58,7 +58,7 @@ Session pool configuration.
 
 **Params**
 
--   **`[options]`**: [`SessionPoolOptions<SessionUserData>`](/docs/typedefs/session-pool-options) - All `SessionPool` configuration options.
+-   **`[options]`**: [`SessionPoolOptions`](/docs/typedefs/session-pool-options) - All `SessionPool` configuration options.
 
 ---
 
@@ -109,7 +109,7 @@ called before you can start using the instance in a meaningful way.
 
 ## `sessionPool.getSession()`
 
-**Returns**: [`Promise<Session<SessionUserData>>`](/docs/api/session)
+**Returns**: [`Promise<Session>`](/docs/api/session)
 
 Gets session. If there is space for new session, it creates and return new session. If the session pool is full, it picks a session from the pool, If
 the picked session is usable it is returned, otherwise it creates and returns a new one.

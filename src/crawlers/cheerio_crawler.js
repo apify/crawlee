@@ -43,10 +43,8 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
 };
 
 /**
- * @template RequestUserData
- * @template SessionUserData
  * @typedef CheerioCrawlerOptions
- * @property {CheerioHandlePage<RequestUserData, SessionUserData>} handlePageFunction
+ * @property {CheerioHandlePage} handlePageFunction
  *   User-provided function that performs the logic of the crawler. It is called for each page
  *   loaded and parsed by the crawler.
  *
@@ -105,7 +103,7 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  * @property {RequestList} [requestList]
  *   Static list of URLs to be processed.
  *   Either `requestList` or `requestQueue` option must be provided (or both).
- * @property {RequestQueue<RequestUserData>} [requestQueue]
+ * @property {RequestQueue} [requestQueue]
  *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
  *   Either `requestList` or `requestQueue` option must be provided (or both).
  * @property {RequestAsBrowserOptions} [requestOptions]
@@ -127,7 +125,7 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *       proxy,     // Use useApifyProxy or proxyUrls
  *   }
  *   ```
- * @property {PrepareRequest<RequestUserData>} [prepareRequestFunction]
+ * @property {PrepareRequest} [prepareRequestFunction]
  *   A function that executes before the HTTP request is made to the target resource.
  *   This function is suitable for setting dynamic properties such as cookies to the {@link Request}.
  *
@@ -171,7 +169,7 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *   The provided custom proxies' order will be randomized and the resulting list rotated.
  *   Custom proxies are not compatible with Apify Proxy and an attempt to use both
  *   configuration options will cause an error to be thrown on startup.
- * @property {HandleFailedRequest<RequestUserData>} [handleFailedRequestFunction]
+ * @property {HandleFailedRequest} [handleFailedRequestFunction]
  *   A function to handle requests that failed more than `option.maxRequestRetries` times.
  *
  *   The function receives the following object as an argument:
@@ -212,7 +210,7 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  * @property {boolean} [useSessionPool=false]
  *   If set to true Crawler will automatically use Session Pool. It will automatically retire sessions on 403, 401 and 429 status codes.
  *   It also marks Session as bad after a request timeout.
- * @property {SessionPoolOptions<SessionUserData>} [sessionPoolOptions]
+ * @property {SessionPoolOptions} [sessionPoolOptions]
  *   Custom options passed to the underlying {@link SessionPool} constructor.
  * @property {boolean} [persistCookiesPerSession]
  *   Automatically saves cookies to Session. Works only if Session Pool is used.
@@ -303,12 +301,10 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *  You can use it to change the concurrency settings on the fly,
  *  to pause the crawler by calling {@link AutoscaledPool#pause}
  *  or to abort it by calling {@link AutoscaledPool#abort}.
- * @template RequestUserData
- * @template SessionUserData
  */
 class CheerioCrawler {
     /**
-     * @param {CheerioCrawlerOptions<RequestUserData, SessionUserData>} options
+     * @param {CheerioCrawlerOptions} options
      * All `CheerioCrawler` parameters are passed via an options object.
      */
     constructor(options = {}) {
@@ -383,7 +379,7 @@ class CheerioCrawler {
         this.persistCookiesPerSession = persistCookiesPerSession;
         this.useSessionPool = useSessionPool;
 
-        /** @type {BasicCrawler<RequestUserData, SessionUserData>} */
+        /** @ignore */
         this.basicCrawler = new BasicCrawler({
             // Basic crawler options.
             requestList,
@@ -425,9 +421,9 @@ class CheerioCrawler {
      * Wrapper around handlePageFunction that opens and closes pages etc.
      *
      * @param {Object} options
-     * @param {Request<*>} options.request
+     * @param {Request} options.request
      * @param {AutoscaledPool} options.autoscaledPool
-     * @param {Session<*>} options.session
+     * @param {Session} options.session
      * @ignore
      */
     async _handleRequestFunction({ request, autoscaledPool, session }) {
@@ -490,8 +486,8 @@ class CheerioCrawler {
      * received content type matches text/html, application/xml, application/xhtml+xml.
      *
      * @param {Object} options
-     * @param {Request<*>} options.request
-     * @param {Session<*>} options.session
+     * @param {Request} options.request
+     * @param {Session} options.session
      * @ignore
      */
     async _requestFunction({ request, session }) {
@@ -546,8 +542,8 @@ class CheerioCrawler {
 
     /**
      * Combines the provided `requestOptions` with mandatory (non-overridable) values.
-     * @param {Request<*>} request
-     * @param {Session<*>} [session]
+     * @param {Request} request
+     * @param {Session} [session]
      * @ignore
      */
     _getRequestOptions(request, session) {
@@ -587,7 +583,7 @@ class CheerioCrawler {
     /**
      * Enables the use of a proxy by returning a proxy URL
      * based on configured options or null if no proxy is used.
-     * @param {Session<*>} [session]
+     * @param {Session} [session]
      * @returns {(string|null)}
      * @ignore
      */
@@ -656,7 +652,7 @@ class CheerioCrawler {
 
     /**
      * Handles blocked request
-     * @param {Session<*>} session
+     * @param {Session} session
      * @param {number} statusCode
      * @private
      */
@@ -670,7 +666,7 @@ class CheerioCrawler {
 
     /**
      * Handles timeout request
-     * @param {Session<*>} session
+     * @param {Session} session
      * @private
      */
     _handleRequestTimeout(session) {
@@ -694,21 +690,17 @@ class CheerioCrawler {
 export default CheerioCrawler;
 
 /**
- * @template RequestUserData
  * @typedef PrepareRequestInputs
- * @property {Request<RequestUserData>} request Original instance fo the {Request} object. Must be modified in-place.
+ * @property {Request} request Original instance fo the {Request} object. Must be modified in-place.
  */
 
 /**
- * @template RequestUserData
  * @callback PrepareRequest
- * @param {PrepareRequestInputs<RequestUserData>} inputs Arguments passed to this callback.
+ * @param {PrepareRequestInputs} inputs Arguments passed to this callback.
  * @returns {(void|Promise<void>)}
  */
 
 /**
- * @template RequestUserData
- * @template SessionUserData
  * @typedef CheerioHandlePageInputs
  * @property {CheerioSelector} [$]
  *  The [Cheerio](https://cheerio.js.org/) object with parsed HTML.
@@ -716,7 +708,7 @@ export default CheerioCrawler;
  *  The request body of the web page.
  * @property {*} [json]
  *  The parsed object from JSON string if the response contains the content type application/json.
- * @property {Request<RequestUserData>} request
+ * @property {Request} request
  *   The original {@link Request} object.
  * @property {{ type: string, encoding: string }} contentType
  *  Parsed `Content-Type header: { type, encoding }`.
@@ -728,13 +720,11 @@ export default CheerioCrawler;
  *  You can use it to change the concurrency settings on the fly,
  *  to pause the crawler by calling {@link AutoscaledPool#pause}
  *  or to abort it by calling {@link AutoscaledPool#abort}.
- * @property {Session<SessionUserData>} [session]
+ * @property {Session} [session]
  */
 
 /**
- * @template RequestUserData
- * @template SessionUserData
  * @callback CheerioHandlePage
- * @param {CheerioHandlePageInputs<RequestUserData,SessionUserData>} inputs Arguments passed to this callback.
+ * @param {CheerioHandlePageInputs} inputs Arguments passed to this callback.
  * @returns {Promise<void>}
  */

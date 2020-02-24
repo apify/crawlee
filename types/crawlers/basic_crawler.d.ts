@@ -1,5 +1,5 @@
 export default BasicCrawler;
-export type BasicCrawlerOptions<RequestUserData, SessionUserData> = {
+export type BasicCrawlerOptions = {
     /**
      * User-provided function that performs the logic of the crawler. It is called for each URL to crawl.
      *
@@ -23,7 +23,7 @@ export type BasicCrawlerOptions<RequestUserData, SessionUserData> = {
      * The exceptions are logged to the request using the
      * {@link Request#pushErrorMessage} function.
      */
-    handleRequestFunction: HandleRequest<RequestUserData, SessionUserData>;
+    handleRequestFunction: HandleRequest;
     /**
      * Static list of URLs to be processed.
      * Either `requestList` or `requestQueue` option must be provided (or both).
@@ -33,7 +33,7 @@ export type BasicCrawlerOptions<RequestUserData, SessionUserData> = {
      * Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
      * Either `requestList` or `requestQueue` option must be provided (or both).
      */
-    requestQueue?: RequestQueue<RequestUserData>;
+    requestQueue?: RequestQueue;
     /**
      * Timeout in which the function passed as `handleRequestFunction` needs to finish, in seconds.
      */
@@ -55,7 +55,7 @@ export type BasicCrawlerOptions<RequestUserData, SessionUserData> = {
      * [source code](https://github.com/apifytech/apify-js/blob/master/src/crawlers/basic_crawler.js#L11)
      * for the default implementation of this function.
      */
-    handleFailedRequestFunction?: HandleFailedRequest<RequestUserData>;
+    handleFailedRequestFunction?: HandleFailedRequest;
     /**
      * Indicates how many times the request is retried if {@link BasicCrawlerOptions.handleRequestFunction} fails.
      */
@@ -92,14 +92,14 @@ export type BasicCrawlerOptions<RequestUserData, SessionUserData> = {
     /**
      * The configuration options for {SessionPool} to use.
      */
-    sessionPoolOptions?: SessionPoolOptions<SessionUserData>;
+    sessionPoolOptions?: SessionPoolOptions;
 };
-export type HandleRequest<RequestUserData, SessionUserData> = (inputs: HandleRequestInputs<RequestUserData, SessionUserData>) => Promise<void>;
-export type HandleRequestInputs<RequestUserData, SessionUserData> = {
+export type HandleRequest = (inputs: HandleRequestInputs) => Promise<void>;
+export type HandleRequestInputs = {
     /**
      * The original {Request} object.
      */
-    request: Request<RequestUserData>;
+    request: Request;
     /**
      * A reference to the underlying {@link AutoscaledPool} class that manages the concurrency of the crawler.
      * Note that this property is only initialized after calling the {@link BasicCrawler#run} function.
@@ -108,24 +108,22 @@ export type HandleRequestInputs<RequestUserData, SessionUserData> = {
      * or to abort it by calling {@link AutoscaledPool#abort}.
      */
     autoscaledPool: AutoscaledPool;
-    session?: Session<SessionUserData>;
+    session?: Session;
 };
-export type HandleFailedRequest<RequestUserData> = (inputs: HandleFailedRequestInput<RequestUserData>) => void | Promise<void>;
-export type HandleFailedRequestInput<RequestUserData> = {
+export type HandleFailedRequest = (inputs: HandleFailedRequestInput) => void | Promise<void>;
+export type HandleFailedRequestInput = {
     /**
      * The original {Request} object.
      */
-    request: Request<RequestUserData>;
+    request: Request;
     /**
      * The Error thrown by `handleRequestFunction`.
      */
     error: Error;
 };
 /**
- * @template RequestUserData
- * @template SessionUserData
  * @typedef BasicCrawlerOptions
- * @property {HandleRequest<RequestUserData,SessionUserData>} handleRequestFunction
+ * @property {HandleRequest} handleRequestFunction
  *   User-provided function that performs the logic of the crawler. It is called for each URL to crawl.
  *
  *   The function receives the following object as an argument:
@@ -150,12 +148,12 @@ export type HandleFailedRequestInput<RequestUserData> = {
  * @property {RequestList} [requestList]
  *   Static list of URLs to be processed.
  *   Either `requestList` or `requestQueue` option must be provided (or both).
- * @property {RequestQueue<RequestUserData>} [requestQueue]
+ * @property {RequestQueue} [requestQueue]
  *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
  *   Either `requestList` or `requestQueue` option must be provided (or both).
  * @property {number} [handleRequestTimeoutSecs=60]
  *   Timeout in which the function passed as `handleRequestFunction` needs to finish, in seconds.
- * @property {HandleFailedRequest<RequestUserData>} [handleFailedRequestFunction]
+ * @property {HandleFailedRequest} [handleFailedRequestFunction]
  *   A function to handle requests that failed more than `option.maxRequestRetries` times.
  *
  *   The function receives the following object as an argument:
@@ -192,7 +190,7 @@ export type HandleFailedRequestInput<RequestUserData> = {
  * @property {boolean} [useSessionPool=false]
  *   If set to true. Basic crawler will initialize the  {@link SessionPool} with the corresponding `sessionPoolOptions`.
  *   The session instance will be than available in the `handleRequestFunction`.
- * @property {SessionPoolOptions<SessionUserData>} [sessionPoolOptions] The configuration options for {SessionPool} to use.
+ * @property {SessionPoolOptions} [sessionPoolOptions] The configuration options for {SessionPool} to use.
  */
 /**
  * Provides a simple framework for parallel crawling of web pages.
@@ -258,15 +256,13 @@ export type HandleFailedRequestInput<RequestUserData> = {
  *  You can use it to change the concurrency settings on the fly,
  *  to pause the crawler by calling {@link AutoscaledPool#pause}
  *  or to abort it by calling {@link AutoscaledPool#abort}.
- * @template RequestUserData
- * @template SessionUserData
  */
-declare class BasicCrawler<RequestUserData, SessionUserData> {
+declare class BasicCrawler {
     /**
-     * @param {BasicCrawlerOptions<RequestUserData, SessionUserData>} options
+     * @param {BasicCrawlerOptions} options
      * All `BasicCrawler` parameters are passed via an options object.
      */
-    constructor(options: BasicCrawlerOptions<RequestUserData, SessionUserData>);
+    constructor(options: BasicCrawlerOptions);
     requestList: any;
     requestQueue: any;
     handleRequestFunction: any;
@@ -286,7 +282,7 @@ declare class BasicCrawler<RequestUserData, SessionUserData> {
      */
     run(): Promise<void>;
     autoscaledPool: AutoscaledPool | undefined;
-    sessionPool: import("../session_pool/session_pool").SessionPool<any> | undefined;
+    sessionPool: import("../session_pool/session_pool").SessionPool | undefined;
     _pauseOnMigration(): Promise<void>;
     /**
      * Fetches request from either RequestList or RequestQueue. If request comes from a RequestList
@@ -317,12 +313,12 @@ declare class BasicCrawler<RequestUserData, SessionUserData> {
     /**
      * Handles errors thrown by user provided handleRequestFunction()
      * @param {Error} error
-     * @param {Request<*>} request
-     * @param {(RequestList|RequestQueue<*>)} source
-     * @return {Promise<boolean|void|QueueOperationInfo<*>>} willBeRetried
+     * @param {Request} request
+     * @param {(RequestList|RequestQueue)} source
+     * @return {Promise<boolean|void|QueueOperationInfo>} willBeRetried
      * @ignore
      */
-    _requestFunctionErrorHandler(error: Error, request: Request<any>, source: RequestList | RequestQueue<any>): Promise<boolean | void | QueueOperationInfo<any>>;
+    _requestFunctionErrorHandler(error: Error, request: Request, source: RequestList | RequestQueue): Promise<boolean | void | QueueOperationInfo>;
     /**
      * Updates handledRequestsCount from possibly stored counts,
      * usually after worker migration. Since one of the stores

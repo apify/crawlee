@@ -36,7 +36,7 @@ The ID of the added request
 
 ### `request`
 
-**Type**: [`Request<UserData>`](/docs/api/request)
+**Type**: [`Request`](/docs/api/request)
 
 The original [`Request`](/docs/api/request) object passed to the `RequestQueue` function.
 

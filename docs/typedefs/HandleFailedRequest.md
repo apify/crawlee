@@ -9,6 +9,6 @@ title: HandleFailedRequest
 
 **Params**
 
--   **`inputs`**: [`HandleFailedRequestInput<RequestUserData>`](/docs/typedefs/handle-failed-request-input) - Arguments passed to this callback.
+-   **`inputs`**: [`HandleFailedRequestInput`](/docs/typedefs/handle-failed-request-input) - Arguments passed to this callback.
 
 ---

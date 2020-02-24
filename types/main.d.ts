@@ -48,7 +48,7 @@ declare const exportedUtils: {
     htmlToText: (html: string | CheerioStatic) => string;
     URL_NO_COMMAS_REGEX: RegExp;
     URL_WITH_COMMAS_REGEX: RegExp;
-    createRequestDebugInfo: (request: Request<any> | import("./request").RequestOptions<any>, response?: import("http").IncomingMessage | import("puppeteer").Response | undefined, additionalFields?: Object | undefined) => any;
+    createRequestDebugInfo: (request: Request | import("./request").RequestOptions, response?: import("http").IncomingMessage | import("puppeteer").Response | undefined, additionalFields?: Object | undefined) => any;
     parseContentTypeFromResponse: (response: import("http").IncomingMessage) => {
         type: string;
         charset: string;
@@ -62,7 +62,7 @@ declare const exportedUtils: {
         injectJQuery: (page: import("puppeteer").Page) => Promise<any>;
         injectUnderscore: (page: import("puppeteer").Page) => Promise<any>;
         enqueueRequestsFromClickableElements: (page: any, selector: any, purls: any, requestQueue: any, requestOpts?: {}) => Promise<any[]>;
-        enqueueLinks: (...args: any[]) => Promise<import("./request_queue").QueueOperationInfo<any>[] | undefined>;
+        enqueueLinks: (...args: any[]) => Promise<import("./request_queue").QueueOperationInfo[] | undefined>;
         enqueueLinksByClickingElements: typeof import("./enqueue_links/click_elements").enqueueLinksByClickingElements;
         blockRequests: (page: import("puppeteer").Page, options?: {
             urlPatterns?: string[];
@@ -71,7 +71,7 @@ declare const exportedUtils: {
         blockResources: (page: any, resourceTypes?: string[]) => Promise<void>;
         cacheResponses: (page: import("puppeteer").Page, cache: Object, responseUrlRules: (string | RegExp)[]) => Promise<void>;
         compileScript: (scriptString: string, context?: Object) => Function;
-        gotoExtended: (page: import("puppeteer").Page, request: Request<any>, gotoOptions?: import("puppeteer").DirectNavigationOptions) => Promise<import("puppeteer").Response | null>;
+        gotoExtended: (page: import("puppeteer").Page, request: Request, gotoOptions?: import("puppeteer").DirectNavigationOptions) => Promise<import("puppeteer").Response | null>;
         addInterceptRequestHandler: (page: import("puppeteer").Page, handler: import("./puppeteer_request_interception").InterceptHandler) => Promise<void>;
         removeInterceptRequestHandler: (page: import("puppeteer").Page, handler: import("./puppeteer_request_interception").InterceptHandler) => Promise<void>;
         infiniteScroll: (page: import("puppeteer").Page, options?: {

@@ -14,7 +14,7 @@ describe('CheerioCrawler TS', () => {
     });
 
     describe('CheerioHandlePage',  () => {
-        let testInputs: CheerioHandlePageInputs<any, any>;
+        let testInputs: CheerioHandlePageInputs;
 
         beforeEach(() => {
             const body = '<a href="#">';
@@ -32,7 +32,7 @@ describe('CheerioCrawler TS', () => {
             // This form can be easily reused returning arbitrary type by passing `inputs` from another handler function and
             //   processing the return value there. If returning anything, this function can't be used directly in a crawler.
             // Auto-completion works on all input variables in parameter `inputs`.
-            const x = async (inputs: CheerioHandlePageInputs<any, any>) => {
+            const x = async (inputs: CheerioHandlePageInputs) => {
                 expect(inputs.$!('a').attr('href')).toEqual('#');
             };
 
@@ -47,7 +47,7 @@ describe('CheerioCrawler TS', () => {
         test('Can pass around and call `handler({ var }: { var: Type})`', async () => {
             // This form can also be easily reused as above.
             // Auto-completion works on defined input variables in parameter list.
-            const y = async ({$}: { $?: CheerioStatic }) => {
+            const y = async ({$}: { $?: CheerioSelector }) => {
                 expect($!('a').attr('href')).toEqual('#');
             };
 
@@ -67,7 +67,7 @@ describe('CheerioCrawler TS', () => {
             // Auto-completion works in both cases.
             // Type-checking guards from potential errors in logic, be raising an error if return type does not match what is
             //   expected by the crawler.
-            const z: CheerioHandlePage<any, any> = async ({$ = null}) => {
+            const z: CheerioHandlePage = async ({$ = null}) => {
                 expect($!('a').attr('href')).toEqual('#');
             };
 

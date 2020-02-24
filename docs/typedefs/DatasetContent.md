@@ -9,7 +9,7 @@ title: DatasetContent
 
 ### `items`
 
-**Type**: `Array<T>`
+**Type**: `Array<object>`
 
 Dataset entries based on chosen format parameter.
 

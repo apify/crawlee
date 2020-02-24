@@ -107,7 +107,7 @@ performance.
 **Params**
 
 -   **`page`**: `Page` - Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
--   **`request`**: [`Request<*>`](/docs/api/request)
+-   **`request`**: [`Request`](/docs/api/request)
 -   **`gotoOptions`**: `DirectNavigationOptions` - Custom options for `page.goto()`.
 
 ---
@@ -158,7 +158,7 @@ Saves a full screenshot and HTML of the current page into a Key-Value store.
 
 ## `puppeteer.enqueueLinksByClickingElements(options)`
 
-**Returns**: [`Promise<Array<QueueOperationInfo<UserData>>>`](/docs/typedefs/queue-operation-info) - Promise that resolves to an array of
+**Returns**: [`Promise<Array<QueueOperationInfo>>`](/docs/typedefs/queue-operation-info) - Promise that resolves to an array of
 [`QueueOperationInfo`](/docs/typedefs/queue-operation-info) objects.
 
 The function finds elements matching a specific CSS selector in a Puppeteer page, clicks all those elements using a mouse move and a left mouse button
@@ -206,7 +206,7 @@ await Apify.utils.enqueueLinksByClickingElements({
 -   **`options`**: `Object` - All `enqueueLinksByClickingElements()` parameters are passed via an options object with the following keys:
 
     -   **`.page`**: `Page` - Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
-    -   **`.requestQueue`**: [`RequestQueue<UserData>`](/docs/api/request-queue) - A request queue to which the URLs will be enqueued.
+    -   **`.requestQueue`**: [`RequestQueue`](/docs/api/request-queue) - A request queue to which the URLs will be enqueued.
     -   **`.selector`**: `string` - A CSS selector matching elements to be clicked on. Unlike in
         [`utils.enqueueLinks()`](/docs/api/utils#enqueuelinks), there is no default value. This is to prevent suboptimal use of this function by using
         it too broadly.

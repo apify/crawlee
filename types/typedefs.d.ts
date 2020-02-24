@@ -8,7 +8,7 @@
  * For more details, see
  * [Runs.](https://docs.apify.com/actor/run)
  */
-export type ActorRun<T> = {
+export type ActorRun = {
     /**
      * Actor run ID
      */
@@ -113,5 +113,5 @@ export type ActorRun<T> = {
      * }
      * ```
      */
-    output: T | null | undefined;
+    output: any;
 };

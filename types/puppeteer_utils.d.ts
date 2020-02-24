@@ -1,4 +1,4 @@
-export function gotoExtended(page: Page, request: Request<any>, gotoOptions?: DirectNavigationOptions): Promise<Response | null>;
+export function gotoExtended(page: Page, request: Request, gotoOptions?: DirectNavigationOptions): Promise<Response | null>;
 export function infiniteScroll(page: Page, options?: {
     timeoutSecs?: number;
     waitForSecs?: number;
@@ -9,7 +9,7 @@ export namespace puppeteerUtils {
     export { injectJQuery };
     export { injectUnderscore };
     export { enqueueRequestsFromClickableElements };
-    export function enqueueLinks(...args: any[]): Promise<import("./request_queue").QueueOperationInfo<any>[] | undefined>;
+    export function enqueueLinks(...args: any[]): Promise<import("./request_queue").QueueOperationInfo[] | undefined>;
     export { enqueueLinksByClickingElements };
     export { blockRequests };
     export { blockResources };

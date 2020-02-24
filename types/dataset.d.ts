@@ -51,9 +51,8 @@ export function chunkBySize(items: any[], limitBytes: number): any[];
  * ]);
  * ```
  * @hideconstructor
- * @template T
  */
-export class Dataset<T> {
+export class Dataset {
     /**
      * @param {string} datasetId
      * @param {string} datasetName
@@ -82,11 +81,11 @@ export class Dataset<T> {
      * the items have already been saved to the dataset while other items from the source array were not.
      * To overcome this limitation, the developer may, for example, read the last item saved in the dataset
      * and re-attempt the save of the data from this item onwards to prevent duplicates.
-     * @param {T|Array<T>} data Object or array of objects containing data to be stored in the default dataset.
+     * @param {object|Array<object>} data Object or array of objects containing data to be stored in the default dataset.
      * The objects must be serializable to JSON and the JSON representation of each object must be smaller than 9MB.
      * @return {Promise<void>}
      */
-    pushData(data: T | T[]): Promise<void>;
+    pushData(data: any): Promise<void>;
     /**
      * Returns {DatasetContent} object holding the items in the dataset based on the provided parameters.
      *
@@ -145,7 +144,7 @@ export class Dataset<T> {
      *   If `true` then, the all the items with errorInfo property will be skipped from the output.
      *   This feature is here to emulate functionality of Apify API version 1 used for
      *   the legacy Apify Crawler product and it's not recommended to use it in new integrations.
-     * @return {Promise<DatasetContent<T>>}
+     * @return {Promise<DatasetContent>}
      */
     getData(options?: {
         format?: string;
@@ -166,7 +165,7 @@ export class Dataset<T> {
         skipEmpty?: boolean;
         simplified?: boolean;
         skipFailedPages?: boolean;
-    } | undefined): Promise<DatasetContent<T>>;
+    } | undefined): Promise<DatasetContent>;
     /**
      * Returns an object containing general information about the dataset.
      *
@@ -208,7 +207,7 @@ export class Dataset<T> {
      * });
      * ```
      *
-     * @param {DatasetConsumer<T,*>} iteratee A function that is called for every item in the dataset.
+     * @param {DatasetConsumer} iteratee A function that is called for every item in the dataset.
      * @param {Object} [options] All `forEach()` parameters are passed
      *   via an options object with the following keys:
      * @param {boolean} [options.desc=false] If `true` then the objects are sorted by `createdAt` in descending order.
@@ -217,7 +216,7 @@ export class Dataset<T> {
      * @param {number} [index=0] Specifies the initial index number passed to the `iteratee` function.
      * @return {Promise<void>}
      */
-    forEach(iteratee: DatasetConsumer<T, any>, options?: {
+    forEach(iteratee: DatasetConsumer, options?: {
         desc?: boolean;
         fields?: string[];
         unwind?: string;
@@ -228,20 +227,19 @@ export class Dataset<T> {
      *
      * If `iteratee` returns a `Promise` then it's awaited before a next call.
      *
-     * @template R
-     * @param {DatasetMapper<T, R>} iteratee
+     * @param {DatasetMapper} iteratee
      * @param {Object} [options] All `map()` parameters are passed
      *   via an options object with the following keys:
      * @param {boolean} [options.desc=false] If `true` then the objects are sorted by createdAt in descending order.
      * @param {string[]} [options.fields] If provided then returned objects will only contain specified keys
      * @param {string} [options.unwind] If provided then objects will be unwound based on provided field.
-     * @return {Promise<Array<R>>}
+     * @return {Promise<Array<object>>}
      */
-    map<R>(iteratee: DatasetMapper<T, R>, options?: {
+    map(iteratee: DatasetMapper, options?: {
         desc?: boolean;
         fields?: string[];
         unwind?: string;
-    } | undefined): Promise<R[]>;
+    } | undefined): Promise<any[]>;
     /**
      * Reduces a list of values down to a single value.
      *
@@ -253,22 +251,20 @@ export class Dataset<T> {
      *
      * If `iteratee()` returns a `Promise` then it's awaited before a next call.
      *
-     * @template A
-     * @template R
-     * @param {DatasetReducer<T, A, R>} iteratee
-     * @param {A} memo Initial state of the reduction.
+     * @param {DatasetReducer} iteratee
+     * @param {object} memo Initial state of the reduction.
      * @param {Object} [options] All `reduce()` parameters are passed
      *   via an options object with the following keys:
      * @param {boolean} [options.desc=false] If `true` then the objects are sorted by createdAt in descending order.
      * @param {string[]} [options.fields] If provided then returned objects will only contain specified keys
      * @param {string} [options.unwind] If provided then objects will be unwound based on provided field.
-     * @return {Promise<A>}
+     * @return {Promise<object>}
      */
-    reduce<A, R_1>(iteratee: DatasetReducer<T, A, R_1>, memo: A, options?: {
+    reduce(iteratee: DatasetReducer, memo: any, options?: {
         desc?: boolean;
         fields?: string[];
         unwind?: string;
-    } | undefined): Promise<A>;
+    } | undefined): Promise<any>;
     /**
      * Removes the dataset either from the Apify cloud storage or from the local directory,
      * depending on the mode of operation.
@@ -327,15 +323,15 @@ export class DatasetLocal {
     _readAndParseFile(index: any): Promise<any>;
     _updateMetadata(isModified: any): void;
 }
-export function openDataset<T>(datasetIdOrName?: string | undefined, options?: {
+export function openDataset(datasetIdOrName?: string | undefined, options?: {
     forceCloud?: boolean;
-} | undefined): Promise<Dataset<T>>;
-export function pushData<T extends Object | Object[]>(item: T): Promise<void>;
-export type DatasetContent<T extends string | Object | Buffer> = {
+} | undefined): Promise<Dataset>;
+export function pushData(item: any): Promise<void>;
+export type DatasetContent = {
     /**
      * Dataset entries based on chosen format parameter.
      */
-    items: T[];
+    items: any[];
     /**
      * Total count of entries in the dataset.
      */
@@ -356,12 +352,12 @@ export type DatasetContent<T extends string | Object | Buffer> = {
 /**
  * User-function used in the `Dataset.forEach()` API.
  */
-export type DatasetConsumer<T extends string | Object | Buffer, R> = (item: T, index: number) => R;
+export type DatasetConsumer = (item: any, index: number) => any;
 /**
  * User-function used in the `Dataset.map()` API.
  */
-export type DatasetMapper<T extends string | Object | Buffer, R> = (item: T, index: number) => R;
+export type DatasetMapper = (item: any, index: number) => any;
 /**
  * User-function used in the `Dataset.reduce()` API.
  */
-export type DatasetReducer<T extends string | Object | Buffer, A, R> = (memo: A, item: T, index: number) => R;
+export type DatasetReducer = (memo: any, item: any, index: number) => any;

@@ -312,11 +312,9 @@ let callMemoryWarningIssued = false;
  * [Run actor](https://apify.com/docs/api/v2#/reference/actors/run-collection/run-actor)
  * and several other API endpoints to obtain the output.
  *
- * @template {(Object|string|Buffer)} T
- * @template R
  * @param {string} actId
  *  Either `username/actor-name` or actor ID.
- * @param {T} [input]
+ * @param {object} [input]
  *  Input for the actor. If it is an object, it will be stringified to
  *  JSON and its content type set to `application/json; charset=utf-8`.
  *  Otherwise the `options.contentType` parameter must be provided.
@@ -348,10 +346,10 @@ let callMemoryWarningIssued = false;
  * @param {boolean} [options.disableBodyParser=false]
  *  If `true` then the function will not attempt to parse the
  *  actor's output and will return it in a raw `Buffer`.
- * @param {Array<*>} [options.webhooks] Specifies optional webhooks associated with the actor run, which can be used
+ * @param {Array<object>} [options.webhooks] Specifies optional webhooks associated with the actor run, which can be used
  *  to receive a notification e.g. when the actor finished or failed, see
  *  [ad hook webhooks documentation](https://docs.apify.com/webhooks/ad-hoc-webhooks) for detailed description.
- * @returns {Promise<ActorRun<R>>}
+ * @returns {Promise<ActorRun>}
  * @throws {ApifyCallError} If the run did not succeed, e.g. if it failed or timed out.
  *
  * @memberof module:Apify
@@ -454,11 +452,9 @@ export const call = async (actId, input, options = {}) => {
  * [Run task](https://apify.com/docs/api/v2#/reference/actor-tasks/run-collection/run-task)
  * and several other API endpoints to obtain the output.
  *
- * @template R
- * @template {(Object|string|Buffer)} T
  * @param {string} taskId
  *  Either `username/task-name` or task ID.
- * @param {T} [input]
+ * @param {object} [input]
  *  Input overrides for the actor task. If it is an object, it will be stringified to
  *  JSON and its content type set to `application/json; charset=utf-8`.
  *  Otherwise the `options.contentType` parameter must be provided.
@@ -486,10 +482,10 @@ export const call = async (actId, input, options = {}) => {
  *  If the limit is reached, the returned promise is resolved to a run object that will have
  *  status `READY` or `RUNNING` and it will not contain the actor run output.
  *  If `waitSecs` is null or undefined, the function waits for the actor task to finish (default behavior).
- * @param {Array<*>} [options.webhooks] Specifies optional webhooks associated with the actor run, which can be used
+ * @param {Array<object>} [options.webhooks] Specifies optional webhooks associated with the actor run, which can be used
  *  to receive a notification e.g. when the actor finished or failed, see
  *  [ad hook webhooks documentation](https://docs.apify.com/webhooks/ad-hoc-webhooks) for detailed description.
- * @returns {Promise<ActorRun<R>>}
+ * @returns {Promise<ActorRun>}
  * @throws {ApifyCallError} If the run did not succeed, e.g. if it failed or timed out.
  *
  * @memberof module:Apify
@@ -556,10 +552,9 @@ export const callTask = async (taskId, input, options = {}) => {
  * Transforms this actor run to an actor run of a given actor. The system stops the current container and starts the new container
  * instead. All the default storages are preserved and the new input is stored under the `INPUT-METAMORPH-1` key in the same default key-value store.
  *
- * @template {(Object|string|Buffer)} T
  * @param {string} targetActorId
  *  Either `username/actor-name` or actor ID of an actor to which we want to metamorph.
- * @param {T} [input]
+ * @param {object} [input]
  *  Input for the actor. If it is an object, it will be stringified to
  *  JSON and its content type set to `application/json; charset=utf-8`.
  *  Otherwise the `options.contentType` parameter must be provided.
@@ -729,7 +724,6 @@ export const getApifyProxyUrl = (options = {}) => {
  * Note that webhooks are only supported for actors running on the Apify platform.
  * In local environment, the function will print a warning and have no effect.
  *
- * @template R
  * @param {Object} options
  * @param {string[]} options.eventTypes
  *   Array of event types, which you can set for actor run, see
@@ -749,7 +743,7 @@ export const getApifyProxyUrl = (options = {}) => {
  *   an actor restart or other situation that would cause the `addWebhook()` function to be called again.
  *   We suggest using the actor run ID as the idempotency key. You can get the run ID by calling
  *   {@link Apify#getEnv} function.
- * @return {Promise<R>} The return value is the Webhook object.
+ * @return {Promise<object>} The return value is the Webhook object.
  * For more information, see the [Get webhook](https://apify.com/docs/api/v2#/reference/webhooks/webhook-object/get-webhook) API endpoint.
  *
  * @memberof module:Apify

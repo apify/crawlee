@@ -18,7 +18,7 @@ export const SOURCES_PERSISTENCE_KEY = 'REQUEST_LIST_SOURCES';
  */
 
 /**
- * @typedef {Array<(RequestListInput|RequestOptions<*>|Request<*>)>} SourceInput
+ * @typedef {Array<(RequestListInput|RequestOptions|Request)>} SourceInput
  */
 
 /**
@@ -421,7 +421,7 @@ export class RequestList {
      * The function's `Promise` resolves to `null` if there are no more
      * requests to process.
      *
-     * @returns {Promise<(Request<*>|null)>}
+     * @returns {Promise<(Request|null)>}
      */
     async fetchNextRequest() {
         this._ensureIsInitialized();
@@ -507,7 +507,7 @@ export class RequestList {
     /**
      * Fetches URLs from requestsFromUrl and returns them in format of list of requests
      * @param source
-     * @return {Promise<Array<RequestOptions<*>>>}
+     * @return {Promise<Array<RequestOptions>>}
      * @ignore
      */
     async _fetchRequestsFromUrl(source) {

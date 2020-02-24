@@ -94,16 +94,15 @@ export class KeyValueStore {
      * const store = await Apify.openKeyValueStore();
      * const buffer = await store.getValue('screenshot1.png');
      * ```
-     * @template T
      * @param {string} key
      *   Unique key of the record. It can be at most 256 characters long and only consist
      *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
-     * @returns {Promise<(T|Buffer|string|null)>}
+     * @returns {Promise<(object|Buffer|string|null)>}
      *   Returns a promise that resolves to an object, string
      *   or [](https://nodejs.org/api/buffer.html), depending
      *   on the MIME content type of the record.
      */
-    getValue<T>(key: string): Promise<string | Buffer | T | null>;
+    getValue(key: string): Promise<any>;
     /**
      * Saves or deletes a record in the key-value store.
      * The function returns a promise that resolves once the record has been saved or deleted.
@@ -267,11 +266,11 @@ export class KeyValueStoreLocal {
 export function openKeyValueStore(storeIdOrName?: string | undefined, options?: {
     forceCloud?: boolean;
 } | undefined): Promise<KeyValueStore>;
-export function getValue<T>(key: string): Promise<T | null>;
-export function setValue<T extends string | Object | Buffer | null>(key: string, value: T, options?: {
+export function getValue(key: string): Promise<any>;
+export function setValue(key: string, value: any, options?: {
     contentType?: string;
 } | undefined): Promise<void>;
-export function getInput<T>(): Promise<T | null>;
+export function getInput(): Promise<any>;
 /**
  * User-function used in the  {@link KeyValueStore#forEachKey} method.
  */

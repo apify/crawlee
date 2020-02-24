@@ -195,11 +195,10 @@ export class KeyValueStore {
      * const store = await Apify.openKeyValueStore();
      * const buffer = await store.getValue('screenshot1.png');
      * ```
-     * @template T
      * @param {string} key
      *   Unique key of the record. It can be at most 256 characters long and only consist
      *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
-     * @returns {Promise<(T|Buffer|string|null)>}
+     * @returns {Promise<(object|Buffer|string|null)>}
      *   Returns a promise that resolves to an object, string
      *   or [](https://nodejs.org/api/buffer.html), depending
      *   on the MIME content type of the record.
@@ -629,10 +628,9 @@ export const openKeyValueStore = (storeIdOrName, options = {}) => {
  * For more information, see  {@link Apify#openKeyValueStore}
  * and  {@link KeyValueStore#getValue}.
  *
- * @template T
  * @param {string} key
  *   Unique record key.
- * @returns {Promise<(T|null)>}
+ * @returns {Promise<(object|null)>}
  *   Returns a promise that resolves once the record is stored.
  *
  * @memberof module:Apify
@@ -665,10 +663,9 @@ export const getValue = async (key) => {
  * For more information, see  {@link Apify#openKeyValueStore}
  * and  {@link KeyValueStore#getValue}.
  *
- * @template {(Object|string|Buffer|null)} T
  * @param {string} key
  *   Unique record key.
- * @param {T} value
+ * @param {object} value
  *   Record data, which can be one of the following values:
  *   <ul>
  *     <li>If `null`, the record in the key-value store is deleted.</li>
@@ -709,8 +706,7 @@ export const setValue = async (key, value, options) => {
  * For more information, see  {@link Apify#openKeyValueStore}
  * and {@link KeyValueStore#getValue}.
  *
- * @template T
- * @returns {Promise<(T|null)>}
+ * @returns {Promise<(object|null)>}
  *   Returns a promise that resolves once the record is stored.
  * @memberof module:Apify
  * @name getInput

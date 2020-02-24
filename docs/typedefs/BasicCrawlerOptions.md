@@ -9,7 +9,7 @@ title: BasicCrawlerOptions
 
 ### `handleRequestFunction`
 
-**Type**: [`HandleRequest<RequestUserData, SessionUserData>`](/docs/typedefs/handle-request)
+**Type**: [`HandleRequest`](/docs/typedefs/handle-request)
 
 User-provided function that performs the logic of the crawler. It is called for each URL to crawl.
 
@@ -43,7 +43,7 @@ Static list of URLs to be processed. Either `requestList` or `requestQueue` opti
 
 ### `requestQueue`
 
-**Type**: [`RequestQueue<RequestUserData>`](/docs/api/request-queue)
+**Type**: [`RequestQueue`](/docs/api/request-queue)
 
 Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites. Either `requestList` or `requestQueue` option must be
 provided (or both).
@@ -60,7 +60,7 @@ Timeout in which the function passed as `handleRequestFunction` needs to finish,
 
 ### `handleFailedRequestFunction`
 
-**Type**: [`HandleFailedRequest<RequestUserData>`](/docs/typedefs/handle-failed-request)
+**Type**: [`HandleFailedRequest`](/docs/typedefs/handle-failed-request)
 
 A function to handle requests that failed more than `option.maxRequestRetries` times.
 
@@ -139,7 +139,7 @@ instance will be than available in the `handleRequestFunction`.
 
 ### `sessionPoolOptions`
 
-**Type**: [`SessionPoolOptions<SessionUserData>`](/docs/typedefs/session-pool-options)
+**Type**: [`SessionPoolOptions`](/docs/typedefs/session-pool-options)
 
 The configuration options for {SessionPool} to use.
 

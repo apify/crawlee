@@ -9,7 +9,7 @@ title: HandleRequestInputs
 
 ### `request`
 
-**Type**: [`Request<RequestUserData>`](/docs/api/request)
+**Type**: [`Request`](/docs/api/request)
 
 The original {Request} object.
 
@@ -28,6 +28,6 @@ on the fly, to pause the crawler by calling [`AutoscaledPool.pause()`](/docs/api
 
 ### `session`
 
-**Type**: [`Session<SessionUserData>`](/docs/api/session)
+**Type**: [`Session`](/docs/api/session)
 
 ---

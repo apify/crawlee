@@ -19,7 +19,7 @@ Session configuration.
 
 **Params**
 
--   **`options`**: [`SessionOptions<SessionUserData>`](/docs/typedefs/session-options)
+-   **`options`**: [`SessionOptions`](/docs/typedefs/session-options)
 
 ---
 
@@ -84,7 +84,7 @@ This method should be called after a successful session usage. It increases `usa
 
 ## `session.getState()`
 
-**Returns**: [`SessionState<SessionUserData>`](/docs/typedefs/session-state) - represents session internal state.
+**Returns**: [`SessionState`](/docs/typedefs/session-state) - represents session internal state.
 
 Gets session state for persistence in KeyValueStore.
 

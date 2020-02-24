@@ -15,7 +15,7 @@ separate, detailed, documentation pages accessible from the left sidebar. To lea
 
 ## `Apify.addWebhook(options)`
 
-**Returns**: `Promise<R>` - The return value is the Webhook object. For more information, see the
+**Returns**: `Promise<object>` - The return value is the Webhook object. For more information, see the
 [Get webhook](https://apify.com/docs/api/v2#/reference/webhooks/webhook-object/get-webhook) API endpoint.
 
 Creates an ad-hoc webhook for the current actor run, which lets you receive a notification when the actor run finished or failed. For more information
@@ -48,7 +48,7 @@ effect.
 
 ## `Apify.call(actId, [input], [options])`
 
-**Returns**: [`Promise<ActorRun<R>>`](/docs/typedefs/actor-run)
+**Returns**: [`Promise<ActorRun>`](/docs/typedefs/actor-run)
 
 Runs an actor on the Apify platform using the current user account (determined by the `APIFY_TOKEN` environment variable), waits for the actor to
 finish and fetches its output.
@@ -80,7 +80,7 @@ API endpoints to obtain the output.
 **Params**
 
 -   **`actId`**: `string` - Either `username/actor-name` or actor ID.
--   **`[input]`**: `T` - Input for the actor. If it is an object, it will be stringified to JSON and its content type set to
+-   **`[input]`**: `object` - Input for the actor. If it is an object, it will be stringified to JSON and its content type set to
     `application/json; charset=utf-8`. Otherwise the `options.contentType` parameter must be provided.
 -   **`[options]`**: `Object` <code> = {}</code> - Object with the settings below:
     -   **`[.contentType]`**: `string` - Content type for the `input`. If not specified, `input` is expected to be an object that will be stringified
@@ -99,8 +99,8 @@ API endpoints to obtain the output.
     -   **`[.fetchOutput]`**: `boolean` <code> = true</code> - If `false` then the function does not fetch output of the actor.
     -   **`[.disableBodyParser]`**: `boolean` <code> = false</code> - If `true` then the function will not attempt to parse the actor's output and
         will return it in a raw `Buffer`.
-    -   **`[.webhooks]`**: `Array<*>` - Specifies optional webhooks associated with the actor run, which can be used to receive a notification e.g.
-        when the actor finished or failed, see [ad hook webhooks documentation](https://docs.apify.com/webhooks/ad-hoc-webhooks) for detailed
+    -   **`[.webhooks]`**: `Array<object>` - Specifies optional webhooks associated with the actor run, which can be used to receive a notification
+        e.g. when the actor finished or failed, see [ad hook webhooks documentation](https://docs.apify.com/webhooks/ad-hoc-webhooks) for detailed
         description.
 
 ---
@@ -109,7 +109,7 @@ API endpoints to obtain the output.
 
 ## `Apify.callTask(taskId, [input], [options])`
 
-**Returns**: [`Promise<ActorRun<R>>`](/docs/typedefs/actor-run)
+**Returns**: [`Promise<ActorRun>`](/docs/typedefs/actor-run)
 
 Runs an actor task on the Apify platform using the current user account (determined by the `APIFY_TOKEN` environment variable), waits for the task to
 finish and fetches its output.
@@ -142,7 +142,7 @@ other API endpoints to obtain the output.
 **Params**
 
 -   **`taskId`**: `string` - Either `username/task-name` or task ID.
--   **`[input]`**: `T` - Input overrides for the actor task. If it is an object, it will be stringified to JSON and its content type set to
+-   **`[input]`**: `object` - Input overrides for the actor task. If it is an object, it will be stringified to JSON and its content type set to
     `application/json; charset=utf-8`. Otherwise the `options.contentType` parameter must be provided. Provided input will be merged with actor task
     input.
 -   **`[options]`**: `Object` <code> = {}</code> - Object with the settings below:
@@ -159,8 +159,8 @@ other API endpoints to obtain the output.
     -   **`[.waitSecs]`**: `string` - Maximum time to wait for the actor task run to finish, in seconds. If the limit is reached, the returned promise
         is resolved to a run object that will have status `READY` or `RUNNING` and it will not contain the actor run output. If `waitSecs` is null or
         undefined, the function waits for the actor task to finish (default behavior).
-    -   **`[.webhooks]`**: `Array<*>` - Specifies optional webhooks associated with the actor run, which can be used to receive a notification e.g.
-        when the actor finished or failed, see [ad hook webhooks documentation](https://docs.apify.com/webhooks/ad-hoc-webhooks) for detailed
+    -   **`[.webhooks]`**: `Array<object>` - Specifies optional webhooks associated with the actor run, which can be used to receive a notification
+        e.g. when the actor finished or failed, see [ad hook webhooks documentation](https://docs.apify.com/webhooks/ad-hoc-webhooks) for detailed
         description.
 
 ---
@@ -296,7 +296,7 @@ the variables are not defined or are invalid, the corresponding value in the res
 
 ## `Apify.getInput()`
 
-**Returns**: `Promise<(T|null)>` - Returns a promise that resolves once the record is stored.
+**Returns**: `Promise<(object|null)>` - Returns a promise that resolves once the record is stored.
 
 Gets the actor input value from the default [`KeyValueStore`](/docs/api/key-value-store) associated with the current actor run.
 
@@ -337,7 +337,7 @@ second.
 
 ## `Apify.getValue(key)`
 
-**Returns**: `Promise<(T|null)>` - Returns a promise that resolves once the record is stored.
+**Returns**: `Promise<(object|null)>` - Returns a promise that resolves once the record is stored.
 
 Gets a value from the default [`KeyValueStore`](/docs/api/key-value-store) associated with the current actor run.
 
@@ -518,7 +518,7 @@ default storages are preserved and the new input is stored under the `INPUT-META
 **Params**
 
 -   **`targetActorId`**: `string` - Either `username/actor-name` or actor ID of an actor to which we want to metamorph.
--   **`[input]`**: `T` - Input for the actor. If it is an object, it will be stringified to JSON and its content type set to
+-   **`[input]`**: `object` - Input for the actor. If it is an object, it will be stringified to JSON and its content type set to
     `application/json; charset=utf-8`. Otherwise the `options.contentType` parameter must be provided.
 -   **`[options]`**: `Object` <code> = {}</code> - Object with the settings below:
     -   **`[.contentType]`**: `string` - Content type for the `input`. If not specified, `input` is expected to be an object that will be stringified
@@ -533,7 +533,7 @@ default storages are preserved and the new input is stored under the `INPUT-META
 
 ## `Apify.openDataset([datasetIdOrName], [options])`
 
-**Returns**: [`Promise<Dataset<T>>`](/docs/api/dataset)
+**Returns**: [`Promise<Dataset>`](/docs/api/dataset)
 
 Opens a dataset and returns a promise resolving to an instance of the [`Dataset`](/docs/api/dataset) class.
 
@@ -629,7 +629,7 @@ For details, see the [`RequestListOptions.sources`](/docs/typedefs/request-list-
 
 ## `Apify.openRequestQueue([queueIdOrName], [options])`
 
-**Returns**: [`Promise<RequestQueue<RequestUserData>>`](/docs/api/request-queue)
+**Returns**: [`Promise<RequestQueue>`](/docs/api/request-queue)
 
 Opens a request queue and returns a promise resolving to an instance of the [`RequestQueue`](/docs/api/request-queue) class.
 
@@ -653,7 +653,7 @@ For more details and code examples, see the [`RequestQueue`](/docs/api/request-q
 
 ## `Apify.openSessionPool(sessionPoolOptions)`
 
-**Returns**: [`Promise<SessionPool<SessionUserData>>`](/docs/api/session-pool)
+**Returns**: [`Promise<SessionPool>`](/docs/api/session-pool)
 
 Opens a SessionPool and returns a promise resolving to an instance of the [`SessionPool`](/docs/api/session-pool) class that is already initialized.
 
@@ -661,7 +661,7 @@ For more details and code examples, see the [`SessionPool`](/docs/api/session-po
 
 **Params**
 
--   **`sessionPoolOptions`**: [`SessionPoolOptions<SessionUserData>`](/docs/typedefs/session-pool-options)
+-   **`sessionPoolOptions`**: [`SessionPoolOptions`](/docs/typedefs/session-pool-options)
 
 ---
 
@@ -692,8 +692,8 @@ For more information, see [`Apify.openDataset()`](/docs/api/apify#opendataset) a
 
 **Params**
 
--   **`item`**: `T` - Object or array of objects containing data to be stored in the default dataset. The objects must be serializable to JSON and the
-    JSON representation of each object must be smaller than 9MB.
+-   **`item`**: `object` - Object or array of objects containing data to be stored in the default dataset. The objects must be serializable to JSON
+    and the JSON representation of each object must be smaller than 9MB.
 
 ---
 
@@ -726,7 +726,7 @@ For more information, see [`Apify.openKeyValueStore()`](/docs/api/apify#openkeyv
 **Params**
 
 -   **`key`**: `string` - Unique record key.
--   **`value`**: `T` - Record data, which can be one of the following values:
+-   **`value`**: `object` - Record data, which can be one of the following values:
     <ul>
       <li>If `null`, the record in the key-value store is deleted.</li>
       <li>If no `options.contentType` is specified, `value` can be any JavaScript object and it will be stringified to JSON.</li>
