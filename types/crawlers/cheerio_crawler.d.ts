@@ -543,7 +543,7 @@ declare class CheerioCrawler {
      *
      * @return {Promise}
      */
-    run(): Promise<any>;
+    async run(): Promise<any>;
     autoscaledPool: any;
     /**
      * Wrapper around handlePageFunction that opens and closes pages etc.
@@ -554,7 +554,7 @@ declare class CheerioCrawler {
      * @param {Session} options.session
      * @ignore
      */
-    _handleRequestFunction({ request, autoscaledPool, session }: {
+    async _handleRequestFunction({ request, autoscaledPool, session }: {
         request: Request;
         autoscaledPool: AutoscaledPool;
         session: Session;
@@ -569,7 +569,7 @@ declare class CheerioCrawler {
      * @param {Session} options.session
      * @ignore
      */
-    _requestFunction({ request, session }: {
+    async _requestFunction({ request, session }: {
         request: Request;
         session: Session;
     }): Promise<{
@@ -620,7 +620,7 @@ declare class CheerioCrawler {
         response: any;
         encoding: any;
     };
-    _parseHtmlToDom(response: any): Promise<any>;
+    async _parseHtmlToDom(response: any): Promise<any>;
     /**
      * Checks and extends supported mime types
      * @param {Array<String|Object>} additionalMimeTypes
@@ -633,13 +633,13 @@ declare class CheerioCrawler {
      * @param statusCode {Number}
      * @private
      */
-    _throwOnBlockedRequest(session: Session, statusCode: number): void;
+    private _throwOnBlockedRequest;
     /**
      * Handles timeout request
      * @param session {Session}
      * @private
      */
-    _handleRequestTimeout(session: Session): void;
+    private _handleRequestTimeout;
     /**
      * @param {Object} options
      * @param {Error} options.error
@@ -647,7 +647,7 @@ declare class CheerioCrawler {
      * @return {Promise<void>}
      * @ignore
      */
-    _defaultHandleFailedRequestFunction({ error, request }: {
+    async _defaultHandleFailedRequestFunction({ error, request }: {
         error: Error;
         request: Request;
     }): Promise<void>;

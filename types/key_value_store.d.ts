@@ -163,9 +163,9 @@ export class KeyValueStore {
      *
      * @return {Promise<void>}
      */
-    drop(): Promise<void>;
+    async drop(): Promise<void>;
     /** @ignore */
-    delete(): Promise<void>;
+    async delete(): Promise<void>;
     /**
      * Returns a URL for the given key that may be used to publicly
      * access the value in the remote key value store.
@@ -198,7 +198,7 @@ export class KeyValueStore {
      * @param {string} [options.exclusiveStartKey] All keys up to this one (including) are skipped from the result.
      * @return {Promise<void>}
      */
-    forEachKey(iteratee: KeyConsumer, options?: {
+    async forEachKey(iteratee: KeyConsumer, options?: {
         exclusiveStartKey?: string;
     }, index?: number): Promise<void>;
 }
@@ -213,11 +213,11 @@ export class KeyValueStoreLocal {
     localStoragePath: string;
     storeId: any;
     initializationPromise: any;
-    getValue(key: any): Promise<any>;
-    setValue(key: any, value: any, options?: {}): Promise<void>;
-    delete(): Promise<void>;
-    drop(): Promise<void>;
-    forEachKey(iteratee: any, options?: {}, index?: number): Promise<void>;
+    async getValue(key: any): Promise<any>;
+    async setValue(key: any, value: any, options?: {}): Promise<void>;
+    async delete(): Promise<void>;
+    async drop(): Promise<void>;
+    async forEachKey(iteratee: any, options?: {}, index?: number): Promise<void>;
     /**
      * Helper function to handle files. Accepts a promisified 'fs' function as a second parameter
      * which will be executed against the file saved under the key. Since the file's extension and thus
@@ -235,7 +235,7 @@ export class KeyValueStoreLocal {
      * }
      * @ignore
      */
-    _handleFile(key: string, handler: Function): Promise<any>;
+    async _handleFile(key: string, handler: Function): Promise<any>;
     /**
      * Performs a lookup for a file in the local emulation directory's file list.
      * @param {String} key

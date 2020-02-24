@@ -186,11 +186,7 @@ declare class SystemStatus {
      * @return {{isOverloaded, maxOverloadedRatio, actualRatio}}
      * @private
      */
-    _isClientOverloaded(sampleDurationMillis: any): {
-        isOverloaded: any;
-        maxOverloadedRatio: any;
-        actualRatio: any;
-    };
+    private _isClientOverloaded;
     /**
      * Returns an object with sample information and an isOverloaded property
      * set to true if at least the ratio of snapshots in the sample are overloaded.

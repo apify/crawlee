@@ -164,7 +164,7 @@ export class RequestList {
      *
      * @returns {Promise<void>}
      */
-    initialize(): Promise<void>;
+    async initialize(): Promise<void>;
     /**
      * Persists the current state of the `RequestList` into the default {@link KeyValueStore}.
      * The state is persisted automatically in regular intervals, but calling this method manually
@@ -174,7 +174,7 @@ export class RequestList {
      *
      * @return {Promise<void>}
      */
-    persistState(): Promise<void>;
+    async persistState(): Promise<void>;
     /**
      * Unlike persistState(), this is used only internally, since the sources
      * are automatically persisted at RequestList initialization (if the persistSourcesKey is set),
@@ -183,7 +183,7 @@ export class RequestList {
      * @return {Promise<void>}
      * @ignore
      */
-    _persistSources(): Promise<void>;
+    async _persistSources(): Promise<void>;
     /**
      * Restores RequestList state from a state object.
      *
@@ -198,7 +198,7 @@ export class RequestList {
      * @return {Promise<Array>}
      * @ignore
      */
-    _loadStateAndSources(): Promise<any[]>;
+    async _loadStateAndSources(): Promise<any[]>;
     /**
      * Returns an object representing the internal state of the `RequestList` instance.
      * Note that the object's fields can change in future releases.
@@ -213,13 +213,13 @@ export class RequestList {
      *
      * @returns {Promise<Boolean>}
      */
-    isEmpty(): Promise<boolean>;
+    async isEmpty(): Promise<boolean>;
     /**
      * Returns `true` if all requests were already handled and there are no more left.
      *
      * @returns {Promise<Boolean>}
      */
-    isFinished(): Promise<boolean>;
+    async isFinished(): Promise<boolean>;
     /**
      * Gets the next {@link Request} to process. First, the function gets a request previously reclaimed
      * using the {@link RequestList#reclaimRequest} function, if there is any.
@@ -230,7 +230,7 @@ export class RequestList {
      *
      * @returns {Promise<Request>}
      */
-    fetchNextRequest(): Promise<Request>;
+    async fetchNextRequest(): Promise<Request>;
     /**
      * Marks request as handled after successful processing.
      *
@@ -238,7 +238,7 @@ export class RequestList {
      *
      * @returns {Promise<void>}
      */
-    markRequestHandled(request: Request): Promise<void>;
+    async markRequestHandled(request: Request): Promise<void>;
     /**
      * Reclaims request to the list if its processing failed.
      * The request will become available in the next `this.fetchNextRequest()`.
@@ -247,20 +247,20 @@ export class RequestList {
      *
      * @returns {Promise<void>}
      */
-    reclaimRequest(request: Request): Promise<void>;
+    async reclaimRequest(request: Request): Promise<void>;
     /**
      * Adds all fetched requests from a URL from a remote resource.
      *
      * @ignore
      */
-    _addFetchedRequests(source: any, fetchedRequests: any): Promise<void>;
+    async _addFetchedRequests(source: any, fetchedRequests: any): Promise<void>;
     /**
      * Fetches URLs from requestsFromUrl and returns them in format of list of requests
      * @param source
      * @return {Promise<RequestOptions[]>}
      * @ignore
      */
-    _fetchRequestsFromUrl(source: any): Promise<any[]>;
+    async _fetchRequestsFromUrl(source: any): Promise<any[]>;
     /**
      * Adds given request.
      * If the `opts` parameter is a plain object and not an instance of a `Request`, then the function
