@@ -40,13 +40,12 @@ export type PuppeteerPoolOptions = {
      * The function must return a promise resolving to
      * [`Browser`](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-browser) instance.
      * See the source code on
-     * <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_pool.js#L28" target="_blank">GitHub</a>
+     * [GitHub](https://github.com/apifytech/apify-js/blob/master/src/puppeteer_pool.js#L28)
      * for the default implementation.
      */
     launchPuppeteerFunction?: LaunchPuppeteerFunction;
     /**
-     * Options used by `Apify.launchPuppeteer()` to start new Puppeteer instances.
-     * See [`LaunchPuppeteerOptions`](../typedefs/launchpuppeteeroptions).
+     * Options used by {@link Apify#launchPuppeteer} to start new Puppeteer instances.
      */
     launchPuppeteerOptions?: LaunchPuppeteerOptions;
     /**
@@ -109,11 +108,10 @@ export type PuppeteerPoolOptions = {
  *   The function must return a promise resolving to
  *   [`Browser`](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-browser) instance.
  *   See the source code on
- *   <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_pool.js#L28" target="_blank">GitHub</a>
+ *   [GitHub](https://github.com/apifytech/apify-js/blob/master/src/puppeteer_pool.js#L28)
  *   for the default implementation.
  * @property {LaunchPuppeteerOptions} [launchPuppeteerOptions]
- *   Options used by `Apify.launchPuppeteer()` to start new Puppeteer instances.
- *   See [`LaunchPuppeteerOptions`](../typedefs/launchpuppeteeroptions).
+ *   Options used by {@link Apify#launchPuppeteer} to start new Puppeteer instances.
  * @property {boolean} [recycleDiskCache=false]
  *   Enables recycling of disk cache directories by Chrome instances.
  *   When a browser instance is closed, its disk cache directory is not deleted but it's used by a newly opened browser instance.
@@ -137,7 +135,7 @@ export type PuppeteerPoolOptions = {
  */
 /**
  * Manages a pool of Chrome browser instances controlled using
- * <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a>.
+ * [Puppeteer](https://github.com/GoogleChrome/puppeteer).
  *
  * `PuppeteerPool` reuses Chrome instances and tabs using specific browser rotation and retirement policies.
  * This is useful in order to facilitate rotation of proxies, cookies
@@ -176,7 +174,7 @@ declare class PuppeteerPool {
     /**
      * @param {PuppeteerPoolOptions} [options]
      *   All `PuppeteerPool` parameters are passed
-     *   via an options object with the following keys:
+     *   via an options object.
      */
     constructor(options?: PuppeteerPoolOptions | undefined);
     /** @type {SessionPool<any>} */
@@ -262,7 +260,7 @@ declare class PuppeteerPool {
     /**
      * Opens new tab in one of the browsers in the pool and returns a `Promise`
      * that resolves to an instance of a Puppeteer
-     * <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a>.
+     * [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page).
      *
      * @return {Promise<Page>}
      * @ignore
@@ -297,7 +295,7 @@ declare class PuppeteerPool {
     _findInstanceByBrowser(browser: Browser): Promise<any>;
     /**
      * Manually retires a Puppeteer
-     * <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-browser" target="_blank"><code>Browser</code></a>
+     * [`Browser`](https://pptr.dev/#?product=Puppeteer&show=api-class-browser)
      * instance from the pool. The browser will continue to process open pages so that they may gracefully finish.
      * This is unlike `browser.close()` which will forcibly terminate the browser and all open pages will be closed.
      * @param {Browser} browser

@@ -51,6 +51,18 @@ await puppeteerPool.destroy();
 
 ---
 
+<a name="sessionpool"></a>
+
+## `puppeteerPool.sessionPool`
+
+---
+
+<a name="recycleddiskcachedirs"></a>
+
+## `puppeteerPool.recycledDiskCacheDirs`
+
+---
+
 <a name="newpage"></a>
 
 ## `puppeteerPool.newPage()`
@@ -117,6 +129,6 @@ Tells the connected LiveViewServer to serve a snapshot when available.
 
 **Params**
 
--   **`page`**:
+-   **`page`**: `Page`
 
 ---

@@ -6,7 +6,7 @@ export type CheerioCrawlerOptions<RequestUserData, SessionUserData> = {
      * loaded and parsed by the crawler.
      *
      * The function receives the following object as an argument:
-     * ```javascript
+     * ```
      * {
      * // The Cheerio object's function with the parsed HTML.
      * $: Cheerio,
@@ -34,12 +34,13 @@ export type CheerioCrawlerOptions<RequestUserData, SessionUserData> = {
      * session: Session
      * }
      * ```
+     *
      * Type of `body` depends on the `Content-Type` header of the web page:
      * - String for `text/html`, `application/xhtml+xml`, `application/xml` MIME content types
      * - Buffer for others MIME content types
      *
      * Parsed `Content-Type` header using
-     * <a href="https://www.npmjs.com/package/content-type" target="_blank">content-type package</a>
+     * [content-type package](https://www.npmjs.com/package/content-type)
      * is stored in `contentType`.
      *
      * Cheerio is available only for HTML and XML content types.
@@ -55,7 +56,7 @@ export type CheerioCrawlerOptions<RequestUserData, SessionUserData> = {
      * To make this work, you should **always**
      * let your function throw exceptions rather than catch them.
      * The exceptions are logged to the request using the
-     * [`request.pushErrorMessage`](request#Request+pushErrorMessage) function.
+     * {@link Request#pushErrorMessage} function.
      */
     handlePageFunction: CheerioHandlePage<RequestUserData, SessionUserData>;
     /**
@@ -123,13 +124,13 @@ export type CheerioCrawlerOptions<RequestUserData, SessionUserData> = {
     ignoreSslErrors?: boolean;
     /**
      * If set to `true`, `CheerioCrawler` will be configured to use
-     * <a href="https://my.apify.com/proxy" target="_blank">Apify Proxy</a> for all connections.
-     * For more information, see the <a href="https://docs.apify.com/proxy" target="_blank">documentation</a>
+     * [Apify Proxy](https://my.apify.com/proxy) for all connections.
+     * For more information, see the [documentation](https://docs.apify.com/proxy)
      */
     useApifyProxy?: boolean;
     /**
      * An array of proxy groups to be used
-     * by the <a href="https://docs.apify.com/proxy" target="_blank">Apify Proxy</a>.
+     * by the [Apify Proxy](https://docs.apify.com/proxy).
      * Only applied if the `useApifyProxy` option is `true`.
      */
     apifyProxyGroups?: string[];
@@ -161,7 +162,7 @@ export type CheerioCrawlerOptions<RequestUserData, SessionUserData> = {
      * where the {@link Request} instance corresponds to the failed request, and the `Error` instance
      * represents the last error thrown during processing of the request.
      *
-     * See <a href="https://github.com/apifytech/apify-js/blob/master/src/crawlers/cheerio_crawler.js#L13">source code</a>
+     * See [source code](https://github.com/apifytech/apify-js/blob/master/src/crawlers/cheerio_crawler.js#L13)
      * for the default implementation of this function.
      */
     handleFailedRequestFunction?: HandleFailedRequest<RequestUserData>;
@@ -226,9 +227,9 @@ export type PrepareRequestInputs<RequestUserData> = {
 export type PrepareRequest<RequestUserData> = (inputs: PrepareRequestInputs<RequestUserData>) => void | Promise<void>;
 export type CheerioHandlePageInputs<RequestUserData, SessionUserData> = {
     /**
-     * The <a href="https://cheerio.js.org/">Cheerio</a> object with parsed HTML.
+     * The [Cheerio](https://cheerio.js.org/) object with parsed HTML.
      */
-    $?: CheerioStatic;
+    $?: CheerioSelector;
     /**
      * The request body of the web page.
      */
@@ -238,7 +239,7 @@ export type CheerioHandlePageInputs<RequestUserData, SessionUserData> = {
      */
     json?: any;
     /**
-     * The original {Request} object.
+     * The original {@link Request} object.
      */
     request: Request<RequestUserData>;
     /**
@@ -252,6 +253,13 @@ export type CheerioHandlePageInputs<RequestUserData, SessionUserData> = {
      * An instance of Node's http.IncomingMessage object,
      */
     response: IncomingMessage;
+    /**
+     * A reference to the underlying {@link AutoscaledPool} class that manages the concurrency of the crawler.
+     * Note that this property is only initialized after calling the {@link CheerioCrawler#run} function.
+     * You can use it to change the concurrency settings on the fly,
+     * to pause the crawler by calling {@link AutoscaledPool#pause}
+     * or to abort it by calling {@link AutoscaledPool#abort}.
+     */
     autoscaledPool: AutoscaledPool;
     session?: Session<SessionUserData>;
 };
@@ -265,7 +273,7 @@ export type CheerioHandlePage<RequestUserData, SessionUserData> = (inputs: Cheer
  *   loaded and parsed by the crawler.
  *
  *   The function receives the following object as an argument:
- * ```javascript
+ * ```
  * {
  *   // The Cheerio object's function with the parsed HTML.
  *   $: Cheerio,
@@ -293,12 +301,13 @@ export type CheerioHandlePage<RequestUserData, SessionUserData> = (inputs: Cheer
  *   session: Session
  * }
  * ```
+ *
  *   Type of `body` depends on the `Content-Type` header of the web page:
  *   - String for `text/html`, `application/xhtml+xml`, `application/xml` MIME content types
  *   - Buffer for others MIME content types
  *
  *   Parsed `Content-Type` header using
- *   <a href="https://www.npmjs.com/package/content-type" target="_blank">content-type package</a>
+ *   [content-type package](https://www.npmjs.com/package/content-type)
  *   is stored in `contentType`.
  *
  *   Cheerio is available only for HTML and XML content types.
@@ -314,7 +323,7 @@ export type CheerioHandlePage<RequestUserData, SessionUserData> = (inputs: Cheer
  *   To make this work, you should **always**
  *   let your function throw exceptions rather than catch them.
  *   The exceptions are logged to the request using the
- *   [`request.pushErrorMessage`](request#Request+pushErrorMessage) function.
+ *   {@link Request#pushErrorMessage} function.
  * @property {RequestList} [requestList]
  *   Static list of URLs to be processed.
  *   Either `requestList` or `requestQueue` option must be provided (or both).
@@ -367,11 +376,11 @@ export type CheerioHandlePage<RequestUserData, SessionUserData> = (inputs: Cheer
  *   If set to true, SSL certificate errors will be ignored.
  * @property {boolean} [useApifyProxy=false]
  *   If set to `true`, `CheerioCrawler` will be configured to use
- *   <a href="https://my.apify.com/proxy" target="_blank">Apify Proxy</a> for all connections.
- *   For more information, see the <a href="https://docs.apify.com/proxy" target="_blank">documentation</a>
+ *   [Apify Proxy](https://my.apify.com/proxy) for all connections.
+ *   For more information, see the [documentation](https://docs.apify.com/proxy)
  * @property {string[]} [apifyProxyGroups]
  *   An array of proxy groups to be used
- *   by the <a href="https://docs.apify.com/proxy" target="_blank">Apify Proxy</a>.
+ *   by the [Apify Proxy](https://docs.apify.com/proxy).
  *   Only applied if the `useApifyProxy` option is `true`.
  * @property {string} [apifyProxySession]
  *   Apify Proxy session identifier to be used with requests made by `CheerioCrawler`.
@@ -397,7 +406,7 @@ export type CheerioHandlePage<RequestUserData, SessionUserData> = (inputs: Cheer
  *   where the {@link Request} instance corresponds to the failed request, and the `Error` instance
  *   represents the last error thrown during processing of the request.
  *
- *   See <a href="https://github.com/apifytech/apify-js/blob/master/src/crawlers/cheerio_crawler.js#L13">source code</a>
+ *   See [source code](https://github.com/apifytech/apify-js/blob/master/src/crawlers/cheerio_crawler.js#L13)
  *   for the default implementation of this function.
  * @property {string[]} [additionalMimeTypes]
  *   An array of <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types"
@@ -435,7 +444,7 @@ export type CheerioHandlePage<RequestUserData, SessionUserData> = (inputs: Cheer
  */
 /**
  * Provides a framework for the parallel crawling of web pages using plain HTTP requests and
- * <a href="https://www.npmjs.com/package/cheerio" target="_blank">cheerio</a> HTML parser.
+ * [cheerio](https://www.npmjs.com/package/cheerio) HTML parser.
  * The URLs to crawl are fed either from a static list of URLs
  * or from a dynamic queue of URLs enabling recursive crawling of websites.
  *
@@ -445,29 +454,29 @@ export type CheerioHandlePage<RequestUserData, SessionUserData> = (inputs: Cheer
  * because it loads the pages using full-featured headless Chrome browser.
  *
  * `CheerioCrawler` downloads each URL using a plain HTTP request,
- * parses the HTML content using <a href="https://www.npmjs.com/package/cheerio" target="_blank">Cheerio</a>
- * and then invokes the user-provided [`handlePageFunction()`](#new_CheerioCrawler_new) to extract page data
- * using a <a href="https://jquery.com/" target="_blank">jQuery</a>-like interface to the parsed HTML DOM.
+ * parses the HTML content using [Cheerio](https://www.npmjs.com/package/cheerio)
+ * and then invokes the user-provided {@link CheerioCrawlerOptions.handlePageFunction} to extract page data
+ * using a [jQuery](https://jquery.com/)-like interface to the parsed HTML DOM.
  *
  * The source URLs are represented using {@link Request} objects that are fed from
- * {@link RequestList} or {@link RequestQueue} instances provided by the [`requestList`](#new_CheerioCrawler_new)
- * or [`requestQueue`](#new_CheerioCrawler_new) constructor options, respectively.
+ * {@link RequestList} or {@link RequestQueue} instances provided by the {@link CheerioCrawlerOptions.requestList}
+ * or {@link CheerioCrawlerOptions.requestQueue} constructor options, respectively.
  *
- * If both [`requestList`](#new_CheerioCrawler_new) and [`requestQueue`](#new_CheerioCrawler_new) are used,
+ * If both {@link CheerioCrawlerOptions.requestList} and {@link CheerioCrawlerOptions.requestQueue} are used,
  * the instance first processes URLs from the {@link RequestList} and automatically enqueues all of them
  * to {@link RequestQueue} before it starts their processing. This ensures that a single URL is not crawled multiple times.
  *
  * The crawler finishes when there are no more {@link Request} objects to crawl.
  *
- * `CheerioCrawler` downloads the web pages using the {@link requestAsBrowser} utility function.
+ * `CheerioCrawler` downloads the web pages using the {@link utils#requestAsBrowser} utility function.
  * You can use the `requestOptions` parameter to pass additional options to this function.
  *
  * By default, `CheerioCrawler` only processes web pages with the `text/html`
  * and `application/xhtml+xml` MIME content types (as reported by the `Content-Type` HTTP header),
  * and skips pages with other content types. If you want the crawler to process other content types,
- * use the [`additionalMimeTypes`](#new_CheerioCrawler_new) constructor option.
+ * use the {@link CheerioCrawlerOptions.additionalMimeTypes} constructor option.
  * Beware that the parsing behavior differs for HTML, XML, JSON and other types of content.
- * For details, see {@link CheerioCrawlerOptions#handlePageFunction}.
+ * For details, see {@link CheerioCrawlerOptions.handlePageFunction}.
  *
  * New requests are only dispatched when there is enough free CPU and memory available,
  * using the functionality provided by the {@link AutoscaledPool} class.
@@ -521,22 +530,23 @@ export type CheerioHandlePage<RequestUserData, SessionUserData> = (inputs: Cheer
 declare class CheerioCrawler<RequestUserData, SessionUserData> {
     /**
      * @param {CheerioCrawlerOptions<RequestUserData, SessionUserData>} options
+     * All `CheerioCrawler` parameters are passed via an options object.
      */
     constructor(options?: CheerioCrawlerOptions<RequestUserData, SessionUserData>);
     supportedMimeTypes: Set<string>;
-    requestOptions: any;
-    handlePageFunction: any;
+    requestOptions: utilsRequest.RequestAsBrowserOptions;
+    handlePageFunction: CheerioHandlePage<RequestUserData, SessionUserData>;
     handlePageTimeoutMillis: number;
     requestTimeoutMillis: number;
-    ignoreSslErrors: any;
-    useApifyProxy: any;
-    apifyProxyGroups: any;
-    apifyProxySession: any;
+    ignoreSslErrors: boolean;
+    useApifyProxy: boolean;
+    apifyProxyGroups: string[];
+    apifyProxySession: string;
     proxyUrls: any[];
     lastUsedProxyUrlIndex: number;
-    prepareRequestFunction: any;
-    persistCookiesPerSession: any;
-    useSessionPool: any;
+    prepareRequestFunction: PrepareRequest<RequestUserData>;
+    persistCookiesPerSession: boolean;
+    useSessionPool: boolean;
     /** @type {BasicCrawler<RequestUserData, SessionUserData>} */
     basicCrawler: BasicCrawler<RequestUserData, SessionUserData>;
     isRunningPromise: Promise<void> | null;
@@ -599,7 +609,17 @@ declare class CheerioCrawler<RequestUserData, SessionUserData> {
      * @param {Session<*>} [session]
      * @ignore
      */
-    _getRequestOptions(request: Request<any>, session?: Session<any> | undefined): any;
+    _getRequestOptions(request: Request<any>, session?: Session<any> | undefined): utilsRequest.RequestAsBrowserOptions & {
+        url: string;
+        method: string;
+        headers: any;
+        ignoreSslErrors: boolean;
+        proxyUrl: string | null;
+        stream: boolean;
+        useCaseSensitiveHeaders: boolean;
+        abortFunction: (res: any) => boolean;
+        timeoutSecs: number;
+    };
     /**
      * Enables the use of a proxy by returning a proxy URL
      * based on configured options or null if no proxy is used.
@@ -632,6 +652,17 @@ declare class CheerioCrawler<RequestUserData, SessionUserData> {
      * @private
      */
     _handleRequestTimeout(session: Session<any>): void;
+    /**
+     * @param {Object} options
+     * @param {Error} options.error
+     * @param {Request} options.request
+     * @return {Promise<void>}
+     * @ignore
+     */
+    _defaultHandleFailedRequestFunction({ error, request }: {
+        error: Error;
+        request: Request<any>;
+    }): Promise<void>;
 }
 import { RequestList } from "../request_list";
 import { RequestQueue } from "../request_queue";

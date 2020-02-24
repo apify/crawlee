@@ -9,6 +9,7 @@ title: CheerioHandlePage
 
 **Params**
 
--   **`inputs`**: [`CheerioHandlePageInputs`](/docs/typedefs/cheerio-handle-page-inputs) - Arguments passed to this callback.
+-   **`inputs`**: [`CheerioHandlePageInputs<RequestUserData, SessionUserData>`](/docs/typedefs/cheerio-handle-page-inputs) - Arguments passed to this
+    callback.
 
 ---

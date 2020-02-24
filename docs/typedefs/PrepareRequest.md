@@ -9,6 +9,6 @@ title: PrepareRequest
 
 **Params**
 
--   **`inputs`**: [`PrepareRequestInputs`](/docs/typedefs/prepare-request-inputs) - Arguments passed to this callback.
+-   **`inputs`**: [`PrepareRequestInputs<RequestUserData>`](/docs/typedefs/prepare-request-inputs) - Arguments passed to this callback.
 
 ---

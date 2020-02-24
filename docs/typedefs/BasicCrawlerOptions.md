@@ -9,7 +9,7 @@ title: BasicCrawlerOptions
 
 ### `handleRequestFunction`
 
-**Type**: [`HandleRequest`](/docs/typedefs/handle-request)
+**Type**: [`HandleRequest<RequestUserData, SessionUserData>`](/docs/typedefs/handle-request)
 
 User-provided function that performs the logic of the crawler. It is called for each URL to crawl.
 
@@ -43,7 +43,7 @@ Static list of URLs to be processed. Either `requestList` or `requestQueue` opti
 
 ### `requestQueue`
 
-**Type**: [`RequestQueue`](/docs/api/request-queue)
+**Type**: [`RequestQueue<RequestUserData>`](/docs/api/request-queue)
 
 Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites. Either `requestList` or `requestQueue` option must be
 provided (or both).
@@ -60,7 +60,7 @@ Timeout in which the function passed as `handleRequestFunction` needs to finish,
 
 ### `handleFailedRequestFunction`
 
-**Type**: [`HandleFailedRequest`](/docs/typedefs/handle-failed-request)
+**Type**: [`HandleFailedRequest<RequestUserData>`](/docs/typedefs/handle-failed-request)
 
 A function to handle requests that failed more than `option.maxRequestRetries` times.
 
@@ -83,7 +83,7 @@ function.
 
 ### `maxRequestRetries`
 
-**Type**: `Number` <code> = 3</code>
+**Type**: `number` <code> = 3</code>
 
 Indicates how many times the request is retried if
 [`BasicCrawlerOptions.handleRequestFunction`](/docs/typedefs/basic-crawler-options#handlerequestfunction) fails.
@@ -92,7 +92,7 @@ Indicates how many times the request is retried if
 
 ### `maxRequestsPerCrawl`
 
-**Type**: `Number`
+**Type**: `number`
 
 Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached. Always set this value in order to prevent infinite
 loops in misconfigured crawlers. Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.
@@ -111,7 +111,7 @@ Custom options passed to the underlying [`AutoscaledPool`](/docs/api/autoscaled-
 
 ### `minConcurrency`
 
-**Type**: `Number` <code> = 1</code>
+**Type**: `number` <code> = 1</code>
 
 Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding [`AutoscaledPool`](/docs/api/autoscaled-pool) option.
 
@@ -122,7 +122,7 @@ you're not sure, just keep the default value and the concurrency will scale up a
 
 ### `maxConcurrency`
 
-**Type**: `Number` <code> = 1000</code>
+**Type**: `number` <code> = 1000</code>
 
 Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding [`AutoscaledPool`](/docs/api/autoscaled-pool) option.
 
@@ -130,7 +130,7 @@ Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corres
 
 ### `useSessionPool`
 
-**Type**: `Boolean` <code> = false</code>
+**Type**: `boolean` <code> = false</code>
 
 If set to true. Basic crawler will initialize the [`SessionPool`](/docs/api/session-pool) with the corresponding `sessionPoolOptions`. The session
 instance will be than available in the `handleRequestFunction`.
@@ -139,7 +139,7 @@ instance will be than available in the `handleRequestFunction`.
 
 ### `sessionPoolOptions`
 
-**Type**: [`SessionPoolOptions`](/docs/typedefs/session-pool-options)
+**Type**: [`SessionPoolOptions<SessionUserData>`](/docs/typedefs/session-pool-options)
 
 The configuration options for {SessionPool} to use.
 

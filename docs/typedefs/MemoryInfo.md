@@ -11,7 +11,7 @@ Describes memory usage of an Actor.
 
 ### `totalBytes`
 
-**Type**: `Number`
+**Type**: `number`
 
 Total memory available in the system or container
 
@@ -19,7 +19,7 @@ Total memory available in the system or container
 
 ### `freeBytes`
 
-**Type**: `Number`
+**Type**: `number`
 
 Amount of free memory in the system or container
 
@@ -27,7 +27,7 @@ Amount of free memory in the system or container
 
 ### `usedBytes`
 
-**Type**: `Number`
+**Type**: `number`
 
 Amount of memory used (= totalBytes - freeBytes)
 
@@ -35,7 +35,7 @@ Amount of memory used (= totalBytes - freeBytes)
 
 ### `mainProcessBytes`
 
-**Type**: `Number`
+**Type**: `number`
 
 Amount of memory used the current Node.js process
 
@@ -43,7 +43,7 @@ Amount of memory used the current Node.js process
 
 ### `childProcessesBytes`
 
-**Type**: `Number`
+**Type**: `number`
 
 Amount of memory used by child processes of the current Node.js process
 

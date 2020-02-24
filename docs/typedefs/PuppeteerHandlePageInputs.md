@@ -9,7 +9,7 @@ title: PuppeteerHandlePageInputs
 
 ### `request`
 
-**Type**: [`Request`](/docs/api/request)
+**Type**: [`Request<RequestUserData>`](/docs/api/request)
 
 An instance of the [`Request`](/docs/api/request) object with details about the URL to open, HTTP method etc.
 
@@ -53,6 +53,6 @@ settings on the fly, to pause the crawler by calling [`AutoscaledPool.pause()`](
 
 ### `session`
 
-**Type**: [`Session`](/docs/api/session)
+**Type**: [`Session<SessionUserData>`](/docs/api/session)
 
 ---

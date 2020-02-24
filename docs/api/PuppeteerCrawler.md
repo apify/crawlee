@@ -66,6 +66,17 @@ const crawler = new Apify.PuppeteerCrawler({
 await crawler.run();
 ```
 
+## Properties
+
+### `autoscaledPool`
+
+**Type**: [`AutoscaledPool`](/docs/api/autoscaled-pool)
+
+A reference to the underlying [`AutoscaledPool`](/docs/api/autoscaled-pool) class that manages the concurrency of the crawler. Note that this property
+is only initialized after calling the [`PuppeteerCrawler.run()`](/docs/api/puppeteer-crawler#run) function. You can use it to change the concurrency
+settings on the fly, to pause the crawler by calling [`AutoscaledPool.pause()`](/docs/api/autoscaled-pool#pause) or to abort it by calling
+[`AutoscaledPool.abort()`](/docs/api/autoscaled-pool#abort).
+
 ---
 
 <a name="puppeteercrawler"></a>
@@ -74,8 +85,14 @@ await crawler.run();
 
 **Params**
 
--   **`options`**: [`PuppeteerCrawlerOptions`](/docs/typedefs/puppeteer-crawler-options) - All `PuppeteerCrawler` parameters are passed via an options
-    object.
+-   **`options`**: [`PuppeteerCrawlerOptions<RequestUserData, SessionUserData>`](/docs/typedefs/puppeteer-crawler-options) - All `PuppeteerCrawler`
+    parameters are passed via an options object.
+
+---
+
+<a name="basiccrawler"></a>
+
+## `puppeteerCrawler.basicCrawler`
 
 ---
 

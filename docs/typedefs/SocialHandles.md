@@ -26,48 +26,48 @@ The object has the following structure:
 
 ### `emails`
 
-**Type**: `Array<String>`
+**Type**: `Array<string>`
 
 ---
 
 ### `phones`
 
-**Type**: `Array<String>`
+**Type**: `Array<string>`
 
 ---
 
 ### `phonesUncertain`
 
-**Type**: `Array<String>`
+**Type**: `Array<string>`
 
 ---
 
 ### `linkedIns`
 
-**Type**: `Array<String>`
+**Type**: `Array<string>`
 
 ---
 
 ### `twitters`
 
-**Type**: `Array<String>`
+**Type**: `Array<string>`
 
 ---
 
 ### `instagrams`
 
-**Type**: `Array<String>`
+**Type**: `Array<string>`
 
 ---
 
 ### `facebooks`
 
-**Type**: `Array<String>`
+**Type**: `Array<string>`
 
 ---
 
 ### `youtubes`
 
-**Type**: `Array<String>`
+**Type**: `Array<string>`
 
 ---

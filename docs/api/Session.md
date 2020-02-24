@@ -19,7 +19,13 @@ Session configuration.
 
 **Params**
 
--   **`options`**: [`SessionOptions`](/docs/typedefs/session-options)
+-   **`options`**: [`SessionOptions<SessionUserData>`](/docs/typedefs/session-options)
+
+---
+
+<a name="userdata"></a>
+
+## `session.userData`
 
 ---
 
@@ -78,7 +84,7 @@ This method should be called after a successful session usage. It increases `usa
 
 ## `session.getState()`
 
-**Returns**: [`SessionState`](/docs/typedefs/session-state) - represents session internal state.
+**Returns**: [`SessionState<SessionUserData>`](/docs/typedefs/session-state) - represents session internal state.
 
 Gets session state for persistence in KeyValueStore.
 
@@ -129,7 +135,7 @@ It then parses and saves the cookies from the `set-cookie` header, if available.
 
 **Params**
 
--   **`response`**: `Object`
+-   **`response`**: `PuppeteerResponse` | `IncomingMessage`
 
 ---
 
@@ -165,7 +171,7 @@ Returns cookies in a format compatible with puppeteer and ready to be used with 
 
 **Params**
 
--   **`url`**: `String` - website url. Only cookies stored for this url will be returned
+-   **`url`**: `string` - website url. Only cookies stored for this url will be returned
 
 ---
 

@@ -5,14 +5,14 @@ title: DatasetReducer
 
 <a name="datasetreducer"></a>
 
-**Returns**: T
+**Returns**: `R`
 
 User-function used in the `Dataset.reduce()` API.
 
 **Params**
 
--   **`memo`**: `T` - Previous state of the reduction.
--   **`item`**: `Object` - Currect [`Dataset`](/docs/api/dataset) entry being processed.
--   **`index`**: `Number` - Position of current {Dataset} entry.
+-   **`memo`**: `A` - Previous state of the reduction.
+-   **`item`**: `T` - Currect [`Dataset`](/docs/api/dataset) entry being processed.
+-   **`index`**: `number` - Position of current {Dataset} entry.
 
 ---

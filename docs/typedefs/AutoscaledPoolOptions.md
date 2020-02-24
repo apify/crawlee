@@ -37,7 +37,7 @@ called. To abort a run, use the [`AutoscaledPool.abort()`](/docs/api/autoscaled-
 
 ### `minConcurrency`
 
-**Type**: `Number` <code> = 1</code>
+**Type**: `number` <code> = 1</code>
 
 The minimum number of tasks running in parallel.
 
@@ -48,7 +48,7 @@ not sure, just keep the default value and the concurrency will scale up automati
 
 ### `maxConcurrency`
 
-**Type**: `Number` <code> = 1000</code>
+**Type**: `number` <code> = 1000</code>
 
 The maximum number of tasks running in parallel.
 
@@ -56,7 +56,7 @@ The maximum number of tasks running in parallel.
 
 ### `desiredConcurrency`
 
-**Type**: `Number`
+**Type**: `number`
 
 The desired number of tasks that should be running parallel on the start of the pool, if there is a large enough supply of them. By default, it is
 `minConcurrency`.
@@ -65,7 +65,7 @@ The desired number of tasks that should be running parallel on the start of the 
 
 ### `desiredConcurrencyRatio`
 
-**Type**: `Number` <code> = 0.95</code>
+**Type**: `number` <code> = 0.95</code>
 
 Minimum level of desired concurrency to reach before more scaling up is allowed.
 
@@ -73,7 +73,7 @@ Minimum level of desired concurrency to reach before more scaling up is allowed.
 
 ### `scaleUpStepRatio`
 
-**Type**: `Number` <code> = 0.05</code>
+**Type**: `number` <code> = 0.05</code>
 
 Defines the fractional amount of desired concurrency to be added with each scaling up. The minimum scaling step is one.
 
@@ -81,7 +81,7 @@ Defines the fractional amount of desired concurrency to be added with each scali
 
 ### `scaleDownStepRatio`
 
-**Type**: `Number` <code> = 0.05</code>
+**Type**: `number` <code> = 0.05</code>
 
 Defines the amount of desired concurrency to be subtracted with each scaling down. The minimum scaling step is one.
 
@@ -89,7 +89,7 @@ Defines the amount of desired concurrency to be subtracted with each scaling dow
 
 ### `maybeRunIntervalSecs`
 
-**Type**: `Number` <code> = 0.5</code>
+**Type**: `number` <code> = 0.5</code>
 
 Indicates how often the pool should call the `runTaskFunction()` to start a new task, in seconds. This has no effect on starting new tasks immediately
 after a task completes.
@@ -98,7 +98,7 @@ after a task completes.
 
 ### `loggingIntervalSecs`
 
-**Type**: `Number` <code> = 60</code>
+**Type**: `number` <code> = 60</code>
 
 Specifies a period in which the instance logs its state, in seconds. Set to `null` to disable periodic logging.
 
@@ -106,7 +106,7 @@ Specifies a period in which the instance logs its state, in seconds. Set to `nul
 
 ### `autoscaleIntervalSecs`
 
-**Type**: `Number` <code> = 10</code>
+**Type**: `number` <code> = 10</code>
 
 Defines in seconds how often the pool should attempt to adjust the desired concurrency based on the latest system status. Setting it lower than 1
 might have a severe impact on performance. We suggest using a value from 5 to 20.

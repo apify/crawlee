@@ -62,7 +62,7 @@ closed even if there are pending open tabs.
 
 ### `launchPuppeteerFunction`
 
-**Type**: `function`
+**Type**: [`LaunchPuppeteerFunction`](/docs/typedefs/launch-puppeteer-function)
 
 Overrides the default function to launch a new Puppeteer instance. The function must return a promise resolving to
 [`Browser`](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-browser) instance. See the source code on

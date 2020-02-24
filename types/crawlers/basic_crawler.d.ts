@@ -21,7 +21,7 @@ export type BasicCrawlerOptions<RequestUserData, SessionUserData> = {
      * To make this work, you should **always**
      * let your function throw exceptions rather than catch them.
      * The exceptions are logged to the request using the
-     * [`request.pushErrorMessage`](request#Request+pushErrorMessage) function.
+     * {@link Request#pushErrorMessage} function.
      */
     handleRequestFunction: HandleRequest<RequestUserData, SessionUserData>;
     /**
@@ -52,12 +52,12 @@ export type BasicCrawlerOptions<RequestUserData, SessionUserData> = {
      * represents the last error thrown during processing of the request.
      *
      * See
-     * <a href="https://github.com/apifytech/apify-js/blob/master/src/crawlers/basic_crawler.js#L11" target="_blank">source code</a>
+     * [source code](https://github.com/apifytech/apify-js/blob/master/src/crawlers/basic_crawler.js#L11)
      * for the default implementation of this function.
      */
     handleFailedRequestFunction?: HandleFailedRequest<RequestUserData>;
     /**
-     * Indicates how many times the request is retried if [`handleRequestFunction()`](#new_BasicCrawler_new) fails.
+     * Indicates how many times the request is retried if {@link BasicCrawlerOptions.handleRequestFunction} fails.
      */
     maxRequestRetries?: number;
     /**
@@ -100,6 +100,13 @@ export type HandleRequestInputs<RequestUserData, SessionUserData> = {
      * The original {Request} object.
      */
     request: Request<RequestUserData>;
+    /**
+     * A reference to the underlying {@link AutoscaledPool} class that manages the concurrency of the crawler.
+     * Note that this property is only initialized after calling the {@link BasicCrawler#run} function.
+     * You can use it to change the concurrency settings on the fly,
+     * to pause the crawler by calling {@link AutoscaledPool#pause}
+     * or to abort it by calling {@link AutoscaledPool#abort}.
+     */
     autoscaledPool: AutoscaledPool;
     session?: Session<SessionUserData>;
 };
@@ -139,7 +146,7 @@ export type HandleFailedRequestInput<RequestUserData> = {
  *   To make this work, you should **always**
  *   let your function throw exceptions rather than catch them.
  *   The exceptions are logged to the request using the
- *   [`request.pushErrorMessage`](request#Request+pushErrorMessage) function.
+ *   {@link Request#pushErrorMessage} function.
  * @property {RequestList} [requestList]
  *   Static list of URLs to be processed.
  *   Either `requestList` or `requestQueue` option must be provided (or both).
@@ -162,10 +169,10 @@ export type HandleFailedRequestInput<RequestUserData> = {
  *   represents the last error thrown during processing of the request.
  *
  *   See
- *   <a href="https://github.com/apifytech/apify-js/blob/master/src/crawlers/basic_crawler.js#L11" target="_blank">source code</a>
+ *   [source code](https://github.com/apifytech/apify-js/blob/master/src/crawlers/basic_crawler.js#L11)
  *   for the default implementation of this function.
  * @property {number} [maxRequestRetries=3]
- *   Indicates how many times the request is retried if [`handleRequestFunction()`](#new_BasicCrawler_new) fails.
+ *   Indicates how many times the request is retried if {@link BasicCrawlerOptions.handleRequestFunction} fails.
  * @property {number} [maxRequestsPerCrawl]
  *   Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached.
  *   Always set this value in order to prevent infinite loops in misconfigured crawlers.
@@ -197,13 +204,13 @@ export type HandleFailedRequestInput<RequestUserData> = {
  * If you want a crawler that already facilitates this functionality,
  * please consider using {@link PuppeteerCrawler} or {@link CheerioCrawler}.
  *
- * `BasicCrawler` invokes the user-provided [`handleRequestFunction()`](#new_BasicCrawler_new)
+ * `BasicCrawler` invokes the user-provided {@link BasicCrawlerOptions.handleRequestFunction}
  * for each {@link Request} object, which represents a single URL to crawl.
  * The {@link Request} objects are fed from the {@link RequestList} or the {@link RequestQueue}
- * instances provided by the [`requestList`](#new_BasicCrawler_new) or [`requestQueue`](#new_BasicCrawler_new)
+ * instances provided by the {@link BasicCrawlerOptions.requestList} or {@link BasicCrawlerOptions.requestQueue}
  * constructor options, respectively.
  *
- * If both [`requestList`](#new_BasicCrawler_new) and [`requestQueue`](#new_BasicCrawler_new) options are used,
+ * If both {@link BasicCrawlerOptions.requestList} and {@link BasicCrawlerOptions.requestQueue} options are used,
  * the instance first processes URLs from the {@link RequestList} and automatically enqueues all of them
  * to {@link RequestQueue} before it starts their processing. This ensures that a single URL is not crawled multiple times.
  *
@@ -257,6 +264,7 @@ export type HandleFailedRequestInput<RequestUserData> = {
 declare class BasicCrawler<RequestUserData, SessionUserData> {
     /**
      * @param {BasicCrawlerOptions<RequestUserData, SessionUserData>} options
+     * All `BasicCrawler` parameters are passed via an options object.
      */
     constructor(options: BasicCrawlerOptions<RequestUserData, SessionUserData>);
     requestList: any;

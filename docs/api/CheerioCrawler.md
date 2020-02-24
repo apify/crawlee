@@ -78,6 +78,17 @@ const crawler = new Apify.CheerioCrawler({
 await crawler.run();
 ```
 
+## Properties
+
+### `autoscaledPool`
+
+**Type**: [`AutoscaledPool`](/docs/api/autoscaled-pool)
+
+A reference to the underlying [`AutoscaledPool`](/docs/api/autoscaled-pool) class that manages the concurrency of the crawler. Note that this property
+is only initialized after calling the [`CheerioCrawler.run()`](/docs/api/cheerio-crawler#run) function. You can use it to change the concurrency
+settings on the fly, to pause the crawler by calling [`AutoscaledPool.pause()`](/docs/api/autoscaled-pool#pause) or to abort it by calling
+[`AutoscaledPool.abort()`](/docs/api/autoscaled-pool#abort).
+
 ---
 
 <a name="cheeriocrawler"></a>
@@ -86,8 +97,14 @@ await crawler.run();
 
 **Params**
 
--   **`options`**: [`CheerioCrawlerOptions`](/docs/typedefs/cheerio-crawler-options) - All `CheerioCrawler` parameters are passed via an options
-    object.
+-   **`options`**: [`CheerioCrawlerOptions<RequestUserData, SessionUserData>`](/docs/typedefs/cheerio-crawler-options) - All `CheerioCrawler`
+    parameters are passed via an options object.
+
+---
+
+<a name="basiccrawler"></a>
+
+## `cheerioCrawler.basicCrawler`
 
 ---
 
@@ -95,7 +112,7 @@ await crawler.run();
 
 ## `cheerioCrawler.run()`
 
-**Returns**: `Promise`
+**Returns**: `Promise<void>`
 
 Runs the crawler. Returns promise that gets resolved once all the requests got processed.
 

@@ -58,7 +58,19 @@ Session pool configuration.
 
 **Params**
 
--   **`[options]`**: [`SessionPoolOptions`](/docs/typedefs/session-pool-options) - All `SessionPool` configuration options.
+-   **`[options]`**: [`SessionPoolOptions<SessionUserData>`](/docs/typedefs/session-pool-options) - All `SessionPool` configuration options.
+
+---
+
+<a name="sessionoptions"></a>
+
+## `sessionPool.sessionOptions`
+
+---
+
+<a name="sessions"></a>
+
+## `sessionPool.sessions`
 
 ---
 
@@ -97,7 +109,7 @@ called before you can start using the instance in a meaningful way.
 
 ## `sessionPool.getSession()`
 
-**Returns**: [`Promise<Session>`](/docs/api/session)
+**Returns**: [`Promise<Session<SessionUserData>>`](/docs/api/session)
 
 Gets session. If there is space for new session, it creates and return new session. If the session pool is full, it picks a session from the pool, If
 the picked session is usable it is returned, otherwise it creates and returns a new one.
@@ -108,8 +120,6 @@ the picked session is usable it is returned, otherwise it creates and returns a 
 
 ## `sessionPool.getState()`
 
-**Returns**: `Object`
-
 Returns an object representing the internal state of the `SessionPool` instance. Note that the object's fields can change in future releases.
 
 ---
@@ -118,7 +128,7 @@ Returns an object representing the internal state of the `SessionPool` instance.
 
 ## `sessionPool.persistState()`
 
-**Returns**: `Promise`
+**Returns**: `Promise<void>`
 
 Persists the current state of the `SessionPool` into the default [`KeyValueStore`](/docs/api/key-value-store). The state is persisted automatically in
 regular intervals.
