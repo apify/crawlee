@@ -465,7 +465,7 @@ declare class PuppeteerCrawler {
      *
      * @return {Promise<void>}
      */
-    run(): Promise<void>;
+    async run(): Promise<void>;
     sessionPool: import("../session_pool/session_pool").SessionPool;
     isRunningPromise: Promise<void>;
     autoscaledPool: AutoscaledPool;
@@ -477,7 +477,7 @@ declare class PuppeteerCrawler {
      * @param {AutoscaledPool} options.autoscaledPool
      * @ignore
      */
-    _handleRequestFunction({ request, autoscaledPool }: {
+    async _handleRequestFunction({ request, autoscaledPool }: {
         request: Request;
         autoscaledPool: AutoscaledPool;
     }): Promise<void>;
@@ -488,7 +488,7 @@ declare class PuppeteerCrawler {
      * @return {Promise<PuppeteerResponse>}
      * @ignore
      */
-    _defaultGotoFunction({ page, request }: {
+    async _defaultGotoFunction({ page, request }: {
         page: PuppeteerPage;
         request: Request;
     }): Promise<PuppeteerResponse>;
@@ -499,7 +499,7 @@ declare class PuppeteerCrawler {
      * @return {Promise<void>}
      * @ignore
      */
-    _defaultHandleFailedRequestFunction({ error, request }: {
+    async _defaultHandleFailedRequestFunction({ error, request }: {
         error: Error;
         request: Request;
     }): Promise<void>;

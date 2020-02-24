@@ -68,9 +68,9 @@ export class SessionPool extends EventEmitter {
      */
     constructor(options?: SessionPoolOptions);
     maxPoolSize: number;
-    createSessionFunction: any;
+    createSessionFunction: CreateSession;
     sessionOptions: {};
-    persistStateKeyValueStoreId: any;
+    persistStateKeyValueStoreId: string;
     persistStateKey: string;
     keyValueStore: import("../key_value_store").KeyValueStore;
     sessions: any[];
@@ -90,7 +90,7 @@ export class SessionPool extends EventEmitter {
      *
      * @return {Promise<void>}
      */
-    initialize(): Promise<void>;
+    async initialize(): Promise<void>;
     _listener: any;
     /**
      * Gets session.
@@ -100,7 +100,7 @@ export class SessionPool extends EventEmitter {
      *
      * @return {Promise<Session>}
      */
-    getSession(): Promise<Session>;
+    async getSession(): Promise<Session>;
     /**
      * Returns an object representing the internal state of the `SessionPool` instance.
      * Note that the object's fields can change in future releases.
@@ -114,7 +114,7 @@ export class SessionPool extends EventEmitter {
      *
      * @return {Promise}
      */
-    persistState(): Promise<any>;
+    async persistState(): Promise<any>;
     /**
      * Removes listener from `persistState` event.
      * This function should be called after you are done with using the `SessionPool` instance.
@@ -125,51 +125,51 @@ export class SessionPool extends EventEmitter {
      * @param session {Session} - Session to be removed
      * @private
      */
-    _removeSession(session: Session): void;
+    private _removeSession;
     /**
      * Adds `Session` instance to `SessionPool`.
      * @param newSession {Session} - `Session` instance to be added.
      * @private
      */
-    _addSession(newSession: Session): void;
+    private _addSession;
     /**
      * Gets random index.
      * @return {number}
      * @private
      */
-    _getRandomIndex(): number;
+    private _getRandomIndex;
     /**
      * Creates new session without any extra behavior.
      * @param sessionPool
      * @return {Session} - New session.
      * @private
      */
-    _defaultCreateSessionFunction(sessionPool: any): Session;
+    private _defaultCreateSessionFunction;
     /**
      * Creates new session and adds it to the pool.
      * @return {Promise<Session>} - Newly created `Session` instance.
      * @private
      */
-    _createSession(): Promise<Session>;
+    private async _createSession;
     /**
      * Decides whether there is enough space for creating new session.
      * @return {boolean}
      * @private
      */
-    _hasSpaceForSession(): boolean;
+    private _hasSpaceForSession;
     /**
      * Picks random session from the `SessionPool`.
      * @return {Session} - Picked `Session`
      * @private
      */
-    _pickSession(): Session;
+    private _pickSession;
     /**
      * Potentially loads `SessionPool`.
      * If the state was persisted it loads the `SessionPool` from the persisted state.
      * @return {Promise<void>}
      * @private
      */
-    _maybeLoadSessionPool(): Promise<void>;
+    private async _maybeLoadSessionPool;
     addListener(event: string | symbol, listener: (...args: any[]) => void): SessionPool;
     on(event: string | symbol, listener: (...args: any[]) => void): SessionPool;
     once(event: string | symbol, listener: (...args: any[]) => void): SessionPool;

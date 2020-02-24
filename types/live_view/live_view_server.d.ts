@@ -66,7 +66,7 @@ declare class LiveViewServer {
      * @type {?Snapshot}
      * @private
      */
-    lastSnapshot: Snapshot | null;
+    private lastSnapshot;
     lastScreenshotIndex: number;
     clientCount: number;
     _isRunning: boolean;
@@ -78,13 +78,13 @@ declare class LiveViewServer {
      * Snapshots will not be created until a client has connected.
      * @return {Promise}
      */
-    start(): Promise<any>;
+    async start(): Promise<any>;
     /**
      * Prevents the server from receiving more connections. Existing connections
      * will not be terminated, but the server will not prevent a process exit.
      * @return {Promise}
      */
-    stop(): Promise<any>;
+    async stop(): Promise<any>;
     /**
      * Serves a snapshot to all connected clients.
      * Screenshots are not served directly, only their index number
@@ -95,7 +95,7 @@ declare class LiveViewServer {
      * @param {Page} page
      * @return {Promise}
      */
-    serve(page: Page): Promise<any>;
+    async serve(page: Page): Promise<any>;
     /**
      * @return {boolean}
      */
@@ -110,24 +110,24 @@ declare class LiveViewServer {
      * @return {string}
      * @private
      */
-    _getScreenshotPath(screenshotIndex: number): string;
+    private _getScreenshotPath;
     /**
      * @param {Page} page
      * @return {Promise<Snapshot>}
      * @private
      */
-    _makeSnapshot(page: Page): Promise<Snapshot>;
+    private async _makeSnapshot;
     /**
      * @param {Snapshot} snapshot
      * @private
      */
-    _pushSnapshot(snapshot: Snapshot): void;
+    private _pushSnapshot;
     /**
      * Initiates an async delete and does not wait for it to complete.
      * @param {number} screenshotIndex
      * @private
      */
-    _deleteScreenshot(screenshotIndex: number): void;
+    private _deleteScreenshot;
     _setupHttpServer(): void;
     port: number;
     liveViewUrl: any;
@@ -135,9 +135,8 @@ declare class LiveViewServer {
      * @param {socketio.Socket} socket
      * @private
      */
-    _socketConnectionHandler(socket: socketio.Socket): void;
+    private _socketConnectionHandler;
 }
-import Snapshot from "./snapshot";
 import http from "http";
 import socketio from "socket.io";
 import { Page } from "puppeteer";

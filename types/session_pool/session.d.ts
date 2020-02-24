@@ -46,7 +46,7 @@ export class Session {
      * @type CookieJar
      * @private
      * */
-    cookieJar: CookieJar;
+    private cookieJar;
     id: string;
     maxAgeSecs: number;
     userData: any;
@@ -164,21 +164,21 @@ export class Session {
      * @return {Cookie}
      * @private
      */
-    _puppeteerCookieToTough(puppeteerCookie: PuppeteerCookie): Cookie;
+    private _puppeteerCookieToTough;
     /**
      * Transforms tough-cookie to puppeteer cookie .
      * @param {Cookie} toughCookie - Cookie from CookieJar
      * @return {PuppeteerCookie} - Cookie from Puppeteer
      * @private
      */
-    _toughCookieToPuppeteer(toughCookie: Cookie): PuppeteerCookie;
+    private _toughCookieToPuppeteer;
     /**
      * Sets cookies.
      * @param {Cookie[]} cookies
      * @param {string} url
      * @private
      */
-    _setCookies(cookies: Cookie[], url: string): void;
+    private _setCookies;
 }
 /**
  * Persistable {@link Session} state.
@@ -246,7 +246,5 @@ export type SessionOptions = {
      */
     sessionPool: SessionPool;
 };
-import { CookieJar } from "tough-cookie";
 import { SessionPool } from "./session_pool";
 import { Cookie as PuppeteerCookie } from "puppeteer";
-import { Cookie } from "tough-cookie";

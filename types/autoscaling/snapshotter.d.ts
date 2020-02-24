@@ -148,12 +148,12 @@ declare class Snapshotter {
      * Starts capturing snapshots at configured intervals.
      * @return {Promise}
      */
-    start(): Promise<any>;
+    async start(): Promise<any>;
     /**
      * Stops all resource capturing.
      * @return {Promise}
      */
-    stop(): Promise<any>;
+    async stop(): Promise<any>;
     /**
      * Returns a sample of latest memory snapshots, with the size of the sample defined
      * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
@@ -197,7 +197,7 @@ declare class Snapshotter {
      * @return {Promise}
      * @ignore
      */
-    _snapshotMemoryOnLocal(intervalCallback: Function): Promise<any>;
+    async _snapshotMemoryOnLocal(intervalCallback: Function): Promise<any>;
     /**
      * Checks for critical memory overload and logs it to the console.
      * @ignore
@@ -232,7 +232,7 @@ declare class Snapshotter {
      * @param intervalCallback
      * @private
      */
-    _snapshotClient(intervalCallback: any): void;
+    private _snapshotClient;
     /**
      * Removes snapshots that are older than the snapshotHistorySecs option
      * from the array (destructively - in place).
@@ -245,5 +245,5 @@ declare class Snapshotter {
      * Calculate max memory for platform or local usage.
      * @ignore
      */
-    _ensureCorrectMaxMemory(): Promise<void>;
+    async _ensureCorrectMaxMemory(): Promise<void>;
 }
