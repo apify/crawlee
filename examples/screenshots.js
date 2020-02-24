@@ -1,9 +1,7 @@
 /**
- * This example demonstrates how to read and write
- * data to the default key-value store using
- * [`Apify.getValue()`](../api/apify#module_Apify.getValue)
- * and
- * [`Apify.setValue()`](../api/apify#module_Apify.setValue).
+ * This example demonstrates how to read and write data to the default key-value store using
+ * [`Apify.getValue()`](/docs/api/apify#getValue) and [`Apify.setValue()`](/docs/api/apify#setValue).
+ *
  * The script crawls a list of URLs using Puppeteer,
  * captures a screenshot of each page and saves it to the store. The list of URLs is
  * provided as actor input that is also read from the store.
@@ -17,11 +15,11 @@
  *
  * On the Apify cloud, the input can be either set manually
  * in the UI app or passed as the POST payload to the
- * <a href="https://apify.com/docs/api/v2#/reference/actors/run-collection/run-actor" target="_blank">Run actor API call</a>.
- * For more details, see <a href="https://docs.apify.com/actor/run#input-and-output" target="_blank">Input and output</a>
+ * [Run actor API call](https://apify.com/docs/api/v2#/reference/actors/run-collection/run-actor).
+ * For more details, see [Input and output](https://docs.apify.com/actor/run#input-and-output)
  * in the Apify Actor documentation.
  *
- * To run this example on the Apify Platform, select the `Node.js 10 + Chrome on Debian (apify/actor-node-chrome)` base image
+ * To run this example on the Apify Platform, select the `Node.js 12 + Chrome on Debian (apify/actor-node-chrome)` base image
  * on the source tab of your actor configuration.
  */
 

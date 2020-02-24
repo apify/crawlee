@@ -18,30 +18,40 @@ const Apify = require('apify');
 await Apify.utils.sleep(1500);
 ```
 
--   [`utils`](#utils) : `object`
-    -   [`.enqueueLinks`](#utils.enqueueLinks) ⇒ `Promise<Array<QueueOperationInfo>>`
-    -   [`.requestAsBrowser`](#utils.requestAsBrowser) ⇒ `Promise<(http.IncomingMessage|stream.Readable)>`
-    -   [`.sleep`](#utils.sleep) ⇒ `Promise<void>`
-    -   [`.URL_NO_COMMAS_REGEX`](#utils.URL_NO_COMMAS_REGEX)
-    -   [`.URL_WITH_COMMAS_REGEX`](#utils.URL_WITH_COMMAS_REGEX)
-    -   [`.isDocker(forceReset)`](#utils.isDocker) ⇒ `Promise<boolean>`
-    -   [`.downloadListOfUrls(options)`](#utils.downloadListOfUrls) ⇒ `Promise<Array<String>>`
-    -   [`.extractUrls(options)`](#utils.extractUrls) ⇒ `Array<String>`
-    -   [`.getRandomUserAgent()`](#utils.getRandomUserAgent) ⇒ `String`
-    -   [`.htmlToText(html)`](#utils.htmlToText) ⇒ `String`
-        -   [`~$`](#utils.htmlToText..$) : `Cheerio`
+---
 
-<a name="utils.enqueueLinks"></a>
+<a name="url_no_commas_regex"></a>
 
-## `utils.enqueueLinks` ⇒ `Promise<Array<QueueOperationInfo>>`
+## `utils.URL_NO_COMMAS_REGEX`
+
+Default regular expression to match URLs in a string that may be plain text, JSON, CSV or other. It supports common URL characters and does not
+support URLs containing commas or spaces. The URLs also may contain Unicode letters (not symbols).
+
+---
+
+<a name="url_with_commas_regex"></a>
+
+## `utils.URL_WITH_COMMAS_REGEX`
+
+Regular expression that, in addition to the default regular expression `URL_NO_COMMAS_REGEX`, supports matching commas in URL path and query. Note,
+however, that this may prevent parsing URLs from comma delimited lists, or the URLs may become malformed.
+
+---
+
+<a name="enqueuelinks"></a>
+
+## `utils.enqueueLinks(options)`
+
+**Returns**: [`Promise<Array<QueueOperationInfo>>`](/docs/typedefs/queue-operation-info) - Promise that resolves to an array of
+[`QueueOperationInfo`](/docs/typedefs/queue-operation-info) objects.
 
 The function finds elements matching a specific CSS selector (HTML anchor (`<a>`) by default) either in a Puppeteer page, or in a Cheerio object
-(parsed HTML), and enqueues the URLs in their `href` attributes to the provided [`RequestQueue`](requestqueue). If you're looking to find URLs in
-JavaScript heavy pages where links are not available in `href` elements, but rather navigations are triggered in click handlers see
-[`enqueueLinksByClickingElements()`](puppeteer#puppeteer.enqueueLinksByClickingElements).
+(parsed HTML), and enqueues the URLs in their `href` attributes to the provided [`RequestQueue`](/docs/api/request-queue). If you're looking to find
+URLs in JavaScript heavy pages where links are not available in `href` elements, but rather navigations are triggered in click handlers see
+[`puppeteer.enqueueLinksByClickingElements()`](/docs/api/puppeteer#enqueuelinksbyclickingelements).
 
-Optionally, the function allows you to filter the target links' URLs using an array of [`PseudoUrl`](pseudourl) objects and override settings of the
-enqueued [`Request`](request) objects.
+Optionally, the function allows you to filter the target links' URLs using an array of [`PseudoUrl`](/docs/api/pseudo-url) objects and override
+settings of the enqueued [`Request`](/docs/api/request) objects.
 
 **Example usage**
 
@@ -60,84 +70,55 @@ await Apify.utils.enqueueLinks({
 });
 ```
 
-**Returns**: `Promise<Array<QueueOperationInfo>>` - Promise that resolves to an array of [`QueueOperationInfo`](../typedefs/queueoperationinfo)
-objects.
+**Params**
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th><th>Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>options</code></td><td><code>Object</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>All <code>enqueueLinks()</code> parameters are passed
-  via an options object with the following keys:</p>
-</td></tr><tr>
-<td><code>options.page</code></td><td><code>Page</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
-  Either <code>page</code> or <code>$</code> option must be provided.</p>
-</td></tr><tr>
-<td><code>options.$</code></td><td><code>Cheerio</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p><a href="https://github.com/cheeriojs/cheerio" target="_blank"><code>Cheerio</code></a> object with loaded HTML.
-  Either <code>page</code> or <code>$</code> option must be provided.</p>
-</td></tr><tr>
-<td><code>options.requestQueue</code></td><td><code><a href="requestqueue">RequestQueue</a></code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>A request queue to which the URLs will be enqueued.</p>
-</td></tr><tr>
-<td><code>[options.selector]</code></td><td><code>String</code></td><td><code>&#x27;a&#x27;</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>A CSS selector matching links to be enqueued.</p>
-</td></tr><tr>
-<td><code>[options.baseUrl]</code></td><td><code>string</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>A base URL that will be used to resolve relative URLs when using Cheerio. Ignored when using Puppeteer,
-  since the relative URL resolution is done inside the browser automatically.</p>
-</td></tr><tr>
-<td><code>[options.pseudoUrls]</code></td><td><code>Array<Object&gt;</code> | <code>Array.&lt;String></code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>An array of <a href="pseudourl"><code>PseudoUrl</code></a>s matching the URLs to be enqueued,
-  or an array of strings or RegExps or plain Objects from which the <a href="pseudourl"><code>PseudoUrl</code></a>s can be constructed.</p>
-<p>  The plain objects must include at least the <code>purl</code> property, which holds the pseudo-URL string or RegExp.
-  All remaining keys will be used as the <code>requestTemplate</code> argument of the <a href="pseudourl"><code>PseudoUrl</code></a> constructor,
-  which lets you specify special properties for the enqueued <a href="request"><code>Request</code></a> objects.</p>
-<p>  If <code>pseudoUrls</code> is an empty array, <code>null</code> or <code>undefined</code>, then the function
-  enqueues all links found on the page.</p>
-</td></tr><tr>
-<td><code>[options.transformRequestFunction]</code></td><td><code><a href="../typedefs/requesttransform">RequestTransform</a></code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>Just before a new <a href="request"><code>Request</code></a> is constructed and enqueued to the <a href="requestqueue"><code>RequestQueue</code></a>, this function can be used
-  to remove it or modify its contents such as <code>userData</code>, <code>payload</code> or, most importantly <code>uniqueKey</code>. This is useful
-  when you need to enqueue multiple <code>Requests</code> to the queue that share the same URL, but differ in methods or payloads,
-  or to dynamically update or create <code>userData</code>.</p>
-<p>  For example: by adding <code>keepUrlFragment: true</code> to the <code>request</code> object, URL fragments will not be removed
-  when <code>uniqueKey</code> is computed.</p>
-<p>  <strong>Example:</strong></p>
-<pre><code class="language-javascript">  {
-      transformRequestFunction: (request) =&gt; {
-          request.userData.foo = &#39;bar&#39;;
-          request.keepUrlFragment = true;
-          return request;
-      }
-  }</code></pre>
-</td></tr></tbody>
-</table>
-<a name="utils.requestAsBrowser"></a>
+-   **`options`**: `Object` - All `enqueueLinks()` parameters are passed via an options object with the following keys:
 
-## `utils.requestAsBrowser` ⇒ `Promise<(http.IncomingMessage|stream.Readable)>`
+    -   **`.page`**: `Page` - Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object. Either `page` or `$` option must be
+        provided.
+    -   **`.$`**: `Cheerio` - [`Cheerio`](https://github.com/cheeriojs/cheerio) function with loaded HTML. Either `page` or `$` option must be
+        provided.
+    -   **`.requestQueue`**: [`RequestQueue`](/docs/api/request-queue) - A request queue to which the URLs will be enqueued.
+    -   **`[.selector]`**: `String` <code> = &#x27;a&#x27;</code> - A CSS selector matching links to be enqueued.
+    -   **`[.baseUrl]`**: `string` - A base URL that will be used to resolve relative URLs when using Cheerio. Ignored when using Puppeteer, since the
+        relative URL resolution is done inside the browser automatically.
+    -   **`[.pseudoUrls]`**: `Array<Object&gt;` | `Array.&lt;String>` - An array of [`PseudoUrl`](/docs/api/pseudo-url)s matching the URLs to be
+        enqueued, or an array of strings or RegExps or plain Objects from which the [`PseudoUrl`](/docs/api/pseudo-url)s can be constructed.
+
+    The plain objects must include at least the `purl` property, which holds the pseudo-URL string or RegExp. All remaining keys will be used as the
+    `requestTemplate` argument of the [`PseudoUrl`](/docs/api/pseudo-url) constructor, which lets you specify special properties for the enqueued
+    [`Request`](/docs/api/request) objects.
+
+    If `pseudoUrls` is an empty array, `null` or `undefined`, then the function enqueues all links found on the page.
+
+    -   **`[.transformRequestFunction]`**: [`RequestTransform`](/docs/typedefs/request-transform) - Just before a new [`Request`](/docs/api/request)
+        is constructed and enqueued to the [`RequestQueue`](/docs/api/request-queue), this function can be used to remove it or modify its contents
+        such as `userData`, `payload` or, most importantly `uniqueKey`. This is useful when you need to enqueue multiple `Requests` to the queue that
+        share the same URL, but differ in methods or payloads, or to dynamically update or create `userData`.
+
+    For example: by adding `keepUrlFragment: true` to the `request` object, URL fragments will not be removed when `uniqueKey` is computed.
+
+    **Example:**
+
+    ```javascript
+    {
+        transformRequestFunction: request => {
+            request.userData.foo = 'bar';
+            request.keepUrlFragment = true;
+            return request;
+        };
+    }
+    ```
+
+---
+
+<a name="requestasbrowser"></a>
+
+## `utils.requestAsBrowser(options)`
+
+**Returns**: `Promise<(http.IncomingMessage|stream.Readable)>` - This will typically be a
+[Node.js HTTP response stream](https://nodejs.org/api/http.html#http_class_http_incomingmessage), however, if returned from the cache it will be a
+[response-like object](https://github.com/lukechilds/responselike) which behaves in the same way.
 
 **IMPORTANT:** This function uses an insecure version of HTTP parser by default and also ignores SSL/TLS errors. This is very useful in scraping,
 because it allows bypassing certain anti-scraping walls, but it also exposes some vulnerability. For other than scraping scenarios, please set
@@ -155,27 +136,31 @@ Currently, the function sends requests the same way as Firefox web browser does.
 Internally, the function uses httpRequest function from the [@apify/httpRequest](https://github.com/apifytech/http-request) NPM package to perform the
 request. All `options` not recognized by this function are passed to it, so see it for more details.
 
-**Returns**: `Promise<(http.IncomingMessage|stream.Readable)>` - This will typically be a
-[Node.js HTTP response stream](https://nodejs.org/api/http.html#http_class_http_incomingmessage), however, if returned from the cache it will be a
-[response-like object](https://github.com/lukechilds/responselike) which behaves in the same way.
+**Params**
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>options</code></td><td><code><a href="../typedefs/requestasbrowseroptions">RequestAsBrowserOptions</a></code></td>
-</tr>
-<tr>
-<td colspan="3"><p>All <code>requestAsBrowser</code> configuration options.</p>
-</td></tr></tbody>
-</table>
-<a name="utils.sleep"></a>
+-   **`options`**: [`RequestAsBrowserOptions`](/docs/typedefs/request-as-browser-options) - All `requestAsBrowser` configuration options.
 
-## `utils.sleep` ⇒ `Promise<void>`
+---
+
+<a name="isdocker"></a>
+
+## `utils.isDocker(forceReset)`
+
+**Returns**: `Promise<boolean>`
+
+Returns a `Promise` that resolves to true if the code is running in a Docker container.
+
+**Params**
+
+-   **`forceReset`**: `boolean`
+
+---
+
+<a name="sleep"></a>
+
+## `utils.sleep(millis)`
+
+**Returns**: `Promise<void>`
 
 Returns a `Promise` that resolves after a specific period of time. This is useful to implement waiting in your code, e.g. to prevent overloading of
 target website or to avoid bot detection.
@@ -191,125 +176,62 @@ const Apify = require('apify');
 await Apify.utils.sleep(1500);
 ```
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>millis</code></td><td><code>Number</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Period of time to sleep, in milliseconds. If not a positive number, the returned promise resolves immediately.</p>
-</td></tr></tbody>
-</table>
-<a name="utils.URL_NO_COMMAS_REGEX"></a>
+**Params**
 
-## `utils.URL_NO_COMMAS_REGEX`
+-   **`millis`**: `Number` - Period of time to sleep, in milliseconds. If not a positive number, the returned promise resolves immediately.
 
-Default regular expression to match URLs in a string that may be plain text, JSON, CSV or other. It supports common URL characters and does not
-support URLs containing commas or spaces. The URLs also may contain Unicode letters (not symbols).
+---
 
-<a name="utils.URL_WITH_COMMAS_REGEX"></a>
+<a name="downloadlistofurls"></a>
 
-## `utils.URL_WITH_COMMAS_REGEX`
+## `utils.downloadListOfUrls(options)`
 
-Regular expression that, in addition to the default regular expression `URL_NO_COMMAS_REGEX`, supports matching commas in URL path and query. Note,
-however, that this may prevent parsing URLs from comma delimited lists, or the URLs may become malformed.
-
-<a name="utils.isDocker"></a>
-
-## `utils.isDocker(forceReset)` ⇒ `Promise<boolean>`
-
-Returns a `Promise` that resolves to true if the code is running in a Docker container.
-
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>forceReset</code></td><td><code>boolean</code></td>
-</tr>
-<tr>
-</tr></tbody>
-</table>
-<a name="utils.downloadListOfUrls"></a>
-
-## `utils.downloadListOfUrls(options)` ⇒ `Promise<Array<String>>`
+**Returns**: `Promise<Array<String>>`
 
 Returns a promise that resolves to an array of urls parsed from the resource available at the provided url. Optionally, custom regular expression and
 encoding may be provided.
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th><th>Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>options</code></td><td><code>Object</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"></td></tr><tr>
-<td><code>options.url</code></td><td><code>String</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>URL to the file</p>
-</td></tr><tr>
-<td><code>[options.encoding]</code></td><td><code>String</code></td><td><code>&#x27;utf8&#x27;</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>The encoding of the file.</p>
-</td></tr><tr>
-<td><code>[options.urlRegExp]</code></td><td><code>RegExp</code></td><td><code>URL_NO_COMMAS_REGEX</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Custom regular expression to identify the URLs in the file to extract.
-  The regular expression should be case-insensitive and have global flag set (i.e. <code>/something/gi</code>).</p>
-</td></tr></tbody>
-</table>
-<a name="utils.extractUrls"></a>
+**Params**
 
-## `utils.extractUrls(options)` ⇒ `Array<String>`
+-   **`options`**: `Object`
+    -   **`.url`**: `String` - URL to the file
+    -   **`[.encoding]`**: `String` <code> = &#x27;utf8&#x27;</code> - The encoding of the file.
+    -   **`[.urlRegExp]`**: `RegExp` <code> = URL_NO_COMMAS_REGEX</code> - Custom regular expression to identify the URLs in the file to extract. The
+        regular expression should be case-insensitive and have global flag set (i.e. `/something/gi`).
+
+---
+
+<a name="extracturls"></a>
+
+## `utils.extractUrls(options)`
+
+**Returns**: `Array<String>`
 
 Collects all URLs in an arbitrary string to an array, optionally using a custom regular expression.
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th><th>Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>options</code></td><td><code>Object</code></td><td></td>
-</tr>
-<tr>
-</tr><tr>
-<td><code>options.string</code></td><td><code>String</code></td><td></td>
-</tr>
-<tr>
-</tr><tr>
-<td><code>[options.urlRegExp]</code></td><td><code>RegExp</code></td><td><code>Apify.utils.URL_NO_COMMAS_REGEX</code></td>
-</tr>
-<tr>
-</tr></tbody>
-</table>
-<a name="utils.getRandomUserAgent"></a>
+**Params**
 
-## `utils.getRandomUserAgent()` ⇒ `String`
+-   **`options`**: `Object`
+    -   **`.string`**: `String`
+    -   **`[.urlRegExp]`**: `RegExp` <code> = Apify.utils.URL_NO_COMMAS_REGEX</code>
+
+---
+
+<a name="getrandomuseragent"></a>
+
+## `utils.getRandomUserAgent()`
+
+**Returns**: `String`
 
 Returns a randomly selected User-Agent header out of a list of the most common headers.
 
-<a name="utils.htmlToText"></a>
+---
 
-## `utils.htmlToText(html)` ⇒ `String`
+<a name="htmltotext"></a>
+
+## `utils.htmlToText(html)`
+
+**Returns**: `String` - Plain text
 
 The function converts a HTML document to a plain text.
 
@@ -335,23 +257,8 @@ const html = '<html><body>Some text</body></html>';
 const text = htmlToText(cheerio.load(html, { decodeEntities: true }));
 ```
 
-**Returns**: `String` - Plain text
+**Params**
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>html</code></td><td><code>String</code> | <code>Cheerio</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>HTML text or parsed HTML represented using a
-<a href="https://www.npmjs.com/package/cheerio">cheerio</a> function.</p>
-</td></tr></tbody>
-</table>
-<a name="utils.htmlToText..$"></a>
+-   **`html`**: `String` | `Cheerio` - HTML text or parsed HTML represented using a [cheerio](https://www.npmjs.com/package/cheerio) function.
 
-### `htmlToText~$` : `Cheerio`
+---

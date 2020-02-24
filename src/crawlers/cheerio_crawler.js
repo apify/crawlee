@@ -84,7 +84,7 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *   - Buffer for others MIME content types
  *
  *   Parsed `Content-Type` header using
- *   <a href="https://www.npmjs.com/package/content-type" target="_blank">content-type package</a>
+ *   [content-type package](https://www.npmjs.com/package/content-type)
  *   is stored in `contentType`.
  *
  *   Cheerio is available only for HTML and XML content types.
@@ -100,7 +100,7 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *   To make this work, you should **always**
  *   let your function throw exceptions rather than catch them.
  *   The exceptions are logged to the request using the
- *   [`request.pushErrorMessage`](request#Request+pushErrorMessage) function.
+ *   {@link Request#pushErrorMessage} function.
  * @property {RequestList} [requestList]
  *   Static list of URLs to be processed.
  *   Either `requestList` or `requestQueue` option must be provided (or both).
@@ -153,11 +153,11 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *   If set to true, SSL certificate errors will be ignored.
  * @property {Boolean} [useApifyProxy=false]
  *   If set to `true`, `CheerioCrawler` will be configured to use
- *   <a href="https://my.apify.com/proxy" target="_blank">Apify Proxy</a> for all connections.
- *   For more information, see the <a href="https://docs.apify.com/proxy" target="_blank">documentation</a>
+ *   [Apify Proxy](https://my.apify.com/proxy) for all connections.
+ *   For more information, see the [documentation](https://docs.apify.com/proxy)
  * @property {String[]} [apifyProxyGroups]
  *   An array of proxy groups to be used
- *   by the <a href="https://docs.apify.com/proxy" target="_blank">Apify Proxy</a>.
+ *   by the [Apify Proxy](https://docs.apify.com/proxy).
  *   Only applied if the `useApifyProxy` option is `true`.
  * @property {String} [apifyProxySession]
  *   Apify Proxy session identifier to be used with requests made by `CheerioCrawler`.
@@ -183,7 +183,7 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *   where the {@link Request} instance corresponds to the failed request, and the `Error` instance
  *   represents the last error thrown during processing of the request.
  *
- *   See <a href="https://github.com/apifytech/apify-js/blob/master/src/crawlers/cheerio_crawler.js#L13">source code</a>
+ *   See [source code](https://github.com/apifytech/apify-js/blob/master/src/crawlers/cheerio_crawler.js#L13)
  *   for the default implementation of this function.
  * @property {String[]} [additionalMimeTypes]
  *   An array of <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types"
@@ -222,7 +222,7 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
 
 /**
  * Provides a framework for the parallel crawling of web pages using plain HTTP requests and
- * <a href="https://www.npmjs.com/package/cheerio" target="_blank">cheerio</a> HTML parser.
+ * [cheerio](https://www.npmjs.com/package/cheerio) HTML parser.
  * The URLs to crawl are fed either from a static list of URLs
  * or from a dynamic queue of URLs enabling recursive crawling of websites.
  *
@@ -232,29 +232,29 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  * because it loads the pages using full-featured headless Chrome browser.
  *
  * `CheerioCrawler` downloads each URL using a plain HTTP request,
- * parses the HTML content using <a href="https://www.npmjs.com/package/cheerio" target="_blank">Cheerio</a>
- * and then invokes the user-provided [`handlePageFunction()`](#new_CheerioCrawler_new) to extract page data
- * using a <a href="https://jquery.com/" target="_blank">jQuery</a>-like interface to the parsed HTML DOM.
+ * parses the HTML content using [Cheerio](https://www.npmjs.com/package/cheerio)
+ * and then invokes the user-provided {@link CheerioCrawlerOptions.handlePageFunction} to extract page data
+ * using a [jQuery](https://jquery.com/)-like interface to the parsed HTML DOM.
  *
  * The source URLs are represented using {@link Request} objects that are fed from
- * {@link RequestList} or {@link RequestQueue} instances provided by the [`requestList`](#new_CheerioCrawler_new)
- * or [`requestQueue`](#new_CheerioCrawler_new) constructor options, respectively.
+ * {@link RequestList} or {@link RequestQueue} instances provided by the {@link CheerioCrawlerOptions.requestList}
+ * or {@link CheerioCrawlerOptions.requestQueue} constructor options, respectively.
  *
- * If both [`requestList`](#new_CheerioCrawler_new) and [`requestQueue`](#new_CheerioCrawler_new) are used,
+ * If both {@link CheerioCrawlerOptions.requestList} and {@link CheerioCrawlerOptions.requestQueue} are used,
  * the instance first processes URLs from the {@link RequestList} and automatically enqueues all of them
  * to {@link RequestQueue} before it starts their processing. This ensures that a single URL is not crawled multiple times.
  *
  * The crawler finishes when there are no more {@link Request} objects to crawl.
  *
- * `CheerioCrawler` downloads the web pages using the {@link requestAsBrowser} utility function.
+ * `CheerioCrawler` downloads the web pages using the {@link utils#requestAsBrowser} utility function.
  * You can use the `requestOptions` parameter to pass additional options to this function.
  *
  * By default, `CheerioCrawler` only processes web pages with the `text/html`
  * and `application/xhtml+xml` MIME content types (as reported by the `Content-Type` HTTP header),
  * and skips pages with other content types. If you want the crawler to process other content types,
- * use the [`additionalMimeTypes`](#new_CheerioCrawler_new) constructor option.
+ * use the {@link CheerioCrawlerOptions.additionalMimeTypes} constructor option.
  * Beware that the parsing behavior differs for HTML, XML, JSON and other types of content.
- * For details, see {@link CheerioCrawlerOptions#handlePageFunction}.
+ * For details, see {@link CheerioCrawlerOptions.handlePageFunction}.
  *
  * New requests are only dispatched when there is enough free CPU and memory available,
  * using the functionality provided by the {@link AutoscaledPool} class.
@@ -296,16 +296,11 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *
  * await crawler.run();
  * ```
- * @property {AutoscaledPool} autoscaledPool
- *  A reference to the underlying {@link AutoscaledPool} class that manages the concurrency of the crawler.
- *  Note that this property is only initialized after calling the {@link CheerioCrawler#run} function.
- *  You can use it to change the concurrency settings on the fly,
- *  to pause the crawler by calling {@link AutoscaledPool#pause}
- *  or to abort it by calling {@link AutoscaledPool#abort}.
  */
 class CheerioCrawler {
     /**
      * @param {CheerioCrawlerOptions} options
+     * All `CheerioCrawler` parameters are passed via an options object.
      */
     constructor(options = {}) {
         const {
@@ -700,13 +695,24 @@ export default CheerioCrawler;
 
 /**
  * @typedef CheerioHandlePageInputs
- * @property {Cheerio} [$] The <a href="https://cheerio.js.org/">Cheerio</a> object with parsed HTML.
- * @property {String|Buffer} body The request body of the web page.
- * @property {Object} [json] The parsed object from JSON string if the response contains the content type application/json.
- * @property {Request} request The original {Request} object.
- * @property {{ type: string, encoding: string }} contentType Parsed `Content-Type header: { type, encoding }`.
- * @property {IncomingMessage} response An instance of Node's http.IncomingMessage object,
+ * @property {Cheerio} [$]
+ *  The [Cheerio](https://cheerio.js.org/) object with parsed HTML.
+ * @property {String|Buffer} body
+ *  The request body of the web page.
+ * @property {Object} [json]
+ *  The parsed object from JSON string if the response contains the content type application/json.
+ * @property {Request} request
+ *  The original {Request} object.
+ * @property {{ type: string, encoding: string }} contentType
+ *  Parsed `Content-Type header: { type, encoding }`.
+ * @property {IncomingMessage} response
+ *  An instance of Node's http.IncomingMessage object,
  * @property {AutoscaledPool} autoscaledPool
+ *  A reference to the underlying {@link AutoscaledPool} class that manages the concurrency of the crawler.
+ *  Note that this property is only initialized after calling the {@link CheerioCrawler#run} function.
+ *  You can use it to change the concurrency settings on the fly,
+ *  to pause the crawler by calling {@link AutoscaledPool#pause}
+ *  or to abort it by calling {@link AutoscaledPool#abort}.
  * @property {session} [session]
  */
 /**

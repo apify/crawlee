@@ -1,37 +1,42 @@
 ---
-id: puppeteercrawler
+id: puppeteer-crawler
 title: PuppeteerCrawler
 ---
 
-<a name="PuppeteerCrawler"></a>
+<a name="puppeteercrawler"></a>
 
-Provides a simple framework for parallel crawling of web pages using headless Chrome with
-<a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a>. The URLs to crawl are fed either from a static list of URLs or from
-a dynamic queue of URLs enabling recursive crawling of websites.
+Provides a simple framework for parallel crawling of web pages using headless Chrome with [Puppeteer](https://github.com/GoogleChrome/puppeteer). The
+URLs to crawl are fed either from a static list of URLs or from a dynamic queue of URLs enabling recursive crawling of websites.
 
 Since `PuppeteerCrawler` uses headless Chrome to download web pages and extract data, it is useful for crawling of websites that require to execute
-JavaScript. If the target website doesn't need JavaScript, consider using [`CheerioCrawler`](cheeriocrawler), which downloads the pages using raw HTTP
-requests and is about 10x faster.
+JavaScript. If the target website doesn't need JavaScript, consider using [`CheerioCrawler`](/docs/api/cheerio-crawler), which downloads the pages
+using raw HTTP requests and is about 10x faster.
 
-The source URLs are represented using [`Request`](request) objects that are fed from [`RequestList`](requestlist) or [`RequestQueue`](requestqueue)
-instances provided by the [`requestList`](#new_PuppeteerCrawler_new) or [`requestQueue`](#new_PuppeteerCrawler_new) constructor options, respectively.
+The source URLs are represented using [`Request`](/docs/api/request) objects that are fed from [`RequestList`](/docs/api/request-list) or
+[`RequestQueue`](/docs/api/request-queue) instances provided by the
+[`PuppeteerCrawlerOptions.requestList`](/docs/typedefs/puppeteer-crawler-options#requestlist) or
+[`PuppeteerCrawlerOptions.requestQueue`](/docs/typedefs/puppeteer-crawler-options#requestqueue) constructor options, respectively.
 
-If both [`requestList`](#new_PuppeteerCrawler_new) and [`requestQueue`](#new_PuppeteerCrawler_new) are used, the instance first processes URLs from
-the [`RequestList`](requestlist) and automatically enqueues all of them to [`RequestQueue`](requestqueue) before it starts their processing. This
-ensures that a single URL is not crawled multiple times.
+If both [`PuppeteerCrawlerOptions.requestList`](/docs/typedefs/puppeteer-crawler-options#requestlist) and
+[`PuppeteerCrawlerOptions.requestQueue`](/docs/typedefs/puppeteer-crawler-options#requestqueue) are used, the instance first processes URLs from the
+[`RequestList`](/docs/api/request-list) and automatically enqueues all of them to [`RequestQueue`](/docs/api/request-queue) before it starts their
+processing. This ensures that a single URL is not crawled multiple times.
 
-The crawler finishes when there are no more [`Request`](request) objects to crawl.
+The crawler finishes when there are no more [`Request`](/docs/api/request) objects to crawl.
 
-`PuppeteerCrawler` opens a new Chrome page (i.e. tab) for each [`Request`](request) object to crawl and then calls the function provided by user as
-the [`handlePageFunction()`](#new_PuppeteerCrawler_new) option.
+`PuppeteerCrawler` opens a new Chrome page (i.e. tab) for each [`Request`](/docs/api/request) object to crawl and then calls the function provided by
+user as the [`PuppeteerCrawlerOptions.handlePageFunction`](/docs/typedefs/puppeteer-crawler-options#handlepagefunction) option.
 
 New pages are only opened when there is enough free CPU and memory available, using the functionality provided by the
-[`AutoscaledPool`](autoscaledpool) class. All [`AutoscaledPool`](autoscaledpool) configuration options can be passed to the `autoscaledPoolOptions`
-parameter of the `PuppeteerCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency` [`AutoscaledPool`](autoscaledpool)
-options are available directly in the `PuppeteerCrawler` constructor.
+[`AutoscaledPool`](/docs/api/autoscaled-pool) class. All [`AutoscaledPool`](/docs/api/autoscaled-pool) configuration options can be passed to the
+[`PuppeteerCrawlerOptions.autoscaledPoolOptions`](/docs/typedefs/puppeteer-crawler-options#autoscaledpooloptions) parameter of the `PuppeteerCrawler`
+constructor. For user convenience, the `minConcurrency` and `maxConcurrency` [`AutoscaledPoolOptions`](/docs/typedefs/autoscaled-pool-options) are
+available directly in the `PuppeteerCrawler` constructor.
 
-Note that the pool of Puppeteer instances is internally managed by the [`PuppeteerPool`](puppeteerpool) class. Many constructor options such as
-`maxOpenPagesPerInstance` or `launchPuppeteerFunction` are passed directly to [`PuppeteerPool`](puppeteerpool) constructor.
+Note that the pool of Puppeteer instances is internally managed by the [`PuppeteerPool`](/docs/api/puppeteer-pool) class. Many constructor options
+such as [`PuppeteerPoolOptions.maxOpenPagesPerInstance`](/docs/typedefs/puppeteer-pool-options#maxopenpagesperinstance) or
+[`PuppeteerPoolOptions.launchPuppeteerFunction`](/docs/typedefs/puppeteer-pool-options#launchpuppeteerfunction) are passed directly to the
+[`PuppeteerPool`](/docs/api/puppeteer-pool) constructor.
 
 **Example usage:**
 
@@ -61,52 +66,25 @@ const crawler = new Apify.PuppeteerCrawler({
 await crawler.run();
 ```
 
-**Properties**
+---
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>autoscaledPool</code></td><td><code><a href="autoscaledpool">AutoscaledPool</a></code></td>
-</tr>
-<tr>
-<td colspan="3"><p>A reference to the underlying <a href="autoscaledpool"><code>AutoscaledPool</code></a> class that manages the concurrency of the crawler.
- Note that this property is only initialized after calling the <a href="#PuppeteerCrawler+run"><code>run</code></a> function.
- You can use it to change the concurrency settings on the fly,
- to pause the crawler by calling <a href="#AutoscaledPool+pause"><code>pause</code></a>
- or to abort it by calling <a href="#AutoscaledPool+abort"><code>abort</code></a>.</p>
-</td></tr></tbody>
-</table>
-
--   [PuppeteerCrawler](puppeteercrawler)
-    -   [`new PuppeteerCrawler(options)`](#new_PuppeteerCrawler_new)
-    -   [`.run()`](#PuppeteerCrawler+run) ⇒ `Promise<void>`
-
-<a name="new_PuppeteerCrawler_new"></a>
+<a name="puppeteercrawler"></a>
 
 ## `new PuppeteerCrawler(options)`
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>options</code></td><td><code><a href="../typedefs/puppeteercrawleroptions">PuppeteerCrawlerOptions</a></code></td>
-</tr>
-<tr>
-<td colspan="3"><p>All <code>PuppeteerCrawler</code> parameters are passed
-  via an options object with the following keys:</p>
-</td></tr></tbody>
-</table>
-<a name="PuppeteerCrawler+run"></a>
+**Params**
 
-## `puppeteerCrawler.run()` ⇒ `Promise<void>`
+-   **`options`**: [`PuppeteerCrawlerOptions`](/docs/typedefs/puppeteer-crawler-options) - All `PuppeteerCrawler` parameters are passed via an options
+    object.
+
+---
+
+<a name="run"></a>
+
+## `puppeteerCrawler.run()`
+
+**Returns**: `Promise<void>`
 
 Runs the crawler. Returns promise that gets resolved once all the requests got processed.
+
+---

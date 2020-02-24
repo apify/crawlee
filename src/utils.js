@@ -84,7 +84,7 @@ export const logSystemInfo = () => {
  * `APIFY_API_BASE_URL`, `APIFY_USER_ID` and `APIFY_TOKEN` environment variables.
  *
  * The instance is used for all underlying calls to the Apify API in functions such as
- * [`Apify.getValue()`](#module_Apify.getValue) or [`Apify.call()`](#module_Apify.call).
+ * {@link Apify#getValue} or {@link Apify#call}.
  * The settings of the client can be globally altered by calling the
  * <a href="https://docs.apify.com/api/apify-client-js/latest#ApifyClient-setOptions"
  * target="_blank">`Apify.client.setOptions()`</a> function.
@@ -389,6 +389,7 @@ export const isAtHome = () => !!process.env[ENV_VARS.IS_AT_HOME];
  * @param {Number} millis Period of time to sleep, in milliseconds. If not a positive number, the returned promise resolves immediately.
  * @memberof utils
  * @name sleep
+ * @function
  * @return {Promise<void>}
  */
 export const sleep = (millis) => {
@@ -531,6 +532,7 @@ const BLOCK_TAGS_REGEX = /^(p|h1|h2|h3|h4|h5|h6|ol|ul|li|pre|address|blockquote|
  * [cheerio](https://www.npmjs.com/package/cheerio) function.
  * @return {String} Plain text
  * @memberOf utils
+ * @function
  */
 const htmlToText = (html) => {
     if (!html) return '';
@@ -540,8 +542,10 @@ const htmlToText = (html) => {
     //  Also, it seems this doesn't work well in CheerioScraper, e.g. htmlToText($)
     //  produces really text with a lot of HTML elements in it. Let's just deprecate this sort of usage,
     //  and make the parameter "htmlOrCheerioElement"
-
-    /** @type {Cheerio} */
+    /**
+     * @type {Cheerio}
+     * @ignore
+     */
     const $ = typeof html === 'function' ? html : cheerio.load(html, { decodeEntities: true });
     let text = '';
 
@@ -586,8 +590,8 @@ const htmlToText = (html) => {
  *
  * @param {Request|RequestOptions} request [Apify.Request](https://sdk.apify.com/docs/api/request) object.
  * @param {IncomingMessage|PuppeteerResponse} [response]
- *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&version=v1.11.0&show=api-class-response" target="_blank"><code>Response</code></a>
- *   or NodeJS <a href="https://nodejs.org/api/http.html#http_class_http_serverresponse" target="_blank"><code>http.ServerResponse</code></a>.
+ *   Puppeteer [`Response`](https://pptr.dev/#?product=Puppeteer&version=v1.11.0&show=api-class-response)
+ *   or NodeJS [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_serverresponse).
  * @param {Object} [additionalFields] Object containing additional fields to be added.
 
  * @return {Object}

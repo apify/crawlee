@@ -525,7 +525,7 @@ try {
  * The function removes duplicates from the resulting arrays and sorts the items alphabetically.
  *
  * Note that the `phones` field contains phone numbers extracted from the special phone links
- * such as `<a href="tel:+1234556789">call us</a>` (see [`social.phonesFromUrls()`](#social.phonesFromUrls)])
+ * such as `[call us](tel:+1234556789)` (see {@link social#phonesFromUrls})
  * and potentially other sources with high certainty, while `phonesUncertain` contains phone numbers
  * extracted from the plain text, which might be very inaccurate.
  *

@@ -1,12 +1,12 @@
 ---
-id: pseudourl
+id: pseudo-url
 title: PseudoUrl
 ---
 
-<a name="PseudoUrl"></a>
+<a name="pseudourl"></a>
 
 Represents a pseudo-URL (PURL) - an URL pattern used by web crawlers to specify which URLs should the crawler visit. This class is used by the
-[`utils.enqueueLinks()`](utils#utils.enqueueLinks) function.
+[`utils.enqueueLinks()`](/docs/api/utils#enqueuelinks) function.
 
 A PURL is simply a URL with special directives enclosed in `[]` brackets. Currently, the only supported directive is `[RegExp]`, which defines a
 JavaScript-style regular expression to match against the URL.
@@ -52,77 +52,47 @@ const purl2 = new Apify.PseudoUrl(/http:\/\/www\.example\.com\/pages\/(\w|-)+/);
 if (purl.matches('http://www.example.com/pages/my-awesome-page')) console.log('Match!');
 ```
 
--   [PseudoUrl](pseudourl)
-    -   [`new PseudoUrl(purl, requestTemplate)`](#new_PseudoUrl_new)
-    -   [`.matches(url)`](#PseudoUrl+matches) ⇒ `Boolean`
-    -   [`.createRequest(urlOrProps)`](#PseudoUrl+createRequest) ⇒ [`Request`](request)
+---
 
-<a name="new_PseudoUrl_new"></a>
+<a name="pseudourl"></a>
 
 ## `new PseudoUrl(purl, requestTemplate)`
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>purl</code></td><td><code>String</code> | <code>RegExp</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>A pseudo-URL string or a regular expression object.
-  Using a <code>RegExp</code> instance enables more granular control,
-  such as making the matching case sensitive.</p>
-</td></tr><tr>
-<td><code>requestTemplate</code></td><td><code><a href="../typedefs/requestoptions">RequestOptions</a></code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Options for the new <a href="request"><code>Request</code></a> instances created for matching URLs
-  by the <a href="utils#utils.enqueueLinks"><code>utils.enqueueLinks()</code></a> function.</p>
-</td></tr></tbody>
-</table>
-<a name="PseudoUrl+matches"></a>
+**Params**
 
-## `pseudoUrl.matches(url)` ⇒ `Boolean`
+-   **`purl`**: `String` | `RegExp` - A pseudo-URL string or a regular expression object. Using a `RegExp` instance enables more granular control,
+    such as making the matching case sensitive.
+-   **`requestTemplate`**: [`RequestOptions`](/docs/typedefs/request-options) - Options for the new [`Request`](/docs/api/request) instances created
+    for matching URLs by the [`utils.enqueueLinks()`](/docs/api/utils#enqueuelinks) function.
 
-Determines whether a URL matches this pseudo-URL pattern.
+---
+
+<a name="matches"></a>
+
+## `pseudoUrl.matches(url)`
 
 **Returns**: `Boolean` - Returns `true` if given URL matches pseudo-URL.
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>url</code></td><td><code>String</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>URL to be matched.</p>
-</td></tr></tbody>
-</table>
-<a name="PseudoUrl+createRequest"></a>
+Determines whether a URL matches this pseudo-URL pattern.
 
-## `pseudoUrl.createRequest(urlOrProps)` ⇒ [`Request`](request)
+**Params**
 
-Creates a Request object from a provided `requestTemplate` and a given URL or an object that specifies \$[`Request`](request) properties. In case of a
-collision the properties will override the template, except for `userData`, which will be merged together, with the `userData` property having
-preference over the template. This enables dynamic overriding of the template.
+-   **`url`**: `String` - URL to be matched.
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>urlOrProps</code></td><td><code>string</code> | <code>Object</code></td>
-</tr>
-<tr>
-</tr></tbody>
-</table>
+---
+
+<a name="createrequest"></a>
+
+## `pseudoUrl.createRequest(urlOrProps)`
+
+**Returns**: [`Request`](/docs/api/request)
+
+Creates a Request object from a provided `requestTemplate` and a given URL or an object that specifies \$[`Request`](/docs/api/request) properties. In
+case of a collision the properties will override the template, except for `userData`, which will be merged together, with the `userData` property
+having preference over the template. This enables dynamic overriding of the template.
+
+**Params**
+
+-   **`urlOrProps`**: `string` | `Object`
+
+---

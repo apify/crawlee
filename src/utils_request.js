@@ -80,6 +80,7 @@ const DEFAULT_HTTP_REQUEST_OPTIONS = {
  * however, if returned from the cache it will be a [response-like object](https://github.com/lukechilds/responselike) which behaves in the same way.
  * @memberOf utils
  * @name requestAsBrowser
+ * @function
  */
 export const requestAsBrowser = async (options) => {
     const {

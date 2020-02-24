@@ -105,9 +105,9 @@ const getPuppeteerOrThrow = (puppeteerModule = 'puppeteer') => {
 //  https://github.com/Microsoft/TypeScript/issues/20077
 /**
  * Apify extends the launch options of Puppeteer.
- * You can use any of the
- * <a href="https://pptr.dev/#?product=Puppeteer&show=api-puppeteerlaunchoptions" target="_blank"><code>puppeteer.launch()</code></a>
- * options in the [`Apify.launchPuppeteer()`](../api/apify#module_Apify.launchPuppeteer)
+ * You can use any of the Puppeteer compatible
+ * [`LaunchOptions`](https://pptr.dev/#?product=Puppeteer&show=api-puppeteerlaunchoptions)
+ * options in the  {@link Apify#launchPuppeteer}
  * function and in addition, all the options available below.
  *
  * @typedef {Object} LaunchPuppeteerOptions
@@ -129,11 +129,11 @@ const getPuppeteerOrThrow = (puppeteerModule = 'puppeteer') => {
  *   By default, this option is `false`.
  * @property {Boolean} [useApifyProxy=false]
  *   If set to `true`, Puppeteer will be configured to use
- *   <a href="https://my.apify.com/proxy" target="_blank">Apify Proxy</a> for all connections.
- *   For more information, see the <a href="https://docs.apify.com/proxy" target="_blank">documentation</a>
+ *   [Apify Proxy](https://my.apify.com/proxy) for all connections.
+ *   For more information, see the [documentation](https://docs.apify.com/proxy)
  * @property {String[]} [apifyProxyGroups]
  *   An array of proxy groups to be used
- *   by the <a href="https://docs.apify.com/proxy" target="_blank">Apify Proxy</a>.
+ *   by the [Apify Proxy](https://docs.apify.com/proxy).
  *   Only applied if the `useApifyProxy` option is `true`.
  * @property {String} [apifyProxySession]
  *   Apify Proxy session identifier to be used by all the Chrome browsers.
@@ -182,7 +182,7 @@ const getPuppeteerOrThrow = (puppeteerModule = 'puppeteer') => {
  *    </li>
  *    <li>
  *        If <code>options.useApifyProxy</code> is <code>true</code> then the function generates a URL of
- *        <a href="https://docs.apify.com/proxy" target="_blank">Apify Proxy</a>
+ *        [Apify Proxy](https://docs.apify.com/proxy)
  *        based on <code>options.apifyProxyGroups</code> and <code>options.apifyProxySession</code> and passes it as <code>options.proxyUrl</code>.
  *    </li>
  *    <li>
@@ -197,11 +197,11 @@ const getPuppeteerOrThrow = (puppeteerModule = 'puppeteer') => {
  *    </li>
  * </ul>
  *
- * To use this function, you need to have the <a href="https://www.npmjs.com/package/puppeteer" target="_blank">puppeteer</a>
+ * To use this function, you need to have the [puppeteer](https://www.npmjs.com/package/puppeteer)
  * NPM package installed in your project.
  * When running on the Apify cloud, you can achieve that simply
  * by using the `apify/actor-node-chrome` base Docker image for your actor - see
- * <a href="https://docs.apify.com/actor/build#base-images" target="_blank">Apify Actor documentation</a>
+ * [Apify Actor documentation](https://docs.apify.com/actor/build#base-images)
  * for details.
  *
  * For an example of usage, see the [Synchronous run Example](../examples/synchronousrun)
@@ -209,8 +209,8 @@ const getPuppeteerOrThrow = (puppeteerModule = 'puppeteer') => {
  *
  * @param {LaunchPuppeteerOptions} [options]
  *   Optional settings passed to `puppeteer.launch()`. In addition to
- *   <a href="https://pptr.dev/#?product=Puppeteer&show=api-puppeteerlaunchoptions" target="_blank">Puppeteer's options</a>
- *   the object may contain our own [`LaunchPuppeteerOptions`](../typedefs/launchpuppeteeroptions) that enable additional features.
+ *   [Puppeteer's options](https://pptr.dev/#?product=Puppeteer&show=api-puppeteerlaunchoptions)
+ *   the object may contain our own  {@link LaunchPuppeteerOptions} that enable additional features.
  * @returns {Promise<Browser>}
  *   Promise that resolves to Puppeteer's `Browser` instance.
  * @memberof module:Apify

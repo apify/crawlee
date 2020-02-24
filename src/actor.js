@@ -121,7 +121,7 @@ const addInputOptionsOrThrow = (input, contentType, options) => {
  * Returns a new {@link ApifyEnv} object which contains information parsed from all the `APIFY_XXX` environment variables.
  *
  * For the list of the `APIFY_XXX` environment variables, see
- * <a href="https://docs.apify.com/actor/run#environment-variables" target="_blank">Actor documentation</a>.
+ * [Actor documentation](https://docs.apify.com/actor/run#environment-variables).
  * If some of the variables are not defined or are invalid, the corresponding value in the resulting object will be null.
  *
  * @memberof module:Apify
@@ -168,7 +168,7 @@ export const getEnv = () => {
  *   <li>When running on the Apify platform (i.e. <code>APIFY_IS_AT_HOME</code> environment variable is set),
  *   it sets up a connection to listen for platform events.
  *   For example, to get a notification about an imminent migration to another server.
- *   See <a href="apify#apifyevents"><code>Apify.events</code></a> for details.
+ *   See [](apify#apifyevents) for details.
  *   </li>
  *   <li>It checks that either <code>APIFY_TOKEN</code> or <code>APIFY_LOCAL_STORAGE_DIR</code> environment variable
  *   is defined. If not, the functions sets <code>APIFY_LOCAL_STORAGE_DIR</code> to <code>./apify_storage</code>
@@ -293,10 +293,10 @@ let callMemoryWarningIssued = false;
  * If the actor run fails, the function throws the {@link ApifyCallError} exception.
  *
  * If you want to run an actor task rather than an actor, please use the
- * [`Apify.callTask()`](../api/apify#module_Apify.callTask) function instead.
+ * {@link Apify#callTask} function instead.
  *
  * For more information about actors, read the
- * <a href="https://docs.apify.com/actor" target="_blank">documentation</a>.
+ * [documentation](https://docs.apify.com/actor).
  *
  * **Example usage:**
  *
@@ -306,7 +306,7 @@ let callMemoryWarningIssued = false;
  * ```
  *
  * Internally, the `call()` function invokes the
- * <a href="https://apify.com/docs/api/v2#/reference/actors/run-collection/run-actor" target="_blank">Run actor</a>
+ * [Run actor](https://apify.com/docs/api/v2#/reference/actors/run-collection/run-actor)
  * and several other API endpoints to obtain the output.
  *
  * @param {String} actId
@@ -434,9 +434,9 @@ export const call = async (actId, input, options = {}) => {
  *
  * Note that an actor task is a saved input configuration and options for an actor.
  * If you want to run an actor directly rather than an actor task, please use the
- * [`Apify.call()`](../api/apify#module_Apify.call) function instead.
+ * {@link Apify#call} function instead.
  *
- * For more information about actor tasks, read the [`documentation`](https://docs.apify.com/tasks).
+ * For more information about actor tasks, read the [documentation](https://docs.apify.com/tasks).
  *
  * **Example usage:**
  *
@@ -446,7 +446,7 @@ export const call = async (actId, input, options = {}) => {
  * ```
  *
  * Internally, the `callTask()` function calls the
- * <a href="https://apify.com/docs/api/v2#/reference/actor-tasks/run-collection/run-task" target="_blank">Run task</a>
+ * [Run task](https://apify.com/docs/api/v2#/reference/actor-tasks/run-collection/run-task)
  * and several other API endpoints to obtain the output.
  *
  * @param {String} taskId
@@ -612,15 +612,15 @@ export const metamorph = async (targetActorId, input, options = {}) => {
  * proxy-enabled applications.
  *
  * For more information, see
- * the <a href="https://my.apify.com/proxy" target="_blank">Apify Proxy</a> page in the app
- * or the <a href="https://docs.apify.com/proxy" target="_blank">documentation</a>.
+ * the [Apify Proxy](https://my.apify.com/proxy) page in the app
+ * or the [documentation](https://docs.apify.com/proxy).
  *
  * @param {Object} options
  *   Object with the settings below:
  * @param {String} [options.password] User's password for the proxy.
  *   By default, it is taken from the `APIFY_PROXY_PASSWORD` environment variable,
  *   which is automatically set by the system when running the actors on the Apify cloud,
- *   or when using the <a href="https://github.com/apifytech/apify-cli" target="_blank">Apify CLI</a>
+ *   or when using the [Apify CLI](https://github.com/apifytech/apify-cli)
  *   package and the user previously logged in (called `apify login`).
  * @param {String[]} [options.groups] Array of Apify Proxy groups to be used.
  *   If not provided, the proxy will select the groups automatically.
@@ -716,7 +716,7 @@ export const getApifyProxyUrl = (options = {}) => {
 /**
  *
  * Creates an ad-hoc webhook for the current actor run, which lets you receive a notification when the actor run finished or failed.
- * For more information about Apify actor webhooks, please see the <a href="https://docs.apify.com/webhooks" target="_blank">documentation</a>.
+ * For more information about Apify actor webhooks, please see the [documentation](https://docs.apify.com/webhooks).
  *
  * Note that webhooks are only supported for actors running on the Apify platform.
  * In local environment, the function will print a warning and have no effect.
@@ -724,22 +724,22 @@ export const getApifyProxyUrl = (options = {}) => {
  * @param {Object} options
  * @param {string[]} options.eventTypes
  *   Array of event types, which you can set for actor run, see
- *   the <a href="https://docs.apify.com/webhooks/events#actor-run" target="_blank">actor run events</a> in the Apify doc.
+ *   the [actor run events](https://docs.apify.com/webhooks/events#actor-run) in the Apify doc.
  * @param {string}  options.requestUrl
  *   URL which will be requested using HTTP POST request, when actor run will reach the set event type.
  * @param {string} [options.payloadTemplate]
  *   Payload template is a JSON-like string that describes the structure of the webhook POST request payload.
  *   It uses JSON syntax, extended with a double curly braces syntax for injecting variables `{{variable}}`.
  *   Those variables are resolved at the time of the webhook's dispatch, and a list of available variables with their descriptions
- *   is available in the <a href="https://docs.apify.com/webhooks" target="_blank">Apify webhook documentation</a>.
+ *   is available in the [Apify webhook documentation](https://docs.apify.com/webhooks).
  *
  *   When omitted, the default payload template will be used.
- *   <a href="https://docs.apify.com/webhooks" target="_blank">See the docs for the default payload template</a>.
+ *   [See the docs for the default payload template](https://docs.apify.com/webhooks).
  * @param {string} [options.idempotencyKey]
  *   Idempotency key enables you to ensure that a webhook will not be added multiple times in case of
  *   an actor restart or other situation that would cause the `addWebhook()` function to be called again.
  *   We suggest using the actor run ID as the idempotency key. You can get the run ID by calling
- *   [`Apify.getEnv()`](apify#module_Apify.getEnv) function.
+ *   {@link Apify#getEnv} function.
  * @return {Promise<Object>} The return value is the Webhook object.
  * For more information, see the [Get webhook](https://apify.com/docs/api/v2#/reference/webhooks/webhook-object/get-webhook) API endpoint.
  *

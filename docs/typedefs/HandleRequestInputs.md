@@ -1,31 +1,33 @@
 ---
-id: handlerequestinputs
+id: handle-request-inputs
 title: HandleRequestInputs
 ---
 
-<a name="HandleRequestInputs"></a>
+<a name="handlerequestinputs"></a>
 
-**Properties**
+## Properties
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>request</code></td><td><code><a href="request">Request</a></code></td>
-</tr>
-<tr>
-<td colspan="3"><p>The original {Request} object.</p>
-</td></tr><tr>
-<td><code>autoscaledPool</code></td><td><code><a href="autoscaledpool">AutoscaledPool</a></code></td>
-</tr>
-<tr>
-<td colspan="3"></td></tr><tr>
-<td><code>[session]</code></td><td><code><a href="session">Session</a></code></td>
-</tr>
-<tr>
-<td colspan="3"></td></tr></tbody>
-</table>
+### `request`
+
+**Type**: [`Request`](/docs/api/request)
+
+The original {Request} object.
+
+---
+
+### `autoscaledPool`
+
+**Type**: [`AutoscaledPool`](/docs/api/autoscaled-pool)
+
+A reference to the underlying [`AutoscaledPool`](/docs/api/autoscaled-pool) class that manages the concurrency of the crawler. Note that this property
+is only initialized after calling the [`BasicCrawler.run()`](/docs/api/basic-crawler#run) function. You can use it to change the concurrency settings
+on the fly, to pause the crawler by calling [`AutoscaledPool.pause()`](/docs/api/autoscaled-pool#pause) or to abort it by calling
+[`AutoscaledPool.abort()`](/docs/api/autoscaled-pool#abort).
+
+---
+
+### `session`
+
+**Type**: [`Session`](/docs/api/session)
+
+---

@@ -2,7 +2,7 @@ export const FIREFOX_MOBILE_USER_AGENT: "Mozilla/5.0 (Android; Mobile; rv:14.0) 
 export const FIREFOX_DESKTOP_USER_AGENT: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.14; rv:68.0) Gecko/20100101 Firefox/68.0";
 export function requestAsBrowser(options: RequestAsBrowserOptions): Promise<any>;
 /**
- * (@apify/http-request)[https://www.npmjs.com/package/@apify/http-request] NPM package.
+ * [@apify/http-request](https://www.npmjs.com/package/@apify/http-request) NPM package.
  */
 export type RequestAsBrowserOptions = {
     /**
@@ -38,7 +38,7 @@ export type RequestAsBrowserOptions = {
     /**
      * Function accepts `response` object as a single parameter and should return true or false.
      * If function returns true request gets aborted. This function is passed to the
-     * (
+     * [
      */
     abortFunction?: Function;
 };

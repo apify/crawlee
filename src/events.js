@@ -27,9 +27,9 @@ let persistStateInterval = null;
 
 /**
  * Gets an instance of a Node.js'
- * <a href="https://nodejs.org/api/events.html#events_class_eventemitter" target="_blank">EventEmitter</a>
+ * [EventEmitter](https://nodejs.org/api/events.html#events_class_eventemitter)
  * class that emits various events from the SDK or the Apify platform.
- * The event emitter is initialized by calling the [`Apify.main()`](#module_Apify.main) function.
+ * The event emitter is initialized by calling the {@link Apify#main} function.
  *
  * **Example usage:**
  *
@@ -56,7 +56,7 @@ let persistStateInterval = null;
  *                 The event is emitted approximately every second
  *                 and it indicates whether the actor is using the maximum of available CPU resources.
  *                 If that's the case, the actor should not add more workload.
- *                 For example, this event is used by the <a href="autoscaledpool"><code>AutoscaledPool</code></a> class.
+ *                 For example, this event is used by the {@link AutoscaledPool} class.
  *             </td>
  *         </tr>
  *         <tr>
@@ -67,7 +67,7 @@ let persistStateInterval = null;
  *             <td colspan="2">
  *                 Emitted when the actor running on the Apify platform is going to be migrated to another worker server soon.
  *                 You can use it to persist the state of the actor and abort the run, to speed up migration.
- *                 For example, this is used by the <a href="requestlist"><code>RequestList</code></a> class.
+ *                 For example, this is used by the {@link RequestList} class.
  *             </td>
  *         </tr>
  *         <tr>

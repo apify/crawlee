@@ -7,13 +7,13 @@
 
 /**
  * Represents information about an actor run, as returned by the
- * [`Apify.call()`](../api/apify#module_Apify.call) or [`Apify.callTask()`](../api/apify#module_Apify.callTask) function.
+ * {@link Apify#call} or {@link Apify#callTask} function.
  * The object is almost equivalent to the JSON response
  * of the
- * <a href="https://apify.com/docs/api/v2#/reference/actors/run-collection/run-actor" target="_blank">Actor run</a>
+ * [Actor run](https://apify.com/docs/api/v2#/reference/actors/run-collection/run-actor)
  * Apify API endpoint and extended with certain fields.
  * For more details, see
- * <a href="https://docs.apify.com/actor/run" target="_blank">Runs.</a>
+ * [Runs.](https://docs.apify.com/actor/run)
  *
  * @typedef {Object} ActorRun
  * @property {String} id
@@ -26,7 +26,7 @@
  *   Time when the actor run finished. Contains `null` for running actors.
  * @property {String} status
  *   Status of the run. For possible values, see
- *   <a href="https://docs.apify.com/actor/run#lifecycle" target="_blank">Run lifecycle</a>
+ *   [Run lifecycle](https://docs.apify.com/actor/run#lifecycle)
  *   in Apify actor documentation.
  * @property {Object} meta
  *   Actor run meta-data. For example:
@@ -59,26 +59,26 @@
  *   ```
  * @property {String} buildId
  *   ID of the actor build used for the run. For details, see
- *   <a href="https://docs.apify.com/actor/build" target="_blank">Builds</a>
+ *   [Builds](https://docs.apify.com/actor/build)
  *   in Apify actor documentation.
  * @property {String} buildNumber
  *   Number of the actor build used for the run. For example, `0.0.10`.
  * @property {Number} exitCode
  *   Exit code of the actor run process. It's `null` if actor is still running.
  * @property {String} defaultKeyValueStoreId
- *   ID of the default key-value store associated with the actor run. See [`KeyValueStore`](../api/keyvaluestore) for details.
+ *   ID of the default key-value store associated with the actor run. See {@link KeyValueStore} for details.
  * @property {String} defaultDatasetId
- *   ID of the default dataset associated with the actor run. See [`Dataset`](../api/dataset) for details.
+ *   ID of the default dataset associated with the actor run. See {@link Dataset} for details.
  * @property {String} defaultRequestQueueId
- *   ID of the default request queue associated with the actor run. See [`RequestQueue`](../api/requestqueue) for details.
+ *   ID of the default request queue associated with the actor run. See {@link RequestQueue} for details.
  * @property {String} containerUrl
  *   URL on which the web server running inside actor run's Docker container can be accessed.
  *   For more details, see
- *   <a href="https://docs.apify.com/actor/run#container-web-server" target="_blank">Container web server</a>
+ *   [Container web server](https://docs.apify.com/actor/run#container-web-server)
  *   in Apify actor documentation.
  * @property {Object} output
  *   Contains output of the actor run. The value is `null` or `undefined` in case the actor is still running,
- *   or if you pass `false` to the `fetchOutput` option of [`Apify.call()`](../api/apify#module_Apify.call).
+ *   or if you pass `false` to the `fetchOutput` option of {@link Apify#call}.
  *
  *   For example:
  *   ```

@@ -23,7 +23,7 @@ import { Cheerio } from '../typedefs';
  * and enqueues the URLs in their `href` attributes to the provided {@link RequestQueue}.
  * If you're looking to find URLs in JavaScript heavy pages where links are not available
  * in `href` elements, but rather navigations are triggered in click handlers
- * see [`enqueueLinksByClickingElements()`](puppeteer#puppeteer.enqueueLinksByClickingElements).
+ * see {@link puppeteer#enqueueLinksByClickingElements}.
  *
  * Optionally, the function allows you to filter the target links' URLs using an array of {@link PseudoUrl} objects
  * and override settings of the enqueued {@link Request} objects.
@@ -52,10 +52,10 @@ import { Cheerio } from '../typedefs';
  *   All `enqueueLinks()` parameters are passed
  *   via an options object with the following keys:
  * @param {Page} options.page
- *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
+ *   Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
  *   Either `page` or `$` option must be provided.
  * @param {Cheerio} options.$
- *   <a href="https://github.com/cheeriojs/cheerio" target="_blank"><code>Cheerio</code></a> object with loaded HTML.
+ *   [`Cheerio`](https://github.com/cheeriojs/cheerio) function with loaded HTML.
  *   Either `page` or `$` option must be provided.
  * @param {RequestQueue} options.requestQueue
  *   A request queue to which the URLs will be enqueued.
@@ -97,6 +97,7 @@ import { Cheerio } from '../typedefs';
  *   Promise that resolves to an array of {@link QueueOperationInfo} objects.
  * @memberOf utils
  * @name enqueueLinks
+ * @function
  */
 export async function enqueueLinks(options = {}) {
     const {

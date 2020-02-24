@@ -1,21 +1,14 @@
 ---
-id: preparerequest
+id: prepare-request
 title: PrepareRequest
 ---
 
-<a name="PrepareRequest"></a>
+<a name="preparerequest"></a>
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>inputs</code></td><td><code><a href="../typedefs/preparerequestinputs">PrepareRequestInputs</a></code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Arguments passed to this callback.</p>
-</td></tr></tbody>
-</table>
+**Returns**: `void` \| `Promise<void>`
+
+**Params**
+
+-   **`inputs`**: [`PrepareRequestInputs`](/docs/typedefs/prepare-request-inputs) - Arguments passed to this callback.
+
+---

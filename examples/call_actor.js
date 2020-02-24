@@ -1,18 +1,17 @@
 /**
  * This example demonstrates how to start an Apify actor using
- * [`Apify.call()`](../api/apify#module_Apify.call)
- * and how to call Apify API using
- * [`Apify.client`](../api/apify#module_Apify.client).
- * The script extracts the current Bitcoin prices from <a href="https://www.kraken.com/" target="_blank">Kraken.com</a>
- * and sends them to your email using the <a href="https://apify.com/apify/send-mail" target="_blank">apify/send-mail</a> actor.
+ * [`Apify.call()`](/docs/api/apify#call) and how to call Apify API using
+ * [`Apify.client`](/docs/api/apify#client).
+ * The script extracts the current Bitcoin prices from [Kraken.com](https://www.kraken.com/)
+ * and sends them to your email using the [`apify/send-mail`](https://apify.com/apify/send-mail) actor.
  *
- * To make the example work, you'll need an <a href="https://my.apify.com/" target="_blank">Apify Account</a>.
- * Go to <a href="https://my.apify.com/account#/integrations" target="_blank">Account - Integrations</a> page to obtain your API token
- * and set it to the `APIFY_TOKEN` [environment variable](../guides/environmentvariables), or run the script using the CLI.
+ * To make the example work, you'll need an [Apify Account](https://my.apify.com/).
+ * Go to [Account - Integrations](https://my.apify.com/account#/integrations) page to obtain your API token
+ * and set it to the [`APIFY_TOKEN`](/docs/guides/environment-variables#APIFY_TOKEN) environment variable, or run the script using the CLI.
  * If you deploy this actor to the Apify Cloud then you can set up a scheduler for early
  * morning.
  *
- * To run this example on the Apify Platform, select the `Node.js 10 + Chrome on Debian (apify/actor-node-chrome)` base image
+ * To run this example on the Apify Platform, select the `Node.js 12 + Chrome on Debian (apify/actor-node-chrome)` base image
  * on the source tab of your actor configuration.
  */
 
