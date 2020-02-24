@@ -235,7 +235,10 @@ class PuppeteerPool {
         this.puppeteerOperationTimeoutMillis = puppeteerOperationTimeoutSecs * 1000;
         this.killInstanceAfterMillis = killInstanceAfterMillis || killInstanceAfterSecs * 1000;
         // this is needed to avoid TS typings trying to link to the .d.ts
-        /** @type {*} */
+        /**
+         * @type {*}
+         * @ignore
+         */
         this.recycledDiskCacheDirs = recycleDiskCache ? new LinkedList() : null;
         this.useIncognitoPages = useIncognitoPages;
         this.proxyUrls = proxyUrls ? _.shuffle(proxyUrls) : null;

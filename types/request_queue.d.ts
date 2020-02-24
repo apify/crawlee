@@ -90,7 +90,10 @@ export class RequestQueue {
     clientKey: string;
     queueId: string;
     queueName: string | undefined;
-    /** @type {*} */
+    /**
+     * @type {*}
+     * @ignore
+     */
     queueHeadDict: any;
     queryQueueHeadPromise: any;
     inProgress: Set<any>;

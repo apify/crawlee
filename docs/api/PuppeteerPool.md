@@ -57,12 +57,6 @@ await puppeteerPool.destroy();
 
 ---
 
-<a name="recycleddiskcachedirs"></a>
-
-## `puppeteerPool.recycledDiskCacheDirs`
-
----
-
 <a name="newpage"></a>
 
 ## `puppeteerPool.newPage()`

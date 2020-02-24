@@ -243,18 +243,18 @@ export class RequestList {
     /**
      * Marks request as handled after successful processing.
      *
-     * @param {Request<*>} request
+     * @param {Request} request
      * @returns {Promise<void>}
      */
-    markRequestHandled(request: any): Promise<void>;
+    markRequestHandled(request: Request): Promise<void>;
     /**
      * Reclaims request to the list if its processing failed.
      * The request will become available in the next `this.fetchNextRequest()`.
      *
-     * @param {Request<*>} request
+     * @param {Request} request
      * @returns {Promise<void>}
      */
-    reclaimRequest(request: any): Promise<void>;
+    reclaimRequest(request: Request): Promise<void>;
     /**
      * Adds all fetched requests from a URL from a remote resource.
      *

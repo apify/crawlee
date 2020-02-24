@@ -120,7 +120,7 @@ export type RequestOptions = {
  *   An array of error messages from request processing.
  * @property {Object} headers
  *   Object with HTTP headers. Key is header name, value is the value.
- * @property {UserData} userData
+ * @property {object} userData
  *   Custom user data assigned to the request.
  * @property {Date} handledAt
  *   Indicates the time when the request has been processed.

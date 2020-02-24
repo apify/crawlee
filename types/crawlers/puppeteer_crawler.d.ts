@@ -481,35 +481,35 @@ declare class PuppeteerCrawler {
      * Wrapper around handlePageFunction that opens and closes pages etc.
      *
      * @param {Object} options
-     * @param {Request<*>} options.request
+     * @param {Request} options.request
      * @param {AutoscaledPool} options.autoscaledPool
      * @ignore
      */
     _handleRequestFunction({ request, autoscaledPool }: {
-        request: any;
+        request: Request;
         autoscaledPool: AutoscaledPool;
     }): Promise<void>;
     /**
      * @param {Object} options
      * @param {PuppeteerPage} options.page
-     * @param {Request<*>} options.request
+     * @param {Request} options.request
      * @return {Promise<PuppeteerResponse>}
      * @ignore
      */
     _defaultGotoFunction({ page, request }: {
         page: PuppeteerPage;
-        request: any;
+        request: Request;
     }): Promise<PuppeteerResponse>;
     /**
      * @param {Object} options
      * @param {Error} options.error
-     * @param {Request<*>} options.request
+     * @param {Request} options.request
      * @return {Promise<void>}
      * @ignore
      */
     _defaultHandleFailedRequestFunction({ error, request }: {
         error: Error;
-        request: any;
+        request: Request;
     }): Promise<void>;
 }
 import { RequestList } from "../request_list";

@@ -692,6 +692,7 @@ export default CheerioCrawler;
 /**
  * @typedef PrepareRequestInputs
  * @property {Request} request Original instance fo the {Request} object. Must be modified in-place.
+ * @property {Session} [session] The current session
  */
 
 /**

@@ -32,8 +32,9 @@ export function addRequestsToQueueInBatches(requests: Request[], requestQueue: R
  * Takes an Apify {RequestOptions} object and changes it's attributes in a desired way. This user-function is used
  * {@link utils#enqueueLinks} to modify requests before enqueuing them.
  */
-export type RequestTransform = (original: any) => any;
+export type RequestTransform = (original: RequestOptions) => RequestOptions;
 import PseudoUrl from "../pseudo_url";
 import Request from "../request";
 import { RequestQueue } from "../request_queue";
 import { QueueOperationInfo } from "../request_queue";
+import { RequestOptions } from "../request";

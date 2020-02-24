@@ -78,12 +78,6 @@ await queue.reclaimRequest(request2);
 
 ---
 
-<a name="queueheaddict"></a>
-
-## `requestQueue.queueHeadDict`
-
----
-
 <a name="addrequest"></a>
 
 ## `requestQueue.addRequest(request, [options])`

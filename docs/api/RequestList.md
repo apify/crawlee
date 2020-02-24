@@ -153,7 +153,7 @@ Marks request as handled after successful processing.
 
 **Params**
 
--   **`request`**: [`Request<*>`](/docs/api/request)
+-   **`request`**: [`Request`](/docs/api/request)
 
 ---
 
@@ -167,7 +167,7 @@ Reclaims request to the list if its processing failed. The request will become a
 
 **Params**
 
--   **`request`**: [`Request<*>`](/docs/api/request)
+-   **`request`**: [`Request`](/docs/api/request)
 
 ---
 

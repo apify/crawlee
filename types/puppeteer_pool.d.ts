@@ -184,7 +184,10 @@ declare class PuppeteerPool {
     retireInstanceAfterRequestCount: any;
     puppeteerOperationTimeoutMillis: number;
     killInstanceAfterMillis: any;
-    /** @type {*} */
+    /**
+     * @type {*}
+     * @ignore
+     */
     recycledDiskCacheDirs: any;
     useIncognitoPages: any;
     proxyUrls: any[] | null;

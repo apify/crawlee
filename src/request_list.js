@@ -449,7 +449,7 @@ export class RequestList {
     /**
      * Marks request as handled after successful processing.
      *
-     * @param {Request<*>} request
+     * @param {Request} request
      * @returns {Promise<void>}
      */
     async markRequestHandled(request) {
@@ -467,7 +467,7 @@ export class RequestList {
      * Reclaims request to the list if its processing failed.
      * The request will become available in the next `this.fetchNextRequest()`.
      *
-     * @param {Request<*>} request
+     * @param {Request} request
      * @returns {Promise<void>}
      */
     async reclaimRequest(request) {

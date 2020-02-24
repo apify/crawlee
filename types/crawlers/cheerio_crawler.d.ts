@@ -223,6 +223,10 @@ export type PrepareRequestInputs = {
      * Original instance fo the {Request} object. Must be modified in-place.
      */
     request: Request;
+    /**
+     * The current session
+     */
+    session?: Session;
 };
 export type PrepareRequest = (inputs: PrepareRequestInputs) => void | Promise<void>;
 export type CheerioHandlePageInputs = {
@@ -667,6 +671,6 @@ import { HandleFailedRequest } from "./basic_crawler";
 import { AutoscaledPoolOptions } from "../autoscaling/autoscaled_pool";
 import { SessionPoolOptions } from "../session_pool/session_pool";
 import Request from "../request";
+import { Session } from "../session_pool/session";
 import { IncomingMessage } from "http";
 import AutoscaledPool from "../autoscaling/autoscaled_pool";
-import { Session } from "../session_pool/session";

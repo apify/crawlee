@@ -117,7 +117,7 @@ Object with HTTP headers. Key is header name, value is the value.
 
 ### `userData`
 
-**Type**: `UserData`
+**Type**: `object`
 
 Custom user data assigned to the request.
 

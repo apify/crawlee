@@ -206,7 +206,10 @@ export class RequestQueue {
         // Contains a cached list of request IDs from the head of the queue,
         // as obtained in the last query. Both key and value is the request ID.
         // Need to apply a type here to the generated TS types don't try to use types-apify
-        /** @type {*} */
+        /**
+         * @type {*}
+         * @ignore
+         */
         this.queueHeadDict = new ListDictionary();
         this.queryQueueHeadPromise = null;
 

@@ -2,11 +2,12 @@ import { URL } from 'url';
 import * as _ from 'underscore';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import PseudoUrl from '../pseudo_url';
-import Request from '../request';
+import Request from '../request'; // eslint-disable-line import/no-duplicates
 
 // TYPES IMPORT
-/* eslint-disable import/order,no-unused-vars */
-import { RequestQueue, QueueOperationInfo } from 'src/request_queue';
+/* eslint-disable import/order,no-unused-vars,import/named,import/no-duplicates */
+import { RequestQueue, QueueOperationInfo } from '../request_queue';
+import { RequestOptions } from '../request';
 /* eslint-enable */
 
 const MAX_ENQUEUE_LINKS_CACHE_SIZE = 1000;
