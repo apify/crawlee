@@ -7,6 +7,11 @@ import events from './events';
 import { getFirstKey, publicUtils } from './utils';
 import { getValue, setValue } from './key_value_store';
 
+// TYPE IMPORTS
+/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
+import { RequestOptions } from './request';
+/* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
+
 export const STATE_PERSISTENCE_KEY = 'REQUEST_LIST_STATE';
 export const REQUESTS_PERSISTENCE_KEY = 'REQUEST_LIST_REQUESTS';
 
@@ -36,6 +41,18 @@ export const REQUESTS_PERSISTENCE_KEY = 'REQUEST_LIST_REQUESTS';
  *     { requestsFromUrl: 'https://docs.google.com/spreadsheets/d/1GA5sSQhQjB_REes8I5IKg31S-TuRcznWOPjcpNqtxmU/gviz/tq?tqx=out:csv' }
  * ]
  * ```
+ * @property {Function} [sourcesFunction]
+ *   A function that will be called to get the sources for the `RequestList`, but only if `RequestList`
+ *   was not able to fetch their persisted version (see {@link RequestListOptions.persistRequestsKey}).
+ *   It must return an `Array` of {@link Request} or {@link RequestOptions}.
+ *
+ *   This is very useful in a scenario when getting the sources is a resource intensive or time consuming
+ *   task, such as fetching URLs from multiple sitemaps or parsing URLs from large datasets. Using the
+ *   `sourcesFunction` in combination with `persistStateKey` and `persistRequestsKey` will allow you to
+ *   fetch and parse those URLs only once, saving valuable time when your actor migrates or restarts.
+ *
+ *   If both {@link RequestListOptions.sources} and {@link RequestListOptions.sourcesFunction} are provided,
+ *   the sources returned by the function will be added after the `sources`.
  * @property {String} [persistStateKey]
  *   Identifies the key in the default key-value store under which `RequestList` periodically stores its
  *   state (i.e. which URLs were crawled and which not).
@@ -44,13 +61,14 @@ export const REQUESTS_PERSISTENCE_KEY = 'REQUEST_LIST_REQUESTS';
  *
  *   If `persistStateKey` is not set, `RequestList` will always start from the beginning,
  *   and all the source URLs will be crawled again.
- * @property {String} [persistSourcesKey]
+ * @property {String} [persistRequestsKey]
  *   Identifies the key in the default key-value store under which the `RequestList` persists its
- *   sources (i.e. the lists of URLs) during the {@link RequestList#initialize} call.
+ *   Requests during the {@link RequestList#initialize} call.
  *   This is necessary if `persistStateKey` is set and the source URLs might potentially change,
- *   to ensure consistency of the source URLs and state object. However, it comes with some storage and performance overheads.
+ *   to ensure consistency of the source URLs and state object. However, it comes with some
+ *   storage and performance overheads.
  *
- *   If `persistSourcesKey` is not set, {@link RequestList#initialize} will always fetch the sources
+ *   If `persistRequestsKey` is not set, {@link RequestList#initialize} will always fetch the sources
  *   from their origin, check that they are consistent with the restored state (if any)
  *   and throw an error if they are not.
  * @property {RequestListState} [state]
@@ -186,7 +204,7 @@ export class RequestList {
         this.reclaimed = {};
 
         this.persistStateKey = persistStateKey;
-        this.persistRequestsKey = persistRequestsKey;
+        this.persistRequestsKey = persistRequestsKey || persistSourcesKey;
 
         this.initialState = state;
 
@@ -199,6 +217,7 @@ export class RequestList {
         this.areRequestsPersisted = false;
         this.isLoading = false;
         this.isInitialized = false;
+        // Will be empty after initialization to save memory.
         this.sources = sources;
     }
 
@@ -216,25 +235,28 @@ export class RequestList {
 
         const [state, requests] = await this._loadStateAndRequests();
 
-        // If there are no requests, it just means that we've not persisted any (yet).
-        if (requests) this.areRequestsPersisted = true;
-        const actualSources = requests || this.sources;
-
-        // We'll load all sources in sequence to ensure that they get loaded in the right order.
-        const sourcesWithRequestsFromUrl = [];
-        for (const source of actualSources) {
-            if (source.requestsFromUrl) {
-                const fetchedRequests = await this._fetchRequestsFromUrl(source);
-                sourcesWithRequestsFromUrl.push(...fetchedRequests);
-                await this._addFetchedRequests(source, fetchedRequests);
-            } else {
-                sourcesWithRequestsFromUrl.push(source);
-                this._addRequest(source);
+        // Add persisted requests / new sources in a memory efficient way because with very
+        // large lists, we were running OOM.
+        if (requests) {
+            // We don't need sources so there's no point in keeping them.
+            this.sources = [];
+            this.areRequestsPersisted = true;
+            for (let i = 0; i < requests.length; i++) {
+                const request = requests.shift();
+                this._addRequest(request);
+            }
+        } else {
+            // We'll load all sources in sequence to ensure that they get loaded in the right order.
+            for (let i = 0; i < this.sources.length; i++) {
+                const source = this.sources.shift();
+                if (source.requestsFromUrl) {
+                    const fetchedRequests = await this._fetchRequestsFromUrl(source);
+                    await this._addFetchedRequests(source, fetchedRequests);
+                } else {
+                    this._addRequest(source);
+                }
             }
         }
-
-        // Replace source with source with request from remote URLs
-        this.sources = sourcesWithRequestsFromUrl;
 
         this._restoreState(state);
         this.isInitialized = true;
@@ -360,7 +382,9 @@ export class RequestList {
         }
         if (this.persistRequestsKey) {
             [state, requests] = await Promise.all([state, getValue(this.persistRequestsKey)]);
-            if (requests) log.debug('RequestList: Loaded requests from key value store using the persistRequestsKey.');
+            if (requests) {
+                log.debug('RequestList: Loaded requests from key value store using the persistRequestsKey.');
+            }
         }
         return [state, requests];
     }
@@ -490,7 +514,7 @@ export class RequestList {
         const fetchedCount = fetchedRequests.length;
         const importedCount = this.requests.length - originalLength;
 
-        log.info('RequestList: list fetched.', {
+        log.info('RequestList: Fetched and loaded Requests from a remote resource.', {
             requestsFromUrl,
             regex,
             fetchedCount,

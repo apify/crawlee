@@ -6,6 +6,10 @@ import zlib from 'zlib';
 
 const pipeline = util.promisify(stream.pipeline);
 
+/**
+ * Simple stream that transforms a stream of values
+ * into a valid JSON by adding brackets and commas.
+ */
 class ToJsonStream extends stream.Transform {
     constructor() {
         super({ autoDestroy: true, writableObjectMode: true });
@@ -35,11 +39,23 @@ class ToJsonStream extends stream.Transform {
     }
 }
 
-exports.compressData = async (arrayOfObjects) => {
-    checkParamOrThrow(arrayOfObjects, 'arrayOfObjects', '[Object]');
+/**
+ * Uses Brotli compression to take an array of values, which can be anything
+ * from entries in a Dataset to Requests in a RequestList and compresses
+ * them to a Buffer in a memory-efficient way (streaming one by one). Ideally,
+ * the largest chunk of memory consumed will be the final compressed Buffer.
+ * This could be further improved by outputting a Stream, if and when
+ * apify-client supports streams.
+ *
+ * @param {Array} data
+ * @returns {Promise<Buffer>}
+ * @ignore
+ */
+exports.compressData = async (data) => {
+    checkParamOrThrow(data, 'data', 'Array');
     const { chunks, collector } = createChunkCollector();
     await pipeline(
-        stream.Readable.from(arrayOfObjects),
+        stream.Readable.from(data),
         new ToJsonStream(),
         zlib.createBrotliCompress(),
         collector,
@@ -47,6 +63,18 @@ exports.compressData = async (arrayOfObjects) => {
     return Buffer.concat(chunks);
 };
 
+/**
+ * Decompresses a Buffer previously created with compressData (technically,
+ * any JSON that is an Array) and collects it into an Array of values
+ * in a memory-efficient way (streaming the array items one by one instead
+ * of creating a fully decompressed buffer -> full JSON -> full Array all
+ * in memory at once. Could be further optimized to ingest a Stream if and
+ * when apify-client supports streams.
+ *
+ * @param {Buffer} compressedData
+ * @returns {Promise<Array>}
+ * @ignore
+ */
 exports.decompressData = async (compressedData) => {
     checkParamOrThrow(compressedData, 'compressedData', 'Buffer');
     const { chunks, collector } = createChunkCollector({ fromValuesStream: true });

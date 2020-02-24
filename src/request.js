@@ -31,7 +31,7 @@ export function hashPayload(payload) {
 }
 
 /**
- * Specifies required and optional fields for constructing a {@link Request#setValue}.
+ * Specifies required and optional fields for constructing a {@link Request}.
  *
  * @typedef {Object} RequestOptions
  * @property {String} url URL of the web page to crawl. It must be a non-empty string.
