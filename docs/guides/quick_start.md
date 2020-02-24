@@ -1,12 +1,14 @@
 ---
-id: quickstart
+id: quick-start
 title: Quick Start
 ---
 
-The Apify SDK requires <a href="https://nodejs.org/en/" target="_blank">Node.js</a> 10 or later.
+This short tutorial will set you up to start using Apify SDK in a minute or two.
+If you want to learn more, proceed to the [Getting Started](/docs/guides/getting-started)
+tutorial that will take you step by step through creating your first scraper.
 
 ## Local stand-alone usage
-
+Apify SDK requires [Node.js](https://nodejs.org/en/) 10 or later.
 Add Apify SDK to any Node.js project by running:
 
 ```bash
@@ -14,7 +16,7 @@ npm install apify --save
 ```
 
 Run the following example to perform a recursive crawl of a website using Puppeteer. For more examples showcasing various features of the Apify SDK,
-[see the Examples section of the documentation](../examples/basiccrawler).
+[see the Examples section of the documentation](/docs/examples/basic-crawler).
 
 ```javascript
 const Apify = require('apify');
@@ -46,17 +48,16 @@ Apify.main(async () => {
 
 When you run the example, you should see Apify SDK automating a Chrome browser.
 
-![Chrome Scrape](../../img/chrome_scrape.gif)
+![Chrome Scrape](/img/chrome_scrape.gif)
 
 By default, Apify SDK stores data to `./apify_storage` in the current working directory. You can override this behavior by setting either the
-`APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variable. For details, see [Environment variables](environmentvariables) and
-[Data storage](datastorage).
+`APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variable. For details, see [Environment variables](/docs/guides/environment-variables) and
+[Data storage](/docs/guides/data-storage).
 
 ## Local usage with Apify command-line interface (CLI)
 
 To avoid the need to set the environment variables manually, to create a boilerplate of your project, and to enable pushing and running your code on
-the <a href="https://apify.com" target="_blank">Apify Cloud</a>, you can use the
-<a href="https://github.com/apifytech/apify-cli" target="_blank">Apify command-line interface</a> (CLI) tool.
+the [Apify Cloud](https://apify.com), you can use the [Apify command-line interface](https://github.com/apifytech/apify-cli) (CLI) tool.
 
 Install the CLI by running:
 
@@ -94,13 +95,12 @@ apify push
 ```
 
 Your script will be uploaded to the Apify Cloud and built there so that it can be run. For more information, view the
-<a href="https://docs.apify.com/cli" target="_blank">Apify CLI</a> and <a href="https://docs.apify.com/actor" target="_blank">Apify Actor</a>
-documentation.
+[Apify Actor](https://docs.apify.com/cli) documentation.
 
 ## Usage on the Apify Cloud
 
-You can also develop your web scraping project in an online code editor directly on the <a href="https://apify.com" target="_blank">Apify Cloud</a>.
-You'll need to have an Apify Account. Go to <a href="https://my.apify.com/actors" target="_blank">Actors</a>, page in the app, click <i>Create new</i>
+You can also develop your web scraping project in an online code editor directly on the [Apify Cloud](https://apify.com).
+You'll need to have an Apify Account. Go to [Actors](https://my.apify.com/actors), page in the app, click <i>Create new</i>
 and then go to the <i>Source</i> tab and start writing your code or paste one of the examples from the Examples section.
 
-For more information, view the <a href="https://docs.apify.com/actor/quick-start" target="_blank">Apify actors quick start guide</a>.
+For more information, view the [Apify actors quick start guide](https://docs.apify.com/actor/quick-start).

@@ -5,13 +5,13 @@
 export type Cheerio = CheerioStatic;
 /**
  * Represents information about an actor run, as returned by the
- * [`Apify.call()`](../api/apify#module_Apify.call) or [`Apify.callTask()`](../api/apify#module_Apify.callTask) function.
+ * {@link Apify#call} or {@link Apify#callTask} function.
  * The object is almost equivalent to the JSON response
  * of the
- * <a href="https://apify.com/docs/api/v2#/reference/actors/run-collection/run-actor" target="_blank">Actor run</a>
+ * [Actor run](https://apify.com/docs/api/v2#/reference/actors/run-collection/run-actor)
  * Apify API endpoint and extended with certain fields.
  * For more details, see
- * <a href="https://docs.apify.com/actor/run" target="_blank">Runs.</a>
+ * [Runs.](https://docs.apify.com/actor/run)
  */
 export type ActorRun = {
     /**
@@ -32,7 +32,7 @@ export type ActorRun = {
     finishedAt: Date;
     /**
      * Status of the run. For possible values, see
-     * <a href="https://docs.apify.com/actor/run#lifecycle" target="_blank">Run lifecycle</a>
+     * [Run lifecycle](https://docs.apify.com/actor/run#lifecycle)
      * in Apify actor documentation.
      */
     status: string;
@@ -73,7 +73,7 @@ export type ActorRun = {
     options: any;
     /**
      * ID of the actor build used for the run. For details, see
-     * <a href="https://docs.apify.com/actor/build" target="_blank">Builds</a>
+     * [Builds](https://docs.apify.com/actor/build)
      * in Apify actor documentation.
      */
     buildId: string;
@@ -86,27 +86,27 @@ export type ActorRun = {
      */
     exitCode: number;
     /**
-     * ID of the default key-value store associated with the actor run. See [`KeyValueStore`](../api/keyvaluestore) for details.
+     * ID of the default key-value store associated with the actor run. See {@link KeyValueStore} for details.
      */
     defaultKeyValueStoreId: string;
     /**
-     * ID of the default dataset associated with the actor run. See [`Dataset`](../api/dataset) for details.
+     * ID of the default dataset associated with the actor run. See {@link Dataset} for details.
      */
     defaultDatasetId: string;
     /**
-     * ID of the default request queue associated with the actor run. See [`RequestQueue`](../api/requestqueue) for details.
+     * ID of the default request queue associated with the actor run. See {@link RequestQueue} for details.
      */
     defaultRequestQueueId: string;
     /**
      * URL on which the web server running inside actor run's Docker container can be accessed.
      * For more details, see
-     * <a href="https://docs.apify.com/actor/run#container-web-server" target="_blank">Container web server</a>
+     * [Container web server](https://docs.apify.com/actor/run#container-web-server)
      * in Apify actor documentation.
      */
     containerUrl: string;
     /**
      * Contains output of the actor run. The value is `null` or `undefined` in case the actor is still running,
-     * or if you pass `false` to the `fetchOutput` option of [`Apify.call()`](../api/apify#module_Apify.call).
+     * or if you pass `false` to the `fetchOutput` option of {@link Apify#call}.
      *
      * For example:
      * ```

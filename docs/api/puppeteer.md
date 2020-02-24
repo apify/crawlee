@@ -22,152 +22,13 @@ await page.goto('https://www.example.com');
 await puppeteer.injectJQuery(page);
 ```
 
--   [`puppeteer`](#puppeteer) : `object`
-    -   [`.enqueueLinksByClickingElements`](#puppeteer.enqueueLinksByClickingElements) ⇒ `Promise<Array<QueueOperationInfo>>`
-    -   [`.addInterceptRequestHandler`](#puppeteer.addInterceptRequestHandler) ⇒ `Promise`
-    -   [`.removeInterceptRequestHandler`](#puppeteer.removeInterceptRequestHandler) ⇒ `Promise`
-    -   [`.gotoExtended`](#puppeteer.gotoExtended) ⇒ `Promise<Response>`
-    -   [`.infiniteScroll`](#puppeteer.infiniteScroll) ⇒ `Promise`
-    -   [`.saveSnapshot`](#puppeteer.saveSnapshot) ⇒ `Promise`
-    -   [`.injectFile(page, filePath, [options])`](#puppeteer.injectFile) ⇒ `Promise`
-    -   [`.injectJQuery(page)`](#puppeteer.injectJQuery) ⇒ `Promise`
-    -   [`.injectUnderscore(page)`](#puppeteer.injectUnderscore) ⇒ `Promise`
-    -   [`.blockRequests(page, [options])`](#puppeteer.blockRequests) ⇒ `Promise`
-    -   ~~[`.cacheResponses(page, cache, responseUrlRules)`](#puppeteer.cacheResponses) ⇒ `Promise`~~
-    -   [`.compileScript(scriptString, context)`](#puppeteer.compileScript) ⇒ `function`
+---
 
-<a name="puppeteer.enqueueLinksByClickingElements"></a>
+<a name="addinterceptrequesthandler"></a>
 
-## `puppeteer.enqueueLinksByClickingElements` ⇒ `Promise<Array<QueueOperationInfo>>`
+## `puppeteer.addInterceptRequestHandler`
 
-The function finds elements matching a specific CSS selector in a Puppeteer page, clicks all those elements using a mouse move and a left mouse button
-click and intercepts all the navigation requests that are subsequently produced by the page. The intercepted requests, including their methods,
-headers and payloads are then enqueued to a provided [`RequestQueue`](requestqueue). This is useful to crawl JavaScript heavy pages where links are
-not available in `href` elements, but rather navigations are triggered in click handlers. If you're looking to find URLs in `href` attributes of the
-page, see [`enqueueLinks()`](utils#utils.enqueueLinks).
-
-Optionally, the function allows you to filter the target links' URLs using an array of [`PseudoUrl`](pseudourl) objects and override settings of the
-enqueued [`Request`](request) objects.
-
-**IMPORTANT**: To be able to do this, this function uses various mutations on the page, such as changing the Z-index of elements being clicked and
-their visibility. Therefore, it is recommended to only use this function as the last operation in the page.
-
-**USING HEADFUL BROWSER**: When using a headful browser, this function will only be able to click elements in the focused tab, effectively limiting
-concurrency to 1. In headless mode, full concurrency can be achieved.
-
-**PERFORMANCE**: Clicking elements with a mouse and intercepting requests is not a low level operation that takes nanoseconds. It's not very CPU
-intensive, but it takes time. We strongly recommend limiting the scope of the clicking as much as possible by using a specific selector that targets
-only the elements that you assume or know will produce a navigation. You can certainly click everything by using the `*` selector, but be prepared to
-wait minutes to get results on a large and complex page.
-
-**Example usage**
-
-```javascript
-const Apify = require('apify');
-
-const browser = await Apify.launchPuppeteer();
-const page = await browser.goto('https://www.example.com');
-const requestQueue = await Apify.openRequestQueue();
-
-await Apify.utils.enqueueLinksByClickingElements({
-  page,
-  requestQueue,
-  selector: 'a.product-detail',
-  pseudoUrls: [
-      'https://www.example.com/handbags/[.*]'
-      'https://www.example.com/purses/[.*]'
-  ],
-});
-```
-
-**Returns**: `Promise<Array<QueueOperationInfo>>` - Promise that resolves to an array of [`QueueOperationInfo`](../typedefs/queueoperationinfo)
-objects.
-
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th><th>Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>options</code></td><td><code>Object</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>All <code>enqueueLinksByClickingElements()</code> parameters are passed
-  via an options object with the following keys:</p>
-</td></tr><tr>
-<td><code>options.page</code></td><td><code>Page</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.</p>
-</td></tr><tr>
-<td><code>options.requestQueue</code></td><td><code><a href="requestqueue">RequestQueue</a></code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>A request queue to which the URLs will be enqueued.</p>
-</td></tr><tr>
-<td><code>options.selector</code></td><td><code>String</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>A CSS selector matching elements to be clicked on. Unlike in <a href="utils#utils.enqueueLinks"><code>enqueueLinks()</code></a>, there is no default
-  value. This is to prevent suboptimal use of this function by using it too broadly.</p>
-</td></tr><tr>
-<td><code>[options.pseudoUrls]</code></td><td><code>Array<(String|RegExp|Object)></code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>An array of <a href="pseudourl"><code>PseudoUrl</code></a>s matching the URLs to be enqueued,
-  or an array of strings or RegExps or plain Objects from which the <a href="pseudourl"><code>PseudoUrl</code></a>s can be constructed.</p>
-<p>  The plain objects must include at least the <code>purl</code> property, which holds the pseudo-URL string or RegExp.
-  All remaining keys will be used as the <code>requestTemplate</code> argument of the <a href="pseudourl"><code>PseudoUrl</code></a> constructor,
-  which lets you specify special properties for the enqueued <a href="request"><code>Request</code></a> objects.</p>
-<p>  If <code>pseudoUrls</code> is an empty array, <code>null</code> or <code>undefined</code>, then the function
-  enqueues all links found on the page.</p>
-</td></tr><tr>
-<td><code>[options.transformRequestFunction]</code></td><td><code><a href="../typedefs/requesttransform">RequestTransform</a></code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>Just before a new <a href="request"><code>Request</code></a> is constructed and enqueued to the <a href="requestqueue"><code>RequestQueue</code></a>, this function can be used
-  to remove it or modify its contents such as <code>userData</code>, <code>payload</code> or, most importantly <code>uniqueKey</code>. This is useful
-  when you need to enqueue multiple <code>Requests</code> to the queue that share the same URL, but differ in methods or payloads,
-  or to dynamically update or create <code>userData</code>.</p>
-<p>  For example: by adding <code>useExtendedUniqueKey: true</code> to the <code>request</code> object, <code>uniqueKey</code> will be computed from
-  a combination of <code>url</code>, <code>method</code> and <code>payload</code> which enables crawling of websites that navigate using form submits
-  (POST requests).</p>
-<p>  <strong>Example:</strong></p>
-<pre><code class="language-javascript">  {
-      transformRequestFunction: (request) =&gt; {
-          request.userData.foo = &#39;bar&#39;;
-          request.useExtendedUniqueKey = true;
-          return request;
-      }
-  }</code></pre>
-</td></tr><tr>
-<td><code>[options.waitForPageIdleSecs]</code></td><td><code>number</code></td><td><code>1</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Clicking in the page triggers various asynchronous operations that lead to new URLs being shown
-  by the browser. It could be a simple JavaScript redirect or opening of a new tab in the browser.
-  These events often happen only some time after the actual click. Requests typically take milliseconds
-  while new tabs open in hundreds of milliseconds.</p>
-<p>  To be able to capture all those events, the <code>enqueueLinksByClickingElements()</code> function repeatedly waits
-  for the <code>waitForPageIdleSecs</code>. By repeatedly we mean that whenever a relevant event is triggered, the timer
-  is restarted. As long as new events keep coming, the function will not return, unless
-  the below <code>maxWaitForPageIdleSecs</code> timeout is reached.</p>
-<p>  You may want to reduce this for example when you&#39;re sure that your clicks do not open new tabs,
-  or increase when you&#39;re not getting all the expected URLs.</p>
-</td></tr><tr>
-<td><code>[options.maxWaitForPageIdleSecs]</code></td><td><code>number</code></td><td><code>5</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>This is the maximum period for which the function will keep tracking events, even if more events keep coming.
-  Its purpose is to prevent a deadlock in the page by periodic events, often unrelated to the clicking itself.
-  See <code>waitForPageIdleSecs</code> above for an explanation.</p>
-</td></tr></tbody>
-</table>
-<a name="puppeteer.addInterceptRequestHandler"></a>
-
-## `puppeteer.addInterceptRequestHandler` ⇒ `Promise`
+**Returns**: `Promise`
 
 Adds request interception handler in similar to `page.on('request', handler);` but in addition to that supports multiple parallel handlers.
 
@@ -209,53 +70,33 @@ await addInterceptRequestHandler(page, request => {
 await page.goto('http://example.com');
 ```
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>page</code></td><td><code>Page</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.</p>
-</td></tr><tr>
-<td><code>handler</code></td><td><code>function</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Request interception handler.</p>
-</td></tr></tbody>
-</table>
-<a name="puppeteer.removeInterceptRequestHandler"></a>
+**Params**
 
-## `puppeteer.removeInterceptRequestHandler` ⇒ `Promise`
+-   **`page`**: `Page` - Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+-   **`handler`**: `function` - Request interception handler.
+
+---
+
+<a name="removeinterceptrequesthandler"></a>
+
+## `puppeteer.removeInterceptRequestHandler`
+
+**Returns**: `Promise`
 
 Removes request interception handler for given page.
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>page</code></td><td><code>Page</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.</p>
-</td></tr><tr>
-<td><code>handler</code></td><td><code>function</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Request interception handler.</p>
-</td></tr></tbody>
-</table>
-<a name="puppeteer.gotoExtended"></a>
+**Params**
 
-## `puppeteer.gotoExtended` ⇒ `Promise<Response>`
+-   **`page`**: `Page` - Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+-   **`handler`**: `function` - Request interception handler.
+
+---
+
+<a name="gotoextended"></a>
+
+## `puppeteer.gotoExtended`
+
+**Returns**: `Promise<Response>`
 
 Extended version of Puppeteer's `page.goto()` allowing to perform requests with HTTP method other than GET, with custom headers and POST payload. URL,
 method, headers and payload are taken from request parameter that must be an instance of Apify.Request class.
@@ -263,157 +104,188 @@ method, headers and payload are taken from request parameter that must be an ins
 _NOTE:_ In recent versions of Puppeteer using requests other than GET, overriding headers and adding payloads disables browser cache which degrades
 performance.
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>page</code></td><td><code>Page</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.</p>
-</td></tr><tr>
-<td><code>request</code></td><td><code><a href="request">Request</a></code></td>
-</tr>
-<tr>
-<td colspan="3"></td></tr><tr>
-<td><code>gotoOptions</code></td><td><code>Object</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Custom options for <code>page.goto()</code>.</p>
-</td></tr></tbody>
-</table>
-<a name="puppeteer.infiniteScroll"></a>
+**Params**
 
-## `puppeteer.infiniteScroll` ⇒ `Promise`
+-   **`page`**: `Page` - Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+-   **`request`**: [`Request`](/docs/api/request)
+-   **`gotoOptions`**: `Object` - Custom options for `page.goto()`.
+
+---
+
+<a name="infinitescroll"></a>
+
+## `puppeteer.infiniteScroll`
+
+**Returns**: `Promise`
 
 Scrolls to the bottom of a page, or until it times out. Loads dynamic content when it hits the bottom of a page, and then continues scrolling.
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th><th>Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>page</code></td><td><code>Object</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.</p>
-</td></tr><tr>
-<td><code>[options]</code></td><td><code>Object</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"></td></tr><tr>
-<td><code>[options.timeoutSecs]</code></td><td><code>Number</code></td><td><code>0</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>How many seconds to scroll for. If 0, will scroll until bottom of page.</p>
-</td></tr><tr>
-<td><code>[options.waitForSecs]</code></td><td><code>Number</code></td><td><code>4</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>How many seconds to wait for no new content to load before exit.</p>
-</td></tr></tbody>
-</table>
-<a name="puppeteer.saveSnapshot"></a>
+**Params**
 
-## `puppeteer.saveSnapshot` ⇒ `Promise`
+-   **`page`**: `Object` - Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+-   **`[options]`**: `Object`
+    -   **`[.timeoutSecs]`**: `Number` <code> = 0</code> - How many seconds to scroll for. If 0, will scroll until bottom of page.
+    -   **`[.waitForSecs]`**: `Number` <code> = 4</code> - How many seconds to wait for no new content to load before exit.
+
+---
+
+<a name="savesnapshot"></a>
+
+## `puppeteer.saveSnapshot`
+
+**Returns**: `Promise`
 
 Saves a full screenshot and HTML of the current page into a Key-Value store.
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th><th>Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>page</code></td><td><code>Object</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.</p>
-</td></tr><tr>
-<td><code>[options]</code></td><td><code>Object</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"></td></tr><tr>
-<td><code>[options.key]</code></td><td><code>String</code></td><td><code>SNAPSHOT</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Key under which the screenshot and HTML will be saved. <code>.jpg</code> will be appended for screenshot and <code>.html</code> for HTML.</p>
-</td></tr><tr>
-<td><code>[options.screenshotQuality]</code></td><td><code>Number</code></td><td><code>50</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>The quality of the image, between 0-100. Higher quality images have bigger size and require more storage.</p>
-</td></tr><tr>
-<td><code>[options.saveScreenshot]</code></td><td><code>Boolean</code></td><td><code>true</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>If true, it will save a full screenshot of the current page as a record with <code>key</code> appended by <code>.jpg</code>.</p>
-</td></tr><tr>
-<td><code>[options.saveHtml]</code></td><td><code>Boolean</code></td><td><code>true</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>If true, it will save a full HTML of the current page as a record with <code>key</code> appended by <code>.html</code>.</p>
-</td></tr><tr>
-<td><code>[options.keyValueStoreName]</code></td><td><code>String</code></td><td><code></code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Name or id of the Key-Value store where snapshot is saved. By default it is saved to default Key-Value store.</p>
-</td></tr></tbody>
-</table>
-<a name="puppeteer.injectFile"></a>
+**Params**
 
-## `puppeteer.injectFile(page, filePath, [options])` ⇒ `Promise`
+-   **`page`**: `Object` - Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+-   **`[options]`**: `Object`
+    -   **`[.key]`**: `String` <code> = SNAPSHOT</code> - Key under which the screenshot and HTML will be saved. `.jpg` will be appended for
+        screenshot and `.html` for HTML.
+    -   **`[.screenshotQuality]`**: `Number` <code> = 50</code> - The quality of the image, between 0-100. Higher quality images have bigger size and
+        require more storage.
+    -   **`[.saveScreenshot]`**: `Boolean` <code> = true</code> - If true, it will save a full screenshot of the current page as a record with `key`
+        appended by `.jpg`.
+    -   **`[.saveHtml]`**: `Boolean` <code> = true</code> - If true, it will save a full HTML of the current page as a record with `key` appended by
+        `.html`.
+    -   **`[.keyValueStoreName]`**: `String` <code> = </code> - Name or id of the Key-Value store where snapshot is saved. By default it is saved to
+        default Key-Value store.
+
+---
+
+<a name="enqueuelinksbyclickingelements"></a>
+
+## `puppeteer.enqueueLinksByClickingElements(options)`
+
+**Returns**: [`Promise<Array<QueueOperationInfo>>`](/docs/typedefs/queue-operation-info) - Promise that resolves to an array of
+[`QueueOperationInfo`](/docs/typedefs/queue-operation-info) objects.
+
+The function finds elements matching a specific CSS selector in a Puppeteer page, clicks all those elements using a mouse move and a left mouse button
+click and intercepts all the navigation requests that are subsequently produced by the page. The intercepted requests, including their methods,
+headers and payloads are then enqueued to a provided [`RequestQueue`](/docs/api/request-queue). This is useful to crawl JavaScript heavy pages where
+links are not available in `href` elements, but rather navigations are triggered in click handlers. If you're looking to find URLs in `href`
+attributes of the page, see [`utils.enqueueLinks()`](/docs/api/utils#enqueuelinks).
+
+Optionally, the function allows you to filter the target links' URLs using an array of [`PseudoUrl`](/docs/api/pseudo-url) objects and override
+settings of the enqueued [`Request`](/docs/api/request) objects.
+
+**IMPORTANT**: To be able to do this, this function uses various mutations on the page, such as changing the Z-index of elements being clicked and
+their visibility. Therefore, it is recommended to only use this function as the last operation in the page.
+
+**USING HEADFUL BROWSER**: When using a headful browser, this function will only be able to click elements in the focused tab, effectively limiting
+concurrency to 1. In headless mode, full concurrency can be achieved.
+
+**PERFORMANCE**: Clicking elements with a mouse and intercepting requests is not a low level operation that takes nanoseconds. It's not very CPU
+intensive, but it takes time. We strongly recommend limiting the scope of the clicking as much as possible by using a specific selector that targets
+only the elements that you assume or know will produce a navigation. You can certainly click everything by using the `*` selector, but be prepared to
+wait minutes to get results on a large and complex page.
+
+**Example usage**
+
+```javascript
+const Apify = require('apify');
+
+const browser = await Apify.launchPuppeteer();
+const page = await browser.goto('https://www.example.com');
+const requestQueue = await Apify.openRequestQueue();
+
+await Apify.utils.enqueueLinksByClickingElements({
+  page,
+  requestQueue,
+  selector: 'a.product-detail',
+  pseudoUrls: [
+      'https://www.example.com/handbags/[.*]'
+      'https://www.example.com/purses/[.*]'
+  ],
+});
+```
+
+**Params**
+
+-   **`options`**: `Object` - All `enqueueLinksByClickingElements()` parameters are passed via an options object with the following keys:
+
+    -   **`.page`**: `Page` - Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+    -   **`.requestQueue`**: [`RequestQueue`](/docs/api/request-queue) - A request queue to which the URLs will be enqueued.
+    -   **`.selector`**: `String` - A CSS selector matching elements to be clicked on. Unlike in
+        [`utils.enqueueLinks()`](/docs/api/utils#enqueuelinks), there is no default value. This is to prevent suboptimal use of this function by using
+        it too broadly.
+    -   **`[.pseudoUrls]`**: `Array<(String|RegExp|Object)>` - An array of [`PseudoUrl`](/docs/api/pseudo-url)s matching the URLs to be enqueued, or
+        an array of strings or RegExps or plain Objects from which the [`PseudoUrl`](/docs/api/pseudo-url)s can be constructed.
+
+    The plain objects must include at least the `purl` property, which holds the pseudo-URL string or RegExp. All remaining keys will be used as the
+    `requestTemplate` argument of the [`PseudoUrl`](/docs/api/pseudo-url) constructor, which lets you specify special properties for the enqueued
+    [`Request`](/docs/api/request) objects.
+
+    If `pseudoUrls` is an empty array, `null` or `undefined`, then the function enqueues all links found on the page.
+
+    -   **`[.transformRequestFunction]`**: [`RequestTransform`](/docs/typedefs/request-transform) - Just before a new [`Request`](/docs/api/request)
+        is constructed and enqueued to the [`RequestQueue`](/docs/api/request-queue), this function can be used to remove it or modify its contents
+        such as `userData`, `payload` or, most importantly `uniqueKey`. This is useful when you need to enqueue multiple `Requests` to the queue that
+        share the same URL, but differ in methods or payloads, or to dynamically update or create `userData`.
+
+    For example: by adding `useExtendedUniqueKey: true` to the `request` object, `uniqueKey` will be computed from a combination of `url`, `method`
+    and `payload` which enables crawling of websites that navigate using form submits (POST requests).
+
+    **Example:**
+
+    ```javascript
+    {
+        transformRequestFunction: request => {
+            request.userData.foo = 'bar';
+            request.useExtendedUniqueKey = true;
+            return request;
+        };
+    }
+    ```
+
+    -   **`[.waitForPageIdleSecs]`**: `number` <code> = 1</code> - Clicking in the page triggers various asynchronous operations that lead to new URLs
+        being shown by the browser. It could be a simple JavaScript redirect or opening of a new tab in the browser. These events often happen only
+        some time after the actual click. Requests typically take milliseconds while new tabs open in hundreds of milliseconds.
+
+    To be able to capture all those events, the `enqueueLinksByClickingElements()` function repeatedly waits for the `waitForPageIdleSecs`. By
+    repeatedly we mean that whenever a relevant event is triggered, the timer is restarted. As long as new events keep coming, the function will not
+    return, unless the below `maxWaitForPageIdleSecs` timeout is reached.
+
+    You may want to reduce this for example when you're sure that your clicks do not open new tabs, or increase when you're not getting all the
+    expected URLs.
+
+    -   **`[.maxWaitForPageIdleSecs]`**: `number` <code> = 5</code> - This is the maximum period for which the function will keep tracking events,
+        even if more events keep coming. Its purpose is to prevent a deadlock in the page by periodic events, often unrelated to the clicking itself.
+        See `waitForPageIdleSecs` above for an explanation.
+
+---
+
+<a name="injectfile"></a>
+
+## `puppeteer.injectFile(page, filePath, [options])`
+
+**Returns**: `Promise`
 
 Injects a JavaScript file into a Puppeteer page. Unlike Puppeteer's `addScriptTag` function, this function works on pages with arbitrary Cross-Origin
 Resource Sharing (CORS) policies.
 
 File contents are cached for up to 10 files to limit file system access.
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>page</code></td><td><code>Page</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.</p>
-</td></tr><tr>
-<td><code>filePath</code></td><td><code>String</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>File path</p>
-</td></tr><tr>
-<td><code>[options]</code></td><td><code>Object</code></td>
-</tr>
-<tr>
-<td colspan="3"></td></tr><tr>
-<td><code>[options.surviveNavigations]</code></td><td><code>boolean</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Enables the injected script to survive page navigations and reloads without need to be re-injected manually.
-  This does not mean, however, that internal state will be preserved. Just that it will be automatically
-  re-injected on each navigation before any other scripts get the chance to execute.</p>
-</td></tr></tbody>
-</table>
-<a name="puppeteer.injectJQuery"></a>
+**Params**
 
-## `puppeteer.injectJQuery(page)` ⇒ `Promise`
+-   **`page`**: `Page` - Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+-   **`filePath`**: `String` - File path
+-   **`[options]`**: `Object`
+    -   **`[.surviveNavigations]`**: `boolean` - Enables the injected script to survive page navigations and reloads without need to be re-injected
+        manually. This does not mean, however, that internal state will be preserved. Just that it will be automatically re-injected on each
+        navigation before any other scripts get the chance to execute.
 
-Injects the <a href="https://jquery.com/" target="_blank"><code>jQuery</code></a> library into a Puppeteer page. jQuery is often useful for various
-web scraping and crawling tasks. For example, it can help extract text from HTML elements using CSS selectors.
+---
+
+<a name="injectjquery"></a>
+
+## `puppeteer.injectJQuery(page)`
+
+**Returns**: `Promise`
+
+Injects the [](https://jquery.com/) library into a Puppeteer page. jQuery is often useful for various web scraping and crawling tasks. For example, it
+can help extract text from HTML elements using CSS selectors.
 
 Beware that the injected jQuery object will be set to the `window.$` variable and thus it might cause conflicts with other libraries included by the
 page that use the same variable name (e.g. another version of jQuery). This can affect functionality of page's scripts.
@@ -429,28 +301,21 @@ const title = await page.evaluate(() => {
 });
 ```
 
-Note that `injectJQuery()` does not affect the Puppeteer's
-<a href="https://pptr.dev/#?product=Puppeteer&show=api-pageselector" target="_blank"><code>Page.\$()</code></a> function in any way.
+Note that `injectJQuery()` does not affect the Puppeteer's [](https://pptr.dev/#?product=Puppeteer&show=api-pageselector) function in any way.
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>page</code></td><td><code>Page</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.</p>
-</td></tr></tbody>
-</table>
-<a name="puppeteer.injectUnderscore"></a>
+**Params**
 
-## `puppeteer.injectUnderscore(page)` ⇒ `Promise`
+-   **`page`**: `Page` - Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
 
-Injects the <a href="https://underscorejs.org/" target="_blank"><code>Underscore.js</code></a> library into a Puppeteer page.
+---
+
+<a name="injectunderscore"></a>
+
+## `puppeteer.injectUnderscore(page)`
+
+**Returns**: `Promise`
+
+Injects the [](https://underscorejs.org/) library into a Puppeteer page.
 
 Beware that the injected Underscore object will be set to the `window._` variable and thus it might cause conflicts with libraries included by the
 page that use the same variable name. This can affect functionality of page's scripts.
@@ -466,23 +331,17 @@ const escapedHtml = await page.evaluate(() => {
 });
 ```
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>page</code></td><td><code>Page</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Puppeteer <a href="https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page">Page</a> object.</p>
-</td></tr></tbody>
-</table>
-<a name="puppeteer.blockRequests"></a>
+**Params**
 
-## `puppeteer.blockRequests(page, [options])` ⇒ `Promise`
+-   **`page`**: `Page` - Puppeteer [Page](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page) object.
+
+---
+
+<a name="blockrequests"></a>
+
+## `puppeteer.blockRequests(page, [options])`
+
+**Returns**: `Promise`
 
 Forces the Puppeteer browser tab to block loading URLs that match a provided pattern. This is useful to speed up crawling of websites, since it
 reduces the amount of data that needs to be downloaded from the web, but it may break some websites or unexpectedly prevent loading of resources.
@@ -519,42 +378,24 @@ await Apify.utils.puppeteer.blockRequests(page, {
 await page.goto('https://cnn.com');
 ```
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>page</code></td><td><code>Page</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.</p>
-</td></tr><tr>
-<td><code>[options]</code></td><td><code>Object</code></td>
-</tr>
-<tr>
-<td colspan="3"></td></tr><tr>
-<td><code>[options.urlPatterns]</code></td><td><code>Array<string></code></td>
-</tr>
-<tr>
-<td colspan="3"><p>The patterns of URLs to block from being loaded by the browser.
-  Only <code>*</code> can be used as a wildcard. It is also automatically added to the beginning
-  and end of the pattern. This limitation is enforced by the DevTools protocol.
-  <code>.png</code> is the same as <code>*.png*</code>.</p>
-</td></tr><tr>
-<td><code>[options.extraUrlPatterns]</code></td><td><code>Array<string></code></td>
-</tr>
-<tr>
-<td colspan="3"><p>If you just want to append to the default blocked patterns, use this property.</p>
-</td></tr></tbody>
-</table>
-<a name="puppeteer.cacheResponses"></a>
+**Params**
 
-## ~~`puppeteer.cacheResponses(page, cache, responseUrlRules)` ⇒ `Promise`~~
+-   **`page`**: `Page` - Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+-   **`[options]`**: `Object`
+    -   **`[.urlPatterns]`**: `Array<string>` - The patterns of URLs to block from being loaded by the browser. Only `*` can be used as a wildcard. It
+        is also automatically added to the beginning and end of the pattern. This limitation is enforced by the DevTools protocol. `.png` is the same
+        as `*.png*`.
+    -   **`[.extraUrlPatterns]`**: `Array<string>` - If you just want to append to the default blocked patterns, use this property.
+
+---
+
+<a name="cacheresponses"></a>
+
+## ~~`puppeteer.cacheResponses(page, cache, responseUrlRules)`~~
 
 **_Deprecated_**
+
+**Returns**: `Promise`
 
 _NOTE:_ In recent versions of Puppeteer using this function entirely disables browser cache which resolves in sub-optimal performance. Until this
 resolves, we suggest just relying on the in-browser cache unless absolutely necessary.
@@ -563,34 +404,20 @@ Enables caching of intercepted responses into a provided object. Automatically e
 responses stores them to memory, so too loose rules could cause memory leaks for longer running crawlers. This issue should be resolved or atleast
 mitigated in future iterations of this feature.
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>page</code></td><td><code>Page</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.</p>
-</td></tr><tr>
-<td><code>cache</code></td><td><code>Object</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Object in which responses are stored</p>
-</td></tr><tr>
-<td><code>responseUrlRules</code></td><td><code>Array<(String|RegExp)></code></td>
-</tr>
-<tr>
-<td colspan="3"><p>List of rules that are used to check if the response should be cached.
-  String rules are compared as page.url().includes(rule) while RegExp rules are evaluated as rule.test(page.url()).</p>
-</td></tr></tbody>
-</table>
-<a name="puppeteer.compileScript"></a>
+**Params**
 
-## `puppeteer.compileScript(scriptString, context)` ⇒ `function`
+-   **`page`**: `Page` - Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+-   **`cache`**: `Object` - Object in which responses are stored
+-   **`responseUrlRules`**: `Array<(String|RegExp)>` - List of rules that are used to check if the response should be cached. String rules are
+    compared as page.url().includes(rule) while RegExp rules are evaluated as rule.test(page.url()).
+
+---
+
+<a name="compilescript"></a>
+
+## `puppeteer.compileScript(scriptString, context)`
+
+**Returns**: `function` - `async ({ page, request }) => { scriptString }`
 
 Compiles a Puppeteer script into an async function that may be executed at any time by providing it with the following object:
 
@@ -601,8 +428,7 @@ Compiles a Puppeteer script into an async function that may be executed at any t
 }
 ```
 
-Where `page` is a Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> and `request` is
-a [`Request`](request).
+Where `page` is a Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) and `request` is a [`Request`](/docs/api/request).
 
 The function is compiled by using the `scriptString` parameter as the function's body, so any limitations to function bodies apply. Return value of
 the compiled function is the return value of the function body = the `scriptString` parameter.
@@ -614,22 +440,9 @@ Therefore you should only use this function to execute sanitized or safe code.
 Custom context may also be provided using the `context` parameter. To improve security, make sure to only pass the really necessary objects to the
 context. Preferably making secured copies beforehand.
 
-**Returns**: `function` - `async ({ page, request }) => { scriptString }`
+**Params**
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>scriptString</code></td><td><code>String</code></td>
-</tr>
-<tr>
-</tr><tr>
-<td><code>context</code></td><td><code>Object</code></td>
-</tr>
-<tr>
-</tr></tbody>
-</table>
+-   **`scriptString`**: `String`
+-   **`context`**: `Object`
+
+---

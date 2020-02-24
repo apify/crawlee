@@ -111,14 +111,14 @@ const getRequestId = (uniqueKey) => {
 
 /**
  * A helper class that is used to report results from various
- * [`RequestQueue`](../api/requestqueue) functions as well as
- * [`Apify.utils.enqueueLinks()`](../api/utils#utils.enqueueLinks).
+ * {@link RequestQueue} functions as well as
+ * {@link utils#enqueueLinks}.
  *
  * @typedef {Object} QueueOperationInfo
  * @property {Boolean} wasAlreadyPresent Indicates if request was already present in the queue.
  * @property {Boolean} wasAlreadyHandled Indicates if request was already marked as handled.
  * @property {String} requestId The ID of the added request
- * @property {Object} request The original [`Request`](../api/request) object passed to the `RequestQueue` function.
+ * @property {Object} request The original {@link Request} object passed to the `RequestQueue` function.
  */
 
 /**
@@ -133,7 +133,7 @@ const getRequestId = (uniqueKey) => {
  * corresponding {@link Request} objects will need to have different `uniqueKey` properties.
  *
  * Do not instantiate this class directly, use the
- * [`Apify.openRequestQueue()`](apify#module_Apify.openRequestQueue) function instead.
+ * {@link Apify#openRequestQueue} function instead.
  *
  * `RequestQueue` is used by {@link BasicCrawler}, {@link CheerioCrawler}
  * and {@link PuppeteerCrawler} as a source of URLs to crawl.
@@ -154,9 +154,9 @@ const getRequestId = (uniqueKey) => {
  * and `{NUMBER}` is an integer indicating the position of the request in the queue.
  *
  * If the `APIFY_TOKEN` environment variable is set but `APIFY_LOCAL_STORAGE_DIR` not, the data is stored in the
- * <a href="https://docs.apify.com/storage/request-queue" target="_blank">Apify Request Queue</a>
+ * [Apify Request Queue](https://docs.apify.com/storage/request-queue)
  * cloud storage. Note that you can force usage of the cloud storage also by passing the `forceCloud`
- * option to [`Apify.openRequestQueue()`](apify#module_Apify.openRequestQueue) function,
+ * option to {@link Apify#openRequestQueue} function,
  * even if the `APIFY_LOCAL_STORAGE_DIR` variable is set.
  *
  * **Example usage:**
@@ -239,7 +239,7 @@ export class RequestQueue {
      * {@link QueueOperationInfo} object.
      *
      * To add multiple requests to the queue by extracting links from a webpage,
-     * see the [`Apify.utils.enqueueLinks()`](utils#utils.enqueueLinks) helper function.
+     * see the {@link utils#enqueueLinks} helper function.
      *
      * @param {Request|RequestOptions} request {@link Request} object or vanilla object with request data.
      * Note that the function sets the `uniqueKey` and `id` fields to the passed object.
@@ -314,15 +314,15 @@ export class RequestQueue {
      * Returns a next request in the queue to be processed, or `null` if there are no more pending requests.
      *
      * Once you successfully finish processing of the request, you need to call
-     * [`requestQueue.markRequestHandled()`](#RequestQueue+markRequestHandled)
+     * {@link RequestQueue#markRequestHandled}
      * to mark the request as handled in the queue. If there was some error in processing the request,
-     * call [`requestQueue.reclaimRequest()`](#RequestQueue+reclaimRequest) instead,
+     * call {@link RequestQueue#reclaimRequest} instead,
      * so that the queue will give the request to some other consumer in another call to the `fetchNextRequest` function.
      *
      * Note that the `null` return value doesn't mean the queue processing finished,
      * it means there are currently no pending requests.
      * To check whether all requests in queue were finished,
-     * use [`requestQueue.isFinished()`](#RequestQueue+isFinished) instead.
+     * use {@link RequestQueue#isFinished} instead.
      *
      * @returns {Promise<Request>}
      * Returns the request object or `null` if there are no more pending requests.
@@ -386,7 +386,7 @@ export class RequestQueue {
 
     /**
      * Marks a request that was previously returned by the
-     * [`requestQueue.fetchNextRequest()`](#RequestQueue+fetchNextRequest)
+     * {@link RequestQueue#fetchNextRequest}
      * function as handled after successful processing.
      * Handled requests will never again be returned by the `fetchNextRequest` function.
      *
@@ -425,7 +425,7 @@ export class RequestQueue {
 
     /**
      * Reclaims a failed request back to the queue, so that it can be returned for processed later again
-     * by another call to [`requestQueue.fetchNextRequest()`](#RequestQueue+fetchNextRequest).
+     * by another call to {@link RequestQueue#fetchNextRequest}.
      * The request record in the queue is updated using the provided `request` parameter.
      * For example, this lets you store the number of retries or error messages for the request.
      *
@@ -433,7 +433,7 @@ export class RequestQueue {
      * @param {Object} [options]
      * @param {Boolean} [options.forefront=false]
      * If `true` then the request it placed to the beginning of the queue, so that it's returned
-     * in the next call to [`requestQueue.fetchNextRequest()`](#RequestQueue+fetchNextRequest).
+     * in the next call to {@link RequestQueue#fetchNextRequest}.
      * By default, it's put to the end of the queue.
      * @return {Promise<QueueOperationInfo>}
      */
@@ -476,10 +476,10 @@ export class RequestQueue {
     }
 
     /**
-     * Resolves to `true` if the next call to [`requestQueue.fetchNextRequest()`](#RequestQueue+fetchNextRequest)
+     * Resolves to `true` if the next call to {@link RequestQueue#fetchNextRequest}
      * would return `null`, otherwise it resolves to `false`.
      * Note that even if the queue is empty, there might be some pending requests currently being processed.
-     * If you need to ensure that there is no activity in the queue, use [`requestQueue.isFinished()`](#RequestQueue+isFinished).
+     * If you need to ensure that there is no activity in the queue, use {@link RequestQueue#isFinished}.
      *
      * @returns {Promise<Boolean>}
      */
@@ -1080,6 +1080,7 @@ const getOrCreateQueue = async (queueIdOrName) => {
  * @returns {Promise<RequestQueue>}
  * @memberof module:Apify
  * @name openRequestQueue
+ * @function
  */
 export const openRequestQueue = (queueIdOrName, options = {}) => {
     checkParamOrThrow(queueIdOrName, 'queueIdOrName', 'Maybe String');

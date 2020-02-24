@@ -9,7 +9,7 @@ console.log('Reading documentation files.');
 const introduction = readFileSync(path.join(docPath, 'readme', 'introduction.md'), 'utf8');
 const motivation = readFileSync(path.join(docPath, 'guides', 'motivation.md'), 'utf8');
 const overview = readFileSync(path.join(docPath, 'readme', 'overview.md'), 'utf8');
-const gettingStarted = readFileSync(path.join(docPath, 'guides', 'getting_started_quick.md'), 'utf8');
+const gettingStarted = readFileSync(path.join(docPath, 'guides', 'quick_start.md'), 'utf8');
 const support = readFileSync(path.join(docPath, 'readme', 'support.md'), 'utf8');
 
 const headerRx = /---.*?title: (.+)\n.*?---/s;
@@ -21,7 +21,7 @@ const fixHeaders = doc => doc.replace(hashRx, hashReplace).replace(headerRx, hea
 
 const linkRx = /\[(.*)]\((.*)\)/g;
 const fixLinks = (match, p1, p2) => {
-    const url = new URL(p2, 'https://sdk.apify.com/docs/guides/');
+    const url = new URL(p2, 'https://sdk.apify.com/docs/');
     return `[${p1}](${url})`;
 };
 

@@ -1,56 +1,73 @@
 ---
-id: cheeriohandlepageinputs
+id: cheerio-handle-page-inputs
 title: CheerioHandlePageInputs
 ---
 
-<a name="CheerioHandlePageInputs"></a>
+<a name="cheeriohandlepageinputs"></a>
 
-**Properties**
+## Properties
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>[$]</code></td><td><code>Cheerio</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>The <a href="https://cheerio.js.org/">Cheerio</a> object with parsed HTML.</p>
-</td></tr><tr>
-<td><code>body</code></td><td><code>String</code> | <code>Buffer</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>The request body of the web page.</p>
-</td></tr><tr>
-<td><code>[json]</code></td><td><code>Object</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>The parsed object from JSON string if the response contains the content type application/json.</p>
-</td></tr><tr>
-<td><code>request</code></td><td><code><a href="request">Request</a></code></td>
-</tr>
-<tr>
-<td colspan="3"><p>The original {Request} object.</p>
-</td></tr><tr>
-<td><code>contentType</code></td><td><code>Object</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Parsed <code>Content-Type header: { type, encoding }</code>.</p>
-</td></tr><tr>
-<td><code>response</code></td><td><code>IncomingMessage</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>An instance of Node&#39;s http.IncomingMessage object,</p>
-</td></tr><tr>
-<td><code>autoscaledPool</code></td><td><code><a href="autoscaledpool">AutoscaledPool</a></code></td>
-</tr>
-<tr>
-<td colspan="3"></td></tr><tr>
-<td><code>[session]</code></td><td><code>session</code></td>
-</tr>
-<tr>
-<td colspan="3"></td></tr></tbody>
-</table>
+### `$`
+
+**Type**: `Cheerio`
+
+The [Cheerio](https://cheerio.js.org/) object with parsed HTML.
+
+---
+
+### `body`
+
+**Type**: `String` | `Buffer`
+
+The request body of the web page.
+
+---
+
+### `json`
+
+**Type**: `Object`
+
+The parsed object from JSON string if the response contains the content type application/json.
+
+---
+
+### `request`
+
+**Type**: [`Request`](/docs/api/request)
+
+The original {Request} object.
+
+---
+
+### `contentType`
+
+**Type**: `Object`
+
+Parsed `Content-Type header: { type, encoding }`.
+
+---
+
+### `response`
+
+**Type**: `IncomingMessage`
+
+An instance of Node's http.IncomingMessage object,
+
+---
+
+### `autoscaledPool`
+
+**Type**: [`AutoscaledPool`](/docs/api/autoscaled-pool)
+
+A reference to the underlying [`AutoscaledPool`](/docs/api/autoscaled-pool) class that manages the concurrency of the crawler. Note that this property
+is only initialized after calling the [`CheerioCrawler.run()`](/docs/api/cheerio-crawler#run) function. You can use it to change the concurrency
+settings on the fly, to pause the crawler by calling [`AutoscaledPool.pause()`](/docs/api/autoscaled-pool#pause) or to abort it by calling
+[`AutoscaledPool.abort()`](/docs/api/autoscaled-pool#abort).
+
+---
+
+### `session`
+
+**Type**: `session`
+
+---

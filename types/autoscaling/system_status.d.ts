@@ -17,7 +17,7 @@ export type SystemInfo = {
 export type SystemStatusOptions = {
     /**
      * Defines max age of snapshots used in the
-     * [`getCurrentStatus()`](#SystemStatus+getCurrentStatus) measurement.
+     * {@link SystemStatus#getCurrentStatus} measurement.
      */
     currentHistorySecs?: number;
     /**
@@ -60,7 +60,7 @@ export type SystemStatusOptions = {
  * @typedef {Object} SystemStatusOptions
  * @property {Number} [currentHistorySecs=5]
  *   Defines max age of snapshots used in the
- *   [`getCurrentStatus()`](#SystemStatus+getCurrentStatus) measurement.
+ *   {@link SystemStatus#getCurrentStatus} measurement.
  * @property {Number} [maxMemoryOverloadedRatio=0.2]
  *   Sets the maximum ratio of overloaded snapshots in a memory sample.
  *   If the sample exceeds this ratio, the system will be overloaded.
@@ -78,21 +78,21 @@ export type SystemStatusOptions = {
  */
 /**
  * Provides a simple interface to reading system status from a {@link Snapshotter} instance.
- * It only exposes two functions [`getCurrentStatus()`](#SystemStatus+getCurrentStatus)
- * and [`getHistoricalStatus()`](#SystemStatus+getHistoricalStatus).
+ * It only exposes two functions {@link SystemStatus#getCurrentStatus}
+ * and {@link SystemStatus#getHistoricalStatus}.
  * The system status is calculated using a weighted average of overloaded
  * messages in the snapshots, with the weights being the time intervals
  * between the snapshots. Each resource is calculated separately
  * and the system is overloaded whenever at least one resource is overloaded.
  * The class is used by the {@link AutoscaledPool} class.
  *
- * [`getCurrentStatus()`](#SystemStatus+getCurrentStatus)
+ * {@link SystemStatus#getCurrentStatus}
  * returns a boolean that represents the current status of the system.
  * The length of the current timeframe in seconds is configurable
  * by the `currentHistorySecs` option and represents the max age
  * of snapshots to be considered for the calculation.
  *
- * [`getHistoricalStatus()`](#SystemStatus+getHistoricalStatus)
+ * {@link SystemStatus#getHistoricalStatus}
  * returns a boolean that represents the long-term status
  * of the system. It considers the full snapshot history available
  * in the {@link Snapshotter} instance.

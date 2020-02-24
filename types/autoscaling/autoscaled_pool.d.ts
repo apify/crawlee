@@ -17,7 +17,7 @@ export type AutoscaledPoolOptions = {
      * If it resolves to `true` then the pool's run finishes. Being called only
      * when there are no tasks being processed means that as long as `isTaskReadyFunction()`
      * keeps resolving to `true`, `isFinishedFunction()` will never be called.
-     * To abort a run, use the [`abort()`](#AutoscaledPool+abort) method.
+     * To abort a run, use the {@link AutoscaledPool#abort} method.
      */
     isFinishedFunction: Function;
     /**
@@ -96,7 +96,7 @@ export type AutoscaledPoolOptions = {
  *   If it resolves to `true` then the pool's run finishes. Being called only
  *   when there are no tasks being processed means that as long as `isTaskReadyFunction()`
  *   keeps resolving to `true`, `isFinishedFunction()` will never be called.
- *   To abort a run, use the [`abort()`](#AutoscaledPool+abort) method.
+ *   To abort a run, use the {@link AutoscaledPool#abort} method.
  *
  * @property {Number} [minConcurrency=1]
  *   The minimum number of tasks running in parallel.
@@ -146,16 +146,16 @@ export type AutoscaledPoolOptions = {
  * Meaningful data gathered from these snapshots is provided to `AutoscaledPool` by the {@link SystemStatus} class.
  *
  * Before running the pool, you need to implement the following three functions:
- * [`runTaskFunction()`](#new_AutoscaledPool_new),
- * [`isTaskReadyFunction()`](#new_AutoscaledPool_new) and
- * [`isFinishedFunction()`](#new_AutoscaledPool_new).
+ * {@link AutoscaledPoolOptions#runTaskFunction},
+ * {@link AutoscaledPoolOptions#isTaskReadyFunction} and
+ * {@link AutoscaledPoolOptions#isFinishedFunction}.
  *
- * The auto-scaled pool is started by calling the [`run()`](#AutoscaledPool+run) function.
- * The pool periodically queries the [`isTaskReadyFunction()`](#new_AutoscaledPool_new) function
+ * The auto-scaled pool is started by calling the {@link AutoscaledPool#run} function.
+ * The pool periodically queries the {@link AutoscaledPoolOptions#isTaskReadyFunction} function
  * for more tasks, managing optimal concurrency, until the function resolves to `false`. The pool then queries
- * the [`isFinishedFunction()`](#new_AutoscaledPool_new). If it resolves to `true`, the run finishes after all running tasks complete.
+ * the {@link AutoscaledPoolOptions#isFinishedFunction}. If it resolves to `true`, the run finishes after all running tasks complete.
  * If it resolves to `false`, it assumes there will be more tasks available later and keeps periodically querying for tasks.
- * If any of the tasks throws then the [`run()`](#AutoscaledPool+run) function rejects the promise with an error.
+ * If any of the tasks throws then the {@link AutoscaledPool#run} function rejects the promise with an error.
  *
  * The pool evaluates whether it should start a new task every time one of the tasks finishes
  * and also in the interval set by the `options.maybeRunIntervalSecs` parameter.
@@ -292,7 +292,7 @@ declare class AutoscaledPool {
     maybeRunInterval: any;
     /**
      * Aborts the run of the auto-scaled pool and destroys it. The promise returned from
-     * the [`run()`](#AutoscaledPool+run) function will immediately resolve, no more new tasks
+     * the {@link AutoscaledPool#run} function will immediately resolve, no more new tasks
      * will be spawned and all running tasks will be left in their current state.
      *
      * Due to the nature of the tasks, auto-scaled pool cannot reliably guarantee abortion
@@ -306,13 +306,13 @@ declare class AutoscaledPool {
     abort(): Promise<any>;
     /**
      * Prevents the auto-scaled pool from starting new tasks, but allows the running ones to finish
-     * (unlike abort, which terminates them). Used together with [`resume()`](#AutoscaledPool+resume)
+     * (unlike abort, which terminates them). Used together with {@link AutoscaledPool#resume}
      *
      * The function's promise will resolve once all running tasks have completed and the pool
      * is effectively idle. If the `timeoutSecs` argument is provided, the promise will reject
      * with a timeout error after the `timeoutSecs` seconds.
      *
-     * The promise returned from the [`run()`](#AutoscaledPool+run) function will not resolve
+     * The promise returned from the {@link AutoscaledPool#run} function will not resolve
      * when `.pause()` is invoked (unlike abort, which resolves it).
      *
      * @param {number} [timeoutSecs]
@@ -321,7 +321,7 @@ declare class AutoscaledPool {
     pause(timeoutSecs?: number): Promise<any>;
     /**
      * Resumes the operation of the autoscaled-pool by allowing more tasks to be run.
-     * Used together with [`pause()`](#AutoscaledPool+pause)
+     * Used together with {@link AutoscaledPool#pause}
      *
      * Tasks will automatically start running again in `options.maybeRunIntervalSecs`.
      */

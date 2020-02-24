@@ -3,11 +3,11 @@ id: snapshotter
 title: Snapshotter
 ---
 
-<a name="Snapshotter"></a>
+<a name="snapshotter"></a>
 
 Creates snapshots of system resources at given intervals and marks the resource as either overloaded or not during the last interval. Keeps a history
-of the snapshots. It tracks the following resources: Memory, EventLoop, API and CPU. The class is used by the [`AutoscaledPool`](autoscaledpool)
-class.
+of the snapshots. It tracks the following resources: Memory, EventLoop, API and CPU. The class is used by the
+[`AutoscaledPool`](/docs/api/autoscaled-pool) class.
 
 When running on the Apify platform, the CPU and memory statistics are provided by the platform, as collected from the running Docker container. When
 running locally, `Snapshotter` makes its own statistics by querying the OS.
@@ -23,122 +23,94 @@ Event loop becomes overloaded if it slows down by more than the `maxBlockedMilli
 Client becomes overloaded when rate limit errors (429 - Too Many Requests), typically received from the request queue, exceed the set limit within the
 set interval.
 
--   [Snapshotter](snapshotter)
-    -   [`new Snapshotter([options])`](#new_Snapshotter_new)
-    -   [`.start()`](#Snapshotter+start) ⇒ `Promise`
-    -   [`.stop()`](#Snapshotter+stop) ⇒ `Promise`
-    -   [`.getMemorySample([sampleDurationMillis])`](#Snapshotter+getMemorySample) ⇒ `Array`
-    -   [`.getEventLoopSample([sampleDurationMillis])`](#Snapshotter+getEventLoopSample) ⇒ `Array`
-    -   [`.getCpuSample([sampleDurationMillis])`](#Snapshotter+getCpuSample) ⇒ `Array`
-    -   [`.getClientSample(sampleDurationMillis)`](#Snapshotter+getClientSample) ⇒ `Array`
+---
 
-<a name="new_Snapshotter_new"></a>
+<a name="snapshotter"></a>
 
 ## `new Snapshotter([options])`
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>[options]</code></td><td><code><a href="../typedefs/snapshotteroptions">SnapshotterOptions</a></code></td>
-</tr>
-<tr>
-<td colspan="3"><p>All <code>Snapshotter</code> configuration options.</p>
-</td></tr></tbody>
-</table>
-<a name="Snapshotter+start"></a>
+**Params**
 
-## `snapshotter.start()` ⇒ `Promise`
+-   **`[options]`**: [`SnapshotterOptions`](/docs/typedefs/snapshotter-options) - All `Snapshotter` configuration options.
+
+---
+
+<a name="start"></a>
+
+## `snapshotter.start()`
+
+**Returns**: `Promise`
 
 Starts capturing snapshots at configured intervals.
 
-<a name="Snapshotter+stop"></a>
+---
 
-## `snapshotter.stop()` ⇒ `Promise`
+<a name="stop"></a>
+
+## `snapshotter.stop()`
+
+**Returns**: `Promise`
 
 Stops all resource capturing.
 
-<a name="Snapshotter+getMemorySample"></a>
+---
 
-## `snapshotter.getMemorySample([sampleDurationMillis])` ⇒ `Array`
+<a name="getmemorysample"></a>
+
+## `snapshotter.getMemorySample([sampleDurationMillis])`
+
+**Returns**: `Array`
 
 Returns a sample of latest memory snapshots, with the size of the sample defined by the sampleDurationMillis parameter. If omitted, it returns a full
 snapshot history.
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>[sampleDurationMillis]</code></td><td><code>Number</code></td>
-</tr>
-<tr>
-</tr></tbody>
-</table>
-<a name="Snapshotter+getEventLoopSample"></a>
+**Params**
 
-## `snapshotter.getEventLoopSample([sampleDurationMillis])` ⇒ `Array`
+-   **`[sampleDurationMillis]`**: `Number`
+
+---
+
+<a name="geteventloopsample"></a>
+
+## `snapshotter.getEventLoopSample([sampleDurationMillis])`
+
+**Returns**: `Array`
 
 Returns a sample of latest event loop snapshots, with the size of the sample defined by the sampleDurationMillis parameter. If omitted, it returns a
 full snapshot history.
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>[sampleDurationMillis]</code></td><td><code>Number</code></td>
-</tr>
-<tr>
-</tr></tbody>
-</table>
-<a name="Snapshotter+getCpuSample"></a>
+**Params**
 
-## `snapshotter.getCpuSample([sampleDurationMillis])` ⇒ `Array`
+-   **`[sampleDurationMillis]`**: `Number`
+
+---
+
+<a name="getcpusample"></a>
+
+## `snapshotter.getCpuSample([sampleDurationMillis])`
+
+**Returns**: `Array`
 
 Returns a sample of latest CPU snapshots, with the size of the sample defined by the sampleDurationMillis parameter. If omitted, it returns a full
 snapshot history.
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>[sampleDurationMillis]</code></td><td><code>Number</code></td>
-</tr>
-<tr>
-</tr></tbody>
-</table>
-<a name="Snapshotter+getClientSample"></a>
+**Params**
 
-## `snapshotter.getClientSample(sampleDurationMillis)` ⇒ `Array`
+-   **`[sampleDurationMillis]`**: `Number`
+
+---
+
+<a name="getclientsample"></a>
+
+## `snapshotter.getClientSample(sampleDurationMillis)`
+
+**Returns**: `Array`
 
 Returns a sample of latest Client snapshots, with the size of the sample defined by the sampleDurationMillis parameter. If omitted, it returns a full
 snapshot history.
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>sampleDurationMillis</code></td><td><code>Number</code></td>
-</tr>
-<tr>
-</tr></tbody>
-</table>
+**Params**
+
+-   **`sampleDurationMillis`**: `Number`
+
+---

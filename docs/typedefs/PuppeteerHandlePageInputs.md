@@ -1,49 +1,58 @@
 ---
-id: puppeteerhandlepageinputs
+id: puppeteer-handle-page-inputs
 title: PuppeteerHandlePageInputs
 ---
 
-<a name="PuppeteerHandlePageInputs"></a>
+<a name="puppeteerhandlepageinputs"></a>
 
-**Properties**
+## Properties
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>request</code></td><td><code><a href="request">Request</a></code></td>
-</tr>
-<tr>
-<td colspan="3"><p>An instance of the <a href="request"><code>Request</code></a> object with details about the URL to open, HTTP method etc.</p>
-</td></tr><tr>
-<td><code>response</code></td><td><code>PuppeteerResponse</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>An instance of the <code>Puppeteer</code>
-  <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-response" target="_blank"><code>Response</code></a>,
-  which is the main resource response as returned by <code>page.goto(request.url)</code>.</p>
-</td></tr><tr>
-<td><code>page</code></td><td><code>PuppeteerPage</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>is an instance of the <code>Puppeteer</code>
-  <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a></p>
-</td></tr><tr>
-<td><code>puppeteerPool</code></td><td><code><a href="puppeteerpool">PuppeteerPool</a></code></td>
-</tr>
-<tr>
-<td colspan="3"><p>An instance of the <a href="puppeteerpool"><code>PuppeteerPool</code></a> used by this <code>PuppeteerCrawler</code>.</p>
-</td></tr><tr>
-<td><code>autoscaledPool</code></td><td><code><a href="autoscaledpool">AutoscaledPool</a></code></td>
-</tr>
-<tr>
-<td colspan="3"></td></tr><tr>
-<td><code>[session]</code></td><td><code><a href="session">Session</a></code></td>
-</tr>
-<tr>
-<td colspan="3"></td></tr></tbody>
-</table>
+### `request`
+
+**Type**: [`Request`](/docs/api/request)
+
+An instance of the [`Request`](/docs/api/request) object with details about the URL to open, HTTP method etc.
+
+---
+
+### `response`
+
+**Type**: `PuppeteerResponse`
+
+An instance of the Puppeteer [`Response`](https://pptr.dev/#?product=Puppeteer&show=api-class-response), which is the main resource response as
+returned by `page.goto(request.url)`.
+
+---
+
+### `page`
+
+**Type**: `PuppeteerPage`
+
+is an instance of the Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page)
+
+---
+
+### `puppeteerPool`
+
+**Type**: [`PuppeteerPool`](/docs/api/puppeteer-pool)
+
+An instance of the [`PuppeteerPool`](/docs/api/puppeteer-pool) used by this `PuppeteerCrawler`.
+
+---
+
+### `autoscaledPool`
+
+**Type**: [`AutoscaledPool`](/docs/api/autoscaled-pool)
+
+A reference to the underlying [`AutoscaledPool`](/docs/api/autoscaled-pool) class that manages the concurrency of the crawler. Note that this property
+is only initialized after calling the [`PuppeteerCrawler.run()`](/docs/api/puppeteer-crawler#run) function. You can use it to change the concurrency
+settings on the fly, to pause the crawler by calling [`AutoscaledPool.pause()`](/docs/api/autoscaled-pool#pause) or to abort it by calling
+[`AutoscaledPool.abort()`](/docs/api/autoscaled-pool#abort).
+
+---
+
+### `session`
+
+**Type**: [`Session`](/docs/api/session)
+
+---

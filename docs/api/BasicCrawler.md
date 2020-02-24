@@ -1,31 +1,34 @@
 ---
-id: basiccrawler
+id: basic-crawler
 title: BasicCrawler
 ---
 
-<a name="BasicCrawler"></a>
+<a name="basiccrawler"></a>
 
 Provides a simple framework for parallel crawling of web pages. The URLs to crawl are fed either from a static list of URLs or from a dynamic queue of
 URLs enabling recursive crawling of websites.
 
 `BasicCrawler` is a low-level tool that requires the user to implement the page download and data extraction functionality themselves. If you want a
-crawler that already facilitates this functionality, please consider using [`PuppeteerCrawler`](puppeteercrawler) or
-[`CheerioCrawler`](cheeriocrawler).
+crawler that already facilitates this functionality, please consider using [`PuppeteerCrawler`](/docs/api/puppeteer-crawler) or
+[`CheerioCrawler`](/docs/api/cheerio-crawler).
 
-`BasicCrawler` invokes the user-provided [`handleRequestFunction()`](#new_BasicCrawler_new) for each [`Request`](request) object, which represents a
-single URL to crawl. The [`Request`](request) objects are fed from the [`RequestList`](requestlist) or the [`RequestQueue`](requestqueue) instances
-provided by the [`requestList`](#new_BasicCrawler_new) or [`requestQueue`](#new_BasicCrawler_new) constructor options, respectively.
+`BasicCrawler` invokes the user-provided [`BasicCrawlerOptions.handleRequestFunction`](/docs/typedefs/basic-crawler-options#handlerequestfunction) for
+each [`Request`](/docs/api/request) object, which represents a single URL to crawl. The [`Request`](/docs/api/request) objects are fed from the
+[`RequestList`](/docs/api/request-list) or the [`RequestQueue`](/docs/api/request-queue) instances provided by the
+[`BasicCrawlerOptions.requestList`](/docs/typedefs/basic-crawler-options#requestlist) or
+[`BasicCrawlerOptions.requestQueue`](/docs/typedefs/basic-crawler-options#requestqueue) constructor options, respectively.
 
-If both [`requestList`](#new_BasicCrawler_new) and [`requestQueue`](#new_BasicCrawler_new) options are used, the instance first processes URLs from
-the [`RequestList`](requestlist) and automatically enqueues all of them to [`RequestQueue`](requestqueue) before it starts their processing. This
-ensures that a single URL is not crawled multiple times.
+If both [`BasicCrawlerOptions.requestList`](/docs/typedefs/basic-crawler-options#requestlist) and
+[`BasicCrawlerOptions.requestQueue`](/docs/typedefs/basic-crawler-options#requestqueue) options are used, the instance first processes URLs from the
+[`RequestList`](/docs/api/request-list) and automatically enqueues all of them to [`RequestQueue`](/docs/api/request-queue) before it starts their
+processing. This ensures that a single URL is not crawled multiple times.
 
-The crawler finishes if there are no more [`Request`](request) objects to crawl.
+The crawler finishes if there are no more [`Request`](/docs/api/request) objects to crawl.
 
 New requests are only dispatched when there is enough free CPU and memory available, using the functionality provided by the
-[`AutoscaledPool`](autoscaledpool) class. All [`AutoscaledPool`](autoscaledpool) configuration options can be passed to the `autoscaledPoolOptions`
-parameter of the `BasicCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency` [`AutoscaledPool`](autoscaledpool)
-options are available directly in the `BasicCrawler` constructor.
+[`AutoscaledPool`](/docs/api/autoscaled-pool) class. All [`AutoscaledPool`](/docs/api/autoscaled-pool) configuration options can be passed to the
+`autoscaledPoolOptions` parameter of the `BasicCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency`
+[`AutoscaledPool`](/docs/api/autoscaled-pool) options are available directly in the `BasicCrawler` constructor.
 
 **Example usage:**
 
@@ -54,50 +57,24 @@ const crawler = new Apify.BasicCrawler({
 await crawler.run();
 ```
 
-**Properties**
+---
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>autoscaledPool</code></td><td><code><a href="autoscaledpool">AutoscaledPool</a></code></td>
-</tr>
-<tr>
-<td colspan="3"><p>A reference to the underlying <a href="autoscaledpool"><code>AutoscaledPool</code></a> class that manages the concurrency of the crawler.
- Note that this property is only initialized after calling the <a href="#BasicCrawler+run"><code>run</code></a> function.
- You can use it to change the concurrency settings on the fly,
- to pause the crawler by calling <a href="#AutoscaledPool+pause"><code>pause</code></a>
- or to abort it by calling <a href="#AutoscaledPool+abort"><code>abort</code></a>.</p>
-</td></tr></tbody>
-</table>
-
--   [BasicCrawler](basiccrawler)
-    -   [`new BasicCrawler(options)`](#new_BasicCrawler_new)
-    -   [`.run()`](#BasicCrawler+run) ⇒ `Promise<void>`
-
-<a name="new_BasicCrawler_new"></a>
+<a name="basiccrawler"></a>
 
 ## `new BasicCrawler(options)`
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>options</code></td><td><code><a href="../typedefs/basiccrawleroptions">BasicCrawlerOptions</a></code></td>
-</tr>
-<tr>
-</tr></tbody>
-</table>
-<a name="BasicCrawler+run"></a>
+**Params**
 
-## `basicCrawler.run()` ⇒ `Promise<void>`
+-   **`options`**: [`BasicCrawlerOptions`](/docs/typedefs/basic-crawler-options) - All `BasicCrawler` parameters are passed via an options object.
+
+---
+
+<a name="run"></a>
+
+## `basicCrawler.run()`
+
+**Returns**: `Promise<void>`
 
 Runs the crawler. Returns a promise that gets resolved once all the requests are processed.
+
+---

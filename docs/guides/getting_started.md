@@ -1,5 +1,5 @@
 ---
-id: gettingstarted
+id: getting-started
 title: Getting Started
 ---
 
@@ -17,7 +17,7 @@ The goal of this getting started guide is to provide a step-by-step introduction
 creating the simplest of crawlers that only print text to console, all the way up to complex systems that crawl pages, interact with them as if a real
 user were sitting in front of a real browser and output structured data.
 
-Since Apify SDK is usable both locally on any computer and on the <a href="https://my.apify.com" target="_blank">Apify Platform</a>, you will be able
+Since Apify SDK is usable both locally on any computer and on the [Apify Platform](https://my.apify.com), you will be able
 to use the source code in both environments interchangeably. Nevertheless, some initial setup is still required, so choose your preferred starting
 environment and let's get into it.
 
@@ -26,8 +26,8 @@ environment and let's get into it.
 To run Apify SDK on your own computer, you need to meet the following pre-requisites first:
 
 1. Have Node.js version 10.17 or higher installed.
-    - Visit <a href="https://nodejs.org/en/download/" target="_blank">Node.js website</a> to download or use
-      <a href="https://github.com/creationix/nvm" target="_blank">nvm</a>
+    - Visit [Node.js website](https://nodejs.org/en/download/) to download or use
+      [nvm](https://github.com/creationix/nvm)
 2. Have NPM installed.
     - NPM comes bundled with Node.js so you should already have it. If not, reinstall Node.js.
 
@@ -44,8 +44,8 @@ npm -v
 ### Creating a new project
 
 The fastest and best way to create new projects with the Apify SDK is to use our own
-<a href="https://www.npmjs.com/package/apify-cli" target="_blank">Apify CLI</a>. This command line tool allows you to create, run and manage Apify
-projects with ease, including their deployment to the <a href="https://my.apify.com" target="_blank">Apify Platform</a> if you wish to run them in the
+[Apify CLI](https://www.npmjs.com/package/apify-cli). This command line tool allows you to create, run and manage Apify
+projects with ease, including their deployment to the [Apify Platform](https://my.apify.com) if you wish to run them in the
 cloud after developing them locally.
 
 Let's install the Apify CLI with the following command:
@@ -96,16 +96,16 @@ Did you see all that? If you did, congratulations! You're ready to go!
 Maybe you don't have Node.js installed and don't want the hassle. Or you can't install anything on your computer because you're using a company
 provided one. Or perhaps you'd just prefer to start working in the cloud right away. Well, no worries, we've got you covered.
 
-The <a href="https://my.apify.com" target="_blank">Apify Platform</a> is the foundational product of
-<a href="https://apify.com" target="_blank">Apify</a>. It's a serverless cloud computing platform, specifically designed for any web automation jobs,
+The [Apify Platform](https://my.apify.com) is the foundational product of
+[Apify](https://apify.com). It's a serverless cloud computing platform, specifically designed for any web automation jobs,
 that may include crawling and scraping, but really works amazing for any batch jobs and long running tasks.
 
-It comes with a free account, so let's go to our <a href="https://my.apify.com/sign-up" target="_blank">sign-up page</a> and create one, if you
+It comes with a free account, so let's go to our [sign-up page](https://my.apify.com/sign-up) and create one, if you
 haven't already. Don't forget to verify your email. Without it, you won't be able to run any projects.
 
 Once you're in, you might be prompted by our in-app help to walk through a step-by-step guide into some of our new features. Feel free to finish that,
 if you'd like, but once you're done, click on the **Actors** tab in the left menu. To read more about **Actors**, see:
-[What is an Actor](./whatisanactor).
+[What is an Actor](/docs/guides/what-is-an-actor).
 
 ### Creating a new project
 
@@ -119,7 +119,7 @@ the running actor. Feel free to check out the other **Run** tabs, such as **Info
 **Key-value-store**, where the actor's **INPUT** and **OUTPUT** are stored.
 
 Good job. You're now ready to run your own source code on the Apify Platform. For more information visit the
-<a href="https://docs.apify.com/actor" target="_blank">Actor documentation page</a>, where you'll find everything about the platform's various
+[Actor documentation page](https://docs.apify.com/actor), where you'll find everything about the platform's various
 options.
 
 ## First crawler
@@ -129,8 +129,8 @@ introduce all the Apify SDK classes necessary to make it happen.
 
 ### The general idea
 
-There are 3 crawler classes available for use in the Apify SDK. [`BasicCrawler`](../api/basiccrawler), [`CheerioCrawler`](../api/cheeriocrawler) and
-[`PuppeteerCrawler`](../api/puppeteercrawler). We'll talk about their differences later. Now, let's talk about what they have in common.
+There are 3 crawler classes available for use in the Apify SDK. [`BasicCrawler`](/docs/api/basic-crawler), [`CheerioCrawler`](/docs/api/cheerio-crawler)
+and [`PuppeteerCrawler`](/docs/api/puppeteer-crawler). We'll talk about their differences later. Now, let's talk about what they have in common.
 
 All the crawlers' general idea is to go to a web page, open it, do some stuff there, save some results and continue to the next page, until it's done
 its job. So each time the crawler needs to find answers to two questions: **Where should I go?** and **What should I do there?**. Answering those two
@@ -138,16 +138,16 @@ questions is the only setup mandatory to run the crawlers.
 
 ### The Where - `Request`, `RequestList` and `RequestQueue`
 
-All crawlers use instances of the [`Request`](../api/request) class to determine where they need to go. Each request may hold a lot of information,
+All crawlers use instances of the [`Request`](/docs/api/request) class to determine where they need to go. Each request may hold a lot of information,
 but at the very least, it must hold a URL - a web page to open. But having only one URL would not make sense for crawling. We need to either have a
 pre-existing list of our own URLs that we wish to visit, perhaps a thousand, or a million, or we need to build this list dynamically as we crawl,
 adding more and more URLs to the list as we progress.
 
-A representation of the pre-existing list is an instance of the [`RequestList`](../api/requestlist) class. It is a static, immutable list of URLs and
-other metadata (see the [`Request`](../api/request) object) that the crawler will visit, one by one, retrying whenever an error occurs, until there
+A representation of the pre-existing list is an instance of the [`RequestList`](/docs/api/request-list) class. It is a static, immutable list of URLs and
+other metadata (see the [`Request`](/docs/api/request) object) that the crawler will visit, one by one, retrying whenever an error occurs, until there
 are no more `Requests` to process.
 
-[`RequestQueue`](../api/requestqueue) on the other hand, represents a dynamic queue of `Requests`. One that can be updated at runtime by adding more
+[`RequestQueue`](/docs/api/request-queue) on the other hand, represents a dynamic queue of `Requests`. One that can be updated at runtime by adding more
 pages - `Requests` to process. This allows the crawler to open one page, extract interesting URLs, such as links to other pages on the same domain,
 add them to the queue (called _enqueuing_) and repeat this process to build a queue of tens of thousands or more URLs while knowing only a single one
 at the beginning.
@@ -163,7 +163,7 @@ from the page, processing the data, saving it, calling APIs, doing calculations 
 The `handlePageFunction` is provided by you, the user, and invoked automatically by the crawler for each `Request` from either the `RequestList` or
 `RequestQueue`. It always receives a single argument and that is a plain `Object`. Its properties change depending on the used crawler class, but it
 always includes at least the `request` property, which represents the currently crawled `Request` instance (i.e. the URL the crawler is visiting and
-related metadata) and the `autoscaledPool` property, which is an instance of the [`AutoscaledPool`](../api/autoscaledpool) class and we'll talk about
+related metadata) and the `autoscaledPool` property, which is an instance of the [`AutoscaledPool`](/docs/api/autoscaled-pool) class and we'll talk about
 it in detail later.
 
 ```js
@@ -177,7 +177,7 @@ it in detail later.
 ### Putting it all together
 
 Enough theory! Let's put some of those hard learned facts into practice. We learned above that we need `Requests` and a `handlePageFunction` to setup
-a crawler. We will also use the [`Apify.main()`](../api/apify#module_Apify.main) function. It's not mandatory, but it makes our life easier. We'll
+a crawler. We will also use the [`Apify.main()`](/docs/api/apify#main) function. It's not mandatory, but it makes our life easier. We'll
 learn about it in detail later on.
 
 Let's start super easy. Visit one page, get its title and close. First of all we need to require Apify, to make all of its features available to us:
@@ -187,7 +187,7 @@ const Apify = require('apify');
 ```
 
 Easy right? It doesn't get much more difficult, trust me. For the purposes of this tutorial, we'll be scraping our own webpage
-<a href="https://apify.com" target="_blank">https://apify.com</a>. Now, to get there, we need a `Request` with the page's URL in one of our sources,
+[https://apify.com](https://apify.com). Now, to get there, we need a `Request` with the page's URL in one of our sources,
 `RequestList` or `RequestQueue`. Let's go with `RequestQueue` for now.
 
 ```js
@@ -205,7 +205,7 @@ Apify.main(async () => {
 > If you're not familiar with the `async` and `await` keywords used in the example, trust that it is a native syntax in modern JavaScript and you can
 > [learn more about it here](https://nikgrozev.com/2017/10/01/async-await/).
 
-The [`requestQueue.addRequest()`](../api/requestqueue#RequestQueue+addRequest) function automatically converts the plain object we passed to it to a
+The [`requestQueue.addRequest()`](/docs/api/request-queue#addRequest) function automatically converts the plain object we passed to it to a
 `Request` instance, so now we have a `requestQueue` that holds one `request` which points to `https://apify.com`. Now we need the
 `handlePageFunction`.
 
@@ -263,23 +263,23 @@ you learn more about the `CheerioCrawler`.
 ## CheerioCrawler aka jQuery crawler
 
 This is the crawler that we used in our earlier example. Our simplest and also the fastest crawling solution. If you're familiar with `jQuery`, you'll
-understand [`CheerioCrawler`](../api/cheeriocrawler) in minutes. <a href="https://www.npmjs.com/package/cheerio" target="_blank">Cheerio</a> is
+understand [`CheerioCrawler`](/docs/api/cheerio-crawler) in minutes. [Cheerio](https://www.npmjs.com/package/cheerio) is
 essentially `jQuery` for Node.js. It offers the same API, including the familiar `$` object. You can use it, as you would `jQuery`, for manipulating
 the DOM of a HTML page. In crawling, you'll mostly use it to select the right elements and extract their text values - the data you're interested in.
 But `jQuery` runs in a browser and attaches directly to the browser's DOM. Where does `cheerio` get its HTML? This is where the `Crawler` part of
-[`CheerioCrawler`](../api/cheeriocrawler) comes in.
+[`CheerioCrawler`](/docs/api/cheerio-crawler) comes in.
 
 ### Overview
 
-[`CheerioCrawler`](../api/cheeriocrawler) crawls by making plain HTTP requests to the provided URLs. As you remember from the previous section, the
-URLs are fed to the crawler using either the [`RequestList`](../api/cheeriocrawler) or the [`RequestQueue`](../api/cheeriocrawler). The HTTP responses
+[`CheerioCrawler`](/docs/api/cheerio-crawler) crawls by making plain HTTP requests to the provided URLs. As you remember from the previous section, the
+URLs are fed to the crawler using either the [`RequestList`](/docs/api/cheerio-crawler) or the [`RequestQueue`](/docs/api/cheerio-crawler). The HTTP responses
 it gets back are HTML pages, the same pages you would get in your browser when you first load a URL.
 
 > Note, however, that modern web pages often do not serve all of their content in the first HTML response, but rather the first HTML contains links to
 > other resources such as CSS and JavaScript that get downloaded afterwards and together they create the final page. See our
-> [`PuppeteerCrawler`](../api/puppeteercrawler) to crawl those.
+> [`PuppeteerCrawler`](/docs/api/puppeteer-crawler) to crawl those.
 
-Once the page's HTML is retrieved, the crawler will pass it to <a href="https://www.npmjs.com/package/cheerio" target="_blank">Cheerio</a> for
+Once the page's HTML is retrieved, the crawler will pass it to [Cheerio](https://www.npmjs.com/package/cheerio) for
 parsing. The result is the typical `$` function, which should be familiar to `jQuery` users. You can use this `$` to do all sorts of lookups and
 manipulations over the page's HTML, but in scraping, we will mostly use it to find specific HTML elements and extract their data.
 
@@ -300,7 +300,7 @@ $('[href]')
 > This is not to show that Cheerio is better than plain browser JavaScript. Some might actually prefer the more expressive way plain JS provides.
 > Unfortunately, the browser JavaScript methods are not available in Node.js, so Cheerio is our best bet to do the parsing.
 
-### When to use [`CheerioCrawler`](../api/cheeriocrawler)
+### When to use [`CheerioCrawler`](/docs/api/cheerio-crawler)
 
 Even though using `CheerioCrawler` is extremely easy, it probably will not be your first choice for most kinds of crawling or scraping in production
 environments. Since most websites nowadays use modern JavaScript to create rich, responsive and data driven user experiences, the plain HTTP requests
@@ -308,7 +308,7 @@ the crawler uses may just fall short of your needs.
 
 But `CheerioCrawler` is far from useless! It really shines when you need to do extremely high workloads. With just 4 GBs of memory and a single CPU
 core, you can scrape 500 or more pages a minute! _(assuming each page contains approximately 400KB of HTML)_ To get this high with a full browser
-scraper, such as the [`PuppeteerCrawler`](../api/puppeteercrawler), you'd need significantly more computing power.
+scraper, such as the [`PuppeteerCrawler`](/docs/api/puppeteer-crawler), you'd need significantly more computing power.
 
 **Advantages:**
 
@@ -324,7 +324,7 @@ scraper, such as the [`PuppeteerCrawler`](../api/puppeteercrawler), you'd need s
 -   May easily overload the target website with requests
 -   Does not enable any manipulation of the website before scraping
 
-### Basic use of [`CheerioCrawler`](../api/cheeriocrawler)
+### Basic use of [`CheerioCrawler`](/docs/api/cheerio-crawler)
 
 Now that we have an idea of the crawler's inner workings, let's build one. We'll use the example from the previous section and improve on it by
 letting it truly crawl the page, finding new links as it goes, enqueuing them into the `RequestQueue` and then scraping them.
@@ -543,7 +543,7 @@ It also allows you to modify the resulting `Requests` to match your crawling nee
 
 `enqueueLinks` is quite a powerful function so, like crawlers, it gets its arguments from an options object. This is useful, because you don't have to
 remember their order! But also because we can easily extend its API and add new features. You can
-[find the full reference here](../api/utils#utils.enqueuelinks).
+[find the full reference here](/docs/api/utils#enqueueLinks).
 
 We suggest using ES6 destructuring to grab the `enqueueLinks()` function off of the `utils` object, so you don't have to type `Apify.utils` all the
 time.
@@ -614,7 +614,7 @@ Pseudo-URLs help to use this structure to select only the relevant links from a 
 
 #### Structure of a pseudo-URL
 
-Pseudo-URL is a URL with <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions">regular expressions</a>) enclosed
+Pseudo-URL is a URL with [regular expressions](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions)) enclosed
 in `[]` brackets. Since we're running Node.js, the regular expressions should follow the JavaScript style.
 
 For example, a pseudo-URL
@@ -672,7 +672,7 @@ That's been quite a lot of theory and examples. We might as well put it to pract
 two arguments. The source, in our case the `$` object, and the destination - the `requestQueue`. To filter links, we need to add a third argument:
 `pseudoUrls`.
 
-The `options.pseudoUrls` argument is always an `Array`, but its contents can take on many forms. [See the reference](../api/utils#utils.enqueueLinks)
+The `options.pseudoUrls` argument is always an `Array`, but its contents can take on many forms. [See the reference](/docs/api/utils#enqueueLinks)
 for all of them. Since we just need to filter out same domain links, we'll keep it simple and use a pseudo-URL `string`.
 
 ```js
@@ -688,14 +688,14 @@ await enqueueLinks(options);
 
 > To break the pseudo-URL string down, we're looking for both `http` and `https` protocols and the links may only lead to `apify.com` domain. The
 > final brackets `[.*]` allow everything, so `apify.com/contact` as well as `apify.com/store` will match. If this is complex to you, we suggest
-> <a href="https://www.regular-expressions.info/tutorial.html" target="_blank">reading a tutorial</a> or two on regular expression syntax.
+> [reading a tutorial](https://www.regular-expressions.info/tutorial.html) or two on regular expression syntax.
 
 #### Resolving relative URLs with `enqueueLinks()`
 
 **TLDR;** Just use `baseUrl: request.loadedUrl` when working with `CheerioCrawler`.
 
 This is probably the weirdest and most complicated addition to the list. This is not the place to talk at length about
-<a href="https://stackoverflow.com/questions/2005079/absolute-vs-relative-urls" target="_blank">absolute and relative paths</a>, but in short, the
+[absolute and relative paths](https://stackoverflow.com/questions/2005079/absolute-vs-relative-urls), but in short, the
 links we encounter in a page can either be absolute, such as:
 
 ```
@@ -811,7 +811,7 @@ And that's it! No more parsing the links from HTML using Cheerio, filtering them
 getting your data, while leaving the mundane crawling management to your tools.
 
 `Apify.utils.enqueueLinks()` has a lot more tricks up its sleeve. Make sure to check out the
-[reference documentation](../api/utils#utils.enqueueLinks) to see what else it can do for you. Namely the feature to prepopulate the `Request`
+[reference documentation](/docs/api/utils#enqueueLinks) to see what else it can do for you. Namely the feature to prepopulate the `Request`
 instances it creates with `userData` of your choice is extremely useful!
 
 ## Getting some real world data
@@ -821,16 +821,16 @@ instances it creates with `userData` of your choice is extremely useful!
 
 We hear you young padawan! First, learn how to crawl, you must. Only then, walk through data, you can!
 
-### Making a store crawler 
+### Making a store crawler
 
 Fortunately, we don't have to travel to a galaxy far far away to find a good candidate for learning how to scrape
-structured data. The <a href="https://apify.com/store" target="_blank">Apify Store</a> is a store of public actors that anyone can grab and use. You
-can find ready-made solutions for crawling <a href="https://apify.com/drobnikj/crawler-google-places" target="_blank">Google Places</a>,
-<a href="https://apify.com/vaclavrut/amazon-crawler" target="_blank">Amazon</a>,
-<a href="https://apify.com/apify/google-search-scraper" target="_blank">Google Search</a>,
-<a href="https://apify.com/petr_cermak/booking-scraper" target="_blank">Booking</a>,
-<a href="https://apify.com/jaroslavhejlek/instagram-scraper" target="_blank">Instagram</a>,
-<a href="https://apify.com/petrpatek/tripadvisor-scraper" target="_blank">Tripadvisor</a> and many other websites. Feel free to check them out! It
+structured data. The [Apify Store](https://apify.com/store) is a store of public actors that anyone can grab and use. You
+can find ready-made solutions for crawling [Google Places](https://apify.com/drobnikj/crawler-google-places),
+[Amazon](https://apify.com/vaclavrut/amazon-crawler),
+[Google Search](https://apify.com/apify/google-search-scraper),
+[Booking](https://apify.com/dtrungtin/booking-scraper),
+[Instagram](https://apify.com/jaroslavhejlek/instagram-scraper),
+[Tripadvisor](https://apify.com/maxcopell/tripadvisor) and many other websites. Feel free to check them out! It
 also poses a great place to practice our jedi scraping skills since it has categories, lists and details. That's almost like our imaginary
 `online-store.com` from the previous chapter.
 
@@ -838,10 +838,10 @@ also poses a great place to practice our jedi scraping skills since it has categ
 
 Sometimes scraping is really straightforward, but most of the times, it really pays out to do a little bit of research first. How is the website
 structured? Can I scrape it only with HTTP requests (read "with `CheerioCrawler`") or would I need a full browser solution? Are there any
-anti-scraping protections in place? Do I need to parse the HTML or can I get the data otherwise, such as directly from the website's API. Jakub, one
-of Apify's founders wrote a
-<a href="https://blog.apify.com/web-scraping-in-2018-forget-html-use-xhrs-metadata-or-javascript-variables-8167f252439c" target="_blank">great article
-about all the different techniques</a> and tips and tricks so make sure to check that out!
+anti-scraping protections in place? Do I need to parse the HTML or can I get the data otherwise, such as directly from the website's API. Jakub,
+one of Apify's founders wrote a
+[great article about all the different techniques](https://blog.apify.com/web-scraping-in-2018-forget-html-use-xhrs-metadata-or-javascript-variables-8167f252439c)
+and tips and tricks so make sure to check that out!
 
 For the purposes of this tutorial, let's just go ahead with HTTP requests and HTML parsing using `CheerioCrawler`. The number one reason being: We
 already know how to use it and we want to build on that knowledge to learn specific crawling and scraping techniques.
@@ -964,7 +964,7 @@ const crawler = new Apify.CheerioCrawler({
 > code and perhaps quite a long time, if we were talking about tens of thousands or more `Requests`. The crawlers do it while running, so the time to
 > enqueue is spread out and you won't even notice it.
 
-#### Sanity check 
+#### Sanity check
 
 It's always useful to create some simple boilerplate code to see that we've got everything set up correctly before we start to write
 the scraping logic itself. We might realize that something in our previous analysis doesn't quite add up, or the website might not behave exactly the
@@ -1479,7 +1479,7 @@ Apify.main(async () => {
 
 #### What's `Apify.pushData()`
 
-[`Apify.pushData()`](../api/apify#apify.pushData) is a helper function that saves data to the default [`Dataset`](../api/dataset). `Dataset` is a
+[`Apify.pushData()`](/docs/api/apify#pushData) is a helper function that saves data to the default [`Dataset`](/docs/api/dataset). `Dataset` is a
 storage designed to hold virtually unlimited amount of data in a format similar to a table. Each time you call `Apify.pushData()` a new row in the
 table is created, with the property names serving as column titles.
 
@@ -1524,7 +1524,7 @@ actor code.
 #### Meet the `INPUT`
 
 `INPUT` is just a convention on how we call the actor's input. Because there's no magic in actors, just features, the `INPUT` is actually nothing more
-than a key in the default [`KeyValueStore`](../api/keyvaluestore) that's, by convention, used as input on Apify Platform. Also by convention, the
+than a key in the default [`KeyValueStore`](/docs/api/key-value-store) that's, by convention, used as input on Apify Platform. Also by convention, the
 `INPUT` is mostly expected to be of `Content-Type: application/json`.
 
 We will not go into `KeyValueStore` details here, but for the sake of `INPUT` you need to remember that there is a function that helps you get it.
@@ -1534,7 +1534,7 @@ const input = await Apify.getInput();
 ```
 
 On the Apify Platform, the actor's input that you can set in the Console is automatically saved to the default `KeyValueStore` under the key `INPUT`
-and by calling [`Apify.getInput()`](../api/apify#apify.getValue) you retrieve the value from the `KeyValueStore`.
+and by calling [`Apify.getInput()`](/docs/api/apify#getValue) you retrieve the value from the `KeyValueStore`.
 
 Running locally, you need to place an `INPUT.json` file in your default key value store for this to work.
 
@@ -1720,7 +1720,7 @@ your logic separate. Less code in a single file means less code you need to thin
 
 #### Using `Apify.utils.log` instead of `console.log`
 
-We wont go into great lengths here to talk about `utils.log` here, because you can read [it all in the documentation](../api/log), but there's just
+We wont go into great lengths here to talk about `utils.log` here, because you can read [it all in the documentation](/docs/api/log), but there's just
 one thing that we need to stress: **log levels**.
 
 `utils.log` enables you to use different log levels, such as `log.debug`, `log.info` or `log.warning`. It not only makes your log more readable, but

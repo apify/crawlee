@@ -3,13 +3,13 @@ id: dataset
 title: Dataset
 ---
 
-<a name="Dataset"></a>
+<a name="dataset"></a>
 
 The `Dataset` class represents a store for structured data where each object stored has the same attributes, such as online store products or real
 estate offers. You can imagine it as a table, where each object is a row and its attributes are columns. Dataset is an append-only storage - you can
 only add new records to it but you cannot modify or remove existing records. Typically it is used to store crawling results.
 
-Do not instantiate this class directly, use the [`Apify.openDataset()`](apify#module_Apify.openDataset) function instead.
+Do not instantiate this class directly, use the [`Apify.openDataset()`](/docs/api/apify#opendataset) function instead.
 
 `Dataset` stores its data either on local disk or in the Apify cloud, depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment
 variables are set.
@@ -25,9 +25,8 @@ Note that `{DATASET_ID}` is the name or ID of the dataset. The default dataset h
 item in the dataset.
 
 If the `APIFY_TOKEN` environment variable is set but `APIFY_LOCAL_STORAGE_DIR` not, the data is stored in the
-<a href="https://docs.apify.com/storage/dataset" target="_blank">Apify Dataset</a> cloud storage. Note that you can force usage of the cloud storage
-also by passing the `forceCloud` option to [`Apify.openDataset()`](apify#module_Apify.openDataset) function, even if the `APIFY_LOCAL_STORAGE_DIR`
-variable is set.
+[Apify Dataset](https://docs.apify.com/storage/dataset) cloud storage. Note that you can force usage of the cloud storage also by passing the
+`forceCloud` option to [`Apify.openDataset()`](/docs/api/apify#opendataset) function, even if the `APIFY_LOCAL_STORAGE_DIR` variable is set.
 
 **Example usage:**
 
@@ -45,40 +44,24 @@ await dataset.pushData({ foo: 'bar' });
 await dataset.pushData([{ foo: 'bar2', col2: 'val2' }, { col3: 123 }]);
 ```
 
--   [Dataset](dataset)
-    -   [`new exports.Dataset(datasetId, datasetName)`](#new_Dataset_new)
-    -   [`.pushData(data)`](#Dataset+pushData) ⇒ `Promise<void>`
-    -   [`.getData([options])`](#Dataset+getData) ⇒ [`Promise<DatasetContent>`](../typedefs/datasetcontent)
-    -   [`.getInfo()`](#Dataset+getInfo) ⇒ `Promise<Object>`
-    -   [`.forEach(iteratee, [options], [index])`](#Dataset+forEach) ⇒ `Promise<void>`
-    -   [`.map(iteratee, options)`](#Dataset+map) ⇒ `Promise<Array<T>>`
-    -   [`.reduce(iteratee, memo, options)`](#Dataset+reduce) ⇒ `Promise<T>`
-    -   [`.drop()`](#Dataset+drop) ⇒ `Promise<void>`
+---
 
-<a name="new_Dataset_new"></a>
+<a name="exports.dataset"></a>
 
-## `new exports.Dataset(datasetId, datasetName)`
+## `new Dataset(datasetId, datasetName)`
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>datasetId</code></td><td><code>string</code></td>
-</tr>
-<tr>
-</tr><tr>
-<td><code>datasetName</code></td><td><code>string</code></td>
-</tr>
-<tr>
-</tr></tbody>
-</table>
-<a name="Dataset+pushData"></a>
+**Params**
 
-## `dataset.pushData(data)` ⇒ `Promise<void>`
+-   **`datasetId`**: `string`
+-   **`datasetName`**: `string`
+
+---
+
+<a name="pushdata"></a>
+
+## `dataset.pushData(data)`
+
+**Returns**: `Promise<void>`
 
 Stores an object or an array of objects to the dataset. The function returns a promise that resolves when the operation finishes. It has no result,
 but throws on invalid args or other errors.
@@ -94,150 +77,68 @@ Promise will reject and the dataset will be left in a state where some of the it
 source array were not. To overcome this limitation, the developer may, for example, read the last item saved in the dataset and re-attempt the save of
 the data from this item onwards to prevent duplicates.
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>data</code></td><td><code>Object</code> | <code>Array</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Object or array of objects containing data to be stored in the default dataset.
-The objects must be serializable to JSON and the JSON representation of each object must be smaller than 9MB.</p>
-</td></tr></tbody>
-</table>
-<a name="Dataset+getData"></a>
+**Params**
 
-## `dataset.getData([options])` ⇒ [`Promise<DatasetContent>`](../typedefs/datasetcontent)
+-   **`data`**: `Object` | `Array` - Object or array of objects containing data to be stored in the default dataset. The objects must be serializable
+    to JSON and the JSON representation of each object must be smaller than 9MB.
+
+---
+
+<a name="getdata"></a>
+
+## `dataset.getData([options])`
+
+**Returns**: [`Promise<DatasetContent>`](/docs/typedefs/dataset-content)
 
 Returns {DatasetContent} object holding the items in the dataset based on the provided parameters.
 
 **NOTE**: If using dataset with local disk storage, the `format` option must be `json` and the following options are not supported: `unwind`,
 `disableBodyParser`, `attachment`, `bom` and `simplified`. If you try to use them, you will receive an error.
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th><th>Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>[options]</code></td><td><code>Object</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>All <code>getData()</code> parameters are passed
-  via an options object with the following keys:</p>
-</td></tr><tr>
-<td><code>[options.format]</code></td><td><code>String</code></td><td><code>&#x27;json&#x27;</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Format of the <code>items</code> property, possible values are: <code>json</code>, <code>csv</code>, <code>xlsx</code>, <code>html</code>, <code>xml</code> and <code>rss</code>.</p>
-</td></tr><tr>
-<td><code>[options.offset]</code></td><td><code>Number</code></td><td><code>0</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Number of array elements that should be skipped at the start.</p>
-</td></tr><tr>
-<td><code>[options.limit]</code></td><td><code>Number</code></td><td><code>250000</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Maximum number of array elements to return.</p>
-</td></tr><tr>
-<td><code>[options.desc]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>If <code>true</code> then the objects are sorted by <code>createdAt</code> in descending order.
-  Otherwise they are sorted in ascending order.</p>
-</td></tr><tr>
-<td><code>[options.fields]</code></td><td><code>Array</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>An array of field names that will be included in the result. If omitted, all fields are included in the results.</p>
-</td></tr><tr>
-<td><code>[options.unwind]</code></td><td><code>String</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>Specifies a name of the field in the result objects that will be used to unwind the resulting objects.
-  By default, the results are returned as they are.</p>
-</td></tr><tr>
-<td><code>[options.disableBodyParser]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>If <code>true</code> then response from API will not be parsed.</p>
-</td></tr><tr>
-<td><code>[options.attachment]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>If <code>true</code> then the response will define the <code>Content-Disposition: attachment</code> HTTP header, forcing a web
-  browser to download the file rather than to display it. By default, this header is not present.</p>
-</td></tr><tr>
-<td><code>[options.delimiter]</code></td><td><code>String</code></td><td><code>&#x27;,&#x27;</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>A delimiter character for CSV files, only used if <code>format</code> is <code>csv</code>.</p>
-</td></tr><tr>
-<td><code>[options.bom]</code></td><td><code>Boolean</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>All responses are encoded in UTF-8 encoding. By default, the CSV files are prefixed with the UTF-8 Byte
-  Order Mark (BOM), while JSON, JSONL, XML, HTML and RSS files are not. If you want to override this default
-  behavior, set <code>bom</code> option to <code>true</code> to include the BOM, or set <code>bom</code> to <code>false</code> to skip it.</p>
-</td></tr><tr>
-<td><code>[options.xmlRoot]</code></td><td><code>String</code></td><td><code>&#x27;results&#x27;</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Overrides the default root element name of the XML output. By default, the root element is <code>results</code>.</p>
-</td></tr><tr>
-<td><code>[options.xmlRow]</code></td><td><code>String</code></td><td><code>&#x27;page&#x27;</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Overrides the default element name that wraps each page or page function result object in XML output.
-  By default, the element name is <code>page</code> or <code>result</code>, depending on the value of the <code>simplified</code> option.</p>
-</td></tr><tr>
-<td><code>[options.skipHeaderRow]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>If set to <code>true</code> then header row in CSV format is skipped.</p>
-</td></tr><tr>
-<td><code>[options.clean]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>If <code>true</code> then the function returns only non-empty items and skips hidden fields (i.e. fields starting with <code>#</code> character).
-  Note that the <code>clean</code> parameter is a shortcut for <code>skipHidden: true</code> and <code>skipEmpty: true</code> options.</p>
-</td></tr><tr>
-<td><code>[options.skipHidden]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>If <code>true</code> then the function doesn&#39;t return hidden fields (fields starting with &quot;#&quot; character).</p>
-</td></tr><tr>
-<td><code>[options.skipEmpty]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>If <code>true</code> then the function doesn&#39;t return empty items.
-  Note that in this case the returned number of items might be lower than limit parameter and pagination must be done using the <code>limit</code> value.</p>
-</td></tr><tr>
-<td><code>[options.simplified]</code></td><td><code>Boolean</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>If <code>true</code> then function applies the <code>fields: [&#39;url&#39;,&#39;pageFunctionResult&#39;,&#39;errorInfo&#39;]</code> and <code>unwind: &#39;pageFunctionResult&#39;</code> options.
-  This feature is used to emulate simplified results provided by Apify API version 1 used for
-  the legacy Apify Crawler and it&#39;s not recommended to use it in new integrations.</p>
-</td></tr><tr>
-<td><code>[options.skipFailedPages]</code></td><td><code>Boolean</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>If <code>true</code> then, the all the items with errorInfo property will be skipped from the output.
-  This feature is here to emulate functionality of Apify API version 1 used for
-  the legacy Apify Crawler product and it&#39;s not recommended to use it in new integrations.</p>
-</td></tr></tbody>
-</table>
-<a name="Dataset+getInfo"></a>
+**Params**
 
-## `dataset.getInfo()` ⇒ `Promise<Object>`
+-   **`[options]`**: `Object` - All `getData()` parameters are passed via an options object with the following keys:
+    -   **`[.format]`**: `String` <code> = &#x27;json&#x27;</code> - Format of the `items` property, possible values are: `json`, `csv`, `xlsx`,
+        `html`, `xml` and `rss`.
+    -   **`[.offset]`**: `Number` <code> = 0</code> - Number of array elements that should be skipped at the start.
+    -   **`[.limit]`**: `Number` <code> = 250000</code> - Maximum number of array elements to return.
+    -   **`[.desc]`**: `Boolean` <code> = false</code> - If `true` then the objects are sorted by `createdAt` in descending order. Otherwise they are
+        sorted in ascending order.
+    -   **`[.fields]`**: `Array` - An array of field names that will be included in the result. If omitted, all fields are included in the results.
+    -   **`[.unwind]`**: `String` - Specifies a name of the field in the result objects that will be used to unwind the resulting objects. By default,
+        the results are returned as they are.
+    -   **`[.disableBodyParser]`**: `Boolean` <code> = false</code> - If `true` then response from API will not be parsed.
+    -   **`[.attachment]`**: `Boolean` <code> = false</code> - If `true` then the response will define the `Content-Disposition: attachment` HTTP
+        header, forcing a web browser to download the file rather than to display it. By default, this header is not present.
+    -   **`[.delimiter]`**: `String` <code> = &#x27;,&#x27;</code> - A delimiter character for CSV files, only used if `format` is `csv`.
+    -   **`[.bom]`**: `Boolean` - All responses are encoded in UTF-8 encoding. By default, the CSV files are prefixed with the UTF-8 Byte Order Mark
+        (BOM), while JSON, JSONL, XML, HTML and RSS files are not. If you want to override this default behavior, set `bom` option to `true` to
+        include the BOM, or set `bom` to `false` to skip it.
+    -   **`[.xmlRoot]`**: `String` <code> = &#x27;results&#x27;</code> - Overrides the default root element name of the XML output. By default, the
+        root element is `results`.
+    -   **`[.xmlRow]`**: `String` <code> = &#x27;page&#x27;</code> - Overrides the default element name that wraps each page or page function result
+        object in XML output. By default, the element name is `page` or `result`, depending on the value of the `simplified` option.
+    -   **`[.skipHeaderRow]`**: `Boolean` <code> = false</code> - If set to `true` then header row in CSV format is skipped.
+    -   **`[.clean]`**: `Boolean` <code> = false</code> - If `true` then the function returns only non-empty items and skips hidden fields (i.e.
+        fields starting with `#` character). Note that the `clean` parameter is a shortcut for `skipHidden: true` and `skipEmpty: true` options.
+    -   **`[.skipHidden]`**: `Boolean` <code> = false</code> - If `true` then the function doesn't return hidden fields (fields starting with "#"
+        character).
+    -   **`[.skipEmpty]`**: `Boolean` <code> = false</code> - If `true` then the function doesn't return empty items. Note that in this case the
+        returned number of items might be lower than limit parameter and pagination must be done using the `limit` value.
+    -   **`[.simplified]`**: `Boolean` - If `true` then function applies the `fields: ['url','pageFunctionResult','errorInfo']` and
+        `unwind: 'pageFunctionResult'` options. This feature is used to emulate simplified results provided by Apify API version 1 used for the legacy
+        Apify Crawler and it's not recommended to use it in new integrations.
+    -   **`[.skipFailedPages]`**: `Boolean` - If `true` then, the all the items with errorInfo property will be skipped from the output. This feature
+        is here to emulate functionality of Apify API version 1 used for the legacy Apify Crawler product and it's not recommended to use it in new
+        integrations.
+
+---
+
+<a name="getinfo"></a>
+
+## `dataset.getInfo()`
+
+**Returns**: `Promise<Object>`
 
 Returns an object containing general information about the dataset.
 
@@ -260,9 +161,13 @@ The function returns the same object as the Apify API Client's
 }
 ```
 
-<a name="Dataset+forEach"></a>
+---
 
-## `dataset.forEach(iteratee, [options], [index])` ⇒ `Promise<void>`
+<a name="foreach"></a>
+
+## `dataset.forEach(iteratee, [options], [index])`
+
+**Returns**: `Promise<void>`
 
 Iterates over dataset items, yielding each in turn to an `iteratee` function. Each invocation of `iteratee` is called with two arguments:
 `(item, index)`.
@@ -279,92 +184,43 @@ await dataset.forEach(async (item, index) => {
 });
 ```
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th><th>Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>iteratee</code></td><td><code><a href="../typedefs/datasetconsumer">DatasetConsumer</a></code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>A function that is called for every item in the dataset.</p>
-</td></tr><tr>
-<td><code>[options]</code></td><td><code>Object</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>All <code>forEach()</code> parameters are passed
-  via an options object with the following keys:</p>
-</td></tr><tr>
-<td><code>[options.desc]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>If <code>true</code> then the objects are sorted by <code>createdAt</code> in descending order.</p>
-</td></tr><tr>
-<td><code>[options.fields]</code></td><td><code>Array</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>If provided then returned objects will only contain specified keys.</p>
-</td></tr><tr>
-<td><code>[options.unwind]</code></td><td><code>String</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>If provided then objects will be unwound based on provided field.</p>
-</td></tr><tr>
-<td><code>[index]</code></td><td><code>Number</code></td><td><code>0</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Specifies the initial index number passed to the <code>iteratee</code> function.</p>
-</td></tr></tbody>
-</table>
-<a name="Dataset+map"></a>
+**Params**
 
-## `dataset.map(iteratee, options)` ⇒ `Promise<Array<T>>`
+-   **`iteratee`**: [`DatasetConsumer`](/docs/typedefs/dataset-consumer) - A function that is called for every item in the dataset.
+-   **`[options]`**: `Object` - All `forEach()` parameters are passed via an options object with the following keys:
+    -   **`[.desc]`**: `Boolean` <code> = false</code> - If `true` then the objects are sorted by `createdAt` in descending order.
+    -   **`[.fields]`**: `Array` - If provided then returned objects will only contain specified keys.
+    -   **`[.unwind]`**: `String` - If provided then objects will be unwound based on provided field.
+-   **`[index]`**: `Number` <code> = 0</code> - Specifies the initial index number passed to the `iteratee` function.
+
+---
+
+<a name="map"></a>
+
+## `dataset.map(iteratee, options)`
+
+**Returns**: `Promise<Array<T>>`
 
 Produces a new array of values by mapping each value in list through a transformation function `iteratee()`. Each invocation of `iteratee()` is called
 with two arguments: `(element, index)`.
 
 If `iteratee` returns a `Promise` then it's awaited before a next call.
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th><th>Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>iteratee</code></td><td><code><a href="../typedefs/datasetmapper">DatasetMapper</a></code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"></td></tr><tr>
-<td><code>options</code></td><td><code>Object</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>All <code>map()</code> parameters are passed
-  via an options object with the following keys:</p>
-</td></tr><tr>
-<td><code>[options.desc]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>If <code>true</code> then the objects are sorted by createdAt in descending order.</p>
-</td></tr><tr>
-<td><code>[options.fields]</code></td><td><code>Array</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>If provided then returned objects will only contain specified keys</p>
-</td></tr><tr>
-<td><code>[options.unwind]</code></td><td><code>String</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>If provided then objects will be unwound based on provided field.</p>
-</td></tr></tbody>
-</table>
-<a name="Dataset+reduce"></a>
+**Params**
 
-## `dataset.reduce(iteratee, memo, options)` ⇒ `Promise<T>`
+-   **`iteratee`**: [`DatasetMapper`](/docs/typedefs/dataset-mapper)
+-   **`options`**: `Object` - All `map()` parameters are passed via an options object with the following keys:
+    -   **`[.desc]`**: `Boolean` <code> = false</code> - If `true` then the objects are sorted by createdAt in descending order.
+    -   **`[.fields]`**: `Array` - If provided then returned objects will only contain specified keys
+    -   **`[.unwind]`**: `String` - If provided then objects will be unwound based on provided field.
+
+---
+
+<a name="reduce"></a>
+
+## `dataset.reduce(iteratee, memo, options)`
+
+**Returns**: `Promise<T>`
 
 Reduces a list of values down to a single value.
 
@@ -376,47 +232,23 @@ instead passed as the memo in the invocation of the `iteratee()` on the next ele
 
 If `iteratee()` returns a `Promise` then it's awaited before a next call.
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th><th>Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>iteratee</code></td><td><code><a href="../typedefs/datasetreducer">DatasetReducer</a></code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"></td></tr><tr>
-<td><code>memo</code></td><td><code>T</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>Initial state of the reduction.</p>
-</td></tr><tr>
-<td><code>options</code></td><td><code>Object</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>All <code>reduce()</code> parameters are passed
-  via an options object with the following keys:</p>
-</td></tr><tr>
-<td><code>[options.desc]</code></td><td><code>Boolean</code></td><td><code>false</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>If <code>true</code> then the objects are sorted by createdAt in descending order.</p>
-</td></tr><tr>
-<td><code>[options.fields]</code></td><td><code>Array</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>If provided then returned objects will only contain specified keys</p>
-</td></tr><tr>
-<td><code>[options.unwind]</code></td><td><code>String</code></td><td></td>
-</tr>
-<tr>
-<td colspan="3"><p>If provided then objects will be unwound based on provided field.</p>
-</td></tr></tbody>
-</table>
-<a name="Dataset+drop"></a>
+**Params**
 
-## `dataset.drop()` ⇒ `Promise<void>`
+-   **`iteratee`**: [`DatasetReducer`](/docs/typedefs/dataset-reducer)
+-   **`memo`**: `T` - Initial state of the reduction.
+-   **`options`**: `Object` - All `reduce()` parameters are passed via an options object with the following keys:
+    -   **`[.desc]`**: `Boolean` <code> = false</code> - If `true` then the objects are sorted by createdAt in descending order.
+    -   **`[.fields]`**: `Array` - If provided then returned objects will only contain specified keys
+    -   **`[.unwind]`**: `String` - If provided then objects will be unwound based on provided field.
+
+---
+
+<a name="drop"></a>
+
+## `dataset.drop()`
+
+**Returns**: `Promise<void>`
 
 Removes the dataset either from the Apify cloud storage or from the local directory, depending on the mode of operation.
+
+---

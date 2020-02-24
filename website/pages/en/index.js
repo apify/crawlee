@@ -82,9 +82,9 @@ class HomeSplash extends React.Component {
                 <div className="inner">
                     <ProjectTitle/>
                     <PromoSection>
-                        <Button href={docUrl('api/apify', language)}>Read the Docs</Button>
-                        <Button href={docUrl('examples/basiccrawler', language)}>See Examples</Button>
                         <Button href="#try">Try It Out</Button>
+                        <Button href={docUrl('guides/getting-started', language)}>Learn the Basics</Button>
+                        <Button href={docUrl('examples/puppeteer-crawler', language)}>See Examples</Button>
                     </PromoSection>
                 </div>
                 <a
@@ -198,7 +198,7 @@ const TryOut = () => (
     <Block id="try" background="light" gridBlockAlign="left">
         {[
             {
-                content: 'Install **Apify SDK** into a Node.js project. You must have Node.js 8 or higher installed.\n' +
+                content: 'Install **Apify SDK** into a Node.js project. You must have Node.js 10 or higher installed.\n' +
                     '```\n' +
                     'npm install apify\n' +
                     '```\n' +

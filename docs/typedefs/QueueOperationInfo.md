@@ -1,41 +1,43 @@
 ---
-id: queueoperationinfo
+id: queue-operation-info
 title: QueueOperationInfo
 ---
 
-<a name="QueueOperationInfo"></a>
+<a name="queueoperationinfo"></a>
 
-A helper class that is used to report results from various [`RequestQueue`](../api/requestqueue) functions as well as
-[`Apify.utils.enqueueLinks()`](../api/utils#utils.enqueueLinks).
+A helper class that is used to report results from various [`RequestQueue`](/docs/api/request-queue) functions as well as
+[`utils.enqueueLinks()`](/docs/api/utils#enqueuelinks).
 
-**Properties**
+## Properties
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>wasAlreadyPresent</code></td><td><code>Boolean</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Indicates if request was already present in the queue.</p>
-</td></tr><tr>
-<td><code>wasAlreadyHandled</code></td><td><code>Boolean</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Indicates if request was already marked as handled.</p>
-</td></tr><tr>
-<td><code>requestId</code></td><td><code>String</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>The ID of the added request</p>
-</td></tr><tr>
-<td><code>request</code></td><td><code>Object</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>The original <a href="../api/request"><code>Request</code></a> object passed to the <code>RequestQueue</code> function.</p>
-</td></tr></tbody>
-</table>
+### `wasAlreadyPresent`
+
+**Type**: `Boolean`
+
+Indicates if request was already present in the queue.
+
+---
+
+### `wasAlreadyHandled`
+
+**Type**: `Boolean`
+
+Indicates if request was already marked as handled.
+
+---
+
+### `requestId`
+
+**Type**: `String`
+
+The ID of the added request
+
+---
+
+### `request`
+
+**Type**: `Object`
+
+The original [`Request`](/docs/api/request) object passed to the `RequestQueue` function.
+
+---

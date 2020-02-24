@@ -1,16 +1,16 @@
 ---
-id: sessionpool
+id: session-pool
 title: SessionPool
 ---
 
-<a name="SessionPool"></a>
+<a name="sessionpool"></a>
 
-Handles the sessions rotation, creation and persistence. Creates a pool of [`Session`](session) instances, that are randomly rotated. When some
-session is marked as blocked. It is removed and new one is created instead. Learn more in the
-[`Session management guide`](../guides/sessionmanagement).
+Handles the sessions rotation, creation and persistence. Creates a pool of [`Session`](/docs/api/session) instances, that are randomly rotated. When
+some session is marked as blocked. It is removed and new one is created instead. Learn more in the
+[`Session management guide`](/docs/guides/session-management).
 
-Session pool is by default persisted in default [`KeyValueStore`](keyvaluestore). If you want to have one pool for all runs you have to specify
-`persistStateKeyValueStoreId`.
+Session pool is by default persisted in default [`KeyValueStore`](/docs/api/key-value-store). If you want to have one pool for all runs you have to
+specify [`SessionPoolOptions.persistStateKeyValueStoreId`](/docs/typedefs/session-pool-options#persiststatekeyvaluestoreid).
 
 **Example usage:**
 
@@ -48,77 +48,87 @@ session2.markGood();
 session3.retire();
 ```
 
--   [SessionPool](sessionpool)
-    -   [`new exports.SessionPool([options])`](#new_SessionPool_new)
-    -   [`.usableSessionsCount`](#SessionPool+usableSessionsCount) ⇒ `number`
-    -   [`.retiredSessionsCount`](#SessionPool+retiredSessionsCount) ⇒ `number`
-    -   [`.initialize()`](#SessionPool+initialize) ⇒ `Promise<void>`
-    -   [`.getSession()`](#SessionPool+getSession) ⇒ [`Promise<Session>`](session)
-    -   [`.getState()`](#SessionPool+getState) ⇒ `Object`
-    -   [`.persistState()`](#SessionPool+persistState) ⇒ `Promise`
-    -   [`.teardown()`](#SessionPool+teardown)
+---
 
-<a name="new_SessionPool_new"></a>
+<a name="exports.sessionpool"></a>
 
-## `new exports.SessionPool([options])`
+## `new SessionPool([options])`
 
 Session pool configuration.
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>[options]</code></td><td><code><a href="../typedefs/sessionpooloptions">SessionPoolOptions</a></code></td>
-</tr>
-<tr>
-<td colspan="3"><p>All <code>SessionPool</code> configuration options.</p>
-</td></tr></tbody>
-</table>
-<a name="SessionPool+usableSessionsCount"></a>
+**Params**
 
-## `sessionPool.usableSessionsCount` ⇒ `number`
+-   **`[options]`**: [`SessionPoolOptions`](/docs/typedefs/session-pool-options) - All `SessionPool` configuration options.
+
+---
+
+<a name="usablesessionscount"></a>
+
+## `sessionPool.usableSessionsCount`
+
+**Returns**: `number`
 
 Gets count of usable sessions in the pool.
 
-<a name="SessionPool+retiredSessionsCount"></a>
+---
 
-## `sessionPool.retiredSessionsCount` ⇒ `number`
+<a name="retiredsessionscount"></a>
+
+## `sessionPool.retiredSessionsCount`
+
+**Returns**: `number`
 
 Gets count of retired sessions in the pool.
 
-<a name="SessionPool+initialize"></a>
+---
 
-## `sessionPool.initialize()` ⇒ `Promise<void>`
+<a name="initialize"></a>
 
-Starts periodic state persistence and potentially loads SessionPool state from [`KeyValueStore`](keyvaluestore). This function must be called before
-you can start using the instance in a meaningful way.
+## `sessionPool.initialize()`
 
-<a name="SessionPool+getSession"></a>
+**Returns**: `Promise<void>`
 
-## `sessionPool.getSession()` ⇒ [`Promise<Session>`](session)
+Starts periodic state persistence and potentially loads SessionPool state from [`KeyValueStore`](/docs/api/key-value-store). This function must be
+called before you can start using the instance in a meaningful way.
+
+---
+
+<a name="getsession"></a>
+
+## `sessionPool.getSession()`
+
+**Returns**: [`Promise<Session>`](/docs/api/session)
 
 Gets session. If there is space for new session, it creates and return new session. If the session pool is full, it picks a session from the pool, If
 the picked session is usable it is returned, otherwise it creates and returns a new one.
 
-<a name="SessionPool+getState"></a>
+---
 
-## `sessionPool.getState()` ⇒ `Object`
+<a name="getstate"></a>
+
+## `sessionPool.getState()`
+
+**Returns**: `Object`
 
 Returns an object representing the internal state of the `SessionPool` instance. Note that the object's fields can change in future releases.
 
-<a name="SessionPool+persistState"></a>
+---
 
-## `sessionPool.persistState()` ⇒ `Promise`
+<a name="persiststate"></a>
 
-Persists the current state of the `SessionPool` into the default [`KeyValueStore`](keyvaluestore). The state is persisted automatically in regular
-intervals.
+## `sessionPool.persistState()`
 
-<a name="SessionPool+teardown"></a>
+**Returns**: `Promise`
+
+Persists the current state of the `SessionPool` into the default [`KeyValueStore`](/docs/api/key-value-store). The state is persisted automatically in
+regular intervals.
+
+---
+
+<a name="teardown"></a>
 
 ## `sessionPool.teardown()`
 
 Removes listener from `persistState` event. This function should be called after you are done with using the `SessionPool` instance.
+
+---

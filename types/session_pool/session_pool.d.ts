@@ -17,10 +17,11 @@
  * Handles the sessions rotation, creation and persistence.
  * Creates a pool of {@link Session} instances, that are randomly rotated.
  * When some session is marked as blocked. It is removed and new one is created instead.
- * Learn more in the [`Session management guide`](../guides/sessionmanagement).
+ * Learn more in the [`Session management guide`](/docs/guides/session-management).
  *
  * Session pool is by default persisted in default {@link KeyValueStore}.
- * If you want to have one pool for all runs you have to specify `persistStateKeyValueStoreId`.
+ * If you want to have one pool for all runs you have to specify
+ * {@link SessionPoolOptions.persistStateKeyValueStoreId}.
  *
  * **Example usage:**
  *
