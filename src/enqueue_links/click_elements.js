@@ -16,7 +16,7 @@ const STARTING_Z_INDEX = 2147400000;
  * requests, including their methods, headers and payloads are then enqueued to a provided
  * {@link RequestQueue}. This is useful to crawl JavaScript heavy pages where links are not available
  * in `href` elements, but rather navigations are triggered in click handlers.
- * If you're looking to find URLs in `href` attributes of the page, see [`enqueueLinks()`](utils#utils.enqueueLinks).
+ * If you're looking to find URLs in `href` attributes of the page, see {@link utils#enqueueLinks}.
  *
  * Optionally, the function allows you to filter the target links' URLs using an array of {@link PseudoUrl} objects
  * and override settings of the enqueued {@link Request} objects.
@@ -58,11 +58,11 @@ const STARTING_Z_INDEX = 2147400000;
  *   All `enqueueLinksByClickingElements()` parameters are passed
  *   via an options object with the following keys:
  * @param {Page} options.page
- *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
+ *   Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
  * @param {RequestQueue} options.requestQueue
  *   A request queue to which the URLs will be enqueued.
  * @param {String} options.selector
- *   A CSS selector matching elements to be clicked on. Unlike in [`enqueueLinks()`](utils#utils.enqueueLinks), there is no default
+ *   A CSS selector matching elements to be clicked on. Unlike in {@link utils#enqueueLinks}, there is no default
  *   value. This is to prevent suboptimal use of this function by using it too broadly.
  * @param {Array<String|RegExp|Object>} [options.pseudoUrls]
  *   An array of {@link PseudoUrl}s matching the URLs to be enqueued,
@@ -115,6 +115,7 @@ const STARTING_Z_INDEX = 2147400000;
  *   Promise that resolves to an array of {@link QueueOperationInfo} objects.
  * @memberOf puppeteer
  * @name enqueueLinksByClickingElements
+ * @function
  */
 export async function enqueueLinksByClickingElements(options = {}) {
     const {

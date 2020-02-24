@@ -1,9 +1,9 @@
 export function launchPuppeteer(options?: LaunchPuppeteerOptions): Promise<any>;
 /**
  * Apify extends the launch options of Puppeteer.
- * You can use any of the
- * <a href="https://pptr.dev/#?product=Puppeteer&show=api-puppeteerlaunchoptions" target="_blank"><code>puppeteer.launch()</code></a>
- * options in the [`Apify.launchPuppeteer()`](../api/apify#module_Apify.launchPuppeteer)
+ * You can use any of the Puppeteer compatible
+ * [`LaunchOptions`](https://pptr.dev/#?product=Puppeteer&show=api-puppeteerlaunchoptions)
+ * options in the  {@link Apify#launchPuppeteer}
  * function and in addition, all the options available below.
  */
 export type LaunchPuppeteerOptions = {
@@ -31,13 +31,13 @@ export type LaunchPuppeteerOptions = {
     useChrome?: boolean;
     /**
      * If set to `true`, Puppeteer will be configured to use
-     * <a href="https://my.apify.com/proxy" target="_blank">Apify Proxy</a> for all connections.
-     * For more information, see the <a href="https://docs.apify.com/proxy" target="_blank">documentation</a>
+     * [Apify Proxy](https://my.apify.com/proxy) for all connections.
+     * For more information, see the [documentation](https://docs.apify.com/proxy)
      */
     useApifyProxy?: boolean;
     /**
      * An array of proxy groups to be used
-     * by the <a href="https://docs.apify.com/proxy" target="_blank">Apify Proxy</a>.
+     * by the [Apify Proxy](https://docs.apify.com/proxy).
      * Only applied if the `useApifyProxy` option is `true`.
      */
     apifyProxyGroups?: string[];

@@ -26,9 +26,6 @@ import { Session } from './session_pool/session';
 // Increase the global limit for event emitter memory leak warnings.
 EventEmitter.defaultMaxListeners = 50;
 
-// Log as plain text not JSON
-log.logJson = false;
-
 const exportedUtils = Object.assign(publicUtils, {
     puppeteer: puppeteerUtils,
     social: socialUtils,
@@ -40,7 +37,8 @@ const exportedUtils = Object.assign(publicUtils, {
 /**
  * The following section describes all functions and properties provided by the `apify` package,
  * except individual classes and namespaces that have their separate, detailed, documentation pages
- * accessible from the left sidebar.
+ * accessible from the left sidebar. To learn how Apify SDK works, we suggest following
+ * the [Getting Started](/docs/guides/getting-started) tutorial.
  *
  * @module Apify
  */

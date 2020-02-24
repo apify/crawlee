@@ -1,10 +1,10 @@
 ---
-id: datastorage
+id: data-storage
 title: Data Storage
 ---
 
 The Apify SDK has several data storage types that are useful for specific tasks. The data is stored either on local disk to a directory defined by the
-`APIFY_LOCAL_STORAGE_DIR` environment variable, or on the <a href="https://apify.com" target="_blank">Apify Cloud</a> under the user account
+`APIFY_LOCAL_STORAGE_DIR` environment variable, or on the [Apify Cloud](https://apify.com) under the user account
 identified by the API token defined by the `APIFY_TOKEN` environment variable. If neither of these variables is defined, by default Apify SDK sets
 `APIFY_LOCAL_STORAGE_DIR` to `./apify_storage` in the current working directory and prints a warning.
 
@@ -14,9 +14,9 @@ code changes are needed.
 
 **Related links**
 
--   <a href="https://docs.apify.com/storage" target="_blank">Apify cloud storage documentation</a>
--   <a href="https://my.apify.com/storage" target="_blank">View storage in Apify app</a>
--   <a href="https://apify.com/docs/api/v2#/reference/key-value-stores" target="_blank">API reference</a>
+-   [Apify cloud storage documentation](https://docs.apify.com/storage)
+-   [View storage in Apify app](https://my.apify.com/storage)
+-   [API reference](https://apify.com/docs/api/v2#/reference/key-value-stores)
 
 ## Key-value store
 
@@ -27,9 +27,9 @@ Each actor run is associated with a **default key-value store**, which is create
 and output is stored in the default key-value store under the `INPUT` and `OUTPUT` key, respectively. Typically the input and output is a JSON file,
 although it can be any other format.
 
-In the Apify SDK, the key-value store is represented by the [`KeyValueStore`](../api/keyvaluestore) class. In order to simplify access to the default
-key-value store, the SDK also provides [`Apify.getValue()`](../api/apify#module_Apify.getValue) and
-[`Apify.setValue()`](../api/apify#module_Apify.setValue) functions.
+In the Apify SDK, the key-value store is represented by the [`KeyValueStore`](/docs/api/key-value-store) class. In order to simplify access to the default
+key-value store, the SDK also provides [`Apify.getValue()`](/docs/api/apify#getValue) and
+[`Apify.setValue()`](/docs/api/apify#setValue) functions.
 
 In local configuration, the data is stored in the directory specified by the `APIFY_LOCAL_STORAGE_DIR` environment variable as follows:
 
@@ -65,7 +65,7 @@ const value = await store.getValue('some-key');
 await store.setValue('some-key', null);
 ```
 
-To see a real-world example of how to get the input from the key-value store, see the [Screenshots](../examples/screenshots) example.
+To see a real-world example of how to get the input from the key-value store, see the [Screenshots](/docs/examples/screenshots) example.
 
 ## Dataset
 
@@ -73,17 +73,17 @@ Datasets are used to store structured data where each object stored has the same
 can imagine a dataset as a table, where each object is a row and its attributes are columns. Dataset is an append-only storage - you can only add new
 records to it but you cannot modify or remove existing records.
 
-When the dataset is stored in the <a href="https://apify.com" target="_blank">Apify Cloud</a>, you can export its data to the following formats: HTML,
+When the dataset is stored in the [Apify Cloud](https://apify.com), you can export its data to the following formats: HTML,
 JSON, CSV, Excel, XML and RSS. The datasets are displayed on the actor run details page and in the
-<a href="https://my.apify.com/storage" target="_blank">Storage</a> section in the Apify app. The actual data is exported using the
-<a href="https://apify.com/docs/api/v2#/reference/datasets/item-collection/get-items" target="_blank">Get dataset items</a> Apify API endpoint. This
+[Storage](https://my.apify.com/storage) section in the Apify app. The actual data is exported using the
+[Get dataset items](https://apify.com/docs/api/v2#/reference/datasets/item-collection/get-items) Apify API endpoint. This
 way you can easily share crawling results.
 
 Each actor run is associated with a **default dataset**, which is created exclusively for the actor run. Typically, it is used to store crawling
 results specific for the actor run. Its usage is optional.
 
-In the Apify SDK, the dataset is represented by the [`Dataset`](../api/dataset) class. In order to simplify writes to the default dataset, the SDK
-also provides the [`Apify.pushData()`](../api/apify#module_Apify.pushData) function.
+In the Apify SDK, the dataset is represented by the [`Dataset`](/docs/api/dataset) class. In order to simplify writes to the default dataset, the SDK
+also provides the [`Apify.pushData()`](/docs/api/apify#pushData) function.
 
 In local configuration, the data is stored in the directory specified by the `APIFY_LOCAL_STORAGE_DIR` environment variable as follows:
 
@@ -111,7 +111,7 @@ await dataset.pushData({ foo: 'bar' });
 await dataset.pushData([{ foo: 'bar2', col2: 'val2' }, { col3: 123 }]);
 ```
 
-To see how to use the dataset to store crawler results, see the [Cheerio Crawler](../examples/cheeriocrawler) example.
+To see how to use the dataset to store crawler results, see the [Cheerio Crawler](/docs/examples/cheerio-crawler) example.
 
 ## Request queue
 
@@ -121,7 +121,7 @@ recursively follow links to other pages. The data structure supports both breadt
 Each actor run is associated with a **default request queue**, which is created exclusively for the actor run. Typically, it is used to store URLs to
 crawl in the specific actor run. Its usage is optional.
 
-In Apify SDK, the request queue is represented by the [`RequestQueue`](../api/requestqueue) class.
+In Apify SDK, the request queue is represented by the [`RequestQueue`](/docs/api/request-queue) class.
 
 In local configuration, the request queue data is stored in the directory specified by the `APIFY_LOCAL_STORAGE_DIR` environment variable as follows:
 
@@ -159,4 +159,4 @@ await queue.markRequestHandled(request1);
 await queue.reclaimRequest(request2);
 ```
 
-To see how to use the request queue with a crawler, see the [Puppeteer Crawler](../examples/puppeteercrawler) example.
+To see how to use the request queue with a crawler, see the [Puppeteer Crawler](/docs/examples/puppeteer-crawler) example.

@@ -8,7 +8,7 @@ export function logSystemInfo(): void;
  * `APIFY_API_BASE_URL`, `APIFY_USER_ID` and `APIFY_TOKEN` environment variables.
  *
  * The instance is used for all underlying calls to the Apify API in functions such as
- * [`Apify.getValue()`](#module_Apify.getValue) or [`Apify.call()`](#module_Apify.call).
+ * {@link Apify#getValue} or {@link Apify#call}.
  * The settings of the client can be globally altered by calling the
  * <a href="https://docs.apify.com/api/apify-client-js/latest#ApifyClient-setOptions"
  * target="_blank">`Apify.client.setOptions()`</a> function.

@@ -1,7 +1,7 @@
 export const APIFY_CALL_ERROR_NAME: "ApifyCallError";
 /**
  * The class represents exceptions thrown
- * by the [`Apify.call()`](../api/apify#module_Apify.call) function.
+ * by the {@link Apify#call} function.
  *
  * @typedef {Object} ApifyCallError
  * @property {String} message

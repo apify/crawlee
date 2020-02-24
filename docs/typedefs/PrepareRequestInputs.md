@@ -1,23 +1,16 @@
 ---
-id: preparerequestinputs
+id: prepare-request-inputs
 title: PrepareRequestInputs
 ---
 
-<a name="PrepareRequestInputs"></a>
+<a name="preparerequestinputs"></a>
 
-**Properties**
+## Properties
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>request</code></td><td><code><a href="request">Request</a></code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Original instance fo the {Request} object. Must be modified in-place.</p>
-</td></tr></tbody>
-</table>
+### `request`
+
+**Type**: [`Request`](/docs/api/request)
+
+Original instance fo the {Request} object. Must be modified in-place.
+
+---

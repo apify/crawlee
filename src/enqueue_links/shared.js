@@ -107,7 +107,7 @@ export async function addRequestsToQueueInBatches(requests, requestQueue, batchS
 
 /**
  * Takes an Apify {RequestOptions} object and changes it's attributes in a desired way. This user-function is used
- * [`Apify.utils.enqueueLinks`](../api/utils#utils.enqueueLinks) to modify requests before enqueuing them.
+ * {@link utils#enqueueLinks} to modify requests before enqueuing them.
  * @callback RequestTransform
  * @param {RequestOptions} original Request options to be modified.
  * @return {RequestOptions} The modified request options to enqueue.

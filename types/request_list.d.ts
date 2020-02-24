@@ -387,7 +387,7 @@ export type RequestListOptions = {
 };
 /**
  * Represents state of a {RequestList}. It can be used to resume a {RequestList} which has been previously processed.
- * You can obtain the state by calling [`RequestList.getState()`](../api/requestlist#getState()) and receive an object with
+ * You can obtain the state by calling {@link RequestList#getState} and receive an object with
  * the following structure:
  *
  * ```
