@@ -4,52 +4,45 @@ import util from 'util';
 import zlib from 'zlib';
 import { compressData, decompressData } from '../build/data_compression';
 
-const SAMPLE_JSON_PATH = path.join(__dirname, 'data', 'sample.json.br');
+const TEST_JSON_PATH = path.join(__dirname, 'data', 'sample.json.br');
 
-const brotliCompress = util.promisify(zlib.brotliCompress);
 const brotliDecompress = util.promisify(zlib.brotliDecompress);
 
 describe('Data Compression:', () => {
     test('compressData should compress', async () => {
-        const compressedJson = await fs.readFile(SAMPLE_JSON_PATH);
-        const json = await brotliDecompress(compressedJson);
-        const data = JSON.parse(json);
-        const result = await compressData(data);
-        expect(result).toEqual(data);
+        const compressedTestJson = await fs.readFile(TEST_JSON_PATH);
+        const jsonBuffer = await brotliDecompress(compressedTestJson);
+        const expectedObject = JSON.parse(jsonBuffer.toString('utf8'));
+
+        const compressed = await compressData(expectedObject);
+        const decompressed = await brotliDecompress(compressed);
+        const decompressedJson = decompressed.toString('utf8');
+        const receivedObject = JSON.parse(decompressedJson);
+
+        // Compare objects, to avoid errors with /n /t and other insignificant
+        // characters in the JSON strings.
+        expect(receivedObject).toEqual(expectedObject);
     });
 
     test('decompressData should decompress', async () => {
+        const compressedTestJson = await fs.readFile(TEST_JSON_PATH);
+        const jsonBuffer = await brotliDecompress(compressedTestJson);
+        const expectedObject = JSON.parse(jsonBuffer.toString('utf8'));
 
+        const receivedObject = await decompressData(compressedTestJson);
+
+        // Compare objects, to avoid errors with /n /t and other insignificant
+        // characters in the JSON strings.
+        expect(receivedObject).toEqual(expectedObject);
     });
 
     test('compressData + decompressData should produce original data', async () => {
-        const data = [
-            { foo: 'baz' },
-            { foo: 'baz' },
-            { foo: 'bar' },
-            { foo: 'baz' },
-            { foo: 'baz' },
-            { foo: 'bar' },
-            { foo: 'baz' },
-            { foo: 'bar' },
-            { foo: 'baz' },
-            { foo: 'bar' },
-            { foo: 'bar' },
-            { foo: 'bar' },
-            { foo: 'bar' },
-        ];
+        const data = [];
+        for (let i = 0; i < 10000; i++) {
+            data.push({ [`${Math.random()}`]: Math.random() });
+        }
         const compressed = await compressData(data);
-        console.log('COMPRESSED:', compressed.toString('utf8'));
-        const decomp = await decompressData(compressed);
-        console.dir(decomp);
+        const decompressed = await decompressData(compressed);
+        expect(decompressed).toEqual(data);
     });
 });
-
-async function compressJson() {
-    return new Promise((resolve) => {
-        fs.createReadStream(SAMPLE_JSON_PATH)
-            .pipe(zlib.createBrotliCompress())
-            .pipe(fs.createWriteStream(`${SAMPLE_JSON_PATH}.br`))
-            .on('finish', resolve);
-    });
-}
