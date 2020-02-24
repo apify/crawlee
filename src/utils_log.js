@@ -5,15 +5,15 @@ import log from 'apify-shared/log';
 
 /**
  * @typedef {Object} LoggerOptions
- * @property {number} [object.level=4] Sets the log level to the given value, preventing messages from less important log levels
+ * @property {number} [level=4] Sets the log level to the given value, preventing messages from less important log levels
  * from being printed to the console. Use in conjunction with the `log.LEVELS` constants.
- * @property {number} [object.maxDepth=4] Max depth of data object that will be logged. Anything deeper than the limit will be stripped off.
- * @property {number} [object.maxStringLength=2000] Max length of the string to be logged. Longer strings will be truncated.
- * @property {string} [object.prefix] Prefix to be prepended the each logged line.
- * @property {string} [object.suffix] Suffix that will be appended the each logged line.
- * @property {Object} [object.logger] Logger implementation to be used. Default one is log.LoggerText to log messages as easily readable
+ * @property {number} [maxDepth=4] Max depth of data object that will be logged. Anything deeper than the limit will be stripped off.
+ * @property {number} [maxStringLength=2000] Max length of the string to be logged. Longer strings will be truncated.
+ * @property {string} [prefix] Prefix to be prepended the each logged line.
+ * @property {string} [suffix] Suffix that will be appended the each logged line.
+ * @property {Object} [logger] Logger implementation to be used. Default one is log.LoggerText to log messages as easily readable
  * strings. Optionally you can use `log.LoggerJson` that formats each log line as a JSON.
- * @property {Object} [object.data] Additional data to be added to each log line.
+ * @property {Object} [data] Additional data to be added to each log line.
  */
 
 /**
@@ -114,7 +114,7 @@ import log from 'apify-shared/log';
 /**
  * Creates a new instance of logger that inherits settings from a parent logger.
  * @name child
- * @param {object} [options] Supports the same options as the `setOptions()` method.
+ * @param {LoggerOptions} [options] Supports the same options as the `setOptions()` method.
  * @method
  * @memberOf log
  */

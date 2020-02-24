@@ -53,18 +53,6 @@ Another very useful way of setting the log level is by setting the `APIFY_LOG_LE
 no code changes are necessary to turn on your debug messages and start debugging right away.
 
 ---
--   [`log`](#log) : `object`
-    -   [`.LEVELS`](#log.LEVELS) : `Object`
-    -   [`.setLevel(level)`](#log.setLevel)
-    -   [`.getLevel()`](#log.getLevel)
-    -   [`.setOptions(options)`](#log.setOptions)
-    -   [`.child([options])`](#log.child)
-    -   [`.getOptions()`](#log.getOptions) ⇒ [`LoggerOptions`](../typedefs/loggeroptions)
-    -   [`.debug(message, [data])`](#log.debug)
-    -   [`.info(message, [data])`](#log.info)
-    -   [`.warning(message, [data])`](#log.warning)
-    -   [`.error(message, [data])`](#log.error)
-    -   [`.exception(exception, [message], [data])`](#log.exception)
 
 <a name="levels"></a>
 
@@ -104,53 +92,41 @@ level is not high enough at the moment, it doesn't make sense to execute the que
 
 ---
 
-<a name="debug"></a>
-<a name="log.setOptions"></a>
+<a name="setoptions"></a>
 
 ## `log.setOptions(options)`
 
 Configures logger.
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>options</code></td><td><code><a href="../typedefs/loggeroptions">LoggerOptions</a></code></td>
-</tr>
-<tr>
-</tr></tbody>
-</table>
-<a name="log.child"></a>
+**Params**
+
+-   **`options`**: [`LoggerOptions`](/docs/typedefs/logger-options)
+
+---
+
+<a name="child"></a>
 
 ## `log.child([options])`
 
 Creates a new instance of logger that inherits settings from a parent logger.
 
-<table>
-<thead>
-<tr>
-<th>Param</th><th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>[options]</code></td><td><code>object</code></td>
-</tr>
-<tr>
-<td colspan="3"><p>Supports the same options as the <code>setOptions()</code> method.</p>
-</td></tr></tbody>
-</table>
-<a name="log.getOptions"></a>
+**Params**
 
-## `log.getOptions()` ⇒ [`LoggerOptions`](../typedefs/loggeroptions)
+-   **`[options]`**: [`LoggerOptions`](/docs/typedefs/logger-options) - Supports the same options as the `setOptions()` method.
+
+---
+
+<a name="getoptions"></a>
+
+## `log.getOptions()`
+
+**Returns**: [`LoggerOptions`](/docs/typedefs/logger-options)
 
 Returns the logger configuration.
 
-<a name="log.debug"></a>
+---
+
+<a name="debug"></a>
 
 ## `log.debug(message, [data])`
 

@@ -194,6 +194,9 @@
       "typedefs/launch-puppeteer-options": {
         "title": "LaunchPuppeteerOptions"
       },
+      "typedefs/logger-options": {
+        "title": "LoggerOptions"
+      },
       "typedefs/memory-info": {
         "title": "MemoryInfo"
       },
