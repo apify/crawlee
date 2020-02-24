@@ -73,6 +73,7 @@
                     "typedefs/cheerio-crawler-options",
                     "typedefs/puppeteer-crawler-options",
                     "typedefs/puppeteer-pool-options",
+                    "typedefs/logger-options",
                     "typedefs/launch-puppeteer-options",
                     "typedefs/request-options",
                     "typedefs/request-list-options",

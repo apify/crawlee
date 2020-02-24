@@ -41,6 +41,12 @@ try {
 } catch (e) {
   log.exception(e, 'Exception occurred', { errorDetails: 'This is really bad!' }); // prints message
 }
+
+log.setOptions({ prefix: 'My actor' });
+log.info('I am running!'); // prints "My actor: I am running"
+
+const childLog = log.child({ prefix: 'Crawler' });
+log.info('I am crawling!'); // prints "My actor:Crawler: I am crawling"
 ```
 
 Another very useful way of setting the log level is by setting the `APIFY_LOG_LEVEL` environment variable, such as `APIFY_LOG_LEVEL=DEBUG`. This way,
@@ -83,6 +89,40 @@ Default log level is INFO.
 Returns the currently selected logging level. This is useful for checking whether a message will actually be printed to the console before one
 actually performs a resource intensive operation to construct the message, such as querying a DB for some metadata that need to be added. If the log
 level is not high enough at the moment, it doesn't make sense to execute the query.
+
+---
+
+<a name="setoptions"></a>
+
+## `log.setOptions(options)`
+
+Configures logger.
+
+**Params**
+
+-   **`options`**: [`LoggerOptions`](/docs/typedefs/logger-options)
+
+---
+
+<a name="child"></a>
+
+## `log.child([options])`
+
+Creates a new instance of logger that inherits settings from a parent logger.
+
+**Params**
+
+-   **`[options]`**: [`LoggerOptions`](/docs/typedefs/logger-options) - Supports the same options as the `setOptions()` method.
+
+---
+
+<a name="getoptions"></a>
+
+## `log.getOptions()`
+
+**Returns**: [`LoggerOptions`](/docs/typedefs/logger-options)
+
+Returns the logger configuration.
 
 ---
 

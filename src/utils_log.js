@@ -4,6 +4,19 @@ import log from 'apify-shared/log';
 // Adding them directly to the log object in utils in `index.js` breaks JSDoc.
 
 /**
+ * @typedef {Object} LoggerOptions
+ * @property {number} [level=4] Sets the log level to the given value, preventing messages from less important log levels
+ * from being printed to the console. Use in conjunction with the `log.LEVELS` constants.
+ * @property {number} [maxDepth=4] Max depth of data object that will be logged. Anything deeper than the limit will be stripped off.
+ * @property {number} [maxStringLength=2000] Max length of the string to be logged. Longer strings will be truncated.
+ * @property {string} [prefix] Prefix to be prepended the each logged line.
+ * @property {string} [suffix] Suffix that will be appended the each logged line.
+ * @property {Object} [logger] Logger implementation to be used. Default one is log.LoggerText to log messages as easily readable
+ * strings. Optionally you can use `log.LoggerJson` that formats each log line as a JSON.
+ * @property {Object} [data] Additional data to be added to each log line.
+ */
+
+/**
  * The log instance enables level aware logging of messages and we advise
  * to use it instead of `console.log()` and its aliases in most development
  * scenarios.
@@ -43,6 +56,12 @@ import log from 'apify-shared/log';
  * } catch (e) {
  *   log.exception(e, 'Exception occurred', { errorDetails: 'This is really bad!' }); // prints message
  * }
+ *
+ * log.setOptions({ prefix: 'My actor' });
+ * log.info('I am running!'); // prints "My actor: I am running"
+ *
+ * const childLog = log.child({ prefix: 'Crawler' });
+ * log.info('I am crawling!'); // prints "My actor:Crawler: I am crawling"
  * ```
  *
  * Another very useful way of setting the log level is by setting the `APIFY_LOG_LEVEL`
@@ -81,6 +100,30 @@ import log from 'apify-shared/log';
  * level is not high enough at the moment, it doesn't make sense to execute the query.
  * @name getLevel
  * @method
+ * @memberOf log
+ */
+
+/**
+ * Configures logger.
+ * @name setOptions
+ * @param {LoggerOptions} options
+ * @method
+ * @memberOf log
+ */
+
+/**
+ * Creates a new instance of logger that inherits settings from a parent logger.
+ * @name child
+ * @param {LoggerOptions} [options] Supports the same options as the `setOptions()` method.
+ * @method
+ * @memberOf log
+ */
+
+/**
+ * Returns the logger configuration.
+ * @name getOptions
+ * @method
+ * @returns {LoggerOptions}
  * @memberOf log
  */
 

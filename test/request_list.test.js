@@ -685,7 +685,7 @@ describe('Apify.RequestList', () => {
             expect(requestList.length()).toBe(4);
 
             log.setLevel(log.LEVELS.INFO);
-            const logStub = sinon.stub(console, 'log');
+            const logStub = sinon.stub(console, 'warn');
 
             requestList = new Apify.RequestList({
                 sources: sources.concat([

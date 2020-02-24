@@ -26,9 +26,6 @@ import { Session } from './session_pool/session';
 // Increase the global limit for event emitter memory leak warnings.
 EventEmitter.defaultMaxListeners = 50;
 
-// Log as plain text not JSON
-log.logJson = false;
-
 const exportedUtils = Object.assign(publicUtils, {
     puppeteer: puppeteerUtils,
     social: socialUtils,

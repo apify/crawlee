@@ -105,7 +105,7 @@ declare const exportedUtils: {
         YOUTUBE_REGEX: RegExp;
         YOUTUBE_REGEX_GLOBAL: RegExp;
     };
-    log: typeof log;
+    log: any;
     enqueueLinks: typeof enqueueLinks;
     requestAsBrowser: (options: import("./utils_request").RequestAsBrowserOptions) => Promise<any>;
 };
