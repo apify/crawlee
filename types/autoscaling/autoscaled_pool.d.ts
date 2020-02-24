@@ -222,7 +222,7 @@ declare class AutoscaledPool {
      *
      * @ignore
      */
-    _maybeRunTask(intervalCallback: any): Promise<void>;
+    async _maybeRunTask(intervalCallback: any): Promise<void>;
     snapshotter: any;
     systemStatus: SystemStatus;
     /**
@@ -286,7 +286,7 @@ declare class AutoscaledPool {
      *
      * @return {Promise}
      */
-    run(): Promise<any>;
+    async run(): Promise<any>;
     poolPromise: Promise<any>;
     autoscaleInterval: any;
     maybeRunInterval: any;
@@ -303,7 +303,7 @@ declare class AutoscaledPool {
      *
      * @return {Promise}
      */
-    abort(): Promise<any>;
+    async abort(): Promise<any>;
     /**
      * Prevents the auto-scaled pool from starting new tasks, but allows the running ones to finish
      * (unlike abort, which terminates them). Used together with {@link AutoscaledPool#resume}
@@ -318,7 +318,7 @@ declare class AutoscaledPool {
      * @param {number} [timeoutSecs]
      * @return {Promise}
      */
-    pause(timeoutSecs?: number): Promise<any>;
+    async pause(timeoutSecs?: number): Promise<any>;
     /**
      * Resumes the operation of the autoscaled-pool by allowing more tasks to be run.
      * Used together with {@link AutoscaledPool#pause}
@@ -351,14 +351,14 @@ declare class AutoscaledPool {
      *
      * @ignore
      */
-    _maybeFinish(): Promise<void>;
+    async _maybeFinish(): Promise<void>;
     queryingIsFinished: boolean;
     /**
      * Cleans up resources.
      *
      * @ignore
      */
-    _destroy(): Promise<void>;
+    async _destroy(): Promise<void>;
 }
 import { SnapshotterOptions } from "./snapshotter";
 import { SystemStatusOptions } from "./system_status";

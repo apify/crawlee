@@ -515,6 +515,12 @@ export type CheerioHandlePage = (inputs: CheerioHandlePageInputs) => Promise<voi
  *
  * await crawler.run();
  * ```
+ * @property {AutoscaledPool} autoscaledPool
+ *  A reference to the underlying {@link AutoscaledPool} class that manages the concurrency of the crawler.
+ *  Note that this property is only initialized after calling the {@link CheerioCrawler#run} function.
+ *  You can use it to change the concurrency settings on the fly,
+ *  to pause the crawler by calling {@link AutoscaledPool#pause}
+ *  or to abort it by calling {@link AutoscaledPool#abort}.
  */
 declare class CheerioCrawler {
     /**
