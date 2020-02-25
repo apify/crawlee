@@ -1,5 +1,5 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import stream from 'stream';
+import stream, { Readable } from 'stream';
 import StreamArray from 'stream-json/streamers/StreamArray';
 import util from 'util';
 import zlib from 'zlib';
@@ -88,6 +88,29 @@ exports.decompressData = async (compressedData) => {
 };
 
 /**
+ * Creates a stream that decompresses a Buffer previously created with
+ * compressData (technically, any JSON that is an Array) and collects it
+ * into an Array of values in a memory-efficient way (streaming the array
+ * items one by one instead of creating a fully decompressed buffer
+ * -> full JSON -> full Array all in memory at once. Could be further
+ * optimized to ingest a Stream if and when apify-client supports streams.
+ * @param compressedData
+ * @returns {Readable}
+ */
+exports.createDecompress = (compressedData) => {
+    checkParamOrThrow(compressedData, 'compressedData', 'Buffer');
+    const streamArray = StreamArray.withParser();
+    const destination = pluckValue(streamArray);
+    stream.pipeline(
+        stream.Readable.from([compressedData]),
+        zlib.createBrotliDecompress(),
+        destination,
+        err => destination.emit(err),
+    );
+    return destination;
+};
+
+/**
  * @return {{chunks: Array<string|Buffer>, collector: module:stream.internal.Writable}}
  */
 function createChunkCollector(options = {}) {
@@ -109,4 +132,10 @@ function createChunkCollector(options = {}) {
         },
     });
     return { collector, chunks };
+}
+
+function pluckValue(streamArray) {
+    const realPush = streamArray.push.bind(streamArray);
+    streamArray.push = obj => realPush(obj && obj.value);
+    return streamArray;
 }
