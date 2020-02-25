@@ -132,21 +132,16 @@ declare class Request {
      * `Request` parameters including the URL, HTTP method and headers, and others.
      */
     constructor(options?: RequestOptions);
-    /** @type {string} */
-    id: string;
-    /** @type {string} */
+    id: any;
     url: string;
-    /** @type {string} */
-    loadedUrl: string;
+    loadedUrl: any;
     uniqueKey: any;
     method: string;
     payload: any;
     noRetry: any;
-    /** @type {number} */
-    retryCount: number;
+    retryCount: any;
     errorMessages: any;
     headers: any;
-    /** @type {*} */
     userData: any;
     handledAt: Date | null;
     /**

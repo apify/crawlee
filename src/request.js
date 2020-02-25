@@ -134,21 +134,16 @@ class Request {
 
         if (!url) throw new Error('The "url" option cannot be empty string.');
 
-        /** @type {string} */
         this.id = id;
-        /** @type {string} */
         this.url = url;
-        /** @type {string} */
         this.loadedUrl = loadedUrl;
         this.uniqueKey = uniqueKey || computeUniqueKey({ url, method, payload, keepUrlFragment, useExtendedUniqueKey });
         this.method = method;
         this.payload = payload;
         this.noRetry = noRetry;
-        /** @type {number} */
         this.retryCount = retryCount;
         this.errorMessages = JSON.parse(JSON.stringify(errorMessages));
         this.headers = JSON.parse(JSON.stringify(headers));
-        /** @type {*} */
         this.userData = JSON.parse(JSON.stringify(userData));
 
         // Requests received from API will have ISOString dates,

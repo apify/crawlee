@@ -102,7 +102,6 @@ export class Session {
         this.cookieJar = cookieJar.setCookie ? cookieJar : CookieJar.fromJSON(JSON.stringify(cookieJar));
         this.id = id;
         this.maxAgeSecs = maxAgeSecs;
-        /** @type {*} */
         this.userData = userData;
         this.maxErrorScore = maxErrorScore;
         this.errorScoreDecrement = errorScoreDecrement;

@@ -141,36 +141,6 @@ Indicates the time when the request has been processed. Is `null` if the request
 
 ---
 
-<a name="id"></a>
-
-## `request.id`
-
----
-
-<a name="url"></a>
-
-## `request.url`
-
----
-
-<a name="loadedurl"></a>
-
-## `request.loadedUrl`
-
----
-
-<a name="retrycount"></a>
-
-## `request.retryCount`
-
----
-
-<a name="userdata"></a>
-
-## `request.userData`
-
----
-
 <a name="pusherrormessage"></a>
 
 ## `request.pushErrorMessage(errorOrMessage, [options])`

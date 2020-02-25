@@ -51,12 +51,6 @@ await puppeteerPool.destroy();
 
 ---
 
-<a name="sessionpool"></a>
-
-## `puppeteerPool.sessionPool`
-
----
-
 <a name="newpage"></a>
 
 ## `puppeteerPool.newPage()`

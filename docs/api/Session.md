@@ -23,12 +23,6 @@ Session configuration.
 
 ---
 
-<a name="userdata"></a>
-
-## `session.userData`
-
----
-
 <a name="isblocked"></a>
 
 ## `session.isBlocked()`

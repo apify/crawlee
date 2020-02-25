@@ -104,7 +104,6 @@ export class SessionPool extends EventEmitter {
         this.createSessionFunction = createSessionFunction || this._defaultCreateSessionFunction;
 
         // Session configuration
-        /** @type {SessionPoolOptions} */
         this.sessionOptions = sessionOptions;
 
         // Session keyValueStore
@@ -113,7 +112,6 @@ export class SessionPool extends EventEmitter {
 
         // Operative states
         this.keyValueStore = null;
-        /** @type {Array<Session>} */
         this.sessions = [];
     }
 

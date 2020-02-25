@@ -226,8 +226,6 @@ class PuppeteerPool {
         checkParamOrThrow(sessionPool, 'options.sessionPool', 'Maybe Object');
 
         // Config.
-
-        /** @type {SessionPool} */
         this.sessionPool = sessionPool;
         this.reusePages = reusePages;
         this.maxOpenPagesPerInstance = maxOpenPagesPerInstance;

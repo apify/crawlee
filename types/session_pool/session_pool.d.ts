@@ -70,13 +70,11 @@ export class SessionPool extends EventEmitter {
     constructor(options?: SessionPoolOptions | undefined);
     maxPoolSize: number;
     createSessionFunction: any;
-    /** @type {SessionPoolOptions} */
-    sessionOptions: SessionPoolOptions;
+    sessionOptions: {};
     persistStateKeyValueStoreId: any;
     persistStateKey: string;
     keyValueStore: import("../key_value_store").KeyValueStore | null;
-    /** @type {Array<Session>} */
-    sessions: Array<Session>;
+    sessions: any[];
     /**
      * Gets count of usable sessions in the pool.
      * @return {number}
@@ -111,7 +109,7 @@ export class SessionPool extends EventEmitter {
     getState(): {
         usableSessionsCount: number;
         retiredSessionsCount: number;
-        sessions: import("./session").SessionState[];
+        sessions: any[];
     };
     /**
      * Persists the current state of the `SessionPool` into the default {@link KeyValueStore}.

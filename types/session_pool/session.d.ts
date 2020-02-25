@@ -52,7 +52,6 @@ export class Session {
     cookieJar: CookieJar;
     id: string;
     maxAgeSecs: number;
-    /** @type {*} */
     userData: any;
     maxErrorScore: number;
     errorScoreDecrement: number;

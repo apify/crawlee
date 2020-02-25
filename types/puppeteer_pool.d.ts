@@ -177,8 +177,7 @@ declare class PuppeteerPool {
      *   via an options object.
      */
     constructor(options?: PuppeteerPoolOptions | undefined);
-    /** @type {SessionPool} */
-    sessionPool: SessionPool;
+    sessionPool: any;
     reusePages: boolean;
     maxOpenPagesPerInstance: any;
     retireInstanceAfterRequestCount: any;
@@ -329,7 +328,6 @@ declare class PuppeteerPool {
 }
 import { LaunchPuppeteerOptions } from "./puppeteer";
 import { Browser } from "puppeteer";
-import { SessionPool } from "./session_pool/session_pool";
 import LiveViewServer from "./live_view/live_view_server";
 /**
  * Internal representation of Puppeteer instance.

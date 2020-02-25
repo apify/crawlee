@@ -261,21 +261,21 @@ For more information, see the [Apify Proxy](https://my.apify.com/proxy) page in 
 
 **Params**
 
--   **`[options]`**: `Object` <code> = {}</code> - Object with the settings below: - **`[.password]`**: `string` - User's password for the proxy. By
-    default, it is taken from the `APIFY_PROXY_PASSWORD` environment variable, which is automatically set by the system when running the actors on the
-    Apify cloud, or when using the [Apify CLI](https://github.com/apifytech/apify-cli) package and the user previously logged in (called
-    `apify login`). - **`[.groups]`**: `Array<string>` - Array of Apify Proxy groups to be used. If not provided, the proxy will select the groups
-    automatically. - **`[.session]`**: `string` - Apify Proxy session identifier to be used by the Chrome browser. All HTTP requests going through the
-    proxy with the same session identifier will use the same target proxy server (i.e. the same IP address), unless using Residential proxies. The
-    identifier can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`. - **`[.country]`**: `string` - If specified,
-    all proxied requests will use IP addresses that are geolocated to the specified country. For example `GB` for IPs from Great Britain. Note that
-    online services often have their own rules for handling geolocation and thus the country selection is a best attempt at geolocation, rather than a
-    guaranteed hit. This parameter is optional, by default, each proxied request is assigned an IP address from a random country. The country code
-    needs to be a two letter ISO country code \- see the
-    <a href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements" target="_blank"> full list of available country codes
-    </a>.
-
-This parameter is optional, by default, the proxy uses all available proxy servers from all countries.
+-   **`[options]`**: `Object` - Object with the props below:
+    -   **`[.password]`**: `string` - User's password for the proxy. By default, it is taken from the `APIFY_PROXY_PASSWORD` environment variable,
+        which is automatically set by the system when running the actors on the Apify cloud, or when using the
+        [Apify CLI](https://github.com/apifytech/apify-cli) package and the user previously logged in (called `apify login`).
+    -   **`[.groups]`**: `Array<string>` - Array of Apify Proxy groups to be used. If not provided, the proxy will select the groups automatically.
+    -   **`[.session]`**: `string` - Apify Proxy session identifier to be used by the Chrome browser. All HTTP requests going through the proxy with
+        the same session identifier will use the same target proxy server (i.e. the same IP address), unless using Residential proxies. The identifier
+        can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
+    -   **`[.country]`**: `string` - If set and relevant proxies are available in your Apify account, all proxied requests will use IP addresses that
+        are geolocated to the specified country. For example `GB` for IPs from Great Britain. Note that online services often have their own rules for
+        handling geolocation and thus the country selection is a best attempt at geolocation, rather than a guaranteed hit. This parameter is
+        optional, by default, each proxied request is assigned an IP address from a random country. The country code needs to be a two letter ISO
+        country code. See the
+        [full list of available country codes](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements). This parameter is
+        optional, by default, the proxy uses all available proxy servers from all countries.
 
 ---
 

@@ -62,18 +62,6 @@ Session pool configuration.
 
 ---
 
-<a name="sessionoptions"></a>
-
-## `sessionPool.sessionOptions`
-
----
-
-<a name="sessions"></a>
-
-## `sessionPool.sessions`
-
----
-
 <a name="usablesessionscount"></a>
 
 ## `sessionPool.usableSessionsCount`
