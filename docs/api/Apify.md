@@ -479,7 +479,7 @@ Apify.main(() => {
 If the user function returns a promise, it is considered asynchronous:
 
 ```javascript
-const request = require('request-promise-native');
+const { requestAsBrowser } = require('some-request-library');
 
 Apify.main(() => {
     // My asynchronous function that returns a promise
@@ -492,7 +492,7 @@ Apify.main(() => {
 To simplify your code, you can take advantage of the `async`/`await` keywords:
 
 ```javascript
-const request = require('request-promise-native');
+const request = require('some-request-library');
 
 Apify.main(async () => {
     // My asynchronous function
