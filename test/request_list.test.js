@@ -815,4 +815,8 @@ describe('Apify.RequestList', () => {
             }
         });
     });
+
+    test('memory consumption should grow linearly with amount of requests', async () => {
+        // TODO
+    });
 });
