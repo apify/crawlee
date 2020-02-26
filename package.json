@@ -57,7 +57,7 @@
         "@types/puppeteer": "^2.0.0",
         "@types/tough-cookie": "^2.3.6",
         "@types/socket.io": "^2.1.4",
-        "apify-client": "^0.5.25",
+        "apify-client": "^0.6.0",
         "apify-shared": "^0.2.7",
         "cheerio": "^1.0.0-rc.3",
         "content-type": "^1.0.4",
