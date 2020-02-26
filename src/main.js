@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import log from 'apify-shared/log';
+import log from './utils_log';
 import { main, getEnv, call, callTask, getApifyProxyUrl, metamorph, addWebhook } from './actor';
 import AutoscaledPool from './autoscaling/autoscaled_pool';
 import BasicCrawler from './crawlers/basic_crawler';

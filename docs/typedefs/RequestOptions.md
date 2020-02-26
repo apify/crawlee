@@ -5,13 +5,13 @@ title: RequestOptions
 
 <a name="requestoptions"></a>
 
-Specifies required and optional fields for constructing a [`Request.setValue()`](/docs/api/request#setvalue).
+Specifies required and optional fields for constructing a [`Request`](../api/request).
 
 ## Properties
 
 ### `url`
 
-**Type**: `String`
+**Type**: `string`
 
 URL of the web page to crawl. It must be a non-empty string.
 
@@ -19,7 +19,7 @@ URL of the web page to crawl. It must be a non-empty string.
 
 ### `uniqueKey`
 
-**Type**: `String`
+**Type**: `string`
 
 A unique key identifying the request. Two requests with the same `uniqueKey` are considered as pointing to the same URL.
 
@@ -38,13 +38,13 @@ Pass an arbitrary non-empty text value to the `uniqueKey` property to override t
 
 ### `method`
 
-**Type**: `String` <code> = &#x27;GET&#x27;</code>
+**Type**: `string` <code> = &quot;&#x27;GET&#x27;&quot;</code>
 
 ---
 
 ### `payload`
 
-**Type**: `String` | `Buffer`
+**Type**: `string` | `Buffer`
 
 HTTP request payload, e.g. for POST requests.
 
@@ -67,7 +67,7 @@ HTTP headers in the following format:
 
 ### `userData`
 
-**Type**: `Object` <code> = {}</code>
+**Type**: `object` <code> = {}</code>
 
 Custom user data assigned to the request. Use this to save any request related data to the request's scope, keeping them accessible on retries,
 failures etc.
@@ -76,7 +76,7 @@ failures etc.
 
 ### `keepUrlFragment`
 
-**Type**: `Boolean` <code> = false</code>
+**Type**: `boolean` <code> = false</code>
 
 If `false` then the hash part of a URL is removed when computing the `uniqueKey` property. For example, this causes the `http://www.example.com#foo`
 and `http://www.example.com#bar` URLs to have the same `uniqueKey` of `http://www.example.com` and thus the URLs are considered equal. Note that this
@@ -86,7 +86,7 @@ option only has an effect if `uniqueKey` is not set.
 
 ### `useExtendedUniqueKey`
 
-**Type**: `Boolean` <code> = false</code>
+**Type**: `boolean` <code> = false</code>
 
 If `true` then the `uniqueKey` is computed not only from the URL, but also from the method and payload properties. This is useful when making requests
 to the same URL that are differentiated by method or payload, such as form submit navigations in browsers.

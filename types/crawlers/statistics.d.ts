@@ -21,8 +21,8 @@ export default class Statistics {
     minJobDurationMillis: number;
     maxJobDurationMillis: number;
     totalJobDurationMillis: number;
-    startedAt: Date;
-    logInterval: NodeJS.Timeout;
+    startedAt: Date | null;
+    logInterval: NodeJS.Timeout | null;
     startJob(id: any): void;
     finishJob(id: any): void;
     failJob(id: any): void;

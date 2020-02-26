@@ -23,7 +23,7 @@ Represents state of a {RequestList}. It can be used to resume a {RequestList} wh
 
 ### `nextIndex`
 
-**Type**: `Number`
+**Type**: `number`
 
 Position of the next request to be processed.
 
@@ -31,7 +31,7 @@ Position of the next request to be processed.
 
 ### `nextUniqueKey`
 
-**Type**: `String`
+**Type**: `string`
 
 Key of the next request to be processed.
 
@@ -39,7 +39,7 @@ Key of the next request to be processed.
 
 ### `inProgress`
 
-**Type**: `Object<String, Boolean>`
+**Type**: `Object<string, boolean>`
 
 An object mapping request keys to a boolean value respresenting whether they are being processed at the moment.
 

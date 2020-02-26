@@ -1,12 +1,12 @@
-import fs from 'fs';
-import vm from 'vm';
-import util from 'util';
-import _ from 'underscore';
-import log from 'apify-shared/log';
+import * as fs from 'fs';
+import * as vm from 'vm';
+import * as util from 'util';
+import * as _ from 'underscore';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
-import LruCache from 'apify-shared/lru_cache';
-import { Page, Response } from 'puppeteer'; // eslint-disable-line no-unused-vars
+import * as LruCache from 'apify-shared/lru_cache';
+import { Page, Response, DirectNavigationOptions } from 'puppeteer'; // eslint-disable-line no-unused-vars
+import log from './utils_log';
 
 import { RequestQueue, RequestQueueLocal } from './request_queue';
 import Request from './request';
@@ -28,7 +28,7 @@ const DEFAULT_BLOCK_REQUEST_URL_PATTERNS = ['.css', '.jpg', '.jpeg', '.png', '.s
  *
  * @param {Page} page
  *   Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
- * @return {Promise}
+ * @return {Promise<void>}
  * @memberOf puppeteer
  * @ignore
  */
@@ -79,13 +79,13 @@ const injectedFilesCache = new LruCache({ maxLength: MAX_INJECT_FILE_CACHE_SIZE 
  *
  * @param {Page} page
  *   Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
- * @param {String} filePath File path
+ * @param {string} filePath File path
  * @param {Object} [options]
  * @param {boolean} [options.surviveNavigations]
  *   Enables the injected script to survive page navigations and reloads without need to be re-injected manually.
  *   This does not mean, however, that internal state will be preserved. Just that it will be automatically
  *   re-injected on each navigation before any other scripts get the chance to execute.
- * @return {Promise}
+ * @return {Promise<*>}
  * @memberOf puppeteer
  */
 const injectFile = async (page, filePath, options = {}) => {
@@ -129,7 +129,7 @@ const injectFile = async (page, filePath, options = {}) => {
  *
  * @param {Page} page
  *   Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
- * @return {Promise}
+ * @return {Promise<*>}
  * @memberOf puppeteer
  */
 const injectJQuery = (page) => {
@@ -155,7 +155,7 @@ const injectJQuery = (page) => {
  * ```
  *
  * @param {Page} page Puppeteer [Page](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page) object.
- * @return {Promise}
+ * @return {Promise<*>}
  * @memberOf puppeteer
  */
 const injectUnderscore = (page) => {
@@ -239,7 +239,7 @@ const enqueueRequestsFromClickableElements = async (page, selector, purls, reque
  *   `.png` is the same as `*.png*`.
  * @param {string[]} [options.extraUrlPatterns]
  *   If you just want to append to the default blocked patterns, use this property.
- * @return {Promise}
+ * @return {Promise<void>}
  * @memberOf puppeteer
  */
 const blockRequests = async (page, options = {}) => {
@@ -285,10 +285,10 @@ const blockResources = async (page, resourceTypes = ['stylesheet', 'font', 'imag
  *   Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
  * @param {Object} cache
  *   Object in which responses are stored
- * @param {Array<String|RegExp>} responseUrlRules
+ * @param {Array<(string|RegExp)>} responseUrlRules
  *   List of rules that are used to check if the response should be cached.
  *   String rules are compared as page.url().includes(rule) while RegExp rules are evaluated as rule.test(page.url()).
- * @return {Promise}
+ * @return {Promise<void>}
  * @memberOf puppeteer
  * @deprecated
  */
@@ -366,7 +366,7 @@ const cacheResponses = async (page, cache, responseUrlRules) => {
  * make sure to only pass the really necessary objects to the context. Preferably making
  * secured copies beforehand.
  *
- * @param {String} scriptString
+ * @param {string} scriptString
  * @param {Object} context
  * @return {Function} `async ({ page, request }) => { scriptString }`
  * @memberOf puppeteer
@@ -398,8 +398,8 @@ const compileScript = (scriptString, context = Object.create(null)) => {
  * @param {Page} page
  *   Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
  * @param {Request} request
- * @param {Object} gotoOptions Custom options for `page.goto()`.
- * @return {Promise<Response>}
+ * @param {DirectNavigationOptions} gotoOptions Custom options for `page.goto()`.
+ * @return {Promise<(Response | null)>}
  *
  * @memberOf puppeteer
  * @name gotoExtended
@@ -440,14 +440,14 @@ export const gotoExtended = async (page, request, gotoOptions = {}) => {
 /**
  * Scrolls to the bottom of a page, or until it times out.
  * Loads dynamic content when it hits the bottom of a page, and then continues scrolling.
- * @param {Object} page
+ * @param {Page} page
  *   Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
  * @param {Object} [options]
- * @param {Number} [options.timeoutSecs=0]
+ * @param {number} [options.timeoutSecs=0]
  *   How many seconds to scroll for. If 0, will scroll until bottom of page.
- * @param {Number} [options.waitForSecs=4]
+ * @param {number} [options.waitForSecs=4]
  *   How many seconds to wait for no new content to load before exit.
- * @returns {Promise}
+ * @returns {Promise<void>}
  * @memberOf puppeteer
  * @name infiniteScroll
  */
@@ -509,20 +509,20 @@ export const infiniteScroll = async (page, options = {}) => {
 
 /**
  * Saves a full screenshot and HTML of the current page into a Key-Value store.
- * @param {Object} page
+ * @param {Page} page
  *   Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
  * @param {Object} [options]
- * @param {String} [options.key=SNAPSHOT]
+ * @param {string} [options.key=SNAPSHOT]
  *   Key under which the screenshot and HTML will be saved. `.jpg` will be appended for screenshot and `.html` for HTML.
- * @param {Number} [options.screenshotQuality=50]
+ * @param {number} [options.screenshotQuality=50]
  *   The quality of the image, between 0-100. Higher quality images have bigger size and require more storage.
- * @param {Boolean} [options.saveScreenshot=true]
+ * @param {boolean} [options.saveScreenshot=true]
  *   If true, it will save a full screenshot of the current page as a record with `key` appended by `.jpg`.
- * @param {Boolean} [options.saveHtml=true]
+ * @param {boolean} [options.saveHtml=true]
  *   If true, it will save a full HTML of the current page as a record with `key` appended by `.html`.
- * @param {String} [options.keyValueStoreName=null]
+ * @param {string} [options.keyValueStoreName=null]
  *   Name or id of the Key-Value store where snapshot is saved. By default it is saved to default Key-Value store.
- * @returns {Promise}
+ * @returns {Promise<void>}
  * @memberOf puppeteer
  * @name saveSnapshot
  */

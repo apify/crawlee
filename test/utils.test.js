@@ -7,8 +7,8 @@ import cheerio from 'cheerio';
 import semver from 'semver';
 import requestPromise from 'request-promise-native';
 import LruCache from 'apify-shared/lru_cache';
-import log from 'apify-shared/log';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
+import log from '../build/utils_log';
 import * as utils from '../build/utils';
 import Apify from '../build/index';
 

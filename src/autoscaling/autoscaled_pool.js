@@ -1,7 +1,7 @@
-import _ from 'underscore';
+import * as _ from 'underscore';
 import { betterSetInterval, betterClearInterval } from 'apify-shared/utilities';
-import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
+import log from '../utils_log';
 import Snapshotter, { SnapshotterOptions } from './snapshotter'; // eslint-disable-line import/named,no-unused-vars
 import SystemStatus, { SystemStatusOptions } from './system_status'; // eslint-disable-line import/named,no-unused-vars
 
@@ -18,7 +18,7 @@ const DEFAULT_OPTIONS = {
 
 
 /**
- * @typedef {Object} AutoscaledPoolOptions
+ * @typedef AutoscaledPoolOptions
  * @property {Function} runTaskFunction
  *   A function that performs an asynchronous resource-intensive task.
  *   The function must either be labeled `async` or return a promise.
@@ -36,32 +36,32 @@ const DEFAULT_OPTIONS = {
  *   keeps resolving to `true`, `isFinishedFunction()` will never be called.
  *   To abort a run, use the {@link AutoscaledPool#abort} method.
  *
- * @property {Number} [minConcurrency=1]
+ * @property {number} [minConcurrency=1]
  *   The minimum number of tasks running in parallel.
  *
  *   *WARNING:* If you set this value too high with respect to the available system memory and CPU, your code might run extremely slow or crash.
  *   If you're not sure, just keep the default value and the concurrency will scale up automatically.
- * @property {Number} [maxConcurrency=1000]
+ * @property {number} [maxConcurrency=1000]
  *   The maximum number of tasks running in parallel.
- * @property {Number} [desiredConcurrency]
+ * @property {number} [desiredConcurrency]
  *   The desired number of tasks that should be running parallel on the start of the pool,
  *   if there is a large enough supply of them.
  *   By default, it is `minConcurrency`.
- * @property {Number} [desiredConcurrencyRatio=0.95]
+ * @property {number} [desiredConcurrencyRatio=0.95]
  *   Minimum level of desired concurrency to reach before more scaling up is allowed.
- * @property {Number} [scaleUpStepRatio=0.05]
+ * @property {number} [scaleUpStepRatio=0.05]
  *   Defines the fractional amount of desired concurrency to be added with each scaling up.
  *   The minimum scaling step is one.
- * @property {Number} [scaleDownStepRatio=0.05]
+ * @property {number} [scaleDownStepRatio=0.05]
  *   Defines the amount of desired concurrency to be subtracted with each scaling down.
  *   The minimum scaling step is one.
- * @property {Number} [maybeRunIntervalSecs=0.5]
+ * @property {number} [maybeRunIntervalSecs=0.5]
  *   Indicates how often the pool should call the `runTaskFunction()` to start a new task, in seconds.
  *   This has no effect on starting new tasks immediately after a task completes.
- * @property {Number} [loggingIntervalSecs=60]
+ * @property {number} [loggingIntervalSecs=60]
  *   Specifies a period in which the instance logs its state, in seconds.
  *   Set to `null` to disable periodic logging.
- * @property {Number} [autoscaleIntervalSecs=10]
+ * @property {number} [autoscaleIntervalSecs=10]
  *   Defines in seconds how often the pool should attempt to adjust the desired concurrency
  *   based on the latest system status. Setting it lower than 1 might have a severe impact on performance.
  *   We suggest using a value from 5 to 20.
@@ -281,7 +281,7 @@ class AutoscaledPool {
      * Runs the auto-scaled pool. Returns a promise that gets resolved or rejected once
      * all the tasks are finished or one of them fails.
      *
-     * @return {Promise}
+     * @return {Promise<void>}
      */
     async run() {
         this.poolPromise = new Promise((resolve, reject) => {
@@ -318,7 +318,7 @@ class AutoscaledPool {
      * their state after the invocation of `.abort()`, but that does not mean that some
      * parts of their asynchronous chains of commands will not execute.
      *
-     * @return {Promise}
+     * @return {Promise<void>}
      */
     async abort() {
         this.isStopped = true;
@@ -340,7 +340,7 @@ class AutoscaledPool {
      * when `.pause()` is invoked (unlike abort, which resolves it).
      *
      * @param {number} [timeoutSecs]
-     * @return {Promise}
+     * @return {Promise<void>}
      */
     async pause(timeoutSecs) {
         if (this.isStopped) return;

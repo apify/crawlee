@@ -80,7 +80,7 @@ await store.drop();
 
 ## `keyValueStore.getValue(key)`
 
-**Returns**: `Promise<(Object|String|Buffer)>` - Returns a promise that resolves to an object, string or [](https://nodejs.org/api/buffer.html),
+**Returns**: `Promise<(object|Buffer|string|null)>` - Returns a promise that resolves to an object, string or [](https://nodejs.org/api/buffer.html),
 depending on the MIME content type of the record.
 
 Gets a value from the key-value store.
@@ -102,7 +102,7 @@ const buffer = await store.getValue('screenshot1.png');
 
 **Params**
 
--   **`key`**: `String` - Unique key of the record. It can be at most 256 characters long and only consist of the following characters: `a`-`z`,
+-   **`key`**: `string` - Unique key of the record. It can be at most 256 characters long and only consist of the following characters: `a`-`z`,
     `A`-`Z`, `0`-`9` and `!-_.'()`
 
 ---
@@ -143,9 +143,9 @@ stored!
 
 **Params**
 
--   **`key`**: `String` - Unique key of the record. It can be at most 256 characters long and only consist of the following characters: `a`-`z`,
+-   **`key`**: `string` - Unique key of the record. It can be at most 256 characters long and only consist of the following characters: `a`-`z`,
     `A`-`Z`, `0`-`9` and `!-_.'()`
--   **`value`**: `Object` | `String` | `Buffer` - Record data, which can be one of the following values:
+-   **`value`**: `Object` | `string` | `Buffer` | `null` - Record data, which can be one of the following values:
     <ul>
       <li>If `null`, the record in the key-value store is deleted.</li>
       <li>If no `options.contentType` is specified, `value` can be any JavaScript object and it will be stringified to JSON.</li>
@@ -154,7 +154,7 @@ stored!
     </ul>
     For any other value an error will be thrown.
 -   **`[options]`**: `Object`
-    -   **`[.contentType]`**: `String` - Specifies a custom MIME content type of the record.
+    -   **`[.contentType]`**: `string` - Specifies a custom MIME content type of the record.
 
 ---
 

@@ -17,13 +17,13 @@ Persistable [`Session`](/docs/api/session) state.
 
 ### `cookieJar`
 
-**Type**: `Object`
+**Type**: `CookieJar`
 
 ---
 
 ### `userData`
 
-**Type**: `Object`
+**Type**: `object`
 
 ---
 

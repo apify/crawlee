@@ -144,7 +144,7 @@ Gets the the number of parallel tasks currently running in the pool.
 
 ## `autoscaledPool.run()`
 
-**Returns**: `Promise`
+**Returns**: `Promise<void>`
 
 Runs the auto-scaled pool. Returns a promise that gets resolved or rejected once all the tasks are finished or one of them fails.
 
@@ -154,7 +154,7 @@ Runs the auto-scaled pool. Returns a promise that gets resolved or rejected once
 
 ## `autoscaledPool.abort()`
 
-**Returns**: `Promise`
+**Returns**: `Promise<void>`
 
 Aborts the run of the auto-scaled pool and destroys it. The promise returned from the [`AutoscaledPool.run()`](/docs/api/autoscaled-pool#run) function
 will immediately resolve, no more new tasks will be spawned and all running tasks will be left in their current state.
@@ -169,7 +169,7 @@ but that does not mean that some parts of their asynchronous chains of commands 
 
 ## `autoscaledPool.pause([timeoutSecs])`
 
-**Returns**: `Promise`
+**Returns**: `Promise<void>`
 
 Prevents the auto-scaled pool from starting new tasks, but allows the running ones to finish (unlike abort, which terminates them). Used together with
 [`AutoscaledPool.resume()`](/docs/api/autoscaled-pool#resume)

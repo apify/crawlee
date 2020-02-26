@@ -57,7 +57,7 @@ provided (or both).
 
 ### `handlePageTimeoutSecs`
 
-**Type**: `Number` <code> = 60</code>
+**Type**: `number` <code> = 60</code>
 
 Timeout in which the function passed as `handlePageFunction` needs to finish, in seconds.
 
@@ -82,7 +82,7 @@ code on [GitHub](https://github.com/apifytech/apify-js/blob/master/src/crawlers/
 
 ### `gotoTimeoutSecs`
 
-**Type**: `Number` <code> = 60</code>
+**Type**: `number` <code> = 60</code>
 
 Timeout in which page navigation needs to finish, in seconds. When `gotoFunction()` is used and thus the default function is overridden, this timeout
 will not be used and needs to be configured in the new `gotoFunction()`.
@@ -114,7 +114,7 @@ function.
 
 ### `maxRequestRetries`
 
-**Type**: `Number` <code> = 3</code>
+**Type**: `number` <code> = 3</code>
 
 Indicates how many times the request is retried if either `handlePageFunction()` or `gotoFunction()` fails.
 
@@ -122,7 +122,7 @@ Indicates how many times the request is retried if either `handlePageFunction()`
 
 ### `maxRequestsPerCrawl`
 
-**Type**: `Number`
+**Type**: `number`
 
 Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached. Always set this value in order to prevent infinite
 loops in misconfigured crawlers. Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.
@@ -139,7 +139,7 @@ Custom options passed to the underlying [`PuppeteerPool`](/docs/api/puppeteer-po
 
 ### `launchPuppeteerFunction`
 
-**Type**: `function`
+**Type**: [`LaunchPuppeteerFunction`](/docs/typedefs/launch-puppeteer-function)
 
 Overrides the default function to launch a new Puppeteer instance. Shortcut to the corresponding [`PuppeteerPool`](/docs/api/puppeteer-pool) option.
 See source code on [GitHub](https://github.com/apifytech/apify-js/blob/master/src/puppeteer_pool.js#L28) for default behavior.
@@ -166,7 +166,7 @@ Custom options passed to the underlying [`AutoscaledPool`](/docs/api/autoscaled-
 
 ### `minConcurrency`
 
-**Type**: `Number` <code> = 1</code>
+**Type**: `number` <code> = 1</code>
 
 Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding
 [`AutoscaledPoolOptions.minConcurrency`](/docs/typedefs/autoscaled-pool-options#minconcurrency) option.
@@ -178,7 +178,7 @@ you're not sure, just keep the default value and the concurrency will scale up a
 
 ### `maxConcurrency`
 
-**Type**: `Number` <code> = 1000</code>
+**Type**: `number` <code> = 1000</code>
 
 Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding
 [`AutoscaledPoolOptions.maxConcurrency`](/docs/typedefs/autoscaled-pool-options#maxconcurrency) option.
@@ -187,7 +187,7 @@ Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corres
 
 ### `useSessionPool`
 
-**Type**: `Boolean` <code> = false</code>
+**Type**: `boolean` <code> = false</code>
 
 If set to true Crawler will automatically use Session Pool. It will automatically retire sessions on 403, 401 and 429 status codes. It also marks
 Session as bad after a request timeout.
@@ -204,7 +204,7 @@ Custom options passed to the underlying [`SessionPool`](/docs/api/session-pool) 
 
 ### `persistCookiesPerSession`
 
-**Type**: `Boolean` <code> = false</code>
+**Type**: `boolean` <code> = false</code>
 
 Automatically saves cookies to Session. Works only if Session Pool is used.
 

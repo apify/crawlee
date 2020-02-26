@@ -1,35 +1,40 @@
 /**
  * Helper factory used in the `enqueueLinks()` and enqueueLinksByClickingElements() function.
- * @param {string[]|Object[]} pseudoUrls
- * @return {PseudoUrl[]}
+ * @param {Array<(string|Object)>} pseudoUrls
+ * @return {Array<PseudoUrl>}
  * @ignore
  */
-export function constructPseudoUrlInstances(pseudoUrls: any[] | string[]): PseudoUrl[];
+export function constructPseudoUrlInstances(pseudoUrls: (string | Object)[]): PseudoUrl[];
 /**
- * @param {string[]|Object[]} requestOptions
- * @param {PseudoUrl[]} pseudoUrls
- * @return {Request[]}
+ * @param {Array<(string|Object)>} requestOptions
+ * @param {Array<PseudoUrl>} pseudoUrls
+ * @return {Array<Request>}
  * @ignore
  */
-export function createRequests(requestOptions: any[] | string[], pseudoUrls: PseudoUrl[]): Request[];
+export function createRequests(requestOptions: (string | Object)[], pseudoUrls: PseudoUrl[]): Request[];
 /**
- * @param {string[]|Object[]} sources
+ * @param {Array<(string|Object)>} sources
  * @param {Object} [userData]
  * @ignore
  */
-export function createRequestOptions(sources: any[] | string[], userData?: any): any;
+export function createRequestOptions(sources: (string | Object)[], userData?: Object | undefined): (Object | {
+    url: string;
+})[];
 /**
- * @param {Request[]} requests
+ * @param {Array<Request>} requests
  * @param {RequestQueue} requestQueue
  * @param {number} batchSize
- * @return {Promise<QueueOperationInfo[]>}
+ * @return {Promise<Array<QueueOperationInfo>>}
  * @ignore
  */
-export function addRequestsToQueueInBatches(requests: Request[], requestQueue: any, batchSize?: number): Promise<any[]>;
+export function addRequestsToQueueInBatches(requests: Request[], requestQueue: RequestQueue, batchSize?: number): Promise<QueueOperationInfo[]>;
 /**
  * Takes an Apify {RequestOptions} object and changes it's attributes in a desired way. This user-function is used
  * {@link utils#enqueueLinks} to modify requests before enqueuing them.
  */
-export type RequestTransform = (original: any) => any;
+export type RequestTransform = (original: RequestOptions) => RequestOptions;
 import PseudoUrl from "../pseudo_url";
 import Request from "../request";
+import { RequestQueue } from "../request_queue";
+import { QueueOperationInfo } from "../request_queue";
+import { RequestOptions } from "../request";

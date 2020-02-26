@@ -1,8 +1,8 @@
 import { cryptoRandomObjectId } from 'apify-shared/utilities';
-import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { Cookie, CookieJar } from 'tough-cookie';
-import EVENTS from './events'; // eslint-disable-line import/named,no-unused-vars
+import log from '../utils_log';
+import EVENTS from './events';
 import { STATUS_CODES_BLOCKED } from '../constants';
 import { getCookiesFromResponse } from './session_utils';
 
@@ -10,14 +10,16 @@ import { getCookiesFromResponse } from './session_utils';
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order,import/no-cycle */
 import { SessionPool } from './session_pool';
 import { Cookie as PuppeteerCookie } from 'puppeteer';
+import { IncomingMessage } from 'http';
+import { Response as PuppeteerResponse } from 'puppeteer';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order,import/no-cycle */
 
 /**
  * Persistable {@link Session} state.
- * @typedef {Object} SessionState
+ * @typedef SessionState
  * @property {string} id
- * @property {Object} cookieJar
- * @property {Object} userData
+ * @property {CookieJar} cookieJar
+ * @property {object} userData
  * @property {number} errorScore
  * @property {number} maxErrorScore
  * @property {number} errorScoreDecrement
@@ -27,10 +29,10 @@ import { Cookie as PuppeteerCookie } from 'puppeteer';
  */
 
 /**
- * @typedef {Object} SessionOptions
+ * @typedef SessionOptions
  * @property {string} [id] - Id of session used for generating fingerprints. It is used as proxy session name.
  * @property {number} [maxAgeSecs=3000] - Number of seconds after which the session is considered as expired.
- * @property {Object} userData - Object where custom user data can be stored. For example custom headers.
+ * @property {object} [userData] - Object where custom user data can be stored. For example custom headers.
  * @property {number} [maxErrorScore=3] - Maximum number of marking session as blocked usage.
  *   If the `errorScore` reaches the `maxErrorScore` session is marked as block and it is thrown away.
  *   It starts at 0. Calling the `markBad` function increases the `errorScore` by 1.
@@ -46,14 +48,17 @@ import { Cookie as PuppeteerCookie } from 'puppeteer';
  *   This number indicates how many times the session is going to be used, before it is thrown away.
  * @property {SessionPool} sessionPool - SessionPool instance. Session will emit the `sessionRetired` event on this instance.
  */
+
 /**
  *  Sessions are used to store information such as cookies and can be used for generating fingerprints and proxy sessions.
  *  You can imagine each session as a specific user, with its own cookies, IP (via proxy) and potentially a unique browser fingerprint.
  *  Session internal state can be enriched with custom user data for example some authorization tokens and specific headers in general.
+ *
  */
 export class Session {
     /**
      * Session configuration.
+     *
      * @param {SessionOptions} options
      */
     constructor(options = {}) {
@@ -90,11 +95,10 @@ export class Session {
             throw new Error('Session: sessionPool must be instance of SessionPool');
         }
 
-        // Configurable
         /**
-         * @type CookieJar
+         * @type {CookieJar}
          * @private
-         * */
+         */
         this.cookieJar = cookieJar.setCookie ? cookieJar : CookieJar.fromJSON(JSON.stringify(cookieJar));
         this.id = id;
         this.maxAgeSecs = maxAgeSecs;
@@ -167,7 +171,6 @@ export class Session {
     getState() {
         return {
             id: this.id,
-            cookies: this.cookies,
             cookieJar: this.cookieJar.toJSON(),
             userData: this.userData,
             maxErrorScore: this.maxErrorScore,
@@ -227,7 +230,8 @@ export class Session {
      * (typical Node.js responses) or a `Function` (Puppeteer Response).
      *
      * It then parses and saves the cookies from the `set-cookie` header, if available.
-     * @param {{ headers }} response
+
+     * @param {(PuppeteerResponse|IncomingMessage)} response
      */
     setCookiesFromResponse(response) {
         try {
@@ -253,8 +257,8 @@ export class Session {
      * ]
      * ```
      *
-     * @param cookies {PuppeteerCookie[]}
-     * @param url {string}
+     * @param {PuppeteerCookie[]} cookies
+     * @param {string} url
      */
     setPuppeteerCookies(cookies, url) {
         try {
@@ -267,7 +271,7 @@ export class Session {
 
     /**
      * Returns cookies in a format compatible with puppeteer and ready to be used with `page.setCookie`.
-     * @param url {String} - website url. Only cookies stored for this url will be returned
+     * @param {string} url website url. Only cookies stored for this url will be returned
      * @return {PuppeteerCookie[]}
      */
     getPuppeteerCookies(url) {
@@ -287,10 +291,9 @@ export class Session {
         return this.cookieJar.getCookieStringSync(url, {});
     }
 
-
     /**
      * Transforms puppeteer cookie to tough-cookie.
-     * @param puppeteerCookie {PuppeteerCookie} - Cookie from puppeteer `page.cookies method.
+     * @param {PuppeteerCookie} puppeteerCookie Cookie from puppeteer `page.cookies method.
      * @return {Cookie}
      * @private
      */

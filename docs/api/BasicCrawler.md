@@ -57,6 +57,17 @@ const crawler = new Apify.BasicCrawler({
 await crawler.run();
 ```
 
+## Properties
+
+### `autoscaledPool`
+
+**Type**: [`AutoscaledPool`](/docs/api/autoscaled-pool)
+
+A reference to the underlying [`AutoscaledPool`](/docs/api/autoscaled-pool) class that manages the concurrency of the crawler. Note that this property
+is only initialized after calling the [`BasicCrawler.run()`](/docs/api/basic-crawler#run) function. You can use it to change the concurrency settings
+on the fly, to pause the crawler by calling [`AutoscaledPool.pause()`](/docs/api/autoscaled-pool#pause) or to abort it by calling
+[`AutoscaledPool.abort()`](/docs/api/autoscaled-pool#abort).
+
 ---
 
 <a name="basiccrawler"></a>

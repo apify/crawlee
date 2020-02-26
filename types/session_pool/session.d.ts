@@ -1,9 +1,10 @@
+/// <reference types="node" />
 /**
  * Persistable {@link Session} state.
- * @typedef {Object} SessionState
+ * @typedef SessionState
  * @property {string} id
- * @property {Object} cookieJar
- * @property {Object} userData
+ * @property {CookieJar} cookieJar
+ * @property {object} userData
  * @property {number} errorScore
  * @property {number} maxErrorScore
  * @property {number} errorScoreDecrement
@@ -12,10 +13,10 @@
  * @property {string} createdAt
  */
 /**
- * @typedef {Object} SessionOptions
+ * @typedef SessionOptions
  * @property {string} [id] - Id of session used for generating fingerprints. It is used as proxy session name.
  * @property {number} [maxAgeSecs=3000] - Number of seconds after which the session is considered as expired.
- * @property {Object} userData - Object where custom user data can be stored. For example custom headers.
+ * @property {object} [userData] - Object where custom user data can be stored. For example custom headers.
  * @property {number} [maxErrorScore=3] - Maximum number of marking session as blocked usage.
  *   If the `errorScore` reaches the `maxErrorScore` session is marked as block and it is thrown away.
  *   It starts at 0. Calling the `markBad` function increases the `errorScore` by 1.
@@ -35,18 +36,20 @@
  *  Sessions are used to store information such as cookies and can be used for generating fingerprints and proxy sessions.
  *  You can imagine each session as a specific user, with its own cookies, IP (via proxy) and potentially a unique browser fingerprint.
  *  Session internal state can be enriched with custom user data for example some authorization tokens and specific headers in general.
+ *
  */
 export class Session {
     /**
      * Session configuration.
+     *
      * @param {SessionOptions} options
      */
     constructor(options?: SessionOptions);
     /**
-     * @type CookieJar
+     * @type {CookieJar}
      * @private
-     * */
-    private cookieJar;
+     */
+    cookieJar: CookieJar;
     id: string;
     maxAgeSecs: number;
     userData: any;
@@ -115,18 +118,17 @@ export class Session {
      * @param [blockedStatusCodes] {number[]} - Custom HTTP status codes that means blocking on particular website.
      * @return {boolean} whether the session was retired.
      */
-    retireOnBlockedStatusCodes(statusCode: number, blockedStatusCodes?: number[]): boolean;
+    retireOnBlockedStatusCodes(statusCode: number, blockedStatusCodes?: number[] | undefined): boolean;
     /**
      * Saves cookies from an HTTP response to be used with the session.
      * It expects an object with a `headers` property that's either an `Object`
      * (typical Node.js responses) or a `Function` (Puppeteer Response).
      *
      * It then parses and saves the cookies from the `set-cookie` header, if available.
-     * @param {{ headers }} response
+
+     * @param {(PuppeteerResponse|IncomingMessage)} response
      */
-    setCookiesFromResponse(response: {
-        headers: any;
-    }): void;
+    setCookiesFromResponse(response: IncomingMessage | PuppeteerResponse): void;
     /**
      * Saves an array with cookie objects to be used with the session.
      * The objects should be in the format that
@@ -140,13 +142,13 @@ export class Session {
      * ]
      * ```
      *
-     * @param cookies {PuppeteerCookie[]}
-     * @param url {string}
+     * @param {PuppeteerCookie[]} cookies
+     * @param {string} url
      */
     setPuppeteerCookies(cookies: PuppeteerCookie[], url: string): void;
     /**
      * Returns cookies in a format compatible with puppeteer and ready to be used with `page.setCookie`.
-     * @param url {String} - website url. Only cookies stored for this url will be returned
+     * @param {string} url website url. Only cookies stored for this url will be returned
      * @return {PuppeteerCookie[]}
      */
     getPuppeteerCookies(url: string): PuppeteerCookie[];
@@ -160,32 +162,32 @@ export class Session {
     getCookieString(url: string): string;
     /**
      * Transforms puppeteer cookie to tough-cookie.
-     * @param puppeteerCookie {PuppeteerCookie} - Cookie from puppeteer `page.cookies method.
+     * @param {PuppeteerCookie} puppeteerCookie Cookie from puppeteer `page.cookies method.
      * @return {Cookie}
      * @private
      */
-    private _puppeteerCookieToTough;
+    _puppeteerCookieToTough(puppeteerCookie: PuppeteerCookie): Cookie;
     /**
      * Transforms tough-cookie to puppeteer cookie .
      * @param {Cookie} toughCookie - Cookie from CookieJar
      * @return {PuppeteerCookie} - Cookie from Puppeteer
      * @private
      */
-    private _toughCookieToPuppeteer;
+    _toughCookieToPuppeteer(toughCookie: Cookie): PuppeteerCookie;
     /**
      * Sets cookies.
      * @param {Cookie[]} cookies
      * @param {string} url
      * @private
      */
-    private _setCookies;
+    _setCookies(cookies: Cookie[], url: string): void;
 }
 /**
  * Persistable {@link Session} state.
  */
 export type SessionState = {
     id: string;
-    cookieJar: any;
+    cookieJar: CookieJar;
     userData: any;
     errorScore: number;
     maxErrorScore: number;
@@ -206,7 +208,7 @@ export type SessionOptions = {
     /**
      * - Object where custom user data can be stored. For example custom headers.
      */
-    userData: any;
+    userData?: any;
     /**
      * - Maximum number of marking session as blocked usage.
      * If the `errorScore` reaches the `maxErrorScore` session is marked as block and it is thrown away.
@@ -246,5 +248,9 @@ export type SessionOptions = {
      */
     sessionPool: SessionPool;
 };
+import { CookieJar } from "tough-cookie";
 import { SessionPool } from "./session_pool";
+import { IncomingMessage } from "http";
+import { Response as PuppeteerResponse } from "puppeteer";
 import { Cookie as PuppeteerCookie } from "puppeteer";
+import { Cookie } from "tough-cookie";

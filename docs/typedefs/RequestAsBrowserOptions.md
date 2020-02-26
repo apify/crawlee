@@ -9,7 +9,7 @@ title: RequestAsBrowserOptions
 
 ### `url`
 
-**Type**: `String`
+**Type**: `string`
 
 URL of the target endpoint. Supports both HTTP and HTTPS schemes.
 
@@ -17,7 +17,7 @@ URL of the target endpoint. Supports both HTTP and HTTPS schemes.
 
 ### `method`
 
-**Type**: `String` <code> = GET</code>
+**Type**: `string` <code> = &quot;GET&quot;</code>
 
 HTTP method.
 
@@ -34,7 +34,7 @@ Overriding default browser headers will remove the masking this function provide
 
 ### `proxyUrl`
 
-**Type**: `String`
+**Type**: `string`
 
 An HTTP proxy to be passed down to the HTTP request. Supports proxy authentication with Basic Auth.
 
@@ -42,7 +42,7 @@ An HTTP proxy to be passed down to the HTTP request. Supports proxy authenticati
 
 ### `languageCode`
 
-**Type**: `String` <code> = en</code>
+**Type**: `string` <code> = &quot;en&quot;</code>
 
 Two-letter ISO 639 language code.
 
@@ -50,7 +50,7 @@ Two-letter ISO 639 language code.
 
 ### `countryCode`
 
-**Type**: `String` <code> = US</code>
+**Type**: `string` <code> = &quot;US&quot;</code>
 
 Two-letter ISO 3166 country code.
 
@@ -58,7 +58,7 @@ Two-letter ISO 3166 country code.
 
 ### `useMobileVersion`
 
-**Type**: `Boolean`
+**Type**: `boolean`
 
 If `true`, the function uses User-Agent of a mobile browser.
 
@@ -66,7 +66,7 @@ If `true`, the function uses User-Agent of a mobile browser.
 
 ### `abortFunction`
 
-**Type**: `function`
+**Type**: [`AbortFunction`](/docs/typedefs/abort-function)
 
 Function accepts `response` object as a single parameter and should return true or false. If function returns true request gets aborted. This function
 is passed to the [@apify/http-request](https://www.npmjs.com/package/@apify/http-request) NPM package.

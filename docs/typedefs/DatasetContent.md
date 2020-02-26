@@ -9,7 +9,7 @@ title: DatasetContent
 
 ### `items`
 
-**Type**: `Array<Object&gt;` | `Array<String>` | `Array.&lt;Buffer>`
+**Type**: `Array<object>`
 
 Dataset entries based on chosen format parameter.
 
@@ -17,7 +17,7 @@ Dataset entries based on chosen format parameter.
 
 ### `total`
 
-**Type**: `Number`
+**Type**: `number`
 
 Total count of entries in the dataset.
 
@@ -25,7 +25,7 @@ Total count of entries in the dataset.
 
 ### `offset`
 
-**Type**: `Number`
+**Type**: `number`
 
 Position of the first returned entry in the dataset.
 
@@ -33,7 +33,7 @@ Position of the first returned entry in the dataset.
 
 ### `count`
 
-**Type**: `Number`
+**Type**: `number`
 
 Count of dataset entries returned in this set.
 
@@ -41,7 +41,7 @@ Count of dataset entries returned in this set.
 
 ### `limit`
 
-**Type**: `Number`
+**Type**: `number`
 
 Maximum number of dataset entries requested.
 

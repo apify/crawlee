@@ -1,7 +1,11 @@
 import { URL } from 'url';
-import httpRequest from '@apify/http-request';
-import errors from '@apify/http-request/src/errors';
+import * as httpRequest from '@apify/http-request';
+import * as errors from '@apify/http-request/src/errors';
+/* eslint-disable no-unused-vars,import/named,import/order */
 import { TimeoutError } from './errors';
+import { IncomingMessage } from 'http';
+import { Readable } from 'stream';
+/* eslint-enable no-unused-vars,import/named,import/order */
 
 export const FIREFOX_MOBILE_USER_AGENT = 'Mozilla/5.0 (Android; Mobile; rv:14.0) Gecko/14.0 Firefox/14.0';
 export const FIREFOX_DESKTOP_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.14; rv:68.0) Gecko/20100101 Firefox/68.0';
@@ -16,24 +20,24 @@ const DEFAULT_HTTP_REQUEST_OPTIONS = {
 };
 
 /**
- * @typedef {Object} RequestAsBrowserOptions
- * @property {String} url
+ * @typedef RequestAsBrowserOptions
+ * @property {string} url
  *  URL of the target endpoint. Supports both HTTP and HTTPS schemes.
- * @property {String} [method=GET]
+ * @property {string} [method=GET]
  *  HTTP method.
  * @property {Object} [headers]
  *  Additional HTTP headers to add. It's only recommended to use this option,
  *  with headers that are typically added by websites, such as cookies. Overriding
  *  default browser headers will remove the masking this function provides.
- * @property {String} [proxyUrl]
+ * @property {string} [proxyUrl]
  *  An HTTP proxy to be passed down to the HTTP request. Supports proxy authentication with Basic Auth.
- * @property {String} [languageCode=en]
+ * @property {string} [languageCode=en]
  *  Two-letter ISO 639 language code.
- * @property {String} [countryCode=US]
+ * @property {string} [countryCode=US]
  *  Two-letter ISO 3166 country code.
- * @property {Boolean} [useMobileVersion]
+ * @property {boolean} [useMobileVersion]
  *  If `true`, the function uses User-Agent of a mobile browser.
- * @property {Function} [abortFunction]
+ * @property {AbortFunction} [abortFunction]
  *  Function accepts `response` object as a single parameter and should return true or false.
  *  If function returns true request gets aborted. This function is passed to the
  *  [@apify/http-request](https://www.npmjs.com/package/@apify/http-request) NPM package.
@@ -50,12 +54,18 @@ const DEFAULT_HTTP_REQUEST_OPTIONS = {
  */
 
 /**
+ * @callback AbortFunction
+ * @param {IncomingMessage} response
+ * @returns {boolean}
+ */
+
+/**
  * **IMPORTANT:** This function uses an insecure version of HTTP parser by default
  * and also ignores SSL/TLS errors. This is very useful in scraping, because it allows bypassing
  * certain anti-scraping walls, but it also exposes some vulnerability. For other than scraping
  * scenarios, please set `useInsecureHttpParser: false` and `ignoreSslErrors: false`.
  *
- * Sends an HTTP request that looks like a request sent by a web browser,
+ * Sends a HTTP request that looks like a request sent by a web browser,
  * fully emulating browser's HTTP headers.
  *
  * This function is useful for web scraping of websites that send the full HTML in the first response.
@@ -75,7 +85,7 @@ const DEFAULT_HTTP_REQUEST_OPTIONS = {
  *
  * @param {RequestAsBrowserOptions} options All `requestAsBrowser` configuration options.
  *
- * @return {Promise<http.IncomingMessage|stream.Readable>} This will typically be a
+ * @return {Promise<(IncomingMessage|Readable)>} This will typically be a
  * [Node.js HTTP response stream](https://nodejs.org/api/http.html#http_class_http_incomingmessage),
  * however, if returned from the cache it will be a [response-like object](https://github.com/lukechilds/responselike) which behaves in the same way.
  * @memberOf utils

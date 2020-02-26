@@ -34,7 +34,7 @@ const foo = request.userData.foo;
 
 ### `id`
 
-**Type**: `String`
+**Type**: `string`
 
 Request ID
 
@@ -42,7 +42,7 @@ Request ID
 
 ### `url`
 
-**Type**: `String`
+**Type**: `string`
 
 URL of the web page to crawl.
 
@@ -50,7 +50,7 @@ URL of the web page to crawl.
 
 ### `loadedUrl`
 
-**Type**: `String`
+**Type**: `string`
 
 An actually loaded URL after redirects, if present. HTTP redirects are guaranteed to be included.
 
@@ -61,7 +61,7 @@ nature. This generally means that redirects, which happen immediately will most 
 
 ### `uniqueKey`
 
-**Type**: `String`
+**Type**: `string`
 
 A unique key identifying the request. Two requests with the same `uniqueKey` are considered as pointing to the same URL.
 
@@ -69,7 +69,7 @@ A unique key identifying the request. Two requests with the same `uniqueKey` are
 
 ### `method`
 
-**Type**: `String`
+**Type**: `string`
 
 HTTP method, e.g. `GET` or `POST`.
 
@@ -77,7 +77,7 @@ HTTP method, e.g. `GET` or `POST`.
 
 ### `payload`
 
-**Type**: `String` | `Buffer`
+**Type**: `string` | `Buffer`
 
 HTTP request payload, e.g. for POST requests.
 
@@ -85,7 +85,7 @@ HTTP request payload, e.g. for POST requests.
 
 ### `noRetry`
 
-**Type**: `Boolean`
+**Type**: `boolean`
 
 The `true` value indicates that the request will not be automatically retried on error.
 
@@ -93,7 +93,7 @@ The `true` value indicates that the request will not be automatically retried on
 
 ### `retryCount`
 
-**Type**: `Number`
+**Type**: `number`
 
 Indicates the number of times the crawling of the request has been retried on error.
 
@@ -101,7 +101,7 @@ Indicates the number of times the crawling of the request has been retried on er
 
 ### `errorMessages`
 
-**Type**: `Array<String>`
+**Type**: `Array<string>`
 
 An array of error messages from request processing.
 
@@ -117,7 +117,7 @@ Object with HTTP headers. Key is header name, value is the value.
 
 ### `userData`
 
-**Type**: `Object`
+**Type**: `object`
 
 Custom user data assigned to the request.
 
@@ -155,8 +155,8 @@ debugging rather difficult.
 
 **Params**
 
--   **`errorOrMessage`**: `Error` | `String` - Error object or error message to be stored in the request.
+-   **`errorOrMessage`**: `Error` | `string` - Error object or error message to be stored in the request.
 -   **`[options]`**: `Object`
-    -   **`[.omitStack]`**: `Boolean` <code> = false</code> - Only push the error message without stack trace when true.
+    -   **`[.omitStack]`**: `boolean` <code> = false</code> - Only push the error message without stack trace when true.
 
 ---

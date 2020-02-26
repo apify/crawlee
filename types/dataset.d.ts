@@ -1,8 +1,8 @@
 export const DATASET_ITERATORS_DEFAULT_LIMIT: 10000;
-export const LOCAL_STORAGE_SUBDIR: any;
+export const LOCAL_STORAGE_SUBDIR: string;
 export const LOCAL_FILENAME_DIGITS: 9;
 export const LOCAL_GET_ITEMS_DEFAULT_LIMIT: 250000;
-export function checkAndSerialize(item: any, limitBytes: number, index?: number): string;
+export function checkAndSerialize(item: Object, limitBytes: number, index?: number | undefined): string;
 export function chunkBySize(items: any[], limitBytes: number): any[];
 /**
  * The `Dataset` class represents a store for structured data where each object stored has the same attributes,
@@ -81,12 +81,11 @@ export class Dataset {
      * the items have already been saved to the dataset while other items from the source array were not.
      * To overcome this limitation, the developer may, for example, read the last item saved in the dataset
      * and re-attempt the save of the data from this item onwards to prevent duplicates.
-     *
-     * @param {Object|Array} data Object or array of objects containing data to be stored in the default dataset.
+     * @param {object|Array<object>} data Object or array of objects containing data to be stored in the default dataset.
      * The objects must be serializable to JSON and the JSON representation of each object must be smaller than 9MB.
      * @return {Promise<void>}
      */
-    async pushData(data: any): Promise<void>;
+    pushData(data: any): Promise<void>;
     /**
      * Returns {DatasetContent} object holding the items in the dataset based on the provided parameters.
      *
@@ -97,62 +96,62 @@ export class Dataset {
      *
      * @param {Object} [options] All `getData()` parameters are passed
      *   via an options object with the following keys:
-     * @param {String} [options.format='json']
+     * @param {string} [options.format='json']
      *   Format of the `items` property, possible values are: `json`, `csv`, `xlsx`, `html`, `xml` and `rss`.
-     * @param {Number} [options.offset=0]
+     * @param {number} [options.offset=0]
      *   Number of array elements that should be skipped at the start.
-     * @param {Number} [options.limit=250000]
+     * @param {number} [options.limit=250000]
      *   Maximum number of array elements to return.
-     * @param {Boolean} [options.desc=false]
+     * @param {boolean} [options.desc=false]
      *   If `true` then the objects are sorted by `createdAt` in descending order.
      *   Otherwise they are sorted in ascending order.
-     * @param {Array} [options.fields]
+     * @param {string[]} [options.fields]
      *   An array of field names that will be included in the result. If omitted, all fields are included in the results.
-     * @param {String} [options.unwind]
+     * @param {string} [options.unwind]
      *   Specifies a name of the field in the result objects that will be used to unwind the resulting objects.
      *   By default, the results are returned as they are.
-     * @param {Boolean} [options.disableBodyParser=false]
+     * @param {boolean} [options.disableBodyParser=false]
      *   If `true` then response from API will not be parsed.
-     * @param {Boolean} [options.attachment=false]
+     * @param {boolean} [options.attachment=false]
      *   If `true` then the response will define the `Content-Disposition: attachment` HTTP header, forcing a web
      *   browser to download the file rather than to display it. By default, this header is not present.
-     * @param {String} [options.delimiter=',']
+     * @param {string} [options.delimiter=',']
      *   A delimiter character for CSV files, only used if `format` is `csv`.
-     * @param {Boolean} [options.bom]
+     * @param {boolean} [options.bom]
      *   All responses are encoded in UTF-8 encoding. By default, the CSV files are prefixed with the UTF-8 Byte
      *   Order Mark (BOM), while JSON, JSONL, XML, HTML and RSS files are not. If you want to override this default
      *   behavior, set `bom` option to `true` to include the BOM, or set `bom` to `false` to skip it.
-     * @param {String} [options.xmlRoot='results']
+     * @param {string} [options.xmlRoot='results']
      *   Overrides the default root element name of the XML output. By default, the root element is `results`.
-     * @param {String} [options.xmlRow='page']
+     * @param {string} [options.xmlRow='page']
      *   Overrides the default element name that wraps each page or page function result object in XML output.
      *   By default, the element name is `page` or `result`, depending on the value of the `simplified` option.
-     * @param {Boolean} [options.skipHeaderRow=false]
+     * @param {boolean} [options.skipHeaderRow=false]
      *   If set to `true` then header row in CSV format is skipped.
-     * @param {Boolean} [options.clean=false]
+     * @param {boolean} [options.clean=false]
      *   If `true` then the function returns only non-empty items and skips hidden fields (i.e. fields starting with `#` character).
      *   Note that the `clean` parameter is a shortcut for `skipHidden: true` and `skipEmpty: true` options.
-     * @param {Boolean} [options.skipHidden=false]
+     * @param {boolean} [options.skipHidden=false]
      *   If `true` then the function doesn't return hidden fields (fields starting with "#" character).
-     * @param {Boolean} [options.skipEmpty=false]
+     * @param {boolean} [options.skipEmpty=false]
      *   If `true` then the function doesn't return empty items.
      *   Note that in this case the returned number of items might be lower than limit parameter and pagination must be done using the `limit` value.
-     * @param {Boolean} [options.simplified]
+     * @param {boolean} [options.simplified]
      *   If `true` then function applies the `fields: ['url','pageFunctionResult','errorInfo']` and `unwind: 'pageFunctionResult'` options.
      *   This feature is used to emulate simplified results provided by Apify API version 1 used for
      *   the legacy Apify Crawler and it's not recommended to use it in new integrations.
-     * @param {Boolean} [options.skipFailedPages]
+     * @param {boolean} [options.skipFailedPages]
      *   If `true` then, the all the items with errorInfo property will be skipped from the output.
      *   This feature is here to emulate functionality of Apify API version 1 used for
      *   the legacy Apify Crawler product and it's not recommended to use it in new integrations.
      * @return {Promise<DatasetContent>}
      */
-    async getData(options?: {
+    getData(options?: {
         format?: string;
         offset?: number;
         limit?: number;
         desc?: boolean;
-        fields?: any[];
+        fields?: string[];
         unwind?: string;
         disableBodyParser?: boolean;
         attachment?: boolean;
@@ -166,7 +165,7 @@ export class Dataset {
         skipEmpty?: boolean;
         simplified?: boolean;
         skipFailedPages?: boolean;
-    }): Promise<DatasetContent>;
+    } | undefined): Promise<DatasetContent>;
     /**
      * Returns an object containing general information about the dataset.
      *
@@ -190,9 +189,9 @@ export class Dataset {
      * }
      * ```
      *
-     * @returns {Promise<Object>}
+     * @returns {Promise<object>}
      */
-    async getInfo(): Promise<any>;
+    getInfo(): Promise<any>;
     /**
      * Iterates over dataset items, yielding each in turn to an `iteratee` function.
      * Each invocation of `iteratee` is called with two arguments: `(item, index)`.
@@ -211,37 +210,36 @@ export class Dataset {
      * @param {DatasetConsumer} iteratee A function that is called for every item in the dataset.
      * @param {Object} [options] All `forEach()` parameters are passed
      *   via an options object with the following keys:
-     * @param {Boolean} [options.desc=false] If `true` then the objects are sorted by `createdAt` in descending order.
-     * @param {Array} [options.fields] If provided then returned objects will only contain specified keys.
-     * @param {String} [options.unwind] If provided then objects will be unwound based on provided field.
-     * @param {Number} [index=0] Specifies the initial index number passed to the `iteratee` function.
+     * @param {boolean} [options.desc=false] If `true` then the objects are sorted by `createdAt` in descending order.
+     * @param {string[]} [options.fields] If provided then returned objects will only contain specified keys.
+     * @param {string} [options.unwind] If provided then objects will be unwound based on provided field.
+     * @param {number} [index=0] Specifies the initial index number passed to the `iteratee` function.
      * @return {Promise<void>}
      */
-    async forEach(iteratee: DatasetConsumer, options?: {
+    forEach(iteratee: DatasetConsumer, options?: {
         desc?: boolean;
-        fields?: any[];
+        fields?: string[];
         unwind?: string;
-    }, index?: number): Promise<void>;
+    } | undefined, index?: number | undefined): Promise<void>;
     /**
      * Produces a new array of values by mapping each value in list through a transformation function `iteratee()`.
      * Each invocation of `iteratee()` is called with two arguments: `(element, index)`.
      *
      * If `iteratee` returns a `Promise` then it's awaited before a next call.
      *
-     * @template T
      * @param {DatasetMapper} iteratee
-     * @param {Object} options All `map()` parameters are passed
+     * @param {Object} [options] All `map()` parameters are passed
      *   via an options object with the following keys:
-     * @param {Boolean} [options.desc=false] If `true` then the objects are sorted by createdAt in descending order.
-     * @param {Array} [options.fields] If provided then returned objects will only contain specified keys
-     * @param {String} [options.unwind] If provided then objects will be unwound based on provided field.
-     * @return {Promise<T[]>}
+     * @param {boolean} [options.desc=false] If `true` then the objects are sorted by createdAt in descending order.
+     * @param {string[]} [options.fields] If provided then returned objects will only contain specified keys
+     * @param {string} [options.unwind] If provided then objects will be unwound based on provided field.
+     * @return {Promise<Array<object>>}
      */
-    map<T>(iteratee: DatasetMapper, options: {
+    map(iteratee: DatasetMapper, options?: {
         desc?: boolean;
-        fields?: any[];
+        fields?: string[];
         unwind?: string;
-    }): Promise<T[]>;
+    } | undefined): Promise<any[]>;
     /**
      * Reduces a list of values down to a single value.
      *
@@ -253,30 +251,29 @@ export class Dataset {
      *
      * If `iteratee()` returns a `Promise` then it's awaited before a next call.
      *
-     * @template T
      * @param {DatasetReducer} iteratee
-     * @param {T} memo Initial state of the reduction.
-     * @param {Object} options All `reduce()` parameters are passed
+     * @param {object} memo Initial state of the reduction.
+     * @param {Object} [options] All `reduce()` parameters are passed
      *   via an options object with the following keys:
-     * @param {Boolean} [options.desc=false] If `true` then the objects are sorted by createdAt in descending order.
-     * @param {Array} [options.fields] If provided then returned objects will only contain specified keys
-     * @param {String} [options.unwind] If provided then objects will be unwound based on provided field.
-     * @return {Promise<T>}
+     * @param {boolean} [options.desc=false] If `true` then the objects are sorted by createdAt in descending order.
+     * @param {string[]} [options.fields] If provided then returned objects will only contain specified keys
+     * @param {string} [options.unwind] If provided then objects will be unwound based on provided field.
+     * @return {Promise<object>}
      */
-    reduce<T_1>(iteratee: DatasetReducer, memo: T_1, options: {
+    reduce(iteratee: DatasetReducer, memo: any, options?: {
         desc?: boolean;
-        fields?: any[];
+        fields?: string[];
         unwind?: string;
-    }): Promise<T_1>;
+    } | undefined): Promise<any>;
     /**
      * Removes the dataset either from the Apify cloud storage or from the local directory,
      * depending on the mode of operation.
      *
      * @return {Promise<void>}
      */
-    async drop(): Promise<void>;
+    drop(): Promise<void>;
     /** @ignore */
-    async delete(): Promise<void>;
+    delete(): Promise<void>;
 }
 /**
  * This is a local emulation of a dataset.
@@ -286,7 +283,7 @@ export class Dataset {
 export class DatasetLocal {
     constructor(datasetId: any, localStorageDir: any);
     localStoragePath: string;
-    counter: number;
+    counter: number | null;
     datasetId: any;
     createdAt: any;
     modifiedAt: any;
@@ -294,47 +291,47 @@ export class DatasetLocal {
     initializationPromise: any;
     _initialize(): any;
     pushData(data: any): any;
-    async getData(opts?: {}): Promise<{
+    getData(opts?: {}): Promise<{
         items: any[];
-        total: number;
+        total: number | null;
         offset: any;
         count: number;
         limit: any;
     }>;
-    async getInfo(): Promise<{
+    getInfo(): Promise<{
         id: any;
         name: any;
-        userId: string;
+        userId: string | null;
         createdAt: any;
         modifiedAt: any;
         accessedAt: any;
-        itemCount: number;
-        cleanItemCount: number;
+        itemCount: number | null;
+        cleanItemCount: number | null;
     }>;
-    async forEach(iteratee: any): Promise<void>;
-    async map(iteratee: any): Promise<any[]>;
-    async reduce(iteratee: any, memo: any): Promise<any>;
-    async drop(): Promise<void>;
-    async delete(): Promise<void>;
+    forEach(iteratee: any): Promise<void>;
+    map(iteratee: any): Promise<any[]>;
+    reduce(iteratee: any, memo: any): Promise<any>;
+    drop(): Promise<void>;
+    delete(): Promise<void>;
     /**
      * Returns an array of item indexes for given offset and limit.
      */
-    _getItemIndexes(offset?: number, limit?: number): any;
+    _getItemIndexes(offset?: number, limit?: number | null): number[];
     /**
      * Reads and parses file for given index.
      */
     _readAndParseFile(index: any): Promise<any>;
     _updateMetadata(isModified: any): void;
 }
-export function openDataset(datasetIdOrName?: string, options?: {
+export function openDataset(datasetIdOrName?: string | undefined, options?: {
     forceCloud?: boolean;
-}): Promise<Dataset>;
-export function pushData(item: any): Promise<any>;
+} | undefined): Promise<Dataset>;
+export function pushData(item: any): Promise<void>;
 export type DatasetContent = {
     /**
      * Dataset entries based on chosen format parameter.
      */
-    items: any[] | string[] | Buffer[];
+    items: any[];
     /**
      * Total count of entries in the dataset.
      */

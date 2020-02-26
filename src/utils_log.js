@@ -1,7 +1,7 @@
-import log from 'apify-shared/log';
-
-// Add docs for log separately, as it's imported from apify-shared.
-// Adding them directly to the log object in utils in `index.js` breaks JSDoc.
+// Changes to the JsDoc here need to be replicated to types-apify/apify-shared/log.d.ts
+// This file is mainly for building the docs, not to provide typings
+// For the output of "main" typings to be correct, this file should be references
+// instead of 'apify-shared/log'
 
 /**
  * @typedef {Object} LoggerOptions
@@ -179,4 +179,7 @@ import log from 'apify-shared/log';
  * @memberOf log
  */
 
-export default log;
+// variable can't be the same from the namespace above
+import * as Log from 'apify-shared/log';
+
+export default Log;

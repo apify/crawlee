@@ -83,7 +83,7 @@ function.
 
 ### `maxRequestRetries`
 
-**Type**: `Number` <code> = 3</code>
+**Type**: `number` <code> = 3</code>
 
 Indicates how many times the request is retried if
 [`BasicCrawlerOptions.handleRequestFunction`](/docs/typedefs/basic-crawler-options#handlerequestfunction) fails.
@@ -92,7 +92,7 @@ Indicates how many times the request is retried if
 
 ### `maxRequestsPerCrawl`
 
-**Type**: `Number`
+**Type**: `number`
 
 Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached. Always set this value in order to prevent infinite
 loops in misconfigured crawlers. Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.
@@ -111,7 +111,7 @@ Custom options passed to the underlying [`AutoscaledPool`](/docs/api/autoscaled-
 
 ### `minConcurrency`
 
-**Type**: `Number` <code> = 1</code>
+**Type**: `number` <code> = 1</code>
 
 Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding [`AutoscaledPool`](/docs/api/autoscaled-pool) option.
 
@@ -122,7 +122,7 @@ you're not sure, just keep the default value and the concurrency will scale up a
 
 ### `maxConcurrency`
 
-**Type**: `Number` <code> = 1000</code>
+**Type**: `number` <code> = 1000</code>
 
 Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding [`AutoscaledPool`](/docs/api/autoscaled-pool) option.
 
@@ -130,7 +130,7 @@ Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corres
 
 ### `useSessionPool`
 
-**Type**: `Boolean` <code> = false</code>
+**Type**: `boolean` <code> = false</code>
 
 If set to true. Basic crawler will initialize the [`SessionPool`](/docs/api/session-pool) with the corresponding `sessionPoolOptions`. The session
 instance will be than available in the `handleRequestFunction`.

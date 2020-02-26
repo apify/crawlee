@@ -49,7 +49,7 @@ declare function emailsFromText(text: string): string[];
 declare function emailsFromUrls(urls: string[]): string[];
 declare function phonesFromText(text: string): string[];
 declare function phonesFromUrls(urls: string[]): string[];
-declare function parseHandlesFromHtml(html: string, data?: any): SocialHandles;
+declare function parseHandlesFromHtml(html: string, data?: Object): SocialHandles;
 /**
  * Regular expression to exactly match a single email address.
  * It has the following form: `/^...$/i`.

@@ -325,13 +325,13 @@ Regular expression to find multiple email addresses in a text. It has the follow
 
 ## `social.emailsFromText(text)`
 
-**Returns**: `Array<String>` - Array of emails addresses found. If no emails are found, the function returns an empty array.
+**Returns**: `Array<string>` - Array of emails addresses found. If no emails are found, the function returns an empty array.
 
 The function extracts email addresses from a plain text. Note that the function preserves the order of emails and keep duplicates.
 
 **Params**
 
--   **`text`**: `String` - Text to search in.
+-   **`text`**: `string` - Text to search in.
 
 ---
 
@@ -339,14 +339,14 @@ The function extracts email addresses from a plain text. Note that the function 
 
 ## `social.emailsFromUrls(urls)`
 
-**Returns**: `Array<String>` - Array of emails addresses found. If no emails are found, the function returns an empty array.
+**Returns**: `Array<string>` - Array of emails addresses found. If no emails are found, the function returns an empty array.
 
 The function extracts email addresses from a list of URLs. Basically it looks for all `mailto:` URLs and returns valid email addresses from them. Note
 that the function preserves the order of emails and keep duplicates.
 
 **Params**
 
--   **`urls`**: `Array<String>` - Array of URLs.
+-   **`urls`**: `Array<string>` - Array of URLs.
 
 ---
 
@@ -354,14 +354,14 @@ that the function preserves the order of emails and keep duplicates.
 
 ## `social.phonesFromText(text)`
 
-**Returns**: `Array<String>` - Array of phone numbers found. If no phone numbers are found, the function returns an empty array.
+**Returns**: `Array<string>` - Array of phone numbers found. If no phone numbers are found, the function returns an empty array.
 
 The function attempts to extract phone numbers from a text. Please note that the results might not be accurate, since phone numbers appear in a large
 variety of formats and conventions. If you encounter some problems, please [file an issue](https://github.com/apifytech/apify-js/issues).
 
 **Params**
 
--   **`text`**: `String` - Text to search the phone numbers in.
+-   **`text`**: `string` - Text to search the phone numbers in.
 
 ---
 
@@ -369,14 +369,14 @@ variety of formats and conventions. If you encounter some problems, please [file
 
 ## `social.phonesFromUrls(urls)`
 
-**Returns**: `Array<String>` - Array of phone numbers found. If no phone numbers are found, the function returns an empty array.
+**Returns**: `Array<string>` - Array of phone numbers found. If no phone numbers are found, the function returns an empty array.
 
 Finds phone number links in an array of URLs and extracts the phone numbers from them. Note that the phone number links look like `tel://123456789`,
 `tel:/123456789` or `tel:123456789`.
 
 **Params**
 
--   **`urls`**: `Array<String>` - Array of URLs.
+-   **`urls`**: `Array<string>` - Array of URLs.
 
 ---
 
@@ -410,7 +410,7 @@ console.dir(result);
 
 **Params**
 
--   **`html`**: `String` - HTML text
+-   **`html`**: `string` - HTML text
 -   **`data`**: `Object` <code> = </code> - Optional object which will receive the `text` and `$` properties that contain text content of the HTML and
     `cheerio` object, respectively. This is an optimization so that the caller doesn't need to parse the HTML document again, if needed.
 

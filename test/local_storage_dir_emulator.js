@@ -2,7 +2,7 @@ import { cryptoRandomObjectId } from 'apify-shared/utilities';
 import { LOCAL_STORAGE_SUBDIRS, LOCAL_ENV_VARS, ENV_VARS } from 'apify-shared/consts';
 import fs from 'fs-extra';
 import path from 'path';
-import log from 'apify-shared/log';
+import log from '../build/utils_log';
 
 import { LOCAL_STORAGE_DIR } from './_helper';
 

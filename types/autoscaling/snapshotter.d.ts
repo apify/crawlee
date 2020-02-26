@@ -51,34 +51,34 @@ export type SnapshotterOptions = {
 };
 /**
  * @typedef SnapshotterOptions
- * @property {Number} [eventLoopSnapshotIntervalSecs=0.5]
+ * @property {number} [eventLoopSnapshotIntervalSecs=0.5]
  *   Defines the interval of measuring the event loop response time.
- * @property {Number} [clientSnapshotIntervalSecs=1]
+ * @property {number} [clientSnapshotIntervalSecs=1]
  *   Defines the interval of checking the current state
  *   of the remote API client.
- * @property {Number} [maxBlockedMillis=50]
+ * @property {number} [maxBlockedMillis=50]
  *   Maximum allowed delay of the event loop in milliseconds.
  *   Exceeding this limit overloads the event loop.
- * @property {Number} [cpuSnapshotIntervalSecs=1]
+ * @property {number} [cpuSnapshotIntervalSecs=1]
  *   Defines the interval of measuring CPU usage.
  *   This is only used when running locally. On the Apify platform,
  *   the statistics are provided externally at a fixed interval.
- * @property {Number} [maxUsedCpuRatio=0.95]
+ * @property {number} [maxUsedCpuRatio=0.95]
  *   Defines the maximum usage of CPU.
  *   Exceeding this limit overloads the CPU.
- * @property {Number} [memorySnapshotIntervalSecs=1]
+ * @property {number} [memorySnapshotIntervalSecs=1]
  *   Defines the interval of measuring memory consumption.
  *   This is only used when running locally. On the Apify platform,
  *   the statistics are provided externally at a fixed interval.
  *   The measurement itself is resource intensive (25 - 50ms async).
  *   Therefore, setting this interval below 1 second is not recommended.
- * @property {Number} [maxUsedMemoryRatio=0.7]
+ * @property {number} [maxUsedMemoryRatio=0.7]
  *   Defines the maximum ratio of total memory that can be used.
  *   Exceeding this limit overloads the memory.
- * @property {Number} [maxClientErrors=1]
+ * @property {number} [maxClientErrors=1]
  *   Defines the maximum number of new rate limit errors within
  *   the given interval.
- * @property {Number} [snapshotHistorySecs=60]
+ * @property {number} [snapshotHistorySecs=60]
  *   Sets the interval in seconds for which a history of resource snapshots
  *   will be kept. Increasing this to very high numbers will affect performance.
  */
@@ -110,7 +110,7 @@ declare class Snapshotter {
     /**
      * @param {SnapshotterOptions} [options] All `Snapshotter` configuration options.
      */
-    constructor(options?: SnapshotterOptions);
+    constructor(options?: SnapshotterOptions | undefined);
     eventLoopSnapshotIntervalMillis: number;
     memorySnapshotIntervalMillis: number;
     clientSnapshotIntervalMillis: number;
@@ -120,7 +120,7 @@ declare class Snapshotter {
     maxUsedMemoryRatio: any;
     maxUsedCpuRatio: any;
     maxClientErrors: any;
-    maxMemoryBytes: number;
+    maxMemoryBytes: number | null;
     cpuSnapshots: any[];
     eventLoopSnapshots: any[];
     memorySnapshots: any[];
@@ -129,79 +129,79 @@ declare class Snapshotter {
     memoryInterval: any;
     clientInterval: any;
     cpuInterval: any;
-    lastLoggedCriticalMemoryOverloadAt: Date;
+    lastLoggedCriticalMemoryOverloadAt: Date | null;
     /**
      * Creates a snapshot of current CPU usage
      * using the Apify platform `systemInfo` event.
      * @param {Object} systemInfo
      * @ignore
      */
-    _snapshotCpuOnPlatform(systemInfo: any): void;
+    _snapshotCpuOnPlatform(systemInfo: Object): void;
     /**
      * Creates a snapshot of current memory usage
      * using the Apify platform `systemInfo` event.
-     * @param {Object} systemInfo
+     * @param {*} systemInfo
      * @ignore
      */
     _snapshotMemoryOnPlatform(systemInfo: any): void;
     /**
      * Starts capturing snapshots at configured intervals.
-     * @return {Promise}
+     * @return {Promise<void>}
      */
-    async start(): Promise<any>;
+    start(): Promise<void>;
     /**
      * Stops all resource capturing.
-     * @return {Promise}
+     * @return {Promise<void>}
      */
-    async stop(): Promise<any>;
+    stop(): Promise<void>;
     /**
      * Returns a sample of latest memory snapshots, with the size of the sample defined
      * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
-     * @param {Number} [sampleDurationMillis]
-     * @return {Array}
+     * @param {number} [sampleDurationMillis]
+     * @return {Array<*>}
      */
-    getMemorySample(sampleDurationMillis?: number): any[];
+    getMemorySample(sampleDurationMillis?: number | undefined): any[];
     /**
      * Returns a sample of latest event loop snapshots, with the size of the sample defined
      * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
-     * @param {Number} [sampleDurationMillis]
-     * @return {Array}
+     * @param {number} [sampleDurationMillis]
+     * @return {Array<*>}
      */
-    getEventLoopSample(sampleDurationMillis?: number): any[];
+    getEventLoopSample(sampleDurationMillis?: number | undefined): any[];
     /**
      * Returns a sample of latest CPU snapshots, with the size of the sample defined
      * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
-     * @param {Number} [sampleDurationMillis]
-     * @return {Array}
+     * @param {number} [sampleDurationMillis]
+     * @return {Array<*>}
      */
-    getCpuSample(sampleDurationMillis?: number): any[];
+    getCpuSample(sampleDurationMillis?: number | undefined): any[];
     /**
      * Returns a sample of latest Client snapshots, with the size of the sample defined
      * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
-     * @param {Number} sampleDurationMillis
-     * @return {Array}
+     * @param {number} sampleDurationMillis
+     * @return {Array<*>}
      */
     getClientSample(sampleDurationMillis: number): any[];
     /**
      * Finds the latest snapshots by sampleDurationMillis in the provided array.
-     * @param {Array} snapshots
-     * @param {Number} [sampleDurationMillis]
-     * @return {Array}
+     * @param {Array<*>} snapshots
+     * @param {number} [sampleDurationMillis]
+     * @return {Array<*>}
      * @ignore
      */
-    _getSample(snapshots: any[], sampleDurationMillis?: number): any[];
+    _getSample(snapshots: any[], sampleDurationMillis?: number | undefined): any[];
     /**
      * Creates a snapshot of current memory usage
      * using the Apify platform `systemInfo` event.
      * @param {Function} intervalCallback
-     * @return {Promise}
+     * @return {Promise<void>}
      * @ignore
      */
-    async _snapshotMemoryOnLocal(intervalCallback: Function): Promise<any>;
+    _snapshotMemoryOnLocal(intervalCallback: Function): Promise<void>;
     /**
      * Checks for critical memory overload and logs it to the console.
+     * @param {*} systemInfo
      * @ignore
-     * @param {Object} systemInfo
      */
     _memoryOverloadWarning({ memCurrentBytes }: any): void;
     /**
@@ -232,11 +232,11 @@ declare class Snapshotter {
      * @param intervalCallback
      * @private
      */
-    private _snapshotClient;
+    _snapshotClient(intervalCallback: any): void;
     /**
      * Removes snapshots that are older than the snapshotHistorySecs option
      * from the array (destructively - in place).
-     * @param {Array} snapshots
+     * @param {Array<*>} snapshots
      * @param {Date} now
      * @ignore
      */
@@ -245,5 +245,5 @@ declare class Snapshotter {
      * Calculate max memory for platform or local usage.
      * @ignore
      */
-    async _ensureCorrectMaxMemory(): Promise<void>;
+    _ensureCorrectMaxMemory(): Promise<void>;
 }

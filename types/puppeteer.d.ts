@@ -1,4 +1,4 @@
-export function launchPuppeteer(options?: LaunchPuppeteerOptions): Promise<any>;
+export function launchPuppeteer(options?: LaunchPuppeteerOptions | undefined): Promise<Browser>;
 /**
  * Apify extends the launch options of Puppeteer.
  * You can use any of the Puppeteer compatible
@@ -57,7 +57,7 @@ export type LaunchPuppeteerOptions = {
      * Take caution, because it can cause all kinds of unexpected errors and weird behavior.
      * Apify SDK is not tested with any other library besides `puppeteer` itself.
      */
-    puppeteerModule?: any;
+    puppeteerModule?: string | Object;
     /**
      * This setting hides most of the known properties that identify headless Chrome and makes it nearly undetectable.
      * It is recommended to use it together with the `useChrome` set to `true`.
@@ -69,4 +69,5 @@ export type LaunchPuppeteerOptions = {
      */
     stealthOptions?: StealthOptions;
 };
+import { Browser } from "puppeteer";
 import { StealthOptions } from "./stealth/stealth";

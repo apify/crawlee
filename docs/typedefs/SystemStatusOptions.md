@@ -9,7 +9,7 @@ title: SystemStatusOptions
 
 ### `currentHistorySecs`
 
-**Type**: `Number` <code> = 5</code>
+**Type**: `number` <code> = 5</code>
 
 Defines max age of snapshots used in the [`SystemStatus.getCurrentStatus()`](/docs/api/system-status#getcurrentstatus) measurement.
 
@@ -17,7 +17,7 @@ Defines max age of snapshots used in the [`SystemStatus.getCurrentStatus()`](/do
 
 ### `maxMemoryOverloadedRatio`
 
-**Type**: `Number` <code> = 0.2</code>
+**Type**: `number` <code> = 0.2</code>
 
 Sets the maximum ratio of overloaded snapshots in a memory sample. If the sample exceeds this ratio, the system will be overloaded.
 
@@ -25,7 +25,7 @@ Sets the maximum ratio of overloaded snapshots in a memory sample. If the sample
 
 ### `maxEventLoopOverloadedRatio`
 
-**Type**: `Number` <code> = 0.2</code>
+**Type**: `number` <code> = 0.2</code>
 
 Sets the maximum ratio of overloaded snapshots in an event loop sample. If the sample exceeds this ratio, the system will be overloaded.
 
@@ -33,7 +33,7 @@ Sets the maximum ratio of overloaded snapshots in an event loop sample. If the s
 
 ### `maxCpuOverloadedRatio`
 
-**Type**: `Number` <code> = 0.4</code>
+**Type**: `number` <code> = 0.4</code>
 
 Sets the maximum ratio of overloaded snapshots in a CPU sample. If the sample exceeds this ratio, the system will be overloaded.
 
@@ -41,7 +41,7 @@ Sets the maximum ratio of overloaded snapshots in a CPU sample. If the sample ex
 
 ### `maxClientOverloadedRatio`
 
-**Type**: `Number` <code> = 0.2</code>
+**Type**: `number` <code> = 0.2</code>
 
 Sets the maximum ratio of overloaded snapshots in a Client sample. If the sample exceeds this ratio, the system will be overloaded.
 

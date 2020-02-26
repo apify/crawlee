@@ -9,7 +9,7 @@ title: RequestListOptions
 
 ### `sources`
 
-**Type**: [`Array<(RequestOptions|Request)>`](/docs/typedefs/request-options)
+**Type**: [`SourceInput`](/docs/typedefs/source-input)
 
 An array of sources of URLs for the `RequestList`. It can be either an array of plain objects that define the `url` property, or an array of instances
 of the [`Request`](/docs/api/request) class. Additionally, the `requestsFromUrl` property may be used instead of `url`, which will instruct
@@ -37,7 +37,7 @@ of the [`Request`](/docs/api/request) class. Additionally, the `requestsFromUrl`
 
 ### `persistStateKey`
 
-**Type**: `String`
+**Type**: `string`
 
 Identifies the key in the default key-value store under which `RequestList` periodically stores its state (i.e. which URLs were crawled and which
 not). If the actor is restarted, `RequestList` will read the state and continue where it left off.
@@ -48,7 +48,7 @@ If `persistStateKey` is not set, `RequestList` will always start from the beginn
 
 ### `persistSourcesKey`
 
-**Type**: `String`
+**Type**: `string`
 
 Identifies the key in the default key-value store under which the `RequestList` persists its sources (i.e. the lists of URLs) during the
 [`RequestList.initialize()`](/docs/api/request-list#initialize) call. This is necessary if `persistStateKey` is set and the source URLs might
@@ -82,7 +82,7 @@ Note that the preferred (and simpler) way to persist the state of crawling of th
 
 ### `keepDuplicateUrls`
 
-**Type**: `Boolean` <code> = false</code>
+**Type**: `boolean` <code> = false</code>
 
 By default, `RequestList` will deduplicate the provided URLs. Default deduplication is based on the `uniqueKey` property of passed source
 [`Request`](/docs/api/request) objects.

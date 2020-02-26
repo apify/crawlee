@@ -15,7 +15,7 @@ separate, detailed, documentation pages accessible from the left sidebar. To lea
 
 ## `Apify.addWebhook(options)`
 
-**Returns**: `Promise<Object>` - The return value is the Webhook object. For more information, see the
+**Returns**: `Promise<object>` - The return value is the Webhook object. For more information, see the
 [Get webhook](https://apify.com/docs/api/v2#/reference/webhooks/webhook-object/get-webhook) API endpoint.
 
 Creates an ad-hoc webhook for the current actor run, which lets you receive a notification when the actor run finished or failed. For more information
@@ -57,7 +57,7 @@ By passing the `waitSecs` option you can reduce the maximum amount of time to wa
 the function returns immediately after the run is started.
 
 The result of the function is an [`ActorRun`](/docs/typedefs/actor-run) object that contains details about the actor run and its output (if any). If
-the actor run fails, the function throws the [`ApifyCallError`](/docs/typedefs/apify-call-error) exception.
+the actor run fails, the function throws the [`ApifyCallError`](/docs/api/apify-call-error) exception.
 
 If you want to run an actor task rather than an actor, please use the [`Apify.callTask()`](/docs/api/apify#calltask) function instead.
 
@@ -75,32 +75,33 @@ API endpoints to obtain the output.
 
 **Throws**:
 
--   [`ApifyCallError`](/docs/typedefs/apify-call-error) If the run did not succeed, e.g. if it failed or timed out.
+-   [`ApifyCallError`](/docs/api/apify-call-error) If the run did not succeed, e.g. if it failed or timed out.
 
 **Params**
 
--   **`actId`**: `String` - Either `username/actor-name` or actor ID.
--   **`[input]`**: `Object` | `String` | `Buffer` - Input for the actor. If it is an object, it will be stringified to JSON and its content type set
-    to `application/json; charset=utf-8`. Otherwise the `options.contentType` parameter must be provided.
--   **`[options]`**: `Object` - Object with the settings below:
-    -   **`[.contentType]`**: `String` - Content type for the `input`. If not specified, `input` is expected to be an object that will be stringified
+-   **`actId`**: `string` - Either `username/actor-name` or actor ID.
+-   **`[input]`**: `object` - Input for the actor. If it is an object, it will be stringified to JSON and its content type set to
+    `application/json; charset=utf-8`. Otherwise the `options.contentType` parameter must be provided.
+-   **`[options]`**: `Object` <code> = {}</code> - Object with the settings below:
+    -   **`[.contentType]`**: `string` - Content type for the `input`. If not specified, `input` is expected to be an object that will be stringified
         to JSON and content type set to `application/json; charset=utf-8`. If `options.contentType` is specified, then `input` must be a `String` or
         `Buffer`.
-    -   **`[.token]`**: `String` - User API token that is used to run the actor. By default, it is taken from the `APIFY_TOKEN` environment variable.
-    -   **`[.memoryMbytes]`**: `Number` - Memory in megabytes which will be allocated for the new actor run. If not provided, the run uses memory of
+    -   **`[.token]`**: `string` - User API token that is used to run the actor. By default, it is taken from the `APIFY_TOKEN` environment variable.
+    -   **`[.memoryMbytes]`**: `number` - Memory in megabytes which will be allocated for the new actor run. If not provided, the run uses memory of
         the default actor run configuration.
-    -   **`[.timeoutSecs]`**: `Number` - Timeout for the actor run in seconds. Zero value means there is no timeout. If not provided, the run uses
+    -   **`[.timeoutSecs]`**: `number` - Timeout for the actor run in seconds. Zero value means there is no timeout. If not provided, the run uses
         timeout of the default actor run configuration.
-    -   **`[.build]`**: `String` - Tag or number of the actor build to run (e.g. `beta` or `1.2.345`). If not provided, the run uses build tag or
+    -   **`[.build]`**: `string` - Tag or number of the actor build to run (e.g. `beta` or `1.2.345`). If not provided, the run uses build tag or
         number from the default actor run configuration (typically `latest`).
-    -   **`[.waitSecs]`**: `String` - Maximum time to wait for the actor run to finish, in seconds. If the limit is reached, the returned promise is
+    -   **`[.waitSecs]`**: `string` - Maximum time to wait for the actor run to finish, in seconds. If the limit is reached, the returned promise is
         resolved to a run object that will have status `READY` or `RUNNING` and it will not contain the actor run output. If `waitSecs` is null or
         undefined, the function waits for the actor to finish (default behavior).
-    -   **`[.fetchOutput]`**: `Boolean` <code> = true</code> - If `false` then the function does not fetch output of the actor.
-    -   **`[.disableBodyParser]`**: `Boolean` <code> = false</code> - If `true` then the function will not attempt to parse the actor's output and
+    -   **`[.fetchOutput]`**: `boolean` <code> = true</code> - If `false` then the function does not fetch output of the actor.
+    -   **`[.disableBodyParser]`**: `boolean` <code> = false</code> - If `true` then the function will not attempt to parse the actor's output and
         will return it in a raw `Buffer`.
-    -   **`[.webhooks]`**: `Array` - Specifies optional webhooks associated with the actor run, which can be used to receive a notification e.g. when
-        the actor finished or failed, see [ad hook webhooks documentation](https://docs.apify.com/webhooks/ad-hoc-webhooks) for detailed description.
+    -   **`[.webhooks]`**: `Array<object>` - Specifies optional webhooks associated with the actor run, which can be used to receive a notification
+        e.g. when the actor finished or failed, see [ad hook webhooks documentation](https://docs.apify.com/webhooks/ad-hoc-webhooks) for detailed
+        description.
 
 ---
 
@@ -117,7 +118,7 @@ By passing the `waitSecs` option you can reduce the maximum amount of time to wa
 the function returns immediately after the run is started.
 
 The result of the function is an [`ActorRun`](/docs/typedefs/actor-run) object that contains details about the actor run and its output (if any). If
-the actor run failed, the function fails with [`ApifyCallError`](/docs/typedefs/apify-call-error) exception.
+the actor run failed, the function fails with [`ApifyCallError`](/docs/api/apify-call-error) exception.
 
 Note that an actor task is a saved input configuration and options for an actor. If you want to run an actor directly rather than an actor task,
 please use the [`Apify.call()`](/docs/api/apify#call) function instead.
@@ -136,30 +137,31 @@ other API endpoints to obtain the output.
 
 **Throws**:
 
--   [`ApifyCallError`](/docs/typedefs/apify-call-error) If the run did not succeed, e.g. if it failed or timed out.
+-   [`ApifyCallError`](/docs/api/apify-call-error) If the run did not succeed, e.g. if it failed or timed out.
 
 **Params**
 
--   **`taskId`**: `String` - Either `username/task-name` or task ID.
--   **`[input]`**: `Object` | `String` | `Buffer` - Input overrides for the actor task. If it is an object, it will be stringified to JSON and its
-    content type set to `application/json; charset=utf-8`. Otherwise the `options.contentType` parameter must be provided. Provided input will be
-    merged with actor task input.
--   **`[options]`**: `Object` - Object with the settings below:
-    -   **`[.contentType]`**: `String` - Content type for the `input`. If not specified, `input` is expected to be an object that will be stringified
+-   **`taskId`**: `string` - Either `username/task-name` or task ID.
+-   **`[input]`**: `object` - Input overrides for the actor task. If it is an object, it will be stringified to JSON and its content type set to
+    `application/json; charset=utf-8`. Otherwise the `options.contentType` parameter must be provided. Provided input will be merged with actor task
+    input.
+-   **`[options]`**: `Object` <code> = {}</code> - Object with the settings below:
+    -   **`[.contentType]`**: `string` - Content type for the `input`. If not specified, `input` is expected to be an object that will be stringified
         to JSON and content type set to `application/json; charset=utf-8`. If `options.contentType` is specified, then `input` must be a `String` or
         `Buffer`.
-    -   **`[.token]`**: `String` - User API token that is used to run the actor. By default, it is taken from the `APIFY_TOKEN` environment variable.
-    -   **`[.memoryMbytes]`**: `Number` - Memory in megabytes which will be allocated for the new actor task run. If not provided, the run uses memory
+    -   **`[.token]`**: `string` - User API token that is used to run the actor. By default, it is taken from the `APIFY_TOKEN` environment variable.
+    -   **`[.memoryMbytes]`**: `number` - Memory in megabytes which will be allocated for the new actor task run. If not provided, the run uses memory
         of the default actor run configuration.
-    -   **`[.timeoutSecs]`**: `Number` - Timeout for the actor task run in seconds. Zero value means there is no timeout. If not provided, the run
+    -   **`[.timeoutSecs]`**: `number` - Timeout for the actor task run in seconds. Zero value means there is no timeout. If not provided, the run
         uses timeout of the default actor run configuration.
-    -   **`[.build]`**: `String` - Tag or number of the actor build to run (e.g. `beta` or `1.2.345`). If not provided, the run uses build tag or
+    -   **`[.build]`**: `string` - Tag or number of the actor build to run (e.g. `beta` or `1.2.345`). If not provided, the run uses build tag or
         number from the default actor run configuration (typically `latest`).
-    -   **`[.waitSecs]`**: `String` - Maximum time to wait for the actor task run to finish, in seconds. If the limit is reached, the returned promise
+    -   **`[.waitSecs]`**: `string` - Maximum time to wait for the actor task run to finish, in seconds. If the limit is reached, the returned promise
         is resolved to a run object that will have status `READY` or `RUNNING` and it will not contain the actor run output. If `waitSecs` is null or
         undefined, the function waits for the actor task to finish (default behavior).
-    -   **`[.webhooks]`**: `Array` - Specifies optional webhooks associated with the actor run, which can be used to receive a notification e.g. when
-        the actor finished or failed, see [ad hook webhooks documentation](https://docs.apify.com/webhooks/ad-hoc-webhooks) for detailed description.
+    -   **`[.webhooks]`**: `Array<object>` - Specifies optional webhooks associated with the actor run, which can be used to receive a notification
+        e.g. when the actor finished or failed, see [ad hook webhooks documentation](https://docs.apify.com/webhooks/ad-hoc-webhooks) for detailed
+        description.
 
 ---
 
@@ -248,9 +250,9 @@ The following table shows all currently emitted events:
 
 <a name="getapifyproxyurl"></a>
 
-## `Apify.getApifyProxyUrl(options)`
+## `Apify.getApifyProxyUrl([options])`
 
-**Returns**: `String` - Returns the proxy URL, e.g. `http://auto:my_password@proxy.apify.com:8000`.
+**Returns**: `string` - Returns the proxy URL, e.g. `http://auto:my_password@proxy.apify.com:8000`.
 
 Constructs an Apify Proxy URL using the specified settings. The proxy URL can be used from Apify actors, web browsers or any other HTTP proxy-enabled
 applications.
@@ -259,20 +261,21 @@ For more information, see the [Apify Proxy](https://my.apify.com/proxy) page in 
 
 **Params**
 
--   **`options`**: `Object` - Object with the settings below: - **`[.password]`**: `String` - User's password for the proxy. By default, it is taken
-    from the `APIFY_PROXY_PASSWORD` environment variable, which is automatically set by the system when running the actors on the Apify cloud, or when
-    using the [Apify CLI](https://github.com/apifytech/apify-cli) package and the user previously logged in (called `apify login`). - **`[.groups]`**:
-    `Array<String>` - Array of Apify Proxy groups to be used. If not provided, the proxy will select the groups automatically. - **`[.session]`**:
-    `String` - Apify Proxy session identifier to be used by the Chrome browser. All HTTP requests going through the proxy with the same session
-    identifier will use the same target proxy server (i.e. the same IP address), unless using Residential proxies. The identifier can only contain the
-    following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`. - **`[.country]`**: `String` - If specified, all proxied requests will use IP
-    addresses that are geolocated to the specified country. For example `GB` for IPs from Great Britain. Note that online services often have their
-    own rules for handling geolocation and thus the country selection is a best attempt at geolocation, rather than a guaranteed hit. This parameter
-    is optional, by default, each proxied request is assigned an IP address from a random country. The country code needs to be a two letter ISO
-    country code \- see the <a href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements" target="_blank"> full list of
-    available country codes </a>.
-
-This parameter is optional, by default, the proxy uses all available proxy servers from all countries.
+-   **`[options]`**: `Object` - Object with the props below:
+    -   **`[.password]`**: `string` - User's password for the proxy. By default, it is taken from the `APIFY_PROXY_PASSWORD` environment variable,
+        which is automatically set by the system when running the actors on the Apify cloud, or when using the
+        [Apify CLI](https://github.com/apifytech/apify-cli) package and the user previously logged in (called `apify login`).
+    -   **`[.groups]`**: `Array<string>` - Array of Apify Proxy groups to be used. If not provided, the proxy will select the groups automatically.
+    -   **`[.session]`**: `string` - Apify Proxy session identifier to be used by the Chrome browser. All HTTP requests going through the proxy with
+        the same session identifier will use the same target proxy server (i.e. the same IP address), unless using Residential proxies. The identifier
+        can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
+    -   **`[.country]`**: `string` - If set and relevant proxies are available in your Apify account, all proxied requests will use IP addresses that
+        are geolocated to the specified country. For example `GB` for IPs from Great Britain. Note that online services often have their own rules for
+        handling geolocation and thus the country selection is a best attempt at geolocation, rather than a guaranteed hit. This parameter is
+        optional, by default, each proxied request is assigned an IP address from a random country. The country code needs to be a two letter ISO
+        country code. See the
+        [full list of available country codes](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements). This parameter is
+        optional, by default, the proxy uses all available proxy servers from all countries.
 
 ---
 
@@ -293,7 +296,7 @@ the variables are not defined or are invalid, the corresponding value in the res
 
 ## `Apify.getInput()`
 
-**Returns**: `Promise<Object>` - Returns a promise that resolves once the record is stored.
+**Returns**: `Promise<(object|null)>` - Returns a promise that resolves once the record is stored.
 
 Gets the actor input value from the default [`KeyValueStore`](/docs/api/key-value-store) associated with the current actor run.
 
@@ -334,7 +337,7 @@ second.
 
 ## `Apify.getValue(key)`
 
-**Returns**: `Promise<Object>` - Returns a promise that resolves once the record is stored.
+**Returns**: `Promise<(object|null)>` - Returns a promise that resolves once the record is stored.
 
 Gets a value from the default [`KeyValueStore`](/docs/api/key-value-store) associated with the current actor run.
 
@@ -358,7 +361,7 @@ For more information, see [`Apify.openKeyValueStore()`](/docs/api/apify#openkeyv
 
 **Params**
 
--   **`key`**: `String` - Unique record key.
+-   **`key`**: `string` - Unique record key.
 
 ---
 
@@ -366,7 +369,7 @@ For more information, see [`Apify.openKeyValueStore()`](/docs/api/apify#openkeyv
 
 ## `Apify.isAtHome()`
 
-**Returns**: `Boolean`
+**Returns**: `boolean`
 
 Returns `true` when code is running on Apify platform and `false` otherwise (for example locally).
 
@@ -498,8 +501,8 @@ Apify.main(async () => {
 
 **Params**
 
--   **`userFunc`**: `function` - User function to be executed. If it returns a promise, the promise will be awaited. The user function is called with
-    no arguments.
+-   **`userFunc`**: [`UserFunc`](/docs/typedefs/user-func) - User function to be executed. If it returns a promise, the promise will be awaited. The
+    user function is called with no arguments.
 
 ---
 
@@ -514,14 +517,14 @@ default storages are preserved and the new input is stored under the `INPUT-META
 
 **Params**
 
--   **`targetActorId`**: `String` - Either `username/actor-name` or actor ID of an actor to which we want to metamorph.
--   **`[input]`**: `Object` | `String` | `Buffer` - Input for the actor. If it is an object, it will be stringified to JSON and its content type set
-    to `application/json; charset=utf-8`. Otherwise the `options.contentType` parameter must be provided.
--   **`[options]`**: `Object` - Object with the settings below:
-    -   **`[.contentType]`**: `String` - Content type for the `input`. If not specified, `input` is expected to be an object that will be stringified
+-   **`targetActorId`**: `string` - Either `username/actor-name` or actor ID of an actor to which we want to metamorph.
+-   **`[input]`**: `object` - Input for the actor. If it is an object, it will be stringified to JSON and its content type set to
+    `application/json; charset=utf-8`. Otherwise the `options.contentType` parameter must be provided.
+-   **`[options]`**: `Object` <code> = {}</code> - Object with the settings below:
+    -   **`[.contentType]`**: `string` - Content type for the `input`. If not specified, `input` is expected to be an object that will be stringified
         to JSON and content type set to `application/json; charset=utf-8`. If `options.contentType` is specified, then `input` must be a `String` or
         `Buffer`.
-    -   **`[.build]`**: `String` - Tag or number of the target actor build to metamorph into (e.g. `beta` or `1.2.345`). If not provided, the run uses
+    -   **`[.build]`**: `string` - Tag or number of the target actor build to metamorph into (e.g. `beta` or `1.2.345`). If not provided, the run uses
         build tag or number from the default actor run configuration (typically `latest`).
 
 ---
@@ -543,7 +546,7 @@ For more details and code examples, see the [`Dataset`](/docs/api/dataset) class
 
 -   **`[datasetIdOrName]`**: `string` - ID or name of the dataset to be opened. If `null` or `undefined`, the function returns the default dataset
     associated with the actor run.
--   **`[options]`**: `object`
+-   **`[options]`**: `Object`
     -   **`[.forceCloud]`**: `boolean` <code> = false</code> - If set to `true` then the function uses cloud storage usage even if the
         `APIFY_LOCAL_STORAGE_DIR` environment variable is set. This way it is possible to combine local and cloud storage.
 
@@ -605,7 +608,7 @@ const requestList = await Apify.openRequestList('my-name', sources);
     If `null`, the list will not be persisted and will only be stored in memory. Process restart will then cause the list to be crawled again from the
     beginning. We suggest always using a name.
 
--   **`sources`**: [`Array<(Request|RequestOptions|string)>`](/docs/api/request) - An array of sources of URLs for the
+-   **`sources`**: [`SourceInput`](/docs/typedefs/source-input) | `Array<string>` - An array of sources of URLs for the
     [`RequestList`](/docs/api/request-list). It can be either an array of plain objects that define at least the `url` property, or an array of
     instances of the [`Request`](/docs/api/request) class.
 
@@ -666,7 +669,7 @@ For more details and code examples, see the [`SessionPool`](/docs/api/session-po
 
 ## `Apify.pushData(item)`
 
-**Returns**: `Promise`
+**Returns**: `Promise<void>`
 
 Stores an object or an array of objects to the default [`Dataset`](/docs/api/dataset) of the current actor run.
 
@@ -689,8 +692,8 @@ For more information, see [`Apify.openDataset()`](/docs/api/apify#opendataset) a
 
 **Params**
 
--   **`item`**: `Object` | `Array` - Object or array of objects containing data to be stored in the default dataset. The objects must be serializable
-    to JSON and the JSON representation of each object must be smaller than 9MB.
+-   **`item`**: `object` - Object or array of objects containing data to be stored in the default dataset. The objects must be serializable to JSON
+    and the JSON representation of each object must be smaller than 9MB.
 
 ---
 
@@ -698,7 +701,7 @@ For more information, see [`Apify.openDataset()`](/docs/api/apify#opendataset) a
 
 ## `Apify.setValue(key, value, [options])`
 
-**Returns**: `Promise`
+**Returns**: `Promise<void>`
 
 Stores or deletes a value in the default [`KeyValueStore`](/docs/api/key-value-store) associated with the current actor run.
 
@@ -722,8 +725,8 @@ For more information, see [`Apify.openKeyValueStore()`](/docs/api/apify#openkeyv
 
 **Params**
 
--   **`key`**: `String` - Unique record key.
--   **`value`**: `Object` | `String` | `Buffer` - Record data, which can be one of the following values:
+-   **`key`**: `string` - Unique record key.
+-   **`value`**: `object` - Record data, which can be one of the following values:
     <ul>
       <li>If `null`, the record in the key-value store is deleted.</li>
       <li>If no `options.contentType` is specified, `value` can be any JavaScript object and it will be stringified to JSON.</li>
@@ -732,6 +735,6 @@ For more information, see [`Apify.openKeyValueStore()`](/docs/api/apify#openkeyv
     </ul>
     For any other value an error will be thrown.
 -   **`[options]`**: `Object`
-    -   **`[.contentType]`**: `String` - Specifies a custom MIME content type of the record.
+    -   **`[.contentType]`**: `string` - Specifies a custom MIME content type of the record.
 
 ---

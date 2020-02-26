@@ -58,7 +58,7 @@ but `LiveViewServer` works too.
 
 ## `liveViewServer.start()`
 
-**Returns**: `Promise`
+**Returns**: `Promise<void>`
 
 Starts the HTTP server with web socket connections enabled. Snapshots will not be created until a client has connected.
 
@@ -68,7 +68,7 @@ Starts the HTTP server with web socket connections enabled. Snapshots will not b
 
 ## `liveViewServer.stop()`
 
-**Returns**: `Promise`
+**Returns**: `Promise<void>`
 
 Prevents the server from receiving more connections. Existing connections will not be terminated, but the server will not prevent a process exit.
 
@@ -78,7 +78,7 @@ Prevents the server from receiving more connections. Existing connections will n
 
 ## `liveViewServer.serve(page)`
 
-**Returns**: `Promise`
+**Returns**: `Promise<void>`
 
 Serves a snapshot to all connected clients. Screenshots are not served directly, only their index number which is used by client to retrieve the
 screenshot.

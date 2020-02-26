@@ -1,21 +1,19 @@
-import path from 'path';
-import _ from 'underscore';
-import log from 'apify-shared/log';
+import * as path from 'path';
+import * as _ from 'underscore';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { APIFY_PROXY_VALUE_REGEX } from 'apify-shared/regexs';
 import { ENV_VARS, INTEGER_ENV_VARS, LOCAL_ENV_VARS, ACT_JOB_TERMINAL_STATUSES, ACT_JOB_STATUSES } from 'apify-shared/consts';
+import log from './utils_log';
 import { EXIT_CODES, COUNTRY_CODE_REGEX } from './constants';
 import { initializeEvents, stopEvents } from './events';
 import { apifyClient, addCharsetToContentType, sleep, snakeCaseToCamelCase, isAtHome, logSystemInfo, printOutdatedSdkWarning } from './utils';
 import { maybeStringify } from './key_value_store';
 import { ApifyCallError } from './errors';
 
-// TYPE IMPORTS
-/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
-import { ActorRun } from './typedefs';
-/* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
-
 const METAMORPH_AFTER_SLEEP_MILLIS = 300000;
+
+// eslint-disable-next-line import/named,no-unused-vars,import/first
+import { ActorRun } from './typedefs';
 
 /**
  * Tries to parse a string with date.
@@ -99,21 +97,21 @@ const addInputOptionsOrThrow = (input, contentType, options) => {
 /**
  * Parsed representation of the `APIFY_XXX` environmental variables.
  *
- * @typedef {Object} ApifyEnv
- * @property {String|null} actorId ID of the actor (APIFY_ACTOR_ID)
- * @property {String|null} actorRunId ID of the actor run (APIFY_ACTOR_RUN_ID)
- * @property {String|null} actorTaskId ID of the actor task (APIFY_ACTOR_TASK_ID)
- * @property {String|null} userId ID of the user who started the actor - note that it might be
+ * @typedef ApifyEnv
+ * @property {string|null} actorId ID of the actor (APIFY_ACTOR_ID)
+ * @property {string|null} actorRunId ID of the actor run (APIFY_ACTOR_RUN_ID)
+ * @property {string|null} actorTaskId ID of the actor task (APIFY_ACTOR_TASK_ID)
+ * @property {string|null} userId ID of the user who started the actor - note that it might be
  *   different than the owner ofthe actor (APIFY_USER_ID)
- * @property {String|null} token Authentication token representing privileges given to the actor run,
+ * @property {string|null} token Authentication token representing privileges given to the actor run,
  *   it can be passed to various Apify APIs (APIFY_TOKEN)
  * @property {Date|null} startedAt Date when the actor was started (APIFY_STARTED_AT)
  * @property {Date|null} timeoutAt Date when the actor will time out (APIFY_TIMEOUT_AT)
- * @property {String|null} defaultKeyValueStoreId ID of the key-value store where input and output data of this
+ * @property {string|null} defaultKeyValueStoreId ID of the key-value store where input and output data of this
  *   actor is stored (APIFY_DEFAULT_KEY_VALUE_STORE_ID)
- * @property {String|null} defaultDatasetId ID of the dataset where input and output data of this
+ * @property {string|null} defaultDatasetId ID of the dataset where input and output data of this
  *   actor is stored (APIFY_DEFAULT_DATASET_ID)
- * @property {Number|null} memoryMbytes Amount of memory allocated for the actor,
+ * @property {number|null} memoryMbytes Amount of memory allocated for the actor,
  *   in megabytes (APIFY_MEMORY_MBYTES)
  */
 
@@ -149,6 +147,11 @@ export const getEnv = () => {
 
     return envVars;
 };
+
+/**
+ * @callback UserFunc
+ * @return {Promise<void>}
+ */
 
 /**
  * Runs the main user function that performs the job of the actor
@@ -214,7 +217,7 @@ export const getEnv = () => {
  * });
  * ```
  *
- * @param {Function} userFunc User function to be executed. If it returns a promise,
+ * @param {UserFunc} userFunc User function to be executed. If it returns a promise,
  * the promise will be awaited. The user function is called with no arguments.
  *
  * @memberof module:Apify
@@ -309,41 +312,41 @@ let callMemoryWarningIssued = false;
  * [Run actor](https://apify.com/docs/api/v2#/reference/actors/run-collection/run-actor)
  * and several other API endpoints to obtain the output.
  *
- * @param {String} actId
+ * @param {string} actId
  *  Either `username/actor-name` or actor ID.
- * @param {Object|String|Buffer} [input]
+ * @param {object} [input]
  *  Input for the actor. If it is an object, it will be stringified to
  *  JSON and its content type set to `application/json; charset=utf-8`.
  *  Otherwise the `options.contentType` parameter must be provided.
- * @param {Object} [options]
+ * @param {Object} [options={}]
  *   Object with the settings below:
- * @param {String} [options.contentType]
+ * @param {string} [options.contentType]
  *  Content type for the `input`. If not specified,
  *  `input` is expected to be an object that will be stringified to JSON and content type set to
  *  `application/json; charset=utf-8`. If `options.contentType` is specified, then `input` must be a
  *  `String` or `Buffer`.
- * @param {String} [options.token]
+ * @param {string} [options.token]
  *  User API token that is used to run the actor. By default, it is taken from the `APIFY_TOKEN` environment variable.
- * @param {Number} [options.memoryMbytes]
+ * @param {number} [options.memoryMbytes]
  *  Memory in megabytes which will be allocated for the new actor run.
  *  If not provided, the run uses memory of the default actor run configuration.
- * @param {Number} [options.timeoutSecs]
+ * @param {number} [options.timeoutSecs]
  *  Timeout for the actor run in seconds. Zero value means there is no timeout.
  *  If not provided, the run uses timeout of the default actor run configuration.
- * @param {String} [options.build]
+ * @param {string} [options.build]
  *  Tag or number of the actor build to run (e.g. `beta` or `1.2.345`).
  *  If not provided, the run uses build tag or number from the default actor run configuration (typically `latest`).
- * @param {String} [options.waitSecs]
+ * @param {string} [options.waitSecs]
  *  Maximum time to wait for the actor run to finish, in seconds.
  *  If the limit is reached, the returned promise is resolved to a run object that will have
  *  status `READY` or `RUNNING` and it will not contain the actor run output.
  *  If `waitSecs` is null or undefined, the function waits for the actor to finish (default behavior).
- * @param {Boolean} [options.fetchOutput=true]
+ * @param {boolean} [options.fetchOutput=true]
  *  If `false` then the function does not fetch output of the actor.
- * @param {Boolean} [options.disableBodyParser=false]
+ * @param {boolean} [options.disableBodyParser=false]
  *  If `true` then the function will not attempt to parse the
  *  actor's output and will return it in a raw `Buffer`.
- * @param {Array} [options.webhooks] Specifies optional webhooks associated with the actor run, which can be used
+ * @param {Array<object>} [options.webhooks] Specifies optional webhooks associated with the actor run, which can be used
  *  to receive a notification e.g. when the actor finished or failed, see
  *  [ad hook webhooks documentation](https://docs.apify.com/webhooks/ad-hoc-webhooks) for detailed description.
  * @returns {Promise<ActorRun>}
@@ -449,37 +452,37 @@ export const call = async (actId, input, options = {}) => {
  * [Run task](https://apify.com/docs/api/v2#/reference/actor-tasks/run-collection/run-task)
  * and several other API endpoints to obtain the output.
  *
- * @param {String} taskId
+ * @param {string} taskId
  *  Either `username/task-name` or task ID.
- * @param {Object|String|Buffer} [input]
+ * @param {object} [input]
  *  Input overrides for the actor task. If it is an object, it will be stringified to
  *  JSON and its content type set to `application/json; charset=utf-8`.
  *  Otherwise the `options.contentType` parameter must be provided.
  *  Provided input will be merged with actor task input.
- * @param {Object} [options]
+ * @param {Object} [options={}]
  *   Object with the settings below:
- * @param {String} [options.contentType]
+ * @param {string} [options.contentType]
  *  Content type for the `input`. If not specified,
  *  `input` is expected to be an object that will be stringified to JSON and content type set to
  *  `application/json; charset=utf-8`. If `options.contentType` is specified, then `input` must be a
  *  `String` or `Buffer`.
- * @param {String} [options.token]
+ * @param {string} [options.token]
  *  User API token that is used to run the actor. By default, it is taken from the `APIFY_TOKEN` environment variable.
- * @param {Number} [options.memoryMbytes]
+ * @param {number} [options.memoryMbytes]
  *  Memory in megabytes which will be allocated for the new actor task run.
  *  If not provided, the run uses memory of the default actor run configuration.
- * @param {Number} [options.timeoutSecs]
+ * @param {number} [options.timeoutSecs]
  *  Timeout for the actor task run in seconds. Zero value means there is no timeout.
  *  If not provided, the run uses timeout of the default actor run configuration.
- * @param {String} [options.build]
+ * @param {string} [options.build]
  *  Tag or number of the actor build to run (e.g. `beta` or `1.2.345`).
  *  If not provided, the run uses build tag or number from the default actor run configuration (typically `latest`).
- * @param {String} [options.waitSecs]
+ * @param {string} [options.waitSecs]
  *  Maximum time to wait for the actor task run to finish, in seconds.
  *  If the limit is reached, the returned promise is resolved to a run object that will have
  *  status `READY` or `RUNNING` and it will not contain the actor run output.
  *  If `waitSecs` is null or undefined, the function waits for the actor task to finish (default behavior).
- * @param {Array} [options.webhooks] Specifies optional webhooks associated with the actor run, which can be used
+ * @param {Array<object>} [options.webhooks] Specifies optional webhooks associated with the actor run, which can be used
  *  to receive a notification e.g. when the actor finished or failed, see
  *  [ad hook webhooks documentation](https://docs.apify.com/webhooks/ad-hoc-webhooks) for detailed description.
  * @returns {Promise<ActorRun>}
@@ -549,20 +552,20 @@ export const callTask = async (taskId, input, options = {}) => {
  * Transforms this actor run to an actor run of a given actor. The system stops the current container and starts the new container
  * instead. All the default storages are preserved and the new input is stored under the `INPUT-METAMORPH-1` key in the same default key-value store.
  *
- * @param {String} targetActorId
+ * @param {string} targetActorId
  *  Either `username/actor-name` or actor ID of an actor to which we want to metamorph.
- * @param {Object|String|Buffer} [input]
+ * @param {object} [input]
  *  Input for the actor. If it is an object, it will be stringified to
  *  JSON and its content type set to `application/json; charset=utf-8`.
  *  Otherwise the `options.contentType` parameter must be provided.
- * @param {Object} [options]
+ * @param {Object} [options={}]
  *   Object with the settings below:
- * @param {String} [options.contentType]
+ * @param {string} [options.contentType]
  *  Content type for the `input`. If not specified,
  *  `input` is expected to be an object that will be stringified to JSON and content type set to
  *  `application/json; charset=utf-8`. If `options.contentType` is specified, then `input` must be a
  *  `String` or `Buffer`.
- * @param {String} [options.build]
+ * @param {string} [options.build]
  *  Tag or number of the target actor build to metamorph into (e.g. `beta` or `1.2.345`).
  *  If not provided, the run uses build tag or number from the default actor run configuration (typically `latest`).
  * @returns {Promise<void>}
@@ -611,35 +614,35 @@ export const metamorph = async (targetActorId, input, options = {}) => {
  * The proxy URL can be used from Apify actors, web browsers or any other HTTP
  * proxy-enabled applications.
  *
- * For more information, see
- * the [Apify Proxy](https://my.apify.com/proxy) page in the app
+ * For more information, see the [Apify Proxy](https://my.apify.com/proxy) page in the app
  * or the [documentation](https://docs.apify.com/proxy).
  *
- * @param {Object} options
- *   Object with the settings below:
- * @param {String} [options.password] User's password for the proxy.
- *   By default, it is taken from the `APIFY_PROXY_PASSWORD` environment variable,
- *   which is automatically set by the system when running the actors on the Apify cloud,
- *   or when using the [Apify CLI](https://github.com/apifytech/apify-cli)
+ * @param {Object} [options]
+ *   Object with the props below:
+ * @param {string} [options.password]
+ *   User's password for the proxy. By default, it is taken from the `APIFY_PROXY_PASSWORD`
+ *   environment variable, which is automatically set by the system when running the actors
+ *   on the Apify cloud, or when using the [Apify CLI](https://github.com/apifytech/apify-cli)
  *   package and the user previously logged in (called `apify login`).
- * @param {String[]} [options.groups] Array of Apify Proxy groups to be used.
- *   If not provided, the proxy will select the groups automatically.
- * @param {String} [options.session] Apify Proxy session identifier to be used by the Chrome browser.
- *   All HTTP requests going through the proxy with the same session identifier
- *   will use the same target proxy server (i.e. the same IP address), unless using Residential proxies.
- *   The identifier can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
- * @param {String} [options.country] If specified, all proxied requests will use IP addresses that are geolocated to the specified country.
- * For example `GB` for IPs from Great Britain. Note that online services often have their own rules for handling geolocation and thus
- * the country selection is a best attempt at geolocation, rather than a guaranteed hit.
- * This parameter is optional, by default, each proxied request is assigned an IP address from a random country.
- * The country code needs to be a two letter ISO country code
- * \- see the <a href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements" target="_blank">
- * full list of available country codes
- * </a>.
+ * @param {string[]} [options.groups]
+ *   Array of Apify Proxy groups to be used. If not provided, the proxy will select
+ *   the groups automatically.
+ * @param {string} [options.session]
+ *   Apify Proxy session identifier to be used by the Chrome browser. All HTTP requests
+ *   going through the proxy with the same session identifier will use the same target
+ *   proxy server (i.e. the same IP address), unless using Residential proxies. The identifier
+ *   can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
+ * @param {string} [options.country]
+ *   If set and relevant proxies are available in your Apify account, all proxied requests will
+ *   use IP addresses that are geolocated to the specified country. For example `GB` for IPs
+ *   from Great Britain. Note that online services often have their own rules for handling
+ *   geolocation and thus the country selection is a best attempt at geolocation, rather than
+ *   a guaranteed hit. This parameter is optional, by default, each proxied request is assigned
+ *   an IP address from a random country. The country code needs to be a two letter ISO country code. See the
+ *   [full list of available country codes](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements).
+ *   This parameter is optional, by default, the proxy uses all available proxy servers from all countries.
  *
- * This parameter is optional, by default, the proxy uses all available proxy servers from all countries.
- *
- * @returns {String} Returns the proxy URL, e.g. `http://auto:my_password@proxy.apify.com:8000`.
+ * @returns {string} Returns the proxy URL, e.g. `http://auto:my_password@proxy.apify.com:8000`.
  *
  * @memberof module:Apify
  * @function
@@ -740,7 +743,7 @@ export const getApifyProxyUrl = (options = {}) => {
  *   an actor restart or other situation that would cause the `addWebhook()` function to be called again.
  *   We suggest using the actor run ID as the idempotency key. You can get the run ID by calling
  *   {@link Apify#getEnv} function.
- * @return {Promise<Object>} The return value is the Webhook object.
+ * @return {Promise<object>} The return value is the Webhook object.
  * For more information, see the [Get webhook](https://apify.com/docs/api/v2#/reference/webhooks/webhook-object/get-webhook) API endpoint.
  *
  * @memberof module:Apify

@@ -20,8 +20,7 @@ export const EXIT_CODES = {
 /**
  * These events are just internal for Apify package, so we don't need them in apify-shared package.
  *
- * @type {{CPU_INFO: String, SYSTEM_INFO: String, MIGRATING: String, PERSIST_STATE: String}}
- *
+ * @type {{CPU_INFO: string, SYSTEM_INFO: string, MIGRATING: string, PERSIST_STATE: string}}
  */
 export const ACTOR_EVENT_NAMES_EX = Object.assign({}, ACTOR_EVENT_NAMES, { PERSIST_STATE: 'persistState' });
 

@@ -48,29 +48,29 @@ export type SystemStatusOptions = {
 /**
  * Represents the current status of the system.
  *
- * @typedef {Object} SystemInfo
- * @property {Boolean} isSystemIdle
+ * @typedef SystemInfo
+ * @property {boolean} isSystemIdle
  *   If true, system is being overloaded.
- * @property {Object} memInfo
+ * @property {object} memInfo
  *   Memory
- * @property {Object} eventLoopInfo
- * @property {Object} cpuInfo
+ * @property {object} eventLoopInfo
+ * @property {object} cpuInfo
  */
 /**
- * @typedef {Object} SystemStatusOptions
- * @property {Number} [currentHistorySecs=5]
+ * @typedef SystemStatusOptions
+ * @property {number} [currentHistorySecs=5]
  *   Defines max age of snapshots used in the
  *   {@link SystemStatus#getCurrentStatus} measurement.
- * @property {Number} [maxMemoryOverloadedRatio=0.2]
+ * @property {number} [maxMemoryOverloadedRatio=0.2]
  *   Sets the maximum ratio of overloaded snapshots in a memory sample.
  *   If the sample exceeds this ratio, the system will be overloaded.
- * @property {Number} [maxEventLoopOverloadedRatio=0.2]
+ * @property {number} [maxEventLoopOverloadedRatio=0.2]
  *   Sets the maximum ratio of overloaded snapshots in an event loop sample.
  *   If the sample exceeds this ratio, the system will be overloaded.
- * @property {Number} [maxCpuOverloadedRatio=0.4]
+ * @property {number} [maxCpuOverloadedRatio=0.4]
  *   Sets the maximum ratio of overloaded snapshots in a CPU sample.
  *   If the sample exceeds this ratio, the system will be overloaded.
- * @property {Number} [maxClientOverloadedRatio=0.2]
+ * @property {number} [maxClientOverloadedRatio=0.2]
  *   Sets the maximum ratio of overloaded snapshots in a Client sample.
  *   If the sample exceeds this ratio, the system will be overloaded.
  * @property {Snapshotter} [snapshotter]
@@ -101,7 +101,7 @@ declare class SystemStatus {
     /**
      * @param {SystemStatusOptions} [options] All `SystemStatus` configuration options.
      */
-    constructor(options?: SystemStatusOptions);
+    constructor(options?: SystemStatusOptions | undefined);
     currentHistorySecs: number;
     maxMemoryOverloadedRatio: any;
     maxEventLoopOverloadedRatio: any;
@@ -141,23 +141,23 @@ declare class SystemStatus {
      * Where the `isSystemIdle` property is set to `false` if the system
      * has been overloaded in the full history of the {@link Snapshotter}
      * (which is configurable in the {@link Snapshotter}) and `true` otherwise.
-     * @return {Object}
+     * @return {SystemInfo}
      */
-    getHistoricalStatus(): any;
+    getHistoricalStatus(): SystemInfo;
     /**
      * Returns a system status object.
      *
-     * @param {Number} [sampleDurationMillis]
+     * @param {number} [sampleDurationMillis]
      * @return {SystemInfo}
      * @ignore
      */
-    _isSystemIdle(sampleDurationMillis?: number): SystemInfo;
+    _isSystemIdle(sampleDurationMillis?: number | undefined): SystemInfo;
     /**
      * Returns an object with an isOverloaded property set to true
      * if the memory has been overloaded in the last sampleDurationMillis.
      *
-     * @param {Number} sampleDurationMillis
-     * @return {Object}
+     * @param {number} sampleDurationMillis
+     * @return {object}
      * @ignore
      */
     _isMemoryOverloaded(sampleDurationMillis: number): any;
@@ -165,8 +165,8 @@ declare class SystemStatus {
      * Returns an object with an isOverloaded property set to true
      * if the event loop has been overloaded in the last sampleDurationMillis.
      *
-     * @param {Number} sampleDurationMillis
-     * @return {Object}
+     * @param {number} sampleDurationMillis
+     * @return {object}
      * @ignore
      */
     _isEventLoopOverloaded(sampleDurationMillis: number): any;
@@ -174,26 +174,30 @@ declare class SystemStatus {
      * Returns an object with an isOverloaded property set to true
      * if the CPU has been overloaded in the last sampleDurationMillis.
      *
-     * @param {Number} sampleDurationMillis
-     * @return {Object}
+     * @param {number} sampleDurationMillis
+     * @return {object}
      * @ignore
      */
     _isCpuOverloaded(sampleDurationMillis: number): any;
     /**
      * Returns an object with an isOverloaded property set to true
      * if the client has been overloaded in the last sampleDurationMillis.
-     * @param sampleDurationMillis
-     * @return {{isOverloaded, maxOverloadedRatio, actualRatio}}
+     * @param {number} sampleDurationMillis
+     * @return {{isOverloaded: boolean, maxOverloadedRatio: number, actualRatio: number}}
      * @private
      */
-    private _isClientOverloaded;
+    _isClientOverloaded(sampleDurationMillis: number): {
+        isOverloaded: boolean;
+        maxOverloadedRatio: number;
+        actualRatio: number;
+    };
     /**
      * Returns an object with sample information and an isOverloaded property
      * set to true if at least the ratio of snapshots in the sample are overloaded.
      *
-     * @param {Array} sample
-     * @param {Number} ratio
-     * @return {Object}
+     * @param {Array<*>} sample
+     * @param {number} ratio
+     * @return {object}
      * @ignore
      */
     _isSampleOverloaded(sample: any[], ratio: number): any;

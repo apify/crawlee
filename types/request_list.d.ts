@@ -1,8 +1,17 @@
 export const STATE_PERSISTENCE_KEY: "REQUEST_LIST_STATE";
 export const SOURCES_PERSISTENCE_KEY: "REQUEST_LIST_SOURCES";
 /**
- * @typedef {Object} RequestListOptions
- * @property {Array<RequestOptions|Request>} sources
+ * @typedef RequestListInput
+ * @property {string} [method]
+ * @property {string} [requestsFromUrl]
+ * @property {RegExp} [regex]
+ */
+/**
+ * @typedef {Array<(RequestListInput|RequestOptions|Request)>} SourceInput
+ */
+/**
+ * @typedef RequestListOptions
+ * @property {SourceInput} sources
  *  An array of sources of URLs for the `RequestList`. It can be either an array of plain objects that
  *  define the `url` property, or an array of instances of the {@link Request} class.
  *  Additionally, the `requestsFromUrl` property may be used instead of `url`,
@@ -26,7 +35,7 @@ export const SOURCES_PERSISTENCE_KEY: "REQUEST_LIST_SOURCES";
  *     { requestsFromUrl: 'https://docs.google.com/spreadsheets/d/1GA5sSQhQjB_REes8I5IKg31S-TuRcznWOPjcpNqtxmU/gviz/tq?tqx=out:csv' }
  * ]
  * ```
- * @property {String} [persistStateKey]
+ * @property {string} [persistStateKey]
  *   Identifies the key in the default key-value store under which `RequestList` periodically stores its
  *   state (i.e. which URLs were crawled and which not).
  *   If the actor is restarted, `RequestList` will read the state
@@ -34,7 +43,7 @@ export const SOURCES_PERSISTENCE_KEY: "REQUEST_LIST_SOURCES";
  *
  *   If `persistStateKey` is not set, `RequestList` will always start from the beginning,
  *   and all the source URLs will be crawled again.
- * @property {String} [persistSourcesKey]
+ * @property {string} [persistSourcesKey]
  *   Identifies the key in the default key-value store under which the `RequestList` persists its
  *   sources (i.e. the lists of URLs) during the {@link RequestList#initialize} call.
  *   This is necessary if `persistStateKey` is set and the source URLs might potentially change,
@@ -60,7 +69,7 @@ export const SOURCES_PERSISTENCE_KEY: "REQUEST_LIST_SOURCES";
  *
  *   Note that the preferred (and simpler) way to persist the state of crawling of the `RequestList`
  *   is to use the `stateKeyPrefix` parameter instead.
- * @property {Boolean} [keepDuplicateUrls=false]
+ * @property {boolean} [keepDuplicateUrls=false]
  *   By default, `RequestList` will deduplicate the provided URLs. Default deduplication is based
  *   on the `uniqueKey` property of passed source {@link Request} objects.
  *
@@ -164,7 +173,7 @@ export class RequestList {
      *
      * @returns {Promise<void>}
      */
-    async initialize(): Promise<void>;
+    initialize(): Promise<void>;
     /**
      * Persists the current state of the `RequestList` into the default {@link KeyValueStore}.
      * The state is persisted automatically in regular intervals, but calling this method manually
@@ -174,7 +183,7 @@ export class RequestList {
      *
      * @return {Promise<void>}
      */
-    async persistState(): Promise<void>;
+    persistState(): Promise<void>;
     /**
      * Unlike persistState(), this is used only internally, since the sources
      * are automatically persisted at RequestList initialization (if the persistSourcesKey is set),
@@ -183,7 +192,7 @@ export class RequestList {
      * @return {Promise<void>}
      * @ignore
      */
-    async _persistSources(): Promise<void>;
+    _persistSources(): Promise<void>;
     /**
      * Restores RequestList state from a state object.
      *
@@ -195,10 +204,10 @@ export class RequestList {
      * Attempts to load state and sources using the `RequestList` configuration
      * and returns a tuple of [state, sources] where each may be null if not loaded.
      *
-     * @return {Promise<Array>}
+     * @return {Promise<Array<(RequestListState|null)>>}
      * @ignore
      */
-    async _loadStateAndSources(): Promise<any[]>;
+    _loadStateAndSources(): Promise<(RequestListState | null)[]>;
     /**
      * Returns an object representing the internal state of the `RequestList` instance.
      * Note that the object's fields can change in future releases.
@@ -213,13 +222,13 @@ export class RequestList {
      *
      * @returns {Promise<Boolean>}
      */
-    async isEmpty(): Promise<boolean>;
+    isEmpty(): Promise<boolean>;
     /**
      * Returns `true` if all requests were already handled and there are no more left.
      *
      * @returns {Promise<Boolean>}
      */
-    async isFinished(): Promise<boolean>;
+    isFinished(): Promise<boolean>;
     /**
      * Gets the next {@link Request} to process. First, the function gets a request previously reclaimed
      * using the {@link RequestList#reclaimRequest} function, if there is any.
@@ -228,39 +237,37 @@ export class RequestList {
      * The function's `Promise` resolves to `null` if there are no more
      * requests to process.
      *
-     * @returns {Promise<Request>}
+     * @returns {Promise<(Request|null)>}
      */
-    async fetchNextRequest(): Promise<Request>;
+    fetchNextRequest(): Promise<Request | null>;
     /**
      * Marks request as handled after successful processing.
      *
      * @param {Request} request
-     *
      * @returns {Promise<void>}
      */
-    async markRequestHandled(request: Request): Promise<void>;
+    markRequestHandled(request: Request): Promise<void>;
     /**
      * Reclaims request to the list if its processing failed.
      * The request will become available in the next `this.fetchNextRequest()`.
      *
      * @param {Request} request
-     *
      * @returns {Promise<void>}
      */
-    async reclaimRequest(request: Request): Promise<void>;
+    reclaimRequest(request: Request): Promise<void>;
     /**
      * Adds all fetched requests from a URL from a remote resource.
      *
      * @ignore
      */
-    async _addFetchedRequests(source: any, fetchedRequests: any): Promise<void>;
+    _addFetchedRequests(source: any, fetchedRequests: any): Promise<void>;
     /**
      * Fetches URLs from requestsFromUrl and returns them in format of list of requests
      * @param source
-     * @return {Promise<RequestOptions[]>}
+     * @return {Promise<Array<RequestOptions>>}
      * @ignore
      */
-    async _fetchRequestsFromUrl(source: any): Promise<any[]>;
+    _fetchRequestsFromUrl(source: any): Promise<RequestOptions[]>;
     /**
      * Adds given request.
      * If the `opts` parameter is a plain object and not an instance of a `Request`, then the function
@@ -291,17 +298,23 @@ export class RequestList {
     /**
      * Returns the total number of unique requests present in the `RequestList`.
      *
-     * @returns {Number}
+     * @returns {number}
      */
     length(): number;
     /**
      * Returns number of handled requests.
      *
-     * @returns {Number}
+     * @returns {number}
      */
     handledCount(): number;
 }
-export function openRequestList(listName: string, sources: any[], options?: RequestListOptions): Promise<RequestList>;
+export function openRequestList(listName: string | null, sources: string[] | (Request | RequestOptions | RequestListInput)[], options?: RequestListOptions | undefined): Promise<RequestList>;
+export type RequestListInput = {
+    method?: string;
+    requestsFromUrl?: string;
+    regex?: RegExp;
+};
+export type SourceInput = (Request | RequestOptions | RequestListInput)[];
 export type RequestListOptions = {
     /**
      * An array of sources of URLs for the `RequestList`. It can be either an array of plain objects that
@@ -328,7 +341,7 @@ export type RequestListOptions = {
      * ]
      * ```
      */
-    sources: any[];
+    sources: (Request | RequestOptions | RequestListInput)[];
     /**
      * Identifies the key in the default key-value store under which `RequestList` periodically stores its
      * state (i.e. which URLs were crawled and which not).
@@ -413,6 +426,9 @@ export type RequestListState = {
     /**
      * An object mapping request keys to a boolean value respresenting whether they are being processed at the moment.
      */
-    inProgress: any;
+    inProgress: {
+        [x: string]: boolean;
+    };
 };
 import Request from "./request";
+import { RequestOptions } from "./request";

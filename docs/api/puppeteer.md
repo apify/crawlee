@@ -28,7 +28,7 @@ await puppeteer.injectJQuery(page);
 
 ## `puppeteer.addInterceptRequestHandler`
 
-**Returns**: `Promise`
+**Returns**: `Promise<void>`
 
 Adds request interception handler in similar to `page.on('request', handler);` but in addition to that supports multiple parallel handlers.
 
@@ -73,7 +73,7 @@ await page.goto('http://example.com');
 **Params**
 
 -   **`page`**: `Page` - Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
--   **`handler`**: `function` - Request interception handler.
+-   **`handler`**: [`InterceptHandler`](/docs/typedefs/intercept-handler) - Request interception handler.
 
 ---
 
@@ -81,14 +81,14 @@ await page.goto('http://example.com');
 
 ## `puppeteer.removeInterceptRequestHandler`
 
-**Returns**: `Promise`
+**Returns**: `Promise<void>`
 
 Removes request interception handler for given page.
 
 **Params**
 
 -   **`page`**: `Page` - Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
--   **`handler`**: `function` - Request interception handler.
+-   **`handler`**: [`InterceptHandler`](/docs/typedefs/intercept-handler) - Request interception handler.
 
 ---
 
@@ -96,7 +96,7 @@ Removes request interception handler for given page.
 
 ## `puppeteer.gotoExtended`
 
-**Returns**: `Promise<Response>`
+**Returns**: `Promise<(Response|null)>`
 
 Extended version of Puppeteer's `page.goto()` allowing to perform requests with HTTP method other than GET, with custom headers and POST payload. URL,
 method, headers and payload are taken from request parameter that must be an instance of Apify.Request class.
@@ -108,7 +108,7 @@ performance.
 
 -   **`page`**: `Page` - Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
 -   **`request`**: [`Request`](/docs/api/request)
--   **`gotoOptions`**: `Object` - Custom options for `page.goto()`.
+-   **`gotoOptions`**: `DirectNavigationOptions` - Custom options for `page.goto()`.
 
 ---
 
@@ -116,16 +116,16 @@ performance.
 
 ## `puppeteer.infiniteScroll`
 
-**Returns**: `Promise`
+**Returns**: `Promise<void>`
 
 Scrolls to the bottom of a page, or until it times out. Loads dynamic content when it hits the bottom of a page, and then continues scrolling.
 
 **Params**
 
--   **`page`**: `Object` - Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+-   **`page`**: `Page` - Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
 -   **`[options]`**: `Object`
-    -   **`[.timeoutSecs]`**: `Number` <code> = 0</code> - How many seconds to scroll for. If 0, will scroll until bottom of page.
-    -   **`[.waitForSecs]`**: `Number` <code> = 4</code> - How many seconds to wait for no new content to load before exit.
+    -   **`[.timeoutSecs]`**: `number` <code> = 0</code> - How many seconds to scroll for. If 0, will scroll until bottom of page.
+    -   **`[.waitForSecs]`**: `number` <code> = 4</code> - How many seconds to wait for no new content to load before exit.
 
 ---
 
@@ -133,24 +133,24 @@ Scrolls to the bottom of a page, or until it times out. Loads dynamic content wh
 
 ## `puppeteer.saveSnapshot`
 
-**Returns**: `Promise`
+**Returns**: `Promise<void>`
 
 Saves a full screenshot and HTML of the current page into a Key-Value store.
 
 **Params**
 
--   **`page`**: `Object` - Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+-   **`page`**: `Page` - Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
 -   **`[options]`**: `Object`
-    -   **`[.key]`**: `String` <code> = SNAPSHOT</code> - Key under which the screenshot and HTML will be saved. `.jpg` will be appended for
-        screenshot and `.html` for HTML.
-    -   **`[.screenshotQuality]`**: `Number` <code> = 50</code> - The quality of the image, between 0-100. Higher quality images have bigger size and
+    -   **`[.key]`**: `string` <code> = &quot;SNAPSHOT&quot;</code> - Key under which the screenshot and HTML will be saved. `.jpg` will be appended
+        for screenshot and `.html` for HTML.
+    -   **`[.screenshotQuality]`**: `number` <code> = 50</code> - The quality of the image, between 0-100. Higher quality images have bigger size and
         require more storage.
-    -   **`[.saveScreenshot]`**: `Boolean` <code> = true</code> - If true, it will save a full screenshot of the current page as a record with `key`
+    -   **`[.saveScreenshot]`**: `boolean` <code> = true</code> - If true, it will save a full screenshot of the current page as a record with `key`
         appended by `.jpg`.
-    -   **`[.saveHtml]`**: `Boolean` <code> = true</code> - If true, it will save a full HTML of the current page as a record with `key` appended by
+    -   **`[.saveHtml]`**: `boolean` <code> = true</code> - If true, it will save a full HTML of the current page as a record with `key` appended by
         `.html`.
-    -   **`[.keyValueStoreName]`**: `String` <code> = </code> - Name or id of the Key-Value store where snapshot is saved. By default it is saved to
-        default Key-Value store.
+    -   **`[.keyValueStoreName]`**: `string` <code> = null</code> - Name or id of the Key-Value store where snapshot is saved. By default it is saved
+        to default Key-Value store.
 
 ---
 
@@ -207,10 +207,10 @@ await Apify.utils.enqueueLinksByClickingElements({
 
     -   **`.page`**: `Page` - Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
     -   **`.requestQueue`**: [`RequestQueue`](/docs/api/request-queue) - A request queue to which the URLs will be enqueued.
-    -   **`.selector`**: `String` - A CSS selector matching elements to be clicked on. Unlike in
+    -   **`.selector`**: `string` - A CSS selector matching elements to be clicked on. Unlike in
         [`utils.enqueueLinks()`](/docs/api/utils#enqueuelinks), there is no default value. This is to prevent suboptimal use of this function by using
         it too broadly.
-    -   **`[.pseudoUrls]`**: `Array<(String|RegExp|Object)>` - An array of [`PseudoUrl`](/docs/api/pseudo-url)s matching the URLs to be enqueued, or
+    -   **`[.pseudoUrls]`**: `Array<(string|RegExp|Object)>` - An array of [`PseudoUrl`](/docs/api/pseudo-url)s matching the URLs to be enqueued, or
         an array of strings or RegExps or plain Objects from which the [`PseudoUrl`](/docs/api/pseudo-url)s can be constructed.
 
     The plain objects must include at least the `purl` property, which holds the pseudo-URL string or RegExp. All remaining keys will be used as the
@@ -260,7 +260,7 @@ await Apify.utils.enqueueLinksByClickingElements({
 
 ## `puppeteer.injectFile(page, filePath, [options])`
 
-**Returns**: `Promise`
+**Returns**: `Promise<*>`
 
 Injects a JavaScript file into a Puppeteer page. Unlike Puppeteer's `addScriptTag` function, this function works on pages with arbitrary Cross-Origin
 Resource Sharing (CORS) policies.
@@ -270,7 +270,7 @@ File contents are cached for up to 10 files to limit file system access.
 **Params**
 
 -   **`page`**: `Page` - Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
--   **`filePath`**: `String` - File path
+-   **`filePath`**: `string` - File path
 -   **`[options]`**: `Object`
     -   **`[.surviveNavigations]`**: `boolean` - Enables the injected script to survive page navigations and reloads without need to be re-injected
         manually. This does not mean, however, that internal state will be preserved. Just that it will be automatically re-injected on each
@@ -282,7 +282,7 @@ File contents are cached for up to 10 files to limit file system access.
 
 ## `puppeteer.injectJQuery(page)`
 
-**Returns**: `Promise`
+**Returns**: `Promise<*>`
 
 Injects the [](https://jquery.com/) library into a Puppeteer page. jQuery is often useful for various web scraping and crawling tasks. For example, it
 can help extract text from HTML elements using CSS selectors.
@@ -313,7 +313,7 @@ Note that `injectJQuery()` does not affect the Puppeteer's [](https://pptr.dev/#
 
 ## `puppeteer.injectUnderscore(page)`
 
-**Returns**: `Promise`
+**Returns**: `Promise<*>`
 
 Injects the [](https://underscorejs.org/) library into a Puppeteer page.
 
@@ -341,7 +341,7 @@ const escapedHtml = await page.evaluate(() => {
 
 ## `puppeteer.blockRequests(page, [options])`
 
-**Returns**: `Promise`
+**Returns**: `Promise<void>`
 
 Forces the Puppeteer browser tab to block loading URLs that match a provided pattern. This is useful to speed up crawling of websites, since it
 reduces the amount of data that needs to be downloaded from the web, but it may break some websites or unexpectedly prevent loading of resources.
@@ -395,7 +395,7 @@ await page.goto('https://cnn.com');
 
 **_Deprecated_**
 
-**Returns**: `Promise`
+**Returns**: `Promise<void>`
 
 _NOTE:_ In recent versions of Puppeteer using this function entirely disables browser cache which resolves in sub-optimal performance. Until this
 resolves, we suggest just relying on the in-browser cache unless absolutely necessary.
@@ -408,7 +408,7 @@ mitigated in future iterations of this feature.
 
 -   **`page`**: `Page` - Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
 -   **`cache`**: `Object` - Object in which responses are stored
--   **`responseUrlRules`**: `Array<(String|RegExp)>` - List of rules that are used to check if the response should be cached. String rules are
+-   **`responseUrlRules`**: `Array<(string|RegExp)>` - List of rules that are used to check if the response should be cached. String rules are
     compared as page.url().includes(rule) while RegExp rules are evaluated as rule.test(page.url()).
 
 ---
@@ -442,7 +442,7 @@ context. Preferably making secured copies beforehand.
 
 **Params**
 
--   **`scriptString`**: `String`
+-   **`scriptString`**: `string`
 -   **`context`**: `Object`
 
 ---

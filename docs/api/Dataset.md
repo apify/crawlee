@@ -79,8 +79,8 @@ the data from this item onwards to prevent duplicates.
 
 **Params**
 
--   **`data`**: `Object` | `Array` - Object or array of objects containing data to be stored in the default dataset. The objects must be serializable
-    to JSON and the JSON representation of each object must be smaller than 9MB.
+-   **`data`**: `object` | `Array<object>` - Object or array of objects containing data to be stored in the default dataset. The objects must be
+    serializable to JSON and the JSON representation of each object must be smaller than 9MB.
 
 ---
 
@@ -98,37 +98,38 @@ Returns {DatasetContent} object holding the items in the dataset based on the pr
 **Params**
 
 -   **`[options]`**: `Object` - All `getData()` parameters are passed via an options object with the following keys:
-    -   **`[.format]`**: `String` <code> = &#x27;json&#x27;</code> - Format of the `items` property, possible values are: `json`, `csv`, `xlsx`,
-        `html`, `xml` and `rss`.
-    -   **`[.offset]`**: `Number` <code> = 0</code> - Number of array elements that should be skipped at the start.
-    -   **`[.limit]`**: `Number` <code> = 250000</code> - Maximum number of array elements to return.
-    -   **`[.desc]`**: `Boolean` <code> = false</code> - If `true` then the objects are sorted by `createdAt` in descending order. Otherwise they are
+    -   **`[.format]`**: `string` <code> = &quot;&#x27;json&#x27;&quot;</code> - Format of the `items` property, possible values are: `json`, `csv`,
+        `xlsx`, `html`, `xml` and `rss`.
+    -   **`[.offset]`**: `number` <code> = 0</code> - Number of array elements that should be skipped at the start.
+    -   **`[.limit]`**: `number` <code> = 250000</code> - Maximum number of array elements to return.
+    -   **`[.desc]`**: `boolean` <code> = false</code> - If `true` then the objects are sorted by `createdAt` in descending order. Otherwise they are
         sorted in ascending order.
-    -   **`[.fields]`**: `Array` - An array of field names that will be included in the result. If omitted, all fields are included in the results.
-    -   **`[.unwind]`**: `String` - Specifies a name of the field in the result objects that will be used to unwind the resulting objects. By default,
+    -   **`[.fields]`**: `Array<string>` - An array of field names that will be included in the result. If omitted, all fields are included in the
+        results.
+    -   **`[.unwind]`**: `string` - Specifies a name of the field in the result objects that will be used to unwind the resulting objects. By default,
         the results are returned as they are.
-    -   **`[.disableBodyParser]`**: `Boolean` <code> = false</code> - If `true` then response from API will not be parsed.
-    -   **`[.attachment]`**: `Boolean` <code> = false</code> - If `true` then the response will define the `Content-Disposition: attachment` HTTP
+    -   **`[.disableBodyParser]`**: `boolean` <code> = false</code> - If `true` then response from API will not be parsed.
+    -   **`[.attachment]`**: `boolean` <code> = false</code> - If `true` then the response will define the `Content-Disposition: attachment` HTTP
         header, forcing a web browser to download the file rather than to display it. By default, this header is not present.
-    -   **`[.delimiter]`**: `String` <code> = &#x27;,&#x27;</code> - A delimiter character for CSV files, only used if `format` is `csv`.
-    -   **`[.bom]`**: `Boolean` - All responses are encoded in UTF-8 encoding. By default, the CSV files are prefixed with the UTF-8 Byte Order Mark
+    -   **`[.delimiter]`**: `string` <code> = &quot;&#x27;,&#x27;&quot;</code> - A delimiter character for CSV files, only used if `format` is `csv`.
+    -   **`[.bom]`**: `boolean` - All responses are encoded in UTF-8 encoding. By default, the CSV files are prefixed with the UTF-8 Byte Order Mark
         (BOM), while JSON, JSONL, XML, HTML and RSS files are not. If you want to override this default behavior, set `bom` option to `true` to
         include the BOM, or set `bom` to `false` to skip it.
-    -   **`[.xmlRoot]`**: `String` <code> = &#x27;results&#x27;</code> - Overrides the default root element name of the XML output. By default, the
-        root element is `results`.
-    -   **`[.xmlRow]`**: `String` <code> = &#x27;page&#x27;</code> - Overrides the default element name that wraps each page or page function result
-        object in XML output. By default, the element name is `page` or `result`, depending on the value of the `simplified` option.
-    -   **`[.skipHeaderRow]`**: `Boolean` <code> = false</code> - If set to `true` then header row in CSV format is skipped.
-    -   **`[.clean]`**: `Boolean` <code> = false</code> - If `true` then the function returns only non-empty items and skips hidden fields (i.e.
+    -   **`[.xmlRoot]`**: `string` <code> = &quot;&#x27;results&#x27;&quot;</code> - Overrides the default root element name of the XML output. By
+        default, the root element is `results`.
+    -   **`[.xmlRow]`**: `string` <code> = &quot;&#x27;page&#x27;&quot;</code> - Overrides the default element name that wraps each page or page
+        function result object in XML output. By default, the element name is `page` or `result`, depending on the value of the `simplified` option.
+    -   **`[.skipHeaderRow]`**: `boolean` <code> = false</code> - If set to `true` then header row in CSV format is skipped.
+    -   **`[.clean]`**: `boolean` <code> = false</code> - If `true` then the function returns only non-empty items and skips hidden fields (i.e.
         fields starting with `#` character). Note that the `clean` parameter is a shortcut for `skipHidden: true` and `skipEmpty: true` options.
-    -   **`[.skipHidden]`**: `Boolean` <code> = false</code> - If `true` then the function doesn't return hidden fields (fields starting with "#"
+    -   **`[.skipHidden]`**: `boolean` <code> = false</code> - If `true` then the function doesn't return hidden fields (fields starting with "#"
         character).
-    -   **`[.skipEmpty]`**: `Boolean` <code> = false</code> - If `true` then the function doesn't return empty items. Note that in this case the
+    -   **`[.skipEmpty]`**: `boolean` <code> = false</code> - If `true` then the function doesn't return empty items. Note that in this case the
         returned number of items might be lower than limit parameter and pagination must be done using the `limit` value.
-    -   **`[.simplified]`**: `Boolean` - If `true` then function applies the `fields: ['url','pageFunctionResult','errorInfo']` and
+    -   **`[.simplified]`**: `boolean` - If `true` then function applies the `fields: ['url','pageFunctionResult','errorInfo']` and
         `unwind: 'pageFunctionResult'` options. This feature is used to emulate simplified results provided by Apify API version 1 used for the legacy
         Apify Crawler and it's not recommended to use it in new integrations.
-    -   **`[.skipFailedPages]`**: `Boolean` - If `true` then, the all the items with errorInfo property will be skipped from the output. This feature
+    -   **`[.skipFailedPages]`**: `boolean` - If `true` then, the all the items with errorInfo property will be skipped from the output. This feature
         is here to emulate functionality of Apify API version 1 used for the legacy Apify Crawler product and it's not recommended to use it in new
         integrations.
 
@@ -138,7 +139,7 @@ Returns {DatasetContent} object holding the items in the dataset based on the pr
 
 ## `dataset.getInfo()`
 
-**Returns**: `Promise<Object>`
+**Returns**: `Promise<object>`
 
 Returns an object containing general information about the dataset.
 
@@ -188,18 +189,18 @@ await dataset.forEach(async (item, index) => {
 
 -   **`iteratee`**: [`DatasetConsumer`](/docs/typedefs/dataset-consumer) - A function that is called for every item in the dataset.
 -   **`[options]`**: `Object` - All `forEach()` parameters are passed via an options object with the following keys:
-    -   **`[.desc]`**: `Boolean` <code> = false</code> - If `true` then the objects are sorted by `createdAt` in descending order.
-    -   **`[.fields]`**: `Array` - If provided then returned objects will only contain specified keys.
-    -   **`[.unwind]`**: `String` - If provided then objects will be unwound based on provided field.
--   **`[index]`**: `Number` <code> = 0</code> - Specifies the initial index number passed to the `iteratee` function.
+    -   **`[.desc]`**: `boolean` <code> = false</code> - If `true` then the objects are sorted by `createdAt` in descending order.
+    -   **`[.fields]`**: `Array<string>` - If provided then returned objects will only contain specified keys.
+    -   **`[.unwind]`**: `string` - If provided then objects will be unwound based on provided field.
+-   **`[index]`**: `number` <code> = 0</code> - Specifies the initial index number passed to the `iteratee` function.
 
 ---
 
 <a name="map"></a>
 
-## `dataset.map(iteratee, options)`
+## `dataset.map(iteratee, [options])`
 
-**Returns**: `Promise<Array<T>>`
+**Returns**: `Promise<Array<object>>`
 
 Produces a new array of values by mapping each value in list through a transformation function `iteratee()`. Each invocation of `iteratee()` is called
 with two arguments: `(element, index)`.
@@ -209,18 +210,18 @@ If `iteratee` returns a `Promise` then it's awaited before a next call.
 **Params**
 
 -   **`iteratee`**: [`DatasetMapper`](/docs/typedefs/dataset-mapper)
--   **`options`**: `Object` - All `map()` parameters are passed via an options object with the following keys:
-    -   **`[.desc]`**: `Boolean` <code> = false</code> - If `true` then the objects are sorted by createdAt in descending order.
-    -   **`[.fields]`**: `Array` - If provided then returned objects will only contain specified keys
-    -   **`[.unwind]`**: `String` - If provided then objects will be unwound based on provided field.
+-   **`[options]`**: `Object` - All `map()` parameters are passed via an options object with the following keys:
+    -   **`[.desc]`**: `boolean` <code> = false</code> - If `true` then the objects are sorted by createdAt in descending order.
+    -   **`[.fields]`**: `Array<string>` - If provided then returned objects will only contain specified keys
+    -   **`[.unwind]`**: `string` - If provided then objects will be unwound based on provided field.
 
 ---
 
 <a name="reduce"></a>
 
-## `dataset.reduce(iteratee, memo, options)`
+## `dataset.reduce(iteratee, memo, [options])`
 
-**Returns**: `Promise<T>`
+**Returns**: `Promise<object>`
 
 Reduces a list of values down to a single value.
 
@@ -235,11 +236,11 @@ If `iteratee()` returns a `Promise` then it's awaited before a next call.
 **Params**
 
 -   **`iteratee`**: [`DatasetReducer`](/docs/typedefs/dataset-reducer)
--   **`memo`**: `T` - Initial state of the reduction.
--   **`options`**: `Object` - All `reduce()` parameters are passed via an options object with the following keys:
-    -   **`[.desc]`**: `Boolean` <code> = false</code> - If `true` then the objects are sorted by createdAt in descending order.
-    -   **`[.fields]`**: `Array` - If provided then returned objects will only contain specified keys
-    -   **`[.unwind]`**: `String` - If provided then objects will be unwound based on provided field.
+-   **`memo`**: `object` - Initial state of the reduction.
+-   **`[options]`**: `Object` - All `reduce()` parameters are passed via an options object with the following keys:
+    -   **`[.desc]`**: `boolean` <code> = false</code> - If `true` then the objects are sorted by createdAt in descending order.
+    -   **`[.fields]`**: `Array<string>` - If provided then returned objects will only contain specified keys
+    -   **`[.unwind]`**: `string` - If provided then objects will be unwound based on provided field.
 
 ---
 

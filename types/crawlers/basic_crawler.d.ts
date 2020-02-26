@@ -122,7 +122,7 @@ export type HandleFailedRequestInput = {
     error: Error;
 };
 /**
- * @typedef {Object} BasicCrawlerOptions
+ * @typedef BasicCrawlerOptions
  * @property {HandleRequest} handleRequestFunction
  *   User-provided function that performs the logic of the crawler. It is called for each URL to crawl.
  *
@@ -169,9 +169,9 @@ export type HandleFailedRequestInput = {
  *   See
  *   [source code](https://github.com/apifytech/apify-js/blob/master/src/crawlers/basic_crawler.js#L11)
  *   for the default implementation of this function.
- * @property {Number} [maxRequestRetries=3]
+ * @property {number} [maxRequestRetries=3]
  *   Indicates how many times the request is retried if {@link BasicCrawlerOptions.handleRequestFunction} fails.
- * @property {Number} [maxRequestsPerCrawl]
+ * @property {number} [maxRequestsPerCrawl]
  *   Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached.
  *   Always set this value in order to prevent infinite loops in misconfigured crawlers.
  *   Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.
@@ -180,14 +180,14 @@ export type HandleFailedRequestInput = {
  *   Note that the `runTaskFunction` and `isTaskReadyFunction` options
  *   are provided by `BasicCrawler` and cannot be overridden.
  *   However, you can provide a custom implementation of `isFinishedFunction`.
- * @property {Number} [minConcurrency=1]
+ * @property {number} [minConcurrency=1]
  *   Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
  *
  *   *WARNING:* If you set this value too high with respect to the available system memory and CPU, your crawler will run extremely slow or crash.
  *   If you're not sure, just keep the default value and the concurrency will scale up automatically.
- * @property {Number} [maxConcurrency=1000]
+ * @property {number} [maxConcurrency=1000]
  *   Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
- * @property {Boolean} [useSessionPool=false]
+ * @property {boolean} [useSessionPool=false]
  *   If set to true. Basic crawler will initialize the  {@link SessionPool} with the corresponding `sessionPoolOptions`.
  *   The session instance will be than available in the `handleRequestFunction`.
  * @property {SessionPoolOptions} [sessionPoolOptions] The configuration options for {SessionPool} to use.
@@ -249,6 +249,13 @@ export type HandleFailedRequestInput = {
  *
  * await crawler.run();
  * ```
+ *
+ * @property {AutoscaledPool} autoscaledPool
+ *  A reference to the underlying {@link AutoscaledPool} class that manages the concurrency of the crawler.
+ *  Note that this property is only initialized after calling the {@link BasicCrawler#run} function.
+ *  You can use it to change the concurrency settings on the fly,
+ *  to pause the crawler by calling {@link AutoscaledPool#pause}
+ *  or to abort it by calling {@link AutoscaledPool#abort}.
  */
 declare class BasicCrawler {
     /**
@@ -267,51 +274,51 @@ declare class BasicCrawler {
     sessionPoolOptions: any;
     useSessionPool: any;
     autoscaledPoolOptions: any;
-    isRunningPromise: Promise<any>;
+    isRunningPromise: Promise<void> | null;
     /**
      * Runs the crawler. Returns a promise that gets resolved once all the requests are processed.
      *
      * @return {Promise<void>}
      */
-    async run(): Promise<void>;
-    autoscaledPool: AutoscaledPool;
-    sessionPool: import("../session_pool/session_pool").SessionPool;
-    async _pauseOnMigration(): Promise<void>;
+    run(): Promise<void>;
+    autoscaledPool: AutoscaledPool | undefined;
+    sessionPool: import("../session_pool/session_pool").SessionPool | undefined;
+    _pauseOnMigration(): Promise<void>;
     /**
      * Fetches request from either RequestList or RequestQueue. If request comes from a RequestList
      * and RequestQueue is present then enqueues it to the queue first.
      *
      * @ignore
      */
-    async _fetchNextRequest(): Promise<any>;
+    _fetchNextRequest(): Promise<any>;
     /**
      * Wrapper around handleRequestFunction that fetches requests from RequestList/RequestQueue
      * then retries them in a case of an error, etc.
      *
      * @ignore
      */
-    async _runTaskFunction(): Promise<void>;
+    _runTaskFunction(): Promise<void>;
     /**
      * Returns true if either RequestList or RequestQueue have a request ready for processing.
      *
      * @ignore
      */
-    async _isTaskReadyFunction(): Promise<boolean>;
+    _isTaskReadyFunction(): Promise<boolean>;
     /**
      * Returns true if both RequestList and RequestQueue have all requests finished.
      *
      * @ignore
      */
-    async _defaultIsFinishedFunction(): Promise<any>;
+    _defaultIsFinishedFunction(): Promise<any>;
     /**
      * Handles errors thrown by user provided handleRequestFunction()
      * @param {Error} error
      * @param {Request} request
-     * @param {RequestList|RequestQueue} source
-     * @return {Promise<Boolean>} willBeRetried
+     * @param {(RequestList|RequestQueue)} source
+     * @return {Promise<boolean|void|QueueOperationInfo>} willBeRetried
      * @ignore
      */
-    async _requestFunctionErrorHandler(error: Error, request: Request, source: RequestList | RequestQueue): Promise<boolean>;
+    _requestFunctionErrorHandler(error: Error, request: Request, source: RequestList | RequestQueue): Promise<boolean | void | QueueOperationInfo>;
     /**
      * Updates handledRequestsCount from possibly stored counts,
      * usually after worker migration. Since one of the stores
@@ -323,7 +330,7 @@ declare class BasicCrawler {
      * @return {Promise<void>}
      * @ignore
      */
-    async _loadHandledRequestCount(): Promise<void>;
+    _loadHandledRequestCount(): Promise<void>;
 }
 import { RequestList } from "../request_list";
 import { RequestQueue } from "../request_queue";
@@ -333,3 +340,4 @@ import Request from "../request";
 import AutoscaledPool from "../autoscaling/autoscaled_pool";
 import { Session } from "../session_pool/session";
 import Statistics from "./statistics";
+import { QueueOperationInfo } from "../request_queue";

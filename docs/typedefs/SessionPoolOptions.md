@@ -9,7 +9,7 @@ title: SessionPoolOptions
 
 ### `maxPoolSize`
 
-**Type**: `Number` <code> = 1000</code>
+**Type**: `number` <code> = 1000</code>
 
 Maximum size of the pool. Indicates how many sessions are rotated.
 
@@ -25,7 +25,7 @@ The configuration options for {Session} instances.
 
 ### `persistStateKeyValueStoreId`
 
-**Type**: `String`
+**Type**: `string`
 
 Name or Id of `KeyValueStore` where is the `SessionPool` state stored.
 
@@ -33,7 +33,7 @@ Name or Id of `KeyValueStore` where is the `SessionPool` state stored.
 
 ### `persistStateKey`
 
-**Type**: `String` <code> = &quot;SESSION_POOL_STATE&quot;</code>
+**Type**: `string` <code> = &quot;\&quot;SESSION_POOL_STATE\&quot;&quot;</code>
 
 Session pool persists it's state under this key in Key value store.
 

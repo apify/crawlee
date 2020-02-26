@@ -9,7 +9,7 @@ title: CheerioHandlePageInputs
 
 ### `$`
 
-**Type**: `Cheerio`
+**Type**: `CheerioSelector`
 
 The [Cheerio](https://cheerio.js.org/) object with parsed HTML.
 
@@ -17,7 +17,7 @@ The [Cheerio](https://cheerio.js.org/) object with parsed HTML.
 
 ### `body`
 
-**Type**: `String` | `Buffer`
+**Type**: `string` | `Buffer`
 
 The request body of the web page.
 
@@ -25,7 +25,7 @@ The request body of the web page.
 
 ### `json`
 
-**Type**: `Object`
+**Type**: `*`
 
 The parsed object from JSON string if the response contains the content type application/json.
 
@@ -35,7 +35,7 @@ The parsed object from JSON string if the response contains the content type app
 
 **Type**: [`Request`](/docs/api/request)
 
-The original {Request} object.
+The original [`Request`](/docs/api/request) object.
 
 ---
 
@@ -68,6 +68,6 @@ settings on the fly, to pause the crawler by calling [`AutoscaledPool.pause()`](
 
 ### `session`
 
-**Type**: `session`
+**Type**: [`Session`](/docs/api/session)
 
 ---

@@ -1,3 +1,4 @@
+/// <reference types="node" />
 export default LiveViewServer;
 /**
  * `LiveViewServer` enables serving of browser snapshots via web sockets. It includes its own client
@@ -57,7 +58,7 @@ declare class LiveViewServer {
         maxScreenshotFiles?: number;
         snapshotTimeoutSecs?: number;
         maxSnapshotFrequencySecs?: number;
-    });
+    } | undefined);
     screenshotDirectoryPath: string;
     maxScreenshotFiles: number;
     snapshotTimeoutMillis: number;
@@ -66,25 +67,25 @@ declare class LiveViewServer {
      * @type {?Snapshot}
      * @private
      */
-    private lastSnapshot;
+    lastSnapshot: Snapshot | null;
     lastScreenshotIndex: number;
     clientCount: number;
     _isRunning: boolean;
-    httpServer: http.Server;
-    socketio: socketio.Server;
+    httpServer: http.Server | null;
+    socketio: socketio.Server | null;
     servingSnapshot: boolean;
     /**
      * Starts the HTTP server with web socket connections enabled.
      * Snapshots will not be created until a client has connected.
-     * @return {Promise}
+     * @return {Promise<void>}
      */
-    async start(): Promise<any>;
+    start(): Promise<void>;
     /**
      * Prevents the server from receiving more connections. Existing connections
      * will not be terminated, but the server will not prevent a process exit.
-     * @return {Promise}
+     * @return {Promise<void>}
      */
-    async stop(): Promise<any>;
+    stop(): Promise<void>;
     /**
      * Serves a snapshot to all connected clients.
      * Screenshots are not served directly, only their index number
@@ -93,9 +94,9 @@ declare class LiveViewServer {
      * Will time out and throw in `options.snapshotTimeoutSecs`.
      *
      * @param {Page} page
-     * @return {Promise}
+     * @return {Promise<void>}
      */
-    async serve(page: Page): Promise<any>;
+    serve(page: Page): Promise<void>;
     /**
      * @return {boolean}
      */
@@ -110,33 +111,34 @@ declare class LiveViewServer {
      * @return {string}
      * @private
      */
-    private _getScreenshotPath;
+    _getScreenshotPath(screenshotIndex: number): string;
     /**
      * @param {Page} page
      * @return {Promise<Snapshot>}
      * @private
      */
-    private async _makeSnapshot;
+    _makeSnapshot(page: Page): Promise<Snapshot>;
     /**
      * @param {Snapshot} snapshot
      * @private
      */
-    private _pushSnapshot;
+    _pushSnapshot(snapshot: Snapshot): void;
     /**
      * Initiates an async delete and does not wait for it to complete.
      * @param {number} screenshotIndex
      * @private
      */
-    private _deleteScreenshot;
+    _deleteScreenshot(screenshotIndex: number): void;
     _setupHttpServer(): void;
-    port: number;
-    liveViewUrl: any;
+    port: number | undefined;
+    liveViewUrl: string | undefined;
     /**
      * @param {socketio.Socket} socket
      * @private
      */
-    private _socketConnectionHandler;
+    _socketConnectionHandler(socket: socketio.Socket): void;
 }
-import http from "http";
-import socketio from "socket.io";
+import Snapshot from "./snapshot";
+import * as http from "http";
+import * as socketio from "socket.io";
 import { Page } from "puppeteer";

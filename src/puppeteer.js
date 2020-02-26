@@ -1,10 +1,10 @@
-import _ from 'underscore';
+import * as _ from 'underscore';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { anonymizeProxy, closeAnonymizedProxy, redactUrl, parseUrl } from 'proxy-chain';
-import log from 'apify-shared/log';
 import { ENV_VARS } from 'apify-shared/consts';
-import { LaunchOptions } from 'puppeteer'; // eslint-disable-line no-unused-vars
+import { Browser } from 'puppeteer'; // eslint-disable-line no-unused-vars
 import { DEFAULT_USER_AGENT } from './constants';
+import log from './utils_log';
 import { getTypicalChromeExecutablePath, isAtHome } from './utils';
 import { getApifyProxyUrl } from './actor';
 import applyStealthToBrowser, { StealthOptions } from './stealth/stealth'; // eslint-disable-line no-unused-vars,import/named
@@ -80,7 +80,7 @@ const launchPuppeteerWithProxy = async (puppeteer, opts) => {
 /**
  * Requires `puppeteer` package, uses a replacement or throws meaningful error if not installed.
  *
- * @param {string|Object} puppeteerModule
+ * @param {(string|Object)} puppeteerModule
  * @ignore
  */
 const getPuppeteerOrThrow = (puppeteerModule = 'puppeteer') => {
@@ -110,38 +110,38 @@ const getPuppeteerOrThrow = (puppeteerModule = 'puppeteer') => {
  * options in the  {@link Apify#launchPuppeteer}
  * function and in addition, all the options available below.
  *
- * @typedef {Object} LaunchPuppeteerOptions
- * @property {String} [proxyUrl]
+ * @typedef LaunchPuppeteerOptions
+ * @property {string} [proxyUrl]
  *   URL to a HTTP proxy server. It must define the port number,
  *   and it may also contain proxy username and password.
  *
  *   Example: `http://bob:pass123@proxy.example.com:1234`.
- * @property {String} [userAgent]
+ * @property {string} [userAgent]
  *   The `User-Agent` HTTP header used by the browser.
  *   If not provided, the function sets `User-Agent` to a reasonable default
  *   to reduce the chance of detection of the crawler.
- * @property {Boolean} [useChrome=false]
+ * @property {boolean} [useChrome=false]
  *   If `true` and `executablePath` is not set,
  *   Puppeteer will launch full Google Chrome browser available on the machine
  *   rather than the bundled Chromium. The path to Chrome executable
  *   is taken from the `APIFY_CHROME_EXECUTABLE_PATH` environment variable if provided,
  *   or defaults to the typical Google Chrome executable location specific for the operating system.
  *   By default, this option is `false`.
- * @property {Boolean} [useApifyProxy=false]
+ * @property {boolean} [useApifyProxy=false]
  *   If set to `true`, Puppeteer will be configured to use
  *   [Apify Proxy](https://my.apify.com/proxy) for all connections.
  *   For more information, see the [documentation](https://docs.apify.com/proxy)
- * @property {String[]} [apifyProxyGroups]
+ * @property {string[]} [apifyProxyGroups]
  *   An array of proxy groups to be used
  *   by the [Apify Proxy](https://docs.apify.com/proxy).
  *   Only applied if the `useApifyProxy` option is `true`.
- * @property {String} [apifyProxySession]
+ * @property {string} [apifyProxySession]
  *   Apify Proxy session identifier to be used by all the Chrome browsers.
  *   All HTTP requests going through the proxy with the same session identifier
  *   will use the same target proxy server (i.e. the same IP address).
  *   The identifier can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
  *   Only applied if the `useApifyProxy` option is `true`.
- * @property {string|Object} [puppeteerModule]
+ * @property {(string|Object)} [puppeteerModule]
  *   Either a require path (`string`) to a package to be used instead of default `puppeteer`,
  *   or an already required module (`Object`). This enables usage of various Puppeteer
  *   wrappers such as `puppeteer-extra`.

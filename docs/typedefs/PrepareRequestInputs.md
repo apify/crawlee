@@ -14,3 +14,11 @@ title: PrepareRequestInputs
 Original instance fo the {Request} object. Must be modified in-place.
 
 ---
+
+### `session`
+
+**Type**: [`Session`](/docs/api/session)
+
+The current session
+
+---

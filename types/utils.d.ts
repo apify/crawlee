@@ -1,3 +1,4 @@
+/// <reference types="node" />
 export function newClient(): any;
 export function logSystemInfo(): void;
 /**
@@ -30,9 +31,9 @@ export function getMemoryInfo(): Promise<MemoryInfo>;
 export function isPromise(maybePromise: any): boolean;
 export function isProduction(): boolean;
 export function ensureDirExists(dirPath: any): any;
-export function getFirstKey(dict: any): string;
+export function getFirstKey(dict: any): string | undefined;
 export function getTypicalChromeExecutablePath(): string;
-export function addTimeoutToPromise<T>(promise: Promise<T>, timeoutMillis: number, errorMessage: string): Promise<T>;
+export function addTimeoutToPromise(promise: Promise<any>, timeoutMillis: number, errorMessage: string): Promise<any>;
 export function isAtHome(): boolean;
 export function sleep(millis: number): Promise<void>;
 export function openLocalStorage(idOrName: any, defaultIdEnvVar: any, LocalClass: any, cache: any): Promise<any>;
@@ -40,7 +41,7 @@ export function openRemoteStorage(idOrName: any, defaultIdEnvVar: any, RemoteCla
 export function ensureTokenOrLocalStorageEnvExists(storageName: any): void;
 export function snakeCaseToCamelCase(snakeCaseStr: string): string;
 export function printOutdatedSdkWarning(): void;
-export function parseContentTypeFromResponse(response: any): {
+export function parseContentTypeFromResponse(response: IncomingMessage): {
     type: string;
     charset: string;
 };
@@ -81,6 +82,7 @@ export type MemoryInfo = {
      */
     childProcessesBytes: number;
 };
+import { IncomingMessage } from "http";
 declare function downloadListOfUrls({ url, encoding, urlRegExp }: {
     url: string;
     encoding?: string;
@@ -104,7 +106,8 @@ declare const URL_NO_COMMAS_REGEX: RegExp;
  * @memberOf utils
  */
 declare const URL_WITH_COMMAS_REGEX: RegExp;
-declare function createRequestDebugInfo(request: any, response?: IncomingMessage | PuppeteerResponse, additionalFields?: any): any;
-import { IncomingMessage } from "http";
+declare function createRequestDebugInfo(request: Request | RequestOptions, response?: IncomingMessage | PuppeteerResponse | undefined, additionalFields?: Object | undefined): any;
+import Request from "./request";
+import { RequestOptions } from "./request";
 import { Response as PuppeteerResponse } from "puppeteer";
 export {};

@@ -1,14 +1,14 @@
-import fs from 'fs-extra';
-import path from 'path';
+import * as fs from 'fs-extra';
+import * as path from 'path';
 import { promisify } from 'util';
-import contentTypeParser from 'content-type';
-import mime from 'mime-types';
-import LruCache from 'apify-shared/lru_cache';
+import * as contentTypeParser from 'content-type';
+import * as mime from 'mime-types';
+import * as LruCache from 'apify-shared/lru_cache';
 import { KEY_VALUE_STORE_KEY_REGEX } from 'apify-shared/regexs';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, KEY_VALUE_STORE_KEYS } from 'apify-shared/consts';
 import { jsonStringifyExtended } from 'apify-shared/utilities';
-import log from 'apify-shared/log';
 import { checkParamOrThrow, parseBody } from 'apify-client/build/utils';
+import log from './utils_log';
 import {
     addCharsetToContentType, apifyClient, ensureDirExists, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists,
 } from './utils';
@@ -195,11 +195,10 @@ export class KeyValueStore {
      * const store = await Apify.openKeyValueStore();
      * const buffer = await store.getValue('screenshot1.png');
      * ```
-     *
-     * @param {String} key
+     * @param {string} key
      *   Unique key of the record. It can be at most 256 characters long and only consist
      *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
-     * @returns {Promise<Object|String|Buffer>}
+     * @returns {Promise<(object|Buffer|string|null)>}
      *   Returns a promise that resolves to an object, string
      *   or [](https://nodejs.org/api/buffer.html), depending
      *   on the MIME content type of the record.
@@ -247,10 +246,10 @@ export class KeyValueStore {
      * **IMPORTANT:** Always make sure to use the `await` keyword when calling `setValue()`,
      * otherwise the actor process might finish before the value is stored!
      *
-     * @param {String} key
+     * @param {string} key
      *   Unique key of the record. It can be at most 256 characters long and only consist
      *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
-     * @param {Object|String|Buffer} value
+     * @param {(Object|string|Buffer|null)} value
      *   Record data, which can be one of the following values:
      *   <ul>
      *     <li>If `null`, the record in the key-value store is deleted.</li>
@@ -260,7 +259,7 @@ export class KeyValueStore {
      *   </ul>
      *   For any other value an error will be thrown.
      * @param {Object} [options]
-     * @param {String} [options.contentType]
+     * @param {string} [options.contentType]
      *   Specifies a custom MIME content type of the record.
      * @returns {Promise<void>}
      *
@@ -358,7 +357,7 @@ export class KeyValueStore {
 
 /**
  * Helper to create a file-matching RegExp from a KeyValueStore key.
- * @param {String} key
+ * @param {string} key
  * @returns {RegExp}
  * @ignore
  */
@@ -488,9 +487,9 @@ export class KeyValueStoreLocal {
      *
      * Returns an object when a file is found and handler executes successfully, null otherwise.
      *
-     * @param {String} key
+     * @param {string} key
      * @param {Function} handler
-     * @returns {Promise} null or object in the following format:
+     * @returns {Promise<*>} null or object in the following format:
      * {
      *     returnValue: return value of the handler function,
      *     fileName: name of the file including found extension
@@ -514,9 +513,9 @@ export class KeyValueStoreLocal {
 
     /**
      * Performs a lookup for a file in the local emulation directory's file list.
-     * @param {String} key
+     * @param {string} key
      * @param {Function} handler
-     * @returns {Promise}
+     * @returns {Promise<*>}
      * @ignore
      */
     _fullDirectoryLookup(key, handler) {
@@ -532,8 +531,8 @@ export class KeyValueStoreLocal {
 
     /**
      * Helper function to resolve file paths.
-     * @param {String} fileName
-     * @returns {String}
+     * @param {string} fileName
+     * @returns {string}
      * @ignore
      */
     _getPath(fileName) {
@@ -629,9 +628,9 @@ export const openKeyValueStore = (storeIdOrName, options = {}) => {
  * For more information, see  {@link Apify#openKeyValueStore}
  * and  {@link KeyValueStore#getValue}.
  *
- * @param {String} key
+ * @param {string} key
  *   Unique record key.
- * @returns {Promise<Object>}
+ * @returns {Promise<(object|null)>}
  *   Returns a promise that resolves once the record is stored.
  *
  * @memberof module:Apify
@@ -664,9 +663,9 @@ export const getValue = async (key) => {
  * For more information, see  {@link Apify#openKeyValueStore}
  * and  {@link KeyValueStore#getValue}.
  *
- * @param {String} key
+ * @param {string} key
  *   Unique record key.
- * @param {Object|String|Buffer} value
+ * @param {object} value
  *   Record data, which can be one of the following values:
  *   <ul>
  *     <li>If `null`, the record in the key-value store is deleted.</li>
@@ -676,9 +675,9 @@ export const getValue = async (key) => {
  *   </ul>
  *   For any other value an error will be thrown.
  * @param {Object} [options]
- * @param {String} [options.contentType]
+ * @param {string} [options.contentType]
  *   Specifies a custom MIME content type of the record.
- * @return {Promise}
+ * @return {Promise<void>}
  * @memberof module:Apify
  * @name setValue
  * @function
@@ -707,7 +706,7 @@ export const setValue = async (key, value, options) => {
  * For more information, see  {@link Apify#openKeyValueStore}
  * and {@link KeyValueStore#getValue}.
  *
- * @returns {Promise<Object>}
+ * @returns {Promise<(object|null)>}
  *   Returns a promise that resolves once the record is stored.
  * @memberof module:Apify
  * @name getInput
@@ -719,12 +718,12 @@ export const getInput = async () => getValue(process.env[ENV_VARS.INPUT_KEY] || 
 /**
  * User-function used in the  {@link KeyValueStore#forEachKey} method.
  * @callback KeyConsumer
- * @param {String} key
+ * @param {string} key
  *   Current {KeyValue} key being processed.
- * @param {Number} index
+ * @param {number} index
  *   Position of the current key in {KeyValuestore}.
- * @param {Object} info
+ * @param {object} info
  *   Information about the current {KeyValueStore} entry.
- * @param {Number} info.size
+ * @param {number} info.size
  *   Size of the value associated with the current key in bytes.
  */

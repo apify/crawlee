@@ -108,8 +108,6 @@ the picked session is usable it is returned, otherwise it creates and returns a 
 
 ## `sessionPool.getState()`
 
-**Returns**: `Object`
-
 Returns an object representing the internal state of the `SessionPool` instance. Note that the object's fields can change in future releases.
 
 ---
@@ -118,7 +116,7 @@ Returns an object representing the internal state of the `SessionPool` instance.
 
 ## `sessionPool.persistState()`
 
-**Returns**: `Promise`
+**Returns**: `Promise<void>`
 
 Persists the current state of the `SessionPool` into the default [`KeyValueStore`](/docs/api/key-value-store). The state is persisted automatically in
 regular intervals.
