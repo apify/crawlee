@@ -1,12 +1,12 @@
 import path from 'path';
 import { promisify } from 'util';
-import rqst from 'request-promise-native';
 import fs from 'fs-extra';
 import io from 'socket.io-client';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import Apify from '../../build/index';
 import { LOCAL_STORAGE_DIR } from '../_helper';
 import LiveViewServer from '../../build/live_view/live_view_server';
+import { requestAsBrowser } from '../../build/utils_request';
 
 const { utils: { log } } = Apify;
 const emptyDir = promisify(fs.emptyDir);
@@ -106,12 +106,12 @@ describe('LiveViewServer', () => {
         test('should return screenshots', async () => {
             const snapshot0 = new Promise(resolve => socket.on('snapshot', resolve));
             await lvs.serve(fakePage);
-            const response0 = await rqst(`${BASE_URL}/screenshot/${((await snapshot0).screenshotIndex)}`);
-            expect(response0).toBe('screenshot0');
+            const response0 = await requestAsBrowser({ url: `${BASE_URL}/screenshot/${((await snapshot0).screenshotIndex)}` });
+            expect(response0.body).toBe('screenshot0');
             const snapshot1 = new Promise(resolve => socket.on('snapshot', resolve));
             await lvs.serve(fakePage);
-            const response1 = await rqst(`${BASE_URL}/screenshot/${(await snapshot1).screenshotIndex}`);
-            expect(response1).toBe('screenshot1');
+            const response1 = await requestAsBrowser({ url: `${BASE_URL}/screenshot/${(await snapshot1).screenshotIndex}` });
+            expect(response1.body).toBe('screenshot1');
         });
 
         test('should not store more than maxScreenshotFiles screenshots', async () => {

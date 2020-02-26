@@ -16,7 +16,7 @@ import * as _ from 'underscore';
 import { URL } from 'url';
 import * as util from 'util';
 import { USER_AGENT_LIST } from './constants';
-import { requestAsBrowser } from './utils_request';
+import * as requestUtils from './utils_request';
 import log from './utils_log';
 import { version as apifyVersion } from '../package.json';
 
@@ -412,6 +412,7 @@ const downloadListOfUrls = async ({ url, encoding = 'utf8', urlRegExp = URL_NO_C
     checkParamOrThrow(url, 'url', 'String');
     checkParamOrThrow(encoding, 'string', 'String');
     checkParamOrThrow(urlRegExp, 'urlRegExp', 'RegExp');
+    const { requestAsBrowser } = requestUtils;
 
     const { body: string } = await requestAsBrowser({ url, encoding });
     return extractUrls({ string, urlRegExp });
