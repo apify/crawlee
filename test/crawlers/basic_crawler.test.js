@@ -33,6 +33,7 @@ describe('BasicCrawler', () => {
 
     test('should run in parallel thru all the requests', async () => {
         const sources = _.range(0, 500).map(index => ({ url: `https://example.com/${index}` }));
+        const sourcesCopy = JSON.parse(JSON.stringify(sources));
 
         const processed = [];
         const requestList = new Apify.RequestList({ sources });
@@ -52,7 +53,7 @@ describe('BasicCrawler', () => {
         await basicCrawler.run();
 
         expect(basicCrawler.autoscaledPool.minConcurrency).toBe(25);
-        expect(processed).toEqual(sources);
+        expect(processed).toEqual(sourcesCopy);
         expect(await requestList.isFinished()).toBe(true);
         expect(await requestList.isEmpty()).toBe(true);
     });
@@ -541,6 +542,7 @@ describe('BasicCrawler', () => {
         sinon.restore();
 
         const sources = _.range(1, 10).map(i => ({ url: `http://example.com/${i}` }));
+        const sourcesCopy = JSON.parse(JSON.stringify(sources));
         let requestList = new Apify.RequestList({ sources });
         await requestList.initialize();
         stub = sinon
@@ -563,7 +565,7 @@ describe('BasicCrawler', () => {
         expect(count).toBe(7);
         sinon.restore();
 
-        requestList = new Apify.RequestList({ sources });
+        requestList = new Apify.RequestList({ sources: sourcesCopy });
         await requestList.initialize();
         const listStub = sinon
             .stub(requestList, 'handledCount')

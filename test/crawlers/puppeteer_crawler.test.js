@@ -34,6 +34,7 @@ describe('PuppeteerCrawler', () => {
             { url: 'http://example.com/?q=5' },
             { url: 'http://example.com/?q=6' },
         ];
+        const sourcesCopy = JSON.parse(JSON.stringify(sources));
         const processed = [];
         const failed = [];
         const requestList = new Apify.RequestList({ sources });
@@ -61,7 +62,7 @@ describe('PuppeteerCrawler', () => {
         expect(failed).toHaveLength(0);
 
         processed.forEach((request, id) => {
-            expect(request.url).toEqual(sources[id].url);
+            expect(request.url).toEqual(sourcesCopy[id].url);
             expect(request.userData.title).toBe('Example Domain');
         });
     });
