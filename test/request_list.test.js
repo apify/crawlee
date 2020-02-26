@@ -816,7 +816,24 @@ describe('Apify.RequestList', () => {
         });
     });
 
-    test('memory consumption should grow linearly with amount of requests', async () => {
-        // TODO
+    test('memory consumption does not spike on initialization', async () => {
+        function getMemoryInMbytes() {
+            const memory = process.memoryUsage();
+            return (memory.heapUsed + memory.external) / 1024 / 1024;
+        }
+        const sources = [];
+        for (let i = 0; i < 1e6; i++) {
+            sources.push({ url: `https://example.com?page=${i}` });
+        }
+        const startingMemory = getMemoryInMbytes();
+        console.log(startingMemory, 'MB');
+
+        const rl = new Apify.RequestList({ sources });
+        const instanceMemory = getMemoryInMbytes();
+        console.log(instanceMemory, 'MB');
+
+        await rl.initialize();
+        const initMemory = getMemoryInMbytes();
+        console.log(initMemory, 'MB');
     });
 });
