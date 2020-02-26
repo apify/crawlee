@@ -5,7 +5,7 @@ title: RequestOptions
 
 <a name="requestoptions"></a>
 
-Specifies required and optional fields for constructing a [`Request.setValue()`](/docs/api/request#setvalue).
+Specifies required and optional fields for constructing a [`Request`](/docs/api/request).
 
 ## Properties
 

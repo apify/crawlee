@@ -1,14 +1,20 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import stream, { Readable } from 'stream';
+import stream from 'stream'; // eslint-disable-line import/no-duplicates
 import StreamArray from 'stream-json/streamers/StreamArray';
 import util from 'util';
 import zlib from 'zlib';
+
+// TYPE IMPORTS
+/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
+import { Readable } from 'stream';
+// eslint-enable-line import/no-duplicates
 
 const pipeline = util.promisify(stream.pipeline);
 
 /**
  * Simple stream that transforms a stream of values
  * into a valid JSON by adding brackets and commas.
+ * @ignore
  */
 class ToJsonStream extends stream.Transform {
     constructor() {
@@ -96,6 +102,7 @@ exports.decompressData = async (compressedData) => {
  * optimized to ingest a Stream if and when apify-client supports streams.
  * @param compressedData
  * @returns {Readable}
+ * @ignore
  */
 exports.createDecompress = (compressedData) => {
     checkParamOrThrow(compressedData, 'compressedData', 'Buffer');

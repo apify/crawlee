@@ -273,36 +273,36 @@ declare class BasicCrawler {
      *
      * @return {Promise<void>}
      */
-    async run(): Promise<void>;
+    run(): Promise<void>;
     autoscaledPool: AutoscaledPool;
     sessionPool: import("../session_pool/session_pool").SessionPool;
-    async _pauseOnMigration(): Promise<void>;
+    _pauseOnMigration(): Promise<void>;
     /**
      * Fetches request from either RequestList or RequestQueue. If request comes from a RequestList
      * and RequestQueue is present then enqueues it to the queue first.
      *
      * @ignore
      */
-    async _fetchNextRequest(): Promise<any>;
+    _fetchNextRequest(): Promise<any>;
     /**
      * Wrapper around handleRequestFunction that fetches requests from RequestList/RequestQueue
      * then retries them in a case of an error, etc.
      *
      * @ignore
      */
-    async _runTaskFunction(): Promise<void>;
+    _runTaskFunction(): Promise<void>;
     /**
      * Returns true if either RequestList or RequestQueue have a request ready for processing.
      *
      * @ignore
      */
-    async _isTaskReadyFunction(): Promise<boolean>;
+    _isTaskReadyFunction(): Promise<boolean>;
     /**
      * Returns true if both RequestList and RequestQueue have all requests finished.
      *
      * @ignore
      */
-    async _defaultIsFinishedFunction(): Promise<any>;
+    _defaultIsFinishedFunction(): Promise<any>;
     /**
      * Handles errors thrown by user provided handleRequestFunction()
      * @param {Error} error
@@ -311,7 +311,7 @@ declare class BasicCrawler {
      * @return {Promise<Boolean>} willBeRetried
      * @ignore
      */
-    async _requestFunctionErrorHandler(error: Error, request: Request, source: RequestList | RequestQueue): Promise<boolean>;
+    _requestFunctionErrorHandler(error: Error, request: Request, source: RequestList | RequestQueue): Promise<boolean>;
     /**
      * Updates handledRequestsCount from possibly stored counts,
      * usually after worker migration. Since one of the stores
@@ -323,7 +323,7 @@ declare class BasicCrawler {
      * @return {Promise<void>}
      * @ignore
      */
-    async _loadHandledRequestCount(): Promise<void>;
+    _loadHandledRequestCount(): Promise<void>;
 }
 import { RequestList } from "../request_list";
 import { RequestQueue } from "../request_queue";

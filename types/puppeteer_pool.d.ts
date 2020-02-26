@@ -192,7 +192,7 @@ declare class PuppeteerPool {
     pagesToInstancesMap: WeakMap<object, any>;
     liveViewSnapshotsInProgress: WeakMap<object, any>;
     sigintListener: () => void;
-    async _retireBrowserWithSession(session: any): Promise<void>;
+    _retireBrowserWithSession(session: any): Promise<void>;
     /**
      * Launches new browser instance.
      *
@@ -206,7 +206,7 @@ declare class PuppeteerPool {
      * @returns {Promise<void>}
      * @ignore
      */
-    async _initBrowser(browserPromise: Promise<Browser>, instance: PuppeteerInstance): Promise<void>;
+    _initBrowser(browserPromise: Promise<Browser>, instance: PuppeteerInstance): Promise<void>;
     /**
      * Retires some of the instances for example due to many uses.
      *
@@ -226,7 +226,7 @@ declare class PuppeteerPool {
      *
      * @ignore
      */
-    async _killInstance(instance: any): Promise<void>;
+    _killInstance(instance: any): Promise<void>;
     /**
      * Kills all running PuppeteerInstances.
      * @ignore
@@ -248,7 +248,7 @@ declare class PuppeteerPool {
      *
      * @return {Promise<Page>}
      */
-    async newPage(): Promise<Page>;
+    newPage(): Promise<Page>;
     /**
      * Opens new tab in one of the browsers in the pool and returns a `Promise`
      * that resolves to an instance of a Puppeteer
@@ -257,7 +257,7 @@ declare class PuppeteerPool {
      * @return {Promise<Page>}
      * @ignore
      */
-    async _openNewTab(): Promise<Page>;
+    _openNewTab(): Promise<Page>;
     /**
      * Adds the necessary boilerplate to allow page reuse and also
      * captures page.close() errors to prevent meaningless log clutter.
@@ -272,19 +272,19 @@ declare class PuppeteerPool {
      * @param {Browser} browser
      * @ignore
      */
-    async _focusOldestTab(browser: Browser): Promise<void>;
+    _focusOldestTab(browser: Browser): Promise<void>;
     /**
      * Closes all open browsers.
      * @return {Promise<void>}
      */
-    async destroy(): Promise<void>;
+    destroy(): Promise<void>;
     /**
      * Finds a PuppeteerInstance given a Puppeteer Browser running in the instance.
      * @param {Browser} browser
      * @return {Promise}
      * @ignore
      */
-    async _findInstanceByBrowser(browser: Browser): Promise<any>;
+    _findInstanceByBrowser(browser: Browser): Promise<any>;
     /**
      * Manually retires a Puppeteer
      * [`Browser`](https://pptr.dev/#?product=Puppeteer&show=api-class-browser)
@@ -293,7 +293,7 @@ declare class PuppeteerPool {
      * @param {Browser} browser
      * @return {Promise<void>}
      */
-    async retire(browser: Browser): Promise<void>;
+    retire(browser: Browser): Promise<void>;
     /**
      * Closes the page, unless the `reuseTabs` option is set to true.
      * Then it would only flag the page for a future reuse, without actually closing it.
@@ -305,14 +305,14 @@ declare class PuppeteerPool {
      * @param {Page} page
      * @return {Promise<void>}
      */
-    async recyclePage(page: Page): Promise<void>;
+    recyclePage(page: Page): Promise<void>;
     /**
      * Tells the connected LiveViewServer to serve a snapshot when available.
      *
      * @param page
      * @return {Promise<void>}
      */
-    async serveLiveViewSnapshot(page: any): Promise<void>;
+    serveLiveViewSnapshot(page: any): Promise<void>;
     _findInstancesBySession(session: any): any[];
     _killInstanceWithNoPages(instance: any): void;
 }

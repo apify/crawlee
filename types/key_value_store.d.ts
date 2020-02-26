@@ -81,7 +81,7 @@ export class KeyValueStore {
      * content type are automatically parsed and returned as a JavaScript object.
      * Similarly, records with `text/plain` content types are returned as a string.
      * For all other content types, the value is returned as a raw
-     * [](https://nodejs.org/api/buffer.html) instance.
+     * [`Buffer`](https://nodejs.org/api/buffer.html) instance.
      *
      * If the record does not exist, the function resolves to `null`.
      *
@@ -100,7 +100,7 @@ export class KeyValueStore {
      *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
      * @returns {Promise<Object|String|Buffer>}
      *   Returns a promise that resolves to an object, string
-     *   or [](https://nodejs.org/api/buffer.html), depending
+     *   or [`Buffer`](https://nodejs.org/api/buffer.html), depending
      *   on the MIME content type of the record.
      */
     getValue(key: string): Promise<any>;
@@ -125,7 +125,7 @@ export class KeyValueStore {
      * await store.setValue('RESULTS', 'my text data', { contentType: 'text/plain' });
      * ```
      * If you set custom content type, `value` must be either a string or
-     * [](https://nodejs.org/api/buffer.html), otherwise an error will be thrown.
+     * [`Buffer`](https://nodejs.org/api/buffer.html), otherwise an error will be thrown.
      *
      * If `value` is `null`, the record is deleted instead. Note that the `setValue()` function succeeds
      * regardless whether the record existed or not.
@@ -145,7 +145,7 @@ export class KeyValueStore {
      *     <li>If `null`, the record in the key-value store is deleted.</li>
      *     <li>If no `options.contentType` is specified, `value` can be any JavaScript object and it will be stringified to JSON.</li>
      *     <li>If `options.contentType` is specified, `value` is considered raw data and it must be either a `String`
-     *     or [](https://nodejs.org/api/buffer.html).</li>
+     *     or [`Buffer`](https://nodejs.org/api/buffer.html).</li>
      *   </ul>
      *   For any other value an error will be thrown.
      * @param {Object} [options]
@@ -163,9 +163,9 @@ export class KeyValueStore {
      *
      * @return {Promise<void>}
      */
-    async drop(): Promise<void>;
+    drop(): Promise<void>;
     /** @ignore */
-    async delete(): Promise<void>;
+    delete(): Promise<void>;
     /**
      * Returns a URL for the given key that may be used to publicly
      * access the value in the remote key value store.
@@ -198,7 +198,7 @@ export class KeyValueStore {
      * @param {string} [options.exclusiveStartKey] All keys up to this one (including) are skipped from the result.
      * @return {Promise<void>}
      */
-    async forEachKey(iteratee: KeyConsumer, options?: {
+    forEachKey(iteratee: KeyConsumer, options?: {
         exclusiveStartKey?: string;
     }, index?: number): Promise<void>;
 }
@@ -213,11 +213,11 @@ export class KeyValueStoreLocal {
     localStoragePath: string;
     storeId: any;
     initializationPromise: any;
-    async getValue(key: any): Promise<any>;
-    async setValue(key: any, value: any, options?: {}): Promise<void>;
-    async delete(): Promise<void>;
-    async drop(): Promise<void>;
-    async forEachKey(iteratee: any, options?: {}, index?: number): Promise<void>;
+    getValue(key: any): Promise<any>;
+    setValue(key: any, value: any, options?: {}): Promise<void>;
+    delete(): Promise<void>;
+    drop(): Promise<void>;
+    forEachKey(iteratee: any, options?: {}, index?: number): Promise<void>;
     /**
      * Helper function to handle files. Accepts a promisified 'fs' function as a second parameter
      * which will be executed against the file saved under the key. Since the file's extension and thus
@@ -235,7 +235,7 @@ export class KeyValueStoreLocal {
      * }
      * @ignore
      */
-    async _handleFile(key: string, handler: Function): Promise<any>;
+    _handleFile(key: string, handler: Function): Promise<any>;
     /**
      * Performs a lookup for a file in the local emulation directory's file list.
      * @param {String} key
@@ -270,7 +270,7 @@ export function openKeyValueStore(storeIdOrName?: string, options?: {
 export function getValue(key: string): Promise<any>;
 export function setValue(key: string, value: any, options?: {
     contentType?: string;
-}): Promise<any>;
+}): Promise<void>;
 export function getInput(): Promise<any>;
 /**
  * User-function used in the  {@link KeyValueStore#forEachKey} method.

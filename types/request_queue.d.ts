@@ -112,7 +112,7 @@ export class RequestQueue {
      * @param {Boolean} [options.forefront=false] If `true`, the request will be added to the foremost position in the queue.
      * @return {Promise<QueueOperationInfo>}
      */
-    async addRequest(request: RequestOptions | Request, options?: {
+    addRequest(request: RequestOptions | Request, options?: {
         forefront?: boolean;
     }): Promise<QueueOperationInfo>;
     /**
@@ -121,7 +121,7 @@ export class RequestQueue {
      * @param {String} requestId ID of the request.
      * @return {Promise<Request>} Returns the request object, or `null` if it was not found.
      */
-    async getRequest(requestId: string): Promise<Request>;
+    getRequest(requestId: string): Promise<Request>;
     /**
      * Returns a next request in the queue to be processed, or `null` if there are no more pending requests.
      *
@@ -139,7 +139,7 @@ export class RequestQueue {
      * @returns {Promise<Request>}
      * Returns the request object or `null` if there are no more pending requests.
      */
-    async fetchNextRequest(): Promise<Request>;
+    fetchNextRequest(): Promise<Request>;
     /**
      * Marks a request that was previously returned by the
      * {@link RequestQueue#fetchNextRequest}
@@ -149,7 +149,7 @@ export class RequestQueue {
      * @param {Request} request
      * @return {Promise<QueueOperationInfo>}
      */
-    async markRequestHandled(request: Request): Promise<QueueOperationInfo>;
+    markRequestHandled(request: Request): Promise<QueueOperationInfo>;
     /**
      * Reclaims a failed request back to the queue, so that it can be returned for processed later again
      * by another call to {@link RequestQueue#fetchNextRequest}.
@@ -164,7 +164,7 @@ export class RequestQueue {
      * By default, it's put to the end of the queue.
      * @return {Promise<QueueOperationInfo>}
      */
-    async reclaimRequest(request: Request, options?: {
+    reclaimRequest(request: Request, options?: {
         forefront?: boolean;
     }): Promise<QueueOperationInfo>;
     /**
@@ -175,7 +175,7 @@ export class RequestQueue {
      *
      * @returns {Promise<Boolean>}
      */
-    async isEmpty(): Promise<boolean>;
+    isEmpty(): Promise<boolean>;
     /**
      * Resolves to `true` if all requests were already handled and there are no more left.
      * Due to the nature of distributed storage used by the queue,
@@ -184,7 +184,7 @@ export class RequestQueue {
      *
      * @returns {Promise<Boolean>}
      */
-    async isFinished(): Promise<boolean>;
+    isFinished(): Promise<boolean>;
     /**
      * Caches information about request to beware of unneeded addRequest() calls.
      *
@@ -202,21 +202,21 @@ export class RequestQueue {
      * @return {Boolean} Indicates if queue head is consistent (true) or inconsistent (false).
      * @ignore
      */
-    async _ensureHeadIsNonEmpty(ensureConsistency?: boolean, limit?: number, iteration?: number): boolean;
+    _ensureHeadIsNonEmpty(ensureConsistency?: boolean, limit?: number, iteration?: number): boolean;
     /**
      * Adds a request straight to the queueHeadDict, to improve performance.
      * @private
      */
-    private _maybeAddRequestToQueueHead;
+    _maybeAddRequestToQueueHead(requestId: any, forefront: any): void;
     /**
      * Removes the queue either from the Apify Cloud storage or from the local directory,
      * depending on the mode of operation.
      *
      * @return {Promise}
      */
-    async drop(): Promise<any>;
+    drop(): Promise<any>;
     /** @ignore */
-    async delete(): Promise<void>;
+    delete(): Promise<void>;
     /**
      * Returns the number of handled requests.
      *
@@ -228,7 +228,7 @@ export class RequestQueue {
      *
      * @return {Promise<number>}
      */
-    async handledCount(): Promise<number>;
+    handledCount(): Promise<number>;
     /**
      * Returns an object containing general information about the request queue.
      *
@@ -255,7 +255,7 @@ export class RequestQueue {
      *
      * @returns {Promise<Object>}
      */
-    async getInfo(): Promise<any>;
+    getInfo(): Promise<any>;
 }
 /**
  * Local directory-based implementation of the `RequestQueue` class.
@@ -282,37 +282,37 @@ export class RequestQueueLocal {
     modifiedAt: Date;
     accessedAt: Date;
     initializationPromise: Promise<void>;
-    async _initialize(): Promise<void>;
-    async _saveRequestIdToQueueOrderNo(filepath: any): Promise<void>;
+    _initialize(): Promise<void>;
+    _saveRequestIdToQueueOrderNo(filepath: any): Promise<void>;
     _getFilePath(queueOrderNo: any, isHandled?: boolean): string;
     _getQueueOrderNo(forefront?: boolean): number;
-    async _getRequestByQueueOrderNo(queueOrderNo: any): Promise<Request>;
-    async addRequest(request: any, opts?: {}): Promise<{
+    _getRequestByQueueOrderNo(queueOrderNo: any): Promise<Request>;
+    addRequest(request: any, opts?: {}): Promise<{
         requestId: any;
         wasAlreadyHandled: any;
         wasAlreadyPresent: boolean;
         request: any;
     }>;
-    async getRequest(requestId: any): Promise<any>;
-    async fetchNextRequest(): Promise<Request>;
-    async markRequestHandled(request: any): Promise<{
+    getRequest(requestId: any): Promise<any>;
+    fetchNextRequest(): Promise<Request>;
+    markRequestHandled(request: any): Promise<{
         requestId: any;
         wasAlreadyHandled: boolean;
         wasAlreadyPresent: boolean;
         request: any;
     }>;
-    async reclaimRequest(request: any, opts?: {}): Promise<{
+    reclaimRequest(request: any, opts?: {}): Promise<{
         requestId: any;
         wasAlreadyHandled: boolean;
         wasAlreadyPresent: boolean;
         request: any;
     }>;
-    async isEmpty(): Promise<boolean>;
-    async isFinished(): Promise<boolean>;
-    async drop(): Promise<void>;
-    async delete(): Promise<void>;
-    async handledCount(): Promise<number>;
-    async getInfo(): Promise<{
+    isEmpty(): Promise<boolean>;
+    isFinished(): Promise<boolean>;
+    drop(): Promise<void>;
+    delete(): Promise<void>;
+    handledCount(): Promise<number>;
+    getInfo(): Promise<{
         id: any;
         name: any;
         userId: string;

@@ -293,7 +293,8 @@ the variables are not defined or are invalid, the corresponding value in the res
 
 ## `Apify.getInput()`
 
-**Returns**: `Promise<Object>` - Returns a promise that resolves once the record is stored.
+**Returns**: `Promise<(Object|String|Buffer)>` - Returns a promise that resolves to an object, string or
+[`Buffer`](https://nodejs.org/api/buffer.html), depending on the MIME content type of the actor's INPUT.
 
 Gets the actor input value from the default [`KeyValueStore`](/docs/api/key-value-store) associated with the current actor run.
 
@@ -334,7 +335,8 @@ second.
 
 ## `Apify.getValue(key)`
 
-**Returns**: `Promise<Object>` - Returns a promise that resolves once the record is stored.
+**Returns**: `Promise<(Object|String|Buffer)>` - Returns a promise that resolves to an object, string or
+[`Buffer`](https://nodejs.org/api/buffer.html), depending on the MIME content type of the record.
 
 Gets a value from the default [`KeyValueStore`](/docs/api/key-value-store) associated with the current actor run.
 
@@ -449,7 +451,7 @@ The `Apify.main()` function performs the following actions:
   <li>When running on the Apify platform (i.e. <code>APIFY_IS_AT_HOME</code> environment variable is set),
   it sets up a connection to listen for platform events.
   For example, to get a notification about an imminent migration to another server.
-  See [](apify#apifyevents) for details.
+  See [`Apify.events`](/docs/api/apify#events) for details.
   </li>
   <li>It checks that either <code>APIFY_TOKEN</code> or <code>APIFY_LOCAL_STORAGE_DIR</code> environment variable
   is defined. If not, the functions sets <code>APIFY_LOCAL_STORAGE_DIR</code> to <code>./apify_storage</code>
@@ -617,8 +619,8 @@ For details, see the [`RequestListOptions.sources`](/docs/typedefs/request-list-
 
 -   **`[options]`**: [`RequestListOptions`](/docs/typedefs/request-list-options) - The [`RequestList`](/docs/api/request-list) options. Note that the
     `listName` parameter supersedes the [`RequestListOptions.persistStateKey`](/docs/typedefs/request-list-options#persiststatekey) and
-    [`RequestListOptions.persistSourcesKey`](/docs/typedefs/request-list-options#persistsourceskey) options and the `sources` parameter supersedes the
-    [`RequestListOptions.sources`](/docs/typedefs/request-list-options#sources) option.
+    [`RequestListOptions.persistRequestsKey`](/docs/typedefs/request-list-options#persistrequestskey) options and the `sources` parameter supersedes
+    the [`RequestListOptions.sources`](/docs/typedefs/request-list-options#sources) option.
 
 ---
 
@@ -698,7 +700,7 @@ For more information, see [`Apify.openDataset()`](/docs/api/apify#opendataset) a
 
 ## `Apify.setValue(key, value, [options])`
 
-**Returns**: `Promise`
+**Returns**: `Promise<void>`
 
 Stores or deletes a value in the default [`KeyValueStore`](/docs/api/key-value-store) associated with the current actor run.
 
@@ -728,7 +730,7 @@ For more information, see [`Apify.openKeyValueStore()`](/docs/api/apify#openkeyv
       <li>If `null`, the record in the key-value store is deleted.</li>
       <li>If no `options.contentType` is specified, `value` can be any JavaScript object and it will be stringified to JSON.</li>
       <li>If `options.contentType` is specified, `value` is considered raw data and it must be a `String`
-      or [](https://nodejs.org/api/buffer.html).</li>
+      or [`Buffer`](https://nodejs.org/api/buffer.html).</li>
     </ul>
     For any other value an error will be thrown.
 -   **`[options]`**: `Object`

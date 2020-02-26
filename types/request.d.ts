@@ -8,7 +8,7 @@ export function computeUniqueKey({ url, method, payload, keepUrlFragment, useExt
 export function hashPayload(payload: any): string;
 export default Request;
 /**
- * Specifies required and optional fields for constructing a {@link Request#setValue}.
+ * Specifies required and optional fields for constructing a {@link Request}.
  */
 export type RequestOptions = {
     /**
@@ -68,7 +68,7 @@ export type RequestOptions = {
     useExtendedUniqueKey?: boolean;
 };
 /**
- * Specifies required and optional fields for constructing a {@link Request#setValue}.
+ * Specifies required and optional fields for constructing a {@link Request}.
  *
  * @typedef {Object} RequestOptions
  * @property {String} url URL of the web page to crawl. It must be a non-empty string.

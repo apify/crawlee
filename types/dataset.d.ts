@@ -86,7 +86,7 @@ export class Dataset {
      * The objects must be serializable to JSON and the JSON representation of each object must be smaller than 9MB.
      * @return {Promise<void>}
      */
-    async pushData(data: any): Promise<void>;
+    pushData(data: any): Promise<void>;
     /**
      * Returns {DatasetContent} object holding the items in the dataset based on the provided parameters.
      *
@@ -147,7 +147,7 @@ export class Dataset {
      *   the legacy Apify Crawler product and it's not recommended to use it in new integrations.
      * @return {Promise<DatasetContent>}
      */
-    async getData(options?: {
+    getData(options?: {
         format?: string;
         offset?: number;
         limit?: number;
@@ -192,7 +192,7 @@ export class Dataset {
      *
      * @returns {Promise<Object>}
      */
-    async getInfo(): Promise<any>;
+    getInfo(): Promise<any>;
     /**
      * Iterates over dataset items, yielding each in turn to an `iteratee` function.
      * Each invocation of `iteratee` is called with two arguments: `(item, index)`.
@@ -217,7 +217,7 @@ export class Dataset {
      * @param {Number} [index=0] Specifies the initial index number passed to the `iteratee` function.
      * @return {Promise<void>}
      */
-    async forEach(iteratee: DatasetConsumer, options?: {
+    forEach(iteratee: DatasetConsumer, options?: {
         desc?: boolean;
         fields?: any[];
         unwind?: string;
@@ -274,9 +274,9 @@ export class Dataset {
      *
      * @return {Promise<void>}
      */
-    async drop(): Promise<void>;
+    drop(): Promise<void>;
     /** @ignore */
-    async delete(): Promise<void>;
+    delete(): Promise<void>;
 }
 /**
  * This is a local emulation of a dataset.
@@ -294,14 +294,14 @@ export class DatasetLocal {
     initializationPromise: any;
     _initialize(): any;
     pushData(data: any): any;
-    async getData(opts?: {}): Promise<{
+    getData(opts?: {}): Promise<{
         items: any[];
         total: number;
         offset: any;
         count: number;
         limit: any;
     }>;
-    async getInfo(): Promise<{
+    getInfo(): Promise<{
         id: any;
         name: any;
         userId: string;
@@ -311,11 +311,11 @@ export class DatasetLocal {
         itemCount: number;
         cleanItemCount: number;
     }>;
-    async forEach(iteratee: any): Promise<void>;
-    async map(iteratee: any): Promise<any[]>;
-    async reduce(iteratee: any, memo: any): Promise<any>;
-    async drop(): Promise<void>;
-    async delete(): Promise<void>;
+    forEach(iteratee: any): Promise<void>;
+    map(iteratee: any): Promise<any[]>;
+    reduce(iteratee: any, memo: any): Promise<any>;
+    drop(): Promise<void>;
+    delete(): Promise<void>;
     /**
      * Returns an array of item indexes for given offset and limit.
      */

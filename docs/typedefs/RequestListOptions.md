@@ -35,6 +35,24 @@ of the [`Request`](/docs/api/request) class. Additionally, the `requestsFromUrl`
 
 ---
 
+### `sourcesFunction`
+
+**Type**: `function`
+
+A function that will be called to get the sources for the `RequestList`, but only if `RequestList` was not able to fetch their persisted version (see
+[`RequestListOptions.persistRequestsKey`](/docs/typedefs/request-list-options#persistrequestskey)). It must return an `Array` of
+[`Request`](/docs/api/request) or [`RequestOptions`](/docs/typedefs/request-options).
+
+This is very useful in a scenario when getting the sources is a resource intensive or time consuming task, such as fetching URLs from multiple
+sitemaps or parsing URLs from large datasets. Using the `sourcesFunction` in combination with `persistStateKey` and `persistRequestsKey` will allow
+you to fetch and parse those URLs only once, saving valuable time when your actor migrates or restarts.
+
+If both [`RequestListOptions.sources`](/docs/typedefs/request-list-options#sources) and
+[`RequestListOptions.sourcesFunction`](/docs/typedefs/request-list-options#sourcesfunction) are provided, the sources returned by the function will be
+added after the `sources`.
+
+---
+
 ### `persistStateKey`
 
 **Type**: `String`
@@ -46,15 +64,15 @@ If `persistStateKey` is not set, `RequestList` will always start from the beginn
 
 ---
 
-### `persistSourcesKey`
+### `persistRequestsKey`
 
 **Type**: `String`
 
-Identifies the key in the default key-value store under which the `RequestList` persists its sources (i.e. the lists of URLs) during the
+Identifies the key in the default key-value store under which the `RequestList` persists its Requests during the
 [`RequestList.initialize()`](/docs/api/request-list#initialize) call. This is necessary if `persistStateKey` is set and the source URLs might
 potentially change, to ensure consistency of the source URLs and state object. However, it comes with some storage and performance overheads.
 
-If `persistSourcesKey` is not set, [`RequestList.initialize()`](/docs/api/request-list#initialize) will always fetch the sources from their origin,
+If `persistRequestsKey` is not set, [`RequestList.initialize()`](/docs/api/request-list#initialize) will always fetch the sources from their origin,
 check that they are consistent with the restored state (if any) and throw an error if they are not.
 
 ---
