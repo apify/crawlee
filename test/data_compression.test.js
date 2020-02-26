@@ -4,18 +4,19 @@ import util from 'util';
 import zlib from 'zlib';
 import { compressData, decompressData, createDecompress } from '../build/data_compression';
 
-const TEST_JSON_PATH = path.join(__dirname, 'data', 'sample.json.br');
+const TEST_JSON_PATH = path.join(__dirname, 'data', 'sample.json.gz');
 
-const brotliDecompress = util.promisify(zlib.brotliDecompress);
+
+const gunzip = util.promisify(zlib.gunzip);
 
 describe('Data Compression:', () => {
     test('compressData should compress', async () => {
         const compressedTestJson = await fs.readFile(TEST_JSON_PATH);
-        const jsonBuffer = await brotliDecompress(compressedTestJson);
+        const jsonBuffer = await gunzip(compressedTestJson);
         const expectedArray = JSON.parse(jsonBuffer.toString('utf8'));
 
         const compressed = await compressData(expectedArray);
-        const decompressed = await brotliDecompress(compressed);
+        const decompressed = await gunzip(compressed);
         const decompressedJson = decompressed.toString('utf8');
         const receivedArray = JSON.parse(decompressedJson);
 
@@ -26,7 +27,7 @@ describe('Data Compression:', () => {
 
     test('decompressData should decompress', async () => {
         const compressedTestJson = await fs.readFile(TEST_JSON_PATH);
-        const jsonBuffer = await brotliDecompress(compressedTestJson);
+        const jsonBuffer = await gunzip(compressedTestJson);
         const expectedArray = JSON.parse(jsonBuffer.toString('utf8'));
 
         const receivedArray = await decompressData(compressedTestJson);
@@ -48,7 +49,7 @@ describe('Data Compression:', () => {
 
     test('createDecompress should work', async () => {
         const compressedTestJson = await fs.readFile(TEST_JSON_PATH);
-        const jsonBuffer = await brotliDecompress(compressedTestJson);
+        const jsonBuffer = await gunzip(compressedTestJson);
         const expectedArray = JSON.parse(jsonBuffer.toString('utf8'));
 
         const decompress = createDecompress(compressedTestJson);

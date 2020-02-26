@@ -730,7 +730,7 @@ describe('Apify.RequestList', () => {
             expect(rl).toBeInstanceOf(Apify.RequestList);
             expect(rl.persistStateKey.startsWith(name)).toBe(true);
             expect(rl.persistRequestsKey.startsWith(name)).toBe(true);
-            expect(rl.sources).toEqual(sources);
+            expect(rl.sources).toEqual([]);
             expect(rl.isInitialized).toBe(true);
 
             mock.verify();
@@ -816,25 +816,31 @@ describe('Apify.RequestList', () => {
         });
     });
 
-    test('memory consumption does not spike on initialization', async () => {
-        function getMemoryInMbytes() {
-            const memory = process.memoryUsage();
-            return (memory.heapUsed + memory.external) / 1024 / 1024;
-        }
-        const sources = [];
-        for (let i = 0; i < 1e4; i++) {
-            sources.push({ url: `https://example.com?page=${i}` });
-        }
-        const startingMemory = getMemoryInMbytes();
-        console.log(startingMemory, 'MB');
+    // This test is here to run locally. It would take too long
+    // when running a test suite and in CI with large source arrays
+    // and would be flaky with small source arrays, so manual inspection
+    // looks like the best idea, since multiple runs with various values
+    // need to be tested and compared (read: I'm too lazy to automate this)
 
-        process.env.APIFY_LOCAL_STORAGE_DIR = 'tmp';
-        const rl = new Apify.RequestList({ sources, persistRequestsKey: 'y' });
-        const instanceMemory = getMemoryInMbytes();
-        console.log(instanceMemory, 'MB');
-
-        await rl.initialize();
-        const initMemory = getMemoryInMbytes();
-        console.log(initMemory, 'MB');
-    });
+    // test('memory consumption does not spike', async () => {
+    //     function getMemoryInMbytes() {
+    //         const memory = process.memoryUsage();
+    //         return (memory.heapUsed + memory.external) / 1024 / 1024;
+    //     }
+    //     const sources = [];
+    //     for (let i = 0; i < 1e6; i++) {
+    //         sources.push({ url: `https://example.com?page=${i}` });
+    //     }
+    //     const startingMemory = getMemoryInMbytes();
+    //     console.log(startingMemory, 'MB');
+    //
+    //     process.env.APIFY_LOCAL_STORAGE_DIR = 'tmp';
+    //     const rl = new Apify.RequestList({ sources, persistRequestsKey: null });
+    //     const instanceMemory = getMemoryInMbytes();
+    //     console.log(instanceMemory, 'MB');
+    //
+    //     await rl.initialize();
+    //     const initMemory = getMemoryInMbytes();
+    //     console.log(initMemory, 'MB');
+    // });
 });
