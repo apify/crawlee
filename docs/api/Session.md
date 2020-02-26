@@ -129,7 +129,7 @@ It then parses and saves the cookies from the `set-cookie` header, if available.
 
 **Params**
 
--   **`response`**: `Object`
+-   **`response`**: `PuppeteerResponse` | `IncomingMessage`
 
 ---
 
@@ -165,7 +165,7 @@ Returns cookies in a format compatible with puppeteer and ready to be used with 
 
 **Params**
 
--   **`url`**: `String` - website url. Only cookies stored for this url will be returned
+-   **`url`**: `string` - website url. Only cookies stored for this url will be returned
 
 ---
 

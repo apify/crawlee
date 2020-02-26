@@ -32,20 +32,20 @@
  * @param {Object} options
  *   All `enqueueLinks()` parameters are passed
  *   via an options object with the following keys:
- * @param {Page} options.page
+ * @param {Page} [options.page]
  *   Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
  *   Either `page` or `$` option must be provided.
- * @param {Cheerio} options.$
+ * @param {CheerioStatic} [options.$]
  *   [`Cheerio`](https://github.com/cheeriojs/cheerio) function with loaded HTML.
  *   Either `page` or `$` option must be provided.
  * @param {RequestQueue} options.requestQueue
  *   A request queue to which the URLs will be enqueued.
- * @param {String} [options.selector='a']
+ * @param {string} [options.selector='a']
  *   A CSS selector matching links to be enqueued.
  * @param {string} [options.baseUrl]
  *   A base URL that will be used to resolve relative URLs when using Cheerio. Ignored when using Puppeteer,
  *   since the relative URL resolution is done inside the browser automatically.
- * @param {Object[]|String[]} [options.pseudoUrls]
+ * @param {Array<Object>|Array<string>} [options.pseudoUrls]
  *   An array of {@link PseudoUrl}s matching the URLs to be enqueued,
  *   or an array of strings or RegExps or plain Objects from which the {@link PseudoUrl}s can be constructed.
  *
@@ -74,19 +74,19 @@
  *       }
  *   }
  *   ```
- * @return {Promise<QueueOperationInfo[]>}
+ * @return {Promise<Array<QueueOperationInfo>>}
  *   Promise that resolves to an array of {@link QueueOperationInfo} objects.
  * @memberOf utils
  * @name enqueueLinks
  * @function
  */
 export function enqueueLinks(options?: {
-    page: Page;
-    $: CheerioStatic;
+    page?: Page;
+    $?: CheerioStatic;
     requestQueue: RequestQueue;
     selector?: string;
     baseUrl?: string;
-    pseudoUrls?: any[] | string[];
+    pseudoUrls?: string[] | Object[];
     transformRequestFunction?: RequestTransform;
 }): Promise<QueueOperationInfo[]>;
 /**
@@ -94,14 +94,14 @@ export function enqueueLinks(options?: {
  *
  * @param {Page} page
  * @param {string} selector
- * @return {string[]}
+ * @return {Promise<Array<string>>}
  * @ignore
  */
-export function extractUrlsFromPage(page: Page, selector: string): string[];
+export function extractUrlsFromPage(page: Page, selector: string): Promise<string[]>;
 /**
  * Extracts URLs from a given Cheerio object.
  *
- * @param {Cheerio} $
+ * @param {CheerioStatic} $
  * @param {string} selector
  * @param {string} baseUrl
  * @return {string[]}

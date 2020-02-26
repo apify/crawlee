@@ -3,17 +3,20 @@ export const APIFY_CALL_ERROR_NAME: "ApifyCallError";
  * The class represents exceptions thrown
  * by the {@link Apify#call} function.
  *
- * @typedef {Object} ApifyCallError
- * @property {String} message
+ * @property {string} message
  *   Error message
- * @property {String} name
- *   Contains `"ApifyCallError"`
  * @property {ActorRun} run
  *   Object representing the failed actor run.
+ * @property {string} name
+ *   Contains `"ApifyCallError"`
  */
 export class ApifyCallError extends Error {
-    constructor(run: any, message?: string);
-    run: any;
+    /**
+     * @param {ActorRun} run
+     * @param {string} [message]
+     */
+    constructor(run: ActorRun, message?: string | undefined);
+    run: ActorRun;
 }
 /**
  * TimeoutError class.
@@ -21,5 +24,6 @@ export class ApifyCallError extends Error {
  * @ignore
  */
 export class TimeoutError extends Error {
-    constructor(message?: string);
+    constructor(message?: string | undefined);
 }
+import { ActorRun } from "./typedefs";

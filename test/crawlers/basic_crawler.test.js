@@ -1,7 +1,7 @@
 import _ from 'underscore';
 import sinon from 'sinon';
-import log from 'apify-shared/log';
 import { ACTOR_EVENT_NAMES } from 'apify-shared/consts';
+import log from '../../build/utils_log';
 import * as Apify from '../../build';
 import * as keyValueStore from '../../build/key_value_store';
 import { RequestQueue, RequestQueueLocal } from '../../build/request_queue';

@@ -133,7 +133,7 @@ SDK would have access to a different [`Request`](/docs/api/request) instance.
 
 ### `handlePageTimeoutSecs`
 
-**Type**: `Number` <code> = 60</code>
+**Type**: `number` <code> = 60</code>
 
 Timeout in which the function passed as `handlePageFunction` needs to finish, given in seconds.
 
@@ -141,7 +141,7 @@ Timeout in which the function passed as `handlePageFunction` needs to finish, gi
 
 ### `requestTimeoutSecs`
 
-**Type**: `Number` <code> = 30</code>
+**Type**: `number` <code> = 30</code>
 
 Timeout in which the HTTP request to the resource needs to finish, given in seconds.
 
@@ -149,7 +149,7 @@ Timeout in which the HTTP request to the resource needs to finish, given in seco
 
 ### `ignoreSslErrors`
 
-**Type**: `Boolean` <code> = true</code>
+**Type**: `boolean` <code> = true</code>
 
 If set to true, SSL certificate errors will be ignored.
 
@@ -157,7 +157,7 @@ If set to true, SSL certificate errors will be ignored.
 
 ### `useApifyProxy`
 
-**Type**: `Boolean` <code> = false</code>
+**Type**: `boolean` <code> = false</code>
 
 If set to `true`, `CheerioCrawler` will be configured to use [Apify Proxy](https://my.apify.com/proxy) for all connections. For more information, see
 the [documentation](https://docs.apify.com/proxy)
@@ -166,7 +166,7 @@ the [documentation](https://docs.apify.com/proxy)
 
 ### `apifyProxyGroups`
 
-**Type**: `Array<String>`
+**Type**: `Array<string>`
 
 An array of proxy groups to be used by the [Apify Proxy](https://docs.apify.com/proxy). Only applied if the `useApifyProxy` option is `true`.
 
@@ -174,7 +174,7 @@ An array of proxy groups to be used by the [Apify Proxy](https://docs.apify.com/
 
 ### `apifyProxySession`
 
-**Type**: `String`
+**Type**: `string`
 
 Apify Proxy session identifier to be used with requests made by `CheerioCrawler`. All HTTP requests going through the proxy with the same session
 identifier will use the same target proxy server (i.e. the same IP address). The identifier can only contain the following characters: `0-9`, `a-z`,
@@ -184,7 +184,7 @@ identifier will use the same target proxy server (i.e. the same IP address). The
 
 ### `proxyUrls`
 
-**Type**: `Array<String>`
+**Type**: `Array<string>`
 
 An array of custom proxy URLs to be used by the `CheerioCrawler` instance. The provided custom proxies' order will be randomized and the resulting
 list rotated. Custom proxies are not compatible with Apify Proxy and an attempt to use both configuration options will cause an error to be thrown on
@@ -217,7 +217,7 @@ function.
 
 ### `additionalMimeTypes`
 
-**Type**: `Array<String>`
+**Type**: `Array<string>`
 
 An array of <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types"
   target="_blank">MIME types</a> you want the crawler to load and process. By default, only `text/html` and `application/xhtml+xml` MIME types are
@@ -227,7 +227,7 @@ supported.
 
 ### `maxRequestRetries`
 
-**Type**: `Number` <code> = 3</code>
+**Type**: `number` <code> = 3</code>
 
 Indicates how many times the request is retried if either `requestFunction` or `handlePageFunction` fails.
 
@@ -235,7 +235,7 @@ Indicates how many times the request is retried if either `requestFunction` or `
 
 ### `maxRequestsPerCrawl`
 
-**Type**: `Number`
+**Type**: `number`
 
 Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached. Always set this value in order to prevent infinite
 loops in misconfigured crawlers. Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.
@@ -255,7 +255,7 @@ parses HTML synchronously and therefore blocks the event loop.
 
 ### `minConcurrency`
 
-**Type**: `Number` <code> = 1</code>
+**Type**: `number` <code> = 1</code>
 
 Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding [`AutoscaledPool`](/docs/api/autoscaled-pool) option.
 
@@ -266,7 +266,7 @@ you're not sure, just keep the default value and the concurrency will scale up a
 
 ### `maxConcurrency`
 
-**Type**: `Number` <code> = 1000</code>
+**Type**: `number` <code> = 1000</code>
 
 Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding [`AutoscaledPool`](/docs/api/autoscaled-pool) option.
 
@@ -274,7 +274,7 @@ Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corres
 
 ### `useSessionPool`
 
-**Type**: `Boolean` <code> = false</code>
+**Type**: `boolean` <code> = false</code>
 
 If set to true Crawler will automatically use Session Pool. It will automatically retire sessions on 403, 401 and 429 status codes. It also marks
 Session as bad after a request timeout.
@@ -291,7 +291,7 @@ Custom options passed to the underlying [`SessionPool`](/docs/api/session-pool) 
 
 ### `persistCookiesPerSession`
 
-**Type**: `Boolean`
+**Type**: `boolean`
 
 Automatically saves cookies to Session. Works only if Session Pool is used.
 

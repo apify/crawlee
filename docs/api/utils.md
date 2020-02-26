@@ -74,15 +74,15 @@ await Apify.utils.enqueueLinks({
 
 -   **`options`**: `Object` - All `enqueueLinks()` parameters are passed via an options object with the following keys:
 
-    -   **`.page`**: `Page` - Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object. Either `page` or `$` option must be
-        provided.
-    -   **`.$`**: `Cheerio` - [`Cheerio`](https://github.com/cheeriojs/cheerio) function with loaded HTML. Either `page` or `$` option must be
+    -   **`[.page]`**: `Page` - Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object. Either `page` or `$` option must
+        be provided.
+    -   **`[.$]`**: `CheerioStatic` - [`Cheerio`](https://github.com/cheeriojs/cheerio) function with loaded HTML. Either `page` or `$` option must be
         provided.
     -   **`.requestQueue`**: [`RequestQueue`](/docs/api/request-queue) - A request queue to which the URLs will be enqueued.
-    -   **`[.selector]`**: `String` <code> = &#x27;a&#x27;</code> - A CSS selector matching links to be enqueued.
+    -   **`[.selector]`**: `string` <code> = &quot;&#x27;a&#x27;&quot;</code> - A CSS selector matching links to be enqueued.
     -   **`[.baseUrl]`**: `string` - A base URL that will be used to resolve relative URLs when using Cheerio. Ignored when using Puppeteer, since the
         relative URL resolution is done inside the browser automatically.
-    -   **`[.pseudoUrls]`**: `Array<Object&gt;` | `Array.&lt;String>` - An array of [`PseudoUrl`](/docs/api/pseudo-url)s matching the URLs to be
+    -   **`[.pseudoUrls]`**: `Array<Object&gt;` | `Array.&lt;string>` - An array of [`PseudoUrl`](/docs/api/pseudo-url)s matching the URLs to be
         enqueued, or an array of strings or RegExps or plain Objects from which the [`PseudoUrl`](/docs/api/pseudo-url)s can be constructed.
 
     The plain objects must include at least the `purl` property, which holds the pseudo-URL string or RegExp. All remaining keys will be used as the
@@ -116,7 +116,7 @@ await Apify.utils.enqueueLinks({
 
 ## `utils.requestAsBrowser(options)`
 
-**Returns**: `Promise<(http.IncomingMessage|stream.Readable)>` - This will typically be a
+**Returns**: `Promise<(IncomingMessage|Readable)>` - This will typically be a
 [Node.js HTTP response stream](https://nodejs.org/api/http.html#http_class_http_incomingmessage), however, if returned from the cache it will be a
 [response-like object](https://github.com/lukechilds/responselike) which behaves in the same way.
 
@@ -124,7 +124,7 @@ await Apify.utils.enqueueLinks({
 because it allows bypassing certain anti-scraping walls, but it also exposes some vulnerability. For other than scraping scenarios, please set
 `useInsecureHttpParser: false` and `ignoreSslErrors: false`.
 
-Sends an HTTP request that looks like a request sent by a web browser, fully emulating browser's HTTP headers.
+Sends a HTTP request that looks like a request sent by a web browser, fully emulating browser's HTTP headers.
 
 This function is useful for web scraping of websites that send the full HTML in the first response. Thanks to this function, the target web server has
 no simple way to find out the request hasn't been sent by a full web browser. Using a headless browser for such requests is an order of magnitude more
@@ -178,7 +178,7 @@ await Apify.utils.sleep(1500);
 
 **Params**
 
--   **`millis`**: `Number` - Period of time to sleep, in milliseconds. If not a positive number, the returned promise resolves immediately.
+-   **`millis`**: `number` - Period of time to sleep, in milliseconds. If not a positive number, the returned promise resolves immediately.
 
 ---
 
@@ -186,7 +186,7 @@ await Apify.utils.sleep(1500);
 
 ## `utils.downloadListOfUrls(options)`
 
-**Returns**: `Promise<Array<String>>`
+**Returns**: `Promise<Array<string>>`
 
 Returns a promise that resolves to an array of urls parsed from the resource available at the provided url. Optionally, custom regular expression and
 encoding may be provided.
@@ -194,8 +194,8 @@ encoding may be provided.
 **Params**
 
 -   **`options`**: `Object`
-    -   **`.url`**: `String` - URL to the file
-    -   **`[.encoding]`**: `String` <code> = &#x27;utf8&#x27;</code> - The encoding of the file.
+    -   **`.url`**: `string` - URL to the file
+    -   **`[.encoding]`**: `string` <code> = &quot;&#x27;utf8&#x27;&quot;</code> - The encoding of the file.
     -   **`[.urlRegExp]`**: `RegExp` <code> = URL_NO_COMMAS_REGEX</code> - Custom regular expression to identify the URLs in the file to extract. The
         regular expression should be case-insensitive and have global flag set (i.e. `/something/gi`).
 
@@ -205,14 +205,14 @@ encoding may be provided.
 
 ## `utils.extractUrls(options)`
 
-**Returns**: `Array<String>`
+**Returns**: `Array<string>`
 
 Collects all URLs in an arbitrary string to an array, optionally using a custom regular expression.
 
 **Params**
 
 -   **`options`**: `Object`
-    -   **`.string`**: `String`
+    -   **`.string`**: `string`
     -   **`[.urlRegExp]`**: `RegExp` <code> = Apify.utils.URL_NO_COMMAS_REGEX</code>
 
 ---
@@ -221,7 +221,7 @@ Collects all URLs in an arbitrary string to an array, optionally using a custom 
 
 ## `utils.getRandomUserAgent()`
 
-**Returns**: `String`
+**Returns**: `string`
 
 Returns a randomly selected User-Agent header out of a list of the most common headers.
 
@@ -231,7 +231,7 @@ Returns a randomly selected User-Agent header out of a list of the most common h
 
 ## `utils.htmlToText(html)`
 
-**Returns**: `String` - Plain text
+**Returns**: `string` - Plain text
 
 The function converts a HTML document to a plain text.
 
@@ -259,6 +259,6 @@ const text = htmlToText(cheerio.load(html, { decodeEntities: true }));
 
 **Params**
 
--   **`html`**: `String` | `Cheerio` - HTML text or parsed HTML represented using a [cheerio](https://www.npmjs.com/package/cheerio) function.
+-   **`html`**: `string` | `CheerioStatic` - HTML text or parsed HTML represented using a [cheerio](https://www.npmjs.com/package/cheerio) function.
 
 ---

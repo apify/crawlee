@@ -1,23 +1,24 @@
-// TYPE IMPORTS
-/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
-import { ActorRun } from './typedefs';
-/* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
-
 export const APIFY_CALL_ERROR_NAME = 'ApifyCallError';
+
+// eslint-disable-next-line import/named,no-unused-vars,import/first
+import { ActorRun } from './typedefs';
 
 /**
  * The class represents exceptions thrown
  * by the {@link Apify#call} function.
  *
- * @typedef {Object} ApifyCallError
- * @property {String} message
+ * @property {string} message
  *   Error message
- * @property {String} name
- *   Contains `"ApifyCallError"`
  * @property {ActorRun} run
  *   Object representing the failed actor run.
+ * @property {string} name
+ *   Contains `"ApifyCallError"`
  */
 export class ApifyCallError extends Error {
+    /**
+     * @param {ActorRun} run
+     * @param {string} [message]
+     */
     constructor(run, message = 'The actor invoked by Apify.call() did not succeed') {
         super(`${message} (run ID: ${run.id})`);
         this.name = APIFY_CALL_ERROR_NAME;
@@ -26,6 +27,7 @@ export class ApifyCallError extends Error {
         Error.captureStackTrace(this, ApifyCallError);
     }
 }
+
 /**
  * TimeoutError class.
  * This error should be thrown after request timeout from `requestAsBrowser`.

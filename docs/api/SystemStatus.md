@@ -56,7 +56,7 @@ otherwise.
 
 ## `systemStatus.getHistoricalStatus()`
 
-**Returns**: `Object`
+**Returns**: [`SystemInfo`](/docs/typedefs/system-info)
 
 Returns an [`SystemInfo`](/docs/typedefs/system-info) object with the following structure:
 

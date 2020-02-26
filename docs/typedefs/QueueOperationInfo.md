@@ -12,7 +12,7 @@ A helper class that is used to report results from various [`RequestQueue`](/doc
 
 ### `wasAlreadyPresent`
 
-**Type**: `Boolean`
+**Type**: `boolean`
 
 Indicates if request was already present in the queue.
 
@@ -20,7 +20,7 @@ Indicates if request was already present in the queue.
 
 ### `wasAlreadyHandled`
 
-**Type**: `Boolean`
+**Type**: `boolean`
 
 Indicates if request was already marked as handled.
 
@@ -28,7 +28,7 @@ Indicates if request was already marked as handled.
 
 ### `requestId`
 
-**Type**: `String`
+**Type**: `string`
 
 The ID of the added request
 
@@ -36,7 +36,7 @@ The ID of the added request
 
 ### `request`
 
-**Type**: `Object`
+**Type**: [`Request`](/docs/api/request)
 
 The original [`Request`](/docs/api/request) object passed to the `RequestQueue` function.
 

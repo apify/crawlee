@@ -60,7 +60,7 @@ if (purl.matches('http://www.example.com/pages/my-awesome-page')) console.log('M
 
 **Params**
 
--   **`purl`**: `String` | `RegExp` - A pseudo-URL string or a regular expression object. Using a `RegExp` instance enables more granular control,
+-   **`purl`**: `string` | `RegExp` - A pseudo-URL string or a regular expression object. Using a `RegExp` instance enables more granular control,
     such as making the matching case sensitive.
 -   **`requestTemplate`**: [`RequestOptions`](/docs/typedefs/request-options) - Options for the new [`Request`](/docs/api/request) instances created
     for matching URLs by the [`utils.enqueueLinks()`](/docs/api/utils#enqueuelinks) function.
@@ -71,13 +71,13 @@ if (purl.matches('http://www.example.com/pages/my-awesome-page')) console.log('M
 
 ## `pseudoUrl.matches(url)`
 
-**Returns**: `Boolean` - Returns `true` if given URL matches pseudo-URL.
+**Returns**: `boolean` - Returns `true` if given URL matches pseudo-URL.
 
 Determines whether a URL matches this pseudo-URL pattern.
 
 **Params**
 
--   **`url`**: `String` - URL to be matched.
+-   **`url`**: `string` - URL to be matched.
 
 ---
 

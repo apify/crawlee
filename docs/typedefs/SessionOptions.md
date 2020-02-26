@@ -25,7 +25,7 @@ Number of seconds after which the session is considered as expired.
 
 ### `userData`
 
-**Type**: `Object`
+**Type**: `object`
 
 Object where custom user data can be stored. For example custom headers.
 

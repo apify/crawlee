@@ -39,7 +39,7 @@ set interval.
 
 ## `snapshotter.start()`
 
-**Returns**: `Promise`
+**Returns**: `Promise<void>`
 
 Starts capturing snapshots at configured intervals.
 
@@ -49,7 +49,7 @@ Starts capturing snapshots at configured intervals.
 
 ## `snapshotter.stop()`
 
-**Returns**: `Promise`
+**Returns**: `Promise<void>`
 
 Stops all resource capturing.
 
@@ -59,14 +59,14 @@ Stops all resource capturing.
 
 ## `snapshotter.getMemorySample([sampleDurationMillis])`
 
-**Returns**: `Array`
+**Returns**: `Array<*>`
 
 Returns a sample of latest memory snapshots, with the size of the sample defined by the sampleDurationMillis parameter. If omitted, it returns a full
 snapshot history.
 
 **Params**
 
--   **`[sampleDurationMillis]`**: `Number`
+-   **`[sampleDurationMillis]`**: `number`
 
 ---
 
@@ -74,14 +74,14 @@ snapshot history.
 
 ## `snapshotter.getEventLoopSample([sampleDurationMillis])`
 
-**Returns**: `Array`
+**Returns**: `Array<*>`
 
 Returns a sample of latest event loop snapshots, with the size of the sample defined by the sampleDurationMillis parameter. If omitted, it returns a
 full snapshot history.
 
 **Params**
 
--   **`[sampleDurationMillis]`**: `Number`
+-   **`[sampleDurationMillis]`**: `number`
 
 ---
 
@@ -89,14 +89,14 @@ full snapshot history.
 
 ## `snapshotter.getCpuSample([sampleDurationMillis])`
 
-**Returns**: `Array`
+**Returns**: `Array<*>`
 
 Returns a sample of latest CPU snapshots, with the size of the sample defined by the sampleDurationMillis parameter. If omitted, it returns a full
 snapshot history.
 
 **Params**
 
--   **`[sampleDurationMillis]`**: `Number`
+-   **`[sampleDurationMillis]`**: `number`
 
 ---
 
@@ -104,13 +104,13 @@ snapshot history.
 
 ## `snapshotter.getClientSample(sampleDurationMillis)`
 
-**Returns**: `Array`
+**Returns**: `Array<*>`
 
 Returns a sample of latest Client snapshots, with the size of the sample defined by the sampleDurationMillis parameter. If omitted, it returns a full
 snapshot history.
 
 **Params**
 
--   **`sampleDurationMillis`**: `Number`
+-   **`sampleDurationMillis`**: `number`
 
 ---

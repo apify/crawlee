@@ -13,7 +13,7 @@ Apify extends the launch options of Puppeteer. You can use any of the Puppeteer 
 
 ### `proxyUrl`
 
-**Type**: `String`
+**Type**: `string`
 
 URL to a HTTP proxy server. It must define the port number, and it may also contain proxy username and password.
 
@@ -23,7 +23,7 @@ Example: `http://bob:pass123@proxy.example.com:1234`.
 
 ### `userAgent`
 
-**Type**: `String`
+**Type**: `string`
 
 The `User-Agent` HTTP header used by the browser. If not provided, the function sets `User-Agent` to a reasonable default to reduce the chance of
 detection of the crawler.
@@ -32,7 +32,7 @@ detection of the crawler.
 
 ### `useChrome`
 
-**Type**: `Boolean` <code> = false</code>
+**Type**: `boolean` <code> = false</code>
 
 If `true` and `executablePath` is not set, Puppeteer will launch full Google Chrome browser available on the machine rather than the bundled Chromium.
 The path to Chrome executable is taken from the `APIFY_CHROME_EXECUTABLE_PATH` environment variable if provided, or defaults to the typical Google
@@ -42,7 +42,7 @@ Chrome executable location specific for the operating system. By default, this o
 
 ### `useApifyProxy`
 
-**Type**: `Boolean` <code> = false</code>
+**Type**: `boolean` <code> = false</code>
 
 If set to `true`, Puppeteer will be configured to use [Apify Proxy](https://my.apify.com/proxy) for all connections. For more information, see the
 [documentation](https://docs.apify.com/proxy)
@@ -51,7 +51,7 @@ If set to `true`, Puppeteer will be configured to use [Apify Proxy](https://my.a
 
 ### `apifyProxyGroups`
 
-**Type**: `Array<String>`
+**Type**: `Array<string>`
 
 An array of proxy groups to be used by the [Apify Proxy](https://docs.apify.com/proxy). Only applied if the `useApifyProxy` option is `true`.
 
@@ -59,7 +59,7 @@ An array of proxy groups to be used by the [Apify Proxy](https://docs.apify.com/
 
 ### `apifyProxySession`
 
-**Type**: `String`
+**Type**: `string`
 
 Apify Proxy session identifier to be used by all the Chrome browsers. All HTTP requests going through the proxy with the same session identifier will
 use the same target proxy server (i.e. the same IP address). The identifier can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`,

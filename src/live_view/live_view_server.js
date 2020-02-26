@@ -1,14 +1,14 @@
-import http from 'http';
-import fs from 'fs-extra';
-import path from 'path';
+import * as http from 'http';
+import * as fs from 'fs-extra';
+import * as path from 'path';
 import { promisify } from 'util';
-import express from 'express';
-import socketio from 'socket.io';
-import log from 'apify-shared/log';
+import * as express from 'express';
+import * as socketio from 'socket.io';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { promisifyServerListen } from 'apify-shared/utilities';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import { Page } from 'puppeteer'; // eslint-disable-line no-unused-vars
+import log from '../utils_log';
 import { addTimeoutToPromise } from '../utils';
 import Snapshot from './snapshot';
 
@@ -109,7 +109,7 @@ class LiveViewServer {
     /**
      * Starts the HTTP server with web socket connections enabled.
      * Snapshots will not be created until a client has connected.
-     * @return {Promise}
+     * @return {Promise<void>}
      */
     async start() {
         this._isRunning = true;
@@ -126,7 +126,7 @@ class LiveViewServer {
     /**
      * Prevents the server from receiving more connections. Existing connections
      * will not be terminated, but the server will not prevent a process exit.
-     * @return {Promise}
+     * @return {Promise<void>}
      */
     async stop() {
         this.httpServer.unref();
@@ -148,7 +148,7 @@ class LiveViewServer {
      * Will time out and throw in `options.snapshotTimeoutSecs`.
      *
      * @param {Page} page
-     * @return {Promise}
+     * @return {Promise<void>}
      */
     async serve(page) {
         if (!this.hasClients()) return;

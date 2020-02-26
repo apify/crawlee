@@ -1,7 +1,6 @@
-/// <reference types="jest"/>
 import Apify from "../..";
 
-describe('Typescript with Apify.utils.log', () => {
+describe('utils.log TS', () => {
     const log = Apify.utils.log;
 
     test('log.debug()', () => {

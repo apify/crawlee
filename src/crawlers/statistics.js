@@ -1,5 +1,5 @@
-import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
+import log from '../utils_log';
 
 class Job {
     constructor() {

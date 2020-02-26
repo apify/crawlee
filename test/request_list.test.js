@@ -1,7 +1,7 @@
 import _ from 'underscore';
 import request from 'request-promise-native';
 import sinon from 'sinon';
-import log from 'apify-shared/log';
+import log from '../build/utils_log';
 import { ACTOR_EVENT_NAMES_EX } from '../build/constants';
 import Apify from '../build/index';
 import * as keyValueStore from '../build/key_value_store';

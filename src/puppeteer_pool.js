@@ -1,18 +1,23 @@
-import _ from 'underscore';
-import fs from 'fs';
-import os from 'os';
-import path from 'path';
-import util from 'util';
-import log from 'apify-shared/log';
-import LinkedList from 'apify-shared/linked_list';
-import rimraf from 'rimraf';
+import * as _ from 'underscore';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import * as util from 'util';
+import * as LinkedList from 'apify-shared/linked_list';
+import * as rimraf from 'rimraf';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { Page, Browser } from 'puppeteer'; // eslint-disable-line no-unused-vars
+import log from './utils_log';
 
-import { launchPuppeteer, LaunchPuppeteerOptions } from './puppeteer'; // eslint-disable-line no-unused-vars,import/named
 import { addTimeoutToPromise } from './utils';
 import LiveViewServer from './live_view/live_view_server';
 import EVENTS from './session_pool/events';
+
+// TYPE IMPORTS
+/* eslint-disable no-unused-vars,import/named,import/order */
+import { Page, Browser } from 'puppeteer';
+import { launchPuppeteer, LaunchPuppeteerOptions } from './puppeteer';
+import { SessionPool } from './session_pool/session_pool';
+/* eslint-enable no-unused-vars */
 
 export const BROWSER_SESSION_KEY_NAME = 'APIFY_SESSION';
 
@@ -43,7 +48,7 @@ const DISK_CACHE_DIR = path.join(os.tmpdir(), 'puppeteer_disk_cache-');
 
 /**
  * Deletes Chrome's user data directory
- * @param {String} diskCacheDir
+ * @param {string} diskCacheDir
  * @ignore
  */
 const deleteDiskCacheDir = (diskCacheDir) => {
@@ -73,7 +78,13 @@ class PuppeteerInstance {
 }
 
 /**
- * @typedef {Object} PuppeteerPoolOptions
+ * @callback LaunchPuppeteerFunction
+ * @param {LaunchPuppeteerOptions} options
+ * @returns {Promise<Browser>}
+ */
+
+/**
+ * @typedef PuppeteerPoolOptions
  * @property {boolean} [useLiveView]
  *   Enables the use of a preconfigured {@link LiveViewServer} that serves snapshots
  *   just before a page would be recycled by `PuppeteerPool`. If there are no clients
@@ -95,7 +106,7 @@ class PuppeteerInstance {
  *   it is considered retired and no more tabs will be opened. After the last tab is closed the
  *   whole browser is closed too. This parameter defines a time limit between the last tab was opened and
  *   before the browser is closed even if there are pending open tabs.
- * @property {Function} [launchPuppeteerFunction]
+ * @property {LaunchPuppeteerFunction} [launchPuppeteerFunction]
  *   Overrides the default function to launch a new Puppeteer instance.
  *   The function must return a promise resolving to
  *   [`Browser`](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-browser) instance.
@@ -215,13 +226,17 @@ class PuppeteerPool {
         checkParamOrThrow(sessionPool, 'options.sessionPool', 'Maybe Object');
 
         // Config.
-
         this.sessionPool = sessionPool;
         this.reusePages = reusePages;
         this.maxOpenPagesPerInstance = maxOpenPagesPerInstance;
         this.retireInstanceAfterRequestCount = retireInstanceAfterRequestCount;
         this.puppeteerOperationTimeoutMillis = puppeteerOperationTimeoutSecs * 1000;
         this.killInstanceAfterMillis = killInstanceAfterMillis || killInstanceAfterSecs * 1000;
+        // this is needed to avoid TS typings trying to link to the .d.ts
+        /**
+         * @type {*}
+         * @ignore
+         */
         this.recycledDiskCacheDirs = recycleDiskCache ? new LinkedList() : null;
         this.useIncognitoPages = useIncognitoPages;
         this.proxyUrls = proxyUrls ? _.shuffle(proxyUrls) : null;
@@ -631,7 +646,7 @@ class PuppeteerPool {
     /**
      * Finds a PuppeteerInstance given a Puppeteer Browser running in the instance.
      * @param {Browser} browser
-     * @return {Promise}
+     * @return {Promise<*>}
      * @ignore
      */
     async _findInstanceByBrowser(browser) {
@@ -699,7 +714,7 @@ class PuppeteerPool {
     /**
      * Tells the connected LiveViewServer to serve a snapshot when available.
      *
-     * @param page
+     * @param {Page} page
      * @return {Promise<void>}
      */
     async serveLiveViewSnapshot(page) {

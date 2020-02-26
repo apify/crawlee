@@ -1,4 +1,4 @@
-/// <reference path="../src/utils_log.d.ts" />
+/// <reference types="node" />
 import { main } from "./actor";
 import { getEnv } from "./actor";
 import { call } from "./actor";
@@ -48,50 +48,50 @@ declare const exportedUtils: {
     htmlToText: (html: string | CheerioStatic) => string;
     URL_NO_COMMAS_REGEX: RegExp;
     URL_WITH_COMMAS_REGEX: RegExp;
-    createRequestDebugInfo: (request: any, response?: import("http").IncomingMessage | import("puppeteer").Response, additionalFields?: any) => any;
-    parseContentTypeFromResponse: (response: any) => {
+    createRequestDebugInfo: (request: Request | import("./request").RequestOptions, response?: import("http").IncomingMessage | import("puppeteer").Response | undefined, additionalFields?: Object | undefined) => any;
+    parseContentTypeFromResponse: (response: import("http").IncomingMessage) => {
         type: string;
         charset: string;
     };
 } & {
     puppeteer: {
-        hideWebDriver: (page: import("puppeteer").Page) => Promise<any>;
+        hideWebDriver: (page: import("puppeteer").Page) => Promise<void>;
         injectFile: (page: import("puppeteer").Page, filePath: string, options?: {
             surviveNavigations?: boolean;
-        }) => Promise<any>;
+        } | undefined) => Promise<any>;
         injectJQuery: (page: import("puppeteer").Page) => Promise<any>;
         injectUnderscore: (page: import("puppeteer").Page) => Promise<any>;
         enqueueRequestsFromClickableElements: (page: any, selector: any, purls: any, requestQueue: any, requestOpts?: {}) => Promise<any[]>;
-        enqueueLinks: (...args: any[]) => Promise<import("./request_queue").QueueOperationInfo[]>;
+        enqueueLinks: (...args: any[]) => Promise<import("./request_queue").QueueOperationInfo[] | undefined>;
         enqueueLinksByClickingElements: typeof import("./enqueue_links/click_elements").enqueueLinksByClickingElements;
         blockRequests: (page: import("puppeteer").Page, options?: {
             urlPatterns?: string[];
             extraUrlPatterns?: string[];
-        }) => Promise<any>;
+        } | undefined) => Promise<void>;
         blockResources: (page: any, resourceTypes?: string[]) => Promise<void>;
-        cacheResponses: (page: import("puppeteer").Page, cache: any, responseUrlRules: (string | RegExp)[]) => Promise<any>;
-        compileScript: (scriptString: string, context?: any) => Function;
-        gotoExtended: (page: import("puppeteer").Page, request: Request, gotoOptions?: any) => Promise<import("puppeteer").Response>;
-        addInterceptRequestHandler: (page: any, handler: Function) => Promise<any>;
-        removeInterceptRequestHandler: (page: any, handler: Function) => Promise<any>;
-        infiniteScroll: (page: any, options?: {
+        cacheResponses: (page: import("puppeteer").Page, cache: Object, responseUrlRules: (string | RegExp)[]) => Promise<void>;
+        compileScript: (scriptString: string, context?: Object) => Function;
+        gotoExtended: (page: import("puppeteer").Page, request: Request, gotoOptions?: import("puppeteer").DirectNavigationOptions) => Promise<import("puppeteer").Response | null>;
+        addInterceptRequestHandler: (page: import("puppeteer").Page, handler: import("./puppeteer_request_interception").InterceptHandler) => Promise<void>;
+        removeInterceptRequestHandler: (page: import("puppeteer").Page, handler: import("./puppeteer_request_interception").InterceptHandler) => Promise<void>;
+        infiniteScroll: (page: import("puppeteer").Page, options?: {
             timeoutSecs?: number;
             waitForSecs?: number;
-        }) => Promise<any>;
-        saveSnapshot: (page: any, options?: {
+        } | undefined) => Promise<void>;
+        saveSnapshot: (page: import("puppeteer").Page, options?: {
             key?: string;
             screenshotQuality?: number;
             saveScreenshot?: boolean;
             saveHtml?: boolean;
             keyValueStoreName?: string;
-        }) => Promise<any>;
+        } | undefined) => Promise<void>;
     };
     social: {
         emailsFromText: (text: string) => string[];
         emailsFromUrls: (urls: string[]) => string[];
         phonesFromText: (text: string) => string[];
         phonesFromUrls: (urls: string[]) => string[];
-        parseHandlesFromHtml: (html: string, data?: any) => import("./utils_social").SocialHandles;
+        parseHandlesFromHtml: (html: string, data?: Object) => import("./utils_social").SocialHandles;
         EMAIL_REGEX: RegExp;
         EMAIL_REGEX_GLOBAL: RegExp;
         LINKEDIN_REGEX: RegExp;
@@ -105,32 +105,35 @@ declare const exportedUtils: {
         YOUTUBE_REGEX: RegExp;
         YOUTUBE_REGEX_GLOBAL: RegExp;
     };
-    log: any;
+    log: typeof log;
     enqueueLinks: typeof enqueueLinks;
-    requestAsBrowser: (options: import("./utils_request").RequestAsBrowserOptions) => Promise<any>;
+    requestAsBrowser: (options: import("./utils_request").RequestAsBrowserOptions) => Promise<import("stream").Readable | import("http").IncomingMessage>;
 };
+import log from "./utils_log";
 import { enqueueLinks } from "./enqueue_links/enqueue_links";
 export { main, getEnv, call, callTask, metamorph, getMemoryInfo, getApifyProxyUrl, isAtHome, apifyClient as client, addWebhook, AutoscaledPool, BasicCrawler, CheerioCrawler, pushData, openDataset, events, initializeEvents, stopEvents, getValue, setValue, getInput, openKeyValueStore, launchPuppeteer, PuppeteerPool, PuppeteerCrawler, PseudoUrl, Request, RequestList, openRequestList, openRequestQueue, openSessionPool, LiveViewServer, Session, exportedUtils as utils };
 
-export { ApifyEnv } from './actor'
-export { DatasetContent, DatasetConsumer, DatasetMapper, DatasetReducer } from './dataset'
-export { KeyConsumer } from './key_value_store'
-export { LaunchPuppeteerOptions } from './puppeteer'
-export { PuppeteerPoolOptions } from './puppeteer_pool'
-export { RequestOptions } from './request'
-export { RequestListOptions, RequestListState } from './request_list'
-export { QueueOperationInfo } from './request_queue'
-export { Cheerio, ActorRun } from './typedefs'
-export { MemoryInfo } from './utils'
-export { RequestAsBrowserOptions } from './utils_request'
-export { SocialHandles } from './utils_social'
-export { AutoscaledPoolOptions } from './autoscaling/autoscaled_pool'
-export { SnapshotterOptions } from './autoscaling/snapshotter'
-export { SystemInfo, SystemStatusOptions } from './autoscaling/system_status'
-export { BasicCrawlerOptions, HandleRequest, HandleRequestInputs, HandleFailedRequest, HandleFailedRequestInput } from './crawlers/basic_crawler'
-export { CheerioCrawlerOptions, PrepareRequestInputs, PrepareRequest, CheerioHandlePageInputs, CheerioHandlePage } from './crawlers/cheerio_crawler'
-export { PuppeteerCrawlerOptions, PuppeteerHandlePageInputs, PuppeteerHandlePage, PuppeteerGotoInputs, PuppeteerGoto, LaunchPuppeteer } from './crawlers/puppeteer_crawler'
-export { RequestTransform } from './enqueue_links/shared'
-export { SessionState, SessionOptions } from './session_pool/session'
-export { CreateSession, SessionPoolOptions } from './session_pool/session_pool'
-export { StealthOptions } from './stealth/stealth'
+export { ApifyEnv, UserFunc } from "./actor";
+export { AutoscaledPoolOptions } from "./autoscaling/autoscaled_pool";
+export { SnapshotterOptions } from "./autoscaling/snapshotter";
+export { SystemInfo, SystemStatusOptions } from "./autoscaling/system_status";
+export { BasicCrawlerOptions, HandleRequest, HandleRequestInputs, HandleFailedRequest, HandleFailedRequestInput } from "./crawlers/basic_crawler";
+export { CheerioCrawlerOptions, PrepareRequestInputs, PrepareRequest, CheerioHandlePageInputs, CheerioHandlePage } from "./crawlers/cheerio_crawler";
+export { PuppeteerCrawlerOptions, PuppeteerHandlePageInputs, PuppeteerHandlePage, PuppeteerGotoInputs, PuppeteerGoto, LaunchPuppeteer } from "./crawlers/puppeteer_crawler";
+export { DatasetContent, DatasetConsumer, DatasetMapper, DatasetReducer } from "./dataset";
+export { RequestTransform } from "./enqueue_links/shared";
+export { KeyConsumer } from "./key_value_store";
+export { LaunchPuppeteerOptions } from "./puppeteer";
+export { LaunchPuppeteerFunction, PuppeteerPoolOptions } from "./puppeteer_pool";
+export { InterceptHandler } from "./puppeteer_request_interception";
+export { RequestOptions } from "./request";
+export { RequestListInput, SourceInput, RequestListOptions, RequestListState } from "./request_list";
+export { QueueOperationInfo } from "./request_queue";
+export { SessionState, SessionOptions } from "./session_pool/session";
+export { CreateSession, SessionPoolOptions } from "./session_pool/session_pool";
+export { StealthOptions } from "./stealth/stealth";
+export { ActorRun } from "./typedefs";
+export { MemoryInfo } from "./utils";
+export { LoggerOptions } from "./utils_log";
+export { RequestAsBrowserOptions, AbortFunction } from "./utils_request";
+export { SocialHandles } from "./utils_social";

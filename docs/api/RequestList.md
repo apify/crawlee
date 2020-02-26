@@ -133,7 +133,7 @@ Returns `true` if all requests were already handled and there are no more left.
 
 ## `requestList.fetchNextRequest()`
 
-**Returns**: [`Promise<Request>`](/docs/api/request)
+**Returns**: [`Promise<(Request|null)>`](/docs/api/request)
 
 Gets the next [`Request`](/docs/api/request) to process. First, the function gets a request previously reclaimed using the
 [`RequestList.reclaimRequest()`](/docs/api/request-list#reclaimrequest) function, if there is any. Otherwise it gets the next request from sources.
@@ -174,7 +174,7 @@ Reclaims request to the list if its processing failed. The request will become a
 
 ## `requestList.length()`
 
-**Returns**: `Number`
+**Returns**: `number`
 
 Returns the total number of unique requests present in the `RequestList`.
 
@@ -184,7 +184,7 @@ Returns the total number of unique requests present in the `RequestList`.
 
 ## `requestList.handledCount()`
 
-**Returns**: `Number`
+**Returns**: `number`
 
 Returns number of handled requests.
 

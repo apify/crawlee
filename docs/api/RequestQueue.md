@@ -66,6 +66,18 @@ await queue.reclaimRequest(request2);
 
 ---
 
+<a name="exports.requestqueue"></a>
+
+## `new RequestQueue(queueId, [queueName], [clientKey])`
+
+**Params**
+
+-   **`queueId`**: `string`
+-   **`[queueName]`**: `string`
+-   **`[clientKey]`**: `string`
+
+---
+
 <a name="addrequest"></a>
 
 ## `requestQueue.addRequest(request, [options])`
@@ -85,7 +97,7 @@ function.
 -   **`request`**: [`Request`](/docs/api/request) | [`RequestOptions`](/docs/typedefs/request-options) - [`Request`](/docs/api/request) object or
     vanilla object with request data. Note that the function sets the `uniqueKey` and `id` fields to the passed object.
 -   **`[options]`**: `Object`
-    -   **`[.forefront]`**: `Boolean` <code> = false</code> - If `true`, the request will be added to the foremost position in the queue.
+    -   **`[.forefront]`**: `boolean` <code> = false</code> - If `true`, the request will be added to the foremost position in the queue.
 
 ---
 
@@ -93,13 +105,13 @@ function.
 
 ## `requestQueue.getRequest(requestId)`
 
-**Returns**: [`Promise<Request>`](/docs/api/request) - Returns the request object, or `null` if it was not found.
+**Returns**: [`Promise<(Request|null)>`](/docs/api/request) - Returns the request object, or `null` if it was not found.
 
 Gets the request from the queue specified by ID.
 
 **Params**
 
--   **`requestId`**: `String` - ID of the request.
+-   **`requestId`**: `string` - ID of the request.
 
 ---
 
@@ -107,7 +119,7 @@ Gets the request from the queue specified by ID.
 
 ## `requestQueue.fetchNextRequest()`
 
-**Returns**: [`Promise<Request>`](/docs/api/request) - Returns the request object or `null` if there are no more pending requests.
+**Returns**: [`Promise<(Request|null)>`](/docs/api/request) - Returns the request object or `null` if there are no more pending requests.
 
 Returns a next request in the queue to be processed, or `null` if there are no more pending requests.
 
@@ -149,7 +161,7 @@ parameter. For example, this lets you store the number of retries or error messa
 **Params**
 
 -   **`request`**: [`Request`](/docs/api/request)
--   **`[options]`**: `Object` - **`[.forefront]`**: `Boolean` <code> = false</code> - If `true` then the request it placed to the beginning of the
+-   **`[options]`**: `Object` - **`[.forefront]`**: `boolean` <code> = false</code> - If `true` then the request it placed to the beginning of the
     queue, so that it's returned in the next call to [`RequestQueue.fetchNextRequest()`](/docs/api/request-queue#fetchnextrequest). By default, it's
     put to the end of the queue.
 
@@ -159,7 +171,7 @@ parameter. For example, this lets you store the number of retries or error messa
 
 ## `requestQueue.isEmpty()`
 
-**Returns**: `Promise<Boolean>`
+**Returns**: `Promise<boolean>`
 
 Resolves to `true` if the next call to [`RequestQueue.fetchNextRequest()`](/docs/api/request-queue#fetchnextrequest) would return `null`, otherwise it
 resolves to `false`. Note that even if the queue is empty, there might be some pending requests currently being processed. If you need to ensure that
@@ -171,7 +183,7 @@ there is no activity in the queue, use [`RequestQueue.isFinished()`](/docs/api/r
 
 ## `requestQueue.isFinished()`
 
-**Returns**: `Promise<Boolean>`
+**Returns**: `Promise<boolean>`
 
 Resolves to `true` if all requests were already handled and there are no more left. Due to the nature of distributed storage used by the queue, the
 function might occasionally return a false negative, but it will never return a false positive.
@@ -182,7 +194,7 @@ function might occasionally return a false negative, but it will never return a 
 
 ## `requestQueue.drop()`
 
-**Returns**: `Promise`
+**Returns**: `Promise<void>`
 
 Removes the queue either from the Apify Cloud storage or from the local directory, depending on the mode of operation.
 
@@ -208,7 +220,7 @@ const { handledRequestCount } = await queue.getInfo();
 
 ## `requestQueue.getInfo()`
 
-**Returns**: `Promise<Object>`
+**Returns**: `Promise<object>`
 
 Returns an object containing general information about the request queue.
 

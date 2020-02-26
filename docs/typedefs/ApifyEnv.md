@@ -11,7 +11,7 @@ Parsed representation of the `APIFY_XXX` environmental variables.
 
 ### `actorId`
 
-**Type**: `String` | `null`
+**Type**: `string` | `null`
 
 ID of the actor (APIFY_ACTOR_ID)
 
@@ -19,7 +19,7 @@ ID of the actor (APIFY_ACTOR_ID)
 
 ### `actorRunId`
 
-**Type**: `String` | `null`
+**Type**: `string` | `null`
 
 ID of the actor run (APIFY_ACTOR_RUN_ID)
 
@@ -27,7 +27,7 @@ ID of the actor run (APIFY_ACTOR_RUN_ID)
 
 ### `actorTaskId`
 
-**Type**: `String` | `null`
+**Type**: `string` | `null`
 
 ID of the actor task (APIFY_ACTOR_TASK_ID)
 
@@ -35,7 +35,7 @@ ID of the actor task (APIFY_ACTOR_TASK_ID)
 
 ### `userId`
 
-**Type**: `String` | `null`
+**Type**: `string` | `null`
 
 ID of the user who started the actor - note that it might be different than the owner ofthe actor (APIFY_USER_ID)
 
@@ -43,7 +43,7 @@ ID of the user who started the actor - note that it might be different than the 
 
 ### `token`
 
-**Type**: `String` | `null`
+**Type**: `string` | `null`
 
 Authentication token representing privileges given to the actor run, it can be passed to various Apify APIs (APIFY_TOKEN)
 
@@ -67,7 +67,7 @@ Date when the actor will time out (APIFY_TIMEOUT_AT)
 
 ### `defaultKeyValueStoreId`
 
-**Type**: `String` | `null`
+**Type**: `string` | `null`
 
 ID of the key-value store where input and output data of this actor is stored (APIFY_DEFAULT_KEY_VALUE_STORE_ID)
 
@@ -75,7 +75,7 @@ ID of the key-value store where input and output data of this actor is stored (A
 
 ### `defaultDatasetId`
 
-**Type**: `String` | `null`
+**Type**: `string` | `null`
 
 ID of the dataset where input and output data of this actor is stored (APIFY_DEFAULT_DATASET_ID)
 
@@ -83,7 +83,7 @@ ID of the dataset where input and output data of this actor is stored (APIFY_DEF
 
 ### `memoryMbytes`
 
-**Type**: `Number` | `null`
+**Type**: `number` | `null`
 
 Amount of memory allocated for the actor, in megabytes (APIFY_MEMORY_MBYTES)
 

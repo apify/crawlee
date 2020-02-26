@@ -117,6 +117,6 @@ Tells the connected LiveViewServer to serve a snapshot when available.
 
 **Params**
 
--   **`page`**:
+-   **`page`**: `Page`
 
 ---

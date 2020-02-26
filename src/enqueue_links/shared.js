@@ -1,9 +1,14 @@
 import { URL } from 'url';
-import _ from 'underscore';
+import * as _ from 'underscore';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import PseudoUrl from '../pseudo_url';
-import Request from '../request';
+import Request from '../request'; // eslint-disable-line import/no-duplicates
 
+// TYPES IMPORT
+/* eslint-disable import/order,no-unused-vars,import/named,import/no-duplicates */
+import { RequestQueue, QueueOperationInfo } from '../request_queue';
+import { RequestOptions } from '../request';
+/* eslint-enable */
 
 const MAX_ENQUEUE_LINKS_CACHE_SIZE = 1000;
 
@@ -17,8 +22,8 @@ const enqueueLinksPseudoUrlCache = new Map();
 
 /**
  * Helper factory used in the `enqueueLinks()` and enqueueLinksByClickingElements() function.
- * @param {string[]|Object[]} pseudoUrls
- * @return {PseudoUrl[]}
+ * @param {Array<(string|Object)>} pseudoUrls
+ * @return {Array<PseudoUrl>}
  * @ignore
  */
 export function constructPseudoUrlInstances(pseudoUrls) {
@@ -46,9 +51,9 @@ export function constructPseudoUrlInstances(pseudoUrls) {
     });
 }
 /**
- * @param {string[]|Object[]} requestOptions
- * @param {PseudoUrl[]} pseudoUrls
- * @return {Request[]}
+ * @param {Array<(string|Object)>} requestOptions
+ * @param {Array<PseudoUrl>} pseudoUrls
+ * @return {Array<Request>}
  * @ignore
  */
 export function createRequests(requestOptions, pseudoUrls) {
@@ -69,7 +74,7 @@ export function createRequests(requestOptions, pseudoUrls) {
 }
 
 /**
- * @param {string[]|Object[]} sources
+ * @param {Array<(string|Object)>} sources
  * @param {Object} [userData]
  * @ignore
  */
@@ -90,10 +95,10 @@ export function createRequestOptions(sources, userData = {}) {
 }
 
 /**
- * @param {Request[]} requests
+ * @param {Array<Request>} requests
  * @param {RequestQueue} requestQueue
  * @param {number} batchSize
- * @return {Promise<QueueOperationInfo[]>}
+ * @return {Promise<Array<QueueOperationInfo>>}
  * @ignore
  */
 export async function addRequestsToQueueInBatches(requests, requestQueue, batchSize = 5) {

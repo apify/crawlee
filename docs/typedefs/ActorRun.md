@@ -14,7 +14,7 @@ details, see [Runs.](https://docs.apify.com/actor/run)
 
 ### `id`
 
-**Type**: `String`
+**Type**: `string`
 
 Actor run ID
 
@@ -22,7 +22,7 @@ Actor run ID
 
 ### `actId`
 
-**Type**: `String`
+**Type**: `string`
 
 Actor ID
 
@@ -46,7 +46,7 @@ Time when the actor run finished. Contains `null` for running actors.
 
 ### `status`
 
-**Type**: `String`
+**Type**: `string`
 
 Status of the run. For possible values, see [Run lifecycle](https://docs.apify.com/actor/run#lifecycle) in Apify actor documentation.
 
@@ -54,7 +54,7 @@ Status of the run. For possible values, see [Run lifecycle](https://docs.apify.c
 
 ### `meta`
 
-**Type**: `Object`
+**Type**: `object`
 
 Actor run meta-data. For example:
 
@@ -70,7 +70,7 @@ Actor run meta-data. For example:
 
 ### `stats`
 
-**Type**: `Object`
+**Type**: `object`
 
 An object containing various actor run statistics. For example:
 
@@ -88,7 +88,7 @@ Beware that object fields might change in future releases.
 
 ### `options`
 
-**Type**: `Object`
+**Type**: `object`
 
 Actor run options. For example:
 
@@ -105,7 +105,7 @@ Actor run options. For example:
 
 ### `buildId`
 
-**Type**: `String`
+**Type**: `string`
 
 ID of the actor build used for the run. For details, see [Builds](https://docs.apify.com/actor/build) in Apify actor documentation.
 
@@ -113,7 +113,7 @@ ID of the actor build used for the run. For details, see [Builds](https://docs.a
 
 ### `buildNumber`
 
-**Type**: `String`
+**Type**: `string`
 
 Number of the actor build used for the run. For example, `0.0.10`.
 
@@ -121,7 +121,7 @@ Number of the actor build used for the run. For example, `0.0.10`.
 
 ### `exitCode`
 
-**Type**: `Number`
+**Type**: `number`
 
 Exit code of the actor run process. It's `null` if actor is still running.
 
@@ -129,7 +129,7 @@ Exit code of the actor run process. It's `null` if actor is still running.
 
 ### `defaultKeyValueStoreId`
 
-**Type**: `String`
+**Type**: `string`
 
 ID of the default key-value store associated with the actor run. See [`KeyValueStore`](/docs/api/key-value-store) for details.
 
@@ -137,7 +137,7 @@ ID of the default key-value store associated with the actor run. See [`KeyValueS
 
 ### `defaultDatasetId`
 
-**Type**: `String`
+**Type**: `string`
 
 ID of the default dataset associated with the actor run. See [`Dataset`](/docs/api/dataset) for details.
 
@@ -145,7 +145,7 @@ ID of the default dataset associated with the actor run. See [`Dataset`](/docs/a
 
 ### `defaultRequestQueueId`
 
-**Type**: `String`
+**Type**: `string`
 
 ID of the default request queue associated with the actor run. See [`RequestQueue`](/docs/api/request-queue) for details.
 
@@ -153,7 +153,7 @@ ID of the default request queue associated with the actor run. See [`RequestQueu
 
 ### `containerUrl`
 
-**Type**: `String`
+**Type**: `string`
 
 URL on which the web server running inside actor run's Docker container can be accessed. For more details, see
 [Container web server](https://docs.apify.com/actor/run#container-web-server) in Apify actor documentation.
@@ -162,7 +162,7 @@ URL on which the web server running inside actor run's Docker container can be a
 
 ### `output`
 
-**Type**: `Object`
+**Type**: `object` | `null` | `undefined`
 
 Contains output of the actor run. The value is `null` or `undefined` in case the actor is still running, or if you pass `false` to the `fetchOutput`
 option of [`Apify.call()`](/docs/api/apify#call).

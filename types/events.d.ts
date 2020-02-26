@@ -6,4 +6,4 @@ export function stopEvents(): void;
  * @ignore
  */
 declare const events: EventEmitter;
-import { EventEmitter } from "node/events";
+import { EventEmitter } from  "events";

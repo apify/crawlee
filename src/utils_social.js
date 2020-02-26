@@ -1,7 +1,7 @@
 /* eslint-disable no-continue */
-import _ from 'underscore';
-import cheerio from 'cheerio';
-import log from 'apify-shared/log';
+import * as _ from 'underscore';
+import * as cheerio from 'cheerio';
+import log from './utils_log';
 import { publicUtils } from './utils';
 
 // TODO: We could support URLs like https://www.linkedin.com/company/some-company-inc
@@ -33,8 +33,8 @@ const EMAIL_URL_PREFIX_REGEX = /^mailto:/i;
 /**
  * The function extracts email addresses from a plain text.
  * Note that the function preserves the order of emails and keep duplicates.
- * @param {String} text Text to search in.
- * @return {String[]} Array of emails addresses found.
+ * @param {string} text Text to search in.
+ * @return {string[]} Array of emails addresses found.
  * If no emails are found, the function returns an empty array.
  * @memberOf social
  */
@@ -48,8 +48,8 @@ const emailsFromText = (text) => {
  * The function extracts email addresses from a list of URLs.
  * Basically it looks for all `mailto:` URLs and returns valid email addresses from them.
  * Note that the function preserves the order of emails and keep duplicates.
- * @param {String[]} urls Array of URLs.
- * @return {String[]} Array of emails addresses found.
+ * @param {string[]} urls Array of URLs.
+ * @return {string[]} Array of emails addresses found.
  * If no emails are found, the function returns an empty array.
  * @memberOf social
  */
@@ -133,8 +133,8 @@ const SKIP_PHONE_REGEX = new RegExp(`^(${SKIP_PHONE_REGEXS.join('|')})$`, 'i');
  * The function attempts to extract phone numbers from a text. Please note that
  * the results might not be accurate, since phone numbers appear in a large variety of formats and conventions.
  * If you encounter some problems, please [file an issue](https://github.com/apifytech/apify-js/issues).
- * @param {String} text Text to search the phone numbers in.
- * @return {String[]} Array of phone numbers found.
+ * @param {string} text Text to search the phone numbers in.
+ * @return {string[]} Array of phone numbers found.
  * If no phone numbers are found, the function returns an empty array.
  * @memberOf social
  */
@@ -161,8 +161,8 @@ const phonesFromText = (text) => {
 /**
  * Finds phone number links in an array of URLs and extracts the phone numbers from them.
  * Note that the phone number links look like `tel://123456789`, `tel:/123456789` or `tel:123456789`.
- * @param {String[]} urls Array of URLs.
- * @return {String[]} Array of phone numbers found.
+ * @param {string[]} urls Array of URLs.
+ * @return {string[]} Array of phone numbers found.
  * If no phone numbers are found, the function returns an empty array.
  * @memberOf social
  */
@@ -509,14 +509,14 @@ try {
  * }
  * ```
  * @typedef SocialHandles
- * @property {String[]} emails
- * @property {String[]} phones
- * @property {String[]} phonesUncertain
- * @property {String[]} linkedIns
- * @property {String[]} twitters
- * @property {String[]} instagrams
- * @property {String[]} facebooks
- * @property {String[]} youtubes
+ * @property {string[]} emails
+ * @property {string[]} phones
+ * @property {string[]} phonesUncertain
+ * @property {string[]} linkedIns
+ * @property {string[]} twitters
+ * @property {string[]} instagrams
+ * @property {string[]} facebooks
+ * @property {string[]} youtubes
  */
 
 /**
@@ -543,7 +543,7 @@ try {
  * console.dir(result);
  * ```
  *
- * @param {String} html HTML text
+ * @param {string} html HTML text
  * @param {Object} data Optional object which will receive the `text` and `$` properties
  *   that contain text content of the HTML and `cheerio` object, respectively. This is an optimization
  *   so that the caller doesn't need to parse the HTML document again, if needed.

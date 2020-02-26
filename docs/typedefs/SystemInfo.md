@@ -11,7 +11,7 @@ Represents the current status of the system.
 
 ### `isSystemIdle`
 
-**Type**: `Boolean`
+**Type**: `boolean`
 
 If true, system is being overloaded.
 
@@ -19,7 +19,7 @@ If true, system is being overloaded.
 
 ### `memInfo`
 
-**Type**: `Object`
+**Type**: `object`
 
 Memory
 
@@ -27,12 +27,12 @@ Memory
 
 ### `eventLoopInfo`
 
-**Type**: `Object`
+**Type**: `object`
 
 ---
 
 ### `cpuInfo`
 
-**Type**: `Object`
+**Type**: `object`
 
 ---

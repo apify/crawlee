@@ -1,8 +1,8 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import log from 'apify-shared/log';
-import _ from 'underscore';
+import * as _ from 'underscore';
 import { ACTOR_EVENT_NAMES_EX } from './constants';
 import Request from './request'; // eslint-disable-line import/no-duplicates
+import log from './utils_log';
 import events from './events';
 import { getFirstKey, publicUtils } from './utils';
 import { getValue, setValue } from './key_value_store';
@@ -18,8 +18,9 @@ export const REQUESTS_PERSISTENCE_KEY = 'REQUEST_LIST_REQUESTS';
 
 const CONTENT_TYPE_BINARY = 'application/octet-stream';
 
+
 /**
- * @typedef {Object} RequestListOptions
+ * @typedef RequestListOptions
  * @property {Array<RequestOptions|Request>} [sources]
  *  An array of sources of URLs for the `RequestList`. It can be either an array of plain objects that
  *  define the `url` property, or an array of instances of the {@link Request} class.
@@ -61,7 +62,7 @@ const CONTENT_TYPE_BINARY = 'application/octet-stream';
  *
  *   If both {@link RequestListOptions.sources} and {@link RequestListOptions.sourcesFunction} are provided,
  *   the sources returned by the function will be added after the `sources`.
- * @property {String} [persistStateKey]
+ * @property {string} [persistStateKey]
  *   Identifies the key in the default key-value store under which `RequestList` periodically stores its
  *   state (i.e. which URLs were crawled and which not).
  *   If the actor is restarted, `RequestList` will read the state
@@ -69,7 +70,7 @@ const CONTENT_TYPE_BINARY = 'application/octet-stream';
  *
  *   If `persistStateKey` is not set, `RequestList` will always start from the beginning,
  *   and all the source URLs will be crawled again.
- * @property {String} [persistRequestsKey]
+ * @property {string} [persistRequestsKey]
  *   Identifies the key in the default key-value store under which the `RequestList` persists its
  *   Requests during the {@link RequestList#initialize} call.
  *   This is necessary if `persistStateKey` is set and the source URLs might potentially change,
@@ -96,7 +97,7 @@ const CONTENT_TYPE_BINARY = 'application/octet-stream';
  *
  *   Note that the preferred (and simpler) way to persist the state of crawling of the `RequestList`
  *   is to use the `stateKeyPrefix` parameter instead.
- * @property {Boolean} [keepDuplicateUrls=false]
+ * @property {boolean} [keepDuplicateUrls=false]
  *   By default, `RequestList` will deduplicate the provided URLs. Default deduplication is based
  *   on the `uniqueKey` property of passed source {@link Request} objects.
  *
@@ -437,7 +438,7 @@ export class RequestList {
      * Attempts to load state and requests using the `RequestList` configuration
      * and returns a tuple of [state, requests] where each may be null if not loaded.
      *
-     * @return {Promise<Array>}
+     * @return {Promise<Array<(RequestListState|null)>>}
      * @ignore
      */
     async _loadStateAndPersistedRequests() {
@@ -508,7 +509,7 @@ export class RequestList {
      * The function's `Promise` resolves to `null` if there are no more
      * requests to process.
      *
-     * @returns {Promise<Request>}
+     * @returns {Promise<(Request|null)>}
      */
     async fetchNextRequest() {
         this._ensureIsInitialized();
@@ -537,7 +538,6 @@ export class RequestList {
      * Marks request as handled after successful processing.
      *
      * @param {Request} request
-     *
      * @returns {Promise<void>}
      */
     async markRequestHandled(request) {
@@ -556,7 +556,6 @@ export class RequestList {
      * The request will become available in the next `this.fetchNextRequest()`.
      *
      * @param {Request} request
-     *
      * @returns {Promise<void>}
      */
     async reclaimRequest(request) {
@@ -596,7 +595,7 @@ export class RequestList {
     /**
      * Fetches URLs from requestsFromUrl and returns them in format of list of requests
      * @param source
-     * @return {Promise<RequestOptions[]>}
+     * @return {Promise<Array<RequestOptions>>}
      * @ignore
      */
     async _fetchRequestsFromUrl(source) {
@@ -692,7 +691,7 @@ export class RequestList {
     /**
      * Returns the total number of unique requests present in the `RequestList`.
      *
-     * @returns {Number}
+     * @returns {number}
      */
     length() {
         this._ensureIsInitialized();
@@ -703,7 +702,7 @@ export class RequestList {
     /**
      * Returns number of handled requests.
      *
-     * @returns {Number}
+     * @returns {number}
      */
     handledCount() {
         this._ensureIsInitialized();
@@ -746,7 +745,7 @@ export class RequestList {
  *
  *   If `null`, the list will not be persisted and will only be stored in memory. Process restart
  *   will then cause the list to be crawled again from the beginning. We suggest always using a name.
- * @param {Array<Request|RequestOptions|string>} sources
+ * @param {(SourceInput|string[])} sources
  *  An array of sources of URLs for the {@link RequestList}. It can be either an array of plain objects
  *  that define at least the `url` property, or an array of instances of the {@link Request} class.
  *
@@ -804,11 +803,11 @@ export const openRequestList = async (listName, sources, options = {}) => {
  * }
  * ```
  *
- * @typedef {Object} RequestListState
- * @property {Number} nextIndex
+ * @typedef RequestListState
+ * @property {number} nextIndex
  *   Position of the next request to be processed.
- * @property {String} nextUniqueKey
+ * @property {string} nextUniqueKey
  *   Key of the next request to be processed.
- * @property {Object<String,Boolean>} inProgress
+ * @property {Object<string,boolean>} inProgress
  *   An object mapping request keys to a boolean value respresenting whether they are being processed at the moment.
  */
