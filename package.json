@@ -70,7 +70,7 @@
         "proxy-chain": "^0.3.3",
         "request": "^2.88.0",
         "request-promise-native": "^1.0.5",
-        "rimraf": "^2.7.1",
+        "rimraf": "^3.0.2",
         "semver": "^6.3.0",
         "socket.io": "^2.2.0",
         "tough-cookie": "^3.0.1",
