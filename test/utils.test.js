@@ -133,7 +133,6 @@ describe('utils.getMemoryInfo()', () => {
 
         osMock
             .expects('freemem')
-            .once()
             .returns(222);
 
         osMock
@@ -196,12 +195,10 @@ describe('utils.getMemoryInfo()', () => {
 
         osMock
             .expects('freemem')
-            .once()
             .returns(222);
 
         osMock
             .expects('totalmem')
-            .once()
             .returns(333);
 
         let browser;

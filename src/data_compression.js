@@ -1,8 +1,8 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import stream from 'stream'; // eslint-disable-line import/no-duplicates
-import StreamArray from 'stream-json/streamers/StreamArray';
-import util from 'util';
-import zlib from 'zlib';
+import * as stream from 'stream'; // eslint-disable-line import/no-duplicates
+import * as StreamArray from 'stream-json/streamers/StreamArray';
+import * as util from 'util';
+import * as zlib from 'zlib';
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
@@ -62,7 +62,7 @@ class ArrayToJson extends stream.Readable {
  * @returns {Promise<Buffer>}
  * @ignore
  */
-exports.compressData = async (data) => {
+export const compressData = async (data) => {
     checkParamOrThrow(data, 'data', 'Array');
     const { chunks, collector } = createChunkCollector();
     await pipeline(
@@ -85,7 +85,7 @@ exports.compressData = async (data) => {
  * @returns {Promise<Array>}
  * @ignore
  */
-exports.decompressData = async (compressedData) => {
+export const decompressData = async (compressedData) => {
     checkParamOrThrow(compressedData, 'compressedData', 'Buffer');
     const { chunks, collector } = createChunkCollector({ fromValuesStream: true });
     await pipeline(
@@ -108,7 +108,7 @@ exports.decompressData = async (compressedData) => {
  * @returns {Readable}
  * @ignore
  */
-exports.createDecompress = (compressedData) => {
+export const createDecompress = (compressedData) => {
     checkParamOrThrow(compressedData, 'compressedData', 'Buffer');
     const streamArray = StreamArray.withParser();
     const destination = pluckValue(streamArray);
