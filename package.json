@@ -67,7 +67,7 @@
         "iconv-lite": "^0.5.0",
         "jquery": "^3.4.1",
         "mime-types": "^2.1.24",
-        "proxy-chain": "^0.3.3",
+        "proxy-chain": "^0.4.1",
         "request": "^2.88.0",
         "request-promise-native": "^1.0.5",
         "rimraf": "^3.0.2",
